@@ -4,7 +4,9 @@ packages:
   - "tooling/*"
 
 allowBuilds:
+  "@prisma/engines": true
   esbuild: true
+  prisma: true
   sharp: true
 
 # Single source of truth for shared dependency versions (pnpm catalog).
@@ -23,6 +25,12 @@ catalog:
   "@types/react-dom": ^19.0.3
 
   # Shared libs
+  "@prisma/adapter-pg": ^7.8.0
+  "@prisma/client": ^7.8.0
+  "@types/pg": ^8.15.5
+  dotenv: ^17.2.3
+  pg: ^8.16.3
+  prisma: ^7.8.0
   zod: ^3.24.1
 
   # Tooling

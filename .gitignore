@@ -38,8 +38,8 @@ test-results/
 
 # Prisma
 packages/db/prisma/*.db
+packages/db/src/generated/prisma/
 
 # Misc local scratch
 tmp/
 docs/discovery
-

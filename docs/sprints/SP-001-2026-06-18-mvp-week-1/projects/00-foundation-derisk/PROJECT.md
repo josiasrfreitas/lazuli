@@ -42,13 +42,13 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 
 ### [P00-03] Prisma + `packages/db`: UUIDEntity base, migrate/seed plumbing
 
-- **Status:** `ready-for-agent`
+- **Status:** `done`
 - **Depends on:** P00-02
 - **Trace:** §4.0, §3.3, §2.2
 - **Goal:** Prisma wired to PG16; `UUIDEntity` base; raw-SQL constraint migration channel; `pnpm prisma:migrate`, `pnpm prisma:seed`, `pnpm db:reset`.
 - **Acceptance:**
-  - [ ] Prisma owns ordinary schema; raw SQL migrations reserved for CHECK / partial-unique / exclusion constraints only (§3.3 v0.3).
-  - [ ] `pnpm db:reset` drops, recreates, migrates, seeds.
+  - [x] Prisma owns ordinary schema; raw SQL migrations reserved for CHECK / partial-unique / exclusion constraints only (§3.3 v0.3).
+  - [x] `pnpm db:reset` drops, recreates, migrates, seeds.
 
 ### [P00-04] Code-quality guardrails (ESLint / TS strict / boundaries)
 
