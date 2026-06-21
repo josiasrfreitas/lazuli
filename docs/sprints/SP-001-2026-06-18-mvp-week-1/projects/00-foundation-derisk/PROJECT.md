@@ -52,14 +52,14 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 
 ### [P00-04] Code-quality guardrails (ESLint / TS strict / boundaries)
 
-- **Status:** `ready-for-agent`
+- **Status:** `done`
 - **Depends on:** P00-01
 - **Trace:** §3.4
 - **Goal:** Shared `tooling/eslint`, `tooling/prettier`, `tooling/tsconfig`; strictness, complexity/size, magic-value, duplication, and dependency-boundary rules from §3.4. Prevent agents from bypassing guardrails.
 - **Acceptance:**
-  - [ ] `apps/web` → Prisma/worker-handlers import is a lint error.
-  - [ ] `packages/job-contracts` → worker-handlers import is a lint error.
-  - [ ] tsconfig strict flags + type-aware ESLint enabled per §3.4.
+  - [x] `apps/web` → Prisma/worker-handlers import is a lint error.
+  - [x] `packages/job-contracts` → worker-handlers import is a lint error.
+  - [x] tsconfig strict flags + type-aware ESLint enabled per §3.4.
 
 ### [P00-05] Quality-gate scripts
 

@@ -2,6 +2,6 @@
   // Editor convenience only. Builds/typecheck run per-package via turbo;
   // each package owns its own tsconfig extending @lazuli/tsconfig.
   "extends": "./tooling/tsconfig/base.json",
-  "include": [],
+  "include": ["scripts/**/*.ts"],
   "exclude": ["node_modules"]
 }

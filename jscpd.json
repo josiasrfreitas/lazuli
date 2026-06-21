@@ -1,0 +1,14 @@
+{
+  "threshold": 2,
+  "minLines": 8,
+  "format": ["javascript", "typescript", "tsx"],
+  "reporters": ["console"],
+  "ignorePattern": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.next/**",
+    "**/.turbo/**",
+    "**/coverage/**",
+    "**/src/generated/**"
+  ]
+}

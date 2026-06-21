@@ -28,7 +28,7 @@ export function withActiveRecordFilter<Arguments extends JsArgs>(arguments_: Arg
   return {
     ...arguments_,
     where: { ...where, deletedAt: null },
-  } as Arguments;
+  };
 }
 
 function filterUuidEntityRead({

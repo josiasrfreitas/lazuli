@@ -8,6 +8,7 @@ allowBuilds:
   esbuild: true
   prisma: true
   sharp: true
+  unrs-resolver: true
 
 # Single source of truth for shared dependency versions (pnpm catalog).
 # Packages reference these via `catalog:`.
@@ -39,3 +40,10 @@ catalog:
   eslint: ^9.18.0
   typescript-eslint: ^8.20.0
   "@eslint/js": ^9.18.0
+  eslint-import-resolver-typescript: ^4.4.5
+  eslint-plugin-import: ^2.32.0
+  eslint-plugin-security: ^4.0.1
+  eslint-plugin-sonarjs: ^4.1.0
+  eslint-plugin-unicorn: ^61.0.2
+  eslint-plugin-unused-imports: ^4.4.1
+  jscpd: ^5.0.11

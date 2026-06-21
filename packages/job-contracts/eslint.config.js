@@ -1,3 +1,6 @@
-import { baseConfig } from "@lazuli/eslint-config/base";
+import { createConfig } from "@lazuli/eslint-config/base";
 
-export default baseConfig;
+export default createConfig({
+  packageType: "job-contracts",
+  tsconfigRootDir: import.meta.dirname,
+});

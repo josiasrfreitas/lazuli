@@ -10,7 +10,8 @@
     "build": "turbo run build",
     "dev": "turbo run dev --filter=@lazuli/web",
     "dev:worker": "turbo run dev --filter=@lazuli/worker",
-    "lint": "turbo run lint",
+    "lint": "eslint eslint.config.js scripts && turbo run lint && pnpm duplication:check",
+    "duplication:check": "jscpd apps packages scripts tooling --config jscpd.json",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:db": "turbo run test:db",
@@ -22,7 +23,10 @@
     "db:reset": "pnpm -F @lazuli/db db:reset"
   },
   "devDependencies": {
+    "@lazuli/eslint-config": "workspace:*",
     "@lazuli/prettier-config": "workspace:*",
+    "eslint": "catalog:",
+    "jscpd": "catalog:",
     "prettier": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:"
