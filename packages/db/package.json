@@ -1,0 +1,23 @@
+{
+  "name": "@lazuli/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .turbo dist",
+    "prisma:migrate": "echo \"[P00-03] prisma migrate not wired yet\" && exit 0",
+    "prisma:seed": "echo \"[P00-03/P00-10] seed not wired yet\" && exit 0",
+    "db:reset": "echo \"[P00-03] db:reset not wired yet\" && exit 0"
+  },
+  "devDependencies": {
+    "@lazuli/eslint-config": "workspace:*",
+    "@lazuli/tsconfig": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

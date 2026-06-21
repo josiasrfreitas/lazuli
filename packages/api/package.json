@@ -1,0 +1,27 @@
+{
+  "name": "@lazuli/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .turbo dist"
+  },
+  "dependencies": {
+    "@lazuli/auth": "workspace:*",
+    "@lazuli/db": "workspace:*",
+    "@lazuli/domain": "workspace:*",
+    "@lazuli/job-contracts": "workspace:*",
+    "@lazuli/validators": "workspace:*"
+  },
+  "devDependencies": {
+    "@lazuli/eslint-config": "workspace:*",
+    "@lazuli/tsconfig": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

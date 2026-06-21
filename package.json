@@ -1,0 +1,31 @@
+{
+  "name": "lazuli",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@11.6.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --filter=@lazuli/web",
+    "dev:worker": "turbo run dev --filter=@lazuli/worker",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:db": "turbo run test:db",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore",
+    "prisma:migrate": "pnpm -F @lazuli/db prisma:migrate",
+    "prisma:seed": "pnpm -F @lazuli/db prisma:seed",
+    "db:reset": "pnpm -F @lazuli/db db:reset"
+  },
+  "devDependencies": {
+    "@lazuli/prettier-config": "workspace:*",
+    "prettier": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
+  },
+  "prettier": "@lazuli/prettier-config"
+}

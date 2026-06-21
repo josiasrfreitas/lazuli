@@ -1,0 +1,33 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "tooling/*"
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+# Single source of truth for shared dependency versions (pnpm catalog).
+# Packages reference these via `catalog:`.
+catalog:
+  # Language / runtime
+  typescript: ^5.7.3
+  tsx: ^4.19.2
+  "@types/node": ^22.10.5
+
+  # Web
+  next: ^15.1.6
+  react: ^19.0.0
+  react-dom: ^19.0.0
+  "@types/react": ^19.0.7
+  "@types/react-dom": ^19.0.3
+
+  # Shared libs
+  zod: ^3.24.1
+
+  # Tooling
+  turbo: ^2.3.3
+  prettier: ^3.4.2
+  eslint: ^9.18.0
+  typescript-eslint: ^8.20.0
+  "@eslint/js": ^9.18.0

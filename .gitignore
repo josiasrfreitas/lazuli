@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+.next/
+next-env.d.ts
+out/
+.turbo/
+*.tsbuildinfo
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Claude Code local settings (keep shared .claude/settings.json if added later)
+.claude/settings.local.json
+.claude/*.local.json
+
+# Test / coverage
+coverage/
+playwright-report/
+test-results/
+
+# Prisma
+packages/db/prisma/*.db
+
+# Misc local scratch
+tmp/
+docs/discovery
+

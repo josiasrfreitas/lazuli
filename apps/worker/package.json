@@ -1,0 +1,29 @@
+{
+  "name": "@lazuli/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "echo \"[later] worker bundle/image build\" && exit 0",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .turbo dist"
+  },
+  "dependencies": {
+    "@lazuli/db": "workspace:*",
+    "@lazuli/domain": "workspace:*",
+    "@lazuli/integrations": "workspace:*",
+    "@lazuli/job-contracts": "workspace:*",
+    "@lazuli/worker-handlers": "workspace:*"
+  },
+  "devDependencies": {
+    "@lazuli/eslint-config": "workspace:*",
+    "@lazuli/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}
