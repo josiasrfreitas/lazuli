@@ -19,6 +19,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "prisma:migrate": "pnpm -F @lazuli/db prisma:migrate",
+    "prisma:deploy": "pnpm -F @lazuli/db prisma:deploy",
+    "prisma:drift": "pnpm -F @lazuli/db prisma:drift",
     "prisma:seed": "pnpm -F @lazuli/db prisma:seed",
     "db:reset": "pnpm -F @lazuli/db db:reset"
   },

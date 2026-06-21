@@ -1,0 +1,49 @@
+# Playwright E2E smoke — kept off the PR hot path while the app stabilizes.
+#
+# Per ci.md / TECHNICAL_SPEC §10.1, E2E is NOT a PR gate: it runs nightly and
+# on demand only. The worker image is Playwright-capable; this workflow exercises
+# `pnpm test:e2e` against a real Postgres 16 (TECHNICAL_SPEC §2.2).
+name: E2E
+
+on:
+  schedule:
+    # 03:00 UTC nightly (~midnight in Brazil, off peak).
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E smoke
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: lazuli
+          POSTGRES_PASSWORD: lazuli
+          POSTGRES_DB: lazuli
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lazuli -d lazuli"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://lazuli:lazuli@localhost:5432/lazuli?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Apply migrations
+        run: pnpm prisma:deploy
+
+      # `test:e2e` is a pass-through stub today (apps/web). When real Playwright
+      # specs land, add the build + app-serve + browser-install steps they need;
+      # they belong here, not on the PR hot path.
+      - name: E2E tests
+        run: pnpm test:e2e

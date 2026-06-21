@@ -19,7 +19,7 @@ GitHub Actions is the concrete starting point because the repo will live on GitH
 | Typecheck            | `pnpm typecheck` (`tsc --noEmit`, strict)          |    ✅     |     ✅      |    —    |   —    |
 | Unit tests           | `pnpm test` (domain calculators)                   |    ✅     |     ✅      |    —    |   —    |
 | DB integration       | `pnpm test:db` against **Postgres 16**             |    ✅     |     ✅      |    —    |   —    |
-| Prisma migrate check | `pnpm prisma:migrate` deploy + drift check on PG16 |    ✅     |     ✅      |    —    |   —    |
+| Prisma migrate check | `pnpm prisma:deploy` + `pnpm prisma:drift` on PG16 |    ✅     |     ✅      |    —    |   —    |
 | Build                | `pnpm build` (turbo)                               |    ✅     |     ✅      |    —    |   —    |
 | E2E smoke            | `pnpm test:e2e` (Playwright)                       |     —     |      —      |   ✅    |   ✅   |
 
