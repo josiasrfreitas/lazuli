@@ -7,7 +7,7 @@
 ## Objetivo do sistema
 
 O sistema concentra a operação diária da escola em três frentes:
- 
+
 - alunos, responsáveis, turmas, calendário e matrícula;
 - chamada dos professores pelo celular, com controle de frequência por semestre;
 - recebíveis, pagamentos registrados, inadimplência e relatórios básicos.
@@ -24,10 +24,10 @@ digitação manual.
 
 ## Quem usa no MVP
 
-| Perfil | Como entra no MVP | O que faz |
-|---|---|---|
-| Administração / coordenação | Acesso completo | Alunos, turmas, matrícula, calendário, chamadas, Portal, recebíveis e relatórios |
-| Professor | Acesso pelo celular | Vê suas turmas, marca chamada, corrige chamada do dia e consulta histórico |
+| Perfil                      | Como entra no MVP   | O que faz                                                                        |
+| --------------------------- | ------------------- | -------------------------------------------------------------------------------- |
+| Administração / coordenação | Acesso completo     | Alunos, turmas, matrícula, calendário, chamadas, Portal, recebíveis e relatórios |
+| Professor                   | Acesso pelo celular | Vê suas turmas, marca chamada, corrige chamada do dia e consulta histórico       |
 
 Os perfis separados de secretaria e financeiro ficam para depois. No MVP, usuários de administração
 assumem essas rotinas dentro do sistema.
@@ -45,20 +45,20 @@ assumem essas rotinas dentro do sistema.
 
 ## Áreas do sistema
 
-| Área | O que o sistema fará |
-|---|---|
-| Login e acesso | Permite entrada por conta Google da escola, com link mágico como alternativa. Mostra menus por perfil. |
-| Alunos | Guarda contato, documento, endereço, responsável, status, turma atual, frequência, financeiro e observações. |
-| Responsáveis | Registra um responsável estruturado para menores, com telefone, e-mail, documento e endereço quando houver. |
-| Turmas | Registra modalidade, horário, professor, capacidade, estágio, status e nome usado no Portal. |
-| Calendário | Marca feriados, recessos e dias sem aula. Cancela sessões futuras nesses dias. |
-| Matrícula | Liga aluno a turma, entrada, saída e estágio pedagógico. Permite avançar aluno de estágio em turma personalizada. |
-| Chamada | Professor marca `Presente` ou `Falta` no celular e confirma a sessão. O sistema não salva rascunho no servidor antes da confirmação. |
-| Reposição | Coordenação agenda visitante em outra turma. O professor vê o visitante no topo da chamada. |
-| Frequência | Calcula percentual por semestre: presenças divididas por aulas confirmadas. Reposição não aumenta o percentual. |
-| Portal | Envia chamadas confirmadas para o Portal Portal se o teste técnico permitir. Mostra falhas e permite reenvio. |
-| Recebíveis | Registra contratos, parcelas, pagamentos manuais, inadimplência e extrato por aluno. |
-| Relatórios | Gera CSV de inadimplência, CSV mensal para contabilidade, PDF de turma e resumo de frequência por aluno. |
+| Área           | O que o sistema fará                                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Login e acesso | Permite entrada por conta Google da escola, com link mágico como alternativa. Mostra menus por perfil.                               |
+| Alunos         | Guarda contato, documento, endereço, responsável, status, turma atual, frequência, financeiro e observações.                         |
+| Responsáveis   | Registra um responsável estruturado para menores, com telefone, e-mail, documento e endereço quando houver.                          |
+| Turmas         | Registra modalidade, horário, professor, capacidade, estágio, status e nome usado no Portal.                                         |
+| Calendário     | Marca feriados, recessos e dias sem aula. Cancela sessões futuras nesses dias.                                                       |
+| Matrícula      | Liga aluno a turma, entrada, saída e estágio pedagógico. Permite avançar aluno de estágio em turma personalizada.                    |
+| Chamada        | Professor marca `Presente` ou `Falta` no celular e confirma a sessão. O sistema não salva rascunho no servidor antes da confirmação. |
+| Reposição      | Coordenação agenda visitante em outra turma. O professor vê o visitante no topo da chamada.                                          |
+| Frequência     | Calcula percentual por semestre: presenças divididas por aulas confirmadas. Reposição não aumenta o percentual.                      |
+| Portal         | Envia chamadas confirmadas para o Portal Portal se o teste técnico permitir. Mostra falhas e permite reenvio.                        |
+| Recebíveis     | Registra contratos, parcelas, pagamentos manuais, inadimplência e extrato por aluno.                                                 |
+| Relatórios     | Gera CSV de inadimplência, CSV mensal para contabilidade, PDF de turma e resumo de frequência por aluno.                             |
 
 ## O que entra no MVP
 

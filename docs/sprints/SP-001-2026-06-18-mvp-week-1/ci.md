@@ -6,22 +6,22 @@ automated checks the sprint commits to. The CI provider is not locked (host deci
 [§11](../../MVP/TECHNICAL_SPEC.md#11-deployment-and-infra)); the trigger matrix below is provider-agnostic.
 GitHub Actions is the concrete starting point because the repo will live on GitHub.
 
-> Spec position: *"When CI is selected, it should run lint, typecheck, unit tests, and DB integration
-> tests against Postgres 16. E2E can start as manual or nightly until the app stabilizes."*
+> Spec position: _"When CI is selected, it should run lint, typecheck, unit tests, and DB integration
+> tests against Postgres 16. E2E can start as manual or nightly until the app stabilizes."_
 
 ## Trigger matrix
 
-| Check | Command | PR → main | Push → main | Nightly | Manual |
-|---|---|:--:|:--:|:--:|:--:|
-| Install + cache | `pnpm install --frozen-lockfile` | ✅ | ✅ | ✅ | ✅ |
-| Format | `pnpm format:check` (prettier `--check`) | ✅ | ✅ | — | — |
-| Lint | `pnpm lint` (ESLint, incl. boundary rules) | ✅ | ✅ | — | — |
-| Typecheck | `pnpm typecheck` (`tsc --noEmit`, strict) | ✅ | ✅ | — | — |
-| Unit tests | `pnpm test` (domain calculators) | ✅ | ✅ | — | — |
-| DB integration | `pnpm test:db` against **Postgres 16** | ✅ | ✅ | — | — |
-| Prisma migrate check | `pnpm prisma:migrate` deploy + drift check on PG16 | ✅ | ✅ | — | — |
-| Build | `pnpm build` (turbo) | ✅ | ✅ | — | — |
-| E2E smoke | `pnpm test:e2e` (Playwright) | — | — | ✅ | ✅ |
+| Check                | Command                                            | PR → main | Push → main | Nightly | Manual |
+| -------------------- | -------------------------------------------------- | :-------: | :---------: | :-----: | :----: |
+| Install + cache      | `pnpm install --frozen-lockfile`                   |    ✅     |     ✅      |   ✅    |   ✅   |
+| Format               | `pnpm format:check` (prettier `--check`)           |    ✅     |     ✅      |    —    |   —    |
+| Lint                 | `pnpm lint` (ESLint, incl. boundary rules)         |    ✅     |     ✅      |    —    |   —    |
+| Typecheck            | `pnpm typecheck` (`tsc --noEmit`, strict)          |    ✅     |     ✅      |    —    |   —    |
+| Unit tests           | `pnpm test` (domain calculators)                   |    ✅     |     ✅      |    —    |   —    |
+| DB integration       | `pnpm test:db` against **Postgres 16**             |    ✅     |     ✅      |    —    |   —    |
+| Prisma migrate check | `pnpm prisma:migrate` deploy + drift check on PG16 |    ✅     |     ✅      |    —    |   —    |
+| Build                | `pnpm build` (turbo)                               |    ✅     |     ✅      |    —    |   —    |
+| E2E smoke            | `pnpm test:e2e` (Playwright)                       |     —     |      —      |   ✅    |   ✅   |
 
 Legend: ✅ blocking gate · — not run on that trigger.
 

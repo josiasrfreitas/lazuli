@@ -19,10 +19,10 @@ When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the 
 The sprint tracker also uses two workflow states that are not canonical mattpocock/skills triage
 roles:
 
-| Local state | Meaning |
-| ----------- | ------- |
+| Local state | Meaning                                                                         |
+| ----------- | ------------------------------------------------------------------------------- |
 | `blocked`   | Cannot proceed until a named dependency, decision, credential, or sample exists |
-| `done`      | Completed and accepted |
+| `done`      | Completed and accepted                                                          |
 
 Use canonical roles when a skill asks for triage. Use `blocked` only when the project/issue itself
 names the blocker, and `done` only after acceptance has been satisfied.

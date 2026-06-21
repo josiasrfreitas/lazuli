@@ -11,12 +11,12 @@ This document is the source of truth for product scope, user stories, and accept
 
 ## 1. Roles
 
-| Role | Identity | Primary surface |
-|------|----------|-----------------|
-| **ADMIN** | School owner / sponsor | Web (desktop) — full access, dashboards, settings |
-| **SECRETARY** | Reception, enrollment, day-to-day ops | Web (desktop primarily, mobile capable) |
-| **TEACHER** | Classroom staff | Web (mobile-first) — attendance + roster only |
-| **FINANCE** | Bookkeeping / collections | Web (desktop) — receivables, expenses, reports |
+| Role          | Identity                              | Primary surface                                   |
+| ------------- | ------------------------------------- | ------------------------------------------------- |
+| **ADMIN**     | School owner / sponsor                | Web (desktop) — full access, dashboards, settings |
+| **SECRETARY** | Reception, enrollment, day-to-day ops | Web (desktop primarily, mobile capable)           |
+| **TEACHER**   | Classroom staff                       | Web (mobile-first) — attendance + roster only     |
+| **FINANCE**   | Bookkeeping / collections             | Web (desktop) — receivables, expenses, reports    |
 
 All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middleware (see [decisions: Better Auth](./decisions.md#d-0005-better-auth)).
 
@@ -34,6 +34,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 ## 3. Authentication & access (Auth)
 
 ### S-AUTH-1 · Staff sign in with Google `P0`
+
 **As a** staff member, **I want** to sign in with my school Google account **so that** I don't manage another password.
 
 - Google OAuth via Better Auth, restricted to pre-provisioned `User` emails.
@@ -42,6 +43,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Session lasts 30 days; "sign out" available in header.
 
 ### S-AUTH-2 · Role-based menu `P0`
+
 **As a** teacher, **I want** to only see attendance + my classes **so that** I'm not overwhelmed by finance/admin screens.
 
 - Sidebar items are filtered by role.
@@ -53,6 +55,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 ## 4. Students
 
 ### S-STU-1 · Import students from Legacy export `P0`
+
 **As an** admin/operator, **I want** the existing Legacy roster loaded into the system **so that** we start with the real students, not a typed-in list.
 
 - **MVP delivery: an ad hoc, short-lived developer-run script** — no in-app importer UI and no persistent Legacy-specific models/tables (see [D-0026](./decisions.md#d-0026-legacy-import--one-shot-script)). Re-running is a developer task.
@@ -62,6 +65,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - No in-app import with preview/column-mapping/dedup UI is planned; revisit only if repeated imports become a real operational need.
 
 ### S-STU-2 · Search students fast `P0`
+
 **As a** secretary, **I want** to find any student in under 2 keystrokes per match **so that** phone calls feel instant.
 
 - Global search bar in header (`Cmd/Ctrl+K`).
@@ -70,20 +74,23 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Results show: name, current class, status badge, phone.
 
 ### S-STU-3 · View student profile `P0`
+
 **As a** secretary, **I want** one page with everything about a student **so that** I don't switch screens during a phone call.
 
 - Sections: contact (incl. document, address, and `Responsável`/Guardian block), current/past classes, attendance summary (semester), open order + installment status, payment history, free-text notes, WhatsApp click-to-chat link (`wa.me/55...`).
 - Edit-in-place for contact + notes.
 
 ### S-STU-4 · Add / edit student `P0`
+
 **As a** secretary, **I want** to register a new student **so that** I can enroll them in a class.
 
 - Required: `fullName`, `status`. Optional: `phone`, `email`, `birthDate`, `documentType`+`documentNumber` (CPF or RG — if a number is entered, the type is required; see [D-0033](./decisions.md#d-0033-structured-guardian-and-address-entities)), `address` (logradouro, nº, complemento, bairro, cidade, UF, CEP).
 - If `birthDate` makes student a minor → a **`Responsável` (Guardian)** is required: structured fields `fullName` + `relationship` (grau de parentesco) + at least one of `phone`/`email`, optional `documentType`+`documentNumber` and `address`. The Guardian is a real entity ([D-0033](./decisions.md#d-0033-structured-guardian-and-address-entities)), not a free-text field — pick an existing guardian (e.g. a sibling's) or create one. When the minor lives with the guardian, the form may reuse the **same address** for both. The Guardian (who to call about the kid) stays distinct from the finance **Payer** (who is billed; see [D-0025](./decisions.md#d-0025-payer-as-a-first-class-entity)).
-- Status enum (revised 2026-06-17, [D-0024](./decisions.md#d-0024-student-status-set)): `ACTIVE | INACTIVE | DROPPED | SUSPENDED`. `LEAD`/`TRIAL` removed (no lead pipeline in MVP); `SUSPENDED` added for *trancamento* (paused enrollment, may return; billing rules stay manual/Phase 2).
+- Status enum (revised 2026-06-17, [D-0024](./decisions.md#d-0024-student-status-set)): `ACTIVE | INACTIVE | DROPPED | SUSPENDED`. `LEAD`/`TRIAL` removed (no lead pipeline in MVP); `SUSPENDED` added for _trancamento_ (paused enrollment, may return; billing rules stay manual/Phase 2).
 - Status change requires a confirmation modal that is **informational only** — it performs the academic/roster cascade but makes **no automatic billing change**. For `SUSPENDED` (see [D-0024](./decisions.md#d-0024-student-status-set)): closes active enrollments (`exitReason=SUSPENDED`) + active `PedagogicalProgress` (`endReason=SUSPENDED`), removes the student from active rosters, and stops future attendance accrual via the Semester∩Enrollment-window logic. Existing installments are **not** changed automatically; the modal warns staff to handle billing manually (waiver/correction/adjustment). No "pause installments? [Yes/No]" prompt.
 
 ### S-STU-5 · Student status lifecycle `Deferred`
+
 **As an** admin, **I want** status changes to be auditable **so that** dropouts are explainable.
 
 - Deferred until a rastreabilidade layer is designed ([D-0035](./decisions.md#d-0035-defer-student-field-level-traceability)). MVP stores no per-field attribution on `Student` (no `statusChangedAt`, `statusChangeReason`, `contactUpdatedAt`, etc.).
@@ -95,6 +102,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 ## 5. Course catalog, classes, sessions & calendar
 
 ### S-CAT-1 · Seeded course catalog `P0`
+
 **As the** system, **I want** the course progression catalog seeded **so that** classes and stage placement reference real, ordered stages and the Portal class name can be derived.
 
 - Model: **Track → Stage** (see [D-0030](./decisions.md#d-0030-course-catalog--track-and-stage)). `Track.category` classifies the product line (`ADULT | KIDS | TEENS | SPEED | TEENS_CONNECT | TEENSTATION | SPANISH`); no separate Program table in MVP.
@@ -105,6 +113,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Open before production seed: Speed→adult-English reconnection, Connect 1–4 completeness, exact internal/Portal naming per stage ([§15](#15-open-questions-need-answers-before--during-week-1)).
 
 ### S-CLS-1 · Manage class catalog `P0`
+
 **As an** admin, **I want** to define classes with weekly schedule **so that** sessions auto-generate and Portal submission can locate the class.
 
 - **Two independent attributes (revised 2026-06-17, [D-0021](./decisions.md#d-0021-class-modality-as-two-axes)):**
@@ -120,6 +129,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 > **Scope line — "bones now, brain later" ([D-0022](./decisions.md#d-0022-class--enrollment--bones-now-brain-later)):** MVP models the operational data (classes, modality, sessions, enrollment-as-entity, stage placement via `PedagogicalProgress`, class lineage) but **defers** pedagogical **evaluation** (grades, assessments, pass/fail, auto-progression) and assisted/constraint-driven class generation (availability solver, auto-suggest continuity, auto-split) to Phase 2.
 
 ### S-CLS-2 · Auto-generate class sessions `P0`
+
 **As the** system, **I want** to generate `ClassSession` rows **so that** teachers see today's session and Portal has data to submit.
 
 - `ClassSession.status`: `SCHEDULED | CANCELLED`. A "held" session is implicit (past date, not cancelled, **`attendanceConfirmedAt` set**) — no explicit HELD state in MVP. Session also carries `attendanceConfirmedAt?` / `attendanceConfirmedBy?` (see [D-0029](./decisions.md#d-0029-attendance--neutral-data-state-untaken-session-flag--formula)).
@@ -129,6 +139,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Re-runnable idempotently.
 
 ### S-CAL-1 · School calendar of closed days `P0`
+
 **As an** admin, **I want** to mark holidays / closed days **so that** no class sessions are generated for them.
 
 - Calendar UI: month view, click a day → mark closed with reason (feriado nacional, recesso, evento).
@@ -137,6 +148,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - **Marking a FUTURE date closed after sessions were generated**: matching future `SCHEDULED` sessions on that date are set to `CANCELLED` (reason = the closure) — never hard-deleted. Cancelled sessions need no attendance, are excluded from the denominator and Portal, and stay visible in history. Sessions that already have **committed attendance** are **not** auto-cancelled — surface a warning for manual resolution. **Re-opening** a date may regenerate the missing `SCHEDULED` sessions (idempotently, no duplicates), via the same generation logic / an explicit "regenerate" action.
 
 ### S-CAL-2 · Cancel one session (teacher absence — MVP path) `P0`
+
 **As a** secretary, **I want** to cancel a single session **so that** Portal doesn't try to submit empty attendance.
 
 - **Only teacher-absence path in MVP** — substitute assignment (S-CAL-3) is deferred to Phase 2 (see [D-0015](./decisions.md#d-0015-defer-substitute-teacher-assignment)).
@@ -145,6 +157,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Visible on class page with a strike-through and reason.
 
 ### S-CAL-3 · Substitute teacher (teacher absence path B) `P2`
+
 **As a** secretary, **I want** to assign a substitute teacher to a session **so that** class runs and attendance is still marked.
 
 > **Deferred from MVP** — see [D-0015](./decisions.md#d-0015-defer-substitute-teacher-assignment). When built, design follows [D-0013](./decisions.md#d-0013-substitute-teacher-fallback).
@@ -154,11 +167,12 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Attendance flow unchanged.
 
 ### S-CAL-4 · Semester setup `P0`
+
 **As an** admin, **I want** to define semester start/end **so that** sessions are generated against the right calendar.
 
 - Two semesters per year (≈ fev–jun, ago–dez). Fields: `name` (e.g. `2026.1`), `startDate`, `endDate` (configurable — follows the calendar, not fixed calendar halves).
 - **Dual role:** (1) generation calendar for **regular classes**; (2) the **universal 6-month reporting/evaluation bucket** for the 75% attendance flag across **all** modalities ([D-0029](./decisions.md#d-0029-attendance--neutral-data-state-untaken-session-flag--formula)). A session is bucketed into the semester whose date range contains its date.
-- Personalized / online classes are **rolling** for *generation* — not tied to semester windows (see [D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods)) — but their sessions are still bucketed by date for attendance reporting.
+- Personalized / online classes are **rolling** for _generation_ — not tied to semester windows (see [D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods)) — but their sessions are still bucketed by date for attendance reporting.
 - Creating a semester triggers session generation (S-CLS-2) for regular classes.
 - **Invariants**: semester date ranges **must not overlap**; a session date should map to **exactly one** semester. A session date that falls in **no** semester window surfaces as a setup error/warning (so attendance is never unbucketed or double-counted).
 - **Order installments do not align with the semester window** — see S-FIN-1 and [D-0011](./decisions.md#d-0011-installment-defaults). A semester drives sessions; the order drives billing, and they have independent lifespans.
@@ -167,9 +181,10 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 
 ## 6. Enrollment
 
-> **Enrollment is operational; stage placement is separate (revised 2026-06-17, [D-0031](./decisions.md#d-0031-enrollment-is-operational-stage-placement-lives-on-pedagogicalprogress)):** `Enrollment` is the student↔class operational link — `entryDate`, `exitDate?`, `exitReason?` — with **no stored `status`** (active = `exitDate IS NULL`; `exitReason ∈ {COMPLETED, TRANSFERRED, DROPPED, SUSPENDED, CORRECTION}`) and **no** `stageId`. A student's stage placement lives on **`PedagogicalProgress`** (`enrollmentId`, `stageId`, `startDate`, `endDate?`, `endReason?`); the **active** record (`endDate IS NULL`) is the current stage. REGULAR enrollments usually have one progress record (matching `Class.sharedStageId`); PERSONALIZED/PPT enrollments accumulate sequential records as the student advances **without** changing class. This replaces the earlier `stageAtEnrollment` snapshot, which drifted for PPT. Transfers, drops, and class splits are enrollment lifecycle events; movement history is preserved. The *assisted* conflict-resolution flow (transfer → reschedule class → split → move to PPT) is **deferred** — MVP supports the moves manually. Pedagogical **evaluation** (grades, assessments, pass/fail, auto-progression) stays Phase 2 ([D-0022 amendment](./decisions.md#d-0022-class--enrollment--bones-now-brain-later)).
+> **Enrollment is operational; stage placement is separate (revised 2026-06-17, [D-0031](./decisions.md#d-0031-enrollment-is-operational-stage-placement-lives-on-pedagogicalprogress)):** `Enrollment` is the student↔class operational link — `entryDate`, `exitDate?`, `exitReason?` — with **no stored `status`** (active = `exitDate IS NULL`; `exitReason ∈ {COMPLETED, TRANSFERRED, DROPPED, SUSPENDED, CORRECTION}`) and **no** `stageId`. A student's stage placement lives on **`PedagogicalProgress`** (`enrollmentId`, `stageId`, `startDate`, `endDate?`, `endReason?`); the **active** record (`endDate IS NULL`) is the current stage. REGULAR enrollments usually have one progress record (matching `Class.sharedStageId`); PERSONALIZED/PPT enrollments accumulate sequential records as the student advances **without** changing class. This replaces the earlier `stageAtEnrollment` snapshot, which drifted for PPT. Transfers, drops, and class splits are enrollment lifecycle events; movement history is preserved. The _assisted_ conflict-resolution flow (transfer → reschedule class → split → move to PPT) is **deferred** — MVP supports the moves manually. Pedagogical **evaluation** (grades, assessments, pass/fail, auto-progression) stays Phase 2 ([D-0022 amendment](./decisions.md#d-0022-class--enrollment--bones-now-brain-later)).
 
 ### S-ENR-1 · Enroll a student into a class `P0`
+
 **As a** secretary, **I want** to enroll a student in a class **so that** they appear in the roster.
 
 - Pick student → pick class → start date (defaults today). **Enrollment is rolling** — students may join at any point during a semester (see [D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods)).
@@ -179,6 +194,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - **Order prompt**: if the student has **no `ACTIVE` order** (non-cancelled, with open balance) for the relevant payer, prompt to create one (S-FIN-1). Since orders are decoupled from the academic calendar, the trigger is "no open commitment", not "no order covering this date".
 
 ### S-ENR-2 · Move / transfer between classes `P1`
+
 **As a** secretary, **I want** to move a student to a different class mid-semester **so that** their attendance history stays intact.
 
 - Sets `endDate` on current enrollment, opens new enrollment on the next class.
@@ -186,12 +202,14 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Past attendance untouched. Future sessions on old class no longer show student.
 
 ### S-ENR-3 · Drop / pause a student `P1`
+
 **As a** secretary, **I want** to mark an enrollment as dropped **so that** they stop appearing in active rosters.
 
 - Sets enrollment `endDate`; updates student `status` if no other active enrollments.
 - Prompts: "Mark remaining installments as waived? [Yes/No]."
 
 ### S-ENR-4 · Advance a student to the next stage `P0`
+
 **As an** admin/coordinator, **I want** to advance a student to the next stage **so that** PPT progression is recorded without closing their class enrollment.
 
 - One action on an enrollment. Transactional (see [D-0031](./decisions.md#d-0031-enrollment-is-operational-stage-placement-lives-on-pedagogicalprogress)): find the active `PedagogicalProgress`; find the next `Stage` in the same `Track` by `sequence + 1`; set the current record's `endDate` + `endReason = ADVANCED`; create a new active `PedagogicalProgress` at the next stage; **keep the enrollment active**.
@@ -205,6 +223,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 ## 7. Attendance
 
 ### S-ATT-1 · Mark attendance on phone `P0`
+
 **As a** teacher, **I want** to tap each student's status fast **so that** I can do it during/right after class.
 
 - Mobile-first layout: student row = photo (if any) + name + 3-day attendance streak dots + status buttons.
@@ -215,6 +234,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Offline NOT required in MVP. (Wifi: Coordinator A reports excellent everywhere; Coordinator B reports patchy in some rooms — revisit if rollout surfaces dead zones.)
 
 ### S-ATT-2 · Makeup students appear in roster `P0`
+
 **As a** teacher, **I want** to see students doing a makeup **so that** I know who's "visiting."
 
 - Secretary schedules the makeup in advance (S-ATT-3).
@@ -223,6 +243,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - **Makeup does not affect attendance %** (neither origin nor target): no present-equivalent credit, no penalty on no-show. It is tracked for coordination only ([S-REP-4](#s-rep-4--per-student-attendance-summary-p0)).
 
 ### S-ATT-3 · Schedule a makeup (coordinator / admin) `P0`
+
 **As a** coordinator (logging in as `ADMIN`) / secretary, **I want** to schedule a student into another class for one date **so that** they get credit if they show up.
 
 - Owned by the coordenação / assistente pedagógico in practice (see [D-0010](./decisions.md#d-0010-makeup-scheduling-owner)); `ADMIN` is the role they hold in our system. (`SECRETARY` backup returns when that role is re-enabled in Phase 2.)
@@ -230,6 +251,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Creates a `Makeup` row: `originEnrollmentId` = student's home enrollment, `targetClassSessionId` = target session, `scheduledAt`/`scheduledBy` (see [D-0029](./decisions.md#d-0029-attendance--neutral-data-state-untaken-session-flag--formula)). No attendance record is created at booking; outcome (`ATTENDED`/`NO_SHOW`/`CANCELLED`) is set/derived later.
 
 ### S-ATT-4 · Same-day teacher edit window `P0`
+
 **As a** teacher, **I want** to fix attendance mistakes the same day **so that** I don't have to bother the secretary.
 
 - Teacher can edit any attendance row on a session where `session.date == today` (`America/Sao_Paulo`).
@@ -237,6 +259,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Edits update `lastModifiedBy` + `lastModifiedAt`.
 
 ### S-ATT-5 · Admin fixes past attendance `P0`
+
 **As an** admin, **I want** to edit any past attendance **so that** I can reconcile against paper rolls.
 
 - No date restriction for `ADMIN` (secretary-equivalent work in MVP).
@@ -247,9 +270,10 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 ## 8. Portal auto-submission (the wedge)
 
 ### S-Portal-1 · Nightly auto-submit `P0?` (conditional — resolved by Sprint-0)
+
 **As the** system, **I want** to submit yesterday's attendance to Portal every night **so that** staff stop re-typing and the submission stops being late.
 
-> **Conditional priority (2026-06-17).** This story is **P0 only if the Sprint-0 Portal spike confirms unattended automation is feasible**; otherwise it is re-planned (degraded scope / P1) after Sprint-0. **Sprint-0 exit criteria that decide it:** (1) recorded Portal walkthrough completed; (2) master-login **2FA/OTP** question answered (no 2FA ⟹ automation viable); (3) class-location semantics confirmed for **REGULAR** *and* **PERSONALIZED/PPT** classes (PPT has no `sharedStageId` — see [§15.11](#15-open-questions-need-answers-before--during-week-1)). Until all three pass, S-Portal-1 is not "ready". See [D-0023](./decisions.md#d-0023-portal-master-login-and-name-based-matching) / [D-0027](./decisions.md#d-0027-implementation-sequencing).
+> **Conditional priority (2026-06-17).** This story is **P0 only if the Sprint-0 Portal spike confirms unattended automation is feasible**; otherwise it is re-planned (degraded scope / P1) after Sprint-0. **Sprint-0 exit criteria that decide it:** (1) recorded Portal walkthrough completed; (2) master-login **2FA/OTP** question answered (no 2FA ⟹ automation viable); (3) class-location semantics confirmed for **REGULAR** _and_ **PERSONALIZED/PPT** classes (PPT has no `sharedStageId` — see [§15.11](#15-open-questions-need-answers-before--during-week-1)). Until all three pass, S-Portal-1 is not "ready". See [D-0023](./decisions.md#d-0023-portal-master-login-and-name-based-matching) / [D-0027](./decisions.md#d-0027-implementation-sequencing).
 
 - Hatchet cron at 02:00 `America/Sao_Paulo`.
 - Cloud Run worker `portal-submit` (Playwright) logs in with a **shared school master credential** (GCP Secret Manager), navigates to each class **by its Portal class name/schedule**, and marks attendance per student.
@@ -258,10 +282,11 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Per-student submission: `present:boolean` only (no justification text).
 - Idempotent: re-running the same day doesn't duplicate; marks `portalSubmittedAt`.
 - Logs contain no student PII (use IDs only).
-- **⚠️ Wedge risk:** if the master login enforces 2FA/OTP, unattended nightly automation is not possible and the wedge degrades to an *assisted* "one-click submit with a human present." Resolving this is the top goal of the Sprint-0 Portal walkthrough (see [§15](#15-open-questions-need-answers-before--during-week-1)).
-- Current state Coordinator A reports: submission happens *"quando dá tempo / atrasamos"* — irregular and often late. The nightly cron exists as much to fix cadence as to eliminate retyping (see [D-0009](./decisions.md#d-0009-attendance-reality-and-no-late-in-mvp)).
+- **⚠️ Wedge risk:** if the master login enforces 2FA/OTP, unattended nightly automation is not possible and the wedge degrades to an _assisted_ "one-click submit with a human present." Resolving this is the top goal of the Sprint-0 Portal walkthrough (see [§15](#15-open-questions-need-answers-before--during-week-1)).
+- Current state Coordinator A reports: submission happens _"quando dá tempo / atrasamos"_ — irregular and often late. The nightly cron exists as much to fix cadence as to eliminate retyping (see [D-0009](./decisions.md#d-0009-attendance-reality-and-no-late-in-mvp)).
 
 ### S-Portal-2 · Failure alerts `P0`
+
 **As an** admin, **I want** to know immediately if Portal submission fails **so that** I can fix it before the school day starts.
 
 - On failure: Sentry captures + Resend email to admin distribution list.
@@ -269,6 +294,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - Sentry cron monitor confirms job ran at all.
 
 ### S-Portal-3 · Manual re-submit `P0`
+
 **As a** secretary, **I want** a "submit now" button **so that** I can recover from failures or push corrections.
 
 - Per session: "Reenviar para Portal" button (visible if `portalSubmittedAt` is null or if attendance changed after submission).
@@ -276,6 +302,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - UI polls and shows status: enqueued / running / success / failed + last attempt timestamp.
 
 ### S-Portal-4 · Portal health card on dashboard `P0`
+
 **As an** admin, **I want** to see Portal status at a glance **so that** I trust the automation.
 
 - Card: last 7 days × per-day badge (✅ submitted / ⚠️ partial / ❌ failed / — closed day).
@@ -293,10 +320,11 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 > - **Deferred:** the ad-hoc-charge concept (enrollment fee, materials by stage, reimbursements) is parked until modeled with the stage taxonomy.
 
 ### S-FIN-1 · Create an order (enrollment) `P0`
+
 **As an** admin, **I want** to create an order when enrolling a student **so that** the financial commitment is captured.
 
 - Fields: `payer` (select an existing `Payer` or create one — `name`, `taxId` CPF/CNPJ, `phone`, `email`), `beneficiary(ies)` (≥1 student, via `OrderBeneficiary`), `principalAmount` (final agreed principal **in cents**, BRL), `installmentCount`, `startDate`, `dueDay` (one of `{5, 10, 15, 20, 25}`, picked at signing; see [D-0011](./decisions.md#d-0011-installment-defaults)), optional `signedPdfUrl`. There is **no stored generation preset** (`ANNUAL`, `SEMESTRAL`, `PER_STAGE`, `CUSTOM`); installments may cover any commercial window defined by the negotiated count and due dates.
-- The student is the *beneficiary*; the **payer** is who is billed/contacted (see [D-0025](./decisions.md#d-0025-payer-as-a-first-class-entity)). Statements and collection target the order's payer.
+- The student is the _beneficiary_; the **payer** is who is billed/contacted (see [D-0025](./decisions.md#d-0025-payer-as-a-first-class-entity)). Statements and collection target the order's payer.
 - **No signing-discount field.** Any negotiated discount is folded into `principalAmount` (gross/list and discount-granted are not stored in MVP — accepted reporting gap). Post-generation reductions use a `DISCOUNT` `InstallmentAdjustment`.
 - On save: auto-generates `Installment` rows monthly on the chosen `dueDay`. Equal split with the **remainder on the last installment** so `Σ(installments) == principalAmount`. `firstDueDate` is derived (next occurrence of `dueDay` after `startDate`), not entered.
 - An order is **not** tied to a `Semester` or any enrollment/class/stage; it may span any commercial window. Academic context is navigated via the linked student.
@@ -304,6 +332,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - **Ad-hoc charges** that also create orders (enrollment fee, material) are **deferred** — see the core-model note above.
 
 ### S-FIN-2 · View installment status per order `P0`
+
 **As a** finance staff member, **I want** to see each installment's status **so that** I know what's open.
 
 - **Derived** `InstallmentDisplayStatus`: `UPCOMING | DUE_THIS_MONTH | OVERDUE | PAID | WAIVED` — computed at read time (priority WAIVED → PAID → OVERDUE → DUE_THIS_MONTH → UPCOMING), **never stored**, no nightly transition job ([D-0032](./decisions.md#d-0032-finance-ledger--derive-dont-store-adjustments-payer-scoped-payments)).
@@ -312,6 +341,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - **Multa** rate is `TODO: validate with school` (Coordinator B: usually not charged; Coordinator A: a fixed value/percentage, rate unstated).
 
 ### S-FIN-3 · Register a payment entry `P0`
+
 **As an** admin, **I want** to log when money came in **so that** the receivables board is accurate.
 
 - A `PaymentEntry` belongs to a **`Payer`** (the money source), not an order: `payerId`, `date`, `amountCents`, `method` (PIX/cash/transfer/card/cheque/other), `note`, optional `externalReference` (Cora id).
@@ -321,30 +351,35 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - **Batch reconcile (Cora):** multi-select installments after checking Cora → groups by payer → creates **one `PaymentEntry` per payer** + one full `PaymentAllocation` per installment (default = `remaining`), with settlement date + method + optional `externalReference`. "Paid" is derived — there is no settled flag and no Cora API import in MVP.
 
 ### S-FIN-4 · Track collection attempts (non-payment) `P1`
+
 **As a** finance staff member, **I want** to log when I contacted a student about a debt **so that** I don't double-chase.
 
 - Per overdue installment: "Registrar tentativa de cobrança" → channel (WhatsApp/call/email), outcome (no answer / promised by date / disputed), free-text note.
 - Distinct from `PaymentEntry` (which represents actual money). Stored on the installment timeline.
 
 ### S-FIN-5 · Mark installment as waived `P1`
+
 **As an** admin, **I want** to waive an installment **so that** scholarships and disputes are handled cleanly.
 
 - Requires reason. Sets `waivedAt` + `waivedReason` on the installment (the canonical full-waiver fact); `InstallmentDisplayStatus` derives to `WAIVED` and its `openBalance` contribution becomes 0 ([D-0032](./decisions.md#d-0032-finance-ledger--derive-dont-store-adjustments-payer-scoped-payments)). **Forgives only the remaining** — existing allocations/`paidAmount` are untouched and still count as revenue. Allowed only when `remaining > 0`.
 - Stamped with `lastModifiedBy`. (No `waivedById` audit field in MVP; partial forgiveness uses a negative `DISCOUNT`/`CORRECTION` adjustment instead.)
 
 ### S-FIN-6 · Receivables dashboard `P0`
+
 **As a** finance staff member, **I want** an overview of open + overdue **so that** I know who to chase today.
 
 - Cards: total expected this month, total received this month, total overdue (with age buckets: 1-7 / 8-30 / 30+ days).
-- Overdue list table: student, oldest overdue date, total open, quick-actions (WhatsApp link, register payment). *("Last contact attempt" column + "register attempt" action are added when S-FIN-4 collection logging ships (P1) — not in P0.)*
+- Overdue list table: student, oldest overdue date, total open, quick-actions (WhatsApp link, register payment). _("Last contact attempt" column + "register attempt" action are added when S-FIN-4 collection logging ships (P1) — not in P0.)_
 
 ### S-FIN-7 · Per-student statement (extrato) `P0`
+
 **As a** secretary, **I want** to generate a student's full charge + payment history **so that** I can send it when a parent asks.
 
 - Async via `report-generate` workflow → PDF in GCS.
 - Includes: all orders, all installments with status, all payment entries with allocations.
 
 ### S-FIN-8 · Discounts `P1`
+
 **As an** admin, **I want** to apply discounts **so that** sibling / scholarship cases are honored.
 
 - **Signing discount is not a stored field** ([D-0032](./decisions.md#d-0032-finance-ledger--derive-dont-store-adjustments-payer-scoped-payments)): any negotiated discount is folded into `Order.principalAmount` at creation. MVP cannot report "discount granted at signing" (accepted gap).
@@ -372,6 +407,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 > **S-NOT-1 (WhatsApp via Evolution API) and S-NOT-3 (configurable communication rules) are deferred to Phase 2** ([D-0018](./decisions.md#d-0018-notifications-mvp--transactional-email-only)). Full specs live in [PHASE-2.md](./PHASE-2.md#notifications--whatsapp--configurable-rules).
 
 ### S-NOT-2 · Email send via Resend `P0`
+
 **As the** system, **I want** to send email **so that** staff and students get formal notices.
 
 - Resend used for: magic links, Portal failure alerts, daily overdue digest to admin, transactional notices.
@@ -381,6 +417,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
   3. **Daily overdue digest** → email to the admin distribution at **07:00 `America/Sao_Paulo`**, summarizing current overdue receivables (count + total open, with age buckets) — the S-FIN-6 snapshot in email form. (This is the "daily overdue digest" referenced above; it is the only scheduled/non-event email in MVP.)
 
 ### S-NOT-4 · Per-student opt-out `P1`
+
 **As an** admin, **I want** to mark a student as "do not contact" **so that** LGPD/preferences are honored.
 
 - Boolean per student; suppresses outbound email except magic link. (WhatsApp suppression added when S-NOT-1 ships.)
@@ -390,37 +427,44 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 ## 13. Dashboards & reports
 
 ### S-DASH-1 · Admin dashboard `P0`
+
 **As an** admin, **I want** a single landing page **so that** I see the week at a glance.
 
 - Cards:
-  - Active students count + new this month (S-STU-*)
+  - Active students count + new this month (S-STU-\*)
   - Receivables snapshot: expected / received / overdue (S-FIN-6)
   - ~~Leads due follow-up today (S-LEAD-3)~~ — **deferred (leads Phase 2)**
   - Portal submission health (S-Portal-4)
   - ~~Cash position this month (S-EXP-3)~~ — **deferred (expenses Phase 2)**
 
 ### S-DASH-2 · Receivables dashboard (admin) `P0`
+
 - Receivables snapshot + overdue list (S-FIN-6). No expense summary in MVP (expenses Phase 2).
 
 ### S-DASH-3 · Teacher home `P0`
+
 - Today's classes (linked to attendance) + next session date for each.
 
 ### S-REP-1 · Overdue receivables report `P0`
+
 **As** finance, **I want** an exportable overdue list **so that** I can share with the accountant.
 
-- CSV via `report-generate`. Columns: student, order, installment due date, amount, age in days. *("Last contact attempt" column added when S-FIN-4 ships (P1).)*
+- CSV via `report-generate`. Columns: student, order, installment due date, amount, age in days. _("Last contact attempt" column added when S-FIN-4 ships (P1).)_
 
 ### S-REP-2 · Monthly accountant CSV `P0`
+
 **As** finance, **I want** a month-close CSV **so that** the accountant gets a clean ledger.
 
 - Includes: all payment entries with allocations and all waivers in the month. (Expenses excluded — module deferred to Phase 2.)
 
 ### S-REP-3 · Class roster PDF `P0`
+
 **As a** teacher / secretary, **I want** a printable roster **so that** I have paper backup.
 
 - Per class, current semester. PDF via `report-generate` → GCS.
 
 ### S-REP-4 · Per-student attendance summary `P0`
+
 **As a** secretary, **I want** a per-student semester attendance % **so that** I flag students at risk of failing the attendance minimum.
 
 - Profile section + downloadable PDF. Shows, **per `(enrollment, semester)`**: sessions held, present, absent, %. Makeup count may be shown as a **separate operational stat** (not part of the %). (No `late` column — `LATE` is not in the MVP status set; see [D-0009](./decisions.md#d-0009-attendance-reality-and-no-late-in-mvp).)

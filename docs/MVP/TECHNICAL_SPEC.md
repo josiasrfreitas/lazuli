@@ -8,7 +8,7 @@
 
 1. **Portal is a best-effort formality, not a load-bearing dependency.** The school often does not keep Portal current when students change. The submit stays a dumb, name-match, best-effort side effect that is allowed to be wrong or skipped. No persistent Portal ID/roster mapping, no fail-closed reconciliation, no nightly correctness guarantees. **Nothing else in the system may depend on Portal being correct.** Sequencing and product value do not hinge on Portal feasibility.
 2. **One worker service, not two.** `worker-default` and `worker-portal` collapse into a single `worker` app/image (Playwright-capable, low concurrency). Re-split only if Playwright load later justifies isolation.
-3. **Cross-entity invariants live in the service layer, not DB triggers.** With a single trusted writer (the tRPC BFF) and non-adversarial operators, the DB keeps only *cheap, local* constraints (CHECK, unique / partial-unique indexes, the semester exclusion constraint). All trigger-backed cross-table invariants enumerated in §4.4–4.7 are enforced in the tRPC transaction layer with named domain checks + integration tests. See §3.3.
+3. **Cross-entity invariants live in the service layer, not DB triggers.** With a single trusted writer (the tRPC BFF) and non-adversarial operators, the DB keeps only _cheap, local_ constraints (CHECK, unique / partial-unique indexes, the semester exclusion constraint). All trigger-backed cross-table invariants enumerated in §4.4–4.7 are enforced in the tRPC transaction layer with named domain checks + integration tests. See §3.3.
 4. **Money writes are serialized in-transaction.** Finance allocation/overpayment ceilings move to the service layer but must take a `SELECT … FOR UPDATE` on the target installment row inside the allocation transaction, so concurrent allocations cannot race past an installment's ceiling.
 5. **No Sentry in MVP.** Error monitoring (Sentry) is dropped for now. Rely on Cloud Run / host logs (IDs only, no PII). Revisit observability tooling post-MVP.
 
@@ -44,12 +44,12 @@ Detailed story and decision trace lives in Section 12.
 
 Increment order:
 
-| Increment | Implementation target | Included scope |
-|---|---|---|
-| Sprint 0 | Scaffold + de-risk | T3 Turbo scaffold, Prisma/Postgres, Docker Compose, seed skeleton, Legacy sample parser spike, Portal credential/API/Playwright spike, course seed validation |
-| Increment 1 | Wedge | Auth/RBAC, students/import, catalog seed, classes/sessions/calendar, enrollment/progress backbone, attendance, Portal submission mode selected by Sprint-0 result |
-| Increment 2 | Receivables | Payers, orders, installments, adjustments backbone, manual payments, allocations, batch reconcile, receivables dashboard |
-| Increment 3 | Comms/reports | Resend transactional emails, overdue digest, Portal failure alerts, report/artifact generation, dashboard polish |
+| Increment   | Implementation target | Included scope                                                                                                                                                    |
+| ----------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sprint 0    | Scaffold + de-risk    | T3 Turbo scaffold, Prisma/Postgres, Docker Compose, seed skeleton, Legacy sample parser spike, Portal credential/API/Playwright spike, course seed validation     |
+| Increment 1 | Wedge                 | Auth/RBAC, students/import, catalog seed, classes/sessions/calendar, enrollment/progress backbone, attendance, Portal submission mode selected by Sprint-0 result |
+| Increment 2 | Receivables           | Payers, orders, installments, adjustments backbone, manual payments, allocations, batch reconcile, receivables dashboard                                          |
+| Increment 3 | Comms/reports         | Resend transactional emails, overdue digest, Portal failure alerts, report/artifact generation, dashboard polish                                                  |
 
 Fields or procedures tagged `P1` below are not week-1 requirements unless an accepted decision already requires their storage for a P0 backbone. They should be implemented after the P0 path is stable.
 
@@ -59,7 +59,7 @@ These assumptions fill implementation gaps without changing product scope:
 
 1. All product date math uses `America/Sao_Paulo`; DB timestamps are stored as UTC `timestamptz`; date-only business fields use Postgres `date`.
 2. Display statuses are never stored. Store business facts and derive statuses in query/service code.
-3. Prisma owns ordinary schema definitions; raw SQL migrations own only *cheap, local* constraints — CHECK constraints, partial unique indexes, and the semester exclusion constraint. Cross-entity invariants that would otherwise need triggers are enforced in the tRPC transaction layer (single trusted writer) with named domain checks + integration tests, not DB triggers. See §3.3 (v0.3).
+3. Prisma owns ordinary schema definitions; raw SQL migrations own only _cheap, local_ constraints — CHECK constraints, partial unique indexes, and the semester exclusion constraint. Cross-entity invariants that would otherwise need triggers are enforced in the tRPC transaction layer (single trusted writer) with named domain checks + integration tests, not DB triggers. See §3.3 (v0.3).
 4. Async workflow display state is derived from job/fact timestamps (`queuedAt`, `attemptedAt`, `succeededAt`, `failedAt`) and domain success facts (`portalSubmittedAt`, artifact `completedAt`). These are operational facts, not business display statuses.
 5. Portal integration stays behind `PortalClient`. The current authoritative model uses Playwright, Portal class names, and student names per `D-0023`. The discovery report found a JSON API and `cdAluno` IDs; this remains Sprint-0 spike evidence only. API-first production behavior or persistent Portal ID mapping requires a PRD/decision update before it becomes implementation contract or core schema.
 6. `Class.portalClassName` is stored as the current locator/audit string. For REGULAR classes it is generated from structured fields once naming is validated. For PERSONALIZED/PPT, manual/imported `portalClassName` is allowed until the Sprint-0 walkthrough fully confirms naming.
@@ -199,7 +199,7 @@ Trace: `D-0029`, `D-0031`, `D-0032`, `S-REP-4`, `S-Portal-4`.
 
 ### 3.3 Database enforcement (v0.3)
 
-There is a single trusted writer — the tRPC BFF — and operators are non-adversarial. So the DB enforces only *cheap, local* rules, and cross-entity invariants move to the service layer. This is the largest effort cut in v0.3.
+There is a single trusted writer — the tRPC BFF — and operators are non-adversarial. So the DB enforces only _cheap, local_ rules, and cross-entity invariants move to the service layer. This is the largest effort cut in v0.3.
 
 **DB-enforced (keep):**
 
@@ -208,7 +208,7 @@ There is a single trusted writer — the tRPC BFF — and operators are non-adve
 - Exclusion constraint for non-overlapping semesters.
 - Composite unique indexes for natural duplicates.
 
-**Service-layer-enforced (was trigger-backed):** the following cross-row/table invariants are enforced inside tRPC transactions with named domain checks (mapped to Portuguese-BR errors) and covered by tRPC/DB integration tests — *not* DB triggers in MVP:
+**Service-layer-enforced (was trigger-backed):** the following cross-row/table invariants are enforced inside tRPC transactions with named domain checks (mapped to Portuguese-BR errors) and covered by tRPC/DB integration tests — _not_ DB triggers in MVP:
 
 - Attendance session must belong to the same class as the enrollment.
 - Attendance session date must be inside the enrollment window.
@@ -457,7 +457,7 @@ Rules:
 - `fullName` is preserved verbatim from Legacy import because Portal matching currently depends on names.
 - Search uses Postgres trigram indexes over `fullName`, phone, email, and current class code; no normalized name column is part of the domain model.
 - **`Guardian` is a first-class entity** ([D-0033](./decisions.md#d-0033-structured-guardian-and-address-entities)), replacing the former free-text `responsibleText`. `Student.guardianId` is a many-to-one FK, so siblings may share one `Guardian` row. It is the **pedagogical/contact** guardian ("who to call about the kid") and is kept **structurally distinct** from the finance `Payer` (the billing party) — there is no FK between them ([D-0025](./decisions.md#d-0025-payer-as-a-first-class-entity)).
-- `Guardian.relationship` is the *grau de parentesco* (e.g. `Mãe`, `Pai`, `Avó`), free text in MVP — not an enum.
+- `Guardian.relationship` is the _grau de parentesco_ (e.g. `Mãe`, `Pai`, `Avó`), free text in MVP — not an enum.
 - If `birthDate` means the student is a minor, `guardianId` is required by tRPC validation. DB enforcement uses a trigger because age depends on current date.
 - **`documentType` + `documentNumber` are paired** (on both `Student` and `Guardian`): if `documentNumber` is set, `documentType` must be set, enforced by tRPC validation and a CHECK constraint (`documentNumber IS NULL` OR `documentType IS NOT NULL`). One document per person — `CPF` (the tax/legal id, also used by `Payer.taxId`) or `RG`. Legacy's separate RG/CPF columns are collapsed to the populated one by the ad hoc import script; discarded source values are not persisted as raw import data.
 - **`Address` is a shared, optional FK** ([D-0033](./decisions.md#d-0033-structured-guardian-and-address-entities)): both `Student` and `Guardian` may point at the **same** `Address` row when they cohabit, or hold independent rows. Editing a shared row affects both holders by design; the UI must surface this. `onDelete: SetNull` keeps the holder when an address is removed. Address fields use Brazilian shape (`street`/logradouro, `number`/Nº, `complement`, `neighborhood`/bairro, `city`, `state`/UF, `postalCode`/CEP).
@@ -1110,19 +1110,19 @@ Trace: `D-0002`, `D-0016`, all P0 stories.
 
 ### 5.2 RBAC matrix
 
-| Router | ADMIN | TEACHER |
-|---|---:|---:|
-| `users` | full MVP staff management | none |
-| `students` | full | read only for students in own class roster, if needed for attendance context |
-| `catalog` | read; seed/dev writes only | read current stages for own roster context |
-| `classes` | full | read own classes |
-| `calendar` | full | read own sessions |
-| `enrollment` | full | read own class roster |
-| `attendance` | full; any date | own class sessions; same-day edit only |
-| `portal` | enqueue/retry/read health | none |
-| `finance` | full | none |
-| `reports` | full | own class roster PDF only |
-| `dashboard` | admin dashboard | teacher home only |
+| Router       |                      ADMIN |                                                                      TEACHER |
+| ------------ | -------------------------: | ---------------------------------------------------------------------------: |
+| `users`      |  full MVP staff management |                                                                         none |
+| `students`   |                       full | read only for students in own class roster, if needed for attendance context |
+| `catalog`    | read; seed/dev writes only |                                   read current stages for own roster context |
+| `classes`    |                       full |                                                             read own classes |
+| `calendar`   |                       full |                                                            read own sessions |
+| `enrollment` |                       full |                                                        read own class roster |
+| `attendance` |             full; any date |                                       own class sessions; same-day edit only |
+| `portal`     |  enqueue/retry/read health |                                                                         none |
+| `finance`    |                       full |                                                                         none |
+| `reports`    |                       full |                                                    own class roster PDF only |
+| `dashboard`  |            admin dashboard |                                                            teacher home only |
 
 Teacher resource scope:
 
@@ -1532,113 +1532,113 @@ Trace: `D-0003`, `D-0004`, `D-0007`, PRD Section 15.9.
 
 ### 12.1 Story trace
 
-| Story | Status | Spec coverage / gap |
-|---|---|---|
-| `S-AUTH-1` | P0 | Section 4.1 defines Better Auth, pre-provisioned users, unknown-email rejection boundary, 30-day sessions, sign-out, magic link/Resend. |
-| `S-AUTH-2` | P0 | Sections 4.1, 5.2, and 8 define role filtering, 403/resource checks via RBAC, teacher scope, and no MVP impersonation. |
-| `S-STU-1` | P0 | Sections 6.2 and 9.2 define one-shot Legacy script, temporary validation report, no Legacy-specific models, and verbatim name preservation. Legacy sample remains Sprint-0 open item. |
-| `S-STU-2` | P0 | Sections 4.2 and 5.3 define search fields and trigram search target. |
-| `S-STU-3` | P0 | Section 5.3 defines profile aggregate sections and `wa.me` URL; Sections 4.2, 4.6, and 4.7 provide the backing data, including the structured `Guardian` + `Address`. |
-| `S-STU-4` | P0 | Section 4.2 defines fields, `documentType`/`documentNumber`, structured `Guardian` + shared `Address`, minor/guardian requirement, status enum, and `SUSPENDED` cascade/no billing mutation. |
-| `S-STU-5` | Deferred | Student status/field-level rastreabilidade deferred ([D-0035](./decisions.md#d-0035-defer-student-field-level-traceability)); no attribution columns on `Student` in MVP. |
-| `S-CAT-1` | P0 | Section 4.3 defines Track/Stage, legacy behavior, stage-level `sequence` ordering, independent tracks (no cross-track order/equivalence), seed-only scope. Production naming seed remains open. |
-| `S-CLS-1` | P0 | Sections 4.4 and 5.3 define class fields, scheduleType/format axes, status, Portal name storage, one-teacher rule, lineage, and clone-for-next-period. |
-| `S-CLS-2` | P0 | Sections 4.4 and 6.2 define sessions, generation idempotency, closed-day skipping, rolling horizon, and setup errors. |
-| `S-CAL-1` | P0 | Sections 4.4 and 5.3 define closed days, federal holiday import procedure, future cancellation behavior, and reopen/regenerate. |
-| `S-CAL-2` | P0 | Sections 4.4 and 5.3 define per-session cancellation reason and no cancellation after committed/submitted attendance. |
-| `S-CAL-3` | P2 | Explicitly excluded by Sections 1.1 and 13; no substitute fields are modeled. |
-| `S-CAL-4` | P0 | Sections 4.4, 6.2, and 7.2 define semesters, no overlap, session generation trigger, and unbucketed-session setup errors. |
-| `S-ENR-1` | P0 | Sections 4.5 and 5.3 define enrollment creation, capacity override reason, active progress seeding, and order prompt boundary. |
-| `S-ENR-2` | P1 | Sections 4.5 and 5.3 define schema/transaction shape; endpoint is tagged P1. |
-| `S-ENR-3` | P1 | Section 5.3 records resolved assumption: academic close/drop/pause does not mutate billing automatically; staff use manual finance tools. |
-| `S-ENR-4` | P0 | Sections 4.3, 4.5, and 5.3 define next-stage lookup and progress-only advancement. |
-| `S-ATT-1` | P0 | Sections 4.6, 5.3, 7.1, and 8 define mobile attendance, explicit confirm, untaken sessions, and no offline/server-draft requirement. |
-| `S-ATT-2` | P0 | Sections 4.6 and 5.3 define makeup visitors on roster and target-session outcome capture. |
-| `S-ATT-3` | P0 | Sections 4.6 and 5.3 define scheduling makeups with advance-date constraint. |
-| `S-ATT-4` | P0 | Sections 5.2 and 5.3 define teacher own-class same-day edit via resource scope. |
-| `S-ATT-5` | P0 | Sections 4.4, 4.6, and 5.3 define admin edits, `attendanceLastCommittedAt`, and Portal retry derivation. |
-| `S-Portal-1` | Gated P0 | Sections 1.2, 1.3, 6.2, and 9.1 define Portal as gated by Sprint-0 exit criteria with automated/assisted/not-viable modes. |
-| `S-Portal-2` | P0 after Portal mode | Sections 6.2 and 9.3 define Portal failure email (no Sentry in MVP; v0.3). |
-| `S-Portal-3` | P0 after Portal mode | Sections 4.4, 5.3, and 6.2 define manual enqueue/retry and session-linked `PortalRun` facts. |
-| `S-Portal-4` | P0 | Section 7.1 defines health-card sets and precedence. |
-| `S-FIN-1` | P0 | Sections 4.7 and 5.3 define payer/order/beneficiary/installment creation, commercial schedule facts, due-day, and edit cutoff. |
-| `S-FIN-2` | P0 | Sections 4.7 and 7.1 define installment derived status, balances, interest preview config, and open multa policy. |
-| `S-FIN-3` | P0 | Sections 4.7 and 5.3 define payment entries, allocations, payer-scoped invariants, and batch reconcile. |
-| `S-FIN-4` | P1 | Excluded from P0 schema; Sections 4.7 and 7.2 state dashboards/reports do not depend on collection attempts. |
-| `S-FIN-5` | P1 | Section 4.7 stores waiver backbone required by `D-0032`; endpoint tagged P1 in Section 5.3. |
-| `S-FIN-6` | P0 | Section 7.1 defines receivables snapshot, collectible amounts, and age buckets. |
-| `S-FIN-7` | P0 | Sections 4.8, 6.2, and 7.2 define async student statement artifact generation. |
-| `S-FIN-8` | P1 | Section 4.7 stores adjustment backbone required by `D-0032`; endpoint tagged P1/minimal-admin in Section 5.3. |
-| `S-EXP-1` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-EXP-2` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-EXP-3` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-EXP-4` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-LEAD-1` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-LEAD-2` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-LEAD-3` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-LEAD-4` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-LEAD-5` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-LEAD-6` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-NOT-1` | Phase 2 | Excluded by Sections 1.1 and 13. |
-| `S-NOT-2` | P0 | Sections 6.2 and 9.3 define Resend/Mailpit, Portal failure email, D+30 idempotency, and 07:00 overdue digest. |
-| `S-NOT-3` | Phase 2 | Excluded by Sections 1.1 and 13; no notification rule table. |
-| `S-NOT-4` | P1 | Excluded from P0 schema in Section 4.2. |
-| `S-DASH-1` | P0 | Sections 7.1 and 8 define admin dashboard cards and deferred card omissions. |
-| `S-DASH-2` | P0 | Section 7.1 defines receivables dashboard metrics. |
-| `S-DASH-3` | P0 | Sections 5.2 and 8 define teacher home. |
-| `S-REP-1` | P0 | Sections 6.2 and 7.2 define overdue CSV without last-contact attempt. |
-| `S-REP-2` | P0 | Sections 6.2 and 7.2 define monthly accountant CSV excluding expenses. |
-| `S-REP-3` | P0 | Sections 6.2 and 7.2 define class roster PDF. |
-| `S-REP-4` | P0 | Sections 4.6, 6.2, and 7.2 define attendance summary formula and PDF. |
+| Story        | Status               | Spec coverage / gap                                                                                                                                                                             |
+| ------------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `S-AUTH-1`   | P0                   | Section 4.1 defines Better Auth, pre-provisioned users, unknown-email rejection boundary, 30-day sessions, sign-out, magic link/Resend.                                                         |
+| `S-AUTH-2`   | P0                   | Sections 4.1, 5.2, and 8 define role filtering, 403/resource checks via RBAC, teacher scope, and no MVP impersonation.                                                                          |
+| `S-STU-1`    | P0                   | Sections 6.2 and 9.2 define one-shot Legacy script, temporary validation report, no Legacy-specific models, and verbatim name preservation. Legacy sample remains Sprint-0 open item.           |
+| `S-STU-2`    | P0                   | Sections 4.2 and 5.3 define search fields and trigram search target.                                                                                                                            |
+| `S-STU-3`    | P0                   | Section 5.3 defines profile aggregate sections and `wa.me` URL; Sections 4.2, 4.6, and 4.7 provide the backing data, including the structured `Guardian` + `Address`.                           |
+| `S-STU-4`    | P0                   | Section 4.2 defines fields, `documentType`/`documentNumber`, structured `Guardian` + shared `Address`, minor/guardian requirement, status enum, and `SUSPENDED` cascade/no billing mutation.    |
+| `S-STU-5`    | Deferred             | Student status/field-level rastreabilidade deferred ([D-0035](./decisions.md#d-0035-defer-student-field-level-traceability)); no attribution columns on `Student` in MVP.                       |
+| `S-CAT-1`    | P0                   | Section 4.3 defines Track/Stage, legacy behavior, stage-level `sequence` ordering, independent tracks (no cross-track order/equivalence), seed-only scope. Production naming seed remains open. |
+| `S-CLS-1`    | P0                   | Sections 4.4 and 5.3 define class fields, scheduleType/format axes, status, Portal name storage, one-teacher rule, lineage, and clone-for-next-period.                                          |
+| `S-CLS-2`    | P0                   | Sections 4.4 and 6.2 define sessions, generation idempotency, closed-day skipping, rolling horizon, and setup errors.                                                                           |
+| `S-CAL-1`    | P0                   | Sections 4.4 and 5.3 define closed days, federal holiday import procedure, future cancellation behavior, and reopen/regenerate.                                                                 |
+| `S-CAL-2`    | P0                   | Sections 4.4 and 5.3 define per-session cancellation reason and no cancellation after committed/submitted attendance.                                                                           |
+| `S-CAL-3`    | P2                   | Explicitly excluded by Sections 1.1 and 13; no substitute fields are modeled.                                                                                                                   |
+| `S-CAL-4`    | P0                   | Sections 4.4, 6.2, and 7.2 define semesters, no overlap, session generation trigger, and unbucketed-session setup errors.                                                                       |
+| `S-ENR-1`    | P0                   | Sections 4.5 and 5.3 define enrollment creation, capacity override reason, active progress seeding, and order prompt boundary.                                                                  |
+| `S-ENR-2`    | P1                   | Sections 4.5 and 5.3 define schema/transaction shape; endpoint is tagged P1.                                                                                                                    |
+| `S-ENR-3`    | P1                   | Section 5.3 records resolved assumption: academic close/drop/pause does not mutate billing automatically; staff use manual finance tools.                                                       |
+| `S-ENR-4`    | P0                   | Sections 4.3, 4.5, and 5.3 define next-stage lookup and progress-only advancement.                                                                                                              |
+| `S-ATT-1`    | P0                   | Sections 4.6, 5.3, 7.1, and 8 define mobile attendance, explicit confirm, untaken sessions, and no offline/server-draft requirement.                                                            |
+| `S-ATT-2`    | P0                   | Sections 4.6 and 5.3 define makeup visitors on roster and target-session outcome capture.                                                                                                       |
+| `S-ATT-3`    | P0                   | Sections 4.6 and 5.3 define scheduling makeups with advance-date constraint.                                                                                                                    |
+| `S-ATT-4`    | P0                   | Sections 5.2 and 5.3 define teacher own-class same-day edit via resource scope.                                                                                                                 |
+| `S-ATT-5`    | P0                   | Sections 4.4, 4.6, and 5.3 define admin edits, `attendanceLastCommittedAt`, and Portal retry derivation.                                                                                        |
+| `S-Portal-1` | Gated P0             | Sections 1.2, 1.3, 6.2, and 9.1 define Portal as gated by Sprint-0 exit criteria with automated/assisted/not-viable modes.                                                                      |
+| `S-Portal-2` | P0 after Portal mode | Sections 6.2 and 9.3 define Portal failure email (no Sentry in MVP; v0.3).                                                                                                                      |
+| `S-Portal-3` | P0 after Portal mode | Sections 4.4, 5.3, and 6.2 define manual enqueue/retry and session-linked `PortalRun` facts.                                                                                                    |
+| `S-Portal-4` | P0                   | Section 7.1 defines health-card sets and precedence.                                                                                                                                            |
+| `S-FIN-1`    | P0                   | Sections 4.7 and 5.3 define payer/order/beneficiary/installment creation, commercial schedule facts, due-day, and edit cutoff.                                                                  |
+| `S-FIN-2`    | P0                   | Sections 4.7 and 7.1 define installment derived status, balances, interest preview config, and open multa policy.                                                                               |
+| `S-FIN-3`    | P0                   | Sections 4.7 and 5.3 define payment entries, allocations, payer-scoped invariants, and batch reconcile.                                                                                         |
+| `S-FIN-4`    | P1                   | Excluded from P0 schema; Sections 4.7 and 7.2 state dashboards/reports do not depend on collection attempts.                                                                                    |
+| `S-FIN-5`    | P1                   | Section 4.7 stores waiver backbone required by `D-0032`; endpoint tagged P1 in Section 5.3.                                                                                                     |
+| `S-FIN-6`    | P0                   | Section 7.1 defines receivables snapshot, collectible amounts, and age buckets.                                                                                                                 |
+| `S-FIN-7`    | P0                   | Sections 4.8, 6.2, and 7.2 define async student statement artifact generation.                                                                                                                  |
+| `S-FIN-8`    | P1                   | Section 4.7 stores adjustment backbone required by `D-0032`; endpoint tagged P1/minimal-admin in Section 5.3.                                                                                   |
+| `S-EXP-1`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-EXP-2`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-EXP-3`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-EXP-4`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-LEAD-1`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-LEAD-2`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-LEAD-3`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-LEAD-4`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-LEAD-5`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-LEAD-6`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-NOT-1`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
+| `S-NOT-2`    | P0                   | Sections 6.2 and 9.3 define Resend/Mailpit, Portal failure email, D+30 idempotency, and 07:00 overdue digest.                                                                                   |
+| `S-NOT-3`    | Phase 2              | Excluded by Sections 1.1 and 13; no notification rule table.                                                                                                                                    |
+| `S-NOT-4`    | P1                   | Excluded from P0 schema in Section 4.2.                                                                                                                                                         |
+| `S-DASH-1`   | P0                   | Sections 7.1 and 8 define admin dashboard cards and deferred card omissions.                                                                                                                    |
+| `S-DASH-2`   | P0                   | Section 7.1 defines receivables dashboard metrics.                                                                                                                                              |
+| `S-DASH-3`   | P0                   | Sections 5.2 and 8 define teacher home.                                                                                                                                                         |
+| `S-REP-1`    | P0                   | Sections 6.2 and 7.2 define overdue CSV without last-contact attempt.                                                                                                                           |
+| `S-REP-2`    | P0                   | Sections 6.2 and 7.2 define monthly accountant CSV excluding expenses.                                                                                                                          |
+| `S-REP-3`    | P0                   | Sections 6.2 and 7.2 define class roster PDF.                                                                                                                                                   |
+| `S-REP-4`    | P0                   | Sections 4.6, 6.2, and 7.2 define attendance summary formula and PDF.                                                                                                                           |
 
 ### 12.2 Decision trace
 
-| Decision | Spec coverage |
-|---|---|
-| `D-0001` | Sections 2 and 5 keep one monolithic BFF with worker processes only for runtime-heavy work. |
-| `D-0002` | Sections 2 and 5 define T3 Turbo/tRPC BFF and prohibit REST/GraphQL parallel backend. |
-| `D-0003` | Sections 2, 9.4, and 11 define GCP data/storage/secrets/IaC defaults and open host item. |
-| `D-0004` | Sections 2 and 6 define Hatchet plus Cloud Run worker services. |
-| `D-0005` | Sections 4.1, 5.2, and 9.3 define Better Auth, Google/magic link, and pre-provisioning. |
-| `D-0006` | Sections 2.2 and 10.2 define Docker Compose/local seed/quality gates. |
-| `D-0007` | Sections 6.2, 9.3, and 11 define Resend/Mailpit. Sentry dropped in MVP (v0.3). |
-| `D-0008` | Sections 4.4, 4.5, and 4.7 keep enrollment/orders decoupled from semester windows. |
-| `D-0009` | Sections 4.6 and 7.2 define present/absent only and 75% threshold. |
-| `D-0010` | Sections 4.6 and 5.3 define admin/coordinator-owned makeup scheduling. |
-| `D-0011` | Section 4.7 defines commercial installment schedule inputs, due-day choices, and generation constraints. |
-| `D-0012` | Section 4.7 defines 1% monthly interest preview and unresolved multa. |
-| `D-0013` | Sections 1.1 and 13 keep substitute-teacher design Phase 2 only. |
-| `D-0014` | Sections 4.7 and 6.2 keep Cora coexistence and avoid duplicated dunning schedule. |
-| `D-0015` | Sections 1.1, 5.2, and 13 exclude substitute assignment. |
-| `D-0016` | Sections 4.1 and 5.2 enforce ADMIN/TEACHER MVP role set. |
-| `D-0017` | Sections 4.7 and 7 limit finance to receivables/revenue tracking. |
-| `D-0018` | Sections 1.1, 6.2, and 9.3 limit notifications to transactional email. |
-| `D-0019` | Sections 1.1 and 13 exclude leads/CRM. |
-| `D-0020` | Sections 1.1 and 13 exclude expenses/cash-position/P&L. |
-| `D-0021` | Section 4.4 defines scheduleType/format axes and class-stage nullability. |
-| `D-0022` | Sections 4.4 and 4.5 keep structural bones and defer pedagogy intelligence. |
-| `D-0023` | Sections 1.2, 6.2, and 9.1 keep Portal thin and Playwright/name-based until amended. |
-| `D-0024` | Sections 4.2 and 5.3 define statuses, SUSPENDED cascade, and no automatic billing. |
-| `D-0025` | Section 4.7 defines Payer as first-class, kept structurally separate from the `Guardian` (D-0033). |
-| `D-0026` | Sections 6.2 and 9.2 define one-shot Legacy import script. |
-| `D-0027` | Sections 1.1, 6, and 10 define sequencing and gates. |
-| `D-0028` | Section 4.7 defines Order/Payer/Beneficiary/Installment/PaymentEntry model. |
-| `D-0029` | Sections 3.2, 4.6, and 7 define neutral attendance, explicit confirm, makeup, and formula. |
-| `D-0030` | Section 4.3 defines Track/Stage catalog. |
-| `D-0031` | Section 4.5 defines Enrollment vs PedagogicalProgress. |
+| Decision | Spec coverage                                                                                                                                |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `D-0001` | Sections 2 and 5 keep one monolithic BFF with worker processes only for runtime-heavy work.                                                  |
+| `D-0002` | Sections 2 and 5 define T3 Turbo/tRPC BFF and prohibit REST/GraphQL parallel backend.                                                        |
+| `D-0003` | Sections 2, 9.4, and 11 define GCP data/storage/secrets/IaC defaults and open host item.                                                     |
+| `D-0004` | Sections 2 and 6 define Hatchet plus Cloud Run worker services.                                                                              |
+| `D-0005` | Sections 4.1, 5.2, and 9.3 define Better Auth, Google/magic link, and pre-provisioning.                                                      |
+| `D-0006` | Sections 2.2 and 10.2 define Docker Compose/local seed/quality gates.                                                                        |
+| `D-0007` | Sections 6.2, 9.3, and 11 define Resend/Mailpit. Sentry dropped in MVP (v0.3).                                                               |
+| `D-0008` | Sections 4.4, 4.5, and 4.7 keep enrollment/orders decoupled from semester windows.                                                           |
+| `D-0009` | Sections 4.6 and 7.2 define present/absent only and 75% threshold.                                                                           |
+| `D-0010` | Sections 4.6 and 5.3 define admin/coordinator-owned makeup scheduling.                                                                       |
+| `D-0011` | Section 4.7 defines commercial installment schedule inputs, due-day choices, and generation constraints.                                     |
+| `D-0012` | Section 4.7 defines 1% monthly interest preview and unresolved multa.                                                                        |
+| `D-0013` | Sections 1.1 and 13 keep substitute-teacher design Phase 2 only.                                                                             |
+| `D-0014` | Sections 4.7 and 6.2 keep Cora coexistence and avoid duplicated dunning schedule.                                                            |
+| `D-0015` | Sections 1.1, 5.2, and 13 exclude substitute assignment.                                                                                     |
+| `D-0016` | Sections 4.1 and 5.2 enforce ADMIN/TEACHER MVP role set.                                                                                     |
+| `D-0017` | Sections 4.7 and 7 limit finance to receivables/revenue tracking.                                                                            |
+| `D-0018` | Sections 1.1, 6.2, and 9.3 limit notifications to transactional email.                                                                       |
+| `D-0019` | Sections 1.1 and 13 exclude leads/CRM.                                                                                                       |
+| `D-0020` | Sections 1.1 and 13 exclude expenses/cash-position/P&L.                                                                                      |
+| `D-0021` | Section 4.4 defines scheduleType/format axes and class-stage nullability.                                                                    |
+| `D-0022` | Sections 4.4 and 4.5 keep structural bones and defer pedagogy intelligence.                                                                  |
+| `D-0023` | Sections 1.2, 6.2, and 9.1 keep Portal thin and Playwright/name-based until amended.                                                         |
+| `D-0024` | Sections 4.2 and 5.3 define statuses, SUSPENDED cascade, and no automatic billing.                                                           |
+| `D-0025` | Section 4.7 defines Payer as first-class, kept structurally separate from the `Guardian` (D-0033).                                           |
+| `D-0026` | Sections 6.2 and 9.2 define one-shot Legacy import script.                                                                                   |
+| `D-0027` | Sections 1.1, 6, and 10 define sequencing and gates.                                                                                         |
+| `D-0028` | Section 4.7 defines Order/Payer/Beneficiary/Installment/PaymentEntry model.                                                                  |
+| `D-0029` | Sections 3.2, 4.6, and 7 define neutral attendance, explicit confirm, makeup, and formula.                                                   |
+| `D-0030` | Section 4.3 defines Track/Stage catalog.                                                                                                     |
+| `D-0031` | Section 4.5 defines Enrollment vs PedagogicalProgress.                                                                                       |
 | `D-0033` | Section 4.2 defines the `Guardian` + `Address` entities, `documentType`/`documentNumber`, shared-address FK, and minor/guardian requirement. |
-| `D-0032` | Sections 4.7 and 7 define derive-don't-store finance ledger, adjustments, payer-scoped payments. |
+| `D-0032` | Sections 4.7 and 7 define derive-don't-store finance ledger, adjustments, payer-scoped payments.                                             |
 
 ## 13. Adversarial Review Resolutions
 
 This draft was reviewed in parallel across four lenses: data-model integrity, source traceability, derive-don't-store correctness, and architecture/repo realism. The resulting changes are encoded above; this section records the main resolutions.
 
-| Lens | Resolution encoded |
-|---|---|
-| Data-model integrity | Added slot/session composite integrity, partial unique indexes for nullable session slots, cancellation guards, active-progress inverse constraints, progress-window exclusion, active enrollment per track, legacy/archive/capacity triggers, active Portal-name uniqueness, and user FK attribution rule. |
-| Source traceability | Replaced range-based source trace with explicit story and decision matrices; downgraded Portal API discovery to Sprint-0 spike evidence; tagged P1/gated procedures; removed P1-only `CollectionAttempt`/`doNotContact` from P0 schema. |
+| Lens                           | Resolution encoded                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Data-model integrity           | Added slot/session composite integrity, partial unique indexes for nullable session slots, cancellation guards, active-progress inverse constraints, progress-window exclusion, active enrollment per track, legacy/archive/capacity triggers, active Portal-name uniqueness, and user FK attribution rule.                                                  |
+| Source traceability            | Replaced range-based source trace with explicit story and decision matrices; downgraded Portal API discovery to Sprint-0 spike evidence; tagged P1/gated procedures; removed P1-only `CollectionAttempt`/`doNotContact` from P0 schema.                                                                                                                      |
 | Derive-don't-store correctness | Removed server-side attendance drafts; kept committed attendance behind explicit confirm; added `attendanceLastCommittedAt` for Portal retry derivation; defined Portal health precedence; made cancelled orders non-collectible; added finance non-negative/overpayment guards, D+30 email idempotency, and GCS artifact references instead of signed URLs. |
-| Architecture/repo realism | Split full MVP by `D-0027` increment, made Sprint-0 scaffold explicit, separated job contracts from worker handlers, split Cloud Run worker services, introduced `ctx.staffUser`, downgraded CI/deployment claims where decisions remain open. |
+| Architecture/repo realism      | Split full MVP by `D-0027` increment, made Sprint-0 scaffold explicit, separated job contracts from worker handlers, split Cloud Run worker services, introduced `ctx.staffUser`, downgraded CI/deployment claims where decisions remain open.                                                                                                               |
 
 Resolved assumptions introduced by review:
 

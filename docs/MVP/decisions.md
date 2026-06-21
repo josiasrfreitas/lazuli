@@ -25,28 +25,28 @@ This file replaces the old architecture decision files. Use it as the first stop
 
 ## Current Stack
 
-| Concern | Decision |
-|---|---|
-| Product shape | Single-school internal system |
-| App architecture | Monolith first, module boundaries in code |
-| Monorepo | T3 Turbo |
-| Frontend | Next.js App Router |
-| API | tRPC BFF |
-| Language | TypeScript |
-| ORM | Prisma |
-| Auth | Better Auth: Google OAuth + magic link |
-| Production DB | Cloud SQL Postgres 16 |
-| Local DB | Docker Compose Postgres 16 |
-| Workflows | Hatchet Cloud |
-| Workers | GCP Cloud Run |
-| Artifacts | GCS |
-| IaC | Pulumi TypeScript, state in GCS |
-| Email | Resend in production, Mailpit locally |
-| Observability | Sentry |
-| Web hosting | Open; Railway leading, Vercel alternative |
-| WhatsApp | Evolution API, self-hosted on GCP — **Phase 2** ([D-0018](#d-0018-notifications-mvp--transactional-email-only)) |
-| UI language | Portuguese-BR |
-| Product timezone | `America/Sao_Paulo` |
+| Concern          | Decision                                                                                                        |
+| ---------------- | --------------------------------------------------------------------------------------------------------------- |
+| Product shape    | Single-school internal system                                                                                   |
+| App architecture | Monolith first, module boundaries in code                                                                       |
+| Monorepo         | T3 Turbo                                                                                                        |
+| Frontend         | Next.js App Router                                                                                              |
+| API              | tRPC BFF                                                                                                        |
+| Language         | TypeScript                                                                                                      |
+| ORM              | Prisma                                                                                                          |
+| Auth             | Better Auth: Google OAuth + magic link                                                                          |
+| Production DB    | Cloud SQL Postgres 16                                                                                           |
+| Local DB         | Docker Compose Postgres 16                                                                                      |
+| Workflows        | Hatchet Cloud                                                                                                   |
+| Workers          | GCP Cloud Run                                                                                                   |
+| Artifacts        | GCS                                                                                                             |
+| IaC              | Pulumi TypeScript, state in GCS                                                                                 |
+| Email            | Resend in production, Mailpit locally                                                                           |
+| Observability    | Sentry                                                                                                          |
+| Web hosting      | Open; Railway leading, Vercel alternative                                                                       |
+| WhatsApp         | Evolution API, self-hosted on GCP — **Phase 2** ([D-0018](#d-0018-notifications-mvp--transactional-email-only)) |
+| UI language      | Portuguese-BR                                                                                                   |
+| Product timezone | `America/Sao_Paulo`                                                                                             |
 
 ## System Shape
 
@@ -66,43 +66,43 @@ Local development uses Docker Compose for Postgres, Mailpit, and Hatchet Lite, p
 
 ## Decision Register
 
-| ID | Decision | Status |
-|---|---|---|
-| D-0001 | Start with a monolithic architecture | Accepted |
-| D-0002 | Use T3 Turbo with a tRPC BFF | Accepted |
-| D-0003 | Use GCP for data, workers, storage, secrets, and Pulumi-managed infra | Accepted |
-| D-0004 | Use Hatchet Cloud plus GCP workers for background jobs | Accepted |
-| D-0005 | Use Better Auth with Google OAuth and magic link | Accepted |
-| D-0006 | Use Docker Compose plus seeded data for local development | Accepted |
-| D-0007 | Use Sentry and Resend; Mailpit locally | Accepted |
-| D-0008 | Model rolling enrollment and variable contract periods | Accepted |
-| D-0009 | Reflect current attendance reality; defer `LATE` | Accepted |
-| D-0010 | Makeup scheduling belongs to coordenação/admin, with secretary backup | Accepted |
-| D-0011 | Commercial installment schedule, decoupled from academic periods | Accepted |
-| D-0012 | Confirm 1% monthly interest; keep multa opt-in until rate is validated | Accepted |
-| D-0013 | Substitute teachers have no formal pool; use free-text fallback when built | Accepted, Phase 2 design |
-| D-0014 | Coexist with Cora; do not duplicate Cora dunning emails | Accepted |
-| D-0015 | Defer substitute-teacher assignment from MVP | Accepted |
-| D-0016 | Reduce MVP role set to `ADMIN` + `TEACHER` | Accepted |
-| D-0017 | Finance MVP is receivables & revenue tracking only | Accepted |
-| D-0018 | Notifications MVP is transactional email only | Accepted |
-| D-0019 | Defer leads/CRM from MVP | Accepted |
-| D-0020 | Defer expenses from MVP | Accepted |
-| D-0021 | Model class modality as two axes (scheduleType + format) | Accepted |
-| D-0022 | Class/enrollment "bones now, brain later" | Accepted |
-| D-0023 | Portal access via shared master login; match students by name | Accepted |
-| D-0024 | Student status set `ACTIVE\|INACTIVE\|DROPPED\|SUSPENDED` | Accepted |
-| D-0025 | Model payer as a first-class entity | Accepted |
-| D-0026 | Legacy import is a short-lived dev script with no import models | Accepted |
-| D-0027 | Sequencing: Sprint 0 → wedge → receivables → comms | Accepted |
-| D-0028 | Finance core model: Order · Payer · Beneficiary · Installment · PaymentEntry | Accepted |
-| D-0029 | Attendance: neutral data state, untaken-session flag, explicit % formula | Accepted |
-| D-0030 | Course catalog: Track → Stage; product-line `category`; stage-only `sequence`; independent tracks | Accepted |
-| D-0031 | Enrollment is operational; stage placement lives on PedagogicalProgress (amends D-0022) | Accepted |
-| D-0032 | Finance ledger: derive-don't-store statuses, InstallmentAdjustment, payer-scoped payments (refines D-0028) | Accepted |
-| D-0033 | Structured Guardian and Address entities | Accepted |
-| D-0034 | UUIDEntity base for all domain tables | Accepted |
-| D-0035 | Defer student field-level traceability | Accepted |
+| ID     | Decision                                                                                                   | Status                   |
+| ------ | ---------------------------------------------------------------------------------------------------------- | ------------------------ |
+| D-0001 | Start with a monolithic architecture                                                                       | Accepted                 |
+| D-0002 | Use T3 Turbo with a tRPC BFF                                                                               | Accepted                 |
+| D-0003 | Use GCP for data, workers, storage, secrets, and Pulumi-managed infra                                      | Accepted                 |
+| D-0004 | Use Hatchet Cloud plus GCP workers for background jobs                                                     | Accepted                 |
+| D-0005 | Use Better Auth with Google OAuth and magic link                                                           | Accepted                 |
+| D-0006 | Use Docker Compose plus seeded data for local development                                                  | Accepted                 |
+| D-0007 | Use Sentry and Resend; Mailpit locally                                                                     | Accepted                 |
+| D-0008 | Model rolling enrollment and variable contract periods                                                     | Accepted                 |
+| D-0009 | Reflect current attendance reality; defer `LATE`                                                           | Accepted                 |
+| D-0010 | Makeup scheduling belongs to coordenação/admin, with secretary backup                                      | Accepted                 |
+| D-0011 | Commercial installment schedule, decoupled from academic periods                                           | Accepted                 |
+| D-0012 | Confirm 1% monthly interest; keep multa opt-in until rate is validated                                     | Accepted                 |
+| D-0013 | Substitute teachers have no formal pool; use free-text fallback when built                                 | Accepted, Phase 2 design |
+| D-0014 | Coexist with Cora; do not duplicate Cora dunning emails                                                    | Accepted                 |
+| D-0015 | Defer substitute-teacher assignment from MVP                                                               | Accepted                 |
+| D-0016 | Reduce MVP role set to `ADMIN` + `TEACHER`                                                                 | Accepted                 |
+| D-0017 | Finance MVP is receivables & revenue tracking only                                                         | Accepted                 |
+| D-0018 | Notifications MVP is transactional email only                                                              | Accepted                 |
+| D-0019 | Defer leads/CRM from MVP                                                                                   | Accepted                 |
+| D-0020 | Defer expenses from MVP                                                                                    | Accepted                 |
+| D-0021 | Model class modality as two axes (scheduleType + format)                                                   | Accepted                 |
+| D-0022 | Class/enrollment "bones now, brain later"                                                                  | Accepted                 |
+| D-0023 | Portal access via shared master login; match students by name                                              | Accepted                 |
+| D-0024 | Student status set `ACTIVE\|INACTIVE\|DROPPED\|SUSPENDED`                                                  | Accepted                 |
+| D-0025 | Model payer as a first-class entity                                                                        | Accepted                 |
+| D-0026 | Legacy import is a short-lived dev script with no import models                                            | Accepted                 |
+| D-0027 | Sequencing: Sprint 0 → wedge → receivables → comms                                                         | Accepted                 |
+| D-0028 | Finance core model: Order · Payer · Beneficiary · Installment · PaymentEntry                               | Accepted                 |
+| D-0029 | Attendance: neutral data state, untaken-session flag, explicit % formula                                   | Accepted                 |
+| D-0030 | Course catalog: Track → Stage; product-line `category`; stage-only `sequence`; independent tracks          | Accepted                 |
+| D-0031 | Enrollment is operational; stage placement lives on PedagogicalProgress (amends D-0022)                    | Accepted                 |
+| D-0032 | Finance ledger: derive-don't-store statuses, InstallmentAdjustment, payer-scoped payments (refines D-0028) | Accepted                 |
+| D-0033 | Structured Guardian and Address entities                                                                   | Accepted                 |
+| D-0034 | UUIDEntity base for all domain tables                                                                      | Accepted                 |
+| D-0035 | Defer student field-level traceability                                                                     | Accepted                 |
 
 ## D-0001: Monolith First
 
@@ -126,14 +126,14 @@ Use GCP for production data, worker compute, generated artifacts, secrets, conta
 
 Expected services:
 
-| Concern | GCP service |
-|---|---|
-| Database | Cloud SQL Postgres |
-| Workers | Cloud Run jobs/services |
-| Generated files | Cloud Storage |
-| Secrets | Secret Manager |
-| Images | Artifact Registry |
-| IaC state | GCS bucket |
+| Concern         | GCP service             |
+| --------------- | ----------------------- |
+| Database        | Cloud SQL Postgres      |
+| Workers         | Cloud Run jobs/services |
+| Generated files | Cloud Storage           |
+| Secrets         | Secret Manager          |
+| Images          | Artifact Registry       |
+| IaC state       | GCS bucket              |
 
 Pulumi is the IaC tool because TypeScript matches the application stack. Web hosting remains open; Railway is the current leading candidate.
 
@@ -145,12 +145,12 @@ Use Hatchet Cloud as the workflow control plane. Run worker code on GCP Cloud Ru
 
 MVP workflows:
 
-| Workflow | Trigger | Notes |
-|---|---|---|
-| `portal-submit` | Hatchet cron and manual tRPC enqueue | Playwright submission to Portal |
-| `report-generate` | On demand | CSV/PDF reports to GCS |
-| `invoice-generate` | On demand or batch | PDF invoices/statements to GCS |
-| `notification-send` | Event/rule-driven if WhatsApp ships | Evolution API / Resend |
+| Workflow            | Trigger                              | Notes                           |
+| ------------------- | ------------------------------------ | ------------------------------- |
+| `portal-submit`     | Hatchet cron and manual tRPC enqueue | Playwright submission to Portal |
+| `report-generate`   | On demand                            | CSV/PDF reports to GCS          |
+| `invoice-generate`  | On demand or batch                   | PDF invoices/statements to GCS  |
+| `notification-send` | Event/rule-driven if WhatsApp ships  | Evolution API / Resend          |
 
 tRPC mutations enqueue workflows and return quickly with a job ID. Workers update DB rows and artifacts, and the UI polls for status/download URLs.
 
@@ -290,7 +290,7 @@ DEFERRED to Phase 2: pedagogical progress tracking, assessments, and assisted/co
 
 ~~The full stage taxonomy and **how stage is modeled** are intentionally **not decided yet** — to be mapped in a dedicated questionnaire (including stage progression/order).~~ **Resolved 2026-06-17:** the catalog model is [D-0030](#d-0030-course-catalog--track-and-stage) (Track → Stage) and stage placement is [D-0031](#d-0031-enrollment-is-operational-stage-placement-lives-on-pedagogicalprogress).
 
-**Amendment (2026-06-17) — structural progression enters MVP.** This decision originally deferred *all* pedagogical progress to Phase 2. That is refined: the MVP needs to know **where a student is pedagogically placed** (stage placement affects enrollment semantics, PPT progression, and operational continuity), so the **structural** representation of progression — the `PedagogicalProgress` entity ([D-0031](#d-0031-enrollment-is-operational-stage-placement-lives-on-pedagogicalprogress)) — is **in MVP**. What stays deferred to Phase 2 is **pedagogical evaluation** (grades, assessments, test attempts, pass/fail rules, automatic progression, skill/content-level tracking, report cards, teacher evaluation). In short: MVP models *where the student is placed*, not *how well they are performing*.
+**Amendment (2026-06-17) — structural progression enters MVP.** This decision originally deferred _all_ pedagogical progress to Phase 2. That is refined: the MVP needs to know **where a student is pedagogically placed** (stage placement affects enrollment semantics, PPT progression, and operational continuity), so the **structural** representation of progression — the `PedagogicalProgress` entity ([D-0031](#d-0031-enrollment-is-operational-stage-placement-lives-on-pedagogicalprogress)) — is **in MVP**. What stays deferred to Phase 2 is **pedagogical evaluation** (grades, assessments, test attempts, pass/fail rules, automatic progression, skill/content-level tracking, report cards, teacher evaluation). In short: MVP models _where the student is placed_, not _how well they are performing_.
 
 ## D-0023: Portal Master Login and Name-Based Matching
 
@@ -302,15 +302,15 @@ MVP intent is programmatic nightly submission. **Key risk:** if the master login
 
 ## D-0024: Student Status Set
 
-MVP student status enum is `ACTIVE | INACTIVE | DROPPED | SUSPENDED`. `LEAD`/`TRIAL` are removed (no lead pipeline, D-0019). `SUSPENDED` is added for *trancamento* (paused enrollment, may return, seat context). The billing rules for `SUSPENDED` (fine, deadline, installment impact) remain manual/Phase 2; only the state is modeled now.
+MVP student status enum is `ACTIVE | INACTIVE | DROPPED | SUSPENDED`. `LEAD`/`TRIAL` are removed (no lead pipeline, D-0019). `SUSPENDED` is added for _trancamento_ (paused enrollment, may return, seat context). The billing rules for `SUSPENDED` (fine, deadline, installment impact) remain manual/Phase 2; only the state is modeled now.
 
 **Suspension cascade (resolved 2026-06-17).** Setting a student `SUSPENDED` **closes their active enrollments** (`exitDate` = suspension date, `exitReason = SUSPENDED`) and **closes the active `PedagogicalProgress`** (`endReason = SUSPENDED`, kept distinct from `DROPPED` so suspension and dropout stay distinguishable in progress history). This removes the student from active rosters and stops the attendance denominator cleanly via the existing `Semester ∩ Enrollment window` logic ([D-0029](#d-0029-attendance--neutral-data-state-untaken-session-flag--formula)) — no phantom absences accrue. The status-change modal is **informational only** — it makes **no automatic billing change**; staff handle installments manually (waiver/correction/adjustment). "May return" is handled by **re-enrolling** later (no resumable `PAUSED` enrollment state in MVP). `SUSPENDED` is therefore a value of `Student.status`, `Enrollment.exitReason`, **and** `PedagogicalProgress.endReason`.
 
 ## D-0025: Payer as a First-Class Entity
 
-**Refined by [D-0028](#d-0028-finance-core-model--order).** The payer (billing party) is its own entity — `name`, `taxId` (CPF/CNPJ), `phone`, `email` — not just fields on the order. One payer can hold many orders; an order belongs to exactly one payer. The student is the *beneficiary*; the payer is who is billed and contacted. A broader structured guardian/household model remains deferred.
+**Refined by [D-0028](#d-0028-finance-core-model--order).** The payer (billing party) is its own entity — `name`, `taxId` (CPF/CNPJ), `phone`, `email` — not just fields on the order. One payer can hold many orders; an order belongs to exactly one payer. The student is the _beneficiary_; the payer is who is billed and contacted. A broader structured guardian/household model remains deferred.
 
-**Deliberate overlap with the `Guardian` (resolved 2026-06-17, updated 2026-06-18).** The `Guardian` ([D-0033](#d-0033-structured-guardian-and-address-entities), originally free-text *responsável*) is the **pedagogical/contact guardian** ("who to call about the kid") — a **distinct concept** from the `Payer` (the **billing party**). In practice they are often the same person, and MVP accepts the **re-entry** (the operator may retype the guardian as a Payer when creating an order). There is **no structural link** between `Guardian` and `Payer` — no shared FK — even though `Guardian` is now a structured entity ([D-0033](#d-0033-structured-guardian-and-address-entities)). Unifying them into one contact/party graph, plus household groups, stays deferred ([PRD §16](./PRD.md#16-out-of-scope-for-mvp-phase-2)). This duplication is a conscious tradeoff, not an oversight.
+**Deliberate overlap with the `Guardian` (resolved 2026-06-17, updated 2026-06-18).** The `Guardian` ([D-0033](#d-0033-structured-guardian-and-address-entities), originally free-text _responsável_) is the **pedagogical/contact guardian** ("who to call about the kid") — a **distinct concept** from the `Payer` (the **billing party**). In practice they are often the same person, and MVP accepts the **re-entry** (the operator may retype the guardian as a Payer when creating an order). There is **no structural link** between `Guardian` and `Payer` — no shared FK — even though `Guardian` is now a structured entity ([D-0033](#d-0033-structured-guardian-and-address-entities)). Unifying them into one contact/party graph, plus household groups, stays deferred ([PRD §16](./PRD.md#16-out-of-scope-for-mvp-phase-2)). This duplication is a conscious tradeoff, not an oversight.
 
 ## D-0026: Legacy Import — One-Shot Script
 
@@ -378,7 +378,7 @@ Makeup {
 }
 ```
 
-`MakeupDisplayStatus` is **derived** (house style): `CANCELLED` if `cancelledAt` → `ATTENDED` if `attendedAt` → `NO_SHOW` if the target session has ended and neither is set → else `SCHEDULED`. The visitor renders on the **target** session roster *from `Makeup` rows* (not from an attendance record); the origin session is untouched.
+`MakeupDisplayStatus` is **derived** (house style): `CANCELLED` if `cancelledAt` → `ATTENDED` if `attendedAt` → `NO_SHOW` if the target session has ended and neither is set → else `SCHEDULED`. The visitor renders on the **target** session roster _from `Makeup` rows_ (not from an attendance record); the origin session is untouched.
 
 **Makeup does not affect the 75% attendance %** — neither numerator nor denominator. A no-show makeup therefore cannot wrongly credit the student, and an attended makeup does not neutralize the origin absence. Makeups are tracked for coordination/history/support only. (This supersedes the earlier "MAKEUP = present-equivalent credit" rule and removes `MAKEUP` from the attendance status set.)
 
@@ -392,7 +392,7 @@ where `held_sessions` = sessions of the class that fall within **`Semester windo
 
 **Denominator = confirmed sessions only (resolved 2026-06-17).** The single predicate for "held" is **`attendanceConfirmedAt IS NOT NULL`** (plus not `CANCELLED`, plus in `Semester ∩ Enrollment window`). This makes numerator and denominator share one source — `PRESENT` counts only exist on confirmed sessions, since attendance is committed only on `Confirmar chamada` — so neither can drift from the other. Two session kinds are therefore **excluded** automatically: **future** sessions (never confirmed) and **untaken** past sessions (`attendanceConfirmedAt` null after scheduled end). Untaken sessions are **never** silent absences in the %; they surface only as the separate untaken-session warning ([S-REP-4](./PRD.md#13-dashboards--reports)). This resolves the prior ambiguity where "non-`CANCELLED` sessions in window" literally would have counted future and untaken sessions against the student, contradicting both S-CLS-2's "held" definition and the "not silent absences" guarantee.
 
-**Empty denominator (`held_sessions = 0`, resolved 2026-06-17).** When an `(enrollment, semester)` has no confirmed sessions yet (new enrollment, early semester, or no call taken yet), the % is **undefined** and is rendered as **"—" / "sem dados"** — *not* 0% and *not* 100%. The **<75% flag only evaluates when `held_sessions > 0`**; it never fires on an empty denominator. Concretely: `flagged ⟺ held_sessions > 0 AND PRESENT / held_sessions < 0.75`. This prevents false "at risk of failing the attendance minimum" labels on students who simply haven't had a taken session yet.
+**Empty denominator (`held_sessions = 0`, resolved 2026-06-17).** When an `(enrollment, semester)` has no confirmed sessions yet (new enrollment, early semester, or no call taken yet), the % is **undefined** and is rendered as **"—" / "sem dados"** — _not_ 0% and _not_ 100%. The **<75% flag only evaluates when `held_sessions > 0`**; it never fires on an empty denominator. Concretely: `flagged ⟺ held_sessions > 0 AND PRESENT / held_sessions < 0.75`. This prevents false "at risk of failing the attendance minimum" labels on students who simply haven't had a taken session yet.
 
 **Unresolved:** the school's **justified-absence policy** is in conflict (Coordinator A: doesn't count; Coordinator B: counts but with makeup). MVP has no `JUSTIFIED` status, and **makeups no longer neutralize absences** (makeup doesn't affect the %), so **as currently modeled every `ABSENT` counts equally** regardless of justification or makeup. The earlier interim "convert justified absences to makeups for credit" workaround is **void**. Until the policy is settled (see [PRD §15 open question 15](./PRD.md#15-open-questions-need-answers-before--during-week-1)), this "every absence counts" stance is the MVP default.
 
@@ -426,7 +426,7 @@ Rules:
 - **Stage ordering only:** linear integer `sequence` per track. "Next stage" = same track, `sequence + 1`. No `previous/next` pointers; cross-track equivalences/branching are **not modeled**.
 - **`Track.category`** classifies the school's product lines. Enum values: `ADULT` (adult English main path), `KIDS` (Infantil / Magic Way + Playground), `TEENS` (legacy Teens line), `SPEED` (adult Speed path), `TEENS_CONNECT` (Connect 1–4), `TEENSTATION` (legacy Teenstation), `SPANISH` (Español Inmediato). One track row per progression path; category is not a separate Program table.
 - **`Track.status = LEGACY` blocks new, allows existing.** Legacy tracks (e.g. `TEENS`, `TEENSTATION` — being replaced by `TEENS_CONNECT`) cannot be picked when creating a **new** class or **new** enrollment, but existing classes/enrollments on them keep working and reporting. Connect is `ACTIVE`.
-- **Canonical Portal naming (resolved 2026-06-17).** There is **no separately-stored Portal stage code.** `Stage.internalCode` is our internal code **and** the stage segment of the derived/stored Portal class-name string (the `TUI` in `REG/TUI-…`, see [D-0021](#d-0021-class-modality-as-two-axes)). Portal **student** matching is by full **student** name ([D-0023](#d-0023-portal-master-login-and-name-based-matching)); the **class** is located via the derived Portal class-name string. The exact class-name *format* (and that Portal's class list is locatable by it) remains a Sprint-0 walkthrough item — as does PPT/PERSONALIZED naming, which has no stage segment.
+- **Canonical Portal naming (resolved 2026-06-17).** There is **no separately-stored Portal stage code.** `Stage.internalCode` is our internal code **and** the stage segment of the derived/stored Portal class-name string (the `TUI` in `REG/TUI-…`, see [D-0021](#d-0021-class-modality-as-two-axes)). Portal **student** matching is by full **student** name ([D-0023](#d-0023-portal-master-login-and-name-based-matching)); the **class** is located via the derived Portal class-name string. The exact class-name _format_ (and that Portal's class list is locatable by it) remains a Sprint-0 walkthrough item — as does PPT/PERSONALIZED naming, which has no stage segment.
 - **Seed-only in MVP, no CRUD UI.** The catalog (~7 tracks, ~40 stages) ships as an idempotent seed/migration derived from the discovery doc, with legacy lines seeded as `LEGACY`. Edits are a developer task (like Legacy import, [D-0026](#d-0026-legacy-import--one-shot-script)). An admin catalog UI is Phase 2.
 
 School-validation items still open before seeding production data: whether Connect 1–4 is complete/current, and exact internal/Portal naming per stage (see [PRD §15](./PRD.md#15-open-questions-need-answers-before--during-week-1)). Whether Speed reconnects into the adult English path is **not modeled** — staff pick the target track/stage explicitly when enrolling or advancing.
@@ -513,18 +513,18 @@ PaymentAllocation { paymentEntryId, installmentId, amount }                 // d
 **Behavioral rules:**
 
 - **No interest auto-accrual in MVP.** 1%/month interest ([D-0012](#d-0012-interest-and-multa)) and multa are shown as informational projections. When actually charged, they are represented as `INTEREST`/`LATE_FEE` adjustments — the backbone exists now; full adjustment-management UI is Phase 2.
-- **No signing discount stored.** It is folded into `principalAmount`; gross/list and discount-granted are not recoverable in MVP (accepted reporting gap). `DISCOUNT` adjustments are for *post-generation* per-installment reductions only.
+- **No signing discount stored.** It is folded into `principalAmount`; gross/list and discount-granted are not recoverable in MVP (accepted reporting gap). `DISCOUNT` adjustments are for _post-generation_ per-installment reductions only.
 - **Order edit cutoff (concrete).** An order's `principalAmount` and installment schedule are editable only while the order has **no financial activity** — defined as **any `PaymentAllocation`, `waivedAt`, or `InstallmentAdjustment` on any of its installments**. Once any exists, the order is **locked**; changes must go through cancel + recreate or explicit `CORRECTION`/`DISCOUNT` adjustments / waiver fields. (Replaces the fuzzy "before meaningful payments exist".) No formal supersede/versioning.
 - **Order is decoupled** from academic structure; academic context is navigated via the linked student; optional provenance may be added to `OrderBeneficiary` later.
 - **Batch reconcile (Cora):** group selected installments by payer → one `PaymentEntry` per payer → one `PaymentAllocation` per installment (default amount = installment `remaining`) with settlement date + method + optional `externalReference` (Cora id). No special "settled" flag — paid is derived.
 
 ## D-0033: Structured Guardian and Address Entities
 
-**Decided 2026-06-18.** Expands the student record by promoting the responsável to an entity and adding a structured address — **partially reversing** the earlier "free-text only" stance ([changelog #9](./CHANGELOG.md), [D-0025](#d-0025-payer-as-a-first-class-entity)). The Legacy export ([discovery/Legacy](../discovery/Legacy/)) carries richer, if messy, data (separate RG/CPF, a full responsável block with its own address, *grau de parentesco*) that the free-text field was throwing away.
+**Decided 2026-06-18.** Expands the student record by promoting the responsável to an entity and adding a structured address — **partially reversing** the earlier "free-text only" stance ([changelog #9](./CHANGELOG.md), [D-0025](#d-0025-payer-as-a-first-class-entity)). The Legacy export ([discovery/Legacy](../discovery/Legacy/)) carries richer, if messy, data (separate RG/CPF, a full responsável block with its own address, _grau de parentesco_) that the free-text field was throwing away.
 
 **Entities:**
 
-- **`Guardian`** — `fullName`, `relationship` (*grau de parentesco*, free text), `documentType?`, `documentNumber?`, `phone?`, `email?`, `addressId?`. Replaces `Student.responsibleText`. `Student.guardianId` is a **many-to-one** FK, so **siblings may share one `Guardian`** (a gain the free-text field could not give). One guardian per student in MVP — **multiple guardians per student and household groups stay deferred** ([PRD §16](./PRD.md#16-out-of-scope-for-mvp-phase-2)).
+- **`Guardian`** — `fullName`, `relationship` (_grau de parentesco_, free text), `documentType?`, `documentNumber?`, `phone?`, `email?`, `addressId?`. Replaces `Student.responsibleText`. `Student.guardianId` is a **many-to-one** FK, so **siblings may share one `Guardian`** (a gain the free-text field could not give). One guardian per student in MVP — **multiple guardians per student and household groups stay deferred** ([PRD §16](./PRD.md#16-out-of-scope-for-mvp-phase-2)).
 - **`Address`** — Brazilian shape: `street` (logradouro), `number`, `complement`, `neighborhood` (bairro), `city`, `state` (UF), `postalCode` (CEP). All optional (export quality varies).
 - Both **`Student` and `Guardian` carry `addressId?`** — a **plain, shareable FK**: when a minor lives with their guardian, both rows may point at the **same** `Address`. Editing a shared row affects both holders by design (the UI must make this visible). `onDelete: SetNull`.
 
@@ -540,12 +540,12 @@ PaymentAllocation { paymentEntryId, installmentId, amount }                 // d
 
 **UUIDEntity columns** (repeated on each domain model; Prisma has no inheritance):
 
-| Column (DB) | Prisma field | Type | Notes |
-|---|---|---|---|
-| `id` | `id` | `uuid` PK | `@default(uuid())` |
-| `created_at` | `createdAt` | `timestamptz` | `@default(now())` |
-| `updated_at` | `updatedAt` | `timestamptz` | `@updatedAt` |
-| `deleted_at` | `deletedAt` | `timestamptz?` | soft delete; default reads filter `IS NULL` |
+| Column (DB)  | Prisma field | Type           | Notes                                       |
+| ------------ | ------------ | -------------- | ------------------------------------------- |
+| `id`         | `id`         | `uuid` PK      | `@default(uuid())`                          |
+| `created_at` | `createdAt`  | `timestamptz`  | `@default(now())`                           |
+| `updated_at` | `updatedAt`  | `timestamptz`  | `@updatedAt`                                |
+| `deleted_at` | `deletedAt`  | `timestamptz?` | soft delete; default reads filter `IS NULL` |
 
 **Scope:** all models in [TECHNICAL_SPEC §4.1–4.8](./TECHNICAL_SPEC.md#4-prisma-data-model). **Exceptions:** Better Auth adapter tables; `FinanceSettings` singleton (`id = "singleton"`, no soft delete).
 

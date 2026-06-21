@@ -63,13 +63,14 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 
 ### [P00-05] Quality-gate scripts
 
-- **Status:** `ready-for-agent`
+- **Status:** `done`
 - **Depends on:** P00-03, P00-04
 - **Trace:** §10.2
 - **Goal:** Expose `pnpm lint`, `typecheck`, `test`, `test:db`, `test:e2e`, `prisma:migrate`, `prisma:seed`, `dev`, `dev:worker`, plus `format:check` and `build`.
 - **Acceptance:**
-  - [ ] Each command runs locally and exits non-zero on failure.
-  - [ ] `test:db` runs against a real Postgres 16.
+  - [x] Each command runs locally and exits non-zero on failure.
+  - [x] `test:db` runs against a real Postgres 16 (`@lazuli/db` connects via the Prisma client and asserts `server_version_num` major == 16).
+- **Notes:** `test:e2e` (web) and `apps/worker` `build` are intentional pass-through stubs until Playwright e2e lands (P00-06) and the worker image build is wired; the fail-on-error guarantee covers the substantive gates (lint, typecheck, test, test:db, format:check, web build, prisma). `format:check` is enforced repo-wide: a one-time `prettier --write` normalized pre-existing doc/config drift and `.prettierignore` excludes the machine-managed `pnpm-lock.yaml`.
 
 ### [P00-06] CI pipeline (minimum triggers)
 

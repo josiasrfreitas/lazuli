@@ -10,7 +10,7 @@ slices); each project holds **issues** (single buildable changes). This file is 
 
 > **No time estimates, on purpose.** Per the MVP philosophy
 > ([decisions.md](../../MVP/decisions.md), [PRD](../../MVP/PRD.md)) the plan optimizes for
-> *logical separation and blocker order*, not scheduling.
+> _logical separation and blocker order_, not scheduling.
 > Sequence is driven by what unblocks what, not by hours.
 
 ## How this folder is organized
@@ -36,18 +36,18 @@ docs/sprints/SP-001-2026-06-18-mvp-week-1/
 
 ## Projects
 
-| # | Project | Increment | Depends on | Status |
-|---|---|---|---|---|
-| [P00](projects/00-foundation-derisk/PROJECT.md) | Foundation & de-risk | Sprint 0 | — | `ready-for-agent` |
-| [P01](projects/01-auth-rbac/PROJECT.md) | Auth & RBAC | Inc 1 | P00 | `ready-for-agent` |
-| [P02](projects/02-students/PROJECT.md) | Students | Inc 1 | P00, P01 | `ready-for-agent` |
-| [P03](projects/03-catalog-classes-calendar/PROJECT.md) | Catalog, classes, calendar, sessions | Inc 1 | P00, P01 | `ready-for-agent` |
-| [P04](projects/04-enrollment-progress/PROJECT.md) | Enrollment & pedagogical progress | Inc 1 | P02, P03 | `ready-for-agent` |
-| [P05](projects/05-attendance/PROJECT.md) | Attendance (the wedge core) | Inc 1 | P03, P04 | `ready-for-agent` |
-| [P06](projects/06-portal-submission/PROJECT.md) | Portal auto-submission | Inc 1 | P05 + Sprint-0 gate | `blocked` (gate) |
-| [P07](projects/07-finance-receivables/PROJECT.md) | Finance / receivables | Inc 2 | P02 (P04 soft) | `ready-for-agent` |
-| [P08](projects/08-comms-dashboards-reports/PROJECT.md) | Comms, dashboards & reports | Inc 3 | P05, P06, P07 | `ready-for-agent` |
-| [P09](projects/09-infra-deployment/PROJECT.md) | Infra & deployment | Cross-cutting | P00 (host decision open) | `blocked` (decision) |
+| #                                                      | Project                              | Increment     | Depends on               | Status               |
+| ------------------------------------------------------ | ------------------------------------ | ------------- | ------------------------ | -------------------- |
+| [P00](projects/00-foundation-derisk/PROJECT.md)        | Foundation & de-risk                 | Sprint 0      | —                        | `ready-for-agent`    |
+| [P01](projects/01-auth-rbac/PROJECT.md)                | Auth & RBAC                          | Inc 1         | P00                      | `ready-for-agent`    |
+| [P02](projects/02-students/PROJECT.md)                 | Students                             | Inc 1         | P00, P01                 | `ready-for-agent`    |
+| [P03](projects/03-catalog-classes-calendar/PROJECT.md) | Catalog, classes, calendar, sessions | Inc 1         | P00, P01                 | `ready-for-agent`    |
+| [P04](projects/04-enrollment-progress/PROJECT.md)      | Enrollment & pedagogical progress    | Inc 1         | P02, P03                 | `ready-for-agent`    |
+| [P05](projects/05-attendance/PROJECT.md)               | Attendance (the wedge core)          | Inc 1         | P03, P04                 | `ready-for-agent`    |
+| [P06](projects/06-portal-submission/PROJECT.md)        | Portal auto-submission               | Inc 1         | P05 + Sprint-0 gate      | `blocked` (gate)     |
+| [P07](projects/07-finance-receivables/PROJECT.md)      | Finance / receivables                | Inc 2         | P02 (P04 soft)           | `ready-for-agent`    |
+| [P08](projects/08-comms-dashboards-reports/PROJECT.md) | Comms, dashboards & reports          | Inc 3         | P05, P06, P07            | `ready-for-agent`    |
+| [P09](projects/09-infra-deployment/PROJECT.md)         | Infra & deployment                   | Cross-cutting | P00 (host decision open) | `blocked` (decision) |
 
 ## Dependency map
 
@@ -81,12 +81,12 @@ for MVP ([S-Portal-1](../../MVP/PRD.md#8-portal-auto-submission--the-wedge), TEC
 
 These are open items
 ([TECHNICAL_SPEC §1.3](../../MVP/TECHNICAL_SPEC.md#13-open-items-carried-into-sprint-0))
-that gate specific issues — they must be resolved *in* Sprint 0, not assumed:
+that gate specific issues — they must be resolved _in_ Sprint 0, not assumed:
 
-| Open item | Gates | Resolved by |
-|---|---|---|
-| Portal credential / API / Playwright feasibility | P06 (all), P05 Portal-retry derivation | [P00-08] |
-| Legacy export schema / encoding / sample | P02 import [P02-02] | [P00-07] |
-| Production course/stage codes + Portal naming | P03 catalog seed [P03-01], class Portal name | [P00-09] |
-| Web host + Cloud SQL connectivity | P09 deploy cutover | infra decision (PRD §15.9) |
-| Multa rate/policy, justified-absence policy, artifact retention | finance multa, attendance %, artifact TTL | product decisions during Inc 2/3 |
+| Open item                                                       | Gates                                        | Resolved by                      |
+| --------------------------------------------------------------- | -------------------------------------------- | -------------------------------- |
+| Portal credential / API / Playwright feasibility                | P06 (all), P05 Portal-retry derivation       | [P00-08]                         |
+| Legacy export schema / encoding / sample                        | P02 import [P02-02]                          | [P00-07]                         |
+| Production course/stage codes + Portal naming                   | P03 catalog seed [P03-01], class Portal name | [P00-09]                         |
+| Web host + Cloud SQL connectivity                               | P09 deploy cutover                           | infra decision (PRD §15.9)       |
+| Multa rate/policy, justified-absence policy, artifact retention | finance multa, attendance %, artifact TTL    | product decisions during Inc 2/3 |
