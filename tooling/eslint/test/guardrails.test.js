@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
@@ -8,38 +10,58 @@ import { ESLint } from "eslint";
 import { createConfig } from "../base.js";
 
 const fixturesDirectory = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
-const fixturePath = path.join(fixturesDirectory, "example.ts");
 const repositoryRoot = path.join(fixturesDirectory, "../../../..");
 
-async function lint(source, packageType = "base") {
+async function lintProbe({ directory, probePath, packageType }) {
   const eslint = new ESLint({
-    cwd: fixturesDirectory,
+    cwd: directory,
     ignore: false,
-    overrideConfig: createConfig({ packageType, tsconfigRootDir: fixturesDirectory }),
+    overrideConfig: createConfig({ packageType, tsconfigRootDir: directory }),
     overrideConfigFile: true,
   });
-  const [result] = await eslint.lintText(source, { filePath: fixturePath });
+  const [result] = await eslint.lintFiles([probePath]);
 
   return result.messages;
+}
+
+// Type-aware rules read types from the file on disk, so the probe must be a real
+// file in the package's tsconfig. typescript-eslint reuses one program per tsconfig
+// path for the whole process (single-run mode under CI), which serves stale types
+// for a reused path and "file not found" for a new one. Giving each call its own
+// temp project (unique tsconfig) sidesteps both: every lint builds a fresh program
+// from the just-written probe.
+async function lint(source, packageType = "base") {
+  const projectDirectory = path.join(fixturesDirectory, `probe-${randomUUID()}`);
+  await mkdir(projectDirectory);
+  try {
+    await writeFile(
+      path.join(projectDirectory, "tsconfig.json"),
+      `${JSON.stringify({ extends: "../../../../tsconfig/base.json", include: ["*.ts"] }, null, 2)}\n`,
+    );
+    const probePath = path.join(projectDirectory, "probe.ts");
+    await writeFile(probePath, source);
+
+    return await lintProbe({ directory: projectDirectory, probePath, packageType });
+  } finally {
+    await rm(projectDirectory, { recursive: true, force: true });
+  }
 }
 
 function ruleIds(messages) {
   return messages.map(({ ruleId }) => ruleId);
 }
 
+// The relative-path zone in `import/no-restricted-paths` matches on physical
+// location, so this probe must sit at a real app path (same depth as a page).
 async function lintWebSource(source) {
   const webDirectory = path.join(repositoryRoot, "apps/web");
-  const eslint = new ESLint({
-    cwd: webDirectory,
-    ignore: false,
-    overrideConfig: createConfig({ packageType: "web", tsconfigRootDir: webDirectory }),
-    overrideConfigFile: true,
-  });
-  const [result] = await eslint.lintText(source, {
-    filePath: path.join(webDirectory, "src/app/page.tsx"),
-  });
-
-  return result.messages;
+  const probePath = path.join(webDirectory, "src/app", `probe-${randomUUID()}.tsx`);
+  await writeFile(probePath, source);
+  try {
+    return await lintProbe({ directory: webDirectory, probePath, packageType: "web" });
+  } finally {
+    await rm(probePath, { force: true });
+  }
 }
 
 describe("shared ESLint guardrails", () => {
