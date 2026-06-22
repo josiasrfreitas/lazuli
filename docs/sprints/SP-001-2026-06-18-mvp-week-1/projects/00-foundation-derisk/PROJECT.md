@@ -25,9 +25,9 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 - **Trace:** §2.1, D-0001/D-0002
 - **Goal:** Scaffold from T3 Turbo; create `apps/web`, `apps/worker`, and `packages/{api,auth,db,domain,job-contracts,integrations,worker-handlers,ui,validators}`, `tooling/`, `scripts/`, `infra/`. Remove generated mobile/example apps.
 - **Acceptance:**
-  - [ ] Package graph matches §2.1; `apps/web` cannot import Prisma or worker handlers (enforced in [P00-04]).
-  - [ ] Any deliberate deviation from upstream scaffold documented in `decisions.md`.
-  - [ ] `pnpm dev` boots web; `pnpm dev:worker` boots the single worker.
+  - [x] Package graph matches §2.1; `apps/web` cannot import Prisma or worker handlers (enforced in [P00-04]).
+  - [x] Any deliberate deviation from upstream scaffold documented in `decisions.md`.
+  - [x] `pnpm dev` boots web; `pnpm dev:worker` boots the single worker.
 - **Notes:** keep job contracts separate from worker handlers so web never pulls Playwright/PDF/GCS/email deps.
 
 ### [P00-02] Local dev environment (Docker Compose) + `.env.example`
@@ -37,50 +37,51 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 - **Trace:** §2.2, D-0006
 - **Goal:** `docker compose up` brings Postgres 16, Mailpit, Hatchet Lite on stable ports (PG `5432`, Mailpit UI `8025`/SMTP `1025`, Hatchet Lite project-standard port).
 - **Acceptance:**
-  - [ ] `.env.example` has `DATABASE_URL`, `BETTER_AUTH_SECRET`, Google OAuth, Resend/Mailpit, Hatchet, GCS, and Portal secret placeholders. No Sentry DSN.
-  - [ ] Ports match §2.2 exactly.
+  - [x] `.env.example` has `DATABASE_URL`, `BETTER_AUTH_SECRET`, Google OAuth, Resend/Mailpit, Hatchet, GCS, and Portal secret placeholders. No Sentry DSN.
+  - [x] Ports match §2.2 exactly.
 
 ### [P00-03] Prisma + `packages/db`: UUIDEntity base, migrate/seed plumbing
 
-- **Status:** `ready-for-agent`
+- **Status:** `done`
 - **Depends on:** P00-02
 - **Trace:** §4.0, §3.3, §2.2
 - **Goal:** Prisma wired to PG16; `UUIDEntity` base; raw-SQL constraint migration channel; `pnpm prisma:migrate`, `pnpm prisma:seed`, `pnpm db:reset`.
 - **Acceptance:**
-  - [ ] Prisma owns ordinary schema; raw SQL migrations reserved for CHECK / partial-unique / exclusion constraints only (§3.3 v0.3).
-  - [ ] `pnpm db:reset` drops, recreates, migrates, seeds.
+  - [x] Prisma owns ordinary schema; raw SQL migrations reserved for CHECK / partial-unique / exclusion constraints only (§3.3 v0.3).
+  - [x] `pnpm db:reset` drops, recreates, migrates, seeds.
 
 ### [P00-04] Code-quality guardrails (ESLint / TS strict / boundaries)
 
-- **Status:** `ready-for-agent`
+- **Status:** `done`
 - **Depends on:** P00-01
 - **Trace:** §3.4
 - **Goal:** Shared `tooling/eslint`, `tooling/prettier`, `tooling/tsconfig`; strictness, complexity/size, magic-value, duplication, and dependency-boundary rules from §3.4. Prevent agents from bypassing guardrails.
 - **Acceptance:**
-  - [ ] `apps/web` → Prisma/worker-handlers import is a lint error.
-  - [ ] `packages/job-contracts` → worker-handlers import is a lint error.
-  - [ ] tsconfig strict flags + type-aware ESLint enabled per §3.4.
+  - [x] `apps/web` → Prisma/worker-handlers import is a lint error.
+  - [x] `packages/job-contracts` → worker-handlers import is a lint error.
+  - [x] tsconfig strict flags + type-aware ESLint enabled per §3.4.
 
 ### [P00-05] Quality-gate scripts
 
-- **Status:** `ready-for-agent`
+- **Status:** `done`
 - **Depends on:** P00-03, P00-04
 - **Trace:** §10.2
 - **Goal:** Expose `pnpm lint`, `typecheck`, `test`, `test:db`, `test:e2e`, `prisma:migrate`, `prisma:seed`, `dev`, `dev:worker`, plus `format:check` and `build`.
 - **Acceptance:**
-  - [ ] Each command runs locally and exits non-zero on failure.
-  - [ ] `test:db` runs against a real Postgres 16.
+  - [x] Each command runs locally and exits non-zero on failure.
+  - [x] `test:db` runs against a real Postgres 16 (`@lazuli/db` connects via the Prisma client and asserts `server_version_num` major == 16).
 
 ### [P00-06] CI pipeline (minimum triggers)
 
-- **Status:** `ready-for-agent`
+- **Status:** `done`
 - **Depends on:** P00-05
 - **Trace:** §10.2, [../../ci.md](../../ci.md), D-0006/D-0027
 - **Goal:** CI runs format, lint, typecheck, unit tests, DB integration tests (PG16 service), prisma migrate/drift check, and build on PR/push to main. E2E nightly + manual only.
 - **Acceptance:**
-  - [ ] Matrix matches [ci.md](../../ci.md); all listed PR gates block merge.
-  - [ ] Postgres 16 service container present for `test:db` + migrate check.
-  - [ ] No deploy step (host decision open), no Sentry, no coverage gate.
+  - [x] Matrix matches [ci.md](../../ci.md); all listed PR gates block merge (`.github/workflows/ci.yml`: `quality` + `database` jobs on `pull_request`/`push` to main).
+  - [x] Postgres 16 service container present for `test:db` + migrate check (`postgres:16-alpine` service in the `database` job).
+  - [x] No deploy step (host decision open), no Sentry, no coverage gate.
+- **Notes:** E2E split into `.github/workflows/e2e.yml` (nightly cron + `workflow_dispatch`), never a PR gate. Prisma 7 drift check uses `prisma migrate diff --from-config-datasource --to-schema … --exit-code` (root `pnpm prisma:drift`); `--from-url` was removed in Prisma 7. Shared `.github/actions/setup` composite keeps jobs DRY (pnpm + Node + frozen install + Turbo cache).
 
 ### [P00-07] Spike: Legacy sample parser
 

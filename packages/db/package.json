@@ -7,17 +7,34 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "postinstall": "prisma generate",
+    "generate": "prisma generate",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "test:db": "node --import tsx --test test/db/*.test.ts",
     "clean": "rm -rf .turbo dist",
-    "prisma:migrate": "echo \"[P00-03] prisma migrate not wired yet\" && exit 0",
-    "prisma:seed": "echo \"[P00-03/P00-10] seed not wired yet\" && exit 0",
-    "db:reset": "echo \"[P00-03] db:reset not wired yet\" && exit 0"
+    "prisma:validate": "prisma validate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:drift": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code",
+    "prisma:seed": "prisma db seed",
+    "db:reset": "node --import tsx prisma/reset.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "catalog:",
+    "@prisma/client": "catalog:",
+    "pg": "catalog:"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "dotenv": "catalog:",
     "eslint": "catalog:",
+    "prisma": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:"
   }
 }

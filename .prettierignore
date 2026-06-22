@@ -1,0 +1,5 @@
+# Generated / machine-managed files — formatting them is meaningless and noisy.
+pnpm-lock.yaml
+
+# Generated Prisma client (also gitignored, listed here for non-git tooling runs).
+packages/db/src/generated/

@@ -4,6 +4,8 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { getProcessEnvironment } from "./config.mjs";
+
 const root = process.cwd();
 const mockDir = path.join(root, "tmp", "mock");
 const screenshotsDir = path.join(mockDir, "screenshots");
@@ -26,10 +28,11 @@ const mobileScreens = [
 ];
 
 class McpClient {
+  nextId = 1;
+  pending = new Map();
+  buffer = "";
+
   constructor() {
-    this.nextId = 1;
-    this.pending = new Map();
-    this.buffer = "";
     this.server = spawn(
       "npm",
       [
@@ -45,10 +48,9 @@ class McpClient {
       ],
       {
         cwd: root,
-        env: {
-          ...process.env,
+        env: getProcessEnvironment({
           CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS: "1",
-        },
+        }),
         stdio: ["pipe", "pipe", "pipe"],
       },
     );
@@ -75,7 +77,7 @@ class McpClient {
       if (!line) continue;
 
       const message = JSON.parse(line);
-      if (message.id == null) continue;
+      if (message.id === null || message.id === undefined) continue;
 
       const pending = this.pending.get(message.id);
       if (!pending) continue;
@@ -133,18 +135,18 @@ function fileUrl(fileName) {
   return pathToFileURL(path.join(mockDir, fileName)).href;
 }
 
-async function capture(client, fileName, outputName) {
+async function capture({ client, fileName, outputName }) {
   const outputPath = path.join(screenshotsDir, outputName);
   await client.callTool("navigate_page", {
     type: "url",
     url: fileUrl(fileName),
-    timeout: 10000,
+    timeout: 10_000,
   });
   await client.callTool("take_screenshot", {
     filePath: outputPath,
     format: "png",
   });
-  console.log(outputPath);
+  process.stdout.write(`${outputPath}\n`);
 }
 
 await mkdir(screenshotsDir, { recursive: true });
@@ -163,7 +165,7 @@ try {
     viewport: `${desktopViewport.width}x${desktopViewport.height}x${desktopViewport.scale}`,
   });
   for (const [fileName, outputName] of desktopScreens) {
-    await capture(client, fileName, outputName);
+    await capture({ client, fileName, outputName });
   }
 
   await client.callTool("emulate", {
@@ -171,7 +173,7 @@ try {
     viewport: `${mobileViewport.width}x${mobileViewport.height}x${mobileViewport.scale},mobile,touch`,
   });
   for (const [fileName, outputName] of mobileScreens) {
-    await capture(client, fileName, outputName);
+    await capture({ client, fileName, outputName });
   }
 } finally {
   await client.close();

@@ -451,40 +451,40 @@ Artifact rules:
 
 ## Full Relationship Index
 
-| From | To | Cardinality | Meaning |
-|---|---|---:|---|
-| `USER` | `SCHOOL_CLASS` | 1 to many | Teacher owns classes. |
-| `GUARDIAN` | `STUDENT` | 1 to many optional | Contact responsável; siblings may share one guardian. |
-| `ADDRESS` | `STUDENT` | 1 to many optional | Student address (shareable row). |
-| `ADDRESS` | `GUARDIAN` | 1 to many optional | Guardian address (may be the same row as the student's). |
-| `TRACK` | `STAGE` | 1 to many | Course catalog path. |
-| `STAGE` | `SCHOOL_CLASS` | 1 to many optional | REGULAR shared class stage. |
-| `SEMESTER` | `SCHOOL_CLASS` | 1 to many optional | REGULAR generation window. |
-| `SCHOOL_CLASS` | `SCHOOL_CLASS` | 1 to many optional | Previous/next class lineage. |
-| `SCHOOL_CLASS` | `CLASS_SCHEDULE_SLOT` | 1 to many | Weekly schedule slots. |
-| `CLASS_SCHEDULE_SLOT` | `CLASS_SESSION` | 1 to many optional | Generated session source. |
-| `SCHOOL_CLASS` | `CLASS_SESSION` | 1 to many | Sessions held by class. |
-| `STUDENT` | `ENROLLMENT` | 1 to many | Operational student-class link. |
-| `SCHOOL_CLASS` | `ENROLLMENT` | 1 to many | Active/historical roster. |
-| `ENROLLMENT` | `PEDAGOGICAL_PROGRESS` | 1 to many | Stage placement history. |
-| `STAGE` | `PEDAGOGICAL_PROGRESS` | 1 to many | Stage placement target. |
-| `ENROLLMENT` | `ATTENDANCE` | 1 to many | Committed attendance rows. |
-| `CLASS_SESSION` | `ATTENDANCE` | 1 to many | Session attendance. |
-| `ENROLLMENT` | `MAKEUP` | 1 to many | Origin enrollment for visiting student. |
-| `CLASS_SESSION` | `MAKEUP` | 1 to many | Target session for makeup visit. |
-| `PAYER` | `ORDER_RECORD` | 1 to many | Billing party places orders. |
-| `ORDER_RECORD` | `ORDER_BENEFICIARY` | 1 to many | Order covers students. |
-| `STUDENT` | `ORDER_BENEFICIARY` | 1 to many | Student is beneficiary. |
-| `ORDER_RECORD` | `INSTALLMENT` | 1 to many | Order payment schedule. |
-| `INSTALLMENT` | `INSTALLMENT_ADJUSTMENT` | 1 to many | Signed adjustments. |
-| `PAYER` | `PAYMENT_ENTRY` | 1 to many | Money received from payer. |
-| `PAYMENT_ENTRY` | `PAYMENT_ALLOCATION` | 1 to many | Entry split across installments. |
-| `INSTALLMENT` | `PAYMENT_ALLOCATION` | 1 to many | Installment receives allocations. |
-| `USER` | `GENERATED_ARTIFACT` | 1 to many optional | Requested by staff. |
-| `STUDENT` | `GENERATED_ARTIFACT` | 1 to many optional | Student-scoped artifact. |
-| `SCHOOL_CLASS` | `GENERATED_ARTIFACT` | 1 to many optional | Class-scoped artifact. |
-| `ORDER_RECORD` | `GENERATED_ARTIFACT` | 1 to many optional | Order-scoped artifact. |
-| `ORDER_RECORD` | `GENERATED_ARTIFACT` | optional 1 to 1 | Signed order PDF. |
+| From                  | To                       |        Cardinality | Meaning                                                  |
+| --------------------- | ------------------------ | -----------------: | -------------------------------------------------------- |
+| `USER`                | `SCHOOL_CLASS`           |          1 to many | Teacher owns classes.                                    |
+| `GUARDIAN`            | `STUDENT`                | 1 to many optional | Contact responsável; siblings may share one guardian.    |
+| `ADDRESS`             | `STUDENT`                | 1 to many optional | Student address (shareable row).                         |
+| `ADDRESS`             | `GUARDIAN`               | 1 to many optional | Guardian address (may be the same row as the student's). |
+| `TRACK`               | `STAGE`                  |          1 to many | Course catalog path.                                     |
+| `STAGE`               | `SCHOOL_CLASS`           | 1 to many optional | REGULAR shared class stage.                              |
+| `SEMESTER`            | `SCHOOL_CLASS`           | 1 to many optional | REGULAR generation window.                               |
+| `SCHOOL_CLASS`        | `SCHOOL_CLASS`           | 1 to many optional | Previous/next class lineage.                             |
+| `SCHOOL_CLASS`        | `CLASS_SCHEDULE_SLOT`    |          1 to many | Weekly schedule slots.                                   |
+| `CLASS_SCHEDULE_SLOT` | `CLASS_SESSION`          | 1 to many optional | Generated session source.                                |
+| `SCHOOL_CLASS`        | `CLASS_SESSION`          |          1 to many | Sessions held by class.                                  |
+| `STUDENT`             | `ENROLLMENT`             |          1 to many | Operational student-class link.                          |
+| `SCHOOL_CLASS`        | `ENROLLMENT`             |          1 to many | Active/historical roster.                                |
+| `ENROLLMENT`          | `PEDAGOGICAL_PROGRESS`   |          1 to many | Stage placement history.                                 |
+| `STAGE`               | `PEDAGOGICAL_PROGRESS`   |          1 to many | Stage placement target.                                  |
+| `ENROLLMENT`          | `ATTENDANCE`             |          1 to many | Committed attendance rows.                               |
+| `CLASS_SESSION`       | `ATTENDANCE`             |          1 to many | Session attendance.                                      |
+| `ENROLLMENT`          | `MAKEUP`                 |          1 to many | Origin enrollment for visiting student.                  |
+| `CLASS_SESSION`       | `MAKEUP`                 |          1 to many | Target session for makeup visit.                         |
+| `PAYER`               | `ORDER_RECORD`           |          1 to many | Billing party places orders.                             |
+| `ORDER_RECORD`        | `ORDER_BENEFICIARY`      |          1 to many | Order covers students.                                   |
+| `STUDENT`             | `ORDER_BENEFICIARY`      |          1 to many | Student is beneficiary.                                  |
+| `ORDER_RECORD`        | `INSTALLMENT`            |          1 to many | Order payment schedule.                                  |
+| `INSTALLMENT`         | `INSTALLMENT_ADJUSTMENT` |          1 to many | Signed adjustments.                                      |
+| `PAYER`               | `PAYMENT_ENTRY`          |          1 to many | Money received from payer.                               |
+| `PAYMENT_ENTRY`       | `PAYMENT_ALLOCATION`     |          1 to many | Entry split across installments.                         |
+| `INSTALLMENT`         | `PAYMENT_ALLOCATION`     |          1 to many | Installment receives allocations.                        |
+| `USER`                | `GENERATED_ARTIFACT`     | 1 to many optional | Requested by staff.                                      |
+| `STUDENT`             | `GENERATED_ARTIFACT`     | 1 to many optional | Student-scoped artifact.                                 |
+| `SCHOOL_CLASS`        | `GENERATED_ARTIFACT`     | 1 to many optional | Class-scoped artifact.                                   |
+| `ORDER_RECORD`        | `GENERATED_ARTIFACT`     | 1 to many optional | Order-scoped artifact.                                   |
+| `ORDER_RECORD`        | `GENERATED_ARTIFACT`     |    optional 1 to 1 | Signed order PDF.                                        |
 
 ## Excluded From MVP ERD
 

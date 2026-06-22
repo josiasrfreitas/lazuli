@@ -6,13 +6,13 @@ Custom student/finance/attendance management for a single English-language schoo
 
 Read these before assuming product scope, architecture, or tech stack.
 
-| Doc | Path | Purpose |
-|-----|------|---------|
-| **Docs index** | [`docs/README.md`](docs/README.md) | Reading order, TLDR, scope snapshot, open questions |
-| **PRD & user stories** | [`docs/MVP/PRD.md`](docs/MVP/PRD.md) | Product scope, user stories, acceptance criteria |
-| **Decisions** | [`docs/MVP/decisions.md`](docs/MVP/decisions.md) | Architecture, stack, workflow, and discovery-driven decisions |
-| **Discovery** | [`docs/discovery/README.md`](docs/discovery/README.md) | Questionnaire data, query tool, discovery artifacts |
-| **Sprint plans** | [`docs/sprints/`](docs/sprints/README.md) | Local markdown sprint plans, issue tracker, and dependency maps |
+| Doc                    | Path                                                   | Purpose                                                         |
+| ---------------------- | ------------------------------------------------------ | --------------------------------------------------------------- |
+| **Docs index**         | [`docs/README.md`](docs/README.md)                     | Reading order, TLDR, scope snapshot, open questions             |
+| **PRD & user stories** | [`docs/MVP/PRD.md`](docs/MVP/PRD.md)                   | Product scope, user stories, acceptance criteria                |
+| **Decisions**          | [`docs/MVP/decisions.md`](docs/MVP/decisions.md)       | Architecture, stack, workflow, and discovery-driven decisions   |
+| **Discovery**          | [`docs/discovery/README.md`](docs/discovery/README.md) | Questionnaire data, query tool, discovery artifacts             |
+| **Sprint plans**       | [`docs/sprints/`](docs/sprints/README.md)              | Local markdown sprint plans, issue tracker, and dependency maps |
 
 **Doc hierarchy:** PRD = product behavior · decisions = constraints and rationale · discovery = evidence. If docs disagree, update PRD and decisions together before building.
 
@@ -60,19 +60,19 @@ infra/
 
 ## Quick stack reference
 
-| Layer | Choice |
-|-------|--------|
-| Monorepo | T3 Turbo |
-| Frontend / API | Next.js App Router + tRPC BFF |
-| Auth | Better Auth (Google + magic link) |
-| Database | Cloud SQL Postgres 16 (local: Docker Compose) |
-| Workflows | Hatchet Cloud |
-| Workers | GCP Cloud Run |
-| Artifacts | GCS |
-| IaC | Pulumi (TypeScript), state in GCS bucket |
-| Email | Resend (prod) / Mailpit (local) |
-| Observability | Sentry |
-| Web hosting | Railway (leading candidate) |
+| Layer          | Choice                                        |
+| -------------- | --------------------------------------------- |
+| Monorepo       | T3 Turbo                                      |
+| Frontend / API | Next.js App Router + tRPC BFF                 |
+| Auth           | Better Auth (Google + magic link)             |
+| Database       | Cloud SQL Postgres 16 (local: Docker Compose) |
+| Workflows      | Hatchet Cloud                                 |
+| Workers        | GCP Cloud Run                                 |
+| Artifacts      | GCS                                           |
+| IaC            | Pulumi (TypeScript), state in GCS bucket      |
+| Email          | Resend (prod) / Mailpit (local)               |
+| Observability  | Sentry                                        |
+| Web hosting    | Railway (leading candidate)                   |
 
 ## Agent skills
 

@@ -6,9 +6,19 @@
   "exports": {
     "./base": "./base.js"
   },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "node --test test/*.test.js"
+  },
   "dependencies": {
     "@eslint/js": "catalog:",
     "eslint": "catalog:",
+    "eslint-import-resolver-typescript": "catalog:",
+    "eslint-plugin-import": "catalog:",
+    "eslint-plugin-security": "catalog:",
+    "eslint-plugin-sonarjs": "catalog:",
+    "eslint-plugin-unicorn": "catalog:",
+    "eslint-plugin-unused-imports": "catalog:",
     "typescript-eslint": "catalog:"
   },
   "devDependencies": {

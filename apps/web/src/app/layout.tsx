@@ -6,11 +6,7 @@ export const metadata: Metadata = {
   description: "Sistema de gestão de alunos, frequência e financeiro.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode;
-}): ReactNode {
+export default function RootLayout({ children }: { children: ReactNode }): ReactNode {
   return (
     <html lang="pt-BR">
       <body>{children}</body>

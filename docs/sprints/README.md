@@ -17,8 +17,8 @@ SP-###-YYYY-MM-DD-<slug>/
 
 Current sprint:
 
-| Sprint | Folder | Scope | Status |
-|---|---|---|---|
+| Sprint   | Folder                                                                   | Scope                 | Status            |
+| -------- | ------------------------------------------------------------------------ | --------------------- | ----------------- |
 | `SP-001` | [SP-001-2026-06-18-mvp-week-1](./SP-001-2026-06-18-mvp-week-1/README.md) | Week-1 MVP build plan | `ready-for-agent` |
 
 Management overview for the current sprint:

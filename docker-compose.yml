@@ -1,0 +1,73 @@
+# Local development services for Lazuli (D-0006, TECHNICAL_SPEC §2.2).
+#
+#   docker compose up -d        start Postgres 16, Mailpit, Hatchet Lite
+#   docker compose down         stop (keeps volumes / data)
+#   docker compose down -v      stop and wipe local data
+#
+# Stable local ports (must match TECHNICAL_SPEC §2.2 exactly):
+#   Postgres        5432
+#   Mailpit  SMTP   1025   UI   8025
+#   Hatchet  API    8888   gRPC 7077   (Hatchet project-standard ports, selected at scaffold)
+#
+# No Sentry locally — error monitoring is dropped for MVP (TECHNICAL_SPEC §0 / D-0007 revision).
+name: lazuli
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lazuli-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lazuli
+      POSTGRES_PASSWORD: lazuli
+      POSTGRES_DB: lazuli
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Creates the separate `hatchet` database Hatchet Lite migrates into.
+      - ./infra/local/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lazuli -d lazuli"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: lazuli-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP — apps send here in dev
+      - "8025:8025" # Web UI — open http://localhost:8025 to read captured mail
+    environment:
+      MP_MAX_MESSAGES: "500"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+
+  hatchet-lite:
+    # V1 engine: Postgres-backed queue, no RabbitMQ. Digest-pinned so `latest` can't drift.
+    image: ghcr.io/hatchet-dev/hatchet/hatchet-lite:latest@sha256:f0831ddb9163206ce7eb181a5c18618b51a74b45e9c71196d2ac2f56c159361f
+    container_name: lazuli-hatchet
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8888:8888" # Dashboard + REST API — http://localhost:8888
+      - "7077:7077" # Engine gRPC — workers/clients connect here
+    environment:
+      DATABASE_URL: "postgresql://lazuli:lazuli@postgres:5432/hatchet?sslmode=disable"
+      SERVER_URL: "http://localhost:8888"
+      SERVER_AUTH_COOKIE_DOMAIN: localhost:8888
+      SERVER_AUTH_COOKIE_INSECURE: "t"
+      SERVER_AUTH_SET_EMAIL_VERIFIED: "t"
+      SERVER_GRPC_BIND_ADDRESS: "0.0.0.0"
+      SERVER_GRPC_PORT: "7077"
+      SERVER_GRPC_INSECURE: "t"
+      SERVER_GRPC_BROADCAST_ADDRESS: "localhost:7077"
+    volumes:
+      - hatchet-config:/config
+
+volumes:
+  postgres-data:
+  hatchet-config:

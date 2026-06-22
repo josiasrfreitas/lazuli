@@ -1,3 +1,3 @@
-import { baseConfig } from "@lazuli/eslint-config/base";
+import { createConfig } from "@lazuli/eslint-config/base";
 
-export default baseConfig;
+export default createConfig({ packageType: "ui", tsconfigRootDir: import.meta.dirname });

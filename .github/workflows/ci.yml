@@ -1,0 +1,79 @@
+# Minimum CI gates for Lazuli.
+#
+# Mirrors the trigger matrix in docs/sprints/SP-001-2026-06-18-mvp-week-1/ci.md
+# (derived from TECHNICAL_SPEC §10.2 / §3.4). Every job here is a blocking gate
+# on PRs to main and on pushes to main. E2E runs separately (e2e.yml), not here.
+#
+# Not in MVP (by spec): no deploy step, no Sentry upload, no coverage gate.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A newer push to the same ref cancels in-flight runs for that ref.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Format, lint, typecheck, unit tests, and build — none of these need a database.
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Format
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  # DB integration tests + Prisma migrate/drift check against a real Postgres 16,
+  # matching the prod engine and the Docker Compose image (TECHNICAL_SPEC §2.2).
+  database:
+    name: Database gates
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: lazuli
+          POSTGRES_PASSWORD: lazuli
+          POSTGRES_DB: lazuli
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lazuli -d lazuli"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://lazuli:lazuli@localhost:5432/lazuli?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      # Applies committed migrations to the fresh PG16 service.
+      - name: Prisma migrate (deploy)
+        run: pnpm prisma:deploy
+
+      # Fails if schema.prisma has changes the committed migrations don't capture.
+      - name: Prisma drift check
+        run: pnpm prisma:drift
+
+      - name: DB integration tests
+        run: pnpm test:db

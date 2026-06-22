@@ -15,17 +15,17 @@ Lazuli is a custom management system for one language school in Brazil. The wedg
 
 ## Authoritative Docs
 
-| Doc | Use it for |
-|---|---|
-| [MVP/PRD.md](./MVP/PRD.md) | Product scope, user stories, acceptance criteria, out-of-scope (§16), open questions (§15) |
-| [MVP/decisions.md](./MVP/decisions.md) | Architecture, stack, data/workflow decisions, discovery-driven product decisions |
-| [MVP/TECHNICAL_SPEC.md](./MVP/TECHNICAL_SPEC.md) | Formal implementation spec: data model, BFF/API, jobs, repo conventions, traceability |
-| [MVP/ERD.md](./MVP/ERD.md) | Mermaid entity-relationship diagrams derived from the technical spec |
-| [MVP/PHASE-2.md](./MVP/PHASE-2.md) | Full specs for deferred modules (expenses, leads/CRM, WhatsApp) |
-| [MVP/CHANGELOG.md](./MVP/CHANGELOG.md) | History of how scope evolved through discovery |
-| [sprints/SP-001-2026-06-18-mvp-week-1/README.md](./sprints/SP-001-2026-06-18-mvp-week-1/README.md) | **Sprint plan** — projects, issues, and dependency/blocker order for building the MVP |
-| [discovery/README.md](./discovery/README.md) | Questionnaire data, query tooling, discovery artifacts |
-| [discovery/unresolved-pains.md](./discovery/unresolved-pains.md) | Pains not solved by current MVP scope |
+| Doc                                                                                                | Use it for                                                                                 |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [MVP/PRD.md](./MVP/PRD.md)                                                                         | Product scope, user stories, acceptance criteria, out-of-scope (§16), open questions (§15) |
+| [MVP/decisions.md](./MVP/decisions.md)                                                             | Architecture, stack, data/workflow decisions, discovery-driven product decisions           |
+| [MVP/TECHNICAL_SPEC.md](./MVP/TECHNICAL_SPEC.md)                                                   | Formal implementation spec: data model, BFF/API, jobs, repo conventions, traceability      |
+| [MVP/ERD.md](./MVP/ERD.md)                                                                         | Mermaid entity-relationship diagrams derived from the technical spec                       |
+| [MVP/PHASE-2.md](./MVP/PHASE-2.md)                                                                 | Full specs for deferred modules (expenses, leads/CRM, WhatsApp)                            |
+| [MVP/CHANGELOG.md](./MVP/CHANGELOG.md)                                                             | History of how scope evolved through discovery                                             |
+| [sprints/SP-001-2026-06-18-mvp-week-1/README.md](./sprints/SP-001-2026-06-18-mvp-week-1/README.md) | **Sprint plan** — projects, issues, and dependency/blocker order for building the MVP      |
+| [discovery/README.md](./discovery/README.md)                                                       | Questionnaire data, query tooling, discovery artifacts                                     |
+| [discovery/unresolved-pains.md](./discovery/unresolved-pains.md)                                   | Pains not solved by current MVP scope                                                      |
 
 ## Reading order
 
