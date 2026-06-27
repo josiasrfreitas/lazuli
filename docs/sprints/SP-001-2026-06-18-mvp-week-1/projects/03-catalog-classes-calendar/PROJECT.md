@@ -18,7 +18,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
 
 ## Issues
 
-### [P03-01] Track / Stage catalog seed
+### Track / Stage catalog seed
 
 - **Status:** `ready-for-agent` (codes confirmed by [P00-09])
 - **Depends on:** P00-03, P00-09
@@ -28,7 +28,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
   - [ ] Stages ordered by `sequence` within a track; tracks independent.
   - [ ] Seed matches confirmed production codes.
 
-### [P03-02] Semesters (no-overlap exclusion constraint)
+### Semesters (no-overlap exclusion constraint)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P00-03
@@ -38,7 +38,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
   - [ ] Overlapping semesters rejected at DB level (exclusion constraint, §3.3).
   - [ ] Unbucketed-session setup surfaces an error (per §6.2/§7.2).
 
-### [P03-03] School closed days + federal holiday import
+### School closed days + federal holiday import
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P00-03
@@ -48,7 +48,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
   - [ ] Holiday import populates closed days.
   - [ ] Closing/reopening a future day adds/removes the matching sessions on regenerate.
 
-### [P03-04] Class catalog (slots, format axes, lineage, clone)
+### Class catalog (slots, format axes, lineage, clone)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P03-01
@@ -59,7 +59,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
   - [ ] Active `portalClassName` uniqueness enforced; REGULAR generated vs PERSONALIZED/PPT manual per §1.2(6).
   - [ ] Clone produces a next-period class preserving lineage.
 
-### [P03-05] Auto-generate class sessions
+### Auto-generate class sessions
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P03-02, P03-03, P03-04
@@ -69,7 +69,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
   - [ ] Re-running generation does not duplicate sessions (idempotent).
   - [ ] Closed days produce no sessions; regeneration reconciles after calendar edits.
 
-### [P03-06] Cancel one session (teacher-absence MVP path)
+### Cancel one session (teacher-absence MVP path)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P03-05

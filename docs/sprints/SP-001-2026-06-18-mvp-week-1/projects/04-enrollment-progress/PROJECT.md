@@ -19,7 +19,7 @@ The operational student↔class link (`Enrollment`) and the structural stage pla
 
 ## Issues
 
-### [P04-01] Enrollment + PedagogicalProgress schema & invariants
+### Enrollment + PedagogicalProgress schema & invariants
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P02-01, P03-04
@@ -29,7 +29,7 @@ The operational student↔class link (`Enrollment`) and the structural stage pla
   - [ ] Duplicate active enrollment in the same track blocked; different tracks allowed (§13).
   - [ ] Exactly one active progress per student; progress-window exclusion enforced.
 
-### [P04-02] Enroll a student into a class
+### Enroll a student into a class
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P04-01
@@ -39,7 +39,7 @@ The operational student↔class link (`Enrollment`) and the structural stage pla
   - [ ] Over-capacity enroll requires an override reason.
   - [ ] Creating enrollment seeds active progress in one transaction.
 
-### [P04-03] Advance a student to the next stage
+### Advance a student to the next stage
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P04-01
@@ -49,7 +49,7 @@ The operational student↔class link (`Enrollment`) and the structural stage pla
   - [ ] Advance moves progress to the next stage in sequence; no cross-track jump.
   - [ ] No billing side effects.
 
-### [P04-04] Transfer / drop / pause (P1)
+### Transfer / drop / pause (P1)
 
 - **Status:** `ready-for-agent` (P1 — after P0 path stable)
 - **Depends on:** P04-01
