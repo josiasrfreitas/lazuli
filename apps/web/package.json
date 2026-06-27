@@ -16,6 +16,7 @@
     "@lazuli/api": "workspace:*",
     "@lazuli/auth": "workspace:*",
     "@lazuli/ui": "workspace:*",
+    "better-auth": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

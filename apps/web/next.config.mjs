@@ -4,7 +4,17 @@ const config = {
 
   // Internal workspace packages are shipped as TypeScript source (T3 Turbo
   // "just-in-time" packages); Next transpiles them here.
-  transpilePackages: ["@lazuli/api", "@lazuli/auth", "@lazuli/ui"],
+  transpilePackages: ["@lazuli/api", "@lazuli/auth", "@lazuli/db", "@lazuli/ui"],
+  webpack: (webpackConfig) => {
+    webpackConfig.resolve.extensionAlias = {
+      ...webpackConfig.resolve.extensionAlias,
+      ".js": [".ts", ".tsx", ".js"],
+      ".mjs": [".mts", ".mjs"],
+      ".cjs": [".cts", ".cjs"],
+    };
+
+    return webpackConfig;
+  },
 
   typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: true },

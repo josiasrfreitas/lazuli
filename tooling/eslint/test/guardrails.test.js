@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +10,13 @@ import { createConfig } from "../base.js";
 
 const fixturesDirectory = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
 const repositoryRoot = path.join(fixturesDirectory, "../../../..");
+const probeTsconfigFileName = "tsconfig.json";
+const probeSourceFileName = "probe.ts";
+const probeTsconfigContents = `${JSON.stringify(
+  { extends: "../../../../tsconfig/base.json", include: ["*.ts"] },
+  null,
+  2,
+)}\n`;
 
 async function lintProbe({ directory, probePath, packageType }) {
   const eslint = new ESLint({
@@ -27,24 +33,55 @@ async function lintProbe({ directory, probePath, packageType }) {
 // Type-aware rules read types from the file on disk, so the probe must be a real
 // file in the package's tsconfig. typescript-eslint reuses one program per tsconfig
 // path for the whole process (single-run mode under CI), which serves stale types
-// for a reused path and "file not found" for a new one. Giving each call its own
-// temp project (unique tsconfig) sidesteps both: every lint builds a fresh program
-// from the just-written probe.
-async function lint(source, packageType = "base") {
-  const projectDirectory = path.join(fixturesDirectory, `probe-${randomUUID()}`);
-  await mkdir(projectDirectory);
+// for a reused path and "file not found" for a new one. Each test uses a dedicated
+// probe directory name so every lint builds a fresh program from the just-written probe.
+async function lintFixtureProbe({ directoryName, packageType, source }) {
+  const projectDirectory = path.join(fixturesDirectory, directoryName);
+  await mkdir(projectDirectory, { recursive: true });
+  const probePath = path.join(projectDirectory, probeSourceFileName);
   try {
-    await writeFile(
-      path.join(projectDirectory, "tsconfig.json"),
-      `${JSON.stringify({ extends: "../../../../tsconfig/base.json", include: ["*.ts"] }, null, 2)}\n`,
-    );
-    const probePath = path.join(projectDirectory, "probe.ts");
+    await writeFile(path.join(projectDirectory, probeTsconfigFileName), probeTsconfigContents);
     await writeFile(probePath, source);
-
     return await lintProbe({ directory: projectDirectory, probePath, packageType });
   } finally {
     await rm(projectDirectory, { recursive: true, force: true });
   }
+}
+
+async function lintWebImportsProbe(source) {
+  return await lintFixtureProbe({ directoryName: "probe-web-imports", packageType: "web", source });
+}
+
+async function lintJobContractsProbe(source) {
+  return await lintFixtureProbe({
+    directoryName: "probe-job-contracts",
+    packageType: "job-contracts",
+    source,
+  });
+}
+
+async function lintFloatingPromisesProbe(source) {
+  return await lintFixtureProbe({
+    directoryName: "probe-floating-promises",
+    packageType: "base",
+    source,
+  });
+}
+
+async function lintMagicNumbersProbe(source) {
+  return await lintFixtureProbe({
+    directoryName: "probe-magic-numbers",
+    packageType: "base",
+    source,
+  });
+}
+
+async function lintInlineDirectiveProbe(source) {
+  return await lintFixtureProbe({
+    directoryName: "probe-inline-directive",
+    packageType: "base",
+    source,
+  });
 }
 
 function ruleIds(messages) {
@@ -53,9 +90,9 @@ function ruleIds(messages) {
 
 // The relative-path zone in `import/no-restricted-paths` matches on physical
 // location, so this probe must sit at a real app path (same depth as a page).
-async function lintWebSource(source) {
+async function lintWebRestrictedPathsProbe(source) {
   const webDirectory = path.join(repositoryRoot, "apps/web");
-  const probePath = path.join(webDirectory, "src/app", `probe-${randomUUID()}.tsx`);
+  const probePath = path.join(webDirectory, "src/app/guardrail-probe-restricted-paths.tsx");
   await writeFile(probePath, source);
   try {
     return await lintProbe({ directory: webDirectory, probePath, packageType: "web" });
@@ -66,13 +103,12 @@ async function lintWebSource(source) {
 
 describe("shared ESLint guardrails", () => {
   it("rejects Prisma and worker-handler imports from the web app", async () => {
-    const messages = await lint(
+    const messages = await lintWebImportsProbe(
       [
         'import type { PrismaClient } from "@prisma/client";',
         'import "@lazuli/worker-handlers";',
         "export type Client = PrismaClient;",
       ].join("\n"),
-      "web",
     );
 
     assert.equal(
@@ -82,13 +118,13 @@ describe("shared ESLint guardrails", () => {
   });
 
   it("rejects worker-handler imports from job contracts", async () => {
-    const messages = await lint('import "@lazuli/worker-handlers";', "job-contracts");
+    const messages = await lintJobContractsProbe('import "@lazuli/worker-handlers";');
 
     assert.ok(ruleIds(messages).includes("no-restricted-imports"));
   });
 
   it("rejects relative paths that bypass package exports", async () => {
-    const messages = await lintWebSource(
+    const messages = await lintWebRestrictedPathsProbe(
       'import "../../../../packages/worker-handlers/src/index.js";',
     );
 
@@ -96,19 +132,19 @@ describe("shared ESLint guardrails", () => {
   });
 
   it("uses type information to reject floating promises", async () => {
-    const messages = await lint('Promise.resolve("done");');
+    const messages = await lintFloatingPromisesProbe('Promise.resolve("done");');
 
     assert.ok(ruleIds(messages).includes("@typescript-eslint/no-floating-promises"));
   });
 
   it("enforces readability rules", async () => {
-    const messages = await lint("export function answer(): number { return 42; }");
+    const messages = await lintMagicNumbersProbe("export function answer(): number { return 42; }");
 
     assert.ok(ruleIds(messages).includes("no-magic-numbers"));
   });
 
   it("does not allow inline directives to suppress guardrails", async () => {
-    const messages = await lint(
+    const messages = await lintInlineDirectiveProbe(
       ["// eslint-disable-next-line no-console", 'console.log("hidden");'].join("\n"),
     );
 

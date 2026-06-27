@@ -27,9 +27,10 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 
-# Claude Code local settings (keep shared .claude/settings.json if added later)
+# Agents local settings (keep shared .claude/settings.json if added later)
 .claude/settings.local.json
 .claude/*.local.json
+.codex/
 
 # Test / coverage
 coverage/
