@@ -10,4 +10,11 @@ export default [
       "security/detect-non-literal-fs-filename": "off",
     },
   },
+  {
+    files: ["scripts/runtime-check.mjs"],
+    // Runtime preflight is the validated boundary for process.env reads.
+    rules: {
+      "no-restricted-syntax": "off",
+    },
+  },
 ];

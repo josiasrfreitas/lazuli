@@ -1,7 +1,28 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [".env"],
-  "globalEnv": ["NODE_ENV", "DATABASE_URL"],
+  "globalEnv": [
+    "APP_URL",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "DATABASE_URL",
+    "EMAIL_FROM",
+    "GCS_ARTIFACTS_BUCKET",
+    "GCS_PROJECT_ID",
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "HATCHET_CLIENT_HOST_PORT",
+    "HATCHET_CLIENT_TLS_STRATEGY",
+    "HATCHET_CLIENT_TOKEN",
+    "NODE_ENV",
+    "PORTAL_BASE_URL",
+    "PORTAL_MASTER_PASSWORD",
+    "PORTAL_MASTER_USERNAME",
+    "RESEND_API_KEY",
+    "SMTP_HOST",
+    "SMTP_PORT"
+  ],
   "ui": "stream",
   "tasks": {
     "build": {

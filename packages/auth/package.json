@@ -4,17 +4,29 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts"
   },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test --test-reporter spec test/*.test.ts",
+    "test:db": "DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-reporter spec test/db/*.test.ts",
     "clean": "rm -rf .turbo dist"
+  },
+  "dependencies": {
+    "@lazuli/db": "workspace:*",
+    "better-auth": "catalog:",
+    "nodemailer": "catalog:",
+    "resend": "catalog:"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
+    "@types/nodemailer": "catalog:",
+    "dotenv": "catalog:",
     "eslint": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:"
   }
 }
