@@ -18,7 +18,7 @@ with feature work; **cutover is blocked** on the open web-host / Cloud SQL conne
 
 ## Issues
 
-### [P09-01] Pulumi base stack (state, buckets, registry, service accounts, secrets)
+### Pulumi base stack (state, buckets, registry, service accounts, secrets)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P00-01
@@ -28,7 +28,7 @@ with feature work; **cutover is blocked** on the open web-host / Cloud SQL conne
   - [ ] Stack provisions buckets/registry/SAs/secret refs; state in the GCS state bucket.
   - [ ] No secret values committed; only references.
 
-### [P09-02] Worker Cloud Run service (Playwright-capable image)
+### Worker Cloud Run service (Playwright-capable image)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P09-01, P00-01
@@ -38,7 +38,7 @@ with feature work; **cutover is blocked** on the open web-host / Cloud SQL conne
   - [ ] Worker image builds and deploys to Cloud Run; connects to Hatchet Cloud.
   - [ ] Portal handlers run here at low concurrency (re-split only if load later justifies, §2.1).
 
-### [P09-03] Web host wiring + Cloud SQL connectivity (BLOCKED — decision)
+### Web host wiring + Cloud SQL connectivity (BLOCKED — decision)
 
 - **Status:** `blocked` (needs host decision)
 - **Depends on:** P09-01

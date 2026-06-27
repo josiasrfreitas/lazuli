@@ -19,7 +19,7 @@ transactional only — no rule engine, no WhatsApp (Phase 2).
 
 ## Issues
 
-### [P08-01] Email infra (Resend prod / Mailpit local)
+### Email infra (Resend prod / Mailpit local)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P00-02
@@ -28,7 +28,7 @@ transactional only — no rule engine, no WhatsApp (Phase 2).
 - **Acceptance:**
   - [ ] Worker sends through Mailpit locally and Resend in prod; no PII in logs.
 
-### [P08-02] Portal failure alert email
+### Portal failure alert email
 
 - **Status:** `ready-for-agent` (consumes P06 `PortalRun`)
 - **Depends on:** P08-01, P06-01
@@ -37,7 +37,7 @@ transactional only — no rule engine, no WhatsApp (Phase 2).
 - **Acceptance:**
   - [ ] A failed `PortalRun` triggers exactly one alert email; recipient/content shape tested (worker test, §10.1).
 
-### [P08-03] Overdue emails: D+30 + daily 07:00 digest
+### Overdue emails: D+30 + daily 07:00 digest
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P08-01, P07-04
@@ -46,7 +46,7 @@ transactional only — no rule engine, no WhatsApp (Phase 2).
 - **Acceptance:**
   - [ ] D+30 email idempotent (one per installment/threshold); digest fires at 07:00 BRT.
 
-### [P08-04] Admin dashboard + teacher home
+### Admin dashboard + teacher home
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P05-02, P07-07; Portal card from P06-04
@@ -55,7 +55,7 @@ transactional only — no rule engine, no WhatsApp (Phase 2).
 - **Acceptance:**
   - [ ] Cards match §7.1 sets/precedence; deferred cards omitted, not faked.
 
-### [P08-05] Reports & artifacts (CSV + PDF)
+### Reports & artifacts (CSV + PDF)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P05-01, P07-04

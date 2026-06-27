@@ -27,7 +27,7 @@ not-viable for MVP. Do not build production behavior before that gate resolves.
 
 ## Issues
 
-### [P06-01] `PortalClient` adapter boundary + `PortalRun` facts
+### `PortalClient` adapter boundary + `PortalRun` facts
 
 - **Status:** `blocked` (gate)
 - **Depends on:** P05-01, P00-08
@@ -37,7 +37,7 @@ not-viable for MVP. Do not build production behavior before that gate resolves.
   - [ ] Web/api never import Playwright; only worker runs Portal.
   - [ ] `PortalRun` is the only queue/attempt/outcome record (no separate snapshot tables).
 
-### [P06-02] Nightly auto-submit workflow
+### Nightly auto-submit workflow
 
 - **Status:** `blocked` (gate)
 - **Depends on:** P06-01
@@ -47,7 +47,7 @@ not-viable for MVP. Do not build production behavior before that gate resolves.
   - [ ] Cancelled/untaken sessions skipped; one `PortalRun` per session attempt.
   - [ ] Behavior matches the mode chosen by [P00-08].
 
-### [P06-03] Manual re-submit / retry
+### Manual re-submit / retry
 
 - **Status:** `blocked` (gate)
 - **Depends on:** P06-01
@@ -56,7 +56,7 @@ not-viable for MVP. Do not build production behavior before that gate resolves.
 - **Acceptance:**
   - [ ] Manual retry queues a job and records a session-linked `PortalRun` (E2E smoke, §10.1).
 
-### [P06-04] Portal health card on dashboard
+### Portal health card on dashboard
 
 - **Status:** `ready-for-agent` (presentation works in any mode)
 - **Depends on:** P06-01

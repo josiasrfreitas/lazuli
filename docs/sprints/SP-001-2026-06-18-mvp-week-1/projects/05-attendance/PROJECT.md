@@ -19,7 +19,7 @@ submission. Present/absent only; no server-side drafts.
 
 ## Issues
 
-### [P05-01] Attendance + makeup schema, commit facts
+### Attendance + makeup schema, commit facts
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P03-05, P04-01
@@ -30,7 +30,7 @@ submission. Present/absent only; no server-side drafts.
   - [ ] Committed attendance carries `lastModifiedById`/`lastModifiedAt` (§1.2(8)).
   - [ ] No server-side draft/autosave table (§14 guardrail).
 
-### [P05-02] Mark + confirm attendance on mobile
+### Mark + confirm attendance on mobile
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P05-01
@@ -40,7 +40,7 @@ submission. Present/absent only; no server-side drafts.
   - [ ] Marking without confirm persists nothing; confirm commits all rows atomically.
   - [ ] Works on a mobile viewport (E2E smoke, §10.1).
 
-### [P05-03] Makeups: schedule + visitor on roster + outcome
+### Makeups: schedule + visitor on roster + outcome
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P05-01
@@ -50,7 +50,7 @@ submission. Present/absent only; no server-side drafts.
   - [ ] Makeup must be scheduled in advance; visitor shows on roster; outcome recorded on target session.
   - [ ] Makeup no-show derived from `sessionEndInstant`.
 
-### [P05-04] Same-day teacher edit window
+### Same-day teacher edit window
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P05-02
@@ -59,7 +59,7 @@ submission. Present/absent only; no server-side drafts.
 - **Acceptance:**
   - [ ] Teacher edit allowed for own class, same day; blocked otherwise (tRPC integration test).
 
-### [P05-05] Admin fixes past attendance
+### Admin fixes past attendance
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P05-02

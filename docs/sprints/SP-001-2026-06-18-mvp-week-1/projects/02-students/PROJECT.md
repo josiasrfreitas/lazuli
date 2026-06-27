@@ -18,7 +18,7 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
 
 ## Issues
 
-### [P02-01] Student / Guardian / Address schema + constraints
+### Student / Guardian / Address schema + constraints
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P00-03
@@ -29,7 +29,7 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
   - [ ] Address shared via FK; one structured Guardian per student.
   - [ ] No multi-guardian / household / discount fields (deferred, §1.1).
 
-### [P02-02] Legacy one-shot import script + validation report
+### Legacy one-shot import script + validation report
 
 - **Status:** `blocked` (needs [P00-07] outcome)
 - **Depends on:** P02-01, P00-07
@@ -39,7 +39,7 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
   - [ ] Idempotent enough to re-run during pilot; produces a diffable validation report.
   - [ ] No Legacy-specific schema added (§14 guardrail).
 
-### [P02-03] Fast student search (trigram)
+### Fast student search (trigram)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P02-01
@@ -49,7 +49,7 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
   - [ ] Partial-name and document search return ranked matches.
   - [ ] Index defined via the raw-SQL constraint/index migration channel.
 
-### [P02-04] Student profile aggregate + add/edit
+### Student profile aggregate + add/edit
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P02-01
@@ -59,7 +59,7 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
   - [ ] Profile renders identity + guardian + address; `wa.me` link built from phone.
   - [ ] Add/edit validates document type/number and minor/guardian rule.
 
-### [P02-05] Status lifecycle (SUSPENDED cascade, no billing mutation)
+### Status lifecycle (SUSPENDED cascade, no billing mutation)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P02-01

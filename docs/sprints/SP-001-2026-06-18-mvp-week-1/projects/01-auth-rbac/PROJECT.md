@@ -19,7 +19,7 @@ scope) so feature work can assume authorization is solved.
 
 ## Issues
 
-### [P01-01] Better Auth: Google + magic link, pre-provisioned staff
+### Better Auth: Google + magic link, pre-provisioned staff
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P00-03
@@ -30,7 +30,7 @@ scope) so feature work can assume authorization is solved.
   - [ ] Sessions last 30 days; sign-out invalidates.
   - [ ] Staff soft-disabled via `User.isEnabled` (no deletes) — disabled users cannot sign in.
 
-### [P01-02] RBAC middleware + role matrix + `ctx.staffUser`
+### RBAC middleware + role matrix + `ctx.staffUser`
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P01-01
@@ -41,7 +41,7 @@ scope) so feature work can assume authorization is solved.
   - [ ] Teacher reads/writes restricted to owned resources (verified by tRPC integration tests, §10.1).
   - [ ] No impersonation in MVP.
 
-### [P01-03] Role-based app shell & menu (pt-BR)
+### Role-based app shell & menu (pt-BR)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P01-02

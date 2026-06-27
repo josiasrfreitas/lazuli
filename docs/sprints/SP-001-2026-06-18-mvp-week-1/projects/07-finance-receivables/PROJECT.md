@@ -19,7 +19,7 @@ This tracks what is owed and what was paid; it does not move money.
 
 ## Issues
 
-### [P07-01] Finance schema (payer/order/installment/adjustment/payment/allocation)
+### Finance schema (payer/order/installment/adjustment/payment/allocation)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P02-01
@@ -29,7 +29,7 @@ This tracks what is owed and what was paid; it does not move money.
   - [ ] Non-negative / overpayment guards; cancelled orders non-collectible.
   - [ ] Waiver + adjustment **backbone** stored (required by D-0032) even though endpoints are P1.
 
-### [P07-02] Create an order + generate installments
+### Create an order + generate installments
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P07-01
@@ -39,7 +39,7 @@ This tracks what is owed and what was paid; it does not move money.
   - [ ] Generated installments sum to order total; remainder lands on the last (domain unit test, §10.1).
   - [ ] Edits blocked after the cutoff.
 
-### [P07-03] Register a payment + allocations
+### Register a payment + allocations
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P07-02
@@ -49,7 +49,7 @@ This tracks what is owed and what was paid; it does not move money.
   - [ ] Allocations cannot cross payers or exceed installment balance.
   - [ ] Concurrent allocations serialize correctly (tRPC integration test, §10.1).
 
-### [P07-04] Derived installment/order status, balances & interest preview
+### Derived installment/order status, balances & interest preview
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P07-01
@@ -59,7 +59,7 @@ This tracks what is owed and what was paid; it does not move money.
   - [ ] Status/balance/empty-denominator covered by domain unit tests (§10.1).
   - [ ] Interest is preview-only; multa left configurable/unset pending decision.
 
-### [P07-05] Batch reconcile
+### Batch reconcile
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P07-03
@@ -68,7 +68,7 @@ This tracks what is owed and what was paid; it does not move money.
 - **Acceptance:**
   - [ ] Batch reconcile applies allocations atomically and reports per-row outcome.
 
-### [P07-06] Waivers / discounts / adjustments (P1)
+### Waivers / discounts / adjustments (P1)
 
 - **Status:** `ready-for-agent` (P1)
 - **Depends on:** P07-01
@@ -77,7 +77,7 @@ This tracks what is owed and what was paid; it does not move money.
 - **Acceptance:**
   - [ ] Waive marks installment waived (non-collectible); discount adjusts via adjustment rows, not stored status.
 
-### [P07-07] Receivables dashboard + per-student statement (extrato)
+### Receivables dashboard + per-student statement (extrato)
 
 - **Status:** `ready-for-agent`
 - **Depends on:** P07-04, P07-03
