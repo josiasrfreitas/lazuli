@@ -36,6 +36,8 @@ Lazuli is a custom management system for one language school in Brazil. The wedg
 
 Execution (projects, issues, dependencies) lives in **Linear**, not in this repo. See [agents/issue-tracker.md](./agents/issue-tracker.md).
 
+> **UI vs backend:** UI and backend are separate GREs within each domain project (P01–P08). UI work is post-phase until GRE-57 closes. See [D-0036](./MVP/decisions.md#d-0036-frontend-surfaces-deferred-design-system-gate).
+
 ## How to update docs
 
 - **Product behavior change:** update [MVP/PRD.md](./MVP/PRD.md) and, if it changes a constraint, [MVP/decisions.md](./MVP/decisions.md).

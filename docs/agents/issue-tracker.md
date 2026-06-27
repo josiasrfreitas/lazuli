@@ -2,6 +2,14 @@
 
 Work is tracked in **Linear**. Do not duplicate issues or sprint plans in this repo — product scope stays in `docs/MVP/`; execution lives in Linear.
 
+## Projects
+
+| Scope | Linear |
+| ----- | ------ |
+| **Backend** | Schema, tRPC, workers, auth endpoints — per domain project (P01–P08) |
+| **UI** | Same domain project, separate GRE, **post-phase** until **GRE-57** (P00) closes |
+| **Split** | Hybrid stories → backend keeps original GRE; new GRE for UI (D-0036) |
+
 ## Conventions
 
 - Create and update issues, projects, cycles, and dependencies in Linear only.

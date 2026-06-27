@@ -1,7 +1,7 @@
 # Decisions
 
 **Status:** living decision register  
-**Last updated:** 2026-06-18  
+**Last updated:** 2026-06-27  
 **Product source:** [PRD and user stories](./PRD.md)
 
 This file replaces the old architecture decision files. Use it as the first stop for architecture, product constraints, and discovery-driven decisions. If a decision changes, update this file and the affected PRD story in the same change.
@@ -21,6 +21,7 @@ This file replaces the old architecture decision files. Use it as the first stop
 - Finance MVP = receivables & revenue tracking only, built on **Order** (Payer · Order · OrderBeneficiary · Installment · InstallmentAdjustment · PaymentEntry · PaymentAllocation): manually-recorded payments reconciled against Cora. `Order.principalAmount` is the agreed principal; all statuses/balances are **derived** (not stored); payments are **payer-scoped** and may span orders. Integer cents, BRL-only. It does not issue boletos, run a checkout, process payments, or track expenses (all Phase 2). See [D-0028](#d-0028-finance-core-model--order)/[D-0032](#d-0032-finance-ledger--derive-dont-store-adjustments-payer-scoped-payments).
 - MVP enables only two roles, `ADMIN` and `TEACHER`. `SECRETARY`/`FINANCE` return with expenses and bank integration.
 - Deferred to Phase 2: leads/CRM, expenses, WhatsApp/Evolution, charge issuance/checkout, pedagogical progress & assessments, and assisted class generation.
+- **UI issues stay in domain projects (P01–P08), post-phase until GRE-57 design-system triage closes** — see [D-0036](#d-0036-frontend-surfaces-deferred-design-system-gate).
 - Portuguese-BR UI, `America/Sao_Paulo` product timezone, LGPD-aware handling of student PII.
 
 ## Current Stack
@@ -103,6 +104,7 @@ Local development uses Docker Compose for Postgres, Mailpit, and Hatchet Lite, p
 | D-0033 | Structured Guardian and Address entities                                                                   | Accepted                 |
 | D-0034 | UUIDEntity base for all domain tables                                                                      | Accepted                 |
 | D-0035 | Defer student field-level traceability                                                                     | Accepted                 |
+| D-0036 | UI deferred post-phase in domain projects; backend/UI split; gated on GRE-57 design-system triage (P00) | Accepted                 |
 
 ## D-0001: Monolith First
 
@@ -569,6 +571,31 @@ PaymentAllocation { paymentEntryId, installmentId, amount }                 // d
 - **`DROPPED` reason** is no longer enforced at P0; staff may set `DROPPED` without capturing a reason in the system. Supersedes [changelog #39](./CHANGELOG.md) on that point.
 - Profile UI does not show `lastModifiedBy` beside contact/notes fields.
 - Operational attribution on other entities (e.g. committed `Attendance.lastModifiedAt`) is unchanged.
+
+## D-0036: Frontend Surfaces Deferred (design-system gate)
+
+**Decided 2026-06-27.** Product screens stay in their **original Linear domain projects** (P01–P08). Backend and UI are **separate issues** in the same project when a story was hybrid. UI issues are **post-phase work**, blocked until **GRE-57** (design system triage in P00) closes.
+
+**Split rule:** hybrid stories keep the **original GRE on the backend half**; UI gets a new GRE in the **same domain project** (e.g. GRE-20 API + GRE-60 UI, both in P02).
+
+| Backend | UI (same project) |
+| ------- | ----------------- |
+| GRE-15 auth endpoints (P01) | GRE-58 sign-in surfaces (P01) |
+| GRE-17 RBAC HTTP 403 (P01) | GRE-16 app shell + 403 page (P01) |
+| GRE-20 profile API (P02) | GRE-60 profile page + forms (P02) |
+| GRE-61 attendance tRPC (P05) | GRE-33 mobile attendance screen (P05) |
+| GRE-41 `portal.health` (P06) | GRE-62 Portal health card (P06) |
+| GRE-63 receivables API (P07) | GRE-49 receivables dashboard (P07) |
+| GRE-59 extrato worker (P07) | poll UX in GRE-49 |
+| GRE-64 dashboard router (P08) | GRE-52 admin/teacher home pages (P08) |
+
+**Gate:** GRE-57 in **[P00] Foundation & de-risk** — not a separate UI project.
+
+**Consequences:**
+
+- [PRD](./PRD.md) user stories remain the behavioral contract; backend issues do not implement screens.
+- [TECHNICAL_SPEC §8](./TECHNICAL_SPEC.md#8-ui-boundaries) defines UI behavior; implementation lives in UI-labelled GREs above.
+- `packages/ui` baseline ships when GRE-57 closes.
 
 ## Security and Data Rules
 

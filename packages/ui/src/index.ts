@@ -1,6 +1,6 @@
 /**
  * Shared UI components. Portuguese-BR labels live near the UI (§2.1).
- * Real component library lands with the first web project.
+ * Baseline library ships when GRE-57 (P00) closes — not in backend issues (D-0036).
  */
 
 export const UI_PACKAGE = "@lazuli/ui" as const;

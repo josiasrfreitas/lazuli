@@ -56,6 +56,7 @@ infra/
 - **Local dev is first-class** — Docker Compose (Postgres, Mailpit, Hatchet Lite) + seed data; see `docs/MVP/decisions.md`.
 - **LGPD awareness** — student PII stays in Cloud SQL; minimal data in Hatchet payloads; no PII in worker logs.
 - **Scope discipline** — week-1 MVP is ruthless; see `docs/MVP/PRD.md` and `docs/MVP/decisions.md` for current deferred items.
+- **Backend-first execution** — backend/UI split per domain project; UI GREs are post-phase until GRE-57 (P00). See [D-0036](docs/MVP/decisions.md#d-0036-frontend-surfaces-deferred-design-system-gate).
 - **Open items** — web host (Railway leading, not locked), Cloud SQL connectivity, CI/CD — see `docs/README.md` and `docs/MVP/decisions.md`.
 
 ## Quick stack reference

@@ -14,6 +14,8 @@
 
 This spec turns the current product/domain decisions into an implementation contract for the first T3 Turbo codebase. It covers the full MVP target, sequenced by increment per `D-0027`. The current repository is docs-only; Sprint 0 must scaffold the codebase before these commands, packages, and migrations exist. Deferred modules remain out of MVP.
 
+> **UI execution split (2026-06-27, [D-0036](./decisions.md#d-0036-frontend-surfaces-deferred-design-system-gate)):** §8 and other UI references define behavior for **UI-labelled GREs in domain projects** (post-phase, gated on GRE-57). P01–P09 **backend** issues implement schema, tRPC, workers, and auth endpoints only.
+
 Trace IDs are expanded in Section 12.
 
 ## 1. Scope Contract
@@ -384,7 +386,7 @@ MVP enables only `ADMIN` and `TEACHER`. `SECRETARY` and `FINANCE` remain enum va
 Session rules:
 
 - Session duration is 30 days.
-- Header includes a sign-out action.
+- Header includes a sign-out action (**UI in P01** — GRE-58; backend sign-out endpoint in GRE-15).
 - tRPC context exposes `ctx.staffUser = { id: User.id, email, role, isEnabled }`; Better Auth's own user/session ID is never used for domain resource checks.
 
 Trace: `S-AUTH-1`, `S-AUTH-2`; `D-0005`, `D-0016`.
@@ -1347,6 +1349,8 @@ Student statement PDF:
 Trace: see Section 12.
 
 ## 8. UI Boundaries
+
+> **Planned, not built in backend issues.** UI-labelled GREs in P01–P08 (post-phase until GRE-57). Backend issues expose tRPC procedures these surfaces consume.
 
 The first screen after login is the actual role home:
 

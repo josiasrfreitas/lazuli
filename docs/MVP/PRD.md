@@ -7,6 +7,8 @@
 
 This document is the source of truth for product scope, user stories, and acceptance criteria. Architecture and product constraints live in [decisions.md](./decisions.md).
 
+> **UI execution split (2026-06-27, [D-0036](./decisions.md#d-0036-frontend-surfaces-deferred-design-system-gate)):** User stories describe **product behavior**. **Backend issues** deliver tRPC/API/workers only. **UI issues** live in the **same domain Linear project** (P01–P08), labelled UI, and are **post-phase** until **GRE-57** (design system triage) closes. Hybrid stories are split: e.g. GRE-20 (API) + GRE-60 (UI) both in P02.
+
 ---
 
 ## 1. Roles
@@ -33,6 +35,8 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 
 ## 3. Authentication & access (Auth)
 
+> **UI note:** Login/sign-out UI → GRE-58; shell/403 → GRE-16. Backend: GRE-15, GRE-17.
+
 ### S-AUTH-1 · Staff sign in with Google `P0`
 
 **As a** staff member, **I want** to sign in with my school Google account **so that** I don't manage another password.
@@ -53,6 +57,8 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 ---
 
 ## 4. Students
+
+> **UI note:** Profile, forms, and search chrome → GRE-60 (search UI planned). Backend: GRE-20, GRE-21, GRE-23.
 
 ### S-STU-1 · Import students from Legacy export `P0`
 
@@ -100,6 +106,8 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 ---
 
 ## 5. Course catalog, classes, sessions & calendar
+
+> **UI note:** Class catalog, calendar month view, class detail pages → UI GREs (to be planned). Backend: GRE-24–29.
 
 ### S-CAT-1 · Seeded course catalog `P0`
 
@@ -221,6 +229,8 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 ---
 
 ## 7. Attendance
+
+> **UI note:** Mobile attendance screen → GRE-33. Makeup scheduling UI → planned. Backend: GRE-34, GRE-61, GRE-35–38.
 
 ### S-ATT-1 · Mark attendance on phone `P0`
 

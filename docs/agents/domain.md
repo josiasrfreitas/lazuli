@@ -7,7 +7,7 @@ This is a **single-context** repo (one school, monolith + BFF). It does not use 
 ## Before exploring, read these
 
 - **`docs/MVP/decisions.md`** — plays the ADR role. Read the decisions that touch the area you're about to work in. If your output contradicts one, surface it explicitly (see "Flag conflicts" below).
-- **`docs/MVP/PRD.md`** — product scope, user stories, acceptance criteria. The source of product behavior.
+- **`docs/MVP/PRD.md`** — product scope, user stories, acceptance criteria. The source of product behavior (including UI behavior in UI-labelled GREs within domain projects — see [D-0036](../MVP/decisions.md#d-0036-frontend-surfaces-deferred-design-system-gate)).
 - **`docs/README.md`** — reading order, TLDR, scope snapshot, open questions.
 - **`docs/discovery/`** — questionnaire data, process maps, and discovery artifacts. The evidence behind decisions.
 
