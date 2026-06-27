@@ -6,13 +6,13 @@ Custom student/finance/attendance management for a single English-language schoo
 
 Read these before assuming product scope, architecture, or tech stack.
 
-| Doc                    | Path                                                   | Purpose                                                         |
-| ---------------------- | ------------------------------------------------------ | --------------------------------------------------------------- |
-| **Docs index**         | [`docs/README.md`](docs/README.md)                     | Reading order, TLDR, scope snapshot, open questions             |
-| **PRD & user stories** | [`docs/MVP/PRD.md`](docs/MVP/PRD.md)                   | Product scope, user stories, acceptance criteria                |
-| **Decisions**          | [`docs/MVP/decisions.md`](docs/MVP/decisions.md)       | Architecture, stack, workflow, and discovery-driven decisions   |
-| **Discovery**          | [`docs/discovery/README.md`](docs/discovery/README.md) | Questionnaire data, query tool, discovery artifacts             |
-| **Issue tracker**      | Linear + [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) | Projects, issues, dependencies (not duplicated in repo) |
+| Doc                    | Path                                                                    | Purpose                                                       |
+| ---------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Docs index**         | [`docs/README.md`](docs/README.md)                                      | Reading order, TLDR, scope snapshot, open questions           |
+| **PRD & user stories** | [`docs/MVP/PRD.md`](docs/MVP/PRD.md)                                    | Product scope, user stories, acceptance criteria              |
+| **Decisions**          | [`docs/MVP/decisions.md`](docs/MVP/decisions.md)                        | Architecture, stack, workflow, and discovery-driven decisions |
+| **Discovery**          | [`docs/discovery/README.md`](docs/discovery/README.md)                  | Questionnaire data, query tool, discovery artifacts           |
+| **Issue tracker**      | Linear + [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) | Projects, issues, dependencies (not duplicated in repo)       |
 
 **Doc hierarchy:** PRD = product behavior · decisions = constraints and rationale · discovery = evidence. If docs disagree, update PRD and decisions together before building.
 

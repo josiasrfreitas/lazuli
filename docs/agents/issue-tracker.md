@@ -4,11 +4,11 @@ Work is tracked in **Linear**. Do not duplicate issues or sprint plans in this r
 
 ## Projects
 
-| Scope | Linear |
-| ----- | ------ |
-| **Backend** | Schema, tRPC, workers, auth endpoints — per domain project (P01–P08) |
-| **UI** | Same domain project, separate GRE, **post-phase** until **GRE-57** (P00) closes |
-| **Split** | Hybrid stories → backend keeps original GRE; new GRE for UI (D-0036) |
+| Scope       | Linear                                                                          |
+| ----------- | ------------------------------------------------------------------------------- |
+| **Backend** | Schema, tRPC, workers, auth endpoints — per domain project (P01–P08)            |
+| **UI**      | Same domain project, separate GRE, **post-phase** until **GRE-57** (P00) closes |
+| **Split**   | Hybrid stories → backend keeps original GRE; new GRE for UI (D-0036)            |
 
 ## Conventions
 

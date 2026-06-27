@@ -104,7 +104,7 @@ Local development uses Docker Compose for Postgres, Mailpit, and Hatchet Lite, p
 | D-0033 | Structured Guardian and Address entities                                                                   | Accepted                 |
 | D-0034 | UUIDEntity base for all domain tables                                                                      | Accepted                 |
 | D-0035 | Defer student field-level traceability                                                                     | Accepted                 |
-| D-0036 | UI deferred post-phase in domain projects; backend/UI split; gated on GRE-57 design-system triage (P00) | Accepted                 |
+| D-0036 | UI deferred post-phase in domain projects; backend/UI split; gated on GRE-57 design-system triage (P00)    | Accepted                 |
 
 ## D-0001: Monolith First
 
@@ -578,15 +578,15 @@ PaymentAllocation { paymentEntryId, installmentId, amount }                 // d
 
 **Split rule:** hybrid stories keep the **original GRE on the backend half**; UI gets a new GRE in the **same domain project** (e.g. GRE-20 API + GRE-60 UI, both in P02).
 
-| Backend | UI (same project) |
-| ------- | ----------------- |
-| GRE-15 auth endpoints (P01) | GRE-58 sign-in surfaces (P01) |
-| GRE-17 RBAC HTTP 403 (P01) | GRE-16 app shell + 403 page (P01) |
-| GRE-20 profile API (P02) | GRE-60 profile page + forms (P02) |
-| GRE-61 attendance tRPC (P05) | GRE-33 mobile attendance screen (P05) |
-| GRE-41 `portal.health` (P06) | GRE-62 Portal health card (P06) |
-| GRE-63 receivables API (P07) | GRE-49 receivables dashboard (P07) |
-| GRE-59 extrato worker (P07) | poll UX in GRE-49 |
+| Backend                       | UI (same project)                     |
+| ----------------------------- | ------------------------------------- |
+| GRE-15 auth endpoints (P01)   | GRE-58 sign-in surfaces (P01)         |
+| GRE-17 RBAC HTTP 403 (P01)    | GRE-16 app shell + 403 page (P01)     |
+| GRE-20 profile API (P02)      | GRE-60 profile page + forms (P02)     |
+| GRE-61 attendance tRPC (P05)  | GRE-33 mobile attendance screen (P05) |
+| GRE-41 `portal.health` (P06)  | GRE-62 Portal health card (P06)       |
+| GRE-63 receivables API (P07)  | GRE-49 receivables dashboard (P07)    |
+| GRE-59 extrato worker (P07)   | poll UX in GRE-49                     |
 | GRE-64 dashboard router (P08) | GRE-52 admin/teacher home pages (P08) |
 
 **Gate:** GRE-57 in **[P00] Foundation & de-risk** — not a separate UI project.

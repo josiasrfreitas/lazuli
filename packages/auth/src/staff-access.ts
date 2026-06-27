@@ -1,6 +1,5 @@
 const UNAUTHORIZED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
 
-
 export type StaffRole = "ADMIN" | "SECRETARY" | "TEACHER" | "FINANCE";
 const ENABLED_ROLES = new Set<StaffRole>(["ADMIN", "TEACHER"]);
 
