@@ -22,7 +22,7 @@ scope) so feature work can assume authorization is solved.
 ### Better Auth: Google + magic link, pre-provisioned staff
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P00-03
+- **Depends on:** GRE-7
 - **Trace:** §4.1, S-AUTH-1, D-0005
 - **Goal:** Better Auth in `packages/auth`; Google OAuth + magic link via Resend/Mailpit; pre-provisioned `User` rows; unknown-email rejection boundary; 30-day sessions; sign-out.
 - **Acceptance:**
@@ -33,7 +33,7 @@ scope) so feature work can assume authorization is solved.
 ### RBAC middleware + role matrix + `ctx.staffUser`
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P01-01
+- **Depends on:** GRE-15
 - **Trace:** §5.2, S-AUTH-2, D-0016
 - **Goal:** tRPC RBAC middleware enforcing the §5.2 matrix for `ADMIN`/`TEACHER`; `ctx.staffUser`; teacher resource-scope checks (own classes only); 403 on violation. `SECRETARY`/`FINANCE` enum values exist but are not enabled.
 - **Acceptance:**
@@ -44,7 +44,7 @@ scope) so feature work can assume authorization is solved.
 ### Role-based app shell & menu (pt-BR)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P01-02
+- **Depends on:** GRE-17
 - **Trace:** S-AUTH-2, §8
 - **Goal:** Authenticated app shell with role-filtered navigation; Portuguese-BR labels; teacher lands on teacher home, admin on admin dashboard (cards filled in by their owning projects).
 - **Acceptance:**

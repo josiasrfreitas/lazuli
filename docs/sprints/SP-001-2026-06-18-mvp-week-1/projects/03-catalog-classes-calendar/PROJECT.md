@@ -20,8 +20,8 @@ closed days, classes (with their Portal locator name), and auto-generated class 
 
 ### Track / Stage catalog seed
 
-- **Status:** `ready-for-agent` (codes confirmed by [P00-09])
-- **Depends on:** P00-03, P00-09
+- **Status:** `ready-for-agent` (codes confirmed by [GRE-13])
+- **Depends on:** GRE-7, GRE-13
 - **Trace:** §4.3, S-CAT-1, D-0030
 - **Goal:** `Track` and `Stage` with stage-level `sequence` ordering; independent tracks (no cross-track order/equivalence); legacy behavior; seed-only (no catalog CRUD UI).
 - **Acceptance:**
@@ -31,7 +31,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
 ### Semesters (no-overlap exclusion constraint)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P00-03
+- **Depends on:** GRE-7
 - **Trace:** §4.4, S-CAL-4
 - **Goal:** `Semester` windows with a Postgres exclusion constraint rejecting overlap; semester setup is the trigger for session generation.
 - **Acceptance:**
@@ -41,7 +41,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
 ### School closed days + federal holiday import
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P00-03
+- **Depends on:** GRE-7
 - **Trace:** §4.4, §5.3, S-CAL-1
 - **Goal:** Closed-day calendar; federal-holiday import procedure; closing a future day affects generation; reopen regenerates.
 - **Acceptance:**
@@ -51,7 +51,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
 ### Class catalog (slots, format axes, lineage, clone)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P03-01
+- **Depends on:** GRE-24
 - **Trace:** §4.4, §5.3, S-CLS-1, D-0021
 - **Goal:** `Class` with scheduleType/format axes, schedule slots, status, one-teacher rule, nullable class-stage, `portalClassName` storage, lineage, and clone-for-next-period.
 - **Acceptance:**
@@ -62,7 +62,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
 ### Auto-generate class sessions
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P03-02, P03-03, P03-04
+- **Depends on:** GRE-22, GRE-28, GRE-29
 - **Trace:** §4.4, §6.2, S-CLS-2
 - **Goal:** Session generation job: idempotent, skips closed days, rolling horizon, setup-error reporting; sessions carry the `sessionEndInstant` semantics (§3.1).
 - **Acceptance:**
@@ -72,7 +72,7 @@ closed days, classes (with their Portal locator name), and auto-generated class 
 ### Cancel one session (teacher-absence MVP path)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P03-05
+- **Depends on:** GRE-27
 - **Trace:** §4.4, §5.3, S-CAL-2
 - **Goal:** Per-session cancellation with reason; cancellation blocked after committed/submitted attendance.
 - **Acceptance:**

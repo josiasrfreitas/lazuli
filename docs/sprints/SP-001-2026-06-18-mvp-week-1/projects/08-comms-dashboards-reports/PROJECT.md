@@ -22,7 +22,7 @@ transactional only — no rule engine, no WhatsApp (Phase 2).
 ### Email infra (Resend prod / Mailpit local)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P00-02
+- **Depends on:** GRE-6
 - **Trace:** §9.3, S-NOT-2, D-0007
 - **Goal:** Email sending via Resend (prod) / Mailpit (local) from the worker; templates; no notification rule table (hardcoded triggers in code + Hatchet schedules, §1.2(7)).
 - **Acceptance:**
@@ -31,7 +31,7 @@ transactional only — no rule engine, no WhatsApp (Phase 2).
 ### Portal failure alert email
 
 - **Status:** `ready-for-agent` (consumes P06 `PortalRun`)
-- **Depends on:** P08-01, P06-01
+- **Depends on:** GRE-48, GRE-36
 - **Trace:** §6.2, §9.3, S-Portal-2
 - **Goal:** Email alert on Portal submission failure (no Sentry in MVP), driven off `PortalRun` failure facts.
 - **Acceptance:**
@@ -40,7 +40,7 @@ transactional only — no rule engine, no WhatsApp (Phase 2).
 ### Overdue emails: D+30 + daily 07:00 digest
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P08-01, P07-04
+- **Depends on:** GRE-48, GRE-45
 - **Trace:** §6.2, S-NOT-2 (S-NOT-4 opt-out is P1)
 - **Goal:** D+30 overdue email (idempotent, no duplicate sends) and a daily 07:00 `America/Sao_Paulo` overdue digest. Per-student opt-out is P1 (no P0 schema, §4.2).
 - **Acceptance:**
@@ -49,7 +49,7 @@ transactional only — no rule engine, no WhatsApp (Phase 2).
 ### Admin dashboard + teacher home
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P05-02, P07-07; Portal card from P06-04
+- **Depends on:** GRE-33, GRE-49; Portal card from GRE-41
 - **Trace:** §7.1, §8, S-DASH-1, S-DASH-3
 - **Goal:** Admin dashboard cards (with deferred-card omissions per §8) and the teacher home; receivables + Portal health cards wired from their owning projects.
 - **Acceptance:**
@@ -58,7 +58,7 @@ transactional only — no rule engine, no WhatsApp (Phase 2).
 ### Reports & artifacts (CSV + PDF)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P05-01, P07-04
+- **Depends on:** GRE-34, GRE-45
 - **Trace:** §6.2, §7.2, §4.8, S-REP-1..4
 - **Goal:** Worker-generated artifacts: overdue receivables CSV, monthly accountant CSV (excludes expenses), class roster PDF, per-student attendance summary PDF (75% threshold formula). GCS artifact references, not signed URLs.
 - **Acceptance:**

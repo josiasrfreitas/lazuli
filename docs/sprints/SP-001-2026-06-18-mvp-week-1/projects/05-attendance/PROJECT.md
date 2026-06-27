@@ -22,7 +22,7 @@ submission. Present/absent only; no server-side drafts.
 ### Attendance + makeup schema, commit facts
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P03-05, P04-01
+- **Depends on:** GRE-27, GRE-26
 - **Trace:** §4.6, S-ATT, D-0029
 - **Goal:** `Attendance` (present/absent), makeup model, `attendanceLastCommittedAt`, untaken-session derivation via `sessionEndInstant`; no stored attendance-percent column.
 - **Acceptance:**
@@ -33,7 +33,7 @@ submission. Present/absent only; no server-side drafts.
 ### Mark + confirm attendance on mobile
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P05-01
+- **Depends on:** GRE-34
 - **Trace:** §5.3, §7.1, §8, S-ATT-1
 - **Goal:** Mobile attendance UI; selections persisted **only** by `attendance.confirmSession`; explicit confirm; untaken sessions visible until taken.
 - **Acceptance:**
@@ -43,7 +43,7 @@ submission. Present/absent only; no server-side drafts.
 ### Makeups: schedule + visitor on roster + outcome
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P05-01
+- **Depends on:** GRE-34
 - **Trace:** §4.6, §5.3, S-ATT-2, S-ATT-3, D-0010
 - **Goal:** Coordinator/admin schedules a makeup (advance-date constraint); makeup visitor appears on the target session roster; teacher captures the visitor outcome. Makeups do not affect attendance %.
 - **Acceptance:**
@@ -53,7 +53,7 @@ submission. Present/absent only; no server-side drafts.
 ### Same-day teacher edit window
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P05-02
+- **Depends on:** GRE-33
 - **Trace:** §5.2, §5.3, S-ATT-4
 - **Goal:** Teacher may edit own-class attendance same-day via resource scope; outside the window only admin can.
 - **Acceptance:**
@@ -62,7 +62,7 @@ submission. Present/absent only; no server-side drafts.
 ### Admin fixes past attendance
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P05-02
+- **Depends on:** GRE-33
 - **Trace:** §4.4, §4.6, §5.3, S-ATT-5
 - **Goal:** Admin edits past attendance; edits update `attendanceLastCommittedAt` so Portal re-submission is derivable.
 - **Acceptance:**

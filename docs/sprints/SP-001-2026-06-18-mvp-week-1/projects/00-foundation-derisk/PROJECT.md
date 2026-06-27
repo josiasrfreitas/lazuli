@@ -25,7 +25,7 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 - **Trace:** §2.1, D-0001/D-0002
 - **Goal:** Scaffold from T3 Turbo; create `apps/web`, `apps/worker`, and `packages/{api,auth,db,domain,job-contracts,integrations,worker-handlers,ui,validators}`, `tooling/`, `scripts/`, `infra/`. Remove generated mobile/example apps.
 - **Acceptance:**
-  - [x] Package graph matches §2.1; `apps/web` cannot import Prisma or worker handlers (enforced in [P00-04]).
+  - [x] Package graph matches §2.1; `apps/web` cannot import Prisma or worker handlers (enforced in [GRE-8]).
   - [x] Any deliberate deviation from upstream scaffold documented in `decisions.md`.
   - [x] `pnpm dev` boots web; `pnpm dev:worker` boots the single worker.
 - **Notes:** keep job contracts separate from worker handlers so web never pulls Playwright/PDF/GCS/email deps.
@@ -33,7 +33,7 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 ### Local dev environment (Docker Compose) + `.env.example`
 
 - **Status:** `done`
-- **Depends on:** P00-01
+- **Depends on:** GRE-5
 - **Trace:** §2.2, D-0006
 - **Goal:** `docker compose up` brings Postgres 16, Mailpit, Hatchet Lite on stable ports (PG `5432`, Mailpit UI `8025`/SMTP `1025`, Hatchet Lite project-standard port).
 - **Acceptance:**
@@ -43,7 +43,7 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 ### Prisma + `packages/db`: UUIDEntity base, migrate/seed plumbing
 
 - **Status:** `done`
-- **Depends on:** P00-02
+- **Depends on:** GRE-6
 - **Trace:** §4.0, §3.3, §2.2
 - **Goal:** Prisma wired to PG16; `UUIDEntity` base; raw-SQL constraint migration channel; `pnpm prisma:migrate`, `pnpm prisma:seed`, `pnpm db:reset`.
 - **Acceptance:**
@@ -53,7 +53,7 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 ### Code-quality guardrails (ESLint / TS strict / boundaries)
 
 - **Status:** `done`
-- **Depends on:** P00-01
+- **Depends on:** GRE-5
 - **Trace:** §3.4
 - **Goal:** Shared `tooling/eslint`, `tooling/prettier`, `tooling/tsconfig`; strictness, complexity/size, magic-value, duplication, and dependency-boundary rules from §3.4. Prevent agents from bypassing guardrails.
 - **Acceptance:**
@@ -64,7 +64,7 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 ### Quality-gate scripts
 
 - **Status:** `done`
-- **Depends on:** P00-03, P00-04
+- **Depends on:** GRE-7, GRE-8
 - **Trace:** §10.2
 - **Goal:** Expose `pnpm lint`, `typecheck`, `test`, `test:db`, `test:e2e`, `prisma:migrate`, `prisma:seed`, `dev`, `dev:worker`, plus `format:check` and `build`.
 - **Acceptance:**
@@ -74,7 +74,7 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 ### CI pipeline (minimum triggers)
 
 - **Status:** `done`
-- **Depends on:** P00-05
+- **Depends on:** GRE-9
 - **Trace:** §10.2, [../../ci.md](../../ci.md), D-0006/D-0027
 - **Goal:** CI runs format, lint, typecheck, unit tests, DB integration tests (PG16 service), prisma migrate/drift check, and build on PR/push to main. E2E nightly + manual only.
 - **Acceptance:**
@@ -86,19 +86,19 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 ### Spike: Legacy sample parser
 
 - **Status:** `done`
-- **Depends on:** P00-03
+- **Depends on:** GRE-7
 - **Trace:** §1.1, §1.3, §9.2, S-STU-1
 - **Goal:** Parse a real Legacy student export sample; document schema/encoding; prove a one-shot mapping into the Student/Guardian/Address shape. **No** Legacy-specific models or import tables.
 - **Acceptance:**
   - [x] Encoding + column map documented; verbatim name preservation confirmed.
   - [x] Findings recorded; if no sample yet, blocker raised — do not invent a schema.
-- **Findings:** [docs/discovery/DKSOFT/legacy-export-analysis.md](../../../../discovery/DKSOFT/legacy-export-analysis.md) — 6 sheets analysed (people, contracts, 3 AR ledgers incl. tuition), CPF join key, `Order.kind` decision raised for P07, `RA` decode deferred to P00-09. Attendance/progression history and inactive-people detail intentionally dropped for MVP.
+- **Findings:** [docs/discovery/DKSOFT/legacy-export-analysis.md](../../../../discovery/DKSOFT/legacy-export-analysis.md) — 6 sheets analysed (people, contracts, 3 AR ledgers incl. tuition), CPF join key, `Order.kind` decision raised for P07, `RA` decode deferred to GRE-13. Attendance/progression history and inactive-people detail intentionally dropped for MVP.
 - **Open items:** none.
 
 ### Spike: Portal credential / API / Playwright feasibility (the gate)
 
 - **Status:** `needs-info` (needs master/coordination credential)
-- **Depends on:** P00-02
+- **Depends on:** GRE-6
 - **Trace:** §1.2(5), §1.3, §9.1, S-Portal-1
 - **Goal:** Validate Portal login, all-class visibility, submit payload, correction/resubmission semantics, PPT endpoint. Produce the **exit decision**: Portal mode = automated | assisted | not-viable for MVP.
 - **Acceptance:**
@@ -109,7 +109,7 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 ### Spike: course/stage seed + Portal naming validation
 
 - **Status:** `needs-info`
-- **Depends on:** P00-03
+- **Depends on:** GRE-7
 - **Trace:** §1.1, S-CAT-1, D-0030
 - **Goal:** Validate production Track→Stage codes, stage `sequence` ordering, and REGULAR-class `portalClassName` generation rules.
 - **Acceptance:**
@@ -119,7 +119,7 @@ ships product behavior — it makes the rest buildable and resolves Sprint-0 unk
 ### Seed skeleton
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P00-03
+- **Depends on:** GRE-7
 - **Trace:** §2.2
 - **Goal:** `scripts/seed.ts` produces at least: 1 admin, 2 teachers, tracks/stages, active + archived classes, generated sessions, enrolled students, sample attendance, 1 payer with orders/installments/payments, and one failed/untaken Portal scenario.
 - **Acceptance:**

@@ -21,7 +21,7 @@ with feature work; **cutover is blocked** on the open web-host / Cloud SQL conne
 ### Pulumi base stack (state, buckets, registry, service accounts, secrets)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P00-01
+- **Depends on:** GRE-5
 - **Trace:** §11, §9.4, D-0003
 - **Goal:** Pulumi TS stacks: GCS buckets (artifacts + Pulumi state), Artifact Registry repo, least-privilege web/worker service accounts, Secret Manager references (DB, Better Auth, Google OAuth, Resend, Portal).
 - **Acceptance:**
@@ -31,7 +31,7 @@ with feature work; **cutover is blocked** on the open web-host / Cloud SQL conne
 ### Worker Cloud Run service (Playwright-capable image)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P09-01, P00-01
+- **Depends on:** GRE-54, GRE-5
 - **Trace:** §2.2, §11, D-0004
 - **Goal:** One Cloud Run service for the single Hatchet worker; Playwright-capable image; low concurrency; built/pushed to Artifact Registry.
 - **Acceptance:**
@@ -41,7 +41,7 @@ with feature work; **cutover is blocked** on the open web-host / Cloud SQL conne
 ### Web host wiring + Cloud SQL connectivity (BLOCKED — decision)
 
 - **Status:** `blocked` (needs host decision)
-- **Depends on:** P09-01
+- **Depends on:** GRE-54
 - **Trace:** §11, PRD §15.9
 - **Goal:** Once host is chosen (Railway leading, Vercel alternative), specify Cloud SQL access method (SSL/Auth Proxy or direct), migration runner, secret injection, and staging/preview behavior.
 - **Acceptance:**

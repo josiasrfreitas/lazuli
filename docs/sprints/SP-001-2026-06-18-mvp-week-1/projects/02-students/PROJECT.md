@@ -21,7 +21,7 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
 ### Student / Guardian / Address schema + constraints
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P00-03
+- **Depends on:** GRE-7
 - **Trace:** §4.2, S-STU-4, D-0033
 - **Goal:** `Student` with `documentType`/`documentNumber`, status enum; single structured `Guardian`; shared `Address` entity; minor⇒guardian-required rule; no per-field attribution columns (D-0035).
 - **Acceptance:**
@@ -31,8 +31,8 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
 
 ### Legacy one-shot import script + validation report
 
-- **Status:** `blocked` (needs [P00-07] outcome)
-- **Depends on:** P02-01, P00-07
+- **Status:** `blocked` (needs [GRE-10] outcome)
+- **Depends on:** GRE-18, GRE-10
 - **Trace:** §9.2, S-STU-1, D-0026
 - **Goal:** `scripts/legacy-import-students.ts` — a short-lived script (no Legacy models/tables/adapters) mapping the export into Student/Guardian/Address, emitting a temporary validation report. Names preserved verbatim.
 - **Acceptance:**
@@ -42,7 +42,7 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
 ### Fast student search (trigram)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P02-01
+- **Depends on:** GRE-18
 - **Trace:** §4.2, §5.3, S-STU-2
 - **Goal:** Trigram search over name/document/contact fields; results fast enough for daily front-desk use.
 - **Acceptance:**
@@ -52,7 +52,7 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
 ### Student profile aggregate + add/edit
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P02-01
+- **Depends on:** GRE-18
 - **Trace:** §5.3, S-STU-3, S-STU-4
 - **Goal:** Profile aggregate (contact, guardian, enrollment/attendance/finance sections wired as those land) with `wa.me` URL; add/edit forms (pt-BR).
 - **Acceptance:**
@@ -62,7 +62,7 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
 ### Status lifecycle (SUSPENDED cascade, no billing mutation)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P02-01
+- **Depends on:** GRE-18
 - **Trace:** §4.2, §5.3, S-STU-4, D-0024
 - **Goal:** Status transitions; `SUSPENDED` cascade behavior; status changes never auto-mutate billing.
 - **Acceptance:**
@@ -72,4 +72,4 @@ fast search, profile aggregate, edits, and the status lifecycle — the people t
 ## Definition of done (project)
 
 - [ ] Schema constraints covered by DB integration tests; lifecycle by tRPC integration tests (§10.1).
-- [ ] Import script validated against a real export (gated by P00-07).
+- [ ] Import script validated against a real export (gated by GRE-10).

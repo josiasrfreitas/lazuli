@@ -22,7 +22,7 @@ The operational student↔class link (`Enrollment`) and the structural stage pla
 ### Enrollment + PedagogicalProgress schema & invariants
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P02-01, P03-04
+- **Depends on:** GRE-18, GRE-29
 - **Trace:** §4.5, S-ENR-1, D-0031
 - **Goal:** `Enrollment` (operational link) and `PedagogicalProgress` (structural placement/history); invariants: one active progress, per-track active-enrollment uniqueness, archive/legacy/capacity guards. Decoupled from semester windows (D-0008).
 - **Acceptance:**
@@ -32,7 +32,7 @@ The operational student↔class link (`Enrollment`) and the structural stage pla
 ### Enroll a student into a class
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P04-01
+- **Depends on:** GRE-26
 - **Trace:** §5.3, S-ENR-1
 - **Goal:** Enrollment-create transaction: capacity override with reason, active-progress seeding, and the order-prompt boundary (prompts finance, does not auto-create billing).
 - **Acceptance:**
@@ -42,7 +42,7 @@ The operational student↔class link (`Enrollment`) and the structural stage pla
 ### Advance a student to the next stage
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P04-01
+- **Depends on:** GRE-26
 - **Trace:** §4.3, §4.5, §5.3, S-ENR-4
 - **Goal:** Next-stage lookup by `sequence`; advancement updates `PedagogicalProgress` only (progress-only, not enrollment churn).
 - **Acceptance:**
@@ -52,7 +52,7 @@ The operational student↔class link (`Enrollment`) and the structural stage pla
 ### Transfer / drop / pause (P1)
 
 - **Status:** `ready-for-agent` (P1 — after P0 path stable)
-- **Depends on:** P04-01
+- **Depends on:** GRE-26
 - **Trace:** §5.3, S-ENR-2, S-ENR-3
 - **Goal:** Move/transfer between classes; drop/pause. Academic close/drop/pause does **not** auto-mutate billing (resolved assumption §13); staff use manual finance tools.
 - **Acceptance:**

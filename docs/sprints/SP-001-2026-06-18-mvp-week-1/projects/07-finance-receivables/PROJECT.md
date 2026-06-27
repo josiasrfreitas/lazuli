@@ -22,7 +22,7 @@ This tracks what is owed and what was paid; it does not move money.
 ### Finance schema (payer/order/installment/adjustment/payment/allocation)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P02-01
+- **Depends on:** GRE-18
 - **Trace:** §4.7, D-0028, D-0032, D-0025
 - **Goal:** `Payer` (first-class, separate from `Guardian`), `Order`, `Beneficiary`, `Installment`, `Adjustment`, `PaymentEntry`, `Allocation`. Money in integer `*Cents` (BRL). No stored business status; no `GenerationPreset` (§14).
 - **Acceptance:**
@@ -32,7 +32,7 @@ This tracks what is owed and what was paid; it does not move money.
 ### Create an order + generate installments
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P07-01
+- **Depends on:** GRE-42
 - **Trace:** §4.7, §5.3, S-FIN-1
 - **Goal:** Order creation with payer/beneficiary, commercial schedule inputs, due-day choice, remainder-on-last-installment generation, and edit cutoff. Installment rows ARE the schedule (no preset entity).
 - **Acceptance:**
@@ -42,7 +42,7 @@ This tracks what is owed and what was paid; it does not move money.
 ### Register a payment + allocations
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P07-02
+- **Depends on:** GRE-43
 - **Trace:** §4.7, §5.3, S-FIN-3
 - **Goal:** `PaymentEntry` + `Allocation` to installments; payer-scoped invariants (allocation payer/sum); concurrent-allocation serialization via `SELECT … FOR UPDATE`.
 - **Acceptance:**
@@ -52,7 +52,7 @@ This tracks what is owed and what was paid; it does not move money.
 ### Derived installment/order status, balances & interest preview
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P07-01
+- **Depends on:** GRE-42
 - **Trace:** §3.2, §4.7, §7.1, S-FIN-2
 - **Goal:** Pure `packages/domain` calculators for installment/order status, balances, 1% monthly interest **preview** (config), and age buckets in `America/Sao_Paulo`. Multa policy stays open (§1.3) — do not invent a rate.
 - **Acceptance:**
@@ -62,7 +62,7 @@ This tracks what is owed and what was paid; it does not move money.
 ### Batch reconcile
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P07-03
+- **Depends on:** GRE-44
 - **Trace:** §5.3, S-FIN-3
 - **Goal:** Batch payment reconcile flow over multiple installments/payers in one operation.
 - **Acceptance:**
@@ -71,16 +71,16 @@ This tracks what is owed and what was paid; it does not move money.
 ### Waivers / discounts / adjustments (P1)
 
 - **Status:** `ready-for-agent` (P1)
-- **Depends on:** P07-01
+- **Depends on:** GRE-42
 - **Trace:** §4.7, §5.3, S-FIN-5, S-FIN-8
-- **Goal:** Minimal-admin endpoints over the adjustment/waiver backbone from P07-01.
+- **Goal:** Minimal-admin endpoints over the adjustment/waiver backbone from GRE-42.
 - **Acceptance:**
   - [ ] Waive marks installment waived (non-collectible); discount adjusts via adjustment rows, not stored status.
 
 ### Receivables dashboard + per-student statement (extrato)
 
 - **Status:** `ready-for-agent`
-- **Depends on:** P07-04, P07-03
+- **Depends on:** GRE-45, GRE-44
 - **Trace:** §7.1, §7.2, §4.8, §6.2, S-FIN-6, S-FIN-7, S-DASH-2
 - **Goal:** Receivables snapshot (collectible amounts, age buckets); async per-student statement artifact (GCS reference, not signed URL) via worker.
 - **Acceptance:**

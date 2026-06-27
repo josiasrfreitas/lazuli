@@ -1,8 +1,8 @@
 # [P06] Portal auto-submission
 
 **Increment:** Increment 1 (Wedge) — **GATED**
-**Status:** `blocked` (gated by Sprint-0 spike [P00-08])
-**Depends on:** P05 (committed attendance), [P00-08] gate outcome
+**Status:** `blocked` (gated by Sprint-0 spike [GRE-12])
+**Depends on:** P05 (committed attendance), [GRE-12] gate outcome
 **Blocks:** P08 Portal failure alert + health dashboard depend on these facts
 
 ## Goal
@@ -19,7 +19,7 @@ not-viable for MVP. Do not build production behavior before that gate resolves.
 
 ## Gate
 
-> **Blocked until [P00-08] records the Portal mode in `decisions.md`.** Authoritative model stays
+> **Blocked until [GRE-12] records the Portal mode in `decisions.md`.** Authoritative model stays
 > Playwright + Portal class names + student names (D-0023); the discovered JSON API / `cdAluno` IDs are
 > spike evidence only and require a PRD/decision update before becoming implementation contract or
 > core schema (§1.2(5), §13). No Portal roster snapshots or student-ID mapping until empirical operation
@@ -30,7 +30,7 @@ not-viable for MVP. Do not build production behavior before that gate resolves.
 ### `PortalClient` adapter boundary + `PortalRun` facts
 
 - **Status:** `blocked` (gate)
-- **Depends on:** P05-01, P00-08
+- **Depends on:** GRE-34, GRE-12
 - **Trace:** §9.1, §6.2
 - **Goal:** `PortalClient` interface in `packages/integrations`; Playwright-heavy implementation in worker-only `packages/worker-handlers`; `PortalRun` records queue/attempt/outcome facts (`queuedAt`/`attemptedAt`/`succeededAt`/`failedAt`, `portalSubmittedAt`). No PII in worker logs.
 - **Acceptance:**
@@ -40,17 +40,17 @@ not-viable for MVP. Do not build production behavior before that gate resolves.
 ### Nightly auto-submit workflow
 
 - **Status:** `blocked` (gate)
-- **Depends on:** P06-01
+- **Depends on:** GRE-36
 - **Trace:** §6.2, S-Portal-1
 - **Goal:** Hatchet schedule submits each eligible session's committed attendance; **skips cancelled/untaken sessions**; payload carries IDs only (§6.1).
 - **Acceptance:**
   - [ ] Cancelled/untaken sessions skipped; one `PortalRun` per session attempt.
-  - [ ] Behavior matches the mode chosen by [P00-08].
+  - [ ] Behavior matches the mode chosen by [GRE-12].
 
 ### Manual re-submit / retry
 
 - **Status:** `blocked` (gate)
-- **Depends on:** P06-01
+- **Depends on:** GRE-36
 - **Trace:** §4.4, §5.3, §6.2, S-Portal-3
 - **Goal:** Admin enqueues a manual retry; retry eligibility derived from `attendanceLastCommittedAt` vs last successful `PortalRun`.
 - **Acceptance:**
@@ -59,7 +59,7 @@ not-viable for MVP. Do not build production behavior before that gate resolves.
 ### Portal health card on dashboard
 
 - **Status:** `ready-for-agent` (presentation works in any mode)
-- **Depends on:** P06-01
+- **Depends on:** GRE-36
 - **Trace:** §7.1, S-Portal-4
 - **Goal:** Dashboard health card with the §7.1 status sets + precedence (submitted / failed / pending / untaken), derived from `PortalRun` + commit facts.
 - **Acceptance:**
@@ -70,5 +70,5 @@ not-viable for MVP. Do not build production behavior before that gate resolves.
 
 ## Definition of done (project)
 
-- [ ] Portal mode from [P00-08] implemented behind `PortalClient`; submit skips cancelled/untaken (worker tests, §10.1).
+- [ ] Portal mode from [GRE-12] implemented behind `PortalClient`; submit skips cancelled/untaken (worker tests, §10.1).
 - [ ] Manual retry + health card verified; no PII leaked to logs.
