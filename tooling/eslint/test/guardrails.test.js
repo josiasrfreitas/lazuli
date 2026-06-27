@@ -35,73 +35,53 @@ async function lintProbe({ directory, probePath, packageType }) {
 // path for the whole process (single-run mode under CI), which serves stale types
 // for a reused path and "file not found" for a new one. Each test uses a dedicated
 // probe directory name so every lint builds a fresh program from the just-written probe.
-async function lintWebImportsProbe(source) {
-  const projectDirectory = path.join(fixturesDirectory, "probe-web-imports");
+async function lintFixtureProbe({ directoryName, packageType, source }) {
+  const projectDirectory = path.join(fixturesDirectory, directoryName);
   await mkdir(projectDirectory, { recursive: true });
   const probePath = path.join(projectDirectory, probeSourceFileName);
   try {
     await writeFile(path.join(projectDirectory, probeTsconfigFileName), probeTsconfigContents);
     await writeFile(probePath, source);
-    return await lintProbe({ directory: projectDirectory, probePath, packageType: "web" });
+    return await lintProbe({ directory: projectDirectory, probePath, packageType });
   } finally {
     await rm(projectDirectory, { recursive: true, force: true });
   }
+}
+
+async function lintWebImportsProbe(source) {
+  return await lintFixtureProbe({ directoryName: "probe-web-imports", packageType: "web", source });
 }
 
 async function lintJobContractsProbe(source) {
-  const projectDirectory = path.join(fixturesDirectory, "probe-job-contracts");
-  await mkdir(projectDirectory, { recursive: true });
-  const probePath = path.join(projectDirectory, probeSourceFileName);
-  try {
-    await writeFile(path.join(projectDirectory, probeTsconfigFileName), probeTsconfigContents);
-    await writeFile(probePath, source);
-    return await lintProbe({
-      directory: projectDirectory,
-      probePath,
-      packageType: "job-contracts",
-    });
-  } finally {
-    await rm(projectDirectory, { recursive: true, force: true });
-  }
+  return await lintFixtureProbe({
+    directoryName: "probe-job-contracts",
+    packageType: "job-contracts",
+    source,
+  });
 }
 
 async function lintFloatingPromisesProbe(source) {
-  const projectDirectory = path.join(fixturesDirectory, "probe-floating-promises");
-  await mkdir(projectDirectory, { recursive: true });
-  const probePath = path.join(projectDirectory, probeSourceFileName);
-  try {
-    await writeFile(path.join(projectDirectory, probeTsconfigFileName), probeTsconfigContents);
-    await writeFile(probePath, source);
-    return await lintProbe({ directory: projectDirectory, probePath, packageType: "base" });
-  } finally {
-    await rm(projectDirectory, { recursive: true, force: true });
-  }
+  return await lintFixtureProbe({
+    directoryName: "probe-floating-promises",
+    packageType: "base",
+    source,
+  });
 }
 
 async function lintMagicNumbersProbe(source) {
-  const projectDirectory = path.join(fixturesDirectory, "probe-magic-numbers");
-  await mkdir(projectDirectory, { recursive: true });
-  const probePath = path.join(projectDirectory, probeSourceFileName);
-  try {
-    await writeFile(path.join(projectDirectory, probeTsconfigFileName), probeTsconfigContents);
-    await writeFile(probePath, source);
-    return await lintProbe({ directory: projectDirectory, probePath, packageType: "base" });
-  } finally {
-    await rm(projectDirectory, { recursive: true, force: true });
-  }
+  return await lintFixtureProbe({
+    directoryName: "probe-magic-numbers",
+    packageType: "base",
+    source,
+  });
 }
 
 async function lintInlineDirectiveProbe(source) {
-  const projectDirectory = path.join(fixturesDirectory, "probe-inline-directive");
-  await mkdir(projectDirectory, { recursive: true });
-  const probePath = path.join(projectDirectory, probeSourceFileName);
-  try {
-    await writeFile(path.join(projectDirectory, probeTsconfigFileName), probeTsconfigContents);
-    await writeFile(probePath, source);
-    return await lintProbe({ directory: projectDirectory, probePath, packageType: "base" });
-  } finally {
-    await rm(projectDirectory, { recursive: true, force: true });
-  }
+  return await lintFixtureProbe({
+    directoryName: "probe-inline-directive",
+    packageType: "base",
+    source,
+  });
 }
 
 function ruleIds(messages) {

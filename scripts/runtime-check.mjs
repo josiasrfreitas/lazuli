@@ -6,6 +6,7 @@ const MINIMUM_AUTH_SECRET_LENGTH = 32;
 
 const missing = [];
 const invalid = [];
+const environment = new Map(Object.entries(process.env));
 
 for (const name of REQUIRED_RUNTIME_ENVIRONMENT) {
   requireValue(name);
@@ -42,39 +43,51 @@ function requireValue(name) {
 }
 
 function requireUrl(name) {
+  const value = getEnvironmentValue(name);
+
   if (!hasValue(name)) {
     return;
   }
 
   try {
-    new URL(process.env[name]);
+    new URL(value);
   } catch {
     invalid.push(`${name} must be a valid URL.`);
   }
 }
 
 function requireMinimumLength(name, minimumLength) {
+  const value = getEnvironmentValue(name);
+
   if (!hasValue(name)) {
     return;
   }
 
-  if (process.env[name].length < minimumLength) {
+  if (value.length < minimumLength) {
     invalid.push(`${name} must be at least ${minimumLength} characters.`);
   }
 }
 
 function requirePositiveInteger(name) {
+  const value = getEnvironmentValue(name);
+
   if (!hasValue(name)) {
     return;
   }
 
-  const value = Number(process.env[name]);
+  const numericValue = Number(value);
 
-  if (!Number.isInteger(value) || value <= 0) {
+  if (!Number.isInteger(numericValue) || numericValue <= 0) {
     invalid.push(`${name} must be a positive integer.`);
   }
 }
 
 function hasValue(name) {
-  return process.env[name] !== undefined && process.env[name].length > 0;
+  const value = getEnvironmentValue(name);
+
+  return value !== undefined && value.length > 0;
+}
+
+function getEnvironmentValue(name) {
+  return environment.get(name);
 }

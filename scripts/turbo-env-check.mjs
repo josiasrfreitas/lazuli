@@ -2,8 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { OPTIONAL_RUNTIME_ENVIRONMENT, REQUIRED_RUNTIME_ENVIRONMENT } from "./runtime-env.mjs";
 
-const turboConfigPath = process.argv[2] ?? "turbo.json";
-const turboConfig = JSON.parse(readFileSync(turboConfigPath, "utf8"));
+const turboConfig = JSON.parse(readFileSync("turbo.json", "utf8"));
 const turboEnvironment = new Set(turboConfig.globalEnv ?? []);
 const expectedEnvironment = [...REQUIRED_RUNTIME_ENVIRONMENT, ...OPTIONAL_RUNTIME_ENVIRONMENT];
 const missing = expectedEnvironment.filter((name) => !turboEnvironment.has(name));
