@@ -25,7 +25,7 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
     ├── MVP/
     │   ├── PRD.md         ← product behavior
     │   └── decisions.md   ← architecture/stack/workflow decisions (ADR role)
-    ├── sprints/           ← local markdown sprint tracker
+    ├── agents/            ← Linear issue-tracker + triage conventions
     └── discovery/         ← evidence: questionnaires, process maps
 ```
 

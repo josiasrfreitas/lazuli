@@ -1,7 +1,6 @@
 # Minimum CI gates for Lazuli.
 #
-# Mirrors the trigger matrix in docs/sprints/SP-001-2026-06-18-mvp-week-1/ci.md
-# (derived from TECHNICAL_SPEC §10.2 / §3.4). Every job here is a blocking gate
+# Derived from TECHNICAL_SPEC §10.2 / §3.4. Every job here is a blocking gate
 # on PRs to main and on pushes to main. E2E runs separately (e2e.yml), not here.
 #
 # Not in MVP (by spec): no deploy step, no Sentry upload, no coverage gate.

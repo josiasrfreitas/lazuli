@@ -9,9 +9,8 @@ Lazuli is a custom management system for one language school in Brazil. The wedg
 ## Layout
 
 - **[MVP/](./MVP/)** — the build contract for the week-1 MVP: product scope, decisions, technical spec, ERD, and deferred work.
-- **[sprints/](./sprints/)** — local markdown sprint plans, issue tracker files, and dependency maps.
 - **[discovery/](./discovery/README.md)** — raw interview evidence, questionnaire data, query tooling, process maps. The "why" behind the MVP.
-- **[agents/](./agents/)** — conventions for AI/automation work in this repo (issue tracker, triage labels, domain docs).
+- **[agents/](./agents/)** — conventions for AI/automation work in this repo (Linear issue tracker, triage labels, domain docs).
 
 ## Authoritative Docs
 
@@ -23,7 +22,6 @@ Lazuli is a custom management system for one language school in Brazil. The wedg
 | [MVP/ERD.md](./MVP/ERD.md)                                                                         | Mermaid entity-relationship diagrams derived from the technical spec                       |
 | [MVP/PHASE-2.md](./MVP/PHASE-2.md)                                                                 | Full specs for deferred modules (expenses, leads/CRM, WhatsApp)                            |
 | [MVP/CHANGELOG.md](./MVP/CHANGELOG.md)                                                             | History of how scope evolved through discovery                                             |
-| [sprints/SP-001-2026-06-18-mvp-week-1/README.md](./sprints/SP-001-2026-06-18-mvp-week-1/README.md) | **Sprint plan** — projects, issues, and dependency/blocker order for building the MVP      |
 | [discovery/README.md](./discovery/README.md)                                                       | Questionnaire data, query tooling, discovery artifacts                                     |
 | [discovery/unresolved-pains.md](./discovery/unresolved-pains.md)                                   | Pains not solved by current MVP scope                                                      |
 
@@ -33,9 +31,10 @@ Lazuli is a custom management system for one language school in Brazil. The wedg
 2. [MVP/PRD.md](./MVP/PRD.md) — user stories and acceptance criteria (MVP).
 3. [MVP/TECHNICAL_SPEC.md](./MVP/TECHNICAL_SPEC.md) — implementation contract after scope is understood.
 4. [MVP/ERD.md](./MVP/ERD.md) — visual relationship map after reading the technical spec.
-5. [sprints/SP-001-2026-06-18-mvp-week-1/README.md](./sprints/SP-001-2026-06-18-mvp-week-1/README.md) — how the work is split into projects and issues, and in what order.
-6. [discovery/README.md](./discovery/README.md) — raw interview evidence when you need it.
-7. [discovery/unresolved-pains.md](./discovery/unresolved-pains.md) — before declaring a pain out of scope.
+5. [discovery/README.md](./discovery/README.md) — raw interview evidence when you need it.
+6. [discovery/unresolved-pains.md](./discovery/unresolved-pains.md) — before declaring a pain out of scope.
+
+Execution (projects, issues, dependencies) lives in **Linear**, not in this repo. See [agents/issue-tracker.md](./agents/issue-tracker.md).
 
 ## How to update docs
 
@@ -49,4 +48,4 @@ Lazuli is a custom management system for one language school in Brazil. The wedg
 - **Out of scope / deferred:** [PRD §16](./MVP/PRD.md#16-out-of-scope-for-mvp-phase-2).
 - **Open questions:** [PRD §15](./MVP/PRD.md#15-open-questions-need-answers-before--during-week-1).
 - **Scope-change history:** [MVP/CHANGELOG.md](./MVP/CHANGELOG.md).
-- **Sprint plan:** [sprints/SP-001-2026-06-18-mvp-week-1/README.md](./sprints/SP-001-2026-06-18-mvp-week-1/README.md).
+- **Issue tracker:** Linear (see [agents/issue-tracker.md](./agents/issue-tracker.md)).

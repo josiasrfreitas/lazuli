@@ -1,6 +1,6 @@
 # Playwright E2E smoke — kept off the PR hot path while the app stabilizes.
 #
-# Per ci.md / TECHNICAL_SPEC §10.1, E2E is NOT a PR gate: it runs nightly and
+# Per TECHNICAL_SPEC §10.1, E2E is NOT a PR gate: it runs nightly and
 # on demand only. The worker image is Playwright-capable; this workflow exercises
 # `pnpm test:e2e` against a real Postgres 16 (TECHNICAL_SPEC §2.2).
 name: E2E

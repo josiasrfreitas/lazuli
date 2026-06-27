@@ -12,7 +12,7 @@ Read these before assuming product scope, architecture, or tech stack.
 | **PRD & user stories** | [`docs/MVP/PRD.md`](docs/MVP/PRD.md)                   | Product scope, user stories, acceptance criteria                |
 | **Decisions**          | [`docs/MVP/decisions.md`](docs/MVP/decisions.md)       | Architecture, stack, workflow, and discovery-driven decisions   |
 | **Discovery**          | [`docs/discovery/README.md`](docs/discovery/README.md) | Questionnaire data, query tool, discovery artifacts             |
-| **Sprint plans**       | [`docs/sprints/`](docs/sprints/README.md)              | Local markdown sprint plans, issue tracker, and dependency maps |
+| **Issue tracker**      | Linear + [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) | Projects, issues, dependencies (not duplicated in repo) |
 
 **Doc hierarchy:** PRD = product behavior · decisions = constraints and rationale · discovery = evidence. If docs disagree, update PRD and decisions together before building.
 
@@ -78,11 +78,11 @@ infra/
 
 ### Issue tracker
 
-Local markdown sprint tracker — current MVP work lives under `docs/sprints/SP-001-2026-06-18-mvp-week-1/`; future sprints use `SP-###-YYYY-MM-DD-<slug>` folders. See `docs/agents/issue-tracker.md`.
+Work is tracked in **Linear**. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Canonical defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), recorded as a `Status:` line in each project/issue file; sprint workflow also permits `blocked` and `done`. See `docs/agents/triage-labels.md`.
+Canonical defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), applied as labels in Linear. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
