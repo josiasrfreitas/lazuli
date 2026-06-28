@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { evaluateStaffAccess } from "../src/staff-access.js";
-
-const UNAUTHORIZED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
+import { evaluateStaffAccess, STAFF_ACCESS_DENIED_MESSAGE } from "../src/staff-access.js";
 
 void describe("pre-provisioned staff access", () => {
   void it("allows enabled staff in the MVP role set to authenticate", () => {
@@ -22,7 +20,7 @@ void describe("pre-provisioned staff access", () => {
     assert.deepEqual(result, {
       allowed: false,
       reason: "UNKNOWN_EMAIL",
-      message: UNAUTHORIZED_MESSAGE,
+      message: STAFF_ACCESS_DENIED_MESSAGE,
     });
   });
 
@@ -36,7 +34,7 @@ void describe("pre-provisioned staff access", () => {
     assert.deepEqual(result, {
       allowed: false,
       reason: "DISABLED_USER",
-      message: UNAUTHORIZED_MESSAGE,
+      message: STAFF_ACCESS_DENIED_MESSAGE,
     });
   });
 
@@ -50,7 +48,7 @@ void describe("pre-provisioned staff access", () => {
     assert.deepEqual(result, {
       allowed: false,
       reason: "ROLE_NOT_ENABLED",
-      message: UNAUTHORIZED_MESSAGE,
+      message: STAFF_ACCESS_DENIED_MESSAGE,
     });
   });
 });

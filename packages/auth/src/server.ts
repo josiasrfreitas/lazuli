@@ -18,4 +18,8 @@ export const auth: AuthInstance = {
     const instance = await getAuth();
     return instance.handler(request);
   },
+  async getSession({ headers }) {
+    const instance = await getAuth();
+    return instance.getSession({ headers });
+  },
 };

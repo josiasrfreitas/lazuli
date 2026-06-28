@@ -4,7 +4,7 @@ import { after, before, describe } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
 
-import { databaseIt } from "./test-utils.js";
+import { databaseIt } from "@lazuli/db/test";
 
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
 

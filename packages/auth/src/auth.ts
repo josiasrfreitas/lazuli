@@ -17,8 +17,12 @@ export type CreateAuthInput = {
   sendMagicLink?: MagicLinkSender;
 };
 
+/** Narrow session shape consumed downstream; domain identity is reloaded by email. */
+export type StaffSession = { user: { email: string } };
+
 export type AuthInstance = {
   handler: (request: Request) => Promise<Response>;
+  getSession: (input: { headers: Headers }) => Promise<StaffSession | null>;
 };
 
 export function createAuth(input: CreateAuthInput): AuthInstance {
@@ -26,7 +30,7 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
   const database = input.database;
   const sendMagicLink = input.sendMagicLink ?? createMagicLinkSender(environment);
 
-  return betterAuth({
+  const instance = betterAuth({
     ...createAuthOptions({
       baseUrl: environment.appUrl,
       secret: environment.betterAuthSecret,
@@ -49,6 +53,14 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
       },
     },
   });
+
+  return {
+    handler: (request) => instance.handler(request),
+    getSession: async ({ headers }) => {
+      const result = await instance.api.getSession({ headers });
+      return result === null ? null : { user: { email: result.user.email } };
+    },
+  };
 }
 
 async function assertStaffCanAuthenticate(database: StaffDatabase, email: string): Promise<void> {

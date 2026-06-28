@@ -5,11 +5,11 @@ import { after, before, describe } from "node:test";
 import { config as loadEnvironment } from "dotenv";
 
 import { db } from "@lazuli/db";
+import { databaseIt } from "@lazuli/db/test";
 
 import { THIRTY_DAY_SESSION_SECONDS } from "../../src/auth-options.js";
 import { createAuth } from "../../src/auth.js";
 import type { AuthEnvironment, AuthInstance, MagicLinkDelivery } from "../../src/index.js";
-import { databaseIt } from "./test-utils.js";
 
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
 
