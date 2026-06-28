@@ -6,4 +6,21 @@
  * heavy work is enqueued via `@lazuli/job-contracts` only.
  */
 
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+
+import type { AppRouter } from "./root.js";
+
 export const API_PACKAGE = "@lazuli/api" as const;
+
+export { appRouter, createCaller } from "./root.js";
+export type { AppRouter } from "./root.js";
+export { protectedProcedure, publicProcedure, router } from "./trpc/init.js";
+export { createTRPCContext } from "./trpc/context.js";
+export type { Context, StaffUser } from "./trpc/context.js";
+
+/** Inference helper for procedure inputs, e.g. RouterInputs["someRouter"]["someProc"]. */
+type RouterInputs = inferRouterInputs<AppRouter>;
+/** Inference helper for procedure outputs. */
+type RouterOutputs = inferRouterOutputs<AppRouter>;
+
+export type { RouterInputs, RouterOutputs };

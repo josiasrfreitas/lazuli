@@ -1,4 +1,4 @@
-const UNAUTHORIZED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
+export const STAFF_ACCESS_DENIED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
 
 export type StaffRole = "ADMIN" | "SECRETARY" | "TEACHER" | "FINANCE";
 const ENABLED_ROLES = new Set<StaffRole>(["ADMIN", "TEACHER"]);
@@ -11,13 +11,15 @@ export type StaffAccessUser = {
 
 export type StaffAccessDeniedReason = "UNKNOWN_EMAIL" | "DISABLED_USER" | "ROLE_NOT_ENABLED";
 
-export type StaffAccessResult =
-  | { allowed: true }
-  | {
-      allowed: false;
-      reason: StaffAccessDeniedReason;
-      message: typeof UNAUTHORIZED_MESSAGE;
-    };
+export type StaffAccessAllowed = { allowed: true };
+
+export type StaffAccessDenied = {
+  allowed: false;
+  reason: StaffAccessDeniedReason;
+  message: typeof STAFF_ACCESS_DENIED_MESSAGE;
+};
+
+export type StaffAccessResult = StaffAccessAllowed | StaffAccessDenied;
 
 export function evaluateStaffAccess(user: StaffAccessUser | null): StaffAccessResult {
   if (user === null) {
@@ -36,5 +38,5 @@ export function evaluateStaffAccess(user: StaffAccessUser | null): StaffAccessRe
 }
 
 function denied(reason: StaffAccessDeniedReason): StaffAccessResult {
-  return { allowed: false, reason, message: UNAUTHORIZED_MESSAGE };
+  return { allowed: false, reason, message: STAFF_ACCESS_DENIED_MESSAGE };
 }
