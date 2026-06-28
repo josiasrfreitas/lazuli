@@ -32,9 +32,7 @@ type CreateTRPCContextInput = {
 export async function createTRPCContext(input: CreateTRPCContextInput): Promise<Context> {
   const db = input.db ?? (await resolveDefaultDb());
   const staffUser =
-    input.session === null
-      ? null
-      : await resolveStaffUser({ db, email: input.session.user.email });
+    input.session === null ? null : await resolveStaffUser({ db, email: input.session.user.email });
 
   return { db, staffUser };
 }

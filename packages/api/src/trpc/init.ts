@@ -59,6 +59,4 @@ const enforceStaffAuth = trpc.middleware(({ ctx, next }) => {
   return next({ ctx: { staffUser: ctx.staffUser } });
 });
 
-export const protectedProcedure = trpc.procedure
-  .use(timingMiddleware)
-  .use(enforceStaffAuth);
+export const protectedProcedure = trpc.procedure.use(timingMiddleware).use(enforceStaffAuth);
