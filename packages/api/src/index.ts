@@ -14,9 +14,19 @@ export const API_PACKAGE = "@lazuli/api" as const;
 
 export { appRouter, createCaller } from "./root.js";
 export type { AppRouter } from "./root.js";
-export { protectedProcedure, publicProcedure, router } from "./trpc/init.js";
+export {
+  adminProcedure,
+  createCallerFactory,
+  protectedProcedure,
+  publicProcedure,
+  router,
+  staffProcedure,
+  teacherProcedure,
+} from "./trpc/init.js";
 export { createTRPCContext } from "./trpc/context.js";
 export type { Context, StaffUser } from "./trpc/context.js";
+export { assertResourceScope, canAccess, ROLE_MATRIX, routerAccess } from "./trpc/rbac.js";
+export type { RouterAccess, RouterName } from "./trpc/rbac.js";
 
 /** Inference helper for procedure inputs, e.g. RouterInputs["someRouter"]["someProc"]. */
 type RouterInputs = inferRouterInputs<AppRouter>;
