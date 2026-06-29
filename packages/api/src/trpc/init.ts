@@ -1,4 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import type { StaffRole } from "@lazuli/auth";
 import { z } from "@lazuli/validators";
 import superjson from "superjson";
 
@@ -45,11 +46,7 @@ export const publicProcedure = trpc.procedure.use(timingMiddleware);
 
 /**
  * Authenticated + enabled-staff gate. Rejects unless `ctx.staffUser` resolved, then
- * narrows it to non-null.
- *
- * RBAC SEAM (GRE-17): role-gating (`adminProcedure`/`teacherProcedure`) and the teacher
- * resource-scope guard (`Class.teacherId === ctx.staffUser.id`) chain onto
- * `protectedProcedure` here. This issue intentionally leaves the seam empty.
+ * narrows it to non-null. Base for the role gates below.
  */
 const enforceStaffAuth = trpc.middleware(({ ctx, next }) => {
   if (ctx.staffUser === null) {
@@ -59,4 +56,41 @@ const enforceStaffAuth = trpc.middleware(({ ctx, next }) => {
   return next({ ctx: { staffUser: ctx.staffUser } });
 });
 
+/** Any authenticated, enabled staff member; no role restriction. */
 export const protectedProcedure = trpc.procedure.use(timingMiddleware).use(enforceStaffAuth);
+
+/**
+ * Role gate (GRE-17, §5.2). Rejects with FORBIDDEN (HTTP 403) unless `role` is one of
+ * `allowed`. The role gates below chain onto `protectedProcedure`, so `ctx.staffUser` is
+ * already non-null; only the role itself is checked here.
+ */
+function assertRole(role: StaffRole, allowed: readonly StaffRole[]): void {
+  if (!allowed.includes(role)) {
+    throw new TRPCError({ code: "FORBIDDEN" });
+  }
+}
+
+/** ADMIN-only routers/procedures: `users`, `portal`, `finance`, admin dashboard (§5.2). */
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  assertRole(ctx.staffUser.role, ["ADMIN"]);
+  return next();
+});
+
+/**
+ * TEACHER-only procedures, e.g. the teacher home (§5.2). ADMIN is intentionally denied
+ * here: it reaches the same router area through its own procedure (e.g. the admin
+ * dashboard), so the §5.2 matrix still grants ADMIN `full` router access.
+ */
+export const teacherProcedure = protectedProcedure.use(({ ctx, next }) => {
+  assertRole(ctx.staffUser.role, ["TEACHER"]);
+  return next();
+});
+
+/**
+ * Shared routers open to ADMIN and TEACHER (§5.2). Teacher access is narrowed to owned
+ * resources in-resolver via `assertResourceScope`; ADMIN has full access.
+ */
+export const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
+  assertRole(ctx.staffUser.role, ["ADMIN", "TEACHER"]);
+  return next();
+});
