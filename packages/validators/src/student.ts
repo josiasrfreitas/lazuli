@@ -134,6 +134,10 @@ export const studentSearchInputSchema = z
   .object({ query: requiredText.max(SEARCH_QUERY_MAX_LENGTH) })
   .strict();
 
+export const studentSetStatusInputSchema = z
+  .object({ id: z.string().uuid(), status: studentStatusSchema })
+  .strict();
+
 function requireDocumentType(
   documentType: z.infer<typeof documentTypeSchema> | null | undefined,
   context: z.RefinementCtx,
