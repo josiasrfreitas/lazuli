@@ -26,6 +26,18 @@ enum UserRole {
   FINANCE
 }
 
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  DROPPED
+  SUSPENDED
+}
+
+enum DocumentType {
+  CPF
+  RG
+}
+
 model User {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -86,4 +98,63 @@ model Verification {
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   @@index([identifier])
+}
+
+model Student {
+  id             String        @id @default(uuid()) @db.Uuid
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime?     @map("deleted_at") @db.Timestamptz
+  fullName       String        @map("full_name")
+  phone          String?
+  email          String?
+  birthDate      DateTime?     @map("birth_date") @db.Date
+  documentType   DocumentType? @map("document_type")
+  documentNumber String?       @map("document_number")
+  addressId      String?       @map("address_id") @db.Uuid
+  guardianId     String?       @map("guardian_id") @db.Uuid
+  status         StudentStatus @default(ACTIVE)
+  notes          String?
+
+  address  Address?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  guardian Guardian? @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+
+  @@index([addressId])
+  @@index([guardianId])
+}
+
+model Guardian {
+  id             String        @id @default(uuid()) @db.Uuid
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime?     @map("deleted_at") @db.Timestamptz
+  fullName       String        @map("full_name")
+  relationship   String?
+  documentType   DocumentType? @map("document_type")
+  documentNumber String?       @map("document_number")
+  phone          String?
+  email          String?
+  addressId      String?       @map("address_id") @db.Uuid
+
+  address  Address?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  students Student[]
+
+  @@index([addressId])
+}
+
+model Address {
+  id           String    @id @default(uuid()) @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz
+  street       String?
+  number       String?
+  complement   String?
+  neighborhood String?
+  city         String?
+  state        String?
+  postalCode   String?   @map("postal_code")
+
+  students  Student[]
+  guardians Guardian[]
 }
