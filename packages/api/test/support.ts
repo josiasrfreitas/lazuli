@@ -74,7 +74,11 @@ async function assertReachesResolver(invoke: InvokeAs, user: StaffUser): Promise
 
 async function assertForbidden(invoke: InvokeAs, user: StaffUser): Promise<void> {
   const outcome = await gateOutcome(invoke, user);
-  assert.equal(outcome, FORBIDDEN, `${user.role} reached a router the matrix denies (expected FORBIDDEN)`);
+  assert.equal(
+    outcome,
+    FORBIDDEN,
+    `${user.role} reached a router the matrix denies (expected FORBIDDEN)`,
+  );
 }
 
 async function assertUnauthorized(invoke: InvokeAs): Promise<void> {
