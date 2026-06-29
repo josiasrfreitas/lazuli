@@ -5,10 +5,12 @@ import {
 } from "@lazuli/validators";
 import type {
   studentCreateInputSchema,
+  studentSearchInputSchema,
   studentUpdateContactInputSchema,
   z,
 } from "@lazuli/validators";
 
+import type { Context } from "../trpc/context.js";
 import { isMinorInSaoPaulo } from "./date-rules.js";
 import { badRequest, notFound, STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
 import type { StudentProfile } from "./profile.js";
@@ -22,7 +24,19 @@ import {
 } from "./related-records.js";
 
 type StudentCreateInput = z.infer<typeof studentCreateInputSchema>;
+type StudentSearchInput = z.infer<typeof studentSearchInputSchema>;
 type StudentUpdateContactInput = z.infer<typeof studentUpdateContactInputSchema>;
+
+type StudentSearchDatabase = Pick<Context["db"], "$queryRaw">;
+
+export type StudentSearchResult = {
+  fullName: string;
+  id: string;
+  phone: string | null;
+  status: string;
+};
+
+type StudentSearchRow = StudentSearchResult & { rank: number };
 
 const studentProfileInclude = {
   address: true,
@@ -43,6 +57,58 @@ export async function readStudentProfile(input: {
   }
 
   return toStudentProfile(student);
+}
+
+export async function searchStudents(input: {
+  database: StudentSearchDatabase;
+  values: StudentSearchInput;
+}): Promise<StudentSearchResult[]> {
+  const query = input.values.query;
+  const containsPattern = `%${query}%`;
+  const prefixPattern = `${query}%`;
+  const wordPrefixPattern = `% ${query}%`;
+
+  const rows = await input.database.$queryRaw<StudentSearchRow[]>`
+    WITH search_input AS (
+      SELECT
+        ${query}::text AS query,
+        ${containsPattern}::text AS contains_pattern,
+        ${prefixPattern}::text AS prefix_pattern,
+        ${wordPrefixPattern}::text AS word_prefix_pattern
+    )
+    SELECT student.id::text AS id, student.full_name AS "fullName", student.status::text AS status,
+      student.phone,
+      CASE
+        WHEN student.full_name ILIKE search_input.prefix_pattern
+          OR student.full_name ILIKE search_input.word_prefix_pattern THEN 500
+        WHEN student.full_name ILIKE search_input.contains_pattern THEN 400
+        WHEN student.document_number ILIKE search_input.contains_pattern THEN 300
+        WHEN student.phone ILIKE search_input.contains_pattern THEN 200
+        WHEN student.email ILIKE search_input.contains_pattern THEN 100
+        ELSE GREATEST(
+          similarity(student.full_name, search_input.query),
+          similarity(COALESCE(student.document_number, ''), search_input.query),
+          similarity(COALESCE(student.phone, ''), search_input.query),
+          similarity(COALESCE(student.email, ''), search_input.query)
+        )
+      END AS rank
+    FROM "Student" AS student
+    CROSS JOIN search_input
+    WHERE student.deleted_at IS NULL AND (
+      student.full_name ILIKE search_input.contains_pattern
+      OR student.document_number ILIKE search_input.contains_pattern
+      OR student.phone ILIKE search_input.contains_pattern
+      OR student.email ILIKE search_input.contains_pattern
+      OR similarity(student.full_name, search_input.query) > 0.1
+      OR similarity(COALESCE(student.document_number, ''), search_input.query) > 0.1
+      OR similarity(COALESCE(student.phone, ''), search_input.query) > 0.1
+      OR similarity(COALESCE(student.email, ''), search_input.query) > 0.1
+    )
+    ORDER BY rank DESC, student.full_name ASC, student.id ASC
+    LIMIT 10
+  `;
+
+  return rows.map(({ rank: _rank, ...row }) => row);
 }
 
 export async function createStudent(input: {

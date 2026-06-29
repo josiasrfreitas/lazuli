@@ -120,6 +120,10 @@ model Student {
   guardian Guardian? @relation(fields: [guardianId], references: [id], onDelete: SetNull)
 
   @@index([addressId])
+  @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_full_name_trgm_idx")
+  @@index([documentNumber(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_document_number_trgm_idx")
+  @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_phone_trgm_idx")
+  @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_email_trgm_idx")
   @@index([guardianId])
 }
 

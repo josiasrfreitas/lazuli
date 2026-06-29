@@ -12,6 +12,7 @@ export {
   MINOR_REQUIRES_GUARDIAN_MESSAGE,
   studentCreateInputSchema,
   studentIdInputSchema,
+  studentSearchInputSchema,
   studentStatusSchema,
   studentUpdateContactInputSchema,
   studentUpdateContactProcedureInputSchema,

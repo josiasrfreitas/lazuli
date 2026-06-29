@@ -9,6 +9,7 @@ export const MINOR_GUARDIAN_REQUIRES_CONTACT_MESSAGE =
 
 const REQUIRED_TEXT_MESSAGE = "Campo obrigatorio.";
 const INVALID_DATE_MESSAGE = "Data invalida.";
+const SEARCH_QUERY_MAX_LENGTH = 80;
 
 const requiredText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE);
 const optionalText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE).nullish();
@@ -127,6 +128,10 @@ export const studentUpdateContactProcedureInputSchema = z
 
 export const studentUpdateNotesInputSchema = z
   .object({ id: z.string().uuid(), notes: z.string().trim().nullish() })
+  .strict();
+
+export const studentSearchInputSchema = z
+  .object({ query: requiredText.max(SEARCH_QUERY_MAX_LENGTH) })
   .strict();
 
 function requireDocumentType(

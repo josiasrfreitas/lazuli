@@ -1,17 +1,21 @@
 import {
   studentCreateInputSchema,
   studentIdInputSchema,
+  studentSearchInputSchema,
   studentUpdateContactProcedureInputSchema,
   studentUpdateNotesInputSchema,
 } from "@lazuli/validators";
 
 import { adminProcedure, router } from "../trpc/init.js";
-import { createStudent, readStudentProfile, updateStudentContact } from "./data.js";
+import { createStudent, readStudentProfile, searchStudents, updateStudentContact } from "./data.js";
 
 export const studentsRouter = router({
   byId: adminProcedure
     .input(studentIdInputSchema)
     .query(({ ctx, input }) => readStudentProfile({ database: ctx.db, id: input.id })),
+  search: adminProcedure
+    .input(studentSearchInputSchema)
+    .query(({ ctx, input }) => searchStudents({ database: ctx.db, values: input })),
   create: adminProcedure
     .input(studentCreateInputSchema)
     .mutation(({ ctx, input }) =>

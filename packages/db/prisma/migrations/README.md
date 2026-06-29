@@ -8,6 +8,7 @@ Raw SQL is limited to the database enforcement channel in Technical Spec §3.3:
 - CHECK constraints;
 - partial unique indexes;
 - exclusion constraints.
+- Postgres-specific setup required by schema-declared indexes (for example `CREATE EXTENSION pg_trgm`).
 
 For one of those unsupported features, create a Prisma migration without applying it:
 
