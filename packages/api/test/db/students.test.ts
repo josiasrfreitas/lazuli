@@ -93,6 +93,23 @@ function registerMinorValidationTest(): void {
       );
     },
   );
+
+  databaseIt("rejects a minor guardian without phone or email", async () => {
+    await assert.rejects(
+      caller().students.create({
+        fullName: `${TEST_PREFIX}Minor Guardian Without Contact`,
+        birthDate: MINOR_BIRTH_DATE_OBJECT,
+        guardian: {
+          mode: "create",
+          input: {
+            fullName: `${TEST_PREFIX}Guardian Without Contact`,
+            relationship: "Mae",
+          },
+        },
+      }),
+      /Informe telefone ou email do responsavel para alunos menores de idade/,
+    );
+  });
 }
 
 function registerMinorGuardianTest(): void {
@@ -161,6 +178,9 @@ function registerUpdateContactTest(): void {
 
       assert.equal(profile.contact.fullName, `${TEST_PREFIX}Updated Target`);
       assert.equal(profile.address?.street, "Rua GRE-20 Updated");
+      assert.equal(profile.address?.number, "789");
+      assert.equal(profile.address?.neighborhood, "Ponta Verde");
+      assert.equal(profile.address?.postalCode, "57000002");
       assert.equal(profile.guardian?.fullName, `${TEST_PREFIX}Updated Guardian`);
       assert.equal(profile.guardian?.address?.street, "Rua GRE-20 Guardian Original");
       assert.equal(profile.notes, "Prefere atendimento por WhatsApp.");
@@ -172,6 +192,14 @@ async function createUpdateTarget(): Promise<{ id: string }> {
   return caller().students.create({
     fullName: `${TEST_PREFIX}Update Target`,
     birthDate: MINOR_BIRTH_DATE_OBJECT,
+    address: {
+      street: "Rua GRE-20 Original",
+      number: "789",
+      neighborhood: "Ponta Verde",
+      city: "Maceio",
+      state: "AL",
+      postalCode: "57000002",
+    },
     guardian: {
       mode: "create",
       input: {

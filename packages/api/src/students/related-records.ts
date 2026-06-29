@@ -46,7 +46,7 @@ export async function resolveStudentAddress(input: {
 
   await input.database.address.update({
     where: { id: input.existingAddressId },
-    data: toAddressData(input.address),
+    data: toAddressUpdateData(input.address),
   });
   return input.existingAddressId;
 }
@@ -170,6 +170,20 @@ function toAddressData(address: AddressInput): Prisma.AddressUncheckedCreateInpu
     state: address.state ?? null,
     street: address.street ?? null,
   };
+}
+
+function toAddressUpdateData(address: AddressInput): Prisma.AddressUncheckedUpdateInput {
+  const data: Prisma.AddressUncheckedUpdateInput = {};
+
+  if (address.city !== undefined) data.city = address.city;
+  if (address.complement !== undefined) data.complement = address.complement;
+  if (address.neighborhood !== undefined) data.neighborhood = address.neighborhood;
+  if (address.number !== undefined) data.number = address.number;
+  if (address.postalCode !== undefined) data.postalCode = address.postalCode;
+  if (address.state !== undefined) data.state = address.state;
+  if (address.street !== undefined) data.street = address.street;
+
+  return data;
 }
 
 function toGuardianData(input: GuardianCreateValues): Prisma.GuardianUncheckedCreateInput {

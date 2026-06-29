@@ -8,6 +8,7 @@ export {
   documentTypeSchema,
   guardianCreateInputSchema,
   guardianUpdateInputSchema,
+  MINOR_GUARDIAN_REQUIRES_CONTACT_MESSAGE,
   MINOR_REQUIRES_GUARDIAN_MESSAGE,
   studentCreateInputSchema,
   studentIdInputSchema,

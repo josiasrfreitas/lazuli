@@ -4,6 +4,8 @@ export const DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE =
   "Informe o tipo do documento quando preencher o numero.";
 export const MINOR_REQUIRES_GUARDIAN_MESSAGE =
   "Responsavel obrigatorio para alunos menores de idade.";
+export const MINOR_GUARDIAN_REQUIRES_CONTACT_MESSAGE =
+  "Informe telefone ou email do responsavel para alunos menores de idade.";
 
 const REQUIRED_TEXT_MESSAGE = "Campo obrigatorio.";
 const INVALID_DATE_MESSAGE = "Data invalida.";

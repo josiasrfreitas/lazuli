@@ -1,5 +1,8 @@
 import type { Prisma } from "@lazuli/db";
-import { MINOR_REQUIRES_GUARDIAN_MESSAGE } from "@lazuli/validators";
+import {
+  MINOR_GUARDIAN_REQUIRES_CONTACT_MESSAGE,
+  MINOR_REQUIRES_GUARDIAN_MESSAGE,
+} from "@lazuli/validators";
 import type {
   studentCreateInputSchema,
   studentUpdateContactInputSchema,
@@ -54,6 +57,13 @@ export async function createStudent(input: {
     database: input.database,
     guardian: input.values.guardian,
   });
+
+  await assertMinorGuardianContactRequirement({
+    birthDate: input.values.birthDate,
+    database: input.database,
+    guardianId,
+  });
+
   const student = await input.database.student.create({
     data: toStudentCreateData({ addressId, guardianId, values: input.values }),
   });
@@ -81,6 +91,12 @@ export async function updateStudentContact(input: {
   });
 
   assertUpdateGuardianRequirement({ guardianId, student, values: input.values });
+  await assertMinorGuardianContactRequirement({
+    birthDate: input.values.birthDate === undefined ? student.birthDate : input.values.birthDate,
+    database: input.database,
+    guardianId: guardianId === undefined ? student.guardianId : guardianId,
+  });
+
   await input.database.student.update({
     where: { id: input.id },
     data: toStudentUpdateData({ addressId, guardianId, values: input.values }),
@@ -164,5 +180,24 @@ function assertUpdateGuardianRequirement(input: {
 
   if (isMinorInSaoPaulo(birthDate) && guardianId === null) {
     throw badRequest(MINOR_REQUIRES_GUARDIAN_MESSAGE);
+  }
+}
+
+async function assertMinorGuardianContactRequirement(input: {
+  birthDate: Date | null | undefined;
+  database: StudentDatabase;
+  guardianId: string | null;
+}): Promise<void> {
+  if (!isMinorInSaoPaulo(input.birthDate) || input.guardianId === null) {
+    return;
+  }
+
+  const guardian = await input.database.guardian.findUnique({
+    where: { id: input.guardianId },
+    select: { email: true, phone: true },
+  });
+
+  if (guardian === null || (guardian.email === null && guardian.phone === null)) {
+    throw badRequest(MINOR_GUARDIAN_REQUIRES_CONTACT_MESSAGE);
   }
 }
