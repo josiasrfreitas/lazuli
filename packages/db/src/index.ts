@@ -3,6 +3,8 @@
  */
 
 export { createDbClient, db } from "./client.js";
+export { Prisma } from "./generated/prisma/client.js";
+export type { Address, Guardian, Student } from "./generated/prisma/client.js";
 export { getDatabaseUrl } from "./config.js";
 
 /** Shared shape for all domain entities (TECHNICAL_SPEC §4.0). */
