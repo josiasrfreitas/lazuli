@@ -30,14 +30,21 @@ export function toDateOnlyString(date: Date | null): string | null {
   return date.toISOString().slice(0, "yyyy-mm-dd".length);
 }
 
-function adultCutoffDateOnly(): string {
+export function todayDateOnlyInSaoPaulo(): string {
   const parts = saoPauloDateFormatter.formatToParts(new Date());
   const year = requireDatePart(parts.find((part) => part.type === "year")?.value);
   const month = requireDatePart(parts.find((part) => part.type === "month")?.value);
   const day = requireDatePart(parts.find((part) => part.type === "day")?.value);
-  const cutoffYear = Number.parseInt(year, DECIMAL_RADIX) - ADULT_AGE_YEARS;
 
-  return [String(cutoffYear), month, day].join("-");
+  return [year, month, day].join("-");
+}
+
+function adultCutoffDateOnly(): string {
+  const today = todayDateOnlyInSaoPaulo();
+  const cutoffYear =
+    Number.parseInt(today.slice(0, "yyyy".length), DECIMAL_RADIX) - ADULT_AGE_YEARS;
+
+  return `${String(cutoffYear)}${today.slice("yyyy".length)}`;
 }
 
 function requireDatePart(value: string | undefined): string {

@@ -2,12 +2,14 @@ import {
   studentCreateInputSchema,
   studentIdInputSchema,
   studentSearchInputSchema,
+  studentSetStatusInputSchema,
   studentUpdateContactProcedureInputSchema,
   studentUpdateNotesInputSchema,
 } from "@lazuli/validators";
 
 import { adminProcedure, router } from "../trpc/init.js";
 import { createStudent, readStudentProfile, searchStudents, updateStudentContact } from "./data.js";
+import { setStudentStatus } from "./status.js";
 
 export const studentsRouter = router({
   byId: adminProcedure
@@ -35,4 +37,9 @@ export const studentsRouter = router({
       select: { id: true },
     }),
   ),
+  setStatus: adminProcedure
+    .input(studentSetStatusInputSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => setStudentStatus({ database, values: input })),
+    ),
 });

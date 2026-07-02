@@ -8,7 +8,10 @@ import type {
 import type { Context } from "../trpc/context.js";
 import { GUARDIAN_NOT_FOUND_MESSAGE, notFound } from "./errors.js";
 
-export type StudentDatabase = Pick<Context["db"], "address" | "guardian" | "student">;
+export type StudentDatabase = Pick<
+  Context["db"],
+  "$executeRaw" | "$queryRaw" | "address" | "guardian" | "student"
+>;
 
 type StudentCreateInput = z.infer<typeof studentCreateInputSchema>;
 type StudentUpdateContactInput = z.infer<typeof studentUpdateContactInputSchema>;

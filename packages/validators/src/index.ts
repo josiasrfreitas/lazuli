@@ -13,6 +13,7 @@ export {
   studentCreateInputSchema,
   studentIdInputSchema,
   studentSearchInputSchema,
+  studentSetStatusInputSchema,
   studentStatusSchema,
   studentUpdateContactInputSchema,
   studentUpdateContactProcedureInputSchema,
