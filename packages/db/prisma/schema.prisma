@@ -162,3 +162,17 @@ model Address {
   students  Student[]
   guardians Guardian[]
 }
+
+// Academic calendar window (TECHNICAL_SPEC §4.4, S-CAL-4). Semester setup is the
+// trigger for session generation. A start_date <= end_date CHECK and a
+// non-overlap exclusion constraint on daterange(start_date, end_date, '[]') live
+// in the GRE-22 raw-SQL migration (Prisma cannot express exclusion constraints).
+model Semester {
+  id        String    @id @default(uuid()) @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  name      String    @unique
+  startDate DateTime  @map("start_date") @db.Date
+  endDate   DateTime  @map("end_date") @db.Date
+}
