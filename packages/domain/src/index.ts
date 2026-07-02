@@ -4,3 +4,6 @@
  */
 
 export const DOMAIN_PACKAGE = "@lazuli/domain" as const;
+
+export { resolveSemesterForDate, SemesterBucketError } from "./semester.js";
+export type { SemesterBucketErrorCode, SemesterWindow } from "./semester.js";
