@@ -68,6 +68,22 @@ enum ClassStatus {
   ARCHIVED
 }
 
+enum EnrollmentExitReason {
+  COMPLETED
+  TRANSFERRED
+  DROPPED
+  SUSPENDED
+  CORRECTION
+}
+
+enum ProgressEndReason {
+  ADVANCED
+  TRANSFERRED
+  DROPPED
+  SUSPENDED
+  CORRECTION
+}
+
 model User {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -150,6 +166,7 @@ model Student {
 
   address  Address?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
   guardian Guardian? @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  enrollments Enrollment[]
 
   @@index([addressId])
   @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_full_name_trgm_idx")
@@ -262,6 +279,7 @@ model Class {
   previousClass Class?              @relation("ClassLineage", fields: [previousClassId], references: [id])
   nextClasses   Class[]             @relation("ClassLineage")
   scheduleSlots ClassScheduleSlot[]
+  enrollments   Enrollment[]
 
   @@index([teacherId])
   @@index([sharedStageId])
@@ -314,7 +332,46 @@ model Stage {
 
   track  Track   @relation(fields: [trackId], references: [id], onDelete: Restrict)
   classes Class[]
+  progressRecords PedagogicalProgress[]
 
   @@unique([trackId, internalCode])
   @@unique([trackId, sequence])
+}
+
+model Enrollment {
+  id                     String                @id @default(uuid()) @db.Uuid
+  createdAt              DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt              DateTime?             @map("deleted_at") @db.Timestamptz
+  studentId              String                @map("student_id") @db.Uuid
+  classId                String                @map("class_id") @db.Uuid
+  entryDate              DateTime              @map("entry_date") @db.Date
+  exitDate               DateTime?             @map("exit_date") @db.Date
+  exitReason             EnrollmentExitReason? @map("exit_reason")
+  capacityOverrideReason String?               @map("capacity_override_reason")
+
+  student         Student                 @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  class           Class                   @relation(fields: [classId], references: [id], onDelete: Restrict)
+  progressRecords PedagogicalProgress[]
+
+  @@index([studentId])
+  @@index([classId])
+}
+
+model PedagogicalProgress {
+  id           String             @id @default(uuid()) @db.Uuid
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt    DateTime?          @map("deleted_at") @db.Timestamptz
+  enrollmentId String             @map("enrollment_id") @db.Uuid
+  stageId      String             @map("stage_id") @db.Uuid
+  startDate    DateTime           @map("start_date") @db.Date
+  endDate      DateTime?          @map("end_date") @db.Date
+  endReason    ProgressEndReason? @map("end_reason")
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  stage      Stage      @relation(fields: [stageId], references: [id], onDelete: Restrict)
+
+  @@index([enrollmentId])
+  @@index([stageId])
 }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { after, before, describe } from "node:test";
+import { after, before, beforeEach, describe } from "node:test";
 
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
@@ -7,17 +7,24 @@ import { databaseIt } from "@lazuli/db/test";
 import { caller } from "./student-test-support.js";
 
 const TEST_PREFIX = "GRE-23 Student ";
+const CATALOG_KEY = "gre23_status_line";
+const TEACHER_ID = "00000000-0000-0000-0000-000000002301";
 const ADULT_BIRTH_DATE = new Date("1992-05-10T00:00:00.000Z");
-
-let createdLifecycleTables = false;
+const LIFECYCLE_ENTRY_DATE = new Date("2026-01-01T00:00:00.000Z");
+const LIFECYCLE_EXIT_DATE = new Date("2026-02-01T00:00:00.000Z");
+const STAGE_CODE_SUFFIX_LIMIT = 16;
 
 void describe("students status lifecycle API", () => {
   void before(async () => {
     await db.$connect();
   });
 
+  void beforeEach(async () => {
+    await cleanDatabase();
+    await seedTeacher();
+  });
+
   void after(async () => {
-    await dropLifecycleTablesCreatedByTest();
     await cleanDatabase();
     await db.$disconnect();
   });
@@ -45,48 +52,31 @@ function registerSuspendedCascadeTest(): void {
   databaseIt(
     "suspending a student closes active academic lifecycle rows when present",
     async () => {
-      await createLifecycleTables();
       const student = await createAdultFixture();
-      const closedEnrollmentId = "00000000-0000-0000-0000-0000000000c1";
-      const activeEnrollmentId = "00000000-0000-0000-0000-0000000000a1";
-
-      await db.$executeRaw`
-      INSERT INTO "Enrollment" ("id", "student_id", "entry_date", "exit_date", "exit_reason")
-      VALUES
-        (${activeEnrollmentId}::uuid, ${student.id}::uuid, '2026-01-01'::date, NULL, NULL),
-        (${closedEnrollmentId}::uuid, ${student.id}::uuid, '2026-01-01'::date, '2026-02-01'::date, 'DROPPED')
-    `;
-      await db.$executeRaw`
-      INSERT INTO "PedagogicalProgress" ("id", "enrollment_id", "start_date", "end_date", "end_reason")
-      VALUES
-        ('00000000-0000-0000-0000-0000000000b1'::uuid, ${activeEnrollmentId}::uuid, '2026-01-01'::date, NULL, NULL),
-        ('00000000-0000-0000-0000-0000000000b2'::uuid, ${closedEnrollmentId}::uuid, '2026-01-01'::date, '2026-02-01'::date, 'DROPPED')
-    `;
+      const activeLifecycle = await createActiveLifecycleRows(student.id, "suspended-active");
+      const closedLifecycle = await createClosedLifecycleRows(student.id, "suspended-closed");
 
       await caller().students.setStatus({ id: student.id, status: "SUSPENDED" });
 
-      const enrollments = await db.$queryRaw<
-        Array<{ exit_date: Date | null; exit_reason: string | null; id: string }>
-      >`
-      SELECT "id"::text, "exit_date", "exit_reason"
-      FROM "Enrollment"
-      WHERE "student_id" = ${student.id}::uuid
-      ORDER BY "id"
-    `;
-      const progress = await db.$queryRaw<
-        Array<{ end_date: Date | null; end_reason: string | null; enrollment_id: string }>
-      >`
-      SELECT "enrollment_id"::text, "end_date", "end_reason"
-      FROM "PedagogicalProgress"
-      ORDER BY "enrollment_id"
-    `;
+      const activeEnrollment = await db.enrollment.findUniqueOrThrow({
+        where: { id: activeLifecycle.enrollmentId },
+      });
+      const closedEnrollment = await db.enrollment.findUniqueOrThrow({
+        where: { id: closedLifecycle.enrollmentId },
+      });
+      const activeProgress = await db.pedagogicalProgress.findUniqueOrThrow({
+        where: { id: activeLifecycle.progressId },
+      });
+      const closedProgress = await db.pedagogicalProgress.findUniqueOrThrow({
+        where: { id: closedLifecycle.progressId },
+      });
 
-      assert.equal(enrollments[0]?.exit_reason, "SUSPENDED");
-      assert.equal(enrollments[0]?.exit_date instanceof Date, true);
-      assert.equal(enrollments[1]?.exit_reason, "DROPPED");
-      assert.equal(progress[0]?.end_reason, "SUSPENDED");
-      assert.equal(progress[0]?.end_date instanceof Date, true);
-      assert.equal(progress[1]?.end_reason, "DROPPED");
+      assert.equal(activeEnrollment.exitReason, "SUSPENDED");
+      assert.equal(activeEnrollment.exitDate instanceof Date, true);
+      assert.equal(closedEnrollment.exitReason, "DROPPED");
+      assert.equal(activeProgress.endReason, "SUSPENDED");
+      assert.equal(activeProgress.endDate instanceof Date, true);
+      assert.equal(closedProgress.endReason, "DROPPED");
     },
   );
 }
@@ -102,88 +92,154 @@ async function createAdultFixture(): Promise<{ id: string }> {
 
 function registerDroppedCascadeTest(): void {
   databaseIt("dropping a student closes active academic lifecycle rows as dropped", async () => {
-    await createLifecycleTables();
     const student = await createAdultFixture();
-    const activeEnrollmentId = "00000000-0000-0000-0000-0000000000d1";
-
-    await db.$executeRaw`
-      INSERT INTO "Enrollment" ("id", "student_id", "entry_date", "exit_date", "exit_reason")
-      VALUES (${activeEnrollmentId}::uuid, ${student.id}::uuid, '2026-01-01'::date, NULL, NULL)
-    `;
-    await db.$executeRaw`
-      INSERT INTO "PedagogicalProgress" ("id", "enrollment_id", "start_date", "end_date", "end_reason")
-      VALUES ('00000000-0000-0000-0000-0000000000d2'::uuid, ${activeEnrollmentId}::uuid, '2026-01-01'::date, NULL, NULL)
-    `;
+    const lifecycle = await createActiveLifecycleRows(student.id, "dropped-active");
 
     await caller().students.setStatus({ id: student.id, status: "DROPPED" });
 
-    const [enrollment] = await db.$queryRaw<Array<{ exit_reason: string | null }>>`
-      SELECT "exit_reason"
-      FROM "Enrollment"
-      WHERE "id" = ${activeEnrollmentId}::uuid
-    `;
-    const [progress] = await db.$queryRaw<Array<{ end_reason: string | null }>>`
-      SELECT "end_reason"
-      FROM "PedagogicalProgress"
-      WHERE "enrollment_id" = ${activeEnrollmentId}::uuid
-    `;
+    const enrollment = await db.enrollment.findUniqueOrThrow({
+      where: { id: lifecycle.enrollmentId },
+    });
+    const progress = await db.pedagogicalProgress.findUniqueOrThrow({
+      where: { id: lifecycle.progressId },
+    });
 
-    assert.equal(enrollment?.exit_reason, "DROPPED");
-    assert.equal(progress?.end_reason, "DROPPED");
+    assert.equal(enrollment.exitReason, "DROPPED");
+    assert.equal(progress.endReason, "DROPPED");
   });
 }
 
 async function cleanDatabase(): Promise<void> {
+  await db.pedagogicalProgress.deleteMany({
+    where: { enrollment: { student: { fullName: { startsWith: TEST_PREFIX } } } },
+  });
+  await db.enrollment.deleteMany({
+    where: { student: { fullName: { startsWith: TEST_PREFIX } } },
+  });
+  await db.class.deleteMany({ where: { internalCode: { startsWith: TEST_PREFIX } } });
+  await db.stage.deleteMany({
+    where: { track: { productLine: { key: CATALOG_KEY } } },
+  });
+  await db.track.deleteMany({ where: { productLine: { key: CATALOG_KEY } } });
+  await db.productLine.deleteMany({ where: { key: CATALOG_KEY } });
+  await db.user.deleteMany({ where: { id: TEACHER_ID } });
   await db.student.deleteMany({ where: { fullName: { startsWith: TEST_PREFIX } } });
 }
 
-async function createLifecycleTables(): Promise<void> {
-  await (createdLifecycleTables
-    ? dropLifecycleTablesCreatedByTest()
-    : assertLifecycleTablesDoNotExist());
-
-  await db.$executeRaw`
-    CREATE TABLE "Enrollment" (
-      "id" uuid PRIMARY KEY,
-      "student_id" uuid NOT NULL,
-      "entry_date" date NOT NULL,
-      "exit_date" date,
-      "exit_reason" text
-    )
-  `;
-  await db.$executeRaw`
-    CREATE TABLE "PedagogicalProgress" (
-      "id" uuid PRIMARY KEY,
-      "enrollment_id" uuid NOT NULL,
-      "start_date" date NOT NULL,
-      "end_date" date,
-      "end_reason" text
-    )
-  `;
-  createdLifecycleTables = true;
+async function seedTeacher(): Promise<void> {
+  await db.user.create({
+    data: {
+      id: TEACHER_ID,
+      email: "gre23-status-teacher@example.com",
+      isEnabled: true,
+      name: "GRE-23 Status Teacher",
+      role: "TEACHER",
+    },
+  });
 }
 
-async function assertLifecycleTablesDoNotExist(): Promise<void> {
-  const rows = await db.$queryRaw<Array<{ table_name: string }>>`
-    SELECT table_name
-    FROM information_schema.tables
-    WHERE table_schema = 'public'
-      AND table_name IN ('Enrollment', 'PedagogicalProgress')
-  `;
+async function createActiveLifecycleRows(
+  studentId: string,
+  suffix: string,
+): Promise<{ enrollmentId: string; progressId: string }> {
+  const stage = await createStageFixture(suffix);
+  const classRow = await createClassFixture(suffix);
 
-  assert.deepEqual(
-    rows,
-    [],
-    "GRE-23 uses test-owned lifecycle tables until GRE-26 lands; replace this fixture before running against real lifecycle tables.",
-  );
+  return db.$transaction(async (transaction) => {
+    const enrollment = await transaction.enrollment.create({
+      data: {
+        classId: classRow.id,
+        entryDate: LIFECYCLE_ENTRY_DATE,
+        studentId,
+      },
+      select: { id: true },
+    });
+    const progress = await transaction.pedagogicalProgress.create({
+      data: {
+        enrollmentId: enrollment.id,
+        stageId: stage.id,
+        startDate: LIFECYCLE_ENTRY_DATE,
+      },
+      select: { id: true },
+    });
+    return { enrollmentId: enrollment.id, progressId: progress.id };
+  });
 }
 
-async function dropLifecycleTablesCreatedByTest(): Promise<void> {
-  if (!createdLifecycleTables) {
-    return;
-  }
+async function createClosedLifecycleRows(
+  studentId: string,
+  suffix: string,
+): Promise<{ enrollmentId: string; progressId: string }> {
+  const stage = await createStageFixture(suffix);
+  const classRow = await createClassFixture(suffix);
 
-  await db.$executeRaw`DROP TABLE IF EXISTS "PedagogicalProgress"`;
-  await db.$executeRaw`DROP TABLE IF EXISTS "Enrollment"`;
-  createdLifecycleTables = false;
+  return db.$transaction(async (transaction) => {
+    const enrollment = await transaction.enrollment.create({
+      data: {
+        classId: classRow.id,
+        entryDate: LIFECYCLE_ENTRY_DATE,
+        exitDate: LIFECYCLE_EXIT_DATE,
+        exitReason: "DROPPED",
+        studentId,
+      },
+      select: { id: true },
+    });
+    const progress = await transaction.pedagogicalProgress.create({
+      data: {
+        enrollmentId: enrollment.id,
+        endDate: LIFECYCLE_EXIT_DATE,
+        endReason: "DROPPED",
+        stageId: stage.id,
+        startDate: LIFECYCLE_ENTRY_DATE,
+      },
+      select: { id: true },
+    });
+    return { enrollmentId: enrollment.id, progressId: progress.id };
+  });
+}
+
+async function createStageFixture(suffix: string): Promise<{ id: string }> {
+  const productLine = await db.productLine.upsert({
+    create: {
+      key: CATALOG_KEY,
+      name: `${TEST_PREFIX}Line`,
+      status: "ACTIVE",
+    },
+    update: {},
+    where: { key: CATALOG_KEY },
+  });
+  const track = await db.track.create({
+    data: {
+      name: `${TEST_PREFIX}Track ${suffix}`,
+      productLineId: productLine.id,
+      status: "ACTIVE",
+    },
+  });
+  return db.stage.create({
+    data: {
+      internalCode: `GRE23${suffix
+        .replaceAll("-", "")
+        .toUpperCase()
+        .slice(0, STAGE_CODE_SUFFIX_LIMIT)}`,
+      name: `${TEST_PREFIX}Stage ${suffix}`,
+      sequence: 1,
+      trackId: track.id,
+    },
+    select: { id: true },
+  });
+}
+
+async function createClassFixture(suffix: string): Promise<{ id: string }> {
+  return db.class.create({
+    data: {
+      capacity: 8,
+      format: "IN_PERSON",
+      internalCode: `${TEST_PREFIX}Class ${suffix}`,
+      portalClassName: `${TEST_PREFIX}Portal ${suffix}`,
+      scheduleType: "PERSONALIZED",
+      teacherId: TEACHER_ID,
+      year: 2026,
+    },
+    select: { id: true },
+  });
 }

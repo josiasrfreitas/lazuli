@@ -7,7 +7,9 @@ export { Prisma } from "./generated/prisma/client.js";
 export { COURSE_CATALOG, seedCourseCatalog } from "./seed-course-catalog.js";
 export type {
   Address,
+  Enrollment,
   Guardian,
+  PedagogicalProgress,
   ProductLine,
   SchoolClosedDay,
   Semester,
