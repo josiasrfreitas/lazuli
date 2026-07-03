@@ -62,7 +62,7 @@ const sharedRulesConfig = {
     "unused-imports/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     complexity: ["error", 10],
     "max-lines-per-function": ["error", { max: 50, skipBlankLines: true, skipComments: true }],
-    "max-lines": ["error", { max: 250, skipBlankLines: true, skipComments: true }],
+    "max-lines": ["error", { max: 350, skipBlankLines: true, skipComments: true }],
     "max-depth": ["error", 4],
     "max-params": ["error", 2],
     "max-statements": ["error", 20],

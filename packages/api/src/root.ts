@@ -1,4 +1,5 @@
 import { createCallerFactory, protectedProcedure, publicProcedure, router } from "./trpc/init.js";
+import { calendarRouter } from "./calendar/router.js";
 import { classesRouter } from "./classes/router.js";
 import { studentsRouter } from "./students/router.js";
 
@@ -7,6 +8,7 @@ export const appRouter = router({
   me: protectedProcedure.query(({ ctx }) => ctx.staffUser),
   students: studentsRouter,
   classes: classesRouter,
+  calendar: calendarRouter,
 });
 
 export type AppRouter = typeof appRouter;

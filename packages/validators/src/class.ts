@@ -2,6 +2,8 @@ import { z } from "zod";
 
 const REQUIRED_TEXT_MESSAGE = "Campo obrigatorio.";
 const INVALID_TIME_MESSAGE = "Horario invalido.";
+const MIN_CLASS_YEAR = 2000;
+const MAX_CLASS_YEAR = 2100;
 
 const requiredText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE);
 
@@ -49,54 +51,13 @@ export const classCreateInputSchema = z
     format: classFormatSchema,
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").nullish(),
     semesterId: z.string().uuid("Identificador de semestre invalido.").nullish(),
-    year: z.number().int().min(2000).max(2100),
+    year: z.number().int().min(MIN_CLASS_YEAR).max(MAX_CLASS_YEAR),
     capacity: z.number().int().min(1),
     portalClassName: requiredText.optional(),
     slots: z.array(classScheduleSlotInputSchema).min(1, "Informe ao menos um horario."),
   })
   .strict()
-  .superRefine((value, context) => {
-    if (value.scheduleType === "REGULAR") {
-      if (value.portalClassName != null) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Turma regular nao aceita nome Portal manual.",
-          path: ["portalClassName"],
-        });
-      }
-      if (value.sharedStageId == null) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Turma regular exige etapa compartilhada.",
-          path: ["sharedStageId"],
-        });
-      }
-      if (value.semesterId == null) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Turma regular exige semestre.",
-          path: ["semesterId"],
-        });
-      }
-      return;
-    }
-
-    if (value.sharedStageId != null) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Turma personalizada nao pode ter etapa compartilhada.",
-        path: ["sharedStageId"],
-      });
-    }
-
-    if (value.portalClassName == null) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Turma personalizada exige nome Portal manual.",
-        path: ["portalClassName"],
-      });
-    }
-  });
+  .superRefine(validateClassCreateInput);
 
 export const classIdInputSchema = z
   .object({
@@ -109,10 +70,68 @@ export const classCloneForNextPeriodInputSchema = z
     id: z.string().uuid("Identificador de turma invalido."),
     internalCode: requiredText,
     semesterId: z.string().uuid("Identificador de semestre invalido."),
-    year: z.number().int().min(2000).max(2100),
+    year: z.number().int().min(MIN_CLASS_YEAR).max(MAX_CLASS_YEAR),
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").optional(),
     portalClassName: requiredText.optional(),
   })
   .strict();
 
 export const classArchiveInputSchema = classIdInputSchema;
+
+type ClassCreateInput = {
+  scheduleType: z.infer<typeof classScheduleTypeSchema>;
+  sharedStageId?: string | null | undefined;
+  semesterId?: string | null | undefined;
+  portalClassName?: string | null | undefined;
+};
+
+function validateClassCreateInput(input: ClassCreateInput, context: z.RefinementCtx): void {
+  if (input.scheduleType === "REGULAR") {
+    validateRegularClassInput(input, context);
+    return;
+  }
+
+  validatePersonalizedClassInput(input, context);
+}
+
+function validateRegularClassInput(input: ClassCreateInput, context: z.RefinementCtx): void {
+  if (input.portalClassName !== null && input.portalClassName !== undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Turma regular nao aceita nome Portal manual.",
+      path: ["portalClassName"],
+    });
+  }
+  if (input.sharedStageId === null || input.sharedStageId === undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Turma regular exige etapa compartilhada.",
+      path: ["sharedStageId"],
+    });
+  }
+  if (input.semesterId === null || input.semesterId === undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Turma regular exige semestre.",
+      path: ["semesterId"],
+    });
+  }
+}
+
+function validatePersonalizedClassInput(input: ClassCreateInput, context: z.RefinementCtx): void {
+  if (input.sharedStageId !== null && input.sharedStageId !== undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Turma personalizada nao pode ter etapa compartilhada.",
+      path: ["sharedStageId"],
+    });
+  }
+
+  if (input.portalClassName === null || input.portalClassName === undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Turma personalizada exige nome Portal manual.",
+      path: ["portalClassName"],
+    });
+  }
+}

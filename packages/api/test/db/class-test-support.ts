@@ -45,6 +45,19 @@ export async function seedClassCatalogFixtures(): Promise<{
   semesterId: string;
   nextSemesterId: string;
 }> {
+  const track = await seedTrackFixture();
+  const stages = await seedStageFixtures(track.id);
+  const semesters = await seedSemesterFixtures();
+
+  return {
+    stageId: stages.stageId,
+    nextStageId: stages.nextStageId,
+    semesterId: semesters.semesterId,
+    nextSemesterId: semesters.nextSemesterId,
+  };
+}
+
+async function seedTrackFixture(): Promise<{ id: string }> {
   const productLine = await db.productLine.create({
     data: {
       key: "gre29_class_line",
@@ -59,9 +72,16 @@ export async function seedClassCatalogFixtures(): Promise<{
       status: "ACTIVE",
     },
   });
+
+  return track;
+}
+
+async function seedStageFixtures(
+  trackId: string,
+): Promise<{ stageId: string; nextStageId: string }> {
   const stage = await db.stage.create({
     data: {
-      trackId: track.id,
+      trackId,
       name: `${TEST_PREFIX}Stage One`,
       internalCode: "GRE29S1",
       sequence: 1,
@@ -69,12 +89,17 @@ export async function seedClassCatalogFixtures(): Promise<{
   });
   const nextStage = await db.stage.create({
     data: {
-      trackId: track.id,
+      trackId,
       name: `${TEST_PREFIX}Stage Two`,
       internalCode: "GRE29S2",
       sequence: 2,
     },
   });
+
+  return { stageId: stage.id, nextStageId: nextStage.id };
+}
+
+async function seedSemesterFixtures(): Promise<{ semesterId: string; nextSemesterId: string }> {
   const semester = await db.semester.create({
     data: {
       name: `${TEST_PREFIX}2026.1`,
@@ -91,8 +116,6 @@ export async function seedClassCatalogFixtures(): Promise<{
   });
 
   return {
-    stageId: stage.id,
-    nextStageId: nextStage.id,
     semesterId: semester.id,
     nextSemesterId: nextSemester.id,
   };

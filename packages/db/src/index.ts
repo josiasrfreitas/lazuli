@@ -9,6 +9,7 @@ export type {
   Address,
   Guardian,
   ProductLine,
+  SchoolClosedDay,
   Semester,
   Stage,
   Student,

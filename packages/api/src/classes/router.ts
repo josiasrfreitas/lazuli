@@ -5,7 +5,8 @@ import {
 } from "@lazuli/validators";
 
 import { adminProcedure, router } from "../trpc/init.js";
-import { archiveClass, cloneClassForNextPeriod, createClass } from "./data.js";
+import { cloneClassForNextPeriod } from "./clone.js";
+import { archiveClass, createClass } from "./data.js";
 
 export const classesRouter = router({
   create: adminProcedure
@@ -22,15 +23,39 @@ export const classesRouter = router({
     .input(classCloneForNextPeriodInputSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) =>
-        cloneClassForNextPeriod({
-          database,
-          id: input.id,
-          internalCode: input.internalCode,
-          semesterId: input.semesterId,
-          year: input.year,
-          ...(input.sharedStageId !== undefined ? { sharedStageId: input.sharedStageId } : {}),
-          ...(input.portalClassName !== undefined ? { portalClassName: input.portalClassName } : {}),
-        }),
+        cloneClassForNextPeriod(buildCloneInput({ database, input })),
       ),
     ),
 });
+
+function buildCloneInput(input: {
+  database: Parameters<typeof cloneClassForNextPeriod>[0]["database"];
+  input: {
+    id: string;
+    internalCode: string;
+    semesterId: string;
+    year: number;
+    sharedStageId?: string | undefined;
+    portalClassName?: string | undefined;
+  };
+}): Parameters<typeof cloneClassForNextPeriod>[0] {
+  return {
+    database: input.database,
+    id: input.input.id,
+    internalCode: input.input.internalCode,
+    semesterId: input.input.semesterId,
+    year: input.input.year,
+    ...optionalSharedStageId(input.input.sharedStageId),
+    ...optionalPortalClassName(input.input.portalClassName),
+  };
+}
+
+function optionalSharedStageId(sharedStageId: string | undefined): { sharedStageId?: string } {
+  return typeof sharedStageId === "string" ? { sharedStageId } : {};
+}
+
+function optionalPortalClassName(portalClassName: string | undefined): {
+  portalClassName?: string;
+} {
+  return typeof portalClassName === "string" ? { portalClassName } : {};
+}

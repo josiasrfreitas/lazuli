@@ -1,8 +1,5 @@
 import type { Prisma } from "@lazuli/db";
-import {
-  generateRegularPortalClassName,
-  type PortalClassNameSlot,
-} from "@lazuli/domain";
+import { generateRegularPortalClassName, type PortalClassNameSlot } from "@lazuli/domain";
 
 import { PORTAL_NAME_COLLISION_MESSAGE, badRequest } from "./errors.js";
 

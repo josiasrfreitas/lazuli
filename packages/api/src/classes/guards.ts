@@ -9,10 +9,7 @@ import {
   notFound,
 } from "./errors.js";
 
-type GuardDatabase = Pick<
-  Prisma.TransactionClient,
-  "user" | "stage" | "semester" | "track"
->;
+type GuardDatabase = Pick<Prisma.TransactionClient, "user" | "stage" | "semester" | "track">;
 
 export async function assertTeacherIsActive(input: {
   database: GuardDatabase;
