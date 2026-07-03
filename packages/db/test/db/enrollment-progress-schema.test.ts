@@ -278,33 +278,36 @@ function registerLegacyTrackGuardTest(database: DatabaseClient): void {
 }
 
 function registerCapacityOverrideTest(database: DatabaseClient): void {
-  databaseIt("requires a capacity override reason when active enrollment exceeds capacity", async () => {
-    const catalog = await seedCatalog(database);
-    const firstStudent = await createStudent(database, "Capacity First");
-    const secondStudent = await createStudent(database, "Capacity Second");
-    const thirdStudent = await createStudent(database, "Capacity Override");
-    const classRow = await createPersonalizedClass(database, { code: "capacity", capacity: 1 });
+  databaseIt(
+    "requires a capacity override reason when active enrollment exceeds capacity",
+    async () => {
+      const catalog = await seedCatalog(database);
+      const firstStudent = await createStudent(database, "Capacity First");
+      const secondStudent = await createStudent(database, "Capacity Second");
+      const thirdStudent = await createStudent(database, "Capacity Override");
+      const classRow = await createPersonalizedClass(database, { code: "capacity", capacity: 1 });
 
-    await createActiveEnrollmentWithProgress(database, {
-      classId: classRow.id,
-      stageId: catalog.activeStageId,
-      studentId: firstStudent.id,
-    });
-    await expectConstraintRejection(
-      createActiveEnrollmentWithProgress(database, {
+      await createActiveEnrollmentWithProgress(database, {
         classId: classRow.id,
         stageId: catalog.activeStageId,
-        studentId: secondStudent.id,
-      }),
-      CAPACITY_OVERRIDE_REQUIRED,
-    );
-    await createActiveEnrollmentWithProgress(database, {
-      capacityOverrideReason: "Manual coordinator approval for sibling schedule.",
-      classId: classRow.id,
-      stageId: catalog.activeStageId,
-      studentId: thirdStudent.id,
-    });
-  });
+        studentId: firstStudent.id,
+      });
+      await expectConstraintRejection(
+        createActiveEnrollmentWithProgress(database, {
+          classId: classRow.id,
+          stageId: catalog.activeStageId,
+          studentId: secondStudent.id,
+        }),
+        CAPACITY_OVERRIDE_REQUIRED,
+      );
+      await createActiveEnrollmentWithProgress(database, {
+        capacityOverrideReason: "Manual coordinator approval for sibling schedule.",
+        classId: classRow.id,
+        stageId: catalog.activeStageId,
+        studentId: thirdStudent.id,
+      });
+    },
+  );
 }
 
 function registerRegularStageMatchTest(database: DatabaseClient): void {
