@@ -7,3 +7,10 @@ export const DOMAIN_PACKAGE = "@lazuli/domain" as const;
 
 export { resolveSemesterForDate, SemesterBucketError } from "./semester.js";
 export type { SemesterBucketErrorCode, SemesterWindow } from "./semester.js";
+export {
+  generateRegularPortalClassName,
+  type GenerateRegularPortalClassNameInput,
+  type PortalClassNameSlot,
+  type Weekday,
+} from "./class-portal-name.js";
+export { findNextStageInTrack, type StageInTrack } from "./stage-sequence.js";

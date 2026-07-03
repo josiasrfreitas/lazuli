@@ -20,3 +20,14 @@ export {
   studentUpdateNotesInputSchema,
   updateGuardianReferenceSchema,
 } from "./student.js";
+export {
+  classArchiveInputSchema,
+  classCloneForNextPeriodInputSchema,
+  classCreateInputSchema,
+  classFormatSchema,
+  classIdInputSchema,
+  classScheduleSlotInputSchema,
+  classScheduleTypeSchema,
+  timeOfDaySchema,
+  weekdaySchema,
+} from "./class.js";

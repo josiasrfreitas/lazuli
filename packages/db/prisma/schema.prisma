@@ -43,6 +43,31 @@ enum CatalogStatus {
   LEGACY
 }
 
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum ClassScheduleType {
+  REGULAR
+  PERSONALIZED
+}
+
+enum ClassFormat {
+  IN_PERSON
+  ONLINE
+}
+
+enum ClassStatus {
+  ACTIVE
+  ARCHIVED
+}
+
 model User {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -55,8 +80,9 @@ model User {
   emailVerified Boolean   @default(false) @map("email_verified")
   image         String?
 
-  accounts Account[]
-  sessions Session[]
+  accounts      Account[]
+  sessions      Session[]
+  classesTaught Class[]   @relation("ClassTeacher")
 }
 
 model Account {
@@ -180,6 +206,8 @@ model Semester {
   name      String    @unique
   startDate DateTime  @map("start_date") @db.Date
   endDate   DateTime  @map("end_date") @db.Date
+
+  classes Class[]
 }
 
 model ProductLine {
@@ -193,6 +221,54 @@ model ProductLine {
   portalPrefix String?       @map("portal_prefix")
 
   tracks Track[]
+}
+
+model Class {
+  id                      String            @id @default(uuid()) @db.Uuid
+  createdAt               DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt               DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt               DateTime?         @map("deleted_at") @db.Timestamptz
+  internalCode            String            @unique @map("internal_code")
+  teacherId               String            @map("teacher_id") @db.Uuid
+  scheduleType            ClassScheduleType @map("schedule_type")
+  format                  ClassFormat
+  sharedStageId           String?           @map("shared_stage_id") @db.Uuid
+  semesterId              String?           @map("semester_id") @db.Uuid
+  year                    Int
+  capacity                Int
+  status                  ClassStatus       @default(ACTIVE)
+  previousClassId         String?           @map("previous_class_id") @db.Uuid
+  portalClassName         String            @map("portal_class_name")
+  originalPortalClassName String?           @map("original_portal_class_name")
+
+  teacher       User                @relation("ClassTeacher", fields: [teacherId], references: [id])
+  sharedStage   Stage?              @relation(fields: [sharedStageId], references: [id])
+  semester      Semester?           @relation(fields: [semesterId], references: [id])
+  previousClass Class?              @relation("ClassLineage", fields: [previousClassId], references: [id])
+  nextClasses   Class[]             @relation("ClassLineage")
+  scheduleSlots ClassScheduleSlot[]
+
+  @@index([teacherId])
+  @@index([sharedStageId])
+  @@index([semesterId])
+  @@index([previousClassId])
+}
+
+model ClassScheduleSlot {
+  id        String    @id @default(uuid()) @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  classId   String    @map("class_id") @db.Uuid
+  weekday   Weekday
+  startTime DateTime  @map("start_time") @db.Time
+  endTime   DateTime  @map("end_time") @db.Time
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, weekday, startTime, endTime])
+  @@unique([classId, id])
+  @@index([classId])
 }
 
 model Track {
@@ -221,7 +297,8 @@ model Stage {
   internalCode String    @map("internal_code")
   sequence     Int
 
-  track Track @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  track  Track   @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  classes Class[]
 
   @@unique([trackId, internalCode])
   @@unique([trackId, sequence])
