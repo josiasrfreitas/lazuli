@@ -1,10 +1,10 @@
 import { createDbClient } from "../packages/db/src/client.js";
+import { seedCourseCatalog } from "../packages/db/src/seed-course-catalog.js";
 
 const database = createDbClient();
 
-// Future scenario fixtures should follow docs/agents/testing.md.
 try {
-  await database.$queryRaw`SELECT 1`;
+  await seedCourseCatalog(database);
 } finally {
   await database.$disconnect();
 }

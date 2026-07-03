@@ -473,30 +473,33 @@ Trace: see Section 12.
 ### 4.3 Course catalog
 
 ```prisma
-enum TrackCategory {
-  ADULT
-  KIDS
-  TEENS
-  SPEED
-  TEENS_CONNECT
-  TEENSTATION
-  SPANISH
-}
-
 enum CatalogStatus {
   ACTIVE
   LEGACY
 }
 
+model ProductLine {
+  // UUIDEntity
+  key          String
+  name         String
+  status       CatalogStatus @default(ACTIVE)
+  portalPrefix String?
+  tracks       Track[]
+
+  @@unique([key])
+  @@unique([name])
+}
+
 model Track {
   // UUIDEntity
-  name      String
-  category  TrackCategory
-  status    CatalogStatus @default(ACTIVE)
+  productLineId String
+  name          String
+  status        CatalogStatus @default(ACTIVE)
   portalPrefix String?
-  stages    Stage[]
+  productLine  ProductLine @relation(fields: [productLineId], references: [id])
+  stages       Stage[]
 
-  @@unique([name])
+  @@unique([productLineId, name])
 }
 
 model Stage {
@@ -516,7 +519,8 @@ model Stage {
 Rules:
 
 - Seed-only in MVP. No CRUD UI.
-- `Track.category` classifies product line: `ADULT` (adult English main), `KIDS` (Infantil), `TEENS` (legacy Teens), `SPEED`, `TEENS_CONNECT`, `TEENSTATION`, `SPANISH` — one `Track` row per progression path from [discovery/course-stage-ordering.md](../discovery/course-stage-ordering.md).
+- `ProductLine` classifies product labels as seed data instead of a schema enum. Initial rows: `adult` (Adultos), `kids` (Infantil), `teens` (legacy Teens), `teens_connect` (Teens Connect), and `teenstation` (legacy Teenstation). Speed and Espanol are active tracks under Adultos.
+- One `Track` row per progression path from [discovery/course-stage-ordering.md](../discovery/course-stage-ordering.md): Adultos / English Main, Adultos / Speed, Adultos / Espanol, Infantil, Teens Legacy, Teens Connect, and Teenstation Legacy.
 - **Tracks are independent.** No `sequence` on `Track`; no cross-track ordering or equivalence model. Some real-world equivalences exist (e.g. Speed ↔ adult English) but are hard to model and the operational gain is small — staff pick the target track/stage explicitly when needed.
 - **Stage ordering only:** `Stage.sequence` is the linear order within one track. Next stage = same track, `sequence + 1`.
 - `Track.status = LEGACY` blocks new classes/enrollments but allows existing rows to keep working.
@@ -1539,64 +1543,64 @@ Trace: `D-0003`, `D-0004`, `D-0007`, PRD Section 15.9.
 
 ### 12.1 Story trace
 
-| Story        | Status               | Spec coverage / gap                                                                                                                                                                             |
-| ------------ | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `S-AUTH-1`   | P0                   | Section 4.1 defines Better Auth, pre-provisioned users, unknown-email rejection boundary, 30-day sessions, sign-out, magic link/Resend.                                                         |
-| `S-AUTH-2`   | P0                   | Sections 4.1, 5.2, and 8 define role filtering, 403/resource checks via RBAC, teacher scope, and no MVP impersonation.                                                                          |
-| `S-STU-1`    | P0                   | Sections 6.2 and 9.2 define one-shot Legacy script, temporary validation report, no Legacy-specific models, and verbatim name preservation. Legacy sample remains Sprint-0 open item.           |
-| `S-STU-2`    | P0                   | Sections 4.2 and 5.3 define search fields and trigram search target.                                                                                                                            |
-| `S-STU-3`    | P0                   | Section 5.3 defines profile aggregate sections and `wa.me` URL; Sections 4.2, 4.6, and 4.7 provide the backing data, including the structured `Guardian` + `Address`.                           |
-| `S-STU-4`    | P0                   | Section 4.2 defines fields, `documentType`/`documentNumber`, structured `Guardian` + shared `Address`, minor/guardian requirement, status enum, and `SUSPENDED` cascade/no billing mutation.    |
-| `S-STU-5`    | Deferred             | Student status/field-level rastreabilidade deferred ([D-0035](./decisions.md#d-0035-defer-student-field-level-traceability)); no attribution columns on `Student` in MVP.                       |
-| `S-CAT-1`    | P0                   | Section 4.3 defines Track/Stage, legacy behavior, stage-level `sequence` ordering, independent tracks (no cross-track order/equivalence), seed-only scope. Production naming seed remains open. |
-| `S-CLS-1`    | P0                   | Sections 4.4 and 5.3 define class fields, scheduleType/format axes, status, Portal name storage, one-teacher rule, lineage, and clone-for-next-period.                                          |
-| `S-CLS-2`    | P0                   | Sections 4.4 and 6.2 define sessions, generation idempotency, closed-day skipping, rolling horizon, and setup errors.                                                                           |
-| `S-CAL-1`    | P0                   | Sections 4.4 and 5.3 define closed days, federal holiday import procedure, future cancellation behavior, and reopen/regenerate.                                                                 |
-| `S-CAL-2`    | P0                   | Sections 4.4 and 5.3 define per-session cancellation reason and no cancellation after committed/submitted attendance.                                                                           |
-| `S-CAL-3`    | P2                   | Explicitly excluded by Sections 1.1 and 13; no substitute fields are modeled.                                                                                                                   |
-| `S-CAL-4`    | P0                   | Sections 4.4, 6.2, and 7.2 define semesters, no overlap, session generation trigger, and unbucketed-session setup errors.                                                                       |
-| `S-ENR-1`    | P0                   | Sections 4.5 and 5.3 define enrollment creation, capacity override reason, active progress seeding, and order prompt boundary.                                                                  |
-| `S-ENR-2`    | P1                   | Sections 4.5 and 5.3 define schema/transaction shape; endpoint is tagged P1.                                                                                                                    |
-| `S-ENR-3`    | P1                   | Section 5.3 records resolved assumption: academic close/drop/pause does not mutate billing automatically; staff use manual finance tools.                                                       |
-| `S-ENR-4`    | P0                   | Sections 4.3, 4.5, and 5.3 define next-stage lookup and progress-only advancement.                                                                                                              |
-| `S-ATT-1`    | P0                   | Sections 4.6, 5.3, 7.1, and 8 define mobile attendance, explicit confirm, untaken sessions, and no offline/server-draft requirement.                                                            |
-| `S-ATT-2`    | P0                   | Sections 4.6 and 5.3 define makeup visitors on roster and target-session outcome capture.                                                                                                       |
-| `S-ATT-3`    | P0                   | Sections 4.6 and 5.3 define scheduling makeups with advance-date constraint.                                                                                                                    |
-| `S-ATT-4`    | P0                   | Sections 5.2 and 5.3 define teacher own-class same-day edit via resource scope.                                                                                                                 |
-| `S-ATT-5`    | P0                   | Sections 4.4, 4.6, and 5.3 define admin edits, `attendanceLastCommittedAt`, and Portal retry derivation.                                                                                        |
-| `S-Portal-1` | Gated P0             | Sections 1.2, 1.3, 6.2, and 9.1 define Portal as gated by Sprint-0 exit criteria with automated/assisted/not-viable modes.                                                                      |
-| `S-Portal-2` | P0 after Portal mode | Sections 6.2 and 9.3 define Portal failure email (no Sentry in MVP; v0.3).                                                                                                                      |
-| `S-Portal-3` | P0 after Portal mode | Sections 4.4, 5.3, and 6.2 define manual enqueue/retry and session-linked `PortalRun` facts.                                                                                                    |
-| `S-Portal-4` | P0                   | Section 7.1 defines health-card sets and precedence.                                                                                                                                            |
-| `S-FIN-1`    | P0                   | Sections 4.7 and 5.3 define payer/order/beneficiary/installment creation, commercial schedule facts, due-day, and edit cutoff.                                                                  |
-| `S-FIN-2`    | P0                   | Sections 4.7 and 7.1 define installment derived status, balances, interest preview config, and open multa policy.                                                                               |
-| `S-FIN-3`    | P0                   | Sections 4.7 and 5.3 define payment entries, allocations, payer-scoped invariants, and batch reconcile.                                                                                         |
-| `S-FIN-4`    | P1                   | Excluded from P0 schema; Sections 4.7 and 7.2 state dashboards/reports do not depend on collection attempts.                                                                                    |
-| `S-FIN-5`    | P1                   | Section 4.7 stores waiver backbone required by `D-0032`; endpoint tagged P1 in Section 5.3.                                                                                                     |
-| `S-FIN-6`    | P0                   | Section 7.1 defines receivables snapshot, collectible amounts, and age buckets.                                                                                                                 |
-| `S-FIN-7`    | P0                   | Sections 4.8, 6.2, and 7.2 define async student statement artifact generation.                                                                                                                  |
-| `S-FIN-8`    | P1                   | Section 4.7 stores adjustment backbone required by `D-0032`; endpoint tagged P1/minimal-admin in Section 5.3.                                                                                   |
-| `S-EXP-1`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-EXP-2`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-EXP-3`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-EXP-4`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-LEAD-1`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-LEAD-2`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-LEAD-3`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-LEAD-4`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-LEAD-5`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-LEAD-6`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-NOT-1`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                |
-| `S-NOT-2`    | P0                   | Sections 6.2 and 9.3 define Resend/Mailpit, Portal failure email, D+30 idempotency, and 07:00 overdue digest.                                                                                   |
-| `S-NOT-3`    | Phase 2              | Excluded by Sections 1.1 and 13; no notification rule table.                                                                                                                                    |
-| `S-NOT-4`    | P1                   | Excluded from P0 schema in Section 4.2.                                                                                                                                                         |
-| `S-DASH-1`   | P0                   | Sections 7.1 and 8 define admin dashboard cards and deferred card omissions.                                                                                                                    |
-| `S-DASH-2`   | P0                   | Section 7.1 defines receivables dashboard metrics.                                                                                                                                              |
-| `S-DASH-3`   | P0                   | Sections 5.2 and 8 define teacher home.                                                                                                                                                         |
-| `S-REP-1`    | P0                   | Sections 6.2 and 7.2 define overdue CSV without last-contact attempt.                                                                                                                           |
-| `S-REP-2`    | P0                   | Sections 6.2 and 7.2 define monthly accountant CSV excluding expenses.                                                                                                                          |
-| `S-REP-3`    | P0                   | Sections 6.2 and 7.2 define class roster PDF.                                                                                                                                                   |
-| `S-REP-4`    | P0                   | Sections 4.6, 6.2, and 7.2 define attendance summary formula and PDF.                                                                                                                           |
+| Story        | Status               | Spec coverage / gap                                                                                                                                                                                                      |
+| ------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `S-AUTH-1`   | P0                   | Section 4.1 defines Better Auth, pre-provisioned users, unknown-email rejection boundary, 30-day sessions, sign-out, magic link/Resend.                                                                                  |
+| `S-AUTH-2`   | P0                   | Sections 4.1, 5.2, and 8 define role filtering, 403/resource checks via RBAC, teacher scope, and no MVP impersonation.                                                                                                   |
+| `S-STU-1`    | P0                   | Sections 6.2 and 9.2 define one-shot Legacy script, temporary validation report, no Legacy-specific models, and verbatim name preservation. Legacy sample remains Sprint-0 open item.                                    |
+| `S-STU-2`    | P0                   | Sections 4.2 and 5.3 define search fields and trigram search target.                                                                                                                                                     |
+| `S-STU-3`    | P0                   | Section 5.3 defines profile aggregate sections and `wa.me` URL; Sections 4.2, 4.6, and 4.7 provide the backing data, including the structured `Guardian` + `Address`.                                                    |
+| `S-STU-4`    | P0                   | Section 4.2 defines fields, `documentType`/`documentNumber`, structured `Guardian` + shared `Address`, minor/guardian requirement, status enum, and `SUSPENDED` cascade/no billing mutation.                             |
+| `S-STU-5`    | Deferred             | Student status/field-level rastreabilidade deferred ([D-0035](./decisions.md#d-0035-defer-student-field-level-traceability)); no attribution columns on `Student` in MVP.                                                |
+| `S-CAT-1`    | P0                   | Section 4.3 defines ProductLine/Track/Stage, legacy behavior, stage-level `sequence` ordering, independent tracks (no cross-track order/equivalence), and seed-only scope. Portal naming validation remains GRE-13 work. |
+| `S-CLS-1`    | P0                   | Sections 4.4 and 5.3 define class fields, scheduleType/format axes, status, Portal name storage, one-teacher rule, lineage, and clone-for-next-period.                                                                   |
+| `S-CLS-2`    | P0                   | Sections 4.4 and 6.2 define sessions, generation idempotency, closed-day skipping, rolling horizon, and setup errors.                                                                                                    |
+| `S-CAL-1`    | P0                   | Sections 4.4 and 5.3 define closed days, federal holiday import procedure, future cancellation behavior, and reopen/regenerate.                                                                                          |
+| `S-CAL-2`    | P0                   | Sections 4.4 and 5.3 define per-session cancellation reason and no cancellation after committed/submitted attendance.                                                                                                    |
+| `S-CAL-3`    | P2                   | Explicitly excluded by Sections 1.1 and 13; no substitute fields are modeled.                                                                                                                                            |
+| `S-CAL-4`    | P0                   | Sections 4.4, 6.2, and 7.2 define semesters, no overlap, session generation trigger, and unbucketed-session setup errors.                                                                                                |
+| `S-ENR-1`    | P0                   | Sections 4.5 and 5.3 define enrollment creation, capacity override reason, active progress seeding, and order prompt boundary.                                                                                           |
+| `S-ENR-2`    | P1                   | Sections 4.5 and 5.3 define schema/transaction shape; endpoint is tagged P1.                                                                                                                                             |
+| `S-ENR-3`    | P1                   | Section 5.3 records resolved assumption: academic close/drop/pause does not mutate billing automatically; staff use manual finance tools.                                                                                |
+| `S-ENR-4`    | P0                   | Sections 4.3, 4.5, and 5.3 define next-stage lookup and progress-only advancement.                                                                                                                                       |
+| `S-ATT-1`    | P0                   | Sections 4.6, 5.3, 7.1, and 8 define mobile attendance, explicit confirm, untaken sessions, and no offline/server-draft requirement.                                                                                     |
+| `S-ATT-2`    | P0                   | Sections 4.6 and 5.3 define makeup visitors on roster and target-session outcome capture.                                                                                                                                |
+| `S-ATT-3`    | P0                   | Sections 4.6 and 5.3 define scheduling makeups with advance-date constraint.                                                                                                                                             |
+| `S-ATT-4`    | P0                   | Sections 5.2 and 5.3 define teacher own-class same-day edit via resource scope.                                                                                                                                          |
+| `S-ATT-5`    | P0                   | Sections 4.4, 4.6, and 5.3 define admin edits, `attendanceLastCommittedAt`, and Portal retry derivation.                                                                                                                 |
+| `S-Portal-1` | Gated P0             | Sections 1.2, 1.3, 6.2, and 9.1 define Portal as gated by Sprint-0 exit criteria with automated/assisted/not-viable modes.                                                                                               |
+| `S-Portal-2` | P0 after Portal mode | Sections 6.2 and 9.3 define Portal failure email (no Sentry in MVP; v0.3).                                                                                                                                               |
+| `S-Portal-3` | P0 after Portal mode | Sections 4.4, 5.3, and 6.2 define manual enqueue/retry and session-linked `PortalRun` facts.                                                                                                                             |
+| `S-Portal-4` | P0                   | Section 7.1 defines health-card sets and precedence.                                                                                                                                                                     |
+| `S-FIN-1`    | P0                   | Sections 4.7 and 5.3 define payer/order/beneficiary/installment creation, commercial schedule facts, due-day, and edit cutoff.                                                                                           |
+| `S-FIN-2`    | P0                   | Sections 4.7 and 7.1 define installment derived status, balances, interest preview config, and open multa policy.                                                                                                        |
+| `S-FIN-3`    | P0                   | Sections 4.7 and 5.3 define payment entries, allocations, payer-scoped invariants, and batch reconcile.                                                                                                                  |
+| `S-FIN-4`    | P1                   | Excluded from P0 schema; Sections 4.7 and 7.2 state dashboards/reports do not depend on collection attempts.                                                                                                             |
+| `S-FIN-5`    | P1                   | Section 4.7 stores waiver backbone required by `D-0032`; endpoint tagged P1 in Section 5.3.                                                                                                                              |
+| `S-FIN-6`    | P0                   | Section 7.1 defines receivables snapshot, collectible amounts, and age buckets.                                                                                                                                          |
+| `S-FIN-7`    | P0                   | Sections 4.8, 6.2, and 7.2 define async student statement artifact generation.                                                                                                                                           |
+| `S-FIN-8`    | P1                   | Section 4.7 stores adjustment backbone required by `D-0032`; endpoint tagged P1/minimal-admin in Section 5.3.                                                                                                            |
+| `S-EXP-1`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-EXP-2`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-EXP-3`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-EXP-4`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-LEAD-1`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-LEAD-2`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-LEAD-3`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-LEAD-4`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-LEAD-5`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-LEAD-6`   | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-NOT-1`    | Phase 2              | Excluded by Sections 1.1 and 13.                                                                                                                                                                                         |
+| `S-NOT-2`    | P0                   | Sections 6.2 and 9.3 define Resend/Mailpit, Portal failure email, D+30 idempotency, and 07:00 overdue digest.                                                                                                            |
+| `S-NOT-3`    | Phase 2              | Excluded by Sections 1.1 and 13; no notification rule table.                                                                                                                                                             |
+| `S-NOT-4`    | P1                   | Excluded from P0 schema in Section 4.2.                                                                                                                                                                                  |
+| `S-DASH-1`   | P0                   | Sections 7.1 and 8 define admin dashboard cards and deferred card omissions.                                                                                                                                             |
+| `S-DASH-2`   | P0                   | Section 7.1 defines receivables dashboard metrics.                                                                                                                                                                       |
+| `S-DASH-3`   | P0                   | Sections 5.2 and 8 define teacher home.                                                                                                                                                                                  |
+| `S-REP-1`    | P0                   | Sections 6.2 and 7.2 define overdue CSV without last-contact attempt.                                                                                                                                                    |
+| `S-REP-2`    | P0                   | Sections 6.2 and 7.2 define monthly accountant CSV excluding expenses.                                                                                                                                                   |
+| `S-REP-3`    | P0                   | Sections 6.2 and 7.2 define class roster PDF.                                                                                                                                                                            |
+| `S-REP-4`    | P0                   | Sections 4.6, 6.2, and 7.2 define attendance summary formula and PDF.                                                                                                                                                    |
 
 ### 12.2 Decision trace
 
@@ -1631,7 +1635,7 @@ Trace: `D-0003`, `D-0004`, `D-0007`, PRD Section 15.9.
 | `D-0027` | Sections 1.1, 6, and 10 define sequencing and gates.                                                                                         |
 | `D-0028` | Section 4.7 defines Order/Payer/Beneficiary/Installment/PaymentEntry model.                                                                  |
 | `D-0029` | Sections 3.2, 4.6, and 7 define neutral attendance, explicit confirm, makeup, and formula.                                                   |
-| `D-0030` | Section 4.3 defines Track/Stage catalog.                                                                                                     |
+| `D-0030` | Section 4.3 defines ProductLine/Track/Stage catalog.                                                                                         |
 | `D-0031` | Section 4.5 defines Enrollment vs PedagogicalProgress.                                                                                       |
 | `D-0033` | Section 4.2 defines the `Guardian` + `Address` entities, `documentType`/`documentNumber`, shared-address FK, and minor/guardian requirement. |
 | `D-0032` | Sections 4.7 and 7 define derive-don't-store finance ledger, adjustments, payer-scoped payments.                                             |
