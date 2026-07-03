@@ -12,7 +12,7 @@ import {
   cleanDatabase,
   HTTP_TEST_PREFIX,
   HTTP_OK,
-} from "./student-test-support.js";
+} from "../db/student-test-support.js";
 
 void describe("students API over the tRPC HTTP boundary", () => {
   void before(async () => {

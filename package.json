@@ -17,6 +17,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:db": "turbo run test:db",
+    "test:behavior": "turbo run test:behavior",
+    "test:all": "pnpm test && pnpm test:db && pnpm test:behavior",
     "test:e2e": "turbo run test:e2e",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore --ignore-path .prettierignore",

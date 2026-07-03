@@ -1446,6 +1446,8 @@ Trace: see Section 12.
 
 ### 10.1 Test layers
 
+Agent workflow, file layout, and tier selection rules live in `docs/agents/testing.md`. This section keeps the product/spec layer vocabulary; the agent doc maps those layers to the canonical Unit, Integration, and Behavior commands.
+
 Domain unit tests:
 
 - Attendance percent and empty denominator.
@@ -1494,6 +1496,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm test:db
+pnpm test:behavior
 pnpm test:e2e
 pnpm prisma:migrate
 pnpm prisma:seed
@@ -1501,7 +1504,7 @@ pnpm dev
 pnpm dev:worker
 ```
 
-Until CI/CD is decided, these are local quality gates. When CI is selected, it should run lint, typecheck, unit tests, and DB integration tests against Postgres 16. E2E can start as manual or nightly until the app stabilizes.
+Until CI/CD is decided, these are local quality gates. When CI is selected, it should run lint, typecheck, unit tests, DB integration tests, and backend behavior tests against Postgres 16. E2E can start as manual or nightly until the app stabilizes.
 
 Trace: `D-0006`, `D-0027`.
 
