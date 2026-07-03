@@ -16,6 +16,10 @@ export const enrollmentCreateInputSchema = z
     classId: z.string().uuid("Identificador de turma invalido."),
     entryDate: dateOnlyInputSchema.optional(),
     stageId: z.string().uuid("Identificador de etapa invalido.").optional(),
-    capacityOverrideReason: z.string().trim().min(1, CAPACITY_OVERRIDE_REASON_EMPTY_MESSAGE).optional(),
+    capacityOverrideReason: z
+      .string()
+      .trim()
+      .min(1, CAPACITY_OVERRIDE_REASON_EMPTY_MESSAGE)
+      .optional(),
   })
   .strict();

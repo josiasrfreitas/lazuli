@@ -11,5 +11,4 @@ export const CAPACITY_OVERRIDE_REQUIRED_MESSAGE =
 export const PERSONALIZED_REQUIRES_STAGE_MESSAGE = "Turma personalizada exige etapa inicial.";
 export const REGULAR_REJECTS_STAGE_MESSAGE = "Turma regular define a etapa automaticamente.";
 export const REGULAR_CLASS_MISSING_STAGE_MESSAGE = "Turma regular sem etapa configurada.";
-export const DUPLICATE_ACTIVE_ENROLLMENT_MESSAGE =
-  "Aluno ja possui matricula ativa nesta turma.";
+export const DUPLICATE_ACTIVE_ENROLLMENT_MESSAGE = "Aluno ja possui matricula ativa nesta turma.";
