@@ -14,3 +14,7 @@ export {
   type Weekday,
 } from "./class-portal-name.js";
 export { findNextStageInTrack, type StageInTrack } from "./stage-sequence.js";
+export {
+  brazilFederalHolidaysForYear,
+  type BrazilFederalHoliday,
+} from "./brazil-federal-holidays.js";

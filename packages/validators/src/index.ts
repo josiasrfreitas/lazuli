@@ -31,3 +31,11 @@ export {
   timeOfDaySchema,
   weekdaySchema,
 } from "./class.js";
+export {
+  addClosedDayInputSchema,
+  calendarDateSchema,
+  calendarYearSchema,
+  closedDayReasonSchema,
+  importBrazilFederalHolidaysInputSchema,
+  removeClosedDayInputSchema,
+} from "./calendar.js";
