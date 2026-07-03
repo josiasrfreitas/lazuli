@@ -1,6 +1,7 @@
 import { createCallerFactory, protectedProcedure, publicProcedure, router } from "./trpc/init.js";
 import { calendarRouter } from "./calendar/router.js";
 import { classesRouter } from "./classes/router.js";
+import { enrollmentRouter } from "./enrollment/router.js";
 import { studentsRouter } from "./students/router.js";
 
 export const appRouter = router({
@@ -9,6 +10,7 @@ export const appRouter = router({
   students: studentsRouter,
   classes: classesRouter,
   calendar: calendarRouter,
+  enrollment: enrollmentRouter,
 });
 
 export type AppRouter = typeof appRouter;
