@@ -38,6 +38,11 @@ enum DocumentType {
   RG
 }
 
+enum CatalogStatus {
+  ACTIVE
+  LEGACY
+}
+
 model User {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -175,4 +180,49 @@ model Semester {
   name      String    @unique
   startDate DateTime  @map("start_date") @db.Date
   endDate   DateTime  @map("end_date") @db.Date
+}
+
+model ProductLine {
+  id           String        @id @default(uuid()) @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt    DateTime?     @map("deleted_at") @db.Timestamptz
+  key          String        @unique
+  name         String        @unique
+  status       CatalogStatus @default(ACTIVE)
+  portalPrefix String?       @map("portal_prefix")
+
+  tracks Track[]
+}
+
+model Track {
+  id            String        @id @default(uuid()) @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime?     @map("deleted_at") @db.Timestamptz
+  productLineId String        @map("product_line_id") @db.Uuid
+  name          String
+  status        CatalogStatus @default(ACTIVE)
+  portalPrefix  String?       @map("portal_prefix")
+
+  productLine ProductLine @relation(fields: [productLineId], references: [id], onDelete: Restrict)
+  stages      Stage[]
+
+  @@unique([productLineId, name])
+}
+
+model Stage {
+  id           String    @id @default(uuid()) @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz
+  trackId      String    @map("track_id") @db.Uuid
+  name         String
+  internalCode String    @map("internal_code")
+  sequence     Int
+
+  track Track @relation(fields: [trackId], references: [id], onDelete: Restrict)
+
+  @@unique([trackId, internalCode])
+  @@unique([trackId, sequence])
 }

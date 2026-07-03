@@ -14,7 +14,7 @@ This file replaces the old architecture decision files. Use it as the first stop
 - Store production data in Cloud SQL Postgres 16. Use Docker Compose Postgres 16 locally.
 - Run heavy work through Hatchet workflows and GCP Cloud Run workers, never inline in tRPC requests.
 - The wedge is attendance capture plus automated Portal submission.
-- Course catalog is modeled as **Track → Stage**. Tracks are **independent** (no `Track.sequence`, no cross-track equivalence model). `Track.category` classifies product line (`ADULT | KIDS | TEENS | SPEED | TEENS_CONNECT | TEENSTATION | SPANISH`). Only **`Stage.sequence`** orders levels within a track. Catalog is seed-only in MVP. Stage placement lives on **`PedagogicalProgress`** (active = `endDate` null), separate from operational **`Enrollment`**.
+- Course catalog is modeled as **ProductLine → Track → Stage**. Tracks are **independent** (no `Track.sequence`, no cross-track equivalence model). Product-line labels are seeded rows, not hardcoded enum values. Only **`Stage.sequence`** orders levels within a track. Catalog is seed-only in MVP. Stage placement lives on **`PedagogicalProgress`** (active = `endDate` null), separate from operational **`Enrollment`**.
 - All domain tables share a **UUIDEntity** base (`uuid` PK, `created_at`, `updated_at`, `deleted_at`) — see [D-0034](#d-0034-uuidentity-base-for-all-domain-tables).
 - **Student field-level rastreabilidade deferred** — no per-field edit/status attribution on `Student` in MVP; [S-STU-5](./PRD.md#s-stu-5--student-status-lifecycle-deferred) deferred — see [D-0035](#d-0035-defer-student-field-level-traceability).
 - Attendance MVP tracks `PRESENT` and `ABSENT` only. `LATE` is out. **Makeup (reposição) is a separate operational workflow (`Makeup` entity), not an attendance status, and does NOT affect the 75% attendance %.**
@@ -98,7 +98,7 @@ Local development uses Docker Compose for Postgres, Mailpit, and Hatchet Lite, p
 | D-0027 | Sequencing: Sprint 0 → wedge → receivables → comms                                                         | Accepted                 |
 | D-0028 | Finance core model: Order · Payer · Beneficiary · Installment · PaymentEntry                               | Accepted                 |
 | D-0029 | Attendance: neutral data state, untaken-session flag, explicit % formula                                   | Accepted                 |
-| D-0030 | Course catalog: Track → Stage; product-line `category`; stage-only `sequence`; independent tracks          | Accepted                 |
+| D-0030 | Course catalog: ProductLine → Track → Stage; stage-only `sequence`; independent tracks                     | Accepted                 |
 | D-0031 | Enrollment is operational; stage placement lives on PedagogicalProgress (amends D-0022)                    | Accepted                 |
 | D-0032 | Finance ledger: derive-don't-store statuses, InstallmentAdjustment, payer-scoped payments (refines D-0028) | Accepted                 |
 | D-0033 | Structured Guardian and Address entities                                                                   | Accepted                 |
@@ -400,18 +400,27 @@ where `held_sessions` = sessions of the class that fall within **`Semester windo
 
 ## D-0030: Course Catalog — Track and Stage
 
-**Amended 2026-06-18** ([changelog #44–45](./CHANGELOG.md)): `TrackCategory` expanded to seven product lines; `Track.sequence` dropped — tracks are independent, ordering lives on `Stage` only.
+**Amended 2026-06-18** ([changelog #44–45](./CHANGELOG.md)): product-line coverage expanded to seven progression paths; `Track.sequence` dropped — tracks are independent, ordering lives on `Stage` only.
 
-The course catalog (validated in [discovery/course-stage-ordering.md](../discovery/course-stage-ordering.md)) is modeled as two seeded tables, **Track → Stage**. A separate `Program` table is **not** built now — product line is a classificatory `category` on Track.
+**Amended 2026-07-03 (GRE-24):** product line moved from hardcoded enum values to seeded `ProductLine` rows. This keeps school/product labels editable through data changes rather than schema changes.
+
+The course catalog (validated in [discovery/course-stage-ordering.md](../discovery/course-stage-ordering.md)) is modeled as seeded tables, **ProductLine → Track → Stage**.
 
 ```ts
-// Track and Stage extend UUIDEntity — see D-0034.
+// ProductLine, Track, and Stage extend UUIDEntity — see D-0034.
+
+ProductLine {
+  key           // stable seed key, e.g. "adult", "teens_connect", "teenstation"
+  name          // user-facing product line label, e.g. "Adultos", "Teens Connect"
+  status        // ACTIVE | LEGACY
+  portalPrefix? // optional, if a product-line Portal segment is later confirmed
+}
 
 Track {
   name          // e.g. "Adultos / English Main", "Teens Connect", "Teenstation"
-  category      // ADULT | KIDS | TEENS | SPEED | TEENS_CONNECT | TEENSTATION | SPANISH
+  productLineId // FK → ProductLine
   status        // ACTIVE | LEGACY
-  portalPrefix?    // optional, if a track-level Portal segment is later confirmed
+  portalPrefix? // optional, if a track-level Portal segment is later confirmed
 }
 
 Stage {
@@ -426,12 +435,12 @@ Rules:
 
 - **Tracks are independent.** No `sequence` on `Track` and no cross-track ordering. Some real-world equivalences exist (e.g. Speed ↔ adult English) but are hard to model and the operational gain is small — staff pick the target track/stage explicitly when enrolling or advancing.
 - **Stage ordering only:** linear integer `sequence` per track. "Next stage" = same track, `sequence + 1`. No `previous/next` pointers; cross-track equivalences/branching are **not modeled**.
-- **`Track.category`** classifies the school's product lines. Enum values: `ADULT` (adult English main path), `KIDS` (Infantil / Magic Way + Playground), `TEENS` (legacy Teens line), `SPEED` (adult Speed path), `TEENS_CONNECT` (Connect 1–4), `TEENSTATION` (legacy Teenstation), `SPANISH` (Español Inmediato). One track row per progression path; category is not a separate Program table.
+- **`ProductLine`** classifies the school's product lines as seed data. Initial rows: `adult` (Adultos), `kids` (Infantil), `teens` (legacy Teens), `teens_connect` (Teens Connect), and `teenstation` (legacy Teenstation). Speed and Espanol are active tracks under Adultos. Product-line names can evolve through seed changes without schema enum churn.
 - **`Track.status = LEGACY` blocks new, allows existing.** Legacy tracks (e.g. `TEENS`, `TEENSTATION` — being replaced by `TEENS_CONNECT`) cannot be picked when creating a **new** class or **new** enrollment, but existing classes/enrollments on them keep working and reporting. Connect is `ACTIVE`.
 - **Canonical Portal naming (resolved 2026-06-17).** There is **no separately-stored Portal stage code.** `Stage.internalCode` is our internal code **and** the stage segment of the derived/stored Portal class-name string (the `TUI` in `REG/TUI-…`, see [D-0021](#d-0021-class-modality-as-two-axes)). Portal **student** matching is by full **student** name ([D-0023](#d-0023-portal-master-login-and-name-based-matching)); the **class** is located via the derived Portal class-name string. The exact class-name _format_ (and that Portal's class list is locatable by it) remains a Sprint-0 walkthrough item — as does PPT/PERSONALIZED naming, which has no stage segment.
-- **Seed-only in MVP, no CRUD UI.** The catalog (~7 tracks, ~40 stages) ships as an idempotent seed/migration derived from the discovery doc, with legacy lines seeded as `LEGACY`. Edits are a developer task (like Legacy import, [D-0026](#d-0026-legacy-import--one-shot-script)). An admin catalog UI is Phase 2.
+- **Seed-only in MVP, no CRUD UI.** The catalog (5 product lines, 7 tracks, 42 stages) ships as an idempotent seed derived from the discovery doc, with legacy product lines/tracks seeded as `LEGACY`. Edits are a developer task (like Legacy import, [D-0026](#d-0026-legacy-import--one-shot-script)). An admin catalog UI is Phase 2.
 
-School-validation items still open before seeding production data: whether Connect 1–4 is complete/current, and exact internal/Portal naming per stage (see [PRD §15](./PRD.md#15-open-questions-need-answers-before--during-week-1)). Whether Speed reconnects into the adult English path is **not modeled** — staff pick the target track/stage explicitly when enrolling or advancing.
+GRE-24 seeds the real Lazuli course/stage catalog. GRE-13 separately validates whether `Stage.internalCode` and derived class-name rules match the external Portal. Portal-only corrections should update seed data or class-name derivation rules after GRE-13. Whether Speed reconnects into the adult English path is **not modeled** — staff pick the target track/stage explicitly when enrolling or advancing.
 
 ## D-0031: Enrollment is Operational; Stage Placement Lives on PedagogicalProgress
 

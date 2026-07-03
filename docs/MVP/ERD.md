@@ -64,10 +64,18 @@ erDiagram
     string postalCode
   }
 
+  PRODUCT_LINE {
+    string id PK
+    string key UK
+    string name UK
+    CatalogStatus status
+    string portalPrefix
+  }
+
   TRACK {
     string id PK
-    string name UK
-    TrackCategory category
+    string productLineId FK
+    string name
     CatalogStatus status
     string portalPrefix
   }
@@ -457,6 +465,7 @@ Artifact rules:
 | `GUARDIAN`            | `STUDENT`                | 1 to many optional | Contact responsável; siblings may share one guardian.    |
 | `ADDRESS`             | `STUDENT`                | 1 to many optional | Student address (shareable row).                         |
 | `ADDRESS`             | `GUARDIAN`               | 1 to many optional | Guardian address (may be the same row as the student's). |
+| `PRODUCT_LINE`        | `TRACK`                  |          1 to many | Seeded product-line grouping.                            |
 | `TRACK`               | `STAGE`                  |          1 to many | Course catalog path.                                     |
 | `STAGE`               | `SCHOOL_CLASS`           | 1 to many optional | REGULAR shared class stage.                              |
 | `SEMESTER`            | `SCHOOL_CLASS`           | 1 to many optional | REGULAR generation window.                               |
