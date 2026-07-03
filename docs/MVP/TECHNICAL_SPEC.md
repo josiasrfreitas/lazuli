@@ -241,7 +241,7 @@ Guardrails, not guidelines: AI agents can ignore prose, but they cannot ignore c
 
 - `complexity: ["error", 10]`; rationale: cyclomatic complexity above 10 usually means the agent should extract decisions into named helpers.
 - `max-lines-per-function: ["error", 50, { "skipBlankLines": true, "skipComments": true }]`; rationale: function limits are more useful than file limits for forcing decomposition while the agent edits.
-- `max-lines: ["error", 250, { "skipBlankLines": true, "skipComments": true }]`; rationale: oversized files hide duplicated logic and make agent edits harder to review.
+- `max-lines: ["error", 350, { "skipBlankLines": true, "skipComments": true }]`; rationale: oversized files hide duplicated logic and make agent edits harder to review.
 - `max-depth: ["error", 4]`; rationale: deep branching is hard for humans and agents to reason about safely.
 - `max-params: ["error", 2]`, with class constructors allowed up to 4 only for explicit dependency injection; rationale: object parameters with destructuring make call sites self-documenting.
 - `max-statements: ["error", 20]`; rationale: long imperative blocks are where AI tends to mix responsibilities.

@@ -36,22 +36,21 @@ const WEEKDAY_PORTAL_ABBREV: Record<Weekday, string> = {
   SATURDAY: "SAB",
   SUNDAY: "DOM",
 };
+const YEAR_SUFFIX_DIVISOR = 100;
 
 /**
  * Interim REGULAR Portal class-name generator (PRD §5, D-0021). Exact Portal
  * semantics for 1S/2S and trailing suffix remain open until GRE-13 walkthrough.
  * Multi-slot classes use the earliest weekday slot, then earliest start time.
  */
-export function generateRegularPortalClassName(
-  input: GenerateRegularPortalClassNameInput,
-): string {
-  const primarySlot = [...input.slots].sort(compareSlots)[0];
+export function generateRegularPortalClassName(input: GenerateRegularPortalClassNameInput): string {
+  const primarySlot = selectPrimarySlot(input.slots);
   if (primarySlot === undefined) {
     throw new Error("At least one schedule slot is required to derive a Portal class name.");
   }
 
   const semesterSuffix = parseSemesterSuffix(input.semesterName);
-  const yearSuffix = String(input.year % 100).padStart(2, "0");
+  const yearSuffix = String(input.year % YEAR_SUFFIX_DIVISOR).padStart(2, "0");
 
   return [
     "REG",
@@ -59,12 +58,25 @@ export function generateRegularPortalClassName(
     WEEKDAY_PORTAL_ABBREV[primarySlot.weekday],
     `${primarySlot.startTime}/${primarySlot.endTime}`,
     `${semesterSuffix}/${yearSuffix}-${input.sequence}`,
-  ].join("-").replace(/^REG-/, "REG/");
+  ]
+    .join("-")
+    .replace(/^REG-/, "REG/");
+}
+
+function selectPrimarySlot(slots: readonly PortalClassNameSlot[]): PortalClassNameSlot | undefined {
+  let selected: PortalClassNameSlot | undefined;
+
+  for (const slot of slots) {
+    if (selected === undefined || compareSlots(slot, selected) < 0) {
+      selected = slot;
+    }
+  }
+
+  return selected;
 }
 
 function compareSlots(left: PortalClassNameSlot, right: PortalClassNameSlot): number {
-  const weekdayDelta =
-    WEEKDAY_ORDER.indexOf(left.weekday) - WEEKDAY_ORDER.indexOf(right.weekday);
+  const weekdayDelta = WEEKDAY_ORDER.indexOf(left.weekday) - WEEKDAY_ORDER.indexOf(right.weekday);
   if (weekdayDelta !== 0) {
     return weekdayDelta;
   }
@@ -76,7 +88,9 @@ function compareSlots(left: PortalClassNameSlot, right: PortalClassNameSlot): nu
 function parseSemesterSuffix(semesterName: string): string {
   const match = /\.(\d+)$/.exec(semesterName);
   if (match?.[1] === undefined) {
-    throw new Error(`Semester name "${semesterName}" must end with .N to derive the Portal suffix.`);
+    throw new Error(
+      `Semester name "${semesterName}" must end with .N to derive the Portal suffix.`,
+    );
   }
 
   return `${match[1]}S`;
