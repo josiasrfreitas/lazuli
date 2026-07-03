@@ -26,7 +26,8 @@
     "prisma:deploy": "pnpm -F @lazuli/db prisma:deploy",
     "prisma:drift": "pnpm -F @lazuli/db prisma:drift",
     "prisma:seed": "pnpm -F @lazuli/db prisma:seed",
-    "db:reset": "pnpm -F @lazuli/db db:reset"
+    "db:reset": "pnpm -F @lazuli/db db:reset",
+    "bootstrap:worktree": "bash scripts/bootstrap-worktree.sh"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
