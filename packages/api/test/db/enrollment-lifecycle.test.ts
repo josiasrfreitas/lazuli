@@ -189,7 +189,10 @@ function registerPersonalizedCarry(): void {
       name: "Personalized Transfer Student",
       stageId: catalog.secondStageId,
     });
-    const target = await createPersonalizedClass({ code: "dst-ppt", semesterId: catalog.semesterId });
+    const target = await createPersonalizedClass({
+      code: "dst-ppt",
+      semesterId: catalog.semesterId,
+    });
 
     const result = await caller().enrollment.transfer({ enrollmentId, targetClassId: target.id });
 
@@ -204,7 +207,10 @@ function registerPersonalizedCarry(): void {
 function registerTransferSameClass(): void {
   databaseIt("rejects transferring to the same class", async () => {
     const catalog = await setup();
-    const classRow = await createPersonalizedClass({ code: "same", semesterId: catalog.semesterId });
+    const classRow = await createPersonalizedClass({
+      code: "same",
+      semesterId: catalog.semesterId,
+    });
     const student = await createStudent("Same Class Student");
     const enrollmentId = await enrollPersonalized({
       studentId: student.id,
@@ -250,7 +256,10 @@ function registerTransferClosedSource(): void {
       name: "Closed Source Student",
       stageId: catalog.firstStageId,
     });
-    const target = await createPersonalizedClass({ code: "closed-dst", semesterId: catalog.semesterId });
+    const target = await createPersonalizedClass({
+      code: "closed-dst",
+      semesterId: catalog.semesterId,
+    });
     await caller().enrollment.close({ enrollmentId, reason: "DROPPED" });
 
     await expectRejects(

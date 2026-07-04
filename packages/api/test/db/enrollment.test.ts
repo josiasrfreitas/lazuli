@@ -82,7 +82,10 @@ function registerRegularHappyPath(): void {
 function registerPersonalizedHappyPath(): void {
   databaseIt("uses the operator-picked stage (PERSONALIZED)", async () => {
     const catalog = await setupCatalog();
-    const classRow = await createPersonalizedClass({ code: "personalized", semesterId: catalog.semesterId });
+    const classRow = await createPersonalizedClass({
+      code: "personalized",
+      semesterId: catalog.semesterId,
+    });
     const student = await createStudent({ suffix: "Personalized Student" });
 
     const result = await caller().enrollment.create({
@@ -99,7 +102,10 @@ function registerPersonalizedHappyPath(): void {
 function registerPersonalizedRequiresStage(): void {
   databaseIt("rejects a PERSONALIZED enrollment without a stage", async () => {
     const catalog = await setupCatalog();
-    const classRow = await createPersonalizedClass({ code: "needs-stage", semesterId: catalog.semesterId });
+    const classRow = await createPersonalizedClass({
+      code: "needs-stage",
+      semesterId: catalog.semesterId,
+    });
     const student = await createStudent({ suffix: "No Stage Student" });
 
     await expectRejects(
@@ -150,7 +156,10 @@ function registerCapacityOverride(): void {
 function registerInactiveStudentRejected(): void {
   databaseIt("rejects enrolling a non-ACTIVE student", async () => {
     const catalog = await setupCatalog();
-    const classRow = await createPersonalizedClass({ code: "inactive", semesterId: catalog.semesterId });
+    const classRow = await createPersonalizedClass({
+      code: "inactive",
+      semesterId: catalog.semesterId,
+    });
     const student = await createStudent({ suffix: "Dropped Student", status: "DROPPED" });
 
     await expectRejects(
@@ -188,7 +197,10 @@ function registerArchivedClassRejected(): void {
 function registerDuplicateRejected(): void {
   databaseIt("rejects a duplicate active enrollment in the same class", async () => {
     const catalog = await setupCatalog();
-    const classRow = await createPersonalizedClass({ code: "duplicate", semesterId: catalog.semesterId });
+    const classRow = await createPersonalizedClass({
+      code: "duplicate",
+      semesterId: catalog.semesterId,
+    });
     const student = await createStudent({ suffix: "Duplicate Student" });
 
     await caller().enrollment.create({
@@ -210,7 +222,10 @@ function registerDuplicateRejected(): void {
 function registerEntryDateDefault(): void {
   databaseIt("defaults the entry date to today when omitted", async () => {
     const catalog = await setupCatalog();
-    const classRow = await createPersonalizedClass({ code: "entry-date", semesterId: catalog.semesterId });
+    const classRow = await createPersonalizedClass({
+      code: "entry-date",
+      semesterId: catalog.semesterId,
+    });
     const student = await createStudent({ suffix: "Entry Date Student" });
 
     const result = await caller().enrollment.create({

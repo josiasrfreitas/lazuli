@@ -147,13 +147,13 @@ Use Hatchet Cloud as the workflow control plane. Run worker code on GCP Cloud Ru
 
 MVP workflows:
 
-| Workflow            | Trigger                                              | Notes                                              |
-| ------------------- | ---------------------------------------------------- | -------------------------------------------------- |
-| `sessions-generate` | Semester creation and explicit regenerate (tRPC)     | Idempotent `ClassSession` row creation; no cron    |
-| `portal-submit`     | Hatchet cron and manual tRPC enqueue                 | Playwright submission to Portal                    |
-| `report-generate`   | On demand                                            | CSV/PDF reports to GCS                             |
-| `invoice-generate`  | On demand or batch                                   | PDF invoices/statements to GCS                     |
-| `notification-send` | Event/rule-driven if WhatsApp ships                  | Evolution API / Resend                             |
+| Workflow            | Trigger                                          | Notes                                           |
+| ------------------- | ------------------------------------------------ | ----------------------------------------------- |
+| `sessions-generate` | Semester creation and explicit regenerate (tRPC) | Idempotent `ClassSession` row creation; no cron |
+| `portal-submit`     | Hatchet cron and manual tRPC enqueue             | Playwright submission to Portal                 |
+| `report-generate`   | On demand                                        | CSV/PDF reports to GCS                          |
+| `invoice-generate`  | On demand or batch                               | PDF invoices/statements to GCS                  |
+| `notification-send` | Event/rule-driven if WhatsApp ships              | Evolution API / Resend                          |
 
 tRPC mutations enqueue workflows and return quickly with a job ID. Workers update DB rows and artifacts, and the UI polls for status/download URLs.
 

@@ -43,7 +43,10 @@ void describe("enrollment lifecycle over the tRPC HTTP boundary", () => {
 function registerCloseHttp(): void {
   databaseIt("closes an enrollment and persists the drop via HTTP", async () => {
     const catalog = await setup();
-    const classRow = await createPersonalizedClass({ code: "http-close", semesterId: catalog.semesterId });
+    const classRow = await createPersonalizedClass({
+      code: "http-close",
+      semesterId: catalog.semesterId,
+    });
     const student = await createStudent("Http Close Student");
     const enrollmentId = await enrollPersonalized({
       studentId: student.id,

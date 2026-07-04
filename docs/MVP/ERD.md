@@ -468,7 +468,7 @@ Artifact rules:
 | `PRODUCT_LINE`        | `TRACK`                  |          1 to many | Seeded product-line grouping.                            |
 | `TRACK`               | `STAGE`                  |          1 to many | Course catalog path.                                     |
 | `STAGE`               | `SCHOOL_CLASS`           | 1 to many optional | REGULAR shared class stage.                              |
-| `SEMESTER`            | `SCHOOL_CLASS`           | 1 to many optional | Generation window for REGULAR and PERSONALIZED classes. |
+| `SEMESTER`            | `SCHOOL_CLASS`           | 1 to many optional | Generation window for REGULAR and PERSONALIZED classes.  |
 | `SCHOOL_CLASS`        | `SCHOOL_CLASS`           | 1 to many optional | Previous/next class lineage.                             |
 | `SCHOOL_CLASS`        | `CLASS_SCHEDULE_SLOT`    |          1 to many | Weekly schedule slots.                                   |
 | `CLASS_SCHEDULE_SLOT` | `CLASS_SESSION`          | 1 to many optional | Generated session source.                                |
