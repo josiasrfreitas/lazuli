@@ -30,6 +30,23 @@ export const importBrazilFederalHolidaysInputSchema = z
   .object({ year: calendarYearSchema })
   .strict();
 
+export const createSemesterInputSchema = z
+  .object({
+    name: z.string().trim().min(1, REQUIRED_TEXT_MESSAGE),
+    startDate: calendarDateSchema,
+    endDate: calendarDateSchema,
+  })
+  .strict()
+  .superRefine((input, context) => {
+    if (input.startDate > input.endDate) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Data inicial deve ser anterior ou igual a data final.",
+        path: ["endDate"],
+      });
+    }
+  });
+
 export const addClosedDayInputSchema = z
   .object({
     date: calendarDateSchema,

@@ -2,11 +2,13 @@ import {
   classArchiveInputSchema,
   classCloneForNextPeriodInputSchema,
   classCreateInputSchema,
+  classGenerateSessionsInputSchema,
 } from "@lazuli/validators";
+import { createLocalSessionsGenerateQueue, enqueueSessionsGenerate } from "@lazuli/job-contracts";
 
 import { adminProcedure, router } from "../trpc/init.js";
 import { cloneClassForNextPeriod } from "./clone.js";
-import { archiveClass, createClass } from "./data.js";
+import { archiveClass, assertGenerationScopeExists, createClass } from "./data.js";
 
 export const classesRouter = router({
   create: adminProcedure
@@ -26,6 +28,25 @@ export const classesRouter = router({
         cloneClassForNextPeriod(buildCloneInput({ database, input })),
       ),
     ),
+  generateSessions: adminProcedure
+    .input(classGenerateSessionsInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.$transaction((database) =>
+        assertGenerationScopeExists({
+          database,
+          ...optionalClassId(input.classId),
+          ...optionalSemesterId(input.semesterId),
+        }),
+      );
+
+      return enqueueSessionsGenerate({
+        queue: ctx.sessionGenerationQueue ?? createLocalSessionsGenerateQueue(),
+        payload: {
+          ...optionalClassId(input.classId),
+          ...optionalSemesterId(input.semesterId),
+        },
+      });
+    }),
 });
 
 function buildCloneInput(input: {
@@ -58,4 +79,12 @@ function optionalPortalClassName(portalClassName: string | undefined): {
   portalClassName?: string;
 } {
   return typeof portalClassName === "string" ? { portalClassName } : {};
+}
+
+function optionalClassId(classId: string | undefined): { classId?: string } {
+  return typeof classId === "string" ? { classId } : {};
+}
+
+function optionalSemesterId(semesterId: string | undefined): { semesterId?: string } {
+  return typeof semesterId === "string" ? { semesterId } : {};
 }

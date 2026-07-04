@@ -2,6 +2,8 @@ import { z } from "zod";
 
 const REQUIRED_TEXT_MESSAGE = "Campo obrigatorio.";
 const INVALID_TIME_MESSAGE = "Horario invalido.";
+const INVALID_CLASS_ID_MESSAGE = "Identificador de turma invalido.";
+const INVALID_SEMESTER_ID_MESSAGE = "Identificador de semestre invalido.";
 const MIN_CLASS_YEAR = 2000;
 const MAX_CLASS_YEAR = 2100;
 
@@ -50,7 +52,7 @@ export const classCreateInputSchema = z
     scheduleType: classScheduleTypeSchema,
     format: classFormatSchema,
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").nullish(),
-    semesterId: z.string().uuid("Identificador de semestre invalido.").nullish(),
+    semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE).nullish(),
     year: z.number().int().min(MIN_CLASS_YEAR).max(MAX_CLASS_YEAR),
     capacity: z.number().int().min(1),
     portalClassName: requiredText.optional(),
@@ -61,15 +63,15 @@ export const classCreateInputSchema = z
 
 export const classIdInputSchema = z
   .object({
-    id: z.string().uuid("Identificador de turma invalido."),
+    id: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
   })
   .strict();
 
 export const classCloneForNextPeriodInputSchema = z
   .object({
-    id: z.string().uuid("Identificador de turma invalido."),
+    id: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
     internalCode: requiredText,
-    semesterId: z.string().uuid("Identificador de semestre invalido."),
+    semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE),
     year: z.number().int().min(MIN_CLASS_YEAR).max(MAX_CLASS_YEAR),
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").optional(),
     portalClassName: requiredText.optional(),
@@ -77,6 +79,21 @@ export const classCloneForNextPeriodInputSchema = z
   .strict();
 
 export const classArchiveInputSchema = classIdInputSchema;
+
+export const classGenerateSessionsInputSchema = z
+  .object({
+    classId: z.string().uuid(INVALID_CLASS_ID_MESSAGE).optional(),
+    semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE).optional(),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    if ((input.classId === undefined) === (input.semesterId === undefined)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Informe uma turma ou um semestre.",
+      });
+    }
+  });
 
 type ClassCreateInput = {
   scheduleType: z.infer<typeof classScheduleTypeSchema>;

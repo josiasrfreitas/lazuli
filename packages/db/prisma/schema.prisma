@@ -68,6 +68,11 @@ enum ClassStatus {
   ARCHIVED
 }
 
+enum ClassSessionStatus {
+  SCHEDULED
+  CANCELLED
+}
+
 enum EnrollmentExitReason {
   COMPLETED
   TRANSFERRED
@@ -100,6 +105,8 @@ model User {
   sessions      Session[]
   classesTaught Class[]   @relation("ClassTeacher")
   closedDays    SchoolClosedDay[] @relation("SchoolClosedDayCreator")
+  attendanceConfirmedSessions ClassSession[] @relation("ClassSessionAttendanceConfirmer")
+  cancelledClassSessions ClassSession[] @relation("ClassSessionCanceller")
 }
 
 model Account {
@@ -279,6 +286,7 @@ model Class {
   previousClass Class?              @relation("ClassLineage", fields: [previousClassId], references: [id])
   nextClasses   Class[]             @relation("ClassLineage")
   scheduleSlots ClassScheduleSlot[]
+  sessions      ClassSession[]
   enrollments   Enrollment[]
 
   @@index([teacherId])
@@ -297,7 +305,8 @@ model ClassScheduleSlot {
   startTime DateTime  @map("start_time") @db.Time
   endTime   DateTime  @map("end_time") @db.Time
 
-  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class    Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  sessions ClassSession[]
 
   @@unique([classId, weekday, startTime, endTime])
   @@unique([classId, id])
@@ -374,4 +383,34 @@ model PedagogicalProgress {
 
   @@index([enrollmentId])
   @@index([stageId])
+}
+
+model ClassSession {
+  id                        String             @id @default(uuid()) @db.Uuid
+  createdAt                 DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                 DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt                 DateTime?          @map("deleted_at") @db.Timestamptz
+  classId                   String             @map("class_id") @db.Uuid
+  scheduleSlotId            String?            @map("schedule_slot_id") @db.Uuid
+  date                      DateTime           @db.Date
+  startTime                 DateTime           @map("start_time") @db.Time
+  endTime                   DateTime           @map("end_time") @db.Time
+  status                    ClassSessionStatus @default(SCHEDULED)
+  cancelReason              String?            @map("cancel_reason")
+  cancelledAt               DateTime?          @map("cancelled_at") @db.Timestamptz
+  cancelledById             String?            @map("cancelled_by_id") @db.Uuid
+  attendanceConfirmedAt     DateTime?          @map("attendance_confirmed_at") @db.Timestamptz
+  attendanceConfirmedById   String?            @map("attendance_confirmed_by_id") @db.Uuid
+  attendanceLastCommittedAt DateTime?          @map("attendance_last_committed_at") @db.Timestamptz
+  portalSubmittedAt         DateTime?          @map("portal_submitted_at") @db.Timestamptz
+
+  class                 Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
+  scheduleSlot          ClassScheduleSlot?  @relation(fields: [scheduleSlotId], references: [id], onDelete: Restrict)
+  cancelledBy           User?              @relation("ClassSessionCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
+  attendanceConfirmedBy User?              @relation("ClassSessionAttendanceConfirmer", fields: [attendanceConfirmedById], references: [id], onDelete: Restrict)
+
+  @@index([classId])
+  @@index([scheduleSlotId])
+  @@index([cancelledById])
+  @@index([attendanceConfirmedById])
 }

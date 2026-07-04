@@ -1,4 +1,8 @@
 import { evaluateStaffAccess, type StaffRole, type StaffSession } from "@lazuli/auth";
+import {
+  createLocalSessionsGenerateQueue,
+  type SessionsGenerateQueue,
+} from "@lazuli/job-contracts";
 
 /** The Prisma client type, taken without a runtime import so `@lazuli/api` stays
  * importable (e.g. in unit tests) without requiring `DATABASE_URL`. The real
@@ -15,11 +19,13 @@ export type StaffUser = {
 
 export type Context = {
   db: DbClient;
+  sessionGenerationQueue?: SessionsGenerateQueue;
   staffUser: StaffUser | null;
 };
 
 type CreateTRPCContextInput = {
   db?: DbClient;
+  sessionGenerationQueue?: SessionsGenerateQueue;
   session: StaffSession | null;
 };
 
@@ -34,7 +40,11 @@ export async function createTRPCContext(input: CreateTRPCContextInput): Promise<
   const staffUser =
     input.session === null ? null : await resolveStaffUser({ db, email: input.session.user.email });
 
-  return { db, staffUser };
+  return {
+    db,
+    sessionGenerationQueue: input.sessionGenerationQueue ?? createLocalSessionsGenerateQueue(),
+    staffUser,
+  };
 }
 
 async function resolveDefaultDb(): Promise<DbClient> {

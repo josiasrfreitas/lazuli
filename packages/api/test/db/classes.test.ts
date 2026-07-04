@@ -1,19 +1,22 @@
 import assert from "node:assert/strict";
 import { after, before, describe } from "node:test";
 
+import { createCaller } from "@lazuli/api";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
 import {
   caller,
   cleanClassDatabase,
+  contextWithQueue,
   ensureTeacherUser,
   seedClassCatalogFixtures,
   TEACHER_USER_ID,
   TEST_PREFIX,
 } from "./class-test-support.js";
+import { recordingSessionsGenerateQueue } from "./session-generation-queue-support.js";
 
-void describe("classes catalog API", () => {
+void describe("classes catalog API", { concurrency: false }, () => {
   void before(async () => {
     await db.$connect();
   });
@@ -30,6 +33,8 @@ void describe("classes catalog API", () => {
   databaseIt("archives a class", archiveClass);
 
   databaseIt("clones a regular class for the next period preserving lineage", cloneRegularClass);
+
+  databaseIt("enqueues session generation without creating sessions inline", generateSessionsAsync);
 });
 
 type CreatedClass = Awaited<ReturnType<ReturnType<typeof caller>["classes"]["create"]>>;
@@ -105,6 +110,24 @@ async function cloneRegularClass(): Promise<void> {
   assert.equal(result.successor.previousClassId, source.id);
   assert.equal(result.successor.sharedStageId, fixtures.nextStageId);
   assert.equal(result.successor.portalClassName, "REG/GRE29S2-TER-14:00/16:00-2S/26-1");
+}
+
+async function generateSessionsAsync(): Promise<void> {
+  await cleanClassDatabase();
+  await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
+  const created = await createRegularFixture(fixtures);
+  const queue = recordingSessionsGenerateQueue("job-1");
+
+  const result = await createCaller(contextWithQueue({ queue })).classes.generateSessions({
+    classId: created.id,
+  });
+  const sessionCount = await db.classSession.count({ where: { classId: created.id } });
+
+  assert.equal(result.workflowName, "sessions-generate");
+  assert.equal(result.jobId, "job-1");
+  assert.deepEqual(queue.calls, [{ classId: created.id }]);
+  assert.equal(sessionCount, 0);
 }
 
 async function createRegularFixture(
