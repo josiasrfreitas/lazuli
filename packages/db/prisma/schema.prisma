@@ -89,6 +89,11 @@ enum ProgressEndReason {
   CORRECTION
 }
 
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
 model User {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -107,6 +112,11 @@ model User {
   closedDays    SchoolClosedDay[] @relation("SchoolClosedDayCreator")
   attendanceConfirmedSessions ClassSession[] @relation("ClassSessionAttendanceConfirmer")
   cancelledClassSessions ClassSession[] @relation("ClassSessionCanceller")
+  attendanceRecords Attendance[] @relation("AttendanceRecorder")
+  modifiedAttendance Attendance[] @relation("AttendanceModifier")
+  scheduledMakeups Makeup[] @relation("MakeupScheduler")
+  markedMakeups Makeup[] @relation("MakeupAttendanceMarker")
+  cancelledMakeups Makeup[] @relation("MakeupCanceller")
 }
 
 model Account {
@@ -362,6 +372,8 @@ model Enrollment {
   student         Student                 @relation(fields: [studentId], references: [id], onDelete: Restrict)
   class           Class                   @relation(fields: [classId], references: [id], onDelete: Restrict)
   progressRecords PedagogicalProgress[]
+  attendanceRows  Attendance[]
+  makeups         Makeup[]
 
   @@index([studentId])
   @@index([classId])
@@ -408,9 +420,67 @@ model ClassSession {
   scheduleSlot          ClassScheduleSlot?  @relation(fields: [classId, scheduleSlotId], references: [classId, id], onDelete: Restrict)
   cancelledBy           User?              @relation("ClassSessionCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
   attendanceConfirmedBy User?              @relation("ClassSessionAttendanceConfirmer", fields: [attendanceConfirmedById], references: [id], onDelete: Restrict)
+  attendanceRows        Attendance[]
+  makeups               Makeup[]
 
   @@index([classId])
   @@index([scheduleSlotId])
   @@index([cancelledById])
   @@index([attendanceConfirmedById])
+}
+
+model Attendance {
+  id               String           @id @default(uuid()) @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt        DateTime?        @map("deleted_at") @db.Timestamptz
+  enrollmentId     String           @map("enrollment_id") @db.Uuid
+  classSessionId   String           @map("class_session_id") @db.Uuid
+  status           AttendanceStatus
+  recordedAt       DateTime         @default(now()) @map("recorded_at") @db.Timestamptz
+  recordedById     String?          @map("recorded_by_id") @db.Uuid
+  notes            String?
+  lastModifiedAt   DateTime?        @map("last_modified_at") @db.Timestamptz
+  lastModifiedById String?          @map("last_modified_by_id") @db.Uuid
+
+  enrollment     Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  classSession   ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  recordedBy     User?        @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  lastModifiedBy User?        @relation("AttendanceModifier", fields: [lastModifiedById], references: [id], onDelete: Restrict)
+
+  // Raw SQL adds the partial unique index on (enrollment_id, class_session_id) where deleted_at IS NULL.
+  @@index([enrollmentId])
+  @@index([classSessionId])
+  @@index([recordedById])
+  @@index([lastModifiedById])
+}
+
+model Makeup {
+  id                   String       @id @default(uuid()) @db.Uuid
+  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt            DateTime?    @map("deleted_at") @db.Timestamptz
+  originEnrollmentId   String       @map("origin_enrollment_id") @db.Uuid
+  targetClassSessionId String       @map("target_class_session_id") @db.Uuid
+  scheduledAt          DateTime     @default(now()) @map("scheduled_at") @db.Timestamptz
+  scheduledById        String?      @map("scheduled_by_id") @db.Uuid
+  reason               String?
+  attendedAt           DateTime?    @map("attended_at") @db.Timestamptz
+  attendedById         String?      @map("attended_by_id") @db.Uuid
+  cancelledAt          DateTime?    @map("cancelled_at") @db.Timestamptz
+  cancelledById        String?      @map("cancelled_by_id") @db.Uuid
+  cancellationReason   String?      @map("cancellation_reason")
+
+  originEnrollment   Enrollment   @relation(fields: [originEnrollmentId], references: [id], onDelete: Restrict)
+  targetClassSession ClassSession @relation(fields: [targetClassSessionId], references: [id], onDelete: Restrict)
+  scheduledBy        User?        @relation("MakeupScheduler", fields: [scheduledById], references: [id], onDelete: Restrict)
+  attendedBy         User?        @relation("MakeupAttendanceMarker", fields: [attendedById], references: [id], onDelete: Restrict)
+  cancelledBy        User?        @relation("MakeupCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
+
+  // Raw SQL adds the partial unique index on (origin_enrollment_id, target_class_session_id) where deleted_at IS NULL.
+  @@index([originEnrollmentId])
+  @@index([targetClassSessionId])
+  @@index([scheduledById])
+  @@index([attendedById])
+  @@index([cancelledById])
 }
