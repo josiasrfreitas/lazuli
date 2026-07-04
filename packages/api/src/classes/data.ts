@@ -169,3 +169,47 @@ export async function archiveClass(input: {
     select: classSummarySelect,
   });
 }
+
+export async function assertGenerationScopeExists(input: {
+  database: Pick<ClassDatabase, "class" | "semester">;
+  classId?: string;
+  semesterId?: string;
+}): Promise<void> {
+  if (input.classId !== undefined) {
+    await assertClassExistsForGeneration({ database: input.database, classId: input.classId });
+    return;
+  }
+
+  await assertSemesterExistsForGeneration({
+    database: input.database,
+    semesterId: input.semesterId ?? "",
+  });
+}
+
+async function assertClassExistsForGeneration(input: {
+  database: Pick<ClassDatabase, "class">;
+  classId: string;
+}): Promise<void> {
+  const existing = await input.database.class.findUnique({
+    where: { id: input.classId },
+    select: { id: true },
+  });
+
+  if (existing === null) {
+    throw notFound(CLASS_NOT_FOUND_MESSAGE);
+  }
+}
+
+async function assertSemesterExistsForGeneration(input: {
+  database: Pick<ClassDatabase, "semester">;
+  semesterId: string;
+}): Promise<void> {
+  const existing = await input.database.semester.findUnique({
+    where: { id: input.semesterId },
+    select: { id: true },
+  });
+
+  if (existing === null) {
+    throw notFound("Semestre nao encontrado.");
+  }
+}

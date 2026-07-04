@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { after, before, describe } from "node:test";
+import { after, before, beforeEach, describe } from "node:test";
 
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
@@ -11,6 +11,10 @@ const SEARCH_TEST_PREFIX = "GRE-21 Search ";
 void describe("students search API", () => {
   void before(async () => {
     await db.$connect();
+  });
+
+  void beforeEach(async () => {
+    await cleanDatabase(SEARCH_TEST_PREFIX);
   });
 
   void after(async () => {

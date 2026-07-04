@@ -1,5 +1,6 @@
 import { appRouter, createCaller, type Context, type StaffUser } from "@lazuli/api";
 import { db } from "@lazuli/db";
+import type { SessionsGenerateQueue } from "@lazuli/job-contracts";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 export const TEST_PREFIX = "GRE-28 Calendar ";
@@ -30,8 +31,24 @@ export function caller(staffUser: StaffUser | null = ADMIN): CalendarCaller {
   return createCaller(contextFor(staffUser));
 }
 
+export function callerWithQueue(input: {
+  queue: SessionsGenerateQueue;
+  staffUser?: StaffUser | null;
+}): CalendarCaller {
+  return createCaller(contextWithQueue(input));
+}
+
 export function contextFor(staffUser: StaffUser | null): Context {
   return { db, staffUser };
+}
+
+export function contextWithQueue(input: {
+  queue: SessionsGenerateQueue;
+  staffUser?: StaffUser | null;
+}): Context {
+  const staffUser = Object.hasOwn(input, "staffUser") ? (input.staffUser ?? null) : ADMIN;
+
+  return { db, sessionGenerationQueue: input.queue, staffUser };
 }
 
 export async function ensureCalendarUsers(): Promise<void> {
@@ -39,6 +56,9 @@ export async function ensureCalendarUsers(): Promise<void> {
 }
 
 export async function cleanCalendarDatabase(): Promise<void> {
+  await db.semester.deleteMany({
+    where: { name: { startsWith: TEST_PREFIX } },
+  });
   await db.schoolClosedDay.deleteMany({
     where: { reason: { startsWith: TEST_PREFIX } },
   });
@@ -58,6 +78,7 @@ export async function cleanCalendarDatabase(): Promise<void> {
 export async function callHttpMutation(input: {
   path: string;
   body: unknown;
+  queue?: SessionsGenerateQueue;
   staffUser?: StaffUser | null;
 }): Promise<Response> {
   const staffUser = Object.hasOwn(input, "staffUser") ? (input.staffUser ?? null) : ADMIN;
@@ -70,7 +91,12 @@ export async function callHttpMutation(input: {
       body: JSON.stringify({ json: input.body }),
     }),
     router: appRouter,
-    createContext: () => Promise.resolve(contextFor(staffUser)),
+    createContext: () =>
+      Promise.resolve(
+        input.queue === undefined
+          ? contextFor(staffUser)
+          : contextWithQueue({ queue: input.queue, staffUser }),
+      ),
   });
 }
 

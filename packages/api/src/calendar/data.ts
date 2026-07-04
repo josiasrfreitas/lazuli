@@ -4,7 +4,14 @@ import { brazilFederalHolidaysForYear } from "@lazuli/domain";
 const TIMEZONE = "America/Sao_Paulo";
 const DATE_ONLY_LENGTH = 10;
 
-export type CalendarDatabase = Pick<Prisma.TransactionClient, "schoolClosedDay">;
+export type CalendarDatabase = Pick<Prisma.TransactionClient, "schoolClosedDay" | "semester">;
+
+export type SemesterSummary = {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+};
 
 export type ClosedDaySummary = {
   id: string;
@@ -33,6 +40,31 @@ const closedDaySelect = {
   reason: true,
   createdById: true,
 } as const;
+
+const semesterSelect = {
+  id: true,
+  name: true,
+  startDate: true,
+  endDate: true,
+} as const;
+
+export async function createSemester(input: {
+  database: CalendarDatabase;
+  name: string;
+  startDate: string;
+  endDate: string;
+}): Promise<SemesterSummary> {
+  const semester = await input.database.semester.create({
+    data: {
+      name: input.name,
+      startDate: dateOnlyToDate(input.startDate),
+      endDate: dateOnlyToDate(input.endDate),
+    },
+    select: semesterSelect,
+  });
+
+  return toSemesterSummary(semester);
+}
 
 export async function importBrazilFederalHolidays(input: {
   database: CalendarDatabase;
@@ -137,6 +169,20 @@ function toClosedDaySummary(row: {
     date: dateToDateOnly(row.date),
     reason: row.reason,
     createdById: row.createdById,
+  };
+}
+
+function toSemesterSummary(row: {
+  id: string;
+  name: string;
+  startDate: Date;
+  endDate: Date;
+}): SemesterSummary {
+  return {
+    id: row.id,
+    name: row.name,
+    startDate: dateToDateOnly(row.startDate),
+    endDate: dateToDateOnly(row.endDate),
   };
 }
 

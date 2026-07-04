@@ -24,6 +24,7 @@ export {
   classArchiveInputSchema,
   classCloneForNextPeriodInputSchema,
   classCreateInputSchema,
+  classGenerateSessionsInputSchema,
   classFormatSchema,
   classIdInputSchema,
   classScheduleSlotInputSchema,
@@ -36,6 +37,7 @@ export {
   calendarDateSchema,
   calendarYearSchema,
   closedDayReasonSchema,
+  createSemesterInputSchema,
   importBrazilFederalHolidaysInputSchema,
   removeClosedDayInputSchema,
 } from "./calendar.js";

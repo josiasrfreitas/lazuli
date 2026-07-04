@@ -13,8 +13,9 @@ import {
   TEACHER_USER_ID,
   TEST_PREFIX,
 } from "../db/class-test-support.js";
+import { recordingSessionsGenerateQueue } from "../db/session-generation-queue-support.js";
 
-void describe("classes HTTP behavior", () => {
+void describe("classes HTTP behavior", { concurrency: false }, () => {
   void before(async () => {
     await db.$connect();
   });
@@ -27,6 +28,8 @@ void describe("classes HTTP behavior", () => {
   databaseIt("creates a regular class through the HTTP adapter", createRegularClassOverHttp);
 
   databaseIt("clones a class through the HTTP adapter", cloneClassOverHttp);
+
+  databaseIt("enqueues session generation through the HTTP adapter", generateSessionsOverHttp);
 });
 
 async function createRegularClassOverHttp(): Promise<void> {
@@ -81,6 +84,29 @@ async function cloneClassOverHttp(): Promise<void> {
   assert.equal(payload.result.data.json.successor.sharedStageId, fixtures.nextStageId);
 }
 
+async function generateSessionsOverHttp(): Promise<void> {
+  await cleanClassDatabase();
+  await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
+  const created = await createSourceClassOverHttp(fixtures);
+  const queue = recordingSessionsGenerateQueue("job-http");
+
+  const response = await callHttpMutation({
+    path: "classes.generateSessions",
+    body: { classId: created.result.data.json.id },
+    queue,
+  });
+  const sessionCount = await db.classSession.count({
+    where: { classId: created.result.data.json.id },
+  });
+
+  assert.equal(response.status, HTTP_OK);
+  const payload = (await response.json()) as GeneratePayload;
+  assert.equal(payload.result.data.json.workflowName, "sessions-generate");
+  assert.deepEqual(queue.calls, [{ classId: created.result.data.json.id }]);
+  assert.equal(sessionCount, 0);
+}
+
 async function createSourceClassOverHttp(
   fixtures: Awaited<ReturnType<typeof seedClassCatalogFixtures>>,
 ): Promise<CreatePayload> {
@@ -115,4 +141,8 @@ type ClonePayload = {
       };
     };
   };
+};
+
+type GeneratePayload = {
+  result: { data: { json: { workflowName: string; jobId: string } } };
 };

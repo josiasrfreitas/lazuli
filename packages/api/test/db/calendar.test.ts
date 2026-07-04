@@ -7,10 +7,12 @@ import { databaseIt } from "@lazuli/db/test";
 import {
   ADMIN,
   caller,
+  callerWithQueue,
   cleanCalendarDatabase,
   ensureCalendarUsers,
   TEST_PREFIX,
 } from "./calendar-test-support.js";
+import { recordingSessionsGenerateQueue } from "./session-generation-queue-support.js";
 
 const FEDERAL_HOLIDAY_COUNT = 9;
 const FEDERAL_HOLIDAY_COUNT_AFTER_CUSTOM_REASON = 8;
@@ -19,6 +21,7 @@ const CUSTOM_REASON_IMPORT_YEAR = 2032;
 const MANUAL_UPDATE_DATE = "2033-04-21";
 const FUTURE_ADD_DATE = "2099-09-07";
 const FUTURE_REMOVE_DATE = "2099-11-20";
+const SEMESTER_NAME = `${TEST_PREFIX}2098.1`;
 
 void describe("calendar API", () => {
   void before(async () => {
@@ -45,6 +48,8 @@ void describe("calendar API", () => {
   );
 
   databaseIt("remove is idempotent and flags future regeneration", removeClosedDayIdempotently);
+
+  databaseIt("create semester enqueues session generation", createSemesterEnqueuesGeneration);
 });
 
 async function importHolidaysIdempotently(): Promise<void> {
@@ -133,4 +138,20 @@ async function removeClosedDayIdempotently(): Promise<void> {
 
   assert.deepEqual(first, { removed: true, regenerateRequired: true });
   assert.deepEqual(second, { removed: false, regenerateRequired: true });
+}
+
+async function createSemesterEnqueuesGeneration(): Promise<void> {
+  await cleanCalendarDatabase();
+  await ensureCalendarUsers();
+  const queue = recordingSessionsGenerateQueue("job-calendar");
+
+  const result = await callerWithQueue({ queue }).calendar.createSemester({
+    name: SEMESTER_NAME,
+    startDate: "2098-02-01",
+    endDate: "2098-06-30",
+  });
+
+  assert.equal(result.semester.name, SEMESTER_NAME);
+  assert.equal(result.sessionsGenerateJob.workflowName, "sessions-generate");
+  assert.deepEqual(queue.calls, [{ semesterId: result.semester.id }]);
 }

@@ -1,5 +1,6 @@
 import { appRouter, createCaller, type Context, type StaffUser } from "@lazuli/api";
 import { db } from "@lazuli/db";
+import type { SessionsGenerateQueue } from "@lazuli/job-contracts";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 export const TEST_PREFIX = "GRE-29 Class ";
@@ -23,6 +24,13 @@ export function caller(): ClassCaller {
 
 export function contextFor(staffUser: StaffUser): Context {
   return { db, staffUser };
+}
+
+export function contextWithQueue(input: {
+  queue: SessionsGenerateQueue;
+  staffUser?: StaffUser;
+}): Context {
+  return { db, sessionGenerationQueue: input.queue, staffUser: input.staffUser ?? ADMIN };
 }
 
 export async function ensureTeacherUser(): Promise<void> {
@@ -122,6 +130,9 @@ async function seedSemesterFixtures(): Promise<{ semesterId: string; nextSemeste
 }
 
 export async function cleanClassDatabase(): Promise<void> {
+  await db.classSession.deleteMany({
+    where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
+  });
   await db.classScheduleSlot.deleteMany({
     where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
   });
@@ -148,6 +159,7 @@ export async function cleanClassDatabase(): Promise<void> {
 export async function callHttpMutation(input: {
   path: string;
   body: unknown;
+  queue?: SessionsGenerateQueue;
   staffUser?: StaffUser;
 }): Promise<Response> {
   return fetchRequestHandler({
@@ -158,6 +170,18 @@ export async function callHttpMutation(input: {
       body: JSON.stringify({ json: input.body }),
     }),
     router: appRouter,
-    createContext: () => Promise.resolve(contextFor(input.staffUser ?? ADMIN)),
+    createContext: () =>
+      Promise.resolve(
+        input.queue === undefined
+          ? contextFor(input.staffUser ?? ADMIN)
+          : contextWithQueue({
+              queue: input.queue,
+              ...optionalStaffUser(input.staffUser),
+            }),
+      ),
   });
+}
+
+function optionalStaffUser(staffUser: StaffUser | undefined): { staffUser?: StaffUser } {
+  return staffUser === undefined ? {} : { staffUser };
 }
