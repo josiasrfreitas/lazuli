@@ -19,3 +19,6 @@ export {
   type BrazilFederalHoliday,
 } from "./brazil-federal-holidays.js";
 export { sessionEndInstant } from "./session-time.js";
+export { isSessionUntaken } from "./session-status.js";
+export { deriveMakeupDisplayStatus, type MakeupDisplayStatus } from "./makeup-status.js";
+export { computeAttendancePercent, type AttendancePercent } from "./attendance-percent.js";
