@@ -117,6 +117,7 @@ async function cleanDatabase(): Promise<void> {
     where: { student: { fullName: { startsWith: TEST_PREFIX } } },
   });
   await db.class.deleteMany({ where: { internalCode: { startsWith: TEST_PREFIX } } });
+  await db.semester.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await db.stage.deleteMany({
     where: { track: { productLine: { key: CATALOG_KEY } } },
   });
@@ -230,6 +231,16 @@ async function createStageFixture(suffix: string): Promise<{ id: string }> {
 }
 
 async function createClassFixture(suffix: string): Promise<{ id: string }> {
+  const { endDate, startDate } = semesterDatesForSuffix(suffix);
+  const semester = await db.semester.create({
+    data: {
+      name: `${TEST_PREFIX}Semester ${suffix}`,
+      startDate,
+      endDate,
+    },
+    select: { id: true },
+  });
+
   return db.class.create({
     data: {
       capacity: 8,
@@ -237,9 +248,22 @@ async function createClassFixture(suffix: string): Promise<{ id: string }> {
       internalCode: `${TEST_PREFIX}Class ${suffix}`,
       portalClassName: `${TEST_PREFIX}Portal ${suffix}`,
       scheduleType: "PERSONALIZED",
+      semesterId: semester.id,
       teacherId: TEACHER_ID,
       year: 2026,
     },
     select: { id: true },
   });
+}
+
+function semesterDatesForSuffix(suffix: string): { endDate: Date; startDate: Date } {
+  let hash = 0;
+  for (const char of suffix) {
+    hash = (hash + char.charCodeAt(0)) % 50;
+  }
+  const year = 2080 + hash;
+  return {
+    startDate: new Date(`${year}-02-01T00:00:00.000Z`),
+    endDate: new Date(`${year}-06-30T00:00:00.000Z`),
+  };
 }

@@ -1,7 +1,7 @@
 # Decisions
 
 **Status:** living decision register  
-**Last updated:** 2026-06-27  
+**Last updated:** 2026-07-04  
 **Product source:** [PRD and user stories](./PRD.md)
 
 This file replaces the old architecture decision files. Use it as the first stop for architecture, product constraints, and discovery-driven decisions. If a decision changes, update this file and the affected PRD story in the same change.
@@ -147,12 +147,13 @@ Use Hatchet Cloud as the workflow control plane. Run worker code on GCP Cloud Ru
 
 MVP workflows:
 
-| Workflow            | Trigger                              | Notes                           |
-| ------------------- | ------------------------------------ | ------------------------------- |
-| `portal-submit`     | Hatchet cron and manual tRPC enqueue | Playwright submission to Portal |
-| `report-generate`   | On demand                            | CSV/PDF reports to GCS          |
-| `invoice-generate`  | On demand or batch                   | PDF invoices/statements to GCS  |
-| `notification-send` | Event/rule-driven if WhatsApp ships  | Evolution API / Resend          |
+| Workflow            | Trigger                                              | Notes                                              |
+| ------------------- | ---------------------------------------------------- | -------------------------------------------------- |
+| `sessions-generate` | Semester creation and explicit regenerate (tRPC)     | Idempotent `ClassSession` row creation; no cron    |
+| `portal-submit`     | Hatchet cron and manual tRPC enqueue                 | Playwright submission to Portal                    |
+| `report-generate`   | On demand                                            | CSV/PDF reports to GCS                             |
+| `invoice-generate`  | On demand or batch                                   | PDF invoices/statements to GCS                     |
+| `notification-send` | Event/rule-driven if WhatsApp ships                  | Evolution API / Resend                             |
 
 tRPC mutations enqueue workflows and return quickly with a job ID. Workers update DB rows and artifacts, and the UI polls for status/download URLs.
 
@@ -182,9 +183,13 @@ Use Mailpit locally. Do not introduce SendGrid unless this decision is reopened.
 
 ## D-0008: Rolling Enrollment and Contract Periods
 
-Regular class sessions are generated from semester calendars, but enrollment is rolling. Students can join during a semester. Personalized and online classes are fully rolling.
+**Amended 2026-07-04:** distinguishes **rolling enrollment** (valid, all modalities) from **rolling session generation** (deprecated for PERSONALIZED/PPT — see [changelog #52](./CHANGELOG.md)).
 
-Orders (formerly "contracts"; see [D-0028](#d-0028-finance-core-model--order)) are not bound to a single semester — nor to any academic period/enrollment/class/stage ([D-0032](#d-0032-finance-ledger--derive-dont-store-adjustments-payer-scoped-payments)). Session generation follows the academic calendar; billing follows order/installment dates; the two never couple.
+**Rolling enrollment (operational).** Students may join or leave a class at any point during a semester via `Enrollment.entryDate` / `exitDate`. Mid-semester joiners are not counted absent for sessions before they enrolled ([D-0029](#d-0029-attendance--neutral-data-state-untaken-session-flag--formula)). Enrollment windows are independent of when `ClassSession` rows were generated.
+
+**Session generation (calendar).** REGULAR and PERSONALIZED/PPT share the same ~6-month **`Semester`** calendar for generating `ClassSession` rows — per weekday slot between `Semester.startDate` and `Semester.endDate`, skipping `SchoolClosedDay` ([S-CLS-2](./PRD.md#s-cls-2--auto-generate-class-sessions-p0)). The pedagogical split between modalities is **not** a different session calendar: REGULAR classes carry one shared stage on the class; PERSONALIZED/PPT advances stage per student via `PedagogicalProgress` while staying in the same class, schedule, and teacher ([D-0031](#d-0031-enrollment-is-operational-stage-placement-lives-on-pedagogicalprogress)). ~~PERSONALIZED "open-ended" classes with a ~90-day rolling horizon extended by a nightly Hatchet cron~~ is **deprecated** — it conflated rolling enrollment with rolling session generation and does not match school operations.
+
+**Orders decoupled from semesters.** Orders (formerly "contracts"; see [D-0028](#d-0028-finance-core-model--order)) are not bound to a single semester — nor to any academic period/enrollment/class/stage ([D-0032](#d-0032-finance-ledger--derive-dont-store-adjustments-payer-scoped-payments)). Session generation follows the academic calendar; billing follows order/installment dates; the two never couple.
 
 ## D-0009: Attendance Reality and No `LATE` in MVP
 
@@ -277,7 +282,7 @@ The expense module — and therefore the cash-position card and any true P&L —
 
 Class "modality" is modeled as two independent attributes, not one enum:
 
-- `scheduleType`: `REGULAR | PERSONALIZED` (PERSONALIZED = PPT; Portal external code likely `PERSP`). Drives session generation and progress semantics.
+- `scheduleType`: `REGULAR | PERSONALIZED` (PERSONALIZED = PPT; Portal external code likely `PERSP`). Drives progress semantics; **session generation uses the same `Semester` window for both** ([D-0008 amendment 2026-07-04](#d-0008-rolling-enrollment-and-contract-periods)).
 - `format`: `IN_PERSON | ONLINE`. Delivery only.
 
 Online follows regular pedagogy remotely, so it is a format, not a third modality. Portal's `REG`/`PERSP` prefix maps from `scheduleType`. The Portal class name is derived from structured fields and stored, with the original Portal string retained for compatibility; some name parts (`1S/2S`, trailing suffix) are unconfirmed.

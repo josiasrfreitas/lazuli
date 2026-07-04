@@ -108,6 +108,7 @@ export async function createRegularClass(input: {
 
 export async function createPersonalizedClass(input: {
   code: string;
+  semesterId: string;
   capacity?: number;
   status?: "ACTIVE" | "ARCHIVED";
 }): Promise<{ id: string }> {
@@ -118,6 +119,7 @@ export async function createPersonalizedClass(input: {
       internalCode: `${TEST_PREFIX}${input.code}`,
       portalClassName: `${TEST_PREFIX}portal-${input.code}`,
       scheduleType: "PERSONALIZED",
+      semesterId: input.semesterId,
       status: input.status ?? "ACTIVE",
       teacherId: TEACHER_USER_ID,
       year: FIXTURE_CLASS_YEAR,

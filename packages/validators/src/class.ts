@@ -134,4 +134,12 @@ function validatePersonalizedClassInput(input: ClassCreateInput, context: z.Refi
       path: ["portalClassName"],
     });
   }
+
+  if (input.semesterId === null || input.semesterId === undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Turma personalizada exige semestre.",
+      path: ["semesterId"],
+    });
+  }
 }

@@ -59,12 +59,14 @@ async function createRegularClass(): Promise<void> {
 async function createPersonalizedClass(): Promise<void> {
   await cleanClassDatabase();
   await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
 
   const created = await caller().classes.create({
     internalCode: `${TEST_PREFIX}Personalized`,
     teacherId: TEACHER_USER_ID,
     scheduleType: "PERSONALIZED",
     format: "ONLINE",
+    semesterId: fixtures.semesterId,
     year: 2026,
     capacity: 1,
     portalClassName: `${TEST_PREFIX}PPT Portal`,

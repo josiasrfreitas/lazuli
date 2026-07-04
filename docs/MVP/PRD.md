@@ -127,7 +127,7 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 - **Two independent attributes (revised 2026-06-17, [D-0021](./decisions.md#d-0021-class-modality-as-two-axes)):**
   - `scheduleType`: `REGULAR | PERSONALIZED` (PERSONALIZED = PPT/PERSP). Drives session generation and progress semantics: REGULAR = synchronized group on one shared stage; PERSONALIZED = individual progress, students may sit at different stages.
   - `format`: `IN_PERSON | ONLINE`. Delivery only — online follows regular pedagogy remotely; it is **not** a third modality.
-- Fields: `internalCode`, `teacher`, `(weekday, startTime, endTime)` slots, `semester?`, `year`, `capacity`, `status`.
+- Fields: `internalCode`, `teacher`, `(weekday, startTime, endTime)` slots, `semester` (required for session generation — both REGULAR and PERSONALIZED/PPT; see [S-CLS-2](#s-cls-2--auto-generate-class-sessions-p0)), `year`, `capacity`, `status`.
 - **`Class.status = ACTIVE | ARCHIVED`** (default `ACTIVE`). `ARCHIVED` encodes operator intent to retire a class (not derivable — a class between periods has no future sessions yet isn't retired). `ACTIVE`: appears in pickers, accepts new enrollments, generates future sessions, eligible for attendance/Portal. `ARCHIVED`: hidden from new-enrollment/roster pickers, no new session generation, accepts no new enrollments, but **all history preserved** (sessions, attendance, enrollments, reports, Portal) and viewable via archive filters. On clone-for-next-period, the old class is archived after the successor + carried-forward students exist ("completed for the period" = ARCHIVED, no separate status). `FULL` (derivable from capacity) and `DRAFT`/`COMPLETED` are intentionally **not** modeled.
 - **Portal class name** (e.g. `REG/TUI-TER-14:00/16:00-1S/26-1`) is **derived from structured fields** (modality, stage code, weekday, time, period, year, sequence) and stored; the original Portal string is also retained for compatibility/audit. Some parts (`1S/2S`, trailing `-1` suffix) are unconfirmed — see [§15](#15-open-questions-need-answers-before--during-week-1).
 - **Stage**: REGULAR classes carry `sharedStageId` (FK to the seeded `Stage` catalog — see [S-CAT-1](#s-cat-1--seeded-course-catalog-p0)); PERSONALIZED classes have `sharedStageId = null` and carry stage **per student** via `PedagogicalProgress` (see [§6](#6-enrollment)). A DB CHECK constraint enforces `REGULAR ⟹ sharedStageId NOT NULL` / `PERSONALIZED ⟹ sharedStageId NULL` ([D-0021](./decisions.md#d-0021-class-modality-as-two-axes)). The `Stage.internalCode` feeds the stage segment of the derived Portal class name (the `TUI` in `REG/TUI-…`). The catalog model (Track → Stage) is decided in [D-0030](./decisions.md#d-0030-course-catalog--track-and-stage); remaining school-validation items are in [§15](#15-open-questions-need-answers-before--during-week-1).
@@ -141,10 +141,11 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 **As the** system, **I want** to generate `ClassSession` rows **so that** teachers see today's session and Portal has data to submit.
 
 - `ClassSession.status`: `SCHEDULED | CANCELLED`. A "held" session is implicit (past date, not cancelled, **`attendanceConfirmedAt` set**) — no explicit HELD state in MVP. Session also carries `attendanceConfirmedAt?` / `attendanceConfirmedBy?` (see [D-0029](./decisions.md#d-0029-attendance--neutral-data-state-untaken-session-flag--formula)).
-- REGULAR classes: generate the full semester up front, per weekday slot between semester start/end.
-- PERSONALIZED / open-ended classes: generate on a rolling horizon (≈90 days), extended by the nightly job.
+- **REGULAR and PERSONALIZED/PPT:** generate the full **`Semester` window** up front — one `ClassSession` per `(weekday slot × date)` between `Semester.startDate` and `Semester.endDate` for the class's `semesterId`. Both modalities share the same academic calendar; PERSONALIZED differs only in per-student stage placement (`PedagogicalProgress`), not in when sessions exist ([D-0031](./decisions.md#d-0031-enrollment-is-operational-stage-placement-lives-on-pedagogicalprogress)).
 - Skip dates marked as "no class" on the school calendar (S-CAL-1).
 - Re-runnable idempotently.
+- **Async only:** `classes.generateSessions(classId | semesterId)` enqueues the Hatchet `sessions-generate` workflow and returns immediately — row creation never runs inline in the tRPC request ([TECHNICAL_SPEC §6.2](./TECHNICAL_SPEC.md#62-workflows)).
+- ~~**Amended 2026-07-04 — supersedes prior wording:** PERSONALIZED ~90-day rolling horizon + nightly extension job~~ is **deprecated** ([D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods), [changelog #52](./CHANGELOG.md)).
 
 ### S-CAL-1 · School calendar of closed days `P0`
 
@@ -179,9 +180,9 @@ All staff are pre-provisioned in the `User` table. RBAC enforced in tRPC middlew
 **As an** admin, **I want** to define semester start/end **so that** sessions are generated against the right calendar.
 
 - Two semesters per year (≈ fev–jun, ago–dez). Fields: `name` (e.g. `2026.1`), `startDate`, `endDate` (configurable — follows the calendar, not fixed calendar halves).
-- **Dual role:** (1) generation calendar for **regular classes**; (2) the **universal 6-month reporting/evaluation bucket** for the 75% attendance flag across **all** modalities ([D-0029](./decisions.md#d-0029-attendance--neutral-data-state-untaken-session-flag--formula)). A session is bucketed into the semester whose date range contains its date.
-- Personalized / online classes are **rolling** for _generation_ — not tied to semester windows (see [D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods)) — but their sessions are still bucketed by date for attendance reporting.
-- Creating a semester triggers session generation (S-CLS-2) for regular classes.
+- **Dual role:** (1) **generation calendar for all class modalities** (REGULAR and PERSONALIZED/PPT; `format = ONLINE` included); (2) the **universal 6-month reporting/evaluation bucket** for the 75% attendance flag across **all** modalities ([D-0029](./decisions.md#d-0029-attendance--neutral-data-state-untaken-session-flag--formula)). A session is bucketed into the semester whose date range contains its date.
+- Creating a semester enqueues async session generation (S-CLS-2) for all **ACTIVE** classes bound to that semester (`semesterId`).
+- ~~**Amended 2026-07-04 — supersedes prior wording:** PERSONALIZED/online "rolling" session generation outside semester windows~~ is **deprecated** ([D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods)).
 - **Invariants**: semester date ranges **must not overlap**; a session date should map to **exactly one** semester. A session date that falls in **no** semester window surfaces as a setup error/warning (so attendance is never unbucketed or double-counted).
 - **Order installments do not align with the semester window** — see S-FIN-1 and [D-0011](./decisions.md#d-0011-installment-defaults). A semester drives sessions; the order drives billing, and they have independent lifespans.
 

@@ -94,6 +94,11 @@ async function createPersonalizedClass(input: {
   slotRows: SlotRow[];
 }): Promise<ClassSummary> {
   const portalClassName = input.values.portalClassName ?? "";
+  const semester = await loadSemester({
+    database: input.database,
+    semesterId: input.values.semesterId ?? "",
+  });
+
   await assertActivePortalClassNameAvailable({
     database: input.database,
     portalClassName,
@@ -104,7 +109,7 @@ async function createPersonalizedClass(input: {
       values: input.values,
       portalClassName,
       sharedStageId: null,
-      semesterId: input.values.semesterId ?? null,
+      semesterId: semester.id,
       slotRows: input.slotRows,
     }),
     select: classSummarySelect,
@@ -115,7 +120,7 @@ function buildClassCreateData(input: {
   values: ClassCreateInput;
   portalClassName: string;
   sharedStageId: string | null;
-  semesterId: string | null;
+  semesterId: string;
   slotRows: SlotRow[];
 }): Prisma.ClassUncheckedCreateInput {
   return {

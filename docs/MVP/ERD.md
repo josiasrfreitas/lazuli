@@ -160,7 +160,7 @@ erDiagram
   ADDRESS ||--o{ GUARDIAN : guardian_address
   TRACK ||--o{ STAGE : contains
   STAGE ||--o{ SCHOOL_CLASS : shared_stage
-  SEMESTER ||--o{ SCHOOL_CLASS : regular_generation_window
+  SEMESTER ||--o{ SCHOOL_CLASS : generation_window
   SCHOOL_CLASS ||--o{ SCHOOL_CLASS : previous_class_lineage
   SCHOOL_CLASS ||--o{ CLASS_SCHEDULE_SLOT : has_slots
   SCHOOL_CLASS ||--o{ CLASS_SESSION : has_sessions
@@ -174,7 +174,7 @@ Key constraints from the spec:
 - `STUDENT.addressId` and `GUARDIAN.addressId` are shareable FKs (`ON DELETE SET NULL`): a cohabiting student and guardian may point at the same `ADDRESS` row.
 - `documentType` + `documentNumber` (on `STUDENT` and `GUARDIAN`) are paired: `documentNumber` set requires `documentType` set (`enum DocumentType { CPF, RG }`).
 - `SCHOOL_CLASS.scheduleType = REGULAR` requires `sharedStageId` and `semesterId`.
-- `SCHOOL_CLASS.scheduleType = PERSONALIZED` requires `sharedStageId = null`.
+- `SCHOOL_CLASS.scheduleType = PERSONALIZED` requires `sharedStageId = null` and `semesterId` (amended 2026-07-04 — both modalities share the same semester calendar for session generation; see [D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods)).
 - Active classes have unique `portalClassName`.
 - `SEMESTER` date ranges must not overlap.
 - Generated sessions use partial unique indexes because `scheduleSlotId` is nullable.
@@ -468,7 +468,7 @@ Artifact rules:
 | `PRODUCT_LINE`        | `TRACK`                  |          1 to many | Seeded product-line grouping.                            |
 | `TRACK`               | `STAGE`                  |          1 to many | Course catalog path.                                     |
 | `STAGE`               | `SCHOOL_CLASS`           | 1 to many optional | REGULAR shared class stage.                              |
-| `SEMESTER`            | `SCHOOL_CLASS`           | 1 to many optional | REGULAR generation window.                               |
+| `SEMESTER`            | `SCHOOL_CLASS`           | 1 to many optional | Generation window for REGULAR and PERSONALIZED classes. |
 | `SCHOOL_CLASS`        | `SCHOOL_CLASS`           | 1 to many optional | Previous/next class lineage.                             |
 | `SCHOOL_CLASS`        | `CLASS_SCHEDULE_SLOT`    |          1 to many | Weekly schedule slots.                                   |
 | `CLASS_SCHEDULE_SLOT` | `CLASS_SESSION`          | 1 to many optional | Generated session source.                                |

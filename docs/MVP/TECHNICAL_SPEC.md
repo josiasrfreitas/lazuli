@@ -665,6 +665,7 @@ Raw SQL constraints:
 - `Class.scheduleType = REGULAR` implies `sharedStageId IS NOT NULL`.
 - `Class.scheduleType = PERSONALIZED` implies `sharedStageId IS NULL`.
 - `Class.scheduleType = REGULAR` implies `semesterId IS NOT NULL`.
+- `Class.scheduleType = PERSONALIZED` implies `semesterId IS NOT NULL` (amended 2026-07-04 — both modalities generate sessions from the same `Semester` window; see [D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods)).
 - Trigger: new classes on `LEGACY` tracks are rejected unless the transaction is flagged as import/correction.
 - Partial unique index: active classes have unique `portalClassName`; archived classes may retain historical reused names.
 - `ClassScheduleSlot.startTime < ClassScheduleSlot.endTime`.
@@ -682,7 +683,7 @@ Raw SQL constraints:
 Rules:
 
 - `ARCHIVED` classes are hidden from active pickers, do not accept new enrollments, and do not generate future sessions. History remains visible through archive filters.
-- `semesterId` is required for REGULAR class generation. PERSONALIZED classes may have it null; their sessions are still bucketed by `Semester` at report time by session date.
+- `semesterId` is required for session generation on **both** REGULAR and PERSONALIZED classes. Generation window = the bound `Semester.startDate`…`endDate` for every weekday slot; closed days are skipped. ~~PERSONALIZED ~90-day rolling horizon + nightly cron extension~~ is deprecated ([D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods), [changelog #52](./CHANGELOG.md)).
 - Creating a future `SchoolClosedDay` cancels matching future scheduled sessions with no committed attendance; sessions with committed attendance are not auto-cancelled and are returned as warnings.
 - Cancelling a session cascades active target makeups to cancelled, so a cancelled target session never derives as makeup no-show.
 - Re-opening a closed day regenerates missing scheduled sessions idempotently.
@@ -1157,12 +1158,12 @@ Classes/calendar:
 - `classes.create(input)` — P0, covers `S-CLS-1`.
 - `classes.archive(id)` — P0 lifecycle support for `S-CLS-1`.
 - `classes.cloneForNextPeriod(id, input)` — P0, REGULAR stage advancement mechanism from `S-CLS-1`.
-- `calendar.createSemester(input)` — P0, covers `S-CAL-4`.
+- `calendar.createSemester(input)` — P0, covers `S-CAL-4`. On success, enqueues `sessions-generate` for all ACTIVE classes bound to the new semester (async; same workflow as `classes.generateSessions`).
 - `calendar.importBrazilFederalHolidays(year)` — P0, covers the federal holiday bulk import in `S-CAL-1`.
 - `calendar.addClosedDay(date, reason)` — P0, covers `S-CAL-1`.
 - `calendar.removeClosedDay(date)` — P0, covers `S-CAL-1`.
 - `calendar.cancelSession(sessionId, reason)` — P0, covers `S-CAL-2`.
-- `classes.generateSessions(classId|semesterId)` — P0, covers `S-CLS-2`.
+- `classes.generateSessions(classId|semesterId)` — P0, covers `S-CLS-2`. **Enqueues** the `sessions-generate` Hatchet workflow and returns immediately with a job reference; it does **not** create `ClassSession` rows inline in the request thread.
 
 Enrollment/progress:
 
@@ -1222,9 +1223,11 @@ Trace: Security and Data Rules; `D-0004`.
 
 `sessions-generate`
 
-- Trigger: semester creation, explicit regenerate action, nightly rolling horizon for PERSONALIZED classes.
-- Input: `semesterId?`, `classId?`, `horizonDays?`.
-- Writes `ClassSession` rows idempotently.
+- **Scope:** P0 for MVP session row creation. Distinct from `portal-submit`, `report-generate`, and other Hatchet workflows — session generation is **not** a nightly cron in MVP.
+- **Trigger:** (1) semester creation (`calendar.createSemester`), (2) explicit regenerate via `classes.generateSessions(classId|semesterId)`, (3) closed-day reopen that calls the same regenerate path. ~~Nightly rolling horizon for PERSONALIZED classes~~ is **deprecated** ([D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods)).
+- **Input:** `semesterId?`, `classId?` (exactly one scope path per run — all ACTIVE classes for a semester, or one class). ~~`horizonDays`~~ removed.
+- **Execution:** 100% asynchronous — the tRPC procedure only enqueues; the worker writes rows.
+- **Behavior:** writes `ClassSession` rows idempotently for every `(class, scheduleSlot, date)` in `Semester.startDate`…`endDate` where the weekday matches; applies to REGULAR and PERSONALIZED equally.
 - Skips `SchoolClosedDay`.
 - Emits setup errors for any generated date that maps to zero or multiple semesters.
 
@@ -1554,7 +1557,7 @@ Trace: `D-0003`, `D-0004`, `D-0007`, PRD Section 15.9.
 | `S-STU-5`    | Deferred             | Student status/field-level rastreabilidade deferred ([D-0035](./decisions.md#d-0035-defer-student-field-level-traceability)); no attribution columns on `Student` in MVP.                                                |
 | `S-CAT-1`    | P0                   | Section 4.3 defines ProductLine/Track/Stage, legacy behavior, stage-level `sequence` ordering, independent tracks (no cross-track order/equivalence), and seed-only scope. Portal naming validation remains GRE-13 work. |
 | `S-CLS-1`    | P0                   | Sections 4.4 and 5.3 define class fields, scheduleType/format axes, status, Portal name storage, one-teacher rule, lineage, and clone-for-next-period.                                                                   |
-| `S-CLS-2`    | P0                   | Sections 4.4 and 6.2 define sessions, generation idempotency, closed-day skipping, rolling horizon, and setup errors.                                                                                                    |
+| `S-CLS-2`    | P0                   | Sections 4.4 and 6.2 define sessions, semester-window generation for REGULAR and PERSONALIZED, async `sessions-generate`, idempotency, closed-day skipping, and setup errors. ~~Rolling horizon~~ deprecated ([D-0008](./decisions.md#d-0008-rolling-enrollment-and-contract-periods)). |
 | `S-CAL-1`    | P0                   | Sections 4.4 and 5.3 define closed days, federal holiday import procedure, future cancellation behavior, and reopen/regenerate.                                                                                          |
 | `S-CAL-2`    | P0                   | Sections 4.4 and 5.3 define per-session cancellation reason and no cancellation after committed/submitted attendance.                                                                                                    |
 | `S-CAL-3`    | P2                   | Explicitly excluded by Sections 1.1 and 13; no substitute fields are modeled.                                                                                                                                            |

@@ -19,6 +19,7 @@ const { createDbClient } = await import("../../src/client.js");
 
 const CAPACITY_CONSTRAINT = "Class_capacity_positive_check";
 const REGULAR_STAGE_CONSTRAINT = "Class_regular_requires_shared_stage_check";
+const REQUIRES_SEMESTER_CONSTRAINT = "Class_requires_semester_check";
 const SLOT_ORDER_CONSTRAINT = "ClassScheduleSlot_start_before_end_check";
 const ACTIVE_PORTAL_INDEX = "Class_active_portal_class_name_key";
 
@@ -47,6 +48,10 @@ void describe("class catalog schema", () => {
 
   databaseIt("rejects regular class without shared stage", () =>
     rejectRegularWithoutSharedStage(database),
+  );
+
+  databaseIt("rejects personalized class without semester", () =>
+    rejectPersonalizedWithoutSemester(database),
   );
 
   databaseIt("rejects duplicate active portal class names", () =>
@@ -123,6 +128,44 @@ async function rejectRegularWithoutSharedStage(database: DatabaseClient): Promis
       },
     }),
     REGULAR_STAGE_CONSTRAINT,
+  );
+}
+
+async function rejectPersonalizedWithoutSemester(database: DatabaseClient): Promise<void> {
+  const internalCode = `${TEST_PREFIX}NoSemesterPpt`;
+  const portalClassName = `${TEST_PREFIX}portal-no-semester-ppt`;
+
+  await expectConstraintRejection(
+    database.$executeRaw`
+      INSERT INTO "Class" (
+        id,
+        internal_code,
+        teacher_id,
+        schedule_type,
+        format,
+        year,
+        capacity,
+        status,
+        portal_class_name,
+        original_portal_class_name,
+        created_at,
+        updated_at
+      ) VALUES (
+        gen_random_uuid(),
+        ${internalCode},
+        ${TEACHER_ID}::uuid,
+        'PERSONALIZED',
+        'IN_PERSON',
+        2026,
+        1,
+        'ACTIVE',
+        ${portalClassName},
+        ${portalClassName},
+        NOW(),
+        NOW()
+      )
+    `,
+    REQUIRES_SEMESTER_CONSTRAINT,
   );
 }
 

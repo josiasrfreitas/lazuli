@@ -89,7 +89,10 @@ export async function createStudent(suffix: string): Promise<{ id: string }> {
   });
 }
 
-export async function createPersonalizedClass(code: string): Promise<{ id: string }> {
+export async function createPersonalizedClass(
+  code: string,
+  semesterId: string,
+): Promise<{ id: string }> {
   return db.class.create({
     data: {
       capacity: DEFAULT_CLASS_CAPACITY,
@@ -97,6 +100,7 @@ export async function createPersonalizedClass(code: string): Promise<{ id: strin
       internalCode: `${TEST_PREFIX}${code}`,
       portalClassName: `${TEST_PREFIX}portal-${code}`,
       scheduleType: "PERSONALIZED",
+      semesterId,
       teacherId: TEACHER_USER_ID,
       year: FIXTURE_CLASS_YEAR,
     },

@@ -35,6 +35,7 @@ type RegularClassInput = {
 
 type PersonalizedClassInput = {
   code: string;
+  semesterId: string;
   capacity?: number;
   status?: "ACTIVE" | "ARCHIVED";
 };
@@ -170,6 +171,7 @@ function createPersonalizedClass(
     data: {
       ...classBaseData(config, input),
       scheduleType: "PERSONALIZED",
+      semesterId: input.semesterId,
       status: input.status ?? "ACTIVE",
     },
     select: { id: true },
