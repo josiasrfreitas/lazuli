@@ -19,7 +19,7 @@ const { createDbClient } = await import("../../src/client.js");
 
 const CAPACITY_CONSTRAINT = "Class_capacity_positive_check";
 const REGULAR_STAGE_CONSTRAINT = "Class_regular_requires_shared_stage_check";
-const REQUIRES_SEMESTER_CONSTRAINT = "Class_requires_semester_check";
+const REQUIRES_SEMESTER_CONSTRAINT = "not-null";
 const SLOT_ORDER_CONSTRAINT = "ClassScheduleSlot_start_before_end_check";
 const ACTIVE_PORTAL_INDEX = "Class_active_portal_class_name_key";
 

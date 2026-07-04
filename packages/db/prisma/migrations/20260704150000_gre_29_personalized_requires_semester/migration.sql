@@ -16,8 +16,7 @@ WHERE "schedule_type" = 'PERSONALIZED'
 
 ALTER TABLE "Class" DROP CONSTRAINT "Class_regular_requires_semester_check";
 
-ALTER TABLE "Class" ADD CONSTRAINT "Class_requires_semester_check"
-CHECK ("semester_id" IS NOT NULL);
+ALTER TABLE "Class" ALTER COLUMN "semester_id" SET NOT NULL;
 
 -- semester_id is mandatory for every class; do not null-out on semester delete.
 ALTER TABLE "Class" DROP CONSTRAINT "Class_semester_id_fkey";
