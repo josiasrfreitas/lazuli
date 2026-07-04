@@ -69,7 +69,7 @@ const enrollmentSummarySelect = {
   capacityOverrideReason: true,
 } as const;
 
-const progressSummarySelect = {
+export const progressSummarySelect = {
   id: true,
   stageId: true,
   startDate: true,

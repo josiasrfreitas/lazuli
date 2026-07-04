@@ -39,4 +39,4 @@ export {
   importBrazilFederalHolidaysInputSchema,
   removeClosedDayInputSchema,
 } from "./calendar.js";
-export { enrollmentCreateInputSchema } from "./enrollment.js";
+export { enrollmentAdvanceStageInputSchema, enrollmentCreateInputSchema } from "./enrollment.js";

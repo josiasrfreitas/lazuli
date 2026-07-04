@@ -1,3 +1,5 @@
+import assert from "node:assert/strict";
+
 import { appRouter, createCaller, type Context, type StaffUser } from "@lazuli/api";
 import { db } from "@lazuli/db";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
@@ -141,22 +143,50 @@ export async function callHttpMutation(input: {
   });
 }
 
-export async function cleanEnrollmentDatabase(): Promise<void> {
+/** Namespacing so parallel enrollment suites (GRE-30, GRE-31, ...) never race on shared rows. */
+export type EnrollmentFixtureConfig = {
+  prefix: string;
+  catalogKeyPrefix: string;
+  teacherId: string;
+};
+
+/** Asserts a promise rejects with an Error whose message contains `message` (PT-BR domain error). */
+export async function expectRejects(promise: Promise<unknown>, message: string): Promise<void> {
+  await assert.rejects(promise, (error: unknown) => {
+    assert.ok(error instanceof Error, "expected an Error");
+    assert.ok(
+      error.message.includes(message),
+      `expected message to include "${message}", got "${error.message}"`,
+    );
+    return true;
+  });
+}
+
+/** Prefix/key/teacher-scoped cleanup, FK-safe order. Shared by every enrollment fixture namespace. */
+export async function cleanEnrollmentFixtures(config: EnrollmentFixtureConfig): Promise<void> {
   await db.pedagogicalProgress.deleteMany({
-    where: { enrollment: { student: { fullName: { startsWith: TEST_PREFIX } } } },
+    where: { enrollment: { student: { fullName: { startsWith: config.prefix } } } },
   });
   await db.enrollment.deleteMany({
-    where: { student: { fullName: { startsWith: TEST_PREFIX } } },
+    where: { student: { fullName: { startsWith: config.prefix } } },
   });
-  await db.student.deleteMany({ where: { fullName: { startsWith: TEST_PREFIX } } });
-  await db.class.deleteMany({ where: { internalCode: { startsWith: TEST_PREFIX } } });
-  await db.semester.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
+  await db.student.deleteMany({ where: { fullName: { startsWith: config.prefix } } });
+  await db.class.deleteMany({ where: { internalCode: { startsWith: config.prefix } } });
+  await db.semester.deleteMany({ where: { name: { startsWith: config.prefix } } });
   await db.stage.deleteMany({
-    where: { track: { productLine: { key: { startsWith: CATALOG_KEY_PREFIX } } } },
+    where: { track: { productLine: { key: { startsWith: config.catalogKeyPrefix } } } },
   });
   await db.track.deleteMany({
-    where: { productLine: { key: { startsWith: CATALOG_KEY_PREFIX } } },
+    where: { productLine: { key: { startsWith: config.catalogKeyPrefix } } },
   });
-  await db.productLine.deleteMany({ where: { key: { startsWith: CATALOG_KEY_PREFIX } } });
-  await db.user.deleteMany({ where: { id: TEACHER_USER_ID } });
+  await db.productLine.deleteMany({ where: { key: { startsWith: config.catalogKeyPrefix } } });
+  await db.user.deleteMany({ where: { id: config.teacherId } });
+}
+
+export async function cleanEnrollmentDatabase(): Promise<void> {
+  await cleanEnrollmentFixtures({
+    prefix: TEST_PREFIX,
+    catalogKeyPrefix: CATALOG_KEY_PREFIX,
+    teacherId: TEACHER_USER_ID,
+  });
 }
