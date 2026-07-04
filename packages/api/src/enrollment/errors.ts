@@ -18,3 +18,5 @@ export const ENROLLMENT_NOT_ACTIVE_MESSAGE = "Somente matriculas ativas podem av
 export const ADVANCE_REQUIRES_PERSONALIZED_MESSAGE =
   "Apenas turmas personalizadas avancam de etapa individualmente; turmas regulares avancam pela clonagem de turma.";
 export const ACTIVE_PROGRESS_NOT_FOUND_MESSAGE = "Matricula ativa sem etapa ativa.";
+export const ENROLLMENT_ALREADY_CLOSED_MESSAGE = "Matricula ja encerrada.";
+export const TRANSFER_SAME_CLASS_MESSAGE = "A turma de destino deve ser diferente da turma atual.";

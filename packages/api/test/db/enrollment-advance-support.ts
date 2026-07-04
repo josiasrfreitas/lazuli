@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import { after, before, beforeEach } from "node:test";
 
 import { db } from "@lazuli/db";
@@ -13,6 +12,7 @@ export {
   expectRejects,
   HTTP_OK,
 } from "./enrollment-test-support.js";
+export { assertActiveStageAndOpenEnrollment } from "./enrollment-suite-support.js";
 
 // Distinct prefix / catalog key / semester / teacher from the GRE-30 suite: `test:db` runs test
 // files in parallel processes against one database, so shared identifiers would race on the global
@@ -173,23 +173,4 @@ export function registerAdvanceDbLifecycle(): void {
     await cleanAdvanceDatabase();
     await db.$disconnect();
   });
-}
-
-/** Asserts the enrollment holds exactly one active progress at `stageId` and is still active. */
-export async function assertActiveStageAndOpenEnrollment(input: {
-  enrollmentId: string;
-  stageId: string;
-}): Promise<void> {
-  const active = await db.pedagogicalProgress.findMany({
-    where: { enrollmentId: input.enrollmentId, endDate: null },
-    select: { stageId: true },
-  });
-  assert.equal(active.length, 1);
-  assert.equal(active[0]?.stageId, input.stageId);
-
-  const enrollment = await db.enrollment.findUniqueOrThrow({
-    where: { id: input.enrollmentId },
-    select: { exitDate: true },
-  });
-  assert.equal(enrollment.exitDate, null);
 }
