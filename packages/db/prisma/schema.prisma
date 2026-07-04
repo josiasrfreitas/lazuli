@@ -405,7 +405,7 @@ model ClassSession {
   portalSubmittedAt         DateTime?          @map("portal_submitted_at") @db.Timestamptz
 
   class                 Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
-  scheduleSlot          ClassScheduleSlot?  @relation(fields: [scheduleSlotId], references: [id], onDelete: Restrict)
+  scheduleSlot          ClassScheduleSlot?  @relation(fields: [classId, scheduleSlotId], references: [classId, id], onDelete: Restrict)
   cancelledBy           User?              @relation("ClassSessionCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
   attendanceConfirmedBy User?              @relation("ClassSessionAttendanceConfirmer", fields: [attendanceConfirmedById], references: [id], onDelete: Restrict)
 
