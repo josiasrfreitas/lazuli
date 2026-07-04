@@ -31,7 +31,10 @@ void describe("deriveMakeupDisplayStatus", () => {
   });
 
   void it("is ATTENDED once attendance is marked", () => {
-    assert.equal(status({ attendedAt: new Date("2026-03-12T13:05:00.000Z"), now: AFTER_END }), "ATTENDED");
+    assert.equal(
+      status({ attendedAt: new Date("2026-03-12T13:05:00.000Z"), now: AFTER_END }),
+      "ATTENDED",
+    );
   });
 
   void it("is CANCELLED when the makeup row is cancelled", () => {
