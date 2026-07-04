@@ -99,6 +99,8 @@ export async function createPersonalizedClass(
   database: DatabaseClient,
   input: { capacity: number; code: string; status?: "ACTIVE" | "ARCHIVED" },
 ): Promise<{ id: string }> {
+  const semester = await ensureRegularSemester(database);
+
   return database.class.create({
     data: {
       capacity: input.capacity,
@@ -106,6 +108,7 @@ export async function createPersonalizedClass(
       internalCode: `${TEST_PREFIX}${input.code}`,
       portalClassName: `${TEST_PREFIX}portal-${input.code}`,
       scheduleType: "PERSONALIZED",
+      semesterId: semester.id,
       status: input.status ?? "ACTIVE",
       teacherId: TEACHER_ID,
       year: 2026,
@@ -295,14 +298,27 @@ async function createStage(
   });
 }
 
-async function createRegularSemester(database: DatabaseClient): Promise<void> {
-  await database.semester.create({
+async function ensureRegularSemester(database: DatabaseClient): Promise<{ id: string }> {
+  const existing = await database.semester.findFirst({
+    where: { name: REGULAR_SEMESTER_NAME },
+    select: { id: true },
+  });
+  if (existing !== null) {
+    return existing;
+  }
+
+  return database.semester.create({
     data: {
       endDate: new Date("2076-06-30T00:00:00.000Z"),
       name: REGULAR_SEMESTER_NAME,
       startDate: new Date("2076-01-01T00:00:00.000Z"),
     },
+    select: { id: true },
   });
+}
+
+async function createRegularSemester(database: DatabaseClient): Promise<void> {
+  await ensureRegularSemester(database);
 }
 
 function toEnrollmentCreateData(input: {

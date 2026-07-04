@@ -26,7 +26,7 @@ void describe("enrollment.advanceStage over the tRPC HTTP boundary", () => {
   databaseIt("advances to the next stage and keeps the enrollment active via HTTP", async () => {
     await ensureTeacherUser();
     const catalog = await seedTwoStageCatalog();
-    const classRow = await createPersonalizedClass("http");
+    const classRow = await createPersonalizedClass("http", catalog.semesterId);
     const student = await createStudent("Http Student");
     const enrollmentId = await enrollAtStage({
       studentId: student.id,

@@ -14,6 +14,21 @@ const LIFECYCLE_ENTRY_DATE = new Date("2026-01-01T00:00:00.000Z");
 const LIFECYCLE_EXIT_DATE = new Date("2026-02-01T00:00:00.000Z");
 const STAGE_CODE_SUFFIX_LIMIT = 16;
 
+const SEMESTER_WINDOWS_BY_SUFFIX = {
+  "dropped-active": {
+    startDate: new Date("2083-02-01T00:00:00.000Z"),
+    endDate: new Date("2083-06-30T00:00:00.000Z"),
+  },
+  "suspended-active": {
+    startDate: new Date("2081-02-01T00:00:00.000Z"),
+    endDate: new Date("2081-06-30T00:00:00.000Z"),
+  },
+  "suspended-closed": {
+    startDate: new Date("2082-02-01T00:00:00.000Z"),
+    endDate: new Date("2082-06-30T00:00:00.000Z"),
+  },
+} as const satisfies Record<string, { endDate: Date; startDate: Date }>;
+
 void describe("students status lifecycle API", () => {
   void before(async () => {
     await db.$connect();
@@ -117,6 +132,7 @@ async function cleanDatabase(): Promise<void> {
     where: { student: { fullName: { startsWith: TEST_PREFIX } } },
   });
   await db.class.deleteMany({ where: { internalCode: { startsWith: TEST_PREFIX } } });
+  await db.semester.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await db.stage.deleteMany({
     where: { track: { productLine: { key: CATALOG_KEY } } },
   });
@@ -230,6 +246,16 @@ async function createStageFixture(suffix: string): Promise<{ id: string }> {
 }
 
 async function createClassFixture(suffix: string): Promise<{ id: string }> {
+  const { endDate, startDate } = semesterDatesForSuffix(suffix);
+  const semester = await db.semester.create({
+    data: {
+      name: `${TEST_PREFIX}Semester ${suffix}`,
+      startDate,
+      endDate,
+    },
+    select: { id: true },
+  });
+
   return db.class.create({
     data: {
       capacity: 8,
@@ -237,9 +263,19 @@ async function createClassFixture(suffix: string): Promise<{ id: string }> {
       internalCode: `${TEST_PREFIX}Class ${suffix}`,
       portalClassName: `${TEST_PREFIX}Portal ${suffix}`,
       scheduleType: "PERSONALIZED",
+      semesterId: semester.id,
       teacherId: TEACHER_ID,
       year: 2026,
     },
     select: { id: true },
   });
+}
+
+function semesterDatesForSuffix(suffix: string): { endDate: Date; startDate: Date } {
+  const window = SEMESTER_WINDOWS_BY_SUFFIX[suffix as keyof typeof SEMESTER_WINDOWS_BY_SUFFIX];
+  if (window === undefined) {
+    throw new Error(`Missing semester window fixture for suffix: ${suffix}`);
+  }
+
+  return window;
 }

@@ -265,7 +265,7 @@ model Class {
   scheduleType            ClassScheduleType @map("schedule_type")
   format                  ClassFormat
   sharedStageId           String?           @map("shared_stage_id") @db.Uuid
-  semesterId              String?           @map("semester_id") @db.Uuid
+  semesterId              String            @map("semester_id") @db.Uuid
   year                    Int
   capacity                Int
   status                  ClassStatus       @default(ACTIVE)
@@ -275,7 +275,7 @@ model Class {
 
   teacher       User                @relation("ClassTeacher", fields: [teacherId], references: [id])
   sharedStage   Stage?              @relation(fields: [sharedStageId], references: [id])
-  semester      Semester?           @relation(fields: [semesterId], references: [id])
+  semester      Semester            @relation(fields: [semesterId], references: [id])
   previousClass Class?              @relation("ClassLineage", fields: [previousClassId], references: [id])
   nextClasses   Class[]             @relation("ClassLineage")
   scheduleSlots ClassScheduleSlot[]

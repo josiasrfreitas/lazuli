@@ -34,7 +34,10 @@ void describe("enrollment API over the tRPC HTTP boundary", () => {
   databaseIt("creates an enrollment and its active progress via HTTP", async () => {
     await ensureTeacherUser();
     const catalog = await seedCatalog();
-    const classRow = await createPersonalizedClass({ code: "http" });
+    const classRow = await createPersonalizedClass({
+      code: "http",
+      semesterId: catalog.semesterId,
+    });
     const student = await createStudent({ suffix: "Http Student" });
 
     const response = await callHttpMutation({

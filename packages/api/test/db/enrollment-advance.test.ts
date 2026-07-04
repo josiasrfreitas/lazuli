@@ -46,7 +46,7 @@ function registerHappyPath(): void {
     "moves the active progress to the next stage, keeping the enrollment active",
     async () => {
       const catalog = await setup();
-      const classRow = await createPersonalizedClass("happy");
+      const classRow = await createPersonalizedClass("happy", catalog.semesterId);
       const student = await createStudent("Happy Student");
       const enrollmentId = await enrollAtStage({
         studentId: student.id,
@@ -74,7 +74,7 @@ function registerHappyPath(): void {
 function registerEndOfTrack(): void {
   databaseIt("rejects advancing past the last stage in the track", async () => {
     const catalog = await setup();
-    const classRow = await createPersonalizedClass("end-of-track");
+    const classRow = await createPersonalizedClass("end-of-track", catalog.semesterId);
     const student = await createStudent("End Of Track Student");
     const enrollmentId = await enrollAtStage({
       studentId: student.id,
@@ -122,7 +122,7 @@ function registerNotFound(): void {
 function registerClosedEnrollmentRejected(): void {
   databaseIt("rejects advancing a closed enrollment", async () => {
     const catalog = await setup();
-    const classRow = await createPersonalizedClass("closed");
+    const classRow = await createPersonalizedClass("closed", catalog.semesterId);
     const student = await createStudent("Closed Student");
     const enrollmentId = await enrollAtStage({
       studentId: student.id,
