@@ -19,6 +19,7 @@ import {
   createRegularClass,
   createStudent,
   ensureTeacherUser,
+  expectRejects,
   seedCatalog,
   type CatalogFixture,
 } from "./enrollment-test-support.js";
@@ -28,17 +29,6 @@ const OVERRIDE_REASON = "Aprovacao manual da coordenacao.";
 async function setupCatalog(): Promise<CatalogFixture> {
   await ensureTeacherUser();
   return seedCatalog();
-}
-
-async function expectRejects(promise: Promise<unknown>, message: string): Promise<void> {
-  await assert.rejects(promise, (error: unknown) => {
-    assert.ok(error instanceof Error, "expected an Error");
-    assert.ok(
-      error.message.includes(message),
-      `expected message to include "${message}", got "${error.message}"`,
-    );
-    return true;
-  });
 }
 
 void describe("enrollment.create", () => {

@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import { TRPCError } from "@trpc/server";
 
-import { enrollmentCreateInputSchema } from "@lazuli/validators";
+import { enrollmentAdvanceStageInputSchema, enrollmentCreateInputSchema } from "@lazuli/validators";
 
 import { createCaller } from "@lazuli/api";
 
@@ -14,6 +14,7 @@ const UNAUTHORIZED = "UNAUTHORIZED" as const;
 
 const STUDENT_ID = "11111111-1111-4111-8111-111111111111";
 const CLASS_ID = "22222222-2222-4222-8222-222222222222";
+const ENROLLMENT_ID = "33333333-3333-4333-8333-333333333333";
 
 function isTRPCError(code: TRPCError["code"]): (error: unknown) => boolean {
   return (error) => error instanceof TRPCError && error.code === code;
@@ -92,5 +93,56 @@ void describe("enrollmentCreateInputSchema", () => {
     });
 
     assert.ok(parsed.entryDate instanceof Date);
+  });
+});
+
+void describe("enrollment.advanceStage role gate", () => {
+  // Invalid input so ADMIN fails at input parsing (after the gate), never touching the db.
+  const invalidInput = {} as never;
+
+  void it("rejects TEACHER with FORBIDDEN", async () => {
+    await assert.rejects(
+      createCaller(contextFor(TEACHER_FIXTURE)).enrollment.advanceStage(invalidInput),
+      isTRPCError(FORBIDDEN),
+    );
+  });
+
+  void it("rejects an anonymous caller with UNAUTHORIZED", async () => {
+    await assert.rejects(
+      createCaller(contextFor(null)).enrollment.advanceStage(invalidInput),
+      isTRPCError(UNAUTHORIZED),
+    );
+  });
+
+  void it("lets ADMIN past the gate (fails later on input, not on the gate)", async () => {
+    await assert.rejects(
+      createCaller(contextFor(ADMIN_FIXTURE)).enrollment.advanceStage(invalidInput),
+      isNotGateError,
+    );
+  });
+});
+
+void describe("enrollmentAdvanceStageInputSchema", () => {
+  void it("accepts a valid enrollment id", () => {
+    const parsed = enrollmentAdvanceStageInputSchema.parse({ enrollmentId: ENROLLMENT_ID });
+
+    assert.equal(parsed.enrollmentId, ENROLLMENT_ID);
+  });
+
+  void it("rejects a non-UUID enrollment id", () => {
+    assert.equal(
+      enrollmentAdvanceStageInputSchema.safeParse({ enrollmentId: "not-a-uuid" }).success,
+      false,
+    );
+  });
+
+  void it("rejects unknown keys", () => {
+    assert.equal(
+      enrollmentAdvanceStageInputSchema.safeParse({
+        enrollmentId: ENROLLMENT_ID,
+        stageId: CLASS_ID,
+      }).success,
+      false,
+    );
   });
 });

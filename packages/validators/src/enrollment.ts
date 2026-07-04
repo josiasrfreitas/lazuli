@@ -23,3 +23,14 @@ export const enrollmentCreateInputSchema = z
       .optional(),
   })
   .strict();
+
+/**
+ * Input for `enrollment.advanceStage` (S-ENR-4). Advancing a PERSONALIZED/PPT student moves
+ * their active `PedagogicalProgress` to the next `Stage` in the same `Track`; the schedule-type
+ * and end-of-track rules depend on server state, so they are enforced in the service layer.
+ */
+export const enrollmentAdvanceStageInputSchema = z
+  .object({
+    enrollmentId: z.string().uuid("Identificador de matricula invalido."),
+  })
+  .strict();
