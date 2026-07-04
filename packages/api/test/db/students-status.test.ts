@@ -14,6 +14,21 @@ const LIFECYCLE_ENTRY_DATE = new Date("2026-01-01T00:00:00.000Z");
 const LIFECYCLE_EXIT_DATE = new Date("2026-02-01T00:00:00.000Z");
 const STAGE_CODE_SUFFIX_LIMIT = 16;
 
+const SEMESTER_WINDOWS_BY_SUFFIX = {
+  "dropped-active": {
+    startDate: new Date("2083-02-01T00:00:00.000Z"),
+    endDate: new Date("2083-06-30T00:00:00.000Z"),
+  },
+  "suspended-active": {
+    startDate: new Date("2081-02-01T00:00:00.000Z"),
+    endDate: new Date("2081-06-30T00:00:00.000Z"),
+  },
+  "suspended-closed": {
+    startDate: new Date("2082-02-01T00:00:00.000Z"),
+    endDate: new Date("2082-06-30T00:00:00.000Z"),
+  },
+} as const satisfies Record<string, { endDate: Date; startDate: Date }>;
+
 void describe("students status lifecycle API", () => {
   void before(async () => {
     await db.$connect();
@@ -257,13 +272,10 @@ async function createClassFixture(suffix: string): Promise<{ id: string }> {
 }
 
 function semesterDatesForSuffix(suffix: string): { endDate: Date; startDate: Date } {
-  let hash = 0;
-  for (const char of suffix) {
-    hash = (hash + char.charCodeAt(0)) % 50;
+  const window = SEMESTER_WINDOWS_BY_SUFFIX[suffix as keyof typeof SEMESTER_WINDOWS_BY_SUFFIX];
+  if (window === undefined) {
+    throw new Error(`Missing semester window fixture for suffix: ${suffix}`);
   }
-  const year = 2080 + hash;
-  return {
-    startDate: new Date(`${year}-02-01T00:00:00.000Z`),
-    endDate: new Date(`${year}-06-30T00:00:00.000Z`),
-  };
+
+  return window;
 }
