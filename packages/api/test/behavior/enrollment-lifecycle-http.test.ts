@@ -18,7 +18,7 @@ import {
   registerLifecycleDbLifecycle,
   seedTwoStageCatalog,
   type TwoStageCatalogFixture,
-} from "../db/enrollment-lifecycle-support.js";
+} from "../db/enrollment-lifecycle-behavior-support.js";
 
 type CloseResponseBody = {
   result: { data: { json: { enrollmentId: string; exitReason: string } } };
