@@ -27,3 +27,17 @@ export {
 export { isSessionUntaken } from "./session-status.js";
 export { deriveMakeupDisplayStatus, type MakeupDisplayStatus } from "./makeup-status.js";
 export { computeAttendancePercent, type AttendancePercent } from "./attendance-percent.js";
+export {
+  deriveFirstDueDate,
+  FINANCE_DUE_DAY_FIFTEENTH,
+  FINANCE_DUE_DAY_FIFTH,
+  FINANCE_DUE_DAY_TENTH,
+  FINANCE_DUE_DAY_TWENTIETH,
+  FINANCE_DUE_DAY_TWENTY_FIFTH,
+  FINANCE_DUE_DAYS,
+  generateInstallments,
+  InstallmentGenerationError,
+  type DueDay,
+  type GeneratedInstallment,
+  type InstallmentGenerationErrorCode,
+} from "./installment-generation.js";
