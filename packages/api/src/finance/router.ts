@@ -91,8 +91,6 @@ export const financeRouter = router({
         }),
       ),
     ),
-  receivablesSnapshot: adminProcedure.query(({ ctx }) =>
-    receivablesSnapshot({ database: ctx.db }),
-  ),
+  receivablesSnapshot: adminProcedure.query(({ ctx }) => receivablesSnapshot({ database: ctx.db })),
   overdueList: adminProcedure.query(({ ctx }) => overdueList({ database: ctx.db })),
 });

@@ -19,11 +19,7 @@ const MONTH_INDEX_OFFSET = 1;
 
 export type ReceivablesDatabase = Pick<
   Prisma.TransactionClient,
-  | "installment"
-  | "installmentAdjustment"
-  | "paymentAllocation"
-  | "paymentEntry"
-  | "financeSettings"
+  "installment" | "installmentAdjustment" | "paymentAllocation" | "paymentEntry" | "financeSettings"
 >;
 
 type LoadedReceivablesInstallment = {
@@ -61,8 +57,7 @@ export async function loadDerivedReceivablesInstallments(
   const installments = await loadActiveOrderInstallments(database);
 
   return installments.map((installment) => {
-    const isCollectible =
-      installment.order.cancelledAt === null && installment.waivedAt === null;
+    const isCollectible = installment.order.cancelledAt === null && installment.waivedAt === null;
     const ledger = deriveInstallmentLedger({
       amountCents: installment.amountCents,
       dueDate: installment.dueDate,

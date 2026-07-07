@@ -4,11 +4,7 @@ import { after, before, beforeEach, describe } from "node:test";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
-import {
-  caller,
-  cleanFinanceOrdersDatabase,
-  ensureAdminUser,
-} from "./finance-test-support.js";
+import { caller, cleanFinanceOrdersDatabase, ensureAdminUser } from "./finance-test-support.js";
 import {
   computeExpectedSnapshotTotals,
   createReceivablesFixture,
@@ -75,10 +71,7 @@ function registerOverdueListHappyPath(): void {
     ]);
     const fixtureRows = result.rows.filter((row) => fixtureInstallmentIds.has(row.installmentId));
 
-    assert.equal(
-      fixtureRows.length,
-      fixture.inMonthIsOverdue ? 2 : 1,
-    );
+    assert.equal(fixtureRows.length, fixture.inMonthIsOverdue ? 2 : 1);
     assert.ok(fixtureRows.some((row) => row.installmentId === fixture.overdueInstallmentId));
 
     if (fixture.inMonthIsOverdue) {

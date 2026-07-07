@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
-  buildReceivablesSnapshot,
-  isDueInSaoPauloMonth,
-} from "../src/receivables-dashboard.js";
+import { buildReceivablesSnapshot, isDueInSaoPauloMonth } from "../src/receivables-dashboard.js";
 import { deriveInstallmentLedger } from "../src/finance-ledger.js";
 
 const JULY_TENTH_MIDDAY_UTC = new Date("2026-07-10T15:00:00.000Z");

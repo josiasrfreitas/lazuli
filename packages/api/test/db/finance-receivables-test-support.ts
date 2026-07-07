@@ -5,12 +5,7 @@ import {
 } from "@lazuli/domain";
 import { db, PaymentMethod } from "@lazuli/db";
 
-import {
-  caller,
-  createPayer,
-  createStudent,
-  DEFAULT_ORDER_INPUT,
-} from "./finance-test-support.js";
+import { caller, createPayer, createStudent, DEFAULT_ORDER_INPUT } from "./finance-test-support.js";
 
 export const RECEIVABLES_TEST_PREFIX = "GRE-63 ";
 
@@ -79,8 +74,7 @@ export function firstDayOfNextSaoPauloMonth(today: string): string {
 
 export function dateOnlyToUtcDate(value: string): Date {
   const year = Number(value.slice(YEAR_START_INDEX, YEAR_END_INDEX));
-  const monthIndex =
-    Number(value.slice(MONTH_START_INDEX, MONTH_END_INDEX)) - MONTH_INDEX_OFFSET;
+  const monthIndex = Number(value.slice(MONTH_START_INDEX, MONTH_END_INDEX)) - MONTH_INDEX_OFFSET;
   const day = Number(value.slice(DAY_START_INDEX, DATE_ONLY_LENGTH));
 
   return new Date(Date.UTC(year, monthIndex, day));
@@ -132,8 +126,7 @@ export async function computeExpectedSnapshotTotals(
   });
 
   const snapshotInstallments = installments.map((installment) => {
-    const isCollectible =
-      installment.order.cancelledAt === null && installment.waivedAt === null;
+    const isCollectible = installment.order.cancelledAt === null && installment.waivedAt === null;
     const ledger = deriveInstallmentLedger({
       amountCents: installment.amountCents,
       dueDate: installment.dueDate,

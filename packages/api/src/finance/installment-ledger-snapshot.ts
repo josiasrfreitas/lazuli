@@ -19,7 +19,6 @@ export function snapshotInstallmentLedger(
     adjustments: installment.adjustments,
     allocations: installment.allocations,
     now: new Date(),
-    interestRatePctMonthly:
-      options?.interestRatePctMonthly ?? DEFAULT_INTEREST_RATE_PCT_MONTHLY,
+    interestRatePctMonthly: options?.interestRatePctMonthly ?? DEFAULT_INTEREST_RATE_PCT_MONTHLY,
   });
 }
