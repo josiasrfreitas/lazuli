@@ -47,3 +47,8 @@ export {
   enrollmentCreateInputSchema,
   enrollmentTransferInputSchema,
 } from "./enrollment.js";
+export {
+  attendanceConfirmSessionInputSchema,
+  attendanceSessionRosterInputSchema,
+  attendanceStatusSchema,
+} from "./attendance.js";
