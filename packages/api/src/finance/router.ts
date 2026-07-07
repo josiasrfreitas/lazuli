@@ -13,6 +13,8 @@ import { addInstallmentAdjustment } from "./add-installment-adjustment.js";
 import { batchReconcile } from "./batch-reconcile.js";
 import { createOrder } from "./create-order.js";
 import { createPayer } from "./create-payer.js";
+import { overdueList } from "./overdue-list.js";
+import { receivablesSnapshot } from "./receivables-snapshot.js";
 import { registerPayment } from "./register-payment.js";
 import { updateOrder } from "./update-order.js";
 import { waiveInstallment } from "./waive-installment.js";
@@ -89,4 +91,6 @@ export const financeRouter = router({
         }),
       ),
     ),
+  receivablesSnapshot: adminProcedure.query(({ ctx }) => receivablesSnapshot({ database: ctx.db })),
+  overdueList: adminProcedure.query(({ ctx }) => overdueList({ database: ctx.db })),
 });

@@ -55,3 +55,10 @@ export {
   type OverdueAgeBucket,
   type PaymentEntryRemainder,
 } from "./finance-ledger.js";
+export {
+  buildReceivablesSnapshot,
+  isDueInSaoPauloMonth,
+  type ReceivablesAgeBuckets,
+  type ReceivablesSnapshot,
+  type ReceivablesSnapshotInstallment,
+} from "./receivables-dashboard.js";
