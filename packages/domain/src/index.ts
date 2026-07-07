@@ -19,6 +19,7 @@ export {
   type BrazilFederalHoliday,
 } from "./brazil-federal-holidays.js";
 export {
+  isSameDayInSaoPaulo,
   sessionEndInstant,
   saoPauloDateOnly,
   isAtLeastTomorrowInSaoPaulo,

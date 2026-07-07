@@ -9,18 +9,16 @@ import {
   type RosterEnrollment,
   type SessionWithClass,
 } from "./data.js";
+import { assertAttendanceWriteWindow } from "./access.js";
 import {
   ALREADY_CONFIRMED_MESSAGE,
-  DUPLICATE_ROSTER_ROW_MESSAGE,
-  ENROLLMENT_NOT_ON_ROSTER_MESSAGE,
   ROSTER_COUNT_MISMATCH_MESSAGE,
   SESSION_CANCELLED_MESSAGE,
   badRequest,
 } from "./errors.js";
+import { buildRequestedStatuses, type AttendanceStatus } from "./rows.js";
 
 type ConfirmInput = z.infer<typeof attendanceConfirmSessionInputSchema>;
-type ConfirmRow = ConfirmInput["rows"][number];
-type AttendanceStatus = ConfirmRow["status"];
 
 const PRESENT = "PRESENT" as const;
 const ABSENT = "ABSENT" as const;
@@ -42,12 +40,18 @@ export async function confirmSession(input: {
   database: AttendanceDatabase;
   staffUser: StaffUser;
   values: ConfirmInput;
+  now: Date;
 }): Promise<ConfirmSessionResult> {
   const session = await loadSessionWithClass({
     database: input.database,
     sessionId: input.values.sessionId,
   });
   assertResourceScope(input.staffUser, { teacherId: session.class.teacherId });
+  assertAttendanceWriteWindow({
+    staffUser: input.staffUser,
+    sessionDate: session.date,
+    now: input.now,
+  });
   assertConfirmable(session);
 
   const roster = await loadActiveRoster({
@@ -57,7 +61,7 @@ export async function confirmSession(input: {
   });
   const requested = buildRequestedStatuses(input.values.rows, roster);
 
-  const confirmedAt = new Date();
+  const confirmedAt = input.now;
   await writeAttendanceRows({
     database: input.database,
     sessionId: session.id,
@@ -82,27 +86,6 @@ function assertConfirmable(session: SessionWithClass): void {
   if (session.attendanceConfirmedAt !== null) {
     throw badRequest(ALREADY_CONFIRMED_MESSAGE);
   }
-}
-
-/** Maps `rows` to an enrollment→status lookup, rejecting off-roster and duplicate entries. */
-function buildRequestedStatuses(
-  rows: ConfirmRow[],
-  roster: RosterEnrollment[],
-): Map<string, AttendanceStatus> {
-  const rosterIds = new Set(roster.map((member) => member.enrollmentId));
-  const requested = new Map<string, AttendanceStatus>();
-
-  for (const row of rows) {
-    if (!rosterIds.has(row.enrollmentId)) {
-      throw badRequest(ENROLLMENT_NOT_ON_ROSTER_MESSAGE);
-    }
-    if (requested.has(row.enrollmentId)) {
-      throw badRequest(DUPLICATE_ROSTER_ROW_MESSAGE);
-    }
-    requested.set(row.enrollmentId, row.status);
-  }
-
-  return requested;
 }
 
 async function writeAttendanceRows(input: {

@@ -60,21 +60,30 @@ void describe("attendance.sessionRoster makeup visitors", () => {
 });
 
 function registerScheduledVisitorTest(): void {
-  databaseIt("renders a future visitor with its origin class code and SCHEDULED status", async () => {
-    const context = await setup();
-    const sessionId = await harness.createSession({
-      classId: context.targetClassId,
-      date: FAR_FUTURE_DATE,
-    });
-    await insertMakeup({ originEnrollmentId: context.originEnrollmentId, targetClassSessionId: sessionId });
+  databaseIt(
+    "renders a future visitor with its origin class code and SCHEDULED status",
+    async () => {
+      const context = await setup();
+      const sessionId = await harness.createSession({
+        classId: context.targetClassId,
+        date: FAR_FUTURE_DATE,
+      });
+      await insertMakeup({
+        originEnrollmentId: context.originEnrollmentId,
+        targetClassSessionId: sessionId,
+      });
 
-    const roster = await harness.caller().attendance.sessionRoster({ sessionId });
+      const roster = await harness.caller().attendance.sessionRoster({ sessionId });
 
-    assert.equal(roster.makeupVisitors.length, 1);
-    assert.equal(roster.makeupVisitors[0]?.status, "SCHEDULED");
-    assert.equal(roster.makeupVisitors[0]?.originClassInternalCode, context.originClassInternalCode);
-    assert.ok(roster.makeupVisitors[0]?.studentFullName.endsWith("Vera"));
-  });
+      assert.equal(roster.makeupVisitors.length, 1);
+      assert.equal(roster.makeupVisitors[0]?.status, "SCHEDULED");
+      assert.equal(
+        roster.makeupVisitors[0]?.originClassInternalCode,
+        context.originClassInternalCode,
+      );
+      assert.ok(roster.makeupVisitors[0]?.studentFullName.endsWith("Vera"));
+    },
+  );
 }
 
 function registerNoShowTest(): void {
@@ -84,7 +93,10 @@ function registerNoShowTest(): void {
       classId: context.targetClassId,
       date: harness.ns.afterSessionDate,
     });
-    await insertMakeup({ originEnrollmentId: context.originEnrollmentId, targetClassSessionId: sessionId });
+    await insertMakeup({
+      originEnrollmentId: context.originEnrollmentId,
+      targetClassSessionId: sessionId,
+    });
 
     const roster = await harness.caller().attendance.sessionRoster({ sessionId });
 
@@ -143,7 +155,10 @@ function registerSeparationTest(): void {
       suffix: "Real",
       entryDate: FAR_FUTURE_DATE,
     });
-    await insertMakeup({ originEnrollmentId: context.originEnrollmentId, targetClassSessionId: sessionId });
+    await insertMakeup({
+      originEnrollmentId: context.originEnrollmentId,
+      targetClassSessionId: sessionId,
+    });
 
     const roster = await harness.caller().attendance.sessionRoster({ sessionId });
     assert.equal(roster.entries.length, 1);

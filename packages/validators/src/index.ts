@@ -49,6 +49,7 @@ export {
 } from "./enrollment.js";
 export {
   attendanceConfirmSessionInputSchema,
+  attendanceEditSessionInputSchema,
   attendanceSessionRosterInputSchema,
   attendanceStatusSchema,
 } from "./attendance.js";

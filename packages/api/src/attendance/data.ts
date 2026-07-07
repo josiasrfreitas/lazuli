@@ -17,6 +17,7 @@ const sessionWithClassSelect = {
   status: true,
   attendanceConfirmedAt: true,
   attendanceConfirmedById: true,
+  attendanceLastCommittedAt: true,
   class: { select: { teacherId: true } },
 } satisfies Prisma.ClassSessionSelect;
 

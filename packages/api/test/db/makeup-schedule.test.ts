@@ -70,26 +70,29 @@ void describe("attendance.scheduleMakeup", () => {
 });
 
 function registerAcceptTest(): void {
-  databaseIt("creates a makeup into a future session in another class, stamped by the admin", async () => {
-    const context = await setup();
-    const targetSessionId = await harness.createSession({
-      classId: context.targetClassId,
-      date: FAR_FUTURE_DATE,
-    });
+  databaseIt(
+    "creates a makeup into a future session in another class, stamped by the admin",
+    async () => {
+      const context = await setup();
+      const targetSessionId = await harness.createSession({
+        classId: context.targetClassId,
+        date: FAR_FUTURE_DATE,
+      });
 
-    const result = await harness.caller().attendance.scheduleMakeup({
-      originEnrollmentId: context.originEnrollmentId,
-      targetClassSessionId: targetSessionId,
-    });
+      const result = await harness.caller().attendance.scheduleMakeup({
+        originEnrollmentId: context.originEnrollmentId,
+        targetClassSessionId: targetSessionId,
+      });
 
-    assert.equal(result.targetClassSessionId, targetSessionId);
-    const row = await db.makeup.findUnique({
-      where: { id: result.makeupId },
-      select: { scheduledById: true, reason: true },
-    });
-    assert.equal(row?.scheduledById, harness.ns.admin.id);
-    assert.equal(row?.reason, null);
-  });
+      assert.equal(result.targetClassSessionId, targetSessionId);
+      const row = await db.makeup.findUnique({
+        where: { id: result.makeupId },
+        select: { scheduledById: true, reason: true },
+      });
+      assert.equal(row?.scheduledById, harness.ns.admin.id);
+      assert.equal(row?.reason, null);
+    },
+  );
 }
 
 function registerAdvanceDateTest(): void {
@@ -111,28 +114,31 @@ function registerAdvanceDateTest(): void {
 }
 
 function registerSameClassTests(): void {
-  databaseIt("rejects a same-class target with no override reason, allows it with one", async () => {
-    const context = await setup();
-    const rejectedId = await harness.createSession({
-      classId: context.scenarioClassId,
-      date: FAR_FUTURE_DATE,
-    });
+  databaseIt(
+    "rejects a same-class target with no override reason, allows it with one",
+    async () => {
+      const context = await setup();
+      const rejectedId = await harness.createSession({
+        classId: context.scenarioClassId,
+        date: FAR_FUTURE_DATE,
+      });
 
-    await expectRejects(
-      harness.caller().attendance.scheduleMakeup({
+      await expectRejects(
+        harness.caller().attendance.scheduleMakeup({
+          originEnrollmentId: context.originEnrollmentId,
+          targetClassSessionId: rejectedId,
+        }),
+        MAKEUP_SAME_CLASS_MESSAGE,
+      );
+
+      const result = await harness.caller().attendance.scheduleMakeup({
         originEnrollmentId: context.originEnrollmentId,
         targetClassSessionId: rejectedId,
-      }),
-      MAKEUP_SAME_CLASS_MESSAGE,
-    );
-
-    const result = await harness.caller().attendance.scheduleMakeup({
-      originEnrollmentId: context.originEnrollmentId,
-      targetClassSessionId: rejectedId,
-      reason: "aula extra",
-    });
-    assert.ok(result.makeupId);
-  });
+        reason: "aula extra",
+      });
+      assert.ok(result.makeupId);
+    },
+  );
 }
 
 function registerDuplicateTest(): void {
@@ -148,7 +154,10 @@ function registerDuplicateTest(): void {
     };
 
     await harness.caller().attendance.scheduleMakeup(input);
-    await expectRejects(harness.caller().attendance.scheduleMakeup(input), MAKEUP_DUPLICATE_MESSAGE);
+    await expectRejects(
+      harness.caller().attendance.scheduleMakeup(input),
+      MAKEUP_DUPLICATE_MESSAGE,
+    );
   });
 }
 

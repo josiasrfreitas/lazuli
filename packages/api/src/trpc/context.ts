@@ -19,12 +19,14 @@ export type StaffUser = {
 
 export type Context = {
   db: DbClient;
+  now?: Date;
   sessionGenerationQueue?: SessionsGenerateQueue;
   staffUser: StaffUser | null;
 };
 
 type CreateTRPCContextInput = {
   db?: DbClient;
+  now?: Date;
   sessionGenerationQueue?: SessionsGenerateQueue;
   session: StaffSession | null;
 };
@@ -42,6 +44,7 @@ export async function createTRPCContext(input: CreateTRPCContextInput): Promise<
 
   return {
     db,
+    ...(input.now === undefined ? {} : { now: input.now }),
     sessionGenerationQueue: input.sessionGenerationQueue ?? createLocalSessionsGenerateQueue(),
     staffUser,
   };

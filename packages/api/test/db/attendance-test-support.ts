@@ -62,7 +62,7 @@ export type AttendanceCaller = ReturnType<typeof createCaller>;
 
 export type Harness = {
   ns: Namespace;
-  caller: (staffUser?: StaffUser) => AttendanceCaller;
+  caller: (staffUser?: StaffUser, now?: Date) => AttendanceCaller;
   seedBaseScenario: () => Promise<BaseScenario>;
   enrollStudent: (input: EnrollInput) => Promise<{ studentId: string; enrollmentId: string }>;
   createClass: (input: CreateClassInput) => Promise<string>;
@@ -70,14 +70,14 @@ export type Harness = {
   clean: () => Promise<void>;
 };
 
-export function contextFor(staffUser: StaffUser): Context {
-  return { db, staffUser };
+export function contextFor(staffUser: StaffUser, now?: Date): Context {
+  return { db, ...(now === undefined ? {} : { now }), staffUser };
 }
 
 export function createHarness(ns: Namespace): Harness {
   return {
     ns,
-    caller: (staffUser) => createCaller(contextFor(staffUser ?? ns.admin)),
+    caller: (staffUser, now) => createCaller(contextFor(staffUser ?? ns.admin, now)),
     seedBaseScenario: () => seedBaseScenario(ns),
     enrollStudent: (input) => enrollStudent(ns, input),
     createClass: (input) => createClass(ns, input),
@@ -118,7 +118,12 @@ export function defineNamespace(config: NamespaceConfig): Namespace {
     afterSessionDate: toUtcDate(config.afterSessionDate),
     admin: { id: config.adminId, email: email("admin"), role: "ADMIN", isEnabled: true },
     teacher: { id: config.teacherId, email: email("teacher"), role: "TEACHER", isEnabled: true },
-    otherTeacher: { id: config.otherTeacherId, email: email("other"), role: "TEACHER", isEnabled: true },
+    otherTeacher: {
+      id: config.otherTeacherId,
+      email: email("other"),
+      role: "TEACHER",
+      isEnabled: true,
+    },
   };
 }
 
@@ -237,7 +242,9 @@ async function enrollStudent(
         classId: input.classId,
         studentId: student.id,
         entryDate: startDate,
-        ...(input.exitDate === undefined ? {} : { exitDate: input.exitDate, exitReason: "DROPPED" }),
+        ...(input.exitDate === undefined
+          ? {}
+          : { exitDate: input.exitDate, exitReason: "DROPPED" }),
       },
       select: { id: true },
     });
@@ -255,6 +262,7 @@ export async function callHttpMutation(input: {
   path: string;
   body: unknown;
   staffUser: StaffUser;
+  now?: Date;
 }): Promise<Response> {
   return fetchRequestHandler({
     endpoint: ENDPOINT,
@@ -264,7 +272,7 @@ export async function callHttpMutation(input: {
       body: JSON.stringify({ json: input.body }),
     }),
     router: appRouter,
-    createContext: () => Promise.resolve(contextFor(input.staffUser)),
+    createContext: () => Promise.resolve(contextFor(input.staffUser, input.now)),
   });
 }
 
@@ -272,13 +280,14 @@ export async function callHttpQuery(input: {
   path: string;
   input: unknown;
   staffUser: StaffUser;
+  now?: Date;
 }): Promise<Response> {
   const query = encodeURIComponent(JSON.stringify({ json: input.input }));
   return fetchRequestHandler({
     endpoint: ENDPOINT,
     req: new Request(`http://localhost${ENDPOINT}/${input.path}?input=${query}`, { method: "GET" }),
     router: appRouter,
-    createContext: () => Promise.resolve(contextFor(input.staffUser)),
+    createContext: () => Promise.resolve(contextFor(input.staffUser, input.now)),
   });
 }
 
@@ -303,14 +312,18 @@ async function cleanNamespace(ns: Namespace): Promise<void> {
   });
   await db.pedagogicalProgress.deleteMany({ where: byStudent });
   await db.enrollment.deleteMany({ where: { student: { fullName: { startsWith: ns.prefix } } } });
-  await db.classSession.deleteMany({ where: { class: { internalCode: { startsWith: ns.prefix } } } });
+  await db.classSession.deleteMany({
+    where: { class: { internalCode: { startsWith: ns.prefix } } },
+  });
   await db.student.deleteMany({ where: { fullName: { startsWith: ns.prefix } } });
   await db.class.deleteMany({ where: { internalCode: { startsWith: ns.prefix } } });
   await db.semester.deleteMany({ where: { name: { startsWith: ns.prefix } } });
   await db.stage.deleteMany({
     where: { track: { productLine: { key: { startsWith: ns.catalogKeyPrefix } } } },
   });
-  await db.track.deleteMany({ where: { productLine: { key: { startsWith: ns.catalogKeyPrefix } } } });
+  await db.track.deleteMany({
+    where: { productLine: { key: { startsWith: ns.catalogKeyPrefix } } },
+  });
   await db.productLine.deleteMany({ where: { key: { startsWith: ns.catalogKeyPrefix } } });
   await db.user.deleteMany({
     where: { id: { in: [ns.admin.id, ns.teacher.id, ns.otherTeacher.id] } },

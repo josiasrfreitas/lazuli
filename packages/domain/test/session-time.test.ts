@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   isAtLeastTomorrowInSaoPaulo,
+  isSameDayInSaoPaulo,
   saoPauloDateOnly,
   sessionEndInstant,
 } from "../src/session-time.js";
@@ -73,5 +74,27 @@ void describe("isAtLeastTomorrowInSaoPaulo", () => {
   void it("accepts a Date-typed target (Prisma @db.Date shape)", () => {
     const target = new Date("2026-03-20T00:00:00.000Z");
     assert.equal(isAtLeastTomorrowInSaoPaulo({ targetDate: target, now }), true);
+  });
+});
+
+void describe("isSameDayInSaoPaulo", () => {
+  const now = MIDDAY_UTC; // SP day 2026-03-12
+
+  void it("accepts the same Sao Paulo calendar day", () => {
+    assert.equal(isSameDayInSaoPaulo({ targetDate: MIDDAY_SP_DAY, now }), true);
+  });
+
+  void it("rejects the prior Sao Paulo calendar day across the UTC midnight boundary", () => {
+    assert.equal(
+      isSameDayInSaoPaulo({ targetDate: MIDDAY_SP_DAY, now: LATE_UTC_PRIOR_SP_DAY }),
+      false,
+    );
+  });
+
+  void it("accepts a Date-typed target (Prisma @db.Date shape)", () => {
+    assert.equal(
+      isSameDayInSaoPaulo({ targetDate: new Date("2026-03-12T00:00:00.000Z"), now }),
+      true,
+    );
   });
 });
