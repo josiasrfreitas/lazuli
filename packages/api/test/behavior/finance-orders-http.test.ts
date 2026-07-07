@@ -1,0 +1,65 @@
+import assert from "node:assert/strict";
+import { after, before, beforeEach, describe } from "node:test";
+
+import { db } from "@lazuli/db";
+import { databaseIt } from "@lazuli/db/test";
+
+import {
+  callHttpMutation,
+  cleanFinanceOrdersDatabase,
+  createPayer,
+  createStudent,
+  DEFAULT_ORDER_INPUT,
+  ensureAdminUser,
+  HTTP_OK,
+} from "../db/finance-test-support.js";
+
+type CreateOrderResponseBody = {
+  result: {
+    data: {
+      json: {
+        order: { id: string; principalAmountCents: number };
+        installments: Array<{ amountCents: number }>;
+      };
+    };
+  };
+};
+
+void describe("finance API over the tRPC HTTP boundary", () => {
+  void before(async () => {
+    await db.$connect();
+  });
+  void beforeEach(async () => {
+    await cleanFinanceOrdersDatabase();
+    await ensureAdminUser();
+  });
+  void after(async () => {
+    await cleanFinanceOrdersDatabase();
+    await db.$disconnect();
+  });
+
+  databaseIt("creates an order with generated installments via HTTP", async () => {
+    const payer = await createPayer("Http Payer");
+    const student = await createStudent("Http Student");
+
+    const response = await callHttpMutation({
+      path: "finance.createOrder",
+      body: {
+        ...DEFAULT_ORDER_INPUT,
+        payer: { mode: "existing", payerId: payer.id },
+        beneficiaryStudentIds: [student.id],
+      },
+    });
+    const payload = (await response.json()) as CreateOrderResponseBody;
+
+    assert.equal(response.status, HTTP_OK);
+    assert.equal(payload.result.data.json.order.principalAmountCents, DEFAULT_ORDER_INPUT.principalAmountCents);
+    assert.equal(payload.result.data.json.installments.length, DEFAULT_ORDER_INPUT.installmentCount);
+
+    const storedSum = payload.result.data.json.installments.reduce(
+      (total, row) => total + row.amountCents,
+      0,
+    );
+    assert.equal(storedSum, DEFAULT_ORDER_INPUT.principalAmountCents);
+  });
+});
