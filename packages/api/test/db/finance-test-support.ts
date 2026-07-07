@@ -41,29 +41,29 @@ export async function ensureAdminUser(): Promise<void> {
   });
 }
 
-export async function createStudent(suffix: string): Promise<{ id: string }> {
+export async function createStudent(suffix: string, prefix = TEST_PREFIX): Promise<{ id: string }> {
   return db.student.create({
-    data: { fullName: `${TEST_PREFIX}${suffix}`, status: "ACTIVE" },
+    data: { fullName: `${prefix}${suffix}`, status: "ACTIVE" },
     select: { id: true },
   });
 }
 
-export async function createPayer(suffix: string): Promise<{ id: string }> {
+export async function createPayer(suffix: string, prefix = TEST_PREFIX): Promise<{ id: string }> {
   return db.payer.create({
-    data: { name: `${TEST_PREFIX}${suffix}` },
+    data: { name: `${prefix}${suffix}` },
     select: { id: true },
   });
 }
 
-export async function cleanFinanceOrdersDatabase(): Promise<void> {
+export async function cleanFinanceOrdersDatabase(prefix = TEST_PREFIX): Promise<void> {
   const payers = await db.payer.findMany({
-    where: { name: { startsWith: TEST_PREFIX } },
+    where: { name: { startsWith: prefix } },
     select: { id: true },
   });
   const payerIds = payers.map((row) => row.id);
 
   const students = await db.student.findMany({
-    where: { fullName: { startsWith: TEST_PREFIX } },
+    where: { fullName: { startsWith: prefix } },
     select: { id: true },
   });
   const studentIds = students.map((row) => row.id);
@@ -139,4 +139,4 @@ export const DEFAULT_ORDER_INPUT = {
   installmentCount: 3,
   startDate: new Date("2026-01-03T00:00:00.000Z"),
   dueDay: FINANCE_DUE_DAY_FIFTH,
-};
+} as const;
