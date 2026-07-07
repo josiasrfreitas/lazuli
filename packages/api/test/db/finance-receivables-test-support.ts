@@ -183,49 +183,61 @@ async function createActiveOrderFixture(dates: FixtureDates): Promise<ActiveOrde
     payer: { mode: "existing", payerId: payer.id },
     beneficiaryStudentIds: [student.id],
   });
-  if (activeOrder.installments.length !== THREE_INSTALLMENTS) {
-    throw new Error("Expected three installments on the receivables fixture order.");
-  }
-
-  const overdueInstallment = activeOrder.installments[0];
-  const inMonthInstallment = activeOrder.installments[1];
-  const futureInstallment = activeOrder.installments[2];
-
-  if (
-    overdueInstallment === undefined ||
-    inMonthInstallment === undefined ||
-    futureInstallment === undefined
-  ) {
-    throw new Error("Expected three installments on the receivables fixture order.");
-  }
-
-  const overdueInstallmentId = overdueInstallment.id;
-  const inMonthInstallmentId = inMonthInstallment.id;
-  const futureInstallmentId = futureInstallment.id;
-
-  await db.installment.update({
-    where: { id: overdueInstallmentId },
-    data: { dueDate: dateOnlyToUtcDate(dates.overdueDueDate) },
-  });
-  await db.installment.update({
-    where: { id: inMonthInstallmentId },
-    data: { dueDate: dateOnlyToUtcDate(dates.inMonthOverdueDueDate) },
-  });
-  await db.installment.update({
-    where: { id: futureInstallmentId },
-    data: { dueDate: dateOnlyToUtcDate(dates.futureDueDate) },
-  });
+  const installments = resolveFixtureInstallments(activeOrder.installments);
+  await applyFixtureDueDates(installments, dates);
 
   return {
     orderId: activeOrder.order.id,
     payerId: payer.id,
     studentId: student.id,
-    overdueInstallmentId,
-    inMonthInstallmentId,
-    futureInstallmentId,
-    overdueAmountCents: overdueInstallment.amountCents,
-    inMonthAmountCents: inMonthInstallment.amountCents,
+    overdueInstallmentId: installments.overdue.id,
+    inMonthInstallmentId: installments.inMonth.id,
+    futureInstallmentId: installments.future.id,
+    overdueAmountCents: installments.overdue.amountCents,
+    inMonthAmountCents: installments.inMonth.amountCents,
   };
+}
+
+type FixtureInstallments = {
+  overdue: { id: string; amountCents: number };
+  inMonth: { id: string; amountCents: number };
+  future: { id: string };
+};
+
+function resolveFixtureInstallments(
+  installments: Array<{ id: string; amountCents: number }>,
+): FixtureInstallments {
+  if (installments.length !== THREE_INSTALLMENTS) {
+    throw new Error("Expected three installments on the receivables fixture order.");
+  }
+
+  const overdue = installments[0];
+  const inMonth = installments[1];
+  const future = installments[2];
+
+  if (overdue === undefined || inMonth === undefined || future === undefined) {
+    throw new Error("Expected three installments on the receivables fixture order.");
+  }
+
+  return { overdue, inMonth, future };
+}
+
+async function applyFixtureDueDates(
+  installments: FixtureInstallments,
+  dates: FixtureDates,
+): Promise<void> {
+  await db.installment.update({
+    where: { id: installments.overdue.id },
+    data: { dueDate: dateOnlyToUtcDate(dates.overdueDueDate) },
+  });
+  await db.installment.update({
+    where: { id: installments.inMonth.id },
+    data: { dueDate: dateOnlyToUtcDate(dates.inMonthOverdueDueDate) },
+  });
+  await db.installment.update({
+    where: { id: installments.future.id },
+    data: { dueDate: dateOnlyToUtcDate(dates.futureDueDate) },
+  });
 }
 
 async function registerFixturePayments(activeOrder: ActiveOrderFixture): Promise<void> {

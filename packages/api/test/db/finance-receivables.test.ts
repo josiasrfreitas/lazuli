@@ -9,6 +9,7 @@ import {
   computeExpectedSnapshotTotals,
   createReceivablesFixture,
   RECEIVABLES_TEST_PREFIX,
+  type ReceivablesFixture,
 } from "./finance-receivables-test-support.js";
 
 void describe("finance receivables dashboard", { concurrency: 1 }, () => {
@@ -63,37 +64,61 @@ function registerReceivablesSnapshotHappyPath(): void {
 function registerOverdueListHappyPath(): void {
   databaseIt("returns collectible overdue rows with derived ledger statuses", async () => {
     const fixture = await createReceivablesFixture();
-
     const result = await caller().finance.overdueList();
-    const fixtureInstallmentIds = new Set([
-      fixture.overdueInstallmentId,
-      fixture.inMonthInstallmentId,
-    ]);
-    const fixtureRows = result.rows.filter((row) => fixtureInstallmentIds.has(row.installmentId));
+    const fixtureRows = filterFixtureOverdueRows(result.rows, fixture);
 
-    assert.equal(fixtureRows.length, fixture.inMonthIsOverdue ? 2 : 1);
-    assert.ok(fixtureRows.some((row) => row.installmentId === fixture.overdueInstallmentId));
-
-    if (fixture.inMonthIsOverdue) {
-      assert.ok(fixtureRows.some((row) => row.installmentId === fixture.inMonthInstallmentId));
-    }
-
-    for (const row of fixtureRows) {
-      assert.equal(row.ledger.status, "OVERDUE");
-      assert.ok(row.ledger.collectibleRemainingCents > 0);
-      assert.equal(row.beneficiaries.length, 1);
-      assert.equal(row.beneficiaries[0]?.studentId, fixture.studentId);
-      assert.equal(row.beneficiaries[0]?.whatsAppUrl, "https://wa.me/5582999887766");
-    }
-
-    if (fixtureRows.length >= 2) {
-      const firstDueDate = fixtureRows[0]?.dueDate;
-      const lastDueDate = fixtureRows.at(-1)?.dueDate;
-      if (firstDueDate !== undefined && lastDueDate !== undefined) {
-        assert.ok(firstDueDate <= lastDueDate);
-      }
-    }
+    assertOverdueListFixtureRows(fixture, fixtureRows);
+    assertOverdueRowsSortedByDueDate(fixtureRows);
   });
+}
+
+type OverdueListRow = Awaited<
+  ReturnType<ReturnType<typeof caller>["finance"]["overdueList"]>
+>["rows"][number];
+
+function filterFixtureOverdueRows(
+  rows: OverdueListRow[],
+  fixture: Pick<ReceivablesFixture, "inMonthInstallmentId" | "overdueInstallmentId">,
+): OverdueListRow[] {
+  const fixtureInstallmentIds = new Set([
+    fixture.overdueInstallmentId,
+    fixture.inMonthInstallmentId,
+  ]);
+
+  return rows.filter((row) => fixtureInstallmentIds.has(row.installmentId));
+}
+
+function assertOverdueListFixtureRows(
+  fixture: ReceivablesFixture,
+  fixtureRows: OverdueListRow[],
+): void {
+  assert.equal(fixtureRows.length, fixture.inMonthIsOverdue ? 2 : 1);
+  assert.ok(fixtureRows.some((row) => row.installmentId === fixture.overdueInstallmentId));
+
+  if (fixture.inMonthIsOverdue) {
+    assert.ok(fixtureRows.some((row) => row.installmentId === fixture.inMonthInstallmentId));
+  }
+
+  for (const row of fixtureRows) {
+    assert.equal(row.ledger.status, "OVERDUE");
+    assert.ok(row.ledger.collectibleRemainingCents > 0);
+    assert.equal(row.beneficiaries.length, 1);
+    assert.equal(row.beneficiaries[0]?.studentId, fixture.studentId);
+    assert.equal(row.beneficiaries[0]?.whatsAppUrl, "https://wa.me/5582999887766");
+  }
+}
+
+function assertOverdueRowsSortedByDueDate(fixtureRows: OverdueListRow[]): void {
+  if (fixtureRows.length < 2) {
+    return;
+  }
+
+  const firstDueDate = fixtureRows[0]?.dueDate;
+  const lastDueDate = fixtureRows.at(-1)?.dueDate;
+
+  if (firstDueDate !== undefined && lastDueDate !== undefined) {
+    assert.ok(firstDueDate <= lastDueDate);
+  }
 }
 
 function registerOverdueListExclusions(): void {
