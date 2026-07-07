@@ -1,11 +1,13 @@
-import { isSessionUntaken } from "@lazuli/domain";
+import { deriveMakeupDisplayStatus, isSessionUntaken, type MakeupDisplayStatus } from "@lazuli/domain";
 
 import type { StaffUser } from "../trpc/context.js";
 import { assertResourceScope } from "../trpc/rbac.js";
 import {
   loadActiveRoster,
+  loadSessionMakeups,
   loadSessionWithClass,
   type AttendanceDatabase,
+  type SessionMakeupRow,
   type SessionWithClass,
 } from "./data.js";
 
@@ -35,11 +37,21 @@ export type SessionRosterView = {
   untaken: boolean;
 };
 
+export type MakeupVisitor = {
+  makeupId: string;
+  studentId: string;
+  studentFullName: string;
+  /** The origin class code, shown as "turma origem" on the roster (S-ATT-2). */
+  originClassInternalCode: string;
+  status: MakeupDisplayStatus;
+  attendedAt: Date | null;
+};
+
 export type SessionRosterResult = {
   session: SessionRosterView;
   entries: SessionRosterEntry[];
-  /** Makeup visitors render here once GRE-35 ships; empty until then (S-ATT-2). */
-  makeupVisitors: never[];
+  /** Visiting students doing a makeup on this session — sourced from `Makeup`, never attendance (S-ATT-2). */
+  makeupVisitors: MakeupVisitor[];
 };
 
 export async function readSessionRoster(input: {
@@ -63,6 +75,11 @@ export async function readSessionRoster(input: {
     sessionId: session.id,
   });
 
+  const makeups = await loadSessionMakeups({
+    database: input.database,
+    sessionId: session.id,
+  });
+
   const entries = roster.map((member) => ({
     enrollmentId: member.enrollmentId,
     studentId: member.studentId,
@@ -71,7 +88,35 @@ export async function readSessionRoster(input: {
     committedStatus: committed.get(member.enrollmentId) ?? null,
   }));
 
-  return { session: toSessionView(session), entries, makeupVisitors: [] };
+  return {
+    session: toSessionView(session),
+    entries,
+    makeupVisitors: toMakeupVisitors({ session, makeups, now: new Date() }),
+  };
+}
+
+function toMakeupVisitors(input: {
+  session: SessionWithClass;
+  makeups: SessionMakeupRow[];
+  now: Date;
+}): MakeupVisitor[] {
+  const targetSessionCancelled = input.session.status === "CANCELLED";
+
+  return input.makeups.map((visitor) => ({
+    makeupId: visitor.makeupId,
+    studentId: visitor.studentId,
+    studentFullName: visitor.studentFullName,
+    originClassInternalCode: visitor.originClassInternalCode,
+    attendedAt: visitor.attendedAt,
+    status: deriveMakeupDisplayStatus({
+      cancelledAt: null,
+      targetSessionCancelled,
+      attendedAt: visitor.attendedAt,
+      targetSessionDate: input.session.date,
+      targetSessionEndTime: input.session.endTime,
+      now: input.now,
+    }),
+  }));
 }
 
 async function loadCommittedStatuses(input: {

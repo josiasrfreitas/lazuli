@@ -52,3 +52,8 @@ export {
   attendanceSessionRosterInputSchema,
   attendanceStatusSchema,
 } from "./attendance.js";
+export {
+  makeupCancelInputSchema,
+  makeupOutcomeInputSchema,
+  makeupScheduleInputSchema,
+} from "./makeup.js";

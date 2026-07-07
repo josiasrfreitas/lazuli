@@ -5,7 +5,7 @@ import { SESSION_NOT_FOUND_MESSAGE, notFound } from "./errors.js";
 /** Prisma delegates the attendance service touches; the router passes `ctx.db` or a transaction client. */
 export type AttendanceDatabase = Pick<
   Prisma.TransactionClient,
-  "classSession" | "enrollment" | "attendance"
+  "classSession" | "enrollment" | "attendance" | "makeup"
 >;
 
 const sessionWithClassSelect = {
@@ -77,5 +77,49 @@ export async function loadActiveRoster(input: {
     enrollmentId: enrollment.id,
     studentId: enrollment.studentId,
     studentFullName: enrollment.student.fullName,
+  }));
+}
+
+export type SessionMakeupRow = {
+  makeupId: string;
+  studentId: string;
+  studentFullName: string;
+  originClassInternalCode: string;
+  attendedAt: Date | null;
+};
+
+const sessionMakeupSelect = {
+  id: true,
+  attendedAt: true,
+  originEnrollment: {
+    select: {
+      studentId: true,
+      student: { select: { fullName: true } },
+      class: { select: { internalCode: true } },
+    },
+  },
+} satisfies Prisma.MakeupSelect;
+
+/**
+ * Active (non-cancelled) makeups whose target is this session — the roster "visitors" (S-ATT-2),
+ * ordered by student name and carrying the origin class code shown as "turma origem". Sourced from
+ * `Makeup` rows, never `Attendance`, so visitors never affect the attendance %.
+ */
+export async function loadSessionMakeups(input: {
+  database: AttendanceDatabase;
+  sessionId: string;
+}): Promise<SessionMakeupRow[]> {
+  const rows = await input.database.makeup.findMany({
+    where: { targetClassSessionId: input.sessionId, cancelledAt: null },
+    select: sessionMakeupSelect,
+    orderBy: { originEnrollment: { student: { fullName: "asc" } } },
+  });
+
+  return rows.map((row) => ({
+    makeupId: row.id,
+    studentId: row.originEnrollment.studentId,
+    studentFullName: row.originEnrollment.student.fullName,
+    originClassInternalCode: row.originEnrollment.class.internalCode,
+    attendedAt: row.attendedAt,
   }));
 }
