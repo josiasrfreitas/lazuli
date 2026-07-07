@@ -16,6 +16,7 @@ import { expectRejects } from "./attendance-test-support.js";
 const FIRST_COMMIT_AT = new Date("2014-03-10T12:00:00.000Z");
 const SAME_DAY_EDIT_AT = new Date("2014-03-10T18:00:00.000Z");
 const NEXT_SP_DAY_NOW = new Date("2014-03-11T03:01:00.000Z");
+const PORTAL_SUBMITTED_AT = new Date("2014-03-10T20:00:00.000Z");
 
 void describe("attendance.editSession", () => {
   void before(async () => {
@@ -78,6 +79,9 @@ function registerOwningTeacherEditTest(): void {
         sessionId: scenario.sessionId,
         changedEnrollmentId: ana.enrollmentId,
         unchangedEnrollmentId: bruno.enrollmentId,
+        expectedStatus: "PRESENT",
+        modifiedAt: SAME_DAY_EDIT_AT,
+        modifiedById: harness.ns.teacher.id,
       });
     },
   );
@@ -87,6 +91,9 @@ async function assertChangedRowStamped(input: {
   sessionId: string;
   changedEnrollmentId: string;
   unchangedEnrollmentId: string;
+  expectedStatus: "PRESENT" | "ABSENT";
+  modifiedAt: Date;
+  modifiedById: string;
 }): Promise<void> {
   const rows = await db.attendance.findMany({
     where: { classSessionId: input.sessionId },
@@ -94,15 +101,15 @@ async function assertChangedRowStamped(input: {
   });
   const changedRow = rows.find((row) => row.enrollmentId === input.changedEnrollmentId);
   const unchangedRow = rows.find((row) => row.enrollmentId === input.unchangedEnrollmentId);
-  assert.equal(changedRow?.status, "PRESENT");
-  assert.equal(changedRow?.lastModifiedAt?.toISOString(), SAME_DAY_EDIT_AT.toISOString());
-  assert.equal(changedRow?.lastModifiedById, harness.ns.teacher.id);
+  assert.equal(changedRow?.status, input.expectedStatus);
+  assert.equal(changedRow?.lastModifiedAt?.toISOString(), input.modifiedAt.toISOString());
+  assert.equal(changedRow?.lastModifiedById, input.modifiedById);
   assert.equal(unchangedRow?.status, "PRESENT");
   assert.equal(unchangedRow?.lastModifiedAt, null);
   assert.equal(unchangedRow?.lastModifiedById, null);
 
   const session = await db.classSession.findUniqueOrThrow({ where: { id: input.sessionId } });
-  assert.equal(session.attendanceLastCommittedAt?.toISOString(), SAME_DAY_EDIT_AT.toISOString());
+  assert.equal(session.attendanceLastCommittedAt?.toISOString(), input.modifiedAt.toISOString());
 }
 
 function registerTeacherWindowTest(): void {
@@ -158,24 +165,66 @@ function registerOtherTeacherScopeTest(): void {
 }
 
 function registerAdminPastEditTest(): void {
-  databaseIt("lets an admin edit a past confirmed session", async () => {
-    const scenario = await harness.seedBaseScenario();
-    const ana = await harness.enrollStudent({
-      classId: scenario.classId,
-      stageId: scenario.stageId,
-      suffix: "Ana",
-    });
-    await harness.caller().attendance.confirmSession({ sessionId: scenario.sessionId, rows: [] });
+  databaseIt(
+    "lets an admin edit a past confirmed session and marks it for Portal retry",
+    async () => {
+      const scenario = await harness.seedBaseScenario();
+      const ana = await harness.enrollStudent({
+        classId: scenario.classId,
+        stageId: scenario.stageId,
+        suffix: "Ana",
+      });
+      const bruno = await harness.enrollStudent({
+        classId: scenario.classId,
+        stageId: scenario.stageId,
+        suffix: "Bruno",
+      });
+      await harness.caller(harness.ns.admin, FIRST_COMMIT_AT).attendance.confirmSession({
+        sessionId: scenario.sessionId,
+        rows: [],
+      });
+      await db.classSession.update({
+        where: { id: scenario.sessionId },
+        data: { portalSubmittedAt: PORTAL_SUBMITTED_AT },
+      });
 
-    const result = await harness.caller().attendance.editSession({
-      sessionId: scenario.sessionId,
-      rows: [{ enrollmentId: ana.enrollmentId, status: "ABSENT" }],
-    });
+      const result = await harness
+        .caller(harness.ns.admin, NEXT_SP_DAY_NOW)
+        .attendance.editSession({
+          sessionId: scenario.sessionId,
+          rows: [
+            { enrollmentId: ana.enrollmentId, status: "ABSENT" },
+            { enrollmentId: bruno.enrollmentId, status: "PRESENT" },
+          ],
+        });
 
-    assert.equal(result.changedCount, 1);
-    assert.equal(result.presentCount, 0);
-    assert.equal(result.absentCount, 1);
-  });
+      assert.equal(result.changedCount, 1);
+      assert.equal(result.presentCount, 1);
+      assert.equal(result.absentCount, 1);
+      assert.equal(result.latestCommittedAt.toISOString(), NEXT_SP_DAY_NOW.toISOString());
+
+      await assertChangedRowStamped({
+        sessionId: scenario.sessionId,
+        changedEnrollmentId: ana.enrollmentId,
+        unchangedEnrollmentId: bruno.enrollmentId,
+        expectedStatus: "ABSENT",
+        modifiedAt: NEXT_SP_DAY_NOW,
+        modifiedById: harness.ns.admin.id,
+      });
+
+      const session = await db.classSession.findUniqueOrThrow({
+        where: { id: scenario.sessionId },
+        select: { attendanceLastCommittedAt: true, portalSubmittedAt: true },
+      });
+      assert.equal(session.portalSubmittedAt?.toISOString(), PORTAL_SUBMITTED_AT.toISOString());
+      assert.equal(session.attendanceLastCommittedAt?.toISOString(), NEXT_SP_DAY_NOW.toISOString());
+      assert.ok(
+        session.attendanceLastCommittedAt !== null &&
+          session.portalSubmittedAt !== null &&
+          session.attendanceLastCommittedAt > session.portalSubmittedAt,
+      );
+    },
+  );
 }
 
 function registerUnconfirmedRejectedTest(): void {
