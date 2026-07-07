@@ -30,25 +30,34 @@ void describe("attendance.sessionRoster", () => {
 });
 
 function registerRosterOrderingTest(): void {
-  databaseIt("returns the active roster ordered by name, PRESENT default, nothing committed", async () => {
-    const scenario = await harness.seedBaseScenario();
-    await harness.enrollStudent({ classId: scenario.classId, stageId: scenario.stageId, suffix: "Bruno" });
-    const ana = await harness.enrollStudent({
-      classId: scenario.classId,
-      stageId: scenario.stageId,
-      suffix: "Ana",
-    });
+  databaseIt(
+    "returns the active roster ordered by name, PRESENT default, nothing committed",
+    async () => {
+      const scenario = await harness.seedBaseScenario();
+      await harness.enrollStudent({
+        classId: scenario.classId,
+        stageId: scenario.stageId,
+        suffix: "Bruno",
+      });
+      const ana = await harness.enrollStudent({
+        classId: scenario.classId,
+        stageId: scenario.stageId,
+        suffix: "Ana",
+      });
 
-    const roster = await harness.caller().attendance.sessionRoster({ sessionId: scenario.sessionId });
+      const roster = await harness
+        .caller()
+        .attendance.sessionRoster({ sessionId: scenario.sessionId });
 
-    assert.equal(roster.entries.length, 2);
-    assert.equal(roster.entries[0]?.enrollmentId, ana.enrollmentId);
-    assert.ok(roster.entries[0]?.studentFullName.endsWith("Ana"));
-    assert.equal(roster.entries[0]?.defaultStatus, "PRESENT");
-    assert.equal(roster.entries[0]?.committedStatus, null);
-    assert.deepEqual(roster.makeupVisitors, []);
-    assert.equal(roster.session.classId, scenario.classId);
-  });
+      assert.equal(roster.entries.length, 2);
+      assert.equal(roster.entries[0]?.enrollmentId, ana.enrollmentId);
+      assert.ok(roster.entries[0]?.studentFullName.endsWith("Ana"));
+      assert.equal(roster.entries[0]?.defaultStatus, "PRESENT");
+      assert.equal(roster.entries[0]?.committedStatus, null);
+      assert.deepEqual(roster.makeupVisitors, []);
+      assert.equal(roster.session.classId, scenario.classId);
+    },
+  );
 }
 
 function registerWindowExclusionTest(): void {
@@ -66,7 +75,9 @@ function registerWindowExclusionTest(): void {
       entryDate: harness.ns.afterSessionDate,
     });
 
-    const roster = await harness.caller().attendance.sessionRoster({ sessionId: scenario.sessionId });
+    const roster = await harness
+      .caller()
+      .attendance.sessionRoster({ sessionId: scenario.sessionId });
 
     assert.equal(roster.entries.length, 1);
     assert.equal(roster.entries[0]?.enrollmentId, inWindow.enrollmentId);
@@ -87,9 +98,15 @@ function registerOtherClassExclusionTest(): void {
       stageId: scenario.stageId,
       semesterId: scenario.semesterId,
     });
-    await harness.enrollStudent({ classId: otherClassId, stageId: scenario.stageId, suffix: "Theirs" });
+    await harness.enrollStudent({
+      classId: otherClassId,
+      stageId: scenario.stageId,
+      suffix: "Theirs",
+    });
 
-    const roster = await harness.caller().attendance.sessionRoster({ sessionId: scenario.sessionId });
+    const roster = await harness
+      .caller()
+      .attendance.sessionRoster({ sessionId: scenario.sessionId });
 
     assert.equal(roster.entries.length, 1);
     assert.equal(roster.entries[0]?.enrollmentId, mine.enrollmentId);
@@ -97,21 +114,32 @@ function registerOtherClassExclusionTest(): void {
 }
 
 function registerUntakenFlagTest(): void {
-  databaseIt("flags a past unconfirmed session untaken; clears the flag after confirm", async () => {
-    const scenario = await harness.seedBaseScenario();
-    await harness.enrollStudent({ classId: scenario.classId, stageId: scenario.stageId, suffix: "Only" });
+  databaseIt(
+    "flags a past unconfirmed session untaken; clears the flag after confirm",
+    async () => {
+      const scenario = await harness.seedBaseScenario();
+      await harness.enrollStudent({
+        classId: scenario.classId,
+        stageId: scenario.stageId,
+        suffix: "Only",
+      });
 
-    const before = await harness.caller().attendance.sessionRoster({ sessionId: scenario.sessionId });
-    assert.equal(before.session.untaken, true);
-    assert.equal(before.session.attendanceConfirmedAt, null);
+      const before = await harness
+        .caller()
+        .attendance.sessionRoster({ sessionId: scenario.sessionId });
+      assert.equal(before.session.untaken, true);
+      assert.equal(before.session.attendanceConfirmedAt, null);
 
-    await harness.caller().attendance.confirmSession({ sessionId: scenario.sessionId, rows: [] });
+      await harness.caller().attendance.confirmSession({ sessionId: scenario.sessionId, rows: [] });
 
-    const afterConfirm = await harness.caller().attendance.sessionRoster({ sessionId: scenario.sessionId });
-    assert.equal(afterConfirm.session.untaken, false);
-    assert.notEqual(afterConfirm.session.attendanceConfirmedAt, null);
-    assert.equal(afterConfirm.entries[0]?.committedStatus, "PRESENT");
-  });
+      const afterConfirm = await harness
+        .caller()
+        .attendance.sessionRoster({ sessionId: scenario.sessionId });
+      assert.equal(afterConfirm.session.untaken, false);
+      assert.notEqual(afterConfirm.session.attendanceConfirmedAt, null);
+      assert.equal(afterConfirm.entries[0]?.committedStatus, "PRESENT");
+    },
+  );
 }
 
 function registerUnknownSessionTest(): void {
@@ -127,7 +155,11 @@ function registerUnknownSessionTest(): void {
 function registerScopeTest(): void {
   databaseIt("lets the owning teacher and admin read, but forbids another teacher", async () => {
     const scenario = await harness.seedBaseScenario();
-    await harness.enrollStudent({ classId: scenario.classId, stageId: scenario.stageId, suffix: "Only" });
+    await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Only",
+    });
 
     const teacher = harness.caller(harness.ns.teacher);
     const teacherRoster = await teacher.attendance.sessionRoster({ sessionId: scenario.sessionId });
@@ -137,7 +169,9 @@ function registerScopeTest(): void {
     assert.equal(adminRoster.entries.length, 1);
 
     await assert.rejects(
-      harness.caller(harness.ns.otherTeacher).attendance.sessionRoster({ sessionId: scenario.sessionId }),
+      harness
+        .caller(harness.ns.otherTeacher)
+        .attendance.sessionRoster({ sessionId: scenario.sessionId }),
       /FORBIDDEN/,
     );
   });

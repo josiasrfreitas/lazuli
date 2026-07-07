@@ -118,7 +118,12 @@ export function defineNamespace(config: NamespaceConfig): Namespace {
     afterSessionDate: toUtcDate(config.afterSessionDate),
     admin: { id: config.adminId, email: email("admin"), role: "ADMIN", isEnabled: true },
     teacher: { id: config.teacherId, email: email("teacher"), role: "TEACHER", isEnabled: true },
-    otherTeacher: { id: config.otherTeacherId, email: email("other"), role: "TEACHER", isEnabled: true },
+    otherTeacher: {
+      id: config.otherTeacherId,
+      email: email("other"),
+      role: "TEACHER",
+      isEnabled: true,
+    },
   };
 }
 
@@ -237,7 +242,9 @@ async function enrollStudent(
         classId: input.classId,
         studentId: student.id,
         entryDate: startDate,
-        ...(input.exitDate === undefined ? {} : { exitDate: input.exitDate, exitReason: "DROPPED" }),
+        ...(input.exitDate === undefined
+          ? {}
+          : { exitDate: input.exitDate, exitReason: "DROPPED" }),
       },
       select: { id: true },
     });
@@ -303,14 +310,18 @@ async function cleanNamespace(ns: Namespace): Promise<void> {
   });
   await db.pedagogicalProgress.deleteMany({ where: byStudent });
   await db.enrollment.deleteMany({ where: { student: { fullName: { startsWith: ns.prefix } } } });
-  await db.classSession.deleteMany({ where: { class: { internalCode: { startsWith: ns.prefix } } } });
+  await db.classSession.deleteMany({
+    where: { class: { internalCode: { startsWith: ns.prefix } } },
+  });
   await db.student.deleteMany({ where: { fullName: { startsWith: ns.prefix } } });
   await db.class.deleteMany({ where: { internalCode: { startsWith: ns.prefix } } });
   await db.semester.deleteMany({ where: { name: { startsWith: ns.prefix } } });
   await db.stage.deleteMany({
     where: { track: { productLine: { key: { startsWith: ns.catalogKeyPrefix } } } },
   });
-  await db.track.deleteMany({ where: { productLine: { key: { startsWith: ns.catalogKeyPrefix } } } });
+  await db.track.deleteMany({
+    where: { productLine: { key: { startsWith: ns.catalogKeyPrefix } } },
+  });
   await db.productLine.deleteMany({ where: { key: { startsWith: ns.catalogKeyPrefix } } });
   await db.user.deleteMany({
     where: { id: { in: [ns.admin.id, ns.teacher.id, ns.otherTeacher.id] } },

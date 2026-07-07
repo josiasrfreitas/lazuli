@@ -35,7 +35,11 @@ void describe("attendance API over the tRPC HTTP boundary", () => {
 function registerRosterQueryTest(): void {
   databaseIt("reads a session roster over HTTP", async () => {
     const scenario = await harness.seedBaseScenario();
-    await harness.enrollStudent({ classId: scenario.classId, stageId: scenario.stageId, suffix: "Ana" });
+    await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Ana",
+    });
 
     const response = await callHttpQuery({
       path: "attendance.sessionRoster",
@@ -52,7 +56,11 @@ function registerRosterQueryTest(): void {
 function registerConfirmMutationTest(): void {
   databaseIt("confirms a session over HTTP and persists the roster", async () => {
     const scenario = await harness.seedBaseScenario();
-    await harness.enrollStudent({ classId: scenario.classId, stageId: scenario.stageId, suffix: "Ana" });
+    await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Ana",
+    });
 
     const response = await callHttpMutation({
       path: "attendance.confirmSession",
@@ -71,7 +79,11 @@ function registerConfirmMutationTest(): void {
 function registerForbiddenConfirmTest(): void {
   databaseIt("returns 403 when another teacher confirms a class they do not own", async () => {
     const scenario = await harness.seedBaseScenario();
-    await harness.enrollStudent({ classId: scenario.classId, stageId: scenario.stageId, suffix: "Ana" });
+    await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Ana",
+    });
 
     const response = await callHttpMutation({
       path: "attendance.confirmSession",

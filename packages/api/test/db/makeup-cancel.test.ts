@@ -120,7 +120,9 @@ function registerScopeTest(): void {
     const makeupId = await insertMakeup(context);
 
     await assert.rejects(
-      harness.caller(harness.ns.teacher).attendance.cancelMakeup({ makeupId, reason: CANCEL_REASON }),
+      harness
+        .caller(harness.ns.teacher)
+        .attendance.cancelMakeup({ makeupId, reason: CANCEL_REASON }),
       /FORBIDDEN/,
     );
   });
