@@ -168,25 +168,8 @@ function registerAdminPastEditTest(): void {
   databaseIt(
     "lets an admin edit a past confirmed session and marks it for Portal retry",
     async () => {
-      const scenario = await harness.seedBaseScenario();
-      const ana = await harness.enrollStudent({
-        classId: scenario.classId,
-        stageId: scenario.stageId,
-        suffix: "Ana",
-      });
-      const bruno = await harness.enrollStudent({
-        classId: scenario.classId,
-        stageId: scenario.stageId,
-        suffix: "Bruno",
-      });
-      await harness.caller(harness.ns.admin, FIRST_COMMIT_AT).attendance.confirmSession({
-        sessionId: scenario.sessionId,
-        rows: [],
-      });
-      await db.classSession.update({
-        where: { id: scenario.sessionId },
-        data: { portalSubmittedAt: PORTAL_SUBMITTED_AT },
-      });
+      const scenario = await seedPortalSubmittedScenario();
+      const { ana, bruno } = scenario;
 
       const result = await harness
         .caller(harness.ns.admin, NEXT_SP_DAY_NOW)
@@ -211,19 +194,50 @@ function registerAdminPastEditTest(): void {
         modifiedAt: NEXT_SP_DAY_NOW,
         modifiedById: harness.ns.admin.id,
       });
-
-      const session = await db.classSession.findUniqueOrThrow({
-        where: { id: scenario.sessionId },
-        select: { attendanceLastCommittedAt: true, portalSubmittedAt: true },
-      });
-      assert.equal(session.portalSubmittedAt?.toISOString(), PORTAL_SUBMITTED_AT.toISOString());
-      assert.equal(session.attendanceLastCommittedAt?.toISOString(), NEXT_SP_DAY_NOW.toISOString());
-      assert.ok(
-        session.attendanceLastCommittedAt !== null &&
-          session.portalSubmittedAt !== null &&
-          session.attendanceLastCommittedAt > session.portalSubmittedAt,
-      );
+      await assertPortalRetryPredicate(scenario.sessionId);
     },
+  );
+}
+
+async function seedPortalSubmittedScenario(): Promise<{
+  sessionId: string;
+  ana: { enrollmentId: string };
+  bruno: { enrollmentId: string };
+}> {
+  const scenario = await harness.seedBaseScenario();
+  const ana = await harness.enrollStudent({
+    classId: scenario.classId,
+    stageId: scenario.stageId,
+    suffix: "Ana",
+  });
+  const bruno = await harness.enrollStudent({
+    classId: scenario.classId,
+    stageId: scenario.stageId,
+    suffix: "Bruno",
+  });
+  await harness.caller(harness.ns.admin, FIRST_COMMIT_AT).attendance.confirmSession({
+    sessionId: scenario.sessionId,
+    rows: [],
+  });
+  await db.classSession.update({
+    where: { id: scenario.sessionId },
+    data: { portalSubmittedAt: PORTAL_SUBMITTED_AT },
+  });
+
+  return { sessionId: scenario.sessionId, ana, bruno };
+}
+
+async function assertPortalRetryPredicate(sessionId: string): Promise<void> {
+  const session = await db.classSession.findUniqueOrThrow({
+    where: { id: sessionId },
+    select: { attendanceLastCommittedAt: true, portalSubmittedAt: true },
+  });
+  assert.equal(session.portalSubmittedAt?.toISOString(), PORTAL_SUBMITTED_AT.toISOString());
+  assert.equal(session.attendanceLastCommittedAt?.toISOString(), NEXT_SP_DAY_NOW.toISOString());
+  assert.ok(
+    session.attendanceLastCommittedAt !== null &&
+      session.portalSubmittedAt !== null &&
+      session.attendanceLastCommittedAt > session.portalSubmittedAt,
   );
 }
 
