@@ -1,17 +1,21 @@
 import {
+  financeAddInstallmentAdjustmentInputSchema,
   financeBatchReconcileInputSchema,
   financeCreateOrderInputSchema,
   financeRegisterPaymentInputSchema,
   financeUpdateOrderInputSchema,
+  financeWaiveInstallmentInputSchema,
   payerCreateProcedureInputSchema,
 } from "@lazuli/validators";
 
 import { adminProcedure, router } from "../trpc/init.js";
+import { addInstallmentAdjustment } from "./add-installment-adjustment.js";
 import { batchReconcile } from "./batch-reconcile.js";
 import { createOrder } from "./create-order.js";
 import { createPayer } from "./create-payer.js";
 import { registerPayment } from "./register-payment.js";
 import { updateOrder } from "./update-order.js";
+import { waiveInstallment } from "./waive-installment.js";
 
 export const financeRouter = router({
   createPayer: adminProcedure.input(payerCreateProcedureInputSchema).mutation(({ ctx, input }) =>
@@ -57,6 +61,28 @@ export const financeRouter = router({
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) =>
         batchReconcile({
+          database,
+          values: input,
+          staffUserId: ctx.staffUser.id,
+        }),
+      ),
+    ),
+  waiveInstallment: adminProcedure
+    .input(financeWaiveInstallmentInputSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        waiveInstallment({
+          database,
+          values: input,
+          staffUserId: ctx.staffUser.id,
+        }),
+      ),
+    ),
+  addInstallmentAdjustment: adminProcedure
+    .input(financeAddInstallmentAdjustmentInputSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        addInstallmentAdjustment({
           database,
           values: input,
           staffUserId: ctx.staffUser.id,

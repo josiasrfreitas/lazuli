@@ -18,8 +18,9 @@ export type PaymentDatabase = Pick<
 export type LoadedInstallment = {
   id: string;
   amountCents: number;
+  dueDate: Date;
   waivedAt: Date | null;
-  order: { payerId: string };
+  order: { payerId: string; cancelledAt: Date | null };
   adjustments: Array<{ amountCents: number }>;
   allocations: Array<{ amountCents: number }>;
 };
@@ -119,8 +120,9 @@ export async function loadInstallments(
     select: {
       id: true,
       amountCents: true,
+      dueDate: true,
       waivedAt: true,
-      order: { select: { payerId: true } },
+      order: { select: { payerId: true, cancelledAt: true } },
     },
   });
   const adjustments = await database.installmentAdjustment.findMany({

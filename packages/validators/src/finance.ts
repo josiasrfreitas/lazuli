@@ -140,3 +140,32 @@ export const financeBatchReconcileInputSchema = z
   .strict();
 
 export const payerCreateProcedureInputSchema = payerCreateInputSchema;
+
+export const installmentAdjustmentTypeSchema = z.enum([
+  "INTEREST",
+  "LATE_FEE",
+  "DISCOUNT",
+  "CORRECTION",
+]);
+
+/**
+ * Input for `finance.waiveInstallment` (S-FIN-5).
+ */
+export const financeWaiveInstallmentInputSchema = z
+  .object({
+    installmentId: z.string().uuid(INVALID_INSTALLMENT_ID_MESSAGE),
+    reason: requiredText,
+  })
+  .strict();
+
+/**
+ * Input for `finance.addInstallmentAdjustment` (S-FIN-8 and charged interest/multa).
+ */
+export const financeAddInstallmentAdjustmentInputSchema = z
+  .object({
+    installmentId: z.string().uuid(INVALID_INSTALLMENT_ID_MESSAGE),
+    type: installmentAdjustmentTypeSchema,
+    amountCents: z.number().int("Valor do ajuste deve ser inteiro."),
+    reason: optionalText,
+  })
+  .strict();
