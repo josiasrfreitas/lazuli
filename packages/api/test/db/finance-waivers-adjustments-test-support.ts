@@ -1,12 +1,7 @@
 import { FINANCE_DUE_DAY_FIFTEENTH } from "@lazuli/domain";
 import { db, PaymentMethod } from "@lazuli/db";
 
-import {
-  caller,
-  createPayer,
-  createStudent,
-  DEFAULT_ORDER_INPUT,
-} from "./finance-test-support.js";
+import { caller, createPayer, createStudent, DEFAULT_ORDER_INPUT } from "./finance-test-support.js";
 
 export const WAIVER_TEST_PREFIX = "GRE-47 ";
 export const PAYMENT_DATE = new Date("2026-04-10T00:00:00.000Z");
