@@ -60,11 +60,14 @@ export {
 } from "./makeup.js";
 export {
   dueDaySchema,
+  financeAddInstallmentAdjustmentInputSchema,
   financeBatchReconcileInputSchema,
   financeCreateOrderInputSchema,
   financePayerInputSchema,
   financeRegisterPaymentInputSchema,
   financeUpdateOrderInputSchema,
+  financeWaiveInstallmentInputSchema,
+  installmentAdjustmentTypeSchema,
   orderKindSchema,
   payerCreateInputSchema,
   payerCreateProcedureInputSchema,
