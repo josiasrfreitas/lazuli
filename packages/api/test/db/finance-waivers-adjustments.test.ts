@@ -341,7 +341,10 @@ function registerOtherAdjustmentTypes(): void {
     });
 
     assert.equal(result.adjustment.type, "INTEREST");
-    assert.equal(result.ledger.currentExpectedCents, installment.amountCents + INTEREST_AMOUNT_CENTS);
+    assert.equal(
+      result.ledger.currentExpectedCents,
+      installment.amountCents + INTEREST_AMOUNT_CENTS,
+    );
   });
 
   databaseIt("persists correction adjustments with negative amounts", async () => {
@@ -411,7 +414,10 @@ async function createOrderFixture(): Promise<{
   };
 }
 
-async function updateOrderFixture(fixture: { orderId: string; studentId: string }): Promise<unknown> {
+async function updateOrderFixture(fixture: {
+  orderId: string;
+  studentId: string;
+}): Promise<unknown> {
   return caller().finance.updateOrder({
     orderId: fixture.orderId,
     kind: "TUITION",
