@@ -122,6 +122,24 @@ export async function callHttpMutation(input: {
   });
 }
 
+export async function callHttpQuery(input: {
+  path: string;
+  body?: unknown;
+  staffUser?: StaffUser;
+}): Promise<Response> {
+  const url = new URL(`http://localhost${ENDPOINT}/${input.path}`);
+  if (input.body !== undefined) {
+    url.searchParams.set("input", JSON.stringify({ json: input.body }));
+  }
+
+  return fetchRequestHandler({
+    endpoint: ENDPOINT,
+    req: new Request(url, { method: "GET" }),
+    router: appRouter,
+    createContext: () => Promise.resolve(contextFor(input.staffUser ?? ADMIN)),
+  });
+}
+
 export async function expectRejects(promise: Promise<unknown>, message: string): Promise<void> {
   await assert.rejects(promise, (error: unknown) => {
     assert.ok(error instanceof Error, "expected an Error");

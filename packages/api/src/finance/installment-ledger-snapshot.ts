@@ -7,6 +7,7 @@ const DEFAULT_INTEREST_RATE_PCT_MONTHLY = 1;
 export function snapshotInstallmentLedger(
   installment: LoadedInstallment,
   waivedAt: Date | null = installment.waivedAt,
+  interestRatePctMonthly: number = DEFAULT_INTEREST_RATE_PCT_MONTHLY,
 ): InstallmentLedger {
   return deriveInstallmentLedger({
     amountCents: installment.amountCents,
@@ -16,6 +17,6 @@ export function snapshotInstallmentLedger(
     adjustments: installment.adjustments,
     allocations: installment.allocations,
     now: new Date(),
-    interestRatePctMonthly: DEFAULT_INTEREST_RATE_PCT_MONTHLY,
+    interestRatePctMonthly,
   });
 }
