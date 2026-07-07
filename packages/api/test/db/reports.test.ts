@@ -42,7 +42,9 @@ async function requestOverdueCsv(): Promise<void> {
 
   const result = await caller({ queue }).reports.requestOverdueCsv({});
 
-  const artifact = await db.generatedArtifact.findUniqueOrThrow({ where: { id: result.artifactId } });
+  const artifact = await db.generatedArtifact.findUniqueOrThrow({
+    where: { id: result.artifactId },
+  });
 
   assert.equal(result.jobId, `job-db:${result.artifactId}`);
   assert.equal(artifact.kind, "OVERDUE_RECEIVABLES_CSV");
@@ -77,7 +79,9 @@ async function teacherRequestsOwnedRoster(): Promise<void> {
   const { classId } = await seedOwnedClass();
   const result = await caller({ staffUser: TEACHER }).reports.requestClassRoster({ classId });
 
-  const artifact = await db.generatedArtifact.findUniqueOrThrow({ where: { id: result.artifactId } });
+  const artifact = await db.generatedArtifact.findUniqueOrThrow({
+    where: { id: result.artifactId },
+  });
 
   assert.equal(artifact.kind, "CLASS_ROSTER_PDF");
   assert.equal(artifact.classId, classId);

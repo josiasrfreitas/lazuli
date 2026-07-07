@@ -8,7 +8,10 @@ import {
 
 import type { StaffUser } from "../trpc/context.js";
 
-type RequestArtifactDatabase = Pick<Prisma.TransactionClient, "generatedArtifact" | "student" | "class">;
+type RequestArtifactDatabase = Pick<
+  Prisma.TransactionClient,
+  "generatedArtifact" | "student" | "class"
+>;
 
 export async function requestReportArtifact(input: {
   database: RequestArtifactDatabase;

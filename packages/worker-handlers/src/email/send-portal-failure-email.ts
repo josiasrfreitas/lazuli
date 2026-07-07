@@ -9,10 +9,12 @@ export type SendPortalFailureEmailResult = {
   portalRunId: string;
 };
 
-export async function sendPortalFailureEmail(input: {
+export function sendPortalFailureEmail(input: {
   payload: EmailPortalFailurePayload;
 }): Promise<SendPortalFailureEmailResult> {
   const payload = emailPortalFailurePayloadSchema.parse(input.payload);
-  process.stdout.write(`[worker-handlers] email-portal-failure portalRunId=${payload.portalRunId}\n`);
-  return { portalRunId: payload.portalRunId };
+  process.stdout.write(
+    `[worker-handlers] email-portal-failure portalRunId=${payload.portalRunId}\n`,
+  );
+  return Promise.resolve({ portalRunId: payload.portalRunId });
 }

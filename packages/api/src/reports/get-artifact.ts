@@ -1,5 +1,5 @@
 import type { Prisma } from "@lazuli/db";
-import type { ArtifactKind } from "@lazuli/validators";
+import type { ArtifactKind, GetArtifactOutput } from "@lazuli/validators";
 
 import { assertResourceScope } from "../trpc/rbac.js";
 import type { StaffUser } from "../trpc/context.js";
@@ -12,7 +12,7 @@ export async function getArtifact(input: {
   database: GetArtifactDatabase;
   staffUser: StaffUser;
   id: string;
-}) {
+}): Promise<GetArtifactOutput> {
   const artifact = await input.database.generatedArtifact.findFirst({
     where: { id: input.id, deletedAt: null },
   });

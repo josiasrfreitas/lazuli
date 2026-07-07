@@ -174,8 +174,7 @@ export async function callHttpMutation(input: {
       body: JSON.stringify({ json: input.body }),
     }),
     router: appRouter,
-    createContext: () =>
-      Promise.resolve(contextFor(input.staffUser ?? ADMIN, input.queue)),
+    createContext: () => Promise.resolve(contextFor(input.staffUser ?? ADMIN, input.queue)),
   });
 }
 

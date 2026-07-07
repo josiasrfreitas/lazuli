@@ -24,7 +24,10 @@ void describe("reports HTTP behavior", { concurrency: false }, () => {
     await db.$disconnect();
   });
 
-  databaseIt("requests a student statement through the HTTP adapter", requestStudentStatementOverHttp);
+  databaseIt(
+    "requests a student statement through the HTTP adapter",
+    requestStudentStatementOverHttp,
+  );
 });
 
 async function requestStudentStatementOverHttp(): Promise<void> {

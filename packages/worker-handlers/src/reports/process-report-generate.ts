@@ -9,10 +9,10 @@ export type ProcessReportGenerateResult = {
   artifactId: string;
 };
 
-export async function processReportGenerate(input: {
+export function processReportGenerate(input: {
   payload: ReportGeneratePayload;
 }): Promise<ProcessReportGenerateResult> {
   const payload = reportGeneratePayloadSchema.parse(input.payload);
   process.stdout.write(`[worker-handlers] report-generate artifactId=${payload.artifactId}\n`);
-  return { artifactId: payload.artifactId };
+  return Promise.resolve({ artifactId: payload.artifactId });
 }

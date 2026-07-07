@@ -26,7 +26,12 @@ export type {
   Student,
   Track,
 } from "./generated/prisma/client.js";
-export { ArtifactKind, InstallmentAdjustmentType, OrderKind, PaymentMethod } from "./generated/prisma/enums.js";
+export {
+  ArtifactKind,
+  InstallmentAdjustmentType,
+  OrderKind,
+  PaymentMethod,
+} from "./generated/prisma/enums.js";
 export { getDatabaseUrl } from "./config.js";
 
 /** Shared shape for all domain entities (TECHNICAL_SPEC §4.0). */

@@ -9,10 +9,12 @@ export type SendOverdueD30Result = {
   installmentId: string;
 };
 
-export async function sendOverdueD30(input: {
+export function sendOverdueD30(input: {
   payload: EmailOverdueD30Payload;
 }): Promise<SendOverdueD30Result> {
   const payload = emailOverdueD30PayloadSchema.parse(input.payload);
-  process.stdout.write(`[worker-handlers] email-overdue-d30 installmentId=${payload.installmentId}\n`);
-  return { installmentId: payload.installmentId };
+  process.stdout.write(
+    `[worker-handlers] email-overdue-d30 installmentId=${payload.installmentId}\n`,
+  );
+  return Promise.resolve({ installmentId: payload.installmentId });
 }

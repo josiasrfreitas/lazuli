@@ -61,19 +61,17 @@ export const reportsRouter = router({
         }),
       ),
     ),
-  requestOverdueCsv: adminProcedure
-    .input(requestOverdueCsvInputSchema)
-    .mutation(({ ctx }) =>
-      ctx.db.$transaction((database) =>
-        requestReportArtifact({
-          database,
-          reportGenerateQueue: resolveReportGenerateQueue(ctx.reportGenerateQueue),
-          staffUser: ctx.staffUser,
-          kind: "OVERDUE_RECEIVABLES_CSV" satisfies ArtifactKind,
-          ...optionalNow(ctx.now),
-        }),
-      ),
+  requestOverdueCsv: adminProcedure.input(requestOverdueCsvInputSchema).mutation(({ ctx }) =>
+    ctx.db.$transaction((database) =>
+      requestReportArtifact({
+        database,
+        reportGenerateQueue: resolveReportGenerateQueue(ctx.reportGenerateQueue),
+        staffUser: ctx.staffUser,
+        kind: "OVERDUE_RECEIVABLES_CSV" satisfies ArtifactKind,
+        ...optionalNow(ctx.now),
+      }),
     ),
+  ),
   requestMonthlyAccountantCsv: adminProcedure
     .input(requestMonthlyAccountantCsvInputSchema)
     .mutation(({ ctx, input }) => {
