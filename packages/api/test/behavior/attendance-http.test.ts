@@ -20,6 +20,7 @@ type EditResponseBody = {
 
 const SAME_DAY_NOW = new Date("2015-03-10T12:00:00.000Z");
 const NEXT_SP_DAY_NOW = new Date("2015-03-11T03:01:00.000Z");
+const PORTAL_SUBMITTED_AT = new Date("2015-03-10T20:00:00.000Z");
 const CONFIRM_SESSION_PATH = "attendance.confirmSession";
 const EDIT_SESSION_PATH = "attendance.editSession";
 
@@ -121,6 +122,10 @@ function registerEditMutationTest(): void {
       staffUser: harness.ns.admin,
       now: SAME_DAY_NOW,
     });
+    await db.classSession.update({
+      where: { id: scenario.sessionId },
+      data: { portalSubmittedAt: PORTAL_SUBMITTED_AT },
+    });
 
     const response = await callHttpMutation({
       path: EDIT_SESSION_PATH,
@@ -140,6 +145,17 @@ function registerEditMutationTest(): void {
       where: { classSessionId: scenario.sessionId, enrollmentId: ana.enrollmentId },
     });
     assert.equal(committed.status, "ABSENT");
+    const session = await db.classSession.findUniqueOrThrow({
+      where: { id: scenario.sessionId },
+      select: { attendanceLastCommittedAt: true, portalSubmittedAt: true },
+    });
+    assert.equal(session.portalSubmittedAt?.toISOString(), PORTAL_SUBMITTED_AT.toISOString());
+    assert.equal(session.attendanceLastCommittedAt?.toISOString(), NEXT_SP_DAY_NOW.toISOString());
+    assert.ok(
+      session.attendanceLastCommittedAt !== null &&
+        session.portalSubmittedAt !== null &&
+        session.attendanceLastCommittedAt > session.portalSubmittedAt,
+    );
   });
 }
 
