@@ -1,10 +1,7 @@
 import type { GeneratedInstallment } from "@lazuli/domain";
 
 import { notFound, STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
-import type {
-  FinanceBeneficiarySummary,
-  FinanceInstallmentSummary,
-} from "./create-order.js";
+import type { FinanceBeneficiarySummary, FinanceInstallmentSummary } from "./create-order.js";
 import { type FinanceDatabase, toDateOnly } from "./order-edit-cutoff.js";
 
 export const orderSummarySelect = {
@@ -117,4 +114,3 @@ export async function loadEditableOrder(
     },
   });
 }
-

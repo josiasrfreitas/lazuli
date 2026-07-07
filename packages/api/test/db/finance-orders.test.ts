@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe } from "node:test";
 
-import { FINANCE_DUE_DAY_FIFTEENTH, FINANCE_DUE_DAY_TENTH, generateInstallments } from "@lazuli/domain";
+import {
+  FINANCE_DUE_DAY_FIFTEENTH,
+  FINANCE_DUE_DAY_TENTH,
+  generateInstallments,
+} from "@lazuli/domain";
 import { db } from "@lazuli/db";
 import { InstallmentAdjustmentType, PaymentMethod } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";

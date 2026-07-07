@@ -70,7 +70,10 @@ export async function cleanFinanceOrdersDatabase(): Promise<void> {
 
   const orders = await db.order.findMany({
     where: {
-      OR: [{ payerId: { in: payerIds } }, { beneficiaries: { some: { studentId: { in: studentIds } } } }],
+      OR: [
+        { payerId: { in: payerIds } },
+        { beneficiaries: { some: { studentId: { in: studentIds } } } },
+      ],
     },
     select: { id: true },
   });
@@ -90,10 +93,7 @@ export async function cleanFinanceOrdersDatabase(): Promise<void> {
 
   await db.paymentAllocation.deleteMany({
     where: {
-      OR: [
-        { paymentEntryId: { in: paymentEntryIds } },
-        { installmentId: { in: installmentIds } },
-      ],
+      OR: [{ paymentEntryId: { in: paymentEntryIds } }, { installmentId: { in: installmentIds } }],
     },
   });
   await db.paymentEntry.deleteMany({ where: { id: { in: paymentEntryIds } } });

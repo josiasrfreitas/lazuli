@@ -3,7 +3,11 @@ import type { financeUpdateOrderInputSchema, z } from "@lazuli/validators";
 
 import { notFound, ORDER_NOT_FOUND_MESSAGE } from "./errors.js";
 import type { CreateOrderResult } from "./create-order.js";
-import { assertOrderEditable, type FinanceDatabase, toDateOnlyString } from "./order-edit-cutoff.js";
+import {
+  assertOrderEditable,
+  type FinanceDatabase,
+  toDateOnlyString,
+} from "./order-edit-cutoff.js";
 import {
   assertBeneficiaryStudentsExist,
   loadEditableOrder,

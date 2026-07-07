@@ -70,11 +70,10 @@ void describe("generateInstallments amounts", () => {
       dueDay: FINANCE_DUE_DAY_FIFTH,
     });
 
-    assert.deepEqual(installments.map((row) => row.amountCents), [
-      BASE_INSTALLMENT_AMOUNT,
-      BASE_INSTALLMENT_AMOUNT,
-      LAST_INSTALLMENT_AMOUNT,
-    ]);
+    assert.deepEqual(
+      installments.map((row) => row.amountCents),
+      [BASE_INSTALLMENT_AMOUNT, BASE_INSTALLMENT_AMOUNT, LAST_INSTALLMENT_AMOUNT],
+    );
   });
 
   void it("assigns the full principal to a single installment", () => {
@@ -121,7 +120,10 @@ void describe("deriveFirstDueDate", () => {
       FIRST_FEBRUARY_DUE,
     );
     assert.equal(
-      deriveFirstDueDate({ startDate: START_DATE_AFTER_DUE_DAY, dueDay: FINANCE_DUE_DAY_FIFTEENTH }),
+      deriveFirstDueDate({
+        startDate: START_DATE_AFTER_DUE_DAY,
+        dueDay: FINANCE_DUE_DAY_FIFTEENTH,
+      }),
       FIRST_FEBRUARY_FIFTEENTH,
     );
   });
@@ -136,11 +138,10 @@ void describe("generateInstallments schedule", () => {
       dueDay: FINANCE_DUE_DAY_FIFTH,
     });
 
-    assert.deepEqual(installments.map((row) => row.dueDate), [
-      FIRST_JANUARY_DUE,
-      FIRST_FEBRUARY_DUE,
-      THIRD_MARCH_DUE,
-    ]);
+    assert.deepEqual(
+      installments.map((row) => row.dueDate),
+      [FIRST_JANUARY_DUE, FIRST_FEBRUARY_DUE, THIRD_MARCH_DUE],
+    );
   });
 
   void it("clamps due day when the target month is shorter", () => {
@@ -151,10 +152,10 @@ void describe("generateInstallments schedule", () => {
       dueDay: FINANCE_DUE_DAY_TWENTY_FIFTH,
     });
 
-    assert.deepEqual(installments.map((row) => row.dueDate), [
-      FIRST_JANUARY_TWENTY_FIFTH,
-      FIRST_FEBRUARY_TWENTY_FIFTH,
-    ]);
+    assert.deepEqual(
+      installments.map((row) => row.dueDate),
+      [FIRST_JANUARY_TWENTY_FIFTH, FIRST_FEBRUARY_TWENTY_FIFTH],
+    );
   });
 });
 

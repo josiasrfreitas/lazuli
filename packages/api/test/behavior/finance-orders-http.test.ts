@@ -53,8 +53,14 @@ void describe("finance API over the tRPC HTTP boundary", () => {
     const payload = (await response.json()) as CreateOrderResponseBody;
 
     assert.equal(response.status, HTTP_OK);
-    assert.equal(payload.result.data.json.order.principalAmountCents, DEFAULT_ORDER_INPUT.principalAmountCents);
-    assert.equal(payload.result.data.json.installments.length, DEFAULT_ORDER_INPUT.installmentCount);
+    assert.equal(
+      payload.result.data.json.order.principalAmountCents,
+      DEFAULT_ORDER_INPUT.principalAmountCents,
+    );
+    assert.equal(
+      payload.result.data.json.installments.length,
+      DEFAULT_ORDER_INPUT.installmentCount,
+    );
 
     const storedSum = payload.result.data.json.installments.reduce(
       (total, row) => total + row.amountCents,

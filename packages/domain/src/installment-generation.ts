@@ -48,7 +48,11 @@ export function deriveFirstDueDate(input: { startDate: string; dueDay: number })
   assertDueDay(input.dueDay);
 
   const start = parseDateOnly(input.startDate);
-  const firstCandidate = dateOnDueDay({ year: start.year, monthIndex: start.monthIndex, dueDay: input.dueDay });
+  const firstCandidate = dateOnDueDay({
+    year: start.year,
+    monthIndex: start.monthIndex,
+    dueDay: input.dueDay,
+  });
 
   if (firstCandidate > input.startDate) {
     return firstCandidate;
@@ -138,11 +142,7 @@ function addMonths(
   };
 }
 
-function dateOnDueDay(input: {
-  year: number;
-  monthIndex: number;
-  dueDay: number;
-}): string {
+function dateOnDueDay(input: { year: number; monthIndex: number; dueDay: number }): string {
   const lastDayOfMonth = new Date(Date.UTC(input.year, input.monthIndex + 1, 0)).getUTCDate();
   const day = Math.min(input.dueDay, lastDayOfMonth);
   const month = String(input.monthIndex + 1).padStart(2, "0");
