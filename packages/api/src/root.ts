@@ -4,6 +4,7 @@ import { calendarRouter } from "./calendar/router.js";
 import { classesRouter } from "./classes/router.js";
 import { enrollmentRouter } from "./enrollment/router.js";
 import { financeRouter } from "./finance/router.js";
+import { reportsRouter } from "./reports/router.js";
 import { studentsRouter } from "./students/router.js";
 
 export const appRouter = router({
@@ -15,6 +16,7 @@ export const appRouter = router({
   enrollment: enrollmentRouter,
   attendance: attendanceRouter,
   finance: financeRouter,
+  reports: reportsRouter,
 });
 
 export type AppRouter = typeof appRouter;

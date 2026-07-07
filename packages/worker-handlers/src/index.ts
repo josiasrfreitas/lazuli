@@ -247,3 +247,11 @@ function weekdayForDate(date: Date): WeekdayName {
 
   return weekdays[date.getUTCDay()] ?? "SUNDAY";
 }
+
+export { processReportGenerate } from "./reports/process-report-generate.js";
+export type { ProcessReportGenerateResult } from "./reports/process-report-generate.js";
+export { sendOverdueD30 } from "./email/send-overdue-d30.js";
+export type { SendOverdueD30Result } from "./email/send-overdue-d30.js";
+export { sendOverdueDigest } from "./email/send-overdue-digest.js";
+export { sendPortalFailureEmail } from "./email/send-portal-failure-email.js";
+export type { SendPortalFailureEmailResult } from "./email/send-portal-failure-email.js";

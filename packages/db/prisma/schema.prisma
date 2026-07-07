@@ -118,6 +118,15 @@ enum PaymentMethod {
   OTHER
 }
 
+enum ArtifactKind {
+  STUDENT_STATEMENT_PDF
+  CLASS_ROSTER_PDF
+  ATTENDANCE_SUMMARY_PDF
+  OVERDUE_RECEIVABLES_CSV
+  MONTHLY_ACCOUNTANT_CSV
+  SIGNED_ORDER_PDF
+}
+
 model User {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -156,6 +165,7 @@ model User {
   createdPaymentAllocations     PaymentAllocation[]     @relation("PaymentAllocationCreator")
   updatedPaymentAllocations     PaymentAllocation[]     @relation("PaymentAllocationUpdater")
   updatedFinanceSettings        FinanceSettings[]       @relation("FinanceSettingsUpdater")
+  requestedArtifacts            GeneratedArtifact[]     @relation("ArtifactRequester")
 }
 
 model Account {
@@ -222,8 +232,9 @@ model Student {
 
   address     Address?           @relation(fields: [addressId], references: [id], onDelete: SetNull)
   guardian    Guardian?          @relation(fields: [guardianId], references: [id], onDelete: SetNull)
-  enrollments Enrollment[]
-  orderLinks  OrderBeneficiary[]
+  enrollments         Enrollment[]
+  orderLinks          OrderBeneficiary[]
+  generatedArtifacts  GeneratedArtifact[]
 
   @@index([addressId])
   @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_full_name_trgm_idx")
@@ -336,8 +347,9 @@ model Class {
   previousClass Class?              @relation("ClassLineage", fields: [previousClassId], references: [id])
   nextClasses   Class[]             @relation("ClassLineage")
   scheduleSlots ClassScheduleSlot[]
-  sessions      ClassSession[]
-  enrollments   Enrollment[]
+  sessions           ClassSession[]
+  enrollments        Enrollment[]
+  generatedArtifacts GeneratedArtifact[]
 
   @@index([teacherId])
   @@index([sharedStageId])
@@ -576,8 +588,9 @@ model Order {
   payer         Payer              @relation(fields: [payerId], references: [id], onDelete: Restrict)
   createdBy     User?              @relation("OrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
   updatedBy     User?              @relation("OrderUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
-  beneficiaries OrderBeneficiary[]
-  installments  Installment[]
+  beneficiaries      OrderBeneficiary[]
+  installments       Installment[]
+  generatedArtifacts GeneratedArtifact[]
 
   @@index([payerId])
   @@index([createdById])
@@ -695,4 +708,39 @@ model PaymentAllocation {
   @@index([installmentId])
   @@index([createdById])
   @@index([updatedById])
+}
+
+model GeneratedArtifact {
+  id             String       @id @default(uuid()) @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime?    @map("deleted_at") @db.Timestamptz
+  kind           ArtifactKind
+  requestedById  String?      @map("requested_by_id") @db.Uuid
+  studentId      String?      @map("student_id") @db.Uuid
+  classId        String?      @map("class_id") @db.Uuid
+  orderId        String?      @map("order_id") @db.Uuid
+  storageBucket  String?      @map("storage_bucket")
+  storageObject  String?      @map("storage_object")
+  contentType    String?      @map("content_type")
+  fileName       String?      @map("file_name")
+  requestedAt    DateTime     @default(now()) @map("requested_at") @db.Timestamptz
+  startedAt      DateTime?    @map("started_at") @db.Timestamptz
+  completedAt    DateTime?    @map("completed_at") @db.Timestamptz
+  failedAt       DateTime?    @map("failed_at") @db.Timestamptz
+  errorCode      String?      @map("error_code")
+  errorMessage   String?      @map("error_message")
+  expiresAt      DateTime?    @map("expires_at") @db.Timestamptz
+
+  requestedBy User?    @relation("ArtifactRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  student     Student? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  class       Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  order       Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([requestedById])
+  @@index([studentId])
+  @@index([classId])
+  @@index([orderId])
+  @@index([kind])
+  @@map("generated_artifacts")
 }
