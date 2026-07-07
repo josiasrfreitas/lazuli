@@ -73,3 +73,18 @@ export {
   payerCreateProcedureInputSchema,
   paymentMethodSchema,
 } from "./finance.js";
+export {
+  artifactKindSchema,
+  artifactStatusSchema,
+  deriveArtifactStatus,
+  getArtifactInputSchema,
+  getArtifactOutputSchema,
+  reportMonthSchema,
+  reportRequestResultSchema,
+  requestAttendanceSummaryInputSchema,
+  requestClassRosterInputSchema,
+  requestMonthlyAccountantCsvInputSchema,
+  requestOverdueCsvInputSchema,
+  requestStudentStatementInputSchema,
+} from "./reports.js";
+export type { ArtifactKind, ArtifactStatus, GetArtifactOutput } from "./reports.js";
