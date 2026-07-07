@@ -122,14 +122,20 @@ function isValidAdjustmentSign(
   amountCents: number,
 ): boolean {
   switch (type) {
-    case "INTEREST":
-    case "LATE_FEE":
+    case "INTEREST": {
       return amountCents > 0;
-    case "DISCOUNT":
+    }
+    case "LATE_FEE": {
+      return amountCents > 0;
+    }
+    case "DISCOUNT": {
       return amountCents < 0;
-    case "CORRECTION":
+    }
+    case "CORRECTION": {
       return amountCents !== 0;
-    default:
+    }
+    default: {
       return false;
+    }
   }
 }

@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe } from "node:test";
 
-import { FINANCE_DUE_DAY_FIFTEENTH } from "@lazuli/domain";
-import { db, PaymentMethod } from "@lazuli/db";
+import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
 import {
@@ -20,38 +19,42 @@ import {
   ADMIN,
   caller,
   cleanFinanceOrdersDatabase,
-  createPayer,
-  createStudent,
-  DEFAULT_ORDER_INPUT,
   ensureAdminUser,
   expectRejects,
 } from "./finance-test-support.js";
-
-const WAIVER_TEST_PREFIX = "GRE-47 ";
-const PAYMENT_DATE = new Date("2026-04-10T00:00:00.000Z");
-const LOCKED_UPDATE_START_DATE = new Date("2026-02-01T00:00:00.000Z");
-const MISSING_ENTITY_ID = "00000000-0000-0000-0000-000000000099";
-const WAIVER_REASON = "Bolsa integral";
-const DISCOUNT_REASON = "Desconto irmao";
-const DISCOUNT_AMOUNT_CENTS = -5000;
-const INTEREST_AMOUNT_CENTS = 1500;
-const CORRECTION_AMOUNT_CENTS = -2000;
-const PARTIAL_PAYMENT_CENTS = 10_000;
-const FULL_INSTALLMENT_PAYMENT_CENTS = 33_334;
-const LOCKED_UPDATE_PRINCIPAL_CENTS = 80_000;
-const TWO_INSTALLMENTS = 2;
+import {
+  allocatePaymentToInstallment,
+  cancelOrder,
+  CORRECTION_AMOUNT_CENTS,
+  createOrderFixture,
+  DISCOUNT_AMOUNT_CENTS,
+  DISCOUNT_REASON,
+  FULL_INSTALLMENT_PAYMENT_CENTS,
+  INTEREST_AMOUNT_CENTS,
+  MISSING_ENTITY_ID,
+  PARTIAL_PAYMENT_CENTS,
+  updateOrderFixture,
+  WAIVER_REASON,
+  WAIVER_TEST_PREFIX,
+} from "./finance-waivers-adjustments-test-support.js";
 
 void describe("finance.waiveInstallment", () => {
   registerWaiverHooks();
   registerWaiveHappyPath();
-  registerWaiveGuards();
+  registerWaiveFullyPaidGuard();
+  registerWaiveAlreadyWaivedGuard();
+  registerWaiveMissingGuard();
+  registerWaiveCancelledOrderGuard();
   registerWaivePreservesPaidRevenue();
 });
 
 void describe("finance.addInstallmentAdjustment", () => {
   registerWaiverHooks();
   registerDiscountHappyPath();
-  registerAdjustmentGuards();
+  registerDiscountSignGuards();
+  registerAdjustmentPaidGuard();
+  registerAdjustmentWaivedGuard();
+  registerAdjustmentCancelledGuard();
   registerOtherAdjustmentTypes();
   registerOrderEditCutoffAfterMutation();
 });
@@ -94,23 +97,13 @@ function registerWaiveHappyPath(): void {
   });
 }
 
-function registerWaiveGuards(): void {
+function registerWaiveFullyPaidGuard(): void {
   databaseIt("rejects waiving a fully paid installment", async () => {
     const fixture = await createOrderFixture();
-    const paymentEntry = await db.paymentEntry.create({
-      data: {
-        payerId: fixture.payerId,
-        date: PAYMENT_DATE,
-        amountCents: FULL_INSTALLMENT_PAYMENT_CENTS,
-        method: PaymentMethod.PIX,
-      },
-    });
-    await db.paymentAllocation.create({
-      data: {
-        paymentEntryId: paymentEntry.id,
-        installmentId: fixture.installmentId,
-        amountCents: FULL_INSTALLMENT_PAYMENT_CENTS,
-      },
+    await allocatePaymentToInstallment({
+      payerId: fixture.payerId,
+      installmentId: fixture.installmentId,
+      amountCents: FULL_INSTALLMENT_PAYMENT_CENTS,
     });
 
     await expectRejects(
@@ -121,7 +114,9 @@ function registerWaiveGuards(): void {
       INSTALLMENT_NOTHING_TO_WAIVE_MESSAGE,
     );
   });
+}
 
+function registerWaiveAlreadyWaivedGuard(): void {
   databaseIt("rejects waiving an already waived installment", async () => {
     const fixture = await createOrderFixture();
     await caller().finance.waiveInstallment({
@@ -137,7 +132,9 @@ function registerWaiveGuards(): void {
       INSTALLMENT_ALREADY_WAIVED_MESSAGE,
     );
   });
+}
 
+function registerWaiveMissingGuard(): void {
   databaseIt("rejects waiving a missing installment", async () => {
     await expectRejects(
       caller().finance.waiveInstallment({
@@ -147,13 +144,12 @@ function registerWaiveGuards(): void {
       INSTALLMENT_NOT_FOUND_MESSAGE,
     );
   });
+}
 
+function registerWaiveCancelledOrderGuard(): void {
   databaseIt("rejects waiving installments on cancelled orders", async () => {
     const fixture = await createOrderFixture();
-    await db.order.update({
-      where: { id: fixture.orderId },
-      data: { cancelledAt: new Date(), cancelledReason: "Cliente desistiu" },
-    });
+    await cancelOrder(fixture.orderId);
 
     await expectRejects(
       caller().finance.waiveInstallment({
@@ -168,20 +164,10 @@ function registerWaiveGuards(): void {
 function registerWaivePreservesPaidRevenue(): void {
   databaseIt("forgives only the remaining balance after partial payment", async () => {
     const fixture = await createOrderFixture();
-    const paymentEntry = await db.paymentEntry.create({
-      data: {
-        payerId: fixture.payerId,
-        date: PAYMENT_DATE,
-        amountCents: PARTIAL_PAYMENT_CENTS,
-        method: PaymentMethod.PIX,
-      },
-    });
-    await db.paymentAllocation.create({
-      data: {
-        paymentEntryId: paymentEntry.id,
-        installmentId: fixture.installmentId,
-        amountCents: PARTIAL_PAYMENT_CENTS,
-      },
+    await allocatePaymentToInstallment({
+      payerId: fixture.payerId,
+      installmentId: fixture.installmentId,
+      amountCents: PARTIAL_PAYMENT_CENTS,
     });
 
     const result = await caller().finance.waiveInstallment({
@@ -233,7 +219,7 @@ function registerDiscountHappyPath(): void {
   });
 }
 
-function registerAdjustmentGuards(): void {
+function registerDiscountSignGuards(): void {
   databaseIt("rejects positive discount amounts", async () => {
     const fixture = await createOrderFixture();
 
@@ -260,23 +246,15 @@ function registerAdjustmentGuards(): void {
       DISCOUNT_REASON_REQUIRED_MESSAGE,
     );
   });
+}
 
+function registerAdjustmentPaidGuard(): void {
   databaseIt("rejects adjustments that would drop expected below paid amount", async () => {
     const fixture = await createOrderFixture();
-    const paymentEntry = await db.paymentEntry.create({
-      data: {
-        payerId: fixture.payerId,
-        date: PAYMENT_DATE,
-        amountCents: PARTIAL_PAYMENT_CENTS,
-        method: PaymentMethod.PIX,
-      },
-    });
-    await db.paymentAllocation.create({
-      data: {
-        paymentEntryId: paymentEntry.id,
-        installmentId: fixture.installmentId,
-        amountCents: PARTIAL_PAYMENT_CENTS,
-      },
+    await allocatePaymentToInstallment({
+      payerId: fixture.payerId,
+      installmentId: fixture.installmentId,
+      amountCents: PARTIAL_PAYMENT_CENTS,
     });
 
     await expectRejects(
@@ -289,7 +267,9 @@ function registerAdjustmentGuards(): void {
       ADJUSTMENT_BELOW_PAID_MESSAGE,
     );
   });
+}
 
+function registerAdjustmentWaivedGuard(): void {
   databaseIt("rejects adjustments on waived installments", async () => {
     const fixture = await createOrderFixture();
     await caller().finance.waiveInstallment({
@@ -307,13 +287,12 @@ function registerAdjustmentGuards(): void {
       WAIVED_INSTALLMENT_ADJUSTMENT_MESSAGE,
     );
   });
+}
 
+function registerAdjustmentCancelledGuard(): void {
   databaseIt("rejects adjustments on cancelled orders", async () => {
     const fixture = await createOrderFixture();
-    await db.order.update({
-      where: { id: fixture.orderId },
-      data: { cancelledAt: new Date(), cancelledReason: "Cliente desistiu" },
-    });
+    await cancelOrder(fixture.orderId);
 
     await expectRejects(
       caller().finance.addInstallmentAdjustment({
@@ -389,42 +368,5 @@ function registerOrderEditCutoffAfterMutation(): void {
     });
 
     await expectRejects(updateOrderFixture(fixture), ORDER_LOCKED_MESSAGE);
-  });
-}
-
-async function createOrderFixture(): Promise<{
-  orderId: string;
-  payerId: string;
-  studentId: string;
-  installmentId: string;
-}> {
-  const payer = await createPayer("Waiver Payer", WAIVER_TEST_PREFIX);
-  const student = await createStudent("Waiver Student", WAIVER_TEST_PREFIX);
-  const result = await caller().finance.createOrder({
-    ...DEFAULT_ORDER_INPUT,
-    payer: { mode: "existing", payerId: payer.id },
-    beneficiaryStudentIds: [student.id],
-  });
-
-  return {
-    orderId: result.order.id,
-    payerId: payer.id,
-    studentId: student.id,
-    installmentId: result.installments[0]?.id ?? "",
-  };
-}
-
-async function updateOrderFixture(fixture: {
-  orderId: string;
-  studentId: string;
-}): Promise<unknown> {
-  return caller().finance.updateOrder({
-    orderId: fixture.orderId,
-    kind: "TUITION",
-    beneficiaryStudentIds: [fixture.studentId],
-    principalAmountCents: LOCKED_UPDATE_PRINCIPAL_CENTS,
-    installmentCount: TWO_INSTALLMENTS,
-    startDate: LOCKED_UPDATE_START_DATE,
-    dueDay: FINANCE_DUE_DAY_FIFTEENTH,
   });
 }
