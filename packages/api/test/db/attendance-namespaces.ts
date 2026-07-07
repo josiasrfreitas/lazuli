@@ -28,6 +28,19 @@ export const confirmHarness = createHarness(
   }),
 );
 
+export const editHarness = createHarness(
+  defineNamespace({
+    label: "edit",
+    startDate: "2014-02-01",
+    endDate: "2014-06-30",
+    sessionDate: "2014-03-10",
+    afterSessionDate: "2014-04-01",
+    adminId: "00000000-0000-0000-0000-000000614001",
+    teacherId: "00000000-0000-0000-0000-000000614002",
+    otherTeacherId: "00000000-0000-0000-0000-000000614003",
+  }),
+);
+
 export const behaviorHarness = createHarness(
   defineNamespace({
     label: "behavior",

@@ -1,5 +1,6 @@
 import {
   attendanceConfirmSessionInputSchema,
+  attendanceEditSessionInputSchema,
   attendanceSessionRosterInputSchema,
   makeupCancelInputSchema,
   makeupOutcomeInputSchema,
@@ -8,6 +9,7 @@ import {
 
 import { adminProcedure, router, staffProcedure } from "../trpc/init.js";
 import { confirmSession } from "./confirm.js";
+import { editSession } from "./edit.js";
 import { cancelMakeup } from "./makeup-cancel.js";
 import { markMakeupOutcome } from "./makeup-outcome.js";
 import { scheduleMakeup } from "./makeup-schedule.js";
@@ -23,7 +25,24 @@ export const attendanceRouter = router({
     .input(attendanceConfirmSessionInputSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) =>
-        confirmSession({ database, staffUser: ctx.staffUser, values: input }),
+        confirmSession({
+          database,
+          staffUser: ctx.staffUser,
+          values: input,
+          now: ctx.now ?? new Date(),
+        }),
+      ),
+    ),
+  editSession: staffProcedure
+    .input(attendanceEditSessionInputSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        editSession({
+          database,
+          staffUser: ctx.staffUser,
+          values: input,
+          now: ctx.now ?? new Date(),
+        }),
       ),
     ),
   // Coordination (logged in as ADMIN) schedules/cancels makeups (S-ATT-3, D-0010).

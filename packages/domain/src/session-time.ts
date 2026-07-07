@@ -32,6 +32,11 @@ export function isAtLeastTomorrowInSaoPaulo(input: { targetDate: DateInput; now:
   return toDateOnly(input.targetDate) > saoPauloDateOnly(input.now);
 }
 
+/** Whether a `@db.Date` target day is the current `America/Sao_Paulo` calendar day. */
+export function isSameDayInSaoPaulo(input: { targetDate: DateInput; now: Date }): boolean {
+  return toDateOnly(input.targetDate) === saoPauloDateOnly(input.now);
+}
+
 function zonedDateTimeToInstant(input: { date: string; time: string; timeZone: string }): Date {
   const utcGuess = new Date(`${input.date}T${input.time}:00.000Z`);
   const localParts = localDateTimeParts({ instant: utcGuess, timeZone: input.timeZone });

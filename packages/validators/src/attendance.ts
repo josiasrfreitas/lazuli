@@ -13,7 +13,7 @@ export const attendanceSessionRosterInputSchema = z
   })
   .strict();
 
-const attendanceConfirmRowSchema = z
+const attendanceRowSchema = z
   .object({
     enrollmentId: z.string().uuid(INVALID_ENROLLMENT_ID_MESSAGE),
     status: attendanceStatusSchema,
@@ -29,6 +29,17 @@ const attendanceConfirmRowSchema = z
 export const attendanceConfirmSessionInputSchema = z
   .object({
     sessionId: z.string().uuid(INVALID_SESSION_ID_MESSAGE),
-    rows: z.array(attendanceConfirmRowSchema),
+    rows: z.array(attendanceRowSchema),
+  })
+  .strict();
+
+/**
+ * Input for `attendance.editSession`. Unlike first confirm, rows are explicit changes only, so callers
+ * must send at least one row.
+ */
+export const attendanceEditSessionInputSchema = z
+  .object({
+    sessionId: z.string().uuid(INVALID_SESSION_ID_MESSAGE),
+    rows: z.array(attendanceRowSchema).min(1, "Informe ao menos uma alteracao."),
   })
   .strict();
