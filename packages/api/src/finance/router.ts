@@ -1,5 +1,6 @@
 import {
   financeCreateOrderInputSchema,
+  financeRegisterPaymentInputSchema,
   financeUpdateOrderInputSchema,
   payerCreateProcedureInputSchema,
 } from "@lazuli/validators";
@@ -7,6 +8,7 @@ import {
 import { adminProcedure, router } from "../trpc/init.js";
 import { createOrder } from "./create-order.js";
 import { createPayer } from "./create-payer.js";
+import { registerPayment } from "./register-payment.js";
 import { updateOrder } from "./update-order.js";
 
 export const financeRouter = router({
@@ -37,4 +39,15 @@ export const financeRouter = router({
       }),
     ),
   ),
+  registerPayment: adminProcedure
+    .input(financeRegisterPaymentInputSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        registerPayment({
+          database,
+          values: input,
+          staffUserId: ctx.staffUser.id,
+        }),
+      ),
+    ),
 });

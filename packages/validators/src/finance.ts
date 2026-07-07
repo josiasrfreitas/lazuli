@@ -5,6 +5,7 @@ import { dateOnlyInputSchema } from "./student.js";
 const REQUIRED_TEXT_MESSAGE = "Campo obrigatorio.";
 const INVALID_ORDER_ID_MESSAGE = "Identificador de pedido invalido.";
 const INVALID_PAYER_ID_MESSAGE = "Identificador de pagador invalido.";
+const INVALID_INSTALLMENT_ID_MESSAGE = "Identificador de parcela invalido.";
 
 const FINANCE_DUE_DAY_FIFTH = 5;
 const FINANCE_DUE_DAY_TENTH = 10;
@@ -16,6 +17,15 @@ const requiredText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE);
 const optionalText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE).nullish();
 
 export const orderKindSchema = z.enum(["TUITION", "ENROLLMENT_FEE", "MATERIAL", "OTHER"]);
+export const paymentMethodSchema = z.enum([
+  "PIX",
+  "CASH",
+  "TRANSFER",
+  "CARD",
+  "CHEQUE",
+  "BOLETO",
+  "OTHER",
+]);
 
 export const dueDaySchema = z.union([
   z.literal(FINANCE_DUE_DAY_FIFTH),
@@ -88,6 +98,33 @@ export const financeCreateOrderInputSchema = orderCommercialFieldsSchema
 export const financeUpdateOrderInputSchema = orderCommercialFieldsSchema
   .extend({
     orderId: z.string().uuid(INVALID_ORDER_ID_MESSAGE),
+  })
+  .strict();
+
+export const financeRegisterPaymentInputSchema = z
+  .object({
+    payerId: z.string().uuid(INVALID_PAYER_ID_MESSAGE),
+    date: dateOnlyInputSchema,
+    amountCents: z
+      .number()
+      .int("Valor do pagamento deve ser inteiro.")
+      .nonnegative("Valor do pagamento nao pode ser negativo."),
+    method: paymentMethodSchema,
+    note: optionalText,
+    externalReference: optionalText,
+    allocations: z
+      .array(
+        z
+          .object({
+            installmentId: z.string().uuid(INVALID_INSTALLMENT_ID_MESSAGE),
+            amountCents: z
+              .number()
+              .int("Valor da alocacao deve ser inteiro.")
+              .nonnegative("Valor da alocacao nao pode ser negativo."),
+          })
+          .strict(),
+      )
+      .min(1, "Informe ao menos uma alocacao."),
   })
   .strict();
 

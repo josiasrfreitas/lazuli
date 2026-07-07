@@ -62,8 +62,10 @@ export {
   dueDaySchema,
   financeCreateOrderInputSchema,
   financePayerInputSchema,
+  financeRegisterPaymentInputSchema,
   financeUpdateOrderInputSchema,
   orderKindSchema,
   payerCreateInputSchema,
   payerCreateProcedureInputSchema,
+  paymentMethodSchema,
 } from "./finance.js";
