@@ -13,6 +13,25 @@ export function sessionEndInstant(input: { date: DateInput; endTime: DateInput }
   });
 }
 
+/** The `America/Sao_Paulo` wall-clock calendar day for an instant, as `"YYYY-MM-DD"`. */
+export function saoPauloDateOnly(instant: Date): string {
+  const parts = localDateTimeParts({ instant, timeZone: SAO_PAULO_TIME_ZONE });
+  const month = String(parts.monthIndex + 1).padStart(2, "0");
+  const day = String(parts.day).padStart(2, "0");
+
+  return `${parts.year}-${month}-${day}`;
+}
+
+/**
+ * Whether a `@db.Date` target day is at least tomorrow in `America/Sao_Paulo` relative to `now` —
+ * the makeup advance-scheduling constraint ("precisa avisar com antecedencia", §4.6). The target is
+ * a calendar date compared in UTC; only `now` is resolved through the SP wall clock. `YYYY-MM-DD`
+ * strings order chronologically, so a strict `>` means "strictly after the SP current day".
+ */
+export function isAtLeastTomorrowInSaoPaulo(input: { targetDate: DateInput; now: Date }): boolean {
+  return toDateOnly(input.targetDate) > saoPauloDateOnly(input.now);
+}
+
 function zonedDateTimeToInstant(input: { date: string; time: string; timeZone: string }): Date {
   const utcGuess = new Date(`${input.date}T${input.time}:00.000Z`);
   const localParts = localDateTimeParts({ instant: utcGuess, timeZone: input.timeZone });
