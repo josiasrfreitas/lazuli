@@ -183,8 +183,25 @@ async function createActiveOrderFixture(dates: FixtureDates): Promise<ActiveOrde
     payer: { mode: "existing", payerId: payer.id },
     beneficiaryStudentIds: [student.id],
   });
-  const [overdueInstallmentId, inMonthInstallmentId, futureInstallmentId] =
-    activeOrder.installments.map((installment) => installment.id);
+  if (activeOrder.installments.length !== THREE_INSTALLMENTS) {
+    throw new Error("Expected three installments on the receivables fixture order.");
+  }
+
+  const overdueInstallment = activeOrder.installments[0];
+  const inMonthInstallment = activeOrder.installments[1];
+  const futureInstallment = activeOrder.installments[2];
+
+  if (
+    overdueInstallment === undefined ||
+    inMonthInstallment === undefined ||
+    futureInstallment === undefined
+  ) {
+    throw new Error("Expected three installments on the receivables fixture order.");
+  }
+
+  const overdueInstallmentId = overdueInstallment.id;
+  const inMonthInstallmentId = inMonthInstallment.id;
+  const futureInstallmentId = futureInstallment.id;
 
   await db.installment.update({
     where: { id: overdueInstallmentId },
@@ -203,11 +220,11 @@ async function createActiveOrderFixture(dates: FixtureDates): Promise<ActiveOrde
     orderId: activeOrder.order.id,
     payerId: payer.id,
     studentId: student.id,
-    overdueInstallmentId: overdueInstallmentId ?? "",
-    inMonthInstallmentId: inMonthInstallmentId ?? "",
-    futureInstallmentId: futureInstallmentId ?? "",
-    overdueAmountCents: activeOrder.installments[0]?.amountCents ?? 0,
-    inMonthAmountCents: activeOrder.installments[1]?.amountCents ?? 0,
+    overdueInstallmentId,
+    inMonthInstallmentId,
+    futureInstallmentId,
+    overdueAmountCents: overdueInstallment.amountCents,
+    inMonthAmountCents: inMonthInstallment.amountCents,
   };
 }
 
@@ -281,7 +298,7 @@ async function registerPaymentThisMonth(input: {
 }): Promise<void> {
   await caller().finance.registerPayment({
     payerId: input.payerId,
-    date: saoPauloDateOnly(new Date()),
+    date: dateOnlyToUtcDate(saoPauloDateOnly(new Date())),
     amountCents: input.amountCents,
     method: PaymentMethod.PIX,
     allocations: [{ installmentId: input.installmentId, amountCents: input.amountCents }],

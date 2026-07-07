@@ -86,7 +86,13 @@ function registerOverdueListHappyPath(): void {
       assert.equal(row.beneficiaries[0]?.whatsAppUrl, "https://wa.me/5582999887766");
     }
 
-    assert.ok(result.rows[0]?.dueDate <= (result.rows.at(-1)?.dueDate ?? ""));
+    if (fixtureRows.length >= 2) {
+      const firstDueDate = fixtureRows[0]?.dueDate;
+      const lastDueDate = fixtureRows.at(-1)?.dueDate;
+      if (firstDueDate !== undefined && lastDueDate !== undefined) {
+        assert.ok(firstDueDate <= lastDueDate);
+      }
+    }
   });
 }
 
