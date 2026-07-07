@@ -880,6 +880,13 @@ enum PaymentMethod {
   OTHER
 }
 
+enum OrderKind {
+  TUITION
+  ENROLLMENT_FEE
+  MATERIAL
+  OTHER
+}
+
 model FinanceSettings {
   id                     String   @id @default("singleton")
   interestRatePctMonthly Decimal  @default(1.0) @db.Decimal(5, 2)
@@ -901,10 +908,11 @@ model Payer {
 model Order {
   // UUIDEntity
   payerId              String
+  kind                 OrderKind
   principalAmountCents Int
   startDate            DateTime          @db.Date
   dueDay               Int
-  signedOrderArtifactId String?
+  signedOrderArtifactId String?          @db.Uuid
   cancelledAt          DateTime?
   cancelledReason      String?
 
@@ -978,23 +986,28 @@ model PaymentAllocation {
 
 Collection attempts (`S-FIN-4`) are P1 and intentionally have no P0 table. When promoted, add a separate migration and keep P0 dashboards/reports independent of it.
 
-Raw SQL constraints:
+Cheap DB constraints:
 
-- All `*Cents` fields on principal, installment, payment, allocation are `>= 0`.
+- `Order.principalAmountCents > 0`; installment, payment, and allocation `*Cents` fields are `>= 0`.
 - `InstallmentAdjustment.amountCents` is signed; for `INTEREST`/`LATE_FEE`, it must be `> 0`; for `DISCOUNT`, it must be `< 0`; `CORRECTION` may be either sign but not zero.
 - `Order.dueDay IN (5, 10, 15, 20, 25)`.
-- `Order.principalAmountCents > 0`.
-- Each order has at least one `OrderBeneficiary` before commit (deferrable trigger).
-- Sum of generated installments equals `Order.principalAmountCents` at creation.
-- `PaymentEntry.amountCents >= sum(PaymentAllocation.amountCents)` by trigger.
-- `sum(PaymentAllocation.amountCents for installment) <= currentExpectedCents` by trigger.
-- Allocated installment's order payer equals payment entry payer by trigger.
-- Waiver is allowed only when current remaining amount is `> 0`.
-- No new allocations may be created for an installment after `waivedAt` is set.
-- Triggers on `InstallmentAdjustment`, `PaymentAllocation`, waiver, and installment updates enforce `currentExpectedCents >= 0` and `paidAmountCents <= currentExpectedCents`, so a later negative adjustment cannot make an already-paid installment retroactively overpaid.
+- `Order.kind` is required and explicit (`TUITION | ENROLLMENT_FEE | MATERIAL | OTHER`); it classifies the receivable without adding stored status/discount/generation preset fields.
+- `Order.cancelledAt` and `cancelledReason` move together; `Installment.waivedAt` and `waivedReason` move together.
+- `FinanceSettings.id = "singleton"`.
 - `overdueD30EmailSentAt` is a delivery idempotency fact for hardcoded `S-NOT-2`; it is not a notification-rule engine.
 - `FinanceSettings` is a singleton table. `interestRatePctMonthly` defaults to `1.0`; multa remains open and is not modeled until the school validates the rate/policy.
-- `Order.signedOrderArtifactId`, when set, references a `GeneratedArtifact` with `kind = SIGNED_ORDER_PDF`.
+- `Order.signedOrderArtifactId` is a nullable UUID placeholder in the finance schema. The `GeneratedArtifact` table/FK and `kind = SIGNED_ORDER_PDF` validation are deferred to the artifact workflow slice.
+
+Service-layer transaction checks (not DB triggers in MVP; see §3.3):
+
+- Each order has at least one `OrderBeneficiary` before commit.
+- Sum of generated installments equals `Order.principalAmountCents` at creation.
+- `PaymentEntry.amountCents >= sum(PaymentAllocation.amountCents)`.
+- `sum(PaymentAllocation.amountCents for installment) <= currentExpectedCents`.
+- Allocated installment's order payer equals payment entry payer.
+- Waiver is allowed only when current remaining amount is `> 0`.
+- No new allocations may be created for an installment after `waivedAt` is set.
+- Finance write transactions lock affected installment rows before allocation/adjustment writes so concurrent writers cannot race past the same ceiling.
 
 Derived formulas:
 

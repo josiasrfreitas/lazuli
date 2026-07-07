@@ -336,7 +336,7 @@ Deliver in order: **Sprint 0** (de-risk spikes: real Legacy export with an ad ho
 The finance/receivables module is built on **`Order`** as its main entity (renamed from "Contract": an order is fundamentally about money arriving, and the same shape will later carry ad-hoc/standalone charges). Entities and cardinality:
 
 - **`Payer`** — billing party (person or company): `name`, `taxId`, `phone`, `email`. One payer → many orders.
-- **`Order`** — the financial agreement / receivable package: belongs to exactly one payer; carries `principalAmount` (final agreed principal), `startDate`, `dueDay`, `signedPdfUrl`, and cancellation facts. **Not** tied to any academic period/enrollment/class/stage. No stored `period`, `status`, `discount`, or `SUPERSEDED` (see [D-0032](#d-0032-finance-ledger--derive-dont-store-adjustments-payer-scoped-payments)).
+- **`Order`** — the financial agreement / receivable package: belongs to exactly one payer; carries required `kind` (`TUITION | ENROLLMENT_FEE | MATERIAL | OTHER`), `principalAmount` (final agreed principal), `startDate`, `dueDay`, optional `signedOrderArtifactId` UUID, and cancellation facts. **Not** tied to any academic period/enrollment/class/stage. No stored `period`, `status`, `discount`, generation preset, or `SUPERSEDED` (see [D-0032](#d-0032-finance-ledger--derive-dont-store-adjustments-payer-scoped-payments)).
 - **`Beneficiary` ≡ `Student`** — there is no separate Beneficiary entity. An **`OrderBeneficiary`** link carries the Order↔Student many-to-many: an order covers ≥1 student (siblings, multi-product); a student appears on many orders over time.
 - **`Installment`** — "an amount due by a date." An order has ≥1 installment; each belongs to exactly one order. `amount`, `dueDate`, `waivedAt?`, `waivedReason?`. Payment/overdue state is **derived**, not stored.
 - **`InstallmentAdjustment`** — signed financial adjustments on an installment (`INTEREST | LATE_FEE | DISCOUNT | CORRECTION`). Backbone built now; minimal UI in MVP.
@@ -345,7 +345,7 @@ The finance/receivables module is built on **`Order`** as its main entity (renam
 
 Overpayment / credit balance is not modeled in MVP, but the unallocated remainder (`entry.amount − Σ allocations`) stays **visible**; no carry-forward, no refunds (Phase 2).
 
-**Deferred:** the **ad-hoc charge** concept that creates orders from typed charges (enrollment fee, materials priced by stage, reimbursements, events — one-off or recurring) is parked until modeled together with the stage taxonomy. The enrollment-fee and cancellation-fee handling fold into it.
+**Deferred:** the full **ad-hoc charge** flow (materials priced by stage, reimbursements, events — one-off or recurring) is parked until modeled together with the stage taxonomy. `Order.kind` only classifies receivables already recorded in the backbone; it does not add pricing catalogs, payment processing, or a charge-generation workflow.
 
 ## D-0029: Attendance — Neutral Data State, Untaken-Session Flag, % Formula
 
@@ -492,11 +492,12 @@ Payer { name, taxId, phone, email }                                   // → man
 
 Order {
   payerId,
+  kind,                   // TUITION | ENROLLMENT_FEE | MATERIAL | OTHER
   principalAmount,        // final AGREED principal (post any signing discount); installments generated from this
-  startDate?, dueDay,     // dueDay ∈ {5,10,15,20,25} (D-0011)
-  signedPdfUrl?,
+  startDate, dueDay,      // dueDay ∈ {5,10,15,20,25} (D-0011)
+  signedOrderArtifactId?, // nullable UUID only until GeneratedArtifact ships
   cancelledAt?, cancelledReason?    // only stored lifecycle fact
-}                          // NO period, NO status, NO discount fields, NO SUPERSEDED
+}                          // NO period, NO status, NO discount fields, NO generationPreset, NO SUPERSEDED
 
 OrderBeneficiary { orderId, studentId }   // Order↔Student m2m (Beneficiary ≡ Student)
 
@@ -524,6 +525,9 @@ PaymentAllocation { paymentEntryId, installmentId, amount }                 // d
 - `Σ(allocations to an installment) ≤ installment.currentExpected` (i.e. `amount + Σ adjustments`).
 - Every installment allocated by a PaymentEntry belongs to an order whose `payerId == entry.payerId`.
 - `PaymentEntry.amount ≥ 0`, `PaymentAllocation.amount ≥ 0` (no negative entries/refunds in MVP).
+- `Order.principalAmount > 0`; `Installment.amount ≥ 0`; `Order.dueDay ∈ {5, 10, 15, 20, 25}`.
+- `Order.cancelledAt` and `cancelledReason` move together; `Installment.waivedAt` and `waivedReason` move together.
+- `signedOrderArtifactId` is a UUID-only reference for now; the `GeneratedArtifact` table/FK is deferred to the artifact workflow slice.
 - At generation, `Σ(installments) == order.principalAmount` (equal split, **remainder on the last installment**); they are **not** forced equal afterward (waivers/adjustments may diverge).
 
 **Behavioral rules:**
