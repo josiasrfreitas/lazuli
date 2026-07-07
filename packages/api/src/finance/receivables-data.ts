@@ -11,6 +11,11 @@ import { loadInterestRatePctMonthly } from "./finance-settings.js";
 import { toWhatsAppUrl } from "./whatsapp-url.js";
 
 const DATE_ONLY_LENGTH = 10;
+const YEAR_START_INDEX = 0;
+const YEAR_END_INDEX = 4;
+const MONTH_START_INDEX = 5;
+const MONTH_END_INDEX = 7;
+const MONTH_INDEX_OFFSET = 1;
 
 export type ReceivablesDatabase = Pick<
   Prisma.TransactionClient,
@@ -166,8 +171,8 @@ async function loadActiveOrderInstallments(
 
 function saoPauloMonthBounds(now: Date): { start: Date; endExclusive: Date } {
   const today = saoPauloDateOnly(now);
-  const year = Number(today.slice(0, 4));
-  const monthIndex = Number(today.slice(5, 7)) - 1;
+  const year = Number(today.slice(YEAR_START_INDEX, YEAR_END_INDEX));
+  const monthIndex = Number(today.slice(MONTH_START_INDEX, MONTH_END_INDEX)) - MONTH_INDEX_OFFSET;
 
   return {
     start: new Date(Date.UTC(year, monthIndex, 1)),

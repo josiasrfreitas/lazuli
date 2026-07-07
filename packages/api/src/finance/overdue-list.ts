@@ -2,6 +2,7 @@ import type { InstallmentLedger } from "@lazuli/domain";
 
 import {
   loadDerivedReceivablesInstallments,
+  type DerivedReceivablesInstallment,
   type ReceivablesDatabase,
 } from "./receivables-data.js";
 
@@ -23,22 +24,46 @@ export async function overdueList(input: {
 }): Promise<OverdueListResult> {
   const derivedInstallments = await loadDerivedReceivablesInstallments(input.database);
 
-  const rows = derivedInstallments
-    .filter(
-      (installment) =>
-        installment.isCollectible &&
-        installment.ledger.status === "OVERDUE" &&
-        installment.ledger.collectibleRemainingCents > 0,
-    )
-    .sort((left, right) => left.dueDate.localeCompare(right.dueDate))
-    .map((installment) => ({
-      installmentId: installment.id,
-      orderId: installment.orderId,
-      payer: installment.payer,
-      beneficiaries: installment.beneficiaries,
-      dueDate: installment.dueDate,
-      ledger: installment.ledger,
-    }));
+  const overdueInstallments = derivedInstallments.filter(
+    (installment) =>
+      installment.isCollectible &&
+      installment.ledger.status === "OVERDUE" &&
+      installment.ledger.collectibleRemainingCents > 0,
+  );
+
+  const rows = sortInstallmentsByDueDate(overdueInstallments).map((installment) => ({
+    installmentId: installment.id,
+    orderId: installment.orderId,
+    payer: installment.payer,
+    beneficiaries: installment.beneficiaries,
+    dueDate: installment.dueDate,
+    ledger: installment.ledger,
+  }));
 
   return { rows };
+}
+
+function sortInstallmentsByDueDate(
+  installments: DerivedReceivablesInstallment[],
+): DerivedReceivablesInstallment[] {
+  let sortedInstallments: DerivedReceivablesInstallment[] = [];
+
+  for (const installment of installments) {
+    const insertionIndex = sortedInstallments.findIndex(
+      (sortedInstallment) => sortedInstallment.dueDate > installment.dueDate,
+    );
+
+    if (insertionIndex === -1) {
+      sortedInstallments = [...sortedInstallments, installment];
+      continue;
+    }
+
+    sortedInstallments = [
+      ...sortedInstallments.slice(0, insertionIndex),
+      installment,
+      ...sortedInstallments.slice(insertionIndex),
+    ];
+  }
+
+  return sortedInstallments;
 }

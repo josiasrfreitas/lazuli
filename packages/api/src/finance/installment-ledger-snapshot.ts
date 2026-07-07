@@ -6,17 +6,20 @@ const DEFAULT_INTEREST_RATE_PCT_MONTHLY = 1;
 
 export function snapshotInstallmentLedger(
   installment: LoadedInstallment,
-  waivedAt: Date | null = installment.waivedAt,
-  interestRatePctMonthly: number = DEFAULT_INTEREST_RATE_PCT_MONTHLY,
+  options?: {
+    waivedAt?: Date | null;
+    interestRatePctMonthly?: number;
+  },
 ): InstallmentLedger {
   return deriveInstallmentLedger({
     amountCents: installment.amountCents,
     dueDate: installment.dueDate,
-    waivedAt,
+    waivedAt: options?.waivedAt ?? installment.waivedAt,
     orderCancelledAt: installment.order.cancelledAt,
     adjustments: installment.adjustments,
     allocations: installment.allocations,
     now: new Date(),
-    interestRatePctMonthly,
+    interestRatePctMonthly:
+      options?.interestRatePctMonthly ?? DEFAULT_INTEREST_RATE_PCT_MONTHLY,
   });
 }

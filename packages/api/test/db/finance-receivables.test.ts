@@ -69,9 +69,11 @@ function registerOverdueListHappyPath(): void {
     const fixture = await createReceivablesFixture();
 
     const result = await caller().finance.overdueList();
-    const fixtureRows = result.rows.filter((row) =>
-      [fixture.overdueInstallmentId, fixture.inMonthInstallmentId].includes(row.installmentId),
-    );
+    const fixtureInstallmentIds = new Set([
+      fixture.overdueInstallmentId,
+      fixture.inMonthInstallmentId,
+    ]);
+    const fixtureRows = result.rows.filter((row) => fixtureInstallmentIds.has(row.installmentId));
 
     assert.equal(
       fixtureRows.length,
@@ -100,10 +102,10 @@ function registerOverdueListExclusions(): void {
     const fixture = await createReceivablesFixture();
 
     const result = await caller().finance.overdueList();
-    const installmentIds = result.rows.map((row) => row.installmentId);
+    const installmentIds = new Set(result.rows.map((row) => row.installmentId));
 
-    assert.ok(!installmentIds.includes(fixture.cancelledOverdueInstallmentId));
-    assert.ok(!installmentIds.includes(fixture.waivedOverdueInstallmentId));
-    assert.ok(!installmentIds.includes(fixture.futureInstallmentId));
+    assert.ok(!installmentIds.has(fixture.cancelledOverdueInstallmentId));
+    assert.ok(!installmentIds.has(fixture.waivedOverdueInstallmentId));
+    assert.ok(!installmentIds.has(fixture.futureInstallmentId));
   });
 }

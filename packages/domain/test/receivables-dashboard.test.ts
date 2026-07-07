@@ -58,7 +58,7 @@ void describe("isDueInSaoPauloMonth", () => {
   });
 });
 
-void describe("buildReceivablesSnapshot", () => {
+void describe("buildReceivablesSnapshot aggregation", () => {
   void it("aggregates expected, overdue, and age buckets from collectible installments", () => {
     const overdueLedger = ledgerFor({ dueDate: DUE_JUNE_FIRST });
     const inMonthLedger = ledgerFor({ dueDate: DUE_JULY_TWENTY_FIFTH });
@@ -83,7 +83,9 @@ void describe("buildReceivablesSnapshot", () => {
       days30PlusCents: FIFTY_THOUSAND_CENTS,
     });
   });
+});
 
+void describe("buildReceivablesSnapshot exclusions", () => {
   void it("skips non-collectible installments", () => {
     const overdueLedger = ledgerFor({ dueDate: DUE_JUNE_FIRST });
 
@@ -101,7 +103,9 @@ void describe("buildReceivablesSnapshot", () => {
       days30PlusCents: 0,
     });
   });
+});
 
+void describe("buildReceivablesSnapshot partial payments", () => {
   void it("includes partially paid overdue installments in overdue totals only for remaining", () => {
     const overdueLedger = ledgerFor({
       dueDate: DUE_JUNE_FIRST,
@@ -117,7 +121,9 @@ void describe("buildReceivablesSnapshot", () => {
     assert.equal(snapshot.expectedThisMonthCents, 0);
     assert.equal(snapshot.overdueCents, THIRTY_THOUSAND_CENTS);
   });
+});
 
+void describe("buildReceivablesSnapshot in-month overdue", () => {
   void it("counts overdue installments due this month toward expected this month", () => {
     const overdueInMonthLedger = ledgerFor({
       dueDate: DUE_JULY_FIFTH,

@@ -69,7 +69,7 @@ export async function waiveInstallment(input: {
       waivedAt: updated.waivedAt,
       waivedReason: updated.waivedReason,
     },
-    ledger: snapshotInstallmentLedger(installment, updated.waivedAt),
+    ledger: snapshotInstallmentLedger(installment, { waivedAt: updated.waivedAt }),
   };
 }
 

@@ -42,6 +42,12 @@ type OverdueListResponseBody = {
 };
 
 void describe("finance receivables API over the tRPC HTTP boundary", { concurrency: 1 }, () => {
+  registerReceivablesHttpHooks();
+  registerReceivablesSnapshotHttpPath();
+  registerOverdueListHttpPath();
+});
+
+function registerReceivablesHttpHooks(): void {
   void before(async () => {
     await db.$connect();
   });
@@ -53,7 +59,9 @@ void describe("finance receivables API over the tRPC HTTP boundary", { concurren
     await cleanFinanceOrdersDatabase(RECEIVABLES_TEST_PREFIX);
     await db.$disconnect();
   });
+}
 
+function registerReceivablesSnapshotHttpPath(): void {
   databaseIt("returns receivables snapshot metrics via HTTP", async () => {
     const baselineResponse = await callHttpQuery({ path: "finance.receivablesSnapshot" });
     const baselinePayload = (await baselineResponse.json()) as SnapshotResponseBody;
@@ -79,9 +87,15 @@ void describe("finance receivables API over the tRPC HTTP boundary", { concurren
       expected.overdueCents,
     );
   });
+}
 
+function registerOverdueListHttpPath(): void {
   databaseIt("returns overdue rows with derived statuses via HTTP", async () => {
     const fixture = await createReceivablesFixture();
+    const fixtureInstallmentIds = new Set([
+      fixture.overdueInstallmentId,
+      fixture.inMonthInstallmentId,
+    ]);
 
     const response = await callHttpQuery({ path: "finance.overdueList" });
     const payload = (await response.json()) as OverdueListResponseBody;
@@ -94,10 +108,10 @@ void describe("finance receivables API over the tRPC HTTP boundary", { concurren
     );
 
     for (const row of payload.result.data.json.rows.filter((candidate) =>
-      [fixture.overdueInstallmentId, fixture.inMonthInstallmentId].includes(candidate.installmentId),
+      fixtureInstallmentIds.has(candidate.installmentId),
     )) {
       assert.equal(row.ledger.status, "OVERDUE");
       assert.ok(row.ledger.collectibleRemainingCents > 0);
     }
   });
-});
+}

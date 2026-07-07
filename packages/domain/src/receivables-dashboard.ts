@@ -62,7 +62,11 @@ export function buildReceivablesSnapshot(input: {
     }
 
     overdueCents += ledger.collectibleRemainingCents;
-    addAgeBucketAmount(ageBuckets, ledger.ageBucket, ledger.collectibleRemainingCents);
+    addAgeBucketAmount({
+      buckets: ageBuckets,
+      ageBucket: ledger.ageBucket,
+      amountCents: ledger.collectibleRemainingCents,
+    });
   }
 
   return {
@@ -73,23 +77,23 @@ export function buildReceivablesSnapshot(input: {
   };
 }
 
-function addAgeBucketAmount(
-  buckets: ReceivablesAgeBuckets,
-  ageBucket: OverdueAgeBucket | null,
-  amountCents: number,
-): void {
-  if (ageBucket === "DAYS_1_TO_7") {
-    buckets.days1To7Cents += amountCents;
+function addAgeBucketAmount(input: {
+  buckets: ReceivablesAgeBuckets;
+  ageBucket: OverdueAgeBucket | null;
+  amountCents: number;
+}): void {
+  if (input.ageBucket === "DAYS_1_TO_7") {
+    input.buckets.days1To7Cents += input.amountCents;
     return;
   }
 
-  if (ageBucket === "DAYS_8_TO_29") {
-    buckets.days8To30Cents += amountCents;
+  if (input.ageBucket === "DAYS_8_TO_29") {
+    input.buckets.days8To30Cents += input.amountCents;
     return;
   }
 
-  if (ageBucket === "DAYS_30_PLUS") {
-    buckets.days30PlusCents += amountCents;
+  if (input.ageBucket === "DAYS_30_PLUS") {
+    input.buckets.days30PlusCents += input.amountCents;
   }
 }
 
