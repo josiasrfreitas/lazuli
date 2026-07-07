@@ -1,4 +1,5 @@
 import {
+  financeBatchReconcileInputSchema,
   financeCreateOrderInputSchema,
   financeRegisterPaymentInputSchema,
   financeUpdateOrderInputSchema,
@@ -6,6 +7,7 @@ import {
 } from "@lazuli/validators";
 
 import { adminProcedure, router } from "../trpc/init.js";
+import { batchReconcile } from "./batch-reconcile.js";
 import { createOrder } from "./create-order.js";
 import { createPayer } from "./create-payer.js";
 import { registerPayment } from "./register-payment.js";
@@ -44,6 +46,17 @@ export const financeRouter = router({
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) =>
         registerPayment({
+          database,
+          values: input,
+          staffUserId: ctx.staffUser.id,
+        }),
+      ),
+    ),
+  batchReconcile: adminProcedure
+    .input(financeBatchReconcileInputSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        batchReconcile({
           database,
           values: input,
           staffUserId: ctx.staffUser.id,

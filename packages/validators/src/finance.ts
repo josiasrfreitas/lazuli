@@ -128,4 +128,15 @@ export const financeRegisterPaymentInputSchema = z
   })
   .strict();
 
+export const financeBatchReconcileInputSchema = z
+  .object({
+    date: dateOnlyInputSchema,
+    method: paymentMethodSchema,
+    externalReference: optionalText,
+    installmentIds: z
+      .array(z.string().uuid(INVALID_INSTALLMENT_ID_MESSAGE))
+      .min(1, "Informe ao menos uma parcela."),
+  })
+  .strict();
+
 export const payerCreateProcedureInputSchema = payerCreateInputSchema;
