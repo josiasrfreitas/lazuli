@@ -1,4 +1,8 @@
-import { deriveMakeupDisplayStatus, isSessionUntaken, type MakeupDisplayStatus } from "@lazuli/domain";
+import {
+  deriveMakeupDisplayStatus,
+  isSessionUntaken,
+  type MakeupDisplayStatus,
+} from "@lazuli/domain";
 
 import type { StaffUser } from "../trpc/context.js";
 import { assertResourceScope } from "../trpc/rbac.js";

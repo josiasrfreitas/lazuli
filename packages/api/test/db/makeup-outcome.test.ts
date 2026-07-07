@@ -151,7 +151,9 @@ function registerNoAttendanceRowTest(): void {
     const context = await setup();
     const makeupId = await insertMakeup(context);
 
-    await harness.caller(harness.ns.teacher).attendance.markMakeupOutcome({ makeupId, attended: true });
+    await harness
+      .caller(harness.ns.teacher)
+      .attendance.markMakeupOutcome({ makeupId, attended: true });
 
     const count = await attendanceRowCount({
       enrollmentId: context.originEnrollmentId,

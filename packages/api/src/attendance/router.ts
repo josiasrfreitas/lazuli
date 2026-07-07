@@ -33,18 +33,16 @@ export const attendanceRouter = router({
         }),
       ),
     ),
-  editSession: staffProcedure
-    .input(attendanceEditSessionInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        editSession({
-          database,
-          staffUser: ctx.staffUser,
-          values: input,
-          now: ctx.now ?? new Date(),
-        }),
-      ),
+  editSession: staffProcedure.input(attendanceEditSessionInputSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) =>
+      editSession({
+        database,
+        staffUser: ctx.staffUser,
+        values: input,
+        now: ctx.now ?? new Date(),
+      }),
     ),
+  ),
   // Coordination (logged in as ADMIN) schedules/cancels makeups (S-ATT-3, D-0010).
   scheduleMakeup: adminProcedure
     .input(makeupScheduleInputSchema)
