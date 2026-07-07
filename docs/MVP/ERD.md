@@ -320,10 +320,11 @@ erDiagram
   ORDER_RECORD {
     string id PK
     string payerId FK
+    OrderKind kind
     int principalAmountCents
     date startDate
     int dueDay
-    string signedOrderArtifactId FK
+    string signedOrderArtifactId
     datetime cancelledAt
     string cancelledReason
   }
@@ -391,6 +392,7 @@ erDiagram
 Key constraints from the spec:
 
 - All money is integer cents, BRL-only, `Cents` suffix.
+- `ORDER_RECORD.kind` is required: `TUITION | ENROLLMENT_FEE | MATERIAL | OTHER`.
 - `dueDay IN (5, 10, 15, 20, 25)`.
 - Payment allocations are payer-scoped: allocated installments must belong to orders for the same payer as the payment entry.
 - `currentExpectedCents >= 0` and `paidAmountCents <= currentExpectedCents` after adjustments.
@@ -420,7 +422,7 @@ erDiagram
 
   ORDER_RECORD {
     string id PK
-    string signedOrderArtifactId FK
+    string signedOrderArtifactId
   }
 
   GENERATED_ARTIFACT {
@@ -447,14 +449,13 @@ erDiagram
   STUDENT ||--o{ GENERATED_ARTIFACT : student_report
   SCHOOL_CLASS ||--o{ GENERATED_ARTIFACT : class_report
   ORDER_RECORD ||--o{ GENERATED_ARTIFACT : order_artifact
-  GENERATED_ARTIFACT |o--o| ORDER_RECORD : signed_order_pdf
 ```
 
 Artifact rules:
 
 - Store GCS bucket/object keys, not public or signed URLs.
 - Signed URLs are generated on demand.
-- `ORDER_RECORD.signedOrderArtifactId`, when set, must reference a `GENERATED_ARTIFACT` with `kind = SIGNED_ORDER_PDF`.
+- `ORDER_RECORD.signedOrderArtifactId` is a nullable UUID placeholder in the finance schema. The generated-artifact FK and `kind = SIGNED_ORDER_PDF` validation are deferred to the artifact workflow slice.
 - Retention remains open; `expiresAt` stays nullable.
 
 ## Full Relationship Index
@@ -493,7 +494,6 @@ Artifact rules:
 | `STUDENT`             | `GENERATED_ARTIFACT`     | 1 to many optional | Student-scoped artifact.                                 |
 | `SCHOOL_CLASS`        | `GENERATED_ARTIFACT`     | 1 to many optional | Class-scoped artifact.                                   |
 | `ORDER_RECORD`        | `GENERATED_ARTIFACT`     | 1 to many optional | Order-scoped artifact.                                   |
-| `ORDER_RECORD`        | `GENERATED_ARTIFACT`     |    optional 1 to 1 | Signed order PDF.                                        |
 
 ## Excluded From MVP ERD
 

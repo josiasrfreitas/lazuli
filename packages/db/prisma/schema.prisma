@@ -94,6 +94,30 @@ enum AttendanceStatus {
   ABSENT
 }
 
+enum OrderKind {
+  TUITION
+  ENROLLMENT_FEE
+  MATERIAL
+  OTHER
+}
+
+enum InstallmentAdjustmentType {
+  INTEREST
+  LATE_FEE
+  DISCOUNT
+  CORRECTION
+}
+
+enum PaymentMethod {
+  PIX
+  CASH
+  TRANSFER
+  CARD
+  CHEQUE
+  BOLETO
+  OTHER
+}
+
 model User {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -106,17 +130,32 @@ model User {
   emailVerified Boolean   @default(false) @map("email_verified")
   image         String?
 
-  accounts      Account[]
-  sessions      Session[]
-  classesTaught Class[]   @relation("ClassTeacher")
-  closedDays    SchoolClosedDay[] @relation("SchoolClosedDayCreator")
-  attendanceConfirmedSessions ClassSession[] @relation("ClassSessionAttendanceConfirmer")
-  cancelledClassSessions ClassSession[] @relation("ClassSessionCanceller")
-  attendanceRecords Attendance[] @relation("AttendanceRecorder")
-  modifiedAttendance Attendance[] @relation("AttendanceModifier")
-  scheduledMakeups Makeup[] @relation("MakeupScheduler")
-  markedMakeups Makeup[] @relation("MakeupAttendanceMarker")
-  cancelledMakeups Makeup[] @relation("MakeupCanceller")
+  accounts                      Account[]
+  sessions                      Session[]
+  classesTaught                 Class[]                 @relation("ClassTeacher")
+  closedDays                    SchoolClosedDay[]       @relation("SchoolClosedDayCreator")
+  attendanceConfirmedSessions   ClassSession[]          @relation("ClassSessionAttendanceConfirmer")
+  cancelledClassSessions        ClassSession[]          @relation("ClassSessionCanceller")
+  attendanceRecords             Attendance[]            @relation("AttendanceRecorder")
+  modifiedAttendance            Attendance[]            @relation("AttendanceModifier")
+  scheduledMakeups              Makeup[]                @relation("MakeupScheduler")
+  markedMakeups                 Makeup[]                @relation("MakeupAttendanceMarker")
+  cancelledMakeups              Makeup[]                @relation("MakeupCanceller")
+  createdPayers                 Payer[]                 @relation("PayerCreator")
+  updatedPayers                 Payer[]                 @relation("PayerUpdater")
+  createdOrders                 Order[]                 @relation("OrderCreator")
+  updatedOrders                 Order[]                 @relation("OrderUpdater")
+  createdOrderBeneficiaries     OrderBeneficiary[]      @relation("OrderBeneficiaryCreator")
+  updatedOrderBeneficiaries     OrderBeneficiary[]      @relation("OrderBeneficiaryUpdater")
+  createdInstallments           Installment[]           @relation("InstallmentCreator")
+  updatedInstallments           Installment[]           @relation("InstallmentUpdater")
+  createdInstallmentAdjustments InstallmentAdjustment[] @relation("InstallmentAdjustmentCreator")
+  updatedInstallmentAdjustments InstallmentAdjustment[] @relation("InstallmentAdjustmentUpdater")
+  createdPaymentEntries         PaymentEntry[]          @relation("PaymentEntryCreator")
+  updatedPaymentEntries         PaymentEntry[]          @relation("PaymentEntryUpdater")
+  createdPaymentAllocations     PaymentAllocation[]     @relation("PaymentAllocationCreator")
+  updatedPaymentAllocations     PaymentAllocation[]     @relation("PaymentAllocationUpdater")
+  updatedFinanceSettings        FinanceSettings[]       @relation("FinanceSettingsUpdater")
 }
 
 model Account {
@@ -181,9 +220,10 @@ model Student {
   status         StudentStatus @default(ACTIVE)
   notes          String?
 
-  address  Address?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
-  guardian Guardian? @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  address     Address?           @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  guardian    Guardian?          @relation(fields: [guardianId], references: [id], onDelete: SetNull)
   enrollments Enrollment[]
+  orderLinks  OrderBeneficiary[]
 
   @@index([addressId])
   @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_full_name_trgm_idx")
@@ -349,8 +389,8 @@ model Stage {
   internalCode String    @map("internal_code")
   sequence     Int
 
-  track  Track   @relation(fields: [trackId], references: [id], onDelete: Restrict)
-  classes Class[]
+  track           Track                 @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  classes         Class[]
   progressRecords PedagogicalProgress[]
 
   @@unique([trackId, internalCode])
@@ -369,8 +409,8 @@ model Enrollment {
   exitReason             EnrollmentExitReason? @map("exit_reason")
   capacityOverrideReason String?               @map("capacity_override_reason")
 
-  student         Student                 @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  class           Class                   @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student         Student               @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  class           Class                 @relation(fields: [classId], references: [id], onDelete: Restrict)
   progressRecords PedagogicalProgress[]
   attendanceRows  Attendance[]
   makeups         Makeup[]
@@ -417,7 +457,7 @@ model ClassSession {
   portalSubmittedAt         DateTime?          @map("portal_submitted_at") @db.Timestamptz
 
   class                 Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
-  scheduleSlot          ClassScheduleSlot?  @relation(fields: [classId, scheduleSlotId], references: [classId, id], onDelete: Restrict)
+  scheduleSlot          ClassScheduleSlot? @relation(fields: [classId, scheduleSlotId], references: [classId, id], onDelete: Restrict)
   cancelledBy           User?              @relation("ClassSessionCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
   attendanceConfirmedBy User?              @relation("ClassSessionAttendanceConfirmer", fields: [attendanceConfirmedById], references: [id], onDelete: Restrict)
   attendanceRows        Attendance[]
@@ -456,20 +496,20 @@ model Attendance {
 }
 
 model Makeup {
-  id                   String       @id @default(uuid()) @db.Uuid
-  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt            DateTime?    @map("deleted_at") @db.Timestamptz
-  originEnrollmentId   String       @map("origin_enrollment_id") @db.Uuid
-  targetClassSessionId String       @map("target_class_session_id") @db.Uuid
-  scheduledAt          DateTime     @default(now()) @map("scheduled_at") @db.Timestamptz
-  scheduledById        String?      @map("scheduled_by_id") @db.Uuid
+  id                   String    @id @default(uuid()) @db.Uuid
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt            DateTime? @map("deleted_at") @db.Timestamptz
+  originEnrollmentId   String    @map("origin_enrollment_id") @db.Uuid
+  targetClassSessionId String    @map("target_class_session_id") @db.Uuid
+  scheduledAt          DateTime  @default(now()) @map("scheduled_at") @db.Timestamptz
+  scheduledById        String?   @map("scheduled_by_id") @db.Uuid
   reason               String?
-  attendedAt           DateTime?    @map("attended_at") @db.Timestamptz
-  attendedById         String?      @map("attended_by_id") @db.Uuid
-  cancelledAt          DateTime?    @map("cancelled_at") @db.Timestamptz
-  cancelledById        String?      @map("cancelled_by_id") @db.Uuid
-  cancellationReason   String?      @map("cancellation_reason")
+  attendedAt           DateTime? @map("attended_at") @db.Timestamptz
+  attendedById         String?   @map("attended_by_id") @db.Uuid
+  cancelledAt          DateTime? @map("cancelled_at") @db.Timestamptz
+  cancelledById        String?   @map("cancelled_by_id") @db.Uuid
+  cancellationReason   String?   @map("cancellation_reason")
 
   originEnrollment   Enrollment   @relation(fields: [originEnrollmentId], references: [id], onDelete: Restrict)
   targetClassSession ClassSession @relation(fields: [targetClassSessionId], references: [id], onDelete: Restrict)
@@ -483,4 +523,176 @@ model Makeup {
   @@index([scheduledById])
   @@index([attendedById])
   @@index([cancelledById])
+}
+
+model FinanceSettings {
+  id                     String   @id @default("singleton")
+  interestRatePctMonthly Decimal  @default(1.0) @map("interest_rate_pct_monthly") @db.Decimal(5, 2)
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  updatedById            String?  @map("updated_by_id") @db.Uuid
+
+  updatedBy User? @relation("FinanceSettingsUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+
+  @@index([updatedById])
+}
+
+model Payer {
+  id          String    @id @default(uuid()) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+  name        String
+  taxId       String?   @map("tax_id")
+  phone       String?
+  email       String?
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+
+  createdBy User?          @relation("PayerCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy User?          @relation("PayerUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+  orders    Order[]
+  payments  PaymentEntry[]
+
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model Order {
+  id                    String    @id @default(uuid()) @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt             DateTime? @map("deleted_at") @db.Timestamptz
+  payerId               String    @map("payer_id") @db.Uuid
+  kind                  OrderKind
+  principalAmountCents  Int       @map("principal_amount_cents")
+  startDate             DateTime  @map("start_date") @db.Date
+  dueDay                Int       @map("due_day")
+  signedOrderArtifactId String?   @map("signed_order_artifact_id") @db.Uuid
+  cancelledAt           DateTime? @map("cancelled_at") @db.Timestamptz
+  cancelledReason       String?   @map("cancelled_reason")
+  createdById           String?   @map("created_by_id") @db.Uuid
+  updatedById           String?   @map("updated_by_id") @db.Uuid
+
+  payer         Payer              @relation(fields: [payerId], references: [id], onDelete: Restrict)
+  createdBy     User?              @relation("OrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy     User?              @relation("OrderUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+  beneficiaries OrderBeneficiary[]
+  installments  Installment[]
+
+  @@index([payerId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model OrderBeneficiary {
+  id          String    @id @default(uuid()) @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+  orderId     String    @map("order_id") @db.Uuid
+  studentId   String    @map("student_id") @db.Uuid
+  createdById String?   @map("created_by_id") @db.Uuid
+  updatedById String?   @map("updated_by_id") @db.Uuid
+
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  createdBy User?   @relation("OrderBeneficiaryCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy User?   @relation("OrderBeneficiaryUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, studentId])
+  @@index([studentId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model Installment {
+  id                    String    @id @default(uuid()) @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt             DateTime? @map("deleted_at") @db.Timestamptz
+  orderId               String    @map("order_id") @db.Uuid
+  amountCents           Int       @map("amount_cents")
+  dueDate               DateTime  @map("due_date") @db.Date
+  waivedAt              DateTime? @map("waived_at") @db.Timestamptz
+  waivedReason          String?   @map("waived_reason")
+  overdueD30EmailSentAt DateTime? @map("overdue_d30_email_sent_at") @db.Timestamptz
+  createdById           String?   @map("created_by_id") @db.Uuid
+  updatedById           String?   @map("updated_by_id") @db.Uuid
+
+  order       Order                   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  createdBy   User?                   @relation("InstallmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy   User?                   @relation("InstallmentUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+  adjustments InstallmentAdjustment[]
+  allocations PaymentAllocation[]
+
+  @@index([orderId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model InstallmentAdjustment {
+  id            String                    @id @default(uuid()) @db.Uuid
+  createdAt     DateTime                  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime                  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime?                 @map("deleted_at") @db.Timestamptz
+  installmentId String                    @map("installment_id") @db.Uuid
+  type          InstallmentAdjustmentType
+  amountCents   Int                       @map("amount_cents")
+  reason        String?
+  createdById   String?                   @map("created_by_id") @db.Uuid
+  updatedById   String?                   @map("updated_by_id") @db.Uuid
+
+  installment Installment @relation(fields: [installmentId], references: [id], onDelete: Restrict)
+  createdBy   User?       @relation("InstallmentAdjustmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy   User?       @relation("InstallmentAdjustmentUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+
+  @@index([installmentId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model PaymentEntry {
+  id                String        @id @default(uuid()) @db.Uuid
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz
+  payerId           String        @map("payer_id") @db.Uuid
+  date              DateTime      @db.Date
+  amountCents       Int           @map("amount_cents")
+  method            PaymentMethod
+  note              String?
+  externalReference String?       @map("external_reference")
+  createdById       String?       @map("created_by_id") @db.Uuid
+  updatedById       String?       @map("updated_by_id") @db.Uuid
+
+  payer       Payer               @relation(fields: [payerId], references: [id], onDelete: Restrict)
+  createdBy   User?               @relation("PaymentEntryCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy   User?               @relation("PaymentEntryUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+  allocations PaymentAllocation[]
+
+  @@index([payerId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model PaymentAllocation {
+  id             String    @id @default(uuid()) @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz
+  paymentEntryId String    @map("payment_entry_id") @db.Uuid
+  installmentId  String    @map("installment_id") @db.Uuid
+  amountCents    Int       @map("amount_cents")
+  createdById    String?   @map("created_by_id") @db.Uuid
+  updatedById    String?   @map("updated_by_id") @db.Uuid
+
+  paymentEntry PaymentEntry @relation(fields: [paymentEntryId], references: [id], onDelete: Restrict)
+  installment  Installment  @relation(fields: [installmentId], references: [id], onDelete: Restrict)
+  createdBy    User?        @relation("PaymentAllocationCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy    User?        @relation("PaymentAllocationUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
+
+  @@unique([paymentEntryId, installmentId])
+  @@index([installmentId])
+  @@index([createdById])
+  @@index([updatedById])
 }

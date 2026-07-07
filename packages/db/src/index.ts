@@ -8,7 +8,15 @@ export { COURSE_CATALOG, seedCourseCatalog } from "./seed-course-catalog.js";
 export type {
   Address,
   Enrollment,
+  FinanceSettings,
   Guardian,
+  Installment,
+  InstallmentAdjustment,
+  Order,
+  OrderBeneficiary,
+  Payer,
+  PaymentAllocation,
+  PaymentEntry,
   PedagogicalProgress,
   ProductLine,
   SchoolClosedDay,
@@ -17,6 +25,7 @@ export type {
   Student,
   Track,
 } from "./generated/prisma/client.js";
+export { InstallmentAdjustmentType, OrderKind, PaymentMethod } from "./generated/prisma/enums.js";
 export { getDatabaseUrl } from "./config.js";
 
 /** Shared shape for all domain entities (TECHNICAL_SPEC §4.0). */
