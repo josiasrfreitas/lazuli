@@ -6,17 +6,23 @@ const REQUIRED_TEXT_MESSAGE = "Campo obrigatorio.";
 const INVALID_ORDER_ID_MESSAGE = "Identificador de pedido invalido.";
 const INVALID_PAYER_ID_MESSAGE = "Identificador de pagador invalido.";
 
+const FINANCE_DUE_DAY_FIFTH = 5;
+const FINANCE_DUE_DAY_TENTH = 10;
+const FINANCE_DUE_DAY_FIFTEENTH = 15;
+const FINANCE_DUE_DAY_TWENTIETH = 20;
+const FINANCE_DUE_DAY_TWENTY_FIFTH = 25;
+
 const requiredText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE);
 const optionalText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE).nullish();
 
 export const orderKindSchema = z.enum(["TUITION", "ENROLLMENT_FEE", "MATERIAL", "OTHER"]);
 
 export const dueDaySchema = z.union([
-  z.literal(5),
-  z.literal(10),
-  z.literal(15),
-  z.literal(20),
-  z.literal(25),
+  z.literal(FINANCE_DUE_DAY_FIFTH),
+  z.literal(FINANCE_DUE_DAY_TENTH),
+  z.literal(FINANCE_DUE_DAY_FIFTEENTH),
+  z.literal(FINANCE_DUE_DAY_TWENTIETH),
+  z.literal(FINANCE_DUE_DAY_TWENTY_FIFTH),
 ]);
 
 export const payerCreateInputSchema = z

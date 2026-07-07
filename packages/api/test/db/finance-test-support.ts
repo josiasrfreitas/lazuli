@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 
+import { FINANCE_DUE_DAY_FIFTH } from "@lazuli/domain";
+
 import { appRouter, createCaller, type Context, type StaffUser } from "@lazuli/api";
 import { db } from "@lazuli/db";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
@@ -136,5 +138,5 @@ export const DEFAULT_ORDER_INPUT = {
   principalAmountCents: 100_000,
   installmentCount: 3,
   startDate: new Date("2026-01-03T00:00:00.000Z"),
-  dueDay: 5 as const,
+  dueDay: FINANCE_DUE_DAY_FIFTH,
 };

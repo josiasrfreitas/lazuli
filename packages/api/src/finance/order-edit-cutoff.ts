@@ -2,6 +2,8 @@ import type { Prisma } from "@lazuli/db";
 
 import { orderLocked } from "./errors.js";
 
+const DATE_ONLY_LENGTH = 10;
+
 type InstallmentActivityRow = {
   waivedAt: Date | null;
   _count: {
@@ -33,7 +35,7 @@ export type FinanceDatabase = Pick<
 >;
 
 export function toDateOnlyString(value: Date): string {
-  return value.toISOString().slice(0, 10);
+  return value.toISOString().slice(0, DATE_ONLY_LENGTH);
 }
 
 export function toDateOnly(value: string): Date {

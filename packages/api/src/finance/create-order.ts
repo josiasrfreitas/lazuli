@@ -3,12 +3,13 @@ import type { Order } from "@lazuli/db";
 import type { financeCreateOrderInputSchema, z } from "@lazuli/validators";
 
 import { createPayer } from "./create-payer.js";
-import { notFound, PAYER_NOT_FOUND_MESSAGE, STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
+import { notFound, PAYER_NOT_FOUND_MESSAGE } from "./errors.js";
+import { type FinanceDatabase, toDateOnlyString } from "./order-edit-cutoff.js";
 import {
-  type FinanceDatabase,
-  toDateOnly,
-  toDateOnlyString,
-} from "./order-edit-cutoff.js";
+  assertBeneficiaryStudentsExist,
+  orderSummarySelect,
+  persistOrderSchedule,
+} from "./order-persistence.js";
 
 type CreateOrderInput = z.infer<typeof financeCreateOrderInputSchema>;
 
@@ -41,29 +42,6 @@ export type CreateOrderResult = {
   beneficiaries: FinanceBeneficiarySummary[];
 };
 
-const orderSummarySelect = {
-  id: true,
-  payerId: true,
-  kind: true,
-  principalAmountCents: true,
-  startDate: true,
-  dueDay: true,
-  signedOrderArtifactId: true,
-} as const;
-
-const installmentSummarySelect = {
-  id: true,
-  orderId: true,
-  amountCents: true,
-  dueDate: true,
-} as const;
-
-const beneficiarySummarySelect = {
-  id: true,
-  orderId: true,
-  studentId: true,
-} as const;
-
 export async function createOrder(input: {
   database: FinanceDatabase;
   values: CreateOrderInput;
@@ -93,36 +71,15 @@ export async function createOrder(input: {
     select: orderSummarySelect,
   });
 
-  const beneficiaries = await Promise.all(
-    input.values.beneficiaryStudentIds.map((studentId) =>
-      input.database.orderBeneficiary.create({
-        data: {
-          orderId: order.id,
-          studentId,
-          createdById: input.createdById,
-          updatedById: input.createdById,
-        },
-        select: beneficiarySummarySelect,
-      }),
-    ),
-  );
+  const schedule = await persistOrderSchedule({
+    database: input.database,
+    orderId: order.id,
+    beneficiaryStudentIds: input.values.beneficiaryStudentIds,
+    generatedInstallments,
+    staffUserId: input.createdById,
+  });
 
-  const installments = await Promise.all(
-    generatedInstallments.map((row) =>
-      input.database.installment.create({
-        data: {
-          orderId: order.id,
-          amountCents: row.amountCents,
-          dueDate: toDateOnly(row.dueDate),
-          createdById: input.createdById,
-          updatedById: input.createdById,
-        },
-        select: installmentSummarySelect,
-      }),
-    ),
-  );
-
-  return { order, installments, beneficiaries };
+  return { order, ...schedule };
 }
 
 async function resolvePayerId(input: {
@@ -150,19 +107,4 @@ async function resolvePayerId(input: {
   });
 
   return payer.id;
-}
-
-async function assertBeneficiaryStudentsExist(
-  database: FinanceDatabase,
-  studentIds: string[],
-): Promise<void> {
-  const uniqueStudentIds = [...new Set(studentIds)];
-  const foundStudents = await database.student.findMany({
-    where: { id: { in: uniqueStudentIds } },
-    select: { id: true },
-  });
-
-  if (foundStudents.length !== uniqueStudentIds.length) {
-    throw notFound(STUDENT_NOT_FOUND_MESSAGE);
-  }
 }
