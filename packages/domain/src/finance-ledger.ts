@@ -82,9 +82,7 @@ const PERCENT_DENOMINATOR = 100;
 const ONE_WEEK_DAYS = 7;
 const THIRTY_DAY_BUCKET_START = 30;
 
-export function deriveInstallmentLedger(
-  input: DeriveInstallmentLedgerInput,
-): InstallmentLedger {
+export function deriveInstallmentLedger(input: DeriveInstallmentLedgerInput): InstallmentLedger {
   const paidAmountCents = sumAmounts(input.allocations);
   const currentExpectedCents = input.amountCents + sumAmounts(input.adjustments);
   const rawRemainingCents = currentExpectedCents - paidAmountCents;
@@ -214,8 +212,10 @@ function sameYearMonth(leftDate: string, rightDate: string): boolean {
 }
 
 function calendarDayDifference(laterDate: string, earlierDate: string): number {
-  return (dateOnlyUtcMilliseconds(laterDate) - dateOnlyUtcMilliseconds(earlierDate)) /
-    MILLISECONDS_PER_DAY;
+  return (
+    (dateOnlyUtcMilliseconds(laterDate) - dateOnlyUtcMilliseconds(earlierDate)) /
+    MILLISECONDS_PER_DAY
+  );
 }
 
 function dateOnlyUtcMilliseconds(value: string): number {

@@ -91,9 +91,7 @@ void describe("deriveInstallmentLedger balances", () => {
   });
 
   void it("keeps cancelled order installments non-collectible without changing display status", () => {
-    const ledger = deriveInstallmentLedger(
-      installmentInput({ orderCancelledAt: CANCELLED_AT }),
-    );
+    const ledger = deriveInstallmentLedger(installmentInput({ orderCancelledAt: CANCELLED_AT }));
 
     assert.equal(ledger.status, "OVERDUE");
     assert.equal(ledger.rawRemainingCents, FIFTY_THOUSAND_CENTS);
@@ -232,10 +230,7 @@ void describe("derivePaymentEntryRemainder", () => {
   void it("derives unallocated payment remainder", () => {
     const ledger = derivePaymentEntryRemainder({
       amountCents: ONE_HUNDRED_THOUSAND_CENTS,
-      allocations: [
-        { amountCents: THIRTY_THOUSAND_CENTS },
-        { amountCents: TWENTY_THOUSAND_CENTS },
-      ],
+      allocations: [{ amountCents: THIRTY_THOUSAND_CENTS }, { amountCents: TWENTY_THOUSAND_CENTS }],
     });
 
     assert.equal(ledger.unallocatedRemainderCents, FIFTY_THOUSAND_CENTS);
