@@ -1,0 +1,174 @@
+import type { PaymentAllocation, PaymentEntry, Prisma } from "@lazuli/db";
+
+export type PaymentAllocationInput = {
+  installmentId: string;
+  amountCents: number;
+};
+
+export type PaymentDatabase = Pick<
+  Prisma.TransactionClient,
+  | "$queryRaw"
+  | "payer"
+  | "installment"
+  | "installmentAdjustment"
+  | "paymentEntry"
+  | "paymentAllocation"
+>;
+
+export type LoadedInstallment = {
+  id: string;
+  amountCents: number;
+  waivedAt: Date | null;
+  order: { payerId: string };
+  adjustments: Array<{ amountCents: number }>;
+  allocations: Array<{ amountCents: number }>;
+};
+
+export type PaymentEntrySummary = Pick<
+  PaymentEntry,
+  "id" | "payerId" | "date" | "amountCents" | "method" | "note" | "externalReference"
+>;
+
+export type PaymentAllocationSummary = Pick<
+  PaymentAllocation,
+  "id" | "paymentEntryId" | "installmentId" | "amountCents"
+>;
+
+export const paymentEntrySelect = {
+  id: true,
+  payerId: true,
+  date: true,
+  amountCents: true,
+  method: true,
+  note: true,
+  externalReference: true,
+} as const;
+
+export const paymentAllocationSelect = {
+  id: true,
+  paymentEntryId: true,
+  installmentId: true,
+  amountCents: true,
+} as const;
+
+export async function persistPayment(input: {
+  database: PaymentDatabase;
+  values: {
+    payerId: string;
+    date: Date;
+    amountCents: number;
+    method: PaymentEntry["method"];
+    note?: string | null | undefined;
+    externalReference?: string | null | undefined;
+  };
+  allocationRows: PaymentAllocationInput[];
+  staffUserId: string;
+}): Promise<{ paymentEntry: PaymentEntrySummary; allocations: PaymentAllocationSummary[] }> {
+  const paymentEntry = await input.database.paymentEntry.create({
+    data: {
+      payerId: input.values.payerId,
+      date: input.values.date,
+      amountCents: input.values.amountCents,
+      method: input.values.method,
+      note: input.values.note ?? null,
+      externalReference: input.values.externalReference ?? null,
+      createdById: input.staffUserId,
+      updatedById: input.staffUserId,
+    },
+    select: paymentEntrySelect,
+  });
+
+  const allocations: PaymentAllocationSummary[] = [];
+  for (const allocation of input.allocationRows) {
+    allocations.push(
+      await input.database.paymentAllocation.create({
+        data: {
+          paymentEntryId: paymentEntry.id,
+          installmentId: allocation.installmentId,
+          amountCents: allocation.amountCents,
+          createdById: input.staffUserId,
+          updatedById: input.staffUserId,
+        },
+        select: paymentAllocationSelect,
+      }),
+    );
+  }
+
+  return { paymentEntry, allocations };
+}
+
+export async function lockInstallments(
+  database: PaymentDatabase,
+  installmentIds: string[],
+): Promise<void> {
+  await database.$queryRaw`
+    SELECT id
+    FROM "Installment"
+    WHERE id = ANY(${installmentIds}::uuid[])
+    ORDER BY id
+    FOR UPDATE
+  `;
+}
+
+export async function loadInstallments(
+  database: PaymentDatabase,
+  installmentIds: string[],
+): Promise<LoadedInstallment[]> {
+  const installments = await database.installment.findMany({
+    where: { id: { in: installmentIds } },
+    select: {
+      id: true,
+      amountCents: true,
+      waivedAt: true,
+      order: { select: { payerId: true } },
+    },
+  });
+  const adjustments = await database.installmentAdjustment.findMany({
+    where: { installmentId: { in: installmentIds } },
+    select: { installmentId: true, amountCents: true },
+  });
+  const allocations = await database.paymentAllocation.findMany({
+    where: { installmentId: { in: installmentIds } },
+    select: { installmentId: true, amountCents: true },
+  });
+
+  return installments.map((installment) => ({
+    ...installment,
+    adjustments: adjustments.filter((adjustment) => adjustment.installmentId === installment.id),
+    allocations: allocations.filter((allocation) => allocation.installmentId === installment.id),
+  }));
+}
+
+export function calculateRemainingBalanceCents(installment: LoadedInstallment): number {
+  const adjustmentTotal = installment.adjustments.reduce(
+    (total, adjustment) => total + adjustment.amountCents,
+    0,
+  );
+  const allocatedTotal = installment.allocations.reduce(
+    (total, allocation) => total + allocation.amountCents,
+    0,
+  );
+
+  return installment.amountCents + adjustmentTotal - allocatedTotal;
+}
+
+export function sortStrings(values: string[]): string[] {
+  let sortedValues: string[] = [];
+
+  for (const value of values) {
+    const insertionIndex = sortedValues.findIndex((sortedValue) => sortedValue > value);
+
+    if (insertionIndex === -1) {
+      sortedValues = [...sortedValues, value];
+      continue;
+    }
+
+    sortedValues = [
+      ...sortedValues.slice(0, insertionIndex),
+      value,
+      ...sortedValues.slice(insertionIndex),
+    ];
+  }
+
+  return sortedValues;
+}
