@@ -36,12 +36,14 @@ void describe("finance schema", () => {
     await database.$disconnect();
   });
 
-  databaseIt("creates a payer, explicit-kind order, beneficiary, installment, payment entry, and allocation", () =>
-    createAndReadFinanceGraph(database),
+  databaseIt(
+    "creates a payer, explicit-kind order, beneficiary, installment, payment entry, and allocation",
+    () => createAndReadFinanceGraph(database),
   );
 
-  databaseIt("creates and reads singleton finance settings with the default interest settings", () =>
-    createAndReadFinanceSettings(database),
+  databaseIt(
+    "creates and reads singleton finance settings with the default interest settings",
+    () => createAndReadFinanceSettings(database),
   );
 
   databaseIt("rejects invalid due day and non-positive principal", () =>
@@ -277,7 +279,7 @@ async function expectAdjustmentSignRejection(
   data: {
     amountCents: number;
     installmentId: string;
-    type: typeof InstallmentAdjustmentType[keyof typeof InstallmentAdjustmentType];
+    type: (typeof InstallmentAdjustmentType)[keyof typeof InstallmentAdjustmentType];
   },
 ): Promise<void> {
   await expectConstraintRejection(

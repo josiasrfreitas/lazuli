@@ -36,10 +36,7 @@ export async function cleanFinanceSchemaTestData(database: DatabaseClient): Prom
   await database.installment.deleteMany({ where: { id: { in: scope.installmentIds } } });
   await database.orderBeneficiary.deleteMany({
     where: {
-      OR: [
-        { orderId: { in: scope.orderIds } },
-        { studentId: { in: scope.studentIds } },
-      ],
+      OR: [{ orderId: { in: scope.orderIds } }, { studentId: { in: scope.studentIds } }],
     },
   });
   await database.order.deleteMany({ where: { id: { in: scope.orderIds } } });
@@ -128,7 +125,10 @@ async function findInstallmentIds(database: DatabaseClient, orderIds: string[]):
   return installments.map((installment) => installment.id);
 }
 
-async function findPaymentEntryIds(database: DatabaseClient, payerIds: string[]): Promise<string[]> {
+async function findPaymentEntryIds(
+  database: DatabaseClient,
+  payerIds: string[],
+): Promise<string[]> {
   const paymentEntries = await database.paymentEntry.findMany({
     select: { id: true },
     where: { payerId: { in: payerIds } },
@@ -180,7 +180,10 @@ async function createOrderBeneficiary(
   });
 }
 
-async function createInstallment(database: DatabaseClient, orderId: string): Promise<{ id: string }> {
+async function createInstallment(
+  database: DatabaseClient,
+  orderId: string,
+): Promise<{ id: string }> {
   return database.installment.create({
     data: {
       amountCents: PRINCIPAL_AMOUNT_CENTS,
