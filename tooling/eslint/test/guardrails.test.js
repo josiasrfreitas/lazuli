@@ -101,6 +101,17 @@ async function lintWebRestrictedPathsProbe(source) {
   }
 }
 
+async function lintApiRestrictedPathsProbe(source) {
+  const apiDirectory = path.join(repositoryRoot, "packages/api");
+  const probePath = path.join(apiDirectory, "src/students/guardrail-probe-restricted-paths.ts");
+  await writeFile(probePath, source);
+  try {
+    return await lintProbe({ directory: apiDirectory, probePath, packageType: "api" });
+  } finally {
+    await rm(probePath, { force: true });
+  }
+}
+
 describe("shared ESLint guardrails", () => {
   it("rejects Prisma and worker-handler imports from the web app", async () => {
     const messages = await lintWebImportsProbe(
@@ -126,6 +137,17 @@ describe("shared ESLint guardrails", () => {
   it("rejects relative paths that bypass package exports", async () => {
     const messages = await lintWebRestrictedPathsProbe(
       'import "../../../../packages/worker-handlers/src/index.js";',
+    );
+
+    assert.ok(ruleIds(messages).includes("import/no-restricted-paths"));
+  });
+
+  it("rejects receivables internal imports outside the receivables module", async () => {
+    const messages = await lintApiRestrictedPathsProbe(
+      [
+        'import { ORDER_NOT_FOUND_MESSAGE } from "../receivables/internal/shared.js";',
+        "export const probe = ORDER_NOT_FOUND_MESSAGE;",
+      ].join("\n"),
     );
 
     assert.ok(ruleIds(messages).includes("import/no-restricted-paths"));

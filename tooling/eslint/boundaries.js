@@ -92,7 +92,7 @@ const packageDirectories = {
   workerHandlers: "./packages/worker-handlers",
 };
 
-const restrictedPathZones = [
+const packageBoundaryPathZones = [
   [packageDirectories.web, packageDirectories.database],
   [packageDirectories.web, packageDirectories.workerHandlers],
   [packageDirectories.api, packageDirectories.workerHandlers],
@@ -113,6 +113,21 @@ const restrictedPathZones = [
     "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
   target,
 }));
+
+const receivablesInternalPrivacyZone = {
+  from: "./packages/api/src/receivables/internal",
+  message:
+    "Receivables internals are private. Call packages/api/src/receivables/index.ts instead.",
+  target: [
+    "./apps/**",
+    "./packages/api/src/*.ts",
+    "./packages/api/src/{attendance,calendar,classes,enrollment,reports,students,trpc}/**",
+    "./packages/api/test/**",
+    "./packages/{auth,db,domain,integrations,job-contracts,ui,worker-handlers}/**",
+  ],
+};
+
+const restrictedPathZones = [...packageBoundaryPathZones, receivablesInternalPrivacyZone];
 
 /** Returns lint rules that enforce package imports and physical paths. */
 export function createBoundaryConfig(packageType) {
