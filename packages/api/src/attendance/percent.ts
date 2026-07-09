@@ -4,11 +4,7 @@ import type { attendanceEnrollmentSemesterPercentInputSchema, z } from "@lazuli/
 import type { StaffUser } from "../trpc/context.js";
 import { assertResourceScope } from "../trpc/rbac.js";
 import type { AttendanceDatabase } from "./data.js";
-import {
-  ENROLLMENT_NOT_FOUND_MESSAGE,
-  SEMESTER_NOT_FOUND_MESSAGE,
-  notFound,
-} from "./errors.js";
+import { ENROLLMENT_NOT_FOUND_MESSAGE, SEMESTER_NOT_FOUND_MESSAGE, notFound } from "./errors.js";
 
 type PercentInput = z.infer<typeof attendanceEnrollmentSemesterPercentInputSchema>;
 
@@ -120,7 +116,10 @@ function intersectWindows(input: {
   semester: SemesterForPercent;
 }): { startDate: Date; endDate: Date } | null {
   const startDate = latest(input.enrollment.entryDate, input.semester.startDate);
-  const endDate = earliest(input.enrollment.exitDate ?? input.semester.endDate, input.semester.endDate);
+  const endDate = earliest(
+    input.enrollment.exitDate ?? input.semester.endDate,
+    input.semester.endDate,
+  );
 
   if (startDate > endDate) {
     return null;

@@ -18,7 +18,9 @@ type EditResponseBody = {
   result: { data: { json: { changedCount: number; absentCount: number } } };
 };
 type PercentResponseBody = {
-  result: { data: { json: { heldSessions: number; presentCount: number; percent: number | null } } };
+  result: {
+    data: { json: { heldSessions: number; presentCount: number; percent: number | null } };
+  };
 };
 
 const SAME_DAY_NOW = new Date("2015-03-10T12:00:00.000Z");
