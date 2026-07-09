@@ -17,12 +17,18 @@ type ConfirmResponseBody = { result: { data: { json: { presentCount: number } } 
 type EditResponseBody = {
   result: { data: { json: { changedCount: number; absentCount: number } } };
 };
+type PercentResponseBody = {
+  result: {
+    data: { json: { heldSessions: number; presentCount: number; percent: number | null } };
+  };
+};
 
 const SAME_DAY_NOW = new Date("2015-03-10T12:00:00.000Z");
 const NEXT_SP_DAY_NOW = new Date("2015-03-11T03:01:00.000Z");
 const PORTAL_SUBMITTED_AT = new Date("2015-03-10T20:00:00.000Z");
 const CONFIRM_SESSION_PATH = "attendance.confirmSession";
 const EDIT_SESSION_PATH = "attendance.editSession";
+const PERCENT_PATH = "attendance.enrollmentSemesterPercent";
 
 void describe("attendance API over the tRPC HTTP boundary", () => {
   void before(async () => {
@@ -37,8 +43,10 @@ void describe("attendance API over the tRPC HTTP boundary", () => {
   });
 
   registerRosterQueryTest();
+  registerPercentQueryTest();
   registerConfirmMutationTest();
   registerEditMutationTest();
+  registerForbiddenPercentTest();
   registerForbiddenConfirmTest();
   registerForbiddenEditWindowTest();
 });
@@ -61,6 +69,34 @@ function registerRosterQueryTest(): void {
 
     assert.equal(response.status, HTTP_OK);
     assert.equal(payload.result.data.json.entries.length, 1);
+  });
+}
+
+function registerPercentQueryTest(): void {
+  databaseIt("reads an enrollment semester percent over HTTP", async () => {
+    const scenario = await harness.seedBaseScenario();
+    const ana = await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Ana",
+    });
+    await callHttpMutation({
+      path: CONFIRM_SESSION_PATH,
+      body: { sessionId: scenario.sessionId, rows: [] },
+      staffUser: harness.ns.admin,
+    });
+
+    const response = await callHttpQuery({
+      path: PERCENT_PATH,
+      input: { enrollmentId: ana.enrollmentId, semesterId: scenario.semesterId },
+      staffUser: harness.ns.admin,
+    });
+    const payload = (await response.json()) as PercentResponseBody;
+
+    assert.equal(response.status, HTTP_OK);
+    assert.equal(payload.result.data.json.heldSessions, 1);
+    assert.equal(payload.result.data.json.presentCount, 1);
+    assert.equal(payload.result.data.json.percent, 1);
   });
 }
 
@@ -105,6 +141,25 @@ function registerForbiddenConfirmTest(): void {
     assert.equal(response.status, HTTP_FORBIDDEN);
     const committed = await db.attendance.count({ where: { classSessionId: scenario.sessionId } });
     assert.equal(committed, 0);
+  });
+}
+
+function registerForbiddenPercentTest(): void {
+  databaseIt("returns 403 when another teacher reads a class they do not own", async () => {
+    const scenario = await harness.seedBaseScenario();
+    const ana = await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Ana",
+    });
+
+    const response = await callHttpQuery({
+      path: PERCENT_PATH,
+      input: { enrollmentId: ana.enrollmentId, semesterId: scenario.semesterId },
+      staffUser: harness.ns.otherTeacher,
+    });
+
+    assert.equal(response.status, HTTP_FORBIDDEN);
   });
 }
 

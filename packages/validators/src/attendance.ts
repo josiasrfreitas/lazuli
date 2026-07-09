@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const INVALID_SESSION_ID_MESSAGE = "Identificador de sessao invalido.";
 const INVALID_ENROLLMENT_ID_MESSAGE = "Identificador de matricula invalido.";
+const INVALID_SEMESTER_ID_MESSAGE = "Identificador de semestre invalido.";
 
 /** The MVP attendance status set — no `LATE`/`JUSTIFIED` (D-0009). */
 export const attendanceStatusSchema = z.enum(["PRESENT", "ABSENT"]);
@@ -10,6 +11,14 @@ export const attendanceStatusSchema = z.enum(["PRESENT", "ABSENT"]);
 export const attendanceSessionRosterInputSchema = z
   .object({
     sessionId: z.string().uuid(INVALID_SESSION_ID_MESSAGE),
+  })
+  .strict();
+
+/** Input for `attendance.enrollmentSemesterPercent` (S-REP-4, D-0029). */
+export const attendanceEnrollmentSemesterPercentInputSchema = z
+  .object({
+    enrollmentId: z.string().uuid(INVALID_ENROLLMENT_ID_MESSAGE),
+    semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE),
   })
   .strict();
 

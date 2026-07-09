@@ -2,6 +2,8 @@
 export { badRequest, notFound } from "../classes/errors.js";
 
 export const SESSION_NOT_FOUND_MESSAGE = "Sessao nao encontrada.";
+export const ENROLLMENT_NOT_FOUND_MESSAGE = "Matricula nao encontrada.";
+export const SEMESTER_NOT_FOUND_MESSAGE = "Semestre nao encontrado.";
 export const SESSION_CANCELLED_MESSAGE = "Sessao cancelada nao aceita chamada.";
 export const ALREADY_CONFIRMED_MESSAGE = "Chamada desta sessao ja foi confirmada.";
 export const ATTENDANCE_NOT_CONFIRMED_MESSAGE = "Chamada desta sessao ainda nao foi confirmada.";

@@ -1,6 +1,7 @@
 import {
   attendanceConfirmSessionInputSchema,
   attendanceEditSessionInputSchema,
+  attendanceEnrollmentSemesterPercentInputSchema,
   attendanceSessionRosterInputSchema,
   makeupCancelInputSchema,
   makeupOutcomeInputSchema,
@@ -13,6 +14,7 @@ import { editSession } from "./edit.js";
 import { cancelMakeup } from "./makeup-cancel.js";
 import { markMakeupOutcome } from "./makeup-outcome.js";
 import { scheduleMakeup } from "./makeup-schedule.js";
+import { readEnrollmentSemesterPercent } from "./percent.js";
 import { readSessionRoster } from "./roster.js";
 
 export const attendanceRouter = router({
@@ -20,6 +22,15 @@ export const attendanceRouter = router({
     .input(attendanceSessionRosterInputSchema)
     .query(({ ctx, input }) =>
       readSessionRoster({ database: ctx.db, staffUser: ctx.staffUser, sessionId: input.sessionId }),
+    ),
+  enrollmentSemesterPercent: staffProcedure
+    .input(attendanceEnrollmentSemesterPercentInputSchema)
+    .query(({ ctx, input }) =>
+      readEnrollmentSemesterPercent({
+        database: ctx.db,
+        staffUser: ctx.staffUser,
+        values: input,
+      }),
     ),
   confirmSession: staffProcedure
     .input(attendanceConfirmSessionInputSchema)

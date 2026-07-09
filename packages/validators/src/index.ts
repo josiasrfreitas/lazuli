@@ -50,6 +50,7 @@ export {
 export {
   attendanceConfirmSessionInputSchema,
   attendanceEditSessionInputSchema,
+  attendanceEnrollmentSemesterPercentInputSchema,
   attendanceSessionRosterInputSchema,
   attendanceStatusSchema,
 } from "./attendance.js";
