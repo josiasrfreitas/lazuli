@@ -62,3 +62,4 @@ export {
   type ReceivablesSnapshot,
   type ReceivablesSnapshotInstallment,
 } from "./receivables-dashboard.js";
+export { toWhatsAppUrl } from "./whatsapp-url.js";

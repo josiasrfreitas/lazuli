@@ -1,6 +1,7 @@
 import type { Address, Guardian, Student } from "@lazuli/db";
 
-import { toWhatsAppUrl } from "../finance/whatsapp-url.js";
+import { toWhatsAppUrl } from "@lazuli/domain";
+
 import { toDateOnlyString } from "./date-rules.js";
 
 type AddressProfile = {

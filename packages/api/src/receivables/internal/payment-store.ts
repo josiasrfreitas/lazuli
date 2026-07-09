@@ -1,19 +1,11 @@
-import type { PaymentAllocation, PaymentEntry, Prisma } from "@lazuli/db";
+import type { PaymentAllocation, PaymentEntry } from "@lazuli/db";
+
+import type { ReceivablesDatabase } from "./shared.js";
 
 export type PaymentAllocationInput = {
   installmentId: string;
   amountCents: number;
 };
-
-export type PaymentDatabase = Pick<
-  Prisma.TransactionClient,
-  | "$queryRaw"
-  | "payer"
-  | "installment"
-  | "installmentAdjustment"
-  | "paymentEntry"
-  | "paymentAllocation"
->;
 
 export type LoadedInstallment = {
   id: string;
@@ -35,7 +27,7 @@ export type PaymentAllocationSummary = Pick<
   "id" | "paymentEntryId" | "installmentId" | "amountCents"
 >;
 
-export const paymentEntrySelect = {
+const paymentEntrySelect = {
   id: true,
   payerId: true,
   date: true,
@@ -45,7 +37,7 @@ export const paymentEntrySelect = {
   externalReference: true,
 } as const;
 
-export const paymentAllocationSelect = {
+const paymentAllocationSelect = {
   id: true,
   paymentEntryId: true,
   installmentId: true,
@@ -53,7 +45,7 @@ export const paymentAllocationSelect = {
 } as const;
 
 export async function persistPayment(input: {
-  database: PaymentDatabase;
+  database: ReceivablesDatabase;
   values: {
     payerId: string;
     date: Date;
@@ -99,7 +91,7 @@ export async function persistPayment(input: {
 }
 
 export async function lockInstallments(
-  database: PaymentDatabase,
+  database: ReceivablesDatabase,
   installmentIds: string[],
 ): Promise<void> {
   await database.$queryRaw`
@@ -112,7 +104,7 @@ export async function lockInstallments(
 }
 
 export async function loadInstallments(
-  database: PaymentDatabase,
+  database: ReceivablesDatabase,
   installmentIds: string[],
 ): Promise<LoadedInstallment[]> {
   const installments = await database.installment.findMany({
@@ -152,25 +144,4 @@ export function calculateRemainingBalanceCents(installment: LoadedInstallment): 
   );
 
   return installment.amountCents + adjustmentTotal - allocatedTotal;
-}
-
-export function sortStrings(values: string[]): string[] {
-  let sortedValues: string[] = [];
-
-  for (const value of values) {
-    const insertionIndex = sortedValues.findIndex((sortedValue) => sortedValue > value);
-
-    if (insertionIndex === -1) {
-      sortedValues = [...sortedValues, value];
-      continue;
-    }
-
-    sortedValues = [
-      ...sortedValues.slice(0, insertionIndex),
-      value,
-      ...sortedValues.slice(insertionIndex),
-    ];
-  }
-
-  return sortedValues;
 }

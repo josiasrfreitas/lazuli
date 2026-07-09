@@ -14,7 +14,7 @@ import {
   ORDER_LOCKED_MESSAGE,
   PAYER_NOT_FOUND_MESSAGE,
   STUDENT_NOT_FOUND_MESSAGE,
-} from "../../src/finance/errors.js";
+} from "../../src/receivables/index.js";
 import {
   caller,
   cleanFinanceOrdersDatabase,

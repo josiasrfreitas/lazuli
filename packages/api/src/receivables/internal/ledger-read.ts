@@ -2,25 +2,22 @@ import {
   buildReceivablesSnapshot,
   deriveInstallmentLedger,
   saoPauloDateOnly,
+  toWhatsAppUrl,
   type InstallmentLedger,
   type ReceivablesSnapshot,
 } from "@lazuli/domain";
-import type { Prisma } from "@lazuli/db";
 
-import { loadInterestRatePctMonthly } from "./finance-settings.js";
-import { toWhatsAppUrl } from "./whatsapp-url.js";
+import {
+  loadInterestRatePctMonthly,
+  toDateOnlyString,
+  type ReceivablesDatabase,
+} from "./shared.js";
 
-const DATE_ONLY_LENGTH = 10;
 const YEAR_START_INDEX = 0;
 const YEAR_END_INDEX = 4;
 const MONTH_START_INDEX = 5;
 const MONTH_END_INDEX = 7;
 const MONTH_INDEX_OFFSET = 1;
-
-export type ReceivablesDatabase = Pick<
-  Prisma.TransactionClient,
-  "installment" | "installmentAdjustment" | "paymentAllocation" | "paymentEntry" | "financeSettings"
->;
 
 type LoadedReceivablesInstallment = {
   id: string;
@@ -49,7 +46,60 @@ export type DerivedReceivablesInstallment = {
   beneficiaries: Array<{ studentId: string; fullName: string; whatsAppUrl: string | null }>;
 };
 
-export async function loadDerivedReceivablesInstallments(
+export type OverdueListRow = {
+  installmentId: string;
+  orderId: string;
+  payer: { id: string; name: string };
+  beneficiaries: Array<{ studentId: string; fullName: string; whatsAppUrl: string | null }>;
+  dueDate: string;
+  ledger: InstallmentLedger;
+};
+
+export type OverdueListResult = {
+  rows: OverdueListRow[];
+};
+
+export async function receivablesSnapshot(
+  database: ReceivablesDatabase,
+): Promise<ReceivablesSnapshot> {
+  const now = new Date();
+  const derivedInstallments = await loadDerivedReceivablesInstallments(database, now);
+  const receivedThisMonthCents = await loadReceivedThisMonthCents(database, now);
+
+  return buildReceivablesSnapshot({
+    now,
+    receivedThisMonthCents,
+    installments: derivedInstallments.map((installment) => ({
+      dueDate: installment.dueDate,
+      isCollectible: installment.isCollectible,
+      ledger: installment.ledger,
+    })),
+  });
+}
+
+export async function overdueList(database: ReceivablesDatabase): Promise<OverdueListResult> {
+  const derivedInstallments = await loadDerivedReceivablesInstallments(database);
+
+  const overdueInstallments = derivedInstallments.filter(
+    (installment) =>
+      installment.isCollectible &&
+      installment.ledger.status === "OVERDUE" &&
+      installment.ledger.collectibleRemainingCents > 0,
+  );
+
+  const rows = sortInstallmentsByDueDate(overdueInstallments).map((installment) => ({
+    installmentId: installment.id,
+    orderId: installment.orderId,
+    payer: installment.payer,
+    beneficiaries: installment.beneficiaries,
+    dueDate: installment.dueDate,
+    ledger: installment.ledger,
+  }));
+
+  return { rows };
+}
+
+async function loadDerivedReceivablesInstallments(
   database: ReceivablesDatabase,
   now: Date = new Date(),
 ): Promise<DerivedReceivablesInstallment[]> {
@@ -85,9 +135,9 @@ export async function loadDerivedReceivablesInstallments(
   });
 }
 
-export async function loadReceivedThisMonthCents(
+async function loadReceivedThisMonthCents(
   database: ReceivablesDatabase,
-  now: Date = new Date(),
+  now: Date,
 ): Promise<number> {
   const { start, endExclusive } = saoPauloMonthBounds(now);
   const allocations = await database.paymentAllocation.findMany({
@@ -103,24 +153,6 @@ export async function loadReceivedThisMonthCents(
   });
 
   return allocations.reduce((total, allocation) => total + allocation.amountCents, 0);
-}
-
-export async function buildReceivablesSnapshotFromDatabase(
-  database: ReceivablesDatabase,
-): Promise<ReceivablesSnapshot> {
-  const now = new Date();
-  const derivedInstallments = await loadDerivedReceivablesInstallments(database, now);
-  const receivedThisMonthCents = await loadReceivedThisMonthCents(database, now);
-
-  return buildReceivablesSnapshot({
-    now,
-    receivedThisMonthCents,
-    installments: derivedInstallments.map((installment) => ({
-      dueDate: installment.dueDate,
-      isCollectible: installment.isCollectible,
-      ledger: installment.ledger,
-    })),
-  });
 }
 
 async function loadActiveOrderInstallments(
@@ -164,6 +196,31 @@ async function loadActiveOrderInstallments(
   }));
 }
 
+function sortInstallmentsByDueDate(
+  installments: DerivedReceivablesInstallment[],
+): DerivedReceivablesInstallment[] {
+  let sortedInstallments: DerivedReceivablesInstallment[] = [];
+
+  for (const installment of installments) {
+    const insertionIndex = sortedInstallments.findIndex(
+      (sortedInstallment) => sortedInstallment.dueDate > installment.dueDate,
+    );
+
+    if (insertionIndex === -1) {
+      sortedInstallments = [...sortedInstallments, installment];
+      continue;
+    }
+
+    sortedInstallments = [
+      ...sortedInstallments.slice(0, insertionIndex),
+      installment,
+      ...sortedInstallments.slice(insertionIndex),
+    ];
+  }
+
+  return sortedInstallments;
+}
+
 function saoPauloMonthBounds(now: Date): { start: Date; endExclusive: Date } {
   const today = saoPauloDateOnly(now);
   const year = Number(today.slice(YEAR_START_INDEX, YEAR_END_INDEX));
@@ -173,8 +230,4 @@ function saoPauloMonthBounds(now: Date): { start: Date; endExclusive: Date } {
     start: new Date(Date.UTC(year, monthIndex, 1)),
     endExclusive: new Date(Date.UTC(year, monthIndex + 1, 1)),
   };
-}
-
-function toDateOnlyString(value: Date): string {
-  return value.toISOString().slice(0, DATE_ONLY_LENGTH);
 }

@@ -615,6 +615,41 @@ PaymentAllocation { paymentEntryId, installmentId, amount }                 // d
 - [TECHNICAL_SPEC §8](./TECHNICAL_SPEC.md#8-ui-boundaries) defines UI behavior; implementation lives in UI-labelled GREs above.
 - `packages/ui` baseline ships when GRE-57 closes.
 
+## D-0037: Receivables as a Deep Module
+
+**Decided 2026-07-08.** The finance/receivables implementation exposes one API-owned module surface:
+`receivables(db, staffUserId)`. tRPC procedures remain the RBAC and transaction boundary, but they call
+this module instead of coordinating payer, order, installment, payment, waiver, adjustment, and dashboard
+steps directly.
+
+**Module shape:**
+
+- Public surface: `packages/api/src/receivables/index.ts` exports the `receivables` factory, public result
+  types, and error constants needed by tests and callers.
+- Private implementation: `packages/api/src/receivables/internal/*` owns persistence orchestration,
+  order schedule generation, ledger reads, payment allocation checks, waivers, adjustments, batch
+  reconcile, and dashboard reads.
+- Boundary: ESLint blocks imports from `receivables/internal` outside the receivables module. Tests and
+  routers must prove behavior through `receivables(...)` or the HTTP/tRPC boundary, not by reaching into
+  coordinator files.
+- Pure calculators stay in `@lazuli/domain`. The API module composes them with Prisma; it does not move
+  database access into the domain package.
+
+**Rationale:** The previous finance API implementation scattered one order flow across many shallow
+coordinator files whose public interfaces closely mirrored their implementations. A single receivables
+module keeps D-0032's derive-don't-store ledger semantics while making the end-to-end create → derive →
+aggregate flow testable through one interface.
+
+**Consequences:**
+
+- `packages/api/src/receivables/router.ts` should remain thin: input schema, RBAC procedure, transaction,
+  module call.
+- New receivables behavior should first ask whether it belongs on the module surface or remains an
+  internal detail; adding another externally imported coordinator is a regression.
+- Integration tests should include at least one module-level flow that creates an order, derives ledger
+  state through payments/waivers/adjustments, and reads dashboard/overdue aggregates through
+  `receivables(...)`.
+
 ## Security and Data Rules
 
 - Student PII lives in Cloud SQL.

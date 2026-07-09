@@ -1,6 +1,16 @@
 import type { financeRegisterPaymentInputSchema, z } from "@lazuli/validators";
 
 import {
+  calculateRemainingBalanceCents,
+  loadInstallments,
+  lockInstallments,
+  persistPayment,
+  type LoadedInstallment,
+  type PaymentAllocationInput,
+  type PaymentAllocationSummary,
+  type PaymentEntrySummary,
+} from "./payment-store.js";
+import {
   badRequest,
   ENTRY_OVER_ALLOCATION_MESSAGE,
   INSTALLMENT_NOT_FOUND_MESSAGE,
@@ -8,22 +18,12 @@ import {
   INSTALLMENT_PAYER_MISMATCH_MESSAGE,
   notFound,
   PAYER_NOT_FOUND_MESSAGE,
-  WAIVED_INSTALLMENT_ALLOCATION_MESSAGE,
-} from "./errors.js";
-import {
-  calculateRemainingBalanceCents,
-  loadInstallments,
-  lockInstallments,
-  type LoadedInstallment,
-  type PaymentAllocationInput,
-  type PaymentAllocationSummary,
-  type PaymentDatabase,
-  type PaymentEntrySummary,
-  persistPayment,
   sortStrings,
-} from "./payment-persistence.js";
+  WAIVED_INSTALLMENT_ALLOCATION_MESSAGE,
+  type ReceivablesDatabase,
+} from "./shared.js";
 
-type RegisterPaymentInput = z.infer<typeof financeRegisterPaymentInputSchema>;
+export type RegisterPaymentInput = z.infer<typeof financeRegisterPaymentInputSchema>;
 
 export type RegisterPaymentResult = {
   paymentEntry: PaymentEntrySummary;
@@ -32,7 +32,7 @@ export type RegisterPaymentResult = {
 };
 
 export async function registerPayment(input: {
-  database: PaymentDatabase;
+  database: ReceivablesDatabase;
   values: RegisterPaymentInput;
   staffUserId: string;
 }): Promise<RegisterPaymentResult> {
@@ -70,7 +70,7 @@ export async function registerPayment(input: {
   };
 }
 
-async function assertPayerExists(database: PaymentDatabase, payerId: string): Promise<void> {
+async function assertPayerExists(database: ReceivablesDatabase, payerId: string): Promise<void> {
   const payer = await database.payer.findUnique({
     where: { id: payerId },
     select: { id: true },

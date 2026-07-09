@@ -14,7 +14,7 @@ import {
   INVALID_ADJUSTMENT_SIGN_MESSAGE,
   ORDER_LOCKED_MESSAGE,
   WAIVED_INSTALLMENT_ADJUSTMENT_MESSAGE,
-} from "../../src/finance/errors.js";
+} from "../../src/receivables/index.js";
 import {
   ADMIN,
   caller,
