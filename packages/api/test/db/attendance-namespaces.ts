@@ -41,6 +41,19 @@ export const editHarness = createHarness(
   }),
 );
 
+export const percentHarness = createHarness(
+  defineNamespace({
+    label: "percent",
+    startDate: "3000-02-01",
+    endDate: "3000-06-30",
+    sessionDate: "3000-03-10",
+    afterSessionDate: "3000-04-01",
+    adminId: "00000000-0000-0000-0000-000000615001",
+    teacherId: "00000000-0000-0000-0000-000000615002",
+    otherTeacherId: "00000000-0000-0000-0000-000000615003",
+  }),
+);
+
 export const behaviorHarness = createHarness(
   defineNamespace({
     label: "behavior",
