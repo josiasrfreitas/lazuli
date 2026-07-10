@@ -1,18 +1,33 @@
 # Testing Workflow
 
-This is the agent-facing source of truth for choosing and running tests in Lazuli. Use Node.js built-in `node:test`; do not introduce Vitest, Jest, or browser E2E into these tiers.
+Agent-facing source of truth for choosing and writing tests in Lazuli. Use Node.js built-in `node:test`; do not introduce Vitest, Jest, or browser E2E into these tiers.
+
+Workflow automation changed in [PR #35](https://github.com/josiasrfreitas/lazuli/pull/35) (Lefthook pre-commit), [PR #36](https://github.com/josiasrfreitas/lazuli/pull/36) (worktree bootstrap + isolated Postgres), and [PR #37](https://github.com/josiasrfreitas/lazuli/pull/37) (fake-gcs-server + per-worktree GCS buckets).
+
+## Automation overview
+
+Regression coverage is largely automated. Your job is to **choose the right tier(s), write tests for new/changed behavior, and fill the Linear test block** — not to manually re-run the full suite on every change unless you are debugging a failure.
+
+| Layer                | When                    | What runs                                                                          |
+| -------------------- | ----------------------- | ---------------------------------------------------------------------------------- |
+| Pre-commit (local)   | Every `git commit`      | Prettier on staged files, `pnpm lint`, `pnpm typecheck`, `pnpm test` (unit only)   |
+| CI — Quality gates   | Every PR/push to `main` | `pnpm format:check`, lint, typecheck, unit tests, build                            |
+| CI — Database gates  | Every PR/push to `main` | Postgres 16, `prisma:deploy`, `prisma:drift`, `pnpm test:db`, `pnpm test:behavior` |
+| Agent responsibility | During feature work     | Add/update tests for every required tier                                           |
+
+Pre-commit mirrors the CI Quality gates job (`lefthook.yml` ↔ `.github/workflows/ci.yml`). DB and behavior tiers stay in CI because they need Docker. See `docs/MVP/TECHNICAL_SPEC.md` §10 for the spec-layer vocabulary; this doc is the canonical command/tier mapping.
 
 ## Tiers
 
 | Tier        | What it proves                                                                                         | Layout                               | Command              | Needs Docker?    |
 | ----------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------ | -------------------- | ---------------- |
 | Unit        | One function or module with mocked I/O                                                                 | `packages/*/test/*.test.ts`          | `pnpm test`          | No               |
-| Integration | Real Postgres, schema constraints, tRPC caller plus DB, Mailpit or other local resources               | `packages/*/test/db/*.test.ts`       | `pnpm test:db`       | Yes for Postgres |
+| Integration | Real Postgres, schema constraints, tRPC caller + DB, Mailpit or other local resources                  | `packages/*/test/db/*.test.ts`       | `pnpm test:db`       | Yes for Postgres |
 | Behavior    | Backend scenario through the HTTP/tRPC boundary, asserting status, response shape, and DB side effects | `packages/*/test/behavior/*.test.ts` | `pnpm test:behavior` | Yes              |
 
 Browser E2E is separate. `pnpm test:e2e` is the Playwright track for real browser flows and can remain manual/nightly until UI stabilizes. Behavior tests are backend scenario tests, not Playwright.
 
-## When Each Tier Is Required
+## When each tier is required
 
 | Change type                                                  | Required tier(s)                                                             |
 | ------------------------------------------------------------ | ---------------------------------------------------------------------------- |
@@ -24,65 +39,44 @@ Browser E2E is separate. `pnpm test:e2e` is the Playwright track for real browse
 | Auth flow, HTTP status, session, cookie, or request boundary | Behavior                                                                     |
 | Worker handler                                               | Unit for branching logic; integration when it touches DB or local resources  |
 | External adapter                                             | Unit for mapping logic; integration when a local resource or emulator exists |
-| Future GCS artifact behavior                                 | Integration against local fake-gcs-server (`pnpm seed:gcs` for fixtures)     |
+| GCS artifact behavior                                        | Integration against local fake-gcs-server (`pnpm seed:gcs` for fixtures)     |
 
 If a feature crosses tiers, test the narrow logic at the lowest tier and add only the scenario coverage needed at the boundary.
 
-## File Layout
+## File layout
 
-- Unit tests live directly under the package test directory: `packages/domain/test/semester.test.ts`, `packages/api/test/rbac.test.ts`, `packages/auth/test/staff-access.test.ts`.
-- Integration tests live under `test/db/`: `packages/db/test/db/student-schema.test.ts`, `packages/api/test/db/students.test.ts`.
-- Behavior tests live under `test/behavior/`: `packages/api/test/behavior/students-http.test.ts`, `packages/api/test/behavior/rbac-http.test.ts`, `packages/auth/test/behavior/auth-flow.test.ts`.
-- Keep shared DB fixtures near the tier that owns them. Existing helpers include `packages/db/test/support.ts` and `packages/api/test/db/student-test-support.ts`.
-- Do not move pure DB/caller tests into `test/behavior/` unless they exercise the HTTP boundary with production-style handlers.
+- Unit: `packages/domain/test/semester.test.ts`, `packages/api/test/rbac.test.ts`
+- Integration: `packages/db/test/db/student-schema.test.ts`, `packages/api/test/db/students.test.ts`
+- Behavior: `packages/api/test/behavior/students-http.test.ts`, `packages/auth/test/behavior/auth-flow.test.ts`
+- Shared helpers: `packages/db/test/support.ts`, `packages/api/test/db/student-test-support.ts`
+- Do not move pure DB/caller tests into `test/behavior/` unless they exercise the HTTP boundary.
 
-## Patterns
+**Patterns (quick reference):** unit tests use `node:test` + mocks; integration uses `databaseIt` from `@lazuli/db/test` with prefix-based cleanup; behavior uses `fetchRequestHandler` (or the Better Auth handler when that is the boundary), asserts HTTP status/body, and checks DB side effects. Keep PII out of logs.
 
-Unit:
+## Local prerequisites
 
-- Use `describe` and `it` from `node:test`, plus `node:assert/strict`.
-- Mock I/O with typed stand-ins when the behavior does not need a real resource. `packages/api/test/rbac.test.ts` uses an empty typed DB stand-in for RBAC.
-- Keep unit tests deterministic and independent from `.env`.
+Worktree bootstrap sets `DATABASE_URL` (and, after PR #37, GCS env) per checkout — see [`docs/agents/worktrees.md`](worktrees.md).
 
-Integration:
-
-- Use `databaseIt` from `@lazuli/db/test` for tests that need Postgres.
-- Connect and disconnect `db` in `before`/`after` hooks.
-- Use prefix-based cleanup for rows created by the test, as in `packages/api/test/db/students.test.ts`.
-- Keep real DB/caller coverage in `test/db/` when it does not cross the HTTP boundary.
-
-Behavior:
-
-- Use `fetchRequestHandler` for tRPC HTTP behavior so tests exercise the same adapter shape as production.
-- Assert HTTP status codes and response body shape before treating the scenario as covered.
-- Assert DB side effects when the scenario writes state.
-- Use prefix-based cleanup just like integration tests. Keep PII out of logs and use synthetic test data only.
-- Auth behavior can call the Better Auth handler directly when that handler is the production HTTP boundary, as in `packages/auth/test/behavior/auth-flow.test.ts`.
-
-## Local Prerequisites
-
-For `pnpm test:db` and `pnpm test:behavior`:
+For `pnpm test:db` and `pnpm test:behavior` when running locally:
 
 ```bash
 docker compose up -d
 pnpm prisma:deploy
 ```
 
-Ensure `.env` contains a valid `DATABASE_URL` for the local Postgres service. Mailpit and future local resources should be started through Docker Compose when a test depends on them.
+Agents rarely need to run db/behavior locally unless iterating on those tiers or debugging CI. Pre-commit already runs unit tests on every commit.
 
-## Done Checklist
+## Done checklist
 
-Before finishing feature work, run:
+1. Add or update tests for **every tier** the decision table requires.
+2. Pre-commit runs unit tests automatically on commit — fix hook failures before pushing.
+3. CI runs `test:db` and `test:behavior` on PR — fix CI failures if reported.
+4. Run `pnpm test:db` / `pnpm test:behavior` locally only when touching those tiers or debugging a CI failure.
+5. Fill the Linear test block (below).
 
-```bash
-pnpm test
-pnpm test:db
-pnpm test:behavior
-```
+If a command cannot run locally, state the blocker and residual risk explicitly.
 
-Fix failures before reporting complete. If a command cannot be run locally, state the blocker and the risk explicitly.
-
-## Linear Issue Test Block
+## Linear issue test block
 
 Add or update this block on feature issues and PR notes:
 
@@ -98,9 +92,7 @@ Add or update this block on feature issues and PR notes:
 
 Use `N/A` only when the decision table above clearly does not require that tier.
 
-## Technical Spec Mapping
-
-`docs/MVP/TECHNICAL_SPEC.md` uses layer names that map to this workflow:
+## Technical spec mapping
 
 | Technical spec layer   | Canonical tier here                                               |
 | ---------------------- | ----------------------------------------------------------------- |
@@ -110,4 +102,4 @@ Use `N/A` only when the decision table above clearly does not require that tier.
 | Worker tests           | Unit and integration, depending on resource usage                 |
 | E2E smoke tests        | Playwright browser E2E, separate from behavior                    |
 
-Coverage gates are planned in `TECHNICAL_SPEC.md` section 3.4 but are not enforced in CI yet. Do not add coverage enforcement unless that work is explicitly requested and trivial.
+Coverage gates are planned in `TECHNICAL_SPEC.md` §3.4 but are not enforced in CI yet.
