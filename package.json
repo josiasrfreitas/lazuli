@@ -27,7 +27,8 @@
     "prisma:drift": "pnpm -F @lazuli/db prisma:drift",
     "prisma:seed": "pnpm -F @lazuli/db prisma:seed",
     "db:reset": "pnpm -F @lazuli/db db:reset",
-    "bootstrap:worktree": "bash scripts/bootstrap-worktree.sh"
+    "bootstrap:worktree": "bash scripts/bootstrap-worktree.sh",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
@@ -35,6 +36,7 @@
     "dotenv-cli": "catalog:",
     "eslint": "catalog:",
     "jscpd": "catalog:",
+    "lefthook": "catalog:",
     "prettier": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:"
