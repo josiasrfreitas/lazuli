@@ -55,7 +55,7 @@ infra/
 - **Monolith + BFF** — business logic lives in tRPC procedures and shared packages; heavy work (Playwright, PDFs, reports, invoices) goes through Hatchet workers, not inline requests.
 - **Single school** — not multi-tenant in MVP. Legacy runs in parallel during the pilot.
 - **Portuguese-BR UI**, timezone `America/Sao_Paulo`, mobile-friendly attendance for teachers.
-- **Local dev is first-class** — Docker Compose (Postgres, Mailpit, Hatchet Lite) + seed data; see `docs/MVP/decisions.md`.
+- **Local dev is first-class** — Docker Compose (Postgres, Mailpit, Hatchet Lite, fake-gcs-server) + seed data; see `docs/MVP/decisions.md`.
 - **Git worktrees** — see [`docs/agents/worktrees.md`](docs/agents/worktrees.md) (`git worktree add` auto-bootstraps; opt out with `LAZULI_BOOTSTRAP_NO_FIXTURES=1`).
 - **Testing** — add the right tier(s) from `docs/agents/testing.md`; pre-commit and CI run the suite — agents focus on writing tests, not manual full-suite runs.
 - **LGPD awareness** — student PII stays in Cloud SQL; minimal data in Hatchet payloads; no PII in worker logs.

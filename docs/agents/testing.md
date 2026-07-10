@@ -29,17 +29,17 @@ Browser E2E is separate. `pnpm test:e2e` is the Playwright track for real browse
 
 ## When each tier is required
 
-| Change type                                                  | Required tier(s)                                                                 |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| Domain calculator, pure invariant, parser, formatter         | Unit                                                                             |
-| RBAC helper or procedure middleware with mocked I/O          | Unit                                                                             |
-| Prisma migration, CHECK constraint, index, schema behavior   | Integration                                                                      |
-| tRPC procedure that reads or writes DB state                 | Integration                                                                      |
-| User-visible tRPC procedure exposed over HTTP                | Integration and behavior                                                         |
-| Auth flow, HTTP status, session, cookie, or request boundary | Behavior                                                                         |
-| Worker handler                                               | Unit for branching logic; integration when it touches DB or local resources      |
-| External adapter                                             | Unit for mapping logic; integration when a local resource or emulator exists     |
-| GCS artifact behavior                                        | Integration against local fake-gcs-server (`pnpm seed:gcs` for fixtures; PR #37) |
+| Change type                                                  | Required tier(s)                                                             |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Domain calculator, pure invariant, parser, formatter         | Unit                                                                         |
+| RBAC helper or procedure middleware with mocked I/O          | Unit                                                                         |
+| Prisma migration, CHECK constraint, index, schema behavior   | Integration                                                                  |
+| tRPC procedure that reads or writes DB state                 | Integration                                                                  |
+| User-visible tRPC procedure exposed over HTTP                | Integration and behavior                                                     |
+| Auth flow, HTTP status, session, cookie, or request boundary | Behavior                                                                     |
+| Worker handler                                               | Unit for branching logic; integration when it touches DB or local resources  |
+| External adapter                                             | Unit for mapping logic; integration when a local resource or emulator exists |
+| GCS artifact behavior                                        | Integration against local fake-gcs-server (`pnpm seed:gcs` for fixtures)     |
 
 If a feature crosses tiers, test the narrow logic at the lowest tier and add only the scenario coverage needed at the boundary.
 

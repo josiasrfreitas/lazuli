@@ -7,6 +7,8 @@ cd "$ROOT"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/worktree-db.sh
 source "$SCRIPT_DIR/lib/worktree-db.sh"
+# shellcheck source=lib/worktree-gcs.sh
+source "$SCRIPT_DIR/lib/worktree-gcs.sh"
 # shellcheck source=lib/docker-engines.sh
 source "$SCRIPT_DIR/lib/docker-engines.sh"
 
@@ -26,11 +28,12 @@ Usage:
 Prepare the current checkout for local dev (also run automatically by the
 post-checkout hook after `git worktree add`):
 
-  1. .env setup with per-worktree DATABASE_URL
+  1. .env setup with per-worktree DATABASE_URL and GCS bucket
   2. pnpm install (always)
   3. Docker engine check / start (unless --no-fixtures)
   4. Create isolated Postgres DB + migrate (or db:reset with --reset-db)
-  5. runtime preflight check
+  5. Create isolated GCS bucket + seed fixtures
+  6. runtime preflight check
 
 Options:
   --source PATH   Checkout that already has a working .env (default: auto-detect
@@ -51,7 +54,7 @@ Notes:
   - Opt out of fixtures at add time:
       LAZULI_BOOTSTRAP_NO_FIXTURES=1 git worktree add <path> <branch>
   - Docker Compose uses fixed ports (5432, 8025, 8888). One stack per machine.
-  - Each worktree gets lazuli_<branch_slug> on shared Postgres.
+  - Each worktree gets lazuli_<branch_slug> on shared Postgres and lazuli-<branch_slug> on fake-gcs.
 USAGE
 }
 
@@ -94,7 +97,7 @@ print_docker_warning() {
   cat <<'WARNING'
 
 Note: worktree bootstrap may start the shared Docker stack (Postgres, Mailpit,
-Hatchet) when engines are not already running.
+Hatchet, fake-gcs) when engines are not already running.
 
 Tasks without local fixtures (docs, lint-only):
   LAZULI_BOOTSTRAP_NO_FIXTURES=1 git worktree add <path> <branch>
@@ -170,6 +173,7 @@ setup_env() {
   fi
 
   apply_worktree_database_url .env
+  apply_worktree_gcs_env .env
 }
 
 bootstrap_worktree() {
@@ -214,6 +218,10 @@ DONE
   fi
 
   ensure_worktree_database
+
+  ensure_worktree_gcs_bucket
+  echo "Seeding GCS fixtures..."
+  bash "$SCRIPT_DIR/seed-gcs.sh"
 
   if [[ "$RESET_DB" -eq 1 ]]; then
     echo "Resetting local database and running seed..."
