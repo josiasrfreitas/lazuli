@@ -17,9 +17,11 @@
     "@lazuli/db": "workspace:*",
     "@lazuli/domain": "workspace:*",
     "@lazuli/integrations": "workspace:*",
-    "@lazuli/job-contracts": "workspace:*"
+    "@lazuli/job-contracts": "workspace:*",
+    "pdfmake": "catalog:"
   },
   "devDependencies": {
+    "@types/pdfmake": "catalog:",
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
     "dotenv": "catalog:",
