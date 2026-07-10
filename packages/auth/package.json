@@ -17,14 +17,12 @@
   },
   "dependencies": {
     "@lazuli/db": "workspace:*",
-    "better-auth": "catalog:",
-    "nodemailer": "catalog:",
-    "resend": "catalog:"
+    "@lazuli/integrations": "workspace:*",
+    "better-auth": "catalog:"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
-    "@types/nodemailer": "catalog:",
     "dotenv": "catalog:",
     "eslint": "catalog:",
     "tsx": "catalog:",

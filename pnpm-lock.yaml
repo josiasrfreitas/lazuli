@@ -278,15 +278,12 @@ importers:
       '@lazuli/db':
         specifier: workspace:*
         version: link:../db
+      '@lazuli/integrations':
+        specifier: workspace:*
+        version: link:../integrations
       better-auth:
         specifier: 'catalog:'
         version: 1.6.22(@prisma/client@7.8.0(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3))(typescript@5.9.3))(mysql2@3.15.3)(next@15.5.19(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(pg@8.22.0)(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      nodemailer:
-        specifier: 'catalog:'
-        version: 7.0.13
-      resend:
-        specifier: 'catalog:'
-        version: 6.16.0
     devDependencies:
       '@lazuli/eslint-config':
         specifier: workspace:*
@@ -294,9 +291,6 @@ importers:
       '@lazuli/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
-      '@types/nodemailer':
-        specifier: 'catalog:'
-        version: 8.0.1
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2
@@ -372,6 +366,16 @@ importers:
         version: 5.9.3
 
   packages/integrations:
+    dependencies:
+      nodemailer:
+        specifier: 'catalog:'
+        version: 7.0.13
+      resend:
+        specifier: 'catalog:'
+        version: 6.16.0
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       '@lazuli/eslint-config':
         specifier: workspace:*
@@ -382,6 +386,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0
+      '@types/nodemailer':
+        specifier: 'catalog:'
+        version: 8.0.1
+      dotenv:
+        specifier: 'catalog:'
+        version: 17.4.2
       eslint:
         specifier: 'catalog:'
         version: 9.39.4(jiti@2.7.0)
