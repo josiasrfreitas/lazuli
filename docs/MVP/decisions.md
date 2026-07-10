@@ -175,6 +175,23 @@ Local development is first-class. Use Docker Compose for:
 
 Seed data should include staff users for enabled MVP roles (`ADMIN`, `TEACHER`), realistic students/classes/enrollments, class sessions, attendance, and financial records. Optional Phase 2 seed examples (leads, expenses) may be added when those modules ship.
 
+**Git worktrees.** Use `git worktree add` — a `post-checkout` hook (lefthook) bootstraps each new linked worktree: copies `.env`, runs `pnpm install`, and points `DATABASE_URL` at an isolated `lazuli_<branch_slug>` database on the shared Compose Postgres instance. Mailpit and Hatchet stay shared (one stack per machine; bootstrap checks engine health before `docker compose up -d`).
+
+Warning: raw `git worktree add` may start Docker when engines are down. Tasks without DB/email/Hatchet fixtures:
+
+```bash
+LAZULI_BOOTSTRAP_NO_FIXTURES=1 git worktree add <path> <branch>
+```
+
+Stop fixtures when done:
+
+```bash
+docker compose down       # stop; keep volumes
+docker compose down -v    # stop and wipe local DB volumes (destructive)
+```
+
+Manual re-bootstrap: `pnpm bootstrap:worktree` (add `--reset-db` to re-seed, `--no-fixtures` for install + `.env` only).
+
 ## D-0007: Observability and Email
 
 Use Sentry for errors, Portal cron health, and basic uptime visibility. Use Resend for production transactional email: magic links, Portal failure alerts, report/job notifications, and operational digests.

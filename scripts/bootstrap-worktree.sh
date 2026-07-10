@@ -4,11 +4,18 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/worktree-db.sh
+source "$SCRIPT_DIR/lib/worktree-db.sh"
+# shellcheck source=lib/docker-engines.sh
+source "$SCRIPT_DIR/lib/docker-engines.sh"
+
 SOURCE_WORKTREE=""
-WORKTREE_NAME=""
-SYMLINK_ENV=0
 SKIP_DOCKER=0
+NO_FIXTURES=0
 RESET_DB=0
+FORCE=0
+BOOTSTRAP_MARKER=".worktree-bootstrapped"
 
 usage() {
   cat <<'USAGE'
@@ -16,35 +23,35 @@ Usage:
   scripts/bootstrap-worktree.sh [options]
   pnpm bootstrap:worktree -- [options]
 
-Create a git worktree (optional) and prepare it for local dev:
-  - git worktree add (with --name)
-  - copy or symlink .env from another checkout
-  - pnpm install
-  - docker compose up -d (shared local stack)
-  - prisma migrate deploy (or db:reset with --reset-db)
-  - runtime preflight check
+Prepare the current checkout for local dev (also run automatically by the
+post-checkout hook after `git worktree add`):
+
+  1. .env setup with per-worktree DATABASE_URL
+  2. pnpm install (always)
+  3. Docker engine check / start (unless --no-fixtures)
+  4. Create isolated Postgres DB + migrate (or db:reset with --reset-db)
+  5. runtime preflight check
 
 Options:
-  --name NAME     Create a new worktree at ../<repo>-<name> and bootstrap it.
-                  NAME is the git branch (slashes become hyphens in the path).
-                  Uses an existing local/remote branch when present; otherwise
-                  creates NAME from the current HEAD.
   --source PATH   Checkout that already has a working .env (default: auto-detect
-                  from another git worktree, else .env.example; when --name is
-                  used, defaults to the checkout you ran this from)
-  --symlink-env   Symlink .env instead of copying (keeps secrets in one place)
-  --skip-docker   Do not run docker compose up -d
+                  from another git worktree, else .env.example)
+  --skip-docker   Do not run docker compose up -d (still runs DB steps if Postgres is up)
+  --no-fixtures   Skip docker, DB, and runtime check; still runs .env + pnpm install
   --reset-db      Run pnpm db:reset instead of pnpm prisma:deploy
+  --force         Re-run bootstrap even if already bootstrapped
   --help          Show this help
 
 Examples:
-  pnpm bootstrap:worktree -- --name gre-24 --symlink-env --skip-docker
-  pnpm bootstrap:worktree -- --name josiasdev1/gre-24-track-stage-catalog-seed
+  pnpm bootstrap:worktree
+  pnpm bootstrap:worktree -- --reset-db
+  pnpm bootstrap:worktree -- --no-fixtures
 
 Notes:
-  - Docker Compose uses fixed ports (5432, 8025, 8888). Run it once per machine,
-    not once per worktree.
-  - With --symlink-env, credential paths in .env should be absolute.
+  - Create worktrees with `git worktree add` (hook bootstraps automatically).
+  - Opt out of fixtures at add time:
+      LAZULI_BOOTSTRAP_NO_FIXTURES=1 git worktree add <path> <branch>
+  - Docker Compose uses fixed ports (5432, 8025, 8888). One stack per machine.
+  - Each worktree gets lazuli_<branch_slug> on shared Postgres.
 USAGE
 }
 
@@ -58,22 +65,17 @@ while (($#)); do
       fi
       shift
       ;;
-    --name)
-      WORKTREE_NAME="${2:-}"
-      if [[ -z "$WORKTREE_NAME" ]]; then
-        echo "Missing value for --name" >&2
-        exit 2
-      fi
-      shift
-      ;;
-    --symlink-env)
-      SYMLINK_ENV=1
-      ;;
     --skip-docker)
       SKIP_DOCKER=1
       ;;
+    --no-fixtures)
+      NO_FIXTURES=1
+      ;;
     --reset-db)
       RESET_DB=1
+      ;;
+    --force)
+      FORCE=1
       ;;
     --help | -h)
       usage
@@ -87,6 +89,27 @@ while (($#)); do
   esac
   shift
 done
+
+print_docker_warning() {
+  cat <<'WARNING'
+
+Note: worktree bootstrap may start the shared Docker stack (Postgres, Mailpit,
+Hatchet) when engines are not already running.
+
+Tasks without local fixtures (docs, lint-only):
+  LAZULI_BOOTSTRAP_NO_FIXTURES=1 git worktree add <path> <branch>
+  pnpm bootstrap:worktree -- --no-fixtures
+
+Stop fixtures when done:
+  docker compose down
+  docker compose down -v   # destructive — wipes all local DB volumes
+
+WARNING
+}
+
+already_bootstrapped() {
+  [[ -f "$BOOTSTRAP_MARKER" && -d node_modules && -f .env ]]
+}
 
 find_env_source_worktree() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -117,100 +140,80 @@ resolve_worktree_path() {
   cd "$path" && pwd -P
 }
 
-worktree_path_slug() {
-  local name="$1"
-  printf '%s' "${name//\//-}"
-}
-
-create_worktree() {
-  local name="$1"
-  local origin_root="$ROOT"
-  local parent base slug target
-
-  if ! git -C "$origin_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo "Cannot create a worktree outside a git repository." >&2
-    exit 1
-  fi
-
-  parent="$(dirname "$origin_root")"
-  base="$(basename "$origin_root")"
-  slug="$(worktree_path_slug "$name")"
-  target="$parent/${base}-${slug}"
-
-  if [[ -e "$target" ]]; then
-    echo "Worktree path already exists: $target" >&2
-    exit 1
-  fi
-
-  echo "Creating worktree at $target (branch: $name)..."
-
-  if git -C "$origin_root" show-ref --verify --quiet "refs/heads/$name"; then
-    git -C "$origin_root" worktree add "$target" "$name"
-  elif git -C "$origin_root" show-ref --verify --quiet "refs/remotes/origin/$name"; then
-    git -C "$origin_root" worktree add -b "$name" "$target" "origin/$name"
-  else
-    git -C "$origin_root" worktree add -b "$name" "$target"
-  fi
-
-  ROOT="$target"
-  cd "$ROOT"
-
-  if [[ -z "$SOURCE_WORKTREE" ]]; then
-    SOURCE_WORKTREE="$origin_root"
-  fi
-}
-
 setup_env() {
-  if [[ -e .env ]]; then
-    echo ".env already present; skipping env setup."
-    return
-  fi
+  if [[ ! -f .env ]]; then
+    local source_worktree=""
+    local source_env=""
 
-  local source_worktree=""
-  local source_env=""
-
-  if [[ -n "$SOURCE_WORKTREE" ]]; then
-    source_worktree="$(resolve_worktree_path "$SOURCE_WORKTREE")"
-    source_env="$source_worktree/.env"
-    if [[ ! -f "$source_env" ]]; then
-      echo "No .env found at --source checkout: $source_worktree" >&2
-      exit 1
+    if [[ -n "$SOURCE_WORKTREE" ]]; then
+      source_worktree="$(resolve_worktree_path "$SOURCE_WORKTREE")"
+      source_env="$source_worktree/.env"
+      if [[ ! -f "$source_env" ]]; then
+        echo "No .env found at --source checkout: $source_worktree" >&2
+        exit 1
+      fi
+    elif source_worktree="$(find_env_source_worktree)"; then
+      source_env="$source_worktree/.env"
+      echo "Using .env from worktree: $source_worktree"
     fi
-  elif source_worktree="$(find_env_source_worktree)"; then
-    source_env="$source_worktree/.env"
-    echo "Using .env from worktree: $source_worktree"
-  fi
 
-  if [[ -n "$source_env" ]]; then
-    if [[ "$SYMLINK_ENV" -eq 1 ]]; then
-      ln -s "$source_env" .env
-      echo "Symlinked .env -> $source_env"
-    else
+    if [[ -n "$source_env" ]]; then
       cp "$source_env" .env
       echo "Copied .env from $source_worktree"
+    else
+      cp .env.example .env
+      echo "Created .env from .env.example."
+      echo "Fill BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET before pnpm dev."
     fi
-    return
+  else
+    echo ".env already present; keeping existing secrets."
   fi
 
-  cp .env.example .env
-  echo "Created .env from .env.example."
-  echo "Fill BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET before pnpm dev."
+  apply_worktree_database_url .env
 }
 
 bootstrap_worktree() {
+  if [[ "$FORCE" -eq 0 ]] && already_bootstrapped; then
+    echo "Worktree already bootstrapped at $ROOT (use --force to re-run)."
+    return 0
+  fi
+
   echo "Bootstrapping worktree at $ROOT"
+  print_docker_warning
 
   setup_env
 
   echo "Installing dependencies..."
   pnpm install
 
-  if [[ "$SKIP_DOCKER" -eq 0 ]]; then
-    echo "Starting local Docker Compose stack (skip next time with --skip-docker)..."
-    docker compose up -d
-  else
-    echo "Skipping docker compose (--skip-docker)."
+  if [[ "$NO_FIXTURES" -eq 1 ]]; then
+    echo "Skipping fixtures (--no-fixtures): no docker, DB, or runtime check."
+    date -u +"%Y-%m-%dT%H:%M:%SZ" >"$BOOTSTRAP_MARKER"
+    cat <<DONE
+
+Worktree bootstrap complete (no fixtures).
+
+Checkout: $ROOT
+
+Next:
+  cd $ROOT
+  pnpm bootstrap:worktree        # enable fixtures when needed
+  docker compose down            # stop shared stack if it was started elsewhere
+
+DONE
+    return 0
   fi
+
+  if [[ "$SKIP_DOCKER" -eq 0 ]]; then
+    ensure_docker_engines
+  else
+    echo "Skipping docker compose up (--skip-docker)."
+    if ! postgres_healthy; then
+      echo "Postgres is not healthy; DB steps may fail." >&2
+    fi
+  fi
+
+  ensure_worktree_database
 
   if [[ "$RESET_DB" -eq 1 ]]; then
     echo "Resetting local database and running seed..."
@@ -222,6 +225,8 @@ bootstrap_worktree() {
 
   echo "Running runtime preflight..."
   pnpm runtime:check
+
+  date -u +"%Y-%m-%dT%H:%M:%SZ" >"$BOOTSTRAP_MARKER"
 
   cat <<DONE
 
@@ -237,9 +242,5 @@ Next:
 If auth or workers fail, confirm GOOGLE_* and HATCHET_CLIENT_TOKEN in .env.
 DONE
 }
-
-if [[ -n "$WORKTREE_NAME" ]]; then
-  create_worktree "$WORKTREE_NAME"
-fi
 
 bootstrap_worktree

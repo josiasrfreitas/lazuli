@@ -45,4 +45,5 @@ packages/db/src/generated/prisma/
 
 # Misc local scratch
 tmp/
+.worktree-bootstrapped
 docs/discovery

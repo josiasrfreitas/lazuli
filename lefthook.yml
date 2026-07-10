@@ -14,3 +14,8 @@ pre-commit:
       run: pnpm typecheck
     test:
       run: pnpm test
+
+post-checkout:
+  commands:
+    bootstrap-worktree:
+      run: bash scripts/git-hooks/post-checkout-worktree.sh {1} {2} {3}
