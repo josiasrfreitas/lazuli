@@ -1,0 +1,16 @@
+# Pre-commit gates — mirrors .github/workflows/ci.yml "Quality gates" job.
+# DB/behavior tiers (test:db, test:behavior) stay in CI; they need Docker.
+
+pre-commit:
+  parallel: false
+  commands:
+    format:
+      glob: "*.{ts,tsx,md,json,yaml,yml}"
+      run: pnpm exec prettier --write --ignore-path .gitignore --ignore-path .prettierignore {staged_files}
+      stage_fixed: true
+    lint:
+      run: pnpm lint
+    typecheck:
+      run: pnpm typecheck
+    test:
+      run: pnpm test
