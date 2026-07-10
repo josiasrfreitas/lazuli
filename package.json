@@ -28,6 +28,7 @@
     "prisma:seed": "pnpm -F @lazuli/db prisma:seed",
     "db:reset": "pnpm -F @lazuli/db db:reset",
     "bootstrap:worktree": "bash scripts/bootstrap-worktree.sh",
+    "seed:gcs": "bash scripts/seed-gcs.sh",
     "prepare": "lefthook install"
   },
   "devDependencies": {

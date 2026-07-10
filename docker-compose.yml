@@ -1,6 +1,6 @@
 # Local development services for Lazuli (D-0006, TECHNICAL_SPEC §2.2).
 #
-#   docker compose up -d        start Postgres 16, Mailpit, Hatchet Lite
+#   docker compose up -d        start Postgres 16, Mailpit, Hatchet Lite, fake-gcs-server
 #   docker compose down         stop (keeps volumes / data)
 #   docker compose down -v      stop and wipe local data
 #
@@ -8,6 +8,7 @@
 #   Postgres        5432
 #   Mailpit  SMTP   1025   UI   8025
 #   Hatchet  API    8888   gRPC 7077   (Hatchet project-standard ports, selected at scaffold)
+#   fake-gcs        4443   HTTP GCS emulator (per-worktree buckets via bootstrap/seed-gcs)
 #
 # No Sentry locally — error monitoring is dropped for MVP (TECHNICAL_SPEC §0 / D-0007 revision).
 name: lazuli
@@ -68,6 +69,33 @@ services:
     volumes:
       - hatchet-config:/config
 
+  fake-gcs:
+    # Local GCS emulator for artifact dev/tests. Digest-pinned so `latest` can't drift.
+    image: fsouza/fake-gcs-server@sha256:3730da0e31f7e5186a90ec4899dc2c336104e7599df400411392ef17e684c31f
+    container_name: lazuli-fake-gcs
+    restart: unless-stopped
+    ports:
+      - "4443:4443"
+    command:
+      - -scheme
+      - http
+      - -port
+      - "4443"
+      - -public-host
+      - localhost:4443
+    volumes:
+      - fake-gcs-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://127.0.0.1:4443/storage/v1/b || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
 volumes:
   postgres-data:
   hatchet-config:
+  fake-gcs-data:

@@ -172,10 +172,11 @@ Local development is first-class. Use Docker Compose for:
 - Postgres 16
 - Mailpit
 - Hatchet Lite
+- fake-gcs-server (GCS emulator on port 4443)
 
 Seed data should include staff users for enabled MVP roles (`ADMIN`, `TEACHER`), realistic students/classes/enrollments, class sessions, attendance, and financial records. Optional Phase 2 seed examples (leads, expenses) may be added when those modules ship.
 
-**Git worktrees.** Use `git worktree add` — a `post-checkout` hook (lefthook) bootstraps each new linked worktree: copies `.env`, runs `pnpm install`, and points `DATABASE_URL` at an isolated `lazuli_<branch_slug>` database on the shared Compose Postgres instance. Mailpit and Hatchet stay shared (one stack per machine; bootstrap checks engine health before `docker compose up -d`).
+**Git worktrees.** Use `git worktree add` — a `post-checkout` hook (lefthook) bootstraps each new linked worktree: copies `.env`, runs `pnpm install`, and points `DATABASE_URL` at an isolated `lazuli_<branch_slug>` database on the shared Compose Postgres instance and `GCS_ARTIFACTS_BUCKET` at an isolated `lazuli-<branch_slug>` bucket on the shared fake-gcs-server. Mailpit and Hatchet stay shared (one stack per machine; bootstrap checks engine health before `docker compose up -d`).
 
 Warning: raw `git worktree add` may start Docker when engines are down. Tasks without DB/email/Hatchet fixtures:
 
@@ -190,7 +191,7 @@ docker compose down       # stop; keep volumes
 docker compose down -v    # stop and wipe local DB volumes (destructive)
 ```
 
-Manual re-bootstrap: `pnpm bootstrap:worktree` (add `--reset-db` to re-seed, `--no-fixtures` for install + `.env` only).
+Manual re-bootstrap: `pnpm bootstrap:worktree` (add `--reset-db` to re-seed, `--no-fixtures` for install + `.env` only). Re-seed GCS fixtures anytime with `pnpm seed:gcs` (add `--force` to overwrite objects).
 
 ## D-0007: Observability and Email
 

@@ -155,8 +155,8 @@ Hatchet Cloud
 
 Local development:
 
-- `docker compose up` starts Postgres 16, Mailpit, and Hatchet Lite.
-- Sprint-0 `docker-compose.yml` must define stable local ports: Postgres `5432`, Mailpit UI `8025` / SMTP `1025`, Hatchet Lite on the project-standard local port selected during scaffold.
+- `docker compose up` starts Postgres 16, Mailpit, Hatchet Lite, and fake-gcs-server.
+- Sprint-0 `docker-compose.yml` must define stable local ports: Postgres `5432`, Mailpit UI `8025` / SMTP `1025`, Hatchet Lite on the project-standard local port selected during scaffold, fake-gcs `4443`.
 - `.env.example` must include `DATABASE_URL`, `BETTER_AUTH_SECRET`, Google OAuth placeholders, Resend/Mailpit config, Hatchet config, GCS local/prod placeholders, and Portal credential secret names/placeholders. (No Sentry DSN in MVP.)
 - `pnpm dev` starts web.
 - `pnpm dev:worker` starts the single local worker.

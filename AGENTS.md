@@ -54,8 +54,8 @@ infra/
 - **Monolith + BFF** — business logic lives in tRPC procedures and shared packages; heavy work (Playwright, PDFs, reports, invoices) goes through Hatchet workers, not inline requests.
 - **Single school** — not multi-tenant in MVP. Legacy runs in parallel during the pilot.
 - **Portuguese-BR UI**, timezone `America/Sao_Paulo`, mobile-friendly attendance for teachers.
-- **Local dev is first-class** — Docker Compose (Postgres, Mailpit, Hatchet Lite) + seed data; see `docs/MVP/decisions.md`.
-- **Git worktrees** — `git worktree add` auto-bootstraps via `post-checkout` hook (`.env`, `pnpm install`, isolated `lazuli_<branch_slug>` DB on shared Postgres). Without fixtures: `LAZULI_BOOTSTRAP_NO_FIXTURES=1 git worktree add <path> <branch>`. Teardown: `docker compose down` / `docker compose down -v`. Manual re-bootstrap: `pnpm bootstrap:worktree`.
+- **Local dev is first-class** — Docker Compose (Postgres, Mailpit, Hatchet Lite, fake-gcs-server) + seed data; see `docs/MVP/decisions.md`.
+- **Git worktrees** — `git worktree add` auto-bootstraps via `post-checkout` hook (`.env`, `pnpm install`, isolated `lazuli_<branch_slug>` DB and `lazuli-<branch_slug>` GCS bucket on shared engines). Without fixtures: `LAZULI_BOOTSTRAP_NO_FIXTURES=1 git worktree add <path> <branch>`. Teardown: `docker compose down` / `docker compose down -v`. Manual re-bootstrap: `pnpm bootstrap:worktree`; GCS fixtures: `pnpm seed:gcs`.
 - **Testing** — feature work must add the right tier(s) from `docs/agents/testing.md` and run `pnpm test`, `pnpm test:db`, and `pnpm test:behavior` before claiming done.
 - **LGPD awareness** — student PII stays in Cloud SQL; minimal data in Hatchet payloads; no PII in worker logs.
 - **Scope discipline** — week-1 MVP is ruthless; see `docs/MVP/PRD.md` and `docs/MVP/decisions.md` for current deferred items.

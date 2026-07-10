@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Shared local Docker Compose engine health checks (Postgres, Mailpit, Hatchet Lite).
+# Shared local Docker Compose engine health checks (Postgres, Mailpit, Hatchet Lite, fake-gcs).
 
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-lazuli-postgres}"
 MAILPIT_CONTAINER="${MAILPIT_CONTAINER:-lazuli-mailpit}"
 HATCHET_CONTAINER="${HATCHET_CONTAINER:-lazuli-hatchet}"
+FAKE_GCS_CONTAINER="${FAKE_GCS_CONTAINER:-lazuli-fake-gcs}"
+FAKE_GCS_HOST="${FAKE_GCS_HOST:-http://localhost:4443}"
 
 container_running() {
   local name="$1"
@@ -22,7 +24,33 @@ postgres_healthy() {
 engines_healthy() {
   container_running "$MAILPIT_CONTAINER" &&
     container_running "$HATCHET_CONTAINER" &&
-    postgres_healthy
+    container_running "$FAKE_GCS_CONTAINER" &&
+    postgres_healthy &&
+    fake_gcs_healthy
+}
+
+fake_gcs_healthy() {
+  local health_status
+  health_status="$(docker inspect -f '{{.State.Health.Status}}' "$FAKE_GCS_CONTAINER" 2>/dev/null || true)"
+  if [[ "$health_status" == "healthy" ]]; then
+    return 0
+  fi
+  curl -fsS "${FAKE_GCS_HOST}/storage/v1/b" >/dev/null 2>&1
+}
+
+wait_for_fake_gcs_healthy() {
+  local attempts="${1:-24}"
+  local index
+
+  for ((index = 0; index < attempts; index++)); do
+    if fake_gcs_healthy; then
+      return 0
+    fi
+    sleep 5
+  done
+
+  echo "fake-gcs-server did not become healthy in time." >&2
+  return 1
 }
 
 wait_for_postgres_healthy() {
@@ -42,11 +70,12 @@ wait_for_postgres_healthy() {
 
 ensure_docker_engines() {
   if engines_healthy; then
-    echo "Shared engines already up (postgres, mailpit, hatchet); skipping docker compose up."
+    echo "Shared engines already up (postgres, mailpit, hatchet, fake-gcs); skipping docker compose up."
     return 0
   fi
 
   echo "Starting shared Docker Compose stack..."
   docker compose up -d
   wait_for_postgres_healthy
+  wait_for_fake_gcs_healthy
 }

@@ -24,7 +24,7 @@ Browser E2E is separate. `pnpm test:e2e` is the Playwright track for real browse
 | Auth flow, HTTP status, session, cookie, or request boundary | Behavior                                                                     |
 | Worker handler                                               | Unit for branching logic; integration when it touches DB or local resources  |
 | External adapter                                             | Unit for mapping logic; integration when a local resource or emulator exists |
-| Future GCS artifact behavior                                 | Integration once a local emulator or test double is standardized             |
+| Future GCS artifact behavior                                 | Integration against local fake-gcs-server (`pnpm seed:gcs` for fixtures)     |
 
 If a feature crosses tiers, test the narrow logic at the lowest tier and add only the scenario coverage needed at the boundary.
 
