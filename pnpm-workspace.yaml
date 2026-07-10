@@ -28,6 +28,7 @@ catalog:
   "@types/react-dom": ^19.0.3
 
   # Shared libs
+  "@google-cloud/storage": ^7.14.0
   "@prisma/adapter-pg": ^7.8.0
   "@prisma/client": ^7.8.0
   "@trpc/server": ^11.18.0
@@ -36,6 +37,8 @@ catalog:
   dotenv: ^17.2.3
   dotenv-cli: ^11.0.0
   nodemailer: ^7.0.11
+  pdfmake: ^0.2.18
+  "@types/pdfmake": ^0.2.11
   pg: ^8.16.3
   prisma: ^7.8.0
   resend: ^6.16.0

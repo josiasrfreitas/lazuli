@@ -16,36 +16,11 @@ export { createSmtpEmailSender } from "./email/smtp-sender.js";
 export type { EmailTransportSelection } from "./email/factory.js";
 export { createEmailSenderFromEnv, selectEmailTransport } from "./email/factory.js";
 
-export type ArtifactPutInput = {
-  key: string;
-  contentType: string;
-  body: Uint8Array;
-};
-
-export type ArtifactPutResult = {
-  bucket: string;
-  key: string;
-};
-
-export class ArtifactStorageNotConfiguredError extends Error {
-  constructor() {
-    super("NOT_CONFIGURED");
-    this.name = "ArtifactStorageNotConfiguredError";
-  }
-}
-
-export type ArtifactStorage = {
-  put(input: ArtifactPutInput): Promise<ArtifactPutResult>;
-  getSignedUrl(key: string): Promise<string>;
-};
-
-export function createNoOpArtifactStorage(): ArtifactStorage {
-  return {
-    put: (input) =>
-      Promise.resolve({
-        bucket: "local-stub",
-        key: input.key,
-      }),
-    getSignedUrl: () => Promise.reject(new ArtifactStorageNotConfiguredError()),
-  };
-}
+export type { ArtifactPutInput, ArtifactPutResult, ArtifactStorage } from "./storage/storage.js";
+export { ArtifactStorageNotConfiguredError, createNoOpArtifactStorage } from "./storage/storage.js";
+export type { StorageEnvironment } from "./storage/env.js";
+export { parseStorageEnvironment } from "./storage/env.js";
+export type { GcsArtifactStorageConfig } from "./storage/gcs-storage.js";
+export { createGcsArtifactStorage } from "./storage/gcs-storage.js";
+export type { ArtifactStorageSelection } from "./storage/factory.js";
+export { createArtifactStorageFromEnv, selectArtifactStorage } from "./storage/factory.js";
