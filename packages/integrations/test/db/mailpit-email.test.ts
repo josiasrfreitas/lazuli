@@ -9,7 +9,13 @@ const MAILPIT_HTTP_PORT = 8025;
 const POLL_INTERVAL_MS = 250;
 const POLL_TIMEOUT_MS = 5000;
 
-const environment = parseEmailEnvironment();
+// Inject a static source so the test is self-contained and doesn't depend on
+// EMAIL_FROM being present in the environment (it isn't in the CI job env).
+// Mailpit's ports are fixed by spec, so SMTP host/port fall back to the
+// localhost:1025 defaults in env.ts.
+const environment = parseEmailEnvironment({
+  EMAIL_FROM: "Lazuli <no-reply@example.com>",
+});
 const mailpitBaseUrl = `http://${environment.smtpHost}:${MAILPIT_HTTP_PORT}`;
 
 type MailpitAddress = { Address: string };
