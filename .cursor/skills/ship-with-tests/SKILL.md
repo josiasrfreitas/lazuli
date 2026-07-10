@@ -1,21 +1,25 @@
 ---
 name: ship-with-tests
 description: >-
-  Implements Lazuli features with the three-tier test workflow (unit,
-  integration, behavior). Use when building features, fixing production code, or
-  when the user mentions tests, testing, TDD, or test coverage.
+  Ensure new/changed behavior has tests at the right tier; execution is
+  automated via lefthook pre-commit and CI.
 disable-model-invocation: true
 ---
 
 # Ship With Tests
 
-## Before Coding
+Full workflow: `docs/agents/testing.md`. Local dev setup: `docs/agents/worktrees.md`.
 
-1. Read `docs/agents/testing.md`.
-2. Read the Linear issue, PRD acceptance criteria, or user request.
-3. Decide which tier(s) apply and name the expected test files before editing.
+## Your job
 
-## Tier Decision
+1. Read the Linear issue, PRD acceptance criteria, or user request.
+2. Pick tier(s) from the table below and name test files before editing.
+3. Add or update tests for every required tier.
+4. Fill the Linear test block.
+
+**Execution is automated:** pre-commit runs format, lint, typecheck, and `pnpm test` on every commit. CI runs integration + behavior on PR. Fix hook/CI failures; don't manually re-run the full suite unless debugging.
+
+## Tier decision
 
 | Change                                                    | Tier                                                        |
 | --------------------------------------------------------- | ----------------------------------------------------------- |
@@ -25,26 +29,13 @@ disable-model-invocation: true
 | tRPC procedure with DB access                             | Integration, plus behavior if HTTP-facing                   |
 | Auth flow, HTTP status, session, cookie, request boundary | Behavior                                                    |
 | Worker handler                                            | Unit plus integration when it touches DB or local resources |
-| External adapter                                          | Unit, plus integration when a local resource exists         |
+| External adapter / GCS artifacts                          | Unit, plus integration when a local emulator exists         |
 
-## While Coding
+## File layout
 
-- Co-locate tests in the changed package.
-- Use `test/*.test.ts` for unit, `test/db/*.test.ts` for integration, and `test/behavior/*.test.ts` for backend behavior.
-- Reuse `databaseIt`, `packages/api/test/db/student-test-support.ts`, and `fetchRequestHandler` patterns.
-- Use prefix-based cleanup for DB-backed integration and behavior tests.
-- Keep Playwright under `pnpm test:e2e`; do not treat browser E2E as behavior tests.
+`test/*.test.ts` (unit) · `test/db/*.test.ts` (integration) · `test/behavior/*.test.ts` (behavior). Playwright stays under `pnpm test:e2e`.
 
-## Examples
-
-- Unit: `packages/domain/test/semester.test.ts`
-- Unit RBAC: `packages/api/test/rbac.test.ts`
-- Integration: `packages/api/test/db/students.test.ts`
-- DB schema integration: `packages/db/test/db/student-schema.test.ts`
-- Behavior: `packages/api/test/behavior/students-http.test.ts`
-- Behavior auth: `packages/auth/test/behavior/auth-flow.test.ts`
-
-## Linear Test Block
+## Linear test block
 
 ```markdown
 ## Tests
@@ -57,13 +48,3 @@ disable-model-invocation: true
 ```
 
 Use `N/A` only when `docs/agents/testing.md` says the tier is not required.
-
-## Before Done
-
-Run all three commands before reporting complete:
-
-```bash
-pnpm test && pnpm test:db && pnpm test:behavior
-```
-
-Fix failures before claiming done. If a command cannot run, report the exact blocker and residual risk.
