@@ -21,4 +21,8 @@ if [[ "${LAZULI_BOOTSTRAP_NO_FIXTURES:-}" =~ ^(1|true|yes|TRUE|YES)$ ]]; then
   args+=(--no-fixtures)
 fi
 
-exec bash "$BOOTSTRAP" "${args[@]}"
+if ((${#args[@]} > 0)); then
+  exec bash "$BOOTSTRAP" "${args[@]}"
+fi
+
+exec bash "$BOOTSTRAP"
