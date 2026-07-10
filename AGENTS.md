@@ -12,7 +12,8 @@ Read these before assuming product scope, architecture, or tech stack.
 | **PRD & user stories** | [`docs/MVP/PRD.md`](docs/MVP/PRD.md)                                    | Product scope, user stories, acceptance criteria              |
 | **Decisions**          | [`docs/MVP/decisions.md`](docs/MVP/decisions.md)                        | Architecture, stack, workflow, and discovery-driven decisions |
 | **Discovery**          | [`docs/discovery/README.md`](docs/discovery/README.md)                  | Questionnaire data, query tool, discovery artifacts           |
-| **Testing**            | [`docs/agents/testing.md`](docs/agents/testing.md)                      | Test tiers, file layout, commands, and agent done checklist   |
+| **Testing**            | [`docs/agents/testing.md`](docs/agents/testing.md)                      | Test tiers, automation model, and agent done checklist        |
+| **Worktrees**          | [`docs/agents/worktrees.md`](docs/agents/worktrees.md)                  | Parallel branches, isolated DB/GCS, bootstrap commands        |
 | **Issue tracker**      | Linear + [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) | Projects, issues, dependencies (not duplicated in repo)       |
 
 **Doc hierarchy:** PRD = product behavior · decisions = constraints and rationale · discovery = evidence. If docs disagree, update PRD and decisions together before building.
@@ -55,8 +56,8 @@ infra/
 - **Single school** — not multi-tenant in MVP. Legacy runs in parallel during the pilot.
 - **Portuguese-BR UI**, timezone `America/Sao_Paulo`, mobile-friendly attendance for teachers.
 - **Local dev is first-class** — Docker Compose (Postgres, Mailpit, Hatchet Lite) + seed data; see `docs/MVP/decisions.md`.
-- **Git worktrees** — `git worktree add` auto-bootstraps via `post-checkout` hook (`.env`, `pnpm install`, isolated `lazuli_<branch_slug>` DB on shared Postgres). Without fixtures: `LAZULI_BOOTSTRAP_NO_FIXTURES=1 git worktree add <path> <branch>`. Teardown: `docker compose down` / `docker compose down -v`. Manual re-bootstrap: `pnpm bootstrap:worktree`.
-- **Testing** — feature work must add the right tier(s) from `docs/agents/testing.md` and run `pnpm test`, `pnpm test:db`, and `pnpm test:behavior` before claiming done.
+- **Git worktrees** — see [`docs/agents/worktrees.md`](docs/agents/worktrees.md) (`git worktree add` auto-bootstraps; opt out with `LAZULI_BOOTSTRAP_NO_FIXTURES=1`).
+- **Testing** — add the right tier(s) from `docs/agents/testing.md`; pre-commit and CI run the suite — agents focus on writing tests, not manual full-suite runs.
 - **LGPD awareness** — student PII stays in Cloud SQL; minimal data in Hatchet payloads; no PII in worker logs.
 - **Scope discipline** — week-1 MVP is ruthless; see `docs/MVP/PRD.md` and `docs/MVP/decisions.md` for current deferred items.
 - **Backend-first execution** — backend/UI split per domain project; UI GREs are post-phase until GRE-57 (P00). See [D-0036](docs/MVP/decisions.md#d-0036-frontend-surfaces-deferred-design-system-gate).
@@ -94,4 +95,4 @@ Single-context. No `CONTEXT.md`/`docs/adr/` — domain sources are `docs/MVP/PRD
 
 ### Ship with tests
 
-Use `.cursor/skills/ship-with-tests/SKILL.md` for feature work, production bug fixes, or explicit testing/TDD requests. It points agents to `docs/agents/testing.md` and the required three-tier test checklist. The same project skill is symlinked into `.codex/skills/ship-with-tests` and `.claude/skills/ship-with-tests`; local global symlinks live at `~/.codex/skills/ship-with-tests` and `~/.claude/skills/ship-with-tests`.
+Use the ship-with-tests skill for feature work, production bug fixes, or explicit testing/TDD requests. Canonical copies (kept in sync): `.cursor/skills/ship-with-tests/SKILL.md`, `.codex/skills/ship-with-tests/SKILL.md`, `.claude/skills/ship-with-tests/SKILL.md`. The skill emphasizes test creation over manual suite runs; see `docs/agents/testing.md`. Optional global copies: `~/.codex/skills/ship-with-tests`, `~/.claude/skills/ship-with-tests`.

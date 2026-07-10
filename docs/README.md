@@ -10,7 +10,7 @@ Lazuli is a custom management system for one language school in Brazil. The wedg
 
 - **[MVP/](./MVP/)** — the build contract for the week-1 MVP: product scope, decisions, technical spec, ERD, and deferred work.
 - **[discovery/](./discovery/README.md)** — raw interview evidence, questionnaire data, query tooling, process maps. The "why" behind the MVP.
-- **[agents/](./agents/)** — conventions for AI/automation work in this repo (Linear issue tracker, testing, triage labels, domain docs).
+- **[agents/](./agents/)** — conventions for AI/automation work in this repo (Linear issue tracker, testing, worktrees, triage labels, domain docs).
 
 ## Authoritative Docs
 
@@ -31,9 +31,10 @@ Lazuli is a custom management system for one language school in Brazil. The wedg
 2. [MVP/PRD.md](./MVP/PRD.md) — user stories and acceptance criteria (MVP).
 3. [MVP/TECHNICAL_SPEC.md](./MVP/TECHNICAL_SPEC.md) — implementation contract after scope is understood.
 4. [MVP/ERD.md](./MVP/ERD.md) — visual relationship map after reading the technical spec.
-5. [agents/testing.md](./agents/testing.md) — test tiers, file layout, and required commands before implementing.
-6. [discovery/README.md](./discovery/README.md) — raw interview evidence when you need it.
-7. [discovery/unresolved-pains.md](./discovery/unresolved-pains.md) — before declaring a pain out of scope.
+5. [agents/testing.md](./agents/testing.md) — test tiers, automation model, and agent done checklist.
+6. [agents/worktrees.md](./agents/worktrees.md) — parallel branch setup, isolated DB/GCS, Docker engines.
+7. [discovery/README.md](./discovery/README.md) — raw interview evidence when you need it.
+8. [discovery/unresolved-pains.md](./discovery/unresolved-pains.md) — before declaring a pain out of scope.
 
 Execution (projects, issues, dependencies) lives in **Linear**, not in this repo. See [agents/issue-tracker.md](./agents/issue-tracker.md). Implementers should also read [agents/testing.md](./agents/testing.md) before feature work.
 
