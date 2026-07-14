@@ -2,6 +2,7 @@ import { createCallerFactory, protectedProcedure, publicProcedure, router } from
 import { attendanceRouter } from "./attendance/router.js";
 import { calendarRouter } from "./calendar/router.js";
 import { classesRouter } from "./classes/router.js";
+import { dashboardRouter } from "./dashboard/router.js";
 import { enrollmentRouter } from "./enrollment/router.js";
 import { financeRouter } from "./receivables/router.js";
 import { reportsRouter } from "./reports/router.js";
@@ -17,6 +18,7 @@ export const appRouter = router({
   attendance: attendanceRouter,
   finance: financeRouter,
   reports: reportsRouter,
+  dashboard: dashboardRouter,
 });
 
 export type AppRouter = typeof appRouter;
