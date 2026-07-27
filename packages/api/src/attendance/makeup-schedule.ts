@@ -27,10 +27,10 @@ export type ScheduleMakeupResult = {
 };
 
 /**
- * Schedules a makeup visitor into a future target session (S-ATT-3, TECHNICAL_SPEC §4.6). The target
- * must be SCHEDULED and at least tomorrow in `America/Sao_Paulo`; the target class must differ from the
- * origin class unless the caller records an override `reason`. No attendance row is created here — the
- * outcome is set later (S-ATT-2) and makeups never affect attendance %.
+ * Schedules a makeup visitor into a future target session. The target must be SCHEDULED and at least
+ * tomorrow in `America/Sao_Paulo`; the target class must differ from the origin class unless the caller
+ * records an override `reason`. No attendance row is created here; the outcome is set later and makeups
+ * never affect attendance percentage.
  */
 export async function scheduleMakeup(input: {
   database: MakeupDatabase;

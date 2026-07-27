@@ -32,9 +32,9 @@ export type ConfirmSessionResult = {
 };
 
 /**
- * The one-shot, transactional attendance confirm (S-ATT-1, TECHNICAL_SPEC §4.6). No server-side draft:
- * every write happens here. Untouched active-roster members commit `PRESENT`; `rows` entries commit their
- * explicit status. Rejects re-confirm, cancelled sessions, and `rows` outside the session roster.
+ * The one-shot, transactional attendance confirm. No server-side draft: every write happens here.
+ * Untouched active-roster members commit `PRESENT`; `rows` entries commit their explicit status.
+ * Rejects re-confirm, cancelled sessions, and `rows` outside the session roster.
  */
 export async function confirmSession(input: {
   database: AttendanceDatabase;

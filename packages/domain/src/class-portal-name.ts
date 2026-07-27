@@ -39,8 +39,8 @@ const WEEKDAY_PORTAL_ABBREV: Record<Weekday, string> = {
 const YEAR_SUFFIX_DIVISOR = 100;
 
 /**
- * Interim REGULAR Portal class-name generator (PRD §5, D-0021). Exact Portal
- * semantics for 1S/2S and trailing suffix remain open until GRE-13 walkthrough.
+ * Interim REGULAR Portal class-name generator. Exact Portal semantics for 1S/2S
+ * and trailing suffix remain unresolved.
  * Multi-slot classes use the earliest weekday slot, then earliest start time.
  */
 export function generateRegularPortalClassName(input: GenerateRegularPortalClassNameInput): string {
@@ -84,7 +84,7 @@ function compareSlots(left: PortalClassNameSlot, right: PortalClassNameSlot): nu
   return left.startTime.localeCompare(right.startTime);
 }
 
-/** Maps semester names like 2026.1 → 1S (PRD interim convention). */
+/** Maps semester names like 2026.1 → the interim 1S suffix. */
 function parseSemesterSuffix(semesterName: string): string {
   const match = /\.(\d+)$/.exec(semesterName);
   if (match?.[1] === undefined) {

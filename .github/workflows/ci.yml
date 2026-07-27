@@ -1,9 +1,9 @@
 # Minimum CI gates for Lazuli.
 #
-# Derived from TECHNICAL_SPEC §10.2 / §3.4. Every job here is a blocking gate
-# on PRs to main and on pushes to main. E2E runs separately (e2e.yml), not here.
+# Every job here is a blocking gate on PRs to main and pushes to main. E2E runs separately
+# (e2e.yml), not here.
 #
-# Not in MVP (by spec): no deploy step, no Sentry upload, no coverage gate.
+# This workflow has no deploy step, Sentry upload, or coverage gate.
 name: CI
 
 on:
@@ -43,7 +43,7 @@ jobs:
 
   # Three-tier tests: quality runs unit; this job runs integration + behavior against Postgres 16.
   # DB integration tests + Prisma migrate/drift check against a real Postgres 16,
-  # matching the prod engine and the Docker Compose image (TECHNICAL_SPEC §2.2).
+  # matching the accepted PostgreSQL 16 engine and the Docker Compose image.
   database:
     name: Database gates
     runs-on: ubuntu-latest
@@ -62,7 +62,7 @@ jobs:
           --health-timeout 5s
           --health-retries 12
       # Mailpit backs the SMTP email delivery integration test (test/db/mailpit-email.test.ts).
-      # Ports must match TECHNICAL_SPEC §2.2 and docker-compose.yml (SMTP 1025, UI/API 8025).
+      # Ports match docker-compose.yml (SMTP 1025, UI/API 8025).
       mailpit:
         image: axllent/mailpit:v1.21
         ports:

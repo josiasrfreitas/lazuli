@@ -1,16 +1,16 @@
-# Local development services for Lazuli (D-0006, TECHNICAL_SPEC §2.2).
+# Local development services for Lazuli.
 #
 #   docker compose up -d        start Postgres 16, Mailpit, Hatchet Lite, fake-gcs-server
 #   docker compose down         stop (keeps volumes / data)
 #   docker compose down -v      stop and wipe local data
 #
-# Stable local ports (must match TECHNICAL_SPEC §2.2 exactly):
+# Stable local ports:
 #   Postgres        5432
 #   Mailpit  SMTP   1025   UI   8025
 #   Hatchet  API    8888   gRPC 7077   (Hatchet project-standard ports, selected at scaffold)
 #   fake-gcs        4443   HTTP GCS emulator (per-worktree buckets via bootstrap/seed-gcs)
 #
-# No Sentry locally — error monitoring is dropped for MVP (TECHNICAL_SPEC §0 / D-0007 revision).
+# No Sentry service is configured locally.
 name: lazuli
 
 services:
