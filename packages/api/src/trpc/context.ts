@@ -39,7 +39,7 @@ type CreateTRPCContextInput = {
  * Builds the tRPC request context. Dependency-injectable: tests pass a `db` and a
  * resolved `session` directly (no HTTP); the Next.js route passes the Better Auth
  * session it read from request headers. Domain identity is reloaded from `User` by
- * email — never taken from the Better Auth adapter id (TECHNICAL_SPEC §4.1, §5.1).
+ * email — never taken from the Better Auth adapter id.
  */
 export async function createTRPCContext(input: CreateTRPCContextInput): Promise<Context> {
   const db = input.db ?? (await resolveDefaultDb());

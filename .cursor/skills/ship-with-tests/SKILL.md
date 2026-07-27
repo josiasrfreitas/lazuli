@@ -8,14 +8,14 @@ disable-model-invocation: true
 
 # Ship With Tests
 
-Full workflow: `docs/agents/testing.md`. Local dev setup: `docs/agents/worktrees.md`.
+Test commands are defined in package.json; automation is defined in lefthook.yml and .github/workflows/ci.yml.
 
 ## Your job
 
-1. Read the Linear issue, PRD acceptance criteria, or user request.
+1. Read the assigned work item or user request.
 2. Pick tier(s) from the table below and name test files before editing.
 3. Add or update tests for every required tier.
-4. Fill the Linear test block.
+4. Fill the work-item test block.
 
 **Execution is automated:** pre-commit runs format, lint, typecheck, and `pnpm test` on every commit. CI runs integration + behavior on PR. Fix hook/CI failures; don't manually re-run the full suite unless debugging.
 
@@ -35,7 +35,7 @@ Full workflow: `docs/agents/testing.md`. Local dev setup: `docs/agents/worktrees
 
 `test/*.test.ts` (unit) · `test/db/*.test.ts` (integration) · `test/behavior/*.test.ts` (behavior). Playwright stays under `pnpm test:e2e`.
 
-## Linear test block
+## Work-item test block
 
 ```markdown
 ## Tests
@@ -47,4 +47,4 @@ Full workflow: `docs/agents/testing.md`. Local dev setup: `docs/agents/worktrees
 | Behavior    | `packages/.../test/behavior/baz.test.ts` | `pnpm test:behavior` |
 ```
 
-Use `N/A` only when `docs/agents/testing.md` says the tier is not required.
+Use `N/A` only when the tier table above does not require that tier; state the reason.

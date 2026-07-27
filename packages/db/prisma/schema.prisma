@@ -280,7 +280,7 @@ model Address {
   guardians Guardian[]
 }
 
-// Academic calendar window (TECHNICAL_SPEC §4.4, S-CAL-4). Semester setup is the
+// Academic calendar window. Semester setup is the
 // trigger for session generation. A start_date <= end_date CHECK and a
 // non-overlap exclusion constraint on daterange(start_date, end_date, '[]') live
 // in the GRE-22 raw-SQL migration (Prisma cannot express exclusion constraints).

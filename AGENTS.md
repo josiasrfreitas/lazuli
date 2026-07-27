@@ -1,98 +1,70 @@
-# Lazuli — Custom Management System
+# Lazuli agent guide
 
-Custom student/finance/attendance management for a single English-language school in Brazil (~300 students). Replaces the most painful Legacy workflows — especially daily attendance submission to the Portal.
+Lazuli is a single-school management system for an English-language school in Brazil. Keep work
+within the requested slice; do not treat historical documents, placeholders, or unimplemented seams
+as product completion.
 
-## Documentation index
+## Repository map
 
-Read these before assuming product scope, architecture, or tech stack.
+- `apps/web` — Next.js App Router, tRPC client/server, and Better Auth routes.
+- `apps/worker` — worker process.
+- `packages/api` — tRPC routers, procedures, RBAC, and service orchestration.
+- `packages/auth` — Better Auth configuration and session helpers.
+- `packages/db` — Prisma schema, migrations, seeds, and database helpers.
+- `packages/domain` — pure calculators and invariants.
+- `packages/job-contracts` — workflow names, payloads, and enqueue helpers.
+- `packages/integrations` — external adapter interfaces and shared clients.
+- `packages/worker-handlers` — worker-only handlers for integrations and artifacts.
+- `packages/ui` and `packages/validators` — shared UI and Zod validators.
+- `tooling/` — shared lint, formatting, and TypeScript configuration.
 
-| Doc                    | Path                                                                    | Purpose                                                       |
-| ---------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **Docs index**         | [`docs/README.md`](docs/README.md)                                      | Reading order, TLDR, scope snapshot, open questions           |
-| **PRD & user stories** | [`docs/MVP/PRD.md`](docs/MVP/PRD.md)                                    | Product scope, user stories, acceptance criteria              |
-| **Decisions**          | [`docs/MVP/decisions.md`](docs/MVP/decisions.md)                        | Architecture, stack, workflow, and discovery-driven decisions |
-| **Discovery**          | [`docs/discovery/README.md`](docs/discovery/README.md)                  | Questionnaire data, query tool, discovery artifacts           |
-| **Testing**            | [`docs/agents/testing.md`](docs/agents/testing.md)                      | Test tiers, automation model, and agent done checklist        |
-| **Worktrees**          | [`docs/agents/worktrees.md`](docs/agents/worktrees.md)                  | Parallel branches, isolated DB/GCS, bootstrap commands        |
-| **Issue tracker**      | Linear + [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) | Projects, issues, dependencies (not duplicated in repo)       |
+## Commands and verification
 
-**Doc hierarchy:** PRD = product behavior · decisions = constraints and rationale · discovery = evidence. If docs disagree, update PRD and decisions together before building.
+Run commands from the repository root. Common commands are `pnpm dev`, `pnpm dev:worker`,
+`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:db`, `pnpm test:behavior`, `pnpm build`,
+and `pnpm format:check`.
 
-## Repository structure
+Use the `ship-with-tests` skill for feature work, production bug fixes, or explicit testing/TDD
+requests. It selects the appropriate test tier; do not copy its tier table into this file. Add the
+required tests, run relevant checks, and report checks left to CI with a reason.
 
-T3 Turbo–style monorepo (pnpm workspaces + Turborepo). The package graph is the target shape from [`TECHNICAL_SPEC.md §2.1`](docs/MVP/TECHNICAL_SPEC.md#21-monorepo-layout); boundaries are enforced, not advisory.
+Before finishing, inspect the diff, run `git diff --check`, and run proportionate validation. Do not
+edit applied migrations, generated files, fixture/test identifiers, or historical identifiers merely
+to tidy documentation.
 
-```text
-apps/
-  web/                 Next.js App Router + tRPC client/server + Better Auth routes (never imports Prisma)
-  worker/              Single Hatchet worker (reports, email, sessions, best-effort Portal); Playwright-capable
-packages/
-  api/                 tRPC routers, procedures, RBAC, service orchestration (the BFF boundary)
-  auth/                Better Auth config, session helpers, role/session typing
-  db/                  Prisma schema, migrations, seeds, raw-SQL constraint migrations, UUIDEntity base
-  domain/              Pure domain calculators and invariants (no Prisma, no I/O)
-  job-contracts/       Hatchet workflow names + payload schemas + enqueue helpers (never imports worker handlers)
-  integrations/        External adapter interfaces + light shared clients
-  worker-handlers/     Worker-only handlers: Portal/Playwright, PDFs, GCS, Resend (never imported by web/api)
-  ui/                  Shared UI components; Portuguese-BR labels live near UI
-  validators/          Zod schemas shared by api, workers, scripts
-tooling/
-  eslint/  prettier/  tsconfig/   Shared config packages (@lazuli/eslint-config, @lazuli/prettier-config, @lazuli/tsconfig)
-infra/
-  pulumi/              Pulumi (TypeScript) GCP stacks (placeholder until host/Cloud SQL decision closes)
-```
+## Hard boundaries
 
-- Internal packages are published as TypeScript source ("just-in-time" packages); Next transpiles them via `transpilePackages`.
-- Shared dep versions live in the pnpm **catalog** (`pnpm-workspace.yaml`); reference them with `catalog:`.
-- Key boundaries: `apps/web` must not import Prisma or `worker-handlers`; `job-contracts` must not import `worker-handlers`; `domain` imports no `ui`/`api`/`db`. Full guardrails (§3.4) are wired in issue P00-04.
-- Root scripts (run from repo root): `pnpm dev` (web), `pnpm dev:worker`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:db`, `pnpm test:behavior`, `pnpm test:all`, `pnpm test:e2e`, `pnpm build`, `pnpm format:check`.
+- `apps/web` does not import Prisma or `worker-handlers`.
+- `job-contracts` does not import `worker-handlers`.
+- `domain` imports no `ui`, `api`, or `db` package.
+- Heavy or scheduled work belongs behind the worker boundary, not an inline request.
+- Student PII stays in Cloud SQL. Hatchet payloads carry minimal identifiers/status data, and worker
+  logs must not contain student PII.
+- UI labels are Portuguese-BR; business time is `America/Sao_Paulo`.
 
-> **Scaffold status:** Sprint-0 foundation (P00-01) lays down the package graph and bootable web/worker. Docker Compose, Prisma wiring, full ESLint guardrails, quality-gate scripts, CI, and the seed all arrive in the remaining `00-foundation-derisk` issues.
+## Local workspace safety
 
-## Working guidelines
+The local development model uses Docker Compose and seeded fixtures. Linked worktrees receive an
+isolated Postgres database and fake-GCS bucket through the post-checkout bootstrap; Mailpit and
+Hatchet are shared per machine. Use `LAZULI_BOOTSTRAP_NO_FIXTURES=1` with `git worktree add` only
+when the task does not need DB, email, or Hatchet fixtures. Treat `docker compose down -v` as
+destructive local-data deletion.
 
-- **Stack is documented** — do not assume or introduce technologies that conflict with `docs/MVP/decisions.md` (e.g. NextAuth, Supabase, Cloud Scheduler, SendGrid).
-- **Monolith + BFF** — business logic lives in tRPC procedures and shared packages; heavy work (Playwright, PDFs, reports, invoices) goes through Hatchet workers, not inline requests.
-- **Single school** — not multi-tenant in MVP. Legacy runs in parallel during the pilot.
-- **Portuguese-BR UI**, timezone `America/Sao_Paulo`, mobile-friendly attendance for teachers.
-- **Local dev is first-class** — Docker Compose (Postgres, Mailpit, Hatchet Lite, fake-gcs-server) + seed data; see `docs/MVP/decisions.md`.
-- **Git worktrees** — see [`docs/agents/worktrees.md`](docs/agents/worktrees.md) (`git worktree add` auto-bootstraps; opt out with `LAZULI_BOOTSTRAP_NO_FIXTURES=1`).
-- **Testing** — add the right tier(s) from `docs/agents/testing.md`; pre-commit and CI run the suite — agents focus on writing tests, not manual full-suite runs.
-- **LGPD awareness** — student PII stays in Cloud SQL; minimal data in Hatchet payloads; no PII in worker logs.
-- **Scope discipline** — week-1 MVP is ruthless; see `docs/MVP/PRD.md` and `docs/MVP/decisions.md` for current deferred items.
-- **Backend-first execution** — backend/UI split per domain project; UI GREs are post-phase until GRE-57 (P00). See [D-0036](docs/MVP/decisions.md#d-0036-frontend-surfaces-deferred-design-system-gate).
-- **Open items** — web host (Railway leading, not locked), Cloud SQL connectivity, CI/CD — see `docs/README.md` and `docs/MVP/decisions.md`.
+## Authority and routing
 
-## Quick stack reference
+A work item owns the scope, completion checks, dependencies, and tests for that piece of work.
+Accepted [decision records](docs/decisions/README.md) own durable engineering constraints. Code,
+configuration, and tests show what is implemented and enforced; they do not silently replace either
+source. If these sources conflict, or a work item lacks behavior needed to proceed, stop and ask the
+owner. Historical material may locate provenance but cannot become current instruction without owner
+confirmation.
 
-| Layer          | Choice                                        |
-| -------------- | --------------------------------------------- |
-| Monorepo       | T3 Turbo                                      |
-| Frontend / API | Next.js App Router + tRPC BFF                 |
-| Auth           | Better Auth (Google + magic link)             |
-| Database       | Cloud SQL Postgres 16 (local: Docker Compose) |
-| Workflows      | Hatchet Cloud                                 |
-| Workers        | GCP Cloud Run                                 |
-| Artifacts      | GCS                                           |
-| IaC            | Pulumi (TypeScript), state in GCS bucket      |
-| Email          | Resend (prod) / Mailpit (local)               |
-| Observability  | Sentry                                        |
-| Web hosting    | Railway (leading candidate)                   |
+Until Linear is reorganized, execute only self-contained work items that do not conflict with
+accepted decisions or current implementation. Existing work items are not presumed correct because
+the old PRD was archived.
 
-## Agent skills
-
-### Issue tracker
-
-Work is tracked in **Linear**. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Canonical defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), applied as labels in Linear. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context. No `CONTEXT.md`/`docs/adr/` — domain sources are `docs/MVP/PRD.md`, `docs/MVP/decisions.md`, and `docs/discovery/`. See `docs/agents/domain.md`.
-
-### Ship with tests
-
-Use the ship-with-tests skill for feature work, production bug fixes, or explicit testing/TDD requests. Canonical copies (kept in sync): `.cursor/skills/ship-with-tests/SKILL.md`, `.codex/skills/ship-with-tests/SKILL.md`, `.claude/skills/ship-with-tests/SKILL.md`. The skill emphasizes test creation over manual suite runs; see `docs/agents/testing.md`. Optional global copies: `~/.codex/skills/ship-with-tests`, `~/.claude/skills/ship-with-tests`.
+Use a work item for changing requirements; a decision record for a lasting engineering choice; a
+local README only for folder-local operation; and [`docs/legacy/`](docs/legacy/README.md) only for
+historical investigation. The root [README](README.md) is the human setup entry point. Do not add a
+nested `AGENTS.md` without a demonstrated local rule that cannot be expressed here or enforced in
+code/configuration.

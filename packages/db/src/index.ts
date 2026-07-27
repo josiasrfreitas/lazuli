@@ -34,7 +34,7 @@ export {
 } from "./generated/prisma/enums.js";
 export { getDatabaseUrl } from "./config.js";
 
-/** Shared shape for all domain entities (TECHNICAL_SPEC §4.0). */
+/** Shared shape for domain entities under decision 0011. */
 export type UUIDEntity = {
   id: string;
   createdAt: Date;

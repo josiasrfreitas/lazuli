@@ -1,11 +1,14 @@
 ## Tests
 
-- [ ] Unit (`pnpm test`): <!-- paths or N/A -->
-- [ ] Integration (`pnpm test:db`): <!-- paths or N/A -->
-- [ ] Behavior (`pnpm test:behavior`): <!-- paths or N/A -->
+- Tests added or changed: <!-- paths, or N/A with reason -->
+- Relevant test tiers: <!-- unit, integration, behavior, E2E, or N/A with reason -->
 
-## Commands run locally
+## Validation
 
-- [ ] `pnpm test`
-- [ ] `pnpm test:db`
-- [ ] `pnpm test:behavior`
+- Commands run locally: <!-- commands and results -->
+- Checks intentionally left to CI: <!-- checks and reason -->
+
+## Documentation
+
+- [ ] No documentation or decision change was needed.
+- [ ] Documentation or decision records were updated: <!-- paths -->

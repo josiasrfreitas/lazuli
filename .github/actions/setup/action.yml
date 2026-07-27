@@ -1,5 +1,5 @@
 # Shared setup for every CI job: pnpm + Node + a frozen install + Turbo cache.
-# Keeps the workflow jobs DRY (TECHNICAL_SPEC §10.2).
+# Keeps the workflow jobs DRY.
 name: Setup workspace
 description: Install pnpm, Node, project dependencies, and restore the Turborepo cache.
 
@@ -16,7 +16,7 @@ runs:
         node-version-file: .nvmrc
         cache: pnpm
 
-    # Restores Turborepo's local cache so unchanged packages skip rework (TECHNICAL_SPEC §10.2).
+    # Restores Turborepo's local cache so unchanged packages skip rework.
     - name: Restore Turbo cache
       uses: actions/cache@v4
       with:

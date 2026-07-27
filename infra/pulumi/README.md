@@ -1,12 +1,8 @@
 # infra/pulumi
 
-Pulumi (TypeScript) stacks for GCP resources, with state in a GCS bucket
-(TECHNICAL_SPEC §2.1, §11).
+**Status:** placeholder. No deployable Pulumi stack exists in this directory.
 
-**Status:** placeholder. Not part of the Sprint-0 foundation scaffold (P00-01).
-
-Planned stack (§11) creates: GCS buckets (artifacts + Pulumi state), least-privilege
-service accounts for web/worker, secret references (DB, Better Auth, Google OAuth,
-Resend, SGF), one Cloud Run service for the single `worker`, and an Artifact Registry
-repository. Deployment remains blocked on the open web-host / Cloud SQL connectivity
-decision (§11).
+GCP is the accepted managed-resource platform and Pulumi is the accepted infrastructure-as-code tool;
+see [decision 0013](../../docs/decisions/0013-use-gcp-and-pulumi-for-managed-infrastructure.md).
+Production hosting, Cloud SQL connectivity, worker deployment, and CI/CD remain unresolved and
+belong to later work items or accepted decisions.
