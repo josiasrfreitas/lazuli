@@ -34,6 +34,17 @@ pnpm-debug.log*
 !.codex/skills/
 !.codex/skills/ship-with-tests
 
+# Locally-installed third-party skills (per-machine, managed by skills-lock.json)
+.agents/
+.cursor/rules/
+skills-lock.json
+.claude/skills/brandkit
+.claude/skills/design-taste-frontend
+.claude/skills/high-end-visual-design
+.claude/skills/imagegen-frontend-mobile
+.claude/skills/imagegen-frontend-web
+.claude/skills/industrial-brutalist-ui
+
 # Test / coverage
 coverage/
 playwright-report/
