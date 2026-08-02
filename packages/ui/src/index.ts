@@ -4,3 +4,9 @@
  */
 
 export const UI_PACKAGE = "@lazuli/ui" as const;
+
+export { Button } from "./components/button";
+export type { ButtonProps } from "./components/button";
+export { HelloWorld } from "./components/hello-world";
+export type { HelloWorldProps } from "./components/hello-world";
+export { cn } from "./lib/utils";

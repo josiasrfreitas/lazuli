@@ -20,6 +20,7 @@ const ignoreConfig = {
     "**/dist/**",
     "**/.next/**",
     "**/.turbo/**",
+    "**/storybook-static/**",
     "**/node_modules/**",
     "**/next-env.d.ts",
     "**/src/generated/**",

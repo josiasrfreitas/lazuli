@@ -10,6 +10,8 @@
     "build": "turbo run build",
     "dev": "pnpm runtime:check && dotenv -e .env -- turbo run dev --filter=@lazuli/web",
     "dev:worker": "pnpm runtime:check && dotenv -e .env -- turbo run dev --filter=@lazuli/worker",
+    "storybook": "pnpm -F @lazuli/storybook storybook",
+    "storybook:build": "pnpm -F @lazuli/storybook build",
     "start": "pnpm runtime:check && dotenv -e .env -- pnpm -F @lazuli/web start",
     "lint": "eslint eslint.config.js scripts && turbo run lint && pnpm duplication:check",
     "duplication:check": "jscpd apps packages scripts tooling --config jscpd.json",

@@ -3,6 +3,7 @@
   "display": "Lazuli internal package",
   "extends": "./base.json",
   "compilerOptions": {
-    "lib": ["ES2022"]
+    "lib": ["ES2022"],
+    "types": ["node"]
   }
 }
