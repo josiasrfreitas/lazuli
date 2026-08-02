@@ -1,9 +1,4 @@
-@import "tailwindcss";
 @import "tw-animate-css";
-
-@source "../";
-@source "../../../apps/web/src";
-@source "../../../apps/storybook/src";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -73,7 +68,7 @@
   --accent: oklch(0.341 0.07 183.9);
   --accent-foreground: oklch(0.985 0.004 96.8);
   --destructive: oklch(0.704 0.191 22.2);
-  --destructive-foreground: oklch(0.985 0.004 96.8);
+  --destructive-foreground: oklch(0.18 0.028 263.7);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.702 0.135 231.2);

@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "storybook": "storybook dev --port 6006",
-    "dev": "storybook dev --port 6006",
+    "dev": "storybook dev --port $(( ${CONDUCTOR_PORT:-6005} + 1 ))",
     "build": "storybook build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

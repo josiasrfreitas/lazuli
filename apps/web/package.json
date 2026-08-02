@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --webpack --port 3000",
+    "dev": "next dev --webpack --port ${CONDUCTOR_PORT:-3000}",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
