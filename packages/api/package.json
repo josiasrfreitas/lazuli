@@ -26,6 +26,7 @@
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
     "dotenv": "catalog:",
     "eslint": "catalog:",
     "tsx": "catalog:",

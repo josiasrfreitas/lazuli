@@ -3,8 +3,24 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./components/*": "./src/components/*.tsx",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./lib/*": "./src/lib/*.ts",
+    "./styles.css": {
+      "types": "./src/styles/globals.css.d.ts",
+      "default": "./src/styles/globals.css"
+    }
+  },
+  "imports": {
+    "#components/*": "./src/components/*.tsx",
+    "#hooks/*": "./src/hooks/*.ts",
+    "#lib/*": "./src/lib/*.ts",
+    "#ui/*": "./src/components/*.tsx"
   },
   "scripts": {
     "lint": "eslint .",
@@ -15,6 +31,14 @@
     "react": "catalog:",
     "react-dom": "catalog:"
   },
+  "dependencies": {
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "lucide-react": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:"
+  },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
@@ -23,6 +47,7 @@
     "eslint": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "shadcn": "catalog:",
     "typescript": "catalog:"
   }
 }

@@ -17,4 +17,12 @@ export default [
       "no-restricted-syntax": "off",
     },
   },
+  {
+    files: ["scripts/test-styles.mjs"],
+    // Test inputs are fixed host entrypoints and class names, never user input.
+    rules: {
+      "security/detect-non-literal-fs-filename": "off",
+      "security/detect-non-literal-regexp": "off",
+    },
+  },
 ];

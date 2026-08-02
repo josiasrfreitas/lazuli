@@ -1,0 +1,5 @@
+@import "tailwindcss" source(none);
+@import "@lazuli/ui/styles.css";
+
+@source "../";
+@source "../../../../packages/ui/src";

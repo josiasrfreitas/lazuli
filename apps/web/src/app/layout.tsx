@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import "./globals.css";
+
 export const metadata: Metadata = {
   title: "Lazuli — Gestão Escolar",
   description: "Sistema de gestão de alunos, frequência e financeiro.",

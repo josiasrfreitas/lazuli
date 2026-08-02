@@ -4,6 +4,6 @@
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "jsx": "react-jsx"
   },
-  "include": ["src", "test", "eslint.config.js"],
-  "exclude": ["node_modules", "dist"]
+  "include": [".storybook/**/*.ts", ".storybook/**/*.tsx", "src", "eslint.config.js"],
+  "exclude": ["node_modules", "storybook-static"]
 }

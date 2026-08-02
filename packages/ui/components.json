@@ -1,0 +1,20 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-nova",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@lazuli/ui/components",
+    "hooks": "@lazuli/ui/hooks",
+    "lib": "@lazuli/ui/lib",
+    "utils": "@lazuli/ui/lib/utils",
+    "ui": "@lazuli/ui/components"
+  }
+}
