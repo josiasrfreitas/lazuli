@@ -19,6 +19,7 @@
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
+    "@storybook/addon-a11y": "catalog:",
     "@storybook/addon-docs": "catalog:",
     "@storybook/nextjs": "catalog:",
     "@tailwindcss/postcss": "catalog:",
