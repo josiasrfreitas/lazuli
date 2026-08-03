@@ -1,0 +1,11 @@
+:root {
+  --lz-space-unit: 0.25rem;
+  --lz-control-sm: 2rem;
+  --lz-control-md: 2.5rem;
+  --lz-control-lg: 3rem;
+  --lz-radius-sm: 0.375rem;
+  --lz-radius-md: 0.625rem;
+  --lz-radius-lg: 0.875rem;
+  --lz-radius-xl: 1.25rem;
+  --lz-radius-full: 9999px;
+}
