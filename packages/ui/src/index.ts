@@ -5,6 +5,8 @@
 
 export const UI_PACKAGE = "@lazuli/ui" as const;
 
+export { Badge, badgeVariants } from "./components/badge";
+export type { BadgeProps, BadgeVariant } from "./components/badge";
 export { Button } from "./components/button";
 export type { ButtonProps } from "./components/button";
 export { HelloWorld } from "./components/hello-world";
