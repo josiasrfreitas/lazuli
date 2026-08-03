@@ -2,19 +2,19 @@ import type { Meta, StoryObj } from "@storybook/nextjs";
 import type { ReactElement } from "react";
 
 const semanticPairs = [
-  ["Página", "bg-background text-foreground"],
-  ["Cartão", "bg-card text-card-foreground"],
+  ["Page", "bg-background text-foreground"],
+  ["Card", "bg-card text-card-foreground"],
   ["Popover", "bg-popover text-popover-foreground"],
-  ["Primária", "bg-primary text-primary-foreground"],
-  ["Secundária", "bg-secondary text-secondary-foreground"],
-  ["Suave", "bg-muted text-muted-foreground"],
-  ["Destaque", "bg-accent text-accent-foreground"],
-  ["Destrutiva", "bg-destructive text-destructive-foreground"],
-  ["Marca", "bg-brand text-brand-foreground"],
-  ["Sucesso", "bg-success-muted text-success"],
-  ["Atenção", "bg-warning-muted text-warning"],
-  ["Informação", "bg-info-muted text-info"],
-  ["Erro", "bg-destructive-muted text-destructive"],
+  ["Primary", "bg-primary text-primary-foreground"],
+  ["Secondary", "bg-secondary text-secondary-foreground"],
+  ["Muted", "bg-muted text-muted-foreground"],
+  ["Accent", "bg-accent text-accent-foreground"],
+  ["Destructive", "bg-destructive text-destructive-foreground"],
+  ["Brand", "bg-brand text-brand-foreground"],
+  ["Success", "bg-success-muted text-success"],
+  ["Warning", "bg-warning-muted text-warning"],
+  ["Info", "bg-info-muted text-info"],
+  ["Error", "bg-destructive-muted text-destructive"],
 ] as const;
 
 const meta = {
@@ -44,9 +44,9 @@ function ColorMatrix({ theme, title }: { theme: "light" | "dark"; title: string 
       </div>
       <div className="mt-4 flex items-center gap-3 text-control">
         <a className="text-interactive underline underline-offset-4" href="https://lazuli.example">
-          Ação interativa
+          Interactive action
         </a>
-        <span className="rounded-full border-2 border-border-strong px-3 py-1">Borda forte</span>
+        <span className="rounded-full border-2 border-border-strong px-3 py-1">Strong border</span>
       </div>
     </section>
   );
@@ -55,8 +55,8 @@ function ColorMatrix({ theme, title }: { theme: "light" | "dark"; title: string 
 export const Colors: Story = {
   render: () => (
     <main className="mx-auto grid w-full max-w-6xl gap-6">
-      <ColorMatrix theme="light" title="Claro" />
-      <ColorMatrix theme="dark" title="Escuro" />
+      <ColorMatrix theme="light" title="Light" />
+      <ColorMatrix theme="dark" title="Dark" />
     </main>
   ),
 };
@@ -82,7 +82,7 @@ export const ScaleAndEffects: Story = {
   render: () => (
     <main className="mx-auto grid w-full max-w-4xl gap-8 bg-card p-6 text-foreground">
       <section>
-        <h2 className="font-display text-h3 font-semibold">Espaçamento e controles</h2>
+        <h2 className="font-display text-h3 font-semibold">Spacing and controls</h2>
         <div className="mt-4 flex flex-wrap items-end gap-4">
           <div className="h-1 w-1 bg-brand" />
           <div className="h-2 w-2 bg-brand" />
@@ -93,7 +93,7 @@ export const ScaleAndEffects: Story = {
         </div>
       </section>
       <section>
-        <h2 className="font-display text-h3 font-semibold">Raios e sombras</h2>
+        <h2 className="font-display text-h3 font-semibold">Radii and shadows</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-sm border border-border p-4 shadow-sm">6 px</div>
           <div className="rounded-md border border-border p-4 shadow-md">10 px</div>
@@ -102,12 +102,12 @@ export const ScaleAndEffects: Story = {
             className="rounded-xl bg-secondary p-4 text-secondary-foreground shadow-focus"
             type="button"
           >
-            Foco de 3 px
+            3px focus
           </button>
         </div>
       </section>
       <section>
-        <h2 className="font-display text-h3 font-semibold">Movimento</h2>
+        <h2 className="font-display text-h3 font-semibold">Motion</h2>
         <div className="mt-4 flex flex-wrap gap-3 text-control">
           <span className="rounded-sm bg-muted px-3 py-2 duration-fast ease-standard">120 ms</span>
           <span className="rounded-sm bg-muted px-3 py-2 duration-base ease-standard">180 ms</span>

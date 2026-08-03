@@ -6,14 +6,14 @@ const preview: Preview = {
   globalTypes: {
     theme: {
       defaultValue: "light",
-      description: "Tema",
+      description: "Theme",
       toolbar: {
         icon: "mirror",
         items: [
-          { title: "Claro", value: "light" },
-          { title: "Escuro", value: "dark" },
+          { title: "Light", value: "light" },
+          { title: "Dark", value: "dark" },
         ],
-        title: "Tema",
+        title: "Theme",
       },
     },
   },
