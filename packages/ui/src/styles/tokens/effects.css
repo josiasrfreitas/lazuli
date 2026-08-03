@@ -7,6 +7,7 @@
   --lz-duration-fast: 120ms;
   --lz-duration-base: 180ms;
   --lz-duration-slow: 280ms;
+  --lz-opacity-disabled: 0.5;
 }
 
 .dark {

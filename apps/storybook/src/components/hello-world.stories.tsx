@@ -3,10 +3,10 @@ import type { Meta, StoryObj } from "@storybook/nextjs";
 import { HelloWorld } from "@lazuli/ui";
 
 const meta = {
-  title: "Foundation/HelloWorld",
+  title: "Components/HelloWorld",
   component: HelloWorld,
   args: {
-    message: "Olá, Lazuli",
+    message: "Hello, Lazuli",
   },
 } satisfies Meta<typeof HelloWorld>;
 

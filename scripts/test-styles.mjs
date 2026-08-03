@@ -14,10 +14,15 @@ const typographyTokenPath = "packages/ui/src/styles/tokens/typography.css";
 const scaleTokenPath = "packages/ui/src/styles/tokens/scale.css";
 const effectsTokenPath = "packages/ui/src/styles/tokens/effects.css";
 const tailwindBridgePath = "packages/ui/src/styles/tokens/tailwind-bridge.css";
-const tokensStoryPath = "apps/storybook/src/tokens.stories.tsx";
+const tokensStoryPath = "apps/storybook/src/foundations/tokens.stories.tsx";
+const buttonStoryPath = "apps/storybook/src/components/button.stories.tsx";
+const classNameUtilityPath = "packages/ui/src/lib/utils.ts";
 const normalTextContrastMinimum = 4.5;
 const nonTextContrastMinimum = 3;
 const poppinsWeights = ["500", "600", "700"];
+const primaryForegroundRole = "primary-foreground";
+const accentForegroundRole = "accent-foreground";
+const destructiveForegroundRole = "destructive-foreground";
 const semanticColorRoles = [
   "background",
   "foreground",
@@ -26,15 +31,21 @@ const semanticColorRoles = [
   "popover",
   "popover-foreground",
   "primary",
-  "primary-foreground",
+  "primary-hover",
+  "primary-active",
+  primaryForegroundRole,
   "secondary",
   "secondary-foreground",
   "muted",
   "muted-foreground",
   "accent",
-  "accent-foreground",
+  "accent-hover",
+  "accent-active",
+  accentForegroundRole,
   "destructive",
-  "destructive-foreground",
+  "destructive-hover",
+  "destructive-active",
+  destructiveForegroundRole,
   "border",
   "border-strong",
   "input",
@@ -42,6 +53,8 @@ const semanticColorRoles = [
   "brand",
   "brand-foreground",
   "interactive",
+  "interactive-hover",
+  "interactive-active",
   "success",
   "success-muted",
   "warning",
@@ -53,7 +66,15 @@ const semanticColorRoles = [
 ];
 const colorUtilities = [
   "bg-primary",
+  "bg-primary-hover",
+  "bg-primary-active",
   "text-primary-foreground",
+  "bg-accent-hover",
+  "bg-accent-active",
+  "bg-destructive-hover",
+  "bg-destructive-active",
+  "text-interactive-hover",
+  "text-interactive-active",
   "bg-brand",
   "text-brand-foreground",
   "text-interactive",
@@ -91,6 +112,7 @@ const scaleAndEffectsUtilities = [
   "duration-fast",
   "duration-base",
   "duration-slow",
+  "opacity-disabled",
 ];
 const sharedUtilities = [...colorUtilities, ...typographyUtilities, ...scaleAndEffectsUtilities];
 const hostStyles = [
@@ -143,6 +165,9 @@ const [
   storybookMain,
   storybookPreview,
   tokensStory,
+  buttonSource,
+  buttonStory,
+  classNameUtility,
 ] = await Promise.all([
   readFile(path.join(repositoryRoot, colorTokenPath), "utf8"),
   readFile(path.join(repositoryRoot, typographyTokenPath), "utf8"),
@@ -153,6 +178,9 @@ const [
   readFile(path.join(repositoryRoot, "apps/storybook/.storybook/main.ts"), "utf8"),
   readFile(path.join(repositoryRoot, "apps/storybook/.storybook/preview.tsx"), "utf8"),
   readFile(path.join(repositoryRoot, tokensStoryPath), "utf8"),
+  readFile(path.join(repositoryRoot, "packages/ui/src/components/button.tsx"), "utf8"),
+  readFile(path.join(repositoryRoot, buttonStoryPath), "utf8"),
+  readFile(path.join(repositoryRoot, classNameUtilityPath), "utf8"),
 ]);
 const lightTokens = getDeclarations(colorTokens, ":root,\n.light");
 const darkTokens = getDeclarations(colorTokens, ".dark");
@@ -203,13 +231,21 @@ for (const [theme, tokens, expected] of [
     ["foreground", "background"],
     ["card-foreground", "card"],
     ["popover-foreground", "popover"],
-    ["primary-foreground", "primary"],
+    [primaryForegroundRole, "primary"],
+    [primaryForegroundRole, "primary-hover"],
+    [primaryForegroundRole, "primary-active"],
     ["secondary-foreground", "secondary"],
     ["muted-foreground", "muted"],
-    ["accent-foreground", "accent"],
-    ["destructive-foreground", "destructive"],
+    [accentForegroundRole, "accent"],
+    [accentForegroundRole, "accent-hover"],
+    [accentForegroundRole, "accent-active"],
+    [destructiveForegroundRole, "destructive"],
+    [destructiveForegroundRole, "destructive-hover"],
+    [destructiveForegroundRole, "destructive-active"],
     ["brand-foreground", "brand"],
     ["interactive", "background"],
+    ["interactive-hover", "background"],
+    ["interactive-active", "background"],
     ["success", "success-muted"],
     ["warning", "warning-muted"],
     ["info", "info-muted"],
@@ -292,16 +328,38 @@ for (const duration of ["fast", "base", "slow"]) {
     new RegExp(`--duration-${duration}: var\\(--lz-duration-${duration}\\);`, "u"),
   );
 }
+assert.match(effectsTokens, /--lz-opacity-disabled: 0\.5;/u);
+assert.match(tailwindBridge, /--opacity-disabled: var\(--lz-opacity-disabled\);/u);
 
 assert.match(storybookMain, /"@storybook\/addon-a11y"/u);
 assert.match(storybookPreview, /theme:/u);
 assert.match(storybookPreview, /defaultValue: "light"/u);
 assert.match(storybookPreview, /globals\.theme === "dark"/u);
-assert.match(tokensStory, /title: "Foundation\/Tokens"/u);
+assert.match(tokensStory, /title: "Foundations\/Tokens"/u);
 for (const story of ["Colors", "Typography", "ScaleAndEffects"]) {
   assert.match(tokensStory, new RegExp(`export const ${story}:`, "u"));
 }
-assert.match(tokensStory, /Educa[çc][ãa]o/u);
+assert.match(tokensStory, /Education/u);
+
+for (const variant of ["primary", "secondary", "ghost", "destructive", "link"]) {
+  assert.match(buttonSource, new RegExp(`${variant}:`, "u"));
+}
+for (const size of ["sm", "md", "lg", "icon-sm", "icon-md", "icon-lg"]) {
+  assert.match(buttonSource, new RegExp(`(?:"${size}"|${size}):`, "u"));
+}
+assert.match(buttonSource, /aria-busy=\{loading \|\| undefined\}/u);
+assert.match(buttonSource, /disabled=\{disabled \|\| loading\}/u);
+assert.match(buttonSource, /type = "button"/u);
+assert.match(buttonStory, /title: "Components\/Button"/u);
+assert.match(buttonStory, /tags: \["autodocs"\]/u);
+assert.match(buttonStory, /from "storybook\/test"/u);
+for (const story of ["Playground", "Variants", "Sizes", "WithIcons", "IconOnly", "States"]) {
+  assert.match(buttonStory, new RegExp(`export const ${story}:`, "u"));
+}
+assert.match(classNameUtility, /extendTailwindMerge/u);
+for (const token of ["display", "h1", "h2", "h3", "body", "control", "caption", "micro"]) {
+  assert.match(classNameUtility, new RegExp(`"${token}"`, "u"));
+}
 
 for (const hostStyle of hostStyles) {
   await assertHostStyles(hostStyle);

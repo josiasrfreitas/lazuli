@@ -1,39 +1,86 @@
 import type { ComponentProps, ReactElement } from "react";
 
 import { cva, type VariantProps } from "class-variance-authority";
+import { LoaderCircle } from "lucide-react";
 
 import { cn } from "../lib/utils";
 
-const buttonVariants = cva(
+export const buttonVariants = cva(
   [
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium",
-    "transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
-    "disabled:pointer-events-none disabled:opacity-50",
+    "relative inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap",
+    "text-control font-semibold transition-colors duration-fast ease-standard",
+    "focus-visible:outline-none focus-visible:shadow-focus",
+    "disabled:pointer-events-none disabled:opacity-disabled",
+    "[&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   ],
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        outline:
-          "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        primary:
+          "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active",
+        secondary:
+          "border border-border-strong bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent-active",
+        ghost:
+          "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent-active",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive-hover active:bg-destructive-active",
+        link: "bg-transparent text-interactive underline-offset-4 hover:text-interactive-hover hover:underline active:text-interactive-active",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 px-3",
-        lg: "h-10 px-6",
+        sm: "h-control-sm gap-1.5 rounded-sm px-3",
+        md: "h-control-md gap-2 rounded-md px-4",
+        lg: "h-control-lg gap-2 rounded-lg px-5",
+        "icon-sm": "size-control-sm rounded-sm",
+        "icon-md": "size-control-md rounded-md",
+        "icon-lg": "size-control-lg rounded-lg",
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: "primary",
+      size: "md",
     },
   },
 );
 
-export type ButtonProps = ComponentProps<"button"> & VariantProps<typeof buttonVariants>;
+export type ButtonVariant = NonNullable<VariantProps<typeof buttonVariants>["variant"]>;
+export type ButtonSize = NonNullable<VariantProps<typeof buttonVariants>["size"]>;
 
-export function Button({ className, size, variant, ...props }: ButtonProps): ReactElement {
-  return <button className={cn(buttonVariants({ size, variant }), className)} {...props} />;
+export type ButtonProps = ComponentProps<"button"> &
+  VariantProps<typeof buttonVariants> & {
+    /** Prevents duplicate actions while preserving the button's dimensions and accessible name. */
+    loading?: boolean;
+  };
+
+export function Button({
+  children,
+  className,
+  disabled,
+  loading = false,
+  size,
+  type = "button",
+  variant,
+  ...props
+}: ButtonProps): ReactElement {
+  return (
+    <button
+      aria-busy={loading || undefined}
+      className={cn(buttonVariants({ size, variant }), className)}
+      data-loading={loading || undefined}
+      disabled={disabled || loading}
+      type={type}
+      {...props}
+    >
+      {loading ? (
+        <LoaderCircle aria-hidden="true" className="absolute size-4 animate-spin" />
+      ) : null}
+      <span
+        className={cn(
+          "inline-flex items-center justify-center gap-[inherit]",
+          loading && "opacity-0",
+        )}
+      >
+        {children}
+      </span>
+    </button>
+  );
 }
