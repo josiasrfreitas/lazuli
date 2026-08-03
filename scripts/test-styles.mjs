@@ -226,7 +226,7 @@ for (const [theme, tokens, expected] of [
 
 assert.match(
   typographyTokens,
-  /url\("@fontsource-variable\/inter\/files\/inter-latin-wght-normal\.woff2"\)/u,
+  /url\("~@fontsource-variable\/inter\/files\/inter-latin-wght-normal\.woff2"\)/u,
 );
 for (const weight of poppinsWeights) {
   assert.match(
