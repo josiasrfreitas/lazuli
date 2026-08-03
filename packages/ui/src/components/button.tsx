@@ -1,5 +1,6 @@
-import type { ComponentProps, ReactElement } from "react";
+import type { ReactElement } from "react";
 
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 import { LoaderCircle } from "lucide-react";
 
@@ -19,7 +20,7 @@ export const buttonVariants = cva(
         primary:
           "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active",
         secondary:
-          "border border-border-strong bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent-active",
+          "border border-border-strong bg-transparent text-foreground hover:bg-accent-hover hover:text-accent-foreground active:bg-accent-active",
         ghost:
           "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent-active",
         destructive:
@@ -45,7 +46,7 @@ export const buttonVariants = cva(
 export type ButtonVariant = NonNullable<VariantProps<typeof buttonVariants>["variant"]>;
 export type ButtonSize = NonNullable<VariantProps<typeof buttonVariants>["size"]>;
 
-export type ButtonProps = ComponentProps<"button"> &
+export type ButtonProps = ButtonPrimitive.Props &
   VariantProps<typeof buttonVariants> & {
     /** Prevents duplicate actions while preserving the button's dimensions and accessible name. */
     loading?: boolean;
@@ -62,10 +63,11 @@ export function Button({
   ...props
 }: ButtonProps): ReactElement {
   return (
-    <button
+    <ButtonPrimitive
       aria-busy={loading || undefined}
       className={cn(buttonVariants({ size, variant }), className)}
       data-loading={loading || undefined}
+      data-slot="button"
       disabled={disabled || loading}
       type={type}
       {...props}
@@ -81,6 +83,6 @@ export function Button({
       >
         {children}
       </span>
-    </button>
+    </ButtonPrimitive>
   );
 }

@@ -7,6 +7,7 @@ import tailwindcss from "@tailwindcss/postcss";
 import postcss from "postcss";
 
 import { assertContrast, getBlock, getDeclarations, resolveColor } from "./style-test-utils.mjs";
+import { assertComponentContracts } from "./test-component-contracts.mjs";
 
 const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const colorTokenPath = "packages/ui/src/styles/tokens/color.css";
@@ -15,7 +16,6 @@ const scaleTokenPath = "packages/ui/src/styles/tokens/scale.css";
 const effectsTokenPath = "packages/ui/src/styles/tokens/effects.css";
 const tailwindBridgePath = "packages/ui/src/styles/tokens/tailwind-bridge.css";
 const tokensStoryPath = "apps/storybook/src/foundations/tokens.stories.tsx";
-const buttonStoryPath = "apps/storybook/src/components/button.stories.tsx";
 const classNameUtilityPath = "packages/ui/src/lib/utils.ts";
 const normalTextContrastMinimum = 4.5;
 const nonTextContrastMinimum = 3;
@@ -165,8 +165,6 @@ const [
   storybookMain,
   storybookPreview,
   tokensStory,
-  buttonSource,
-  buttonStory,
   classNameUtility,
 ] = await Promise.all([
   readFile(path.join(repositoryRoot, colorTokenPath), "utf8"),
@@ -178,8 +176,6 @@ const [
   readFile(path.join(repositoryRoot, "apps/storybook/.storybook/main.ts"), "utf8"),
   readFile(path.join(repositoryRoot, "apps/storybook/.storybook/preview.tsx"), "utf8"),
   readFile(path.join(repositoryRoot, tokensStoryPath), "utf8"),
-  readFile(path.join(repositoryRoot, "packages/ui/src/components/button.tsx"), "utf8"),
-  readFile(path.join(repositoryRoot, buttonStoryPath), "utf8"),
   readFile(path.join(repositoryRoot, classNameUtilityPath), "utf8"),
 ]);
 const lightTokens = getDeclarations(colorTokens, ":root,\n.light");
@@ -341,21 +337,7 @@ for (const story of ["Colors", "Typography", "ScaleAndEffects"]) {
 }
 assert.match(tokensStory, /Education/u);
 
-for (const variant of ["primary", "secondary", "ghost", "destructive", "link"]) {
-  assert.match(buttonSource, new RegExp(`${variant}:`, "u"));
-}
-for (const size of ["sm", "md", "lg", "icon-sm", "icon-md", "icon-lg"]) {
-  assert.match(buttonSource, new RegExp(`(?:"${size}"|${size}):`, "u"));
-}
-assert.match(buttonSource, /aria-busy=\{loading \|\| undefined\}/u);
-assert.match(buttonSource, /disabled=\{disabled \|\| loading\}/u);
-assert.match(buttonSource, /type = "button"/u);
-assert.match(buttonStory, /title: "Components\/Button"/u);
-assert.match(buttonStory, /tags: \["autodocs"\]/u);
-assert.match(buttonStory, /from "storybook\/test"/u);
-for (const story of ["Playground", "Variants", "Sizes", "WithIcons", "IconOnly", "States"]) {
-  assert.match(buttonStory, new RegExp(`export const ${story}:`, "u"));
-}
+await assertComponentContracts(repositoryRoot);
 assert.match(classNameUtility, /extendTailwindMerge/u);
 for (const token of ["display", "h1", "h2", "h3", "body", "control", "caption", "micro"]) {
   assert.match(classNameUtility, new RegExp(`"${token}"`, "u"));

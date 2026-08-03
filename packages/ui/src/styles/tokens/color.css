@@ -21,6 +21,7 @@
   --lz-ref-red-700: #b3283f;
   --lz-ref-red-800: #982138;
   --lz-ref-red-900: #7c1b2e;
+  --lz-ref-red-950: #641324;
   --lz-ref-red-50: #f9e6ea;
   --lz-ref-green-700: #2e6e4a;
   --lz-ref-green-50: #e2f2e8;
@@ -35,7 +36,7 @@
   --popover: var(--lz-ref-paper);
   --popover-foreground: var(--lz-ref-navy-950);
   --primary: var(--lz-ref-navy-800);
-  --primary-hover: var(--lz-ref-blue-700);
+  --primary-hover: var(--lz-ref-blue-600);
   --primary-active: var(--lz-ref-blue-800);
   --primary-foreground: var(--lz-ref-paper);
   --secondary: var(--lz-ref-slate-100);
@@ -47,8 +48,8 @@
   --accent-active: var(--lz-ref-blue-200);
   --accent-foreground: var(--lz-ref-blue-700);
   --destructive: var(--lz-ref-red-700);
-  --destructive-hover: var(--lz-ref-red-800);
-  --destructive-active: var(--lz-ref-red-900);
+  --destructive-hover: var(--lz-ref-red-900);
+  --destructive-active: var(--lz-ref-red-950);
   --destructive-foreground: var(--lz-ref-paper);
   --border: var(--lz-ref-slate-200);
   --border-strong: var(--lz-ref-slate-300);
@@ -79,8 +80,8 @@
   --popover: #12151d;
   --popover-foreground: #e9edf6;
   --primary: #e9edf6;
-  --primary-hover: #d8dfec;
-  --primary-active: #bac5d9;
+  --primary-hover: #bacbff;
+  --primary-active: #9bb2ff;
   --primary-foreground: #0a0c12;
   --secondary: #1a1f2a;
   --secondary-foreground: #e9edf6;
@@ -91,8 +92,8 @@
   --accent-active: #304b91;
   --accent-foreground: #dce6ff;
   --destructive: #e0637a;
-  --destructive-hover: #e9788c;
-  --destructive-active: #ef91a1;
+  --destructive-hover: #ef91a1;
+  --destructive-active: #f4a9b5;
   --destructive-foreground: #0a0c12;
   --border: #2c3444;
   --border-strong: #46526b;

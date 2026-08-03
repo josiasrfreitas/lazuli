@@ -32,6 +32,7 @@
     "react-dom": "catalog:"
   },
   "dependencies": {
+    "@base-ui/react": "catalog:",
     "@fontsource-variable/inter": "catalog:",
     "@fontsource/poppins": "catalog:",
     "class-variance-authority": "catalog:",

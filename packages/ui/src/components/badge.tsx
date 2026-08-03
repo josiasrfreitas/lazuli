@@ -1,5 +1,7 @@
-import type { ComponentProps, ReactElement } from "react";
+import type { ReactElement } from "react";
 
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "../lib/utils";
@@ -27,10 +29,18 @@ export const badgeVariants = cva(
 
 export type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
 
-export type BadgeProps = ComponentProps<"span"> & VariantProps<typeof badgeVariants>;
+export type BadgeProps = useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>;
 
-export function Badge({ className, variant, ...props }: BadgeProps): ReactElement {
-  return (
-    <span data-slot="badge" className={cn(badgeVariants({ variant }), className)} {...props} />
-  );
+export function Badge({ className, render, variant, ...props }: BadgeProps): ReactElement {
+  return useRender({
+    defaultTagName: "span",
+    props: mergeProps<"span">(
+      {
+        className: cn(badgeVariants({ variant }), className),
+      },
+      props,
+    ),
+    render,
+    state: { slot: "badge", variant },
+  });
 }
