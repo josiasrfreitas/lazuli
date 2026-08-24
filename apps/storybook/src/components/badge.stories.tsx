@@ -66,29 +66,6 @@ export const Variants: Story = {
   },
 };
 
-export const Themes: Story = {
-  parameters: { backgrounds: { disable: true } },
-  render: () => (
-    <div className="grid overflow-hidden rounded-lg border md:grid-cols-2">
-      {[
-        { label: "Tema claro", theme: "light" },
-        { label: "Tema escuro", theme: "dark" },
-      ].map(({ label, theme }) => (
-        <section className={`${theme} bg-background p-5 text-foreground`} key={theme}>
-          <h2 className="mb-4 font-display text-caption font-semibold">{label}</h2>
-          <div className="flex max-w-64 flex-wrap gap-2">
-            {statuses.map((status) => (
-              <Badge key={status.variant} variant={status.variant}>
-                {status.label}
-              </Badge>
-            ))}
-          </div>
-        </section>
-      ))}
-    </div>
-  ),
-};
-
 export const PaymentStatuses: Story = {
   render: () => (
     <div className="w-96 overflow-hidden rounded-lg border bg-card text-card-foreground">

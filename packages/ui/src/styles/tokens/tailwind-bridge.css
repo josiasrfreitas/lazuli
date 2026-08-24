@@ -1,6 +1,7 @@
 @theme inline {
-  --font-sans: var(--lz-font-sans);
+  --font-body: var(--lz-font-body);
   --font-display: var(--lz-font-display);
+  --font-numeric: var(--lz-font-numeric);
   --text-display: var(--lz-text-display);
   --text-display--line-height: var(--lz-leading-display);
   --text-h1: var(--lz-text-h1);
@@ -32,9 +33,6 @@
   --shadow-lg: var(--lz-shadow-lg);
   --shadow-focus: var(--lz-shadow-focus);
   --ease-standard: var(--lz-ease-standard);
-  --duration-fast: var(--lz-duration-fast);
-  --duration-base: var(--lz-duration-base);
-  --duration-slow: var(--lz-duration-slow);
   --opacity-disabled: var(--lz-opacity-disabled);
 
   --color-background: var(--background);
@@ -78,6 +76,11 @@
   --color-overlay: var(--overlay);
 }
 
+/*
+ * Custom utilities ("shadow API"). Only add a utility here when it
+ * (a) consumes a design token AND (b) is used by 2+ components —
+ * otherwise keep the classes inline in the single consumer.
+ */
 @utility duration-fast {
   transition-duration: var(--lz-duration-fast);
 }
@@ -88,4 +91,30 @@
 
 @utility duration-slow {
   transition-duration: var(--lz-duration-slow);
+}
+
+/*
+ * The standard properties and the ::-webkit-scrollbar rules are NOT
+ * redundant: in Chrome, setting `scrollbar-width`/`scrollbar-color`
+ * makes the ::-webkit-scrollbar-* rules be ignored, and vice-versa
+ * removing the standard pair re-activates them. Removing either side
+ * "for redundancy" changes the rendered scrollbar.
+ */
+@utility scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: var(--lz-radius-full);
+    background-color: var(--border-strong);
+  }
 }

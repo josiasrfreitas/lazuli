@@ -12,12 +12,6 @@ catalogs:
     '@eslint/js':
       specifier: ^9.18.0
       version: 9.39.4
-    '@fontsource-variable/inter':
-      specifier: ^5.3.0
-      version: 5.3.0
-    '@fontsource/poppins':
-      specifier: ^5.3.0
-      version: 5.3.0
     '@prisma/adapter-pg':
       specifier: ^7.8.0
       version: 7.8.0
@@ -568,12 +562,6 @@ importers:
       '@base-ui/react':
         specifier: 'catalog:'
         version: 1.6.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@fontsource-variable/inter':
-        specifier: 'catalog:'
-        version: 5.3.0
-      '@fontsource/poppins':
-        specifier: 'catalog:'
-        version: 5.3.0
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -1680,12 +1668,6 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
-
-  '@fontsource-variable/inter@5.3.0':
-    resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
-
-  '@fontsource/poppins@5.3.0':
-    resolution: {integrity: sha512-cms1nM7U6SN8epIV1WMVOV8VsA645aSm3wHfzIQnkk188U341ThbJGSl2Sv54V29gnDbT2arMPfLzvVIIVCceQ==}
 
   '@hono/node-server@1.19.11':
     resolution: {integrity: sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g==}
@@ -4261,6 +4243,7 @@ packages:
   eslint@9.39.4:
     resolution: {integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -8007,10 +7990,6 @@ snapshots:
       react-dom: 19.2.8(react@19.2.8)
 
   '@floating-ui/utils@0.2.12': {}
-
-  '@fontsource-variable/inter@5.3.0': {}
-
-  '@fontsource/poppins@5.3.0': {}
 
   '@hono/node-server@1.19.11(hono@4.12.26)':
     dependencies:

@@ -19,7 +19,6 @@ const tokensStoryPath = "apps/storybook/src/foundations/tokens.stories.tsx";
 const classNameUtilityPath = "packages/ui/src/lib/utils.ts";
 const normalTextContrastMinimum = 4.5;
 const nonTextContrastMinimum = 3;
-const poppinsWeights = ["500", "600", "700"];
 const primaryForegroundRole = "primary-foreground";
 const accentForegroundRole = "accent-foreground";
 const destructiveForegroundRole = "destructive-foreground";
@@ -82,8 +81,9 @@ const colorUtilities = [
   "bg-success-muted",
 ];
 const typographyUtilities = [
-  "font-sans",
+  "font-body",
   "font-display",
+  "font-numeric",
   "text-display",
   "text-h1",
   "text-h2",
@@ -258,17 +258,21 @@ for (const [theme, tokens, expected] of [
 
 assert.match(
   typographyTokens,
-  /url\("~@fontsource-variable\/inter\/files\/inter-latin-wght-normal\.woff2"\)/u,
+  /--lz-font-body: Cambria, Georgia, "Times New Roman", serif;/u,
 );
-for (const weight of poppinsWeights) {
-  assert.match(
-    globalStyles,
-    new RegExp(`@import "@fontsource/poppins/latin-${weight}\\.css";`, "u"),
-  );
-}
+assert.match(
+  typographyTokens,
+  /--lz-font-display: Cambria, Georgia, "Times New Roman", serif;/u,
+);
+assert.match(
+  typographyTokens,
+  /--lz-font-numeric: Calibri, "Segoe UI", Helvetica, Arial, sans-serif;/u,
+);
+assert.doesNotMatch(globalStyles, /@fontsource/u);
 for (const token of [
-  "font-sans",
+  "font-body",
   "font-display",
+  "font-numeric",
   "text-display",
   "text-h1",
   "text-h2",
@@ -319,9 +323,14 @@ assert.match(effectsTokens, /--lz-shadow-focus: 0 0 0 3px /u);
 assert.match(tailwindBridge, /--ease-standard: var\(--lz-ease-standard\);/u);
 for (const duration of ["fast", "base", "slow"]) {
   assert.match(effectsTokens, new RegExp(`--lz-duration-${duration}:`, "u"));
+  // duration-* utilities come from @utility blocks (not @theme) so they
+  // resolve the token at use time.
   assert.match(
     tailwindBridge,
-    new RegExp(`--duration-${duration}: var\\(--lz-duration-${duration}\\);`, "u"),
+    new RegExp(
+      `@utility duration-${duration} \\{\\n  transition-duration: var\\(--lz-duration-${duration}\\);`,
+      "u",
+    ),
   );
 }
 assert.match(effectsTokens, /--lz-opacity-disabled: 0\.5;/u);

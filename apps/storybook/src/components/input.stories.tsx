@@ -70,20 +70,3 @@ export const States: Story = {
     </div>
   ),
 };
-
-export const Themes: Story = {
-  parameters: { backgrounds: { disable: true } },
-  render: () => (
-    <div className="grid overflow-hidden rounded-lg border md:grid-cols-2">
-      {[
-        { label: "Light theme", theme: "light" },
-        { label: "Dark theme", theme: "dark" },
-      ].map(({ label, theme }) => (
-        <section className={`${theme} bg-background p-5 text-foreground`} key={theme}>
-          <h2 className="mb-4 font-display text-caption font-semibold">{label}</h2>
-          <Input aria-label={`${label} student name`} defaultValue="Ana Souza" />
-        </section>
-      ))}
-    </div>
-  ),
-};
