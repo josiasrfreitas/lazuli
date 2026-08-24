@@ -8,9 +8,18 @@ Ordem: risco primeiro (backend agregado é a maior incerteza), depois a superfí
 ## Foundation (backend + infra)
 
 - [x] **Seed dev realista**: script em `packages/db` que popula ~15 alunos (nomes do mockup), responsáveis, semestre corrente, 6 turmas com professores e horários, matrículas (algumas duplas, uma sem turma), sessões passadas com presenças variadas (uma <75%) e payers/orders/installments (em dia, vencida, sem pedido). Done = `pnpm prisma:seed` popula e é idempotente. _Novo; reusa modelos Prisma existentes._
-- [ ] **Procedure `students.list`**: paginação + filtro `status` agrupado (ativos/inativos) + busca (nome/turma/professor) + por linha: matrícula ativa mais recente (código da turma, horário, professor), % frequência do semestre corrente, saldo vencido em aberto (centavos), flag menor derivada; + contadores (`totalStudents`, `activeClasses`, contagens por tab). Zod input/output em `@lazuli/validators`; testes db + behavior seguindo `students-http.test.ts`. Done = testes verdes contra o seed. _Novo; reusa `attendance-percent.ts` e `finance-ledger.ts` do domain._
-- [ ] **Dev auth bypass**: env var (ex.: `DEV_AUTH_EMAIL`) que o contexto tRPC usa em `NODE_ENV=development` para resolver o admin seedado sem sessão; produção intocada. Done = procedures respondem sem login em dev. _Modifica `packages/api/src/trpc/context.ts`._
-- [ ] **Infra do client web**: adicionar `@trpc/client`, `@trpc/react-query`, `@tanstack/react-query`, `nuqs` ao catalog; `apps/web/src/lib/trpc.ts` (único ponto de import do client), providers no layout (QueryClient + NuqsAdapter), classe `.dark` fixa no `<html>`, `lib/format.ts` (BRL de centavos, datas America/Sao*Paulo, wa.me) com testes unit. Done = página de teste consome `students.list` renderizando JSON. \_Novo.*
+- [x] **Procedure `students.list`**: paginação + filtro `status` agrupado (ativos/inativos) + busca (nome/turma/professor) + por linha: matrícula ativa mais recente (código da turma, horário, professor), % frequência do semestre corrente, saldo vencido em aberto (centavos), flag menor derivada; + contadores (`totalStudents`, `activeClasses`, contagens por tab). Zod input/output em `@lazuli/validators`; testes db + behavior seguindo `students-http.test.ts`. Done = testes verdes contra o seed. _Novo; reusa `attendance-percent.ts` e `finance-ledger.ts` do domain._
+- [x] **Dev auth bypass**: env var (ex.: `DEV_AUTH_EMAIL`) que o contexto tRPC usa em `NODE_ENV=development` para resolver o admin seedado sem sessão; produção intocada. Done = procedures respondem sem login em dev. _Modifica `packages/api/src/trpc/context.ts`._
+- [x] **Infra do client web**: adicionar `@trpc/client`, `@trpc/react-query`, `@tanstack/react-query`, `nuqs` ao catalog; `apps/web/src/lib/trpc.ts` (único ponto de import do client), providers no layout (QueryClient + NuqsAdapter), classe `.dark` fixa no `<html>`, `lib/format.ts` (BRL de centavos, datas America/Sao*Paulo, wa.me) com testes unit. Done = página de teste consome `students.list` renderizando JSON. \_Novo.*
+
+### Dívida conhecida — seed dev vs. suíte `test:db`
+
+O seed dev ocupa o banco do worktree com dados da era corrente e colide com fixtures que assumiam banco vazio. As três tasks da Foundation acima passam; estas falhas são anteriores a elas e ficam para uma task própria:
+
+- `packages/api/test/db/classes.test.ts` (5) e `packages/db/test/db/semester-schema.test.ts` (1): o seed cria o semestre `2026.2` (2026-07-01→12-20) e as fixtures usam `2026-08-01→12-15` → `Semester_no_overlap_excl`. As suítes de attendance evitam isso com janelas por arquivo (2011/2013/2014/3000); `students-list-test-support.ts` usa 2044 pelo mesmo motivo.
+- `packages/db/test/db/course-catalog-seed.test.ts` (2): o seed dev aponta suas turmas para os stages do `COURSE_CATALOG` compartilhado; o teste reconstrói esse catálogo e as turmas seedadas perdem o `sharedStageId` → `Class_regular_requires_shared_stage_check`.
+
+Saídas possíveis: mover as fixtures para anos fora da era do seed e isolar o catálogo do teste, ou rodar `test:db` sempre após `pnpm db:reset` (sem seed dev).
 
 ## UI primitives (`packages/ui`, cada um ≤200 linhas + story)
 

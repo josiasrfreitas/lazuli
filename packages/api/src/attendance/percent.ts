@@ -8,18 +8,25 @@ import { ENROLLMENT_NOT_FOUND_MESSAGE, SEMESTER_NOT_FOUND_MESSAGE, notFound } fr
 
 type PercentInput = z.infer<typeof attendanceEnrollmentSemesterPercentInputSchema>;
 
-type EnrollmentForPercent = {
+/** The enrollment facts the percent window needs; `class` is only used for RBAC scoping. */
+export type EnrollmentWindow = {
   id: string;
   classId: string;
   entryDate: Date;
   exitDate: Date | null;
+};
+
+type EnrollmentForPercent = EnrollmentWindow & {
   class: { teacherId: string };
 };
 
-type SemesterForPercent = {
-  id: string;
+export type SemesterWindowDates = {
   startDate: Date;
   endDate: Date;
+};
+
+type SemesterForPercent = SemesterWindowDates & {
+  id: string;
 };
 
 export type EnrollmentSemesterPercentResult = AttendancePercent & {
@@ -42,35 +49,49 @@ export async function readEnrollmentSemesterPercent(input: {
     database: input.database,
     semesterId: input.values.semesterId,
   });
-  const window = intersectWindows({ enrollment, semester });
-
-  if (window === null) {
-    return {
-      enrollmentId: enrollment.id,
-      semesterId: semester.id,
-      ...computeAttendancePercent({ heldSessions: 0, presentCount: 0 }),
-    };
-  }
-
-  const heldSessions = await countHeldSessions({
-    database: input.database,
-    classId: enrollment.classId,
-    startDate: window.startDate,
-    endDate: window.endDate,
-  });
-  const presentCount = await countPresentRows({
-    database: input.database,
-    enrollmentId: enrollment.id,
-    classId: enrollment.classId,
-    startDate: window.startDate,
-    endDate: window.endDate,
-  });
 
   return {
     enrollmentId: enrollment.id,
     semesterId: semester.id,
-    ...computeAttendancePercent({ heldSessions, presentCount }),
+    ...(await computeEnrollmentPercentInWindow({
+      database: input.database,
+      values: { enrollment, semester },
+    })),
   };
+}
+
+/**
+ * Attendance percent for one enrollment inside one semester window (§4.6, D-0029).
+ * Shared by the per-enrollment procedure above and the students listing, so both
+ * count the same facts: confirmed, non-cancelled home sessions in Semester ∩ Enrollment.
+ */
+export async function computeEnrollmentPercentInWindow(input: {
+  database: AttendanceDatabase;
+  values: { enrollment: EnrollmentWindow; semester: SemesterWindowDates };
+}): Promise<AttendancePercent> {
+  const window = intersectWindows(input.values);
+
+  if (window === null) {
+    return computeAttendancePercent({ heldSessions: 0, presentCount: 0 });
+  }
+
+  const [heldSessions, presentCount] = await Promise.all([
+    countHeldSessions({
+      database: input.database,
+      classId: input.values.enrollment.classId,
+      startDate: window.startDate,
+      endDate: window.endDate,
+    }),
+    countPresentRows({
+      database: input.database,
+      enrollmentId: input.values.enrollment.id,
+      classId: input.values.enrollment.classId,
+      startDate: window.startDate,
+      endDate: window.endDate,
+    }),
+  ]);
+
+  return computeAttendancePercent({ heldSessions, presentCount });
 }
 
 async function loadEnrollment(input: {
@@ -112,8 +133,8 @@ async function loadSemester(input: {
 }
 
 function intersectWindows(input: {
-  enrollment: EnrollmentForPercent;
-  semester: SemesterForPercent;
+  enrollment: EnrollmentWindow;
+  semester: SemesterWindowDates;
 }): { startDate: Date; endDate: Date } | null {
   const startDate = latest(input.enrollment.entryDate, input.semester.startDate);
   const endDate = earliest(

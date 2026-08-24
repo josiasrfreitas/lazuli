@@ -24,6 +24,7 @@ void describe("createTRPCContext staff resolution", () => {
   registerEnabledStaffTest();
   registerDeniedStaffTest();
   registerProtectedSeamTest();
+  registerDevAuthBypassTest();
 });
 
 function registerEnabledStaffTest(): void {
@@ -58,7 +59,7 @@ function registerProtectedSeamTest(): void {
   databaseIt("protectedProcedure rejects null staff and resolves enabled staff", async () => {
     const admin = await createUser({ role: "ADMIN" });
     const enabledContext = await createTRPCContext({ db, session: sessionFor(admin.email) });
-    const anonymousContext = await createTRPCContext({ db, session: null });
+    const anonymousContext = await createTRPCContext({ db, session: null, devAuthEmail: null });
 
     const result: StaffUser | null = await createCaller(enabledContext).me();
 
@@ -67,8 +68,22 @@ function registerProtectedSeamTest(): void {
   });
 }
 
+function registerDevAuthBypassTest(): void {
+  databaseIt("resolves the dev sign-in email when no session is present", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const disabled = await createUser({ role: "TEACHER", isEnabled: false });
+
+    const bypassed = await createTRPCContext({ db, session: null, devAuthEmail: admin.email });
+    const denied = await createTRPCContext({ db, session: null, devAuthEmail: disabled.email });
+
+    assert.equal(bypassed.staffUser?.id, admin.id);
+    assert.equal(denied.staffUser, null);
+  });
+}
+
+/** `devAuthEmail: null` pins the production path regardless of the local environment. */
 async function assertNoStaffUser(session: StaffSession | null): Promise<void> {
-  const context = await createTRPCContext({ db, session });
+  const context = await createTRPCContext({ db, session, devAuthEmail: null });
   assert.equal(context.staffUser, null);
 }
 

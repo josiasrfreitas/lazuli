@@ -25,13 +25,17 @@ const httpRouter = router({
   adminOnly: adminProcedure.query(() => ({ ok: true })),
 });
 
-/** Issues a real GET request for `adminOnly`, resolving context exactly as the route does. */
+/**
+ * Issues a real GET request for `adminOnly`, resolving context exactly as the route does.
+ * `devAuthEmail: null` keeps the anonymous case on the production path even when a local
+ * `.env` enables the development sign-in shortcut.
+ */
 function callAdminOnly(session: StaffSession | null): Promise<Response> {
   return fetchRequestHandler({
     endpoint: ENDPOINT,
     req: new Request(`http://localhost${ENDPOINT}/adminOnly`, { method: "GET" }),
     router: httpRouter,
-    createContext: () => createTRPCContext({ db, session }),
+    createContext: () => createTRPCContext({ db, session, devAuthEmail: null }),
   });
 }
 
