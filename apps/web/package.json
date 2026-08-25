@@ -24,6 +24,7 @@
     "@trpc/react-query": "catalog:",
     "@trpc/server": "catalog:",
     "better-auth": "catalog:",
+    "lucide-react": "catalog:",
     "next": "catalog:",
     "nuqs": "catalog:",
     "react": "catalog:",
