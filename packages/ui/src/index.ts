@@ -94,6 +94,8 @@ export type {
 } from "./components/dialog";
 export { Pagination } from "./components/pagination";
 export type { PaginationProps } from "./components/pagination";
+export { Stepper } from "./components/stepper";
+export type { StepperItem, StepperProps, StepperStepState } from "./components/stepper";
 export {
   Sheet,
   SheetBackdrop,
