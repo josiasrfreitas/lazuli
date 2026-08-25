@@ -31,8 +31,11 @@ export const TableContainer = forwardRef<HTMLDivElement, TableContainerProps>(
   ({ className, ...props }, ref) => (
     <div
       {...props}
+      // `relative` anchors absolutely-positioned descendants (e.g. `sr-only`
+      // labels in cells) inside the scroll area; without it they sit on the
+      // page itself, widening it by the table's off-screen width.
       className={cn(
-        "w-full overflow-x-auto rounded-lg border border-border bg-card scrollbar-subtle",
+        "relative w-full overflow-x-auto rounded-lg border border-border bg-card scrollbar-subtle",
         className,
       )}
       data-slot="table-container"
