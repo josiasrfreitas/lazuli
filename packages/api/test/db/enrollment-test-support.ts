@@ -15,6 +15,7 @@ const FIXTURE_CLASS_YEAR = 2026;
 
 export const ADMIN: StaffUser = {
   id: "00000000-0000-0000-0000-0000000000ad",
+  name: "Admin de Teste",
   email: "admin@example.com",
   role: "ADMIN",
   isEnabled: true,

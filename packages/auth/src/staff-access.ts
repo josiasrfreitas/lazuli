@@ -48,6 +48,7 @@ export type StaffAccessResult = StaffAccessAllowed | StaffAccessDenied;
 /** A staff member who passed the access check, as carried through a request. */
 export type StaffIdentity = {
   id: string;
+  name: string;
   email: string;
   role: StaffRole;
   isEnabled: boolean;
@@ -59,13 +60,19 @@ export type StaffIdentity = {
  * returned; the shape below is the only part anything downstream may rely on.
  */
 export function resolveStaffIdentity(
-  user: (StaffAccessUser & { id: string }) | null,
+  user: (StaffAccessUser & { id: string; name: string }) | null,
 ): StaffIdentity | null {
   if (user === null || !evaluateStaffAccess(user).allowed) {
     return null;
   }
 
-  return { id: user.id, email: user.email, role: user.role, isEnabled: user.isEnabled };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    isEnabled: user.isEnabled,
+  };
 }
 
 export function evaluateStaffAccess(user: StaffAccessUser | null): StaffAccessResult {

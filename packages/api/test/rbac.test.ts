@@ -40,12 +40,14 @@ function isTRPCError(code: TRPCError["code"]): (error: unknown) => boolean {
 
 const ADMIN: StaffUser = {
   id: "00000000-0000-0000-0000-0000000000ad",
+  name: "Admin de Teste",
   email: "admin@example.com",
   role: "ADMIN",
   isEnabled: true,
 };
 const TEACHER: StaffUser = {
   id: "00000000-0000-0000-0000-0000000000ed",
+  name: "Professora de Teste",
   email: "teacher@example.com",
   role: "TEACHER",
   isEnabled: true,

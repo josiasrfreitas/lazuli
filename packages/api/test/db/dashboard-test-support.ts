@@ -12,6 +12,7 @@ const SESSION_END_TIME = new Date("1970-01-01T16:00:00.000Z");
 
 export const ADMIN: StaffUser = {
   id: "00000000-0000-0000-0000-000000640001",
+  name: "Admin de Teste",
   email: "gre64-admin@example.com",
   role: "ADMIN",
   isEnabled: true,
@@ -19,6 +20,7 @@ export const ADMIN: StaffUser = {
 
 export const TEACHER: StaffUser = {
   id: "00000000-0000-0000-0000-000000640002",
+  name: "Professora de Teste",
   email: "gre64-teacher@example.com",
   role: "TEACHER",
   isEnabled: true,
@@ -26,6 +28,7 @@ export const TEACHER: StaffUser = {
 
 export const OTHER_TEACHER: StaffUser = {
   id: "00000000-0000-0000-0000-000000640003",
+  name: "Professora de Teste",
   email: "gre64-other-teacher@example.com",
   role: "TEACHER",
   isEnabled: true,
