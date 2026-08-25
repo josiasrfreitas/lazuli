@@ -93,6 +93,34 @@ export type {
   DialogTriggerProps,
 } from "./components/dialog";
 export {
+  Sheet,
+  SheetBackdrop,
+  SheetBody,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetPortal,
+  SheetTitle,
+  SheetTrigger,
+  sheetContentVariants,
+} from "./components/sheet";
+export type {
+  SheetBackdropProps,
+  SheetBodyProps,
+  SheetCloseProps,
+  SheetContentProps,
+  SheetDescriptionProps,
+  SheetFooterProps,
+  SheetHeaderProps,
+  SheetPortalProps,
+  SheetProps,
+  SheetSize,
+  SheetTitleProps,
+  SheetTriggerProps,
+} from "./components/sheet";
+export {
   Popover,
   PopoverClose,
   PopoverContent,

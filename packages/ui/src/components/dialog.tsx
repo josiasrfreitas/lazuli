@@ -4,12 +4,17 @@ import { forwardRef, type ReactElement, type RefAttributes } from "react";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { cva } from "class-variance-authority";
-import { X } from "lucide-react";
 
 import { cn } from "../lib/utils";
+import { DialogCloseButton } from "./dialog-layout";
 
-export { DialogBody, DialogFooter, DialogHeader } from "./dialog-layout";
-export type { DialogBodyProps, DialogFooterProps, DialogHeaderProps } from "./dialog-layout";
+export { DialogBody, DialogCloseButton, DialogFooter, DialogHeader } from "./dialog-layout";
+export type {
+  DialogBodyProps,
+  DialogCloseButtonProps,
+  DialogFooterProps,
+  DialogHeaderProps,
+} from "./dialog-layout";
 
 /**
  * A modal dialog root. It supports controlled and uncontrolled open state,
@@ -101,21 +106,7 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       data-slot="dialog-content"
       ref={ref}
     >
-      {showCloseButton ? (
-        <DialogPrimitive.Close
-          aria-label={closeLabel}
-          // `right-4` + `size-8` define the space DialogHeader reserves via
-          // pr-8 (dialog-layout.tsx) — the pair must change together.
-          className={cn(
-            "absolute right-4 top-4 inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground",
-            "transition-colors duration-fast ease-standard hover:bg-accent hover:text-accent-foreground",
-            "focus-visible:outline-none focus-visible:shadow-focus disabled:pointer-events-none disabled:opacity-disabled",
-          )}
-          data-slot="dialog-close-button"
-        >
-          <X aria-hidden="true" className="size-4" />
-        </DialogPrimitive.Close>
-      ) : null}
+      {showCloseButton ? <DialogCloseButton aria-label={closeLabel} /> : null}
       {children}
     </DialogPrimitive.Popup>
   ),
