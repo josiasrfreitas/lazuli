@@ -24,7 +24,7 @@ void describe("createTRPCContext staff resolution", () => {
   registerEnabledStaffTest();
   registerDeniedStaffTest();
   registerProtectedSeamTest();
-  registerDevAuthBypassTest();
+  registerNoSessionTest();
 });
 
 function registerEnabledStaffTest(): void {
@@ -59,7 +59,7 @@ function registerProtectedSeamTest(): void {
   databaseIt("protectedProcedure rejects null staff and resolves enabled staff", async () => {
     const admin = await createUser({ role: "ADMIN" });
     const enabledContext = await createTRPCContext({ db, session: sessionFor(admin.email) });
-    const anonymousContext = await createTRPCContext({ db, session: null, devAuthEmail: null });
+    const anonymousContext = await createTRPCContext({ db, session: null });
 
     const result: StaffUser | null = await createCaller(enabledContext).me();
 
@@ -68,22 +68,25 @@ function registerProtectedSeamTest(): void {
   });
 }
 
-function registerDevAuthBypassTest(): void {
-  databaseIt("resolves the dev sign-in email when no session is present", async () => {
-    const admin = await createUser({ role: "ADMIN" });
-    const disabled = await createUser({ role: "TEACHER", isEnabled: false });
+/**
+ * There is no environment in which a missing session still resolves a staff user:
+ * the development sign-in shortcut was retired with the login screen.
+ */
+function registerNoSessionTest(): void {
+  databaseIt(
+    "resolves no staff user without a session, whatever the environment holds",
+    async () => {
+      await createUser({ role: "ADMIN" });
 
-    const bypassed = await createTRPCContext({ db, session: null, devAuthEmail: admin.email });
-    const denied = await createTRPCContext({ db, session: null, devAuthEmail: disabled.email });
+      const context = await createTRPCContext({ db, session: null });
 
-    assert.equal(bypassed.staffUser?.id, admin.id);
-    assert.equal(denied.staffUser, null);
-  });
+      assert.equal(context.staffUser, null);
+    },
+  );
 }
 
-/** `devAuthEmail: null` pins the production path regardless of the local environment. */
 async function assertNoStaffUser(session: StaffSession | null): Promise<void> {
-  const context = await createTRPCContext({ db, session, devAuthEmail: null });
+  const context = await createTRPCContext({ db, session });
   assert.equal(context.staffUser, null);
 }
 

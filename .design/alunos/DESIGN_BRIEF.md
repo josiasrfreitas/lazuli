@@ -38,7 +38,7 @@ Uma página única onde a lista de alunos já responde as três perguntas de cad
 - **Estado de URL via nuqs**: tab de status, busca, página, aluno selecionado no painel.
 - **Data**: `@trpc/client` + `@trpc/react-query` + `@tanstack/react-query` + `nuqs` entram no catalog do pnpm.
 - **Backend novo**: `students.list` (paginação, filtro por status agrupado, busca, turma ativa + professor, % frequência do semestre corrente, saldo vencido em aberto, contadores do header). Financeiro por linha = soma de parcelas vencidas não pagas ("Em dia" se zero; "—" sem pedido ativo). Semestre corrente derivado da data via `Semester`.
-- **Auth ignorada por ora**: bypass de dev no contexto tRPC (env var resolve admin seedado). Sem login UI (GRE-58).
+- **Auth**: decisão revista durante a Foundation. O bypass de dev (env var resolvendo o admin seedado) foi substituído por auth de verdade — login com Google + magic link e proteção server-side das rotas, especificada em `.design/login/`. A vertical de Alunos passa a viver dentro do route group protegido `(app)`.
 - **Seed dev realista**: ~15 alunos com turmas, matrículas, presenças e parcelas.
 
 ## Component Inventory
@@ -83,6 +83,6 @@ Desktop-first (ferramenta de secretaria). Alvo primário ≥ 1280px. Em janelas 
 - Página de perfil completo do aluno (`/alunos/:id`) — botão fica desabilitado.
 - Busca global ⌘K do topo (usa `students.search` existente; fica para depois).
 - Backend das etapas 2 (matrícula) e 3 (financeiro) do wizard.
-- Login UI / proteção de rota real (GRE-58); RBAC de TEACHER na listagem.
+- Login UI / proteção de rota real — frente própria, ver `.design/login/`; RBAC de TEACHER na listagem.
 - Edição de aluno, mudança de status, importação do legado.
 - Tema light no produto; responsivo mobile dedicado.
