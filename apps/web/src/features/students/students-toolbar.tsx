@@ -9,7 +9,13 @@ import type { StatusTabVm, StatusTabValue } from "./view-model";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-export function StudentsHeader({ summary }: { summary: string | null }): ReactElement {
+export function StudentsHeader({
+  summary,
+  onNewStudent,
+}: {
+  summary: string | null;
+  onNewStudent: () => void;
+}): ReactElement {
   return (
     <div className="flex items-end justify-between gap-4">
       <div>
@@ -18,8 +24,7 @@ export function StudentsHeader({ summary }: { summary: string | null }): ReactEl
           <p className="mt-1 text-caption text-muted-foreground">{summary}</p>
         )}
       </div>
-      {/* Wired to the wizard in a later slice; present so the layout is final. */}
-      <Button disabled size="md">
+      <Button onClick={onNewStudent} size="md">
         <Plus aria-hidden="true" className="size-4" />
         Novo aluno
       </Button>

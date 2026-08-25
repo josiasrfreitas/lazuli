@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactElement, ReactNode } from "react";
+import { useState, type ReactElement, type ReactNode } from "react";
 
 import { Pagination } from "@lazuli/ui";
 
@@ -10,6 +10,7 @@ import {
   useStudentsList,
   type StudentsListQuery,
 } from "./logic";
+import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentPreviewPanel } from "./student-preview-panel";
 import { StudentsTable } from "./students-table";
 import { StudentsControls, StudentsHeader } from "./students-toolbar";
@@ -37,6 +38,7 @@ export function StudentsPage(): ReactElement {
   const filters = useStudentsFilters();
   const selection = useSelectedStudent();
   const students = useStudentsList(filters);
+  const [creating, setCreating] = useState(false);
   const state = tableStateVm({
     rows: students.data?.rows,
     isError: students.error !== null,
@@ -46,6 +48,9 @@ export function StudentsPage(): ReactElement {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5 p-8">
       <StudentsHeader
+        onNewStudent={() => {
+          setCreating(true);
+        }}
         summary={students.data === undefined ? null : headerSummaryVm(students.data)}
       />
       {students.data === undefined ? null : (
@@ -61,6 +66,14 @@ export function StudentsPage(): ReactElement {
       />
       <StudentsPagination data={students.data} onPageChange={filters.setPagina} />
       <StudentPreviewPanel selection={selection} />
+      <NewStudentDialog
+        onCreated={(id) => {
+          setCreating(false);
+          selection.select(id);
+        }}
+        onOpenChange={setCreating}
+        open={creating}
+      />
     </div>
   );
 }

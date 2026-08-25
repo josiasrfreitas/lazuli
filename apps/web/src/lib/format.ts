@@ -30,6 +30,14 @@ export function formatLongDateSaoPaulo(date: Date): string {
   return longDateFormatter.format(date);
 }
 
+// en-CA is the locale whose date format is already yyyy-mm-dd.
+const dateOnlyFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: SAO_PAULO_TIME_ZONE });
+
+/** The instant's calendar day in São Paulo as `yyyy-mm-dd` (age rules, date inputs). */
+export function toDateOnlySaoPaulo(date: Date): string {
+  return dateOnlyFormatter.format(date);
+}
+
 /** `percent` is a fraction in [0, 1]; null means "sem dados". */
 export function formatAttendancePercent(percent: number | null): string {
   return percent === null ? EM_DASH : percentFormatter.format(percent);

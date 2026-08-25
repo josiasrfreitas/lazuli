@@ -28,6 +28,9 @@ export const trpc = createTRPCReact<AppRouter>();
  */
 export type QueryResult<TData> = UseTRPCQueryResult<TData, TRPCClientErrorLike<AppRouter>>;
 
+/** Error type of a failed `trpc.*` call, carrying the formatted `zodError`. */
+export type ClientError = TRPCClientErrorLike<AppRouter>;
+
 export type TRPCClient = ReturnType<typeof trpc.createClient>;
 
 export function createTRPCClient(): TRPCClient {
