@@ -97,26 +97,6 @@ export function MarqueeActions({ children }: { children: ReactNode }): ReactNode
   return <div className="mt-10 flex flex-wrap items-center gap-4">{children}</div>;
 }
 
-/*
- * Buttons on this surface are square-cornered, because every frame here is:
- * the card, the grid, the registration marks. Rounding them would make them
- * look like they wandered in from the tool.
- */
-
-/** The one action the screen wants taken. */
-export const marqueeActionClass = cn([
-  "h-control-lg rounded-none px-6 font-grotesk text-control font-bold",
-  "bg-marquee-accent text-marquee-accent-foreground",
-  "hover:bg-marquee-accent/85 active:bg-marquee-accent/75",
-]);
-
-/** Everything else: available, but not asking to be clicked. */
-export const marqueeQuietActionClass = cn([
-  "h-control-lg rounded-none border-marquee-border px-6 font-grotesk text-control font-bold",
-  "bg-transparent text-marquee-foreground",
-  "hover:bg-marquee-foreground/8 hover:text-marquee-foreground active:bg-marquee-foreground/12",
-]);
-
 /** Closing line under a rule — a filing code, not a message. */
 export function MarqueeNote({ children }: { children: ReactNode }): ReactNode {
   return (

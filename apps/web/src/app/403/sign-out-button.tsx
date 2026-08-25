@@ -5,7 +5,6 @@ import { useState, type ReactNode } from "react";
 
 import { Button } from "@lazuli/ui";
 
-import { marqueeQuietActionClass } from "~/components/marquee/marquee-layout";
 import { authClient } from "~/lib/auth-client";
 
 /**
@@ -25,12 +24,7 @@ export function SignOutButton(): ReactNode {
   }
 
   return (
-    <Button
-      className={marqueeQuietActionClass}
-      loading={signingOut}
-      onClick={() => void signOut()}
-      variant="secondary"
-    >
+    <Button loading={signingOut} onClick={() => void signOut()} size="lg" variant="secondary">
       Sair
     </Button>
   );

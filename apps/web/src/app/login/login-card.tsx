@@ -4,7 +4,6 @@ import { useState, type FormEvent, type ReactNode } from "react";
 
 import { Alert, AlertDescription, Button } from "@lazuli/ui";
 
-import { marqueeQuietActionClass } from "~/components/marquee/marquee-layout";
 import { authClient } from "~/lib/auth-client";
 
 import { GoogleMark } from "./google-mark";
@@ -138,12 +137,7 @@ function LoginAlert({ message }: { message: string | null }): ReactNode {
 
 function GoogleButton({ onClick, pending }: { onClick: () => void; pending: boolean }): ReactNode {
   return (
-    <Button
-      className={marqueeQuietActionClass}
-      loading={pending}
-      onClick={onClick}
-      variant="secondary"
-    >
+    <Button loading={pending} onClick={onClick} size="lg" variant="secondary">
       <GoogleMark />
       Entrar com Google
     </Button>

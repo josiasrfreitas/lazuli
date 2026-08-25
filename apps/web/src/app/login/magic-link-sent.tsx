@@ -2,8 +2,6 @@ import type { ReactNode } from "react";
 
 import { Button } from "@lazuli/ui";
 
-import { marqueeQuietActionClass } from "~/components/marquee/marquee-layout";
-
 export type MagicLinkSentProps = {
   email: string;
   onUseAnotherEmail: () => void;
@@ -31,11 +29,7 @@ export function MagicLinkSent({ email, onUseAnotherEmail }: MagicLinkSentProps):
         caixa de spam.
       </p>
 
-      <Button
-        className={`${marqueeQuietActionClass} mt-8 self-start`}
-        onClick={onUseAnotherEmail}
-        variant="secondary"
-      >
+      <Button className="mt-8 self-start" onClick={onUseAnotherEmail} size="lg" variant="secondary">
         Usar outro email
       </Button>
     </div>

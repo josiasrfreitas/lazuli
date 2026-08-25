@@ -2,8 +2,6 @@ import type { FormEvent, ReactNode } from "react";
 
 import { Button, Field, Input, Label } from "@lazuli/ui";
 
-import { marqueeActionClass } from "~/components/marquee/marquee-layout";
-
 export type LoginPending = "none" | "magic-link" | "google";
 
 export type LoginFormProps = {
@@ -40,7 +38,7 @@ export function LoginForm({ email, onEmailChange, onSubmit, pending }: LoginForm
         />
       </Field>
 
-      <Button className={marqueeActionClass} loading={pending === "magic-link"} type="submit">
+      <Button loading={pending === "magic-link"} size="lg" type="submit">
         Receber link de acesso
       </Button>
     </form>

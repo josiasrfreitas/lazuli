@@ -16,7 +16,6 @@ import {
   MarqueeNote,
   MarqueePage,
   MarqueeTitle,
-  marqueeActionClass,
 } from "~/components/marquee/marquee-layout";
 import { SpecimenCrystal } from "~/components/marquee/specimen-crystal";
 
@@ -49,7 +48,7 @@ export default async function ForbiddenPage(): Promise<ReactNode> {
           secretaria.
         </MarqueeBody>
         <MarqueeActions>
-          <Button className={marqueeActionClass} nativeButton={false} render={<Link href="/" />}>
+          <Button nativeButton={false} render={<Link href="/" />} size="lg">
             Voltar ao início
             <ArrowUpRight aria-hidden="true" />
           </Button>
