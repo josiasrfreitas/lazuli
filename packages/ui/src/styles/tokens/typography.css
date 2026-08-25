@@ -3,6 +3,30 @@
   --lz-font-display: Cambria, Georgia, "Times New Roman", serif;
   --lz-font-numeric: Calibri, "Segoe UI", Helvetica, Arial, sans-serif;
 
+  /*
+   * Front-of-house voice, used only by the screens outside the authenticated
+   * product (login, 403, future error pages). The tool speaks in Cambria; its
+   * cover speaks in a tight grotesk with monospaced labels. Keeping both as
+   * system stacks preserves the no-webfont rule.
+   */
+  --lz-font-grotesk: "Helvetica Neue", "Segoe UI Variable Display", "Segoe UI", system-ui, Arial,
+    sans-serif;
+  --lz-font-mono: ui-monospace, "SF Mono", Menlo, "Cascadia Mono", "Segoe UI Mono", Consolas,
+    monospace;
+
+  /*
+   * Marquee headline. Fluid so a 64px desktop title still fits a 375px phone.
+   * The slope is calibrated to the editorial column, not the viewport: on the
+   * split layout the column narrows faster than the viewport does, and the
+   * longest lead line ("Sua gestão escolar,") needs 8.67px of width per px of
+   * font size. A plain vw term keeps the title at its ceiling while the column
+   * shrinks, wrapping the two-line lockup into three lines around 1280px.
+   */
+  --lz-text-hero: clamp(2.25rem, 5.75vw - 0.75rem, 4rem);
+  --lz-leading-hero: 0.95;
+  --lz-tracking-hero: -0.035em;
+  --lz-tracking-eyebrow: 0.18em;
+
   --lz-text-display: 3rem;
   --lz-leading-display: 1.1;
   --lz-text-h1: 2rem;

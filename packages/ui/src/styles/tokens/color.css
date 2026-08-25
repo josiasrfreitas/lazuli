@@ -18,6 +18,10 @@
   --lz-ref-blue-100: #cfdbff;
   --lz-ref-blue-50: #e2e9ff;
   --lz-ref-gold-500: #d8ad4a;
+  --lz-ref-navy-900: #0b1430;
+  --lz-ref-navy-700: #1e2c52;
+  --lz-ref-mist-50: #eef2fb;
+  --lz-ref-mist-400: #a8b7d6;
   --lz-ref-red-700: #b3283f;
   --lz-ref-red-800: #982138;
   --lz-ref-red-900: #7c1b2e;
@@ -68,6 +72,18 @@
   --info-muted: var(--lz-ref-info-50);
   --destructive-muted: var(--lz-ref-red-50);
   --overlay: rgb(15 30 61 / 48%);
+
+  /*
+   * Front-of-house surface: login, 403, and future error pages. Defined once
+   * outside the theme blocks because these screens are the school's cover, not
+   * a themeable part of the tool — they stay navy in either theme.
+   */
+  --marquee: var(--lz-ref-navy-900);
+  --marquee-foreground: var(--lz-ref-mist-50);
+  --marquee-muted: var(--lz-ref-mist-400);
+  --marquee-border: var(--lz-ref-navy-700);
+  --marquee-accent: var(--lz-ref-blue-200);
+  --marquee-accent-foreground: var(--lz-ref-navy-950);
 }
 
 .dark {

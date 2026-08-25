@@ -2,6 +2,12 @@
   --font-body: var(--lz-font-body);
   --font-display: var(--lz-font-display);
   --font-numeric: var(--lz-font-numeric);
+  --font-grotesk: var(--lz-font-grotesk);
+  --font-mono: var(--lz-font-mono);
+  --text-hero: var(--lz-text-hero);
+  --text-hero--line-height: var(--lz-leading-hero);
+  --text-hero--letter-spacing: var(--lz-tracking-hero);
+  --tracking-eyebrow: var(--lz-tracking-eyebrow);
   --text-display: var(--lz-text-display);
   --text-display--line-height: var(--lz-leading-display);
   --text-h1: var(--lz-text-h1);
@@ -74,6 +80,12 @@
   --color-info-muted: var(--info-muted);
   --color-destructive-muted: var(--destructive-muted);
   --color-overlay: var(--overlay);
+  --color-marquee: var(--marquee);
+  --color-marquee-foreground: var(--marquee-foreground);
+  --color-marquee-muted: var(--marquee-muted);
+  --color-marquee-border: var(--marquee-border);
+  --color-marquee-accent: var(--marquee-accent);
+  --color-marquee-accent-foreground: var(--marquee-accent-foreground);
 }
 
 /*

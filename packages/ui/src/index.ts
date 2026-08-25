@@ -154,3 +154,7 @@ export type {
   TableHeadProps,
   TableSortDirection,
 } from "./components/table-cells";
+export { Label } from "./components/label";
+export type { LabelProps } from "./components/label";
+export { Field, FieldDescription, FieldError } from "./components/field";
+export type { FieldDescriptionProps, FieldErrorProps, FieldProps } from "./components/field";
