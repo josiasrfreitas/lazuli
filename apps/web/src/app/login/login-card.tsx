@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 
-import { Alert, AlertDescription, Button } from "@lazuli/ui";
+import { Alert, AlertDescription, AlertIcon, Button } from "@lazuli/ui";
 
 import { authClient } from "~/lib/auth-client";
 
@@ -130,6 +130,10 @@ function LoginAlert({ message }: { message: string | null }): ReactNode {
     /* border-destructive/40: the primitive's 20% border melts into the navy
        surface, and everything else on this frame is ruled by a crisp hairline. */
     <Alert className="rounded-none border-destructive/40" variant="destructive">
+      {/* The broken pickaxe: decorative, so the message alone carries meaning. */}
+      <AlertIcon>
+        <img alt="" className="size-4" src="/icons/login-error-icon.svg" />
+      </AlertIcon>
       <AlertDescription>{message}</AlertDescription>
     </Alert>
   );
