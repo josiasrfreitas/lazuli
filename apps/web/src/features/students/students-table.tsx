@@ -78,9 +78,13 @@ function StatesRow({
 export function StudentsTable({
   state,
   onRetry,
+  selectedId,
+  onSelectRow,
 }: {
   state: StudentsTableState;
   onRetry: () => void;
+  selectedId: string | null;
+  onSelectRow: (id: string) => void;
 }): ReactElement {
   return (
     <TableContainer>
@@ -99,7 +103,14 @@ export function StudentsTable({
         </TableHeader>
         <TableBody>
           {state.kind === "data" ? (
-            state.rows.map((row) => <StudentsTableRow key={row.id} row={row} />)
+            state.rows.map((row) => (
+              <StudentsTableRow
+                key={row.id}
+                onSelect={onSelectRow}
+                row={row}
+                selected={row.id === selectedId}
+              />
+            ))
           ) : (
             <StatesRow onRetry={onRetry} state={state} />
           )}

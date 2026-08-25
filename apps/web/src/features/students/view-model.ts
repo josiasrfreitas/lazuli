@@ -1,3 +1,4 @@
+import type { BadgeVariant } from "@lazuli/ui";
 import type { StudentListOutput, StudentListRow } from "@lazuli/validators";
 
 import { EM_DASH, formatAttendancePercent, formatBRLFromCents, toWhatsAppUrl } from "~/lib/format";
@@ -73,6 +74,30 @@ export function statusTabsVm(counts: StudentListOutput["counts"]): StatusTabVm[]
     { value: "ativos", label: "Ativos", count: counts.active },
     { value: "inativos", label: "Inativos", count: counts.inactive },
   ];
+}
+
+export type StatusBadgeVm = { label: string; variant: BadgeVariant };
+
+/**
+ * Detailed status for the preview panel. The table groups these under the
+ * Inativos tab; here each one reads by its own name (D-0024 vocabulary).
+ * Only Trancado warns — Desistente and Inativo are records, not alerts.
+ */
+export function statusBadgeVm(status: StudentListRow["status"]): StatusBadgeVm {
+  switch (status) {
+    case "ACTIVE": {
+      return { label: "Ativo", variant: "success" };
+    }
+    case "SUSPENDED": {
+      return { label: "Trancado", variant: "warning" };
+    }
+    case "DROPPED": {
+      return { label: "Desistente", variant: "neutral" };
+    }
+    case "INACTIVE": {
+      return { label: "Inativo", variant: "neutral" };
+    }
+  }
 }
 
 export type StudentsTableState =

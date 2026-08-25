@@ -53,7 +53,13 @@ function WhatsAppCell({ row }: { row: StudentListRow }): ReactElement {
   }
 
   return (
-    <TableCell className="text-center">
+    <TableCell
+      className="text-center"
+      // Contacting a student must not also open their preview panel.
+      onClick={(event) => {
+        event.stopPropagation();
+      }}
+    >
       <Button
         nativeButton={false}
         render={
@@ -68,9 +74,29 @@ function WhatsAppCell({ row }: { row: StudentListRow }): ReactElement {
   );
 }
 
-export function StudentsTableRow({ row }: { row: StudentListRow }): ReactElement {
+export function StudentsTableRow({
+  row,
+  selected,
+  onSelect,
+}: {
+  row: StudentListRow;
+  selected: boolean;
+  onSelect: (id: string) => void;
+}): ReactElement {
   return (
-    <TableRow>
+    <TableRow
+      className="cursor-pointer focus-visible:outline-none focus-visible:shadow-focus"
+      onClick={() => {
+        onSelect(row.id);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" && event.target === event.currentTarget) {
+          onSelect(row.id);
+        }
+      }}
+      selected={selected}
+      tabIndex={0}
+    >
       <TableCell>
         <div className="flex items-center gap-3">
           <Avatar colorKey={row.id} name={row.fullName} size="sm" />

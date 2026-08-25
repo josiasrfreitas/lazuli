@@ -4,7 +4,13 @@ import type { ReactElement, ReactNode } from "react";
 
 import { Pagination } from "@lazuli/ui";
 
-import { useStudentsFilters, useStudentsList, type StudentsListQuery } from "./logic";
+import {
+  useSelectedStudent,
+  useStudentsFilters,
+  useStudentsList,
+  type StudentsListQuery,
+} from "./logic";
+import { StudentPreviewPanel } from "./student-preview-panel";
 import { StudentsTable } from "./students-table";
 import { StudentsControls, StudentsHeader } from "./students-toolbar";
 import { headerSummaryVm, statusTabsVm, tableStateVm } from "./view-model";
@@ -29,6 +35,7 @@ function StudentsPagination({
 
 export function StudentsPage(): ReactElement {
   const filters = useStudentsFilters();
+  const selection = useSelectedStudent();
   const students = useStudentsList(filters);
   const state = tableStateVm({
     rows: students.data?.rows,
@@ -48,9 +55,12 @@ export function StudentsPage(): ReactElement {
         onRetry={() => {
           void students.refetch();
         }}
+        onSelectRow={selection.select}
+        selectedId={selection.selectedId}
         state={state}
       />
       <StudentsPagination data={students.data} onPageChange={filters.setPagina} />
+      <StudentPreviewPanel selection={selection} />
     </div>
   );
 }

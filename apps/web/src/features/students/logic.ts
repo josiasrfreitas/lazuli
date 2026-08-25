@@ -1,9 +1,13 @@
 "use client";
 
-import { keepPreviousData } from "@tanstack/react-query";
+import { keepPreviousData, skipToken } from "@tanstack/react-query";
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 
-import type { StudentListOutput, StudentListStatusFilter } from "@lazuli/validators";
+import type {
+  StudentListOutput,
+  StudentListRow,
+  StudentListStatusFilter,
+} from "@lazuli/validators";
 
 import { trpc, type QueryResult } from "~/lib/trpc";
 
@@ -58,6 +62,33 @@ export function useStudentsFilters(): StudentsFilters {
       void setParams({ pagina: value <= FIRST_PAGE ? null : value });
     },
   };
+}
+
+export type SelectedStudent = {
+  selectedId: string | null;
+  select: (id: string) => void;
+  clear: () => void;
+};
+
+/** `?aluno=<id>` drives the preview panel and survives filter changes (IA). */
+export function useSelectedStudent(): SelectedStudent {
+  const [params, setParams] = useQueryStates({ aluno: parseAsString });
+
+  return {
+    selectedId: params.aluno,
+    select: (id) => {
+      void setParams({ aluno: id });
+    },
+    clear: () => {
+      void setParams({ aluno: null });
+    },
+  };
+}
+
+export type StudentPreviewQuery = QueryResult<StudentListRow>;
+
+export function useStudentPreview(id: string | null): StudentPreviewQuery {
+  return trpc.students.preview.useQuery(id === null ? skipToken : { id });
 }
 
 type StudentsListQueryInput = Pick<StudentsFilters, "statusTab" | "busca" | "pagina">;
