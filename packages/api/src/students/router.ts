@@ -3,6 +3,7 @@ import {
   studentIdInputSchema,
   studentListInputSchema,
   studentListOutputSchema,
+  studentListRowSchema,
   studentSearchInputSchema,
   studentSetStatusInputSchema,
   studentUpdateContactProcedureInputSchema,
@@ -12,6 +13,7 @@ import {
 import { adminProcedure, router } from "../trpc/init.js";
 import { createStudent, readStudentProfile, searchStudents, updateStudentContact } from "./data.js";
 import { listStudents } from "./list.js";
+import { previewStudent } from "./preview.js";
 import { setStudentStatus } from "./status.js";
 
 export const studentsRouter = router({
@@ -22,6 +24,15 @@ export const studentsRouter = router({
       listStudents({
         database: ctx.db,
         values: { ...input, now: ctx.now ?? new Date(), staffUserId: ctx.staffUser.id },
+      }),
+    ),
+  preview: adminProcedure
+    .input(studentIdInputSchema)
+    .output(studentListRowSchema)
+    .query(({ ctx, input }) =>
+      previewStudent({
+        database: ctx.db,
+        values: { id: input.id, now: ctx.now ?? new Date(), staffUserId: ctx.staffUser.id },
       }),
     ),
   byId: adminProcedure

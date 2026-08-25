@@ -59,12 +59,13 @@ export async function listStudents(input: ListStudentsInput): Promise<StudentLis
 
 type BuildRowsInput = {
   database: StudentListDatabase;
-  values: ListStudentsValues;
+  values: { now: Date; staffUserId: string };
   students: StudentPageRow[];
   semester: SemesterWindow | null;
 };
 
-async function buildRows(input: BuildRowsInput): Promise<StudentListRow[]> {
+/** Also drives `students.preview`, which renders a single row by student id. */
+export async function buildRows(input: BuildRowsInput): Promise<StudentListRow[]> {
   const [attendanceByStudent, financeByStudent] = await Promise.all([
     readAttendanceByStudent(input),
     readFinanceByStudent(input),
@@ -158,7 +159,7 @@ function toFinanceFacts(total: StudentOverdueTotal | undefined): StudentListRow[
 }
 
 /** A date outside every semester window is a setup gap, not a reason to fail the listing. */
-async function resolveCurrentSemester(
+export async function resolveCurrentSemester(
   database: StudentListDatabase,
   now: Date,
 ): Promise<SemesterWindow | null> {

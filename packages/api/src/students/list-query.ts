@@ -80,6 +80,17 @@ export function buildStudentListWhere(input: {
   };
 }
 
+/** The `students.preview` read: one student in the same shape as a page row. */
+export function findStudentRow(input: {
+  database: StudentListDatabase;
+  id: string;
+}): Promise<StudentPageRow | null> {
+  return input.database.student.findFirst({
+    where: { id: input.id, deletedAt: null },
+    select: studentPageSelect,
+  });
+}
+
 export function findStudentPage(input: {
   database: StudentListDatabase;
   values: { where: Prisma.StudentWhereInput; page: number };
