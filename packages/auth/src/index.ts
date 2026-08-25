@@ -14,6 +14,7 @@ export type { AuthEnvironment } from "./env.js";
 export type { AuthOptionsInput, MagicLinkDelivery, MagicLinkSender } from "./auth-options.js";
 export {
   evaluateStaffAccess,
+  isStaffAccessDeniedCode,
   resolveStaffIdentity,
   STAFF_ACCESS_DENIED_CODE,
   STAFF_ACCESS_DENIED_MESSAGE,

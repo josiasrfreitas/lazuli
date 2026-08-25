@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { evaluateStaffAccess, STAFF_ACCESS_DENIED_MESSAGE } from "../src/staff-access.js";
+import {
+  evaluateStaffAccess,
+  isStaffAccessDeniedCode,
+  STAFF_ACCESS_DENIED_CODE,
+  STAFF_ACCESS_DENIED_MESSAGE,
+} from "../src/staff-access.js";
 
 void describe("pre-provisioned staff access", () => {
   void it("allows enabled staff in the MVP role set to authenticate", () => {
@@ -50,5 +55,14 @@ void describe("pre-provisioned staff access", () => {
       reason: "ROLE_NOT_ENABLED",
       message: STAFF_ACCESS_DENIED_MESSAGE,
     });
+  });
+
+  void it("reads our denial code and Better Auth's signup_disabled as access denied", () => {
+    assert.equal(isStaffAccessDeniedCode(STAFF_ACCESS_DENIED_CODE), true);
+    assert.equal(isStaffAccessDeniedCode("signup_disabled"), true);
+  });
+
+  void it("does not read verification failures as access denied", () => {
+    assert.equal(isStaffAccessDeniedCode("INVALID_TOKEN"), false);
   });
 });

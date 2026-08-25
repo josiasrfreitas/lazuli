@@ -8,6 +8,22 @@ export const STAFF_ACCESS_DENIED_MESSAGE = "Acesso não autorizado. Fale com a s
  */
 export const STAFF_ACCESS_DENIED_CODE = "STAFF_ACCESS_DENIED";
 
+/*
+ * Better Auth's own error code when `disableSignUp` blocks a social sign-in
+ * whose email has no `User` row. It short-circuits before our session hook
+ * runs, so the denial arrives under this code instead of ours.
+ */
+const SOCIAL_SIGNUP_DISABLED_CODE = "signup_disabled";
+
+/**
+ * Whether a login error code means "this person is not allowed in". Every
+ * staff account is pre-provisioned, so Better Auth's "signup disabled" is the
+ * same denial as our own code, just raised earlier in the social flow.
+ */
+export function isStaffAccessDeniedCode(code: string): boolean {
+  return code === STAFF_ACCESS_DENIED_CODE || code === SOCIAL_SIGNUP_DISABLED_CODE;
+}
+
 export type StaffRole = "ADMIN" | "SECRETARY" | "TEACHER" | "FINANCE";
 const ENABLED_ROLES = new Set<StaffRole>(["ADMIN", "TEACHER"]);
 

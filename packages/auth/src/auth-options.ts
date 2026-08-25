@@ -41,6 +41,18 @@ export function createAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
     session: {
       expiresIn: THIRTY_DAY_SESSION_SECONDS,
     },
+    account: {
+      accountLinking: {
+        enabled: true,
+        /*
+         * Staff users are pre-provisioned by email before they ever sign in,
+         * so their first Google login must attach to the existing row instead
+         * of failing with account_not_linked. Google only reports verified
+         * emails, which is what makes linking by email safe here.
+         */
+        trustedProviders: ["google"],
+      },
+    },
     socialProviders: {
       google: {
         clientId: input.googleClientId,
