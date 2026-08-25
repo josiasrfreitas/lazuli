@@ -92,6 +92,8 @@ export type {
   DialogTitleProps,
   DialogTriggerProps,
 } from "./components/dialog";
+export { Pagination } from "./components/pagination";
+export type { PaginationProps } from "./components/pagination";
 export {
   Sheet,
   SheetBackdrop,
