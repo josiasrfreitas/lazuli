@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { STAFF_ACCESS_DENIED_CODE } from "@lazuli/auth";
+import { isStaffAccessDeniedCode } from "@lazuli/auth";
 import { auth } from "@lazuli/auth/server";
 
 import { MarqueeCard } from "~/components/marquee/marquee-card";
@@ -27,10 +27,11 @@ export const metadata: Metadata = {
  * there is no "you are already signed in" screen to read.
  *
  * The `error` query parameter is set by Better Auth when a verification comes
- * back here: a staff-access denial carries our own code, and everything else
- * is some flavour of failed link. The card only ever distinguishes those two —
- * telling someone without access to "request a new link" would be a lie, and
- * naming the denial reason would leak whether an email exists.
+ * back here: a staff-access denial arrives under one of the codes
+ * `isStaffAccessDeniedCode` knows, and everything else is some flavour of
+ * failed link. The card only ever distinguishes those two — telling someone
+ * without access to "request a new link" would be a lie, and naming the
+ * denial reason would leak whether an email exists.
  */
 export default async function LoginPage({
   searchParams,
@@ -51,9 +52,7 @@ export default async function LoginPage({
       <MarqueeEditorial>
         <MarqueeEyebrow detail="Entrar" label="Lazuli" />
         <MarqueeTitle accent="simplificada." lead="Sua gestão escolar," />
-        <MarqueeBody>
-          Você atende o telefone e responde na hora, sem abrir três planilhas.
-        </MarqueeBody>
+        <MarqueeBody>Matrículas, presença e pagamentos num lugar só.</MarqueeBody>
         <MarqueeNote>Uso restrito à equipe da escola</MarqueeNote>
       </MarqueeEditorial>
 
@@ -69,5 +68,5 @@ function resolveInitialError(error: string | undefined): LoginInitialError | nul
     return null;
   }
 
-  return error === STAFF_ACCESS_DENIED_CODE ? "denied" : "verification";
+  return isStaffAccessDeniedCode(error) ? "denied" : "verification";
 }

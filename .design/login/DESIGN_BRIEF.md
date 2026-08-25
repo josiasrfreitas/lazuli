@@ -110,6 +110,6 @@ Se um usuário fosse desabilitado entre o envio do magic link e o clique, o hook
 
 ## Copy (stop-slop)
 
-A copy das duas telas passou pelas regras de `stop-slop`: voz ativa com sujeito humano, sem em-dash, sem enumeração de três itens por retórica, sem "rótulo: explicação". O corpo do `/login` coloca a pessoa na cena ("Você atende o telefone e responde na hora, sem abrir três planilhas") em vez de descrever o software de longe. O corpo do `/403` troca "Seu perfil não tem permissão" por "Você não tem permissão" — perfil não é quem age.
+A copy das duas telas passou pelas regras de `stop-slop`: voz ativa com sujeito humano, sem em-dash, sem "rótulo: explicação". O corpo do `/login` enumera o que o sistema cobre, sem cena nem promessa ("Matrículas, presença e pagamentos num lugar só") — revisão de 2026-08-25: a versão anterior encenava um telefonema e soava artificial. A enumeração é factual, não retórica. O corpo do `/403` troca "Seu perfil não tem permissão" por "Você não tem permissão" — perfil não é quem age.
 
 Jargão de mineração ficou restrito ao card decorativo (`AMOSTRA MINERAL`, `FORBIDDEN`), que é etiqueta de vitrine, não instrução. A copy que carrega significado é literal.
