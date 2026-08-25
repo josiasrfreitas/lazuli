@@ -23,15 +23,15 @@ Saídas possíveis: mover as fixtures para anos fora da era do seed e isolar o c
 
 ## UI primitives (`packages/ui`, cada um ≤200 linhas + story)
 
-- [ ] **`avatar`**: círculo com iniciais, cor de fundo determinística por id (paleta de tokens), tamanhos sm/md/lg. Story com grade de variações. _Novo._
-- [ ] **`sheet`**: painel lateral overlay (Base UI Dialog), lado direito, largura configurável, scroll interno, foco preso + Esc + retorno de foco. Story com conteúdo longo. _Novo; segue padrão do `dialog.tsx`._
-- [ ] **`pagination`**: anterior/próxima + indicador de página/total, estados disabled. Story. _Novo._
-- [ ] **`stepper`**: indicador horizontal de etapas (atual/completa/pendente/desabilitada), genérico. Story. _Novo._
-- [ ] **`empty-state`**: ícone + título + descrição + ação opcional. Story com/sem ação. _Novo._
+- [x] **`avatar`**: círculo com iniciais, cor de fundo determinística por id (paleta de tokens), tamanhos sm/md/lg. Story com grade de variações. _Novo._
+- [x] **`sheet`**: painel lateral overlay (Base UI Dialog), lado direito, largura configurável, scroll interno, foco preso + Esc + retorno de foco. Story com conteúdo longo. _Novo; segue padrão do `dialog.tsx`._
+- [x] **`pagination`**: anterior/próxima + indicador de página/total, estados disabled. Story. _Novo._
+- [x] **`stepper`**: indicador horizontal de etapas (atual/completa/pendente/desabilitada), genérico. Story. _Novo._
+- [x] **`empty-state`**: ícone + título + descrição + ação opcional. Story com/sem ação. _Novo._
 
 ## Core UI (`apps/web`, `features/students/`)
 
-- [ ] **AppShell + rota**: layout `app/(app)/` com sidebar (logo, Início, Alunos ativo, rodapé com usuário) e topbar (data por extenso pt-BR); `/` redireciona para `/alunos`. Estética do mockup: dark, serifa, calma. Done = shell navegável com página vazia. _Composição; reusa tokens/botões._
+- [x] **AppShell + rota**: layout `app/(app)/` com sidebar (logo, Início, Alunos ativo, rodapé com usuário) e topbar (data por extenso pt-BR); `/` redireciona para `/alunos`. Estética do mockup: dark, serifa, calma. Done = shell navegável com página vazia. _Composição; reusa tokens/botões._
 - [ ] **Tabela de alunos**: `StudentsPage` + `logic.ts` + `view-model.ts` + `StudentsTable`; header (título + "X alunos · Y turmas ativas" + botão Novo aluno), tabs com contagens, filtro debounced, colunas Aluno (avatar + nome + tag menor) / Turma / Professor / Frequência / Financeiro / WhatsApp; paginação; estados loading (table-skeleton), vazio (empty-state), erro. Números em `font-numeric tabular-nums`; freq <75% e valores vencidos em destructive, "Em dia" em success, "—" para ausência. Estado em nuqs (`status`, `busca`, `pagina`). Done = idêntico ao mockup 1 contra o seed. _Depends on: Foundation + primitives._
 - [ ] **Painel de preview**: `StudentPreviewPanel` via `?aluno=` (nuqs); avatar grande, nome, badge de status detalhado (Ativo/Trancado/Desistente/Inativo), fatos (turma, professor, frequência, financeiro, telefone formatado), ações "Abrir perfil" (disabled + tooltip) e WhatsApp. Clique/Enter na linha abre; WhatsApp da linha não abre painel. Done = idêntico ao mockup 2. _Depends on: sheet, tabela._
 - [ ] **Wizard novo aluno**: `NewStudentDialog` com stepper (Dados → Turma → Financeiro) e `new-student/reducer.ts` puro testado; etapa 1 completa (nome obrigatório; telefone/email/nascimento/documento opcionais; seção Responsável obrigatória se menor — espelha regras do backend, erros pt-BR do servidor mapeados aos campos); etapas 2–3 com estado "em breve" e Pular. Sucesso → fecha, invalida lista, abre painel do criado. Done = aluno criado aparece na tabela e no painel. _Depends on: stepper, infra._
