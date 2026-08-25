@@ -29,6 +29,8 @@ export type {
 } from "./components/alert";
 export { Button, buttonVariants } from "./components/button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/button";
+export { EmptyState } from "./components/empty-state";
+export type { EmptyStateProps } from "./components/empty-state";
 export { HelloWorld } from "./components/hello-world";
 export type { HelloWorldProps } from "./components/hello-world";
 export { Input } from "./components/input";
