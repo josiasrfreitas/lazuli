@@ -45,6 +45,9 @@ For coding-agent constraints, verification expectations, and documentation routi
 
 ## Frontend foundation
 
+Start with the current [frontend guide](docs/frontend/README.md), including the hard 200-line limit
+for component implementation files.
+
 `@lazuli/ui` owns the shadcn registry primitives, shared utilities, and theme tokens. Its
 `styles.css` export contains only shared theme and base CSS; each host must import it from a
 host-owned Tailwind entrypoint. The web `components.json` is for product compositions and hooks

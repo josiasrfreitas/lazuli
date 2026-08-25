@@ -7,6 +7,7 @@ import tailwindcss from "@tailwindcss/postcss";
 import postcss from "postcss";
 
 import { assertContrast, getBlock, getDeclarations, resolveColor } from "./style-test-utils.mjs";
+import { assertComponentContracts } from "./test-component-contracts.mjs";
 
 const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const colorTokenPath = "packages/ui/src/styles/tokens/color.css";
@@ -14,10 +15,13 @@ const typographyTokenPath = "packages/ui/src/styles/tokens/typography.css";
 const scaleTokenPath = "packages/ui/src/styles/tokens/scale.css";
 const effectsTokenPath = "packages/ui/src/styles/tokens/effects.css";
 const tailwindBridgePath = "packages/ui/src/styles/tokens/tailwind-bridge.css";
-const tokensStoryPath = "apps/storybook/src/tokens.stories.tsx";
+const tokensStoryPath = "apps/storybook/src/foundations/tokens.stories.tsx";
+const classNameUtilityPath = "packages/ui/src/lib/utils.ts";
 const normalTextContrastMinimum = 4.5;
 const nonTextContrastMinimum = 3;
-const poppinsWeights = ["500", "600", "700"];
+const primaryForegroundRole = "primary-foreground";
+const accentForegroundRole = "accent-foreground";
+const destructiveForegroundRole = "destructive-foreground";
 const semanticColorRoles = [
   "background",
   "foreground",
@@ -26,15 +30,21 @@ const semanticColorRoles = [
   "popover",
   "popover-foreground",
   "primary",
-  "primary-foreground",
+  "primary-hover",
+  "primary-active",
+  primaryForegroundRole,
   "secondary",
   "secondary-foreground",
   "muted",
   "muted-foreground",
   "accent",
-  "accent-foreground",
+  "accent-hover",
+  "accent-active",
+  accentForegroundRole,
   "destructive",
-  "destructive-foreground",
+  "destructive-hover",
+  "destructive-active",
+  destructiveForegroundRole,
   "border",
   "border-strong",
   "input",
@@ -42,6 +52,8 @@ const semanticColorRoles = [
   "brand",
   "brand-foreground",
   "interactive",
+  "interactive-hover",
+  "interactive-active",
   "success",
   "success-muted",
   "warning",
@@ -53,7 +65,15 @@ const semanticColorRoles = [
 ];
 const colorUtilities = [
   "bg-primary",
+  "bg-primary-hover",
+  "bg-primary-active",
   "text-primary-foreground",
+  "bg-accent-hover",
+  "bg-accent-active",
+  "bg-destructive-hover",
+  "bg-destructive-active",
+  "text-interactive-hover",
+  "text-interactive-active",
   "bg-brand",
   "text-brand-foreground",
   "text-interactive",
@@ -61,8 +81,9 @@ const colorUtilities = [
   "bg-success-muted",
 ];
 const typographyUtilities = [
-  "font-sans",
+  "font-body",
   "font-display",
+  "font-numeric",
   "text-display",
   "text-h1",
   "text-h2",
@@ -91,6 +112,7 @@ const scaleAndEffectsUtilities = [
   "duration-fast",
   "duration-base",
   "duration-slow",
+  "opacity-disabled",
 ];
 const sharedUtilities = [...colorUtilities, ...typographyUtilities, ...scaleAndEffectsUtilities];
 const hostStyles = [
@@ -143,6 +165,7 @@ const [
   storybookMain,
   storybookPreview,
   tokensStory,
+  classNameUtility,
 ] = await Promise.all([
   readFile(path.join(repositoryRoot, colorTokenPath), "utf8"),
   readFile(path.join(repositoryRoot, typographyTokenPath), "utf8"),
@@ -153,6 +176,7 @@ const [
   readFile(path.join(repositoryRoot, "apps/storybook/.storybook/main.ts"), "utf8"),
   readFile(path.join(repositoryRoot, "apps/storybook/.storybook/preview.tsx"), "utf8"),
   readFile(path.join(repositoryRoot, tokensStoryPath), "utf8"),
+  readFile(path.join(repositoryRoot, classNameUtilityPath), "utf8"),
 ]);
 const lightTokens = getDeclarations(colorTokens, ":root,\n.light");
 const darkTokens = getDeclarations(colorTokens, ".dark");
@@ -203,13 +227,21 @@ for (const [theme, tokens, expected] of [
     ["foreground", "background"],
     ["card-foreground", "card"],
     ["popover-foreground", "popover"],
-    ["primary-foreground", "primary"],
+    [primaryForegroundRole, "primary"],
+    [primaryForegroundRole, "primary-hover"],
+    [primaryForegroundRole, "primary-active"],
     ["secondary-foreground", "secondary"],
     ["muted-foreground", "muted"],
-    ["accent-foreground", "accent"],
-    ["destructive-foreground", "destructive"],
+    [accentForegroundRole, "accent"],
+    [accentForegroundRole, "accent-hover"],
+    [accentForegroundRole, "accent-active"],
+    [destructiveForegroundRole, "destructive"],
+    [destructiveForegroundRole, "destructive-hover"],
+    [destructiveForegroundRole, "destructive-active"],
     ["brand-foreground", "brand"],
     ["interactive", "background"],
+    ["interactive-hover", "background"],
+    ["interactive-active", "background"],
     ["success", "success-muted"],
     ["warning", "warning-muted"],
     ["info", "info-muted"],
@@ -226,17 +258,21 @@ for (const [theme, tokens, expected] of [
 
 assert.match(
   typographyTokens,
-  /url\("~@fontsource-variable\/inter\/files\/inter-latin-wght-normal\.woff2"\)/u,
+  /--lz-font-body: Cambria, Georgia, "Times New Roman", serif;/u,
 );
-for (const weight of poppinsWeights) {
-  assert.match(
-    globalStyles,
-    new RegExp(`@import "@fontsource/poppins/latin-${weight}\\.css";`, "u"),
-  );
-}
+assert.match(
+  typographyTokens,
+  /--lz-font-display: Cambria, Georgia, "Times New Roman", serif;/u,
+);
+assert.match(
+  typographyTokens,
+  /--lz-font-numeric: Calibri, "Segoe UI", Helvetica, Arial, sans-serif;/u,
+);
+assert.doesNotMatch(globalStyles, /@fontsource/u);
 for (const token of [
-  "font-sans",
+  "font-body",
   "font-display",
+  "font-numeric",
   "text-display",
   "text-h1",
   "text-h2",
@@ -287,21 +323,34 @@ assert.match(effectsTokens, /--lz-shadow-focus: 0 0 0 3px /u);
 assert.match(tailwindBridge, /--ease-standard: var\(--lz-ease-standard\);/u);
 for (const duration of ["fast", "base", "slow"]) {
   assert.match(effectsTokens, new RegExp(`--lz-duration-${duration}:`, "u"));
+  // duration-* utilities come from @utility blocks (not @theme) so they
+  // resolve the token at use time.
   assert.match(
     tailwindBridge,
-    new RegExp(`--duration-${duration}: var\\(--lz-duration-${duration}\\);`, "u"),
+    new RegExp(
+      `@utility duration-${duration} \\{\\n  transition-duration: var\\(--lz-duration-${duration}\\);`,
+      "u",
+    ),
   );
 }
+assert.match(effectsTokens, /--lz-opacity-disabled: 0\.5;/u);
+assert.match(tailwindBridge, /--opacity-disabled: var\(--lz-opacity-disabled\);/u);
 
 assert.match(storybookMain, /"@storybook\/addon-a11y"/u);
 assert.match(storybookPreview, /theme:/u);
 assert.match(storybookPreview, /defaultValue: "light"/u);
 assert.match(storybookPreview, /globals\.theme === "dark"/u);
-assert.match(tokensStory, /title: "Foundation\/Tokens"/u);
+assert.match(tokensStory, /title: "Foundations\/Tokens"/u);
 for (const story of ["Colors", "Typography", "ScaleAndEffects"]) {
   assert.match(tokensStory, new RegExp(`export const ${story}:`, "u"));
 }
-assert.match(tokensStory, /Educa[çc][ãa]o/u);
+assert.match(tokensStory, /Education/u);
+
+await assertComponentContracts(repositoryRoot);
+assert.match(classNameUtility, /extendTailwindMerge/u);
+for (const token of ["display", "h1", "h2", "h3", "body", "control", "caption", "micro"]) {
+  assert.match(classNameUtility, new RegExp(`"${token}"`, "u"));
+}
 
 for (const hostStyle of hostStyles) {
   await assertHostStyles(hostStyle);

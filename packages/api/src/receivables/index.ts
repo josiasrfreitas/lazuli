@@ -14,6 +14,7 @@ import { createOrder, updateOrder, type OrderScheduleResult } from "./internal/o
 import { createPayer } from "./internal/payers.js";
 import { registerPayment, type RegisterPaymentResult } from "./internal/register-payment.js";
 import type { ReceivablesDatabase } from "./internal/shared.js";
+import { studentOverdueTotals, type StudentOverdueTotal } from "./internal/student-balances.js";
 import type { Payer } from "@lazuli/db";
 import type { ReceivablesSnapshot } from "@lazuli/domain";
 import type {
@@ -49,6 +50,7 @@ export function receivables(db: ReceivablesDatabase, staffUserId: string): Recei
       addInstallmentAdjustment({ database: db, values, staffUserId }),
     receivablesSnapshot: () => receivablesSnapshot(db),
     overdueList: () => overdueList(db),
+    studentOverdueTotals: (values) => studentOverdueTotals({ database: db, values }),
   };
 }
 
@@ -74,6 +76,11 @@ export type ReceivablesModule = {
   ) => Promise<AddInstallmentAdjustmentResult>;
   receivablesSnapshot: () => Promise<ReceivablesSnapshot>;
   overdueList: () => Promise<OverdueListResult>;
+  /** One derived finance fact per student, for listings (see student-balances.ts). */
+  studentOverdueTotals: (values: {
+    studentIds: readonly string[];
+    now: Date;
+  }) => Promise<StudentOverdueTotal[]>;
 };
 
 export type { BatchReconcileResult } from "./internal/batch-reconcile.js";
@@ -84,6 +91,7 @@ export type {
 export type { OverdueListResult } from "./internal/ledger-read.js";
 export type { OrderScheduleResult } from "./internal/orders.js";
 export type { RegisterPaymentResult } from "./internal/register-payment.js";
+export type { StudentOverdueTotal } from "./internal/student-balances.js";
 
 export {
   ADJUSTMENT_BELOW_PAID_MESSAGE,

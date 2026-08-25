@@ -1,0 +1,46 @@
+import type { ReactElement } from "react";
+
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
+import { cva, type VariantProps } from "class-variance-authority";
+
+import { cn } from "../lib/utils";
+
+export const badgeVariants = cva(
+  [
+    "inline-flex h-[1.3125rem] w-fit shrink-0 items-center justify-center rounded-sm border px-2",
+    "text-micro font-semibold leading-none",
+  ],
+  {
+    variants: {
+      variant: {
+        neutral: "border-border bg-muted text-muted-foreground",
+        success: "border-success/20 bg-success-muted text-success",
+        warning: "border-warning/20 bg-warning-muted text-warning",
+        destructive: "border-destructive/20 bg-destructive-muted text-destructive",
+        info: "border-info/20 bg-info-muted text-info",
+      },
+    },
+    defaultVariants: {
+      variant: "neutral",
+    },
+  },
+);
+
+export type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
+
+export type BadgeProps = useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>;
+
+export function Badge({ className, render, variant, ...props }: BadgeProps): ReactElement {
+  return useRender({
+    defaultTagName: "span",
+    props: mergeProps<"span">(
+      {
+        className: cn(badgeVariants({ variant }), className),
+      },
+      props,
+    ),
+    render,
+    state: { slot: "badge", variant },
+  });
+}

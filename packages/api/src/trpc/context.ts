@@ -1,4 +1,4 @@
-import { evaluateStaffAccess, type StaffRole, type StaffSession } from "@lazuli/auth";
+import { resolveStaffIdentity, type StaffIdentity, type StaffSession } from "@lazuli/auth";
 import {
   createLocalSessionsGenerateQueue,
   createLocalReportGenerateQueue,
@@ -12,12 +12,7 @@ import {
 type DbClient = (typeof import("@lazuli/db"))["db"];
 
 /** Domain identity for an authenticated staff member. `id` is always `User.id`. */
-export type StaffUser = {
-  id: string;
-  email: string;
-  role: StaffRole;
-  isEnabled: boolean;
-};
+export type StaffUser = StaffIdentity;
 
 export type Context = {
   db: DbClient;
@@ -40,11 +35,15 @@ type CreateTRPCContextInput = {
  * resolved `session` directly (no HTTP); the Next.js route passes the Better Auth
  * session it read from request headers. Domain identity is reloaded from `User` by
  * email — never taken from the Better Auth adapter id.
+ *
+ * No session means no staff user, in every environment. The local sign-in
+ * shortcut this once carried was retired when the login screen shipped.
  */
 export async function createTRPCContext(input: CreateTRPCContextInput): Promise<Context> {
   const db = input.db ?? (await resolveDefaultDb());
+  const session = input.session;
   const staffUser =
-    input.session === null ? null : await resolveStaffUser({ db, email: input.session.user.email });
+    session === null ? null : await resolveStaffUser({ db, email: session.user.email });
 
   return {
     db,
@@ -61,11 +60,5 @@ async function resolveDefaultDb(): Promise<DbClient> {
 }
 
 async function resolveStaffUser(input: { db: DbClient; email: string }): Promise<StaffUser | null> {
-  const user = await input.db.user.findUnique({ where: { email: input.email } });
-
-  if (user === null || !evaluateStaffAccess(user).allowed) {
-    return null;
-  }
-
-  return { id: user.id, email: user.email, role: user.role, isEnabled: user.isEnabled };
+  return resolveStaffIdentity(await input.db.user.findUnique({ where: { email: input.email } }));
 }

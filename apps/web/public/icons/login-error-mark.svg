@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Registration corners repeat the architectural frame used by the login card. -->
+  <path
+    d="M3 11V3H11M21 3H29V11M29 21V29H21M11 29H3V21"
+    stroke="#F06A78"
+    stroke-width="1.5"
+  />
+
+  <!-- A 45-degree construction grid contains the error mark. -->
+  <path d="M16 5L27 16L16 27L5 16L16 5Z" stroke="#F06A78" stroke-width="1.5" />
+  <path d="M10 8L16 14L22 8L24 10L18 16L24 22L22 24L16 18L10 24L8 22L14 16L8 10L10 8Z" fill="#FFF7ED" />
+</svg>

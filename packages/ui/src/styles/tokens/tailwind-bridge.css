@@ -1,6 +1,13 @@
 @theme inline {
-  --font-sans: var(--lz-font-sans);
+  --font-body: var(--lz-font-body);
   --font-display: var(--lz-font-display);
+  --font-numeric: var(--lz-font-numeric);
+  --font-grotesk: var(--lz-font-grotesk);
+  --font-mono: var(--lz-font-mono);
+  --text-hero: var(--lz-text-hero);
+  --text-hero--line-height: var(--lz-leading-hero);
+  --text-hero--letter-spacing: var(--lz-tracking-hero);
+  --tracking-eyebrow: var(--lz-tracking-eyebrow);
   --text-display: var(--lz-text-display);
   --text-display--line-height: var(--lz-leading-display);
   --text-h1: var(--lz-text-h1);
@@ -32,9 +39,7 @@
   --shadow-lg: var(--lz-shadow-lg);
   --shadow-focus: var(--lz-shadow-focus);
   --ease-standard: var(--lz-ease-standard);
-  --duration-fast: var(--lz-duration-fast);
-  --duration-base: var(--lz-duration-base);
-  --duration-slow: var(--lz-duration-slow);
+  --opacity-disabled: var(--lz-opacity-disabled);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -43,14 +48,20 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-active: var(--destructive-active);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
@@ -59,6 +70,8 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-interactive: var(--interactive);
+  --color-interactive-hover: var(--interactive-hover);
+  --color-interactive-active: var(--interactive-active);
   --color-success: var(--success);
   --color-success-muted: var(--success-muted);
   --color-warning: var(--warning);
@@ -67,8 +80,19 @@
   --color-info-muted: var(--info-muted);
   --color-destructive-muted: var(--destructive-muted);
   --color-overlay: var(--overlay);
+  --color-marquee: var(--marquee);
+  --color-marquee-foreground: var(--marquee-foreground);
+  --color-marquee-muted: var(--marquee-muted);
+  --color-marquee-border: var(--marquee-border);
+  --color-marquee-accent: var(--marquee-accent);
+  --color-marquee-accent-foreground: var(--marquee-accent-foreground);
 }
 
+/*
+ * Custom utilities ("shadow API"). Only add a utility here when it
+ * (a) consumes a design token AND (b) is used by 2+ components —
+ * otherwise keep the classes inline in the single consumer.
+ */
 @utility duration-fast {
   transition-duration: var(--lz-duration-fast);
 }
@@ -79,4 +103,30 @@
 
 @utility duration-slow {
   transition-duration: var(--lz-duration-slow);
+}
+
+/*
+ * The standard properties and the ::-webkit-scrollbar rules are NOT
+ * redundant: in Chrome, setting `scrollbar-width`/`scrollbar-color`
+ * makes the ::-webkit-scrollbar-* rules be ignored, and vice-versa
+ * removing the standard pair re-activates them. Removing either side
+ * "for redundancy" changes the rendered scrollbar.
+ */
+@utility scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: var(--lz-radius-full);
+    background-color: var(--border-strong);
+  }
 }

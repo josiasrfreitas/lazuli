@@ -14,7 +14,7 @@ export function HelloWorld({ message = DEFAULT_MESSAGE }: HelloWorldProps): Reac
       <p className="text-sm font-medium text-muted-foreground">Lazuli UI</p>
       <h1 className="mt-3 text-3xl font-semibold text-foreground">{message}</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Tema global, Tailwind v4 e shadcn/ui estão conectados.
+        Global theme, Tailwind v4, and shadcn/ui are connected.
       </p>
       <Button className="mt-5" type="button">
         Pronto

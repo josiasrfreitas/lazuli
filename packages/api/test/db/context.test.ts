@@ -24,6 +24,7 @@ void describe("createTRPCContext staff resolution", () => {
   registerEnabledStaffTest();
   registerDeniedStaffTest();
   registerProtectedSeamTest();
+  registerNoSessionTest();
 });
 
 function registerEnabledStaffTest(): void {
@@ -65,6 +66,23 @@ function registerProtectedSeamTest(): void {
     assert.equal(result?.id, admin.id);
     await assert.rejects(createCaller(anonymousContext).me(), UNAUTHORIZED);
   });
+}
+
+/**
+ * There is no environment in which a missing session still resolves a staff user:
+ * the development sign-in shortcut was retired with the login screen.
+ */
+function registerNoSessionTest(): void {
+  databaseIt(
+    "resolves no staff user without a session, whatever the environment holds",
+    async () => {
+      await createUser({ role: "ADMIN" });
+
+      const context = await createTRPCContext({ db, session: null });
+
+      assert.equal(context.staffUser, null);
+    },
+  );
 }
 
 async function assertNoStaffUser(session: StaffSession | null): Promise<void> {

@@ -1,16 +1,31 @@
-@font-face {
-  font-family: "Inter Variable";
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("~@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2-variations");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
-    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
 :root {
-  --lz-font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --lz-font-display: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --lz-font-body: Cambria, Georgia, "Times New Roman", serif;
+  --lz-font-display: Cambria, Georgia, "Times New Roman", serif;
+  --lz-font-numeric: Calibri, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  /*
+   * Front-of-house voice, used only by the screens outside the authenticated
+   * product (login, 403, future error pages). The tool speaks in Cambria; its
+   * cover speaks in a tight grotesk with monospaced labels. Keeping both as
+   * system stacks preserves the no-webfont rule.
+   */
+  --lz-font-grotesk: "Helvetica Neue", "Segoe UI Variable Display", "Segoe UI", system-ui, Arial,
+    sans-serif;
+  --lz-font-mono: ui-monospace, "SF Mono", Menlo, "Cascadia Mono", "Segoe UI Mono", Consolas,
+    monospace;
+
+  /*
+   * Marquee headline. Fluid so a 64px desktop title still fits a 375px phone.
+   * The slope is calibrated to the editorial column, not the viewport: on the
+   * split layout the column narrows faster than the viewport does, and the
+   * longest lead line ("Sua gestão escolar,") needs 8.67px of width per px of
+   * font size. A plain vw term keeps the title at its ceiling while the column
+   * shrinks, wrapping the two-line lockup into three lines around 1280px.
+   */
+  --lz-text-hero: clamp(2.25rem, 5.75vw - 0.75rem, 4rem);
+  --lz-leading-hero: 0.95;
+  --lz-tracking-hero: -0.035em;
+  --lz-tracking-eyebrow: 0.18em;
 
   --lz-text-display: 3rem;
   --lz-leading-display: 1.1;

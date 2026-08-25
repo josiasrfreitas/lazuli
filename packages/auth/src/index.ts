@@ -12,12 +12,19 @@ export { createMagicLinkSender } from "./email.js";
 export { getAuthEnvironment } from "./env.js";
 export type { AuthEnvironment } from "./env.js";
 export type { AuthOptionsInput, MagicLinkDelivery, MagicLinkSender } from "./auth-options.js";
-export { evaluateStaffAccess, STAFF_ACCESS_DENIED_MESSAGE } from "./staff-access.js";
+export {
+  evaluateStaffAccess,
+  isStaffAccessDeniedCode,
+  resolveStaffIdentity,
+  STAFF_ACCESS_DENIED_CODE,
+  STAFF_ACCESS_DENIED_MESSAGE,
+} from "./staff-access.js";
 export type {
   StaffAccessAllowed,
   StaffAccessDenied,
   StaffAccessDeniedReason,
   StaffAccessResult,
   StaffAccessUser,
+  StaffIdentity,
   StaffRole,
 } from "./staff-access.js";

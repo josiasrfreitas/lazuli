@@ -18,7 +18,7 @@ const semanticPairs = [
 ] as const;
 
 const meta = {
-  title: "Foundation/Tokens",
+  title: "Foundations/Tokens",
   parameters: {
     layout: "fullscreen",
   },
@@ -64,16 +64,16 @@ export const Colors: Story = {
 export const Typography: Story = {
   render: () => (
     <main className="mx-auto grid w-full max-w-4xl gap-6 bg-card p-6 text-foreground">
-      <p className="font-display text-display font-bold">Educação que aproxima pessoas.</p>
-      <p className="font-display text-h1 font-bold">Título de primeiro nível</p>
-      <p className="font-display text-h2 font-semibold">Título de segundo nível</p>
-      <p className="font-display text-h3 font-semibold">Título de terceiro nível</p>
+      <p className="font-display text-display font-bold">Education that brings people together.</p>
+      <p className="font-display text-h1 font-bold">First-level heading</p>
+      <p className="font-display text-h2 font-semibold">Second-level heading</p>
+      <p className="font-display text-h3 font-semibold">Third-level heading</p>
       <p className="text-body">
-        A escola reúne famílias, estudantes e educadores em uma rotina clara e acolhedora.
+        The school brings families, students, and educators together in a clear, welcoming routine.
       </p>
-      <p className="text-control">Controle: matrícula confirmada</p>
-      <p className="text-caption text-muted-foreground">Legenda: atualização em horário local</p>
-      <p className="text-micro tracking-label text-muted-foreground">DADOS ACADÊMICOS</p>
+      <p className="text-control">Control: enrollment confirmed</p>
+      <p className="text-caption text-muted-foreground">Caption: updated in local time</p>
+      <p className="text-micro tracking-label text-muted-foreground">ACADEMIC DATA</p>
     </main>
   ),
 };

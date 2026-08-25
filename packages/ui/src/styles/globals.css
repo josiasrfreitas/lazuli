@@ -1,6 +1,3 @@
-@import "@fontsource/poppins/latin-500.css";
-@import "@fontsource/poppins/latin-600.css";
-@import "@fontsource/poppins/latin-700.css";
 @import "tw-animate-css";
 
 @import "./tokens/color.css";
@@ -17,6 +14,6 @@
   }
 
   body {
-    @apply bg-background font-sans text-foreground antialiased;
+    @apply bg-background font-body text-foreground antialiased;
   }
 }
