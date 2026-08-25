@@ -49,7 +49,13 @@ export function createAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
          * so their first Google login must attach to the existing row instead
          * of failing with account_not_linked. Google only reports verified
          * emails, which is what makes linking by email safe here.
+         *
+         * requireLocalEmailVerified must be off for the same reason: a
+         * pre-provisioned row starts with emailVerified false, and with no
+         * self-signup there is no unverified local account an attacker could
+         * have planted to hijack through the link.
          */
+        requireLocalEmailVerified: false,
         trustedProviders: ["google"],
       },
     },

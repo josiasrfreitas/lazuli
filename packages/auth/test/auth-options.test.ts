@@ -40,6 +40,16 @@ void describe("Better Auth options", () => {
     });
   });
 
+  void it("links a trusted Google sign-in to a pre-provisioned, unverified email", () => {
+    const options = createTestOptions();
+
+    assert.deepEqual(options.account?.accountLinking, {
+      enabled: true,
+      requireLocalEmailVerified: false,
+      trustedProviders: ["google"],
+    });
+  });
+
   void it("routes magic-link delivery through the injected sender", async () => {
     const deliveries: MagicLinkDelivery[] = [];
     const sendMagicLink: MagicLinkSender = (delivery) => {
