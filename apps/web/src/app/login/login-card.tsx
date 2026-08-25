@@ -129,10 +129,15 @@ function LoginAlert({ message }: { message: string | null }): ReactNode {
   return (
     /* border-destructive/40: the primitive's 20% border melts into the navy
        surface, and everything else on this frame is ruled by a crisp hairline. */
-    <Alert className="rounded-none border-destructive/40" variant="destructive">
-      {/* The broken pickaxe: decorative, so the message alone carries meaning. */}
-      <AlertIcon>
-        <img alt="" className="size-4" src="/icons/login-error-icon.svg" />
+    <Alert
+      className="flex items-center gap-3 rounded-none border-destructive/40"
+      variant="destructive"
+    >
+      {/* The geometric error mark is decorative; the message carries meaning. */}
+      {/* The negative margin lets the mark outgrow the text line without
+          stretching the box: it spends the alert's padding instead. */}
+      <AlertIcon className="translate-y-0">
+        <img alt="" className="-my-2 size-8" src="/icons/login-error-mark.svg" />
       </AlertIcon>
       <AlertDescription>{message}</AlertDescription>
     </Alert>
