@@ -11,7 +11,13 @@ import { cn } from "@lazuli/ui";
  * voice is what marks the passage from outside to inside, so the tokens it uses
  * (`--marquee-*`, `font-grotesk`, `font-mono`) belong to this frame alone.
  */
-export function MarqueePage({ children }: { children: ReactNode }): ReactNode {
+export function MarqueePage({
+  children,
+  contentClassName,
+}: {
+  children: ReactNode;
+  contentClassName?: string;
+}): ReactNode {
   return (
     <main className="relative isolate min-h-svh overflow-hidden bg-marquee font-grotesk text-marquee-foreground">
       <SurveyGrid />
@@ -19,6 +25,7 @@ export function MarqueePage({ children }: { children: ReactNode }): ReactNode {
         className={cn([
           "relative mx-auto grid min-h-svh w-full max-w-[1440px] content-center gap-14",
           "px-6 py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:items-center lg:gap-20 lg:px-16",
+          contentClassName,
         ])}
       >
         {children}
@@ -76,20 +83,30 @@ export type MarqueeTitleProps = {
   lead: string;
   /** Second line, in gold — the half that carries the verdict. */
   accent: string;
+  /** A page-specific type treatment; the shared marquee scale remains the default. */
+  className?: string;
 };
 
-export function MarqueeTitle({ accent, lead }: MarqueeTitleProps): ReactNode {
+export function MarqueeTitle({ accent, className, lead }: MarqueeTitleProps): ReactNode {
   return (
-    <h1 className="mt-5 text-hero font-bold">
+    <h1 className={cn("mt-5 text-hero font-bold", className)}>
       <span className="block">{lead}</span>
       <span className="block text-brand">{accent}</span>
     </h1>
   );
 }
 
-export function MarqueeBody({ children }: { children: ReactNode }): ReactNode {
+export function MarqueeBody({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}): ReactNode {
   return (
-    <p className="mt-7 max-w-[38ch] text-body leading-relaxed text-marquee-muted">{children}</p>
+    <p className={cn("mt-7 max-w-[38ch] text-body leading-relaxed text-marquee-muted", className)}>
+      {children}
+    </p>
   );
 }
 
