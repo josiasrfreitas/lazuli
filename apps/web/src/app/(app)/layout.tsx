@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 
 import { auth, getStaffIdentity } from "@lazuli/auth/server";
 
+import { AppShell } from "~/components/app-shell/app-shell";
+
 /**
  * The authenticated surface of the product. Every route inside this group is
  * checked on the server before it renders.
@@ -27,5 +29,5 @@ export default async function AppLayout({ children }: { children: ReactNode }): 
     redirect(session === null ? "/login" : "/403");
   }
 
-  return children;
+  return <AppShell identity={identity}>{children}</AppShell>;
 }

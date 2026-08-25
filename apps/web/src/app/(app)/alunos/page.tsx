@@ -12,10 +12,10 @@ export default function StudentsPage(): ReactNode {
   const students = trpc.students.list.useQuery({});
 
   return (
-    <main className="min-h-svh bg-background p-6 text-foreground">
-      <h1 className="text-2xl">Alunos</h1>
+    <div className="p-6">
+      <h1 className="font-display text-h2 font-semibold">Alunos</h1>
       <pre className="mt-4 overflow-x-auto text-xs">{renderState(students)}</pre>
-    </main>
+    </div>
   );
 }
 
