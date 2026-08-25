@@ -9,6 +9,7 @@ import { databaseIt } from "@lazuli/db/test";
 
 import { THIRTY_DAY_SESSION_SECONDS } from "../../src/auth-options.js";
 import { createAuth } from "../../src/auth.js";
+import { STAFF_ACCESS_DENIED_CODE } from "../../src/index.js";
 import type { AuthEnvironment, AuthInstance, MagicLinkDelivery } from "../../src/index.js";
 
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
@@ -54,6 +55,7 @@ void describe("Better Auth staff flows", () => {
   registerUnknownEmailMagicLinkTest(context);
   registerDisabledStaffMagicLinkTest(context);
   registerMagicLinkSessionTest(context);
+  registerDeniedVerificationRedirectTest(context);
   registerSignOutTest(context);
 });
 
@@ -127,6 +129,29 @@ function registerMagicLinkSessionTest(context: AuthFlowContext): void {
 
     assert.equal(response.status, HTTP_FOUND);
     assert.equal(sessionDurationSeconds(session), THIRTY_DAY_SESSION_SECONDS);
+  });
+}
+
+/**
+ * Someone disabled between the send and the click must land back on the login
+ * screen with the denial code — not on the raw JSON the session hook produces.
+ */
+function registerDeniedVerificationRedirectTest(context: AuthFlowContext): void {
+  databaseIt("redirects a denied verification back to the login screen", async () => {
+    resetDeliveries(context);
+    const email = await createTeacher({ context, name: "Professora Bloqueada" });
+
+    await requestMagicLink(context, email);
+    await db.user.update({ where: { email }, data: { isEnabled: false } });
+    const verifyUrl = new URL(getOnlyDelivery(context.deliveries).url);
+    verifyUrl.searchParams.set("errorCallbackURL", "/login");
+    const response = await context.auth.handler(new Request(verifyUrl));
+    const location = new URL(response.headers.get("location") ?? "", TEST_AUTH_ENVIRONMENT.appUrl);
+
+    assert.equal(response.status, HTTP_FOUND);
+    assert.equal(location.pathname, "/login");
+    assert.equal(location.searchParams.get("error"), STAFF_ACCESS_DENIED_CODE);
+    assert.deepEqual(await findSessionsByEmail(email), []);
   });
 }
 

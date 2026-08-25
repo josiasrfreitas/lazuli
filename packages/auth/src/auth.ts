@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 
 import type { createDbClient } from "@lazuli/db";
 
@@ -7,7 +7,13 @@ import { createAuthOptions, type AuthOptionsInput, type MagicLinkSender } from "
 import { createMagicLinkSender } from "./email.js";
 import { getAuthEnvironment } from "./env.js";
 import type { AuthEnvironment } from "./env.js";
-import { evaluateStaffAccess, type StaffAccessUser } from "./staff-access.js";
+import {
+  evaluateStaffAccess,
+  STAFF_ACCESS_DENIED_CODE,
+  type StaffAccessUser,
+} from "./staff-access.js";
+
+const MAGIC_LINK_VERIFY_PATH = "/magic-link/verify";
 
 type StaffDatabase = AuthOptionsInput["database"] & ReturnType<typeof createDbClient>;
 
@@ -52,6 +58,9 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
         },
       },
     },
+    hooks: {
+      after: redirectDeniedMagicLinkVerification,
+    },
   });
 
   return {
@@ -72,6 +81,63 @@ function assertStaffAccess(user: StaffAccessUser | null): void {
   const result = evaluateStaffAccess(user);
 
   if (!result.allowed) {
-    throw new APIError("UNAUTHORIZED", { message: result.message });
+    /*
+     * The `code` matters as much as the message: the social-login callback
+     * only turns an APIError into a redirect back to the login screen when
+     * the error carries one, and the login screen uses it to tell access
+     * denial apart from an expired link.
+     */
+    throw new APIError("UNAUTHORIZED", {
+      code: STAFF_ACCESS_DENIED_CODE,
+      message: result.message,
+    });
   }
+}
+
+/**
+ * The magic-link verify route is a browser navigation, but a staff-access
+ * denial raised while creating the session surfaces as a JSON `APIError` —
+ * Better Auth only turns its own failures (invalid token, signup disabled)
+ * into redirects there. This hook gives our denial the same treatment, so the
+ * person lands back on the login screen instead of on raw JSON. The social
+ * callback needs no such help: it redirects any `APIError` carrying a code.
+ */
+const HTTP_FOUND = 302;
+
+const redirectDeniedMagicLinkVerification = createAuthMiddleware((ctx) => {
+  const denied = ctx.path === MAGIC_LINK_VERIFY_PATH && isStaffAccessDenied(ctx.context.returned);
+
+  // Resolving with no value leaves the endpoint's own response untouched.
+  return Promise.resolve(denied ? deniedRedirectResponse(ctx) : undefined);
+});
+
+type DeniedRedirectContext = {
+  query?: Partial<Record<"callbackURL" | "errorCallbackURL", string>> | undefined;
+  context: { baseURL: string };
+};
+
+/**
+ * A real `Response`, not `ctx.redirect`: when an after-hook replaces an
+ * endpoint's error, the dispatcher keeps the original error's status, so a
+ * thrown redirect would leave with a Location header on a 401. A `Response`
+ * passes through untouched.
+ */
+function deniedRedirectResponse(ctx: DeniedRedirectContext): Response {
+  const query = ctx.query ?? {};
+  // Resolve the target exactly as the plugin's own redirectWithError does.
+  const callbackUrl = new URL(
+    query.callbackURL === undefined ? "/" : decodeURIComponent(query.callbackURL),
+    ctx.context.baseURL,
+  ).toString();
+  const errorUrl = new URL(
+    query.errorCallbackURL === undefined ? callbackUrl : decodeURIComponent(query.errorCallbackURL),
+    ctx.context.baseURL,
+  );
+  errorUrl.searchParams.set("error", STAFF_ACCESS_DENIED_CODE);
+
+  return new Response(null, { headers: { location: errorUrl.toString() }, status: HTTP_FOUND });
+}
+
+function isStaffAccessDenied(returned: unknown): boolean {
+  return returned instanceof APIError && returned.body?.code === STAFF_ACCESS_DENIED_CODE;
 }
