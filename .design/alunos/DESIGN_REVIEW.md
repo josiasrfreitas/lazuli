@@ -50,6 +50,14 @@ A vertical entrega o brief: cada linha responde turma/frequência/financeiro com
 - `students.*` usa `adminProcedure`; o contrato pede `staffProcedure` (ADMIN+TEACHER). Adiado, registrado no PR #46.
 - Suíte `test:db` completa colide com o seed dev — documentado em `.design/alunos/TASKS.md` (dívida anterior a esta vertical).
 
+## Adendo — achados da review do PR #49 (pullfrog, 2026-08-26)
+
+Três achados inline, todos confirmados no código e consertados com verificação no browser:
+
+1. **Fechar o wizard com a criação em voo**: o X e o Esc fechavam durante o `students.create` pendente; um sucesso tardio reabria o preview e um erro tardio caía num dialog já fechado. _Fix_: pedido de fechamento é ignorado enquanto `isPending`. Verificado com fetch atrasado 8s: Esc ignorado, e a rejeição chegou num wizard aberto, na etapa Dados, com o alert "Não foi possível criar o aluno" e os campos preservados.
+2. **Sheet sem título no loading/erro**: o painel sem dados não montava `SheetTitle`, deixando o dialog sem `aria-labelledby`. _Fix_: título sr-only "Aluno" estável até o nome chegar. Verificado em Slow 3G: `aria-labelledby` presente nos dois estados (loading → "Aluno"; carregado → nome do aluno).
+3. **Navegação cega a role**: todo perfil via "Alunos", mas `students.*` é `adminProcedure` — um professor clicava e levava FORBIDDEN. _Fix_ (decisão do usuário): nav configurável por role. `nav-items.ts` vira a fonte única (item declara `roles`), a sidebar filtra por `identity.role` e o `/` redireciona pelo mesmo mapa — perfil sem vertical aberta vê um placeholder calmo em vez de cair numa tela negada (`review-home-teacher-1280.png`, logada como TEACHER). Resíduo consciente: URL direta `/alunos` para um professor ainda mostra o estado de erro da tabela; a solução de verdade segue sendo a dívida do `staffProcedure`.
+
 ## What Works Well
 
 - **Densidade serena de verdade**: a linha carrega seis fatos e continua calma — serifa no nome, `font-numeric tabular-nums` nos números, cor apenas onde há significado (50% e R$ 380,00 em destructive, "Em dia" em success, "—" muted para ausência). É a tradução fiel do princípio 3 do brief.
