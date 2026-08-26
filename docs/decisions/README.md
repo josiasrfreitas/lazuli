@@ -30,6 +30,7 @@ not rewrite history.
 | [0013 GCP and Pulumi for managed infrastructure](0013-use-gcp-and-pulumi-for-managed-infrastructure.md) | Accepted | D-0003                 |
 | [0014 PostgreSQL through Prisma](0014-use-postgresql-through-prisma.md)                                 | Accepted | Accepted legacy stack  |
 | [0015 Base UI primitives for the design system](0015-use-base-ui-primitives-for-the-design-system.md)   | Accepted | None                   |
+| [0016 Kysely for complex relational reads](0016-use-kysely-for-complex-relational-reads.md)             | Accepted | None                   |
 
 The archived register's complete disposition is: extracted — D-0001, D-0002, D-0003, D-0004,
 D-0005, D-0008, D-0021, D-0025, D-0028, D-0030 through D-0034, and D-0037; universal AGENTS rule
