@@ -2,7 +2,37 @@
 
 import { forwardRef, type ComponentPropsWithoutRef } from "react";
 
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
+import { X } from "lucide-react";
+
 import { cn } from "../lib/utils";
+
+export type DialogCloseButtonProps = DialogPrimitive.Close.Props;
+
+/**
+ * Styled corner "X" shared by the dialog and sheet popups. Callers name it via
+ * `aria-label`; `right-4` + `size-8` define the space DialogHeader reserves
+ * through pr-8 below — the pair must change together.
+ */
+export const DialogCloseButton = forwardRef<HTMLButtonElement, DialogCloseButtonProps>(
+  ({ className, ...props }, ref) => (
+    <DialogPrimitive.Close
+      {...props}
+      className={cn(
+        "absolute right-4 top-4 inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground",
+        "transition-colors duration-fast ease-standard hover:bg-accent hover:text-accent-foreground",
+        "focus-visible:outline-none focus-visible:shadow-focus disabled:pointer-events-none disabled:opacity-disabled",
+        className,
+      )}
+      data-slot="dialog-close-button"
+      ref={ref}
+    >
+      <X aria-hidden="true" className="size-4" />
+    </DialogPrimitive.Close>
+  ),
+);
+
+DialogCloseButton.displayName = "DialogCloseButton";
 
 export type DialogHeaderProps = ComponentPropsWithoutRef<"div">;
 

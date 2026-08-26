@@ -104,8 +104,9 @@ function assertDialogContract({ dialogLayoutSource, dialogSource, dialogStory })
   assert.match(dialogSource, /@base-ui\/react\/dialog/u);
   assert.match(dialogSource, /showCloseButton = true/u);
   assert.match(dialogSource, /data-slot="dialog-content"/u);
-  assert.match(dialogSource, /data-slot="dialog-close-button"/u);
-  assert.match(dialogSource, /absolute right-4 top-4/u);
+  // The corner "X" lives in dialog-layout so dialog and sheet share it.
+  assert.match(dialogLayoutSource, /data-slot="dialog-close-button"/u);
+  assert.match(dialogLayoutSource, /absolute right-4 top-4/u);
   // DialogHeader's pr-8 reserves space for the close X (`right-4` + `size-8`)
   // rendered by DialogContent — the pair must change together.
   assert.match(dialogLayoutSource, /pr-8/u);

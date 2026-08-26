@@ -5,6 +5,7 @@ import { createCaller, type Context, type StaffUser } from "@lazuli/api";
 
 const STAFF_USER: StaffUser = {
   id: "00000000-0000-0000-0000-000000000001",
+  name: "Admin de Teste",
   email: "admin@example.com",
   role: "ADMIN",
   isEnabled: true,

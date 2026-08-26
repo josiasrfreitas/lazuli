@@ -1,7 +1,8 @@
 "use client";
 
-import { httpBatchLink } from "@trpc/client";
+import { httpBatchLink, type TRPCClientErrorLike } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
+import type { UseTRPCQueryResult } from "@trpc/react-query/shared";
 import superjson from "superjson";
 
 import type { AppRouter } from "@lazuli/api";
@@ -19,6 +20,16 @@ import type { AppRouter } from "@lazuli/api";
 const TRPC_ENDPOINT = "/api/trpc";
 
 export const trpc = createTRPCReact<AppRouter>();
+
+/**
+ * Return type of a `trpc.*.useQuery` hook, for annotating `logic.ts` hooks.
+ * `ReturnType<typeof trpc.….useQuery>` does not work there: taking `typeof` of
+ * the uncalled generic collapses the data type instead of inferring it.
+ */
+export type QueryResult<TData> = UseTRPCQueryResult<TData, TRPCClientErrorLike<AppRouter>>;
+
+/** Error type of a failed `trpc.*` call, carrying the formatted `zodError`. */
+export type ClientError = TRPCClientErrorLike<AppRouter>;
 
 export type TRPCClient = ReturnType<typeof trpc.createClient>;
 

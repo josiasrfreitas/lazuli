@@ -53,6 +53,7 @@ const DUE_DAY = 10;
 
 export const ADMIN: StaffUser = {
   id: ADMIN_ID,
+  name: "Admin de Teste",
   email: "gre644-students-list-admin@example.com",
   role: "ADMIN",
   isEnabled: true,

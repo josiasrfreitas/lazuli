@@ -5,6 +5,8 @@
 
 export const UI_PACKAGE = "@lazuli/ui" as const;
 
+export { Avatar, avatarVariants } from "./components/avatar";
+export type { AvatarProps, AvatarSize } from "./components/avatar";
 export { Badge, badgeVariants } from "./components/badge";
 export type { BadgeProps, BadgeVariant } from "./components/badge";
 export {
@@ -27,6 +29,8 @@ export type {
 } from "./components/alert";
 export { Button, buttonVariants } from "./components/button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/button";
+export { EmptyState } from "./components/empty-state";
+export type { EmptyStateProps } from "./components/empty-state";
 export { HelloWorld } from "./components/hello-world";
 export type { HelloWorldProps } from "./components/hello-world";
 export { Input } from "./components/input";
@@ -90,6 +94,38 @@ export type {
   DialogTitleProps,
   DialogTriggerProps,
 } from "./components/dialog";
+export { Pagination } from "./components/pagination";
+export type { PaginationProps } from "./components/pagination";
+export { Stepper } from "./components/stepper";
+export type { StepperItem, StepperProps, StepperStepState } from "./components/stepper";
+export {
+  Sheet,
+  SheetBackdrop,
+  SheetBody,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetPortal,
+  SheetTitle,
+  SheetTrigger,
+  sheetContentVariants,
+} from "./components/sheet";
+export type {
+  SheetBackdropProps,
+  SheetBodyProps,
+  SheetCloseProps,
+  SheetContentProps,
+  SheetDescriptionProps,
+  SheetFooterProps,
+  SheetHeaderProps,
+  SheetPortalProps,
+  SheetProps,
+  SheetSize,
+  SheetTitleProps,
+  SheetTriggerProps,
+} from "./components/sheet";
 export {
   Popover,
   PopoverClose,

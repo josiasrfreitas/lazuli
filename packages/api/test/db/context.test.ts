@@ -35,6 +35,7 @@ function registerEnabledStaffTest(): void {
 
       assert.deepEqual(context.staffUser, {
         id: user.id,
+        name: user.name,
         email: user.email,
         role,
         isEnabled: true,
@@ -93,13 +94,13 @@ async function assertNoStaffUser(session: StaffSession | null): Promise<void> {
 async function createUser(input: {
   role: StaffRole;
   isEnabled?: boolean;
-}): Promise<{ email: string; id: string }> {
+}): Promise<{ email: string; id: string; name: string }> {
   const email = randomEmail();
   createdEmails.push(email);
   const user = await db.user.create({
     data: { email, name: "Equipe Teste", role: input.role, isEnabled: input.isEnabled ?? true },
   });
-  return { email, id: user.id };
+  return { email, id: user.id, name: user.name };
 }
 
 function sessionFor(email: string): StaffSession {

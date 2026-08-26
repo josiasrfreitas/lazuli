@@ -26,6 +26,7 @@ export const ALL_ROUTERS: readonly RouterName[] = [
 
 export const ADMIN_FIXTURE: StaffUser = {
   id: "00000000-0000-0000-0000-0000000000ad",
+  name: "Admin de Teste",
   email: "admin@example.com",
   role: "ADMIN",
   isEnabled: true,
@@ -33,6 +34,7 @@ export const ADMIN_FIXTURE: StaffUser = {
 
 export const TEACHER_FIXTURE: StaffUser = {
   id: "00000000-0000-0000-0000-0000000000ed",
+  name: "Professora de Teste",
   email: "teacher@example.com",
   role: "TEACHER",
   isEnabled: true,

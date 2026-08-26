@@ -13,6 +13,7 @@ const FUTURE_TEST_DATE_MAX = "2099-12-31";
 
 export const ADMIN: StaffUser = {
   id: "00000000-0000-0000-0000-0000000028ad",
+  name: "Admin de Teste",
   email: "gre-28-admin@example.com",
   role: "ADMIN",
   isEnabled: true,
@@ -20,6 +21,7 @@ export const ADMIN: StaffUser = {
 
 export const TEACHER: StaffUser = {
   id: "00000000-0000-0000-0000-0000000028ed",
+  name: "Professora de Teste",
   email: "gre-28-teacher@example.com",
   role: "TEACHER",
   isEnabled: true,

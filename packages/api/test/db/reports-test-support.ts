@@ -9,6 +9,7 @@ export const ENDPOINT = "/api/trpc";
 
 export const ADMIN: StaffUser = {
   id: "00000000-0000-0000-0000-0000000000ad",
+  name: "Admin de Teste",
   email: "admin@example.com",
   role: "ADMIN",
   isEnabled: true,
@@ -16,6 +17,7 @@ export const ADMIN: StaffUser = {
 
 export const TEACHER: StaffUser = {
   id: "00000000-0000-0000-0000-000000002901",
+  name: "Professora de Teste",
   email: "gre66-reports-teacher@example.com",
   role: "TEACHER",
   isEnabled: true,

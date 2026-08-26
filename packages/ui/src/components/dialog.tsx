@@ -4,12 +4,17 @@ import { forwardRef, type ReactElement, type RefAttributes } from "react";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { cva } from "class-variance-authority";
-import { X } from "lucide-react";
 
 import { cn } from "../lib/utils";
+import { DialogCloseButton } from "./dialog-layout";
 
-export { DialogBody, DialogFooter, DialogHeader } from "./dialog-layout";
-export type { DialogBodyProps, DialogFooterProps, DialogHeaderProps } from "./dialog-layout";
+export { DialogBody, DialogCloseButton, DialogFooter, DialogHeader } from "./dialog-layout";
+export type {
+  DialogBodyProps,
+  DialogCloseButtonProps,
+  DialogFooterProps,
+  DialogHeaderProps,
+} from "./dialog-layout";
 
 /**
  * A modal dialog root. It supports controlled and uncontrolled open state,
@@ -64,7 +69,7 @@ export const DialogBackdrop = forwardRef<HTMLDivElement, DialogBackdropProps>(
       className={cn(
         [
           "fixed inset-0 z-50 bg-overlay backdrop-blur-sm",
-          "transition-[opacity,backdrop-filter] duration-base ease-standard",
+          "transition-[opacity,backdrop-filter] duration-base ease-standard motion-reduce:transition-none",
           "data-[starting-style]:opacity-0 data-[ending-style]:opacity-0",
         ],
         className,
@@ -80,7 +85,7 @@ DialogBackdrop.displayName = "DialogBackdrop";
 export const dialogContentVariants = cva([
   "fixed inset-x-4 top-1/2 z-50 flex max-h-[calc(100dvh-4rem)] w-auto -translate-y-1/2 flex-col overflow-hidden",
   "rounded-lg border border-border bg-popover p-6 text-popover-foreground shadow-lg outline-none",
-  "transition-[opacity,transform] duration-base ease-standard",
+  "transition-[opacity,transform] duration-base ease-standard motion-reduce:transition-none",
   "focus-visible:shadow-focus data-[starting-style]:translate-y-[calc(-50%+0.5rem)] data-[starting-style]:opacity-0",
   "data-[ending-style]:translate-y-[calc(-50%+0.5rem)] data-[ending-style]:opacity-0",
   "md:left-1/2 md:w-full md:max-w-lg md:-translate-x-1/2",
@@ -101,21 +106,7 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       data-slot="dialog-content"
       ref={ref}
     >
-      {showCloseButton ? (
-        <DialogPrimitive.Close
-          aria-label={closeLabel}
-          // `right-4` + `size-8` define the space DialogHeader reserves via
-          // pr-8 (dialog-layout.tsx) — the pair must change together.
-          className={cn(
-            "absolute right-4 top-4 inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground",
-            "transition-colors duration-fast ease-standard hover:bg-accent hover:text-accent-foreground",
-            "focus-visible:outline-none focus-visible:shadow-focus disabled:pointer-events-none disabled:opacity-disabled",
-          )}
-          data-slot="dialog-close-button"
-        >
-          <X aria-hidden="true" className="size-4" />
-        </DialogPrimitive.Close>
-      ) : null}
+      {showCloseButton ? <DialogCloseButton aria-label={closeLabel} /> : null}
       {children}
     </DialogPrimitive.Popup>
   ),
