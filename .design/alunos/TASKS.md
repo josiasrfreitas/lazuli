@@ -43,4 +43,8 @@ Saídas possíveis: mover as fixtures para anos fora da era do seed e isolar o c
 
 ## Review
 
-- [ ] **Design review**: rodar /design-review contra o brief com screenshots (desktop 1280, estados: cheio, filtrado, vazio, painel aberto, wizard etapas).
+- [x] **Design review**: rodar /design-review contra o brief com screenshots (desktop 1280, estados: cheio, filtrado, vazio, painel aberto, wizard etapas). Resultado em `DESIGN_REVIEW.md`: 4 achados, todos consertados e verificados no browser.
+
+## Dívida registrada na review
+
+- [ ] **Paginação com contexto**: mostrar intervalo/total ("1–10 de 17 alunos") e permitir escolher itens por página (query `porPagina` via nuqs). Toca `Pagination` em `packages/ui` e o input de `students.list`.
