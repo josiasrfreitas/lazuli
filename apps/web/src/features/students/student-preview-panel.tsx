@@ -126,9 +126,13 @@ function PanelActions({ row }: { row: StudentListRow }): ReactElement {
 function PanelContent({ preview }: { preview: StudentPreviewQuery }): ReactElement {
   if (preview.data === undefined) {
     return (
-      <SheetBody className="mt-2 text-caption text-muted-foreground" role="status">
-        {preview.error === null ? "Carregando aluno…" : "Não foi possível carregar o aluno."}
-      </SheetBody>
+      <>
+        {/* Keeps the dialog labelled for assistive tech before the name arrives. */}
+        <SheetTitle className="sr-only">Aluno</SheetTitle>
+        <SheetBody className="mt-2 text-caption text-muted-foreground" role="status">
+          {preview.error === null ? "Carregando aluno…" : "Não foi possível carregar o aluno."}
+        </SheetBody>
+      </>
     );
   }
 
