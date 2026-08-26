@@ -44,7 +44,7 @@ export const sheetContentVariants = cva(
   [
     "fixed inset-y-0 right-0 z-50 flex h-full w-full flex-col overflow-hidden",
     "border-l border-border bg-popover p-6 text-popover-foreground shadow-lg outline-none",
-    "transition-[opacity,transform] duration-base ease-standard",
+    "transition-[opacity,transform] duration-base ease-standard motion-reduce:transition-none",
     "focus-visible:shadow-focus data-[starting-style]:translate-x-full data-[ending-style]:translate-x-full",
   ],
   {

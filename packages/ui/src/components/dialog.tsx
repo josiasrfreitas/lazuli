@@ -69,7 +69,7 @@ export const DialogBackdrop = forwardRef<HTMLDivElement, DialogBackdropProps>(
       className={cn(
         [
           "fixed inset-0 z-50 bg-overlay backdrop-blur-sm",
-          "transition-[opacity,backdrop-filter] duration-base ease-standard",
+          "transition-[opacity,backdrop-filter] duration-base ease-standard motion-reduce:transition-none",
           "data-[starting-style]:opacity-0 data-[ending-style]:opacity-0",
         ],
         className,
@@ -85,7 +85,7 @@ DialogBackdrop.displayName = "DialogBackdrop";
 export const dialogContentVariants = cva([
   "fixed inset-x-4 top-1/2 z-50 flex max-h-[calc(100dvh-4rem)] w-auto -translate-y-1/2 flex-col overflow-hidden",
   "rounded-lg border border-border bg-popover p-6 text-popover-foreground shadow-lg outline-none",
-  "transition-[opacity,transform] duration-base ease-standard",
+  "transition-[opacity,transform] duration-base ease-standard motion-reduce:transition-none",
   "focus-visible:shadow-focus data-[starting-style]:translate-y-[calc(-50%+0.5rem)] data-[starting-style]:opacity-0",
   "data-[ending-style]:translate-y-[calc(-50%+0.5rem)] data-[ending-style]:opacity-0",
   "md:left-1/2 md:w-full md:max-w-lg md:-translate-x-1/2",
