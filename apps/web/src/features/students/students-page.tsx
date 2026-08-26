@@ -53,9 +53,7 @@ export function StudentsPage(): ReactElement {
         }}
         summary={students.data === undefined ? null : headerSummaryVm(students.data)}
       />
-      {students.data === undefined ? null : (
-        <StudentsControls filters={filters} tabs={statusTabsVm(students.data.counts)} />
-      )}
+      <StudentsControls filters={filters} tabs={statusTabsVm(students.data?.counts)} />
       <StudentsTable
         onRetry={() => {
           void students.refetch();

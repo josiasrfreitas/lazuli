@@ -66,13 +66,14 @@ export const STATUS_TAB_VALUES = ["todos", "ativos", "inativos"] as const;
 
 export type StatusTabValue = (typeof STATUS_TAB_VALUES)[number];
 
-export type StatusTabVm = { value: StatusTabValue; label: string; count: number };
+export type StatusTabVm = { value: StatusTabValue; label: string; count: number | null };
 
-export function statusTabsVm(counts: StudentListOutput["counts"]): StatusTabVm[] {
+/** Omitted counts (first load, error) render the tabs without numbers. */
+export function statusTabsVm(counts?: StudentListOutput["counts"]): StatusTabVm[] {
   return [
-    { value: "todos", label: "Todos", count: counts.all },
-    { value: "ativos", label: "Ativos", count: counts.active },
-    { value: "inativos", label: "Inativos", count: counts.inactive },
+    { value: "todos", label: "Todos", count: counts?.all ?? null },
+    { value: "ativos", label: "Ativos", count: counts?.active ?? null },
+    { value: "inativos", label: "Inativos", count: counts?.inactive ?? null },
   ];
 }
 

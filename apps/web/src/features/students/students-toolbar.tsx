@@ -92,9 +92,11 @@ export function StudentsControls({
           {tabs.map((tab) => (
             <TabsTab key={tab.value} value={tab.value}>
               {tab.label}
-              <span className="font-numeric text-micro tabular-nums text-muted-foreground">
-                {tab.count}
-              </span>
+              {tab.count === null ? null : (
+                <span className="font-numeric text-micro tabular-nums text-muted-foreground">
+                  {tab.count}
+                </span>
+              )}
             </TabsTab>
           ))}
         </TabsList>

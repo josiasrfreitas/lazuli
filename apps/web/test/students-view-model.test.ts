@@ -73,6 +73,18 @@ void describe("students page furniture", () => {
     );
   });
 
+  void it("keeps the tabs, without numbers, while counts are unknown", () => {
+    const tabs = statusTabsVm();
+    assert.deepEqual(
+      tabs.map((tab) => [tab.value, tab.count]),
+      [
+        ["todos", null],
+        ["ativos", null],
+        ["inativos", null],
+      ],
+    );
+  });
+
   void it("tells an empty school apart from filters that match nothing", () => {
     assert.deepEqual(tableStateVm({ rows: undefined, isError: false, filtered: false }), {
       kind: "loading",
