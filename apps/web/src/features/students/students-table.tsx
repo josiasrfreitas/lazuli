@@ -18,9 +18,20 @@ import {
 import { StudentsTableRow } from "./students-table-row";
 import type { StudentsTableState } from "./view-model";
 
-const COLUMNS = ["Aluno", "Turma", "Professor", "Frequência", "Financeiro"] as const;
+const FACT_WIDTH = "w-[15%]";
+
+// Explicit widths + `table-fixed` keep the columns in place across the data,
+// loading and empty states — with auto layout the empty row's colspan lets
+// the headers slide between states.
+const COLUMNS: readonly { label: string; width: string; numeric: boolean }[] = [
+  { label: "Aluno", width: "w-[30%]", numeric: false },
+  { label: "Turma", width: FACT_WIDTH, numeric: false },
+  { label: "Professor", width: "w-[17%]", numeric: false },
+  { label: "Frequência", width: FACT_WIDTH, numeric: true },
+  { label: "Financeiro", width: FACT_WIDTH, numeric: true },
+];
 const COLUMN_COUNT = COLUMNS.length + 1;
-const NUMERIC_COLUMNS = [COLUMNS.indexOf("Frequência"), COLUMNS.indexOf("Financeiro")];
+const NUMERIC_COLUMNS = COLUMNS.flatMap((column, index) => (column.numeric ? [index] : []));
 const SKELETON_ROWS = 8;
 
 function StatesRow({
@@ -88,12 +99,12 @@ export function StudentsTable({
 }): ReactElement {
   return (
     <TableContainer>
-      <Table aria-label="Lista de alunos">
+      <Table aria-label="Lista de alunos" className="min-w-2xl table-fixed">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {COLUMNS.map((label, index) => (
-              <TableHead key={label} numeric={NUMERIC_COLUMNS.includes(index)}>
-                {label}
+            {COLUMNS.map((column) => (
+              <TableHead className={column.width} key={column.label} numeric={column.numeric}>
+                {column.label}
               </TableHead>
             ))}
             <TableHead className="w-16 text-center">
