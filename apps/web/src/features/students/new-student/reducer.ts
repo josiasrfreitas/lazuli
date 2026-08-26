@@ -36,6 +36,12 @@ export type NewStudentState = {
   errors: NewStudentErrors;
   /** A rejection that does not belong to any single field. */
   formError: string | null;
+  /**
+   * Bumped only when a submit fails (client validation or server rejection),
+   * never while typing — the dialog scrolls the first invalid field into view
+   * once per bump, so mid-typing error clearing cannot re-trigger it.
+   */
+  errorsRevision: number;
 };
 
 export type NewStudentAction =
@@ -62,6 +68,7 @@ export const initialNewStudentState: NewStudentState = {
   fields: EMPTY_FIELDS,
   errors: {},
   formError: null,
+  errorsRevision: 0,
 };
 
 /** Both dates are `yyyy-mm-dd`; ISO strings order lexicographically. */
@@ -110,7 +117,7 @@ function nextFrom(state: NewStudentState, today: string): NewStudentState {
     const errors = validateDados(state.fields, today);
 
     if (Object.keys(errors).length > 0) {
-      return { ...state, errors };
+      return { ...state, errors, errorsRevision: state.errorsRevision + 1 };
     }
   }
 
@@ -141,7 +148,13 @@ export function newStudentReducer(
     }
     case "serverRejected": {
       // The wizard returns to Dados so the rejected fields are in view (IA).
-      return { ...state, errors: action.errors, formError: action.formError, step: FIRST_STEP };
+      return {
+        ...state,
+        errors: action.errors,
+        formError: action.formError,
+        step: FIRST_STEP,
+        errorsRevision: state.errorsRevision + 1,
+      };
     }
     case "reset": {
       return initialNewStudentState;

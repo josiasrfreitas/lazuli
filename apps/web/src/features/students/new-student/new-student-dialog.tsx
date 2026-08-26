@@ -31,6 +31,7 @@ import {
   type NewStudentState,
 } from "./reducer";
 import { toCreateInput } from "./to-create-input";
+import { useScrollToError } from "./use-scroll-to-error";
 
 const STEPS = NEW_STUDENT_STEPS.map((label) => ({ label }));
 const DADOS_STEP = 0;
@@ -166,6 +167,8 @@ export function NewStudentDialog({
 }
 
 function WizardContent({ state, dispatch, creation, onCancel }: WizardProps): ReactElement {
+  const bodyRef = useScrollToError(state.errorsRevision);
+
   return (
     <>
       <DialogHeader>
@@ -182,7 +185,7 @@ function WizardContent({ state, dispatch, creation, onCancel }: WizardProps): Re
           </AlertContent>
         </Alert>
       )}
-      <DialogBody className="mt-5">
+      <DialogBody className="mt-5" ref={bodyRef}>
         <StepBody dispatch={dispatch} state={state} />
       </DialogBody>
       <WizardFooter creation={creation} dispatch={dispatch} onCancel={onCancel} state={state} />

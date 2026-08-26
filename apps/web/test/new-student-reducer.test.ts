@@ -91,6 +91,22 @@ void describe("new-student wizard: transitions", () => {
     assert.equal(edited.fields.fullName, "M");
   });
 
+  void it("bumps errorsRevision on failed submits only, never while typing", () => {
+    const blocked = advanced(initialNewStudentState);
+    assert.equal(blocked.errorsRevision, 1);
+    assert.equal(advanced(blocked).errorsRevision, 2);
+
+    const edited = newStudentReducer(blocked, {
+      type: "fieldChanged",
+      field: "fullName",
+      value: "M",
+    });
+    assert.equal(edited.errorsRevision, blocked.errorsRevision);
+
+    const passed = advanced(stateWith({ fullName: ADULT_NAME }));
+    assert.equal(passed.errorsRevision, 0);
+  });
+
   void it("skips through Turma and Financeiro and walks back", () => {
     const onTurma = advanced(stateWith({ fullName: ADULT_NAME }));
     const onFinanceiro = advanced(onTurma);
@@ -111,6 +127,7 @@ void describe("new-student wizard: transitions", () => {
 
     assert.equal(rejected.step, 0);
     assert.ok(rejected.errors.guardianName);
+    assert.equal(rejected.errorsRevision, onFinanceiro.errorsRevision + 1);
   });
 
   void it("resets to the initial state", () => {
