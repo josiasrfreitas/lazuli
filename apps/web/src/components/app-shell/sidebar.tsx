@@ -25,7 +25,7 @@ export function Sidebar({ identity }: { identity: StaffIdentity }): ReactNode {
         </p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto pb-4">
-        <SidebarNav />
+        <SidebarNav role={identity.role} />
       </div>
       <footer className="flex items-center gap-3 border-t border-border px-4 py-4">
         <Avatar colorKey={identity.id} name={identity.name} />
