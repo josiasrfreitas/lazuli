@@ -1,16 +1,14 @@
-import { useReducer, type Dispatch, type ReactElement, type ReactNode } from "react";
+import { useReducer, type ReactElement, type ReactNode } from "react";
 
 import {
   Alert,
   AlertContent,
   AlertDescription,
-  Button,
   Dialog,
   DialogBackdrop,
   DialogBody,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogPortal,
   DialogTitle,
@@ -20,22 +18,13 @@ import {
 
 import { toDateOnlySaoPaulo } from "~/lib/format";
 
-import { useCreateStudent, type CreateStudent } from "../logic";
+import { useCreateStudent } from "../logic";
 import { DadosStep } from "./dados-step";
-import {
-  initialNewStudentState,
-  isMinorOn,
-  NEW_STUDENT_STEPS,
-  newStudentReducer,
-  type NewStudentAction,
-  type NewStudentState,
-} from "./reducer";
-import { toCreateInput } from "./to-create-input";
+import { initialNewStudentState, isMinorOn, NEW_STUDENT_STEPS, newStudentReducer } from "./reducer";
 import { useScrollToError } from "./use-scroll-to-error";
+import { DADOS_STEP, TURMA_STEP, WizardFooter, type WizardProps } from "./wizard-footer";
 
 const STEPS = NEW_STUDENT_STEPS.map((label) => ({ label }));
-const DADOS_STEP = 0;
-const TURMA_STEP = 1;
 
 function StepBody({ state, dispatch }: WizardProps): ReactNode {
   if (state.step === DADOS_STEP) {
@@ -59,60 +48,6 @@ function StepBody({ state, dispatch }: WizardProps): ReactNode {
       : { title: "Financeiro em breve", body: "O plano de pagamento entra depois da matrícula." };
 
   return <EmptyState description={placeholder.body} title={placeholder.title} />;
-}
-
-type WizardProps = {
-  state: NewStudentState;
-  dispatch: Dispatch<NewStudentAction>;
-  creation?: CreateStudent | undefined;
-  onCancel?: (() => void) | undefined;
-};
-
-function WizardFooter({ state, dispatch, creation, onCancel }: WizardProps): ReactElement {
-  const advance = (): void => {
-    dispatch({ type: "nextRequested", today: toDateOnlySaoPaulo(new Date()) });
-  };
-
-  if (state.step === DADOS_STEP) {
-    return (
-      <DialogFooter className="mt-6">
-        <Button onClick={onCancel} variant="ghost">
-          Cancelar
-        </Button>
-        <Button onClick={advance}>Avançar</Button>
-      </DialogFooter>
-    );
-  }
-
-  const submitting = creation?.isPending === true;
-
-  return (
-    <DialogFooter className="mt-6">
-      <Button
-        disabled={submitting}
-        onClick={() => {
-          dispatch({ type: "backRequested" });
-        }}
-        variant="ghost"
-      >
-        Voltar
-      </Button>
-      {state.step === TURMA_STEP ? (
-        <Button onClick={advance} variant="secondary">
-          Pular
-        </Button>
-      ) : (
-        <Button
-          disabled={submitting}
-          onClick={() => {
-            creation?.create(toCreateInput(state.fields));
-          }}
-        >
-          Concluir
-        </Button>
-      )}
-    </DialogFooter>
-  );
 }
 
 /**
@@ -141,6 +76,12 @@ export function NewStudentDialog({
   });
 
   const requestClose = (next: boolean): void => {
+    // An in-flight create pins the wizard open: a late success would reopen
+    // the preview and a late error would hit a dismissed dialog.
+    if (!next && creation.isPending) {
+      return;
+    }
+
     if (!next) {
       dispatch({ type: "reset" });
     }
