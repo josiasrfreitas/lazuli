@@ -58,22 +58,28 @@ rota de detalhe, painel lateral, modal ou destino associado às linhas.
 1. O administrador digita um nome na busca.
 2. Após o debounce, `busca` é atualizado na URL e `pagina` volta ao padrão.
 3. O servidor busca tanto pelo pagador quanto pelos beneficiários.
-4. A tabela apresenta os resultados ou orienta a ajustar o termo quando não houver correspondência.
+4. Em Todas e Pagas, aparecem somente parcelas correspondentes. Em Vencidas, a correspondência
+   qualifica o pagador e a tabela mostra seu grupo vencido completo, preservando contagem e saldo.
+5. A tabela apresenta os resultados ou orienta a ajustar o termo quando não houver correspondência.
 
 ### Priorizar cobranças vencidas
 
 1. O administrador seleciona Vencidas; a URL passa a conter `status=vencidas` e limpa `pagina`.
-2. A tabela apresenta grupos de pagadores, ordenados pelo maior atraso.
-3. O administrador lê primeiro o resumo do pagador: quantidade vencida, beneficiários, atraso mais
+2. A camada web traduz a tab para `view=overdue` no input da procedure.
+3. A tabela apresenta grupos de pagadores, ordenados pelo maior atraso e por `payerId` em empate.
+4. O administrador lê primeiro o resumo do pagador: quantidade vencida, beneficiários, atraso mais
    antigo e saldo coletável.
-4. Em seguida, confere as parcelas do grupo, da mais antiga para a mais recente.
-5. Se houver mais de dez pagadores, pagina sem dividir um grupo entre páginas.
+5. Em seguida, confere as parcelas do grupo, da mais antiga para a mais recente, com desempate por
+   `installmentId`.
+6. Se houver mais de dez pagadores, pagina sem dividir um grupo entre páginas.
 
 ### Consultar parcelas pagas
 
 1. O administrador seleciona Pagas; a URL passa a conter `status=pagas` e limpa `pagina`.
-2. A tabela plana apresenta as parcelas integralmente pagas, das mais recentes para as mais antigas.
-3. A paginação mantém tab e busca na URL.
+2. A camada web traduz a tab para `view=paid` no input da procedure.
+3. A tabela plana apresenta as parcelas integralmente pagas, das mais recentes para as mais antigas,
+   com desempate por `installmentId`.
+4. A paginação mantém tab e busca na URL.
 
 ## Naming Conventions
 
@@ -124,3 +130,6 @@ rota de detalhe, painel lateral, modal ou destino associado às linhas.
 - Alterar `status` ou `busca` remove `pagina`, reiniciando a consulta na primeira página.
 - Alterar `pagina` preserva `status` e `busca`.
 - URLs inválidas ou valores não reconhecidos retornam aos defaults seguros da listagem.
+- **Contrato da procedure:** o input tRPC usa o campo `view=all|overdue|paid`, separado do parâmetro
+  localizado da URL. A camada web faz o mapeamento: `status` ausente → `view=all`,
+  `status=vencidas` → `view=overdue`, `status=pagas` → `view=paid`.

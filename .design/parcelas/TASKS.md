@@ -12,12 +12,14 @@ próxima.
 ## Foundation
 
 - [ ] **Identidade estável da parcela**: adicionar `Installment.sequenceNumber` por nova migration,
-      fazer backfill determinístico das parcelas existentes, aplicar unicidade por
-      `orderId + sequenceNumber` e atribuir a sequência na geração/persistência de cronogramas sem
-      renumerar parcelas após atividade financeira. Atualizar retornos, seeds e fixtures afetados; done
-      = criação e regeneração preservam `1..N`, duplicatas são rejeitadas e testes de domínio, schema e
-      pedidos passam. _Modifica `Installment`, `generateInstallments`, o módulo `receivables` e seus
-      testes; reutiliza Prisma para schema/migration/writes._
+      criar a coluna nullable, fazer backfill determinístico por `orderId` na ordem `dueDate, id`,
+      torná-la `NOT NULL` e então criar índice único parcial em
+      `orderId + sequenceNumber WHERE deletedAt IS NULL`, seguindo o fluxo `--create-only` do guia de
+      migrations. Atribuir a sequência na geração/persistência sem renumerar por reagendamento ou
+      dispensa e atualizar retornos, seeds e fixtures afetados; done = criação e regeneração preservam
+      `1..N`, duplicatas ativas são rejeitadas, uma sequência excluída logicamente pode ser reutilizada
+      e testes de domínio, schema e pedidos passam. _Modifica `Installment`, `generateInstallments`, o
+      módulo `receivables` e seus testes; reutiliza Prisma para schema/migration/writes._
 
 - [ ] **Consulta plana paginada do ledger**: entregar o contrato validado de listagem e uma leitura
       Kysely privada do módulo `receivables` para Todas e Pagas, incluindo saldo/status derivados,
@@ -25,19 +27,23 @@ próxima.
       cancelados, ordenação e páginas de 25 linhas. Integrar `prisma-kysely` e
       `prisma-extension-kysely` no cliente/transaction boundary conforme ADR 0016; tipos são gerados do
       schema, nunca editados à mão. Done = `finance.installments` é `adminProcedure`, responde ao DTO
-      discriminado e possui testes DB de paginação/ordenação/busca/status/parcial/dispensada mais teste
-      behavior de autorização e transporte. _Cria validators, read adapter Kysely e procedure; modifica
-      o cliente Prisma e a interface profunda de `receivables`; reutiliza `deriveInstallmentLedger` como
-      oráculo de paridade._
+      discriminado com input `view=all|overdue|paid` e possui testes DB de
+      paginação/ordenação/busca/status/parcial/dispensada mais teste behavior de autorização e
+      transporte. Todas usa faixas de status e vencimento com `installmentId` crescente como desempate;
+      Pagas usa `dueDate DESC, installmentId ASC`. _Cria validators, read adapter Kysely e procedure;
+      modifica o cliente Prisma e a interface profunda de `receivables`; reutiliza
+      `deriveInstallmentLedger` como oráculo de paridade._
 
 - [ ] **Consulta vencida agrupada por pagador**: estender a mesma procedure para
-      `status=overdue`, agregando ajustes e allocations no Postgres antes de filtrar, agrupando por
-      `payerId`, ordenando grupos pelo maior atraso e paginando dez grupos inteiros sem dividir suas
-      parcelas. Done = o DTO retorna resumo e linhas de cada grupo, busca funciona por pagador ou
-      beneficiário, saldo do cabeçalho é coletável e testes DB comparam cada linha ao
-      `deriveInstallmentLedger`, incluindo homônimos, múltiplos alunos, pagamento parcial, waiver,
-      pedido cancelado e fronteiras de data de São Paulo. _Modifica a leitura Kysely, validators e
-      procedure criados na tarefa anterior; reutiliza o módulo `receivables` e as fixtures financeiras._
+      `view=overdue`, agregando ajustes e allocations no Postgres antes de filtrar, agrupando por
+      `payerId`, ordenando grupos por maior atraso e `payerId ASC`, e paginando dez grupos inteiros sem
+      dividir suas parcelas; linhas usam `dueDate ASC, installmentId ASC`. A busca primeiro qualifica
+      pagadores por nome ou beneficiário dentro do conjunto vencido e depois retorna o grupo vencido
+      completo de cada pagador. Done = o DTO retorna resumo e linhas de cada grupo, saldo e contagem
+      continuam integrais após busca e testes DB comparam cada linha ao `deriveInstallmentLedger`,
+      incluindo empates, homônimos, múltiplos alunos, pagamento parcial, waiver, pedido cancelado e
+      fronteiras de data de São Paulo. _Modifica a leitura Kysely, validators e procedure criados na
+      tarefa anterior; reutiliza o módulo `receivables` e as fixtures financeiras._
 
 - [ ] **Cenários financeiros demonstráveis no seed**: evoluir o seed dev idempotente para tornar
       visíveis Todas, Vencidas e Pagas, incluindo um pagador com múltiplos beneficiários, várias
@@ -51,13 +57,14 @@ próxima.
 - [ ] **Página de Parcelas e views planas**: criar `/parcelas` e a feature `installments/` com
       header “Parcelas” / “Mensalidades e vencimentos”, busca debounced, tabs Todas/Vencidas/Pagas,
       tabela plana para Todas e Pagas e paginação. Implementar `nuqs` com `status`, `busca` e `pagina`,
-      removendo defaults e reiniciando a página ao trocar tab ou busca; formatar `06/12`, data civil
-      pt-BR, BRL, saldo parcial e badges de status por view model puro testado. No mesmo slice, modificar
-      a sidebar para renderizar a seção não clicável Financeiro contendo Parcelas somente para `ADMIN`,
-      omitindo seções vazias. Done = um admin navega e compartilha as duas views planas; outros papéis
-      não veem o item e continuam sem acesso à procedure. _Cria `InstallmentsPage`, logic, view model,
-      controles, tabela e linhas; modifica `nav-items`/`SidebarNav`; reutiliza `AppShell`, `Input`,
-      `Tabs`, `Badge`, `Table*`, `Pagination`, tokens e formatters existentes._
+      removendo defaults, reiniciando a página ao trocar tab ou busca e mapeando URL → procedure:
+      ausente → `view=all`, `vencidas` → `view=overdue`, `pagas` → `view=paid`. Formatar `06/12`, data
+      civil pt-BR, BRL, saldo parcial e badges de status por view model puro testado. No mesmo slice,
+      modificar a sidebar para renderizar a seção não clicável Financeiro contendo Parcelas somente
+      para `ADMIN`, omitindo seções vazias. Done = um admin navega e compartilha as duas views planas;
+      outros papéis não veem o item e continuam sem acesso à procedure. _Cria `InstallmentsPage`, logic,
+      view model, controles, tabela e linhas; modifica `nav-items`/`SidebarNav`; reutiliza `AppShell`,
+      `Input`, `Tabs`, `Badge`, `Table*`, `Pagination`, tokens e formatters existentes._
 
 - [ ] **View Vencidas agrupada**: criar a composição `OverduePayerSummaryRow` dentro da tabela e
       renderizar cada grupo por pagador com quantidade, beneficiário único ou contagem de alunos,

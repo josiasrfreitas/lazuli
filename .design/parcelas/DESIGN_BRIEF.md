@@ -119,15 +119,21 @@ grupo cujo contexto já é vencido.
 - Com múltiplos beneficiários: “3 parcelas vencidas · 2 alunos · mais antiga há 45 dias”.
 - O cabeçalho soma o saldo coletável, não o valor original.
 - Cada linha mantém o(s) beneficiário(s) da parcela.
-- Grupos ordenados pelo maior atraso; parcelas do grupo, da mais antiga para a mais recente.
+- Grupos ordenados pelo maior atraso; em empate, `payerId` crescente. Parcelas do grupo vão da mais
+  antiga para a mais recente, com `installmentId` crescente como desempate de vencimentos iguais.
 
 ### Search, ordering and pagination
 
 - Busca server-side por nome do pagador ou beneficiário, com debounce. Telefone, documento e busca
   global ficam fora deste slice.
+- Em Vencidas, a busca seleciona pagadores dentro do conjunto vencido: basta o nome do pagador ou o
+  beneficiário de uma parcela vencida corresponder. Depois que o pagador qualifica, o resultado
+  inclui todas as suas parcelas vencidas coletáveis, mesmo as que não correspondem diretamente ao
+  termo, para que resumo, contagem e saldo representem a cobrança completa.
 - Todas: vencidas primeiro; depois abertas pelo vencimento mais próximo; por fim pagas e dispensadas
-  da mais recente para a mais antiga.
-- Pagas: vencimento mais recente primeiro.
+  da mais recente para a mais antiga. Dentro de cada faixa, vencimento e `installmentId` crescente
+  formam o desempate total; na faixa final, vencimento é decrescente e `installmentId` crescente.
+- Pagas: vencimento mais recente primeiro, com `installmentId` crescente em empate.
 - Todas e Pagas: 25 parcelas por página.
 - Vencidas: 10 grupos de pagadores por página; um grupo nunca é dividido entre páginas.
 - Busca ou troca de tab reinicia em página 1.
@@ -138,9 +144,11 @@ grupo cujo contexto já é vencido.
 
 ## Data and Architecture Constraints
 
-- Adicionar `sequenceNumber` a `Installment` por nova migration, com unicidade por
-  `orderId + sequenceNumber`. A geração do cronograma atribui a sequência; reagendar ou dispensar
-  uma parcela não a renumera.
+- Adicionar `sequenceNumber` a `Installment` por nova migration. A migration cria a coluna nullable,
+  faz backfill determinístico por `orderId` na ordem `dueDate, id`, torna a coluna `NOT NULL` e só
+  então cria um índice único parcial em `orderId + sequenceNumber WHERE deletedAt IS NULL`, seguindo
+  o guia de migrations. Parcelas excluídas logicamente não bloqueiam a regeneração de um cronograma
+  ativo. A geração atribui a sequência; reagendar ou dispensar uma parcela não a renumera.
 - `amountCents` continua sendo o valor original. Saldo permanece derivado de valor, ajustes e
   `PaymentAllocation`s; nenhuma coluna de saldo ou status será criada no banco.
 - Prisma continua responsável por schema, migrations, writes e CRUD convencional.
