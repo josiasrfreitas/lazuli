@@ -27,14 +27,14 @@ export type TableContainerProps = ComponentProps<"div"> & {
    * scroll region, so it never moves and the scrollbar never runs across it.
    */
   footer?: ReactNode;
-  /** Reserves ten rows, grows with content, then scrolls at the page limit. */
+  /** Fills the page's remaining height regardless of row count; scrolls inside. */
   viewportBound?: boolean;
 };
 
 /**
  * The table's visible boundary. Only the data scrolls inside it; a `footer`
- * stays pinned below. Its viewport-bound form has a stable ten-row baseline,
- * grows with content, and only scrolls at the available page height.
+ * stays pinned below. Its viewport-bound form always fills the available page
+ * height, so the frame stays put when the page size or row count changes.
  */
 export const TableContainer = forwardRef<HTMLDivElement, TableContainerProps>(
   ({ children, className, footer, viewportBound = false, ...props }, ref) => (

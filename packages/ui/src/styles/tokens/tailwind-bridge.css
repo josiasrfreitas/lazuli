@@ -141,14 +141,16 @@
 }
 
 /*
- * A viewport-bound table frame: a stable ten-row baseline, growth with the
- * content, and scrolling only at the page limit. Its scroll area draws the
- * vertical scrollbar itself, so the bar can start under a sticky header —
- * the heights mirror `tableCellSpacing` in table.tsx — and stop at the
- * footer, which sits outside the viewport.
+ * A viewport-bound table frame: it always fills the height the page gives it,
+ * whatever the row count, so switching the page size never resizes the frame.
+ * The ten-row baseline only matters when the page itself is shorter than
+ * that. Its scroll area draws the vertical scrollbar itself, so the bar can
+ * start under a sticky header — the heights mirror `tableCellSpacing` in
+ * table.tsx — and stop at the footer, which sits outside the viewport.
  */
 @utility data-table-frame {
   --lz-table-scrollbar-top: 0px;
+  height: 100%;
   min-height: min(100%, var(--lz-data-table-min-height));
   max-height: 100%;
 

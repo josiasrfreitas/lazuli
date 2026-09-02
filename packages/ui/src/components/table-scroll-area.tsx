@@ -32,7 +32,8 @@ export function TableScrollArea({ children }: { children: ReactNode }): ReactEle
         // `relative` anchors absolutely-positioned descendants (e.g. `sr-only`
         // labels in cells) inside the scroll area; without it they sit on the
         // page itself, widening it by the table's off-screen width.
-        className="relative min-h-0 flex-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+        // `overscroll-none` stops the rubber-band bounce at the ends of the data.
+        className="relative min-h-0 flex-1 overscroll-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
         data-slot="table-viewport"
       >
         {children}
