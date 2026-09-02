@@ -71,7 +71,7 @@ export const UnevenRow: Story = {
   args: { title: "Identificação" },
   render: (args) => (
     <FormSection {...args} className="max-w-md">
-      <FormRow className="grid-cols-[8.5rem_1fr]">
+      <FormRow className="sm:grid-cols-[8.5rem_1fr]">
         <Field>
           <Label>Nascimento</Label>
           <Input placeholder="dd/mm/aaaa" size="sm" />

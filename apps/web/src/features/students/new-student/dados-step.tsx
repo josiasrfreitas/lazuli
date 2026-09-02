@@ -32,7 +32,7 @@ function IdentitySection(props: FieldsProps): ReactElement {
         required
         value={fields.fullName}
       />
-      <FormRow className="grid-cols-[8.5rem_auto_1fr]">
+      <FormRow className="sm:grid-cols-[8.5rem_auto_1fr]">
         <TextField
           error={errors.birthDate}
           inputMode="numeric"

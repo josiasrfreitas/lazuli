@@ -25,7 +25,7 @@ function IdentitySection(): ReactElement {
         <Label>Nome completo</Label>
         <Input autoComplete="off" name="fullName" placeholder="Como está no documento" size="sm" />
       </Field>
-      <FormRow className="grid-cols-[8.5rem_auto_1fr]">
+      <FormRow className="sm:grid-cols-[8.5rem_auto_1fr]">
         <Field>
           <Label>Nascimento</Label>
           <Input
