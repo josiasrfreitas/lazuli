@@ -13,34 +13,26 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 export function StudentsHeader({
   summary,
-  onNewStudent,
 }: {
   summary: HeaderSummaryVm | undefined;
-  onNewStudent: () => void;
 }): ReactElement {
   return (
-    <div className="flex items-end justify-between gap-4">
-      <div>
-        <h1 className="font-display text-h2 font-semibold text-foreground">Alunos</h1>
-        <p className="mt-1 text-caption text-muted-foreground">
-          {summary === undefined ? (
-            <InlineSkeleton />
-          ) : (
-            <span className="font-numeric tabular-nums">{summary.totalStudents}</span>
-          )}{" "}
-          {summary?.totalStudents === 1 ? "aluno" : "alunos"} ·{" "}
-          {summary === undefined ? (
-            <InlineSkeleton />
-          ) : (
-            <span className="font-numeric tabular-nums">{summary.activeClasses}</span>
-          )}{" "}
-          {summary?.activeClasses === 1 ? "turma ativa" : "turmas ativas"}
-        </p>
-      </div>
-      <Button onClick={onNewStudent} size="md">
-        <Plus aria-hidden="true" className="size-4" />
-        Novo aluno
-      </Button>
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h1 className="font-display text-h2 font-semibold text-foreground">Alunos</h1>
+      <p className="text-caption text-muted-foreground">
+        {summary === undefined ? (
+          <InlineSkeleton />
+        ) : (
+          <span className="font-numeric tabular-nums">{summary.totalStudents}</span>
+        )}{" "}
+        {summary?.totalStudents === 1 ? "aluno" : "alunos"} ·{" "}
+        {summary === undefined ? (
+          <InlineSkeleton />
+        ) : (
+          <span className="font-numeric tabular-nums">{summary.activeClasses}</span>
+        )}{" "}
+        {summary?.activeClasses === 1 ? "turma ativa" : "turmas ativas"}
+      </p>
     </div>
   );
 }
@@ -84,12 +76,14 @@ function SearchField({ filters }: { filters: StudentsFilters }): ReactElement {
 export function StudentsControls({
   filters,
   tabs,
+  onNewStudent,
 }: {
   filters: StudentsFilters;
   tabs: StatusTabVm[];
+  onNewStudent: () => void;
 }): ReactElement {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="flex flex-wrap items-center gap-3">
       <SearchField filters={filters} />
       <Tabs
         onValueChange={(value) => {
@@ -112,6 +106,10 @@ export function StudentsControls({
           ))}
         </TabsList>
       </Tabs>
+      <Button onClick={onNewStudent} size="md">
+        <Plus aria-hidden="true" className="size-4" />
+        Novo aluno
+      </Button>
     </div>
   );
 }

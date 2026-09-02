@@ -55,14 +55,13 @@ void test("first load preserves pagination furniture and only skeletonizes fetch
 });
 
 void test("first load keeps header and tab labels while skeletonizing their counts", () => {
-  const headerMarkup = renderToStaticMarkup(
-    createElement(StudentsHeader, {
-      onNewStudent: () => {},
-      summary: undefined,
-    }),
-  );
+  const headerMarkup = renderToStaticMarkup(createElement(StudentsHeader, { summary: undefined }));
   const controlsMarkup = renderToStaticMarkup(
-    createElement(StudentsControls, { filters, tabs: statusTabsVm() }),
+    createElement(StudentsControls, {
+      filters,
+      onNewStudent: () => {},
+      tabs: statusTabsVm(),
+    }),
   );
 
   assert.match(headerMarkup, />Alunos</u);

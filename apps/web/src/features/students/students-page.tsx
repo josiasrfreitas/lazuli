@@ -47,15 +47,16 @@ export function StudentsPage(): ReactElement {
   return (
     <>
       <DataTablePage
-        controls={<StudentsControls filters={filters} tabs={statusTabsVm(students.data?.counts)} />}
-        header={
-          <StudentsHeader
+        controls={
+          <StudentsControls
+            filters={filters}
             onNewStudent={() => {
               setCreating(true);
             }}
-            summary={headerSummaryVm(students.data)}
+            tabs={statusTabsVm(students.data?.counts)}
           />
         }
+        header={<StudentsHeader summary={headerSummaryVm(students.data)} />}
       >
         <StudentsTable
           onRetry={() => {

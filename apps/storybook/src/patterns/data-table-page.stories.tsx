@@ -38,7 +38,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Layout padrão para listagens operacionais: cabeçalho e filtros permanecem visíveis enquanto somente a moldura da tabela rola.",
+          "Layout padrão para listagens operacionais: título, filtros e ação principal dividem uma única linha, e somente a moldura da tabela rola.",
       },
     },
   },
@@ -50,11 +50,18 @@ type Story = StoryObj<typeof meta>;
 
 function ExampleHeader(): ReactElement {
   return (
-    <div className="flex items-end justify-between gap-4">
-      <div>
-        <h1 className="font-display text-h2 font-semibold">Alunos</h1>
-        <p className="mt-1 text-caption text-muted-foreground">24 alunos cadastrados</p>
-      </div>
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h1 className="font-display text-h2 font-semibold">Alunos</h1>
+      <p className="text-caption text-muted-foreground">24 alunos cadastrados</p>
+    </div>
+  );
+}
+
+function ExampleControls(): ReactElement {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Input aria-label="Buscar aluno" className="w-80" placeholder="Buscar aluno" />
+      <span className="text-caption text-muted-foreground">Todos · Ativos · Pendentes</span>
       <Button>
         <Plus aria-hidden="true" />
         Novo aluno
@@ -66,15 +73,7 @@ function ExampleHeader(): ReactElement {
 function ViewportBoundExample(): ReactElement {
   return (
     <div className="h-[40rem] w-full overflow-hidden bg-background">
-      <DataTablePage
-        controls={
-          <div className="flex items-center justify-between gap-4">
-            <Input aria-label="Buscar aluno" className="w-80" placeholder="Buscar aluno" />
-            <span className="text-caption text-muted-foreground">Todos · Ativos · Pendentes</span>
-          </div>
-        }
-        header={<ExampleHeader />}
-      >
+      <DataTablePage controls={<ExampleControls />} header={<ExampleHeader />}>
         <TableContainer
           data-testid="table-frame"
           footer={
