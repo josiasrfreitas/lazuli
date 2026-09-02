@@ -11,15 +11,35 @@ import {
   TableHeader,
   TableRow,
 } from "../src/components/table.js";
+import { TablePagination } from "../src/components/table-pagination.js";
 
 const containerRef = createRef<HTMLDivElement>();
 const tableRef = createRef<HTMLTableElement>();
 const rowRef = createRef<HTMLTableRowElement>();
 const cellRef = createRef<HTMLTableCellElement>();
+const SMALL_PAGE_SIZE = 10;
+const MEDIUM_PAGE_SIZE = 25;
+const LARGE_PAGE_SIZE = 50;
+const TOTAL_ITEMS = 27;
 
 export const tableWithRefs = (
-  <TableContainer ref={containerRef}>
-    <Table density="compact" ref={tableRef}>
+  <TableContainer
+    footer={
+      <TablePagination
+        itemLabel={{ singular: "parcela", plural: "parcelas" }}
+        onPageChange={() => {}}
+        onPageSizeChange={() => {}}
+        page={1}
+        pageCount={3}
+        pageSize={SMALL_PAGE_SIZE}
+        pageSizeOptions={[SMALL_PAGE_SIZE, MEDIUM_PAGE_SIZE, LARGE_PAGE_SIZE]}
+        totalItems={TOTAL_ITEMS}
+      />
+    }
+    ref={containerRef}
+    viewportBound
+  >
+    <Table density="default" ref={tableRef}>
       <TableCaption>Parcelas do contrato</TableCaption>
       <TableHeader>
         <TableRow>

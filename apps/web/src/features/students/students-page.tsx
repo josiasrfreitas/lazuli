@@ -1,37 +1,36 @@
 "use client";
 
-import { useState, type ReactElement, type ReactNode } from "react";
+import { useState, type ReactElement } from "react";
 
-import { Pagination } from "@lazuli/ui";
+import { DataTablePage } from "@lazuli/ui";
 
 import {
   useSelectedStudent,
   useStudentsFilters,
   useStudentsList,
+  type StudentsFilters,
   type StudentsListQuery,
 } from "./logic";
 import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentPreviewPanel } from "./student-preview-panel";
-import { StudentsTable } from "./students-table";
+import { StudentsTable, type StudentsTablePagination } from "./students-table";
 import { StudentsControls, StudentsHeader } from "./students-toolbar";
 import { headerSummaryVm, statusTabsVm, tableStateVm } from "./view-model";
 
-function StudentsPagination({
-  data,
-  onPageChange,
-}: {
-  data: StudentsListQuery["data"];
-  onPageChange: (page: number) => void;
-}): ReactNode {
-  if (data === undefined || data.pageCount <= 1) {
-    return null;
-  }
+export function paginationFor(
+  data: StudentsListQuery["data"],
+  filters: Pick<StudentsFilters, "pagina" | "pageSize" | "setPagina" | "setPageSize">,
+): StudentsTablePagination {
+  const base = {
+    onPageChange: filters.setPagina,
+    onPageSizeChange: filters.setPageSize,
+    page: data?.page ?? filters.pagina,
+    pageSize: data?.pageSize ?? filters.pageSize,
+  };
 
-  return (
-    <div className="flex justify-end">
-      <Pagination onPageChange={onPageChange} page={data.page} pageCount={data.pageCount} />
-    </div>
-  );
+  return data === undefined
+    ? { ...base, loading: true }
+    : { ...base, pageCount: data.pageCount, totalItems: data.total };
 }
 
 export function StudentsPage(): ReactElement {
@@ -46,23 +45,28 @@ export function StudentsPage(): ReactElement {
   });
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-5 p-8">
-      <StudentsHeader
-        onNewStudent={() => {
-          setCreating(true);
-        }}
-        summary={students.data === undefined ? null : headerSummaryVm(students.data)}
-      />
-      <StudentsControls filters={filters} tabs={statusTabsVm(students.data?.counts)} />
-      <StudentsTable
-        onRetry={() => {
-          void students.refetch();
-        }}
-        onSelectRow={selection.select}
-        selectedId={selection.selectedId}
-        state={state}
-      />
-      <StudentsPagination data={students.data} onPageChange={filters.setPagina} />
+    <>
+      <DataTablePage
+        controls={<StudentsControls filters={filters} tabs={statusTabsVm(students.data?.counts)} />}
+        header={
+          <StudentsHeader
+            onNewStudent={() => {
+              setCreating(true);
+            }}
+            summary={headerSummaryVm(students.data)}
+          />
+        }
+      >
+        <StudentsTable
+          onRetry={() => {
+            void students.refetch();
+          }}
+          onSelectRow={selection.select}
+          selectedId={selection.selectedId}
+          state={state}
+          pagination={paginationFor(students.data, filters)}
+        />
+      </DataTablePage>
       <StudentPreviewPanel selection={selection} />
       <NewStudentDialog
         onCreated={(id) => {
@@ -72,6 +76,6 @@ export function StudentsPage(): ReactElement {
         onOpenChange={setCreating}
         open={creating}
       />
-    </div>
+    </>
   );
 }

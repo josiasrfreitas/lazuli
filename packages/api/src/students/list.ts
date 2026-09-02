@@ -14,7 +14,6 @@ import {
   countHeaderFacts,
   countStudentsByTab,
   findStudentPage,
-  STUDENT_PAGE_SIZE,
   toScheduleLabel,
   type OpenEnrollmentRow,
   type StudentListDatabase,
@@ -42,16 +41,21 @@ const NO_ATTENDANCE_DATA: AttendanceFacts = { percent: null, flagged: false };
 export async function listStudents(input: ListStudentsInput): Promise<StudentListOutput> {
   const where = buildStudentListWhere(input.values);
   const semester = await resolveCurrentSemester(input.database, input.values.now);
+  const { page, pageSize } = input.values;
   const [students, counts, header] = await Promise.all([
-    findStudentPage({ database: input.database, values: { where, page: input.values.page } }),
+    findStudentPage({ database: input.database, values: { where, page, pageSize } }),
     countStudentsByTab({ database: input.database, search: input.values.search }),
     countHeaderFacts({ database: input.database, semesterId: semester?.id ?? null }),
   ]);
 
+  const total = totalForStatus({ counts, status: input.values.status });
+
   return {
     rows: await buildRows({ database: input.database, values: input.values, students, semester }),
-    page: input.values.page,
-    pageCount: pageCountFor(totalForStatus({ counts, status: input.values.status })),
+    page,
+    pageSize,
+    pageCount: pageCountFor(total, pageSize),
+    total,
     counts,
     ...header,
   };
@@ -83,7 +87,7 @@ export async function buildRows(input: BuildRowsInput): Promise<StudentListRow[]
   }));
 }
 
-/** One windowed percent per row; a page holds at most `STUDENT_PAGE_SIZE` students. */
+/** One windowed percent per row; a page is bounded by the validated page size. */
 async function readAttendanceByStudent(
   input: BuildRowsInput,
 ): Promise<Map<string, AttendanceFacts>> {
@@ -194,6 +198,6 @@ function totalForStatus(input: {
   return input.counts.all;
 }
 
-function pageCountFor(total: number): number {
-  return Math.max(Math.ceil(total / STUDENT_PAGE_SIZE), 1);
+function pageCountFor(total: number, pageSize: StudentListInput["pageSize"]): number {
+  return Math.max(Math.ceil(total / pageSize), 1);
 }

@@ -72,6 +72,9 @@
   --info-muted: var(--lz-ref-info-50);
   --destructive-muted: var(--lz-ref-red-50);
   --overlay: rgb(15 30 61 / 48%);
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: var(--lz-ref-slate-300);
+  --scrollbar-thumb-hover: var(--lz-ref-slate-700);
 
   /*
    * Front-of-house surface: login, 403, and future error pages. Defined once
@@ -128,4 +131,7 @@
   --info-muted: #172650;
   --destructive-muted: #41151f;
   --overlay: rgb(0 0 0 / 64%);
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #46526b;
+  --scrollbar-thumb-hover: #b8c1d2;
 }

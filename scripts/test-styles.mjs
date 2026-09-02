@@ -256,14 +256,8 @@ for (const [theme, tokens, expected] of [
   });
 }
 
-assert.match(
-  typographyTokens,
-  /--lz-font-body: Cambria, Georgia, "Times New Roman", serif;/u,
-);
-assert.match(
-  typographyTokens,
-  /--lz-font-display: Cambria, Georgia, "Times New Roman", serif;/u,
-);
+assert.match(typographyTokens, /--lz-font-body: Cambria, Georgia, "Times New Roman", serif;/u);
+assert.match(typographyTokens, /--lz-font-display: Cambria, Georgia, "Times New Roman", serif;/u);
 assert.match(
   typographyTokens,
   /--lz-font-numeric: Calibri, "Segoe UI", Helvetica, Arial, sans-serif;/u,

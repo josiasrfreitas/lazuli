@@ -1,6 +1,6 @@
 import type { Prisma } from "@lazuli/db";
 import type { Weekday } from "@lazuli/domain";
-import type { StudentListStatusFilter } from "@lazuli/validators";
+import type { StudentListInput, StudentListStatusFilter } from "@lazuli/validators";
 
 import type { Context } from "../trpc/context.js";
 
@@ -9,8 +9,6 @@ import type { Context } from "../trpc/context.js";
  * (student + most recent open enrollment), and the header/tab counters. Kept
  * apart from list.ts so the orchestration there stays readable.
  */
-
-export const STUDENT_PAGE_SIZE = 10;
 
 export type StudentListDatabase = Context["db"];
 
@@ -93,13 +91,13 @@ export function findStudentRow(input: {
 
 export function findStudentPage(input: {
   database: StudentListDatabase;
-  values: { where: Prisma.StudentWhereInput; page: number };
+  values: { where: Prisma.StudentWhereInput; page: number; pageSize: StudentListInput["pageSize"] };
 }): Promise<StudentPageRow[]> {
   return input.database.student.findMany({
     where: input.values.where,
     orderBy: [{ fullName: "asc" }, { id: "asc" }],
-    skip: (input.values.page - 1) * STUDENT_PAGE_SIZE,
-    take: STUDENT_PAGE_SIZE,
+    skip: (input.values.page - 1) * input.values.pageSize,
+    take: input.values.pageSize,
     select: studentPageSelect,
   });
 }

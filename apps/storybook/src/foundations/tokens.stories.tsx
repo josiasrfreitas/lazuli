@@ -78,6 +78,27 @@ export const Typography: Story = {
   ),
 };
 
+function ScrollbarSample(): ReactElement {
+  return (
+    <section>
+      <h2 className="font-display text-h3 font-semibold">Scrollbar</h2>
+      <div className="scrollbar-subtle mt-4 h-32 overflow-auto rounded-md border border-border bg-background p-4">
+        <div className="w-[48rem] space-y-3 text-control">
+          <p>Scrollbars use semantic thumb and track colors for both themes.</p>
+          <p className="text-muted-foreground">
+            The subtle treatment stays quiet at rest and gains contrast on hover while preserving
+            native scrolling behavior.
+          </p>
+          <p className="text-muted-foreground">
+            This wide sample demonstrates the same design-system treatment on both axes.
+          </p>
+          <p className="text-muted-foreground">End of the scrollable content.</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export const ScaleAndEffects: Story = {
   render: () => (
     <main className="mx-auto grid w-full max-w-4xl gap-8 bg-card p-6 text-foreground">
@@ -114,6 +135,7 @@ export const ScaleAndEffects: Story = {
           <span className="rounded-sm bg-muted px-3 py-2 duration-slow ease-standard">280 ms</span>
         </div>
       </section>
+      <ScrollbarSample />
     </main>
   ),
 };

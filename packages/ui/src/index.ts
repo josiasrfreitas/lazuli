@@ -29,6 +29,8 @@ export type {
 } from "./components/alert";
 export { Button, buttonVariants } from "./components/button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/button";
+export { DataTablePage } from "./components/data-table-page";
+export type { DataTablePageProps } from "./components/data-table-page";
 export { EmptyState } from "./components/empty-state";
 export type { EmptyStateProps } from "./components/empty-state";
 export { HelloWorld } from "./components/hello-world";
@@ -182,14 +184,18 @@ export type {
   TableRowProps,
 } from "./components/table";
 export { TableCell, TableEmpty, TableHead } from "./components/table-cells";
+export { TablePagination } from "./components/table-pagination";
 export { TableSkeleton } from "./components/table-skeleton";
 export type { TableSkeletonProps } from "./components/table-skeleton";
+export { InlineSkeleton } from "./components/inline-skeleton";
+export type { InlineSkeletonProps } from "./components/inline-skeleton";
 export type {
   TableCellProps,
   TableEmptyProps,
   TableHeadProps,
   TableSortDirection,
 } from "./components/table-cells";
+export type { TablePaginationProps } from "./components/table-pagination";
 export { Label } from "./components/label";
 export type { LabelProps } from "./components/label";
 export { Field, FieldDescription, FieldError } from "./components/field";

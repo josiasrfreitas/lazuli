@@ -51,14 +51,15 @@ void describe("students row cells", () => {
 
 void describe("students page furniture", () => {
   void it("summarises the header and pluralises 1 aluno / 1 turma", () => {
-    assert.equal(
-      headerSummaryVm({ totalStudents: TAB_COUNTS.all, activeClasses: 6 }),
-      "16 alunos · 6 turmas ativas",
-    );
-    assert.equal(
-      headerSummaryVm({ totalStudents: 1, activeClasses: 1 }),
-      "1 aluno · 1 turma ativa",
-    );
+    assert.deepEqual(headerSummaryVm({ totalStudents: TAB_COUNTS.all, activeClasses: 6 }), {
+      totalStudents: 16,
+      activeClasses: 6,
+    });
+    assert.deepEqual(headerSummaryVm({ totalStudents: 1, activeClasses: 1 }), {
+      totalStudents: 1,
+      activeClasses: 1,
+    });
+    assert.equal(headerSummaryVm(), undefined);
   });
 
   void it("builds the three status tabs with their counts", () => {
@@ -78,9 +79,9 @@ void describe("students page furniture", () => {
     assert.deepEqual(
       tabs.map((tab) => [tab.value, tab.count]),
       [
-        ["todos", null],
-        ["ativos", null],
-        ["inativos", null],
+        ["todos", undefined],
+        ["ativos", undefined],
+        ["inativos", undefined],
       ],
     );
   });

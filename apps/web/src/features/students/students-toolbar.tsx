@@ -1,11 +1,13 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 
 import { Plus } from "lucide-react";
 
-import { Button, Input, Tabs, TabsList, TabsTab } from "@lazuli/ui";
+import { Button, InlineSkeleton, Input, Tabs, TabsList, TabsTab } from "@lazuli/ui";
+
+import { debounce } from "~/lib/debounce";
 
 import type { StudentsFilters } from "./logic";
-import type { StatusTabVm, StatusTabValue } from "./view-model";
+import type { HeaderSummaryVm, StatusTabVm, StatusTabValue } from "./view-model";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -13,16 +15,27 @@ export function StudentsHeader({
   summary,
   onNewStudent,
 }: {
-  summary: string | null;
+  summary: HeaderSummaryVm | undefined;
   onNewStudent: () => void;
 }): ReactElement {
   return (
     <div className="flex items-end justify-between gap-4">
       <div>
         <h1 className="font-display text-h2 font-semibold text-foreground">Alunos</h1>
-        {summary === null ? null : (
-          <p className="mt-1 text-caption text-muted-foreground">{summary}</p>
-        )}
+        <p className="mt-1 text-caption text-muted-foreground">
+          {summary === undefined ? (
+            <InlineSkeleton />
+          ) : (
+            <span className="font-numeric tabular-nums">{summary.totalStudents}</span>
+          )}{" "}
+          {summary?.totalStudents === 1 ? "aluno" : "alunos"} ·{" "}
+          {summary === undefined ? (
+            <InlineSkeleton />
+          ) : (
+            <span className="font-numeric tabular-nums">{summary.activeClasses}</span>
+          )}{" "}
+          {summary?.activeClasses === 1 ? "turma ativa" : "turmas ativas"}
+        </p>
       </div>
       <Button onClick={onNewStudent} size="md">
         <Plus aria-hidden="true" className="size-4" />
@@ -35,35 +48,31 @@ export function StudentsHeader({
 /** Controlled input that only commits to the URL after the typing pauses. */
 function SearchField({ filters }: { filters: StudentsFilters }): ReactElement {
   const [value, setValue] = useState(filters.busca);
-  const [committed, setCommitted] = useState(filters.busca);
-
-  // An external URL change (back button, shared link) resets the field.
-  if (filters.busca !== committed) {
-    setCommitted(filters.busca);
-    setValue(filters.busca);
-  }
+  const commitSearch = useMemo(
+    () => debounce((nextValue: string) => filters.setBusca(nextValue), SEARCH_DEBOUNCE_MS),
+    [filters.setBusca],
+  );
 
   useEffect(() => {
-    if (value === filters.busca) {
-      return;
-    }
+    // An external URL change (back button, shared link) resets pending input.
+    setValue(filters.busca);
+    commitSearch.cancel();
+  }, [commitSearch, filters.busca]);
 
-    const timer = setTimeout(() => {
-      setCommitted(value);
-      filters.setBusca(value);
-    }, SEARCH_DEBOUNCE_MS);
-
+  useEffect(() => {
     return () => {
-      clearTimeout(timer);
+      commitSearch.cancel();
     };
-  }, [value, filters]);
+  }, [commitSearch]);
 
   return (
     <Input
       aria-label="Buscar aluno"
       className="w-80"
       onChange={(event) => {
-        setValue(event.target.value);
+        const nextValue = event.target.value;
+        setValue(nextValue);
+        commitSearch(nextValue);
       }}
       placeholder="Buscar por nome, turma ou professor"
       type="search"
@@ -92,7 +101,9 @@ export function StudentsControls({
           {tabs.map((tab) => (
             <TabsTab key={tab.value} value={tab.value}>
               {tab.label}
-              {tab.count === null ? null : (
+              {tab.count === undefined ? (
+                <InlineSkeleton className="w-5" />
+              ) : (
                 <span className="font-numeric text-micro tabular-nums text-muted-foreground">
                   {tab.count}
                 </span>

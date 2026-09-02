@@ -3,6 +3,7 @@ import { after, before, describe } from "node:test";
 
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
+import { STUDENT_PAGE_SIZE_OPTIONS } from "@lazuli/validators";
 
 import {
   ADMIN,
@@ -13,6 +14,8 @@ import {
   HTTP_TEST_PREFIX,
   HTTP_OK,
 } from "../db/student-test-support.js";
+
+const EXPANDED_PAGE_SIZE = STUDENT_PAGE_SIZE_OPTIONS[1];
 
 void describe("students API over the tRPC HTTP boundary", () => {
   void before(async () => {
@@ -48,5 +51,22 @@ void describe("students API over the tRPC HTTP boundary", () => {
     assert.equal(readResponse.status, HTTP_OK);
     assert.equal(read.result.data.json.contact.fullName, `${HTTP_TEST_PREFIX}Adult`);
     assert.equal(read.result.data.json.whatsAppUrl, "https://wa.me/5582955550000");
+
+    const listResponse = await callHttpQuery({
+      path: "students.list",
+      staffUser: ADMIN,
+      body: { search: HTTP_TEST_PREFIX, pageSize: EXPANDED_PAGE_SIZE },
+    });
+    const list = (await listResponse.json()) as {
+      result: {
+        data: { json: { page: number; pageCount: number; pageSize: number; total: number } };
+      };
+    };
+
+    assert.equal(listResponse.status, HTTP_OK);
+    assert.equal(list.result.data.json.page, 1);
+    assert.equal(list.result.data.json.pageCount, 1);
+    assert.equal(list.result.data.json.pageSize, EXPANDED_PAGE_SIZE);
+    assert.equal(list.result.data.json.total, 1);
   });
 });

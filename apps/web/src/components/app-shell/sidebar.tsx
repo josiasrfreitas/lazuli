@@ -24,7 +24,7 @@ export function Sidebar({ identity }: { identity: StaffIdentity }): ReactNode {
           </span>
         </p>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto pb-4">
+      <div className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto pb-4">
         <SidebarNav role={identity.role} />
       </div>
       <footer className="flex items-center gap-3 border-t border-border px-4 py-4">
