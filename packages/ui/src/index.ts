@@ -36,7 +36,7 @@ export type { EmptyStateProps } from "./components/empty-state";
 export { HelloWorld } from "./components/hello-world";
 export type { HelloWorldProps } from "./components/hello-world";
 export { Input } from "./components/input";
-export type { InputProps } from "./components/input";
+export type { InputProps, InputSize } from "./components/input";
 export {
   Select,
   SelectContent,
@@ -200,3 +200,11 @@ export { Label } from "./components/label";
 export type { LabelProps } from "./components/label";
 export { Field, FieldDescription, FieldError } from "./components/field";
 export type { FieldDescriptionProps, FieldErrorProps, FieldProps } from "./components/field";
+
+export { SegmentedControl, SegmentedControlItem } from "./components/segmented-control";
+export type {
+  SegmentedControlItemProps,
+  SegmentedControlProps,
+} from "./components/segmented-control";
+export { FormRow, FormSection } from "./components/form-layout";
+export type { FormRowColumns, FormRowProps, FormSectionProps } from "./components/form-layout";

@@ -5,6 +5,7 @@ import { Button, DialogFooter } from "@lazuli/ui";
 import { toDateOnlySaoPaulo } from "~/lib/format";
 
 import type { CreateStudent } from "../logic";
+import { DADOS_FORM_ID } from "./dados-step";
 import type { NewStudentAction, NewStudentState } from "./reducer";
 import { toCreateInput } from "./to-create-input";
 
@@ -24,12 +25,15 @@ export function WizardFooter({ state, dispatch, creation, onCancel }: WizardProp
   };
 
   if (state.step === DADOS_STEP) {
+    // Submitting the Dados form (Enter or this button) runs the same validation.
     return (
       <DialogFooter className="mt-6">
-        <Button onClick={onCancel} variant="ghost">
+        <Button onClick={onCancel} type="button" variant="ghost">
           Cancelar
         </Button>
-        <Button onClick={advance}>Avançar</Button>
+        <Button form={DADOS_FORM_ID} type="submit">
+          Avançar
+        </Button>
       </DialogFooter>
     );
   }

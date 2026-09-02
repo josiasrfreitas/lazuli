@@ -18,7 +18,7 @@ export function Label({ className, ...props }: LabelProps): ReactElement {
     <FieldPrimitive.Label
       className={cn(
         [
-          "select-none text-control font-semibold leading-5 text-foreground",
+          "select-none text-caption font-medium leading-4 text-foreground",
           "data-disabled:cursor-not-allowed data-disabled:opacity-disabled",
         ],
         className,

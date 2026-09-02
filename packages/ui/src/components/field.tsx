@@ -16,7 +16,7 @@ export type FieldProps = FieldPrimitive.Root.Props;
 export function Field({ className, ...props }: FieldProps): ReactElement {
   return (
     <FieldPrimitive.Root
-      className={cn("grid w-full gap-2", className)}
+      className={cn("grid w-full gap-1.5", className)}
       data-slot="field"
       {...props}
     />
