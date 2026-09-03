@@ -21,6 +21,8 @@ export {
   updateGuardianReferenceSchema,
 } from "./student.js";
 export {
+  DEFAULT_STUDENT_PAGE_SIZE,
+  STUDENT_PAGE_SIZE_OPTIONS,
   studentListAttendanceSchema,
   studentListCountsSchema,
   studentListEnrollmentSchema,

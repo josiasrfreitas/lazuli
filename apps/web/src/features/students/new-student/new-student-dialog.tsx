@@ -1,4 +1,4 @@
-import { useReducer, type ReactElement, type ReactNode } from "react";
+import { useReducer, useRef, type ReactElement, type ReactNode } from "react";
 
 import {
   Alert,
@@ -20,11 +20,30 @@ import { toDateOnlySaoPaulo } from "~/lib/format";
 
 import { useCreateStudent } from "../logic";
 import { DadosStep } from "./dados-step";
-import { initialNewStudentState, isMinorOn, NEW_STUDENT_STEPS, newStudentReducer } from "./reducer";
+import {
+  initialNewStudentState,
+  isGuardianSectionOpen,
+  isMinorFromFields,
+  NEW_STUDENT_STEPS,
+  newStudentReducer,
+} from "./reducer";
 import { useScrollToError } from "./use-scroll-to-error";
 import { DADOS_STEP, TURMA_STEP, WizardFooter, type WizardProps } from "./wizard-footer";
 
 const STEPS = NEW_STUDENT_STEPS.map((label) => ({ label }));
+
+export type NewStudentDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (id: string) => void;
+};
+
+const FIRST_FIELD_SELECTOR = 'input[name="fullName"]';
+
+/** Typing starts immediately: focus lands on the name, not on the close X. */
+function firstFieldOf(popup: HTMLElement | null): HTMLElement | true {
+  return popup?.querySelector<HTMLInputElement>(FIRST_FIELD_SELECTOR) ?? true;
+}
 
 function StepBody({ state, dispatch }: WizardProps): ReactNode {
   if (state.step === DADOS_STEP) {
@@ -34,9 +53,16 @@ function StepBody({ state, dispatch }: WizardProps): ReactNode {
       <DadosStep
         errors={state.errors}
         fields={state.fields}
-        minor={isMinorOn({ birthDate: state.fields.birthDate, today })}
+        guardianOpen={isGuardianSectionOpen(state, today)}
+        minor={isMinorFromFields(state.fields, today)}
         onFieldChange={(field, value) => {
           dispatch({ type: "fieldChanged", field, value });
+        }}
+        onGuardianToggle={(open) => {
+          dispatch({ type: "guardianToggled", open });
+        }}
+        onSubmit={() => {
+          dispatch({ type: "nextRequested", today: toDateOnlySaoPaulo(new Date()) });
         }}
       />
     );
@@ -59,12 +85,9 @@ export function NewStudentDialog({
   open,
   onOpenChange,
   onCreated,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onCreated: (id: string) => void;
-}): ReactElement {
+}: NewStudentDialogProps): ReactElement {
   const [state, dispatch] = useReducer(newStudentReducer, initialNewStudentState);
+  const popupRef = useRef<HTMLDivElement>(null);
   const creation = useCreateStudent({
     onCreated: (id) => {
       dispatch({ type: "reset" });
@@ -92,7 +115,11 @@ export function NewStudentDialog({
     <Dialog onOpenChange={requestClose} open={open}>
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className="md:max-w-xl">
+        <DialogContent
+          className="md:max-w-xl"
+          initialFocus={() => firstFieldOf(popupRef.current)}
+          ref={popupRef}
+        >
           <WizardContent
             creation={creation}
             dispatch={dispatch}

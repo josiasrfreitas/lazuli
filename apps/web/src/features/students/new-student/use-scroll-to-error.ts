@@ -6,6 +6,15 @@ import { useEffect, useRef, type RefObject } from "react";
  * Whenever `revision` bumps — once per failed submit, see the reducer — this
  * brings the first invalid control into view and focuses it.
  */
+const FOCUSABLE = 'input, button, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/** A grouped control (e.g. segmented pills) carries `aria-invalid` on its non-focusable root. */
+function focusTargetOf(invalid: HTMLElement): HTMLElement {
+  return invalid.matches(FOCUSABLE)
+    ? invalid
+    : (invalid.querySelector<HTMLElement>(FOCUSABLE) ?? invalid);
+}
+
 export function useScrollToError(revision: number): RefObject<HTMLDivElement | null> {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -18,7 +27,7 @@ export function useScrollToError(revision: number): RefObject<HTMLDivElement | n
 
     if (invalid !== undefined && invalid !== null) {
       invalid.scrollIntoView({ block: "center" });
-      invalid.focus({ preventScroll: true });
+      focusTargetOf(invalid).focus({ preventScroll: true });
     }
   }, [revision]);
 

@@ -8,4 +8,6 @@
   --lz-radius-lg: 0.875rem;
   --lz-radius-xl: 1.25rem;
   --lz-radius-full: 9999px;
+  --lz-data-table-min-height: 36.25rem;
+  --lz-data-table-header-height: 3rem;
 }

@@ -1,11 +1,16 @@
 "use client";
 
+import { useCallback } from "react";
+
 import { keepPreviousData, skipToken } from "@tanstack/react-query";
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 
 import {
+  DEFAULT_STUDENT_PAGE_SIZE,
   MINOR_GUARDIAN_REQUIRES_CONTACT_MESSAGE,
   MINOR_REQUIRES_GUARDIAN_MESSAGE,
+  STUDENT_PAGE_SIZE_OPTIONS,
+  type StudentListInput,
   type StudentListOutput,
   type StudentListRow,
   type StudentListStatusFilter,
@@ -31,6 +36,7 @@ const searchParamsConfig = {
   status: parseAsStringLiteral(STATUS_PARAM_VALUES),
   busca: parseAsString.withDefault(""),
   pagina: parseAsInteger.withDefault(FIRST_PAGE),
+  porPagina: parseAsInteger.withDefault(DEFAULT_STUDENT_PAGE_SIZE),
 };
 
 const STATUS_FILTER_BY_TAB: Record<StatusTabValue, StudentListStatusFilter> = {
@@ -43,27 +49,44 @@ export type StudentsFilters = {
   statusTab: StatusTabValue;
   busca: string;
   pagina: number;
+  pageSize: StudentListInput["pageSize"];
   setStatusTab: (value: StatusTabValue) => void;
   setBusca: (value: string) => void;
   setPagina: (value: number) => void;
+  setPageSize: (value: StudentListInput["pageSize"]) => void;
 };
+
+function studentPageSizeFor(value: number): StudentListInput["pageSize"] {
+  return STUDENT_PAGE_SIZE_OPTIONS.find((option) => option === value) ?? DEFAULT_STUDENT_PAGE_SIZE;
+}
 
 /** Defaults are cleared from the URL; changing status or search resets the page. */
 export function useStudentsFilters(): StudentsFilters {
   const [params, setParams] = useQueryStates(searchParamsConfig);
+  const setBusca = useCallback(
+    (value: string) => {
+      void setParams({ busca: value === "" ? null : value, pagina: null });
+    },
+    [setParams],
+  );
 
   return {
     statusTab: params.status ?? "todos",
     busca: params.busca,
     pagina: params.pagina,
+    pageSize: studentPageSizeFor(params.porPagina),
     setStatusTab: (value) => {
       void setParams({ status: value === "todos" ? null : value, pagina: null });
     },
-    setBusca: (value) => {
-      void setParams({ busca: value === "" ? null : value, pagina: null });
-    },
+    setBusca,
     setPagina: (value) => {
       void setParams({ pagina: value <= FIRST_PAGE ? null : value });
+    },
+    setPageSize: (value) => {
+      void setParams({
+        pagina: null,
+        porPagina: value === DEFAULT_STUDENT_PAGE_SIZE ? null : value,
+      });
     },
   };
 }
@@ -95,7 +118,7 @@ export function useStudentPreview(id: string | null): StudentPreviewQuery {
   return trpc.students.preview.useQuery(id === null ? skipToken : { id });
 }
 
-type StudentsListQueryInput = Pick<StudentsFilters, "statusTab" | "busca" | "pagina">;
+type StudentsListQueryInput = Pick<StudentsFilters, "statusTab" | "busca" | "pagina" | "pageSize">;
 
 export type StudentsListQuery = QueryResult<StudentListOutput>;
 
@@ -188,6 +211,7 @@ export function useStudentsList(filters: StudentsListQueryInput): StudentsListQu
   return trpc.students.list.useQuery(
     {
       page: filters.pagina,
+      pageSize: filters.pageSize,
       status: STATUS_FILTER_BY_TAB[filters.statusTab],
       search: filters.busca === "" ? undefined : filters.busca,
     },

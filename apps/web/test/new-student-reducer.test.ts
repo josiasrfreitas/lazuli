@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   initialNewStudentState,
+  isGuardianSectionOpen,
   isMinorOn,
   newStudentReducer,
   type NewStudentState,
@@ -10,8 +11,11 @@ import {
 import { toCreateInput } from "../src/features/students/new-student/to-create-input.js";
 
 const TODAY = "2026-08-25";
+// `isMinorOn` compares ISO dates; the wizard fields hold what the secretary types.
 const MINOR_BIRTH = "2010-05-01";
 const ADULT_BIRTH = "1990-05-01";
+const MINOR_BIRTH_TYPED = "01/05/2010";
+const ADULT_BIRTH_TYPED = "01/05/1990";
 const ADULT_NAME = "Maria Silva";
 const MINOR_NAME = "Davi Lucca";
 const GUARDIAN_NAME = "Ana Lucca";
@@ -56,25 +60,81 @@ void describe("new-student wizard: step Dados", () => {
   });
 
   void it("requires a guardian with contact for minors, mirroring the backend", () => {
-    const missingAll = advanced(stateWith({ fullName: MINOR_NAME, birthDate: MINOR_BIRTH }));
+    const missingAll = advanced(stateWith({ fullName: MINOR_NAME, birthDate: MINOR_BIRTH_TYPED }));
     assert.equal(missingAll.step, 0);
     assert.ok(missingAll.errors.guardianName);
     assert.ok(missingAll.errors.guardianPhone);
 
     const missingContact = advanced(
-      stateWith({ fullName: MINOR_NAME, birthDate: MINOR_BIRTH, guardianName: GUARDIAN_NAME }),
+      stateWith({
+        fullName: MINOR_NAME,
+        birthDate: MINOR_BIRTH_TYPED,
+        guardianName: GUARDIAN_NAME,
+      }),
     );
     assert.ok(missingContact.errors.guardianPhone);
 
     const passed = advanced(
       stateWith({
         fullName: MINOR_NAME,
-        birthDate: MINOR_BIRTH,
+        birthDate: MINOR_BIRTH_TYPED,
         guardianName: GUARDIAN_NAME,
         guardianEmail: GUARDIAN_EMAIL,
       }),
     );
     assert.equal(passed.step, 1);
+  });
+
+  void it("rejects a birth date that is not a real dd/mm/aaaa day", () => {
+    const partial = advanced(stateWith({ fullName: ADULT_NAME, birthDate: "01/05" }));
+    assert.equal(partial.step, 0);
+    assert.equal(partial.errors.birthDate, "Data inválida. Use dd/mm/aaaa.");
+
+    const impossible = advanced(stateWith({ fullName: ADULT_NAME, birthDate: "31/02/2010" }));
+    assert.equal(impossible.step, 0);
+    assert.ok(impossible.errors.birthDate);
+
+    assert.equal(
+      advanced(stateWith({ fullName: ADULT_NAME, birthDate: ADULT_BIRTH_TYPED })).step,
+      1,
+    );
+  });
+});
+
+function typed(field: "birthDate" | "phone", value: string): string {
+  return newStudentReducer(initialNewStudentState, { type: "fieldChanged", field, value }).fields[
+    field
+  ];
+}
+
+void describe("new-student wizard: masks and guardian disclosure", () => {
+  void it("masks the birth date and phones as the secretary types", () => {
+    assert.equal(typed("birthDate", "01052010"), MINOR_BIRTH_TYPED);
+    assert.equal(typed("birthDate", "0105"), "01/05");
+    assert.equal(typed("phone", "11999998888"), "(11) 99999-8888");
+  });
+
+  void it("shows the guardian section for minors, on request, or once it has content", () => {
+    assert.equal(isGuardianSectionOpen(initialNewStudentState, TODAY), false);
+    assert.equal(isGuardianSectionOpen(stateWith({ birthDate: MINOR_BIRTH_TYPED }), TODAY), true);
+    assert.equal(isGuardianSectionOpen(stateWith({ guardianName: GUARDIAN_NAME }), TODAY), true);
+
+    const opened = newStudentReducer(initialNewStudentState, {
+      type: "guardianToggled",
+      open: true,
+    });
+    assert.equal(isGuardianSectionOpen(opened, TODAY), true);
+  });
+
+  void it("closing the guardian section discards its fields and errors", () => {
+    const withGuardian = newStudentReducer(
+      { ...stateWith({ guardianName: GUARDIAN_NAME }), errors: { guardianPhone: "x" } },
+      { type: "guardianToggled", open: false },
+    );
+
+    assert.equal(withGuardian.fields.guardianName, "");
+    assert.equal(withGuardian.errors.guardianPhone, undefined);
+    assert.equal(isGuardianSectionOpen(withGuardian, TODAY), false);
   });
 });
 
@@ -141,7 +201,7 @@ void describe("toCreateInput", () => {
     const input = toCreateInput({
       ...initialNewStudentState.fields,
       fullName: "  Maria Silva  ",
-      birthDate: MINOR_BIRTH,
+      birthDate: MINOR_BIRTH_TYPED,
       guardianName: GUARDIAN_NAME,
       guardianEmail: GUARDIAN_EMAIL,
     });

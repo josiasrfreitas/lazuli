@@ -1,23 +1,51 @@
 "use client";
 
-import { forwardRef, type ComponentPropsWithoutRef } from "react";
+import { forwardRef, type ComponentPropsWithoutRef, type ReactElement } from "react";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "../lib/utils";
 import { Button } from "./button";
+import { InlineSkeleton } from "./inline-skeleton";
 
-export type PaginationProps = Omit<ComponentPropsWithoutRef<"nav">, "onChange"> & {
+type PaginationBaseProps = Omit<ComponentPropsWithoutRef<"nav">, "onChange"> & {
   /** Current page, 1-based. */
   page: number;
   /** Total number of pages. */
-  pageCount: number;
   onPageChange?: (page: number) => void;
   /** Accessible name of the navigation landmark. */
   label?: string;
   previousLabel?: string;
   nextLabel?: string;
 };
+
+export type PaginationProps = PaginationBaseProps &
+  (
+    | {
+        /** Renders the unknown page count as an inline skeleton. */ loading: true;
+        pageCount?: never;
+      }
+    | { loading?: false; pageCount: number }
+  );
+
+function PaginationStatus({
+  page,
+  totalPages,
+}: {
+  page: number;
+  totalPages: number | undefined;
+}): ReactElement {
+  return (
+    <p className="text-caption text-muted-foreground" data-slot="pagination-status">
+      Página <span className="font-numeric tabular-nums">{page}</span> de{" "}
+      {totalPages === undefined ? (
+        <InlineSkeleton className="w-5" />
+      ) : (
+        <span className="font-numeric tabular-nums">{totalPages}</span>
+      )}
+    </p>
+  );
+}
 
 /**
  * Previous/next pager with a "page X of Y" indicator. Presentational: the
@@ -33,12 +61,13 @@ export const Pagination = forwardRef<HTMLElement, PaginationProps>(
       onPageChange,
       page,
       pageCount,
+      loading = false,
       previousLabel = "Página anterior",
       ...props
     },
     ref,
   ) => {
-    const totalPages = Math.max(pageCount, 1);
+    const totalPages = loading ? undefined : Math.max(pageCount ?? 0, 1);
 
     return (
       <nav
@@ -50,6 +79,7 @@ export const Pagination = forwardRef<HTMLElement, PaginationProps>(
       >
         <Button
           aria-label={previousLabel}
+          className="size-11 sm:size-8"
           disabled={page <= 1}
           onClick={() => onPageChange?.(page - 1)}
           size="icon-sm"
@@ -57,13 +87,11 @@ export const Pagination = forwardRef<HTMLElement, PaginationProps>(
         >
           <ChevronLeft aria-hidden="true" />
         </Button>
-        <p className="text-caption text-muted-foreground" data-slot="pagination-status">
-          Página <span className="font-numeric tabular-nums">{page}</span> de{" "}
-          <span className="font-numeric tabular-nums">{totalPages}</span>
-        </p>
+        <PaginationStatus page={page} totalPages={totalPages} />
         <Button
           aria-label={nextLabel}
-          disabled={page >= totalPages}
+          className="size-11 sm:size-8"
+          disabled={totalPages === undefined || page >= totalPages}
           onClick={() => onPageChange?.(page + 1)}
           size="icon-sm"
           variant="ghost"

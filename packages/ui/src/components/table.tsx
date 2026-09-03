@@ -1,8 +1,9 @@
 "use client";
 
-import { type ComponentProps, createContext, forwardRef, useContext } from "react";
+import { type ComponentProps, createContext, forwardRef, type ReactNode, useContext } from "react";
 
 import { cn } from "../lib/utils";
+import { TableScrollArea } from "./table-scroll-area";
 
 export type TableDensity = "compact" | "default";
 
@@ -20,27 +21,46 @@ export function useTableDensity(): TableDensity {
   return useContext(TableDensityContext);
 }
 
-export type TableContainerProps = ComponentProps<"div">;
+export type TableContainerProps = ComponentProps<"div"> & {
+  /**
+   * Pagination or other furniture pinned under the data. It lives outside the
+   * scroll region, so it never moves and the scrollbar never runs across it.
+   */
+  footer?: ReactNode;
+  /** Fills the page's remaining height regardless of row count; scrolls inside. */
+  viewportBound?: boolean;
+};
 
 /**
- * The table's visible boundary. It owns the horizontal scroll so a wide table
- * never widens the page, and it keeps empty, loading and error states inside
- * the same frame as the data.
+ * The table's visible boundary. Only the data scrolls inside it; a `footer`
+ * stays pinned below. Its viewport-bound form always fills the available page
+ * height, so the frame stays put when the page size or row count changes.
  */
 export const TableContainer = forwardRef<HTMLDivElement, TableContainerProps>(
-  ({ className, ...props }, ref) => (
+  ({ children, className, footer, viewportBound = false, ...props }, ref) => (
     <div
       {...props}
-      // `relative` anchors absolutely-positioned descendants (e.g. `sr-only`
-      // labels in cells) inside the scroll area; without it they sit on the
-      // page itself, widening it by the table's off-screen width.
       className={cn(
-        "relative w-full overflow-x-auto rounded-lg border border-border bg-card scrollbar-subtle",
+        "flex w-full flex-col overflow-hidden rounded-lg border border-border bg-card",
+        viewportBound && "data-table-frame",
         className,
       )}
       data-slot="table-container"
       ref={ref}
-    />
+    >
+      {viewportBound ? (
+        <TableScrollArea>{children}</TableScrollArea>
+      ) : (
+        <div className="relative overflow-x-auto scrollbar-subtle" data-slot="table-viewport">
+          {children}
+        </div>
+      )}
+      {footer === undefined ? null : (
+        <div className="shrink-0" data-slot="table-container-footer">
+          {footer}
+        </div>
+      )}
+    </div>
   ),
 );
 
@@ -74,14 +94,22 @@ export const Table = forwardRef<HTMLTableElement, TableProps>(
 
 Table.displayName = "Table";
 
-export type TableHeaderProps = ComponentProps<"thead">;
+export type TableHeaderProps = ComponentProps<"thead"> & {
+  /** Keeps column labels visible when a viewport-bound table scrolls vertically. */
+  sticky?: boolean;
+};
 
 export const TableHeader = forwardRef<HTMLTableSectionElement, TableHeaderProps>(
-  ({ className, ...props }, ref) => (
+  ({ className, sticky = false, ...props }, ref) => (
     <thead
       {...props}
-      className={cn("[&_tr]:border-b [&_tr]:border-border", className)}
+      className={cn(
+        "[&_tr]:border-b [&_tr]:border-border",
+        sticky && "sticky top-0 z-10 bg-card",
+        className,
+      )}
       data-slot="table-header"
+      data-sticky={sticky || undefined}
       ref={ref}
     />
   ),

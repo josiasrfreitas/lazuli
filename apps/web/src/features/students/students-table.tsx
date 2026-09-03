@@ -11,9 +11,11 @@ import {
   TableEmpty,
   TableHead,
   TableHeader,
+  TablePagination,
   TableRow,
   TableSkeleton,
 } from "@lazuli/ui";
+import { STUDENT_PAGE_SIZE_OPTIONS, type StudentListInput } from "@lazuli/validators";
 
 import { StudentsTableRow } from "./students-table-row";
 import type { StudentsTableState } from "./view-model";
@@ -32,7 +34,7 @@ const COLUMNS: readonly { label: string; width: string; numeric: boolean }[] = [
 ];
 const COLUMN_COUNT = COLUMNS.length + 1;
 const NUMERIC_COLUMNS = COLUMNS.flatMap((column, index) => (column.numeric ? [index] : []));
-const SKELETON_ROWS = 8;
+const SKELETON_ROWS = 10;
 
 function StatesRow({
   state,
@@ -86,21 +88,60 @@ function StatesRow({
   );
 }
 
+type StudentsTablePaginationBase = {
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: StudentListInput["pageSize"]) => void;
+  page: number;
+  pageSize: StudentListInput["pageSize"];
+};
+
+export type StudentsTablePagination = StudentsTablePaginationBase &
+  (
+    | { loading: true; pageCount?: never; totalItems?: never }
+    | { loading?: false; pageCount: number; totalItems: number }
+  );
+
+function isStudentPageSize(pageSize: number): pageSize is StudentListInput["pageSize"] {
+  return (STUDENT_PAGE_SIZE_OPTIONS as readonly number[]).includes(pageSize);
+}
+
+function StudentsPagination({ pagination }: { pagination: StudentsTablePagination }): ReactNode {
+  return (
+    <TablePagination
+      itemLabel={{ singular: "aluno", plural: "alunos" }}
+      onPageChange={pagination.onPageChange}
+      onPageSizeChange={(pageSize) => {
+        if (isStudentPageSize(pageSize)) {
+          pagination.onPageSizeChange(pageSize);
+        }
+      }}
+      page={pagination.page}
+      pageSize={pagination.pageSize}
+      pageSizeOptions={STUDENT_PAGE_SIZE_OPTIONS}
+      {...(pagination.loading
+        ? { loading: true }
+        : { pageCount: pagination.pageCount, totalItems: pagination.totalItems })}
+    />
+  );
+}
+
 export function StudentsTable({
   state,
   onRetry,
   selectedId,
   onSelectRow,
+  pagination,
 }: {
   state: StudentsTableState;
   onRetry: () => void;
   selectedId: string | null;
   onSelectRow: (id: string) => void;
+  pagination: StudentsTablePagination;
 }): ReactElement {
   return (
-    <TableContainer>
+    <TableContainer footer={<StudentsPagination pagination={pagination} />} viewportBound>
       <Table aria-label="Lista de alunos" className="min-w-2xl table-fixed">
-        <TableHeader>
+        <TableHeader sticky>
           <TableRow className="hover:bg-transparent">
             {COLUMNS.map((column) => (
               <TableHead className={column.width} key={column.label} numeric={column.numeric}>

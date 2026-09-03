@@ -64,3 +64,22 @@ Três achados inline, todos confirmados no código e consertados com verificaç�
 - **Camadas disciplinadas**: `view-model.ts` puro e testado decide tudo que é regra visual (tons, rótulos, estados da tabela); os componentes ficam presentacionais. O estado da URL (nuqs) faz filtro, página e painel sobreviverem a refresh e link compartilhado.
 - **Estados dentro do frame**: loading/vazio/erro moram dentro da moldura da tabela (skeleton com barras desiguais, empty states com ação) — a página não salta entre estados, agora nem nas colunas.
 - **Wizard leve como prometido**: só o nome é obrigatório, Turma/Financeiro são skippáveis com placeholders honestos ("Matrícula em breve"), e as rejeições do servidor voltam mapeadas campo a campo na etapa Dados.
+
+## Auditoria do wizard "Novo aluno" (2026-09-02)
+
+Medido no browser a 1280×800 antes e depois. Screenshots: `wizard-audit-before-1280.png`, `wizard-audit-after-1280.png`, `wizard-audit-after-minor-error-1280.png`.
+
+| Achado (antes)                                                              | Depois                                                                                         |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Foco abria no "X" de fechar                                                 | Abre em "Nome completo" (`initialFocus`)                                                       |
+| `type="date"` consumia 4 Tabs (dia, mês, ano, seletor)                      | Texto mascarado `dd/mm/aaaa`, 1 Tab                                                            |
+| Enter não fazia nada (sem `<form>`)                                         | `<form>` real; Enter valida/avança; footer submete por `form={id}`                             |
+| Zero placeholders, sem `autocomplete`, sem `name`                           | Todos os campos com placeholder de formato, `autoComplete="off"`, `name`                       |
+| Label 13.5px bold = texto do input; campo 68px; corpo rolava (558/511px)    | Label 13px medium, input 32px, campo 54px; dialog 543px sem scroll                             |
+| Select de 2 opções para CPF/RG                                              | `SegmentedControl` (pills), placeholder do número muda com o tipo                              |
+| Responsável sempre visível para adultos; Nascimento longe do que ele decide | Seção colapsada ("Adicionar responsável"), abre sozinha para menor; Nascimento ao lado do nome |
+| Sem agrupamento                                                             | Seções Identificação / Contato / Responsável (`FormSection`)                                   |
+
+Walk de Tab depois: Nome → Nascimento → CPF/RG → Número → Telefone → Email → Adicionar responsável → Cancelar → Avançar (9 paradas, 1 por controle). Fluxo de menor via teclado: máscara, seção obrigatória, erros no campo, foco no primeiro inválido, criação e painel aberto. Console limpo.
+
+Guardas: `apps/web/test/new-student-form-contract.test.ts`, story `Patterns/DenseForm`, checklist em `docs/frontend/forms.md`.

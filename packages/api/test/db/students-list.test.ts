@@ -3,6 +3,7 @@ import { after, before, describe } from "node:test";
 
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
+import { DEFAULT_STUDENT_PAGE_SIZE } from "@lazuli/validators";
 
 import {
   ANA_PRESENT_COUNT,
@@ -27,6 +28,7 @@ const FIXTURE_TOTAL = 12;
 const FIXTURE_ACTIVE = 9;
 const FIXTURE_INACTIVE = 3;
 const PAGE_COUNT = 2;
+const EXPANDED_PAGE_SIZE = 25;
 const LAST_PAGE = 2;
 const LAST_PAGE_ROWS = 2;
 const ANA_PERCENT = ANA_PRESENT_COUNT / HELD_SESSIONS;
@@ -67,6 +69,8 @@ function registerCountsAndPaginationTest(): void {
       inactive: FIXTURE_INACTIVE,
     });
     assert.equal(firstPage.pageCount, PAGE_COUNT);
+    assert.equal(firstPage.pageSize, DEFAULT_STUDENT_PAGE_SIZE);
+    assert.equal(firstPage.total, FIXTURE_TOTAL);
     assert.deepEqual(
       firstPage.rows.map((row) => row.fullName),
       STUDENT_SEEDS.slice(0, firstPage.rows.length).map((seed) => fullNameOf(seed.suffix)),
@@ -82,6 +86,15 @@ function registerCountsAndPaginationTest(): void {
       lastPage.rows.map((row) => row.fullName),
       [fullNameOf("Karina Extra"), fullNameOf("Lucas Extra")],
     );
+
+    const expandedPage = await caller().students.list({
+      search: PREFIX,
+      pageSize: EXPANDED_PAGE_SIZE,
+    });
+
+    assert.equal(expandedPage.pageCount, 1);
+    assert.equal(expandedPage.pageSize, EXPANDED_PAGE_SIZE);
+    assert.equal(expandedPage.rows.length, FIXTURE_TOTAL);
   });
 }
 

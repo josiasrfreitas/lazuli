@@ -25,5 +25,11 @@ must not import Prisma or worker handlers.
 - Keep source code, technical documentation, and Storybook examples in English unless a work item
   explicitly identifies user-facing content that must be localized.
 
+## Forms
+
+Product forms follow [the form standard](forms.md): a real `form` so Enter submits, first-field
+focus, one Tab stop per control, placeholders as format hints, masked dates and phones, pills for a
+handful of options, and a per-form contract test. The reference is the `Patterns/DenseForm` story.
+
 Run `pnpm storybook` for visual review. Before finishing frontend changes, run proportionate lint,
 typecheck, tests, `git diff --check`, and inspect the final diff.

@@ -51,29 +51,36 @@ export function whatsAppVm(row: Pick<StudentListRow, "fullName" | "phone">): Wha
   return url === null ? null : { url, label: `Abrir WhatsApp de ${row.fullName}` };
 }
 
-/** e.g. "16 alunos · 6 turmas ativas" — the header line under the title. */
-export function headerSummaryVm(
-  output: Pick<StudentListOutput, "totalStudents" | "activeClasses">,
-): string {
-  const students = output.totalStudents === 1 ? "1 aluno" : `${output.totalStudents} alunos`;
-  const classes =
-    output.activeClasses === 1 ? "1 turma ativa" : `${output.activeClasses} turmas ativas`;
+export type HeaderSummaryVm = {
+  activeClasses: number;
+  totalStudents: number;
+};
 
-  return `${students} · ${classes}`;
+/** Keeps static summary copy renderable while its two counts are loading. */
+export function headerSummaryVm(
+  output?: Pick<StudentListOutput, "totalStudents" | "activeClasses">,
+): HeaderSummaryVm | undefined {
+  if (output === undefined) return undefined;
+
+  return { activeClasses: output.activeClasses, totalStudents: output.totalStudents };
 }
 
 export const STATUS_TAB_VALUES = ["todos", "ativos", "inativos"] as const;
 
 export type StatusTabValue = (typeof STATUS_TAB_VALUES)[number];
 
-export type StatusTabVm = { value: StatusTabValue; label: string; count: number | null };
+export type StatusTabVm = { value: StatusTabValue; label: string; count?: number };
 
 /** Omitted counts (first load, error) render the tabs without numbers. */
 export function statusTabsVm(counts?: StudentListOutput["counts"]): StatusTabVm[] {
   return [
-    { value: "todos", label: "Todos", count: counts?.all ?? null },
-    { value: "ativos", label: "Ativos", count: counts?.active ?? null },
-    { value: "inativos", label: "Inativos", count: counts?.inactive ?? null },
+    { value: "todos", label: "Todos", ...(counts === undefined ? {} : { count: counts.all }) },
+    { value: "ativos", label: "Ativos", ...(counts === undefined ? {} : { count: counts.active }) },
+    {
+      value: "inativos",
+      label: "Inativos",
+      ...(counts === undefined ? {} : { count: counts.inactive }),
+    },
   ];
 }
 
