@@ -76,6 +76,8 @@ catalog:
   eslint-plugin-unused-imports: ^4.4.1
   jscpd: ^5.0.11
   lefthook: ^1.13.4
+  "@stryker-mutator/core": ^10.0.0
+  "@stryker-mutator/tap-runner": ^10.0.0
 
 minimumReleaseAgeExclude:
   - "@tanstack/query-core@5.102.3"

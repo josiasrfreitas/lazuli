@@ -10,11 +10,14 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test --test-reporter spec test/*.test.ts",
-    "clean": "rm -rf .turbo dist"
+    "clean": "rm -rf .turbo dist",
+    "mutate": "stryker run"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
+    "@lazuli/stryker-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
+    "@stryker-mutator/core": "catalog:",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "tsx": "catalog:",

@@ -41,8 +41,7 @@
       "dependsOn": ["^build"]
     },
     "test": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "dependsOn": ["^build"]
     },
     "test:db": {
       "dependsOn": ["^build"],
@@ -53,6 +52,10 @@
       "cache": false
     },
     "test:e2e": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "mutate": {
       "dependsOn": ["^build"],
       "cache": false
     }
