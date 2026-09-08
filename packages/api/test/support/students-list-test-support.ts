@@ -42,6 +42,7 @@ const SESSION_DATES = [
 const DUE_DATE = new Date("2044-03-10T00:00:00.000Z");
 const PAID_DATE = new Date("2044-03-08T00:00:00.000Z");
 const MINOR_BIRTH_DATE = new Date("2035-01-01T00:00:00.000Z");
+const EIGHTEENTH_BIRTHDAY_BIRTH_DATE = new Date("2026-04-15T00:00:00.000Z");
 const EVENING_START = new Date("1970-01-01T19:00:00.000Z");
 const EVENING_END = new Date("1970-01-01T20:30:00.000Z");
 const MORNING_START = new Date("1970-01-01T09:00:00.000Z");
@@ -67,6 +68,7 @@ type StudentSeed = {
   classKey?: "A" | "B";
   presentCount?: number;
   finance?: "overdue" | "settled";
+  birthDate?: Date;
   isMinor?: boolean;
 };
 
@@ -84,6 +86,7 @@ export const STUDENT_SEEDS: readonly StudentSeed[] = [
   { suffix: "Joana Extra", status: "ACTIVE" },
   { suffix: "Karina Extra", status: "ACTIVE" },
   { suffix: "Lucas Extra", status: "ACTIVE" },
+  { suffix: "Zoe Birthday", status: "ACTIVE", birthDate: EIGHTEENTH_BIRTHDAY_BIRTH_DATE },
 ];
 
 export function caller(now: Date = NOW): ReturnType<typeof createCaller> {
@@ -264,14 +267,16 @@ type SeedStudentInput = {
 
 async function seedStudent(input: SeedStudentInput): Promise<void> {
   const isMinor = input.seed.isMinor === true;
+  const birthDate = input.seed.birthDate ?? (isMinor ? MINOR_BIRTH_DATE : null);
+  const needsGuardian = isMinor || input.seed.birthDate !== undefined;
   const student = await db.student.create({
     data: {
       fullName: fullNameOf(input.seed.suffix),
       status: input.seed.status,
       phone: STUDENT_PHONE,
-      birthDate: isMinor ? MINOR_BIRTH_DATE : null,
+      birthDate,
       // A DB check constraint requires a contactable guardian for minors.
-      ...(isMinor
+      ...(needsGuardian
         ? { guardian: { create: { fullName: `${PREFIX}Guardian`, phone: STUDENT_PHONE } } }
         : {}),
     },

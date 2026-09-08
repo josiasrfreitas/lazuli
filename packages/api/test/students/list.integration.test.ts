@@ -23,15 +23,17 @@ import {
   seedStudentsListFixture,
 } from "../support/students-list-test-support.js";
 
-const FIXTURE_TOTAL = 12;
-const FIXTURE_ACTIVE = 9;
+const FIXTURE_TOTAL = 13;
+const FIXTURE_ACTIVE = 10;
 const FIXTURE_INACTIVE = 3;
 const PAGE_COUNT = 2;
 const EXPANDED_PAGE_SIZE = 25;
 const LAST_PAGE = 2;
-const LAST_PAGE_ROWS = 2;
+const LAST_PAGE_ROWS = 3;
 const ANA_PERCENT = ANA_PRESENT_COUNT / HELD_SESSIONS;
 const BRUNO_PERCENT = BRUNO_PRESENT_COUNT / HELD_SESSIONS;
+const BEFORE_EIGHTEENTH_BIRTHDAY_IN_SP = new Date("2044-04-15T02:59:59.999Z");
+const START_OF_EIGHTEENTH_BIRTHDAY_IN_SP = new Date("2044-04-15T03:00:00.000Z");
 
 const ANA = "Ana Attend";
 const BRUNO = "Bruno Low";
@@ -39,6 +41,7 @@ const CARLA = "Carla NoData";
 const DAVI = "Davi NoClass";
 const ELISA = "Elisa Overdue";
 const FELIPE = "Felipe Settled";
+const ZOE = "Zoe Birthday";
 
 void describe("students.list", { concurrency: 1 }, () => {
   void before(async () => {
@@ -56,6 +59,7 @@ void describe("students.list", { concurrency: 1 }, () => {
   registerSearchTest();
   registerAttendanceTest();
   registerFinanceTest();
+  registerAgeBoundaryTest();
 });
 
 function registerCountsAndPaginationTest(): void {
@@ -83,7 +87,7 @@ function registerCountsAndPaginationTest(): void {
     assert.equal(lastPage.rows.length, LAST_PAGE_ROWS);
     assert.deepEqual(
       lastPage.rows.map((row) => row.fullName),
-      [fullNameOf("Karina Extra"), fullNameOf("Lucas Extra")],
+      [fullNameOf("Karina Extra"), fullNameOf("Lucas Extra"), fullNameOf(ZOE)],
     );
 
     const expandedPage = await caller().students.list({
@@ -166,6 +170,30 @@ function registerFinanceTest(): void {
     });
     assert.deepEqual(rowFor(rows, FELIPE).finance, { kind: "upToDate" });
     assert.deepEqual(rowFor(rows, ANA).finance, { kind: "none" });
+  });
+}
+
+function registerAgeBoundaryTest(): void {
+  void it("uses the explicit query date when isMinor flips at the Sao Paulo 18th birthday", async () => {
+    const beforeBirthday = await caller(BEFORE_EIGHTEENTH_BIRTHDAY_IN_SP).students.list({
+      search: fullNameOf(ZOE),
+    });
+    const onBirthday = await caller(START_OF_EIGHTEENTH_BIRTHDAY_IN_SP).students.list({
+      search: fullNameOf(ZOE),
+    });
+    const beforeRow = rowFor(beforeBirthday.rows, ZOE);
+    const onBirthdayRow = rowFor(onBirthday.rows, ZOE);
+    const beforePreview = await caller(BEFORE_EIGHTEENTH_BIRTHDAY_IN_SP).students.preview({
+      id: beforeRow.id,
+    });
+    const onBirthdayPreview = await caller(START_OF_EIGHTEENTH_BIRTHDAY_IN_SP).students.preview({
+      id: beforeRow.id,
+    });
+
+    assert.equal(beforeRow.isMinor, true);
+    assert.equal(onBirthdayRow.isMinor, false);
+    assert.equal(beforePreview.isMinor, true);
+    assert.equal(onBirthdayPreview.isMinor, false);
   });
 }
 
