@@ -43,11 +43,11 @@
     "test": {
       "dependsOn": ["^build"]
     },
-    "test:db": {
+    "test:integration": {
       "dependsOn": ["^build"],
       "cache": false
     },
-    "test:behavior": {
+    "test:transport": {
       "dependsOn": ["^build"],
       "cache": false
     },
