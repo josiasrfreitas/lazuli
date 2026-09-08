@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test --test-reporter spec \"test/**/*.unit.test.ts\"",
     "test:integration": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-reporter spec \"test/**/*.integration.test.ts\"",
-    "clean": "rm -rf .turbo dist"
+    "clean": "rm -rf .turbo dist",
+    "mutate": "NODE_ENV=test dotenv -e ../../.env -- stryker run"
   },
   "dependencies": {
     "nodemailer": "catalog:",
@@ -19,11 +20,14 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@lazuli/eslint-config": "workspace:*",
+    "@lazuli/stryker-config": "workspace:*",
+    "@lazuli/tsconfig": "workspace:*",
+    "@stryker-mutator/core": "catalog:",
+    "@types/node": "catalog:",
     "@types/nodemailer": "catalog:",
     "dotenv": "catalog:",
-    "@lazuli/eslint-config": "workspace:*",
-    "@lazuli/tsconfig": "workspace:*",
-    "@types/node": "catalog:",
+    "dotenv-cli": "catalog:",
     "eslint": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:"
