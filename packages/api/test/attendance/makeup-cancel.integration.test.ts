@@ -1,16 +1,15 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   MAKEUP_ALREADY_ATTENDED_MESSAGE,
   MAKEUP_ALREADY_CANCELLED_MESSAGE,
   MAKEUP_NOT_FOUND_MESSAGE,
 } from "../../src/attendance/makeup-errors.js";
-import { expectRejects } from "../support/attendance-test-support.js";
+import { rejectionMessage } from "../support/attendance-test-support.js";
 import { cancelHarness as harness } from "../support/makeup-namespaces.js";
 import { FAR_FUTURE_DATE, insertMakeup } from "../support/makeup-test-support.js";
 
@@ -59,7 +58,7 @@ void describe("attendance.cancelMakeup", () => {
 });
 
 function registerCancelTest(): void {
-  databaseIt("stamps cancellation fields on the makeup", async () => {
+  void it("stamps cancellation fields on the makeup", async () => {
     const context = await setup();
     const makeupId = await insertMakeup(context);
 
@@ -80,42 +79,48 @@ function registerCancelTest(): void {
 }
 
 function registerDoubleCancelTest(): void {
-  databaseIt("rejects cancelling an already-cancelled makeup", async () => {
+  void it("rejects cancelling an already-cancelled makeup", async () => {
     const context = await setup();
     const makeupId = await insertMakeup({ ...context, cancelledAt: new Date() });
 
-    await expectRejects(
-      harness.caller().attendance.cancelMakeup({ makeupId, reason: CANCEL_REASON }),
+    assert.equal(
+      await rejectionMessage(
+        harness.caller().attendance.cancelMakeup({ makeupId, reason: CANCEL_REASON }),
+      ),
       MAKEUP_ALREADY_CANCELLED_MESSAGE,
     );
   });
 }
 
 function registerCancelAfterAttendedTest(): void {
-  databaseIt("rejects cancelling a makeup that was already attended", async () => {
+  void it("rejects cancelling a makeup that was already attended", async () => {
     const context = await setup();
     const makeupId = await insertMakeup({ ...context, attendedAt: new Date() });
 
-    await expectRejects(
-      harness.caller().attendance.cancelMakeup({ makeupId, reason: CANCEL_REASON }),
+    assert.equal(
+      await rejectionMessage(
+        harness.caller().attendance.cancelMakeup({ makeupId, reason: CANCEL_REASON }),
+      ),
       MAKEUP_ALREADY_ATTENDED_MESSAGE,
     );
   });
 }
 
 function registerNotFoundTest(): void {
-  databaseIt("rejects an unknown makeup", async () => {
+  void it("rejects an unknown makeup", async () => {
     await setup();
 
-    await expectRejects(
-      harness.caller().attendance.cancelMakeup({ makeupId: randomUUID(), reason: CANCEL_REASON }),
+    assert.equal(
+      await rejectionMessage(
+        harness.caller().attendance.cancelMakeup({ makeupId: randomUUID(), reason: CANCEL_REASON }),
+      ),
       MAKEUP_NOT_FOUND_MESSAGE,
     );
   });
 }
 
 function registerScopeTest(): void {
-  databaseIt("forbids a teacher (cancel is admin-only)", async () => {
+  void it("forbids a teacher (cancel is admin-only)", async () => {
     const context = await setup();
     const makeupId = await insertMakeup(context);
 

@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, describe } from "node:test";
+import { after, before, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   callHttpMutation,
@@ -14,23 +13,16 @@ import {
   seedStudent,
 } from "../support/reports-test-support.js";
 
-void describe("reports HTTP behavior", { concurrency: false }, () => {
-  void before(async () => {
-    await db.$connect();
-  });
-
-  void after(async () => {
-    await cleanReportsDatabase();
-    await db.$disconnect();
-  });
-
-  databaseIt(
-    "requests a student statement through the HTTP adapter",
-    requestStudentStatementOverHttp,
-  );
+void before(async () => {
+  await db.$connect();
 });
 
-async function requestStudentStatementOverHttp(): Promise<void> {
+void after(async () => {
+  await cleanReportsDatabase();
+  await db.$disconnect();
+});
+
+void it("requests a student statement through the HTTP adapter", async () => {
   await cleanReportsDatabase();
   await ensureAdminUser();
   const { studentId } = await seedStudent();
@@ -63,4 +55,4 @@ async function requestStudentStatementOverHttp(): Promise<void> {
 
   assert.equal(queryPayload.result.data.json.status, "queued");
   assert.equal(queryPayload.result.data.json.studentId, studentId);
-}
+});

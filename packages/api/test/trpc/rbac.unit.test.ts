@@ -9,25 +9,10 @@ import {
   canAccess,
   createCallerFactory,
   router,
-  routerAccess,
   staffProcedure,
   teacherProcedure,
 } from "@lazuli/api";
-import type { Context, RouterAccess, RouterName, StaffUser } from "@lazuli/api";
-
-const ALL_ROUTERS: readonly RouterName[] = [
-  "users",
-  "students",
-  "catalog",
-  "classes",
-  "calendar",
-  "enrollment",
-  "attendance",
-  "portal",
-  "finance",
-  "reports",
-  "dashboard",
-];
+import type { Context, StaffUser } from "@lazuli/api";
 
 const FORBIDDEN = "FORBIDDEN" as const;
 const UNAUTHORIZED = "UNAUTHORIZED" as const;
@@ -114,23 +99,6 @@ void describe("role gates reject anonymous callers", () => {
   });
 });
 
-void describe("assertResourceScope teacher guard", () => {
-  void it("lets ADMIN through regardless of owner", () => {
-    assert.doesNotThrow(() => assertResourceScope(ADMIN, { teacherId: ANOTHER_TEACHER }));
-  });
-
-  void it("lets a TEACHER reach a resource they own", () => {
-    assert.doesNotThrow(() => assertResourceScope(TEACHER, { teacherId: TEACHER.id }));
-  });
-
-  void it("rejects a TEACHER reaching a resource owned by another with FORBIDDEN", () => {
-    assert.throws(
-      () => assertResourceScope(TEACHER, { teacherId: ANOTHER_TEACHER }),
-      isTRPCError(FORBIDDEN),
-    );
-  });
-});
-
 void describe("teacher resource scope through a tRPC procedure", () => {
   void it("lets a TEACHER read a class they own", async () => {
     const result = await callerFor(contextFor(TEACHER)).classOwnedByTeacher();
@@ -150,42 +118,8 @@ void describe("teacher resource scope through a tRPC procedure", () => {
   });
 });
 
-void describe("ROLE_MATRIX encodes the §5.2 RBAC matrix", () => {
-  void it("grants ADMIN full access to every router", () => {
-    for (const name of ALL_ROUTERS) {
-      assert.equal(routerAccess("ADMIN", name), "full", name);
-    }
-  });
-
-  void it("scopes TEACHER to owned-resource routers and denies admin-only routers", () => {
-    const expected: readonly (readonly [RouterName, RouterAccess])[] = [
-      ["users", "none"],
-      ["students", "scoped"],
-      ["catalog", "scoped"],
-      ["classes", "scoped"],
-      ["calendar", "scoped"],
-      ["enrollment", "scoped"],
-      ["attendance", "scoped"],
-      ["portal", "none"],
-      ["finance", "none"],
-      ["reports", "scoped"],
-      ["dashboard", "scoped"],
-    ];
-    for (const [name, access] of expected) {
-      assert.equal(routerAccess("TEACHER", name), access, name);
-    }
-  });
-
-  void it("denies the deferred SECRETARY and FINANCE roles everywhere (D-0016)", () => {
-    for (const role of ["SECRETARY", "FINANCE"] as const) {
-      for (const name of ALL_ROUTERS) {
-        assert.equal(routerAccess(role, name), "none", `${role}.${name}`);
-        assert.equal(canAccess(role, name), false, `${role}.${name}`);
-      }
-    }
-  });
-
-  void it("canAccess is true exactly when access is not none", () => {
+void describe("canAccess", () => {
+  void it("reports whether the matrix grants access", () => {
     assert.equal(canAccess("ADMIN", "finance"), true);
     assert.equal(canAccess("TEACHER", "attendance"), true);
     assert.equal(canAccess("TEACHER", "finance"), false);

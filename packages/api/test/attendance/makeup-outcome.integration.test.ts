@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   MAKEUP_ALREADY_CANCELLED_MESSAGE,
   MAKEUP_TARGET_CANCELLED_MESSAGE,
 } from "../../src/attendance/makeup-errors.js";
-import { expectRejects } from "../support/attendance-test-support.js";
+import { rejectionMessage } from "../support/attendance-test-support.js";
 import { outcomeHarness as harness } from "../support/makeup-namespaces.js";
 import { attendanceRowCount, insertMakeup } from "../support/makeup-test-support.js";
 
@@ -67,7 +66,7 @@ void describe("attendance.markMakeupOutcome", () => {
 });
 
 function registerAttendedTest(): void {
-  databaseIt("stamps attendedAt/attendedById when the owning teacher marks attended", async () => {
+  void it("stamps attendedAt/attendedById when the owning teacher marks attended", async () => {
     const context = await setup();
     const makeupId = await insertMakeup(context);
 
@@ -87,7 +86,7 @@ function registerAttendedTest(): void {
 }
 
 function registerClearTest(): void {
-  databaseIt("clears attendance when re-marked as not attended (reversible)", async () => {
+  void it("clears attendance when re-marked as not attended (reversible)", async () => {
     const context = await setup();
     const makeupId = await insertMakeup(context);
     const caller = harness.caller(harness.ns.admin);
@@ -105,7 +104,7 @@ function registerClearTest(): void {
 }
 
 function registerScopeTest(): void {
-  databaseIt("forbids a teacher who does not own the target session", async () => {
+  void it("forbids a teacher who does not own the target session", async () => {
     const context = await setup();
     const makeupId = await insertMakeup(context);
 
@@ -120,34 +119,42 @@ function registerScopeTest(): void {
 }
 
 function registerCancelledMakeupTest(): void {
-  databaseIt("rejects marking a cancelled makeup", async () => {
+  void it("rejects marking a cancelled makeup", async () => {
     const context = await setup();
     const makeupId = await insertMakeup({ ...context, cancelledAt: new Date() });
 
-    await expectRejects(
-      harness.caller(harness.ns.teacher).attendance.markMakeupOutcome({ makeupId, attended: true }),
+    assert.equal(
+      await rejectionMessage(
+        harness
+          .caller(harness.ns.teacher)
+          .attendance.markMakeupOutcome({ makeupId, attended: true }),
+      ),
       MAKEUP_ALREADY_CANCELLED_MESSAGE,
     );
   });
 }
 
 function registerCancelledTargetTest(): void {
-  databaseIt("rejects marking a makeup whose target session is cancelled", async () => {
+  void it("rejects marking a makeup whose target session is cancelled", async () => {
     const context = await setup();
     const makeupId = await insertMakeup({
       originEnrollmentId: context.originEnrollmentId,
       targetClassSessionId: context.cancelledSessionId,
     });
 
-    await expectRejects(
-      harness.caller(harness.ns.teacher).attendance.markMakeupOutcome({ makeupId, attended: true }),
+    assert.equal(
+      await rejectionMessage(
+        harness
+          .caller(harness.ns.teacher)
+          .attendance.markMakeupOutcome({ makeupId, attended: true }),
+      ),
       MAKEUP_TARGET_CANCELLED_MESSAGE,
     );
   });
 }
 
 function registerNoAttendanceRowTest(): void {
-  databaseIt("never writes an Attendance row (makeups do not affect the %)", async () => {
+  void it("never writes an Attendance row (makeups do not affect the %)", async () => {
     const context = await setup();
     const makeupId = await insertMakeup(context);
 

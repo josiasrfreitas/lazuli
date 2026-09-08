@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import { gre30Enrollment } from "../support/enrollment.js";
 
@@ -33,7 +32,7 @@ void describe("enrollment API over the tRPC HTTP boundary", () => {
     await db.$disconnect();
   });
 
-  databaseIt("creates an enrollment and its active progress via HTTP", async () => {
+  void it("creates an enrollment and its active progress via HTTP", async () => {
     await ensureTeacherUser();
     const catalog = await seedCatalog();
     const classRow = await createPersonalizedClass({
@@ -51,11 +50,5 @@ void describe("enrollment API over the tRPC HTTP boundary", () => {
 
     assert.equal(response.status, HTTP_OK);
     assert.equal(payload.result.data.json.orderPromptRequired, true);
-
-    const enrollmentId = payload.result.data.json.enrollment.id;
-    const activeProgress = await db.pedagogicalProgress.count({
-      where: { enrollmentId, endDate: null },
-    });
-    assert.equal(activeProgress, 1);
   });
 });

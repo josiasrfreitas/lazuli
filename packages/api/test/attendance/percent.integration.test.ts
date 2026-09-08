@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import { percentHarness as harness } from "../support/attendance-namespaces.js";
 import { insertMakeup } from "../support/makeup-test-support.js";
@@ -36,39 +35,36 @@ void describe("attendance.enrollmentSemesterPercent", () => {
 });
 
 function registerFormulaTest(): void {
-  databaseIt(
-    "computes from confirmed held sessions and excludes unconfirmed, cancelled, out-of-window, and makeup facts",
-    async () => {
-      const scenario = await harness.seedBaseScenario();
-      const ana = await harness.enrollStudent({
-        classId: scenario.classId,
-        stageId: scenario.stageId,
-        suffix: "Ana",
-      });
+  void it("computes from confirmed held sessions and excludes unconfirmed, cancelled, out-of-window, and makeup facts", async () => {
+    const scenario = await harness.seedBaseScenario();
+    const ana = await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Ana",
+    });
 
-      await seedPercentFacts({
-        classId: scenario.classId,
-        homeSessionId: scenario.sessionId,
-        enrollmentId: ana.enrollmentId,
-      });
+    await seedPercentFacts({
+      classId: scenario.classId,
+      homeSessionId: scenario.sessionId,
+      enrollmentId: ana.enrollmentId,
+    });
 
-      const result = await harness.caller().attendance.enrollmentSemesterPercent({
-        enrollmentId: ana.enrollmentId,
-        semesterId: scenario.semesterId,
-      });
+    const result = await harness.caller().attendance.enrollmentSemesterPercent({
+      enrollmentId: ana.enrollmentId,
+      semesterId: scenario.semesterId,
+    });
 
-      assert.equal(result.enrollmentId, ana.enrollmentId);
-      assert.equal(result.semesterId, scenario.semesterId);
-      assert.equal(result.heldSessions, EXPECTED_HELD_SESSIONS);
-      assert.equal(result.presentCount, EXPECTED_PRESENT_COUNT);
-      assert.equal(result.percent, EXPECTED_PERCENT);
-      assert.equal(result.flagged, true);
-    },
-  );
+    assert.equal(result.enrollmentId, ana.enrollmentId);
+    assert.equal(result.semesterId, scenario.semesterId);
+    assert.equal(result.heldSessions, EXPECTED_HELD_SESSIONS);
+    assert.equal(result.presentCount, EXPECTED_PRESENT_COUNT);
+    assert.equal(result.percent, EXPECTED_PERCENT);
+    assert.equal(result.flagged, true);
+  });
 }
 
 function registerEmptyDenominatorTest(): void {
-  databaseIt("returns sem dados and no flag when no sessions are held", async () => {
+  void it("returns sem dados and no flag when no sessions are held", async () => {
     const scenario = await harness.seedBaseScenario();
     const ana = await harness.enrollStudent({
       classId: scenario.classId,
@@ -89,7 +85,7 @@ function registerEmptyDenominatorTest(): void {
 }
 
 function registerScopeTest(): void {
-  databaseIt("lets the owning teacher read the percent and forbids another teacher", async () => {
+  void it("lets the owning teacher read the percent and forbids another teacher", async () => {
     const scenario = await harness.seedBaseScenario();
     const ana = await harness.enrollStudent({
       classId: scenario.classId,

@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   ATTENDANCE_NOT_CONFIRMED_MESSAGE,
@@ -11,7 +10,7 @@ import {
   SESSION_CANCELLED_MESSAGE,
 } from "../../src/attendance/errors.js";
 import { editHarness as harness } from "../support/attendance-namespaces.js";
-import { expectRejects } from "../support/attendance-test-support.js";
+import { rejectionMessage } from "../support/attendance-test-support.js";
 
 const FIRST_COMMIT_AT = new Date("2014-03-10T12:00:00.000Z");
 const SAME_DAY_EDIT_AT = new Date("2014-03-10T18:00:00.000Z");
@@ -41,50 +40,47 @@ void describe("attendance.editSession", () => {
 });
 
 function registerOwningTeacherEditTest(): void {
-  databaseIt(
-    "lets the owning teacher edit same-day committed rows and stamps changed records",
-    async () => {
-      const scenario = await harness.seedBaseScenario();
-      const ana = await harness.enrollStudent({
-        classId: scenario.classId,
-        stageId: scenario.stageId,
-        suffix: "Ana",
-      });
-      const bruno = await harness.enrollStudent({
-        classId: scenario.classId,
-        stageId: scenario.stageId,
-        suffix: "Bruno",
-      });
-      await harness.caller(harness.ns.admin, FIRST_COMMIT_AT).attendance.confirmSession({
+  void it("lets the owning teacher edit same-day committed rows and stamps changed records", async () => {
+    const scenario = await harness.seedBaseScenario();
+    const ana = await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Ana",
+    });
+    const bruno = await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Bruno",
+    });
+    await harness.caller(harness.ns.admin, FIRST_COMMIT_AT).attendance.confirmSession({
+      sessionId: scenario.sessionId,
+      rows: [{ enrollmentId: ana.enrollmentId, status: "ABSENT" }],
+    });
+
+    const result = await harness
+      .caller(harness.ns.teacher, SAME_DAY_EDIT_AT)
+      .attendance.editSession({
         sessionId: scenario.sessionId,
-        rows: [{ enrollmentId: ana.enrollmentId, status: "ABSENT" }],
+        rows: [
+          { enrollmentId: ana.enrollmentId, status: "PRESENT" },
+          { enrollmentId: bruno.enrollmentId, status: "PRESENT" },
+        ],
       });
 
-      const result = await harness
-        .caller(harness.ns.teacher, SAME_DAY_EDIT_AT)
-        .attendance.editSession({
-          sessionId: scenario.sessionId,
-          rows: [
-            { enrollmentId: ana.enrollmentId, status: "PRESENT" },
-            { enrollmentId: bruno.enrollmentId, status: "PRESENT" },
-          ],
-        });
+    assert.equal(result.changedCount, 1);
+    assert.equal(result.presentCount, 2);
+    assert.equal(result.absentCount, 0);
+    assert.equal(result.latestCommittedAt.toISOString(), SAME_DAY_EDIT_AT.toISOString());
 
-      assert.equal(result.changedCount, 1);
-      assert.equal(result.presentCount, 2);
-      assert.equal(result.absentCount, 0);
-      assert.equal(result.latestCommittedAt.toISOString(), SAME_DAY_EDIT_AT.toISOString());
-
-      await assertChangedRowStamped({
-        sessionId: scenario.sessionId,
-        changedEnrollmentId: ana.enrollmentId,
-        unchangedEnrollmentId: bruno.enrollmentId,
-        expectedStatus: "PRESENT",
-        modifiedAt: SAME_DAY_EDIT_AT,
-        modifiedById: harness.ns.teacher.id,
-      });
-    },
-  );
+    await assertChangedRowStamped({
+      sessionId: scenario.sessionId,
+      changedEnrollmentId: ana.enrollmentId,
+      unchangedEnrollmentId: bruno.enrollmentId,
+      expectedStatus: "PRESENT",
+      modifiedAt: SAME_DAY_EDIT_AT,
+      modifiedById: harness.ns.teacher.id,
+    });
+  });
 }
 
 async function assertChangedRowStamped(input: {
@@ -113,7 +109,7 @@ async function assertChangedRowStamped(input: {
 }
 
 function registerTeacherWindowTest(): void {
-  databaseIt("blocks an owning teacher from editing outside the same Sao Paulo day", async () => {
+  void it("blocks an owning teacher from editing outside the same Sao Paulo day", async () => {
     const scenario = await harness.seedBaseScenario();
     const ana = await harness.enrollStudent({
       classId: scenario.classId,
@@ -142,7 +138,7 @@ function registerTeacherWindowTest(): void {
 }
 
 function registerOtherTeacherScopeTest(): void {
-  databaseIt("blocks another teacher even on the session day", async () => {
+  void it("blocks another teacher even on the session day", async () => {
     const scenario = await harness.seedBaseScenario();
     const ana = await harness.enrollStudent({
       classId: scenario.classId,
@@ -165,38 +161,33 @@ function registerOtherTeacherScopeTest(): void {
 }
 
 function registerAdminPastEditTest(): void {
-  databaseIt(
-    "lets an admin edit a past confirmed session and marks it for Portal retry",
-    async () => {
-      const scenario = await seedPortalSubmittedScenario();
-      const { ana, bruno } = scenario;
+  void it("lets an admin edit a past confirmed session and marks it for Portal retry", async () => {
+    const scenario = await seedPortalSubmittedScenario();
+    const { ana, bruno } = scenario;
 
-      const result = await harness
-        .caller(harness.ns.admin, NEXT_SP_DAY_NOW)
-        .attendance.editSession({
-          sessionId: scenario.sessionId,
-          rows: [
-            { enrollmentId: ana.enrollmentId, status: "ABSENT" },
-            { enrollmentId: bruno.enrollmentId, status: "PRESENT" },
-          ],
-        });
+    const result = await harness.caller(harness.ns.admin, NEXT_SP_DAY_NOW).attendance.editSession({
+      sessionId: scenario.sessionId,
+      rows: [
+        { enrollmentId: ana.enrollmentId, status: "ABSENT" },
+        { enrollmentId: bruno.enrollmentId, status: "PRESENT" },
+      ],
+    });
 
-      assert.equal(result.changedCount, 1);
-      assert.equal(result.presentCount, 1);
-      assert.equal(result.absentCount, 1);
-      assert.equal(result.latestCommittedAt.toISOString(), NEXT_SP_DAY_NOW.toISOString());
+    assert.equal(result.changedCount, 1);
+    assert.equal(result.presentCount, 1);
+    assert.equal(result.absentCount, 1);
+    assert.equal(result.latestCommittedAt.toISOString(), NEXT_SP_DAY_NOW.toISOString());
 
-      await assertChangedRowStamped({
-        sessionId: scenario.sessionId,
-        changedEnrollmentId: ana.enrollmentId,
-        unchangedEnrollmentId: bruno.enrollmentId,
-        expectedStatus: "ABSENT",
-        modifiedAt: NEXT_SP_DAY_NOW,
-        modifiedById: harness.ns.admin.id,
-      });
-      await assertPortalRetryPredicate(scenario.sessionId);
-    },
-  );
+    await assertChangedRowStamped({
+      sessionId: scenario.sessionId,
+      changedEnrollmentId: ana.enrollmentId,
+      unchangedEnrollmentId: bruno.enrollmentId,
+      expectedStatus: "ABSENT",
+      modifiedAt: NEXT_SP_DAY_NOW,
+      modifiedById: harness.ns.admin.id,
+    });
+    await assertPortalRetryPredicate(scenario.sessionId);
+  });
 }
 
 async function seedPortalSubmittedScenario(): Promise<{
@@ -242,7 +233,7 @@ async function assertPortalRetryPredicate(sessionId: string): Promise<void> {
 }
 
 function registerUnconfirmedRejectedTest(): void {
-  databaseIt("rejects editing an unconfirmed session", async () => {
+  void it("rejects editing an unconfirmed session", async () => {
     const scenario = await harness.seedBaseScenario();
     const ana = await harness.enrollStudent({
       classId: scenario.classId,
@@ -250,18 +241,20 @@ function registerUnconfirmedRejectedTest(): void {
       suffix: "Ana",
     });
 
-    await expectRejects(
-      harness.caller().attendance.editSession({
-        sessionId: scenario.sessionId,
-        rows: [{ enrollmentId: ana.enrollmentId, status: "ABSENT" }],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        harness.caller().attendance.editSession({
+          sessionId: scenario.sessionId,
+          rows: [{ enrollmentId: ana.enrollmentId, status: "ABSENT" }],
+        }),
+      ),
       ATTENDANCE_NOT_CONFIRMED_MESSAGE,
     );
   });
 }
 
 function registerCancelledRejectedTest(): void {
-  databaseIt("rejects editing a cancelled session", async () => {
+  void it("rejects editing a cancelled session", async () => {
     const scenario = await harness.seedBaseScenario();
     const ana = await harness.enrollStudent({
       classId: scenario.classId,
@@ -274,18 +267,20 @@ function registerCancelledRejectedTest(): void {
       status: "CANCELLED",
     });
 
-    await expectRejects(
-      harness.caller().attendance.editSession({
-        sessionId: cancelledId,
-        rows: [{ enrollmentId: ana.enrollmentId, status: "ABSENT" }],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        harness.caller().attendance.editSession({
+          sessionId: cancelledId,
+          rows: [{ enrollmentId: ana.enrollmentId, status: "ABSENT" }],
+        }),
+      ),
       SESSION_CANCELLED_MESSAGE,
     );
   });
 }
 
 function registerDuplicateRowRejectedTest(): void {
-  databaseIt("rejects duplicate enrollment rows in an edit", async () => {
+  void it("rejects duplicate enrollment rows in an edit", async () => {
     const scenario = await harness.seedBaseScenario();
     const ana = await harness.enrollStudent({
       classId: scenario.classId,
@@ -294,21 +289,23 @@ function registerDuplicateRowRejectedTest(): void {
     });
     await harness.caller().attendance.confirmSession({ sessionId: scenario.sessionId, rows: [] });
 
-    await expectRejects(
-      harness.caller().attendance.editSession({
-        sessionId: scenario.sessionId,
-        rows: [
-          { enrollmentId: ana.enrollmentId, status: "PRESENT" },
-          { enrollmentId: ana.enrollmentId, status: "ABSENT" },
-        ],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        harness.caller().attendance.editSession({
+          sessionId: scenario.sessionId,
+          rows: [
+            { enrollmentId: ana.enrollmentId, status: "PRESENT" },
+            { enrollmentId: ana.enrollmentId, status: "ABSENT" },
+          ],
+        }),
+      ),
       DUPLICATE_ROSTER_ROW_MESSAGE,
     );
   });
 }
 
 function registerOffRosterRejectedTest(): void {
-  databaseIt("rejects editing a row for an enrollment outside the session roster", async () => {
+  void it("rejects editing a row for an enrollment outside the session roster", async () => {
     const scenario = await harness.seedBaseScenario();
     await harness.enrollStudent({
       classId: scenario.classId,
@@ -323,11 +320,13 @@ function registerOffRosterRejectedTest(): void {
     });
     await harness.caller().attendance.confirmSession({ sessionId: scenario.sessionId, rows: [] });
 
-    await expectRejects(
-      harness.caller().attendance.editSession({
-        sessionId: scenario.sessionId,
-        rows: [{ enrollmentId: late.enrollmentId, status: "ABSENT" }],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        harness.caller().attendance.editSession({
+          sessionId: scenario.sessionId,
+          rows: [{ enrollmentId: late.enrollmentId, status: "ABSENT" }],
+        }),
+      ),
       ENROLLMENT_NOT_ON_ROSTER_MESSAGE,
     );
   });

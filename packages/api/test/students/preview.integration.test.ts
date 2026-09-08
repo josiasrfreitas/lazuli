@@ -1,11 +1,10 @@
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
-import { after, before, describe } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { TRPCError } from "@trpc/server";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   caller,
@@ -34,7 +33,7 @@ void describe("students.preview", { concurrency: 1 }, () => {
 });
 
 function registerSameShapeTest(): void {
-  databaseIt("returns the same row the listing renders, found by id alone", async () => {
+  void it("returns the same row the listing renders, found by id alone", async () => {
     const list = await caller().students.list({ search: PREFIX });
     const names = [fullNameOf(ANA), fullNameOf(DAVI)];
 
@@ -48,7 +47,7 @@ function registerSameShapeTest(): void {
 }
 
 function registerNotFoundTest(): void {
-  databaseIt("rejects an unknown student id with NOT_FOUND", async () => {
+  void it("rejects an unknown student id with NOT_FOUND", async () => {
     await assert.rejects(
       caller().students.preview({ id: randomUUID() }),
       (error: unknown) => error instanceof TRPCError && error.code === "NOT_FOUND",

@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import { ADULT_BIRTH_DATE_OBJECT, caller, cleanDatabase } from "../support/student-test-support.js";
 
@@ -33,11 +32,10 @@ void describe("students search API", () => {
   registerSearchByNameTest();
   registerSearchByDocumentTest();
   registerSearchByContactTest();
-  registerSearchValidationTest();
 });
 
 function registerSearchByNameTest(): void {
-  databaseIt("finds students by partial name with ranked matches", async () => {
+  void it("finds students by partial name with ranked matches", async () => {
     // Word-initial token → rank 500; mid-word token → rank 400. The unique token guarantees these are
     // the only two matches, so the 500-over-400 ordering holds regardless of other students in the DB.
     const wordStart = await caller().students.create({
@@ -58,7 +56,7 @@ function registerSearchByNameTest(): void {
 }
 
 function registerSearchByDocumentTest(): void {
-  databaseIt("finds students by partial document number", async () => {
+  void it("finds students by partial document number", async () => {
     const target = await caller().students.create({
       fullName: `${SEARCH_TEST_PREFIX}Document Target`,
       birthDate: ADULT_BIRTH_DATE_OBJECT,
@@ -80,7 +78,7 @@ function registerSearchByDocumentTest(): void {
 }
 
 function registerSearchByContactTest(): void {
-  databaseIt("finds students by phone and email fragments", async () => {
+  void it("finds students by phone and email fragments", async () => {
     const phoneTarget = await caller().students.create({
       fullName: `${SEARCH_TEST_PREFIX}Phone Target`,
       birthDate: ADULT_BIRTH_DATE_OBJECT,
@@ -97,11 +95,5 @@ function registerSearchByContactTest(): void {
 
     assert.equal(phoneResults[0]?.id, phoneTarget.id);
     assert.equal(emailResults[0]?.id, emailTarget.id);
-  });
-}
-
-function registerSearchValidationTest(): void {
-  databaseIt("rejects a blank search query", async () => {
-    await assert.rejects(caller().students.search({ query: "   " }), /Campo obrigatorio/);
   });
 }

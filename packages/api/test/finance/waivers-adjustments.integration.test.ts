@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   ADJUSTMENT_BELOW_PAID_MESSAGE,
@@ -20,7 +19,7 @@ import {
   caller,
   cleanFinanceOrdersDatabase,
   ensureAdminUser,
-  expectRejects,
+  rejectionMessage,
 } from "../support/finance-test-support.js";
 import {
   allocatePaymentToInstallment,
@@ -74,7 +73,7 @@ function registerWaiverHooks(): void {
 }
 
 function registerWaiveHappyPath(): void {
-  databaseIt("marks an installment waived and derives non-collectible status", async () => {
+  void it("marks an installment waived and derives non-collectible status", async () => {
     const fixture = await createOrderFixture();
 
     const result = await caller().finance.waiveInstallment({
@@ -98,7 +97,7 @@ function registerWaiveHappyPath(): void {
 }
 
 function registerWaiveFullyPaidGuard(): void {
-  databaseIt("rejects waiving a fully paid installment", async () => {
+  void it("rejects waiving a fully paid installment", async () => {
     const fixture = await createOrderFixture();
     await allocatePaymentToInstallment({
       payerId: fixture.payerId,
@@ -106,63 +105,71 @@ function registerWaiveFullyPaidGuard(): void {
       amountCents: FULL_INSTALLMENT_PAYMENT_CENTS,
     });
 
-    await expectRejects(
-      caller().finance.waiveInstallment({
-        installmentId: fixture.installmentId,
-        reason: WAIVER_REASON,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.waiveInstallment({
+          installmentId: fixture.installmentId,
+          reason: WAIVER_REASON,
+        }),
+      ),
       INSTALLMENT_NOTHING_TO_WAIVE_MESSAGE,
     );
   });
 }
 
 function registerWaiveAlreadyWaivedGuard(): void {
-  databaseIt("rejects waiving an already waived installment", async () => {
+  void it("rejects waiving an already waived installment", async () => {
     const fixture = await createOrderFixture();
     await caller().finance.waiveInstallment({
       installmentId: fixture.installmentId,
       reason: WAIVER_REASON,
     });
 
-    await expectRejects(
-      caller().finance.waiveInstallment({
-        installmentId: fixture.installmentId,
-        reason: "Segunda tentativa",
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.waiveInstallment({
+          installmentId: fixture.installmentId,
+          reason: "Segunda tentativa",
+        }),
+      ),
       INSTALLMENT_ALREADY_WAIVED_MESSAGE,
     );
   });
 }
 
 function registerWaiveMissingGuard(): void {
-  databaseIt("rejects waiving a missing installment", async () => {
-    await expectRejects(
-      caller().finance.waiveInstallment({
-        installmentId: MISSING_ENTITY_ID,
-        reason: WAIVER_REASON,
-      }),
+  void it("rejects waiving a missing installment", async () => {
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.waiveInstallment({
+          installmentId: MISSING_ENTITY_ID,
+          reason: WAIVER_REASON,
+        }),
+      ),
       INSTALLMENT_NOT_FOUND_MESSAGE,
     );
   });
 }
 
 function registerWaiveCancelledOrderGuard(): void {
-  databaseIt("rejects waiving installments on cancelled orders", async () => {
+  void it("rejects waiving installments on cancelled orders", async () => {
     const fixture = await createOrderFixture();
     await cancelOrder(fixture.orderId);
 
-    await expectRejects(
-      caller().finance.waiveInstallment({
-        installmentId: fixture.installmentId,
-        reason: WAIVER_REASON,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.waiveInstallment({
+          installmentId: fixture.installmentId,
+          reason: WAIVER_REASON,
+        }),
+      ),
       CANCELLED_ORDER_INSTALLMENT_MESSAGE,
     );
   });
 }
 
 function registerWaivePreservesPaidRevenue(): void {
-  databaseIt("forgives only the remaining balance after partial payment", async () => {
+  void it("forgives only the remaining balance after partial payment", async () => {
     const fixture = await createOrderFixture();
     await allocatePaymentToInstallment({
       payerId: fixture.payerId,
@@ -188,7 +195,7 @@ function registerWaivePreservesPaidRevenue(): void {
 }
 
 function registerDiscountHappyPath(): void {
-  databaseIt("applies a discount adjustment without storing waived status", async () => {
+  void it("applies a discount adjustment without storing waived status", async () => {
     const fixture = await createOrderFixture();
     const installment = await db.installment.findUniqueOrThrow({
       where: { id: fixture.installmentId },
@@ -220,36 +227,40 @@ function registerDiscountHappyPath(): void {
 }
 
 function registerDiscountSignGuards(): void {
-  databaseIt("rejects positive discount amounts", async () => {
+  void it("rejects positive discount amounts", async () => {
     const fixture = await createOrderFixture();
 
-    await expectRejects(
-      caller().finance.addInstallmentAdjustment({
-        installmentId: fixture.installmentId,
-        type: "DISCOUNT",
-        amountCents: 1000,
-        reason: DISCOUNT_REASON,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.addInstallmentAdjustment({
+          installmentId: fixture.installmentId,
+          type: "DISCOUNT",
+          amountCents: 1000,
+          reason: DISCOUNT_REASON,
+        }),
+      ),
       INVALID_ADJUSTMENT_SIGN_MESSAGE,
     );
   });
 
-  databaseIt("rejects discounts without a reason", async () => {
+  void it("rejects discounts without a reason", async () => {
     const fixture = await createOrderFixture();
 
-    await expectRejects(
-      caller().finance.addInstallmentAdjustment({
-        installmentId: fixture.installmentId,
-        type: "DISCOUNT",
-        amountCents: DISCOUNT_AMOUNT_CENTS,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.addInstallmentAdjustment({
+          installmentId: fixture.installmentId,
+          type: "DISCOUNT",
+          amountCents: DISCOUNT_AMOUNT_CENTS,
+        }),
+      ),
       DISCOUNT_REASON_REQUIRED_MESSAGE,
     );
   });
 }
 
 function registerAdjustmentPaidGuard(): void {
-  databaseIt("rejects adjustments that would drop expected below paid amount", async () => {
+  void it("rejects adjustments that would drop expected below paid amount", async () => {
     const fixture = await createOrderFixture();
     await allocatePaymentToInstallment({
       payerId: fixture.payerId,
@@ -257,56 +268,62 @@ function registerAdjustmentPaidGuard(): void {
       amountCents: PARTIAL_PAYMENT_CENTS,
     });
 
-    await expectRejects(
-      caller().finance.addInstallmentAdjustment({
-        installmentId: fixture.installmentId,
-        type: "DISCOUNT",
-        amountCents: -25_000,
-        reason: DISCOUNT_REASON,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.addInstallmentAdjustment({
+          installmentId: fixture.installmentId,
+          type: "DISCOUNT",
+          amountCents: -25_000,
+          reason: DISCOUNT_REASON,
+        }),
+      ),
       ADJUSTMENT_BELOW_PAID_MESSAGE,
     );
   });
 }
 
 function registerAdjustmentWaivedGuard(): void {
-  databaseIt("rejects adjustments on waived installments", async () => {
+  void it("rejects adjustments on waived installments", async () => {
     const fixture = await createOrderFixture();
     await caller().finance.waiveInstallment({
       installmentId: fixture.installmentId,
       reason: WAIVER_REASON,
     });
 
-    await expectRejects(
-      caller().finance.addInstallmentAdjustment({
-        installmentId: fixture.installmentId,
-        type: "DISCOUNT",
-        amountCents: DISCOUNT_AMOUNT_CENTS,
-        reason: DISCOUNT_REASON,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.addInstallmentAdjustment({
+          installmentId: fixture.installmentId,
+          type: "DISCOUNT",
+          amountCents: DISCOUNT_AMOUNT_CENTS,
+          reason: DISCOUNT_REASON,
+        }),
+      ),
       WAIVED_INSTALLMENT_ADJUSTMENT_MESSAGE,
     );
   });
 }
 
 function registerAdjustmentCancelledGuard(): void {
-  databaseIt("rejects adjustments on cancelled orders", async () => {
+  void it("rejects adjustments on cancelled orders", async () => {
     const fixture = await createOrderFixture();
     await cancelOrder(fixture.orderId);
 
-    await expectRejects(
-      caller().finance.addInstallmentAdjustment({
-        installmentId: fixture.installmentId,
-        type: "INTEREST",
-        amountCents: INTEREST_AMOUNT_CENTS,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.addInstallmentAdjustment({
+          installmentId: fixture.installmentId,
+          type: "INTEREST",
+          amountCents: INTEREST_AMOUNT_CENTS,
+        }),
+      ),
       CANCELLED_ORDER_INSTALLMENT_MESSAGE,
     );
   });
 }
 
 function registerOtherAdjustmentTypes(): void {
-  databaseIt("persists interest adjustments with positive amounts", async () => {
+  void it("persists interest adjustments with positive amounts", async () => {
     const fixture = await createOrderFixture();
     const installment = await db.installment.findUniqueOrThrow({
       where: { id: fixture.installmentId },
@@ -326,7 +343,7 @@ function registerOtherAdjustmentTypes(): void {
     );
   });
 
-  databaseIt("persists correction adjustments with negative amounts", async () => {
+  void it("persists correction adjustments with negative amounts", async () => {
     const fixture = await createOrderFixture();
     const installment = await db.installment.findUniqueOrThrow({
       where: { id: fixture.installmentId },
@@ -348,17 +365,17 @@ function registerOtherAdjustmentTypes(): void {
 }
 
 function registerOrderEditCutoffAfterMutation(): void {
-  databaseIt("locks the order after a waiver via the public endpoint", async () => {
+  void it("locks the order after a waiver via the public endpoint", async () => {
     const fixture = await createOrderFixture();
     await caller().finance.waiveInstallment({
       installmentId: fixture.installmentId,
       reason: WAIVER_REASON,
     });
 
-    await expectRejects(updateOrderFixture(fixture), ORDER_LOCKED_MESSAGE);
+    assert.equal(await rejectionMessage(updateOrderFixture(fixture)), ORDER_LOCKED_MESSAGE);
   });
 
-  databaseIt("locks the order after a discount via the public endpoint", async () => {
+  void it("locks the order after a discount via the public endpoint", async () => {
     const fixture = await createOrderFixture();
     await caller().finance.addInstallmentAdjustment({
       installmentId: fixture.installmentId,
@@ -367,6 +384,6 @@ function registerOrderEditCutoffAfterMutation(): void {
       reason: DISCOUNT_REASON,
     });
 
-    await expectRejects(updateOrderFixture(fixture), ORDER_LOCKED_MESSAGE);
+    assert.equal(await rejectionMessage(updateOrderFixture(fixture)), ORDER_LOCKED_MESSAGE);
   });
 }

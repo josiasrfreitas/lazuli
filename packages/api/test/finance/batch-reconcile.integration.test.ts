@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db, InstallmentAdjustmentType, PaymentMethod } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   caller,
@@ -48,7 +47,7 @@ function registerFinanceBatchReconcileHooks(): void {
 }
 
 function registerBatchReconcileHappyPath(): void {
-  databaseIt("creates one payment entry per payer and full remaining allocations", async () => {
+  void it("creates one payment entry per payer and full remaining allocations", async () => {
     const fixture = await createHappyPathFixture();
 
     const result = await caller().finance.batchReconcile({
@@ -58,6 +57,7 @@ function registerBatchReconcileHappyPath(): void {
       installmentIds: [fixture.fullInstallmentId, fixture.discountedInstallmentId],
     });
 
+    assert.equal(result.ok, true);
     assertHappyPathResponse(result, fixture);
     await assertHappyPathStoredEntries();
   });
@@ -110,7 +110,6 @@ function assertHappyPathResponse(
       ? [fixture.firstPayerId, fixture.secondPayerId]
       : [fixture.secondPayerId, fixture.firstPayerId];
 
-  assert.equal(result.ok, true);
   assert.deepEqual(
     result.rows.map((row) => row.installmentId),
     [fixture.fullInstallmentId, fixture.discountedInstallmentId],
@@ -164,7 +163,7 @@ async function createDiscountAdjustment(installmentId: string): Promise<void> {
 }
 
 function registerBatchReconcileAtomicFailure(): void {
-  databaseIt("rejects an invalid batch without persisting entries or allocations", async () => {
+  void it("rejects an invalid batch without persisting entries or allocations", async () => {
     const payer = await createPayer("Atomic Payer", BATCH_TEST_PREFIX);
     const order = await createOrderFixture({
       payerId: payer.id,
@@ -199,7 +198,7 @@ function registerBatchReconcileAtomicFailure(): void {
 }
 
 function registerBatchReconcileConcurrency(): void {
-  databaseIt("serializes concurrent reconciles so only one allocation persists", async () => {
+  void it("serializes concurrent reconciles so only one allocation persists", async () => {
     const payer = await createPayer("Concurrent Batch Payer", BATCH_TEST_PREFIX);
     const order = await createOrderFixture({
       payerId: payer.id,
@@ -233,7 +232,7 @@ function registerBatchReconcileConcurrency(): void {
 }
 
 function registerBatchReconcileDuplicateFailure(): void {
-  databaseIt("rejects duplicate selected installments without writes", async () => {
+  void it("rejects duplicate selected installments without writes", async () => {
     const payer = await createPayer("Duplicate Batch Payer", BATCH_TEST_PREFIX);
     const order = await createOrderFixture({
       payerId: payer.id,
