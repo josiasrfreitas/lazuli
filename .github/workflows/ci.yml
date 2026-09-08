@@ -41,7 +41,7 @@ jobs:
       - name: Build
         run: pnpm build
 
-  # Three-tier tests: quality runs unit; this job runs integration + behavior against Postgres 16.
+  # Three-tier tests: quality runs unit; this job runs integration + transport against Postgres 16.
   # DB integration tests + Prisma migrate/drift check against a real Postgres 16,
   # matching the accepted PostgreSQL 16 engine and the Docker Compose image.
   database:
