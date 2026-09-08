@@ -3,7 +3,7 @@ import { after, before, beforeEach, describe } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
 
-import { databaseIt } from "../support.js";
+import { databaseIt } from "../support/support.js";
 import {
   ACTIVE_PROGRESS_REQUIRED,
   ACTIVE_STUDENT_TRACK,
@@ -28,7 +28,7 @@ import {
   seedCatalog,
   cleanDatabase,
   seedTeacher,
-} from "./enrollment-progress-schema-support.js";
+} from "../support/enrollment-progress-schema-support.js";
 
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
 

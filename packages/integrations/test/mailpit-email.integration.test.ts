@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 import { after, describe, it } from "node:test";
 
-import { createSmtpEmailSender, parseEmailEnvironment } from "../../src/index.js";
+import { createSmtpEmailSender, parseEmailEnvironment } from "../src/index.js";
 
 const MAILPIT_HTTP_PORT = 8025;
 const POLL_INTERVAL_MS = 250;

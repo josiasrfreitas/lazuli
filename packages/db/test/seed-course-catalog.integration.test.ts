@@ -3,12 +3,12 @@ import { after, before, describe } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
 
-import { databaseIt } from "../support.js";
+import { databaseIt } from "./support/support.js";
 
-loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
+loadEnvironment({ path: new URL("../../../.env", import.meta.url), quiet: true });
 
-const { createDbClient } = await import("../../src/client.js");
-const { COURSE_CATALOG, seedCourseCatalog } = await import("../../src/seed-course-catalog.js");
+const { createDbClient } = await import("../src/client.js");
+const { COURSE_CATALOG, seedCourseCatalog } = await import("../src/seed-course-catalog.js");
 
 const PRODUCT_LINE_KEYS = COURSE_CATALOG.map((productLine) => productLine.key);
 const EXPECTED_TRACK_COUNT = 7;

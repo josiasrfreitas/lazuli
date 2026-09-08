@@ -12,8 +12,11 @@ import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { DadosStep, type DadosStepProps } from "../src/features/students/new-student/dados-step.js";
-import { initialNewStudentState } from "../src/features/students/new-student/reducer.js";
+import {
+  DadosStep,
+  type DadosStepProps,
+} from "../../src/features/students/new-student/dados-step.js";
+import { initialNewStudentState } from "../../src/features/students/new-student/reducer.js";
 
 // The components compile to classic JSX under the test runner.
 (globalThis as typeof globalThis & { React: typeof React }).React = React;

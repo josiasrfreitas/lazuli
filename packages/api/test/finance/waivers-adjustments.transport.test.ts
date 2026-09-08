@@ -12,7 +12,7 @@ import {
   DEFAULT_ORDER_INPUT,
   ensureAdminUser,
   HTTP_OK,
-} from "../db/finance-test-support.js";
+} from "../support/finance-test-support.js";
 
 const HTTP_TEST_PREFIX = "GRE-47 HTTP ";
 const WAIVER_REASON = "Bolsa";

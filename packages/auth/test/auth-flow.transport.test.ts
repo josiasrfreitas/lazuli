@@ -7,12 +7,12 @@ import { config as loadEnvironment } from "dotenv";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
-import { THIRTY_DAY_SESSION_SECONDS } from "../../src/auth-options.js";
-import { createAuth } from "../../src/auth.js";
-import { STAFF_ACCESS_DENIED_CODE } from "../../src/index.js";
-import type { AuthEnvironment, AuthInstance, MagicLinkDelivery } from "../../src/index.js";
+import { THIRTY_DAY_SESSION_SECONDS } from "../src/auth-options.js";
+import { createAuth } from "../src/auth.js";
+import { STAFF_ACCESS_DENIED_CODE } from "../src/index.js";
+import type { AuthEnvironment, AuthInstance, MagicLinkDelivery } from "../src/index.js";
 
-loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
+loadEnvironment({ path: new URL("../../../.env", import.meta.url), quiet: true });
 
 const AUTH_FLOW_PREFIX = "auth-flow-";
 const HTTP_OK = 200;

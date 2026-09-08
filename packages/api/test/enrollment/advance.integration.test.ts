@@ -24,7 +24,7 @@ import {
   registerAdvanceDbLifecycle,
   seedTwoStageCatalog,
   type TwoStageCatalogFixture,
-} from "./enrollment-advance-support.js";
+} from "../support/enrollment-advance-support.js";
 
 async function setup(): Promise<TwoStageCatalogFixture> {
   await ensureTeacherUser();

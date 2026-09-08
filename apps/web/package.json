@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test --test-reporter spec test/*.test.ts",
+    "test": "node --import tsx --test --test-reporter spec \"test/**/*.unit.test.ts\"",
     "test:e2e": "echo \"[P00-05/P00-06] Playwright e2e not wired yet\" && exit 0",
     "clean": "rm -rf .turbo .next"
   },

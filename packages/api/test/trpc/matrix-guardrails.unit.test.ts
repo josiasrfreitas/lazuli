@@ -12,7 +12,7 @@ import {
   staffProcedure,
 } from "@lazuli/api";
 
-import { ALL_ROUTERS, assertRouterGating, contextFor } from "./support.js";
+import { ALL_ROUTERS, assertRouterGating, contextFor } from "../support/support.js";
 
 const ALL_ROLES: readonly StaffRole[] = ["ADMIN", "SECRETARY", "TEACHER", "FINANCE"];
 

@@ -9,8 +9,8 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test --test-reporter spec test/*.test.ts",
-    "test:db": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-reporter spec test/db/*.test.ts",
+    "test": "node --import tsx --test --test-reporter spec \"test/**/*.unit.test.ts\"",
+    "test:integration": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-reporter spec \"test/**/*.integration.test.ts\"",
     "clean": "rm -rf .turbo dist"
   },
   "dependencies": {

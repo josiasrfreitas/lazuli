@@ -4,7 +4,7 @@ import { after, before, beforeEach, describe } from "node:test";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
-import { ADULT_BIRTH_DATE_OBJECT, caller, cleanDatabase } from "./student-test-support.js";
+import { ADULT_BIRTH_DATE_OBJECT, caller, cleanDatabase } from "../support/student-test-support.js";
 
 // `students.search` is intentionally global (single-school app, no tenant scope) and returns the top 10
 // across every student. So parallel-safe assertions must query on unique nonce tokens that no other test

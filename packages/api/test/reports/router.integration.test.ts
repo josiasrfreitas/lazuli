@@ -14,7 +14,7 @@ import {
   seedOwnedClass,
   seedStudent,
   TEACHER,
-} from "./reports-test-support.js";
+} from "../support/reports-test-support.js";
 
 void describe("reports router", { concurrency: false }, () => {
   void before(async () => {

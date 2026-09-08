@@ -9,12 +9,12 @@ import {
   cleanFinanceOrdersDatabase,
   ensureAdminUser,
   HTTP_OK,
-} from "../db/finance-test-support.js";
+} from "../support/finance-test-support.js";
 import {
   computeExpectedSnapshotTotals,
   createReceivablesFixture,
   RECEIVABLES_TEST_PREFIX,
-} from "../db/finance-receivables-test-support.js";
+} from "../support/finance-receivables-test-support.js";
 
 type SnapshotResponseBody = {
   result: {

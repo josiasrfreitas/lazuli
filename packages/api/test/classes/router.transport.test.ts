@@ -12,8 +12,8 @@ import {
   seedClassCatalogFixtures,
   TEACHER_USER_ID,
   TEST_PREFIX,
-} from "../db/class-test-support.js";
-import { recordingSessionsGenerateQueue } from "../db/session-generation-queue-support.js";
+} from "../support/class-test-support.js";
+import { recordingSessionsGenerateQueue } from "../support/session-generation-queue-support.js";
 
 void describe("classes HTTP behavior", { concurrency: false }, () => {
   void before(async () => {

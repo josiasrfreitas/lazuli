@@ -13,8 +13,8 @@ import {
   seedClassCatalogFixtures,
   TEACHER_USER_ID,
   TEST_PREFIX,
-} from "./class-test-support.js";
-import { recordingSessionsGenerateQueue } from "./session-generation-queue-support.js";
+} from "../support/class-test-support.js";
+import { recordingSessionsGenerateQueue } from "../support/session-generation-queue-support.js";
 
 void describe("classes catalog API", { concurrency: false }, () => {
   void before(async () => {

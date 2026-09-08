@@ -3,13 +3,13 @@ import { after, before, describe } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
 
-import { databaseIt } from "../support.js";
+import { databaseIt } from "../support/support.js";
 import {
   ADMIN_USER_ID,
   cleanArtifactSchemaTestData,
   ensureAdminUser,
   TEST_PREFIX,
-} from "./artifact-schema-support.js";
+} from "../support/artifact-schema-support.js";
 
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
 

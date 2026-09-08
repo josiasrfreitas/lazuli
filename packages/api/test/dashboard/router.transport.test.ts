@@ -15,7 +15,7 @@ import {
   seedClass,
   seedDashboardCatalog,
   seedSession,
-} from "../db/dashboard-test-support.js";
+} from "../support/dashboard-test-support.js";
 
 const NOW = new Date("2084-03-10T15:00:00.000Z");
 

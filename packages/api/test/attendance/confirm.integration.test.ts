@@ -10,8 +10,8 @@ import {
   ENROLLMENT_NOT_ON_ROSTER_MESSAGE,
   SESSION_CANCELLED_MESSAGE,
 } from "../../src/attendance/errors.js";
-import { confirmHarness as harness } from "./attendance-namespaces.js";
-import { expectRejects } from "./attendance-test-support.js";
+import { confirmHarness as harness } from "../support/attendance-namespaces.js";
+import { expectRejects } from "../support/attendance-test-support.js";
 
 const SAME_DAY_NOW = new Date("2013-03-10T12:00:00.000Z");
 const NEXT_SP_DAY_NOW = new Date("2013-03-11T03:01:00.000Z");

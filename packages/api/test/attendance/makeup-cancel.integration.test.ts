@@ -10,9 +10,9 @@ import {
   MAKEUP_ALREADY_CANCELLED_MESSAGE,
   MAKEUP_NOT_FOUND_MESSAGE,
 } from "../../src/attendance/makeup-errors.js";
-import { expectRejects } from "./attendance-test-support.js";
-import { cancelHarness as harness } from "./makeup-namespaces.js";
-import { FAR_FUTURE_DATE, insertMakeup } from "./makeup-test-support.js";
+import { expectRejects } from "../support/attendance-test-support.js";
+import { cancelHarness as harness } from "../support/makeup-namespaces.js";
+import { FAR_FUTURE_DATE, insertMakeup } from "../support/makeup-test-support.js";
 
 const CANCEL_REASON = "aluno desistiu";
 

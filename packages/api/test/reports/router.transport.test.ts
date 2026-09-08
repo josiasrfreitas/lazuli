@@ -12,7 +12,7 @@ import {
   HTTP_OK,
   recordingReportGenerateQueue,
   seedStudent,
-} from "../db/reports-test-support.js";
+} from "../support/reports-test-support.js";
 
 void describe("reports HTTP behavior", { concurrency: false }, () => {
   void before(async () => {

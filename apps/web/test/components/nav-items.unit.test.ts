@@ -8,7 +8,7 @@ import {
   navItemsFor,
   navSectionsFor,
   type NavSection,
-} from "../src/components/app-shell/nav-items.js";
+} from "../../src/components/app-shell/nav-items.js";
 
 const STUDENTS_PATH = "/alunos";
 const STUDENTS_LABEL = "Alunos";

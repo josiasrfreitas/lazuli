@@ -4,8 +4,8 @@ import { after, before, beforeEach, describe } from "node:test";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
-import { percentHarness as harness } from "./attendance-namespaces.js";
-import { insertMakeup } from "./makeup-test-support.js";
+import { percentHarness as harness } from "../support/attendance-namespaces.js";
+import { insertMakeup } from "../support/makeup-test-support.js";
 
 const CONFIRM_NOW = new Date("3000-03-10T12:00:00.000Z");
 const INCLUDED_PRESENT_DATE = new Date("3000-05-01T00:00:00.000Z");

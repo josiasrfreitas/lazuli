@@ -7,10 +7,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { TablePagination } from "@lazuli/ui";
 
-import type { StudentsFilters } from "../src/features/students/logic.js";
-import { paginationFor } from "../src/features/students/students-page.js";
-import { StudentsControls, StudentsHeader } from "../src/features/students/students-toolbar.js";
-import { statusTabsVm } from "../src/features/students/view-model.js";
+import type { StudentsFilters } from "../../src/features/students/logic.js";
+import { paginationFor } from "../../src/features/students/students-page.js";
+import { StudentsControls, StudentsHeader } from "../../src/features/students/students-toolbar.js";
+import { statusTabsVm } from "../../src/features/students/view-model.js";
 
 const PAGE_SIZE = 10;
 const LARGE_PAGE_SIZE = 25;

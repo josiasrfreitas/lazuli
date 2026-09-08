@@ -4,7 +4,7 @@ import { after, before, beforeEach, describe } from "node:test";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
-import { caller } from "./student-test-support.js";
+import { caller } from "../support/student-test-support.js";
 
 const TEST_PREFIX = "GRE-23 Student ";
 const CATALOG_KEY = "gre23_status_line";

@@ -4,8 +4,8 @@ import { after, before, beforeEach, describe } from "node:test";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
-import { visitorHarness as harness } from "./makeup-namespaces.js";
-import { FAR_FUTURE_DATE, insertMakeup } from "./makeup-test-support.js";
+import { visitorHarness as harness } from "../support/makeup-namespaces.js";
+import { FAR_FUTURE_DATE, insertMakeup } from "../support/makeup-test-support.js";
 
 type VisitorSetup = {
   originEnrollmentId: string;

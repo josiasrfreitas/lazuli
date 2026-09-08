@@ -8,9 +8,9 @@ import {
   MAKEUP_ALREADY_CANCELLED_MESSAGE,
   MAKEUP_TARGET_CANCELLED_MESSAGE,
 } from "../../src/attendance/makeup-errors.js";
-import { expectRejects } from "./attendance-test-support.js";
-import { outcomeHarness as harness } from "./makeup-namespaces.js";
-import { attendanceRowCount, insertMakeup } from "./makeup-test-support.js";
+import { expectRejects } from "../support/attendance-test-support.js";
+import { outcomeHarness as harness } from "../support/makeup-namespaces.js";
+import { attendanceRowCount, insertMakeup } from "../support/makeup-test-support.js";
 
 type OutcomeSetup = {
   originEnrollmentId: string;

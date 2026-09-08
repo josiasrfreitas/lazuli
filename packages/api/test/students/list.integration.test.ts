@@ -22,7 +22,7 @@ import {
   cleanStudentsListFixture,
   fullNameOf,
   seedStudentsListFixture,
-} from "./students-list-test-support.js";
+} from "../support/students-list-test-support.js";
 
 const FIXTURE_TOTAL = 12;
 const FIXTURE_ACTIVE = 9;

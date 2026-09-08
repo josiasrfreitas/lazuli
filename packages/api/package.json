@@ -9,9 +9,9 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test --test-reporter spec test/*.test.ts",
-    "test:db": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-concurrency=1 --test-reporter spec test/db/*.test.ts",
-    "test:behavior": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-concurrency=1 --test-reporter spec test/behavior/*.test.ts",
+    "test": "node --import tsx --test --test-reporter spec \"test/**/*.unit.test.ts\"",
+    "test:integration": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-concurrency=1 --test-reporter spec \"test/**/*.integration.test.ts\"",
+    "test:transport": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-concurrency=1 --test-reporter spec \"test/**/*.transport.test.ts\"",
     "clean": "rm -rf .turbo dist"
   },
   "dependencies": {

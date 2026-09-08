@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { maskDateBR, maskPhoneBR, parseDateBR } from "../src/lib/masks.js";
+import { maskDateBR, maskPhoneBR, parseDateBR } from "../../src/lib/masks.js";
 
 const FULL_DATE = "02/09/2008";
 

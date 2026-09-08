@@ -12,7 +12,7 @@ import {
 
 import { createCaller } from "@lazuli/api";
 
-import { ADMIN_FIXTURE, TEACHER_FIXTURE, contextFor } from "./support.js";
+import { ADMIN_FIXTURE, TEACHER_FIXTURE, contextFor } from "../support/support.js";
 
 const FORBIDDEN = "FORBIDDEN" as const;
 const UNAUTHORIZED = "UNAUTHORIZED" as const;

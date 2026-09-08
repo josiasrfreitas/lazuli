@@ -22,7 +22,7 @@ import {
   expectRejects,
   seedCatalog,
   type CatalogFixture,
-} from "./enrollment-test-support.js";
+} from "../support/enrollment-test-support.js";
 
 const OVERRIDE_REASON = "Aprovacao manual da coordenacao.";
 

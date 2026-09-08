@@ -11,7 +11,7 @@ import {
   createAdultFixture,
   MINOR_BIRTH_DATE_OBJECT,
   TEST_PREFIX,
-} from "./student-test-support.js";
+} from "../support/student-test-support.js";
 
 void describe("students profile aggregate API", () => {
   void before(async () => {

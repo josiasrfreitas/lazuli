@@ -4,13 +4,17 @@ import { after, before, beforeEach, describe } from "node:test";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
-import { caller, cleanFinanceOrdersDatabase, ensureAdminUser } from "./finance-test-support.js";
+import {
+  caller,
+  cleanFinanceOrdersDatabase,
+  ensureAdminUser,
+} from "../support/finance-test-support.js";
 import {
   computeExpectedSnapshotTotals,
   createReceivablesFixture,
   RECEIVABLES_TEST_PREFIX,
   type ReceivablesFixture,
-} from "./finance-receivables-test-support.js";
+} from "../support/finance-receivables-test-support.js";
 
 void describe("finance receivables dashboard", { concurrency: 1 }, () => {
   registerReceivablesDatabaseHooks();

@@ -16,7 +16,7 @@ import {
   seedDashboardCatalog,
   seedSession,
   seedStudent,
-} from "./dashboard-test-support.js";
+} from "../support/dashboard-test-support.js";
 
 const TODAY_DATE = "2084-03-10";
 const CONFIRMED_PAST_DATE = "2084-03-09";

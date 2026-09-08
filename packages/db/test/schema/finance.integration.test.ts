@@ -3,7 +3,7 @@ import { after, before, describe } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
 
-import { databaseIt } from "../support.js";
+import { databaseIt } from "../support/support.js";
 import {
   cleanFinanceSchemaTestData,
   createFinanceFixture,
@@ -13,7 +13,7 @@ import {
   PRINCIPAL_AMOUNT_CENTS,
   START_DATE,
   TEST_PREFIX,
-} from "./finance-schema-support.js";
+} from "../support/finance-schema-support.js";
 
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
 

@@ -23,7 +23,7 @@ import {
   DEFAULT_ORDER_INPUT,
   ensureAdminUser,
   expectRejects,
-} from "./finance-test-support.js";
+} from "../support/finance-test-support.js";
 
 const DATE_ONLY_PREFIX_LENGTH = 10;
 const DEFAULT_ORDER_START_DATE = "2026-01-03";

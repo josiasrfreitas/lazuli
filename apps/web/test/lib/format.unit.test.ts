@@ -7,7 +7,7 @@ import {
   formatBRLFromCents,
   formatLongDateSaoPaulo,
   toWhatsAppUrl,
-} from "../src/lib/format.js";
+} from "../../src/lib/format.js";
 
 const TUITION_CENTS = 38_000;
 const ZERO_CENTS = 0;

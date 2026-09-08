@@ -11,8 +11,8 @@ import {
   HTTP_OK,
   TEACHER,
   TEST_PREFIX,
-} from "../db/calendar-test-support.js";
-import { recordingSessionsGenerateQueue } from "../db/session-generation-queue-support.js";
+} from "../support/calendar-test-support.js";
+import { recordingSessionsGenerateQueue } from "../support/session-generation-queue-support.js";
 
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;

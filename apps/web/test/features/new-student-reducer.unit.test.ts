@@ -7,8 +7,8 @@ import {
   isMinorOn,
   newStudentReducer,
   type NewStudentState,
-} from "../src/features/students/new-student/reducer.js";
-import { toCreateInput } from "../src/features/students/new-student/to-create-input.js";
+} from "../../src/features/students/new-student/reducer.js";
+import { toCreateInput } from "../../src/features/students/new-student/to-create-input.js";
 
 const TODAY = "2026-08-25";
 // `isMinorOn` compares ISO dates; the wizard fields hold what the secretary types.

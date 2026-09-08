@@ -12,7 +12,7 @@ import {
   cleanFinanceOrdersDatabase,
   createStudent,
   ensureAdminUser,
-} from "./finance-test-support.js";
+} from "../support/finance-test-support.js";
 import type { OrderScheduleResult } from "../../src/finance/index.js";
 
 const PREFIX = "GRE-RCV ";

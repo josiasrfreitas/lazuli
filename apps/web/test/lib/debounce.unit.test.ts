@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { debounce } from "../src/lib/debounce.js";
+import { debounce } from "../../src/lib/debounce.js";
 
 const WAIT_MS = 300;
 

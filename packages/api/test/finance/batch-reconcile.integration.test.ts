@@ -11,7 +11,7 @@ import {
   createStudent,
   DEFAULT_ORDER_INPUT,
   ensureAdminUser,
-} from "./finance-test-support.js";
+} from "../support/finance-test-support.js";
 
 const BATCH_TEST_PREFIX = "GRE-46 ";
 const RECONCILE_DATE = new Date("2026-04-15T00:00:00.000Z");

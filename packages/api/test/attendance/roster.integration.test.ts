@@ -6,8 +6,8 @@ import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
 import { SESSION_NOT_FOUND_MESSAGE } from "../../src/attendance/errors.js";
-import { rosterHarness as harness } from "./attendance-namespaces.js";
-import { expectRejects } from "./attendance-test-support.js";
+import { rosterHarness as harness } from "../support/attendance-namespaces.js";
+import { expectRejects } from "../support/attendance-test-support.js";
 
 void describe("attendance.sessionRoster", () => {
   void before(async () => {

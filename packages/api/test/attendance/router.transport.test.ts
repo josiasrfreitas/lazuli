@@ -4,13 +4,13 @@ import { after, before, beforeEach, describe } from "node:test";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
-import { behaviorHarness as harness } from "../db/attendance-namespaces.js";
+import { behaviorHarness as harness } from "../support/attendance-namespaces.js";
 import {
   HTTP_FORBIDDEN,
   HTTP_OK,
   callHttpMutation,
   callHttpQuery,
-} from "../db/attendance-test-support.js";
+} from "../support/attendance-test-support.js";
 
 type RosterResponseBody = { result: { data: { json: { entries: { enrollmentId: string }[] } } } };
 type ConfirmResponseBody = { result: { data: { json: { presentCount: number } } } };

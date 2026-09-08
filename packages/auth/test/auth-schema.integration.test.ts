@@ -6,7 +6,7 @@ import { config as loadEnvironment } from "dotenv";
 
 import { databaseIt } from "@lazuli/db/test";
 
-loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
+loadEnvironment({ path: new URL("../../../.env", import.meta.url), quiet: true });
 
 const { createDbClient } = await import("@lazuli/db");
 

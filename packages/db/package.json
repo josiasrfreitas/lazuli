@@ -5,15 +5,15 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./test": "./test/support.ts"
+    "./test": "./test/support/support.ts"
   },
   "scripts": {
     "postinstall": "prisma generate",
     "generate": "prisma generate",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test test/*.test.ts",
-    "test:db": "node --import tsx --test test/db/*.test.ts",
+    "test": "node --import tsx --test \"test/**/*.unit.test.ts\"",
+    "test:integration": "node --import tsx --test \"test/**/*.integration.test.ts\"",
     "clean": "rm -rf .turbo dist",
     "prisma:validate": "prisma validate",
     "prisma:migrate": "prisma migrate dev",

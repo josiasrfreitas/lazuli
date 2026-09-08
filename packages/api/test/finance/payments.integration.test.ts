@@ -20,7 +20,7 @@ import {
   DEFAULT_ORDER_INPUT,
   ensureAdminUser,
   expectRejects,
-} from "./finance-test-support.js";
+} from "../support/finance-test-support.js";
 
 const PAYMENT_DATE = new Date("2026-04-10T00:00:00.000Z");
 const ORDER_START_DATE = new Date("2026-04-01T00:00:00.000Z");

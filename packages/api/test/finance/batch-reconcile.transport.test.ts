@@ -12,7 +12,7 @@ import {
   DEFAULT_ORDER_INPUT,
   ensureAdminUser,
   HTTP_OK,
-} from "../db/finance-test-support.js";
+} from "../support/finance-test-support.js";
 
 const BATCH_HTTP_TEST_PREFIX = "GRE-46 HTTP ";
 const HTTP_FIRST_INSTALLMENT_AMOUNT_CENTS = 33_333;

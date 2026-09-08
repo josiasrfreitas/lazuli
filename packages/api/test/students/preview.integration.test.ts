@@ -13,7 +13,7 @@ import {
   fullNameOf,
   PREFIX,
   seedStudentsListFixture,
-} from "./students-list-test-support.js";
+} from "../support/students-list-test-support.js";
 
 const ANA = "Ana Attend";
 const DAVI = "Davi NoClass";

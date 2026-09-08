@@ -3,7 +3,7 @@ import { after, before, beforeEach, describe } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
 
-import { databaseIt } from "../support.js";
+import { databaseIt } from "../support/support.js";
 
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
 

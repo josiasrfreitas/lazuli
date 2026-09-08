@@ -11,8 +11,8 @@ import {
   cleanCalendarDatabase,
   ensureCalendarUsers,
   TEST_PREFIX,
-} from "./calendar-test-support.js";
-import { recordingSessionsGenerateQueue } from "./session-generation-queue-support.js";
+} from "../support/calendar-test-support.js";
+import { recordingSessionsGenerateQueue } from "../support/session-generation-queue-support.js";
 
 const FEDERAL_HOLIDAY_COUNT = 9;
 const FEDERAL_HOLIDAY_COUNT_AFTER_CUSTOM_REASON = 8;

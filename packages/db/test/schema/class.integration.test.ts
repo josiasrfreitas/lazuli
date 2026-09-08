@@ -3,7 +3,7 @@ import { after, before, beforeEach, describe } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
 
-import { databaseIt } from "../support.js";
+import { databaseIt } from "../support/support.js";
 import {
   cleanDatabase,
   expectConstraintRejection,
@@ -11,7 +11,7 @@ import {
   seedTeacher,
   TEACHER_ID,
   TEST_PREFIX,
-} from "./class-schema-support.js";
+} from "../support/class-schema-support.js";
 
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
 

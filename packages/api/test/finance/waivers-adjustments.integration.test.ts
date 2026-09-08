@@ -21,7 +21,7 @@ import {
   cleanFinanceOrdersDatabase,
   ensureAdminUser,
   expectRejects,
-} from "./finance-test-support.js";
+} from "../support/finance-test-support.js";
 import {
   allocatePaymentToInstallment,
   cancelOrder,
@@ -36,7 +36,7 @@ import {
   updateOrderFixture,
   WAIVER_REASON,
   WAIVER_TEST_PREFIX,
-} from "./finance-waivers-adjustments-test-support.js";
+} from "../support/finance-waivers-adjustments-test-support.js";
 
 void describe("finance.waiveInstallment", () => {
   registerWaiverHooks();

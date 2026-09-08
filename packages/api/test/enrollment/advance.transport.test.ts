@@ -14,7 +14,7 @@ import {
   HTTP_OK,
   registerAdvanceDbLifecycle,
   seedTwoStageCatalog,
-} from "../db/enrollment-advance-support.js";
+} from "../support/enrollment-advance-support.js";
 
 type AdvanceResponseBody = {
   result: { data: { json: { enrollmentId: string; progress: { stageId: string } } } };

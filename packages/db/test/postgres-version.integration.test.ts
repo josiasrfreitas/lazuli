@@ -6,9 +6,9 @@ import { config as loadEnvironment } from "dotenv";
 // Mirror prisma.config.ts so the gate works from a local `.env` without
 // requiring callers to export DATABASE_URL by hand. CI injects the variable
 // directly, in which case this load is a harmless no-op.
-loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
+loadEnvironment({ path: new URL("../../../.env", import.meta.url), quiet: true });
 
-const { createDbClient } = await import("../../src/client.js");
+const { createDbClient } = await import("../src/client.js");
 
 const REQUIRED_MAJOR_VERSION = 16;
 const VERSION_NUM_PER_MAJOR = 10_000;

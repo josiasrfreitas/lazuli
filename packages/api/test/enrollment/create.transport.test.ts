@@ -13,7 +13,7 @@ import {
   ensureTeacherUser,
   HTTP_OK,
   seedCatalog,
-} from "../db/enrollment-test-support.js";
+} from "../support/enrollment-test-support.js";
 
 type CreateResponseBody = {
   result: { data: { json: { orderPromptRequired: boolean; enrollment: { id: string } } } };

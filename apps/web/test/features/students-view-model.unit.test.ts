@@ -8,7 +8,7 @@ import {
   statusTabsVm,
   tableStateVm,
   whatsAppVm,
-} from "../src/features/students/view-model.js";
+} from "../../src/features/students/view-model.js";
 
 const OVERDUE_CENTS = 38_000;
 const TAB_COUNTS = { all: 16, active: 13, inactive: 3 };
