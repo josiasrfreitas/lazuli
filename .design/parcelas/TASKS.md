@@ -19,10 +19,10 @@ próxima.
       dispensa e atualizar retornos, seeds e fixtures afetados; done = criação e regeneração preservam
       `1..N`, duplicatas ativas são rejeitadas, uma sequência excluída logicamente pode ser reutilizada
       e testes de domínio, schema e pedidos passam. _Modifica `Installment`, `generateInstallments`, o
-      módulo `receivables` e seus testes; reutiliza Prisma para schema/migration/writes._
+      módulo `finance` e seus testes; reutiliza Prisma para schema/migration/writes._
 
 - [ ] **Consulta plana paginada do ledger**: entregar o contrato validado de listagem e uma leitura
-      Kysely privada do módulo `receivables` para Todas e Pagas, incluindo saldo/status derivados,
+      Kysely privada do módulo `finance` para Todas e Pagas, incluindo saldo/status derivados,
       total do cronograma, pagador, beneficiários, contadores, busca por nome, exclusão de pedidos
       cancelados, ordenação e páginas de 25 linhas. Integrar `prisma-kysely` e
       `prisma-extension-kysely` no cliente/transaction boundary conforme ADR 0016; tipos são gerados do
@@ -31,7 +31,7 @@ próxima.
       paginação/ordenação/busca/status/parcial/dispensada mais teste behavior de autorização e
       transporte. Todas usa faixas de status e vencimento com `installmentId` crescente como desempate;
       Pagas usa `dueDate DESC, installmentId ASC`. _Cria validators, read adapter Kysely e procedure;
-      modifica o cliente Prisma e a interface profunda de `receivables`; reutiliza
+      modifica o cliente Prisma e a interface profunda de `finance`; reutiliza
       `deriveInstallmentLedger` como oráculo de paridade._
 
 - [ ] **Consulta vencida agrupada por pagador**: estender a mesma procedure para
@@ -43,7 +43,7 @@ próxima.
       continuam integrais após busca e testes DB comparam cada linha ao `deriveInstallmentLedger`,
       incluindo empates, homônimos, múltiplos alunos, pagamento parcial, waiver, pedido cancelado e
       fronteiras de data de São Paulo. _Modifica a leitura Kysely, validators e procedure criados na
-      tarefa anterior; reutiliza o módulo `receivables` e as fixtures financeiras._
+      tarefa anterior; reutiliza o módulo `finance` e as fixtures financeiras._
 
 - [ ] **Cenários financeiros demonstráveis no seed**: evoluir o seed dev idempotente para tornar
       visíveis Todas, Vencidas e Pagas, incluindo um pagador com múltiplos beneficiários, várias
