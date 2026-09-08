@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { after, before, describe } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import { THIRTY_DAY_SESSION_SECONDS } from "../src/auth-options.js";
 import { createAuth } from "../src/auth.js";
@@ -74,7 +73,7 @@ function createAuthFlowContext(): AuthFlowContext {
 }
 
 function registerEnabledStaffMagicLinkTest(context: AuthFlowContext): void {
-  databaseIt("sends a magic link to enabled pre-provisioned staff", async () => {
+  void it("sends a magic link to enabled pre-provisioned staff", async () => {
     resetDeliveries(context);
     const email = await createTeacher({ context, name: "Professora Teste" });
 
@@ -88,7 +87,7 @@ function registerEnabledStaffMagicLinkTest(context: AuthFlowContext): void {
 }
 
 function registerUnknownEmailMagicLinkTest(context: AuthFlowContext): void {
-  databaseIt("does not send a magic link to an unknown email", async () => {
+  void it("does not send a magic link to an unknown email", async () => {
     resetDeliveries(context);
     const email = createAuthFlowEmail();
 
@@ -102,7 +101,7 @@ function registerUnknownEmailMagicLinkTest(context: AuthFlowContext): void {
 }
 
 function registerDisabledStaffMagicLinkTest(context: AuthFlowContext): void {
-  databaseIt("does not send a magic link to disabled staff", async () => {
+  void it("does not send a magic link to disabled staff", async () => {
     resetDeliveries(context);
     const email = await createTeacher({
       context,
@@ -118,7 +117,7 @@ function registerDisabledStaffMagicLinkTest(context: AuthFlowContext): void {
 }
 
 function registerMagicLinkSessionTest(context: AuthFlowContext): void {
-  databaseIt("verifies a magic link into a thirty-day session", async () => {
+  void it("verifies a magic link into a thirty-day session", async () => {
     resetDeliveries(context);
     const email = await createTeacher({ context, name: "Professora Sessao" });
 
@@ -137,7 +136,7 @@ function registerMagicLinkSessionTest(context: AuthFlowContext): void {
  * screen with the denial code — not on the raw JSON the session hook produces.
  */
 function registerDeniedVerificationRedirectTest(context: AuthFlowContext): void {
-  databaseIt("redirects a denied verification back to the login screen", async () => {
+  void it("redirects a denied verification back to the login screen", async () => {
     resetDeliveries(context);
     const email = await createTeacher({ context, name: "Professora Bloqueada" });
 
@@ -156,7 +155,7 @@ function registerDeniedVerificationRedirectTest(context: AuthFlowContext): void 
 }
 
 function registerSignOutTest(context: AuthFlowContext): void {
-  databaseIt("signs out by invalidating the active session", async () => {
+  void it("signs out by invalidating the active session", async () => {
     resetDeliveries(context);
     const email = await createTeacher({ context, name: "Professora Saida" });
 

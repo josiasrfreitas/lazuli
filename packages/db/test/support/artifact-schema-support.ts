@@ -1,7 +1,7 @@
 import type { createDbClient } from "../../src/client.js";
 
 export const TEST_PREFIX = "GRE-66 Artifact ";
-export const ADMIN_USER_ID = "00000000-0000-0000-0000-0000000000ad";
+export const ARTIFACT_REQUESTER_ID = "00000000-0000-0000-0000-00000000a761";
 
 export type DatabaseClient = ReturnType<typeof createDbClient>;
 
@@ -10,15 +10,15 @@ export async function cleanArtifactSchemaTestData(database: DatabaseClient): Pro
     where: { fileName: { startsWith: TEST_PREFIX } },
   });
   await database.user.deleteMany({
-    where: { id: ADMIN_USER_ID },
+    where: { id: ARTIFACT_REQUESTER_ID },
   });
 }
 
 export async function ensureAdminUser(database: DatabaseClient): Promise<void> {
   await database.user.upsert({
-    where: { id: ADMIN_USER_ID },
+    where: { id: ARTIFACT_REQUESTER_ID },
     create: {
-      id: ADMIN_USER_ID,
+      id: ARTIFACT_REQUESTER_ID,
       email: "gre66-artifact-admin@example.com",
       name: "GRE-66 Artifact Admin",
       role: "ADMIN",

@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, describe } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import { generateClassSessions } from "../src/index.js";
 
@@ -21,47 +20,41 @@ void describe("sessions-generate worker", () => {
     await db.$disconnect();
   });
 
-  databaseIt(
-    "generates regular and personalized sessions for the semester window idempotently",
-    generateSemesterSessionsIdempotently,
-  );
+  void it("generates regular and personalized sessions for the semester window idempotently", async () => {
+    await cleanDatabase();
+    const fixtures = await seedGenerationFixtures();
+    const first = await generateClassSessions({
+      database: db,
+      payload: { semesterId: fixtures.semesterId },
+    });
+    const second = await generateClassSessions({
+      database: db,
+      payload: { semesterId: fixtures.semesterId },
+    });
+    const sessions = await db.classSession.findMany({
+      where: { classId: { in: [fixtures.regularClassId, fixtures.personalizedClassId] } },
+      orderBy: [{ date: "asc" }, { startTime: "asc" }],
+      select: { classId: true, date: true },
+    });
+
+    assert.equal(first.sessionsPlanned, EXPECTED_SESSION_COUNT);
+    assert.equal(first.sessionsCreated, EXPECTED_SESSION_COUNT);
+    assert.equal(second.sessionsPlanned, EXPECTED_SESSION_COUNT);
+    assert.equal(second.sessionsCreated, 0);
+    assert.deepEqual(
+      sessions.map((session) => ({
+        classId: session.classId,
+        date: session.date.toISOString().slice(0, DATE_ONLY_LENGTH),
+      })),
+      [
+        { classId: fixtures.regularClassId, date: "2040-03-06" },
+        { classId: fixtures.personalizedClassId, date: "2040-03-09" },
+        { classId: fixtures.regularClassId, date: "2040-03-13" },
+        { classId: fixtures.personalizedClassId, date: "2040-03-16" },
+      ],
+    );
+  });
 });
-
-async function generateSemesterSessionsIdempotently(): Promise<void> {
-  await cleanDatabase();
-  const fixtures = await seedGenerationFixtures();
-
-  const first = await generateClassSessions({
-    database: db,
-    payload: { semesterId: fixtures.semesterId },
-  });
-  const second = await generateClassSessions({
-    database: db,
-    payload: { semesterId: fixtures.semesterId },
-  });
-  const sessions = await db.classSession.findMany({
-    where: { classId: { in: [fixtures.regularClassId, fixtures.personalizedClassId] } },
-    orderBy: [{ date: "asc" }, { startTime: "asc" }],
-    select: { classId: true, date: true },
-  });
-
-  assert.equal(first.sessionsPlanned, EXPECTED_SESSION_COUNT);
-  assert.equal(first.sessionsCreated, EXPECTED_SESSION_COUNT);
-  assert.equal(second.sessionsPlanned, EXPECTED_SESSION_COUNT);
-  assert.equal(second.sessionsCreated, 0);
-  assert.deepEqual(
-    sessions.map((session) => ({
-      classId: session.classId,
-      date: session.date.toISOString().slice(0, DATE_ONLY_LENGTH),
-    })),
-    [
-      { classId: fixtures.regularClassId, date: "2040-03-06" },
-      { classId: fixtures.personalizedClassId, date: "2040-03-09" },
-      { classId: fixtures.regularClassId, date: "2040-03-13" },
-      { classId: fixtures.personalizedClassId, date: "2040-03-16" },
-    ],
-  );
-}
 
 async function seedGenerationFixtures(): Promise<{
   semesterId: string;

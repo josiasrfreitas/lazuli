@@ -66,15 +66,19 @@ export async function seedAttendanceFixture(database: DatabaseClient): Promise<A
 export async function expectConstraintRejection(
   promise: Promise<unknown>,
   needle: string,
-): Promise<void> {
+): Promise<string> {
+  let observedMessage: string | undefined;
   await assert.rejects(promise, (error: unknown) => {
     assert.ok(error instanceof Error);
+    observedMessage = error.message;
     assert.ok(
       error.message.includes(needle),
       `Expected error message to include ${needle}, received: ${error.message}`,
     );
     return true;
   });
+  assert.notEqual(observedMessage, undefined);
+  return observedMessage as string;
 }
 
 async function seedTeacher(database: DatabaseClient): Promise<void> {

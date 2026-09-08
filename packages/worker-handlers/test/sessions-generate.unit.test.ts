@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { it } from "node:test";
 
 import { SemesterBucketError } from "@lazuli/domain";
 
@@ -10,18 +10,7 @@ const SLOT_ID = "00000000-0000-0000-0000-000000000165";
 const SEMESTER_ID = "00000000-0000-0000-0000-000000000265";
 const DATE_ONLY_LENGTH = 10;
 
-void describe("planClassSessionRows", () => {
-  void it("plans full-semester rows per matching weekday and skips closed days", () =>
-    planRowsForMatchingWeekdays());
-
-  void it("raises setup errors when a generated date has no semester bucket", () =>
-    rejectMissingSemesterBucket());
-
-  void it("raises setup errors when a generated date has multiple semester buckets", () =>
-    rejectMultipleSemesterBuckets());
-});
-
-function planRowsForMatchingWeekdays(): void {
+void it("plans full-semester rows per matching weekday and skips closed days", () => {
   const rows = planClassSessionRows({
     classes: [
       {
@@ -45,9 +34,9 @@ function planRowsForMatchingWeekdays(): void {
     rows.map((row) => row.date.toISOString().slice(0, DATE_ONLY_LENGTH)),
     ["2026-03-03", "2026-03-17"],
   );
-}
+});
 
-function rejectMissingSemesterBucket(): void {
+void it("raises setup errors when a generated date has no semester bucket", () => {
   assert.throws(
     () =>
       planClassSessionRows({
@@ -57,9 +46,9 @@ function rejectMissingSemesterBucket(): void {
       }),
     SemesterBucketError,
   );
-}
+});
 
-function rejectMultipleSemesterBuckets(): void {
+void it("raises setup errors when a generated date has multiple semester buckets", () => {
   assert.throws(
     () =>
       planClassSessionRows({
@@ -77,7 +66,7 @@ function rejectMultipleSemesterBuckets(): void {
       }),
     SemesterBucketError,
   );
-}
+});
 
 function classWithNoSlots(): {
   id: string;

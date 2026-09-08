@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, describe } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
-
-import { databaseIt } from "./support/support.js";
 
 loadEnvironment({ path: new URL("../../../.env", import.meta.url), quiet: true });
 
@@ -33,11 +31,41 @@ void describe("course catalog seed", () => {
     await database.$disconnect();
   });
 
-  databaseIt("seeds product lines, tracks, stages, statuses, and representative ordering", () =>
-    seedAndVerifyCourseCatalog(database),
-  );
+  void it("seeds product lines, tracks, stages, statuses, and representative ordering", async () => {
+    await seedCourseCatalog(database);
 
-  databaseIt("is idempotent when rerun", () => verifyIdempotentRerun(database));
+    await expectCatalogCounts(database);
+    await expectProductLineStatuses(database);
+    await expectTrackStatuses(database);
+    await expectRepresentativeStageOrdering(database);
+    assert.deepEqual(await readCatalogCounts(database), {
+      productLines: PRODUCT_LINE_KEYS.length,
+      stages: EXPECTED_STAGE_COUNT,
+      tracks: EXPECTED_TRACK_COUNT,
+    });
+    assert.deepEqual(await readCatalogCounts(database), {
+      productLines: PRODUCT_LINE_KEYS.length,
+      stages: EXPECTED_STAGE_COUNT,
+      tracks: EXPECTED_TRACK_COUNT,
+    });
+  });
+
+  void it("is idempotent when rerun", async () => {
+    await seedCourseCatalog(database);
+    await seedCourseCatalog(database);
+
+    await expectCatalogCounts(database);
+    assert.deepEqual(await readCatalogCounts(database), {
+      productLines: PRODUCT_LINE_KEYS.length,
+      stages: EXPECTED_STAGE_COUNT,
+      tracks: EXPECTED_TRACK_COUNT,
+    });
+    assert.deepEqual(await readCatalogCounts(database), {
+      productLines: PRODUCT_LINE_KEYS.length,
+      stages: EXPECTED_STAGE_COUNT,
+      tracks: EXPECTED_TRACK_COUNT,
+    });
+  });
 });
 
 async function cleanSeededCatalog(database: DatabaseClient): Promise<void> {
@@ -58,23 +86,23 @@ async function cleanSeededCatalog(database: DatabaseClient): Promise<void> {
   });
 }
 
-async function seedAndVerifyCourseCatalog(database: DatabaseClient): Promise<void> {
-  await seedCourseCatalog(database);
-
-  await expectCatalogCounts(database);
-  await expectProductLineStatuses(database);
-  await expectTrackStatuses(database);
-  await expectRepresentativeStageOrdering(database);
-}
-
-async function verifyIdempotentRerun(database: DatabaseClient): Promise<void> {
-  await seedCourseCatalog(database);
-  await seedCourseCatalog(database);
-
-  await expectCatalogCounts(database);
-}
-
 async function expectCatalogCounts(database: DatabaseClient): Promise<void> {
+  const {
+    productLines: productLineCount,
+    stages: stageCount,
+    tracks: trackCount,
+  } = await readCatalogCounts(database);
+
+  assert.equal(productLineCount, PRODUCT_LINE_KEYS.length);
+  assert.equal(trackCount, EXPECTED_TRACK_COUNT);
+  assert.equal(stageCount, EXPECTED_STAGE_COUNT);
+}
+
+async function readCatalogCounts(database: DatabaseClient): Promise<{
+  productLines: number;
+  stages: number;
+  tracks: number;
+}> {
   const productLineCount = await database.productLine.count({
     where: { key: { in: [...PRODUCT_LINE_KEYS] } },
   });
@@ -85,9 +113,7 @@ async function expectCatalogCounts(database: DatabaseClient): Promise<void> {
     where: { track: { productLine: { key: { in: [...PRODUCT_LINE_KEYS] } } } },
   });
 
-  assert.equal(productLineCount, PRODUCT_LINE_KEYS.length);
-  assert.equal(trackCount, EXPECTED_TRACK_COUNT);
-  assert.equal(stageCount, EXPECTED_STAGE_COUNT);
+  return { productLines: productLineCount, stages: stageCount, tracks: trackCount };
 }
 
 async function expectProductLineStatuses(database: DatabaseClient): Promise<void> {

@@ -151,13 +151,17 @@ export async function seedCatalog(
 export async function expectConstraintRejection(
   promise: Promise<unknown>,
   ...needles: string[]
-): Promise<void> {
+): Promise<string> {
+  let observedMessage: string | undefined;
   await assert.rejects(promise, (error: unknown) => {
     assert.ok(isErrorLike(error));
     const message = String(error.message);
+    observedMessage = message;
     assert.ok(needles.some((needle) => message.includes(needle)));
     return true;
   });
+  assert.notEqual(observedMessage, undefined);
+  return observedMessage as string;
 }
 
 function isErrorLike(error: unknown): error is Error {

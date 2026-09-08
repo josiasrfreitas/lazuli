@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
-import { after, before, describe } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
 
-import { databaseIt } from "../support/support.js";
 import {
-  ADMIN_USER_ID,
+  ARTIFACT_REQUESTER_ID,
   cleanArtifactSchemaTestData,
   ensureAdminUser,
   TEST_PREFIX,
@@ -30,36 +29,52 @@ void describe("generated artifact schema", () => {
     await database.$disconnect();
   });
 
-  databaseIt("creates and reads a queued artifact with lifecycle timestamps", () =>
-    createAndReadArtifact(database),
-  );
+  void it("defaults a requested artifact to an unstarted lifecycle", async () => {
+    const { artifact, transactionStartedAt } = await createArtifact(database);
+
+    assert.equal(artifact.startedAt, null);
+    assert.equal(artifact.completedAt, null);
+    assert.equal(artifact.failedAt, null);
+    assert.equal(artifact.requestedAt.getTime(), transactionStartedAt.getTime());
+  });
 });
 
-async function createAndReadArtifact(database: DatabaseClient): Promise<void> {
+async function createArtifact(database: DatabaseClient): Promise<{
+  artifact: {
+    completedAt: Date | null;
+    failedAt: Date | null;
+    requestedAt: Date;
+    startedAt: Date | null;
+  };
+  transactionStartedAt: Date;
+}> {
   await cleanArtifactSchemaTestData(database);
   await ensureAdminUser(database);
 
-  const requestedAt = new Date("2026-07-01T10:00:00.000Z");
-  const startedAt = new Date("2026-07-01T10:00:05.000Z");
-  const completedAt = new Date("2026-07-01T10:00:30.000Z");
-
-  const created = await database.generatedArtifact.create({
-    data: {
-      kind: ArtifactKind.OVERDUE_RECEIVABLES_CSV,
-      requestedById: ADMIN_USER_ID,
-      fileName: `${TEST_PREFIX}overdue.csv`,
-      requestedAt,
-      startedAt,
-      completedAt,
-    },
-  });
-
-  const found = await database.generatedArtifact.findUniqueOrThrow({ where: { id: created.id } });
-
-  assert.equal(found.kind, ArtifactKind.OVERDUE_RECEIVABLES_CSV);
-  assert.equal(found.requestedById, ADMIN_USER_ID);
-  assert.equal(found.requestedAt.toISOString(), requestedAt.toISOString());
-  assert.equal(found.startedAt?.toISOString(), startedAt.toISOString());
-  assert.equal(found.completedAt?.toISOString(), completedAt.toISOString());
-  assert.equal(found.failedAt, null);
+  const [row] = await database.$queryRaw<
+    [
+      {
+        completedAt: Date | null;
+        failedAt: Date | null;
+        requestedAt: Date;
+        startedAt: Date | null;
+        transactionStartedAt: Date;
+      },
+    ]
+  >`
+    INSERT INTO "generated_artifacts" (
+      "id", "updated_at", "kind", "requested_by_id", "file_name"
+    ) VALUES (
+      gen_random_uuid(), transaction_timestamp(),
+      CAST(${ArtifactKind.OVERDUE_RECEIVABLES_CSV} AS "ArtifactKind"),
+      ${ARTIFACT_REQUESTER_ID}::uuid, ${`${TEST_PREFIX}overdue.csv`}
+    )
+    RETURNING
+      "requested_at" AS "requestedAt", "started_at" AS "startedAt",
+      "completed_at" AS "completedAt", "failed_at" AS "failedAt",
+      transaction_timestamp() AS "transactionStartedAt"
+  `;
+  assert.notEqual(row, undefined);
+  const { transactionStartedAt, ...artifact } = row;
+  return { artifact, transactionStartedAt };
 }

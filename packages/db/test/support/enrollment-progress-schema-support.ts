@@ -182,15 +182,45 @@ export async function createActiveEnrollmentWithProgressInTransaction(
 export async function expectConstraintRejection(
   promise: Promise<unknown>,
   ...needles: string[]
-): Promise<void> {
+): Promise<string> {
+  let observedMessage: string | undefined;
   await assert.rejects(promise, (error: unknown) => {
     assert.ok(error instanceof Error);
     const message = error.message;
-    assert.ok(
+    observedMessage = message;
+    assert.equal(
       needles.some((needle) => message.includes(needle)),
+      true,
       `Expected error message to include one of ${needles.join(", ")}, received: ${message}`,
     );
     return true;
+  });
+  assert.notEqual(observedMessage, undefined);
+  return observedMessage as string;
+}
+
+export async function createAndCloseImportedLegacyLifecycle(
+  database: DatabaseClient,
+  input: { classId: string; stageId: string; studentId: string },
+): Promise<void> {
+  const imported = await database.$transaction(async (transaction) => {
+    await transaction.$executeRaw`SELECT set_config('lazuli.allow_legacy_enrollment', 'on', true)`;
+    const enrollment = await createActiveEnrollmentWithProgressInTransaction(transaction, input);
+    const progress = await transaction.pedagogicalProgress.findFirstOrThrow({
+      where: { enrollmentId: enrollment.id, endDate: null },
+      select: { id: true },
+    });
+    return { enrollmentId: enrollment.id, progressId: progress.id };
+  });
+  await database.$transaction(async (transaction) => {
+    await transaction.enrollment.update({
+      where: { id: imported.enrollmentId },
+      data: { exitDate: CLOSE_DATE, exitReason: "CORRECTION" },
+    });
+    await transaction.pedagogicalProgress.update({
+      where: { id: imported.progressId },
+      data: { endDate: CLOSE_DATE, endReason: "CORRECTION" },
+    });
   });
 }
 
