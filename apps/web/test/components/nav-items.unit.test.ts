@@ -1,0 +1,68 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import {
+  homeHrefFor,
+  matchesNavHref,
+  navBreadcrumbFor,
+  navItemsFor,
+  navSectionsFor,
+  type NavSection,
+} from "../../src/components/app-shell/nav-items.js";
+
+const STUDENTS_PATH = "/alunos";
+const STUDENTS_LABEL = "Alunos";
+const PEDAGOGICAL_LABEL = "Pedagógico";
+
+function sectionSummary(section: NavSection): { label: string | null; items: string[] } {
+  return { label: section.label, items: section.items.map((item) => item.label) };
+}
+
+function sectionsSummary(sections: NavSection[]): ReturnType<typeof sectionSummary>[] {
+  return sections.map((section) => sectionSummary(section));
+}
+
+void describe("role-aware navigation", () => {
+  void it("shows Alunos only to roles its procedures accept", () => {
+    assert.deepEqual(
+      navItemsFor("ADMIN").map((item) => item.href),
+      ["/", STUDENTS_PATH],
+    );
+    assert.deepEqual(
+      navItemsFor("TEACHER").map((item) => item.href),
+      ["/"],
+    );
+  });
+
+  void it("places Alunos under Pedagógico and hides empty sections", () => {
+    assert.deepEqual(sectionsSummary(navSectionsFor("ADMIN")), [
+      { label: null, items: ["Início"] },
+      { label: PEDAGOGICAL_LABEL, items: [STUDENTS_LABEL] },
+    ]);
+    assert.deepEqual(
+      navSectionsFor("TEACHER").map((section) => section.label),
+      [null],
+    );
+  });
+
+  void it("resolves the grouped page breadcrumb from current and child routes", () => {
+    assert.deepEqual(navBreadcrumbFor(STUDENTS_PATH, "ADMIN"), {
+      section: PEDAGOGICAL_LABEL,
+      page: STUDENTS_LABEL,
+    });
+    assert.deepEqual(navBreadcrumbFor(`${STUDENTS_PATH}/um-id`, "ADMIN"), {
+      section: PEDAGOGICAL_LABEL,
+      page: STUDENTS_LABEL,
+    });
+    assert.equal(navBreadcrumbFor(STUDENTS_PATH, "TEACHER"), null);
+    assert.equal(navBreadcrumbFor("/", "ADMIN"), null);
+    assert.equal(matchesNavHref({ href: STUDENTS_PATH, pathname: "/alunos-inativos" }), false);
+  });
+
+  void it("sends Início to the role's first vertical, or nowhere", () => {
+    assert.equal(homeHrefFor("ADMIN"), STUDENTS_PATH);
+    assert.equal(homeHrefFor("TEACHER"), null);
+    assert.equal(homeHrefFor("SECRETARY"), null);
+    assert.equal(homeHrefFor("FINANCE"), null);
+  });
+});

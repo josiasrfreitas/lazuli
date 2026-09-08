@@ -35,8 +35,8 @@ Docker Compose for local services.
 4. Start the web app with `pnpm dev`, Storybook with `pnpm storybook`, or the worker with
    `pnpm dev:worker`.
 
-Common commands: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:db`,
-`pnpm test:behavior`, `pnpm build`, and `pnpm format:check`.
+Common commands: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`,
+`pnpm test:transport`, `pnpm build`, and `pnpm format:check`.
 
 For coding-agent constraints, verification expectations, and documentation routing, read
 [`AGENTS.md`](AGENTS.md). Folder-specific operational notes remain in
