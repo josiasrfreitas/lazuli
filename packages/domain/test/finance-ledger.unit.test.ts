@@ -23,8 +23,13 @@ const DUE_JULY_FIFTH = "2026-07-05";
 const DUE_JULY_TWENTY_FOURTH = "2026-07-24";
 const DUE_JULY_TWENTY_FIFTH = "2026-07-25";
 const DUE_AUGUST_FIFTH = "2026-08-05";
+const DUE_JULY_THIRD = "2026-07-03";
 
 const MONTHLY_INTEREST_RATE_PCT = 1;
+const TWO_PERCENT_MONTHLY_INTEREST_RATE = 2;
+const TEN_THOUSAND_CENTS = 10_000;
+const TWO_HUNDRED_CENTS = 200;
+const SEVEN_OVERDUE_DAYS = 7;
 const THIRTY_OVERDUE_DAYS = 30;
 const INTEREST_PREVIEW_CENTS = 650;
 const FIVE_THOUSAND_CENTS = 5000;
@@ -128,6 +133,21 @@ void describe("deriveInstallmentLedger status precedence", () => {
   });
 });
 
+void describe("deriveInstallmentLedger interest preview", () => {
+  void it("calculates two percent monthly interest over thirty overdue days", () => {
+    const ledger = deriveInstallmentLedger(
+      installmentInput({
+        amountCents: TEN_THOUSAND_CENTS,
+        dueDate: DUE_JUNE_TENTH,
+        now: JULY_TENTH_MIDDAY_UTC,
+        interestRatePctMonthly: TWO_PERCENT_MONTHLY_INTEREST_RATE,
+      }),
+    );
+
+    assert.equal(ledger.interestPreviewCents, TWO_HUNDRED_CENTS);
+  });
+});
+
 void describe("deriveInstallmentLedger due timing", () => {
   void it("marks unpaid installments due in the current Sao Paulo month", () => {
     const ledger = deriveInstallmentLedger(installmentInput({ dueDate: DUE_JULY_TWENTY_FIFTH }));
@@ -145,6 +165,15 @@ void describe("deriveInstallmentLedger due timing", () => {
 });
 
 void describe("deriveInstallmentLedger Sao Paulo calendar boundaries", () => {
+  void it("puts exactly seven overdue days in the first age bucket", () => {
+    const ledger = deriveInstallmentLedger(
+      installmentInput({ dueDate: DUE_JULY_THIRD, now: JULY_TENTH_MIDDAY_UTC }),
+    );
+
+    assert.equal(ledger.overdueDays, SEVEN_OVERDUE_DAYS);
+    assert.equal(ledger.ageBucket, "DAYS_1_TO_7");
+  });
+
   void it("uses Sao Paulo current month at the UTC month boundary", () => {
     const ledger = deriveInstallmentLedger(
       installmentInput({ dueDate: DUE_JULY_FIFTH, now: LATE_UTC_STILL_JUNE_IN_SP }),
