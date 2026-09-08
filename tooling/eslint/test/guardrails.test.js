@@ -142,10 +142,10 @@ describe("shared ESLint guardrails", () => {
     assert.ok(ruleIds(messages).includes("import/no-restricted-paths"));
   });
 
-  it("rejects receivables internal imports outside the receivables module", async () => {
+  it("rejects finance internal imports outside the finance module", async () => {
     const messages = await lintApiRestrictedPathsProbe(
       [
-        'import { ORDER_NOT_FOUND_MESSAGE } from "../receivables/internal/shared.js";',
+        'import { ORDER_NOT_FOUND_MESSAGE } from "../finance/internal/shared.js";',
         "export const probe = ORDER_NOT_FOUND_MESSAGE;",
       ].join("\n"),
     );

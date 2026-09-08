@@ -15,7 +15,7 @@ import {
   STUDENT_NOT_FOUND_MESSAGE,
   toDateOnly,
   toDateOnlyString,
-  type ReceivablesDatabase,
+  type FinanceDatabase,
 } from "./shared.js";
 
 export type CreateOrderInput = z.infer<typeof financeCreateOrderInputSchema>;
@@ -74,7 +74,7 @@ const beneficiarySummarySelect = {
 } as const;
 
 export async function createOrder(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: CreateOrderInput;
   staffUserId: string;
 }): Promise<OrderScheduleResult> {
@@ -109,7 +109,7 @@ export async function createOrder(input: {
 }
 
 export async function updateOrder(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: UpdateOrderInput;
   staffUserId: string;
 }): Promise<OrderScheduleResult> {
@@ -166,7 +166,7 @@ function generateOrderInstallments(values: {
 }
 
 async function resolvePayerId(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: CreateOrderInput;
   staffUserId: string;
 }): Promise<string> {
@@ -193,7 +193,7 @@ async function resolvePayerId(input: {
 }
 
 async function assertBeneficiaryStudentsExist(
-  database: ReceivablesDatabase,
+  database: FinanceDatabase,
   studentIds: string[],
 ): Promise<void> {
   const uniqueStudentIds = [...new Set(studentIds)];
@@ -208,7 +208,7 @@ async function assertBeneficiaryStudentsExist(
 }
 
 async function persistOrderSchedule(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   orderId: string;
   beneficiaryStudentIds: string[];
   generatedInstallments: GeneratedInstallment[];
@@ -258,7 +258,7 @@ type LoadedEditableOrder = {
 };
 
 async function loadEditableOrder(
-  database: ReceivablesDatabase,
+  database: FinanceDatabase,
   orderId: string,
 ): Promise<LoadedEditableOrder | null> {
   return database.order.findUnique({

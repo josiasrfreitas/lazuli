@@ -13,7 +13,7 @@ import {
 import { createOrder, updateOrder, type OrderScheduleResult } from "./internal/orders.js";
 import { createPayer } from "./internal/payers.js";
 import { registerPayment, type RegisterPaymentResult } from "./internal/register-payment.js";
-import type { ReceivablesDatabase } from "./internal/shared.js";
+import type { FinanceDatabase } from "./internal/shared.js";
 import { studentOverdueTotals, type StudentOverdueTotal } from "./internal/student-balances.js";
 import type { Payer } from "@lazuli/db";
 import type { ReceivablesSnapshot } from "@lazuli/domain";
@@ -29,7 +29,7 @@ import type {
 } from "@lazuli/validators";
 
 /**
- * The receivables module: the single deep interface over the payer → order →
+ * The finance module: the single deep interface over the payer → order →
  * installment → payment → dashboard chain. tRPC procedures in ./router.ts are
  * its only callers; installment generation, ledger derivation, and dashboard
  * aggregation are implementation details behind ./internal. See D-0037.
@@ -38,7 +38,7 @@ import type {
  * the router opens the transaction so the whole operation commits atomically.
  * `staffUserId` is the acting admin, stamped onto created/updated rows.
  */
-export function receivables(db: ReceivablesDatabase, staffUserId: string): ReceivablesModule {
+export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule {
   return {
     createPayer: (values) => createPayer({ database: db, values, staffUserId }),
     createOrder: (values) => createOrder({ database: db, values, staffUserId }),
@@ -54,7 +54,7 @@ export function receivables(db: ReceivablesDatabase, staffUserId: string): Recei
   };
 }
 
-export type ReceivablesModule = {
+export type FinanceModule = {
   createPayer: (values: z.infer<typeof payerCreateProcedureInputSchema>) => Promise<Payer>;
   createOrder: (
     values: z.infer<typeof financeCreateOrderInputSchema>,

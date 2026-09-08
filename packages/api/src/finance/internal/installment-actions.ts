@@ -24,7 +24,7 @@ import {
   INVALID_ADJUSTMENT_SIGN_MESSAGE,
   notFound,
   WAIVED_INSTALLMENT_ADJUSTMENT_MESSAGE,
-  type ReceivablesDatabase,
+  type FinanceDatabase,
 } from "./shared.js";
 
 export type WaiveInstallmentInput = z.infer<typeof financeWaiveInstallmentInputSchema>;
@@ -59,7 +59,7 @@ export type AddInstallmentAdjustmentResult = {
 // ---------------------------------------------------------------------------
 
 export async function waiveInstallment(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: WaiveInstallmentInput;
   staffUserId: string;
 }): Promise<WaiveInstallmentResult> {
@@ -122,7 +122,7 @@ function assertInstallmentWaivable(installment: LoadedInstallment): void {
 // ---------------------------------------------------------------------------
 
 export async function addInstallmentAdjustment(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: AddInstallmentAdjustmentInput;
   staffUserId: string;
 }): Promise<AddInstallmentAdjustmentResult> {

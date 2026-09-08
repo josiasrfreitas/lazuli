@@ -27,8 +27,8 @@ export function orderLocked(): TRPCError {
   return new TRPCError({ code: "BAD_REQUEST", message: ORDER_LOCKED_MESSAGE });
 }
 
-/** Every delegate the receivables module touches; both PrismaClient and a transaction client satisfy it. */
-export type ReceivablesDatabase = Pick<
+/** Every delegate the finance module touches; both PrismaClient and a transaction client satisfy it. */
+export type FinanceDatabase = Pick<
   Prisma.TransactionClient,
   | "$queryRaw"
   | "payer"
@@ -55,7 +55,7 @@ export function toDateOnly(value: string): Date {
 const FINANCE_SETTINGS_ID = "singleton";
 export const DEFAULT_INTEREST_RATE_PCT_MONTHLY = 1;
 
-export async function loadInterestRatePctMonthly(database: ReceivablesDatabase): Promise<number> {
+export async function loadInterestRatePctMonthly(database: FinanceDatabase): Promise<number> {
   const settings = await database.financeSettings.findUnique({
     where: { id: FINANCE_SETTINGS_ID },
     select: { interestRatePctMonthly: true },

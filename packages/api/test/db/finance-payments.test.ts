@@ -11,7 +11,7 @@ import {
   INSTALLMENT_PAYER_MISMATCH_MESSAGE,
   PAYER_NOT_FOUND_MESSAGE,
   WAIVED_INSTALLMENT_ALLOCATION_MESSAGE,
-} from "../../src/receivables/index.js";
+} from "../../src/finance/index.js";
 import {
   caller,
   cleanFinanceOrdersDatabase,

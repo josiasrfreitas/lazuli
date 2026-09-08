@@ -1,12 +1,12 @@
 import type { Payer } from "@lazuli/db";
 import type { payerCreateProcedureInputSchema, z } from "@lazuli/validators";
 
-import type { ReceivablesDatabase } from "./shared.js";
+import type { FinanceDatabase } from "./shared.js";
 
 export type CreatePayerInput = z.infer<typeof payerCreateProcedureInputSchema>;
 
 export async function createPayer(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: CreatePayerInput;
   staffUserId: string;
 }): Promise<Payer> {

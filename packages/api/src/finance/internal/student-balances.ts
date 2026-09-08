@@ -1,6 +1,6 @@
 import { deriveInstallmentLedger } from "@lazuli/domain";
 
-import { loadInterestRatePctMonthly, type ReceivablesDatabase } from "./shared.js";
+import { loadInterestRatePctMonthly, type FinanceDatabase } from "./shared.js";
 
 /**
  * Per-student roll-up of the derived ledger, for listings that show one finance
@@ -30,7 +30,7 @@ type LoadedBeneficiary = {
 };
 
 export async function studentOverdueTotals(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: { studentIds: readonly string[]; now: Date };
 }): Promise<StudentOverdueTotal[]> {
   if (input.values.studentIds.length === 0) {
@@ -76,7 +76,7 @@ function sumOverdueCents(input: {
 }
 
 function loadBeneficiaries(
-  database: ReceivablesDatabase,
+  database: FinanceDatabase,
   studentIds: readonly string[],
 ): Promise<LoadedBeneficiary[]> {
   return database.orderBeneficiary.findMany({

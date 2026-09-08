@@ -1,6 +1,6 @@
 import type { PaymentAllocation, PaymentEntry } from "@lazuli/db";
 
-import type { ReceivablesDatabase } from "./shared.js";
+import type { FinanceDatabase } from "./shared.js";
 
 export type PaymentAllocationInput = {
   installmentId: string;
@@ -45,7 +45,7 @@ const paymentAllocationSelect = {
 } as const;
 
 export async function persistPayment(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: {
     payerId: string;
     date: Date;
@@ -91,7 +91,7 @@ export async function persistPayment(input: {
 }
 
 export async function lockInstallments(
-  database: ReceivablesDatabase,
+  database: FinanceDatabase,
   installmentIds: string[],
 ): Promise<void> {
   await database.$queryRaw`
@@ -104,7 +104,7 @@ export async function lockInstallments(
 }
 
 export async function loadInstallments(
-  database: ReceivablesDatabase,
+  database: FinanceDatabase,
   installmentIds: string[],
 ): Promise<LoadedInstallment[]> {
   const installments = await database.installment.findMany({

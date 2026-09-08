@@ -7,11 +7,7 @@ import {
   type ReceivablesSnapshot,
 } from "@lazuli/domain";
 
-import {
-  loadInterestRatePctMonthly,
-  toDateOnlyString,
-  type ReceivablesDatabase,
-} from "./shared.js";
+import { loadInterestRatePctMonthly, toDateOnlyString, type FinanceDatabase } from "./shared.js";
 
 const YEAR_START_INDEX = 0;
 const YEAR_END_INDEX = 4;
@@ -59,9 +55,7 @@ export type OverdueListResult = {
   rows: OverdueListRow[];
 };
 
-export async function receivablesSnapshot(
-  database: ReceivablesDatabase,
-): Promise<ReceivablesSnapshot> {
+export async function receivablesSnapshot(database: FinanceDatabase): Promise<ReceivablesSnapshot> {
   const now = new Date();
   const derivedInstallments = await loadDerivedReceivablesInstallments(database, now);
   const receivedThisMonthCents = await loadReceivedThisMonthCents(database, now);
@@ -77,7 +71,7 @@ export async function receivablesSnapshot(
   });
 }
 
-export async function overdueList(database: ReceivablesDatabase): Promise<OverdueListResult> {
+export async function overdueList(database: FinanceDatabase): Promise<OverdueListResult> {
   const derivedInstallments = await loadDerivedReceivablesInstallments(database);
 
   const overdueInstallments = derivedInstallments.filter(
@@ -100,7 +94,7 @@ export async function overdueList(database: ReceivablesDatabase): Promise<Overdu
 }
 
 async function loadDerivedReceivablesInstallments(
-  database: ReceivablesDatabase,
+  database: FinanceDatabase,
   now: Date = new Date(),
 ): Promise<DerivedReceivablesInstallment[]> {
   const interestRatePctMonthly = await loadInterestRatePctMonthly(database);
@@ -135,10 +129,7 @@ async function loadDerivedReceivablesInstallments(
   });
 }
 
-async function loadReceivedThisMonthCents(
-  database: ReceivablesDatabase,
-  now: Date,
-): Promise<number> {
+async function loadReceivedThisMonthCents(database: FinanceDatabase, now: Date): Promise<number> {
   const { start, endExclusive } = saoPauloMonthBounds(now);
   const allocations = await database.paymentAllocation.findMany({
     where: {
@@ -156,7 +147,7 @@ async function loadReceivedThisMonthCents(
 }
 
 async function loadActiveOrderInstallments(
-  database: ReceivablesDatabase,
+  database: FinanceDatabase,
 ): Promise<LoadedReceivablesInstallment[]> {
   const installments = await database.installment.findMany({
     where: { order: { cancelledAt: null } },
