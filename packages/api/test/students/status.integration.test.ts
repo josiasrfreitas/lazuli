@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import { caller } from "../support/student-test-support.js";
 
@@ -50,50 +49,44 @@ void describe("students status lifecycle API", () => {
 });
 
 function registerSetStatusTest(): void {
-  databaseIt(
-    "updates a student's status through the public status lifecycle mutation",
-    async () => {
-      const student = await createAdultFixture();
+  void it("updates a student's status through the public status lifecycle mutation", async () => {
+    const student = await createAdultFixture();
 
-      await caller().students.setStatus({ id: student.id, status: "DROPPED" });
+    await caller().students.setStatus({ id: student.id, status: "DROPPED" });
 
-      const profile = await caller().students.byId({ id: student.id });
-      assert.equal(profile.contact.status, "DROPPED");
-    },
-  );
+    const profile = await caller().students.byId({ id: student.id });
+    assert.equal(profile.contact.status, "DROPPED");
+  });
 }
 
 function registerSuspendedCascadeTest(): void {
-  databaseIt(
-    "suspending a student closes active academic lifecycle rows when present",
-    async () => {
-      const student = await createAdultFixture();
-      const activeLifecycle = await createActiveLifecycleRows(student.id, "suspended-active");
-      const closedLifecycle = await createClosedLifecycleRows(student.id, "suspended-closed");
+  void it("suspending a student closes active academic lifecycle rows when present", async () => {
+    const student = await createAdultFixture();
+    const activeLifecycle = await createActiveLifecycleRows(student.id, "suspended-active");
+    const closedLifecycle = await createClosedLifecycleRows(student.id, "suspended-closed");
 
-      await caller().students.setStatus({ id: student.id, status: "SUSPENDED" });
+    await caller().students.setStatus({ id: student.id, status: "SUSPENDED" });
 
-      const activeEnrollment = await db.enrollment.findUniqueOrThrow({
-        where: { id: activeLifecycle.enrollmentId },
-      });
-      const closedEnrollment = await db.enrollment.findUniqueOrThrow({
-        where: { id: closedLifecycle.enrollmentId },
-      });
-      const activeProgress = await db.pedagogicalProgress.findUniqueOrThrow({
-        where: { id: activeLifecycle.progressId },
-      });
-      const closedProgress = await db.pedagogicalProgress.findUniqueOrThrow({
-        where: { id: closedLifecycle.progressId },
-      });
+    const activeEnrollment = await db.enrollment.findUniqueOrThrow({
+      where: { id: activeLifecycle.enrollmentId },
+    });
+    const closedEnrollment = await db.enrollment.findUniqueOrThrow({
+      where: { id: closedLifecycle.enrollmentId },
+    });
+    const activeProgress = await db.pedagogicalProgress.findUniqueOrThrow({
+      where: { id: activeLifecycle.progressId },
+    });
+    const closedProgress = await db.pedagogicalProgress.findUniqueOrThrow({
+      where: { id: closedLifecycle.progressId },
+    });
 
-      assert.equal(activeEnrollment.exitReason, "SUSPENDED");
-      assert.equal(activeEnrollment.exitDate instanceof Date, true);
-      assert.equal(closedEnrollment.exitReason, "DROPPED");
-      assert.equal(activeProgress.endReason, "SUSPENDED");
-      assert.equal(activeProgress.endDate instanceof Date, true);
-      assert.equal(closedProgress.endReason, "DROPPED");
-    },
-  );
+    assert.equal(activeEnrollment.exitReason, "SUSPENDED");
+    assert.equal(activeEnrollment.exitDate instanceof Date, true);
+    assert.equal(closedEnrollment.exitReason, "DROPPED");
+    assert.equal(activeProgress.endReason, "SUSPENDED");
+    assert.equal(activeProgress.endDate instanceof Date, true);
+    assert.equal(closedProgress.endReason, "DROPPED");
+  });
 }
 
 async function createAdultFixture(): Promise<{ id: string }> {
@@ -106,7 +99,7 @@ async function createAdultFixture(): Promise<{ id: string }> {
 }
 
 function registerDroppedCascadeTest(): void {
-  databaseIt("dropping a student closes active academic lifecycle rows as dropped", async () => {
+  void it("dropping a student closes active academic lifecycle rows as dropped", async () => {
     const student = await createAdultFixture();
     const lifecycle = await createActiveLifecycleRows(student.id, "dropped-active");
 

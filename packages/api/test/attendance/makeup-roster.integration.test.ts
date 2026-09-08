@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import { visitorHarness as harness } from "../support/makeup-namespaces.js";
 import { FAR_FUTURE_DATE, insertMakeup } from "../support/makeup-test-support.js";
@@ -60,34 +59,31 @@ void describe("attendance.sessionRoster makeup visitors", () => {
 });
 
 function registerScheduledVisitorTest(): void {
-  databaseIt(
-    "renders a future visitor with its origin class code and SCHEDULED status",
-    async () => {
-      const context = await setup();
-      const sessionId = await harness.createSession({
-        classId: context.targetClassId,
-        date: FAR_FUTURE_DATE,
-      });
-      await insertMakeup({
-        originEnrollmentId: context.originEnrollmentId,
-        targetClassSessionId: sessionId,
-      });
+  void it("renders a future visitor with its origin class code and SCHEDULED status", async () => {
+    const context = await setup();
+    const sessionId = await harness.createSession({
+      classId: context.targetClassId,
+      date: FAR_FUTURE_DATE,
+    });
+    await insertMakeup({
+      originEnrollmentId: context.originEnrollmentId,
+      targetClassSessionId: sessionId,
+    });
 
-      const roster = await harness.caller().attendance.sessionRoster({ sessionId });
+    const roster = await harness.caller().attendance.sessionRoster({ sessionId });
 
-      assert.equal(roster.makeupVisitors.length, 1);
-      assert.equal(roster.makeupVisitors[0]?.status, "SCHEDULED");
-      assert.equal(
-        roster.makeupVisitors[0]?.originClassInternalCode,
-        context.originClassInternalCode,
-      );
-      assert.ok(roster.makeupVisitors[0]?.studentFullName.endsWith("Vera"));
-    },
-  );
+    assert.equal(roster.makeupVisitors.length, 1);
+    assert.equal(roster.makeupVisitors[0]?.status, "SCHEDULED");
+    assert.equal(
+      roster.makeupVisitors[0]?.originClassInternalCode,
+      context.originClassInternalCode,
+    );
+    assert.ok(roster.makeupVisitors[0]?.studentFullName.endsWith("Vera"));
+  });
 }
 
 function registerNoShowTest(): void {
-  databaseIt("derives NO_SHOW for a past visitor with no outcome", async () => {
+  void it("derives NO_SHOW for a past visitor with no outcome", async () => {
     const context = await setup();
     const sessionId = await harness.createSession({
       classId: context.targetClassId,
@@ -105,7 +101,7 @@ function registerNoShowTest(): void {
 }
 
 function registerAttendedTest(): void {
-  databaseIt("derives ATTENDED once the visitor outcome is recorded", async () => {
+  void it("derives ATTENDED once the visitor outcome is recorded", async () => {
     const context = await setup();
     const sessionId = await harness.createSession({
       classId: context.targetClassId,
@@ -124,7 +120,7 @@ function registerAttendedTest(): void {
 }
 
 function registerCancelledHiddenTest(): void {
-  databaseIt("hides a cancelled makeup from the visitor list", async () => {
+  void it("hides a cancelled makeup from the visitor list", async () => {
     const context = await setup();
     const sessionId = await harness.createSession({
       classId: context.targetClassId,
@@ -143,7 +139,7 @@ function registerCancelledHiddenTest(): void {
 }
 
 function registerSeparationTest(): void {
-  databaseIt("keeps visitors out of roster entries and confirm counts", async () => {
+  void it("keeps visitors out of roster entries and confirm counts", async () => {
     const context = await setup();
     const sessionId = await harness.createSession({
       classId: context.targetClassId,

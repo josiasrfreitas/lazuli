@@ -304,16 +304,17 @@ export async function callHttpQuery(input: {
   });
 }
 
-/** Asserts a promise rejects with an Error whose message contains `message` (PT-BR domain error). */
-export async function expectRejects(promise: Promise<unknown>, message: string): Promise<void> {
-  await assert.rejects(promise, (error: unknown) => {
-    assert.ok(error instanceof Error, "expected an Error");
-    assert.ok(
-      error.message.includes(message),
-      `expected message to include "${message}", got "${error.message}"`,
-    );
-    return true;
-  });
+/** Captures the Error message so each test asserts its own PT-BR domain outcome inline. */
+export async function rejectionMessage(promise: Promise<unknown>): Promise<string> {
+  return promise.then(
+    () => {
+      throw new Error("expected the operation to reject");
+    },
+    (error: unknown) => {
+      assert.ok(error instanceof Error, "expected an Error");
+      return error.message;
+    },
+  );
 }
 
 /** Prefix/key/user-scoped cleanup in FK-safe order. */

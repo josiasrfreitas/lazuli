@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
-import { after, before, describe } from "node:test";
+import { after, before, it } from "node:test";
 
 import { createCaller } from "@lazuli/api";
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   caller,
@@ -16,30 +15,16 @@ import {
 } from "../support/class-test-support.js";
 import { recordingSessionsGenerateQueue } from "../support/session-generation-queue-support.js";
 
-void describe("classes catalog API", { concurrency: false }, () => {
-  void before(async () => {
-    await db.$connect();
-  });
-
-  void after(async () => {
-    await cleanClassDatabase();
-    await db.$disconnect();
-  });
-
-  databaseIt("creates a regular class with generated portal name", createRegularClass);
-
-  databaseIt("creates a personalized class with manual portal name", createPersonalizedClass);
-
-  databaseIt("archives a class", archiveClass);
-
-  databaseIt("clones a regular class for the next period preserving lineage", cloneRegularClass);
-
-  databaseIt("enqueues session generation without creating sessions inline", generateSessionsAsync);
+void before(async () => {
+  await db.$connect();
 });
 
-type CreatedClass = Awaited<ReturnType<ReturnType<typeof caller>["classes"]["create"]>>;
+void after(async () => {
+  await cleanClassDatabase();
+  await db.$disconnect();
+});
 
-async function createRegularClass(): Promise<void> {
+void it("creates a regular class with generated portal name", async () => {
   await cleanClassDatabase();
   await ensureTeacherUser();
   const fixtures = await seedClassCatalogFixtures();
@@ -59,9 +44,9 @@ async function createRegularClass(): Promise<void> {
   assert.equal(created.internalCode, `${TEST_PREFIX}Regular`);
   assert.equal(created.portalClassName, "REG/GRE29S1-TER-14:00/16:00-1S/26-1");
   assert.equal(created.status, "ACTIVE");
-}
+});
 
-async function createPersonalizedClass(): Promise<void> {
+void it("creates a personalized class with manual portal name", async () => {
   await cleanClassDatabase();
   await ensureTeacherUser();
   const fixtures = await seedClassCatalogFixtures();
@@ -80,9 +65,9 @@ async function createPersonalizedClass(): Promise<void> {
 
   assert.equal(created.portalClassName, `${TEST_PREFIX}PPT Portal`);
   assert.equal(created.sharedStageId, null);
-}
+});
 
-async function archiveClass(): Promise<void> {
+void it("archives a class", async () => {
   await cleanClassDatabase();
   await ensureTeacherUser();
   const fixtures = await seedClassCatalogFixtures();
@@ -91,9 +76,9 @@ async function archiveClass(): Promise<void> {
   const archived = await caller().classes.archive({ id: created.id });
 
   assert.equal(archived.status, "ARCHIVED");
-}
+});
 
-async function cloneRegularClass(): Promise<void> {
+void it("clones a regular class for the next period preserving lineage", async () => {
   await cleanClassDatabase();
   await ensureTeacherUser();
   const fixtures = await seedClassCatalogFixtures();
@@ -110,9 +95,9 @@ async function cloneRegularClass(): Promise<void> {
   assert.equal(result.successor.previousClassId, source.id);
   assert.equal(result.successor.sharedStageId, fixtures.nextStageId);
   assert.equal(result.successor.portalClassName, "REG/GRE29S2-TER-14:00/16:00-2S/26-1");
-}
+});
 
-async function generateSessionsAsync(): Promise<void> {
+void it("enqueues session generation without creating sessions inline", async () => {
   await cleanClassDatabase();
   await ensureTeacherUser();
   const fixtures = await seedClassCatalogFixtures();
@@ -128,7 +113,9 @@ async function generateSessionsAsync(): Promise<void> {
   assert.equal(result.jobId, "job-1");
   assert.deepEqual(queue.calls, [{ classId: created.id }]);
   assert.equal(sessionCount, 0);
-}
+});
+
+type CreatedClass = Awaited<ReturnType<ReturnType<typeof caller>["classes"]["create"]>>;
 
 async function createRegularFixture(
   fixtures: Awaited<ReturnType<typeof seedClassCatalogFixtures>>,

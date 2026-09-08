@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   caller,
@@ -38,7 +37,7 @@ function registerReceivablesDatabaseHooks(): void {
 }
 
 function registerReceivablesSnapshotHappyPath(): void {
-  databaseIt("returns expected, received, overdue, and age bucket totals per §7.1", async () => {
+  void it("returns expected, received, overdue, and age bucket totals per §7.1", async () => {
     const baseline = await caller().finance.receivablesSnapshot();
     const fixture = await createReceivablesFixture();
 
@@ -66,11 +65,12 @@ function registerReceivablesSnapshotHappyPath(): void {
 }
 
 function registerOverdueListHappyPath(): void {
-  databaseIt("returns collectible overdue rows with derived ledger statuses", async () => {
+  void it("returns collectible overdue rows with derived ledger statuses", async () => {
     const fixture = await createReceivablesFixture();
     const result = await caller().finance.overdueList();
     const fixtureRows = filterFixtureOverdueRows(result.rows, fixture);
 
+    assert.equal(fixtureRows.length, fixture.inMonthIsOverdue ? 2 : 1);
     assertOverdueListFixtureRows(fixture, fixtureRows);
     assertOverdueRowsSortedByDueDate(fixtureRows);
   });
@@ -96,7 +96,6 @@ function assertOverdueListFixtureRows(
   fixture: ReceivablesFixture,
   fixtureRows: OverdueListRow[],
 ): void {
-  assert.equal(fixtureRows.length, fixture.inMonthIsOverdue ? 2 : 1);
   assert.ok(fixtureRows.some((row) => row.installmentId === fixture.overdueInstallmentId));
 
   if (fixture.inMonthIsOverdue) {
@@ -126,7 +125,7 @@ function assertOverdueRowsSortedByDueDate(fixtureRows: OverdueListRow[]): void {
 }
 
 function registerOverdueListExclusions(): void {
-  databaseIt("excludes cancelled orders and waived installments", async () => {
+  void it("excludes cancelled orders and waived installments", async () => {
     const fixture = await createReceivablesFixture();
 
     const result = await caller().finance.overdueList();

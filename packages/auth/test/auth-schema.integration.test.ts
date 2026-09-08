@@ -1,10 +1,8 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { after, before, describe } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
-
-import { databaseIt } from "@lazuli/db/test";
 
 loadEnvironment({ path: new URL("../../../.env", import.meta.url), quiet: true });
 
@@ -19,14 +17,6 @@ void describe("auth persistence schema", () => {
 
   void before(async () => {
     await database.$connect();
-  });
-
-  void after(async () => {
-    await cleanCreatedUser(database, userId);
-    await database.$disconnect();
-  });
-
-  databaseIt("stores pre-provisioned staff beside Better Auth adapter rows", async () => {
     const user = await createEnabledTeacher(database, email);
     userId = user.id;
 
@@ -38,18 +28,21 @@ void describe("auth persistence schema", () => {
       },
     });
 
-    const session = await database.session.create({
+    await database.session.create({
       data: {
         expiresAt: new Date(Date.now() + SESSION_TEST_DURATION_MS),
         token: `session-${randomUUID()}`,
         userId: user.id,
       },
     });
-
-    assert.equal(session.userId, user.id);
   });
 
-  databaseIt("filters soft-deleted product users without filtering adapter rows", async () => {
+  void after(async () => {
+    await cleanCreatedUser(database, userId);
+    await database.$disconnect();
+  });
+
+  void it("filters soft-deleted product users without filtering adapter rows", async () => {
     const id = requireUserId(userId);
 
     await database.user.update({

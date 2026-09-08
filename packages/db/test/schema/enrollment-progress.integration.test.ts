@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
-
+import { after, before, beforeEach, describe, it } from "node:test";
 import { config as loadEnvironment } from "dotenv";
-
-import { databaseIt } from "../support/support.js";
 import {
   ACTIVE_PROGRESS_REQUIRED,
   ACTIVE_STUDENT_TRACK,
@@ -11,6 +8,7 @@ import {
   CAPACITY_OVERRIDE_REQUIRED,
   CLOSE_DATE,
   CLOSED_PROGRESS_ABSENT,
+  createAndCloseImportedLegacyLifecycle,
   createActiveEnrollmentWithProgress,
   createActiveEnrollmentWithProgressInTransaction,
   createPersonalizedClass,
@@ -29,28 +27,21 @@ import {
   cleanDatabase,
   seedTeacher,
 } from "../support/enrollment-progress-schema-support.js";
-
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
-
 const { createDbClient } = await import("../../src/client.js");
-
 void describe("enrollment and pedagogical progress schema", () => {
   const database = createDbClient();
-
   void before(async () => {
     await database.$connect();
   });
-
   void beforeEach(async () => {
     await cleanDatabase(database);
     await seedTeacher(database);
   });
-
   void after(async () => {
     await cleanDatabase(database);
     await database.$disconnect();
   });
-
   registerValidActiveEnrollmentTest(database);
   registerSameTrackRejectionTest(database);
   registerDifferentTrackAllowanceTest(database);
@@ -62,16 +53,14 @@ void describe("enrollment and pedagogical progress schema", () => {
   registerCapacityOverrideTest(database);
   registerRegularStageMatchTest(database);
 });
-
 function registerValidActiveEnrollmentTest(database: DatabaseClient): void {
-  databaseIt("creates a valid active enrollment with active progress", async () => {
+  void it("creates a valid active enrollment with active progress", async () => {
     const catalog = await seedCatalog(database);
     const student = await createStudent(database, "Valid Active");
     const classRow = await createPersonalizedClass(database, {
       code: "valid-active",
       capacity: 4,
     });
-
     const enrollment = await createActiveEnrollmentWithProgress(database, {
       classId: classRow.id,
       stageId: catalog.activeStageId,
@@ -80,13 +69,28 @@ function registerValidActiveEnrollmentTest(database: DatabaseClient): void {
     const progress = await database.pedagogicalProgress.findMany({
       where: { enrollmentId: enrollment.id, endDate: null },
     });
-
     assert.equal(progress.length, 1);
   });
 }
-
+async function advanceToSecondActiveProgress(
+  database: DatabaseClient,
+  input: {
+    enrollmentId: string;
+    stageId: string;
+  },
+): Promise<void> {
+  await database.$transaction(async (transaction) => {
+    await transaction.pedagogicalProgress.updateMany({
+      where: { enrollmentId: input.enrollmentId, endDate: null },
+      data: { endDate: FIRST_PROGRESS_END_DATE, endReason: "ADVANCED" },
+    });
+    await transaction.pedagogicalProgress.create({
+      data: { enrollmentId: input.enrollmentId, stageId: input.stageId, startDate: CLOSE_DATE },
+    });
+  });
+}
 function registerSameTrackRejectionTest(database: DatabaseClient): void {
-  databaseIt("rejects concurrent active enrollments in the same track", async () => {
+  void it("rejects concurrent active enrollments in the same track", async () => {
     const catalog = await seedCatalog(database);
     const student = await createStudent(database, "Same Track");
     const firstClass = await createPersonalizedClass(database, {
@@ -97,13 +101,12 @@ function registerSameTrackRejectionTest(database: DatabaseClient): void {
       code: "same-track-b",
       capacity: 4,
     });
-
     await createActiveEnrollmentWithProgress(database, {
       classId: firstClass.id,
       stageId: catalog.activeStageId,
       studentId: student.id,
     });
-    await expectConstraintRejection(
+    const observedConstraint1 = await expectConstraintRejection(
       createActiveEnrollmentWithProgress(database, {
         classId: secondClass.id,
         stageId: catalog.activeStageId,
@@ -111,11 +114,11 @@ function registerSameTrackRejectionTest(database: DatabaseClient): void {
       }),
       ACTIVE_STUDENT_TRACK,
     );
+    assert.equal(observedConstraint1.includes(ACTIVE_STUDENT_TRACK), true);
   });
 }
-
 function registerDifferentTrackAllowanceTest(database: DatabaseClient): void {
-  databaseIt("allows concurrent active enrollments in different tracks", async () => {
+  void it("allows concurrent active enrollments in different tracks", async () => {
     const catalog = await seedCatalog(database);
     const student = await createStudent(database, "Different Tracks");
     const firstClass = await createPersonalizedClass(database, {
@@ -126,7 +129,6 @@ function registerDifferentTrackAllowanceTest(database: DatabaseClient): void {
       code: "different-track-b",
       capacity: 4,
     });
-
     await createActiveEnrollmentWithProgress(database, {
       classId: firstClass.id,
       stageId: catalog.activeStageId,
@@ -137,23 +139,20 @@ function registerDifferentTrackAllowanceTest(database: DatabaseClient): void {
       stageId: catalog.secondTrackStageId,
       studentId: student.id,
     });
-
     const activeEnrollments = await database.enrollment.count({
       where: { studentId: student.id, exitDate: null },
     });
     assert.equal(activeEnrollments, 2);
   });
 }
-
 function registerMissingProgressRejectionTest(database: DatabaseClient): void {
-  databaseIt("rejects an active enrollment without active progress at commit", async () => {
+  void it("rejects an active enrollment without active progress at commit", async () => {
     const student = await createStudent(database, "No Progress");
     const classRow = await createPersonalizedClass(database, {
       code: "no-progress",
       capacity: 4,
     });
-
-    await expectConstraintRejection(
+    const observedConstraint2 = await expectConstraintRejection(
       database.enrollment.create({
         data: {
           classId: classRow.id,
@@ -163,19 +162,18 @@ function registerMissingProgressRejectionTest(database: DatabaseClient): void {
       }),
       ACTIVE_PROGRESS_REQUIRED,
     );
+    assert.equal(observedConstraint2.includes(ACTIVE_PROGRESS_REQUIRED), true);
   });
 }
-
 function registerClosedEnrollmentActiveProgressRejectionTest(database: DatabaseClient): void {
-  databaseIt("rejects a closed enrollment that still has active progress", async () => {
+  void it("rejects a closed enrollment that still has active progress", async () => {
     const catalog = await seedCatalog(database);
     const student = await createStudent(database, "Closed With Active");
     const classRow = await createPersonalizedClass(database, {
       code: "closed-active-progress",
       capacity: 4,
     });
-
-    await expectConstraintRejection(
+    const observedConstraint3 = await expectConstraintRejection(
       database.$transaction(async (transaction) => {
         const enrollment = await createActiveEnrollmentWithProgressInTransaction(transaction, {
           classId: classRow.id,
@@ -189,11 +187,11 @@ function registerClosedEnrollmentActiveProgressRejectionTest(database: DatabaseC
       }),
       CLOSED_PROGRESS_ABSENT,
     );
+    assert.equal(observedConstraint3.includes(CLOSED_PROGRESS_ABSENT), true);
   });
 }
-
 function registerOverlappingProgressRejectionTest(database: DatabaseClient): void {
-  databaseIt("rejects overlapping progress windows", async () => {
+  void it("rejects overlapping progress windows", async () => {
     const catalog = await seedCatalog(database);
     const student = await createStudent(database, "Overlap");
     const classRow = await createPersonalizedClass(database, {
@@ -205,12 +203,11 @@ function registerOverlappingProgressRejectionTest(database: DatabaseClient): voi
       stageId: catalog.activeStageId,
       studentId: student.id,
     });
-
     await advanceToSecondActiveProgress(database, {
       enrollmentId: enrollment.id,
       stageId: catalog.activeStageId,
     });
-    await expectConstraintRejection(
+    const observedConstraint4 = await expectConstraintRejection(
       database.pedagogicalProgress.create({
         data: {
           enrollmentId: enrollment.id,
@@ -222,19 +219,18 @@ function registerOverlappingProgressRejectionTest(database: DatabaseClient): voi
       }),
       PROGRESS_NO_OVERLAP,
     );
+    assert.equal(observedConstraint4.includes(PROGRESS_NO_OVERLAP), true);
   });
 }
-
 function registerArchivedClassRejectionTest(database: DatabaseClient): void {
-  databaseIt("rejects enrollment into an archived class", async () => {
+  void it("rejects enrollment into an archived class", async () => {
     const student = await createStudent(database, "Archived Class");
     const classRow = await createPersonalizedClass(database, {
       code: "archived",
       capacity: 4,
       status: "ARCHIVED",
     });
-
-    await expectConstraintRejection(
+    const observedConstraint5 = await expectConstraintRejection(
       database.enrollment.create({
         data: {
           classId: classRow.id,
@@ -244,11 +240,11 @@ function registerArchivedClassRejectionTest(database: DatabaseClient): void {
       }),
       ARCHIVED_CLASS,
     );
+    assert.equal(observedConstraint5.includes(ARCHIVED_CLASS), true);
   });
 }
-
 function registerLegacyTrackGuardTest(database: DatabaseClient): void {
-  databaseIt("rejects legacy track progress unless the transaction flag is set", async () => {
+  void it("rejects legacy track progress unless the transaction flag is set", async () => {
     const catalog = await seedCatalog(database);
     const firstStudent = await createStudent(database, "Legacy Rejected");
     const secondStudent = await createStudent(database, "Legacy Allowed");
@@ -260,8 +256,7 @@ function registerLegacyTrackGuardTest(database: DatabaseClient): void {
       code: "legacy-allowed",
       capacity: 4,
     });
-
-    await expectConstraintRejection(
+    const observedConstraint6 = await expectConstraintRejection(
       createActiveEnrollmentWithProgress(database, {
         classId: rejectedClass.id,
         stageId: catalog.legacyStageId,
@@ -269,6 +264,7 @@ function registerLegacyTrackGuardTest(database: DatabaseClient): void {
       }),
       LEGACY_TRACK_BLOCKED,
     );
+    assert.equal(observedConstraint6.includes(LEGACY_TRACK_BLOCKED), true);
     await createAndCloseImportedLegacyLifecycle(database, {
       classId: allowedClass.id,
       stageId: catalog.legacyStageId,
@@ -276,50 +272,44 @@ function registerLegacyTrackGuardTest(database: DatabaseClient): void {
     });
   });
 }
-
 function registerCapacityOverrideTest(database: DatabaseClient): void {
-  databaseIt(
-    "requires a capacity override reason when active enrollment exceeds capacity",
-    async () => {
-      const catalog = await seedCatalog(database);
-      const firstStudent = await createStudent(database, "Capacity First");
-      const secondStudent = await createStudent(database, "Capacity Second");
-      const thirdStudent = await createStudent(database, "Capacity Override");
-      const classRow = await createPersonalizedClass(database, { code: "capacity", capacity: 1 });
-
-      await createActiveEnrollmentWithProgress(database, {
+  void it("requires a capacity override reason when active enrollment exceeds capacity", async () => {
+    const catalog = await seedCatalog(database);
+    const firstStudent = await createStudent(database, "Capacity First");
+    const secondStudent = await createStudent(database, "Capacity Second");
+    const thirdStudent = await createStudent(database, "Capacity Override");
+    const classRow = await createPersonalizedClass(database, { code: "capacity", capacity: 1 });
+    await createActiveEnrollmentWithProgress(database, {
+      classId: classRow.id,
+      stageId: catalog.activeStageId,
+      studentId: firstStudent.id,
+    });
+    const observedConstraint7 = await expectConstraintRejection(
+      createActiveEnrollmentWithProgress(database, {
         classId: classRow.id,
         stageId: catalog.activeStageId,
-        studentId: firstStudent.id,
-      });
-      await expectConstraintRejection(
-        createActiveEnrollmentWithProgress(database, {
-          classId: classRow.id,
-          stageId: catalog.activeStageId,
-          studentId: secondStudent.id,
-        }),
-        CAPACITY_OVERRIDE_REQUIRED,
-      );
-      await createActiveEnrollmentWithProgress(database, {
-        capacityOverrideReason: "Manual coordinator approval for sibling schedule.",
-        classId: classRow.id,
-        stageId: catalog.activeStageId,
-        studentId: thirdStudent.id,
-      });
-    },
-  );
+        studentId: secondStudent.id,
+      }),
+      CAPACITY_OVERRIDE_REQUIRED,
+    );
+    assert.equal(observedConstraint7.includes(CAPACITY_OVERRIDE_REQUIRED), true);
+    await createActiveEnrollmentWithProgress(database, {
+      capacityOverrideReason: "Manual coordinator approval for sibling schedule.",
+      classId: classRow.id,
+      stageId: catalog.activeStageId,
+      studentId: thirdStudent.id,
+    });
+  });
 }
-
 function registerRegularStageMatchTest(database: DatabaseClient): void {
-  databaseIt("requires regular active progress to match the class shared stage", async () => {
+  void it("requires regular active progress to match the class shared stage", async () => {
     const catalog = await seedCatalog(database);
     const student = await createStudent(database, "Regular Mismatch");
     const classRow = await createRegularClass(database, {
       code: "regular-mismatch",
       sharedStageId: catalog.activeStageId,
     });
-
-    await expectConstraintRejection(
+    const observedConstraint8 = await expectConstraintRejection(
       createActiveEnrollmentWithProgress(database, {
         classId: classRow.id,
         stageId: catalog.sameTrackSecondStageId,
@@ -327,50 +317,6 @@ function registerRegularStageMatchTest(database: DatabaseClient): void {
       }),
       REGULAR_STAGE_MATCH,
     );
-  });
-}
-
-async function advanceToSecondActiveProgress(
-  database: DatabaseClient,
-  input: { enrollmentId: string; stageId: string },
-): Promise<void> {
-  await database.$transaction(async (transaction) => {
-    await transaction.pedagogicalProgress.updateMany({
-      where: { enrollmentId: input.enrollmentId, endDate: null },
-      data: { endDate: FIRST_PROGRESS_END_DATE, endReason: "ADVANCED" },
-    });
-    await transaction.pedagogicalProgress.create({
-      data: {
-        enrollmentId: input.enrollmentId,
-        stageId: input.stageId,
-        startDate: CLOSE_DATE,
-      },
-    });
-  });
-}
-
-async function createAndCloseImportedLegacyLifecycle(
-  database: DatabaseClient,
-  input: { classId: string; stageId: string; studentId: string },
-): Promise<void> {
-  const imported = await database.$transaction(async (transaction) => {
-    await transaction.$executeRaw`SELECT set_config('lazuli.allow_legacy_enrollment', 'on', true)`;
-    const enrollment = await createActiveEnrollmentWithProgressInTransaction(transaction, input);
-    const progress = await transaction.pedagogicalProgress.findFirstOrThrow({
-      where: { enrollmentId: enrollment.id, endDate: null },
-      select: { id: true },
-    });
-    return { enrollmentId: enrollment.id, progressId: progress.id };
-  });
-
-  await database.$transaction(async (transaction) => {
-    await transaction.enrollment.update({
-      where: { id: imported.enrollmentId },
-      data: { exitDate: CLOSE_DATE, exitReason: "CORRECTION" },
-    });
-    await transaction.pedagogicalProgress.update({
-      where: { id: imported.progressId },
-      data: { endDate: CLOSE_DATE, endReason: "CORRECTION" },
-    });
+    assert.equal(observedConstraint8.includes(REGULAR_STAGE_MATCH), true);
   });
 }

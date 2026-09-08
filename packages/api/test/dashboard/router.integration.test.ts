@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, describe } from "node:test";
+import { after, before, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   ADMIN,
@@ -30,26 +29,16 @@ const NEW_THIS_MONTH_ADDED = 2;
 const WARNING_CLASS_CODE = "Warnings";
 const WARNING_CLASS_INTERNAL_CODE = `${TEST_PREFIX}${WARNING_CLASS_CODE}`;
 
-void describe("dashboard API", { concurrency: false }, () => {
-  void before(async () => {
-    await db.$connect();
-  });
-
-  void after(async () => {
-    await cleanDashboardDatabase();
-    await db.$disconnect();
-  });
-
-  databaseIt(
-    "counts active students and new-this-month using America/Sao_Paulo boundaries",
-    countActiveStudents,
-  );
-  databaseIt("derives untaken-session operational warnings", deriveUntakenWarnings);
-  databaseIt("returns teacher home sessions only for owned classes", returnOwnedTeacherHome);
-  databaseIt("enforces dashboard role procedures", enforceDashboardRoles);
+void before(async () => {
+  await db.$connect();
 });
 
-async function countActiveStudents(): Promise<void> {
+void after(async () => {
+  await cleanDashboardDatabase();
+  await db.$disconnect();
+});
+
+void it("counts active students and new-this-month using America/Sao_Paulo boundaries", async () => {
   await cleanDashboardDatabase();
   await ensureDashboardUsers();
   const monthStart = new Date("2026-07-01T03:00:00.000Z");
@@ -85,9 +74,8 @@ async function countActiveStudents(): Promise<void> {
     total: existing.total + ACTIVE_STUDENTS_ADDED,
     newThisMonth: existing.newThisMonth + NEW_THIS_MONTH_ADDED,
   });
-}
-
-async function deriveUntakenWarnings(): Promise<void> {
+});
+void it("derives untaken-session operational warnings", async () => {
   await cleanDashboardDatabase();
   await ensureDashboardUsers();
   const existing = await caller(ADMIN, AFTER_PAST_SESSION_NOW).dashboard.adminMetrics();
@@ -117,9 +105,8 @@ async function deriveUntakenWarnings(): Promise<void> {
     (session) => session.sessionId === untakenSessionId,
   );
   assert.equal(seededWarning?.classInternalCode, WARNING_CLASS_INTERNAL_CODE);
-}
-
-async function returnOwnedTeacherHome(): Promise<void> {
+});
+void it("returns teacher home sessions only for owned classes", async () => {
   await cleanDashboardDatabase();
   await ensureDashboardUsers();
   const { stageId, semesterId } = await seedDashboardCatalog();
@@ -166,12 +153,11 @@ async function returnOwnedTeacherHome(): Promise<void> {
       { classId: secondOwnedClassId, nextSessionId: secondClassNextSessionId },
     ],
   );
-}
-
-async function enforceDashboardRoles(): Promise<void> {
+});
+void it("enforces dashboard role procedures", async () => {
   await cleanDashboardDatabase();
   await ensureDashboardUsers();
 
   await assert.rejects(caller(TEACHER, JULY_NOW).dashboard.adminMetrics(), /FORBIDDEN/);
   await assert.rejects(caller(ADMIN, JULY_NOW).dashboard.teacherHome(), /FORBIDDEN/);
-}
+});

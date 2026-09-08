@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, describe } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 import { DEFAULT_STUDENT_PAGE_SIZE } from "@lazuli/validators";
 
 import {
@@ -60,7 +59,7 @@ void describe("students.list", { concurrency: 1 }, () => {
 });
 
 function registerCountsAndPaginationTest(): void {
-  databaseIt("counts every tab under the current search and paginates by name", async () => {
+  void it("counts every tab under the current search and paginates by name", async () => {
     const firstPage = await caller().students.list({ search: PREFIX });
 
     assert.deepEqual(firstPage.counts, {
@@ -99,7 +98,7 @@ function registerCountsAndPaginationTest(): void {
 }
 
 function registerStatusFilterTest(): void {
-  databaseIt("groups INACTIVE, SUSPENDED and DROPPED under the inactive tab", async () => {
+  void it("groups INACTIVE, SUSPENDED and DROPPED under the inactive tab", async () => {
     const inactive = await caller().students.list({ search: PREFIX, status: "inactive" });
     const active = await caller().students.list({ search: PREFIX, status: "active" });
 
@@ -114,7 +113,7 @@ function registerStatusFilterTest(): void {
 }
 
 function registerSearchTest(): void {
-  databaseIt("searches by student name, class code and teacher name", async () => {
+  void it("searches by student name, class code and teacher name", async () => {
     const results = await Promise.all(
       [CARLA, CLASS_B_CODE, TEACHER_B_NAME].map((search) => caller().students.list({ search })),
     );
@@ -136,7 +135,7 @@ function registerSearchTest(): void {
 }
 
 function registerAttendanceTest(): void {
-  databaseIt("derives the semester attendance percent and the below-minimum flag", async () => {
+  void it("derives the semester attendance percent and the below-minimum flag", async () => {
     const { rows } = await caller().students.list({ search: PREFIX });
     const ana = rowFor(rows, ANA);
     const carla = rowFor(rows, CARLA);
@@ -158,7 +157,7 @@ function registerAttendanceTest(): void {
 }
 
 function registerFinanceTest(): void {
-  databaseIt("reports the open overdue balance, settled orders and missing orders", async () => {
+  void it("reports the open overdue balance, settled orders and missing orders", async () => {
     const { rows } = await caller().students.list({ search: PREFIX });
 
     assert.deepEqual(rowFor(rows, ELISA).finance, {

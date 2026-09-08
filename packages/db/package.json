@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./test": "./test/support/support.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "postinstall": "prisma generate",

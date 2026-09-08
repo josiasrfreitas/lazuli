@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { after, before, describe } from "node:test";
+import { after, before, describe, it } from "node:test";
 
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 import { adminProcedure, createTRPCContext, router } from "@lazuli/api";
 import type { StaffRole, StaffSession } from "@lazuli/auth";
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 const ENDPOINT = "/api/trpc";
 const PREFIX = "api-rbac-http-";
@@ -45,7 +44,7 @@ void describe("RBAC over the tRPC HTTP boundary", () => {
     await db.$disconnect();
   });
 
-  databaseIt("admin gets 200, teacher gets 403, anonymous gets 401", async () => {
+  void it("admin gets 200, teacher gets 403, anonymous gets 401", async () => {
     const admin = await createUser("ADMIN");
     const teacher = await createUser("TEACHER");
 
@@ -54,6 +53,10 @@ void describe("RBAC over the tRPC HTTP boundary", () => {
     const anonResponse = await callAdminOnly(null);
 
     assert.equal(adminResponse.status, HTTP_OK);
+    const adminPayload = (await adminResponse.json()) as {
+      result: { data: { json: { ok: boolean } } };
+    };
+    assert.equal(adminPayload.result.data.json.ok, true);
     assert.equal(teacherResponse.status, HTTP_FORBIDDEN);
     assert.equal(anonResponse.status, HTTP_UNAUTHORIZED);
   });

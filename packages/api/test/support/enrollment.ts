@@ -55,18 +55,19 @@ async function callHttpMutation(input: {
   });
 }
 
-async function expectRejects(promise: Promise<unknown>, message: string): Promise<void> {
-  await assert.rejects(promise, (error: unknown) => {
-    assert.ok(error instanceof Error, "expected an Error");
-    assert.ok(
-      error.message.includes(message),
-      `expected message to include "${message}", got "${error.message}"`,
-    );
-    return true;
-  });
+async function rejectionMessage(promise: Promise<unknown>): Promise<string> {
+  return promise.then(
+    () => {
+      throw new Error("expected the operation to reject");
+    },
+    (error: unknown) => {
+      assert.ok(error instanceof Error, "expected an Error");
+      return error.message;
+    },
+  );
 }
 
-const common = { ADMIN, HTTP_OK, caller, callHttpMutation, expectRejects };
+const common = { ADMIN, HTTP_OK, caller, callHttpMutation, rejectionMessage };
 
 const CREATE_CONFIG: EnrollmentSuiteConfig = {
   prefix: "GRE-30 Enroll ",

@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
@@ -21,7 +20,7 @@ const {
   createRegularClass,
   createStudent,
   ensureTeacherUser,
-  expectRejects,
+  rejectionMessage,
   seedCatalog,
 } = gre30Enrollment;
 
@@ -55,7 +54,7 @@ void describe("enrollment.create", () => {
 });
 
 function registerRegularHappyPath(): void {
-  databaseIt("seeds one active progress at the class shared stage (REGULAR)", async () => {
+  void it("seeds one active progress at the class shared stage (REGULAR)", async () => {
     const catalog = await setupCatalog();
     const classRow = await createRegularClass({
       code: "regular",
@@ -81,7 +80,7 @@ function registerRegularHappyPath(): void {
 }
 
 function registerPersonalizedHappyPath(): void {
-  databaseIt("uses the operator-picked stage (PERSONALIZED)", async () => {
+  void it("uses the operator-picked stage (PERSONALIZED)", async () => {
     const catalog = await setupCatalog();
     const classRow = await createPersonalizedClass({
       code: "personalized",
@@ -101,7 +100,7 @@ function registerPersonalizedHappyPath(): void {
 }
 
 function registerPersonalizedRequiresStage(): void {
-  databaseIt("rejects a PERSONALIZED enrollment without a stage", async () => {
+  void it("rejects a PERSONALIZED enrollment without a stage", async () => {
     const catalog = await setupCatalog();
     const classRow = await createPersonalizedClass({
       code: "needs-stage",
@@ -109,15 +108,17 @@ function registerPersonalizedRequiresStage(): void {
     });
     const student = await createStudent({ suffix: "No Stage Student" });
 
-    await expectRejects(
-      caller().enrollment.create({ studentId: student.id, classId: classRow.id }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.create({ studentId: student.id, classId: classRow.id }),
+      ),
       PERSONALIZED_REQUIRES_STAGE_MESSAGE,
     );
   });
 }
 
 function registerCapacityOverride(): void {
-  databaseIt("requires an override reason over capacity, then allows it", async () => {
+  void it("requires an override reason over capacity, then allows it", async () => {
     const catalog = await setupCatalog();
     const classRow = await createPersonalizedClass({
       code: "capacity",
@@ -135,12 +136,14 @@ function registerCapacityOverride(): void {
       classId: classRow.id,
       stageId: catalog.activeStageId,
     });
-    await expectRejects(
-      caller().enrollment.create({
-        studentId: second.id,
-        classId: classRow.id,
-        stageId: catalog.activeStageId,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.create({
+          studentId: second.id,
+          classId: classRow.id,
+          stageId: catalog.activeStageId,
+        }),
+      ),
       CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
     );
 
@@ -155,7 +158,7 @@ function registerCapacityOverride(): void {
 }
 
 function registerInactiveStudentRejected(): void {
-  databaseIt("rejects enrolling a non-ACTIVE student", async () => {
+  void it("rejects enrolling a non-ACTIVE student", async () => {
     const catalog = await setupCatalog();
     const classRow = await createPersonalizedClass({
       code: "inactive",
@@ -163,19 +166,21 @@ function registerInactiveStudentRejected(): void {
     });
     const student = await createStudent({ suffix: "Dropped Student", status: "DROPPED" });
 
-    await expectRejects(
-      caller().enrollment.create({
-        studentId: student.id,
-        classId: classRow.id,
-        stageId: catalog.activeStageId,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.create({
+          studentId: student.id,
+          classId: classRow.id,
+          stageId: catalog.activeStageId,
+        }),
+      ),
       STUDENT_NOT_ACTIVE_MESSAGE,
     );
   });
 }
 
 function registerArchivedClassRejected(): void {
-  databaseIt("rejects enrolling into an archived class", async () => {
+  void it("rejects enrolling into an archived class", async () => {
     const catalog = await setupCatalog();
     const classRow = await createPersonalizedClass({
       code: "archived",
@@ -184,19 +189,21 @@ function registerArchivedClassRejected(): void {
     });
     const student = await createStudent({ suffix: "Archived Class Student" });
 
-    await expectRejects(
-      caller().enrollment.create({
-        studentId: student.id,
-        classId: classRow.id,
-        stageId: catalog.activeStageId,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.create({
+          studentId: student.id,
+          classId: classRow.id,
+          stageId: catalog.activeStageId,
+        }),
+      ),
       CLASS_ARCHIVED_MESSAGE,
     );
   });
 }
 
 function registerDuplicateRejected(): void {
-  databaseIt("rejects a duplicate active enrollment in the same class", async () => {
+  void it("rejects a duplicate active enrollment in the same class", async () => {
     const catalog = await setupCatalog();
     const classRow = await createPersonalizedClass({
       code: "duplicate",
@@ -209,19 +216,21 @@ function registerDuplicateRejected(): void {
       classId: classRow.id,
       stageId: catalog.activeStageId,
     });
-    await expectRejects(
-      caller().enrollment.create({
-        studentId: student.id,
-        classId: classRow.id,
-        stageId: catalog.activeStageId,
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.create({
+          studentId: student.id,
+          classId: classRow.id,
+          stageId: catalog.activeStageId,
+        }),
+      ),
       DUPLICATE_ACTIVE_ENROLLMENT_MESSAGE,
     );
   });
 }
 
 function registerEntryDateDefault(): void {
-  databaseIt("defaults the entry date to today when omitted", async () => {
+  void it("defaults the entry date to today when omitted", async () => {
     const catalog = await setupCatalog();
     const classRow = await createPersonalizedClass({
       code: "entry-date",

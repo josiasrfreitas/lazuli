@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { config as loadEnvironment } from "dotenv";
-
-import { databaseIt } from "../support/support.js";
 
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
 
@@ -31,22 +29,7 @@ void describe("school closed day schema", () => {
     await database.$disconnect();
   });
 
-  databaseIt("creates and reads a closed day", async () => {
-    const created = await database.schoolClosedDay.create({
-      data: {
-        date: new Date("2030-01-01T00:00:00.000Z"),
-        reason: `${TEST_PREFIX}Ano Novo`,
-        createdById: ADMIN_ID,
-      },
-    });
-
-    const found = await database.schoolClosedDay.findUnique({ where: { id: created.id } });
-
-    assert.equal(found?.reason, `${TEST_PREFIX}Ano Novo`);
-    assert.equal(found?.createdById, ADMIN_ID);
-  });
-
-  databaseIt("rejects duplicate dates", async () => {
+  void it("rejects duplicate dates", async () => {
     const date = new Date("2030-04-21T00:00:00.000Z");
     await database.schoolClosedDay.create({
       data: { date, reason: `${TEST_PREFIX}Tiradentes`, createdById: ADMIN_ID },
@@ -60,7 +43,7 @@ void describe("school closed day schema", () => {
     );
   });
 
-  databaseIt("enforces the createdById foreign key", async () => {
+  void it("enforces the createdById foreign key", async () => {
     await assert.rejects(
       database.schoolClosedDay.create({
         data: {

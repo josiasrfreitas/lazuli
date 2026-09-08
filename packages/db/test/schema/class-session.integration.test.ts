@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { after, before, beforeEach, describe } from "node:test";
-
+import { after, before, beforeEach, describe, it } from "node:test";
 import { config as loadEnvironment } from "dotenv";
-
-import { databaseIt } from "../support/support.js";
 import {
   cleanDatabase,
   expectConstraintRejection,
@@ -12,11 +9,8 @@ import {
   seedTeacher,
   type ClassSchemaFixtureConfig,
 } from "../support/class-schema-support.js";
-
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
-
 const { createDbClient } = await import("../../src/client.js");
-
 const UNIQUE_CONSTRAINT_MESSAGE = "Unique constraint failed";
 const SESSION_SLOT_MATCH_MESSAGE = "ClassSession date/time must match";
 const SESSION_CANCEL_CONSTRAINT = "ClassSession_cancel_facts_check";
@@ -35,185 +29,28 @@ const SESSION_FIXTURE = {
   semesterStartDate: new Date("2078-02-01"),
   semesterEndDate: new Date("2078-06-30"),
 } satisfies ClassSchemaFixtureConfig;
-
 type DatabaseClient = ReturnType<typeof createDbClient>;
-
 void describe("class session schema", () => {
   const database = createDbClient();
-
   void before(async () => {
     await database.$connect();
   });
-
   void beforeEach(async () => {
     await cleanDatabase(database, SESSION_FIXTURE);
     await seedTeacher(database, SESSION_FIXTURE);
   });
-
   void after(async () => {
     await cleanDatabase(database, SESSION_FIXTURE);
     await database.$disconnect();
   });
-
-  databaseIt("creates a slot-backed class session", () => createSlotBackedSession(database));
-
-  databaseIt("rejects duplicate generated class sessions", () =>
-    rejectDuplicateGeneratedSession(database),
-  );
-
-  databaseIt("rejects duplicate ad-hoc class sessions", () =>
-    rejectDuplicateAdHocSession(database),
-  );
-
-  databaseIt("rejects inverted class session times", () => rejectInvertedSessionTimes(database));
-
-  databaseIt("rejects session dates that do not match the slot weekday", () =>
-    rejectSessionSlotMismatch(database),
-  );
-
-  databaseIt("rejects cancelled sessions without cancellation facts", () =>
-    rejectCancelledWithoutFacts(database),
-  );
-
-  databaseIt("rejects cancelling sessions with attendance or Portal facts", () =>
-    rejectCancelledWithCommittedFacts(database),
-  );
+  registerSchemaTest1(database);
+  registerSchemaTest2(database);
+  registerSchemaTest3(database);
+  registerSchemaTest4(database);
+  registerSchemaTest5(database);
+  registerSchemaTest6(database);
+  registerSchemaTest7(database);
 });
-
-async function createSlotBackedSession(database: DatabaseClient): Promise<void> {
-  const sessionFixture = await seedClassWithSlot(database);
-
-  const session = await database.classSession.create({
-    data: {
-      classId: sessionFixture.classId,
-      scheduleSlotId: sessionFixture.slotId,
-      date: new Date(MATCHING_SESSION_DATE),
-      startTime: sessionFixture.startTime,
-      endTime: sessionFixture.endTime,
-    },
-  });
-
-  assert.equal(session.status, "SCHEDULED");
-}
-
-async function rejectDuplicateGeneratedSession(database: DatabaseClient): Promise<void> {
-  const sessionFixture = await seedClassWithSlot(database);
-  const sessionData = {
-    classId: sessionFixture.classId,
-    scheduleSlotId: sessionFixture.slotId,
-    date: new Date(MATCHING_SESSION_DATE),
-    startTime: sessionFixture.startTime,
-    endTime: sessionFixture.endTime,
-  };
-
-  await database.classSession.create({ data: sessionData });
-  await expectConstraintRejection(
-    database.classSession.create({ data: sessionData }),
-    UNIQUE_CONSTRAINT_MESSAGE,
-  );
-}
-
-async function rejectDuplicateAdHocSession(database: DatabaseClient): Promise<void> {
-  const sessionFixture = await seedClassWithSlot(database);
-  const sessionData = {
-    classId: sessionFixture.classId,
-    date: new Date(MATCHING_SESSION_DATE),
-    startTime: new Date("1970-01-01T09:00:00.000Z"),
-    endTime: new Date("1970-01-01T10:00:00.000Z"),
-  };
-
-  await database.classSession.create({ data: sessionData });
-  await expectConstraintRejection(
-    database.classSession.create({ data: sessionData }),
-    UNIQUE_CONSTRAINT_MESSAGE,
-  );
-}
-
-async function rejectInvertedSessionTimes(database: DatabaseClient): Promise<void> {
-  const sessionFixture = await seedClassWithSlot(database);
-
-  await expectConstraintRejection(
-    database.classSession.create({
-      data: {
-        classId: sessionFixture.classId,
-        date: new Date(MATCHING_SESSION_DATE),
-        startTime: new Date("1970-01-01T10:00:00.000Z"),
-        endTime: new Date("1970-01-01T09:00:00.000Z"),
-      },
-    }),
-    SESSION_ORDER_CONSTRAINT,
-  );
-}
-
-async function rejectSessionSlotMismatch(database: DatabaseClient): Promise<void> {
-  const sessionFixture = await seedClassWithSlot(database);
-
-  await expectConstraintRejection(
-    database.classSession.create({
-      data: {
-        classId: sessionFixture.classId,
-        scheduleSlotId: sessionFixture.slotId,
-        date: new Date("2078-02-02T00:00:00.000Z"),
-        startTime: sessionFixture.startTime,
-        endTime: sessionFixture.endTime,
-      },
-    }),
-    SESSION_SLOT_MATCH_MESSAGE,
-  );
-}
-
-async function rejectCancelledWithoutFacts(database: DatabaseClient): Promise<void> {
-  const sessionFixture = await seedClassWithSlot(database);
-
-  await expectConstraintRejection(
-    database.classSession.create({
-      data: {
-        classId: sessionFixture.classId,
-        scheduleSlotId: sessionFixture.slotId,
-        date: new Date(MATCHING_SESSION_DATE),
-        startTime: sessionFixture.startTime,
-        endTime: sessionFixture.endTime,
-        status: "CANCELLED",
-      },
-    }),
-    SESSION_CANCEL_CONSTRAINT,
-  );
-}
-
-async function rejectCancelledWithCommittedFacts(database: DatabaseClient): Promise<void> {
-  const sessionFixture = await seedClassWithSlot(database);
-  const cancelledSessionData = {
-    classId: sessionFixture.classId,
-    scheduleSlotId: sessionFixture.slotId,
-    date: new Date(MATCHING_SESSION_DATE),
-    startTime: sessionFixture.startTime,
-    endTime: sessionFixture.endTime,
-    status: "CANCELLED" as const,
-    cancelReason: "Teacher absence",
-    cancelledAt: new Date("2078-01-31T12:00:00.000Z"),
-  };
-
-  await expectConstraintRejection(
-    database.classSession.create({
-      data: {
-        ...cancelledSessionData,
-        attendanceConfirmedAt: new Date("2078-02-01T16:30:00.000Z"),
-      },
-    }),
-    SESSION_CANCEL_CONSTRAINT,
-  );
-
-  await expectConstraintRejection(
-    database.classSession.create({
-      data: {
-        ...cancelledSessionData,
-        portalSubmittedAt: new Date("2078-02-01T17:00:00.000Z"),
-      },
-    }),
-    SESSION_CANCEL_CONSTRAINT,
-  );
-}
-
 async function seedClassWithSlot(database: DatabaseClient): Promise<{
   classId: string;
   slotId: string;
@@ -248,6 +85,144 @@ async function seedClassWithSlot(database: DatabaseClient): Promise<{
   if (slot === undefined) {
     throw new Error("Expected seeded class to have a schedule slot.");
   }
-
   return { classId: classRow.id, slotId: slot.id, startTime, endTime };
+}
+function registerSchemaTest1(database: DatabaseClient): void {
+  void it("creates a slot-backed class session", async () => {
+    const sessionFixture = await seedClassWithSlot(database);
+    const session = await database.classSession.create({
+      data: {
+        classId: sessionFixture.classId,
+        scheduleSlotId: sessionFixture.slotId,
+        date: new Date(MATCHING_SESSION_DATE),
+        startTime: sessionFixture.startTime,
+        endTime: sessionFixture.endTime,
+      },
+    });
+    assert.equal(session.status, "SCHEDULED");
+  });
+}
+function registerSchemaTest2(database: DatabaseClient): void {
+  void it("rejects duplicate generated class sessions", async () => {
+    const sessionFixture = await seedClassWithSlot(database);
+    const sessionData = {
+      classId: sessionFixture.classId,
+      scheduleSlotId: sessionFixture.slotId,
+      date: new Date(MATCHING_SESSION_DATE),
+      startTime: sessionFixture.startTime,
+      endTime: sessionFixture.endTime,
+    };
+    await database.classSession.create({ data: sessionData });
+    const observedConstraint1 = await expectConstraintRejection(
+      database.classSession.create({ data: sessionData }),
+      UNIQUE_CONSTRAINT_MESSAGE,
+    );
+    assert.equal(observedConstraint1.includes(UNIQUE_CONSTRAINT_MESSAGE), true);
+  });
+}
+function registerSchemaTest3(database: DatabaseClient): void {
+  void it("rejects duplicate ad-hoc class sessions", async () => {
+    const sessionFixture = await seedClassWithSlot(database);
+    const sessionData = {
+      classId: sessionFixture.classId,
+      date: new Date(MATCHING_SESSION_DATE),
+      startTime: new Date("1970-01-01T09:00:00.000Z"),
+      endTime: new Date("1970-01-01T10:00:00.000Z"),
+    };
+    await database.classSession.create({ data: sessionData });
+    const observedConstraint2 = await expectConstraintRejection(
+      database.classSession.create({ data: sessionData }),
+      UNIQUE_CONSTRAINT_MESSAGE,
+    );
+    assert.equal(observedConstraint2.includes(UNIQUE_CONSTRAINT_MESSAGE), true);
+  });
+}
+function registerSchemaTest4(database: DatabaseClient): void {
+  void it("rejects inverted class session times", async () => {
+    const sessionFixture = await seedClassWithSlot(database);
+    const observedConstraint3 = await expectConstraintRejection(
+      database.classSession.create({
+        data: {
+          classId: sessionFixture.classId,
+          date: new Date(MATCHING_SESSION_DATE),
+          startTime: new Date("1970-01-01T10:00:00.000Z"),
+          endTime: new Date("1970-01-01T09:00:00.000Z"),
+        },
+      }),
+      SESSION_ORDER_CONSTRAINT,
+    );
+    assert.equal(observedConstraint3.includes(SESSION_ORDER_CONSTRAINT), true);
+  });
+}
+function registerSchemaTest5(database: DatabaseClient): void {
+  void it("rejects session dates that do not match the slot weekday", async () => {
+    const sessionFixture = await seedClassWithSlot(database);
+    const observedConstraint4 = await expectConstraintRejection(
+      database.classSession.create({
+        data: {
+          classId: sessionFixture.classId,
+          scheduleSlotId: sessionFixture.slotId,
+          date: new Date("2078-02-02T00:00:00.000Z"),
+          startTime: sessionFixture.startTime,
+          endTime: sessionFixture.endTime,
+        },
+      }),
+      SESSION_SLOT_MATCH_MESSAGE,
+    );
+    assert.equal(observedConstraint4.includes(SESSION_SLOT_MATCH_MESSAGE), true);
+  });
+}
+function registerSchemaTest6(database: DatabaseClient): void {
+  void it("rejects cancelled sessions without cancellation facts", async () => {
+    const sessionFixture = await seedClassWithSlot(database);
+    const observedConstraint5 = await expectConstraintRejection(
+      database.classSession.create({
+        data: {
+          classId: sessionFixture.classId,
+          scheduleSlotId: sessionFixture.slotId,
+          date: new Date(MATCHING_SESSION_DATE),
+          startTime: sessionFixture.startTime,
+          endTime: sessionFixture.endTime,
+          status: "CANCELLED",
+        },
+      }),
+      SESSION_CANCEL_CONSTRAINT,
+    );
+    assert.equal(observedConstraint5.includes(SESSION_CANCEL_CONSTRAINT), true);
+  });
+}
+function registerSchemaTest7(database: DatabaseClient): void {
+  void it("rejects cancelling sessions with attendance or Portal facts", async () => {
+    const sessionFixture = await seedClassWithSlot(database);
+    const cancelledSessionData = {
+      classId: sessionFixture.classId,
+      scheduleSlotId: sessionFixture.slotId,
+      date: new Date(MATCHING_SESSION_DATE),
+      startTime: sessionFixture.startTime,
+      endTime: sessionFixture.endTime,
+      status: "CANCELLED" as const,
+      cancelReason: "Teacher absence",
+      cancelledAt: new Date("2078-01-31T12:00:00.000Z"),
+    };
+    const observedConstraint6 = await expectConstraintRejection(
+      database.classSession.create({
+        data: {
+          ...cancelledSessionData,
+          attendanceConfirmedAt: new Date("2078-02-01T16:30:00.000Z"),
+        },
+      }),
+      SESSION_CANCEL_CONSTRAINT,
+    );
+    assert.equal(observedConstraint6.includes(SESSION_CANCEL_CONSTRAINT), true);
+    const observedConstraint7 = await expectConstraintRejection(
+      database.classSession.create({
+        data: {
+          ...cancelledSessionData,
+          portalSubmittedAt: new Date("2078-02-01T17:00:00.000Z"),
+        },
+      }),
+      SESSION_CANCEL_CONSTRAINT,
+    );
+    assert.equal(observedConstraint7.includes(SESSION_CANCEL_CONSTRAINT), true);
+  });
 }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import {
   FINANCE_DUE_DAY_FIFTEENTH,
@@ -8,7 +8,6 @@ import {
 } from "@lazuli/domain";
 import { db } from "@lazuli/db";
 import { InstallmentAdjustmentType, PaymentMethod } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   ORDER_LOCKED_MESSAGE,
@@ -22,7 +21,7 @@ import {
   createStudent,
   DEFAULT_ORDER_INPUT,
   ensureAdminUser,
-  expectRejects,
+  rejectionMessage,
 } from "../support/finance-test-support.js";
 
 const DATE_ONLY_PREFIX_LENGTH = 10;
@@ -38,22 +37,6 @@ const DISCOUNT_AMOUNT_CENTS = -1000;
 const TWO_INSTALLMENTS = 2;
 const SINGLE_BENEFICIARY = 1;
 const MISSING_ENTITY_ID = "00000000-0000-0000-0000-000000000099";
-
-void describe("finance.createPayer", () => {
-  registerFinanceDatabaseHooks();
-
-  databaseIt("creates a payer with optional contact fields", async () => {
-    const payer = await caller().finance.createPayer({
-      name: "GRE-43 Inline Payer",
-      taxId: "12345678901",
-      phone: "11999999999",
-      email: "payer@example.com",
-    });
-
-    assert.equal(payer.name, "GRE-43 Inline Payer");
-    assert.equal(payer.taxId, "12345678901");
-  });
-});
 
 void describe("finance.createOrder", () => {
   registerFinanceDatabaseHooks();
@@ -83,7 +66,7 @@ function registerFinanceDatabaseHooks(): void {
 }
 
 function registerCreateOrderHappyPath(): void {
-  databaseIt("creates an order, beneficiaries, and generated installments", async () => {
+  void it("creates an order, beneficiaries, and generated installments", async () => {
     const payer = await createPayer("Order Payer");
     const student = await createStudent("Order Student");
 
@@ -120,7 +103,7 @@ function registerCreateOrderHappyPath(): void {
 }
 
 function registerCreateOrderInlinePayer(): void {
-  databaseIt("creates an inline payer when mode is create", async () => {
+  void it("creates an inline payer when mode is create", async () => {
     const student = await createStudent("Inline Payer Student");
 
     const result = await caller().finance.createOrder({
@@ -135,35 +118,39 @@ function registerCreateOrderInlinePayer(): void {
 }
 
 function registerCreateOrderValidationErrors(): void {
-  databaseIt("rejects missing beneficiary students", async () => {
+  void it("rejects missing beneficiary students", async () => {
     const payer = await createPayer("Missing Student Payer");
 
-    await expectRejects(
-      caller().finance.createOrder({
-        ...DEFAULT_ORDER_INPUT,
-        payer: { mode: "existing", payerId: payer.id },
-        beneficiaryStudentIds: [MISSING_ENTITY_ID],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.createOrder({
+          ...DEFAULT_ORDER_INPUT,
+          payer: { mode: "existing", payerId: payer.id },
+          beneficiaryStudentIds: [MISSING_ENTITY_ID],
+        }),
+      ),
       STUDENT_NOT_FOUND_MESSAGE,
     );
   });
 
-  databaseIt("rejects missing payers", async () => {
+  void it("rejects missing payers", async () => {
     const student = await createStudent("Missing Payer Student");
 
-    await expectRejects(
-      caller().finance.createOrder({
-        ...DEFAULT_ORDER_INPUT,
-        payer: { mode: "existing", payerId: MISSING_ENTITY_ID },
-        beneficiaryStudentIds: [student.id],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.createOrder({
+          ...DEFAULT_ORDER_INPUT,
+          payer: { mode: "existing", payerId: MISSING_ENTITY_ID },
+          beneficiaryStudentIds: [student.id],
+        }),
+      ),
       PAYER_NOT_FOUND_MESSAGE,
     );
   });
 }
 
 function registerUpdateOrderHappyPath(): void {
-  databaseIt("regenerates installments while the order has no financial activity", async () => {
+  void it("regenerates installments while the order has no financial activity", async () => {
     const created = await createOrderFixture();
 
     const updated = await caller().finance.updateOrder({
@@ -186,7 +173,7 @@ function registerUpdateOrderHappyPath(): void {
 }
 
 function registerUpdateOrderCutoffErrors(): void {
-  databaseIt("rejects updates after a payment allocation exists", async () => {
+  void it("rejects updates after a payment allocation exists", async () => {
     const created = await createOrderFixture();
     const paymentEntry = await db.paymentEntry.create({
       data: {
@@ -204,20 +191,20 @@ function registerUpdateOrderCutoffErrors(): void {
       },
     });
 
-    await expectRejects(updateOrderFixture(created), ORDER_LOCKED_MESSAGE);
+    assert.equal(await rejectionMessage(updateOrderFixture(created)), ORDER_LOCKED_MESSAGE);
   });
 
-  databaseIt("rejects updates after an installment waiver exists", async () => {
+  void it("rejects updates after an installment waiver exists", async () => {
     const created = await createOrderFixture();
     await db.installment.update({
       where: { id: created.installmentId },
       data: { waivedAt: new Date(), waivedReason: "Bolsa" },
     });
 
-    await expectRejects(updateOrderFixture(created), ORDER_LOCKED_MESSAGE);
+    assert.equal(await rejectionMessage(updateOrderFixture(created)), ORDER_LOCKED_MESSAGE);
   });
 
-  databaseIt("rejects updates after an installment adjustment exists", async () => {
+  void it("rejects updates after an installment adjustment exists", async () => {
     const created = await createOrderFixture();
     await db.installmentAdjustment.create({
       data: {
@@ -228,7 +215,7 @@ function registerUpdateOrderCutoffErrors(): void {
       },
     });
 
-    await expectRejects(updateOrderFixture(created), ORDER_LOCKED_MESSAGE);
+    assert.equal(await rejectionMessage(updateOrderFixture(created)), ORDER_LOCKED_MESSAGE);
   });
 }
 

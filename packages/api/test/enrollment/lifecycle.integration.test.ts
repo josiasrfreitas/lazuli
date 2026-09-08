@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { describe } from "node:test";
-
-import { databaseIt } from "@lazuli/db/test";
+import { describe, it } from "node:test";
 
 import {
   CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
@@ -27,7 +25,7 @@ const {
   enrollPersonalized,
   enrollRegular,
   ensureTeacherUser,
-  expectRejects,
+  rejectionMessage,
   registerLifecycleDbLifecycle,
   seedTwoStageCatalog,
 } = gre32LifecycleEnrollment;
@@ -95,7 +93,7 @@ void describe("enrollment.transfer", () => {
 });
 
 function registerDropClose(): void {
-  databaseIt("drops an enrollment: closes it and its active progress as DROPPED", async () => {
+  void it("drops an enrollment: closes it and its active progress as DROPPED", async () => {
     const catalog = await setup();
     const enrollmentId = await enrollPersonalizedStudent({
       catalog,
@@ -112,7 +110,7 @@ function registerDropClose(): void {
 }
 
 function registerPauseClose(): void {
-  databaseIt("pauses an enrollment: closes it and its active progress as SUSPENDED", async () => {
+  void it("pauses an enrollment: closes it and its active progress as SUSPENDED", async () => {
     const catalog = await setup();
     const enrollmentId = await enrollPersonalizedStudent({
       catalog,
@@ -129,18 +127,20 @@ function registerPauseClose(): void {
 }
 
 function registerCloseNotFound(): void {
-  databaseIt("rejects closing an enrollment that does not exist", async () => {
+  void it("rejects closing an enrollment that does not exist", async () => {
     await setup();
 
-    await expectRejects(
-      caller().enrollment.close({ enrollmentId: randomUUID(), reason: "DROPPED" }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.close({ enrollmentId: randomUUID(), reason: "DROPPED" }),
+      ),
       ENROLLMENT_NOT_FOUND_MESSAGE,
     );
   });
 }
 
 function registerCloseAlreadyClosed(): void {
-  databaseIt("rejects closing an already-closed enrollment", async () => {
+  void it("rejects closing an already-closed enrollment", async () => {
     const catalog = await setup();
     const enrollmentId = await enrollPersonalizedStudent({
       catalog,
@@ -150,15 +150,15 @@ function registerCloseAlreadyClosed(): void {
     });
     await caller().enrollment.close({ enrollmentId, reason: "DROPPED" });
 
-    await expectRejects(
-      caller().enrollment.close({ enrollmentId, reason: "SUSPENDED" }),
+    assert.equal(
+      await rejectionMessage(caller().enrollment.close({ enrollmentId, reason: "SUSPENDED" })),
       ENROLLMENT_ALREADY_CLOSED_MESSAGE,
     );
   });
 }
 
 function registerRegularTransfer(): void {
-  databaseIt("moves a REGULAR enrollment, adopting the target class stage", async () => {
+  void it("moves a REGULAR enrollment, adopting the target class stage", async () => {
     const catalog = await setup();
     const source = await createRegularClass({
       code: "src-reg",
@@ -185,7 +185,7 @@ function registerRegularTransfer(): void {
 }
 
 function registerPersonalizedCarry(): void {
-  databaseIt("moves into a PERSONALIZED class, carrying the current stage forward", async () => {
+  void it("moves into a PERSONALIZED class, carrying the current stage forward", async () => {
     const catalog = await setup();
     const enrollmentId = await enrollPersonalizedStudent({
       catalog,
@@ -200,6 +200,7 @@ function registerPersonalizedCarry(): void {
 
     const result = await caller().enrollment.transfer({ enrollmentId, targetClassId: target.id });
 
+    assert.equal(result.source.enrollmentId, enrollmentId);
     await assertTransferred({
       sourceEnrollmentId: enrollmentId,
       result,
@@ -209,7 +210,7 @@ function registerPersonalizedCarry(): void {
 }
 
 function registerTransferSameClass(): void {
-  databaseIt("rejects transferring to the same class", async () => {
+  void it("rejects transferring to the same class", async () => {
     const catalog = await setup();
     const classRow = await createPersonalizedClass({
       code: "same",
@@ -222,15 +223,17 @@ function registerTransferSameClass(): void {
       stageId: catalog.firstStageId,
     });
 
-    await expectRejects(
-      caller().enrollment.transfer({ enrollmentId, targetClassId: classRow.id }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.transfer({ enrollmentId, targetClassId: classRow.id }),
+      ),
       TRANSFER_SAME_CLASS_MESSAGE,
     );
   });
 }
 
 function registerTransferArchivedTarget(): void {
-  databaseIt("rejects transferring into an archived class", async () => {
+  void it("rejects transferring into an archived class", async () => {
     const catalog = await setup();
     const enrollmentId = await enrollPersonalizedStudent({
       catalog,
@@ -244,15 +247,17 @@ function registerTransferArchivedTarget(): void {
       status: "ARCHIVED",
     });
 
-    await expectRejects(
-      caller().enrollment.transfer({ enrollmentId, targetClassId: target.id }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.transfer({ enrollmentId, targetClassId: target.id }),
+      ),
       CLASS_ARCHIVED_MESSAGE,
     );
   });
 }
 
 function registerTransferClosedSource(): void {
-  databaseIt("rejects transferring a closed enrollment", async () => {
+  void it("rejects transferring a closed enrollment", async () => {
     const catalog = await setup();
     const enrollmentId = await enrollPersonalizedStudent({
       catalog,
@@ -266,15 +271,17 @@ function registerTransferClosedSource(): void {
     });
     await caller().enrollment.close({ enrollmentId, reason: "DROPPED" });
 
-    await expectRejects(
-      caller().enrollment.transfer({ enrollmentId, targetClassId: target.id }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.transfer({ enrollmentId, targetClassId: target.id }),
+      ),
       ENROLLMENT_ALREADY_CLOSED_MESSAGE,
     );
   });
 }
 
 function registerTransferMissingTarget(): void {
-  databaseIt("rejects transferring to a class that does not exist", async () => {
+  void it("rejects transferring to a class that does not exist", async () => {
     const catalog = await setup();
     const enrollmentId = await enrollPersonalizedStudent({
       catalog,
@@ -283,15 +290,17 @@ function registerTransferMissingTarget(): void {
       stageId: catalog.firstStageId,
     });
 
-    await expectRejects(
-      caller().enrollment.transfer({ enrollmentId, targetClassId: randomUUID() }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.transfer({ enrollmentId, targetClassId: randomUUID() }),
+      ),
       CLASS_NOT_FOUND_MESSAGE,
     );
   });
 }
 
 function registerTransferCapacity(): void {
-  databaseIt("requires an override to transfer into a full class, then succeeds", async () => {
+  void it("requires an override to transfer into a full class, then succeeds", async () => {
     const catalog = await setup();
     const target = await createRegularClass({
       code: "cap-dst",
@@ -303,8 +312,10 @@ function registerTransferCapacity(): void {
     await enrollRegular({ studentId: filler.id, classId: target.id });
     const enrollmentId = await mountCapacitySource(catalog);
 
-    await expectRejects(
-      caller().enrollment.transfer({ enrollmentId, targetClassId: target.id }),
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.transfer({ enrollmentId, targetClassId: target.id }),
+      ),
       CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
     );
 

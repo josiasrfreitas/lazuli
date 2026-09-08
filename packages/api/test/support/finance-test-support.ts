@@ -141,15 +141,16 @@ export async function callHttpQuery(input: {
   });
 }
 
-export async function expectRejects(promise: Promise<unknown>, message: string): Promise<void> {
-  await assert.rejects(promise, (error: unknown) => {
-    assert.ok(error instanceof Error, "expected an Error");
-    assert.ok(
-      error.message.includes(message),
-      `expected message to include "${message}", got "${error.message}"`,
-    );
-    return true;
-  });
+export async function rejectionMessage(promise: Promise<unknown>): Promise<string> {
+  return promise.then(
+    () => {
+      throw new Error("expected the operation to reject");
+    },
+    (error: unknown) => {
+      assert.ok(error instanceof Error, "expected an Error");
+      return error.message;
+    },
+  );
 }
 
 export const DEFAULT_ORDER_INPUT = {

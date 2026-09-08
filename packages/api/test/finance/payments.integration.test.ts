@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db, InstallmentAdjustmentType, PaymentMethod } from "@lazuli/db";
-import { databaseIt } from "@lazuli/db/test";
 
 import {
   ENTRY_OVER_ALLOCATION_MESSAGE,
@@ -19,7 +18,7 @@ import {
   createStudent,
   DEFAULT_ORDER_INPUT,
   ensureAdminUser,
-  expectRejects,
+  rejectionMessage,
 } from "../support/finance-test-support.js";
 
 const PAYMENT_DATE = new Date("2026-04-10T00:00:00.000Z");
@@ -66,97 +65,98 @@ function registerFinancePaymentHooks(): void {
 }
 
 function registerPaymentHappyPath(): void {
-  databaseIt(
-    "registers one payment across installments from multiple orders for the same payer",
-    async () => {
-      const payer = await createPayer("Payment Payer", PAYMENT_TEST_PREFIX);
-      const firstOrder = await createOrderFixture({
-        payerId: payer.id,
-        studentSuffix: "Payment Student A",
-      });
-      const secondOrder = await createOrderFixture({
-        payerId: payer.id,
-        studentSuffix: "Payment Student B",
-      });
+  void it("registers one payment across installments from multiple orders for the same payer", async () => {
+    const payer = await createPayer("Payment Payer", PAYMENT_TEST_PREFIX);
+    const firstOrder = await createOrderFixture({
+      payerId: payer.id,
+      studentSuffix: "Payment Student A",
+    });
+    const secondOrder = await createOrderFixture({
+      payerId: payer.id,
+      studentSuffix: "Payment Student B",
+    });
 
-      const result = await caller().finance.registerPayment({
-        payerId: payer.id,
-        date: PAYMENT_DATE,
-        amountCents: PAYMENT_ENTRY_AMOUNT_CENTS,
-        method: "PIX",
-        note: "Pagamento parcial",
-        externalReference: "GRE-44-PIX-1",
-        allocations: [
-          {
-            installmentId: firstOrder.installmentIds[0] ?? "",
-            amountCents: FIRST_ALLOCATION_CENTS,
-          },
-          {
-            installmentId: secondOrder.installmentIds[0] ?? "",
-            amountCents: SECOND_ALLOCATION_CENTS,
-          },
-        ],
-      });
+    const result = await caller().finance.registerPayment({
+      payerId: payer.id,
+      date: PAYMENT_DATE,
+      amountCents: PAYMENT_ENTRY_AMOUNT_CENTS,
+      method: "PIX",
+      note: "Pagamento parcial",
+      externalReference: "GRE-44-PIX-1",
+      allocations: [
+        {
+          installmentId: firstOrder.installmentIds[0] ?? "",
+          amountCents: FIRST_ALLOCATION_CENTS,
+        },
+        {
+          installmentId: secondOrder.installmentIds[0] ?? "",
+          amountCents: SECOND_ALLOCATION_CENTS,
+        },
+      ],
+    });
 
-      assert.equal(result.paymentEntry.payerId, payer.id);
-      assert.equal(result.paymentEntry.amountCents, PAYMENT_ENTRY_AMOUNT_CENTS);
-      assert.equal(result.allocations.length, 2);
-      assert.equal(result.unallocatedRemainderCents, UNALLOCATED_REMAINDER_CENTS);
+    assert.equal(result.paymentEntry.payerId, payer.id);
+    assert.equal(result.paymentEntry.amountCents, PAYMENT_ENTRY_AMOUNT_CENTS);
+    assert.equal(result.allocations.length, 2);
+    assert.equal(result.unallocatedRemainderCents, UNALLOCATED_REMAINDER_CENTS);
 
-      const storedEntry = await db.paymentEntry.findUniqueOrThrow({
-        where: { id: result.paymentEntry.id },
-        include: { allocations: true },
-      });
-      assert.equal(storedEntry.createdById, "00000000-0000-0000-0000-0000000000ad");
-      const storedAmounts = new Set(storedEntry.allocations.map((row) => row.amountCents));
-      assert.equal(storedAmounts.has(FIRST_ALLOCATION_CENTS), true);
-      assert.equal(storedAmounts.has(SECOND_ALLOCATION_CENTS), true);
-    },
-  );
+    const storedEntry = await db.paymentEntry.findUniqueOrThrow({
+      where: { id: result.paymentEntry.id },
+      include: { allocations: true },
+    });
+    assert.equal(storedEntry.createdById, "00000000-0000-0000-0000-0000000000ad");
+    const storedAmounts = new Set(storedEntry.allocations.map((row) => row.amountCents));
+    assert.equal(storedAmounts.has(FIRST_ALLOCATION_CENTS), true);
+    assert.equal(storedAmounts.has(SECOND_ALLOCATION_CENTS), true);
+  });
 }
 
 function registerMissingPayerError(): void {
-  databaseIt("rejects missing payers", async () => {
+  void it("rejects missing payers", async () => {
     const payer = await createPayer("Missing Payment Payer", PAYMENT_TEST_PREFIX);
     const order = await createOrderFixture({
       payerId: payer.id,
       studentSuffix: "Missing Payment Student",
     });
 
-    await expectRejects(
-      caller().finance.registerPayment({
-        payerId: MISSING_ENTITY_ID,
-        date: PAYMENT_DATE,
-        amountCents: SMALL_PAYMENT_CENTS,
-        method: "PIX",
-        allocations: [
-          { installmentId: order.installmentIds[0] ?? "", amountCents: SMALL_PAYMENT_CENTS },
-        ],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.registerPayment({
+          payerId: MISSING_ENTITY_ID,
+          date: PAYMENT_DATE,
+          amountCents: SMALL_PAYMENT_CENTS,
+          method: "PIX",
+          allocations: [
+            { installmentId: order.installmentIds[0] ?? "", amountCents: SMALL_PAYMENT_CENTS },
+          ],
+        }),
+      ),
       PAYER_NOT_FOUND_MESSAGE,
     );
   });
 }
 
 function registerMissingInstallmentError(): void {
-  databaseIt("rejects missing installments", async () => {
+  void it("rejects missing installments", async () => {
     const payer = await createPayer("Missing Installment Payer", PAYMENT_TEST_PREFIX);
 
-    await expectRejects(
-      caller().finance.registerPayment({
-        payerId: payer.id,
-        date: PAYMENT_DATE,
-        amountCents: SMALL_PAYMENT_CENTS,
-        method: "PIX",
-        allocations: [{ installmentId: MISSING_ENTITY_ID, amountCents: SMALL_PAYMENT_CENTS }],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.registerPayment({
+          payerId: payer.id,
+          date: PAYMENT_DATE,
+          amountCents: SMALL_PAYMENT_CENTS,
+          method: "PIX",
+          allocations: [{ installmentId: MISSING_ENTITY_ID, amountCents: SMALL_PAYMENT_CENTS }],
+        }),
+      ),
       INSTALLMENT_NOT_FOUND_MESSAGE,
     );
   });
 }
 
 function registerCrossPayerError(): void {
-  databaseIt("rejects allocations to installments owned by another payer", async () => {
+  void it("rejects allocations to installments owned by another payer", async () => {
     const payer = await createPayer("Cross Payer A", PAYMENT_TEST_PREFIX);
     const otherPayer = await createPayer("Cross Payer B", PAYMENT_TEST_PREFIX);
     const otherOrder = await createOrderFixture({
@@ -164,82 +164,85 @@ function registerCrossPayerError(): void {
       studentSuffix: "Cross Payer Student",
     });
 
-    await expectRejects(
-      caller().finance.registerPayment({
-        payerId: payer.id,
-        date: PAYMENT_DATE,
-        amountCents: SMALL_PAYMENT_CENTS,
-        method: "PIX",
-        allocations: [
-          { installmentId: otherOrder.installmentIds[0] ?? "", amountCents: SMALL_PAYMENT_CENTS },
-        ],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.registerPayment({
+          payerId: payer.id,
+          date: PAYMENT_DATE,
+          amountCents: SMALL_PAYMENT_CENTS,
+          method: "PIX",
+          allocations: [
+            { installmentId: otherOrder.installmentIds[0] ?? "", amountCents: SMALL_PAYMENT_CENTS },
+          ],
+        }),
+      ),
       INSTALLMENT_PAYER_MISMATCH_MESSAGE,
     );
   });
 }
 
 function registerEntryOverAllocationError(): void {
-  databaseIt("rejects allocations whose total exceeds the payment amount", async () => {
+  void it("rejects allocations whose total exceeds the payment amount", async () => {
     const payer = await createPayer("Entry Over Payer", PAYMENT_TEST_PREFIX);
     const order = await createOrderFixture({
       payerId: payer.id,
       studentSuffix: "Entry Over Student",
     });
 
-    await expectRejects(
-      caller().finance.registerPayment({
-        payerId: payer.id,
-        date: PAYMENT_DATE,
-        amountCents: SMALL_PAYMENT_CENTS,
-        method: "PIX",
-        allocations: [
-          {
-            installmentId: order.installmentIds[0] ?? "",
-            amountCents: OVERPAYMENT_ALLOCATION_CENTS,
-          },
-        ],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.registerPayment({
+          payerId: payer.id,
+          date: PAYMENT_DATE,
+          amountCents: SMALL_PAYMENT_CENTS,
+          method: "PIX",
+          allocations: [
+            {
+              installmentId: order.installmentIds[0] ?? "",
+              amountCents: OVERPAYMENT_ALLOCATION_CENTS,
+            },
+          ],
+        }),
+      ),
       ENTRY_OVER_ALLOCATION_MESSAGE,
     );
   });
 }
 
 function registerInstallmentOverAllocationError(): void {
-  databaseIt(
-    "rejects allocation beyond the installment balance after adjustments and payments",
-    async () => {
-      const payer = await createPayer("Installment Over Payer", PAYMENT_TEST_PREFIX);
-      const order = await createOrderFixture({
+  void it("rejects allocation beyond the installment balance after adjustments and payments", async () => {
+    const payer = await createPayer("Installment Over Payer", PAYMENT_TEST_PREFIX);
+    const order = await createOrderFixture({
+      payerId: payer.id,
+      studentSuffix: "Installment Over Student",
+    });
+    const installmentId = order.installmentIds[0] ?? "";
+    const existingPayment = await db.paymentEntry.create({
+      data: {
         payerId: payer.id,
-        studentSuffix: "Installment Over Student",
-      });
-      const installmentId = order.installmentIds[0] ?? "";
-      const existingPayment = await db.paymentEntry.create({
-        data: {
-          payerId: payer.id,
-          date: PAYMENT_DATE,
-          amountCents: EXISTING_PAYMENT_CENTS,
-          method: PaymentMethod.PIX,
-        },
-      });
-      await db.paymentAllocation.create({
-        data: {
-          paymentEntryId: existingPayment.id,
-          installmentId,
-          amountCents: EXISTING_PAYMENT_CENTS,
-        },
-      });
-      await db.installmentAdjustment.create({
-        data: {
-          installmentId,
-          type: InstallmentAdjustmentType.DISCOUNT,
-          amountCents: DISCOUNT_AMOUNT_CENTS,
-          reason: "Desconto",
-        },
-      });
+        date: PAYMENT_DATE,
+        amountCents: EXISTING_PAYMENT_CENTS,
+        method: PaymentMethod.PIX,
+      },
+    });
+    await db.paymentAllocation.create({
+      data: {
+        paymentEntryId: existingPayment.id,
+        installmentId,
+        amountCents: EXISTING_PAYMENT_CENTS,
+      },
+    });
+    await db.installmentAdjustment.create({
+      data: {
+        installmentId,
+        type: InstallmentAdjustmentType.DISCOUNT,
+        amountCents: DISCOUNT_AMOUNT_CENTS,
+        reason: "Desconto",
+      },
+    });
 
-      await expectRejects(
+    assert.equal(
+      await rejectionMessage(
         caller().finance.registerPayment({
           payerId: payer.id,
           date: PAYMENT_DATE,
@@ -247,14 +250,14 @@ function registerInstallmentOverAllocationError(): void {
           method: "PIX",
           allocations: [{ installmentId, amountCents: BALANCE_PLUS_ONE_CENTS }],
         }),
-        INSTALLMENT_OVER_ALLOCATION_MESSAGE,
-      );
-    },
-  );
+      ),
+      INSTALLMENT_OVER_ALLOCATION_MESSAGE,
+    );
+  });
 }
 
 function registerWaivedInstallmentError(): void {
-  databaseIt("rejects allocations to waived installments", async () => {
+  void it("rejects allocations to waived installments", async () => {
     const payer = await createPayer("Waived Payer", PAYMENT_TEST_PREFIX);
     const order = await createOrderFixture({ payerId: payer.id, studentSuffix: "Waived Student" });
     const installmentId = order.installmentIds[0] ?? "";
@@ -263,54 +266,53 @@ function registerWaivedInstallmentError(): void {
       data: { waivedAt: new Date(), waivedReason: "Bolsa" },
     });
 
-    await expectRejects(
-      caller().finance.registerPayment({
-        payerId: payer.id,
-        date: PAYMENT_DATE,
-        amountCents: SMALL_PAYMENT_CENTS,
-        method: "PIX",
-        allocations: [{ installmentId, amountCents: SMALL_PAYMENT_CENTS }],
-      }),
+    assert.equal(
+      await rejectionMessage(
+        caller().finance.registerPayment({
+          payerId: payer.id,
+          date: PAYMENT_DATE,
+          amountCents: SMALL_PAYMENT_CENTS,
+          method: "PIX",
+          allocations: [{ installmentId, amountCents: SMALL_PAYMENT_CENTS }],
+        }),
+      ),
       WAIVED_INSTALLMENT_ALLOCATION_MESSAGE,
     );
   });
 }
 
 function registerConcurrentAllocationBehavior(): void {
-  databaseIt(
-    "serializes concurrent allocations so persisted totals never exceed the balance",
-    async () => {
-      const payer = await createPayer("Concurrent Payer", PAYMENT_TEST_PREFIX);
-      const order = await createOrderFixture({
-        payerId: payer.id,
-        studentSuffix: "Concurrent Student",
-      });
-      const installmentId = order.installmentIds[0] ?? "";
-      const input = {
-        payerId: payer.id,
-        date: PAYMENT_DATE,
-        amountCents: CONCURRENT_ALLOCATION_CENTS,
-        method: "PIX" as const,
-        allocations: [{ installmentId, amountCents: CONCURRENT_ALLOCATION_CENTS }],
-      };
+  void it("serializes concurrent allocations so persisted totals never exceed the balance", async () => {
+    const payer = await createPayer("Concurrent Payer", PAYMENT_TEST_PREFIX);
+    const order = await createOrderFixture({
+      payerId: payer.id,
+      studentSuffix: "Concurrent Student",
+    });
+    const installmentId = order.installmentIds[0] ?? "";
+    const input = {
+      payerId: payer.id,
+      date: PAYMENT_DATE,
+      amountCents: CONCURRENT_ALLOCATION_CENTS,
+      method: "PIX" as const,
+      allocations: [{ installmentId, amountCents: CONCURRENT_ALLOCATION_CENTS }],
+    };
 
-      const outcomes = await Promise.allSettled([
-        caller().finance.registerPayment({ ...input, externalReference: "GRE-44-CONCURRENT-1" }),
-        caller().finance.registerPayment({ ...input, externalReference: "GRE-44-CONCURRENT-2" }),
-      ]);
+    const outcomes = await Promise.allSettled([
+      caller().finance.registerPayment({ ...input, externalReference: "GRE-44-CONCURRENT-1" }),
+      caller().finance.registerPayment({ ...input, externalReference: "GRE-44-CONCURRENT-2" }),
+    ]);
 
-      assert.equal(outcomes.filter((outcome) => outcome.status === "fulfilled").length, 1);
-      assert.equal(outcomes.filter((outcome) => outcome.status === "rejected").length, 1);
-      const rejected = outcomes.find((outcome) => outcome.status === "rejected");
-      assert.ok(rejected?.status === "rejected");
-      assert.ok(rejected.reason instanceof Error);
-      assert.ok(rejected.reason.message.includes(INSTALLMENT_OVER_ALLOCATION_MESSAGE));
+    assert.equal(outcomes.filter((outcome) => outcome.status === "fulfilled").length, 1);
+    assert.equal(outcomes.filter((outcome) => outcome.status === "rejected").length, 1);
+    const rejected = outcomes.find((outcome) => outcome.status === "rejected");
+    assert.ok(rejected?.status === "rejected");
+    assert.ok(rejected.reason instanceof Error);
+    assert.ok(rejected.reason.message.includes(INSTALLMENT_OVER_ALLOCATION_MESSAGE));
 
-      const persisted = await db.paymentAllocation.findMany({ where: { installmentId } });
-      const persistedTotal = persisted.reduce((total, row) => total + row.amountCents, 0);
-      assert.equal(persistedTotal, CONCURRENT_ALLOCATION_CENTS);
-    },
-  );
+    const persisted = await db.paymentAllocation.findMany({ where: { installmentId } });
+    const persistedTotal = persisted.reduce((total, row) => total + row.amountCents, 0);
+    assert.equal(persistedTotal, CONCURRENT_ALLOCATION_CENTS);
+  });
 }
 
 async function createOrderFixture(input: {
