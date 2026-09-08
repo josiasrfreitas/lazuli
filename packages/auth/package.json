@@ -13,7 +13,8 @@
     "test": "node --import tsx --test --test-reporter spec \"test/**/*.unit.test.ts\"",
     "test:integration": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-reporter spec \"test/**/*.integration.test.ts\"",
     "test:transport": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-reporter spec \"test/**/*.transport.test.ts\"",
-    "clean": "rm -rf .turbo dist"
+    "clean": "rm -rf .turbo dist",
+    "mutate": "NODE_ENV=test dotenv -e ../../.env -- stryker run"
   },
   "dependencies": {
     "@lazuli/db": "workspace:*",
@@ -22,9 +23,12 @@
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
+    "@lazuli/stryker-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
+    "@stryker-mutator/core": "catalog:",
     "@types/node": "catalog:",
     "dotenv": "catalog:",
+    "dotenv-cli": "catalog:",
     "eslint": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:"

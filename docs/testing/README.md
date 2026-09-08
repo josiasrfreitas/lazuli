@@ -113,18 +113,26 @@ guardrails only see tests registered this way.
 StrykerJS (`@stryker-mutator/core` with the `tap` runner over `node --test`) mutates each package
 through the tier that covers its code: `unit`, plus `integration` where the code is only reachable
 through Postgres (one worker, since fixtures are isolated per file, not per worker). A mutant
-survives when no test fails after the change; a surviving mutant is a bug the suite would not
-catch.
+survives when no test fails after the change. Investigate each survivor: it can expose a behavior
+the suite does not detect, or it can be equivalent or unreachable.
+
+The official TAP runner identifies a test file as one test. Its `coveredBy` and `killedBy` data
+therefore name files, even though `node:test` reports individual cases inside them. Use that report
+to locate the detecting file; do not use it to claim that an individual case is redundant.
 
 - **Gate:** every change to a package's `src/` must leave no surviving mutant in the changed files,
   except mutants that are equivalent or unreachable, which are listed in the pull request with a
   reason. The gate is incremental and scoped to changed files; existing code is not gated
   retroactively.
-- **Run locally:** `pnpm mutate:changed` mutates the files changed against `main`;
-  `pnpm mutate --filter @lazuli/<package>` runs a full package. Reports land in
-  `<package>/reports/mutation/index.html`.
+- **Run locally:** `pnpm --filter @lazuli/<package> mutate` runs a full package. Append
+  `--mutate 'src/file.ts:startLine-endLine'` for a bounded sample; add `--force` and point
+  `--incrementalFile` at a fresh temporary path when the sample must exclude stored results.
+  Reports land in `<package>/reports/mutation/index.html`. `pnpm mutate:changed` does not yet load
+  the package mutation script's test environment, so it is not the supported path for
+  integration-tier packages.
 - **Read the report:** a survived mutant in a branch you wrote means the test for that branch
-  either does not exist or asserts too little. Fix the test, not the mutant.
+  may not exist or may assert too little. Reproduce the changed behavior before deciding whether
+  to strengthen the test or record an equivalent or unreachable mutant.
 - **Cost (measured 2026-09-07):** `domain`, whole package, 498 mutants in 28 s (0.055 s per
   mutant). `api` through `integration`, two sampled files, about 90 mutants per file at 1.96 s per
   mutant: a change touching two or three files costs about 7 minutes. That is above the 5-minute

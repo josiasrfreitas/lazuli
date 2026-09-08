@@ -32,7 +32,25 @@ void describe("sessions-generate contract", () => {
     assert.equal(result.jobId, "job-1");
   });
 
-  void it("rejects ambiguous scope", async () => {
+  void it("enqueues a semester-scoped payload", async () => {
+    const queue: SessionsGenerateQueue = {
+      enqueueSessionsGenerate: (payload) =>
+        Promise.resolve({
+          workflowName: SESSIONS_GENERATE_WORKFLOW,
+          jobId: "job-2",
+          payload,
+        }),
+    };
+
+    const result = await enqueueSessionsGenerate({
+      queue,
+      payload: { semesterId: SEMESTER_ID },
+    });
+
+    assert.deepEqual(result.payload, { semesterId: SEMESTER_ID });
+  });
+
+  void it("rejects a payload with both class and semester scope", async () => {
     await assert.rejects(
       enqueueSessionsGenerate({
         queue: {

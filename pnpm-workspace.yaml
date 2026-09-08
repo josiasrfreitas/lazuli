@@ -82,3 +82,10 @@ catalog:
 minimumReleaseAgeExclude:
   - "@tanstack/query-core@5.102.3"
   - "@tanstack/react-query@5.102.3"
+
+# Stryker imports the compiler API without declaring TypeScript as a dependency.
+# Bind that import to the JS compiler; application typechecks keep TypeScript 7.
+packageExtensions:
+  "@stryker-mutator/core@10":
+    dependencies:
+      typescript: "npm:@typescript/typescript6@^6.0.2"

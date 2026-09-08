@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test --test-reporter spec \"test/**/*.unit.test.ts\"",
     "test:e2e": "echo \"[P00-05/P00-06] Playwright e2e not wired yet\" && exit 0",
-    "clean": "rm -rf .turbo .next"
+    "clean": "rm -rf .turbo .next",
+    "mutate": "NODE_ENV=test stryker run"
   },
   "dependencies": {
     "@lazuli/api": "workspace:*",
@@ -33,7 +34,9 @@
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
+    "@lazuli/stryker-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
+    "@stryker-mutator/core": "catalog:",
     "@tailwindcss/postcss": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
