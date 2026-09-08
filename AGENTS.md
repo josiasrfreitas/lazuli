@@ -21,12 +21,14 @@ as product completion.
 ## Commands and verification
 
 Run commands from the repository root. Common commands are `pnpm dev`, `pnpm dev:worker`,
-`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:db`, `pnpm test:behavior`, `pnpm build`,
-and `pnpm format:check`.
+`pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:transport`,
+`pnpm build`, and `pnpm format:check`.
 
-Use the `ship-with-tests` skill for feature work, production bug fixes, or explicit testing/TDD
-requests. It selects the appropriate test tier; do not copy its tier table into this file. Add the
-required tests, run relevant checks, and report checks left to CI with a reason.
+Tests follow `docs/testing/README.md`: it says which tier owns a rule, where the file lives
+(`test/<area>/<subject>.<tier>.test.ts`, mirroring `src/`), and what every test must prove. Read
+it before adding or changing a test; do not copy its tables into this file. Names of areas and
+subjects come from `CONTEXT.md`. Add the required tests, run the tier of the package you changed,
+and report checks left to CI with a reason.
 
 Before finishing, inspect the diff, run `git diff --check`, and run proportionate validation. Do not
 edit applied migrations, generated files, fixture/test identifiers, or historical identifiers merely
