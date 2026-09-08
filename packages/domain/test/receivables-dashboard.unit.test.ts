@@ -6,10 +6,12 @@ import { deriveInstallmentLedger } from "../src/finance-ledger.js";
 
 const JULY_TENTH_MIDDAY_UTC = new Date("2026-07-10T15:00:00.000Z");
 const DUE_JUNE_FIRST = "2026-06-01";
+const DUE_JULY_SECOND = "2026-07-02";
 const DUE_JULY_FIFTH = "2026-07-05";
 const DUE_JULY_FIFTEENTH = "2026-07-15";
 const DUE_JULY_TWENTY_FIFTH = "2026-07-25";
 const DUE_AUGUST_FIFTH = "2026-08-05";
+const DUE_JULY_FIFTEENTH_DATE = new Date("2026-07-15T00:00:00.000Z");
 
 const FIFTY_THOUSAND_CENTS = 50_000;
 const FORTY_THOUSAND_CENTS = 40_000;
@@ -39,6 +41,13 @@ void describe("isDueInSaoPauloMonth", () => {
   void it("returns true when due date is in the current Sao Paulo month", () => {
     assert.equal(
       isDueInSaoPauloMonth({ dueDate: DUE_JULY_FIFTEENTH, now: JULY_TENTH_MIDDAY_UTC }),
+      true,
+    );
+  });
+
+  void it("accepts Date due dates on its public input", () => {
+    assert.equal(
+      isDueInSaoPauloMonth({ dueDate: DUE_JULY_FIFTEENTH_DATE, now: JULY_TENTH_MIDDAY_UTC }),
       true,
     );
   });
@@ -137,5 +146,49 @@ void describe("buildReceivablesSnapshot in-month overdue", () => {
 
     assert.equal(snapshot.expectedThisMonthCents, FIFTY_THOUSAND_CENTS);
     assert.equal(snapshot.overdueCents, FORTY_THOUSAND_CENTS);
+  });
+});
+
+void describe("buildReceivablesSnapshot overdue age buckets", () => {
+  void it("adds a five-day overdue collectible installment to the one-to-seven-day bucket", () => {
+    const fiveDayOverdueLedger = ledgerFor({
+      dueDate: DUE_JULY_FIFTH,
+      amountCents: TEN_THOUSAND_CENTS,
+    });
+
+    const snapshot = buildReceivablesSnapshot({
+      now: JULY_TENTH_MIDDAY_UTC,
+      receivedThisMonthCents: 0,
+      installments: [
+        { dueDate: DUE_JULY_FIFTH, isCollectible: true, ledger: fiveDayOverdueLedger },
+      ],
+    });
+
+    assert.deepEqual(snapshot.ageBuckets, {
+      days1To7Cents: TEN_THOUSAND_CENTS,
+      days8To30Cents: 0,
+      days30PlusCents: 0,
+    });
+  });
+
+  void it("adds an eight-day overdue collectible installment only to the eight-to-twenty-nine-day bucket", () => {
+    const eightDayOverdueLedger = ledgerFor({
+      dueDate: DUE_JULY_SECOND,
+      amountCents: TWENTY_THOUSAND_CENTS,
+    });
+
+    const snapshot = buildReceivablesSnapshot({
+      now: JULY_TENTH_MIDDAY_UTC,
+      receivedThisMonthCents: 0,
+      installments: [
+        { dueDate: DUE_JULY_SECOND, isCollectible: true, ledger: eightDayOverdueLedger },
+      ],
+    });
+
+    assert.deepEqual(snapshot.ageBuckets, {
+      days1To7Cents: 0,
+      days8To30Cents: TWENTY_THOUSAND_CENTS,
+      days30PlusCents: 0,
+    });
   });
 });
