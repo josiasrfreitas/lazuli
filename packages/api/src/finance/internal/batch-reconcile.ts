@@ -9,7 +9,7 @@ import {
   type PaymentAllocationSummary,
   type PaymentEntrySummary,
 } from "./payment-store.js";
-import { sortStrings, type ReceivablesDatabase } from "./shared.js";
+import { sortStrings, type FinanceDatabase } from "./shared.js";
 
 export type BatchReconcileInput = z.infer<typeof financeBatchReconcileInputSchema>;
 
@@ -64,7 +64,7 @@ const NON_POSITIVE_REMAINING_REASON = "Parcela nao possui saldo restante positiv
 const BATCH_REJECTED_REASON = "Lote rejeitado por outra parcela invalida.";
 
 export async function batchReconcile(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: BatchReconcileInput;
   staffUserId: string;
 }): Promise<BatchReconcileResult> {
@@ -87,7 +87,7 @@ export async function batchReconcile(input: {
 }
 
 async function validateBatch(
-  database: ReceivablesDatabase,
+  database: FinanceDatabase,
   installmentIds: string[],
 ): Promise<{ validRows: ValidBatchRow[]; invalidRows: InvalidBatchRow[] }> {
   const uniqueInstallmentIds = sortStrings([...new Set(installmentIds)]);
@@ -107,7 +107,7 @@ async function validateBatch(
 }
 
 async function applyValidBatch(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: BatchReconcileInput;
   staffUserId: string;
   validRows: ValidBatchRow[];
@@ -138,7 +138,7 @@ async function applyValidBatch(input: {
 }
 
 async function persistPayerPayment(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: BatchReconcileInput;
   staffUserId: string;
   validRows: ValidBatchRow[];

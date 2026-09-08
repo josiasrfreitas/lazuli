@@ -20,7 +20,7 @@ import {
   PAYER_NOT_FOUND_MESSAGE,
   sortStrings,
   WAIVED_INSTALLMENT_ALLOCATION_MESSAGE,
-  type ReceivablesDatabase,
+  type FinanceDatabase,
 } from "./shared.js";
 
 export type RegisterPaymentInput = z.infer<typeof financeRegisterPaymentInputSchema>;
@@ -32,7 +32,7 @@ export type RegisterPaymentResult = {
 };
 
 export async function registerPayment(input: {
-  database: ReceivablesDatabase;
+  database: FinanceDatabase;
   values: RegisterPaymentInput;
   staffUserId: string;
 }): Promise<RegisterPaymentResult> {
@@ -70,7 +70,7 @@ export async function registerPayment(input: {
   };
 }
 
-async function assertPayerExists(database: ReceivablesDatabase, payerId: string): Promise<void> {
+async function assertPayerExists(database: FinanceDatabase, payerId: string): Promise<void> {
   const payer = await database.payer.findUnique({
     where: { id: payerId },
     select: { id: true },

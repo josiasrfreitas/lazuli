@@ -6,14 +6,14 @@ import { FINANCE_DUE_DAY_FIFTH } from "@lazuli/domain";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
-import { receivables } from "../../src/receivables/index.js";
+import { finance } from "../../src/finance/index.js";
 import {
   ADMIN,
   cleanFinanceOrdersDatabase,
   createStudent,
   ensureAdminUser,
 } from "./finance-test-support.js";
-import type { OrderScheduleResult } from "../../src/receivables/index.js";
+import type { OrderScheduleResult } from "../../src/finance/index.js";
 
 const PREFIX = "GRE-RCV ";
 const INSTALLMENT_COUNT = 3;
@@ -24,11 +24,11 @@ const PAST_START_DATE = new Date("2020-01-03T00:00:00.000Z");
 
 /**
  * Proves the one-interface win from D-0037: the full create → derive → aggregate
- * receivables flow is driven entirely through `receivables(db, staffUserId)` —
+ * finance flow is driven entirely through `finance(db, staffUserId)` —
  * no tRPC router, no HTTP boundary. If this can't be written against the module's
  * public surface alone, the module is not deep enough.
  */
-void describe("receivables module — end-to-end through one interface", { concurrency: 1 }, () => {
+void describe("finance module — end-to-end through one interface", { concurrency: 1 }, () => {
   registerHooks();
   registerFullFlow();
   registerBatchReconcile();
@@ -53,7 +53,7 @@ function registerFullFlow(): void {
     "creates payer + order, registers a payment, waives, adjusts, then aggregates",
     async () => {
       const student = await createStudent("beneficiary", PREFIX);
-      const baseline = await receivables(db, ADMIN.id).receivablesSnapshot();
+      const baseline = await finance(db, ADMIN.id).receivablesSnapshot();
       const created = await createPastDueOrder(`${PREFIX}payer`, student.id);
       const [first, second, third] = expectThreeInstallments(created);
 
@@ -78,7 +78,7 @@ function registerBatchReconcile(): void {
     const installmentIds = created.installments.map((installment) => installment.id);
 
     const result = await db.$transaction((tx) =>
-      receivables(tx, ADMIN.id).batchReconcile({
+      finance(tx, ADMIN.id).batchReconcile({
         date: new Date(),
         method: "BOLETO",
         installmentIds,
@@ -97,7 +97,7 @@ async function createPastDueOrder(
   studentId: string,
 ): Promise<OrderScheduleResult> {
   return db.$transaction((tx) =>
-    receivables(tx, ADMIN.id).createOrder({
+    finance(tx, ADMIN.id).createOrder({
       kind: "TUITION",
       beneficiaryStudentIds: [studentId],
       principalAmountCents: PRINCIPAL_CENTS,
@@ -124,7 +124,7 @@ function expectThreeInstallments(
 
 async function payInFull(payerId: string, installmentId: string): Promise<void> {
   const payment = await db.$transaction((tx) =>
-    receivables(tx, ADMIN.id).registerPayment({
+    finance(tx, ADMIN.id).registerPayment({
       payerId,
       date: new Date(),
       amountCents: INSTALLMENT_CENTS,
@@ -137,14 +137,14 @@ async function payInFull(payerId: string, installmentId: string): Promise<void> 
 
 async function waiveWithBolsa(installmentId: string): Promise<void> {
   const waived = await db.$transaction((tx) =>
-    receivables(tx, ADMIN.id).waiveInstallment({ installmentId, reason: `${PREFIX}bolsa` }),
+    finance(tx, ADMIN.id).waiveInstallment({ installmentId, reason: `${PREFIX}bolsa` }),
   );
   assert.equal(waived.ledger.status, "WAIVED");
 }
 
 async function addInterest(installmentId: string): Promise<void> {
   const adjusted = await db.$transaction((tx) =>
-    receivables(tx, ADMIN.id).addInstallmentAdjustment({
+    finance(tx, ADMIN.id).addInstallmentAdjustment({
       installmentId,
       type: "INTEREST",
       amountCents: INTEREST_CENTS,
@@ -154,9 +154,9 @@ async function addInterest(installmentId: string): Promise<void> {
 }
 
 async function assertAggregates(input: {
-  baseline: Awaited<ReturnType<ReturnType<typeof receivables>["receivablesSnapshot"]>>;
+  baseline: Awaited<ReturnType<ReturnType<typeof finance>["receivablesSnapshot"]>>;
 }): Promise<void> {
-  const snapshot = await receivables(db, ADMIN.id).receivablesSnapshot();
+  const snapshot = await finance(db, ADMIN.id).receivablesSnapshot();
   // First is fully paid (remaining 0), second is waived (not collectible),
   // third carries 30000 + 5000 interest and is past due.
   assert.equal(
@@ -174,7 +174,7 @@ async function assertOverdueRow(input: {
   installmentId: string;
   studentId: string;
 }): Promise<void> {
-  const overdue = await receivables(db, ADMIN.id).overdueList();
+  const overdue = await finance(db, ADMIN.id).overdueList();
   const ourRows = overdue.rows.filter((row) => row.orderId === input.orderId);
 
   assert.equal(ourRows.length, 1);

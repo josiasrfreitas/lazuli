@@ -7,7 +7,7 @@ import type {
 } from "@lazuli/validators";
 
 import { computeEnrollmentPercentInWindow } from "../attendance/percent.js";
-import { receivables, type StudentOverdueTotal } from "../receivables/index.js";
+import { finance, type StudentOverdueTotal } from "../finance/index.js";
 import { isMinorInSaoPaulo } from "./date-rules.js";
 import {
   buildStudentListWhere,
@@ -108,7 +108,7 @@ async function readAttendanceByStudent(
 async function readFinanceByStudent(
   input: BuildRowsInput,
 ): Promise<Map<string, StudentOverdueTotal>> {
-  const totals = await receivables(input.database, input.values.staffUserId).studentOverdueTotals({
+  const totals = await finance(input.database, input.values.staffUserId).studentOverdueTotals({
     studentIds: input.students.map((student) => student.id),
     now: input.values.now,
   });

@@ -1,12 +1,12 @@
 # Expose receivables through one module API
 
-Status: Accepted
+Status: Superseded
 Decision date: 2026-07-08
 Extraction date: 2026-07-27
 Supersedes: None
-Superseded by: None
+Superseded by: [0018](0018-expose-finance-through-one-module-api.md)
 Legacy sources: [D-0037](../legacy/2026-07-27/MVP/decisions.md#d-0037-receivables-as-a-deep-module) (Accepted)
-Implementation evidence: [`packages/api/src/receivables/index.ts`](../../packages/api/src/receivables/index.ts), [`tooling/eslint/boundaries.js`](../../tooling/eslint/boundaries.js), [`packages/api/test/db/receivables-module.test.ts`](../../packages/api/test/db/receivables-module.test.ts)
+Implementation evidence: [`packages/api/src/finance/index.ts`](../../packages/api/src/finance/index.ts), [`tooling/eslint/boundaries.js`](../../tooling/eslint/boundaries.js), [`packages/api/test/db/receivables-module.test.ts`](../../packages/api/test/db/receivables-module.test.ts)
 
 ## Context
 

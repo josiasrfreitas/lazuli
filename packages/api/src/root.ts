@@ -4,7 +4,7 @@ import { calendarRouter } from "./calendar/router.js";
 import { classesRouter } from "./classes/router.js";
 import { dashboardRouter } from "./dashboard/router.js";
 import { enrollmentRouter } from "./enrollment/router.js";
-import { financeRouter } from "./receivables/router.js";
+import { financeRouter } from "./finance/router.js";
 import { reportsRouter } from "./reports/router.js";
 import { studentsRouter } from "./students/router.js";
 
