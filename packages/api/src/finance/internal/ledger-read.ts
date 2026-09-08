@@ -1,7 +1,7 @@
 import {
   buildReceivablesSnapshot,
   deriveInstallmentLedger,
-  saoPauloMonthDateBounds,
+  saoPauloMonthDateOnlyUtcBounds,
   toWhatsAppUrl,
   type InstallmentLedger,
   type ReceivablesSnapshot,
@@ -124,13 +124,13 @@ async function loadDerivedReceivablesInstallments(
 }
 
 async function loadReceivedThisMonthCents(database: FinanceDatabase, now: Date): Promise<number> {
-  const { start, endExclusive } = saoPauloMonthDateBounds(now);
+  const { startDateOnlyUtc, endExclusiveDateOnlyUtc } = saoPauloMonthDateOnlyUtcBounds(now);
   const allocations = await database.paymentAllocation.findMany({
     where: {
       paymentEntry: {
         date: {
-          gte: start,
-          lt: endExclusive,
+          gte: startDateOnlyUtc,
+          lt: endExclusiveDateOnlyUtc,
         },
       },
     },

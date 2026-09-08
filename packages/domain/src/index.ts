@@ -22,8 +22,10 @@ export {
   isSameDayInSaoPaulo,
   sessionEndInstant,
   saoPauloDateOnly,
+  type SaoPauloMonthDateOnlyUtcBounds,
   saoPauloMidnightToInstant,
-  saoPauloMonthDateBounds,
+  saoPauloMonthDateOnlyUtcBounds,
+  type SaoPauloMonthInstantBounds,
   saoPauloMonthInstantBounds,
   isAtLeastTomorrowInSaoPaulo,
 } from "./session-time.js";

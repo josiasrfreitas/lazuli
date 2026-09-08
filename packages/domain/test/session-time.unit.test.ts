@@ -5,10 +5,10 @@ import {
   isAtLeastTomorrowInSaoPaulo,
   isSameDayInSaoPaulo,
   saoPauloDateOnly,
-  saoPauloMonthDateBounds,
+  saoPauloMonthDateOnlyUtcBounds,
   saoPauloMonthInstantBounds,
   sessionEndInstant,
-} from "../src/session-time.js";
+} from "../src/index.js";
 
 void describe("sessionEndInstant", () => {
   void it("converts a Sao Paulo session end wall time to a UTC instant", () => {
@@ -63,31 +63,31 @@ void describe("saoPauloMonthInstantBounds", () => {
   void it("returns Sao Paulo midnight instants and normalizes December into January", () => {
     const bounds = saoPauloMonthInstantBounds(new Date("2026-12-31T23:30:00.000Z"));
 
-    assert.equal(bounds.start.toISOString(), "2026-12-01T03:00:00.000Z");
-    assert.equal(bounds.endExclusive.toISOString(), "2027-01-01T03:00:00.000Z");
+    assert.equal(bounds.startInstant.toISOString(), "2026-12-01T03:00:00.000Z");
+    assert.equal(bounds.endExclusiveInstant.toISOString(), "2027-01-01T03:00:00.000Z");
   });
 
   void it("uses the Sao Paulo month when UTC has already crossed into the next month", () => {
     const bounds = saoPauloMonthInstantBounds(new Date("2027-01-01T02:30:00.000Z"));
 
-    assert.equal(bounds.start.toISOString(), "2026-12-01T03:00:00.000Z");
-    assert.equal(bounds.endExclusive.toISOString(), "2027-01-01T03:00:00.000Z");
+    assert.equal(bounds.startInstant.toISOString(), "2026-12-01T03:00:00.000Z");
+    assert.equal(bounds.endExclusiveInstant.toISOString(), "2027-01-01T03:00:00.000Z");
   });
 });
 
-void describe("saoPauloMonthDateBounds", () => {
+void describe("saoPauloMonthDateOnlyUtcBounds", () => {
   void it("returns UTC date-only bounds while normalizing the December year boundary", () => {
-    const bounds = saoPauloMonthDateBounds(new Date("2026-12-31T23:30:00.000Z"));
+    const bounds = saoPauloMonthDateOnlyUtcBounds(new Date("2026-12-31T23:30:00.000Z"));
 
-    assert.equal(bounds.start.toISOString(), "2026-12-01T00:00:00.000Z");
-    assert.equal(bounds.endExclusive.toISOString(), "2027-01-01T00:00:00.000Z");
+    assert.equal(bounds.startDateOnlyUtc.toISOString(), "2026-12-01T00:00:00.000Z");
+    assert.equal(bounds.endExclusiveDateOnlyUtc.toISOString(), "2027-01-01T00:00:00.000Z");
   });
 
   void it("keeps the previous calendar month until midnight in Sao Paulo", () => {
-    const bounds = saoPauloMonthDateBounds(new Date("2027-01-01T02:30:00.000Z"));
+    const bounds = saoPauloMonthDateOnlyUtcBounds(new Date("2027-01-01T02:30:00.000Z"));
 
-    assert.equal(bounds.start.toISOString(), "2026-12-01T00:00:00.000Z");
-    assert.equal(bounds.endExclusive.toISOString(), "2027-01-01T00:00:00.000Z");
+    assert.equal(bounds.startDateOnlyUtc.toISOString(), "2026-12-01T00:00:00.000Z");
+    assert.equal(bounds.endExclusiveDateOnlyUtc.toISOString(), "2027-01-01T00:00:00.000Z");
   });
 });
 

@@ -5,6 +5,16 @@ const TIME_ONLY_LENGTH = 5;
 
 type DateInput = Date | string;
 
+export type SaoPauloMonthInstantBounds = {
+  startInstant: Date;
+  endExclusiveInstant: Date;
+};
+
+export type SaoPauloMonthDateOnlyUtcBounds = {
+  startDateOnlyUtc: Date;
+  endExclusiveDateOnlyUtc: Date;
+};
+
 export function sessionEndInstant(input: { date: DateInput; endTime: DateInput }): Date {
   return zonedDateTimeToInstant({
     date: toDateOnly(input.date),
@@ -23,22 +33,22 @@ export function saoPauloDateOnly(instant: Date): string {
 }
 
 /** Bounds for a Sao Paulo civil month when the stored values are instants. */
-export function saoPauloMonthInstantBounds(now: Date): { start: Date; endExclusive: Date } {
+export function saoPauloMonthInstantBounds(now: Date): SaoPauloMonthInstantBounds {
   const { year, monthIndex } = saoPauloYearAndMonth(now);
 
   return {
-    start: saoPauloMidnightToInstant({ year, monthIndex, day: 1 }),
-    endExclusive: saoPauloMidnightToInstant({ year, monthIndex: monthIndex + 1, day: 1 }),
+    startInstant: saoPauloMidnightToInstant({ year, monthIndex, day: 1 }),
+    endExclusiveInstant: saoPauloMidnightToInstant({ year, monthIndex: monthIndex + 1, day: 1 }),
   };
 }
 
-/** Bounds for a Sao Paulo civil month when the stored values are Prisma `@db.Date` values. */
-export function saoPauloMonthDateBounds(now: Date): { start: Date; endExclusive: Date } {
+/** Bounds for a Sao Paulo civil month when Prisma exposes `@db.Date` as UTC-midnight Dates. */
+export function saoPauloMonthDateOnlyUtcBounds(now: Date): SaoPauloMonthDateOnlyUtcBounds {
   const { year, monthIndex } = saoPauloYearAndMonth(now);
 
   return {
-    start: new Date(Date.UTC(year, monthIndex, 1)),
-    endExclusive: new Date(Date.UTC(year, monthIndex + 1, 1)),
+    startDateOnlyUtc: new Date(Date.UTC(year, monthIndex, 1)),
+    endExclusiveDateOnlyUtc: new Date(Date.UTC(year, monthIndex + 1, 1)),
   };
 }
 

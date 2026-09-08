@@ -59,7 +59,7 @@ export async function readAdminDashboardMetrics(input: {
   database: Database;
   now: Date;
 }): Promise<AdminDashboardMetrics> {
-  const month = saoPauloMonthInstantBounds(input.now);
+  const { startInstant, endExclusiveInstant } = saoPauloMonthInstantBounds(input.now);
   const today = dateOnlyToDate(saoPauloDateOnly(input.now));
   const [totalActiveStudents, newThisMonth, untakenCandidates] = await Promise.all([
     input.database.student.count({ where: { status: "ACTIVE" } }),
@@ -67,8 +67,8 @@ export async function readAdminDashboardMetrics(input: {
       where: {
         status: "ACTIVE",
         createdAt: {
-          gte: month.start,
-          lt: month.endExclusive,
+          gte: startInstant,
+          lt: endExclusiveInstant,
         },
       },
     }),
