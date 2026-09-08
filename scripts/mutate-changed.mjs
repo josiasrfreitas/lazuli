@@ -17,13 +17,20 @@ const TESTING_GUIDE = "docs/testing/README.md";
 const baseRef = resolveBaseRef(readOption("base"));
 const groups = groupSourceFilesByPackage(listChangedFiles(baseRef));
 const failures = [];
+const unconfigured = [];
 let mutatedPackages = 0;
 
 for (const [packageDirectory, files] of groups) {
   if (!existsSync(path.join(packageDirectory, "stryker.config.mjs"))) {
-    process.stdout.write(
-      `${packageDirectory}: no stryker.config.mjs, skipped (${files.length} changed file(s)).\n`,
-    );
+    if (existsSync(path.join(packageDirectory, "test"))) {
+      // A package with tests but no mutation config is inside the gate's scope: fail closed
+      // rather than report a pass that mutated nothing.
+      unconfigured.push(packageDirectory);
+    } else {
+      process.stdout.write(
+        `${packageDirectory}: no tests, outside the mutation gate (${files.length} changed file(s)).\n`,
+      );
+    }
     continue;
   }
 
@@ -37,7 +44,15 @@ for (const [packageDirectory, files] of groups) {
   if (result.status !== 0) failures.push(packageDirectory);
 }
 
-if (mutatedPackages === 0) {
+if (unconfigured.length > 0) {
+  process.stderr.write(
+    `\nChanged packages with tests but no stryker.config.mjs: ${unconfigured.join(", ")}.\n` +
+      `Add the config (see tooling/stryker/base.mjs and ${TESTING_GUIDE}) so the gate can mutate them.\n`,
+  );
+  process.exitCode = 1;
+}
+
+if (mutatedPackages === 0 && unconfigured.length === 0) {
   process.stdout.write(
     `No changed source files under a mutation-tested package (base: ${baseRef}).\n`,
   );
@@ -48,6 +63,6 @@ if (mutatedPackages === 0) {
       `Kill them with a test, or list them in the pull request with a reason. See ${TESTING_GUIDE}.\n`,
   );
   process.exitCode = 1;
-} else {
+} else if (mutatedPackages > 0) {
   process.stdout.write(`\nMutation gate passed for ${mutatedPackages} package(s).\n`);
 }

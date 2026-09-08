@@ -26,7 +26,7 @@ Use the assigned work item for current scope, completion checks, dependencies, a
 
 ## Setup
 
-Prerequisites: Node.js `^20.19.0 || ^22.12.0 || >=24.0.0 <25 || ^26.0.0`, pnpm `11.6.0`, and
+Prerequisites: Node.js `^22.12.0 || >=24.0.0 <25 || ^26.0.0`, pnpm `11.6.0`, and
 Docker Compose for local services.
 
 1. Copy `.env.example` to `.env` and supply the required local values.

@@ -21,10 +21,34 @@ function refExists(ref) {
   }
 }
 
-/** Picks the comparison base: an explicit ref, else origin/main, else main. */
+function fetchRef(ref) {
+  try {
+    execFileSync("git", ["fetch", "--quiet", "origin", ref], { stdio: "ignore" });
+    return refExists(`origin/${ref}`);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Picks the comparison base: an explicit ref, else the pull-request base branch that GitHub
+ * Actions exposes as GITHUB_BASE_REF (fetched if the checkout is shallow), else origin/main,
+ * else main.
+ */
 export function resolveBaseRef(explicitRef) {
   if (explicitRef) return explicitRef;
-  return refExists("origin/main") ? "origin/main" : "main";
+
+  const pullRequestBase = process.env.GITHUB_BASE_REF;
+  if (pullRequestBase && (refExists(`origin/${pullRequestBase}`) || fetchRef(pullRequestBase))) {
+    return `origin/${pullRequestBase}`;
+  }
+
+  if (refExists("origin/main") || fetchRef("main")) return "origin/main";
+  if (refExists("main")) return "main";
+
+  throw new Error(
+    "Cannot resolve a comparison base: pass --base <ref> or fetch origin/main first.",
+  );
 }
 
 /** Lists files added or modified since the merge base with `baseRef`, including uncommitted work. */

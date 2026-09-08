@@ -57,9 +57,13 @@ function runTierWithCoverage(packageDirectory, tier) {
 
   const lcovFile = path.join("coverage", `changed-${tier}.lcov`);
   mkdirSync(path.join(packageDirectory, "coverage"), { recursive: true });
-  const databaseImports = DATABASE_TIERS.has(tier) ? ["--import", "dotenv/config"] : [];
+  // Database-backed tiers share one Postgres and isolate fixtures per file by convention, so
+  // they run one file at a time, exactly like the package scripts.
+  const databaseArgs = DATABASE_TIERS.has(tier)
+    ? ["--import", "dotenv/config", "--test-concurrency=1"]
+    : [];
   const args = [
-    ...databaseImports,
+    ...databaseArgs,
     "--import",
     "tsx",
     "--test",
