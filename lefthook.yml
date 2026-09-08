@@ -1,5 +1,5 @@
 # Pre-commit gates — mirrors .github/workflows/ci.yml "Quality gates" job.
-# DB/behavior tiers (test:db, test:behavior) stay in CI; they need Docker.
+# Integration/transport tiers (test:integration, test:transport) stay in CI; they need Docker.
 
 pre-commit:
   parallel: false

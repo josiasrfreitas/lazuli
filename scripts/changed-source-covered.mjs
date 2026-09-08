@@ -13,12 +13,16 @@ import {
 } from "./changed-source-files.mjs";
 
 const TESTING_GUIDE = "docs/testing/README.md";
-const TIER_DIRECTORIES = { behavior: "test/behavior", db: "test/db", unit: "test" };
-const DATABASE_TIERS = new Set(["db", "behavior"]);
+const TIER_SUFFIXES = {
+  integration: ".integration.test",
+  transport: ".transport.test",
+  unit: ".unit.test",
+};
+const DATABASE_TIERS = new Set(["integration", "transport"]);
 const ROOT_ENV_FILE = path.resolve(".env");
 
 const baseRef = resolveBaseRef(readOption("base"));
-const tiers = (readOption("tiers") ?? "unit,db,behavior").split(",");
+const tiers = (readOption("tiers") ?? "unit,integration,transport").split(",");
 const groups = groupSourceFilesByPackage(listChangedFiles(baseRef));
 const uncovered = [];
 
@@ -42,13 +46,22 @@ if (groups.size === 0) {
   process.stdout.write(`Coverage gate passed: every changed source file is executed by a test.\n`);
 }
 
+// Tests live in `test/<mirror of src>/<subject>.<tier>.test.ts`, so the tier is read from the
+// file name and the tree is walked rather than listed one directory deep.
 function listTestFiles(packageDirectory, tier) {
-  const directory = path.join(packageDirectory, TIER_DIRECTORIES[tier]);
-  if (!existsSync(directory)) return [];
+  const root = path.join(packageDirectory, "test");
+  if (!existsSync(root)) return [];
 
-  return readdirSync(directory)
-    .filter((entry) => entry.endsWith(".test.ts") || entry.endsWith(".test.tsx"))
-    .map((entry) => path.join(TIER_DIRECTORIES[tier], entry));
+  const suffix = TIER_SUFFIXES[tier];
+  const found = [];
+
+  for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    if (!entry.name.endsWith(`${suffix}.ts`) && !entry.name.endsWith(`${suffix}.tsx`)) continue;
+    found.push(path.relative(packageDirectory, path.join(entry.parentPath, entry.name)));
+  }
+
+  return found.toSorted();
 }
 
 function runTierWithCoverage(packageDirectory, tier) {

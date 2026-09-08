@@ -15,7 +15,7 @@ export {
 } from "./enrollment-test-support.js";
 export { assertActiveStageAndOpenEnrollment } from "./enrollment-suite-support.js";
 
-// Distinct prefix / catalog key / semester / teacher from the GRE-30 and GRE-31 suites: `test:db`
+// Distinct prefix / catalog key / semester / teacher from the GRE-30 and GRE-31 suites: `test:integration`
 // runs files in parallel processes against one database, so shared identifiers would race on the
 // global semester exclusion and catalog uniques.
 export const TEST_PREFIX = "GRE-32 Lifecycle ";

@@ -61,7 +61,7 @@ export type EnrollmentSuiteFixtures = {
 
 /**
  * Builds a prefix-scoped set of enrollment DB fixtures shared by the enrollment suites
- * (GRE-30/31/32...). `test:db` runs files in parallel processes against one database, so each suite
+ * (GRE-30/31/32...). `test:integration` runs files in parallel processes against one database, so each suite
  * passes a distinct prefix, catalog key, teacher, and far-future semester to avoid racing on the
  * global semester exclusion and catalog uniques. Centralizing the builders keeps the suites from
  * copy-pasting them (and tripping the duplication gate).

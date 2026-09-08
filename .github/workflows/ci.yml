@@ -61,7 +61,7 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
-      # Mailpit backs the SMTP email delivery integration test (test/db/mailpit-email.test.ts).
+      # Mailpit backs the SMTP email delivery integration test (test/mailpit-email.integration.test.ts).
       # Ports match docker-compose.yml (SMTP 1025, UI/API 8025).
       mailpit:
         image: axllent/mailpit:v1.21
@@ -95,8 +95,8 @@ jobs:
           echo "Mailpit did not become ready in time"
           exit 1
 
-      - name: DB integration tests
-        run: pnpm test:db
+      - name: Integration tests
+        run: pnpm test:integration
 
-      - name: Behavior tests
-        run: pnpm test:behavior
+      - name: Transport tests
+        run: pnpm test:transport
