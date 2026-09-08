@@ -2,7 +2,7 @@ import type { Prisma } from "@lazuli/db";
 import type { enrollmentCreateInputSchema, z } from "@lazuli/validators";
 
 import { loadActiveStage } from "../classes/guards.js";
-import { todayDateOnlyInSaoPaulo } from "../students/date-rules.js";
+import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
   CLASS_ARCHIVED_MESSAGE,
@@ -284,7 +284,7 @@ async function insertEnrollmentWithProgress(input: {
     database: input.database,
     studentId: input.values.studentId,
     classId: input.values.classId,
-    entryDate: input.values.entryDate ?? new Date(todayDateOnlyInSaoPaulo()),
+    entryDate: input.values.entryDate ?? new Date(saoPauloDateOnly(new Date())),
     stageId: input.stageId,
     capacityOverrideReason: input.values.capacityOverrideReason,
   });

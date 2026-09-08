@@ -35,9 +35,10 @@ database adds, and the transport test asserts only what the adapter adds.
 retroactive rewrite; it applies feature by feature as code is touched. The reason is cost: a mutant
 in `domain` costs about 0.05 s to test, a mutant reached only through Postgres costs about 2 s
 (measured 2026-09-07, see [0017](../decisions/0017-gate-tests-on-mutation-score-and-assertion-guardrails.md)).
-Date and window logic that today is only reachable through Postgres (`intersectWindows`,
-`saoPauloMonthBounds`, `saoPauloMidnightToInstant`, `todayDateOnlyInSaoPaulo`) is the first batch
-to move.
+Date and window logic is the first extracted batch: enrollment/semester intersection and
+São Paulo calendar calculations live in `packages/domain`, with explicit clock inputs. Month
+bounds for timestamps and calendar dates keep separate contracts: a São Paulo midnight instant
+is not the UTC-midnight representation of a database date.
 
 ## Where a test lives
 
@@ -61,6 +62,9 @@ packages/<pkg>/test/support/<feature>.ts
   not run.
 - **Support modules** live in `test/support/`, one module per feature, with `assert*` helpers named
   after what they prove. `@lazuli/db/test` is the only support module imported across packages.
+  When a feature exceeds the file-size limit, keep one public entry (`test/support/<feature>.ts`)
+  and split its implementation by responsibility under `test/support/<feature>/`. Test files
+  import the public entry; do not recreate separate entry points per tier.
 - Editing `src/<area>/<module>.ts`? The tests are in `test/<area>/`; the gate
   `pnpm test:changed-covered` tells you if none of them executes the file.
 

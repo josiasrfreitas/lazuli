@@ -3,7 +3,9 @@ import { describe } from "node:test";
 
 import { databaseIt } from "@lazuli/db/test";
 
-import {
+import { gre31AdvanceEnrollment } from "../support/enrollment.js";
+
+const {
   ADMIN,
   assertActiveStageAndOpenEnrollment,
   callHttpMutation,
@@ -14,7 +16,7 @@ import {
   HTTP_OK,
   registerAdvanceDbLifecycle,
   seedTwoStageCatalog,
-} from "../support/enrollment-advance-support.js";
+} = gre31AdvanceEnrollment;
 
 type AdvanceResponseBody = {
   result: { data: { json: { enrollmentId: string; progress: { stageId: string } } } };

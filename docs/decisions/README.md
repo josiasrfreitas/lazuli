@@ -31,7 +31,7 @@ not rewrite history.
 | [0014 PostgreSQL through Prisma](0014-use-postgresql-through-prisma.md)                                       | Accepted   | Accepted legacy stack  |
 | [0015 Base UI primitives for the design system](0015-use-base-ui-primitives-for-the-design-system.md)         | Accepted   | None                   |
 | [0016 Kysely for complex relational reads](0016-use-kysely-for-complex-relational-reads.md)                   | Accepted   | None                   |
-| [0017 Mutation score and assertion guardrails](0017-gate-tests-on-mutation-score-and-assertion-guardrails.md) | Proposed   | None                   |
+| [0017 Mutation score and assertion guardrails](0017-gate-tests-on-mutation-score-and-assertion-guardrails.md) | Accepted   | None                   |
 | [0018 Finance module API](0018-expose-finance-through-one-module-api.md)                                      | Accepted   | None                   |
 
 The archived register's complete disposition is: extracted — D-0001, D-0002, D-0003, D-0004,

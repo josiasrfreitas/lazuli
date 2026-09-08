@@ -22,8 +22,13 @@ export {
   isSameDayInSaoPaulo,
   sessionEndInstant,
   saoPauloDateOnly,
+  saoPauloMidnightToInstant,
+  saoPauloMonthDateBounds,
+  saoPauloMonthInstantBounds,
   isAtLeastTomorrowInSaoPaulo,
 } from "./session-time.js";
+export { intersectEnrollmentSemesterWindows } from "./window-intersection.js";
+export type { EnrollmentDateWindow, SemesterDateWindow } from "./window-intersection.js";
 export { isSessionUntaken } from "./session-status.js";
 export { deriveMakeupDisplayStatus, type MakeupDisplayStatus } from "./makeup-status.js";
 export { computeAttendancePercent, type AttendancePercent } from "./attendance-percent.js";
