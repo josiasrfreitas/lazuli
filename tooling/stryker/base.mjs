@@ -25,7 +25,7 @@ export function createStrykerConfig(options = {}) {
       forceBail: true,
     },
     mutate: options.mutate ?? ["src/**/*.ts", "!src/**/*.d.ts", "!src/generated/**"],
-    ignorePatterns: ["dist", ".next", ".turbo", "coverage", "reports", "storybook-static"],
+    ignorePatterns: ["dist", ".next", ".turbo", "coverage", "/reports", "storybook-static"],
     coverageAnalysis: "perTest",
     incremental: true,
     incrementalFile: "reports/stryker-incremental.json",
