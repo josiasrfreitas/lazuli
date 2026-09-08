@@ -5,6 +5,7 @@ import {
   isAtLeastTomorrowInSaoPaulo,
   isSameDayInSaoPaulo,
   saoPauloDateOnly,
+  saoPauloMidnightToInstant,
   saoPauloMonthDateOnlyUtcBounds,
   saoPauloMonthInstantBounds,
   sessionEndInstant,
@@ -36,6 +37,16 @@ void describe("sessionEndInstant", () => {
     });
 
     assert.equal(instant.toISOString(), "2026-03-10T13:00:00.000Z");
+  });
+
+  void it("chooses the earliest instant for a repeated historical Sao Paulo wall time", () => {
+    const instant = sessionEndInstant({
+      date: "2004-02-14",
+      endTime: "23:30",
+    });
+
+    assert.equal(instant.toISOString(), "2004-02-15T01:30:00.000Z");
+    assert.equal(saoPauloDateOnly(instant), "2004-02-14");
   });
 });
 
@@ -72,6 +83,29 @@ void describe("saoPauloMonthInstantBounds", () => {
 
     assert.equal(bounds.startInstant.toISOString(), "2026-12-01T03:00:00.000Z");
     assert.equal(bounds.endExclusiveInstant.toISOString(), "2027-01-01T03:00:00.000Z");
+  });
+
+  void it("preserves February 2004 bounds across the historical DST transition", () => {
+    const bounds = saoPauloMonthInstantBounds(new Date("2004-02-20T12:00:00.000Z"));
+
+    assert.equal(bounds.startInstant.toISOString(), "2004-02-01T02:00:00.000Z");
+    assert.equal(bounds.endExclusiveInstant.toISOString(), "2004-03-01T03:00:00.000Z");
+  });
+});
+
+void describe("saoPauloMidnightToInstant", () => {
+  void it("does not resolve historical DST-transition midnight to the prior Sao Paulo day", () => {
+    const instant = saoPauloMidnightToInstant({ year: 2004, monthIndex: 1, day: 15 });
+
+    assert.equal(instant.toISOString(), "2004-02-15T03:00:00.000Z");
+    assert.equal(saoPauloDateOnly(instant), "2004-02-15");
+  });
+
+  void it("moves a nonexistent historical Sao Paulo midnight forward to the first valid instant", () => {
+    const instant = saoPauloMidnightToInstant({ year: 2004, monthIndex: 10, day: 2 });
+
+    assert.equal(instant.toISOString(), "2004-11-02T03:00:00.000Z");
+    assert.equal(saoPauloDateOnly(instant), "2004-11-02");
   });
 });
 

@@ -1,9 +1,31 @@
 const SAO_PAULO_TIME_ZONE = "America/Sao_Paulo";
 const DATE_ONLY_LENGTH = 10;
+const DATE_PART_COUNT = 3;
 const TIME_START_INDEX = 11;
 const TIME_ONLY_LENGTH = 5;
+const TIME_PART_COUNT = 2;
+const MILLISECONDS_PER_MINUTE = 60_000;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+const MILLISECONDS_PER_DAY = HOURS_PER_DAY * MINUTES_PER_HOUR * MILLISECONDS_PER_MINUTE;
+const LOCAL_TIME_PROBE_DAY_RADIUS = 2;
+const LOCAL_TIME_PROBE_DAY_OFFSETS = [
+  -LOCAL_TIME_PROBE_DAY_RADIUS,
+  -1,
+  0,
+  1,
+  LOCAL_TIME_PROBE_DAY_RADIUS,
+] as const;
 
 type DateInput = Date | string;
+
+type LocalDateTimeParts = {
+  year: number;
+  monthIndex: number;
+  day: number;
+  hour: number;
+  minute: number;
+};
 
 export type SaoPauloMonthInstantBounds = {
   startInstant: Date;
@@ -82,27 +104,44 @@ export function isSameDayInSaoPaulo(input: { targetDate: DateInput; now: Date })
 }
 
 function zonedDateTimeToInstant(input: { date: string; time: string; timeZone: string }): Date {
-  const utcGuess = new Date(`${input.date}T${input.time}:00.000Z`);
-  const localParts = localDateTimeParts({ instant: utcGuess, timeZone: input.timeZone });
-  const localAsUtc = Date.UTC(
-    localParts.year,
-    localParts.monthIndex,
-    localParts.day,
-    localParts.hour,
-    localParts.minute,
-  );
-  const offsetMilliseconds = localAsUtc - utcGuess.getTime();
+  const targetParts = parseLocalDateTime(input);
+  const targetMilliseconds = localDateTimeAsUtcMilliseconds(targetParts);
+  // Civil-time compatible disambiguation: repeated wall times use the earliest instant, while
+  // skipped wall times move forward to the first valid local time after the gap.
+  const candidates = candidateInstantsForLocalDateTime({
+    targetMilliseconds,
+    timeZone: input.timeZone,
+  });
+  const exactCandidate = earliestExactCandidate({
+    candidates,
+    targetMilliseconds,
+    timeZone: input.timeZone,
+  });
 
-  return new Date(utcGuess.getTime() - offsetMilliseconds);
+  return exactCandidate ?? candidates[0] ?? new Date(targetMilliseconds);
 }
 
-function localDateTimeParts(input: { instant: Date; timeZone: string }): {
-  year: number;
-  monthIndex: number;
-  day: number;
-  hour: number;
-  minute: number;
-} {
+function earliestExactCandidate(input: {
+  candidates: Date[];
+  targetMilliseconds: number;
+  timeZone: string;
+}): Date | undefined {
+  for (const candidate of input.candidates) {
+    if (
+      localDateTimeEqualsTarget({
+        instant: candidate,
+        targetMilliseconds: input.targetMilliseconds,
+        timeZone: input.timeZone,
+      })
+    ) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
+
+function localDateTimeParts(input: { instant: Date; timeZone: string }): LocalDateTimeParts {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: input.timeZone,
     year: "numeric",
@@ -121,6 +160,73 @@ function localDateTimeParts(input: { instant: Date; timeZone: string }): {
     hour: Number(part("hour")),
     minute: Number(part("minute")),
   };
+}
+
+function parseLocalDateTime(input: { date: string; time: string }): LocalDateTimeParts {
+  const dateParts = input.date.split("-");
+  const timeParts = input.time.split(":");
+  const [year, month, day] = dateParts;
+  const [hour, minute] = timeParts;
+  const hasCompleteDate = dateParts.length === DATE_PART_COUNT;
+  const hasCompleteTime = timeParts.length === TIME_PART_COUNT;
+
+  return {
+    year: dateTimePartNumber(hasCompleteDate ? year : undefined),
+    monthIndex: dateTimePartNumber(hasCompleteDate ? month : undefined) - 1,
+    day: dateTimePartNumber(hasCompleteDate ? day : undefined),
+    hour: dateTimePartNumber(hasCompleteTime ? hour : undefined),
+    minute: dateTimePartNumber(hasCompleteTime ? minute : undefined),
+  };
+}
+
+function localDateTimeAsUtcMilliseconds(parts: LocalDateTimeParts): number {
+  return Date.UTC(parts.year, parts.monthIndex, parts.day, parts.hour, parts.minute);
+}
+
+function dateTimePartNumber(value: string | undefined): number {
+  if (value === undefined || value === "") {
+    return Number.NaN;
+  }
+
+  return Number(value);
+}
+
+function candidateInstantsForLocalDateTime(input: {
+  targetMilliseconds: number;
+  timeZone: string;
+}): Date[] {
+  const offsets = new Set(
+    LOCAL_TIME_PROBE_DAY_OFFSETS.map((dayOffset) =>
+      timeZoneOffsetMilliseconds({
+        instant: new Date(input.targetMilliseconds + dayOffset * MILLISECONDS_PER_DAY),
+        timeZone: input.timeZone,
+      }),
+    ),
+  );
+
+  return [...offsets].map(
+    (offsetMilliseconds) => new Date(input.targetMilliseconds - offsetMilliseconds),
+  );
+}
+
+function timeZoneOffsetMilliseconds(input: { instant: Date; timeZone: string }): number {
+  return (
+    localDateTimeAsUtcMilliseconds(
+      localDateTimeParts({ instant: input.instant, timeZone: input.timeZone }),
+    ) - input.instant.getTime()
+  );
+}
+
+function localDateTimeEqualsTarget(input: {
+  instant: Date;
+  targetMilliseconds: number;
+  timeZone: string;
+}): boolean {
+  return (
+    localDateTimeAsUtcMilliseconds(
+      localDateTimeParts({ instant: input.instant, timeZone: input.timeZone }),
+    ) === input.targetMilliseconds
+  );
 }
 
 function saoPauloYearAndMonth(now: Date): { year: number; monthIndex: number } {
