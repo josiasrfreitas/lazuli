@@ -73,3 +73,13 @@ void describe("resolveSemesterForDate", () => {
     assert.equal(error.message, "Date maps to multiple semester window(s).");
   });
 });
+
+void describe("resolveSemesterForDate start boundary", () => {
+  void it("rejects the day before the semester starts", () => {
+    assert.throws(
+      () => resolveSemesterForDate(new Date("2026-01-31"), [FIRST_SEMESTER]),
+      (candidate: unknown) =>
+        candidate instanceof SemesterBucketError && candidate.code === "NO_SEMESTER",
+    );
+  });
+});
