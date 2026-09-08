@@ -1,0 +1,20 @@
+{
+  "name": "@lazuli/stryker-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base": "./base.mjs"
+  },
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@stryker-mutator/core": "catalog:",
+    "@stryker-mutator/tap-runner": "catalog:"
+  },
+  "devDependencies": {
+    "@lazuli/eslint-config": "workspace:*",
+    "eslint": "catalog:"
+  }
+}

@@ -18,6 +18,19 @@ export default [
     },
   },
   {
+    files: [
+      "scripts/changed-source-files.mjs",
+      "scripts/changed-source-covered.mjs",
+      "scripts/mutate-changed.mjs",
+    ],
+    // Change gates spawn git, node, and Stryker over paths derived from the git diff.
+    rules: {
+      "no-restricted-syntax": "off",
+      "security/detect-child-process": "off",
+      "security/detect-non-literal-fs-filename": "off",
+    },
+  },
+  {
     files: ["scripts/test-styles.mjs"],
     // Test inputs are fixed host entrypoints and class names, never user input.
     rules: {

@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "^20.19.0 || ^22.12.0 || >=24.0.0 <25 || ^26.0.0"
+    "node": "^22.12.0 || >=24.0.0 <25 || ^26.0.0"
   },
   "packageManager": "pnpm@11.6.0",
   "scripts": {
@@ -24,6 +24,9 @@
     "test:behavior": "turbo run test:behavior --concurrency=1",
     "test:all": "pnpm test && pnpm test:db && pnpm test:behavior",
     "test:e2e": "turbo run test:e2e",
+    "test:changed-covered": "node scripts/changed-source-covered.mjs",
+    "mutate": "turbo run mutate --concurrency=1",
+    "mutate:changed": "node scripts/mutate-changed.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "prisma:migrate": "pnpm -F @lazuli/db prisma:migrate",
