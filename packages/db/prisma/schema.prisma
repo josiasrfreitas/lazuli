@@ -339,7 +339,6 @@ model Class {
   status                  ClassStatus       @default(ACTIVE)
   previousClassId         String?           @map("previous_class_id") @db.Uuid
   portalClassName         String            @map("portal_class_name")
-  originalPortalClassName String?           @map("original_portal_class_name")
 
   teacher       User                @relation("ClassTeacher", fields: [teacherId], references: [id])
   sharedStage   Stage?              @relation(fields: [sharedStageId], references: [id])

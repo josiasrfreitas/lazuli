@@ -133,7 +133,6 @@ function buildClassCreateData(input: {
     year: input.values.year,
     capacity: input.values.capacity,
     portalClassName: input.portalClassName,
-    originalPortalClassName: input.portalClassName,
     scheduleSlots: { create: input.slotRows },
   };
 }

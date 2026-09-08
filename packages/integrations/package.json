@@ -15,8 +15,7 @@
   },
   "dependencies": {
     "nodemailer": "catalog:",
-    "resend": "catalog:",
-    "zod": "catalog:"
+    "resend": "catalog:"
   },
   "devDependencies": {
     "@types/nodemailer": "catalog:",

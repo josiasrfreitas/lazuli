@@ -147,7 +147,6 @@ async function rejectPersonalizedWithoutSemester(database: DatabaseClient): Prom
         capacity,
         status,
         portal_class_name,
-        original_portal_class_name,
         created_at,
         updated_at
       ) VALUES (
@@ -159,7 +158,6 @@ async function rejectPersonalizedWithoutSemester(database: DatabaseClient): Prom
         2026,
         1,
         'ACTIVE',
-        ${portalClassName},
         ${portalClassName},
         NOW(),
         NOW()

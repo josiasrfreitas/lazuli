@@ -9,12 +9,7 @@ export type { EmailBody, EmailSender, EmailSendInput } from "./email/sender.js";
 export { createNoOpEmailSender, EmailBodyMissingError, requireEmailBody } from "./email/sender.js";
 export type { EmailEnvironment } from "./email/env.js";
 export { parseEmailEnvironment } from "./email/env.js";
-export type { ResendEmailSenderConfig } from "./email/resend-sender.js";
-export { createResendEmailSender, ResendSendError } from "./email/resend-sender.js";
-export type { SmtpEmailSenderConfig } from "./email/smtp-sender.js";
-export { createSmtpEmailSender } from "./email/smtp-sender.js";
-export type { EmailTransportSelection } from "./email/factory.js";
-export { createEmailSenderFromEnv, selectEmailTransport } from "./email/factory.js";
+export { createEmailSender } from "./email/factory.js";
 
 export type ArtifactPutInput = {
   key: string;

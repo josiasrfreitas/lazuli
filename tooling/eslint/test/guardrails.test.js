@@ -12,6 +12,7 @@ const fixturesDirectory = path.join(path.dirname(fileURLToPath(import.meta.url))
 const repositoryRoot = path.join(fixturesDirectory, "../../../..");
 const probeTsconfigFileName = "tsconfig.json";
 const probeSourceFileName = "probe.ts";
+const RESTRICTED_PATH_RULE = "import/no-restricted-paths";
 const probeTsconfigContents = `${JSON.stringify(
   { extends: "../../../../tsconfig/base.json", include: ["*.ts"] },
   null,
@@ -112,6 +113,17 @@ async function lintApiRestrictedPathsProbe(source) {
   }
 }
 
+async function lintAuthRestrictedPathsProbe(source) {
+  const authDirectory = path.join(repositoryRoot, "packages/auth");
+  const probePath = path.join(authDirectory, "src/guardrail-probe-restricted-paths.ts");
+  await writeFile(probePath, source);
+  try {
+    return await lintProbe({ directory: authDirectory, probePath, packageType: "base" });
+  } finally {
+    await rm(probePath, { force: true });
+  }
+}
+
 describe("shared ESLint guardrails", () => {
   it("rejects Prisma and worker-handler imports from the web app", async () => {
     const messages = await lintWebImportsProbe(
@@ -139,7 +151,7 @@ describe("shared ESLint guardrails", () => {
       'import "../../../../packages/worker-handlers/src/index.js";',
     );
 
-    assert.ok(ruleIds(messages).includes("import/no-restricted-paths"));
+    assert.ok(ruleIds(messages).includes(RESTRICTED_PATH_RULE));
   });
 
   it("rejects receivables internal imports outside the receivables module", async () => {
@@ -150,7 +162,7 @@ describe("shared ESLint guardrails", () => {
       ].join("\n"),
     );
 
-    assert.ok(ruleIds(messages).includes("import/no-restricted-paths"));
+    assert.ok(ruleIds(messages).includes(RESTRICTED_PATH_RULE));
   });
 
   it("uses type information to reject floating promises", async () => {
@@ -172,4 +184,22 @@ describe("shared ESLint guardrails", () => {
 
     assert.ok(ruleIds(messages).includes("no-console"));
   });
+});
+
+it("rejects auth imports into email internals while allowing the public factory", async () => {
+  const restrictedMessages = await lintAuthRestrictedPathsProbe(
+    [
+      'import { createSmtpEmailSender } from "../../integrations/src/email/smtp-sender.js";',
+      "export const probe = createSmtpEmailSender;",
+    ].join("\n"),
+  );
+  const publicMessages = await lintAuthRestrictedPathsProbe(
+    [
+      'import { createEmailSender } from "@lazuli/integrations";',
+      "export const probe = createEmailSender;",
+    ].join("\n"),
+  );
+
+  assert.ok(ruleIds(restrictedMessages).includes(RESTRICTED_PATH_RULE));
+  assert.equal(ruleIds(publicMessages).includes(RESTRICTED_PATH_RULE), false);
 });

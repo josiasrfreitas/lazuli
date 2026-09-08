@@ -2,18 +2,19 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  createEmailSenderFromEnv,
-  createResendEmailSender,
-  createSmtpEmailSender,
+  createEmailSender,
   EmailBodyMissingError,
   parseEmailEnvironment,
   requireEmailBody,
-  selectEmailTransport,
 } from "../src/index.js";
+import { selectEmailTransport } from "../src/email/factory.js";
+import { createResendEmailSender } from "../src/email/resend-sender.js";
+import { createSmtpEmailSender } from "../src/email/smtp-sender.js";
 
 const FROM_ADDRESS = "Lazuli <no-reply@example.com>";
 const MAILPIT_SMTP_PORT = 1025;
 const CUSTOM_SMTP_PORT = 2525;
+const CUSTOM_SMTP_HOST = "mailpit.internal";
 const RECIPIENT = "admin@example.com";
 const SUBJECT = "probe";
 
@@ -30,10 +31,10 @@ void describe("parseEmailEnvironment", () => {
     assert.equal(environment.resendApiKey, undefined);
   });
 
-  void it("treats a whitespace-only RESEND_API_KEY as absent", () => {
+  void it("preserves a whitespace-only RESEND_API_KEY as a configured value", () => {
     const environment = parseEmailEnvironment(environmentSource({ RESEND_API_KEY: "   " }));
 
-    assert.equal(environment.resendApiKey, undefined);
+    assert.equal(environment.resendApiKey, "   ");
   });
 
   void it("defaults SMTP host and port to the local Mailpit endpoint", () => {
@@ -45,10 +46,10 @@ void describe("parseEmailEnvironment", () => {
 
   void it("reads explicit SMTP settings", () => {
     const environment = parseEmailEnvironment(
-      environmentSource({ SMTP_HOST: "mailpit.internal", SMTP_PORT: String(CUSTOM_SMTP_PORT) }),
+      environmentSource({ SMTP_HOST: CUSTOM_SMTP_HOST, SMTP_PORT: String(CUSTOM_SMTP_PORT) }),
     );
 
-    assert.equal(environment.smtpHost, "mailpit.internal");
+    assert.equal(environment.smtpHost, CUSTOM_SMTP_HOST);
     assert.equal(environment.smtpPort, CUSTOM_SMTP_PORT);
   });
 
@@ -82,11 +83,27 @@ void describe("selectEmailTransport", () => {
       from: FROM_ADDRESS,
     });
   });
+
+  void it("gives Resend precedence when SMTP is also configured", () => {
+    const selection = selectEmailTransport(
+      parseEmailEnvironment(
+        environmentSource({
+          RESEND_API_KEY: "re_test_key",
+          SMTP_HOST: CUSTOM_SMTP_HOST,
+          SMTP_PORT: String(CUSTOM_SMTP_PORT),
+        }),
+      ),
+    );
+
+    assert.deepEqual(selection, { kind: "resend", apiKey: "re_test_key", from: FROM_ADDRESS });
+  });
 });
 
-void describe("createEmailSenderFromEnv", () => {
+void describe("createEmailSender", () => {
   void it("constructs a sender without touching the network", () => {
-    const sender = createEmailSenderFromEnv(environmentSource({ RESEND_API_KEY: "" }));
+    const sender = createEmailSender(
+      parseEmailEnvironment(environmentSource({ RESEND_API_KEY: "" })),
+    );
 
     assert.equal(typeof sender.send, "function");
   });

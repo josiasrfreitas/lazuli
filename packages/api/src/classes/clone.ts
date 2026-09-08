@@ -193,7 +193,6 @@ function buildSuccessorCreateData(input: {
     capacity: input.source.capacity,
     previousClassId: input.source.id,
     portalClassName: input.portalClassName,
-    originalPortalClassName: input.portalClassName,
     scheduleSlots: {
       create: input.source.scheduleSlots.map((slot) => ({
         weekday: slot.weekday,

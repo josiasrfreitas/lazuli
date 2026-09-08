@@ -1,25 +1,5 @@
-import { z } from "zod";
-
 const DEFAULT_SMTP_HOST = "localhost";
 const DEFAULT_SMTP_PORT = 1025;
-
-/** Treats empty/whitespace-only values as absent so `RESEND_API_KEY=` selects SMTP. */
-const optionalTrimmedString = z
-  .string()
-  .optional()
-  .transform((value) => {
-    const trimmed = value?.trim();
-    return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
-  });
-
-const emailEnvironmentSchema = z.object({
-  RESEND_API_KEY: optionalTrimmedString,
-  EMAIL_FROM: z.string().trim().min(1, "EMAIL_FROM is required"),
-  SMTP_HOST: optionalTrimmedString,
-  SMTP_PORT: optionalTrimmedString.pipe(
-    z.coerce.number().int().positive("SMTP_PORT must be a positive integer").optional(),
-  ),
-});
 
 export type EmailEnvironment = {
   resendApiKey: string | undefined;
@@ -31,12 +11,38 @@ export type EmailEnvironment = {
 export function parseEmailEnvironment(
   source?: Record<string, string | undefined>,
 ): EmailEnvironment {
-  const parsed = emailEnvironmentSchema.parse(source ?? process.env);
+  const environment = source ?? process.env;
 
   return {
-    resendApiKey: parsed.RESEND_API_KEY,
-    emailFrom: parsed.EMAIL_FROM,
-    smtpHost: parsed.SMTP_HOST ?? DEFAULT_SMTP_HOST,
-    smtpPort: parsed.SMTP_PORT ?? DEFAULT_SMTP_PORT,
+    resendApiKey: optionalEnvironment(environment.RESEND_API_KEY),
+    emailFrom: requireEnvironment({ name: "EMAIL_FROM", value: environment.EMAIL_FROM }),
+    smtpHost: optionalEnvironment(environment.SMTP_HOST) ?? DEFAULT_SMTP_HOST,
+    smtpPort: parsePort(optionalEnvironment(environment.SMTP_PORT)),
   };
+}
+
+function requireEnvironment({ name, value }: { name: string; value: string | undefined }): string {
+  if (value === undefined || value.length === 0) {
+    throw new Error(`${name} is required`);
+  }
+
+  return value;
+}
+
+function optionalEnvironment(value: string | undefined): string | undefined {
+  return value === undefined || value.length === 0 ? undefined : value;
+}
+
+function parsePort(value: string | undefined): number {
+  if (value === undefined) {
+    return DEFAULT_SMTP_PORT;
+  }
+
+  const port = Number(value);
+
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error("SMTP_PORT must be a positive integer");
+  }
+
+  return port;
 }

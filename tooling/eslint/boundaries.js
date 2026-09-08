@@ -116,8 +116,7 @@ const packageBoundaryPathZones = [
 
 const receivablesInternalPrivacyZone = {
   from: "./packages/api/src/receivables/internal",
-  message:
-    "Receivables internals are private. Call packages/api/src/receivables/index.ts instead.",
+  message: "Receivables internals are private. Call packages/api/src/receivables/index.ts instead.",
   target: [
     "./apps/**",
     "./packages/api/src/*.ts",
@@ -127,7 +126,17 @@ const receivablesInternalPrivacyZone = {
   ],
 };
 
-const restrictedPathZones = [...packageBoundaryPathZones, receivablesInternalPrivacyZone];
+const authEmailInternalPrivacyZone = {
+  from: "./packages/integrations/src/email",
+  message: "Auth must use the public canonical email factory.",
+  target: "./packages/auth/**",
+};
+
+const restrictedPathZones = [
+  ...packageBoundaryPathZones,
+  receivablesInternalPrivacyZone,
+  authEmailInternalPrivacyZone,
+];
 
 /** Returns lint rules that enforce package imports and physical paths. */
 export function createBoundaryConfig(packageType) {
