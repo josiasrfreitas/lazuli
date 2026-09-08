@@ -19,7 +19,8 @@ and result inference.
 Prisma already owns the PostgreSQL schema, migrations, writes, and ordinary reads under
 [0014](0014-use-postgresql-through-prisma.md). Receivables balances remain derived rather than
 stored under [0007](0007-model-receivables-as-a-payer-scoped-derived-ledger.md), and their public
-surface remains the module defined by [0012](0012-expose-receivables-through-one-module-api.md).
+surface remains the module defined by [0018](0018-expose-finance-through-one-module-api.md) (originally
+[0012](0012-expose-receivables-through-one-module-api.md)).
 
 ## Decision
 
@@ -31,7 +32,7 @@ interactive transaction boundary with `prisma-extension-kysely`.
 Prisma remains the only owner of schema, migrations, writes, and ordinary CRUD. Kysely does not
 open an independent connection pool, own migrations, or become a general replacement for Prisma.
 Each Kysely query stays inside the private data-access implementation of its owning deep module;
-the first consumer is the receivables module's installment listing.
+the first consumer is the finance module's installment listing.
 
 Kysely reads must:
 
