@@ -16,21 +16,27 @@ const START_DATE_ON_DUE_DAY = "2026-01-05";
 const START_DATE_AFTER_DUE_DAY = "2026-01-20";
 const START_DATE_JANUARY_FIRST = "2026-01-01";
 const START_DATE_JANUARY_TENTH = "2026-01-10";
+const START_DATE_JUNE_FIRST = "2026-06-01";
 const FIRST_JANUARY_DUE = "2026-01-05";
 const FIRST_FEBRUARY_DUE = "2026-02-05";
 const FIRST_FEBRUARY_FIFTEENTH = "2026-02-15";
 const FIRST_JANUARY_TWENTY_FIFTH = "2026-01-25";
 const FIRST_FEBRUARY_TWENTY_FIFTH = "2026-02-25";
 const THIRD_MARCH_DUE = "2026-03-05";
+const FIRST_JUNE_DUE = "2026-06-05";
+const FIRST_JULY_DUE = "2026-07-05";
 
 const THREE_INSTALLMENTS = 3;
 const TWO_INSTALLMENTS = 2;
+const ZERO_INSTALLMENTS = 0;
 const SINGLE_INSTALLMENT = 1;
 
 const PRINCIPAL_ONE_HUNDRED_THOUSAND = 100_000;
 const PRINCIPAL_FIFTY_THOUSAND = 50_000;
 const PRINCIPAL_THIRTY_THOUSAND = 30_000;
 const PRINCIPAL_TWENTY_THOUSAND = 20_000;
+const PRINCIPAL_TEN_THOUSAND = 10_000;
+const HALF_OF_TEN_THOUSAND = 5000;
 const BASE_INSTALLMENT_AMOUNT = 33_333;
 const LAST_INSTALLMENT_AMOUNT = 33_334;
 const INVALID_DUE_DAY = 7;
@@ -127,6 +133,13 @@ void describe("deriveFirstDueDate", () => {
       FIRST_FEBRUARY_FIFTEENTH,
     );
   });
+
+  void it("rejects invalid due days on direct calls", () => {
+    assert.throws(
+      () => deriveFirstDueDate({ startDate: START_DATE_JUNE_FIRST, dueDay: INVALID_DUE_DAY }),
+      { name: "InstallmentGenerationError", code: "INVALID_DUE_DAY" },
+    );
+  });
 });
 
 void describe("generateInstallments schedule", () => {
@@ -157,6 +170,20 @@ void describe("generateInstallments schedule", () => {
       [FIRST_JANUARY_TWENTY_FIFTH, FIRST_FEBRUARY_TWENTY_FIFTH],
     );
   });
+
+  void it("keeps non-January schedules in the requested calendar year", () => {
+    const installments = generateInstallments({
+      principalAmountCents: PRINCIPAL_TEN_THOUSAND,
+      installmentCount: TWO_INSTALLMENTS,
+      startDate: START_DATE_JUNE_FIRST,
+      dueDay: FINANCE_DUE_DAY_FIFTH,
+    });
+
+    assert.deepEqual(installments, [
+      { amountCents: HALF_OF_TEN_THOUSAND, dueDate: FIRST_JUNE_DUE },
+      { amountCents: HALF_OF_TEN_THOUSAND, dueDate: FIRST_JULY_DUE },
+    ]);
+  });
 });
 
 void describe("generateInstallments validation", () => {
@@ -170,6 +197,19 @@ void describe("generateInstallments validation", () => {
           dueDay: FINANCE_DUE_DAY_FIFTH,
         }),
       InstallmentGenerationError,
+    );
+  });
+
+  void it("rejects zero installments instead of returning an empty schedule", () => {
+    assert.throws(
+      () =>
+        generateInstallments({
+          principalAmountCents: PRINCIPAL_TEN_THOUSAND,
+          installmentCount: ZERO_INSTALLMENTS,
+          startDate: START_DATE_JUNE_FIRST,
+          dueDay: FINANCE_DUE_DAY_FIFTH,
+        }),
+      { name: "InstallmentGenerationError", code: "INVALID_INSTALLMENT_COUNT" },
     );
   });
 
