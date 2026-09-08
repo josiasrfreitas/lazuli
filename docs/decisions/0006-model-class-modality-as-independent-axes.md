@@ -6,7 +6,7 @@ Extraction date: 2026-07-27
 Supersedes: None
 Superseded by: None
 Legacy sources: [D-0021](../legacy/2026-07-27/MVP/decisions.md#d-0021-class-modality-as-two-axes) (Accepted)
-Implementation evidence: [`packages/db/prisma/schema.prisma`](../../packages/db/prisma/schema.prisma), [`packages/api/test/db/classes.test.ts`](../../packages/api/test/db/classes.test.ts)
+Implementation evidence: [`packages/db/prisma/schema.prisma`](../../packages/db/prisma/schema.prisma), [`packages/api/test/classes/router.integration.test.ts`](../../packages/api/test/classes/router.integration.test.ts)
 
 ## Context
 

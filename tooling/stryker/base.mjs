@@ -1,9 +1,9 @@
 /**
  * Shared StrykerJS configuration for Lazuli packages.
  *
- * Mutation testing runs against the unit tier only (`test/*.test.ts`): the db and behavior
- * tiers need Postgres and are too slow to multiply by hundreds of mutants. Packages call
- * `createStrykerConfig` from their own `stryker.config.mjs`.
+ * Mutation testing runs against the unit tier only (files suffixed `.unit.test.ts`): the
+ * integration and transport tiers need Postgres and are too slow to multiply by hundreds of
+ * mutants. Packages call `createStrykerConfig` from their own `stryker.config.mjs`.
  *
  * @param {{ mutate?: string[]; testFiles?: string[]; nodeArgs?: string[] }} [options]
  * @returns {import("@stryker-mutator/api/core").PartialStrykerOptions}
@@ -19,7 +19,7 @@ export function createStrykerConfig(options = {}) {
     tsconfigFile: "tsconfig.stryker-none.json",
     testRunner: "tap",
     tap: {
-      testFiles: options.testFiles ?? ["test/*.test.ts"],
+      testFiles: options.testFiles ?? ["test/**/*.unit.test.ts"],
       // Node >= 23 defaults to the "spec" reporter even off a TTY; the runner parses TAP.
       nodeArgs: ["--test-reporter=tap", "--import", "tsx", ...(options.nodeArgs ?? [])],
       forceBail: true,
