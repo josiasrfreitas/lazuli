@@ -4,16 +4,18 @@ import { after, before, beforeEach, describe } from "node:test";
 import { db } from "@lazuli/db";
 import { databaseIt } from "@lazuli/db/test";
 
-import {
+import { gre30Enrollment } from "../support/enrollment.js";
+
+const {
   ADMIN,
   callHttpMutation,
-  cleanEnrollmentDatabase,
+  cleanDatabase: cleanEnrollmentDatabase,
   createPersonalizedClass,
   createStudent,
   ensureTeacherUser,
   HTTP_OK,
   seedCatalog,
-} from "../support/enrollment-test-support.js";
+} = gre30Enrollment;
 
 type CreateResponseBody = {
   result: { data: { json: { orderPromptRequired: boolean; enrollment: { id: string } } } };

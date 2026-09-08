@@ -13,6 +13,11 @@ import {
   TRANSFER_SAME_CLASS_MESSAGE,
 } from "../../src/enrollment/errors.js";
 import {
+  gre32LifecycleEnrollment,
+  type TwoStageCatalog as TwoStageCatalogFixture,
+} from "../support/enrollment.js";
+
+const {
   assertActiveStageAndOpenEnrollment,
   assertEnrollmentClosed,
   caller,
@@ -25,8 +30,7 @@ import {
   expectRejects,
   registerLifecycleDbLifecycle,
   seedTwoStageCatalog,
-  type TwoStageCatalogFixture,
-} from "../support/enrollment-lifecycle-support.js";
+} = gre32LifecycleEnrollment;
 
 async function setup(): Promise<TwoStageCatalogFixture> {
   await ensureTeacherUser();

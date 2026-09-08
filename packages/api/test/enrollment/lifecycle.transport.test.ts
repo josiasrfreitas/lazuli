@@ -4,6 +4,11 @@ import { describe } from "node:test";
 import { databaseIt } from "@lazuli/db/test";
 
 import {
+  gre32LifecycleHttpEnrollment,
+  type TwoStageCatalog as TwoStageCatalogFixture,
+} from "../support/enrollment.js";
+
+const {
   ADMIN,
   assertActiveStageAndOpenEnrollment,
   assertEnrollmentClosed,
@@ -17,8 +22,7 @@ import {
   HTTP_OK,
   registerLifecycleDbLifecycle,
   seedTwoStageCatalog,
-  type TwoStageCatalogFixture,
-} from "../support/enrollment-lifecycle-behavior-support.js";
+} = gre32LifecycleHttpEnrollment;
 
 type CloseResponseBody = {
   result: { data: { json: { enrollmentId: string; exitReason: string } } };

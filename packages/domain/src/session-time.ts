@@ -22,6 +22,40 @@ export function saoPauloDateOnly(instant: Date): string {
   return `${parts.year}-${month}-${day}`;
 }
 
+/** Bounds for a Sao Paulo civil month when the stored values are instants. */
+export function saoPauloMonthInstantBounds(now: Date): { start: Date; endExclusive: Date } {
+  const { year, monthIndex } = saoPauloYearAndMonth(now);
+
+  return {
+    start: saoPauloMidnightToInstant({ year, monthIndex, day: 1 }),
+    endExclusive: saoPauloMidnightToInstant({ year, monthIndex: monthIndex + 1, day: 1 }),
+  };
+}
+
+/** Bounds for a Sao Paulo civil month when the stored values are Prisma `@db.Date` values. */
+export function saoPauloMonthDateBounds(now: Date): { start: Date; endExclusive: Date } {
+  const { year, monthIndex } = saoPauloYearAndMonth(now);
+
+  return {
+    start: new Date(Date.UTC(year, monthIndex, 1)),
+    endExclusive: new Date(Date.UTC(year, monthIndex + 1, 1)),
+  };
+}
+
+/** Converts a Sao Paulo wall-clock midnight to its UTC instant. */
+export function saoPauloMidnightToInstant(input: {
+  year: number;
+  monthIndex: number;
+  day: number;
+}): Date {
+  const utcGuess = new Date(Date.UTC(input.year, input.monthIndex, input.day));
+  return zonedDateTimeToInstant({
+    date: utcGuess.toISOString().slice(0, DATE_ONLY_LENGTH),
+    time: "00:00",
+    timeZone: SAO_PAULO_TIME_ZONE,
+  });
+}
+
 /**
  * Whether a `@db.Date` target day is at least tomorrow in `America/Sao_Paulo` relative to `now` —
  * the makeup advance-scheduling constraint ("precisa avisar com antecedencia", §4.6). The target is
@@ -77,6 +111,12 @@ function localDateTimeParts(input: { instant: Date; timeZone: string }): {
     hour: Number(part("hour")),
     minute: Number(part("minute")),
   };
+}
+
+function saoPauloYearAndMonth(now: Date): { year: number; monthIndex: number } {
+  const [year, month] = saoPauloDateOnly(now).split("-");
+
+  return { year: Number(year), monthIndex: Number(month) - 1 };
 }
 
 function toDateOnly(value: DateInput): string {

@@ -1,4 +1,8 @@
-import { computeAttendancePercent, type AttendancePercent } from "@lazuli/domain";
+import {
+  computeAttendancePercent,
+  intersectEnrollmentSemesterWindows,
+  type AttendancePercent,
+} from "@lazuli/domain";
 import type { attendanceEnrollmentSemesterPercentInputSchema, z } from "@lazuli/validators";
 
 import type { StaffUser } from "../trpc/context.js";
@@ -69,7 +73,7 @@ export async function computeEnrollmentPercentInWindow(input: {
   database: AttendanceDatabase;
   values: { enrollment: EnrollmentWindow; semester: SemesterWindowDates };
 }): Promise<AttendancePercent> {
-  const window = intersectWindows(input.values);
+  const window = intersectEnrollmentSemesterWindows(input.values);
 
   if (window === null) {
     return computeAttendancePercent({ heldSessions: 0, presentCount: 0 });
@@ -132,23 +136,6 @@ async function loadSemester(input: {
   return semester;
 }
 
-function intersectWindows(input: {
-  enrollment: EnrollmentWindow;
-  semester: SemesterWindowDates;
-}): { startDate: Date; endDate: Date } | null {
-  const startDate = latest(input.enrollment.entryDate, input.semester.startDate);
-  const endDate = earliest(
-    input.enrollment.exitDate ?? input.semester.endDate,
-    input.semester.endDate,
-  );
-
-  if (startDate > endDate) {
-    return null;
-  }
-
-  return { startDate, endDate };
-}
-
 async function countHeldSessions(input: {
   database: AttendanceDatabase;
   classId: string;
@@ -187,12 +174,4 @@ async function countPresentRows(input: {
       },
     },
   });
-}
-
-function latest(left: Date, right: Date): Date {
-  return left > right ? left : right;
-}
-
-function earliest(left: Date, right: Date): Date {
-  return left < right ? left : right;
 }

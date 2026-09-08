@@ -1,19 +1,13 @@
 import {
   buildReceivablesSnapshot,
   deriveInstallmentLedger,
-  saoPauloDateOnly,
+  saoPauloMonthDateBounds,
   toWhatsAppUrl,
   type InstallmentLedger,
   type ReceivablesSnapshot,
 } from "@lazuli/domain";
 
 import { loadInterestRatePctMonthly, toDateOnlyString, type FinanceDatabase } from "./shared.js";
-
-const YEAR_START_INDEX = 0;
-const YEAR_END_INDEX = 4;
-const MONTH_START_INDEX = 5;
-const MONTH_END_INDEX = 7;
-const MONTH_INDEX_OFFSET = 1;
 
 type LoadedReceivablesInstallment = {
   id: string;
@@ -130,7 +124,7 @@ async function loadDerivedReceivablesInstallments(
 }
 
 async function loadReceivedThisMonthCents(database: FinanceDatabase, now: Date): Promise<number> {
-  const { start, endExclusive } = saoPauloMonthBounds(now);
+  const { start, endExclusive } = saoPauloMonthDateBounds(now);
   const allocations = await database.paymentAllocation.findMany({
     where: {
       paymentEntry: {
@@ -210,15 +204,4 @@ function sortInstallmentsByDueDate(
   }
 
   return sortedInstallments;
-}
-
-function saoPauloMonthBounds(now: Date): { start: Date; endExclusive: Date } {
-  const today = saoPauloDateOnly(now);
-  const year = Number(today.slice(YEAR_START_INDEX, YEAR_END_INDEX));
-  const monthIndex = Number(today.slice(MONTH_START_INDEX, MONTH_END_INDEX)) - MONTH_INDEX_OFFSET;
-
-  return {
-    start: new Date(Date.UTC(year, monthIndex, 1)),
-    endExclusive: new Date(Date.UTC(year, monthIndex + 1, 1)),
-  };
 }

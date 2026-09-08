@@ -1,6 +1,6 @@
 import type { studentSetStatusInputSchema, z } from "@lazuli/validators";
+import { saoPauloDateOnly } from "@lazuli/domain";
 
-import { todayDateOnlyInSaoPaulo } from "./date-rules.js";
 import { notFound, STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
 import type { StudentDatabase } from "./related-records.js";
 
@@ -21,7 +21,7 @@ export async function setStudentStatus(input: {
   if (isLifecycleClosingStatus(input.values.status)) {
     await closeActiveAcademicLifecycleRows({
       database: input.database,
-      effectiveDate: todayDateOnlyInSaoPaulo(),
+      effectiveDate: saoPauloDateOnly(new Date()),
       reason: input.values.status,
       studentId: input.values.id,
     });

@@ -1,7 +1,8 @@
 # Gate tests on mutation score and assertion guardrails
 
-Status: Proposed
+Status: Accepted
 Decision date: 2026-09-07
+Acceptance date: 2026-09-08
 Supersedes: None
 Superseded by: None
 Legacy sources: None
@@ -45,8 +46,9 @@ of the suite is chosen to make that gate cheap.
 2. **Rules are born pure.** Because the measured cost per mutant is about forty times higher
    through Postgres, new business logic starts as a pure function in `packages/domain` (or a pure
    service) with a `unit` test, and the procedure orchestrates. This applies feature by feature as
-   code is touched, not as a retroactive rewrite. Date and window logic reachable only through
-   Postgres today is the first batch to move.
+   code is touched, not as a retroactive rewrite. The first extracted batch is enrollment/semester
+   intersection and São Paulo calendar calculations, with separate month-bound contracts for
+   timestamp instants and `@db.Date` values.
 3. **Tiers are named by what they prove and placed to mirror the source.** The tiers are `unit`,
    `integration`, `transport`. A test lives at `test/<area>/<subject>.<tier>.test.ts`, where
    `<area>` is the first-level folder of `src/` it exercises (flat when `src/` is flat, `trpc/` for

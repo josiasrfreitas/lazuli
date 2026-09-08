@@ -1,6 +1,6 @@
 import type { enrollmentTransferInputSchema, z } from "@lazuli/validators";
 
-import { todayDateOnlyInSaoPaulo } from "../students/date-rules.js";
+import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   assertCapacity,
   assertNoDuplicateActiveEnrollment,
@@ -73,7 +73,7 @@ export async function transferEnrollment(input: {
     source,
     target,
     stageId,
-    entryDate: input.values.entryDate ?? new Date(todayDateOnlyInSaoPaulo()),
+    entryDate: input.values.entryDate ?? new Date(saoPauloDateOnly(new Date())),
     capacityOverrideReason: input.values.capacityOverrideReason,
   });
 }

@@ -1,7 +1,6 @@
 import type { Prisma } from "@lazuli/db";
-import { findNextStageInTrack } from "@lazuli/domain";
+import { findNextStageInTrack, saoPauloDateOnly } from "@lazuli/domain";
 
-import { todayDateOnlyInSaoPaulo } from "../students/date-rules.js";
 import { progressSummarySelect, type EnrollmentDatabase, type ProgressSummary } from "./data.js";
 import {
   ACTIVE_PROGRESS_NOT_FOUND_MESSAGE,
@@ -127,7 +126,7 @@ async function closeAndOpenProgress(input: {
   // The no-overlap exclusion uses inclusive date ranges, so the closed record and the new one cannot
   // share a day: close today, start the next stage tomorrow. Close before create to respect the
   // one-active-progress partial unique index. Progress dates are structural history only.
-  const closeDate = new Date(todayDateOnlyInSaoPaulo());
+  const closeDate = new Date(saoPauloDateOnly(new Date()));
   const nextStartDate = addOneDay(closeDate);
 
   const previousProgress = await input.database.pedagogicalProgress.update({

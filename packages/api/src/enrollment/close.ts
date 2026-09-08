@@ -1,4 +1,4 @@
-import { todayDateOnlyInSaoPaulo } from "../students/date-rules.js";
+import { saoPauloDateOnly } from "@lazuli/domain";
 import { closeActiveEnrollment, loadActiveEnrollment, type EnrollmentDatabase } from "./data.js";
 import { ENROLLMENT_ALREADY_CLOSED_MESSAGE } from "./errors.js";
 
@@ -28,7 +28,7 @@ export async function closeEnrollment(input: {
     notActiveMessage: ENROLLMENT_ALREADY_CLOSED_MESSAGE,
   });
 
-  const effectiveDate = new Date(todayDateOnlyInSaoPaulo());
+  const effectiveDate = new Date(saoPauloDateOnly(new Date()));
   await closeActiveEnrollment({
     database: input.database,
     enrollmentId: input.enrollmentId,

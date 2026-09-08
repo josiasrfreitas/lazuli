@@ -12,6 +12,11 @@ import {
   ENROLLMENT_NOT_FOUND_MESSAGE,
 } from "../../src/enrollment/errors.js";
 import {
+  gre31AdvanceEnrollment,
+  type TwoStageCatalog as TwoStageCatalogFixture,
+} from "../support/enrollment.js";
+
+const {
   assertActiveStageAndOpenEnrollment,
   caller,
   closeEnrollment,
@@ -23,8 +28,7 @@ import {
   expectRejects,
   registerAdvanceDbLifecycle,
   seedTwoStageCatalog,
-  type TwoStageCatalogFixture,
-} from "../support/enrollment-advance-support.js";
+} = gre31AdvanceEnrollment;
 
 async function setup(): Promise<TwoStageCatalogFixture> {
   await ensureTeacherUser();

@@ -11,18 +11,19 @@ import {
   PERSONALIZED_REQUIRES_STAGE_MESSAGE,
   STUDENT_NOT_ACTIVE_MESSAGE,
 } from "../../src/enrollment/errors.js";
-import { todayDateOnlyInSaoPaulo } from "../../src/students/date-rules.js";
-import {
+import { saoPauloDateOnly } from "@lazuli/domain";
+import { gre30Enrollment, type CatalogFixture } from "../support/enrollment.js";
+
+const {
   caller,
-  cleanEnrollmentDatabase,
+  cleanDatabase: cleanEnrollmentDatabase,
   createPersonalizedClass,
   createRegularClass,
   createStudent,
   ensureTeacherUser,
   expectRejects,
   seedCatalog,
-  type CatalogFixture,
-} from "../support/enrollment-test-support.js";
+} = gre30Enrollment;
 
 const OVERRIDE_REASON = "Aprovacao manual da coordenacao.";
 
@@ -235,6 +236,6 @@ function registerEntryDateDefault(): void {
     });
 
     const entryDateOnly = result.enrollment.entryDate.toISOString().slice(0, "yyyy-mm-dd".length);
-    assert.equal(entryDateOnly, todayDateOnlyInSaoPaulo());
+    assert.equal(entryDateOnly, saoPauloDateOnly(new Date()));
   });
 }

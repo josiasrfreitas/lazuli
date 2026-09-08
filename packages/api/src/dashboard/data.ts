@@ -1,16 +1,13 @@
-import { isSessionUntaken, saoPauloDateOnly } from "@lazuli/domain";
+import { isSessionUntaken, saoPauloDateOnly, saoPauloMonthInstantBounds } from "@lazuli/domain";
 
 import type { Context, StaffUser } from "../trpc/context.js";
 
 type Database = Context["db"];
 
-const YEAR_START_INDEX = 0;
-const YEAR_END_INDEX = 4;
-const MONTH_START_INDEX = 5;
-const MONTH_END_INDEX = 7;
 const DATE_ONLY_END_INDEX = 10;
 const TIME_ONLY_START_INDEX = 11;
 const TIME_ONLY_END_INDEX = 16;
+const YEAR_START_INDEX = 0;
 
 type ClassSessionRow = {
   id: string;
@@ -62,7 +59,7 @@ export async function readAdminDashboardMetrics(input: {
   database: Database;
   now: Date;
 }): Promise<AdminDashboardMetrics> {
-  const month = saoPauloMonthBounds(input.now);
+  const month = saoPauloMonthInstantBounds(input.now);
   const today = dateOnlyToDate(saoPauloDateOnly(input.now));
   const [totalActiveStudents, newThisMonth, untakenCandidates] = await Promise.all([
     input.database.student.count({ where: { status: "ACTIVE" } }),
@@ -71,7 +68,7 @@ export async function readAdminDashboardMetrics(input: {
         status: "ACTIVE",
         createdAt: {
           gte: month.start,
-          lt: month.nextStart,
+          lt: month.endExclusive,
         },
       },
     }),
@@ -225,59 +222,6 @@ function toSessionSummary(session: ClassSessionRow): DashboardSessionSummary {
     startTime: timeOnly(session.startTime),
     endTime: timeOnly(session.endTime),
     attendanceConfirmedAt: session.attendanceConfirmedAt,
-  };
-}
-
-function saoPauloMonthBounds(now: Date): { start: Date; nextStart: Date } {
-  const currentMonth = saoPauloDateOnly(now).slice(YEAR_START_INDEX, MONTH_END_INDEX);
-  const year = Number(currentMonth.slice(YEAR_START_INDEX, YEAR_END_INDEX));
-  const monthIndex = Number(currentMonth.slice(MONTH_START_INDEX, MONTH_END_INDEX)) - 1;
-
-  return {
-    start: saoPauloMidnightToInstant({ year, monthIndex, day: 1 }),
-    nextStart: saoPauloMidnightToInstant({ year, monthIndex: monthIndex + 1, day: 1 }),
-  };
-}
-
-function saoPauloMidnightToInstant(input: { year: number; monthIndex: number; day: number }): Date {
-  const utcGuess = new Date(Date.UTC(input.year, input.monthIndex, input.day, 0, 0, 0));
-  const localParts = saoPauloParts(utcGuess);
-  const localAsUtc = Date.UTC(
-    localParts.year,
-    localParts.monthIndex,
-    localParts.day,
-    localParts.hour,
-    localParts.minute,
-  );
-  const offsetMilliseconds = localAsUtc - utcGuess.getTime();
-
-  return new Date(utcGuess.getTime() - offsetMilliseconds);
-}
-
-function saoPauloParts(instant: Date): {
-  year: number;
-  monthIndex: number;
-  day: number;
-  hour: number;
-  minute: number;
-} {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(instant);
-  const part = (type: string): string => parts.find((item) => item.type === type)?.value ?? "";
-
-  return {
-    year: Number(part("year")),
-    monthIndex: Number(part("month")) - 1,
-    day: Number(part("day")),
-    hour: Number(part("hour")),
-    minute: Number(part("minute")),
   };
 }
 
