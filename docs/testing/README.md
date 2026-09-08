@@ -127,9 +127,9 @@ to locate the detecting file; do not use it to claim that an individual case is 
 - **Run locally:** `pnpm --filter @lazuli/<package> mutate` runs a full package. Append
   `--mutate 'src/file.ts:startLine-endLine'` for a bounded sample; add `--force` and point
   `--incrementalFile` at a fresh temporary path when the sample must exclude stored results.
-  Reports land in `<package>/reports/mutation/index.html`. `pnpm mutate:changed` does not yet load
-  the package mutation script's test environment, so it is not the supported path for
-  integration-tier packages.
+  Reports land in `<package>/reports/mutation/index.html`. `pnpm mutate:changed --base <ref>` runs
+  the incremental gate and delegates to each package's `mutate` script, preserving test
+  environment setup such as `NODE_ENV=test` and `.env` loading for integration-tier packages.
 - **Read the report:** a survived mutant in a branch you wrote means the test for that branch
   may not exist or may assert too little. Reproduce the changed behavior before deciding whether
   to strengthen the test or record an equivalent or unreachable mutant.
