@@ -21,15 +21,19 @@ void describe("resolveSemesterForDate", () => {
     assert.equal(semester.name, "2026.1");
   });
 
-  void it("surfaces a setup error when the date maps to no semester", () => {
+  void it("surfaces a setup error when no semester contains the date", () => {
+    let error!: SemesterBucketError;
     assert.throws(
-      () => resolveSemesterForDate(new Date("2026-07-15"), [FIRST_SEMESTER]),
-      (error: unknown) => {
-        assert.ok(error instanceof SemesterBucketError);
-        assert.equal(error.code, "NO_SEMESTER");
-        return true;
+      () => resolveSemesterForDate(new Date("2026-07-15T00:00:00.000Z"), []),
+      (candidate: unknown) => {
+        error = candidate as SemesterBucketError;
+        return candidate instanceof SemesterBucketError;
       },
     );
+
+    assert.equal(error.name, "SemesterBucketError");
+    assert.equal(error.code, "NO_SEMESTER");
+    assert.equal(error.message, "Date maps to no semester window(s).");
   });
 
   void it("treats both window endpoints as inside the semester", () => {
@@ -55,13 +59,17 @@ void describe("resolveSemesterForDate", () => {
       endDate: new Date("2026-08-31"),
     };
 
+    let error!: SemesterBucketError;
     assert.throws(
       () => resolveSemesterForDate(new Date("2026-06-15"), [FIRST_SEMESTER, overlappingSemester]),
-      (error: unknown) => {
-        assert.ok(error instanceof SemesterBucketError);
-        assert.equal(error.code, "MULTIPLE_SEMESTERS");
-        return true;
+      (candidate: unknown) => {
+        error = candidate as SemesterBucketError;
+        return candidate instanceof SemesterBucketError;
       },
     );
+
+    assert.equal(error.name, "SemesterBucketError");
+    assert.equal(error.code, "MULTIPLE_SEMESTERS");
+    assert.equal(error.message, "Date maps to multiple semester window(s).");
   });
 });
