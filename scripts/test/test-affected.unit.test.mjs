@@ -75,6 +75,15 @@ function run(directory, gitEnvironment = {}) {
   return { log, result };
 }
 
+async function assertAllWorkspacesSelected(log, { allRootChecks = false } = {}) {
+  const calls = await readFile(log, "utf8");
+  assert.doesNotMatch(calls, /--filter=/u);
+  assert.match(calls, /(^|\n)test:scripts(\n|$)/u);
+  if (!allRootChecks) return;
+  assert.match(calls, /(^|\n)test:component-lines(\n|$)/u);
+  assert.match(calls, /(^|\n)test:styles(\n|$)/u);
+}
+
 it("uses a transitive-consumer Turbo filter for a changed package", async (context) => {
   const directory = await repository();
   context.after(() => rm(directory, { force: true, recursive: true }));
@@ -83,7 +92,9 @@ it("uses a transitive-consumer Turbo filter for a changed package", async (conte
   const { log, result } = run(directory);
 
   assert.equal(result.status, 0);
-  assert.match(await readFile(log, "utf8"), /--filter=\.\.\.@fixture\/core/u);
+  const calls = await readFile(log, "utf8");
+  assert.match(calls, /--filter=\.\.\.@fixture\/core/u);
+  assert.doesNotMatch(calls, /(^|\n)test:scripts(\n|$)/u);
 });
 
 it("selects every workspace for repository infrastructure and none for docs-only changes", async (context) => {
@@ -93,7 +104,7 @@ it("selects every workspace for repository infrastructure and none for docs-only
   const rootRun = run(rootDirectory);
 
   assert.equal(rootRun.result.status, 0);
-  assert.doesNotMatch(await readFile(rootRun.log, "utf8"), /--filter=/u);
+  await assertAllWorkspacesSelected(rootRun.log, { allRootChecks: true });
 
   const scriptDirectory = await repository();
   context.after(() => rm(scriptDirectory, { force: true, recursive: true }));
@@ -101,7 +112,7 @@ it("selects every workspace for repository infrastructure and none for docs-only
   const scriptRun = run(scriptDirectory);
 
   assert.equal(scriptRun.result.status, 0);
-  assert.doesNotMatch(await readFile(scriptRun.log, "utf8"), /--filter=/u);
+  await assertAllWorkspacesSelected(scriptRun.log);
 
   const docsDirectory = await repository();
   context.after(() => rm(docsDirectory, { force: true, recursive: true }));

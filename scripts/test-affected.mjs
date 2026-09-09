@@ -34,6 +34,7 @@ const selectedPackages = resolveSelectedPackages(filters);
 const infrastructurePackages = selectedPackages.filter(hasInfrastructureTests);
 
 if (infrastructurePackages.length > 0) preflight(selectedPackages);
+if (selectsAll) runRootChecks();
 
 runTurbo("test", filters);
 runTurbo("test:integration", filters, ["--concurrency=1"]);
@@ -119,6 +120,13 @@ function checkMailpit() {
   });
   if (result.status !== 0) {
     fail("Mailpit is unavailable. Run pnpm bootstrap:worktree before affected integration tests.");
+  }
+}
+
+function runRootChecks() {
+  for (const task of ["test:scripts", "test:component-lines", "test:styles"]) {
+    const result = spawnSync("pnpm", [task], { stdio: "inherit" });
+    if (result.status !== 0) process.exit(result.status ?? 1);
   }
 }
 
