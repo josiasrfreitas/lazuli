@@ -1,0 +1,12 @@
+{
+  "test/adapters.unit.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "test/email.unit.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 3
+    }
+  }
+}

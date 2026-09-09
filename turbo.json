@@ -22,7 +22,8 @@
     "PORTAL_MASTER_USERNAME",
     "RESEND_API_KEY",
     "SMTP_HOST",
-    "SMTP_PORT"
+    "SMTP_PORT",
+    "TRPC_DEV_DELAY_MS"
   ],
   "ui": "stream",
   "tasks": {

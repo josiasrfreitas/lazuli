@@ -1,0 +1,7 @@
+{
+  "test/semester.unit.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 3
+    }
+  }
+}

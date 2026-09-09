@@ -10,9 +10,9 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test --test-reporter spec \"test/**/*.unit.test.ts\"",
-    "test:integration": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-reporter spec \"test/**/*.integration.test.ts\"",
-    "test:transport": "NODE_ENV=test DOTENV_CONFIG_PATH=../../.env node --import dotenv/config --import tsx --test --test-reporter spec \"test/**/*.transport.test.ts\"",
+    "test": "node ../../scripts/run-test-tier.mjs unit",
+    "test:integration": "node ../../scripts/run-test-tier.mjs integration",
+    "test:transport": "node ../../scripts/run-test-tier.mjs transport",
     "clean": "rm -rf .turbo dist",
     "mutate": "NODE_ENV=test dotenv -e ../../.env -- stryker run"
   },

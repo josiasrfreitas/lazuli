@@ -1,0 +1,17 @@
+{
+  "src/components/dialog.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  },
+  "src/components/popover.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  },
+  "src/components/tooltip.tsx": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  }
+}

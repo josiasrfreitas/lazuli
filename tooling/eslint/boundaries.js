@@ -132,7 +132,7 @@ const restrictedPathZones = [...packageBoundaryPathZones, financeInternalPrivacy
 export function createBoundaryConfig(packageType) {
   return {
     rules: {
-      "import/no-restricted-paths": [
+      "import-x/no-restricted-paths": [
         "error",
         { basePath: repositoryRoot, zones: restrictedPathZones },
       ],

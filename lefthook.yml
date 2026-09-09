@@ -10,10 +10,17 @@ pre-commit:
       stage_fixed: true
     lint:
       run: pnpm lint
+    test-quality-changed:
+      run: pnpm test:quality:changed --staged
     typecheck:
       run: pnpm typecheck
     test:
       run: pnpm test
+
+pre-push:
+  commands:
+    affected-tests:
+      run: pnpm test:affected --base origin/main
 
 post-checkout:
   commands:

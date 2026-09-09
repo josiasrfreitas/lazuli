@@ -4,10 +4,12 @@ import { z } from "@lazuli/validators";
 import superjson from "superjson";
 
 import type { Context } from "./context.js";
+import { parseTrpcDevelopmentDelay, withDevelopmentTiming } from "./development-timing.js";
 
-const DEVELOPMENT_DELAY_MINIMUM_MILLISECONDS = 100;
-const DEVELOPMENT_DELAY_RANGE_MILLISECONDS = 400;
 const isDevelopment = globalThis.process.env.NODE_ENV === "development";
+const developmentDelay = isDevelopment
+  ? parseTrpcDevelopmentDelay(globalThis.process.env.TRPC_DEV_DELAY_MS)
+  : 0;
 
 const trpc = initTRPC.context<Context>().create({
   transformer: superjson,
@@ -24,21 +26,12 @@ export const router = trpc.router;
 export const createCallerFactory = trpc.createCallerFactory;
 
 const timingMiddleware = trpc.middleware(async ({ next, path }) => {
-  const start = Date.now();
-
-  if (isDevelopment) {
-    const waitMs =
-      Math.floor(Math.random() * DEVELOPMENT_DELAY_RANGE_MILLISECONDS) +
-      DEVELOPMENT_DELAY_MINIMUM_MILLISECONDS;
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
-  }
-
-  try {
-    return await next();
-  } finally {
-    const end = Date.now();
-    process.stdout.write(`[TRPC] ${path} took ${end - start}ms\n`);
-  }
+  return await withDevelopmentTiming({
+    delayMs: developmentDelay,
+    log: (message) => process.stdout.write(message),
+    next,
+    path,
+  });
 });
 
 /** Open to anyone; no session required. */

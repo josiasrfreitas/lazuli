@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test --test-reporter spec \"test/**/*.unit.test.ts\"",
+    "test": "node ../../scripts/run-test-tier.mjs unit",
     "clean": "rm -rf .turbo dist",
     "mutate": "NODE_ENV=test stryker run"
   },

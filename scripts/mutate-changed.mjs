@@ -2,7 +2,7 @@
 // merge base, one package at a time, in every package that has a stryker.config.mjs.
 // Decision 0017 and docs/testing/README.md describe the rule this enforces.
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -36,6 +36,16 @@ for (const [packageDirectory, files] of groups) {
 
   mutatedPackages += 1;
   process.stdout.write(`\n${packageDirectory}: mutating ${files.join(", ")}\n`);
+  const manifest = JSON.parse(readFileSync(path.join(packageDirectory, "package.json"), "utf8"));
+  const build = spawnSync(
+    "pnpm",
+    ["exec", "turbo", "run", "build", `--filter=${manifest.name}...`],
+    { stdio: "inherit" },
+  );
+  if (build.status !== 0) {
+    failures.push(packageDirectory);
+    continue;
+  }
   const result = spawnSync("pnpm", ["run", "mutate", "--mutate", files.join(",")], {
     cwd: packageDirectory,
     stdio: "inherit",
@@ -59,8 +69,8 @@ if (mutatedPackages === 0 && unconfigured.length === 0) {
 } else if (failures.length > 0) {
   process.stderr.write(
     `\nMutation gate failed in: ${failures.join(", ")}.\n` +
-      `Surviving mutants in files you changed mean the tests do not detect those bugs. ` +
-      `Kill them with a test, or list them in the pull request with a reason. See ${TESTING_GUIDE}.\n`,
+      `Changed-file mutation must score at least 70. Investigate survivors without treating ` +
+      `mutation as proof of contract relevance. See ${TESTING_GUIDE}.\n`,
   );
   process.exitCode = 1;
 } else if (mutatedPackages > 0) {

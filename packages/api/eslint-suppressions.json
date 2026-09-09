@@ -1,0 +1,67 @@
+{
+  "test/enrollment/role-gates.unit.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 3
+    }
+  },
+  "test/finance/orders.integration.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "test/reports/router.integration.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "test/students/preview.integration.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "test/support/attendance-test-support.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 4
+    }
+  },
+  "test/support/calendar-test-support.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "test/support/class-test-support.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "test/support/enrollment.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 3
+    }
+  },
+  "test/support/finance-test-support.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 4
+    }
+  },
+  "test/support/finance-waivers-adjustments-test-support.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "test/support/reports-test-support.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  },
+  "test/support/student-test-support.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  },
+  "test/trpc/rbac.unit.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  }
+}

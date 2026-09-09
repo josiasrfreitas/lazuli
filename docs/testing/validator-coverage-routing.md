@@ -29,8 +29,8 @@ zero `NoCoverage` mutants for the package:
 | `src/student-list.ts` |     19 |        0 |          0 |            4 |
 | `src/student.ts`      |     61 |        2 |          0 |            8 |
 
-The package score for that run is 85.00 percent with the configured break
-threshold at 75 percent.
+The package score for that run was 85.00 percent. The repository's prospective
+changed-file break threshold is 70 percent under decision 0017.
 
 ## Routing by validator
 

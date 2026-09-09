@@ -1,0 +1,12 @@
+{
+  "src/lib/debounce.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  },
+  "test/support/format-sao-paulo-date-only-host-check.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 3
+    }
+  }
+}

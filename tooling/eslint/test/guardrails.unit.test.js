@@ -68,6 +68,14 @@ async function lintFloatingPromisesProbe(source) {
   });
 }
 
+async function lintRestrictedTypesProbe(source) {
+  return await lintFixtureProbe({
+    directoryName: "probe-restricted-types",
+    packageType: "base",
+    source,
+  });
+}
+
 async function lintMagicNumbersProbe(source) {
   return await lintFixtureProbe({
     directoryName: "probe-magic-numbers",
@@ -88,7 +96,7 @@ function ruleIds(messages) {
   return messages.map(({ ruleId }) => ruleId);
 }
 
-// The relative-path zone in `import/no-restricted-paths` matches on physical
+// The relative-path zone in `import-x/no-restricted-paths` matches on physical
 // location, so this probe must sit at a real app path (same depth as a page).
 async function lintWebRestrictedPathsProbe(source) {
   const webDirectory = path.join(repositoryRoot, "apps/web");
@@ -139,7 +147,7 @@ describe("shared ESLint guardrails", () => {
       'import "../../../../packages/worker-handlers/src/index.js";',
     );
 
-    assert.ok(ruleIds(messages).includes("import/no-restricted-paths"));
+    assert.ok(ruleIds(messages).includes("import-x/no-restricted-paths"));
   });
 
   it("rejects finance internal imports outside the finance module", async () => {
@@ -150,13 +158,21 @@ describe("shared ESLint guardrails", () => {
       ].join("\n"),
     );
 
-    assert.ok(ruleIds(messages).includes("import/no-restricted-paths"));
+    assert.ok(ruleIds(messages).includes("import-x/no-restricted-paths"));
   });
 
   it("uses type information to reject floating promises", async () => {
     const messages = await lintFloatingPromisesProbe('Promise.resolve("done");');
 
     assert.ok(ruleIds(messages).includes("@typescript-eslint/no-floating-promises"));
+  });
+
+  it("rejects new explicit unknown types", async () => {
+    const messages = await lintRestrictedTypesProbe(
+      "export function parse(value: unknown): string { return String(value); }",
+    );
+
+    assert.ok(ruleIds(messages).includes("@typescript-eslint/no-restricted-types"));
   });
 
   it("enforces readability rules", async () => {

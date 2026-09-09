@@ -1,0 +1,42 @@
+{
+  "src/soft-delete.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "test/schema/course-catalog.integration.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 3
+    }
+  },
+  "test/schema/finance.integration.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 3
+    }
+  },
+  "test/schema/semester.integration.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  },
+  "test/schema/student.integration.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  },
+  "test/support/attendance-makeup-schema-support.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  },
+  "test/support/class-schema-support.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 3
+    }
+  },
+  "test/support/enrollment-progress-schema-support.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 2
+    }
+  }
+}
