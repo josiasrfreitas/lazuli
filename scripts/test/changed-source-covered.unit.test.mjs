@@ -95,3 +95,27 @@ it("reports a test or environment failure separately from coverage", async (cont
   assert.match(result.stderr, /tests or environment failed/u);
   assert.doesNotMatch(result.stderr, /LH=0/u);
 });
+
+it("enables report output while running coverage from a local command", async (context) => {
+  const directory = await fixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  const binary = path.join(directory, "bin", "pnpm");
+  await write(
+    directory,
+    "bin/pnpm",
+    `#!/bin/sh
+test "$CI" = "true" || exit 8
+mkdir -p packages/core/coverage/unit
+printf 'TN:\nSF:src/index.ts\nLF:1\nLH:1\nend_of_record\n' > packages/core/coverage/unit/lcov.info
+`,
+  );
+  await chmod(binary, 0o755);
+
+  const result = run(directory, [], {
+    CI: "",
+    PATH: `${path.dirname(binary)}${path.delimiter}${process.env.PATH}`,
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /every changed source file has LH > 0/u);
+});

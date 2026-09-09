@@ -22,7 +22,7 @@ const ROOT_CONFIGURATION = new Set([
 const baseRef = resolveBaseRef(readOption("base"));
 const changedFiles = listChangedFiles(baseRef);
 const workspaceDirectories = changedWorkspaceDirectories(changedFiles);
-const selectsAll = changedFiles.some((file) => ROOT_CONFIGURATION.has(file));
+const selectsAll = changedFiles.some(isRepositoryInfrastructure);
 
 if (!selectsAll && workspaceDirectories.length === 0) {
   process.stdout.write(`No application workspaces affected (base: ${baseRef}).\n`);
@@ -51,6 +51,12 @@ function changedWorkspaceDirectories(files) {
       }),
     ),
   ].toSorted();
+}
+
+function isRepositoryInfrastructure(file) {
+  return (
+    ROOT_CONFIGURATION.has(file) || file.startsWith("scripts/") || file.startsWith(".github/")
+  );
 }
 
 function workspaceFilter(directory) {

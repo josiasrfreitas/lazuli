@@ -86,7 +86,7 @@ it("uses a transitive-consumer Turbo filter for a changed package", async (conte
   assert.match(await readFile(log, "utf8"), /--filter=\.\.\.@fixture\/core/u);
 });
 
-it("selects every workspace for root configuration and none for docs-only changes", async (context) => {
+it("selects every workspace for repository infrastructure and none for docs-only changes", async (context) => {
   const rootDirectory = await repository();
   context.after(() => rm(rootDirectory, { force: true, recursive: true }));
   await write(rootDirectory, "package.json", '{"private":true,"changed":true}\n');
@@ -94,6 +94,14 @@ it("selects every workspace for root configuration and none for docs-only change
 
   assert.equal(rootRun.result.status, 0);
   assert.doesNotMatch(await readFile(rootRun.log, "utf8"), /--filter=/u);
+
+  const scriptDirectory = await repository();
+  context.after(() => rm(scriptDirectory, { force: true, recursive: true }));
+  await write(scriptDirectory, "scripts/run-test-tier.mjs", "export {};\n");
+  const scriptRun = run(scriptDirectory);
+
+  assert.equal(scriptRun.result.status, 0);
+  assert.doesNotMatch(await readFile(scriptRun.log, "utf8"), /--filter=/u);
 
   const docsDirectory = await repository();
   context.after(() => rm(docsDirectory, { force: true, recursive: true }));
