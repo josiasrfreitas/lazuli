@@ -92,6 +92,15 @@ const typescriptRulesConfig = {
   files: ["**/*.{ts,tsx,mts,cts}"],
   rules: {
     "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-restricted-types": [
+      "error",
+      {
+        types: {
+          unknown:
+            "Model the concrete boundary type instead; existing uses are tracked in ESLint suppressions.",
+        },
+      },
+    ],
     "@typescript-eslint/no-floating-promises": "error",
     "@typescript-eslint/no-unsafe-argument": "error",
     "@typescript-eslint/no-unsafe-assignment": "error",

@@ -68,6 +68,14 @@ async function lintFloatingPromisesProbe(source) {
   });
 }
 
+async function lintRestrictedTypesProbe(source) {
+  return await lintFixtureProbe({
+    directoryName: "probe-restricted-types",
+    packageType: "base",
+    source,
+  });
+}
+
 async function lintMagicNumbersProbe(source) {
   return await lintFixtureProbe({
     directoryName: "probe-magic-numbers",
@@ -157,6 +165,14 @@ describe("shared ESLint guardrails", () => {
     const messages = await lintFloatingPromisesProbe('Promise.resolve("done");');
 
     assert.ok(ruleIds(messages).includes("@typescript-eslint/no-floating-promises"));
+  });
+
+  it("rejects new explicit unknown types", async () => {
+    const messages = await lintRestrictedTypesProbe(
+      "export function parse(value: unknown): string { return String(value); }",
+    );
+
+    assert.ok(ruleIds(messages).includes("@typescript-eslint/no-restricted-types"));
   });
 
   it("enforces readability rules", async () => {

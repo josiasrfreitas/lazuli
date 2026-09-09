@@ -1,0 +1,12 @@
+{
+  "src/auth.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  },
+  "test/auth-flow.transport.test.ts": {
+    "@typescript-eslint/no-restricted-types": {
+      "count": 1
+    }
+  }
+}
