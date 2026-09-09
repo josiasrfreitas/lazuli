@@ -3,7 +3,7 @@ import { it } from "node:test";
 
 import { SemesterBucketError } from "@lazuli/domain";
 
-import { planClassSessionRows } from "../src/index.js";
+import { generateClassSessions, planClassSessionRows } from "../src/index.js";
 
 const CLASS_ID = "00000000-0000-0000-0000-000000000065";
 const SLOT_ID = "00000000-0000-0000-0000-000000000165";
@@ -66,6 +66,36 @@ void it("raises setup errors when a generated date has multiple semester buckets
       }),
     SemesterBucketError,
   );
+});
+
+void it("returns zero counts when matching classes have no session rows", async () => {
+  let createManyCalls = 0;
+  const semester = semesterWindow();
+  const database = {
+    class: {
+      findMany: () => Promise.resolve([{ id: CLASS_ID, semester, scheduleSlots: [] }]),
+    },
+    semester: { findMany: () => Promise.resolve([semester]) },
+    schoolClosedDay: { findMany: () => Promise.resolve([]) },
+    classSession: {
+      createMany: () => {
+        createManyCalls += 1;
+        return Promise.resolve({ count: 1 });
+      },
+    },
+  } as unknown as Parameters<typeof generateClassSessions>[0]["database"];
+
+  const result = await generateClassSessions({
+    database,
+    payload: { semesterId: SEMESTER_ID },
+  });
+
+  assert.deepEqual(result, {
+    classesMatched: 1,
+    sessionsCreated: 0,
+    sessionsPlanned: 0,
+  });
+  assert.equal(createManyCalls, 0);
 });
 
 function classWithNoSlots(): {

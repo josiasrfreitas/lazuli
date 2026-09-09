@@ -11,7 +11,7 @@ import type {
 } from "@lazuli/validators";
 
 import type { Context } from "../trpc/context.js";
-import { isMinorInSaoPaulo } from "./date-rules.js";
+import { isMinorTodayInSaoPaulo } from "./date-rules.js";
 import { badRequest, notFound, STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
 import type { StudentProfile } from "./profile.js";
 import { toStudentProfile } from "./profile.js";
@@ -230,7 +230,7 @@ async function loadStudentForUpdate(
 }
 
 function assertCreateGuardianRequirement(values: StudentCreateInput): void {
-  if (isMinorInSaoPaulo(values.birthDate) && values.guardian === undefined) {
+  if (isMinorTodayInSaoPaulo(values.birthDate) && values.guardian === undefined) {
     throw badRequest(MINOR_REQUIRES_GUARDIAN_MESSAGE);
   }
 }
@@ -244,7 +244,7 @@ function assertUpdateGuardianRequirement(input: {
     input.values.birthDate === undefined ? input.student.birthDate : input.values.birthDate;
   const guardianId = input.guardianId === undefined ? input.student.guardianId : input.guardianId;
 
-  if (isMinorInSaoPaulo(birthDate) && guardianId === null) {
+  if (isMinorTodayInSaoPaulo(birthDate) && guardianId === null) {
     throw badRequest(MINOR_REQUIRES_GUARDIAN_MESSAGE);
   }
 }
@@ -254,7 +254,7 @@ async function assertMinorGuardianContactRequirement(input: {
   database: StudentDatabase;
   guardianId: string | null;
 }): Promise<void> {
-  if (!isMinorInSaoPaulo(input.birthDate) || input.guardianId === null) {
+  if (!isMinorTodayInSaoPaulo(input.birthDate) || input.guardianId === null) {
     return;
   }
 

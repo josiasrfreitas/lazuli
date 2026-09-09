@@ -28,4 +28,13 @@ void describe("findNextStageInTrack", () => {
 
     assert.equal(next, null);
   });
+
+  void it("returns null when the current stage ID is absent from an empty track", () => {
+    const next = findNextStageInTrack({
+      stages: [],
+      currentStageId: "missing",
+    });
+
+    assert.equal(next, null);
+  });
 });

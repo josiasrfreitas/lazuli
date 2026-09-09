@@ -36,7 +36,7 @@ for (const [packageDirectory, files] of groups) {
 
   mutatedPackages += 1;
   process.stdout.write(`\n${packageDirectory}: mutating ${files.join(", ")}\n`);
-  const result = spawnSync("pnpm", ["exec", "stryker", "run", "--mutate", files.join(",")], {
+  const result = spawnSync("pnpm", ["run", "mutate", "--mutate", files.join(",")], {
     cwd: packageDirectory,
     stdio: "inherit",
   });

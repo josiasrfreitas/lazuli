@@ -78,7 +78,7 @@ export async function buildRows(input: BuildRowsInput): Promise<StudentListRow[]
   return input.students.map((student) => ({
     id: student.id,
     fullName: student.fullName,
-    isMinor: isMinorInSaoPaulo(student.birthDate),
+    isMinor: isMinorInSaoPaulo({ birthDate: student.birthDate, now: input.values.now }),
     status: student.status,
     phone: student.phone,
     enrollment: toEnrollmentFacts(student.enrollments[0]),

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
+import { randomUUID } from "node:crypto";
 
 import { db } from "@lazuli/db";
 
@@ -48,6 +49,7 @@ void describe("enrollment.create", () => {
   registerPersonalizedRequiresStage();
   registerCapacityOverride();
   registerInactiveStudentRejected();
+  registerStudentNotFound();
   registerArchivedClassRejected();
   registerDuplicateRejected();
   registerEntryDateDefault();
@@ -76,6 +78,27 @@ function registerRegularHappyPath(): void {
       where: { enrollmentId: result.enrollment.id, endDate: null },
     });
     assert.equal(activeProgress, 1);
+  });
+}
+
+function registerStudentNotFound(): void {
+  void it("rejects enrollment when the student does not exist", async () => {
+    const catalog = await setupCatalog();
+    const classRow = await createPersonalizedClass({
+      code: "missing-student",
+      semesterId: catalog.semesterId,
+    });
+
+    assert.equal(
+      await rejectionMessage(
+        caller().enrollment.create({
+          studentId: randomUUID(),
+          classId: classRow.id,
+          stageId: catalog.activeStageId,
+        }),
+      ),
+      "Aluno nao encontrado.",
+    );
   });
 }
 
