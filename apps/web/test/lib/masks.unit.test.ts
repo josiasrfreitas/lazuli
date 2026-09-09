@@ -24,6 +24,18 @@ void describe("parseDateBR", () => {
     assert.equal(parseDateBR("29/02/2024"), "2024-02-29");
   });
 
+  void it("accepts the minimum supported date 01/01/1900", () => {
+    assert.equal(parseDateBR("01/01/1900"), "1900-01-01");
+  });
+
+  void it("accepts 01/01/2026 at the start of the supported year", () => {
+    assert.equal(parseDateBR("01/01/2026"), "2026-01-01");
+  });
+
+  void it("accepts 01/12/2026 at the end of the supported year", () => {
+    assert.equal(parseDateBR("01/12/2026"), "2026-12-01");
+  });
+
   void it("rejects partial, impossible, or ancient dates", () => {
     assert.equal(parseDateBR(""), null);
     assert.equal(parseDateBR("02/09"), null);
