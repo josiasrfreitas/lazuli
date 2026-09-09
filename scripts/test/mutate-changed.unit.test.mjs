@@ -55,12 +55,27 @@ async function createChangedPackageFixture(options = {}) {
   const packageJson = JSON.stringify({
     name: "@lazuli/api",
     private: true,
-    scripts: { mutate: mutateScript },
+    scripts: { build: "true", mutate: mutateScript },
   });
 
   git(repositoryDirectory, ["init", "--initial-branch=main"]);
   git(repositoryDirectory, ["config", "user.email", "tests@example.test"]);
   git(repositoryDirectory, ["config", "user.name", "Tests"]);
+  await writeFixtureFile({
+    content: '{"private":true,"packageManager":"pnpm@11.6.0"}\n',
+    relativePath: "package.json",
+    repositoryDirectory,
+  });
+  await writeFixtureFile({
+    content: 'packages:\n  - "packages/*"\n',
+    relativePath: "pnpm-workspace.yaml",
+    repositoryDirectory,
+  });
+  await writeFixtureFile({
+    content: '{"tasks":{"build":{"dependsOn":["^build"]}}}\n',
+    relativePath: "turbo.json",
+    repositoryDirectory,
+  });
   await writeFixtureFile({
     content: `FIXTURE_DOTENV_VALUE=${fixtureDotenvValue}\n`,
     relativePath: ".env",
@@ -123,6 +138,7 @@ if (process.env.FIXTURE_MUTATE_FAIL === "1") {
 
 function createPathValue() {
   return [
+    path.join(repositoryRoot, "node_modules", ".bin"),
     path.dirname(pnpmExecutable),
     path.dirname(gitExecutable),
     path.dirname(process.execPath),

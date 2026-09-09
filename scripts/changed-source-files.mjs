@@ -4,7 +4,10 @@ const WORKSPACE_SOURCE_PATTERN = /^(apps|packages)\/[^/]+\/src\/.+\.(ts|tsx)$/u;
 const EXCLUDED_SOURCE_PATTERN = /(\.d\.ts$|\.stories\.tsx?$|\/generated\/)/u;
 
 function git(args) {
-  return execFileSync("git", args, { encoding: "utf8" }).trim();
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+  );
+  return execFileSync("git", args, { encoding: "utf8", env }).trim();
 }
 
 function gitLines(args) {
@@ -23,7 +26,10 @@ function refExists(ref) {
 
 function fetchRef(ref) {
   try {
-    execFileSync("git", ["fetch", "--quiet", "origin", ref], { stdio: "ignore" });
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
+    );
+    execFileSync("git", ["fetch", "--quiet", "origin", ref], { env, stdio: "ignore" });
     return refExists(`origin/${ref}`);
   } catch {
     return false;

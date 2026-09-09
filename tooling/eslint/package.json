@@ -8,13 +8,14 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "test": "node --test \"test/**/*.unit.test.js\""
+    "test": "node ../../scripts/run-test-tier.mjs unit"
   },
   "dependencies": {
     "@eslint/js": "catalog:",
     "eslint": "catalog:",
     "eslint-import-resolver-typescript": "catalog:",
-    "eslint-plugin-import": "catalog:",
+    "eslint-node-test": "catalog:",
+    "eslint-plugin-import-x": "catalog:",
     "eslint-plugin-security": "catalog:",
     "eslint-plugin-sonarjs": "catalog:",
     "eslint-plugin-unicorn": "catalog:",

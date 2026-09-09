@@ -1,9 +1,3 @@
-# Minimum CI gates for Lazuli.
-#
-# Every job here is a blocking gate on PRs to main and pushes to main. E2E runs separately
-# (e2e.yml), not here.
-#
-# This workflow has no deploy step, Sentry upload, or coverage gate.
 name: CI
 
 on:
@@ -12,40 +6,33 @@ on:
   push:
     branches: [main]
 
-# A newer push to the same ref cancels in-flight runs for that ref.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Format, lint, typecheck, unit tests, and build — none of these need a database.
   quality:
     name: Quality gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
-
       - name: Format
         run: pnpm format:check
-
       - name: Lint
         run: pnpm lint
-
+      - name: Prospective test quality
+        run: pnpm test:quality:changed --base origin/${{ github.base_ref || 'main' }}
       - name: Typecheck
         run: pnpm typecheck
-
-      - name: Unit tests
-        run: pnpm test
-
       - name: Build
         run: pnpm build
 
-  # Three-tier tests: quality runs unit; this job runs integration + transport against Postgres 16.
-  # DB integration tests + Prisma migrate/drift check against a real Postgres 16,
-  # matching the accepted PostgreSQL 16 engine and the Docker Compose image.
-  database:
-    name: Database gates
+  tests:
+    name: Complete test tiers
+    needs: quality
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -54,49 +41,118 @@ jobs:
           POSTGRES_USER: lazuli
           POSTGRES_PASSWORD: lazuli
           POSTGRES_DB: lazuli
-        ports:
-          - 5432:5432
+        ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U lazuli -d lazuli"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
-      # Mailpit backs the SMTP email delivery integration test (test/mailpit-email.integration.test.ts).
-      # Ports match docker-compose.yml (SMTP 1025, UI/API 8025).
       mailpit:
         image: axllent/mailpit:v1.21
-        ports:
-          - 1025:1025
-          - 8025:8025
+        ports: ["1025:1025", "8025:8025"]
     env:
       DATABASE_URL: postgresql://lazuli:lazuli@localhost:5432/lazuli?schema=public
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
-
-      # Applies committed migrations to the fresh PG16 service.
-      - name: Prisma migrate (deploy)
+      - name: Apply migrations
         run: pnpm prisma:deploy
-
-      # Fails if schema.prisma has changes the committed migrations don't capture.
-      - name: Prisma drift check
+      - name: Check migration drift
         run: pnpm prisma:drift
-
-      # Mailpit has no health check, so poll its API before tests that depend on it.
       - name: Wait for Mailpit
         run: |
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8025/api/v1/info > /dev/null; then
-              echo "Mailpit ready"
-              exit 0
-            fi
+            curl -sf http://localhost:8025/api/v1/info >/dev/null && exit 0
             sleep 1
           done
           echo "Mailpit did not become ready in time"
           exit 1
+      - name: Root unit checks
+        run: pnpm test:scripts && pnpm test:component-lines && pnpm test:styles
+      - name: Unit reports
+        run: pnpm exec turbo run test --force
+      - name: Integration reports
+        run: pnpm exec turbo run test:integration --force --concurrency=1
+      - name: Transport reports
+        run: pnpm exec turbo run test:transport --force --concurrency=1
+      - name: Changed-source execution
+        run: pnpm test:changed-covered --base origin/${{ github.base_ref || 'main' }} --reports
+      - name: Slow-test report
+        if: always()
+        run: pnpm test:durations
+      - name: Publish JUnit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-${{ github.run_id }}
+          path: |
+            apps/*/reports/junit/*.xml
+            packages/*/reports/junit/*.xml
+            tooling/*/reports/junit/*.xml
+          if-no-files-found: error
+      - name: Publish LCOV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcov-${{ github.run_id }}
+          path: |
+            apps/*/coverage/*/lcov.info
+            packages/*/coverage/*/lcov.info
+            tooling/*/coverage/*/lcov.info
+          if-no-files-found: error
 
-      - name: Integration tests
-        run: pnpm test:integration
-
-      - name: Transport tests
-        run: pnpm test:transport
+  mutation:
+    name: Changed-file mutation
+    if: github.event_name == 'pull_request'
+    needs: [quality, tests]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: lazuli
+          POSTGRES_PASSWORD: lazuli
+          POSTGRES_DB: lazuli
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U lazuli -d lazuli"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      mailpit:
+        image: axllent/mailpit:v1.21
+        ports: ["1025:1025", "8025:8025"]
+    env:
+      DATABASE_URL: postgresql://lazuli:lazuli@localhost:5432/lazuli?schema=public
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Prepare environment file
+        run: touch .env
+      - name: Apply migrations
+        run: pnpm prisma:deploy
+      - name: Check migration drift
+        run: pnpm prisma:drift
+      - name: Wait for Mailpit
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8025/api/v1/info >/dev/null && exit 0
+            sleep 1
+          done
+          echo "Mailpit did not become ready in time"
+          exit 1
+      - name: Mutate changed source
+        run: pnpm mutate:changed --base origin/${{ github.base_ref }}
+      - name: Publish mutation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-${{ github.run_id }}
+          path: |
+            apps/*/reports/mutation/**
+            packages/*/reports/mutation/**
+          if-no-files-found: warn

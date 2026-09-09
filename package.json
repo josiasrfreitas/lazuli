@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "^22.12.0 || >=24.0.0 <25 || ^26.0.0"
+    "node": "^22.13.0 || >=24.0.0 <25 || ^26.0.0"
   },
   "packageManager": "pnpm@11.6.0",
   "scripts": {
@@ -25,9 +25,14 @@
     "test:transport": "turbo run test:transport --concurrency=1",
     "test:all": "pnpm test && pnpm test:integration && pnpm test:transport",
     "test:e2e": "turbo run test:e2e",
+    "test:quality:changed": "node tooling/eslint/quality-changed.mjs",
+    "test:affected": "node scripts/test-affected.mjs",
     "test:changed-covered": "node scripts/changed-source-covered.mjs",
+    "test:durations": "node scripts/test-durations.mjs",
+    "test:surface-inventory": "node --import tsx scripts/test-surface-inventory.mjs",
     "mutate": "turbo run mutate --concurrency=1",
     "mutate:changed": "node scripts/mutate-changed.mjs",
+    "mutation:redundancy-report": "node scripts/mutation-redundancy-report.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore --ignore-path .prettierignore",
     "prisma:migrate": "pnpm -F @lazuli/db prisma:migrate",
@@ -50,6 +55,7 @@
     "prettier": "catalog:",
     "postcss": "catalog:",
     "turbo": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:"
   },
   "prettier": "@lazuli/prettier-config"

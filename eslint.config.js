@@ -21,13 +21,27 @@ export default [
     files: [
       "scripts/changed-source-files.mjs",
       "scripts/changed-source-covered.mjs",
+      "scripts/mutation-redundancy-report.mjs",
       "scripts/mutate-changed.mjs",
+      "scripts/run-test-tier.mjs",
+      "scripts/test-affected.mjs",
+      "scripts/test-durations.mjs",
+      "scripts/test-surface-inventory.mjs",
     ],
     // Change gates spawn git, node, and Stryker over paths derived from the git diff.
     rules: {
       "no-restricted-syntax": "off",
+      "complexity": "off",
+      "max-depth": "off",
+      "max-params": "off",
+      "no-magic-numbers": "off",
+      "sonarjs/no-duplicate-string": "off",
+      "sonarjs/cognitive-complexity": "off",
       "security/detect-child-process": "off",
       "security/detect-non-literal-fs-filename": "off",
+      "security/detect-non-literal-regexp": "off",
+      "unicorn/no-array-callback-reference": "off",
+      "unicorn/no-process-exit": "off",
     },
   },
   {
@@ -35,6 +49,10 @@ export default [
     // Script tests build temporary git repositories and fake binaries as deterministic fixtures.
     rules: {
       "no-restricted-syntax": "off",
+      "max-lines-per-function": "off",
+      "max-params": "off",
+      "no-magic-numbers": "off",
+      "sonarjs/no-duplicate-string": "off",
       "security/detect-child-process": "off",
       "security/detect-non-literal-fs-filename": "off",
     },

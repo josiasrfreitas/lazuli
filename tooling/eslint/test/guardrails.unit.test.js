@@ -88,7 +88,7 @@ function ruleIds(messages) {
   return messages.map(({ ruleId }) => ruleId);
 }
 
-// The relative-path zone in `import/no-restricted-paths` matches on physical
+// The relative-path zone in `import-x/no-restricted-paths` matches on physical
 // location, so this probe must sit at a real app path (same depth as a page).
 async function lintWebRestrictedPathsProbe(source) {
   const webDirectory = path.join(repositoryRoot, "apps/web");
@@ -139,7 +139,7 @@ describe("shared ESLint guardrails", () => {
       'import "../../../../packages/worker-handlers/src/index.js";',
     );
 
-    assert.ok(ruleIds(messages).includes("import/no-restricted-paths"));
+    assert.ok(ruleIds(messages).includes("import-x/no-restricted-paths"));
   });
 
   it("rejects finance internal imports outside the finance module", async () => {
@@ -150,7 +150,7 @@ describe("shared ESLint guardrails", () => {
       ].join("\n"),
     );
 
-    assert.ok(ruleIds(messages).includes("import/no-restricted-paths"));
+    assert.ok(ruleIds(messages).includes("import-x/no-restricted-paths"));
   });
 
   it("uses type information to reject floating promises", async () => {

@@ -1,7 +1,8 @@
 import path from "node:path";
 
 import js from "@eslint/js";
-import importPlugin from "eslint-plugin-import";
+import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
+import { importX } from "eslint-plugin-import-x";
 import security from "eslint-plugin-security";
 import sonarjs from "eslint-plugin-sonarjs";
 import unicorn from "eslint-plugin-unicorn";
@@ -49,7 +50,7 @@ const javascriptConfig = {
 
 const sharedRulesConfig = {
   plugins: {
-    import: importPlugin,
+    "import-x": importX,
     sonarjs,
     "unused-imports": unusedImports,
   },
@@ -79,7 +80,7 @@ const sharedRulesConfig = {
     eqeqeq: ["error", "always"],
     "sonarjs/no-duplicate-string": ["error", { threshold: 3 }],
     "sonarjs/no-identical-functions": "error",
-    "import/no-cycle": ["error", { ignoreExternal: true }],
+    "import-x/no-cycle": ["error", { ignoreExternal: true }],
     "no-restricted-syntax": ["error", processEnvironmentRestriction],
     "unicorn/filename-case": "off",
     "unicorn/no-null": "off",
@@ -124,11 +125,11 @@ function createProjectConfig(tsconfigRootDir) {
       },
     },
     settings: {
-      "import/resolver": {
-        typescript: {
+      "import-x/resolver-next": [
+        createTypeScriptImportResolver({
           project: path.join(tsconfigRootDir, "tsconfig.json"),
-        },
-      },
+        }),
+      ],
     },
   };
 }

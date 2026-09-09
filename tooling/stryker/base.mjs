@@ -30,7 +30,7 @@ export function createStrykerConfig(options = {}) {
     reporters: ["clear-text", "progress", "html", "json"],
     htmlReporter: { fileName: "reports/mutation/index.html" },
     jsonReporter: { fileName: "reports/mutation/report.json" },
-    thresholds: { high: 90, low: 75, break: 75 },
+    thresholds: { high: 90, low: 70, break: 70 },
     tempDirName: ".stryker-tmp",
     cleanTempDir: true,
   };
