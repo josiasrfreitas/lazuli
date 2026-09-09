@@ -30,10 +30,10 @@ it("prints slow JUnit tests and leaves budget warnings non-blocking", async (con
   await write(
     directory,
     "packages/core/reports/junit/unit.xml",
-    '<?xml version="1.0"?><testsuites><testsuite name="unit">' +
+    '<?xml version="1.0"?><testsuites>' +
       '<testcase name="fast" time="3.000" file="test/sample.unit.test.ts"></testcase>' +
       '<testcase name="slow" time="3.200" file="test/sample.unit.test.ts"></testcase>' +
-      "</testsuite></testsuites>",
+      "</testsuites>",
   );
 
   const result = run(directory, durationsScript);

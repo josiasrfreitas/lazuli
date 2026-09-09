@@ -56,7 +56,7 @@ function findReports() {
 
 function readReport(report) {
   const contents = readFileSync(report, "utf8");
-  if (!contents.includes("<testsuite") || !contents.includes("</testsuite>")) {
+  if (!contents.includes("<testsuites") || !contents.includes("</testsuites>")) {
     fail(`Invalid JUnit report: ${report}`);
   }
   const tier = /\/(unit|integration|transport)\.xml$/u.exec(report)?.[1];
