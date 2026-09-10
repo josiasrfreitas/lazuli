@@ -92,6 +92,7 @@ function registerWaiveHappyPath(): void {
     });
     assert.ok(stored.waivedAt instanceof Date);
     assert.equal(stored.waivedReason, WAIVER_REASON);
+    assert.equal(stored.sequenceNumber, 1);
     assert.equal(stored.updatedById, ADMIN.id);
   });
 }

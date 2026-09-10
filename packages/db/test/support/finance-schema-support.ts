@@ -186,6 +186,7 @@ async function createInstallment(
 ): Promise<{ id: string }> {
   return database.installment.create({
     data: {
+      sequenceNumber: 1,
       amountCents: PRINCIPAL_AMOUNT_CENTS,
       dueDate: DUE_DATE,
       orderId,

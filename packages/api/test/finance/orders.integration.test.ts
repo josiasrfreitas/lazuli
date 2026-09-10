@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
 
-import {
-  FINANCE_DUE_DAY_FIFTEENTH,
-  FINANCE_DUE_DAY_TENTH,
-  generateInstallments,
-} from "@lazuli/domain";
+import { FINANCE_DUE_DAY_FIFTEENTH, FINANCE_DUE_DAY_TENTH } from "@lazuli/domain";
 import { db } from "@lazuli/db";
 import { InstallmentAdjustmentType, PaymentMethod } from "@lazuli/db";
 
@@ -25,7 +21,6 @@ import {
 } from "../support/finance-test-support.js";
 
 const DATE_ONLY_PREFIX_LENGTH = 10;
-const DEFAULT_ORDER_START_DATE = "2026-01-03";
 const UPDATED_ORDER_START_DATE = new Date("2026-02-01T00:00:00.000Z");
 const LOCKED_UPDATE_START_DATE = new Date("2026-03-01T00:00:00.000Z");
 const PAYMENT_EVENT_DATE = new Date("2026-01-10T00:00:00.000Z");
@@ -35,6 +30,9 @@ const SPLIT_INSTALLMENT_CENTS = 45_000;
 const PAYMENT_AMOUNT_CENTS = 10_000;
 const DISCOUNT_AMOUNT_CENTS = -1000;
 const TWO_INSTALLMENTS = 2;
+const THIRD_INSTALLMENT = 3;
+const BASE_INSTALLMENT_CENTS = 33_333;
+const FINAL_INSTALLMENT_CENTS = 33_334;
 const SINGLE_BENEFICIARY = 1;
 const MISSING_ENTITY_ID = "00000000-0000-0000-0000-000000000099";
 
@@ -49,6 +47,22 @@ void describe("finance.updateOrder", () => {
   registerFinanceDatabaseHooks();
   registerUpdateOrderHappyPath();
   registerUpdateOrderCutoffErrors();
+  void it("preserves installment numbers when a due date crosses the next installment", async () => {
+    const created = await createOrderFixture();
+    await db.installment.update({
+      where: { id: created.installmentId },
+      data: { dueDate: new Date("2026-04-05") },
+    });
+    const stored = await db.installment.findMany({
+      where: { orderId: created.order.id },
+      orderBy: { dueDate: "asc" },
+    });
+    assert.deepEqual(
+      stored.map((row) => row.sequenceNumber),
+      [2, THIRD_INSTALLMENT, 1],
+    );
+    assert.equal(stored[2]?.id, created.installmentId);
+  });
 });
 
 function registerFinanceDatabaseHooks(): void {
@@ -81,22 +95,27 @@ function registerCreateOrderHappyPath(): void {
     assert.equal(result.installments.length, DEFAULT_ORDER_INPUT.installmentCount);
     assert.equal(result.beneficiaries.length, SINGLE_BENEFICIARY);
 
-    const expected = generateInstallments({
-      principalAmountCents: DEFAULT_ORDER_INPUT.principalAmountCents,
-      installmentCount: DEFAULT_ORDER_INPUT.installmentCount,
-      startDate: DEFAULT_ORDER_START_DATE,
-      dueDay: DEFAULT_ORDER_INPUT.dueDay,
-    });
-
     assert.deepEqual(
       result.installments.map((row) => row.amountCents),
-      expected.map((row) => row.amountCents),
+      [BASE_INSTALLMENT_CENTS, BASE_INSTALLMENT_CENTS, FINAL_INSTALLMENT_CENTS],
     );
     assert.deepEqual(
       result.installments.map((row) => row.dueDate.toISOString().slice(0, DATE_ONLY_PREFIX_LENGTH)),
-      expected.map((row) => row.dueDate),
+      ["2026-01-05", "2026-02-05", "2026-03-05"],
     );
 
+    assert.deepEqual(
+      result.installments.map((row) => row.sequenceNumber),
+      [1, 2, THIRD_INSTALLMENT],
+    );
+    const stored = await db.installment.findMany({
+      where: { orderId: result.order.id },
+      orderBy: { sequenceNumber: "asc" },
+    });
+    assert.deepEqual(
+      stored.map((row) => row.sequenceNumber),
+      [1, 2, THIRD_INSTALLMENT],
+    );
     const storedSum = result.installments.reduce((total, row) => total + row.amountCents, 0);
     assert.equal(storedSum, DEFAULT_ORDER_INPUT.principalAmountCents);
   });
@@ -163,6 +182,22 @@ function registerUpdateOrderHappyPath(): void {
       dueDay: FINANCE_DUE_DAY_TENTH,
     });
 
+    assert.deepEqual(
+      updated.installments.map((row) => row.sequenceNumber),
+      [1, 2],
+    );
+    const stored = await db.installment.findMany({
+      where: { orderId: updated.order.id },
+      orderBy: { sequenceNumber: "asc" },
+    });
+    assert.deepEqual(
+      stored.map((row) => row.sequenceNumber),
+      [1, 2],
+    );
+    assert.equal(
+      stored.some((row) => row.id === created.installmentId),
+      false,
+    );
     assert.equal(updated.order.principalAmountCents, UPDATED_PRINCIPAL_CENTS);
     assert.equal(updated.installments.length, TWO_INSTALLMENTS);
     assert.deepEqual(

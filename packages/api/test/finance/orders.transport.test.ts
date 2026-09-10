@@ -13,12 +13,14 @@ import {
   HTTP_OK,
 } from "../support/finance-test-support.js";
 
+const THIRD_INSTALLMENT = 3;
+
 type CreateOrderResponseBody = {
   result: {
     data: {
       json: {
         order: { id: string; principalAmountCents: number };
-        installments: Array<{ amountCents: number }>;
+        installments: Array<{ amountCents: number; sequenceNumber: number }>;
       };
     };
   };
@@ -52,6 +54,10 @@ void describe("finance API over the tRPC HTTP boundary", () => {
     const payload = (await response.json()) as CreateOrderResponseBody;
 
     assert.equal(response.status, HTTP_OK);
+    assert.deepEqual(
+      payload.result.data.json.installments.map((row) => row.sequenceNumber),
+      [1, 2, THIRD_INSTALLMENT],
+    );
     assert.equal(
       payload.result.data.json.installments.length,
       DEFAULT_ORDER_INPUT.installmentCount,

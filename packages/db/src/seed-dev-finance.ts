@@ -83,12 +83,13 @@ async function seedInstallments(context: SeedContext, input: InstallmentsInput):
   const dueIsos = installmentDueDates(context.semester.startIso);
   const dueSoFar = dueIsos.filter((dueIso) => dueIso <= context.todayIso);
   const paidIsos = new Set(input.studentSeed.finance === "paid" ? dueSoFar : dueSoFar.slice(0, -1));
-  for (const dueIso of dueIsos) {
+  for (const [index, dueIso] of dueIsos.entries()) {
     const installmentId = stableUuid(["installment", input.studentSeed.key, dueIso]);
     await context.database.installment.upsert({
       where: { id: installmentId },
       create: {
         id: installmentId,
+        sequenceNumber: index + 1,
         orderId: input.orderId,
         amountCents: input.tuitionCents,
         dueDate: utcDate(dueIso),

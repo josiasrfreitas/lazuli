@@ -619,6 +619,7 @@ model OrderBeneficiary {
 }
 
 model Installment {
+  sequenceNumber        Int       @map("sequence_number")
   id                    String    @id @default(uuid()) @db.Uuid
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz

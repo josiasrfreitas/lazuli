@@ -134,6 +134,7 @@ function registerSchemaTest3(database: DatabaseClient): void {
     const observedConstraint5 = await expectConstraintRejection(
       database.installment.create({
         data: {
+          sequenceNumber: 2,
           amountCents: -1,
           dueDate: DUE_DATE,
           orderId: fixture.orderId,
