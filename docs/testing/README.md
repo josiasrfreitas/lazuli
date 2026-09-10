@@ -100,6 +100,13 @@ Stryker configs. Changed-file mutation score must be at least 70; transport is e
 are investigation evidence but do not independently fail a score of 70 or more. CI runs mutation on
 pull requests with full Git history, Postgres, Mailpit, and applied migrations.
 
+Review every new surviving mutant, even when the score passes. Add or strengthen tests when a
+survivor exposes a gap in relevant observable behavior, especially financial calculations,
+authorization, or data integrity. For equivalent or unreachable mutants, or behavior outside the
+contract, document the reason in the review or completion report. Investigate unexplained survivors
+before considering the work complete. Do not create implementation-coupled tests merely to reach
+100 percent; a mutation score does not establish that the chosen approach serves the user's goal.
+
 `pnpm mutation:redundancy-report` reads the local Stryker JSON matrix and lists test files that kill
 no mutant exclusively. Shared kills do not prove redundancy. A missing or invalid report is a tool
 error; the informational finding itself does not block.
