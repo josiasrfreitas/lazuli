@@ -80,32 +80,57 @@ type InstallmentsInput = {
 };
 
 async function seedInstallments(context: SeedContext, input: InstallmentsInput): Promise<void> {
-  const dueIsos = installmentDueDates(context.semester.startIso);
+  const installments = await loadOrCreateInstallments(context, input);
+  const dueIsos = installments.map((installment) => isoOf(installment.dueDate));
   const dueSoFar = dueIsos.filter((dueIso) => dueIso <= context.todayIso);
   const paidIsos = new Set(input.studentSeed.finance === "paid" ? dueSoFar : dueSoFar.slice(0, -1));
-  for (const [index, dueIso] of dueIsos.entries()) {
-    const installmentId = stableUuid(["installment", input.studentSeed.key, dueIso]);
-    await context.database.installment.upsert({
-      where: { id: installmentId },
-      create: {
-        id: installmentId,
-        sequenceNumber: index + 1,
-        orderId: input.orderId,
-        amountCents: input.tuitionCents,
-        dueDate: utcDate(dueIso),
-      },
-      update: {},
-    });
+  for (const installment of installments) {
+    const dueIso = isoOf(installment.dueDate);
     if (paidIsos.has(dueIso)) {
       await payInstallment(context, {
         studentSeed: input.studentSeed,
-        installmentId,
+        installmentId: installment.id,
         payerId: input.payerId,
         dueIso,
-        amountCents: input.tuitionCents,
+        amountCents: installment.amountCents,
       });
     }
   }
+}
+
+type SeededInstallment = { id: string; amountCents: number; dueDate: Date };
+
+async function loadOrCreateInstallments(
+  context: SeedContext,
+  input: InstallmentsInput,
+): Promise<SeededInstallment[]> {
+  const existing = await loadInstallments(context, input.orderId);
+  if (existing.length > 0) {
+    return existing;
+  }
+
+  const dueIsos = installmentDueDates(context.semester.startIso);
+  await context.database.installment.createMany({
+    data: dueIsos.map((dueIso, index) => ({
+      id: stableUuid(["installment", input.studentSeed.key, dueIso]),
+      sequenceNumber: index + 1,
+      orderId: input.orderId,
+      amountCents: input.tuitionCents,
+      dueDate: utcDate(dueIso),
+    })),
+  });
+  return loadInstallments(context, input.orderId);
+}
+
+async function loadInstallments(
+  context: SeedContext,
+  orderId: string,
+): Promise<SeededInstallment[]> {
+  return context.database.installment.findMany({
+    where: { orderId },
+    orderBy: { dueDate: "asc" },
+    select: { id: true, amountCents: true, dueDate: true },
+  });
 }
 
 function installmentDueDates(startIso: string): string[] {

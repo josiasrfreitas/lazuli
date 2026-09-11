@@ -13,6 +13,18 @@ const RETAINED_NUMBER = 6;
 const INITIAL_SEQUENCE = [1, 2, THIRD, FOURTH, FIFTH];
 const PRESERVED_SEQUENCE = [RETAINED_NUMBER, 2, THIRD, FOURTH, FIFTH];
 const DATE_ONLY_LENGTH = 10;
+const FIRST_HALF_DUE_DATES = ["2026-01-10", "2026-02-10", "2026-03-10", "2026-04-10", "2026-05-10"];
+const SECOND_HALF_START = "2026-07-01";
+const SECOND_HALF_END = "2026-12-20";
+const FIRST_HALF_START = "2026-01-01";
+const REGENERATED_PRINCIPAL_CENTS = 2000;
+const REGENERATED_FIRST_AMOUNT_CENTS = 1100;
+const REGENERATED_SECOND_AMOUNT_CENTS = 900;
+const AFTER_REGENERATED_DUE_DATES = "2026-05-01";
+const REGENERATED_FIRST_ID = "00000000-0000-4000-8000-000000000002";
+const REGENERATED_SECOND_ID = "00000000-0000-4000-8000-000000000001";
+
+type DatabaseClient = ReturnType<typeof createDbClient>;
 
 void it("seeds finance repeatedly without duplicating or renumbering existing installments", async () => {
   const { database, studentSeed, context, student, orderId, payerId } = await createSeedFixture();
@@ -58,36 +70,148 @@ void it("seeds finance repeatedly without duplicating or renumbering existing in
   }
 });
 
-async function assertSeedPayments(
-  database: ReturnType<typeof createDbClient>,
+void it("keeps the persisted schedule when the current semester changes", async () => {
+  const fixture = await createSeedFixture(FIRST_HALF_START);
+  const { database, studentSeed, context, student, orderId, payerId } = fixture;
+  try {
+    await seedStudentFinance(context, { studentSeed, studentId: student.id });
+    const before = await readSchedule(database, orderId);
+    context.todayIso = SECOND_HALF_START;
+    context.semester = {
+      id: randomUUID(),
+      name: "2026.2",
+      startIso: SECOND_HALF_START,
+      endIso: SECOND_HALF_END,
+      year: 2026,
+    };
+
+    await seedStudentFinance(context, { studentSeed, studentId: student.id });
+
+    const after = await readSchedule(database, orderId);
+    assert.deepEqual(after, before);
+    assert.deepEqual(
+      after.map((row) => row.sequenceNumber),
+      INITIAL_SEQUENCE,
+    );
+    assert.deepEqual(
+      after.map((row) => row.dueDate),
+      FIRST_HALF_DUE_DATES,
+    );
+    await assertSeedPayments(database, payerId);
+  } finally {
+    await cleanSeedFixture(database, { orderId, payerId, studentId: student.id });
+    await database.$disconnect();
+  }
+});
+
+void it("keeps a regenerated editable order schedule on the next seed run", async () => {
+  const fixture = await createSeedFixture(FIRST_HALF_START);
+  const { database, studentSeed, context, student, orderId, payerId } = fixture;
+  try {
+    await seedStudentFinance(context, { studentSeed, studentId: student.id });
+    const regenerated = await replaceWithRegeneratedSchedule(database, orderId);
+    studentSeed.finance = "overdue";
+    context.todayIso = AFTER_REGENERATED_DUE_DATES;
+
+    await seedStudentFinance(context, { studentSeed, studentId: student.id });
+
+    assert.deepEqual(await readSchedule(database, orderId), regenerated);
+    assert.deepEqual(await readPayments(database, payerId), [
+      { amount: REGENERATED_FIRST_AMOUNT_CENTS, date: "2026-03-08", method: "PIX" },
+    ]);
+  } finally {
+    await cleanSeedFixture(database, { orderId, payerId, studentId: student.id });
+    await database.$disconnect();
+  }
+});
+
+async function readSchedule(
+  database: DatabaseClient,
+  orderId: string,
+): Promise<Array<{ id: string; sequenceNumber: number; amountCents: number; dueDate: string }>> {
+  const rows = await database.installment.findMany({
+    where: { orderId },
+    orderBy: { sequenceNumber: "asc" },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    sequenceNumber: row.sequenceNumber,
+    amountCents: row.amountCents,
+    dueDate: row.dueDate.toISOString().slice(0, DATE_ONLY_LENGTH),
+  }));
+}
+
+async function replaceWithRegeneratedSchedule(
+  database: DatabaseClient,
+  orderId: string,
+): ReturnType<typeof readSchedule> {
+  await database.installment.deleteMany({ where: { orderId } });
+  await database.order.update({
+    where: { id: orderId },
+    data: { principalAmountCents: REGENERATED_PRINCIPAL_CENTS, startDate: new Date("2026-03-01") },
+  });
+  await database.installment.createMany({
+    data: [
+      regeneratedInstallment({
+        id: REGENERATED_SECOND_ID,
+        orderId,
+        sequenceNumber: 2,
+        amountCents: REGENERATED_SECOND_AMOUNT_CENTS,
+        dueDate: "2026-04-10",
+      }),
+      regeneratedInstallment({
+        id: REGENERATED_FIRST_ID,
+        orderId,
+        sequenceNumber: 1,
+        amountCents: REGENERATED_FIRST_AMOUNT_CENTS,
+        dueDate: "2026-03-10",
+      }),
+    ],
+  });
+  return readSchedule(database, orderId);
+}
+
+function regeneratedInstallment(input: {
+  id: string;
+  orderId: string;
+  sequenceNumber: number;
+  amountCents: number;
+  dueDate: string;
+}): { id: string; orderId: string; sequenceNumber: number; amountCents: number; dueDate: Date } {
+  return { ...input, dueDate: new Date(input.dueDate) };
+}
+
+async function assertSeedPayments(database: DatabaseClient, payerId: string): Promise<void> {
+  assert.deepEqual(await readPayments(database, payerId), [
+    { amount: 1000, date: "2026-01-08", method: "PIX" },
+    { amount: 1000, date: "2026-02-08", method: "PIX" },
+    { amount: 1000, date: "2026-03-08", method: "PIX" },
+    { amount: 1000, date: "2026-04-08", method: "PIX" },
+    { amount: 1000, date: "2026-05-08", method: "PIX" },
+  ]);
+}
+
+async function readPayments(
+  database: DatabaseClient,
   payerId: string,
-): Promise<void> {
+): Promise<Array<{ amount: number; date: string; method: string }>> {
   const payments = await database.paymentEntry.findMany({
     where: { payerId },
     orderBy: { date: "asc" },
   });
-  assert.deepEqual(
-    payments.map((row) => ({
-      amount: row.amountCents,
-      date: row.date.toISOString().slice(0, DATE_ONLY_LENGTH),
-      method: row.method,
-    })),
-    [
-      { amount: 1000, date: "2026-01-08", method: "PIX" },
-      { amount: 1000, date: "2026-02-08", method: "PIX" },
-      { amount: 1000, date: "2026-03-08", method: "PIX" },
-      { amount: 1000, date: "2026-04-08", method: "PIX" },
-      { amount: 1000, date: "2026-05-08", method: "PIX" },
-    ],
-  );
+  return payments.map((row) => ({
+    amount: row.amountCents,
+    date: row.date.toISOString().slice(0, DATE_ONLY_LENGTH),
+    method: row.method,
+  }));
 }
 
 function seedFixture(
-  database: ReturnType<typeof createDbClient>,
-  key: string,
+  database: DatabaseClient,
+  input: { key: string; todayIso: string },
 ): { studentSeed: DevStudentSeed; context: SeedContext } {
   const studentSeed: DevStudentSeed = {
-    key,
+    key: input.key,
     fullName: "Sequence Seed Student",
     status: "ACTIVE",
     enrollments: [],
@@ -97,13 +221,13 @@ function seedFixture(
   };
   const context: SeedContext = {
     database,
-    todayIso: "2026-06-01",
+    todayIso: input.todayIso,
     teacherIds: new Map(),
     classes: new Map(),
     semester: {
       id: randomUUID(),
       name: "Seed",
-      startIso: "2026-01-01",
+      startIso: FIRST_HALF_START,
       endIso: "2026-06-01",
       year: 2026,
     },
@@ -112,7 +236,7 @@ function seedFixture(
 }
 
 async function cleanSeedFixture(
-  database: ReturnType<typeof createDbClient>,
+  database: DatabaseClient,
   scope: { orderId: string; payerId: string; studentId: string },
 ): Promise<void> {
   const { orderId, payerId, studentId } = scope;
@@ -125,8 +249,8 @@ async function cleanSeedFixture(
   await database.student.delete({ where: { id: studentId } });
 }
 
-async function createSeedFixture(): Promise<{
-  database: ReturnType<typeof createDbClient>;
+async function createSeedFixture(todayIso = "2026-06-01"): Promise<{
+  database: DatabaseClient;
   studentSeed: DevStudentSeed;
   context: SeedContext;
   student: { id: string };
@@ -135,7 +259,7 @@ async function createSeedFixture(): Promise<{
 }> {
   const database = createDbClient();
   const key = `sequence-seed-${randomUUID()}`;
-  const { studentSeed, context } = seedFixture(database, key);
+  const { studentSeed, context } = seedFixture(database, { key, todayIso });
   const student = await database.student.create({ data: { fullName: studentSeed.fullName } });
   const orderId = stableUuid(["order", key]);
   const payerId = stableUuid(["payer", key]);
