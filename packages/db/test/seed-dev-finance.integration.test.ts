@@ -23,6 +23,7 @@ const REGENERATED_SECOND_AMOUNT_CENTS = 900;
 const AFTER_REGENERATED_DUE_DATES = "2026-05-01";
 const REGENERATED_FIRST_ID = "00000000-0000-4000-8000-000000000002";
 const REGENERATED_SECOND_ID = "00000000-0000-4000-8000-000000000001";
+const MOVED_FIRST_DUE_DATE = "2026-01-20";
 
 type DatabaseClient = ReturnType<typeof createDbClient>;
 
@@ -125,6 +126,70 @@ void it("keeps a regenerated editable order schedule on the next seed run", asyn
   }
 });
 
+void it("keeps the existing payment when a paid installment due date changes", async () => {
+  const { database, studentSeed, context, student, orderId, payerId } = await createSeedFixture();
+  try {
+    await seedStudentFinance(context, { studentSeed, studentId: student.id });
+    const before = await readPaymentLinks(database, payerId);
+    const firstInstallment = await database.installment.findFirstOrThrow({
+      where: { orderId },
+      orderBy: { dueDate: "asc" },
+    });
+    await database.installment.update({
+      where: { id: firstInstallment.id },
+      data: { dueDate: new Date(MOVED_FIRST_DUE_DATE) },
+    });
+
+    await seedStudentFinance(context, { studentSeed, studentId: student.id });
+
+    assert.deepEqual(await readPaymentLinks(database, payerId), before);
+    const moved = await database.installment.findUniqueOrThrow({
+      where: { id: firstInstallment.id },
+    });
+    assert.equal(moved.dueDate.toISOString().slice(0, DATE_ONLY_LENGTH), MOVED_FIRST_DUE_DATE);
+    assert.equal(moved.sequenceNumber, 1);
+  } finally {
+    await cleanSeedFixture(database, { orderId, payerId, studentId: student.id });
+    await database.$disconnect();
+  }
+});
+
+void it("creates a new active schedule when the prior seeded schedule is soft-deleted", async () => {
+  const fixture = await createSeedFixture(FIRST_HALF_START);
+  const { database, studentSeed, context, student, orderId, payerId } = fixture;
+  try {
+    await seedStudentFinance(context, { studentSeed, studentId: student.id });
+    const deletedSchedule = await readSchedule(database, orderId);
+    await database.installment.updateMany({
+      where: { orderId },
+      data: { deletedAt: new Date("2026-01-02") },
+    });
+
+    await seedStudentFinance(context, { studentSeed, studentId: student.id });
+
+    const activeSchedule = await readSchedule(database, orderId);
+    assert.deepEqual(
+      activeSchedule.map((row) => row.sequenceNumber),
+      INITIAL_SEQUENCE,
+    );
+    assert.deepEqual(
+      activeSchedule.map((row) => row.dueDate),
+      FIRST_HALF_DUE_DATES,
+    );
+    assert.equal(
+      activeSchedule.some((row) => deletedSchedule.some((deleted) => deleted.id === row.id)),
+      false,
+    );
+    const deletedRows = await database.installment.findMany({
+      where: { orderId, deletedAt: { not: null } },
+    });
+    assert.equal(deletedRows.length, FIFTH);
+  } finally {
+    await cleanSeedFixture(database, { orderId, payerId, studentId: student.id });
+    await database.$disconnect();
+  }
+});
+
 async function readSchedule(
   database: DatabaseClient,
   orderId: string,
@@ -203,6 +268,30 @@ async function readPayments(
     amount: row.amountCents,
     date: row.date.toISOString().slice(0, DATE_ONLY_LENGTH),
     method: row.method,
+  }));
+}
+
+async function readPaymentLinks(
+  database: DatabaseClient,
+  payerId: string,
+): Promise<
+  Array<{
+    paymentEntryId: string;
+    installmentId: string;
+    amountCents: number;
+    date: string;
+  }>
+> {
+  const allocations = await database.paymentAllocation.findMany({
+    where: { paymentEntry: { payerId } },
+    orderBy: { installmentId: "asc" },
+    include: { paymentEntry: true },
+  });
+  return allocations.map((allocation) => ({
+    paymentEntryId: allocation.paymentEntryId,
+    installmentId: allocation.installmentId,
+    amountCents: allocation.amountCents,
+    date: allocation.paymentEntry.date.toISOString().slice(0, DATE_ONLY_LENGTH),
   }));
 }
 

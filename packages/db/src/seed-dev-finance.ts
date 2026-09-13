@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { DevStudentSeed } from "./seed-dev-data.js";
 import {
   addDays,
@@ -110,9 +111,16 @@ async function loadOrCreateInstallments(
   }
 
   const dueIsos = installmentDueDates(context.semester.startIso);
+  const deletedInstallment = await context.database.installment.findFirst({
+    where: { orderId: input.orderId, deletedAt: { not: null } },
+    select: { id: true },
+  });
   await context.database.installment.createMany({
     data: dueIsos.map((dueIso, index) => ({
-      id: stableUuid(["installment", input.studentSeed.key, dueIso]),
+      id:
+        deletedInstallment === null
+          ? stableUuid(["installment", input.studentSeed.key, dueIso])
+          : randomUUID(),
       sequenceNumber: index + 1,
       orderId: input.orderId,
       amountCents: input.tuitionCents,
@@ -150,7 +158,15 @@ type PaymentInput = {
 };
 
 async function payInstallment(context: SeedContext, input: PaymentInput): Promise<void> {
-  const paymentEntryId = stableUuid(["payment", input.studentSeed.key, input.dueIso]);
+  const existingAllocation = await context.database.paymentAllocation.findFirst({
+    where: { installmentId: input.installmentId },
+    select: { id: true },
+  });
+  if (existingAllocation !== null) {
+    return;
+  }
+
+  const paymentEntryId = stableUuid(["payment", input.studentSeed.key, input.installmentId]);
   await context.database.paymentEntry.upsert({
     where: { id: paymentEntryId },
     create: {
