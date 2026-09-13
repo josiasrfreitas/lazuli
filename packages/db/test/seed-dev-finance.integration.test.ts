@@ -154,36 +154,36 @@ void it("keeps the existing payment when a paid installment due date changes", a
   }
 });
 
-void it("creates a new active schedule when the prior seeded schedule is soft-deleted", async () => {
+void it("preserves a soft-deleted schedule and its payment history", async () => {
   const fixture = await createSeedFixture(FIRST_HALF_START);
   const { database, studentSeed, context, student, orderId, payerId } = fixture;
   try {
     await seedStudentFinance(context, { studentSeed, studentId: student.id });
     const deletedSchedule = await readSchedule(database, orderId);
+    const paymentLinks = await readPaymentLinks(database, payerId);
     await database.installment.updateMany({
       where: { orderId },
       data: { deletedAt: new Date("2026-01-02") },
     });
 
     await seedStudentFinance(context, { studentSeed, studentId: student.id });
+    await seedStudentFinance(context, { studentSeed, studentId: student.id });
 
-    const activeSchedule = await readSchedule(database, orderId);
-    assert.deepEqual(
-      activeSchedule.map((row) => row.sequenceNumber),
-      INITIAL_SEQUENCE,
-    );
-    assert.deepEqual(
-      activeSchedule.map((row) => row.dueDate),
-      FIRST_HALF_DUE_DATES,
-    );
-    assert.equal(
-      activeSchedule.some((row) => deletedSchedule.some((deleted) => deleted.id === row.id)),
-      false,
-    );
+    assert.deepEqual(await readSchedule(database, orderId), []);
+    assert.deepEqual(await readPaymentLinks(database, payerId), paymentLinks);
     const deletedRows = await database.installment.findMany({
       where: { orderId, deletedAt: { not: null } },
+      orderBy: { sequenceNumber: "asc" },
     });
-    assert.equal(deletedRows.length, FIFTH);
+    assert.deepEqual(
+      deletedRows.map((row) => ({
+        id: row.id,
+        sequenceNumber: row.sequenceNumber,
+        amountCents: row.amountCents,
+        dueDate: row.dueDate.toISOString().slice(0, DATE_ONLY_LENGTH),
+      })),
+      deletedSchedule,
+    );
   } finally {
     await cleanSeedFixture(database, { orderId, payerId, studentId: student.id });
     await database.$disconnect();

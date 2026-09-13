@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { DevStudentSeed } from "./seed-dev-data.js";
 import {
   addDays,
@@ -115,12 +114,13 @@ async function loadOrCreateInstallments(
     where: { orderId: input.orderId, deletedAt: { not: null } },
     select: { id: true },
   });
+  if (deletedInstallment !== null) {
+    return [];
+  }
+
   await context.database.installment.createMany({
     data: dueIsos.map((dueIso, index) => ({
-      id:
-        deletedInstallment === null
-          ? stableUuid(["installment", input.studentSeed.key, dueIso])
-          : randomUUID(),
+      id: stableUuid(["installment", input.studentSeed.key, dueIso]),
       sequenceNumber: index + 1,
       orderId: input.orderId,
       amountCents: input.tuitionCents,
