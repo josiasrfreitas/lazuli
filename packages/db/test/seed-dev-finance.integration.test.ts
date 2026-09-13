@@ -15,17 +15,15 @@ const PRESERVED_SEQUENCE = [RETAINED_NUMBER, 2, THIRD, FOURTH, FIFTH];
 const DATE_ONLY_LENGTH = 10;
 const FIRST_HALF_DUE_DATES = ["2026-01-10", "2026-02-10", "2026-03-10", "2026-04-10", "2026-05-10"];
 const SECOND_HALF_START = "2026-07-01";
-const SECOND_HALF_END = "2026-12-20";
 const FIRST_HALF_START = "2026-01-01";
 const REGENERATED_PRINCIPAL_CENTS = 2000;
 const REGENERATED_FIRST_AMOUNT_CENTS = 1100;
 const REGENERATED_SECOND_AMOUNT_CENTS = 900;
-const AFTER_REGENERATED_DUE_DATES = "2026-05-01";
 const REGENERATED_FIRST_ID = "00000000-0000-4000-8000-000000000002";
 const REGENERATED_SECOND_ID = "00000000-0000-4000-8000-000000000001";
-const MOVED_FIRST_DUE_DATE = "2026-01-20";
 
 type DatabaseClient = ReturnType<typeof createDbClient>;
+type ScheduleWhere = { orderId: string; deletedAt?: { not: null } };
 
 void it("seeds finance repeatedly without duplicating or renumbering existing installments", async () => {
   const { database, studentSeed, context, student, orderId, payerId } = await createSeedFixture();
@@ -76,19 +74,19 @@ void it("keeps the persisted schedule when the current semester changes", async 
   const { database, studentSeed, context, student, orderId, payerId } = fixture;
   try {
     await seedStudentFinance(context, { studentSeed, studentId: student.id });
-    const before = await readSchedule(database, orderId);
+    const before = await readSchedule(database, { orderId });
     context.todayIso = SECOND_HALF_START;
     context.semester = {
       id: randomUUID(),
       name: "2026.2",
       startIso: SECOND_HALF_START,
-      endIso: SECOND_HALF_END,
+      endIso: "2026-12-20",
       year: 2026,
     };
 
     await seedStudentFinance(context, { studentSeed, studentId: student.id });
 
-    const after = await readSchedule(database, orderId);
+    const after = await readSchedule(database, { orderId });
     assert.deepEqual(after, before);
     assert.deepEqual(
       after.map((row) => row.sequenceNumber),
@@ -112,11 +110,11 @@ void it("keeps a regenerated editable order schedule on the next seed run", asyn
     await seedStudentFinance(context, { studentSeed, studentId: student.id });
     const regenerated = await replaceWithRegeneratedSchedule(database, orderId);
     studentSeed.finance = "overdue";
-    context.todayIso = AFTER_REGENERATED_DUE_DATES;
+    context.todayIso = "2026-05-01";
 
     await seedStudentFinance(context, { studentSeed, studentId: student.id });
 
-    assert.deepEqual(await readSchedule(database, orderId), regenerated);
+    assert.deepEqual(await readSchedule(database, { orderId }), regenerated);
     assert.deepEqual(await readPayments(database, payerId), [
       { amount: REGENERATED_FIRST_AMOUNT_CENTS, date: "2026-03-08", method: "PIX" },
     ]);
@@ -137,7 +135,7 @@ void it("keeps the existing payment when a paid installment due date changes", a
     });
     await database.installment.update({
       where: { id: firstInstallment.id },
-      data: { dueDate: new Date(MOVED_FIRST_DUE_DATE) },
+      data: { dueDate: new Date("2026-01-20") },
     });
 
     await seedStudentFinance(context, { studentSeed, studentId: student.id });
@@ -146,7 +144,7 @@ void it("keeps the existing payment when a paid installment due date changes", a
     const moved = await database.installment.findUniqueOrThrow({
       where: { id: firstInstallment.id },
     });
-    assert.equal(moved.dueDate.toISOString().slice(0, DATE_ONLY_LENGTH), MOVED_FIRST_DUE_DATE);
+    assert.equal(moved.dueDate.toISOString().slice(0, DATE_ONLY_LENGTH), "2026-01-20");
     assert.equal(moved.sequenceNumber, 1);
   } finally {
     await cleanSeedFixture(database, { orderId, payerId, studentId: student.id });
@@ -154,13 +152,12 @@ void it("keeps the existing payment when a paid installment due date changes", a
   }
 });
 
-void it("preserves a soft-deleted schedule and its payment history", async () => {
-  const fixture = await createSeedFixture(FIRST_HALF_START);
-  const { database, studentSeed, context, student, orderId, payerId } = fixture;
+void it("recreates a soft-deleted schedule without financial activity", async () => {
+  const { database, studentSeed, context, student, orderId, payerId } =
+    await createSeedFixture(FIRST_HALF_START);
   try {
     await seedStudentFinance(context, { studentSeed, studentId: student.id });
-    const deletedSchedule = await readSchedule(database, orderId);
-    const paymentLinks = await readPaymentLinks(database, payerId);
+    const deletedSchedule = await readSchedule(database, { orderId });
     await database.installment.updateMany({
       where: { orderId },
       data: { deletedAt: new Date("2026-01-02") },
@@ -169,21 +166,44 @@ void it("preserves a soft-deleted schedule and its payment history", async () =>
     await seedStudentFinance(context, { studentSeed, studentId: student.id });
     await seedStudentFinance(context, { studentSeed, studentId: student.id });
 
-    assert.deepEqual(await readSchedule(database, orderId), []);
-    assert.deepEqual(await readPaymentLinks(database, payerId), paymentLinks);
-    const deletedRows = await database.installment.findMany({
-      where: { orderId, deletedAt: { not: null } },
-      orderBy: { sequenceNumber: "asc" },
-    });
+    const activeSchedule = await readSchedule(database, { orderId });
     assert.deepEqual(
-      deletedRows.map((row) => ({
-        id: row.id,
-        sequenceNumber: row.sequenceNumber,
-        amountCents: row.amountCents,
-        dueDate: row.dueDate.toISOString().slice(0, DATE_ONLY_LENGTH),
-      })),
-      deletedSchedule,
+      activeSchedule.map((row) => row.sequenceNumber),
+      INITIAL_SEQUENCE,
     );
+    assert.deepEqual(
+      activeSchedule.map((row) => row.dueDate),
+      FIRST_HALF_DUE_DATES,
+    );
+    assert.equal(
+      activeSchedule.some((row) => deletedSchedule.some((deleted) => deleted.id === row.id)),
+      false,
+    );
+    assert.deepEqual(await readSchedule(database, deletedScope(orderId)), deletedSchedule);
+  } finally {
+    await cleanSeedFixture(database, { orderId, payerId, studentId: student.id });
+    await database.$disconnect();
+  }
+});
+
+void it("rejects recreation of a soft-deleted schedule with payment history", async () => {
+  const { database, studentSeed, context, student, orderId, payerId } = await createSeedFixture();
+  try {
+    await seedStudentFinance(context, { studentSeed, studentId: student.id });
+    const deletedSchedule = await readSchedule(database, { orderId });
+    const paymentLinks = await readPaymentLinks(database, payerId);
+    await database.installment.updateMany({
+      where: { orderId },
+      data: { deletedAt: new Date("2026-01-02") },
+    });
+
+    await assert.rejects(seedStudentFinance(context, { studentSeed, studentId: student.id }), {
+      message: "Cannot recreate a soft-deleted installment schedule with financial activity",
+    });
+
+    assert.deepEqual(await readSchedule(database, { orderId }), []);
+    assert.deepEqual(await readPaymentLinks(database, payerId), paymentLinks);
+    assert.deepEqual(await readSchedule(database, deletedScope(orderId)), deletedSchedule);
   } finally {
     await cleanSeedFixture(database, { orderId, payerId, studentId: student.id });
     await database.$disconnect();
@@ -192,10 +212,10 @@ void it("preserves a soft-deleted schedule and its payment history", async () =>
 
 async function readSchedule(
   database: DatabaseClient,
-  orderId: string,
+  where: ScheduleWhere,
 ): Promise<Array<{ id: string; sequenceNumber: number; amountCents: number; dueDate: string }>> {
   const rows = await database.installment.findMany({
-    where: { orderId },
+    where,
     orderBy: { sequenceNumber: "asc" },
   });
   return rows.map((row) => ({
@@ -205,6 +225,8 @@ async function readSchedule(
     dueDate: row.dueDate.toISOString().slice(0, DATE_ONLY_LENGTH),
   }));
 }
+
+const deletedScope = (orderId: string): ScheduleWhere => ({ orderId, deletedAt: { not: null } });
 
 async function replaceWithRegeneratedSchedule(
   database: DatabaseClient,
@@ -233,7 +255,7 @@ async function replaceWithRegeneratedSchedule(
       }),
     ],
   });
-  return readSchedule(database, orderId);
+  return readSchedule(database, { orderId });
 }
 
 function regeneratedInstallment(input: {

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { DevStudentSeed } from "./seed-dev-data.js";
 import {
   addDays,
@@ -21,6 +22,8 @@ const MONTH_END_INDEX = 7;
 const INSTALLMENT_COUNT = 5;
 const INSTALLMENT_DUE_DAY = 10;
 const PAYMENT_LEAD_DAYS = 2;
+const LOCKED_DELETED_SCHEDULE_MESSAGE =
+  "Cannot recreate a soft-deleted installment schedule with financial activity";
 
 type FinanceInput = { studentSeed: DevStudentSeed; studentId: string };
 
@@ -115,12 +118,29 @@ async function loadOrCreateInstallments(
     select: { id: true },
   });
   if (deletedInstallment !== null) {
-    return [];
+    const lockedInstallment = await context.database.installment.findFirst({
+      where: {
+        orderId: input.orderId,
+        deletedAt: { not: null },
+        OR: [
+          { waivedAt: { not: null } },
+          { allocations: { some: { deletedAt: null } } },
+          { adjustments: { some: { deletedAt: null } } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (lockedInstallment !== null) {
+      throw new Error(LOCKED_DELETED_SCHEDULE_MESSAGE);
+    }
   }
 
   await context.database.installment.createMany({
     data: dueIsos.map((dueIso, index) => ({
-      id: stableUuid(["installment", input.studentSeed.key, dueIso]),
+      id:
+        deletedInstallment === null
+          ? stableUuid(["installment", input.studentSeed.key, dueIso])
+          : randomUUID(),
       sequenceNumber: index + 1,
       orderId: input.orderId,
       amountCents: input.tuitionCents,
