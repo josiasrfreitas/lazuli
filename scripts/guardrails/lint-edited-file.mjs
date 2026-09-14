@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { ESLint } from "eslint";
 
 import { readHookInput } from "./hook-input.mjs";
 
@@ -44,6 +44,19 @@ function writeAttempts(attempts) {
   writeFileSync(statePath, `${JSON.stringify(Object.fromEntries(attempts))}\n`);
 }
 
+async function lintFile(directory, file) {
+  try {
+    const eslint = new ESLint({ cwd: directory });
+    const results = await eslint.lintFiles([file]);
+    const formatter = await eslint.loadFormatter("stylish");
+    process.stderr.write(formatter.format(results));
+    return results.some((result) => result.errorCount > 0);
+  } catch (error) {
+    process.stderr.write(`${error}\n`);
+    return true;
+  }
+}
+
 const input = await readHookInput();
 const filePath = input.tool_input?.file_path;
 const sessionId = typeof input.session_id === "string" ? input.session_id : "unknown-session";
@@ -64,19 +77,15 @@ if (typeof filePath === "string" && LINTABLE_EXTENSION_PATTERN.test(filePath)) {
       );
       process.exitCode = 2;
     } else {
-      const result = spawnSync("pnpm", ["exec", "eslint", absoluteFilePath], {
-        cwd: eslintDirectory,
-        encoding: "utf8",
-      });
+      const failed = await lintFile(eslintDirectory, absoluteFilePath);
 
-      if (result.status === 0) {
-        attempts.delete(attemptKey);
-        writeAttempts(attempts);
-      } else {
+      if (failed) {
         attempts.set(attemptKey, attemptCount + 1);
         writeAttempts(attempts);
-        process.stderr.write(`${result.stdout}${result.stderr}`);
         process.exitCode = 2;
+      } else {
+        attempts.delete(attemptKey);
+        writeAttempts(attempts);
       }
     }
   }

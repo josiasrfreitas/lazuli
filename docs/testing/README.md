@@ -80,11 +80,19 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
 ## Executable workflow
 
 - `pnpm test` runs unit tests; `test:integration` and `test:transport` run infrastructure tiers.
-- Pre-commit runs format, lint, the staged prospective gate, typecheck, and unit tests.
+- Pre-commit formats first, runs lint, the staged prospective gate and typecheck in parallel,
+  then runs unit tests. Guardrail tests create temporary source fixtures, so they run after readers.
+  Root lint, duplication and unit checks are Turbo tasks with repository-wide inputs; cached passes
+  are reused locally, including by affected checks.
 - `pnpm test:affected --base <ref>` runs changed workspaces and transitive consumers. Root config
-  selects all workspaces; documentation-only changes select none. Infrastructure preflight fails
+  selects all workspaces; documentation-only changes select none. Report-tool/script-test changes
+  run root checks without application infrastructure; Pullfrog workflow changes select no test tier.
+  Integration and transport tasks share one serial Turbo invocation. Infrastructure preflight fails
   with bootstrap/migration instructions instead of skipping a tier.
-- CI runs full tiers without Turbo cache for its reporting pass. JUnit and LCOV are written per
+- CI runs production build alongside static checks. `Quality gates` requires both to pass;
+  complete tests and mutation wait only for static checks. Turbo caches are isolated by job and
+  restored from that job's latest snapshot, so concurrent jobs cannot overwrite each other's cache.
+- CI runs full tiers and root unit checks without Turbo cache for its reporting pass. JUnit and LCOV are written per
   package/tier, JUnit is uploaded even on failure, and `pnpm test:durations` prints the ten slowest
   tests plus non-blocking budget warnings.
 - `pnpm test:changed-covered --base <ref> --reports` reads CI LCOV. Locally, omit `--reports` to run
@@ -98,7 +106,19 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
 `pnpm mutate:changed --base <ref>` builds affected packages/dependencies before invoking package
 Stryker configs. Changed-file mutation score must be at least 70; transport is excluded. Survivors
 are investigation evidence but do not independently fail a score of 70 or more. CI runs mutation on
-pull requests with full Git history, Postgres, Mailpit, and applied migrations.
+pull requests with full Git history, Postgres, Mailpit, and applied migrations. A scope preflight
+skips the mutation runner only when there are no eligible changed source files; packages without
+mutation configuration still reach the fail-closed gate. Migration drift is checked in the complete
+test job; mutation applies migrations to its own isolated database.
+
+CI restores incremental reports only within the same PR and fingerprint, and saves reports even
+when the score fails. The fingerprint includes the mutation scope, resolved Node version and all non-ignored
+repository files except dedicated documentation (`docs/`, `.design/`, root Markdown). Source,
+tests, helpers, fixtures, dependencies and configuration changes invalidate it conservatively.
+Thus code changes currently rerun all mutants in scope; documentation-only pushes and retries can
+reuse results. This avoids Stryker's inability to detect changes in imported helpers/dependencies.
+The dry run and threshold of 70 remain mandatory. Cache behavior and timing must be verified in
+GitHub Actions; local cache-key tests establish invalidation, not remote restore/save behavior.
 
 Review every new surviving mutant, even when the score passes. Add or strengthen tests when a
 survivor exposes a gap in relevant observable behavior, especially financial calculations,

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -78,5 +78,39 @@ it("Claude Code reports lint failures and stops after three feedback attempts", 
   } finally {
     await rm(fixturePath, { force: true });
     await rm(temporaryDirectory, { force: true, recursive: true });
+  }
+});
+
+it("Claude Code clears failed attempts after the edited file passes lint", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "lazuli-guardrail-recovery-"));
+  const statePath = path.join(directory, "attempts.json");
+  const fixturePath = path.join(repositoryRoot, "apps/worker/src/guardrail-recovery-fixture.ts");
+  const input = {
+    session_id: "guardrail-recovery-session",
+    tool_input: { file_path: fixturePath },
+    tool_name: "Edit",
+  };
+  const run = () =>
+    runHook({
+      extraEnvironment: { LAZULI_GUARDRAIL_STATE_PATH: statePath },
+      input,
+      scriptPath: lintHook,
+    });
+  try {
+    await writeFile(fixturePath, 'console.log("not allowed");\n');
+    assert.equal(run().status, 2);
+    await writeFile(fixturePath, "export const fixtureValue = true;\n");
+    assert.equal(run().status, 0);
+    assert.deepEqual(JSON.parse(await readFile(statePath, "utf8")), {});
+    await writeFile(fixturePath, 'console.log("not allowed again");\n');
+    assert.equal(run().status, 2);
+    const attempts = JSON.parse(await readFile(statePath, "utf8"));
+    assert.equal(
+      attempts["guardrail-recovery-session:apps/worker/src/guardrail-recovery-fixture.ts"],
+      1,
+    );
+  } finally {
+    await rm(fixturePath, { force: true });
+    await rm(directory, { force: true, recursive: true });
   }
 });

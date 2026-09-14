@@ -19,10 +19,24 @@ const ROOT_CONFIGURATION = new Set([
   "turbo.json",
 ]);
 
+// These tools consume reports or exercise guardrails; they do not execute application code.
+const ROOT_CHECK_ONLY = new Set([
+  "scripts/test-durations.mjs",
+  "scripts/mutation-redundancy-report.mjs",
+  "scripts/mutation-cache-key.mjs",
+]);
+const REVIEW_WORKFLOW = ".github/workflows/pullfrog.yml";
+
 const baseRef = resolveBaseRef(readOption("base"));
 const changedFiles = listChangedFiles(baseRef);
 const workspaceDirectories = changedWorkspaceDirectories(changedFiles);
-const selectsAll = changedFiles.some(isRepositoryInfrastructure);
+const selectsAll =
+  changedFiles.some(isRepositoryInfrastructure) ||
+  workspaceDirectories.some((directory) => !existsSync(path.join(directory, "package.json")));
+const rootChecks =
+  selectsAll ||
+  changedFiles.some((file) => ROOT_CHECK_ONLY.has(file) || file.startsWith("scripts/test/"));
+if (rootChecks) runRootChecks();
 
 if (!selectsAll && workspaceDirectories.length === 0) {
   process.stdout.write(`No application workspaces affected (base: ${baseRef}).\n`);
@@ -34,11 +48,9 @@ const selectedPackages = resolveSelectedPackages(filters);
 const infrastructurePackages = selectedPackages.filter(hasInfrastructureTests);
 
 if (infrastructurePackages.length > 0) preflight(selectedPackages);
-if (selectsAll) runRootChecks();
 
-runTurbo("test", filters);
-runTurbo("test:integration", filters, ["--concurrency=1"]);
-runTurbo("test:transport", filters, ["--concurrency=1"]);
+runTurbo(["test"], filters);
+runTurbo(["test:integration", "test:transport"], filters, ["--concurrency=1"]);
 process.stdout.write(
   `Affected tests passed for ${selectedPackages.length} workspace(s) (base: ${baseRef}).\n`,
 );
@@ -55,9 +67,9 @@ function changedWorkspaceDirectories(files) {
 }
 
 function isRepositoryInfrastructure(file) {
-  return (
-    ROOT_CONFIGURATION.has(file) || file.startsWith("scripts/") || file.startsWith(".github/")
-  );
+  if (ROOT_CHECK_ONLY.has(file) || file.startsWith("scripts/test/") || file === REVIEW_WORKFLOW)
+    return false;
+  return ROOT_CONFIGURATION.has(file) || file.startsWith("scripts/") || file.startsWith(".github/");
 }
 
 function workspaceFilter(directory) {
@@ -68,7 +80,16 @@ function workspaceFilter(directory) {
 function resolveSelectedPackages(filters) {
   const result = spawnSync(
     "pnpm",
-    ["exec", "turbo", "run", "test", "test:integration", "test:transport", ...filters, "--dry=json"],
+    [
+      "exec",
+      "turbo",
+      "run",
+      "test",
+      "test:integration",
+      "test:transport",
+      ...filters,
+      "--dry=json",
+    ],
     { encoding: "utf8" },
   );
   if (result.status !== 0) fail("Turbo could not resolve affected workspaces.", result.stderr);
@@ -124,14 +145,11 @@ function checkMailpit() {
 }
 
 function runRootChecks() {
-  for (const task of ["test:scripts", "test:component-lines", "test:styles"]) {
-    const result = spawnSync("pnpm", [task], { stdio: "inherit" });
-    if (result.status !== 0) process.exit(result.status ?? 1);
-  }
+  runTurbo(["test:scripts", "test:component-lines", "test:styles"], []);
 }
 
-function runTurbo(task, filters, extra = []) {
-  const result = spawnSync("pnpm", ["exec", "turbo", "run", task, ...filters, ...extra], {
+function runTurbo(tasks, filters, extra = []) {
+  const result = spawnSync("pnpm", ["exec", "turbo", "run", ...tasks, ...filters, ...extra], {
     stdio: "inherit",
   });
   if (result.status !== 0) process.exit(result.status ?? 1);

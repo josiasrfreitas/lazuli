@@ -13,11 +13,11 @@
     "storybook": "pnpm -F @lazuli/storybook dev",
     "storybook:build": "pnpm -F @lazuli/storybook build",
     "start": "pnpm runtime:check && dotenv -e .env -- pnpm -F @lazuli/web start",
-    "lint": "eslint eslint.config.js scripts && turbo run lint && pnpm duplication:check",
+    "lint": "turbo run lint lint:root duplication:check",
     "duplication:check": "jscpd apps packages scripts tooling --config jscpd.json",
     "runtime:check": "dotenv -e .env -- node scripts/runtime-check.mjs && node scripts/turbo-env-check.mjs",
     "typecheck": "turbo run typecheck",
-    "test": "pnpm test:scripts && pnpm test:component-lines && pnpm test:styles && turbo run test",
+    "test": "turbo run test:scripts test:component-lines test:styles && turbo run test",
     "test:scripts": "node --test \"scripts/test/**/*.unit.test.mjs\"",
     "test:component-lines": "node scripts/test-component-lines.mjs",
     "test:styles": "node scripts/test-styles.mjs",
@@ -42,7 +42,8 @@
     "db:reset": "pnpm -F @lazuli/db db:reset",
     "bootstrap:worktree": "bash scripts/bootstrap-worktree.sh",
     "seed:gcs": "bash scripts/seed-gcs.sh",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "lint:root": "eslint eslint.config.js scripts"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

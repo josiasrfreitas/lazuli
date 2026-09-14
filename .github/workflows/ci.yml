@@ -11,28 +11,53 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Quality gates
+  checks:
+    name: Static checks
     runs-on: ubuntu-latest
+    outputs:
+      mutation-scope: ${{ steps.mutation-scope.outputs.selected }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
+      - name: Detect mutation scope
+        id: mutation-scope
+        if: github.event_name == 'pull_request'
+        run: |
+          selected=$(node scripts/mutate-changed.mjs --base origin/${{ github.base_ref }} --scope-only)
+          echo "selected=$selected" >> "$GITHUB_OUTPUT"
       - name: Format
         run: pnpm format:check
-      - name: Lint
-        run: pnpm lint
+      - name: Lint and typecheck
+        run: pnpm exec turbo run lint lint:root duplication:check typecheck
       - name: Prospective test quality
         run: pnpm test:quality:changed --base origin/${{ github.base_ref || 'main' }}
-      - name: Typecheck
-        run: pnpm typecheck
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
       - name: Build
         run: pnpm build
 
+  quality:
+    name: Quality gates
+    if: always()
+    needs: [checks, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require static checks and build
+        env:
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: test "$CHECKS_RESULT" = success && test "$BUILD_RESULT" = success
+
   tests:
     name: Complete test tiers
-    needs: quality
+    needs: checks
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -70,7 +95,7 @@ jobs:
           echo "Mailpit did not become ready in time"
           exit 1
       - name: Root unit checks
-        run: pnpm test:scripts && pnpm test:component-lines && pnpm test:styles
+        run: pnpm exec turbo run test:scripts test:component-lines test:styles --force
       - name: Unit reports
         run: pnpm exec turbo run test --force
       - name: Integration reports
@@ -105,8 +130,8 @@ jobs:
 
   mutation:
     name: Changed-file mutation
-    if: github.event_name == 'pull_request'
-    needs: [quality, tests]
+    if: github.event_name == 'pull_request' && needs.checks.outputs.mutation-scope == 'true'
+    needs: checks
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -131,12 +156,25 @@ jobs:
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
+      - name: Fingerprint mutation inputs
+        id: mutation-inputs
+        run: |
+          fingerprint=$(node scripts/mutation-cache-key.mjs --base origin/${{ github.base_ref }})
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+      - name: Restore Stryker incremental reports
+        id: stryker-incremental-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            apps/*/reports/stryker-incremental.json
+            packages/*/reports/stryker-incremental.json
+          key: stryker-v2-${{ runner.os }}-${{ steps.mutation-inputs.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            stryker-v2-${{ runner.os }}-${{ steps.mutation-inputs.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-
       - name: Prepare environment file
         run: touch .env
       - name: Apply migrations
         run: pnpm prisma:deploy
-      - name: Check migration drift
-        run: pnpm prisma:drift
       - name: Wait for Mailpit
         run: |
           for i in $(seq 1 30); do
@@ -147,6 +185,14 @@ jobs:
           exit 1
       - name: Mutate changed source
         run: pnpm mutate:changed --base origin/${{ github.base_ref }}
+      - name: Save Stryker incremental reports
+        if: ${{ !cancelled() && steps.stryker-incremental-cache.outcome == 'success' && hashFiles('apps/*/reports/stryker-incremental.json', 'packages/*/reports/stryker-incremental.json') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            apps/*/reports/stryker-incremental.json
+            packages/*/reports/stryker-incremental.json
+          key: ${{ steps.stryker-incremental-cache.outputs.cache-primary-key }}
       - name: Publish mutation reports
         if: always()
         uses: actions/upload-artifact@v4
