@@ -24,6 +24,7 @@ const DATE_DAY_START_INDEX = 8;
 export type DueDay = (typeof FINANCE_DUE_DAYS)[number];
 
 export type GeneratedInstallment = {
+  sequenceNumber: number;
   amountCents: number;
   dueDate: string;
 };
@@ -75,6 +76,7 @@ export function generateInstallments(input: {
   const firstDue = parseDateOnly(firstDueDate);
 
   return amounts.map((amountCents, index) => ({
+    sequenceNumber: index + 1,
     amountCents,
     dueDate: dateOnDueDay({
       ...addMonths({ year: firstDue.year, monthIndex: firstDue.monthIndex }, index),

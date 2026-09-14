@@ -12,7 +12,9 @@ import {
  * Finance upserts for the dev seed: one TUITION order per student with an
  * order, monthly installments, and payments. "paid" students settle every
  * installment due so far; "overdue" students leave the most recent due
- * installment open.
+ * installment open. Re-running is supported only for unchanged fixtures in the
+ * same semester. After product edits, deletions, or a semester change, use
+ * `pnpm db:reset`; this seed does not reconcile existing financial history.
  */
 
 const YEAR_END_INDEX = 4;
@@ -83,12 +85,13 @@ async function seedInstallments(context: SeedContext, input: InstallmentsInput):
   const dueIsos = installmentDueDates(context.semester.startIso);
   const dueSoFar = dueIsos.filter((dueIso) => dueIso <= context.todayIso);
   const paidIsos = new Set(input.studentSeed.finance === "paid" ? dueSoFar : dueSoFar.slice(0, -1));
-  for (const dueIso of dueIsos) {
+  for (const [index, dueIso] of dueIsos.entries()) {
     const installmentId = stableUuid(["installment", input.studentSeed.key, dueIso]);
     await context.database.installment.upsert({
       where: { id: installmentId },
       create: {
         id: installmentId,
+        sequenceNumber: index + 1,
         orderId: input.orderId,
         amountCents: input.tuitionCents,
         dueDate: utcDate(dueIso),
@@ -124,7 +127,7 @@ type PaymentInput = {
 };
 
 async function payInstallment(context: SeedContext, input: PaymentInput): Promise<void> {
-  const paymentEntryId = stableUuid(["payment", input.studentSeed.key, input.dueIso]);
+  const paymentEntryId = stableUuid(["payment", input.studentSeed.key, input.installmentId]);
   await context.database.paymentEntry.upsert({
     where: { id: paymentEntryId },
     create: {

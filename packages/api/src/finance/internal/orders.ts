@@ -32,6 +32,7 @@ export type OrderSummary = {
 };
 
 export type InstallmentSummary = {
+  sequenceNumber: number;
   id: string;
   orderId: string;
   amountCents: number;
@@ -61,6 +62,7 @@ const orderSummarySelect = {
 } as const;
 
 const installmentSummarySelect = {
+  sequenceNumber: true,
   id: true,
   orderId: true,
   amountCents: true,
@@ -236,6 +238,7 @@ async function persistOrderSchedule(input: {
       input.database.installment.create({
         data: {
           orderId: input.orderId,
+          sequenceNumber: row.sequenceNumber,
           amountCents: row.amountCents,
           dueDate: toDateOnly(row.dueDate),
           createdById: input.staffUserId,

@@ -4,6 +4,22 @@ Lazuli is a single-school management system for an English-language school in Br
 within the requested slice; historical documents, placeholders, and unimplemented seams are not
 product completion.
 
+## Strategic judgment
+
+Question your own assumptions, plan, and actions throughout the work. Check whether each change
+serves the user's actual goal, what side effects and maintenance costs it introduces, and whether
+a simpler solution exists. Treat existing patterns and the user's proposed approach as hypotheses
+to evaluate, not proof that they are the best way forward.
+
+When concrete evidence reveals a strategic problem, explain it concisely, including its cost and
+a practical alternative. Surface opportunities beyond the requested slice without expanding scope
+unilaterally. Adjust your plan when new evidence invalidates the approach; do not repeatedly reopen
+settled decisions without new evidence or turn routine tasks into architecture reviews.
+
+Before finishing, validate the result against the user's goal. Completing the planned steps alone
+does not demonstrate success. Keep reports concise, distinguish evidence from assumptions, and
+state unresolved limitations plainly.
+
 ## Repository and commands
 
 - `apps/web` and `apps/worker` contain the Next.js and worker processes.

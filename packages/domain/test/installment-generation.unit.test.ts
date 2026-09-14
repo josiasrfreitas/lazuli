@@ -77,6 +77,10 @@ void describe("generateInstallments amounts", () => {
     });
 
     assert.deepEqual(
+      installments.map((row) => row.sequenceNumber),
+      [1, 2, THREE_INSTALLMENTS],
+    );
+    assert.deepEqual(
       installments.map((row) => row.amountCents),
       [BASE_INSTALLMENT_AMOUNT, BASE_INSTALLMENT_AMOUNT, LAST_INSTALLMENT_AMOUNT],
     );
@@ -90,6 +94,10 @@ void describe("generateInstallments amounts", () => {
       dueDay: FINANCE_DUE_DAY_TENTH,
     });
 
+    assert.deepEqual(
+      installments.map((row) => row.sequenceNumber),
+      [1],
+    );
     assert.equal(installments.length, SINGLE_INSTALLMENT);
     assert.equal(installments[0]?.amountCents, PRINCIPAL_FIFTY_THOUSAND);
   });
@@ -180,8 +188,8 @@ void describe("generateInstallments schedule", () => {
     });
 
     assert.deepEqual(installments, [
-      { amountCents: HALF_OF_TEN_THOUSAND, dueDate: FIRST_JUNE_DUE },
-      { amountCents: HALF_OF_TEN_THOUSAND, dueDate: FIRST_JULY_DUE },
+      { sequenceNumber: 1, amountCents: HALF_OF_TEN_THOUSAND, dueDate: FIRST_JUNE_DUE },
+      { sequenceNumber: 2, amountCents: HALF_OF_TEN_THOUSAND, dueDate: FIRST_JULY_DUE },
     ]);
   });
 });

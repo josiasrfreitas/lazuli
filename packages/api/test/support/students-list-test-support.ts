@@ -352,7 +352,7 @@ async function seedOrder(input: {
       startDate: SEMESTER_START,
       dueDay: DUE_DAY,
       beneficiaries: { create: { studentId: input.studentId } },
-      installments: { create: { amountCents, dueDate: DUE_DATE } },
+      installments: { create: { sequenceNumber: 1, amountCents, dueDate: DUE_DATE } },
     },
     select: { id: true, installments: { select: { id: true } } },
   });
