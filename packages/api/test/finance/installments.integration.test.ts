@@ -40,6 +40,7 @@ void describe("finance installments query", { concurrency: 1 }, () => {
 
   registerPaginationTest();
   registerFinancialRulesTest();
+  registerFlatTotalsTest();
   registerOrderingTest();
   registerSearchTest();
   registerCivilDateTest();
@@ -244,6 +245,22 @@ function registerVisibilityTest(): void {
     assert.deepEqual(
       activeRow?.beneficiaries.map((row) => row.fullName),
       [`${PREFIX}Ativa`],
+    );
+  });
+}
+
+function registerFlatTotalsTest(): void {
+  void it("preserves flat discriminants and totals for all and paid", async () => {
+    await createFinancialRulesFixture();
+    const all = await read({});
+    const paid = await read({ view: "paid" });
+    assert.deepEqual(
+      { view: all.view, total: all.total, pages: all.pageCount },
+      { view: "all", total: 4, pages: 1 },
+    );
+    assert.deepEqual(
+      { view: paid.view, total: paid.total, pages: paid.pageCount },
+      { view: "paid", total: 2, pages: 1 },
     );
   });
 }
