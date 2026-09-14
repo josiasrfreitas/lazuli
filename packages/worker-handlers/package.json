@@ -12,7 +12,7 @@
     "test": "node ../../scripts/run-test-tier.mjs unit",
     "test:integration": "node ../../scripts/run-test-tier.mjs integration",
     "clean": "rm -rf .turbo dist",
-    "mutate": "NODE_ENV=test dotenv -e ../../.env -- stryker run"
+    "mutate": "NODE_ENV=test node ../../scripts/run-unit-mutation.mjs"
   },
   "dependencies": {
     "@lazuli/db": "workspace:*",

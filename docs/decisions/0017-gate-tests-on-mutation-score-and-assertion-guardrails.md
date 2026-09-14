@@ -7,7 +7,7 @@ Decision date: 2026-09-07
 Acceptance date: 2026-09-08
 
 Supersedes: None
-Superseded by: None
+Superseded by: [0019](0019-limit-mutation-to-unit-tests.md) (mutation tier scope, score denominator, and infrastructure only)
 Legacy sources: None
 
 Implementation evidence: `docs/testing/README.md`, `tooling/eslint/`, `tooling/stryker/`,

@@ -133,24 +133,6 @@ jobs:
     if: github.event_name == 'pull_request' && needs.checks.outputs.mutation-scope == 'true'
     needs: checks
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: lazuli
-          POSTGRES_PASSWORD: lazuli
-          POSTGRES_DB: lazuli
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U lazuli -d lazuli"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-      mailpit:
-        image: axllent/mailpit:v1.21
-        ports: ["1025:1025", "8025:8025"]
-    env:
-      DATABASE_URL: postgresql://lazuli:lazuli@localhost:5432/lazuli?schema=public
     steps:
       - uses: actions/checkout@v4
         with:
@@ -171,18 +153,6 @@ jobs:
           key: stryker-v2-${{ runner.os }}-${{ steps.mutation-inputs.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             stryker-v2-${{ runner.os }}-${{ steps.mutation-inputs.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-
-      - name: Prepare environment file
-        run: touch .env
-      - name: Apply migrations
-        run: pnpm prisma:deploy
-      - name: Wait for Mailpit
-        run: |
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:8025/api/v1/info >/dev/null && exit 0
-            sleep 1
-          done
-          echo "Mailpit did not become ready in time"
-          exit 1
       - name: Mutate changed source
         run: pnpm mutate:changed --base origin/${{ github.base_ref }}
       - name: Save Stryker incremental reports
