@@ -25,6 +25,7 @@ export default [
       "scripts/mutate-changed.mjs",
       "scripts/mutation-cache-key.mjs",
       "scripts/run-test-tier.mjs",
+      "scripts/run-unit-mutation.mjs",
       "scripts/test-affected.mjs",
       "scripts/test-durations.mjs",
       "scripts/test-surface-inventory.mjs",

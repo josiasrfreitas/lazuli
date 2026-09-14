@@ -75,7 +75,7 @@ if (mutatedPackages === 0 && unconfigured.length === 0) {
 } else if (failures.length > 0) {
   process.stderr.write(
     `\nMutation gate failed in: ${failures.join(", ")}.\n` +
-      `Changed-file mutation must score at least 70. Investigate survivors without treating ` +
+      `Unit-covered changed-file mutation must score at least 70. Investigate survivors without treating ` +
       `mutation as proof of contract relevance. See ${TESTING_GUIDE}.\n`,
   );
   process.exitCode = 1;

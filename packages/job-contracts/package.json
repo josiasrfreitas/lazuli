@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node ../../scripts/run-test-tier.mjs unit",
     "clean": "rm -rf .turbo dist",
-    "mutate": "NODE_ENV=test stryker run"
+    "mutate": "NODE_ENV=test node ../../scripts/run-unit-mutation.mjs"
   },
   "dependencies": {
     "@lazuli/validators": "workspace:*",

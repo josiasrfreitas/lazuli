@@ -12,7 +12,7 @@
     "test": "node ../../scripts/run-test-tier.mjs unit",
     "test:e2e": "echo \"[P00-05/P00-06] Playwright e2e not wired yet\" && exit 0",
     "clean": "rm -rf .turbo .next",
-    "mutate": "NODE_ENV=test stryker run"
+    "mutate": "NODE_ENV=test node ../../scripts/run-unit-mutation.mjs"
   },
   "dependencies": {
     "@lazuli/api": "workspace:*",

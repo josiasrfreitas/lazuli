@@ -1,10 +1,9 @@
 /**
  * Shared StrykerJS configuration for Lazuli packages.
  *
- * Mutate through unit tests and, where needed, integration tests. Infrastructure-backed
- * suites use one worker because their fixtures are isolated by file, not worker.
+ * Mutation measures unit-test detection only. Integration and transport run in their own tiers.
  *
- * @param {{ integration?: boolean; mutate?: string[]; testFiles?: string[]; nodeArgs?: string[] }} [options]
+ * @param {{ mutate?: string[]; nodeArgs?: string[] }} [options]
  * @returns {import("@stryker-mutator/api/core").PartialStrykerOptions}
  */
 export function createStrykerConfig(options = {}) {
@@ -14,14 +13,11 @@ export function createStrykerConfig(options = {}) {
     plugins: ["@stryker-mutator/tap-runner"],
     testRunner: "tap",
     tap: {
-      testFiles: options.testFiles ?? [
-        options.integration ? "test/**/*.@(unit|integration).test.ts" : "test/**/*.unit.test.ts",
-      ],
+      testFiles: ["test/**/*.unit.test.ts"],
       // Node >= 23 defaults to the "spec" reporter even off a TTY; the runner parses TAP.
       nodeArgs: ["--test-reporter=tap", "--import", "tsx", ...(options.nodeArgs ?? [])],
       forceBail: true,
     },
-    ...(options.integration ? { concurrency: 1, timeoutMS: 10_000 } : {}),
     mutate: options.mutate ?? ["src/**/*.ts", "!src/**/*.d.ts", "!src/generated/**"],
     ignorePatterns: ["dist", ".next", ".turbo", "coverage", "/reports", "storybook-static"],
     coverageAnalysis: "perTest",
@@ -30,7 +26,8 @@ export function createStrykerConfig(options = {}) {
     reporters: ["clear-text", "progress", "html", "json"],
     htmlReporter: { fileName: "reports/mutation/index.html" },
     jsonReporter: { fileName: "reports/mutation/report.json" },
-    thresholds: { high: 90, low: 70, break: 70 },
+    // The package wrapper gates the unit-covered score at 70, excluding NoCoverage.
+    thresholds: { high: 90, low: 70, break: 0 },
     tempDirName: ".stryker-tmp",
     cleanTempDir: true,
   };

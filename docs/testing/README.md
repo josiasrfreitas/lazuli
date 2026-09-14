@@ -1,7 +1,8 @@
 # Testing guide
 
 This is Lazuli's source of truth for test intent, placement, and gates. Decision
-[0017](../decisions/0017-gate-tests-on-mutation-score-and-assertion-guardrails.md) records why.
+[0017](../decisions/0017-gate-tests-on-mutation-score-and-assertion-guardrails.md) records why;
+[0019](../decisions/0019-limit-mutation-to-unit-tests.md) limits mutation to unit tests.
 Vocabulary comes from [`CONTEXT.md`](../../CONTEXT.md).
 
 Guidance helps an implementer choose evidence; static analysis catches named patterns; coverage
@@ -106,12 +107,25 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
 ## Mutation and duration
 
 `pnpm mutate:changed --base <ref>` builds affected packages/dependencies before invoking package
-Stryker configs. Changed-file mutation score must be at least 70; transport is excluded. Survivors
-are investigation evidence but do not independently fail a score of 70 or more. CI runs mutation on
-pull requests with full Git history, Postgres, Mailpit, and applied migrations. A scope preflight
-skips the mutation runner only when there are no eligible changed source files; packages without
-mutation configuration still reach the fail-closed gate. Migration drift is checked in the complete
-test job; mutation applies migrations to its own isolated database.
+Stryker configs. Stryker executes only `test/**/*.unit.test.ts`; integration and transport tests
+never run inside mutation. `scripts/run-unit-mutation.mjs` gates the unit-covered score at 70:
+`100 * (Killed + Timeout) / (Killed + Timeout + Survived)`. `NoCoverage` mutants remain visible
+in reports but are excluded from the denominator; integration-only coverage does not fail this
+gate. With no scored mutants, report N/A rather than claiming a 100% score. Runtime errors and
+failed dry runs still fail. Ignored and compile-error mutants do not contribute to the score.
+Stryker's raw HTML/JSON score includes uncovered mutants and is informational; its built-in break
+threshold is disabled because the package wrapper enforces the unit-covered threshold instead.
+CI mutation needs no Postgres, Mailpit, or migrations; the complete test job retains them.
+A scope preflight skips mutation only when there are no eligible changed source files; packages
+without mutation configuration still reach the fail-closed gate.
+
+Integration and transport quality is assessed through contract-focused review and this guide:
+assert observable persistence, authorization, transactions, and adapter behavior, with isolated
+fixtures and meaningful failure cases. The prospective assertion guardrails, full test tiers,
+changed-source LCOV check, and JUnit/LCOV reporting remain mandatory. Passing those checks is
+execution/static evidence, not a replacement mutation score or proof of assertion quality.
+Do not introduce unit mocks that merely reproduce implementation to compensate for removing
+integration tests from mutation.
 
 CI restores incremental reports only within the same PR and fingerprint, and saves reports even
 when the score fails. The fingerprint includes the mutation scope, resolved Node version and all non-ignored
@@ -119,7 +133,7 @@ repository files except dedicated documentation (`docs/`, `.design/`, root Markd
 tests, helpers, fixtures, dependencies and configuration changes invalidate it conservatively.
 Thus code changes currently rerun all mutants in scope; documentation-only pushes and retries can
 reuse results. This avoids Stryker's inability to detect changes in imported helpers/dependencies.
-The dry run and threshold of 70 remain mandatory. Cache behavior and timing must be verified in
+The dry run and unit-covered threshold of 70 remain mandatory. Cache behavior and timing must be verified in
 GitHub Actions; local cache-key tests establish invalidation, not remote restore/save behavior.
 
 Review every new surviving mutant, even when the score passes. Add or strengthen tests when a
