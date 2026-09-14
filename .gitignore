@@ -54,6 +54,7 @@ test-results/
 # Prisma
 packages/db/prisma/*.db
 packages/db/src/generated/prisma/
+packages/db/src/generated/kysely/
 
 # Misc local scratch
 tmp/

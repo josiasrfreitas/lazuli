@@ -2,7 +2,8 @@
  * Prisma schema, migrations, seeds, and raw-SQL constraint migrations (§2.1, §4).
  */
 
-export { createDbClient, db } from "./client.js";
+export { createDbClient, db, type DatabaseClient, type TransactionClient } from "./client.js";
+export type { DB as KyselyDatabase } from "./generated/kysely/types.js";
 export { Prisma } from "./generated/prisma/client.js";
 export { COURSE_CATALOG, seedCourseCatalog } from "./seed-course-catalog.js";
 export type {

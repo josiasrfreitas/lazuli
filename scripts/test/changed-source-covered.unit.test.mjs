@@ -18,7 +18,11 @@ function git(directory, args) {
 
 async function fixture() {
   const directory = await mkdtemp(path.join(tmpdir(), "lazuli-coverage-"));
-  await write(directory, "packages/core/package.json", '{"name":"@fixture/core","scripts":{"test":"true"}}\n');
+  await write(
+    directory,
+    "packages/core/package.json",
+    '{"name":"@fixture/core","scripts":{"test":"true"}}\n',
+  );
   await write(directory, "packages/core/src/index.ts", "export const value = 1;\n");
   git(directory, ["init", "--initial-branch=main"]);
   git(directory, ["config", "user.email", "tests@example.test"]);
@@ -50,21 +54,21 @@ async function writeLcov(directory, contents) {
 it("accepts a changed source file with executed lines in an existing report", async (context) => {
   const directory = await fixture();
   context.after(() => rm(directory, { force: true, recursive: true }));
-  await writeLcov(directory, "TN:\nSF:src/index.ts\nLF:1\nLH:1\nend_of_record\n");
+  await writeLcov(directory, "TN:\nSF:src/index.ts\nDA:1,1\nLF:1\nLH:1\nend_of_record\n");
 
   const result = run(directory, ["--reports"]);
 
   assert.equal(result.status, 0);
-  assert.match(result.stdout, /every changed source file has LH > 0/u);
+  assert.match(result.stdout, /every changed executable line was exercised/u);
 });
 
 it("distinguishes LH zero from missing and malformed reports", async (context) => {
   const zeroDirectory = await fixture();
   context.after(() => rm(zeroDirectory, { force: true, recursive: true }));
-  await writeLcov(zeroDirectory, "TN:\nSF:src/index.ts\nLF:1\nLH:0\nend_of_record\n");
+  await writeLcov(zeroDirectory, "TN:\nSF:src/index.ts\nDA:1,0\nLF:1\nLH:0\nend_of_record\n");
   const zero = run(zeroDirectory, ["--reports"]);
   assert.equal(zero.status, 1);
-  assert.match(zero.stderr, /LH=0/u);
+  assert.match(zero.stderr, /changed executable lines uncovered/u);
 
   const missingDirectory = await fixture();
   context.after(() => rm(missingDirectory, { force: true, recursive: true }));
@@ -93,7 +97,7 @@ it("reports a test or environment failure separately from coverage", async (cont
 
   assert.equal(result.status, 7);
   assert.match(result.stderr, /tests or environment failed/u);
-  assert.doesNotMatch(result.stderr, /LH=0/u);
+  assert.doesNotMatch(result.stderr, /changed executable lines uncovered/u);
 });
 
 it("enables report output while running coverage from a local command", async (context) => {
@@ -106,7 +110,7 @@ it("enables report output while running coverage from a local command", async (c
     `#!/bin/sh
 test "$CI" = "true" || exit 8
 mkdir -p packages/core/coverage/unit
-printf 'TN:\nSF:src/index.ts\nLF:1\nLH:1\nend_of_record\n' > packages/core/coverage/unit/lcov.info
+printf 'TN:\nSF:src/index.ts\nDA:1,1\nLF:1\nLH:1\nend_of_record\n' > packages/core/coverage/unit/lcov.info
 `,
   );
   await chmod(binary, 0o755);
@@ -117,5 +121,44 @@ printf 'TN:\nSF:src/index.ts\nLF:1\nLH:1\nend_of_record\n' > packages/core/cover
   });
 
   assert.equal(result.status, 0);
-  assert.match(result.stdout, /every changed source file has LH > 0/u);
+  assert.match(result.stdout, /every changed executable line was exercised/u);
+});
+
+it("ignores changed type-only and barrel lines absent from LCOV executable lines", async (context) => {
+  const directory = await fixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  await write(
+    directory,
+    "packages/core/src/index.ts",
+    "export type Value = number;\nexport { runtime } from './runtime.js';\n",
+  );
+  await writeLcov(directory, "TN:\nSF:src/index.ts\nLF:0\nLH:0\nend_of_record\n");
+
+  const result = run(directory, ["--reports"]);
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /every changed executable line was exercised/u);
+});
+
+it("ignores a type-only change when untouched runtime lines have zero hits", async (context) => {
+  const directory = await fixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  await write(
+    directory,
+    "packages/core/src/index.ts",
+    "export const value = 1;\nexport type Identifier = string;\n",
+  );
+  git(directory, ["add", "."]);
+  git(directory, ["commit", "-m", "runtime and type"]);
+  await write(
+    directory,
+    "packages/core/src/index.ts",
+    "export const value = 1;\nexport type Identifier = string | number;\n",
+  );
+  await writeLcov(directory, "TN:\nSF:src/index.ts\nDA:1,0\nLF:1\nLH:0\nend_of_record\n");
+
+  const result = run(directory, ["--reports"]);
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /every changed executable line was exercised/u);
 });

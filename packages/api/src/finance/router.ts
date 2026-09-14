@@ -2,6 +2,8 @@ import {
   financeAddInstallmentAdjustmentInputSchema,
   financeBatchReconcileInputSchema,
   financeCreateOrderInputSchema,
+  financeInstallmentsInputSchema,
+  financeInstallmentsOutputSchema,
   financeRegisterPaymentInputSchema,
   financeUpdateOrderInputSchema,
   financeWaiveInstallmentInputSchema,
@@ -51,4 +53,14 @@ export const financeRouter = router({
     finance(ctx.db, ctx.staffUser.id).receivablesSnapshot(),
   ),
   overdueList: adminProcedure.query(({ ctx }) => finance(ctx.db, ctx.staffUser.id).overdueList()),
+  installments: adminProcedure
+    .input(financeInstallmentsInputSchema)
+    .output(financeInstallmentsOutputSchema)
+    .query(({ ctx, input }) => {
+      const now = ctx.now ?? new Date();
+      return ctx.db.$transaction(
+        (transaction) => finance(transaction, ctx.staffUser.id).installments(input, now),
+        { isolationLevel: "RepeatableRead" },
+      );
+    }),
 });

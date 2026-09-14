@@ -27,6 +27,77 @@ export const paymentMethodSchema = z.enum([
   "OTHER",
 ]);
 
+export const financeInstallmentViewSchema = z.enum(["all", "paid"]);
+export const financeInstallmentStatusSchema = z.enum([
+  "WAIVED",
+  "PAID",
+  "OVERDUE",
+  "DUE_THIS_MONTH",
+  "UPCOMING",
+]);
+
+export const FINANCE_INSTALLMENTS_PAGE_SIZE = 25;
+const FINANCE_INSTALLMENTS_FIRST_PAGE = 1;
+const FINANCE_INSTALLMENTS_SEARCH_MAX_LENGTH = 80;
+
+export const financeInstallmentsInputSchema = z
+  .object({
+    view: financeInstallmentViewSchema.default("all"),
+    page: z
+      .number()
+      .int()
+      .min(FINANCE_INSTALLMENTS_FIRST_PAGE)
+      .default(FINANCE_INSTALLMENTS_FIRST_PAGE),
+    search: z.string().trim().max(FINANCE_INSTALLMENTS_SEARCH_MAX_LENGTH).optional(),
+  })
+  .strict();
+
+export const financeInstallmentRowSchema = z
+  .object({
+    installmentId: z.string().uuid(),
+    orderId: z.string().uuid(),
+    sequenceNumber: z.number().int().positive(),
+    scheduleTotal: z.number().int().nonnegative(),
+    payer: z.object({ id: z.string().uuid(), name: z.string() }).strict(),
+    beneficiaries: z.array(
+      z.object({ studentId: z.string().uuid(), fullName: z.string() }).strict(),
+    ),
+    dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    originalAmountCents: z.number().int(),
+    expectedAmountCents: z.number().int(),
+    paidAmountCents: z.number().int(),
+    collectibleBalanceCents: z.number().int().nonnegative(),
+    status: financeInstallmentStatusSchema,
+    overdueDays: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const financeInstallmentCountsSchema = z
+  .object({
+    all: z.number().int().nonnegative(),
+    paid: z.number().int().nonnegative(),
+    overdue: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const financeInstallmentsOutputFields = {
+  rows: z.array(financeInstallmentRowSchema),
+  page: z.number().int().positive(),
+  pageSize: z.literal(FINANCE_INSTALLMENTS_PAGE_SIZE),
+  total: z.number().int().nonnegative(),
+  pageCount: z.number().int().nonnegative(),
+  counts: financeInstallmentCountsSchema,
+};
+
+export const financeInstallmentsOutputSchema = z.discriminatedUnion("view", [
+  z.object({ view: z.literal("all"), ...financeInstallmentsOutputFields }).strict(),
+  z.object({ view: z.literal("paid"), ...financeInstallmentsOutputFields }).strict(),
+]);
+
+export type FinanceInstallmentsInput = z.infer<typeof financeInstallmentsInputSchema>;
+export type FinanceInstallmentsOutput = z.infer<typeof financeInstallmentsOutputSchema>;
+export type FinanceInstallmentRow = z.infer<typeof financeInstallmentRowSchema>;
+
 export const dueDaySchema = z.union([
   z.literal(FINANCE_DUE_DAY_FIFTH),
   z.literal(FINANCE_DUE_DAY_TENTH),

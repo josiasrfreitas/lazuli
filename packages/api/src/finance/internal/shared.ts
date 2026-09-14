@@ -1,4 +1,4 @@
-import type { Prisma } from "@lazuli/db";
+import type { DatabaseClient } from "@lazuli/db";
 import { TRPCError } from "@trpc/server";
 
 export { badRequest, notFound } from "../../classes/errors.js";
@@ -29,7 +29,8 @@ export function orderLocked(): TRPCError {
 
 /** Every delegate the finance module touches; both PrismaClient and a transaction client satisfy it. */
 export type FinanceDatabase = Pick<
-  Prisma.TransactionClient,
+  DatabaseClient,
+  | "$kysely"
   | "$queryRaw"
   | "payer"
   | "order"

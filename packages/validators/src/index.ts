@@ -79,9 +79,16 @@ export {
 } from "./makeup.js";
 export {
   dueDaySchema,
+  FINANCE_INSTALLMENTS_PAGE_SIZE,
   financeAddInstallmentAdjustmentInputSchema,
   financeBatchReconcileInputSchema,
   financeCreateOrderInputSchema,
+  financeInstallmentCountsSchema,
+  financeInstallmentRowSchema,
+  financeInstallmentsInputSchema,
+  financeInstallmentsOutputSchema,
+  financeInstallmentStatusSchema,
+  financeInstallmentViewSchema,
   financePayerInputSchema,
   financeRegisterPaymentInputSchema,
   financeUpdateOrderInputSchema,
@@ -91,6 +98,11 @@ export {
   payerCreateInputSchema,
   payerCreateProcedureInputSchema,
   paymentMethodSchema,
+} from "./finance.js";
+export type {
+  FinanceInstallmentRow,
+  FinanceInstallmentsInput,
+  FinanceInstallmentsOutput,
 } from "./finance.js";
 export {
   artifactKindSchema,
