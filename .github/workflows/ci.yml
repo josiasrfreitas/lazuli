@@ -29,12 +29,10 @@ jobs:
           echo "selected=$selected" >> "$GITHUB_OUTPUT"
       - name: Format
         run: pnpm format:check
-      - name: Lint
-        run: pnpm lint
+      - name: Lint and typecheck
+        run: pnpm exec turbo run lint lint:root duplication:check typecheck
       - name: Prospective test quality
         run: pnpm test:quality:changed --base origin/${{ github.base_ref || 'main' }}
-      - name: Typecheck
-        run: pnpm typecheck
 
   build:
     name: Production build
