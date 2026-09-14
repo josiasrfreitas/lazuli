@@ -38,6 +38,18 @@ Docker Compose for local services.
 Common commands: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`,
 `pnpm test:transport`, `pnpm build`, and `pnpm format:check`.
 
+### Resetting development data
+
+Run `pnpm db:reset` from the repository root to discard the configured local database,
+reapply migrations, and seed fresh development fixtures. This deletes manual changes in that
+database; it does not reset shared Mailpit or Hatchet services.
+
+`pnpm prisma:seed` supports loading fresh fixtures or repeating an unchanged fixture load in
+the same semester. After editing or deleting development finance records, changing fixture
+definitions, or moving to another semester, use `pnpm db:reset`. The finance seed does not
+reconcile edited orders, recover deleted schedules, or preserve payment history across a reset.
+Product lifecycle and financial-history rules still apply to the application itself.
+
 For coding-agent constraints, verification expectations, and documentation routing, read
 [`AGENTS.md`](AGENTS.md). Folder-specific operational notes remain in
 [`infra/pulumi/README.md`](infra/pulumi/README.md) and

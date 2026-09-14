@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { DevStudentSeed } from "./seed-dev-data.js";
 import {
   addDays,
@@ -13,7 +12,9 @@ import {
  * Finance upserts for the dev seed: one TUITION order per student with an
  * order, monthly installments, and payments. "paid" students settle every
  * installment due so far; "overdue" students leave the most recent due
- * installment open.
+ * installment open. Re-running is supported only for unchanged fixtures in the
+ * same semester. After product edits, deletions, or a semester change, use
+ * `pnpm db:reset`; this seed does not reconcile existing financial history.
  */
 
 const YEAR_END_INDEX = 4;
@@ -22,8 +23,6 @@ const MONTH_END_INDEX = 7;
 const INSTALLMENT_COUNT = 5;
 const INSTALLMENT_DUE_DAY = 10;
 const PAYMENT_LEAD_DAYS = 2;
-const LOCKED_DELETED_SCHEDULE_MESSAGE =
-  "Cannot recreate a soft-deleted installment schedule with financial activity";
 
 type FinanceInput = { studentSeed: DevStudentSeed; studentId: string };
 
@@ -83,82 +82,32 @@ type InstallmentsInput = {
 };
 
 async function seedInstallments(context: SeedContext, input: InstallmentsInput): Promise<void> {
-  const installments = await loadOrCreateInstallments(context, input);
-  const dueIsos = installments.map((installment) => isoOf(installment.dueDate));
+  const dueIsos = installmentDueDates(context.semester.startIso);
   const dueSoFar = dueIsos.filter((dueIso) => dueIso <= context.todayIso);
   const paidIsos = new Set(input.studentSeed.finance === "paid" ? dueSoFar : dueSoFar.slice(0, -1));
-  for (const installment of installments) {
-    const dueIso = isoOf(installment.dueDate);
+  for (const [index, dueIso] of dueIsos.entries()) {
+    const installmentId = stableUuid(["installment", input.studentSeed.key, dueIso]);
+    await context.database.installment.upsert({
+      where: { id: installmentId },
+      create: {
+        id: installmentId,
+        sequenceNumber: index + 1,
+        orderId: input.orderId,
+        amountCents: input.tuitionCents,
+        dueDate: utcDate(dueIso),
+      },
+      update: {},
+    });
     if (paidIsos.has(dueIso)) {
       await payInstallment(context, {
         studentSeed: input.studentSeed,
-        installmentId: installment.id,
+        installmentId,
         payerId: input.payerId,
         dueIso,
-        amountCents: installment.amountCents,
+        amountCents: input.tuitionCents,
       });
     }
   }
-}
-
-type SeededInstallment = { id: string; amountCents: number; dueDate: Date };
-
-async function loadOrCreateInstallments(
-  context: SeedContext,
-  input: InstallmentsInput,
-): Promise<SeededInstallment[]> {
-  const existing = await loadInstallments(context, input.orderId);
-  if (existing.length > 0) {
-    return existing;
-  }
-
-  const dueIsos = installmentDueDates(context.semester.startIso);
-  const deletedInstallment = await context.database.installment.findFirst({
-    where: { orderId: input.orderId, deletedAt: { not: null } },
-    select: { id: true },
-  });
-  if (deletedInstallment !== null) {
-    const lockedInstallment = await context.database.installment.findFirst({
-      where: {
-        orderId: input.orderId,
-        deletedAt: { not: null },
-        OR: [
-          { waivedAt: { not: null } },
-          { allocations: { some: { deletedAt: null } } },
-          { adjustments: { some: { deletedAt: null } } },
-        ],
-      },
-      select: { id: true },
-    });
-    if (lockedInstallment !== null) {
-      throw new Error(LOCKED_DELETED_SCHEDULE_MESSAGE);
-    }
-  }
-
-  await context.database.installment.createMany({
-    data: dueIsos.map((dueIso, index) => ({
-      id:
-        deletedInstallment === null
-          ? stableUuid(["installment", input.studentSeed.key, dueIso])
-          : randomUUID(),
-      sequenceNumber: index + 1,
-      orderId: input.orderId,
-      amountCents: input.tuitionCents,
-      dueDate: utcDate(dueIso),
-    })),
-  });
-  return loadInstallments(context, input.orderId);
-}
-
-async function loadInstallments(
-  context: SeedContext,
-  orderId: string,
-): Promise<SeededInstallment[]> {
-  return context.database.installment.findMany({
-    where: { orderId },
-    orderBy: { dueDate: "asc" },
-    select: { id: true, amountCents: true, dueDate: true },
-  });
 }
 
 function installmentDueDates(startIso: string): string[] {
@@ -178,14 +127,6 @@ type PaymentInput = {
 };
 
 async function payInstallment(context: SeedContext, input: PaymentInput): Promise<void> {
-  const existingAllocation = await context.database.paymentAllocation.findFirst({
-    where: { installmentId: input.installmentId },
-    select: { id: true },
-  });
-  if (existingAllocation !== null) {
-    return;
-  }
-
   const paymentEntryId = stableUuid(["payment", input.studentSeed.key, input.installmentId]);
   await context.database.paymentEntry.upsert({
     where: { id: paymentEntryId },
