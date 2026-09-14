@@ -96,7 +96,9 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
   package/tier, JUnit is uploaded even on failure, and `pnpm test:durations` prints the ten slowest
   tests plus non-blocking budget warnings.
 - `pnpm test:changed-covered --base <ref> --reports` reads CI LCOV. Locally, omit `--reports` to run
-  tiers. Missing/malformed reports, failed tests/environment, or a changed source with `LH=0` fail.
+  tiers. It crosses changed line ranges with LCOV `DA` records, so type-only and reexport changes do
+  not require artificial imports. Missing/malformed reports, failed tests/environment, or changed
+  executable lines with zero hits fail.
 - `pnpm test:surface-inventory` lists real `appRouter` procedures and workflow constants referenced
   or unreferenced in tests. It is an inventory, not proof of execution, and missing references do
   not block.

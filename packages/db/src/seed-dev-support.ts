@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { PrismaClient } from "./generated/prisma/client.js";
+import type { DatabaseClient } from "./client.js";
 
 /**
  * Shared helpers for the idempotent dev seed. Every row is keyed by a UUID
@@ -25,7 +25,7 @@ export type SeededClass = {
 };
 
 export type SeedContext = {
-  database: PrismaClient;
+  database: DatabaseClient;
   todayIso: string;
   semester: SeededSemester;
   teacherIds: Map<string, string>;

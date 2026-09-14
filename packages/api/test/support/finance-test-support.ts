@@ -24,8 +24,8 @@ export function caller(): FinanceCaller {
   return createCaller(contextFor(ADMIN));
 }
 
-export function contextFor(staffUser: StaffUser): Context {
-  return { db, staffUser };
+export function contextFor(staffUser: StaffUser | null, now?: Date): Context {
+  return { db, staffUser, ...(now === undefined ? {} : { now }) };
 }
 
 export async function ensureAdminUser(): Promise<void> {
@@ -109,7 +109,7 @@ export async function cleanFinanceOrdersDatabase(prefix = TEST_PREFIX): Promise<
 export async function callHttpMutation(input: {
   path: string;
   body: unknown;
-  staffUser?: StaffUser;
+  staffUser?: StaffUser | null;
 }): Promise<Response> {
   return fetchRequestHandler({
     endpoint: ENDPOINT,
@@ -119,14 +119,18 @@ export async function callHttpMutation(input: {
       body: JSON.stringify({ json: input.body }),
     }),
     router: appRouter,
-    createContext: () => Promise.resolve(contextFor(input.staffUser ?? ADMIN)),
+    createContext: () =>
+      Promise.resolve(
+        contextFor(Object.hasOwn(input, "staffUser") ? (input.staffUser ?? null) : ADMIN),
+      ),
   });
 }
 
 export async function callHttpQuery(input: {
   path: string;
   body?: unknown;
-  staffUser?: StaffUser;
+  staffUser?: StaffUser | null;
+  now?: Date;
 }): Promise<Response> {
   const url = new URL(`http://localhost${ENDPOINT}/${input.path}`);
   if (input.body !== undefined) {
@@ -137,7 +141,13 @@ export async function callHttpQuery(input: {
     endpoint: ENDPOINT,
     req: new Request(url, { method: "GET" }),
     router: appRouter,
-    createContext: () => Promise.resolve(contextFor(input.staffUser ?? ADMIN)),
+    createContext: () =>
+      Promise.resolve(
+        contextFor(
+          Object.hasOwn(input, "staffUser") ? (input.staffUser ?? null) : ADMIN,
+          input.now,
+        ),
+      ),
   });
 }
 

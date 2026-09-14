@@ -1,4 +1,4 @@
-import type { PrismaClient } from "./generated/prisma/client.js";
+import type { DatabaseClient } from "./client.js";
 import { seedClass } from "./seed-dev-classes.js";
 import {
   DEV_ADMIN,
@@ -38,7 +38,7 @@ const EXIT_DAYS_AGO = 14;
 const GOOD_ABSENCE_CYCLE = 6;
 const FINANCE_SETTINGS_ID = "singleton";
 
-export async function seedDevData(database: PrismaClient): Promise<void> {
+export async function seedDevData(database: DatabaseClient): Promise<void> {
   const todayIso = saoPauloTodayIso();
   const semester = await upsertSemester(database, currentSemesterSeed(todayIso));
   const teacherIds = await upsertStaff(database);
@@ -62,7 +62,10 @@ function currentSemesterSeed(todayIso: string): SemesterSeed {
   return { name: `${year}.1`, startIso: `${year}-01-02`, endIso: `${year}-06-30`, year };
 }
 
-async function upsertSemester(database: PrismaClient, seed: SemesterSeed): Promise<SeededSemester> {
+async function upsertSemester(
+  database: DatabaseClient,
+  seed: SemesterSeed,
+): Promise<SeededSemester> {
   const semester = await database.semester.upsert({
     where: { name: seed.name },
     create: {
@@ -75,7 +78,7 @@ async function upsertSemester(database: PrismaClient, seed: SemesterSeed): Promi
   return { ...seed, id: semester.id };
 }
 
-async function upsertStaff(database: PrismaClient): Promise<Map<string, string>> {
+async function upsertStaff(database: DatabaseClient): Promise<Map<string, string>> {
   await upsertUser(database, { email: DEV_ADMIN.email, name: DEV_ADMIN.name, role: "ADMIN" });
   const teacherIds = new Map<string, string>();
   for (const teacher of DEV_TEACHERS) {
@@ -90,7 +93,7 @@ async function upsertStaff(database: PrismaClient): Promise<Map<string, string>>
 }
 
 async function upsertUser(
-  database: PrismaClient,
+  database: DatabaseClient,
   input: { email: string; name: string; role: "ADMIN" | "TEACHER" },
 ): Promise<{ id: string }> {
   return database.user.upsert({
@@ -100,7 +103,7 @@ async function upsertUser(
   });
 }
 
-async function upsertFinanceSettings(database: PrismaClient): Promise<void> {
+async function upsertFinanceSettings(database: DatabaseClient): Promise<void> {
   await database.financeSettings.upsert({
     where: { id: FINANCE_SETTINGS_ID },
     create: { id: FINANCE_SETTINGS_ID },

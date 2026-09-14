@@ -1,6 +1,6 @@
-import type { PrismaClient } from "./generated/prisma/client.js";
+import type { DatabaseClient as AppDatabaseClient } from "./client.js";
 
-type DatabaseClient = Pick<PrismaClient, "productLine" | "track" | "stage">;
+type DatabaseClient = Pick<AppDatabaseClient, "productLine" | "track" | "stage">;
 type CatalogStatusValue = "ACTIVE" | "LEGACY";
 
 type StageSeed = {

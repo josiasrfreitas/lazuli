@@ -25,7 +25,9 @@
   "dependencies": {
     "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:",
-    "pg": "catalog:"
+    "kysely": "catalog:",
+    "pg": "catalog:",
+    "prisma-extension-kysely": "catalog:"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
@@ -38,6 +40,7 @@
     "dotenv-cli": "catalog:",
     "eslint": "catalog:",
     "prisma": "catalog:",
+    "prisma-kysely": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:"
   }

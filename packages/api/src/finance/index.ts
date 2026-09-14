@@ -5,6 +5,7 @@ import {
   type AddInstallmentAdjustmentResult,
   type WaiveInstallmentResult,
 } from "./internal/installment-actions.js";
+import { listInstallments } from "./internal/installments.js";
 import {
   overdueList,
   receivablesSnapshot,
@@ -24,6 +25,8 @@ import type {
   financeRegisterPaymentInputSchema,
   financeUpdateOrderInputSchema,
   financeWaiveInstallmentInputSchema,
+  financeInstallmentsInputSchema,
+  FinanceInstallmentsOutput,
   payerCreateProcedureInputSchema,
   z,
 } from "@lazuli/validators";
@@ -50,6 +53,7 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
       addInstallmentAdjustment({ database: db, values, staffUserId }),
     receivablesSnapshot: () => receivablesSnapshot(db),
     overdueList: () => overdueList(db),
+    installments: (values, now = new Date()) => listInstallments({ database: db, values, now }),
     studentOverdueTotals: (values) => studentOverdueTotals({ database: db, values }),
   };
 }
@@ -76,6 +80,10 @@ export type FinanceModule = {
   ) => Promise<AddInstallmentAdjustmentResult>;
   receivablesSnapshot: () => Promise<ReceivablesSnapshot>;
   overdueList: () => Promise<OverdueListResult>;
+  installments: (
+    values: z.infer<typeof financeInstallmentsInputSchema>,
+    now?: Date,
+  ) => Promise<FinanceInstallmentsOutput>;
   /** One derived finance fact per student, for listings (see student-balances.ts). */
   studentOverdueTotals: (values: {
     studentIds: readonly string[];

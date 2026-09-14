@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  FINANCE_INSTALLMENTS_PAGE_SIZE,
   dueDaySchema,
   financeAddInstallmentAdjustmentInputSchema,
   financeBatchReconcileInputSchema,
   financeCreateOrderInputSchema,
+  financeInstallmentsInputSchema,
+  financeInstallmentsOutputSchema,
   financeRegisterPaymentInputSchema,
   financeUpdateOrderInputSchema,
   financeWaiveInstallmentInputSchema,
@@ -28,6 +31,7 @@ const DUE_DAY_TWENTIETH = 20;
 const DUE_DAY_TWENTY_FIFTH = 25;
 const INVALID_DUE_DAY = 30;
 const DISCOUNT_ADJUSTMENT_CENTS = -500;
+const OVERLONG_INSTALLMENT_SEARCH_LENGTH = 81;
 
 const ORDER_FIELDS = {
   kind: "TUITION",
@@ -234,6 +238,46 @@ void describe("finance adjustment input", () => {
         installmentId: INSTALLMENT_ID,
         reason: "   ",
       }).success,
+      false,
+    );
+  });
+});
+
+void describe("finance installments contract", () => {
+  void it("defaults the view and page while trimming an empty search", () => {
+    const parsed = financeInstallmentsInputSchema.parse({ search: "   " });
+
+    assert.deepEqual(parsed, { view: "all", page: 1, search: "" });
+  });
+
+  void it("rejects unsupported views, pages, long searches, and unknown fields", () => {
+    assert.equal(financeInstallmentsInputSchema.safeParse({ view: "overdue" }).success, false);
+    assert.equal(financeInstallmentsInputSchema.safeParse({ page: 0 }).success, false);
+    assert.equal(
+      financeInstallmentsInputSchema.safeParse({
+        search: "x".repeat(OVERLONG_INSTALLMENT_SEARCH_LENGTH),
+      }).success,
+      false,
+    );
+    assert.equal(financeInstallmentsInputSchema.safeParse({ extra: true }).success, false);
+  });
+
+  void it("validates the response by its selected view", () => {
+    const baseResponse = {
+      rows: [],
+      page: 2,
+      pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
+      total: 0,
+      pageCount: 0,
+      counts: { all: 3, paid: 1, overdue: 2 },
+    };
+
+    assert.equal(
+      financeInstallmentsOutputSchema.safeParse({ view: "paid", ...baseResponse }).success,
+      true,
+    );
+    assert.equal(
+      financeInstallmentsOutputSchema.safeParse({ view: "overdue", ...baseResponse }).success,
       false,
     );
   });
