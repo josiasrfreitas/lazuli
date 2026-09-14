@@ -190,7 +190,9 @@ it("passes --mutate through real pnpm without a literal separator and keeps pack
 
 it("reports a package failure from the delegated mutate script", async (testContext) => {
   const failingMutateScript = "FIXTURE_MUTATE_FAIL=1 node ./record-mutate.mjs";
-  const repositoryDirectory = await createChangedPackageFixture({ mutateScript: failingMutateScript });
+  const repositoryDirectory = await createChangedPackageFixture({
+    mutateScript: failingMutateScript,
+  });
   testContext.after(() => rm(repositoryDirectory, { force: true, recursive: true }));
 
   const { result } = runMutateChanged(repositoryDirectory);
@@ -217,4 +219,27 @@ it("ignores inherited Git hook variables and leaves the real repository index un
   const log = await readMutateLog(logPath);
   assert.deepEqual(log.argv, ["--mutate", "src/postgres.ts"]);
   assert.deepEqual(repositorySnapshot(), before);
+});
+
+it("detects mutation scope without invoking builds or mutation, including unconfigured source", async (context) => {
+  const directory = await createChangedPackageFixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  const checkScope = () =>
+    spawnSync(process.execPath, [mutateChangedScript, "--base", "main", "--scope-only"], {
+      cwd: directory,
+      encoding: "utf8",
+      env: buildChildEnvironment({ PATH: path.dirname(gitExecutable) }),
+    });
+
+  const changed = checkScope();
+  assert.equal(changed.status, 0, changed.stderr);
+  assert.equal(changed.stdout.trim(), "true");
+  await rm(path.join(directory, packageDirectory, "stryker.config.mjs"));
+  const unconfigured = checkScope();
+  assert.equal(unconfigured.status, 0, unconfigured.stderr);
+  assert.equal(unconfigured.stdout.trim(), "true");
+  await writeFile(path.join(directory, changedSourcePath), "export const value = 1;\n");
+  const empty = checkScope();
+  assert.equal(empty.status, 0, empty.stderr);
+  assert.equal(empty.stdout.trim(), "false");
 });

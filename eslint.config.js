@@ -23,6 +23,7 @@ export default [
       "scripts/changed-source-covered.mjs",
       "scripts/mutation-redundancy-report.mjs",
       "scripts/mutate-changed.mjs",
+      "scripts/mutation-cache-key.mjs",
       "scripts/run-test-tier.mjs",
       "scripts/test-affected.mjs",
       "scripts/test-durations.mjs",
@@ -31,7 +32,7 @@ export default [
     // Change gates spawn git, node, and Stryker over paths derived from the git diff.
     rules: {
       "no-restricted-syntax": "off",
-      "complexity": "off",
+      complexity: "off",
       "max-depth": "off",
       "max-params": "off",
       "no-magic-numbers": "off",

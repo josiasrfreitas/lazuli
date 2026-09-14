@@ -27,6 +27,10 @@ function option(name) {
   return index === -1 ? undefined : process.argv[index + 1];
 }
 
+const mergeBase = process.argv.includes("--staged")
+  ? undefined
+  : git(["merge-base", option("base") ?? "origin/main", "HEAD"]);
+
 function changedTestFiles() {
   if (process.argv.includes("--staged")) {
     return lines(["diff", "--cached", "--name-only", "--diff-filter=ACMR"]).filter((file) =>
@@ -34,8 +38,6 @@ function changedTestFiles() {
     );
   }
 
-  const base = option("base") ?? "origin/main";
-  const mergeBase = git(["merge-base", base, "HEAD"]);
   const tracked = lines(["diff", "--name-only", "--diff-filter=ACMR", mergeBase]).filter((file) =>
     TEST_FILE_PATTERN.test(file),
   );
@@ -49,14 +51,13 @@ function isNewFile(file) {
   if (process.argv.includes("--staged")) {
     return lines(["diff", "--cached", "--name-only", "--diff-filter=A", "--", file]).length > 0;
   }
-  const mergeBase = git(["merge-base", option("base") ?? "origin/main", "HEAD"]);
   return lines(["ls-tree", "--name-only", mergeBase, "--", file]).length === 0;
 }
 
 function changedLines(file) {
   const diffArgs = process.argv.includes("--staged")
     ? ["diff", "--cached", "--unified=0", "--", file]
-    : ["diff", "--unified=0", git(["merge-base", option("base") ?? "origin/main", "HEAD"]), "--", file];
+    : ["diff", "--unified=0", mergeBase, "--", file];
   const changed = new Set();
   for (const line of git(diffArgs).split("\n")) {
     const match = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/u.exec(line);
@@ -92,7 +93,8 @@ function testRanges(source) {
 }
 
 function isTestCall(node) {
-  if (node.callee.type === "Identifier") return node.callee.name === "it" || node.callee.name === "test";
+  if (node.callee.type === "Identifier")
+    return node.callee.name === "it" || node.callee.name === "test";
   return (
     node.callee.type === "MemberExpression" &&
     node.callee.object.type === "Identifier" &&

@@ -78,10 +78,10 @@ function run(directory, gitEnvironment = {}) {
 async function assertAllWorkspacesSelected(log, { allRootChecks = false } = {}) {
   const calls = await readFile(log, "utf8");
   assert.doesNotMatch(calls, /--filter=/u);
-  assert.match(calls, /(^|\n)test:scripts(\n|$)/u);
+  assert.match(calls, /exec turbo run test:scripts /u);
   if (!allRootChecks) return;
-  assert.match(calls, /(^|\n)test:component-lines(\n|$)/u);
-  assert.match(calls, /(^|\n)test:styles(\n|$)/u);
+  assert.match(calls, / test:component-lines /u);
+  assert.match(calls, / test:styles(\n|$)/u);
 }
 
 it("uses a transitive-consumer Turbo filter for a changed package", async (context) => {
@@ -94,7 +94,7 @@ it("uses a transitive-consumer Turbo filter for a changed package", async (conte
   assert.equal(result.status, 0);
   const calls = await readFile(log, "utf8");
   assert.match(calls, /--filter=\.\.\.@fixture\/core/u);
-  assert.doesNotMatch(calls, /(^|\n)test:scripts(\n|$)/u);
+  assert.doesNotMatch(calls, /exec turbo run test:scripts /u);
 });
 
 it("selects every workspace for repository infrastructure and none for docs-only changes", async (context) => {
@@ -147,4 +147,32 @@ it("fails with bootstrap instructions when infrastructure tests lack an environm
   assert.equal(result.status, 1);
   assert.match(result.stderr, /pnpm bootstrap:worktree/u);
   assert.match(result.stderr, /pnpm prisma:deploy/u);
+});
+
+it("runs reporting-tool checks without requiring application infrastructure", async (context) => {
+  const directory = await repository({ infrastructure: true });
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  await write(directory, "scripts/test-durations.mjs", "export {};\n");
+
+  const { log, result } = run(directory);
+
+  assert.equal(result.status, 0, result.stderr);
+  const calls = await readFile(log, "utf8");
+  assert.match(calls, /exec turbo run test:scripts/u);
+  assert.doesNotMatch(calls, /prisma|test:integration|test:transport/u);
+});
+
+it("keeps integration and transport tasks in one serial invocation", async (context) => {
+  const directory = await repository();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  await write(directory, "packages/core/src/index.ts", "export const value = 2;\n");
+
+  const { log, result } = run(directory);
+
+  assert.equal(result.status, 0, result.stderr);
+  const calls = await readFile(log, "utf8");
+  assert.match(
+    calls,
+    /run test:integration test:transport --filter=\.\.\.@fixture\/core --concurrency=1/u,
+  );
 });

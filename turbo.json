@@ -59,6 +59,26 @@
     "mutate": {
       "dependsOn": ["^build"],
       "cache": false
+    },
+    "//#lint:root": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "//#duplication:check": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "//#test:scripts": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "//#test:component-lines": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "//#test:styles": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
     }
   }
 }

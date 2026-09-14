@@ -16,6 +16,12 @@ const TESTING_GUIDE = "docs/testing/README.md";
 
 const baseRef = resolveBaseRef(readOption("base"));
 const groups = groupSourceFilesByPackage(listChangedFiles(baseRef));
+// Conservative preflight: unconfigured packages still reach the fail-closed gate.
+if (process.argv.includes("--scope-only")) {
+  process.stdout.write(`${groups.size > 0}\n`);
+  process.exit(0);
+}
+
 const failures = [];
 const unconfigured = [];
 let mutatedPackages = 0;

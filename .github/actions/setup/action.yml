@@ -21,9 +21,9 @@ runs:
       uses: actions/cache@v4
       with:
         path: .turbo
-        key: turbo-${{ runner.os }}-${{ github.sha }}
+        key: turbo-v2-${{ runner.os }}-${{ github.job }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
-          turbo-${{ runner.os }}-
+          turbo-v2-${{ runner.os }}-${{ github.job }}-
 
     # `postinstall` runs `prisma generate`, so the client is ready after this step.
     - name: Install dependencies

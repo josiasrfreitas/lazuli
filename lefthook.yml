@@ -2,19 +2,24 @@
 # Integration/transport tiers (test:integration, test:transport) stay in CI; they need Docker.
 
 pre-commit:
-  parallel: false
-  commands:
-    format:
+  piped: true
+  jobs:
+    - name: format
       glob: "*.{ts,tsx,md,json,yaml,yml}"
       run: pnpm exec prettier --write --ignore-path .gitignore --ignore-path .prettierignore {staged_files}
       stage_fixed: true
-    lint:
-      run: pnpm lint
-    test-quality-changed:
-      run: pnpm test:quality:changed --staged
-    typecheck:
-      run: pnpm typecheck
-    test:
+    - name: checks
+      group:
+        parallel: true
+        jobs:
+          - name: lint
+            run: pnpm lint
+          - name: test-quality-changed
+            run: pnpm test:quality:changed --staged
+          - name: typecheck
+            run: pnpm typecheck
+    # Guardrail unit tests create temporary source fixtures; run them after readers.
+    - name: test
       run: pnpm test
 
 pre-push:
