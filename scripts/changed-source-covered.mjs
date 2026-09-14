@@ -31,10 +31,7 @@ for (const [packageDirectory, files] of groups) {
     const changed = changedLines(`${packageDirectory}/${file}`, mergeBase);
     const executable = coverage.get(source) ?? new Map();
     const changedExecutable = [...changed].filter((line) => executable.has(line));
-    if (
-      changedExecutable.length > 0 &&
-      changedExecutable.every((line) => executable.get(line) === 0)
-    ) {
+    if (changedExecutable.some((line) => executable.get(line) === 0)) {
       failures.push(`${packageDirectory}/${file} (changed executable lines uncovered)`);
     }
   }

@@ -84,6 +84,22 @@ it("distinguishes LH zero from missing and malformed reports", async (context) =
   assert.match(malformed.stderr, /Malformed LCOV report/u);
 });
 
+it("rejects a zero-hit changed line when another changed line is covered", async (context) => {
+  const directory = await fixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  await write(
+    directory,
+    "packages/core/src/index.ts",
+    "export const value = 2;\nexport const other = 2;\n",
+  );
+  await writeLcov(directory, "TN:\nSF:src/index.ts\nDA:1,1\nDA:2,0\nLF:2\nLH:1\nend_of_record\n");
+
+  const result = run(directory, ["--reports"]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /changed executable lines uncovered/u);
+});
+
 it("reports a test or environment failure separately from coverage", async (context) => {
   const directory = await fixture();
   context.after(() => rm(directory, { force: true, recursive: true }));
