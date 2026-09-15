@@ -50,10 +50,11 @@ the Storybook proxy lease, and any observable health of the optional shared Dock
 and bucket entries are intent only in the light profile.
 
 Run `pnpm storybook` from a light worktree to serve it at the worktree's Storybook URL. This starts
-a shared local Caddy instance on port 80 when needed, then leases the hostname only for the lifetime
-of the Storybook command. Install Caddy first with `brew install caddy`. Caddy does not require
-Docker or any Lazuli data service. If port 80 is occupied or the hostname does not resolve to
-loopback, the command stops with a corrective diagnostic; it never falls back to a port-bearing URL.
+a shared Caddy instance bound only to `127.0.0.1:8080` when needed, then leases the hostname only
+for the lifetime of the Storybook command. Install Caddy first with `brew install caddy`. Caddy does
+not require Docker or any Lazuli data service. If its HTTP or admin port is occupied, the hostname
+does not resolve to loopback, or an unrelated Caddy instance uses the selected admin port, the command
+stops with a corrective diagnostic.
 
 `pnpm bootstrap:worktree` remains a temporary bridge for worktrees created before this flow. It
 refuses a checkout with `.lazuli/workspace.json` so legacy and light ownership cannot mix.

@@ -69,6 +69,27 @@ function requestProxy(hostname, port = 80) {
   });
 }
 
+function caddyRequest(port, pathname, options = {}) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(
+      {
+        host: "127.0.0.1",
+        port,
+        path: pathname,
+        method: options.method ?? "GET",
+        headers: { origin: `http://127.0.0.1:${port}`, ...options.headers },
+      },
+      (response) => {
+        let body = "";
+        response.on("data", (chunk) => (body += chunk));
+        response.on("end", () => resolve({ status: response.statusCode, body }));
+      },
+    );
+    request.once("error", reject);
+    request.end(options.body);
+  });
+}
+
 async function startUpstream(body) {
   const server = http.createServer((_request, response) => response.end(body));
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -246,6 +267,19 @@ it("reports a service state when Docker omits its health value", async (context)
   assert.match(result.stdout, /mailpit: running/u);
 });
 
+it("upgrades the former port-80 Storybook URL when reading light metadata", async (context) => {
+  const directory = await fixture(context, "lazuli-storybook-url-upgrade");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  const workspace = await metadata(directory);
+  workspace.urls.storybook = workspace.urls.storybook.replace(":8080", "");
+  await writeFile(path.join(directory, ".lazuli/workspace.json"), `${JSON.stringify(workspace)}\n`);
+
+  const { readWorkspaceMetadata } = await import("../lib/workspace-metadata.mjs");
+  const upgraded = await readWorkspaceMetadata(directory);
+
+  assert.equal(upgraded.urls.storybook, `http://storybook.${workspace.identity}.lazuli.localhost:8080`);
+});
+
 it("routes two live Storybook leases by their stable hostnames and removes its own lease", async (context) => {
   const directory = await fixture(context, "lazuli-proxy-source");
   const sibling = path.join(path.dirname(directory), "lazuli-proxy-sibling");
@@ -291,7 +325,20 @@ it("routes two live Storybook leases by their stable hostnames and removes its o
   );
   const { registerStorybookRoute, unregisterStorybookRoute } = await import("../lib/workspace-proxy.mjs");
   await registerStorybookRoute(directory, source);
+  const configuredCaddy = await caddyRequest(caddyAdminPort, "/config/");
+  const caddyConfiguration = JSON.parse(configuredCaddy.body);
+  caddyConfiguration.apps.http.servers.unrelated = {
+    listen: ["127.0.0.1:18_081"],
+    routes: [],
+  };
+  await caddyRequest(caddyAdminPort, "/load", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(caddyConfiguration),
+  });
   await registerStorybookRoute(sibling, other);
+  const reloadedCaddy = await caddyRequest(caddyAdminPort, "/config/");
+  const configurationAfterReload = JSON.parse(reloadedCaddy.body);
   const sourceResponse = await requestProxy(new URL(source.urls.storybook).hostname, caddyHttpPort);
   const otherResponse = await requestProxy(new URL(other.urls.storybook).hostname, caddyHttpPort);
   const abandonedResponse = await requestProxy("storybook.abandoned.lazuli.localhost", caddyHttpPort);
@@ -313,6 +360,10 @@ it("routes two live Storybook leases by their stable hostnames and removes its o
   assert.deepEqual(otherResponse, { status: 200, body: "other storybook" });
   assert.equal(abandonedResponse.status, 404);
   assert.equal(removedResponse.status, 404);
+  assert.deepEqual(configurationAfterReload.apps.http.servers.unrelated, {
+    listen: ["127.0.0.1:18_081"],
+    routes: [],
+  });
 });
 
 it("fails status for missing or invalid metadata without writing it", async (context) => {

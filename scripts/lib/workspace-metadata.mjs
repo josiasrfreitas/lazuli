@@ -23,8 +23,27 @@ export function normalizeWorkspaceIdentity(directoryName) {
 export function workspaceUrls(identity) {
   return {
     web: `http://${identity}.lazuli.localhost`,
+    storybook: `http://storybook.${identity}.lazuli.localhost:8080`,
+  };
+}
+
+function legacyWorkspaceUrls(identity) {
+  return {
+    web: `http://${identity}.lazuli.localhost`,
     storybook: `http://storybook.${identity}.lazuli.localhost`,
   };
+}
+
+function upgradeLegacyWorkspaceUrls(workspace) {
+  if (
+    workspace?.schemaVersion === WORKSPACE_SCHEMA_VERSION &&
+    typeof workspace.identity === "string" &&
+    workspace.urls?.web === legacyWorkspaceUrls(workspace.identity).web &&
+    workspace.urls.storybook === legacyWorkspaceUrls(workspace.identity).storybook
+  ) {
+    return { ...workspace, urls: workspaceUrls(workspace.identity) };
+  }
+  return workspace;
 }
 
 export function workspaceResources(identity) {
@@ -121,6 +140,7 @@ export async function readWorkspaceMetadata(root) {
   } catch {
     throw new Error(`invalid workspace metadata at ${metadataPath}: invalid JSON`);
   }
+  workspace = upgradeLegacyWorkspaceUrls(workspace);
   try {
     return validateWorkspaceMetadata(workspace);
   } catch (error) {

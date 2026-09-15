@@ -8,11 +8,13 @@ import { setTimeout as wait } from "node:timers/promises";
 import { withWorkspaceAllocationLock } from "./workspace-metadata.mjs";
 
 const DEFAULT_CADDY_ADMIN_PORT = 2019;
-const DEFAULT_CADDY_HTTP_PORT = 80;
+const DEFAULT_CADDY_HTTP_PORT = 8080;
 const CADDY_ADMIN_PORT = Number(process.env.LAZULI_CADDY_ADMIN_PORT ?? DEFAULT_CADDY_ADMIN_PORT);
 const CADDY_HTTP_PORT = Number(process.env.LAZULI_CADDY_HTTP_PORT ?? DEFAULT_CADDY_HTTP_PORT);
 const CADDY_ADMIN_URL = `http://127.0.0.1:${CADDY_ADMIN_PORT}`;
 const CADDY_CONFIG_NAME = "lazuli-caddy.json";
+const CADDY_SERVER_NAME = "lazuli_storybook_proxy_v1";
+const CADDY_ROUTE_MARKER = "lazuli-storybook-proxy-v1-marker";
 const LEASES_DIRECTORY = "lazuli-proxy-leases";
 const LEASE_VERSION = 1;
 const REQUEST_TIMEOUT_MS = 1000;
@@ -48,9 +50,17 @@ function caddyConfiguration(routes) {
     apps: {
       http: {
         servers: {
-          lazuli: {
-            listen: [`:${CADDY_HTTP_PORT}`],
-            routes,
+          [CADDY_SERVER_NAME]: {
+            listen: [`127.0.0.1:${CADDY_HTTP_PORT}`],
+            automatic_https: { disable: true },
+            routes: [
+              {
+                "@id": CADDY_ROUTE_MARKER,
+                match: [{ host: ["lazuli-proxy.invalid"] }],
+                handle: [{ handler: "static_response", status_code: 404 }],
+              },
+              ...routes,
+            ],
           },
         },
       },
@@ -97,8 +107,12 @@ async function processOwnsLease(lease) {
   return (await processStart(lease.process.pid)) === lease.process.startedAt;
 }
 
-function leasePath(stateDirectory, identity) {
-  return path.join(stateDirectory, LEASES_DIRECTORY, `${identity}-storybook.json`);
+function leasePath(stateDirectory, lease) {
+  return path.join(
+    stateDirectory,
+    LEASES_DIRECTORY,
+    `${lease.workspaceIdentity}-storybook-${lease.process.pid}-${encodeURIComponent(lease.process.startedAt)}.json`,
+  );
 }
 
 async function readLease(file) {
@@ -140,24 +154,57 @@ async function activeLeases(stateDirectory) {
   return leases;
 }
 
-async function caddyIsManaged() {
+async function caddyConfigurationFromAdmin() {
   try {
-    const response = await caddyAdminRequest("/config/apps/http/servers/lazuli");
-    return response.ok;
+    const response = await caddyAdminRequest("/config/");
+    return response.ok ? response.json() : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
-async function ensureCaddy(stateDirectory) {
-  if (await caddyIsManaged()) return;
-  const configurationPath = path.join(stateDirectory, CADDY_CONFIG_NAME);
-  await writeFile(configurationPath, `${JSON.stringify(caddyConfiguration([]), null, 2)}\n`);
+function caddyIsManaged(configuration) {
+  const server = configuration?.apps?.http?.servers?.[CADDY_SERVER_NAME];
+  return (
+    server?.listen?.includes(`127.0.0.1:${CADDY_HTTP_PORT}`) &&
+    server.routes?.some((route) => route["@id"] === CADDY_ROUTE_MARKER)
+  );
+}
+
+function caddyWithRoutes(configuration, routes) {
+  return {
+    ...configuration,
+    admin: { ...configuration.admin, listen: `127.0.0.1:${CADDY_ADMIN_PORT}` },
+    apps: {
+      ...configuration.apps,
+      http: {
+        ...configuration.apps?.http,
+        servers: {
+          ...configuration.apps?.http?.servers,
+          ...caddyConfiguration(routes).apps.http.servers,
+        },
+      },
+    },
+  };
+}
+
+function caddyStartError(detail = "") {
+  if (/permission denied|operation not permitted|eacces|bind.*permission/iu.test(detail)) {
+    return `Caddy could not bind 127.0.0.1:${CADDY_HTTP_PORT} because permission was denied. Choose an unprivileged LAZULI_CADDY_HTTP_PORT and retry.`;
+  }
+  return `Caddy could not start because 127.0.0.1:${CADDY_HTTP_PORT} or its admin port ${CADDY_ADMIN_PORT} is occupied. Free that port and retry.`;
+}
+
+async function startCaddy(configurationPath) {
   let child;
+  let standardError = "";
   try {
     child = spawn("caddy", ["start", "--config", configurationPath], {
       detached: true,
-      stdio: "ignore",
+      stdio: ["ignore", "ignore", "pipe"],
+    });
+    child.stderr.on("data", (chunk) => {
+      standardError += chunk;
     });
   } catch (error) {
     throw new Error(
@@ -171,32 +218,53 @@ async function ensureCaddy(stateDirectory) {
     void wait(CADDY_START_SETTLE_MS).then(() => resolve({}));
   });
   child.unref();
+  return { started, standardError };
+}
+
+async function caddyBecomesManaged() {
+  for (let attempt = 0; attempt < CADDY_START_ATTEMPTS; attempt += 1) {
+    if (caddyIsManaged(await caddyConfigurationFromAdmin())) return true;
+    await wait(CADDY_START_RETRY_MS);
+  }
+  return false;
+}
+
+async function ensureCaddy(stateDirectory) {
+  const existingConfiguration = await caddyConfigurationFromAdmin();
+  if (existingConfiguration !== null) {
+    if (caddyIsManaged(existingConfiguration)) return;
+    throw new Error(
+      `Caddy's admin API on 127.0.0.1:${CADDY_ADMIN_PORT} belongs to another configuration. Lazuli will not replace it; stop that Caddy instance or configure it separately.`,
+    );
+  }
+  const configurationPath = path.join(stateDirectory, CADDY_CONFIG_NAME);
+  await writeFile(configurationPath, `${JSON.stringify(caddyConfiguration([]), null, 2)}\n`);
+  const { started, standardError } = await startCaddy(configurationPath);
   if (started.error?.code === "ENOENT") {
     throw new Error("Caddy is required for stable local URLs. Install it with 'brew install caddy'.");
   }
   if (started.code !== undefined && started.code !== 0) {
-    throw new Error("Caddy could not start. Port 80 may already be in use; free port 80 and retry.");
+    throw new Error(caddyStartError(standardError));
   }
-  for (let attempt = 0; attempt < CADDY_START_ATTEMPTS; attempt += 1) {
-    if (await caddyIsManaged()) return;
-    await wait(CADDY_START_RETRY_MS);
-  }
-  throw new Error(
-    "Caddy did not become available on its local admin API. Port 80 may already be in use; free port 80 and retry.",
-  );
+  if (await caddyBecomesManaged()) return;
+  throw new Error(caddyStartError(standardError));
 }
 
 async function reloadCaddy(stateDirectory, leases) {
+  const existingConfiguration = await caddyConfigurationFromAdmin();
+  if (!caddyIsManaged(existingConfiguration)) {
+    throw new Error("Lazuli's managed Caddy instance is no longer available; refusing to replace its configuration.");
+  }
   const response = await caddyAdminRequest("/load", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(caddyConfiguration(leases.map((lease) => routeForLease(lease)))),
+    body: JSON.stringify(caddyWithRoutes(existingConfiguration, leases.map((lease) => routeForLease(lease)))),
   });
   if (!response.ok) throw new Error(`Caddy rejected the route configuration (${response.status}).`);
 }
 
 async function routeAvailability(lease) {
-  if (!(await caddyIsManaged())) return "Caddy is not available";
+  if (!caddyIsManaged(await caddyConfigurationFromAdmin())) return "Caddy is not available";
   try {
     const response = await request(`http://127.0.0.1:${CADDY_HTTP_PORT}`, {
       headers: { host: lease.hostname },
@@ -234,7 +302,7 @@ export async function registerStorybookRoute(root, workspace) {
     };
     if (lease.process.startedAt === null) throw new Error("could not verify the Storybook process ownership");
     await ensureCaddy(stateDirectory);
-    const file = leasePath(stateDirectory, workspace.identity);
+    const file = leasePath(stateDirectory, lease);
     await writeFile(`${file}.${process.pid}.tmp`, `${JSON.stringify(lease, null, 2)}\n`);
     await rename(`${file}.${process.pid}.tmp`, file);
     await reloadCaddy(stateDirectory, await activeLeases(stateDirectory));
@@ -244,7 +312,12 @@ export async function registerStorybookRoute(root, workspace) {
 export async function unregisterStorybookRoute(root, workspace) {
   const stateDirectory = sharedStateDirectory(root);
   await withWorkspaceAllocationLock(root, async () => {
-    const file = leasePath(stateDirectory, workspace.identity);
+    const processOwnership = { pid: process.pid, startedAt: await processStart(process.pid) };
+    if (processOwnership.startedAt === null) return;
+    const file = leasePath(stateDirectory, {
+      workspaceIdentity: workspace.identity,
+      process: processOwnership,
+    });
     const lease = await readLease(file);
     if (
       lease?.workspaceIdentity === workspace.identity &&
@@ -253,7 +326,9 @@ export async function unregisterStorybookRoute(root, workspace) {
     ) {
       await rm(file, { force: true });
     }
-    if (await caddyIsManaged()) await reloadCaddy(stateDirectory, await activeLeases(stateDirectory));
+    if (caddyIsManaged(await caddyConfigurationFromAdmin())) {
+      await reloadCaddy(stateDirectory, await activeLeases(stateDirectory));
+    }
   });
 }
 
@@ -264,11 +339,14 @@ export async function storybookProxyStatus(root, workspace) {
   } catch {
     return "not observed (Git is unavailable)";
   }
-  const lease = await readLease(leasePath(stateDirectory, workspace.identity));
-  const leaseIsLive =
-    lease?.hostname === new URL(workspace.urls.storybook).hostname &&
-    lease.port === workspace.ports.storybook &&
-    (await processOwnsLease(lease));
+  const leases = await activeLeases(stateDirectory);
+  const lease = leases.find(
+    (candidate) =>
+      candidate.workspaceIdentity === workspace.identity &&
+      candidate.hostname === new URL(workspace.urls.storybook).hostname &&
+      candidate.port === workspace.ports.storybook,
+  );
+  const leaseIsLive = lease !== undefined;
   if (!leaseIsLive) return "not registered";
   return `registered to a running Storybook process; route ${await routeAvailability(lease)}`;
 }

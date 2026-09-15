@@ -5,10 +5,11 @@ import path from "node:path";
 const configurationPath = process.argv[process.argv.indexOf("--config") + 1];
 let configuration = JSON.parse(await readFile(configurationPath, "utf8"));
 const adminPort = Number(configuration.admin.listen.split(":").at(-1));
-const httpPort = Number(configuration.apps.http.servers.lazuli.listen[0].slice(1));
+const serverName = "lazuli_storybook_proxy_v1";
+const httpPort = Number(configuration.apps.http.servers[serverName].listen[0].split(":").at(-1));
 
 function routes() {
-  return configuration.apps.http.servers.lazuli.routes;
+  return configuration.apps.http.servers[serverName].routes;
 }
 
 const admin = http.createServer(async (request, response) => {
@@ -16,8 +17,8 @@ const admin = http.createServer(async (request, response) => {
     response.writeHead(403).end('{"error":"client is not allowed to access from origin \'\'"}');
     return;
   }
-  if (request.method === "GET" && request.url === "/config/apps/http/servers/lazuli") {
-    response.writeHead(200).end(JSON.stringify(configuration.apps.http.servers.lazuli));
+  if (request.method === "GET" && request.url === "/config/") {
+    response.writeHead(200).end(JSON.stringify(configuration));
     return;
   }
   if (request.method === "POST" && request.url === "/load") {
@@ -32,7 +33,7 @@ const admin = http.createServer(async (request, response) => {
 
 const proxy = http.createServer((request, response) => {
   const hostname = request.headers.host?.split(":")[0];
-  const route = routes().find((candidate) => candidate.match[0].host.includes(hostname));
+  const route = routes().find((candidate) => candidate.match?.[0]?.host?.includes(hostname));
   if (route === undefined) {
     response.writeHead(404).end();
     return;
@@ -50,7 +51,7 @@ const proxy = http.createServer((request, response) => {
 });
 
 await new Promise((resolve) => admin.listen(adminPort, "127.0.0.1", resolve));
-await new Promise((resolve) => proxy.listen(httpPort, resolve));
+await new Promise((resolve) => proxy.listen(httpPort, "127.0.0.1", resolve));
 await writeFile(path.join(process.env.LAZULI_PROXY_STATE_DIR, "fake-caddy.pid"), `${process.pid}\n`);
 
 function stop() {
