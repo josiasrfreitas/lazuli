@@ -14,10 +14,10 @@ loaded from `apps/web/src/app/globals.css`, which imports `@lazuli/ui/styles.css
 | ------------------------ | -------- | --------------------------------: | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `no-inline-styles`       | error    |                                 0 | Gate now. Inline presentation must use a class and a Lazuli token or component API.                                                 |
 | `no-restyle`             | warn     |                                23 | Observe. Consumers may own layout; remaining component-owned styling needs variants, narrow contracts, or remediation.              |
-| `no-arbitrary-values`    | warn     |                                15 | Observe. Characterize approved editorial/layout values before replacing them with tokens.                                           |
+| `no-arbitrary-values`    | warn     |                                20 | Observe. Characterize approved editorial/layout values before replacing them with tokens.                                           |
 | `no-raw-colors`          | warn     |                                33 | Observe. Four branded Google SVG fills are intentional; the other findings are mostly typography utilities misclassified as colors. |
 | `no-unknown-classes`     | warn     | 0 normally; 10 on worker fallback | Observe. A successful theme-aware run is clean, but the bundled-grammar fallback misclassifies Lazuli utilities.                    |
-| `require-static-classes` | warn     |                                 2 | Observe. Convert the two table width lookups to statically enumerable classes before promotion.                                     |
+| `require-static-classes` | error    |                                 0 | Gate now. The student table's fixed widths and fact tones are statically enumerable.                                                |
 
 `no-restyle` now allows the `layout` category globally. This is the consumer contract: pages may
 place and size a shared primitive, while its internal spacing, shape, typography, color, and state
@@ -33,9 +33,9 @@ variants, semantic tokens, and parent layout.
 - Typography discovery: `text-h2`, `text-caption`, and `text-micro` are valid utilities declared by
   the shared theme, but `no-raw-colors` and/or `no-unknown-classes` report them. These rules cannot
   become errors until upstream discovery or a supported configuration resolves that ambiguity.
-- Table widths and static classes: `src/features/students/students-table.tsx:147` and
-  `students-table-row.tsx:27` select class strings from data. Preserve the fixed-column behavior
-  while changing them to statically readable variants.
+- Table widths: `src/features/students/students-table.tsx` keeps fixed columns through explicit
+  percentage widths. They are now statically readable, which adds five existing values to the
+  `no-arbitrary-values` inventory; preserve that layout until this rule's separate remediation.
 - Form grid: `src/features/students/new-student/dados-step.tsx:35` uses an intentional arbitrary
   grid template; decide whether it is a reusable form-layout contract or a theme utility.
 - Marquee layout: `src/components/marquee/marquee-layout.tsx:26-46` and `:107` contain editorial

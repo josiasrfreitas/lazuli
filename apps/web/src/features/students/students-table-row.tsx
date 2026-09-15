@@ -7,27 +7,36 @@ import { Avatar, Badge, Button, cn, TableCell, TableRow } from "@lazuli/ui";
 
 import { EM_DASH } from "~/lib/format";
 
-import {
-  attendanceCellVm,
-  financeCellVm,
-  whatsAppVm,
-  type FactCellVm,
-  type FactTone,
-} from "./view-model";
-
-const TONE_CLASSES: Record<FactTone, string> = {
-  default: "",
-  muted: "text-muted-foreground",
-  success: "text-success",
-  destructive: "text-destructive",
-};
+import { attendanceCellVm, financeCellVm, whatsAppVm, type FactCellVm } from "./view-model";
 
 function FactCell({ vm }: { vm: FactCellVm }): ReactElement {
-  return (
-    <TableCell className={TONE_CLASSES[vm.tone]} numeric>
-      <span className={cn(vm.numeric && "font-numeric")}>{vm.label}</span>
-    </TableCell>
-  );
+  const content = <span className={cn(vm.numeric && "font-numeric")}>{vm.label}</span>;
+
+  if (vm.tone === "muted") {
+    return (
+      <TableCell className="text-muted-foreground" numeric>
+        {content}
+      </TableCell>
+    );
+  }
+
+  if (vm.tone === "success") {
+    return (
+      <TableCell className="text-success" numeric>
+        {content}
+      </TableCell>
+    );
+  }
+
+  if (vm.tone === "destructive") {
+    return (
+      <TableCell className="text-destructive" numeric>
+        {content}
+      </TableCell>
+    );
+  }
+
+  return <TableCell numeric>{content}</TableCell>;
 }
 
 function EnrollmentCell({ enrollment }: { enrollment: StudentListRow["enrollment"] }): ReactNode {
