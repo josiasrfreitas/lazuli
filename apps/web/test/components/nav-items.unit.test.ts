@@ -26,7 +26,7 @@ void describe("role-aware navigation", () => {
   void it("shows Alunos only to roles its procedures accept", () => {
     assert.deepEqual(
       navItemsFor("ADMIN").map((item) => item.href),
-      ["/", STUDENTS_PATH],
+      ["/", STUDENTS_PATH, "/parcelas"],
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
@@ -38,6 +38,7 @@ void describe("role-aware navigation", () => {
     assert.deepEqual(sectionsSummary(navSectionsFor("ADMIN")), [
       { label: null, items: ["Início"] },
       { label: PEDAGOGICAL_LABEL, items: [STUDENTS_LABEL] },
+      { label: "Financeiro", items: ["Parcelas"] },
     ]);
     assert.deepEqual(
       navSectionsFor("TEACHER").map((section) => section.label),
@@ -65,4 +66,18 @@ void describe("role-aware navigation", () => {
     assert.equal(homeHrefFor("SECRETARY"), null);
     assert.equal(homeHrefFor("FINANCE"), null);
   });
+});
+
+void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
+  assert.deepEqual(navBreadcrumbFor("/parcelas", "ADMIN"), {
+    section: "Financeiro",
+    page: "Parcelas",
+  });
+  for (const role of ["SECRETARY", "FINANCE", "TEACHER"] as const) {
+    assert.equal(navBreadcrumbFor("/parcelas", role), null);
+    assert.deepEqual(
+      navItemsFor(role).map((item) => item.href),
+      ["/"],
+    );
+  }
 });

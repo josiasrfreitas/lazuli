@@ -3,34 +3,24 @@
 import { useState, type ReactElement } from "react";
 
 import { DataTablePage } from "@lazuli/ui";
+import { studentPaginationPolicy } from "@lazuli/validators";
+import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
 
-import {
-  useSelectedStudent,
-  useStudentsFilters,
-  useStudentsList,
-  type StudentsFilters,
-  type StudentsListQuery,
-} from "./logic";
+import { useSelectedStudent, useStudentsFilters, useStudentsList } from "./logic";
 import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentPreviewPanel } from "./student-preview-panel";
-import { StudentsTable, type StudentsTablePagination } from "./students-table";
+import { StudentsTable } from "./students-table";
 import { StudentsControls, StudentsHeader } from "./students-toolbar";
 import { headerSummaryVm, statusTabsVm, tableStateVm } from "./view-model";
 
-export function paginationFor(
-  data: StudentsListQuery["data"],
-  filters: Pick<StudentsFilters, "pagina" | "pageSize" | "setPagina" | "setPageSize">,
-): StudentsTablePagination {
-  const base = {
-    onPageChange: filters.setPagina,
-    onPageSizeChange: filters.setPageSize,
-    page: data?.page ?? filters.pagina,
-    pageSize: data?.pageSize ?? filters.pageSize,
+function paginationFor(filters: ReturnType<typeof useStudentsFilters>): UrlPagination {
+  return {
+    page: filters.page,
+    pageSize: filters.pageSize,
+    pageSizeOptions: studentPaginationPolicy.pageSizeOptions,
+    setPage: filters.setPage,
+    setPageSize: filters.setPageSize,
   };
-
-  return data === undefined
-    ? { ...base, loading: true }
-    : { ...base, pageCount: data.pageCount, totalItems: data.total };
 }
 
 export function StudentsPage(): ReactElement {
@@ -41,8 +31,9 @@ export function StudentsPage(): ReactElement {
   const state = tableStateVm({
     rows: students.data?.rows,
     isError: students.error !== null,
-    filtered: filters.busca !== "" || filters.statusTab !== "todos",
+    filtered: filters.search !== "" || filters.statusTab !== "todos",
   });
+  const pagination = paginationFor(filters);
 
   return (
     <>
@@ -65,7 +56,7 @@ export function StudentsPage(): ReactElement {
           onSelectRow={selection.select}
           selectedId={selection.selectedId}
           state={state}
-          pagination={paginationFor(students.data, filters)}
+          pagination={tablePaginationPropsFor(pagination, students.data)}
         />
       </DataTablePage>
       <StudentPreviewPanel selection={selection} />

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,7 +29,7 @@ function SidebarNavSection({
   pathname: string;
   section: NavSection;
 }): ReactNode {
-  const labelId = `nav-section-${section.id}`;
+  const labelId = useId();
 
   return (
     <div aria-labelledby={section.label === null ? undefined : labelId} role="group">

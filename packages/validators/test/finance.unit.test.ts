@@ -247,12 +247,18 @@ void describe("finance installments contract", () => {
   void it("defaults the view and page while trimming an empty search", () => {
     const parsed = financeInstallmentsInputSchema.parse({ search: "   " });
 
-    assert.deepEqual(parsed, { view: "all", page: 1, search: "" });
+    assert.deepEqual(parsed, {
+      view: "all",
+      page: 1,
+      pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
+      search: "",
+    });
   });
 
   void it("rejects unsupported views, pages, long searches, and unknown fields", () => {
     assert.equal(financeInstallmentsInputSchema.safeParse({ view: "unknown" }).success, false);
     assert.equal(financeInstallmentsInputSchema.safeParse({ page: 0 }).success, false);
+    assert.equal(financeInstallmentsInputSchema.safeParse({ pageSize: 99 }).success, false);
     assert.equal(
       financeInstallmentsInputSchema.safeParse({
         search: "x".repeat(OVERLONG_INSTALLMENT_SEARCH_LENGTH),

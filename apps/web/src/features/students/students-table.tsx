@@ -15,9 +15,9 @@ import {
   TableRow,
   TableSkeleton,
 } from "@lazuli/ui";
-import { STUDENT_PAGE_SIZE_OPTIONS, type StudentListInput } from "@lazuli/validators";
 
 import { StudentsTableRow } from "./students-table-row";
+import type { TablePaginationAdapterProps } from "~/lib/pagination";
 import type { StudentsTableState } from "./view-model";
 
 // Explicit widths + `table-fixed` keep the columns in place across the data,
@@ -86,41 +86,10 @@ function StatesRow({
   );
 }
 
-type StudentsTablePaginationBase = {
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: StudentListInput["pageSize"]) => void;
-  page: number;
-  pageSize: StudentListInput["pageSize"];
-};
-
-export type StudentsTablePagination = StudentsTablePaginationBase &
-  (
-    | { loading: true; pageCount?: never; totalItems?: never }
-    | { loading?: false; pageCount: number; totalItems: number }
-  );
-
-function isStudentPageSize(pageSize: number): pageSize is StudentListInput["pageSize"] {
-  return (STUDENT_PAGE_SIZE_OPTIONS as readonly number[]).includes(pageSize);
-}
+export type StudentsTablePagination = TablePaginationAdapterProps;
 
 function StudentsPagination({ pagination }: { pagination: StudentsTablePagination }): ReactNode {
-  return (
-    <TablePagination
-      itemLabel={{ singular: "aluno", plural: "alunos" }}
-      onPageChange={pagination.onPageChange}
-      onPageSizeChange={(pageSize) => {
-        if (isStudentPageSize(pageSize)) {
-          pagination.onPageSizeChange(pageSize);
-        }
-      }}
-      page={pagination.page}
-      pageSize={pagination.pageSize}
-      pageSizeOptions={STUDENT_PAGE_SIZE_OPTIONS}
-      {...(pagination.loading
-        ? { loading: true }
-        : { pageCount: pagination.pageCount, totalItems: pagination.totalItems })}
-    />
-  );
+  return <TablePagination itemLabel={{ singular: "aluno", plural: "alunos" }} {...pagination} />;
 }
 
 function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): ReactElement {

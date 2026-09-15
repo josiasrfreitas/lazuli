@@ -47,17 +47,20 @@ hierarquia exigir ênfase.
 - Parcela, datas, dinheiro, dias de atraso, contadores e paginação usam
   `font-numeric tabular-nums`.
 - Labels de status usam o tamanho e peso do `Badge`; não criam uma escala local.
-- O título da página segue Alunos com `text-h2`; subtítulo e conteúdo tabular usam
-  `text-caption` quando aplicável.
+- O título usa `text-2xl` (24 px, mesma dimensão de `text-h2`), subtítulo usa `text-sm`
+  e informações secundárias usam `text-xs`; essas utilities existentes são reconhecidas pelo
+  linter shadcn. O conteúdo tabular herda a tipografia dos primitivos.
 - Informações secundárias, como saldo restante em pagamento parcial, usam a escala existente e
   `muted-foreground`, sem reduzir abaixo de `text-micro`.
 
 ### Espaçamento e layout
 
-- Página: `max-w-6xl`, `p-8` e `gap-5`, iguais a `StudentsPage`.
-- Controles: busca à esquerda, tabs à direita e `gap-4`, permitindo quebra de linha.
+- Página: `DataTablePage` atual de Alunos, com máximo de 96 rem, `p-6` e `gap-4`.
+  Header e controles dividem uma faixa; o conteúdo ocupa a altura restante do viewport.
+- Controles: busca à esquerda, tabs à direita e `gap-3`, permitindo quebra de linha.
 - Tabela: `TableContainer` e densidade padrão existentes; largura mínima e scroll horizontal ficam
-  sob responsabilidade do primitivo.
+  sob responsabilidade do primitivo. Cabeçalho sticky e rodapé permanecem visíveis;
+  a composição usa seis larguras fracionárias estáticas, sem estilos inline.
 - Resumo de pagador vencido: composição dentro da grade da tabela. Padding e altura derivam da
   densidade da tabela; não introduz uma escala própria.
 - Radius e sombras permanecem os definidos em `scale.css` e `effects.css`.
@@ -68,7 +71,8 @@ hierarquia exigir ênfase.
 - Nenhuma animação decorativa é adicionada à troca de tabs, carregamento ou agrupamentos.
 - Estados de foco usam `shadow-focus`/`ring`; cor nunca é o único indicador de status ou interação.
 - Durante refetch, a estrutura anterior pode permanecer visível conforme o padrão de Alunos, sem
-  alterar geometria ou introduzir skeleton intermitente.
+  alterar geometria ou introduzir skeleton intermitente. Na #52, isso se limita à mesma busca/tab
+  e à paginação; trocar o filtro mostra loading, evitando linhas atribuídas ao filtro errado.
 
 ## Componentes semânticos
 
@@ -85,3 +89,11 @@ hierarquia exigir ênfase.
 Nenhum arquivo em `packages/ui/src/styles/tokens/` precisa mudar. A Fase 6 deve validar o uso correto
 das utilities existentes nos novos componentes e adicionar testes apenas para o comportamento e os
 contratos realmente novos.
+
+## Ajuste mínimo do shell aprovado na #52
+
+A verificação em 375 px encontrou a sidebar fixa de 240 px comprimindo os controles. Nesta entrega,
+o shell passa a mostrar um menu nativo de navegação abaixo de 640 px e mantém a sidebar em larguras
+maiores. O menu reutiliza os destinos e filtros por papel, fecha ao navegar ou pressionar Escape
+e devolve o foco ao acionador. A data utilitária do topo aparece a partir de 640 px. O acabamento
+ampliado de responsividade continua na #54.

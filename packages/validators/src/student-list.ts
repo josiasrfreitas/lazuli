@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { studentStatusSchema } from "./student.js";
+import { paginationResultFields, studentPaginationPolicy } from "./pagination.js";
 
 /**
  * Contract for the paginated students listing (`students.list`). The tabs group
@@ -10,30 +11,15 @@ import { studentStatusSchema } from "./student.js";
  */
 
 const SEARCH_MAX_LENGTH = 80;
-const FIRST_PAGE = 1;
-const SMALL_PAGE_SIZE = 10;
-const MEDIUM_PAGE_SIZE = 25;
-const LARGE_PAGE_SIZE = 50;
-
-export const STUDENT_PAGE_SIZE_OPTIONS = [
-  SMALL_PAGE_SIZE,
-  MEDIUM_PAGE_SIZE,
-  LARGE_PAGE_SIZE,
-] as const;
-export const DEFAULT_STUDENT_PAGE_SIZE = STUDENT_PAGE_SIZE_OPTIONS[0];
-
-const studentPageSizeSchema = z.union([
-  z.literal(STUDENT_PAGE_SIZE_OPTIONS[0]),
-  z.literal(STUDENT_PAGE_SIZE_OPTIONS[1]),
-  z.literal(STUDENT_PAGE_SIZE_OPTIONS[2]),
-]);
+export const STUDENT_PAGE_SIZE_OPTIONS = studentPaginationPolicy.pageSizeOptions;
+export const DEFAULT_STUDENT_PAGE_SIZE = studentPaginationPolicy.defaultPageSize;
 
 export const studentListStatusFilterSchema = z.enum(["all", "active", "inactive"]);
 
 export const studentListInputSchema = z
   .object({
-    page: z.number().int().min(FIRST_PAGE).default(FIRST_PAGE),
-    pageSize: studentPageSizeSchema.default(DEFAULT_STUDENT_PAGE_SIZE),
+    page: studentPaginationPolicy.pageSchema,
+    pageSize: studentPaginationPolicy.pageSizeSchema,
     status: studentListStatusFilterSchema.default("all"),
     search: z.string().trim().max(SEARCH_MAX_LENGTH).optional(),
   })
@@ -60,11 +46,13 @@ export const studentListAttendanceSchema = z
   .strict();
 
 /** "—" (no active order), "Em dia", or the open overdue balance in cents. */
+// Stryker disable StringLiteral,ObjectLiteral: changing Zod discriminators aborts schema construction.
 export const studentListFinanceSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("none") }).strict(),
   z.object({ kind: z.literal("upToDate") }).strict(),
   z.object({ kind: z.literal("overdue"), overdueCents: z.number().int() }).strict(),
 ]);
+// Stryker restore StringLiteral,ObjectLiteral
 
 export const studentListRowSchema = z
   .object({
@@ -91,10 +79,7 @@ export const studentListCountsSchema = z
 export const studentListOutputSchema = z
   .object({
     rows: z.array(studentListRowSchema),
-    page: z.number().int(),
-    pageSize: studentPageSizeSchema,
-    pageCount: z.number().int(),
-    total: z.number().int(),
+    ...paginationResultFields(studentPaginationPolicy),
     /** Tab counts, already narrowed by the current search. */
     counts: studentListCountsSchema,
     /** Header facts, independent of the current filters. */

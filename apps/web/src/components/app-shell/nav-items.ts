@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Home, Users } from "lucide-react";
+import { Home, Receipt, Users } from "lucide-react";
 
 import type { StaffRole } from "@lazuli/auth/server";
 
@@ -42,6 +42,11 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     label: "Pedagógico",
     // students.* is adminProcedure; staffProcedure is deferred debt (PR #46).
     items: [{ href: "/alunos", label: "Alunos", icon: Users, roles: ["ADMIN"] }],
+  },
+  {
+    id: "financeiro",
+    label: "Financeiro",
+    items: [{ href: "/parcelas", label: "Parcelas", icon: Receipt, roles: ["ADMIN"] }],
   },
 ];
 

@@ -112,8 +112,9 @@ failed dry runs still fail. Ignored and compile-error mutants do not contribute 
 Stryker's raw HTML/JSON score includes uncovered mutants and is informational; its built-in break
 threshold is disabled because the package wrapper enforces the unit-covered threshold instead.
 CI mutation needs no Postgres, Mailpit, or migrations; the complete test job retains them.
-A scope preflight skips mutation only when there are no eligible changed source files; packages
-without mutation configuration still reach the fail-closed gate.
+A scope preflight skips mutation when changed packages have no `test/**/*.unit.test.ts` files.
+Compile-time type tests do not put a package in mutation scope. Packages with unit tests but without
+mutation configuration still reach the fail-closed gate.
 
 Integration and transport quality is assessed through contract-focused review and this guide:
 assert observable persistence, authorization, transactions, and adapter behavior, with isolated

@@ -1,6 +1,15 @@
 /** Zod schemas shared by API, workers, and scripts (§2.1). */
 export { z } from "zod";
 export {
+  definePaginationPolicy,
+  financeInstallmentsPaginationPolicy,
+  financeOverduePaginationPolicy,
+  paginationResultFields,
+  STANDARD_PAGE_SIZE_OPTIONS,
+  studentPaginationPolicy,
+} from "./pagination.js";
+export type { PaginationPolicy } from "./pagination.js";
+export {
   addressInputSchema,
   createGuardianReferenceSchema,
   dateOnlyInputSchema,
@@ -80,6 +89,7 @@ export {
 export {
   dueDaySchema,
   FINANCE_INSTALLMENTS_PAGE_SIZE,
+  FINANCE_INSTALLMENTS_PAGE_SIZE_OPTIONS,
   financeAddInstallmentAdjustmentInputSchema,
   financeBatchReconcileInputSchema,
   financeCreateOrderInputSchema,
