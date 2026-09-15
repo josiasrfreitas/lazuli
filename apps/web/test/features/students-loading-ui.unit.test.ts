@@ -11,6 +11,7 @@ import type { StudentListRow } from "@lazuli/validators";
 import type { StudentsFilters } from "../../src/features/students/logic.js";
 import { paginationFor } from "../../src/features/students/students-page.js";
 import { StudentsTable } from "../../src/features/students/students-table.js";
+import { StudentsTableRow } from "../../src/features/students/students-table-row.js";
 import { StudentsControls, StudentsHeader } from "../../src/features/students/students-toolbar.js";
 import { statusTabsVm } from "../../src/features/students/view-model.js";
 
@@ -29,6 +30,30 @@ const TABLE_ROW: StudentListRow = {
   finance: { kind: "upToDate" },
 };
 
+const NEUTRAL_FACTS_ROW: StudentListRow = {
+  ...TABLE_ROW,
+  id: "22222222-2222-4222-8222-222222222222",
+  fullName: "Bruno Lima Santos",
+  attendance: { percent: 0.75, flagged: false },
+  finance: { kind: "none" },
+};
+
+const EMPTY_FACTS_ROW: StudentListRow = {
+  ...TABLE_ROW,
+  id: "33333333-3333-4333-8333-333333333333",
+  fullName: "Carla Dias Souza",
+  attendance: { percent: null, flagged: false },
+  finance: { kind: "none" },
+  enrollment: {
+    enrollmentId: "44444444-4444-4444-8444-444444444444",
+    classId: "55555555-5555-4555-8555-555555555555",
+    classCode: "REG-A1",
+    scheduleLabel: "Seg e Qua · 19:00",
+    teacherName: "João Silva",
+  },
+  phone: "+5582999999999",
+};
+
 const filters: StudentsFilters = {
   busca: "",
   pagina: 1,
@@ -41,6 +66,12 @@ const filters: StudentsFilters = {
 };
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
+
+function studentRowMarkup(row: StudentListRow): string {
+  return renderToStaticMarkup(
+    createElement(StudentsTableRow, { onSelect: () => {}, row, selected: false }),
+  );
+}
 
 void test("first load preserves pagination furniture and only skeletonizes fetched values", () => {
   const pagination = paginationFor(undefined, filters);
@@ -89,7 +120,7 @@ void test("first load keeps header and tab labels while skeletonizing their coun
 });
 
 void test("fixed student columns and fact tones survive a static class declaration", () => {
-  const markup = renderToStaticMarkup(
+  const tableMarkup = renderToStaticMarkup(
     createElement(StudentsTable, {
       state: { kind: "data", rows: [TABLE_ROW] },
       onRetry: () => {},
@@ -106,10 +137,31 @@ void test("fixed student columns and fact tones survive a static class declarati
       selectedId: null,
     }),
   );
+  const flaggedFactsMarkup = studentRowMarkup(TABLE_ROW);
+  const neutralFactsMarkup = studentRowMarkup(NEUTRAL_FACTS_ROW);
+  const emptyFactsMarkup = studentRowMarkup(EMPTY_FACTS_ROW);
 
-  assert.match(markup, /w-\[30%\]/u);
-  assert.match(markup, /w-\[17%\]/u);
-  assert.equal((markup.match(/w-\[15%\]/gu) ?? []).length, FACT_COLUMN_COUNT);
-  assert.match(markup, /text-destructive/u);
-  assert.match(markup, /text-success/u);
+  assert.match(tableMarkup, /w-\[30%\]/u);
+  assert.match(tableMarkup, /w-\[17%\]/u);
+  assert.equal((tableMarkup.match(/w-\[15%\]/gu) ?? []).length, FACT_COLUMN_COUNT);
+  assert.match(
+    flaggedFactsMarkup,
+    /<td class="[^"]*text-destructive[^"]*"[^>]*><span[^>]*>50%<\/span><\/td>/u,
+  );
+  assert.match(
+    flaggedFactsMarkup,
+    /<td class="[^"]*text-success[^"]*"[^>]*><span[^>]*>Em dia<\/span><\/td>/u,
+  );
+  assert.doesNotMatch(
+    neutralFactsMarkup,
+    /<td class="[^"]*text-(?:muted-foreground|success|destructive)[^"]*"[^>]*><span class="font-numeric">75%<\/span><\/td>/u,
+  );
+  assert.equal(
+    (
+      emptyFactsMarkup.match(
+        /<td class="[^"]*text-muted-foreground[^"]*"[^>]*><span class="">—<\/span><\/td>/gu,
+      ) ?? []
+    ).length,
+    2,
+  );
 });
