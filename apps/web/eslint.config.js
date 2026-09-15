@@ -33,7 +33,7 @@ export default [
         },
       ],
       "shadcn/no-unknown-classes": "warn",
-      "shadcn/require-static-classes": "warn",
+      "shadcn/require-static-classes": "error",
     },
   },
 ];

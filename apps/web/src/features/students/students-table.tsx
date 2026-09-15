@@ -20,18 +20,16 @@ import { STUDENT_PAGE_SIZE_OPTIONS, type StudentListInput } from "@lazuli/valida
 import { StudentsTableRow } from "./students-table-row";
 import type { StudentsTableState } from "./view-model";
 
-const FACT_WIDTH = "w-[15%]";
-
 // Explicit widths + `table-fixed` keep the columns in place across the data,
 // loading and empty states — with auto layout the empty row's colspan lets
 // the headers slide between states.
-const COLUMNS: readonly { label: string; width: string; numeric: boolean }[] = [
-  { label: "Aluno", width: "w-[30%]", numeric: false },
-  { label: "Turma", width: FACT_WIDTH, numeric: false },
-  { label: "Professor", width: "w-[17%]", numeric: false },
-  { label: "Frequência", width: FACT_WIDTH, numeric: true },
-  { label: "Financeiro", width: FACT_WIDTH, numeric: true },
-];
+const COLUMNS = [
+  { label: "Aluno", numeric: false },
+  { label: "Turma", numeric: false },
+  { label: "Professor", numeric: false },
+  { label: "Frequência", numeric: true },
+  { label: "Financeiro", numeric: true },
+] as const satisfies readonly { label: string; numeric: boolean }[];
 const COLUMN_COUNT = COLUMNS.length + 1;
 const NUMERIC_COLUMNS = COLUMNS.flatMap((column, index) => (column.numeric ? [index] : []));
 const SKELETON_ROWS = 10;
@@ -125,6 +123,34 @@ function StudentsPagination({ pagination }: { pagination: StudentsTablePaginatio
   );
 }
 
+function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): ReactElement {
+  switch (column.label) {
+    case "Aluno": {
+      return <TableHead className="w-[30%]">{column.label}</TableHead>;
+    }
+    case "Turma": {
+      return <TableHead className="w-[15%]">{column.label}</TableHead>;
+    }
+    case "Professor": {
+      return <TableHead className="w-[17%]">{column.label}</TableHead>;
+    }
+    case "Frequência": {
+      return (
+        <TableHead className="w-[15%]" numeric>
+          {column.label}
+        </TableHead>
+      );
+    }
+    case "Financeiro": {
+      return (
+        <TableHead className="w-[15%]" numeric>
+          {column.label}
+        </TableHead>
+      );
+    }
+  }
+}
+
 export function StudentsTable({
   state,
   onRetry,
@@ -144,9 +170,7 @@ export function StudentsTable({
         <TableHeader sticky>
           <TableRow className="hover:bg-transparent">
             {COLUMNS.map((column) => (
-              <TableHead className={column.width} key={column.label} numeric={column.numeric}>
-                {column.label}
-              </TableHead>
+              <StudentsTableHead column={column} key={column.label} />
             ))}
             <TableHead className="w-16 text-center">
               <span className="sr-only">Contato</span>
