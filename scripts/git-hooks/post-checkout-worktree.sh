@@ -14,15 +14,7 @@ fi
 unset GIT_DIR GIT_WORK_TREE
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BOOTSTRAP="$SCRIPT_DIR/../bootstrap-worktree.sh"
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
 
-args=()
-if [[ "${LAZULI_BOOTSTRAP_NO_FIXTURES:-}" =~ ^(1|true|yes|TRUE|YES)$ ]]; then
-  args+=(--no-fixtures)
-fi
-
-if ((${#args[@]} > 0)); then
-  exec bash "$BOOTSTRAP" "${args[@]}"
-fi
-
-exec bash "$BOOTSTRAP"
+exec node "$SCRIPT_DIR/../workspace-setup.mjs" light
