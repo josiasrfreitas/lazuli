@@ -1,8 +1,9 @@
 # Design Tokens — Aplicação na vertical de Parcelas
 
-O sistema de tokens estabelecido pela vertical de Alunos atende integralmente ao brief de Parcelas.
-Esta fase é uma auditoria de reuso: não adiciona cores, escalas, fontes ou efeitos específicos para
-Financeiro.
+Os tokens existentes cobrem os papéis visuais previstos no brief de Parcelas, incluindo o
+agrupamento de Vencidas da #57. A auditoria de 2026-09-15 define sua aplicação abaixo; a composição
+final ainda precisa ser verificada no build. Não foi identificada necessidade de novas cores,
+escalas, fontes ou efeitos nesta fase.
 
 ## Filosofia
 
@@ -62,7 +63,8 @@ hierarquia exigir ênfase.
   sob responsabilidade do primitivo. Cabeçalho sticky e rodapé permanecem visíveis;
   a composição usa seis larguras fracionárias estáticas, sem estilos inline.
 - Resumo de pagador vencido: composição dentro da grade da tabela. Padding e altura derivam da
-  densidade da tabela; não introduz uma escala própria.
+  densidade da tabela e da escala existente; a altura acomoda as duas linhas e eventuais quebras
+  de texto, sem cortar nomes ou fixar uma altura que impeça o crescimento do conteúdo.
 - Radius e sombras permanecem os definidos em `scale.css` e `effects.css`.
 
 ### Motion e foco
@@ -81,14 +83,43 @@ hierarquia exigir ênfase.
 - `Table`, `TableContainer`, `TableHead`, `TableCell`, `TableSkeleton` e `TableEmpty` fornecem
   densidade, bordas, estados e overflow.
 - `Input`, `Tabs` e `Pagination` já consomem os tokens de controle, tipografia, foco e motion.
-- O resumo de pagador é composição da feature e deve consumir esses papéis; não justifica um novo
-  primitivo nem um token de componente global.
+- O resumo financeiro permanece composição da feature. Novos primitivos estruturais estão
+  autorizados quando a composição justificar, conforme brief e arquitetura atualizados; essa
+  decisão é independente de criar tokens. Um eventual primitivo deve consumir os papéis existentes.
+
+## Aplicação na view Vencidas — #57
+
+Aplicação após refinamento aprovado em 2026-09-15, preservando a densidade editorial calma:
+
+| Elemento                                    | Aplicação existente                                        | Intenção                                      |
+| ------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------- |
+| Superfície do resumo                        | `bg-muted`                                                 | Separar o resumo das parcelas em `bg-card`    |
+| Divisão entre grupos                        | `border-border rounded-lg`                                 | Separar grupos sempre abertos                 |
+| Nome do pagador                             | `text-foreground font-semibold`, tamanho do corpo tabular  | Primeiro nível de leitura                     |
+| Quantidade, beneficiários e rótulo do saldo | `text-xs text-muted-foreground`                            | Informação secundária legível                 |
+| Saldo em aberto                             | `text-destructive font-semibold font-numeric tabular-nums` | Dar destaque ao total pelo peso e alinhamento |
+| Atraso nas parcelas                         | `Badge` destructive, texto “1 dia” / “N dias”              | Reservar a cor de urgência para o atraso      |
+| Orientação da busca                         | `text-xs text-muted-foreground`                            | Explicar a inclusão do grupo completo         |
+
+- O total do resumo usa vermelho; os saldos das parcelas usam cor neutra e peso semibold.
+  A variação líquida usa texto secundário com ↓ ou ↑; o original fica no tooltip.
+- Manter padding horizontal da densidade da tabela para alinhar resumo, parcelas e cabeçalhos.
+  Usar a escala existente para o padding vertical necessário às duas linhas do resumo.
+- O nome e o texto secundário podem quebrar linha; o valor monetário permanece inteiro. O resumo
+  fica acima da tabela; as cinco colunas de Vencidas têm distribuição própria, com nomes completos.
+- O resumo não muda de aparência ao passar o mouse e não recebe cursor de ação. Ao compor com
+  `TableRow`, verificar o hover herdado para preservar esse comportamento.
+- Os grupos ficam sempre abertos: não há ícones de expansão, animação ou tokens para esse estado.
+- A busca não cria highlight em nomes ou parcelas. O agrupamento não usa cores por pagador/aluno.
+- Aplicar os mesmos papéis semânticos em light e dark, usando as paletas `.light`/`.dark` existentes.
+  O produto continua iniciando em dark; não criar outro mecanismo de tema para esta feature.
 
 ## Resultado da auditoria
 
-Nenhum arquivo em `packages/ui/src/styles/tokens/` precisa mudar. A Fase 6 deve validar o uso correto
-das utilities existentes nos novos componentes e adicionar testes apenas para o comportamento e os
-contratos realmente novos.
+Nenhuma alteração em `packages/ui/src/styles/tokens/` é proposta nesta fase. O build deve verificar
+legibilidade, contraste das combinações aplicadas e distinção entre resumo e parcelas, incluindo
+nomes longos e múltiplos beneficiários. A auditoria dos arquivos não substitui essa verificação
+visual. Se surgir uma lacuna concreta, avaliar a extensão mínima do sistema existente.
 
 ## Ajuste mínimo do shell aprovado na #52
 

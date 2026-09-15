@@ -2,7 +2,7 @@
 
 Generated from: `.design/parcelas/DESIGN_BRIEF.md`
 
-Date: 2026-08-26
+Date: 2026-09-15 (replanejamento da #57)
 
 Ordem: risco financeiro e de paginação primeiro; depois a tabela plana estabelece a direção visual
 de **densidade editorial calma**; por fim, o agrupamento vencido e o acabamento completam a
@@ -13,14 +13,18 @@ próxima.
 
 Vencidas fica desabilitada nesta fatia, exibindo seu contador. Sua ativação e apresentação agrupada
 permanecem na #57; `status=vencidas` normaliza para Todas, mantém busca e remove página.
-Todas e Pagas incluem os estados básicos, 25 parcelas por página, busca de até 80 caracteres com
+Todas e Pagas incluem os estados básicos, seletor de 10/25/50 parcelas por página (padrão 25), busca de até 80 caracteres com
 debounce de 300 ms, cancelamento de busca pendente na navegação externa e correção de página acima
 do total. Header e controles usam a faixa única de `DataTablePage`; tabela tem altura de viewport,
 scroll interno e rodapé fixo. A #54 e o design review mantêm suas tarefas abaixo.
 
-## Foundation
+## Base já entregue — referência, não trabalho da #57
 
-- [ ] **Identidade estável da parcela**: adicionar `Installment.sequenceNumber` por nova migration,
+O handoff registra identidade/fixtures e backend como entregues nas fatias anteriores; schema,
+contrato, consultas e testes atuais corroboram sua presença. Os itens abaixo preservam o plano
+original, sem solicitar nova implementação nem afirmar uma nova execução de seus checks nesta fase.
+
+- [x] **Identidade estável da parcela**: adicionar `Installment.sequenceNumber` por nova migration,
       criar a coluna nullable, fazer backfill determinístico por `orderId` na ordem `dueDate, id`,
       torná-la `NOT NULL` e então criar índice único parcial em
       `orderId + sequenceNumber WHERE deletedAt IS NULL`, seguindo o fluxo `--create-only` do guia de
@@ -30,10 +34,10 @@ scroll interno e rodapé fixo. A #54 e o design review mantêm suas tarefas abai
       e testes de domínio, schema e pedidos passam. _Modifica `Installment`, `generateInstallments`, o
       módulo `finance` e seus testes; reutiliza Prisma para schema/migration/writes._
 
-- [ ] **Consulta plana paginada do ledger**: entregar o contrato validado de listagem e uma leitura
+- [x] **Consulta plana paginada do ledger**: entregar o contrato validado de listagem e uma leitura
       Kysely privada do módulo `finance` para Todas e Pagas, incluindo saldo/status derivados,
       total do cronograma, pagador, beneficiários, contadores, busca por nome, exclusão de pedidos
-      cancelados, ordenação e páginas de 25 linhas. Integrar `prisma-kysely` e
+      cancelados, ordenação e páginas de 10/25/50 linhas (padrão 25). Integrar `prisma-kysely` e
       `prisma-extension-kysely` no cliente/transaction boundary conforme ADR 0016; tipos são gerados do
       schema, nunca editados à mão. Done = `finance.installments` é `adminProcedure`, responde ao DTO
       discriminado com input `view=all|overdue|paid` e possui testes DB de
@@ -43,7 +47,7 @@ scroll interno e rodapé fixo. A #54 e o design review mantêm suas tarefas abai
       modifica o cliente Prisma e a interface profunda de `finance`; reutiliza
       `deriveInstallmentLedger` como oráculo de paridade._
 
-- [ ] **Consulta vencida agrupada por pagador**: estender a mesma procedure para
+- [x] **Consulta vencida agrupada por pagador**: estender a mesma procedure para
       `view=overdue`, agregando ajustes e allocations no Postgres antes de filtrar, agrupando por
       `payerId`, ordenando grupos por maior atraso e `payerId ASC`, e paginando dez grupos inteiros sem
       dividir suas parcelas; linhas usam `dueDate ASC, installmentId ASC`. A busca primeiro qualifica
@@ -54,14 +58,14 @@ scroll interno e rodapé fixo. A #54 e o design review mantêm suas tarefas abai
       fronteiras de data de São Paulo. _Modifica a leitura Kysely, validators e procedure criados na
       tarefa anterior; reutiliza o módulo `finance` e as fixtures financeiras._
 
-- [ ] **Cenários financeiros demonstráveis no seed**: evoluir o seed dev idempotente para tornar
+- [x] **Cenários financeiros demonstráveis no seed**: evoluir o seed dev idempotente para tornar
       visíveis Todas, Vencidas e Pagas, incluindo um pagador com múltiplos beneficiários, várias
       parcelas vencidas, pagamento parcial e parcela dispensada, sem alterar identificadores de fixture
       ou registrar PII em logs. Done = `pnpm prisma:seed` pode ser repetido e `/parcelas` recebe dados
       suficientes para verificar todos os estados principais. _Modifica `seed-dev-finance.ts`; reutiliza
       os modelos e helpers determinísticos existentes; não cria componente._
 
-## Core UI
+## UI já entregue — #52
 
 - [x] **Página de Parcelas e views planas**: criar `/parcelas` e a feature `installments/` com
       header “Parcelas” / “Mensalidades e vencimentos”, busca debounced, tabs Todas/Vencidas/Pagas,
@@ -76,15 +80,81 @@ scroll interno e rodapé fixo. A #54 e o design review mantêm suas tarefas abai
       view model, controles, tabela e linhas; modifica `nav-items`/`SidebarNav`; reutiliza `AppShell`,
       `Input`, `Tabs`, `Badge`, `Table*`, `Pagination`, tokens e formatters existentes._
 
-- [ ] **View Vencidas agrupada**: criar a composição `OverduePayerSummaryRow` dentro da tabela e
-      renderizar cada grupo por pagador com quantidade, beneficiário único ou contagem de alunos,
-      atraso mais antigo e saldo coletável, seguido de suas parcelas da mais antiga à mais recente.
-      Done = a tab Vencidas mantém as seis colunas, pagina por grupos, distingue pagadores homônimos por
-      identidade e comunica atraso por texto além da cor, sem cards, ações ou linha clicável. _Cria
-      composição e view models da feature; modifica `InstallmentsTable`; reutiliza a consulta agrupada,
-      `Table*`, `Badge` e tokens semânticos._
+## Implementação #57 — ordem de execução
 
-## Interactions & States
+Cada tarefa inclui apresentação e comportamento observáveis, além da proteção do contrato novo.
+A tarefa 1 estabelece a **densidade editorial calma** no ponto de maior risco: a cobrança completa
+de um pagador. Confirmar o resultado de cada tarefa antes da seguinte, conforme o design-flow.
+
+- [ ] **1. Composição agrupada verificável**: criar `OverduePayerSummaryRow` e o view model do
+      resumo; permitir renderizar a variante vencida de `InstallmentsTable` com um DTO agrupado em
+      teste/story. Grupos sempre abertos e identificados por `payerId`; resumo nas colunas 1–4,
+      saldo coletável rotulado na coluna Valor e sexta célula vazia. Nas parcelas, omitir visualmente
+      o pagador, mostrar todos os beneficiários uma única vez e usar “Há 1 dia” / “Há N dias”.
+      Preservar a ordem da API. Aplicar superfície neutra, bordas e altura flexível do documento de
+      tokens; compor associação semântica entre grupo, colunas e células. Done = dois pagadores
+      homônimos permanecem separados; pacote conjunto não duplica linhas/valores; resumo e parcelas
+      são legíveis com nomes longos e saldo parcial. Testes do view model protegem singular/plural,
+      beneficiário único/múltiplos, maior atraso e saldo coletável diferente do valor original;
+      renderização protege seis colunas, identidade e associações de cabeçalhos. _Cria composição
+      e view model na feature; modifica `InstallmentsTable`/`InstallmentRow`; reutiliza `Table*`,
+      `Badge`, formatters e tokens. Pode extrair primitivo estrutural se houver necessidade concreta,
+      com story e contrato proporcional; nenhuma tarefa obriga essa extração._
+
+- [ ] **2. Abrir e paginar Vencidas na página real**: habilitar a tab, aceitar `status=vencidas`,
+      consumir `view=overdue` e encaminhar `groups` à composição. Consultar sempre 10 pagadores,
+      omitir seletor e mostrar a unidade correta no rodapé; preservar `porPagina` como preferência
+      das views planas e reiniciar página ao trocar tab. Done = acesso direto e sequência Todas com
+      50 → Vencidas com 10 grupos → Pagas com 50 funcionam; um grupo longo aparece inteiro e a página
+      seguinte não repete/divide pagadores. Contador da tab continua contando parcelas. Testar
+      entrada efetiva da consulta e props/renderização da paginação, inclusive URL com `porPagina=50`
+      em Vencidas, defaults e status inválido; verificar navegação no browser. _Depende da tarefa 1.
+      Modifica filtros, logic, controles e página da feature; reutiliza `nuqs`, paginação compartilhada
+      e contrato/API existentes, sem refazer agrupamento ou cálculo financeiro no cliente._
+
+- [x] **3. Buscar e atualizar grupos completos**: mostrar a orientação aprovada quando houver
+      busca efetiva em Vencidas, renderizando todo o DTO do pagador sem filtrar ou destacar alunos
+      no cliente. Integrar loading, vazio, erro/retry, refetch e correção de página com a variante
+      agrupada. Done = pesquisar Ana mostra também as parcelas vencidas dos demais beneficiários
+      do pagador, com saldo e contagem integrais; mudar busca/tab não mostra dados do filtro anterior;
+      refetch/paginação preservam grupos com indicação de atualização; página inválida é corrigida
+      pelo total de grupos após resposta efetiva. Preservar debounce, limite e cancelamento de busca
+      por navegação externa. Testar os contratos novos no nível mais barato que os observe;
+      renderização estática não comprova debounce ou transições, que precisam de verificação no
+      browser ou teste comportamental adequado. _Depende da tarefa 2. Modifica página, logic e
+      estados da tabela; reutiliza `TableSkeleton`, `TableEmpty`, `EmptyState` e testes de busca da API._
+
+## Verificação de aceite da #57
+
+Integra a conclusão das três tarefas; não cria uma fase automática de design review.
+
+- [ ] **Validar o fluxo entregue**: conferir em 1280 px os grupos, resumo, saldo parcial, homônimos,
+      pacote conjunto, busca e segunda página; verificar integridade em 768/375 px, teclado nos
+      controles e leitura do resumo/associações com tecnologia assistiva. Registrar limites reais
+      de ferramentas, sem afirmar validação assistiva apenas por inspecionar atributos HTML.
+      Inspecionar o diff completo, executar `git diff --check`, formatação, lint, typecheck e testes
+      proporcionais; executar os gates aplicáveis ou informar o que ficou para CI e por quê.
+      _Verifica as composições modificadas e os componentes reutilizados; não cria nova UI._
+
+### Estratégia de testes
+
+- Contrato protegido: representar a cobrança vencida completa por pagador, sem duplicar parcelas,
+  perder beneficiários ou aplicar o tamanho das views planas à paginação de grupos. As expectativas
+  vêm do brief aprovado e de exemplos com valores explícitos, não de cálculos copiados da produção.
+- Estender `apps/web/test/features/installments.unit.test.ts` para os view models e mapeamento de
+  filtros; `installments-ui.unit.test.ts` já renderiza componentes reais e deve proteger composição,
+  textos e paginação. Não tratar esses testes estáticos como prova de interação dos hooks.
+- Reutilizar `packages/api/test/finance/installments-overdue.integration.test.ts`, que já cobre
+  grupos completos entre páginas, homônimos, busca expandida, saldo e múltiplos beneficiários.
+  `installments-groups.unit.test.ts` e `installments.transport.test.ts` já protegem montagem e
+  transporte. Acrescentar teste nesses níveis somente se surgir um contrato novo ou lacuna concreta.
+- Na implementação, carregar `ship-with-tests` e seguir `docs/testing/README.md`: verificar contratos
+  e defeitos plausíveis antes de editar, revisar por inteiro cada teste tocado e preservar os gates
+  de qualidade e mutation. Usar `pnpm test:affected --base <ref>` e
+  `pnpm mutate:changed --base <ref>` com uma base real conferida; analisar novos mutantes sobreviventes.
+- O planejamento atual é documental: não comprova execução de testes, build ou validação visual.
+
+## Entrega posterior — #54
 
 - [ ] **Estados, responsividade mínima e acessibilidade**: completar loading com geometria estável,
       ledger vazio, filtro sem resultado, erro com “Tentar de novo” e refetch preservando dados
@@ -110,3 +180,16 @@ o shell passa a mostrar um menu nativo de navegação abaixo de 640 px e mantém
 maiores. O menu reutiliza os destinos e filtros por papel, fecha ao navegar ou pressionar Escape
 e devolve o foco ao acionador. A data utilitária do topo aparece a partir de 640 px. O acabamento
 ampliado de responsividade continua na #54.
+
+## Refinamento visual aprovado — 2026-09-15
+
+- Cabeçalhos apenas para tecnologia assistiva por grupo, nomes completos e cinco células independentes por parcela.
+- Saldo coletável como valor principal; variação líquida com ↓ ou ↑ na mesma linha e original no tooltip.
+- Resumo sem contagem de contratos, atraso por extenso e rodapé discreto na mesma posição.
+- Exceção visual localizada: `InstallmentsPagination` usa `className="bg-transparent"` somente em
+  Vencidas, pois o rodapé acompanha grupos separados sobre o fundo da página. `TablePagination`
+  não oferece variante de superfície e um wrapper não remove seu fundo interno. O contrato fica
+  limitado à superfície, preservando espaçamento, controles e comportamento do primitivo; se outra
+  tela precisar disso, promover a escolha a uma propriedade de superfície compartilhada.
+- Testes preservam valores financeiros, grupos e associações de cabeçalhos; abreviações, contagem
+  de contratos e formato compacto do atraso deixam de ser expectativas automatizadas.

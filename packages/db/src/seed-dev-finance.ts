@@ -16,6 +16,9 @@ const BRUNO_INSTALLMENT_COUNT = 2;
 const BRUNO_DUE_DAY = 10;
 const BRUNO_FIRST_DUE_MONTH_OFFSET = -1;
 const BRUNO_START_MONTH_OFFSET = -2;
+const JOINT_ORDER_DUE_DAY = 10;
+const JOINT_ORDER_INSTALLMENT_CENTS = 35_000;
+const JOINT_ORDER_PARTIAL_PAYMENT_CENTS = 9000;
 const PAYMENT_LEAD_DAYS = 2;
 const COMMON_INSTALLMENT_CENTS = 76_000;
 const PARTIAL_PAYMENT_CENTS = 30_000;
@@ -59,6 +62,53 @@ export async function seedDevFinance(
     await transaction.financeSettings.create({ data: { id: FINANCE_SETTINGS_ID } });
     await createSharedPayerScenario(transaction, input);
     await createBrunoScenario(transaction, input);
+    await createJointOrderForSharedPayerScenario(transaction, input);
+  });
+}
+
+async function createJointOrderForSharedPayerScenario(
+  database: FinanceDatabase,
+  input: FinanceSeedInput,
+): Promise<void> {
+  const payerId = stableUuid([DEV_FINANCE_KEY, "shared-payer"]);
+  // Keep the historical key so existing local fixture identifiers remain stable.
+  const scenarioKey = "homonym-joint-order";
+  const orderId = stableUuid([DEV_FINANCE_KEY, `${scenarioKey}-order`]);
+  const dueDate = monthlyDueDate(input.todayIso, {
+    monthOffset: 0,
+    dueDay: JOINT_ORDER_DUE_DAY,
+  });
+  await database.order.create({
+    data: {
+      id: orderId,
+      payerId,
+      kind: "TUITION",
+      principalAmountCents: JOINT_ORDER_INSTALLMENT_CENTS,
+      startDate: monthlyDueDate(input.todayIso, { monthOffset: -1, dueDay: JOINT_ORDER_DUE_DAY }),
+      dueDay: JOINT_ORDER_DUE_DAY,
+    },
+  });
+  await database.orderBeneficiary.createMany({
+    data: ["ana", "joao"].map((studentKey) => ({
+      id: stableUuid([DEV_FINANCE_KEY, scenarioKey, studentKey]),
+      orderId,
+      studentId: studentId(input.studentIds, studentKey),
+    })),
+  });
+  const [installmentId] = await createInstallments(database, {
+    scenarioKey,
+    orderId,
+    amountCents: JOINT_ORDER_INSTALLMENT_CENTS,
+    dueDates: [dueDate],
+  });
+  if (installmentId === undefined)
+    throw new Error("Dev seed misconfiguration: missing installment.");
+  await createPayment(database, {
+    scenarioKey: `${scenarioKey}-partial`,
+    payerId,
+    installmentId,
+    amountCents: JOINT_ORDER_PARTIAL_PAYMENT_CENTS,
+    date: addDays(dueDate, 1),
   });
 }
 

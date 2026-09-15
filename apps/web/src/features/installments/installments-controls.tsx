@@ -61,7 +61,7 @@ export function InstallmentsControls(props: ControlsProps): ReactElement {
             { value: "vencidas", label: "Vencidas", count: props.counts?.overdue },
             { value: "pagas", label: "Pagas", count: props.counts?.paid },
           ].map((tab) => (
-            <TabsTab key={tab.value} value={tab.value} disabled={tab.value === "vencidas"}>
+            <TabsTab key={tab.value} value={tab.value}>
               {tab.label}
               {tab.count === undefined ? (
                 <InlineSkeleton className="w-5" />
