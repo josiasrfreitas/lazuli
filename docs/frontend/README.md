@@ -25,6 +25,32 @@ must not import Prisma or worker handlers.
 - Keep source code, technical documentation, and Storybook examples in English unless a work item
   explicitly identifies user-facing content that must be localized.
 
+### Design-system lint
+
+`apps/web/eslint.config.js` owns the `@shadcn/lint` policy for frontend product source. Run it with
+`pnpm -F @lazuli/web lint`; the repository-wide `pnpm lint` command exercises the same policy in
+the normal Turbo and CI path.
+
+| Rule                            | Severity |
+| ------------------------------- | -------- |
+| `shadcn/no-inline-styles`       | error    |
+| `shadcn/no-restyle`             | warning  |
+| `shadcn/no-arbitrary-values`    | warning  |
+| `shadcn/no-raw-colors`          | warning  |
+| `shadcn/no-unknown-classes`     | warning  |
+| `shadcn/require-static-classes` | warning  |
+
+Consumers may control layout around shared components. Internal spacing, shape, typography,
+color, and state styling belong to the primitive and should use its existing size or variant.
+The active contract and diagnostic guidance live in `apps/web/eslint.config.js`; the measured
+findings and promotion criteria live in `.design/shadcn-lint/BASELINE.md`.
+
+Warnings are a bounded migration inventory, not blanket permission for new violations. For a
+justified exception, first check whether an existing variant, semantic token, or parent layout
+expresses the intent. If not, document the visual reason in the work item and propose either a
+narrow component contract or a reusable shared API. Do not add inline ESLint disables: this
+repository forbids them.
+
 ## Forms
 
 Product forms follow [the form standard](forms.md): a real `form` so Enter submits, first-field
