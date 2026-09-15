@@ -15,7 +15,7 @@ const ROLE_LABELS: Record<StaffRole, string> = {
 
 export function Sidebar({ identity }: { identity: StaffIdentity }): ReactNode {
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-card">
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card sm:flex">
       <div className="px-6 pb-5 pt-6">
         <p className="font-display text-h3 font-semibold tracking-tight text-foreground">
           Lazuli

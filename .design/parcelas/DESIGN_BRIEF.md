@@ -3,6 +3,19 @@
 > Escopo: consulta operacional em `/parcelas`. Os fluxos de registrar pagamento, criar
 > contrato e abrir o contrato serão desenhados separadamente.
 
+## Entrega #52 — aceite atualizado
+
+Todas e Pagas estão incluídas nesta fatia. Vencidas aparece desabilitada, com contador retornado
+pela API; sua apresentação agrupada e ativação continuam na #57. As descrições de agrupamento
+abaixo são o escopo posterior. A #54 mantém o acabamento ampliado de estados, acessibilidade e
+responsividade, e a revisão formal de design permanece separada, sob solicitação.
+
+`status=vencidas` normaliza temporariamente para Todas, preserva busca e reinicia a página.
+Busca tem debounce de 300 ms e limite de 80 caracteres; navegação externa cancela a busca pendente.
+Todas e Pagas usam 25 parcelas por página, sem seletor de tamanho. Paginação e refetch da mesma
+consulta preservam dados com indicação de atualização; outra busca ou tab não recebe linhas do
+filtro anterior. Página acima do total retorna à última válida, ou à primeira se não há resultados.
+
 ## Problem
 
 O administrador precisa entender a situação das mensalidades sem reconstruir mentalmente
@@ -60,8 +73,9 @@ O ponto de partida é o código entregue pela vertical de Alunos no commit `4fd2
 
 - **Shell:** `AppShell` já compõe sidebar, topbar, identidade e sign-out dentro de `app/(app)`.
   Parcelas acrescenta sua entrada à navegação; não cria outro shell.
-- **Layout:** conteúdo centralizado em `max-w-6xl`, padding de 32 px e intervalos de 20 px, como
-  `StudentsPage`.
+- **Layout:** `DataTablePage` atual de Alunos, com largura máxima de 96 rem, padding de 24 px,
+  intervalo de 16 px e header/controles na mesma faixa. `TableContainer` ocupa a altura restante
+  do viewport, com cabeçalho fixo, rolagem interna e rodapé.
 - **Tipografia:** Cambria/Georgia para corpo e display; `font-numeric tabular-nums` para dinheiro,
   datas, contagens e sequências.
 - **Cores:** papéis semânticos dark existentes em `packages/ui/src/styles/tokens/color.css`.
@@ -237,3 +251,11 @@ contrato poderá ser adicionada quando essa rota e sua identificação humana ex
 - Alterar o RBAC para SECRETARY ou FINANCE.
 - Materializar saldo ou status no banco.
 - Design review, que será executado separadamente após o build.
+
+## Ajuste mínimo do shell aprovado na #52
+
+A verificação em 375 px encontrou a sidebar fixa de 240 px comprimindo os controles. Nesta entrega,
+o shell passa a mostrar um menu nativo de navegação abaixo de 640 px e mantém a sidebar em larguras
+maiores. O menu reutiliza os destinos e filtros por papel, fecha ao navegar ou pressionar Escape
+e devolve o foco ao acionador. A data utilitária do topo aparece a partir de 640 px. O acabamento
+ampliado de responsividade continua na #54.

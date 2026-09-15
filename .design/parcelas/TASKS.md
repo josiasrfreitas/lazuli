@@ -9,6 +9,15 @@ de **densidade editorial calma**; por fim, o agrupamento vencido e o acabamento 
 experiência. Cada tarefa inclui seus testes e deve terminar em um estado verificável antes da
 próxima.
 
+## Aceite da #52 atualizado
+
+Vencidas fica desabilitada nesta fatia, exibindo seu contador. Sua ativação e apresentação agrupada
+permanecem na #57; `status=vencidas` normaliza para Todas, mantém busca e remove página.
+Todas e Pagas incluem os estados básicos, 25 parcelas por página, busca de até 80 caracteres com
+debounce de 300 ms, cancelamento de busca pendente na navegação externa e correção de página acima
+do total. Header e controles usam a faixa única de `DataTablePage`; tabela tem altura de viewport,
+scroll interno e rodapé fixo. A #54 e o design review mantêm suas tarefas abaixo.
+
 ## Foundation
 
 - [ ] **Identidade estável da parcela**: adicionar `Installment.sequenceNumber` por nova migration,
@@ -54,11 +63,12 @@ próxima.
 
 ## Core UI
 
-- [ ] **Página de Parcelas e views planas**: criar `/parcelas` e a feature `installments/` com
+- [x] **Página de Parcelas e views planas**: criar `/parcelas` e a feature `installments/` com
       header “Parcelas” / “Mensalidades e vencimentos”, busca debounced, tabs Todas/Vencidas/Pagas,
       tabela plana para Todas e Pagas e paginação. Implementar `nuqs` com `status`, `busca` e `pagina`,
       removendo defaults, reiniciando a página ao trocar tab ou busca e mapeando URL → procedure:
-      ausente → `view=all`, `vencidas` → `view=overdue`, `pagas` → `view=paid`. Formatar `06/12`, data
+      ausente → `view=all`, `pagas` → `view=paid`; nesta fatia, `vencidas` é normalizado
+      para Todas e reinicia a página. Formatar `06/12`, data
       civil pt-BR, BRL, saldo parcial e badges de status por view model puro testado. No mesmo slice,
       modificar a sidebar para renderizar a seção não clicável Financeiro contendo Parcelas somente
       para `ADMIN`, omitindo seções vazias. Done = um admin navega e compartilha as duas views planas;
@@ -92,3 +102,11 @@ próxima.
       tokens após o build, capturando desktop 1280 para Todas, Vencidas, Pagas, busca vazia, erro e
       loading, além de checks de integridade em 768/375. _Não faz parte automática da Fase 6; cria
       `DESIGN_REVIEW.md` e screenshots somente mediante pedido._
+
+## Ajuste mínimo do shell aprovado na #52
+
+A verificação em 375 px encontrou a sidebar fixa de 240 px comprimindo os controles. Nesta entrega,
+o shell passa a mostrar um menu nativo de navegação abaixo de 640 px e mantém a sidebar em larguras
+maiores. O menu reutiliza os destinos e filtros por papel, fecha ao navegar ou pressionar Escape
+e devolve o foco ao acionador. A data utilitária do topo aparece a partir de 640 px. O acabamento
+ampliado de responsividade continua na #54.

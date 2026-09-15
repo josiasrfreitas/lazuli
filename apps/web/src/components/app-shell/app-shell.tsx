@@ -5,6 +5,7 @@ import type { StaffIdentity } from "@lazuli/auth/server";
 import { formatLongDateSaoPaulo } from "~/lib/format";
 
 import { AppBreadcrumb } from "./app-breadcrumb";
+import { MobileNavigation } from "./mobile-navigation";
 import { Sidebar } from "./sidebar";
 
 /**
@@ -35,8 +36,9 @@ export function AppShell({
 function TopBar({ role }: { role: StaffIdentity["role"] }): ReactNode {
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border px-6">
+      <MobileNavigation role={role} />
       <AppBreadcrumb role={role} />
-      <p className="ml-auto shrink-0 text-caption text-muted-foreground">
+      <p className="ml-auto hidden shrink-0 text-sm text-muted-foreground sm:block">
         {formatLongDateSaoPaulo(new Date())}
       </p>
     </header>

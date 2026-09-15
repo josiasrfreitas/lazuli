@@ -13,7 +13,8 @@ type TablePaginationBaseProps = Omit<ComponentPropsWithoutRef<"div">, "onChange"
   /** Current page, 1-based. */
   page: number;
   pageSize: number;
-  pageSizeOptions: readonly number[];
+  /** Omit to use a fixed page size without a selector. */
+  pageSizeOptions?: readonly number[] | undefined;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
 };
@@ -29,10 +30,9 @@ export type TablePaginationProps = TablePaginationBaseProps &
     | { loading?: false; pageCount: number; totalItems: number }
   );
 
-type PageSizeSelectProps = Pick<
-  TablePaginationProps,
-  "onPageSizeChange" | "pageSize" | "pageSizeOptions"
->;
+type PageSizeSelectProps = Pick<TablePaginationProps, "onPageSizeChange" | "pageSize"> & {
+  pageSizeOptions: readonly number[];
+};
 
 function PageSizeSelect({
   onPageSizeChange,
@@ -113,11 +113,13 @@ function PaginationControls({
 }): ReactElement {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 sm:justify-end">
-      <PageSizeSelect
-        {...(onPageSizeChange === undefined ? {} : { onPageSizeChange })}
-        pageSize={pageSize}
-        pageSizeOptions={pageSizeOptions}
-      />
+      {pageSizeOptions === undefined ? null : (
+        <PageSizeSelect
+          {...(onPageSizeChange === undefined ? {} : { onPageSizeChange })}
+          pageSize={pageSize}
+          pageSizeOptions={pageSizeOptions}
+        />
+      )}
       <Pagination
         {...(onPageChange === undefined ? {} : { onPageChange })}
         page={page}

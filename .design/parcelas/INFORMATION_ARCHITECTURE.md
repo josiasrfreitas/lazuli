@@ -3,6 +3,21 @@
 > Complementa `DESIGN_BRIEF.md`. Este slice cobre somente a consulta operacional de parcelas; ações
 > financeiras e navegação para contratos permanecem fora do escopo.
 
+## Recorte #52
+
+Somente Todas e Pagas estão habilitadas nesta entrega; Vencidas mostra o contador da API, mas sua
+ativação e agrupamento pertencem à #57. Os fluxos agrupados abaixo descrevem essa entrega futura.
+Na #52, `status=vencidas` é removido junto de `pagina`, preservando `busca`. Valores inválidos
+usam defaults seguros. Busca (máximo de 80 caracteres, debounce de 300 ms) e troca de tab removem
+`pagina`. Sem `status`, a API recebe `view=all`; `status=pagas` recebe `view=paid`.
+A paginação fixa de 25 itens não oferece seletor. Ao exceder o total, a URL volta à última página
+válida (ou à primeira se vazia). Navegação externa cancela qualquer busca pendente.
+
+O header e os controles dividem a faixa de `DataTablePage` e quebram em linhas quando necessário.
+`TableContainer` ocupa o restante do viewport, com cabeçalho fixo, scroll interno e rodapé.
+A rota exige ADMIN no servidor; o AppShell continua encaminhando visitantes sem sessão ao login.
+Início mantém Alunos como destino de ADMIN.
+
 ## Site Map
 
 - Início `/` — redireciona para a primeira vertical disponível ao papel autenticado
@@ -133,3 +148,11 @@ rota de detalhe, painel lateral, modal ou destino associado às linhas.
 - **Contrato da procedure:** o input tRPC usa o campo `view=all|overdue|paid`, separado do parâmetro
   localizado da URL. A camada web faz o mapeamento: `status` ausente → `view=all`,
   `status=vencidas` → `view=overdue`, `status=pagas` → `view=paid`.
+
+## Ajuste mínimo do shell aprovado na #52
+
+A verificação em 375 px encontrou a sidebar fixa de 240 px comprimindo os controles. Nesta entrega,
+o shell passa a mostrar um menu nativo de navegação abaixo de 640 px e mantém a sidebar em larguras
+maiores. O menu reutiliza os destinos e filtros por papel, fecha ao navegar ou pressionar Escape
+e devolve o foco ao acionador. A data utilitária do topo aparece a partir de 640 px. O acabamento
+ampliado de responsividade continua na #54.
