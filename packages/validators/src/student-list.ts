@@ -46,11 +46,13 @@ export const studentListAttendanceSchema = z
   .strict();
 
 /** "—" (no active order), "Em dia", or the open overdue balance in cents. */
+// Stryker disable StringLiteral,ObjectLiteral: changing Zod discriminators aborts schema construction.
 export const studentListFinanceSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("none") }).strict(),
   z.object({ kind: z.literal("upToDate") }).strict(),
   z.object({ kind: z.literal("overdue"), overdueCents: z.number().int() }).strict(),
 ]);
+// Stryker restore StringLiteral,ObjectLiteral
 
 export const studentListRowSchema = z
   .object({
