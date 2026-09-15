@@ -10,7 +10,7 @@
     "build": "turbo run build",
     "dev": "pnpm runtime:check && dotenv -e .env -- turbo run dev --filter=@lazuli/web",
     "dev:worker": "pnpm runtime:check && dotenv -e .env -- turbo run dev --filter=@lazuli/worker",
-    "storybook": "dotenv -e .env -- pnpm -F @lazuli/storybook dev",
+    "storybook": "dotenv -e .env -- node scripts/storybook.mjs",
     "storybook:build": "pnpm -F @lazuli/storybook build",
     "start": "pnpm runtime:check && dotenv -e .env -- pnpm -F @lazuli/web start",
     "lint": "turbo run lint lint:root duplication:check",

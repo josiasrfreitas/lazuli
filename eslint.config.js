@@ -47,16 +47,28 @@ export default [
     },
   },
   {
-    files: ["scripts/test/*.mjs"],
+    files: ["scripts/test/**/*.mjs"],
     // Script tests build temporary git repositories and fake binaries as deterministic fixtures.
     rules: {
       "no-restricted-syntax": "off",
       "max-lines-per-function": "off",
+      "max-lines": "off",
       "max-params": "off",
+      "max-statements": "off",
       "no-magic-numbers": "off",
       "sonarjs/no-duplicate-string": "off",
       "security/detect-child-process": "off",
       "security/detect-non-literal-fs-filename": "off",
+    },
+  },
+  {
+    files: ["scripts/lib/workspace-proxy.mjs", "scripts/storybook.mjs"],
+    // The proxy adapter owns its local process and Caddy configuration boundary.
+    languageOptions: {
+      globals: { AbortSignal: "readonly", fetch: "readonly", URL: "readonly" },
+    },
+    rules: {
+      "no-restricted-syntax": "off",
     },
   },
   {

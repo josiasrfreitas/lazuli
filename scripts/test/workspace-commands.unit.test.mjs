@@ -2,14 +2,16 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
+import http from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { URL, fileURLToPath } from "node:url";
 
 const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const setupScript = path.join(repositoryRoot, "scripts/workspace-setup.mjs");
 const statusScript = path.join(repositoryRoot, "scripts/workspace-status.mjs");
+const fakeCaddy = path.join(repositoryRoot, "scripts/test/support/fake-caddy.mjs");
 const gitEnvironment = Object.fromEntries(
   Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
 );
@@ -54,6 +56,23 @@ function run(directory, script, arguments_ = []) {
       PNPM_LOG: log,
     },
   });
+}
+
+function requestProxy(hostname, port = 80) {
+  return new Promise((resolve, reject) => {
+    const request = http.get({ host: "127.0.0.1", port, headers: { host: hostname } }, (response) => {
+      let body = "";
+      response.on("data", (chunk) => (body += chunk));
+      response.on("end", () => resolve({ status: response.statusCode, body }));
+    });
+    request.once("error", reject);
+  });
+}
+
+async function startUpstream(body) {
+  const server = http.createServer((_request, response) => response.end(body));
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return server;
 }
 
 function runAsync(directory, script, arguments_ = []) {
@@ -225,6 +244,75 @@ it("reports a service state when Docker omits its health value", async (context)
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /mailpit: running/u);
+});
+
+it("routes two live Storybook leases by their stable hostnames and removes its own lease", async (context) => {
+  const directory = await fixture(context, "lazuli-proxy-source");
+  const sibling = path.join(path.dirname(directory), "lazuli-proxy-sibling");
+  execFileSync("git", ["worktree", "add", "--quiet", "-b", "proxy-sibling", sibling], {
+    cwd: directory,
+    env: gitEnvironment,
+  });
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  assert.equal(run(sibling, setupScript, ["light"]).status, 0);
+  const source = await metadata(directory);
+  const other = await metadata(sibling);
+  const sourceServer = await startUpstream("source storybook");
+  const otherServer = await startUpstream("other storybook");
+  context.after(() => sourceServer.close());
+  context.after(() => otherServer.close());
+  source.ports.storybook = sourceServer.address().port;
+  other.ports.storybook = otherServer.address().port;
+  const stateDirectory = path.join(path.dirname(directory), "proxy-state");
+  const originalPath = process.env.PATH;
+  const originalCaddyAdminPort = process.env.LAZULI_CADDY_ADMIN_PORT;
+  const originalCaddyHttpPort = process.env.LAZULI_CADDY_HTTP_PORT;
+  const caddyAdminPort = 12_019;
+  const caddyHttpPort = 18_080;
+  process.env.LAZULI_PROXY_STATE_DIR = stateDirectory;
+  process.env.PATH = `${path.join(directory, "bin")}${path.delimiter}${originalPath}`;
+  process.env.LAZULI_CADDY_ADMIN_PORT = String(caddyAdminPort);
+  process.env.LAZULI_CADDY_HTTP_PORT = String(caddyHttpPort);
+  await writeFile(
+    path.join(directory, "bin/caddy"),
+    `#!/bin/sh\nexec ${process.execPath} ${fakeCaddy} "$@"\n`,
+    { mode: 0o755 },
+  );
+  await mkdir(path.join(stateDirectory, "lazuli-proxy-leases"), { recursive: true });
+  await writeFile(
+    path.join(stateDirectory, "lazuli-proxy-leases", "abandoned-storybook.json"),
+    JSON.stringify({
+      version: 1,
+      workspaceIdentity: "abandoned",
+      hostname: "storybook.abandoned.lazuli.localhost",
+      port: source.ports.storybook,
+      process: { pid: 999_999, startedAt: "Thu Jan  1 00:00:00 1970" },
+    }),
+  );
+  const { registerStorybookRoute, unregisterStorybookRoute } = await import("../lib/workspace-proxy.mjs");
+  await registerStorybookRoute(directory, source);
+  await registerStorybookRoute(sibling, other);
+  const sourceResponse = await requestProxy(new URL(source.urls.storybook).hostname, caddyHttpPort);
+  const otherResponse = await requestProxy(new URL(other.urls.storybook).hostname, caddyHttpPort);
+  const abandonedResponse = await requestProxy("storybook.abandoned.lazuli.localhost", caddyHttpPort);
+  await unregisterStorybookRoute(directory, source);
+  const removedResponse = await requestProxy(new URL(source.urls.storybook).hostname, caddyHttpPort);
+  await unregisterStorybookRoute(sibling, other);
+  try {
+    const caddyPid = Number(await readFile(path.join(stateDirectory, "fake-caddy.pid"), "utf8"));
+    process.kill(caddyPid, "SIGTERM");
+  } catch {
+    // A real Caddy was already available, so the fixture did not start one.
+  }
+  process.env.LAZULI_PROXY_STATE_DIR = undefined;
+  process.env.PATH = originalPath;
+  process.env.LAZULI_CADDY_ADMIN_PORT = originalCaddyAdminPort;
+  process.env.LAZULI_CADDY_HTTP_PORT = originalCaddyHttpPort;
+
+  assert.deepEqual(sourceResponse, { status: 200, body: "source storybook" });
+  assert.deepEqual(otherResponse, { status: 200, body: "other storybook" });
+  assert.equal(abandonedResponse.status, 404);
+  assert.equal(removedResponse.status, 404);
 });
 
 it("fails status for missing or invalid metadata without writing it", async (context) => {
