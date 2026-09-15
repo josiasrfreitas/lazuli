@@ -5,9 +5,6 @@
 
 const DEFAULT_CAPACITY = 12;
 const KIDS_CAPACITY = 8;
-const TUITION_STANDARD_CENTS = 38_000;
-const TUITION_KIDS_CENTS = 32_000;
-const TUITION_INTENSIVE_CENTS = 52_000;
 
 export type DevWeekday =
   | "MONDAY"
@@ -52,8 +49,6 @@ export type DevEnrollmentSeed = {
 
 export type DevAttendanceProfile = "good" | "low";
 
-export type DevFinanceProfile = "paid" | "overdue" | "none";
-
 export type DevStudentSeed = {
   key: string;
   fullName: string;
@@ -64,8 +59,6 @@ export type DevStudentSeed = {
   guardian?: DevGuardianSeed;
   enrollments: DevEnrollmentSeed[];
   attendance: DevAttendanceProfile;
-  finance: DevFinanceProfile;
-  tuitionCents?: number;
   notes?: string;
 };
 
@@ -148,8 +141,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     email: "ana.rocha@example.com",
     enrollments: [{ classKey: "T2A" }],
     attendance: "good",
-    finance: "paid",
-    tuitionCents: TUITION_STANDARD_CENTS,
     notes: "Prefere contato por WhatsApp.",
   },
   {
@@ -161,8 +152,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     email: "bruno.carvalho@example.com",
     enrollments: [{ classKey: "E1A" }],
     attendance: "good",
-    finance: "overdue",
-    tuitionCents: TUITION_STANDARD_CENTS,
   },
   {
     key: "carla",
@@ -172,8 +161,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     phone: "(11) 99655-7788",
     enrollments: [{ classKey: "E1A" }],
     attendance: "good",
-    finance: "paid",
-    tuitionCents: TUITION_STANDARD_CENTS,
   },
   {
     key: "davi",
@@ -189,8 +176,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     },
     enrollments: [{ classKey: "C2A" }],
     attendance: "good",
-    finance: "paid",
-    tuitionCents: TUITION_STANDARD_CENTS,
   },
   {
     key: "elisa",
@@ -205,8 +190,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     },
     enrollments: [{ classKey: "MWYA" }],
     attendance: "good",
-    finance: "paid",
-    tuitionCents: TUITION_KIDS_CENTS,
   },
   {
     key: "felipe",
@@ -217,8 +200,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     email: "felipe.andrade@example.com",
     enrollments: [{ classKey: "F1A" }],
     attendance: "low",
-    finance: "overdue",
-    tuitionCents: TUITION_STANDARD_CENTS,
   },
   {
     key: "gabriela",
@@ -229,8 +210,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     email: "gabriela.nunes@example.com",
     enrollments: [{ classKey: "S1A" }, { classKey: "F1A" }],
     attendance: "good",
-    finance: "paid",
-    tuitionCents: TUITION_INTENSIVE_CENTS,
   },
   {
     key: "henrique",
@@ -240,7 +219,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     phone: "(11) 99870-5544",
     enrollments: [],
     attendance: "good",
-    finance: "none",
     notes: "Aguardando definição de turma.",
   },
   {
@@ -255,8 +233,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     },
     enrollments: [{ classKey: "C2A" }],
     attendance: "good",
-    finance: "paid",
-    tuitionCents: TUITION_STANDARD_CENTS,
   },
   {
     key: "joao",
@@ -267,8 +243,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     email: "joao.almeida@example.com",
     enrollments: [{ classKey: "T2A" }],
     attendance: "good",
-    finance: "overdue",
-    tuitionCents: TUITION_STANDARD_CENTS,
   },
   {
     key: "larissa",
@@ -278,7 +252,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     phone: "(11) 99118-7733",
     enrollments: [{ classKey: "E1A" }],
     attendance: "good",
-    finance: "none",
   },
   {
     key: "marcos",
@@ -288,7 +261,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     phone: "(11) 98290-4411",
     enrollments: [{ classKey: "T2A", exitReason: "COMPLETED" }],
     attendance: "good",
-    finance: "none",
   },
   {
     key: "natalia",
@@ -298,7 +270,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     phone: "(11) 97633-9955",
     enrollments: [{ classKey: "F1A", exitReason: "SUSPENDED" }],
     attendance: "good",
-    finance: "none",
     notes: "Matrícula trancada a pedido da aluna.",
   },
   {
@@ -309,8 +280,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     phone: "(11) 98944-6600",
     enrollments: [{ classKey: "S1A", exitReason: "DROPPED" }],
     attendance: "low",
-    finance: "overdue",
-    tuitionCents: TUITION_INTENSIVE_CENTS,
   },
   {
     key: "priscila",
@@ -321,8 +290,6 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     email: "priscila.lima@example.com",
     enrollments: [{ classKey: "S1A" }],
     attendance: "good",
-    finance: "paid",
-    tuitionCents: TUITION_INTENSIVE_CENTS,
   },
   {
     key: "theo",
@@ -337,7 +304,5 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     },
     enrollments: [{ classKey: "MWYA" }],
     attendance: "good",
-    finance: "paid",
-    tuitionCents: TUITION_KIDS_CENTS,
   },
 ];

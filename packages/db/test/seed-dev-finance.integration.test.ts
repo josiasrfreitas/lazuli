@@ -1,195 +1,254 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
-import { randomUUID } from "node:crypto";
+
 import { createDbClient } from "../src/client.js";
-import { seedStudentFinance } from "../src/seed-dev-finance.js";
-import { stableUuid, type SeedContext } from "../src/seed-dev-support.js";
-import type { DevStudentSeed } from "../src/seed-dev-data.js";
+import { seedDevFinance } from "../src/seed-dev-finance.js";
+import { stableUuid } from "../src/seed-dev-support.js";
 
-const THIRD = 3;
-const FOURTH = 4;
-const FIFTH = 5;
-const INITIAL_SEQUENCE = [1, 2, THIRD, FOURTH, FIFTH];
-const TUITION_CENTS = 1000;
-const PRINCIPAL_CENTS = 5000;
-const FIRST_HALF_END = "2026-06-01";
+const TODAY = "2026-09-15";
+const DEV_FINANCE_KEY = "dev-finance";
+const SHARED_PAYER_ID = stableUuid([DEV_FINANCE_KEY, "shared-payer"]);
+const BRUNO_PAYER_ID = stableUuid([DEV_FINANCE_KEY, "bruno-payer"]);
+const PARTIAL_PAYMENT_CENTS = 30_000;
+const BRUNO_PAYMENT_CENTS = 38_000;
+const SHARED_PAYMENT_CENTS = 76_000;
+const PARTIAL_BALANCE_CENTS = 46_000;
+const OBSOLETE_PAYER_NAME = "Obsolete payer";
+const OBSOLETE_DATE = new Date("2026-01-01");
 const DATE_ONLY_LENGTH = 10;
-const FIRST_HALF_START = "2026-01-01";
-const FIRST_HALF_DUE_DATES = ["2026-01-10", "2026-02-10", "2026-03-10", "2026-04-10", "2026-05-10"];
 
-type DatabaseClient = ReturnType<typeof createDbClient>;
-type ScheduleWhere = { orderId: string };
-
-// Recovery after edits/deletions and semester rollover is intentionally handled
-// by pnpm db:reset, not by this development fixture loader.
-for (const scenario of [
-  {
-    finance: "paid",
-    todayIso: FIRST_HALF_END,
-    paymentDates: ["2026-01-08", "2026-02-08", "2026-03-08", "2026-04-08", "2026-05-08"],
-  },
-  { finance: "overdue", todayIso: "2026-03-10", paymentDates: ["2026-01-08", "2026-02-08"] },
-  { finance: "paid", todayIso: "2026-01-01", paymentDates: [] },
-] as const) {
-  void it(`seeds unchanged ${scenario.finance} fixtures at ${scenario.todayIso} without duplicating finance records`, async () => {
-    const { database, studentSeed, context, student, orderId, payerId } = await createSeedFixture(
-      scenario.todayIso,
-    );
-    studentSeed.finance = scenario.finance;
-    try {
-      await seedStudentFinance(context, { studentSeed, studentId: student.id });
-      const first = await readSchedule(database, { orderId });
-      assert.deepEqual(
-        first.map((row) => row.sequenceNumber),
-        INITIAL_SEQUENCE,
-      );
-      assert.deepEqual(
-        first.map((row) => row.dueDate),
-        FIRST_HALF_DUE_DATES,
-      );
-      assert.deepEqual(
-        first.map((row) => row.amountCents),
-        [TUITION_CENTS, TUITION_CENTS, TUITION_CENTS, TUITION_CENTS, TUITION_CENTS],
-      );
-      const order = await database.order.findUniqueOrThrow({ where: { id: orderId } });
-      assert.equal(order.principalAmountCents, PRINCIPAL_CENTS);
-      const links = await readPaymentLinks(database, payerId);
-      assert.deepEqual(new Set(links.map((row) => row.date)), new Set(scenario.paymentDates));
-      assert.deepEqual(
-        links.map((row) => row.amountCents),
-        scenario.paymentDates.map(() => TUITION_CENTS),
-      );
-      assert.deepEqual(
-        new Set(links.map((row) => row.installmentId)),
-        new Set(first.slice(0, scenario.paymentDates.length).map((row) => row.id)),
-      );
-
-      await seedStudentFinance(context, { studentSeed, studentId: student.id });
-
-      assert.deepEqual(await readSchedule(database, { orderId }), first);
-      assert.deepEqual(await readPaymentLinks(database, payerId), links);
-      assert.deepEqual(
-        await readPayments(database, payerId),
-        scenario.paymentDates.map((date) => ({ amount: 1000, date, method: "PIX" })),
-      );
-    } finally {
-      await cleanSeedFixture(database, { orderId, payerId, studentId: student.id });
-      await database.$disconnect();
-    }
-  });
-}
-
-async function readSchedule(
-  database: DatabaseClient,
-  where: ScheduleWhere,
-): Promise<Array<{ id: string; sequenceNumber: number; amountCents: number; dueDate: string }>> {
-  const rows = await database.installment.findMany({
-    where,
-    orderBy: { sequenceNumber: "asc" },
-  });
-  return rows.map((row) => ({
-    id: row.id,
-    sequenceNumber: row.sequenceNumber,
-    amountCents: row.amountCents,
-    dueDate: row.dueDate.toISOString().slice(0, DATE_ONLY_LENGTH),
-  }));
-}
-
-async function readPayments(
-  database: DatabaseClient,
-  payerId: string,
-): Promise<Array<{ amount: number; date: string; method: string }>> {
-  const payments = await database.paymentEntry.findMany({
-    where: { payerId },
-    orderBy: { date: "asc" },
-  });
-  return payments.map((row) => ({
-    amount: row.amountCents,
-    date: row.date.toISOString().slice(0, DATE_ONLY_LENGTH),
-    method: row.method,
-  }));
-}
-
-async function readPaymentLinks(
-  database: DatabaseClient,
-  payerId: string,
-): Promise<
-  Array<{
-    paymentEntryId: string;
-    installmentId: string;
-    amountCents: number;
-    date: string;
-  }>
-> {
-  const allocations = await database.paymentAllocation.findMany({
-    where: { paymentEntry: { payerId } },
-    orderBy: { installmentId: "asc" },
-    include: { paymentEntry: true },
-  });
-  return allocations.map((allocation) => ({
-    paymentEntryId: allocation.paymentEntryId,
-    installmentId: allocation.installmentId,
-    amountCents: allocation.amountCents,
-    date: allocation.paymentEntry.date.toISOString().slice(0, DATE_ONLY_LENGTH),
-  }));
-}
-
-function seedFixture(
-  database: DatabaseClient,
-  input: { key: string; todayIso: string },
-): { studentSeed: DevStudentSeed; context: SeedContext } {
-  const studentSeed: DevStudentSeed = {
-    key: input.key,
-    fullName: "Sequence Seed Student",
-    status: "ACTIVE",
-    enrollments: [],
-    attendance: "good",
-    finance: "paid",
-    tuitionCents: 1000,
-  };
-  const context: SeedContext = {
-    database,
-    todayIso: input.todayIso,
-    teacherIds: new Map(),
-    classes: new Map(),
-    semester: {
-      id: randomUUID(),
-      name: "Seed",
-      startIso: FIRST_HALF_START,
-      endIso: FIRST_HALF_END,
-      year: 2026,
-    },
-  };
-  return { studentSeed, context };
-}
-
-async function cleanSeedFixture(
-  database: DatabaseClient,
-  scope: { orderId: string; payerId: string; studentId: string },
-): Promise<void> {
-  const { orderId, payerId, studentId } = scope;
-  await database.paymentAllocation.deleteMany({ where: { installment: { orderId } } });
-  await database.paymentEntry.deleteMany({ where: { payerId } });
-  await database.installment.deleteMany({ where: { orderId } });
-  await database.orderBeneficiary.deleteMany({ where: { orderId } });
-  await database.order.deleteMany({ where: { id: orderId } });
-  await database.payer.deleteMany({ where: { id: payerId } });
-  await database.student.delete({ where: { id: studentId } });
-}
-
-async function createSeedFixture(todayIso: string): Promise<{
-  database: DatabaseClient;
-  studentSeed: DevStudentSeed;
-  context: SeedContext;
-  student: { id: string };
-  orderId: string;
-  payerId: string;
-}> {
+void it("rebuilds the explicit development finance scenarios", async () => {
   const database = createDbClient();
-  const key = `sequence-seed-${randomUUID()}`;
-  const { studentSeed, context } = seedFixture(database, { key, todayIso });
-  const student = await database.student.create({ data: { fullName: studentSeed.fullName } });
-  const orderId = stableUuid(["order", key]);
-  const payerId = stableUuid(["payer", key]);
-  return { database, studentSeed, context, student, orderId, payerId };
+  const students = await createStudents(database);
+  try {
+    await createObsoleteFinanceGraph(database, students.get("bruno"));
+
+    await seedDevFinance(database, { todayIso: TODAY, studentIds: students });
+    const first = await financeSnapshot(database);
+
+    assert.deepEqual(first.payers, [
+      { id: SHARED_PAYER_ID, name: "Patrícia Ferreira" },
+      { id: BRUNO_PAYER_ID, name: "Bruno Carvalho" },
+    ]);
+    assert.deepEqual(
+      new Set(
+        first.orderBeneficiaries.map(
+          (beneficiary) => `${beneficiary.payerId}/${beneficiary.studentId}`,
+        ),
+      ),
+      new Set([
+        `${SHARED_PAYER_ID}/${students.get("davi")}`,
+        `${SHARED_PAYER_ID}/${students.get("isadora")}`,
+        `${BRUNO_PAYER_ID}/${students.get("bruno")}`,
+      ]),
+    );
+    assert.deepEqual(first.installmentCounts, [
+      { payerId: SHARED_PAYER_ID, count: 7 },
+      { payerId: BRUNO_PAYER_ID, count: 2 },
+    ]);
+    assert.deepEqual(first.payments, [
+      { payerId: SHARED_PAYER_ID, amountCents: PARTIAL_PAYMENT_CENTS },
+      { payerId: SHARED_PAYER_ID, amountCents: SHARED_PAYMENT_CENTS },
+      { payerId: BRUNO_PAYER_ID, amountCents: BRUNO_PAYMENT_CENTS },
+    ]);
+    assert.deepEqual(first.allocations, [
+      PARTIAL_PAYMENT_CENTS,
+      BRUNO_PAYMENT_CENTS,
+      SHARED_PAYMENT_CENTS,
+    ]);
+    assert.deepEqual(first.waivers, [
+      { amountCents: SHARED_PAYMENT_CENTS, reason: "Cenário de desenvolvimento" },
+    ]);
+    assert.equal(first.partialBalanceCents, PARTIAL_BALANCE_CENTS);
+    assert.equal(first.obsoleteRecords, 0);
+    await assertOrderSchedules(database);
+    await assertSecondSeedMatches(database, { students, first });
+  } finally {
+    await clearFinance(database);
+    await database.student.deleteMany({ where: { id: { in: [...students.values()] } } });
+    await database.$disconnect();
+  }
+});
+
+async function createStudents(
+  database: ReturnType<typeof createDbClient>,
+): Promise<Map<string, string>> {
+  const students = new Map<string, string>();
+  const scenarioStudentKeys = ["bruno", "davi", "isadora"];
+  for (const key of scenarioStudentKeys) {
+    const student = await database.student.create({ data: { fullName: `Finance seed ${key}` } });
+    students.set(key, student.id);
+  }
+  return students;
+}
+
+async function createObsoleteFinanceGraph(
+  database: ReturnType<typeof createDbClient>,
+  studentId: string | undefined,
+): Promise<void> {
+  if (studentId === undefined) throw new Error("Missing Bruno student.");
+  const payer = await database.payer.create({ data: { name: OBSOLETE_PAYER_NAME } });
+  const order = await database.order.create({
+    data: {
+      payerId: payer.id,
+      kind: "TUITION",
+      principalAmountCents: 1,
+      startDate: OBSOLETE_DATE,
+      dueDay: 10,
+    },
+  });
+  const installment = await database.installment.create({
+    data: { orderId: order.id, sequenceNumber: 1, amountCents: 1, dueDate: OBSOLETE_DATE },
+  });
+  const payment = await database.paymentEntry.create({
+    data: { payerId: payer.id, date: OBSOLETE_DATE, amountCents: 1, method: "PIX" },
+  });
+  await database.orderBeneficiary.create({ data: { orderId: order.id, studentId } });
+  await database.paymentAllocation.create({
+    data: { paymentEntryId: payment.id, installmentId: installment.id, amountCents: 1 },
+  });
+  await database.installmentAdjustment.create({
+    data: { installmentId: installment.id, type: "DISCOUNT", amountCents: -1 },
+  });
+}
+
+async function financeSnapshot(
+  database: ReturnType<typeof createDbClient>,
+): Promise<FinanceSnapshot> {
+  const [payers, beneficiaries, orders, payments, allocations, waivers, obsolete] =
+    await Promise.all([
+      database.payer.findMany({ select: { id: true, name: true }, orderBy: { id: "asc" } }),
+      database.orderBeneficiary.findMany({
+        include: { order: { select: { payerId: true } } },
+        orderBy: { studentId: "asc" },
+      }),
+      database.order.findMany({
+        include: { installments: { select: { id: true } } },
+        orderBy: { payerId: "asc" },
+      }),
+      database.paymentEntry.findMany({
+        select: { payerId: true, amountCents: true },
+        orderBy: [{ payerId: "asc" }, { amountCents: "asc" }],
+      }),
+      database.paymentAllocation.findMany({
+        select: { amountCents: true },
+        orderBy: { amountCents: "asc" },
+      }),
+      database.installment.findMany({
+        where: { waivedAt: { not: null } },
+        select: { amountCents: true, waivedReason: true },
+      }),
+      database.payer.count({ where: { name: OBSOLETE_PAYER_NAME } }),
+    ]);
+  const partial = await database.installment.findUniqueOrThrow({
+    where: { id: stableUuid([DEV_FINANCE_KEY, "shared", "installment-3"]) },
+    include: { allocations: true },
+  });
+  return {
+    payers,
+    orderBeneficiaries: beneficiaries.map((beneficiary) => ({
+      payerId: beneficiary.order.payerId,
+      studentId: beneficiary.studentId,
+    })),
+    installmentCounts: orders.map((order) => ({
+      payerId: order.payerId,
+      count: order.installments.length,
+    })),
+    payments,
+    allocations: allocations.map((allocation) => allocation.amountCents),
+    waivers: formatWaivers(waivers),
+    partialBalanceCents: installmentBalance(partial),
+    obsoleteRecords: obsolete,
+  };
+}
+
+function formatWaivers(
+  waivers: Array<{ amountCents: number; waivedReason: string | null }>,
+): Array<{ amountCents: number; reason: string | null }> {
+  return waivers.map((waiver) => ({
+    amountCents: waiver.amountCents,
+    reason: waiver.waivedReason,
+  }));
+}
+
+async function orderSchedules(
+  database: ReturnType<typeof createDbClient>,
+): Promise<Array<{ payerId: string; startDate: string; dueDay: number; dueDates: string[] }>> {
+  const orders = await database.order.findMany({
+    include: { installments: { orderBy: { sequenceNumber: "asc" } } },
+    orderBy: { payerId: "asc" },
+  });
+  return orders.map((order) => ({
+    payerId: order.payerId,
+    startDate: order.startDate.toISOString().slice(0, DATE_ONLY_LENGTH),
+    dueDay: order.dueDay,
+    dueDates: order.installments.map((installment) =>
+      installment.dueDate.toISOString().slice(0, DATE_ONLY_LENGTH),
+    ),
+  }));
+}
+
+async function assertOrderSchedules(database: ReturnType<typeof createDbClient>): Promise<void> {
+  assert.deepEqual(await orderSchedules(database), [
+    {
+      payerId: SHARED_PAYER_ID,
+      startDate: "2026-03-25",
+      dueDay: 25,
+      dueDates: [
+        "2026-04-25",
+        "2026-05-25",
+        "2026-06-25",
+        "2026-07-25",
+        "2026-08-25",
+        "2026-09-25",
+        "2026-10-25",
+      ],
+    },
+    {
+      payerId: BRUNO_PAYER_ID,
+      startDate: "2026-07-10",
+      dueDay: 10,
+      dueDates: ["2026-08-10", "2026-09-10"],
+    },
+  ]);
+}
+
+async function assertSecondSeedMatches(
+  database: ReturnType<typeof createDbClient>,
+  input: { students: ReadonlyMap<string, string>; first: FinanceSnapshot },
+): Promise<void> {
+  await seedDevFinance(database, { todayIso: TODAY, studentIds: input.students });
+  assert.deepEqual(await financeSnapshot(database), input.first);
+}
+
+function installmentBalance(installment: {
+  amountCents: number;
+  allocations: Array<{ amountCents: number }>;
+}): number {
+  return (
+    installment.amountCents -
+    installment.allocations.reduce((total, allocation) => total + allocation.amountCents, 0)
+  );
+}
+
+type FinanceSnapshot = {
+  payers: Array<{ id: string; name: string }>;
+  orderBeneficiaries: Array<{ payerId: string; studentId: string }>;
+  installmentCounts: Array<{ payerId: string; count: number }>;
+  payments: Array<{ payerId: string; amountCents: number }>;
+  allocations: number[];
+  waivers: Array<{ amountCents: number; reason: string | null }>;
+  partialBalanceCents: number;
+  obsoleteRecords: number;
+};
+
+async function clearFinance(database: ReturnType<typeof createDbClient>): Promise<void> {
+  await database.paymentAllocation.deleteMany();
+  await database.installmentAdjustment.deleteMany();
+  await database.paymentEntry.deleteMany();
+  await database.installment.deleteMany();
+  await database.orderBeneficiary.deleteMany();
+  await database.order.deleteMany();
+  await database.payer.deleteMany();
+  await database.financeSettings.deleteMany();
 }

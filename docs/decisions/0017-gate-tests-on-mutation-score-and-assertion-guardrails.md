@@ -7,12 +7,12 @@ Decision date: 2026-09-07
 Acceptance date: 2026-09-08
 
 Supersedes: None
-Superseded by: [0019](0019-limit-mutation-to-unit-tests.md) (mutation tier scope, score denominator, and infrastructure only)
+Superseded by: [0019](0019-limit-mutation-to-unit-tests.md) (mutation tier scope, score denominator, and infrastructure only); [0020](0020-remove-changed-source-coverage-gate.md) (changed-source execution gate)
 Legacy sources: None
 
 Implementation evidence: `docs/testing/README.md`, `tooling/eslint/`, `tooling/stryker/`,
 `tooling/eslint/quality-changed.mjs`, `scripts/test-affected.mjs`,
-`scripts/changed-source-covered.mjs`, `scripts/mutate-changed.mjs`, `.github/workflows/ci.yml`.
+`scripts/mutate-changed.mjs`, `.github/workflows/ci.yml`.
 
 ## Context
 

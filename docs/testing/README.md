@@ -96,10 +96,6 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
 - CI runs full tiers and root unit checks without Turbo cache for its reporting pass. JUnit and LCOV are written per
   package/tier, JUnit is uploaded even on failure, and `pnpm test:durations` prints the ten slowest
   tests plus non-blocking budget warnings.
-- `pnpm test:changed-covered --base <ref> --reports` reads CI LCOV. Locally, omit `--reports` to run
-  tiers. It crosses changed line ranges with LCOV `DA` records, so type-only and reexport changes do
-  not require artificial imports. Missing/malformed reports, failed tests/environment, or changed
-  executable lines with zero hits fail.
 - `pnpm test:surface-inventory` lists real `appRouter` procedures and workflow constants referenced
   or unreferenced in tests. It is an inventory, not proof of execution, and missing references do
   not block.
@@ -121,8 +117,8 @@ without mutation configuration still reach the fail-closed gate.
 
 Integration and transport quality is assessed through contract-focused review and this guide:
 assert observable persistence, authorization, transactions, and adapter behavior, with isolated
-fixtures and meaningful failure cases. The prospective assertion guardrails, full test tiers,
-changed-source LCOV check, and JUnit/LCOV reporting remain mandatory. Passing those checks is
+fixtures and meaningful failure cases. The prospective assertion guardrails, full test tiers, and
+JUnit/LCOV reporting remain mandatory. Passing those checks is
 execution/static evidence, not a replacement mutation score or proof of assertion quality.
 Do not introduce unit mocks that merely reproduce implementation to compensate for removing
 integration tests from mutation.
