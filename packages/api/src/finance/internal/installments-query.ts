@@ -1,9 +1,5 @@
 import type { DatabaseClient, KyselyDatabase } from "@lazuli/db";
-import {
-  FINANCE_INSTALLMENTS_PAGE_SIZE,
-  FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
-  type FinanceInstallmentRow,
-} from "@lazuli/validators";
+import { FINANCE_OVERDUE_PAYERS_PAGE_SIZE, type FinanceInstallmentRow } from "@lazuli/validators";
 import { type QueryCreator, type RawBuilder, type SelectExpression, sql } from "kysely";
 
 type QueryInput = {
@@ -64,7 +60,7 @@ export async function loadInstallmentCounts(input: QueryInput): Promise<{
 }
 
 export async function loadInstallmentPage(
-  input: QueryInput & { view: "all" | "paid"; page: number },
+  input: QueryInput & { view: "all" | "paid"; page: number; pageSize: number },
 ): Promise<InstallmentQueryRow[]> {
   let query = ledgerQuery(input)
     .selectFrom("ledger")
@@ -88,8 +84,8 @@ export async function loadInstallmentPage(
           )
           .orderBy("installmentId", "asc");
   return query
-    .limit(FINANCE_INSTALLMENTS_PAGE_SIZE)
-    .offset((input.page - 1) * FINANCE_INSTALLMENTS_PAGE_SIZE)
+    .limit(input.pageSize)
+    .offset((input.page - 1) * input.pageSize)
     .execute();
 }
 

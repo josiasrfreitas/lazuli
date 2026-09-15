@@ -1,4 +1,8 @@
-import type { FinanceInstallmentsOutput } from "@lazuli/validators";
+import {
+  FINANCE_INSTALLMENTS_PAGE_SIZE,
+  type FinanceInstallmentsInput,
+  type FinanceInstallmentsOutput,
+} from "@lazuli/validators";
 import { db } from "@lazuli/db";
 
 import { finance } from "../../src/finance/index.js";
@@ -22,18 +26,21 @@ export type InstallmentOrderFixture = {
 export async function readInstallments(input: {
   view: "overdue";
   page?: number;
+  pageSize?: FinanceInstallmentsInput["pageSize"];
   search?: string;
   now?: Date;
 }): Promise<Extract<FinanceInstallmentsOutput, { view: "overdue" }>>;
 export async function readInstallments(input: {
   view?: "all" | "paid";
   page?: number;
+  pageSize?: FinanceInstallmentsInput["pageSize"];
   search?: string;
   now?: Date;
 }): Promise<Exclude<FinanceInstallmentsOutput, { view: "overdue" }>>;
 export async function readInstallments(input: {
   view?: "all" | "paid" | "overdue";
   page?: number;
+  pageSize?: FinanceInstallmentsInput["pageSize"];
   search?: string;
   now?: Date;
 }): Promise<FinanceInstallmentsOutput> {
@@ -43,6 +50,7 @@ export async function readInstallments(input: {
         {
           view: input.view ?? "all",
           page: input.page ?? 1,
+          pageSize: input.pageSize ?? FINANCE_INSTALLMENTS_PAGE_SIZE,
           search: input.search ?? INSTALLMENTS_PREFIX,
         },
         input.now ?? INSTALLMENTS_NOW,

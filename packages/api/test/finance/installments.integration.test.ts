@@ -19,8 +19,9 @@ import {
   TEN_THOUSAND_CENTS,
 } from "../support/finance-installments-test-support.js";
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 10;
 const RESULT_COUNT = 26;
+const LAST_PAGE_RESULT_COUNT = RESULT_COUNT - PAGE_SIZE * 2;
 const LITERAL_BALANCE_CENTS = 6000;
 
 void describe("finance installments query", { concurrency: 1 }, () => {
@@ -48,13 +49,16 @@ void describe("finance installments query", { concurrency: 1 }, () => {
 });
 
 function registerPaginationTest(): void {
-  void it("paginates 26 tied rows without duplicates and preserves totals past the end", async () => {
+  void it("paginates 26 tied rows at the requested size without duplicates and preserves totals past the end", async () => {
     const fixture = await createOrder({ installmentCount: RESULT_COUNT, dueDate: "2026-04-10" });
 
-    const first = await read({ page: 1 });
-    const second = await read({ page: 2 });
-    const beyond = await read({ page: 3 });
-    const returnedIds = [...first.rows, ...second.rows].map((row) => row.installmentId);
+    const first = await read({ page: 1, pageSize: PAGE_SIZE });
+    const second = await read({ page: 2, pageSize: PAGE_SIZE });
+    const third = await read({ page: 3, pageSize: PAGE_SIZE });
+    const beyond = await read({ page: 4, pageSize: PAGE_SIZE });
+    const returnedIds = [...first.rows, ...second.rows, ...third.rows].map(
+      (row) => row.installmentId,
+    );
     const expectedIds = await db.$kysely
       .selectFrom("Installment")
       .select("id")
@@ -63,7 +67,8 @@ function registerPaginationTest(): void {
       .execute();
 
     assert.equal(first.rows.length, PAGE_SIZE);
-    assert.equal(second.rows.length, 1);
+    assert.equal(second.rows.length, PAGE_SIZE);
+    assert.equal(third.rows.length, LAST_PAGE_RESULT_COUNT);
     assert.deepEqual(
       returnedIds,
       expectedIds.map((row) => row.id),
@@ -78,7 +83,7 @@ function registerPaginationTest(): void {
       },
       {
         total: RESULT_COUNT,
-        pageCount: 2,
+        pageCount: 3,
         rows: [],
         counts: { all: RESULT_COUNT, paid: 0, overdue: 0 },
       },

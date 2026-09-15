@@ -3,13 +3,40 @@
 import type { ReactElement } from "react";
 
 import { DataTablePage, TablePagination } from "@lazuli/ui";
-import { FINANCE_INSTALLMENTS_PAGE_SIZE } from "@lazuli/validators";
+import { financeInstallmentsPaginationPolicy } from "@lazuli/validators";
+import { tablePaginationPropsFor } from "~/lib/pagination";
 import { InstallmentsControls } from "./installments-controls";
 import { InstallmentsTable } from "./installments-table";
 import { useInstallments } from "./logic";
 
+export function InstallmentsPagination({
+  data,
+  filters,
+  setPage,
+  setPageSize,
+}: Pick<
+  ReturnType<typeof useInstallments>,
+  "data" | "filters" | "setPage" | "setPageSize"
+>): ReactElement {
+  return (
+    <TablePagination
+      itemLabel={{ singular: "parcela", plural: "parcelas" }}
+      {...tablePaginationPropsFor(
+        {
+          page: filters.page,
+          pageSize: filters.pageSize,
+          pageSizeOptions: financeInstallmentsPaginationPolicy.pageSizeOptions,
+          setPage,
+          setPageSize,
+        },
+        data,
+      )}
+    />
+  );
+}
+
 export function InstallmentsPage(): ReactElement {
-  const { filters, data, query, setPage, setSearch, setStatus } = useInstallments();
+  const { filters, data, query, setPage, setPageSize, setSearch, setStatus } = useInstallments();
   return (
     <DataTablePage
       header={
@@ -20,7 +47,7 @@ export function InstallmentsPage(): ReactElement {
       }
       controls={
         <InstallmentsControls
-          search={filters.busca}
+          search={filters.search}
           status={filters.status}
           counts={data?.counts}
           onSearch={setSearch}
@@ -31,7 +58,7 @@ export function InstallmentsPage(): ReactElement {
       <InstallmentsTable
         rows={data?.rows}
         error={query.isError}
-        filtered={filters.busca !== "" || filters.status !== null}
+        filtered={filters.search !== "" || filters.status !== null}
         updating={query.isFetching}
         onRetry={() => {
           void query.refetch();
@@ -41,15 +68,7 @@ export function InstallmentsPage(): ReactElement {
             <p role="status" className="sr-only">
               {query.isFetching ? "Atualizando parcelas" : ""}
             </p>
-            <TablePagination
-              itemLabel={{ singular: "parcela", plural: "parcelas" }}
-              page={data?.page ?? filters.pagina}
-              pageSize={FINANCE_INSTALLMENTS_PAGE_SIZE}
-              onPageChange={setPage}
-              {...(data === undefined
-                ? { loading: true }
-                : { pageCount: data.pageCount, totalItems: data.total })}
-            />
+            <InstallmentsPagination {...{ data, filters, setPage, setPageSize }} />
           </>
         }
       />

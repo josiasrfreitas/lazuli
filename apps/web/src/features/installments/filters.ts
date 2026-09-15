@@ -3,36 +3,39 @@ import type { FinanceInstallmentsInput } from "@lazuli/validators";
 export const SEARCH_MAX_LENGTH = 80;
 export type InstallmentParams = {
   status: string | null;
-  busca: string | null;
-  pagina: string | null;
+  search: string | null;
 };
 
-export type InstallmentFilters = { status: "pagas" | null; busca: string; pagina: number };
+export type InstallmentFilters = {
+  status: "pagas" | null;
+  search: string;
+  page: number;
+  pageSize: FinanceInstallmentsInput["pageSize"];
+};
 
-export function normalizeFilters(params: InstallmentParams): InstallmentFilters {
-  const number = Number(params.pagina);
+export function normalizeFilters(
+  params: InstallmentParams,
+  pagination: Pick<InstallmentFilters, "page" | "pageSize">,
+): InstallmentFilters {
   return {
     status: params.status === "pagas" ? "pagas" : null,
-    busca: (params.busca ?? "").slice(0, SEARCH_MAX_LENGTH),
-    pagina:
-      params.status === "vencidas" || !Number.isSafeInteger(number) || number < 1 ? 1 : number,
+    search: (params.search ?? "").slice(0, SEARCH_MAX_LENGTH),
+    ...pagination,
   };
 }
-export function searchPatch(value: string): Pick<InstallmentParams, "busca" | "pagina"> {
-  return { busca: value.slice(0, SEARCH_MAX_LENGTH) || null, pagina: null };
+export function searchPatch(value: string): Pick<InstallmentParams, "search"> {
+  return { search: value.slice(0, SEARCH_MAX_LENGTH) || null };
 }
-export function statusPatch(value: string): Pick<InstallmentParams, "status" | "pagina"> {
-  return { status: value === "pagas" ? "pagas" : null, pagina: null };
+export function statusPatch(value: string): Pick<InstallmentParams, "status"> {
+  return { status: value === "pagas" ? "pagas" : null };
 }
 export function queryInput(
   filters: InstallmentFilters,
 ): FinanceInstallmentsInput & { view: "all" | "paid" } {
   return {
     view: filters.status === "pagas" ? "paid" : "all",
-    page: filters.pagina,
-    search: filters.busca.trim(),
+    page: filters.page,
+    pageSize: filters.pageSize,
+    search: filters.search.trim(),
   };
-}
-export function validPage(page: number, pageCount: number): number {
-  return Math.min(page, Math.max(1, pageCount));
 }

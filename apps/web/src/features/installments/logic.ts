@@ -2,75 +2,66 @@
 
 import { useCallback, useEffect } from "react";
 import { parseAsString, useQueryStates } from "nuqs";
-import type { FinanceInstallmentsOutput } from "@lazuli/validators";
+import {
+  financeInstallmentsPaginationPolicy,
+  type FinanceInstallmentsOutput,
+} from "@lazuli/validators";
 import { trpc, type QueryResult } from "~/lib/trpc";
-import { normalizeFilters, queryInput, searchPatch, statusPatch, validPage } from "./filters";
+import { pageWithinRange, useUrlPagination } from "~/lib/pagination";
+import { normalizeFilters, queryInput, searchPatch, statusPatch } from "./filters";
 
-const parsers = { status: parseAsString, busca: parseAsString, pagina: parseAsString };
+const parsers = {
+  status: parseAsString,
+  busca: parseAsString,
+};
 type InstallmentsState = {
   filters: ReturnType<typeof normalizeFilters>;
   data: Extract<FinanceInstallmentsOutput, { view: "all" | "paid" }> | undefined;
   query: QueryResult<FinanceInstallmentsOutput>;
   setPage: (page: number) => void;
+  setPageSize: (pageSize: number) => void;
   setSearch: (value: string) => void;
   setStatus: (value: string) => void;
 };
 export function useInstallments(): InstallmentsState {
   const [params, setParams] = useQueryStates(parsers);
-  const filters = normalizeFilters(params);
+  const pagination = useUrlPagination(financeInstallmentsPaginationPolicy);
+  const filters = normalizeFilters(
+    { status: params.status, search: params.busca },
+    {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+    },
+  );
   const input = queryInput(filters);
-  useNormalizeUrl(params, setParams);
   const query = useList(input);
   const data = query.data?.view === input.view ? query.data : undefined;
-  const setPage = useCallback(
-    (page: number) => {
-      void setParams({ pagina: page <= 1 ? null : String(page) });
-    },
-    [setParams],
-  );
+  const setPage = pagination.setPage;
   useEffect(() => {
     if (data !== undefined && !query.isPlaceholderData && !query.isFetching) {
-      const page = validPage(filters.pagina, data.pageCount);
-      if (page !== filters.pagina) setPage(page);
+      const page = pageWithinRange(filters.page, data.pageCount);
+      if (page !== filters.page) setPage(page);
     }
-  }, [data, query.isPlaceholderData, query.isFetching, filters.pagina, setPage]);
+  }, [data, query.isPlaceholderData, query.isFetching, filters.page, setPage]);
   const setSearch = useCallback(
     (value: string) => {
-      void setParams(searchPatch(value));
+      void setParams({ busca: searchPatch(value).search });
+      setPage(1);
     },
-    [setParams],
+    [setPage, setParams],
   );
   return {
     filters,
     data,
     query,
     setPage,
+    setPageSize: pagination.setPageSize,
     setSearch,
     setStatus: (value: string) => {
       void setParams(statusPatch(value));
+      setPage(1);
     },
   };
-}
-
-function useNormalizeUrl(
-  params: Parameters<typeof normalizeFilters>[0],
-  setParams: ReturnType<typeof useQueryStates<typeof parsers>>[1],
-): void {
-  const filters = normalizeFilters(params);
-  useEffect(() => {
-    const normalized = {
-      status: filters.status,
-      busca: filters.busca || null,
-      pagina: filters.pagina === 1 ? null : String(filters.pagina),
-    };
-    if (
-      params.status !== normalized.status ||
-      params.busca !== normalized.busca ||
-      params.pagina !== normalized.pagina
-    ) {
-      void setParams(normalized);
-    }
-  }, [params, setParams, filters.status, filters.busca, filters.pagina]);
 }
 
 function useList(input: ReturnType<typeof queryInput>): QueryResult<FinanceInstallmentsOutput> {

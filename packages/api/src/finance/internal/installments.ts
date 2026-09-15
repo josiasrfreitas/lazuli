@@ -1,6 +1,5 @@
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
-  FINANCE_INSTALLMENTS_PAGE_SIZE,
   FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
   type FinanceInstallmentRow,
   type FinanceInstallmentsInput,
@@ -42,6 +41,7 @@ export async function listInstallments(input: {
     ...queryInput,
     view: input.values.view,
     page: input.values.page,
+    pageSize: input.values.pageSize,
   });
   const beneficiaries = await loadBeneficiaries(
     input.database,
@@ -50,9 +50,9 @@ export async function listInstallments(input: {
   const response: InstallmentsResponseBody = {
     rows: rows.map((row) => toPublicRow(row, beneficiaries)),
     page: input.values.page,
-    pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
+    pageSize: input.values.pageSize,
     total,
-    pageCount: Math.ceil(total / FINANCE_INSTALLMENTS_PAGE_SIZE),
+    pageCount: Math.ceil(total / input.values.pageSize),
     counts,
   };
   return input.values.view === "paid"

@@ -39,17 +39,17 @@ export function StudentsHeader({
 
 /** Controlled input that only commits to the URL after the typing pauses. */
 function SearchField({ filters }: { filters: StudentsFilters }): ReactElement {
-  const [value, setValue] = useState(filters.busca);
+  const [value, setValue] = useState(filters.search);
   const commitSearch = useMemo(
-    () => debounce((nextValue: string) => filters.setBusca(nextValue), SEARCH_DEBOUNCE_MS),
-    [filters.setBusca],
+    () => debounce((nextValue: string) => filters.setSearch(nextValue), SEARCH_DEBOUNCE_MS),
+    [filters.setSearch],
   );
 
   useEffect(() => {
     // An external URL change (back button, shared link) resets pending input.
-    setValue(filters.busca);
+    setValue(filters.search);
     commitSearch.cancel();
-  }, [commitSearch, filters.busca]);
+  }, [commitSearch, filters.search]);
 
   useEffect(() => {
     return () => {

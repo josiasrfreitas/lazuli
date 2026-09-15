@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { FinanceInstallmentRow } from "@lazuli/validators";
+import { FINANCE_INSTALLMENTS_PAGE_SIZE, type FinanceInstallmentRow } from "@lazuli/validators";
 import {
   normalizeFilters,
   queryInput,
   searchPatch,
   statusPatch,
-  validPage,
 } from "../../src/features/installments/filters.js";
 import { businessDate, installmentVm } from "../../src/features/installments/view-model.js";
 
@@ -14,9 +13,6 @@ const DUE_DATE = "2026-09-01";
 const TODAY = "2026-09-15";
 const SEARCH_LIMIT = 80;
 const EXCESS_SEARCH_LENGTH = 81;
-const OUT_OF_RANGE_PAGE = 9;
-const LAST_PAGE = 3;
-const LARGER_PAGE_COUNT = 4;
 
 const row: FinanceInstallmentRow = {
   installmentId: "11111111-1111-4111-8111-111111111111",
@@ -34,38 +30,37 @@ const row: FinanceInstallmentRow = {
   overdueDays: 14,
 };
 void test("shared URLs map paid, defaults and temporarily disabled overdue safely", () => {
-  assert.deepEqual(queryInput(normalizeFilters({ status: "pagas", busca: " Ana ", pagina: "2" })), {
-    view: "paid",
-    search: "Ana",
-    page: 2,
-  });
-  assert.deepEqual(normalizeFilters({ status: "vencidas", busca: "Ana", pagina: "9" }), {
-    status: null,
-    busca: "Ana",
-    pagina: 1,
-  });
-  assert.deepEqual(queryInput(normalizeFilters({ status: "unknown", busca: null, pagina: "-5" })), {
-    view: "all",
-    search: "",
-    page: 1,
-  });
-  for (const pagina of [null, "0", "abc", "2.5", "9007199254740992"]) {
-    assert.equal(normalizeFilters({ status: null, busca: null, pagina }).pagina, 1);
-  }
+  assert.deepEqual(
+    queryInput(normalizeFilters({ status: "pagas", search: " Ana " }, { page: 2, pageSize: 25 })),
+    {
+      view: "paid",
+      search: "Ana",
+      page: 2,
+      pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
+    },
+  );
+  assert.deepEqual(
+    queryInput(normalizeFilters({ status: "unknown", search: null }, { page: 1, pageSize: 25 })),
+    {
+      view: "all",
+      search: "",
+      page: 1,
+      pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
+    },
+  );
   assert.equal(
-    normalizeFilters({ status: null, busca: "a".repeat(EXCESS_SEARCH_LENGTH), pagina: null }).busca
-      .length,
+    normalizeFilters(
+      { status: null, search: "a".repeat(EXCESS_SEARCH_LENGTH) },
+      { page: 1, pageSize: 25 },
+    ).search.length,
     SEARCH_LIMIT,
   );
 });
-void test("filter changes remove pagination and pagination stays within the response total", () => {
-  assert.deepEqual(searchPatch("Ana"), { busca: "Ana", pagina: null });
-  assert.deepEqual(searchPatch(""), { busca: null, pagina: null });
-  assert.deepEqual(statusPatch("pagas"), { status: "pagas", pagina: null });
-  assert.deepEqual(statusPatch("todas"), { status: null, pagina: null });
-  assert.equal(validPage(OUT_OF_RANGE_PAGE, LAST_PAGE), LAST_PAGE);
-  assert.equal(validPage(OUT_OF_RANGE_PAGE, 0), 1);
-  assert.equal(validPage(2, LARGER_PAGE_COUNT), 2);
+void test("filter changes remove pagination", () => {
+  assert.deepEqual(searchPatch("Ana"), { search: "Ana" });
+  assert.deepEqual(searchPatch(""), { search: null });
+  assert.deepEqual(statusPatch("pagas"), { status: "pagas" });
+  assert.deepEqual(statusPatch("todas"), { status: null });
 });
 void test("financial presentation preserves original value and the API's adjusted partial balance", () => {
   const vm = installmentVm(row, TODAY);

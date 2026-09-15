@@ -3,32 +3,32 @@ import test from "node:test";
 import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { TablePagination } from "@lazuli/ui";
+import { InstallmentsPagination } from "../../src/features/installments/installments-page.js";
 import { InstallmentsTable } from "../../src/features/installments/installments-table.js";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
-const SMALL_PAGE_SIZE = 10;
-const DEFAULT_PAGE_SIZE = 25;
-const LARGE_PAGE_SIZE = 50;
-const PAGE_SIZE_OPTIONS = [SMALL_PAGE_SIZE, DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE];
 const COLUMN_COUNT = 6;
 
-void test("fixed installment pagination hides the size selector while Students retains it", () => {
-  const props = {
-    page: 2,
-    pageSize: 25,
-    pageCount: 2,
-    totalItems: 30,
-    itemLabel: { singular: "parcela", plural: "parcelas" },
-  };
-  const fixed = renderToStaticMarkup(createElement(TablePagination, props));
-  assert.match(fixed, /26–30 de /u);
-  assert.match(fixed, /parcelas/u);
-  assert.doesNotMatch(fixed, /Itens por página/u);
+void test("installment pagination exposes the same size choices as Students", () => {
   const selectable = renderToStaticMarkup(
-    createElement(TablePagination, { ...props, pageSizeOptions: PAGE_SIZE_OPTIONS }),
+    createElement(InstallmentsPagination, {
+      data: {
+        view: "all",
+        page: 2,
+        pageSize: 25,
+        pageCount: 2,
+        total: 30,
+        rows: [],
+        counts: { all: 30, paid: 0, overdue: 0 },
+      },
+      filters: { status: null, search: "", page: 2, pageSize: 25 },
+      setPage: () => {},
+      setPageSize: () => {},
+    }),
   );
+  assert.match(selectable, /26–30 de /u);
+  assert.match(selectable, /parcelas/u);
   assert.match(selectable, /Itens por página/u);
 });
 void test("table retains six semantic columns and distinguishes loading, empty, filtered and error", () => {

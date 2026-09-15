@@ -13,6 +13,7 @@ void it("accepts overdue groups and rejects flat/group mixing or an incorrect pa
   assert.deepEqual(financeInstallmentsInputSchema.parse({ view: "overdue", search: " Ana " }), {
     view: "overdue",
     page: 1,
+    pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
     search: "Ana",
   });
   const response = {
@@ -27,7 +28,7 @@ void it("accepts overdue groups and rejects flat/group mixing or an incorrect pa
   assert.deepEqual(financeInstallmentsOutputSchema.parse(response), response);
   for (const invalid of [
     { ...response, rows: [] },
-    { ...response, pageSize: 25 },
+    { ...response, pageSize: 99 },
     { ...response, view: "all", pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE, rows: [] },
     { ...response, view: "paid", pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE, rows: [] },
   ]) {
@@ -135,7 +136,11 @@ void it("preserves all flat-view statuses and requires the exact civil date form
 
 void it("preserves the flat response contract for all and paid", () => {
   for (const view of ["all", "paid"]) {
-    assert.deepEqual(financeInstallmentsInputSchema.parse({ view }), { view, page: 1 });
+    assert.deepEqual(financeInstallmentsInputSchema.parse({ view }), {
+      view,
+      page: 1,
+      pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
+    });
     const response = {
       view,
       rows: [],

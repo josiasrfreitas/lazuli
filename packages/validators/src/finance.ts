@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import { dateOnlyInputSchema } from "./student.js";
+import {
+  financeInstallmentsPaginationPolicy,
+  financeOverduePaginationPolicy,
+  paginationResultFields,
+} from "./pagination.js";
 
 const REQUIRED_TEXT_MESSAGE = "Campo obrigatorio.";
 const INVALID_ORDER_ID_MESSAGE = "Identificador de pedido invalido.";
@@ -36,19 +41,17 @@ export const financeInstallmentStatusSchema = z.enum([
   "UPCOMING",
 ]);
 
-export const FINANCE_INSTALLMENTS_PAGE_SIZE = 25;
-export const FINANCE_OVERDUE_PAYERS_PAGE_SIZE = 10;
-const FINANCE_INSTALLMENTS_FIRST_PAGE = 1;
+export const FINANCE_INSTALLMENTS_PAGE_SIZE = financeInstallmentsPaginationPolicy.defaultPageSize;
+export const FINANCE_INSTALLMENTS_PAGE_SIZE_OPTIONS =
+  financeInstallmentsPaginationPolicy.pageSizeOptions;
+export const FINANCE_OVERDUE_PAYERS_PAGE_SIZE = financeOverduePaginationPolicy.defaultPageSize;
 const FINANCE_INSTALLMENTS_SEARCH_MAX_LENGTH = 80;
 
 export const financeInstallmentsInputSchema = z
   .object({
     view: financeInstallmentViewSchema.default("all"),
-    page: z
-      .number()
-      .int()
-      .min(FINANCE_INSTALLMENTS_FIRST_PAGE)
-      .default(FINANCE_INSTALLMENTS_FIRST_PAGE),
+    page: financeInstallmentsPaginationPolicy.pageSchema,
+    pageSize: financeInstallmentsPaginationPolicy.pageSizeSchema,
     search: z.string().trim().max(FINANCE_INSTALLMENTS_SEARCH_MAX_LENGTH).optional(),
   })
   .strict();
@@ -100,10 +103,7 @@ export const financeOverduePayerGroupSchema = z
 export type FinanceOverduePayerGroup = z.infer<typeof financeOverduePayerGroupSchema>;
 
 const financeInstallmentsOutputFields = {
-  page: z.number().int().positive(),
-  pageSize: z.literal(FINANCE_INSTALLMENTS_PAGE_SIZE),
-  total: z.number().int().nonnegative(),
-  pageCount: z.number().int().nonnegative(),
+  ...paginationResultFields(financeInstallmentsPaginationPolicy),
   counts: financeInstallmentCountsSchema,
 };
 

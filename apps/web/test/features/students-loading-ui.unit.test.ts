@@ -6,10 +6,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { TablePagination } from "@lazuli/ui";
-import type { StudentListRow } from "@lazuli/validators";
+import { studentPaginationPolicy, type StudentListRow } from "@lazuli/validators";
 
 import type { StudentsFilters } from "../../src/features/students/logic.js";
-import { paginationFor } from "../../src/features/students/students-page.js";
+import { tablePaginationPropsFor } from "../../src/lib/pagination.js";
 import { StudentsTable } from "../../src/features/students/students-table.js";
 import { StudentsTableRow } from "../../src/features/students/students-table-row.js";
 import { StudentsControls, StudentsHeader } from "../../src/features/students/students-toolbar.js";
@@ -55,15 +55,16 @@ const EMPTY_FACTS_ROW: StudentListRow = {
 };
 
 const filters: StudentsFilters = {
-  busca: "",
-  pagina: 1,
+  search: "",
+  page: 1,
   pageSize: PAGE_SIZE,
-  setBusca: () => {},
-  setPagina: () => {},
+  setSearch: () => {},
+  setPage: () => {},
   setPageSize: () => {},
   setStatusTab: () => {},
   statusTab: "todos" as const,
 };
+const missing: { data?: never } = {};
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -74,7 +75,16 @@ function studentRowMarkup(row: StudentListRow): string {
 }
 
 void test("first load preserves pagination furniture and only skeletonizes fetched values", () => {
-  const pagination = paginationFor(undefined, filters);
+  const pagination = tablePaginationPropsFor(
+    {
+      page: filters.page,
+      pageSize: filters.pageSize,
+      pageSizeOptions: studentPaginationPolicy.pageSizeOptions,
+      setPage: filters.setPage,
+      setPageSize: filters.setPageSize,
+    },
+    missing.data,
+  );
 
   assert.notEqual(pagination, null);
   assert.equal(pagination.page, 1);
