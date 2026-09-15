@@ -251,7 +251,7 @@ void describe("finance installments contract", () => {
   });
 
   void it("rejects unsupported views, pages, long searches, and unknown fields", () => {
-    assert.equal(financeInstallmentsInputSchema.safeParse({ view: "overdue" }).success, false);
+    assert.equal(financeInstallmentsInputSchema.safeParse({ view: "unknown" }).success, false);
     assert.equal(financeInstallmentsInputSchema.safeParse({ page: 0 }).success, false);
     assert.equal(
       financeInstallmentsInputSchema.safeParse({

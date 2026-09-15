@@ -20,7 +20,19 @@ export type InstallmentOrderFixture = {
 };
 
 export async function readInstallments(input: {
+  view: "overdue";
+  page?: number;
+  search?: string;
+  now?: Date;
+}): Promise<Extract<FinanceInstallmentsOutput, { view: "overdue" }>>;
+export async function readInstallments(input: {
   view?: "all" | "paid";
+  page?: number;
+  search?: string;
+  now?: Date;
+}): Promise<Exclude<FinanceInstallmentsOutput, { view: "overdue" }>>;
+export async function readInstallments(input: {
+  view?: "all" | "paid" | "overdue";
   page?: number;
   search?: string;
   now?: Date;

@@ -3,7 +3,7 @@ import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
 import type { StaffUser } from "@lazuli/api";
-import type { FinanceInstallmentRow } from "@lazuli/validators";
+import type { FinanceInstallmentRow, FinanceInstallmentsOutput } from "@lazuli/validators";
 
 import {
   callHttpQuery,
@@ -12,6 +12,8 @@ import {
   HTTP_OK,
 } from "../support/finance-test-support.js";
 
+const PROCEDURE = "finance.installments";
+const GROUP_PAGE_SIZE = 10;
 const PREFIX = "Installments transport ";
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
@@ -34,13 +36,14 @@ void describe("finance.installments HTTP contract", { concurrency: 1 }, () => {
 
   registerSerializationTest();
   registerAuthorizationTest();
+  registerOverdueSerializationTest();
 });
 
 function registerSerializationTest(): void {
   void it("serializes the discriminated installment response for an admin", async () => {
     const fixture = await createTransportInstallment();
     const response = await callHttpQuery({
-      path: "finance.installments",
+      path: PROCEDURE,
       body: { view: "all", page: 1, search: PREFIX },
       now: NOW,
     });
@@ -82,7 +85,7 @@ function registerAuthorizationTest(): void {
 
     const responses = await Promise.all(
       identities.map((staffUser) =>
-        callHttpQuery({ path: "finance.installments", body: {}, staffUser }),
+        callHttpQuery({ path: PROCEDURE, body: { view: "overdue" }, staffUser }),
       ),
     );
 
@@ -137,4 +140,55 @@ async function createTransportInstallment(): Promise<{
     orderId: order.id,
     installmentId: order.installments[0]?.id ?? "",
   };
+}
+
+function registerOverdueSerializationTest(): void {
+  void it("serializes complete overdue groups through the admin HTTP adapter", async () => {
+    const fixture = await createTransportInstallment();
+    const response = await callHttpQuery({
+      path: PROCEDURE,
+      body: { view: "overdue", search: PREFIX },
+      now: NOW,
+    });
+    const payload = (await response.json()) as {
+      result: {
+        data: {
+          json: Extract<FinanceInstallmentsOutput, { view: "overdue" }>;
+        };
+      };
+    };
+    const result = payload.result.data.json;
+    assert.equal(response.status, HTTP_OK);
+    assert.equal(result.view, "overdue");
+    assert.equal(result.pageSize, GROUP_PAGE_SIZE);
+    assert.equal(result.total, 1);
+    assert.equal(result.pageCount, 1);
+    assert.deepEqual(
+      result.groups.map((group) => ({
+        payer: group.payer,
+        count: group.installmentCount,
+        balance: group.collectibleBalanceCents,
+        days: group.maxOverdueDays,
+        beneficiaries: group.beneficiaries,
+        rows: group.rows.map((row) => ({
+          id: row.installmentId,
+          date: row.dueDate,
+          status: row.status,
+          balance: row.collectibleBalanceCents,
+        })),
+      })),
+      [
+        {
+          payer: { id: fixture.payerId, name: `${PREFIX}Pagador` },
+          count: 1,
+          balance: 10_000,
+          days: 1,
+          beneficiaries: [{ studentId: fixture.studentId, fullName: `${PREFIX}Aluna` }],
+          rows: [
+            { id: fixture.installmentId, date: "2020-04-10", status: "OVERDUE", balance: 10_000 },
+          ],
+        },
+      ],
+    );
+  });
 }

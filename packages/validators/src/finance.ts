@@ -27,7 +27,7 @@ export const paymentMethodSchema = z.enum([
   "OTHER",
 ]);
 
-export const financeInstallmentViewSchema = z.enum(["all", "paid"]);
+export const financeInstallmentViewSchema = z.enum(["all", "paid", "overdue"]);
 export const financeInstallmentStatusSchema = z.enum([
   "WAIVED",
   "PAID",
@@ -37,6 +37,7 @@ export const financeInstallmentStatusSchema = z.enum([
 ]);
 
 export const FINANCE_INSTALLMENTS_PAGE_SIZE = 25;
+export const FINANCE_OVERDUE_PAYERS_PAGE_SIZE = 10;
 const FINANCE_INSTALLMENTS_FIRST_PAGE = 1;
 const FINANCE_INSTALLMENTS_SEARCH_MAX_LENGTH = 80;
 
@@ -80,8 +81,25 @@ export const financeInstallmentCountsSchema = z
   })
   .strict();
 
+const financeOverdueInstallmentRowSchema = financeInstallmentRowSchema.extend({
+  collectibleBalanceCents: z.number().int().positive(),
+  status: z.literal("OVERDUE"),
+  overdueDays: z.number().int().positive(),
+});
+
+export const financeOverduePayerGroupSchema = z
+  .object({
+    payer: financeInstallmentRowSchema.shape.payer,
+    installmentCount: z.number().int().positive(),
+    collectibleBalanceCents: z.number().int().positive(),
+    maxOverdueDays: z.number().int().positive(),
+    beneficiaries: financeInstallmentRowSchema.shape.beneficiaries,
+    rows: z.array(financeOverdueInstallmentRowSchema),
+  })
+  .strict();
+export type FinanceOverduePayerGroup = z.infer<typeof financeOverduePayerGroupSchema>;
+
 const financeInstallmentsOutputFields = {
-  rows: z.array(financeInstallmentRowSchema),
   page: z.number().int().positive(),
   pageSize: z.literal(FINANCE_INSTALLMENTS_PAGE_SIZE),
   total: z.number().int().nonnegative(),
@@ -89,10 +107,32 @@ const financeInstallmentsOutputFields = {
   counts: financeInstallmentCountsSchema,
 };
 
+// Stryker disable StringLiteral,ObjectLiteral: changing Zod discriminators aborts schema construction.
 export const financeInstallmentsOutputSchema = z.discriminatedUnion("view", [
-  z.object({ view: z.literal("all"), ...financeInstallmentsOutputFields }).strict(),
-  z.object({ view: z.literal("paid"), ...financeInstallmentsOutputFields }).strict(),
+  z
+    .object({
+      view: z.literal("all"),
+      ...financeInstallmentsOutputFields,
+      rows: z.array(financeInstallmentRowSchema),
+    })
+    .strict(),
+  z
+    .object({
+      view: z.literal("paid"),
+      ...financeInstallmentsOutputFields,
+      rows: z.array(financeInstallmentRowSchema),
+    })
+    .strict(),
+  z
+    .object({
+      ...financeInstallmentsOutputFields,
+      view: z.literal("overdue"),
+      groups: z.array(financeOverduePayerGroupSchema),
+      pageSize: z.literal(FINANCE_OVERDUE_PAYERS_PAGE_SIZE),
+    })
+    .strict(),
 ]);
+// Stryker restore StringLiteral,ObjectLiteral
 
 export type FinanceInstallmentsInput = z.infer<typeof financeInstallmentsInputSchema>;
 export type FinanceInstallmentsOutput = z.infer<typeof financeInstallmentsOutputSchema>;
@@ -115,6 +155,7 @@ export const payerCreateInputSchema = z
   })
   .strict();
 
+// Stryker disable StringLiteral,ObjectLiteral: changing Zod discriminators aborts schema construction.
 const existingPayerInputSchema = z
   .object({
     mode: z.literal("existing"),
@@ -133,6 +174,7 @@ export const financePayerInputSchema = z.discriminatedUnion("mode", [
   existingPayerInputSchema,
   createPayerInputSchema,
 ]);
+// Stryker restore StringLiteral,ObjectLiteral
 
 const orderCommercialFieldsSchema = z.object({
   kind: orderKindSchema,

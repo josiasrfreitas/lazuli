@@ -1,12 +1,10 @@
 import type { DatabaseClient, KyselyDatabase } from "@lazuli/db";
-import { FINANCE_INSTALLMENTS_PAGE_SIZE, type FinanceInstallmentRow } from "@lazuli/validators";
 import {
-  type QueryCreator,
-  type RawBuilder,
-  type SelectExpression,
-  type SelectQueryBuilder,
-  sql,
-} from "kysely";
+  FINANCE_INSTALLMENTS_PAGE_SIZE,
+  FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
+  type FinanceInstallmentRow,
+} from "@lazuli/validators";
+import { type QueryCreator, type RawBuilder, type SelectExpression, sql } from "kysely";
 
 type QueryInput = {
   kysely: DatabaseClient["$kysely"];
@@ -19,6 +17,20 @@ type AggregateDatabase = KyselyDatabase & {
   schedule_totals: { order_id: string; installment_count: number };
 };
 type LedgerDatabase = KyselyDatabase & { ledger: InstallmentQueryRow };
+type OverdueDatabase = LedgerDatabase & {
+  qualified_payers: { payerId: string };
+  overdue: InstallmentQueryRow;
+};
+type PayerSummary = {
+  payerId: string;
+  payerName: string;
+  installmentCount: number;
+  groupBalanceCents: number;
+  maxOverdueDays: number;
+};
+type SummaryDatabase = OverdueDatabase & { payer_summaries: PayerSummary };
+export type OverdueQueryRow = InstallmentQueryRow &
+  Pick<PayerSummary, "installmentCount" | "groupBalanceCents" | "maxOverdueDays">;
 const BACKSLASH_CODE_POINT = 92;
 type LedgerTables =
   | "Installment"
@@ -39,12 +51,14 @@ export async function loadInstallmentCounts(input: QueryInput): Promise<{
   paid: number;
   overdue: number;
 }> {
-  return ledgerQuery(input)
+  return overdueQuery(input)
     .selectFrom("ledger")
     .select([
-      sql<number>`count(*)::integer`.as("all"),
-      sql<number>`count(*) filter (where status = 'PAID')::integer`.as("paid"),
-      sql<number>`count(*) filter (where status = 'OVERDUE')::integer`.as("overdue"),
+      sql<number>`count(*) filter (where ${matchesSearch(input.search)})::integer`.as("all"),
+      sql<number>`count(*) filter (where status = 'PAID' and ${matchesSearch(input.search)})::integer`.as(
+        "paid",
+      ),
+      sql<number>`(select count(*)::integer from overdue)`.as("overdue"),
     ])
     .executeTakeFirstOrThrow();
 }
@@ -55,6 +69,7 @@ export async function loadInstallmentPage(
   let query = ledgerQuery(input)
     .selectFrom("ledger")
     .selectAll()
+    .where(matchesSearch(input.search))
     .$if(input.view === "paid", (builder) => builder.where("status", "=", "PAID"));
   query =
     input.view === "paid"
@@ -85,7 +100,7 @@ function ledgerQuery(input: QueryInput): QueryCreator<LedgerDatabase> {
   const overdue = sql<number>`greatest(${input.businessDate}::date - "Installment".due_date, 0)`;
   const status = installmentStatus({ expected, paid, overdue, businessDate: input.businessDate });
   return aggregates.with("ledger", (database) => {
-    let query = database
+    const query = database
       .selectFrom("Installment")
       .innerJoin("Order", "Order.id", "Installment.order_id")
       .innerJoin("Payer", "Payer.id", "Order.payer_id")
@@ -97,15 +112,6 @@ function ledgerQuery(input: QueryInput): QueryCreator<LedgerDatabase> {
       .where("Order.deleted_at", "is", null)
       .where("Order.cancelled_at", "is", null)
       .where("Payer.deleted_at", "is", null);
-    if (input.search !== undefined) {
-      const pattern = `%${escapeLikePattern(input.search)}%`;
-      query = query.where((expressions) =>
-        expressions.or([
-          sql<boolean>`"Payer".name ilike ${pattern} escape '\\'`,
-          expressions.exists(beneficiarySearch(database, pattern)),
-        ]),
-      );
-    }
     return query;
   }) as object as QueryCreator<LedgerDatabase>;
 }
@@ -177,18 +183,87 @@ function ledgerSelection(input: {
   ] as const;
 }
 
-function beneficiarySearch(
-  database: QueryCreator<AggregateDatabase>,
-  pattern: string,
-): SelectQueryBuilder<AggregateDatabase, "OrderBeneficiary" | "Student", { id: string }> {
-  return database
-    .selectFrom("OrderBeneficiary")
-    .innerJoin("Student", "Student.id", "OrderBeneficiary.student_id")
-    .select("OrderBeneficiary.id")
-    .where(sql<boolean>`"OrderBeneficiary".order_id = "Order".id`)
-    .where("OrderBeneficiary.deleted_at", "is", null)
-    .where("Student.deleted_at", "is", null)
-    .where(sql<boolean>`"Student".full_name ilike ${pattern} escape '\\'`);
+function matchesSearch(search: string | undefined): RawBuilder<boolean> {
+  if (search === undefined) return sql<boolean>`true`;
+  const pattern = `%${escapeLikePattern(search)}%`;
+  return sql<boolean>`
+    ("payerName" ilike ${pattern} escape '\\' or exists (
+        select 1 from "OrderBeneficiary" join "Student" on "Student".id = "OrderBeneficiary".student_id
+        where "OrderBeneficiary".order_id = ledger."orderId"
+          and "OrderBeneficiary".deleted_at is null and "Student".deleted_at is null
+          and "Student".full_name ilike ${pattern} escape '\\'
+      ))
+  `;
+}
+
+function overdueQuery(input: QueryInput): QueryCreator<OverdueDatabase> {
+  return ledgerQuery(input)
+    .with("qualified_payers", (database) =>
+      database
+        .selectFrom("ledger")
+        .select("payerId")
+        .distinct()
+        .where("status", "=", "OVERDUE")
+        .where(matchesSearch(input.search)),
+    )
+    .with("overdue", (database) =>
+      database
+        .selectFrom("ledger")
+        .selectAll()
+        .where("status", "=", "OVERDUE")
+        .where("payerId", "in", database.selectFrom("qualified_payers").select("payerId")),
+    );
+}
+
+function overdueSummaries(input: QueryInput): QueryCreator<SummaryDatabase> {
+  return overdueQuery(input).with("payer_summaries", (database) =>
+    database
+      .selectFrom("overdue")
+      .select([
+        "payerId",
+        "payerName",
+        sql<number>`count(*)::integer`.as("installmentCount"),
+        sql<number>`sum("collectibleBalanceCents")::double precision`.as("groupBalanceCents"),
+        sql<number>`max("overdueDays")::integer`.as("maxOverdueDays"),
+      ])
+      .groupBy(["payerId", "payerName"]),
+  );
+}
+
+export async function loadOverdueTotal(input: QueryInput): Promise<number> {
+  const result = await overdueSummaries(input)
+    .selectFrom("payer_summaries")
+    .select(sql<number>`count(*)::integer`.as("total"))
+    .executeTakeFirstOrThrow();
+  return result.total;
+}
+
+export async function loadOverduePage(
+  input: QueryInput & { page: number },
+): Promise<OverdueQueryRow[]> {
+  return overdueSummaries(input)
+    .with("selected_payers", (database) =>
+      database
+        .selectFrom("payer_summaries")
+        .selectAll()
+        .orderBy("maxOverdueDays", "desc")
+        .orderBy("payerId", "asc")
+        .limit(FINANCE_OVERDUE_PAYERS_PAGE_SIZE)
+        .offset((input.page - 1) * FINANCE_OVERDUE_PAYERS_PAGE_SIZE),
+    )
+    .selectFrom("selected_payers")
+    .innerJoin("overdue", "overdue.payerId", "selected_payers.payerId")
+    .selectAll("overdue")
+    .select([
+      "selected_payers.installmentCount",
+      "selected_payers.groupBalanceCents",
+      "selected_payers.maxOverdueDays",
+    ])
+    .orderBy("selected_payers.maxOverdueDays", "desc")
+    .orderBy("selected_payers.payerId", "asc")
+    .orderBy("overdue.dueDate", "asc")
+    .orderBy("overdue.installmentId", "asc")
+    .execute();
 }
 
 function escapeLikePattern(value: string): string {

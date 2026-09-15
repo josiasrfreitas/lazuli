@@ -1,16 +1,19 @@
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   FINANCE_INSTALLMENTS_PAGE_SIZE,
+  FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
   type FinanceInstallmentRow,
   type FinanceInstallmentsInput,
   type FinanceInstallmentsOutput,
 } from "@lazuli/validators";
 
 import {
+  loadOverduePage,
+  loadOverdueTotal,
   loadInstallmentCounts,
   loadInstallmentPage,
-  type InstallmentQueryRow,
 } from "./installments-query.js";
+import { groupOverdueRows, type LoadedBeneficiaries, toPublicRow } from "../installments-groups.js";
 import type { FinanceDatabase } from "./shared.js";
 
 type InstallmentsResponseBody = Omit<Extract<FinanceInstallmentsOutput, { view: "all" }>, "view">;
@@ -23,9 +26,17 @@ export async function listInstallments(input: {
   const queryInput = {
     kysely: input.database.$kysely,
     businessDate: saoPauloDateOnly(input.now),
-    search: input.values.search === "" ? undefined : input.values.search,
+    search: input.values.search,
   };
   const counts = await loadInstallmentCounts(queryInput);
+  if (input.values.view === "overdue") {
+    return listOverdueInstallments({
+      database: input.database,
+      queryInput,
+      page: input.values.page,
+      counts,
+    });
+  }
   const total = input.values.view === "paid" ? counts.paid : counts.all;
   const rows = await loadInstallmentPage({
     ...queryInput,
@@ -49,32 +60,14 @@ export async function listInstallments(input: {
     : { view: "all", ...response };
 }
 
-function toPublicRow(
-  row: InstallmentQueryRow,
-  beneficiaries: Map<string, FinanceInstallmentRow["beneficiaries"]>,
-): FinanceInstallmentRow {
-  return {
-    installmentId: row.installmentId,
-    orderId: row.orderId,
-    sequenceNumber: row.sequenceNumber,
-    scheduleTotal: row.scheduleTotal,
-    payer: { id: row.payerId, name: row.payerName },
-    beneficiaries: beneficiaries.get(row.orderId) ?? [],
-    dueDate: row.dueDate,
-    originalAmountCents: row.originalAmountCents,
-    expectedAmountCents: row.expectedAmountCents,
-    paidAmountCents: row.paidAmountCents,
-    collectibleBalanceCents: row.collectibleBalanceCents,
-    status: row.status,
-    overdueDays: row.overdueDays,
-  };
-}
-
 async function loadBeneficiaries(
   database: FinanceDatabase,
   orderIds: string[],
-): Promise<Map<string, FinanceInstallmentRow["beneficiaries"]>> {
-  if (orderIds.length === 0) return new Map();
+): Promise<LoadedBeneficiaries> {
+  if (orderIds.length === 0) {
+    return { byOrder: new Map(), ordered: [] };
+  }
+
   const rows = await database.$kysely
     .selectFrom("OrderBeneficiary")
     .innerJoin("Student", "Student.id", "OrderBeneficiary.student_id")
@@ -95,5 +88,29 @@ async function loadBeneficiaries(
     existing.push({ studentId: row.studentId, fullName: row.fullName });
     byOrder.set(row.orderId, existing);
   }
-  return byOrder;
+  return { byOrder, ordered: rows.map(({ studentId, fullName }) => ({ studentId, fullName })) };
+}
+
+async function listOverdueInstallments(input: {
+  database: FinanceDatabase;
+  queryInput: Omit<Parameters<typeof loadOverduePage>[0], "page">;
+  page: number;
+  counts: FinanceInstallmentsOutput["counts"];
+}): Promise<Extract<FinanceInstallmentsOutput, { view: "overdue" }>> {
+  const { database, queryInput, page, counts } = input;
+  const total = await loadOverdueTotal(queryInput);
+  const rows = await loadOverduePage({ ...queryInput, page });
+  const beneficiaries = await loadBeneficiaries(
+    database,
+    rows.map((row) => row.orderId),
+  );
+  return {
+    view: "overdue",
+    groups: groupOverdueRows(rows, beneficiaries),
+    page,
+    pageSize: FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
+    total,
+    pageCount: Math.ceil(total / FINANCE_OVERDUE_PAYERS_PAGE_SIZE),
+    counts,
+  };
 }
