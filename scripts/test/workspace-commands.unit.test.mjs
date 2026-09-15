@@ -161,9 +161,13 @@ it("reports light configuration without requiring Docker and ignores the legacy 
   const result = statusWithoutDocker(directory);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Perfil: light/u);
-  assert.match(result.stdout, /não provisionado pelo perfil light/u);
-  assert.match(result.stdout, /Docker indisponível/u);
+  assert.match(result.stdout, /^Workspace status\n=+/mu);
+  assert.match(result.stdout, /Profile: light/u);
+  assert.match(result.stdout, /\nURLs\n {2}Web:/u);
+  assert.match(result.stdout, /\nResources\n {2}Database:/u);
+  assert.match(result.stdout, /not provisioned by the light profile/u);
+  assert.match(result.stdout, /Docker is unavailable/u);
+  assert.doesNotMatch(result.stdout, /Perfil|não provisionado|indisponível/u);
   assert.doesNotMatch(result.stdout, /worktree-bootstrapped/u);
 });
 

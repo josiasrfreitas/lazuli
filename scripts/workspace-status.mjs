@@ -13,13 +13,17 @@ function errorOutput(message) {
   process.stderr.write(`${message}\n`);
 }
 
+function section(title) {
+  output(`\n${title}`);
+}
+
 function observedStackHealth() {
   const result = spawnSync("docker", ["compose", "ps", "--format", "json"], {
     cwd: root,
     encoding: "utf8",
   });
-  if (result.error?.code === "ENOENT") return "não observada (Docker indisponível)";
-  if (result.status !== 0) return "não observada (Docker não está acessível)";
+  if (result.error?.code === "ENOENT") return "not observed (Docker is unavailable)";
+  if (result.status !== 0) return "not observed (Docker is not accessible)";
   const rows = result.stdout
     .trim()
     .split("\n")
@@ -32,13 +36,36 @@ function observedStackHealth() {
         return [];
       }
     });
-  if (rows.length === 0) return "não observada (nenhum serviço compartilhado em execução)";
+  if (rows.length === 0) return "not observed (no shared services are running)";
   return rows
     .map(
       (row) =>
-        `${row.Service ?? row.Name ?? "serviço"}: ${row.Health ?? row.State ?? "estado desconhecido"}`,
+        `${row.Service ?? row.Name ?? "service"}: ${row.Health ?? row.State ?? "unknown state"}`,
     )
     .join(", ");
+}
+
+function printWorkspaceStatus(workspace) {
+  output("Workspace status");
+  output("================");
+  output(`Profile: ${workspace.profile}`);
+  output(`Identity: ${workspace.identity}`);
+
+  section("URLs");
+  output(`  Web:       ${workspace.urls.web}`);
+  output(`  Storybook: ${workspace.urls.storybook}`);
+
+  section("Ports");
+  output(`  Web:       ${workspace.ports.web}`);
+  output(`  Storybook: ${workspace.ports.storybook}`);
+
+  section("Resources");
+  output(`  Database: ${workspace.resources.database} (not provisioned by the light profile)`);
+  output(`  Bucket:   ${workspace.resources.bucket} (not provisioned by the light profile)`);
+
+  section("Shared stack");
+  output(`  Observed health: ${observedStackHealth()}`);
+  output("  Dependencies: pnpm for installation; Docker Compose is optional.");
 }
 
 async function main() {
@@ -51,18 +78,7 @@ async function main() {
   if (workspace === null) {
     throw new Error("workspace metadata is absent; run pnpm workspace:setup light first");
   }
-  output(`Perfil: ${workspace.profile}`);
-  output(`Identidade: ${workspace.identity}`);
-  output(`URL Web: ${workspace.urls.web}`);
-  output(`URL Storybook: ${workspace.urls.storybook}`);
-  output(`Porta Web: ${workspace.ports.web}`);
-  output(`Porta Storybook: ${workspace.ports.storybook}`);
-  output(`Banco pretendido: ${workspace.resources.database} (não provisionado pelo perfil light)`);
-  output(`Bucket pretendido: ${workspace.resources.bucket} (não provisionado pelo perfil light)`);
-  output(
-    "Dependências: pnpm para instalação; Docker Compose é opcional para a stack compartilhada.",
-  );
-  output(`Stack compartilhada (saúde observada): ${observedStackHealth()}`);
+  printWorkspaceStatus(workspace);
 }
 
 try {
