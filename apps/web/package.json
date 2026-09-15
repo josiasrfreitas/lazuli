@@ -36,6 +36,7 @@
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/stryker-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
+    "@shadcn/lint": "catalog:",
     "@stryker-mutator/core": "catalog:",
     "@tailwindcss/postcss": "catalog:",
     "@types/node": "catalog:",
