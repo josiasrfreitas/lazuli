@@ -202,6 +202,35 @@ it("reports a package failure from the delegated mutate script", async (testCont
   assert.match(result.stderr, /docs\/testing\/README\.md/u);
 });
 
+it("keeps packages with only compile-time type tests outside the mutation gate", async (context) => {
+  const directory = await createChangedPackageFixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  await rm(path.join(directory, packageDirectory, "stryker.config.mjs"));
+  await rm(path.join(directory, packageDirectory, "test/example.unit.test.ts"));
+  await writeFixtureFile({
+    content: "export {};\n",
+    relativePath: `${packageDirectory}/test/example.type-test.tsx`,
+    repositoryDirectory: directory,
+  });
+
+  const { result } = runMutateChanged(directory);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /packages\/api: no unit tests, outside the mutation gate/u);
+  assert.doesNotMatch(result.stderr, /no stryker\.config\.mjs/u);
+});
+
+it("fails closed when a package has unit tests without mutation configuration", async (context) => {
+  const directory = await createChangedPackageFixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  await rm(path.join(directory, packageDirectory, "stryker.config.mjs"));
+
+  const { result } = runMutateChanged(directory);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /packages with unit tests but no stryker\.config\.mjs/u);
+});
+
 it("ignores inherited Git hook variables and leaves the real repository index unchanged", async (testContext) => {
   const repositoryDirectory = await createChangedPackageFixture();
   const gitDirectory = gitText(repositoryRoot, ["rev-parse", "--git-dir"]);
@@ -238,6 +267,15 @@ it("detects mutation scope without invoking builds or mutation, including unconf
   const unconfigured = checkScope();
   assert.equal(unconfigured.status, 0, unconfigured.stderr);
   assert.equal(unconfigured.stdout.trim(), "true");
+  await rm(path.join(directory, packageDirectory, "test/example.unit.test.ts"));
+  await writeFixtureFile({
+    content: "export {};\n",
+    relativePath: `${packageDirectory}/test/example.type-test.tsx`,
+    repositoryDirectory: directory,
+  });
+  const typeTestsOnly = checkScope();
+  assert.equal(typeTestsOnly.status, 0, typeTestsOnly.stderr);
+  assert.equal(typeTestsOnly.stdout.trim(), "false");
   await writeFile(path.join(directory, changedSourcePath), "export const value = 1;\n");
   const empty = checkScope();
   assert.equal(empty.status, 0, empty.stderr);

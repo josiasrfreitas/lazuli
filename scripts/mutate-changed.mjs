@@ -1,8 +1,8 @@
 // Mutation gate for changed code: runs StrykerJS on the production files changed since the
-// merge base, one package at a time, in every package that has a stryker.config.mjs.
+// merge base, one package at a time, when the package has executable unit tests.
 // Decision 0017 and docs/testing/README.md describe the rule this enforces.
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -13,12 +13,24 @@ import {
 } from "./changed-source-files.mjs";
 
 const TESTING_GUIDE = "docs/testing/README.md";
+const UNIT_TEST_SUFFIX = ".unit.test.ts";
+
+function hasUnitTests(packageDirectory) {
+  const testDirectory = path.join(packageDirectory, "test");
+
+  return (
+    existsSync(testDirectory) &&
+    readdirSync(testDirectory, { recursive: true, withFileTypes: true }).some(
+      (entry) => entry.isFile() && entry.name.endsWith(UNIT_TEST_SUFFIX),
+    )
+  );
+}
 
 const baseRef = resolveBaseRef(readOption("base"));
 const groups = groupSourceFilesByPackage(listChangedFiles(baseRef));
-// Conservative preflight: unconfigured packages still reach the fail-closed gate.
+// Unconfigured packages with unit tests still reach the fail-closed gate.
 if (process.argv.includes("--scope-only")) {
-  process.stdout.write(`${groups.size > 0}\n`);
+  process.stdout.write(`${[...groups.keys()].some(hasUnitTests)}\n`);
   process.exit(0);
 }
 
@@ -27,16 +39,17 @@ const unconfigured = [];
 let mutatedPackages = 0;
 
 for (const [packageDirectory, files] of groups) {
+  if (!hasUnitTests(packageDirectory)) {
+    process.stdout.write(
+      `${packageDirectory}: no unit tests, outside the mutation gate (${files.length} changed file(s)).\n`,
+    );
+    continue;
+  }
+
   if (!existsSync(path.join(packageDirectory, "stryker.config.mjs"))) {
-    if (existsSync(path.join(packageDirectory, "test"))) {
-      // A package with tests but no mutation config is inside the gate's scope: fail closed
-      // rather than report a pass that mutated nothing.
-      unconfigured.push(packageDirectory);
-    } else {
-      process.stdout.write(
-        `${packageDirectory}: no tests, outside the mutation gate (${files.length} changed file(s)).\n`,
-      );
-    }
+    // A package with unit tests but no mutation config is inside the gate's scope: fail closed
+    // rather than report a pass that mutated nothing.
+    unconfigured.push(packageDirectory);
     continue;
   }
 
@@ -62,7 +75,7 @@ for (const [packageDirectory, files] of groups) {
 
 if (unconfigured.length > 0) {
   process.stderr.write(
-    `\nChanged packages with tests but no stryker.config.mjs: ${unconfigured.join(", ")}.\n` +
+    `\nChanged packages with unit tests but no stryker.config.mjs: ${unconfigured.join(", ")}.\n` +
       `Add the config (see tooling/stryker/base.mjs and ${TESTING_GUIDE}) so the gate can mutate them.\n`,
   );
   process.exitCode = 1;
