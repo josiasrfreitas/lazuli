@@ -50,14 +50,16 @@
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/prettier-config": "workspace:*",
     "@tailwindcss/postcss": "catalog:",
+    "chalk": "^6.0.0",
+    "cli-table3": "^0.6.5",
     "dotenv-cli": "catalog:",
     "eslint": "catalog:",
     "jscpd": "catalog:",
     "lefthook": "catalog:",
-    "prettier": "catalog:",
     "postcss": "catalog:",
-    "turbo": "catalog:",
+    "prettier": "catalog:",
     "tsx": "catalog:",
+    "turbo": "catalog:",
     "typescript": "catalog:"
   },
   "prettier": "@lazuli/prettier-config"

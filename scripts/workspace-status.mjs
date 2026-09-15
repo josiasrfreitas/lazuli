@@ -1,5 +1,8 @@
 import { spawnSync } from "node:child_process";
 
+import chalk from "chalk";
+import Table from "cli-table3";
+
 import { readWorkspaceMetadata } from "./lib/workspace-metadata.mjs";
 
 const root = process.cwd();
@@ -11,10 +14,6 @@ function output(message) {
 
 function errorOutput(message) {
   process.stderr.write(`${message}\n`);
-}
-
-function section(title) {
-  output(`\n${title}`);
 }
 
 function observedStackHealth() {
@@ -46,26 +45,34 @@ function observedStackHealth() {
 }
 
 function printWorkspaceStatus(workspace) {
-  output("Workspace status");
-  output("================");
-  output(`Profile: ${workspace.profile}`);
-  output(`Identity: ${workspace.identity}`);
-
-  section("URLs");
-  output(`  Web:       ${workspace.urls.web}`);
-  output(`  Storybook: ${workspace.urls.storybook}`);
-
-  section("Ports");
-  output(`  Web:       ${workspace.ports.web}`);
-  output(`  Storybook: ${workspace.ports.storybook}`);
-
-  section("Resources");
-  output(`  Database: ${workspace.resources.database} (not provisioned by the light profile)`);
-  output(`  Bucket:   ${workspace.resources.bucket} (not provisioned by the light profile)`);
-
-  section("Shared stack");
-  output(`  Observed health: ${observedStackHealth()}`);
-  output("  Dependencies: pnpm for installation; Docker Compose is optional.");
+  const label = (value) => chalk.cyan(value);
+  const table = new Table({
+    head: [chalk.bold.cyan("Workspace"), chalk.bold.cyan("Value")],
+    style: { head: [], border: [] },
+    wordWrap: true,
+  });
+  table.push(
+    [label("Profile"), chalk.bold(workspace.profile)],
+    [label("Identity"), workspace.identity],
+    [label("Web URL"), workspace.urls.web],
+    [label("Storybook URL"), workspace.urls.storybook],
+    [label("Web port"), workspace.ports.web],
+    [label("Storybook port"), workspace.ports.storybook],
+    [
+      label("Database"),
+      `${workspace.resources.database}\n${chalk.yellow("Not provisioned by the light profile")}`,
+    ],
+    [
+      label("Bucket"),
+      `${workspace.resources.bucket}\n${chalk.yellow("Not provisioned by the light profile")}`,
+    ],
+    [label("Shared stack"), observedStackHealth()],
+    [label("Dependencies"), "pnpm for installation; Docker Compose is optional."],
+  );
+  output(chalk.bold("Workspace status"));
+  output(chalk.dim("Local configuration and observed shared-stack health"));
+  output("");
+  output(table.toString());
 }
 
 async function main() {
