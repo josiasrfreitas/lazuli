@@ -39,6 +39,7 @@ export function toPublicRow(
 }
 
 type OverdueGroupRows = Omit<FinanceOverduePayerGroup, "beneficiaries">;
+type OverduePublicRow = FinanceOverduePayerGroup["rows"][number];
 
 export function groupOverdueRows(
   rows: OverdueGroupRow[],
@@ -57,7 +58,9 @@ export function groupOverdueRows(
       };
       groups.set(row.payerId, group);
     }
-    group.rows.push(toPublicRow(row, beneficiaries));
+    // The overdue CTE filters these rows by status; keep the runtime value so the output schema
+    // still rejects a query regression instead of coercing it to OVERDUE here.
+    group.rows.push(toPublicRow(row, beneficiaries) as OverduePublicRow);
   }
   return [...groups.values()].map((group) => {
     const studentIds = new Set(

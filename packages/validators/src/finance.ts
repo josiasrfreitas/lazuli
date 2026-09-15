@@ -81,6 +81,12 @@ export const financeInstallmentCountsSchema = z
   })
   .strict();
 
+const financeOverdueInstallmentRowSchema = financeInstallmentRowSchema.extend({
+  collectibleBalanceCents: z.number().int().positive(),
+  status: z.literal("OVERDUE"),
+  overdueDays: z.number().int().positive(),
+});
+
 export const financeOverduePayerGroupSchema = z
   .object({
     payer: financeInstallmentRowSchema.shape.payer,
@@ -88,7 +94,7 @@ export const financeOverduePayerGroupSchema = z
     collectibleBalanceCents: z.number().int().positive(),
     maxOverdueDays: z.number().int().positive(),
     beneficiaries: financeInstallmentRowSchema.shape.beneficiaries,
-    rows: z.array(financeInstallmentRowSchema),
+    rows: z.array(financeOverdueInstallmentRowSchema),
   })
   .strict();
 export type FinanceOverduePayerGroup = z.infer<typeof financeOverduePayerGroupSchema>;

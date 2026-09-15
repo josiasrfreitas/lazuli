@@ -59,6 +59,31 @@ void it("validates the overdue summary and its nested identities and installment
   }
 });
 
+void it("rejects non-collectible rows in the overdue response", () => {
+  const group = overdueGroupFixture();
+  const [row] = group.rows;
+  assert.ok(row);
+  const response = {
+    view: "overdue",
+    groups: [group],
+    page: 1,
+    pageSize: 10,
+    total: 1,
+    pageCount: 1,
+    counts: { all: 1, paid: 0, overdue: 1 },
+  };
+
+  for (const invalidRow of [
+    { ...row, status: "PAID" },
+    { ...row, status: "UPCOMING" },
+    { ...row, overdueDays: 0 },
+    { ...row, collectibleBalanceCents: 0 },
+  ]) {
+    const invalid = { ...response, groups: [{ ...group, rows: [invalidRow] }] };
+    assert.equal(financeInstallmentsOutputSchema.safeParse(invalid).success, false);
+  }
+});
+
 function overdueGroupFixture(): FinanceOverduePayerGroup {
   const payer = { id: "00000000-0000-4000-8000-000000000001", name: "Pagador" };
   const beneficiary = { studentId: "00000000-0000-4000-8000-000000000002", fullName: "Ana" };
