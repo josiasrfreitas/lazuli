@@ -9,6 +9,7 @@ import {
   normalizeWorkspaceIdentity,
   readWorkspaceMetadata,
   registeredWorkspaces,
+  withWorkspaceAllocationLock,
   workspaceResources,
   workspaceUrls,
   WORKSPACE_METADATA_PATH,
@@ -52,7 +53,9 @@ function environmentValue(source, key) {
   return source
     .split(/\r?\n/gu)
     .find((line) => line.startsWith(prefix))
-    ?.slice(prefix.length);
+    ?.slice(prefix.length)
+    .trim()
+    .replace(/^(["'])(.*)\1$/u, "$2");
 }
 
 function databaseUrlForWorkspace(existingUrl, database) {
@@ -104,28 +107,32 @@ async function createWorkspace() {
     );
   }
 
-  const registered = await registeredWorkspaces(root);
-  const collision = registered.find(({ workspace }) => workspace.identity === identity);
-  if (collision !== undefined) {
-    throw new Error(
-      `workspace identity '${identity}' already belongs to registered worktree ${collision.path}`,
+  return await withWorkspaceAllocationLock(root, async () => {
+    const registered = await registeredWorkspaces(root);
+    const collision = registered.find(({ workspace }) => workspace.identity === identity);
+    if (collision !== undefined) {
+      throw new Error(
+        `workspace identity '${identity}' already belongs to registered worktree ${collision.path}`,
+      );
+    }
+    const reservedPorts = new Set(
+      registered.flatMap(({ workspace }) => [workspace.ports.web, workspace.ports.storybook]),
     );
-  }
-  const reservedPorts = new Set(
-    registered.flatMap(({ workspace }) => [workspace.ports.web, workspace.ports.storybook]),
-  );
-  const web = await findAvailablePort(WEB_PORT_RANGE, reservedPorts);
-  reservedPorts.add(web);
-  const storybook = await findAvailablePort(STORYBOOK_PORT_RANGE, reservedPorts);
-  return {
-    schemaVersion: WORKSPACE_SCHEMA_VERSION,
-    initialTechnicalPath: path.resolve(root),
-    identity,
-    profile: "light",
-    urls: workspaceUrls(identity),
-    ports: { web, storybook },
-    resources: workspaceResources(identity),
-  };
+    const web = await findAvailablePort(WEB_PORT_RANGE, reservedPorts);
+    reservedPorts.add(web);
+    const storybook = await findAvailablePort(STORYBOOK_PORT_RANGE, reservedPorts);
+    const workspace = {
+      schemaVersion: WORKSPACE_SCHEMA_VERSION,
+      initialTechnicalPath: path.resolve(root),
+      identity,
+      profile: "light",
+      urls: workspaceUrls(identity),
+      ports: { web, storybook },
+      resources: workspaceResources(identity),
+    };
+    await persistWorkspace(workspace);
+    return workspace;
+  });
 }
 
 async function persistWorkspace(workspace) {
@@ -145,7 +152,6 @@ async function main() {
   let workspace = await readWorkspaceMetadata(root);
   if (workspace === null) {
     workspace = await createWorkspace();
-    await persistWorkspace(workspace);
     output(`Created light workspace metadata for ${workspace.identity}.`);
   } else {
     output(`Using existing light workspace metadata for ${workspace.identity}.`);

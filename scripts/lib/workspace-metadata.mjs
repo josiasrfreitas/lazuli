@@ -1,13 +1,17 @@
 import { spawnSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
+import { setTimeout as wait } from "node:timers/promises";
 
 export const WORKSPACE_METADATA_PATH = ".lazuli/workspace.json";
 export const WORKSPACE_SCHEMA_VERSION = 1;
 export const MAX_WORKSPACE_IDENTITY_LENGTH = 56;
 export const WEB_PORT_RANGE = { start: 3000, end: 3999 };
 export const STORYBOOK_PORT_RANGE = { start: 6006, end: 6999 };
+const WORKSPACE_ALLOCATION_LOCK_NAME = "lazuli-workspace-allocation.lock";
+const WORKSPACE_ALLOCATION_LOCK_RETRY_MS = 25;
+const WORKSPACE_ALLOCATION_LOCK_TIMEOUT_MS = 10_000;
 
 export function normalizeWorkspaceIdentity(directoryName) {
   return directoryName
@@ -136,6 +140,42 @@ function worktreePaths(root) {
     .split("\n")
     .filter((line) => line.startsWith("worktree "))
     .map((line) => path.resolve(line.slice("worktree ".length)));
+}
+
+function workspaceAllocationLockPath(root) {
+  const result = spawnSync("git", ["rev-parse", "--git-common-dir"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    throw new Error("could not locate the shared Git directory for workspace allocation");
+  }
+  return path.join(path.resolve(root, result.stdout.trim()), WORKSPACE_ALLOCATION_LOCK_NAME);
+}
+
+export async function withWorkspaceAllocationLock(root, callback) {
+  const lockPath = workspaceAllocationLockPath(root);
+  const deadline = Date.now() + WORKSPACE_ALLOCATION_LOCK_TIMEOUT_MS;
+  while (true) {
+    try {
+      await mkdir(lockPath);
+      break;
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      if (Date.now() >= deadline) {
+        throw new Error(
+          "timed out waiting for another workspace setup to finish allocating identity and ports",
+          { cause: error },
+        );
+      }
+      await wait(WORKSPACE_ALLOCATION_LOCK_RETRY_MS);
+    }
+  }
+  try {
+    return await callback();
+  } finally {
+    await rm(lockPath, { force: true, recursive: true });
+  }
 }
 
 export async function registeredWorkspaces(root) {

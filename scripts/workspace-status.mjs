@@ -39,7 +39,7 @@ function observedStackHealth() {
   return rows
     .map(
       (row) =>
-        `${row.Service ?? row.Name ?? "service"}: ${row.Health ?? row.State ?? "unknown state"}`,
+        `${row.Service ?? row.Name ?? "service"}: ${row.Health?.trim() || row.State || "unknown state"}`,
     )
     .join(", ");
 }

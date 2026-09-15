@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -56,6 +56,26 @@ function run(directory, script, arguments_ = []) {
   });
 }
 
+function runAsync(directory, script, arguments_ = []) {
+  const log = path.join(directory, "pnpm.log");
+  const child = spawn(process.execPath, [script, ...arguments_], {
+    cwd: directory,
+    env: {
+      ...process.env,
+      PATH: `${path.join(directory, "bin")}${path.delimiter}${process.env.PATH}`,
+      PNPM_LOG: log,
+    },
+  });
+  return new Promise((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => (stdout += chunk));
+    child.stderr.on("data", (chunk) => (stderr += chunk));
+    child.on("error", reject);
+    child.on("close", (status) => resolve({ status, stdout, stderr }));
+  });
+}
+
 function statusWithoutDocker(directory) {
   return spawnSync(process.execPath, [statusScript], {
     cwd: directory,
@@ -72,7 +92,7 @@ it("sets up a light worktree without infrastructure and persists only stable int
   const directory = await fixture(context, "Lazuli Feature___One");
   await writeFile(
     path.join(directory, ".env"),
-    "BETTER_AUTH_SECRET=keep-this-secret\nDATABASE_URL=postgresql://local-user:local-password@db.test:5433/old?sslmode=require\n",
+    'BETTER_AUTH_SECRET=keep-this-secret\nDATABASE_URL="postgresql://local-user:local-password@db.test:5433/old?sslmode=require"\n',
   );
 
   const result = run(directory, setupScript, ["light"]);
@@ -153,6 +173,26 @@ it("uses distinct persisted ports across registered worktrees", async (context) 
   assert.notEqual(siblingWorkspace.ports.storybook, sourceWorkspace.ports.storybook);
 });
 
+it("serializes identity and port allocation across linked worktrees", async (context) => {
+  const directory = await fixture(context, "lazuli-lock-source");
+  const sibling = path.join(path.dirname(directory), "lazuli-lock-sibling");
+  execFileSync("git", ["worktree", "add", "--quiet", "-b", "lock-sibling", sibling], {
+    cwd: directory,
+    env: gitEnvironment,
+  });
+
+  const [sourceResult, siblingResult] = await Promise.all(
+    [directory, sibling].map((worktree) => runAsync(worktree, setupScript, ["light"])),
+  );
+  const sourceWorkspace = await metadata(directory);
+  const siblingWorkspace = await metadata(sibling);
+
+  assert.equal(sourceResult.status, 0, sourceResult.stderr);
+  assert.equal(siblingResult.status, 0, siblingResult.stderr);
+  assert.notEqual(sourceWorkspace.ports.web, siblingWorkspace.ports.web);
+  assert.notEqual(sourceWorkspace.ports.storybook, siblingWorkspace.ports.storybook);
+});
+
 it("reports light configuration without requiring Docker and ignores the legacy marker", async (context) => {
   const directory = await fixture(context);
   assert.equal(run(directory, setupScript, ["light"]).status, 0);
@@ -170,6 +210,21 @@ it("reports light configuration without requiring Docker and ignores the legacy 
   assert.match(result.stdout, /Docker is unavailable/u);
   assert.doesNotMatch(result.stdout, /Perfil|não provisionado|indisponível/u);
   assert.doesNotMatch(result.stdout, /worktree-bootstrapped/u);
+});
+
+it("reports a service state when Docker omits its health value", async (context) => {
+  const directory = await fixture(context, "lazuli-status-docker");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  await writeFile(
+    path.join(directory, "bin/docker"),
+    '#!/bin/sh\nprintf \'%s\\n\' \'{"Service":"mailpit","Health":"","State":"running"}\'\n',
+    { mode: 0o755 },
+  );
+
+  const result = statusWithoutDocker(directory);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /mailpit: running/u);
 });
 
 it("fails status for missing or invalid metadata without writing it", async (context) => {
