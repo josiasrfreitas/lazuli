@@ -34,6 +34,7 @@ not rewrite history.
 | [0017 Mutation score and assertion guardrails](0017-gate-tests-on-mutation-score-and-assertion-guardrails.md) | Accepted   | None                   |
 | [0018 Finance module API](0018-expose-finance-through-one-module-api.md)                                      | Accepted   | None                   |
 | [0019 Unit-only mutation](0019-limit-mutation-to-unit-tests.md)                                               | Accepted   | None                   |
+| [0020 Remove changed-source coverage gate](0020-remove-changed-source-coverage-gate.md)                       | Accepted   | None                   |
 
 The archived register's complete disposition is: extracted — D-0001, D-0002, D-0003, D-0004,
 D-0005, D-0008, D-0021, D-0025, D-0028, D-0030 through D-0034, and D-0037; universal AGENTS rule

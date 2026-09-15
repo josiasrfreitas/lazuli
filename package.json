@@ -27,7 +27,6 @@
     "test:e2e": "turbo run test:e2e",
     "test:quality:changed": "node tooling/eslint/quality-changed.mjs",
     "test:affected": "node scripts/test-affected.mjs",
-    "test:changed-covered": "node scripts/changed-source-covered.mjs",
     "test:durations": "node scripts/test-durations.mjs",
     "test:surface-inventory": "node --import tsx scripts/test-surface-inventory.mjs",
     "mutate": "turbo run mutate --concurrency=1",

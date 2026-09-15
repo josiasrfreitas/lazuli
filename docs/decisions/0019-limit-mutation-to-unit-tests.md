@@ -4,7 +4,7 @@ Status: Accepted
 Decision date: 2026-09-14
 Acceptance date: 2026-09-14
 Supersedes: Mutation test-tier scope, score denominator, and infrastructure requirements in 0017
-Superseded by: None
+Superseded by: [0020](0020-remove-changed-source-coverage-gate.md) (changed-source execution gate only)
 Legacy sources: None
 
 Implementation evidence: `tooling/stryker/base.mjs`, package Stryker configurations,
@@ -20,8 +20,8 @@ caused all of the observed runtime or that unit-only mutation has a measured tim
 ## Decision
 
 Stryker selects only `test/**/*.unit.test.ts`. Integration and transport continue to execute in the
-complete test tiers, with their infrastructure, JUnit/LCOV reports, changed-source execution check,
-and prospective assertion guardrails. Reviews must assess meaningful observable contracts,
+complete test tiers, with their infrastructure, JUnit/LCOV reports, and prospective assertion
+guardrails. Reviews must assess meaningful observable contracts,
 failure cases, and fixture isolation; those checks do not certify assertion quality on their own.
 
 The mutation job no longer provisions Postgres or Mailpit or applies migrations. The infrastructure
@@ -35,6 +35,6 @@ The package wrapper enforces this threshold instead of Stryker's built-in total-
 
 Integration suites are no longer repeated for mutants. This does not promise a particular runtime.
 Source exercised only by integration can yield uncovered mutants, which are reported but do not
-fail the unit-covered score. The independent changed-source execution check still uses all tiers.
-Avoid implementation-mirroring mocks written solely to satisfy the mutation score. All other
+fail the unit-covered score. Avoid implementation-mirroring mocks written solely to satisfy the
+mutation score. All other
 provisions of decision 0017 remain in force.

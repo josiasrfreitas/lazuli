@@ -9,7 +9,7 @@ import {
   type DevExitReason,
   type DevStudentSeed,
 } from "./seed-dev-data.js";
-import { seedStudentFinance } from "./seed-dev-finance.js";
+import { seedDevFinance } from "./seed-dev-finance.js";
 import {
   addDays,
   endOfDayUtc,
@@ -36,21 +36,19 @@ const MONTH_END_INDEX = 7;
 const SECOND_HALF_FIRST_MONTH = 7;
 const EXIT_DAYS_AGO = 14;
 const GOOD_ABSENCE_CYCLE = 6;
-const FINANCE_SETTINGS_ID = "singleton";
-
 export async function seedDevData(database: DatabaseClient): Promise<void> {
   const todayIso = saoPauloTodayIso();
   const semester = await upsertSemester(database, currentSemesterSeed(todayIso));
   const teacherIds = await upsertStaff(database);
-  await upsertFinanceSettings(database);
-
   const context: SeedContext = { database, todayIso, semester, teacherIds, classes: new Map() };
   for (const classSeed of DEV_CLASSES) {
     await seedClass(context, classSeed);
   }
+  const studentIds = new Map<string, string>();
   for (const studentSeed of DEV_STUDENTS) {
-    await seedStudent(context, studentSeed);
+    studentIds.set(studentSeed.key, await seedStudent(context, studentSeed));
   }
+  await seedDevFinance(database, { todayIso, studentIds });
 }
 
 function currentSemesterSeed(todayIso: string): SemesterSeed {
@@ -103,15 +101,7 @@ async function upsertUser(
   });
 }
 
-async function upsertFinanceSettings(database: DatabaseClient): Promise<void> {
-  await database.financeSettings.upsert({
-    where: { id: FINANCE_SETTINGS_ID },
-    create: { id: FINANCE_SETTINGS_ID },
-    update: {},
-  });
-}
-
-async function seedStudent(context: SeedContext, studentSeed: DevStudentSeed): Promise<void> {
+async function seedStudent(context: SeedContext, studentSeed: DevStudentSeed): Promise<string> {
   const guardianId =
     studentSeed.guardian === undefined ? null : await upsertGuardian(context, studentSeed);
   const studentId = stableUuid(["student", studentSeed.key]);
@@ -132,9 +122,7 @@ async function seedStudent(context: SeedContext, studentSeed: DevStudentSeed): P
   for (const enrollmentSeed of studentSeed.enrollments) {
     await seedEnrollment(context, { studentSeed, studentId, enrollmentSeed });
   }
-  if (studentSeed.finance !== "none") {
-    await seedStudentFinance(context, { studentSeed, studentId });
-  }
+  return studentId;
 }
 
 async function upsertGuardian(context: SeedContext, studentSeed: DevStudentSeed): Promise<string> {
