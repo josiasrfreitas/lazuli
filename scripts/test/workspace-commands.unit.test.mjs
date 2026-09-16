@@ -325,16 +325,14 @@ it("routes two live Storybook leases by their stable hostnames and removes its o
   );
   const { registerStorybookRoute, unregisterStorybookRoute } = await import("../lib/workspace-proxy.mjs");
   await registerStorybookRoute(directory, source);
-  const configuredCaddy = await caddyRequest(caddyAdminPort, "/config/");
-  const caddyConfiguration = JSON.parse(configuredCaddy.body);
-  caddyConfiguration.apps.http.servers.unrelated = {
+  const unrelatedServer = {
     listen: ["127.0.0.1:18_081"],
     routes: [],
   };
-  await caddyRequest(caddyAdminPort, "/load", {
+  await caddyRequest(caddyAdminPort, "/config/apps/http/servers/unrelated", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(caddyConfiguration),
+    body: JSON.stringify(unrelatedServer),
   });
   await registerStorybookRoute(sibling, other);
   const reloadedCaddy = await caddyRequest(caddyAdminPort, "/config/");
@@ -360,10 +358,7 @@ it("routes two live Storybook leases by their stable hostnames and removes its o
   assert.deepEqual(otherResponse, { status: 200, body: "other storybook" });
   assert.equal(abandonedResponse.status, 404);
   assert.equal(removedResponse.status, 404);
-  assert.deepEqual(configurationAfterReload.apps.http.servers.unrelated, {
-    listen: ["127.0.0.1:18_081"],
-    routes: [],
-  });
+  assert.deepEqual(configurationAfterReload.apps.http.servers.unrelated, unrelatedServer);
 });
 
 it("fails status for missing or invalid metadata without writing it", async (context) => {

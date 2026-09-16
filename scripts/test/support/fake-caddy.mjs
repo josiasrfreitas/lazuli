@@ -21,10 +21,17 @@ const admin = http.createServer(async (request, response) => {
     response.writeHead(200).end(JSON.stringify(configuration));
     return;
   }
-  if (request.method === "POST" && request.url === "/load") {
+  if (request.method === "POST" && request.url === `/config/apps/http/servers/${serverName}`) {
     let body = "";
     for await (const chunk of request) body += chunk;
-    configuration = JSON.parse(body);
+    configuration.apps.http.servers[serverName] = JSON.parse(body);
+    response.writeHead(200).end();
+    return;
+  }
+  if (request.method === "POST" && request.url === "/config/apps/http/servers/unrelated") {
+    let body = "";
+    for await (const chunk of request) body += chunk;
+    configuration.apps.http.servers.unrelated = JSON.parse(body);
     response.writeHead(200).end();
     return;
   }

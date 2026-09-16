@@ -171,23 +171,6 @@ function caddyIsManaged(configuration) {
   );
 }
 
-function caddyWithRoutes(configuration, routes) {
-  return {
-    ...configuration,
-    admin: { ...configuration.admin, listen: `127.0.0.1:${CADDY_ADMIN_PORT}` },
-    apps: {
-      ...configuration.apps,
-      http: {
-        ...configuration.apps?.http,
-        servers: {
-          ...configuration.apps?.http?.servers,
-          ...caddyConfiguration(routes).apps.http.servers,
-        },
-      },
-    },
-  };
-}
-
 function caddyStartError(detail = "") {
   if (/permission denied|operation not permitted|eacces|bind.*permission/iu.test(detail)) {
     return `Caddy could not bind 127.0.0.1:${CADDY_HTTP_PORT} because permission was denied. Choose an unprivileged LAZULI_CADDY_HTTP_PORT and retry.`;
@@ -250,15 +233,17 @@ async function ensureCaddy(stateDirectory) {
   throw new Error(caddyStartError(standardError));
 }
 
-async function reloadCaddy(stateDirectory, leases) {
+async function reloadCaddy(leases) {
   const existingConfiguration = await caddyConfigurationFromAdmin();
   if (!caddyIsManaged(existingConfiguration)) {
     throw new Error("Lazuli's managed Caddy instance is no longer available; refusing to replace its configuration.");
   }
-  const response = await caddyAdminRequest("/load", {
+  const routes = leases.map((lease) => routeForLease(lease));
+  const server = caddyConfiguration(routes).apps.http.servers[CADDY_SERVER_NAME];
+  const response = await caddyAdminRequest(`/config/apps/http/servers/${CADDY_SERVER_NAME}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(caddyWithRoutes(existingConfiguration, leases.map((lease) => routeForLease(lease)))),
+    body: JSON.stringify(server),
   });
   if (!response.ok) throw new Error(`Caddy rejected the route configuration (${response.status}).`);
 }
@@ -305,7 +290,7 @@ export async function registerStorybookRoute(root, workspace) {
     const file = leasePath(stateDirectory, lease);
     await writeFile(`${file}.${process.pid}.tmp`, `${JSON.stringify(lease, null, 2)}\n`);
     await rename(`${file}.${process.pid}.tmp`, file);
-    await reloadCaddy(stateDirectory, await activeLeases(stateDirectory));
+    await reloadCaddy(await activeLeases(stateDirectory));
   });
 }
 
@@ -327,7 +312,7 @@ export async function unregisterStorybookRoute(root, workspace) {
       await rm(file, { force: true });
     }
     if (caddyIsManaged(await caddyConfigurationFromAdmin())) {
-      await reloadCaddy(stateDirectory, await activeLeases(stateDirectory));
+      await reloadCaddy(await activeLeases(stateDirectory));
     }
   });
 }
