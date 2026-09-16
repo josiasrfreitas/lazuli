@@ -23,6 +23,7 @@ const CADDY_START_SETTLE_MS = 250;
 const CADDY_START_ATTEMPTS = 10;
 const CADDY_START_RETRY_MS = 100;
 const HTTP_SERVER_ERROR_START = 500;
+const CADDY_HTTP_LISTENERS = [`127.0.0.1:${CADDY_HTTP_PORT}`, `[::1]:${CADDY_HTTP_PORT}`];
 
 function sharedStateDirectory(root) {
   if (process.env.LAZULI_PROXY_STATE_DIR) return path.resolve(process.env.LAZULI_PROXY_STATE_DIR);
@@ -52,7 +53,7 @@ function caddyConfiguration(routes) {
       http: {
         servers: {
           [CADDY_SERVER_NAME]: {
-            listen: [`127.0.0.1:${CADDY_HTTP_PORT}`],
+            listen: CADDY_HTTP_LISTENERS,
             automatic_https: { disable: true },
             routes: [
               {
@@ -170,7 +171,7 @@ async function caddyConfigurationFromAdmin() {
 function caddyIsManaged(configuration) {
   const server = managedServer(configuration);
   return (
-    server?.listen?.includes(`127.0.0.1:${CADDY_HTTP_PORT}`) &&
+    CADDY_HTTP_LISTENERS.every((listener) => server?.listen?.includes(listener)) &&
     server.routes?.some((route) => route["@id"] === CADDY_ROUTE_MARKER)
   );
 }
@@ -215,9 +216,9 @@ function managedServerName(configuration) {
 
 function caddyStartError(detail = "") {
   if (/permission denied|operation not permitted|eacces|bind.*permission/iu.test(detail)) {
-    return `Caddy could not bind 127.0.0.1:${CADDY_HTTP_PORT} because permission was denied. Lazuli requires its canonical local URLs on port 80; grant Caddy permission to bind that port and retry.`;
+    return `Caddy could not bind a local listener on port ${CADDY_HTTP_PORT} because permission was denied. Lazuli requires its canonical local URLs on port 80; grant Caddy permission to bind that port and retry.`;
   }
-  return `Caddy could not start because 127.0.0.1:${CADDY_HTTP_PORT} or its admin port ${CADDY_ADMIN_PORT} is occupied. Free that port and retry.`;
+  return `Caddy could not start because a local listener on port ${CADDY_HTTP_PORT} or its admin port ${CADDY_ADMIN_PORT} is occupied. Free the port and retry.`;
 }
 
 async function startCaddy(configurationPath) {

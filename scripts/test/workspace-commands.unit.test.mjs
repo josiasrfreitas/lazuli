@@ -69,16 +69,13 @@ function run(directory, script, arguments_ = [], environment = {}) {
   });
 }
 
-function requestProxy(hostname, port = 80) {
+function requestProxy(hostname, port = 80, address = "127.0.0.1") {
   return new Promise((resolve, reject) => {
-    const request = http.get(
-      { host: "127.0.0.1", port, headers: { host: hostname } },
-      (response) => {
-        let body = "";
-        response.on("data", (chunk) => (body += chunk));
-        response.on("end", () => resolve({ status: response.statusCode, body }));
-      },
-    );
+    const request = http.get({ host: address, port, headers: { host: hostname } }, (response) => {
+      let body = "";
+      response.on("data", (chunk) => (body += chunk));
+      response.on("end", () => resolve({ status: response.statusCode, body }));
+    });
     request.once("error", reject);
   });
 }
@@ -556,6 +553,11 @@ it("routes two live Storybook leases by their stable hostnames and removes its o
   const reloadedCaddy = await caddyRequest(caddyAdminPort, "/config/");
   const configurationAfterReload = JSON.parse(reloadedCaddy.body);
   const sourceResponse = await requestProxy(new URL(source.urls.storybook).hostname, caddyHttpPort);
+  const sourceIpv6Response = await requestProxy(
+    new URL(source.urls.storybook).hostname,
+    caddyHttpPort,
+    "::1",
+  );
   const otherResponse = await requestProxy(new URL(other.urls.storybook).hostname, caddyHttpPort);
   const abandonedResponse = await requestProxy(
     "storybook.abandoned.lazuli.localhost",
@@ -579,7 +581,12 @@ it("routes two live Storybook leases by their stable hostnames and removes its o
   process.env.LAZULI_CADDY_HTTP_PORT = originalCaddyHttpPort;
 
   assert.deepEqual(sourceResponse, { status: 200, body: "source storybook" });
+  assert.deepEqual(sourceIpv6Response, { status: 200, body: "source storybook" });
   assert.deepEqual(otherResponse, { status: 200, body: "other storybook" });
+  assert.deepEqual(configurationAfterReload.apps.http.servers.lazuli_storybook_proxy_v1.listen, [
+    `127.0.0.1:${caddyHttpPort}`,
+    `[::1]:${caddyHttpPort}`,
+  ]);
   assert.equal(abandonedResponse.status, 404);
   assert.equal(removedResponse.status, 404);
   assert.deepEqual(configurationAfterReload.apps.http.servers.unrelated, unrelatedServer);
