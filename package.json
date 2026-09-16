@@ -22,6 +22,7 @@
     "test:component-lines": "node scripts/test-component-lines.mjs",
     "test:styles": "node scripts/test-styles.mjs",
     "test:integration": "turbo run test:integration --concurrency=1",
+    "test:workspace:integration": "node --test scripts/test/workspace-full.integration.test.mjs",
     "test:transport": "turbo run test:transport --concurrency=1",
     "test:all": "pnpm test && pnpm test:integration && pnpm test:transport",
     "test:e2e": "turbo run test:e2e",

@@ -17,6 +17,13 @@ import {
   STORYBOOK_PORT_RANGE,
   WEB_PORT_RANGE,
 } from "./lib/workspace-metadata.mjs";
+import {
+  dependenciesNeedInstall,
+  ensureBucket,
+  ensureDatabase,
+  reconcileCompose,
+  withFullSetupLock,
+} from "./lib/workspace-full.mjs";
 
 const root = process.cwd();
 const SETUP_ARGUMENT_COUNT = 3;
@@ -30,7 +37,7 @@ function errorOutput(message) {
 }
 
 function usage() {
-  errorOutput("Usage: pnpm workspace:setup light");
+  errorOutput("Usage: pnpm workspace:setup <light|full>");
 }
 
 function patchEnvironment(source, values) {
@@ -143,28 +150,66 @@ async function persistWorkspace(workspace) {
   await rename(temporary, target);
 }
 
-async function main() {
-  if (process.argv.length !== SETUP_ARGUMENT_COUNT || process.argv[2] !== "light") {
-    usage();
-    process.exitCode = 2;
-    return;
+async function prepareDependencies(workspace) {
+  await configureEnvironment(workspace);
+  if (await dependenciesNeedInstall(root)) {
+    output("Installing dependencies...");
+    execFileSync("pnpm", ["install"], { cwd: root, stdio: "inherit" });
+  } else {
+    output("Dependencies already match pnpm-lock.yaml.");
   }
+}
+
+async function setupLight() {
   let workspace = await readWorkspaceMetadata(root);
   if (workspace === null) {
     workspace = await createWorkspace();
     output(`Created light workspace metadata for ${workspace.identity}.`);
   } else {
-    output(`Using existing light workspace metadata for ${workspace.identity}.`);
+    output(`Using existing ${workspace.profile} workspace metadata for ${workspace.identity}.`);
   }
-  await configureEnvironment(workspace);
-  output("Installing dependencies...");
-  execFileSync("pnpm", ["install"], { cwd: root, stdio: "inherit" });
+  await prepareDependencies(workspace);
   output("Light workspace setup complete.");
+}
+
+async function setupFull() {
+  await withFullSetupLock(root, async () => {
+    let workspace = await readWorkspaceMetadata(root);
+    if (workspace === null) {
+      throw new Error("workspace metadata is absent; run pnpm workspace:setup light first");
+    }
+    if (workspace.profile === "full") {
+      output(`Resuming full workspace setup for ${workspace.identity}.`);
+    } else {
+      workspace = { ...workspace, profile: "full" };
+      await persistWorkspace(workspace);
+      output(`Promoted workspace metadata for ${workspace.identity} to full.`);
+    }
+    await prepareDependencies(workspace);
+    await reconcileCompose(root, output);
+    await ensureDatabase({ root, workspace, output });
+    await ensureBucket({ root, workspace, output });
+    output("Full workspace setup complete.");
+  });
+}
+
+async function main() {
+  if (process.argv.length === SETUP_ARGUMENT_COUNT && ["light", "full"].includes(process.argv[2])) {
+    await (process.argv[2] === "full" ? setupFull() : setupLight());
+    return;
+  }
+  usage();
+  process.exitCode = 2;
 }
 
 try {
   await main();
 } catch (error) {
   errorOutput(`workspace:setup failed: ${error.message}`);
+  if (process.argv[2] === "full") {
+    errorOutput("Inspect shared services with: docker compose ps");
+    errorOutput("Inspect a service with: docker compose logs <service>");
+    errorOutput("Resume safely with: pnpm workspace:setup full");
+  }
   process.exitCode = 1;
 }
