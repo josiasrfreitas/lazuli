@@ -70,7 +70,7 @@ export async function seedDevFinance(
     await createJointOrderForSharedPayerScenario(transaction, input);
     if (input.workspaceInitializationKey !== undefined) {
       await transaction.$executeRawUnsafe(
-        "INSERT INTO local_workspace_initializations (key, completed_at) VALUES ($1, NOW()) ON CONFLICT (key) DO UPDATE SET completed_at = EXCLUDED.completed_at",
+        'INSERT INTO "lazuli_local"."workspace_initializations" (key, completed_at) VALUES ($1, NOW()) ON CONFLICT (key) DO UPDATE SET completed_at = EXCLUDED.completed_at',
         input.workspaceInitializationKey,
       );
     }

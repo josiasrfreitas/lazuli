@@ -5,10 +5,16 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
 import { getProcessEnvironment, workspaceComposeHealthTimeoutMs } from "../config.mjs";
+import {
+  databaseInitializationCompleted,
+  provisionDatabaseInitializationStore,
+} from "./local-workspace-initialization.mjs";
 
 export const DATABASE_INITIALIZATION_PATH = ".lazuli/database-initialization.json";
 export const WORKSPACE_FULL_INITIALIZATION_KEY = "workspace-full-v1";
-const LOCK_RETRY_MS = 50, LOCK_ID_LENGTH = 20, HEALTH_RETRY_MS = 250;
+const LOCK_RETRY_MS = 50,
+  LOCK_ID_LENGTH = 20,
+  HEALTH_RETRY_MS = 250;
 const POSTGRES_CONTAINER = "lazuli-postgres";
 
 function processStartedAt(pid) {
@@ -181,27 +187,6 @@ function databaseExists(root, database) {
   return result.trim() === "1";
 }
 
-function databaseInitializationCompleted(root, database) {
-  const result = run({
-    command: "docker",
-    arguments_: [
-      "exec",
-      POSTGRES_CONTAINER,
-      "psql",
-      "-U",
-      "lazuli",
-      "-d",
-      database,
-      "-tAc",
-      `SELECT 1 FROM local_workspace_initializations WHERE key = '${WORKSPACE_FULL_INITIALIZATION_KEY}'`,
-    ],
-    root,
-    capture: true,
-    capability: "database initialization inspection",
-  });
-  return result.trim() === "1";
-}
-
 async function readJournal(root) {
   try {
     return JSON.parse(await readFile(path.join(root, DATABASE_INITIALIZATION_PATH), "utf8"));
@@ -241,6 +226,7 @@ export async function ensureDatabase({ root, workspace, output }) {
   }
   output("Applying database migrations...");
   run({ command: "pnpm", arguments_: ["prisma:deploy"], root, capability: "database migrations" });
+  provisionDatabaseInitializationStore({ database: workspace.resources.database, root, run });
   if (journal?.status === "pending") {
     await completeDatabaseInitialization({ root, workspace, journalPath, output });
   }
@@ -248,7 +234,14 @@ export async function ensureDatabase({ root, workspace, output }) {
 }
 
 async function completeDatabaseInitialization({ root, workspace, journalPath, output }) {
-  if (databaseInitializationCompleted(root, workspace.resources.database)) {
+  if (
+    databaseInitializationCompleted({
+      database: workspace.resources.database,
+      initializationKey: WORKSPACE_FULL_INITIALIZATION_KEY,
+      root,
+      run,
+    })
+  ) {
     output("Finalizing completed database initialization...");
   } else {
     output("Loading database fixtures...");

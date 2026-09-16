@@ -298,6 +298,7 @@ it("promotes light metadata and initializes each full resource without destructi
   assert.equal(journal.status, "complete");
   assert.match(pnpmLog, /^install\nprisma:deploy\nprisma:seed\n$/u);
   assert.equal(infraLog.match(/^compose up -d$/gmu)?.length, 1);
+  assert.match(infraLog, /CREATE SCHEMA IF NOT EXISTS lazuli_local/u);
   assert.doesNotMatch(`${pnpmLog}${infraLog}`, /migrate dev|reset/iu);
   assert.equal(
     await readFile(path.join(directory, ".fake-infra/object-example.txt"), "utf8"),

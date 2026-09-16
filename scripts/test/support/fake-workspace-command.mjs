@@ -77,7 +77,7 @@ function fakeDocker() {
   if (process.env.FAKE_DOCKER_UNAVAILABLE === "1") return 127;
   log(args.join(" "));
   if (args[0] === "compose") fakeCompose();
-  else if (args.some((argument) => argument.includes("local_workspace_initializations"))) {
+  else if (args.some((argument) => argument.includes("workspace_initializations"))) {
     if (existsSync(path.join(state, "workspace-initialization-complete")))
       process.stdout.write("1\n");
   } else if (args.some((argument) => argument.includes("SELECT 1 FROM pg_database"))) {

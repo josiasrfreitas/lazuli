@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, rm, symlink } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, stat, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -22,6 +22,12 @@ async function copyCheckout(target) {
     .split("\n")
     .filter(Boolean);
   for (const file of files) {
+    try {
+      await stat(path.join(repositoryRoot, file));
+    } catch (error) {
+      if (error.code === "ENOENT") continue;
+      throw error;
+    }
     const destination = path.join(target, file);
     await mkdir(path.dirname(destination), { recursive: true });
     await cp(path.join(repositoryRoot, file), destination, { recursive: true });
@@ -132,7 +138,7 @@ test("full setup isolates real databases and buckets and repeats without data lo
       initializationMarked:
         databaseQuery(
           workspace.resources.database,
-          "SELECT count(*) FROM local_workspace_initializations WHERE key = 'workspace-full-v1'",
+          'SELECT count(*) FROM "lazuli_local"."workspace_initializations" WHERE key = \'workspace-full-v1\'',
         ) === "1",
       objectStatus: execute("curl", ["-sS", "-o", "/dev/null", "-w", "%{http_code}", objectUrl]),
     };
