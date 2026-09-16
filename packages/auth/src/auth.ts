@@ -40,8 +40,7 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
     ...createAuthOptions({
       baseUrl: environment.appUrl,
       secret: environment.betterAuthSecret,
-      googleClientId: environment.googleClientId,
-      googleClientSecret: environment.googleClientSecret,
+      googleOAuth: environment.googleOAuth,
       database,
       sendMagicLink: async (delivery) => {
         await assertStaffCanAuthenticate(database, delivery.email);

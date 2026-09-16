@@ -2,12 +2,10 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 
-import { Alert, AlertDescription, AlertIcon, Button } from "@lazuli/ui";
-
 import { authClient } from "~/lib/auth-client";
 
-import { GoogleMark } from "./google-mark";
-import { LoginForm, type LoginPending } from "./login-form";
+import { type LoginPending } from "./login-form";
+import { LoginMethods } from "./login-methods";
 import { MagicLinkSent } from "./magic-link-sent";
 
 /**
@@ -32,7 +30,13 @@ export type LoginInitialError = "denied" | "verification";
  * The two ways in. Neither creates an account — sign-up is disabled on both
  * providers — so the card only ever recognises someone the school already knows.
  */
-export function LoginCard({ initialError }: { initialError: LoginInitialError | null }): ReactNode {
+export function LoginCard({
+  googleOAuthEnabled,
+  initialError,
+}: {
+  googleOAuthEnabled: boolean;
+  initialError: LoginInitialError | null;
+}): ReactNode {
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [pending, setPending] = useState<LoginPending>("none");
@@ -70,17 +74,9 @@ export function LoginCard({ initialError }: { initialError: LoginInitialError | 
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <LoginAlert message={error} />
-      <GoogleButton onClick={() => void handleGoogle()} pending={pending === "google"} />
-      <Divider />
-      <LoginForm
-        email={email}
-        onEmailChange={setEmail}
-        onSubmit={(event) => void handleMagicLink(event)}
-        pending={pending}
-      />
-    </div>
+    <LoginMethods
+      {...{ email, error, googleOAuthEnabled, handleGoogle, handleMagicLink, pending, setEmail }}
+    />
   );
 }
 
@@ -119,46 +115,4 @@ async function startGoogleSignIn(): Promise<string | null> {
   });
 
   return result.error === null ? null : DENIED_MESSAGE;
-}
-
-function LoginAlert({ message }: { message: string | null }): ReactNode {
-  if (message === null) {
-    return null;
-  }
-
-  return (
-    /* border-destructive/40: the primitive's 20% border melts into the navy
-       surface, and everything else on this frame is ruled by a crisp hairline. */
-    <Alert
-      className="flex items-center gap-3 rounded-none border-destructive/40"
-      variant="destructive"
-    >
-      {/* The geometric error mark is decorative; the message carries meaning. */}
-      {/* The negative margin lets the mark outgrow the text line without
-          stretching the box: it spends the alert's padding instead. */}
-      <AlertIcon className="translate-y-0">
-        <img alt="" className="-my-2 size-8" src="/icons/login-error-mark.svg" />
-      </AlertIcon>
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
-  );
-}
-
-function GoogleButton({ onClick, pending }: { onClick: () => void; pending: boolean }): ReactNode {
-  return (
-    <Button loading={pending} onClick={onClick} size="lg" variant="secondary">
-      <GoogleMark />
-      Entrar com Google
-    </Button>
-  );
-}
-
-function Divider(): ReactNode {
-  return (
-    <p className="flex items-center gap-4 font-mono text-micro uppercase tracking-eyebrow text-marquee-muted">
-      <span aria-hidden="true" className="h-px flex-1 bg-marquee-border" />
-      ou
-      <span aria-hidden="true" className="h-px flex-1 bg-marquee-border" />
-    </p>
-  );
 }

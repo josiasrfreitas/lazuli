@@ -24,8 +24,7 @@ const SIGN_OUT_PATH = "/api/auth/sign-out";
 const TEST_AUTH_ENVIRONMENT: AuthEnvironment = {
   appUrl: "http://localhost:3000",
   betterAuthSecret: "test-secret-with-at-least-thirty-two-characters",
-  googleClientId: "google-client-id",
-  googleClientSecret: "google-client-secret",
+  googleOAuth: { clientId: "google-client-id", clientSecret: "google-client-secret" },
   resendApiKey: undefined,
   emailFrom: "Lazuli <no-reply@example.com>",
   smtpHost: "localhost",
@@ -127,6 +126,8 @@ function registerMagicLinkSessionTest(context: AuthFlowContext): void {
     const session = await findSessionByEmail(email);
 
     assert.equal(response.status, HTTP_FOUND);
+    assert.equal(new URL(delivery.url).origin, TEST_AUTH_ENVIRONMENT.appUrl);
+    assert.doesNotMatch(response.headers.get("set-cookie") ?? "", /(?:^|;)\s*Domain=/iu);
     assert.equal(sessionDurationSeconds(session), THIRTY_DAY_SESSION_SECONDS);
   });
 }

@@ -21,8 +21,7 @@ export type MagicLinkSender = (delivery: MagicLinkDelivery) => Promise<void>;
 export type AuthOptionsInput = {
   baseUrl: string;
   secret: string;
-  googleClientId: string;
-  googleClientSecret: string;
+  googleOAuth?: { clientId: string; clientSecret: string } | undefined;
   database: Parameters<typeof prismaAdapter>[0];
   sendMagicLink: MagicLinkSender;
 };
@@ -34,6 +33,10 @@ export function createAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
     secret: input.secret,
     database: prismaAdapter(input.database, { provider: "postgresql" }),
     advanced: {
+      defaultCookieAttributes: {
+        path: "/",
+        sameSite: "lax",
+      },
       database: {
         generateId: "uuid",
       },
@@ -59,13 +62,16 @@ export function createAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
         trustedProviders: ["google"],
       },
     },
-    socialProviders: {
-      google: {
-        clientId: input.googleClientId,
-        clientSecret: input.googleClientSecret,
-        disableSignUp: true,
-      },
-    },
+    socialProviders:
+      input.googleOAuth === undefined
+        ? undefined
+        : {
+            google: {
+              clientId: input.googleOAuth.clientId,
+              clientSecret: input.googleOAuth.clientSecret,
+              disableSignUp: true,
+            },
+          },
     plugins: [
       magicLink({
         disableSignUp: true,

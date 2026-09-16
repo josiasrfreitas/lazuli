@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { isStaffAccessDeniedCode } from "@lazuli/auth";
+import { getAuthEnvironment, isStaffAccessDeniedCode } from "@lazuli/auth";
 import { auth } from "@lazuli/auth/server";
 
 import { MarqueeCard } from "~/components/marquee/marquee-card";
@@ -57,7 +57,10 @@ export default async function LoginPage({
       </MarqueeEditorial>
 
       <MarqueeCard title="Acesso">
-        <LoginCard initialError={resolveInitialError(params.error)} />
+        <LoginCard
+          googleOAuthEnabled={getAuthEnvironment().googleOAuth !== undefined}
+          initialError={resolveInitialError(params.error)}
+        />
       </MarqueeCard>
     </MarqueePage>
   );
