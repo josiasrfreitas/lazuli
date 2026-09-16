@@ -13,3 +13,9 @@ export function getDatabaseUrl(): string {
 export function getDatabaseProcessEnvironment(): NodeJS.ProcessEnv {
   return { ...process.env, DATABASE_URL: getDatabaseUrl() };
 }
+
+/** Returns the optional full-workspace initialization completion key. */
+export function getWorkspaceInitializationKey(): string | undefined {
+  const key = process.env.LAZULI_WORKSPACE_INITIALIZATION_KEY;
+  return key === undefined || key.length === 0 ? undefined : key;
+}

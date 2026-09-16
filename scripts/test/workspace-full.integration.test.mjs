@@ -129,12 +129,17 @@ test("full setup isolates real databases and buckets and repeats without data lo
         ) > 0,
       seededStudents:
         Number(databaseQuery(workspace.resources.database, 'SELECT count(*) FROM "Student"')) > 0,
+      initializationMarked:
+        databaseQuery(
+          workspace.resources.database,
+          "SELECT count(*) FROM local_workspace_initializations WHERE key = 'workspace-full-v1'",
+        ) === "1",
       objectStatus: execute("curl", ["-sS", "-o", "/dev/null", "-w", "%{http_code}", objectUrl]),
     };
   });
   assert.deepEqual(observations, [
-    { migrations: true, seededStudents: true, objectStatus: "200" },
-    { migrations: true, seededStudents: true, objectStatus: "200" },
+    { migrations: true, seededStudents: true, initializationMarked: true, objectStatus: "200" },
+    { migrations: true, seededStudents: true, initializationMarked: true, objectStatus: "200" },
   ]);
 
   databaseQuery(

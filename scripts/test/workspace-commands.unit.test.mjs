@@ -365,6 +365,36 @@ it("keeps database initialization pending after seed failure and resumes it", as
   assert.equal(complete.status, "complete");
 });
 
+it("does not reseed after fixture initialization commits but journal completion is interrupted", async (context) => {
+  const directory = await fixture(context, "lazuli-full-journal-resume");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+
+  const interrupted = run(directory, setupScript, ["full"], {
+    FAKE_BLOCK_COMPLETION_JOURNAL: "1",
+  });
+  const journalPath = path.join(directory, ".lazuli/database-initialization.json");
+  const seededPath = path.join(directory, ".fake-infra/seeded");
+
+  assert.equal(interrupted.status, 1);
+  const seededAfterInterruption = await readFile(seededPath, "utf8");
+  assert.equal(seededAfterInterruption.split("\n").filter(Boolean).length, 1);
+  await rm(journalPath, { force: true, recursive: true });
+  await mkdir(path.dirname(journalPath), { recursive: true });
+  await writeFile(
+    journalPath,
+    `${JSON.stringify({ database: "lazuli_lazuli_full_journal_resume", status: "pending" })}\n`,
+  );
+
+  const resumed = run(directory, setupScript, ["full"]);
+  const complete = JSON.parse(await readFile(journalPath, "utf8"));
+
+  assert.equal(resumed.status, 0, resumed.stderr);
+  const seededAfterResume = await readFile(seededPath, "utf8");
+  assert.equal(seededAfterResume.split("\n").filter(Boolean).length, 1);
+  assert.equal(complete.status, "complete");
+  assert.match(resumed.stdout, /Finalizing completed database initialization/u);
+});
+
 it("serializes concurrent full promotions and rereads completed initialization", async (context) => {
   const directory = await fixture(context, "lazuli-full-concurrent");
   assert.equal(run(directory, setupScript, ["light"]).status, 0);

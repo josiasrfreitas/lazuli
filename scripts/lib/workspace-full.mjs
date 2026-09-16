@@ -4,19 +4,17 @@ import { link, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/p
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
-
-import { workspaceComposeHealthTimeoutMs } from "../config.mjs";
+import { getProcessEnvironment, workspaceComposeHealthTimeoutMs } from "../config.mjs";
 
 export const DATABASE_INITIALIZATION_PATH = ".lazuli/database-initialization.json";
-const LOCK_RETRY_MS = 50;
-const LOCK_ID_LENGTH = 20;
-const HEALTH_RETRY_MS = 250;
+export const WORKSPACE_FULL_INITIALIZATION_KEY = "workspace-full-v1";
+const LOCK_RETRY_MS = 50, LOCK_ID_LENGTH = 20, HEALTH_RETRY_MS = 250;
+const POSTGRES_CONTAINER = "lazuli-postgres";
 
 function processStartedAt(pid) {
   const result = spawnSync("ps", ["-p", String(pid), "-o", "lstart="], { encoding: "utf8" });
   return result.status === 0 ? result.stdout.trim() : null;
 }
-
 function lockPath(root) {
   const identity = createHash("sha256")
     .update(path.resolve(root))
@@ -91,11 +89,12 @@ export async function dependenciesNeedInstall(root) {
   }
 }
 
-function run({ command, arguments_, root, capture = false, capability = command }) {
+function run({ command, arguments_, root, capture = false, capability = command, environment }) {
   try {
     return execFileSync(command, arguments_, {
       cwd: root,
       encoding: capture ? "utf8" : undefined,
+      env: environment === undefined ? undefined : getProcessEnvironment(environment),
       stdio: capture ? undefined : "inherit",
     });
   } catch (error) {
@@ -166,7 +165,7 @@ function databaseExists(root, database) {
     command: "docker",
     arguments_: [
       "exec",
-      "lazuli-postgres",
+      POSTGRES_CONTAINER,
       "psql",
       "-U",
       "lazuli",
@@ -178,6 +177,27 @@ function databaseExists(root, database) {
     root,
     capture: true,
     capability: "Postgres database inspection",
+  });
+  return result.trim() === "1";
+}
+
+function databaseInitializationCompleted(root, database) {
+  const result = run({
+    command: "docker",
+    arguments_: [
+      "exec",
+      POSTGRES_CONTAINER,
+      "psql",
+      "-U",
+      "lazuli",
+      "-d",
+      database,
+      "-tAc",
+      `SELECT 1 FROM local_workspace_initializations WHERE key = '${WORKSPACE_FULL_INITIALIZATION_KEY}'`,
+    ],
+    root,
+    capture: true,
+    capability: "database initialization inspection",
   });
   return result.trim() === "1";
 }
@@ -203,7 +223,7 @@ export async function ensureDatabase({ root, workspace, output }) {
       command: "docker",
       arguments_: [
         "exec",
-        "lazuli-postgres",
+        POSTGRES_CONTAINER,
         "psql",
         "-U",
         "lazuli",
@@ -222,20 +242,29 @@ export async function ensureDatabase({ root, workspace, output }) {
   output("Applying database migrations...");
   run({ command: "pnpm", arguments_: ["prisma:deploy"], root, capability: "database migrations" });
   if (journal?.status === "pending") {
+    await completeDatabaseInitialization({ root, workspace, journalPath, output });
+  }
+  return exists;
+}
+
+async function completeDatabaseInitialization({ root, workspace, journalPath, output }) {
+  if (databaseInitializationCompleted(root, workspace.resources.database)) {
+    output("Finalizing completed database initialization...");
+  } else {
     output("Loading database fixtures...");
     run({
       command: "pnpm",
       arguments_: ["prisma:seed"],
       root,
       capability: "database initialization",
-    });
-    await atomicJson(journalPath, {
-      database: workspace.resources.database,
-      status: "complete",
-      completedAt: new Date().toISOString(),
+      environment: { LAZULI_WORKSPACE_INITIALIZATION_KEY: WORKSPACE_FULL_INITIALIZATION_KEY },
     });
   }
-  return exists;
+  await atomicJson(journalPath, {
+    database: workspace.resources.database,
+    status: "complete",
+    completedAt: new Date().toISOString(),
+  });
 }
 
 function curlStatus(root, url) {

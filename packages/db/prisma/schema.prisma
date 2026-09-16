@@ -750,3 +750,10 @@ model GeneratedArtifact {
   @@index([kind])
   @@map("generated_artifacts")
 }
+
+model LocalWorkspaceInitialization {
+  key         String   @id
+  completedAt DateTime @default(now()) @map("completed_at") @db.Timestamptz
+
+  @@map("local_workspace_initializations")
+}

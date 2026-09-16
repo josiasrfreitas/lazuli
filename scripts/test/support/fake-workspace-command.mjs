@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
@@ -44,6 +45,14 @@ if (command === "pnpm") {
       status = 1;
     } else {
       writeFileSync(path.join(state, "seeded"), "seeded\n", { flag: "a" });
+      if (process.env.LAZULI_WORKSPACE_INITIALIZATION_KEY) {
+        writeFileSync(path.join(state, "workspace-initialization-complete"), "complete\n");
+      }
+      if (process.env.FAKE_BLOCK_COMPLETION_JOURNAL === "1") {
+        const journal = path.join(root, ".lazuli/database-initialization.json");
+        rmSync(journal, { force: true });
+        mkdirSync(journal);
+      }
     }
   }
   process.exitCode = status;
@@ -68,7 +77,10 @@ function fakeDocker() {
   if (process.env.FAKE_DOCKER_UNAVAILABLE === "1") return 127;
   log(args.join(" "));
   if (args[0] === "compose") fakeCompose();
-  else if (args.some((argument) => argument.includes("SELECT 1 FROM pg_database"))) {
+  else if (args.some((argument) => argument.includes("local_workspace_initializations"))) {
+    if (existsSync(path.join(state, "workspace-initialization-complete")))
+      process.stdout.write("1\n");
+  } else if (args.some((argument) => argument.includes("SELECT 1 FROM pg_database"))) {
     if (existsSync(path.join(state, "database"))) process.stdout.write("1\n");
   } else if (args.includes("ON_ERROR_STOP=1")) {
     writeFileSync(path.join(state, "database"), "exists\n");
