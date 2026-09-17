@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import http from "node:http";
 import { tmpdir } from "node:os";
@@ -11,6 +11,7 @@ import { URL, fileURLToPath } from "node:url";
 const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const setupScript = path.join(repositoryRoot, "scripts/workspace-setup.mjs");
 const statusScript = path.join(repositoryRoot, "scripts/workspace-status.mjs");
+const teardownScript = path.join(repositoryRoot, "scripts/workspace-teardown.mjs");
 const developmentScript = path.join(repositoryRoot, "scripts/development.mjs");
 const fixturesScript = path.join(repositoryRoot, "scripts/workspace-fixtures.mjs");
 const resetScript = path.join(repositoryRoot, "scripts/workspace-reset.mjs");
@@ -155,6 +156,8 @@ it("sets up a light worktree without infrastructure and persists only stable int
 
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(workspace.profile, "light");
+  assert.equal(workspace.schemaVersion, 2);
+  assert.match(workspace.ownershipToken, /^[0-9a-f-]{36}$/u);
   assert.equal(workspace.identity, "lazuli-feature-one");
   assert.equal(workspace.resources.database, "lazuli_lazuli_feature_one");
   assert.equal(workspace.resources.bucket, "lazuli-lazuli-feature-one");
@@ -169,6 +172,125 @@ it("sets up a light worktree without infrastructure and persists only stable int
   assert.match(env, new RegExp(`LAZULI_WEB_PORT=${workspace.ports.web}`));
   assert.equal(await readFile(path.join(directory, "pnpm.log"), "utf8"), "install\n");
   assert.doesNotMatch(`${result.stdout}\n${result.stderr}`, /docker|prisma|seed/iu);
+});
+
+it("tears down a light workspace without accessing Docker and repeats safely", async (context) => {
+  const directory = await fixture(context, "lazuli-light-teardown");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  await writeFile(path.join(directory, "infra.log"), "");
+
+  const first = run(directory, teardownScript);
+  const second = run(directory, teardownScript);
+
+  assert.equal(first.status, 0, first.stderr);
+  assert.match(first.stdout, /teardown complete/u);
+  assert.equal(second.status, 0, second.stderr);
+  assert.match(second.stdout, /already complete/u);
+  assert.equal(await readFile(path.join(directory, "infra.log"), "utf8"), "");
+  await assert.rejects(readFile(path.join(directory, ".lazuli/workspace.json"), "utf8"), {
+    code: "ENOENT",
+  });
+});
+
+it("removes only full resources bearing this workspace ownership markers", async (context) => {
+  const directory = await fixture(context, "lazuli-full-teardown");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  assert.equal(run(directory, setupScript, ["full"]).status, 0);
+  await writeFile(path.join(directory, "infra.log"), "");
+
+  const result = run(directory, teardownScript);
+  const infraLog = await readFile(path.join(directory, "infra.log"), "utf8");
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(infraLog, /workspace_ownership/u);
+  assert.match(infraLog, /DROP DATABASE/u);
+  assert.match(infraLog, /-X DELETE.*storage\/v1\/b/u);
+  assert.doesNotMatch(infraLog, /compose (up|down)/u);
+  await assert.rejects(readFile(path.join(directory, ".fake-infra/database"), "utf8"), {
+    code: "ENOENT",
+  });
+  await assert.rejects(readFile(path.join(directory, ".fake-infra/bucket"), "utf8"), {
+    code: "ENOENT",
+  });
+});
+
+it("preserves unmarked existing full resources and leaves a resumable journal", async (context) => {
+  const directory = await fixture(context, "lazuli-ambiguous-teardown");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  await mkdir(path.join(directory, ".fake-infra"), { recursive: true });
+  await writeFile(path.join(directory, ".fake-infra/database"), "external\n");
+  await writeFile(path.join(directory, ".fake-infra/bucket"), "external\n");
+  await writeFile(
+    path.join(directory, ".fake-infra/bucket-metadata.json"),
+    '{"name":"external"}\n',
+  );
+  assert.equal(run(directory, setupScript, ["full"]).status, 0);
+
+  const result = run(directory, teardownScript);
+  const commonDirectory = execFileSync("git", ["rev-parse", "--git-common-dir"], {
+    cwd: directory,
+    encoding: "utf8",
+  }).trim();
+  const journals = await readdir(
+    path.resolve(directory, commonDirectory, "lazuli-workspace-orphans"),
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /ownership marker.*preserved/u);
+  assert.equal(await readFile(path.join(directory, ".fake-infra/database"), "utf8"), "external\n");
+  assert.equal(await readFile(path.join(directory, ".fake-infra/bucket"), "utf8"), "external\n");
+  assert.equal(journals.length, 1);
+});
+
+it("stops only a process lease whose token, path, PID, and start time still match", async (context) => {
+  const directory = await fixture(context, "lazuli-process-teardown");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  const workspace = await metadata(directory);
+  const stateDirectory = path.join(directory, ".git");
+  const leasesDirectory = path.join(stateDirectory, "lazuli-proxy-leases");
+  await mkdir(leasesDirectory, { recursive: true });
+  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+    stdio: "ignore",
+  });
+  context.after(() => {
+    try {
+      child.kill("SIGKILL");
+    } catch {
+      // The teardown is expected to have stopped it already.
+    }
+  });
+  const startedAt = execFileSync("ps", ["-o", "lstart=", "-p", String(child.pid)], {
+    encoding: "utf8",
+  }).trim();
+  const owned = {
+    version: 2,
+    ownershipToken: workspace.ownershipToken,
+    technicalPath: workspace.initialTechnicalPath,
+    workspaceIdentity: workspace.identity,
+    service: "worker",
+    process: { pid: child.pid, startedAt },
+  };
+  await writeFile(path.join(leasesDirectory, "owned.json"), `${JSON.stringify(owned)}\n`);
+  await writeFile(
+    path.join(leasesDirectory, "reused.json"),
+    `${JSON.stringify({ ...owned, process: { pid: process.pid, startedAt: "reused PID" } })}\n`,
+  );
+  await writeFile(
+    path.join(leasesDirectory, "other.json"),
+    `${JSON.stringify({ ...owned, ownershipToken: "other-worktree-token" })}\n`,
+  );
+  const { teardownWorkspaceLeases } =
+    await import("../lib/workspace-proxy.mjs?process-teardown-test");
+
+  const failures = await teardownWorkspaceLeases(directory, workspace, { timeoutMs: 200 });
+  if (child.exitCode === null && child.signalCode === null) {
+    await new Promise((resolve) => child.once("close", resolve));
+  }
+  const remaining = await readdir(leasesDirectory);
+
+  assert.deepEqual(failures, ["worker: process identity changed; lease preserved"]);
+  assert.deepEqual(remaining.toSorted(), ["other.json", "reused.json"]);
+  assert.throws(() => process.kill(child.pid, 0), { code: "ESRCH" });
 });
 
 it("rejects Web from a light worktree before invoking Docker", async (context) => {

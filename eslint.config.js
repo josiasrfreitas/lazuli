@@ -62,6 +62,11 @@ export default [
     },
   },
   {
+    files: ["scripts/test/support/fake-workspace-command.mjs"],
+    // One fake executable dispatches the Docker command surface used by lifecycle tests.
+    rules: { complexity: "off" },
+  },
+  {
     files: ["scripts/development.mjs", "scripts/lib/workspace-proxy.mjs", "scripts/storybook.mjs"],
     // The proxy adapter owns its local process and Caddy configuration boundary.
     languageOptions: {
@@ -71,6 +76,22 @@ export default [
       "no-restricted-syntax": "off",
       "max-lines": "off",
       "max-params": "off",
+    },
+  },
+  {
+    files: [
+      "scripts/lib/workspace-full.mjs",
+      "scripts/lib/workspace-proxy.mjs",
+      "scripts/lib/workspace-teardown.mjs",
+    ],
+    // Lifecycle adapters keep ownership validation adjacent to each external side effect.
+    rules: {
+      complexity: "off",
+      "max-lines": "off",
+      "max-lines-per-function": "off",
+      "max-params": "off",
+      "max-statements": "off",
+      "sonarjs/cognitive-complexity": "off",
     },
   },
   {

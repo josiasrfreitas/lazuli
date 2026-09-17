@@ -45,6 +45,11 @@ stable local intent in `.lazuli/workspace.json`, and updates
 the worktree-derived `.env` values. It does not require or start Docker, provision a database or
 bucket, run migrations, or load fixtures.
 
+Orca uses the committed `orca.yaml`. Configure this repository once in Orca with setup policy
+**Ask every time**, command source **orca.yaml only**, and agent startup **wait for setup**. Choosing
+**Skip setup** retains the light setup already performed by the Git hook; choosing **Run setup**
+promotes it to full. From the CLI, use `--setup skip` for light or `--setup run` for full.
+
 Run `pnpm workspace:status` to inspect the persisted identity, URLs, ports, intended resources,
 the Web and Storybook proxy leases, and any observable health of the optional shared Docker stack. Database
 and bucket entries are intent only in the light profile.
@@ -66,6 +71,20 @@ bucket, initialization journal, and Compose service health without starting anyt
 When promotion fails, inspect the shared stack with `docker compose ps` and the affected service
 with `docker compose logs <service>`, then retry `pnpm workspace:setup full`. The command does not
 reset a database or replace existing GCS objects.
+
+Archive through Orca to run `pnpm workspace:teardown`; with the CLI, pass `--run-hooks` to
+`worktree rm`. Teardown never stops the shared Compose stack. It stops only supported development
+processes (`dev`, `dev:worker`, and `storybook`) whose token, technical path, PID, and process start
+still match, then removes only database and bucket resources carrying this worktree's ownership
+markers. Light worktrees do not access Docker.
+
+Before removing anything, teardown writes a resumable journal under
+`$(git rev-parse --git-common-dir)/lazuli-workspace-orphans/`. Isolated failures do not prevent Orca
+from archiving: the journal lists pending resources and `pnpm workspace:teardown` can be run again
+while the checkout remains available. Until workspace garbage collection is implemented, inspect a
+journal before manual cleanup, verify every recorded ownership marker against the external resource,
+remove only exact matches, and then delete the journal. Unmarked legacy or externally created
+resources are deliberately preserved.
 
 Run `pnpm storybook` from a light worktree to serve it at the worktree's Storybook URL. `pnpm dev`
 does the same for Web after reconciling the full profile. These commands start a shared Caddy

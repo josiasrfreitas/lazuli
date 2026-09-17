@@ -57,25 +57,53 @@ function uploadObject({ root, bucket, file, run, output, overwrite }) {
   });
 }
 
-export async function ensureLocalBucket({ root, workspace, output, overwrite = false, run }) {
+function createBucket({ root, bucket, ownership, run }) {
+  run({
+    command: "curl",
+    arguments_: [
+      "-fsS",
+      "-X",
+      "POST",
+      "-H",
+      "Content-Type: application/json",
+      "-d",
+      JSON.stringify({ name: bucket, labels: ownership?.labels }),
+      "http://localhost:4443/storage/v1/b?project=lazuli-local",
+    ],
+    root,
+    capability: "fake-GCS bucket creation",
+  });
+  if (ownership === undefined) return;
+  run({
+    command: "curl",
+    arguments_: [
+      "-fsS",
+      "-X",
+      "POST",
+      "-H",
+      "Content-Type: application/json",
+      "--data-binary",
+      ownership.contents,
+      `http://localhost:4443/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(ownership.objectName)}`,
+    ],
+    root,
+    capability: "fake-GCS bucket ownership marking",
+  });
+}
+
+export async function ensureLocalBucket({
+  root,
+  workspace,
+  output,
+  overwrite = false,
+  run,
+  ownership,
+}) {
   const bucket = workspace.resources.bucket;
-  if (!localBucketExists({ root, bucket, run })) {
+  const created = !localBucketExists({ root, bucket, run });
+  if (created) {
     output(`Creating fake-GCS bucket ${bucket}...`);
-    run({
-      command: "curl",
-      arguments_: [
-        "-fsS",
-        "-X",
-        "POST",
-        "-H",
-        "Content-Type: application/json",
-        "-d",
-        JSON.stringify({ name: bucket }),
-        "http://localhost:4443/storage/v1/b?project=lazuli-local",
-      ],
-      root,
-      capability: "fake-GCS bucket creation",
-    });
+    createBucket({ root, bucket, ownership, run });
   }
   const seedRoot = path.join(root, "infra/local/gcs-seed");
   let files;

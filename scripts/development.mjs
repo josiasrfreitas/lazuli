@@ -46,7 +46,7 @@ async function main() {
     throw new Error("Usage: node scripts/development.mjs <web|worker>");
   }
   const workspace = await preflight();
-  if (service === "web") await registerWorkspaceRoute(root, workspace, "web");
+  await registerWorkspaceRoute(root, workspace, service);
   try {
     const child = spawn("pnpm", ["-F", `@lazuli/${service}`, "dev"], {
       cwd: root,
@@ -58,7 +58,7 @@ async function main() {
     const stop = async (signal) => {
       if (stopping) return;
       stopping = true;
-      if (service === "web") await unregisterWorkspaceRoute(root, workspace, "web");
+      await unregisterWorkspaceRoute(root, workspace, service);
       if (child.pid === undefined) return;
       try {
         process.kill(-child.pid, signal);
@@ -73,7 +73,7 @@ async function main() {
       child.once("close", (code) => resolve(code ?? 1));
     });
   } finally {
-    if (service === "web") await unregisterWorkspaceRoute(root, workspace, "web");
+    await unregisterWorkspaceRoute(root, workspace, service);
   }
 }
 

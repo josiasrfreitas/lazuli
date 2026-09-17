@@ -60,6 +60,10 @@ function maintenance(target, command, arguments_ = []) {
   });
 }
 
+function teardown(target) {
+  return maintenance(target, "workspace:teardown");
+}
+
 function uploadObject(bucket, name, contents) {
   return spawnSync(
     "curl",
@@ -96,7 +100,7 @@ function databaseQuery(database, sql) {
   ]).trim();
 }
 
-test("full setup, fixture refresh, and reset isolate real worktree resources", async (context) => {
+test("full setup, maintenance, and teardown isolate real worktree resources", async (context) => {
   const docker = spawnSync("docker", ["compose", "version"], { cwd: repositoryRoot });
   assert.equal(
     docker.status,
@@ -269,4 +273,43 @@ test("full setup, fixture refresh, and reset isolate real worktree resources", a
     siblingStudentCount,
   );
   assert.equal(downloadObject(resources[1].resources.bucket, fixtureObject).length > 0, true);
+
+  const removed = teardown(roots[0]);
+  const databaseExists = databaseQuery(
+    "postgres",
+    `SELECT count(*) FROM pg_database WHERE datname = '${resources[0].resources.database}'`,
+  );
+  const bucketStatus = execute("curl", [
+    "-sS",
+    "-o",
+    "/dev/null",
+    "-w",
+    "%{http_code}",
+    `http://localhost:4443/storage/v1/b/${resources[0].resources.bucket}`,
+  ]);
+  const siblingBucketStatus = execute("curl", [
+    "-sS",
+    "-o",
+    "/dev/null",
+    "-w",
+    "%{http_code}",
+    `http://localhost:4443/storage/v1/b/${resources[1].resources.bucket}`,
+  ]);
+  const composeRows = execute("docker", ["compose", "ps", "--format", "json"])
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+
+  assert.equal(removed.status, 0, removed.stderr);
+  assert.equal(databaseExists, "0");
+  assert.equal(bucketStatus, "404");
+  assert.equal(
+    databaseQuery(resources[1].resources.database, 'SELECT count(*) FROM "Student"') > 0,
+    true,
+  );
+  assert.equal(siblingBucketStatus, "200");
+  assert.equal(
+    composeRows.every((row) => String(row.State).toLowerCase() === "running"),
+    true,
+  );
 });

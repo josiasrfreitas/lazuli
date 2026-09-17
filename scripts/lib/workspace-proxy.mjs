@@ -17,11 +17,13 @@ const CADDY_SERVER_NAME = "lazuli_storybook_proxy_v1";
 const LEGACY_CADDY_SERVER_NAME = "lazuli";
 const CADDY_ROUTE_MARKER = "lazuli-storybook-proxy-v1-marker";
 const LEASES_DIRECTORY = "lazuli-proxy-leases";
-const LEASE_VERSION = 1;
+const LEASE_VERSION = 2;
 const REQUEST_TIMEOUT_MS = 1000;
 const CADDY_START_SETTLE_MS = 250;
 const CADDY_START_ATTEMPTS = 10;
 const CADDY_START_RETRY_MS = 100;
+const PROCESS_STOP_TIMEOUT_MS = 1000;
+const PROCESS_STOP_POLL_MS = 25;
 const HTTP_SERVER_ERROR_START = 500;
 const CADDY_HTTP_LISTENERS = [`127.0.0.1:${CADDY_HTTP_PORT}`, `[::1]:${CADDY_HTTP_PORT}`];
 
@@ -85,6 +87,10 @@ function routeForLease(lease) {
   };
 }
 
+function leaseHasRoute(lease) {
+  return lease.service === "web" || lease.service === "storybook";
+}
+
 function isLoopbackAddress(address) {
   return address === "::1" || address.startsWith("127.");
 }
@@ -125,13 +131,20 @@ async function readLease(file) {
     const lease = JSON.parse(await readFile(file, "utf8"));
     if (
       lease.version !== LEASE_VERSION ||
-      typeof lease.hostname !== "string" ||
-      !Number.isInteger(lease.port) ||
-      typeof lease.workspaceIdentity !== "string"
+      typeof lease.workspaceIdentity !== "string" ||
+      typeof lease.ownershipToken !== "string" ||
+      typeof lease.technicalPath !== "string"
     ) {
       return null;
     }
-    return { ...lease, service: lease.service ?? "storybook" };
+    const normalized = { ...lease, service: lease.service ?? "storybook" };
+    if (
+      leaseHasRoute(normalized) &&
+      (typeof lease.hostname !== "string" || !Number.isInteger(lease.port))
+    ) {
+      return null;
+    }
+    return normalized;
   } catch {
     return null;
   }
@@ -155,6 +168,23 @@ async function activeLeases(stateDirectory) {
       continue;
     }
     leases.push(lease);
+  }
+  return leases;
+}
+
+async function liveLeasesWithoutCleanup(stateDirectory) {
+  const directory = path.join(stateDirectory, LEASES_DIRECTORY);
+  let entries;
+  try {
+    entries = await readdir(directory);
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
+  const leases = [];
+  for (const entry of entries.filter((name) => name.endsWith(".json"))) {
+    const lease = await readLease(path.join(directory, entry));
+    if (lease !== null && (await processOwnsLease(lease))) leases.push(lease);
   }
   return leases;
 }
@@ -312,7 +342,9 @@ async function reloadCaddy(leases) {
       "Lazuli's managed Caddy instance is no longer available; refusing to replace its configuration.",
     );
   }
-  const routes = leases.map((lease) => routeForLease(lease));
+  const routes = leases
+    .filter((lease) => leaseHasRoute(lease))
+    .map((lease) => routeForLease(lease));
   const server = caddyConfiguration(routes).apps.http.servers[CADDY_SERVER_NAME];
   const serverName = managedServerName(existingConfiguration);
   const response = await caddyAdminRequest(`/config/apps/http/servers/${serverName}`, {
@@ -353,28 +385,75 @@ export async function assertLocalHostname(url) {
 export async function registerWorkspaceRoute(root, workspace, service) {
   const url = workspace.urls[service];
   const port = workspace.ports[service];
-  if (url === undefined || port === undefined || !["web", "storybook"].includes(service)) {
+  if (!["web", "worker", "storybook"].includes(service)) {
     throw new Error(`unsupported workspace proxy service: ${service}`);
   }
-  await assertLocalHostname(url);
+  if (service !== "worker" && (url === undefined || port === undefined)) {
+    throw new Error(`workspace has no ${service} route`);
+  }
+  if (service !== "worker") await assertLocalHostname(url);
   const stateDirectory = sharedStateDirectory(root);
   await withWorkspaceAllocationLock(root, async () => {
     await mkdir(path.join(stateDirectory, LEASES_DIRECTORY), { recursive: true });
     const lease = {
       version: LEASE_VERSION,
+      ownershipToken: workspace.ownershipToken,
+      technicalPath: workspace.initialTechnicalPath,
       workspaceIdentity: workspace.identity,
       service,
-      hostname: new URL(url).hostname,
-      port,
+      ...(service === "worker" ? {} : { hostname: new URL(url).hostname, port }),
       process: { pid: process.pid, startedAt: await processStart(process.pid) },
     };
     if (lease.process.startedAt === null)
       throw new Error(`could not verify the ${service} process ownership`);
-    await ensureCaddy(stateDirectory);
+    if (service !== "worker") await ensureCaddy(stateDirectory);
     const file = leasePath(stateDirectory, lease);
     await writeFile(`${file}.${process.pid}.tmp`, `${JSON.stringify(lease, null, 2)}\n`);
     await rename(`${file}.${process.pid}.tmp`, file);
-    await reloadCaddy(await activeLeases(stateDirectory));
+    if (service !== "worker") await reloadCaddy(await activeLeases(stateDirectory));
+  });
+}
+
+export async function teardownWorkspaceLeases(root, workspace, options = {}) {
+  const stateDirectory = sharedStateDirectory(root);
+  const timeoutMs = options.timeoutMs ?? PROCESS_STOP_TIMEOUT_MS;
+  return await withWorkspaceAllocationLock(root, async () => {
+    const directory = path.join(stateDirectory, LEASES_DIRECTORY);
+    let entries;
+    try {
+      entries = await readdir(directory);
+    } catch (error) {
+      if (error.code === "ENOENT") return [];
+      throw error;
+    }
+    const failures = [];
+    for (const entry of entries.filter((name) => name.endsWith(".json"))) {
+      const file = path.join(directory, entry);
+      const lease = await readLease(file);
+      if (
+        lease?.ownershipToken !== workspace.ownershipToken ||
+        lease.technicalPath !== workspace.initialTechnicalPath ||
+        lease.workspaceIdentity !== workspace.identity
+      )
+        continue;
+      if (!(await processOwnsLease(lease))) {
+        failures.push(`${lease.service}: process identity changed; lease preserved`);
+        continue;
+      }
+      process.kill(lease.process.pid, "SIGTERM");
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline && (await processOwnsLease(lease)))
+        await wait(PROCESS_STOP_POLL_MS);
+      if (await processOwnsLease(lease)) {
+        if (!(await processOwnsLease(lease))) continue;
+        process.kill(lease.process.pid, "SIGKILL");
+      }
+      await rm(file, { force: true });
+    }
+    if (caddyIsManaged(await caddyConfigurationFromAdmin())) {
+      await reloadCaddy(await liveLeasesWithoutCleanup(stateDirectory));
+    }
+    return failures;
   });
 }
 
@@ -391,6 +470,8 @@ export async function unregisterWorkspaceRoute(root, workspace, service) {
     const lease = await readLease(file);
     if (
       lease?.workspaceIdentity === workspace.identity &&
+      lease.ownershipToken === workspace.ownershipToken &&
+      lease.technicalPath === workspace.initialTechnicalPath &&
       lease.service === service &&
       lease.process?.pid === process.pid &&
       lease.process?.startedAt === (await processStart(process.pid))
@@ -414,6 +495,8 @@ export async function workspaceProxyStatus(root, workspace, service) {
   const lease = leases.find(
     (candidate) =>
       candidate.workspaceIdentity === workspace.identity &&
+      candidate.ownershipToken === workspace.ownershipToken &&
+      candidate.technicalPath === workspace.initialTechnicalPath &&
       candidate.service === service &&
       candidate.hostname === new URL(workspace.urls[service]).hostname &&
       candidate.port === workspace.ports[service],

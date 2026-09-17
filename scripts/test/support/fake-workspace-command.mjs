@@ -91,12 +91,22 @@ function fakeDockerExec() {
       process.stdout.write("1\n");
   } else if (args.some((argument) => argument.includes("SELECT 1 FROM pg_database"))) {
     if (existsSync(path.join(state, "database"))) process.stdout.write("1\n");
+  } else if (args.some((argument) => argument.includes("ownership_token ||"))) {
+    if (existsSync(path.join(state, "database-ownership")))
+      process.stdout.write(readFileSync(path.join(state, "database-ownership"), "utf8"));
+  } else if (args.some((argument) => argument.includes("DROP DATABASE"))) {
+    rmSync(path.join(state, "database"), { force: true });
+    rmSync(path.join(state, "database-ownership"), { force: true });
+    rmSync(path.join(state, "workspace-initialization-complete"), { force: true });
   } else if (args.includes("ON_ERROR_STOP=1")) {
-    const sql = args.at(-1);
-    if (sql.startsWith("DROP DATABASE")) {
-      rmSync(path.join(state, "database"), { force: true });
-      rmSync(path.join(state, "workspace-initialization-complete"), { force: true });
-    } else writeFileSync(path.join(state, "database"), "exists\n");
+    writeFileSync(path.join(state, "database"), "exists\n");
+    if (args.some((argument) => argument.includes("workspace_ownership"))) {
+      const workspace = JSON.parse(readFileSync(path.join(root, ".lazuli/workspace.json"), "utf8"));
+      writeFileSync(
+        path.join(state, "database-ownership"),
+        `${workspace.ownershipToken}|${workspace.identity}|${workspace.initialTechnicalPath}\n`,
+      );
+    }
   }
 }
 
@@ -117,9 +127,10 @@ if (command === "curl") {
   log(args.join(" "));
   const url = args.at(-1);
   const isPost = args.includes("POST");
+  const isDelete = args.includes("DELETE");
   const bucketPath = path.join(state, "bucket");
   const objectMatch = /\/storage\/v1\/b\/[^/]+\/o\/([^?]+)/u.exec(url);
-  if (args.includes("DELETE")) {
+  if (isDelete) {
     if (objectMatch) {
       rmSync(
         path.join(state, `object-${decodeURIComponent(objectMatch[1]).replaceAll("/", "_")}`),
@@ -127,8 +138,11 @@ if (command === "curl") {
           force: true,
         },
       );
-    } else rmSync(bucketPath, { force: true });
-  } else if (!isPost && /\/storage\/v1\/b\/[^/]+\/o$/u.test(url)) {
+    } else {
+      rmSync(bucketPath, { force: true });
+      rmSync(path.join(state, "bucket-metadata.json"), { force: true });
+    }
+  } else if (!isPost && /\/storage\/v1\/b\/[^/]+\/o(?:\?|$)/u.test(url)) {
     const items = [];
     for (const entry of readdirSync(state)) {
       if (entry.startsWith("object-")) items.push({ name: entry.slice("object-".length) });
@@ -140,12 +154,24 @@ if (command === "curl") {
           path.join(state, `object-${decodeURIComponent(objectMatch[1]).replaceAll("/", "_")}`),
         )
       : existsSync(bucketPath);
-    process.stdout.write(exists ? "200" : "404");
+    if (args.includes("-w")) process.stdout.write(exists ? "200" : "404");
+    else if (exists && objectMatch)
+      process.stdout.write(
+        readFileSync(
+          path.join(state, `object-${decodeURIComponent(objectMatch[1]).replaceAll("/", "_")}`),
+          "utf8",
+        ),
+      );
+    else if (exists && !objectMatch)
+      process.stdout.write(readFileSync(path.join(state, "bucket-metadata.json"), "utf8"));
   } else if (url.includes("/upload/")) {
     const name = new URL(url).searchParams.get("name").replaceAll("/", "_");
     const dataArgument = args[args.indexOf("--data-binary") + 1];
-    writeFileSync(path.join(state, `object-${name}`), readFileSync(dataArgument.slice(1)));
+    const data = dataArgument.startsWith("@") ? readFileSync(dataArgument.slice(1)) : dataArgument;
+    writeFileSync(path.join(state, `object-${name}`), data);
   } else {
     writeFileSync(bucketPath, "exists\n");
+    const data = args[args.indexOf("-d") + 1];
+    writeFileSync(path.join(state, "bucket-metadata.json"), `${data}\n`);
   }
 }
