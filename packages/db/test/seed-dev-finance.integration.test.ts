@@ -13,6 +13,8 @@ const PARTIAL_PAYMENT_CENTS = 30_000;
 const BRUNO_PAYMENT_CENTS = 38_000;
 const SHARED_PAYMENT_CENTS = 76_000;
 const PARTIAL_BALANCE_CENTS = 46_000;
+const JOINT_ORDER_PARTIAL_PAYMENT_CENTS = 9000;
+const JOINT_ORDER_BALANCE_CENTS = 26_000;
 const OBSOLETE_PAYER_NAME = "Obsolete payer";
 const OBSOLETE_DATE = new Date("2026-01-01");
 const DATE_ONLY_LENGTH = 10;
@@ -26,40 +28,7 @@ void it("rebuilds the explicit development finance scenarios", async () => {
     await seedDevFinance(database, { todayIso: TODAY, studentIds: students });
     const first = await financeSnapshot(database);
 
-    assert.deepEqual(first.payers, [
-      { id: SHARED_PAYER_ID, name: "Patrícia Ferreira" },
-      { id: BRUNO_PAYER_ID, name: "Bruno Carvalho" },
-    ]);
-    assert.deepEqual(
-      new Set(
-        first.orderBeneficiaries.map(
-          (beneficiary) => `${beneficiary.payerId}/${beneficiary.studentId}`,
-        ),
-      ),
-      new Set([
-        `${SHARED_PAYER_ID}/${students.get("davi")}`,
-        `${SHARED_PAYER_ID}/${students.get("isadora")}`,
-        `${BRUNO_PAYER_ID}/${students.get("bruno")}`,
-      ]),
-    );
-    assert.deepEqual(first.installmentCounts, [
-      { payerId: SHARED_PAYER_ID, count: 7 },
-      { payerId: BRUNO_PAYER_ID, count: 2 },
-    ]);
-    assert.deepEqual(first.payments, [
-      { payerId: SHARED_PAYER_ID, amountCents: PARTIAL_PAYMENT_CENTS },
-      { payerId: SHARED_PAYER_ID, amountCents: SHARED_PAYMENT_CENTS },
-      { payerId: BRUNO_PAYER_ID, amountCents: BRUNO_PAYMENT_CENTS },
-    ]);
-    assert.deepEqual(first.allocations, [
-      PARTIAL_PAYMENT_CENTS,
-      BRUNO_PAYMENT_CENTS,
-      SHARED_PAYMENT_CENTS,
-    ]);
-    assert.deepEqual(first.waivers, [
-      { amountCents: SHARED_PAYMENT_CENTS, reason: "Cenário de desenvolvimento" },
-    ]);
-    assert.equal(first.partialBalanceCents, PARTIAL_BALANCE_CENTS);
+    assertFinanceScenarios(first, students);
     assert.equal(first.obsoleteRecords, 0);
     await assertOrderSchedules(database);
     await assertSecondSeedMatches(database, { students, first });
@@ -70,11 +39,56 @@ void it("rebuilds the explicit development finance scenarios", async () => {
   }
 });
 
+function assertFinanceScenarios(
+  first: FinanceSnapshot,
+  students: ReadonlyMap<string, string>,
+): void {
+  assert.deepEqual(first.payers, [
+    { id: SHARED_PAYER_ID, name: "Patrícia Ferreira" },
+    { id: BRUNO_PAYER_ID, name: "Bruno Carvalho" },
+  ]);
+  assert.deepEqual(
+    new Set(
+      first.orderBeneficiaries.map(
+        (beneficiary) => `${beneficiary.payerId}/${beneficiary.studentId}`,
+      ),
+    ),
+    new Set([
+      `${SHARED_PAYER_ID}/${students.get("davi")}`,
+      `${SHARED_PAYER_ID}/${students.get("isadora")}`,
+      `${SHARED_PAYER_ID}/${students.get("ana")}`,
+      `${SHARED_PAYER_ID}/${students.get("joao")}`,
+      `${BRUNO_PAYER_ID}/${students.get("bruno")}`,
+    ]),
+  );
+  assert.deepEqual(
+    new Set(first.installmentCounts.map((item) => `${item.payerId}/${item.count}`)),
+    new Set([`${SHARED_PAYER_ID}/7`, `${SHARED_PAYER_ID}/1`, `${BRUNO_PAYER_ID}/2`]),
+  );
+  assert.deepEqual(first.payments, [
+    { payerId: SHARED_PAYER_ID, amountCents: JOINT_ORDER_PARTIAL_PAYMENT_CENTS },
+    { payerId: SHARED_PAYER_ID, amountCents: PARTIAL_PAYMENT_CENTS },
+    { payerId: SHARED_PAYER_ID, amountCents: SHARED_PAYMENT_CENTS },
+    { payerId: BRUNO_PAYER_ID, amountCents: BRUNO_PAYMENT_CENTS },
+  ]);
+  assert.deepEqual(first.allocations, [
+    JOINT_ORDER_PARTIAL_PAYMENT_CENTS,
+    PARTIAL_PAYMENT_CENTS,
+    BRUNO_PAYMENT_CENTS,
+    SHARED_PAYMENT_CENTS,
+  ]);
+  assert.deepEqual(first.waivers, [
+    { amountCents: SHARED_PAYMENT_CENTS, reason: "Cenário de desenvolvimento" },
+  ]);
+  assert.equal(first.partialBalanceCents, PARTIAL_BALANCE_CENTS);
+  assert.equal(first.jointOrderBalanceCents, JOINT_ORDER_BALANCE_CENTS);
+}
+
 async function createStudents(
   database: ReturnType<typeof createDbClient>,
 ): Promise<Map<string, string>> {
   const students = new Map<string, string>();
-  const scenarioStudentKeys = ["bruno", "davi", "isadora"];
+  const scenarioStudentKeys = ["ana", "bruno", "davi", "isadora", "joao"];
   for (const key of scenarioStudentKeys) {
     const student = await database.student.create({ data: { fullName: `Finance seed ${key}` } });
     students.set(key, student.id);
@@ -140,10 +154,10 @@ async function financeSnapshot(
       }),
       database.payer.count({ where: { name: OBSOLETE_PAYER_NAME } }),
     ]);
-  const partial = await database.installment.findUniqueOrThrow({
-    where: { id: stableUuid([DEV_FINANCE_KEY, "shared", "installment-3"]) },
-    include: { allocations: true },
-  });
+  const [partialBalanceCents, jointOrderBalanceCents] = await Promise.all([
+    seededInstallmentBalance(database, [DEV_FINANCE_KEY, "shared", "installment-3"]),
+    seededInstallmentBalance(database, [DEV_FINANCE_KEY, "homonym-joint-order", "installment-1"]),
+  ]);
   return {
     payers,
     orderBeneficiaries: beneficiaries.map((beneficiary) => ({
@@ -157,9 +171,21 @@ async function financeSnapshot(
     payments,
     allocations: allocations.map((allocation) => allocation.amountCents),
     waivers: formatWaivers(waivers),
-    partialBalanceCents: installmentBalance(partial),
+    partialBalanceCents,
+    jointOrderBalanceCents,
     obsoleteRecords: obsolete,
   };
+}
+
+async function seededInstallmentBalance(
+  database: ReturnType<typeof createDbClient>,
+  stableIdParts: readonly string[],
+): Promise<number> {
+  const installment = await database.installment.findUniqueOrThrow({
+    where: { id: stableUuid(stableIdParts) },
+    include: { allocations: true },
+  });
+  return installmentBalance(installment);
 }
 
 function formatWaivers(
@@ -176,7 +202,7 @@ async function orderSchedules(
 ): Promise<Array<{ payerId: string; startDate: string; dueDay: number; dueDates: string[] }>> {
   const orders = await database.order.findMany({
     include: { installments: { orderBy: { sequenceNumber: "asc" } } },
-    orderBy: { payerId: "asc" },
+    orderBy: { startDate: "asc" },
   });
   return orders.map((order) => ({
     payerId: order.payerId,
@@ -210,6 +236,12 @@ async function assertOrderSchedules(database: ReturnType<typeof createDbClient>)
       dueDay: 10,
       dueDates: ["2026-08-10", "2026-09-10"],
     },
+    {
+      payerId: SHARED_PAYER_ID,
+      startDate: "2026-08-10",
+      dueDay: 10,
+      dueDates: ["2026-09-10"],
+    },
   ]);
 }
 
@@ -239,6 +271,7 @@ type FinanceSnapshot = {
   allocations: number[];
   waivers: Array<{ amountCents: number; reason: string | null }>;
   partialBalanceCents: number;
+  jointOrderBalanceCents: number;
   obsoleteRecords: number;
 };
 

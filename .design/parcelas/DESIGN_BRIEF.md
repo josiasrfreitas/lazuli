@@ -12,9 +12,24 @@ responsividade, e a revisão formal de design permanece separada, sob solicitaç
 
 `status=vencidas` normaliza temporariamente para Todas, preserva busca e reinicia a página.
 Busca tem debounce de 300 ms e limite de 80 caracteres; navegação externa cancela a busca pendente.
-Todas e Pagas usam 25 parcelas por página, sem seletor de tamanho. Paginação e refetch da mesma
+Todas e Pagas oferecem seletor de 10, 25 ou 50 parcelas por página, com 25 como padrão. Paginação e refetch da mesma
 consulta preservam dados com indicação de atualização; outra busca ou tab não recebe linhas do
 filtro anterior. Página acima do total retorna à última válida, ou à primeira se não há resultados.
+
+## Planejamento #57 — decisões confirmadas em 2026-09-15
+
+A #57 ativa Vencidas e consome a consulta agrupada já existente. O comportamento temporário de
+normalizar `status=vencidas` para Todas termina nesta entrega. As decisões abaixo descrevem o
+resultado pretendido, atualizado pelo refinamento visual aprovado nesta conversa.
+
+Os grupos ficam sempre abertos, com o nome do pagador somente no resumo. Cada parcela aparece uma
+única vez, com todos os beneficiários do pedido, em ordem de vencimento. A busca mantém a cobrança
+vencida completa do pagador, sem destaque de correspondências ou agrupamento adicional por aluno.
+
+O usuário autorizou considerar novos primitivos para esta visualização, revendo a restrição
+original da issue #57. A necessidade e o contrato serão avaliados na arquitetura da informação;
+esta autorização não obriga criar um primitivo. Textos e regras financeiras permanecem na feature.
+A #54 continua responsável pelo acabamento ampliado; acessibilidade do resumo já faz parte da #57.
 
 ## Problem
 
@@ -33,7 +48,7 @@ Criar uma página desktop de consulta do ledger completo de parcelas. A experiê
 AppShell e a linguagem visual da vertical de Alunos, oferece busca por pagador ou beneficiário e
 organiza os dados em três perspectivas: Todas, Vencidas e Pagas.
 
-Todas e Pagas usam uma tabela direta. Vencidas mantém a mesma tabela, mas acrescenta resumos por
+Todas e Pagas usam uma tabela direta. Vencidas usa grupos sempre abertos com uma tabela por
 pagador para preservar o contexto da cobrança: quantidade vencida, alunos envolvidos, atraso mais
 antigo e saldo total em aberto. A interface não executa ações financeiras neste slice.
 
@@ -107,11 +122,12 @@ O ponto de partida é o código entregue pela vertical de Alunos no commit `4fd2
 
 - **Parcela:** `06/12`, usando `Installment.sequenceNumber` persistido e o total do cronograma
   retornado pela API. A UI não infere sequência por `dueDate`.
-- **Pagador:** `Payer.name`.
+- **Pagador:** `Payer.name` nas views planas. Em Vencidas, aparece somente no resumo que nomeia a tabela do grupo; não há coluna vazia de pagador.
 - **Beneficiário(s):** nomes dos alunos vinculados ao pedido; suporta mais de um aluno.
 - **Vencimento:** data pt-BR, baseada em data civil.
-- **Valor:** `Installment.amountCents`. No caso excepcional de pagamento parcial, a célula acrescenta
-  uma linha secundária com o saldo em aberto.
+- **Valor:** nas views planas, valor original com saldo secundário em caso de pagamento parcial.
+  Em Vencidas, a coluna “Em aberto” destaca `collectibleBalanceCents` retornado pela API; quando
+  difere do original, a variação líquida aparece ao lado com ↓ ou ↑; o original fica no tooltip.
 - **Status:** derivado do ledger, nunca persistido.
 
 ### Status language
@@ -123,18 +139,28 @@ O ponto de partida é o código entregue pela vertical de Alunos no commit `4fd2
 - `WAIVED` → “Dispensada”, neutral; aparece somente em Todas.
 - Pagamento parcial não cria um novo status; é informação secundária na célula Valor.
 
-Na tab Vencidas, a coluna Status pode mostrar somente “N dias” para evitar repetição dentro de um
-grupo cujo contexto já é vencido.
+Na tab Vencidas, a coluna Atraso mostra “1 dia” ou “N dias”; o resumo identifica o grupo como
+vencido. Todas mantém “Vencida há 1 dia” ou “Vencida há N dias”.
 
 ### Grouped overdue display
 
 - Um grupo por `payerId`, nunca por nome.
-- Com um beneficiário: “3 parcelas vencidas · Ana Souza · mais antiga há 45 dias”.
+- Grupos sempre abertos, sem controle ou estado de expansão. O resumo destaca o nome do pagador,
+  seguido de uma linha secundária com quantidade vencida, beneficiários e maior atraso.
+- Com um beneficiário: “3 parcelas vencidas · 1 aluno · mais antiga há 45 dias”.
 - Com múltiplos beneficiários: “3 parcelas vencidas · 2 alunos · mais antiga há 45 dias”.
-- O cabeçalho soma o saldo coletável, não o valor original.
-- Cada linha mantém o(s) beneficiário(s) da parcela.
+- Quantidades e atraso respeitam singular/plural: “1 parcela vencida” e “há 1 dia”.
+- O resumo soma o saldo coletável, não o valor original, alinhado à coluna Valor e acompanhado do
+  rótulo “Saldo em aberto”. Cada grupo tem borda e cantos arredondados, resumo em superfície neutra
+  e total em vermelho; os valores das parcelas usam cor neutra.
+- Cabeçalhos apenas para tecnologia assistiva por grupo: Parcela, Beneficiários, Vencimento, Em aberto e Atraso.
+  Sequência, data, saldo e atraso têm larguras consistentes; beneficiários ocupam o espaço restante.
+- Cada linha mantém os nomes completos de todos os beneficiários do pedido. Um pacote conjunto de Ana e João gera uma
+  única linha por parcela com “Ana e João” como beneficiários, sem duplicar a parcela ou seu valor.
 - Grupos ordenados pelo maior atraso; em empate, `payerId` crescente. Parcelas do grupo vão da mais
   antiga para a mais recente, com `installmentId` crescente como desempate de vencimentos iguais.
+- Não há subgrupos ou ordenação por aluno, nem destaque de nomes ou linhas por correspondência à
+  busca.
 
 ### Search, ordering and pagination
 
@@ -144,15 +170,21 @@ grupo cujo contexto já é vencido.
   beneficiário de uma parcela vencida corresponder. Depois que o pagador qualifica, o resultado
   inclui todas as suas parcelas vencidas coletáveis, mesmo as que não correspondem diretamente ao
   termo, para que resumo, contagem e saldo representem a cobrança completa.
+- Quando houver busca em Vencidas, mostrar acima da tabela a orientação discreta: “Exibindo todas
+  as parcelas vencidas dos pagadores encontrados.” Isso inclui outros beneficiários do pagador,
+  mas não inclui parcelas a vencer.
 - Todas: vencidas primeiro; depois abertas pelo vencimento mais próximo; por fim pagas e dispensadas
   da mais recente para a mais antiga. Dentro de cada faixa, vencimento e `installmentId` crescente
   formam o desempate total; na faixa final, vencimento é decrescente e `installmentId` crescente.
 - Pagas: vencimento mais recente primeiro, com `installmentId` crescente em empate.
-- Todas e Pagas: 25 parcelas por página.
-- Vencidas: 10 grupos de pagadores por página; um grupo nunca é dividido entre páginas.
+- Todas e Pagas: seletor de 10, 25 ou 50 parcelas por página, com 25 como padrão.
+- Vencidas: 10 grupos de pagadores por página, sem seletor de tamanho; um grupo nunca é dividido
+  entre páginas. O rodapé comunica a unidade, por exemplo “1–10 de 23 pagadores”.
+- O rodapé de Vencidas usa fundo transparente e permanece fixo fora da rolagem.
 - Busca ou troca de tab reinicia em página 1.
-- Estado compartilhável na URL: status, busca e página. A forma exata dos parâmetros será fechada na
-  arquitetura da informação.
+- Estado compartilhável na URL: status, busca, página e tamanho nas views planas, com chaves externas
+  `status`, `busca`, `pagina` e `porPagina`. A interação do tamanho com a troca para Vencidas será
+  detalhada na arquitetura da informação.
 - A lista representa o ledger completo. Não existe mês implícito no título ou na consulta; o
   subtítulo é “Mensalidades e vencimentos”.
 
@@ -182,20 +214,27 @@ grupo cujo contexto já é vencido.
 
 ## Component Inventory
 
-| Component                      | Status | Notes                                                                    |
-| ------------------------------ | ------ | ------------------------------------------------------------------------ |
-| AppShell / sidebar / topbar    | Modify | Reusar composição de Students e acrescentar Parcelas à navegação         |
-| InstallmentsPage               | New    | Composição da rota, query, filtros e paginação                           |
-| InstallmentsHeader             | New    | Título e subtítulo; sem ações neste slice                                |
-| InstallmentsControls           | New    | Compõe `Input` e `Tabs` existentes segundo o padrão de Students          |
-| InstallmentsTable              | New    | Composição de feature sobre os primitivos compartilhados de tabela       |
-| InstallmentRow                 | New    | Linha não interativa com formatação numérica e status                    |
-| OverduePayerSummaryRow         | New    | Linha de agrupamento dentro da mesma tabela; não é novo primitivo global |
-| Status badge/view model        | New    | Mapeamento puro de DTO para label e variante de `Badge` existente        |
-| Pagination                     | Exists | 25 parcelas ou 10 grupos, conforme a tab                                 |
-| TableSkeleton / EmptyState     | Exists | Estados estruturais iguais aos de Students                               |
-| API list output and validators | New    | DTO discriminado para linhas planas e grupos vencidos                    |
-| Kysely read adapter/types      | New    | Integração limitada a consultas complexas, conforme decision record 0016 |
+| Component                      | Status | Notes                                                                     |
+| ------------------------------ | ------ | ------------------------------------------------------------------------- |
+| AppShell / sidebar / topbar    | Modify | Reusar composição de Students e acrescentar Parcelas à navegação          |
+| InstallmentsPage               | New    | Composição da rota, query, filtros e paginação                            |
+| InstallmentsHeader             | New    | Título e subtítulo; sem ações neste slice                                 |
+| InstallmentsControls           | New    | Compõe `Input` e `Tabs` existentes segundo o padrão de Students           |
+| InstallmentsTable              | New    | Composição de feature sobre os primitivos compartilhados de tabela        |
+| InstallmentRow                 | New    | Linha não interativa com formatação numérica e status                     |
+| OverduePayerSummaryRow         | New    | Resumo financeiro da feature; pode consumir novo primitivo se justificado |
+| Status badge/view model        | New    | Mapeamento puro de DTO para label e variante de `Badge` existente         |
+| Pagination                     | Exists | 10/25/50 parcelas (padrão 25) ou 10 pagadores, conforme a tab             |
+| TableSkeleton / EmptyState     | Exists | Estados estruturais iguais aos de Students                                |
+| API list output and validators | New    | DTO discriminado para linhas planas e grupos vencidos                     |
+| Kysely read adapter/types      | New    | Integração limitada a consultas complexas, conforme decision record 0016  |
+
+O inventário acima descreve a entrega original de Parcelas. Para a #57, página, controles, tabela,
+linha, view model e paginação já existem e serão modificados; shell, contrato discriminado e
+consulta agrupada já existem e serão reutilizados. `OverduePayerSummaryRow` é a nova composição.
+Um eventual primitivo compartilhado deve resolver estrutura/semântica do agrupamento e respeitar
+o ADR 0015; sua necessidade ainda será avaliada, usando os componentes existentes como ponto de
+partida.
 
 ## Key Interactions
 
@@ -229,7 +268,8 @@ contrato poderá ser adicionada quando essa rota e sua identificação humana ex
 
 - Tabela semântica com nome acessível; cabeçalhos associados às células.
 - O agrupamento por pagador mantém estrutura tabular compreensível e uma descrição acessível do
-  resumo.
+  resumo. As parcelas permanecem associadas ao pagador para tecnologia assistiva, mesmo sem repetir
+  visualmente seu nome nas células. Pagadores homônimos permanecem grupos distintos por identidade.
 - Status sempre combina texto e cor; atraso nunca depende apenas de vermelho.
 - `font-numeric tabular-nums` mantém leitura e alinhamento de valores, datas e contagens.
 - Tabs, busca, retry e paginação funcionam por teclado e preservam foco visível.

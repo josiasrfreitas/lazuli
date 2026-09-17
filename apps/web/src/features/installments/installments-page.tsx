@@ -3,7 +3,10 @@
 import type { ReactElement } from "react";
 
 import { DataTablePage, TablePagination } from "@lazuli/ui";
-import { financeInstallmentsPaginationPolicy } from "@lazuli/validators";
+import {
+  financeInstallmentsPaginationPolicy,
+  financeOverduePaginationPolicy,
+} from "@lazuli/validators";
 import { tablePaginationPropsFor } from "~/lib/pagination";
 import { InstallmentsControls } from "./installments-controls";
 import { InstallmentsTable } from "./installments-table";
@@ -18,14 +21,22 @@ export function InstallmentsPagination({
   ReturnType<typeof useInstallments>,
   "data" | "filters" | "setPage" | "setPageSize"
 >): ReactElement {
+  const overdue = filters.status === "vencidas";
   return (
     <TablePagination
-      itemLabel={{ singular: "parcela", plural: "parcelas" }}
+      className={overdue ? "bg-transparent" : undefined}
+      itemLabel={
+        overdue
+          ? { singular: "pagador", plural: "pagadores" }
+          : { singular: "parcela", plural: "parcelas" }
+      }
       {...tablePaginationPropsFor(
         {
           page: filters.page,
-          pageSize: filters.pageSize,
-          pageSizeOptions: financeInstallmentsPaginationPolicy.pageSizeOptions,
+          pageSize: overdue ? financeOverduePaginationPolicy.defaultPageSize : filters.pageSize,
+          ...(overdue
+            ? {}
+            : { pageSizeOptions: financeInstallmentsPaginationPolicy.pageSizeOptions }),
           setPage,
           setPageSize,
         },
@@ -56,9 +67,11 @@ export function InstallmentsPage(): ReactElement {
       }
     >
       <InstallmentsTable
-        rows={data?.rows}
+        rows={data?.view === "all" || data?.view === "paid" ? data.rows : undefined}
+        groups={data?.view === "overdue" ? data.groups : undefined}
         error={query.isError}
-        filtered={filters.search !== "" || filters.status !== null}
+        filtered={filters.search !== ""}
+        showOverdueSearchGuidance={filters.status === "vencidas" && filters.search.trim() !== ""}
         updating={query.isFetching}
         onRetry={() => {
           void query.refetch();
