@@ -143,6 +143,14 @@ async function metadata(directory) {
   return JSON.parse(await readFile(path.join(directory, ".lazuli/workspace.json"), "utf8"));
 }
 
+function processExitState(pid) {
+  try {
+    return execFileSync("ps", ["-o", "stat=", "-p", String(pid)], { encoding: "utf8" }).trim();
+  } catch {
+    return "absent";
+  }
+}
+
 it("sets up a light worktree without infrastructure and persists only stable intent", async (context) => {
   const directory = await fixture(context, "Lazuli Feature___One");
   await writeFile(
@@ -362,7 +370,7 @@ setInterval(() => {}, 1000);`,
   await wrapperClosed;
 
   assert.deepEqual(failures, []);
-  assert.throws(() => process.kill(childPid, 0), { code: "ESRCH" });
+  assert.match(processExitState(childPid), /^(absent|Z)/u);
 });
 
 it("rejects Web from a light worktree before invoking Docker", async (context) => {
