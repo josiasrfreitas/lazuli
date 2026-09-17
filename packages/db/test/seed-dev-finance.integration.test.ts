@@ -19,7 +19,7 @@ const OBSOLETE_PAYER_NAME = "Obsolete payer";
 const OBSOLETE_DATE = new Date("2026-01-01");
 const DATE_ONLY_LENGTH = 10;
 
-void it("rebuilds the explicit development finance scenarios", async () => {
+void it("refreshes explicit development finance scenarios without removing unrelated records", async () => {
   const database = createDbClient();
   const students = await createStudents(database);
   try {
@@ -29,7 +29,7 @@ void it("rebuilds the explicit development finance scenarios", async () => {
     const first = await financeSnapshot(database);
 
     assertFinanceScenarios(first, students);
-    assert.equal(first.obsoleteRecords, 0);
+    assert.equal(first.obsoleteRecords, 1);
     await assertOrderSchedules(database);
     await assertSecondSeedMatches(database, { students, first });
   } finally {
@@ -129,31 +129,8 @@ async function createObsoleteFinanceGraph(
 async function financeSnapshot(
   database: ReturnType<typeof createDbClient>,
 ): Promise<FinanceSnapshot> {
-  const [payers, beneficiaries, orders, payments, allocations, waivers, obsolete] =
-    await Promise.all([
-      database.payer.findMany({ select: { id: true, name: true }, orderBy: { id: "asc" } }),
-      database.orderBeneficiary.findMany({
-        include: { order: { select: { payerId: true } } },
-        orderBy: { studentId: "asc" },
-      }),
-      database.order.findMany({
-        include: { installments: { select: { id: true } } },
-        orderBy: { payerId: "asc" },
-      }),
-      database.paymentEntry.findMany({
-        select: { payerId: true, amountCents: true },
-        orderBy: [{ payerId: "asc" }, { amountCents: "asc" }],
-      }),
-      database.paymentAllocation.findMany({
-        select: { amountCents: true },
-        orderBy: { amountCents: "asc" },
-      }),
-      database.installment.findMany({
-        where: { waivedAt: { not: null } },
-        select: { amountCents: true, waivedReason: true },
-      }),
-      database.payer.count({ where: { name: OBSOLETE_PAYER_NAME } }),
-    ]);
+  const { payers, beneficiaries, orders, payments, allocations, waivers, obsolete } =
+    await fixtureFinanceRecords(database);
   const [partialBalanceCents, jointOrderBalanceCents] = await Promise.all([
     seededInstallmentBalance(database, [DEV_FINANCE_KEY, "shared", "installment-3"]),
     seededInstallmentBalance(database, [DEV_FINANCE_KEY, "homonym-joint-order", "installment-1"]),
@@ -188,6 +165,48 @@ async function seededInstallmentBalance(
   return installmentBalance(installment);
 }
 
+async function fixtureFinanceRecords(
+  database: ReturnType<typeof createDbClient>,
+): Promise<FixtureFinanceRecords> {
+  const [payers, beneficiaries, orders, payments, allocations, waivers, obsolete] =
+    await Promise.all([
+      database.payer.findMany({
+        where: { id: { in: [SHARED_PAYER_ID, BRUNO_PAYER_ID] } },
+        select: { id: true, name: true },
+        orderBy: { id: "asc" },
+      }),
+      database.orderBeneficiary.findMany({
+        where: { order: { payerId: { in: [SHARED_PAYER_ID, BRUNO_PAYER_ID] } } },
+        include: { order: { select: { payerId: true } } },
+        orderBy: { studentId: "asc" },
+      }),
+      database.order.findMany({
+        where: { payerId: { in: [SHARED_PAYER_ID, BRUNO_PAYER_ID] } },
+        include: { installments: { select: { id: true } } },
+        orderBy: { payerId: "asc" },
+      }),
+      database.paymentEntry.findMany({
+        where: { payerId: { in: [SHARED_PAYER_ID, BRUNO_PAYER_ID] } },
+        select: { payerId: true, amountCents: true },
+        orderBy: [{ payerId: "asc" }, { amountCents: "asc" }],
+      }),
+      database.paymentAllocation.findMany({
+        where: { paymentEntry: { payerId: { in: [SHARED_PAYER_ID, BRUNO_PAYER_ID] } } },
+        select: { amountCents: true },
+        orderBy: { amountCents: "asc" },
+      }),
+      database.installment.findMany({
+        where: {
+          waivedAt: { not: null },
+          order: { payerId: { in: [SHARED_PAYER_ID, BRUNO_PAYER_ID] } },
+        },
+        select: { amountCents: true, waivedReason: true },
+      }),
+      database.payer.count({ where: { name: OBSOLETE_PAYER_NAME } }),
+    ]);
+  return { payers, beneficiaries, orders, payments, allocations, waivers, obsolete };
+}
+
 function formatWaivers(
   waivers: Array<{ amountCents: number; waivedReason: string | null }>,
 ): Array<{ amountCents: number; reason: string | null }> {
@@ -201,6 +220,7 @@ async function orderSchedules(
   database: ReturnType<typeof createDbClient>,
 ): Promise<Array<{ payerId: string; startDate: string; dueDay: number; dueDates: string[] }>> {
   const orders = await database.order.findMany({
+    where: { payerId: { in: [SHARED_PAYER_ID, BRUNO_PAYER_ID] } },
     include: { installments: { orderBy: { sequenceNumber: "asc" } } },
     orderBy: { startDate: "asc" },
   });
@@ -273,6 +293,16 @@ type FinanceSnapshot = {
   partialBalanceCents: number;
   jointOrderBalanceCents: number;
   obsoleteRecords: number;
+};
+
+type FixtureFinanceRecords = {
+  payers: FinanceSnapshot["payers"];
+  beneficiaries: Array<{ studentId: string; order: { payerId: string } }>;
+  orders: Array<{ payerId: string; installments: Array<{ id: string }> }>;
+  payments: FinanceSnapshot["payments"];
+  allocations: Array<{ amountCents: number }>;
+  waivers: Array<{ amountCents: number; waivedReason: string | null }>;
+  obsolete: number;
 };
 
 async function clearFinance(database: ReturnType<typeof createDbClient>): Promise<void> {

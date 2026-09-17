@@ -52,6 +52,36 @@ function setup(target, profile) {
   });
 }
 
+function maintenance(target, command, arguments_ = []) {
+  return spawnSync("pnpm", [command, ...arguments_], {
+    cwd: target,
+    encoding: "utf8",
+    env: process.env,
+  });
+}
+
+function uploadObject(bucket, name, contents) {
+  return spawnSync(
+    "curl",
+    [
+      "-fsS",
+      "-X",
+      "POST",
+      "--data-binary",
+      contents,
+      `http://localhost:4443/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(name)}`,
+    ],
+    { encoding: "utf8" },
+  );
+}
+
+function downloadObject(bucket, name) {
+  return execute("curl", [
+    "-fsS",
+    `http://localhost:4443/download/storage/v1/b/${bucket}/o/${encodeURIComponent(name)}?alt=media`,
+  ]);
+}
+
 function databaseQuery(database, sql) {
   return execute("docker", [
     "exec",
@@ -66,7 +96,7 @@ function databaseQuery(database, sql) {
   ]).trim();
 }
 
-test("full setup isolates real databases and buckets and repeats without data loss", async (context) => {
+test("full setup, fixture refresh, and reset isolate real worktree resources", async (context) => {
   const docker = spawnSync("docker", ["compose", "version"], { cwd: repositoryRoot });
   assert.equal(
     docker.status,
@@ -164,4 +194,79 @@ test("full setup isolates real databases and buckets and repeats without data lo
     "kept",
   );
   assert.match(repeated.stdout, /Keeping existing object/u);
+
+  const fixtureObject = "fixtures/reports/sample-attendance-summary.csv";
+  const extraObject = "manual/keep.txt";
+  const originalFixture = await readFile(
+    path.join(repositoryRoot, "infra/local/gcs-seed", fixtureObject),
+    "utf8",
+  );
+  databaseQuery(
+    resources[0].resources.database,
+    `INSERT INTO "User" (id, email, name, role, updated_at) VALUES ('00000000-0000-4000-8000-000000000099', 'extra@local.test', 'Extra', 'ADMIN', NOW())`,
+  );
+  assert.equal(uploadObject(resources[0].resources.bucket, fixtureObject, "edited\n").status, 0);
+  assert.equal(uploadObject(resources[0].resources.bucket, extraObject, "keep\n").status, 0);
+  const beforeCounts = {
+    students: databaseQuery(resources[0].resources.database, 'SELECT count(*) FROM "Student"'),
+    seededUser: databaseQuery(
+      resources[0].resources.database,
+      `SELECT count(*) FROM "User" WHERE email = 'dev@lazuli.local'`,
+    ),
+  };
+
+  const refreshOne = maintenance(roots[0], "workspace:fixtures", ["refresh"]);
+  const refreshTwo = maintenance(roots[0], "workspace:fixtures", ["refresh"]);
+
+  assert.deepEqual([refreshOne.status, refreshTwo.status], [0, 0], refreshOne.stderr);
+  assert.deepEqual(
+    {
+      students: databaseQuery(resources[0].resources.database, 'SELECT count(*) FROM "Student"'),
+      seededUser: databaseQuery(
+        resources[0].resources.database,
+        `SELECT count(*) FROM "User" WHERE email = 'dev@lazuli.local'`,
+      ),
+    },
+    beforeCounts,
+  );
+  assert.equal(
+    databaseQuery(
+      resources[0].resources.database,
+      `SELECT count(*) FROM "User" WHERE email = 'extra@local.test'`,
+    ),
+    "1",
+  );
+  assert.equal(downloadObject(resources[0].resources.bucket, fixtureObject), originalFixture);
+  assert.equal(downloadObject(resources[0].resources.bucket, extraObject), "keep\n");
+
+  const siblingStudentCount = databaseQuery(
+    resources[1].resources.database,
+    'SELECT count(*) FROM "Student"',
+  );
+  const reset = maintenance(roots[0], "workspace:reset", ["--yes"]);
+
+  assert.equal(reset.status, 0, reset.stderr);
+  assert.equal(
+    databaseQuery(
+      resources[0].resources.database,
+      `SELECT count(*) FROM "User" WHERE email = 'extra@local.test'`,
+    ),
+    "0",
+  );
+  assert.equal(
+    databaseQuery(resources[0].resources.database, 'SELECT count(*) FROM "_prisma_migrations"') > 0,
+    true,
+  );
+  assert.equal(
+    databaseQuery(
+      resources[0].resources.database,
+      `SELECT count(*) FROM "lazuli_local"."workspace_initializations" WHERE key = 'workspace-full-v1'`,
+    ),
+    "1",
+  );
+  assert.equal(
+    databaseQuery(resources[1].resources.database, 'SELECT count(*) FROM "Student"'),
+    siblingStudentCount,
+  );
+  assert.equal(downloadObject(resources[1].resources.bucket, fixtureObject).length > 0, true);
 });

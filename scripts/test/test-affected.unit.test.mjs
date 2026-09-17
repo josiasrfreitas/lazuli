@@ -137,7 +137,7 @@ it("ignores inherited Git hook variables while finding the merge base", async (c
   assert.match(result.stdout, /Affected tests passed/u);
 });
 
-it("fails with bootstrap instructions when infrastructure tests lack an environment", async (context) => {
+it("fails with workspace setup instructions when infrastructure tests lack an environment", async (context) => {
   const directory = await repository({ infrastructure: true });
   context.after(() => rm(directory, { force: true, recursive: true }));
   await write(directory, "packages/core/src/index.ts", "export const value = 4;\n");
@@ -145,8 +145,7 @@ it("fails with bootstrap instructions when infrastructure tests lack an environm
   const { result } = run(directory);
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /pnpm bootstrap:worktree/u);
-  assert.match(result.stderr, /pnpm prisma:deploy/u);
+  assert.match(result.stderr, /pnpm workspace:setup full/u);
 });
 
 it("runs reporting-tool checks without requiring application infrastructure", async (context) => {

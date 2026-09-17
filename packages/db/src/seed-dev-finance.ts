@@ -2,9 +2,7 @@ import type { DatabaseClient, TransactionClient } from "./client.js";
 import { addDays, stableUuid, utcDate } from "./seed-dev-support.js";
 import { createJointOrderForSharedPayerScenario } from "./seed-dev-finance-joint.js";
 
-/**
- * Rebuilds the entire local development finance graph from explicit scenarios.
- */
+/** Refreshes the versioned local finance scenarios without removing unrelated local records. */
 const FINANCE_SETTINGS_ID = "singleton";
 const DEV_FINANCE_KEY = "dev-finance";
 const SHARED_SCENARIO_KEY = "shared";
@@ -54,15 +52,11 @@ export async function seedDevFinance(
   input: FinanceSeedInput,
 ): Promise<void> {
   await database.$transaction(async (transaction) => {
-    await transaction.paymentAllocation.deleteMany();
-    await transaction.installmentAdjustment.deleteMany();
-    await transaction.paymentEntry.deleteMany();
-    await transaction.installment.deleteMany();
-    await transaction.orderBeneficiary.deleteMany();
-    await transaction.order.deleteMany();
-    await transaction.payer.deleteMany();
-    await transaction.financeSettings.deleteMany();
-    await transaction.financeSettings.create({ data: { id: FINANCE_SETTINGS_ID } });
+    await transaction.financeSettings.upsert({
+      where: { id: FINANCE_SETTINGS_ID },
+      create: { id: FINANCE_SETTINGS_ID },
+      update: {},
+    });
     await createSharedPayerScenario(transaction, input);
     await createBrunoScenario(transaction, input);
     await createJointOrderForSharedPayerScenario(transaction, input);
@@ -82,32 +76,29 @@ async function createSharedPayerScenario(
   const payerId = stableUuid([DEV_FINANCE_KEY, "shared-payer"]);
   const sharedOrderKey = "shared-order";
   const orderId = stableUuid([DEV_FINANCE_KEY, sharedOrderKey]);
-  await database.payer.create({
-    data: { id: payerId, name: "Patrícia Ferreira", phone: "(11) 98123-9012" },
+  await database.payer.upsert({
+    where: { id: payerId },
+    create: { id: payerId, name: "Patrícia Ferreira", phone: "(11) 98123-9012" },
+    update: { name: "Patrícia Ferreira", phone: "(11) 98123-9012", deletedAt: null },
   });
-  await database.order.create({
-    data: {
-      id: orderId,
-      payerId,
-      kind: "TUITION",
-      principalAmountCents: COMMON_INSTALLMENT_CENTS * SHARED_INSTALLMENT_COUNT,
-      startDate: sharedOrderStartDate(input.todayIso),
-      dueDay: SHARED_DUE_DAY,
-    },
+  const orderData = {
+    id: orderId,
+    payerId,
+    kind: "TUITION" as const,
+    principalAmountCents: COMMON_INSTALLMENT_CENTS * SHARED_INSTALLMENT_COUNT,
+    startDate: sharedOrderStartDate(input.todayIso),
+    dueDay: SHARED_DUE_DAY,
+    deletedAt: null,
+  };
+  await database.order.upsert({
+    where: { id: orderId },
+    create: orderData,
+    update: orderData,
   });
-  await database.orderBeneficiary.createMany({
-    data: [
-      {
-        id: stableUuid([DEV_FINANCE_KEY, sharedOrderKey, "davi"]),
-        orderId,
-        studentId: studentId(input.studentIds, "davi"),
-      },
-      {
-        id: stableUuid([DEV_FINANCE_KEY, sharedOrderKey, "isadora"]),
-        orderId,
-        studentId: studentId(input.studentIds, "isadora"),
-      },
-    ],
+  await upsertSharedBeneficiaries(database, {
+    studentIds: input.studentIds,
+    orderId,
+    sharedOrderKey,
   });
   const dueDates = monthlyDueDates(input.todayIso, {
     firstDueMonthOffset: SHARED_FIRST_DUE_MONTH_OFFSET,
@@ -122,6 +113,34 @@ async function createSharedPayerScenario(
     waivedIndex: WAIVED_INSTALLMENT_INDEX,
   });
   await createSharedPayments(database, { payerId, installmentIds, dueDates });
+}
+
+async function upsertSharedBeneficiaries(
+  database: FinanceDatabase,
+  input: {
+    studentIds: ReadonlyMap<string, string>;
+    orderId: string;
+    sharedOrderKey: string;
+  },
+): Promise<void> {
+  for (const beneficiary of [
+    {
+      id: stableUuid([DEV_FINANCE_KEY, input.sharedOrderKey, "davi"]),
+      orderId: input.orderId,
+      studentId: studentId(input.studentIds, "davi"),
+    },
+    {
+      id: stableUuid([DEV_FINANCE_KEY, input.sharedOrderKey, "isadora"]),
+      orderId: input.orderId,
+      studentId: studentId(input.studentIds, "isadora"),
+    },
+  ]) {
+    await database.orderBeneficiary.upsert({
+      where: { id: beneficiary.id },
+      create: beneficiary,
+      update: { ...beneficiary, deletedAt: null },
+    });
+  }
 }
 
 async function createSharedPayments(
@@ -150,27 +169,29 @@ async function createBrunoScenario(
 ): Promise<void> {
   const payerId = stableUuid([DEV_FINANCE_KEY, "bruno-payer"]);
   const orderId = stableUuid([DEV_FINANCE_KEY, "bruno-order"]);
-  await database.payer.create({ data: { id: payerId, name: "Bruno Carvalho" } });
-  await database.order.create({
-    data: {
-      id: orderId,
-      payerId,
-      kind: "TUITION",
-      principalAmountCents: BRUNO_INSTALLMENT_CENTS * BRUNO_INSTALLMENT_COUNT,
-      startDate: monthlyDueDate(input.todayIso, {
-        monthOffset: BRUNO_START_MONTH_OFFSET,
-        dueDay: BRUNO_DUE_DAY,
-      }),
+  await database.payer.upsert({
+    where: { id: payerId },
+    create: { id: payerId, name: "Bruno Carvalho" },
+    update: { name: "Bruno Carvalho", deletedAt: null },
+  });
+  const orderData = {
+    id: orderId,
+    payerId,
+    kind: "TUITION" as const,
+    principalAmountCents: BRUNO_INSTALLMENT_CENTS * BRUNO_INSTALLMENT_COUNT,
+    startDate: monthlyDueDate(input.todayIso, {
+      monthOffset: BRUNO_START_MONTH_OFFSET,
       dueDay: BRUNO_DUE_DAY,
-    },
+    }),
+    dueDay: BRUNO_DUE_DAY,
+    deletedAt: null,
+  };
+  await database.order.upsert({
+    where: { id: orderId },
+    create: orderData,
+    update: orderData,
   });
-  await database.orderBeneficiary.create({
-    data: {
-      id: stableUuid([DEV_FINANCE_KEY, "bruno-order", "bruno"]),
-      orderId,
-      studentId: studentId(input.studentIds, "bruno"),
-    },
-  });
+  await upsertBrunoBeneficiary(database, { studentIds: input.studentIds, orderId });
   const dueDates = monthlyDueDates(input.todayIso, {
     firstDueMonthOffset: BRUNO_FIRST_DUE_MONTH_OFFSET,
     dueDay: BRUNO_DUE_DAY,
@@ -191,6 +212,22 @@ async function createBrunoScenario(
   });
 }
 
+async function upsertBrunoBeneficiary(
+  database: FinanceDatabase,
+  input: { studentIds: ReadonlyMap<string, string>; orderId: string },
+): Promise<void> {
+  const beneficiary = {
+    id: stableUuid([DEV_FINANCE_KEY, "bruno-order", "bruno"]),
+    orderId: input.orderId,
+    studentId: studentId(input.studentIds, "bruno"),
+  };
+  await database.orderBeneficiary.upsert({
+    where: { id: beneficiary.id },
+    create: beneficiary,
+    update: { ...beneficiary, deletedAt: null },
+  });
+}
+
 export async function createInstallments(
   database: FinanceDatabase,
   input: InstallmentsInput,
@@ -198,8 +235,8 @@ export async function createInstallments(
   const ids = input.dueDates.map((_dueDate, index) =>
     stableUuid([DEV_FINANCE_KEY, input.scenarioKey, `installment-${index + 1}`]),
   );
-  await database.installment.createMany({
-    data: input.dueDates.map((dueDate, index) => ({
+  for (const [index, dueDate] of input.dueDates.entries()) {
+    const data = {
       id: itemAt(ids, index),
       orderId: input.orderId,
       sequenceNumber: index + 1,
@@ -207,8 +244,14 @@ export async function createInstallments(
       dueDate,
       waivedAt: index === input.waivedIndex ? dueDate : null,
       waivedReason: index === input.waivedIndex ? "Cenário de desenvolvimento" : null,
-    })),
-  });
+      deletedAt: null,
+    };
+    await database.installment.upsert({
+      where: { id: data.id },
+      create: data,
+      update: data,
+    });
+  }
   return ids;
 }
 
@@ -223,22 +266,30 @@ export async function createPayment(
   },
 ): Promise<void> {
   const paymentEntryId = stableUuid([DEV_FINANCE_KEY, input.scenarioKey, "payment"]);
-  await database.paymentEntry.create({
-    data: {
-      id: paymentEntryId,
-      payerId: input.payerId,
-      date: input.date,
-      amountCents: input.amountCents,
-      method: "PIX",
-    },
+  const paymentData = {
+    id: paymentEntryId,
+    payerId: input.payerId,
+    date: input.date,
+    amountCents: input.amountCents,
+    method: "PIX",
+    deletedAt: null,
+  } as const;
+  await database.paymentEntry.upsert({
+    where: { id: paymentEntryId },
+    create: paymentData,
+    update: paymentData,
   });
-  await database.paymentAllocation.create({
-    data: {
-      id: stableUuid([DEV_FINANCE_KEY, input.scenarioKey, "allocation"]),
-      paymentEntryId,
-      installmentId: input.installmentId,
-      amountCents: input.amountCents,
-    },
+  const allocationData = {
+    id: stableUuid([DEV_FINANCE_KEY, input.scenarioKey, "allocation"]),
+    paymentEntryId,
+    installmentId: input.installmentId,
+    amountCents: input.amountCents,
+    deletedAt: null,
+  };
+  await database.paymentAllocation.upsert({
+    where: { id: allocationData.id },
+    create: allocationData,
+    update: allocationData,
   });
 }
 

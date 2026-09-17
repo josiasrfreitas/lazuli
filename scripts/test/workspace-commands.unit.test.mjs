@@ -12,6 +12,8 @@ const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "
 const setupScript = path.join(repositoryRoot, "scripts/workspace-setup.mjs");
 const statusScript = path.join(repositoryRoot, "scripts/workspace-status.mjs");
 const developmentScript = path.join(repositoryRoot, "scripts/development.mjs");
+const fixturesScript = path.join(repositoryRoot, "scripts/workspace-fixtures.mjs");
+const resetScript = path.join(repositoryRoot, "scripts/workspace-reset.mjs");
 const fakeCaddy = path.join(repositoryRoot, "scripts/test/support/fake-caddy.mjs");
 const fakeWorkspaceCommand = path.join(
   repositoryRoot,
@@ -28,7 +30,7 @@ async function fixture(context, name = "lazuli-feature") {
   await mkdir(directory);
   await writeFile(
     path.join(directory, ".env.example"),
-    "BETTER_AUTH_SECRET=keep-this-secret\nAPP_URL=http://localhost:3000\n",
+    "BETTER_AUTH_SECRET=keep-this-secret\nAPP_URL=http://localhost:3000\nGCS_PROJECT_ID=lazuli-local\nSTORAGE_EMULATOR_HOST=http://localhost:4443\n",
   );
   await writeFile(path.join(directory, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
   await mkdir(path.join(directory, "infra/local/gcs-seed"), { recursive: true });
@@ -340,6 +342,222 @@ it("repeats full setup without reseeding the database or overwriting a GCS objec
     await readFile(path.join(directory, ".fake-infra/object-example.txt"), "utf8"),
     "local edit\n",
   );
+});
+
+it("refreshes versioned fixtures without removing additional local data", async (context) => {
+  const directory = await fixture(context, "lazuli-fixtures-refresh");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  assert.equal(run(directory, setupScript, ["full"]).status, 0);
+  await writeFile(path.join(directory, ".fake-infra/object-example.txt"), "local edit\n");
+  await writeFile(path.join(directory, ".fake-infra/object-extra.txt"), "extra\n");
+
+  const first = run(directory, fixturesScript, ["refresh"]);
+  const second = run(directory, fixturesScript, ["refresh"]);
+
+  assert.equal(first.status, 0, first.stderr);
+  assert.equal(second.status, 0, second.stderr);
+  assert.equal(
+    await readFile(path.join(directory, ".fake-infra/object-example.txt"), "utf8"),
+    "expected fixture\n",
+  );
+  assert.equal(
+    await readFile(path.join(directory, ".fake-infra/object-extra.txt"), "utf8"),
+    "extra\n",
+  );
+  assert.match(first.stdout, /Extra records.*may remain/su);
+  assert.match(first.stdout, /does not guarantee a clean snapshot/u);
+  assert.doesNotMatch(await readFile(path.join(directory, "infra.log"), "utf8"), /DROP DATABASE/u);
+});
+
+it("rejects unsupported fixture and reset arguments with usage", async (context) => {
+  const directory = await fixture(context, "lazuli-maintenance-usage");
+
+  const missing = run(directory, fixturesScript);
+  const wrong = run(directory, fixturesScript, ["replace"]);
+  const resetWrong = run(directory, resetScript, ["--force"]);
+
+  assert.deepEqual([missing.status, wrong.status, resetWrong.status], [2, 2, 2]);
+  assert.match(missing.stderr, /workspace:fixtures refresh/u);
+  assert.match(wrong.stderr, /workspace:fixtures refresh/u);
+  assert.match(resetWrong.stderr, /workspace:reset \[--yes\]/u);
+});
+
+it("requires --yes without a terminal and resets only the named resources", async (context) => {
+  const directory = await fixture(context, "lazuli-workspace-reset");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  assert.equal(run(directory, setupScript, ["full"]).status, 0);
+  await writeFile(path.join(directory, ".fake-infra/manual-record"), "remove on database reset\n");
+  await writeFile(path.join(directory, ".fake-infra/object-extra.txt"), "remove\n");
+  await writeFile(path.join(directory, "infra.log"), "");
+
+  const refused = run(directory, resetScript);
+  const logBeforeConfirmedReset = await readFile(path.join(directory, "infra.log"), "utf8");
+  const reset = run(directory, resetScript, ["--yes"]);
+  const journal = JSON.parse(
+    await readFile(path.join(directory, ".lazuli/database-initialization.json"), "utf8"),
+  );
+  const infraLog = await readFile(path.join(directory, "infra.log"), "utf8");
+
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /interactive confirmation.*--yes/u);
+  assert.doesNotMatch(logBeforeConfirmedReset, /DROP|DELETE/u);
+  assert.equal(reset.status, 0, reset.stderr);
+  assert.match(reset.stdout, /lazuli_lazuli_workspace_reset/u);
+  assert.match(reset.stdout, /lazuli-lazuli-workspace-reset/u);
+  assert.equal(journal.status, "complete");
+  assert.match(infraLog, /DROP DATABASE IF EXISTS "lazuli_lazuli_workspace_reset"/u);
+  assert.doesNotMatch(infraLog, /compose down|compose up/u);
+});
+
+it("accepts only the explicit interactive reset confirmation", async () => {
+  const { acceptsWorkspaceReset } = await import("../lib/workspace-reset-confirmation.mjs");
+
+  assert.equal(acceptsWorkspaceReset("reset\n"), true);
+  assert.equal(acceptsWorkspaceReset("no"), false);
+  assert.equal(acceptsWorkspaceReset("yes"), false);
+});
+
+it("fails maintenance guards before destructive operations", async (context) => {
+  const cases = [
+    {
+      name: "light profile",
+      prepare: async (directory) => {
+        assert.equal(run(directory, setupScript, ["light"]).status, 0);
+      },
+      pattern: /profile must be full/u,
+    },
+    {
+      name: "remote database",
+      prepare: async (directory) => {
+        assert.equal(run(directory, setupScript, ["light"]).status, 0);
+        assert.equal(run(directory, setupScript, ["full"]).status, 0);
+        const env = await readFile(path.join(directory, ".env"), "utf8");
+        await writeFile(directory + "/.env", env.replace("localhost:5432", "db.example:5432"));
+      },
+      pattern: /local PostgreSQL/u,
+    },
+    {
+      name: "malformed database URL",
+      prepare: async (directory) => {
+        assert.equal(run(directory, setupScript, ["light"]).status, 0);
+        assert.equal(run(directory, setupScript, ["full"]).status, 0);
+        const env = await readFile(path.join(directory, ".env"), "utf8");
+        await writeFile(
+          directory + "/.env",
+          env.replace(/^DATABASE_URL=.*$/mu, "DATABASE_URL=bad"),
+        );
+      },
+      pattern: /valid local PostgreSQL URL/u,
+    },
+    {
+      name: "prefixed database",
+      prepare: async (directory) => {
+        assert.equal(run(directory, setupScript, ["light"]).status, 0);
+        assert.equal(run(directory, setupScript, ["full"]).status, 0);
+        const env = await readFile(path.join(directory, ".env"), "utf8");
+        await writeFile(
+          directory + "/.env",
+          env.replace(/\/lazuli_[^?]+/u, "/lazuli_similar_extra"),
+        );
+      },
+      pattern: /does not match workspace metadata/u,
+    },
+    {
+      name: "divergent bucket",
+      prepare: async (directory) => {
+        assert.equal(run(directory, setupScript, ["light"]).status, 0);
+        assert.equal(run(directory, setupScript, ["full"]).status, 0);
+        const env = await readFile(path.join(directory, ".env"), "utf8");
+        await writeFile(
+          directory + "/.env",
+          env.replace(/^GCS_ARTIFACTS_BUCKET=.*$/mu, "GCS_ARTIFACTS_BUCKET=lazuli-similar-extra"),
+        );
+      },
+      pattern: /GCS_ARTIFACTS_BUCKET does not match/u,
+    },
+    {
+      name: "shared bucket",
+      prepare: async (directory) => {
+        assert.equal(run(directory, setupScript, ["light"]).status, 0);
+        assert.equal(run(directory, setupScript, ["full"]).status, 0);
+        const workspace = await metadata(directory);
+        workspace.identity = "main";
+        workspace.urls = {
+          web: "http://main.lazuli.localhost",
+          storybook: "http://storybook.main.lazuli.localhost",
+        };
+        workspace.resources = { database: "lazuli_main", bucket: "lazuli-main" };
+        await writeFile(
+          path.join(directory, ".lazuli/workspace.json"),
+          `${JSON.stringify(workspace)}\n`,
+        );
+      },
+      pattern: /shared local resource/u,
+    },
+    {
+      name: "wrong Compose labels",
+      prepare: async (directory) => {
+        assert.equal(run(directory, setupScript, ["light"]).status, 0);
+        assert.equal(run(directory, setupScript, ["full"]).status, 0);
+      },
+      environment: { FAKE_COMPOSE_PROJECT: "other" },
+      pattern: /not the expected Lazuli Compose service/u,
+    },
+  ];
+
+  const observations = [];
+  for (const item of cases) {
+    const directory = await fixture(context, `lazuli-guard-${item.name.replaceAll(" ", "-")}`);
+    await item.prepare(directory);
+    await writeFile(path.join(directory, "infra.log"), "");
+    const result = run(directory, resetScript, ["--yes"], item.environment);
+    observations.push({
+      name: item.name,
+      status: result.status,
+      expectedDiagnostic: item.pattern.test(result.stderr),
+      destructiveOperation: /DROP|DELETE/u.test(
+        await readFile(path.join(directory, "infra.log"), "utf8"),
+      ),
+    });
+  }
+  assert.deepEqual(
+    observations,
+    cases.map((item) => ({
+      name: item.name,
+      status: 1,
+      expectedDiagnostic: true,
+      destructiveOperation: false,
+    })),
+  );
+});
+
+it("revalidates ownership after waiting for the full-workspace lock", async (context) => {
+  const directory = await fixture(context, "lazuli-refresh-revalidation");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  assert.equal(run(directory, setupScript, ["full"]).status, 0);
+  const { withFullSetupLock } = await import("../lib/workspace-full.mjs");
+  let release;
+  let acquired;
+  const locked = new Promise((resolve) => {
+    acquired = resolve;
+  });
+  const blocker = withFullSetupLock(directory, async () => {
+    acquired();
+    await new Promise((resolve) => {
+      release = resolve;
+    });
+  });
+  await locked;
+  const refresh = runAsync(directory, fixturesScript, ["refresh"]);
+  const env = await readFile(path.join(directory, ".env"), "utf8");
+  await writeFile(directory + "/.env", env.replace("localhost:5432", "remote.test:5432"));
+  release();
+
+  const result = await refresh;
+  await blocker;
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /local PostgreSQL/u);
 });
 
 it("preserves a preexisting database and only applies migrations", async (context) => {

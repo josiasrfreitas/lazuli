@@ -20,7 +20,6 @@ source "$SCRIPT_DIR/lib/docker-engines.sh"
 SOURCE_WORKTREE=""
 SKIP_DOCKER=0
 NO_FIXTURES=0
-RESET_DB=0
 FORCE=0
 BOOTSTRAP_MARKER=".worktree-bootstrapped"
 
@@ -36,7 +35,7 @@ post-checkout hook after `git worktree add`):
   1. .env setup with per-worktree DATABASE_URL and GCS bucket
   2. pnpm install (always)
   3. Docker engine check / start (unless --no-fixtures)
-  4. Create isolated Postgres DB + migrate (or db:reset with --reset-db)
+  4. Create isolated Postgres DB + migrate
   5. Create isolated GCS bucket + seed fixtures
   6. runtime preflight check
 
@@ -45,13 +44,11 @@ Options:
                   from another git worktree, else .env.example)
   --skip-docker   Do not run docker compose up -d (still runs DB steps if Postgres is up)
   --no-fixtures   Skip docker, DB, and runtime check; still runs .env + pnpm install
-  --reset-db      Run pnpm db:reset instead of pnpm prisma:deploy
   --force         Re-run bootstrap even if already bootstrapped
   --help          Show this help
 
 Examples:
   pnpm bootstrap:worktree
-  pnpm bootstrap:worktree -- --reset-db
   pnpm bootstrap:worktree -- --no-fixtures
 
 Notes:
@@ -78,9 +75,6 @@ while (($#)); do
       ;;
     --no-fixtures)
       NO_FIXTURES=1
-      ;;
-    --reset-db)
-      RESET_DB=1
       ;;
     --force)
       FORCE=1
@@ -228,13 +222,8 @@ DONE
   echo "Seeding GCS fixtures..."
   bash "$SCRIPT_DIR/seed-gcs.sh"
 
-  if [[ "$RESET_DB" -eq 1 ]]; then
-    echo "Resetting local database and running seed..."
-    pnpm db:reset
-  else
-    echo "Applying database migrations..."
-    pnpm prisma:deploy
-  fi
+  echo "Applying database migrations..."
+  pnpm prisma:deploy
 
   echo "Running runtime preflight..."
   pnpm runtime:check
