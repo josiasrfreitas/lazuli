@@ -124,6 +124,21 @@ void test("table retains six semantic columns and distinguishes loading, empty, 
   assert.match(error, /Não foi possível carregar as parcelas/u);
   assert.match(error, /Tentar de novo/u);
 });
+void test("overdue error takes precedence over previously loaded groups", () => {
+  const markup = renderToStaticMarkup(
+    createElement(InstallmentsTable, {
+      groups: [overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID)],
+      error: true,
+      filtered: false,
+      updating: false,
+      onRetry: () => {},
+      footer: null,
+    }),
+  );
+  assert.match(markup, /Não foi possível carregar as parcelas/u);
+  assert.match(markup, /Tentar de novo/u);
+  assert.doesNotMatch(markup, /data-slot="overdue-payer-group"/u);
+});
 void test("overdue groups preserve API identity, order, values and table associations", () => {
   const groups = [
     overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID),

@@ -170,7 +170,7 @@ export function InstallmentsTable({
 }: TableState & { updating: boolean; footer: ReactNode }): ReactElement {
   const today = businessDate(new Date());
   const hasGroups = state.groups !== undefined;
-  if (hasGroups && (state.groups?.length ?? 0) > 0) {
+  if (!state.error && hasGroups && (state.groups?.length ?? 0) > 0) {
     return (
       <TableContainer
         viewportBound
