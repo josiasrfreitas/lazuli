@@ -293,6 +293,78 @@ it("stops only a process lease whose token, path, PID, and start time still matc
   assert.throws(() => process.kill(child.pid, 0), { code: "ESRCH" });
 });
 
+it("releases the lease lock while a wrapper terminates its detached child group", async (context) => {
+  const directory = await fixture(context, "lazuli-process-group-teardown");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  const workspace = await metadata(directory);
+  const stateDirectory = path.join(directory, ".git");
+  const leasesDirectory = path.join(stateDirectory, "lazuli-proxy-leases");
+  const lockPath = path.join(stateDirectory, "lazuli-workspace-allocation.lock");
+  await mkdir(leasesDirectory, { recursive: true });
+  const wrapper = spawn(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `import { spawn } from "node:child_process";
+import { mkdir, rm } from "node:fs/promises";
+import { setTimeout as wait } from "node:timers/promises";
+const lockPath = process.argv[1];
+const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { detached: true, stdio: "ignore" });
+child.unref();
+process.stdout.write(String(child.pid) + "\\n");
+process.once("SIGTERM", async () => {
+  while (true) {
+    try {
+      await mkdir(lockPath);
+      break;
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      await wait(5);
+    }
+  }
+  await rm(lockPath, { force: true, recursive: true });
+  process.kill(-child.pid, "SIGTERM");
+  process.exit(0);
+});
+setInterval(() => {}, 1000);`,
+      lockPath,
+    ],
+    { stdio: ["ignore", "pipe", "ignore"] },
+  );
+  const childPid = Number(await new Promise((resolve) => wrapper.stdout.once("data", resolve)));
+  context.after(() => {
+    for (const pid of [wrapper.pid, childPid]) {
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        // The teardown is expected to have stopped these processes already.
+      }
+    }
+  });
+  const startedAt = execFileSync("ps", ["-o", "lstart=", "-p", String(wrapper.pid)], {
+    encoding: "utf8",
+  }).trim();
+  const lease = {
+    version: 2,
+    ownershipToken: workspace.ownershipToken,
+    technicalPath: workspace.initialTechnicalPath,
+    workspaceIdentity: workspace.identity,
+    service: "worker",
+    process: { pid: wrapper.pid, startedAt },
+  };
+  await writeFile(path.join(leasesDirectory, "wrapper.json"), `${JSON.stringify(lease)}\n`);
+  const { teardownWorkspaceLeases } =
+    await import("../lib/workspace-proxy.mjs?process-group-teardown-test");
+  const wrapperClosed = new Promise((resolve) => wrapper.once("close", resolve));
+
+  const failures = await teardownWorkspaceLeases(directory, workspace, { timeoutMs: 200 });
+  await wrapperClosed;
+
+  assert.deepEqual(failures, []);
+  assert.throws(() => process.kill(childPid, 0), { code: "ESRCH" });
+});
+
 it("rejects Web from a light worktree before invoking Docker", async (context) => {
   const directory = await fixture(context, "lazuli-light-web");
   assert.equal(run(directory, setupScript, ["light"]).status, 0);

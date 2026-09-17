@@ -24,6 +24,7 @@ const CADDY_START_ATTEMPTS = 10;
 const CADDY_START_RETRY_MS = 100;
 const PROCESS_STOP_TIMEOUT_MS = 1000;
 const PROCESS_STOP_POLL_MS = 25;
+const PROCESS_IDENTITY_CHANGED = "process identity changed; lease preserved";
 const HTTP_SERVER_ERROR_START = 500;
 const CADDY_HTTP_LISTENERS = [`127.0.0.1:${CADDY_HTTP_PORT}`, `[::1]:${CADDY_HTTP_PORT}`];
 
@@ -148,6 +149,25 @@ async function readLease(file) {
   } catch {
     return null;
   }
+}
+
+function leaseBelongsToWorkspace(lease, workspace) {
+  return (
+    lease?.ownershipToken === workspace.ownershipToken &&
+    lease.technicalPath === workspace.initialTechnicalPath &&
+    lease.workspaceIdentity === workspace.identity
+  );
+}
+
+function sameLease(left, right) {
+  return (
+    left?.ownershipToken === right.ownershipToken &&
+    left.technicalPath === right.technicalPath &&
+    left.workspaceIdentity === right.workspaceIdentity &&
+    left.service === right.service &&
+    left.process?.pid === right.process.pid &&
+    left.process?.startedAt === right.process.startedAt
+  );
 }
 
 async function activeLeases(stateDirectory) {
@@ -414,47 +434,73 @@ export async function registerWorkspaceRoute(root, workspace, service) {
   });
 }
 
-export async function teardownWorkspaceLeases(root, workspace, options = {}) {
-  const stateDirectory = sharedStateDirectory(root);
-  const timeoutMs = options.timeoutMs ?? PROCESS_STOP_TIMEOUT_MS;
+async function workspaceLeasesForTeardown(root, stateDirectory, workspace) {
   return await withWorkspaceAllocationLock(root, async () => {
     const directory = path.join(stateDirectory, LEASES_DIRECTORY);
     let entries;
     try {
       entries = await readdir(directory);
     } catch (error) {
-      if (error.code === "ENOENT") return [];
+      if (error.code === "ENOENT") return { failures: [], leases: [] };
       throw error;
     }
     const failures = [];
+    const leases = [];
     for (const entry of entries.filter((name) => name.endsWith(".json"))) {
       const file = path.join(directory, entry);
       const lease = await readLease(file);
-      if (
-        lease?.ownershipToken !== workspace.ownershipToken ||
-        lease.technicalPath !== workspace.initialTechnicalPath ||
-        lease.workspaceIdentity !== workspace.identity
-      )
-        continue;
-      if (!(await processOwnsLease(lease))) {
-        failures.push(`${lease.service}: process identity changed; lease preserved`);
-        continue;
+      if (!leaseBelongsToWorkspace(lease, workspace)) continue;
+      if (await processOwnsLease(lease)) leases.push({ file, lease });
+      else failures.push(`${lease.service}: ${PROCESS_IDENTITY_CHANGED}`);
+    }
+    return { failures, leases };
+  });
+}
+
+async function terminateLeaseProcess(lease, timeoutMs) {
+  if (!(await processOwnsLease(lease))) return PROCESS_IDENTITY_CHANGED;
+  try {
+    process.kill(lease.process.pid, "SIGTERM");
+  } catch {
+    return PROCESS_IDENTITY_CHANGED;
+  }
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline && (await processOwnsLease(lease))) await wait(PROCESS_STOP_POLL_MS);
+  const stillOwned = await processOwnsLease(lease);
+  if (!stillOwned || !(await processOwnsLease(lease))) return null;
+  try {
+    process.kill(lease.process.pid, "SIGKILL");
+  } catch {
+    return PROCESS_IDENTITY_CHANGED;
+  }
+  await wait(PROCESS_STOP_POLL_MS);
+  return (await processOwnsLease(lease)) ? "process did not stop; lease preserved" : null;
+}
+
+async function removeStoppedWorkspaceLeases(root, stateDirectory, leases) {
+  await withWorkspaceAllocationLock(root, async () => {
+    for (const { file, lease } of leases) {
+      const current = await readLease(file);
+      if (sameLease(current, lease) && !(await processOwnsLease(lease))) {
+        await rm(file, { force: true });
       }
-      process.kill(lease.process.pid, "SIGTERM");
-      const deadline = Date.now() + timeoutMs;
-      while (Date.now() < deadline && (await processOwnsLease(lease)))
-        await wait(PROCESS_STOP_POLL_MS);
-      if (await processOwnsLease(lease)) {
-        if (!(await processOwnsLease(lease))) continue;
-        process.kill(lease.process.pid, "SIGKILL");
-      }
-      await rm(file, { force: true });
     }
     if (caddyIsManaged(await caddyConfigurationFromAdmin())) {
       await reloadCaddy(await liveLeasesWithoutCleanup(stateDirectory));
     }
-    return failures;
   });
+}
+
+export async function teardownWorkspaceLeases(root, workspace, options = {}) {
+  const stateDirectory = sharedStateDirectory(root);
+  const timeoutMs = options.timeoutMs ?? PROCESS_STOP_TIMEOUT_MS;
+  const { failures, leases } = await workspaceLeasesForTeardown(root, stateDirectory, workspace);
+  for (const { lease } of leases) {
+    const failure = await terminateLeaseProcess(lease, timeoutMs);
+    if (failure !== null) failures.push(`${lease.service}: ${failure}`);
+  }
+  await removeStoppedWorkspaceLeases(root, stateDirectory, leases);
+  return failures;
 }
 
 export async function unregisterWorkspaceRoute(root, workspace, service) {

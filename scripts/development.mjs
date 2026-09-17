@@ -58,13 +58,14 @@ async function main() {
     const stop = async (signal) => {
       if (stopping) return;
       stopping = true;
-      await unregisterWorkspaceRoute(root, workspace, service);
-      if (child.pid === undefined) return;
-      try {
-        process.kill(-child.pid, signal);
-      } catch {
-        child.kill(signal);
+      if (child.pid !== undefined) {
+        try {
+          process.kill(-child.pid, signal);
+        } catch {
+          child.kill(signal);
+        }
       }
+      await unregisterWorkspaceRoute(root, workspace, service);
     };
     process.once("SIGINT", () => void stop("SIGINT"));
     process.once("SIGTERM", () => void stop("SIGTERM"));
