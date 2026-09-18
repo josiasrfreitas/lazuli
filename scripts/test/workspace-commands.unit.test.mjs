@@ -7,6 +7,7 @@ import http from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { it } from "node:test";
+import { setTimeout as wait } from "node:timers/promises";
 import { URL, fileURLToPath } from "node:url";
 
 const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -278,6 +279,43 @@ it("preserves ambiguous orphan resources and reports prune failure", async (cont
   assert.match(result.stdout, /ownership marker.*preserved/u);
   assert.equal(await readFile(path.join(directory, ".fake-infra/database"), "utf8"), "exists\n");
   assert.notEqual(await readFile(file, "utf8"), "");
+});
+
+it("revalidates an orphan after the allocation lock admits a colliding worktree", async (context) => {
+  const directory = await fixture(context, "lazuli-gc-concurrent");
+  const { workspace } = await orphanJournal(directory);
+  await markFakeResources(directory, workspace);
+  const { withWorkspaceAllocationLock } = await import("../lib/workspace-metadata.mjs");
+  let child;
+  let sibling;
+  await withWorkspaceAllocationLock(directory, async () => {
+    child = spawn(process.execPath, [gcScript, "--prune"], {
+      cwd: directory,
+      env: { ...process.env, PATH: `${path.join(directory, "bin")}${path.delimiter}${process.env.PATH}` },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    await wait(100);
+    sibling = path.join(path.dirname(directory), "concurrent-owner");
+    execFileSync("git", ["worktree", "add", "--detach", sibling], { cwd: directory });
+    await mkdir(path.join(sibling, ".lazuli"), { recursive: true });
+    await writeFile(
+      path.join(sibling, ".lazuli/workspace.json"),
+      `${JSON.stringify({ ...workspace, initialTechnicalPath: sibling })}\n`,
+    );
+  });
+  const result = await new Promise((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => (stdout += chunk));
+    child.stderr.on("data", (chunk) => (stderr += chunk));
+    child.once("error", reject);
+    child.once("close", (status) => resolve({ status, stdout, stderr }));
+  });
+
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stdout, /collides with active worktree/u);
+  assert.equal(await readFile(path.join(directory, ".fake-infra/database"), "utf8"), "exists\n");
+  execFileSync("git", ["worktree", "remove", "--force", sibling], { cwd: directory });
 });
 
 it("removes only full resources bearing this workspace ownership markers", async (context) => {

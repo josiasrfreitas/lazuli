@@ -3,7 +3,11 @@ import { access, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { bucketOwnership, bucketOwnershipLabels, bucketOwnershipObjectName } from "./workspace-full.mjs";
-import { registeredWorkspaces, workspaceResources } from "./workspace-metadata.mjs";
+import {
+  registeredWorkspaces,
+  withWorkspaceAllocationLock,
+  workspaceResources,
+} from "./workspace-metadata.mjs";
 import { teardownWorkspaceLeases } from "./workspace-proxy.mjs";
 
 const JOURNAL_DIRECTORY = "lazuli-workspace-orphans";
@@ -185,13 +189,26 @@ async function performStep({ root, workspace, step }) {
   }
 }
 
+async function revalidateOrphan(root, workspace) {
+  const active = await activeWorkspaceState(root);
+  const reason = await orphanReason({ workspace, active });
+  if (reason !== null) throw new Error(reason);
+}
+
+function stepNeedsAllocationLock(step) {
+  return step === "database" || step === "bucket";
+}
+
+async function performVerifiedStep({ root, file, journal, step }) {
+  await revalidateOrphan(root, journal.workspace);
+  await performStep({ root, workspace: journal.workspace, step });
+  await complete({ file, journal, step });
+}
+
 async function pruneStep({ root, file, journal, step, output }) {
   try {
-    const active = await activeWorkspaceState(root);
-    const reason = await orphanReason({ workspace: journal.workspace, active });
-    if (reason !== null) throw new Error(reason);
-    await performStep({ root, workspace: journal.workspace, step });
-    await complete({ file, journal, step });
+    const operation = () => performVerifiedStep({ root, file, journal, step });
+    await (stepNeedsAllocationLock(step) ? withWorkspaceAllocationLock(root, operation) : operation());
   } catch (error) {
     await fail({ file, journal, step, error });
     output(`preserved ${journal.workspace.identity} ${step}: ${error.message}`);
