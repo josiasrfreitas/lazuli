@@ -44,6 +44,7 @@
     "workspace:fixtures": "node scripts/workspace-fixtures.mjs",
     "workspace:reset": "node scripts/workspace-reset.mjs",
     "workspace:teardown": "node scripts/workspace-teardown.mjs",
+    "workspace:gc": "node scripts/workspace-gc.mjs",
     "workspace:status": "node scripts/workspace-status.mjs",
     "seed:gcs": "bash scripts/seed-gcs.sh",
     "prepare": "lefthook install",

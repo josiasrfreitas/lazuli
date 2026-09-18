@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { createHash, randomUUID } from "node:crypto";
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import http from "node:http";
@@ -12,6 +13,7 @@ const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "
 const setupScript = path.join(repositoryRoot, "scripts/workspace-setup.mjs");
 const statusScript = path.join(repositoryRoot, "scripts/workspace-status.mjs");
 const teardownScript = path.join(repositoryRoot, "scripts/workspace-teardown.mjs");
+const gcScript = path.join(repositoryRoot, "scripts/workspace-gc.mjs");
 const developmentScript = path.join(repositoryRoot, "scripts/development.mjs");
 const fixturesScript = path.join(repositoryRoot, "scripts/workspace-fixtures.mjs");
 const resetScript = path.join(repositoryRoot, "scripts/workspace-reset.mjs");
@@ -151,6 +153,37 @@ function processExitState(pid) {
   }
 }
 
+async function orphanJournal(directory, name = "removed-worktree") {
+  const technicalPath = path.join(path.dirname(directory), name);
+  const identity = "removed-worktree";
+  const workspace = {
+    schemaVersion: 2,
+    profile: "full",
+    ownershipToken: randomUUID(),
+    initialTechnicalPath: technicalPath,
+    identity,
+    urls: { web: `http://${identity}.lazuli.localhost`, storybook: `http://storybook.${identity}.lazuli.localhost` },
+    ports: { web: 3101, storybook: 6101 },
+    resources: { database: "lazuli_removed_worktree", bucket: "lazuli-removed-worktree" },
+  };
+  const journals = path.join(directory, ".git/lazuli-workspace-orphans");
+  await mkdir(journals, { recursive: true });
+  const file = path.join(journals, "orphan.json");
+  await writeFile(file, `${JSON.stringify({ version: 1, technicalPath, workspace, pending: ["validation", "processes", "database", "bucket", "local"], failures: [] })}\n`);
+  return { file, workspace };
+}
+
+async function markFakeResources(directory, workspace) {
+  const state = path.join(directory, ".fake-infra");
+  await mkdir(state, { recursive: true });
+  await writeFile(path.join(state, "database"), "exists\n");
+  await writeFile(path.join(state, "database-ownership"), `${workspace.ownershipToken}|${workspace.identity}|${workspace.initialTechnicalPath}\n`);
+  const technicalPathHash = createHash("sha256").update(workspace.initialTechnicalPath).digest("hex");
+  await writeFile(path.join(state, "bucket"), "exists\n");
+  await writeFile(path.join(state, "bucket-metadata.json"), `${JSON.stringify({ name: workspace.resources.bucket, labels: { lazuli_owner_token: workspace.ownershipToken, lazuli_workspace: workspace.identity, lazuli_technical_path: technicalPathHash } })}\n`);
+  await writeFile(path.join(state, "object-.lazuli-workspace-ownership.json"), `${JSON.stringify({ ownershipToken: workspace.ownershipToken, workspaceIdentity: workspace.identity, technicalPath: workspace.initialTechnicalPath })}\n`);
+}
+
 it("sets up a light worktree without infrastructure and persists only stable intent", async (context) => {
   const directory = await fixture(context, "Lazuli Feature___One");
   await writeFile(
@@ -198,6 +231,53 @@ it("tears down a light workspace without accessing Docker and repeats safely", a
   await assert.rejects(readFile(path.join(directory, ".lazuli/workspace.json"), "utf8"), {
     code: "ENOENT",
   });
+});
+
+it("inspects orphan journals without mutating journals or local resources", async (context) => {
+  const directory = await fixture(context, "lazuli-gc-inspection");
+  const { file, workspace } = await orphanJournal(directory);
+  await markFakeResources(directory, workspace);
+  const beforeJournal = await readFile(file, "utf8");
+  const beforeDatabase = await readFile(path.join(directory, ".fake-infra/database"), "utf8");
+  await writeFile(path.join(directory, "infra.log"), "");
+
+  const result = run(directory, gcScript);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /inspection only/u);
+  assert.equal(await readFile(file, "utf8"), beforeJournal);
+  assert.equal(await readFile(path.join(directory, ".fake-infra/database"), "utf8"), beforeDatabase);
+  assert.equal(await readFile(path.join(directory, "infra.log"), "utf8"), "");
+});
+
+it("prunes only an absent worktree with exact ownership markers and repeats safely", async (context) => {
+  const directory = await fixture(context, "lazuli-gc-prune");
+  const { file, workspace } = await orphanJournal(directory);
+  await markFakeResources(directory, workspace);
+
+  const first = run(directory, gcScript, ["--prune"]);
+  const second = run(directory, gcScript, ["--prune"]);
+
+  assert.equal(first.status, 0, first.stderr);
+  assert.match(first.stdout, /collected removed-worktree/u);
+  assert.equal(second.status, 0, second.stderr);
+  await assert.rejects(readFile(file, "utf8"), { code: "ENOENT" });
+  await assert.rejects(readFile(path.join(directory, ".fake-infra/database"), "utf8"), { code: "ENOENT" });
+  await assert.rejects(readFile(path.join(directory, ".fake-infra/bucket"), "utf8"), { code: "ENOENT" });
+});
+
+it("preserves ambiguous orphan resources and reports prune failure", async (context) => {
+  const directory = await fixture(context, "lazuli-gc-ambiguous");
+  const { file, workspace } = await orphanJournal(directory);
+  await markFakeResources(directory, workspace);
+  await writeFile(path.join(directory, ".fake-infra/database-ownership"), "other|identity|path\n");
+
+  const result = run(directory, gcScript, ["--prune"]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /ownership marker.*preserved/u);
+  assert.equal(await readFile(path.join(directory, ".fake-infra/database"), "utf8"), "exists\n");
+  assert.notEqual(await readFile(file, "utf8"), "");
 });
 
 it("removes only full resources bearing this workspace ownership markers", async (context) => {

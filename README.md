@@ -81,10 +81,19 @@ markers. Light worktrees do not access Docker.
 Before removing anything, teardown writes a resumable journal under
 `$(git rev-parse --git-common-dir)/lazuli-workspace-orphans/`. Isolated failures do not prevent Orca
 from archiving: the journal lists pending resources and `pnpm workspace:teardown` can be run again
-while the checkout remains available. Until workspace garbage collection is implemented, inspect a
-journal before manual cleanup, verify every recorded ownership marker against the external resource,
-remove only exact matches, and then delete the journal. Unmarked legacy or externally created
-resources are deliberately preserved.
+while the checkout remains available. If the checkout was already removed, run
+`pnpm workspace:gc` from another Lazuli worktree to inspect those journals. It is read-only and
+prints candidates, preserved resources, and the reason they cannot be observed safely. Run
+`pnpm workspace:gc --prune` to collect only an orphan whose absent/unregistered worktree path,
+persisted identity, exact derived names, local Compose labels, and database/bucket/lease ownership
+markers all agree. It updates the journal after each observed result, so it is safe to repeat after
+a partial cleanup.
+
+`workspace:gc --prune` exits non-zero if any candidate remains ambiguous or fails to be removed.
+Do not delete those journals to silence the result: restore or inspect the owner path, compare the
+recorded token, identity, and technical path with the external marker, then remove the resource
+manually only after establishing ownership. Prefix-only, legacy, externally created, non-local, or
+otherwise unobservable resources are deliberately preserved.
 
 Run `pnpm storybook` from a light worktree to serve it at the worktree's Storybook URL. `pnpm dev`
 does the same for Web after reconciling the full profile. These commands start a shared Caddy
