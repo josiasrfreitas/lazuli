@@ -185,6 +185,38 @@ void test("overdue groups preserve API identity, order, values and table associa
   }
   assert.doesNotMatch(markup, /<(?:button|a)\b|type="checkbox"|aria-expanded=/u);
 });
+void test("overdue groups contain horizontal scrolling within each payer card", () => {
+  const groups = [
+    overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID),
+    overdueGroup(PAYER_TWO_ID, "77777777-7777-4777-8777-777777777777"),
+  ];
+  const markup = renderToStaticMarkup(
+    createElement(InstallmentsTable, {
+      groups,
+      error: false,
+      filtered: false,
+      updating: false,
+      onRetry: () => {},
+      footer: null,
+    }),
+  );
+  assert.match(markup, /overflow-x-hidden[^>]*data-slot="overdue-payer-groups"/u);
+  assert.equal(countMatches(markup, /overflow-x-auto scrollbar-subtle/gu), groups.length);
+});
+void test("flat overdue statuses stay on one line", () => {
+  const group = overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID);
+  const markup = renderToStaticMarkup(
+    createElement(InstallmentsTable, {
+      rows: group.rows,
+      error: false,
+      filtered: false,
+      updating: false,
+      onRetry: () => {},
+      footer: null,
+    }),
+  );
+  assert.match(markup, /whitespace-nowrap[^>]*>Vencida há 14 dias/u);
+});
 void test("overdue search explains that qualified payer groups remain complete", () => {
   const group = overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID);
   const markup = renderToStaticMarkup(

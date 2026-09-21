@@ -16,7 +16,6 @@ import {
 import type { FinanceInstallmentRow, FinanceOverduePayerGroup } from "@lazuli/validators";
 import { OverduePayerGroupCard } from "./overdue-payer-group";
 import { abbreviatedPersonName, businessDate, installmentVm } from "./view-model";
-
 const COLUMN_IDS = {
   installment: "installments-column-installment",
   payer: "installments-column-payer",
@@ -25,7 +24,6 @@ const COLUMN_IDS = {
   amount: "installments-column-amount",
   status: "installments-column-status",
 } as const;
-
 function InstallmentRow({
   row,
   today,
@@ -56,7 +54,9 @@ function InstallmentRow({
         )}
       </TableCell>
       <TableCell headers={COLUMN_IDS.status}>
-        <Badge variant={vm.badge.variant}>{vm.badge.label}</Badge>
+        <Badge className="whitespace-nowrap" variant={vm.badge.variant}>
+          {vm.badge.label}
+        </Badge>
       </TableCell>
     </TableRow>
   );
@@ -106,7 +106,6 @@ function OverdueSearchGuidance(): ReactElement {
     </p>
   );
 }
-
 function InstallmentsBody({
   rows,
   error,
@@ -156,7 +155,10 @@ function OverdueGroupsBody({
   today: string;
 }): ReactNode {
   return (
-    <div className="space-y-3 pb-3" data-slot="overdue-payer-groups">
+    <div
+      className="w-0 min-w-full space-y-3 overflow-x-hidden pb-3"
+      data-slot="overdue-payer-groups"
+    >
       {groups.map((group) => (
         <OverduePayerGroupCard key={group.payer.id} group={group} today={today} />
       ))}
