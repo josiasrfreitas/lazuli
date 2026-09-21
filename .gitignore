@@ -60,6 +60,7 @@ packages/db/src/generated/kysely/
 tmp/
 .worktree-bootstrapped
 .lazuli/workspace.json
+.lazuli/database-initialization.json
 docs/discovery
 
 # Mutation testing

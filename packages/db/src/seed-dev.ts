@@ -36,7 +36,12 @@ const MONTH_END_INDEX = 7;
 const SECOND_HALF_FIRST_MONTH = 7;
 const EXIT_DAYS_AGO = 14;
 const GOOD_ABSENCE_CYCLE = 6;
-export async function seedDevData(database: DatabaseClient): Promise<void> {
+type SeedDevDataOptions = { workspaceInitializationKey?: string };
+
+export async function seedDevData(
+  database: DatabaseClient,
+  options: SeedDevDataOptions = {},
+): Promise<void> {
   const todayIso = saoPauloTodayIso();
   const semester = await upsertSemester(database, currentSemesterSeed(todayIso));
   const teacherIds = await upsertStaff(database);
@@ -48,7 +53,7 @@ export async function seedDevData(database: DatabaseClient): Promise<void> {
   for (const studentSeed of DEV_STUDENTS) {
     studentIds.set(studentSeed.key, await seedStudent(context, studentSeed));
   }
-  await seedDevFinance(database, { todayIso, studentIds });
+  await seedDevFinance(database, { ...options, todayIso, studentIds });
 }
 
 function currentSemesterSeed(todayIso: string): SemesterSeed {

@@ -5,6 +5,11 @@ import Table from "cli-table3";
 
 import { readWorkspaceMetadata } from "./lib/workspace-metadata.mjs";
 import { storybookProxyStatus } from "./lib/workspace-proxy.mjs";
+import {
+  databaseInitializationStatus,
+  observeBucket,
+  observeDatabase,
+} from "./lib/workspace-full.mjs";
 
 const root = process.cwd();
 const STATUS_ARGUMENT_COUNT = 2;
@@ -52,6 +57,14 @@ async function printWorkspaceStatus(workspace) {
     style: { head: [], border: [] },
     wordWrap: true,
   });
+  const databaseState =
+    workspace.profile === "full"
+      ? observeDatabase(root, workspace.resources.database)
+      : "Not provisioned by the light profile";
+  const bucketState =
+    workspace.profile === "full"
+      ? observeBucket(root, workspace.resources.bucket)
+      : "Not provisioned by the light profile";
   table.push(
     [label("Profile"), chalk.bold(workspace.profile)],
     [label("Identity"), workspace.identity],
@@ -60,16 +73,16 @@ async function printWorkspaceStatus(workspace) {
     [label("Web port"), workspace.ports.web],
     [label("Storybook port"), workspace.ports.storybook],
     [label("Storybook proxy"), await storybookProxyStatus(root, workspace)],
-    [
-      label("Database"),
-      `${workspace.resources.database}\n${chalk.yellow("Not provisioned by the light profile")}`,
-    ],
-    [
-      label("Bucket"),
-      `${workspace.resources.bucket}\n${chalk.yellow("Not provisioned by the light profile")}`,
-    ],
+    [label("Database"), `${workspace.resources.database}\n${chalk.yellow(databaseState)}`],
+    [label("Database initialization"), await databaseInitializationStatus(root)],
+    [label("Bucket"), `${workspace.resources.bucket}\n${chalk.yellow(bucketState)}`],
     [label("Shared stack"), observedStackHealth()],
-    [label("Dependencies"), "pnpm for installation; Docker Compose is optional."],
+    [
+      label("Dependencies"),
+      workspace.profile === "full"
+        ? "pnpm, Docker Compose, Postgres, and fake-GCS"
+        : "pnpm for installation; Docker Compose is optional.",
+    ],
   );
   output(chalk.bold("Workspace status"));
   output(chalk.dim("Local configuration and observed shared-stack health"));

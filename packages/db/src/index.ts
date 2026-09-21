@@ -33,7 +33,7 @@ export {
   OrderKind,
   PaymentMethod,
 } from "./generated/prisma/enums.js";
-export { getDatabaseUrl } from "./config.js";
+export { getDatabaseUrl, getWorkspaceInitializationKey } from "./config.js";
 
 /** Shared shape for domain entities under decision 0011. */
 export type UUIDEntity = {

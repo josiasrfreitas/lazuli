@@ -44,6 +44,11 @@ services:
     environment:
       MP_MAX_MESSAGES: "500"
       MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:8025/livez || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   hatchet-lite:
     # V1 engine: Postgres-backed queue, no RabbitMQ. Digest-pinned so `latest` can't drift.
@@ -68,6 +73,11 @@ services:
       SERVER_GRPC_BROADCAST_ADDRESS: "localhost:7077"
     volumes:
       - hatchet-config:/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:8888/api/ready || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
 
   fake-gcs:
     # Local GCS emulator for artifact dev/tests. Digest-pinned so `latest` can't drift.

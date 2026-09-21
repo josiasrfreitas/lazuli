@@ -104,7 +104,7 @@ export function validateWorkspaceMetadata(workspace) {
     `unsupported workspace metadata schema version: ${workspace.schemaVersion}`,
   );
   assertMetadata(
-    workspace.profile === "light",
+    workspace.profile === "light" || workspace.profile === "full",
     `unsupported workspace profile: ${workspace.profile}`,
   );
   assertMetadata(

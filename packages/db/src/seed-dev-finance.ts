@@ -1,5 +1,6 @@
 import type { DatabaseClient, TransactionClient } from "./client.js";
 import { addDays, stableUuid, utcDate } from "./seed-dev-support.js";
+import { createJointOrderForSharedPayerScenario } from "./seed-dev-finance-joint.js";
 
 /**
  * Rebuilds the entire local development finance graph from explicit scenarios.
@@ -16,15 +17,16 @@ const BRUNO_INSTALLMENT_COUNT = 2;
 const BRUNO_DUE_DAY = 10;
 const BRUNO_FIRST_DUE_MONTH_OFFSET = -1;
 const BRUNO_START_MONTH_OFFSET = -2;
-const JOINT_ORDER_DUE_DAY = 10;
-const JOINT_ORDER_INSTALLMENT_CENTS = 35_000;
-const JOINT_ORDER_PARTIAL_PAYMENT_CENTS = 9000;
 const PAYMENT_LEAD_DAYS = 2;
 const COMMON_INSTALLMENT_CENTS = 76_000;
 const PARTIAL_PAYMENT_CENTS = 30_000;
 const BRUNO_INSTALLMENT_CENTS = 38_000;
 
-type FinanceSeedInput = { todayIso: string; studentIds: ReadonlyMap<string, string> };
+export type FinanceSeedInput = {
+  todayIso: string;
+  studentIds: ReadonlyMap<string, string>;
+  workspaceInitializationKey?: string;
+};
 type InstallmentsInput = {
   scenarioKey: string;
   orderId: string;
@@ -34,7 +36,7 @@ type InstallmentsInput = {
 };
 type MonthlyDueDatesInput = { firstDueMonthOffset: number; dueDay: number; count: number };
 type MonthlyDueDateInput = { monthOffset: number; dueDay: number };
-type FinanceDatabase = Pick<
+export type FinanceDatabase = Pick<
   TransactionClient,
   | "financeSettings"
   | "payer"
@@ -44,6 +46,7 @@ type FinanceDatabase = Pick<
   | "installmentAdjustment"
   | "paymentEntry"
   | "paymentAllocation"
+  | "$executeRawUnsafe"
 >;
 
 export async function seedDevFinance(
@@ -63,52 +66,12 @@ export async function seedDevFinance(
     await createSharedPayerScenario(transaction, input);
     await createBrunoScenario(transaction, input);
     await createJointOrderForSharedPayerScenario(transaction, input);
-  });
-}
-
-async function createJointOrderForSharedPayerScenario(
-  database: FinanceDatabase,
-  input: FinanceSeedInput,
-): Promise<void> {
-  const payerId = stableUuid([DEV_FINANCE_KEY, "shared-payer"]);
-  // Keep the historical key so existing local fixture identifiers remain stable.
-  const scenarioKey = "homonym-joint-order";
-  const orderId = stableUuid([DEV_FINANCE_KEY, `${scenarioKey}-order`]);
-  const dueDate = monthlyDueDate(input.todayIso, {
-    monthOffset: 0,
-    dueDay: JOINT_ORDER_DUE_DAY,
-  });
-  await database.order.create({
-    data: {
-      id: orderId,
-      payerId,
-      kind: "TUITION",
-      principalAmountCents: JOINT_ORDER_INSTALLMENT_CENTS,
-      startDate: monthlyDueDate(input.todayIso, { monthOffset: -1, dueDay: JOINT_ORDER_DUE_DAY }),
-      dueDay: JOINT_ORDER_DUE_DAY,
-    },
-  });
-  await database.orderBeneficiary.createMany({
-    data: ["ana", "joao"].map((studentKey) => ({
-      id: stableUuid([DEV_FINANCE_KEY, scenarioKey, studentKey]),
-      orderId,
-      studentId: studentId(input.studentIds, studentKey),
-    })),
-  });
-  const [installmentId] = await createInstallments(database, {
-    scenarioKey,
-    orderId,
-    amountCents: JOINT_ORDER_INSTALLMENT_CENTS,
-    dueDates: [dueDate],
-  });
-  if (installmentId === undefined)
-    throw new Error("Dev seed misconfiguration: missing installment.");
-  await createPayment(database, {
-    scenarioKey: `${scenarioKey}-partial`,
-    payerId,
-    installmentId,
-    amountCents: JOINT_ORDER_PARTIAL_PAYMENT_CENTS,
-    date: addDays(dueDate, 1),
+    if (input.workspaceInitializationKey !== undefined) {
+      await transaction.$executeRawUnsafe(
+        'INSERT INTO "lazuli_local"."workspace_initializations" (key, completed_at) VALUES ($1, NOW()) ON CONFLICT (key) DO UPDATE SET completed_at = EXCLUDED.completed_at',
+        input.workspaceInitializationKey,
+      );
+    }
   });
 }
 
@@ -228,7 +191,7 @@ async function createBrunoScenario(
   });
 }
 
-async function createInstallments(
+export async function createInstallments(
   database: FinanceDatabase,
   input: InstallmentsInput,
 ): Promise<string[]> {
@@ -249,7 +212,7 @@ async function createInstallments(
   return ids;
 }
 
-async function createPayment(
+export async function createPayment(
   database: FinanceDatabase,
   input: {
     scenarioKey: string;
@@ -295,14 +258,14 @@ function sharedOrderStartDate(todayIso: string): Date {
   });
 }
 
-function monthlyDueDate(todayIso: string, input: MonthlyDueDateInput): Date {
+export function monthlyDueDate(todayIso: string, input: MonthlyDueDateInput): Date {
   const today = utcDate(todayIso);
   return new Date(
     Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + input.monthOffset, input.dueDay),
   );
 }
 
-function studentId(studentIds: ReadonlyMap<string, string>, key: string): string {
+export function studentId(studentIds: ReadonlyMap<string, string>, key: string): string {
   const id = studentIds.get(key);
   if (id === undefined) throw new Error(`Dev seed misconfiguration: missing student ${key}.`);
   return id;

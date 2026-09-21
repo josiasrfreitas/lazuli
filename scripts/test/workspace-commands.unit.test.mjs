@@ -12,6 +12,10 @@ const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "
 const setupScript = path.join(repositoryRoot, "scripts/workspace-setup.mjs");
 const statusScript = path.join(repositoryRoot, "scripts/workspace-status.mjs");
 const fakeCaddy = path.join(repositoryRoot, "scripts/test/support/fake-caddy.mjs");
+const fakeWorkspaceCommand = path.join(
+  repositoryRoot,
+  "scripts/test/support/fake-workspace-command.mjs",
+);
 const gitEnvironment = Object.fromEntries(
   Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_")),
 );
@@ -25,12 +29,17 @@ async function fixture(context, name = "lazuli-feature") {
     path.join(directory, ".env.example"),
     "BETTER_AUTH_SECRET=keep-this-secret\nAPP_URL=http://localhost:3000\n",
   );
+  await writeFile(path.join(directory, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+  await mkdir(path.join(directory, "infra/local/gcs-seed"), { recursive: true });
+  await writeFile(path.join(directory, "infra/local/gcs-seed/example.txt"), "expected fixture\n");
   await mkdir(path.join(directory, "bin"));
-  await writeFile(
-    path.join(directory, "bin/pnpm"),
-    '#!/bin/sh\nprintf "%s\\n" "$*" >> "$PNPM_LOG"\n',
-    { mode: 0o755 },
-  );
+  for (const command of ["pnpm", "docker", "curl"]) {
+    await writeFile(
+      path.join(directory, `bin/${command}`),
+      `#!/bin/sh\nexec ${process.execPath} ${fakeWorkspaceCommand} ${command} "$@"\n`,
+      { mode: 0o755 },
+    );
+  }
   execFileSync("git", ["init", "--quiet"], { cwd: directory, env: gitEnvironment });
   execFileSync("git", ["config", "user.email", "tests@example.test"], {
     cwd: directory,
@@ -45,7 +54,7 @@ async function fixture(context, name = "lazuli-feature") {
   return directory;
 }
 
-function run(directory, script, arguments_ = []) {
+function run(directory, script, arguments_ = [], environment = {}) {
   const log = path.join(directory, "pnpm.log");
   return spawnSync(process.execPath, [script, ...arguments_], {
     cwd: directory,
@@ -54,17 +63,21 @@ function run(directory, script, arguments_ = []) {
       ...process.env,
       PATH: `${path.join(directory, "bin")}${path.delimiter}${process.env.PATH}`,
       PNPM_LOG: log,
+      ...environment,
     },
   });
 }
 
 function requestProxy(hostname, port = 80) {
   return new Promise((resolve, reject) => {
-    const request = http.get({ host: "127.0.0.1", port, headers: { host: hostname } }, (response) => {
-      let body = "";
-      response.on("data", (chunk) => (body += chunk));
-      response.on("end", () => resolve({ status: response.statusCode, body }));
-    });
+    const request = http.get(
+      { host: "127.0.0.1", port, headers: { host: hostname } },
+      (response) => {
+        let body = "";
+        response.on("data", (chunk) => (body += chunk));
+        response.on("end", () => resolve({ status: response.statusCode, body }));
+      },
+    );
     request.once("error", reject);
   });
 }
@@ -96,7 +109,7 @@ async function startUpstream(body) {
   return server;
 }
 
-function runAsync(directory, script, arguments_ = []) {
+function runAsync(directory, script, arguments_ = [], environment = {}) {
   const log = path.join(directory, "pnpm.log");
   const child = spawn(process.execPath, [script, ...arguments_], {
     cwd: directory,
@@ -104,6 +117,7 @@ function runAsync(directory, script, arguments_ = []) {
       ...process.env,
       PATH: `${path.join(directory, "bin")}${path.delimiter}${process.env.PATH}`,
       PNPM_LOG: log,
+      ...environment,
     },
   });
   return new Promise((resolve, reject) => {
@@ -120,7 +134,7 @@ function statusWithoutDocker(directory) {
   return spawnSync(process.execPath, [statusScript], {
     cwd: directory,
     encoding: "utf8",
-    env: { ...process.env, PATH: path.join(directory, "bin") },
+    env: { ...process.env, PATH: path.join(directory, "bin"), FAKE_DOCKER_UNAVAILABLE: "1" },
   });
 }
 
@@ -176,7 +190,7 @@ it("keeps metadata and secrets across a branch change while installing again", a
     await readFile(path.join(directory, ".env"), "utf8"),
     /BETTER_AUTH_SECRET=retained/u,
   );
-  assert.equal(await readFile(path.join(directory, "pnpm.log"), "utf8"), "install\ninstall\n");
+  assert.equal(await readFile(path.join(directory, "pnpm.log"), "utf8"), "install\n");
 });
 
 it("rejects an identity that normalizes to an existing registered worktree", async (context) => {
@@ -247,7 +261,7 @@ it("reports light configuration without requiring Docker and ignores the legacy 
   assert.match(result.stdout, /Web URL.*http:/u);
   assert.match(result.stdout, /Database.*lazuli_/u);
   assert.match(result.stdout, /Not provisioned by the light profile/u);
-  assert.match(result.stdout, /Docker is unavailable/u);
+  assert.match(result.stdout, /Docker is not accessible/u);
   assert.doesNotMatch(result.stdout, /Perfil|não provisionado|indisponível/u);
   assert.doesNotMatch(result.stdout, /worktree-bootstrapped/u);
 });
@@ -267,6 +281,190 @@ it("reports a service state when Docker omits its health value", async (context)
   assert.match(result.stdout, /mailpit: running/u);
 });
 
+it("promotes light metadata and initializes each full resource without destructive commands", async (context) => {
+  const directory = await fixture(context, "lazuli-full-promotion");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+
+  const result = run(directory, setupScript, ["full"]);
+  const workspace = await metadata(directory);
+  const journal = JSON.parse(
+    await readFile(path.join(directory, ".lazuli/database-initialization.json"), "utf8"),
+  );
+  const pnpmLog = await readFile(path.join(directory, "pnpm.log"), "utf8");
+  const infraLog = await readFile(path.join(directory, "infra.log"), "utf8");
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(workspace.profile, "full");
+  assert.equal(journal.status, "complete");
+  assert.match(pnpmLog, /^install\nprisma:deploy\nprisma:seed\n$/u);
+  assert.equal(infraLog.match(/^compose up -d$/gmu)?.length, 1);
+  assert.match(infraLog, /CREATE SCHEMA IF NOT EXISTS lazuli_local/u);
+  assert.doesNotMatch(`${pnpmLog}${infraLog}`, /migrate dev|reset/iu);
+  assert.equal(
+    await readFile(path.join(directory, ".fake-infra/object-example.txt"), "utf8"),
+    "expected fixture\n",
+  );
+});
+
+it("repeats full setup without reseeding the database or overwriting a GCS object", async (context) => {
+  const directory = await fixture(context, "lazuli-full-repeat");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  assert.equal(run(directory, setupScript, ["full"]).status, 0);
+  await writeFile(path.join(directory, ".fake-infra/object-example.txt"), "local edit\n");
+
+  const result = run(directory, setupScript, ["full"]);
+  const pnpmLog = await readFile(path.join(directory, "pnpm.log"), "utf8");
+  const infraLog = await readFile(path.join(directory, "infra.log"), "utf8");
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(pnpmLog.match(/^prisma:deploy$/gmu)?.length, 2);
+  assert.equal(pnpmLog.match(/^prisma:seed$/gmu)?.length, 1);
+  assert.equal(infraLog.match(/^compose up -d$/gmu)?.length, 2);
+  assert.equal(
+    await readFile(path.join(directory, ".fake-infra/object-example.txt"), "utf8"),
+    "local edit\n",
+  );
+});
+
+it("preserves a preexisting database and only applies migrations", async (context) => {
+  const directory = await fixture(context, "lazuli-full-existing-database");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  await mkdir(path.join(directory, ".fake-infra"), { recursive: true });
+  await writeFile(path.join(directory, ".fake-infra/database"), "existing data\n");
+
+  const result = run(directory, setupScript, ["full"]);
+  const pnpmLog = await readFile(path.join(directory, "pnpm.log"), "utf8");
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(pnpmLog, /prisma:deploy/u);
+  assert.doesNotMatch(pnpmLog, /prisma:seed/u);
+  await assert.rejects(
+    readFile(path.join(directory, ".lazuli/database-initialization.json"), "utf8"),
+    { code: "ENOENT" },
+  );
+});
+
+it("keeps database initialization pending after seed failure and resumes it", async (context) => {
+  const directory = await fixture(context, "lazuli-full-seed-resume");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  await mkdir(path.join(directory, ".fake-infra"), { recursive: true });
+  await writeFile(path.join(directory, ".fake-infra/fail-seed-once"), "armed\n");
+
+  const failed = run(directory, setupScript, ["full"]);
+  const pending = JSON.parse(
+    await readFile(path.join(directory, ".lazuli/database-initialization.json"), "utf8"),
+  );
+  const resumed = run(directory, setupScript, ["full"]);
+  const complete = JSON.parse(
+    await readFile(path.join(directory, ".lazuli/database-initialization.json"), "utf8"),
+  );
+
+  assert.equal(failed.status, 1);
+  assert.match(failed.stderr, /database initialization.*docker compose ps.*workspace:setup full/su);
+  assert.equal(pending.status, "pending");
+  assert.equal(resumed.status, 0, resumed.stderr);
+  assert.equal(complete.status, "complete");
+});
+
+it("does not reseed after fixture initialization commits but journal completion is interrupted", async (context) => {
+  const directory = await fixture(context, "lazuli-full-journal-resume");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+
+  const interrupted = run(directory, setupScript, ["full"], {
+    FAKE_BLOCK_COMPLETION_JOURNAL: "1",
+  });
+  const journalPath = path.join(directory, ".lazuli/database-initialization.json");
+  const seededPath = path.join(directory, ".fake-infra/seeded");
+
+  assert.equal(interrupted.status, 1);
+  const seededAfterInterruption = await readFile(seededPath, "utf8");
+  assert.equal(seededAfterInterruption.split("\n").filter(Boolean).length, 1);
+  await rm(journalPath, { force: true, recursive: true });
+  await mkdir(path.dirname(journalPath), { recursive: true });
+  await writeFile(
+    journalPath,
+    `${JSON.stringify({ database: "lazuli_lazuli_full_journal_resume", status: "pending" })}\n`,
+  );
+
+  const resumed = run(directory, setupScript, ["full"]);
+  const complete = JSON.parse(await readFile(journalPath, "utf8"));
+
+  assert.equal(resumed.status, 0, resumed.stderr);
+  const seededAfterResume = await readFile(seededPath, "utf8");
+  assert.equal(seededAfterResume.split("\n").filter(Boolean).length, 1);
+  assert.equal(complete.status, "complete");
+  assert.match(resumed.stdout, /Finalizing completed database initialization/u);
+});
+
+it("serializes concurrent full promotions and rereads completed initialization", async (context) => {
+  const directory = await fixture(context, "lazuli-full-concurrent");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+
+  const results = await Promise.all([
+    runAsync(directory, setupScript, ["full"], { FAKE_SEED_DELAY_MS: "250" }),
+    runAsync(directory, setupScript, ["full"], { FAKE_SEED_DELAY_MS: "250" }),
+  ]);
+  const pnpmLog = await readFile(path.join(directory, "pnpm.log"), "utf8");
+
+  assert.deepEqual(
+    results.map((result) => result.status),
+    [0, 0],
+    results.map((result) => result.stderr).join("\n"),
+  );
+  assert.equal(pnpmLog.match(/^prisma:seed$/gmu)?.length, 1);
+  assert.equal(pnpmLog.match(/^prisma:deploy$/gmu)?.length, 2);
+});
+
+it("fails an unhealthy declared service with actionable diagnostics", async (context) => {
+  const directory = await fixture(context, "lazuli-full-unhealthy");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+
+  const result = run(directory, setupScript, ["full"], {
+    FAKE_UNHEALTHY_SERVICE: "hatchet-lite",
+    LAZULI_COMPOSE_HEALTH_TIMEOUT_MS: "1",
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /hatchet-lite is unhealthy/u);
+  assert.match(result.stderr, /docker compose logs hatchet-lite/u);
+  assert.match(result.stderr, /pnpm workspace:setup full/u);
+});
+
+it("fails when a declared Compose service is absent", async (context) => {
+  const directory = await fixture(context, "lazuli-full-missing-service");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+
+  const result = run(directory, setupScript, ["full"], {
+    FAKE_MISSING_SERVICE: "mailpit",
+    LAZULI_COMPOSE_HEALTH_TIMEOUT_MS: "1",
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /mailpit is absent/u);
+  assert.match(result.stderr, /docker compose logs mailpit/u);
+});
+
+it("reports observed full resources and incomplete database initialization without starting Compose", async (context) => {
+  const directory = await fixture(context, "lazuli-full-status");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  assert.equal(run(directory, setupScript, ["full"]).status, 0);
+  await writeFile(
+    path.join(directory, ".lazuli/database-initialization.json"),
+    `${JSON.stringify({ status: "pending" })}\n`,
+  );
+  await writeFile(path.join(directory, "infra.log"), "");
+
+  const result = run(directory, statusScript);
+  const infraLog = await readFile(path.join(directory, "infra.log"), "utf8");
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Profile.*full/u);
+  assert.match(result.stdout, /Database.*exists/su);
+  assert.match(result.stdout, /Bucket.*exists/su);
+  assert.match(result.stdout, /incomplete \(retry setup full\)/u);
+  assert.doesNotMatch(infraLog, /compose up/u);
+});
+
 it("upgrades the former port-80 Storybook URL when reading light metadata", async (context) => {
   const directory = await fixture(context, "lazuli-storybook-url-upgrade");
   assert.equal(run(directory, setupScript, ["light"]).status, 0);
@@ -277,7 +475,10 @@ it("upgrades the former port-80 Storybook URL when reading light metadata", asyn
   const { readWorkspaceMetadata } = await import("../lib/workspace-metadata.mjs");
   const upgraded = await readWorkspaceMetadata(directory);
 
-  assert.equal(upgraded.urls.storybook, `http://storybook.${workspace.identity}.lazuli.localhost:8080`);
+  assert.equal(
+    upgraded.urls.storybook,
+    `http://storybook.${workspace.identity}.lazuli.localhost:8080`,
+  );
 });
 
 it("routes two live Storybook leases by their stable hostnames and removes its own lease", async (context) => {
@@ -323,7 +524,8 @@ it("routes two live Storybook leases by their stable hostnames and removes its o
       process: { pid: 999_999, startedAt: "Thu Jan  1 00:00:00 1970" },
     }),
   );
-  const { registerStorybookRoute, unregisterStorybookRoute } = await import("../lib/workspace-proxy.mjs");
+  const { registerStorybookRoute, unregisterStorybookRoute } =
+    await import("../lib/workspace-proxy.mjs");
   await registerStorybookRoute(directory, source);
   const unrelatedServer = {
     listen: ["127.0.0.1:18_081"],
@@ -339,9 +541,15 @@ it("routes two live Storybook leases by their stable hostnames and removes its o
   const configurationAfterReload = JSON.parse(reloadedCaddy.body);
   const sourceResponse = await requestProxy(new URL(source.urls.storybook).hostname, caddyHttpPort);
   const otherResponse = await requestProxy(new URL(other.urls.storybook).hostname, caddyHttpPort);
-  const abandonedResponse = await requestProxy("storybook.abandoned.lazuli.localhost", caddyHttpPort);
+  const abandonedResponse = await requestProxy(
+    "storybook.abandoned.lazuli.localhost",
+    caddyHttpPort,
+  );
   await unregisterStorybookRoute(directory, source);
-  const removedResponse = await requestProxy(new URL(source.urls.storybook).hostname, caddyHttpPort);
+  const removedResponse = await requestProxy(
+    new URL(source.urls.storybook).hostname,
+    caddyHttpPort,
+  );
   await unregisterStorybookRoute(sibling, other);
   try {
     const caddyPid = Number(await readFile(path.join(stateDirectory, "fake-caddy.pid"), "utf8"));

@@ -41,13 +41,32 @@ Common commands: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integrat
 ### Worktrees
 
 New linked worktrees run `pnpm workspace:setup light` from the checkout hook. The light profile
-always installs dependencies, records stable local intent in `.lazuli/workspace.json`, and updates
+installs dependencies when `node_modules` is absent or its pnpm lock snapshot is stale, records
+stable local intent in `.lazuli/workspace.json`, and updates
 the worktree-derived `.env` values. It does not require or start Docker, provision a database or
 bucket, run migrations, or load fixtures.
 
 Run `pnpm workspace:status` to inspect the persisted identity, URLs, ports, intended resources,
 the Storybook proxy lease, and any observable health of the optional shared Docker stack. Database
 and bucket entries are intent only in the light profile.
+
+Promote an existing light worktree with `pnpm workspace:setup full`. Promotion keeps its identity,
+ports, secrets, database name, and bucket name. It reconciles the shared Docker Compose stack once,
+waits for every declared service, creates only missing worktree resources, always applies deployed
+migrations, and loads database fixtures only for a database created by this setup flow. GCS seed
+objects are uploaded only when absent, so locally edited objects are preserved. Caddy remains owned
+by the Storybook command and is not part of full setup.
+
+The full command is serialized per worktree and safe to repeat. If it stops after database creation
+or during seed, `.lazuli/database-initialization.json` remains pending and the next
+`pnpm workspace:setup full` resumes initialization. An already existing database with no pending
+journal is treated as user data: migrations run, but fixtures are not reloaded. Workspace metadata
+records the requested profile; `pnpm workspace:status` separately observes the current database,
+bucket, initialization journal, and Compose service health without starting anything.
+
+When promotion fails, inspect the shared stack with `docker compose ps` and the affected service
+with `docker compose logs <service>`, then retry `pnpm workspace:setup full`. The command does not
+reset a database or replace existing GCS objects.
 
 Run `pnpm storybook` from a light worktree to serve it at the worktree's Storybook URL. This starts
 a shared Caddy instance bound only to `127.0.0.1:8080` when needed, then leases the hostname only
