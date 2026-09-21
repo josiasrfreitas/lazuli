@@ -38,6 +38,20 @@ Docker Compose for local services.
 Common commands: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`,
 `pnpm test:transport`, `pnpm build`, and `pnpm format:check`.
 
+### Worktrees
+
+New linked worktrees run `pnpm workspace:setup light` from the checkout hook. The light profile
+always installs dependencies, records stable local intent in `.lazuli/workspace.json`, and updates
+the worktree-derived `.env` values. It does not require or start Docker, provision a database or
+bucket, run migrations, or load fixtures.
+
+Run `pnpm workspace:status` to inspect the persisted identity, URLs, ports, intended resources,
+and any observable health of the optional shared Docker stack. Database and bucket entries are
+intent only in the light profile.
+
+`pnpm bootstrap:worktree` remains a temporary bridge for worktrees created before this flow. It
+refuses a checkout with `.lazuli/workspace.json` so legacy and light ownership cannot mix.
+
 ### Resetting development data
 
 Run `pnpm db:reset` from the repository root to discard the configured local database,

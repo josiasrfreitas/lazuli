@@ -4,6 +4,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if [[ -f .lazuli/workspace.json ]]; then
+  echo "This checkout has light workspace metadata. Use pnpm workspace:setup light; bootstrap:worktree is only for legacy worktrees." >&2
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/worktree-db.sh
 source "$SCRIPT_DIR/lib/worktree-db.sh"

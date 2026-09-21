@@ -59,6 +59,7 @@ packages/db/src/generated/kysely/
 # Misc local scratch
 tmp/
 .worktree-bootstrapped
+.lazuli/workspace.json
 docs/discovery
 
 # Mutation testing

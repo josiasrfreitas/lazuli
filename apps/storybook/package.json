@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "storybook dev --port $(( ${CONDUCTOR_PORT:-6005} + 1 ))",
+    "dev": "storybook dev --port ${LAZULI_STORYBOOK_PORT:-6006}",
     "build": "storybook build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
