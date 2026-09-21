@@ -1,31 +1,19 @@
-# Pre-commit gates — mirrors .github/workflows/ci.yml "Quality gates" job.
-# Integration/transport tiers (test:integration, test:transport) stay in CI; they need Docker.
+# Cheap staged-only checks. Infrastructure and compilation belong to pre-push.
 
 pre-commit:
   piped: true
   jobs:
     - name: format
-      glob: "*.{ts,tsx,md,json,yaml,yml}"
+      glob: "*.{js,cjs,mjs,ts,tsx,css,md,json,yaml,yml}"
       run: pnpm exec prettier --write --ignore-path .gitignore --ignore-path .prettierignore {staged_files}
       stage_fixed: true
-    - name: checks
-      group:
-        parallel: true
-        jobs:
-          - name: lint
-            run: pnpm lint
-          - name: test-quality-changed
-            run: pnpm test:quality:changed --staged
-          - name: typecheck
-            run: pnpm typecheck
-    # Guardrail unit tests create temporary source fixtures; run them after readers.
-    - name: test
-      run: pnpm test
+    - name: staged-checks
+      run: pnpm check:pre-commit
 
 pre-push:
   commands:
-    affected-tests:
-      run: pnpm test:affected --base origin/main
+    affected-checks:
+      run: pnpm check:pre-push --base origin/main
 
 post-checkout:
   commands:
