@@ -167,6 +167,7 @@ async function setupLight() {
     output(`Created light workspace metadata for ${workspace.identity}.`);
   } else {
     output(`Using existing ${workspace.profile} workspace metadata for ${workspace.identity}.`);
+    await persistWorkspace(workspace);
   }
   await prepareDependencies(workspace);
   output("Light workspace setup complete.");
@@ -180,6 +181,7 @@ async function setupFull() {
     }
     if (workspace.profile === "full") {
       output(`Resuming full workspace setup for ${workspace.identity}.`);
+      await persistWorkspace(workspace);
     } else {
       workspace = { ...workspace, profile: "full" };
       await persistWorkspace(workspace);

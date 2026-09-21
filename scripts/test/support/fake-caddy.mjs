@@ -38,7 +38,7 @@ const admin = http.createServer(async (request, response) => {
   response.writeHead(404).end();
 });
 
-const proxy = http.createServer((request, response) => {
+function proxyRequest(request, response) {
   const hostname = request.headers.host?.split(":")[0];
   const route = routes().find((candidate) => candidate.match?.[0]?.host?.includes(hostname));
   if (route === undefined) {
@@ -55,18 +55,28 @@ const proxy = http.createServer((request, response) => {
   );
   upstream.on("error", () => response.writeHead(502).end());
   request.pipe(upstream);
-});
+}
+
+const proxy = http.createServer(proxyRequest);
+const proxyIpv6 = http.createServer(proxyRequest);
 
 await new Promise((resolve) => admin.listen(adminPort, "127.0.0.1", resolve));
 await new Promise((resolve) => proxy.listen(httpPort, "127.0.0.1", resolve));
-await writeFile(path.join(process.env.LAZULI_PROXY_STATE_DIR, "fake-caddy.pid"), `${process.pid}\n`);
+await new Promise((resolve) => proxyIpv6.listen(httpPort, "::1", resolve));
+await writeFile(
+  path.join(process.env.LAZULI_PROXY_STATE_DIR, "fake-caddy.pid"),
+  `${process.pid}\n`,
+);
 
 function stop() {
   admin.closeAllConnections();
   proxy.closeAllConnections();
+  proxyIpv6.closeAllConnections();
   admin.close();
   proxy.close(() => {
-    process.exitCode = 0;
+    proxyIpv6.close(() => {
+      process.exitCode = 0;
+    });
   });
 }
 

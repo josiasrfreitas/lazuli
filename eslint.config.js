@@ -62,13 +62,15 @@ export default [
     },
   },
   {
-    files: ["scripts/lib/workspace-proxy.mjs", "scripts/storybook.mjs"],
+    files: ["scripts/development.mjs", "scripts/lib/workspace-proxy.mjs", "scripts/storybook.mjs"],
     // The proxy adapter owns its local process and Caddy configuration boundary.
     languageOptions: {
       globals: { AbortSignal: "readonly", fetch: "readonly", URL: "readonly" },
     },
     rules: {
       "no-restricted-syntax": "off",
+      "max-lines": "off",
+      "max-params": "off",
     },
   },
   {

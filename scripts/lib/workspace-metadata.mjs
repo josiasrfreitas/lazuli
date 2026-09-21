@@ -23,14 +23,14 @@ export function normalizeWorkspaceIdentity(directoryName) {
 export function workspaceUrls(identity) {
   return {
     web: `http://${identity}.lazuli.localhost`,
-    storybook: `http://storybook.${identity}.lazuli.localhost:8080`,
+    storybook: `http://storybook.${identity}.lazuli.localhost`,
   };
 }
 
 function legacyWorkspaceUrls(identity) {
   return {
     web: `http://${identity}.lazuli.localhost`,
-    storybook: `http://storybook.${identity}.lazuli.localhost`,
+    storybook: `http://storybook.${identity}.lazuli.localhost:8080`,
   };
 }
 

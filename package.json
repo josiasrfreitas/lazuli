@@ -8,8 +8,8 @@
   "packageManager": "pnpm@11.6.0",
   "scripts": {
     "build": "turbo run build",
-    "dev": "pnpm runtime:check && dotenv -e .env -- turbo run dev --filter=@lazuli/web",
-    "dev:worker": "pnpm runtime:check && dotenv -e .env -- turbo run dev --filter=@lazuli/worker",
+    "dev": "pnpm runtime:check && dotenv -e .env -- node scripts/development.mjs web",
+    "dev:worker": "pnpm runtime:check && dotenv -e .env -- node scripts/development.mjs worker",
     "storybook": "dotenv -e .env -- node scripts/storybook.mjs",
     "storybook:build": "pnpm -F @lazuli/storybook build",
     "start": "pnpm runtime:check && dotenv -e .env -- pnpm -F @lazuli/web start",

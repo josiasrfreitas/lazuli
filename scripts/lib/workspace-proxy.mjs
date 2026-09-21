@@ -8,12 +8,13 @@ import { setTimeout as wait } from "node:timers/promises";
 import { withWorkspaceAllocationLock } from "./workspace-metadata.mjs";
 
 const DEFAULT_CADDY_ADMIN_PORT = 2019;
-const DEFAULT_CADDY_HTTP_PORT = 8080;
+const DEFAULT_CADDY_HTTP_PORT = 80;
 const CADDY_ADMIN_PORT = Number(process.env.LAZULI_CADDY_ADMIN_PORT ?? DEFAULT_CADDY_ADMIN_PORT);
 const CADDY_HTTP_PORT = Number(process.env.LAZULI_CADDY_HTTP_PORT ?? DEFAULT_CADDY_HTTP_PORT);
 const CADDY_ADMIN_URL = `http://127.0.0.1:${CADDY_ADMIN_PORT}`;
 const CADDY_CONFIG_NAME = "lazuli-caddy.json";
 const CADDY_SERVER_NAME = "lazuli_storybook_proxy_v1";
+const LEGACY_CADDY_SERVER_NAME = "lazuli";
 const CADDY_ROUTE_MARKER = "lazuli-storybook-proxy-v1-marker";
 const LEASES_DIRECTORY = "lazuli-proxy-leases";
 const LEASE_VERSION = 1;
@@ -22,6 +23,7 @@ const CADDY_START_SETTLE_MS = 250;
 const CADDY_START_ATTEMPTS = 10;
 const CADDY_START_RETRY_MS = 100;
 const HTTP_SERVER_ERROR_START = 500;
+const CADDY_HTTP_LISTENERS = [`127.0.0.1:${CADDY_HTTP_PORT}`, `[::1]:${CADDY_HTTP_PORT}`];
 
 function sharedStateDirectory(root) {
   if (process.env.LAZULI_PROXY_STATE_DIR) return path.resolve(process.env.LAZULI_PROXY_STATE_DIR);
@@ -51,7 +53,7 @@ function caddyConfiguration(routes) {
       http: {
         servers: {
           [CADDY_SERVER_NAME]: {
-            listen: [`127.0.0.1:${CADDY_HTTP_PORT}`],
+            listen: CADDY_HTTP_LISTENERS,
             automatic_https: { disable: true },
             routes: [
               {
@@ -60,6 +62,9 @@ function caddyConfiguration(routes) {
                 handle: [{ handler: "static_response", status_code: 404 }],
               },
               ...routes,
+              {
+                handle: [{ handler: "static_response", status_code: 404 }],
+              },
             ],
           },
         },
@@ -111,7 +116,7 @@ function leasePath(stateDirectory, lease) {
   return path.join(
     stateDirectory,
     LEASES_DIRECTORY,
-    `${lease.workspaceIdentity}-storybook-${lease.process.pid}-${encodeURIComponent(lease.process.startedAt)}.json`,
+    `${lease.workspaceIdentity}-${lease.service}-${lease.process.pid}-${encodeURIComponent(lease.process.startedAt)}.json`,
   );
 }
 
@@ -126,7 +131,7 @@ async function readLease(file) {
     ) {
       return null;
     }
-    return lease;
+    return { ...lease, service: lease.service ?? "storybook" };
   } catch {
     return null;
   }
@@ -164,18 +169,56 @@ async function caddyConfigurationFromAdmin() {
 }
 
 function caddyIsManaged(configuration) {
-  const server = configuration?.apps?.http?.servers?.[CADDY_SERVER_NAME];
+  const server = managedServer(configuration);
   return (
-    server?.listen?.includes(`127.0.0.1:${CADDY_HTTP_PORT}`) &&
+    CADDY_HTTP_LISTENERS.every((listener) => server?.listen?.includes(listener)) &&
     server.routes?.some((route) => route["@id"] === CADDY_ROUTE_MARKER)
   );
 }
 
+function caddyIsLegacyManaged(configuration) {
+  if (caddyServerHasMarker(configuration, CADDY_SERVER_NAME)) return CADDY_SERVER_NAME;
+  return legacyCaddyServerIsLazuli(configuration) ? LEGACY_CADDY_SERVER_NAME : null;
+}
+
+function caddyServerHasMarker(configuration, serverName) {
+  const server = configuration?.apps?.http?.servers?.[serverName];
+  return server?.routes?.some((route) => route["@id"] === CADDY_ROUTE_MARKER) === true;
+}
+
+function legacyCaddyServerIsLazuli(configuration) {
+  const legacyServer = configuration?.apps?.http?.servers?.[LEGACY_CADDY_SERVER_NAME];
+  const routes = legacyServer?.routes;
+  if (!Array.isArray(routes) || routes.length === 0) return null;
+  return routes.every((route) => legacyRouteBelongsToLazuli(route));
+}
+
+function legacyRouteBelongsToLazuli(route) {
+  const hosts = route.match?.flatMap((matcher) => matcher.host ?? []) ?? [];
+  const upstreams = route.handle?.flatMap((handler) => handler.upstreams ?? []) ?? [];
+  const localHosts = hosts.every((host) => host.endsWith(".lazuli.localhost"));
+  const localUpstreams = upstreams.every(
+    (upstream) => upstream.dial?.startsWith("127.0.0.1:") === true,
+  );
+  return hosts.length > 0 && upstreams.length > 0 && localHosts && localUpstreams;
+}
+
+function managedServer(configuration) {
+  const servers = configuration?.apps?.http?.servers;
+  return servers?.[CADDY_SERVER_NAME] ?? servers?.[LEGACY_CADDY_SERVER_NAME];
+}
+
+function managedServerName(configuration) {
+  return configuration?.apps?.http?.servers?.[CADDY_SERVER_NAME] === undefined
+    ? LEGACY_CADDY_SERVER_NAME
+    : CADDY_SERVER_NAME;
+}
+
 function caddyStartError(detail = "") {
   if (/permission denied|operation not permitted|eacces|bind.*permission/iu.test(detail)) {
-    return `Caddy could not bind 127.0.0.1:${CADDY_HTTP_PORT} because permission was denied. Choose an unprivileged LAZULI_CADDY_HTTP_PORT and retry.`;
+    return `Caddy could not bind a local listener on port ${CADDY_HTTP_PORT} because permission was denied. Lazuli requires its canonical local URLs on port 80; grant Caddy permission to bind that port and retry.`;
   }
-  return `Caddy could not start because 127.0.0.1:${CADDY_HTTP_PORT} or its admin port ${CADDY_ADMIN_PORT} is occupied. Free that port and retry.`;
+  return `Caddy could not start because a local listener on port ${CADDY_HTTP_PORT} or its admin port ${CADDY_ADMIN_PORT} is occupied. Free the port and retry.`;
 }
 
 async function startCaddy(configurationPath) {
@@ -206,7 +249,8 @@ async function startCaddy(configurationPath) {
 
 async function caddyBecomesManaged() {
   for (let attempt = 0; attempt < CADDY_START_ATTEMPTS; attempt += 1) {
-    if (caddyIsManaged(await caddyConfigurationFromAdmin())) return true;
+    const configuration = await caddyConfigurationFromAdmin();
+    if (caddyIsManaged(configuration)) return true;
     await wait(CADDY_START_RETRY_MS);
   }
   return false;
@@ -214,17 +258,45 @@ async function caddyBecomesManaged() {
 
 async function ensureCaddy(stateDirectory) {
   const existingConfiguration = await caddyConfigurationFromAdmin();
-  if (existingConfiguration !== null) {
-    if (caddyIsManaged(existingConfiguration)) return;
+  if (existingConfiguration !== null) return await reconcileExistingCaddy(existingConfiguration);
+  await startManagedCaddy(stateDirectory);
+}
+
+async function reconcileExistingCaddy(configuration) {
+  if (caddyIsManaged(configuration)) return;
+  const legacyServerName = caddyIsLegacyManaged(configuration);
+  if (legacyServerName === null) {
     throw new Error(
       `Caddy's admin API on 127.0.0.1:${CADDY_ADMIN_PORT} belongs to another configuration. Lazuli will not replace it; stop that Caddy instance or configure it separately.`,
     );
   }
+  await migrateLegacyCaddy(configuration, legacyServerName);
+}
+
+async function migrateLegacyCaddy(configuration, serverName) {
+  const server = caddyConfiguration([]).apps.http.servers[CADDY_SERVER_NAME];
+  configuration.apps.http.servers[serverName] = server;
+  const response = await caddyAdminRequest("/load", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(configuration),
+  });
+  if (response.ok) return;
+  const responseBody = await response.text();
+  const detail = responseBody.trim();
+  throw new Error(
+    `Lazuli's Caddy listener could not migrate to 127.0.0.1:${CADDY_HTTP_PORT} (${response.status}${detail ? `: ${detail}` : ""}). Free port ${CADDY_HTTP_PORT}, ensure Caddy may bind it, and retry.`,
+  );
+}
+
+async function startManagedCaddy(stateDirectory) {
   const configurationPath = path.join(stateDirectory, CADDY_CONFIG_NAME);
   await writeFile(configurationPath, `${JSON.stringify(caddyConfiguration([]), null, 2)}\n`);
   const { started, standardError } = await startCaddy(configurationPath);
   if (started.error?.code === "ENOENT") {
-    throw new Error("Caddy is required for stable local URLs. Install it with 'brew install caddy'.");
+    throw new Error(
+      "Caddy is required for stable local URLs. Install it with 'brew install caddy'.",
+    );
   }
   if (started.code !== undefined && started.code !== 0) {
     throw new Error(caddyStartError(standardError));
@@ -236,11 +308,14 @@ async function ensureCaddy(stateDirectory) {
 async function reloadCaddy(leases) {
   const existingConfiguration = await caddyConfigurationFromAdmin();
   if (!caddyIsManaged(existingConfiguration)) {
-    throw new Error("Lazuli's managed Caddy instance is no longer available; refusing to replace its configuration.");
+    throw new Error(
+      "Lazuli's managed Caddy instance is no longer available; refusing to replace its configuration.",
+    );
   }
   const routes = leases.map((lease) => routeForLease(lease));
   const server = caddyConfiguration(routes).apps.http.servers[CADDY_SERVER_NAME];
-  const response = await caddyAdminRequest(`/config/apps/http/servers/${CADDY_SERVER_NAME}`, {
+  const serverName = managedServerName(existingConfiguration);
+  const response = await caddyAdminRequest(`/config/apps/http/servers/${serverName}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(server),
@@ -254,7 +329,9 @@ async function routeAvailability(lease) {
     const response = await request(`http://127.0.0.1:${CADDY_HTTP_PORT}`, {
       headers: { host: lease.hostname },
     });
-    return response.status < HTTP_SERVER_ERROR_START ? "available" : `unavailable (HTTP ${response.status})`;
+    return response.status < HTTP_SERVER_ERROR_START
+      ? "available"
+      : `unavailable (HTTP ${response.status})`;
   } catch {
     return "unavailable";
   }
@@ -273,19 +350,26 @@ export async function assertLocalHostname(url) {
   );
 }
 
-export async function registerStorybookRoute(root, workspace) {
-  await assertLocalHostname(workspace.urls.storybook);
+export async function registerWorkspaceRoute(root, workspace, service) {
+  const url = workspace.urls[service];
+  const port = workspace.ports[service];
+  if (url === undefined || port === undefined || !["web", "storybook"].includes(service)) {
+    throw new Error(`unsupported workspace proxy service: ${service}`);
+  }
+  await assertLocalHostname(url);
   const stateDirectory = sharedStateDirectory(root);
   await withWorkspaceAllocationLock(root, async () => {
     await mkdir(path.join(stateDirectory, LEASES_DIRECTORY), { recursive: true });
     const lease = {
       version: LEASE_VERSION,
       workspaceIdentity: workspace.identity,
-      hostname: new URL(workspace.urls.storybook).hostname,
-      port: workspace.ports.storybook,
+      service,
+      hostname: new URL(url).hostname,
+      port,
       process: { pid: process.pid, startedAt: await processStart(process.pid) },
     };
-    if (lease.process.startedAt === null) throw new Error("could not verify the Storybook process ownership");
+    if (lease.process.startedAt === null)
+      throw new Error(`could not verify the ${service} process ownership`);
     await ensureCaddy(stateDirectory);
     const file = leasePath(stateDirectory, lease);
     await writeFile(`${file}.${process.pid}.tmp`, `${JSON.stringify(lease, null, 2)}\n`);
@@ -294,18 +378,20 @@ export async function registerStorybookRoute(root, workspace) {
   });
 }
 
-export async function unregisterStorybookRoute(root, workspace) {
+export async function unregisterWorkspaceRoute(root, workspace, service) {
   const stateDirectory = sharedStateDirectory(root);
   await withWorkspaceAllocationLock(root, async () => {
     const processOwnership = { pid: process.pid, startedAt: await processStart(process.pid) };
     if (processOwnership.startedAt === null) return;
     const file = leasePath(stateDirectory, {
       workspaceIdentity: workspace.identity,
+      service,
       process: processOwnership,
     });
     const lease = await readLease(file);
     if (
       lease?.workspaceIdentity === workspace.identity &&
+      lease.service === service &&
       lease.process?.pid === process.pid &&
       lease.process?.startedAt === (await processStart(process.pid))
     ) {
@@ -317,7 +403,7 @@ export async function unregisterStorybookRoute(root, workspace) {
   });
 }
 
-export async function storybookProxyStatus(root, workspace) {
+export async function workspaceProxyStatus(root, workspace, service) {
   let stateDirectory;
   try {
     stateDirectory = sharedStateDirectory(root);
@@ -328,10 +414,18 @@ export async function storybookProxyStatus(root, workspace) {
   const lease = leases.find(
     (candidate) =>
       candidate.workspaceIdentity === workspace.identity &&
-      candidate.hostname === new URL(workspace.urls.storybook).hostname &&
-      candidate.port === workspace.ports.storybook,
+      candidate.service === service &&
+      candidate.hostname === new URL(workspace.urls[service]).hostname &&
+      candidate.port === workspace.ports[service],
   );
   const leaseIsLive = lease !== undefined;
   if (!leaseIsLive) return "not registered";
-  return `registered to a running Storybook process; route ${await routeAvailability(lease)}`;
+  return `registered to a running ${service} process; route ${await routeAvailability(lease)}`;
 }
+
+export const registerStorybookRoute = (root, workspace) =>
+  registerWorkspaceRoute(root, workspace, "storybook");
+export const unregisterStorybookRoute = (root, workspace) =>
+  unregisterWorkspaceRoute(root, workspace, "storybook");
+export const storybookProxyStatus = (root, workspace) =>
+  workspaceProxyStatus(root, workspace, "storybook");

@@ -30,10 +30,9 @@ Prerequisites: Node.js `^22.13.0 || >=24.0.0 <25 || ^26.0.0`, pnpm `11.6.0`, and
 Docker Compose for local services.
 
 1. Copy `.env.example` to `.env` and supply the required local values.
-2. Start local services with `docker compose up -d`.
-3. Install dependencies with `pnpm install`.
-4. Start the web app with `pnpm dev`, Storybook with `pnpm storybook`, or the worker with
-   `pnpm dev:worker`.
+2. Run `pnpm workspace:setup light`, then promote with `pnpm workspace:setup full` for Web or Worker.
+3. Start the web app with `pnpm dev`, Storybook with `pnpm storybook`, or the worker with
+   `pnpm dev:worker`. Web is available at the hostname shown by `pnpm workspace:status`.
 
 Common commands: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`,
 `pnpm test:transport`, `pnpm build`, and `pnpm format:check`.
@@ -47,7 +46,7 @@ the worktree-derived `.env` values. It does not require or start Docker, provisi
 bucket, run migrations, or load fixtures.
 
 Run `pnpm workspace:status` to inspect the persisted identity, URLs, ports, intended resources,
-the Storybook proxy lease, and any observable health of the optional shared Docker stack. Database
+the Web and Storybook proxy leases, and any observable health of the optional shared Docker stack. Database
 and bucket entries are intent only in the light profile.
 
 Promote an existing light worktree with `pnpm workspace:setup full`. Promotion keeps its identity,
@@ -68,12 +67,18 @@ When promotion fails, inspect the shared stack with `docker compose ps` and the 
 with `docker compose logs <service>`, then retry `pnpm workspace:setup full`. The command does not
 reset a database or replace existing GCS objects.
 
-Run `pnpm storybook` from a light worktree to serve it at the worktree's Storybook URL. This starts
-a shared Caddy instance bound only to `127.0.0.1:8080` when needed, then leases the hostname only
+Run `pnpm storybook` from a light worktree to serve it at the worktree's Storybook URL. `pnpm dev`
+does the same for Web after reconciling the full profile. These commands start a shared Caddy
+instance bound only to `127.0.0.1:80` when needed, then lease each hostname only
 for the lifetime of the Storybook command. Install Caddy first with `brew install caddy`. Caddy does
 not require Docker or any Lazuli data service. If its HTTP or admin port is occupied, the hostname
 does not resolve to loopback, or an unrelated Caddy instance uses the selected admin port, the command
 stops with a corrective diagnostic.
+
+For local sign-in, leave both Google OAuth values empty, request a magic link for
+`dev@lazuli.local`, and open the captured message at `http://localhost:8025`. The link returns to
+the current worktree hostname, and its session cookie is scoped to that hostname. Configure both
+Google values together to enable the Google button; a partial pair is rejected.
 
 `pnpm bootstrap:worktree` remains a temporary bridge for worktrees created before this flow. It
 refuses a checkout with `.lazuli/workspace.json` so legacy and light ownership cannot mix.

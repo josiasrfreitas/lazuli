@@ -1,8 +1,7 @@
 export type AuthEnvironment = {
   appUrl: string;
   betterAuthSecret: string;
-  googleClientId: string;
-  googleClientSecret: string;
+  googleOAuth?: { clientId: string; clientSecret: string } | undefined;
   resendApiKey: string | undefined;
   emailFrom: string;
   smtpHost: string;
@@ -18,19 +17,41 @@ export function getAuthEnvironment(): AuthEnvironment {
       name: "BETTER_AUTH_SECRET",
       value: process.env.BETTER_AUTH_SECRET,
     }),
-    googleClientId: requireEnvironment({
-      name: "GOOGLE_CLIENT_ID",
-      value: process.env.GOOGLE_CLIENT_ID,
-    }),
-    googleClientSecret: requireEnvironment({
-      name: "GOOGLE_CLIENT_SECRET",
-      value: process.env.GOOGLE_CLIENT_SECRET,
-    }),
+    googleOAuth: googleOAuthEnvironment(),
     resendApiKey: optionalEnvironment(process.env.RESEND_API_KEY),
     emailFrom: requireEnvironment({ name: "EMAIL_FROM", value: process.env.EMAIL_FROM }),
     smtpHost: optionalEnvironment(process.env.SMTP_HOST) ?? "localhost",
     smtpPort: parsePort(optionalEnvironment(process.env.SMTP_PORT)),
   };
+}
+
+function googleOAuthEnvironment(): AuthEnvironment["googleOAuth"] {
+  return resolveGoogleOAuth({
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    production: process.env.NODE_ENV === "production",
+  });
+}
+
+export function resolveGoogleOAuth({
+  clientId: rawClientId,
+  clientSecret: rawClientSecret,
+  production,
+}: {
+  clientId: string | undefined;
+  clientSecret: string | undefined;
+  production: boolean;
+}): AuthEnvironment["googleOAuth"] {
+  const clientId = optionalEnvironment(rawClientId);
+  const clientSecret = optionalEnvironment(rawClientSecret);
+  if (clientId !== undefined && clientSecret !== undefined) return { clientId, clientSecret };
+  if (clientId !== undefined || clientSecret !== undefined) {
+    throw new Error("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be configured together");
+  }
+  if (production) {
+    throw new Error("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required in production");
+  }
+  return undefined;
 }
 
 function requireEnvironment({ name, value }: { name: string; value: string | undefined }): string {

@@ -4,7 +4,7 @@ import chalk from "chalk";
 import Table from "cli-table3";
 
 import { readWorkspaceMetadata } from "./lib/workspace-metadata.mjs";
-import { storybookProxyStatus } from "./lib/workspace-proxy.mjs";
+import { workspaceProxyStatus } from "./lib/workspace-proxy.mjs";
 import {
   databaseInitializationStatus,
   observeBucket,
@@ -71,8 +71,9 @@ async function printWorkspaceStatus(workspace) {
     [label("Web URL"), workspace.urls.web],
     [label("Storybook URL"), workspace.urls.storybook],
     [label("Web port"), workspace.ports.web],
+    [label("Web proxy"), await workspaceProxyStatus(root, workspace, "web")],
     [label("Storybook port"), workspace.ports.storybook],
-    [label("Storybook proxy"), await storybookProxyStatus(root, workspace)],
+    [label("Storybook proxy"), await workspaceProxyStatus(root, workspace, "storybook")],
     [label("Database"), `${workspace.resources.database}\n${chalk.yellow(databaseState)}`],
     [label("Database initialization"), await databaseInitializationStatus(root)],
     [label("Bucket"), `${workspace.resources.bucket}\n${chalk.yellow(bucketState)}`],

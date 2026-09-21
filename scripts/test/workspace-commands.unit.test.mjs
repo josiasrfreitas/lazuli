@@ -11,6 +11,7 @@ import { URL, fileURLToPath } from "node:url";
 const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const setupScript = path.join(repositoryRoot, "scripts/workspace-setup.mjs");
 const statusScript = path.join(repositoryRoot, "scripts/workspace-status.mjs");
+const developmentScript = path.join(repositoryRoot, "scripts/development.mjs");
 const fakeCaddy = path.join(repositoryRoot, "scripts/test/support/fake-caddy.mjs");
 const fakeWorkspaceCommand = path.join(
   repositoryRoot,
@@ -68,16 +69,13 @@ function run(directory, script, arguments_ = [], environment = {}) {
   });
 }
 
-function requestProxy(hostname, port = 80) {
+function requestProxy(hostname, port = 80, address = "127.0.0.1") {
   return new Promise((resolve, reject) => {
-    const request = http.get(
-      { host: "127.0.0.1", port, headers: { host: hostname } },
-      (response) => {
-        let body = "";
-        response.on("data", (chunk) => (body += chunk));
-        response.on("end", () => resolve({ status: response.statusCode, body }));
-      },
-    );
+    const request = http.get({ host: address, port, headers: { host: hostname } }, (response) => {
+      let body = "";
+      response.on("data", (chunk) => (body += chunk));
+      response.on("end", () => resolve({ status: response.statusCode, body }));
+    });
     request.once("error", reject);
   });
 }
@@ -169,6 +167,24 @@ it("sets up a light worktree without infrastructure and persists only stable int
   assert.match(env, new RegExp(`LAZULI_WEB_PORT=${workspace.ports.web}`));
   assert.equal(await readFile(path.join(directory, "pnpm.log"), "utf8"), "install\n");
   assert.doesNotMatch(`${result.stdout}\n${result.stderr}`, /docker|prisma|seed/iu);
+});
+
+it("rejects Web from a light worktree before invoking Docker", async (context) => {
+  const directory = await fixture(context, "lazuli-light-web");
+  assert.equal(run(directory, setupScript, ["light"]).status, 0);
+  await writeFile(path.join(directory, "infra.log"), "");
+  const workspace = await metadata(directory);
+
+  const result = run(directory, developmentScript, ["web"], {
+    APP_URL: workspace.urls.web,
+    BETTER_AUTH_URL: workspace.urls.web,
+    LAZULI_WEB_PORT: String(workspace.ports.web),
+  });
+  const infraLog = await readFile(path.join(directory, "infra.log"), "utf8");
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /pnpm workspace:setup full/u);
+  assert.doesNotMatch(infraLog, /compose/u);
 });
 
 it("keeps metadata and secrets across a branch change while installing again", async (context) => {
@@ -465,20 +481,17 @@ it("reports observed full resources and incomplete database initialization witho
   assert.doesNotMatch(infraLog, /compose up/u);
 });
 
-it("upgrades the former port-80 Storybook URL when reading light metadata", async (context) => {
+it("upgrades the former port-8080 Storybook URL when reading light metadata", async (context) => {
   const directory = await fixture(context, "lazuli-storybook-url-upgrade");
   assert.equal(run(directory, setupScript, ["light"]).status, 0);
   const workspace = await metadata(directory);
-  workspace.urls.storybook = workspace.urls.storybook.replace(":8080", "");
+  workspace.urls.storybook = `${workspace.urls.storybook}:8080`;
   await writeFile(path.join(directory, ".lazuli/workspace.json"), `${JSON.stringify(workspace)}\n`);
 
   const { readWorkspaceMetadata } = await import("../lib/workspace-metadata.mjs");
   const upgraded = await readWorkspaceMetadata(directory);
 
-  assert.equal(
-    upgraded.urls.storybook,
-    `http://storybook.${workspace.identity}.lazuli.localhost:8080`,
-  );
+  assert.equal(upgraded.urls.storybook, `http://storybook.${workspace.identity}.lazuli.localhost`);
 });
 
 it("routes two live Storybook leases by their stable hostnames and removes its own lease", async (context) => {
@@ -540,6 +553,11 @@ it("routes two live Storybook leases by their stable hostnames and removes its o
   const reloadedCaddy = await caddyRequest(caddyAdminPort, "/config/");
   const configurationAfterReload = JSON.parse(reloadedCaddy.body);
   const sourceResponse = await requestProxy(new URL(source.urls.storybook).hostname, caddyHttpPort);
+  const sourceIpv6Response = await requestProxy(
+    new URL(source.urls.storybook).hostname,
+    caddyHttpPort,
+    "::1",
+  );
   const otherResponse = await requestProxy(new URL(other.urls.storybook).hostname, caddyHttpPort);
   const abandonedResponse = await requestProxy(
     "storybook.abandoned.lazuli.localhost",
@@ -563,7 +581,12 @@ it("routes two live Storybook leases by their stable hostnames and removes its o
   process.env.LAZULI_CADDY_HTTP_PORT = originalCaddyHttpPort;
 
   assert.deepEqual(sourceResponse, { status: 200, body: "source storybook" });
+  assert.deepEqual(sourceIpv6Response, { status: 200, body: "source storybook" });
   assert.deepEqual(otherResponse, { status: 200, body: "other storybook" });
+  assert.deepEqual(configurationAfterReload.apps.http.servers.lazuli_storybook_proxy_v1.listen, [
+    `127.0.0.1:${caddyHttpPort}`,
+    `[::1]:${caddyHttpPort}`,
+  ]);
   assert.equal(abandonedResponse.status, 404);
   assert.equal(removedResponse.status, 404);
   assert.deepEqual(configurationAfterReload.apps.http.servers.unrelated, unrelatedServer);

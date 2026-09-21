@@ -15,8 +15,7 @@ function createTestOptions(overrides: Partial<AuthOptionsInput> = {}): BetterAut
   return createAuthOptions({
     baseUrl: TEST_BASE_URL,
     secret: TEST_SECRET,
-    googleClientId: GOOGLE_CLIENT_ID,
-    googleClientSecret: GOOGLE_CLIENT_SECRET,
+    googleOAuth: { clientId: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET },
     database: {},
     sendMagicLink: () => Promise.resolve(),
     ...overrides,
@@ -38,6 +37,12 @@ void describe("Better Auth options", () => {
       clientSecret: GOOGLE_CLIENT_SECRET,
       disableSignUp: true,
     });
+  });
+
+  void it("omits Google OAuth when local credentials are absent", () => {
+    const options = createTestOptions({ googleOAuth: undefined });
+
+    assert.equal(options.socialProviders, undefined);
   });
 
   void it("links a trusted Google sign-in to a pre-provisioned, unverified email", () => {

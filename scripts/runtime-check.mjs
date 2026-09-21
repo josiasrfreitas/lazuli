@@ -15,6 +15,14 @@ for (const name of REQUIRED_RUNTIME_ENVIRONMENT) {
 requireUrl("APP_URL");
 requireMinimumLength("BETTER_AUTH_SECRET", MINIMUM_AUTH_SECRET_LENGTH);
 
+const googleClientIdConfigured = hasValue("GOOGLE_CLIENT_ID");
+const googleClientSecretConfigured = hasValue("GOOGLE_CLIENT_SECRET");
+if (googleClientIdConfigured !== googleClientSecretConfigured) {
+  invalid.push("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be configured together.");
+} else if (process.env.NODE_ENV === "production" && !googleClientIdConfigured) {
+  invalid.push("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required in production.");
+}
+
 if (!hasValue("RESEND_API_KEY")) {
   requireValue("SMTP_HOST");
   requireValue("SMTP_PORT");
