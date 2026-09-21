@@ -57,13 +57,22 @@ export function resolveBaseRef(explicitRef) {
   );
 }
 
-/** Lists files added or modified since the merge base with `baseRef`, including uncommitted work. */
-export function listChangedFiles(baseRef) {
+/** Lists committed files since the merge base. Local working-tree changes are deliberately absent. */
+export function listCommittedFiles(baseRef) {
   const mergeBase = git(["merge-base", baseRef, "HEAD"]);
-  const committed = gitLines(["diff", "--name-only", "--diff-filter=ACMR", mergeBase, "HEAD"]);
-  const uncommitted = gitLines(["diff", "--name-only", "--diff-filter=ACMR", "HEAD"]);
-  const untracked = gitLines(["ls-files", "--others", "--exclude-standard"]);
+  return gitLines(["diff", "--name-only", "--diff-filter=ACMRD", mergeBase, "HEAD"]);
+}
 
+/** Lists files in the index, independently of unstaged and untracked files. */
+export function listStagedFiles() {
+  return gitLines(["diff", "--cached", "--name-only", "--diff-filter=ACMRD"]);
+}
+
+/** Lists committed and local changes for interactive/CI-oriented analysis commands. */
+export function listChangedFiles(baseRef) {
+  const committed = listCommittedFiles(baseRef);
+  const uncommitted = gitLines(["diff", "--name-only", "--diff-filter=ACMRD", "HEAD"]);
+  const untracked = gitLines(["ls-files", "--others", "--exclude-standard"]);
   return [...new Set([...committed, ...uncommitted, ...untracked])].toSorted();
 }
 

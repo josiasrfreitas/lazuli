@@ -81,16 +81,26 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
 ## Executable workflow
 
 - `pnpm test` runs unit tests; `test:integration` and `test:transport` run infrastructure tiers.
-- Pre-commit formats first, runs lint, the staged prospective gate and typecheck in parallel,
-  then runs unit tests. Guardrail tests create temporary source fixtures, so they run after readers.
-  Root lint, duplication and unit checks are Turbo tasks with repository-wide inputs; cached passes
-  are reused locally, including by affected checks.
-- `pnpm test:affected --base <ref>` runs changed workspaces and transitive consumers. Root config
-  selects all workspaces; documentation-only changes select none. Report-tool/script-test changes
-  run root checks without application infrastructure; Pullfrog workflow changes select no test tier.
-  Integration and transport tasks share one serial Turbo invocation. Infrastructure preflight fails
-  with bootstrap/migration instructions instead of skipping a tier.
-- CI runs production build alongside static checks. `Quality gates` requires both to pass;
+- Pre-commit formats supported staged files, lints only existing staged source files, runs the staged
+  prospective gate, and executes unit tests for affected workspaces and transitive consumers.
+  Script and tooling changes execute script unit tests. It never runs typecheck, build, integration,
+  transport, Docker, Prisma, or environment preflight. Documentation-only commits run no tests.
+- `pnpm check:pre-push --base <ref>` considers only commits since the merge-base, excluding local
+  staged, unstaged, and untracked changes. It classifies changes before running filtered lint,
+  typecheck, build, unit tests, and affected infrastructure tiers. Root reporting/guardrail scripts,
+  Storybook, proxy metadata, and Pullfrog workflows do not select all application workspaces.
+- `pnpm test:affected --base <ref>` keeps the same selection and isolated infrastructure for manual
+  test runs. `pnpm test:affected --staged --unit-only` is its infrastructure-free staged variant.
+  Unknown executable files fail closed until their impact is classified.
+- Integration and transport tests selected locally share a fresh, unseeded PostgreSQL database.
+  The orchestrator validates the expected healthy Compose containers before expensive checks,
+  deploys migrations, checks drift, passes the temporary `DATABASE_URL` only to subprocesses, runs
+  tiers serially, and removes the database even after failure or interruption. It never starts
+  Docker, promotes a light worktree, writes `.env`, seeds fixtures, or resets the development
+  database. Missing infrastructure reports the minimal `docker compose up -d ...` command.
+- CI still runs the complete production build and every test tier against a new Postgres instance;
+  the local affected build and affected infrastructure tiers do not weaken that remote gate.
+  `Quality gates` requires both static checks and the complete build to pass;
   complete tests and mutation wait only for static checks. Turbo caches are isolated by job and
   restored from that job's latest snapshot, so concurrent jobs cannot overwrite each other's cache.
 - CI runs full tiers and root unit checks without Turbo cache for its reporting pass. JUnit and LCOV are written per

@@ -20,6 +20,8 @@ export default [
   {
     files: [
       "scripts/changed-source-files.mjs",
+      "scripts/check-pre-commit.mjs",
+      "scripts/check-pre-push.mjs",
       "scripts/changed-source-covered.mjs",
       "scripts/mutation-redundancy-report.mjs",
       "scripts/mutate-changed.mjs",
@@ -27,6 +29,9 @@ export default [
       "scripts/run-test-tier.mjs",
       "scripts/run-unit-mutation.mjs",
       "scripts/test-affected.mjs",
+      "scripts/lib/affected-checks.mjs",
+      "scripts/lib/check-scope.mjs",
+      "scripts/lib/ephemeral-test-database.mjs",
       "scripts/test-durations.mjs",
       "scripts/test-surface-inventory.mjs",
     ],
@@ -35,7 +40,9 @@ export default [
       "no-restricted-syntax": "off",
       complexity: "off",
       "max-depth": "off",
+      "max-lines-per-function": "off",
       "max-params": "off",
+      "max-statements": "off",
       "no-magic-numbers": "off",
       "sonarjs/no-duplicate-string": "off",
       "sonarjs/cognitive-complexity": "off",

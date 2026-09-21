@@ -5,6 +5,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import {
+  createEphemeralDatabase,
+  dropEphemeralDatabase,
+  preflightInfrastructure,
+} from "../lib/ephemeral-test-database.mjs";
 
 const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -311,5 +316,60 @@ test("full setup, maintenance, and teardown isolate real worktree resources", as
   assert.equal(
     composeRows.every((row) => String(row.State).toLowerCase() === "running"),
     true,
+  );
+});
+
+test("affected database tests use a migrated ephemeral database and preserve worktree fixtures", async () => {
+  preflightInfrastructure();
+  const workspace = JSON.parse(
+    await readFile(path.join(repositoryRoot, ".lazuli/workspace.json"), "utf8"),
+  );
+  assert.equal(
+    workspace.profile,
+    "full",
+    "A full worktree with development fixtures is required for this integration test.",
+  );
+  const developmentDatabase = workspace.resources.database;
+  const fixtureCountsBefore = databaseQuery(
+    developmentDatabase,
+    'SELECT (SELECT count(*) FROM "Semester") || \'|\' || (SELECT count(*) FROM "ProductLine")',
+  );
+  assert.doesNotMatch(fixtureCountsBefore, /^0\|0$/u);
+
+  const temporary = createEphemeralDatabase({ workspaceIdentity: workspace.identity });
+  try {
+    const environment = { ...process.env, DATABASE_URL: temporary.url };
+    const migration = spawnSync("pnpm", ["prisma:deploy"], {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+      env: environment,
+    });
+    assert.equal(migration.status, 0, migration.stderr);
+    const focusedTests = spawnSync(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        "--test",
+        "test/schema/semester.integration.test.ts",
+        "test/schema/course-catalog.integration.test.ts",
+      ],
+      { cwd: path.join(repositoryRoot, "packages/db"), encoding: "utf8", env: environment },
+    );
+    assert.equal(focusedTests.status, 0, focusedTests.stderr);
+  } finally {
+    dropEphemeralDatabase(temporary);
+  }
+
+  assert.equal(
+    `${databaseQuery(developmentDatabase, 'SELECT count(*) FROM "Semester"')}|${databaseQuery(developmentDatabase, 'SELECT count(*) FROM "ProductLine"')}`,
+    fixtureCountsBefore,
+  );
+  assert.equal(
+    databaseQuery(
+      "postgres",
+      `SELECT count(*) FROM pg_database WHERE datname = '${temporary.name}'`,
+    ),
+    "0",
   );
 });

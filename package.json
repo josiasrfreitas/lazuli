@@ -27,6 +27,8 @@
     "test:all": "pnpm test && pnpm test:integration && pnpm test:transport",
     "test:e2e": "turbo run test:e2e",
     "test:quality:changed": "node tooling/eslint/quality-changed.mjs",
+    "check:pre-commit": "node scripts/check-pre-commit.mjs",
+    "check:pre-push": "node scripts/check-pre-push.mjs",
     "test:affected": "node scripts/test-affected.mjs",
     "test:durations": "node scripts/test-durations.mjs",
     "test:surface-inventory": "node --import tsx scripts/test-surface-inventory.mjs",
