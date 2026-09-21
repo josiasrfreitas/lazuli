@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { URL } from "node:url";
@@ -7,6 +8,7 @@ import {
   findAvailablePort,
   MAX_WORKSPACE_IDENTITY_LENGTH,
   normalizeWorkspaceIdentity,
+  migrateWorkspaceMetadata,
   readWorkspaceMetadata,
   registeredWorkspaces,
   withWorkspaceAllocationLock,
@@ -130,6 +132,7 @@ async function createWorkspace() {
     const storybook = await findAvailablePort(STORYBOOK_PORT_RANGE, reservedPorts);
     const workspace = {
       schemaVersion: WORKSPACE_SCHEMA_VERSION,
+      ownershipToken: randomUUID(),
       initialTechnicalPath: path.resolve(root),
       identity,
       profile: "light",
@@ -161,16 +164,19 @@ async function prepareDependencies(workspace) {
 }
 
 async function setupLight() {
-  let workspace = await readWorkspaceMetadata(root);
-  if (workspace === null) {
-    workspace = await createWorkspace();
-    output(`Created light workspace metadata for ${workspace.identity}.`);
-  } else {
-    output(`Using existing ${workspace.profile} workspace metadata for ${workspace.identity}.`);
-    await persistWorkspace(workspace);
-  }
-  await prepareDependencies(workspace);
-  output("Light workspace setup complete.");
+  await withFullSetupLock(root, async () => {
+    let workspace = await readWorkspaceMetadata(root);
+    if (workspace === null) {
+      workspace = await createWorkspace();
+      output(`Created light workspace metadata for ${workspace.identity}.`);
+    } else {
+      workspace = migrateWorkspaceMetadata(workspace);
+      output(`Using existing ${workspace.profile} workspace metadata for ${workspace.identity}.`);
+      await persistWorkspace(workspace);
+    }
+    await prepareDependencies(workspace);
+    output("Light workspace setup complete.");
+  });
 }
 
 async function setupFull() {
@@ -179,6 +185,7 @@ async function setupFull() {
     if (workspace === null) {
       throw new Error("workspace metadata is absent; run pnpm workspace:setup light first");
     }
+    workspace = migrateWorkspaceMetadata(workspace);
     if (workspace.profile === "full") {
       output(`Resuming full workspace setup for ${workspace.identity}.`);
       await persistWorkspace(workspace);

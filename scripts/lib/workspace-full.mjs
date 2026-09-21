@@ -17,6 +17,35 @@ const LOCK_RETRY_MS = 50,
   LOCK_ID_LENGTH = 20,
   HEALTH_RETRY_MS = 250;
 const POSTGRES_CONTAINER = "lazuli-postgres";
+const BUCKET_OWNERSHIP_OBJECT = ".lazuli-workspace-ownership.json";
+
+function sqlLiteral(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
+function ownershipPathHash(workspace) {
+  return createHash("sha256").update(workspace.initialTechnicalPath).digest("hex");
+}
+
+export function bucketOwnership(workspace) {
+  return {
+    ownershipToken: workspace.ownershipToken,
+    workspaceIdentity: workspace.identity,
+    technicalPath: workspace.initialTechnicalPath,
+  };
+}
+
+export function bucketOwnershipLabels(workspace) {
+  return {
+    lazuli_owner_token: workspace.ownershipToken,
+    lazuli_workspace: workspace.identity,
+    lazuli_technical_path: ownershipPathHash(workspace),
+  };
+}
+
+export function bucketOwnershipObjectName() {
+  return BUCKET_OWNERSHIP_OBJECT;
+}
 
 function processStartedAt(pid) {
   const result = spawnSync("ps", ["-p", String(pid), "-o", "lstart="], { encoding: "utf8" });
@@ -231,6 +260,17 @@ export async function ensureDatabase({ root, workspace, output }) {
       capability: "Postgres database creation",
     });
     exists = true;
+    runWorkspaceCommand({
+      command: "docker",
+      arguments_: psqlArguments(workspace.resources.database, [
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        `CREATE SCHEMA IF NOT EXISTS lazuli_local; CREATE TABLE IF NOT EXISTS lazuli_local.workspace_ownership (singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton), ownership_token text NOT NULL, workspace_identity text NOT NULL, technical_path text NOT NULL); INSERT INTO lazuli_local.workspace_ownership (singleton, ownership_token, workspace_identity, technical_path) VALUES (true, ${sqlLiteral(workspace.ownershipToken)}, ${sqlLiteral(workspace.identity)}, ${sqlLiteral(workspace.initialTechnicalPath)}) ON CONFLICT (singleton) DO NOTHING`,
+      ]),
+      root,
+      capability: "Postgres workspace ownership marking",
+    });
   }
   output("Applying database migrations...");
   runWorkspaceCommand({
@@ -248,6 +288,10 @@ export async function ensureDatabase({ root, workspace, output }) {
     await completeDatabaseInitialization({ root, workspace, journalPath, output });
   }
   return exists;
+}
+
+function psqlArguments(database, command) {
+  return ["exec", POSTGRES_CONTAINER, "psql", "-U", "lazuli", "-d", database, ...command];
 }
 
 async function completeDatabaseInitialization({ root, workspace, journalPath, output }) {
@@ -282,7 +326,18 @@ export function bucketExists(root, bucket) {
 }
 
 export async function ensureBucket({ root, workspace, output, overwrite = false }) {
-  await ensureLocalBucket({ root, workspace, output, overwrite, run: runWorkspaceCommand });
+  await ensureLocalBucket({
+    root,
+    workspace,
+    output,
+    overwrite,
+    run: runWorkspaceCommand,
+    ownership: {
+      labels: bucketOwnershipLabels(workspace),
+      objectName: BUCKET_OWNERSHIP_OBJECT,
+      contents: JSON.stringify(bucketOwnership(workspace)),
+    },
+  });
 }
 
 export function observeDatabase(root, database) {

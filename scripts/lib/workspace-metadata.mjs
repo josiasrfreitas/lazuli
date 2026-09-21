@@ -1,11 +1,13 @@
 import { spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
 
 export const WORKSPACE_METADATA_PATH = ".lazuli/workspace.json";
-export const WORKSPACE_SCHEMA_VERSION = 1;
+export const WORKSPACE_SCHEMA_VERSION = 2;
+export const LEGACY_WORKSPACE_SCHEMA_VERSION = 1;
 export const MAX_WORKSPACE_IDENTITY_LENGTH = 56;
 export const WEB_PORT_RANGE = { start: 3000, end: 3999 };
 export const STORYBOOK_PORT_RANGE = { start: 6006, end: 6999 };
@@ -100,7 +102,7 @@ function validateResources(resources, identity) {
 export function validateWorkspaceMetadata(workspace) {
   assertMetadata(isRecord(workspace), "workspace metadata must be an object");
   assertMetadata(
-    workspace.schemaVersion === WORKSPACE_SCHEMA_VERSION,
+    [LEGACY_WORKSPACE_SCHEMA_VERSION, WORKSPACE_SCHEMA_VERSION].includes(workspace.schemaVersion),
     `unsupported workspace metadata schema version: ${workspace.schemaVersion}`,
   );
   assertMetadata(
@@ -122,7 +124,23 @@ export function validateWorkspaceMetadata(workspace) {
     validateResources(workspace.resources, workspace.identity),
     "workspace metadata has resources inconsistent with its identity",
   );
+  if (workspace.schemaVersion === WORKSPACE_SCHEMA_VERSION) {
+    assertMetadata(
+      typeof workspace.ownershipToken === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f-]{27,}$/u.test(workspace.ownershipToken),
+      "workspace metadata has an invalid ownership token",
+    );
+  }
   return workspace;
+}
+
+export function migrateWorkspaceMetadata(workspace) {
+  if (workspace.schemaVersion === WORKSPACE_SCHEMA_VERSION) return workspace;
+  return {
+    ...workspace,
+    schemaVersion: WORKSPACE_SCHEMA_VERSION,
+    ownershipToken: randomUUID(),
+  };
 }
 
 export async function readWorkspaceMetadata(root) {
