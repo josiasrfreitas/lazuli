@@ -19,6 +19,7 @@ const REPORTING_SCRIPTS = new Set([
   "scripts/changed-source-files.mjs",
   "scripts/check-pre-commit.mjs",
   "scripts/check-pre-push.mjs",
+  "scripts/gh-pending.mjs",
   "scripts/test-affected.mjs",
   "scripts/lib/affected-checks.mjs",
   "scripts/lib/check-scope.mjs",
