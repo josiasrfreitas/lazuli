@@ -4,6 +4,7 @@ import chalk from "chalk";
 import Table from "cli-table3";
 
 import { readWorkspaceMetadata } from "./lib/workspace-metadata.mjs";
+import { storybookProxyStatus } from "./lib/workspace-proxy.mjs";
 
 const root = process.cwd();
 const STATUS_ARGUMENT_COUNT = 2;
@@ -44,7 +45,7 @@ function observedStackHealth() {
     .join(", ");
 }
 
-function printWorkspaceStatus(workspace) {
+async function printWorkspaceStatus(workspace) {
   const label = (value) => chalk.cyan(value);
   const table = new Table({
     head: [chalk.bold.cyan("Workspace"), chalk.bold.cyan("Value")],
@@ -58,6 +59,7 @@ function printWorkspaceStatus(workspace) {
     [label("Storybook URL"), workspace.urls.storybook],
     [label("Web port"), workspace.ports.web],
     [label("Storybook port"), workspace.ports.storybook],
+    [label("Storybook proxy"), await storybookProxyStatus(root, workspace)],
     [
       label("Database"),
       `${workspace.resources.database}\n${chalk.yellow("Not provisioned by the light profile")}`,
@@ -85,7 +87,7 @@ async function main() {
   if (workspace === null) {
     throw new Error("workspace metadata is absent; run pnpm workspace:setup light first");
   }
-  printWorkspaceStatus(workspace);
+  await printWorkspaceStatus(workspace);
 }
 
 try {
