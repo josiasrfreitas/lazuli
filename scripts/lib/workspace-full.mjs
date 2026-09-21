@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { link, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { link, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
@@ -9,6 +9,7 @@ import {
   databaseInitializationCompleted,
   provisionDatabaseInitializationStore,
 } from "./local-workspace-initialization.mjs";
+import { ensureLocalBucket, localBucketExists } from "./workspace-gcs.mjs";
 
 export const DATABASE_INITIALIZATION_PATH = ".lazuli/database-initialization.json";
 export const WORKSPACE_FULL_INITIALIZATION_KEY = "workspace-full-v1";
@@ -95,7 +96,14 @@ export async function dependenciesNeedInstall(root) {
   }
 }
 
-function run({ command, arguments_, root, capture = false, capability = command, environment }) {
+export function runWorkspaceCommand({
+  command,
+  arguments_,
+  root,
+  capture = false,
+  capability = command,
+  environment,
+}) {
   try {
     return execFileSync(command, arguments_, {
       cwd: root,
@@ -112,7 +120,7 @@ function run({ command, arguments_, root, capture = false, capability = command,
 }
 
 function composeRows(root) {
-  const source = run({
+  const source = runWorkspaceCommand({
     command: "docker",
     arguments_: ["compose", "ps", "--format", "json"],
     root,
@@ -128,13 +136,13 @@ function composeRows(root) {
 
 export async function reconcileCompose(root, output) {
   output("Reconciling shared Docker Compose services...");
-  run({
+  runWorkspaceCommand({
     command: "docker",
     arguments_: ["compose", "up", "-d"],
     root,
     capability: "Docker Compose reconciliation",
   });
-  const services = run({
+  const services = runWorkspaceCommand({
     command: "docker",
     arguments_: ["compose", "config", "--services"],
     root,
@@ -167,7 +175,7 @@ export async function reconcileCompose(root, output) {
 }
 
 function databaseExists(root, database) {
-  const result = run({
+  const result = runWorkspaceCommand({
     command: "docker",
     arguments_: [
       "exec",
@@ -204,7 +212,7 @@ export async function ensureDatabase({ root, workspace, output }) {
     journal = { database: workspace.resources.database, status: "pending" };
     await atomicJson(journalPath, journal);
     output(`Creating Postgres database ${workspace.resources.database}...`);
-    run({
+    runWorkspaceCommand({
       command: "docker",
       arguments_: [
         "exec",
@@ -225,8 +233,17 @@ export async function ensureDatabase({ root, workspace, output }) {
     exists = true;
   }
   output("Applying database migrations...");
-  run({ command: "pnpm", arguments_: ["prisma:deploy"], root, capability: "database migrations" });
-  provisionDatabaseInitializationStore({ database: workspace.resources.database, root, run });
+  runWorkspaceCommand({
+    command: "pnpm",
+    arguments_: ["prisma:deploy"],
+    root,
+    capability: "database migrations",
+  });
+  provisionDatabaseInitializationStore({
+    database: workspace.resources.database,
+    root,
+    run: runWorkspaceCommand,
+  });
   if (journal?.status === "pending") {
     await completeDatabaseInitialization({ root, workspace, journalPath, output });
   }
@@ -239,13 +256,13 @@ async function completeDatabaseInitialization({ root, workspace, journalPath, ou
       database: workspace.resources.database,
       initializationKey: WORKSPACE_FULL_INITIALIZATION_KEY,
       root,
-      run,
+      run: runWorkspaceCommand,
     })
   ) {
     output("Finalizing completed database initialization...");
   } else {
     output("Loading database fixtures...");
-    run({
+    runWorkspaceCommand({
       command: "pnpm",
       arguments_: ["prisma:seed"],
       root,
@@ -260,84 +277,12 @@ async function completeDatabaseInitialization({ root, workspace, journalPath, ou
   });
 }
 
-function curlStatus(root, url) {
-  return run({
-    command: "curl",
-    arguments_: ["-sS", "-o", "/dev/null", "-w", "%{http_code}", url],
-    root,
-    capture: true,
-    capability: "fake-GCS inspection",
-  }).trim();
-}
-
 export function bucketExists(root, bucket) {
-  return (
-    curlStatus(root, `http://localhost:4443/storage/v1/b/${bucket}?project=lazuli-local`) === "200"
-  );
+  return localBucketExists({ root, bucket, run: runWorkspaceCommand });
 }
 
-async function seedFiles(directory, prefix = "") {
-  const entries = await readdir(directory, { withFileTypes: true });
-  const files = [];
-  for (const entry of entries) {
-    const key = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
-    if (entry.isDirectory())
-      files.push(...(await seedFiles(path.join(directory, entry.name), key)));
-    else if (entry.isFile() && entry.name !== ".gitkeep")
-      files.push({ path: path.join(directory, entry.name), key });
-  }
-  return files;
-}
-
-export async function ensureBucket({ root, workspace, output }) {
-  const bucket = workspace.resources.bucket;
-  if (!bucketExists(root, bucket)) {
-    output(`Creating fake-GCS bucket ${bucket}...`);
-    run({
-      command: "curl",
-      arguments_: [
-        "-fsS",
-        "-X",
-        "POST",
-        "-H",
-        "Content-Type: application/json",
-        "-d",
-        JSON.stringify({ name: bucket }),
-        "http://localhost:4443/storage/v1/b?project=lazuli-local",
-      ],
-      root,
-      capability: "fake-GCS bucket creation",
-    });
-  }
-  const seedRoot = path.join(root, "infra/local/gcs-seed");
-  let files;
-  try {
-    files = await seedFiles(seedRoot);
-  } catch (error) {
-    if (error.code === "ENOENT") files = [];
-    else throw error;
-  }
-  for (const file of files) {
-    const encoded = encodeURIComponent(file.key);
-    if (curlStatus(root, `http://localhost:4443/storage/v1/b/${bucket}/o/${encoded}`) === "200") {
-      output(`Keeping existing object gs://${bucket}/${file.key}.`);
-      continue;
-    }
-    output(`Uploading missing object gs://${bucket}/${file.key}...`);
-    run({
-      command: "curl",
-      arguments_: [
-        "-fsS",
-        "-X",
-        "POST",
-        "--data-binary",
-        `@${file.path}`,
-        `http://localhost:4443/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encoded}`,
-      ],
-      root,
-      capability: "fake-GCS object upload",
-    });
-  }
+export async function ensureBucket({ root, workspace, output, overwrite = false }) {
+  await ensureLocalBucket({ root, workspace, output, overwrite, run: runWorkspaceCommand });
 }
 
 export function observeDatabase(root, database) {

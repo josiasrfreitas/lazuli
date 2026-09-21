@@ -83,17 +83,24 @@ Google values together to enable the Google button; a partial pair is rejected.
 `pnpm bootstrap:worktree` remains a temporary bridge for worktrees created before this flow. It
 refuses a checkout with `.lazuli/workspace.json` so legacy and light ownership cannot mix.
 
-### Resetting development data
+### Refreshing and resetting development data
 
-Run `pnpm db:reset` from the repository root to discard the configured local database,
-reapply migrations, and seed fresh development fixtures. This deletes manual changes in that
-database; it does not reset shared Mailpit or Hatchet services.
+Use `pnpm workspace:fixtures refresh` in a full worktree to reapply the idempotent database
+fixtures and overwrite every versioned object under `infra/local/gcs-seed`. It preserves additional
+database records and GCS objects. Deleted or manually changed records outside the fixture upserts
+may remain, so refresh is not a clean snapshot guarantee.
 
-`pnpm prisma:seed` supports loading fresh fixtures or repeating an unchanged fixture load in
-the same semester. After editing or deleting development finance records, changing fixture
-definitions, or moving to another semester, use `pnpm db:reset`. The finance seed does not
-reconcile edited orders, recover deleted schedules, or preserve payment history across a reset.
-Product lifecycle and financial-history rules still apply to the application itself.
+Use `pnpm workspace:reset` when a clean worktree database and bucket are required. The command
+prints their exact names and requires interactive confirmation. Automation must opt in explicitly
+with `pnpm workspace:reset --yes`; a non-interactive invocation without `--yes` fails. Reset removes
+and recreates only resources whose persisted worktree identity, `.env` configuration, local
+endpoints, and Lazuli Compose container labels all agree. It reapplies deployed migrations and
+loads initial database and GCS fixtures. The Compose stack, Mailpit, Hatchet, and other worktrees'
+resources are preserved.
+
+If reset stops partway through, run `pnpm workspace:reset --yes` again or recover with
+`pnpm workspace:setup full`. The pending initialization journal makes database initialization
+resumable. Product lifecycle and financial-history rules still apply to the application itself.
 
 For coding-agent constraints, verification expectations, and documentation routing, read
 [`AGENTS.md`](AGENTS.md). Folder-specific operational notes remain in

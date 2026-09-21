@@ -119,18 +119,13 @@ function packageDirectory(packageName) {
 
 function preflight(packages) {
   if (!existsSync(".env")) {
-    fail(
-      "Infrastructure tests require .env. Run pnpm bootstrap:worktree, then pnpm prisma:deploy.",
-    );
+    fail("Infrastructure tests require .env. Run pnpm workspace:setup full.");
   }
   const drift = spawnSync("pnpm", ["exec", "dotenv", "-e", ".env", "--", "pnpm", "prisma:drift"], {
     encoding: "utf8",
   });
   if (drift.status !== 0) {
-    fail(
-      "Postgres is unavailable or schema drifted. Run pnpm bootstrap:worktree and pnpm prisma:deploy.",
-      drift.stderr,
-    );
+    fail("Postgres is unavailable or schema drifted. Run pnpm workspace:setup full.", drift.stderr);
   }
   if (packages.includes("@lazuli/integrations")) checkMailpit();
 }
@@ -140,7 +135,9 @@ function checkMailpit() {
     encoding: "utf8",
   });
   if (result.status !== 0) {
-    fail("Mailpit is unavailable. Run pnpm bootstrap:worktree before affected integration tests.");
+    fail(
+      "Mailpit is unavailable. Run pnpm workspace:setup full before affected integration tests.",
+    );
   }
 }
 

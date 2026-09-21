@@ -19,7 +19,6 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:drift": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code",
     "prisma:seed": "prisma db seed",
-    "db:reset": "node --import tsx prisma/reset.ts",
     "mutate": "NODE_ENV=test node ../../scripts/run-unit-mutation.mjs"
   },
   "dependencies": {

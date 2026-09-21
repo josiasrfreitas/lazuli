@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -73,18 +74,38 @@ function fakeCompose() {
   }
 }
 
-function fakeDocker() {
-  if (process.env.FAKE_DOCKER_UNAVAILABLE === "1") return 127;
-  log(args.join(" "));
-  if (args[0] === "compose") fakeCompose();
-  else if (args.some((argument) => argument.includes("workspace_initializations"))) {
+function fakeDockerInspect() {
+  const name = args.at(-1);
+  const service = name === "lazuli-postgres" ? "postgres" : "fake-gcs";
+  const labels = {
+    "com.docker.compose.project": process.env.FAKE_COMPOSE_PROJECT ?? "lazuli",
+    "com.docker.compose.service": process.env.FAKE_COMPOSE_SERVICE ?? service,
+    "com.docker.compose.container-number": "1",
+  };
+  process.stdout.write(JSON.stringify(labels));
+}
+
+function fakeDockerExec() {
+  if (args.some((argument) => argument.includes("workspace_initializations"))) {
     if (existsSync(path.join(state, "workspace-initialization-complete")))
       process.stdout.write("1\n");
   } else if (args.some((argument) => argument.includes("SELECT 1 FROM pg_database"))) {
     if (existsSync(path.join(state, "database"))) process.stdout.write("1\n");
   } else if (args.includes("ON_ERROR_STOP=1")) {
-    writeFileSync(path.join(state, "database"), "exists\n");
+    const sql = args.at(-1);
+    if (sql.startsWith("DROP DATABASE")) {
+      rmSync(path.join(state, "database"), { force: true });
+      rmSync(path.join(state, "workspace-initialization-complete"), { force: true });
+    } else writeFileSync(path.join(state, "database"), "exists\n");
   }
+}
+
+function fakeDocker() {
+  if (process.env.FAKE_DOCKER_UNAVAILABLE === "1") return 127;
+  log(args.join(" "));
+  if (args[0] === "compose") fakeCompose();
+  else if (args[0] === "inspect") fakeDockerInspect();
+  else fakeDockerExec();
   return 0;
 }
 
@@ -98,7 +119,22 @@ if (command === "curl") {
   const isPost = args.includes("POST");
   const bucketPath = path.join(state, "bucket");
   const objectMatch = /\/storage\/v1\/b\/[^/]+\/o\/([^?]+)/u.exec(url);
-  if (!isPost) {
+  if (args.includes("DELETE")) {
+    if (objectMatch) {
+      rmSync(
+        path.join(state, `object-${decodeURIComponent(objectMatch[1]).replaceAll("/", "_")}`),
+        {
+          force: true,
+        },
+      );
+    } else rmSync(bucketPath, { force: true });
+  } else if (!isPost && /\/storage\/v1\/b\/[^/]+\/o$/u.test(url)) {
+    const items = [];
+    for (const entry of readdirSync(state)) {
+      if (entry.startsWith("object-")) items.push({ name: entry.slice("object-".length) });
+    }
+    process.stdout.write(JSON.stringify({ items }));
+  } else if (!isPost) {
     const exists = objectMatch
       ? existsSync(
           path.join(state, `object-${decodeURIComponent(objectMatch[1]).replaceAll("/", "_")}`),

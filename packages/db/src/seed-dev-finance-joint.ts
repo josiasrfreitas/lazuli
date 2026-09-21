@@ -24,23 +24,21 @@ export async function createJointOrderForSharedPayerScenario(
     monthOffset: 0,
     dueDay: JOINT_ORDER_DUE_DAY,
   });
-  await database.order.create({
-    data: {
-      id: orderId,
-      payerId,
-      kind: "TUITION",
-      principalAmountCents: JOINT_ORDER_INSTALLMENT_CENTS,
-      startDate: monthlyDueDate(input.todayIso, { monthOffset: -1, dueDay: JOINT_ORDER_DUE_DAY }),
-      dueDay: JOINT_ORDER_DUE_DAY,
-    },
+  const orderData = {
+    id: orderId,
+    payerId,
+    kind: "TUITION" as const,
+    principalAmountCents: JOINT_ORDER_INSTALLMENT_CENTS,
+    startDate: monthlyDueDate(input.todayIso, { monthOffset: -1, dueDay: JOINT_ORDER_DUE_DAY }),
+    dueDay: JOINT_ORDER_DUE_DAY,
+    deletedAt: null,
+  };
+  await database.order.upsert({
+    where: { id: orderId },
+    create: orderData,
+    update: orderData,
   });
-  await database.orderBeneficiary.createMany({
-    data: ["ana", "joao"].map((studentKey) => ({
-      id: stableUuid([DEV_FINANCE_KEY, scenarioKey, studentKey]),
-      orderId,
-      studentId: studentId(input.studentIds, studentKey),
-    })),
-  });
+  await upsertJointBeneficiaries(database, { input, orderId, scenarioKey });
   const [installmentId] = await createInstallments(database, {
     scenarioKey,
     orderId,
@@ -56,4 +54,22 @@ export async function createJointOrderForSharedPayerScenario(
     amountCents: JOINT_ORDER_PARTIAL_PAYMENT_CENTS,
     date: addDays(dueDate, 1),
   });
+}
+
+async function upsertJointBeneficiaries(
+  database: FinanceDatabase,
+  input: { input: FinanceSeedInput; orderId: string; scenarioKey: string },
+): Promise<void> {
+  for (const studentKey of ["ana", "joao"]) {
+    const beneficiary = {
+      id: stableUuid([DEV_FINANCE_KEY, input.scenarioKey, studentKey]),
+      orderId: input.orderId,
+      studentId: studentId(input.input.studentIds, studentKey),
+    };
+    await database.orderBeneficiary.upsert({
+      where: { id: beneficiary.id },
+      create: beneficiary,
+      update: { ...beneficiary, deletedAt: null },
+    });
+  }
 }
