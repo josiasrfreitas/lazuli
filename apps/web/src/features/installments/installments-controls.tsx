@@ -50,6 +50,7 @@ export function InstallmentsControls(props: ControlsProps): ReactElement {
     <div className="flex flex-wrap items-center gap-3">
       <SearchField key={props.status ?? "todas"} search={props.search} onSearch={props.onSearch} />
       <Tabs
+        activeWeight="medium"
         value={props.status ?? "todas"}
         onValueChange={(next) => {
           props.onStatus(String(next));

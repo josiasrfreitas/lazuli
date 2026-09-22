@@ -35,9 +35,9 @@ function InstallmentRow({
 }): ReactElement {
   const vm = installmentVm(row, today);
   return (
-    <TableRow>
+    <TableRow interactive={false}>
       <TableCell headers={COLUMN_IDS.installment}>
-        <span className="font-numeric tabular-nums">{vm.sequence}</span>
+        <span className="font-numeric whitespace-nowrap tabular-nums">{vm.sequence}</span>
       </TableCell>
       <TableCell headers={COLUMN_IDS.payer} className="break-words">
         {row.payer.name}
@@ -56,7 +56,9 @@ function InstallmentRow({
         )}
       </TableCell>
       <TableCell headers={COLUMN_IDS.status}>
-        <Badge variant={vm.badge.variant}>{vm.badge.label}</Badge>
+        <Badge variant={vm.badge.variant} className="whitespace-nowrap">
+          {vm.badge.label}
+        </Badge>
       </TableCell>
     </TableRow>
   );
@@ -64,7 +66,7 @@ function InstallmentRow({
 function InstallmentsHead(): ReactElement {
   return (
     <TableHeader sticky>
-      <TableRow>
+      <TableRow interactive={false}>
         <TableHead id={COLUMN_IDS.installment} className="w-1/12">
           Parcela
         </TableHead>
@@ -156,7 +158,10 @@ function OverdueGroupsBody({
   today: string;
 }): ReactNode {
   return (
-    <div className="space-y-3 pb-3" data-slot="overdue-payer-groups">
+    <div
+      className="w-0 min-w-full space-y-3 overflow-x-hidden pb-3 pr-3"
+      data-slot="overdue-payer-groups"
+    >
       {groups.map((group) => (
         <OverduePayerGroupCard key={group.payer.id} group={group} today={today} />
       ))}
