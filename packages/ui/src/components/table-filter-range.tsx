@@ -5,25 +5,24 @@ import { CurrencyInput } from "./currency-input";
 import { Input } from "./input";
 import { Switch } from "./switch";
 import { OptionsEditor, RemoteOptionsEditor } from "./table-filter-remote-options";
+
+const CENTS_PER_REAL = 100;
+type RangeField = Extract<TableFilterField, { kind: "period" | "amount" }>;
 import type { TableFilterField } from "./table-filter-model";
 
 function amountToCents(value: string): number | null {
   const match = /^(0|[1-9]\d*)(?:\.(\d{1,2}))?$/u.exec(value);
   if (!match) return null;
-  const cents = Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
+  const cents = Number(match[1]) * CENTS_PER_REAL + Number((match[2] ?? "").padEnd(2, "0"));
   return Number.isSafeInteger(cents) ? cents : null;
 }
 
 function centsToAmount(cents: number | null): string {
   if (cents === null) return "";
-  return `${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
+  return `${Math.floor(cents / CENTS_PER_REAL)}.${String(cents % CENTS_PER_REAL).padStart(2, "0")}`;
 }
 
-function RangeEditor({
-  field,
-}: {
-  field: Extract<TableFilterField, { kind: "period" | "amount" }>;
-}): ReactElement {
+function RangeEditor({ field }: { field: RangeField }): ReactElement {
   const period = field.kind === "period";
   return (
     <div className="grid grid-cols-1 gap-2 min-[320px]:grid-cols-2">

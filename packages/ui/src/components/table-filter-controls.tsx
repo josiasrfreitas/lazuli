@@ -28,6 +28,19 @@ export function FilterIcon({ field }: { field: TableFilterField }): ReactElement
   return <Icon aria-hidden="true" className="size-4 shrink-0" />;
 }
 
+function ClearFieldButton({ field }: { field: TableFilterField }): ReactElement {
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      aria-label={`Limpar ${field.label}`}
+      onClick={field.onClear}
+    >
+      <X aria-hidden="true" />
+    </Button>
+  );
+}
+
 export function InlineField({ field }: { field: TableFilterField }): ReactElement {
   if (field.kind === "toggle") {
     return (
@@ -63,20 +76,38 @@ export function InlineField({ field }: { field: TableFilterField }): ReactElemen
       >
         <div className="mb-3 flex items-center justify-between gap-2">
           <PopoverTitle>{field.label}</PopoverTitle>
-          {active ? (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`Limpar ${field.label}`}
-              onClick={field.onClear}
-            >
-              <X aria-hidden="true" />
-            </Button>
-          ) : null}
+          {active ? <ClearFieldButton field={field} /> : null}
         </div>
         <FieldEditor field={field} />
       </PopoverContent>
     </Popover>
+  );
+}
+
+function SecondaryFieldSection({ field }: { field: TableFilterField }): ReactElement {
+  return (
+    <section className="space-y-2 border-b border-border pb-3 last:border-0">
+      {field.kind === "toggle" ? (
+        <label className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
+          <span className="flex items-center gap-2 font-semibold">
+            <FilterIcon field={field} />
+            {field.label}
+          </span>
+          <Switch checked={field.checked} onCheckedChange={field.onChange} />
+        </label>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 font-semibold">
+              <FilterIcon field={field} />
+              {field.label}
+            </h2>
+            {summary(field) ? <ClearFieldButton field={field} /> : null}
+          </div>
+          <FieldEditor field={field} />
+        </>
+      )}
+    </section>
   );
 }
 
@@ -111,37 +142,7 @@ export function MoreFilters({
       >
         <div className="scrollbar-subtle max-h-[min(70vh,calc(var(--available-height)-2.5rem))] space-y-4 overflow-y-auto p-2 pr-3">
           {fields.map((field) => (
-            <section key={field.id} className="space-y-2 border-b border-border pb-3 last:border-0">
-              {field.kind === "toggle" ? (
-                <label className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
-                  <span className="flex items-center gap-2 font-semibold">
-                    <FilterIcon field={field} />
-                    {field.label}
-                  </span>
-                  <Switch checked={field.checked} onCheckedChange={field.onChange} />
-                </label>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="flex items-center gap-2 font-semibold">
-                      <FilterIcon field={field} />
-                      {field.label}
-                    </h2>
-                    {summary(field) ? (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Limpar ${field.label}`}
-                        onClick={field.onClear}
-                      >
-                        <X aria-hidden="true" />
-                      </Button>
-                    ) : null}
-                  </div>
-                  <FieldEditor field={field} />
-                </>
-              )}
-            </section>
+            <SecondaryFieldSection key={field.id} field={field} />
           ))}
         </div>
       </PopoverContent>

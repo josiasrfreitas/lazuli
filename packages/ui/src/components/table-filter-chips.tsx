@@ -14,6 +14,68 @@ function chipLabel(field: TableFilterField): string {
   return `${field.label}: ${summary(field)}`;
 }
 
+type SelectedField = Extract<TableFilterField, { kind: "options" | "remote-options" }>;
+
+function SelectedOptionRow({
+  field,
+  id,
+  label,
+}: {
+  field: SelectedField;
+  id: string;
+  label: string;
+}): ReactElement {
+  return (
+    <li className="flex min-h-control-sm min-w-0 items-center justify-between gap-2 px-2">
+      <span className="min-w-0 break-words py-1">{label}</span>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label={`Remover ${label} de ${field.label}`}
+        onClick={() => field.onChange(field.selected.filter((value) => value !== id))}
+      >
+        <X aria-hidden="true" />
+      </Button>
+    </li>
+  );
+}
+
+function SelectedChipMenu({ field, label }: { field: SelectedField; label: string }): ReactElement {
+  const available = field.kind === "options" ? field.options : field.selectedOptions;
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-w-0 flex-1 rounded-r-none px-2 font-normal"
+            aria-label={`Gerenciar ${field.label}: ${field.selected.length} selecionados`}
+          />
+        }
+      >
+        <span className="truncate" title={label}>
+          {label}
+        </span>
+        <ChevronDown aria-hidden="true" className="size-3" />
+      </PopoverTrigger>
+      <PopoverContent
+        aria-label={`Opções selecionadas de ${field.label}`}
+        align="start"
+        className="w-[min(18rem,calc(100vw-2rem))] p-2"
+      >
+        <ul className="scrollbar-subtle max-h-52 divide-y divide-border overflow-y-auto pr-2">
+          {field.selected.map((id) => {
+            const optionLabel =
+              available.find((option) => option.id === id)?.label ?? "Seleção indisponível";
+            return <SelectedOptionRow key={id} field={field} id={id} label={optionLabel} />;
+          })}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function ActiveChip({ field }: { field: TableFilterField }): ReactElement {
   const label = chipLabel(field);
   return (
@@ -22,52 +84,7 @@ function ActiveChip({ field }: { field: TableFilterField }): ReactElement {
       data-slot="table-filter-chip"
     >
       {field.kind === "options" || field.kind === "remote-options" ? (
-        <Popover>
-          <PopoverTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="sm"
-                className="min-w-0 flex-1 rounded-r-none px-2 font-normal"
-                aria-label={`Gerenciar ${field.label}: ${field.selected.length} selecionados`}
-              />
-            }
-          >
-            <span className="truncate" title={label}>
-              {label}
-            </span>
-            <ChevronDown aria-hidden="true" className="size-3" />
-          </PopoverTrigger>
-          <PopoverContent
-            aria-label={`Opções selecionadas de ${field.label}`}
-            align="start"
-            className="w-[min(18rem,calc(100vw-2rem))] p-2"
-          >
-            <ul className="scrollbar-subtle max-h-52 divide-y divide-border overflow-y-auto pr-2">
-              {field.selected.map((id) => {
-                const available = field.kind === "options" ? field.options : field.selectedOptions;
-                const optionLabel =
-                  available.find((option) => option.id === id)?.label ?? "Seleção indisponível";
-                return (
-                  <li
-                    key={id}
-                    className="flex min-h-control-sm min-w-0 items-center justify-between gap-2 px-2"
-                  >
-                    <span className="min-w-0 break-words py-1">{optionLabel}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Remover ${optionLabel} de ${field.label}`}
-                      onClick={() => field.onChange(field.selected.filter((value) => value !== id))}
-                    >
-                      <X aria-hidden="true" />
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
-          </PopoverContent>
-        </Popover>
+        <SelectedChipMenu field={field} label={label} />
       ) : (
         <span className="min-w-0 truncate px-2 text-control" title={label}>
           {label}

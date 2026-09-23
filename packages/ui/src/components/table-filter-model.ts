@@ -37,18 +37,20 @@ export type TableFilterField = FilterBase &
     | { kind: "toggle"; checked: boolean; onChange: (checked: boolean) => void }
   );
 
-export function summary(field: TableFilterField): string {
-  if (field.kind === "toggle") return field.checked ? "Ativo" : "";
-  if (field.kind === "options" || field.kind === "remote-options") {
-    if (field.selected.length === 0) return "";
-    const available = field.kind === "options" ? field.options : field.selectedOptions;
-    const labels = field.selected.map(
-      (id) => available.find((option) => option.id === id)?.label ?? "Seleção indisponível",
-    );
-    return labels.length <= 2
-      ? labels.join(", ")
-      : `${labels.slice(0, 2).join(", ")} +${labels.length - 2}`;
-  }
+type OptionField = Extract<TableFilterField, { kind: "options" | "remote-options" }>;
+
+function optionSummary(field: OptionField): string {
+  if (field.selected.length === 0) return "";
+  const available = field.kind === "options" ? field.options : field.selectedOptions;
+  const labels = field.selected.map(
+    (id) => available.find((option) => option.id === id)?.label ?? "Seleção indisponível",
+  );
+  return labels.length <= 2
+    ? labels.join(", ")
+    : `${labels.slice(0, 2).join(", ")} +${labels.length - 2}`;
+}
+
+function rangeSummary(field: Extract<TableFilterField, { kind: "period" | "amount" }>): string {
   if (!field.from && !field.to) return "";
   const display = (value: string): string => {
     if (field.kind === "period") {
@@ -62,4 +64,10 @@ export function summary(field: TableFilterField): string {
   };
   if (field.from && field.to) return `${display(field.from)} – ${display(field.to)}`;
   return field.from ? `≥ ${display(field.from)}` : `≤ ${display(field.to)}`;
+}
+
+export function summary(field: TableFilterField): string {
+  if (field.kind === "toggle") return field.checked ? "Ativo" : "";
+  if (field.kind === "options" || field.kind === "remote-options") return optionSummary(field);
+  return rangeSummary(field);
 }

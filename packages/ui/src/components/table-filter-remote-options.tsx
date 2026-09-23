@@ -7,34 +7,83 @@ import { Checkbox } from "./checkbox";
 import { Input } from "./input";
 import type { TableFilterField, TableFilterOption } from "./table-filter-model";
 
-export function RemoteOptionsEditor({
+const VISIBLE_LIMIT = 20;
+type RemoteField = Extract<TableFilterField, { kind: "remote-options" }>;
+
+function RemoteOptionRow({
+  option,
   field,
 }: {
-  field: Extract<TableFilterField, { kind: "remote-options" }>;
+  option: TableFilterOption;
+  field: RemoteField;
 }): ReactElement {
-  const selected = new Set(field.selected);
-  const query = field.search.trim();
-  const result = field.result.query === query ? field.result : null;
-  const visibleOptions = result?.status === "ready" ? result.options.slice(0, 20) : [];
-  const toggle = (id: string): void => {
-    field.onChange(
-      selected.has(id) ? field.selected.filter((value) => value !== id) : [...field.selected, id],
-    );
-  };
-  const optionRow = (option: TableFilterOption): ReactElement => (
-    <li key={option.id}>
+  const selected = field.selected.includes(option.id);
+  return (
+    <li>
       <Button
         variant="ghost"
         size="sm"
         className="h-auto min-h-control-sm w-full whitespace-normal px-2 py-1 text-left font-normal [&>span]:w-full [&>span]:justify-between"
-        aria-pressed={selected.has(option.id)}
-        onClick={() => toggle(option.id)}
+        aria-pressed={selected}
+        onClick={() =>
+          field.onChange(
+            selected
+              ? field.selected.filter((id) => id !== option.id)
+              : [...field.selected, option.id],
+          )
+        }
       >
         <span className="min-w-0 flex-1 break-words">{option.label}</span>
-        {selected.has(option.id) ? <Check aria-hidden="true" className="size-4" /> : null}
+        {selected ? <Check aria-hidden="true" className="size-4" /> : null}
       </Button>
     </li>
   );
+}
+
+function RemoteOptionsResults({
+  field,
+  query,
+}: {
+  field: RemoteField;
+  query: string;
+}): ReactElement {
+  const result = field.result.query === query ? field.result : null;
+  if (query === "")
+    return <p className="px-2 py-2 text-muted-foreground">Digite para buscar opções.</p>;
+  if (!result || result.status === "loading" || result.status === "idle") {
+    return (
+      <p className="px-2 py-2 text-muted-foreground" role="status">
+        Buscando {field.label.toLocaleLowerCase("pt-BR")}...
+      </p>
+    );
+  }
+  if (result.status === "error") {
+    return (
+      <div className="flex items-center justify-between gap-2 px-2 py-2">
+        <p role="alert">Não foi possível buscar {field.label.toLocaleLowerCase("pt-BR")}.</p>
+        <Button variant="ghost" size="sm" onClick={result.onRetry}>
+          Tentar novamente
+        </Button>
+      </div>
+    );
+  }
+  const options = result.options.slice(0, VISIBLE_LIMIT);
+  if (options.length === 0)
+    return <p className="px-2 py-2 text-muted-foreground">Nenhuma opção encontrada</p>;
+  return (
+    <ul>
+      {options.map((option) => (
+        <RemoteOptionRow key={option.id} option={option} field={field} />
+      ))}
+    </ul>
+  );
+}
+
+export function RemoteOptionsEditor({ field }: { field: RemoteField }): ReactElement {
+  const query = field.search.trim();
+  const result = field.result.query === query ? field.result : null;
+  const hasMore =
+    result?.status === "ready" && (result.hasMore || result.options.length > VISIBLE_LIMIT);
   return (
     <div className="space-y-2">
       <Input
@@ -46,28 +95,9 @@ export function RemoteOptionsEditor({
         placeholder={`Buscar ${field.label.toLocaleLowerCase("pt-BR")}`}
       />
       <div className="scrollbar-subtle max-h-52 overflow-y-auto pr-2">
-        {query === "" ? (
-          <p className="px-2 py-2 text-muted-foreground">Digite para buscar opções.</p>
-        ) : result === null || result.status === "loading" || result.status === "idle" ? (
-          <p className="px-2 py-2 text-muted-foreground" role="status">
-            Buscando {field.label.toLocaleLowerCase("pt-BR")}...
-          </p>
-        ) : result.status === "error" ? (
-          <div className="flex items-center justify-between gap-2 px-2 py-2">
-            <p role="alert">Não foi possível buscar {field.label.toLocaleLowerCase("pt-BR")}.</p>
-            <Button variant="ghost" size="sm" onClick={result.onRetry}>
-              Tentar novamente
-            </Button>
-          </div>
-        ) : visibleOptions.length === 0 ? (
-          <p className="px-2 py-2 text-muted-foreground">Nenhuma opção encontrada</p>
-        ) : (
-          <ul>{visibleOptions.map(optionRow)}</ul>
-        )}
+        <RemoteOptionsResults field={field} query={query} />
       </div>
-      {query !== "" &&
-      result?.status === "ready" &&
-      (result.hasMore || result.options.length > 20) ? (
+      {query && hasMore ? (
         <p className="px-2 text-micro text-muted-foreground">
           Exibindo os primeiros 20. Refine a busca para encontrar outros.
         </p>
