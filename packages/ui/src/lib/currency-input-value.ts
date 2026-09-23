@@ -1,4 +1,3 @@
-const integerFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 const CENTS_PER_REAL = 100;
 const DIGIT_BASE = 10;
 
@@ -7,6 +6,7 @@ export function formatCurrencyCents(cents: number | null): string {
   if (cents === null) return "";
   const whole = Math.floor(cents / CENTS_PER_REAL);
   const fraction = String(cents % CENTS_PER_REAL).padStart(2, "0");
+  const integerFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
   return `R$ ${integerFormatter.format(whole)},${fraction}`;
 }
 
