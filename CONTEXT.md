@@ -43,17 +43,60 @@ The derived, payer-scoped ledger of what is still owed: snapshots, overdue lists
 _Avoid_: Ledger (alone), accounts receivable, contas a receber
 
 **Payer**:
-The person or organization responsible for paying an order. Distinct from the student who
-benefits from it.
+The person or organization responsible for paying one or more orders. Distinct from the student
+who benefits from each order.
 _Avoid_: Customer, guardian (as a synonym), responsável financeiro
 
+**Contract**:
+An agreement between the school and a payer for one beneficiary over an agreed term.
+An educational contract defines tuition and the conditions for payment and early termination.
+_Avoid_: Order (as a synonym)
+
 **Order**:
-A commitment to pay for one or more beneficiaries, split into installments.
+A financial commitment owed by a payer for one beneficiary, payable through installments.
+Its type identifies its origin or purpose: Contract for a commitment arising from a contract,
+or Material for learning materials.
 _Avoid_: Contract, purchase, sale
 
 **Installment**:
 One dated amount of an order. Adjustments and waivers change what it owes without rewriting it.
 _Avoid_: Parcela, invoice, charge
+
+**Tuition**:
+The price of the student's educational service for an agreed period, commonly paid monthly.
+The service period and payment schedule are distinct.
+
+**Tuition Price Range**:
+The authorized tuition range defined by a price ceiling and a maximum discount percentage.
+Its derived floor applies to the final on-time price; the negotiated monthly terms cover the whole plan.
+_Avoid_: Profit margin, markup
+
+**Commercial Term**:
+The agreed start and end of an individual educational commitment. It is distinct from academic
+semesters, class membership dates and payment due dates.
+
+**Payment Schedule**:
+The agreed amounts and due dates of a financial commitment. Its timing is independent of the
+academic calendar and the duration of the commercial term.
+
+**Material Markup**:
+The percentage added to the acquisition base to obtain the selling price of a material order.
+_Avoid_: Profit margin, card fee
+
+**Punctuality Discount**:
+A percentage reduction in tuition conditional on payment by the agreed deadline.
+_Avoid_: Fixed discount, waiver
+
+**Cancellation Fee**:
+A charge arising from early termination of an educational commitment that is not fully paid,
+calculated as the agreed percentage of future installments' nominal amounts, before punctuality discounts.
+_Avoid_: Late fee
+
+**Late Payment Interest**:
+Simple interest accrued on an overdue installment for each day and each completed month of
+delay, counted at monthly anniversaries of the due date, under the agreed rates. After partial
+payment, interest applies to the remaining amount; accrued interest is not capitalized.
+_Avoid_: Late fee, cancellation fee
 
 ## Attendance terms
 
