@@ -57,23 +57,18 @@ export async function readInstallments(
     now?: Date;
   } & OptionalFilters,
 ): Promise<FinanceInstallmentsOutput> {
+  const { now, ...query } = input;
   return db.$transaction(
     (transaction) =>
       finance(transaction, ADMIN.id).installments(
         {
+          ...query,
           view: input.view ?? "all",
           page: input.page ?? 1,
           pageSize: input.pageSize ?? FINANCE_INSTALLMENTS_PAGE_SIZE,
           search: input.search ?? INSTALLMENTS_PREFIX,
-          ...(input.statuses ? { statuses: input.statuses } : {}),
-          ...(input.dueFrom ? { dueFrom: input.dueFrom } : {}),
-          ...(input.dueTo ? { dueTo: input.dueTo } : {}),
-          ...(input.amountFromCents !== undefined
-            ? { amountFromCents: input.amountFromCents }
-            : {}),
-          ...(input.amountToCents !== undefined ? { amountToCents: input.amountToCents } : {}),
         },
-        input.now ?? INSTALLMENTS_NOW,
+        now ?? INSTALLMENTS_NOW,
       ),
     { isolationLevel: "RepeatableRead" },
   );

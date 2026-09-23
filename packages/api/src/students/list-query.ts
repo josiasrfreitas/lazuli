@@ -70,7 +70,7 @@ const studentPageSelect = {
 export type StudentPageRow = Prisma.StudentGetPayload<{ select: typeof studentPageSelect }>;
 export type OpenEnrollmentRow = StudentPageRow["enrollments"][number];
 
-export function buildStudentListWhere(input: {
+type StudentListWhereInput = {
   status: StudentListStatusFilter;
   search?: string | undefined;
   situations?: StudentListInput["situations"];
@@ -78,7 +78,23 @@ export function buildStudentListWhere(input: {
   teacherIds?: string[] | undefined;
   registeredFrom?: string | undefined;
   registeredTo?: string | undefined;
-}): Prisma.StudentWhereInput {
+};
+
+function enrollmentFilter(input: StudentListWhereInput): Prisma.StudentWhereInput {
+  if (!input.classIds?.length && !input.teacherIds?.length) return {};
+  return {
+    enrollments: {
+      some: {
+        deletedAt: null,
+        exitDate: null,
+        ...(input.classIds?.length ? { classId: { in: input.classIds } } : {}),
+        ...(input.teacherIds?.length ? { class: { teacherId: { in: input.teacherIds } } } : {}),
+      },
+    },
+  };
+}
+
+export function buildStudentListWhere(input: StudentListWhereInput): Prisma.StudentWhereInput {
   const situations = input.situations?.length
     ? input.situations.flatMap((situation) =>
         situation === "active" ? [...ACTIVE_STATUSES] : [...INACTIVE_STATUSES],
@@ -89,20 +105,7 @@ export function buildStudentListWhere(input: {
     AND: [
       situations ? { status: { in: situations } } : statusFilter(input.status),
       searchFilter(input.search),
-      input.classIds?.length || input.teacherIds?.length
-        ? {
-            enrollments: {
-              some: {
-                deletedAt: null,
-                exitDate: null,
-                ...(input.classIds?.length ? { classId: { in: input.classIds } } : {}),
-                ...(input.teacherIds?.length
-                  ? { class: { teacherId: { in: input.teacherIds } } }
-                  : {}),
-              },
-            },
-          }
-        : {},
+      enrollmentFilter(input),
       input.registeredFrom ? { createdAt: { gte: dayStart(input.registeredFrom) } } : {},
       input.registeredTo ? { createdAt: { lt: dayStart(nextDay(input.registeredTo)) } } : {},
     ],

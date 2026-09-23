@@ -65,6 +65,26 @@ function validDate(value: string | null): string {
   return value && civilDateSchema.safeParse(value).success ? value : "";
 }
 
+function studentSituations(
+  status: string | null,
+  selected: string | null,
+): Array<"active" | "inactive"> {
+  if (selected) return situations(selected);
+  if (status === "ativos") return ["active"];
+  if (status === "inativos") return ["inactive"];
+  return [];
+}
+
+function studentFilterUrlPatch(patch: StudentFilterPatch): Record<string, string | null> {
+  const params: Record<string, string | null> = {};
+  if (patch.situations !== undefined) params.situacoes = patch.situations;
+  if (patch.classIds !== undefined) params.turmas = patch.classIds;
+  if (patch.teacherIds !== undefined) params.professores = patch.teacherIds;
+  if (patch.registeredFrom !== undefined) params.cadastroDe = patch.registeredFrom;
+  if (patch.registeredTo !== undefined) params.cadastroAte = patch.registeredTo;
+  return params;
+}
+
 function situations(value: string | null): Array<"active" | "inactive"> {
   return [
     ...new Set(
@@ -96,6 +116,7 @@ export function useStudentsFilters(): StudentsFilters {
   const pagination = useUrlPagination(studentPaginationPolicy);
   const registeredFrom = validDate(params.cadastroDe);
   const registeredTo = validDate(params.cadastroAte);
+  const invalidPeriod = Boolean(registeredFrom && registeredTo && registeredFrom > registeredTo);
   useEffect(() => {
     if (params.status !== "ativos" && params.status !== "inativos") return;
     void setParams({
@@ -112,29 +133,16 @@ export function useStudentsFilters(): StudentsFilters {
   );
 
   return {
-    situations:
-      params.status === "ativos" && !params.situacoes
-        ? ["active"]
-        : params.status === "inativos" && !params.situacoes
-          ? ["inactive"]
-          : situations(params.situacoes),
+    situations: studentSituations(params.status, params.situacoes),
     classIds: filterIdsFromUrl(params.turmas),
     teacherIds: filterIdsFromUrl(params.professores),
-    registeredFrom:
-      registeredFrom && registeredTo && registeredFrom > registeredTo ? "" : registeredFrom,
-    registeredTo:
-      registeredFrom && registeredTo && registeredFrom > registeredTo ? "" : registeredTo,
+    registeredFrom: invalidPeriod ? "" : registeredFrom,
+    registeredTo: invalidPeriod ? "" : registeredTo,
     search: params.busca.slice(0, SEARCH_MAX_LENGTH),
     page: pagination.page,
     pageSize: pagination.pageSize,
     setFilters: (patch) => {
-      void setParams({
-        ...(patch.situations !== undefined ? { situacoes: patch.situations } : {}),
-        ...(patch.classIds !== undefined ? { turmas: patch.classIds } : {}),
-        ...(patch.teacherIds !== undefined ? { professores: patch.teacherIds } : {}),
-        ...(patch.registeredFrom !== undefined ? { cadastroDe: patch.registeredFrom } : {}),
-        ...(patch.registeredTo !== undefined ? { cadastroAte: patch.registeredTo } : {}),
-      });
+      void setParams(studentFilterUrlPatch(patch));
       pagination.setPage(1);
     },
     setSearch,
@@ -182,14 +190,20 @@ type StudentsListQueryInput = Pick<
   | "pageSize"
 >;
 
-export function useStudentFilterOptions(kind: "class" | "teacher", search: string) {
+export function useStudentFilterOptions(
+  kind: "class" | "teacher",
+  search: string,
+): QueryResult<Array<{ id: string; label: string }>> {
   return trpc.students.listFilterOptions.useQuery(
     { kind, search },
     { enabled: search.trim().length > 0 },
   );
 }
 
-export function useSelectedStudentFilterOptions(kind: "class" | "teacher", ids: string[]) {
+export function useSelectedStudentFilterOptions(
+  kind: "class" | "teacher",
+  ids: string[],
+): QueryResult<Array<{ id: string; label: string }>> {
   return trpc.students.listFilterOptions.useQuery({ kind, ids }, { enabled: ids.length > 0 });
 }
 
@@ -287,9 +301,9 @@ export function useStudentsList(filters: StudentsListQueryInput): StudentsListQu
       pageSize: filters.pageSize,
       status: "all",
       search: filters.search === "" ? undefined : filters.search,
-      ...(filters.situations.length ? { situations: filters.situations } : {}),
-      ...(filters.classIds.length ? { classIds: filters.classIds } : {}),
-      ...(filters.teacherIds.length ? { teacherIds: filters.teacherIds } : {}),
+      ...(filters.situations.length > 0 ? { situations: filters.situations } : {}),
+      ...(filters.classIds.length > 0 ? { classIds: filters.classIds } : {}),
+      ...(filters.teacherIds.length > 0 ? { teacherIds: filters.teacherIds } : {}),
       ...(filters.registeredFrom ? { registeredFrom: filters.registeredFrom } : {}),
       ...(filters.registeredTo ? { registeredTo: filters.registeredTo } : {}),
     },

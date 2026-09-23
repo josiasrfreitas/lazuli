@@ -25,6 +25,7 @@ import {
 } from "../../src/features/installments/view-model.js";
 
 const DUE_DATE = "2026-09-01";
+const INVALID_URL_DUE_TO = "2026-02-01";
 const TODAY = "2026-09-15";
 const SEARCH_LIMIT = 80;
 const EXCESS_SEARCH_LENGTH = 81;
@@ -206,7 +207,7 @@ void test("invalid shared URL ranges do not show or apply misleading filters", (
       status: null,
       search: null,
       dueFrom: "2026-02-30",
-      dueTo: "2026-02-01",
+      dueTo: INVALID_URL_DUE_TO,
       amountFrom: "200",
       amountTo: "100",
     },
@@ -219,14 +220,14 @@ void test("invalid shared URL ranges do not show or apply misleading filters", (
       amountFrom: filters.amountFrom,
       amountTo: filters.amountTo,
     },
-    { dueFrom: "", dueTo: "2026-02-01", amountFrom: "", amountTo: "" },
+    { dueFrom: "", dueTo: INVALID_URL_DUE_TO, amountFrom: "", amountTo: "" },
   );
   assert.deepEqual(queryInput(filters), {
     view: "all",
     page: 1,
     pageSize: 25,
     search: "",
-    dueTo: "2026-02-01",
+    dueTo: INVALID_URL_DUE_TO,
   });
 });
 void test("financial presentation preserves original value and the API's adjusted partial balance", () => {

@@ -63,16 +63,31 @@ export function normalizeFilters(
   const dueTo = validDate(params.dueTo);
   const amountFrom = validAmount(params.amountFrom);
   const amountTo = validAmount(params.amountTo);
+  const dueRange = orderedRange({ from: dueFrom, to: dueTo });
+  const amountRange = orderedRange({ from: amountFrom, to: amountTo, compareValue: Number });
   return {
     status: params.status === "vencidas" ? "vencidas" : null,
     search: (params.search ?? "").slice(0, SEARCH_MAX_LENGTH),
     situations: normalizedSituations(params.status, situations),
-    dueFrom: dueFrom && dueTo && dueFrom > dueTo ? "" : dueFrom,
-    dueTo: dueFrom && dueTo && dueFrom > dueTo ? "" : dueTo,
-    amountFrom: amountFrom && amountTo && Number(amountFrom) > Number(amountTo) ? "" : amountFrom,
-    amountTo: amountFrom && amountTo && Number(amountFrom) > Number(amountTo) ? "" : amountTo,
+    dueFrom: dueRange.from,
+    dueTo: dueRange.to,
+    amountFrom: amountRange.from,
+    amountTo: amountRange.to,
     ...pagination,
   };
+}
+
+function orderedRange({
+  from,
+  to,
+  compareValue = (value) => value,
+}: {
+  from: string;
+  to: string;
+  compareValue?: (value: string) => string | number;
+}): { from: string; to: string } {
+  if (from && to && compareValue(from) > compareValue(to)) return { from: "", to: "" };
+  return { from, to };
 }
 
 function validDate(value: string | null): string {

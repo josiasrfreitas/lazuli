@@ -23,6 +23,9 @@ const PAGE_SIZE = 10;
 const RESULT_COUNT = 26;
 const LAST_PAGE_RESULT_COUNT = RESULT_COUNT - PAGE_SIZE * 2;
 const LITERAL_BALANCE_CENTS = 6000;
+const FILTER_DUE_DATE = "2026-04-10";
+const OVERDUE_DUE_DATE = "2026-02-28";
+const FILTER_AMOUNT_CENTS = 15_000;
 
 void describe("finance installments query", { concurrency: 1 }, () => {
   void before(async () => {
@@ -51,15 +54,18 @@ void describe("finance installments query", { concurrency: 1 }, () => {
 
 function registerCombinedFiltersTest(): void {
   void it("combines situation, due date and original amount before totals and pagination", async () => {
-    const matching = await createOrder({ dueDate: "2026-04-10", amountCents: 15_000 });
-    await createOrder({ dueDate: "2026-04-10", amountCents: 5_000 });
-    await createOrder({ dueDate: "2026-02-28", amountCents: 15_000 });
+    const matching = await createOrder({
+      dueDate: FILTER_DUE_DATE,
+      amountCents: FILTER_AMOUNT_CENTS,
+    });
+    await createOrder({ dueDate: FILTER_DUE_DATE, amountCents: 5000 });
+    await createOrder({ dueDate: OVERDUE_DUE_DATE, amountCents: FILTER_AMOUNT_CENTS });
 
     const result = await read({
       page: 1,
       statuses: ["UPCOMING"],
-      dueFrom: "2026-04-10",
-      dueTo: "2026-04-10",
+      dueFrom: FILTER_DUE_DATE,
+      dueTo: FILTER_DUE_DATE,
       amountFromCents: 10_000,
     });
 
@@ -75,7 +81,7 @@ function registerCombinedFiltersTest(): void {
 
 function registerPaginationTest(): void {
   void it("paginates 26 tied rows at the requested size without duplicates and preserves totals past the end", async () => {
-    const fixture = await createOrder({ installmentCount: RESULT_COUNT, dueDate: "2026-04-10" });
+    const fixture = await createOrder({ installmentCount: RESULT_COUNT, dueDate: FILTER_DUE_DATE });
 
     const first = await read({ page: 1, pageSize: PAGE_SIZE });
     const second = await read({ page: 2, pageSize: PAGE_SIZE });
@@ -123,7 +129,7 @@ function registerFinancialRulesTest(): void {
     const partial = result.rows.find((row) => row.installmentId === fixture.partialId);
     const oracle = deriveInstallmentLedger({
       amountCents: TEN_THOUSAND_CENTS,
-      dueDate: "2026-02-28",
+      dueDate: OVERDUE_DUE_DATE,
       waivedAt: null,
       orderCancelledAt: null,
       adjustments: [{ amountCents: -400 }, { amountCents: -600 }],
@@ -170,7 +176,7 @@ function registerOrderingTest(): void {
     const overdueEarlier = await createOrder({ dueDate: "2026-01-10" });
     const overdueLater = await createOrder({ dueDate: "2026-02-10" });
     const openEarlier = await createOrder({ dueDate: "2026-03-10" });
-    const openLater = await createOrder({ dueDate: "2026-04-10" });
+    const openLater = await createOrder({ dueDate: FILTER_DUE_DATE });
     const paidLater = await createOrder({ dueDate: "2025-12-10" });
     const waivedEarlier = await createOrder({ dueDate: "2025-11-10" });
     const paidId = paidLater.installmentIds[0];
