@@ -74,6 +74,7 @@ void test("student display names keep the first name and second-name initial", (
 const row: FinanceInstallmentRow = {
   installmentId: "11111111-1111-4111-8111-111111111111",
   orderId: "22222222-2222-4222-8222-222222222222",
+  origin: "TUITION",
   sequenceNumber: 6,
   scheduleTotal: 12,
   payer: { id: "33333333-3333-4333-8333-333333333333", name: "Maria" },
@@ -234,6 +235,7 @@ void test("financial presentation preserves original value and the API's adjuste
   const vm = installmentVm(row, TODAY);
   assert.deepEqual(vm, {
     sequence: "6 de 12",
+    origin: "Mensalidade",
     dueDate: "01/09/2026",
     amount: "R$\u00A0350,00",
     balance: "Restante: R$\u00A0260,00",
@@ -245,6 +247,21 @@ void test("financial presentation preserves original value and the API's adjuste
     label: "Vencida há 1 dia",
     variant: "destructive",
   });
+});
+
+void test("origin labels preserve every historical order kind", () => {
+  const labels = {
+    TUITION: "Mensalidade",
+    ENROLLMENT_FEE: "Taxa de matrícula",
+    MATERIAL: "Material",
+    OTHER: "Outro",
+  } as const;
+  for (const [origin, label] of Object.entries(labels)) {
+    assert.equal(
+      installmentVm({ ...row, origin: origin as FinanceInstallmentRow["origin"] }, TODAY).origin,
+      label,
+    );
+  }
 });
 void test("overdue payer summary uses the API collectible total instead of summing original amounts", () => {
   const group: FinanceOverduePayerGroup = {

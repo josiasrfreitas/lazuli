@@ -5,6 +5,7 @@ import { abbreviatedPersonName, installmentVm } from "./view-model";
 
 export const COLUMN_IDS = {
   installment: "installments-column-installment",
+  origin: "installments-column-origin",
   payer: "installments-column-payer",
   beneficiaries: "installments-column-beneficiaries",
   dueDate: "installments-column-due-date",
@@ -25,6 +26,7 @@ export function InstallmentRow({
       <TableCell headers={COLUMN_IDS.installment}>
         <span className="font-numeric whitespace-nowrap tabular-nums">{vm.sequence}</span>
       </TableCell>
+      <TableCell headers={COLUMN_IDS.origin}>{vm.origin}</TableCell>
       <TableCell headers={COLUMN_IDS.payer} className="break-words">
         {row.payer.name}
       </TableCell>

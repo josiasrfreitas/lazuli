@@ -12,31 +12,33 @@ import {
   TableSkeleton,
 } from "@lazuli/ui";
 import type { FinanceInstallmentRow, FinanceOverduePayerGroup } from "@lazuli/validators";
-import { OverduePayerGroupCard } from "./overdue-payer-group";
+import { OverduePayerGroupCard, OverdueSearchGuidance } from "./overdue-payer-group";
 import { businessDate } from "./view-model";
 import { COLUMN_IDS, InstallmentRow } from "./installment-row";
-
 function InstallmentsHead(): ReactElement {
   return (
     <TableHeader sticky>
       <TableRow interactive={false}>
         <TableHead id={COLUMN_IDS.installment} className="w-1/12">
-          Parcela
+          Sequência
+        </TableHead>
+        <TableHead id={COLUMN_IDS.origin} className="w-2/12">
+          Origem
         </TableHead>
         <TableHead id={COLUMN_IDS.payer} className="w-2/12">
           Pagador
         </TableHead>
         <TableHead id={COLUMN_IDS.beneficiaries} className="w-2/12">
-          Beneficiário(s)
+          Beneficiário
         </TableHead>
-        <TableHead id={COLUMN_IDS.dueDate} className="w-2/12">
+        <TableHead id={COLUMN_IDS.dueDate} className="w-1/12">
           Vencimento
         </TableHead>
-        <TableHead id={COLUMN_IDS.amount} className="w-3/12" numeric>
+        <TableHead id={COLUMN_IDS.amount} className="w-2/12" numeric>
           Valor
         </TableHead>
         <TableHead id={COLUMN_IDS.status} className="w-2/12">
-          Status
+          Situação
         </TableHead>
       </TableRow>
     </TableHeader>
@@ -50,18 +52,10 @@ type TableState = {
   showOverdueSearchGuidance?: boolean;
   onRetry: () => void;
 };
-const COLUMN_COUNT = 6;
-const AMOUNT_COLUMN_INDEX = 4;
+const COLUMN_COUNT = 7;
+const AMOUNT_COLUMN_INDEX = 5;
 const NUMERIC_COLUMNS = [AMOUNT_COLUMN_INDEX];
 const SKELETON_ROWS = 10;
-function OverdueSearchGuidance(): ReactElement {
-  return (
-    <p className="shrink-0 px-5 py-3 text-sm text-muted-foreground">
-      Exibindo todas as parcelas vencidas dos pagadores encontrados.
-    </p>
-  );
-}
-
 function InstallmentsBody({
   rows,
   error,
@@ -73,7 +67,7 @@ function InstallmentsBody({
     return (
       <TableEmpty colSpan={COLUMN_COUNT}>
         <EmptyState
-          title="Não foi possível carregar as parcelas"
+          title="Não foi possível carregar os recebíveis"
           description="Verifique a conexão e tente de novo."
           action={
             <Button size="sm" variant="secondary" onClick={onRetry}>
@@ -91,11 +85,11 @@ function InstallmentsBody({
     return (
       <TableEmpty colSpan={COLUMN_COUNT}>
         <EmptyState
-          title={filtered ? "Nenhuma parcela encontrada" : "Nenhuma parcela cadastrada"}
+          title={filtered ? "Nenhum recebível encontrado" : "Nenhum recebível cadastrado"}
           description={
             filtered
-              ? "Ajuste a busca ou o filtro de status."
-              : "As parcelas aparecerão aqui quando forem cadastradas."
+              ? "Ajuste a busca ou o filtro de situação."
+              : "Os recebíveis aparecerão aqui quando forem cadastrados."
           }
         />
       </TableEmpty>
@@ -144,7 +138,11 @@ export function InstallmentsTable({
   return (
     <TableContainer viewportBound footer={footer}>
       {state.showOverdueSearchGuidance ? <OverdueSearchGuidance /> : null}
-      <Table aria-label="Lista de parcelas" aria-busy={updating} className="min-w-4xl table-fixed">
+      <Table
+        aria-label="Lista de recebíveis"
+        aria-busy={updating}
+        className="min-w-240 table-fixed"
+      >
         <InstallmentsHead />
         <TableBody>
           <InstallmentsBody {...state} rows={hasGroups ? [] : state.rows} today={today} />

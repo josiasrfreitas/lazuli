@@ -80,6 +80,7 @@ export const financeInstallmentRowSchema = z
   .object({
     installmentId: z.string().uuid(),
     orderId: z.string().uuid(),
+    origin: orderKindSchema,
     sequenceNumber: z.number().int().positive(),
     scheduleTotal: z.number().int().nonnegative(),
     payer: z.object({ id: z.string().uuid(), name: z.string() }).strict(),

@@ -105,6 +105,7 @@ function overdueRow(overrides: Partial<OverdueGroupRow> = {}): OverdueGroupRow {
   return {
     installmentId: "00000000-0000-4000-8000-000000000008",
     orderId: ORDER_C,
+    origin: "TUITION",
     sequenceNumber: 1,
     scheduleTotal: PAYER_A_COUNT,
     payerId: PAYER_A,

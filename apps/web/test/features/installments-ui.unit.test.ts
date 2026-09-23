@@ -9,7 +9,7 @@ import { InstallmentsTable } from "../../src/features/installments/installments-
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
-const COLUMN_COUNT = 6;
+const COLUMN_COUNT = 7;
 const PAYER_ONE_ID = "11111111-1111-4111-8111-111111111111";
 const PAYER_TWO_ID = "22222222-2222-4222-8222-222222222222";
 const INSTALLMENT_ONE_ID = "66666666-6666-4666-8666-666666666666";
@@ -33,6 +33,7 @@ function overdueGroup(payerId: string, installmentId: string): FinanceOverduePay
       {
         installmentId,
         orderId: "55555555-5555-4555-8555-555555555555",
+        origin: "TUITION",
         sequenceNumber: 6,
         scheduleTotal: 12,
         payer: { id: payerId, name: "Responsável Homônimo com Nome Muito Longo" },
@@ -94,34 +95,34 @@ void test("overdue pagination counts payer groups and has no size selector", () 
   assert.match(overduePaginationMarkup(2), /11–11 de .*11.* pagadores/u);
   assert.doesNotMatch(overduePaginationMarkup(1), /Itens por página/u);
 });
-void test("table retains six semantic columns and distinguishes loading, empty, filtered and error", () => {
+void test("table retains seven semantic columns and distinguishes loading, empty, filtered and error", () => {
   const base = { error: false, filtered: false, updating: false, onRetry: () => {}, footer: null };
   const loading = renderToStaticMarkup(
     createElement(InstallmentsTable, { ...base, rows: undefined, updating: true }),
   );
   assert.equal((loading.match(/<th /gu) ?? []).length, COLUMN_COUNT);
-  assert.match(loading, /Lista de parcelas/u);
+  assert.match(loading, /Lista de recebíveis/u);
   assert.match(loading, /aria-busy="true"/u);
-  assert.match(loading, />Parcela</u);
+  assert.match(loading, />Sequência<\/th>.*>Origem<\/th>/u);
   assert.match(loading, />Pagador</u);
-  assert.match(loading, />Beneficiário\(s\)</u);
+  assert.match(loading, />Beneficiário</u);
   assert.match(loading, />Vencimento</u);
   assert.match(loading, />Valor</u);
-  assert.match(loading, />Status</u);
+  assert.match(loading, />Situação</u);
   const empty = renderToStaticMarkup(createElement(InstallmentsTable, { ...base, rows: [] }));
-  assert.match(empty, /Nenhuma parcela cadastrada/u);
+  assert.match(empty, /Nenhum recebível cadastrado/u);
   const overdueEmpty = renderToStaticMarkup(
     createElement(InstallmentsTable, { ...base, groups: [] }),
   );
-  assert.match(overdueEmpty, /Nenhuma parcela cadastrada/u);
+  assert.match(overdueEmpty, /Nenhum recebível cadastrado/u);
   const filtered = renderToStaticMarkup(
     createElement(InstallmentsTable, { ...base, rows: [], filtered: true }),
   );
-  assert.match(filtered, /Nenhuma parcela encontrada/u);
+  assert.match(filtered, /Nenhum recebível encontrado/u);
   const error = renderToStaticMarkup(
     createElement(InstallmentsTable, { ...base, rows: undefined, error: true }),
   );
-  assert.match(error, /Não foi possível carregar as parcelas/u);
+  assert.match(error, /Não foi possível carregar os recebíveis/u);
   assert.match(error, /Tentar de novo/u);
 });
 void test("overdue error takes precedence over previously loaded groups", () => {
@@ -135,7 +136,7 @@ void test("overdue error takes precedence over previously loaded groups", () => 
       footer: null,
     }),
   );
-  assert.match(markup, /Não foi possível carregar as parcelas/u);
+  assert.match(markup, /Não foi possível carregar os recebíveis/u);
   assert.match(markup, /Tentar de novo/u);
   assert.doesNotMatch(markup, /data-slot="overdue-payer-group"/u);
 });
@@ -238,6 +239,33 @@ void test("flat table keeps the overdue status badge on one line", () => {
     markup,
     /class="border-b border-border data-\[selected\]:bg-accent" data-slot="table-row"/u,
   );
+});
+void test("flat and grouped rows show distinct origins under visible column headers", () => {
+  const group = overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID);
+  const first = group.rows[0];
+  assert.ok(first);
+  group.rows.push({
+    ...first,
+    installmentId: "88888888-8888-4888-8888-888888888888",
+    orderId: "99999999-9999-4999-8999-999999999999",
+    origin: "ENROLLMENT_FEE",
+  });
+  group.installmentCount = 2;
+  group.collectibleBalanceCents *= 2;
+  const base = { error: false, filtered: false, updating: false, onRetry: () => {}, footer: null };
+  const flat = renderToStaticMarkup(
+    createElement(InstallmentsTable, { ...base, rows: group.rows }),
+  );
+  const grouped = renderToStaticMarkup(
+    createElement(InstallmentsTable, { ...base, groups: [group] }),
+  );
+  for (const markup of [flat, grouped]) {
+    assert.match(markup, />Origem<\/th>/u);
+    assert.match(markup, />Mensalidade<\/td>/u);
+    assert.match(markup, />Taxa de matrícula<\/td>/u);
+    assert.doesNotMatch(markup, /<thead[^>]*sr-only/u);
+  }
+  assert.equal(countMatches(grouped, /data-slot="overdue-payer-group"/gu), 1);
 });
 void test("overdue search explains that qualified payer groups remain complete", () => {
   const group = overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID);

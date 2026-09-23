@@ -80,6 +80,7 @@ export async function createInstallmentOrder(
     amountCents?: number;
     dueDate?: string;
     payerName?: string;
+    kind?: "TUITION" | "ENROLLMENT_FEE" | "MATERIAL" | "OTHER";
     beneficiaryNames?: string[];
   } = {},
 ): Promise<InstallmentOrderFixture> {
@@ -92,7 +93,7 @@ export async function createInstallmentOrder(
   const order = await db.order.create({
     data: {
       payerId: payer.id,
-      kind: "TUITION",
+      kind: input.kind ?? "TUITION",
       principalAmountCents: amountCents * installmentCount,
       startDate: new Date("2026-01-01T00:00:00.000Z"),
       dueDay: 10,
