@@ -29,6 +29,7 @@ it("classifies documentation, light scripts, full setup, schema, and global conf
     classifyChanges(["scripts/storybook.mjs"], { root: directory }).forceInfrastructureTiers,
     false,
   );
+  assert.equal(classifyChanges(["scripts/gh-pending.mjs"], { root: directory }).rootChecks, true);
   assert.equal(
     classifyChanges(["scripts/workspace-setup.mjs"], { root: directory }).workspaceIntegration,
     true,
