@@ -68,18 +68,6 @@ const filters: StudentsFilters = {
   setFilters: () => {},
 };
 const missing: { data?: never } = {};
-const filterFields = studentFilterFields({
-  filters,
-  classOptions: [],
-  teacherOptions: [],
-  classSearch: "",
-  teacherSearch: "",
-  classResult: { status: "idle", query: "" },
-  teacherResult: { status: "idle", query: "" },
-  onClassSearchChange: () => {},
-  onTeacherSearchChange: () => {},
-});
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 function studentRowMarkup(row: StudentListRow): string {
@@ -123,6 +111,17 @@ void test("first load preserves pagination furniture and only skeletonizes fetch
 });
 
 void test("first load keeps header and filter controls while skeletonizing header counts", () => {
+  const filterFields = studentFilterFields({
+    filters,
+    classOptions: [],
+    teacherOptions: [],
+    classSearch: "",
+    teacherSearch: "",
+    classResult: { status: "idle", query: "" },
+    teacherResult: { status: "idle", query: "" },
+    onClassSearchChange: () => {},
+    onTeacherSearchChange: () => {},
+  });
   const headerMarkup = renderToStaticMarkup(createElement(StudentsHeader, { summary: undefined }));
   const controlsMarkup = renderToStaticMarkup(
     createElement(StudentsControls, {

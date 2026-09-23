@@ -724,9 +724,15 @@ importers:
       '@lazuli/eslint-config':
         specifier: workspace:*
         version: link:../../tooling/eslint
+      '@lazuli/stryker-config':
+        specifier: workspace:*
+        version: link:../../tooling/stryker
       '@lazuli/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
+      '@stryker-mutator/core':
+        specifier: 'catalog:'
+        version: 10.0.0(@types/node@22.20.0)
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0

@@ -32,6 +32,7 @@ const DUE_DAY_TWENTY_FIFTH = 25;
 const INVALID_DUE_DAY = 30;
 const DISCOUNT_ADJUSTMENT_CENTS = -500;
 const OVERLONG_INSTALLMENT_SEARCH_LENGTH = 81;
+const LEAP_DAY = "2024-02-29";
 
 const ORDER_FIELDS = {
   kind: "TUITION",
@@ -241,6 +242,30 @@ void describe("finance adjustment input", () => {
       false,
     );
   });
+});
+
+void it("validates situation and inclusive date and amount ranges", () => {
+  const valid = financeInstallmentsInputSchema.parse({
+    statuses: ["PAID", "OVERDUE"],
+    dueFrom: LEAP_DAY,
+    dueTo: LEAP_DAY,
+    amountFromCents: 0,
+    amountToCents: 0,
+  });
+  assert.deepEqual(valid.statuses, ["PAID", "OVERDUE"]);
+  assert.equal(valid.dueTo, LEAP_DAY);
+  assert.equal(valid.amountToCents, 0);
+  assert.equal(financeInstallmentsInputSchema.safeParse({ statuses: ["INVALID"] }).success, false);
+  assert.equal(financeInstallmentsInputSchema.safeParse({ dueFrom: "2024-02-30" }).success, false);
+  assert.equal(
+    financeInstallmentsInputSchema.safeParse({ dueFrom: "2024-03-01", dueTo: LEAP_DAY }).success,
+    false,
+  );
+  assert.equal(
+    financeInstallmentsInputSchema.safeParse({ amountFromCents: 1, amountToCents: 0 }).success,
+    false,
+  );
+  assert.equal(financeInstallmentsInputSchema.safeParse({ amountFromCents: -1 }).success, false);
 });
 
 void describe("finance installments contract", () => {
