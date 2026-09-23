@@ -25,6 +25,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "node ../../scripts/run-test-tier.mjs unit",
     "clean": "rm -rf .turbo dist"
   },
   "peerDependencies": {
@@ -43,12 +44,14 @@
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "shadcn": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:"
   }
 }

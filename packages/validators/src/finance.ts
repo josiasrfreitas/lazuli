@@ -1,3 +1,4 @@
+import { civilDateSchema } from "./civil-date.js";
 import { z } from "zod";
 
 import { dateOnlyInputSchema } from "./student.js";
@@ -53,8 +54,27 @@ export const financeInstallmentsInputSchema = z
     page: financeInstallmentsPaginationPolicy.pageSchema,
     pageSize: financeInstallmentsPaginationPolicy.pageSizeSchema,
     search: z.string().trim().max(FINANCE_INSTALLMENTS_SEARCH_MAX_LENGTH).optional(),
+    statuses: z
+      .array(financeInstallmentStatusSchema)
+      .max(financeInstallmentStatusSchema.options.length)
+      .optional(),
+    dueFrom: civilDateSchema.optional(),
+    dueTo: civilDateSchema.optional(),
+    amountFromCents: z.number().int().nonnegative().optional(),
+    amountToCents: z.number().int().nonnegative().optional(),
   })
-  .strict();
+  .strict()
+  .refine((value) => !value.dueFrom || !value.dueTo || value.dueFrom <= value.dueTo, {
+    path: ["dueTo"],
+    message: "O fim deve ser igual ou posterior ao início.",
+  })
+  .refine(
+    (value) =>
+      value.amountFromCents === undefined ||
+      value.amountToCents === undefined ||
+      value.amountFromCents <= value.amountToCents,
+    { path: ["amountToCents"], message: "O máximo deve ser igual ou maior que o mínimo." },
+  );
 
 export const financeInstallmentRowSchema = z
   .object({

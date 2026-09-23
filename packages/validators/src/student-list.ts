@@ -1,3 +1,4 @@
+import { civilDateSchema } from "./civil-date.js";
 import { z } from "zod";
 
 import { studentStatusSchema } from "./student.js";
@@ -11,6 +12,7 @@ import { paginationResultFields, studentPaginationPolicy } from "./pagination.js
  */
 
 const SEARCH_MAX_LENGTH = 80;
+const MAX_FILTER_IDS = 50;
 export const STUDENT_PAGE_SIZE_OPTIONS = studentPaginationPolicy.pageSizeOptions;
 export const DEFAULT_STUDENT_PAGE_SIZE = studentPaginationPolicy.defaultPageSize;
 
@@ -22,8 +24,21 @@ export const studentListInputSchema = z
     pageSize: studentPaginationPolicy.pageSizeSchema,
     status: studentListStatusFilterSchema.default("all"),
     search: z.string().trim().max(SEARCH_MAX_LENGTH).optional(),
+    situations: z
+      .array(z.enum(["active", "inactive"]))
+      .max(2)
+      .optional(),
+    classIds: z.array(z.string().uuid()).max(MAX_FILTER_IDS).optional(),
+    teacherIds: z.array(z.string().uuid()).max(MAX_FILTER_IDS).optional(),
+    registeredFrom: civilDateSchema.optional(),
+    registeredTo: civilDateSchema.optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (value) =>
+      !value.registeredFrom || !value.registeredTo || value.registeredFrom <= value.registeredTo,
+    { path: ["registeredTo"], message: "O fim deve ser igual ou posterior ao início." },
+  );
 
 /** The most recent open enrollment, flattened for the "Turma"/"Professor" columns. */
 export const studentListEnrollmentSchema = z

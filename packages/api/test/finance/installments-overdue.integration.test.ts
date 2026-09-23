@@ -45,7 +45,39 @@ void describe("finance installments query", { concurrency: 1 }, () => {
   registerGroupIdentityTest();
   registerVisibilityTest();
   registerDatesTest();
+  registerFilteredGroupsTest();
 });
+
+function registerFilteredGroupsTest(): void {
+  void it("recomputes an overdue payer group from installments inside the period and amount range", async () => {
+    const fixture = await createOrder({ installmentCount: 3, dueDate: "2026-02-28" });
+    await db.installment.update({
+      where: { id: fixture.installmentIds[0]! },
+      data: { amountCents: 5_000 },
+    });
+    await db.installment.update({
+      where: { id: fixture.installmentIds[1]! },
+      data: { dueDate: new Date("2026-01-01T00:00:00.000Z") },
+    });
+
+    const result = await read({
+      view: "overdue",
+      dueFrom: "2026-02-28",
+      dueTo: "2026-02-28",
+      amountFromCents: 10_000,
+      amountToCents: 10_000,
+    });
+
+    assert.equal(result.total, 1);
+    assert.deepEqual(
+      result.groups[0]?.rows.map((row) => row.installmentId),
+      [fixture.installmentIds[2]],
+    );
+    assert.equal(result.groups[0]?.installmentCount, 1);
+    assert.equal(result.groups[0]?.collectibleBalanceCents, 10_000);
+    assert.deepEqual(result.counts, { all: 1, paid: 0, overdue: 1 });
+  });
+}
 
 function registerPaginationTest(): void {
   void it("pages complete payer groups by urgency and ID, keeping homonyms separate", async () => {

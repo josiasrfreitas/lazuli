@@ -26,6 +26,11 @@ export async function listInstallments(input: {
     kysely: input.database.$kysely,
     businessDate: saoPauloDateOnly(input.now),
     search: input.values.search,
+    statuses: input.values.view === "overdue" ? undefined : input.values.statuses,
+    dueFrom: input.values.dueFrom,
+    dueTo: input.values.dueTo,
+    amountFromCents: input.values.amountFromCents,
+    amountToCents: input.values.amountToCents,
   };
   const counts = await loadInstallmentCounts(queryInput);
   if (input.values.view === "overdue") {

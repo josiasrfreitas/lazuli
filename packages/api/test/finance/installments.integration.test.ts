@@ -46,7 +46,32 @@ void describe("finance installments query", { concurrency: 1 }, () => {
   registerSearchTest();
   registerCivilDateTest();
   registerVisibilityTest();
+  registerCombinedFiltersTest();
 });
+
+function registerCombinedFiltersTest(): void {
+  void it("combines situation, due date and original amount before totals and pagination", async () => {
+    const matching = await createOrder({ dueDate: "2026-04-10", amountCents: 15_000 });
+    await createOrder({ dueDate: "2026-04-10", amountCents: 5_000 });
+    await createOrder({ dueDate: "2026-02-28", amountCents: 15_000 });
+
+    const result = await read({
+      page: 1,
+      statuses: ["UPCOMING"],
+      dueFrom: "2026-04-10",
+      dueTo: "2026-04-10",
+      amountFromCents: 10_000,
+    });
+
+    assert.deepEqual(
+      result.rows.map((row) => row.installmentId),
+      matching.installmentIds,
+    );
+    assert.equal(result.total, 1);
+    assert.equal(result.pageCount, 1);
+    assert.deepEqual(result.counts, { all: 1, paid: 0, overdue: 0 });
+  });
+}
 
 function registerPaginationTest(): void {
   void it("paginates 26 tied rows at the requested size without duplicates and preserves totals past the end", async () => {

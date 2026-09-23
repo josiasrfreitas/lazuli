@@ -10,11 +10,12 @@ import {
   normalizeFilters,
   queryInput,
   searchPatch,
-  statusPatch,
+  situationPatch,
 } from "../../src/features/installments/filters.js";
 import {
   effectivePageCorrection,
   sameInstallmentsQueryScope,
+  urlParamsForFilterPatch,
 } from "../../src/features/installments/logic.js";
 import {
   abbreviatedPersonName,
@@ -27,12 +28,21 @@ const DUE_DATE = "2026-09-01";
 const TODAY = "2026-09-15";
 const SEARCH_LIMIT = 80;
 const EXCESS_SEARCH_LENGTH = 81;
+const blankParams = {
+  situations: null,
+  dueFrom: null,
+  dueTo: null,
+  amountFrom: null,
+  amountTo: null,
+};
 
 void test("installment results persist only across pagination and refetch of the same view and search", () => {
   const current = { view: "overdue" as const, search: "Ana" };
   assert.equal(sameInstallmentsQueryScope({ ...current }, current), true);
   assert.equal(sameInstallmentsQueryScope({ view: "overdue", search: "Bia" }, current), false);
   assert.equal(sameInstallmentsQueryScope({ view: "all", search: "Ana" }, current), false);
+  assert.equal(sameInstallmentsQueryScope({ ...current, dueFrom: DUE_DATE }, current), false);
+  assert.equal(sameInstallmentsQueryScope({ ...current, amountFromCents: 10_000 }, current), false);
   assert.equal(sameInstallmentsQueryScope(undefined, current), false);
 });
 
@@ -77,17 +87,26 @@ const row: FinanceInstallmentRow = {
 };
 void test("shared URLs map every installment view and preserve the flat page size", () => {
   assert.deepEqual(
-    queryInput(normalizeFilters({ status: "pagas", search: " Ana " }, { page: 2, pageSize: 25 })),
+    queryInput(
+      normalizeFilters(
+        { ...blankParams, status: "pagas", search: " Ana " },
+        { page: 2, pageSize: 25 },
+      ),
+    ),
     {
-      view: "paid",
+      view: "all",
       search: "Ana",
       page: 2,
       pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
+      statuses: ["PAID"],
     },
   );
   assert.deepEqual(
     queryInput(
-      normalizeFilters({ status: "vencidas", search: " Ana " }, { page: 2, pageSize: 50 }),
+      normalizeFilters(
+        { ...blankParams, status: "vencidas", search: " Ana " },
+        { page: 2, pageSize: 50 },
+      ),
     ),
     {
       view: "overdue",
@@ -96,8 +115,15 @@ void test("shared URLs map every installment view and preserve the flat page siz
       pageSize: FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
     },
   );
+});
+void test("unknown installment view falls back to all and search stays within its limit", () => {
   assert.deepEqual(
-    queryInput(normalizeFilters({ status: "unknown", search: null }, { page: 1, pageSize: 25 })),
+    queryInput(
+      normalizeFilters(
+        { ...blankParams, status: "unknown", search: null },
+        { page: 1, pageSize: 25 },
+      ),
+    ),
     {
       view: "all",
       search: "",
@@ -107,18 +133,101 @@ void test("shared URLs map every installment view and preserve the flat page siz
   );
   assert.equal(
     normalizeFilters(
-      { status: null, search: "a".repeat(EXCESS_SEARCH_LENGTH) },
+      { ...blankParams, status: null, search: "a".repeat(EXCESS_SEARCH_LENGTH) },
       { page: 1, pageSize: 25 },
     ).search.length,
     SEARCH_LIMIT,
   );
 });
-void test("filter changes remove pagination", () => {
+void test("search and situation selections map to URL patches", () => {
   assert.deepEqual(searchPatch("Ana"), { search: "Ana" });
   assert.deepEqual(searchPatch(""), { search: null });
-  assert.deepEqual(statusPatch("pagas"), { status: "pagas" });
-  assert.deepEqual(statusPatch("vencidas"), { status: "vencidas" });
-  assert.deepEqual(statusPatch("todas"), { status: null });
+  assert.deepEqual(situationPatch([]), { status: null, situations: null });
+  assert.deepEqual(situationPatch(["OVERDUE"]), { status: "vencidas", situations: null });
+  assert.deepEqual(situationPatch(["PAID"]), { status: null, situations: "PAID" });
+  assert.deepEqual(situationPatch(["OVERDUE", "PAID"]), {
+    status: null,
+    situations: "OVERDUE,PAID",
+  });
+  assert.deepEqual(urlParamsForFilterPatch(situationPatch(["OVERDUE"])), {
+    status: "vencidas",
+    situacoes: null,
+  });
+  assert.deepEqual(urlParamsForFilterPatch(situationPatch([])), {
+    status: null,
+    situacoes: null,
+  });
+});
+void test("Vencida alone opens the grouped view; clearing it returns to all", () => {
+  const overdue = normalizeFilters(
+    { ...blankParams, search: null, ...situationPatch(["OVERDUE"]) },
+    { page: 1, pageSize: 25 },
+  );
+  const all = normalizeFilters(
+    { ...blankParams, search: null, ...situationPatch([]) },
+    { page: 1, pageSize: 25 },
+  );
+
+  assert.equal(queryInput(overdue).view, "overdue");
+  assert.equal(queryInput(all).view, "all");
+});
+void test("combined installment filters map to the validated query and ignore incompatible view statuses", () => {
+  const params = {
+    ...blankParams,
+    status: null,
+    search: "Ana",
+    situations: "PAID,OVERDUE",
+    dueFrom: DUE_DATE,
+    dueTo: "2026-09-30",
+    amountFrom: "100.25",
+    amountTo: "350",
+  };
+  assert.deepEqual(queryInput(normalizeFilters(params, { page: 1, pageSize: 25 })), {
+    view: "all",
+    page: 1,
+    pageSize: 25,
+    search: "Ana",
+    statuses: ["PAID", "OVERDUE"],
+    dueFrom: DUE_DATE,
+    dueTo: "2026-09-30",
+    amountFromCents: 10_025,
+    amountToCents: 35_000,
+  });
+  assert.equal(
+    queryInput(normalizeFilters({ ...params, status: "vencidas" }, { page: 1, pageSize: 25 }))
+      .statuses,
+    undefined,
+  );
+});
+void test("invalid shared URL ranges do not show or apply misleading filters", () => {
+  const filters = normalizeFilters(
+    {
+      ...blankParams,
+      status: null,
+      search: null,
+      dueFrom: "2026-02-30",
+      dueTo: "2026-02-01",
+      amountFrom: "200",
+      amountTo: "100",
+    },
+    { page: 1, pageSize: 25 },
+  );
+  assert.deepEqual(
+    {
+      dueFrom: filters.dueFrom,
+      dueTo: filters.dueTo,
+      amountFrom: filters.amountFrom,
+      amountTo: filters.amountTo,
+    },
+    { dueFrom: "", dueTo: "2026-02-01", amountFrom: "", amountTo: "" },
+  );
+  assert.deepEqual(queryInput(filters), {
+    view: "all",
+    page: 1,
+    pageSize: 25,
+    search: "",
+    dueTo: "2026-02-01",
+  });
 });
 void test("financial presentation preserves original value and the API's adjusted partial balance", () => {
   const vm = installmentVm(row, TODAY);

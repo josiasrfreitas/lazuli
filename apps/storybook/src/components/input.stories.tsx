@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
+import { useState, type ReactElement } from "react";
 import { expect, userEvent, within } from "storybook/test";
 
-import { Input } from "@lazuli/ui";
+import { CurrencyInput, Input } from "@lazuli/ui";
 
 const meta = {
   title: "Components/Input",
@@ -69,4 +70,33 @@ export const States: Story = {
       <Input aria-label="Read-only value" defaultValue="Student ID: 2026-001" readOnly />
     </div>
   ),
+};
+
+function FormattedExample(): ReactElement {
+  const [cents, setCents] = useState<number | null>(null);
+  return (
+    <div className="grid w-full max-w-sm gap-2">
+      <label className="grid gap-1 text-caption font-medium">
+        Valor
+        <CurrencyInput value={cents} onValueChange={setCents} />
+      </label>
+      <p className="text-caption text-muted-foreground" role="status">
+        Valor controlado:{" "}
+        {cents === null ? "vazio" : `${cents} ${cents === 1 ? "centavo" : "centavos"}`}
+      </p>
+    </div>
+  );
+}
+
+export const Formatted: Story = {
+  render: () => <FormattedExample />,
+  parameters: {
+    controls: { disable: true },
+    docs: {
+      description: {
+        story:
+          "CurrencyInput é um input financeiro reutilizável em reais. Seu valor controlado é um inteiro em centavos; digitar 1 mostra R$ 0,01.",
+      },
+    },
+  },
 };

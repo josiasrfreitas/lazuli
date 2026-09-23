@@ -8,12 +8,36 @@ import {
 } from "@lazuli/validators";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { pageWithinRange, useUrlPagination } from "~/lib/pagination";
-import { normalizeFilters, queryInput, searchPatch, statusPatch } from "./filters";
+import { normalizeFilters, queryInput, searchPatch, type InstallmentFilterPatch } from "./filters";
 
 const parsers = {
   status: parseAsString,
   busca: parseAsString,
+  situacoes: parseAsString,
+  vencimentoDe: parseAsString,
+  vencimentoAte: parseAsString,
+  valorDe: parseAsString,
+  valorAte: parseAsString,
 };
+type InstallmentUrlParams = Record<keyof typeof parsers, string | null>;
+
+function filtersFromUrl(
+  params: InstallmentUrlParams,
+  pagination: Pick<ReturnType<typeof normalizeFilters>, "page" | "pageSize">,
+): ReturnType<typeof normalizeFilters> {
+  return normalizeFilters(
+    {
+      status: params.status,
+      search: params.busca,
+      situations: params.situacoes,
+      dueFrom: params.vencimentoDe,
+      dueTo: params.vencimentoAte,
+      amountFrom: params.valorDe,
+      amountTo: params.valorAte,
+    },
+    pagination,
+  );
+}
 type InstallmentsState = {
   filters: ReturnType<typeof normalizeFilters>;
   data: FinanceInstallmentsOutput | undefined;
@@ -21,17 +45,45 @@ type InstallmentsState = {
   setPage: (page: number) => void;
   setPageSize: (pageSize: number) => void;
   setSearch: (value: string) => void;
-  setStatus: (value: string) => void;
+  setFilters: (patch: InstallmentFilterPatch) => void;
 };
 
-type InstallmentsQueryScope = { search?: string | undefined; view?: string | undefined };
+type InstallmentsQueryScope = Pick<
+  ReturnType<typeof queryInput>,
+  "search" | "view" | "statuses" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
+>;
+
+export function urlParamsForFilterPatch(patch: InstallmentFilterPatch): Partial<{
+  status: string | null;
+  situacoes: string | null;
+  vencimentoDe: string | null;
+  vencimentoAte: string | null;
+  valorDe: string | null;
+  valorAte: string | null;
+}> {
+  const params: ReturnType<typeof urlParamsForFilterPatch> = {};
+  if (patch.status !== undefined) params.status = patch.status;
+  if (patch.situations !== undefined) params.situacoes = patch.situations;
+  if (patch.dueFrom !== undefined) params.vencimentoDe = patch.dueFrom;
+  if (patch.dueTo !== undefined) params.vencimentoAte = patch.dueTo;
+  if (patch.amountFrom !== undefined) params.valorDe = patch.amountFrom;
+  if (patch.amountTo !== undefined) params.valorAte = patch.amountTo;
+  return params;
+}
 
 export function sameInstallmentsQueryScope(
   previous: InstallmentsQueryScope | undefined,
   current: InstallmentsQueryScope,
 ): boolean {
   return (
-    previous !== undefined && previous.search === current.search && previous.view === current.view
+    previous !== undefined &&
+    previous.search === current.search &&
+    previous.view === current.view &&
+    JSON.stringify(previous.statuses ?? []) === JSON.stringify(current.statuses ?? []) &&
+    previous.dueFrom === current.dueFrom &&
+    previous.dueTo === current.dueTo &&
+    previous.amountFromCents === current.amountFromCents &&
+    previous.amountToCents === current.amountToCents
   );
 }
 
@@ -54,17 +106,15 @@ export function effectivePageCorrection({
 export function useInstallments(): InstallmentsState {
   const [params, setParams] = useQueryStates(parsers);
   const pagination = useUrlPagination(financeInstallmentsPaginationPolicy);
-  const filters = normalizeFilters(
-    { status: params.status, search: params.busca },
-    {
-      page: pagination.page,
-      pageSize: pagination.pageSize,
-    },
-  );
+  const filters = filtersFromUrl(params, pagination);
   const input = queryInput(filters);
   const query = useList(input);
   const data = query.data?.view === input.view ? query.data : undefined;
   const setPage = pagination.setPage;
+  useEffect(() => {
+    if (params.status !== "pagas") return;
+    void setParams({ status: null, situacoes: params.situacoes ?? "PAID" });
+  }, [params.status, params.situacoes, setParams]);
   useEffect(() => {
     if (data === undefined) return;
     const page = effectivePageCorrection({
@@ -89,8 +139,8 @@ export function useInstallments(): InstallmentsState {
     setPage,
     setPageSize: pagination.setPageSize,
     setSearch,
-    setStatus: (value: string) => {
-      void setParams(statusPatch(value));
+    setFilters: (patch) => {
+      void setParams(urlParamsForFilterPatch(patch));
       setPage(1);
     },
   };
@@ -101,7 +151,7 @@ function useList(input: ReturnType<typeof queryInput>): QueryResult<FinanceInsta
     placeholderData: (previous, previousQuery) => {
       const key = (
         previousQuery?.queryKey as
-          | readonly [readonly string[], { input?: { search?: string; view?: string } }]
+          | readonly [readonly string[], { input?: InstallmentsQueryScope }]
           | undefined
       )?.[1];
       return sameInstallmentsQueryScope(key?.input, input) ? previous : undefined;

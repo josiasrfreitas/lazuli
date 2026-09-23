@@ -9,6 +9,7 @@ import {
 } from "@lazuli/validators";
 import { tablePaginationPropsFor } from "~/lib/pagination";
 import { InstallmentsControls } from "./installments-controls";
+import type { InstallmentFilters } from "./filters";
 import { InstallmentsTable } from "./installments-table";
 import { useInstallments } from "./logic";
 
@@ -17,10 +18,9 @@ export function InstallmentsPagination({
   filters,
   setPage,
   setPageSize,
-}: Pick<
-  ReturnType<typeof useInstallments>,
-  "data" | "filters" | "setPage" | "setPageSize"
->): ReactElement {
+}: Pick<ReturnType<typeof useInstallments>, "data" | "setPage" | "setPageSize"> & {
+  filters: Pick<InstallmentFilters, "status" | "page" | "pageSize">;
+}): ReactElement {
   const overdue = filters.status === "vencidas";
   return (
     <TablePagination
@@ -46,8 +46,20 @@ export function InstallmentsPagination({
   );
 }
 
+function hasInstallmentFilters(filters: InstallmentFilters): boolean {
+  return Boolean(
+    filters.search ||
+    filters.status ||
+    filters.situations.length > 0 ||
+    filters.dueFrom ||
+    filters.dueTo ||
+    filters.amountFrom ||
+    filters.amountTo,
+  );
+}
+
 export function InstallmentsPage(): ReactElement {
-  const { filters, data, query, setPage, setPageSize, setSearch, setStatus } = useInstallments();
+  const { filters, data, query, setPage, setPageSize, setSearch, setFilters } = useInstallments();
   return (
     <DataTablePage
       header={
@@ -59,10 +71,9 @@ export function InstallmentsPage(): ReactElement {
       controls={
         <InstallmentsControls
           search={filters.search}
-          status={filters.status}
-          counts={data?.counts}
+          filters={filters}
           onSearch={setSearch}
-          onStatus={setStatus}
+          onFilters={setFilters}
         />
       }
     >
@@ -70,7 +81,7 @@ export function InstallmentsPage(): ReactElement {
         rows={data?.view === "all" || data?.view === "paid" ? data.rows : undefined}
         groups={data?.view === "overdue" ? data.groups : undefined}
         error={query.isError}
-        filtered={filters.search !== ""}
+        filtered={hasInstallmentFilters(filters)}
         showOverdueSearchGuidance={filters.status === "vencidas" && filters.search.trim() !== ""}
         updating={query.isFetching}
         onRetry={() => {
