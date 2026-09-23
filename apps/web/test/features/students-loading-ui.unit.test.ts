@@ -138,9 +138,9 @@ void test("first load keeps header and filter controls while skeletonizing heade
   assert.equal((headerMarkup.match(/data-slot="inline-skeleton"/gu) ?? []).length, 2);
 
   assert.match(controlsMarkup, />Turma</u);
-  assert.match(controlsMarkup, />Professor</u);
+  assert.match(controlsMarkup, />Situação</u);
   assert.match(controlsMarkup, /Mais filtros/u);
-  assert.doesNotMatch(controlsMarkup, />Situação</u);
+  assert.doesNotMatch(controlsMarkup, />Professor</u);
   assert.doesNotMatch(controlsMarkup, /data-slot="inline-skeleton"/u);
 });
 
