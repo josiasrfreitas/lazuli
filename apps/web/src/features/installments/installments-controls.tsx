@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { useSearchParams } from "next/navigation";
-import { InlineSkeleton, Input, Tabs, TabsList, TabsTab } from "@lazuli/ui";
-import type { FinanceInstallmentsOutput } from "@lazuli/validators";
+import { CircleCheck, Search } from "lucide-react";
+import { Input, TableFilters, type TableFilterField } from "@lazuli/ui";
 import { debounce } from "~/lib/debounce";
-import { SEARCH_MAX_LENGTH } from "./filters";
+import {
+  INSTALLMENT_STATUSES,
+  SEARCH_MAX_LENGTH,
+  situationPatch,
+  type InstallmentFilters,
+  type InstallmentFilterPatch,
+} from "./filters";
 
 const SEARCH_DEBOUNCE_MS = 300;
 type ControlsProps = {
   search: string;
-  status: string | null;
-  counts: FinanceInstallmentsOutput["counts"] | undefined;
+  filters: InstallmentFilters;
   onSearch: (value: string) => void;
-  onStatus: (value: string) => void;
+  onFilters: (patch: InstallmentFilterPatch) => void;
 };
 function SearchField({
   search,
@@ -31,49 +36,105 @@ function SearchField({
     [commit],
   );
   return (
-    <Input
-      aria-label="Buscar por pagador ou beneficiário"
-      className="w-full sm:w-80"
-      type="search"
-      placeholder="Buscar por pagador ou beneficiário"
-      maxLength={SEARCH_MAX_LENGTH}
-      value={value}
-      onChange={(event) => {
-        setValue(event.target.value);
-        commit(event.target.value);
-      }}
-    />
+    <div className="relative w-full sm:w-44 lg:w-64 2xl:w-80">
+      <Search
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+      />
+      <Input
+        aria-label="Buscar por pagador ou beneficiário"
+        className="pl-8"
+        type="search"
+        placeholder="Buscar por pagador ou beneficiário"
+        maxLength={SEARCH_MAX_LENGTH}
+        size="sm"
+        value={value}
+        onChange={(event) => {
+          setValue(event.target.value);
+          commit(event.target.value);
+        }}
+      />
+    </div>
   );
 }
+function situationField(props: ControlsProps): TableFilterField {
+  return {
+    id: "situations",
+    label: "Situação",
+    kind: "options",
+    icon: CircleCheck,
+    promoted: true,
+    options: INSTALLMENT_STATUSES.map((id) => ({
+      id,
+      label: {
+        OVERDUE: "Vencida",
+        DUE_THIS_MONTH: "Vence este mês",
+        UPCOMING: "A vencer",
+        PAID: "Paga",
+        WAIVED: "Dispensada",
+      }[id],
+    })),
+    selected: props.filters.status === "vencidas" ? ["OVERDUE"] : props.filters.situations,
+    onChange: (values) => props.onFilters(situationPatch(values)),
+    onClear: () => props.onFilters(situationPatch([])),
+  };
+}
+
+function dueField(props: ControlsProps): TableFilterField {
+  return {
+    id: "due",
+    label: "Vencimento",
+    kind: "period",
+    promoted: true,
+    from: props.filters.dueFrom,
+    to: props.filters.dueTo,
+    onChange: (from, to) => {
+      if (from && to && from > to) {
+        if (from === props.filters.dueFrom) from = "";
+        else to = "";
+      }
+      props.onFilters({ dueFrom: from || null, dueTo: to || null });
+    },
+    onClear: () => props.onFilters({ dueFrom: null, dueTo: null }),
+  };
+}
+
+function amountField(props: ControlsProps): TableFilterField {
+  return {
+    id: "amount",
+    label: "Valor (R$)",
+    kind: "amount",
+    from: props.filters.amountFrom,
+    to: props.filters.amountTo,
+    onChange: (from, to) => {
+      if (from && to && Number(from) > Number(to)) {
+        if (from === props.filters.amountFrom) from = "";
+        else to = "";
+      }
+      props.onFilters({ amountFrom: from || null, amountTo: to || null });
+    },
+    onClear: () => props.onFilters({ amountFrom: null, amountTo: null }),
+  };
+}
+
 export function InstallmentsControls(props: ControlsProps): ReactElement {
+  const filterFields = [situationField(props), dueField(props), amountField(props)];
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <SearchField key={props.status ?? "todas"} search={props.search} onSearch={props.onSearch} />
-      <Tabs
-        value={props.status ?? "todas"}
-        onValueChange={(next) => {
-          props.onStatus(String(next));
-        }}
-      >
-        <TabsList>
-          {[
-            { value: "todas", label: "Todas", count: props.counts?.all },
-            { value: "vencidas", label: "Vencidas", count: props.counts?.overdue },
-            { value: "pagas", label: "Pagas", count: props.counts?.paid },
-          ].map((tab) => (
-            <TabsTab key={tab.value} value={tab.value}>
-              {tab.label}
-              {tab.count === undefined ? (
-                <InlineSkeleton className="w-5" />
-              ) : (
-                <span className="font-numeric text-xs tabular-nums text-muted-foreground">
-                  {tab.count}
-                </span>
-              )}
-            </TabsTab>
-          ))}
-        </TabsList>
-      </Tabs>
+    <div className="flex flex-wrap items-center gap-2 2xl:gap-3">
+      <SearchField search={props.search} onSearch={props.onSearch} />
+      <TableFilters
+        fields={filterFields}
+        onClearAll={() =>
+          props.onFilters({
+            status: null,
+            situations: null,
+            dueFrom: null,
+            dueTo: null,
+            amountFrom: null,
+            amountTo: null,
+          })
+        }
+      />
     </div>
   );
 }

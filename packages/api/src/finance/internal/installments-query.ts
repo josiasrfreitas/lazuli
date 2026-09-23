@@ -1,12 +1,19 @@
 import type { DatabaseClient, KyselyDatabase } from "@lazuli/db";
-import { FINANCE_OVERDUE_PAYERS_PAGE_SIZE, type FinanceInstallmentRow } from "@lazuli/validators";
+import {
+  FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
+  type FinanceInstallmentRow,
+  type FinanceInstallmentsInput,
+} from "@lazuli/validators";
 import { type QueryCreator, type RawBuilder, type SelectExpression, sql } from "kysely";
 
 type QueryInput = {
   kysely: DatabaseClient["$kysely"];
   businessDate: string;
   search: string | undefined;
-};
+} & Pick<
+  FinanceInstallmentsInput,
+  "statuses" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
+>;
 type AggregateDatabase = KyselyDatabase & {
   adjustment_totals: { installment_id: string; amount_cents: number };
   allocation_totals: { installment_id: string; amount_cents: number };
@@ -50,8 +57,10 @@ export async function loadInstallmentCounts(input: QueryInput): Promise<{
   return overdueQuery(input)
     .selectFrom("ledger")
     .select([
-      sql<number>`count(*) filter (where ${matchesSearch(input.search)})::integer`.as("all"),
-      sql<number>`count(*) filter (where status = 'PAID' and ${matchesSearch(input.search)})::integer`.as(
+      sql<number>`count(*) filter (where ${matchesSearch(input.search)} and ${matchesFilters(input)})::integer`.as(
+        "all",
+      ),
+      sql<number>`count(*) filter (where status = 'PAID' and ${matchesSearch(input.search)} and ${matchesFilters(input)})::integer`.as(
         "paid",
       ),
       sql<number>`(select count(*)::integer from overdue)`.as("overdue"),
@@ -66,6 +75,7 @@ export async function loadInstallmentPage(
     .selectFrom("ledger")
     .selectAll()
     .where(matchesSearch(input.search))
+    .where(matchesFilters(input))
     .$if(input.view === "paid", (builder) => builder.where("status", "=", "PAID"));
   query =
     input.view === "paid"
@@ -192,6 +202,19 @@ function matchesSearch(search: string | undefined): RawBuilder<boolean> {
   `;
 }
 
+function matchesFilters(input: QueryInput): RawBuilder<boolean> {
+  const conditions: RawBuilder<boolean>[] = [];
+  if (input.statuses?.length)
+    conditions.push(sql<boolean>`ledger.status in (${sql.join(input.statuses)})`);
+  if (input.dueFrom) conditions.push(sql<boolean>`ledger."dueDateSort" >= ${input.dueFrom}`);
+  if (input.dueTo) conditions.push(sql<boolean>`ledger."dueDateSort" <= ${input.dueTo}`);
+  if (input.amountFromCents !== undefined)
+    conditions.push(sql<boolean>`ledger."originalAmountCents" >= ${input.amountFromCents}`);
+  if (input.amountToCents !== undefined)
+    conditions.push(sql<boolean>`ledger."originalAmountCents" <= ${input.amountToCents}`);
+  return conditions.length > 0 ? sql.join(conditions, sql` and `) : sql<boolean>`true`;
+}
+
 function overdueQuery(input: QueryInput): QueryCreator<OverdueDatabase> {
   return ledgerQuery(input)
     .with("qualified_payers", (database) =>
@@ -200,6 +223,7 @@ function overdueQuery(input: QueryInput): QueryCreator<OverdueDatabase> {
         .select("payerId")
         .distinct()
         .where("status", "=", "OVERDUE")
+        .where(matchesFilters(input))
         .where(matchesSearch(input.search)),
     )
     .with("overdue", (database) =>
@@ -207,6 +231,7 @@ function overdueQuery(input: QueryInput): QueryCreator<OverdueDatabase> {
         .selectFrom("ledger")
         .selectAll()
         .where("status", "=", "OVERDUE")
+        .where(matchesFilters(input))
         .where("payerId", "in", database.selectFrom("qualified_payers").select("payerId")),
     );
 }

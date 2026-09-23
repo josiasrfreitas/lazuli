@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 
-import { Button, InlineSkeleton, Input, Tabs, TabsList, TabsTab } from "@lazuli/ui";
+import { Button, InlineSkeleton, Input, TableFilters, type TableFilterField } from "@lazuli/ui";
 
 import { debounce } from "~/lib/debounce";
 
 import type { StudentsFilters } from "./logic";
-import type { HeaderSummaryVm, StatusTabVm, StatusTabValue } from "./view-model";
+import type { HeaderSummaryVm } from "./view-model";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -58,55 +58,53 @@ function SearchField({ filters }: { filters: StudentsFilters }): ReactElement {
   }, [commitSearch]);
 
   return (
-    <Input
-      aria-label="Buscar aluno"
-      className="w-80"
-      onChange={(event) => {
-        const nextValue = event.target.value;
-        setValue(nextValue);
-        commitSearch(nextValue);
-      }}
-      placeholder="Buscar por nome, turma ou professor"
-      type="search"
-      value={value}
-    />
+    <div className="relative w-full sm:w-80">
+      <Search
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+      />
+      <Input
+        aria-label="Buscar aluno"
+        className="pl-8"
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          setValue(nextValue);
+          commitSearch(nextValue);
+        }}
+        placeholder="Buscar por nome, turma ou professor"
+        size="sm"
+        type="search"
+        value={value}
+      />
+    </div>
   );
 }
 
 export function StudentsControls({
   filters,
-  tabs,
+  fields,
   onNewStudent,
 }: {
   filters: StudentsFilters;
-  tabs: StatusTabVm[];
+  fields: TableFilterField[];
   onNewStudent: () => void;
 }): ReactElement {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <SearchField filters={filters} />
-      <Tabs
-        onValueChange={(value) => {
-          filters.setStatusTab(value as StatusTabValue);
-        }}
-        value={filters.statusTab}
-      >
-        <TabsList>
-          {tabs.map((tab) => (
-            <TabsTab key={tab.value} value={tab.value}>
-              {tab.label}
-              {tab.count === undefined ? (
-                <InlineSkeleton className="w-5" />
-              ) : (
-                <span className="font-numeric text-micro tabular-nums text-muted-foreground">
-                  {tab.count}
-                </span>
-              )}
-            </TabsTab>
-          ))}
-        </TabsList>
-      </Tabs>
-      <Button onClick={onNewStudent} size="md">
+      <TableFilters
+        fields={fields}
+        onClearAll={() =>
+          filters.setFilters({
+            situations: null,
+            classIds: null,
+            teacherIds: null,
+            registeredFrom: null,
+            registeredTo: null,
+          })
+        }
+      />
+      <Button onClick={onNewStudent} size="sm">
         <Plus aria-hidden="true" className="size-4" />
         Novo aluno
       </Button>

@@ -60,7 +60,61 @@ void describe("students.list", { concurrency: 1 }, () => {
   registerAttendanceTest();
   registerFinanceTest();
   registerAgeBoundaryTest();
+  registerCombinedFiltersTest();
 });
+
+function registerCombinedFiltersTest(): void {
+  void it("combines situation, class and teacher before total and pagination", async () => {
+    const classA = await db.class.findFirstOrThrow({
+      where: { internalCode: CLASS_A_CODE },
+      select: { id: true, teacherId: true },
+    });
+    const result = await caller().students.list({
+      search: PREFIX,
+      situations: ["active"],
+      classIds: [classA.id],
+      teacherIds: [classA.teacherId],
+    });
+
+    assert.deepEqual(
+      result.rows.map((row) => row.fullName),
+      [fullNameOf(ANA), fullNameOf(BRUNO)],
+    );
+    assert.equal(result.total, 2);
+    assert.equal(result.pageCount, 1);
+
+    const classB = await db.class.findFirstOrThrow({
+      where: { internalCode: CLASS_B_CODE },
+      select: { teacherId: true },
+    });
+    const mismatched = await caller().students.list({
+      search: PREFIX,
+      classIds: [classA.id],
+      teacherIds: [classB.teacherId],
+    });
+    assert.equal(mismatched.total, 0);
+    assert.deepEqual(mismatched.rows, []);
+  });
+
+  void it("uses São Paulo civil dates for the registration period", async () => {
+    await db.student.updateMany({
+      where: { fullName: fullNameOf(ANA) },
+      data: { createdAt: new Date("2026-03-01T02:59:59.999Z") },
+    });
+    await db.student.updateMany({
+      where: { fullName: fullNameOf(BRUNO) },
+      data: { createdAt: new Date("2026-03-01T03:00:00.000Z") },
+    });
+    const result = await caller().students.list({
+      search: PREFIX,
+      registeredFrom: "2026-03-01",
+      registeredTo: "2026-03-01",
+    });
+
+    assert.ok(result.rows.some((row) => row.fullName === fullNameOf(BRUNO)));
+    assert.ok(result.rows.every((row) => row.fullName !== fullNameOf(ANA)));
+  });
+}
 
 function registerCountsAndPaginationTest(): void {
   void it("counts every tab under the current search and paginates by name", async () => {

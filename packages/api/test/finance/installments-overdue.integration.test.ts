@@ -22,6 +22,7 @@ const GROUP_BALANCE_CENTS = 30_000;
 const INSTALLMENT_CENTS = 10_000;
 const AFTER_MONTH_BOUNDARY = new Date("2026-04-01T03:00:00Z");
 const RECENT_DUE_DATE = "2026-02-28";
+const LOWER_AMOUNT_CENTS = 5000;
 
 void describe("finance installments query", { concurrency: 1 }, () => {
   void before(async () => {
@@ -45,8 +46,37 @@ void describe("finance installments query", { concurrency: 1 }, () => {
   registerGroupIdentityTest();
   registerVisibilityTest();
   registerDatesTest();
+  registerFilteredGroupsTest();
 });
+function registerFilteredGroupsTest(): void {
+  void it("recomputes an overdue payer group from installments inside the period and amount range", async () => {
+    const fixture = await createOrder({ installmentCount: 3, dueDate: RECENT_DUE_DATE });
+    await db.installment.update({
+      where: { id: fixture.installmentIds[0]! },
+      data: { amountCents: LOWER_AMOUNT_CENTS },
+    });
+    await db.installment.update({
+      where: { id: fixture.installmentIds[1]! },
+      data: { dueDate: new Date("2026-01-01T00:00:00.000Z") },
+    });
 
+    const result = await read({
+      view: "overdue",
+      dueFrom: RECENT_DUE_DATE,
+      dueTo: RECENT_DUE_DATE,
+      amountFromCents: INSTALLMENT_CENTS,
+      amountToCents: INSTALLMENT_CENTS,
+    });
+
+    assert.deepEqual(
+      result.groups[0]?.rows.map((row) => row.installmentId),
+      [fixture.installmentIds[2]],
+    );
+    assert.equal(result.groups[0]?.installmentCount, 1);
+    assert.equal(result.groups[0]?.collectibleBalanceCents, INSTALLMENT_CENTS);
+    assert.deepEqual(result.counts, { all: 1, paid: 0, overdue: 1 });
+  });
+}
 function registerPaginationTest(): void {
   void it("pages complete payer groups by urgency and ID, keeping homonyms separate", async () => {
     const large = await createOrder({

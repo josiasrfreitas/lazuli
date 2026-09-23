@@ -39,7 +39,7 @@ function OverdueInstallmentRow({
 }): ReactElement {
   const vm = installmentVm(row, today);
   return (
-    <TableRow>
+    <TableRow interactive={false}>
       <TableCell headers={`${groupHeadingId}-column-installment`}>
         <span className="font-numeric whitespace-nowrap tabular-nums">{vm.sequence}</span>
       </TableCell>
@@ -73,7 +73,7 @@ export function OverduePayerGroupCard({
   return (
     <section
       aria-labelledby={groupId}
-      className="overflow-hidden rounded-lg border border-border bg-card"
+      className="contain-paint overflow-hidden rounded-lg border border-border bg-card"
       data-payer-id={group.payer.id}
       data-slot="overdue-payer-group"
     >
@@ -157,7 +157,7 @@ function OverdueInstallmentsTable({
 function OverdueInstallmentsHead({ groupHeadingId }: { groupHeadingId: string }): ReactElement {
   return (
     <TableHeader className="sr-only">
-      <TableRow>
+      <TableRow interactive={false}>
         {OVERDUE_COLUMNS.map((column) => (
           <TableHead
             id={`${groupHeadingId}-column-${column.key}`}

@@ -61,7 +61,7 @@ function overduePaginationMarkup(page: number): string {
         groups: [],
         counts: { all: 30, paid: 2, overdue: 24 },
       },
-      filters: { status: "vencidas", search: "", page, pageSize: 50 },
+      filters: { status: "vencidas", page, pageSize: 50 },
       setPage: () => {},
       setPageSize: () => {},
     }),
@@ -80,7 +80,7 @@ void test("installment pagination exposes the same size choices as Students", ()
         rows: [],
         counts: { all: 30, paid: 0, overdue: 0 },
       },
-      filters: { status: null, search: "", page: 2, pageSize: 25 },
+      filters: { status: null, page: 2, pageSize: 25 },
       setPage: () => {},
       setPageSize: () => {},
     }),
@@ -184,6 +184,60 @@ void test("overdue groups preserve API identity, order, values and table associa
     for (const [, header] of cells) assert.ok(headers.includes(header));
   }
   assert.doesNotMatch(markup, /<(?:button|a)\b|type="checkbox"|aria-expanded=/u);
+});
+void test("overdue groups contain wide tables while each payer card keeps its own scroll", () => {
+  const groups = [
+    overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID),
+    overdueGroup(PAYER_TWO_ID, "77777777-7777-4777-8777-777777777777"),
+  ];
+  const markup = renderToStaticMarkup(
+    createElement(InstallmentsTable, {
+      groups,
+      error: false,
+      filtered: false,
+      updating: false,
+      onRetry: () => {},
+      footer: null,
+    }),
+  );
+  assert.match(
+    markup,
+    /class="[^"]*w-0[^"]*min-w-full[^"]*overflow-x-hidden[^"]*pr-3[^"]*" data-slot="overdue-payer-groups"/u,
+  );
+  assert.equal(
+    countMatches(markup, /class="[^"]*contain-paint[^"]*" data-payer-id=/gu),
+    groups.length,
+  );
+  assert.equal(countMatches(markup, /class="overflow-x-auto scrollbar-subtle"/gu), groups.length);
+  assert.equal(
+    countMatches(
+      markup,
+      /class="border-b border-border data-\[selected\]:bg-accent" data-slot="table-row"/gu,
+    ),
+    groups.length * 2,
+  );
+});
+void test("flat table keeps the overdue status badge on one line", () => {
+  const row = overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID).rows[0]!;
+  const markup = renderToStaticMarkup(
+    createElement(InstallmentsTable, {
+      rows: [row],
+      error: false,
+      filtered: false,
+      updating: false,
+      onRetry: () => {},
+      footer: null,
+    }),
+  );
+  assert.match(
+    markup,
+    /headers="installments-column-installment"[^>]*><span class="font-numeric whitespace-nowrap tabular-nums">6 de 12<\/span>/u,
+  );
+  assert.match(markup, /class="[^"]*whitespace-nowrap[^"]*"[^>]*>Vencida há 14 dias<\/span>/u);
+  assert.match(
+    markup,
+    /class="border-b border-border data-\[selected\]:bg-accent" data-slot="table-row"/u,
+  );
 });
 void test("overdue search explains that qualified payer groups remain complete", () => {
   const group = overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID);

@@ -30,6 +30,12 @@ export type {
 export { Button, buttonVariants } from "./components/button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/button";
 export { DataTablePage } from "./components/data-table-page";
+export { TableFilters, TableFilterChips } from "./components/table-filters";
+export type {
+  RemoteOptionsResult,
+  TableFilterField,
+  TableFilterOption,
+} from "./components/table-filters";
 export type { DataTablePageProps } from "./components/data-table-page";
 export { EmptyState } from "./components/empty-state";
 export type { EmptyStateProps } from "./components/empty-state";
@@ -37,6 +43,8 @@ export { HelloWorld } from "./components/hello-world";
 export type { HelloWorldProps } from "./components/hello-world";
 export { Input } from "./components/input";
 export type { InputProps, InputSize } from "./components/input";
+export { CurrencyInput } from "./components/currency-input";
+export type { CurrencyInputProps } from "./components/currency-input";
 export {
   Select,
   SelectContent,
@@ -65,6 +73,8 @@ export type {
 export { cn } from "./lib/utils";
 export { Checkbox, checkboxVariants } from "./components/checkbox";
 export type { CheckboxProps, CheckboxSize } from "./components/checkbox";
+export { Switch } from "./components/switch";
+export type { SwitchProps } from "./components/switch";
 export { Textarea } from "./components/textarea";
 export type { TextareaProps } from "./components/textarea";
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/tooltip";

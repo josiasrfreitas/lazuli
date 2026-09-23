@@ -13,6 +13,7 @@ const CLASS_ID = "22222222-2222-4222-8222-222222222222";
 const ENROLLMENT_ID = "33333333-3333-4333-8333-333333333333";
 const SEARCH_TOO_LONG_LENGTH = 81;
 const LONG_SEARCH = "x".repeat(SEARCH_TOO_LONG_LENGTH);
+const LEAP_DAY = "2024-02-29";
 
 const ENROLLMENT = {
   enrollmentId: ENROLLMENT_ID,
@@ -52,6 +53,27 @@ void describe("student list input", () => {
     assert.equal(studentListInputSchema.safeParse({ pageSize: 20 }).success, false);
     assert.equal(studentListInputSchema.safeParse({ status: "paused" }).success, false);
     assert.equal(studentListInputSchema.safeParse({ search: LONG_SEARCH }).success, false);
+  });
+
+  void it("validates situation, IDs, and registered-date bounds", () => {
+    const valid = studentListInputSchema.parse({
+      situations: ["active", "inactive"],
+      classIds: [CLASS_ID],
+      teacherIds: [STUDENT_ID],
+      registeredFrom: LEAP_DAY,
+      registeredTo: LEAP_DAY,
+    });
+    assert.deepEqual(valid.situations, ["active", "inactive"]);
+    assert.equal(valid.registeredTo, LEAP_DAY);
+    assert.equal(studentListInputSchema.safeParse({ situations: ["unknown"] }).success, false);
+    assert.equal(studentListInputSchema.safeParse({ classIds: ["bad"] }).success, false);
+    assert.equal(studentListInputSchema.safeParse({ teacherIds: ["bad"] }).success, false);
+    assert.equal(
+      studentListInputSchema.safeParse({ registeredFrom: "2024-03-01", registeredTo: LEAP_DAY })
+        .success,
+      false,
+    );
+    assert.equal(studentListInputSchema.safeParse({ registeredFrom: "2024-02-30" }).success, false);
   });
 });
 

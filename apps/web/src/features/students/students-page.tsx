@@ -2,16 +2,24 @@
 
 import { useState, type ReactElement } from "react";
 
-import { DataTablePage } from "@lazuli/ui";
+import { DataTablePage, TableFilterChips, type TableFilterField } from "@lazuli/ui";
 import { studentPaginationPolicy } from "@lazuli/validators";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
 
-import { useSelectedStudent, useStudentsFilters, useStudentsList } from "./logic";
+import {
+  useSelectedStudent,
+  useStudentFilterOptions,
+  useSelectedStudentFilterOptions,
+  useStudentsFilters,
+  useStudentsList,
+} from "./logic";
+import { studentFilterOptionResult } from "./filter-options";
 import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentPreviewPanel } from "./student-preview-panel";
 import { StudentsTable } from "./students-table";
+import { studentFilterFields } from "./student-filter-fields";
 import { StudentsControls, StudentsHeader } from "./students-toolbar";
-import { headerSummaryVm, statusTabsVm, tableStateVm } from "./view-model";
+import { headerSummaryVm, tableStateVm } from "./view-model";
 
 function paginationFor(filters: ReturnType<typeof useStudentsFilters>): UrlPagination {
   return {
@@ -23,16 +31,60 @@ function paginationFor(filters: ReturnType<typeof useStudentsFilters>): UrlPagin
   };
 }
 
+function useStudentFilterFields(
+  filters: ReturnType<typeof useStudentsFilters>,
+): TableFilterField[] {
+  const [classSearch, setClassSearch] = useState("");
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const classes = useStudentFilterOptions("class", classSearch);
+  const teachers = useStudentFilterOptions("teacher", teacherSearch);
+  const selectedClasses = useSelectedStudentFilterOptions("class", filters.classIds);
+  const selectedTeachers = useSelectedStudentFilterOptions("teacher", filters.teacherIds);
+  return studentFilterFields({
+    filters,
+    classOptions: (selectedClasses.data ?? []).filter((option) =>
+      filters.classIds.includes(option.id),
+    ),
+    teacherOptions: (selectedTeachers.data ?? []).filter((option) =>
+      filters.teacherIds.includes(option.id),
+    ),
+    classSearch,
+    teacherSearch,
+    classResult: studentFilterOptionResult(classSearch, classes),
+    teacherResult: studentFilterOptionResult(teacherSearch, teachers),
+    onClassSearchChange: setClassSearch,
+    onTeacherSearchChange: setTeacherSearch,
+  });
+}
+
+function hasStudentFilters(filters: ReturnType<typeof useStudentsFilters>): boolean {
+  return Boolean(
+    filters.search ||
+    filters.situations.length > 0 ||
+    filters.classIds.length > 0 ||
+    filters.teacherIds.length > 0 ||
+    filters.registeredFrom ||
+    filters.registeredTo,
+  );
+}
+
+function studentTableState(
+  filters: ReturnType<typeof useStudentsFilters>,
+  students: ReturnType<typeof useStudentsList>,
+): ReturnType<typeof tableStateVm> {
+  return tableStateVm({
+    rows: students.data?.rows,
+    isError: students.error !== null,
+    filtered: hasStudentFilters(filters),
+  });
+}
+
 export function StudentsPage(): ReactElement {
   const filters = useStudentsFilters();
   const selection = useSelectedStudent();
   const students = useStudentsList(filters);
+  const fields = useStudentFilterFields(filters);
   const [creating, setCreating] = useState(false);
-  const state = tableStateVm({
-    rows: students.data?.rows,
-    isError: students.error !== null,
-    filtered: filters.search !== "" || filters.statusTab !== "todos",
-  });
   const pagination = paginationFor(filters);
 
   return (
@@ -41,23 +93,28 @@ export function StudentsPage(): ReactElement {
         controls={
           <StudentsControls
             filters={filters}
+            fields={fields}
             onNewStudent={() => {
               setCreating(true);
             }}
-            tabs={statusTabsVm(students.data?.counts)}
           />
         }
         header={<StudentsHeader summary={headerSummaryVm(students.data)} />}
       >
-        <StudentsTable
-          onRetry={() => {
-            void students.refetch();
-          }}
-          onSelectRow={selection.select}
-          selectedId={selection.selectedId}
-          state={state}
-          pagination={tablePaginationPropsFor(pagination, students.data)}
-        />
+        <div className="flex h-full min-h-0 flex-col gap-2">
+          <TableFilterChips fields={fields} />
+          <div className="min-h-0 flex-1">
+            <StudentsTable
+              onRetry={() => {
+                void students.refetch();
+              }}
+              onSelectRow={selection.select}
+              selectedId={selection.selectedId}
+              state={studentTableState(filters, students)}
+              pagination={tablePaginationPropsFor(pagination, students.data)}
+            />
+          </div>
+        </div>
       </DataTablePage>
       <StudentPreviewPanel selection={selection} />
       <NewStudentDialog

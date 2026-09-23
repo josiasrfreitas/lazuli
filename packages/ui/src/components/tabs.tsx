@@ -27,7 +27,7 @@ export const tabsTabVariants = cva(
     "font-medium text-muted-foreground transition-colors duration-fast ease-standard",
     "hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus",
     // Base UI marks the active tab with `data-active`, not `data-selected`.
-    "data-[active]:font-semibold data-[active]:text-foreground",
+    "data-[active]:text-foreground",
     "data-[disabled]:pointer-events-none data-[disabled]:opacity-disabled",
     "[&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   ],
@@ -37,9 +37,14 @@ export const tabsTabVariants = cva(
         sm: "h-control-sm rounded-sm px-3 text-caption",
         md: "h-control-md rounded-md px-4 text-control",
       },
+      activeWeight: {
+        medium: "data-[active]:font-medium",
+        semibold: "data-[active]:font-semibold",
+      },
     },
     defaultVariants: {
       size: "sm",
+      activeWeight: "semibold",
     },
   },
 );
@@ -69,21 +74,29 @@ const tabsIndicatorVariants = cva(
 
 export type TabsVariant = NonNullable<VariantProps<typeof tabsListVariants>["variant"]>;
 export type TabsSize = NonNullable<VariantProps<typeof tabsTabVariants>["size"]>;
+export type TabsActiveWeight = NonNullable<VariantProps<typeof tabsTabVariants>["activeWeight"]>;
 
 interface TabsContextValue {
   size: TabsSize;
   variant: TabsVariant;
+  activeWeight: TabsActiveWeight;
 }
 
 // The appearance is chosen once on the root so every tab in a list cannot drift
 // out of sync with its indicator; `TabsTab` reads it instead of repeating props.
-const TabsContext = createContext<TabsContextValue>({ size: "sm", variant: "segmented" });
+const TabsContext = createContext<TabsContextValue>({
+  size: "sm",
+  variant: "segmented",
+  activeWeight: "semibold",
+});
 
 export type TabsProps = TabsPrimitive.Root.Props & {
   /** Height and type scale of every tab in this root. */
   size?: TabsSize;
   /** Appearance shared by the list, its tabs, and the indicator. */
   variant?: TabsVariant;
+  /** Weight of the active label; use `medium` to keep tab widths stable. */
+  activeWeight?: TabsActiveWeight;
 };
 
 /**
@@ -91,8 +104,8 @@ export type TabsProps = TabsPrimitive.Root.Props & {
  * same data; use links and routes when the sections are separate pages.
  */
 export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
-  ({ className, size = "sm", variant = "segmented", ...props }, ref) => (
-    <TabsContext.Provider value={{ size, variant }}>
+  ({ className, size = "sm", variant = "segmented", activeWeight = "semibold", ...props }, ref) => (
+    <TabsContext.Provider value={{ size, variant, activeWeight }}>
       <TabsPrimitive.Root
         {...props}
         className={cn("flex flex-col gap-4", className)}
@@ -138,12 +151,16 @@ export type TabsTabProps = TabsPrimitive.Tab.Props;
 
 export const TabsTab = forwardRef<HTMLButtonElement, TabsTabProps>(
   ({ className, ...props }, ref) => {
-    const { size, variant } = useContext(TabsContext);
+    const { size, variant, activeWeight } = useContext(TabsContext);
 
     return (
       <TabsPrimitive.Tab
         {...props}
-        className={cn(tabsTabVariants({ size }), variant === "underline" && "px-1", className)}
+        className={cn(
+          tabsTabVariants({ size, activeWeight }),
+          variant === "underline" && "px-1",
+          className,
+        )}
         data-slot="tabs-tab"
         ref={ref}
       />

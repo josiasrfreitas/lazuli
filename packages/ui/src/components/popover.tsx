@@ -9,12 +9,7 @@ import { cn } from "../lib/utils";
 
 const DEFAULT_SIDE_OFFSET = 8;
 
-// Same anatomy as the tooltip tail: the arrow is nested inside the panel, not
-// beside it, so it inherits the panel's transform and animates in lockstep
-// while the primitive still drives its along-axis coordinate — it keeps
-// pointing at the trigger when a collision shifts the panel. `-z-10` slips it
-// under the panel background, which is only possible because the panel opens
-// no stacking context — the positioner owns the `z-50`.
+// The arrow stays inside the panel to follow its animation and collision position.
 const popoverArrowClassName = [
   "size-3 -z-10 rotate-45 rounded-[2px] border border-border bg-popover",
   "data-[side=top]:-bottom-1.5 data-[side=bottom]:-top-1.5 data-[side=left]:-right-1.5 data-[side=right]:-left-1.5",
@@ -111,7 +106,12 @@ function splitContentProps({
       alignOffset,
       anchor,
       arrowPadding,
-      collisionAvoidance,
+      // A popover stays on its requested axis. If there is no room below,
+      // it may flip above, but it should not unexpectedly open beside its trigger.
+      collisionAvoidance: {
+        ...collisionAvoidance,
+        fallbackAxisSide: collisionAvoidance?.fallbackAxisSide ?? "none",
+      },
       collisionBoundary,
       collisionPadding,
       disableAnchorTracking,

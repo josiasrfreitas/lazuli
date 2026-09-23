@@ -1,11 +1,9 @@
 import type { ReactNode, ReactElement } from "react";
 import {
-  Badge,
   Button,
   EmptyState,
   Table,
   TableBody,
-  TableCell,
   TableContainer,
   TableEmpty,
   TableHead,
@@ -15,56 +13,13 @@ import {
 } from "@lazuli/ui";
 import type { FinanceInstallmentRow, FinanceOverduePayerGroup } from "@lazuli/validators";
 import { OverduePayerGroupCard } from "./overdue-payer-group";
-import { abbreviatedPersonName, businessDate, installmentVm } from "./view-model";
+import { businessDate } from "./view-model";
+import { COLUMN_IDS, InstallmentRow } from "./installment-row";
 
-const COLUMN_IDS = {
-  installment: "installments-column-installment",
-  payer: "installments-column-payer",
-  beneficiaries: "installments-column-beneficiaries",
-  dueDate: "installments-column-due-date",
-  amount: "installments-column-amount",
-  status: "installments-column-status",
-} as const;
-
-function InstallmentRow({
-  row,
-  today,
-}: {
-  row: FinanceInstallmentRow;
-  today: string;
-}): ReactElement {
-  const vm = installmentVm(row, today);
-  return (
-    <TableRow>
-      <TableCell headers={COLUMN_IDS.installment}>
-        <span className="font-numeric tabular-nums">{vm.sequence}</span>
-      </TableCell>
-      <TableCell headers={COLUMN_IDS.payer} className="break-words">
-        {row.payer.name}
-      </TableCell>
-      <TableCell headers={COLUMN_IDS.beneficiaries} className="break-words">
-        {row.beneficiaries.map((person) => abbreviatedPersonName(person.fullName)).join(", ") ||
-          "—"}
-      </TableCell>
-      <TableCell headers={COLUMN_IDS.dueDate}>
-        <span className="font-numeric tabular-nums">{vm.dueDate}</span>
-      </TableCell>
-      <TableCell headers={COLUMN_IDS.amount} numeric>
-        <span className="font-numeric tabular-nums">{vm.amount}</span>
-        {vm.balance === null ? null : (
-          <p className="font-numeric text-xs tabular-nums text-muted-foreground">{vm.balance}</p>
-        )}
-      </TableCell>
-      <TableCell headers={COLUMN_IDS.status}>
-        <Badge variant={vm.badge.variant}>{vm.badge.label}</Badge>
-      </TableCell>
-    </TableRow>
-  );
-}
 function InstallmentsHead(): ReactElement {
   return (
     <TableHeader sticky>
-      <TableRow>
+      <TableRow interactive={false}>
         <TableHead id={COLUMN_IDS.installment} className="w-1/12">
           Parcela
         </TableHead>
@@ -156,7 +111,10 @@ function OverdueGroupsBody({
   today: string;
 }): ReactNode {
   return (
-    <div className="space-y-3 pb-3" data-slot="overdue-payer-groups">
+    <div
+      className="w-0 min-w-full space-y-3 overflow-x-hidden pb-3 pr-3"
+      data-slot="overdue-payer-groups"
+    >
       {groups.map((group) => (
         <OverduePayerGroupCard key={group.payer.id} group={group} today={today} />
       ))}

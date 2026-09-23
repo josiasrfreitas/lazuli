@@ -1,6 +1,7 @@
 /** @type {import("next").NextConfig} */
 const config = {
   reactStrictMode: true,
+  allowedDevOrigins: ["*.lazuli.localhost"],
   experimental: {
     useTypeScriptCli: true,
   },

@@ -23,37 +23,52 @@ export type InstallmentOrderFixture = {
   installmentIds: string[];
 };
 
-export async function readInstallments(input: {
-  view: "overdue";
-  page?: number;
-  pageSize?: FinanceInstallmentsInput["pageSize"];
-  search?: string;
-  now?: Date;
-}): Promise<Extract<FinanceInstallmentsOutput, { view: "overdue" }>>;
-export async function readInstallments(input: {
-  view?: "all" | "paid";
-  page?: number;
-  pageSize?: FinanceInstallmentsInput["pageSize"];
-  search?: string;
-  now?: Date;
-}): Promise<Exclude<FinanceInstallmentsOutput, { view: "overdue" }>>;
-export async function readInstallments(input: {
-  view?: "all" | "paid" | "overdue";
-  page?: number;
-  pageSize?: FinanceInstallmentsInput["pageSize"];
-  search?: string;
-  now?: Date;
-}): Promise<FinanceInstallmentsOutput> {
+type OptionalFilters = Partial<
+  Pick<
+    FinanceInstallmentsInput,
+    "statuses" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
+  >
+>;
+
+export async function readInstallments(
+  input: {
+    view: "overdue";
+    page?: number;
+    pageSize?: FinanceInstallmentsInput["pageSize"];
+    search?: string;
+    now?: Date;
+  } & OptionalFilters,
+): Promise<Extract<FinanceInstallmentsOutput, { view: "overdue" }>>;
+export async function readInstallments(
+  input: {
+    view?: "all" | "paid";
+    page?: number;
+    pageSize?: FinanceInstallmentsInput["pageSize"];
+    search?: string;
+    now?: Date;
+  } & OptionalFilters,
+): Promise<Exclude<FinanceInstallmentsOutput, { view: "overdue" }>>;
+export async function readInstallments(
+  input: {
+    view?: "all" | "paid" | "overdue";
+    page?: number;
+    pageSize?: FinanceInstallmentsInput["pageSize"];
+    search?: string;
+    now?: Date;
+  } & OptionalFilters,
+): Promise<FinanceInstallmentsOutput> {
+  const { now, ...query } = input;
   return db.$transaction(
     (transaction) =>
       finance(transaction, ADMIN.id).installments(
         {
+          ...query,
           view: input.view ?? "all",
           page: input.page ?? 1,
           pageSize: input.pageSize ?? FINANCE_INSTALLMENTS_PAGE_SIZE,
           search: input.search ?? INSTALLMENTS_PREFIX,
         },
-        input.now ?? INSTALLMENTS_NOW,
+        now ?? INSTALLMENTS_NOW,
       ),
     { isolationLevel: "RepeatableRead" },
   );

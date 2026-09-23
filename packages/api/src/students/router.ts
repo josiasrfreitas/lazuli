@@ -8,6 +8,8 @@ import {
   studentSetStatusInputSchema,
   studentUpdateContactProcedureInputSchema,
   studentUpdateNotesInputSchema,
+  STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH,
+  z,
 } from "@lazuli/validators";
 
 import { adminProcedure, router } from "../trpc/init.js";
@@ -16,7 +18,48 @@ import { listStudents } from "./list.js";
 import { previewStudent } from "./preview.js";
 import { setStudentStatus } from "./status.js";
 
+const FILTER_OPTION_LIMIT = 50;
+
 export const studentsRouter = router({
+  listFilterOptions: adminProcedure
+    .input(
+      z
+        .object({
+          kind: z.enum(["class", "teacher"]),
+          search: z.string().trim().max(STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH).default(""),
+          ids: z.array(z.string().uuid()).max(FILTER_OPTION_LIMIT).default([]),
+        })
+        .strict(),
+    )
+    .query(async ({ ctx, input }) => {
+      if (input.kind === "class") {
+        const rows = await ctx.db.class.findMany({
+          where: {
+            deletedAt: null,
+            ...(input.ids.length > 0
+              ? { id: { in: input.ids } }
+              : { internalCode: { contains: input.search, mode: "insensitive" as const } }),
+          },
+          select: { id: true, internalCode: true },
+          orderBy: { internalCode: "asc" },
+          take: FILTER_OPTION_LIMIT,
+        });
+        return rows.map(({ id, internalCode }) => ({ id, label: internalCode }));
+      }
+      const rows = await ctx.db.user.findMany({
+        where: {
+          deletedAt: null,
+          classesTaught: { some: { deletedAt: null } },
+          ...(input.ids.length > 0
+            ? { id: { in: input.ids } }
+            : { name: { contains: input.search, mode: "insensitive" as const } }),
+        },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+        take: FILTER_OPTION_LIMIT,
+      });
+      return rows.map(({ id, name }) => ({ id, label: name }));
+    }),
   list: adminProcedure
     .input(studentListInputSchema)
     .output(studentListOutputSchema)

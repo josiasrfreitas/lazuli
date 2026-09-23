@@ -1,5 +1,6 @@
 import type { Prisma } from "@lazuli/db";
 import type { Weekday } from "@lazuli/domain";
+import { saoPauloMidnightToInstant } from "@lazuli/domain";
 import type { StudentListInput, StudentListStatusFilter } from "@lazuli/validators";
 
 import type { Context } from "../trpc/context.js";
@@ -32,6 +33,7 @@ const TIME_START_INDEX = 11;
 const TIME_END_INDEX = 16;
 const LABEL_SEPARATOR = " · ";
 const LAST_WEEKDAY_SEPARATOR = " e ";
+const DATE_ONLY_LENGTH = 10;
 
 const openEnrollmentSelect = {
   id: true,
@@ -68,14 +70,57 @@ const studentPageSelect = {
 export type StudentPageRow = Prisma.StudentGetPayload<{ select: typeof studentPageSelect }>;
 export type OpenEnrollmentRow = StudentPageRow["enrollments"][number];
 
-export function buildStudentListWhere(input: {
+type StudentListWhereInput = {
   status: StudentListStatusFilter;
   search?: string | undefined;
-}): Prisma.StudentWhereInput {
+  situations?: StudentListInput["situations"];
+  classIds?: string[] | undefined;
+  teacherIds?: string[] | undefined;
+  registeredFrom?: string | undefined;
+  registeredTo?: string | undefined;
+};
+
+function enrollmentFilter(input: StudentListWhereInput): Prisma.StudentWhereInput {
+  if (!input.classIds?.length && !input.teacherIds?.length) return {};
+  return {
+    enrollments: {
+      some: {
+        deletedAt: null,
+        exitDate: null,
+        ...(input.classIds?.length ? { classId: { in: input.classIds } } : {}),
+        ...(input.teacherIds?.length ? { class: { teacherId: { in: input.teacherIds } } } : {}),
+      },
+    },
+  };
+}
+
+export function buildStudentListWhere(input: StudentListWhereInput): Prisma.StudentWhereInput {
+  const situations = input.situations?.length
+    ? input.situations.flatMap((situation) =>
+        situation === "active" ? [...ACTIVE_STATUSES] : [...INACTIVE_STATUSES],
+      )
+    : undefined;
   return {
     deletedAt: null,
-    AND: [statusFilter(input.status), searchFilter(input.search)],
+    AND: [
+      situations ? { status: { in: situations } } : statusFilter(input.status),
+      searchFilter(input.search),
+      enrollmentFilter(input),
+      input.registeredFrom ? { createdAt: { gte: dayStart(input.registeredFrom) } } : {},
+      input.registeredTo ? { createdAt: { lt: dayStart(nextDay(input.registeredTo)) } } : {},
+    ],
   };
+}
+
+function dayStart(day: string): Date {
+  const [year, month, date] = day.split("-").map(Number);
+  return saoPauloMidnightToInstant({ year: year!, monthIndex: month! - 1, day: date! });
+}
+
+function nextDay(day: string): string {
+  const date = new Date(`${day}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, DATE_ONLY_LENGTH);
 }
 
 /** The `students.preview` read: one student in the same shape as a page row. */

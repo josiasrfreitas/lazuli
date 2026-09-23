@@ -5,19 +5,18 @@ import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { TablePagination } from "@lazuli/ui";
+import { TableFilterChips, TablePagination } from "@lazuli/ui";
 import { studentPaginationPolicy, type StudentListRow } from "@lazuli/validators";
 
 import type { StudentsFilters } from "../../src/features/students/logic.js";
 import { tablePaginationPropsFor } from "../../src/lib/pagination.js";
 import { StudentsTable } from "../../src/features/students/students-table.js";
 import { StudentsTableRow } from "../../src/features/students/students-table-row.js";
+import { studentFilterFields } from "../../src/features/students/student-filter-fields.js";
 import { StudentsControls, StudentsHeader } from "../../src/features/students/students-toolbar.js";
-import { statusTabsVm } from "../../src/features/students/view-model.js";
 
 const PAGE_SIZE = 10;
 const LARGE_PAGE_SIZE = 25;
-const TAB_COUNT = 3;
 const FACT_COLUMN_COUNT = 3;
 const TABLE_ROW: StudentListRow = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -61,11 +60,14 @@ const filters: StudentsFilters = {
   setSearch: () => {},
   setPage: () => {},
   setPageSize: () => {},
-  setStatusTab: () => {},
-  statusTab: "todos" as const,
+  situations: [],
+  classIds: [],
+  teacherIds: [],
+  registeredFrom: "",
+  registeredTo: "",
+  setFilters: () => {},
 };
 const missing: { data?: never } = {};
-
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 function studentRowMarkup(row: StudentListRow): string {
@@ -108,13 +110,24 @@ void test("first load preserves pagination furniture and only skeletonizes fetch
   assert.equal((paginationMarkup.match(/data-slot="inline-skeleton"/gu) ?? []).length, 2);
 });
 
-void test("first load keeps header and tab labels while skeletonizing their counts", () => {
+void test("first load keeps header and filter controls while skeletonizing header counts", () => {
+  const filterFields = studentFilterFields({
+    filters,
+    classOptions: [],
+    teacherOptions: [],
+    classSearch: "",
+    teacherSearch: "",
+    classResult: { status: "idle", query: "" },
+    teacherResult: { status: "idle", query: "" },
+    onClassSearchChange: () => {},
+    onTeacherSearchChange: () => {},
+  });
   const headerMarkup = renderToStaticMarkup(createElement(StudentsHeader, { summary: undefined }));
   const controlsMarkup = renderToStaticMarkup(
     createElement(StudentsControls, {
       filters,
       onNewStudent: () => {},
-      tabs: statusTabsVm(),
+      fields: filterFields,
     }),
   );
 
@@ -123,10 +136,29 @@ void test("first load keeps header and tab labels while skeletonizing their coun
   assert.match(headerMarkup, /turmas ativas/u);
   assert.equal((headerMarkup.match(/data-slot="inline-skeleton"/gu) ?? []).length, 2);
 
-  assert.match(controlsMarkup, />Todos</u);
-  assert.match(controlsMarkup, />Ativos</u);
-  assert.match(controlsMarkup, />Inativos</u);
-  assert.equal((controlsMarkup.match(/data-slot="inline-skeleton"/gu) ?? []).length, TAB_COUNT);
+  assert.match(controlsMarkup, />Turma</u);
+  assert.match(controlsMarkup, />Situação</u);
+  assert.match(controlsMarkup, /Mais filtros/u);
+  assert.doesNotMatch(controlsMarkup, />Professor</u);
+  assert.doesNotMatch(controlsMarkup, /data-slot="inline-skeleton"/u);
+});
+
+void test("selected student filter fields render removable chips", () => {
+  const fields = studentFilterFields({
+    filters: { ...filters, teacherIds: [TABLE_ROW.id] },
+    classOptions: [],
+    teacherOptions: [{ id: TABLE_ROW.id, label: "João Silva" }],
+    classSearch: "",
+    teacherSearch: "",
+    classResult: { status: "idle", query: "" },
+    teacherResult: { status: "idle", query: "" },
+    onClassSearchChange: () => {},
+    onTeacherSearchChange: () => {},
+  });
+  const markup = renderToStaticMarkup(createElement(TableFilterChips, { fields }));
+
+  assert.match(markup, /Professor: João Silva/u);
+  assert.match(markup, /Remover filtro Professor/u);
 });
 
 void test("fixed student columns and fact tones survive a static class declaration", () => {

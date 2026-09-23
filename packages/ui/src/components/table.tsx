@@ -150,16 +150,18 @@ TableFooter.displayName = "TableFooter";
 export type TableRowProps = ComponentProps<"tr"> & {
   /** Marks the row as picked by a selection control; also sets `aria-selected`. */
   selected?: boolean;
+  /** Enables hover feedback for rows that have an interaction. */
+  interactive?: boolean;
 };
 
 export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
-  ({ className, selected = false, ...props }, ref) => (
+  ({ className, selected = false, interactive = true, ...props }, ref) => (
     <tr
       {...props}
       aria-selected={selected || undefined}
       className={cn(
-        "border-b border-border transition-colors duration-fast ease-standard",
-        "hover:bg-muted data-[selected]:bg-accent",
+        "border-b border-border data-[selected]:bg-accent",
+        interactive && "transition-colors duration-fast ease-standard hover:bg-muted",
         className,
       )}
       data-selected={selected || undefined}

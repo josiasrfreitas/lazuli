@@ -1,10 +1,5 @@
 import { resolveSemesterForDate, SemesterBucketError, type SemesterWindow } from "@lazuli/domain";
-import type {
-  StudentListInput,
-  StudentListOutput,
-  StudentListRow,
-  StudentListStatusFilter,
-} from "@lazuli/validators";
+import type { StudentListInput, StudentListOutput, StudentListRow } from "@lazuli/validators";
 
 import { computeEnrollmentPercentInWindow } from "../attendance/percent.js";
 import { finance, type StudentOverdueTotal } from "../finance/index.js";
@@ -42,13 +37,12 @@ export async function listStudents(input: ListStudentsInput): Promise<StudentLis
   const where = buildStudentListWhere(input.values);
   const semester = await resolveCurrentSemester(input.database, input.values.now);
   const { page, pageSize } = input.values;
-  const [students, counts, header] = await Promise.all([
+  const [students, counts, header, total] = await Promise.all([
     findStudentPage({ database: input.database, values: { where, page, pageSize } }),
     countStudentsByTab({ database: input.database, search: input.values.search }),
     countHeaderFacts({ database: input.database, semesterId: semester?.id ?? null }),
+    input.database.student.count({ where }),
   ]);
-
-  const total = totalForStatus({ counts, status: input.values.status });
 
   return {
     rows: await buildRows({ database: input.database, values: input.values, students, semester }),
@@ -181,21 +175,6 @@ export async function resolveCurrentSemester(
 
     throw error;
   }
-}
-
-function totalForStatus(input: {
-  counts: StudentListOutput["counts"];
-  status: StudentListStatusFilter;
-}): number {
-  if (input.status === "active") {
-    return input.counts.active;
-  }
-
-  if (input.status === "inactive") {
-    return input.counts.inactive;
-  }
-
-  return input.counts.all;
 }
 
 function pageCountFor(total: number, pageSize: StudentListInput["pageSize"]): number {

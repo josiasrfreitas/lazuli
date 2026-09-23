@@ -25,6 +25,8 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "node ../../scripts/run-test-tier.mjs unit",
+    "mutate": "NODE_ENV=test node ../../scripts/run-unit-mutation.mjs",
     "clean": "rm -rf .turbo dist"
   },
   "peerDependencies": {
@@ -42,13 +44,17 @@
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
+    "@lazuli/stryker-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "@stryker-mutator/core": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "shadcn": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:"
   }
 }

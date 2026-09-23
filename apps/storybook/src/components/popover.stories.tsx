@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import {
@@ -146,4 +146,59 @@ export const States: Story = {
       <FilterPopover disabled triggerLabel="Indisponível" />
     </div>
   ),
+};
+
+function TallPopover(): ReactElement {
+  const [selected, setSelected] = useState<number | null>(null);
+  return (
+    <div className="min-h-[180vh] bg-background px-6 pt-[80vh]">
+      <Popover>
+        <PopoverTrigger render={<Button variant="secondary">Open stress popover</Button>} />
+        <PopoverContent
+          aria-label="Stress popover"
+          align="end"
+          className="w-[min(24rem,calc(100vw-2rem))] p-2"
+        >
+          <div className="scrollbar-subtle max-h-[min(70vh,calc(var(--available-height)-2.5rem))] space-y-3 overflow-y-auto p-2 pr-3">
+            {Array.from({ length: 14 }, (_unused, index) => (
+              <Button
+                key={index}
+                aria-pressed={selected === index}
+                className="w-full"
+                onClick={() => setSelected(index)}
+                variant="ghost"
+              >
+                Opção {index + 1}
+              </Button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+export const ResponsiveStress: Story = {
+  render: () => <TallPopover />,
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("button", { name: "Open stress popover" });
+    trigger.scrollIntoView({ block: "center" });
+    await userEvent.click(trigger);
+    const popup = await within(canvasElement.ownerDocument.body).findByRole("dialog", {
+      name: "Stress popover",
+    });
+    const positioner = popup.closest<HTMLElement>('[data-slot="popover-positioner"]');
+    await expect(positioner?.dataset.side).toMatch(/^(top|bottom)$/u);
+    const bounds = popup.getBoundingClientRect();
+    await expect(bounds.top).toBeGreaterThanOrEqual(0);
+    await expect(bounds.bottom).toBeLessThanOrEqual(
+      popup.ownerDocument.defaultView?.innerHeight ?? 0,
+    );
+    const lastOption = within(popup).getByRole("button", { name: "Opção 14" });
+    await userEvent.click(lastOption);
+    await expect(lastOption).toHaveAttribute("aria-pressed", "true");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(popup).not.toBeInTheDocument());
+    await expect(trigger).toHaveFocus();
+  },
 };
