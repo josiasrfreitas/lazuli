@@ -28,6 +28,7 @@ export type TableFilterField = FilterBase &
         selected: string[];
         selectedOptions: TableFilterOption[];
         search: string;
+        searchMaxLength?: number;
         result: RemoteOptionsResult;
         onSearchChange: (value: string) => void;
         onChange: (values: string[]) => void;

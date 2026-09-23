@@ -12,6 +12,7 @@ import { paginationResultFields, studentPaginationPolicy } from "./pagination.js
  */
 
 const SEARCH_MAX_LENGTH = 80;
+export const STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH = 80;
 const MAX_FILTER_IDS = 50;
 export const STUDENT_PAGE_SIZE_OPTIONS = studentPaginationPolicy.pageSizeOptions;
 export const DEFAULT_STUDENT_PAGE_SIZE = studentPaginationPolicy.defaultPageSize;

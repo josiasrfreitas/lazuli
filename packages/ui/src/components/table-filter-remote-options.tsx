@@ -90,6 +90,7 @@ export function RemoteOptionsEditor({ field }: { field: RemoteField }): ReactEle
         aria-label={`Buscar ${field.label}`}
         size="sm"
         type="search"
+        maxLength={field.searchMaxLength}
         value={field.search}
         onChange={(event) => field.onSearchChange(event.target.value)}
         placeholder={`Buscar ${field.label.toLocaleLowerCase("pt-BR")}`}

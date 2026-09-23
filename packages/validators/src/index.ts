@@ -1,4 +1,5 @@
 export { civilDateSchema } from "./civil-date.js";
+export { STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH } from "./student-list.js";
 /** Zod schemas shared by API, workers, and scripts (§2.1). */
 export { z } from "zod";
 export {

@@ -1,5 +1,6 @@
 import { CircleCheck, GraduationCap, UsersRound } from "lucide-react";
 import type { RemoteOptionsResult, TableFilterField } from "@lazuli/ui";
+import { STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH } from "@lazuli/validators";
 import type { StudentsFilters } from "./logic";
 
 export type StudentsFilterFieldsProps = {
@@ -35,6 +36,7 @@ function remoteFilterFields({
       selected: filters.classIds,
       selectedOptions: classOptions,
       search: classSearch,
+      searchMaxLength: STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH,
       result: classResult,
       onSearchChange: onClassSearchChange,
       onChange: (values) => filters.setFilters({ classIds: values.join(",") || null }),
@@ -48,6 +50,7 @@ function remoteFilterFields({
       selected: filters.teacherIds,
       selectedOptions: teacherOptions,
       search: teacherSearch,
+      searchMaxLength: STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH,
       result: teacherResult,
       onSearchChange: onTeacherSearchChange,
       onChange: (values) => filters.setFilters({ teacherIds: values.join(",") || null }),

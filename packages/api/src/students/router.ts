@@ -8,6 +8,7 @@ import {
   studentSetStatusInputSchema,
   studentUpdateContactProcedureInputSchema,
   studentUpdateNotesInputSchema,
+  STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH,
   z,
 } from "@lazuli/validators";
 
@@ -17,7 +18,6 @@ import { listStudents } from "./list.js";
 import { previewStudent } from "./preview.js";
 import { setStudentStatus } from "./status.js";
 
-const FILTER_OPTION_SEARCH_MAX_LENGTH = 80;
 const FILTER_OPTION_LIMIT = 50;
 
 export const studentsRouter = router({
@@ -26,7 +26,7 @@ export const studentsRouter = router({
       z
         .object({
           kind: z.enum(["class", "teacher"]),
-          search: z.string().trim().max(FILTER_OPTION_SEARCH_MAX_LENGTH).default(""),
+          search: z.string().trim().max(STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH).default(""),
           ids: z.array(z.string().uuid()).max(FILTER_OPTION_LIMIT).default([]),
         })
         .strict(),
