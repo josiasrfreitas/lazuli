@@ -100,10 +100,15 @@ estiver protegido na UI e na API, incluindo chamadas pelo lote.
       existentes. Contract guarda pagador/aluno; Order contratual resolve pelo vínculo; históricos
       e independentes preservam suas identidades. Atualizar validação do pagador em alocações e
       impedir novas operações contratuais ainda sem suporte. Sem formulário novo ou motor de juros.
+      A migração deve tornar `Order.payerId` anulável e impor no banco os ramos exclusivos:
+      `CONTRACT` exige `contractId` e proíbe pagador e beneficiários diretos;
+      pedidos independentes/históricos mantêm pagador e beneficiários diretos, sem `contractId`.
+      Preservar a cardinalidade dos históricos multibeneficiário; rejeitar fontes conflitantes.
       **Reutiliza:** Recebíveis e fronteira Finance. **Modifica:** schema/migration aditiva, resolução,
       consultas e proteções dos escritores existentes. **Depende:** P01 e estratégia de compatibilidade/entrega.
       **Aceite/testes:** cenários contratuais de integração aparecem no grupo correto e nos totais
       do aluno; outro pagador não recebe alocação; históricos multibeneficiário permanecem íntegros.
+      Testar restrições no banco e partes resolvidas uniformemente em consultas e pagamentos.
       Demonstrar via leitura real, não só ORM. É a única fatia habilitadora; não conclui criação.
 
 - [ ] **P05 — Criar um contrato mensal para aluno e pagador existentes.** [#121](https://github.com/josiasrfreitas/lazuli/issues/121) Entregar modal,
@@ -116,8 +121,11 @@ estiver protegido na UI e na API, incluindo chamadas pelo lote.
       **Depende:** P03, P04 e datas/percentuais definidos.
       **Aceite/testes:** 15/03/2026 + 12 meses → 15/03/2027; 12 × R$ 250 → R$ 3.000;
       31/01 → 28/29 de fevereiro → 31/03. Piso limita valor final em dia; preservar taxas/condições
-      após alterar Ajustes. Unit para regras, integração de transação/rollback/retry sem duplicidade,
-      transporte e criação real seguida de consulta. Storybook apoia o mesmo fluxo, não o substitui.
+      após alterar Ajustes. A criação recebe identidade de comando persistida e única, gravada
+      na mesma transação: repetição da mesma carga retorna o resultado original; mesma identidade
+      com carga diferente falha. Unit para regras, integração de rollback e resposta perdida após
+      commit sem duplicar contrato, pagador ou aluno; transporte e criação real seguida de consulta.
+      Storybook apoia o mesmo fluxo, não o substitui.
 
 - [ ] **P06 — Criar pagador dentro da contratação.** [#122](https://github.com/josiasrfreitas/lazuli/issues/122) Acrescentar cadastro inline com documento
       opcional CPF/RG e contatos, concluído junto do contrato; preservar a seleção de existente.
@@ -166,18 +174,22 @@ estiver protegido na UI e na API, incluindo chamadas pelo lote.
       **Reutiliza:** NewStudentDialog, Stepper e campos de P05–P07. **Modifica:** reducer, input,
       footer e operação coordenada no servidor. **Depende:** P06, P07.
       **Aceite/testes:** pular cria só aluno; preencher conclui o conjunto; falha mantém rascunho
-      e não deixa parte persistida nem duplica em nova tentativa. Prévia não grava. Integração de
-      rollback/retry, reducer/input, transporte e percurso completo voltar/avançar/concluir.
+      e não deixa parte persistida nem duplica em nova tentativa. Reutilizar a identidade de comando
+      de P05 na conclusão conjunta; testar repetição após commit com resposta perdida. Prévia não
+      grava. Integração de rollback, reducer/input, transporte e percurso completo voltar/avançar/concluir.
 
 - [ ] **P12 — Aplicar pontualidade na quitação em dia.** [#128](https://github.com/josiasrfreitas/lazuli/issues/128) Mostrar condição em dia, validar
       recebimento e registrar desconto/pagamento/alocações atomicamente no caminho individual.
       Data efetiva informada governa o benefício; guardar autoria/data do registro sem comprovante
-      obrigatório. Retry não reaplica desconto nem pagamento.
+      obrigatório. Persistir identidade de comando única com desconto, pagamento e alocações na
+      mesma transação; repetição da mesma carga retorna o resultado confirmado, e carga diferente
+      com a mesma identidade falha.
       **Reutiliza:** ledger, registro de pagamento e células de P02. **Modifica:** cálculo,
       orquestração, DTO e apresentação de Recebíveis. **Depende:** P02, P05 e semântica das datas/alocações.
       **Aceite/testes:** R$ 100 + R$ 130 até o prazo quitam nominal R$ 250 com condição R$ 230;
       só R$ 100 não garante desconto. Registrar depois respeita data efetiva. Testar unidade,
-      integração atômica, repetição e transporte; consultar recebido R$ 230 e saldo zero na UI.
+      integração atômica e transporte, incluindo resposta perdida após commit para pagamento
+      parcial e quitação com desconto; consultar recebido R$ 230 e saldo zero na UI.
       Não criar tela de pagamentos; lote contratual continua protegido até P15.
 
 - [ ] **P13 — Quitar atraso sem pagamentos parciais anteriores.** [#129](https://github.com/josiasrfreitas/lazuli/issues/129) Entregar prévia datada e
