@@ -44,6 +44,13 @@ void it("validates the overdue summary and its nested identities and installment
     rows: [row],
   } = group;
   assert.deepEqual(financeOverduePayerGroupSchema.parse(group), group);
+  assert.equal(
+    financeOverduePayerGroupSchema.safeParse({
+      ...group,
+      rows: [{ ...row, origin: "CONTRACT" }],
+    }).success,
+    true,
+  );
   for (const invalid of [
     { ...group, installmentCount: 0 },
     { ...group, installmentCount: 1.5 },
@@ -55,7 +62,7 @@ void it("validates the overdue summary and its nested identities and installment
     { ...group, payer: { ...payer, id: "invalid" } },
     { ...group, beneficiaries: [{ ...beneficiary, studentId: "invalid" }] },
     { ...group, rows: [{ ...row, installmentId: "invalid" }] },
-    { ...group, rows: [{ ...row, origin: "CONTRACT" }] },
+    { ...group, rows: [{ ...row, origin: "SERVICE" }] },
     { ...group, rows: [{ ...row, origin: undefined }] },
   ]) {
     assert.equal(financeOverduePayerGroupSchema.safeParse(invalid).success, false);
