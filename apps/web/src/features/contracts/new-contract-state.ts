@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent, type RefObject } from "react";
 import { trpc } from "~/lib/trpc";
+import type { FormProps } from "./contract-form-fields";
 import {
   contractInputFromFields,
   contractPreview,
@@ -79,7 +80,12 @@ export function useContractFormState(): ContractFormState {
 }
 
 export type ContractOperation = {
-  offer: ReturnType<typeof trpc.finance.readContractOffer.useQuery>;
+  offer: {
+    data: FormProps["offer"];
+    isPending: boolean;
+    isError: boolean;
+    refetch: () => void;
+  };
   preview: ReturnType<typeof contractPreview>;
   pending: boolean;
   close: (next: boolean) => void;

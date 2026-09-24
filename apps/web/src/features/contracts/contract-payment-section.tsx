@@ -8,6 +8,12 @@ import { TextField } from "./contract-text-field";
 
 const CENTS_PER_REAL = 100;
 
+function civilDateBR(value: string | undefined): string {
+  if (!value) return "—";
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 function PaymentPreview({
   fields,
   preview,
@@ -22,7 +28,7 @@ function PaymentPreview({
       aria-live="polite"
     >
       <p>
-        Vigência até {preview.endsOn.split("-").toReversed().join("/")} · principal{" "}
+        Vigência até {civilDateBR(preview.endsOn)} · principal{" "}
         {formatBRLFromCents(preview.principalAmountCents)}
       </p>
       <p>
@@ -31,8 +37,8 @@ function PaymentPreview({
         {formatBRLFromCents(preview.floorCents)}
       </p>
       <p>
-        Primeiro vencimento {preview.installments[0]?.dueDate.split("-").toReversed().join("/")} ·
-        último {preview.installments.at(-1)?.dueDate.split("-").toReversed().join("/")}
+        Primeiro vencimento {civilDateBR(preview.installments[0]?.dueDate)} · último{" "}
+        {civilDateBR(preview.installments.at(-1)?.dueDate)}
       </p>
     </div>
   );
