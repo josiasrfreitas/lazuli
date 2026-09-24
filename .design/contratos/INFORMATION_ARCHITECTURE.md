@@ -242,7 +242,7 @@ Prévia e navegação entre etapas não persistem o contrato. Turma permanece fo
 
 ### Consultar recebíveis
 
-1. Abrir Recebíveis e usar Todos, Vencidos ou Pagos.
+1. Abrir Recebíveis e escolher a situação; sem seleção, ver todos. Vencida abre a visão agrupada por pagador.
 2. Localizar o registro e identificar Origem, Pagador e Beneficiário.
 3. Ler saldo nas obrigações abertas ou recebido nas pagas, com nominal e ajustes complementares.
    Em Vencidos, o resumo agrupa o pagador; a origem continua em cada linha.
@@ -279,13 +279,13 @@ O fluxo de material aguarda os requisitos que o usuário esclarecerá posteriorm
 
 ## Component Reuse Map
 
-| Componente                            | Usado em            | Comportamento                                               |
-| ------------------------------------- | ------------------- | ----------------------------------------------------------- |
-| AppShell                              | Contratos e Ajustes | Navegação e proteção por papel                              |
-| DataTablePage, Table, TablePagination | Contratos           | Listagem operacional sem painel de detalhe                  |
-| Field, FormSection, FormRow           | Criação e Ajustes   | Estrutura comum de campos                                   |
-| NewStudentDialog e Stepper            | Novo aluno          | Financeiro opcional, beneficiário ainda sem ID              |
-| Tabs e grupos de pagador existentes   | Recebíveis          | Todos, Vencidos e Pagos, preservando consulta e agrupamento |
+| Componente                            | Usado em            | Comportamento                                            |
+| ------------------------------------- | ------------------- | -------------------------------------------------------- |
+| AppShell                              | Contratos e Ajustes | Navegação e proteção por papel                           |
+| DataTablePage, Table, TablePagination | Contratos           | Listagem operacional sem painel de detalhe               |
+| Field, FormSection, FormRow           | Criação e Ajustes   | Estrutura comum de campos                                |
+| NewStudentDialog e Stepper            | Novo aluno          | Financeiro opcional, beneficiário ainda sem ID           |
+| Filtro Situação e grupos de pagador   | Recebíveis          | Seleção de situações, preservando consulta e agrupamento |
 
 Novo contrato usa `Dialog` e sua estrutura de cabeçalho, corpo e rodapé. O padrão
 `Patterns/DenseForm` é uma composição de referência, não um novo componente a copiar para a
@@ -373,8 +373,8 @@ a definição dos agregados financeiros permanece uma dependência explícita da
 
 **Recebíveis** substitui Parcelas no título, breadcrumb e navegação. O cabeçalho Parcela
 também será substituído por **Sequência**, como “3 de 12”. Origem identifica Multa, Mensalidade e
-Material. Ajustar a concordância dos labels das tabs para **Todos, Vencidos e Pagos**, mantendo
-as perspectivas existentes.
+Material. As situações permanecem no filtro **Situação**, sem tabs; nenhuma seleção mostra todos
+os recebíveis, e Vencida sozinha usa o agrupamento por pagador.
 
 **Cobranças** fica reservado para um módulo futuro, cujos requisitos não são antecipados aqui.
 O nome Recebíveis não altera as entidades Contract, Order ou Installment. A rota `/parcelas`

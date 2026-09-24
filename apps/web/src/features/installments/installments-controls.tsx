@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { useSearchParams } from "next/navigation";
 import { CircleCheck, Search } from "lucide-react";
-import { Input, TableFilters, Tabs, TabsList, TabsTab, type TableFilterField } from "@lazuli/ui";
+import { Input, TableFilters, type TableFilterField } from "@lazuli/ui";
 import { debounce } from "~/lib/debounce";
 import {
   INSTALLMENT_STATUSES,
@@ -117,18 +117,6 @@ function amountField(props: ControlsProps): TableFilterField {
   };
 }
 
-function selectedTab(filters: InstallmentFilters): string {
-  if (filters.status === "vencidas") return "vencidas";
-  if (filters.situations.length === 1 && filters.situations[0] === "PAID") return "pagas";
-  return "todas";
-}
-
-function tabPatch(value: string): InstallmentFilterPatch {
-  if (value === "vencidas") return situationPatch(["OVERDUE"]);
-  if (value === "pagas") return situationPatch(["PAID"]);
-  return situationPatch([]);
-}
-
 export function InstallmentsControls(props: ControlsProps): ReactElement {
   const filterFields = [situationField(props), dueField(props), amountField(props)];
   return (
@@ -147,18 +135,6 @@ export function InstallmentsControls(props: ControlsProps): ReactElement {
           })
         }
       />
-      <Tabs
-        value={selectedTab(props.filters)}
-        onValueChange={(value) => {
-          props.onFilters(tabPatch(String(value)));
-        }}
-      >
-        <TabsList>
-          <TabsTab value="todas">Todos</TabsTab>
-          <TabsTab value="vencidas">Vencidos</TabsTab>
-          <TabsTab value="pagas">Pagos</TabsTab>
-        </TabsList>
-      </Tabs>
     </div>
   );
 }
