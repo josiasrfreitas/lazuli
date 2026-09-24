@@ -9,7 +9,11 @@ import { toDateOnly, toDateOnlyString, type FinanceDatabase } from "./shared.js"
 export type ContractListRow = {
   id: string;
   payer: { id: string; name: string };
-  student: { id: string; fullName: string; placements: string[] };
+  student: {
+    id: string;
+    fullName: string;
+    placements: Array<{ stage: string; classCode: string; modality: "PPT" | "Regular" }>;
+  };
   agreedOn: string;
   startsOn: string;
   endsOn: string;
@@ -35,7 +39,7 @@ const contractSelect = {
       enrollments: {
         where: { deletedAt: null, exitDate: null },
         select: {
-          class: { select: { scheduleType: true } },
+          class: { select: { scheduleType: true, internalCode: true } },
           progressRecords: {
             where: { deletedAt: null, endDate: null },
             select: { stage: { select: { name: true } } },
@@ -74,7 +78,7 @@ function toRow(
       id: string;
       fullName: string;
       enrollments: Array<{
-        class: { scheduleType: "REGULAR" | "PERSONALIZED" };
+        class: { scheduleType: "REGULAR" | "PERSONALIZED"; internalCode: string };
         progressRecords: Array<{ stage: { name: string } }>;
       }>;
     };
@@ -132,10 +136,14 @@ function toRow(
       id: row.student.id,
       fullName: row.student.fullName,
       placements: row.student.enrollments.flatMap((enrollment) =>
-        enrollment.progressRecords.map(
-          (progress) =>
-            `${progress.stage.name} · ${enrollment.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular"}`,
-        ),
+        enrollment.progressRecords.map((progress) => ({
+          stage: progress.stage.name,
+          classCode: enrollment.class.internalCode,
+          modality:
+            enrollment.class.scheduleType === "PERSONALIZED"
+              ? ("PPT" as const)
+              : ("Regular" as const),
+        })),
       ),
     },
     agreedOn: toDateOnlyString(row.agreedOn),

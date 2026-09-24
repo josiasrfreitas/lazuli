@@ -16,10 +16,10 @@ function render(): string {
   const client = createTRPCClient();
   const queryClient = new QueryClient();
   return renderToStaticMarkup(
-    createElement(
-      trpc.Provider,
-      { client, queryClient },
-      createElement(
+    createElement(trpc.Provider, {
+      client,
+      queryClient,
+      children: createElement(
         QueryClientProvider,
         { client: queryClient },
         createElement(
@@ -34,7 +34,7 @@ function render(): string {
           }),
         ),
       ),
-    ),
+    }),
   );
 }
 

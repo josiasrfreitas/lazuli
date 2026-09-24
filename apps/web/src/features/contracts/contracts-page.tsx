@@ -62,6 +62,7 @@ export function ContractsPage(): ReactElement {
               <TableRow>
                 <TableHead>Aluno</TableHead>
                 <TableHead>Situação</TableHead>
+                <TableHead>Estágio / turma</TableHead>
                 <TableHead>Plano</TableHead>
                 <TableHead>Vigência</TableHead>
                 <TableHead>Pagador</TableHead>
@@ -70,12 +71,12 @@ export function ContractsPage(): ReactElement {
             <TableBody>
               {list.isPending && (
                 <TableRow>
-                  <TableCell colSpan={5}>Carregando contratos…</TableCell>
+                  <TableCell colSpan={6}>Carregando contratos…</TableCell>
                 </TableRow>
               )}
               {list.isError && (
                 <TableRow>
-                  <TableCell colSpan={5}>
+                  <TableCell colSpan={6}>
                     <span role="alert">Não foi possível carregar os contratos.</span>{" "}
                     <Button type="button" variant="link" onClick={() => void list.refetch()}>
                       Tentar novamente
@@ -85,19 +86,12 @@ export function ContractsPage(): ReactElement {
               )}
               {list.data?.rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5}>Nenhum contrato cadastrado.</TableCell>
+                  <TableCell colSpan={6}>Nenhum contrato cadastrado.</TableCell>
                 </TableRow>
               )}
               {list.data?.rows.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell>
-                    <span className="block font-medium">{row.student.fullName}</span>
-                    {row.student.placements.length > 0 && (
-                      <span className="text-caption text-muted-foreground">
-                        {row.student.placements.join(" · ")}
-                      </span>
-                    )}
-                  </TableCell>
+                  <TableCell className="font-medium">{row.student.fullName}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -116,6 +110,18 @@ export function ContractsPage(): ReactElement {
                             ? "Quitado"
                             : "Cancelado"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {row.student.placements.length > 0
+                      ? row.student.placements.map((placement) => (
+                          <span key={`${placement.classCode}-${placement.stage}`} className="block">
+                            {placement.stage}
+                            <span className="block text-caption text-muted-foreground">
+                              {placement.classCode} · {placement.modality}
+                            </span>
+                          </span>
+                        ))
+                      : "—"}
                   </TableCell>
                   <TableCell className="font-numeric tabular-nums">
                     {formatBRLFromCents(row.monthlyAmountCents)}
