@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
+import type { CreateMonthlyContractInput } from "@lazuli/validators";
 
 import { finance } from "../../src/finance/index.js";
 import { ADMIN, ensureAdminUser } from "../support/finance-test-support.js";
@@ -43,7 +44,11 @@ async function cleanup(): Promise<void> {
   await db.$disconnect();
 }
 
-async function fixture() {
+async function fixture(): Promise<{
+  payer: { id: string; name: string };
+  student: { id: string; fullName: string };
+  values: CreateMonthlyContractInput;
+}> {
   const payer = await db.payer.create({ data: { name: `${PREFIX}payer` } });
   const student = await db.student.create({
     data: { fullName: `${PREFIX}student`, status: "ACTIVE" },
