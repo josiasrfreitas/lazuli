@@ -28,8 +28,7 @@ function fieldErrors(parsed: ParsedInput, hasPreview: boolean): Errors {
     for (const issue of parsed.error.issues) {
       const name = issue.path[0] as keyof ContractFields | "monthlyAmountCents";
       if (name === "monthlyAmountCents") errors.monthlyAmount = "Informe uma mensalidade válida.";
-      else if (FORM_KEYS.has(name as keyof ContractFields))
-        errors[name as keyof ContractFields] = "Confira este campo.";
+      else if (FORM_KEYS.has(name)) errors[name] = "Confira este campo.";
     }
   }
   if (parsed.success && !hasPreview)
