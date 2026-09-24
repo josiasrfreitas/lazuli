@@ -144,7 +144,7 @@ async function listingSearchAndStatus(): Promise<void> {
   assert.equal(overdue.rows.find((row) => row.id === created.id)?.status, "INADIMPLENTE");
   await db.installment.updateMany({
     where: { order: { contractId: created.id } },
-    data: { waivedAt: OVERDUE_INSTANT },
+    data: { waivedAt: OVERDUE_INSTANT, waivedReason: "Teste de situação financeira" },
   });
   const waived = await finance(db, ADMIN.id).listContracts({ page: 1, now: OVERDUE_INSTANT });
   assert.equal(waived.rows.find((row) => row.id === created.id)?.status, "EM_DIA");
