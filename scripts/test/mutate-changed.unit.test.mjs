@@ -146,17 +146,25 @@ function createPathValue() {
   ].join(path.delimiter);
 }
 
-function runMutateChanged(repositoryDirectory, inheritedEnvironment = {}) {
+function runMutateChanged(
+  repositoryDirectory,
+  inheritedEnvironment = {},
+  additionalArguments = [],
+) {
   const logPath = path.join(repositoryDirectory, "mutate-log.json");
-  const result = spawnSync(process.execPath, [mutateChangedScript, "--base", "main"], {
-    cwd: repositoryDirectory,
-    encoding: "utf8",
-    env: buildChildEnvironment({
-      ...inheritedEnvironment,
-      FIXTURE_MUTATE_LOG: logPath,
-      PATH: createPathValue(),
-    }),
-  });
+  const result = spawnSync(
+    process.execPath,
+    [mutateChangedScript, "--base", "main", ...additionalArguments],
+    {
+      cwd: repositoryDirectory,
+      encoding: "utf8",
+      env: buildChildEnvironment({
+        ...inheritedEnvironment,
+        FIXTURE_MUTATE_LOG: logPath,
+        PATH: createPathValue(),
+      }),
+    },
+  );
 
   return { logPath, result };
 }
@@ -173,11 +181,14 @@ function repositorySnapshot() {
   };
 }
 
-it("passes --mutate through real pnpm without a literal separator and keeps package env", async (testContext) => {
+it("mutates the selected package through real pnpm and keeps package env", async (testContext) => {
   const repositoryDirectory = await createChangedPackageFixture();
   testContext.after(() => rm(repositoryDirectory, { force: true, recursive: true }));
 
-  const { logPath, result } = runMutateChanged(repositoryDirectory);
+  const { logPath, result } = runMutateChanged(repositoryDirectory, {}, [
+    "--package",
+    packageDirectory,
+  ]);
 
   assert.equal(result.status, 0);
   const log = await readMutateLog(logPath);
@@ -280,4 +291,44 @@ it("detects mutation scope without invoking builds or mutation, including unconf
   const empty = checkScope();
   assert.equal(empty.status, 0, empty.stderr);
   assert.equal(empty.stdout.trim(), "false");
+});
+
+it("creates a package matrix for executable unit tests and includes unconfigured packages", async (context) => {
+  const directory = await createChangedPackageFixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  const matrixCommand = () =>
+    spawnSync(process.execPath, [mutateChangedScript, "--base", "main", "--matrix-only"], {
+      cwd: directory,
+      encoding: "utf8",
+      env: buildChildEnvironment({ PATH: path.dirname(gitExecutable) }),
+    });
+
+  const configured = matrixCommand();
+  assert.equal(configured.status, 0, configured.stderr);
+  assert.deepEqual(JSON.parse(configured.stdout), {
+    include: [{ packageDirectory, cacheScope: "packages-api" }],
+  });
+
+  await rm(path.join(directory, packageDirectory, "stryker.config.mjs"));
+  const unconfigured = matrixCommand();
+  assert.equal(unconfigured.status, 0, unconfigured.stderr);
+  assert.deepEqual(JSON.parse(unconfigured.stdout), {
+    include: [{ packageDirectory, cacheScope: "packages-api" }],
+  });
+
+  await rm(path.join(directory, packageDirectory, "test/example.unit.test.ts"));
+  const noExecutableTests = matrixCommand();
+  assert.equal(noExecutableTests.status, 0, noExecutableTests.stderr);
+  assert.deepEqual(JSON.parse(noExecutableTests.stdout), { include: [] });
+});
+
+it("limits mutation execution to the selected package", async (context) => {
+  const directory = await createChangedPackageFixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+
+  const { logPath, result } = runMutateChanged(directory, {}, ["--package", "packages/other"]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /No changed source files/u);
+  await assert.rejects(readFile(logPath), { code: "ENOENT" });
 });

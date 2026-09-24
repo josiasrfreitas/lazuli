@@ -40,6 +40,7 @@ it("mutation kills a unit-covered mutant without executing integration or transp
     );
   }
   const config = createStrykerConfig();
+  assert.equal(config.timeoutMS, 15_000);
   config.tap.nodeArgs = [
     "--test-reporter=tap",
     "--import",

@@ -142,6 +142,8 @@ Thus code changes currently rerun all mutants in scope; documentation-only pushe
 reuse results. This avoids Stryker's inability to detect changes in imported helpers/dependencies.
 The dry run and unit-covered threshold of 70 remain mandatory. Cache behavior and timing must be verified in
 GitHub Actions; local cache-key tests establish invalidation, not remote restore/save behavior.
+CI runs each changed package on its own matrix worker, with separate Turbo and Stryker caches; the
+required `Changed-file mutation` check aggregates the package results and reports.
 
 Review every new surviving mutant, even when the score passes. Add or strengthen tests when a
 survivor exposes a gap in relevant observable behavior, especially financial calculations,

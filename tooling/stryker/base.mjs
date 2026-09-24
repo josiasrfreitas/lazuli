@@ -28,6 +28,8 @@ export function createStrykerConfig(options = {}) {
     jsonReporter: { fileName: "reports/mutation/report.json" },
     // The package wrapper gates the unit-covered score at 70, excluding NoCoverage.
     thresholds: { high: 90, low: 70, break: 0 },
+    // Leave room for TAP child-process startup under CI load; 5s caused resource-delay timeouts.
+    timeoutMS: 15_000,
     tempDirName: ".stryker-tmp",
     cleanTempDir: true,
   };

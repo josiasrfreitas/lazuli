@@ -81,7 +81,7 @@ const SCRIPT_CATEGORIES = new Set([
 const DOC_PATTERN = /^(docs\/|[^/]+\.md$|\.design\/)/u;
 const WORKSPACE_PATTERN = /^(apps|packages|tooling)\/[^/]+(?:\/|$)/u;
 const DB_SCHEMA_PATTERN = /^packages\/db\/(prisma\/|src\/seed)|^scripts\/seed\.ts$/u;
-const CI_PATTERN = /^\.github\/(workflows|pullfrog)\//u;
+const CI_PATTERN = /^\.github\/(actions|workflows|pullfrog)\//u;
 
 export function classifyChanges(files, { root = process.cwd() } = {}) {
   const categories = new Set();
