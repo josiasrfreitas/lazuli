@@ -20,6 +20,7 @@ const ignoreConfig = {
   ignores: [
     "**/dist/**",
     "**/.next/**",
+    "**/.stryker-tmp/**",
     "**/.turbo/**",
     "**/storybook-static/**",
     "**/node_modules/**",

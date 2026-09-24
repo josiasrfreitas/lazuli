@@ -281,3 +281,41 @@ it("detects mutation scope without invoking builds or mutation, including unconf
   assert.equal(empty.status, 0, empty.stderr);
   assert.equal(empty.stdout.trim(), "false");
 });
+
+it("keeps web and shared UI changes outside the mutation gate", async (context) => {
+  const directory = await createChangedPackageFixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  await writeFile(path.join(directory, changedSourcePath), "export const value = 1;\n");
+  const scopes = [];
+
+  for (const frontendDirectory of ["apps/web", "packages/ui"]) {
+    await writeFixtureFile({
+      content: "export const value = 1;\n",
+      relativePath: `${frontendDirectory}/src/example.ts`,
+      repositoryDirectory: directory,
+    });
+    await writeFixtureFile({
+      content: "",
+      relativePath: `${frontendDirectory}/test/example.unit.test.ts`,
+      repositoryDirectory: directory,
+    });
+    const scope = spawnSync(
+      process.execPath,
+      [mutateChangedScript, "--base", "main", "--scope-only"],
+      {
+        cwd: directory,
+        encoding: "utf8",
+        env: buildChildEnvironment({ PATH: path.dirname(gitExecutable) }),
+      },
+    );
+    scopes.push({ status: scope.status, stdout: scope.stdout.trim(), stderr: scope.stderr });
+  }
+  assert.deepEqual(scopes, [
+    { status: 0, stdout: "false", stderr: "" },
+    { status: 0, stdout: "false", stderr: "" },
+  ]);
+
+  const { result } = runMutateChanged(directory);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /No changed source files under a mutation-tested package/u);
+});

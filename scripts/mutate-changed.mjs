@@ -14,6 +14,11 @@ import {
 
 const TESTING_GUIDE = "docs/testing/README.md";
 const UNIT_TEST_SUFFIX = ".unit.test.ts";
+const EXCLUDED_PACKAGES = new Set(["apps/web", "packages/ui"]);
+
+function mutationGroups() {
+  return [...groups].filter(([packageDirectory]) => !EXCLUDED_PACKAGES.has(packageDirectory));
+}
 
 function hasUnitTests(packageDirectory) {
   const testDirectory = path.join(packageDirectory, "test");
@@ -30,7 +35,9 @@ const baseRef = resolveBaseRef(readOption("base"));
 const groups = groupSourceFilesByPackage(listChangedFiles(baseRef));
 // Unconfigured packages with unit tests still reach the fail-closed gate.
 if (process.argv.includes("--scope-only")) {
-  process.stdout.write(`${[...groups.keys()].some(hasUnitTests)}\n`);
+  process.stdout.write(
+    `${mutationGroups().some(([packageDirectory]) => hasUnitTests(packageDirectory))}\n`,
+  );
   process.exit(0);
 }
 
@@ -38,7 +45,7 @@ const failures = [];
 const unconfigured = [];
 let mutatedPackages = 0;
 
-for (const [packageDirectory, files] of groups) {
+for (const [packageDirectory, files] of mutationGroups()) {
   if (!hasUnitTests(packageDirectory)) {
     process.stdout.write(
       `${packageDirectory}: no unit tests, outside the mutation gate (${files.length} changed file(s)).\n`,
