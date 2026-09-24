@@ -10,6 +10,7 @@ if (!["localhost", "127.0.0.1", "[::1]"].includes(databaseUrl.hostname)) {
 }
 
 const database = createDbClient();
+const SHARED_PAYER_KEY = "shared-payer";
 try {
   const admin = await database.user.findFirst({
     where: { email: DEV_ADMIN.email, role: "ADMIN", isEnabled: true, deletedAt: null },
@@ -20,7 +21,7 @@ try {
   const scenarios = [
     {
       student: "ana",
-      payer: "shared-payer",
+      payer: SHARED_PAYER_KEY,
       start: "2026-01-31",
       due: "2026-01-31",
       months: 12,
@@ -38,7 +39,7 @@ try {
     },
     {
       student: "davi",
-      payer: "shared-payer",
+      payer: SHARED_PAYER_KEY,
       start: "2026-03-01",
       due: "2026-03-25",
       months: 18,
@@ -47,7 +48,7 @@ try {
     },
     {
       student: "isadora",
-      payer: "shared-payer",
+      payer: SHARED_PAYER_KEY,
       start: "2026-10-01",
       due: "2026-10-25",
       months: 6,
