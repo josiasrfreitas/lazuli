@@ -5,6 +5,7 @@ import { after, before, describe, it } from "node:test";
 import { db } from "@lazuli/db";
 
 import { finance } from "../../src/finance/index.js";
+import { listContracts } from "../../src/finance/internal/contracts.js";
 import { ADMIN, ensureAdminUser } from "../support/finance-test-support.js";
 
 const prefix = "P05 contract integration ";
@@ -106,5 +107,9 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
     assert.equal(Number(persisted.maximumDiscountPct), 20);
     const list = await finance(db, ADMIN.id).listContracts(1);
     assert.equal(list.rows.find((row) => row.id === created.id)?.payer.id, payer.id);
+    const onTime = await listContracts(db, 1, new Date("2026-01-31T12:00:00Z"));
+    assert.equal(onTime.rows.find((row) => row.id === created.id)?.status, "EM_DIA");
+    const overdue = await listContracts(db, 1, new Date("2026-02-02T12:00:00Z"));
+    assert.equal(overdue.rows.find((row) => row.id === created.id)?.status, "INADIMPLENTE");
   });
 });

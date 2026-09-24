@@ -50,6 +50,7 @@
     "workspace:status": "node scripts/workspace-status.mjs",
     "seed:gcs": "bash scripts/seed-gcs.sh",
     "seed:settings": "dotenv -e .env -- node --import tsx scripts/seed-settings.ts",
+    "seed:contracts": "pnpm seed:settings && dotenv -e .env -- node --import tsx scripts/seed-contracts.ts",
     "prepare": "lefthook install",
     "lint:root": "eslint eslint.config.js scripts"
   },

@@ -3,6 +3,7 @@
 import { useState, type ReactElement } from "react";
 
 import {
+  Badge,
   Button,
   DataTablePage,
   Table,
@@ -60,22 +61,21 @@ export function ContractsPage(): ReactElement {
             <TableHeader sticky>
               <TableRow>
                 <TableHead>Aluno</TableHead>
-                <TableHead>Pagador</TableHead>
-                <TableHead>Fechamento</TableHead>
-                <TableHead>Vigência</TableHead>
+                <TableHead>Situação</TableHead>
                 <TableHead>Plano</TableHead>
-                <TableHead>Principal</TableHead>
+                <TableHead>Vigência</TableHead>
+                <TableHead>Pagador</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {list.isPending && (
                 <TableRow>
-                  <TableCell colSpan={6}>Carregando contratos…</TableCell>
+                  <TableCell colSpan={5}>Carregando contratos…</TableCell>
                 </TableRow>
               )}
               {list.isError && (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={5}>
                     <span role="alert">Não foi possível carregar os contratos.</span>{" "}
                     <Button type="button" variant="link" onClick={() => void list.refetch()}>
                       Tentar novamente
@@ -85,25 +85,46 @@ export function ContractsPage(): ReactElement {
               )}
               {list.data?.rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6}>Nenhum contrato cadastrado.</TableCell>
+                  <TableCell colSpan={5}>Nenhum contrato cadastrado.</TableCell>
                 </TableRow>
               )}
               {list.data?.rows.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-medium">{row.student.fullName}</TableCell>
-                  <TableCell>{row.payer.name}</TableCell>
-                  <TableCell>{row.agreedOn.split("-").reverse().join("/")}</TableCell>
+                  <TableCell>
+                    <span className="block font-medium">{row.student.fullName}</span>
+                    {row.student.placements.length > 0 && (
+                      <span className="text-caption text-muted-foreground">
+                        {row.student.placements.join(" · ")}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        row.status === "INADIMPLENTE"
+                          ? "destructive"
+                          : row.status === "EM_DIA"
+                            ? "success"
+                            : "neutral"
+                      }
+                    >
+                      {row.status === "INADIMPLENTE"
+                        ? "Inadimplente"
+                        : row.status === "EM_DIA"
+                          ? "Em dia"
+                          : row.status === "QUITADO"
+                            ? "Quitado"
+                            : "Cancelado"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-numeric tabular-nums">
+                    {formatBRLFromCents(row.monthlyAmountCents)}
+                  </TableCell>
                   <TableCell>
                     {row.startsOn.split("-").reverse().join("/")}–
                     {row.endsOn.split("-").reverse().join("/")}
                   </TableCell>
-                  <TableCell>
-                    {row.installmentCount} × {formatBRLFromCents(row.monthlyAmountCents)} · primeira{" "}
-                    {row.firstDueDate.split("-").reverse().join("/")}
-                  </TableCell>
-                  <TableCell className="font-numeric tabular-nums">
-                    {formatBRLFromCents(row.principalAmountCents)}
-                  </TableCell>
+                  <TableCell>{row.payer.name}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

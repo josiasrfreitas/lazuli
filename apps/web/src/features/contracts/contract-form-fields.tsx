@@ -141,8 +141,10 @@ export function ContractFormFields({
         {offer && (
           <p className="text-caption text-muted-foreground">
             Teto {formatBRLFromCents(offer.tuitionCeilingCents)} · desconto máximo{" "}
-            {offer.maximumDiscountPct}% · juros {offer.interestRatePctDaily}% ao dia e{" "}
-            {offer.interestRatePctMonthly}% ao mês · multa rescisória {offer.cancellationFeePct}%
+            {offer.maximumDiscountPct.toLocaleString("pt-BR")}% · juros{" "}
+            {offer.interestRatePctDaily.toLocaleString("pt-BR")}% ao dia e{" "}
+            {offer.interestRatePctMonthly.toLocaleString("pt-BR")}% ao mês · multa rescisória{" "}
+            {offer.cancellationFeePct.toLocaleString("pt-BR")}%
           </p>
         )}
       </FormSection>

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { previewMonthlyContract } from "@lazuli/domain";
+import { deriveInstallmentLedger, previewMonthlyContract } from "@lazuli/domain";
 import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 
@@ -9,7 +9,7 @@ import { toDateOnly, toDateOnlyString, type FinanceDatabase } from "./shared.js"
 export type ContractListRow = {
   id: string;
   payer: { id: string; name: string };
-  student: { id: string; fullName: string };
+  student: { id: string; fullName: string; placements: string[] };
   agreedOn: string;
   startsOn: string;
   endsOn: string;
@@ -17,6 +17,7 @@ export type ContractListRow = {
   principalAmountCents: number;
   installmentCount: number;
   firstDueDate: string;
+  status: "INADIMPLENTE" | "EM_DIA" | "QUITADO" | "CANCELADO";
 };
 
 const contractSelect = {
@@ -27,28 +28,76 @@ const contractSelect = {
   endsOn: true,
   monthlyAmountCents: true,
   payer: { select: { id: true, name: true } },
-  student: { select: { id: true, fullName: true } },
+  student: {
+    select: {
+      id: true,
+      fullName: true,
+      enrollments: {
+        where: { deletedAt: null, exitDate: null },
+        select: {
+          class: { select: { scheduleType: true } },
+          progressRecords: {
+            where: { deletedAt: null, endDate: null },
+            select: { stage: { select: { name: true } } },
+          },
+        },
+      },
+    },
+  },
   orders: {
     where: { kind: "CONTRACT" as const },
-    select: { principalAmountCents: true, installmentCount: true, firstDueDate: true },
+    select: {
+      principalAmountCents: true,
+      installmentCount: true,
+      firstDueDate: true,
+      cancelledAt: true,
+      installments: {
+        where: { deletedAt: null },
+        select: {
+          amountCents: true,
+          dueDate: true,
+          waivedAt: true,
+          adjustments: { where: { deletedAt: null }, select: { amountCents: true } },
+          allocations: { where: { deletedAt: null }, select: { amountCents: true } },
+        },
+      },
+    },
     take: 1,
   },
 } as const;
 
-function toRow(row: {
-  id: string;
-  payer: { id: string; name: string };
-  student: { id: string; fullName: string };
-  agreedOn: Date | null;
-  startsOn: Date | null;
-  endsOn: Date | null;
-  monthlyAmountCents: number | null;
-  orders: Array<{
-    principalAmountCents: number;
-    installmentCount: number | null;
-    firstDueDate: Date | null;
-  }>;
-}): ContractListRow {
+function toRow(
+  row: {
+    id: string;
+    payer: { id: string; name: string };
+    student: {
+      id: string;
+      fullName: string;
+      enrollments: Array<{
+        class: { scheduleType: "REGULAR" | "PERSONALIZED" };
+        progressRecords: Array<{ stage: { name: string } }>;
+      }>;
+    };
+    agreedOn: Date | null;
+    startsOn: Date | null;
+    endsOn: Date | null;
+    monthlyAmountCents: number | null;
+    orders: Array<{
+      principalAmountCents: number;
+      installmentCount: number | null;
+      firstDueDate: Date | null;
+      cancelledAt: Date | null;
+      installments: Array<{
+        amountCents: number;
+        dueDate: Date;
+        waivedAt: Date | null;
+        adjustments: Array<{ amountCents: number }>;
+        allocations: Array<{ amountCents: number }>;
+      }>;
+    }>;
+  },
+  now = new Date(),
+): ContractListRow {
   const order = row.orders[0];
   if (
     !order ||
@@ -61,10 +110,34 @@ function toRow(row: {
   ) {
     throw new Error("Contrato mensal incompleto.");
   }
+  const ledgers = order.installments.map((installment) =>
+    deriveInstallmentLedger({
+      ...installment,
+      orderCancelledAt: order.cancelledAt,
+      now,
+      interestRatePctMonthly: 0,
+    }),
+  );
+  const status = order.cancelledAt
+    ? "CANCELADO"
+    : ledgers.some((ledger) => ledger.status === "OVERDUE" && ledger.collectibleRemainingCents > 0)
+      ? "INADIMPLENTE"
+      : ledgers.every((ledger) => ledger.collectibleRemainingCents === 0)
+        ? "QUITADO"
+        : "EM_DIA";
   return {
     id: row.id,
     payer: row.payer,
-    student: row.student,
+    student: {
+      id: row.student.id,
+      fullName: row.student.fullName,
+      placements: row.student.enrollments.flatMap((enrollment) =>
+        enrollment.progressRecords.map(
+          (progress) =>
+            `${progress.stage.name} · ${enrollment.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular"}`,
+        ),
+      ),
+    },
     agreedOn: toDateOnlyString(row.agreedOn),
     startsOn: toDateOnlyString(row.startsOn),
     endsOn: toDateOnlyString(row.endsOn),
@@ -72,6 +145,7 @@ function toRow(row: {
     principalAmountCents: order.principalAmountCents,
     installmentCount: order.installmentCount,
     firstDueDate: toDateOnlyString(order.firstDueDate),
+    status,
   };
 }
 
@@ -195,6 +269,7 @@ export async function createMonthlyContract(input: {
 export async function listContracts(
   database: FinanceDatabase,
   page: number,
+  now = new Date(),
 ): Promise<{
   rows: ContractListRow[];
   page: number;
@@ -213,7 +288,7 @@ export async function listContracts(
       take: pageSize,
     }),
   ]);
-  return { rows: rows.map(toRow), page, pageSize, total };
+  return { rows: rows.map((row) => toRow(row, now)), page, pageSize, total };
 }
 
 export async function searchContractParties(
