@@ -26,6 +26,7 @@
   --text-micro--line-height: var(--lz-leading-micro);
   --tracking-label: var(--lz-tracking-label);
   --spacing: var(--lz-space-unit);
+  --spacing-control-xs: var(--lz-control-xs);
   --spacing-control-sm: var(--lz-control-sm);
   --spacing-control-md: var(--lz-control-md);
   --spacing-control-lg: var(--lz-control-lg);

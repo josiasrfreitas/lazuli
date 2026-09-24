@@ -5,15 +5,24 @@ import {
   financeInstallmentsInputSchema,
   financeInstallmentsOutputSchema,
   financeRegisterPaymentInputSchema,
+  financeSettingsInputSchema,
   financeUpdateOrderInputSchema,
   financeWaiveInstallmentInputSchema,
   payerCreateProcedureInputSchema,
 } from "@lazuli/validators";
 
-import { adminProcedure, router } from "../trpc/init.js";
+import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
 import { finance } from "./index.js";
 
 export const financeRouter = router({
+  readSettings: systemAdminProcedure.query(({ ctx }) =>
+    finance(ctx.db, ctx.staffUser.id).readSettings(),
+  ),
+  saveSettings: systemAdminProcedure
+    .input(financeSettingsInputSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((tx) => finance(tx, ctx.staffUser.id).saveSettings(input)),
+    ),
   createPayer: adminProcedure
     .input(payerCreateProcedureInputSchema)
     .mutation(({ ctx, input }) =>

@@ -24,8 +24,8 @@ export function isStaffAccessDeniedCode(code: string): boolean {
   return code === STAFF_ACCESS_DENIED_CODE || code === SOCIAL_SIGNUP_DISABLED_CODE;
 }
 
-export type StaffRole = "ADMIN" | "SECRETARY" | "TEACHER" | "FINANCE";
-const ENABLED_ROLES = new Set<StaffRole>(["ADMIN", "TEACHER"]);
+export type StaffRole = "SYSTEM_ADMIN" | "ADMIN" | "SECRETARY" | "TEACHER" | "FINANCE";
+const ENABLED_ROLES = new Set<StaffRole>(["SYSTEM_ADMIN", "ADMIN", "TEACHER"]);
 
 export type StaffAccessUser = {
   email: string;

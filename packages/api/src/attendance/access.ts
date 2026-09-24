@@ -10,7 +10,7 @@ export function assertAttendanceWriteWindow(input: {
   sessionDate: Date;
   now: Date;
 }): void {
-  if (input.staffUser.role === "ADMIN") {
+  if (input.staffUser.role === "ADMIN" || input.staffUser.role === "SYSTEM_ADMIN") {
     return;
   }
   if (

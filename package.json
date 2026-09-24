@@ -49,6 +49,7 @@
     "workspace:gc": "node scripts/workspace-gc.mjs",
     "workspace:status": "node scripts/workspace-status.mjs",
     "seed:gcs": "bash scripts/seed-gcs.sh",
+    "seed:settings": "dotenv -e .env -- node --import tsx scripts/seed-settings.ts",
     "prepare": "lefthook install",
     "lint:root": "eslint eslint.config.js scripts"
   },

@@ -7,6 +7,7 @@ import { SidebarNav } from "./sidebar-nav";
 
 /* How each role reads under the person's name — areas, not titles. */
 const ROLE_LABELS: Record<StaffRole, string> = {
+  SYSTEM_ADMIN: "Administração do sistema",
   ADMIN: "Administração",
   SECRETARY: "Secretaria",
   TEACHER: "Professor",

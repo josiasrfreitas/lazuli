@@ -13,6 +13,7 @@ const meta = {
     type: "text",
   },
   argTypes: {
+    size: { control: "select", options: ["xs", "sm", "md", "lg"] },
     invalid: { control: "boolean" },
     type: {
       control: "select",
@@ -70,6 +71,24 @@ export const States: Story = {
       <Input aria-label="Read-only value" defaultValue="Student ID: 2026-001" readOnly />
     </div>
   ),
+};
+
+export const Compact: Story = {
+  args: { size: "xs", inputMode: "decimal", placeholder: "250,00" },
+  render: (args) => (
+    <label className="grid max-w-36 gap-1 text-caption">
+      Amount (BRL)
+      <Input {...args} />
+    </label>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Short numeric settings: 28px high on desktop, 44px below 640px for touch input. Labels and units remain visible when the field is filled.",
+      },
+    },
+  },
 };
 
 function FormattedExample(): ReactElement {

@@ -14,6 +14,7 @@ import {
 import { createOrder, updateOrder, type OrderScheduleResult } from "./internal/orders.js";
 import { createPayer } from "./internal/payers.js";
 import { registerPayment, type RegisterPaymentResult } from "./internal/register-payment.js";
+import { readSettings, saveSettings } from "./internal/settings.js";
 import type { FinanceDatabase } from "./internal/shared.js";
 import { studentOverdueTotals, type StudentOverdueTotal } from "./internal/student-balances.js";
 import type { Payer } from "@lazuli/db";
@@ -27,6 +28,7 @@ import type {
   financeWaiveInstallmentInputSchema,
   financeInstallmentsInputSchema,
   FinanceInstallmentsOutput,
+  FinanceSettingsInput,
   payerCreateProcedureInputSchema,
   z,
 } from "@lazuli/validators";
@@ -39,10 +41,12 @@ import type {
  *
  * `db` may be a full PrismaClient (read paths) or a transaction client (mutations);
  * the router opens the transaction so the whole operation commits atomically.
- * `staffUserId` is the acting admin, stamped onto created/updated rows.
+ * `staffUserId` is the acting administrator, stamped onto created/updated rows.
  */
 export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule {
   return {
+    readSettings: () => readSettings(db),
+    saveSettings: (values) => saveSettings({ database: db, staffUserId, values }),
     createPayer: (values) => createPayer({ database: db, values, staffUserId }),
     createOrder: (values) => createOrder({ database: db, values, staffUserId }),
     updateOrder: (values) => updateOrder({ database: db, values, staffUserId }),
@@ -59,6 +63,8 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
 }
 
 export type FinanceModule = {
+  readSettings: () => ReturnType<typeof readSettings>;
+  saveSettings: (values: FinanceSettingsInput) => ReturnType<typeof saveSettings>;
   createPayer: (values: z.infer<typeof payerCreateProcedureInputSchema>) => Promise<Payer>;
   createOrder: (
     values: z.infer<typeof financeCreateOrderInputSchema>,

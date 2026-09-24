@@ -53,20 +53,12 @@ export function toDateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
-const FINANCE_SETTINGS_ID = "singleton";
 export const DEFAULT_INTEREST_RATE_PCT_MONTHLY = 1;
 
-export async function loadInterestRatePctMonthly(database: FinanceDatabase): Promise<number> {
-  const settings = await database.financeSettings.findUnique({
-    where: { id: FINANCE_SETTINGS_ID },
-    select: { interestRatePctMonthly: true },
-  });
-
-  if (settings === null) {
-    return DEFAULT_INTEREST_RATE_PCT_MONTHLY;
-  }
-
-  return Number(settings.interestRatePctMonthly);
+export function loadInterestRatePctMonthly(database: FinanceDatabase): Promise<number> {
+  // Existing orders have no contractual rate snapshot. Keep their historical preview stable.
+  void database;
+  return Promise.resolve(DEFAULT_INTEREST_RATE_PCT_MONTHLY);
 }
 
 export function sortStrings(values: string[]): string[] {

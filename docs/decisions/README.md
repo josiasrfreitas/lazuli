@@ -13,29 +13,30 @@ Records use `NNNN-kebab-case.md` names and one of `Proposed`, `Accepted`, `Super
 `Rejected` statuses. Change an accepted choice by creating a new record and cross-linking it; do
 not rewrite history.
 
-| Record                                                                                                        | Status     | Legacy source          |
-| ------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------- |
-| [0001 Runtime topology](0001-runtime-topology.md)                                                             | Accepted   | D-0001                 |
-| [0002 Typed BFF and package boundaries](0002-typed-bff-and-package-boundaries.md)                             | Accepted   | D-0002                 |
-| [0003 Background-work boundary](0003-background-work-boundary.md)                                             | Accepted   | D-0004                 |
-| [0004 Staff authentication](0004-staff-authentication.md)                                                     | Accepted   | D-0005                 |
-| [0005 Academic and commercial calendar separation](0005-separate-academic-and-commercial-calendars.md)        | Accepted   | D-0008, D-0011         |
-| [0006 Class modality axes](0006-model-class-modality-as-independent-axes.md)                                  | Accepted   | D-0021                 |
-| [0007 Derived receivables ledger](0007-model-receivables-as-a-payer-scoped-derived-ledger.md)                 | Accepted   | D-0025, D-0028, D-0032 |
-| [0008 Academic catalog hierarchy](0008-model-the-academic-catalog-hierarchy.md)                               | Accepted   | D-0030                 |
-| [0009 Enrollment and pedagogical placement](0009-separate-enrollment-from-pedagogical-placement.md)           | Accepted   | D-0022, D-0031         |
-| [0010 Student contacts and shared addresses](0010-model-student-contacts-and-shared-addresses.md)             | Accepted   | D-0033                 |
-| [0011 Common domain-record lifecycle](0011-use-a-common-domain-record-lifecycle.md)                           | Accepted   | D-0034                 |
-| [0012 Receivables module API](0012-expose-receivables-through-one-module-api.md)                              | Superseded | D-0037                 |
-| [0013 GCP and Pulumi for managed infrastructure](0013-use-gcp-and-pulumi-for-managed-infrastructure.md)       | Accepted   | D-0003                 |
-| [0014 PostgreSQL through Prisma](0014-use-postgresql-through-prisma.md)                                       | Accepted   | Accepted legacy stack  |
-| [0015 Base UI primitives for the design system](0015-use-base-ui-primitives-for-the-design-system.md)         | Accepted   | None                   |
-| [0016 Kysely for complex relational reads](0016-use-kysely-for-complex-relational-reads.md)                   | Accepted   | None                   |
-| [0017 Mutation score and assertion guardrails](0017-gate-tests-on-mutation-score-and-assertion-guardrails.md) | Accepted   | None                   |
-| [0018 Finance module API](0018-expose-finance-through-one-module-api.md)                                      | Accepted   | None                   |
-| [0019 Unit-only mutation](0019-limit-mutation-to-unit-tests.md)                                               | Accepted   | None                   |
-| [0020 Remove changed-source coverage gate](0020-remove-changed-source-coverage-gate.md)                       | Accepted   | None                   |
-| [0021 Exclude frontend from mutation](0021-exclude-frontend-from-mutation.md)                                 | Accepted   | None                   |
+| Record                                                                                                              | Status     | Legacy source          |
+| ------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------- |
+| [0001 Runtime topology](0001-runtime-topology.md)                                                                   | Accepted   | D-0001                 |
+| [0002 Typed BFF and package boundaries](0002-typed-bff-and-package-boundaries.md)                                   | Accepted   | D-0002                 |
+| [0003 Background-work boundary](0003-background-work-boundary.md)                                                   | Accepted   | D-0004                 |
+| [0004 Staff authentication](0004-staff-authentication.md)                                                           | Accepted   | D-0005                 |
+| [0005 Academic and commercial calendar separation](0005-separate-academic-and-commercial-calendars.md)              | Accepted   | D-0008, D-0011         |
+| [0006 Class modality axes](0006-model-class-modality-as-independent-axes.md)                                        | Accepted   | D-0021                 |
+| [0007 Derived receivables ledger](0007-model-receivables-as-a-payer-scoped-derived-ledger.md)                       | Accepted   | D-0025, D-0028, D-0032 |
+| [0008 Academic catalog hierarchy](0008-model-the-academic-catalog-hierarchy.md)                                     | Accepted   | D-0030                 |
+| [0009 Enrollment and pedagogical placement](0009-separate-enrollment-from-pedagogical-placement.md)                 | Accepted   | D-0022, D-0031         |
+| [0010 Student contacts and shared addresses](0010-model-student-contacts-and-shared-addresses.md)                   | Accepted   | D-0033                 |
+| [0011 Common domain-record lifecycle](0011-use-a-common-domain-record-lifecycle.md)                                 | Accepted   | D-0034                 |
+| [0012 Receivables module API](0012-expose-receivables-through-one-module-api.md)                                    | Superseded | D-0037                 |
+| [0013 GCP and Pulumi for managed infrastructure](0013-use-gcp-and-pulumi-for-managed-infrastructure.md)             | Accepted   | D-0003                 |
+| [0014 PostgreSQL through Prisma](0014-use-postgresql-through-prisma.md)                                             | Accepted   | Accepted legacy stack  |
+| [0015 Base UI primitives for the design system](0015-use-base-ui-primitives-for-the-design-system.md)               | Accepted   | None                   |
+| [0016 Kysely for complex relational reads](0016-use-kysely-for-complex-relational-reads.md)                         | Accepted   | None                   |
+| [0017 Mutation score and assertion guardrails](0017-gate-tests-on-mutation-score-and-assertion-guardrails.md)       | Accepted   | None                   |
+| [0018 Finance module API](0018-expose-finance-through-one-module-api.md)                                            | Accepted   | None                   |
+| [0019 Unit-only mutation](0019-limit-mutation-to-unit-tests.md)                                                     | Accepted   | None                   |
+| [0020 Remove changed-source coverage gate](0020-remove-changed-source-coverage-gate.md)                             | Accepted   | None                   |
+| [0021 Exclude frontend from mutation](0021-exclude-frontend-from-mutation.md)                                       | Accepted   | None                   |
+| [0022 Restrict global settings to system administrators](0022-restrict-global-settings-to-system-administrators.md) | Accepted   | None                   |
 
 The archived register's complete disposition is: extracted — D-0001, D-0002, D-0003, D-0004,
 D-0005, D-0008, D-0021, D-0025, D-0028, D-0030 through D-0034, and D-0037; universal AGENTS rule

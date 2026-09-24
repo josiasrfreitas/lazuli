@@ -2,6 +2,7 @@ import type { DatabaseClient } from "./client.js";
 import { seedClass } from "./seed-dev-classes.js";
 import {
   DEV_ADMIN,
+  DEV_SYSTEM_ADMIN,
   DEV_CLASSES,
   DEV_STUDENTS,
   DEV_TEACHERS,
@@ -83,6 +84,11 @@ async function upsertSemester(
 
 async function upsertStaff(database: DatabaseClient): Promise<Map<string, string>> {
   await upsertUser(database, { email: DEV_ADMIN.email, name: DEV_ADMIN.name, role: "ADMIN" });
+  await upsertUser(database, {
+    email: DEV_SYSTEM_ADMIN.email,
+    name: DEV_SYSTEM_ADMIN.name,
+    role: "SYSTEM_ADMIN",
+  });
   const teacherIds = new Map<string, string>();
   for (const teacher of DEV_TEACHERS) {
     const user = await upsertUser(database, {
@@ -97,7 +103,7 @@ async function upsertStaff(database: DatabaseClient): Promise<Map<string, string
 
 async function upsertUser(
   database: DatabaseClient,
-  input: { email: string; name: string; role: "ADMIN" | "TEACHER" },
+  input: { email: string; name: string; role: "SYSTEM_ADMIN" | "ADMIN" | "TEACHER" },
 ): Promise<{ id: string }> {
   return database.user.upsert({
     where: { email: input.email },

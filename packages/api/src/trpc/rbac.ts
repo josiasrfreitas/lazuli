@@ -50,11 +50,24 @@ function deniedAll(): Record<RouterName, RouterAccess> {
  * The §5.2 RBAC matrix as data — the single source of truth consumed by the
  * role-based menu (GRE-16) and asserted by tests. It encodes router-level
  * reachability only; finer rules (e.g. catalog writes being seed/dev-only per §5.2)
- * live in the procedures, not the matrix. Only ADMIN and TEACHER are enabled in MVP
- * (D-0016); SECRETARY and FINANCE exist in the enum but hold `none` everywhere until
+ * live in the procedures, not the matrix. SYSTEM_ADMIN, ADMIN and TEACHER are enabled;
+ * SECRETARY and FINANCE exist in the enum but hold `none` everywhere until
  * the expense/bank modules enable them.
  */
 export const ROLE_MATRIX: Record<StaffRole, Record<RouterName, RouterAccess>> = {
+  SYSTEM_ADMIN: {
+    users: "full",
+    students: "full",
+    catalog: "full",
+    classes: "full",
+    calendar: "full",
+    enrollment: "full",
+    attendance: "full",
+    portal: "full",
+    finance: "full",
+    reports: "full",
+    dashboard: "full",
+  },
   ADMIN: {
     users: "full",
     students: "full",
@@ -109,7 +122,7 @@ export function canAccess(role: StaffRole, router: RouterName): boolean {
  * including the deferred SECRETARY/FINANCE roles — rejects with FORBIDDEN (HTTP 403).
  */
 export function assertResourceScope(staffUser: StaffUser, resource: { teacherId: string }): void {
-  if (staffUser.role === "ADMIN") {
+  if (staffUser.role === "ADMIN" || staffUser.role === "SYSTEM_ADMIN") {
     return;
   }
   if (staffUser.role === "TEACHER" && resource.teacherId === staffUser.id) {

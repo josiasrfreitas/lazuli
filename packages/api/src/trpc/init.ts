@@ -63,9 +63,9 @@ function assertRole(role: StaffRole, allowed: readonly StaffRole[]): void {
   }
 }
 
-/** ADMIN-only routers/procedures: `users`, `portal`, `finance`, admin dashboard (§5.2). */
+/** Ordinary administrative operations are available to ADMIN and SYSTEM_ADMIN. */
 export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  assertRole(ctx.staffUser.role, ["ADMIN"]);
+  assertRole(ctx.staffUser.role, ["ADMIN", "SYSTEM_ADMIN"]);
   return next();
 });
 
@@ -79,11 +79,16 @@ export const teacherProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next();
 });
 
+export const systemAdminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  assertRole(ctx.staffUser.role, ["SYSTEM_ADMIN"]);
+  return next();
+});
+
 /**
- * Shared routers open to ADMIN and TEACHER (§5.2). Teacher access is narrowed to owned
- * resources in-resolver via `assertResourceScope`; ADMIN has full access.
+ * Shared routers open to SYSTEM_ADMIN, ADMIN and TEACHER. Teacher access is narrowed to owned
+ * resources in-resolver via `assertResourceScope`; both administrator roles have full access.
  */
 export const staffProcedure = protectedProcedure.use(({ ctx, next }) => {
-  assertRole(ctx.staffUser.role, ["ADMIN", "TEACHER"]);
+  assertRole(ctx.staffUser.role, ["SYSTEM_ADMIN", "ADMIN", "TEACHER"]);
   return next();
 });
