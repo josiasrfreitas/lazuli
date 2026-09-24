@@ -22,3 +22,12 @@ documentam esses estados; seus plays ainda não foram executados localmente.
 Build, suites completas e mutation ficam no CI para evitar carga redundante na máquina local.
 A repetição de lint completo foi interrompida a pedido do usuário; os testes e typechecks já
 haviam concluído. A migration é aditiva e não classifica nem altera `taxId` histórico.
+
+## Acompanhamento do CI
+
+Primeira execução: validators alcançou 93,07%, mas oito mutações de schemas discriminados
+antigos em `student.ts` impediram a importação do módulo. A exportação de um helper incluiu
+esse arquivo inteiro no escopo. Correção 1: retirar a alteração de Alunos e usar apenas seu
+enum/mensagem públicos na regra de documento do novo pagador. Nenhum gate ou configuração de
+mutação foi alterado. Os cinco sobreviventes de Contratos apontavam normalização documental
+e caminhos/mensagens de erro; os testes agora verificam esses contratos explicitamente.

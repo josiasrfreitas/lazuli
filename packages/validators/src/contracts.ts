@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { civilDateSchema } from "./civil-date.js";
 import { payerCreateInputSchema } from "./finance.js";
-import { documentTypeSchema, validateDocumentPair } from "./student.js";
+import { documentTypeSchema, DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE } from "./student.js";
 
 const MAX_PERCENT = 100;
 const PERCENT_DECIMAL_PLACES = 4;
@@ -23,7 +23,10 @@ const newContractPayerSchema = payerCreateInputSchema
     documentType: documentTypeSchema.nullish(),
     documentNumber: z.string().trim().min(1, "Informe o número do documento.").nullish(),
   })
-  .superRefine(validateDocumentPair);
+  .refine((payer) => !payer.documentNumber || Boolean(payer.documentType), {
+    path: ["documentType"],
+    message: DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE,
+  });
 
 export const createMonthlyContractInputSchema = z
   .object({
