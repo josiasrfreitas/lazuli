@@ -40,18 +40,12 @@ const commonArguments = [
   ...(infrastructure ? ["--test-concurrency=1"] : []),
 ];
 const reportArguments =
-  process.env.CI === "true"
-    ? ciReportArguments(tier)
-    : ["--test-reporter=spec"];
+  process.env.CI === "true" ? ciReportArguments(tier) : ["--test-reporter=spec"];
 
-const result = spawnSync(
-  process.execPath,
-  [...commonArguments, ...reportArguments, ...testFiles],
-  {
-    env: { ...process.env, NODE_ENV: "test" },
-    stdio: "inherit",
-  },
-);
+const result = spawnSync(process.execPath, [...commonArguments, ...reportArguments, ...testFiles], {
+  env: { ...process.env, NODE_ENV: "test" },
+  stdio: "inherit",
+});
 if (result.error) throw result.error;
 process.exit(result.status ?? 1);
 
@@ -63,6 +57,8 @@ function ciReportArguments(testTier) {
   return [
     "--experimental-test-coverage",
     "--test-coverage-include=src/**",
+    "--test-reporter=spec",
+    "--test-reporter-destination=stdout",
     "--test-reporter=junit",
     `--test-reporter-destination=${path.join(junitDirectory, `${testTier}.xml`)}`,
     "--test-reporter=lcov",

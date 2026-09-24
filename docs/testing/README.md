@@ -65,6 +65,11 @@ files. Repetition is justified when each case adds a relevant condition or ident
 there is no universal test or assertion count. Helpers and parametrized loops are allowed when
 checks necessarily execute and failures identify the case. Mocks are allowed at dependency seams.
 
+Dedicated `test/` directories allow literal numbers, decimal formatting, repeated scenario strings,
+and long files/functions, statement lists, and nested callbacks. They are excluded from jscpd's
+5% duplication gate. Production retains the existing rules. Type safety, promises, imports,
+architectural boundaries, and prospective assertion quality checks still apply to tests.
+
 ## Prospective static gate
 
 `pnpm test:quality:changed --base <ref>` analyzes new test files in full. In existing files, it
@@ -98,11 +103,19 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
   database. Missing infrastructure reports the minimal `docker compose up -d ...` command.
 - CI runs formatting, full lint, duplication, typecheck, prospective test quality, production build,
   every test tier, migration/drift checks, and changed-file mutation. It uses a new Postgres instance.
-  `Quality gates` requires both static checks and the complete build to pass;
-  complete tests and mutation wait only for static checks. Turbo caches are isolated by job and
+  Static checks, build, unit/scripts/styles, and infrastructure start independently. Component size
+  belongs to static checks. Independent steps and Turbo tasks continue after failures; consumers of
+  failed dependencies are prevented. Integration and transport share Postgres and run sequentially,
+  with transport still running after integration fails when preparation succeeded.
+  Mutation waits only for successful unit/scripts/styles checks and detects its own scope.
+  `Quality gates` requires all five jobs, reports their results in a table, and allows mutation to
+  be absent only for pushes to main or PRs with no mutation scope. Turbo caches are isolated by job and
   restored from that job's latest snapshot, so concurrent jobs cannot overwrite each other's cache.
 - CI runs full tiers and root unit checks without Turbo cache for its reporting pass. JUnit and LCOV are written per
-  package/tier, JUnit is uploaded even on failure, and `pnpm test:durations` prints the ten slowest
+  package/tier, alongside the native `spec` reporter in stdout (case, file, and failure message).
+  Artifacts have distinct names per job and are uploaded even on failure when available. Job
+  summaries identify preparation failures and incomplete execution; absent reports after blocked
+  preparation do not create a second test failure. `pnpm test:durations` prints the ten slowest
   tests plus non-blocking budget warnings.
 - `pnpm test:surface-inventory` lists real `appRouter` procedures and workflow constants referenced
   or unreferenced in tests. It is an inventory, not proof of execution, and missing references do
@@ -122,7 +135,7 @@ gate. With no scored mutants, report N/A rather than claiming a 100% score. Runt
 failed dry runs still fail. Ignored and compile-error mutants do not contribute to the score.
 Stryker's raw HTML/JSON score includes uncovered mutants and is informational; its built-in break
 threshold is disabled because the package wrapper enforces the unit-covered threshold instead.
-CI mutation needs no Postgres, Mailpit, or migrations; the complete test job retains them.
+CI mutation needs no Postgres, Mailpit, or migrations; the integration/transport job retains them.
 A scope preflight skips mutation when changed packages have no `test/**/*.unit.test.ts` files.
 Compile-time type tests do not put a package in mutation scope. Packages with unit tests but without
 mutation configuration still reach the fail-closed gate.

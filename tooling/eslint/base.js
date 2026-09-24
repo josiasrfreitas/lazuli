@@ -165,5 +165,18 @@ export function createConfig({ packageType = "base", tsconfigRootDir }) {
     createBoundaryConfig(packageType),
     typescriptRulesConfig,
     configModuleOverride,
+    {
+      files: ["**/test/**"],
+      // Scenarios and independent expected values should remain readable in place.
+      rules: {
+        "no-magic-numbers": "off",
+        "unicorn/numeric-separators-style": "off",
+        "sonarjs/no-duplicate-string": "off",
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "max-statements": "off",
+        "max-nested-callbacks": "off",
+      },
+    },
   );
 }

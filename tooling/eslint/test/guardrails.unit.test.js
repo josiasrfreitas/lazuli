@@ -13,7 +13,7 @@ const repositoryRoot = path.join(fixturesDirectory, "../../../..");
 const probeTsconfigFileName = "tsconfig.json";
 const probeSourceFileName = "probe.ts";
 const probeTsconfigContents = `${JSON.stringify(
-  { extends: "../../../../tsconfig/base.json", include: ["*.ts"] },
+  { extends: "../../../../tsconfig/base.json", include: ["**/*.ts"] },
   null,
   2,
 )}\n`;
@@ -35,11 +35,12 @@ async function lintProbe({ directory, probePath, packageType }) {
 // path for the whole process (single-run mode under CI), which serves stale types
 // for a reused path and "file not found" for a new one. Each test uses a dedicated
 // probe directory name so every lint builds a fresh program from the just-written probe.
-async function lintFixtureProbe({ directoryName, packageType, source }) {
+async function lintFixtureProbe({ directoryName, packageType, source, test = false }) {
   const projectDirectory = path.join(fixturesDirectory, directoryName);
   await mkdir(projectDirectory, { recursive: true });
-  const probePath = path.join(projectDirectory, probeSourceFileName);
+  const probePath = path.join(projectDirectory, test ? "test/probe.ts" : probeSourceFileName);
   try {
+    await mkdir(path.dirname(probePath), { recursive: true });
     await writeFile(path.join(projectDirectory, probeTsconfigFileName), probeTsconfigContents);
     await writeFile(probePath, source);
     return await lintProbe({ directory: projectDirectory, probePath, packageType });
@@ -188,4 +189,54 @@ describe("shared ESLint guardrails", () => {
 
     assert.ok(ruleIds(messages).includes("no-console"));
   });
+});
+
+it("allows literal, extensive test scenarios while retaining production readability rules", async () => {
+  const source = [
+    "export function scenario(): void {",
+    ...Array.from({ length: 360 }, () => '  String(20.00001 + Number("repeated scenario value"));'),
+    "  [1].map(() => [1].map(() => [1].map(() => [1].map(() => 1))));",
+    "}",
+  ].join("\n");
+  const rules = [
+    "no-magic-numbers",
+    "unicorn/numeric-separators-style",
+    "sonarjs/no-duplicate-string",
+    "max-lines",
+    "max-lines-per-function",
+    "max-statements",
+    "max-nested-callbacks",
+  ];
+  const production = ruleIds(
+    await lintFixtureProbe({
+      directoryName: "probe-production-policy",
+      packageType: "base",
+      source,
+    }),
+  );
+  const tests = ruleIds(
+    await lintFixtureProbe({
+      directoryName: "probe-test-policy",
+      packageType: "base",
+      source,
+      test: true,
+    }),
+  );
+  for (const rule of rules) {
+    assert.ok(production.includes(rule), `Production must enforce ${rule}`);
+    assert.ok(!tests.includes(rule), `Tests must allow scenarios without ${rule}`);
+  }
+});
+
+it("retains promise, type and import guardrails in dedicated tests", async () => {
+  const messages = await lintFixtureProbe({
+    directoryName: "probe-test-safety",
+    packageType: "web",
+    test: true,
+    source: 'import "@lazuli/worker-handlers";\nPromise.resolve("done");\nexport type Input = any;',
+  });
+  const rules = ruleIds(messages);
+  assert.ok(rules.includes("no-restricted-imports"));
+  assert.ok(rules.includes("@typescript-eslint/no-floating-promises"));
+  assert.ok(rules.includes("@typescript-eslint/no-explicit-any"));
 });
