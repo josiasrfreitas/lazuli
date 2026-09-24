@@ -114,7 +114,10 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
 
 `pnpm mutate:changed --base <ref>` builds affected packages/dependencies before invoking package
 Stryker configs. Stryker executes only `test/**/*.unit.test.ts`; integration and transport tests
-never run inside mutation. `scripts/run-unit-mutation.mjs` gates the unit-covered score at 70:
+never run inside mutation. `apps/web` and `packages/ui` are excluded from mutation selection,
+including the CI scope preflight; their unit tests and the other quality checks still run. See
+[0021](../decisions/0021-exclude-frontend-from-mutation.md).
+`scripts/run-unit-mutation.mjs` gates the unit-covered score at 70:
 `100 * (Killed + Timeout) / (Killed + Timeout + Survived)`. `NoCoverage` mutants remain visible
 in reports but are excluded from the denominator; integration-only coverage does not fail this
 gate. With no scored mutants, report N/A rather than claiming a 100% score. Runtime errors and

@@ -354,18 +354,12 @@ importers:
       '@lazuli/eslint-config':
         specifier: workspace:*
         version: link:../../tooling/eslint
-      '@lazuli/stryker-config':
-        specifier: workspace:*
-        version: link:../../tooling/stryker
       '@lazuli/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
       '@shadcn/lint':
         specifier: 'catalog:'
         version: 0.1.0(eslint@10.10.0(jiti@2.7.0))(typescript@7.0.2)
-      '@stryker-mutator/core':
-        specifier: 'catalog:'
-        version: 10.0.0(@types/node@22.20.0)
       '@tailwindcss/postcss':
         specifier: 'catalog:'
         version: 4.3.3
@@ -724,15 +718,9 @@ importers:
       '@lazuli/eslint-config':
         specifier: workspace:*
         version: link:../../tooling/eslint
-      '@lazuli/stryker-config':
-        specifier: workspace:*
-        version: link:../../tooling/stryker
       '@lazuli/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
-      '@stryker-mutator/core':
-        specifier: 'catalog:'
-        version: 10.0.0(@types/node@22.20.0)
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.0
