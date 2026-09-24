@@ -7,10 +7,34 @@ type InstallmentVm = {
   sequence: string;
   origin: string;
   dueDate: string;
-  amount: string;
-  balance: string | null;
   badge: { label: string; variant: BadgeVariant };
 };
+
+export type InstallmentAmountVm = {
+  label: "Saldo" | "Recebido";
+  value: string;
+  nominal: string;
+  adjustment: { label: "Desconto" | "Acréscimo"; value: string } | null;
+  received: string | null;
+};
+
+export function installmentAmountVm(row: FinanceInstallmentRow): InstallmentAmountVm {
+  const adjustmentCents = row.expectedAmountCents - row.originalAmountCents;
+  const isPaid = row.status === "PAID";
+  return {
+    label: isPaid ? "Recebido" : "Saldo",
+    value: formatBRLFromCents(isPaid ? row.paidAmountCents : row.collectibleBalanceCents),
+    nominal: formatBRLFromCents(row.originalAmountCents),
+    adjustment:
+      adjustmentCents === 0
+        ? null
+        : {
+            label: adjustmentCents < 0 ? "Desconto" : "Acréscimo",
+            value: formatBRLFromCents(Math.abs(adjustmentCents)),
+          },
+    received: !isPaid && row.paidAmountCents > 0 ? formatBRLFromCents(row.paidAmountCents) : null,
+  };
+}
 
 type OverduePayerSummaryVm = {
   description: string;
@@ -47,11 +71,6 @@ export function installmentVm(row: FinanceInstallmentRow, today: string): Instal
       OTHER: "Outro",
     }[row.origin],
     dueDate: `${day}/${month}/${year}`,
-    amount: formatBRLFromCents(row.originalAmountCents),
-    balance:
-      row.paidAmountCents > 0 && row.collectibleBalanceCents > 0
-        ? `Restante: ${formatBRLFromCents(row.collectibleBalanceCents)}`
-        : null,
     badge: statusBadge(row, today),
   };
 }

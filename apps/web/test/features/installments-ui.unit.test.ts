@@ -161,15 +161,17 @@ void test("overdue groups preserve API identity, order, values and table associa
   assert.equal(countMatches(markup, /<tbody[^>]*><tr /gu), groups.length);
   assert.equal(countMatches(markup, /Ana /gu), groups.length);
   assert.equal(countMatches(markup, /João /gu), groups.length);
-  // The API balance includes a R$10 adjustment and R$100 payment on R$350.
-  // Both the payer total and the primary row amount must show R$260, not R$250 or R$350.
-  assert.equal(
-    countMatches(markup, /<strong[^>]*>R\$\u00A0260,00<\/strong>/giu),
-    groups.length * 2,
+  // R$350 nominal + R$10 adjustment - R$100 received leaves R$260 collectible.
+  assert.deepEqual(
+    [
+      /Saldo: R\$\u00A0260,00<\/strong>/giu,
+      /Nominal: R\$\u00A0350,00/giu,
+      /Acréscimo: R\$\u00A010,00/giu,
+      /Recebido: R\$\u00A0100,00/giu,
+    ].map((pattern) => countMatches(markup, pattern)),
+    [groups.length, groups.length, groups.length, groups.length],
   );
-  assert.equal(countMatches(markup, /Original: R\$\u00A0350,00/giu), groups.length);
   assert.doesNotMatch(markup, /R\$\u00A0250,00/u);
-  assert.equal(countMatches(markup, /R\$\u00A090,00/giu), groups.length);
   // Every cell must reference a real column header in its own named table.
   const tables = [
     ...markup.matchAll(/<table\b[^>]*aria-labelledby="([^"]+)"[^>]*>(.*?)<\/table>/gu),
@@ -185,6 +187,51 @@ void test("overdue groups preserve API identity, order, values and table associa
     for (const [, header] of cells) assert.ok(headers.includes(header));
   }
   assert.doesNotMatch(markup, /<(?:button|a)\b|type="checkbox"|aria-expanded=/u);
+});
+void test("flat rows label paid, open and waived amounts without treating waiver as payment", () => {
+  const open = overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID).rows[0]!;
+  const rows = [
+    {
+      ...open,
+      originalAmountCents: 25_000,
+      expectedAmountCents: 28_000,
+      paidAmountCents: 0,
+      collectibleBalanceCents: 28_000,
+      status: "UPCOMING" as const,
+    },
+    {
+      ...open,
+      installmentId: "88888888-8888-4888-8888-888888888888",
+      originalAmountCents: 25_000,
+      expectedAmountCents: 23_000,
+      paidAmountCents: 23_000,
+      collectibleBalanceCents: 0,
+      status: "PAID" as const,
+    },
+    {
+      ...open,
+      installmentId: "99999999-9999-4999-8999-999999999999",
+      collectibleBalanceCents: 0,
+      status: "WAIVED" as const,
+    },
+  ];
+  const markup = renderToStaticMarkup(
+    createElement(InstallmentsTable, {
+      rows,
+      error: false,
+      filtered: false,
+      updating: false,
+      onRetry: () => {},
+      footer: null,
+    }),
+  );
+  assert.match(markup, /Saldo: R\$\u00A0280,00/u);
+  assert.match(markup, /Acréscimo: R\$\u00A030,00/u);
+  assert.match(markup, /Recebido: R\$\u00A0230,00/u);
+  assert.match(markup, /Desconto: R\$\u00A020,00/u);
+  assert.match(markup, /Saldo: R\$\u00A00,00/u);
+  assert.match(markup, /Recebido: R\$\u00A0100,00/u);
+  assert.match(markup, />Dispensada<\/span>/u);
 });
 void test("overdue groups contain wide tables while each payer card keeps its own scroll", () => {
   const groups = [

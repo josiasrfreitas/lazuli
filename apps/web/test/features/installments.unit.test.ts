@@ -20,6 +20,7 @@ import {
 import {
   abbreviatedPersonName,
   businessDate,
+  installmentAmountVm,
   installmentVm,
   overduePayerSummaryVm,
 } from "../../src/features/installments/view-model.js";
@@ -231,21 +232,68 @@ void test("invalid shared URL ranges do not show or apply misleading filters", (
     dueTo: INVALID_URL_DUE_TO,
   });
 });
-void test("financial presentation preserves original value and the API's adjusted partial balance", () => {
+void test("financial presentation keeps status and due date separate from the amount", () => {
   const vm = installmentVm(row, TODAY);
   assert.deepEqual(vm, {
     sequence: "6 de 12",
     origin: "Mensalidade",
     dueDate: "01/09/2026",
-    amount: "R$\u00A0350,00",
-    balance: "Restante: R$\u00A0260,00",
     badge: { label: "Vencida há 14 dias", variant: "destructive" },
   });
-  assert.equal(installmentVm({ ...row, paidAmountCents: 0 }, TODAY).balance, null);
-  assert.equal(installmentVm({ ...row, collectibleBalanceCents: 0 }, TODAY).balance, null);
   assert.deepEqual(installmentVm({ ...row, overdueDays: 1 }, TODAY).badge, {
     label: "Vencida há 1 dia",
     variant: "destructive",
+  });
+});
+
+void test("amount presentation distinguishes saldo, recebido, nominal and net adjustments", () => {
+  assert.deepEqual(
+    installmentAmountVm({
+      ...row,
+      originalAmountCents: 25_000,
+      expectedAmountCents: 28_000,
+      paidAmountCents: 0,
+      collectibleBalanceCents: 28_000,
+      status: "UPCOMING",
+    }),
+    {
+      label: "Saldo",
+      value: "R$\u00A0280,00",
+      nominal: "R$\u00A0250,00",
+      adjustment: { label: "Acréscimo", value: "R$\u00A030,00" },
+      received: null,
+    },
+  );
+  assert.deepEqual(
+    installmentAmountVm({
+      ...row,
+      originalAmountCents: 25_000,
+      expectedAmountCents: 23_000,
+      paidAmountCents: 23_000,
+      collectibleBalanceCents: 0,
+      status: "PAID",
+    }),
+    {
+      label: "Recebido",
+      value: "R$\u00A0230,00",
+      nominal: "R$\u00A0250,00",
+      adjustment: { label: "Desconto", value: "R$\u00A020,00" },
+      received: null,
+    },
+  );
+  assert.deepEqual(installmentAmountVm({ ...row, status: "WAIVED", collectibleBalanceCents: 0 }), {
+    label: "Saldo",
+    value: "R$\u00A00,00",
+    nominal: "R$\u00A0350,00",
+    adjustment: { label: "Acréscimo", value: "R$\u00A010,00" },
+    received: "R$\u00A0100,00",
+  });
+  assert.deepEqual(installmentAmountVm(row), {
+    label: "Saldo",
+    value: "R$\u00A0260,00",
+    nominal: "R$\u00A0350,00",
+    adjustment: { label: "Acréscimo", value: "R$\u00A010,00" },
+    received: "R$\u00A0100,00",
   });
 });
 

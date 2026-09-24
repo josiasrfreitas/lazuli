@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@lazuli/ui";
 import type { FinanceInstallmentRow, FinanceOverduePayerGroup } from "@lazuli/validators";
-import { OverdueInstallmentAmount } from "./overdue-installment-amount";
+import { InstallmentAmount } from "./installment-amount";
 import { installmentVm, overduePayerSummaryVm } from "./view-model";
 
 const OVERDUE_COLUMNS = [
@@ -60,7 +60,7 @@ function OverdueInstallmentRow({
         <span className="font-numeric whitespace-nowrap tabular-nums">{vm.dueDate}</span>
       </TableCell>
       <TableCell headers={`${groupHeadingId}-column-amount`} numeric>
-        <OverdueInstallmentAmount row={row} />
+        <InstallmentAmount row={row} />
       </TableCell>
       <TableCell headers={`${groupHeadingId}-column-status`} numeric>
         <Badge variant="destructive">
