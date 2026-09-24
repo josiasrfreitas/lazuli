@@ -12,52 +12,103 @@ concurrency:
 
 jobs:
   checks:
-    name: Static checks
+    name: Verificações estáticas
     runs-on: ubuntu-latest
-    outputs:
-      mutation-scope: ${{ steps.mutation-scope.outputs.selected }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Preparar código
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/setup
-      - name: Detect mutation scope
-        id: mutation-scope
-        if: github.event_name == 'pull_request'
-        run: |
-          selected=$(node scripts/mutate-changed.mjs --base origin/${{ github.base_ref }} --scope-only)
-          echo "selected=$selected" >> "$GITHUB_OUTPUT"
-      - name: Format
+      - name: Instalar dependências e restaurar cache
+        uses: ./.github/actions/setup
+        id: setup
+      - name: Verificar formatação
         run: pnpm format:check
-      - name: Lint and typecheck
-        run: pnpm exec turbo run lint lint:root duplication:check typecheck
-      - name: Prospective test quality
+      - name: Verificar lint
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm exec turbo run lint lint:root --continue=dependencies-successful
+      - name: Verificar tipos
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm exec turbo run typecheck --continue=dependencies-successful
+      - name: Verificar duplicação de código
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm exec turbo run duplication:check --continue=dependencies-successful
+      - name: Verificar limite de tamanho dos componentes
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm exec turbo run test:component-lines --continue=dependencies-successful
+      - name: Verificar qualidade dos testes alterados
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm test:quality:changed --base origin/${{ github.base_ref || 'main' }}
 
   build:
-    name: Production build
+    name: Build de produção
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
-      - name: Build
-        run: pnpm build
+      - name: Preparar código
+        uses: actions/checkout@v4
+      - name: Instalar dependências e restaurar cache
+        uses: ./.github/actions/setup
+      - name: Compilar aplicações e pacotes
+        run: pnpm exec turbo run build --continue=dependencies-successful
 
-  quality:
-    name: Quality gates
-    if: always()
-    needs: [checks, build]
+  unit:
+    name: Testes unitários, scripts e estilos
     runs-on: ubuntu-latest
     steps:
-      - name: Require static checks and build
+      - name: Preparar código
+        uses: actions/checkout@v4
+      - name: Instalar dependências e restaurar cache
+        uses: ./.github/actions/setup
+        id: setup
+      - name: Executar testes unitários dos pacotes
+        id: unit
+        run: pnpm exec turbo run test --force --continue=dependencies-successful
+      - name: Executar testes dos scripts
+        id: scripts
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm exec turbo run test:scripts --force --continue=dependencies-successful
+      - name: Executar testes dos estilos
+        id: styles
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm exec turbo run test:styles --force --continue=dependencies-successful
+      - name: Resumir preparação e execução dos testes
+        if: always()
         env:
-          CHECKS_RESULT: ${{ needs.checks.result }}
-          BUILD_RESULT: ${{ needs.build.result }}
-        run: test "$CHECKS_RESULT" = success && test "$BUILD_RESULT" = success
+          SETUP: ${{ steps.setup.outcome }}
+          UNIT: ${{ steps.unit.outcome }}
+          SCRIPTS: ${{ steps.scripts.outcome }}
+          STYLES: ${{ steps.styles.outcome }}
+        run: |
+          echo "Preparação: $SETUP; unitários: $UNIT; scripts: $SCRIPTS; estilos: $STYLES" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$UNIT" != success ] || [ "$SCRIPTS" != success ] || [ "$STYLES" != success ]; then
+            echo "Validação incompleta: preparação ou tarefa falhou/foi impedida. Consulte os logs das etapas; os relatórios podem estar parciais." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Identificar testes mais lentos
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' && hashFiles('**/reports/junit/*.xml') != '' }}
+        run: pnpm test:durations
+      - name: Publicar resultados dos testes (JUnit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-${{ github.job }}-${{ github.run_id }}
+          path: |
+            apps/*/reports/junit/*.xml
+            packages/*/reports/junit/*.xml
+            tooling/*/reports/junit/*.xml
+          if-no-files-found: ${{ steps.unit.outcome == 'success' && 'error' || 'ignore' }}
+      - name: Publicar cobertura dos testes (LCOV)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcov-${{ github.job }}-${{ github.run_id }}
+          path: |
+            apps/*/coverage/*/lcov.info
+            packages/*/coverage/*/lcov.info
+            tooling/*/coverage/*/lcov.info
+          if-no-files-found: ${{ steps.unit.outcome == 'success' && 'error' || 'ignore' }}
 
-  tests:
-    name: Complete test tiers
-    needs: checks
+  infrastructure:
+    name: Testes de integração e transporte
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -78,15 +129,22 @@ jobs:
     env:
       DATABASE_URL: postgresql://lazuli:lazuli@localhost:5432/lazuli?schema=public
     steps:
-      - uses: actions/checkout@v4
+      - name: Preparar código
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/setup
-      - name: Apply migrations
+      - name: Instalar dependências e restaurar cache
+        uses: ./.github/actions/setup
+        id: setup
+      - name: Preparar banco com as migrations
+        id: migrations
         run: pnpm prisma:deploy
-      - name: Check migration drift
+      - name: Verificar consistência do schema do banco
+        id: drift
         run: pnpm prisma:drift
-      - name: Wait for Mailpit
+      - name: Aguardar serviço de email (Mailpit)
+        id: mailpit
+        if: ${{ !cancelled() && steps.migrations.outcome == 'success' }}
         run: |
           for i in $(seq 1 30); do
             curl -sf http://localhost:8025/api/v1/info >/dev/null && exit 0
@@ -94,54 +152,80 @@ jobs:
           done
           echo "Mailpit did not become ready in time"
           exit 1
-      - name: Root unit checks
-        run: pnpm exec turbo run test:scripts test:component-lines test:styles --force
-      - name: Unit reports
-        run: pnpm exec turbo run test --force
-      - name: Integration reports
-        run: pnpm exec turbo run test:integration --force --concurrency=1
-      - name: Transport reports
-        run: pnpm exec turbo run test:transport --force --concurrency=1
-      - name: Slow-test report
+      - name: Executar testes de integração
+        id: integration
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' && steps.migrations.outcome == 'success' && steps.drift.outcome == 'success' && steps.mailpit.outcome == 'success' }}
+        run: pnpm exec turbo run test:integration --force --concurrency=1 --continue=dependencies-successful
+      - name: Executar testes de transporte
+        id: transport
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' && steps.migrations.outcome == 'success' && steps.drift.outcome == 'success' && steps.mailpit.outcome == 'success' }}
+        run: pnpm exec turbo run test:transport --force --concurrency=1 --continue=dependencies-successful
+      - name: Resumir preparação e execução dos testes
         if: always()
+        env:
+          SETUP: ${{ steps.setup.outcome }}
+          MIGRATIONS: ${{ steps.migrations.outcome }}
+          DRIFT: ${{ steps.drift.outcome }}
+          MAILPIT: ${{ steps.mailpit.outcome }}
+          INTEGRATION: ${{ steps.integration.outcome }}
+          TRANSPORT: ${{ steps.transport.outcome }}
+        run: |
+          echo "Preparação: instalação=$SETUP, migrations=$MIGRATIONS, schema=$DRIFT, Mailpit=$MAILPIT" >> "$GITHUB_STEP_SUMMARY"
+          echo "Integração: $INTEGRATION; transporte: $TRANSPORT" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$INTEGRATION" != success ] || [ "$TRANSPORT" != success ]; then
+            echo "Validação incompleta: preparação ou tarefa falhou/foi impedida. Consulte os logs das etapas; os relatórios podem estar parciais." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Identificar testes mais lentos
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' && hashFiles('**/reports/junit/*.xml') != '' }}
         run: pnpm test:durations
-      - name: Publish JUnit
+      - name: Publicar resultados dos testes (JUnit)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: junit-${{ github.run_id }}
+          name: junit-${{ github.job }}-${{ github.run_id }}
           path: |
             apps/*/reports/junit/*.xml
             packages/*/reports/junit/*.xml
             tooling/*/reports/junit/*.xml
-          if-no-files-found: error
-      - name: Publish LCOV
+          if-no-files-found: ${{ steps.integration.outcome == 'success' && steps.transport.outcome == 'success' && 'error' || 'ignore' }}
+      - name: Publicar cobertura dos testes (LCOV)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lcov-${{ github.run_id }}
+          name: lcov-${{ github.job }}-${{ github.run_id }}
           path: |
             apps/*/coverage/*/lcov.info
             packages/*/coverage/*/lcov.info
             tooling/*/coverage/*/lcov.info
-          if-no-files-found: error
+          if-no-files-found: ${{ steps.integration.outcome == 'success' && steps.transport.outcome == 'success' && 'error' || 'ignore' }}
 
   mutation:
-    name: Changed-file mutation
-    if: github.event_name == 'pull_request' && needs.checks.outputs.mutation-scope == 'true'
-    needs: checks
+    name: Mutação dos arquivos alterados
+    if: github.event_name == 'pull_request'
+    needs: unit
+    outputs:
+      scope: ${{ steps.mutation-scope.outputs.selected }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Preparar código
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/setup
-      - name: Fingerprint mutation inputs
+      - name: Instalar dependências e restaurar cache
+        uses: ./.github/actions/setup
+      - name: Selecionar arquivos para mutação
+        id: mutation-scope
+        run: |
+          selected=$(node scripts/mutate-changed.mjs --base origin/${{ github.base_ref }} --scope-only)
+          echo "selected=$selected" >> "$GITHUB_OUTPUT"
+      - name: Calcular chave de cache da mutação
+        if: steps.mutation-scope.outputs.selected == 'true'
         id: mutation-inputs
         run: |
           fingerprint=$(node scripts/mutation-cache-key.mjs --base origin/${{ github.base_ref }})
           echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
-      - name: Restore Stryker incremental reports
+      - name: Restaurar resultados anteriores da mutação
+        if: steps.mutation-scope.outputs.selected == 'true'
         id: stryker-incremental-cache
         uses: actions/cache/restore@v4
         with:
@@ -151,9 +235,10 @@ jobs:
           key: stryker-v2-${{ runner.os }}-${{ steps.mutation-inputs.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             stryker-v2-${{ runner.os }}-${{ steps.mutation-inputs.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-
-      - name: Mutate changed source
+      - name: Executar mutação e exigir score mínimo de 70%
+        if: steps.mutation-scope.outputs.selected == 'true'
         run: pnpm mutate:changed --base origin/${{ github.base_ref }}
-      - name: Save Stryker incremental reports
+      - name: Salvar resultados para próximas execuções
         if: ${{ !cancelled() && steps.stryker-incremental-cache.outcome == 'success' && hashFiles('apps/*/reports/stryker-incremental.json', 'packages/*/reports/stryker-incremental.json') != '' }}
         uses: actions/cache/save@v4
         with:
@@ -161,8 +246,8 @@ jobs:
             apps/*/reports/stryker-incremental.json
             packages/*/reports/stryker-incremental.json
           key: ${{ steps.stryker-incremental-cache.outputs.cache-primary-key }}
-      - name: Publish mutation reports
-        if: always()
+      - name: Publicar relatório de mutação
+        if: ${{ always() && steps.mutation-scope.outputs.selected == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: mutation-${{ github.run_id }}
@@ -170,3 +255,35 @@ jobs:
             apps/*/reports/mutation/**
             packages/*/reports/mutation/**
           if-no-files-found: warn
+
+  quality:
+    name: Quality gates
+    if: always()
+    needs: [checks, build, unit, infrastructure, mutation]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consolidar resultados e exigir validação completa
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          node <<'JS'
+          const jobs = JSON.parse(process.env.NEEDS);
+          const summary = ['| Validação | Resultado |', '| --- | --- |'];
+          const names = { checks: 'Verificações estáticas', build: 'Build de produção', unit: 'Unitários, scripts e estilos', infrastructure: 'Integração e transporte', mutation: 'Mutação' };
+          let passed = true;
+          for (const name of ['checks', 'build', 'unit', 'infrastructure', 'mutation']) {
+            const job = jobs[name];
+            const noScope = name === 'mutation' && job.result === 'success' && job.outputs.scope === 'false';
+            const mainPush = name === 'mutation' && job.result === 'skipped' && process.env.EVENT === 'push' && process.env.REF === 'refs/heads/main';
+            const valid = name === 'mutation'
+              ? mainPush || (job.result === 'success' && ['true', 'false'].includes(job.outputs.scope))
+              : job.result === 'success';
+            const label = noScope ? 'Sucesso (sem arquivos elegíveis para mutação)' : mainPush ? 'Dispensada (push para main)' : job.result === 'success' && valid ? 'Sucesso' : job.result === 'failure' ? 'Falha' : 'Incompleta / impedida';
+            summary.push(`| ${names[name]} | ${label} |`);
+            passed &&= valid;
+          }
+          require('node:fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary.join('\n') + '\n');
+          if (!passed) process.exitCode = 1;
+          JS

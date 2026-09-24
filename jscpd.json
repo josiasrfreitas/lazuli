@@ -3,8 +3,9 @@
   "minLines": 8,
   "format": ["javascript", "typescript", "tsx"],
   "reporters": ["console"],
-  "ignorePattern": [
+  "ignore": [
     "**/node_modules/**",
+    "**/test/**",
     "**/dist/**",
     "**/.next/**",
     "**/.turbo/**",
