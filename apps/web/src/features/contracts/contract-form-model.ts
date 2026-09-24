@@ -6,6 +6,12 @@ import { parseDateBR } from "~/lib/masks";
 const CENTS_PER_REAL = 100;
 
 export type ContractFields = {
+  payerMode: string;
+  payerName: string;
+  payerDocumentType: string;
+  payerDocumentNumber: string;
+  payerPhone: string;
+  payerEmail: string;
   studentId: string;
   payerId: string;
   agreedOn: string;
@@ -17,6 +23,12 @@ export type ContractFields = {
 };
 
 export const emptyContractFields: ContractFields = {
+  payerMode: "existing",
+  payerName: "",
+  payerDocumentType: "",
+  payerDocumentNumber: "",
+  payerPhone: "",
+  payerEmail: "",
   studentId: "",
   payerId: "",
   agreedOn: "",
@@ -34,7 +46,17 @@ export function contractInputFromFields(
   const parsed = createMonthlyContractInputSchema.safeParse({
     commandId,
     studentId: fields.studentId,
-    payerId: fields.payerId,
+    ...(fields.payerMode === "existing"
+      ? { payerId: fields.payerId }
+      : {
+          newPayer: {
+            name: fields.payerName,
+            documentType: fields.payerDocumentType || undefined,
+            documentNumber: fields.payerDocumentNumber.trim() || undefined,
+            phone: fields.payerPhone.trim() || undefined,
+            email: fields.payerEmail.trim() || undefined,
+          },
+        }),
     agreedOn: parseDateBR(fields.agreedOn),
     startsOn: parseDateBR(fields.startsOn),
     durationMonths: Number(fields.durationMonths),

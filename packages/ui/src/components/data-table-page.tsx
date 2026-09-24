@@ -2,9 +2,11 @@ import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from "react
 
 import { cn } from "../lib/utils";
 
-export type DataTablePageProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
-  /** Title and summary that identify the listing. */
-  header: ReactNode;
+export type DataTablePageProps = Omit<ComponentPropsWithoutRef<"div">, "children" | "title"> & {
+  /** Visible page heading; typography and alignment belong to this layout. */
+  title: string;
+  /** Optional inline description or live counts, beside the title when space allows. */
+  summary?: ReactNode;
   /** Search, tabs, primary action and other controls that must remain visible. */
   controls?: ReactNode;
   /** A table frame that owns the remaining viewport and its scroll. */
@@ -20,7 +22,7 @@ export type DataTablePageProps = Omit<ComponentPropsWithoutRef<"div">, "children
  * controls wrap under the header only when the row runs out of room.
  */
 export const DataTablePage = forwardRef<HTMLDivElement, DataTablePageProps>(
-  ({ children, className, controls, header, ...props }, ref) => (
+  ({ children, className, controls, title, summary, ...props }, ref) => (
     <div
       {...props}
       className={cn(
@@ -34,7 +36,15 @@ export const DataTablePage = forwardRef<HTMLDivElement, DataTablePageProps>(
         className="flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-3"
         data-slot="data-table-page-toolbar"
       >
-        <div data-slot="data-table-page-header">{header}</div>
+        <div
+          className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
+          data-slot="data-table-page-header"
+        >
+          <h1 className="font-display text-h2 font-semibold text-foreground">{title}</h1>
+          {summary === undefined ? null : (
+            <p className="text-caption text-muted-foreground">{summary}</p>
+          )}
+        </div>
         {controls === undefined ? null : <div data-slot="data-table-page-controls">{controls}</div>}
       </div>
       <div className="min-h-0 flex-1" data-slot="data-table-page-content">

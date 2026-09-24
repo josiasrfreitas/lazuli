@@ -48,15 +48,6 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-function ExampleHeader(): ReactElement {
-  return (
-    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <h1 className="font-display text-h2 font-semibold">Alunos</h1>
-      <p className="text-caption text-muted-foreground">24 alunos cadastrados</p>
-    </div>
-  );
-}
-
 function ExampleControls(): ReactElement {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -73,7 +64,7 @@ function ExampleControls(): ReactElement {
 function ViewportBoundExample(): ReactElement {
   return (
     <div className="h-[40rem] w-full overflow-hidden bg-background">
-      <DataTablePage controls={<ExampleControls />} header={<ExampleHeader />}>
+      <DataTablePage controls={<ExampleControls />} title="Alunos" summary="24 alunos cadastrados">
         <TableContainer
           data-testid="table-frame"
           footer={

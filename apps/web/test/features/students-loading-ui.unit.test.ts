@@ -5,7 +5,7 @@ import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { TableFilterChips, TablePagination } from "@lazuli/ui";
+import { DataTablePage, TableFilterChips, TablePagination } from "@lazuli/ui";
 import { studentPaginationPolicy, type StudentListRow } from "@lazuli/validators";
 
 import type { StudentsFilters } from "../../src/features/students/logic.js";
@@ -13,7 +13,7 @@ import { tablePaginationPropsFor } from "../../src/lib/pagination.js";
 import { StudentsTable } from "../../src/features/students/students-table.js";
 import { StudentsTableRow } from "../../src/features/students/students-table-row.js";
 import { studentFilterFields } from "../../src/features/students/student-filter-fields.js";
-import { StudentsControls, StudentsHeader } from "../../src/features/students/students-toolbar.js";
+import { StudentsControls, StudentsSummary } from "../../src/features/students/students-toolbar.js";
 
 const PAGE_SIZE = 10;
 const LARGE_PAGE_SIZE = 25;
@@ -122,7 +122,13 @@ void test("first load keeps header and filter controls while skeletonizing heade
     onClassSearchChange: () => {},
     onTeacherSearchChange: () => {},
   });
-  const headerMarkup = renderToStaticMarkup(createElement(StudentsHeader, { summary: undefined }));
+  const headerMarkup = renderToStaticMarkup(
+    createElement(DataTablePage, {
+      title: "Alunos",
+      summary: createElement(StudentsSummary, { summary: undefined }),
+      children: null,
+    }),
+  );
   const controlsMarkup = renderToStaticMarkup(
     createElement(StudentsControls, {
       filters,

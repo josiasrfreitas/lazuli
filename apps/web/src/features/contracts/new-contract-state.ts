@@ -22,10 +22,21 @@ const FORM_KEYS = new Set<keyof ContractFields>([
   "punctualityDiscountPct",
 ]);
 
-function fieldErrors(parsed: ParsedInput, hasPreview: boolean): Errors {
+export function fieldErrors(parsed: ParsedInput, hasPreview: boolean): Errors {
   const errors: Errors = {};
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
+      if (issue.path[0] === "newPayer") {
+        const payerKeys: Record<string, keyof ContractFields> = {
+          name: "payerName",
+          documentType: "payerDocumentType",
+          documentNumber: "payerDocumentNumber",
+          phone: "payerPhone",
+          email: "payerEmail",
+        };
+        errors[payerKeys[String(issue.path[1])] ?? "payerName"] = issue.message;
+        continue;
+      }
       const name = issue.path[0] as keyof ContractFields | "monthlyAmountCents";
       if (name === "monthlyAmountCents") errors.monthlyAmount = "Informe uma mensalidade válida.";
       else if (FORM_KEYS.has(name)) errors[name] = "Confira este campo.";
@@ -100,30 +111,40 @@ export function useContractOperation(input: {
   const { state } = input;
   const offer = trpc.finance.readContractOffer.useQuery(undefined, { enabled: input.open });
   const create = trpc.finance.createMonthlyContract.useMutation();
+  const submitting = useRef(false);
+  const utils = trpc.useUtils();
   const preview = contractPreview(state.fields, offer.data);
   const close = (next: boolean): void => {
-    if (!next && create.isPending) return;
+    if (!next && submitting.current) return;
     if (!next) state.reset();
     input.onOpenChange(next);
   };
   const submit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
+    if (submitting.current) return;
     const parsed = contractInputFromFields(state.fields, state.commandId.current);
     if (!parsed.success || !preview) {
       state.setErrors(fieldErrors(parsed, Boolean(preview)));
-      requestAnimationFrame(() =>
-        state.popup.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
-      );
+      requestAnimationFrame(() => {
+        const invalid = state.popup.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+        const control = invalid?.querySelector<HTMLElement>("button, input") ?? invalid;
+        control?.focus();
+      });
       return;
     }
     try {
+      submitting.current = true;
       await create.mutateAsync(parsed.data);
+      void utils.finance.searchContractParties.invalidate();
       input.onCreated();
-      close(false);
+      state.reset();
+      input.onOpenChange(false);
     } catch (error) {
       state.setSubmissionError(
         error instanceof Error ? error.message : "Não foi possível criar o contrato.",
       );
+    } finally {
+      submitting.current = false;
     }
   };
   return { offer, preview, pending: create.isPending, close, submit };

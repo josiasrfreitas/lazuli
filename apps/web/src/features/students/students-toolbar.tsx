@@ -11,29 +11,26 @@ import type { HeaderSummaryVm } from "./view-model";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-export function StudentsHeader({
+export function StudentsSummary({
   summary,
 }: {
   summary: HeaderSummaryVm | undefined;
 }): ReactElement {
   return (
-    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      <h1 className="font-display text-h2 font-semibold text-foreground">Alunos</h1>
-      <p className="text-caption text-muted-foreground">
-        {summary === undefined ? (
-          <InlineSkeleton />
-        ) : (
-          <span className="font-numeric tabular-nums">{summary.totalStudents}</span>
-        )}{" "}
-        {summary?.totalStudents === 1 ? "aluno" : "alunos"} ·{" "}
-        {summary === undefined ? (
-          <InlineSkeleton />
-        ) : (
-          <span className="font-numeric tabular-nums">{summary.activeClasses}</span>
-        )}{" "}
-        {summary?.activeClasses === 1 ? "turma ativa" : "turmas ativas"}
-      </p>
-    </div>
+    <>
+      {summary === undefined ? (
+        <InlineSkeleton />
+      ) : (
+        <span className="font-numeric tabular-nums">{summary.totalStudents}</span>
+      )}{" "}
+      {summary?.totalStudents === 1 ? "aluno" : "alunos"} ·{" "}
+      {summary === undefined ? (
+        <InlineSkeleton />
+      ) : (
+        <span className="font-numeric tabular-nums">{summary.activeClasses}</span>
+      )}{" "}
+      {summary?.activeClasses === 1 ? "turma ativa" : "turmas ativas"}
+    </>
   );
 }
 

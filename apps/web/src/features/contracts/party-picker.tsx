@@ -6,7 +6,7 @@ import { Button, Field, FieldError, Input, Label } from "@lazuli/ui";
 
 import { trpc } from "~/lib/trpc";
 
-type Option = { id: string; name: string };
+type Option = { id: string; name: string; detail?: string };
 type PartyPickerProps = {
   kind: "student" | "payer";
   value: string;
@@ -37,15 +37,25 @@ function PartyResults({
       {failed && <p className="p-2 text-caption text-destructive">Busca indisponível.</p>}
       {options?.length === 0 && <p className="p-2 text-caption">Nenhum resultado.</p>}
       {options?.map((option) => (
-        <Button
-          className="w-full justify-start"
-          key={option.id}
-          onClick={() => onSelect(option)}
-          type="button"
-          variant="ghost"
-        >
-          {option.name}
-        </Button>
+        <div key={option.id}>
+          <Button
+            className="w-full justify-start"
+            aria-describedby={option.detail ? `party-${option.id}-detail` : undefined}
+            onClick={() => onSelect(option)}
+            type="button"
+            variant="ghost"
+          >
+            {option.name}
+          </Button>
+          {option.detail && (
+            <p
+              id={`party-${option.id}-detail`}
+              className="truncate text-caption text-muted-foreground"
+            >
+              {option.detail}
+            </p>
+          )}
+        </div>
       ))}
     </div>
   );
@@ -60,7 +70,7 @@ export function PartyPicker({ kind, value, onChange, error }: PartyPickerProps):
   const label = kind === "student" ? "Aluno" : "Pagador";
   const select = (option: Option): void => {
     onChange(option.id);
-    setSelectedName(option.name);
+    setSelectedName(option.detail ? `${option.name} · ${option.detail}` : option.name);
     setSearch("");
   };
   return (

@@ -6,6 +6,7 @@ import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 
 import { contractSelect, toRow, type ContractListRow } from "./contracts-select.js";
+import { createContractPayer } from "./payers.js";
 import { toDateOnly, type FinanceDatabase } from "./shared.js";
 
 const DUE_DAY_START = 8;
@@ -38,24 +39,35 @@ type ReadyTerms = {
   preview: ReturnType<typeof previewMonthlyContract>;
 };
 
-async function readyTerms(input: {
-  database: FinanceDatabase;
-  values: CreateMonthlyContractInput;
-}): Promise<ReadyTerms> {
-  const { database, values } = input;
-  const [settings, payer, student] = await Promise.all([
-    database.financeSettings.findUnique({ where: { id: "singleton" } }),
-    database.payer.findFirst({
-      where: { id: values.payerId, deletedAt: null },
-      select: { id: true },
-    }),
+async function assertContractParties(
+  database: FinanceDatabase,
+  values: CreateMonthlyContractInput,
+): Promise<void> {
+  const [payer, student] = await Promise.all([
+    values.payerId
+      ? database.payer.findFirst({
+          where: { id: values.payerId, deletedAt: null },
+          select: { id: true },
+        })
+      : null,
     database.student.findFirst({
       where: { id: values.studentId, deletedAt: null },
       select: { id: true },
     }),
   ]);
-  if (!payer || !student)
+  if ((!payer && !values.newPayer) || !student)
     throw new TRPCError({ code: "NOT_FOUND", message: "Aluno ou pagador não encontrado." });
+}
+
+async function readyTerms(input: {
+  database: FinanceDatabase;
+  values: CreateMonthlyContractInput;
+}): Promise<ReadyTerms> {
+  const { database, values } = input;
+  const [settings] = await Promise.all([
+    database.financeSettings.findUnique({ where: { id: "singleton" } }),
+    assertContractParties(database, values),
+  ]);
   if (
     !settings ||
     settings.tuitionCeilingCents === null ||
@@ -90,6 +102,7 @@ async function readyTerms(input: {
 }
 
 type PersistContractInput = {
+  payerId: string;
   database: FinanceDatabase;
   values: CreateMonthlyContractInput;
   staffUserId: string;
@@ -103,7 +116,7 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
     data: {
       commandId: values.commandId,
       commandFingerprint: contractFingerprint(values),
-      payerId: values.payerId,
+      payerId: input.payerId,
       studentId: values.studentId,
       agreedOn: toDateOnly(values.agreedOn),
       startsOn: toDateOnly(values.startsOn),
@@ -151,7 +164,12 @@ export async function createMonthlyContract(input: {
   const prior = await findCommandResult(input.database, input.values);
   if (prior) return prior;
   const terms = await readyTerms(input);
-  return persistContract({ ...input, terms });
+  let payerId = input.values.payerId!;
+  if (input.values.newPayer) {
+    const payer = await createContractPayer({ ...input, values: input.values.newPayer });
+    payerId = payer.id;
+  }
+  return persistContract({ ...input, terms, payerId });
 }
 
 export async function listContracts(
@@ -195,7 +213,7 @@ export async function searchContractParties(
   query: string,
 ): Promise<{
   students: Array<{ id: string; name: string }>;
-  payers: Array<{ id: string; name: string }>;
+  payers: Array<{ id: string; name: string; detail: string }>;
 }> {
   const [students, payers] = await Promise.all([
     database.student.findMany({
@@ -206,12 +224,32 @@ export async function searchContractParties(
     }),
     database.payer.findMany({
       where: { deletedAt: null, name: { contains: query, mode: "insensitive" } },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        email: true,
+        documentType: true,
+        documentNumber: true,
+      },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
       take: 20,
     }),
   ]);
-  return { students: students.map((row) => ({ id: row.id, name: row.fullName })), payers };
+  return {
+    students: students.map((row) => ({ id: row.id, name: row.fullName })),
+    payers: payers.map((row) => ({
+      id: row.id,
+      name: row.name,
+      detail: [
+        row.documentType && row.documentNumber ? `${row.documentType} ${row.documentNumber}` : null,
+        row.phone,
+        row.email,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    })),
+  };
 }
 
 export async function readContractOffer(database: FinanceDatabase): Promise<{

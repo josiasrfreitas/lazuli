@@ -7,6 +7,7 @@ import type { ContractFields } from "./contract-form-model";
 import { PartyPicker } from "./party-picker";
 import { PaymentSection } from "./contract-payment-section";
 import { TextField } from "./contract-text-field";
+import { ContractPayerFields } from "./contract-payer-fields";
 
 export type FormProps = {
   fields: ContractFields;
@@ -34,20 +35,15 @@ export type FormProps = {
 function PartiesSection({ fields, errors, change }: FormProps): ReactElement {
   return (
     <FormSection title="Beneficiário e pagador">
-      <FormRow columns={2}>
+      <div className="space-y-4">
         <PartyPicker
           kind="student"
           value={fields.studentId}
           onChange={(value) => change("studentId", value)}
           error={errors.studentId}
         />
-        <PartyPicker
-          kind="payer"
-          value={fields.payerId}
-          onChange={(value) => change("payerId", value)}
-          error={errors.payerId}
-        />
-      </FormRow>
+        <ContractPayerFields fields={fields} errors={errors} change={change} />
+      </div>
     </FormSection>
   );
 }

@@ -1,63 +1,25 @@
 "use client";
 
 import type { ReactElement } from "react";
-import type { RouterOutputs } from "@lazuli/api";
-import {
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableHeader,
-  TablePagination,
-  TableRow,
-} from "@lazuli/ui";
+import { DataTable, type DataTableState } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { ContractListRow } from "./contract-list-row";
+import { contractColumns, type ContractRow } from "./contract-columns";
 
 const PAGE_SIZE = 20;
-const COLUMN_COUNT = 6;
-type ContractRows = RouterOutputs["finance"]["listContracts"]["rows"];
 
-function Rows({
+function tableState({
   rows,
-  pending,
   failed,
-  onRetry,
+  filtered,
 }: {
-  rows: ContractRows | undefined;
-  pending: boolean;
+  rows: ContractRow[] | undefined;
   failed: boolean;
-  onRetry: () => void;
-}): ReactElement {
-  return (
-    <TableBody>
-      {pending && (
-        <TableRow>
-          <TableCell colSpan={COLUMN_COUNT}>Carregando contratos…</TableCell>
-        </TableRow>
-      )}
-      {failed && (
-        <TableRow>
-          <TableCell colSpan={COLUMN_COUNT}>
-            <span role="alert">Não foi possível carregar os contratos.</span>{" "}
-            <Button type="button" variant="link" onClick={onRetry}>
-              Tentar novamente
-            </Button>
-          </TableCell>
-        </TableRow>
-      )}
-      {rows?.length === 0 && (
-        <TableRow>
-          <TableCell colSpan={COLUMN_COUNT}>Nenhum contrato cadastrado.</TableCell>
-        </TableRow>
-      )}
-      {rows?.map((row) => (
-        <ContractListRow key={row.id} row={row} />
-      ))}
-    </TableBody>
-  );
+  filtered: boolean;
+}): DataTableState<ContractRow> {
+  if (failed) return { kind: "error" };
+  if (rows === undefined) return { kind: "loading" };
+  if (rows.length === 0) return { kind: filtered ? "noResults" : "empty" };
+  return { kind: "data", rows };
 }
 
 export function ContractsTable({
@@ -71,41 +33,32 @@ export function ContractsTable({
 }): ReactElement {
   const list = trpc.finance.listContracts.useQuery({ page, query });
   return (
-    <TableContainer
-      viewportBound
-      footer={
-        <TablePagination
-          page={page}
-          pageSize={PAGE_SIZE}
-          onPageChange={onPageChange}
-          itemLabel={{ singular: "contrato", plural: "contratos" }}
-          {...(list.data
-            ? {
-                pageCount: Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)),
-                totalItems: list.data.total,
-              }
-            : { loading: true })}
-        />
-      }
-    >
-      <Table aria-label="Contratos mensais" density="compact">
-        <TableHeader sticky>
-          <TableRow>
-            <TableHead>Aluno</TableHead>
-            <TableHead>Situação</TableHead>
-            <TableHead>Estágio / turma</TableHead>
-            <TableHead>Plano</TableHead>
-            <TableHead>Vigência</TableHead>
-            <TableHead>Pagador</TableHead>
-          </TableRow>
-        </TableHeader>
-        <Rows
-          rows={list.data?.rows}
-          pending={list.isPending}
-          failed={list.isError}
-          onRetry={() => void list.refetch()}
-        />
-      </Table>
-    </TableContainer>
+    <DataTable
+      label="Contratos mensais"
+      columns={contractColumns}
+      state={tableState({
+        rows: list.data?.rows,
+        failed: list.isError,
+        filtered: query.trim() !== "",
+      })}
+      errorTitle="Não foi possível carregar os contratos"
+      empty={{
+        title: "Nenhum contrato cadastrado",
+        description: "Crie o primeiro contrato para começar.",
+      }}
+      onRetry={() => void list.refetch()}
+      pagination={{
+        page,
+        pageSize: PAGE_SIZE,
+        onPageChange,
+        itemLabel: { singular: "contrato", plural: "contratos" },
+        ...(list.data
+          ? {
+              pageCount: Math.max(1, Math.ceil(list.data.total / PAGE_SIZE)),
+              totalItems: list.data.total,
+            }
+          : { loading: true }),
+      }}
+    />
   );
 }

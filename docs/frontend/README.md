@@ -14,6 +14,9 @@ boundary for shared UI components and web React source files.
 Keep shared primitives in `packages/ui` and product-specific compositions in `apps/web`. The web app
 must not import Prisma or worker handlers.
 
+Standard operational listings use the [DataTable API](data-tables.md). Pages declare columns,
+data and actions; the shared component owns the frame, density, states and pagination.
+
 ## Design-system workflow
 
 - Add tokens when a real component or state needs them; avoid speculative token catalogs.

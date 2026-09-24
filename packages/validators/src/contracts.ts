@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import { civilDateSchema } from "./civil-date.js";
+import { payerCreateInputSchema } from "./finance.js";
+import { documentTypeSchema, validateDocumentPair } from "./student.js";
 
 const MAX_PERCENT = 100;
 const PERCENT_DECIMAL_PLACES = 4;
@@ -15,19 +17,37 @@ const percentage = z
   .max(MAX_PERCENT)
   .refine((value) => Number(value.toFixed(PERCENT_DECIMAL_PLACES)) === value);
 
+const newContractPayerSchema = payerCreateInputSchema
+  .omit({ taxId: true })
+  .extend({
+    documentType: documentTypeSchema.nullish(),
+    documentNumber: z.string().trim().min(1, "Informe o número do documento.").nullish(),
+  })
+  .superRefine(validateDocumentPair);
+
 export const createMonthlyContractInputSchema = z
   .object({
     commandId: z.string().uuid(),
     studentId: z.string().uuid(),
-    payerId: z.string().uuid(),
+    payerId: z.string().uuid().optional(),
     agreedOn: civilDateSchema,
     startsOn: civilDateSchema,
     durationMonths: z.number().int().min(1).max(MAX_DURATION_MONTHS),
     firstDueDate: civilDateSchema,
     monthlyAmountCents: z.number().int().positive().max(MAX_MONTHLY_AMOUNT_CENTS),
     punctualityDiscountPct: percentage,
+    newPayer: newContractPayerSchema.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((input, context) => {
+    if ((input.payerId === undefined) === (input.newPayer === undefined)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["payerId"],
+        message: "Selecione um pagador existente ou cadastre um novo.",
+      });
+    }
+  });
 
 export const listContractsInputSchema = z
   .object({

@@ -156,7 +156,7 @@ type DocumentPairInput = {
   documentType?: z.infer<typeof documentTypeSchema> | null | undefined;
 };
 
-function validateDocumentPair(input: DocumentPairInput, context: z.RefinementCtx): void {
+export function validateDocumentPair(input: DocumentPairInput, context: z.RefinementCtx): void {
   if (input.documentNumber !== null && input.documentNumber !== undefined) {
     requireDocumentType(input.documentType, context);
   }

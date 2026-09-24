@@ -7,7 +7,7 @@ import { InlineSkeleton } from "./inline-skeleton";
 import { Pagination } from "./pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 
-type TablePaginationBaseProps = Omit<ComponentPropsWithoutRef<"div">, "onChange"> & {
+type TablePaginationBaseProps = {
   /** Singular and plural names used by the visible result count. */
   itemLabel?: { singular: string; plural: string };
   /** Current page, 1-based. */
@@ -19,7 +19,7 @@ type TablePaginationBaseProps = Omit<ComponentPropsWithoutRef<"div">, "onChange"
   onPageSizeChange?: (pageSize: number) => void;
 };
 
-export type TablePaginationProps = TablePaginationBaseProps &
+export type TablePaginationConfig = TablePaginationBaseProps &
   (
     | {
         /** Keeps static pagination controls visible while totals load. */
@@ -29,6 +29,9 @@ export type TablePaginationProps = TablePaginationBaseProps &
       }
     | { loading?: false; pageCount: number; totalItems: number }
   );
+
+export type TablePaginationProps = Omit<ComponentPropsWithoutRef<"div">, "onChange"> &
+  TablePaginationConfig;
 
 type PageSizeSelectProps = Pick<TablePaginationProps, "onPageSizeChange" | "pageSize"> & {
   pageSizeOptions: readonly number[];

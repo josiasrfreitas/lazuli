@@ -28,15 +28,8 @@ export function ContractsPage(): ReactElement {
   return (
     <>
       <DataTablePage
-        className="p-4 sm:p-6"
-        header={
-          <div>
-            <h1 className="font-display text-h2 font-semibold">Contratos</h1>
-            <p className="text-caption text-muted-foreground">
-              Acordos mensais com aluno e pagador existentes
-            </p>
-          </div>
-        }
+        title="Contratos"
+        summary="Acordos mensais"
         controls={
           <ContractsToolbar
             search={search}

@@ -59,13 +59,15 @@ function DialogForm({
         onSubmit={(event) => void operation.submit(event)}
         className="space-y-5"
       >
-        <ContractFormFields
-          fields={state.fields}
-          errors={state.errors}
-          offer={operation.offer.data}
-          preview={operation.preview}
-          change={state.change}
-        />
+        <fieldset disabled={operation.pending} className="space-y-5">
+          <ContractFormFields
+            fields={state.fields}
+            errors={state.errors}
+            offer={operation.offer.data}
+            preview={operation.preview}
+            change={state.change}
+          />
+        </fieldset>
       </form>
     </DialogBody>
   );
