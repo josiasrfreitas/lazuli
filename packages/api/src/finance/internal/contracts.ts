@@ -126,7 +126,7 @@ function toRow(
     ? "CANCELADO"
     : ledgers.some((ledger) => ledger.status === "OVERDUE" && ledger.collectibleRemainingCents > 0)
       ? "INADIMPLENTE"
-      : ledgers.every((ledger) => ledger.collectibleRemainingCents === 0)
+      : ledgers.every((ledger) => ledger.status === "PAID")
         ? "QUITADO"
         : "EM_DIA";
   return {

@@ -118,5 +118,11 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
     assert.equal(onTime.rows.find((row) => row.id === created.id)?.status, "EM_DIA");
     const overdue = await listContracts(db, 1, new Date("2026-02-02T12:00:00Z"));
     assert.equal(overdue.rows.find((row) => row.id === created.id)?.status, "INADIMPLENTE");
+    await db.installment.updateMany({
+      where: { orderId: order.id },
+      data: { waivedAt: new Date("2026-02-02T12:00:00Z") },
+    });
+    const waived = await listContracts(db, 1, new Date("2026-02-02T12:00:00Z"));
+    assert.equal(waived.rows.find((row) => row.id === created.id)?.status, "EM_DIA");
   });
 });
