@@ -50,11 +50,24 @@ function deniedAll(): Record<RouterName, RouterAccess> {
  * The §5.2 RBAC matrix as data — the single source of truth consumed by the
  * role-based menu (GRE-16) and asserted by tests. It encodes router-level
  * reachability only; finer rules (e.g. catalog writes being seed/dev-only per §5.2)
- * live in the procedures, not the matrix. Only ADMIN and TEACHER are enabled in MVP
- * (D-0016); SECRETARY and FINANCE exist in the enum but hold `none` everywhere until
+ * live in the procedures, not the matrix. SYSTEM_ADMIN, ADMIN and TEACHER are enabled;
+ * SECRETARY and FINANCE exist in the enum but hold `none` everywhere until
  * the expense/bank modules enable them.
  */
 export const ROLE_MATRIX: Record<StaffRole, Record<RouterName, RouterAccess>> = {
+  SYSTEM_ADMIN: {
+    users: "full",
+    students: "full",
+    catalog: "full",
+    classes: "full",
+    calendar: "full",
+    enrollment: "full",
+    attendance: "full",
+    portal: "full",
+    finance: "full",
+    reports: "full",
+    dashboard: "full",
+  },
   ADMIN: {
     users: "full",
     students: "full",
@@ -85,16 +98,9 @@ export const ROLE_MATRIX: Record<StaffRole, Record<RouterName, RouterAccess>> = 
   FINANCE: deniedAll(),
 };
 
-/** Flattened `"role:router" -> access` view of {@link ROLE_MATRIX} for keyed lookup. */
-const ACCESS_LOOKUP = new Map<string, RouterAccess>(
-  Object.entries(ROLE_MATRIX).flatMap(([role, byRouter]) =>
-    Object.entries(byRouter).map(([router, access]) => [`${role}:${router}`, access] as const),
-  ),
-);
-
 /** Access `role` holds over `router` per the §5.2 matrix; unknown pairs deny by default. */
 export function routerAccess(role: StaffRole, router: RouterName): RouterAccess {
-  return ACCESS_LOOKUP.get(`${role}:${router}`) ?? "none";
+  return ROLE_MATRIX[role]?.[router] ?? "none";
 }
 
 /** Whether `role` may reach `router` at all (`full` or `scoped`); consumed by GRE-16's role-filtered menu. */
@@ -109,7 +115,7 @@ export function canAccess(role: StaffRole, router: RouterName): boolean {
  * including the deferred SECRETARY/FINANCE roles — rejects with FORBIDDEN (HTTP 403).
  */
 export function assertResourceScope(staffUser: StaffUser, resource: { teacherId: string }): void {
-  if (staffUser.role === "ADMIN") {
+  if (staffUser.role === "ADMIN" || staffUser.role === "SYSTEM_ADMIN") {
     return;
   }
   if (staffUser.role === "TEACHER" && resource.teacherId === staffUser.id) {

@@ -12,6 +12,7 @@ import {
 
 const STUDENTS_PATH = "/alunos";
 const RECEIVABLES_PATH = "/recebiveis";
+const SETTINGS_PATH = "/ajustes";
 const STUDENTS_LABEL = "Alunos";
 const PEDAGOGICAL_LABEL = "Pedagógico";
 
@@ -81,4 +82,19 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
       ["/"],
     );
   }
+});
+
+void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigation", () => {
+  assert.deepEqual(
+    navItemsFor("SYSTEM_ADMIN").map((item) => item.href),
+    ["/", STUDENTS_PATH, RECEIVABLES_PATH, SETTINGS_PATH],
+  );
+  assert.equal(
+    navItemsFor("ADMIN").some((item) => item.href === SETTINGS_PATH),
+    false,
+  );
+  assert.deepEqual(navBreadcrumbFor(SETTINGS_PATH, "SYSTEM_ADMIN"), {
+    section: "Sistema",
+    page: "Ajustes",
+  });
 });

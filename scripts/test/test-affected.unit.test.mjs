@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import path from "node:path";
 import { it } from "node:test";
@@ -40,6 +41,9 @@ it("classifies documentation, light scripts, full setup, schema, and global conf
     true,
   );
   assert.equal(classifyChanges(["pnpm-lock.yaml"], { root: directory }).all, true);
+  const settingsSeed = classifyChanges(["scripts/seed-settings.ts"], { root: directory });
+  assert.deepEqual(settingsSeed.workspaceDirectories, ["packages/db"]);
+  assert.equal(settingsSeed.forceInfrastructureTiers, true);
   assert.throws(
     () => classifyChanges(["scripts/new-command.mjs"], { root: directory }),
     /Unclassified executable/u,
@@ -84,40 +88,53 @@ it("keeps staged and merge-base sources independent and excludes local changes f
   const pushed = run(directory, prePushScript, ["--base", "main"]);
   assert.equal(pushed.result.status, 0, pushed.result.stderr);
   assert.equal(await readFile(pushed.log, "utf8"), "");
-  assert.match(pushed.result.stdout, /Classification: empty/u);
+  assert.match(pushed.result.stdout, /0 committed files/u);
 });
 
-it("pre-push uses filtered lint, typecheck and build for committed package changes", async (context) => {
-  const directory = await repository(context);
-  await write(directory, "packages/core/src/index.ts", "export const value = 3;\n");
+it("pre-push checks committed syntax without package commands or local edits", async (context) => {
+  const directory = await repository(context, { infrastructure: true });
+  await write(directory, "packages/core/src/index.ts", "export const value: number = 3;\n");
   git(directory, ["add", "."]);
   git(directory, ["commit", "-m", "change"]);
+  await write(directory, "packages/core/src/index.ts", "export const value = ;\n");
+  git(directory, ["add", "."]);
   const { result, log } = run(directory, prePushScript, ["--base", "main"]);
   assert.equal(result.status, 0, result.stderr);
-  const calls = await readFile(log, "utf8");
-  assert.match(calls, /turbo run lint --filter=\.\.\.@fixture\/core/u);
-  assert.match(calls, /turbo run typecheck --filter=\.\.\.@fixture\/core/u);
-  assert.match(calls, /turbo run build --filter=\.\.\.@fixture\/core/u);
-  assert.doesNotMatch(
-    calls,
-    /(^|\n)(?!.*--dry=json).*\b(?:docker|prisma|test:integration|test:transport)\b/u,
-  );
+  assert.equal(await readFile(log, "utf8"), "");
+  assert.match(result.stdout, /1 committed files/u);
 });
 
-it("pre-commit runs staged lint and unit tests without compilation or infrastructure", async (context) => {
+it("pre-commit checks only index whitespace, without package commands", async (context) => {
   const directory = await repository(context);
   await write(directory, "packages/core/src/index.ts", "export const value = 4;\n");
   git(directory, ["add", "."]);
+  await write(directory, "packages/core/src/index.ts", "unstaged trailing space  \n");
   const { result, log } = run(directory, preCommitScript, [], {
     GIT_DIR: "/wrong-repository",
     GIT_INDEX_FILE: "/wrong-index",
   });
   assert.equal(result.status, 0, result.stderr);
-  const calls = await readFile(log, "utf8");
-  assert.match(calls, /exec eslint packages\/core\/src\/index\.ts/u);
-  assert.match(calls, /test:quality:changed --staged/u);
-  assert.match(calls, /turbo run test --filter=\.\.\.@fixture\/core/u);
-  assert.doesNotMatch(calls, /typecheck|build|integration|transport|docker|prisma/u);
+  assert.equal(await readFile(log, "utf8"), "");
+  git(directory, ["add", "."]);
+  const invalid = run(directory, preCommitScript, []);
+  assert.notEqual(invalid.result.status, 0);
+  assert.match(invalid.result.stdout, /trailing whitespace/u);
+});
+
+it("pre-push rejects malformed committed TS and JSON and oversized components", async (context) => {
+  const directory = await repository(context);
+  await write(directory, "packages/core/src/index.ts", "export const value = ;\n");
+  await write(directory, "broken.json", "{ invalid }\n");
+  await write(directory, "apps/web/src/example.tsx", "// line\n".repeat(201));
+  git(directory, ["add", "."]);
+  git(directory, ["commit", "-m", "invalid contents"]);
+  await write(directory, "packages/core/src/index.ts", "export const value = 1;\n");
+  const { result, log } = run(directory, prePushScript, ["--base", "main"]);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /packages\/core\/src\/index.ts: Expression expected/u);
+  assert.match(result.stderr, /broken.json:/u);
+  assert.match(result.stderr, /example.tsx: 202 lines; component limit is 200/u);
+  assert.equal(await readFile(log, "utf8"), "");
 });
 
 it("fails infrastructure preflight before expensive checks and never starts services", async (context) => {
@@ -131,7 +148,7 @@ it("fails infrastructure preflight before expensive checks and never starts serv
     `#!/bin/sh\nprintf '%s\\n' "$*" >> "$FIXTURE_LOG"\nexit 1\n`,
   );
   await chmod(path.join(directory, "bin/docker"), 0o755);
-  const { result, log } = run(directory, prePushScript, ["--base", "main"]);
+  const { result, log } = run(directory, affectedScript, ["--base", "main"]);
   assert.equal(result.status, 1);
   assert.match(
     result.stderr,
@@ -159,7 +176,7 @@ esac
 `,
   );
   await chmod(path.join(directory, "bin/docker"), 0o755);
-  const { result, log } = run(directory, prePushScript, ["--base", "main"]);
+  const { result, log } = run(directory, affectedScript, ["--base", "main"]);
   assert.equal(result.status, 0, result.stderr);
   const calls = await readFile(log, "utf8");
   const databaseUrls = [
@@ -221,6 +238,7 @@ function git(directory, args) {
 }
 function run(directory, script, args, environment = {}) {
   const log = path.join(directory, "calls.log");
+  writeFileSync(log, "");
   const inheritedEnvironment = Object.fromEntries(
     Object.entries(process.env).filter(([name]) => name !== "DATABASE_URL"),
   );

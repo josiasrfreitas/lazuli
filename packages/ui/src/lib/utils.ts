@@ -11,7 +11,7 @@ import { extendTailwindMerge } from "tailwind-merge";
 const mergeClassNames = extendTailwindMerge({
   extend: {
     theme: {
-      spacing: ["control-sm", "control-md", "control-lg"],
+      spacing: ["control-xs", "control-sm", "control-md", "control-lg"],
       text: ["display", "h1", "h2", "h3", "body", "control", "caption", "micro"],
     },
   },

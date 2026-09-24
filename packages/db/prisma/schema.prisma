@@ -25,6 +25,7 @@ datasource db {
 // foundation schema model-free prevents P00-03 from pre-empting those designs.
 
 enum UserRole {
+  SYSTEM_ADMIN
   ADMIN
   SECRETARY
   TEACHER
@@ -544,7 +545,12 @@ model Makeup {
 
 model FinanceSettings {
   id                     String   @id @default("singleton")
-  interestRatePctMonthly Decimal  @default(1.0) @map("interest_rate_pct_monthly") @db.Decimal(5, 2)
+  tuitionCeilingCents     Int?     @map("tuition_ceiling_cents")
+  maximumDiscountPct     Decimal? @map("maximum_discount_pct") @db.Decimal(7, 4)
+  interestRatePctDaily   Decimal? @map("interest_rate_pct_daily") @db.Decimal(7, 4)
+  cancellationFeePct     Decimal? @map("cancellation_fee_pct") @db.Decimal(7, 4)
+  materialPriceCents     Int?     @map("material_price_cents")
+  interestRatePctMonthly Decimal? @map("interest_rate_pct_monthly") @db.Decimal(7, 4)
   updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz
   updatedById            String?  @map("updated_by_id") @db.Uuid
 

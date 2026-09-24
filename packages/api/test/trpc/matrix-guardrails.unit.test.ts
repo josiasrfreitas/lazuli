@@ -8,7 +8,13 @@ import { routerAccess } from "@lazuli/api";
 
 import { ALL_ROUTERS } from "../support/support.js";
 
-const ALL_ROLES: readonly StaffRole[] = ["ADMIN", "SECRETARY", "TEACHER", "FINANCE"];
+const ALL_ROLES: readonly StaffRole[] = [
+  "SYSTEM_ADMIN",
+  "ADMIN",
+  "SECRETARY",
+  "TEACHER",
+  "FINANCE",
+];
 
 function isEnabledByAuth(role: StaffRole): boolean {
   return evaluateStaffAccess({ email: "probe@example.com", role, isEnabled: true }).allowed;

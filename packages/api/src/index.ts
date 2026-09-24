@@ -21,6 +21,7 @@ export {
   publicProcedure,
   router,
   staffProcedure,
+  systemAdminProcedure,
   teacherProcedure,
 } from "./trpc/init.js";
 export { createTRPCContext } from "./trpc/context.js";

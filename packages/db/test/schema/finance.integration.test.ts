@@ -10,7 +10,8 @@ import {
 } from "../support/finance-schema-support.js";
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
 const { createDbClient } = await import("../../src/client.js");
-const { InstallmentAdjustmentType, OrderKind, PaymentMethod } = await import("../../src/index.js");
+const { InstallmentAdjustmentType, OrderKind, PaymentMethod, Prisma } =
+  await import("../../src/index.js");
 const SIGNED_ORDER_ARTIFACT_ID = "11111111-1111-4111-8111-111111111111";
 type DatabaseClient = ReturnType<typeof createDbClient>;
 void describe("finance schema", () => {
@@ -61,12 +62,12 @@ async function expectAdjustmentSignRejection(
   assert.equal(observedConstraint1.includes("InstallmentAdjustment_amount_sign_check"), true);
   return observedConstraint1;
 }
-async function expectConstraintRejection(
-  action: Promise<unknown>,
+async function expectConstraintRejection<T>(
+  action: Promise<T>,
   constraintName: string,
 ): Promise<string> {
   let observedMessage: string | undefined;
-  await assert.rejects(action, (error: unknown) => {
+  await assert.rejects(action, (error: Error) => {
     assert.ok(error instanceof Error);
     observedMessage = formatError(error);
     assert.equal(observedMessage.includes(constraintName), true);
@@ -76,20 +77,18 @@ async function expectConstraintRejection(
   return observedMessage as string;
 }
 function formatError(error: Error): string {
-  const prismaError = error as Error & {
-    meta?: unknown;
-  };
-  return `${error.message}\n${JSON.stringify(prismaError.meta)}`;
+  const metadata = error instanceof Prisma.PrismaClientKnownRequestError ? error.meta : undefined;
+  return `${error.message}\n${JSON.stringify(metadata)}`;
 }
 function registerSchemaTest1(database: DatabaseClient): void {
-  void it("creates and reads singleton finance settings with the default interest settings", async () => {
+  void it("creates and reads an unset singleton finance settings row", async () => {
     await database.financeSettings.deleteMany({ where: { id: "singleton" } });
     const settings = await database.financeSettings.create({ data: {} });
     const foundSettings = await database.financeSettings.findUniqueOrThrow({
       where: { id: "singleton" },
     });
     assert.equal(settings.id, "singleton");
-    assert.equal(foundSettings.interestRatePctMonthly.toString(), "1");
+    assert.equal(foundSettings.interestRatePctMonthly, null);
     const observedConstraint2 = await expectConstraintRejection(
       database.financeSettings.create({ data: { id: "not-singleton" } }),
       "FinanceSettings_singleton_id_check",

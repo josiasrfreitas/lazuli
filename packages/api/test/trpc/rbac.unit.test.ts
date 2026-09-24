@@ -10,6 +10,7 @@ import {
   createCallerFactory,
   router,
   staffProcedure,
+  systemAdminProcedure,
   teacherProcedure,
 } from "@lazuli/api";
 import type { Context, StaffUser } from "@lazuli/api";
@@ -19,7 +20,7 @@ const UNAUTHORIZED = "UNAUTHORIZED" as const;
 const ANOTHER_TEACHER = "another-teacher";
 
 /** Matches a thrown TRPCError carrying the given code (FORBIDDEN -> HTTP 403). */
-function isTRPCError(code: TRPCError["code"]): (error: unknown) => boolean {
+function isTRPCError(code: TRPCError["code"]): (error: Error) => boolean {
   return (error) => error instanceof TRPCError && error.code === code;
 }
 
@@ -37,6 +38,7 @@ const TEACHER: StaffUser = {
   role: "TEACHER",
   isEnabled: true,
 };
+const SYSTEM_ADMIN: StaffUser = { ...ADMIN, role: "SYSTEM_ADMIN" };
 
 /** RBAC gating never touches the database, so a typed empty stand-in is enough. */
 function contextFor(staffUser: StaffUser | null): Context {
@@ -44,6 +46,7 @@ function contextFor(staffUser: StaffUser | null): Context {
 }
 
 const testRouter = router({
+  settings: systemAdminProcedure.query(() => "settings" as const),
   adminOnly: adminProcedure.query(() => "ok" as const),
   teacherOnly: teacherProcedure.query(() => "ok" as const),
   anyStaff: staffProcedure.query(() => "ok" as const),
@@ -60,6 +63,20 @@ const testRouter = router({
     assertResourceScope(ctx.staffUser, loaded);
     return loaded;
   }),
+});
+
+void describe("system settings role gate", () => {
+  void it("allows SYSTEM_ADMIN and inherited administrative operations", async () => {
+    const caller = callerFor(contextFor(SYSTEM_ADMIN));
+    assert.equal(await caller.settings(), "settings");
+    assert.equal(await caller.adminOnly(), "ok");
+  });
+
+  void it("denies ADMIN, TEACHER and guests", async () => {
+    await assert.rejects(callerFor(contextFor(ADMIN)).settings(), isTRPCError(FORBIDDEN));
+    await assert.rejects(callerFor(contextFor(TEACHER)).settings(), isTRPCError(FORBIDDEN));
+    await assert.rejects(callerFor(contextFor(null)).settings(), isTRPCError(UNAUTHORIZED));
+  });
 });
 const callerFor = createCallerFactory(testRouter);
 
@@ -84,7 +101,8 @@ void describe("teacherProcedure role gate", () => {
 });
 
 void describe("staffProcedure role gate", () => {
-  void it("allows both ADMIN and TEACHER", async () => {
+  void it("allows SYSTEM_ADMIN, ADMIN and TEACHER", async () => {
+    assert.equal(await callerFor(contextFor(SYSTEM_ADMIN)).anyStaff(), "ok");
     assert.equal(await callerFor(contextFor(ADMIN)).anyStaff(), "ok");
     assert.equal(await callerFor(contextFor(TEACHER)).anyStaff(), "ok");
   });
@@ -115,6 +133,18 @@ void describe("teacher resource scope through a tRPC procedure", () => {
   void it("lets ADMIN read any class regardless of owner", async () => {
     const result = await callerFor(contextFor(ADMIN)).classOwnedByAnother();
     assert.equal(result.teacherId, ANOTHER_TEACHER);
+  });
+
+  void it("lets SYSTEM_ADMIN read a class regardless of owner", async () => {
+    const result = await callerFor(contextFor(SYSTEM_ADMIN)).classOwnedByAnother();
+    assert.equal(result.teacherId, ANOTHER_TEACHER);
+  });
+
+  void it("rejects a non-teacher with a matching owner id", () => {
+    assert.throws(
+      () => assertResourceScope({ ...TEACHER, role: "FINANCE" }, { teacherId: TEACHER.id }),
+      isTRPCError(FORBIDDEN),
+    );
   });
 });
 

@@ -118,6 +118,11 @@ fixtures and overwrite every versioned object under `infra/local/gcs-seed`. It p
 database records and GCS objects. Deleted or manually changed records outside the fixture upserts
 may remain, so refresh is not a clean snapshot guarantee.
 
+Use `pnpm seed:settings` to initialize the local finance settings shown at `/ajustes`: R$ 250
+tuition ceiling, 20% maximum discount, 0.1% daily interest, 2% monthly interest, 10% cancellation
+fee, and R$ 120 material price. It requires the existing development system administrator and
+preserves any saved configuration, including its author and timestamp, on subsequent runs.
+
 Use `pnpm workspace:reset` when a clean worktree database and bucket are required. The command
 prints their exact names and requires interactive confirmation. Automation must opt in explicitly
 with `pnpm workspace:reset --yes`; a non-interactive invocation without `--yes` fails. Reset removes

@@ -9,11 +9,6 @@
       "count": 3
     }
   },
-  "test/schema/finance.integration.test.ts": {
-    "@typescript-eslint/no-restricted-types": {
-      "count": 3
-    }
-  },
   "test/schema/semester.integration.test.ts": {
     "@typescript-eslint/no-restricted-types": {
       "count": 2

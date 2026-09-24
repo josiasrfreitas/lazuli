@@ -10,6 +10,16 @@ import {
 const STAFF_ACCESS_DENIED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
 
 void describe("enabled staff access", () => {
+  void it("allows an explicitly provisioned system administrator", () => {
+    assert.deepEqual(
+      evaluateStaffAccess({
+        email: "system@example.com",
+        role: "SYSTEM_ADMIN",
+        isEnabled: true,
+      }),
+      { allowed: true },
+    );
+  });
   void it("allows enabled admins to authenticate", () => {
     const result = evaluateStaffAccess({
       email: "admin@example.com",

@@ -67,6 +67,11 @@ export const DEV_ADMIN = {
   name: "Secretaria Lazuli",
 } as const;
 
+export const DEV_SYSTEM_ADMIN = {
+  email: "sistema@lazuli.local",
+  name: "Administrador do sistema",
+} as const;
+
 export const DEV_TEACHERS: readonly DevTeacherSeed[] = [
   { key: "camila", name: "Camila Duarte", email: "camila.duarte@lazuli.local" },
   { key: "rafael", name: "Rafael Mendes", email: "rafael.mendes@lazuli.local" },

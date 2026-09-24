@@ -1,4 +1,6 @@
 export { civilDateSchema } from "./civil-date.js";
+export { financeSettingsInputSchema, tuitionFloorCents } from "./finance-settings.js";
+export type { FinanceSettingsInput } from "./finance-settings.js";
 export { STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH } from "./student-list.js";
 /** Zod schemas shared by API, workers, and scripts (§2.1). */
 export { z } from "zod";

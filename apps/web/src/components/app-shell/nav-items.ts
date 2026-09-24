@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Home, Receipt, Users } from "lucide-react";
+import { Home, Receipt, Settings, Users } from "lucide-react";
 
 import type { StaffRole } from "@lazuli/auth/server";
 
@@ -25,7 +25,13 @@ export type NavSection = {
 
 export type NavBreadcrumb = { section: string; page: string };
 
-const EVERY_ROLE: readonly StaffRole[] = ["ADMIN", "SECRETARY", "TEACHER", "FINANCE"];
+const EVERY_ROLE: readonly StaffRole[] = [
+  "SYSTEM_ADMIN",
+  "ADMIN",
+  "SECRETARY",
+  "TEACHER",
+  "FINANCE",
+];
 
 /*
  * Only what exists today. Sections grow with shipped verticals instead of
@@ -41,12 +47,19 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     id: "pedagogico",
     label: "Pedagógico",
     // students.* is adminProcedure; staffProcedure is deferred debt (PR #46).
-    items: [{ href: "/alunos", label: "Alunos", icon: Users, roles: ["ADMIN"] }],
+    items: [{ href: "/alunos", label: "Alunos", icon: Users, roles: ["ADMIN", "SYSTEM_ADMIN"] }],
   },
   {
     id: "financeiro",
     label: "Financeiro",
-    items: [{ href: "/recebiveis", label: "Recebíveis", icon: Receipt, roles: ["ADMIN"] }],
+    items: [
+      { href: "/recebiveis", label: "Recebíveis", icon: Receipt, roles: ["ADMIN", "SYSTEM_ADMIN"] },
+    ],
+  },
+  {
+    id: "sistema",
+    label: "Sistema",
+    items: [{ href: "/ajustes", label: "Ajustes", icon: Settings, roles: ["SYSTEM_ADMIN"] }],
   },
 ];
 
