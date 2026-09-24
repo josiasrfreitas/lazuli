@@ -36,22 +36,17 @@ function statusLabel(status: ContractRow["status"]): string {
   return status === "QUITADO" ? "Quitado" : "Cancelado";
 }
 
+function statusVariant(status: ContractRow["status"]): "destructive" | "success" | "neutral" {
+  if (status === "INADIMPLENTE") return "destructive";
+  return status === "EM_DIA" ? "success" : "neutral";
+}
+
 export function ContractListRow({ row }: { row: ContractRow }): ReactElement {
   return (
     <TableRow>
       <TableCell className="font-medium">{row.student.fullName}</TableCell>
       <TableCell>
-        <Badge
-          variant={
-            row.status === "INADIMPLENTE"
-              ? "destructive"
-              : row.status === "EM_DIA"
-                ? "success"
-                : "neutral"
-          }
-        >
-          {statusLabel(row.status)}
-        </Badge>
+        <Badge variant={statusVariant(row.status)}>{statusLabel(row.status)}</Badge>
       </TableCell>
       <TableCell>
         {row.student.placements.length > 0

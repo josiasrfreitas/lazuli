@@ -3,6 +3,8 @@ import { createMonthlyContractInputSchema } from "@lazuli/validators";
 
 import { parseDateBR } from "~/lib/masks";
 
+const CENTS_PER_REAL = 100;
+
 export type ContractFields = {
   studentId: string;
   payerId: string;
@@ -25,7 +27,10 @@ export const emptyContractFields: ContractFields = {
   punctualityDiscountPct: "0",
 };
 
-export function contractInputFromFields(fields: ContractFields, commandId: string) {
+export function contractInputFromFields(
+  fields: ContractFields,
+  commandId: string,
+): ReturnType<typeof createMonthlyContractInputSchema.safeParse> {
   const parsed = createMonthlyContractInputSchema.safeParse({
     commandId,
     studentId: fields.studentId,
@@ -34,7 +39,7 @@ export function contractInputFromFields(fields: ContractFields, commandId: strin
     startsOn: parseDateBR(fields.startsOn),
     durationMonths: Number(fields.durationMonths),
     firstDueDate: parseDateBR(fields.firstDueDate),
-    monthlyAmountCents: Math.round(Number(fields.monthlyAmount.replace(",", ".")) * 100),
+    monthlyAmountCents: Math.round(Number(fields.monthlyAmount.replace(",", ".")) * CENTS_PER_REAL),
     punctualityDiscountPct: Number(fields.punctualityDiscountPct.replace(",", ".")),
   });
   return parsed;
@@ -49,7 +54,7 @@ export function contractPreview(
       }
     | null
     | undefined,
-) {
+): ReturnType<typeof previewMonthlyContract> | null {
   if (!offer) return null;
   const parsed = contractInputFromFields(fields, "00000000-0000-4000-8000-000000000001");
   if (!parsed.success) return null;

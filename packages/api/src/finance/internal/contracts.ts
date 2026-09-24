@@ -1,161 +1,15 @@
 import { createHash } from "node:crypto";
 
-import { deriveInstallmentLedger, previewMonthlyContract } from "@lazuli/domain";
+import { previewMonthlyContract } from "@lazuli/domain";
+import type { FinanceSettings } from "@lazuli/db";
 import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 
-import { toDateOnly, toDateOnlyString, type FinanceDatabase } from "./shared.js";
+import { contractSelect, toRow, type ContractListRow } from "./contracts-select.js";
+import { toDateOnly, type FinanceDatabase } from "./shared.js";
 
-export type ContractListRow = {
-  id: string;
-  payer: { id: string; name: string };
-  student: {
-    id: string;
-    fullName: string;
-    placements: Array<{ stage: string; classCode: string; modality: "PPT" | "Regular" }>;
-  };
-  agreedOn: string;
-  startsOn: string;
-  endsOn: string;
-  monthlyAmountCents: number;
-  principalAmountCents: number;
-  installmentCount: number;
-  firstDueDate: string;
-  status: "INADIMPLENTE" | "EM_DIA" | "QUITADO" | "CANCELADO";
-};
-
-const contractSelect = {
-  id: true,
-  commandFingerprint: true,
-  agreedOn: true,
-  startsOn: true,
-  endsOn: true,
-  monthlyAmountCents: true,
-  payer: { select: { id: true, name: true } },
-  student: {
-    select: {
-      id: true,
-      fullName: true,
-      enrollments: {
-        where: { deletedAt: null, exitDate: null },
-        select: {
-          class: { select: { scheduleType: true, internalCode: true } },
-          progressRecords: {
-            where: { deletedAt: null, endDate: null },
-            select: { stage: { select: { name: true } } },
-          },
-        },
-      },
-    },
-  },
-  orders: {
-    where: { kind: "CONTRACT" as const },
-    select: {
-      principalAmountCents: true,
-      installmentCount: true,
-      firstDueDate: true,
-      cancelledAt: true,
-      installments: {
-        where: { deletedAt: null },
-        select: {
-          amountCents: true,
-          dueDate: true,
-          waivedAt: true,
-          adjustments: { where: { deletedAt: null }, select: { amountCents: true } },
-          allocations: { where: { deletedAt: null }, select: { amountCents: true } },
-        },
-      },
-    },
-    take: 1,
-  },
-} as const;
-
-function toRow(
-  row: {
-    id: string;
-    payer: { id: string; name: string };
-    student: {
-      id: string;
-      fullName: string;
-      enrollments: Array<{
-        class: { scheduleType: "REGULAR" | "PERSONALIZED"; internalCode: string };
-        progressRecords: Array<{ stage: { name: string } }>;
-      }>;
-    };
-    agreedOn: Date | null;
-    startsOn: Date | null;
-    endsOn: Date | null;
-    monthlyAmountCents: number | null;
-    orders: Array<{
-      principalAmountCents: number;
-      installmentCount: number | null;
-      firstDueDate: Date | null;
-      cancelledAt: Date | null;
-      installments: Array<{
-        amountCents: number;
-        dueDate: Date;
-        waivedAt: Date | null;
-        adjustments: Array<{ amountCents: number }>;
-        allocations: Array<{ amountCents: number }>;
-      }>;
-    }>;
-  },
-  now = new Date(),
-): ContractListRow {
-  const order = row.orders[0];
-  if (
-    !order ||
-    !row.agreedOn ||
-    !row.startsOn ||
-    !row.endsOn ||
-    row.monthlyAmountCents === null ||
-    !order.firstDueDate ||
-    order.installmentCount === null
-  ) {
-    throw new Error("Contrato mensal incompleto.");
-  }
-  const ledgers = order.installments.map((installment) =>
-    deriveInstallmentLedger({
-      ...installment,
-      orderCancelledAt: order.cancelledAt,
-      now,
-      interestRatePctMonthly: 0,
-    }),
-  );
-  const status = order.cancelledAt
-    ? "CANCELADO"
-    : ledgers.some((ledger) => ledger.status === "OVERDUE" && ledger.collectibleRemainingCents > 0)
-      ? "INADIMPLENTE"
-      : ledgers.every((ledger) => ledger.status === "PAID")
-        ? "QUITADO"
-        : "EM_DIA";
-  return {
-    id: row.id,
-    payer: row.payer,
-    student: {
-      id: row.student.id,
-      fullName: row.student.fullName,
-      placements: row.student.enrollments.flatMap((enrollment) =>
-        enrollment.progressRecords.map((progress) => ({
-          stage: progress.stage.name,
-          classCode: enrollment.class.internalCode,
-          modality:
-            enrollment.class.scheduleType === "PERSONALIZED"
-              ? ("PPT" as const)
-              : ("Regular" as const),
-        })),
-      ),
-    },
-    agreedOn: toDateOnlyString(row.agreedOn),
-    startsOn: toDateOnlyString(row.startsOn),
-    endsOn: toDateOnlyString(row.endsOn),
-    monthlyAmountCents: row.monthlyAmountCents,
-    principalAmountCents: order.principalAmountCents,
-    installmentCount: order.installmentCount,
-    firstDueDate: toDateOnlyString(order.firstDueDate),
-    status,
-  };
-}
+const DUE_DAY_START = 8;
+const DUE_DAY_END = 10;
 
 export function contractFingerprint(values: CreateMonthlyContractInput): string {
   return createHash("sha256").update(JSON.stringify(values)).digest("hex");
@@ -179,14 +33,16 @@ export async function findCommandResult(
   return toRow(existing);
 }
 
-export async function createMonthlyContract(input: {
+type ReadyTerms = {
+  settings: FinanceSettings;
+  preview: ReturnType<typeof previewMonthlyContract>;
+};
+
+async function readyTerms(input: {
   database: FinanceDatabase;
   values: CreateMonthlyContractInput;
-  staffUserId: string;
-}): Promise<ContractListRow> {
-  const { database, values, staffUserId } = input;
-  const prior = await findCommandResult(database, values);
-  if (prior) return prior;
+}): Promise<ReadyTerms> {
+  const { database, values } = input;
   const [settings, payer, student] = await Promise.all([
     database.financeSettings.findUnique({ where: { id: "singleton" } }),
     database.payer.findFirst({
@@ -230,6 +86,19 @@ export async function createMonthlyContract(input: {
       message: "Mensalidade e pontualidade fora da faixa autorizada.",
     });
   }
+  return { settings, preview };
+}
+
+type PersistContractInput = {
+  database: FinanceDatabase;
+  values: CreateMonthlyContractInput;
+  staffUserId: string;
+  terms: ReadyTerms;
+};
+
+async function persistContract(input: PersistContractInput): Promise<ContractListRow> {
+  const { database, values, staffUserId, terms } = input;
+  const { settings, preview } = terms;
   const contract = await database.contract.create({
     data: {
       commandId: values.commandId,
@@ -252,7 +121,7 @@ export async function createMonthlyContract(input: {
           kind: "CONTRACT",
           principalAmountCents: preview.principalAmountCents,
           startDate: toDateOnly(values.startsOn),
-          dueDay: Number(values.firstDueDate.slice(8, 10)),
+          dueDay: Number(values.firstDueDate.slice(DUE_DAY_START, DUE_DAY_END)),
           firstDueDate: toDateOnly(values.firstDueDate),
           installmentCount: values.durationMonths,
           createdById: staffUserId,
@@ -274,17 +143,27 @@ export async function createMonthlyContract(input: {
   return toRow(contract);
 }
 
+export async function createMonthlyContract(input: {
+  database: FinanceDatabase;
+  values: CreateMonthlyContractInput;
+  staffUserId: string;
+}): Promise<ContractListRow> {
+  const prior = await findCommandResult(input.database, input.values);
+  if (prior) return prior;
+  const terms = await readyTerms(input);
+  return persistContract({ ...input, terms });
+}
+
 export async function listContracts(
   database: FinanceDatabase,
-  page: number,
-  now = new Date(),
-  query = "",
+  options: { page: number; query?: string; now?: Date },
 ): Promise<{
   rows: ContractListRow[];
   page: number;
   pageSize: number;
   total: number;
 }> {
+  const { page, query = "", now = new Date() } = options;
   const pageSize = 20;
   const where = {
     commandId: { not: null },
