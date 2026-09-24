@@ -303,8 +303,8 @@ biblioteca. Os campos financeiros compartilhados permanecem uma composição da 
 ## URL Strategy
 
 - Seguir rotas em pt-BR e as convenções existentes de estado de URL.
-- Propostas: `/contratos`, `/recebiveis` e `/ajustes`. Redirecionar `/parcelas` para `/recebiveis`
-  preservando o estado de consulta dos links existentes.
+- Propostas: `/contratos`, `/recebiveis` e `/ajustes`. Substituir `/parcelas` por `/recebiveis`
+  sem redirecionamento, pois o sistema está em pré-produção.
 - Busca, filtros, aba e paginação devem sobreviver à navegação de voltar/avançar. Alterar busca
   ou filtros retorna à primeira página. A serialização usa o contrato genérico em desenvolvimento,
   preservando a compatibilidade dos parâmetros atuais de Recebíveis; não inventar uma API paralela.
@@ -377,6 +377,5 @@ Material. Ajustar a concordância dos labels das tabs para **Todos, Vencidos e P
 as perspectivas existentes.
 
 **Cobranças** fica reservado para um módulo futuro, cujos requisitos não são antecipados aqui.
-O nome Recebíveis não altera as entidades Contract, Order ou Installment. A aplicação atual
-ainda usa `/parcelas`; a proposta de redirecionamento acima preserva links e filtros existentes.
-Esta fase modifica documentação, não a aplicação.
+O nome Recebíveis não altera as entidades Contract, Order ou Installment. A rota `/parcelas`
+é substituída por `/recebiveis` sem redirecionamento nesta fase de pré-produção.
