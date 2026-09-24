@@ -22,27 +22,34 @@ try {
   if (author === null) {
     throw new Error("Run the development staff seed before seeding finance settings.");
   }
-  // An existing configuration, including its author and timestamp, is never overwritten.
-  const result = await database.financeSettings.createMany({
-    data: [
-      {
-        id: "singleton",
-        tuitionCeilingCents: 25_000,
-        maximumDiscountPct: "20",
-        interestRatePctDaily: "0.1",
-        interestRatePctMonthly: "2",
-        cancellationFeePct: "10",
-        materialPriceCents: 12_000,
-        updatedById: author.id,
-      },
-    ],
-    skipDuplicates: true,
-  });
-  process.stdout.write(
-    result.count === 0
-      ? "Existing finance settings preserved.\n"
-      : "Development finance settings created.\n",
-  );
+  const defaults = {
+    tuitionCeilingCents: 25_000,
+    maximumDiscountPct: "20",
+    interestRatePctDaily: "0.1",
+    interestRatePctMonthly: "2",
+    cancellationFeePct: "10",
+    materialPriceCents: 12_000,
+  };
+  const existing = await database.financeSettings.findUnique({ where: { id: "singleton" } });
+  if (existing === null) {
+    await database.financeSettings.create({
+      data: { id: "singleton", ...defaults, updatedById: author.id },
+    });
+    process.stdout.write("Development finance settings created.\n");
+  } else {
+    const missing = Object.fromEntries(
+      Object.entries(defaults).filter(([key]) => existing[key as keyof typeof defaults] === null),
+    );
+    if (Object.keys(missing).length > 0) {
+      await database.financeSettings.update({
+        where: { id: "singleton" },
+        data: { ...missing, updatedById: author.id },
+      });
+    }
+    process.stdout.write(
+      `Development finance settings: ${Object.keys(missing).length} missing fields filled.\n`,
+    );
+  }
 } finally {
   await database.$disconnect();
 }

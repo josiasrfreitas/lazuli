@@ -1,5 +1,12 @@
 import { batchReconcile, type BatchReconcileResult } from "./internal/batch-reconcile.js";
 import {
+  createMonthlyContract,
+  findCommandResult,
+  listContracts,
+  readContractOffer,
+  searchContractParties,
+} from "./internal/contracts.js";
+import {
   addInstallmentAdjustment,
   waiveInstallment,
   type AddInstallmentAdjustmentResult,
@@ -29,6 +36,7 @@ import type {
   financeInstallmentsInputSchema,
   FinanceInstallmentsOutput,
   FinanceSettingsInput,
+  CreateMonthlyContractInput,
   payerCreateProcedureInputSchema,
   z,
 } from "@lazuli/validators";
@@ -48,6 +56,11 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
     readSettings: () => readSettings(db),
     saveSettings: (values) => saveSettings({ database: db, staffUserId, values }),
     createPayer: (values) => createPayer({ database: db, values, staffUserId }),
+    createMonthlyContract: (values) => createMonthlyContract({ database: db, values, staffUserId }),
+    findCommandResult: (values) => findCommandResult(db, values),
+    listContracts: (options) => listContracts(db, options),
+    searchContractParties: (query) => searchContractParties(db, query),
+    readContractOffer: () => readContractOffer(db),
     createOrder: (values) => createOrder({ database: db, values, staffUserId }),
     updateOrder: (values) => updateOrder({ database: db, values, staffUserId }),
     registerPayment: (values) => registerPayment({ database: db, values, staffUserId }),
@@ -66,6 +79,17 @@ export type FinanceModule = {
   readSettings: () => ReturnType<typeof readSettings>;
   saveSettings: (values: FinanceSettingsInput) => ReturnType<typeof saveSettings>;
   createPayer: (values: z.infer<typeof payerCreateProcedureInputSchema>) => Promise<Payer>;
+  createMonthlyContract: (
+    values: CreateMonthlyContractInput,
+  ) => ReturnType<typeof createMonthlyContract>;
+  findCommandResult: (values: CreateMonthlyContractInput) => ReturnType<typeof findCommandResult>;
+  listContracts: (options: {
+    page: number;
+    query?: string;
+    now?: Date;
+  }) => ReturnType<typeof listContracts>;
+  searchContractParties: (query: string) => ReturnType<typeof searchContractParties>;
+  readContractOffer: () => ReturnType<typeof readContractOffer>;
   createOrder: (
     values: z.infer<typeof financeCreateOrderInputSchema>,
   ) => Promise<OrderScheduleResult>;

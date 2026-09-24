@@ -70,3 +70,9 @@ export {
   type ReceivablesSnapshotInstallment,
 } from "./receivables-dashboard.js";
 export { toWhatsAppUrl } from "./whatsapp-url.js";
+export {
+  addCalendarMonths,
+  previewMonthlyContract,
+  priceAfterDiscountCents,
+} from "./monthly-contract.js";
+export type { MonthlyContractTerms } from "./monthly-contract.js";

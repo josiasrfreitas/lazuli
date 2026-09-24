@@ -590,6 +590,19 @@ model Contract {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
   payerId   String    @map("payer_id") @db.Uuid
   studentId String    @map("student_id") @db.Uuid
+  commandId String? @unique @map("command_id") @db.Uuid
+  commandFingerprint String? @map("command_fingerprint")
+  agreedOn DateTime? @map("agreed_on") @db.Date
+  startsOn DateTime? @map("starts_on") @db.Date
+  durationMonths Int? @map("duration_months")
+  endsOn DateTime? @map("ends_on") @db.Date
+  monthlyAmountCents Int? @map("monthly_amount_cents")
+  tuitionCeilingCents Int? @map("tuition_ceiling_cents")
+  maximumDiscountPct Decimal? @map("maximum_discount_pct") @db.Decimal(7, 4)
+  punctualityDiscountPct Decimal? @map("punctuality_discount_pct") @db.Decimal(7, 4)
+  interestRatePctDaily Decimal? @map("interest_rate_pct_daily") @db.Decimal(7, 4)
+  interestRatePctMonthly Decimal? @map("interest_rate_pct_monthly") @db.Decimal(7, 4)
+  cancellationFeePct Decimal? @map("cancellation_fee_pct") @db.Decimal(7, 4)
 
   payer   Payer   @relation(fields: [payerId], references: [id], onDelete: Restrict)
   student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
@@ -610,6 +623,8 @@ model Order {
   principalAmountCents  Int       @map("principal_amount_cents")
   startDate             DateTime  @map("start_date") @db.Date
   dueDay                Int       @map("due_day")
+  firstDueDate DateTime? @map("first_due_date") @db.Date
+  installmentCount Int? @map("installment_count")
   signedOrderArtifactId String?   @map("signed_order_artifact_id") @db.Uuid
   cancelledAt           DateTime? @map("cancelled_at") @db.Timestamptz
   cancelledReason       String?   @map("cancelled_reason")
