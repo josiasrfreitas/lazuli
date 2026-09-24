@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { Plus, Search } from "lucide-react";
 
 import {
-  Badge,
   Button,
   DataTablePage,
   Input,
@@ -18,10 +17,10 @@ import {
   TableRow,
 } from "@lazuli/ui";
 
-import { formatBRLFromCents } from "~/lib/format";
 import { debounce } from "~/lib/debounce";
 import { trpc } from "~/lib/trpc";
 
+import { ContractListRow } from "./contract-list-row";
 import { NewContractDialog } from "./new-contract-dialog";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -133,48 +132,7 @@ export function ContractsPage(): ReactElement {
                 </TableRow>
               )}
               {list.data?.rows.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium">{row.student.fullName}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        row.status === "INADIMPLENTE"
-                          ? "destructive"
-                          : row.status === "EM_DIA"
-                            ? "success"
-                            : "neutral"
-                      }
-                    >
-                      {row.status === "INADIMPLENTE"
-                        ? "Inadimplente"
-                        : row.status === "EM_DIA"
-                          ? "Em dia"
-                          : row.status === "QUITADO"
-                            ? "Quitado"
-                            : "Cancelado"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {row.student.placements.length > 0
-                      ? row.student.placements.map((placement) => (
-                          <span key={`${placement.classCode}-${placement.stage}`} className="block">
-                            {placement.stage}
-                            <span className="block text-caption text-muted-foreground">
-                              {placement.classCode} · {placement.modality}
-                            </span>
-                          </span>
-                        ))
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="font-numeric tabular-nums">
-                    {formatBRLFromCents(row.monthlyAmountCents)}
-                  </TableCell>
-                  <TableCell>
-                    {row.startsOn.split("-").reverse().join("/")}–
-                    {row.endsOn.split("-").reverse().join("/")}
-                  </TableCell>
-                  <TableCell>{row.payer.name}</TableCell>
-                </TableRow>
+                <ContractListRow key={row.id} row={row} />
               ))}
             </TableBody>
           </Table>
