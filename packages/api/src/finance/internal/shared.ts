@@ -42,6 +42,7 @@ export type FinanceDatabase = Pick<
   | "paymentAllocation"
   | "student"
   | "financeSettings"
+  | "contract"
 >;
 
 const DATE_ONLY_LENGTH = 10;

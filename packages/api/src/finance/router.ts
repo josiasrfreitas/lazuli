@@ -9,6 +9,9 @@ import {
   financeUpdateOrderInputSchema,
   financeWaiveInstallmentInputSchema,
   payerCreateProcedureInputSchema,
+  createMonthlyContractInputSchema,
+  listContractsInputSchema,
+  contractPartySearchInputSchema,
 } from "@lazuli/validators";
 
 import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
@@ -28,6 +31,31 @@ export const financeRouter = router({
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((tx) => finance(tx, ctx.staffUser.id).createPayer(input)),
     ),
+  createMonthlyContract: adminProcedure
+    .input(createMonthlyContractInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await ctx.db.$transaction((tx) =>
+          finance(tx, ctx.staffUser.id).createMonthlyContract(input),
+        );
+      } catch (error) {
+        // A concurrent retry can lose the unique-key race after the first command commits.
+        const original = await finance(ctx.db, ctx.staffUser.id).findCommandResult(input);
+        if (original) return original;
+        throw error;
+      }
+    }),
+  listContracts: adminProcedure
+    .input(listContractsInputSchema)
+    .query(({ ctx, input }) => finance(ctx.db, ctx.staffUser.id).listContracts(input.page)),
+  searchContractParties: adminProcedure
+    .input(contractPartySearchInputSchema)
+    .query(({ ctx, input }) =>
+      finance(ctx.db, ctx.staffUser.id).searchContractParties(input.query),
+    ),
+  readContractOffer: adminProcedure.query(({ ctx }) =>
+    finance(ctx.db, ctx.staffUser.id).readContractOffer(),
+  ),
   createOrder: adminProcedure
     .input(financeCreateOrderInputSchema)
     .mutation(({ ctx, input }) =>

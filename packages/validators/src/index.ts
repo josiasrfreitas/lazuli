@@ -1,4 +1,10 @@
 export { civilDateSchema } from "./civil-date.js";
+export {
+  createMonthlyContractInputSchema,
+  listContractsInputSchema,
+  contractPartySearchInputSchema,
+} from "./contracts.js";
+export type { CreateMonthlyContractInput } from "./contracts.js";
 export { financeSettingsInputSchema, tuitionFloorCents } from "./finance-settings.js";
 export type { FinanceSettingsInput } from "./finance-settings.js";
 export { STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH } from "./student-list.js";

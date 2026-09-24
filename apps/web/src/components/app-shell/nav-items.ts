@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Home, Receipt, Settings, Users } from "lucide-react";
+import { FileText, Home, Receipt, Settings, Users } from "lucide-react";
 
 import type { StaffRole } from "@lazuli/auth/server";
 
@@ -53,6 +53,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     id: "financeiro",
     label: "Financeiro",
     items: [
+      { href: "/contratos", label: "Contratos", icon: FileText, roles: ["ADMIN", "SYSTEM_ADMIN"] },
       { href: "/recebiveis", label: "Recebíveis", icon: Receipt, roles: ["ADMIN", "SYSTEM_ADMIN"] },
     ],
   },
