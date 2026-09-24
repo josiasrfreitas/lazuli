@@ -101,6 +101,7 @@ enum AttendanceStatus {
 }
 
 enum OrderKind {
+  CONTRACT
   TUITION
   ENROLLMENT_FEE
   MATERIAL
@@ -240,6 +241,7 @@ model Student {
   guardian    Guardian?          @relation(fields: [guardianId], references: [id], onDelete: SetNull)
   enrollments         Enrollment[]
   orderLinks          OrderBeneficiary[]
+  contracts           Contract[]
   generatedArtifacts  GeneratedArtifact[]
 
   @@index([addressId])
@@ -574,10 +576,27 @@ model Payer {
   createdBy User?          @relation("PayerCreator", fields: [createdById], references: [id], onDelete: Restrict)
   updatedBy User?          @relation("PayerUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
   orders    Order[]
+  contracts Contract[]
   payments  PaymentEntry[]
 
   @@index([createdById])
   @@index([updatedById])
+}
+
+model Contract {
+  id        String    @id @default(uuid()) @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  payerId   String    @map("payer_id") @db.Uuid
+  studentId String    @map("student_id") @db.Uuid
+
+  payer   Payer   @relation(fields: [payerId], references: [id], onDelete: Restrict)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  orders  Order[]
+
+  @@index([payerId])
+  @@index([studentId])
 }
 
 model Order {
@@ -585,7 +604,8 @@ model Order {
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt             DateTime? @map("deleted_at") @db.Timestamptz
-  payerId               String    @map("payer_id") @db.Uuid
+  payerId               String?   @map("payer_id") @db.Uuid
+  contractId            String?   @map("contract_id") @db.Uuid
   kind                  OrderKind
   principalAmountCents  Int       @map("principal_amount_cents")
   startDate             DateTime  @map("start_date") @db.Date
@@ -596,7 +616,8 @@ model Order {
   createdById           String?   @map("created_by_id") @db.Uuid
   updatedById           String?   @map("updated_by_id") @db.Uuid
 
-  payer         Payer              @relation(fields: [payerId], references: [id], onDelete: Restrict)
+  payer         Payer?             @relation(fields: [payerId], references: [id], onDelete: Restrict)
+  contract      Contract?          @relation(fields: [contractId], references: [id], onDelete: Restrict)
   createdBy     User?              @relation("OrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
   updatedBy     User?              @relation("OrderUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
   beneficiaries      OrderBeneficiary[]
@@ -604,6 +625,7 @@ model Order {
   generatedArtifacts GeneratedArtifact[]
 
   @@index([payerId])
+  @@index([contractId])
   @@index([createdById])
   @@index([updatedById])
 }

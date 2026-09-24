@@ -38,6 +38,7 @@ const BACKSLASH_CODE_POINT = 92;
 type LedgerTables =
   | "Installment"
   | "Order"
+  | "Contract"
   | "Payer"
   | "adjustment_totals"
   | "allocation_totals"
@@ -109,7 +110,10 @@ function ledgerQuery(input: QueryInput): QueryCreator<LedgerDatabase> {
     const query = database
       .selectFrom("Installment")
       .innerJoin("Order", "Order.id", "Installment.order_id")
-      .innerJoin("Payer", "Payer.id", "Order.payer_id")
+      .leftJoin("Contract", "Contract.id", "Order.contract_id")
+      .innerJoin("Payer", (join) =>
+        join.on(sql<boolean>`"Payer".id = coalesce("Contract".payer_id, "Order".payer_id)`),
+      )
       .innerJoin("schedule_totals", "schedule_totals.order_id", "Order.id")
       .leftJoin("adjustment_totals", "adjustment_totals.installment_id", "Installment.id")
       .leftJoin("allocation_totals", "allocation_totals.installment_id", "Installment.id")
@@ -198,6 +202,11 @@ function matchesSearch(search: string | undefined): RawBuilder<boolean> {
         select 1 from "OrderBeneficiary" join "Student" on "Student".id = "OrderBeneficiary".student_id
         where "OrderBeneficiary".order_id = ledger."orderId"
           and "OrderBeneficiary".deleted_at is null and "Student".deleted_at is null
+          and "Student".full_name ilike ${pattern} escape '\\'
+      ) or exists (
+        select 1 from "Order" join "Contract" on "Contract".id = "Order".contract_id
+        join "Student" on "Student".id = "Contract".student_id
+        where "Order".id = ledger."orderId" and "Student".deleted_at is null
           and "Student".full_name ilike ${pattern} escape '\\'
       ))
   `;

@@ -218,7 +218,9 @@ function formatWaivers(
 
 async function orderSchedules(
   database: ReturnType<typeof createDbClient>,
-): Promise<Array<{ payerId: string; startDate: string; dueDay: number; dueDates: string[] }>> {
+): Promise<
+  Array<{ payerId: string | null; startDate: string; dueDay: number; dueDates: string[] }>
+> {
   const orders = await database.order.findMany({
     where: { payerId: { in: [SHARED_PAYER_ID, BRUNO_PAYER_ID] } },
     include: { installments: { orderBy: { sequenceNumber: "asc" } } },
@@ -285,8 +287,8 @@ function installmentBalance(installment: {
 
 type FinanceSnapshot = {
   payers: Array<{ id: string; name: string }>;
-  orderBeneficiaries: Array<{ payerId: string; studentId: string }>;
-  installmentCounts: Array<{ payerId: string; count: number }>;
+  orderBeneficiaries: Array<{ payerId: string | null; studentId: string }>;
+  installmentCounts: Array<{ payerId: string | null; count: number }>;
   payments: Array<{ payerId: string; amountCents: number }>;
   allocations: number[];
   waivers: Array<{ amountCents: number; reason: string | null }>;
@@ -297,8 +299,8 @@ type FinanceSnapshot = {
 
 type FixtureFinanceRecords = {
   payers: FinanceSnapshot["payers"];
-  beneficiaries: Array<{ studentId: string; order: { payerId: string } }>;
-  orders: Array<{ payerId: string; installments: Array<{ id: string }> }>;
+  beneficiaries: Array<{ studentId: string; order: { payerId: string | null } }>;
+  orders: Array<{ payerId: string | null; installments: Array<{ id: string }> }>;
   payments: FinanceSnapshot["payments"];
   allocations: Array<{ amountCents: number }>;
   waivers: Array<{ amountCents: number; waivedReason: string | null }>;

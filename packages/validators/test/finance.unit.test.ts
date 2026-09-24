@@ -59,6 +59,7 @@ void describe("finance enum input", () => {
     assert.equal(orderKindSchema.safeParse("ENROLLMENT_FEE").success, true);
     assert.equal(orderKindSchema.safeParse("MATERIAL").success, true);
     assert.equal(orderKindSchema.safeParse("OTHER").success, true);
+    assert.equal(orderKindSchema.safeParse("CONTRACT").success, true);
     assert.equal(orderKindSchema.safeParse("SERVICE").success, false);
     assert.equal(paymentMethodSchema.safeParse("PIX").success, true);
     assert.equal(paymentMethodSchema.safeParse("CASH").success, true);
@@ -73,6 +74,25 @@ void describe("finance enum input", () => {
     assert.equal(installmentAdjustmentTypeSchema.safeParse("DISCOUNT").success, true);
     assert.equal(installmentAdjustmentTypeSchema.safeParse("CORRECTION").success, true);
   });
+});
+
+void it("rejects contractual orders in the existing create and update routes", () => {
+  assert.equal(
+    financeCreateOrderInputSchema.safeParse({
+      ...ORDER_FIELDS,
+      kind: "CONTRACT",
+      payer: { mode: "existing", payerId: PAYER_ID },
+    }).success,
+    false,
+  );
+  assert.equal(
+    financeUpdateOrderInputSchema.safeParse({
+      ...ORDER_FIELDS,
+      kind: "CONTRACT",
+      orderId: ORDER_ID,
+    }).success,
+    false,
+  );
 });
 
 void describe("finance order input", () => {

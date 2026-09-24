@@ -65,6 +65,7 @@ export function installmentVm(row: FinanceInstallmentRow, today: string): Instal
   return {
     sequence: `${row.sequenceNumber} de ${row.scheduleTotal}`,
     origin: {
+      CONTRACT: "Contrato",
       TUITION: "Mensalidade",
       ENROLLMENT_FEE: "Taxa de matrícula",
       MATERIAL: "Material",

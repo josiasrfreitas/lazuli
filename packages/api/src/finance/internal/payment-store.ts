@@ -12,7 +12,7 @@ export type LoadedInstallment = {
   amountCents: number;
   dueDate: Date;
   waivedAt: Date | null;
-  order: { payerId: string; cancelledAt: Date | null };
+  order: { payerId: string | null; contract: { payerId: string } | null; cancelledAt: Date | null };
   adjustments: Array<{ amountCents: number }>;
   allocations: Array<{ amountCents: number }>;
 };
@@ -114,7 +114,9 @@ export async function loadInstallments(
       amountCents: true,
       dueDate: true,
       waivedAt: true,
-      order: { select: { payerId: true, cancelledAt: true } },
+      order: {
+        select: { payerId: true, contract: { select: { payerId: true } }, cancelledAt: true },
+      },
     },
   });
   const adjustments = await database.installmentAdjustment.findMany({

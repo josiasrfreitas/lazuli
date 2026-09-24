@@ -17,7 +17,11 @@ type LoadedReceivablesInstallment = {
   waivedAt: Date | null;
   order: {
     cancelledAt: Date | null;
-    payer: { id: string; name: string };
+    payer: { id: string; name: string } | null;
+    contract: {
+      payer: { id: string; name: string };
+      student: { id: string; fullName: string; phone: string | null };
+    } | null;
     beneficiaries: Array<{
       student: { id: string; fullName: string; phone: string | null };
     }>;
@@ -104,7 +108,7 @@ async function loadDerivedReceivablesInstallments(
       adjustments: installment.adjustments,
       allocations: installment.allocations,
       now,
-      interestRatePctMonthly,
+      interestRatePctMonthly: installment.order.contract === null ? interestRatePctMonthly : 0,
     });
 
     return {
@@ -113,12 +117,21 @@ async function loadDerivedReceivablesInstallments(
       dueDate: toDateOnlyString(installment.dueDate),
       isCollectible,
       ledger,
-      payer: installment.order.payer,
-      beneficiaries: installment.order.beneficiaries.map((beneficiary) => ({
-        studentId: beneficiary.student.id,
-        fullName: beneficiary.student.fullName,
-        whatsAppUrl: toWhatsAppUrl(beneficiary.student.phone),
-      })),
+      payer: installment.order.contract?.payer ?? installment.order.payer!,
+      beneficiaries:
+        installment.order.contract === null
+          ? installment.order.beneficiaries.map((beneficiary) => ({
+              studentId: beneficiary.student.id,
+              fullName: beneficiary.student.fullName,
+              whatsAppUrl: toWhatsAppUrl(beneficiary.student.phone),
+            }))
+          : [
+              {
+                studentId: installment.order.contract.student.id,
+                fullName: installment.order.contract.student.fullName,
+                whatsAppUrl: toWhatsAppUrl(installment.order.contract.student.phone),
+              },
+            ],
     };
   });
 }
@@ -155,6 +168,12 @@ async function loadActiveOrderInstallments(
         select: {
           cancelledAt: true,
           payer: { select: { id: true, name: true } },
+          contract: {
+            select: {
+              payer: { select: { id: true, name: true } },
+              student: { select: { id: true, fullName: true, phone: true } },
+            },
+          },
           beneficiaries: {
             select: {
               student: { select: { id: true, fullName: true, phone: true } },

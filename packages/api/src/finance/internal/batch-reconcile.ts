@@ -62,6 +62,8 @@ const MISSING_INSTALLMENT_REASON = "Parcela nao encontrada.";
 const WAIVED_INSTALLMENT_REASON = "Parcela isenta nao aceita reconciliacao.";
 const NON_POSITIVE_REMAINING_REASON = "Parcela nao possui saldo restante positivo.";
 const BATCH_REJECTED_REASON = "Lote rejeitado por outra parcela invalida.";
+const CONTRACT_RECONCILIATION_UNAVAILABLE_REASON =
+  "Parcela contratual ainda nao aceita reconciliacao.";
 
 export async function batchReconcile(input: {
   database: FinanceDatabase;
@@ -241,6 +243,13 @@ function validateRow(input: {
     return invalidValidation({ ...input, reason: MISSING_INSTALLMENT_REASON });
   }
 
+  if (input.installment.order.contract !== null) {
+    return invalidValidation({
+      ...input,
+      reason: CONTRACT_RECONCILIATION_UNAVAILABLE_REASON,
+    });
+  }
+
   const amountCents = calculateRemainingBalanceCents(input.installment);
 
   if (input.installment.waivedAt !== null) {
@@ -260,7 +269,7 @@ function validateRow(input: {
     row: {
       inputIndex: input.inputIndex,
       installmentId: input.installmentId,
-      payerId: input.installment.order.payerId,
+      payerId: input.installment.order.payerId!,
       amountCents,
     },
   };
@@ -283,7 +292,8 @@ function invalidValidation(input: {
       inputIndex: input.inputIndex,
       installmentId: input.installmentId,
       reason: input.reason,
-      payerId: input.installment?.order.payerId ?? null,
+      payerId:
+        input.installment?.order.contract?.payerId ?? input.installment?.order.payerId ?? null,
       amountCents,
     },
   };
