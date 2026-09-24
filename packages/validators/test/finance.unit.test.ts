@@ -76,26 +76,26 @@ void describe("finance enum input", () => {
   });
 });
 
-void describe("finance order input", () => {
-  void it("rejects contractual orders in the existing create and update routes", () => {
-    assert.equal(
-      financeCreateOrderInputSchema.safeParse({
-        ...ORDER_FIELDS,
-        kind: "CONTRACT",
-        payer: { mode: "existing", payerId: PAYER_ID },
-      }).success,
-      false,
-    );
-    assert.equal(
-      financeUpdateOrderInputSchema.safeParse({
-        ...ORDER_FIELDS,
-        kind: "CONTRACT",
-        orderId: ORDER_ID,
-      }).success,
-      false,
-    );
-  });
+void it("rejects contractual orders in the existing create and update routes", () => {
+  assert.equal(
+    financeCreateOrderInputSchema.safeParse({
+      ...ORDER_FIELDS,
+      kind: "CONTRACT",
+      payer: { mode: "existing", payerId: PAYER_ID },
+    }).success,
+    false,
+  );
+  assert.equal(
+    financeUpdateOrderInputSchema.safeParse({
+      ...ORDER_FIELDS,
+      kind: "CONTRACT",
+      orderId: ORDER_ID,
+    }).success,
+    false,
+  );
+});
 
+void describe("finance order input", () => {
   void it("accepts existing and inline payer modes for order creation", () => {
     const existing = financeCreateOrderInputSchema.parse({
       ...ORDER_FIELDS,
