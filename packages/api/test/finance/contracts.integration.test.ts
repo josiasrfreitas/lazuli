@@ -107,6 +107,13 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
     assert.equal(Number(persisted.maximumDiscountPct), 20);
     const list = await finance(db, ADMIN.id).listContracts(1);
     assert.equal(list.rows.find((row) => row.id === created.id)?.payer.id, payer.id);
+    const matching = await finance(db, ADMIN.id).listContracts(1, payer.name);
+    assert.equal(
+      matching.rows.find((row) => row.id === created.id)?.student.fullName,
+      student.fullName,
+    );
+    const missing = await finance(db, ADMIN.id).listContracts(1, "sem aluno nem pagador");
+    assert.equal(missing.total, 0);
     const onTime = await listContracts(db, 1, new Date("2026-01-31T12:00:00Z"));
     assert.equal(onTime.rows.find((row) => row.id === created.id)?.status, "EM_DIA");
     const overdue = await listContracts(db, 1, new Date("2026-02-02T12:00:00Z"));

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { Plus, Search } from "lucide-react";
 
 import {
   Badge,
   Button,
   DataTablePage,
+  Input,
   Table,
   TableBody,
   TableCell,
@@ -17,15 +19,30 @@ import {
 } from "@lazuli/ui";
 
 import { formatBRLFromCents } from "~/lib/format";
+import { debounce } from "~/lib/debounce";
 import { trpc } from "~/lib/trpc";
 
 import { NewContractDialog } from "./new-contract-dialog";
 
+const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_MAX_LENGTH = 80;
+
 export function ContractsPage(): ReactElement {
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
+  const commitSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        setQuery(value);
+        setPage(1);
+      }, SEARCH_DEBOUNCE_MS),
+    [],
+  );
+  useEffect(() => () => commitSearch.cancel(), [commitSearch]);
   const utils = trpc.useUtils();
-  const list = trpc.finance.listContracts.useQuery({ page });
+  const list = trpc.finance.listContracts.useQuery({ page, query });
   return (
     <>
       <DataTablePage
@@ -38,7 +55,33 @@ export function ContractsPage(): ReactElement {
             </p>
           </div>
         }
-        controls={<Button onClick={() => setCreating(true)}>Novo contrato</Button>}
+        controls={
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <div className="relative min-w-48 flex-1 sm:w-64 sm:flex-none">
+              <Search
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                aria-label="Buscar contrato por aluno ou pagador"
+                className="pl-8"
+                type="search"
+                placeholder="Buscar aluno ou pagador"
+                maxLength={SEARCH_MAX_LENGTH}
+                size="sm"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  commitSearch(event.target.value);
+                }}
+              />
+            </div>
+            <Button onClick={() => setCreating(true)} size="sm">
+              <Plus aria-hidden="true" className="size-4" />
+              Novo contrato
+            </Button>
+          </div>
+        }
       >
         <TableContainer
           viewportBound

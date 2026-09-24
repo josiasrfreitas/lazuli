@@ -278,6 +278,7 @@ export async function listContracts(
   database: FinanceDatabase,
   page: number,
   now = new Date(),
+  query = "",
 ): Promise<{
   rows: ContractListRow[];
   page: number;
@@ -285,7 +286,18 @@ export async function listContracts(
   total: number;
 }> {
   const pageSize = 20;
-  const where = { commandId: { not: null }, deletedAt: null };
+  const where = {
+    commandId: { not: null },
+    deletedAt: null,
+    ...(query.trim() === ""
+      ? {}
+      : {
+          OR: [
+            { student: { fullName: { contains: query.trim(), mode: "insensitive" as const } } },
+            { payer: { name: { contains: query.trim(), mode: "insensitive" as const } } },
+          ],
+        }),
+  };
   const [total, rows] = await Promise.all([
     database.contract.count({ where }),
     database.contract.findMany({

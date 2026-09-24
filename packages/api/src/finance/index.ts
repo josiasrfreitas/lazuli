@@ -58,7 +58,7 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
     createPayer: (values) => createPayer({ database: db, values, staffUserId }),
     createMonthlyContract: (values) => createMonthlyContract({ database: db, values, staffUserId }),
     findCommandResult: (values) => findCommandResult(db, values),
-    listContracts: (page) => listContracts(db, page),
+    listContracts: (page, query) => listContracts(db, page, new Date(), query),
     searchContractParties: (query) => searchContractParties(db, query),
     readContractOffer: () => readContractOffer(db),
     createOrder: (values) => createOrder({ database: db, values, staffUserId }),
@@ -83,7 +83,7 @@ export type FinanceModule = {
     values: CreateMonthlyContractInput,
   ) => ReturnType<typeof createMonthlyContract>;
   findCommandResult: (values: CreateMonthlyContractInput) => ReturnType<typeof findCommandResult>;
-  listContracts: (page: number) => ReturnType<typeof listContracts>;
+  listContracts: (page: number, query?: string) => ReturnType<typeof listContracts>;
   searchContractParties: (query: string) => ReturnType<typeof searchContractParties>;
   readContractOffer: () => ReturnType<typeof readContractOffer>;
   createOrder: (

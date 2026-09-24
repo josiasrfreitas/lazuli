@@ -47,7 +47,9 @@ export const financeRouter = router({
     }),
   listContracts: adminProcedure
     .input(listContractsInputSchema)
-    .query(({ ctx, input }) => finance(ctx.db, ctx.staffUser.id).listContracts(input.page)),
+    .query(({ ctx, input }) =>
+      finance(ctx.db, ctx.staffUser.id).listContracts(input.page, input.query),
+    ),
   searchContractParties: adminProcedure
     .input(contractPartySearchInputSchema)
     .query(({ ctx, input }) =>

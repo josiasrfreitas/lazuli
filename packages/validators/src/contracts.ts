@@ -26,6 +26,7 @@ export const createMonthlyContractInputSchema = z
 export const listContractsInputSchema = z
   .object({
     page: z.number().int().positive().default(1),
+    query: z.string().trim().max(80).default(""),
   })
   .strict();
 
