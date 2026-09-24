@@ -1,8 +1,16 @@
 import { z } from "zod";
 
 const PERCENT_SCALE = 100;
+const PERCENT_DECIMAL_PLACES = 4;
 const ROUNDING_EPSILON = 1e-9;
-const percentage = z.number().finite().min(0).max(PERCENT_SCALE);
+const percentage = z
+  .number()
+  .finite()
+  .min(0)
+  .max(PERCENT_SCALE)
+  .refine((value) => Number(value.toFixed(PERCENT_DECIMAL_PLACES)) === value, {
+    message: "Use no máximo quatro casas decimais.",
+  });
 
 export const financeSettingsInputSchema = z
   .object({

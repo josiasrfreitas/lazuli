@@ -55,7 +55,9 @@ function fieldError(name: keyof SettingsFields, text: string): string | undefine
   const value = decimal(text);
   if (!Number.isFinite(value)) return "Use um número, como 10 ou 0,5.";
   if (!name.endsWith("Cents")) {
-    return value > MAX_PERCENT ? "Use um percentual entre 0 e 100." : undefined;
+    if (value > MAX_PERCENT) return "Use um percentual entre 0 e 100.";
+    if (!/^\d+(?:[.,]\d{1,4})?$/u.test(text.trim())) return "Use no máximo quatro casas decimais.";
+    return undefined;
   }
   if (!/^\d+(?:[.,]\d{1,2})?$/u.test(text.trim())) return "Use no máximo duas casas decimais.";
   if (name === "tuitionCeilingCents" && value === 0)

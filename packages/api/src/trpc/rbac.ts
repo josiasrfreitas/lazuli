@@ -98,16 +98,9 @@ export const ROLE_MATRIX: Record<StaffRole, Record<RouterName, RouterAccess>> = 
   FINANCE: deniedAll(),
 };
 
-/** Flattened `"role:router" -> access` view of {@link ROLE_MATRIX} for keyed lookup. */
-const ACCESS_LOOKUP = new Map<string, RouterAccess>(
-  Object.entries(ROLE_MATRIX).flatMap(([role, byRouter]) =>
-    Object.entries(byRouter).map(([router, access]) => [`${role}:${router}`, access] as const),
-  ),
-);
-
 /** Access `role` holds over `router` per the §5.2 matrix; unknown pairs deny by default. */
 export function routerAccess(role: StaffRole, router: RouterName): RouterAccess {
-  return ACCESS_LOOKUP.get(`${role}:${router}`) ?? "none";
+  return ROLE_MATRIX[role]?.[router] ?? "none";
 }
 
 /** Whether `role` may reach `router` at all (`full` or `scoped`); consumed by GRE-16's role-filtered menu. */

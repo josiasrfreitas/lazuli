@@ -27,6 +27,7 @@ const HTTP_BAD_REQUEST = 400;
 const EXPECTED_FLOOR_CENTS = 20_000;
 const EXPECTED_MATERIAL_CENTS = 12_000;
 const INVALID_RATE = -1;
+const EXCESSIVE_PRECISION_RATE = Number("0.12345");
 const SAVE_SETTINGS_PATH = "finance.saveSettings";
 
 void describe("settings over HTTP", { concurrency: 1 }, () => {
@@ -86,6 +87,12 @@ function registerInvalidSettingsTest(): void {
       staffUser: SYSTEM_ADMIN,
     });
     assert.equal(invalid.status, HTTP_BAD_REQUEST);
+    const excessivePrecision = await callHttpMutation({
+      path: SAVE_SETTINGS_PATH,
+      body: { ...settings, interestRatePctDaily: EXCESSIVE_PRECISION_RATE, materialPriceCents: 1 },
+      staffUser: SYSTEM_ADMIN,
+    });
+    assert.equal(excessivePrecision.status, HTTP_BAD_REQUEST);
     const persisted = await db.financeSettings.findUniqueOrThrow({ where: { id: "singleton" } });
     assert.equal(persisted.materialPriceCents, EXPECTED_MATERIAL_CENTS);
   });

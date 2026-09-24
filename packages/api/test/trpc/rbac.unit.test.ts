@@ -101,7 +101,8 @@ void describe("teacherProcedure role gate", () => {
 });
 
 void describe("staffProcedure role gate", () => {
-  void it("allows both ADMIN and TEACHER", async () => {
+  void it("allows SYSTEM_ADMIN, ADMIN and TEACHER", async () => {
+    assert.equal(await callerFor(contextFor(SYSTEM_ADMIN)).anyStaff(), "ok");
     assert.equal(await callerFor(contextFor(ADMIN)).anyStaff(), "ok");
     assert.equal(await callerFor(contextFor(TEACHER)).anyStaff(), "ok");
   });
@@ -132,6 +133,18 @@ void describe("teacher resource scope through a tRPC procedure", () => {
   void it("lets ADMIN read any class regardless of owner", async () => {
     const result = await callerFor(contextFor(ADMIN)).classOwnedByAnother();
     assert.equal(result.teacherId, ANOTHER_TEACHER);
+  });
+
+  void it("lets SYSTEM_ADMIN read a class regardless of owner", async () => {
+    const result = await callerFor(contextFor(SYSTEM_ADMIN)).classOwnedByAnother();
+    assert.equal(result.teacherId, ANOTHER_TEACHER);
+  });
+
+  void it("rejects a non-teacher with a matching owner id", () => {
+    assert.throws(
+      () => assertResourceScope({ ...TEACHER, role: "FINANCE" }, { teacherId: TEACHER.id }),
+      isTRPCError(FORBIDDEN),
+    );
   });
 });
 

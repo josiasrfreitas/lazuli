@@ -44,6 +44,10 @@ void it("shows units with current values and omits unnecessary decimal places", 
 
 void it("accepts four decimal places for daily interest and validates its percentage bounds", () => {
   assert.equal(validateSettings({ ...fields, interestRatePctDaily: "0,1234" }).success, true);
+  assert.deepEqual(validateSettings({ ...fields, interestRatePctDaily: "0,12345" }), {
+    success: false,
+    errors: { interestRatePctDaily: "Use no máximo quatro casas decimais." },
+  });
   assert.deepEqual(validateSettings({ ...fields, interestRatePctMonthly: "101" }), {
     success: false,
     errors: { interestRatePctMonthly: "Use um percentual entre 0 e 100." },
