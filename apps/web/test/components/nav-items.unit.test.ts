@@ -11,6 +11,7 @@ import {
 } from "../../src/components/app-shell/nav-items.js";
 
 const STUDENTS_PATH = "/alunos";
+const RECEIVABLES_PATH = "/recebiveis";
 const STUDENTS_LABEL = "Alunos";
 const PEDAGOGICAL_LABEL = "Pedagógico";
 
@@ -26,7 +27,7 @@ void describe("role-aware navigation", () => {
   void it("shows Alunos only to roles its procedures accept", () => {
     assert.deepEqual(
       navItemsFor("ADMIN").map((item) => item.href),
-      ["/", STUDENTS_PATH, "/parcelas"],
+      ["/", STUDENTS_PATH, RECEIVABLES_PATH],
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
@@ -38,7 +39,7 @@ void describe("role-aware navigation", () => {
     assert.deepEqual(sectionsSummary(navSectionsFor("ADMIN")), [
       { label: null, items: ["Início"] },
       { label: PEDAGOGICAL_LABEL, items: [STUDENTS_LABEL] },
-      { label: "Financeiro", items: ["Parcelas"] },
+      { label: "Financeiro", items: ["Recebíveis"] },
     ]);
     assert.deepEqual(
       navSectionsFor("TEACHER").map((section) => section.label),
@@ -69,12 +70,12 @@ void describe("role-aware navigation", () => {
 });
 
 void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
-  assert.deepEqual(navBreadcrumbFor("/parcelas", "ADMIN"), {
+  assert.deepEqual(navBreadcrumbFor(RECEIVABLES_PATH, "ADMIN"), {
     section: "Financeiro",
-    page: "Parcelas",
+    page: "Recebíveis",
   });
   for (const role of ["SECRETARY", "FINANCE", "TEACHER"] as const) {
-    assert.equal(navBreadcrumbFor("/parcelas", role), null);
+    assert.equal(navBreadcrumbFor(RECEIVABLES_PATH, role), null);
     assert.deepEqual(
       navItemsFor(role).map((item) => item.href),
       ["/"],

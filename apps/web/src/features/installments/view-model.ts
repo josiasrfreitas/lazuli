@@ -5,6 +5,7 @@ import { formatBRLFromCents } from "~/lib/format";
 export { saoPauloDateOnly as businessDate } from "@lazuli/domain";
 type InstallmentVm = {
   sequence: string;
+  origin: string;
   dueDate: string;
   amount: string;
   balance: string | null;
@@ -39,6 +40,12 @@ export function installmentVm(row: FinanceInstallmentRow, today: string): Instal
   const [year, month, day] = row.dueDate.split("-");
   return {
     sequence: `${row.sequenceNumber} de ${row.scheduleTotal}`,
+    origin: {
+      TUITION: "Mensalidade",
+      ENROLLMENT_FEE: "Taxa de matrícula",
+      MATERIAL: "Material",
+      OTHER: "Outro",
+    }[row.origin],
     dueDate: `${day}/${month}/${year}`,
     amount: formatBRLFromCents(row.originalAmountCents),
     balance:

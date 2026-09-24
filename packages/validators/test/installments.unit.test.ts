@@ -55,6 +55,8 @@ void it("validates the overdue summary and its nested identities and installment
     { ...group, payer: { ...payer, id: "invalid" } },
     { ...group, beneficiaries: [{ ...beneficiary, studentId: "invalid" }] },
     { ...group, rows: [{ ...row, installmentId: "invalid" }] },
+    { ...group, rows: [{ ...row, origin: "CONTRACT" }] },
+    { ...group, rows: [{ ...row, origin: undefined }] },
   ]) {
     assert.equal(financeOverduePayerGroupSchema.safeParse(invalid).success, false);
   }
@@ -91,6 +93,7 @@ function overdueGroupFixture(): FinanceOverduePayerGroup {
   const row = {
     installmentId: "00000000-0000-4000-8000-000000000003",
     orderId: "00000000-0000-4000-8000-000000000004",
+    origin: "TUITION" as const,
     sequenceNumber: 1,
     scheduleTotal: 1,
     payer,

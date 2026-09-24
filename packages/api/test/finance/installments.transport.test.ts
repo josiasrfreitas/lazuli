@@ -59,6 +59,7 @@ function registerSerializationTest(): void {
     assert.deepEqual(row, {
       installmentId: fixture.installmentId,
       orderId: fixture.orderId,
+      origin: "TUITION",
       sequenceNumber: 1,
       scheduleTotal: 1,
       payer: { id: fixture.payerId, name: `${PREFIX}Pagador` },

@@ -15,12 +15,21 @@ import { OverdueInstallmentAmount } from "./overdue-installment-amount";
 import { installmentVm, overduePayerSummaryVm } from "./view-model";
 
 const OVERDUE_COLUMNS = [
-  { key: "installment", label: "Parcela" },
-  { key: "beneficiaries", label: "Beneficiários" },
+  { key: "installment", label: "Sequência" },
+  { key: "origin", label: "Origem" },
+  { key: "beneficiaries", label: "Beneficiário" },
   { key: "due-date", label: "Vencimento" },
   { key: "amount", label: "Em aberto" },
   { key: "status", label: "Atraso" },
 ] as const;
+
+export function OverdueSearchGuidance(): ReactElement {
+  return (
+    <p className="shrink-0 px-5 py-3 text-sm text-muted-foreground">
+      Exibindo todas as parcelas vencidas dos pagadores encontrados.
+    </p>
+  );
+}
 
 function beneficiaryNames(row: FinanceInstallmentRow): string {
   const names = row.beneficiaries.map((person) => person.fullName);
@@ -43,6 +52,7 @@ function OverdueInstallmentRow({
       <TableCell headers={`${groupHeadingId}-column-installment`}>
         <span className="font-numeric whitespace-nowrap tabular-nums">{vm.sequence}</span>
       </TableCell>
+      <TableCell headers={`${groupHeadingId}-column-origin`}>{vm.origin}</TableCell>
       <TableCell headers={`${groupHeadingId}-column-beneficiaries`} className="break-words">
         {beneficiaryNames(row)}
       </TableCell>
@@ -128,11 +138,12 @@ function OverdueInstallmentsTable({
       <Table
         aria-labelledby={groupHeadingId}
         aria-describedby={`${groupHeadingId}-summary`}
-        className="min-w-4xl table-fixed"
+        className="min-w-240 table-fixed"
         density="compact"
       >
         <colgroup>
           <col className="w-24" />
+          <col className="w-36" />
           <col />
           <col className="w-32" />
           <col className="w-60" />
@@ -156,7 +167,7 @@ function OverdueInstallmentsTable({
 
 function OverdueInstallmentsHead({ groupHeadingId }: { groupHeadingId: string }): ReactElement {
   return (
-    <TableHeader className="sr-only">
+    <TableHeader>
       <TableRow interactive={false}>
         {OVERDUE_COLUMNS.map((column) => (
           <TableHead

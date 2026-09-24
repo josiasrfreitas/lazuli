@@ -50,6 +50,7 @@ void describe("finance installments query", { concurrency: 1 }, () => {
   registerCivilDateTest();
   registerVisibilityTest();
   registerCombinedFiltersTest();
+  registerOriginTest();
 });
 
 function registerCombinedFiltersTest(): void {
@@ -76,6 +77,52 @@ function registerCombinedFiltersTest(): void {
     assert.equal(result.total, 1);
     assert.equal(result.pageCount, 1);
     assert.deepEqual(result.counts, { all: 1, paid: 0, overdue: 0 });
+  });
+}
+
+function registerOriginTest(): void {
+  void it("returns each historical order kind in flat and payer-grouped views", async () => {
+    const kinds = ["TUITION", "ENROLLMENT_FEE", "MATERIAL", "OTHER"] as const;
+    const records = await Promise.all(
+      kinds.map(async (kind) => ({
+        kind,
+        fixture: await createOrder({ kind, dueDate: "2026-02-28" }),
+      })),
+    );
+    const fixtures = records.map((record) => record.fixture);
+    const payerId = fixtures[0]?.payerId;
+    assert.ok(payerId);
+    await db.order.updateMany({
+      where: { id: { in: fixtures.slice(1).map((fixture) => fixture.orderId) } },
+      data: { payerId },
+    });
+    const material = fixtures[2];
+    assert.ok(material?.installmentIds[0]);
+    await allocate({
+      payerId,
+      installmentId: material.installmentIds[0],
+      amounts: [TEN_THOUSAND_CENTS],
+    });
+
+    const expected = new Map(records.map(({ kind, fixture }) => [fixture.orderId, kind]));
+    const all = await read({ view: "all" });
+    assert.deepEqual(new Map(all.rows.map((row) => [row.orderId, row.origin])), expected);
+    const paid = await read({ view: "paid" });
+    assert.deepEqual(
+      paid.rows.map((row) => row.origin),
+      ["MATERIAL"],
+    );
+    const overdue = await read({ view: "overdue" });
+    assert.equal(overdue.groups.length, 1);
+    assert.equal(overdue.groups[0]?.payer.id, payerId);
+    assert.deepEqual(
+      new Map(overdue.groups[0]?.rows.map((row) => [row.orderId, row.origin])),
+      new Map(
+        fixtures
+          .filter((fixture) => fixture.orderId !== material.orderId)
+          .map((fixture) => [fixture.orderId, expected.get(fixture.orderId)]),
+      ),
+    );
   });
 }
 

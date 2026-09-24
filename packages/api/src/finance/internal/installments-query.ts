@@ -172,6 +172,7 @@ function ledgerSelection(input: {
   return [
     "Installment.id as installmentId",
     "Order.id as orderId",
+    "Order.kind as origin",
     "Installment.sequence_number as sequenceNumber",
     "schedule_totals.installment_count as scheduleTotal",
     "Payer.id as payerId",

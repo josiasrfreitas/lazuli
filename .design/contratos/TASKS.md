@@ -70,13 +70,15 @@ individual estão em [PR_REVIEW.md](./PR_REVIEW.md). PRs dependentes não signif
 imediata: os cenários contratuais só entram em operação quando seu comportamento completo
 estiver protegido na UI e na API, incluindo chamadas pelo lote.
 
-- [ ] **P01 — Identificar a origem em Recebíveis.** [#117](https://github.com/josiasrfreitas/lazuli/issues/117) Renomear página/nav/breadcrumb e tabs para
-      Recebíveis, Todos/Vencidos/Pagos; usar Sequência e Origem nas tabelas planas e agrupadas.
-      Levar origem real da consulta à UI, mantendo tipos históricos fiéis. `/parcelas` redireciona
-      para `/recebiveis` preservando parâmetros. Não criar Contract ou finalidade de multa aqui.
-      **Reutiliza:** AppShell, DataTablePage, Table, Tabs. **Modifica:** DTO/consulta e componentes de installments.
+- [ ] **P01 — Identificar a origem em Recebíveis.** [#117](https://github.com/josiasrfreitas/lazuli/issues/117) Renomear página/nav/breadcrumb para
+      Recebíveis; manter Vencida e Paga no filtro Situação, sem tabs, e mostrar todos quando não houver seleção.
+      Usar Sequência e Origem nas tabelas planas e agrupadas.
+      Levar origem real da consulta à UI, mantendo tipos históricos fiéis. Substituir a rota
+      `/parcelas` por `/recebiveis` sem redirecionamento, pois o sistema está em pré-produção.
+      Não criar Contract ou finalidade de multa aqui.
+      **Reutiliza:** AppShell, DataTablePage, Table, TableFilters. **Modifica:** DTO/consulta e componentes de installments.
       **Depende:** nenhuma. **Aceite/testes:** origens distintas visíveis sem hover, cabeçalhos por grupo,
-      um grupo por pagador e URLs antigas preservadas; integração de consulta e navegação real.
+      um grupo por pagador e navegação em `/recebiveis`; integração de consulta e navegação real.
 
 - [ ] **P02 — Distinguir nominal, saldo e recebido.** [#118](https://github.com/josiasrfreitas/lazuli/issues/118) Mostrar saldo nas abertas e recebido nas
       pagas, com nominal/ajustes complementares. Dispensa não se torna pagamento. Sem prévia de
