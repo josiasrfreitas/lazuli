@@ -47,7 +47,7 @@ void describe("monthly contract input", () => {
     ["price above limit", { monthlyAmountCents: 1_000_000_001 }],
     ["negative discount", { punctualityDiscountPct: -1 }],
     ["discount above 100", { punctualityDiscountPct: 100.0001 }],
-    ["fifth decimal place", { punctualityDiscountPct: 20 + 1 / 100_000 }],
+    ["fifth decimal place", { punctualityDiscountPct: Number("20.00001") }],
     ["non-finite discount", { punctualityDiscountPct: Number.POSITIVE_INFINITY }],
     ["unknown field", { extra: true }],
   ] as const) {
