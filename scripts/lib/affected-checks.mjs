@@ -16,7 +16,7 @@ import {
   reapProvenOrphans,
 } from "./ephemeral-test-database.mjs";
 
-export async function runAffectedChecks({ mode, staged = false, unitOnly = false }) {
+export async function runAffectedChecks({ staged = false, unitOnly = false }) {
   const baseRef = staged ? undefined : resolveBaseRef(readOption("base"));
   const scope = classifyChanges(staged ? listStagedFiles() : listCommittedFiles(baseRef));
   const filters = workspaceFilters(scope);
@@ -76,39 +76,7 @@ export async function runAffectedChecks({ mode, staged = false, unitOnly = false
         databaseUrl: database.url,
       });
     }
-    if (mode === "pre-push") {
-      if (packages.length > 0)
-        runTurbo({ tasks: ["lint"], filters, phase: "affected lint", databaseUrl: database?.url });
-      if (scope.rootChecks) {
-        runTurbo({
-          tasks: ["lint:root", "duplication:check"],
-          filters: [],
-          phase: "root checks",
-          databaseUrl: database?.url,
-        });
-        if (scope.scriptTests)
-          run({
-            command: "pnpm",
-            args: ["test:scripts"],
-            phase: "script unit tests",
-            databaseUrl: database?.url,
-          });
-      }
-      if (packages.length > 0) {
-        runTurbo({
-          tasks: ["typecheck"],
-          filters,
-          phase: "affected typecheck",
-          databaseUrl: database?.url,
-        });
-        runTurbo({
-          tasks: ["build"],
-          filters,
-          phase: "affected build",
-          databaseUrl: database?.url,
-        });
-      }
-    } else if (scope.scriptTests)
+    if (scope.scriptTests)
       run({
         command: "pnpm",
         args: ["test:scripts"],
@@ -150,8 +118,7 @@ export async function runAffectedChecks({ mode, staged = false, unitOnly = false
     clean();
   }
   if (cleanupError) process.exitCode = 1;
-  else
-    process.stdout.write(`${mode === "pre-push" ? "Pre-push checks" : "Affected tests"} passed.\n`);
+  else process.stdout.write("Affected tests passed.\n");
 }
 
 function resolvePackages(filters) {

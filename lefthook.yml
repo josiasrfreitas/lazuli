@@ -1,4 +1,4 @@
-# Cheap staged-only checks. Infrastructure and compilation belong to pre-push.
+# Commit: formatting/whitespace. Push: syntax/component size. Full gates belong to CI.
 
 pre-commit:
   piped: true
@@ -12,7 +12,7 @@ pre-commit:
 
 pre-push:
   commands:
-    affected-checks:
+    cheap-checks:
       run: pnpm check:pre-push --base origin/main
 
 post-checkout:

@@ -69,7 +69,7 @@ checks necessarily execute and failures identify the case. Mocks are allowed at 
 
 `pnpm test:quality:changed --base <ref>` analyzes new test files in full. In existing files, it
 analyzes every touched `it`/`test` function as a unit; module-level diagnostics apply only when their
-own line changed. Use `--staged` in pre-commit.
+own line changed. Use `--staged` for an optional local review; CI runs the gate automatically.
 
 Blocking rules cover module-load assertions, constant/self comparisons, truthiness comparisons,
 errors without matchers, unawaited promise assertions, `.only`, skips without reasons, commented
@@ -81,15 +81,13 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
 ## Executable workflow
 
 - `pnpm test` runs unit tests; `test:integration` and `test:transport` run infrastructure tiers.
-- Pre-commit formats supported staged files, lints only existing staged source files, runs the staged
-  prospective gate, and executes unit tests for affected workspaces and transitive consumers.
-  Script and tooling changes execute script unit tests. It never runs typecheck, build, integration,
-  transport, Docker, Prisma, or environment preflight. Documentation-only commits run no tests.
-- `pnpm check:pre-push --base <ref>` considers only commits since the merge-base, excluding local
-  staged, unstaged, and untracked changes. It classifies changes before running filtered lint,
-  typecheck, build, unit tests, and affected infrastructure tiers. Root reporting/guardrail scripts,
-  Storybook, proxy metadata, and Pullfrog workflows do not select all application workspaces.
-- `pnpm test:affected --base <ref>` keeps the same selection and isolated infrastructure for manual
+- Pre-commit only formats supported staged files and runs `git diff --cached --check`.
+- `pnpm check:pre-push --base <ref>` only parses committed JS/TS and JSON and checks the
+  200-line limit for changed application/shared components. It reads from HEAD, excluding
+  staged, unstaged, and untracked edits. It does not repeat formatting or whitespace checks.
+- Local hooks run no lint, typecheck, build, test suite, mutation, or infrastructure operation.
+  CI owns those full gates; run relevant tests explicitly while implementing a change.
+- `pnpm test:affected --base <ref>` selects affected workspaces and isolated infrastructure for manual
   test runs. `pnpm test:affected --staged --unit-only` is its infrastructure-free staged variant.
   Unknown executable files fail closed until their impact is classified.
 - Integration and transport tests selected locally share a fresh, unseeded PostgreSQL database.
@@ -98,8 +96,8 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
   tiers serially, and removes the database even after failure or interruption. It never starts
   Docker, promotes a light worktree, writes `.env`, seeds fixtures, or resets the development
   database. Missing infrastructure reports the minimal `docker compose up -d ...` command.
-- CI still runs the complete production build and every test tier against a new Postgres instance;
-  the local affected build and affected infrastructure tiers do not weaken that remote gate.
+- CI runs formatting, full lint, duplication, typecheck, prospective test quality, production build,
+  every test tier, migration/drift checks, and changed-file mutation. It uses a new Postgres instance.
   `Quality gates` requires both static checks and the complete build to pass;
   complete tests and mutation wait only for static checks. Turbo caches are isolated by job and
   restored from that job's latest snapshot, so concurrent jobs cannot overwrite each other's cache.
