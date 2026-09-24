@@ -107,7 +107,7 @@ export async function createOrder(input: {
     staffUserId: input.staffUserId,
   });
 
-  return { order, ...schedule };
+  return { order: { ...order, payerId }, ...schedule };
 }
 
 export async function updateOrder(input: {
@@ -119,6 +119,10 @@ export async function updateOrder(input: {
 
   if (existingOrder === null) {
     throw notFound(ORDER_NOT_FOUND_MESSAGE);
+  }
+
+  if (existingOrder.contractId !== null) {
+    throw orderLocked();
   }
 
   assertOrderEditable(existingOrder);
@@ -150,7 +154,7 @@ export async function updateOrder(input: {
     staffUserId: input.staffUserId,
   });
 
-  return { order, ...schedule };
+  return { order: { ...order, payerId: order.payerId! }, ...schedule };
 }
 
 function generateOrderInstallments(values: {
@@ -254,6 +258,7 @@ async function persistOrderSchedule(input: {
 
 type LoadedEditableOrder = {
   id: string;
+  contractId: string | null;
   installments: Array<{
     waivedAt: Date | null;
     _count: { allocations: number; adjustments: number };
@@ -268,6 +273,7 @@ async function loadEditableOrder(
     where: { id: orderId },
     select: {
       id: true,
+      contractId: true,
       installments: {
         select: {
           waivedAt: true,

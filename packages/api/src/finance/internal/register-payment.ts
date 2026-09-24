@@ -12,6 +12,7 @@ import {
 } from "./payment-store.js";
 import {
   badRequest,
+  CONTRACT_OPERATION_UNAVAILABLE_MESSAGE,
   ENTRY_OVER_ALLOCATION_MESSAGE,
   INSTALLMENT_NOT_FOUND_MESSAGE,
   INSTALLMENT_OVER_ALLOCATION_MESSAGE,
@@ -124,8 +125,12 @@ function assertInstallmentsAllocatable(input: {
       throw notFound(INSTALLMENT_NOT_FOUND_MESSAGE);
     }
 
-    if (installment.order.payerId !== input.payerId) {
+    if ((installment.order.contract?.payerId ?? installment.order.payerId) !== input.payerId) {
       throw badRequest(INSTALLMENT_PAYER_MISMATCH_MESSAGE);
+    }
+
+    if (installment.order.contract !== null) {
+      throw badRequest(CONTRACT_OPERATION_UNAVAILABLE_MESSAGE);
     }
 
     if (installment.waivedAt !== null) {

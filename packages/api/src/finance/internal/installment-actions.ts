@@ -16,6 +16,7 @@ import {
   ADJUSTMENT_BELOW_ZERO_MESSAGE,
   badRequest,
   CANCELLED_ORDER_INSTALLMENT_MESSAGE,
+  CONTRACT_OPERATION_UNAVAILABLE_MESSAGE,
   DEFAULT_INTEREST_RATE_PCT_MONTHLY,
   DISCOUNT_REASON_REQUIRED_MESSAGE,
   INSTALLMENT_ALREADY_WAIVED_MESSAGE,
@@ -108,6 +109,10 @@ function assertInstallmentWaivable(installment: LoadedInstallment): void {
     throw badRequest(CANCELLED_ORDER_INSTALLMENT_MESSAGE);
   }
 
+  if (installment.order.contract !== null) {
+    throw badRequest(CONTRACT_OPERATION_UNAVAILABLE_MESSAGE);
+  }
+
   if (installment.waivedAt !== null) {
     throw badRequest(INSTALLMENT_ALREADY_WAIVED_MESSAGE);
   }
@@ -172,6 +177,10 @@ function assertInstallmentAdjustable(
 ): void {
   if (installment.order.cancelledAt !== null) {
     throw badRequest(CANCELLED_ORDER_INSTALLMENT_MESSAGE);
+  }
+
+  if (installment.order.contract !== null) {
+    throw badRequest(CONTRACT_OPERATION_UNAVAILABLE_MESSAGE);
   }
 
   if (installment.waivedAt !== null) {

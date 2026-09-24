@@ -75,33 +75,41 @@ function sumOverdueCents(input: {
   return overdueCents;
 }
 
-function loadBeneficiaries(
+async function loadBeneficiaries(
   database: FinanceDatabase,
   studentIds: readonly string[],
 ): Promise<LoadedBeneficiary[]> {
-  return database.orderBeneficiary.findMany({
+  const orders = await database.order.findMany({
     where: {
-      studentId: { in: [...studentIds] },
+      OR: [
+        { beneficiaries: { some: { studentId: { in: [...studentIds] }, deletedAt: null } } },
+        { contract: { studentId: { in: [...studentIds] } } },
+      ],
+      cancelledAt: null,
       deletedAt: null,
-      order: { cancelledAt: null, deletedAt: null },
     },
     select: {
-      studentId: true,
-      order: {
+      cancelledAt: true,
+      contract: { select: { studentId: true } },
+      beneficiaries: {
+        where: { studentId: { in: [...studentIds] }, deletedAt: null },
+        select: { studentId: true },
+      },
+      installments: {
+        where: { deletedAt: null },
         select: {
-          cancelledAt: true,
-          installments: {
-            where: { deletedAt: null },
-            select: {
-              amountCents: true,
-              dueDate: true,
-              waivedAt: true,
-              adjustments: { where: { deletedAt: null }, select: { amountCents: true } },
-              allocations: { where: { deletedAt: null }, select: { amountCents: true } },
-            },
-          },
+          amountCents: true,
+          dueDate: true,
+          waivedAt: true,
+          adjustments: { where: { deletedAt: null }, select: { amountCents: true } },
+          allocations: { where: { deletedAt: null }, select: { amountCents: true } },
         },
       },
     },
   });
+  return orders.flatMap((order) =>
+    order.contract === null
+      ? order.beneficiaries.map(({ studentId }) => ({ studentId, order }))
+      : [{ studentId: order.contract.studentId, order }],
+  );
 }

@@ -5,6 +5,7 @@ import {
   type FinanceInstallmentsInput,
   type FinanceInstallmentsOutput,
 } from "@lazuli/validators";
+import { sql } from "kysely";
 
 import {
   loadOverduePage,
@@ -16,6 +17,8 @@ import { groupOverdueRows, type LoadedBeneficiaries, toPublicRow } from "../inst
 import type { FinanceDatabase } from "./shared.js";
 
 type InstallmentsResponseBody = Omit<Extract<FinanceInstallmentsOutput, { view: "all" }>, "view">;
+const STUDENT_NAME_COLUMN = "Student.full_name";
+const STUDENT_ID_COLUMN = "Student.id";
 
 export async function listInstallments(input: {
   database: FinanceDatabase;
@@ -75,25 +78,45 @@ async function loadBeneficiaries(
 
   const rows = await database.$kysely
     .selectFrom("OrderBeneficiary")
-    .innerJoin("Student", "Student.id", "OrderBeneficiary.student_id")
+    .innerJoin("Student", STUDENT_ID_COLUMN, "OrderBeneficiary.student_id")
     .select([
       "OrderBeneficiary.order_id as orderId",
-      "Student.id as studentId",
+      sql<string>`"Student".id`.as("studentId"),
       "Student.full_name as fullName",
     ])
     .where("OrderBeneficiary.order_id", "in", orderIds)
     .where("OrderBeneficiary.deleted_at", "is", null)
     .where("Student.deleted_at", "is", null)
-    .orderBy("Student.full_name", "asc")
-    .orderBy("Student.id", "asc")
+    .orderBy(STUDENT_NAME_COLUMN, "asc")
+    .orderBy(STUDENT_ID_COLUMN, "asc")
+    .execute();
+  const contractualRows = await database.$kysely
+    .selectFrom("Order")
+    .innerJoin("Contract", "Contract.id", "Order.contract_id")
+    .innerJoin("Student", STUDENT_ID_COLUMN, "Contract.student_id")
+    .select([
+      "Order.id as orderId",
+      sql<string>`"Student".id`.as("studentId"),
+      "Student.full_name as fullName",
+    ])
+    .where("Order.id", "in", orderIds)
+    .where("Student.deleted_at", "is", null)
+    .orderBy(STUDENT_NAME_COLUMN, "asc")
+    .orderBy(STUDENT_ID_COLUMN, "asc")
     .execute();
   const byOrder = new Map<string, FinanceInstallmentRow["beneficiaries"]>();
-  for (const row of rows) {
+  for (const row of [...rows, ...contractualRows]) {
     const existing = byOrder.get(row.orderId) ?? [];
     existing.push({ studentId: row.studentId, fullName: row.fullName });
     byOrder.set(row.orderId, existing);
   }
-  return { byOrder, ordered: rows.map(({ studentId, fullName }) => ({ studentId, fullName })) };
+  return {
+    byOrder,
+    ordered: [...rows, ...contractualRows].map(({ studentId, fullName }) => ({
+      studentId,
+      fullName,
+    })),
+  };
 }
 
 async function listOverdueInstallments(input: {
