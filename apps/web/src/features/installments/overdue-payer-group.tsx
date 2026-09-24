@@ -114,7 +114,7 @@ function OverdueGroupHeader({
           </p>
         </div>
       </div>
-      <div className="ml-auto shrink-0 text-right">
+      <div className="w-full shrink-0 text-right sm:ml-auto sm:w-auto">
         <span className="block text-xs text-muted-foreground">Saldo em aberto</span>
         <strong className="font-numeric block font-semibold tabular-nums text-destructive">
           {vm.balance}
