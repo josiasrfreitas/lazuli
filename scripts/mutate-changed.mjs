@@ -27,7 +27,21 @@ function hasUnitTests(packageDirectory) {
 }
 
 const baseRef = resolveBaseRef(readOption("base"));
-const groups = groupSourceFilesByPackage(listChangedFiles(baseRef));
+const changedGroups = groupSourceFilesByPackage(listChangedFiles(baseRef));
+const packageFilter = readOption("package");
+const groups = packageFilter
+  ? new Map([...changedGroups].filter(([packageDirectory]) => packageDirectory === packageFilter))
+  : changedGroups;
+if (process.argv.includes("--matrix-only")) {
+  const include = [...changedGroups]
+    .filter(([packageDirectory]) => hasUnitTests(packageDirectory))
+    .map(([packageDirectory]) => ({
+      packageDirectory,
+      cacheScope: packageDirectory.replaceAll("/", "-"),
+    }));
+  process.stdout.write(`${JSON.stringify({ include })}\n`);
+  process.exit(0);
+}
 // Unconfigured packages with unit tests still reach the fail-closed gate.
 if (process.argv.includes("--scope-only")) {
   process.stdout.write(`${[...groups.keys()].some(hasUnitTests)}\n`);

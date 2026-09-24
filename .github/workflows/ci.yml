@@ -11,22 +11,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  mutation-scope:
+    name: Mutation scope
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      selected: ${{ steps.detect.outputs.selected }}
+      matrix: ${{ steps.detect.outputs.matrix }}
+      fingerprint: ${{ steps.detect.outputs.fingerprint }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Detect changed mutation packages
+        id: detect
+        run: |
+          base="origin/${{ github.base_ref }}"
+          selected=$(node scripts/mutate-changed.mjs --base "$base" --scope-only)
+          matrix=$(node scripts/mutate-changed.mjs --base "$base" --matrix-only)
+          fingerprint=$(node scripts/mutation-cache-key.mjs --base "$base")
+          echo "selected=$selected" >> "$GITHUB_OUTPUT"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+
   checks:
     name: Static checks
     runs-on: ubuntu-latest
-    outputs:
-      mutation-scope: ${{ steps.mutation-scope.outputs.selected }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      - name: Detect mutation scope
-        id: mutation-scope
-        if: github.event_name == 'pull_request'
-        run: |
-          selected=$(node scripts/mutate-changed.mjs --base origin/${{ github.base_ref }} --scope-only)
-          echo "selected=$selected" >> "$GITHUB_OUTPUT"
       - name: Format
         run: pnpm format:check
       - name: Lint and typecheck
@@ -126,47 +144,68 @@ jobs:
             tooling/*/coverage/*/lcov.info
           if-no-files-found: error
 
-  mutation:
-    name: Changed-file mutation
-    if: github.event_name == 'pull_request' && needs.checks.outputs.mutation-scope == 'true'
-    needs: checks
+  mutation-packages:
+    name: Mutate ${{ matrix.packageDirectory }}
+    if: github.event_name == 'pull_request' && needs.mutation-scope.outputs.selected == 'true'
+    needs: mutation-scope
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.mutation-scope.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
-      - name: Fingerprint mutation inputs
-        id: mutation-inputs
-        run: |
-          fingerprint=$(node scripts/mutation-cache-key.mjs --base origin/${{ github.base_ref }})
-          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
-      - name: Restore Stryker incremental reports
+        with:
+          turbo-cache-scope: mutation-${{ matrix.cacheScope }}
+      - name: Restore package Stryker incremental report
         id: stryker-incremental-cache
         uses: actions/cache/restore@v4
         with:
-          path: |
-            apps/*/reports/stryker-incremental.json
-            packages/*/reports/stryker-incremental.json
-          key: stryker-v2-${{ runner.os }}-${{ steps.mutation-inputs.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ matrix.packageDirectory }}/reports/stryker-incremental.json
+          key: stryker-v3-${{ runner.os }}-${{ needs.mutation-scope.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-${{ matrix.cacheScope }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            stryker-v2-${{ runner.os }}-${{ steps.mutation-inputs.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-
-      - name: Mutate changed source
-        run: pnpm mutate:changed --base origin/${{ github.base_ref }}
-      - name: Save Stryker incremental reports
-        if: ${{ !cancelled() && steps.stryker-incremental-cache.outcome == 'success' && hashFiles('apps/*/reports/stryker-incremental.json', 'packages/*/reports/stryker-incremental.json') != '' }}
+            stryker-v3-${{ runner.os }}-${{ needs.mutation-scope.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-${{ matrix.cacheScope }}-
+      - name: Mutate changed package
+        env:
+          MUTATION_PACKAGE_DIRECTORY: ${{ matrix.packageDirectory }}
+        run: pnpm mutate:changed --base origin/${{ github.base_ref }} --package "$MUTATION_PACKAGE_DIRECTORY"
+      - name: Save package Stryker incremental report
+        if: ${{ !cancelled() && steps.stryker-incremental-cache.outcome == 'success' && hashFiles(format('{0}/reports/stryker-incremental.json', matrix.packageDirectory)) != '' }}
         uses: actions/cache/save@v4
         with:
-          path: |
-            apps/*/reports/stryker-incremental.json
-            packages/*/reports/stryker-incremental.json
+          path: ${{ matrix.packageDirectory }}/reports/stryker-incremental.json
           key: ${{ steps.stryker-incremental-cache.outputs.cache-primary-key }}
-      - name: Publish mutation reports
+      - name: Publish package mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-${{ github.run_id }}-${{ matrix.cacheScope }}
+          path: ${{ matrix.packageDirectory }}/reports/mutation/**
+          if-no-files-found: warn
+
+  mutation:
+    name: Changed-file mutation
+    if: always() && github.event_name == 'pull_request' && needs.mutation-scope.outputs.selected == 'true'
+    needs: [mutation-scope, mutation-packages]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download package mutation reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: mutation-${{ github.run_id }}-*
+          path: mutation-reports
+      - name: Publish combined mutation report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mutation-${{ github.run_id }}
-          path: |
-            apps/*/reports/mutation/**
-            packages/*/reports/mutation/**
+          path: mutation-reports/**
           if-no-files-found: warn
+      - name: Require all package mutation checks to pass
+        if: always()
+        env:
+          PACKAGE_MUTATION_RESULT: ${{ needs.mutation-packages.result }}
+        run: test "$PACKAGE_MUTATION_RESULT" = success

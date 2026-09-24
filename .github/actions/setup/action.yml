@@ -3,6 +3,11 @@
 name: Setup workspace
 description: Install pnpm, Node, project dependencies, and restore the Turborepo cache.
 
+inputs:
+  turbo-cache-scope:
+    description: Optional cache scope for matrix jobs.
+    required: false
+
 runs:
   using: composite
   steps:
@@ -21,9 +26,9 @@ runs:
       uses: actions/cache@v4
       with:
         path: .turbo
-        key: turbo-v2-${{ runner.os }}-${{ github.job }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        key: turbo-v2-${{ runner.os }}-${{ inputs.turbo-cache-scope || github.job }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
-          turbo-v2-${{ runner.os }}-${{ github.job }}-
+          turbo-v2-${{ runner.os }}-${{ inputs.turbo-cache-scope || github.job }}-
 
     # `postinstall` runs `prisma generate`, so the client is ready after this step.
     - name: Install dependencies

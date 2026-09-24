@@ -35,6 +35,10 @@ it("classifies documentation, light scripts, full setup, schema, and global conf
   );
   assert.equal(classifyChanges(["orca.yaml"], { root: directory }).workspaceIntegration, true);
   assert.equal(
+    classifyChanges([".github/actions/setup/action.yml"], { root: directory }).rootChecks,
+    true,
+  );
+  assert.equal(
     classifyChanges(["packages/db/prisma/schema.prisma"], { root: directory })
       .forceInfrastructureTiers,
     true,
