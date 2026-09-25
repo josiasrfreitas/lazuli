@@ -287,8 +287,8 @@ void describe("new-student wizard: error transitions", () => {
   });
 
   void it("returns to Dados with the server's field errors on rejection", () => {
-    const onFinanceiro = advanced(advanced(stateWith({ fullName: ADULT_NAME })));
-    const rejected = newStudentReducer(onFinanceiro, {
+    const onPedagogico = advanced(stateWith({ fullName: ADULT_NAME }));
+    const rejected = newStudentReducer(onPedagogico, {
       type: "serverRejected",
       errors: { guardianName: SERVER_GUARDIAN_REQUIRED_MESSAGE },
       formError: null,
@@ -296,19 +296,18 @@ void describe("new-student wizard: error transitions", () => {
 
     assert.equal(rejected.step, 0);
     assert.equal(rejected.errors.guardianName, SERVER_GUARDIAN_REQUIRED_MESSAGE);
-    assert.equal(rejected.errorsRevision, onFinanceiro.errorsRevision + 1);
+    assert.equal(rejected.errorsRevision, onPedagogico.errorsRevision + 1);
   });
 });
 
 void describe("new-student wizard: step transitions", () => {
-  void it("skips through Turma and Financeiro and walks back", () => {
-    const onTurma = advanced(stateWith({ fullName: ADULT_NAME }));
-    const onFinanceiro = advanced(onTurma);
-    assert.equal(onFinanceiro.step, 2);
-    assert.equal(advanced(onFinanceiro).step, 2);
+  void it("stops at Pedagógico and walks back to Dados", () => {
+    const onPedagogico = advanced(stateWith({ fullName: ADULT_NAME }));
+    assert.equal(onPedagogico.step, 1);
+    assert.equal(advanced(onPedagogico).step, 1);
 
-    const back = newStudentReducer(onFinanceiro, { type: "backRequested" });
-    assert.equal(back.step, 1);
+    const back = newStudentReducer(onPedagogico, { type: "backRequested" });
+    assert.equal(back.step, 0);
   });
 
   void it("resets to the initial state", () => {

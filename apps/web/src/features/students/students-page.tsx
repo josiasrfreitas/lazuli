@@ -18,7 +18,7 @@ import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentPreviewPanel } from "./student-preview-panel";
 import { StudentsTable } from "./students-table";
 import { studentFilterFields } from "./student-filter-fields";
-import { StudentsControls, StudentsHeader } from "./students-toolbar";
+import { StudentsControls, StudentsSummary } from "./students-toolbar";
 import { headerSummaryVm, tableStateVm } from "./view-model";
 
 function paginationFor(filters: ReturnType<typeof useStudentsFilters>): UrlPagination {
@@ -99,7 +99,8 @@ export function StudentsPage(): ReactElement {
             }}
           />
         }
-        header={<StudentsHeader summary={headerSummaryVm(students.data)} />}
+        title="Alunos"
+        summary={<StudentsSummary summary={headerSummaryVm(students.data)} />}
       >
         <div className="flex h-full min-h-0 flex-col gap-2">
           <TableFilterChips fields={fields} />

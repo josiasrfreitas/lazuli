@@ -80,3 +80,101 @@ void describe("contract search input", () => {
     );
   });
 });
+
+void describe("inline contract payer input", () => {
+  void it("preserves the serialized P05 input for persisted command fingerprints", () => {
+    assert.equal(
+      JSON.stringify(createMonthlyContractInputSchema.parse(VALID_INPUT)),
+      JSON.stringify(VALID_INPUT),
+    );
+  });
+
+  for (const document of [
+    {},
+    { documentType: null, documentNumber: null },
+    { documentType: "CPF", documentNumber: "123.456.789-00" },
+    { documentType: "RG", documentNumber: "12.345.678-X" },
+    { documentType: "RG" },
+  ]) {
+    void it(`accepts an inline payer with ${JSON.stringify(document)}`, () => {
+      const { payerId: _payerId, ...contract } = VALID_INPUT;
+      const payer = {
+        name: "  Maria  ",
+        phone: " 123 ",
+        email: " maria@example.com ",
+        ...document,
+      };
+      const parsed = createMonthlyContractInputSchema.parse({ ...contract, newPayer: payer });
+      assert.deepEqual(parsed.newPayer, {
+        ...document,
+        name: "Maria",
+        phone: "123",
+        email: "maria@example.com",
+      });
+      assert.equal(parsed.payerId, undefined);
+    });
+  }
+});
+
+void it("normalizes document text and reports errors at fields the contract form can address", () => {
+  const { payerId: _payerId, ...contract } = VALID_INPUT;
+  const parsed = createMonthlyContractInputSchema.parse({
+    ...contract,
+    newPayer: { name: "Maria", documentType: "RG", documentNumber: " 123 " },
+  });
+  assert.equal(parsed.newPayer?.documentNumber, "123");
+  const blank = createMonthlyContractInputSchema.safeParse({
+    ...contract,
+    newPayer: { name: "Maria", documentType: "RG", documentNumber: " " },
+  });
+  assert.equal(blank.success, false);
+  assert.deepEqual(
+    blank.error?.issues.map(({ path, message }) => ({ path, message })),
+    [{ path: ["newPayer", "documentNumber"], message: "Informe o número do documento." }],
+  );
+  const missing = createMonthlyContractInputSchema.safeParse(contract);
+  assert.deepEqual(
+    missing.error?.issues.map(({ path, message }) => ({ path, message })),
+    [{ path: ["payerId"], message: "Selecione um pagador existente ou cadastre um novo." }],
+  );
+  const untyped = createMonthlyContractInputSchema.safeParse({
+    ...contract,
+    newPayer: { name: "Maria", documentNumber: "123" },
+  });
+  assert.deepEqual(
+    untyped.error?.issues.map(({ path, message }) => ({ path, message })),
+    [
+      {
+        path: ["newPayer", "documentType"],
+        message: "Informe o tipo do documento quando preencher o numero.",
+      },
+    ],
+  );
+});
+
+void describe("invalid inline contract payer input", () => {
+  for (const [label, payer] of [
+    ["blank name", { name: " " }],
+    ["number without type", { name: "Maria", documentNumber: "123" }],
+    ["number with null type", { name: "Maria", documentType: null, documentNumber: "123" }],
+    ["unknown type", { name: "Maria", documentType: "CNPJ" }],
+    ["untyped legacy input", { name: "Maria", taxId: "123" }],
+  ] as const) {
+    void it(`rejects an inline payer with ${label}`, () => {
+      const { payerId: _payerId, ...contract } = VALID_INPUT;
+      assert.equal(
+        createMonthlyContractInputSchema.safeParse({ ...contract, newPayer: payer }).success,
+        false,
+      );
+    });
+  }
+  void it("requires exactly one payer source", () => {
+    const { payerId: _payerId, ...contract } = VALID_INPUT;
+    assert.equal(createMonthlyContractInputSchema.safeParse(contract).success, false);
+    assert.equal(
+      createMonthlyContractInputSchema.safeParse({ ...VALID_INPUT, newPayer: { name: "Maria" } })
+        .success,
+      false,
+    );
+  });
+});

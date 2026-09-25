@@ -171,7 +171,7 @@ function Demo({ kind }: { kind: "installments" | "students" }): ReactElement {
   return (
     <div className="min-h-screen bg-background p-4">
       <DataTablePage
-        header={<h1 className="font-display text-2xl font-semibold">{title}</h1>}
+        title={title}
         controls={<TableFilters fields={fields} onClearAll={clearAll} />}
       >
         <div className="space-y-3">

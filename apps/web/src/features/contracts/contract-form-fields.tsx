@@ -1,12 +1,15 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { FormRow, FormSection } from "@lazuli/ui";
+import { CurrencyInput, Field, FieldError, FormRow, FormSection, Label } from "@lazuli/ui";
 import { formatBRLFromCents } from "~/lib/format";
 import type { ContractFields } from "./contract-form-model";
-import { PartyPicker } from "./party-picker";
+import { ContractStudentField } from "./contract-student-field";
 import { PaymentSection } from "./contract-payment-section";
 import { TextField } from "./contract-text-field";
+import { ContractPayerFields } from "./contract-payer-fields";
+
+const CENTS_PER_REAL = 100;
 
 export type FormProps = {
   fields: ContractFields;
@@ -15,6 +18,7 @@ export type FormProps = {
     | {
         tuitionCeilingCents: number;
         maximumDiscountPct: number;
+        punctualityDiscountPct: number;
         interestRatePctDaily: number;
         interestRatePctMonthly: number;
         cancellationFeePct: number;
@@ -28,25 +32,17 @@ export type FormProps = {
     floorCents: number;
     installments: Array<{ dueDate: string }>;
   } | null;
+  onMonthlyAmountBlur?: (() => void) | undefined;
   change: (name: keyof ContractFields, value: string) => void;
 };
 
 function PartiesSection({ fields, errors, change }: FormProps): ReactElement {
+  const creatingPerson = fields.studentMode === "create" || fields.payerMode === "create";
   return (
     <FormSection title="Beneficiário e pagador">
-      <FormRow columns={2}>
-        <PartyPicker
-          kind="student"
-          value={fields.studentId}
-          onChange={(value) => change("studentId", value)}
-          error={errors.studentId}
-        />
-        <PartyPicker
-          kind="payer"
-          value={fields.payerId}
-          onChange={(value) => change("payerId", value)}
-          error={errors.payerId}
-        />
+      <FormRow columns={creatingPerson ? 1 : 2}>
+        <ContractStudentField fields={fields} errors={errors} change={change} />
+        <ContractPayerFields fields={fields} errors={errors} change={change} />
       </FormRow>
     </FormSection>
   );
@@ -57,7 +53,7 @@ function TermFields({ fields, errors, change }: FormProps): ReactElement {
     <>
       <TextField
         name="agreedOn"
-        label="Fechamento"
+        label="Data do acordo"
         placeholder="dd/mm/aaaa"
         date
         value={fields.agreedOn}
@@ -65,49 +61,46 @@ function TermFields({ fields, errors, change }: FormProps): ReactElement {
         error={errors.agreedOn}
       />
       <TextField
-        name="startsOn"
+        name="firstDueDate"
         label="Início da vigência"
         placeholder="dd/mm/aaaa"
         date
-        value={fields.startsOn}
-        onChange={(value) => change("startsOn", value)}
-        error={errors.startsOn}
+        value={fields.firstDueDate}
+        onChange={(value) => change("firstDueDate", value)}
+        error={errors.firstDueDate}
       />
       <TextField
-        name="durationMonths"
-        label="Duração (meses)"
-        placeholder="12"
-        numeric
-        value={fields.durationMonths}
-        onChange={(value) => change("durationMonths", value)}
-        error={errors.durationMonths}
+        name="endsOn"
+        label="Fim da vigência"
+        placeholder="dd/mm/aaaa"
+        date
+        value={fields.endsOn}
+        onChange={(value) => change("endsOn", value)}
+        error={errors.endsOn}
       />
     </>
   );
 }
 
-function PriceFields({ fields, errors, change }: FormProps): ReactElement {
+function PriceFields({ fields, errors, change, onMonthlyAmountBlur }: FormProps): ReactElement {
+  const [reais, centavos] = fields.monthlyAmount.replace(",", ".").split(".");
+  const amount = Number(reais) * CENTS_PER_REAL + Number(centavos?.padEnd(2, "0") ?? 0);
   return (
-    <>
-      <TextField
+    <Field name="monthlyAmount">
+      <Label>Mensalidade acordada</Label>
+      <CurrencyInput
         name="monthlyAmount"
-        label="Mensalidade nominal (R$)"
-        placeholder="250,00"
-        numeric
-        value={fields.monthlyAmount}
-        onChange={(value) => change("monthlyAmount", value)}
-        error={errors.monthlyAmount}
+        autoComplete="off"
+        size="sm"
+        invalid={Boolean(errors.monthlyAmount)}
+        value={fields.monthlyAmount && Number.isSafeInteger(amount) ? amount : null}
+        onValueChange={(cents) =>
+          change("monthlyAmount", cents === null ? "" : (cents / CENTS_PER_REAL).toFixed(2))
+        }
+        onBlur={onMonthlyAmountBlur}
       />
-      <TextField
-        name="punctualityDiscountPct"
-        label="Pontualidade (%)"
-        placeholder="0"
-        numeric
-        value={fields.punctualityDiscountPct}
-        onChange={(value) => change("punctualityDiscountPct", value)}
-        error={errors.punctualityDiscountPct}
-      />
-    </>
+      {errors.monthlyAmount && <FieldError match>{errors.monthlyAmount}</FieldError>}
+    </Field>
   );
 }
 
@@ -122,7 +115,8 @@ function ConditionsSection(props: FormProps): ReactElement {
       {offer && (
         <p className="text-caption text-muted-foreground">
           Teto {formatBRLFromCents(offer.tuitionCeilingCents)} · desconto máximo{" "}
-          {offer.maximumDiscountPct.toLocaleString("pt-BR")}% · juros{" "}
+          {offer.maximumDiscountPct.toLocaleString("pt-BR")}% · pontualidade{" "}
+          {offer.punctualityDiscountPct.toLocaleString("pt-BR")}% · juros{" "}
           {offer.interestRatePctDaily.toLocaleString("pt-BR")}% ao dia e{" "}
           {offer.interestRatePctMonthly.toLocaleString("pt-BR")}% ao mês · multa rescisória{" "}
           {offer.cancellationFeePct.toLocaleString("pt-BR")}%

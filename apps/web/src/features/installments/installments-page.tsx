@@ -62,12 +62,8 @@ export function InstallmentsPage(): ReactElement {
   const { filters, data, query, setPage, setPageSize, setSearch, setFilters } = useInstallments();
   return (
     <DataTablePage
-      header={
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h1 className="font-display text-2xl font-semibold text-foreground">Recebíveis</h1>
-          <p className="text-sm text-muted-foreground">Vencimentos e pagamentos</p>
-        </div>
-      }
+      title="Recebíveis"
+      summary="Vencimentos e pagamentos"
       controls={
         <InstallmentsControls
           search={filters.search}

@@ -14,7 +14,7 @@
 
 import { maskDateBR, maskPhoneBR, parseDateBR } from "~/lib/masks";
 
-export const NEW_STUDENT_STEPS = ["Dados", "Turma", "Financeiro"] as const;
+export const NEW_STUDENT_STEPS = ["Dados", "Pedagógico"] as const;
 
 const FIRST_STEP = 0;
 const LAST_STEP = NEW_STUDENT_STEPS.length - 1;

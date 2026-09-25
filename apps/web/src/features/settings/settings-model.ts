@@ -38,6 +38,7 @@ export function loadedFields(row: SettingsRow | null): SettingsFields {
   return {
     tuitionCeilingCents: amount(row?.tuitionCeilingCents),
     maximumDiscountPct: number(row?.maximumDiscountPct),
+    punctualityDiscountPct: number(row?.punctualityDiscountPct ?? 0),
     interestRatePctDaily: number(row?.interestRatePctDaily),
     interestRatePctMonthly: number(row?.interestRatePctMonthly),
     cancellationFeePct: number(row?.cancellationFeePct),
@@ -77,6 +78,7 @@ export function validateSettings(
   const result = financeSettingsInputSchema.safeParse({
     tuitionCeilingCents: Math.round(decimal(fields.tuitionCeilingCents) * CENTS_PER_REAL),
     maximumDiscountPct: decimal(fields.maximumDiscountPct),
+    punctualityDiscountPct: decimal(fields.punctualityDiscountPct),
     interestRatePctDaily: decimal(fields.interestRatePctDaily),
     interestRatePctMonthly: decimal(fields.interestRatePctMonthly),
     cancellationFeePct: decimal(fields.cancellationFeePct),

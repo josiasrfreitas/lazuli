@@ -56,12 +56,14 @@ export type DialogBodyProps = ComponentPropsWithoutRef<"div">;
 /**
  * The dialog's scrollable region. Header, footer, and the close button stay
  * pinned while only this area scrolls when content exceeds the viewport.
+ * Matches the popup's p-6 inset: content stays padded while the scrollbar
+ * sits at the popup edge.
  */
 export const DialogBody = forwardRef<HTMLDivElement, DialogBodyProps>(
   ({ className, ...props }, ref) => (
     <div
       {...props}
-      className={cn("scrollbar-subtle min-h-0 flex-1 overflow-y-auto", className)}
+      className={cn("scrollbar-subtle -mx-6 min-h-0 flex-1 overflow-y-auto px-6", className)}
       data-slot="dialog-body"
       ref={ref}
     />

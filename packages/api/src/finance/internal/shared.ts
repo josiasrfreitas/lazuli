@@ -33,6 +33,9 @@ export type FinanceDatabase = Pick<
   DatabaseClient,
   | "$kysely"
   | "$queryRaw"
+  | "$executeRaw"
+  | "address"
+  | "guardian"
   | "payer"
   | "order"
   | "orderBeneficiary"

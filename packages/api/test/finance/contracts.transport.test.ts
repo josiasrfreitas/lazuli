@@ -17,6 +17,7 @@ const PRINCIPAL_CENTS = 300_000;
 const financeSettings = {
   tuitionCeilingCents: 25_000,
   maximumDiscountPct: 20,
+  punctualityDiscountPct: 20,
   interestRatePctDaily: 0.1,
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,

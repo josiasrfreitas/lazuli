@@ -43,22 +43,25 @@ void describe("monthly contract", () => {
     assert.equal(addCalendarMonths("2028-01-31", 1), "2028-02-29");
   });
 
-  void it("rounds an on-time price half up and rejects a price below the authorized floor", () => {
+  void it("applies the negotiation floor to the agreed price, independently of punctuality", () => {
     assert.equal(
       priceAfterDiscountCents(ROUNDING_AMOUNT_CENTS, ROUNDING_DISCOUNT_PCT),
       EXPECTED_ROUNDED_CENTS,
     );
+    const terms = {
+      startsOn: "2026-03-15",
+      durationMonths: 1,
+      firstDueDate: MARCH_31,
+      monthlyAmountCents: 20_000,
+      tuitionCeilingCents: 25_000,
+      maximumDiscountPct: 20,
+      punctualityDiscountPct: 8,
+    };
+    const preview = previewMonthlyContract(terms);
+    assert.equal(preview.floorCents, 20_000);
+    assert.equal(preview.onTimeMonthlyCents, 18_400);
     assert.throws(
-      () =>
-        previewMonthlyContract({
-          startsOn: "2026-03-15",
-          durationMonths: 1,
-          firstDueDate: MARCH_31,
-          monthlyAmountCents: 20_000,
-          tuitionCeilingCents: 25_000,
-          maximumDiscountPct: 20,
-          punctualityDiscountPct: 8,
-        }),
+      () => previewMonthlyContract({ ...terms, monthlyAmountCents: 19_999 }),
       /fora da faixa/,
     );
   });

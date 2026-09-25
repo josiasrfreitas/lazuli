@@ -2,7 +2,6 @@
 
 import type { ReactElement } from "react";
 import { Field, FieldError, Input, Label } from "@lazuli/ui";
-import { maskDateBR } from "~/lib/masks";
 import type { ContractFields } from "./contract-form-model";
 
 type TextFieldProps = {
@@ -10,17 +9,25 @@ type TextFieldProps = {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: (() => void) | undefined;
   error?: string | undefined;
   placeholder: string;
   numeric?: boolean;
   date?: boolean;
 };
 
+function reverseDate(value: string, separator: "-" | "/"): string {
+  if (!value) return "";
+  const [first, middle, last] = value.split(separator);
+  return [last, middle, first].join(separator === "-" ? "/" : "-");
+}
+
 export function TextField({
   name,
   label,
   value,
   onChange,
+  onBlur,
   error,
   placeholder,
   numeric = false,
@@ -34,10 +41,17 @@ export function TextField({
         inputMode={numeric ? "decimal" : "text"}
         invalid={Boolean(error)}
         name={name}
-        onChange={(event) => onChange(date ? maskDateBR(event.target.value) : event.target.value)}
+        onBlur={onBlur}
+        onChange={(event) =>
+          onChange(date ? reverseDate(event.target.value, "-") : event.target.value)
+        }
+        onClick={(event) => {
+          if (date) event.currentTarget.showPicker?.();
+        }}
         placeholder={placeholder}
         size="sm"
-        value={value}
+        type={date ? "date" : "text"}
+        value={date ? reverseDate(value, "/") : value}
       />
       {error && <FieldError match>{error}</FieldError>}
     </Field>

@@ -30,6 +30,9 @@ export type {
 export { Button, buttonVariants } from "./components/button";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/button";
 export { DataTablePage } from "./components/data-table-page";
+export { DataTable } from "./components/data-table";
+export type { DataTableColumn, DataTableProps, DataTableState } from "./components/data-table";
+export type { TablePaginationConfig } from "./components/table-pagination";
 export { TableFilters, TableFilterChips } from "./components/table-filters";
 export type {
   RemoteOptionsResult,
@@ -218,3 +221,5 @@ export type {
 } from "./components/segmented-control";
 export { FormRow, FormSection } from "./components/form-layout";
 export type { FormRowColumns, FormRowProps, FormSectionProps } from "./components/form-layout";
+export { SearchSelect } from "./components/search-select";
+export type { SearchSelectOption, SearchSelectProps } from "./components/search-select";

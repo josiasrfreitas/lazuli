@@ -19,6 +19,7 @@ const OVERDUE_INSTANT = new Date("2026-02-02T12:00:00Z");
 const settings = {
   tuitionCeilingCents: 25_000,
   maximumDiscountPct: MAXIMUM_DISCOUNT_PCT,
+  punctualityDiscountPct: MAXIMUM_DISCOUNT_PCT,
   interestRatePctDaily: DAILY_INTEREST_PCT,
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,

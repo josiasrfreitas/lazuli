@@ -10,7 +10,7 @@ import { SettingsPanel } from "../../src/features/settings/settings-panel.js";
 import type { SettingsRow } from "../../src/features/settings/settings-model.js";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-const FIELD_COUNT = 6;
+const FIELD_COUNT = 7;
 
 function render(isPending = false): string {
   return renderToStaticMarkup(
@@ -26,6 +26,7 @@ function render(isPending = false): string {
 const current: SettingsRow = {
   tuitionCeilingCents: 25_000,
   maximumDiscountPct: 20,
+  punctualityDiscountPct: 0,
   tuitionFloorCents: 20_000,
   interestRatePctDaily: 0.1,
   interestRatePctMonthly: 2,
@@ -63,12 +64,12 @@ void it("starts editing with the actual stored amounts and percentages", () => {
   const values = (markup.match(/<input\b[^>]*>/gu) ?? []).map(
     (tag) => /value="([^"]*)"/u.exec(tag)?.[1],
   );
-  assert.deepEqual(values, ["250,00", "20", "0,1", "2", "10", "120,50"]);
+  assert.deepEqual(values, ["250,00", "20", "0", "0,1", "2", "10", "120,50"]);
   assert.match(markup, />Cancelar</u);
   assert.match(markup, />Salvar</u);
 });
 
-void it("offers six named decimal controls with format hints and no spin buttons or autofill", () => {
+void it("offers seven named decimal controls with format hints and no spin buttons or autofill", () => {
   const markup = render();
   const inputs = markup.match(/<input\b[^>]*>/gu) ?? [];
   assert.deepEqual(
@@ -76,6 +77,7 @@ void it("offers six named decimal controls with format hints and no spin buttons
     [
       "tuitionCeilingCents",
       "maximumDiscountPct",
+      "punctualityDiscountPct",
       "interestRatePctDaily",
       "interestRatePctMonthly",
       "cancellationFeePct",

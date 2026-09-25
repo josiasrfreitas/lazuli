@@ -549,6 +549,7 @@ model FinanceSettings {
   id                     String   @id @default("singleton")
   tuitionCeilingCents     Int?     @map("tuition_ceiling_cents")
   maximumDiscountPct     Decimal? @map("maximum_discount_pct") @db.Decimal(7, 4)
+  punctualityDiscountPct Decimal @default(0) @map("punctuality_discount_pct") @db.Decimal(7, 4)
   interestRatePctDaily   Decimal? @map("interest_rate_pct_daily") @db.Decimal(7, 4)
   cancellationFeePct     Decimal? @map("cancellation_fee_pct") @db.Decimal(7, 4)
   materialPriceCents     Int?     @map("material_price_cents")
@@ -562,16 +563,18 @@ model FinanceSettings {
 }
 
 model Payer {
-  id          String    @id @default(uuid()) @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
-  name        String
-  taxId       String?   @map("tax_id")
-  phone       String?
-  email       String?
-  createdById String?   @map("created_by_id") @db.Uuid
-  updatedById String?   @map("updated_by_id") @db.Uuid
+  id             String        @id @default(uuid()) @db.Uuid
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime?     @map("deleted_at") @db.Timestamptz
+  name           String
+  taxId          String?       @map("tax_id")
+  documentType   DocumentType? @map("document_type")
+  documentNumber String?       @map("document_number")
+  phone          String?
+  email          String?
+  createdById    String?       @map("created_by_id") @db.Uuid
+  updatedById    String?       @map("updated_by_id") @db.Uuid
 
   createdBy User?          @relation("PayerCreator", fields: [createdById], references: [id], onDelete: Restrict)
   updatedBy User?          @relation("PayerUpdater", fields: [updatedById], references: [id], onDelete: Restrict)

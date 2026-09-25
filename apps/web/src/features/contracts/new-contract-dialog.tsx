@@ -59,13 +59,16 @@ function DialogForm({
         onSubmit={(event) => void operation.submit(event)}
         className="space-y-5"
       >
-        <ContractFormFields
-          fields={state.fields}
-          errors={state.errors}
-          offer={operation.offer.data}
-          preview={operation.preview}
-          change={state.change}
-        />
+        <fieldset disabled={operation.pending} className="space-y-5">
+          <ContractFormFields
+            fields={state.fields}
+            errors={state.errors}
+            offer={operation.offer.data}
+            preview={operation.preview}
+            change={state.change}
+            onMonthlyAmountBlur={operation.validateMonthlyAmount}
+          />
+        </fieldset>
       </form>
     </DialogBody>
   );
@@ -98,7 +101,7 @@ export function NewContractDialog({
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
 }): ReactElement {
-  const state = useContractFormState();
+  const state = useContractFormState(open);
   const operation = useContractOperation({ open, onOpenChange, onCreated, state });
   return (
     <Dialog open={open} onOpenChange={operation.close}>
