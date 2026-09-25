@@ -62,6 +62,7 @@ async function createThroughHttp(): Promise<void> {
       agreedOn: "2026-03-15",
       startsOn: "2026-03-15",
       durationMonths: 12,
+      installmentCount: 3,
       firstDueDate: "2026-03-31",
       monthlyAmountCents: 25_000,
       punctualityDiscountPct: 20,
@@ -69,9 +70,39 @@ async function createThroughHttp(): Promise<void> {
   });
   assert.equal(response.status, OK_STATUS);
   const body = (await response.json()) as {
-    result: { data: { json: { id: string; principalAmountCents: number } } };
+    result: {
+      data: {
+        json: {
+          id: string;
+          principalAmountCents: number;
+          installmentCount: number;
+          uniformInstallmentAmountCents: number | null;
+        };
+      };
+    };
   };
   assert.equal(body.result.data.json.principalAmountCents, PRINCIPAL_CENTS);
+  assert.equal(body.result.data.json.installmentCount, 3);
+  assert.equal(body.result.data.json.uniformInstallmentAmountCents, 100_000);
+  const commandId = randomUUID();
+  const invalid = await callHttpMutation({
+    path: "finance.createMonthlyContract",
+    body: {
+      commandId,
+      payerId: payer.id,
+      studentId: student.id,
+      agreedOn: "2026-03-15",
+      startsOn: "2026-03-15",
+      durationMonths: 12,
+      firstDueDate: "2026-03-31",
+      monthlyAmountCents: 25_000,
+      installmentCount: 13,
+    },
+  });
+  assert.equal(invalid.status, 400);
+  const failure = (await invalid.json()) as { error: { json: { message: string } } };
+  assert.match(failure.error.json.message, /quantidade de parcelas/);
+  assert.equal(await db.contract.count({ where: { commandId } }), 0);
   const listResponse = await callHttpQuery({ path: "finance.listContracts", body: { page: 1 } });
   assert.equal(listResponse.status, OK_STATUS);
   const list = (await listResponse.json()) as {

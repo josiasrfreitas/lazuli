@@ -1,6 +1,9 @@
+import { splitPrincipal } from "./installment-amounts.js";
+
 export type MonthlyContractTerms = {
   startsOn: string;
   durationMonths: number;
+  installmentCount?: number | undefined;
   firstDueDate: string;
   monthlyAmountCents: number;
   tuitionCeilingCents: number;
@@ -43,6 +46,14 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
   floorCents: number;
   installments: Array<{ sequenceNumber: number; amountCents: number; dueDate: string }>;
 } {
+  const installmentCount = terms.installmentCount ?? terms.durationMonths;
+  if (
+    !Number.isInteger(installmentCount) ||
+    installmentCount < 1 ||
+    installmentCount > terms.durationMonths
+  ) {
+    throw new Error("Informe uma quantidade inteira entre 1 e a duração do contrato em meses.");
+  }
   const principalAmountCents = terms.durationMonths * terms.monthlyAmountCents;
   const numerator =
     BigInt(terms.tuitionCeilingCents) *
@@ -63,10 +74,12 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
     principalAmountCents,
     onTimeMonthlyCents,
     floorCents,
-    installments: Array.from({ length: terms.durationMonths }, (_unused, index) => ({
-      sequenceNumber: index + 1,
-      amountCents: terms.monthlyAmountCents,
-      dueDate: addCalendarMonths(terms.firstDueDate, index),
-    })),
+    installments: splitPrincipal(principalAmountCents, installmentCount).map(
+      (amountCents, index) => ({
+        sequenceNumber: index + 1,
+        amountCents,
+        dueDate: addCalendarMonths(terms.firstDueDate, index),
+      }),
+    ),
   };
 }

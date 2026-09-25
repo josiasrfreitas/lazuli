@@ -178,3 +178,28 @@ void describe("invalid inline contract payer input", () => {
     );
   });
 });
+
+void describe("special installment count", () => {
+  for (const installmentCount of [1, 3, 12]) {
+    void it(`accepts ${installmentCount} installments within the term`, () => {
+      assert.equal(
+        createMonthlyContractInputSchema.parse({ ...VALID_INPUT, installmentCount })
+          .installmentCount,
+        installmentCount,
+      );
+    });
+  }
+  for (const installmentCount of [0, -1, 1.5, 13, Number.POSITIVE_INFINITY]) {
+    void it(`rejects ${installmentCount} at the quantity field`, () => {
+      const result = createMonthlyContractInputSchema.safeParse({
+        ...VALID_INPUT,
+        installmentCount,
+      });
+      assert.equal(result.success, false);
+      assert.deepEqual(
+        [...new Set(result.error?.issues.map((issue) => issue.path.join(".")))],
+        ["installmentCount"],
+      );
+    });
+  }
+});

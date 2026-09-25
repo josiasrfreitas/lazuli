@@ -61,6 +61,11 @@ function assignIssue(errors: Errors, issue: ContractIssue): void {
     errors.endsOn = "Informe uma data final entre 1 e 120 meses completos após o início.";
     return;
   }
+  if (section === "installmentCount") {
+    errors.installmentCount =
+      "Informe uma quantidade inteira entre 1 e a duração do contrato em meses.";
+    return;
+  }
   const name = section as keyof ContractFields | "monthlyAmountCents";
   if (name === "monthlyAmountCents") errors.monthlyAmount = "Informe uma mensalidade válida.";
   else if (FORM_KEYS.has(name)) errors[name] = "Confira este campo.";

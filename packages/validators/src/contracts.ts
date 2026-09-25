@@ -40,6 +40,7 @@ export const createMonthlyContractInputSchema = z
     agreedOn: civilDateSchema,
     startsOn: civilDateSchema,
     durationMonths: z.number().int().min(1).max(MAX_DURATION_MONTHS),
+    installmentCount: z.number().int().positive().optional(),
     firstDueDate: civilDateSchema,
     monthlyAmountCents: z.number().int().positive().max(MAX_MONTHLY_AMOUNT_CENTS),
     punctualityDiscountPct: percentage.optional(),
@@ -48,6 +49,13 @@ export const createMonthlyContractInputSchema = z
   })
   .strict()
   .superRefine((input, context) => {
+    if (input.installmentCount !== undefined && input.installmentCount > input.durationMonths) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["installmentCount"],
+        message: "A quantidade de parcelas não pode ultrapassar a duração do contrato em meses.",
+      });
+    }
     if ((input.studentId === undefined) === (input.newStudent === undefined)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,

@@ -30,7 +30,7 @@ export type FormProps = {
     principalAmountCents: number;
     onTimeMonthlyCents: number;
     floorCents: number;
-    installments: Array<{ dueDate: string }>;
+    installments: Array<{ sequenceNumber: number; amountCents: number; dueDate: string }>;
   } | null;
   onMonthlyAmountBlur?: (() => void) | undefined;
   change: (name: keyof ContractFields, value: string) => void;
