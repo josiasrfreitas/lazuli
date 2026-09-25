@@ -70,13 +70,29 @@ void it("shows nominal calendar entries and a truthful variable summary", () => 
     }),
   );
   assert.match(markup, /3 parcelas · valores variáveis/);
-  assert.match(markup, /Ver calendário completo/);
+  assert.match(markup, /aria-label="Calendário de parcelas"/);
+  assert.doesNotMatch(markup, /Ver calendário completo/);
   assert.match(markup, /31\/01\/2026/);
   assert.match(markup, /28\/02\/2026/);
   assert.match(markup, /31\/03\/2026/);
   assert.match(markup, /333,34/);
-  assert.match(markup, /Voltar ao plano comum/);
+  assert.match(markup, /Parcelamento avançado/);
   assert.match(markup, /name="installmentCount"/);
   assert.equal(paymentPlanLabel(3, null), "3 parcelas · valores variáveis");
   assert.match(paymentPlanLabel(3, 100_000), /^3 × R\$\s1\.000,00$/);
+});
+
+void it("keeps the calendar inside the advanced plan", () => {
+  const common = { ...fields, paymentPlan: "common" };
+  const markup = renderToStaticMarkup(
+    React.createElement(PaymentSection, {
+      fields: common,
+      errors: {},
+      offer,
+      preview: contractPreview(common, offer),
+      change: () => {},
+    }),
+  );
+  assert.match(markup, /aria-expanded="false"/);
+  assert.doesNotMatch(markup, /aria-label="Calendário de parcelas"/);
 });

@@ -8,7 +8,7 @@ Fonte: [issue #123](https://github.com/josiasrfreitas/lazuli/issues/123),
 
 ## Entrega
 
-Um único PR entrega expansão do parcelamento especial, prévia, calendário completo,
+Um único PR entrega expansão do parcelamento avançado, prévia, calendário completo,
 gravação e síntese fiel na tabela. Os checkpoints abaixo pertencem à mesma fatia vertical.
 Principal = duração em meses × mensalidade acordada; mudar a quantidade de parcelas
 não muda esse principal nem o fim da vigência. A diferença de centavos fica na última parcela.
@@ -51,14 +51,14 @@ com o dono antes do comportamento afetado.
       vencimento a partir da primeira cobrança original. Validar a quantidade também no domínio
       antes de alocar o calendário. O servidor recalcula usando condições autorizadas e grava
       contrato/pedido/parcelas na transação existente de `finance(db, staffUserId)`.
-      No modal, expansão “Parcelamento especial” contém “Quantidade de parcelas” e prévia imediata;
+      No modal, expansão “Parcelamento avançado” contém “Quantidade de parcelas” e prévia imediata;
       12 meses × R$ 250 com quantidade 3 mostra e grava 3 × R$ 1.000. A tabela deve exibir
       esse plano após criar e após recarregar. _Reutiliza: cálculo de vigência, divisão em centavos,
-      Dialog, FormSection, Field e Input. Modifica: domínio, validator, criação, DTO e formulário._
+      Dialog, Field e Input. Modifica: domínio, validator, criação, DTO e formulário._
 
-- [x] **Conferir o calendário e os planos com centavos diferentes.** Disponibilizar expansão
-      independente “Ver calendário completo”, com sequência, data e nominal de cada parcela,
-      também no plano comum. Derivar a síntese dos valores reais: “3 × R$ 1.000,00” quando iguais;
+- [x] **Conferir o calendário e os planos com centavos diferentes.** Mostrar o calendário
+      completo diretamente quando o parcelamento avançado estiver aberto, com sequência, data e
+      nominal de cada parcela. Derivar a síntese dos valores reais: “3 × R$ 1.000,00” quando iguais;
       “3 parcelas · valores variáveis” quando diferentes, com os valores individuais no calendário da prévia
       (R$ 333,33, R$ 333,33 e R$ 333,34). Na tabela usar a síntese persistida, nunca mensalidade
       como valor da parcela nem total/quantidade arredondado como se todas fossem iguais.
@@ -68,8 +68,7 @@ com o dono antes do comportamento afetado.
       _Depende: cenário anterior. Reutiliza: tokens numéricos, formatadores e controles acessíveis.
       Modifica: PaymentSection, seleção/DTO e contract-columns. Cria: composição local do calendário._
 
-- [x] **Voltar ao plano comum e corrigir erros sem perder a negociação.** Distinguir ativação
-      do plano especial da expansão do calendário. Desativar o especial restaura quantidade
+- [x] **Voltar ao plano comum e corrigir erros sem perder a negociação.** Desativar o especial restaura quantidade
       derivada da duração e omite `installmentCount` do envio; proposta: preservar a quantidade
       especial em rascunho para reativação durante a sessão. Editar quantidade não altera datas,
       mensalidade ou partes. Recalcular ao editar duração/preço. Entrada vazia ou inválida produz

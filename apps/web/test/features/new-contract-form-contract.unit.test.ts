@@ -43,11 +43,9 @@ void describe("new contract form contract", () => {
   const inputs = (markup.match(/<input\b[^>]*>/gu) ?? []).filter((tag) =>
     /data-slot="input"/u.test(tag),
   );
-  void it("contains one form and three named sections", () => {
+  void it("contains one form without redundant section headings", () => {
     assert.equal((markup.match(/<form\b/gu) ?? []).length, 1);
-    assert.match(markup, /Beneficiário e pagador/u);
-    assert.match(markup, /Condições do contrato/u);
-    assert.match(markup, /Plano de pagamento/u);
+    assert.doesNotMatch(markup, /Beneficiário e pagador|Condições do contrato|Plano de pagamento/u);
   });
   void it("names the visible controls, opens native calendars, and uses the shared currency input", () => {
     assert.deepEqual(
