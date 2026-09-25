@@ -1,4 +1,4 @@
-import { deriveInstallmentLedger } from "@lazuli/domain";
+import { deriveInstallmentLedger, type InstallmentLedger } from "@lazuli/domain";
 
 import { toDateOnlyString } from "./shared.js";
 
@@ -16,6 +16,7 @@ export type ContractListRow = {
   monthlyAmountCents: number;
   principalAmountCents: number;
   installmentCount: number;
+  paymentProgress: { paid: number; total: number; waived: number; cancelled: number };
   uniformInstallmentAmountCents: number | null;
   firstDueDate: string;
   status: "INADIMPLENTE" | "EM_DIA" | "QUITADO" | "CANCELADO";
@@ -97,11 +98,10 @@ type SelectedContract = {
   }>;
 };
 
-function paymentStatus(
+function paymentSummary(
   order: SelectedContract["orders"][number],
-  now: Date,
-): ContractListRow["status"] {
-  if (order.cancelledAt) return "CANCELADO";
+  { now, total }: { now: Date; total: number },
+): Pick<ContractListRow, "status" | "paymentProgress"> {
   const ledgers = order.installments.map((installment) =>
     deriveInstallmentLedger({
       ...installment,
@@ -110,6 +110,26 @@ function paymentStatus(
       interestRatePctMonthly: 0,
     }),
   );
+  const paid = ledgers.filter(
+    (ledger) => ledger.status === "PAID" && ledger.paidAmountCents > 0,
+  ).length;
+  const waived = ledgers.filter((ledger) => ledger.status === "WAIVED").length;
+  return {
+    status: paymentStatus(ledgers, order.cancelledAt !== null),
+    paymentProgress: {
+      paid,
+      total,
+      waived,
+      cancelled: order.cancelledAt ? ledgers.length - paid - waived : 0,
+    },
+  };
+}
+
+function paymentStatus(
+  ledgers: InstallmentLedger[],
+  cancelled: boolean,
+): ContractListRow["status"] {
+  if (cancelled) return "CANCELADO";
   if (ledgers.some((ledger) => ledger.status === "OVERDUE" && ledger.collectibleRemainingCents > 0))
     return "INADIMPLENTE";
   return ledgers.every((ledger) => ledger.status === "PAID") ? "QUITADO" : "EM_DIA";
@@ -165,6 +185,6 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
     installmentCount: order.installmentCount,
     uniformInstallmentAmountCents: uniformInstallmentAmount(order),
     firstDueDate: toDateOnlyString(order.firstDueDate),
-    status: paymentStatus(order, now),
+    ...paymentSummary(order, { now, total: order.installmentCount }),
   };
 }
