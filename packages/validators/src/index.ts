@@ -142,3 +142,4 @@ export {
   requestStudentStatementInputSchema,
 } from "./reports.js";
 export type { ArtifactKind, ArtifactStatus, GetArtifactOutput } from "./reports.js";
+export { detectPersonDocument } from "./person-document.js";

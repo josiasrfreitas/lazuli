@@ -4,7 +4,6 @@ import type { ReactElement } from "react";
 import { FormSection } from "@lazuli/ui";
 import { formatBRLFromCents } from "~/lib/format";
 import type { FormProps } from "./contract-form-fields";
-import { TextField } from "./contract-text-field";
 
 const CENTS_PER_REAL = 100;
 
@@ -33,7 +32,7 @@ function PaymentPreview({
       </p>
       <p>
         {preview.installments.length} cobranças mensais de {formatBRLFromCents(monthlyCents)} · em
-        dia {formatBRLFromCents(preview.onTimeMonthlyCents)} · piso{" "}
+        dia {formatBRLFromCents(preview.onTimeMonthlyCents)} · piso da mensalidade acordada{" "}
         {formatBRLFromCents(preview.floorCents)}
       </p>
       <p>
@@ -45,19 +44,16 @@ function PaymentPreview({
 }
 
 export function PaymentSection(props: FormProps): ReactElement {
-  const { fields, errors, change, preview } = props;
+  const { fields, preview } = props;
   return (
     <FormSection title="Plano de pagamento">
-      <TextField
-        name="firstDueDate"
-        label="Primeira cobrança"
-        placeholder="dd/mm/aaaa"
-        date
-        value={fields.firstDueDate}
-        onChange={(value) => change("firstDueDate", value)}
-        error={errors.firstDueDate}
-      />
-      <PaymentPreview fields={fields} preview={preview} />
+      {preview ? (
+        <PaymentPreview fields={fields} preview={preview} />
+      ) : (
+        <p className="text-caption text-muted-foreground">
+          Informe as datas e a mensalidade para conferir as cobranças.
+        </p>
+      )}
     </FormSection>
   );
 }

@@ -52,8 +52,11 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
     terms.monthlyAmountCents,
     terms.punctualityDiscountPct,
   );
-  if (terms.monthlyAmountCents > terms.tuitionCeilingCents || onTimeMonthlyCents < floorCents) {
-    throw new Error("Mensalidade e pontualidade fora da faixa autorizada.");
+  if (
+    terms.monthlyAmountCents > terms.tuitionCeilingCents ||
+    terms.monthlyAmountCents < floorCents
+  ) {
+    throw new Error("Mensalidade acordada fora da faixa autorizada.");
   }
   return {
     endsOn: addCalendarMonths(terms.startsOn, terms.durationMonths),

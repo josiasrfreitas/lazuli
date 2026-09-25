@@ -56,6 +56,8 @@ void it("persists typed documents and contacts, reuses a payer for siblings, and
 
 void it("rolls back every write and replays a committed command without another payer", async () => {
   const values = await contractPayerFixture(`${PREFIX}atomic `);
+  const studentId = values.studentId;
+  assert.ok(studentId);
   await assert.rejects(
     db.$transaction(async (tx) => {
       await finance(tx, ADMIN.id).createMonthlyContract(values);
@@ -65,10 +67,10 @@ void it("rolls back every write and replays a committed command without another 
   );
   assert.equal(await db.payer.count({ where: { name: values.newPayer.name } }), 0);
   assert.equal(await db.contract.count({ where: { commandId: values.commandId } }), 0);
-  assert.equal(await db.order.count({ where: { contract: { studentId: values.studentId } } }), 0);
+  assert.equal(await db.order.count({ where: { contract: { studentId } } }), 0);
   assert.equal(
     await db.installment.count({
-      where: { createdById: ADMIN.id, order: { contract: { studentId: values.studentId } } },
+      where: { createdById: ADMIN.id, order: { contract: { studentId } } },
     }),
     0,
   );
@@ -92,6 +94,44 @@ void it("rolls back every write and replays a committed command without another 
   );
   const persisted = await db.payer.findUniqueOrThrow({ where: { id: first.payer.id } });
   assert.equal(persisted.phone, "(11) 91234-5678");
+});
+
+void it("creates a new student and guardian atomically with the payer and contract", async () => {
+  const values = await contractPayerFixture(`${PREFIX}new student `);
+  const { studentId: _studentId, ...withoutStudent } = values;
+  const studentName = `${PREFIX}new student beneficiary`;
+  const guardianName = `${PREFIX}new student guardian`;
+  const input = {
+    ...withoutStudent,
+    newStudent: {
+      fullName: studentName,
+      guardian: {
+        mode: "create" as const,
+        input: { fullName: guardianName, phone: "(11) 99999-8888" },
+      },
+    },
+  };
+  await assert.rejects(
+    db.$transaction(async (tx) => {
+      await finance(tx, ADMIN.id).createMonthlyContract(input);
+      throw new Error("simulated rollback");
+    }),
+    /simulated rollback/,
+  );
+  assert.equal(await db.student.count({ where: { fullName: studentName } }), 0);
+  assert.equal(await db.guardian.count({ where: { fullName: guardianName } }), 0);
+  assert.equal(await db.payer.count({ where: { name: values.newPayer.name } }), 0);
+  const contract = await db.$transaction((tx) =>
+    finance(tx, ADMIN.id).createMonthlyContract(input),
+  );
+  const student = await db.student.findUniqueOrThrow({
+    where: { id: contract.student.id },
+    include: { guardian: true },
+  });
+  assert.equal(student.fullName, studentName);
+  assert.equal(student.guardian?.fullName, guardianName);
+  assert.equal(student.guardian?.phone, "(11) 99999-8888");
+  assert.equal(await db.payer.count({ where: { name: values.newPayer.name } }), 1);
 });
 
 void it("preserves untyped taxId when reused and enforces typed new document numbers", async () => {

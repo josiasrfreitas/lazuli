@@ -35,6 +35,13 @@ function TuitionSection(props: SettingsSectionProps): ReactElement {
           </output>
         </div>
       </FormRow>
+      <SettingsField
+        {...props}
+        name="punctualityDiscountPct"
+        label="Desconto por pontualidade"
+        unit="%"
+        placeholder="0"
+      />
     </FormSection>
   );
 }

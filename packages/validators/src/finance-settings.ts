@@ -16,6 +16,7 @@ export const financeSettingsInputSchema = z
   .object({
     tuitionCeilingCents: z.number().int().positive(),
     maximumDiscountPct: percentage,
+    punctualityDiscountPct: percentage.optional(),
     interestRatePctDaily: percentage,
     interestRatePctMonthly: percentage,
     cancellationFeePct: percentage,

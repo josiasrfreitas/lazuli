@@ -12,6 +12,7 @@ import {
 const fields: SettingsFields = {
   tuitionCeilingCents: "250,00",
   maximumDiscountPct: "20",
+  punctualityDiscountPct: "0",
   interestRatePctDaily: "0,1",
   interestRatePctMonthly: "2",
   cancellationFeePct: "10",
@@ -24,6 +25,7 @@ void it("converts decimal entries to cents and percentage points without losing 
     values: {
       tuitionCeilingCents: 25_000,
       maximumDiscountPct: 20,
+      punctualityDiscountPct: 0,
       interestRatePctDaily: 0.1,
       interestRatePctMonthly: 2,
       cancellationFeePct: 10,
@@ -58,6 +60,7 @@ void it("keeps missing settings blank instead of inventing zero rates", () => {
   assert.deepEqual(loadedFields(null), {
     tuitionCeilingCents: "",
     maximumDiscountPct: "",
+    punctualityDiscountPct: "0",
     interestRatePctDaily: "",
     interestRatePctMonthly: "",
     cancellationFeePct: "",
@@ -83,6 +86,7 @@ void it("allows explicit zero rates and material price while rejecting a zero tu
     values: {
       tuitionCeilingCents: 25_000,
       maximumDiscountPct: 0,
+      punctualityDiscountPct: 0,
       interestRatePctDaily: 0,
       interestRatePctMonthly: 0,
       cancellationFeePct: 0,

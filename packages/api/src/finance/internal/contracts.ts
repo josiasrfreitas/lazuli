@@ -6,6 +6,7 @@ import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 
 import { contractSelect, toRow, type ContractListRow } from "./contracts-select.js";
+import { createStudent } from "../../students/data.js";
 import { createContractPayer } from "./payers.js";
 import { toDateOnly, type FinanceDatabase } from "./shared.js";
 
@@ -50,12 +51,14 @@ async function assertContractParties(
           select: { id: true },
         })
       : null,
-    database.student.findFirst({
-      where: { id: values.studentId, deletedAt: null },
-      select: { id: true },
-    }),
+    values.studentId
+      ? database.student.findFirst({
+          where: { id: values.studentId, deletedAt: null },
+          select: { id: true },
+        })
+      : null,
   ]);
-  if ((!payer && !values.newPayer) || !student)
+  if ((!payer && !values.newPayer) || (!student && !values.newStudent))
     throw new TRPCError({ code: "NOT_FOUND", message: "Aluno ou pagador não encontrado." });
 }
 
@@ -81,6 +84,15 @@ async function readyTerms(input: {
       message: "Configure os ajustes financeiros antes de criar um contrato.",
     });
   }
+  if (
+    values.punctualityDiscountPct !== undefined &&
+    values.punctualityDiscountPct !== Number(settings.punctualityDiscountPct)
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "O desconto por pontualidade é definido nos ajustes financeiros.",
+    });
+  }
   let preview: ReturnType<typeof previewMonthlyContract>;
   try {
     preview = previewMonthlyContract({
@@ -88,7 +100,7 @@ async function readyTerms(input: {
       durationMonths: values.durationMonths,
       firstDueDate: values.firstDueDate,
       monthlyAmountCents: values.monthlyAmountCents,
-      punctualityDiscountPct: values.punctualityDiscountPct,
+      punctualityDiscountPct: Number(settings.punctualityDiscountPct),
       tuitionCeilingCents: settings.tuitionCeilingCents,
       maximumDiscountPct: Number(settings.maximumDiscountPct),
     });
@@ -102,6 +114,7 @@ async function readyTerms(input: {
 }
 
 type PersistContractInput = {
+  studentId: string;
   payerId: string;
   database: FinanceDatabase;
   values: CreateMonthlyContractInput;
@@ -117,7 +130,7 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
       commandId: values.commandId,
       commandFingerprint: contractFingerprint(values),
       payerId: input.payerId,
-      studentId: values.studentId,
+      studentId: input.studentId,
       agreedOn: toDateOnly(values.agreedOn),
       startsOn: toDateOnly(values.startsOn),
       durationMonths: values.durationMonths,
@@ -125,7 +138,7 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
       monthlyAmountCents: values.monthlyAmountCents,
       tuitionCeilingCents: settings.tuitionCeilingCents,
       maximumDiscountPct: settings.maximumDiscountPct,
-      punctualityDiscountPct: values.punctualityDiscountPct,
+      punctualityDiscountPct: Number(settings.punctualityDiscountPct),
       interestRatePctDaily: settings.interestRatePctDaily,
       interestRatePctMonthly: settings.interestRatePctMonthly,
       cancellationFeePct: settings.cancellationFeePct,
@@ -164,12 +177,20 @@ export async function createMonthlyContract(input: {
   const prior = await findCommandResult(input.database, input.values);
   if (prior) return prior;
   const terms = await readyTerms(input);
+  let studentId = input.values.studentId!;
+  if (input.values.newStudent) {
+    const student = await createStudent({
+      database: input.database,
+      values: input.values.newStudent,
+    });
+    studentId = student.id;
+  }
   let payerId = input.values.payerId!;
   if (input.values.newPayer) {
     const payer = await createContractPayer({ ...input, values: input.values.newPayer });
     payerId = payer.id;
   }
-  return persistContract({ ...input, terms, payerId });
+  return persistContract({ ...input, terms, payerId, studentId });
 }
 
 export async function listContracts(
@@ -212,13 +233,13 @@ export async function searchContractParties(
   database: FinanceDatabase,
   query: string,
 ): Promise<{
-  students: Array<{ id: string; name: string }>;
-  payers: Array<{ id: string; name: string; detail: string }>;
+  students: Array<{ id: string; name: string; document: string | null }>;
+  payers: Array<{ id: string; name: string; document: string | null; detail: string }>;
 }> {
   const [students, payers] = await Promise.all([
     database.student.findMany({
       where: { deletedAt: null, fullName: { contains: query, mode: "insensitive" } },
-      select: { id: true, fullName: true },
+      select: { id: true, fullName: true, documentType: true, documentNumber: true },
       orderBy: { fullName: "asc" },
       take: 20,
     }),
@@ -237,10 +258,15 @@ export async function searchContractParties(
     }),
   ]);
   return {
-    students: students.map((row) => ({ id: row.id, name: row.fullName })),
+    students: students.map((row) => ({
+      id: row.id,
+      name: row.fullName,
+      document: row.documentNumber,
+    })),
     payers: payers.map((row) => ({
       id: row.id,
       name: row.name,
+      document: row.documentNumber,
       detail: [
         row.documentType && row.documentNumber ? `${row.documentType} ${row.documentNumber}` : null,
         row.phone,
@@ -255,6 +281,7 @@ export async function searchContractParties(
 export async function readContractOffer(database: FinanceDatabase): Promise<{
   tuitionCeilingCents: number;
   maximumDiscountPct: number;
+  punctualityDiscountPct: number;
   interestRatePctDaily: number;
   interestRatePctMonthly: number;
   cancellationFeePct: number;
@@ -272,6 +299,7 @@ export async function readContractOffer(database: FinanceDatabase): Promise<{
   return {
     tuitionCeilingCents: row.tuitionCeilingCents,
     maximumDiscountPct: Number(row.maximumDiscountPct),
+    punctualityDiscountPct: Number(row.punctualityDiscountPct),
     interestRatePctDaily: Number(row.interestRatePctDaily),
     interestRatePctMonthly: Number(row.interestRatePctMonthly),
     cancellationFeePct: Number(row.cancellationFeePct),

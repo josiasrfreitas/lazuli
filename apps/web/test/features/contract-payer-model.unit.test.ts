@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { it } from "node:test";
 import {
   contractInputFromFields,
+  contractPreview,
   emptyContractFields,
 } from "../../src/features/contracts/contract-form-model.js";
 import { fieldErrors } from "../../src/features/contracts/new-contract-state.js";
@@ -12,7 +13,7 @@ const fields = {
   studentId: "00000000-0000-4000-8000-000000000002",
   payerId: "00000000-0000-4000-8000-000000000003",
   agreedOn: "15/03/2026",
-  startsOn: "15/03/2026",
+  endsOn: "31/03/2027",
   firstDueDate: "31/03/2026",
   monthlyAmount: "250,00",
   payerName: " Maria ",
@@ -45,7 +46,7 @@ void it("ignores an invalid inactive draft and directs document errors to its co
   const parsed = contractInputFromFields({ ...draft, payerMode: "create" }, COMMAND);
   assert.deepEqual(fieldErrors(parsed, false), {
     payerName: "Campo obrigatorio.",
-    payerDocumentType: "Informe o tipo do documento quando preencher o numero.",
+    payerDocumentNumber: "Confira o CPF ou RG informado.",
   });
 });
 
@@ -70,3 +71,41 @@ void it("sends optional blank contacts and document as absent", () => {
     email: undefined,
   });
 });
+
+void it("derives the start and monthly plan from the first payment and end dates", () => {
+  const parsed = contractInputFromFields(fields, COMMAND);
+  assert.equal(parsed.data?.startsOn, "2026-03-31");
+  assert.equal(parsed.data?.firstDueDate, "2026-03-31");
+  assert.equal(parsed.data?.durationMonths, 12);
+  const shorter = contractInputFromFields({ ...fields, endsOn: "30/09/2026" }, COMMAND);
+  assert.equal(shorter.data?.durationMonths, 6);
+  const preview = contractPreview(
+    { ...fields, endsOn: "30/09/2026" },
+    { tuitionCeilingCents: 25_000, maximumDiscountPct: 20, punctualityDiscountPct: 0 },
+  );
+  assert.equal(preview?.endsOn, "2026-09-30");
+  assert.equal(preview?.principalAmountCents, 150_000);
+  assert.equal(preview?.installments.length, 6);
+  assert.equal(preview?.installments[0]?.dueDate, "2026-03-31");
+});
+
+for (const [firstDueDate, endsOn] of [
+  ["31/01/2026", "28/02/2026"],
+  ["31/01/2028", "29/02/2028"],
+  ["31/12/2026", "31/01/2027"],
+] as const) {
+  void it(`calculates one calendar month from ${firstDueDate} to ${endsOn}`, () => {
+    const parsed = contractInputFromFields({ ...fields, firstDueDate, endsOn }, COMMAND);
+    assert.equal(parsed.data?.durationMonths, 1);
+  });
+}
+
+for (const endsOn of ["", "31/02/2027", "31/03/2026", "28/02/2026", "30/04/2037", "15/09/2026"]) {
+  void it(`rejects an invalid or nonmonthly term ending on ${endsOn}`, () => {
+    const parsed = contractInputFromFields({ ...fields, endsOn }, COMMAND);
+    assert.equal(parsed.success, false);
+    assert.deepEqual(fieldErrors(parsed, false), {
+      endsOn: "Informe uma data final entre 1 e 120 meses completos após o início.",
+    });
+  });
+}

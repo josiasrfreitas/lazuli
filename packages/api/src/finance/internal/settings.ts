@@ -6,6 +6,7 @@ import type { FinanceDatabase } from "./shared.js";
 export type FinanceSettingsView = {
   tuitionCeilingCents: number | null;
   maximumDiscountPct: number | null;
+  punctualityDiscountPct: number;
   tuitionFloorCents: number | null;
   interestRatePctDaily: number | null;
   interestRatePctMonthly: number | null;
@@ -24,6 +25,7 @@ export async function readSettings(database: FinanceDatabase): Promise<FinanceSe
   return {
     tuitionCeilingCents: row.tuitionCeilingCents,
     maximumDiscountPct: row.maximumDiscountPct === null ? null : Number(row.maximumDiscountPct),
+    punctualityDiscountPct: Number(row.punctualityDiscountPct),
     tuitionFloorCents:
       row.tuitionCeilingCents === null || row.maximumDiscountPct === null
         ? null
@@ -45,10 +47,15 @@ export async function saveSettings(input: {
   values: FinanceSettingsInput;
 }): Promise<FinanceSettingsView | null> {
   const { database, staffUserId, values } = input;
+  const { punctualityDiscountPct, ...otherValues } = values;
+  const data = {
+    ...otherValues,
+    ...(punctualityDiscountPct === undefined ? {} : { punctualityDiscountPct }),
+  };
   await database.financeSettings.upsert({
     where: { id: "singleton" },
-    create: { id: "singleton", ...values, updatedById: staffUserId },
-    update: { ...values, updatedById: staffUserId },
+    create: { id: "singleton", ...data, updatedById: staffUserId },
+    update: { ...data, updatedById: staffUserId },
   });
   return readSettings(database);
 }

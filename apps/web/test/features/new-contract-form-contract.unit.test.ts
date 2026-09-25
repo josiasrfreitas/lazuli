@@ -40,31 +40,30 @@ function render(): string {
 
 void describe("new contract form contract", () => {
   const markup = render();
-  const inputs = markup.match(/<input\b[^>]*>/gu) ?? [];
+  const inputs = (markup.match(/<input\b[^>]*>/gu) ?? []).filter((tag) =>
+    /data-slot="input"/u.test(tag),
+  );
   void it("contains one form and three named sections", () => {
     assert.equal((markup.match(/<form\b/gu) ?? []).length, 1);
     assert.match(markup, /Beneficiário e pagador/u);
     assert.match(markup, /Condições do contrato/u);
     assert.match(markup, /Plano de pagamento/u);
   });
-  void it("names and hints every text input without native date controls or autofill", () => {
+  void it("names the visible controls, opens native calendars, and uses the shared currency input", () => {
     assert.deepEqual(
       inputs.map((tag) => /name="([^"]+)"/u.exec(tag)?.[1]),
-      [
-        "studentSearch",
-        "payerSearch",
-        "agreedOn",
-        "startsOn",
-        "durationMonths",
-        "monthlyAmount",
-        "punctualityDiscountPct",
-        "firstDueDate",
-      ],
+      ["studentSearch", "payerSearch", "agreedOn", "firstDueDate", "endsOn", "monthlyAmount"],
     );
     for (const tag of inputs) {
       assert.match(tag, /placeholder="[^"]+"/u);
       assert.match(tag, /autoComplete="off"|autocomplete="off"/u);
-      assert.doesNotMatch(tag, /type="date"/u);
     }
+    for (const name of ["agreedOn", "firstDueDate", "endsOn"]) {
+      assert.match(inputs.find((tag) => tag.includes(`name="${name}"`)) ?? "", /type="date"/u);
+    }
+    assert.match(
+      inputs.find((tag) => tag.includes('name="monthlyAmount"')) ?? "",
+      /data-currency-input/u,
+    );
   });
 });

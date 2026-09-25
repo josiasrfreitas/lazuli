@@ -1,103 +1,135 @@
 "use client";
 
-import { useDeferredValue, useState, type ReactElement } from "react";
-
-import { Button, Field, FieldError, Input, Label } from "@lazuli/ui";
-
+import { useDeferredValue, useState, type ReactElement, type ReactNode } from "react";
+import { Field, FieldError, Label, SearchSelect, type SearchSelectOption } from "@lazuli/ui";
+import { detectPersonDocument } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 
-type Option = { id: string; name: string; detail?: string };
 type PartyPickerProps = {
   kind: "student" | "payer";
-  value: string;
-  onChange: (value: string) => void;
+  value: SearchSelectOption | null;
+  onChange: (value: SearchSelectOption | null) => void;
+  onClear: () => void;
+  onCreate: (query: string) => void;
+  onSearchChange: (query: string) => void;
+  createMode?: boolean | undefined;
+  draftName?: string | undefined;
+  endAdornment?: ReactNode;
+  showAdornment?: boolean;
   error?: string | undefined;
 };
 
-function PartyResults({
-  label,
-  options,
-  pending,
-  failed,
-  onSelect,
-}: {
-  label: string;
-  options: Option[] | undefined;
+type PartyRow = { id: string; name: string; document?: string | null; detail?: string | null };
+
+function toOption(row: PartyRow): SearchSelectOption {
+  const description = row.detail ?? row.document;
+  return {
+    id: row.id,
+    label: row.name,
+    ...(row.document ? { document: detectPersonDocument(row.document).documentNumber } : {}),
+    ...(description ? { description } : {}),
+  };
+}
+
+function usePartyOptions(
+  kind: PartyPickerProps["kind"],
+  search: string,
+): {
+  options: SearchSelectOption[];
   pending: boolean;
   failed: boolean;
-  onSelect: (option: Option) => void;
-}): ReactElement {
+} {
+  const deferred = useDeferredValue(search);
+  const results = trpc.finance.searchContractParties.useQuery({ query: deferred });
+  const pending = results.isFetching || search !== deferred;
+  const rows = kind === "student" ? results.data?.students : results.data?.payers;
+  return {
+    options: pending ? [] : (rows ?? []).map((row) => toOption(row)),
+    pending,
+    failed: results.isError,
+  };
+}
+
+function PickerInput(
+  props: PartyPickerProps & {
+    search: string;
+    setSearch: (value: string) => void;
+    selected: SearchSelectOption | null;
+    setSelected: (value: SearchSelectOption | null) => void;
+  },
+): ReactElement {
+  const { options, pending, failed } = usePartyOptions(props.kind, props.search);
   return (
-    <div
-      className="max-h-32 overflow-y-auto rounded-md border border-border bg-card p-1"
-      role="group"
-      aria-label={`Resultados de ${label.toLowerCase()}`}
-    >
-      {pending && <p className="p-2 text-caption">Buscando…</p>}
-      {failed && <p className="p-2 text-caption text-destructive">Busca indisponível.</p>}
-      {options?.length === 0 && <p className="p-2 text-caption">Nenhum resultado.</p>}
-      {options?.map((option) => (
-        <div key={option.id}>
-          <Button
-            className="w-full justify-start"
-            aria-describedby={option.detail ? `party-${option.id}-detail` : undefined}
-            onClick={() => onSelect(option)}
-            type="button"
-            variant="ghost"
-          >
-            {option.name}
-          </Button>
-          {option.detail && (
-            <p
-              id={`party-${option.id}-detail`}
-              className="truncate text-caption text-muted-foreground"
-            >
-              {option.detail}
-            </p>
-          )}
-        </div>
-      ))}
-    </div>
+    <SearchSelect
+      name={`${props.kind}Search`}
+      placeholder={`Digite o nome do ${props.kind === "student" ? "aluno" : "pagador"}`}
+      query={props.createMode ? (props.draftName ?? props.search) : props.search}
+      value={props.value && props.selected?.id === props.value.id ? props.selected : props.value}
+      onClear={() => {
+        props.setSearch("");
+        props.setSelected(null);
+        props.onClear();
+      }}
+      options={options}
+      loading={pending}
+      failed={failed}
+      invalid={Boolean(props.error)}
+      onQueryChange={(query) => {
+        props.setSearch(query);
+        props.onChange(null);
+        props.onSearchChange(query);
+      }}
+      onSelect={(option) => {
+        props.setSelected(option);
+        props.onChange(option);
+        props.setSearch("");
+      }}
+      onCreate={props.onCreate}
+    />
   );
 }
 
-export function PartyPicker({ kind, value, onChange, error }: PartyPickerProps): ReactElement {
+export function PartyPicker({
+  kind,
+  value,
+  onChange,
+  onClear,
+  onCreate,
+  onSearchChange,
+  createMode = false,
+  draftName,
+  endAdornment,
+  showAdornment = false,
+  error,
+}: PartyPickerProps): ReactElement {
   const [search, setSearch] = useState("");
-  const [selectedName, setSelectedName] = useState("");
-  const deferred = useDeferredValue(search);
-  const results = trpc.finance.searchContractParties.useQuery({ query: deferred });
-  const options = kind === "student" ? results.data?.students : results.data?.payers;
+  const [selected, setSelected] = useState<SearchSelectOption | null>(null);
   const label = kind === "student" ? "Aluno" : "Pagador";
-  const select = (option: Option): void => {
-    onChange(option.id);
-    setSelectedName(option.detail ? `${option.name} · ${option.detail}` : option.name);
-    setSearch("");
-  };
   return (
     <Field name={`${kind}Search`}>
-      <Label>{label}</Label>
-      <Input
-        autoComplete="off"
-        name={`${kind}Search`}
-        invalid={Boolean(error)}
-        onChange={(event) => {
-          setSearch(event.target.value);
-          setSelectedName("");
-          onChange("");
-        }}
-        placeholder={`Buscar ${label.toLowerCase()} por nome`}
-        size="sm"
-        value={selectedName || search}
-      />
-      {!value && search && (
-        <PartyResults
-          label={label}
-          options={options}
-          pending={results.isPending}
-          failed={results.isError}
-          onSelect={select}
+      <Label>{createMode ? `Nome do ${label.toLowerCase()}` : label}</Label>
+      <div className={showAdornment && endAdornment ? "relative [&_input]:pr-11" : "relative"}>
+        <PickerInput
+          {...{
+            kind,
+            value,
+            onChange,
+            onClear,
+            onCreate,
+            onSearchChange,
+            createMode,
+            draftName,
+            error,
+            search,
+            setSearch,
+            selected,
+            setSelected,
+          }}
         />
-      )}
+        {showAdornment && endAdornment && (
+          <div className="absolute inset-y-0 right-2 flex items-center">{endAdornment}</div>
+        )}
+      </div>
       <FieldError match={Boolean(error)}>{error}</FieldError>
     </Field>
   );

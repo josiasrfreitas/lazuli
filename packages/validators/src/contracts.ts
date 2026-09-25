@@ -2,7 +2,11 @@ import { z } from "zod";
 
 import { civilDateSchema } from "./civil-date.js";
 import { payerCreateInputSchema } from "./finance.js";
-import { documentTypeSchema, DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE } from "./student.js";
+import {
+  studentCreateInputSchema,
+  documentTypeSchema,
+  DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE,
+} from "./student.js";
 
 const MAX_PERCENT = 100;
 const PERCENT_DECIMAL_PLACES = 4;
@@ -31,18 +35,26 @@ const newContractPayerSchema = payerCreateInputSchema
 export const createMonthlyContractInputSchema = z
   .object({
     commandId: z.string().uuid(),
-    studentId: z.string().uuid(),
+    studentId: z.string().uuid().optional(),
     payerId: z.string().uuid().optional(),
     agreedOn: civilDateSchema,
     startsOn: civilDateSchema,
     durationMonths: z.number().int().min(1).max(MAX_DURATION_MONTHS),
     firstDueDate: civilDateSchema,
     monthlyAmountCents: z.number().int().positive().max(MAX_MONTHLY_AMOUNT_CENTS),
-    punctualityDiscountPct: percentage,
+    punctualityDiscountPct: percentage.optional(),
     newPayer: newContractPayerSchema.optional(),
+    newStudent: studentCreateInputSchema.optional(),
   })
   .strict()
   .superRefine((input, context) => {
+    if ((input.studentId === undefined) === (input.newStudent === undefined)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["studentId"],
+        message: "Selecione um aluno existente ou cadastre um novo.",
+      });
+    }
     if ((input.payerId === undefined) === (input.newPayer === undefined)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,

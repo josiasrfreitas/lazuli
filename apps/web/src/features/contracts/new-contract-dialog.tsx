@@ -66,6 +66,7 @@ function DialogForm({
             offer={operation.offer.data}
             preview={operation.preview}
             change={state.change}
+            onMonthlyAmountBlur={operation.validateMonthlyAmount}
           />
         </fieldset>
       </form>
@@ -100,7 +101,7 @@ export function NewContractDialog({
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
 }): ReactElement {
-  const state = useContractFormState();
+  const state = useContractFormState(open);
   const operation = useContractOperation({ open, onOpenChange, onCreated, state });
   return (
     <Dialog open={open} onOpenChange={operation.close}>

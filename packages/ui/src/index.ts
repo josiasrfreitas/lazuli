@@ -221,3 +221,5 @@ export type {
 } from "./components/segmented-control";
 export { FormRow, FormSection } from "./components/form-layout";
 export type { FormRowColumns, FormRowProps, FormSectionProps } from "./components/form-layout";
+export { SearchSelect } from "./components/search-select";
+export type { SearchSelectOption, SearchSelectProps } from "./components/search-select";

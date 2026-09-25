@@ -28,7 +28,7 @@ import {
   newStudentReducer,
 } from "./reducer";
 import { useScrollToError } from "./use-scroll-to-error";
-import { DADOS_STEP, TURMA_STEP, WizardFooter, type WizardProps } from "./wizard-footer";
+import { DADOS_STEP, WizardFooter, type WizardProps } from "./wizard-footer";
 
 const STEPS = NEW_STUDENT_STEPS.map((label) => ({ label }));
 
@@ -68,17 +68,17 @@ function StepBody({ state, dispatch }: WizardProps): ReactNode {
     );
   }
 
-  const placeholder =
-    state.step === TURMA_STEP
-      ? { title: "Matrícula em breve", body: "Cadastre o aluno agora e matricule na turma depois." }
-      : { title: "Financeiro em breve", body: "O plano de pagamento entra depois da matrícula." };
-
-  return <EmptyState description={placeholder.body} title={placeholder.title} />;
+  return (
+    <EmptyState
+      description="Cadastre o aluno agora e matricule na turma depois."
+      title="Matrícula em breve"
+    />
+  );
 }
 
 /**
- * The "Novo aluno" wizard. Steps Turma and Financeiro ship as placeholders
- * (creation never blocks on them — brief principle 2); success closes the
+ * The "Novo aluno" wizard. Pedagógico ships as a placeholder;
+ * success closes the
  * dialog and hands the created id back so the page opens its preview panel.
  */
 export function NewStudentDialog({
@@ -142,7 +142,7 @@ function WizardContent({ state, dispatch, creation, onCancel }: WizardProps): Re
       <DialogHeader>
         <DialogTitle>Novo aluno</DialogTitle>
         <DialogDescription>
-          Só o nome é obrigatório. Turma e financeiro podem ficar para depois.
+          Só o nome é obrigatório. A matrícula em turma pode ficar para depois.
         </DialogDescription>
       </DialogHeader>
       <Stepper activeIndex={state.step} className="mt-4" label="Etapas do cadastro" steps={STEPS} />

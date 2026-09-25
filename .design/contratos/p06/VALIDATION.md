@@ -31,3 +31,11 @@ esse arquivo inteiro no escopo. Correção 1: retirar a alteração de Alunos e 
 enum/mensagem públicos na regra de documento do novo pagador. Nenhum gate ou configuração de
 mutação foi alterado. Os cinco sobreviventes de Contratos apontavam normalização documental
 e caminhos/mensagens de erro; os testes agora verificam esses contratos explicitamente.
+
+## Vigência a partir do primeiro pagamento
+
+A pedido do usuário, o formulário usa o primeiro pagamento como início da vigência e calcula
+`durationMonths` a partir da data final. Não há inputs separados de início ou duração. Mantém
+meses completos e o ajuste de fim de mês do domínio, sem alterar a API nem contratos históricos.
+Testes focados verificam início igual ao primeiro vencimento, principal/parcelas da prévia,
+ano bissexto, virada de ano e rejeição de datas inválidas, invertidas ou de meses parciais.

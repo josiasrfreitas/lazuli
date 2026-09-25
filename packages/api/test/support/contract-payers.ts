@@ -15,6 +15,7 @@ export async function contractPayerFixture(
   const settings = {
     tuitionCeilingCents: 25_000,
     maximumDiscountPct: 20,
+    punctualityDiscountPct: 20,
     interestRatePctDaily: 0.1,
     interestRatePctMonthly: 2,
     cancellationFeePct: 10,
@@ -51,6 +52,7 @@ export async function cleanContractPayers(prefix: string): Promise<void> {
   await db.contract.deleteMany({ where: contracts });
   await db.payer.deleteMany({ where: { name: { startsWith: prefix } } });
   await db.student.deleteMany({ where: { fullName: { startsWith: prefix } } });
+  await db.guardian.deleteMany({ where: { fullName: { startsWith: prefix } } });
   await db.financeSettings.deleteMany({ where: { id: "singleton" } });
   await db.$disconnect();
 }

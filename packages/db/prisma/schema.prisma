@@ -549,6 +549,7 @@ model FinanceSettings {
   id                     String   @id @default("singleton")
   tuitionCeilingCents     Int?     @map("tuition_ceiling_cents")
   maximumDiscountPct     Decimal? @map("maximum_discount_pct") @db.Decimal(7, 4)
+  punctualityDiscountPct Decimal @default(0) @map("punctuality_discount_pct") @db.Decimal(7, 4)
   interestRatePctDaily   Decimal? @map("interest_rate_pct_daily") @db.Decimal(7, 4)
   cancellationFeePct     Decimal? @map("cancellation_fee_pct") @db.Decimal(7, 4)
   materialPriceCents     Int?     @map("material_price_cents")
