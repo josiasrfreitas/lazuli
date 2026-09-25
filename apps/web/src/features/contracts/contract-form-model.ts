@@ -64,6 +64,15 @@ export const emptyContractFields: ContractFields = {
   monthlyAmount: "",
 };
 
+export function suggestMonthlyAmount(
+  fields: ContractFields,
+  input: { tuitionCeilingCents: number; edited: boolean },
+): ContractFields {
+  if (input.edited) return fields;
+  const monthlyAmount = (input.tuitionCeilingCents / CENTS_PER_REAL).toFixed(2);
+  return fields.monthlyAmount === monthlyAmount ? fields : { ...fields, monthlyAmount };
+}
+
 function durationFromDates(fields: ContractFields): number {
   const start = parseDateBR(fields.firstDueDate);
   const end = parseDateBR(fields.endsOn);

@@ -45,7 +45,7 @@ a versão anterior aos últimos ajustes visuais; o usuário está conferindo a i
 
 Execuções finais sequenciais, conforme pedido. Nenhum timeout de teste foi aumentado.
 
-- Unitários: domínio 108, validators 131 e web 124 aprovados.
+- Unitários: domínio 108, validators 131 e web 125 aprovados.
 - Integração/transporte: 13 aprovados, nas suítes `contract-payers.integration`,
   `contracts.integration`, `contract-payers.transport`, `contracts.transport`, uma por vez.
   Banco temporário criado pelos helpers de `scripts/lib/ephemeral-test-database.mjs`,
@@ -100,3 +100,8 @@ já criadas; a UI anterior perde a síntese fiel dos planos especiais persistido
 Os últimos ajustes visuais solicitados pelo usuário removeram títulos intermediários, colocaram
 o calendário dentro da expansão e introduziram a variante `text` do botão compartilhado.
 Foram verificados por testes, lint e typecheck; a validação visual atual está com o usuário.
+
+O campo “Mensalidade acordada” recebe como sugestão inicial o teto de mensalidade dos Ajustes
+quando a proposta é carregada. Um valor digitado ou apagado manualmente é preservado; ao
+reabrir o formulário, o valor configurado é sugerido novamente. Teste web, lint e typecheck
+direcionados passaram para essa alteração.

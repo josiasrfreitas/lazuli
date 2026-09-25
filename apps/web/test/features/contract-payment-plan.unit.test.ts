@@ -6,6 +6,7 @@ import {
   contractInputFromFields,
   contractPreview,
   emptyContractFields,
+  suggestMonthlyAmount,
 } from "../../src/features/contracts/contract-form-model.js";
 import { fieldErrors } from "../../src/features/contracts/new-contract-state.js";
 import { PaymentSection } from "../../src/features/contracts/contract-payment-section.js";
@@ -32,6 +33,32 @@ const offer = {
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,
 };
+
+void it("prefills the global tuition while preserving a manually edited monthly amount", () => {
+  const initial = suggestMonthlyAmount(emptyContractFields, {
+    tuitionCeilingCents: 25_000,
+    edited: false,
+  });
+  assert.equal(initial.monthlyAmount, "250.00");
+  assert.equal(
+    suggestMonthlyAmount(initial, { tuitionCeilingCents: 30_000, edited: false }).monthlyAmount,
+    "300.00",
+  );
+  assert.equal(
+    suggestMonthlyAmount(
+      { ...initial, monthlyAmount: "230.00" },
+      { tuitionCeilingCents: 30_000, edited: true },
+    ).monthlyAmount,
+    "230.00",
+  );
+  assert.equal(
+    suggestMonthlyAmount(
+      { ...initial, monthlyAmount: "" },
+      { tuitionCeilingCents: 30_000, edited: true },
+    ).monthlyAmount,
+    "",
+  );
+});
 
 void it("submits the active plan and ignores the inactive special draft", () => {
   assert.equal(contractInputFromFields(fields, commandId).data?.installmentCount, 3);
