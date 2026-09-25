@@ -34,7 +34,7 @@ const FORM_KEYS = new Set<keyof ContractFields>([
   "endsOn",
   "firstDueDate",
 ]);
-type ContractIssue = { path: (string | number)[]; message: string };
+type ContractIssue = { path: (string | number)[]; message: string; code?: string };
 const STUDENT_KEYS: Record<string, keyof ContractFields> = {
   fullName: "studentDraftName",
   documentType: "studentDocumentNumber",
@@ -77,7 +77,9 @@ function assignIssue(errors: Errors, issue: ContractIssue): void {
     return;
   }
   const name = section as keyof ContractFields | "monthlyAmountCents";
-  if (name === "monthlyAmountCents") errors.monthlyAmount = "Informe uma mensalidade válida.";
+  if (name === "monthlyAmountCents")
+    errors.monthlyAmount =
+      issue.code === "custom" ? issue.message : "Informe uma mensalidade válida.";
   else if (FORM_KEYS.has(name)) errors[name] = "Confira este campo.";
 }
 

@@ -103,6 +103,25 @@ async function createThroughHttp(): Promise<void> {
   const failure = (await invalid.json()) as { error: { json: { message: string } } };
   assert.match(failure.error.json.message, /quantidade de parcelas/);
   assert.equal(await db.contract.count({ where: { commandId } }), 0);
+  const overflowCommandId = randomUUID();
+  const overflow = await callHttpMutation({
+    path: "finance.createMonthlyContract",
+    body: {
+      commandId: overflowCommandId,
+      payerId: payer.id,
+      studentId: student.id,
+      agreedOn: "2026-03-15",
+      startsOn: "2026-03-15",
+      durationMonths: 4,
+      installmentCount: 1,
+      firstDueDate: "2026-03-31",
+      monthlyAmountCents: 536_870_912,
+    },
+  });
+  assert.equal(overflow.status, 400);
+  const overflowError = (await overflow.json()) as { error: { json: { message: string } } };
+  assert.match(overflowError.error.json.message, /total do contrato/);
+  assert.equal(await db.contract.count({ where: { commandId: overflowCommandId } }), 0);
   const listResponse = await callHttpQuery({ path: "finance.listContracts", body: { page: 1 } });
   assert.equal(listResponse.status, OK_STATUS);
   const list = (await listResponse.json()) as {

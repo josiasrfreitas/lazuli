@@ -29,13 +29,45 @@ void describe("monthly contract input", () => {
     const parsed = createMonthlyContractInputSchema.parse({
       ...VALID_INPUT,
       durationMonths: MAX_DURATION_MONTHS,
-      monthlyAmountCents: MAX_MONTHLY_AMOUNT_CENTS,
+      monthlyAmountCents: 17_895_697,
       punctualityDiscountPct: FOUR_DECIMAL_DISCOUNT_PCT,
     });
     assert.equal(parsed.firstDueDate, "2026-03-31");
     assert.equal(parsed.durationMonths, MAX_DURATION_MONTHS);
-    assert.equal(parsed.monthlyAmountCents, MAX_MONTHLY_AMOUNT_CENTS);
+    assert.equal(parsed.monthlyAmountCents, 17_895_697);
     assert.equal(parsed.punctualityDiscountPct, FOUR_DECIMAL_DISCOUNT_PCT);
+    assert.equal(
+      createMonthlyContractInputSchema.parse({
+        ...VALID_INPUT,
+        durationMonths: 1,
+        monthlyAmountCents: MAX_MONTHLY_AMOUNT_CENTS,
+      }).monthlyAmountCents,
+      MAX_MONTHLY_AMOUNT_CENTS,
+    );
+  });
+
+  void it("accepts the largest persistible product and rejects the first overflowing product", () => {
+    assert.equal(
+      createMonthlyContractInputSchema.parse({
+        ...VALID_INPUT,
+        durationMonths: 3,
+        installmentCount: 1,
+        monthlyAmountCents: 715_827_882,
+      }).monthlyAmountCents,
+      715_827_882,
+    );
+    const overflowing = createMonthlyContractInputSchema.safeParse({
+      ...VALID_INPUT,
+      durationMonths: 4,
+      installmentCount: 1,
+      monthlyAmountCents: 536_870_912,
+    });
+    assert.equal(overflowing.success, false);
+    assert.deepEqual(
+      overflowing.error?.issues.map((issue) => issue.path.join(".")),
+      ["monthlyAmountCents"],
+    );
+    assert.match(overflowing.error?.issues[0]?.message ?? "", /total do contrato/);
   });
 
   for (const [label, change] of [

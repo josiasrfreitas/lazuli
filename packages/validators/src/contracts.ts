@@ -12,6 +12,7 @@ const MAX_PERCENT = 100;
 const PERCENT_DECIMAL_PLACES = 4;
 const MAX_DURATION_MONTHS = 120;
 const MAX_MONTHLY_AMOUNT_CENTS = 1_000_000_000;
+const MAX_PERSISTED_AMOUNT_CENTS = 2_147_483_647;
 const MAX_SEARCH_LENGTH = 80;
 
 const percentage = z
@@ -49,6 +50,13 @@ export const createMonthlyContractInputSchema = z
   })
   .strict()
   .superRefine((input, context) => {
+    if (input.durationMonths * input.monthlyAmountCents > MAX_PERSISTED_AMOUNT_CENTS) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["monthlyAmountCents"],
+        message: "O total do contrato ultrapassa o limite permitido.",
+      });
+    }
     if (input.installmentCount !== undefined && input.installmentCount > input.durationMonths) {
       context.addIssue({
         code: z.ZodIssueCode.custom,

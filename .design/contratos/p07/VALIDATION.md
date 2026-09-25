@@ -45,19 +45,21 @@ a versão anterior aos últimos ajustes visuais; o usuário está conferindo a i
 
 Execuções finais sequenciais, conforme pedido. Nenhum timeout de teste foi aumentado.
 
-- Unitários: domínio 108, validators 131 e web 125 aprovados.
+- Unitários: domínio 109, validators 132 e web 126 aprovados.
 - Integração/transporte: 13 aprovados, nas suítes `contract-payers.integration`,
   `contracts.integration`, `contract-payers.transport`, `contracts.transport`, uma por vez.
   Banco temporário criado pelos helpers de `scripts/lib/ephemeral-test-database.mjs`,
   migrations aplicadas e banco removido no `finally`. Protegem persistência, rollback,
   replay/conflito, leitura derivada, HTTP e autorização.
+  Após a proteção do limite monetário, a suíte HTTP de contratos passou novamente (2 testes)
+  em outro banco temporário, incluindo o total acima de `Int` sem gravação.
 - Typecheck dos quatro workspaces da feature, de UI e de Storybook aprovado.
 - Lint dos arquivos alterados aprovado; warnings de estilo já presentes no padrão da UI.
 - Gate prospectivo de testes: zero erros e zero warnings contextuais.
 - Formatação e `git diff --check` aprovados.
-- Mutação do domínio: **94,78%** (127/134); `monthly-contract.ts` e
+- Mutação do domínio: **95,30%** (142/149); `monthly-contract.ts` e
   `installment-amounts.ts`: **100%**. Mutação de `contracts.ts` nos validators:
-  **92,65%** dos cobertos (63/68; cinco sem cobertura excluídos pelo gate).
+  **92,31%** dos cobertos (72/78; cinco sem cobertura excluídos pelo gate).
 
 Comandos principais, executados individualmente:
 
@@ -67,7 +69,7 @@ pnpm --filter @lazuli/validators test
 pnpm --filter @lazuli/web test
 pnpm --filter @lazuli/domain mutate --mutate src/monthly-contract.ts,src/installment-amounts.ts,src/installment-generation.ts --concurrency 1
 pnpm --filter @lazuli/validators mutate --mutate src/contracts.ts --concurrency 1
-pnpm test:quality:changed --base HEAD
+pnpm test:quality:changed --base origin/main
 ```
 
 ### Revisão dos sobreviventes
@@ -81,6 +83,9 @@ vencimentos limitados a 5/10/15/20/25. Sem mudança nesses comportamentos nesta 
 Nos validators: retirar `!== undefined` é equivalente porque `undefined > duração` é falso;
 texto do erro é coberto pelo transporte, não pelo runner unitário de mutação; três mutantes
 restantes são da exclusividade histórica de aluno existente/novo, fora da alteração de quantidade.
+Na nova proteção, o mutante `>=` no limite de `Int` equivale a `>` dentro dos limites de
+entrada atuais: 2.147.483.647 é primo e a mensalidade máxima (1 bilhão de centavos) impede
+o único produto exato possível, com duração de um mês. O domínio testa o limite exato.
 Não se enfraqueceu teste ou gate para obter aprovação.
 
 ## Limitações e CI
@@ -105,3 +110,10 @@ O campo “Mensalidade acordada” recebe como sugestão inicial o teto de mensa
 quando a proposta é carregada. Um valor digitado ou apagado manualmente é preservado; ao
 reabrir o formulário, o valor configurado é sugerido novamente. Teste web, lint e typecheck
 direcionados passaram para essa alteração.
+
+O principal calculado agora respeita o limite de `Int` do banco (2.147.483.647 centavos).
+Três meses × 715.827.882 centavos são aceitos (principal 2.147.483.646); quatro meses ×
+536.870.912 centavos são rejeitados (2.147.483.648), também com uma única parcela.
+O validator associa o erro à mensalidade e o domínio protege chamadas diretas. A chamada
+HTTP inválida retorna 400 sem criar contrato, conferido em banco temporário isolado.
+O formulário exibe o motivo do excesso no campo “Mensalidade acordada”.

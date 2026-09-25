@@ -20,6 +20,7 @@ const DAY_START = 8;
 const DAY_END = 10;
 const MONTHS_PER_YEAR = 12;
 const ONE_BASED_MONTH = 1;
+const MAX_PERSISTED_AMOUNT_CENTS = 2_147_483_647;
 
 export function addCalendarMonths(value: string, months: number): string {
   const sourceYear = Number(value.slice(0, YEAR_END));
@@ -39,6 +40,18 @@ export function priceAfterDiscountCents(amountCents: number, discountPct: number
   return Number((numerator + BigInt(PERCENT_UNITS / 2)) / BigInt(PERCENT_UNITS));
 }
 
+function persistiblePrincipalCents(durationMonths: number, monthlyAmountCents: number): number {
+  const principalAmountCents = durationMonths * monthlyAmountCents;
+  if (
+    !Number.isSafeInteger(principalAmountCents) ||
+    principalAmountCents < 1 ||
+    principalAmountCents > MAX_PERSISTED_AMOUNT_CENTS
+  ) {
+    throw new Error("O total do contrato ultrapassa o limite permitido.");
+  }
+  return principalAmountCents;
+}
+
 export function previewMonthlyContract(terms: MonthlyContractTerms): {
   endsOn: string;
   principalAmountCents: number;
@@ -54,7 +67,10 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
   ) {
     throw new Error("Informe uma quantidade inteira entre 1 e a duração do contrato em meses.");
   }
-  const principalAmountCents = terms.durationMonths * terms.monthlyAmountCents;
+  const principalAmountCents = persistiblePrincipalCents(
+    terms.durationMonths,
+    terms.monthlyAmountCents,
+  );
   const numerator =
     BigInt(terms.tuitionCeilingCents) *
     BigInt(PERCENT_UNITS - Math.round(terms.maximumDiscountPct * PERCENT_TO_UNITS));

@@ -60,6 +60,13 @@ void it("prefills the global tuition while preserving a manually edited monthly 
   );
 });
 
+void it("shows the persisted monetary limit error at the monthly amount field", () => {
+  const overflow = { ...fields, monthlyAmount: "5368709.12" };
+  assert.deepEqual(fieldErrors(contractInputFromFields(overflow, commandId), false), {
+    monthlyAmount: "O total do contrato ultrapassa o limite permitido.",
+  });
+});
+
 void it("submits the active plan and ignores the inactive special draft", () => {
   assert.equal(contractInputFromFields(fields, commandId).data?.installmentCount, 3);
   const common = { ...fields, paymentPlan: "common", installmentCount: "invalid" };
