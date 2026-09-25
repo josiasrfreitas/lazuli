@@ -41,6 +41,7 @@ void describe("monthly contract", () => {
     assert.equal(addCalendarMonths(JANUARY_31, 1), "2026-02-28");
     assert.equal(addCalendarMonths(JANUARY_31, 2), MARCH_31);
     assert.equal(addCalendarMonths("2028-01-31", 1), "2028-02-29");
+    assert.equal(addCalendarMonths("2026-01-05", 1), "2026-02-05");
   });
 
   void it("applies the negotiation floor to the agreed price, independently of punctuality", () => {
@@ -64,5 +65,124 @@ void describe("monthly contract", () => {
       () => previewMonthlyContract({ ...terms, monthlyAmountCents: 19_999 }),
       /fora da faixa/,
     );
+    assert.throws(
+      () => previewMonthlyContract({ ...terms, monthlyAmountCents: 25_001 }),
+      /fora da faixa/,
+    );
   });
+});
+
+void describe("special contract installments", () => {
+  const terms = {
+    startsOn: "2026-01-31",
+    durationMonths: 12,
+    firstDueDate: "2026-01-31",
+    monthlyAmountCents: 25_000,
+    tuitionCeilingCents: 25_000,
+    maximumDiscountPct: 20,
+    punctualityDiscountPct: 20,
+  };
+  void it("distributes the same agreement across fewer monthly charges", () => {
+    const preview = previewMonthlyContract({ ...terms, installmentCount: 3 });
+    assert.equal(preview.principalAmountCents, 300_000);
+    assert.equal(preview.endsOn, "2027-01-31");
+    assert.deepEqual(preview.installments, [
+      { sequenceNumber: 1, amountCents: 100_000, dueDate: "2026-01-31" },
+      { sequenceNumber: 2, amountCents: 100_000, dueDate: "2026-02-28" },
+      { sequenceNumber: 3, amountCents: 100_000, dueDate: "2026-03-31" },
+    ]);
+    assert.equal(preview.onTimeMonthlyCents, 20_000);
+  });
+  void it("puts the entire cent remainder in the final installment", () => {
+    const preview = previewMonthlyContract({ ...terms, durationMonths: 4, installmentCount: 3 });
+    assert.deepEqual(
+      preview.installments.map((row) => row.amountCents),
+      [33333, 33333, 33334],
+    );
+    assert.equal(
+      preview.installments.reduce((sum, row) => sum + row.amountCents, 0),
+      100_000,
+    );
+    assert.equal(preview.endsOn, "2026-05-31");
+  });
+  void it("accepts one charge and the full duration without changing the principal", () => {
+    assert.deepEqual(previewMonthlyContract({ ...terms, installmentCount: 1 }).installments, [
+      { sequenceNumber: 1, amountCents: 300_000, dueDate: "2026-01-31" },
+    ]);
+    assert.deepEqual(
+      previewMonthlyContract({ ...terms, installmentCount: 12 }),
+      previewMonthlyContract(terms),
+    );
+  });
+  void it("bounds the principal and a single charge to the database integer range", () => {
+    const accepted = previewMonthlyContract({
+      ...terms,
+      durationMonths: 3,
+      installmentCount: 1,
+      monthlyAmountCents: 715_827_882,
+      tuitionCeilingCents: 715_827_882,
+    });
+    assert.equal(accepted.principalAmountCents, 2_147_483_646);
+    assert.equal(accepted.installments[0]?.amountCents, 2_147_483_646);
+    assert.throws(
+      () =>
+        previewMonthlyContract({
+          ...terms,
+          durationMonths: 4,
+          installmentCount: 1,
+          monthlyAmountCents: 536_870_912,
+          tuitionCeilingCents: 536_870_912,
+        }),
+      /total do contrato/,
+    );
+    const oneMonth = {
+      ...terms,
+      durationMonths: 1,
+      installmentCount: 1,
+      maximumDiscountPct: 0,
+      punctualityDiscountPct: 0,
+    };
+    assert.equal(
+      previewMonthlyContract({
+        ...oneMonth,
+        monthlyAmountCents: 1,
+        tuitionCeilingCents: 1,
+      }).principalAmountCents,
+      1,
+    );
+    assert.equal(
+      previewMonthlyContract({
+        ...oneMonth,
+        monthlyAmountCents: 2_147_483_647,
+        tuitionCeilingCents: 2_147_483_647,
+      }).principalAmountCents,
+      2_147_483_647,
+    );
+    assert.throws(
+      () =>
+        previewMonthlyContract({
+          ...oneMonth,
+          monthlyAmountCents: 0,
+          tuitionCeilingCents: 0,
+        }),
+      /total do contrato/,
+    );
+    assert.throws(
+      () =>
+        previewMonthlyContract({
+          ...oneMonth,
+          monthlyAmountCents: 1.5,
+          tuitionCeilingCents: 1.5,
+        }),
+      /total do contrato/,
+    );
+  });
+  for (const count of [0, -1, 1.5, 13, Number.NaN, Number.POSITIVE_INFINITY]) {
+    void it(`rejects an invalid installment count of ${count}`, () => {
+      assert.throws(
+        () => previewMonthlyContract({ ...terms, installmentCount: count }),
+        /quantidade inteira/,
+      );
+    });
+  }
 });

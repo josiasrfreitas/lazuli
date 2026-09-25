@@ -17,11 +17,11 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["primary", "secondary", "ghost", "destructive", "link"],
+      options: ["primary", "secondary", "ghost", "text", "destructive", "link"],
     },
     size: {
       control: "select",
-      options: ["sm", "md", "lg", "icon-sm", "icon-md", "icon-lg"],
+      options: ["inline", "sm", "md", "lg", "icon-sm", "icon-md", "icon-lg"],
     },
   },
   parameters: {
@@ -56,6 +56,9 @@ export const Variants: Story = {
       <Button variant="primary">Save</Button>
       <Button variant="secondary">Cancel</Button>
       <Button variant="ghost">View details</Button>
+      <Button size="inline" variant="text">
+        Advanced options
+      </Button>
       <Button variant="destructive">Delete</Button>
       <Button variant="link">Open record</Button>
     </div>
@@ -66,6 +69,9 @@ export const Sizes: Story = {
   render: () => (
     <div className="flex flex-wrap items-center gap-3">
       <Button size="sm">Compact</Button>
+      <Button size="inline" variant="text">
+        Inline
+      </Button>
       <Button size="md">Default</Button>
       <Button size="lg">Large</Button>
     </div>

@@ -96,10 +96,7 @@ async function readyTerms(input: {
   let preview: ReturnType<typeof previewMonthlyContract>;
   try {
     preview = previewMonthlyContract({
-      startsOn: values.startsOn,
-      durationMonths: values.durationMonths,
-      firstDueDate: values.firstDueDate,
-      monthlyAmountCents: values.monthlyAmountCents,
+      ...values,
       punctualityDiscountPct: Number(settings.punctualityDiscountPct),
       tuitionCeilingCents: settings.tuitionCeilingCents,
       maximumDiscountPct: Number(settings.maximumDiscountPct),
@@ -107,7 +104,7 @@ async function readyTerms(input: {
   } catch {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "Mensalidade e pontualidade fora da faixa autorizada.",
+      message: "Confira a mensalidade e a quantidade de parcelas autorizadas.",
     });
   }
   return { settings, preview };
@@ -149,7 +146,7 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
           startDate: toDateOnly(values.startsOn),
           dueDay: Number(values.firstDueDate.slice(DUE_DAY_START, DUE_DAY_END)),
           firstDueDate: toDateOnly(values.firstDueDate),
-          installmentCount: values.durationMonths,
+          installmentCount: preview.installments.length,
           createdById: staffUserId,
           updatedById: staffUserId,
           installments: {

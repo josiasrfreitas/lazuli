@@ -1,7 +1,7 @@
 import type { RouterOutputs } from "@lazuli/api";
 import { Avatar, Badge, type DataTableColumn } from "@lazuli/ui";
 
-import { formatBRLFromCents } from "~/lib/format";
+import { paymentPlanLabel } from "./contract-payment-summary";
 
 export type ContractRow = RouterOutputs["finance"]["listContracts"]["rows"][number];
 
@@ -75,10 +75,12 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
   {
     id: "amount",
     header: "Plano",
-    width: "narrow",
+    width: "standard",
     numeric: true,
     cell: (row) => (
-      <span className="font-numeric">{formatBRLFromCents(row.monthlyAmountCents)}</span>
+      <span className="block font-numeric whitespace-normal">
+        {paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}
+      </span>
     ),
   },
   {

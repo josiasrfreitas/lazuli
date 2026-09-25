@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { CurrencyInput, Field, FieldError, FormRow, FormSection, Label } from "@lazuli/ui";
+import { CurrencyInput, Field, FieldError, FormRow, Label } from "@lazuli/ui";
 import { formatBRLFromCents } from "~/lib/format";
 import type { ContractFields } from "./contract-form-model";
 import { ContractStudentField } from "./contract-student-field";
@@ -30,7 +30,7 @@ export type FormProps = {
     principalAmountCents: number;
     onTimeMonthlyCents: number;
     floorCents: number;
-    installments: Array<{ dueDate: string }>;
+    installments: Array<{ sequenceNumber: number; amountCents: number; dueDate: string }>;
   } | null;
   onMonthlyAmountBlur?: (() => void) | undefined;
   change: (name: keyof ContractFields, value: string) => void;
@@ -39,12 +39,12 @@ export type FormProps = {
 function PartiesSection({ fields, errors, change }: FormProps): ReactElement {
   const creatingPerson = fields.studentMode === "create" || fields.payerMode === "create";
   return (
-    <FormSection title="Beneficiário e pagador">
+    <div className="grid min-w-0 gap-3">
       <FormRow columns={creatingPerson ? 1 : 2}>
         <ContractStudentField fields={fields} errors={errors} change={change} />
         <ContractPayerFields fields={fields} errors={errors} change={change} />
       </FormRow>
-    </FormSection>
+    </div>
   );
 }
 
@@ -107,7 +107,7 @@ function PriceFields({ fields, errors, change, onMonthlyAmountBlur }: FormProps)
 function ConditionsSection(props: FormProps): ReactElement {
   const { offer } = props;
   return (
-    <FormSection title="Condições do contrato">
+    <div className="grid min-w-0 gap-3">
       <FormRow columns={2}>
         <TermFields {...props} />
         <PriceFields {...props} />
@@ -122,7 +122,7 @@ function ConditionsSection(props: FormProps): ReactElement {
           {offer.cancellationFeePct.toLocaleString("pt-BR")}%
         </p>
       )}
-    </FormSection>
+    </div>
   );
 }
 

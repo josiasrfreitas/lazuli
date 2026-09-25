@@ -1,6 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type FormEvent,
+  type RefObject,
+  type SetStateAction,
+} from "react";
 import { addCalendarMonths } from "@lazuli/domain";
 import { monthlyAmountError } from "./contract-price";
 import { trpc } from "~/lib/trpc";
@@ -11,6 +20,7 @@ import {
   contractInputFromFields,
   contractPreview,
   emptyContractFields,
+  suggestMonthlyAmount,
   type ContractFields,
 } from "./contract-form-model";
 
@@ -24,7 +34,7 @@ const FORM_KEYS = new Set<keyof ContractFields>([
   "endsOn",
   "firstDueDate",
 ]);
-type ContractIssue = { path: (string | number)[]; message: string };
+type ContractIssue = { path: (string | number)[]; message: string; code?: string };
 const STUDENT_KEYS: Record<string, keyof ContractFields> = {
   fullName: "studentDraftName",
   documentType: "studentDocumentNumber",
@@ -61,8 +71,15 @@ function assignIssue(errors: Errors, issue: ContractIssue): void {
     errors.endsOn = "Informe uma data final entre 1 e 120 meses completos após o início.";
     return;
   }
+  if (section === "installmentCount") {
+    errors.installmentCount =
+      "Informe uma quantidade inteira entre 1 e a duração do contrato em meses.";
+    return;
+  }
   const name = section as keyof ContractFields | "monthlyAmountCents";
-  if (name === "monthlyAmountCents") errors.monthlyAmount = "Informe uma mensalidade válida.";
+  if (name === "monthlyAmountCents")
+    errors.monthlyAmount =
+      issue.code === "custom" ? issue.message : "Informe uma mensalidade válida.";
   else if (FORM_KEYS.has(name)) errors[name] = "Confira este campo.";
 }
 
@@ -103,26 +120,50 @@ export type ContractFormState = {
   commandId: RefObject<string>;
   popup: RefObject<HTMLDivElement | null>;
   change: (name: keyof ContractFields, value: string) => void;
+  setSuggestedMonthlyAmount: (tuitionCeilingCents: number) => void;
   reset: () => void;
   setErrors: (errors: Errors) => void;
   setFieldError: (name: keyof ContractFields, error: string | undefined) => void;
   setSubmissionError: (message: string) => void;
 };
 
-export function useContractFormState(open: boolean): ContractFormState {
-  const [fields, setFields] = useState<ContractFields>(emptyContractFields);
+function useAgreementDate(
+  open: boolean,
+  setFields: Dispatch<SetStateAction<ContractFields>>,
+): void {
   useEffect(() => {
     if (!open) return;
     const today = formatDateBR(toDateOnlySaoPaulo(new Date()));
     setFields((current) => (current.agreedOn ? current : { ...current, agreedOn: today }));
-  }, [open]);
+  }, [open, setFields]);
+}
+
+function useSuggestedMonthlyAmount(
+  setFields: Dispatch<SetStateAction<ContractFields>>,
+  edited: RefObject<boolean>,
+): (tuitionCeilingCents: number) => void {
+  return useCallback(
+    (tuitionCeilingCents: number): void => {
+      setFields((current) =>
+        suggestMonthlyAmount(current, { tuitionCeilingCents, edited: edited.current }),
+      );
+    },
+    [setFields, edited],
+  );
+}
+
+export function useContractFormState(open: boolean): ContractFormState {
+  const [fields, setFields] = useState<ContractFields>(emptyContractFields);
+  useAgreementDate(open, setFields);
   const [errors, setErrors] = useState<Errors>({});
   const [submissionError, setSubmissionError] = useState("");
   const commandId = useRef(crypto.randomUUID());
   const popup = useRef<HTMLDivElement>(null);
   const endDateEdited = useRef(false);
+  const monthlyAmountEdited = useRef(false);
   const change = (name: keyof ContractFields, value: string): void => {
     if (name === "endsOn") endDateEdited.current = true;
+    if (name === "monthlyAmount") monthlyAmountEdited.current = true;
     const updateEnd = name === "firstDueDate" && !endDateEdited.current;
     setFields((current) => ({
       ...current,
@@ -139,11 +180,13 @@ export function useContractFormState(open: boolean): ContractFormState {
   };
   const reset = (): void => {
     endDateEdited.current = false;
+    monthlyAmountEdited.current = false;
     setFields(emptyContractFields);
     setErrors({});
     setSubmissionError("");
     commandId.current = crypto.randomUUID();
   };
+  const setSuggestedMonthlyAmount = useSuggestedMonthlyAmount(setFields, monthlyAmountEdited);
   return {
     fields,
     errors,
@@ -151,6 +194,7 @@ export function useContractFormState(open: boolean): ContractFormState {
     commandId,
     popup,
     change,
+    setSuggestedMonthlyAmount,
     reset,
     setErrors,
     setFieldError: (name, error) => setErrors((current) => ({ ...current, [name]: error })),
@@ -184,6 +228,18 @@ function validatePrice(state: ContractFormState, offer: FormProps["offer"]): voi
   state.setFieldError("monthlyAmount", monthlyAmountError(state.fields.monthlyAmount, offer));
 }
 
+function useContractOffer(
+  open: boolean,
+  suggest: (tuitionCeilingCents: number) => void,
+): ContractOperation["offer"] {
+  const offer = trpc.finance.readContractOffer.useQuery(undefined, { enabled: open });
+  const tuitionCeilingCents = offer.data?.tuitionCeilingCents;
+  useEffect(() => {
+    if (open && tuitionCeilingCents !== undefined) suggest(tuitionCeilingCents);
+  }, [open, tuitionCeilingCents, suggest]);
+  return offer;
+}
+
 export function useContractOperation(input: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -191,7 +247,7 @@ export function useContractOperation(input: {
   state: ContractFormState;
 }): ContractOperation {
   const { state } = input;
-  const offer = trpc.finance.readContractOffer.useQuery(undefined, { enabled: input.open });
+  const offer = useContractOffer(input.open, state.setSuggestedMonthlyAmount);
   const create = trpc.finance.createMonthlyContract.useMutation();
   const submitting = useRef(false);
   const utils = trpc.useUtils();

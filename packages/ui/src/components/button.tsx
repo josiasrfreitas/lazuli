@@ -23,11 +23,13 @@ export const buttonVariants = cva(
           "border border-border-strong bg-transparent text-foreground hover:bg-accent-hover hover:text-accent-foreground active:bg-accent-active",
         ghost:
           "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground active:bg-accent-active",
+        text: "bg-transparent text-muted-foreground underline-offset-4 hover:text-foreground hover:underline",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive-hover active:bg-destructive-active",
         link: "bg-transparent text-interactive underline-offset-4 hover:text-interactive-hover hover:underline active:text-interactive-active",
       },
       size: {
+        inline: "min-h-control-sm gap-1.5 rounded-sm",
         sm: "h-control-sm gap-1.5 rounded-sm px-3",
         md: "h-control-md gap-2 rounded-md px-4",
         lg: "h-control-lg gap-2 rounded-lg px-5",

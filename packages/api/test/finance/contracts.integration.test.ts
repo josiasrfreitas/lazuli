@@ -151,12 +151,88 @@ async function listingSearchAndStatus(): Promise<void> {
   assert.equal(waived.rows.find((row) => row.id === created.id)?.status, "EM_DIA");
 }
 
-void describe("monthly contract creation", { concurrency: 1 }, () => {
-  void before(async () => {
-    await db.$connect();
-    await ensureAdminUser();
+void before(async () => {
+  await db.$connect();
+  await ensureAdminUser();
+});
+void after(cleanup);
+
+void describe("special contract plan persistence", { concurrency: 1 }, () => {
+  void it("persists cent remainders and lists the actual plan without changing the term", async () => {
+    const { values } = await fixture();
+    const special = { ...values, durationMonths: 4, installmentCount: 3 };
+    const created = await db.$transaction((tx) =>
+      finance(tx, ADMIN.id).createMonthlyContract(special),
+    );
+    assert.equal(created.principalAmountCents, 100_000);
+    assert.equal(created.endsOn, "2026-07-15");
+    assert.equal(created.installmentCount, 3);
+    assert.equal(created.uniformInstallmentAmountCents, null);
+    const persisted = await db.order.findFirstOrThrow({
+      where: { contractId: created.id },
+      include: { installments: { orderBy: { sequenceNumber: "asc" } } },
+    });
+    assert.equal(persisted.installmentCount, 3);
+    assert.deepEqual(
+      persisted.installments.map((row) => row.amountCents),
+      [33333, 33333, 33334],
+    );
+    assert.deepEqual(
+      persisted.installments.map((row) => row.dueDate.toISOString().slice(0, 10)),
+      ["2026-01-31", "2026-02-28", "2026-03-31"],
+    );
+    const list = await finance(db, ADMIN.id).listContracts({ page: 1 });
+    assert.equal(
+      list.rows.find((row) => row.id === created.id)?.uniformInstallmentAmountCents,
+      null,
+    );
+    const replay = await db.$transaction((tx) =>
+      finance(tx, ADMIN.id).createMonthlyContract(special),
+    );
+    assert.equal(replay.id, created.id);
+    await assert.rejects(
+      db.$transaction((tx) =>
+        finance(tx, ADMIN.id).createMonthlyContract({ ...special, installmentCount: 2 }),
+      ),
+      /dados diferentes/,
+    );
+    assert.equal(await db.contract.count({ where: { commandId: special.commandId } }), 1);
   });
-  void after(cleanup);
+  void it("rolls back a special plan and persists the uniform three-charge agreement", async () => {
+    const { values } = await fixture();
+    const special = { ...values, installmentCount: 3 };
+    await assert.rejects(
+      db.$transaction(async (tx) => {
+        await finance(tx, ADMIN.id).createMonthlyContract(special);
+        throw new Error("special plan rollback");
+      }),
+      /special plan rollback/,
+    );
+    assert.equal(await db.contract.count({ where: { commandId: values.commandId } }), 0);
+    assert.equal(await db.order.count({ where: { contract: { commandId: values.commandId } } }), 0);
+    const created = await db.$transaction((tx) =>
+      finance(tx, ADMIN.id).createMonthlyContract(special),
+    );
+    assert.equal(created.uniformInstallmentAmountCents, 100_000);
+    assert.equal(created.principalAmountCents, 300_000);
+    assert.equal(created.endsOn, "2027-03-15");
+    const order = await db.order.findFirstOrThrow({
+      where: { contractId: created.id },
+      include: { installments: true },
+    });
+    assert.deepEqual(
+      order.installments.map((row) => row.amountCents),
+      [100_000, 100_000, 100_000],
+    );
+    const listed = await finance(db, ADMIN.id).listContracts({ page: 1 });
+    assert.equal(
+      listed.rows.find((row) => row.id === created.id)?.uniformInstallmentAmountCents,
+      100_000,
+    );
+  });
+});
+
+void describe("monthly contract creation", { concurrency: 1 }, () => {
   void it(
     "rolls back, retries once, and preserves financial conditions",
     creationIsAtomicAndStable,

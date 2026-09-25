@@ -1,3 +1,5 @@
+import { splitPrincipal } from "./installment-amounts.js";
+
 export const FINANCE_DUE_DAY_FIFTH = 5;
 export const FINANCE_DUE_DAY_TENTH = 10;
 export const FINANCE_DUE_DAY_FIFTEENTH = 15;
@@ -114,15 +116,6 @@ function assertDueDay(dueDay: number): asserts dueDay is DueDay {
       "Due day must be one of 5, 10, 15, 20, or 25.",
     );
   }
-}
-
-function splitPrincipal(principalAmountCents: number, installmentCount: number): number[] {
-  const baseAmount = Math.floor(principalAmountCents / installmentCount);
-  const remainder = principalAmountCents - baseAmount * installmentCount;
-
-  return Array.from({ length: installmentCount }, (_unused, index) =>
-    index === installmentCount - 1 ? baseAmount + remainder : baseAmount,
-  );
 }
 
 function parseDateOnly(value: string): { year: number; monthIndex: number; day: number } {

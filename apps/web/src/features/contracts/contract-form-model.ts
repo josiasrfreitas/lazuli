@@ -7,6 +7,8 @@ const CENTS_PER_REAL = 100;
 const MONTHS_PER_YEAR = 12;
 
 export type ContractFields = {
+  paymentPlan: string;
+  installmentCount: string;
   payerMode: string;
   payerName: string;
   payerDocumentType: string;
@@ -34,6 +36,8 @@ export type ContractFields = {
 };
 
 export const emptyContractFields: ContractFields = {
+  paymentPlan: "common",
+  installmentCount: "",
   payerMode: "existing",
   payerName: "",
   payerDocumentType: "",
@@ -59,6 +63,15 @@ export const emptyContractFields: ContractFields = {
   firstDueDate: "",
   monthlyAmount: "",
 };
+
+export function suggestMonthlyAmount(
+  fields: ContractFields,
+  input: { tuitionCeilingCents: number; edited: boolean },
+): ContractFields {
+  if (input.edited) return fields;
+  const monthlyAmount = (input.tuitionCeilingCents / CENTS_PER_REAL).toFixed(2);
+  return fields.monthlyAmount === monthlyAmount ? fields : { ...fields, monthlyAmount };
+}
 
 function durationFromDates(fields: ContractFields): number {
   const start = parseDateBR(fields.firstDueDate);
@@ -114,6 +127,9 @@ export function contractInputFromFields(
 ): ReturnType<typeof createMonthlyContractInputSchema.safeParse> {
   const parsed = createMonthlyContractInputSchema.safeParse({
     commandId,
+    ...(fields.paymentPlan === "special"
+      ? { installmentCount: Number(fields.installmentCount) }
+      : {}),
     ...studentInput(fields),
     ...payerInput(fields),
     agreedOn: parseDateBR(fields.agreedOn),

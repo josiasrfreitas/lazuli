@@ -1,6 +1,9 @@
+import { splitPrincipal } from "./installment-amounts.js";
+
 export type MonthlyContractTerms = {
   startsOn: string;
   durationMonths: number;
+  installmentCount?: number | undefined;
   firstDueDate: string;
   monthlyAmountCents: number;
   tuitionCeilingCents: number;
@@ -17,6 +20,7 @@ const DAY_START = 8;
 const DAY_END = 10;
 const MONTHS_PER_YEAR = 12;
 const ONE_BASED_MONTH = 1;
+const MAX_PERSISTED_AMOUNT_CENTS = 2_147_483_647;
 
 export function addCalendarMonths(value: string, months: number): string {
   const sourceYear = Number(value.slice(0, YEAR_END));
@@ -36,6 +40,18 @@ export function priceAfterDiscountCents(amountCents: number, discountPct: number
   return Number((numerator + BigInt(PERCENT_UNITS / 2)) / BigInt(PERCENT_UNITS));
 }
 
+function persistiblePrincipalCents(durationMonths: number, monthlyAmountCents: number): number {
+  const principalAmountCents = durationMonths * monthlyAmountCents;
+  if (
+    !Number.isSafeInteger(principalAmountCents) ||
+    principalAmountCents < 1 ||
+    principalAmountCents > MAX_PERSISTED_AMOUNT_CENTS
+  ) {
+    throw new Error("O total do contrato ultrapassa o limite permitido.");
+  }
+  return principalAmountCents;
+}
+
 export function previewMonthlyContract(terms: MonthlyContractTerms): {
   endsOn: string;
   principalAmountCents: number;
@@ -43,7 +59,18 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
   floorCents: number;
   installments: Array<{ sequenceNumber: number; amountCents: number; dueDate: string }>;
 } {
-  const principalAmountCents = terms.durationMonths * terms.monthlyAmountCents;
+  const installmentCount = terms.installmentCount ?? terms.durationMonths;
+  if (
+    !Number.isInteger(installmentCount) ||
+    installmentCount < 1 ||
+    installmentCount > terms.durationMonths
+  ) {
+    throw new Error("Informe uma quantidade inteira entre 1 e a duração do contrato em meses.");
+  }
+  const principalAmountCents = persistiblePrincipalCents(
+    terms.durationMonths,
+    terms.monthlyAmountCents,
+  );
   const numerator =
     BigInt(terms.tuitionCeilingCents) *
     BigInt(PERCENT_UNITS - Math.round(terms.maximumDiscountPct * PERCENT_TO_UNITS));
@@ -63,10 +90,12 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
     principalAmountCents,
     onTimeMonthlyCents,
     floorCents,
-    installments: Array.from({ length: terms.durationMonths }, (_unused, index) => ({
-      sequenceNumber: index + 1,
-      amountCents: terms.monthlyAmountCents,
-      dueDate: addCalendarMonths(terms.firstDueDate, index),
-    })),
+    installments: splitPrincipal(principalAmountCents, installmentCount).map(
+      (amountCents, index) => ({
+        sequenceNumber: index + 1,
+        amountCents,
+        dueDate: addCalendarMonths(terms.firstDueDate, index),
+      }),
+    ),
   };
 }

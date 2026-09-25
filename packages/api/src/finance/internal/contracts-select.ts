@@ -16,6 +16,7 @@ export type ContractListRow = {
   monthlyAmountCents: number;
   principalAmountCents: number;
   installmentCount: number;
+  uniformInstallmentAmountCents: number | null;
   firstDueDate: string;
   status: "INADIMPLENTE" | "EM_DIA" | "QUITADO" | "CANCELADO";
 };
@@ -127,6 +128,14 @@ function academicPlacements(
   );
 }
 
+function uniformInstallmentAmount(order: SelectedContract["orders"][number]): number | null {
+  const firstAmount = order.installments[0]?.amountCents ?? null;
+  return order.installments.length === order.installmentCount &&
+    order.installments.every((row) => row.amountCents === firstAmount)
+    ? firstAmount
+    : null;
+}
+
 export function toRow(row: SelectedContract, now = new Date()): ContractListRow {
   const order = row.orders[0];
   if (
@@ -154,6 +163,7 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
     monthlyAmountCents: row.monthlyAmountCents,
     principalAmountCents: order.principalAmountCents,
     installmentCount: order.installmentCount,
+    uniformInstallmentAmountCents: uniformInstallmentAmount(order),
     firstDueDate: toDateOnlyString(order.firstDueDate),
     status: paymentStatus(order, now),
   };
