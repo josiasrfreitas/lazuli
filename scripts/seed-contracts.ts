@@ -26,7 +26,6 @@ try {
       due: "2026-01-31",
       months: 12,
       cents: 25_000,
-      discount: 20,
     },
     {
       student: "bruno",
@@ -35,7 +34,6 @@ try {
       due: "2026-03-10",
       months: 6,
       cents: 24_000,
-      discount: 10,
     },
     {
       student: "davi",
@@ -44,7 +42,6 @@ try {
       due: "2026-03-25",
       months: 18,
       cents: 25_000,
-      discount: 5,
     },
     {
       student: "isadora",
@@ -53,14 +50,22 @@ try {
       due: "2026-10-25",
       months: 6,
       cents: 25_000,
-      discount: 0,
     },
   ] as const;
 
   for (const scenario of scenarios) {
     const key = `p05-${scenario.student}`;
+    const commandId = stableUuid(["dev-contract", key]);
+    const existing = await database.contract.findUnique({
+      where: { commandId },
+      select: { id: true },
+    });
+    if (existing) {
+      process.stdout.write(`Contract ${key} already present.\n`);
+      continue;
+    }
     const values = {
-      commandId: stableUuid(["dev-contract", key]),
+      commandId,
       studentId: stableUuid(["student", scenario.student]),
       payerId: stableUuid(["dev-finance", scenario.payer]),
       agreedOn: scenario.start,
@@ -68,7 +73,6 @@ try {
       durationMonths: scenario.months,
       firstDueDate: scenario.due,
       monthlyAmountCents: scenario.cents,
-      punctualityDiscountPct: scenario.discount,
     };
     await database.$transaction(async (transaction) => {
       await finance(transaction, admin.id).createMonthlyContract(values);
