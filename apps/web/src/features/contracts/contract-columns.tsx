@@ -2,6 +2,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { Avatar, Badge, type DataTableColumn } from "@lazuli/ui";
 
 import { paymentPlanLabel } from "./contract-payment-summary";
+import { ContractFinancialStatus } from "./contract-financial-status";
 import { ContractPaymentProgress } from "./contract-payment-progress";
 
 export type ContractRow = RouterOutputs["finance"]["listContracts"]["rows"][number];
@@ -28,16 +29,11 @@ function shortCivilDate(value: string): string {
   return `${day} ${MONTH_ABBREVIATIONS[Number(month) - MONTH_INDEX_OFFSET]} ${year?.slice(-SHORT_YEAR_DIGITS)}`;
 }
 
-function statusLabel(status: ContractRow["status"]): string {
-  if (status === "INADIMPLENTE") return "Inadimplente";
-  if (status === "EM_DIA") return "Em dia";
-  return status === "QUITADO" ? "Quitado" : "Cancelado";
-}
-
-function statusVariant(status: ContractRow["status"]): "destructive" | "success" | "neutral" {
-  if (status === "INADIMPLENTE") return "destructive";
-  return status === "EM_DIA" ? "success" : "neutral";
-}
+const SERVICE_LABELS: Record<ContractRow["serviceStatus"], string> = {
+  NOT_STARTED: "Não iniciado",
+  ACTIVE: "Vigente",
+  ENDED: "Encerrado",
+};
 
 export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
   {
@@ -47,15 +43,33 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
     cell: (row) => (
       <div className="flex items-center gap-3">
         <Avatar colorKey={row.student.id} name={row.student.fullName} size="sm" />
-        <span className="font-medium">{row.student.fullName}</span>
+        <span className="min-w-0 font-medium break-words whitespace-normal">
+          {row.student.fullName}
+        </span>
       </div>
     ),
   },
   {
     id: "status",
-    header: "Situação",
+    header: "Situação financeira",
+    width: "wide",
+    cell: (row) => <ContractFinancialStatus row={row} />,
+  },
+  {
+    id: "term",
+    header: "Vigência",
     width: "standard",
-    cell: (row) => <Badge variant={statusVariant(row.status)}>{statusLabel(row.status)}</Badge>,
+    cell: (row) => (
+      <span className="flex flex-col items-start gap-1 font-numeric">
+        <Badge variant={row.serviceStatus === "ACTIVE" ? "info" : "neutral"}>
+          {SERVICE_LABELS[row.serviceStatus]}
+        </Badge>
+        <time dateTime={row.startsOn}>{shortCivilDate(row.startsOn)}</time>
+        <span className="text-micro text-muted-foreground">
+          até <time dateTime={row.endsOn}>{shortCivilDate(row.endsOn)}</time>
+        </span>
+      </span>
+    ),
   },
   {
     id: "placement",
@@ -91,17 +105,9 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
     cell: (row) => <ContractPaymentProgress progress={row.paymentProgress} />,
   },
   {
-    id: "term",
-    header: "Vigência",
+    id: "payer",
+    header: "Pagador",
     width: "standard",
-    cell: (row) => (
-      <span className="flex flex-col font-numeric">
-        <time dateTime={row.startsOn}>{shortCivilDate(row.startsOn)}</time>
-        <span className="text-micro text-muted-foreground">
-          até <time dateTime={row.endsOn}>{shortCivilDate(row.endsOn)}</time>
-        </span>
-      </span>
-    ),
+    cell: (row) => <span className="break-words whitespace-normal">{row.payer.name}</span>,
   },
-  { id: "payer", header: "Pagador", width: "standard", cell: (row) => row.payer.name },
 ];
