@@ -122,7 +122,11 @@ async function createThroughHttp(): Promise<void> {
   const overflowError = (await overflow.json()) as { error: { json: { message: string } } };
   assert.match(overflowError.error.json.message, /total do contrato/);
   assert.equal(await db.contract.count({ where: { commandId: overflowCommandId } }), 0);
-  const listResponse = await callHttpQuery({ path: "finance.listContracts", body: { page: 1 } });
+  const listResponse = await callHttpQuery({
+    path: "finance.listContracts",
+    body: { page: 1 },
+    now: new Date("2026-04-30T03:00:00Z"),
+  });
   assert.equal(listResponse.status, OK_STATUS);
   const list = (await listResponse.json()) as {
     result: {
@@ -131,6 +135,15 @@ async function createThroughHttp(): Promise<void> {
           rows: Array<{
             id: string;
             student: { id: string };
+            startsOn: string;
+            endsOn: string;
+            serviceStatus: string;
+            financialSummary: {
+              overdueCents: number;
+              dueTodayCents: number;
+              futureCents: number;
+              zeroedByAdjustment: number;
+            };
             paymentProgress: { paid: number; total: number; waived: number; cancelled: number };
           }>;
         };
@@ -145,6 +158,17 @@ async function createThroughHttp(): Promise<void> {
     list.result.data.json.rows.find((row) => row.id === body.result.data.json.id)?.paymentProgress,
     { paid: 0, total: 3, waived: 0, cancelled: 0 },
   );
+  const listed = list.result.data.json.rows.find((row) => row.id === body.result.data.json.id);
+  assert.ok(listed);
+  assert.equal(listed.startsOn, "2026-03-15");
+  assert.equal(listed.endsOn, "2027-03-15");
+  assert.equal(listed.serviceStatus, "ACTIVE");
+  assert.deepEqual(listed.financialSummary, {
+    overdueCents: 100_000,
+    dueTodayCents: 100_000,
+    futureCents: 100_000,
+    zeroedByAdjustment: 0,
+  });
 }
 
 async function requiresStaffSession(): Promise<void> {

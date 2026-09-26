@@ -1,4 +1,10 @@
-import { deriveInstallmentLedger, type InstallmentLedger } from "@lazuli/domain";
+import {
+  deriveContractFinancialSummary,
+  deriveContractServiceStatus,
+  type ContractFinancialStatus,
+  type ContractFinancialSummary,
+  type ContractServiceStatus,
+} from "@lazuli/domain";
 
 import { toDateOnlyString } from "./shared.js";
 
@@ -19,7 +25,9 @@ export type ContractListRow = {
   paymentProgress: { paid: number; total: number; waived: number; cancelled: number };
   uniformInstallmentAmountCents: number | null;
   firstDueDate: string;
-  status: "INADIMPLENTE" | "EM_DIA" | "QUITADO" | "CANCELADO";
+  status: ContractFinancialStatus;
+  financialSummary: ContractFinancialSummary;
+  serviceStatus: ContractServiceStatus;
 };
 
 export const contractSelect = {
@@ -98,43 +106,6 @@ type SelectedContract = {
   }>;
 };
 
-function paymentSummary(
-  order: SelectedContract["orders"][number],
-  { now, total }: { now: Date; total: number },
-): Pick<ContractListRow, "status" | "paymentProgress"> {
-  const ledgers = order.installments.map((installment) =>
-    deriveInstallmentLedger({
-      ...installment,
-      orderCancelledAt: order.cancelledAt,
-      now,
-      interestRatePctMonthly: 0,
-    }),
-  );
-  const paid = ledgers.filter(
-    (ledger) => ledger.status === "PAID" && ledger.paidAmountCents > 0,
-  ).length;
-  const waived = ledgers.filter((ledger) => ledger.status === "WAIVED").length;
-  return {
-    status: paymentStatus(ledgers, order.cancelledAt !== null),
-    paymentProgress: {
-      paid,
-      total,
-      waived,
-      cancelled: order.cancelledAt ? ledgers.length - paid - waived : 0,
-    },
-  };
-}
-
-function paymentStatus(
-  ledgers: InstallmentLedger[],
-  cancelled: boolean,
-): ContractListRow["status"] {
-  if (cancelled) return "CANCELADO";
-  if (ledgers.some((ledger) => ledger.status === "OVERDUE" && ledger.collectibleRemainingCents > 0))
-    return "INADIMPLENTE";
-  return ledgers.every((ledger) => ledger.status === "PAID") ? "QUITADO" : "EM_DIA";
-}
-
 function academicPlacements(
   student: SelectedContract["student"],
 ): ContractListRow["student"]["placements"] {
@@ -185,6 +156,11 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
     installmentCount: order.installmentCount,
     uniformInstallmentAmountCents: uniformInstallmentAmount(order),
     firstDueDate: toDateOnlyString(order.firstDueDate),
-    ...paymentSummary(order, { now, total: order.installmentCount }),
+    ...deriveContractFinancialSummary({ ...order, now, installmentCount: order.installmentCount }),
+    serviceStatus: deriveContractServiceStatus({
+      startsOn: toDateOnlyString(row.startsOn),
+      endsOn: toDateOnlyString(row.endsOn),
+      now,
+    }),
   };
 }
