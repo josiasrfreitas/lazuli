@@ -2,6 +2,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { Avatar, Badge, type DataTableColumn } from "@lazuli/ui";
 
 import { paymentPlanLabel } from "./contract-payment-summary";
+import { ContractPaymentProgress } from "./contract-payment-progress";
 
 export type ContractRow = RouterOutputs["finance"]["listContracts"]["rows"][number];
 
@@ -82,6 +83,12 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
         {paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}
       </span>
     ),
+  },
+  {
+    id: "paymentProgress",
+    header: "Pagamento",
+    width: "standard",
+    cell: (row) => <ContractPaymentProgress progress={row.paymentProgress} />,
   },
   {
     id: "term",

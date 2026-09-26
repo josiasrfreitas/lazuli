@@ -125,11 +125,25 @@ async function createThroughHttp(): Promise<void> {
   const listResponse = await callHttpQuery({ path: "finance.listContracts", body: { page: 1 } });
   assert.equal(listResponse.status, OK_STATUS);
   const list = (await listResponse.json()) as {
-    result: { data: { json: { rows: Array<{ id: string; student: { id: string } }> } } };
+    result: {
+      data: {
+        json: {
+          rows: Array<{
+            id: string;
+            student: { id: string };
+            paymentProgress: { paid: number; total: number; waived: number; cancelled: number };
+          }>;
+        };
+      };
+    };
   };
   assert.equal(
     list.result.data.json.rows.find((row) => row.id === body.result.data.json.id)?.student.id,
     student.id,
+  );
+  assert.deepEqual(
+    list.result.data.json.rows.find((row) => row.id === body.result.data.json.id)?.paymentProgress,
+    { paid: 0, total: 3, waived: 0, cancelled: 0 },
   );
 }
 
