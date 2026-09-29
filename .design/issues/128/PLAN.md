@@ -26,9 +26,16 @@
 - Unit: eligibility uses cumulative allocations and the effective date; R$ 100 partial does not discount, R$ 100 + R$ 130 by due date discounts R$ 20, a late effective date does not.
 - Integration: discount/payment/allocation commit together, rollback together, concurrent or repeated submissions cannot double apply; query returns received R$ 230 and balance zero.
 - Transport: validation, authorization, serialized result and repeat behavior through the real procedure; batch remains blocked for contracts.
-- UI: conditional amount is distinct from applied discount; paid row shows received R$ 230 and nominal R$ 250.
+- UI: separate nominal and paid columns, each on one line; nominal R$ 250 and received R$ 230 remain separate. Hover/focus shows the conditional amount before payment and the applied percentage after settlement. Partial payment is explicit in the status.
 
 ## Validation and visual evidence
 
 - Run focused unit, integration and transport tests, then proportional format/lint/type/build checks, prospective test quality, complete diff review and `git diff --check`.
 - Capture genuine before and after Receivables screenshots at 1280 × 800 and a narrow viewport using the running app with real seeded or test data; commit evidence and link it in the PR. The current placeholder e2e command is not visual evidence.
+
+## Presentation revision (user feedback)
+
+- Amount information must not increase row height. Use the available horizontal space for separate **Valor nominal** and **Valor pago** columns in flat and grouped tables.
+- Do not stack nominal, discount delta, balance, or received labels. Keep the discount percentage in a hover/focus tooltip next to the relevant amount, with an inline indicator.
+- Show partial payment in the status while preserving overdue information. A partial receipt does not claim the conditional discount was applied.
+- Keep original screenshots as evidence of the superseded presentation; capture the revised desktop/narrow layout and a real tooltip.

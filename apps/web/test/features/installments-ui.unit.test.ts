@@ -9,7 +9,7 @@ import { InstallmentsTable } from "../../src/features/installments/installments-
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
-const COLUMN_COUNT = 7;
+const COLUMN_COUNT = 8;
 const PAYER_ONE_ID = "11111111-1111-4111-8111-111111111111";
 const PAYER_TWO_ID = "22222222-2222-4222-8222-222222222222";
 const INSTALLMENT_ONE_ID = "66666666-6666-4666-8666-666666666666";
@@ -96,7 +96,7 @@ void test("overdue pagination counts payer groups and has no size selector", () 
   assert.match(overduePaginationMarkup(2), /11–11 de .*11.* pagadores/u);
   assert.doesNotMatch(overduePaginationMarkup(1), /Itens por página/u);
 });
-void test("table retains seven semantic columns and distinguishes loading, empty, filtered and error", () => {
+void test("table retains eight semantic columns and distinguishes loading, empty, filtered and error", () => {
   const base = { error: false, filtered: false, updating: false, onRetry: () => {}, footer: null };
   const loading = renderToStaticMarkup(
     createElement(InstallmentsTable, { ...base, rows: undefined, updating: true }),
@@ -108,7 +108,8 @@ void test("table retains seven semantic columns and distinguishes loading, empty
   assert.match(loading, />Pagador</u);
   assert.match(loading, />Beneficiário</u);
   assert.match(loading, />Vencimento</u);
-  assert.match(loading, />Valor</u);
+  assert.match(loading, />Valor nominal</u);
+  assert.match(loading, />Valor pago</u);
   assert.match(loading, />Situação</u);
   const empty = renderToStaticMarkup(createElement(InstallmentsTable, { ...base, rows: [] }));
   assert.match(empty, /Nenhum recebível cadastrado/u);
@@ -162,17 +163,11 @@ void test("overdue groups preserve API identity, order, values and table associa
   assert.equal(countMatches(markup, /<tbody[^>]*><tr /gu), groups.length);
   assert.equal(countMatches(markup, /Ana /gu), groups.length);
   assert.equal(countMatches(markup, /João /gu), groups.length);
-  // R$350 nominal + R$10 adjustment - R$100 received leaves R$260 collectible.
-  assert.deepEqual(
-    [
-      /Saldo: R\$\u00A0260,00<\/strong>/giu,
-      /Nominal: R\$\u00A0350,00/giu,
-      /Acréscimo: R\$\u00A010,00/giu,
-      /Recebido: R\$\u00A0100,00/giu,
-    ].map((pattern) => countMatches(markup, pattern)),
-    [groups.length, groups.length, groups.length, groups.length],
-  );
-  assert.doesNotMatch(markup, /R\$\u00A0250,00/u);
+  // Nominal and received stay separate; the payer summary owns collectible balance.
+  assert.equal(countMatches(markup, /R\$\u00A0350,00/gu), groups.length);
+  assert.equal(countMatches(markup, /R\$\u00A0100,00/gu), groups.length);
+  assert.equal(countMatches(markup, /R\$\u00A0260,00/gu), groups.length);
+  assert.doesNotMatch(markup, /Nominal:|Acréscimo:|Recebido:|Saldo:/u);
   // Every cell must reference a real column header in its own named table.
   const tables = [
     ...markup.matchAll(/<table\b[^>]*aria-labelledby="([^"]+)"[^>]*>(.*?)<\/table>/gu),
@@ -189,7 +184,7 @@ void test("overdue groups preserve API identity, order, values and table associa
   }
   assert.doesNotMatch(markup, /<(?:button|a)\b|type="checkbox"|aria-expanded=/u);
 });
-void test("flat rows label paid, open and waived amounts without treating waiver as payment", () => {
+void test("flat rows separate nominal and paid amounts with an accessible discount hint", () => {
   const open = overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID).rows[0]!;
   const rows = [
     {
@@ -229,13 +224,14 @@ void test("flat rows label paid, open and waived amounts without treating waiver
       footer: null,
     }),
   );
-  assert.match(markup, /Saldo: R\$\u00A0280,00/u);
-  assert.match(markup, /Acréscimo: R\$\u00A030,00/u);
-  assert.match(markup, /Recebido: R\$\u00A0230,00/u);
-  assert.match(markup, /Desconto: R\$\u00A020,00/u);
-  assert.match(markup, /Saldo: R\$\u00A00,00/u);
-  assert.match(markup, /Recebido: R\$\u00A0100,00/u);
+  assert.match(markup, /headers="installments-column-nominal"/u);
+  assert.match(markup, /headers="installments-column-paid"/u);
+  assert.match(markup, />R\$\u00A0250,00</u);
+  assert.match(markup, />R\$\u00A0230,00</u);
+  assert.match(markup, /aria-label="R\$\u00A0230,00\. Desconto aplicado: 8%"/u);
+  assert.match(markup, /tabindex="0"/u);
   assert.match(markup, />Dispensada<\/span>/u);
+  assert.doesNotMatch(markup, /Nominal:|Desconto: R\$|Recebido:|Saldo:|Acréscimo:/u);
 });
 void test("overdue groups contain wide tables while each payer card keeps its own scroll", () => {
   const groups = [
@@ -285,7 +281,8 @@ void test("flat table keeps the overdue status badge on one line", () => {
     markup,
     /headers="installments-column-installment"[^>]*><span class="font-numeric whitespace-nowrap tabular-nums">6 de 12<\/span>/u,
   );
-  assert.match(markup, /class="[^"]*whitespace-nowrap[^"]*"[^>]*>Vencida há 14 dias<\/span>/u);
+  assert.match(markup, /title="Vencida há 14 dias"/u);
+  assert.match(markup, /class="[^"]*whitespace-nowrap[^"]*"[^>]*>Parcial · Vencida<\/span>/u);
   assert.match(
     markup,
     /class="border-b border-border data-\[selected\]:bg-accent" data-slot="table-row"/u,
@@ -335,4 +332,38 @@ void test("overdue search explains that qualified payer groups remain complete",
   assert.match(markup, /Ana /u);
   assert.match(markup, /João /u);
   assert.equal(countMatches(markup, /data-slot="table-row"/gu), group.rows.length + 1);
+});
+
+void test("conditional discount stays in the nominal hint while partial receipts remain undiscounted", () => {
+  const row = {
+    ...overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID).rows[0]!,
+    originalAmountCents: 25_000,
+    expectedAmountCents: 25_000,
+    paidAmountCents: 10_000,
+    collectibleBalanceCents: 15_000,
+    onTimeAmountCents: 23_000,
+    status: "UPCOMING" as const,
+  };
+  const markup = renderToStaticMarkup(
+    createElement(InstallmentsTable, {
+      rows: [row],
+      error: false,
+      filtered: false,
+      updating: false,
+      onRetry: () => {},
+      footer: null,
+    }),
+  );
+  assert.match(
+    markup,
+    /aria-label="R\$\u00A0250,00\. Quitação em dia: R\$\u00A0230,00 \(8% de desconto\)"/u,
+  );
+  assert.match(markup, />R\$\u00A0100,00</u);
+  assert.match(markup, />Paga parcialmente<\/span>/u);
+  assert.doesNotMatch(markup, /Desconto aplicado:/u);
+  const cells = [
+    ...markup.matchAll(/<td[^>]*headers="installments-column-(?:nominal|paid)"[^>]*>(.*?)<\/td>/gu),
+  ];
+  assert.equal(cells.length, 2);
+  for (const [, cell] of cells) assert.doesNotMatch(cell!, /<(?:div|br|p)\b|class="block/u);
 });

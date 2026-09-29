@@ -11,7 +11,8 @@ export const COLUMN_IDS = {
   payer: "installments-column-payer",
   beneficiaries: "installments-column-beneficiaries",
   dueDate: "installments-column-due-date",
-  amount: "installments-column-amount",
+  nominal: "installments-column-nominal",
+  paid: "installments-column-paid",
   status: "installments-column-status",
 } as const;
 
@@ -39,11 +40,18 @@ export function InstallmentRow({
       <TableCell headers={COLUMN_IDS.dueDate}>
         <span className="font-numeric tabular-nums">{vm.dueDate}</span>
       </TableCell>
-      <TableCell headers={COLUMN_IDS.amount} numeric>
-        <InstallmentAmount row={row} />
+      <TableCell headers={COLUMN_IDS.nominal} numeric>
+        <InstallmentAmount row={row} column="nominal" />
+      </TableCell>
+      <TableCell headers={COLUMN_IDS.paid} numeric>
+        <InstallmentAmount row={row} column="paid" />
       </TableCell>
       <TableCell headers={COLUMN_IDS.status}>
-        <Badge variant={vm.badge.variant} className="whitespace-nowrap">
+        <Badge
+          variant={vm.badge.variant}
+          title={vm.badge.description}
+          className="whitespace-nowrap"
+        >
           {vm.badge.label}
         </Badge>
       </TableCell>
