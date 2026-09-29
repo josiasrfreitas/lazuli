@@ -1,4 +1,4 @@
-import { Prisma } from "@lazuli/db";
+import { Prisma } from "@lazuli/db/prisma";
 import { saoPauloDateOnly, type ContractFinancialStatus } from "@lazuli/domain";
 
 import type { FinanceDatabase } from "./shared.js";
