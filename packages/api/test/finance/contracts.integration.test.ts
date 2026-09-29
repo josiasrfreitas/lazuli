@@ -148,7 +148,7 @@ async function listingSearchAndStatus(): Promise<void> {
     data: { waivedAt: OVERDUE_INSTANT, waivedReason: "Teste de situação financeira" },
   });
   const waived = await finance(db, ADMIN.id).listContracts({ page: 1, now: OVERDUE_INSTANT });
-  assert.equal(waived.rows.find((row) => row.id === created.id)?.status, "EM_DIA");
+  assert.equal(waived.rows.find((row) => row.id === created.id)?.status, "SEM_SALDO");
 }
 
 void before(async () => {

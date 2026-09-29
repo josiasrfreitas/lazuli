@@ -1,13 +1,11 @@
 # Testing guide
 
-This is Lazuli's source of truth for test intent, placement, and gates. Decision
-[0017](../decisions/0017-gate-tests-on-mutation-score-and-assertion-guardrails.md) records why;
-[0019](../decisions/0019-limit-mutation-to-unit-tests.md) limits mutation to unit tests.
+This is Lazuli's source of truth for test intent, placement, and gates. Decisions [0017](../decisions/0017-gate-tests-on-mutation-score-and-assertion-guardrails.md)
+and [0023](../decisions/0023-remove-mutation-testing.md) record the test quality policy.
 Vocabulary comes from [`CONTEXT.md`](../../CONTEXT.md).
 
 Guidance helps an implementer choose evidence; static analysis catches named patterns; coverage
-shows execution; mutation measures detection of generated changes. None of those alone certifies
-that a relevant contract is protected.
+shows execution. None of those alone certifies that a relevant contract is protected.
 
 ## Start with the contract
 
@@ -56,7 +54,7 @@ the contract does not fix weak evidence.
 | Circular expectation     | production calculator builds both actual and expected                               | A literal, hand calculation, invariant, protocol spec, or separately owned oracle provides the expectation. Static analysis can only warn on common shapes.                      |
 | Artificial target        | testing a mock, placeholder, or copied router map                                   | Mock dependencies while exercising the real responsible unit. Interaction assertions are valid when the interaction itself is the contract, such as the exact workflow enqueued. |
 | Implementation coupling  | asserting an incidental call sequence                                               | Assert observable behavior; internal interaction is acceptable only when consumers rely on it.                                                                                   |
-| Unobserved behavior      | code executes but mutations survive                                                 | Use Stryker as limited evidence. Equivalent/unreachable mutants and irrelevant generated mutations require judgment.                                                             |
+| Unobserved behavior      | code executes without an assertion that detects the wrong result                    | Review the expected result against a plausible defect and the stated contract.                                                                                                   |
 | Fragile execution        | swallowed errors, assertions behind optional branches, real sleep used for ordering | Polling Mailpit with a bounded deadline is legitimate integration synchronization. Controlled fake clocks and deterministic retries are preferable elsewhere.                    |
 
 Fixtures are evidence when the application transforms or persists them; inserting and rereading the
@@ -90,7 +88,7 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
 - `pnpm check:pre-push --base <ref>` only parses committed JS/TS and JSON and checks the
   200-line limit for changed application/shared components. It reads from HEAD, excluding
   staged, unstaged, and untracked edits. It does not repeat formatting or whitespace checks.
-- Local hooks run no lint, typecheck, build, test suite, mutation, or infrastructure operation.
+- Local hooks run no lint, typecheck, build, test suite or infrastructure operation.
   CI owns those full gates; run relevant tests explicitly while implementing a change.
 - `pnpm test:affected --base <ref>` selects affected workspaces and isolated infrastructure for manual
   test runs. `pnpm test:affected --staged --unit-only` is its infrastructure-free staged variant.
@@ -102,15 +100,14 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
   Docker, promotes a light worktree, writes `.env`, seeds fixtures, or resets the development
   database. Missing infrastructure reports the minimal `docker compose up -d ...` command.
 - CI runs formatting, full lint, duplication, typecheck, prospective test quality, production build,
-  every test tier, migration/drift checks, and changed-file mutation. It uses a new Postgres instance.
+  every test tier and migration/drift checks. It uses a new Postgres instance.
   Static checks, build, unit/scripts/styles, and infrastructure start independently. Component size
   belongs to static checks. Independent steps and Turbo tasks continue after failures; consumers of
   failed dependencies are prevented. Integration and transport share Postgres and run sequentially,
   with transport still running after integration fails when preparation succeeded.
-  Mutation waits only for successful unit/scripts/styles checks and detects its own scope.
-  `Quality gates` requires all five jobs, reports their results in a table, and allows mutation to
-  be absent only for pushes to main or PRs with no mutation scope. Turbo caches are isolated by job and
-  restored from that job's latest snapshot, so concurrent jobs cannot overwrite each other's cache.
+  `Quality gates` requires static checks, build, unit/scripts/styles, and infrastructure jobs.
+  Turbo caches are isolated by job and restored from that job's latest snapshot, so concurrent
+  jobs cannot overwrite each other's cache.
 - CI runs full tiers and root unit checks without Turbo cache for its reporting pass. JUnit and LCOV are written per
   package/tier, alongside the native `spec` reporter in stdout (case, file, and failure message).
   Artifacts have distinct names per job and are uploaded even on failure when available. Job
@@ -121,52 +118,13 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
   or unreferenced in tests. It is an inventory, not proof of execution, and missing references do
   not block.
 
-## Mutation and duration
+## Test quality and duration
 
-`pnpm mutate:changed --base <ref>` builds affected packages/dependencies before invoking package
-Stryker configs. Stryker executes only `test/**/*.unit.test.ts`; integration and transport tests
-never run inside mutation. `apps/web` and `packages/ui` are excluded from mutation selection,
-including the CI scope preflight; their unit tests and the other quality checks still run. See
-[0021](../decisions/0021-exclude-frontend-from-mutation.md).
-`scripts/run-unit-mutation.mjs` gates the unit-covered score at 70:
-`100 * (Killed + Timeout) / (Killed + Timeout + Survived)`. `NoCoverage` mutants remain visible
-in reports but are excluded from the denominator; integration-only coverage does not fail this
-gate. With no scored mutants, report N/A rather than claiming a 100% score. Runtime errors and
-failed dry runs still fail. Ignored and compile-error mutants do not contribute to the score.
-Stryker's raw HTML/JSON score includes uncovered mutants and is informational; its built-in break
-threshold is disabled because the package wrapper enforces the unit-covered threshold instead.
-CI mutation needs no Postgres, Mailpit, or migrations; the integration/transport job retains them.
-A scope preflight skips mutation when changed packages have no `test/**/*.unit.test.ts` files.
-Compile-time type tests do not put a package in mutation scope. Packages with unit tests but without
-mutation configuration still reach the fail-closed gate.
-
-Integration and transport quality is assessed through contract-focused review and this guide:
-assert observable persistence, authorization, transactions, and adapter behavior, with isolated
-fixtures and meaningful failure cases. The prospective assertion guardrails, full test tiers, and
-JUnit/LCOV reporting remain mandatory. Passing those checks is
-execution/static evidence, not a replacement mutation score or proof of assertion quality.
-Do not introduce unit mocks that merely reproduce implementation to compensate for removing
-integration tests from mutation.
-
-CI restores incremental reports only within the same PR and fingerprint, and saves reports even
-when the score fails. The fingerprint includes the mutation scope, resolved Node version and all non-ignored
-repository files except dedicated documentation (`docs/`, `.design/`, root Markdown). Source,
-tests, helpers, fixtures, dependencies and configuration changes invalidate it conservatively.
-Thus code changes currently rerun all mutants in scope; documentation-only pushes and retries can
-reuse results. This avoids Stryker's inability to detect changes in imported helpers/dependencies.
-The dry run and unit-covered threshold of 70 remain mandatory. Cache behavior and timing must be verified in
-GitHub Actions; local cache-key tests establish invalidation, not remote restore/save behavior.
-
-Review every new surviving mutant, even when the score passes. Add or strengthen tests when a
-survivor exposes a gap in relevant observable behavior, especially financial calculations,
-authorization, or data integrity. For equivalent or unreachable mutants, or behavior outside the
-contract, document the reason in the review or completion report. Investigate unexplained survivors
-before considering the work complete. Do not create implementation-coupled tests merely to reach
-100 percent; a mutation score does not establish that the chosen approach serves the user's goal.
-
-`pnpm mutation:redundancy-report` reads the local Stryker JSON matrix and lists test files that kill
-no mutant exclusively. Shared kills do not prove redundancy. A missing or invalid report is a tool
-error; the informational finding itself does not block.
+Review unit, integration, and transport tests against observable contracts, independent expected
+results, meaningful failure cases, and isolated fixtures. Prospective assertion guardrails, full
+test tiers, and JUnit/LCOV reporting remain mandatory. These are execution and static evidence;
+reviewers must still judge whether a plausible defect would make a test fail. See
+[0023](../decisions/0023-remove-mutation-testing.md).
 
 Duration budgets are investigation triggers, not a flaky pass/fail threshold: unit 50 ms/test,
 integration 500 ms/test, transport 1 s/test, and 5 s/file. A single slow run emits a warning only.

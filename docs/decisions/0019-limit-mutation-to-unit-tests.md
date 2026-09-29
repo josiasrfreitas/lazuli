@@ -4,7 +4,7 @@ Status: Accepted
 Decision date: 2026-09-14
 Acceptance date: 2026-09-14
 Supersedes: Mutation test-tier scope, score denominator, and infrastructure requirements in 0017
-Superseded by: [0020](0020-remove-changed-source-coverage-gate.md) (changed-source execution gate only); [0021](0021-exclude-frontend-from-mutation.md) (frontend mutation scope)
+Superseded by: [0020](0020-remove-changed-source-coverage-gate.md) (changed-source execution gate only); [0021](0021-exclude-frontend-from-mutation.md) (frontend mutation scope); [0023](0023-remove-mutation-testing.md) (remaining mutation requirements)
 Legacy sources: None
 
 Implementation evidence: `tooling/stryker/base.mjs`, package Stryker configurations,

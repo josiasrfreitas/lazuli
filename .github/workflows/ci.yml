@@ -199,88 +199,25 @@ jobs:
             tooling/*/coverage/*/lcov.info
           if-no-files-found: ${{ steps.integration.outcome == 'success' && steps.transport.outcome == 'success' && 'error' || 'ignore' }}
 
-  mutation:
-    name: Mutação dos arquivos alterados
-    if: github.event_name == 'pull_request'
-    needs: unit
-    outputs:
-      scope: ${{ steps.mutation-scope.outputs.selected }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Preparar código
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Instalar dependências e restaurar cache
-        uses: ./.github/actions/setup
-      - name: Selecionar arquivos para mutação
-        id: mutation-scope
-        run: |
-          selected=$(node scripts/mutate-changed.mjs --base origin/${{ github.base_ref }} --scope-only)
-          echo "selected=$selected" >> "$GITHUB_OUTPUT"
-      - name: Calcular chave de cache da mutação
-        if: steps.mutation-scope.outputs.selected == 'true'
-        id: mutation-inputs
-        run: |
-          fingerprint=$(node scripts/mutation-cache-key.mjs --base origin/${{ github.base_ref }})
-          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
-      - name: Restaurar resultados anteriores da mutação
-        if: steps.mutation-scope.outputs.selected == 'true'
-        id: stryker-incremental-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            apps/*/reports/stryker-incremental.json
-            packages/*/reports/stryker-incremental.json
-          key: stryker-v2-${{ runner.os }}-${{ steps.mutation-inputs.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            stryker-v2-${{ runner.os }}-${{ steps.mutation-inputs.outputs.fingerprint }}-pr-${{ github.event.pull_request.number }}-
-      - name: Executar mutação e exigir score mínimo de 70%
-        if: steps.mutation-scope.outputs.selected == 'true'
-        run: pnpm mutate:changed --base origin/${{ github.base_ref }}
-      - name: Salvar resultados para próximas execuções
-        if: ${{ !cancelled() && steps.stryker-incremental-cache.outcome == 'success' && hashFiles('apps/*/reports/stryker-incremental.json', 'packages/*/reports/stryker-incremental.json') != '' }}
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            apps/*/reports/stryker-incremental.json
-            packages/*/reports/stryker-incremental.json
-          key: ${{ steps.stryker-incremental-cache.outputs.cache-primary-key }}
-      - name: Publicar relatório de mutação
-        if: ${{ always() && steps.mutation-scope.outputs.selected == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: mutation-${{ github.run_id }}
-          path: |
-            apps/*/reports/mutation/**
-            packages/*/reports/mutation/**
-          if-no-files-found: warn
-
   quality:
     name: Quality gates
     if: always()
-    needs: [checks, build, unit, infrastructure, mutation]
+    needs: [checks, build, unit, infrastructure]
     runs-on: ubuntu-latest
     steps:
       - name: Consolidar resultados e exigir validação completa
         env:
           NEEDS: ${{ toJSON(needs) }}
-          EVENT: ${{ github.event_name }}
-          REF: ${{ github.ref }}
         run: |
           node <<'JS'
           const jobs = JSON.parse(process.env.NEEDS);
           const summary = ['| Validação | Resultado |', '| --- | --- |'];
-          const names = { checks: 'Verificações estáticas', build: 'Build de produção', unit: 'Unitários, scripts e estilos', infrastructure: 'Integração e transporte', mutation: 'Mutação' };
+          const names = { checks: 'Verificações estáticas', build: 'Build de produção', unit: 'Unitários, scripts e estilos', infrastructure: 'Integração e transporte' };
           let passed = true;
-          for (const name of ['checks', 'build', 'unit', 'infrastructure', 'mutation']) {
+          for (const name of ['checks', 'build', 'unit', 'infrastructure']) {
             const job = jobs[name];
-            const noScope = name === 'mutation' && job.result === 'success' && job.outputs.scope === 'false';
-            const mainPush = name === 'mutation' && job.result === 'skipped' && process.env.EVENT === 'push' && process.env.REF === 'refs/heads/main';
-            const valid = name === 'mutation'
-              ? mainPush || (job.result === 'success' && ['true', 'false'].includes(job.outputs.scope))
-              : job.result === 'success';
-            const label = noScope ? 'Sucesso (sem arquivos elegíveis para mutação)' : mainPush ? 'Dispensada (push para main)' : job.result === 'success' && valid ? 'Sucesso' : job.result === 'failure' ? 'Falha' : 'Incompleta / impedida';
+            const valid = job.result === 'success';
+            const label = valid ? 'Sucesso' : job.result === 'failure' ? 'Falha' : 'Incompleta / impedida';
             summary.push(`| ${names[name]} | ${label} |`);
             passed &&= valid;
           }

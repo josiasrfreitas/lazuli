@@ -19,7 +19,7 @@ export function ContractPaymentProgress({
     .join(" · ");
 
   return (
-    <div className="flex flex-col gap-1.5 py-2">
+    <div className="flex flex-col gap-1.5">
       <span aria-hidden="true" className="font-numeric whitespace-nowrap">
         {label}
       </span>
@@ -37,11 +37,6 @@ export function ContractPaymentProgress({
           style={{ "--payment-progress": `${(paid / total) * PERCENT}%` } as CSSProperties}
         />
       </div>
-      {exceptions ? (
-        <span aria-hidden="true" className="text-micro whitespace-normal text-muted-foreground">
-          {exceptions}
-        </span>
-      ) : null}
     </div>
   );
 }

@@ -76,3 +76,11 @@ export {
   priceAfterDiscountCents,
 } from "./monthly-contract.js";
 export type { MonthlyContractTerms } from "./monthly-contract.js";
+
+export {
+  deriveContractFinancialSummary,
+  deriveContractServiceStatus,
+  type ContractFinancialStatus,
+  type ContractFinancialSummary,
+  type ContractServiceStatus,
+} from "./contract-status.js";

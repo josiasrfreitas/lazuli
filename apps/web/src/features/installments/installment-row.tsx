@@ -1,8 +1,9 @@
 import type { ReactElement } from "react";
 import { Badge, TableCell, TableRow } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
+import { abbreviatedPersonName } from "~/lib/format";
 import { InstallmentAmount } from "./installment-amount";
-import { abbreviatedPersonName, installmentVm } from "./view-model";
+import { installmentVm } from "./view-model";
 
 export const COLUMN_IDS = {
   installment: "installments-column-installment",

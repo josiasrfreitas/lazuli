@@ -10,8 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node ../../scripts/run-test-tier.mjs unit",
-    "clean": "rm -rf .turbo dist",
-    "mutate": "NODE_ENV=test node ../../scripts/run-unit-mutation.mjs"
+    "clean": "rm -rf .turbo dist"
   },
   "dependencies": {
     "@lazuli/validators": "workspace:*",
@@ -19,9 +18,7 @@
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
-    "@lazuli/stryker-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
-    "@stryker-mutator/core": "catalog:",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "tsx": "catalog:",

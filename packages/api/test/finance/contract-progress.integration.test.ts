@@ -160,6 +160,20 @@ void it("counts five fully paid installments and excludes a partial, material an
     waived: 0,
     cancelled: 0,
   });
+  const firstRow = await listedContract(first.created.id);
+  const siblingRow = await listedContract(sibling.created.id);
+  assert.deepEqual(firstRow.financialSummary, {
+    overdueCents: 90_000,
+    dueTodayCents: 0,
+    futureCents: 75_000,
+    zeroedByAdjustment: 0,
+  });
+  assert.deepEqual(siblingRow.financialSummary, {
+    overdueCents: 200_000,
+    dueTodayCents: 0,
+    futureCents: 75_000,
+    zeroedByAdjustment: 0,
+  });
   assert.deepEqual(await progress(sibling.created.id), {
     paid: 1,
     total: 12,
@@ -227,4 +241,110 @@ void it("sums split payments and valid adjustments, ignoring deleted facts and z
   assert.deepEqual(await progress(created.id), { paid: 2, total: 12, waived: 0, cancelled: 0 });
   await payment(payer.id, { installmentId: interest!.id, amountCents: 1_000 });
   assert.deepEqual(await progress(created.id), { paid: 3, total: 12, waived: 0, cancelled: 0 });
+});
+
+async function listedContract(id: string, now = NOW): Promise<ContractListRow> {
+  const list = await finance(db, ADMIN.id).listContracts({ page: 1, query: PREFIX, now });
+  const row = list.rows.find((candidate) => candidate.id === id);
+  assert.ok(row, "created contract must be listed");
+  return row;
+}
+
+void it("lists recorded balances separately and changes overdue at Sao Paulo midnight", async () => {
+  const { created, order, payer } = await fixture("P09 balances");
+  await payment(payer.id, { installmentId: order.installments[0]!.id, amountCents: 10_000 });
+  await payment(payer.id, {
+    installmentId: order.installments[1]!.id,
+    amountCents: 25_000,
+    deleted: true,
+  });
+  await db.installmentAdjustment.createMany({
+    data: [
+      { installmentId: order.installments[0]!.id, type: "INTEREST", amountCents: 1_000 },
+      {
+        installmentId: order.installments[1]!.id,
+        type: "INTEREST",
+        amountCents: 5_000,
+        deletedAt: NOW,
+      },
+    ],
+  });
+  const row = await listedContract(created.id, new Date("2026-02-10T03:00:00Z"));
+  assert.equal(row.status, "INADIMPLENTE");
+  assert.equal(row.serviceStatus, "ACTIVE");
+  assert.deepEqual(row.financialSummary, {
+    overdueCents: 16_000,
+    dueTodayCents: 25_000,
+    futureCents: 250_000,
+    zeroedByAdjustment: 0,
+  });
+  const nextDay = await listedContract(created.id, new Date("2026-02-11T03:00:00Z"));
+  assert.deepEqual(nextDay.financialSummary, {
+    overdueCents: 41_000,
+    dueTodayCents: 0,
+    futureCents: 250_000,
+    zeroedByAdjustment: 0,
+  });
+});
+
+void it("keeps service active for paid, waived, adjusted and cancelled financial plans", async () => {
+  const { created, order, payer } = await fixture("P09 exceptional", { installmentCount: 3 });
+  for (const installment of order.installments) {
+    await payment(payer.id, { installmentId: installment.id, amountCents: 100_000 });
+  }
+  const paid = await listedContract(created.id);
+  assert.equal(paid.status, "QUITADO");
+  assert.equal(paid.serviceStatus, "ACTIVE");
+  {
+    const row = await listedContract(created.id, new Date("2026-01-01T02:59:59Z"));
+    assert.equal(row.serviceStatus, "NOT_STARTED");
+  }
+  {
+    const row = await listedContract(created.id, new Date("2027-01-02T02:59:59Z"));
+    assert.equal(row.serviceStatus, "ACTIVE");
+  }
+  {
+    const row = await listedContract(created.id, new Date("2027-01-02T03:00:00Z"));
+    assert.equal(row.serviceStatus, "ENDED");
+  }
+  await db.paymentAllocation.updateMany({
+    where: { installment: { orderId: order.id } },
+    data: { deletedAt: NOW },
+  });
+  await db.installment.updateMany({
+    where: { orderId: order.id },
+    data: { waivedAt: NOW, waivedReason: "Dispensa total" },
+  });
+  const waived = await listedContract(created.id);
+  assert.equal(waived.status, "SEM_SALDO");
+  assert.equal(waived.serviceStatus, "ACTIVE");
+  assert.deepEqual(waived.financialSummary, {
+    overdueCents: 0,
+    dueTodayCents: 0,
+    futureCents: 0,
+    zeroedByAdjustment: 0,
+  });
+  assert.equal(waived.paymentProgress.waived, 3);
+  await db.installment.updateMany({
+    where: { orderId: order.id },
+    data: { waivedAt: null, waivedReason: null },
+  });
+  await db.installmentAdjustment.createMany({
+    data: order.installments.map(({ id }) => ({
+      installmentId: id,
+      type: "DISCOUNT",
+      amountCents: -100_000,
+    })),
+  });
+  const adjusted = await listedContract(created.id);
+  assert.equal(adjusted.status, "SEM_SALDO");
+  assert.equal(adjusted.serviceStatus, "ACTIVE");
+  assert.equal(adjusted.financialSummary.zeroedByAdjustment, 3);
+  await db.order.update({
+    where: { id: order.id },
+    data: { cancelledAt: NOW, cancelledReason: "Cancelamento da cobrança" },
+  });
+  const cancelled = await listedContract(created.id);
+  assert.equal(cancelled.status, "CANCELADO");
+  assert.equal(cancelled.serviceStatus, "ACTIVE");
 });

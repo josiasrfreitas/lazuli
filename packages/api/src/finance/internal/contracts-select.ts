@@ -1,4 +1,10 @@
-import { deriveInstallmentLedger, type InstallmentLedger } from "@lazuli/domain";
+import {
+  deriveContractFinancialSummary,
+  deriveContractServiceStatus,
+  type ContractFinancialStatus,
+  type ContractFinancialSummary,
+  type ContractServiceStatus,
+} from "@lazuli/domain";
 
 import { toDateOnlyString } from "./shared.js";
 
@@ -8,7 +14,7 @@ export type ContractListRow = {
   student: {
     id: string;
     fullName: string;
-    placements: Array<{ stage: string; classCode: string; modality: "PPT" | "Regular" }>;
+    placements: Array<{ stageCode: string; classCode: string }>;
   };
   agreedOn: string;
   startsOn: string;
@@ -19,7 +25,9 @@ export type ContractListRow = {
   paymentProgress: { paid: number; total: number; waived: number; cancelled: number };
   uniformInstallmentAmountCents: number | null;
   firstDueDate: string;
-  status: "INADIMPLENTE" | "EM_DIA" | "QUITADO" | "CANCELADO";
+  status: ContractFinancialStatus;
+  financialSummary: ContractFinancialSummary;
+  serviceStatus: ContractServiceStatus;
 };
 
 export const contractSelect = {
@@ -37,10 +45,10 @@ export const contractSelect = {
       enrollments: {
         where: { deletedAt: null, exitDate: null },
         select: {
-          class: { select: { scheduleType: true, internalCode: true } },
+          class: { select: { internalCode: true } },
           progressRecords: {
             where: { deletedAt: null, endDate: null },
-            select: { stage: { select: { name: true } } },
+            select: { stage: { select: { internalCode: true } } },
           },
         },
       },
@@ -75,8 +83,8 @@ type SelectedContract = {
     id: string;
     fullName: string;
     enrollments: Array<{
-      class: { scheduleType: "REGULAR" | "PERSONALIZED"; internalCode: string };
-      progressRecords: Array<{ stage: { name: string } }>;
+      class: { internalCode: string };
+      progressRecords: Array<{ stage: { internalCode: string } }>;
     }>;
   };
   agreedOn: Date | null;
@@ -98,52 +106,13 @@ type SelectedContract = {
   }>;
 };
 
-function paymentSummary(
-  order: SelectedContract["orders"][number],
-  { now, total }: { now: Date; total: number },
-): Pick<ContractListRow, "status" | "paymentProgress"> {
-  const ledgers = order.installments.map((installment) =>
-    deriveInstallmentLedger({
-      ...installment,
-      orderCancelledAt: order.cancelledAt,
-      now,
-      interestRatePctMonthly: 0,
-    }),
-  );
-  const paid = ledgers.filter(
-    (ledger) => ledger.status === "PAID" && ledger.paidAmountCents > 0,
-  ).length;
-  const waived = ledgers.filter((ledger) => ledger.status === "WAIVED").length;
-  return {
-    status: paymentStatus(ledgers, order.cancelledAt !== null),
-    paymentProgress: {
-      paid,
-      total,
-      waived,
-      cancelled: order.cancelledAt ? ledgers.length - paid - waived : 0,
-    },
-  };
-}
-
-function paymentStatus(
-  ledgers: InstallmentLedger[],
-  cancelled: boolean,
-): ContractListRow["status"] {
-  if (cancelled) return "CANCELADO";
-  if (ledgers.some((ledger) => ledger.status === "OVERDUE" && ledger.collectibleRemainingCents > 0))
-    return "INADIMPLENTE";
-  return ledgers.every((ledger) => ledger.status === "PAID") ? "QUITADO" : "EM_DIA";
-}
-
 function academicPlacements(
   student: SelectedContract["student"],
 ): ContractListRow["student"]["placements"] {
   return student.enrollments.flatMap((enrollment) =>
     enrollment.progressRecords.map((progress) => ({
-      stage: progress.stage.name,
+      stageCode: progress.stage.internalCode,
       classCode: enrollment.class.internalCode,
-      modality:
-        enrollment.class.scheduleType === "PERSONALIZED" ? ("PPT" as const) : ("Regular" as const),
     })),
   );
 }
@@ -185,6 +154,11 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
     installmentCount: order.installmentCount,
     uniformInstallmentAmountCents: uniformInstallmentAmount(order),
     firstDueDate: toDateOnlyString(order.firstDueDate),
-    ...paymentSummary(order, { now, total: order.installmentCount }),
+    ...deriveContractFinancialSummary({ ...order, now, installmentCount: order.installmentCount }),
+    serviceStatus: deriveContractServiceStatus({
+      startsOn: toDateOnlyString(row.startsOn),
+      endsOn: toDateOnlyString(row.endsOn),
+      now,
+    }),
   };
 }

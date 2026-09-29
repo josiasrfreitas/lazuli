@@ -153,7 +153,7 @@ estiver protegido na UI e na API, incluindo chamadas pelo lote.
       não entra. Integração dos agregados, dispensas e contratos de irmãos; texto legível sem cor.
       Não incluir filtros ou condição de atraso neste PR.
 
-- [ ] **P09 — Distinguir situação financeira e vigência.** [#125](https://github.com/josiasrfreitas/lazuli/issues/125) Entregar condições e valores de
+- [x] **P09 — Distinguir situação financeira e vigência.** [#125](https://github.com/josiasrfreitas/lazuli/issues/125) Entregar condições e valores de
       atraso na listagem, separados do estado do serviço. **Reutiliza:** Table, Badge e datas.
       **Modifica:** agregados e células de ContractsTable. **Depende:** P05 e semântica de estados
       excepcionais definida. Não depende da barra de P08.
