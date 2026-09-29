@@ -356,7 +356,7 @@ void test("nominal and partial receipts show no available-discount indicators", 
     }),
   );
   assert.match(markup, />R\$\u00A0100,00</u);
-  assert.match(markup, />Paga parcialmente<\/span>/u);
+  assert.match(markup, />Parcial<\/span>/u);
   assert.doesNotMatch(markup, /Desconto aplicado:|Quitação em dia:|data-slot="tooltip-trigger"/u);
   const cells = [
     ...markup.matchAll(/<td[^>]*headers="installments-column-(?:nominal|paid)"[^>]*>(.*?)<\/td>/gu),

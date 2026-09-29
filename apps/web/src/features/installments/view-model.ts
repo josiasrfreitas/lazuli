@@ -87,7 +87,7 @@ function statusBadge(row: FinanceInstallmentRow, today: string): InstallmentVm["
         : { label: overdue, variant: "destructive" };
     }
     default: {
-      if (row.paidAmountCents > 0) return { label: "Paga parcialmente", variant: "warning" };
+      if (row.paidAmountCents > 0) return { label: "Parcial", variant: "warning" };
       return row.dueDate === today
         ? { label: "Vence hoje", variant: "warning" }
         : { label: "A vencer", variant: "neutral" };

@@ -316,7 +316,7 @@ void test("amount columns show nominal and receipts with only applied discounts"
 
 void test("partial payments stay visible in open and overdue status without overriding settlement", () => {
   assert.deepEqual(installmentVm({ ...row, status: "UPCOMING" }, TODAY).badge, {
-    label: "Paga parcialmente",
+    label: "Parcial",
     variant: "warning",
   });
   assert.deepEqual(installmentVm(row, TODAY).badge, {
