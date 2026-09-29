@@ -23,11 +23,7 @@ export default [
       "scripts/check-pre-commit.mjs",
       "scripts/check-pre-push.mjs",
       "scripts/changed-source-covered.mjs",
-      "scripts/mutation-redundancy-report.mjs",
-      "scripts/mutate-changed.mjs",
-      "scripts/mutation-cache-key.mjs",
       "scripts/run-test-tier.mjs",
-      "scripts/run-unit-mutation.mjs",
       "scripts/test-affected.mjs",
       "scripts/lib/affected-checks.mjs",
       "scripts/lib/check-scope.mjs",
@@ -35,7 +31,7 @@ export default [
       "scripts/test-durations.mjs",
       "scripts/test-surface-inventory.mjs",
     ],
-    // Change gates spawn git, node, and Stryker over paths derived from the git diff.
+    // Change gates spawn git and node over paths derived from the git diff.
     rules: {
       "no-restricted-syntax": "off",
       complexity: "off",

@@ -135,7 +135,6 @@ const financeInstallmentsOutputFields = {
   counts: financeInstallmentCountsSchema,
 };
 
-// Stryker disable StringLiteral,ObjectLiteral: changing Zod discriminators aborts schema construction.
 export const financeInstallmentsOutputSchema = z.discriminatedUnion("view", [
   z
     .object({
@@ -160,7 +159,6 @@ export const financeInstallmentsOutputSchema = z.discriminatedUnion("view", [
     })
     .strict(),
 ]);
-// Stryker restore StringLiteral,ObjectLiteral
 
 export type FinanceInstallmentsInput = z.infer<typeof financeInstallmentsInputSchema>;
 export type FinanceInstallmentsOutput = z.infer<typeof financeInstallmentsOutputSchema>;
@@ -183,7 +181,6 @@ export const payerCreateInputSchema = z
   })
   .strict();
 
-// Stryker disable StringLiteral,ObjectLiteral: changing Zod discriminators aborts schema construction.
 const existingPayerInputSchema = z
   .object({
     mode: z.literal("existing"),
@@ -202,7 +199,6 @@ export const financePayerInputSchema = z.discriminatedUnion("mode", [
   existingPayerInputSchema,
   createPayerInputSchema,
 ]);
-// Stryker restore StringLiteral,ObjectLiteral
 
 const orderCommercialFieldsSchema = z.object({
   kind: independentOrderKindSchema,

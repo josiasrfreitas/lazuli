@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const durationsScript = path.join(root, "scripts/test-durations.mjs");
-const redundancyScript = path.join(root, "scripts/mutation-redundancy-report.mjs");
 
 async function fixture() {
   return await mkdtemp(path.join(tmpdir(), "lazuli-reports-"));
@@ -53,50 +52,6 @@ it("fails when a JUnit report is structurally invalid", async (context) => {
 
   assert.equal(result.status, 2);
   assert.match(result.stderr, /Invalid JUnit report/u);
-});
-
-it("reports exclusive, shared, and absent mutant kills without blocking", async (context) => {
-  const directory = await fixture();
-  context.after(() => rm(directory, { force: true, recursive: true }));
-  const payload = {
-    files: {
-      "src/index.ts": {
-        mutants: [
-          { id: "one", killedBy: ["a"], status: "Killed" },
-          { id: "two", killedBy: ["a", "b"], status: "Killed" },
-          { id: "three", killedBy: [], status: "Survived" },
-        ],
-      },
-    },
-    testFiles: {
-      "exclusive.test.ts": { tests: [{ id: "a", name: "exclusive" }] },
-      "shared-only.test.ts": { tests: [{ id: "b", name: "shared" }] },
-      "kills-none.test.ts": { tests: [{ id: "c", name: "none" }] },
-    },
-  };
-  await write(
-    directory,
-    "packages/core/reports/mutation/report.json",
-    `${JSON.stringify(payload)}\n`,
-  );
-
-  const result = run(directory, redundancyScript);
-
-  assert.equal(result.status, 0);
-  assert.doesNotMatch(result.stdout, /exclusive\.test/u);
-  assert.match(result.stdout, /shared-only\.test/u);
-  assert.match(result.stdout, /kills-none\.test/u);
-});
-
-it("fails when the Stryker report schema is invalid", async (context) => {
-  const directory = await fixture();
-  context.after(() => rm(directory, { force: true, recursive: true }));
-  await write(directory, "packages/core/reports/mutation/report.json", '{"files":{}}\n');
-
-  const result = run(directory, redundancyScript);
-
-  assert.equal(result.status, 2);
-  assert.match(result.stderr, /Invalid Stryker schema/u);
 });
 
 it("keeps a failing case visible in CI stdout, JUnit and LCOV", async (context) => {

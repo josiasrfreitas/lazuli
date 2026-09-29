@@ -11,8 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node ../../scripts/run-test-tier.mjs unit",
     "test:integration": "node ../../scripts/run-test-tier.mjs integration",
-    "clean": "rm -rf .turbo dist",
-    "mutate": "NODE_ENV=test node ../../scripts/run-unit-mutation.mjs"
+    "clean": "rm -rf .turbo dist"
   },
   "dependencies": {
     "@lazuli/db": "workspace:*",
@@ -22,9 +21,7 @@
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
-    "@lazuli/stryker-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
-    "@stryker-mutator/core": "catalog:",
     "@types/node": "catalog:",
     "dotenv": "catalog:",
     "dotenv-cli": "catalog:",

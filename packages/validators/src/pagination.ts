@@ -25,7 +25,6 @@ export type PaginationPolicy<Options extends readonly [number, ...number[]]> = {
   pageSizeSchema: ZodType<Options[number], ZodTypeDef, number | undefined>;
 };
 
-// Stryker disable BlockStatement,BooleanLiteral,ConditionalExpression: invalid policies abort eager module construction before tests run.
 export function definePaginationPolicy<
   const Options extends readonly [number, ...number[]],
 >(input: {
@@ -45,7 +44,6 @@ export function definePaginationPolicy<
 
   return { ...input, pageSchema, pageSizeSchema };
 }
-// Stryker restore BlockStatement,BooleanLiteral,ConditionalExpression
 
 export function paginationResultFields(
   policy: PaginationPolicy<readonly [number, ...number[]]>,
@@ -61,7 +59,6 @@ export function paginationResultFields(
   };
 }
 
-// Stryker disable ObjectLiteral: empty policy inputs abort eager module construction before tests run.
 export const studentPaginationPolicy = definePaginationPolicy({
   pageSizeOptions: STANDARD_PAGE_SIZE_OPTIONS,
   defaultPageSize: 10,
@@ -76,4 +73,3 @@ export const financeOverduePaginationPolicy = definePaginationPolicy({
   pageSizeOptions: [FIXED_PAGE_SIZE] as const,
   defaultPageSize: FIXED_PAGE_SIZE,
 });
-// Stryker restore ObjectLiteral
