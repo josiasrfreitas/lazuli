@@ -51,39 +51,70 @@ if [[ "$1 $2" == "repo view" ]]; then echo owner/repo; elif [[ "$1 $2" == "issue
     path.join(bin, "orca"),
     `#!/bin/bash
 if [[ "$1" == status ]]; then echo '{"ok":true}'; exit; fi
-[[ "$(git -C "$SHIP_TEST_MAIN" rev-parse HEAD)" == "$(git -C "$SHIP_TEST_MAIN" rev-parse origin/main)" ]] || exit 27
-printf 'orca\\n' >> "$SHIP_TEST_LOG"
-git -C "$SHIP_TEST_MAIN" worktree add -q -b issue-123 "$SHIP_TEST_ROOT/issue-123"
-printf '{"ok":true,"result":{"worktree":{"path":"%s"}}}\\n' "$SHIP_TEST_ROOT/issue-123"
+if [[ "$1 $2" == "worktree create" ]]; then
+  [[ "$(git -C "$SHIP_TEST_MAIN" rev-parse HEAD)" == "$(git -C "$SHIP_TEST_MAIN" rev-parse origin/main)" ]] || exit 27
+  printf 'worktree\\n' >> "$SHIP_TEST_LOG"
+  git -C "$SHIP_TEST_MAIN" worktree add -q -b issue-123 "$SHIP_TEST_ROOT/issue-123"
+  printf '{"ok":true,"result":{"worktree":{"id":"repo-test::%s","path":"%s"}}}\\n' "$SHIP_TEST_ROOT/issue-123" "$SHIP_TEST_ROOT/issue-123"
+elif [[ "$1 $2" == "terminal create" ]]; then
+  printf 'terminal-create\\n' >> "$SHIP_TEST_LOG"
+  printf '%s' "$*" > "$SHIP_TEST_ROOT/terminal-create-args"
+  echo '{"ok":true,"result":{"terminal":{"handle":"term-test"}}}'
+elif [[ "$1 $2" == "terminal wait" ]]; then
+  printf 'terminal-wait\\n' >> "$SHIP_TEST_LOG"
+  if [[ "\${SHIP_TEST_NEVER_READY:-}" == 1 || ! -e "$SHIP_TEST_ROOT/waited" ]]; then
+    touch "$SHIP_TEST_ROOT/waited"
+    echo '{"ok":false,"error":{"code":"timeout","message":"timeout"}}'
+    exit 1
+  fi
+  echo '{"ok":true,"result":{"wait":{"satisfied":true}}}'
+elif [[ "$1 $2" == "terminal send" ]]; then
+  printf 'terminal-send\\n' >> "$SHIP_TEST_LOG"
+  printf '%s' "$*" > "$SHIP_TEST_ROOT/terminal-send-args"
+  echo '{"ok":true,"result":{"send":{"accepted":true}}}'
+else
+  exit 28
+fi
 `,
     { mode: 0o755 },
   );
   writeFileSync(
     path.join(bin, "codex"),
     `#!/bin/bash
-printf 'codex\\n' >> "$SHIP_TEST_LOG"
-printf '%s' "$*" > "$SHIP_TEST_ROOT/codex-args"
+printf 'direct-codex\\n' >> "$SHIP_TEST_LOG"
+exit 29
 `,
     { mode: 0o755 },
   );
   return { main, log, env };
 }
 
-test("updates main before Orca creates a worktree and passes model settings to one Codex session", () => {
+test("updates main, opens one interactive Codex terminal, then sends the prompt", () => {
   const { main, log, env } = fixture();
   run("bash", [script, "123", "--model", "gpt-6-astra", "--effort", "high"], { cwd: main, env });
   assert.equal(readFileSync(path.join(main, "file"), "utf8"), "updated\n");
   const calls = readFileSync(log, "utf8").trim().split("\n");
-  assert.equal(calls.length, 2);
-  assert.equal(calls[0], "orca");
-  const args = readFileSync(path.join(env.SHIP_TEST_ROOT, "codex-args"), "utf8");
-  assert.match(args, /--dangerously-bypass-approvals-and-sandbox/);
-  assert.match(args, /--model gpt-6-astra/);
-  assert.ok(args.includes('model_reasoning_effort="high"'));
-  assert.match(args, /THIS SAME SESSION/);
-  assert.match(args, /ship-with-tests/);
-  assert.match(args, /installed pr skill/);
-  assert.match(args, /babysit-pr/);
+  assert.deepEqual(calls, [
+    "worktree",
+    "terminal-create",
+    "terminal-wait",
+    "terminal-wait",
+    "terminal-send",
+  ]);
+  const launch = readFileSync(path.join(env.SHIP_TEST_ROOT, "terminal-create-args"), "utf8");
+  assert.match(launch, /--worktree id:repo-test::/);
+  assert.match(launch, /--command codex --model gpt-6-astra/);
+  assert.match(launch, /--focus/);
+  assert.match(launch, /model_reasoning_effort=.*high/);
+  assert.match(launch, /--dangerously-bypass-approvals-and-sandbox/);
+  assert.doesNotMatch(launch, /codex exec/);
+  const sent = readFileSync(path.join(env.SHIP_TEST_ROOT, "terminal-send-args"), "utf8");
+  assert.match(sent, /--terminal term-test/);
+  assert.match(sent, /--enter --wait-submit 10/);
+  assert.match(sent, /THIS SAME SESSION/);
+  assert.match(sent, /ship-with-tests/);
+  assert.match(sent, /installed pr skill/);
+  assert.match(sent, /babysit-pr/);
 });
 
 test("refuses a dirty main before calling Orca or Codex", () => {
@@ -94,4 +125,22 @@ test("refuses a dirty main before calling Orca or Codex", () => {
     /Main worktree is dirty/,
   );
   assert.throws(() => readFileSync(log), { code: "ENOENT" });
+});
+
+test("does not send the prompt before Codex is ready", () => {
+  const { main, log, env } = fixture();
+  env.SHIP_TEST_NEVER_READY = "1";
+  assert.throws(
+    () => run("bash", [script, "123"], { cwd: main, env, stdio: "pipe" }),
+    /Codex TUI did not become ready/,
+  );
+  assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), [
+    "worktree",
+    "terminal-create",
+    "terminal-wait",
+    "terminal-wait",
+  ]);
+  assert.throws(() => readFileSync(path.join(env.SHIP_TEST_ROOT, "terminal-send-args")), {
+    code: "ENOENT",
+  });
 });

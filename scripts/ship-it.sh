@@ -53,20 +53,33 @@ repo_name=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 gh issue view "$issue" --repo "$repo_name" --json number --jq .number >/dev/null
 orca status --json >/dev/null
 created=$(orca worktree create --name "issue-$issue" --issue "$issue" --no-parent --setup run --json)
+worktree_id=$(python3 -c 'import json,sys; data=json.load(sys.stdin); assert data.get("ok"), data.get("error"); print(data["result"]["worktree"]["id"])' <<<"$created")
 worktree_path=$(python3 -c 'import json,sys; data=json.load(sys.stdin); assert data.get("ok"), data.get("error"); print(data["result"]["worktree"]["path"])' <<<"$created")
 [[ -d "$worktree_path" ]] || { echo 'Orca did not create the worktree' >&2; exit 1; }
-codex_run() {
-  codex exec --dangerously-bypass-approvals-and-sandbox --model "$model" -c "model_reasoning_effort=\"$effort\"" -C "$worktree_path" "$@"
-}
 
-printf 'Running issue #%s in one Codex session: %s\n' "$issue" "$worktree_path"
-codex_run "Read GitHub issue $repo_name#$issue and the repository instructions. Work through the following sequence in THIS SAME SESSION, without starting or delegating to another Codex session:
+codex_command="codex --model $model -c model_reasoning_effort=\\\"$effort\\\" --dangerously-bypass-approvals-and-sandbox"
+terminal_json=$(orca terminal create --worktree "id:$worktree_id" --title "ship-it #$issue" --command "$codex_command" --focus --json)
+terminal_handle=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok"), d.get("error"); r=d["result"]; print(r.get("terminal",{}).get("handle") or r.get("startupTerminal",{}).get("handle") or r.get("handle") or r.get("terminalHandle") or "")' <<<"$terminal_json")
+[[ -n "$terminal_handle" ]] || { echo 'Orca did not return a terminal handle' >&2; exit 1; }
+
+wait_for_codex() {
+  local response
+  response=$(orca terminal wait --terminal "$terminal_handle" --for tui-idle --timeout-ms "$1" --json) || true
+  python3 -c 'import json,sys; d=json.load(sys.stdin); e=d.get("error",{}); assert d.get("ok") or e.get("code")=="timeout", e; r=d.get("result",{}); print(str(r.get("wait",r).get("satisfied",False)).lower())' <<<"$response"
+}
+is_ready=$(wait_for_codex 60000)
+if [[ "$is_ready" != true ]]; then
+  is_ready=$(wait_for_codex 120000)
+fi
+[[ "$is_ready" == true ]] || { echo "Codex TUI did not become ready: $terminal_handle" >&2; exit 1; }
+
+prompt="Read GitHub issue $repo_name#$issue and the repository instructions. Work through the following sequence in THIS SAME SESSION, without starting or delegating to another Codex session:
 
 1. Write a structured plan at .design/issues/$issue/PLAN.md with scope, decisions/dependencies, files, test contract, validation, and visual evidence approach.
 2. Recheck the plan against the issue and repository instructions. Load and follow the installed ship-with-tests skill. Implement the complete issue, run proportional checks, inspect the complete diff, and run git diff --check. Include the plan file in the PR.
 3. Commit and push the work. Open a PR using the installed pr skill and its template. Include before/after evidence. For a UI change, capture real desktop and narrow-viewport screenshots and link committed evidence in the PR. Do not claim visual evidence from placeholders.
 4. In this same session, use the installed babysit-pr skill to monitor and fix the PR until checks are stably green and delivered review feedback is handled. Never merge. Report the PR URL, final SHA, CI outcome, and any unresolved review item."
-pr_url=$(gh -R "$repo_name" pr view "$(git -C "$worktree_path" branch --show-current)" --json url --jq .url)
-[[ "$pr_url" == https://github.com/* ]] || { echo 'No PR found for worktree branch' >&2; exit 1; }
-gh pr checks "$pr_url"
-printf 'Finished: %s\n' "$pr_url"
+receipt=$(orca terminal send --terminal "$terminal_handle" --text "$prompt" --enter --wait-submit 10 --json)
+accepted=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok"), d.get("error"); r=d["result"]; print(str(r.get("send",{}).get("accepted",False)).lower())' <<<"$receipt")
+[[ "$accepted" == true ]] || { echo "Orca did not accept the Codex prompt: $terminal_handle" >&2; exit 1; }
+printf 'Codex interactive session started for issue #%s\nWorktree: %s\nTerminal: %s\n' "$issue" "$worktree_path" "$terminal_handle"
