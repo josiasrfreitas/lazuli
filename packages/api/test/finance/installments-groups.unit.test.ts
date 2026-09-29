@@ -116,6 +116,7 @@ function overdueRow(overrides: Partial<OverdueGroupRow> = {}): OverdueGroupRow {
     expectedAmountCents: INSTALLMENT_AMOUNT,
     paidAmountCents: ROW_PAID,
     collectibleBalanceCents: ROW_BALANCE,
+    onTimeAmountCents: null,
     status: "OVERDUE",
     overdueDays: PAYER_A_DAYS,
     installmentCount: PAYER_A_COUNT,

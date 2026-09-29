@@ -87,6 +87,7 @@ const row: FinanceInstallmentRow = {
   expectedAmountCents: 36_000,
   paidAmountCents: 10_000,
   collectibleBalanceCents: 26_000,
+  onTimeAmountCents: null,
   status: "OVERDUE",
   overdueDays: 14,
 };
@@ -263,6 +264,10 @@ void test("financial presentation keeps status and due date separate from the am
 });
 
 void test("amount presentation distinguishes saldo, recebido, nominal and net adjustments", () => {
+  assert.equal(
+    installmentAmountVm({ ...row, originalAmountCents: 25_000, onTimeAmountCents: 23_000 }).onTime,
+    "R$\u00A0230,00",
+  );
   assert.deepEqual(
     installmentAmountVm({
       ...row,
@@ -270,6 +275,7 @@ void test("amount presentation distinguishes saldo, recebido, nominal and net ad
       expectedAmountCents: 28_000,
       paidAmountCents: 0,
       collectibleBalanceCents: 28_000,
+      onTimeAmountCents: null,
       status: "UPCOMING",
     }),
     {
@@ -278,6 +284,7 @@ void test("amount presentation distinguishes saldo, recebido, nominal and net ad
       nominal: "R$\u00A0250,00",
       adjustment: { label: "Acréscimo", value: "R$\u00A030,00" },
       received: null,
+      onTime: null,
     },
   );
   assert.deepEqual(
@@ -287,6 +294,7 @@ void test("amount presentation distinguishes saldo, recebido, nominal and net ad
       expectedAmountCents: 23_000,
       paidAmountCents: 23_000,
       collectibleBalanceCents: 0,
+      onTimeAmountCents: null,
       status: "PAID",
     }),
     {
@@ -295,6 +303,7 @@ void test("amount presentation distinguishes saldo, recebido, nominal and net ad
       nominal: "R$\u00A0250,00",
       adjustment: { label: "Desconto", value: "R$\u00A020,00" },
       received: null,
+      onTime: null,
     },
   );
   assert.deepEqual(installmentAmountVm({ ...row, status: "WAIVED", collectibleBalanceCents: 0 }), {
@@ -303,6 +312,7 @@ void test("amount presentation distinguishes saldo, recebido, nominal and net ad
     nominal: "R$\u00A0350,00",
     adjustment: { label: "Acréscimo", value: "R$\u00A010,00" },
     received: "R$\u00A0100,00",
+    onTime: null,
   });
   assert.deepEqual(installmentAmountVm(row), {
     label: "Saldo",
@@ -310,6 +320,7 @@ void test("amount presentation distinguishes saldo, recebido, nominal and net ad
     nominal: "R$\u00A0350,00",
     adjustment: { label: "Acréscimo", value: "R$\u00A010,00" },
     received: "R$\u00A0100,00",
+    onTime: null,
   });
 });
 

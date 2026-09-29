@@ -718,6 +718,8 @@ model InstallmentAdjustment {
 
 model PaymentEntry {
   id                String        @id @default(uuid()) @db.Uuid
+  commandId         String?       @unique @map("command_id") @db.Uuid
+  commandFingerprint String?      @map("command_fingerprint")
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt         DateTime?     @map("deleted_at") @db.Timestamptz

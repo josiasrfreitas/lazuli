@@ -10,6 +10,11 @@ export function InstallmentAmount({ row }: { row: FinanceInstallmentRow }): Reac
         {amount.label}: {amount.value}
       </strong>
       <span className="block text-xs text-muted-foreground">Nominal: {amount.nominal}</span>
+      {amount.onTime === null ? null : (
+        <span className="block text-xs text-muted-foreground">
+          Quitação em dia: {amount.onTime}
+        </span>
+      )}
       {amount.adjustment === null ? null : (
         <span className="block text-xs text-muted-foreground">
           {amount.adjustment.label}: {amount.adjustment.value}

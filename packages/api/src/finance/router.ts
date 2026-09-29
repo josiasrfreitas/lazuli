@@ -70,9 +70,18 @@ export const financeRouter = router({
     ),
   registerPayment: adminProcedure
     .input(financeRegisterPaymentInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((tx) => finance(tx, ctx.staffUser.id).registerPayment(input)),
-    ),
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await ctx.db.$transaction((tx) =>
+          finance(tx, ctx.staffUser.id).registerPayment(input),
+        );
+      } catch (error) {
+        // A concurrent submission may commit the same command first.
+        const original = await finance(ctx.db, ctx.staffUser.id).findPaymentCommand(input);
+        if (original) return original;
+        throw error;
+      }
+    }),
   batchReconcile: adminProcedure
     .input(financeBatchReconcileInputSchema)
     .mutation(({ ctx, input }) =>

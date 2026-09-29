@@ -16,6 +16,7 @@ export type InstallmentAmountVm = {
   nominal: string;
   adjustment: { label: "Desconto" | "Acréscimo"; value: string } | null;
   received: string | null;
+  onTime: string | null;
 };
 
 export function installmentAmountVm(row: FinanceInstallmentRow): InstallmentAmountVm {
@@ -33,6 +34,10 @@ export function installmentAmountVm(row: FinanceInstallmentRow): InstallmentAmou
             value: formatBRLFromCents(Math.abs(adjustmentCents)),
           },
     received: !isPaid && row.paidAmountCents > 0 ? formatBRLFromCents(row.paidAmountCents) : null,
+    onTime:
+      !isPaid && row.onTimeAmountCents !== null && row.onTimeAmountCents < row.originalAmountCents
+        ? formatBRLFromCents(row.onTimeAmountCents)
+        : null,
   };
 }
 

@@ -20,7 +20,11 @@ import {
 } from "./internal/ledger-read.js";
 import { createOrder, updateOrder, type OrderScheduleResult } from "./internal/orders.js";
 import { createPayer } from "./internal/payers.js";
-import { registerPayment, type RegisterPaymentResult } from "./internal/register-payment.js";
+import {
+  findPaymentCommand,
+  registerPayment,
+  type RegisterPaymentResult,
+} from "./internal/register-payment.js";
 import { readSettings, saveSettings } from "./internal/settings.js";
 import type { FinanceDatabase } from "./internal/shared.js";
 import { studentOverdueTotals, type StudentOverdueTotal } from "./internal/student-balances.js";
@@ -64,6 +68,7 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
     createOrder: (values) => createOrder({ database: db, values, staffUserId }),
     updateOrder: (values) => updateOrder({ database: db, values, staffUserId }),
     registerPayment: (values) => registerPayment({ database: db, values, staffUserId }),
+    findPaymentCommand: (values) => findPaymentCommand(db, values),
     batchReconcile: (values) => batchReconcile({ database: db, values, staffUserId }),
     waiveInstallment: (values) => waiveInstallment({ database: db, values, staffUserId }),
     addInstallmentAdjustment: (values) =>
@@ -104,6 +109,9 @@ export type FinanceModule = {
   registerPayment: (
     values: z.infer<typeof financeRegisterPaymentInputSchema>,
   ) => Promise<RegisterPaymentResult>;
+  findPaymentCommand: (
+    values: z.infer<typeof financeRegisterPaymentInputSchema>,
+  ) => Promise<RegisterPaymentResult | null>;
   batchReconcile: (
     values: z.infer<typeof financeBatchReconcileInputSchema>,
   ) => Promise<BatchReconcileResult>;

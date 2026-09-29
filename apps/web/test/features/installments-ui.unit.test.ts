@@ -43,6 +43,7 @@ function overdueGroup(payerId: string, installmentId: string): FinanceOverduePay
         expectedAmountCents: 36_000,
         paidAmountCents: 10_000,
         collectibleBalanceCents: 26_000,
+        onTimeAmountCents: null,
         status: "OVERDUE",
         overdueDays: 14,
       },
@@ -197,6 +198,7 @@ void test("flat rows label paid, open and waived amounts without treating waiver
       expectedAmountCents: 28_000,
       paidAmountCents: 0,
       collectibleBalanceCents: 28_000,
+      onTimeAmountCents: null,
       status: "UPCOMING" as const,
     },
     {
@@ -206,12 +208,14 @@ void test("flat rows label paid, open and waived amounts without treating waiver
       expectedAmountCents: 23_000,
       paidAmountCents: 23_000,
       collectibleBalanceCents: 0,
+      onTimeAmountCents: null,
       status: "PAID" as const,
     },
     {
       ...open,
       installmentId: "99999999-9999-4999-8999-999999999999",
       collectibleBalanceCents: 0,
+      onTimeAmountCents: null,
       status: "WAIVED" as const,
     },
   ];

@@ -12,6 +12,12 @@ export const ENTRY_OVER_ALLOCATION_MESSAGE = "Soma das alocacoes excede o valor 
 export const INSTALLMENT_OVER_ALLOCATION_MESSAGE = "Alocacao excede o saldo atual da parcela.";
 export const WAIVED_INSTALLMENT_ALLOCATION_MESSAGE = "Parcela isenta nao aceita alocacao.";
 export const CONTRACT_OPERATION_UNAVAILABLE_MESSAGE = "Operacao contratual ainda indisponivel.";
+export const CONTRACT_PAYMENT_COMMAND_REQUIRED_MESSAGE =
+  "Informe o identificador da operacao para pagamento contratual.";
+export const CONTRACT_LATE_PAYMENT_UNAVAILABLE_MESSAGE =
+  "Pagamento contratual em atraso ainda indisponivel.";
+export const PAYMENT_COMMAND_CONFLICT_MESSAGE =
+  "Identificador de pagamento ja usado com outros dados.";
 export const ORDER_LOCKED_MESSAGE =
   "Pedido bloqueado para edicao: ja possui pagamento, isencao ou ajuste registrado.";
 export const INSTALLMENT_ALREADY_WAIVED_MESSAGE = "Parcela ja esta isenta.";

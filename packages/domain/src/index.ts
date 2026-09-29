@@ -74,6 +74,7 @@ export {
   addCalendarMonths,
   previewMonthlyContract,
   priceAfterDiscountCents,
+  punctualityDiscountOnPayment,
 } from "./monthly-contract.js";
 export type { MonthlyContractTerms } from "./monthly-contract.js";
 

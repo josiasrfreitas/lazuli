@@ -40,6 +40,21 @@ export function priceAfterDiscountCents(amountCents: number, discountPct: number
   return Number((numerator + BigInt(PERCENT_UNITS / 2)) / BigInt(PERCENT_UNITS));
 }
 
+/** Discount is earned only when cumulative payments settle the on-time price by the due date. */
+export function punctualityDiscountOnPayment(input: {
+  nominalCents: number;
+  discountPct: number;
+  paidCents: number;
+  incomingCents: number;
+  dueDate: string;
+  effectiveDate: string;
+}): number {
+  if (input.effectiveDate > input.dueDate) return 0;
+  const discountedCents = priceAfterDiscountCents(input.nominalCents, input.discountPct);
+  if (input.paidCents + input.incomingCents !== discountedCents) return 0;
+  return input.nominalCents - discountedCents;
+}
+
 function persistiblePrincipalCents(durationMonths: number, monthlyAmountCents: number): number {
   const principalAmountCents = durationMonths * monthlyAmountCents;
   if (
