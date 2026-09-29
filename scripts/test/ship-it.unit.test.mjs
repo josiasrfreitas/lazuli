@@ -61,33 +61,28 @@ printf '{"ok":true,"result":{"worktree":{"path":"%s"}}}\\n' "$SHIP_TEST_ROOT/iss
   writeFileSync(
     path.join(bin, "codex"),
     `#!/bin/bash
-printf 'codex %s\\n' "$*" >> "$SHIP_TEST_LOG"
-while (($#)); do if [[ "$1" == --output-last-message ]]; then printf 'STATUS: %s\\n1. Implement and test.\\n' "\${SHIP_TEST_PLAN_STATUS:-READY}" > "$2"; exit; fi; shift; done
-cat >/dev/null
+printf 'codex\\n' >> "$SHIP_TEST_LOG"
+printf '%s' "$*" > "$SHIP_TEST_ROOT/codex-args"
+printf 'STATUS: %s\\n1. Implement and test.\\n' "\${SHIP_TEST_PLAN_STATUS:-READY}" > "$SHIP_TEST_ROOT/issue-123/.design/issues/123/PLAN.md"
 `,
     { mode: 0o755 },
   );
   return { main, log, env };
 }
 
-test("updates main before Orca creates a worktree and passes model settings through all phases", () => {
+test("updates main before Orca creates a worktree and passes model settings to one Codex session", () => {
   const { main, log, env } = fixture();
   run("bash", [script, "123", "--model", "gpt-6-astra", "--effort", "high"], { cwd: main, env });
   assert.equal(readFileSync(path.join(main, "file"), "utf8"), "updated\n");
   const calls = readFileSync(log, "utf8").trim().split("\n");
-  assert.equal(calls.length, 4);
+  assert.equal(calls.length, 2);
   assert.equal(calls[0], "orca");
-  assert.ok(
-    calls.slice(1).every((call) => call.includes("--dangerously-bypass-approvals-and-sandbox")),
-  );
-  assert.ok(
-    calls
-      .slice(1)
-      .every(
-        (call) =>
-          call.includes("--model gpt-6-astra") && call.includes('model_reasoning_effort="high"'),
-      ),
-  );
+  const args = readFileSync(path.join(env.SHIP_TEST_ROOT, "codex-args"), "utf8");
+  assert.match(args, /--dangerously-bypass-approvals-and-sandbox/);
+  assert.match(args, /--model gpt-6-astra/);
+  assert.ok(args.includes('model_reasoning_effort="high"'));
+  assert.match(args, /THIS SAME SESSION/);
+  assert.match(args, /babysit-pr/);
 });
 
 test("refuses a dirty main before calling Orca or Codex", () => {
@@ -100,7 +95,7 @@ test("refuses a dirty main before calling Orca or Codex", () => {
   assert.throws(() => readFileSync(log), { code: "ENOENT" });
 });
 
-test("stops before implementation when the plan is blocked", () => {
+test("rejects a blocked plan after the Codex session returns", () => {
   const { main, log, env } = fixture();
   env.SHIP_TEST_PLAN_STATUS = "BLOCKED";
   assert.throws(
@@ -110,5 +105,5 @@ test("stops before implementation when the plan is blocked", () => {
   const calls = readFileSync(log, "utf8").trim().split("\n");
   assert.equal(calls.length, 2);
   assert.equal(calls[0], "orca");
-  assert.match(calls[1], /^codex /);
+  assert.equal(calls[1], "codex");
 });

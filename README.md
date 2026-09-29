@@ -159,7 +159,7 @@ Run `scripts/ship-it.sh 126` from any checkout in this repository. It requires a
 installed Orca runtime, `codex`, `gh`, Python 3, and a clean local `main` checkout.
 The command fast-forwards `main` to `origin/main`, creates an Orca worktree linked
 to the issue, saves a structured plan at `.design/issues/<id>/PLAN.md`, then runs
-Codex to implement the issue, open a PR with evidence, and babysit CI and review
-feedback until settled. It never merges the PR. Override the default GPT-6 Sol
-low setting with `--model gpt-6-astra --effort high`. All Codex phases run
+one Codex session to implement the issue, open a PR with evidence, and babysit
+CI and review feedback until settled. It never merges the PR. Override the default GPT-6 Sol
+low setting with `--model gpt-6-astra --effort high`. The Codex session runs
 with approvals and sandboxing disabled (YOLO mode).

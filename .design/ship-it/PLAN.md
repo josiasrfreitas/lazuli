@@ -11,11 +11,11 @@ default; flags override both settings.
 1. Find the local `main` checkout. Reject uncommitted changes, fetch `origin/main`,
    fast-forward, and verify identical heads.
 2. Validate the GitHub issue and create an Orca worktree linked to it.
-3. Run Codex to write a structured plan in `.design/issues/<id>/PLAN.md`. Stop on a
-   blocked or malformed plan.
-4. Run Codex to implement, test, capture real UI evidence when applicable, and open
-   a PR using the repository's PR template.
-5. Run Codex with `babysit-pr` until CI settles; verify PR checks before success.
+3. Start one Codex session in YOLO mode. It writes a structured plan in
+   `.design/issues/<id>/PLAN.md` and stops if requirements are blocked.
+4. In that same session, Codex implements, tests, captures real UI evidence when
+   applicable, opens a PR, and uses `babysit-pr` until CI settles.
+5. After Codex exits, verify the plan, PR, and PR checks before success.
 
 ## Contract and evidence
 
