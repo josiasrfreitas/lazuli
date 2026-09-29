@@ -12,7 +12,7 @@ type QueryInput = {
   search: string | undefined;
 } & Pick<
   FinanceInstallmentsInput,
-  "statuses" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
+  "statuses" | "origins" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
 >;
 type AggregateDatabase = KyselyDatabase & {
   adjustment_totals: { installment_id: string; amount_cents: number };
@@ -216,6 +216,8 @@ function matchesFilters(input: QueryInput): RawBuilder<boolean> {
   const conditions: RawBuilder<boolean>[] = [];
   if (input.statuses?.length)
     conditions.push(sql<boolean>`ledger.status in (${sql.join(input.statuses)})`);
+  if (input.origins?.length)
+    conditions.push(sql<boolean>`ledger.origin in (${sql.join(input.origins)})`);
   if (input.dueFrom) conditions.push(sql<boolean>`ledger."dueDateSort" >= ${input.dueFrom}`);
   if (input.dueTo) conditions.push(sql<boolean>`ledger."dueDateSort" <= ${input.dueTo}`);
   if (input.amountFromCents !== undefined)

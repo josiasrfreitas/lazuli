@@ -59,16 +59,20 @@ export function installmentVm(row: FinanceInstallmentRow, today: string): Instal
   const [year, month, day] = row.dueDate.split("-");
   return {
     sequence: `${row.sequenceNumber} de ${row.scheduleTotal}`,
-    origin: {
-      CONTRACT: "Contrato",
-      TUITION: "Mensalidade",
-      ENROLLMENT_FEE: "Taxa de matrícula",
-      MATERIAL: "Material",
-      OTHER: "Outro",
-    }[row.origin],
+    origin: originLabel(row.origin),
     dueDate: `${day}/${month}/${year}`,
     badge: statusBadge(row, today),
   };
+}
+
+export function originLabel(origin: FinanceInstallmentRow["origin"]): string {
+  return {
+    CONTRACT: "Contrato",
+    TUITION: "Mensalidade",
+    ENROLLMENT_FEE: "Taxa de matrícula",
+    MATERIAL: "Material",
+    OTHER: "Outro",
+  }[origin];
 }
 function statusBadge(
   row: FinanceInstallmentRow,

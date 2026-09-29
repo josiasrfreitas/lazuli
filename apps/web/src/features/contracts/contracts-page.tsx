@@ -16,7 +16,6 @@ export function ContractsPage(): ReactElement {
     <>
       <DataTablePage
         title="Contratos"
-        summary="Acordos mensais"
         controls={<ContractsToolbar filters={filters} onNew={() => setCreating(true)} />}
       >
         <ContractsTable filters={filters} />

@@ -65,6 +65,7 @@ export const financeInstallmentsInputSchema = z
       .array(financeInstallmentStatusSchema)
       .max(financeInstallmentStatusSchema.options.length)
       .optional(),
+    origins: z.array(orderKindSchema).max(orderKindSchema.options.length).optional(),
     dueFrom: civilDateSchema.optional(),
     dueTo: civilDateSchema.optional(),
     amountFromCents: z.number().int().nonnegative().optional(),

@@ -30,6 +30,7 @@ export async function listInstallments(input: {
     businessDate: saoPauloDateOnly(input.now),
     search: input.values.search,
     statuses: input.values.view === "overdue" ? undefined : input.values.statuses,
+    origins: input.values.origins,
     dueFrom: input.values.dueFrom,
     dueTo: input.values.dueTo,
     amountFromCents: input.values.amountFromCents,
