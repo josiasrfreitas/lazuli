@@ -26,7 +26,7 @@ const settings = {
   materialPriceCents: 0,
 };
 
-async function cleanup(): Promise<void> {
+async function cleanup(disconnect = true): Promise<void> {
   const contracts = await db.contract.findMany({
     where: { payer: { name: { startsWith: PREFIX } } },
     select: { id: true },
@@ -43,13 +43,16 @@ async function cleanup(): Promise<void> {
   const paymentIds = payments.map((row) => row.id);
   await db.paymentAllocation.deleteMany({ where: { paymentEntryId: { in: paymentIds } } });
   await db.paymentEntry.deleteMany({ where: { id: { in: paymentIds } } });
+  await db.installmentAdjustment.deleteMany({
+    where: { installment: { orderId: { in: orders.map((row) => row.id) } } },
+  });
   await db.installment.deleteMany({ where: { orderId: { in: orders.map((row) => row.id) } } });
   await db.order.deleteMany({ where: { contractId: { in: ids } } });
   await db.contract.deleteMany({ where: { id: { in: ids } } });
   await db.payer.deleteMany({ where: { name: { startsWith: PREFIX } } });
   await db.student.deleteMany({ where: { fullName: { startsWith: PREFIX } } });
   await db.financeSettings.deleteMany({ where: { id: "singleton" } });
-  await db.$disconnect();
+  if (disconnect) await db.$disconnect();
 }
 
 async function fixture(): Promise<{
@@ -327,9 +330,10 @@ async function statusFilterRespectsPaymentAndCancellation(): Promise<void> {
 
 void before(async () => {
   await db.$connect();
+  await cleanup(false);
   await ensureAdminUser();
 });
-void after(cleanup);
+void after(() => cleanup());
 
 void describe("special contract plan persistence", { concurrency: 1 }, () => {
   void it("persists cent remainders and lists the actual plan without changing the term", async () => {
@@ -427,4 +431,123 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
     "keeps paid and cancelled situations distinct",
     statusFilterRespectsPaymentAndCancellation,
   );
+  void it("settles R$ 250 with R$ 100 + R$ 130 on time, once per command", async () => {
+    const { payer, values } = await fixture();
+    await db.financeSettings.update({
+      where: { id: "singleton" },
+      data: { punctualityDiscountPct: 8 },
+    });
+    const contract = await db.$transaction((tx) =>
+      finance(tx, ADMIN.id).createMonthlyContract({
+        ...values,
+        punctualityDiscountPct: 8,
+        firstDueDate: "2026-03-31",
+      }),
+    );
+    const order = await db.order.findFirstOrThrow({
+      where: { contractId: contract.id },
+      include: { installments: { orderBy: { sequenceNumber: "asc" } } },
+    });
+    assert.ok(order.installments[0]);
+    const installmentId = order.installments[0].id;
+    const batch = await db.$transaction((tx) =>
+      finance(tx, ADMIN.id).batchReconcile({
+        date: new Date("2026-03-31T00:00:00Z"),
+        method: "PIX",
+        installmentIds: [installmentId],
+      }),
+    );
+    assert.equal(batch.ok, false);
+    assert.ok(batch.rows[0]);
+    assert.equal(batch.rows[0].status, "REJECTED");
+    assert.match(batch.rows[0].reason ?? "", /contratual ainda nao aceita reconciliacao/);
+    const first = {
+      commandId: randomUUID(),
+      payerId: payer.id,
+      date: new Date("2026-03-30T00:00:00Z"),
+      amountCents: 10_000,
+      method: "PIX" as const,
+      allocations: [{ installmentId, amountCents: 10_000 }],
+    };
+    const second = {
+      ...first,
+      commandId: randomUUID(),
+      date: new Date("2026-03-31T00:00:00Z"),
+      amountCents: 13_000,
+      allocations: [{ installmentId, amountCents: 13_000 }],
+    };
+    await assert.rejects(
+      db.$transaction((tx) =>
+        finance(tx, ADMIN.id).registerPayment({ ...first, commandId: undefined }),
+      ),
+      /identificador da operacao/,
+    );
+    await assert.rejects(
+      db.$transaction((tx) =>
+        finance(tx, ADMIN.id).registerPayment({ ...first, date: new Date("2026-04-01T00:00:00Z") }),
+      ),
+      /em atraso ainda indisponivel/,
+    );
+    await assert.rejects(
+      db.$transaction(async (tx) => {
+        await finance(tx, ADMIN.id).registerPayment({
+          ...first,
+          amountCents: 23_000,
+          allocations: [{ installmentId, amountCents: 23_000 }],
+        });
+        throw new Error("rollback after payment");
+      }),
+      /rollback after payment/,
+    );
+    assert.equal(await db.paymentEntry.count({ where: { payerId: payer.id } }), 0);
+    assert.equal(await db.installmentAdjustment.count({ where: { installmentId } }), 0);
+    await db.$transaction((tx) => finance(tx, ADMIN.id).registerPayment(first));
+    assert.equal(await db.installmentAdjustment.count({ where: { installmentId } }), 0);
+    const partial = await finance(db, ADMIN.id).installments(
+      { view: "all", page: 1, pageSize: 25, search: payer.name },
+      new Date("2026-03-30T12:00:00Z"),
+    );
+    assert.equal(partial.view, "all");
+    const partialRow = partial.rows.find((row) => row.installmentId === installmentId);
+    assert.ok(partialRow);
+    assert.equal(partialRow.collectibleBalanceCents, 15_000);
+    assert.equal(partialRow.onTimeAmountCents, 23_000);
+    const result = await db.$transaction((tx) => finance(tx, ADMIN.id).registerPayment(second));
+    const recorded = await db.paymentEntry.findUniqueOrThrow({
+      where: { id: result.paymentEntry.id },
+    });
+    assert.equal(recorded.date.toISOString().slice(0, 10), "2026-03-31");
+    assert.equal(recorded.createdById, ADMIN.id);
+    assert.ok(recorded.createdAt instanceof Date);
+    const replay = await db.$transaction((tx) => finance(tx, ADMIN.id).registerPayment(second));
+    assert.equal(replay.paymentEntry.id, result.paymentEntry.id);
+    assert.equal(await db.paymentEntry.count({ where: { payerId: payer.id } }), 2);
+    const adjustments = await db.installmentAdjustment.findMany({ where: { installmentId } });
+    assert.deepEqual(
+      adjustments.map((row) => row.amountCents),
+      [-2000],
+    );
+    assert.ok(adjustments[0]);
+    assert.equal(adjustments[0].createdById, ADMIN.id);
+    const paid = await finance(db, ADMIN.id).installments(
+      { view: "paid", page: 1, pageSize: 25, search: payer.name },
+      new Date("2026-03-31T12:00:00Z"),
+    );
+    assert.equal(paid.view, "paid");
+    const paidRow = paid.rows.find((row) => row.installmentId === installmentId);
+    assert.ok(paidRow);
+    assert.equal(paidRow.paidAmountCents, 23_000);
+    assert.equal(paidRow.collectibleBalanceCents, 0);
+    await assert.rejects(
+      db.$transaction((tx) =>
+        finance(tx, ADMIN.id).registerPayment({
+          ...second,
+          amountCents: 12_000,
+          allocations: [{ installmentId, amountCents: 12_000 }],
+        }),
+      ),
+      /Identificador de pagamento ja usado/,
+    );
+    assert.equal(await db.installmentAdjustment.count({ where: { installmentId } }), 1);
+  });
 });

@@ -69,6 +69,7 @@ function registerSerializationTest(): void {
       expectedAmountCents: 10_000,
       paidAmountCents: 0,
       collectibleBalanceCents: 10_000,
+      onTimeAmountCents: null,
       status: "OVERDUE",
       overdueDays: 1,
     });

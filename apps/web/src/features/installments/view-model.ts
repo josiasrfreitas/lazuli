@@ -7,32 +7,30 @@ type InstallmentVm = {
   sequence: string;
   origin: string;
   dueDate: string;
-  badge: { label: string; variant: BadgeVariant };
+  badge: { label: string; variant: BadgeVariant; description?: string };
 };
 
 export type InstallmentAmountVm = {
-  label: "Saldo" | "Recebido";
-  value: string;
   nominal: string;
-  adjustment: { label: "Desconto" | "Acréscimo"; value: string } | null;
-  received: string | null;
+  paid: string;
+  discount: string | null;
 };
 
+const PERCENTAGE_SCALE = 100;
+const percentageFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+
+function discountPercentage(nominal: number, discounted: number): string {
+  return percentageFormatter.format(((nominal - discounted) / nominal) * PERCENTAGE_SCALE);
+}
+
 export function installmentAmountVm(row: FinanceInstallmentRow): InstallmentAmountVm {
-  const adjustmentCents = row.expectedAmountCents - row.originalAmountCents;
-  const isPaid = row.status === "PAID";
   return {
-    label: isPaid ? "Recebido" : "Saldo",
-    value: formatBRLFromCents(isPaid ? row.paidAmountCents : row.collectibleBalanceCents),
     nominal: formatBRLFromCents(row.originalAmountCents),
-    adjustment:
-      adjustmentCents === 0
-        ? null
-        : {
-            label: adjustmentCents < 0 ? "Desconto" : "Acréscimo",
-            value: formatBRLFromCents(Math.abs(adjustmentCents)),
-          },
-    received: !isPaid && row.paidAmountCents > 0 ? formatBRLFromCents(row.paidAmountCents) : null,
+    paid: row.paidAmountCents > 0 ? formatBRLFromCents(row.paidAmountCents) : "—",
+    discount:
+      row.paidAmountCents > 0 && row.expectedAmountCents < row.originalAmountCents
+        ? `Desconto aplicado: ${discountPercentage(row.originalAmountCents, row.expectedAmountCents)}%`
+        : null,
   };
 }
 
@@ -74,10 +72,7 @@ export function originLabel(origin: FinanceInstallmentRow["origin"]): string {
     OTHER: "Outro",
   }[origin];
 }
-function statusBadge(
-  row: FinanceInstallmentRow,
-  today: string,
-): { label: string; variant: BadgeVariant } {
+function statusBadge(row: FinanceInstallmentRow, today: string): InstallmentVm["badge"] {
   switch (row.status) {
     case "PAID": {
       return { label: "Paga", variant: "success" };
@@ -86,12 +81,13 @@ function statusBadge(
       return { label: "Dispensada", variant: "neutral" };
     }
     case "OVERDUE": {
-      return {
-        label: `Vencida há ${row.overdueDays} ${row.overdueDays === 1 ? "dia" : "dias"}`,
-        variant: "destructive",
-      };
+      const overdue = `Vencida há ${row.overdueDays} ${row.overdueDays === 1 ? "dia" : "dias"}`;
+      return row.paidAmountCents > 0
+        ? { label: "Parcial · Vencida", variant: "destructive", description: overdue }
+        : { label: overdue, variant: "destructive" };
     }
     default: {
+      if (row.paidAmountCents > 0) return { label: "Parcial", variant: "warning" };
       return row.dueDate === today
         ? { label: "Vence hoje", variant: "warning" }
         : { label: "A vencer", variant: "neutral" };

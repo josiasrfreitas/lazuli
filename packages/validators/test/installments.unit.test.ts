@@ -110,6 +110,7 @@ function overdueGroupFixture(): FinanceOverduePayerGroup {
     expectedAmountCents: 9000,
     paidAmountCents: 3000,
     collectibleBalanceCents: 6000,
+    onTimeAmountCents: null,
     status: "OVERDUE" as const,
     overdueDays: 1,
   };

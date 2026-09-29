@@ -34,6 +34,7 @@ export function toPublicRow(
     expectedAmountCents: row.expectedAmountCents,
     paidAmountCents: row.paidAmountCents,
     collectibleBalanceCents: row.collectibleBalanceCents,
+    onTimeAmountCents: row.onTimeAmountCents,
     status: row.status,
     overdueDays: row.overdueDays,
   };

@@ -117,7 +117,9 @@ function ledgerQuery(input: QueryInput): QueryCreator<LedgerDatabase> {
       .innerJoin("schedule_totals", "schedule_totals.order_id", "Order.id")
       .leftJoin("adjustment_totals", "adjustment_totals.installment_id", "Installment.id")
       .leftJoin("allocation_totals", "allocation_totals.installment_id", "Installment.id")
-      .select(ledgerSelection({ expected, paid, overdue, status }))
+      .select(
+        ledgerSelection({ expected, paid, overdue, status, businessDate: input.businessDate }),
+      )
       .where("Installment.deleted_at", "is", null)
       .where("Order.deleted_at", "is", null)
       .where("Order.cancelled_at", "is", null)
@@ -172,6 +174,7 @@ function ledgerSelection(input: {
   paid: RawBuilder<number>;
   overdue: RawBuilder<number>;
   status: RawBuilder<FinanceInstallmentRow["status"]>;
+  businessDate: string;
 }): ReadonlyArray<SelectExpression<AggregateDatabase, LedgerTables>> {
   return [
     "Installment.id as installmentId",
@@ -188,6 +191,11 @@ function ledgerSelection(input: {
     input.paid.as("paidAmountCents"),
     sql<number>`case when "Installment".waived_at is not null then 0 else greatest(${input.expected} - ${input.paid}, 0) end`.as(
       "collectibleBalanceCents",
+    ),
+    sql<
+      number | null
+    >`case when "Contract".punctuality_discount_pct is not null and "Installment".waived_at is null and "Installment".due_date >= ${input.businessDate}::date and ${input.paid} <= round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer and ${input.paid} < ${input.expected} then round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer else null end`.as(
+      "onTimeAmountCents",
     ),
     input.status.as("status"),
     input.overdue.as("overdueDays"),
