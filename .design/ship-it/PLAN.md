@@ -12,15 +12,16 @@ default; flags override both settings.
    fast-forward, and verify identical heads.
 2. Validate the GitHub issue and create an Orca worktree linked to it.
 3. Start one Codex session in YOLO mode. It writes a structured plan in
-   `.design/issues/<id>/PLAN.md` and stops if requirements are blocked.
+   `.design/issues/<id>/PLAN.md` and is instructed to stop if requirements are blocked.
 4. In that same session, Codex implements, tests, captures real UI evidence when
    applicable, opens a PR, and uses `babysit-pr` until CI settles.
 5. After Codex exits, verify the plan, PR, and PR checks before success.
 
 ## Contract and evidence
 
-A stale or dirty `main` must never lead to an Orca worktree. A blocked plan must
-never enter implementation. Script tests use a real temporary Git remote and fake
+A stale or dirty `main` must never lead to an Orca worktree. The Codex
+prompt requires a blocked plan to stop implementation; the shell can only detect
+its status after the single session exits. Script tests use a real temporary Git remote and fake
 external CLIs to verify ordering and model arguments. `bash -n`, script tests,
 formatting, and diff checks validate the change.
 

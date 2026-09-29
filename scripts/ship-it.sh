@@ -69,6 +69,7 @@ codex_run "Read GitHub issue $repo_name#$issue and the repository instructions. 
 2. Recheck the plan against the issue and repository instructions. Implement the complete issue, run proportional checks, inspect the complete diff, and run git diff --check. Include the plan file in the PR.
 3. Commit and push the work. Open a PR using the installed pr skill template. Include before/after evidence. For a UI change, capture real desktop and narrow-viewport screenshots and link committed evidence in the PR. Do not claim visual evidence from placeholders.
 4. In this same session, use the installed babysit-pr skill to monitor and fix the PR until checks are stably green and delivered review feedback is handled. Never merge. Report the PR URL, final SHA, CI outcome, and any unresolved review item."
+# A single Codex process owns the whole workflow; these checks report its result after it exits.
 [[ -s "$plan" ]] || { echo 'Codex did not write a plan' >&2; exit 1; }
 [[ "$(head -n 1 "$plan")" == "STATUS: READY" ]] || { echo "Plan is blocked or missing READY status: $plan" >&2; exit 1; }
 
