@@ -11,6 +11,7 @@
 - P06 and P07 are closed and their payer creation, payment-plan fields, domain preview, and contract command are present. Reuse these rather than duplicate financial rules.
 - The beneficiary is `newStudent` in the existing contract command, with no student ID in the client draft. The server transaction already wraps student, payer, and contract creation. Retain a stable command ID for retry.
 - Both paths use `students.completeCreation`, wrapping the existing student and finance operations. Persist nullable command metadata on Student so retries of skipped finance are safe too, including concurrent submissions and lost responses. A command reused with changed contents is a conflict. Add one compatible migration; existing students are not rewritten.
+- Command IDs have one owner across student completion and direct contract creation. Serialize the same identity inside the transaction, reject cross-endpoint reuse, and retain identical replay in its original operation.
 - Finance remains behind `finance(db, staffUserId)` and admin procedures.
 - Use the current design tokens and pt-BR labels; business dates use America/Sao_Paulo.
 - Latest user refinement: reuse `ContractPayerFields` and `PayerCopyButton` directly. Start with the existing name search; create within its options; show only a tag for an existing payer. One inline copy action explicitly copies the guardian when present, otherwise the student. Prioritize desktop alignment and efficient use of space.
@@ -21,6 +22,7 @@
 - `apps/web/src/features/students/new-student/*`: reducer, input conversion, steps, footer, and dialog submission.
 - `apps/web/src/features/contracts/*`: reuse or extract the payer and payment-plan controls where needed.
 - `apps/web/src/features/students/new-student/completion.ts`: coordinate the two submission paths and invalidate student, contract, and party queries.
+- `packages/api/src/creation-command.ts`: transaction lock and shared command ownership checks.
 - `packages/api/src/students/completion.ts` and `router.ts`: compose existing public operations inside one transaction and recover identical retries.
 - `packages/validators/src/student-completion.ts`: validate mutually exclusive skip/contract inputs and require a new beneficiary.
 - `packages/db/prisma/schema.prisma` and one new migration: nullable unique command identity and fingerprint on Student; no changes to existing records.

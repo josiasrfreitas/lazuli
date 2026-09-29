@@ -29,7 +29,7 @@ The original wizard had no Financeiro screen, so the before images show its orig
 
 - `pnpm -F @lazuli/web test`: 151 passing tests. After the payer correction, the two finance test files passed all 12 tests; the existing contract form checks also passed separately (2 tests).
 - `pnpm -F @lazuli/validators test`: 135 passing tests.
-- Focused API checks in a fresh temporary database: 13 integration and 6 transport tests passed. Included student completion rollback/retry, financial composition, concurrent HTTP submissions, serialization, and unauthorized rejection. The temporary database was removed.
+- Focused API checks in a fresh temporary database: 13 integration and 10 transport tests passed after the command ownership correction. Included student completion rollback/retry, financial composition, concurrent HTTP submissions, serialization, and unauthorized rejection. The temporary database was removed.
 - Migration deploy succeeded in both the temporary database and isolated development database. `pnpm -F @lazuli/db prisma:drift`: no difference detected.
 - API, DB, and Web typechecks passed, as did formatting of changed files, focused Web/API/validator lint, the prospective test-quality gate, and whitespace checks. A later combined lint rerun was stopped when the shared machine and Postgres stalled; full lint remains a CI gate. Test quality had zero blocking errors; contextual warnings are deterministic loops over named cases and explicit skip/contract branches, reviewed against the testing guide.
 - CI owns full repository lint/typecheck, duplication, production build, all test tiers, scripts/styles, and migration gates. Those broader gates run in CI to avoid competing with other worktrees on this shared local machine. The PR is monitored in this same session until its checks settle.
@@ -43,3 +43,5 @@ The financial operation remains behind `finance(db, staffUserId)`. The new admin
 - Initial static CI found the completion hook exceeded the 50-line function limit. Extracted its creation/rejection handlers into one hook with unchanged mutation behavior; verified focused lint and typecheck before pushing.
 
 - User correction: replaced custom payer controls with the actual existing contract component, tightened desktop spacing, and recaptured final real screenshots. Focused lint (zero errors), Web typecheck, and financial tests passed.
+
+- Delivered review finding: command IDs previously collided across the student and direct-contract endpoints. Added transaction-scoped locking and ownership checks, including the recovery lookup. Transport regressions verify both creation orders, wizard-owned contract replay rejection, identical original replay, and concurrent cross-endpoint creation (also with UUID letter case differences). The isolated database run passed 13 integration and 10 transport checks; the final UUID-case refinement passed all 7 student transport tests again.

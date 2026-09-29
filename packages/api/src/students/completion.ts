@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { finance } from "../finance/index.js";
 import type { Context } from "../trpc/context.js";
 import { createStudent } from "./data.js";
+import { assertCreationCommandOwner, lockCreationCommand } from "../creation-command.js";
 
 type Command = { id: string; fingerprint: string };
 type CompletedStudent = { id: string };
@@ -17,9 +18,10 @@ function commandFor(values: StudentCompletionInput): Command {
 }
 
 async function findCompletion(
-  database: Pick<Context["db"], "student">,
+  database: Pick<Context["db"], "student" | "contract">,
   command: Command,
 ): Promise<CompletedStudent | null> {
+  await assertCreationCommandOwner(database, { id: command.id, owner: "studentCompletion" });
   const student = await database.student.findUnique({
     where: { commandId: command.id },
     select: { id: true, commandFingerprint: true },
@@ -40,6 +42,7 @@ export async function persistStudentCompletion(input: {
   staffUserId: string;
 }): Promise<CompletedStudent> {
   const command = commandFor(input.values);
+  await lockCreationCommand(input.database, command.id);
   const previous = await findCompletion(input.database, command);
   if (previous) return previous;
   let student: CompletedStudent;

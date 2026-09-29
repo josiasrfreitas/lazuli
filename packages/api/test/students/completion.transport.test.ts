@@ -122,3 +122,78 @@ void it("rejects unauthorized completion before creating any student or payer", 
   assert.equal(await db.student.count({ where: { fullName: body.newStudent.fullName } }), 0);
   assert.equal(await db.payer.count({ where: { name: body.newPayer.name } }), 0);
 });
+
+for (const first of ["contract", "student"] as const) {
+  void it(`rejects cross-endpoint command reuse after ${first} creation and preserves its replay`, async () => {
+    const contract = await contractPayerFixture(`${PREFIX}ownership ${first} `);
+    const student = {
+      commandId: contract.commandId,
+      student: { fullName: `${PREFIX}ownership ${first} beneficiary` },
+    };
+    const requests = {
+      contract: { path: "finance.createMonthlyContract", body: contract },
+      student: { path: "students.completeCreation", body: student },
+    };
+    const original = await callHttpMutation(requests[first]);
+    assert.equal(original.status, 200);
+    const other = first === "contract" ? "student" : "contract";
+    const conflict = await callHttpMutation(requests[other]);
+    assert.equal(conflict.status, 409);
+    assert.match(await conflict.text(), /outra operação/u);
+    const replay = await callHttpMutation(requests[first]);
+    assert.equal(replay.status, 200);
+    assert.deepEqual(await replay.json(), await original.json());
+    assert.equal(
+      await db.student.count({ where: { fullName: student.student.fullName } }),
+      first === "student" ? 1 : 0,
+    );
+    assert.equal(
+      await db.contract.count({ where: { commandId: contract.commandId } }),
+      first === "contract" ? 1 : 0,
+    );
+    assert.equal(
+      await db.payer.count({ where: { name: contract.newPayer.name } }),
+      first === "contract" ? 1 : 0,
+    );
+  });
+}
+
+void it("rejects direct contract replay of a command owned by the completed wizard", async () => {
+  const { studentId: _studentId, ...terms } = await contractPayerFixture(`${PREFIX}wizard owner `);
+  const contract = { ...terms, newStudent: { fullName: `${PREFIX}wizard owner beneficiary` } };
+  const request = { path: "students.completeCreation", body: { contract } };
+  const original = await callHttpMutation(request);
+  assert.equal(original.status, 200);
+  const conflict = await callHttpMutation({
+    path: "finance.createMonthlyContract",
+    body: contract,
+  });
+  assert.equal(conflict.status, 409);
+  assert.match(await conflict.text(), /outra operação/u);
+  const replay = await callHttpMutation(request);
+  assert.equal(replay.status, 200);
+  assert.deepEqual(await replay.json(), await original.json());
+  assert.equal(await db.contract.count({ where: { commandId: contract.commandId } }), 1);
+  assert.equal(await db.student.count({ where: { fullName: contract.newStudent.fullName } }), 1);
+});
+
+void it("allows exactly one owner when student and contract endpoints race for the same command", async () => {
+  const contract = await contractPayerFixture(`${PREFIX}racing owner `);
+  const student = {
+    commandId: contract.commandId,
+    student: { fullName: `${PREFIX}racing owner beneficiary` },
+  };
+  const responses = await Promise.all([
+    callHttpMutation({
+      path: "finance.createMonthlyContract",
+      body: { ...contract, commandId: contract.commandId.toUpperCase() },
+    }),
+    callHttpMutation({ path: "students.completeCreation", body: student }),
+  ]);
+  assert.deepEqual(new Set(responses.map((response) => response.status)), new Set([200, 409]));
+  const students = await db.student.count({ where: { commandId: contract.commandId } });
+  const contracts = await db.contract.count({ where: { commandId: contract.commandId } });
+  assert.equal(students + contracts, 1);
+  assert.equal(await db.payer.count({ where: { name: contract.newPayer.name } }), contracts);
+  assert.equal(await db.student.count({ where: { fullName: student.student.fullName } }), students);
+});
