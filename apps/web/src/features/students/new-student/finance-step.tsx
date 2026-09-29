@@ -3,7 +3,8 @@ import { Button, FormSection } from "@lazuli/ui";
 import { ConditionsSection } from "../../contracts/contract-form-fields";
 import { PaymentSection } from "../../contracts/contract-payment-section";
 import type { StudentCompletion } from "./completion";
-import { WizardPayerFields } from "./payer-fields";
+import { ContractPayerFields } from "../../contracts/contract-payer-fields";
+import { contractFieldsWithStudent } from "./finance-model";
 import type { NewStudentFields } from "./reducer";
 
 export const FINANCE_FORM_ID = "new-student-finance";
@@ -49,7 +50,7 @@ function OfferMessage({ offer }: { offer: FinanceStepProps["completion"]["offer"
 export function FinanceStep({ completion, student }: FinanceStepProps): ReactElement {
   const { state, offer, preview, pending } = completion;
   const props = {
-    fields: state.fields,
+    fields: contractFieldsWithStudent(state.fields, student),
     errors: state.errors,
     offer: offer.data,
     preview,
@@ -66,16 +67,12 @@ export function FinanceStep({ completion, student }: FinanceStepProps): ReactEle
       }}
     >
       <OfferMessage offer={offer} />
-      <fieldset className="grid gap-5" disabled={pending}>
-        <div className="grid items-start gap-5 md:grid-cols-2">
-          <WizardPayerFields {...props} student={student} />
-          <FormSection title="Condições do contrato">
-            <ConditionsSection {...props} />
-          </FormSection>
-        </div>
-        <FormSection title="Plano de pagamento">
-          <PaymentSection {...props} />
+      <fieldset className="grid min-w-0 gap-2" disabled={pending}>
+        <ContractPayerFields {...props} />
+        <FormSection title="Condições do contrato">
+          <ConditionsSection {...props} />
         </FormSection>
+        <PaymentSection {...props} />
       </fieldset>
       {state.submissionError && (
         <p role="alert" className="mt-3 text-caption text-destructive">

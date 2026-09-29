@@ -13,21 +13,21 @@ The original wizard had no Financeiro screen, so the before images show its orig
 
 ### Browser checks
 
-- Opening focuses `fullName`; entering Financeiro focuses `payerName`.
-- Enter advances from Dados and validates Financeiro. Invalid payer/dates focus the payer field; an invalid advanced quantity focuses `installmentCount`.
-- Tab walk with collapsed contacts: Novo pagador → Copiar aluno → Copiar responsável → payerName → payerDocumentNumber → Adicionar → agreedOn → firstDueDate → endsOn → monthlyAmount → Parcelamento avançado → Voltar → Pular e criar aluno → Concluir com contrato → Fechar. Each date takes one stop.
-- Desktop default body: `scrollHeight = clientHeight = 398`. With a complete common-plan preview and collapsed contacts: both 490. No desktop body scroll in either state.
-- Narrow viewport: page width 375; body `scrollWidth = clientWidth = 330`; stepper `scrollWidth = clientWidth = 293`. All three step labels fit. Header/footer stay visible while the body scrolls.
-- Explicit student and guardian copy actions copy the selected name and contacts. Switching payer modes and navigating Financeiro → Pedagógico → Dados → Financeiro preserve both drafts. Recolher hides contacts without discarding them.
+- Desktop is the priority. The rejected custom payer modes/copy buttons were removed; Financeiro now renders `ContractPayerFields` directly, using the existing name search, create option, selected tag, and inline copy logic.
+- One inline action copies the guardian when present, otherwise the student. Real guardian copying populated name, phone, and email; selecting the existing payer hid every editable payer detail and the copy action. [Existing payer](evidence/after-desktop-existing-1280.png).
+- At 1280 × 800, the default search body is 332/332 pixels (client/scroll height); the copied payer with the complete common preview is 520/520. Both fit without body scrolling. Related date/price fields share row positions and 305-pixel widths; name/document and phone/email use the same two-column layout.
+- Opening focuses `fullName`; entering Financeiro focuses the payer search. Enter validates the real form; invalid financial fields receive focus. Back/forward navigation preserves student and financial drafts.
+- The required narrow captures document the same final implementation, not a separate mobile design pass. At 375 × 812 the body width is 330/330 pixels (client/scroll width); it scrolls while actions remain visible.
 - Preview was checked against the database: zero visual-test students, guardians, and payers existed before saving.
 - Completed a minor's registration through the UI. Database check: one student, one guardian, one payer, one contract, one order of 75,000 cents, and two installments of 37,500 cents; no enrollment.
-- A real transaction timeout left zero records and kept the entire financial draft. Retrying completed the single set above. Unexpected failures now use a Portuguese retry message; focused tests protect that mapping, and a later real failure confirmed the [message with the draft intact](evidence/after-desktop-error-1280.png).
+- A real transaction timeout left zero records and kept the entire financial draft. Retrying completed that single set. Unexpected failures use a Portuguese retry message, protected by focused tests.
 - Skipped finance with blank financial fields. Database check: the second student had no guardian, contract, or enrollment; payer/guardian totals remained one.
-- Existing-payer search and selection were exercised with the payer created above. A real server rejection after changing the local authorized tuition floor kept the draft and did not create the third student. Original settings were restored.
+- Existing-payer search and selection were exercised with the payer created above. A real server rejection after changing the isolated database's authorized tuition floor kept the draft and did not create the third student. Original settings were restored. Retrying created exactly one second contract (three installments of 25,000 cents) using the same payer; payer/guardian totals remained one.
+- Persistence/error checks preceded the payer layout correction; final screenshots and the targeted tests cover the corrected interaction. The old layout's error screenshot was removed to avoid presenting it as final evidence.
 
 ## Automated checks
 
-- `pnpm -F @lazuli/web test`: 151 passing tests. After adding error-message protection, the two finance test files passed all 10 tests.
+- `pnpm -F @lazuli/web test`: 151 passing tests. After the payer correction, the two finance test files passed all 12 tests; the existing contract form checks also passed separately (2 tests).
 - `pnpm -F @lazuli/validators test`: 135 passing tests.
 - Focused API checks in a fresh temporary database: 13 integration and 6 transport tests passed. Included student completion rollback/retry, financial composition, concurrent HTTP submissions, serialization, and unauthorized rejection. The temporary database was removed.
 - Migration deploy succeeded in both the temporary database and isolated development database. `pnpm -F @lazuli/db prisma:drift`: no difference detected.
@@ -37,3 +37,9 @@ The original wizard had no Financeiro screen, so the before images show its orig
 ## Scope check
 
 The financial operation remains behind `finance(db, staffUserId)`. The new admin-only student coordinator composes existing operations in one transaction. Nullable command metadata protects both skip and contract retries without rewriting historical students. Turma enrollment and the existing Pedagógico placeholder remain outside P11.
+
+## PR follow-up
+
+- Initial static CI found the completion hook exceeded the 50-line function limit. Extracted its creation/rejection handlers into one hook with unchanged mutation behavior; verified focused lint and typecheck before pushing.
+
+- User correction: replaced custom payer controls with the actual existing contract component, tightened desktop spacing, and recaptured final real screenshots. Focused lint (zero errors), Web typecheck, and financial tests passed.

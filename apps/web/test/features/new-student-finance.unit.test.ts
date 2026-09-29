@@ -3,7 +3,7 @@ import { completionErrorMessage } from "../../src/features/students/new-student/
 import { it } from "node:test";
 import { emptyContractFields } from "../../src/features/contracts/contract-form-model.js";
 import {
-  payerFieldsFromStudent,
+  contractFieldsWithStudent,
   studentContractInput,
   studentContractPreview,
 } from "../../src/features/students/new-student/finance-model.js";
@@ -52,23 +52,22 @@ void it("submits the full student draft without requiring a persisted beneficiar
   });
 });
 
-void it("copies only the person explicitly chosen and clears an unrelated document", () => {
-  assert.deepEqual(payerFieldsFromStudent(student, "student"), {
-    payerMode: "create",
-    payerName: " Ana Souza ",
-    payerDocumentType: "RG",
-    payerDocumentNumber: "12.345.678-X",
-    payerPhone: "(11) 91234-5678",
-    payerEmail: "ana@example.com",
-  });
-  assert.deepEqual(payerFieldsFromStudent(student, "guardian"), {
-    payerMode: "create",
-    payerName: "Maria Souza",
-    payerDocumentType: "",
-    payerDocumentNumber: "",
-    payerPhone: "(11) 99999-8888",
-    payerEmail: "maria@example.com",
-  });
+void it("adapts the student and guardian draft to the existing payer controls without changing payer data", () => {
+  const adapted = contractFieldsWithStudent(fields, student);
+  assert.equal(adapted.studentMode, "create");
+  assert.equal(adapted.studentId, "");
+  assert.equal(adapted.studentDraftName, " Ana Souza ");
+  assert.equal(adapted.studentDocumentType, "RG");
+  assert.equal(adapted.studentDocumentNumber, "12.345.678-X");
+  assert.equal(adapted.studentPhone, "(11) 91234-5678");
+  assert.equal(adapted.studentEmail, "ana@example.com");
+  assert.equal(adapted.studentGuardianMode, "create");
+  assert.equal(adapted.studentGuardianName, "Maria Souza");
+  assert.equal(adapted.studentGuardianPhone, "(11) 99999-8888");
+  assert.equal(adapted.studentGuardianEmail, "maria@example.com");
+  assert.equal(adapted.payerName, fields.payerName);
+  const noGuardian = contractFieldsWithStudent(fields, { ...student, guardianName: " " });
+  assert.equal(noGuardian.studentGuardianMode, "");
 });
 
 void it("preserves principal and remainder in the read-only special-plan preview", () => {

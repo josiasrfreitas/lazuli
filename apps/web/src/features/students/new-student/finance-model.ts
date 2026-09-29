@@ -26,18 +26,23 @@ export function studentContractPreview(input: {
   return previewContractInput(parsed, input.offer);
 }
 
-/** Explicit copy only: a guardian is never assumed to be the payer. */
-export function payerFieldsFromStudent(
+/** Feed the existing contract payer picker/copy control from the unpersisted student draft. */
+export function contractFieldsWithStudent(
+  fields: ContractFields,
   student: NewStudentFields,
-  source: "student" | "guardian",
-): Partial<ContractFields> {
-  const guardian = source === "guardian";
+): ContractFields {
   return {
-    payerMode: "create",
-    payerName: guardian ? student.guardianName : student.fullName,
-    payerDocumentType: guardian ? "" : student.documentType,
-    payerDocumentNumber: guardian ? "" : student.documentNumber,
-    payerPhone: guardian ? student.guardianPhone : student.phone,
-    payerEmail: guardian ? student.guardianEmail : student.email,
+    ...fields,
+    studentMode: "create",
+    studentId: "",
+    studentDraftName: student.fullName,
+    studentDocumentType: student.documentType,
+    studentDocumentNumber: student.documentNumber,
+    studentPhone: student.phone,
+    studentEmail: student.email,
+    studentGuardianMode: student.guardianName.trim() ? "create" : "",
+    studentGuardianName: student.guardianName,
+    studentGuardianPhone: student.guardianPhone,
+    studentGuardianEmail: student.guardianEmail,
   };
 }

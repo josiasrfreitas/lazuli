@@ -3,6 +3,8 @@ import { it } from "node:test";
 import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createTRPCClient, trpc } from "../../src/lib/trpc.js";
 import { emptyContractFields } from "../../src/features/contracts/contract-form-model.js";
 import {
   FinanceStep,
@@ -13,27 +15,39 @@ import { initialNewStudentState } from "../../src/features/students/new-student/
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
-function render(overrides: Partial<FinanceStepProps["completion"]> = {}): string {
+const STUDENT = {
+  ...initialNewStudentState.fields,
+  fullName: "Ana Souza",
+  guardianName: "Maria Souza",
+};
+
+function render(
+  overrides: Partial<FinanceStepProps["completion"]> = {},
+  student = STUDENT,
+): string {
+  const client = createTRPCClient();
+  const queryClient = new QueryClient();
+  const form = createElement(FinanceStep, {
+    student,
+    completion: {
+      state: {
+        fields: emptyContractFields,
+        errors: {},
+        change: () => {},
+        submissionError: "",
+      },
+      offer: { data: null, isPending: false, isError: false, refetch: () => {} },
+      preview: null,
+      pending: false,
+      finish: () => {},
+      ...overrides,
+    },
+  });
   return renderToStaticMarkup(
-    createElement(FinanceStep, {
-      student: {
-        ...initialNewStudentState.fields,
-        fullName: "Ana Souza",
-        guardianName: "Maria Souza",
-      },
-      completion: {
-        state: {
-          fields: { ...emptyContractFields, payerMode: "create" },
-          errors: {},
-          change: () => {},
-          submissionError: "",
-        },
-        offer: { data: null, isPending: false, isError: false, refetch: () => {} },
-        preview: null,
-        pending: false,
-        finish: () => {},
-        ...overrides,
-      },
+    createElement(trpc.Provider, {
+      client,
+      queryClient,
+      children: createElement(QueryClientProvider, { client: queryClient }, form),
     }),
   );
 }
@@ -43,10 +57,12 @@ void it("submits a real named form with compact masked date controls and format 
   assert.equal((markup.match(/<form\b/gu) ?? []).length, 1);
   assert.match(markup, new RegExp(`id="${FINANCE_FORM_ID}"`));
   assert.match(markup, /noValidate|novalidate/u);
-  const inputs = markup.match(/<input\b[^>]*>/gu) ?? [];
+  const inputs = (markup.match(/<input\b[^>]*>/gu) ?? []).filter((tag) =>
+    /data-slot="input"/u.test(tag),
+  );
   assert.deepEqual(
     inputs.map((tag) => /name="([^"]+)"/u.exec(tag)?.[1]),
-    ["payerName", "payerDocumentNumber", "agreedOn", "firstDueDate", "endsOn", "monthlyAmount"],
+    ["payerSearch", "agreedOn", "firstDueDate", "endsOn", "monthlyAmount"],
   );
   for (const tag of inputs) {
     assert.match(tag, /placeholder="[^"]+"/u);
@@ -60,20 +76,51 @@ void it("submits a real named form with compact masked date controls and format 
   }
 });
 
-void it("offers explicit copy actions and groups the financial decisions without exposing blank contacts", () => {
+void it("uses the existing name search with one guardian copy action and no extra payer choices", () => {
   const markup = render();
-  for (const label of [
-    "Pagador",
-    "Copiar aluno",
-    "Copiar responsável",
-    "Novo pagador",
-    "Já cadastrado",
-    "Condições do contrato",
-    "Plano de pagamento",
-  ])
-    assert.match(markup, new RegExp(label));
-  assert.doesNotMatch(markup, /name="payerPhone"|name="payerEmail"/u);
-  assert.doesNotMatch(markup, /role="combobox"|<select/u);
+  assert.match(markup, /name="payerSearch"/u);
+  assert.match(markup, /role="combobox"/u);
+  assert.match(markup, /aria-label="Copiar responsável para pagador"/u);
+  assert.doesNotMatch(markup, /Copiar aluno para pagador|Novo pagador|Já cadastrado/u);
+  assert.doesNotMatch(markup, /name="payerPhone"|name="payerEmail"|name="payerDocumentNumber"/u);
+  const adult = render({}, { ...initialNewStudentState.fields, fullName: "Ana Souza" });
+  assert.match(adult, /aria-label="Copiar aluno para pagador"/u);
+  assert.doesNotMatch(adult, /Copiar responsável para pagador/u);
+});
+
+void it("shows only the selected payer tag and hides its editable details and copy action", () => {
+  const markup = render({
+    state: {
+      fields: {
+        ...emptyContractFields,
+        payerId: "00000000-0000-4000-8000-000000000011",
+        payerLabel: "Maria Souza",
+      },
+      errors: {},
+      change: () => {},
+      submissionError: "",
+    },
+  });
+  assert.match(markup, /Remover Maria Souza/u);
+  assert.doesNotMatch(
+    markup,
+    /name="payerSearch"|name="payerPhone"|name="payerEmail"|name="payerDocumentNumber"/u,
+  );
+  assert.doesNotMatch(markup, /Copiar responsável para pagador|Copiar aluno para pagador/u);
+});
+
+void it("reveals document and contact fields only while creating a payer with the existing pattern", () => {
+  const markup = render({
+    state: {
+      fields: { ...emptyContractFields, payerMode: "create", payerName: "Maria Souza" },
+      errors: {},
+      change: () => {},
+      submissionError: "",
+    },
+  });
+  for (const name of ["payerSearch", "payerDocumentNumber", "payerPhone", "payerEmail"])
+    assert.match(markup, new RegExp(`name="${name}"`));
+  assert.match(markup, /aria-label="Copiar responsável para pagador"/u);
 });
 
 void it("disables financial editing while completion is pending and exposes its failure", () => {

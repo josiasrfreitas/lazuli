@@ -43,7 +43,7 @@ export function WizardFooter({
 }): ReactElement {
   const { pending } = completion;
   return (
-    <DialogFooter className="mt-5">
+    <DialogFooter className="mt-4">
       {state.step === DADOS_STEP ? (
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancelar

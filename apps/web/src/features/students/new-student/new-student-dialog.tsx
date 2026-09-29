@@ -63,7 +63,7 @@ export function NewStudentDialog({
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          className={state.step === FINANCE_STEP ? "md:max-w-3xl" : "md:max-w-xl"}
+          className={state.step === FINANCE_STEP ? "md:max-w-2xl" : "md:max-w-xl"}
           initialFocus={() =>
             popupRef.current?.querySelector<HTMLInputElement>('input[name="fullName"]') ?? true
           }
@@ -111,7 +111,7 @@ function WizardContent({
       </DialogHeader>
       <Stepper
         activeIndex={state.step}
-        className="mt-4 gap-2 sm:gap-3 [&_[data-slot=stepper-step]>[aria-hidden]]:hidden sm:[&_[data-slot=stepper-step]>[aria-hidden]]:block"
+        className="mt-3 gap-2 sm:gap-3 [&_[data-slot=stepper-step]>[aria-hidden]]:hidden sm:[&_[data-slot=stepper-step]>[aria-hidden]]:block"
         label="Etapas do cadastro"
         steps={STEPS}
       />
@@ -122,7 +122,7 @@ function WizardContent({
           </AlertContent>
         </Alert>
       )}
-      <DialogBody className="mt-5" ref={bodyRef}>
+      <DialogBody className="mt-4" ref={bodyRef}>
         <WizardBody state={state} dispatch={dispatch} completion={completion} />
       </DialogBody>
       <WizardFooter state={state} dispatch={dispatch} completion={completion} onCancel={onCancel} />

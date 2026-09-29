@@ -13,8 +13,8 @@
 - Both paths use `students.completeCreation`, wrapping the existing student and finance operations. Persist nullable command metadata on Student so retries of skipped finance are safe too, including concurrent submissions and lost responses. A command reused with changed contents is a conflict. Add one compatible migration; existing students are not rewritten.
 - Finance remains behind `finance(db, staffUserId)` and admin procedures.
 - Use the current design tokens and pt-BR labels; business dates use America/Sao_Paulo.
-- User refinement: make payer choices explicit, with copy student/guardian, inline creation, and existing-payer reuse. Do not infer that the guardian is the payer.
-- Follow `docs/frontend/forms.md` and `Patterns/DenseForm`: real form and Enter submit, named groups, compact related fields, masked dates, collapsed optional details, first-error focus, and a scroll-free default desktop state.
+- Latest user refinement: reuse `ContractPayerFields` and `PayerCopyButton` directly. Start with the existing name search; create within its options; show only a tag for an existing payer. One inline copy action explicitly copies the guardian when present, otherwise the student. Prioritize desktop alignment and efficient use of space.
+- Follow `docs/frontend/forms.md` and `Patterns/DenseForm`: real form and Enter submit, named groups, compact related fields, masked dates, conditional payer details, first-error focus, and a scroll-free default desktop state.
 
 ## Files
 
@@ -42,5 +42,5 @@
 ## Plan recheck
 
 - Rechecked against issue #127, its P05–P07 dependencies, `AGENTS.md`, the financial decisions, `docs/testing/README.md`, and `docs/frontend/forms.md` before implementation.
-- The user explicitly reinstated Finance and refined the payer interaction. Existing-payer reuse remains available for siblings; copy actions create an independent payer draft and never infer the guardian is the payer.
+- The user explicitly reinstated Finance and refined the payer interaction. The first custom payer choice UI was rejected. Use the existing contract form interaction and its conditional copy source; only pressing copy creates a payer draft. Existing-payer selection hides its details.
 - Inspection showed contract retries were already protected, while skipped finance used ordinary student creation. The unified coordinator and compatible command metadata close that gap for both submission paths.

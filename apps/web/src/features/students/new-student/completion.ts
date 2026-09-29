@@ -14,7 +14,7 @@ import { completionErrorMessage } from "./completion-errors";
 import { toCreateInput, type StudentCreateInput } from "./to-create-input";
 import type { NewStudentFields } from "./reducer";
 
-const EMPTY_FINANCE_FIELDS = { ...emptyContractFields, payerMode: "create" };
+const EMPTY_FINANCE_FIELDS = emptyContractFields;
 type OfferQuery = QueryResult<RouterOutputs["finance"]["readContractOffer"]>;
 type CompletionInput = {
   open: boolean;
@@ -49,11 +49,14 @@ function useCompletionOffer(open: boolean, state: ContractFormState): OfferQuery
   return offer;
 }
 
-function useCompletionMutations(input: {
+type CompletionHandlers = {
   created: (id: string) => void;
   rejected: (error: ClientError, finance: boolean) => void;
-  commandId: string;
-}): CompletionMutations {
+};
+
+function useCompletionMutations(
+  input: CompletionHandlers & { commandId: string },
+): CompletionMutations {
   const mutation = trpc.students.completeCreation.useMutation({
     onSuccess: (result) => input.created(result.id),
     onError: (error, values) => input.rejected(error, "contract" in values),
@@ -103,11 +106,35 @@ function submitCompletion(input: {
   };
 }
 
+function useCompletionHandlers(
+  input: Pick<CompletionInput, "onCreated" | "onRejected"> & {
+    state: ContractFormState;
+    submitting: RefObject<boolean>;
+    reset: () => void;
+  },
+): CompletionHandlers {
+  const utils = trpc.useUtils();
+  const created = (id: string): void => {
+    void utils.students.list.invalidate();
+    void utils.finance.listContracts.invalidate();
+    void utils.finance.searchContractParties.invalidate();
+    input.submitting.current = false;
+    input.reset();
+    input.onCreated(id);
+  };
+  const rejected = (error: ClientError, finance: boolean): void => {
+    input.submitting.current = false;
+    const rejection = serverRejectionFor(error);
+    if (!finance || Object.keys(rejection.errors).length > 0) input.onRejected(rejection);
+    else input.state.setSubmissionError(completionErrorMessage(error));
+  };
+  return { created, rejected };
+}
+
 export function useStudentCompletion(input: CompletionInput): StudentCompletion {
   const state = useContractFormState(input.open, EMPTY_FINANCE_FIELDS);
   const submitting = useRef(false);
   const [errorsRevision, setErrorsRevision] = useState(0);
-  const utils = trpc.useUtils();
   const offer = useCompletionOffer(input.open && input.financeActive, state);
   const preview = studentContractPreview({
     fields: state.fields,
@@ -118,25 +145,14 @@ export function useStudentCompletion(input: CompletionInput): StudentCompletion 
     state.reset();
     setErrorsRevision(0);
   };
-  const created = (id: string): void => {
-    void utils.students.list.invalidate();
-    void utils.finance.listContracts.invalidate();
-    void utils.finance.searchContractParties.invalidate();
-    submitting.current = false;
-    reset();
-    input.onCreated(id);
-  };
-  const rejected = (error: ClientError, finance: boolean): void => {
-    submitting.current = false;
-    const rejection = serverRejectionFor(error);
-    if (!finance || Object.keys(rejection.errors).length > 0) input.onRejected(rejection);
-    else state.setSubmissionError(completionErrorMessage(error));
-  };
-  const mutations = useCompletionMutations({
-    created,
-    rejected,
-    commandId: state.commandId.current,
+  const handlers = useCompletionHandlers({
+    state,
+    submitting,
+    reset,
+    onCreated: input.onCreated,
+    onRejected: input.onRejected,
   });
+  const mutations = useCompletionMutations({ ...handlers, commandId: state.commandId.current });
   const finish = submitCompletion({
     state,
     student: input.student,
