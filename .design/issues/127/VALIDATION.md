@@ -21,7 +21,7 @@ The original wizard had no Financeiro screen, so the before images show its orig
 - Explicit student and guardian copy actions copy the selected name and contacts. Switching payer modes and navigating Financeiro → Pedagógico → Dados → Financeiro preserve both drafts. Recolher hides contacts without discarding them.
 - Preview was checked against the database: zero visual-test students, guardians, and payers existed before saving.
 - Completed a minor's registration through the UI. Database check: one student, one guardian, one payer, one contract, one order of 75,000 cents, and two installments of 37,500 cents; no enrollment.
-- A real transaction timeout left zero records and kept the entire financial draft. Retrying completed the single set above. Unexpected failures now use a Portuguese retry message; focused tests protect that mapping.
+- A real transaction timeout left zero records and kept the entire financial draft. Retrying completed the single set above. Unexpected failures now use a Portuguese retry message; focused tests protect that mapping, and a later real failure confirmed the [message with the draft intact](evidence/after-desktop-error-1280.png).
 - Skipped finance with blank financial fields. Database check: the second student had no guardian, contract, or enrollment; payer/guardian totals remained one.
 - Existing-payer search and selection were exercised with the payer created above. A real server rejection after changing the local authorized tuition floor kept the draft and did not create the third student. Original settings were restored.
 
