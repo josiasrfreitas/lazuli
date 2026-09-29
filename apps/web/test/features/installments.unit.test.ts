@@ -268,7 +268,7 @@ void test("financial presentation keeps status and due date separate from the am
   });
 });
 
-void test("amount columns distinguish nominal, received and conditional versus applied discount", () => {
+void test("amount columns show nominal and receipts with only applied discounts", () => {
   const contract = {
     ...row,
     originalAmountCents: 25_000,
@@ -281,13 +281,11 @@ void test("amount columns distinguish nominal, received and conditional versus a
   assert.deepEqual(installmentAmountVm(contract), {
     nominal: "R$\u00A0250,00",
     paid: "—",
-    condition: "Quitação em dia: R$\u00A0230,00 (8% de desconto)",
     discount: null,
   });
   assert.deepEqual(installmentAmountVm({ ...contract, paidAmountCents: 10_000 }), {
     nominal: "R$\u00A0250,00",
     paid: "R$\u00A0100,00",
-    condition: "Quitação em dia: R$\u00A0230,00 (8% de desconto)",
     discount: null,
   });
   assert.deepEqual(
@@ -302,18 +300,16 @@ void test("amount columns distinguish nominal, received and conditional versus a
     {
       nominal: "R$\u00A0250,00",
       paid: "R$\u00A0230,00",
-      condition: null,
       discount: "Desconto aplicado: 8%",
     },
   );
   assert.deepEqual(
     installmentAmountVm({ ...contract, status: "WAIVED", onTimeAmountCents: null }),
-    { nominal: "R$\u00A0250,00", paid: "—", condition: null, discount: null },
+    { nominal: "R$\u00A0250,00", paid: "—", discount: null },
   );
   assert.deepEqual(installmentAmountVm(row), {
     nominal: "R$\u00A0350,00",
     paid: "R$\u00A0100,00",
-    condition: null,
     discount: null,
   });
 });

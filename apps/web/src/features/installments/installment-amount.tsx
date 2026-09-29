@@ -14,7 +14,7 @@ export function InstallmentAmount({
   column: "nominal" | "paid";
 }): ReactElement {
   const amount = installmentAmountVm(row);
-  const description = column === "nominal" ? amount.condition : amount.discount;
+  const description = column === "paid" ? amount.discount : null;
   const formattedValue = column === "nominal" ? amount.nominal : amount.paid;
   const value = (
     <span className="font-numeric inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums">

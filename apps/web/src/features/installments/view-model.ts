@@ -13,7 +13,6 @@ type InstallmentVm = {
 export type InstallmentAmountVm = {
   nominal: string;
   paid: string;
-  condition: string | null;
   discount: string | null;
 };
 
@@ -25,14 +24,9 @@ function discountPercentage(nominal: number, discounted: number): string {
 }
 
 export function installmentAmountVm(row: FinanceInstallmentRow): InstallmentAmountVm {
-  const onTime = row.onTimeAmountCents;
   return {
     nominal: formatBRLFromCents(row.originalAmountCents),
     paid: row.paidAmountCents > 0 ? formatBRLFromCents(row.paidAmountCents) : "—",
-    condition:
-      onTime !== null && onTime < row.originalAmountCents
-        ? `Quitação em dia: ${formatBRLFromCents(onTime)} (${discountPercentage(row.originalAmountCents, onTime)}% de desconto)`
-        : null,
     discount:
       row.paidAmountCents > 0 && row.expectedAmountCents < row.originalAmountCents
         ? `Desconto aplicado: ${discountPercentage(row.originalAmountCents, row.expectedAmountCents)}%`

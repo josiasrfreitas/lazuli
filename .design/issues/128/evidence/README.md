@@ -11,6 +11,7 @@ The narrow screenshots scroll the existing horizontally scrollable table to the 
 
 The original `before-*` / `after-*` captures above document the superseded stacked presentation.
 
+- After the final user revision, nominal amounts have no condition indicator; only applied discounts appear next to paid amounts.
 - `compact-desktop.png` (1280 × 800) and `compact-narrow.png` (390 × 844) show the revised separate **Valor nominal** / **Valor pago** columns. The running app is filtered to P12 synthetic data: a R$ 100 partial receipt, an unpaid installment, and the original R$ 230 discounted settlement. All three desktop rows measure 48 px in the browser, with one-line monetary cells.
 - The two additional synthetic contracts use the current local settings snapshot (10% condition). The original settled contract retains its 8% snapshot. The partial receipt was registered through `finance(...).registerPayment`; it does not apply a discount.
 - `compact-tooltip-desktop.png` captures a real pointer hover showing **Desconto aplicado: 8%** next to the settled R$ 230 receipt. Keyboard focus was also inspected in the browser.

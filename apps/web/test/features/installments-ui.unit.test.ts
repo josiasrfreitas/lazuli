@@ -230,6 +230,7 @@ void test("flat rows separate nominal and paid amounts with an accessible discou
   assert.match(markup, />R\$\u00A0230,00</u);
   assert.match(markup, /aria-label="R\$\u00A0230,00\. Desconto aplicado: 8%"/u);
   assert.match(markup, /tabindex="0"/u);
+  assert.equal(countMatches(markup, /data-slot="tooltip-trigger"/gu), 1);
   assert.match(markup, />Dispensada<\/span>/u);
   assert.doesNotMatch(markup, /Nominal:|Desconto: R\$|Recebido:|Saldo:|Acréscimo:/u);
 });
@@ -334,7 +335,7 @@ void test("overdue search explains that qualified payer groups remain complete",
   assert.equal(countMatches(markup, /data-slot="table-row"/gu), group.rows.length + 1);
 });
 
-void test("conditional discount stays in the nominal hint while partial receipts remain undiscounted", () => {
+void test("nominal and partial receipts show no available-discount indicators", () => {
   const row = {
     ...overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID).rows[0]!,
     originalAmountCents: 25_000,
@@ -354,13 +355,9 @@ void test("conditional discount stays in the nominal hint while partial receipts
       footer: null,
     }),
   );
-  assert.match(
-    markup,
-    /aria-label="R\$\u00A0250,00\. Quitação em dia: R\$\u00A0230,00 \(8% de desconto\)"/u,
-  );
   assert.match(markup, />R\$\u00A0100,00</u);
   assert.match(markup, />Paga parcialmente<\/span>/u);
-  assert.doesNotMatch(markup, /Desconto aplicado:/u);
+  assert.doesNotMatch(markup, /Desconto aplicado:|Quitação em dia:|data-slot="tooltip-trigger"/u);
   const cells = [
     ...markup.matchAll(/<td[^>]*headers="installments-column-(?:nominal|paid)"[^>]*>(.*?)<\/td>/gu),
   ];
