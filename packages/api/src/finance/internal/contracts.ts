@@ -10,6 +10,7 @@ import { contractStatusPage } from "./contract-status-page.js";
 import { createStudent } from "../../students/data.js";
 import { createContractPayer } from "./payers.js";
 import { toDateOnly, type FinanceDatabase } from "./shared.js";
+import { assertCreationCommandOwner, lockCreationCommand } from "../../creation-command.js";
 
 const DUE_DAY_START = 8;
 const DUE_DAY_END = 10;
@@ -22,6 +23,7 @@ export async function findCommandResult(
   database: FinanceDatabase,
   values: CreateMonthlyContractInput,
 ): Promise<ContractListRow | null> {
+  await assertCreationCommandOwner(database, { id: values.commandId, owner: "contract" });
   const existing = await database.contract.findUnique({
     where: { commandId: values.commandId },
     select: contractSelect,
@@ -172,6 +174,7 @@ export async function createMonthlyContract(input: {
   values: CreateMonthlyContractInput;
   staffUserId: string;
 }): Promise<ContractListRow> {
+  await lockCreationCommand(input.database, input.values.commandId);
   const prior = await findCommandResult(input.database, input.values);
   if (prior) return prior;
   const terms = await readyTerms(input);

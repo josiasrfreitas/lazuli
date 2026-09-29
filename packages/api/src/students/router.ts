@@ -1,5 +1,6 @@
 import {
   studentCreateInputSchema,
+  studentCompletionInputSchema,
   studentIdInputSchema,
   studentListInputSchema,
   studentListOutputSchema,
@@ -17,6 +18,7 @@ import { createStudent, readStudentProfile, searchStudents, updateStudentContact
 import { listStudents } from "./list.js";
 import { previewStudent } from "./preview.js";
 import { setStudentStatus } from "./status.js";
+import { completeStudent } from "./completion.js";
 
 const FILTER_OPTION_LIMIT = 50;
 
@@ -88,6 +90,11 @@ export const studentsRouter = router({
     .input(studentCreateInputSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) => createStudent({ database, values: input })),
+    ),
+  completeCreation: adminProcedure
+    .input(studentCompletionInputSchema)
+    .mutation(({ ctx, input }) =>
+      completeStudent({ database: ctx.db, values: input, staffUserId: ctx.staffUser.id }),
     ),
   updateContact: adminProcedure
     .input(studentUpdateContactProcedureInputSchema)

@@ -3,6 +3,7 @@
 import type { ReactElement } from "react";
 import { Field, FieldError, Input, Label } from "@lazuli/ui";
 import type { ContractFields } from "./contract-form-model";
+import { maskDateBR } from "~/lib/masks";
 
 type TextFieldProps = {
   name: keyof ContractFields;
@@ -14,12 +15,26 @@ type TextFieldProps = {
   placeholder: string;
   numeric?: boolean;
   date?: boolean;
+  maskedDate?: boolean | undefined;
 };
 
 function reverseDate(value: string, separator: "-" | "/"): string {
   if (!value) return "";
   const [first, middle, last] = value.split(separator);
   return [last, middle, first].join(separator === "-" ? "/" : "-");
+}
+
+function controlMode(input: {
+  numeric: boolean;
+  maskedDate: boolean;
+}): "numeric" | "decimal" | "text" {
+  if (input.maskedDate) return "numeric";
+  return input.numeric ? "decimal" : "text";
+}
+
+function typedValue(value: string, input: { date: boolean; maskedDate: boolean }): string {
+  if (input.maskedDate) return maskDateBR(value);
+  return input.date ? reverseDate(value, "-") : value;
 }
 
 export function TextField({
@@ -32,26 +47,25 @@ export function TextField({
   placeholder,
   numeric = false,
   date = false,
+  maskedDate = false,
 }: TextFieldProps): ReactElement {
   return (
     <Field name={name}>
       <Label>{label}</Label>
       <Input
         autoComplete="off"
-        inputMode={numeric ? "decimal" : "text"}
+        inputMode={controlMode({ numeric, maskedDate })}
         invalid={Boolean(error)}
         name={name}
         onBlur={onBlur}
-        onChange={(event) =>
-          onChange(date ? reverseDate(event.target.value, "-") : event.target.value)
-        }
+        onChange={(event) => onChange(typedValue(event.target.value, { date, maskedDate }))}
         onClick={(event) => {
-          if (date) event.currentTarget.showPicker?.();
+          if (date && !maskedDate) event.currentTarget.showPicker?.();
         }}
         placeholder={placeholder}
         size="sm"
-        type={date ? "date" : "text"}
-        value={date ? reverseDate(value, "/") : value}
+        type={date && !maskedDate ? "date" : "text"}
+        value={date && !maskedDate ? reverseDate(value, "/") : value}
       />
       {error && <FieldError match>{error}</FieldError>}
     </Field>

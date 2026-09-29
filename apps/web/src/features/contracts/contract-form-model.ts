@@ -1,5 +1,9 @@
 import { addCalendarMonths, previewMonthlyContract } from "@lazuli/domain";
-import { createMonthlyContractInputSchema } from "@lazuli/validators";
+import {
+  createMonthlyContractInputSchema,
+  type studentCreateInputSchema,
+  type z,
+} from "@lazuli/validators";
 
 import { parseDateBR } from "~/lib/masks";
 
@@ -123,14 +127,17 @@ function payerInput(fields: ContractFields): object {
 
 export function contractInputFromFields(
   fields: ContractFields,
-  commandId: string,
+  command: string | { commandId: string; newStudent: z.input<typeof studentCreateInputSchema> },
 ): ReturnType<typeof createMonthlyContractInputSchema.safeParse> {
+  const commandId = typeof command === "string" ? command : command.commandId;
+  const beneficiary =
+    typeof command === "string" ? studentInput(fields) : { newStudent: command.newStudent };
   const parsed = createMonthlyContractInputSchema.safeParse({
     commandId,
     ...(fields.paymentPlan === "special"
       ? { installmentCount: Number(fields.installmentCount) }
       : {}),
-    ...studentInput(fields),
+    ...beneficiary,
     ...payerInput(fields),
     agreedOn: parseDateBR(fields.agreedOn),
     startsOn: parseDateBR(fields.firstDueDate),
@@ -152,9 +159,15 @@ export function contractPreview(
     | null
     | undefined,
 ): ReturnType<typeof previewMonthlyContract> | null {
-  if (!offer) return null;
   const parsed = contractInputFromFields(fields, "00000000-0000-4000-8000-000000000001");
-  if (!parsed.success) return null;
+  return previewContractInput(parsed, offer);
+}
+
+export function previewContractInput(
+  parsed: ReturnType<typeof contractInputFromFields>,
+  offer: Parameters<typeof contractPreview>[1],
+): ReturnType<typeof previewMonthlyContract> | null {
+  if (!offer || !parsed.success) return null;
   try {
     return previewMonthlyContract({ ...parsed.data, ...offer });
   } catch {

@@ -1,4 +1,6 @@
 export { civilDateSchema } from "./civil-date.js";
+export { studentCompletionInputSchema } from "./student-completion.js";
+export type { StudentCompletionInput } from "./student-completion.js";
 export {
   createMonthlyContractInputSchema,
   listContractsInputSchema,

@@ -96,6 +96,7 @@ export function PaymentSection({ fields, errors, change, preview }: FormProps): 
             <Label>Quantidade de parcelas</Label>
             <Input
               name="installmentCount"
+              placeholder="Ex.: 3"
               autoComplete="off"
               inputMode="numeric"
               size="sm"

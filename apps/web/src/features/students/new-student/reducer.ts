@@ -14,7 +14,7 @@
 
 import { maskDateBR, maskPhoneBR, parseDateBR } from "~/lib/masks";
 
-export const NEW_STUDENT_STEPS = ["Dados", "Pedagógico"] as const;
+export const NEW_STUDENT_STEPS = ["Dados", "Pedagógico", "Financeiro"] as const;
 
 const FIRST_STEP = 0;
 const LAST_STEP = NEW_STUDENT_STEPS.length - 1;
@@ -212,12 +212,12 @@ export function newStudentReducer(
       return { ...state, step: Math.max(state.step - 1, FIRST_STEP) };
     }
     case "serverRejected": {
-      // The wizard returns to Dados so the rejected fields are in view (IA).
+      // Field errors return to Dados; a general failure preserves the active step and draft.
       return {
         ...state,
         errors: action.errors,
         formError: action.formError,
-        step: FIRST_STEP,
+        step: Object.keys(action.errors).length > 0 ? FIRST_STEP : state.step,
         errorsRevision: state.errorsRevision + 1,
       };
     }
