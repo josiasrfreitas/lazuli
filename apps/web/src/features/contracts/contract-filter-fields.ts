@@ -27,8 +27,9 @@ type PartyResultInput = {
 };
 
 function partyResult(input: PartyResultInput): RemoteOptionsResult {
-  const { query, data, error, fetching, retry } = input;
-  if (!query.trim()) return { status: "idle", query: "" };
+  const { data, error, fetching, retry } = input;
+  const query = input.query.trim();
+  if (!query) return { status: "idle", query: "" };
   if (error) return { status: "error", query, onRetry: retry };
   if (fetching || !data) return { status: "loading", query };
   return {
@@ -123,7 +124,7 @@ function statusField(filters: ContractFilters): TableFilterField {
 export function useContractFilterFields(filters: ContractFilters): TableFilterField[] {
   const [search, setSearch] = useState("");
   const parties = trpc.finance.searchContractParties.useQuery(
-    { query: search },
+    { query: search.trim() },
     { enabled: search.trim().length > 0 },
   );
   const payer = trpc.finance.searchContractParties.useQuery(

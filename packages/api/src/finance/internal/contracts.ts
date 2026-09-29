@@ -6,6 +6,7 @@ import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 
 import { contractSelect, toRow, type ContractListRow } from "./contracts-select.js";
+import { contractStatusPage } from "./contract-status-page.js";
 import { createStudent } from "../../students/data.js";
 import { createContractPayer } from "./payers.js";
 import { toDateOnly, type FinanceDatabase } from "./shared.js";
@@ -237,21 +238,21 @@ export async function listContracts(
   const pageSize = 20;
   const where = contractListWhere(options);
   if (options.status) {
-    // Financial situation depends on allocations and adjustments. Apply it before
-    // pagination so the count and page boundaries describe the same result set.
-    const candidates = await database.contract.findMany({
-      where,
+    const match = await contractStatusPage(database, { ...options, status: options.status, now });
+    const selected = await database.contract.findMany({
+      where: { id: { in: match.ids } },
       select: contractSelect,
-      orderBy: [{ agreedOn: "desc" }, { id: "desc" }],
     });
-    const matching = candidates
-      .map((row) => toRow(row, now))
-      .filter((row) => row.status === options.status);
+    const byId = new Map(selected.map((row) => [row.id, row]));
     return {
-      rows: matching.slice((page - 1) * pageSize, page * pageSize),
+      rows: match.ids.map((id) => {
+        const row = byId.get(id);
+        if (!row) throw new Error("Contrato filtrado não encontrado.");
+        return toRow(row, now);
+      }),
       page,
       pageSize,
-      total: matching.length,
+      total: match.total,
     };
   }
   const [total, rows] = await Promise.all([

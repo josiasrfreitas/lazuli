@@ -36,6 +36,13 @@ async function cleanup(): Promise<void> {
     where: { contractId: { in: ids } },
     select: { id: true },
   });
+  const payments = await db.paymentEntry.findMany({
+    where: { payer: { name: { startsWith: PREFIX } } },
+    select: { id: true },
+  });
+  const paymentIds = payments.map((row) => row.id);
+  await db.paymentAllocation.deleteMany({ where: { paymentEntryId: { in: paymentIds } } });
+  await db.paymentEntry.deleteMany({ where: { id: { in: paymentIds } } });
   await db.installment.deleteMany({ where: { orderId: { in: orders.map((row) => row.id) } } });
   await db.order.deleteMany({ where: { contractId: { in: ids } } });
   await db.contract.deleteMany({ where: { id: { in: ids } } });
@@ -143,12 +150,32 @@ async function listingSearchAndStatus(): Promise<void> {
   assert.equal(onTime.rows.find((row) => row.id === created.id)?.status, "EM_DIA");
   const overdue = await finance(db, ADMIN.id).listContracts({ page: 1, now: OVERDUE_INSTANT });
   assert.equal(overdue.rows.find((row) => row.id === created.id)?.status, "INADIMPLENTE");
+  const overdueFilter = await finance(db, ADMIN.id).listContracts({
+    page: 1,
+    status: "INADIMPLENTE",
+    payerId: payer.id,
+    now: OVERDUE_INSTANT,
+  });
+  assert.deepEqual(
+    overdueFilter.rows.map((row) => row.id),
+    [created.id],
+  );
   await db.installment.updateMany({
     where: { order: { contractId: created.id } },
     data: { waivedAt: OVERDUE_INSTANT, waivedReason: "Teste de situação financeira" },
   });
   const waived = await finance(db, ADMIN.id).listContracts({ page: 1, now: OVERDUE_INSTANT });
   assert.equal(waived.rows.find((row) => row.id === created.id)?.status, "SEM_SALDO");
+  const waivedFilter = await finance(db, ADMIN.id).listContracts({
+    page: 1,
+    status: "SEM_SALDO",
+    payerId: payer.id,
+    now: OVERDUE_INSTANT,
+  });
+  assert.deepEqual(
+    waivedFilter.rows.map((row) => row.id),
+    [created.id],
+  );
 }
 
 async function listFiltersBeforePagination(): Promise<void> {
@@ -208,7 +235,7 @@ async function listFiltersBeforePagination(): Promise<void> {
   assert.ok(ids.indexOf(sameDay.id) < ids.indexOf(overdue.id));
   assert.deepEqual(
     ids.filter((id) => id === future.id || id === sameDay.id),
-    [future.id, sameDay.id].sort((left, right) => right.localeCompare(left)),
+    future.id > sameDay.id ? [future.id, sameDay.id] : [sameDay.id, future.id],
   );
   const noMatch = await service.listContracts({
     page: 1,
@@ -218,6 +245,84 @@ async function listFiltersBeforePagination(): Promise<void> {
   });
   assert.deepEqual(noMatch.rows, []);
   assert.equal(noMatch.total, 0);
+}
+
+async function statusFilterPagesWithoutLoadingEveryRow(): Promise<void> {
+  const { payer, values } = await fixture();
+  const created: string[] = [];
+  for (let index = 0; index < 21; index += 1) {
+    const contract = await db.$transaction((tx) =>
+      finance(tx, ADMIN.id).createMonthlyContract({
+        ...values,
+        commandId: randomUUID(),
+        agreedOn: "2026-04-15",
+        startsOn: "2026-10-15",
+        firstDueDate: "2026-12-31",
+      }),
+    );
+    created.push(contract.id);
+  }
+  const service = finance(db, ADMIN.id);
+  const filter = { payerId: payer.id, status: "EM_DIA" as const, now: OVERDUE_INSTANT };
+  const first = await service.listContracts({ ...filter, page: 1 });
+  const second = await service.listContracts({ ...filter, page: 2 });
+  assert.equal(first.total, 21);
+  assert.equal(second.total, 21);
+  assert.equal(first.rows.length, 20);
+  assert.equal(second.rows.length, 1);
+  const pageIds = [...first.rows, ...second.rows].map((row) => row.id);
+  assert.deepEqual(new Set(pageIds), new Set(created));
+  assert.equal(
+    pageIds.every((id, index) => index === 0 || pageIds[index - 1]! > id),
+    true,
+  );
+}
+
+async function statusFilterRespectsPaymentAndCancellation(): Promise<void> {
+  const { payer, values } = await fixture();
+  const created = await db.$transaction((tx) =>
+    finance(tx, ADMIN.id).createMonthlyContract({ ...values, installmentCount: 1 }),
+  );
+  const installment = await db.installment.findFirstOrThrow({
+    where: { order: { contractId: created.id } },
+    select: { id: true, amountCents: true },
+  });
+  await db.paymentEntry.create({
+    data: {
+      payerId: payer.id,
+      date: OVERDUE_INSTANT,
+      amountCents: installment.amountCents,
+      method: "PIX",
+      allocations: {
+        create: { installmentId: installment.id, amountCents: installment.amountCents },
+      },
+    },
+  });
+  const service = finance(db, ADMIN.id);
+  const paid = await service.listContracts({
+    page: 1,
+    status: "QUITADO",
+    payerId: payer.id,
+    now: OVERDUE_INSTANT,
+  });
+  assert.deepEqual(
+    paid.rows.map((row) => row.id),
+    [created.id],
+  );
+  await db.order.updateMany({
+    where: { contractId: created.id },
+    data: { cancelledAt: OVERDUE_INSTANT, cancelledReason: "Teste de cancelamento" },
+  });
+  const cancelled = await service.listContracts({
+    page: 1,
+    status: "CANCELADO",
+    payerId: payer.id,
+    now: OVERDUE_INSTANT,
+  });
+  assert.deepEqual(
+    cancelled.rows.map((row) => row.id),
+    [created.id],
+  );
 }
 
 void before(async () => {
@@ -313,5 +418,13 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
   void it(
     "filters parties, overlapping term and financial situation before counting",
     listFiltersBeforePagination,
+  );
+  void it(
+    "keeps exact financial-status totals across two pages",
+    statusFilterPagesWithoutLoadingEveryRow,
+  );
+  void it(
+    "keeps paid and cancelled situations distinct",
+    statusFilterRespectsPaymentAndCancellation,
   );
 });
