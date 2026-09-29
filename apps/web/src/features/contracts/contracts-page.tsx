@@ -1,47 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { DataTablePage } from "@lazuli/ui";
-import { debounce } from "~/lib/debounce";
 import { trpc } from "~/lib/trpc";
+import { useContractFilters } from "./contract-filters";
 import { ContractsTable } from "./contracts-table";
 import { ContractsToolbar } from "./contracts-toolbar";
 import { NewContractDialog } from "./new-contract-dialog";
 
-const SEARCH_DEBOUNCE_MS = 300;
-
 export function ContractsPage(): ReactElement {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("");
+  const filters = useContractFilters();
   const [creating, setCreating] = useState(false);
-  const commitSearch = useMemo(
-    () =>
-      debounce((value: string) => {
-        setQuery(value);
-        setPage(1);
-      }, SEARCH_DEBOUNCE_MS),
-    [],
-  );
-  useEffect(() => () => commitSearch.cancel(), [commitSearch]);
   const utils = trpc.useUtils();
   return (
     <>
       <DataTablePage
         title="Contratos"
         summary="Acordos mensais"
-        controls={
-          <ContractsToolbar
-            search={search}
-            onSearch={(value) => {
-              setSearch(value);
-              commitSearch(value);
-            }}
-            onNew={() => setCreating(true)}
-          />
-        }
+        controls={<ContractsToolbar filters={filters} onNew={() => setCreating(true)} />}
       >
-        <ContractsTable page={page} query={query} onPageChange={setPage} />
+        <ContractsTable filters={filters} />
       </DataTablePage>
       <NewContractDialog
         open={creating}

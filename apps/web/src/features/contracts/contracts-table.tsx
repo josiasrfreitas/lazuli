@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { DataTable, type DataTableState } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { contractColumns, type ContractRow } from "./contract-columns";
+import type { ContractFilters } from "./contract-filters";
 
 const PAGE_SIZE = 20;
 
@@ -22,25 +23,23 @@ function tableState({
   return { kind: "data", rows };
 }
 
-export function ContractsTable({
-  page,
-  query,
-  onPageChange,
-}: {
-  page: number;
-  query: string;
-  onPageChange: (page: number) => void;
-}): ReactElement {
-  const list = trpc.finance.listContracts.useQuery({ page, query });
+export function ContractsTable({ filters }: { filters: ContractFilters }): ReactElement {
+  const { page, search, payerId, studentId, startsFrom, endsTo, status } = filters;
+  const list = trpc.finance.listContracts.useQuery({
+    page,
+    query: search.trim(),
+    payerId,
+    studentId,
+    startsFrom,
+    endsTo,
+    status,
+  });
+  const filtered = Boolean(search.trim() || payerId || studentId || startsFrom || endsTo || status);
   return (
     <DataTable
       label="Contratos mensais"
       columns={contractColumns}
-      state={tableState({
-        rows: list.data?.rows,
-        failed: list.isError,
-        filtered: query.trim() !== "",
-      })}
+      state={tableState({ rows: list.data?.rows, failed: list.isError, filtered })}
       errorTitle="Não foi possível carregar os contratos"
       empty={{
         title: "Nenhum contrato cadastrado",
@@ -50,7 +49,7 @@ export function ContractsTable({
       pagination={{
         page,
         pageSize: PAGE_SIZE,
-        onPageChange,
+        onPageChange: filters.setPage,
         itemLabel: { singular: "contrato", plural: "contratos" },
         ...(list.data
           ? {

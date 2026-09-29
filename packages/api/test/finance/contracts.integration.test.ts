@@ -151,6 +151,75 @@ async function listingSearchAndStatus(): Promise<void> {
   assert.equal(waived.rows.find((row) => row.id === created.id)?.status, "SEM_SALDO");
 }
 
+async function listFiltersBeforePagination(): Promise<void> {
+  const first = await fixture();
+  const second = await fixture();
+  const third = await fixture();
+  const overdue = await db.$transaction((tx) =>
+    finance(tx, ADMIN.id).createMonthlyContract(first.values),
+  );
+  const future = await db.$transaction((tx) =>
+    finance(tx, ADMIN.id).createMonthlyContract({
+      ...second.values,
+      agreedOn: "2026-04-15",
+      startsOn: "2026-10-15",
+      firstDueDate: "2026-12-31",
+    }),
+  );
+  const sameDay = await db.$transaction((tx) =>
+    finance(tx, ADMIN.id).createMonthlyContract({ ...third.values, agreedOn: "2026-04-15" }),
+  );
+  const service = finance(db, ADMIN.id);
+  const byPayer = await service.listContracts({ page: 1, payerId: second.payer.id });
+  assert.deepEqual(
+    byPayer.rows.map((row) => row.id),
+    [future.id],
+  );
+  const byStudent = await service.listContracts({ page: 1, studentId: first.student.id });
+  assert.deepEqual(
+    byStudent.rows.map((row) => row.id),
+    [overdue.id],
+  );
+  const byTerm = await service.listContracts({
+    page: 1,
+    startsFrom: "2027-08-01",
+    endsTo: "2027-09-01",
+  });
+  assert.deepEqual(
+    byTerm.rows.map((row) => row.id),
+    [future.id],
+  );
+  const byStatus = await service.listContracts({
+    page: 1,
+    status: "EM_DIA",
+    now: OVERDUE_INSTANT,
+  });
+  assert.deepEqual(
+    byStatus.rows.map((row) => row.id),
+    [future.id],
+  );
+  assert.equal(byStatus.total, 1);
+  const ordered = await service.listContracts({ page: 1, now: OVERDUE_INSTANT });
+  const ids = ordered.rows.map((row) => row.id);
+  assert.notEqual(ids.indexOf(overdue.id), -1);
+  assert.notEqual(ids.indexOf(future.id), -1);
+  assert.notEqual(ids.indexOf(sameDay.id), -1);
+  assert.ok(ids.indexOf(future.id) < ids.indexOf(overdue.id));
+  assert.ok(ids.indexOf(sameDay.id) < ids.indexOf(overdue.id));
+  assert.deepEqual(
+    ids.filter((id) => id === future.id || id === sameDay.id),
+    [future.id, sameDay.id].sort((left, right) => right.localeCompare(left)),
+  );
+  const noMatch = await service.listContracts({
+    page: 1,
+    payerId: first.payer.id,
+    status: "EM_DIA",
+    now: OVERDUE_INSTANT,
+  });
+  assert.deepEqual(noMatch.rows, []);
+  assert.equal(noMatch.total, 0);
+}
+
 void before(async () => {
   await db.$connect();
   await ensureAdminUser();
@@ -240,5 +309,9 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
   void it(
     "searches and derives payment status without counting waivers as paid",
     listingSearchAndStatus,
+  );
+  void it(
+    "filters parties, overlapping term and financial situation before counting",
+    listFiltersBeforePagination,
   );
 });

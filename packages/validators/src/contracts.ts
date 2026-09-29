@@ -84,6 +84,11 @@ export const listContractsInputSchema = z
   .object({
     page: z.number().int().positive().default(1),
     query: z.string().trim().max(MAX_SEARCH_LENGTH).default(""),
+    payerId: z.string().uuid().optional(),
+    studentId: z.string().uuid().optional(),
+    startsFrom: civilDateSchema.optional(),
+    endsTo: civilDateSchema.optional(),
+    status: z.enum(["INADIMPLENTE", "EM_DIA", "QUITADO", "SEM_SALDO", "CANCELADO"]).optional(),
   })
   .strict();
 

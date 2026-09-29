@@ -1,10 +1,10 @@
+import { searchContractParties } from "./internal/contract-parties.js";
 import { batchReconcile, type BatchReconcileResult } from "./internal/batch-reconcile.js";
 import {
   createMonthlyContract,
   findCommandResult,
   listContracts,
   readContractOffer,
-  searchContractParties,
 } from "./internal/contracts.js";
 import {
   addInstallmentAdjustment,
@@ -86,6 +86,11 @@ export type FinanceModule = {
   listContracts: (options: {
     page: number;
     query?: string;
+    payerId?: string | undefined;
+    studentId?: string | undefined;
+    startsFrom?: string | undefined;
+    endsTo?: string | undefined;
+    status?: "INADIMPLENTE" | "EM_DIA" | "QUITADO" | "SEM_SALDO" | "CANCELADO" | undefined;
     now?: Date;
   }) => ReturnType<typeof listContracts>;
   searchContractParties: (query: string) => ReturnType<typeof searchContractParties>;

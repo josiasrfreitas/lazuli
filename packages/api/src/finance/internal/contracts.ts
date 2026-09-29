@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
-import { previewMonthlyContract } from "@lazuli/domain";
-import type { FinanceSettings } from "@lazuli/db";
+import { previewMonthlyContract, type ContractFinancialStatus } from "@lazuli/domain";
+import type { FinanceSettings, Prisma } from "@lazuli/db";
 import type { CreateMonthlyContractInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 
@@ -190,29 +190,70 @@ export async function createMonthlyContract(input: {
   return persistContract({ ...input, terms, payerId, studentId });
 }
 
+type ContractListOptions = {
+  page: number;
+  query?: string;
+  payerId?: string | undefined;
+  studentId?: string | undefined;
+  startsFrom?: string | undefined;
+  endsTo?: string | undefined;
+  status?: ContractFinancialStatus | undefined;
+  now?: Date;
+};
+
+function contractListWhere(options: ContractListOptions): Prisma.ContractWhereInput {
+  return {
+    commandId: { not: null },
+    deletedAt: null,
+    ...(options.payerId ? { payerId: options.payerId } : {}),
+    ...(options.studentId ? { studentId: options.studentId } : {}),
+    ...(options.startsFrom ? { endsOn: { gte: toDateOnly(options.startsFrom) } } : {}),
+    ...(options.endsTo ? { startsOn: { lte: toDateOnly(options.endsTo) } } : {}),
+    ...(options.query?.trim() === "" || !options.query
+      ? {}
+      : {
+          OR: [
+            {
+              student: {
+                fullName: { contains: options.query.trim(), mode: "insensitive" as const },
+              },
+            },
+            { payer: { name: { contains: options.query.trim(), mode: "insensitive" as const } } },
+          ],
+        }),
+  };
+}
+
 export async function listContracts(
   database: FinanceDatabase,
-  options: { page: number; query?: string; now?: Date },
+  options: ContractListOptions,
 ): Promise<{
   rows: ContractListRow[];
   page: number;
   pageSize: number;
   total: number;
 }> {
-  const { page, query = "", now = new Date() } = options;
+  const { page, now = new Date() } = options;
   const pageSize = 20;
-  const where = {
-    commandId: { not: null },
-    deletedAt: null,
-    ...(query.trim() === ""
-      ? {}
-      : {
-          OR: [
-            { student: { fullName: { contains: query.trim(), mode: "insensitive" as const } } },
-            { payer: { name: { contains: query.trim(), mode: "insensitive" as const } } },
-          ],
-        }),
-  };
+  const where = contractListWhere(options);
+  if (options.status) {
+    // Financial situation depends on allocations and adjustments. Apply it before
+    // pagination so the count and page boundaries describe the same result set.
+    const candidates = await database.contract.findMany({
+      where,
+      select: contractSelect,
+      orderBy: [{ agreedOn: "desc" }, { id: "desc" }],
+    });
+    const matching = candidates
+      .map((row) => toRow(row, now))
+      .filter((row) => row.status === options.status);
+    return {
+      rows: matching.slice((page - 1) * pageSize, page * pageSize),
+      page,
+      pageSize,
+      total: matching.length,
+    };
+  }
   const [total, rows] = await Promise.all([
     database.contract.count({ where }),
     database.contract.findMany({
@@ -224,55 +265,6 @@ export async function listContracts(
     }),
   ]);
   return { rows: rows.map((row) => toRow(row, now)), page, pageSize, total };
-}
-
-export async function searchContractParties(
-  database: FinanceDatabase,
-  query: string,
-): Promise<{
-  students: Array<{ id: string; name: string; document: string | null }>;
-  payers: Array<{ id: string; name: string; document: string | null; detail: string }>;
-}> {
-  const [students, payers] = await Promise.all([
-    database.student.findMany({
-      where: { deletedAt: null, fullName: { contains: query, mode: "insensitive" } },
-      select: { id: true, fullName: true, documentType: true, documentNumber: true },
-      orderBy: { fullName: "asc" },
-      take: 20,
-    }),
-    database.payer.findMany({
-      where: { deletedAt: null, name: { contains: query, mode: "insensitive" } },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        email: true,
-        documentType: true,
-        documentNumber: true,
-      },
-      orderBy: [{ name: "asc" }, { id: "asc" }],
-      take: 20,
-    }),
-  ]);
-  return {
-    students: students.map((row) => ({
-      id: row.id,
-      name: row.fullName,
-      document: row.documentNumber,
-    })),
-    payers: payers.map((row) => ({
-      id: row.id,
-      name: row.name,
-      document: row.documentNumber,
-      detail: [
-        row.documentType && row.documentNumber ? `${row.documentType} ${row.documentNumber}` : null,
-        row.phone,
-        row.email,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-    })),
-  };
 }
 
 export async function readContractOffer(database: FinanceDatabase): Promise<{
