@@ -77,7 +77,9 @@ test("updates main before Orca creates a worktree and passes model settings thro
   const calls = readFileSync(log, "utf8").trim().split("\n");
   assert.equal(calls.length, 4);
   assert.equal(calls[0], "orca");
-  assert.ok(calls.slice(1).every((call) => call.includes("--sandbox danger-full-access")));
+  assert.ok(
+    calls.slice(1).every((call) => call.includes("--dangerously-bypass-approvals-and-sandbox")),
+  );
   assert.ok(
     calls
       .slice(1)

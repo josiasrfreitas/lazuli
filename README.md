@@ -161,4 +161,5 @@ The command fast-forwards `main` to `origin/main`, creates an Orca worktree link
 to the issue, saves a structured plan at `.design/issues/<id>/PLAN.md`, then runs
 Codex to implement the issue, open a PR with evidence, and babysit CI and review
 feedback until settled. It never merges the PR. Override the default GPT-6 Sol
-low setting with `--model gpt-6-astra --effort high`.
+low setting with `--model gpt-6-astra --effort high`. All Codex phases run
+with approvals and sandboxing disabled (YOLO mode).

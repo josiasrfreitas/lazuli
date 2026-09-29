@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'HELP'
-Usage: scripts/ship-it.sh ISSUE_NUMBER [--model MODEL] [--effort EFFORT]
+Usage: ship-it ISSUE_NUMBER [--model MODEL] [--effort EFFORT]
 
 Plan and implement a GitHub issue in an Orca worktree, open a PR with evidence,
 then babysit its CI and review feedback. Defaults: gpt-6-sol, low.
@@ -59,7 +59,7 @@ plan="$worktree_path/.design/issues/$issue/PLAN.md"
 mkdir -p "$(dirname "$plan")"
 
 codex_run() {
-  codex exec --sandbox danger-full-access --model "$model" -c "model_reasoning_effort=\"$effort\"" -C "$worktree_path" "$@"
+  codex exec --dangerously-bypass-approvals-and-sandbox --model "$model" -c "model_reasoning_effort=\"$effort\"" -C "$worktree_path" "$@"
 }
 
 printf 'Planning issue #%s in %s\n' "$issue" "$worktree_path"
