@@ -52,10 +52,23 @@ cd "$main_path"
 repo_name=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 gh issue view "$issue" --repo "$repo_name" --json number --jq .number >/dev/null
 orca status --json >/dev/null
-created=$(orca worktree create --name "issue-$issue" --issue "$issue" --no-parent --setup run --json)
+if ! created=$(orca worktree show --worktree "issue:$issue" --json 2>/dev/null); then
+  if ! created=$(orca worktree create --name "issue-$issue" --issue "$issue" --no-parent --setup run --json); then
+    created=$(orca worktree show --worktree "issue:$issue" --json) || {
+      echo "Orca could not create or find the worktree for issue #$issue" >&2
+      exit 1
+    }
+  fi
+fi
 worktree_id=$(python3 -c 'import json,sys; data=json.load(sys.stdin); assert data.get("ok"), data.get("error"); print(data["result"]["worktree"]["id"])' <<<"$created")
 worktree_path=$(python3 -c 'import json,sys; data=json.load(sys.stdin); assert data.get("ok"), data.get("error"); print(data["result"]["worktree"]["path"])' <<<"$created")
 [[ -d "$worktree_path" ]] || { echo 'Orca did not create the worktree' >&2; exit 1; }
+existing_terminals=$(orca terminal list --worktree "id:$worktree_id" --json)
+existing_agent=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok"), d.get("error"); print(next((t["handle"] for t in d["result"]["terminals"] if t.get("agentIdentity")=="codex" and t.get("connected")), ""))' <<<"$existing_terminals")
+if [[ -n "$existing_agent" ]]; then
+  printf 'Codex session already exists for issue #%s\nWorktree: %s\nTerminal: %s\n' "$issue" "$worktree_path" "$existing_agent"
+  exit 0
+fi
 
 codex_command="codex --model $model -c model_reasoning_effort=\\\"$effort\\\" --dangerously-bypass-approvals-and-sandbox"
 terminal_json=$(orca terminal create --worktree "id:$worktree_id" --title "ship-it #$issue" --command "$codex_command" --focus --json)

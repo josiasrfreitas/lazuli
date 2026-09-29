@@ -51,11 +51,21 @@ if [[ "$1 $2" == "repo view" ]]; then echo owner/repo; elif [[ "$1 $2" == "issue
     path.join(bin, "orca"),
     `#!/bin/bash
 if [[ "$1" == status ]]; then echo '{"ok":true}'; exit; fi
-if [[ "$1 $2" == "worktree create" ]]; then
+if [[ "$1 $2" == "worktree show" ]]; then
+  [[ -d "$SHIP_TEST_ROOT/issue-123" ]] || exit 1
+  printf '{"ok":true,"result":{"worktree":{"id":"repo-test::%s","path":"%s"}}}\\n' "$SHIP_TEST_ROOT/issue-123" "$SHIP_TEST_ROOT/issue-123"
+elif [[ "$1 $2" == "worktree create" ]]; then
   [[ "$(git -C "$SHIP_TEST_MAIN" rev-parse HEAD)" == "$(git -C "$SHIP_TEST_MAIN" rev-parse origin/main)" ]] || exit 27
   printf 'worktree\\n' >> "$SHIP_TEST_LOG"
   git -C "$SHIP_TEST_MAIN" worktree add -q -b issue-123 "$SHIP_TEST_ROOT/issue-123"
+  [[ "\${SHIP_TEST_CREATE_ERROR:-}" == 1 ]] && exit 1
   printf '{"ok":true,"result":{"worktree":{"id":"repo-test::%s","path":"%s"}}}\\n' "$SHIP_TEST_ROOT/issue-123" "$SHIP_TEST_ROOT/issue-123"
+elif [[ "$1 $2" == "terminal list" ]]; then
+  if [[ "\${SHIP_TEST_EXISTING_AGENT:-}" == 1 ]]; then
+    echo '{"ok":true,"result":{"terminals":[{"handle":"existing-codex","agentIdentity":"codex","connected":true}]}}'
+  else
+    echo '{"ok":true,"result":{"terminals":[]}}'
+  fi
 elif [[ "$1 $2" == "terminal create" ]]; then
   printf 'terminal-create\\n' >> "$SHIP_TEST_LOG"
   printf '%s' "$*" > "$SHIP_TEST_ROOT/terminal-create-args"
@@ -132,6 +142,28 @@ test("refuses a dirty main before calling Orca or Codex", () => {
     /Main worktree is dirty/,
   );
   assert.throws(() => readFileSync(log), { code: "ENOENT" });
+});
+
+test("continues when Orca creates the worktree but reports an error", () => {
+  const { main, log, env } = fixture();
+  env.SHIP_TEST_CREATE_ERROR = "1";
+  run("bash", [script, "123"], { cwd: main, env });
+  assert.deepEqual(readFileSync(log, "utf8").trim().split("\n"), [
+    "worktree",
+    "terminal-create",
+    "terminal-wait",
+    "terminal-read",
+    "terminal-send",
+  ]);
+});
+
+test("reuses an existing issue worktree without launching a second Codex", () => {
+  const { main, log, env } = fixture();
+  run("bash", [script, "123"], { cwd: main, env });
+  env.SHIP_TEST_EXISTING_AGENT = "1";
+  const output = run("bash", [script, "123"], { cwd: main, env });
+  assert.match(output, /Codex session already exists/);
+  assert.equal(readFileSync(log, "utf8").match(/terminal-create/g)?.length, 1);
 });
 
 test("does not send the prompt before Codex is ready", () => {
