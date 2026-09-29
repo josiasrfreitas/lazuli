@@ -1,6 +1,7 @@
 import type { RouterOutputs } from "@lazuli/api";
-import { Avatar, Badge, type DataTableColumn } from "@lazuli/ui";
+import { Avatar, type DataTableColumn } from "@lazuli/ui";
 
+import { abbreviatedPersonName } from "~/lib/format";
 import { paymentPlanLabel } from "./contract-payment-summary";
 import { ContractFinancialStatus } from "./contract-financial-status";
 import { ContractPaymentProgress } from "./contract-payment-progress";
@@ -29,17 +30,21 @@ function shortCivilDate(value: string): string {
   return `${day} ${MONTH_ABBREVIATIONS[Number(month) - MONTH_INDEX_OFFSET]} ${year?.slice(-SHORT_YEAR_DIGITS)}`;
 }
 
-const SERVICE_LABELS: Record<ContractRow["serviceStatus"], string> = {
-  NOT_STARTED: "Não iniciado",
-  ACTIVE: "Vigente",
-  ENDED: "Encerrado",
-};
+const COLUMN_WIDTHS = {
+  student: "medium",
+  status: "narrow",
+  term: "medium",
+  placement: "standard",
+  amount: "standard",
+  paymentProgress: "standard",
+  payer: "narrow",
+} as const satisfies Record<string, NonNullable<DataTableColumn<ContractRow>["width"]>>;
 
 export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
   {
     id: "student",
     header: "Aluno",
-    width: "wide",
+    width: COLUMN_WIDTHS.student,
     cell: (row) => (
       <div className="flex items-center gap-3">
         <Avatar colorKey={row.student.id} name={row.student.fullName} size="sm" />
@@ -51,38 +56,34 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
   },
   {
     id: "status",
-    header: "Situação financeira",
-    width: "wide",
+    header: "Status",
+    width: COLUMN_WIDTHS.status,
     cell: (row) => <ContractFinancialStatus row={row} />,
   },
   {
     id: "term",
     header: "Vigência",
-    width: "standard",
+    width: COLUMN_WIDTHS.term,
     cell: (row) => (
-      <span className="flex flex-col items-start gap-1 font-numeric">
-        <Badge variant={row.serviceStatus === "ACTIVE" ? "info" : "neutral"}>
-          {SERVICE_LABELS[row.serviceStatus]}
-        </Badge>
+      <span className="font-numeric whitespace-nowrap text-muted-foreground">
         <time dateTime={row.startsOn}>{shortCivilDate(row.startsOn)}</time>
-        <span className="text-micro text-muted-foreground">
-          até <time dateTime={row.endsOn}>{shortCivilDate(row.endsOn)}</time>
-        </span>
+        {" → "}
+        <time dateTime={row.endsOn}>{shortCivilDate(row.endsOn)}</time>
       </span>
     ),
   },
   {
     id: "placement",
     header: "Estágio / turma",
-    width: "standard",
+    width: COLUMN_WIDTHS.placement,
     cell: (row) =>
       row.student.placements.length > 0
         ? row.student.placements.map((placement) => (
-            <span key={`${placement.classCode}-${placement.stage}`} className="block">
-              {placement.stage}
-              <span className="block text-micro text-muted-foreground">
-                {placement.classCode} · {placement.modality}
-              </span>
+            <span
+              key={`${placement.classCode}-${placement.stageCode}`}
+              className="block break-words"
+            >
+              {placement.stageCode} · {placement.classCode}
             </span>
           ))
         : "—",
@@ -90,7 +91,7 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
   {
     id: "amount",
     header: "Plano",
-    width: "standard",
+    width: COLUMN_WIDTHS.amount,
     numeric: true,
     cell: (row) => (
       <span className="block font-numeric whitespace-normal">
@@ -101,13 +102,13 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
   {
     id: "paymentProgress",
     header: "Pagamento",
-    width: "standard",
+    width: COLUMN_WIDTHS.paymentProgress,
     cell: (row) => <ContractPaymentProgress progress={row.paymentProgress} />,
   },
   {
     id: "payer",
     header: "Pagador",
-    width: "standard",
-    cell: (row) => <span className="break-words whitespace-normal">{row.payer.name}</span>,
+    width: COLUMN_WIDTHS.payer,
+    cell: (row) => <span title={row.payer.name}>{abbreviatedPersonName(row.payer.name)}</span>,
   },
 ];

@@ -18,12 +18,12 @@ import {
   urlParamsForFilterPatch,
 } from "../../src/features/installments/logic.js";
 import {
-  abbreviatedPersonName,
   businessDate,
   installmentAmountVm,
   installmentVm,
   overduePayerSummaryVm,
 } from "../../src/features/installments/view-model.js";
+import { abbreviatedPersonName } from "../../src/lib/format.js";
 
 const DUE_DATE = "2026-09-01";
 const INVALID_URL_DUE_TO = "2026-02-01";

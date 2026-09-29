@@ -45,11 +45,6 @@ function countLabel(count: number, labels: readonly [singular: string, plural: s
   return `${count} ${count === 1 ? labels[0] : labels[1]}`;
 }
 
-export function abbreviatedPersonName(fullName: string): string {
-  const [firstName, secondName] = fullName.trim().split(/\s+/u);
-  return secondName === undefined ? (firstName ?? "") : `${firstName} ${secondName.charAt(0)}.`;
-}
-
 export function overduePayerSummaryVm(group: FinanceOverduePayerGroup): OverduePayerSummaryVm {
   return {
     description: [

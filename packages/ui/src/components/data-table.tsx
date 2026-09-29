@@ -15,7 +15,7 @@ export type DataTableColumn<Row> = {
   header: string;
   cell: (row: Row) => ReactNode;
   numeric?: boolean;
-  width?: "wide" | "standard" | "narrow";
+  width?: "wide" | "medium" | "standard" | "narrow";
 };
 
 export type DataTableState<Row> =
@@ -32,7 +32,7 @@ export type DataTableProps<Row extends { id: string }> = {
   errorTitle: string;
 };
 
-const COLUMN_WIDTHS = { wide: 240, standard: 144, narrow: 112 } as const;
+const COLUMN_WIDTHS = { wide: 240, medium: 192, standard: 144, narrow: 112 } as const;
 const SKELETON_ROWS = 10;
 
 function StateRows<Row extends { id: string }>({

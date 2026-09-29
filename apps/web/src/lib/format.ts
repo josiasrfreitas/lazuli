@@ -25,6 +25,11 @@ export function formatBRLFromCents(cents: number): string {
   return brlFormatter.format(cents / CENTS_PER_UNIT);
 }
 
+export function abbreviatedPersonName(fullName: string): string {
+  const [firstName, secondName] = fullName.trim().split(/\s+/u);
+  return secondName === undefined ? (firstName ?? "") : `${firstName} ${secondName.charAt(0)}.`;
+}
+
 /** e.g. "segunda-feira, 24 de agosto de 2026" — the topbar date. */
 export function formatLongDateSaoPaulo(date: Date): string {
   return longDateFormatter.format(date);

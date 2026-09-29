@@ -18,8 +18,30 @@ function renderColumn(id: string, row: Partial<ContractRow>): string {
   );
 }
 
-void it("shows overdue, today and future amounts as recorded balances with visible labels", () => {
-  const markup = renderColumn("status", {
+void it("shows only stage and class codes in the placement column", () => {
+  const markup = renderColumn("placement", {
+    student: {
+      id: "student",
+      fullName: "Ana Beatriz Rocha",
+      placements: [{ stageCode: "E1", classCode: "2026.2-E1A" }],
+    },
+  });
+  assert.equal(markup.replaceAll(/<[^>]*>/g, ""), "E1 · 2026.2-E1A");
+});
+
+for (const [fullName, abbreviated] of [
+  ["Patrícia Ferreira", "Patrícia F."],
+  ["Bruno", "Bruno"],
+] as const) {
+  void it(`shows the payer ${abbreviated} with the full name available`, () => {
+    const markup = renderColumn("payer", { payer: { id: "payer", name: fullName } });
+    assert.ok(markup.includes(`title="${fullName}"`));
+    assert.equal(markup.replaceAll(/<[^>]*>/g, ""), abbreviated);
+  });
+}
+
+void it("shows financial status without a balance column", () => {
+  const row: Partial<ContractRow> = {
     status: "INADIMPLENTE",
     financialSummary: {
       overdueCents: 16_000,
@@ -28,12 +50,13 @@ void it("shows overdue, today and future amounts as recorded balances with visib
       zeroedByAdjustment: 0,
     },
     paymentProgress: { paid: 0, total: 12, waived: 0, cancelled: 0 },
-  });
-  assert.match(markup, /Inadimplente/);
-  assert.match(markup, /Em atraso: R\$\s*160,00/);
-  assert.match(markup, /Vence hoje: R\$\s*250,00/);
-  assert.match(markup, /A vencer: R\$\s*2\.500,00/);
-  assert.match(markup, /Saldos registrados · sem prévias/);
+  };
+  const status = renderColumn("status", row);
+  assert.equal(status.replaceAll(/<[^>]*>/g, ""), "Inadimplente");
+  assert.equal(
+    contractColumns.some(({ id }) => id === "balance"),
+    false,
+  );
 });
 
 for (const { status, label, waived, zeroed, explanation } of [
@@ -54,13 +77,13 @@ for (const { status, label, waived, zeroed, explanation } of [
   },
   {
     status: "CANCELADO",
-    label: "Cobrança cancelada",
+    label: "Cancelada",
     waived: 0,
     zeroed: 0,
     explanation: "Cobrança cancelada",
   },
 ] as const) {
-  void it(`renders ${explanation} independently from an active service`, () => {
+  void it(`shows only ${label} for ${explanation}, with a single-line term`, () => {
     const row: Partial<ContractRow> = {
       status,
       serviceStatus: "ACTIVE",
@@ -76,29 +99,22 @@ for (const { status, label, waived, zeroed, explanation } of [
     };
     const finance = renderColumn("status", row);
     const service = renderColumn("term", row);
-    assert.ok(finance.includes(label));
-    assert.ok(finance.includes(explanation));
-    assert.doesNotMatch(finance, /Em atraso:|A vencer:|Vence hoje:/);
-    assert.match(service, /Vigente/);
+    assert.equal(finance.replaceAll(/<[^>]*>/g, ""), label);
+    assert.doesNotMatch(service, /Vigente|Não iniciado|Encerrado|data-slot="badge"/);
     assert.match(service, /dateTime="2026-03-15"/);
     assert.match(service, /dateTime="2027-03-15"/);
-    assert.match(service, /15 Mar 27/);
+    assert.match(service, /15 Mar 26<\/time> → <time[^>]*>15 Mar 27/);
   });
 }
 
-for (const [serviceStatus, label] of [
-  ["NOT_STARTED", "Não iniciado"],
-  ["ENDED", "Encerrado"],
-] as const) {
-  void it(`renders service ${label} while debt remains overdue`, () => {
+for (const serviceStatus of ["NOT_STARTED", "ENDED"] as const) {
+  void it(`shows only dates for ${serviceStatus} while debt remains overdue`, () => {
     const markup = renderColumn("term", {
       serviceStatus,
       status: "INADIMPLENTE",
       startsOn: "2026-01-31",
       endsOn: "2027-01-31",
     });
-    assert.ok(markup.includes(label));
-    assert.match(markup, /31 Jan 26/);
-    assert.match(markup, /31 Jan 27/);
+    assert.equal(markup.replaceAll(/<[^>]*>/g, ""), "31 Jan 26 → 31 Jan 27");
   });
 }

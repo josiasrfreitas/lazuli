@@ -77,9 +77,6 @@ for (const { progress, text, width, exceptions } of [
       "bar must represent paid installments only",
     );
     assert.ok(markup.includes(`aria-valuetext="${[text, exceptions].filter(Boolean).join("; ")}"`));
-    assert.equal(
-      markup.match(/<span[^>]*class="text-micro[^"]*">([^<]*)<\/span>/)?.[1] ?? "",
-      exceptions,
-    );
+    assert.equal(markup.replaceAll(/<[^>]*>/g, ""), text);
   });
 }

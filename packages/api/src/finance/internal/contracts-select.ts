@@ -14,7 +14,7 @@ export type ContractListRow = {
   student: {
     id: string;
     fullName: string;
-    placements: Array<{ stage: string; classCode: string; modality: "PPT" | "Regular" }>;
+    placements: Array<{ stageCode: string; classCode: string }>;
   };
   agreedOn: string;
   startsOn: string;
@@ -45,10 +45,10 @@ export const contractSelect = {
       enrollments: {
         where: { deletedAt: null, exitDate: null },
         select: {
-          class: { select: { scheduleType: true, internalCode: true } },
+          class: { select: { internalCode: true } },
           progressRecords: {
             where: { deletedAt: null, endDate: null },
-            select: { stage: { select: { name: true } } },
+            select: { stage: { select: { internalCode: true } } },
           },
         },
       },
@@ -83,8 +83,8 @@ type SelectedContract = {
     id: string;
     fullName: string;
     enrollments: Array<{
-      class: { scheduleType: "REGULAR" | "PERSONALIZED"; internalCode: string };
-      progressRecords: Array<{ stage: { name: string } }>;
+      class: { internalCode: string };
+      progressRecords: Array<{ stage: { internalCode: string } }>;
     }>;
   };
   agreedOn: Date | null;
@@ -111,10 +111,8 @@ function academicPlacements(
 ): ContractListRow["student"]["placements"] {
   return student.enrollments.flatMap((enrollment) =>
     enrollment.progressRecords.map((progress) => ({
-      stage: progress.stage.name,
+      stageCode: progress.stage.internalCode,
       classCode: enrollment.class.internalCode,
-      modality:
-        enrollment.class.scheduleType === "PERSONALIZED" ? ("PPT" as const) : ("Regular" as const),
     })),
   );
 }
