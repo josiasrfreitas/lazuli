@@ -55,9 +55,6 @@ orca status --json >/dev/null
 created=$(orca worktree create --name "issue-$issue" --issue "$issue" --no-parent --setup run --json)
 worktree_path=$(python3 -c 'import json,sys; data=json.load(sys.stdin); assert data.get("ok"), data.get("error"); print(data["result"]["worktree"]["path"])' <<<"$created")
 [[ -d "$worktree_path" ]] || { echo 'Orca did not create the worktree' >&2; exit 1; }
-plan="$worktree_path/.design/issues/$issue/PLAN.md"
-mkdir -p "$(dirname "$plan")"
-
 codex_run() {
   codex exec --dangerously-bypass-approvals-and-sandbox --model "$model" -c "model_reasoning_effort=\"$effort\"" -C "$worktree_path" "$@"
 }
@@ -65,14 +62,10 @@ codex_run() {
 printf 'Running issue #%s in one Codex session: %s\n' "$issue" "$worktree_path"
 codex_run "Read GitHub issue $repo_name#$issue and the repository instructions. Work through the following sequence in THIS SAME SESSION, without starting or delegating to another Codex session:
 
-1. Write a structured plan at .design/issues/$issue/PLAN.md with scope, decisions/dependencies, files, test contract, validation, and visual evidence approach. Start the file with exactly STATUS: READY if implementation can proceed, or STATUS: BLOCKED if requirements conflict with accepted decisions or required behavior is missing. If blocked, explain the blocker and stop; do not implement or open a PR.
-2. Recheck the plan against the issue and repository instructions. Implement the complete issue, run proportional checks, inspect the complete diff, and run git diff --check. Include the plan file in the PR.
-3. Commit and push the work. Open a PR using the installed pr skill template. Include before/after evidence. For a UI change, capture real desktop and narrow-viewport screenshots and link committed evidence in the PR. Do not claim visual evidence from placeholders.
+1. Write a structured plan at .design/issues/$issue/PLAN.md with scope, decisions/dependencies, files, test contract, validation, and visual evidence approach.
+2. Recheck the plan against the issue and repository instructions. Load and follow the installed ship-with-tests skill. Implement the complete issue, run proportional checks, inspect the complete diff, and run git diff --check. Include the plan file in the PR.
+3. Commit and push the work. Open a PR using the installed pr skill and its template. Include before/after evidence. For a UI change, capture real desktop and narrow-viewport screenshots and link committed evidence in the PR. Do not claim visual evidence from placeholders.
 4. In this same session, use the installed babysit-pr skill to monitor and fix the PR until checks are stably green and delivered review feedback is handled. Never merge. Report the PR URL, final SHA, CI outcome, and any unresolved review item."
-# A single Codex process owns the whole workflow; these checks report its result after it exits.
-[[ -s "$plan" ]] || { echo 'Codex did not write a plan' >&2; exit 1; }
-[[ "$(head -n 1 "$plan")" == "STATUS: READY" ]] || { echo "Plan is blocked or missing READY status: $plan" >&2; exit 1; }
-
 pr_url=$(gh -R "$repo_name" pr view "$(git -C "$worktree_path" branch --show-current)" --json url --jq .url)
 [[ "$pr_url" == https://github.com/* ]] || { echo 'No PR found for worktree branch' >&2; exit 1; }
 gh pr checks "$pr_url"

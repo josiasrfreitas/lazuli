@@ -63,7 +63,6 @@ printf '{"ok":true,"result":{"worktree":{"path":"%s"}}}\\n' "$SHIP_TEST_ROOT/iss
     `#!/bin/bash
 printf 'codex\\n' >> "$SHIP_TEST_LOG"
 printf '%s' "$*" > "$SHIP_TEST_ROOT/codex-args"
-printf 'STATUS: %s\\n1. Implement and test.\\n' "\${SHIP_TEST_PLAN_STATUS:-READY}" > "$SHIP_TEST_ROOT/issue-123/.design/issues/123/PLAN.md"
 `,
     { mode: 0o755 },
   );
@@ -82,6 +81,8 @@ test("updates main before Orca creates a worktree and passes model settings to o
   assert.match(args, /--model gpt-6-astra/);
   assert.ok(args.includes('model_reasoning_effort="high"'));
   assert.match(args, /THIS SAME SESSION/);
+  assert.match(args, /ship-with-tests/);
+  assert.match(args, /installed pr skill/);
   assert.match(args, /babysit-pr/);
 });
 
@@ -93,17 +94,4 @@ test("refuses a dirty main before calling Orca or Codex", () => {
     /Main worktree is dirty/,
   );
   assert.throws(() => readFileSync(log), { code: "ENOENT" });
-});
-
-test("rejects a blocked plan after the Codex session returns", () => {
-  const { main, log, env } = fixture();
-  env.SHIP_TEST_PLAN_STATUS = "BLOCKED";
-  assert.throws(
-    () => run("bash", [script, "123"], { cwd: main, env, stdio: "pipe" }),
-    /Plan is blocked/,
-  );
-  const calls = readFileSync(log, "utf8").trim().split("\n");
-  assert.equal(calls.length, 2);
-  assert.equal(calls[0], "orca");
-  assert.equal(calls[1], "codex");
 });
