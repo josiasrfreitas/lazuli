@@ -1,5 +1,4 @@
-import { useReducer, useRef, type ReactElement, type ReactNode } from "react";
-
+import { useEffect, useReducer, useRef, type Dispatch, type ReactElement } from "react";
 import {
   Alert,
   AlertContent,
@@ -12,23 +11,19 @@ import {
   DialogHeader,
   DialogPortal,
   DialogTitle,
-  EmptyState,
   Stepper,
 } from "@lazuli/ui";
-
-import { toDateOnlySaoPaulo } from "~/lib/format";
-
-import { useCreateStudent } from "../logic";
-import { DadosStep } from "./dados-step";
+import { useStudentCompletion, type StudentCompletion } from "./completion";
 import {
   initialNewStudentState,
-  isGuardianSectionOpen,
-  isMinorFromFields,
   NEW_STUDENT_STEPS,
   newStudentReducer,
+  type NewStudentAction,
+  type NewStudentState,
 } from "./reducer";
 import { useScrollToError } from "./use-scroll-to-error";
-import { DADOS_STEP, WizardFooter, type WizardProps } from "./wizard-footer";
+import { WizardBody } from "./wizard-body";
+import { FINANCE_STEP, WizardFooter } from "./wizard-footer";
 
 const STEPS = NEW_STUDENT_STEPS.map((label) => ({ label }));
 
@@ -38,49 +33,6 @@ export type NewStudentDialogProps = {
   onCreated: (id: string) => void;
 };
 
-const FIRST_FIELD_SELECTOR = 'input[name="fullName"]';
-
-/** Typing starts immediately: focus lands on the name, not on the close X. */
-function firstFieldOf(popup: HTMLElement | null): HTMLElement | true {
-  return popup?.querySelector<HTMLInputElement>(FIRST_FIELD_SELECTOR) ?? true;
-}
-
-function StepBody({ state, dispatch }: WizardProps): ReactNode {
-  if (state.step === DADOS_STEP) {
-    const today = toDateOnlySaoPaulo(new Date());
-
-    return (
-      <DadosStep
-        errors={state.errors}
-        fields={state.fields}
-        guardianOpen={isGuardianSectionOpen(state, today)}
-        minor={isMinorFromFields(state.fields, today)}
-        onFieldChange={(field, value) => {
-          dispatch({ type: "fieldChanged", field, value });
-        }}
-        onGuardianToggle={(open) => {
-          dispatch({ type: "guardianToggled", open });
-        }}
-        onSubmit={() => {
-          dispatch({ type: "nextRequested", today: toDateOnlySaoPaulo(new Date()) });
-        }}
-      />
-    );
-  }
-
-  return (
-    <EmptyState
-      description="Cadastre o aluno agora e matricule na turma depois."
-      title="Matrícula em breve"
-    />
-  );
-}
-
-/**
- * The "Novo aluno" wizard. Pedagógico ships as a placeholder;
- * success closes the
- * dialog and hands the created id back so the page opens its preview panel.
- */
 export function NewStudentDialog({
   open,
   onOpenChange,
@@ -88,45 +40,40 @@ export function NewStudentDialog({
 }: NewStudentDialogProps): ReactElement {
   const [state, dispatch] = useReducer(newStudentReducer, initialNewStudentState);
   const popupRef = useRef<HTMLDivElement>(null);
-  const creation = useCreateStudent({
+  const completion = useStudentCompletion({
+    open,
+    financeActive: state.step === FINANCE_STEP,
+    student: state.fields,
     onCreated: (id) => {
       dispatch({ type: "reset" });
       onCreated(id);
     },
-    onRejected: (rejection) => {
-      dispatch({ type: "serverRejected", ...rejection });
-    },
+    onRejected: (rejection) => dispatch({ type: "serverRejected", ...rejection }),
   });
-
   const requestClose = (next: boolean): void => {
-    // An in-flight create pins the wizard open: a late success would reopen
-    // the preview and a late error would hit a dismissed dialog.
-    if (!next && creation.isPending) {
-      return;
-    }
-
+    if (!next && completion.isSubmitting()) return;
     if (!next) {
+      completion.reset();
       dispatch({ type: "reset" });
     }
     onOpenChange(next);
   };
-
   return (
     <Dialog onOpenChange={requestClose} open={open}>
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          className="md:max-w-xl"
-          initialFocus={() => firstFieldOf(popupRef.current)}
+          className={state.step === FINANCE_STEP ? "md:max-w-3xl" : "md:max-w-xl"}
+          initialFocus={() =>
+            popupRef.current?.querySelector<HTMLInputElement>('input[name="fullName"]') ?? true
+          }
           ref={popupRef}
         >
           <WizardContent
-            creation={creation}
-            dispatch={dispatch}
-            onCancel={() => {
-              requestClose(false);
-            }}
             state={state}
+            dispatch={dispatch}
+            completion={completion}
+            onCancel={() => requestClose(false)}
           />
         </DialogContent>
       </DialogPortal>
@@ -134,19 +81,41 @@ export function NewStudentDialog({
   );
 }
 
-function WizardContent({ state, dispatch, creation, onCancel }: WizardProps): ReactElement {
-  const bodyRef = useScrollToError(state.errorsRevision);
-
+function WizardContent({
+  state,
+  dispatch,
+  completion,
+  onCancel,
+}: {
+  state: NewStudentState;
+  dispatch: Dispatch<NewStudentAction>;
+  completion: StudentCompletion;
+  onCancel: () => void;
+}): ReactElement {
+  const bodyRef = useScrollToError(state.errorsRevision + completion.errorsRevision);
+  useEffect(() => {
+    const invalid = bodyRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    const field = invalid ?? bodyRef.current?.querySelector<HTMLInputElement>("input");
+    const target = field?.querySelector<HTMLElement>("input, button") ?? field;
+    target?.focus({ preventScroll: true });
+  }, [state.step, bodyRef]);
   return (
     <>
       <DialogHeader>
         <DialogTitle>Novo aluno</DialogTitle>
         <DialogDescription>
-          Só o nome é obrigatório. A matrícula em turma pode ficar para depois.
+          {state.step === FINANCE_STEP
+            ? "Crie um contrato agora ou cadastre só o aluno."
+            : "Só o nome é obrigatório. A matrícula em turma pode ficar para depois."}
         </DialogDescription>
       </DialogHeader>
-      <Stepper activeIndex={state.step} className="mt-4" label="Etapas do cadastro" steps={STEPS} />
-      {state.formError === null ? null : (
+      <Stepper
+        activeIndex={state.step}
+        className="mt-4 gap-2 sm:gap-3 [&_[data-slot=stepper-step]>[aria-hidden]]:hidden sm:[&_[data-slot=stepper-step]>[aria-hidden]]:block"
+        label="Etapas do cadastro"
+        steps={STEPS}
+      />
+      {state.formError !== null && (
         <Alert className="mt-4" variant="destructive">
           <AlertContent>
             <AlertDescription>{state.formError}</AlertDescription>
@@ -154,9 +123,9 @@ function WizardContent({ state, dispatch, creation, onCancel }: WizardProps): Re
         </Alert>
       )}
       <DialogBody className="mt-5" ref={bodyRef}>
-        <StepBody dispatch={dispatch} state={state} />
+        <WizardBody state={state} dispatch={dispatch} completion={completion} />
       </DialogBody>
-      <WizardFooter creation={creation} dispatch={dispatch} onCancel={onCancel} state={state} />
+      <WizardFooter state={state} dispatch={dispatch} completion={completion} onCancel={onCancel} />
     </>
   );
 }

@@ -105,6 +105,7 @@ void it("creates a new student and guardian atomically with the payer and contra
     ...withoutStudent,
     newStudent: {
       fullName: studentName,
+      birthDate: new Date("2015-03-15T00:00:00.000Z"),
       guardian: {
         mode: "create" as const,
         input: { fullName: guardianName, phone: "(11) 99999-8888" },
@@ -121,6 +122,12 @@ void it("creates a new student and guardian atomically with the payer and contra
   assert.equal(await db.student.count({ where: { fullName: studentName } }), 0);
   assert.equal(await db.guardian.count({ where: { fullName: guardianName } }), 0);
   assert.equal(await db.payer.count({ where: { name: values.newPayer.name } }), 0);
+  assert.equal(await db.contract.count({ where: { commandId: input.commandId } }), 0);
+  assert.equal(await db.order.count({ where: { contract: { commandId: input.commandId } } }), 0);
+  assert.equal(
+    await db.installment.count({ where: { order: { contract: { commandId: input.commandId } } } }),
+    0,
+  );
   const contract = await db.$transaction((tx) =>
     finance(tx, ADMIN.id).createMonthlyContract(input),
   );
@@ -129,9 +136,21 @@ void it("creates a new student and guardian atomically with the payer and contra
     include: { guardian: true },
   });
   assert.equal(student.fullName, studentName);
+  assert.equal(student.birthDate?.toISOString(), "2015-03-15T00:00:00.000Z");
   assert.equal(student.guardian?.fullName, guardianName);
   assert.equal(student.guardian?.phone, "(11) 99999-8888");
   assert.equal(await db.payer.count({ where: { name: values.newPayer.name } }), 1);
+  const replay = await db.$transaction((tx) => finance(tx, ADMIN.id).createMonthlyContract(input));
+  assert.equal(replay.id, contract.id);
+  assert.equal(replay.student.id, student.id);
+  assert.equal(await db.student.count({ where: { fullName: studentName } }), 1);
+  assert.equal(await db.guardian.count({ where: { fullName: guardianName } }), 1);
+  assert.equal(await db.contract.count({ where: { commandId: input.commandId } }), 1);
+  assert.equal(await db.order.count({ where: { contractId: contract.id } }), 1);
+  assert.equal(
+    await db.installment.count({ where: { order: { contractId: contract.id } } }),
+    INSTALLMENTS,
+  );
 });
 
 void it("preserves untyped taxId when reused and enforces typed new document numbers", async () => {

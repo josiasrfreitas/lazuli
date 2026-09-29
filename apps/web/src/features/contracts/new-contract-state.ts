@@ -152,8 +152,21 @@ function useSuggestedMonthlyAmount(
   );
 }
 
-export function useContractFormState(open: boolean): ContractFormState {
-  const [fields, setFields] = useState<ContractFields>(emptyContractFields);
+function clearedErrors(
+  errors: Errors,
+  input: { name: keyof ContractFields; updateEnd: boolean },
+): Errors {
+  const next = { ...errors };
+  delete next[input.name];
+  if (input.updateEnd) delete next.endsOn;
+  return next;
+}
+
+export function useContractFormState(
+  open: boolean,
+  initialFields = emptyContractFields,
+): ContractFormState {
+  const [fields, setFields] = useState<ContractFields>(initialFields);
   useAgreementDate(open, setFields);
   const [errors, setErrors] = useState<Errors>({});
   const [submissionError, setSubmissionError] = useState("");
@@ -170,18 +183,13 @@ export function useContractFormState(open: boolean): ContractFormState {
       [name]: value,
       ...(updateEnd ? { endsOn: suggestedContractEnd(value) } : {}),
     }));
-    setErrors((current) => {
-      const next = { ...current };
-      delete next[name];
-      if (updateEnd) delete next.endsOn;
-      return next;
-    });
+    setErrors((current) => clearedErrors(current, { name, updateEnd }));
     setSubmissionError("");
   };
   const reset = (): void => {
     endDateEdited.current = false;
     monthlyAmountEdited.current = false;
-    setFields(emptyContractFields);
+    setFields(initialFields);
     setErrors({});
     setSubmissionError("");
     commandId.current = crypto.randomUUID();

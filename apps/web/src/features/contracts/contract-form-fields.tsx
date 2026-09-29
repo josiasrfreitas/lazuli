@@ -12,6 +12,7 @@ import { ContractPayerFields } from "./contract-payer-fields";
 const CENTS_PER_REAL = 100;
 
 export type FormProps = {
+  maskedDates?: boolean;
   fields: ContractFields;
   errors: Partial<Record<keyof ContractFields, string>>;
   offer:
@@ -48,7 +49,7 @@ function PartiesSection({ fields, errors, change }: FormProps): ReactElement {
   );
 }
 
-function TermFields({ fields, errors, change }: FormProps): ReactElement {
+function TermFields({ fields, errors, change, maskedDates }: FormProps): ReactElement {
   return (
     <>
       <TextField
@@ -56,6 +57,7 @@ function TermFields({ fields, errors, change }: FormProps): ReactElement {
         label="Data do acordo"
         placeholder="dd/mm/aaaa"
         date
+        maskedDate={maskedDates}
         value={fields.agreedOn}
         onChange={(value) => change("agreedOn", value)}
         error={errors.agreedOn}
@@ -65,6 +67,7 @@ function TermFields({ fields, errors, change }: FormProps): ReactElement {
         label="Início da vigência"
         placeholder="dd/mm/aaaa"
         date
+        maskedDate={maskedDates}
         value={fields.firstDueDate}
         onChange={(value) => change("firstDueDate", value)}
         error={errors.firstDueDate}
@@ -74,6 +77,7 @@ function TermFields({ fields, errors, change }: FormProps): ReactElement {
         label="Fim da vigência"
         placeholder="dd/mm/aaaa"
         date
+        maskedDate={maskedDates}
         value={fields.endsOn}
         onChange={(value) => change("endsOn", value)}
         error={errors.endsOn}
@@ -104,7 +108,7 @@ function PriceFields({ fields, errors, change, onMonthlyAmountBlur }: FormProps)
   );
 }
 
-function ConditionsSection(props: FormProps): ReactElement {
+export function ConditionsSection(props: FormProps): ReactElement {
   const { offer } = props;
   return (
     <div className="grid min-w-0 gap-3">

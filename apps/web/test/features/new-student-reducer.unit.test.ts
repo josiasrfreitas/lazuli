@@ -301,13 +301,33 @@ void describe("new-student wizard: error transitions", () => {
 });
 
 void describe("new-student wizard: step transitions", () => {
-  void it("stops at Pedagógico and walks back to Dados", () => {
+  void it("walks through Financeiro and back without losing student fields", () => {
     const onPedagogico = advanced(stateWith({ fullName: ADULT_NAME }));
     assert.equal(onPedagogico.step, 1);
-    assert.equal(advanced(onPedagogico).step, 1);
+    const onFinance = advanced(onPedagogico);
+    assert.equal(onFinance.step, 2);
+    assert.equal(advanced(onFinance).step, 2);
+    const pedagogicoAgain = newStudentReducer(onFinance, { type: "backRequested" });
+    assert.equal(pedagogicoAgain.step, 1);
+    assert.equal(advanced(pedagogicoAgain).fields.fullName, ADULT_NAME);
 
     const back = newStudentReducer(onPedagogico, { type: "backRequested" });
     assert.equal(back.step, 0);
+  });
+
+  void it("preserves the active Financeiro step and draft on a general server failure", () => {
+    const onFinance = advanced(
+      advanced(stateWith({ fullName: ADULT_NAME, phone: GUARDIAN_PHONE })),
+    );
+    const rejected = newStudentReducer(onFinance, {
+      type: "serverRejected",
+      errors: {},
+      formError: "Falha na criação.",
+    });
+    assert.equal(rejected.step, 2);
+    assert.equal(rejected.formError, "Falha na criação.");
+    assert.deepEqual(rejected.fields, onFinance.fields);
+    assert.equal(rejected.errorsRevision, 1);
   });
 
   void it("resets to the initial state", () => {
