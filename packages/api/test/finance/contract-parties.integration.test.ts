@@ -46,7 +46,7 @@ function registerConstraintTest(): void {
     const order = await db.order.create({
       data: {
         contractId: contract.id,
-        kind: "CONTRACT",
+        kind: "TUITION",
         principalAmountCents: AMOUNT,
         startDate: DUE,
         dueDay: 10,
@@ -65,7 +65,7 @@ function registerConstraintTest(): void {
         data: {
           contractId: contract.id,
           payerId: payer.id,
-          kind: "CONTRACT",
+          kind: "TUITION",
           principalAmountCents: AMOUNT,
           startDate: DUE,
           dueDay: 10,
@@ -99,7 +99,7 @@ async function createReadFixture(): Promise<{
   const contractual = await db.order.create({
     data: {
       contractId: contract.id,
-      kind: "CONTRACT",
+      kind: "TUITION",
       principalAmountCents: AMOUNT,
       startDate: DUE,
       dueDay: 10,
@@ -141,7 +141,7 @@ async function assertInstallmentsRead(fixture: Fixture): Promise<void> {
   assert.deepEqual(contractRow?.beneficiaries, [
     { studentId: fixture.student.id, fullName: fixture.student.fullName },
   ]);
-  assert.equal(contractRow?.origin, "CONTRACT");
+  assert.equal(contractRow?.origin, "TUITION");
   assert.deepEqual(
     new Set(historicalRow?.beneficiaries.map(({ studentId }) => studentId)),
     new Set([fixture.student.id, fixture.sibling.id]),

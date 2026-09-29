@@ -54,8 +54,8 @@ _Avoid_: Order (as a synonym)
 
 **Order**:
 A financial commitment owed by a payer for one beneficiary, payable through installments.
-Its type identifies its origin or purpose: Contract for a commitment arising from a contract,
-or Material for learning materials.
+Its type identifies what is charged: Tuition for educational service, or Material for learning
+materials. A separate optional association identifies the related Contract.
 _Avoid_: Contract, purchase, sale
 
 **Installment**:

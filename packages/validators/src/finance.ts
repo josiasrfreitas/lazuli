@@ -22,14 +22,7 @@ const FINANCE_DUE_DAY_TWENTY_FIFTH = 25;
 const requiredText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE);
 const optionalText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE).nullish();
 
-export const orderKindSchema = z.enum([
-  "CONTRACT",
-  "TUITION",
-  "ENROLLMENT_FEE",
-  "MATERIAL",
-  "OTHER",
-]);
-const independentOrderKindSchema = orderKindSchema.exclude(["CONTRACT"]);
+export const orderKindSchema = z.enum(["TUITION", "ENROLLMENT_FEE", "MATERIAL", "OTHER"]);
 export const paymentMethodSchema = z.enum([
   "PIX",
   "CASH",
@@ -202,7 +195,7 @@ export const financePayerInputSchema = z.discriminatedUnion("mode", [
 ]);
 
 const orderCommercialFieldsSchema = z.object({
-  kind: independentOrderKindSchema,
+  kind: orderKindSchema,
   beneficiaryStudentIds: z
     .array(z.string().uuid("Identificador de aluno invalido."))
     .min(1, "Informe ao menos um beneficiario."),

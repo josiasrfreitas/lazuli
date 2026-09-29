@@ -67,7 +67,6 @@ export function installmentVm(row: FinanceInstallmentRow, today: string): Instal
 
 export function originLabel(origin: FinanceInstallmentRow["origin"]): string {
   return {
-    CONTRACT: "Contrato",
     TUITION: "Mensalidade",
     ENROLLMENT_FEE: "Taxa de matrícula",
     MATERIAL: "Material",

@@ -55,7 +55,7 @@ export const contractSelect = {
     },
   },
   orders: {
-    where: { kind: "CONTRACT" as const },
+    where: { kind: "TUITION" as const },
     select: {
       principalAmountCents: true,
       installmentCount: true,

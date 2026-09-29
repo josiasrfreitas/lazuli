@@ -100,6 +100,7 @@ async function creationIsAtomicAndStable(): Promise<void> {
     where: { contractId: created.id },
     include: { installments: { orderBy: { sequenceNumber: "asc" } } },
   });
+  assert.equal(order.kind, "TUITION");
   assert.deepEqual(
     order.installments
       .slice(0, DUE_SAMPLE_COUNT)

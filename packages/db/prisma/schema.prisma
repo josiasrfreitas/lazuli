@@ -101,7 +101,6 @@ enum AttendanceStatus {
 }
 
 enum OrderKind {
-  CONTRACT
   TUITION
   ENROLLMENT_FEE
   MATERIAL
