@@ -94,7 +94,7 @@ test("refuses a dirty main before calling Orca or Codex", () => {
     () => run("bash", [script, "123"], { cwd: main, env, stdio: "pipe" }),
     /Main worktree is dirty/,
   );
-  assert.throws(() => readFileSync(log));
+  assert.throws(() => readFileSync(log), { code: "ENOENT" });
 });
 
 test("stops before implementation when the plan is blocked", () => {
