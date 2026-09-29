@@ -59,13 +59,11 @@ plan="$worktree_path/.design/issues/$issue/PLAN.md"
 mkdir -p "$(dirname "$plan")"
 
 codex_run() {
-  local sandbox=$1
-  shift
-  codex exec --sandbox "$sandbox" --model "$model" -c "model_reasoning_effort=\"$effort\"" -C "$worktree_path" "$@"
+  codex exec --sandbox danger-full-access --model "$model" -c "model_reasoning_effort=\"$effort\"" -C "$worktree_path" "$@"
 }
 
 printf 'Planning issue #%s in %s\n' "$issue" "$worktree_path"
-codex_run workspace-write --output-last-message "$plan" "Read GitHub issue $repo_name#$issue and the repository instructions. Produce a structured implementation plan with scope, decisions/dependencies, files, test contract, validation, and visual evidence approach. Start your final answer with exactly STATUS: READY when implementation can proceed, or STATUS: BLOCKED when a requirement or accepted decision must be resolved first. The final answer is saved as .design/issues/$issue/PLAN.md. Do not make any other edits or open a PR in this phase. Explain any blocker in the plan."
+codex_run --output-last-message "$plan" "Read GitHub issue $repo_name#$issue and the repository instructions. Produce a structured implementation plan with scope, decisions/dependencies, files, test contract, validation, and visual evidence approach. Start your final answer with exactly STATUS: READY when implementation can proceed, or STATUS: BLOCKED when a requirement or accepted decision must be resolved first. The final answer is saved as .design/issues/$issue/PLAN.md. Do not make any other edits or open a PR in this phase. Explain any blocker in the plan."
 [[ -s "$plan" ]] || { echo 'Codex did not produce a plan' >&2; exit 1; }
 [[ "$(head -n 1 "$plan")" == "STATUS: READY" ]] || { echo "Plan is blocked or missing READY status: $plan" >&2; exit 1; }
 
@@ -73,11 +71,11 @@ printf 'Implementing issue #%s\n' "$issue"
 {
   printf 'Implement GitHub issue %s#%s using this plan. Recheck it against the issue and repository instructions. Include the plan file in the PR. Run proportional checks, inspect the complete diff, and run git diff --check. Create a PR using the installed pr skill template. Include before/after evidence; for a UI change capture actual screenshots at desktop and narrow widths and link committed evidence in the PR. Do not claim visual evidence from placeholders. Commit and push the completed work. Do not merge.\n\nPLAN:\n' "$repo_name" "$issue"
   cat "$plan"
-} | codex_run danger-full-access -
+} | codex_run -
 
 pr_url=$(gh -R "$repo_name" pr view "$(git -C "$worktree_path" branch --show-current)" --json url --jq .url)
 [[ "$pr_url" == https://github.com/* ]] || { echo 'No PR found for worktree branch' >&2; exit 1; }
 printf 'Babysitting %s\n' "$pr_url"
-codex_run danger-full-access "Use the installed babysit-pr skill to monitor and fix $pr_url until checks are stably green and delivered review feedback is handled. Never merge. Report final SHA, CI outcome, and any unresolved review item."
+codex_run "Use the installed babysit-pr skill to monitor and fix $pr_url until checks are stably green and delivered review feedback is handled. Never merge. Report final SHA, CI outcome, and any unresolved review item."
 gh pr checks "$pr_url"
 printf 'Finished: %s\n' "$pr_url"
