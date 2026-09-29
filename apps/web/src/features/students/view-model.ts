@@ -51,20 +51,6 @@ export function whatsAppVm(row: Pick<StudentListRow, "fullName" | "phone">): Wha
   return url === null ? null : { url, label: `Abrir WhatsApp de ${row.fullName}` };
 }
 
-export type HeaderSummaryVm = {
-  activeClasses: number;
-  totalStudents: number;
-};
-
-/** Keeps static summary copy renderable while its two counts are loading. */
-export function headerSummaryVm(
-  output?: Pick<StudentListOutput, "totalStudents" | "activeClasses">,
-): HeaderSummaryVm | undefined {
-  if (output === undefined) return undefined;
-
-  return { activeClasses: output.activeClasses, totalStudents: output.totalStudents };
-}
-
 export const STATUS_TAB_VALUES = ["todos", "ativos", "inativos"] as const;
 
 export type StatusTabValue = (typeof STATUS_TAB_VALUES)[number];

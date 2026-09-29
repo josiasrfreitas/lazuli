@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { useSearchParams } from "next/navigation";
-import { CircleCheck, Search } from "lucide-react";
+import { CircleCheck, Search, Tags } from "lucide-react";
 import { Input, TableFilters, type TableFilterField } from "@lazuli/ui";
+import { orderKindSchema } from "@lazuli/validators";
 import { debounce } from "~/lib/debounce";
 import {
   INSTALLMENT_STATUSES,
@@ -10,6 +11,7 @@ import {
   type InstallmentFilters,
   type InstallmentFilterPatch,
 } from "./filters";
+import { originLabel } from "./view-model";
 
 const SEARCH_DEBOUNCE_MS = 300;
 type ControlsProps = {
@@ -99,6 +101,23 @@ function dueField(props: ControlsProps): TableFilterField {
   };
 }
 
+function originField(props: ControlsProps): TableFilterField {
+  return {
+    id: "origins",
+    label: "Origem",
+    kind: "options",
+    icon: Tags,
+    promoted: true,
+    options: orderKindSchema.options.map((id) => ({
+      id,
+      label: originLabel(id),
+    })),
+    selected: props.filters.origins,
+    onChange: (values) => props.onFilters({ origins: values.join(",") || null }),
+    onClear: () => props.onFilters({ origins: null }),
+  };
+}
+
 function amountField(props: ControlsProps): TableFilterField {
   return {
     id: "amount",
@@ -118,7 +137,12 @@ function amountField(props: ControlsProps): TableFilterField {
 }
 
 export function InstallmentsControls(props: ControlsProps): ReactElement {
-  const filterFields = [situationField(props), dueField(props), amountField(props)];
+  const filterFields = [
+    situationField(props),
+    originField(props),
+    dueField(props),
+    amountField(props),
+  ];
   return (
     <div className="flex flex-wrap items-center gap-2 2xl:gap-3">
       <SearchField search={props.search} onSearch={props.onSearch} />
@@ -128,6 +152,7 @@ export function InstallmentsControls(props: ControlsProps): ReactElement {
           props.onFilters({
             status: null,
             situations: null,
+            origins: null,
             dueFrom: null,
             dueTo: null,
             amountFrom: null,

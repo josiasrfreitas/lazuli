@@ -14,6 +14,7 @@ const parsers = {
   status: parseAsString,
   busca: parseAsString,
   situacoes: parseAsString,
+  origens: parseAsString,
   vencimentoDe: parseAsString,
   vencimentoAte: parseAsString,
   valorDe: parseAsString,
@@ -30,6 +31,7 @@ function filtersFromUrl(
       status: params.status,
       search: params.busca,
       situations: params.situacoes,
+      origins: params.origens,
       dueFrom: params.vencimentoDe,
       dueTo: params.vencimentoAte,
       amountFrom: params.valorDe,
@@ -50,12 +52,20 @@ type InstallmentsState = {
 
 type InstallmentsQueryScope = Pick<
   ReturnType<typeof queryInput>,
-  "search" | "view" | "statuses" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
+  | "search"
+  | "view"
+  | "statuses"
+  | "origins"
+  | "dueFrom"
+  | "dueTo"
+  | "amountFromCents"
+  | "amountToCents"
 >;
 
 export function urlParamsForFilterPatch(patch: InstallmentFilterPatch): Partial<{
   status: string | null;
   situacoes: string | null;
+  origens: string | null;
   vencimentoDe: string | null;
   vencimentoAte: string | null;
   valorDe: string | null;
@@ -64,6 +74,7 @@ export function urlParamsForFilterPatch(patch: InstallmentFilterPatch): Partial<
   const params: ReturnType<typeof urlParamsForFilterPatch> = {};
   if (patch.status !== undefined) params.status = patch.status;
   if (patch.situations !== undefined) params.situacoes = patch.situations;
+  if (patch.origins !== undefined) params.origens = patch.origins;
   if (patch.dueFrom !== undefined) params.vencimentoDe = patch.dueFrom;
   if (patch.dueTo !== undefined) params.vencimentoAte = patch.dueTo;
   if (patch.amountFrom !== undefined) params.valorDe = patch.amountFrom;
@@ -79,7 +90,17 @@ export function sameInstallmentsQueryScope(
     previous !== undefined &&
     previous.search === current.search &&
     previous.view === current.view &&
+    sameInstallmentsQueryFilters(previous, current)
+  );
+}
+
+function sameInstallmentsQueryFilters(
+  previous: InstallmentsQueryScope,
+  current: InstallmentsQueryScope,
+): boolean {
+  return (
     JSON.stringify(previous.statuses ?? []) === JSON.stringify(current.statuses ?? []) &&
+    JSON.stringify(previous.origins ?? []) === JSON.stringify(current.origins ?? []) &&
     previous.dueFrom === current.dueFrom &&
     previous.dueTo === current.dueTo &&
     previous.amountFromCents === current.amountFromCents &&

@@ -32,6 +32,7 @@ const SEARCH_LIMIT = 80;
 const EXCESS_SEARCH_LENGTH = 81;
 const blankParams = {
   situations: null,
+  origins: null,
   dueFrom: null,
   dueTo: null,
   amountFrom: null,
@@ -44,6 +45,7 @@ void test("installment results persist only across pagination and refetch of the
   assert.equal(sameInstallmentsQueryScope({ view: "overdue", search: "Bia" }, current), false);
   assert.equal(sameInstallmentsQueryScope({ view: "all", search: "Ana" }, current), false);
   assert.equal(sameInstallmentsQueryScope({ ...current, dueFrom: DUE_DATE }, current), false);
+  assert.equal(sameInstallmentsQueryScope({ ...current, origins: ["MATERIAL"] }, current), false);
   assert.equal(sameInstallmentsQueryScope({ ...current, amountFromCents: 10_000 }, current), false);
   assert.equal(sameInstallmentsQueryScope(undefined, current), false);
 });
@@ -180,6 +182,7 @@ void test("combined installment filters map to the validated query and ignore in
     status: null,
     search: "Ana",
     situations: "PAID,OVERDUE",
+    origins: "MATERIAL,UNKNOWN,MATERIAL",
     dueFrom: DUE_DATE,
     dueTo: "2026-09-30",
     amountFrom: "100.25",
@@ -191,6 +194,7 @@ void test("combined installment filters map to the validated query and ignore in
     pageSize: 25,
     search: "Ana",
     statuses: ["PAID", "OVERDUE"],
+    origins: ["MATERIAL"],
     dueFrom: DUE_DATE,
     dueTo: "2026-09-30",
     amountFromCents: 10_025,
@@ -200,6 +204,18 @@ void test("combined installment filters map to the validated query and ignore in
     queryInput(normalizeFilters({ ...params, status: "vencidas" }, { page: 1, pageSize: 25 }))
       .statuses,
     undefined,
+  );
+});
+void test("origin selection survives URL patches and rejects unknown values", () => {
+  assert.deepEqual(urlParamsForFilterPatch({ origins: "TUITION,MATERIAL" }), {
+    origens: "TUITION,MATERIAL",
+  });
+  assert.deepEqual(
+    normalizeFilters(
+      { ...blankParams, status: null, search: null, origins: "UNKNOWN" },
+      { page: 1, pageSize: 25 },
+    ).origins,
+    [],
   );
 });
 void test("invalid shared URL ranges do not show or apply misleading filters", () => {

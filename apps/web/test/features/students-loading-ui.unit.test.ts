@@ -13,7 +13,7 @@ import { tablePaginationPropsFor } from "../../src/lib/pagination.js";
 import { StudentsTable } from "../../src/features/students/students-table.js";
 import { StudentsTableRow } from "../../src/features/students/students-table-row.js";
 import { studentFilterFields } from "../../src/features/students/student-filter-fields.js";
-import { StudentsControls, StudentsSummary } from "../../src/features/students/students-toolbar.js";
+import { StudentsControls } from "../../src/features/students/students-toolbar.js";
 
 const PAGE_SIZE = 10;
 const LARGE_PAGE_SIZE = 25;
@@ -110,7 +110,7 @@ void test("first load preserves pagination furniture and only skeletonizes fetch
   assert.equal((paginationMarkup.match(/data-slot="inline-skeleton"/gu) ?? []).length, 2);
 });
 
-void test("first load keeps header and filter controls while skeletonizing header counts", () => {
+void test("first load keeps header and filter controls", () => {
   const filterFields = studentFilterFields({
     filters,
     classOptions: [],
@@ -125,7 +125,6 @@ void test("first load keeps header and filter controls while skeletonizing heade
   const headerMarkup = renderToStaticMarkup(
     createElement(DataTablePage, {
       title: "Alunos",
-      summary: createElement(StudentsSummary, { summary: undefined }),
       children: null,
     }),
   );
@@ -138,9 +137,7 @@ void test("first load keeps header and filter controls while skeletonizing heade
   );
 
   assert.match(headerMarkup, />Alunos</u);
-  assert.match(headerMarkup, /alunos · /u);
-  assert.match(headerMarkup, /turmas ativas/u);
-  assert.equal((headerMarkup.match(/data-slot="inline-skeleton"/gu) ?? []).length, 2);
+  assert.doesNotMatch(headerMarkup, /alunos · |turmas ativas/u);
 
   assert.match(controlsMarkup, />Turma</u);
   assert.match(controlsMarkup, />Situação</u);

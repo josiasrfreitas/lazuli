@@ -6,7 +6,6 @@ import type { StudentListRow } from "@lazuli/validators";
 import {
   attendanceCellVm,
   financeCellVm,
-  headerSummaryVm,
   statusBadgeVm,
   statusTabsVm,
   tableStateVm,
@@ -91,19 +90,7 @@ void describe("student preview status", () => {
   });
 });
 
-void describe("students header and tabs", () => {
-  void it("summarises the header and pluralises 1 aluno / 1 turma", () => {
-    assert.deepEqual(headerSummaryVm({ totalStudents: TAB_COUNTS.all, activeClasses: 6 }), {
-      totalStudents: 16,
-      activeClasses: 6,
-    });
-    assert.deepEqual(headerSummaryVm({ totalStudents: 1, activeClasses: 1 }), {
-      totalStudents: 1,
-      activeClasses: 1,
-    });
-    assert.equal(headerSummaryVm(), undefined);
-  });
-
+void describe("students tabs", () => {
   void it("builds the three status tabs with their counts", () => {
     const tabs = statusTabsVm(TAB_COUNTS);
     assert.deepEqual(

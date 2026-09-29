@@ -1,6 +1,7 @@
 import {
   FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
   civilDateSchema,
+  orderKindSchema,
   type FinanceInstallmentsInput,
 } from "@lazuli/validators";
 
@@ -14,11 +15,13 @@ export const INSTALLMENT_STATUSES = [
   "WAIVED",
 ] as const;
 type InstallmentStatus = (typeof INSTALLMENT_STATUSES)[number];
+type InstallmentOrigin = (typeof orderKindSchema.options)[number];
 
 export type InstallmentParams = {
   status: string | null;
   search: string | null;
   situations: string | null;
+  origins: string | null;
   dueFrom: string | null;
   dueTo: string | null;
   amountFrom: string | null;
@@ -26,13 +29,17 @@ export type InstallmentParams = {
 };
 
 export type InstallmentFilterPatch = Partial<
-  Pick<InstallmentParams, "status" | "situations" | "dueFrom" | "dueTo" | "amountFrom" | "amountTo">
+  Pick<
+    InstallmentParams,
+    "status" | "situations" | "origins" | "dueFrom" | "dueTo" | "amountFrom" | "amountTo"
+  >
 >;
 
 export type InstallmentFilters = {
   status: "vencidas" | null;
   search: string;
   situations: InstallmentStatus[];
+  origins: InstallmentOrigin[];
   dueFrom: string;
   dueTo: string;
   amountFrom: string;
@@ -54,6 +61,19 @@ function validStatuses(value: string | null): InstallmentStatus[] {
   ];
 }
 
+function validOrigins(value: string | null): InstallmentOrigin[] {
+  if (!value) return [];
+  return [
+    ...new Set(
+      value
+        .split(",")
+        .filter((origin): origin is InstallmentOrigin =>
+          orderKindSchema.options.includes(origin as InstallmentOrigin),
+        ),
+    ),
+  ];
+}
+
 export function normalizeFilters(
   params: InstallmentParams,
   pagination: Pick<InstallmentFilters, "page" | "pageSize">,
@@ -69,6 +89,7 @@ export function normalizeFilters(
     status: params.status === "vencidas" ? "vencidas" : null,
     search: (params.search ?? "").slice(0, SEARCH_MAX_LENGTH),
     situations: normalizedSituations(params.status, situations),
+    origins: validOrigins(params.origins),
     dueFrom: dueRange.from,
     dueTo: dueRange.to,
     amountFrom: amountRange.from,
@@ -157,6 +178,7 @@ export function queryInput(filters: InstallmentFilters): FinanceInstallmentsInpu
     pageSize: filters.status === "vencidas" ? FINANCE_OVERDUE_PAYERS_PAGE_SIZE : filters.pageSize,
     search: filters.search.trim(),
     ...(filters.situations.length > 0 ? { statuses: filters.situations } : {}),
+    ...(filters.origins.length > 0 ? { origins: filters.origins } : {}),
     ...dueRangeInput(filters),
     ...amountRangeInput(filters),
   };

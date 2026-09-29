@@ -2,37 +2,13 @@ import { useEffect, useMemo, useState, type ReactElement } from "react";
 
 import { Plus, Search } from "lucide-react";
 
-import { Button, InlineSkeleton, Input, TableFilters, type TableFilterField } from "@lazuli/ui";
+import { Button, Input, TableFilters, type TableFilterField } from "@lazuli/ui";
 
 import { debounce } from "~/lib/debounce";
 
 import type { StudentsFilters } from "./logic";
-import type { HeaderSummaryVm } from "./view-model";
 
 const SEARCH_DEBOUNCE_MS = 300;
-
-export function StudentsSummary({
-  summary,
-}: {
-  summary: HeaderSummaryVm | undefined;
-}): ReactElement {
-  return (
-    <>
-      {summary === undefined ? (
-        <InlineSkeleton />
-      ) : (
-        <span className="font-numeric tabular-nums">{summary.totalStudents}</span>
-      )}{" "}
-      {summary?.totalStudents === 1 ? "aluno" : "alunos"} ·{" "}
-      {summary === undefined ? (
-        <InlineSkeleton />
-      ) : (
-        <span className="font-numeric tabular-nums">{summary.activeClasses}</span>
-      )}{" "}
-      {summary?.activeClasses === 1 ? "turma ativa" : "turmas ativas"}
-    </>
-  );
-}
 
 /** Controlled input that only commits to the URL after the typing pauses. */
 function SearchField({ filters }: { filters: StudentsFilters }): ReactElement {

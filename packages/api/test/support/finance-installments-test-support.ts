@@ -26,7 +26,7 @@ export type InstallmentOrderFixture = {
 type OptionalFilters = Partial<
   Pick<
     FinanceInstallmentsInput,
-    "statuses" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
+    "statuses" | "origins" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
   >
 >;
 

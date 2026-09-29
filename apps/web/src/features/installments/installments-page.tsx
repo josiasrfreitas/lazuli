@@ -51,6 +51,7 @@ function hasInstallmentFilters(filters: InstallmentFilters): boolean {
     filters.search ||
     filters.status ||
     filters.situations.length > 0 ||
+    filters.origins.length > 0 ||
     filters.dueFrom ||
     filters.dueTo ||
     filters.amountFrom ||
@@ -63,7 +64,6 @@ export function InstallmentsPage(): ReactElement {
   return (
     <DataTablePage
       title="Recebíveis"
-      summary="Vencimentos e pagamentos"
       controls={
         <InstallmentsControls
           search={filters.search}

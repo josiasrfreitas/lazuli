@@ -93,6 +93,26 @@ void describe("monthly contract input", () => {
 });
 
 void describe("contract search input", () => {
+  void it("accepts party, term and financial situation filters and rejects malformed values", () => {
+    const filters = {
+      payerId: VALID_INPUT.payerId,
+      studentId: VALID_INPUT.studentId,
+      startsFrom: "2026-03-01",
+      endsTo: "2026-09-30",
+      status: "EM_DIA",
+    } as const;
+    assert.deepEqual(listContractsInputSchema.parse(filters), { page: 1, query: "", ...filters });
+    assert.deepEqual(
+      [
+        { payerId: "not-a-uuid" },
+        { studentId: "not-a-uuid" },
+        { startsFrom: "2026-02-30" },
+        { endsTo: "2026-13-01" },
+        { status: "UNKNOWN" },
+      ].map((invalid) => listContractsInputSchema.safeParse(invalid).success),
+      [false, false, false, false, false],
+    );
+  });
   void it("defaults the list and trims a search", () => {
     assert.deepEqual(listContractsInputSchema.parse({}), { page: 1, query: "" });
     assert.deepEqual(listContractsInputSchema.parse({ page: 2, query: "  Ana  " }), {

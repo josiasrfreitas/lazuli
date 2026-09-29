@@ -107,6 +107,13 @@ function registerOriginTest(): void {
     const expected = new Map(records.map(({ kind, fixture }) => [fixture.orderId, kind]));
     const all = await read({ view: "all" });
     assert.deepEqual(new Map(all.rows.map((row) => [row.orderId, row.origin])), expected);
+    const filtered = await read({ view: "all", origins: ["MATERIAL"] });
+    assert.deepEqual(
+      filtered.rows.map((row) => row.orderId),
+      [material.orderId],
+    );
+    assert.equal(filtered.total, 1);
+    assert.deepEqual(filtered.counts, { all: 1, paid: 1, overdue: 0 });
     const paid = await read({ view: "paid" });
     assert.deepEqual(
       paid.rows.map((row) => row.origin),
@@ -122,6 +129,12 @@ function registerOriginTest(): void {
           .filter((fixture) => fixture.orderId !== material.orderId)
           .map((fixture) => [fixture.orderId, expected.get(fixture.orderId)]),
       ),
+    );
+    const filteredOverdue = await read({ view: "overdue", origins: ["TUITION"] });
+    assert.equal(filteredOverdue.total, 1);
+    assert.deepEqual(
+      filteredOverdue.groups[0]?.rows.map((row) => row.origin),
+      ["TUITION"],
     );
   });
 }
