@@ -68,6 +68,13 @@ elif [[ "$1 $2" == "terminal wait" ]]; then
     exit 1
   fi
   echo '{"ok":true,"result":{"wait":{"satisfied":true}}}'
+elif [[ "$1 $2" == "terminal read" ]]; then
+  printf 'terminal-read\\n' >> "$SHIP_TEST_LOG"
+  if [[ "\${SHIP_TEST_NEVER_READY:-}" == 1 ]]; then
+    echo '{"ok":true,"result":{"terminal":{"tail":["Starting Codex"]}}}'
+  else
+    echo '{"ok":true,"result":{"terminal":{"tail":["› Ask Codex to do anything"]}}}'
+  fi
 elif [[ "$1 $2" == "terminal send" ]]; then
   printf 'terminal-send\\n' >> "$SHIP_TEST_LOG"
   printf '%s' "$*" > "$SHIP_TEST_ROOT/terminal-send-args"
@@ -98,7 +105,7 @@ test("updates main, opens one interactive Codex terminal, then sends the prompt"
     "worktree",
     "terminal-create",
     "terminal-wait",
-    "terminal-wait",
+    "terminal-read",
     "terminal-send",
   ]);
   const launch = readFileSync(path.join(env.SHIP_TEST_ROOT, "terminal-create-args"), "utf8");
@@ -112,9 +119,9 @@ test("updates main, opens one interactive Codex terminal, then sends the prompt"
   assert.match(sent, /--terminal term-test/);
   assert.match(sent, /--enter --wait-submit 10/);
   assert.match(sent, /THIS SAME SESSION/);
-  assert.match(sent, /ship-with-tests/);
-  assert.match(sent, /installed pr skill/);
-  assert.match(sent, /babysit-pr/);
+  assert.match(sent, /\$ship-with-tests/);
+  assert.match(sent, /\$pr/);
+  assert.match(sent, /\$babysit-pr/);
 });
 
 test("refuses a dirty main before calling Orca or Codex", () => {
@@ -138,6 +145,7 @@ test("does not send the prompt before Codex is ready", () => {
     "worktree",
     "terminal-create",
     "terminal-wait",
+    "terminal-read",
     "terminal-wait",
   ]);
   assert.throws(() => readFileSync(path.join(env.SHIP_TEST_ROOT, "terminal-send-args")), {

@@ -67,18 +67,22 @@ wait_for_codex() {
   response=$(orca terminal wait --terminal "$terminal_handle" --for tui-idle --timeout-ms "$1" --json) || true
   python3 -c 'import json,sys; d=json.load(sys.stdin); e=d.get("error",{}); assert d.get("ok") or e.get("code")=="timeout", e; r=d.get("result",{}); print(str(r.get("wait",r).get("satisfied",False)).lower())' <<<"$response"
 }
-is_ready=$(wait_for_codex 60000)
+is_ready=$(wait_for_codex 5000)
 if [[ "$is_ready" != true ]]; then
-  is_ready=$(wait_for_codex 120000)
+  screen=$(orca terminal read --terminal "$terminal_handle" --json)
+  is_ready=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok"), d.get("error"); t=d["result"]["terminal"]; print(str(any("Ask Codex to do anything" in line for line in t.get("tail",[]))).lower())' <<<"$screen")
+  if [[ "$is_ready" != true ]]; then
+    is_ready=$(wait_for_codex 120000)
+  fi
 fi
 [[ "$is_ready" == true ]] || { echo "Codex TUI did not become ready: $terminal_handle" >&2; exit 1; }
 
 prompt="Read GitHub issue $repo_name#$issue and the repository instructions. Work through the following sequence in THIS SAME SESSION, without starting or delegating to another Codex session:
 
 1. Write a structured plan at .design/issues/$issue/PLAN.md with scope, decisions/dependencies, files, test contract, validation, and visual evidence approach.
-2. Recheck the plan against the issue and repository instructions. Load and follow the installed ship-with-tests skill. Implement the complete issue, run proportional checks, inspect the complete diff, and run git diff --check. Include the plan file in the PR.
-3. Commit and push the work. Open a PR using the installed pr skill and its template. Include before/after evidence. For a UI change, capture real desktop and narrow-viewport screenshots and link committed evidence in the PR. Do not claim visual evidence from placeholders.
-4. In this same session, use the installed babysit-pr skill to monitor and fix the PR until checks are stably green and delivered review feedback is handled. Never merge. Report the PR URL, final SHA, CI outcome, and any unresolved review item."
+2. Recheck the plan against the issue and repository instructions. Invoke and follow \$ship-with-tests. Implement the complete issue, run proportional checks, inspect the complete diff, and run git diff --check. Include the plan file in the PR.
+3. Commit and push the work. Invoke and follow \$pr to open the PR using its template. Include before/after evidence. For a UI change, capture real desktop and narrow-viewport screenshots and link committed evidence in the PR. Do not claim visual evidence from placeholders.
+4. In this same session, invoke and follow \$babysit-pr to monitor and fix the PR until checks are stably green and delivered review feedback is handled. Never merge. Report the PR URL, final SHA, CI outcome, and any unresolved review item."
 receipt=$(orca terminal send --terminal "$terminal_handle" --text "$prompt" --enter --wait-submit 10 --json)
 accepted=$(python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok"), d.get("error"); r=d["result"]; print(str(r.get("send",{}).get("accepted",False)).lower())' <<<"$receipt")
 [[ "$accepted" == true ]] || { echo "Orca did not accept the Codex prompt: $terminal_handle" >&2; exit 1; }
