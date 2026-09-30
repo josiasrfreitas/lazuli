@@ -39,10 +39,7 @@ type PaymentValidation = {
   installments: LoadedInstallment[];
   allocations: PaymentAllocationInput[];
   payerId: string;
-  date: Date;
-  commandId?: string | undefined;
 };
-type PunctualityAdjustment = { installmentId: string; amountCents: number };
 const DATE_ONLY_LENGTH = 10;
 
 export async function registerPayment(input: {
@@ -71,8 +68,6 @@ export async function registerPayment(input: {
     installments,
     allocations: allocationRows,
     payerId: input.values.payerId,
-    date: input.values.date,
-    commandId: input.values.commandId,
   });
 
   const lines = await prepareContractPayment({ ...input, now: input.now ?? new Date() });
@@ -189,8 +184,7 @@ function assertAllInstallmentsFound(
   }
 }
 
-function assertInstallmentsAllocatable(input: PaymentValidation): PunctualityAdjustment[] {
-  const discounts: PunctualityAdjustment[] = [];
+function assertInstallmentsAllocatable(input: PaymentValidation): void {
   const installmentsById = new Map(
     input.installments.map((installment) => [installment.id, installment]),
   );
@@ -202,27 +196,24 @@ function assertInstallmentsAllocatable(input: PaymentValidation): PunctualityAdj
       throw notFound(INSTALLMENT_NOT_FOUND_MESSAGE);
     }
 
-    const amountCents = validateAllocation({ installment, allocation, input });
-    if (amountCents > 0) discounts.push({ installmentId: installment.id, amountCents });
+    validateAllocation({ installment, allocation, input });
   }
-  return discounts;
 }
 
 function validateAllocation(values: {
   installment: LoadedInstallment;
   allocation: PaymentAllocationInput;
   input: PaymentValidation;
-}): number {
+}): void {
   const { installment, allocation, input } = values;
   if ((installment.order.contract?.payerId ?? installment.order.payerId) !== input.payerId) {
     throw badRequest(INSTALLMENT_PAYER_MISMATCH_MESSAGE);
   }
   if (installment.waivedAt !== null) throw badRequest(WAIVED_INSTALLMENT_ALLOCATION_MESSAGE);
   if (installment.order.contract !== null) {
-    return 0;
+    return;
   }
   if (allocation.amountCents > calculateRemainingBalanceCents(installment)) {
     throw badRequest(INSTALLMENT_OVER_ALLOCATION_MESSAGE);
   }
-  return 0;
 }

@@ -1,3 +1,4 @@
+import type { PaymentEntry } from "@lazuli/db";
 import { createHash } from "node:crypto";
 import type { PaymentOperationInput } from "@lazuli/validators";
 import { lockInstallments, persistPayment, type PaymentEntrySummary } from "./payment-store.js";
@@ -23,7 +24,7 @@ export async function confirmPayments(input: OperationContext): Promise<PaymentE
   if (existing.length > 0) {
     if (existing.some((entry) => entry.operationFingerprint !== fingerprint))
       throw badRequest("Operação já usada com outros dados.");
-    return existing;
+    return replayReceipts(values, existing);
   }
   const ids = values.receipts.flatMap((receipt) =>
     receipt.allocations.map((row) => row.installmentId),
@@ -92,4 +93,23 @@ async function persistReceipts(
     results.push(stored.paymentEntry);
   }
   return results;
+}
+
+function replayReceipts(
+  values: PaymentOperationInput,
+  stored: PaymentEntry[],
+): PaymentEntrySummary[] {
+  return values.receipts.map((receipt) => {
+    const row = stored.find((entry) => entry.commandId === receipt.commandId);
+    if (!row) throw badRequest("Operação incompleta; confira os recebimentos registrados.");
+    return {
+      id: row.id,
+      payerId: row.payerId,
+      date: row.date,
+      amountCents: row.amountCents,
+      method: row.method,
+      note: row.note,
+      externalReference: row.externalReference,
+    };
+  });
 }

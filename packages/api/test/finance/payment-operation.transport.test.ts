@@ -35,7 +35,7 @@ void it("serializes a real preview and safely retries a confirmed receipt throug
   };
   const receipt = ((await first.json()) as Result).result.data.json[0];
   const replay = ((await retry.json()) as Result).result.data.json[0];
-  assert.equal(receipt?.id, replay?.id);
+  assert.deepEqual(replay, receipt);
   assert.equal(receipt?.date, "2026-02-10T00:00:00.000Z");
   assert.equal(receipt?.amountCents, 101_000);
   assert.equal(

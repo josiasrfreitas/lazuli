@@ -151,3 +151,49 @@ void describe("payment operations", () => {
     assert.equal(nextBatch.receipts[0]?.amountCents, 83_040);
   });
 });
+
+void it("preserves separate receipts for the same payer and accepts mixed contract and Material origins", async () => {
+  const first = await paymentFixture(PREFIX);
+  const second = await paymentFixture(PREFIX, first.payerId);
+  const material = await db.order.create({
+    data: {
+      payerId: first.payerId,
+      kind: "MATERIAL",
+      principalAmountCents: 10_000,
+      startDate: new Date("2026-01-31"),
+      dueDay: 10,
+      installments: {
+        create: { sequenceNumber: 1, dueDate: new Date("2026-01-31"), amountCents: 10_000 },
+      },
+    },
+    include: { installments: true },
+  });
+  const firstReceipt = await paymentCommand({ ...first, date: "2026-01-31" });
+  const secondReceipt = await paymentCommand({
+    ...second,
+    payerId: first.payerId,
+    date: "2026-01-31",
+  });
+  const materialReceipt = await paymentCommand({
+    installmentId: material.installments[0]!.id,
+    payerId: first.payerId,
+    date: "2026-01-31",
+  });
+  const command = {
+    ...firstReceipt,
+    receipts: [...firstReceipt.receipts, ...secondReceipt.receipts, ...materialReceipt.receipts],
+  };
+  const result = await confirmPaymentCommand(command);
+  assert.equal(result.length, 3);
+  assert.equal(new Set(result.map((receipt) => receipt.id)).size, 3);
+  assert.deepEqual(new Set(result.map((receipt) => receipt.payerId)), new Set([first.payerId]));
+  assert.deepEqual(
+    result.map((receipt) => receipt.amountCents),
+    [80_000, 80_000, 10_000],
+  );
+  const replay = await confirmPaymentCommand(command);
+  assert.deepEqual(
+    new Set(replay.map((receipt) => receipt.id)),
+    new Set(result.map((receipt) => receipt.id)),
+  );
+});

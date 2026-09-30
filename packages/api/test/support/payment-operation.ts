@@ -9,8 +9,10 @@ import { ADMIN } from "./finance-test-support.js";
 export const PAYMENT_NOW = new Date("2026-09-30T12:00:00Z");
 export async function paymentFixture(
   prefix: string,
+  payerId?: string,
 ): Promise<{ installmentId: string; payerId: string; contractId: string }> {
-  const values = await contractPayerFixture(prefix);
+  const { newPayer, ...terms } = await contractPayerFixture(prefix);
+  const values = { ...terms, ...(payerId ? { payerId } : { newPayer }) };
   const contract = await db.$transaction((tx) =>
     finance(tx, ADMIN.id).createMonthlyContract({
       ...values,
@@ -81,5 +83,12 @@ export async function cleanPaymentOperations(prefix: string): Promise<void> {
   await db.installmentAdjustment.deleteMany({
     where: { installment: { order: { contract: { payer } } } },
   });
+  const orders = await db.order.findMany({ where: { payer }, select: { id: true } });
+  const orderIds = orders.map((order) => order.id);
+  await db.installmentAdjustment.deleteMany({
+    where: { installment: { orderId: { in: orderIds } } },
+  });
+  await db.installment.deleteMany({ where: { orderId: { in: orderIds } } });
+  await db.order.deleteMany({ where: { id: { in: orderIds } } });
   await cleanContractPayers(prefix);
 }

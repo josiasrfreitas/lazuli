@@ -5,8 +5,12 @@ import { badRequest, type FinanceDatabase, toDateOnlyString } from "./shared.js"
 
 const settlementInclude = {
   order: { include: { contract: true } },
-  adjustments: { orderBy: { id: "asc" } },
-  allocations: { include: { paymentEntry: true }, orderBy: { id: "asc" } },
+  adjustments: { where: { deletedAt: null }, orderBy: { id: "asc" } },
+  allocations: {
+    where: { deletedAt: null, paymentEntry: { deletedAt: null } },
+    include: { paymentEntry: true },
+    orderBy: { id: "asc" },
+  },
 } satisfies Prisma.InstallmentInclude;
 export type SettlementItem = Prisma.InstallmentGetPayload<{ include: typeof settlementInclude }>;
 export async function loadSettlementItems(
@@ -65,7 +69,9 @@ function validateSettlementItem(input: { item: SettlementItem; date: string; now
     (row) => toDateOnlyString(row.paymentEntry.date) > date,
   );
   const laterAdjustment = item.adjustments.some(
-    (row) => toDateOnlyString(row.effectiveDate ?? row.createdAt) > date,
+    (row) =>
+      (row.effectiveDate ? toDateOnlyString(row.effectiveDate) : saoPauloDateOnly(row.createdAt)) >
+      date,
   );
   if (laterPayment || laterAdjustment)
     throw badRequest(`Parcela ${item.sequenceNumber}: data anterior a fato já efetivado.`);
@@ -73,9 +79,11 @@ function validateSettlementItem(input: { item: SettlementItem; date: string; now
 }
 
 function assertContractRates(item: SettlementItem): void {
+  if (item.order.contract?.deletedAt) throw badRequest("Contrato indisponível para pagamento.");
   if (
     item.order.contract &&
-    (item.order.contract.interestRatePctDaily === null ||
+    (item.order.contract.punctualityDiscountPct === null ||
+      item.order.contract.interestRatePctDaily === null ||
       item.order.contract.interestRatePctMonthly === null)
   ) {
     throw badRequest("Contrato sem condições de juros definidas.");

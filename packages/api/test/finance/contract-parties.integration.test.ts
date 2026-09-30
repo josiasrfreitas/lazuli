@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
@@ -206,13 +207,14 @@ async function assertUnsupportedOperations(fixture: Fixture): Promise<void> {
   );
   await assert.rejects(
     api.registerPayment({
+      commandId: randomUUID(),
       payerId: fixture.payer.id,
       date: DUE,
       amountCents: AMOUNT,
       method: "PIX",
       allocations: allocation,
     }),
-    /contratual ainda indisponivel/,
+    /Contrato sem condições de juros definidas/,
   );
   const batch = await api.batchReconcile({
     date: DUE,
