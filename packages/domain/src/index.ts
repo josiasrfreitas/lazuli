@@ -85,3 +85,8 @@ export {
   type ContractFinancialSummary,
   type ContractServiceStatus,
 } from "./contract-status.js";
+export {
+  quoteSettlement,
+  type SettlementInput,
+  type SettlementQuote,
+} from "./payment-settlement.js";

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
@@ -25,7 +26,7 @@ void describe("contract order parties", { concurrency: 1 }, () => {
 });
 
 function registerReadTest(): void {
-  void it("reads contractual parties in receivables and student totals while preserving historical siblings", async () => {
+  void it("reads contractual parties in receivables and student totals with one student per standalone order", async () => {
     const fixture = await createReadFixture();
     await assertInstallmentsRead(fixture);
     await assertStudentAndDashboardRead(fixture);
@@ -46,7 +47,7 @@ function registerConstraintTest(): void {
     const order = await db.order.create({
       data: {
         contractId: contract.id,
-        kind: "CONTRACT",
+        kind: "TUITION",
         principalAmountCents: AMOUNT,
         startDate: DUE,
         dueDay: 10,
@@ -65,7 +66,7 @@ function registerConstraintTest(): void {
         data: {
           contractId: contract.id,
           payerId: payer.id,
-          kind: "CONTRACT",
+          kind: "TUITION",
           principalAmountCents: AMOUNT,
           startDate: DUE,
           dueDay: 10,
@@ -99,7 +100,7 @@ async function createReadFixture(): Promise<{
   const contractual = await db.order.create({
     data: {
       contractId: contract.id,
-      kind: "CONTRACT",
+      kind: "TUITION",
       principalAmountCents: AMOUNT,
       startDate: DUE,
       dueDay: 10,
@@ -114,7 +115,18 @@ async function createReadFixture(): Promise<{
       principalAmountCents: AMOUNT,
       startDate: DUE,
       dueDay: 10,
-      beneficiaries: { create: [{ studentId: student.id }, { studentId: sibling.id }] },
+      beneficiaries: { create: { studentId: student.id } },
+      installments: { create: { sequenceNumber: 1, amountCents: AMOUNT, dueDate: DUE } },
+    },
+  });
+  await db.order.create({
+    data: {
+      payerId: otherPayer.id,
+      kind: "TUITION",
+      principalAmountCents: AMOUNT,
+      startDate: DUE,
+      dueDay: 10,
+      beneficiaries: { create: { studentId: sibling.id } },
       installments: { create: { sequenceNumber: 1, amountCents: AMOUNT, dueDate: DUE } },
     },
   });
@@ -141,10 +153,10 @@ async function assertInstallmentsRead(fixture: Fixture): Promise<void> {
   assert.deepEqual(contractRow?.beneficiaries, [
     { studentId: fixture.student.id, fullName: fixture.student.fullName },
   ]);
-  assert.equal(contractRow?.origin, "CONTRACT");
+  assert.equal(contractRow?.origin, "TUITION");
   assert.deepEqual(
     new Set(historicalRow?.beneficiaries.map(({ studentId }) => studentId)),
-    new Set([fixture.student.id, fixture.sibling.id]),
+    new Set([fixture.student.id]),
   );
   const byStudent = await api.installments({ view: "all", ...PAGE, search: `${PREFIX}Ana` }, NOW);
   assert.strictEqual(byStudent.view, "all");
@@ -159,8 +171,10 @@ async function assertInstallmentsRead(fixture: Fixture): Promise<void> {
     fixture.contractualId,
   );
   assert.equal(
-    grouped.groups.find((group) => group.payer.id === fixture.otherPayer.id)?.rows[0]?.orderId,
-    fixture.historicalId,
+    grouped.groups
+      .find((group) => group.payer.id === fixture.otherPayer.id)
+      ?.rows.some((row) => row.orderId === fixture.historicalId),
+    true,
   );
 }
 
@@ -206,13 +220,14 @@ async function assertUnsupportedOperations(fixture: Fixture): Promise<void> {
   );
   await assert.rejects(
     api.registerPayment({
+      commandId: randomUUID(),
       payerId: fixture.payer.id,
       date: DUE,
       amountCents: AMOUNT,
       method: "PIX",
       allocations: allocation,
     }),
-    /contratual ainda indisponivel/,
+    /Contrato sem condições de juros definidas/,
   );
   const batch = await api.batchReconcile({
     date: DUE,

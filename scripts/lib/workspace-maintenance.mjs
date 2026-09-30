@@ -87,20 +87,7 @@ function deleteBucket(root, bucket) {
 }
 
 export async function refreshWorkspaceFixtures({ root, output }) {
-  await withFullSetupLock(root, async () => {
-    const workspace = await assertOwnedFullWorkspace(root);
-    output(`Refreshing database fixtures in ${workspace.resources.database}...`);
-    runWorkspaceCommand({
-      command: "pnpm",
-      arguments_: ["prisma:seed"],
-      root,
-      capability: "database fixture refresh",
-    });
-    await ensureBucket({ root, workspace, output, overwrite: true });
-    output("Fixture refresh complete.");
-    output("Extra records, manual deletions, and unversioned GCS objects may remain.");
-    output("This command does not guarantee a clean snapshot; use pnpm workspace:reset if needed.");
-  });
+  await resetWorkspace({ root, output });
 }
 
 export async function resetWorkspace({ root, output }) {

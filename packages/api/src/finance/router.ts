@@ -1,4 +1,6 @@
 import {
+  paymentPreviewSchema,
+  paymentOperationSchema,
   financeAddInstallmentAdjustmentInputSchema,
   financeBatchReconcileInputSchema,
   financeCreateOrderInputSchema,
@@ -18,6 +20,21 @@ import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
 import { finance } from "./index.js";
 
 export const financeRouter = router({
+  previewPayments: adminProcedure
+    .input(paymentPreviewSchema)
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (tx) => finance(tx, ctx.staffUser.id).previewPayments(input, ctx.now ?? new Date()),
+        { isolationLevel: "RepeatableRead" },
+      ),
+    ),
+  confirmPayments: adminProcedure
+    .input(paymentOperationSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((tx) =>
+        finance(tx, ctx.staffUser.id).confirmPayments(input, ctx.now ?? new Date()),
+      ),
+    ),
   readSettings: systemAdminProcedure.query(({ ctx }) =>
     finance(ctx.db, ctx.staffUser.id).readSettings(),
   ),

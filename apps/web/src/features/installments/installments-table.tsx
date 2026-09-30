@@ -1,52 +1,9 @@
 import type { ReactNode, ReactElement } from "react";
-import {
-  Button,
-  EmptyState,
-  Table,
-  TableBody,
-  TableContainer,
-  TableEmpty,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableSkeleton,
-} from "@lazuli/ui";
+import { DataTable, TableContainer, type DataTableState } from "@lazuli/ui";
 import type { FinanceInstallmentRow, FinanceOverduePayerGroup } from "@lazuli/validators";
 import { OverduePayerGroupCard, OverdueSearchGuidance } from "./overdue-payer-group";
 import { businessDate } from "./view-model";
-import { COLUMN_IDS, InstallmentRow } from "./installment-row";
-function InstallmentsHead(): ReactElement {
-  return (
-    <TableHeader sticky>
-      <TableRow interactive={false}>
-        <TableHead id={COLUMN_IDS.installment} className="w-28">
-          Sequência
-        </TableHead>
-        <TableHead id={COLUMN_IDS.origin} className="w-24">
-          Origem
-        </TableHead>
-        <TableHead id={COLUMN_IDS.payer} className="w-28">
-          Pagador
-        </TableHead>
-        <TableHead id={COLUMN_IDS.beneficiaries} className="w-30">
-          Beneficiário
-        </TableHead>
-        <TableHead id={COLUMN_IDS.dueDate} className="w-28">
-          Vencimento
-        </TableHead>
-        <TableHead id={COLUMN_IDS.nominal} className="w-36" numeric>
-          Valor nominal
-        </TableHead>
-        <TableHead id={COLUMN_IDS.paid} className="w-32" numeric>
-          Valor pago
-        </TableHead>
-        <TableHead id={COLUMN_IDS.status} className="w-40">
-          Situação
-        </TableHead>
-      </TableRow>
-    </TableHeader>
-  );
-}
+import { installmentColumns } from "./installment-columns";
 type TableState = {
   rows?: FinanceInstallmentRow[] | undefined;
   groups?: FinanceOverduePayerGroup[] | undefined;
@@ -55,52 +12,6 @@ type TableState = {
   showOverdueSearchGuidance?: boolean;
   onRetry: () => void;
 };
-const COLUMN_COUNT = 8;
-const NOMINAL_COLUMN_INDEX = 5;
-const PAID_COLUMN_INDEX = 6;
-const NUMERIC_COLUMNS = [NOMINAL_COLUMN_INDEX, PAID_COLUMN_INDEX];
-const SKELETON_ROWS = 10;
-function InstallmentsBody({
-  rows,
-  error,
-  filtered,
-  onRetry,
-  today,
-}: TableState & { today: string }): ReactNode {
-  if (error)
-    return (
-      <TableEmpty colSpan={COLUMN_COUNT}>
-        <EmptyState
-          title="Não foi possível carregar os recebíveis"
-          description="Verifique a conexão e tente de novo."
-          action={
-            <Button size="sm" variant="secondary" onClick={onRetry}>
-              Tentar de novo
-            </Button>
-          }
-        />
-      </TableEmpty>
-    );
-  if (rows === undefined)
-    return (
-      <TableSkeleton columns={COLUMN_COUNT} numericColumns={NUMERIC_COLUMNS} rows={SKELETON_ROWS} />
-    );
-  if (rows.length === 0)
-    return (
-      <TableEmpty colSpan={COLUMN_COUNT}>
-        <EmptyState
-          title={filtered ? "Nenhum recebível encontrado" : "Nenhum recebível cadastrado"}
-          description={
-            filtered
-              ? "Ajuste a busca ou o filtro de situação."
-              : "Os recebíveis aparecerão aqui quando forem cadastrados."
-          }
-        />
-      </TableEmpty>
-    );
-  return rows.map((row) => <InstallmentRow key={row.installmentId} row={row} today={today} />);
-}
-
 function OverdueGroupsBody({
   groups,
   today,
@@ -139,19 +50,31 @@ export function InstallmentsTable({
       </TableContainer>
     );
   }
+  const rows = hasGroups ? [] : state.rows;
   return (
-    <TableContainer viewportBound footer={footer}>
-      {state.showOverdueSearchGuidance ? <OverdueSearchGuidance /> : null}
-      <Table
-        aria-label="Lista de recebíveis"
-        aria-busy={updating}
-        className="min-w-240 table-fixed"
-      >
-        <InstallmentsHead />
-        <TableBody>
-          <InstallmentsBody {...state} rows={hasGroups ? [] : state.rows} today={today} />
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <DataTable
+      label="Lista de recebíveis"
+      columns={installmentColumns(today)}
+      state={installmentsState(state, rows)}
+      updating={updating}
+      footer={footer}
+      beforeTable={state.showOverdueSearchGuidance ? <OverdueSearchGuidance /> : undefined}
+      onRetry={state.onRetry}
+      empty={{
+        title: "Nenhum recebível cadastrado",
+        description: "Os recebíveis aparecerão aqui quando forem cadastrados.",
+      }}
+      errorTitle="Não foi possível carregar os recebíveis"
+    />
   );
+}
+
+function installmentsState(
+  state: TableState,
+  rows: FinanceInstallmentRow[] | undefined,
+): DataTableState<FinanceInstallmentRow & { id: string }> {
+  if (state.error) return { kind: "error" };
+  if (rows === undefined) return { kind: "loading" };
+  if (rows.length === 0) return { kind: state.filtered ? "noResults" : "empty" };
+  return { kind: "data", rows: rows.map((row) => ({ ...row, id: row.installmentId })) };
 }

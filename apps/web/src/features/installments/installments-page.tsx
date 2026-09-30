@@ -12,6 +12,7 @@ import { InstallmentsControls } from "./installments-controls";
 import type { InstallmentFilters } from "./filters";
 import { InstallmentsTable } from "./installments-table";
 import { useInstallments } from "./logic";
+import { PaymentEntry } from "./payment/payment-entry";
 
 export function InstallmentsPagination({
   data,
@@ -61,37 +62,49 @@ function hasInstallmentFilters(filters: InstallmentFilters): boolean {
 
 export function InstallmentsPage(): ReactElement {
   const { filters, data, query, setPage, setPageSize, setSearch, setFilters } = useInstallments();
+  const visible =
+    data?.view === "overdue" ? data.groups.flatMap((group) => group.rows) : (data?.rows ?? []);
   return (
-    <DataTablePage
-      title="Recebíveis"
-      controls={
-        <InstallmentsControls
-          search={filters.search}
-          filters={filters}
-          onSearch={setSearch}
-          onFilters={setFilters}
-        />
-      }
-    >
-      <InstallmentsTable
-        rows={data?.view === "all" || data?.view === "paid" ? data.rows : undefined}
-        groups={data?.view === "overdue" ? data.groups : undefined}
-        error={query.isError}
-        filtered={hasInstallmentFilters(filters)}
-        showOverdueSearchGuidance={filters.status === "vencidas" && filters.search.trim() !== ""}
-        updating={query.isFetching}
-        onRetry={() => {
-          void query.refetch();
-        }}
-        footer={
-          <>
-            <p role="status" className="sr-only">
-              {query.isFetching ? "Atualizando recebíveis" : ""}
-            </p>
-            <InstallmentsPagination {...{ data, filters, setPage, setPageSize }} />
-          </>
-        }
-      />
-    </DataTablePage>
+    <PaymentEntry visible={visible}>
+      {({ action, toolbar }) => (
+        <DataTablePage
+          title="Recebíveis"
+          controls={
+            <div className="flex flex-wrap items-center gap-2">
+              <InstallmentsControls
+                search={filters.search}
+                filters={filters}
+                onSearch={setSearch}
+                onFilters={setFilters}
+              />
+              {action}
+            </div>
+          }
+        >
+          <InstallmentsTable
+            rows={data?.view === "all" || data?.view === "paid" ? data.rows : undefined}
+            groups={data?.view === "overdue" ? data.groups : undefined}
+            error={query.isError}
+            filtered={hasInstallmentFilters(filters)}
+            showOverdueSearchGuidance={
+              filters.status === "vencidas" && filters.search.trim() !== ""
+            }
+            updating={query.isFetching}
+            onRetry={() => {
+              void query.refetch();
+            }}
+            footer={
+              <div className="relative">
+                <p role="status" className="sr-only">
+                  {query.isFetching ? "Atualizando recebíveis" : ""}
+                </p>
+                <InstallmentsPagination {...{ data, filters, setPage, setPageSize }} />
+                {toolbar}
+              </div>
+            }
+          />
+        </DataTablePage>
+      )}
+    </PaymentEntry>
   );
 }

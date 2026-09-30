@@ -149,7 +149,7 @@ export async function createFinancialRulesFixture(): Promise<
     installmentCount: 4,
     amountCents: TEN_THOUSAND_CENTS,
     dueDate: "2026-02-28",
-    beneficiaryNames: ["Ana Visível", "Bia Visível"],
+    beneficiaryNames: ["Ana Visível"],
   });
   const [partialId = "", paidId = "", waivedId = "", zeroExpectedId = ""] = fixture.installmentIds;
   await db.installmentAdjustment.createMany({
@@ -191,8 +191,15 @@ export async function createVisibilityFixture(): Promise<{
   excludedOrderIds: string[];
 }> {
   const active = await createInstallmentOrder({
-    beneficiaryNames: ["Ativa", "Vínculo excluído", "Aluna excluída"],
+    beneficiaryNames: ["Ativa"],
   });
+  const historicalStudents = await createBeneficiaries(["Vínculo excluído", "Aluna excluída"]);
+  for (const student of historicalStudents) {
+    await db.orderBeneficiary.create({
+      data: { orderId: active.orderId, studentId: student.id, deletedAt: INSTALLMENTS_NOW },
+    });
+    active.studentIds.push(student.id);
+  }
   const deletedInstallment = await createInstallmentOrder({ payerName: "Parcela excluída" });
   const deletedOrder = await createInstallmentOrder({ payerName: "Pedido excluído" });
   const deletedPayer = await createInstallmentOrder({ payerName: "Pagador excluído" });

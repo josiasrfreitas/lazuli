@@ -308,7 +308,7 @@ async function completeDatabaseInitialization({ root, workspace, journalPath, ou
     output("Loading database fixtures...");
     runWorkspaceCommand({
       command: "pnpm",
-      arguments_: ["prisma:seed"],
+      arguments_: ["-F", "@lazuli/db", "exec", "prisma", "db", "seed"],
       root,
       capability: "database initialization",
       environment: { LAZULI_WORKSPACE_INITIALIZATION_KEY: WORKSPACE_FULL_INITIALIZATION_KEY },

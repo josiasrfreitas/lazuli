@@ -37,7 +37,7 @@
     "prisma:migrate": "pnpm -F @lazuli/db prisma:migrate",
     "prisma:deploy": "pnpm -F @lazuli/db prisma:deploy",
     "prisma:drift": "pnpm -F @lazuli/db prisma:drift",
-    "prisma:seed": "pnpm -F @lazuli/db prisma:seed",
+    "prisma:seed": "pnpm seed",
     "bootstrap:worktree": "bash scripts/bootstrap-worktree.sh",
     "workspace:setup": "node scripts/workspace-setup.mjs",
     "workspace:fixtures": "node scripts/workspace-fixtures.mjs",
@@ -45,11 +45,12 @@
     "workspace:teardown": "node scripts/workspace-teardown.mjs",
     "workspace:gc": "node scripts/workspace-gc.mjs",
     "workspace:status": "node scripts/workspace-status.mjs",
-    "seed:gcs": "bash scripts/seed-gcs.sh",
-    "seed:settings": "dotenv -e .env -- node --import tsx scripts/seed-settings.ts",
-    "seed:contracts": "pnpm seed:settings && dotenv -e .env -- node --import tsx scripts/seed-contracts.ts",
+    "seed:gcs": "pnpm seed",
+    "seed:settings": "pnpm seed",
+    "seed:contracts": "pnpm seed",
     "prepare": "lefthook install",
-    "lint:root": "eslint eslint.config.js scripts"
+    "lint:root": "eslint eslint.config.js scripts",
+    "seed": "node scripts/seed.mjs"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

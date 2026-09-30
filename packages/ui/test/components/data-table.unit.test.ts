@@ -17,7 +17,7 @@ const columns: readonly DataTableColumn<Row>[] = [
 ];
 const rows = [{ id: "one", name: "Ana", amount: "R$ 250,00" }];
 
-function render(state: DataTableState<Row>): string {
+function render(state: DataTableState<Row>, customFooter = false): string {
   return renderToStaticMarkup(
     createElement(DataTable<Row>, {
       label: "Tabela de teste",
@@ -27,9 +27,20 @@ function render(state: DataTableState<Row>): string {
       empty: { title: "Nenhum item cadastrado", description: "Cadastre um item." },
       errorTitle: "Não foi possível carregar os itens",
       pagination: { page: 1, pageSize: 10, pageCount: 1, totalItems: 1 },
+      ...(customFooter
+        ? { footer: createElement("button", null, "Registrar pagamento"), updating: true }
+        : {}),
     }),
   );
 }
+
+void it("preserves rows while replacing pagination with a custom footer during refresh", () => {
+  const markup = render({ kind: "data", rows }, true);
+  assert.match(markup, /aria-busy="true"/u);
+  assert.match(markup, />Ana<\/td>/u);
+  assert.doesNotMatch(markup, /data-slot="table-pagination"/u);
+  assert.match(markup, /data-slot="table-container-footer"><button>Registrar pagamento<\/button>/u);
+});
 
 void it("renders declared columns, standard density, stable headers and pinned pagination", () => {
   const markup = render({ kind: "data", rows });

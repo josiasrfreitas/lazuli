@@ -144,7 +144,7 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
       cancellationFeePct: settings.cancellationFeePct,
       orders: {
         create: {
-          kind: "CONTRACT",
+          kind: "TUITION",
           principalAmountCents: preview.principalAmountCents,
           startDate: toDateOnly(values.startsOn),
           dueDay: Number(values.firstDueDate.slice(DUE_DAY_START, DUE_DAY_END)),

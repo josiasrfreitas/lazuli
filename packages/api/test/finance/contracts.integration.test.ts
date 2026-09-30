@@ -103,6 +103,7 @@ async function creationIsAtomicAndStable(): Promise<void> {
     where: { contractId: created.id },
     include: { installments: { orderBy: { sequenceNumber: "asc" } } },
   });
+  assert.equal(order.kind, "TUITION");
   assert.deepEqual(
     order.installments
       .slice(0, DUE_SAMPLE_COUNT)
@@ -481,12 +482,6 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
         finance(tx, ADMIN.id).registerPayment({ ...first, commandId: undefined }),
       ),
       /identificador da operacao/,
-    );
-    await assert.rejects(
-      db.$transaction((tx) =>
-        finance(tx, ADMIN.id).registerPayment({ ...first, date: new Date("2026-04-01T00:00:00Z") }),
-      ),
-      /em atraso ainda indisponivel/,
     );
     await assert.rejects(
       db.$transaction(async (tx) => {

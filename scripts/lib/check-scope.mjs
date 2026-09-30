@@ -53,7 +53,9 @@ const FULL_WORKSPACE_SCRIPTS = new Set([
   "scripts/workspace-fixtures.mjs",
   "scripts/workspace-teardown.mjs",
   "scripts/workspace-gc.mjs",
+  "scripts/seed.mjs",
   "scripts/seed-gcs.sh",
+  "scripts/load-gcs.mjs",
   "scripts/bootstrap-worktree.sh",
   "scripts/lib/workspace-full.mjs",
   "scripts/lib/workspace-gcs.mjs",
@@ -76,7 +78,8 @@ const SCRIPT_CATEGORIES = new Set([
 ]);
 const DOC_PATTERN = /^(docs\/|[^/]+\.md$|\.design\/)/u;
 const WORKSPACE_PATTERN = /^(apps|packages|tooling)\/[^/]+(?:\/|$)/u;
-const DB_SCHEMA_PATTERN = /^packages\/db\/(prisma\/|src\/seed)|^scripts\/seed(?:-settings)?\.ts$/u;
+const DB_SCHEMA_PATTERN =
+  /^packages\/db\/(prisma\/|src\/seed)|^scripts\/(?:seed(?:-(?:settings|contracts))?\.ts|seed\/.+\.ts)$/u;
 const CI_PATTERN = /^\.github\/(workflows|pullfrog)\//u;
 
 export function classifyChanges(files, { root = process.cwd() } = {}) {

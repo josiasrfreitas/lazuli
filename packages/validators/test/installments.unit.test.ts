@@ -47,7 +47,7 @@ void it("validates the overdue summary and its nested identities and installment
   assert.equal(
     financeOverduePayerGroupSchema.safeParse({
       ...group,
-      rows: [{ ...row, origin: "CONTRACT" }],
+      rows: [{ ...row, origin: "MATERIAL" }],
     }).success,
     true,
   );

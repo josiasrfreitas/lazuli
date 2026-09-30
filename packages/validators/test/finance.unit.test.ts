@@ -44,6 +44,31 @@ const ORDER_FIELDS = {
   signedOrderArtifactId: ARTIFACT_ID,
 };
 
+for (const beneficiaryStudentIds of [[], [STUDENT_ID, ORDER_ID]]) {
+  void it(`requires exactly one beneficiary when creating or editing an order (${beneficiaryStudentIds.length})`, () => {
+    const create = financeCreateOrderInputSchema.safeParse({
+      ...ORDER_FIELDS,
+      payer: { mode: "existing", payerId: PAYER_ID },
+      beneficiaryStudentIds,
+    });
+    const update = financeUpdateOrderInputSchema.safeParse({
+      ...ORDER_FIELDS,
+      orderId: ORDER_ID,
+      beneficiaryStudentIds,
+    });
+    assert.equal(create.success, false);
+    assert.equal(update.success, false);
+    assert.deepEqual(
+      create.error?.issues.map((issue) => issue.path),
+      [["beneficiaryStudentIds"]],
+    );
+    assert.deepEqual(
+      update.error?.issues.map((issue) => issue.path),
+      [["beneficiaryStudentIds"]],
+    );
+  });
+}
+
 void describe("finance enum input", () => {
   void it("accepts only the school due-day options", () => {
     assert.equal(dueDaySchema.safeParse(DUE_DAY_FIFTH).success, true);
@@ -59,7 +84,7 @@ void describe("finance enum input", () => {
     assert.equal(orderKindSchema.safeParse("ENROLLMENT_FEE").success, true);
     assert.equal(orderKindSchema.safeParse("MATERIAL").success, true);
     assert.equal(orderKindSchema.safeParse("OTHER").success, true);
-    assert.equal(orderKindSchema.safeParse("CONTRACT").success, true);
+    assert.equal(orderKindSchema.safeParse("CONTRACT").success, false);
     assert.equal(orderKindSchema.safeParse("SERVICE").success, false);
     assert.equal(paymentMethodSchema.safeParse("PIX").success, true);
     assert.equal(paymentMethodSchema.safeParse("CASH").success, true);
@@ -76,7 +101,7 @@ void describe("finance enum input", () => {
   });
 });
 
-void it("rejects contractual orders in the existing create and update routes", () => {
+void it("rejects the obsolete contract kind in the existing create and update routes", () => {
   assert.equal(
     financeCreateOrderInputSchema.safeParse({
       ...ORDER_FIELDS,

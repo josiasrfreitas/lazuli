@@ -10,7 +10,7 @@ const STATUS_FACTS = Prisma.sql`
   LEFT JOIN LATERAL (
     SELECT o.id, o.cancelled_at, o.installment_count
     FROM "Order" o
-    WHERE o.contract_id = filtered.id AND o.kind = 'CONTRACT'
+    WHERE o.contract_id = filtered.id AND o.kind = 'TUITION'
     LIMIT 1
   ) contract_order ON true
   LEFT JOIN LATERAL (

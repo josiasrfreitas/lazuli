@@ -12,10 +12,10 @@ import { TableSkeleton } from "./table-skeleton";
 /** Cell renderers return content, never table markup. Sizing and alignment belong here. */
 export type DataTableColumn<Row> = {
   id: string;
-  header: string;
+  header: ReactNode;
   cell: (row: Row) => ReactNode;
   numeric?: boolean;
-  width?: "wide" | "medium" | "standard" | "narrow";
+  width?: "wide" | "medium" | "standard" | "narrow" | "selection";
 };
 
 export type DataTableState<Row> =
@@ -26,13 +26,22 @@ export type DataTableProps<Row extends { id: string }> = {
   label: string;
   columns: readonly DataTableColumn<Row>[];
   state: DataTableState<Row>;
-  pagination: TablePaginationConfig;
+  pagination?: TablePaginationConfig;
+  footer?: ReactNode;
+  beforeTable?: ReactNode;
+  updating?: boolean;
   onRetry: () => void;
   empty: { title: string; description: string };
   errorTitle: string;
 };
 
-const COLUMN_WIDTHS = { wide: 240, medium: 192, standard: 144, narrow: 112 } as const;
+const COLUMN_WIDTHS = {
+  wide: 240,
+  medium: 192,
+  standard: 144,
+  narrow: 112,
+  selection: 40,
+} as const;
 const SKELETON_ROWS = 10;
 
 function StateRows<Row extends { id: string }>({
@@ -94,8 +103,17 @@ export function DataTable<Row extends { id: string }>(props: DataTableProps<Row>
     0,
   );
   return (
-    <TableContainer viewportBound footer={<TablePagination {...pagination} />}>
-      <Table aria-label={label} className="table-fixed" style={{ minWidth: minimumWidth }}>
+    <TableContainer
+      viewportBound
+      footer={props.footer ?? (pagination ? <TablePagination {...pagination} /> : undefined)}
+    >
+      {props.beforeTable}
+      <Table
+        aria-label={label}
+        aria-busy={props.updating}
+        className="table-fixed"
+        style={{ minWidth: minimumWidth }}
+      >
         <TableHeader sticky>
           <TableRow interactive={false}>
             {columns.map((column) => (
