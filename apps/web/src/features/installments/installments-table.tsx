@@ -19,25 +19,28 @@ function InstallmentsHead(): ReactElement {
   return (
     <TableHeader sticky>
       <TableRow interactive={false}>
-        <TableHead id={COLUMN_IDS.installment} className="w-1/12">
+        <TableHead id={COLUMN_IDS.installment} className="w-28">
           Sequência
         </TableHead>
-        <TableHead id={COLUMN_IDS.origin} className="w-2/12">
+        <TableHead id={COLUMN_IDS.origin} className="w-24">
           Origem
         </TableHead>
-        <TableHead id={COLUMN_IDS.payer} className="w-2/12">
+        <TableHead id={COLUMN_IDS.payer} className="w-28">
           Pagador
         </TableHead>
-        <TableHead id={COLUMN_IDS.beneficiaries} className="w-2/12">
+        <TableHead id={COLUMN_IDS.beneficiaries} className="w-30">
           Beneficiário
         </TableHead>
-        <TableHead id={COLUMN_IDS.dueDate} className="w-1/12">
+        <TableHead id={COLUMN_IDS.dueDate} className="w-28">
           Vencimento
         </TableHead>
-        <TableHead id={COLUMN_IDS.amount} className="w-2/12" numeric>
-          Valor
+        <TableHead id={COLUMN_IDS.nominal} className="w-36" numeric>
+          Valor nominal
         </TableHead>
-        <TableHead id={COLUMN_IDS.status} className="w-2/12">
+        <TableHead id={COLUMN_IDS.paid} className="w-32" numeric>
+          Valor pago
+        </TableHead>
+        <TableHead id={COLUMN_IDS.status} className="w-40">
           Situação
         </TableHead>
       </TableRow>
@@ -52,9 +55,10 @@ type TableState = {
   showOverdueSearchGuidance?: boolean;
   onRetry: () => void;
 };
-const COLUMN_COUNT = 7;
-const AMOUNT_COLUMN_INDEX = 5;
-const NUMERIC_COLUMNS = [AMOUNT_COLUMN_INDEX];
+const COLUMN_COUNT = 8;
+const NOMINAL_COLUMN_INDEX = 5;
+const PAID_COLUMN_INDEX = 6;
+const NUMERIC_COLUMNS = [NOMINAL_COLUMN_INDEX, PAID_COLUMN_INDEX];
 const SKELETON_ROWS = 10;
 function InstallmentsBody({
   rows,

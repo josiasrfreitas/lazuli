@@ -5,6 +5,7 @@ import {
   addCalendarMonths,
   previewMonthlyContract,
   priceAfterDiscountCents,
+  punctualityDiscountOnPayment,
 } from "../src/monthly-contract.js";
 
 const TERM_MONTHS = 12;
@@ -17,6 +18,32 @@ const ROUNDING_DISCOUNT_PCT = 50;
 const EXPECTED_ROUNDED_CENTS = 51;
 
 void describe("monthly contract", () => {
+  void it("earns punctuality only when cumulative receipts reach the on-time price by the due date", () => {
+    const base = {
+      nominalCents: 25_000,
+      discountPct: 8,
+      dueDate: "2026-03-31",
+      effectiveDate: "2026-03-31",
+    };
+    assert.equal(punctualityDiscountOnPayment({ ...base, paidCents: 0, incomingCents: 10_000 }), 0);
+    assert.equal(
+      punctualityDiscountOnPayment({ ...base, paidCents: 10_000, incomingCents: 13_000 }),
+      2000,
+    );
+    assert.equal(
+      punctualityDiscountOnPayment({
+        ...base,
+        paidCents: 10_000,
+        incomingCents: 13_000,
+        effectiveDate: "2026-04-01",
+      }),
+      0,
+    );
+    assert.equal(
+      punctualityDiscountOnPayment({ ...base, paidCents: 24_000, incomingCents: 1000 }),
+      0,
+    );
+  });
   void it("ends a twelve-month term on the same calendar day and preserves the nominal total", () => {
     const preview = previewMonthlyContract({
       startsOn: "2026-03-15",

@@ -23,6 +23,16 @@ const financeSettings = {
   cancellationFeePct: 10,
   materialPriceCents: 0,
 };
+type PaymentResponse = {
+  result: {
+    data: {
+      json: {
+        paymentEntry: { id: string; amountCents: number };
+        allocations: Array<{ amountCents: number }>;
+      };
+    };
+  };
+};
 
 async function cleanup(): Promise<void> {
   const contracts = await db.contract.findMany({
@@ -33,6 +43,16 @@ async function cleanup(): Promise<void> {
   const orders = await db.order.findMany({
     where: { contractId: { in: ids } },
     select: { id: true },
+  });
+  const payments = await db.paymentEntry.findMany({
+    where: { payer: { name: { startsWith: PREFIX } } },
+    select: { id: true },
+  });
+  const paymentIds = payments.map((row) => row.id);
+  await db.paymentAllocation.deleteMany({ where: { paymentEntryId: { in: paymentIds } } });
+  await db.paymentEntry.deleteMany({ where: { id: { in: paymentIds } } });
+  await db.installmentAdjustment.deleteMany({
+    where: { installment: { orderId: { in: orders.map((row) => row.id) } } },
   });
   await db.installment.deleteMany({ where: { orderId: { in: orders.map((row) => row.id) } } });
   await db.order.deleteMany({ where: { contractId: { in: ids } } });
@@ -180,6 +200,69 @@ async function requiresStaffSession(): Promise<void> {
   assert.equal(response.status, UNAUTHORIZED_STATUS);
 }
 
+async function paysContractThroughHttp(): Promise<void> {
+  const payer = await db.payer.create({ data: { name: `${PREFIX}payment payer` } });
+  const student = await db.student.create({
+    data: { fullName: `${PREFIX}payment student`, status: "ACTIVE" },
+  });
+  await db.financeSettings.upsert({
+    where: { id: "singleton" },
+    create: { id: "singleton", ...financeSettings },
+    update: financeSettings,
+  });
+  const creation = await callHttpMutation({
+    path: "finance.createMonthlyContract",
+    body: {
+      commandId: randomUUID(),
+      payerId: payer.id,
+      studentId: student.id,
+      agreedOn: "2026-03-15",
+      startsOn: "2026-03-15",
+      durationMonths: 12,
+      installmentCount: 3,
+      firstDueDate: "2026-03-31",
+      monthlyAmountCents: 25_000,
+      punctualityDiscountPct: 20,
+    },
+  });
+  assert.equal(creation.status, OK_STATUS);
+  const created = (await creation.json()) as { result: { data: { json: { id: string } } } };
+  const contract = await db.contract.findUniqueOrThrow({
+    where: { id: created.result.data.json.id },
+    include: {
+      payer: true,
+      orders: { include: { installments: { orderBy: { sequenceNumber: "asc" } } } },
+    },
+  });
+  const installmentId = contract.orders[0]?.installments[0]?.id ?? "";
+  const request = {
+    commandId: randomUUID(),
+    payerId: contract.payerId,
+    date: "2026-03-31",
+    amountCents: 80_000,
+    method: "PIX",
+    allocations: [{ installmentId, amountCents: 80_000 }],
+  };
+  const first = await callHttpMutation({ path: "finance.registerPayment", body: request });
+  const replay = await callHttpMutation({ path: "finance.registerPayment", body: request });
+  assert.equal(first.status, OK_STATUS);
+  assert.equal(replay.status, OK_STATUS);
+  const firstBody = (await first.json()) as PaymentResponse;
+  const replayBody = (await replay.json()) as PaymentResponse;
+  assert.deepEqual(replayBody, firstBody);
+  assert.deepEqual(
+    firstBody.result.data.json.allocations.map((row) => row.amountCents),
+    [80_000],
+  );
+  assert.equal(await db.installmentAdjustment.count({ where: { installmentId } }), 1);
+  const unauthenticated = await callHttpMutation({
+    path: "finance.registerPayment",
+    body: request,
+    staffUser: null,
+  });
+  assert.equal(unauthenticated.status, UNAUTHORIZED_STATUS);
+}
+
 void describe("monthly contract HTTP transport", { concurrency: 1 }, () => {
   void before(async () => {
     await db.$connect();
@@ -187,5 +270,9 @@ void describe("monthly contract HTTP transport", { concurrency: 1 }, () => {
   });
   void after(cleanup);
   void it("creates through HTTP and returns the agreement in the list", createThroughHttp);
+  void it(
+    "serializes one contract payment and replays its command without another discount",
+    paysContractThroughHttp,
+  );
   void it("requires an authorized staff session", requiresStaffSession);
 });

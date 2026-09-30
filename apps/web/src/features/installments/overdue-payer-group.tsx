@@ -19,7 +19,8 @@ const OVERDUE_COLUMNS = [
   { key: "origin", label: "Origem" },
   { key: "beneficiaries", label: "Beneficiário" },
   { key: "due-date", label: "Vencimento" },
-  { key: "amount", label: "Em aberto" },
+  { key: "nominal", label: "Valor nominal" },
+  { key: "paid", label: "Valor pago" },
   { key: "status", label: "Atraso" },
 ] as const;
 
@@ -59,11 +60,15 @@ function OverdueInstallmentRow({
       <TableCell headers={`${groupHeadingId}-column-due-date`}>
         <span className="font-numeric whitespace-nowrap tabular-nums">{vm.dueDate}</span>
       </TableCell>
-      <TableCell headers={`${groupHeadingId}-column-amount`} numeric>
-        <InstallmentAmount row={row} />
+      <TableCell headers={`${groupHeadingId}-column-nominal`} numeric>
+        <InstallmentAmount row={row} column="nominal" />
+      </TableCell>
+      <TableCell headers={`${groupHeadingId}-column-paid`} numeric>
+        <InstallmentAmount row={row} column="paid" />
       </TableCell>
       <TableCell headers={`${groupHeadingId}-column-status`} numeric>
-        <Badge variant="destructive">
+        <Badge variant="destructive" className="whitespace-nowrap">
+          {row.paidAmountCents > 0 ? "Parcial · " : ""}
           {row.overdueDays} {row.overdueDays === 1 ? "dia" : "dias"}
         </Badge>
       </TableCell>
@@ -143,11 +148,12 @@ function OverdueInstallmentsTable({
       >
         <colgroup>
           <col className="w-24" />
-          <col className="w-36" />
+          <col className="w-28" />
           <col />
           <col className="w-32" />
-          <col className="w-60" />
-          <col className="w-28" />
+          <col className="w-36" />
+          <col className="w-32" />
+          <col className="w-36" />
         </colgroup>
         <OverdueInstallmentsHead groupHeadingId={groupHeadingId} />
         <TableBody>
@@ -174,7 +180,7 @@ function OverdueInstallmentsHead({ groupHeadingId }: { groupHeadingId: string })
             id={`${groupHeadingId}-column-${column.key}`}
             key={column.key}
             scope="col"
-            numeric={column.key === "amount" || column.key === "status"}
+            numeric={column.key === "nominal" || column.key === "paid" || column.key === "status"}
           >
             {column.label}
           </TableHead>

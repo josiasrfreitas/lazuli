@@ -12,7 +12,11 @@ export type LoadedInstallment = {
   amountCents: number;
   dueDate: Date;
   waivedAt: Date | null;
-  order: { payerId: string | null; contract: { payerId: string } | null; cancelledAt: Date | null };
+  order: {
+    payerId: string | null;
+    contract: { payerId: string; punctualityDiscountPct: { toNumber(): number } | null } | null;
+    cancelledAt: Date | null;
+  };
   adjustments: Array<{ amountCents: number }>;
   allocations: Array<{ amountCents: number }>;
 };
@@ -47,6 +51,8 @@ const paymentAllocationSelect = {
 export async function persistPayment(input: {
   database: FinanceDatabase;
   values: {
+    commandId?: string | undefined;
+    commandFingerprint?: string | undefined;
     payerId: string;
     date: Date;
     amountCents: number;
@@ -60,6 +66,8 @@ export async function persistPayment(input: {
   const paymentEntry = await input.database.paymentEntry.create({
     data: {
       payerId: input.values.payerId,
+      commandId: input.values.commandId ?? null,
+      commandFingerprint: input.values.commandFingerprint ?? null,
       date: input.values.date,
       amountCents: input.values.amountCents,
       method: input.values.method,
@@ -115,7 +123,11 @@ export async function loadInstallments(
       dueDate: true,
       waivedAt: true,
       order: {
-        select: { payerId: true, contract: { select: { payerId: true } }, cancelledAt: true },
+        select: {
+          payerId: true,
+          contract: { select: { payerId: true, punctualityDiscountPct: true } },
+          cancelledAt: true,
+        },
       },
     },
   });

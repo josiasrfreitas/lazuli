@@ -93,6 +93,7 @@ export const financeInstallmentRowSchema = z
     expectedAmountCents: z.number().int(),
     paidAmountCents: z.number().int(),
     collectibleBalanceCents: z.number().int().nonnegative(),
+    onTimeAmountCents: z.number().int().nonnegative().nullable(),
     status: financeInstallmentStatusSchema,
     overdueDays: z.number().int().nonnegative(),
   })
@@ -234,6 +235,7 @@ export const financeUpdateOrderInputSchema = orderCommercialFieldsSchema
 
 export const financeRegisterPaymentInputSchema = z
   .object({
+    commandId: z.string().uuid().optional(),
     payerId: z.string().uuid(INVALID_PAYER_ID_MESSAGE),
     date: dateOnlyInputSchema,
     amountCents: z

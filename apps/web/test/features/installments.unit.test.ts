@@ -87,6 +87,7 @@ const row: FinanceInstallmentRow = {
   expectedAmountCents: 36_000,
   paidAmountCents: 10_000,
   collectibleBalanceCents: 26_000,
+  onTimeAmountCents: null,
   status: "OVERDUE",
   overdueDays: 14,
 };
@@ -254,63 +255,82 @@ void test("financial presentation keeps status and due date separate from the am
     sequence: "6 de 12",
     origin: "Mensalidade",
     dueDate: "01/09/2026",
-    badge: { label: "Vencida há 14 dias", variant: "destructive" },
+    badge: {
+      label: "Parcial · Vencida",
+      variant: "destructive",
+      description: "Vencida há 14 dias",
+    },
   });
   assert.deepEqual(installmentVm({ ...row, overdueDays: 1 }, TODAY).badge, {
-    label: "Vencida há 1 dia",
+    label: "Parcial · Vencida",
+    description: "Vencida há 1 dia",
     variant: "destructive",
   });
 });
 
-void test("amount presentation distinguishes saldo, recebido, nominal and net adjustments", () => {
+void test("amount columns show nominal and receipts with only applied discounts", () => {
+  const contract = {
+    ...row,
+    originalAmountCents: 25_000,
+    expectedAmountCents: 25_000,
+    paidAmountCents: 0,
+    collectibleBalanceCents: 25_000,
+    onTimeAmountCents: 23_000,
+    status: "UPCOMING" as const,
+  };
+  assert.deepEqual(installmentAmountVm(contract), {
+    nominal: "R$\u00A0250,00",
+    paid: "—",
+    discount: null,
+  });
+  assert.deepEqual(installmentAmountVm({ ...contract, paidAmountCents: 10_000 }), {
+    nominal: "R$\u00A0250,00",
+    paid: "R$\u00A0100,00",
+    discount: null,
+  });
   assert.deepEqual(
     installmentAmountVm({
-      ...row,
-      originalAmountCents: 25_000,
-      expectedAmountCents: 28_000,
-      paidAmountCents: 0,
-      collectibleBalanceCents: 28_000,
-      status: "UPCOMING",
-    }),
-    {
-      label: "Saldo",
-      value: "R$\u00A0280,00",
-      nominal: "R$\u00A0250,00",
-      adjustment: { label: "Acréscimo", value: "R$\u00A030,00" },
-      received: null,
-    },
-  );
-  assert.deepEqual(
-    installmentAmountVm({
-      ...row,
-      originalAmountCents: 25_000,
+      ...contract,
       expectedAmountCents: 23_000,
       paidAmountCents: 23_000,
       collectibleBalanceCents: 0,
+      onTimeAmountCents: null,
       status: "PAID",
     }),
     {
-      label: "Recebido",
-      value: "R$\u00A0230,00",
       nominal: "R$\u00A0250,00",
-      adjustment: { label: "Desconto", value: "R$\u00A020,00" },
-      received: null,
+      paid: "R$\u00A0230,00",
+      discount: "Desconto aplicado: 8%",
     },
   );
-  assert.deepEqual(installmentAmountVm({ ...row, status: "WAIVED", collectibleBalanceCents: 0 }), {
-    label: "Saldo",
-    value: "R$\u00A00,00",
-    nominal: "R$\u00A0350,00",
-    adjustment: { label: "Acréscimo", value: "R$\u00A010,00" },
-    received: "R$\u00A0100,00",
-  });
+  assert.deepEqual(
+    installmentAmountVm({ ...contract, status: "WAIVED", onTimeAmountCents: null }),
+    { nominal: "R$\u00A0250,00", paid: "—", discount: null },
+  );
   assert.deepEqual(installmentAmountVm(row), {
-    label: "Saldo",
-    value: "R$\u00A0260,00",
     nominal: "R$\u00A0350,00",
-    adjustment: { label: "Acréscimo", value: "R$\u00A010,00" },
-    received: "R$\u00A0100,00",
+    paid: "R$\u00A0100,00",
+    discount: null,
   });
+});
+
+void test("partial payments stay visible in open and overdue status without overriding settlement", () => {
+  assert.deepEqual(installmentVm({ ...row, status: "UPCOMING" }, TODAY).badge, {
+    label: "Parcial",
+    variant: "warning",
+  });
+  assert.deepEqual(installmentVm(row, TODAY).badge, {
+    label: "Parcial · Vencida",
+    description: "Vencida há 14 dias",
+    variant: "destructive",
+  });
+  assert.deepEqual(
+    installmentVm({ ...row, status: "PAID", collectibleBalanceCents: 0 }, TODAY).badge,
+    {
+      label: "Paga",
+      variant: "success",
+    },
+  );
 });
 
 void test("origin labels preserve every historical order kind", () => {
@@ -354,11 +374,11 @@ void test("civil dates and due-today warnings respect Sao Paulo and settled stat
   assert.equal(businessDate(new Date("2026-09-02T02:59:59Z")), DUE_DATE);
   assert.equal(businessDate(new Date("2026-09-02T03:00:00Z")), "2026-09-02");
   for (const status of ["DUE_THIS_MONTH", "UPCOMING"] as const) {
-    assert.deepEqual(installmentVm({ ...row, status }, DUE_DATE).badge, {
+    assert.deepEqual(installmentVm({ ...row, status, paidAmountCents: 0 }, DUE_DATE).badge, {
       label: "Vence hoje",
       variant: "warning",
     });
-    assert.deepEqual(installmentVm({ ...row, status }, "2026-08-31").badge, {
+    assert.deepEqual(installmentVm({ ...row, status, paidAmountCents: 0 }, "2026-08-31").badge, {
       label: "A vencer",
       variant: "neutral",
     });
