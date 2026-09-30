@@ -113,7 +113,7 @@ function orderedPayments(payments: SettlementPayment[]): SettlementPayment[] {
   const result: SettlementPayment[] = [];
   for (const payment of payments) {
     const index = result.findIndex((entry) => entry.date > payment.date);
-    result.splice(index < 0 ? result.length : index, 0, payment);
+    result.splice(index === -1 ? result.length : index, 0, payment);
   }
   return result;
 }

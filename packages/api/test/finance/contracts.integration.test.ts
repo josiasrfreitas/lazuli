@@ -484,12 +484,6 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
       /identificador da operacao/,
     );
     await assert.rejects(
-      db.$transaction((tx) =>
-        finance(tx, ADMIN.id).registerPayment({ ...first, date: new Date("2026-04-01T00:00:00Z") }),
-      ),
-      /em atraso ainda indisponivel/,
-    );
-    await assert.rejects(
       db.$transaction(async (tx) => {
         await finance(tx, ADMIN.id).registerPayment({
           ...first,

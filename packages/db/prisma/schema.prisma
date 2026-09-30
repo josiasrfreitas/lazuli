@@ -697,6 +697,7 @@ model Installment {
 }
 
 model InstallmentAdjustment {
+  effectiveDate DateTime? @map("effective_date") @db.Date
   id            String                    @id @default(uuid()) @db.Uuid
   createdAt     DateTime                  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime                  @updatedAt @map("updated_at") @db.Timestamptz
@@ -718,6 +719,8 @@ model InstallmentAdjustment {
 }
 
 model PaymentEntry {
+  operationId String? @map("operation_id") @db.Uuid
+  operationFingerprint String? @map("operation_fingerprint")
   id                String        @id @default(uuid()) @db.Uuid
   commandId         String?       @unique @map("command_id") @db.Uuid
   commandFingerprint String?      @map("command_fingerprint")
@@ -738,6 +741,7 @@ model PaymentEntry {
   updatedBy   User?               @relation("PaymentEntryUpdater", fields: [updatedById], references: [id], onDelete: Restrict)
   allocations PaymentAllocation[]
 
+  @@index([operationId])
   @@index([payerId])
   @@index([createdById])
   @@index([updatedById])

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
-import { punctualityDiscountOnPayment } from "@lazuli/domain";
+import { prepareContractPayment } from "./contract-payment.js";
+import { persistSettlementAdjustments } from "./settlement-write.js";
 import type { financeRegisterPaymentInputSchema, z } from "@lazuli/validators";
 
 import {
@@ -15,10 +16,6 @@ import {
 } from "./payment-store.js";
 import {
   badRequest,
-  CANCELLED_ORDER_INSTALLMENT_MESSAGE,
-  CONTRACT_LATE_PAYMENT_UNAVAILABLE_MESSAGE,
-  CONTRACT_OPERATION_UNAVAILABLE_MESSAGE,
-  CONTRACT_PAYMENT_COMMAND_REQUIRED_MESSAGE,
   ENTRY_OVER_ALLOCATION_MESSAGE,
   INSTALLMENT_NOT_FOUND_MESSAGE,
   INSTALLMENT_OVER_ALLOCATION_MESSAGE,
@@ -52,6 +49,7 @@ export async function registerPayment(input: {
   database: FinanceDatabase;
   values: RegisterPaymentInput;
   staffUserId: string;
+  now?: Date;
 }): Promise<RegisterPaymentResult> {
   const existing = await findPaymentCommand(input.database, input.values);
   if (existing) return existing;
@@ -69,7 +67,7 @@ export async function registerPayment(input: {
 
   const installments = await loadInstallments(input.database, installmentIds);
   assertAllInstallmentsFound(installments, installmentIds);
-  const discounts = assertInstallmentsAllocatable({
+  assertInstallmentsAllocatable({
     installments,
     allocations: allocationRows,
     payerId: input.values.payerId,
@@ -77,10 +75,11 @@ export async function registerPayment(input: {
     commandId: input.values.commandId,
   });
 
-  await persistPunctualityDiscounts({
-    database: input.database,
-    staffUserId: input.staffUserId,
-    discounts,
+  const lines = await prepareContractPayment({ ...input, now: input.now ?? new Date() });
+  await persistSettlementAdjustments({
+    ...input,
+    date: input.values.date.toISOString().slice(0, DATE_ONLY_LENGTH),
+    lines,
   });
 
   const { paymentEntry, allocations } = await persistPayment({
@@ -98,25 +97,6 @@ export async function registerPayment(input: {
     allocations,
     unallocatedRemainderCents: input.values.amountCents - allocationTotalCents,
   };
-}
-
-async function persistPunctualityDiscounts(input: {
-  database: FinanceDatabase;
-  staffUserId: string;
-  discounts: PunctualityAdjustment[];
-}): Promise<void> {
-  for (const discount of input.discounts) {
-    await input.database.installmentAdjustment.create({
-      data: {
-        installmentId: discount.installmentId,
-        type: "DISCOUNT",
-        amountCents: -discount.amountCents,
-        reason: "Pontualidade contratual",
-        createdById: input.staffUserId,
-        updatedById: input.staffUserId,
-      },
-    });
-  }
 }
 
 function fingerprint(values: RegisterPaymentInput): string {
@@ -239,43 +219,10 @@ function validateAllocation(values: {
   }
   if (installment.waivedAt !== null) throw badRequest(WAIVED_INSTALLMENT_ALLOCATION_MESSAGE);
   if (installment.order.contract !== null) {
-    return validateContractAllocation({ installment, allocation, input });
+    return 0;
   }
   if (allocation.amountCents > calculateRemainingBalanceCents(installment)) {
     throw badRequest(INSTALLMENT_OVER_ALLOCATION_MESSAGE);
   }
   return 0;
-}
-
-function validateContractAllocation(values: {
-  installment: LoadedInstallment;
-  allocation: PaymentAllocationInput;
-  input: PaymentValidation;
-}): number {
-  const { installment, allocation, input } = values;
-  const contract = installment.order.contract;
-  if (contract === null) throw badRequest(CONTRACT_OPERATION_UNAVAILABLE_MESSAGE);
-  if (installment.order.cancelledAt !== null) throw badRequest(CANCELLED_ORDER_INSTALLMENT_MESSAGE);
-  if (contract.punctualityDiscountPct === null) {
-    throw badRequest(CONTRACT_OPERATION_UNAVAILABLE_MESSAGE);
-  }
-  if (!input.commandId) throw badRequest(CONTRACT_PAYMENT_COMMAND_REQUIRED_MESSAGE);
-  if (input.date > installment.dueDate) throw badRequest(CONTRACT_LATE_PAYMENT_UNAVAILABLE_MESSAGE);
-  const remainingCents = calculateRemainingBalanceCents(installment);
-  if (allocation.amountCents <= 0 || remainingCents <= 0) {
-    throw badRequest(INSTALLMENT_OVER_ALLOCATION_MESSAGE);
-  }
-  const paidCents = installment.allocations.reduce((sum, row) => sum + row.amountCents, 0);
-  const discountCents = punctualityDiscountOnPayment({
-    nominalCents: installment.amountCents,
-    discountPct: contract.punctualityDiscountPct.toNumber(),
-    paidCents,
-    incomingCents: allocation.amountCents,
-    dueDate: installment.dueDate.toISOString().slice(0, DATE_ONLY_LENGTH),
-    effectiveDate: input.date.toISOString().slice(0, DATE_ONLY_LENGTH),
-  });
-  if (allocation.amountCents > remainingCents - discountCents) {
-    throw badRequest(INSTALLMENT_OVER_ALLOCATION_MESSAGE);
-  }
-  return discountCents;
 }

@@ -145,3 +145,9 @@ export {
 } from "./reports.js";
 export type { ArtifactKind, ArtifactStatus, GetArtifactOutput } from "./reports.js";
 export { detectPersonDocument } from "./person-document.js";
+export {
+  paymentPreviewSchema,
+  paymentOperationSchema,
+  type PaymentPreviewInput,
+  type PaymentOperationInput,
+} from "./payment-operation.js";

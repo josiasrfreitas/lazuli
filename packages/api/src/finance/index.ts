@@ -1,3 +1,6 @@
+import { previewPayments } from "./internal/payment-preview.js";
+import { confirmPayments } from "./internal/payment-operation.js";
+import type { PaymentPreviewInput, PaymentOperationInput } from "@lazuli/validators";
 import { searchContractParties } from "./internal/contract-parties.js";
 import { batchReconcile, type BatchReconcileResult } from "./internal/batch-reconcile.js";
 import {
@@ -57,6 +60,8 @@ import type {
  */
 export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule {
   return {
+    previewPayments: (values, now) => previewPayments({ database: db, values, now }),
+    confirmPayments: (values, now) => confirmPayments({ database: db, values, staffUserId, now }),
     readSettings: () => readSettings(db),
     saveSettings: (values) => saveSettings({ database: db, staffUserId, values }),
     createPayer: (values) => createPayer({ database: db, values, staffUserId }),
@@ -81,6 +86,8 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
 }
 
 export type FinanceModule = {
+  previewPayments: (values: PaymentPreviewInput, now: Date) => ReturnType<typeof previewPayments>;
+  confirmPayments: (values: PaymentOperationInput, now: Date) => ReturnType<typeof confirmPayments>;
   readSettings: () => ReturnType<typeof readSettings>;
   saveSettings: (values: FinanceSettingsInput) => ReturnType<typeof saveSettings>;
   createPayer: (values: z.infer<typeof payerCreateProcedureInputSchema>) => Promise<Payer>;
