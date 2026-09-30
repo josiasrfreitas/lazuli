@@ -75,3 +75,20 @@ Executados um por vez; Turbo com `--concurrency=1`:
 Não foi utilizado o placeholder `test:e2e` como evidência. Os testes de navegador
 acima foram conduzidos no navegador do Orca. CI e revisão do PR são acompanhados
 separadamente após a publicação.
+
+## Correção após revisão do PR #154
+
+O review identificou que descontos/correções históricos alteravam a base somente
+após os pagamentos anteriores. O teste independente falhou com R$ 23,22 em vez
+de R$ 19,60 de novos juros. A leitura dos fatos de cada parcela agora respeita
+suas datas efetivas, usando a data civil de São Paulo para ajustes antigos sem
+data efetiva. Não há reescrita de fatos ou novo fluxo para criar ajustes.
+
+Exemplo: R$ 1.000 − R$ 200 em 31/01; receber R$ 108 em 10/02 deixa R$ 700
+(R$ 8 de juros); correção +R$ 100 em 15/02; receber R$ 107,50 em 20/02 deixa
+R$ 700 (R$ 7,50 de juros novos); em 28/02 surgem R$ 19,60, quitando por R$ 719,60.
+Parcelas já quitadas no ledger não ganham juros por causa da data de registro de
+um desconto antigo de pontualidade.
+
+Após a correção: 133 unitários de domínio e 108 testes de integração/transporte de
+Financeiro passaram, incluindo a nova sequência com desconto, correção e parciais.

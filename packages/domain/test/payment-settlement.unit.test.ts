@@ -6,7 +6,7 @@ const overdue: SettlementInput = {
   nominalCents: 100_000,
   terms: { dueDate: "2026-01-31", dailyPct: 0.1, monthlyPct: 2, discountPct: 0 },
   payments: [],
-  adjustmentCents: 0,
+  principalAdjustments: [],
   postedInterestCents: 0,
   effectiveDate: "2026-02-10",
 };
@@ -23,7 +23,6 @@ void describe("payment settlement", () => {
     const second = {
       ...overdue,
       effectiveDate: "2026-02-28",
-      adjustmentCents: 1000,
       postedInterestCents: 1000,
       payments: [{ date: "2026-02-10", amountCents: 21_000 }],
     };
@@ -32,7 +31,6 @@ void describe("payment settlement", () => {
     const third = quoteSettlement({
       ...second,
       effectiveDate: "2026-03-31",
-      adjustmentCents: 4040,
       postedInterestCents: 4040,
       payments: [...second.payments, { date: "2026-02-28", amountCents: 13_040 }],
     });
@@ -85,7 +83,6 @@ void describe("payment settlement", () => {
     assert.equal(
       quoteSettlement({
         ...tiny,
-        adjustmentCents: 1,
         postedInterestCents: 1,
         payments: [{ date: "2026-02-01", amountCents: 1 }],
       }).newInterestCents,
@@ -100,11 +97,44 @@ void describe("payment settlement", () => {
     const result = quoteSettlement({
       ...overdue,
       effectiveDate: "2026-02-20",
-      adjustmentCents: 1000,
       postedInterestCents: 1000,
       payments: [{ date: "2026-02-10", amountCents: 500 }],
     });
     assert.equal(result.newInterestCents, 1000);
     assert.equal(result.settlementCents, 101_500);
   });
+});
+
+void it("uses dated principal adjustments before and between partial payments", () => {
+  // Jan 31: 1000 - 200 = 800; Feb 10: interest 8, receipt 108 leaves 700.
+  // Feb 15: interest 3.50, correction +100 leaves 800; Feb 20: interest 4,
+  // receipt 107.50 leaves 700. Feb 28 adds 5.60 daily +14 monthly.
+  const result = quoteSettlement({
+    ...overdue,
+    effectiveDate: "2026-02-28",
+    postedInterestCents: 1550,
+    principalAdjustments: [
+      { date: "2026-01-31", amountCents: -20_000 },
+      { date: "2026-02-15", amountCents: 10_000 },
+    ],
+    payments: [
+      { date: "2026-02-10", amountCents: 10_800 },
+      { date: "2026-02-20", amountCents: 10_750 },
+    ],
+  });
+  assert.equal(result.newInterestCents, 1960);
+  assert.equal(result.settlementCents, 71_960);
+});
+
+void it("keeps a settled ledger closed when an older punctuality discount has only its recording date", () => {
+  const result = quoteSettlement({
+    ...overdue,
+    effectiveDate: "2026-09-30",
+    terms: { ...overdue.terms, discountPct: 20 },
+    principalAdjustments: [{ date: "2026-09-29", amountCents: -20_000 }],
+    payments: [{ date: "2026-01-31", amountCents: 80_000 }],
+  });
+  assert.equal(result.balanceCents, 0);
+  assert.equal(result.newInterestCents, 0);
+  assert.equal(result.settlementCents, 0);
 });

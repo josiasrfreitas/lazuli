@@ -45,7 +45,14 @@ export function settlementLine(input: {
       date: toDateOnlyString(row.paymentEntry.date),
       amountCents: row.amountCents,
     })),
-    adjustmentCents: item.adjustments.reduce((sum, row) => sum + row.amountCents, 0),
+    principalAdjustments: item.adjustments
+      .filter((row) => row.type !== "INTEREST")
+      .map((row) => ({
+        date: row.effectiveDate
+          ? toDateOnlyString(row.effectiveDate)
+          : saoPauloDateOnly(row.createdAt),
+        amountCents: row.amountCents,
+      })),
     postedInterestCents: item.adjustments
       .filter((row) => row.type === "INTEREST")
       .reduce((sum, row) => sum + row.amountCents, 0),

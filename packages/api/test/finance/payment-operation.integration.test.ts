@@ -197,3 +197,42 @@ void it("preserves separate receipts for the same payer and accepts mixed contra
     new Set(result.map((receipt) => receipt.id)),
   );
 });
+
+void it("reads effective adjustment dates and legacy São Paulo dates before accruing through partial payments", async () => {
+  const item = await paymentFixture(PREFIX);
+  await db.installmentAdjustment.create({
+    data: {
+      installmentId: item.installmentId,
+      type: "DISCOUNT",
+      amountCents: -20_000,
+      effectiveDate: new Date("2026-01-31"),
+    },
+  });
+  await confirmPaymentCommand(
+    await paymentCommand({ ...item, date: "2026-02-10", amountCents: 10_800 }),
+  );
+  await db.installmentAdjustment.create({
+    data: {
+      installmentId: item.installmentId,
+      type: "CORRECTION",
+      amountCents: 10_000,
+      createdAt: new Date("2026-02-16T01:00:00Z"),
+    },
+  });
+  await confirmPaymentCommand(
+    await paymentCommand({ ...item, date: "2026-02-20", amountCents: 10_750 }),
+  );
+  const final = await paymentCommand({ ...item, date: "2026-02-28" });
+  assert.equal(final.receipts[0]?.amountCents, 71_960);
+  await confirmPaymentCommand(final);
+  const interest = await db.installmentAdjustment.findMany({
+    where: { installmentId: item.installmentId, type: "INTEREST" },
+    orderBy: { effectiveDate: "asc" },
+  });
+  assert.deepEqual(
+    interest.map((row) => row.amountCents),
+    [800, 750, 1960],
+  );
+  const settled = await paymentCommand({ ...item, date: "2026-03-31" });
+  assert.equal(settled.receipts[0]?.amountCents, 0);
+});
