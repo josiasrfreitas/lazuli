@@ -32,15 +32,17 @@ void it("renders one real form with masked date and compact named payment contro
   const inputs = (html.match(/<input\b[^>]*>/g) ?? []).filter(
     (tag) => !tag.includes('type="hidden"') && !tag.includes('aria-hidden="true"'),
   );
-  assert.equal(inputs.length, 3);
+  assert.equal(inputs.length, 2);
   for (const input of inputs) {
     assert.match(input, /name="[^"]+"/);
     assert.match(input, /placeholder="[^"]+"/);
     assert.match(input, /autoComplete="off"/i);
     assert.match(input, /data-size="sm"/);
   }
-  assert.match(html, /Saldo registrado/);
-  assert.match(html, /Recebimentos · confira os totais/);
+  assert.match(html, /Saldo/);
+  assert.doesNotMatch(html, /Recebimentos · confira os totais|name="total-/);
+  assert.match(html, /desconto/);
+  assert.doesNotMatch(html, /\+ R\$[^<]*juros/);
   assert.doesNotMatch(html, /Continuar|Stepper|Pagamento registrado/);
 });
 void it("shows preview failure without claiming settlement or successful registration", () => {
@@ -83,4 +85,54 @@ void it("opens the main entry with an accessible search field inside the payment
   assert.match(html, /Busque e adicione os recebíveis para registrar/);
   assert.equal((html.match(/<form\b/g) ?? []).length, 1);
   queryClient.clear();
+});
+
+void it("names each receipt by payer and keeps its allocated installments together", () => {
+  const first = PAYMENT_DRAFT.items[0]!;
+  const draft = {
+    ...PAYMENT_DRAFT,
+    items: [
+      { ...first, amount: 10000 },
+      {
+        ...first,
+        row: { ...first.row, installmentId: "second-installment", sequenceNumber: 2 },
+        amount: 5000,
+      },
+      {
+        ...first,
+        receiptId: "separate-receipt",
+        row: {
+          ...first.row,
+          installmentId: "third-installment",
+          payer: { id: "other-payer", name: "Outro pagador" },
+        },
+        amount: 7000,
+      },
+    ],
+  };
+  const html = renderToStaticMarkup(
+    createElement(PaymentForm, { state: { ...state, draft }, children: null }),
+  );
+  const sections = html.match(/<section\b[\s\S]*?<\/section>/g) ?? [];
+  assert.equal(sections.length, 2);
+  assert.match(sections[0], /Pagador homônimo/);
+  assert.match(sections[0], /2 parcelas · 1 recebimento/);
+  assert.match(sections[0], /R\$\u00A0150,00/);
+  assert.match(sections[0], /name="received-second-installment"/);
+  assert.doesNotMatch(sections[0], /Outro pagador|received-third-installment/);
+  assert.match(sections[1]!, /Outro pagador/);
+  assert.match(sections[1]!, /R\$\u00A070,00/);
+  assert.match(sections[1]!, /name="received-third-installment"/);
+});
+
+void it("does not describe an invalid received amount as a full settlement", () => {
+  for (const amount of [0, null, 30000]) {
+    const draft = { ...PAYMENT_DRAFT, items: [{ ...PAYMENT_DRAFT.items[0]!, amount }] };
+    const html = renderToStaticMarkup(
+      createElement(PaymentForm, { state: { ...state, draft }, children: null }),
+    );
+    assert.match(html, /aria-invalid="true"/);
+    assert.match(html, /Informe um valor positivo até a quitação/);
+    assert.doesNotMatch(html, /Quitação integral/);
+  }
 });

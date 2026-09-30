@@ -1,5 +1,7 @@
-import { useState, type ReactElement } from "react";
-import { Button, Field, Input, Label } from "@lazuli/ui";
+import { useId, useState, type ReactElement } from "react";
+import { Plus, X } from "lucide-react";
+import { SearchField } from "./payment-search-field";
+import { Button } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
 import { formatBRLFromCents as money } from "~/lib/format";
 import { usePaymentSearch, type PaymentFormState } from "./logic";
@@ -7,6 +9,7 @@ import { paymentDateLabel } from "./draft";
 import { originLabel } from "../view-model";
 export function PaymentPicker({ state }: { state: PaymentFormState }): ReactElement {
   const [open, setOpen] = useState(state.draft.items.length === 0);
+  const searchId = useId();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const query = usePaymentSearch({ search, page, enabled: open });
@@ -14,34 +17,28 @@ export function PaymentPicker({ state }: { state: PaymentFormState }): ReactElem
   const rows = data && data.view !== "overdue" ? data.rows : [];
   return (
     <div className="grid gap-2">
-      <Button
-        type="button"
-        size="sm"
-        variant="secondary"
-        className="justify-self-start"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
-        {open ? "Fechar busca" : "Adicionar recebíveis"}
-      </Button>
+      <PickerHeader
+        count={state.draft.items.length}
+        open={open}
+        searchId={searchId}
+        onToggle={() => setOpen(!open)}
+      />
       {open && (
-        <div className="grid gap-2 rounded-md border border-border p-3">
-          <Field>
-            <Label>Buscar por pagador ou aluno</Label>
-            <Input
-              name="search"
-              autoComplete="off"
-              placeholder="Nome do pagador ou aluno"
-              size="sm"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-            />
-          </Field>
+        <div id={searchId} className="grid gap-2 rounded-md border border-border bg-muted/20 p-3">
+          <SearchField
+            value={search}
+            onChange={(value) => {
+              setSearch(value);
+              setPage(1);
+            }}
+          />
           <SearchStatus query={query} />
-          <SearchResults rows={rows} state={state} loading={query.isFetching} />
+          <SearchResults
+            rows={rows}
+            state={state}
+            loading={query.isFetching}
+            onAdded={() => setOpen(false)}
+          />
           <SearchPagination page={page} pages={data?.pageCount ?? 1} setPage={setPage} />
         </div>
       )}
@@ -52,19 +49,22 @@ function SearchResults({
   rows,
   state,
   loading,
+  onAdded,
 }: {
   rows: FinanceInstallmentRow[];
   state: PaymentFormState;
   loading: boolean;
+  onAdded: () => void;
 }): ReactElement {
+  const availableRows = rows.filter((row) => isAvailable(row, state));
   return (
     <div className="max-h-48 space-y-1 overflow-y-auto">
-      {!loading && rows.length === 0 && (
+      {!loading && availableRows.length === 0 && (
         <p className="text-caption">Nenhum recebível encontrado.</p>
       )}
-      {rows.map((row) => (
+      {availableRows.map((row) => (
         <div
-          className="flex items-center gap-3 border-b border-border py-2"
+          className="flex items-center gap-3 border-b border-border py-2 last:border-0"
           key={row.installmentId}
         >
           <div className="min-w-0 flex-1 break-words text-caption">
@@ -75,17 +75,15 @@ function SearchResults({
               {originLabel(row.origin)} · {row.sequenceNumber}/{row.scheduleTotal} ·{" "}
               {paymentDateLabel(row.dueDate)} · {money(row.collectibleBalanceCents)}
             </p>
-            <p className="break-all text-muted-foreground">Pedido {row.orderId}</p>
           </div>
           <Button
             type="button"
             size="sm"
             variant="secondary"
-            disabled={
-              row.collectibleBalanceCents <= 0 ||
-              state.draft.items.some((item) => item.row.installmentId === row.installmentId)
-            }
-            onClick={() => state.dispatch({ type: "add", row, receiptId: crypto.randomUUID() })}
+            onClick={() => {
+              state.dispatch({ type: "add", row, receiptId: crypto.randomUUID() });
+              onAdded();
+            }}
           >
             Adicionar
           </Button>
@@ -103,6 +101,7 @@ function SearchPagination({
   pages: number;
   setPage: (page: number) => void;
 }): ReactElement {
+  if (pages <= 1) return <></>;
   return (
     <div className="flex items-center justify-end gap-2">
       <Button
@@ -147,6 +146,50 @@ function SearchStatus({ query }: { query: ReturnType<typeof usePaymentSearch> })
         >
           Falha na busca. Tentar novamente
         </Button>
+      )}
+    </>
+  );
+}
+
+function isAvailable(row: FinanceInstallmentRow, state: PaymentFormState): boolean {
+  return (
+    row.collectibleBalanceCents > 0 &&
+    !state.draft.items.some((item) => item.row.installmentId === row.installmentId)
+  );
+}
+
+function PickerHeader({
+  count,
+  open,
+  searchId,
+  onToggle,
+}: {
+  count: number;
+  open: boolean;
+  searchId: string;
+  onToggle: () => void;
+}): ReactElement {
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-control font-semibold">Parcelas{count > 0 ? ` (${count})` : ""}</h3>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="shrink-0"
+          aria-controls={searchId}
+          aria-expanded={open}
+          onClick={onToggle}
+        >
+          {open ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}
+          {open ? "Fechar busca" : "Adicionar parcela"}
+        </Button>
+      </div>
+      {count === 0 && (
+        <p className="text-caption text-muted-foreground">
+          Busque e adicione os recebíveis para registrar.
+        </p>
       )}
     </>
   );

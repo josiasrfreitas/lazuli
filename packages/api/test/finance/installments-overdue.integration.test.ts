@@ -130,7 +130,7 @@ function registerSearchTest(): void {
     const overdue = await read({ view: "overdue", search: "aGuLhA" });
     const all = await read({ search: "aGuLhA" });
     const paidTab = await read({ view: "paid", search: "aGuLhA" });
-    assert.deepEqual(overdue.counts, { all: 3, paid: 0, overdue: 3 });
+    assert.deepEqual(overdue.counts, { all: 1, paid: 0, overdue: 3 });
     assert.deepEqual(all.counts, overdue.counts);
     assert.deepEqual(paidTab.counts, overdue.counts);
     assert.deepEqual(
@@ -154,12 +154,7 @@ function registerSearchTest(): void {
         { groups: [], total: 0, pages: 0, overdue: 0 },
       );
     }
-    await db.orderBeneficiary.delete({
-      where: { orderId_studentId: { orderId: bruno.orderId, studentId: ana.studentIds[0] ?? "" } },
-    });
-    const expanded = await read({ view: "overdue", search: "Agulha" });
-    assert.deepEqual(expanded.counts, { all: 1, paid: 0, overdue: 3 });
-    assert.equal(expanded.groups[0]?.installmentCount, GROUP_INSTALLMENT_COUNT);
+    assert.equal(overdue.groups[0]?.installmentCount, GROUP_INSTALLMENT_COUNT);
   });
 }
 
@@ -289,9 +284,6 @@ async function createSearchFixture(): Promise<{
     beneficiaryNames: ["Bruno"],
   });
   await db.order.update({ where: { id: bruno.orderId }, data: { payerId: ana.payerId } });
-  await db.orderBeneficiary.create({
-    data: { orderId: bruno.orderId, studentId: ana.studentIds[0] ?? "" },
-  });
   const future = await createOrder({ beneficiaryNames: ["Só Futura"] });
   await db.order.update({ where: { id: future.orderId }, data: { payerId: ana.payerId } });
   const paid = await createOrder({ dueDate: "2026-02-01", beneficiaryNames: ["Só Quitada"] });

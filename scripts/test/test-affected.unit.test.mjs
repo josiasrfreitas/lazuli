@@ -41,7 +41,7 @@ it("classifies documentation, light scripts, full setup, schema, and global conf
     true,
   );
   assert.equal(classifyChanges(["pnpm-lock.yaml"], { root: directory }).all, true);
-  const settingsSeed = classifyChanges(["scripts/seed-settings.ts"], { root: directory });
+  const settingsSeed = classifyChanges(["scripts/seed/settings.ts"], { root: directory });
   assert.deepEqual(settingsSeed.workspaceDirectories, ["packages/db"]);
   assert.equal(settingsSeed.forceInfrastructureTiers, true);
   assert.throws(

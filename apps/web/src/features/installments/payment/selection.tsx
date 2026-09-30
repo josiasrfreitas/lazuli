@@ -29,21 +29,23 @@ export function toggleVisibleSelection(
     ? rows.filter((row) => !visibleIds.has(row.installmentId))
     : [...rows, ...eligible.filter((row) => !selected.has(row.installmentId))];
 }
-export function PaymentSelectionCell({ row }: { row: FinanceInstallmentRow }): ReactElement | null {
+export function PaymentSelectionCheckbox({
+  row,
+}: {
+  row: FinanceInstallmentRow;
+}): ReactElement | null {
   const selection = useContext(PaymentSelectionContext);
   if (!selection) return null;
   return (
-    <TableCell>
-      <Checkbox
-        aria-label={`Selecionar ${row.payer.name}, parcela ${row.sequenceNumber}, vencimento ${row.dueDate}`}
-        checked={selection.rows.some((item) => item.installmentId === row.installmentId)}
-        disabled={row.collectibleBalanceCents <= 0}
-        onCheckedChange={() => selection.toggle(row)}
-      />
-    </TableCell>
+    <Checkbox
+      aria-label={`Selecionar ${row.payer.name}, parcela ${row.sequenceNumber}, vencimento ${row.dueDate}`}
+      checked={selection.rows.some((item) => item.installmentId === row.installmentId)}
+      disabled={row.collectibleBalanceCents <= 0}
+      onCheckedChange={() => selection.toggle(row)}
+    />
   );
 }
-export function PaymentSelectionHead(): ReactElement | null {
+export function PaymentSelectionHeaderCheckbox(): ReactElement | null {
   const selection = useContext(PaymentSelectionContext);
   if (!selection) return null;
   const eligible = selection.visible.filter((row) => row.collectibleBalanceCents > 0);
@@ -51,14 +53,27 @@ export function PaymentSelectionHead(): ReactElement | null {
     selection.rows.some((item) => item.installmentId === row.installmentId),
   ).length;
   return (
+    <Checkbox
+      aria-label="Selecionar recebíveis visíveis"
+      disabled={eligible.length === 0}
+      checked={count > 0 && count === eligible.length}
+      indeterminate={count > 0 && count < eligible.length}
+      onCheckedChange={selection.toggleVisible}
+    />
+  );
+}
+
+export function PaymentSelectionCell({ row }: { row: FinanceInstallmentRow }): ReactElement {
+  return (
+    <TableCell>
+      <PaymentSelectionCheckbox row={row} />
+    </TableCell>
+  );
+}
+export function PaymentSelectionHead(): ReactElement {
+  return (
     <TableHead className="w-10">
-      <Checkbox
-        aria-label="Selecionar recebíveis visíveis"
-        disabled={eligible.length === 0}
-        checked={count > 0 && count === eligible.length}
-        indeterminate={count > 0 && count < eligible.length}
-        onCheckedChange={selection.toggleVisible}
-      />
+      <PaymentSelectionHeaderCheckbox />
     </TableHead>
   );
 }

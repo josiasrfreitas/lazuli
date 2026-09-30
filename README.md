@@ -111,29 +111,25 @@ Google values together to enable the Google button; a partial pair is rejected.
 `pnpm bootstrap:worktree` remains a temporary bridge for worktrees created before this flow. It
 refuses a checkout with `.lazuli/workspace.json` so legacy and light ownership cannot mix.
 
-### Refreshing and resetting development data
+### Rebuilding development data
 
-Use `pnpm workspace:fixtures refresh` in a full worktree to reapply the idempotent database
-fixtures and overwrite every versioned object under `infra/local/gcs-seed`. It preserves additional
-database records and GCS objects. Deleted or manually changed records outside the fixture upserts
-may remain, so refresh is not a clean snapshot guarantee.
+Run `pnpm seed` in a full worktree to erase its database and fake-GCS bucket, apply migrations,
+and load the complete development dataset. This includes staff, students, classes, attendance,
+finance settings, standalone orders, contracts, payments, and versioned GCS fixture files.
+Every order has one active beneficiary; every contract has one student. Students can share a payer.
+Manual edits, extra records, and extra bucket objects are removed on every run.
 
-Use `pnpm seed:settings` to initialize the local finance settings shown at `/ajustes`: R$ 250
-tuition ceiling, 20% maximum discount, 0.1% daily interest, 2% monthly interest, 10% cancellation
-fee, and R$ 120 material price. It requires the existing development system administrator and
-preserves any saved configuration, including its author and timestamp, on subsequent runs.
+The former `prisma:seed`, `seed:settings`, `seed:contracts`, `seed:gcs`, and
+`workspace:fixtures refresh` commands now delegate to the same complete reset.
+`workspace:reset` also rebuilds the same dataset, retaining its interactive confirmation and
+`--yes` option. Resource ownership is checked before removal. Shared Compose services,
+Mailpit, Hatchet, and other worktrees are preserved. Repeat `pnpm seed` after a failed run.
 
-Use `pnpm workspace:reset` when a clean worktree database and bucket are required. The command
-prints their exact names and requires interactive confirmation. Automation must opt in explicitly
-with `pnpm workspace:reset --yes`; a non-interactive invocation without `--yes` fails. Reset removes
-and recreates only resources whose persisted worktree identity, `.env` configuration, local
-endpoints, and Lazuli Compose container labels all agree. It reapplies deployed migrations and
-loads initial database and GCS fixtures. The Compose stack, Mailpit, Hatchet, and other worktrees'
-resources are preserved.
+Finance settings include a R$ 250 tuition ceiling, 20% maximum discount, 10% punctuality discount,
+0.1% daily interest, 2% monthly interest, 10% cancellation fee, and R$ 120 material price.
+The system administrator remains the distinct `sistema@lazuli.local` account.
 
-If reset stops partway through, run `pnpm workspace:reset --yes` again or recover with
-`pnpm workspace:setup full`. The pending initialization journal makes database initialization
-resumable. Product lifecycle and financial-history rules still apply to the application itself.
+See [decision 0024](docs/decisions/0024-rebuild-development-data-through-one-seed.md).
 
 For coding-agent constraints, verification expectations, and documentation routing, read
 [`AGENTS.md`](AGENTS.md). Folder-specific operational notes remain in

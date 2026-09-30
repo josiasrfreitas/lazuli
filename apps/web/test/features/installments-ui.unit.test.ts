@@ -9,7 +9,7 @@ import { InstallmentsTable } from "../../src/features/installments/installments-
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 9;
 const PAYER_ONE_ID = "11111111-1111-4111-8111-111111111111";
 const PAYER_TWO_ID = "22222222-2222-4222-8222-222222222222";
 const INSTALLMENT_ONE_ID = "66666666-6666-4666-8666-666666666666";
@@ -96,7 +96,7 @@ void test("overdue pagination counts payer groups and has no size selector", () 
   assert.match(overduePaginationMarkup(2), /11–11 de .*11.* pagadores/u);
   assert.doesNotMatch(overduePaginationMarkup(1), /Itens por página/u);
 });
-void test("table retains eight semantic columns and distinguishes loading, empty, filtered and error", () => {
+void test("table retains selection and eight semantic columns and distinguishes loading, empty, filtered and error", () => {
   const base = { error: false, filtered: false, updating: false, onRetry: () => {}, footer: null };
   const loading = renderToStaticMarkup(
     createElement(InstallmentsTable, { ...base, rows: undefined, updating: true }),
@@ -120,7 +120,7 @@ void test("table retains eight semantic columns and distinguishes loading, empty
   const filtered = renderToStaticMarkup(
     createElement(InstallmentsTable, { ...base, rows: [], filtered: true }),
   );
-  assert.match(filtered, /Nenhum recebível encontrado/u);
+  assert.match(filtered, /Nenhum resultado encontrado/u);
   const error = renderToStaticMarkup(
     createElement(InstallmentsTable, { ...base, rows: undefined, error: true }),
   );
@@ -224,8 +224,8 @@ void test("flat rows separate nominal and paid amounts with an accessible discou
       footer: null,
     }),
   );
-  assert.match(markup, /headers="installments-column-nominal"/u);
-  assert.match(markup, /headers="installments-column-paid"/u);
+  assert.match(markup, /scope="col">Valor nominal<\/th>/u);
+  assert.match(markup, /scope="col">Valor pago<\/th>/u);
   assert.match(markup, />R\$\u00A0250,00</u);
   assert.match(markup, />R\$\u00A0230,00</u);
   assert.match(markup, /aria-label="R\$\u00A0230,00\. Desconto aplicado: 8%"/u);
@@ -280,7 +280,7 @@ void test("flat table preserves the overdue status and permits wrapping in compa
   );
   assert.match(
     markup,
-    /headers="installments-column-installment"[^>]*><span class="font-numeric whitespace-nowrap tabular-nums">6 de 12<\/span>/u,
+    /data-slot="table-cell"[^>]*><span class="font-numeric whitespace-nowrap tabular-nums">6 de 12<\/span>/u,
   );
   assert.match(markup, /title="Vencida há 14 dias"/u);
   assert.match(markup, /class="[^"]*whitespace-normal[^"]*"[^>]*>Parcial · Vencida<\/span>/u);
@@ -358,9 +358,9 @@ void test("nominal and partial receipts show no available-discount indicators", 
   assert.match(markup, />R\$\u00A0100,00</u);
   assert.match(markup, />Parcial<\/span>/u);
   assert.doesNotMatch(markup, /Desconto aplicado:|Quitação em dia:|data-slot="tooltip-trigger"/u);
-  const cells = [
-    ...markup.matchAll(/<td[^>]*headers="installments-column-(?:nominal|paid)"[^>]*>(.*?)<\/td>/gu),
-  ];
+  const rowMarkup = markup.match(/<tbody[^>]*>(.*?)<\/tbody>/u)?.[1];
+  assert.ok(rowMarkup);
+  const cells = [...rowMarkup.matchAll(/<td[^>]*>(.*?)<\/td>/gu)].slice(6, 8);
   assert.equal(cells.length, 2);
   for (const [, cell] of cells) assert.doesNotMatch(cell!, /<(?:div|br|p)\b|class="block/u);
 });

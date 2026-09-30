@@ -199,7 +199,7 @@ const orderCommercialFieldsSchema = z.object({
   kind: orderKindSchema,
   beneficiaryStudentIds: z
     .array(z.string().uuid("Identificador de aluno invalido."))
-    .min(1, "Informe ao menos um beneficiario."),
+    .length(1, "Informe exatamente um beneficiário."),
   principalAmountCents: z
     .number()
     .int("Valor principal deve ser inteiro.")

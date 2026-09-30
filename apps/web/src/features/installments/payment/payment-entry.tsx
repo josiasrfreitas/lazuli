@@ -1,6 +1,7 @@
 "use client";
 import { useState, type ReactElement, type ReactNode } from "react";
-import { Button } from "@lazuli/ui";
+import { DollarSign, X } from "lucide-react";
+import { Button, FloatingToolbar } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
 import { PaymentDialog } from "./payment-dialog";
 import { PaymentSelectionContext, toggleSelected, toggleVisibleSelection } from "./selection";
@@ -21,6 +22,7 @@ export function PaymentEntry({
   ).length;
   const action = (
     <Button size="sm" onClick={() => begin([])}>
+      <DollarSign aria-hidden="true" />
       Registrar pagamento
     </Button>
   );
@@ -67,21 +69,18 @@ function SelectionToolbar({
   begin: () => void;
 }): ReactElement {
   return (
-    <div
-      role="region"
-      aria-label="Recebíveis selecionados"
-      className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-3 rounded-lg border border-border bg-popover px-4 py-2 shadow-lg"
-    >
+    <FloatingToolbar aria-label="Recebíveis selecionados">
+      <Button size="icon-sm" variant="ghost" aria-label="Limpar seleção" onClick={clear}>
+        <X aria-hidden="true" />
+      </Button>
       <span role="status" className="text-caption">
         {count} selecionados{outside > 0 ? ` · ${outside} fora da vista` : ""}
       </span>
-      <Button size="sm" variant="ghost" onClick={clear}>
-        Limpar seleção
-      </Button>
       <Button size="sm" onClick={begin}>
+        <DollarSign aria-hidden="true" />
         Registrar pagamento
       </Button>
-    </div>
+    </FloatingToolbar>
   );
 }
 

@@ -26,7 +26,7 @@ void describe("contract order parties", { concurrency: 1 }, () => {
 });
 
 function registerReadTest(): void {
-  void it("reads contractual parties in receivables and student totals while preserving historical siblings", async () => {
+  void it("reads contractual parties in receivables and student totals with one student per standalone order", async () => {
     const fixture = await createReadFixture();
     await assertInstallmentsRead(fixture);
     await assertStudentAndDashboardRead(fixture);
@@ -115,7 +115,18 @@ async function createReadFixture(): Promise<{
       principalAmountCents: AMOUNT,
       startDate: DUE,
       dueDay: 10,
-      beneficiaries: { create: [{ studentId: student.id }, { studentId: sibling.id }] },
+      beneficiaries: { create: { studentId: student.id } },
+      installments: { create: { sequenceNumber: 1, amountCents: AMOUNT, dueDate: DUE } },
+    },
+  });
+  await db.order.create({
+    data: {
+      payerId: otherPayer.id,
+      kind: "TUITION",
+      principalAmountCents: AMOUNT,
+      startDate: DUE,
+      dueDay: 10,
+      beneficiaries: { create: { studentId: sibling.id } },
       installments: { create: { sequenceNumber: 1, amountCents: AMOUNT, dueDate: DUE } },
     },
   });
@@ -145,7 +156,7 @@ async function assertInstallmentsRead(fixture: Fixture): Promise<void> {
   assert.equal(contractRow?.origin, "TUITION");
   assert.deepEqual(
     new Set(historicalRow?.beneficiaries.map(({ studentId }) => studentId)),
-    new Set([fixture.student.id, fixture.sibling.id]),
+    new Set([fixture.student.id]),
   );
   const byStudent = await api.installments({ view: "all", ...PAGE, search: `${PREFIX}Ana` }, NOW);
   assert.strictEqual(byStudent.view, "all");
@@ -160,8 +171,10 @@ async function assertInstallmentsRead(fixture: Fixture): Promise<void> {
     fixture.contractualId,
   );
   assert.equal(
-    grouped.groups.find((group) => group.payer.id === fixture.otherPayer.id)?.rows[0]?.orderId,
-    fixture.historicalId,
+    grouped.groups
+      .find((group) => group.payer.id === fixture.otherPayer.id)
+      ?.rows.some((row) => row.orderId === fixture.historicalId),
+    true,
   );
 }
 

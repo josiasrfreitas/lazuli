@@ -43,6 +43,10 @@ async function copyCheckout(target) {
     path.join(target, "packages/db/node_modules"),
   );
   await symlink(
+    path.join(repositoryRoot, "packages/api/node_modules"),
+    path.join(target, "packages/api/node_modules"),
+  );
+  await symlink(
     path.join(repositoryRoot, "packages/db/src/generated"),
     path.join(target, "packages/db/src/generated"),
   );
@@ -243,10 +247,24 @@ test("full setup, maintenance, and teardown isolate real worktree resources", as
       resources[0].resources.database,
       `SELECT count(*) FROM "User" WHERE email = 'extra@local.test'`,
     ),
-    "1",
+    "0",
   );
   assert.equal(downloadObject(resources[0].resources.bucket, fixtureObject), originalFixture);
-  assert.equal(downloadObject(resources[0].resources.bucket, extraObject), "keep\n");
+  assert.equal(
+    spawnSync(
+      "curl",
+      [
+        "-s",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        `http://localhost:4443/storage/v1/b/${resources[0].resources.bucket}/o/${encodeURIComponent(extraObject)}`,
+      ],
+      { encoding: "utf8" },
+    ).stdout,
+    "404",
+  );
 
   const siblingStudentCount = databaseQuery(
     resources[1].resources.database,

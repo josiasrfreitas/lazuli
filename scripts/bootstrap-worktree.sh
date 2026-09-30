@@ -220,7 +220,7 @@ DONE
 
   ensure_worktree_gcs_bucket
   echo "Seeding GCS fixtures..."
-  bash "$SCRIPT_DIR/seed-gcs.sh"
+  node "$SCRIPT_DIR/load-gcs.mjs" "$(worktree_gcs_bucket_name)"
 
   echo "Applying database migrations..."
   pnpm prisma:deploy

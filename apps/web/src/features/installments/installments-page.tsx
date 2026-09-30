@@ -94,13 +94,13 @@ export function InstallmentsPage(): ReactElement {
               void query.refetch();
             }}
             footer={
-              <>
+              <div className="relative">
                 <p role="status" className="sr-only">
                   {query.isFetching ? "Atualizando recebíveis" : ""}
                 </p>
-                {toolbar && <div className="shrink-0 p-2">{toolbar}</div>}
                 <InstallmentsPagination {...{ data, filters, setPage, setPageSize }} />
-              </>
+                {toolbar}
+              </div>
             }
           />
         </DataTablePage>

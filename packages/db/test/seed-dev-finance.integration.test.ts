@@ -19,6 +19,27 @@ const OBSOLETE_PAYER_NAME = "Obsolete payer";
 const OBSOLETE_DATE = new Date("2026-01-01");
 const DATE_ONLY_LENGTH = 10;
 
+void it("keeps the partial receipt in the past when seeding before this month's due day", async () => {
+  const database = createDbClient();
+  const students = await createStudents(database);
+  try {
+    await seedDevFinance(database, { todayIso: "2026-09-01", studentIds: students });
+    const installment = await database.installment.findUniqueOrThrow({
+      where: { id: stableUuid([DEV_FINANCE_KEY, "homonym-joint-order", "installment-1"]) },
+      include: { allocations: { include: { paymentEntry: true } } },
+    });
+    assert.equal(installment.dueDate.toISOString(), "2026-08-10T00:00:00.000Z");
+    assert.deepEqual(
+      installment.allocations.map((allocation) => allocation.paymentEntry.date.toISOString()),
+      ["2026-08-11T00:00:00.000Z"],
+    );
+  } finally {
+    await clearFinance(database);
+    await database.student.deleteMany({ where: { id: { in: [...students.values()] } } });
+    await database.$disconnect();
+  }
+});
+
 void it("refreshes explicit development finance scenarios without removing unrelated records", async () => {
   const database = createDbClient();
   const students = await createStudents(database);
@@ -55,9 +76,7 @@ function assertFinanceScenarios(
     ),
     new Set([
       `${SHARED_PAYER_ID}/${students.get("davi")}`,
-      `${SHARED_PAYER_ID}/${students.get("isadora")}`,
       `${SHARED_PAYER_ID}/${students.get("ana")}`,
-      `${SHARED_PAYER_ID}/${students.get("joao")}`,
       `${BRUNO_PAYER_ID}/${students.get("bruno")}`,
     ]),
   );

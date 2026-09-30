@@ -650,6 +650,7 @@ model Order {
 }
 
 model OrderBeneficiary {
+  // Raw SQL enforces one active beneficiary per order where deleted_at IS NULL.
   id          String    @id @default(uuid()) @db.Uuid
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz

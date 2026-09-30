@@ -266,6 +266,11 @@ void test("financial presentation keeps status and due date separate from the am
     description: "Vencida há 1 dia",
     variant: "destructive",
   });
+  assert.deepEqual(installmentVm({ ...row, paidAmountCents: 0, overdueDays: 20 }, TODAY).badge, {
+    label: "Vencida · 20d",
+    description: "Vencida há 20 dias",
+    variant: "destructive",
+  });
 });
 
 void test("amount columns show nominal and receipts with only applied discounts", () => {

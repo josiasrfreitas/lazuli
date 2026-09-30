@@ -215,7 +215,7 @@ function registerFinancialRulesTest(): void {
       },
     );
     assert.equal(partial?.collectibleBalanceCents, LITERAL_BALANCE_CENTS);
-    assert.equal(partial?.beneficiaries.length, 2);
+    assert.equal(partial?.beneficiaries.length, 1);
     assert.deepEqual(result.counts, { all: 4, paid: 2, overdue: 1 });
 
     const paidView = await read({ view: "paid", page: 1 });
@@ -269,17 +269,17 @@ function registerOrderingTest(): void {
 }
 
 function registerSearchTest(): void {
-  void it("searches literal wildcards and visible beneficiary names while returning all visible beneficiaries", async () => {
+  void it("searches literal wildcards and visible beneficiary names while excluding historical beneficiaries", async () => {
     const matching = await createOrder({
       payerName: "Pagador 100%_Real",
-      beneficiaryNames: ["Aluna Agulha", "Colega Completa", "Nome Oculto"],
+      beneficiaryNames: ["Aluna Agulha"],
     });
     await createOrder({ payerName: "Pagador 100ABCXReal", beneficiaryNames: ["Outra Pessoa"] });
-    const hiddenStudentId = matching.studentIds[2];
-    assert.ok(hiddenStudentId);
-    await db.orderBeneficiary.update({
-      where: { orderId_studentId: { orderId: matching.orderId, studentId: hiddenStudentId } },
-      data: { deletedAt: NOW },
+    const hiddenStudent = await db.student.create({
+      data: { fullName: `${PREFIX}Nome Oculto`, status: "ACTIVE" },
+    });
+    await db.orderBeneficiary.create({
+      data: { orderId: matching.orderId, studentId: hiddenStudent.id, deletedAt: NOW },
     });
 
     const byWildcard = await read({ search: "%_" });
@@ -292,7 +292,7 @@ function registerSearchTest(): void {
     );
     assert.deepEqual(
       byBeneficiary.rows[0]?.beneficiaries.map((beneficiary) => beneficiary.fullName),
-      [`${PREFIX}Aluna Agulha`, `${PREFIX}Colega Completa`],
+      [`${PREFIX}Aluna Agulha`],
     );
     assert.equal(byHiddenBeneficiary.total, 0);
   });

@@ -31,7 +31,7 @@ if (command === "pnpm") {
       path.join(root, "node_modules/.pnpm/lock.yaml"),
     );
   }
-  if (args[0] === "prisma:seed") {
+  if (args.join(" ") === "-F @lazuli/db exec prisma db seed") {
     if (process.env.FAKE_SEED_DELAY_MS) {
       Atomics.wait(
         new Int32Array(new SharedArrayBuffer(4)),

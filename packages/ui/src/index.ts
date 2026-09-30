@@ -198,6 +198,7 @@ export type {
 } from "./components/table";
 export { TableCell, TableEmpty, TableHead } from "./components/table-cells";
 export { TablePagination } from "./components/table-pagination";
+export { FloatingToolbar } from "./components/floating-toolbar";
 export { TableSkeleton } from "./components/table-skeleton";
 export type { TableSkeletonProps } from "./components/table-skeleton";
 export { InlineSkeleton } from "./components/inline-skeleton";

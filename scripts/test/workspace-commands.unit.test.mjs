@@ -17,6 +17,7 @@ const teardownScript = path.join(repositoryRoot, "scripts/workspace-teardown.mjs
 const gcScript = path.join(repositoryRoot, "scripts/workspace-gc.mjs");
 const developmentScript = path.join(repositoryRoot, "scripts/development.mjs");
 const fixturesScript = path.join(repositoryRoot, "scripts/workspace-fixtures.mjs");
+const seedScript = path.join(repositoryRoot, "scripts/seed.mjs");
 const resetScript = path.join(repositoryRoot, "scripts/workspace-reset.mjs");
 const fakeCaddy = path.join(repositoryRoot, "scripts/test/support/fake-caddy.mjs");
 const fakeWorkspaceCommand = path.join(
@@ -163,14 +164,20 @@ async function orphanJournal(directory, name = "removed-worktree") {
     ownershipToken: randomUUID(),
     initialTechnicalPath: technicalPath,
     identity,
-    urls: { web: `http://${identity}.lazuli.localhost`, storybook: `http://storybook.${identity}.lazuli.localhost` },
+    urls: {
+      web: `http://${identity}.lazuli.localhost`,
+      storybook: `http://storybook.${identity}.lazuli.localhost`,
+    },
     ports: { web: 3101, storybook: 6101 },
     resources: { database: "lazuli_removed_worktree", bucket: "lazuli-removed-worktree" },
   };
   const journals = path.join(directory, ".git/lazuli-workspace-orphans");
   await mkdir(journals, { recursive: true });
   const file = path.join(journals, "orphan.json");
-  await writeFile(file, `${JSON.stringify({ version: 1, technicalPath, workspace, pending: ["validation", "processes", "database", "bucket", "local"], failures: [] })}\n`);
+  await writeFile(
+    file,
+    `${JSON.stringify({ version: 1, technicalPath, workspace, pending: ["validation", "processes", "database", "bucket", "local"], failures: [] })}\n`,
+  );
   return { file, workspace };
 }
 
@@ -178,11 +185,22 @@ async function markFakeResources(directory, workspace) {
   const state = path.join(directory, ".fake-infra");
   await mkdir(state, { recursive: true });
   await writeFile(path.join(state, "database"), "exists\n");
-  await writeFile(path.join(state, "database-ownership"), `${workspace.ownershipToken}|${workspace.identity}|${workspace.initialTechnicalPath}\n`);
-  const technicalPathHash = createHash("sha256").update(workspace.initialTechnicalPath).digest("hex");
+  await writeFile(
+    path.join(state, "database-ownership"),
+    `${workspace.ownershipToken}|${workspace.identity}|${workspace.initialTechnicalPath}\n`,
+  );
+  const technicalPathHash = createHash("sha256")
+    .update(workspace.initialTechnicalPath)
+    .digest("hex");
   await writeFile(path.join(state, "bucket"), "exists\n");
-  await writeFile(path.join(state, "bucket-metadata.json"), `${JSON.stringify({ name: workspace.resources.bucket, labels: { lazuli_owner_token: workspace.ownershipToken, lazuli_workspace: workspace.identity, lazuli_technical_path: technicalPathHash } })}\n`);
-  await writeFile(path.join(state, "object-.lazuli-workspace-ownership.json"), `${JSON.stringify({ ownershipToken: workspace.ownershipToken, workspaceIdentity: workspace.identity, technicalPath: workspace.initialTechnicalPath })}\n`);
+  await writeFile(
+    path.join(state, "bucket-metadata.json"),
+    `${JSON.stringify({ name: workspace.resources.bucket, labels: { lazuli_owner_token: workspace.ownershipToken, lazuli_workspace: workspace.identity, lazuli_technical_path: technicalPathHash } })}\n`,
+  );
+  await writeFile(
+    path.join(state, "object-.lazuli-workspace-ownership.json"),
+    `${JSON.stringify({ ownershipToken: workspace.ownershipToken, workspaceIdentity: workspace.identity, technicalPath: workspace.initialTechnicalPath })}\n`,
+  );
 }
 
 it("sets up a light worktree without infrastructure and persists only stable intent", async (context) => {
@@ -247,7 +265,10 @@ it("inspects orphan journals without mutating journals or local resources", asyn
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /inspection only/u);
   assert.equal(await readFile(file, "utf8"), beforeJournal);
-  assert.equal(await readFile(path.join(directory, ".fake-infra/database"), "utf8"), beforeDatabase);
+  assert.equal(
+    await readFile(path.join(directory, ".fake-infra/database"), "utf8"),
+    beforeDatabase,
+  );
   assert.equal(await readFile(path.join(directory, "infra.log"), "utf8"), "");
 });
 
@@ -263,8 +284,12 @@ it("prunes only an absent worktree with exact ownership markers and repeats safe
   assert.match(first.stdout, /collected removed-worktree/u);
   assert.equal(second.status, 0, second.stderr);
   await assert.rejects(readFile(file, "utf8"), { code: "ENOENT" });
-  await assert.rejects(readFile(path.join(directory, ".fake-infra/database"), "utf8"), { code: "ENOENT" });
-  await assert.rejects(readFile(path.join(directory, ".fake-infra/bucket"), "utf8"), { code: "ENOENT" });
+  await assert.rejects(readFile(path.join(directory, ".fake-infra/database"), "utf8"), {
+    code: "ENOENT",
+  });
+  await assert.rejects(readFile(path.join(directory, ".fake-infra/bucket"), "utf8"), {
+    code: "ENOENT",
+  });
 });
 
 it("preserves ambiguous orphan resources and reports prune failure", async (context) => {
@@ -291,7 +316,10 @@ it("revalidates an orphan after the allocation lock admits a colliding worktree"
   await withWorkspaceAllocationLock(directory, async () => {
     child = spawn(process.execPath, [gcScript, "--prune"], {
       cwd: directory,
-      env: { ...process.env, PATH: `${path.join(directory, "bin")}${path.delimiter}${process.env.PATH}` },
+      env: {
+        ...process.env,
+        PATH: `${path.join(directory, "bin")}${path.delimiter}${process.env.PATH}`,
+      },
       stdio: ["ignore", "pipe", "pipe"],
     });
     await wait(100);
@@ -634,7 +662,7 @@ it("promotes light metadata and initializes each full resource without destructi
   assert.equal(result.status, 0, result.stderr);
   assert.equal(workspace.profile, "full");
   assert.equal(journal.status, "complete");
-  assert.match(pnpmLog, /^install\nprisma:deploy\nprisma:seed\n$/u);
+  assert.match(pnpmLog, /^install\nprisma:deploy\n-F @lazuli\/db exec prisma db seed\n$/u);
   assert.equal(infraLog.match(/^compose up -d$/gmu)?.length, 1);
   assert.match(infraLog, /CREATE SCHEMA IF NOT EXISTS lazuli_local/u);
   assert.doesNotMatch(`${pnpmLog}${infraLog}`, /migrate dev|reset/iu);
@@ -656,7 +684,7 @@ it("repeats full setup without reseeding the database or overwriting a GCS objec
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(pnpmLog.match(/^prisma:deploy$/gmu)?.length, 2);
-  assert.equal(pnpmLog.match(/^prisma:seed$/gmu)?.length, 1);
+  assert.equal(pnpmLog.match(/^-F @lazuli\/db exec prisma db seed$/gmu)?.length, 1);
   assert.equal(infraLog.match(/^compose up -d$/gmu)?.length, 2);
   assert.equal(
     await readFile(path.join(directory, ".fake-infra/object-example.txt"), "utf8"),
@@ -664,14 +692,14 @@ it("repeats full setup without reseeding the database or overwriting a GCS objec
   );
 });
 
-it("refreshes versioned fixtures without removing additional local data", async (context) => {
+it("rebuilds fixtures and removes additional local data on every seed", async (context) => {
   const directory = await fixture(context, "lazuli-fixtures-refresh");
   assert.equal(run(directory, setupScript, ["light"]).status, 0);
   assert.equal(run(directory, setupScript, ["full"]).status, 0);
   await writeFile(path.join(directory, ".fake-infra/object-example.txt"), "local edit\n");
   await writeFile(path.join(directory, ".fake-infra/object-extra.txt"), "extra\n");
 
-  const first = run(directory, fixturesScript, ["refresh"]);
+  const first = run(directory, seedScript);
   const second = run(directory, fixturesScript, ["refresh"]);
 
   assert.equal(first.status, 0, first.stderr);
@@ -680,13 +708,11 @@ it("refreshes versioned fixtures without removing additional local data", async 
     await readFile(path.join(directory, ".fake-infra/object-example.txt"), "utf8"),
     "expected fixture\n",
   );
-  assert.equal(
-    await readFile(path.join(directory, ".fake-infra/object-extra.txt"), "utf8"),
-    "extra\n",
-  );
-  assert.match(first.stdout, /Extra records.*may remain/su);
-  assert.match(first.stdout, /does not guarantee a clean snapshot/u);
-  assert.doesNotMatch(await readFile(path.join(directory, "infra.log"), "utf8"), /DROP DATABASE/u);
+  await assert.rejects(readFile(path.join(directory, ".fake-infra/object-extra.txt")), {
+    code: "ENOENT",
+  });
+  assert.match(first.stdout, /Workspace data reset complete/u);
+  assert.match(await readFile(path.join(directory, "infra.log"), "utf8"), /DROP DATABASE/u);
 });
 
 it("rejects unsupported fixture and reset arguments with usage", async (context) => {
@@ -891,7 +917,7 @@ it("preserves a preexisting database and only applies migrations", async (contex
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(pnpmLog, /prisma:deploy/u);
-  assert.doesNotMatch(pnpmLog, /prisma:seed/u);
+  assert.doesNotMatch(pnpmLog, /-F @lazuli\/db exec prisma db seed/u);
   await assert.rejects(
     readFile(path.join(directory, ".lazuli/database-initialization.json"), "utf8"),
     { code: "ENOENT" },
@@ -965,7 +991,7 @@ it("serializes concurrent full promotions and rereads completed initialization",
     [0, 0],
     results.map((result) => result.stderr).join("\n"),
   );
-  assert.equal(pnpmLog.match(/^prisma:seed$/gmu)?.length, 1);
+  assert.equal(pnpmLog.match(/^-F @lazuli\/db exec prisma db seed$/gmu)?.length, 1);
   assert.equal(pnpmLog.match(/^prisma:deploy$/gmu)?.length, 2);
 });
 

@@ -1,8 +1,9 @@
-import type { ReactElement } from "react";
-import { ChevronDown, Split, X } from "lucide-react";
-import { Button } from "@lazuli/ui";
+import { useState, type ReactElement } from "react";
+import { Ellipsis } from "lucide-react";
+import { Button, Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@lazuli/ui";
 import type { DraftItem } from "./draft";
 import type { PaymentFormState } from "./logic";
+
 export function PaymentRowActions({
   item,
   state,
@@ -14,52 +15,81 @@ export function PaymentRowActions({
   details: boolean;
   setDetails: (value: boolean) => void;
 }): ReactElement {
-  const canSplit = state.draft.items.filter((row) => row.receiptId === item.receiptId).length > 1;
+  const [open, setOpen] = useState(false);
+  const locked = state.submitting || state.uncertain;
+  const act = (action: () => void): void => {
+    action();
+    setOpen(false);
+  };
   return (
-    <div className="mt-1 flex gap-1">
-      <Button
-        type="button"
-        size="icon-sm"
-        variant="ghost"
-        title="Detalhes"
-        aria-label={`Detalhes da parcela ${item.row.sequenceNumber}`}
-        aria-expanded={details}
-        onClick={() => setDetails(!details)}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        disabled={locked}
+        aria-label={`Ações da parcela ${item.row.sequenceNumber} de ${item.row.payer.name}`}
+        render={
+          <Button type="button" size="icon-sm" className="size-11 sm:size-8" variant="ghost" />
+        }
       >
-        <ChevronDown aria-hidden="true" />
-      </Button>
-      {canSplit && <SplitReceipt item={item} state={state} />}
-      <Button
-        type="button"
-        size="icon-sm"
-        variant="ghost"
-        title="Remover"
-        aria-label={`Remover parcela ${item.row.sequenceNumber} de ${item.row.payer.name}`}
-        onClick={() => state.dispatch({ type: "remove", id: item.row.installmentId })}
-      >
-        <X aria-hidden="true" />
-      </Button>
-    </div>
+        <Ellipsis aria-hidden="true" />
+      </PopoverTrigger>
+      <PopoverContent align="end" size="sm" showArrow={false} className="grid gap-1">
+        <PopoverTitle className="sr-only">Ações da parcela</PopoverTitle>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={locked}
+          className="justify-start"
+          onClick={() => act(() => setDetails(!details))}
+        >
+          {details ? "Ocultar detalhes" : "Ver detalhes e alocação"}
+        </Button>
+        <ReceiptMutationActions item={item} state={state} act={act} />
+      </PopoverContent>
+    </Popover>
   );
 }
 
-function SplitReceipt({ item, state }: { item: DraftItem; state: PaymentFormState }): ReactElement {
+function ReceiptMutationActions({
+  item,
+  state,
+  act,
+}: {
+  item: DraftItem;
+  state: PaymentFormState;
+  act: (action: () => void) => void;
+}): ReactElement {
+  const locked = state.submitting || state.uncertain;
+  const canSplit = state.draft.items.filter((row) => row.receiptId === item.receiptId).length > 1;
   return (
-    <Button
-      type="button"
-      size="icon-sm"
-      variant="ghost"
-      title="Separar recebimento"
-      aria-label={`Separar recebimento da parcela ${item.row.sequenceNumber}`}
-      onClick={() =>
-        state.dispatch({
-          type: "split",
-          id: item.row.installmentId,
-          receiptId: crypto.randomUUID(),
-        })
-      }
-    >
-      <Split aria-hidden="true" />
-    </Button>
+    <>
+      {canSplit && (
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={locked}
+          className="justify-start"
+          onClick={() =>
+            act(() =>
+              state.dispatch({
+                type: "split",
+                id: item.row.installmentId,
+                receiptId: crypto.randomUUID(),
+              }),
+            )
+          }
+        >
+          Separar recebimento
+        </Button>
+      )}
+      <Button
+        type="button"
+        variant="ghost"
+        disabled={locked}
+        className="justify-start"
+        onClick={() => act(() => state.dispatch({ type: "remove", id: item.row.installmentId }))}
+      >
+        Remover recebível
+      </Button>
+    </>
   );
 }

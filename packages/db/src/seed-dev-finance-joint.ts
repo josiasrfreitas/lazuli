@@ -5,7 +5,7 @@ import {
   monthlyDueDate,
   studentId,
 } from "./seed-dev-finance.js";
-import { addDays, stableUuid } from "./seed-dev-support.js";
+import { addDays, isoOf, stableUuid } from "./seed-dev-support.js";
 
 const DEV_FINANCE_KEY = "dev-finance";
 const JOINT_ORDER_DUE_DAY = 10;
@@ -20,16 +20,20 @@ export async function createJointOrderForSharedPayerScenario(
   // Keep the historical key so existing local fixture identifiers remain stable.
   const scenarioKey = "homonym-joint-order";
   const orderId = stableUuid([DEV_FINANCE_KEY, `${scenarioKey}-order`]);
-  const dueDate = monthlyDueDate(input.todayIso, {
+  const currentDueDate = monthlyDueDate(input.todayIso, {
     monthOffset: 0,
     dueDay: JOINT_ORDER_DUE_DAY,
   });
+  const dueDate =
+    isoOf(addDays(currentDueDate, 1)) > input.todayIso
+      ? monthlyDueDate(input.todayIso, { monthOffset: -1, dueDay: JOINT_ORDER_DUE_DAY })
+      : currentDueDate;
   const orderData = {
     id: orderId,
     payerId,
     kind: "TUITION" as const,
     principalAmountCents: JOINT_ORDER_INSTALLMENT_CENTS,
-    startDate: monthlyDueDate(input.todayIso, { monthOffset: -1, dueDay: JOINT_ORDER_DUE_DAY }),
+    startDate: monthlyDueDate(isoOf(dueDate), { monthOffset: -1, dueDay: JOINT_ORDER_DUE_DAY }),
     dueDay: JOINT_ORDER_DUE_DAY,
     deletedAt: null,
   };
@@ -60,16 +64,14 @@ async function upsertJointBeneficiaries(
   database: FinanceDatabase,
   input: { input: FinanceSeedInput; orderId: string; scenarioKey: string },
 ): Promise<void> {
-  for (const studentKey of ["ana", "joao"]) {
-    const beneficiary = {
-      id: stableUuid([DEV_FINANCE_KEY, input.scenarioKey, studentKey]),
-      orderId: input.orderId,
-      studentId: studentId(input.input.studentIds, studentKey),
-    };
-    await database.orderBeneficiary.upsert({
-      where: { id: beneficiary.id },
-      create: beneficiary,
-      update: { ...beneficiary, deletedAt: null },
-    });
-  }
+  const beneficiary = {
+    id: stableUuid([DEV_FINANCE_KEY, input.scenarioKey, "ana"]),
+    orderId: input.orderId,
+    studentId: studentId(input.input.studentIds, "ana"),
+  };
+  await database.orderBeneficiary.upsert({
+    where: { id: beneficiary.id },
+    create: beneficiary,
+    update: { ...beneficiary, deletedAt: null },
+  });
 }

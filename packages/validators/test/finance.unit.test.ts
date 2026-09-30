@@ -44,6 +44,31 @@ const ORDER_FIELDS = {
   signedOrderArtifactId: ARTIFACT_ID,
 };
 
+for (const beneficiaryStudentIds of [[], [STUDENT_ID, ORDER_ID]]) {
+  void it(`requires exactly one beneficiary when creating or editing an order (${beneficiaryStudentIds.length})`, () => {
+    const create = financeCreateOrderInputSchema.safeParse({
+      ...ORDER_FIELDS,
+      payer: { mode: "existing", payerId: PAYER_ID },
+      beneficiaryStudentIds,
+    });
+    const update = financeUpdateOrderInputSchema.safeParse({
+      ...ORDER_FIELDS,
+      orderId: ORDER_ID,
+      beneficiaryStudentIds,
+    });
+    assert.equal(create.success, false);
+    assert.equal(update.success, false);
+    assert.deepEqual(
+      create.error?.issues.map((issue) => issue.path),
+      [["beneficiaryStudentIds"]],
+    );
+    assert.deepEqual(
+      update.error?.issues.map((issue) => issue.path),
+      [["beneficiaryStudentIds"]],
+    );
+  });
+}
+
 void describe("finance enum input", () => {
   void it("accepts only the school due-day options", () => {
     assert.equal(dueDaySchema.safeParse(DUE_DAY_FIFTH).success, true);

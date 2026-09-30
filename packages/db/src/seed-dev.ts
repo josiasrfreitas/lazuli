@@ -10,7 +10,7 @@ import {
   type DevExitReason,
   type DevStudentSeed,
 } from "./seed-dev-data.js";
-import { seedDevFinance } from "./seed-dev-finance.js";
+import { monthlyDueDate, seedDevFinance } from "./seed-dev-finance.js";
 import {
   addDays,
   endOfDayUtc,
@@ -37,13 +37,13 @@ const MONTH_END_INDEX = 7;
 const SECOND_HALF_FIRST_MONTH = 7;
 const EXIT_DAYS_AGO = 14;
 const GOOD_ABSENCE_CYCLE = 6;
-type SeedDevDataOptions = { workspaceInitializationKey?: string };
+const MONTHS_PER_YEAR = 12;
+const DAY_ISO_OFFSET = -2;
 
 export async function seedDevData(
   database: DatabaseClient,
-  options: SeedDevDataOptions = {},
+  todayIso = saoPauloTodayIso(),
 ): Promise<void> {
-  const todayIso = saoPauloTodayIso();
   const semester = await upsertSemester(database, currentSemesterSeed(todayIso));
   const teacherIds = await upsertStaff(database);
   const context: SeedContext = { database, todayIso, semester, teacherIds, classes: new Map() };
@@ -54,7 +54,7 @@ export async function seedDevData(
   for (const studentSeed of DEV_STUDENTS) {
     studentIds.set(studentSeed.key, await seedStudent(context, studentSeed));
   }
-  await seedDevFinance(database, { ...options, todayIso, studentIds });
+  await seedDevFinance(database, { todayIso, studentIds });
 }
 
 function currentSemesterSeed(todayIso: string): SemesterSeed {
@@ -123,7 +123,13 @@ async function seedStudent(context: SeedContext, studentSeed: DevStudentSeed): P
       fullName: studentSeed.fullName,
       phone: studentSeed.phone ?? null,
       email: studentSeed.email ?? null,
-      birthDate: studentSeed.birthDate === undefined ? null : utcDate(studentSeed.birthDate),
+      birthDate:
+        studentSeed.ageYears === undefined
+          ? null
+          : monthlyDueDate(context.todayIso, {
+              monthOffset: -studentSeed.ageYears * MONTHS_PER_YEAR,
+              dueDay: Number(context.todayIso.slice(DAY_ISO_OFFSET)),
+            }),
       status: studentSeed.status,
       guardianId,
       notes: studentSeed.notes ?? null,

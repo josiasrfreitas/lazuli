@@ -83,7 +83,7 @@ function statusBadge(row: FinanceInstallmentRow, today: string): InstallmentVm["
       const overdue = `Vencida há ${row.overdueDays} ${row.overdueDays === 1 ? "dia" : "dias"}`;
       return row.paidAmountCents > 0
         ? { label: "Parcial · Vencida", variant: "destructive", description: overdue }
-        : { label: overdue, variant: "destructive" };
+        : { label: `Vencida · ${row.overdueDays}d`, variant: "destructive", description: overdue };
     }
     default: {
       if (row.paidAmountCents > 0) return { label: "Parcial", variant: "warning" };

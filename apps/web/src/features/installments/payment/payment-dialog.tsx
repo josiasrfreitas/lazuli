@@ -19,7 +19,6 @@ import { usePaymentForm, type PaymentFormState } from "./logic";
 import { PaymentFields } from "./payment-fields";
 import { PaymentGrid } from "./payment-grid";
 import { PaymentPicker } from "./payment-picker";
-import { PaymentReceipts } from "./payment-receipts";
 import { draftReceipts } from "./draft";
 const FORM_ID = "register-payments";
 type Props = {
@@ -39,7 +38,7 @@ export function PaymentDialog(props: Props): ReactElement {
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          className="md:max-w-4xl"
+          className="md:max-w-180 [&_button]:min-h-11 sm:[&_button]:min-h-0"
           ref={popup}
           initialFocus={() =>
             popup.current?.querySelector<HTMLInputElement>('input[name="date"]') ?? true
@@ -48,8 +47,7 @@ export function PaymentDialog(props: Props): ReactElement {
           <DialogHeader>
             <DialogTitle>Registrar pagamento</DialogTitle>
             <DialogDescription>
-              Confira os recebíveis e os valores na data efetiva. Edite o recebido para registrar um
-              parcial.
+              Informe quando e como recebeu. Confira os valores de cada parcela.
             </DialogDescription>
           </DialogHeader>
           <PaymentForm state={state}>
@@ -70,7 +68,7 @@ export function PaymentForm({
 }): ReactElement {
   const body = useScrollToError(state.revision);
   return (
-    <DialogBody className="mt-4" ref={body}>
+    <DialogBody className="mt-5" ref={body}>
       <form
         id={FORM_ID}
         noValidate
@@ -79,11 +77,10 @@ export function PaymentForm({
           state.submit();
         }}
       >
-        <fieldset disabled={state.submitting || state.uncertain} className="grid min-w-0 gap-3">
+        <fieldset disabled={state.submitting || state.uncertain} className="grid min-w-0 gap-4">
           <PaymentFields state={state} />
           {children}
           <PaymentGrid state={state} />
-          {state.draft.items.length > 0 && <PaymentReceipts state={state} />}
         </fieldset>
       </form>
       {state.error && (
@@ -123,37 +120,45 @@ function PaymentFooter({
     (sum, row) => sum + (row.line?.quote.remainingCents ?? 0),
     0,
   );
+  const disabled =
+    state.submitting || (!state.uncertain && (state.loading || state.draft.items.length === 0));
   return (
-    <DialogFooter className="items-stretch sm:items-center">
-      <div className="mr-auto text-caption">
-        <p>
-          Total recebido <strong className="font-numeric">{money(total)}</strong>
+    <DialogFooter className="mt-4 flex-col items-stretch border-t border-border pt-4 sm:items-center">
+      <div className="mr-auto space-y-1 text-caption" aria-live="polite">
+        <p className="flex items-baseline gap-3">
+          <span className="text-muted-foreground">Total recebido</span>
+          <span className="font-numeric text-h3 font-semibold">{money(total)}</span>
         </p>
-        <p className="text-muted-foreground">{remainingLabel(state, remaining)}</p>
+        {state.draft.items.length > 0 && (
+          <p className="text-muted-foreground">{remainingLabel(state, remaining)}</p>
+        )}
       </div>
-      <Button type="button" size="sm" variant="ghost" disabled={state.submitting} onClick={onClose}>
-        Fechar
-      </Button>
-      <Button
-        type="submit"
-        form={FORM_ID}
-        size="sm"
-        disabled={state.submitting || (state.loading && !state.uncertain)}
-      >
-        {submissionLabel(state)}
-      </Button>
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={state.submitting}
+          onClick={onClose}
+        >
+          Cancelar
+        </Button>
+        <Button type="submit" form={FORM_ID} size="sm" disabled={disabled}>
+          {submissionLabel(state, total)}
+        </Button>
+      </div>
     </DialogFooter>
   );
 }
 
-function submissionLabel(state: PaymentFormState): string {
+function submissionLabel(state: PaymentFormState, total: number): string {
   if (state.submitting) return "Registrando…";
-  return state.uncertain ? "Verificar registro" : "Registrar pagamento";
+  return state.uncertain ? "Verificar registro" : `Registrar ${money(total)}`;
 }
 
 function remainingLabel(state: PaymentFormState, remaining: number): string {
   if (state.loading) return "Calculando prévia…";
   if (state.preview.length !== state.draft.items.length || state.preview.some((row) => !row.line))
-    return "Saldo resultante: prévia indisponível";
-  return `Saldo resultante: ${money(remaining)}`;
+    return "Saldo após pagamento: prévia indisponível";
+  return `Saldo após pagamento: ${money(remaining)}`;
 }

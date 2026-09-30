@@ -2,7 +2,7 @@ import type { DatabaseClient, TransactionClient } from "./client.js";
 import { addDays, stableUuid, utcDate } from "./seed-dev-support.js";
 import { createJointOrderForSharedPayerScenario } from "./seed-dev-finance-joint.js";
 
-/** Refreshes the versioned local finance scenarios without removing unrelated local records. */
+/** Loads standalone order scenarios; the public seed resets the database first. */
 const FINANCE_SETTINGS_ID = "singleton";
 const DEV_FINANCE_KEY = "dev-finance";
 const SHARED_SCENARIO_KEY = "shared";
@@ -23,7 +23,6 @@ const BRUNO_INSTALLMENT_CENTS = 38_000;
 export type FinanceSeedInput = {
   todayIso: string;
   studentIds: ReadonlyMap<string, string>;
-  workspaceInitializationKey?: string;
 };
 type InstallmentsInput = {
   scenarioKey: string;
@@ -60,12 +59,6 @@ export async function seedDevFinance(
     await createSharedPayerScenario(transaction, input);
     await createBrunoScenario(transaction, input);
     await createJointOrderForSharedPayerScenario(transaction, input);
-    if (input.workspaceInitializationKey !== undefined) {
-      await transaction.$executeRawUnsafe(
-        'INSERT INTO "lazuli_local"."workspace_initializations" (key, completed_at) VALUES ($1, NOW()) ON CONFLICT (key) DO UPDATE SET completed_at = EXCLUDED.completed_at',
-        input.workspaceInitializationKey,
-      );
-    }
   });
 }
 
@@ -123,24 +116,16 @@ async function upsertSharedBeneficiaries(
     sharedOrderKey: string;
   },
 ): Promise<void> {
-  for (const beneficiary of [
-    {
-      id: stableUuid([DEV_FINANCE_KEY, input.sharedOrderKey, "davi"]),
-      orderId: input.orderId,
-      studentId: studentId(input.studentIds, "davi"),
-    },
-    {
-      id: stableUuid([DEV_FINANCE_KEY, input.sharedOrderKey, "isadora"]),
-      orderId: input.orderId,
-      studentId: studentId(input.studentIds, "isadora"),
-    },
-  ]) {
-    await database.orderBeneficiary.upsert({
-      where: { id: beneficiary.id },
-      create: beneficiary,
-      update: { ...beneficiary, deletedAt: null },
-    });
-  }
+  const beneficiary = {
+    id: stableUuid([DEV_FINANCE_KEY, input.sharedOrderKey, "davi"]),
+    orderId: input.orderId,
+    studentId: studentId(input.studentIds, "davi"),
+  };
+  await database.orderBeneficiary.upsert({
+    where: { id: beneficiary.id },
+    create: beneficiary,
+    update: { ...beneficiary, deletedAt: null },
+  });
 }
 
 async function createSharedPayments(
@@ -311,9 +296,9 @@ function sharedOrderStartDate(todayIso: string): Date {
 
 export function monthlyDueDate(todayIso: string, input: MonthlyDueDateInput): Date {
   const today = utcDate(todayIso);
-  return new Date(
-    Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + input.monthOffset, input.dueDay),
-  );
+  const month = today.getUTCMonth() + input.monthOffset;
+  const lastDay = new Date(Date.UTC(today.getUTCFullYear(), month + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(today.getUTCFullYear(), month, Math.min(input.dueDay, lastDay)));
 }
 
 export function studentId(studentIds: ReadonlyMap<string, string>, key: string): string {
