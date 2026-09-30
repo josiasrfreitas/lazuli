@@ -1,6 +1,6 @@
 # #153 — Registro de pagamentos em Recebíveis
 
-Status: plano aprovado em conversa; implementação em andamento.
+Status: implementado e verificado localmente; evidências em [VERIFICATION.md](VERIFICATION.md).
 
 Fonte de escopo: https://github.com/josiasrfreitas/lazuli/issues/153.
 Referência visual: `.design/registro-pagamentos/WORKSHOP.md`, opção A, com a
@@ -37,8 +37,8 @@ decisão final de formulário único prevalecendo sobre o wizard antigo.
    preservando o caso comum preenchido e a grade A.
 6. Bloquear futuro, valor não positivo e excedente no fluxo novo. Preservar a
    compatibilidade documentada de Material/legado; não mudar silenciosamente o
-   contrato da API antiga que permite sobra não alocada. Confirmar o alcance
-   dessa política ao fechar as decisões.
+   contrato da API antiga que permite sobra não alocada. O registro individual
+   contratual e o lote novo exigem total integralmente alocado.
 7. Formas divididas, novos ajustes negociados e correção/estorno ficam fora desta
    entrega. Operações existentes continuam respeitando suas proteções.
 8. Seleção persiste entre páginas/filtros/agrupamentos; marcar todos atua somente
