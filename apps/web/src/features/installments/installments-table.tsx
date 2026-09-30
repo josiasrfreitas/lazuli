@@ -1,3 +1,4 @@
+import { PaymentSelectionHead } from "./payment/selection";
 import type { ReactNode, ReactElement } from "react";
 import {
   Button,
@@ -19,28 +20,29 @@ function InstallmentsHead(): ReactElement {
   return (
     <TableHeader sticky>
       <TableRow interactive={false}>
-        <TableHead id={COLUMN_IDS.installment} className="w-28">
+        <PaymentSelectionHead />
+        <TableHead id={COLUMN_IDS.installment} className="w-24">
           Sequência
         </TableHead>
         <TableHead id={COLUMN_IDS.origin} className="w-24">
           Origem
         </TableHead>
-        <TableHead id={COLUMN_IDS.payer} className="w-28">
+        <TableHead id={COLUMN_IDS.payer} className="w-24">
           Pagador
         </TableHead>
-        <TableHead id={COLUMN_IDS.beneficiaries} className="w-30">
+        <TableHead id={COLUMN_IDS.beneficiaries} className="w-auto">
           Beneficiário
         </TableHead>
-        <TableHead id={COLUMN_IDS.dueDate} className="w-28">
+        <TableHead id={COLUMN_IDS.dueDate} className="w-24">
           Vencimento
         </TableHead>
-        <TableHead id={COLUMN_IDS.nominal} className="w-36" numeric>
+        <TableHead id={COLUMN_IDS.nominal} className="w-28" numeric>
           Valor nominal
         </TableHead>
-        <TableHead id={COLUMN_IDS.paid} className="w-32" numeric>
+        <TableHead id={COLUMN_IDS.paid} className="w-28" numeric>
           Valor pago
         </TableHead>
-        <TableHead id={COLUMN_IDS.status} className="w-40">
+        <TableHead id={COLUMN_IDS.status} className="w-32">
           Situação
         </TableHead>
       </TableRow>
@@ -142,11 +144,7 @@ export function InstallmentsTable({
   return (
     <TableContainer viewportBound footer={footer}>
       {state.showOverdueSearchGuidance ? <OverdueSearchGuidance /> : null}
-      <Table
-        aria-label="Lista de recebíveis"
-        aria-busy={updating}
-        className="min-w-240 table-fixed"
-      >
+      <Table aria-label="Lista de recebíveis" aria-busy={updating} className="w-full table-fixed">
         <InstallmentsHead />
         <TableBody>
           <InstallmentsBody {...state} rows={hasGroups ? [] : state.rows} today={today} />

@@ -1,3 +1,4 @@
+import { PaymentSelectionCell, PaymentSelectionHead } from "./payment/selection";
 import type { ReactElement } from "react";
 
 import {
@@ -50,6 +51,7 @@ function OverdueInstallmentRow({
   const vm = installmentVm(row, today);
   return (
     <TableRow interactive={false}>
+      <PaymentSelectionCell row={row} />
       <TableCell headers={`${groupHeadingId}-column-installment`}>
         <span className="font-numeric whitespace-nowrap tabular-nums">{vm.sequence}</span>
       </TableCell>
@@ -67,7 +69,7 @@ function OverdueInstallmentRow({
         <InstallmentAmount row={row} column="paid" />
       </TableCell>
       <TableCell headers={`${groupHeadingId}-column-status`} numeric>
-        <Badge variant="destructive" className="whitespace-nowrap">
+        <Badge variant="destructive" className="whitespace-normal">
           {row.paidAmountCents > 0 ? "Parcial · " : ""}
           {row.overdueDays} {row.overdueDays === 1 ? "dia" : "dias"}
         </Badge>
@@ -143,17 +145,18 @@ function OverdueInstallmentsTable({
       <Table
         aria-labelledby={groupHeadingId}
         aria-describedby={`${groupHeadingId}-summary`}
-        className="min-w-240 table-fixed"
+        className="w-full table-fixed"
         density="compact"
       >
         <colgroup>
+          <col className="w-10" />
           <col className="w-24" />
           <col className="w-28" />
           <col />
-          <col className="w-32" />
-          <col className="w-36" />
-          <col className="w-32" />
-          <col className="w-36" />
+          <col className="w-28" />
+          <col className="w-28" />
+          <col className="w-28" />
+          <col className="w-28" />
         </colgroup>
         <OverdueInstallmentsHead groupHeadingId={groupHeadingId} />
         <TableBody>
@@ -175,6 +178,7 @@ function OverdueInstallmentsHead({ groupHeadingId }: { groupHeadingId: string })
   return (
     <TableHeader>
       <TableRow interactive={false}>
+        <PaymentSelectionHead />
         {OVERDUE_COLUMNS.map((column) => (
           <TableHead
             id={`${groupHeadingId}-column-${column.key}`}

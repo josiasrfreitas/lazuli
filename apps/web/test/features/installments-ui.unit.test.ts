@@ -266,7 +266,7 @@ void test("overdue groups contain wide tables while each payer card keeps its ow
     groups.length * 2,
   );
 });
-void test("flat table keeps the overdue status badge on one line", () => {
+void test("flat table preserves the overdue status and permits wrapping in compact columns", () => {
   const row = overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID).rows[0]!;
   const markup = renderToStaticMarkup(
     createElement(InstallmentsTable, {
@@ -283,7 +283,7 @@ void test("flat table keeps the overdue status badge on one line", () => {
     /headers="installments-column-installment"[^>]*><span class="font-numeric whitespace-nowrap tabular-nums">6 de 12<\/span>/u,
   );
   assert.match(markup, /title="Vencida há 14 dias"/u);
-  assert.match(markup, /class="[^"]*whitespace-nowrap[^"]*"[^>]*>Parcial · Vencida<\/span>/u);
+  assert.match(markup, /class="[^"]*whitespace-normal[^"]*"[^>]*>Parcial · Vencida<\/span>/u);
   assert.match(
     markup,
     /class="border-b border-border data-\[selected\]:bg-accent" data-slot="table-row"/u,

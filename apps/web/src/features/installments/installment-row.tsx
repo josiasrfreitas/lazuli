@@ -1,3 +1,4 @@
+import { PaymentSelectionCell } from "./payment/selection";
 import type { ReactElement } from "react";
 import { Badge, TableCell, TableRow } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
@@ -26,6 +27,7 @@ export function InstallmentRow({
   const vm = installmentVm(row, today);
   return (
     <TableRow interactive={false}>
+      <PaymentSelectionCell row={row} />
       <TableCell headers={COLUMN_IDS.installment}>
         <span className="font-numeric whitespace-nowrap tabular-nums">{vm.sequence}</span>
       </TableCell>
@@ -50,7 +52,7 @@ export function InstallmentRow({
         <Badge
           variant={vm.badge.variant}
           title={vm.badge.description}
-          className="whitespace-nowrap"
+          className="whitespace-normal"
         >
           {vm.badge.label}
         </Badge>
