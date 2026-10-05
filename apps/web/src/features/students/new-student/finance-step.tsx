@@ -55,7 +55,6 @@ export function FinanceStep({ completion, student }: FinanceStepProps): ReactEle
     offer: offer.data,
     preview,
     change: state.change,
-    maskedDates: true,
   };
   return (
     <form

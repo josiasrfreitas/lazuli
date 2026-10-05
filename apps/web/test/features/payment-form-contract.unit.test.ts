@@ -41,7 +41,7 @@ void it("renders one real form with masked date and compact named payment contro
   }
   assert.match(html, /Saldo/);
   assert.doesNotMatch(html, /Recebimentos · confira os totais|name="total-/);
-  assert.match(html, /desconto/);
+  assert.match(html, /desconto por pontualidade/u);
   assert.doesNotMatch(html, /\+ R\$[^<]*juros/);
   assert.doesNotMatch(html, /Continuar|Stepper|Pagamento registrado/);
 });

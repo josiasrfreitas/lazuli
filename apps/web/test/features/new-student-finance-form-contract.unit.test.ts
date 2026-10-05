@@ -52,7 +52,7 @@ function render(
   );
 }
 
-void it("submits a real named form with compact masked date controls and format hints", () => {
+void it("submits a real named form with calendar controls", () => {
   const markup = render();
   assert.equal((markup.match(/<form\b/gu) ?? []).length, 1);
   assert.match(markup, new RegExp(`id="${FINANCE_FORM_ID}"`));
@@ -70,8 +70,7 @@ void it("submits a real named form with compact masked date controls and format 
   }
   for (const name of ["agreedOn", "firstDueDate", "endsOn"]) {
     const tag = inputs.find((input) => input.includes(`name="${name}"`)) ?? "";
-    assert.match(tag, /type="text"/u);
-    assert.match(tag, /inputMode="numeric"|inputmode="numeric"/u);
+    assert.match(tag, /type="date"/u);
     assert.match(tag, /placeholder="dd\/mm\/aaaa"/u);
   }
 });

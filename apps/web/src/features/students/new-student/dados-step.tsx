@@ -2,12 +2,10 @@ import type { FormEvent, ReactElement } from "react";
 
 import { FormRow, FormSection } from "@lazuli/ui";
 
-import { DocumentFields, TextField, type FieldsProps } from "./dados-fields";
+import { BirthDateField, DocumentFields, TextField, type FieldsProps } from "./dados-fields";
 import { GuardianSection } from "./guardian-section";
 
 export const DADOS_FORM_ID = "new-student-dados";
-
-const BIRTH_DATE_LENGTH = 10;
 
 export type DadosStepProps = FieldsProps & {
   minor: boolean;
@@ -32,17 +30,8 @@ function IdentitySection(props: FieldsProps): ReactElement {
         required
         value={fields.fullName}
       />
-      <FormRow className="sm:grid-cols-[8.5rem_auto_1fr]">
-        <TextField
-          error={errors.birthDate}
-          inputMode="numeric"
-          label="Nascimento"
-          maxLength={BIRTH_DATE_LENGTH}
-          name="birthDate"
-          onChange={onFieldChange}
-          placeholder="dd/mm/aaaa"
-          value={fields.birthDate}
-        />
+      <FormRow columns={2}>
+        <BirthDateField {...props} />
         <DocumentFields {...props} />
       </FormRow>
     </FormSection>

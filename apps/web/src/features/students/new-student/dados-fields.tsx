@@ -1,13 +1,8 @@
 import type { ComponentProps, ReactElement } from "react";
 
-import {
-  Field,
-  FieldError,
-  Input,
-  Label,
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@lazuli/ui";
+import { Field, FieldError, Input, Label } from "@lazuli/ui";
+import { PersonDocumentField } from "~/components/person-document-field";
+import { parseDateBR } from "~/lib/masks";
 
 import type { NewStudentErrors, NewStudentFieldName, NewStudentFields } from "./reducer";
 
@@ -64,48 +59,39 @@ export function TextField({
   );
 }
 
-const DOCUMENT_TYPES = [
-  { label: "CPF", value: "CPF", placeholder: "000.000.000-00" },
-  { label: "RG", value: "RG", placeholder: "00.000.000-0" },
-] as const;
-const DOCUMENT_TYPE_LABEL_ID = "new-student-document-type-label";
-const DOCUMENT_NUMBER_PLACEHOLDER = "Número do documento";
-
-/** Two options → inline pills, not a dropdown: one Tab stop, arrows to switch. */
 export function DocumentFields({ errors, fields, onFieldChange }: FieldsProps): ReactElement {
-  const error = errors.documentType;
-  const selected = DOCUMENT_TYPES.find((type) => type.value === fields.documentType);
-
   return (
-    <>
-      <Field>
-        <Label id={DOCUMENT_TYPE_LABEL_ID}>Documento</Label>
-        <SegmentedControl
-          aria-labelledby={DOCUMENT_TYPE_LABEL_ID}
-          invalid={error !== undefined}
-          onValueChange={(value) => {
-            onFieldChange("documentType", value ?? "");
-          }}
-          size="sm"
-          value={selected?.value ?? null}
-        >
-          {DOCUMENT_TYPES.map((type) => (
-            <SegmentedControlItem key={type.value} value={type.value}>
-              {type.label}
-            </SegmentedControlItem>
-          ))}
-        </SegmentedControl>
-        {error === undefined ? null : <FieldError match>{error}</FieldError>}
-      </Field>
-      <TextField
-        error={errors.documentNumber}
-        inputMode="numeric"
-        label="Número"
-        name="documentNumber"
-        onChange={onFieldChange}
-        placeholder={selected?.placeholder ?? DOCUMENT_NUMBER_PLACEHOLDER}
-        value={fields.documentNumber}
+    <PersonDocumentField
+      error={errors.documentNumber ?? errors.documentType}
+      name="documentNumber"
+      onChange={(document) => {
+        onFieldChange("documentNumber", document.documentNumber);
+        onFieldChange("documentType", document.documentType ?? "");
+      }}
+      value={fields.documentNumber}
+    />
+  );
+}
+
+export function BirthDateField({ errors, fields, onFieldChange }: FieldsProps): ReactElement {
+  return (
+    <Field>
+      <Label>Nascimento</Label>
+      <Input
+        autoComplete="off"
+        invalid={errors.birthDate !== undefined}
+        name="birthDate"
+        onChange={(event) => {
+          const [year, month, day] = event.target.value.split("-");
+          onFieldChange("birthDate", year && month && day ? `${day}/${month}/${year}` : "");
+        }}
+        onClick={(event) => event.currentTarget.showPicker?.()}
+        placeholder="dd/mm/aaaa"
+        size="sm"
+        type="date"
+        value={parseDateBR(fields.birthDate) ?? ""}
       />
-    </>
+      {errors.birthDate && <FieldError match>{errors.birthDate}</FieldError>}
+    </Field>
   );
 }

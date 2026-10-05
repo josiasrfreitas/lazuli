@@ -8,6 +8,7 @@ import { trpc } from "~/lib/trpc";
 type PartyPickerProps = {
   kind: "student" | "payer";
   value: SearchSelectOption | null;
+  draftValue?: SearchSelectOption | null | undefined;
   onChange: (value: SearchSelectOption | null) => void;
   onClear: () => void;
   onCreate: (query: string) => void;
@@ -29,6 +30,10 @@ function toOption(row: PartyRow): SearchSelectOption {
     ...(row.document ? { document: detectPersonDocument(row.document).documentNumber } : {}),
     ...(description ? { description } : {}),
   };
+}
+
+function selectedName(option: SearchSelectOption): SearchSelectOption {
+  return { ...option, label: option.label.trim().split(/\s+/u).slice(0, 2).join(" ") };
 }
 
 function usePartyOptions(
@@ -59,12 +64,15 @@ function PickerInput(
   },
 ): ReactElement {
   const { options, pending, failed } = usePartyOptions(props.kind, props.search);
+  const selectedValue =
+    props.draftValue ??
+    (props.value && props.selected?.id === props.value.id ? props.selected : props.value);
   return (
     <SearchSelect
       name={`${props.kind}Search`}
       placeholder={`Digite o nome do ${props.kind === "student" ? "aluno" : "pagador"}`}
       query={props.createMode ? (props.draftName ?? props.search) : props.search}
-      value={props.value && props.selected?.id === props.value.id ? props.selected : props.value}
+      value={selectedValue ? selectedName(selectedValue) : null}
       onClear={() => {
         props.setSearch("");
         props.setSelected(null);
@@ -92,6 +100,7 @@ function PickerInput(
 export function PartyPicker({
   kind,
   value,
+  draftValue,
   onChange,
   onClear,
   onCreate,
@@ -113,6 +122,7 @@ export function PartyPicker({
           {...{
             kind,
             value,
+            draftValue,
             onChange,
             onClear,
             onCreate,

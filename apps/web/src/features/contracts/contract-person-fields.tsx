@@ -2,7 +2,7 @@
 
 import type { ReactElement } from "react";
 import { FormRow } from "@lazuli/ui";
-import { detectPersonDocument } from "@lazuli/validators";
+import { PersonDocumentField } from "~/components/person-document-field";
 import { maskPhoneBR } from "~/lib/masks";
 import type { FormProps } from "./contract-form-fields";
 import { TextField } from "./contract-text-field";
@@ -26,14 +26,11 @@ const PERSON_FIELDS = {
 export function PersonDocument({ kind, fields, errors, change }: PersonProps): ReactElement {
   const names = PERSON_FIELDS[kind];
   return (
-    <TextField
+    <PersonDocumentField
       name={names.documentNumber}
-      label="CPF ou RG (opcional)"
-      placeholder="Digite o CPF ou RG"
       value={fields[names.documentNumber]}
       error={errors[names.documentNumber] ?? errors[names.documentType]}
-      onChange={(value) => {
-        const document = detectPersonDocument(value);
+      onChange={(document) => {
         change(names.documentNumber, document.documentNumber);
         change(names.documentType, document.documentType ?? "");
       }}
