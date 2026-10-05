@@ -6,7 +6,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import type { FormProps } from "./contract-form-fields";
 
-type Props = Pick<FormProps, "fields" | "change">;
+type Props = Pick<FormProps, "fields" | "change"> & { onCopyComplete: () => void };
 type Source = {
   name: string;
   documentType?: string | null;
@@ -42,7 +42,17 @@ function guardianSource(fields: Props["fields"], profile?: Profile): Source | nu
   return { name: profile.guardian.fullName, ...profile.guardian };
 }
 
-export function PayerCopyButton({ fields, change }: Props): ReactElement {
+function hasCompleteContact(source: Source): boolean {
+  return Boolean(
+    source.name.trim() &&
+    source.documentType?.trim() &&
+    source.documentNumber?.trim() &&
+    source.phone?.trim() &&
+    source.email?.trim(),
+  );
+}
+
+export function PayerCopyButton({ fields, change, onCopyComplete }: Props): ReactElement {
   const profile = trpc.students.byId.useQuery(
     { id: fields.studentId },
     { enabled: fields.studentMode === "existing" && Boolean(fields.studentId) },
@@ -62,6 +72,7 @@ export function PayerCopyButton({ fields, change }: Props): ReactElement {
     change("payerDocumentNumber", copySource.documentNumber ?? "");
     change("payerPhone", copySource.phone ?? "");
     change("payerEmail", copySource.email ?? "");
+    if (hasCompleteContact(copySource)) onCopyComplete();
   };
   return (
     <button

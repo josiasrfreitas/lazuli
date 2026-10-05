@@ -73,21 +73,21 @@ void describe("new-student form contract", () => {
     }
   });
 
-  void it("uses masked text for dates so one Tab crosses the field", () => {
-    assert.equal(
-      inputs.some((tag) => attribute(tag, "type") === "date"),
-      false,
-    );
+  void it("offers the native calendar for the birth date without a document selector", () => {
+    const birthDate = inputs.find((tag) => attribute(tag, "name") === "birthDate") ?? "";
+    assert.equal(attribute(birthDate, "type"), "date");
+    assert.doesNotMatch(markup, /role="radiogroup"|CPF<\/button>|RG<\/button>/u);
   });
 
   void it("is a real form, so Enter submits from any field", () => {
     assert.equal((markup.match(FORM_TAG) ?? []).length, 1);
   });
 
-  void it("offers the two document types inline instead of behind a dropdown", () => {
+  void it("uses one document field without a type selector", () => {
     assert.equal(markup.includes('role="combobox"'), false);
     assert.equal(markup.includes("<select"), false);
-    assert.ok(markup.includes('data-slot="segmented-control"'));
+    assert.equal(markup.includes('data-slot="segmented-control"'), false);
+    assert.match(markup, /CPF ou RG \(opcional\)/u);
   });
 
   void it("hides the guardian fields for adults until asked", () => {

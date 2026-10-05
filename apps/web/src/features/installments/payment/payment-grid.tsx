@@ -95,7 +95,7 @@ function RowAdjustments({ preview }: Pick<RowProps, "preview">): ReactElement | 
       )}
       {quote.discountCents > 0 && (
         <p className="whitespace-nowrap font-numeric text-success">
-          − {money(quote.discountCents)} desconto
+          − {money(quote.discountCents)} desconto por pontualidade
         </p>
       )}
     </>
