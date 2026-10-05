@@ -1,0 +1,1262 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lazuli · Workshop de presença</title>
+    <style>
+      /* Standalone snapshots of the existing dark semantic tokens. Throwaway. */
+      :root {
+        color-scheme: dark;
+        --background: #0a0c12;
+        --foreground: #e9edf6;
+        --card: #12151d;
+        --muted: #1a1f2a;
+        --muted-foreground: #b8c1d2;
+        --border: #2c3444;
+        --interactive: #5c7ce6;
+        --ring: #6c8cf0;
+        --success: #73d69b;
+        --warning: #f3c95e;
+        --destructive: #e0637a;
+        --body: Cambria, Georgia, serif;
+        --numeric: Calibri, "Segoe UI", Helvetica, Arial, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font: 16px/1.5 var(--body);
+      }
+      main {
+        max-width: 1160px;
+        margin: auto;
+        padding: 32px 24px 64px;
+      }
+      h1 {
+        margin: 8px 0;
+        font-size: 34px;
+        font-weight: 500;
+        line-height: 1.15;
+      }
+      h2 {
+        margin: 0 0 12px;
+        font-size: 23px;
+        font-weight: 500;
+      }
+      h3 {
+        margin: 0 0 12px;
+        font-size: 18px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      small,
+      .muted {
+        color: var(--muted-foreground);
+      }
+      .eyebrow {
+        font: 12px var(--numeric);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+      }
+      .intro {
+        max-width: 850px;
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+      }
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .split > .panel {
+        margin-top: 0;
+      }
+      .stack {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+      .between {
+        justify-content: space-between;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin: 16px 0;
+      }
+      .stats dt {
+        color: var(--muted-foreground);
+        font-size: 14px;
+      }
+      .stats dd {
+        margin: 2px 0 0;
+        font: 24px var(--numeric);
+      }
+      .numeric {
+        font-family: var(--numeric);
+        font-variant-numeric: tabular-nums;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font: 13px/1.6 var(--numeric);
+      }
+      .positive {
+        color: var(--success);
+      }
+      .warning {
+        color: var(--warning);
+      }
+      .negative {
+        color: var(--destructive);
+      }
+      .notice {
+        padding: 12px 16px;
+        border-left: 3px solid var(--interactive);
+        background: var(--muted);
+        margin: 16px 0;
+      }
+      .notice p {
+        margin: 0;
+      }
+      .notice[data-tone="error"] {
+        border-color: var(--destructive);
+      }
+      .notice[data-tone="success"] {
+        border-color: var(--success);
+      }
+      label {
+        display: grid;
+        gap: 4px;
+        font-size: 14px;
+      }
+      input,
+      select,
+      button {
+        font: 15px var(--numeric);
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 9px 10px;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+      }
+      input[type="checkbox"] {
+        width: auto;
+      }
+      button {
+        cursor: pointer;
+        background: var(--muted);
+        color: var(--foreground);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 9px 12px;
+      }
+      button:hover {
+        border-color: var(--ring);
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+      button.primary {
+        background: var(--interactive);
+        border-color: var(--interactive);
+        color: #fff;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      summary:focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 3px;
+      }
+      .small-button {
+        padding: 5px 9px;
+        font-size: 13px;
+      }
+      .table-wrap {
+        overflow: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 840px;
+        font-size: 14px;
+      }
+      th {
+        text-align: left;
+        color: var(--muted-foreground);
+        font-weight: 400;
+      }
+      th,
+      td {
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      th:first-child,
+      td:first-child {
+        padding-left: 0;
+      }
+      td .row {
+        gap: 4px;
+      }
+      td small {
+        display: block;
+      }
+      .visitor td {
+        border-top: 2px solid var(--border);
+      }
+      .candidates {
+        display: grid;
+        gap: 6px;
+      }
+      .candidates button {
+        text-align: left;
+      }
+      .candidates button[aria-pressed="true"] {
+        border-color: var(--interactive);
+        background: var(--muted);
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .fields .wide {
+        grid-column: 1 / -1;
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .qr-window {
+        padding: 14px;
+        background: var(--background);
+        border: 1px dashed var(--border);
+        border-radius: 5px;
+      }
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .tabs button[aria-selected="true"] {
+        background: var(--interactive);
+        border-color: var(--interactive);
+        color: #fff;
+      }
+      .steps {
+        display: grid;
+        gap: 8px;
+        padding: 0;
+        list-style: none;
+      }
+      .steps button {
+        width: 100%;
+        text-align: left;
+      }
+      .steps button.current {
+        border-color: var(--interactive);
+      }
+      .steps button.done {
+        color: var(--success);
+      }
+      .timeline {
+        padding-left: 22px;
+        font-size: 14px;
+      }
+      .timeline li {
+        padding: 5px 0;
+      }
+      .timeline small {
+        display: block;
+      }
+      summary {
+        cursor: pointer;
+      }
+      @media (max-width: 760px) {
+        main {
+          padding: 20px 14px 40px;
+        }
+        h1 {
+          font-size: 28px;
+        }
+        .split {
+          grid-template-columns: 1fr;
+        }
+        .stats {
+          grid-template-columns: 1fr 1fr;
+        }
+        .panel {
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="intro">
+        <span class="eyebrow">Lazuli · Workshop 01 · Protótipo descartável</span>
+        <h1>Da validação do aluno à baixa da aula</h1>
+        <p>
+          A presença por QR, revisada pelo professor junto do conteúdo, funciona para regular, PPT e
+          reposição? Experimente os casos abaixo e indique o que deveria acontecer de outro jeito.
+        </p>
+        <p class="muted">
+          Dados fictícios. QR, busca de alunos e localização são simulados. Nada é enviado ou salvo;
+          abrir novamente reinicia tudo. Este arquivo não é uma tela de produção.
+        </p>
+        <details>
+          <summary>Decisões e hipóteses deste workshop</summary>
+          <ul>
+            <li>
+              Confirmado: QR por aula, aberto pelo professor com validade; aluno informa nome e
+              escolhe um resultado ou recebe um auto-match claro.
+            </li>
+            <li>
+              Confirmado: homônimos e resultados ambíguos exigem escolha; professor pode registrar
+              presença manualmente; online aceita link ou registro docente.
+            </li>
+            <li>
+              Confirmado: conteúdo obrigatório na baixa; páginas por aluno presente no PPT; revisão
+              sem avanço é válida; reposição compensa uma falta identificada.
+            </li>
+            <li>
+              Para experimentar: a localização presencial precisa ser validada para enviar pelo QR.
+              Falha segue para registro docente, sem gerar falta automaticamente.
+            </li>
+            <li>
+              Para experimentar: antes da baixa, o professor resolve os alunos sem registro. Um
+              envio pelo aluno sugere presença; a confirmação docente torna a presença final.
+            </li>
+            <li>
+              Parâmetros experimentais: validade de 15 minutos, ajuste livre; busca aproximada com
+              limiar e margem conservadores. Não são regras finais.
+            </li>
+          </ul>
+        </details>
+      </header>
+
+      <section class="panel" aria-labelledby="state-heading">
+        <div class="row between">
+          <h2 id="state-heading">Estado da aula</h2>
+          <div class="row">
+            <span id="class-label" class="badge"></span
+            ><span id="clock" class="badge numeric"></span>
+          </div>
+        </div>
+        <dl class="stats" id="stats"></dl>
+        <p id="session-summary"></p>
+        <div id="feedback" class="notice" role="status" aria-live="polite"><p></p></div>
+        <div class="table-wrap">
+          <table aria-label="Presença, conteúdo e autoria por aluno">
+            <thead>
+              <tr>
+                <th>Aluno / estágio</th>
+                <th>Registro recebido</th>
+                <th>Presença</th>
+                <th>Conteúdo</th>
+                <th>Revisão do professor</th>
+              </tr>
+            </thead>
+            <tbody id="roster"></tbody>
+          </table>
+        </div>
+        <p id="makeup-summary" class="muted"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="free-heading">
+        <h2 id="free-heading">Experimente livremente</h2>
+        <p class="muted">
+          Cada ação atualiza o estado acima. Você também pode tentar uma ação fora de ordem para ver
+          por que ela não pode acontecer.
+        </p>
+        <div class="row">
+          <button type="button" id="reset-ppt">Reiniciar PPT presencial</button>
+          <button type="button" id="reset-regular">Reiniciar regular presencial</button>
+          <button type="button" id="reset-online">Reiniciar regular online</button>
+          <button type="button" id="tick">Avançar relógio 10 min</button>
+        </div>
+        <div class="split" style="margin-top: 20px">
+          <section class="panel stack" aria-labelledby="student-heading">
+            <h3 id="student-heading">Aluno · link de presença</h3>
+            <div id="qr-summary" class="qr-window"></div>
+            <form id="student-form" class="stack">
+              <label
+                >Seu nome<input
+                  id="student-name"
+                  autocomplete="off"
+                  placeholder="Ex.: Bruno Mendes ou Brno Mendes"
+              /></label>
+              <div id="candidates" class="candidates" aria-label="Alunos desta aula"></div>
+              <p id="match-summary" class="muted"></p>
+              <label
+                >Localização simulada<select id="geo">
+                  <option value="inside">Localização validada na escola</option>
+                  <option value="outside">Localização fora da escola</option>
+                  <option value="imprecise">Localização imprecisa</option>
+                  <option value="denied">Permissão negada / posição indisponível</option>
+                </select></label
+              >
+              <button class="primary" type="submit">Enviar minha presença</button>
+              <p id="student-feedback" class="muted"></p>
+            </form>
+            <small
+              >O nome informado é uma declaração do aluno. A presença permanece para conferência do
+              professor.</small
+            >
+          </section>
+          <section class="panel stack" aria-labelledby="teacher-heading">
+            <h3 id="teacher-heading">Professora · Marcela (fictícia)</h3>
+            <div class="fields">
+              <label
+                >Validade do QR (minutos)<input id="ttl" type="number" min="1" max="120" value="15"
+              /></label>
+              <div class="row">
+                <button type="button" id="open-qr">Abrir QR</button
+                ><button type="button" id="close-qr">Fechar QR</button>
+              </div>
+            </div>
+            <label
+              >Motivo do registro manual / correção<input
+                id="manual-reason"
+                placeholder="Ex.: aluno presente sem celular"
+            /></label>
+            <p class="muted">
+              Use “Presente” ou “Falta” na linha do aluno. O registro do professor funciona com o QR
+              fechado ou vencido.
+            </p>
+            <button type="button" id="resolve-missing">
+              Marcar como falta quem está sem registro
+            </button>
+            <form id="content-form" class="fields">
+              <label class="wide">Conteúdo para<select id="content-owner"></select></label>
+              <label class="wide"
+                >Livro / material<input id="book" placeholder="Ex.: Livro do estágio"
+              /></label>
+              <label>Da página<input id="from-page" type="number" min="1" /></label>
+              <label>Até a página<input id="to-page" type="number" min="1" /></label>
+              <label class="check wide"
+                ><input id="review" type="checkbox" />Revisão sem avanço</label
+              >
+              <label class="wide"
+                >O que foi trabalhado<input
+                  id="content-note"
+                  placeholder="Ex.: revisão de perguntas e respostas"
+              /></label>
+              <button class="wide" type="submit">Registrar conteúdo</button>
+            </form>
+            <button class="primary" type="button" id="finalize">
+              Conferir e dar baixa na aula
+            </button>
+            <p id="teacher-feedback" class="muted"></p>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="walkthrough-heading">
+        <h2 id="walkthrough-heading">Cenários guiados</h2>
+        <p class="muted">
+          Escolher um cenário reinicia a simulação. Cada etapa é um botão real. Se experimentar fora
+          do roteiro, reinicie o cenário antes de retomá-lo.
+        </p>
+        <div id="scenario-tabs" class="tabs" role="tablist" aria-label="Cenários de presença"></div>
+        <div id="scenario-panel" role="tabpanel">
+          <h3 id="scenario-title"></h3>
+          <p id="scenario-description"></p>
+          <button type="button" id="restart-scenario">Reiniciar este cenário</button>
+          <ol id="scenario-steps" class="steps"></ol>
+          <p id="scenario-feedback" class="notice" hidden></p>
+          <p id="scenario-verdict" class="notice" hidden></p>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="history-heading">
+        <h2 id="history-heading">Ações e autoria nesta simulação</h2>
+        <p class="muted">
+          Este registro torna as mudanças visíveis no workshop; o histórico completo do produto
+          ainda precisa de desenho próprio.
+        </p>
+        <ol id="history" class="timeline"></ol>
+      </section>
+    </main>
+
+    <script>
+      // PROTOTYPE QUESTION: can student QR declarations, teacher review, required
+      // content and absence-linked makeups form a usable session completion flow?
+      // Pure in-memory model. No DOM, network, location, clock or persistence calls.
+      const AttendanceWorkshop = (() => {
+        const teacher = "Marcela · professora";
+        const names = [
+          ["ana1", "Ana Luiza Costa", "DEMO-01", "Basic 2", 22],
+          ["ana2", "Ana Luiza Costa", "DEMO-02", "Basic 3", 40],
+          ["bruno", "Bruno Mendes", "DEMO-03", "Basic 1", 12],
+          ["carla", "Carla Nunes", "DEMO-04", "Basic 4", 78],
+          ["davi", "Davi Rocha", "DEMO-05", "Basic 2", 35],
+        ];
+        function initial(mode = "PPT", format = "IN_PERSON") {
+          return {
+            mode,
+            format,
+            minute: 0,
+            qr: { open: false, openedAt: null, expiresAt: null, actor: null },
+            closedAt: null,
+            closedBy: null,
+            classContent: null,
+            members: names.map(([id, name, code, stage, lastPage]) => ({
+              id,
+              name,
+              code,
+              stage: mode === "REGULAR" ? "Basic 2" : stage,
+              lastPage: mode === "REGULAR" ? 24 : lastPage,
+              visitor: id === "davi",
+              checkin: null,
+              decision: null,
+              decidedBy: null,
+              decidedAt: null,
+              reason: null,
+              content: null,
+              final: null,
+            })),
+            events: [],
+            feedback: {
+              tone: "info",
+              text: "Aula aguardando registros. Abra o QR ou registre presença pelo professor.",
+            },
+          };
+        }
+        const normalize = (value) =>
+          value
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, " ");
+        function distance(a, b) {
+          let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+          for (let i = 1; i <= a.length; i++) {
+            const current = [i];
+            for (let j = 1; j <= b.length; j++)
+              current[j] = Math.min(
+                current[j - 1] + 1,
+                previous[j] + 1,
+                previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+              );
+            previous = current;
+          }
+          return previous[b.length];
+        }
+        function matches(state, query) {
+          const normalized = normalize(query);
+          if (normalized.length < 2) return [];
+          return state.members
+            .map((member) => {
+              const name = normalize(member.name);
+              return {
+                member,
+                score: 1 - distance(normalized, name) / Math.max(normalized.length, name.length),
+                contains: name.includes(normalized),
+              };
+            })
+            .filter((match) => match.contains || match.score >= 0.55)
+            .sort((a, b) => b.score - a.score);
+        }
+        function clearMatch(state, query) {
+          const options = matches(state, query);
+          if (!options.length || options[0].score < 0.8) return null;
+          if (options[1] && options[0].score - options[1].score < 0.12) return null;
+          return options[0].member;
+        }
+        const present = (member) =>
+          member.decision === "PRESENT" || (member.decision === null && member.checkin !== null);
+        const resolved = (member) => member.decision !== null || member.checkin !== null;
+        const qrActive = (state) =>
+          state.qr.open && state.minute < state.qr.expiresAt && state.closedAt === null;
+        function feedback(state, tone, text) {
+          state.feedback = { tone, text };
+          return state;
+        }
+        function record(state, actor, text) {
+          state.events.push({ minute: state.minute, actor, text });
+        }
+        function reduce(previous, action) {
+          const state = structuredClone(previous);
+          if (action.type === "TICK") {
+            state.minute += action.minutes;
+            record(state, "Relógio da simulação", `Avançou ${action.minutes} minutos.`);
+            return feedback(
+              state,
+              "info",
+              qrActive(state)
+                ? "O QR continua válido."
+                : "O QR está fechado ou vencido. Os registros recebidos permanecem para revisão.",
+            );
+          }
+          if (state.closedAt !== null)
+            return feedback(
+              state,
+              "error",
+              "A aula já teve baixa. Este workshop não modela correção posterior; reinicie para explorar outra decisão.",
+            );
+          if (action.type === "OPEN_QR") {
+            if (!Number.isInteger(action.ttl) || action.ttl < 1 || action.ttl > 120)
+              return feedback(
+                state,
+                "error",
+                "Informe uma validade de 1 a 120 minutos para experimentar.",
+              );
+            state.qr = {
+              open: true,
+              openedAt: state.minute,
+              expiresAt: state.minute + action.ttl,
+              actor: teacher,
+            };
+            record(state, teacher, `Abriu o QR por ${action.ttl} minutos.`);
+            return feedback(
+              state,
+              "success",
+              "Link de presença aberto. O aluno pode informar o nome e enviar sua presença.",
+            );
+          }
+          if (action.type === "CLOSE_QR") {
+            state.qr.open = false;
+            record(state, teacher, "Fechou o link de presença.");
+            return feedback(
+              state,
+              "info",
+              "QR fechado; o professor ainda pode registrar e revisar presenças.",
+            );
+          }
+          if (action.type === "CHECKIN") {
+            if (!qrActive(state))
+              return feedback(
+                state,
+                "error",
+                "Link fechado ou vencido. Peça ao professor para registrar ou reabrir o QR.",
+              );
+            const member = action.memberId
+              ? state.members.find((item) => item.id === action.memberId)
+              : clearMatch(state, action.name);
+            if (!member)
+              return feedback(
+                state,
+                "error",
+                matches(state, action.name).length
+                  ? "O nome não identifica um único aluno com clareza. Escolha seu registro na lista."
+                  : "Nenhum aluno da aula foi encontrado. Confira o nome ou peça ajuda ao professor.",
+              );
+            if (state.format === "IN_PERSON" && action.geo !== "inside")
+              return feedback(
+                state,
+                "error",
+                `Localização ${action.geo === "outside" ? "fora da escola" : action.geo === "imprecise" ? "imprecisa" : "indisponível"}. Nenhuma presença foi enviada. O professor pode confirmar manualmente.`,
+              );
+            if (member.checkin)
+              return feedback(
+                state,
+                "info",
+                `${member.name} (${member.code}) já enviou presença. Nenhum registro duplicado foi criado.`,
+              );
+            member.checkin = {
+              minute: state.minute,
+              typedName: action.name,
+              match: action.memberId ? "Escolhido na lista" : "Auto-match claro",
+              geo: state.format === "ONLINE" ? "Dispensada · aula online" : "Localização validada",
+              actor: `${member.name} · nome declarado`,
+            };
+            record(
+              state,
+              member.checkin.actor,
+              `Enviou presença para ${member.code}. ${member.checkin.match}.`,
+            );
+            return feedback(
+              state,
+              "success",
+              `${member.name} (${member.code}): presença enviada, aguardando conferência e baixa pelo professor.`,
+            );
+          }
+          if (action.type === "DECIDE") {
+            const member = state.members.find((item) => item.id === action.memberId);
+            if (!member) return feedback(state, "error", "Escolha um aluno desta aula.");
+            if (!action.reason.trim())
+              return feedback(
+                state,
+                "error",
+                "Registre o motivo da presença manual ou da correção.",
+              );
+            member.decision = action.status;
+            member.decidedBy = teacher;
+            member.decidedAt = state.minute;
+            member.reason = action.reason.trim();
+            record(
+              state,
+              teacher,
+              `${member.name} (${member.code}): ${action.status === "PRESENT" ? "presente" : "falta"}. Motivo: ${member.reason}.`,
+            );
+            return feedback(
+              state,
+              "success",
+              "Decisão registrada para a conferência. A frequência muda somente após a baixa.",
+            );
+          }
+          if (action.type === "RESOLVE_MISSING") {
+            const missing = state.members.filter((member) => !resolved(member));
+            for (const member of missing) {
+              member.decision = "ABSENT";
+              member.decidedBy = teacher;
+              member.decidedAt = state.minute;
+              member.reason = "Professor revisou os alunos sem registro e confirmou falta.";
+            }
+            record(
+              state,
+              teacher,
+              `Revisou os alunos sem registro e marcou ${missing.length} ${missing.length === 1 ? "falta" : "faltas"}.`,
+            );
+            return feedback(
+              state,
+              "success",
+              "Alunos sem registro foram revisados como falta. O professor pode corrigir qualquer linha antes da baixa.",
+            );
+          }
+          if (action.type === "CONTENT") {
+            const value = action.value;
+            if (!value.book.trim() || !value.note.trim())
+              return feedback(
+                state,
+                "error",
+                "Informe material e o que foi trabalhado, inclusive em revisão.",
+              );
+            if (
+              !Number.isInteger(value.from) ||
+              !Number.isInteger(value.to) ||
+              value.from < 1 ||
+              value.to < value.from
+            )
+              return feedback(
+                state,
+                "error",
+                "Informe páginas válidas; a página final deve ser igual ou maior que a inicial.",
+              );
+            const content = {
+              ...value,
+              book: value.book.trim(),
+              note: value.note.trim(),
+              actor: teacher,
+              minute: state.minute,
+            };
+            if (state.mode === "REGULAR") state.classContent = content;
+            else {
+              const member = state.members.find((item) => item.id === action.memberId);
+              if (!member || !present(member))
+                return feedback(
+                  state,
+                  "error",
+                  "No PPT, registre conteúdo para um aluno marcado como presente nesta aula.",
+                );
+              member.content = content;
+            }
+            record(
+              state,
+              teacher,
+              `Registrou ${value.review ? "revisão" : "conteúdo"} · ${state.mode === "REGULAR" ? "turma regular" : state.members.find((item) => item.id === action.memberId).name} · páginas ${value.from}–${value.to}.`,
+            );
+            return feedback(
+              state,
+              "success",
+              "Conteúdo registrado. Revisão sem avanço também permite a baixa.",
+            );
+          }
+          if (action.type === "FINALIZE") {
+            const missing = state.members.filter((member) => !resolved(member));
+            if (missing.length)
+              return feedback(
+                state,
+                "error",
+                `Baixa pendente: revise ${missing.length} ${missing.length === 1 ? "aluno sem registro" : "alunos sem registro"}. Falta de envio não foi convertida automaticamente em falta.`,
+              );
+            const withoutContent = state.members.filter(
+              (member) => present(member) && !member.content,
+            );
+            if (state.mode === "PPT" && withoutContent.length)
+              return feedback(
+                state,
+                "error",
+                `Baixa pendente: registre páginas ou revisão de ${withoutContent.map((member) => `${member.name} (${member.code})`).join(", ")}.`,
+              );
+            if (state.mode === "REGULAR" && !state.classContent)
+              return feedback(
+                state,
+                "error",
+                "Baixa pendente: registre o conteúdo da turma regular, inclusive se houve revisão.",
+              );
+            state.closedAt = state.minute;
+            state.closedBy = teacher;
+            state.qr.open = false;
+            for (const member of state.members)
+              member.final = present(member) ? "PRESENT" : "ABSENT";
+            record(
+              state,
+              teacher,
+              "Conferiu as presenças, registrou o conteúdo e deu baixa na aula.",
+            );
+            return feedback(
+              state,
+              "success",
+              "Aula com baixa. Presenças finais confirmadas pelo professor; frequência atualizada. O QR foi fechado.",
+            );
+          }
+          return state;
+        }
+        return { initial, reduce, matches, clearMatch, present, resolved, qrActive };
+      })();
+    </script>
+
+    <script>
+      // Thin workshop shell: forms dispatch actions; the model owns every transition.
+      const model = AttendanceWorkshop;
+      const $ = (id) => document.getElementById(id);
+      const escape = (value) =>
+        String(value).replace(
+          /[&<>"']/g,
+          (character) =>
+            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character],
+        );
+      const time = (minute) =>
+        `${String(18 + Math.floor((30 + minute) / 60)).padStart(2, "0")}:${String((30 + minute) % 60).padStart(2, "0")}`;
+      const pageText = (content) =>
+        content
+          ? `${content.book} · p. ${content.from}–${content.to}${content.review ? " · revisão sem avanço" : ""}`
+          : "Aguardando conteúdo";
+      let state = model.initial();
+      let selectedStudent = null;
+      let activeScenario = null;
+      let stepIndex = 0;
+      function dispatch(action, fromGuide = false) {
+        state = model.reduce(state, action);
+        if (!fromGuide && activeScenario !== null) {
+          activeScenario = null;
+          $("scenario-verdict").hidden = true;
+        }
+        render();
+      }
+      function reset(mode, format = "IN_PERSON") {
+        state = model.initial(mode, format);
+        selectedStudent = null;
+        activeScenario = null;
+        $("student-name").value = "";
+        $("geo").value = "inside";
+        $("manual-reason").value = "";
+        $("book").value = "";
+        $("from-page").value = "";
+        $("to-page").value = "";
+        $("review").checked = false;
+        $("content-note").value = "";
+        render();
+      }
+      function renderCandidates() {
+        const query = $("student-name").value;
+        const options = model.matches(state, query);
+        $("candidates").innerHTML = options
+          .map(
+            ({ member }) =>
+              `<button type="button" data-student="${member.id}" aria-pressed="${selectedStudent === member.id}">${escape(member.name)} <small>· ${member.code} · ${escape(member.stage)}${member.visitor ? " · reposição agendada" : ""}</small></button>`,
+          )
+          .join("");
+        const clear = model.clearMatch(state, query);
+        $("match-summary").textContent = selectedStudent
+          ? "Você escolheu seu registro na lista."
+          : clear
+            ? `Auto-match ao enviar: ${clear.name} (${clear.code}).`
+            : query.length >= 2
+              ? "Escolha seu registro; não há auto-match claro."
+              : "Digite o nome para buscar apenas os alunos e visitantes desta aula.";
+      }
+      function render() {
+        const presentCount = state.members.filter(
+          (member) => !member.visitor && model.present(member),
+        ).length;
+        const missingCount = state.members.filter((member) => !model.resolved(member)).length;
+        const qrLabel = model.qrActive(state)
+          ? "Aberto"
+          : state.qr.open && state.closedAt === null
+            ? "Vencido"
+            : "Fechado";
+        $("class-label").textContent =
+          `${state.mode === "PPT" ? "PPT · estágios individuais" : "Regular · Basic 2"} · ${state.format === "ONLINE" ? "Online" : "Presencial"}`;
+        $("clock").textContent = `Relógio simulado · ${time(state.minute)} · São Paulo`;
+        $("stats").innerHTML =
+          `<div><dt>Aula</dt><dd>${state.closedAt === null ? "Em andamento" : "Com baixa"}</dd></div><div><dt>QR / link</dt><dd>${qrLabel}</dd></div><div><dt>${state.closedAt === null ? "Presenças sugeridas" : "Presenças finais"} · alunos da turma</dt><dd>${presentCount} de 4</dd></div><div><dt>Sem registro / revisão</dt><dd>${missingCount}</dd></div>`;
+        $("session-summary").textContent =
+          state.closedAt === null
+            ? "A frequência ainda não mudou. Os registros do aluno aguardam a confirmação da professora."
+            : `Baixa às ${time(state.closedAt)} por ${state.closedBy}. Presenças e conteúdo confirmados.`;
+        $("feedback").dataset.tone = state.feedback.tone;
+        $("feedback").firstElementChild.textContent = state.feedback.text;
+        $("student-feedback").textContent = state.feedback.text;
+        $("teacher-feedback").textContent = state.feedback.text;
+        $("roster").innerHTML = state.members
+          .map((member) => {
+            const isPresent = model.present(member);
+            const attendanceLabel = member.final
+              ? member.final === "PRESENT"
+                ? "Presente · confirmado"
+                : member.visitor
+                  ? "Não compareceu"
+                  : "Falta · confirmada"
+              : member.decision === "ABSENT"
+                ? "Falta · revisão docente"
+                : member.decision === "PRESENT"
+                  ? "Presente · registro docente"
+                  : member.checkin
+                    ? "Presença enviada · revisar"
+                    : "Sem registro";
+            const content =
+              state.mode === "REGULAR" && isPresent ? state.classContent : member.content;
+            const qr = member.checkin
+              ? `<span>${escape(member.checkin.match)}</span><small>${escape(member.checkin.geo)} · ${time(member.checkin.minute)}</small><small>${escape(member.checkin.actor)}</small>`
+              : "Nenhum envio pelo aluno";
+            const attribution = member.decidedBy
+              ? `<small>${escape(member.decidedBy)} · ${time(member.decidedAt)}</small><small>${escape(member.reason)}</small>`
+              : "";
+            const contentLabel = content
+              ? `${escape(pageText(content))}<small>${escape(content.note)}</small><small>${escape(content.actor)} · ${time(content.minute)}</small>`
+              : isPresent
+                ? "Pendente para a baixa"
+                : "—";
+            return `<tr class="${member.visitor ? "visitor" : ""}"><td>${escape(member.name)}<small>${member.code} · ${escape(member.stage)}</small><small>${member.visitor ? "Visitante · reposição de falta identificada" : `Página antes desta aula: ${member.lastPage}`}</small></td><td>${qr}</td><td><span class="${isPresent ? "positive" : model.resolved(member) ? "muted" : "warning"}">${attendanceLabel}</span>${attribution}</td><td>${contentLabel}</td><td><div class="row"><button type="button" class="small-button" data-decision="PRESENT" data-member="${member.id}">Presente</button><button type="button" class="small-button" data-decision="ABSENT" data-member="${member.id}">Falta</button></div></td></tr>`;
+          })
+          .join("");
+        const visitor = state.members.find((member) => member.visitor);
+        const compensated = visitor.final === "PRESENT";
+        $("makeup-summary").textContent =
+          `Reposição de Davi: falta original preservada. Frequência fictícia na matrícula de origem: ${compensated ? "5 de 5 · 100% (1 falta compensada)" : "4 de 5 · 80% (ainda sem compensação confirmada)"}. A aula de destino não acrescenta uma segunda aula ao denominador de Davi.`;
+        $("qr-summary").innerHTML =
+          `<strong>QR simulado · ${qrLabel}</strong><p>${state.qr.openedAt === null ? "A professora ainda não abriu o link." : `Aberto às ${time(state.qr.openedAt)}, válido até ${time(state.qr.expiresAt)}, por ${escape(state.qr.actor)}.`}</p><small>${state.format === "ONLINE" ? "Online: link de presença; localização da escola dispensada." : "Presencial: localização simulada validada na escola."}</small>`;
+        const owner = $("content-owner").value;
+        $("content-owner").innerHTML =
+          state.mode === "REGULAR"
+            ? '<option value="class">Turma regular · conteúdo compartilhado</option>'
+            : state.members
+                .map(
+                  (member) =>
+                    `<option value="${member.id}">${escape(member.name)} · ${member.code} · ${escape(member.stage)}</option>`,
+                )
+                .join("");
+        if (Array.from($("content-owner").options).some((option) => option.value === owner))
+          $("content-owner").value = owner;
+        $("history").innerHTML = state.events.length
+          ? state.events
+              .map(
+                (event) =>
+                  `<li>${escape(event.text)}<small>${time(event.minute)} · ${escape(event.actor)}</small></li>`,
+              )
+              .join("")
+          : '<li class="muted">Nenhuma ação ainda.</li>';
+        renderCandidates();
+        renderScenario();
+      }
+      $("student-name").addEventListener("input", () => {
+        selectedStudent = null;
+        renderCandidates();
+      });
+      $("candidates").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-student]");
+        if (!button) return;
+        selectedStudent = button.dataset.student;
+        $("student-name").value = state.members.find(
+          (member) => member.id === selectedStudent,
+        ).name;
+        renderCandidates();
+      });
+      $("student-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        dispatch({
+          type: "CHECKIN",
+          name: $("student-name").value,
+          memberId: selectedStudent,
+          geo: $("geo").value,
+        });
+      });
+      $("open-qr").onclick = () => dispatch({ type: "OPEN_QR", ttl: Number($("ttl").value) });
+      $("close-qr").onclick = () => dispatch({ type: "CLOSE_QR" });
+      $("tick").onclick = () => dispatch({ type: "TICK", minutes: 10 });
+      $("resolve-missing").onclick = () => dispatch({ type: "RESOLVE_MISSING" });
+      $("finalize").onclick = () => dispatch({ type: "FINALIZE" });
+      $("roster").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-decision]");
+        if (button)
+          dispatch({
+            type: "DECIDE",
+            memberId: button.dataset.member,
+            status: button.dataset.decision,
+            reason: $("manual-reason").value,
+          });
+      });
+      $("content-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        dispatch({
+          type: "CONTENT",
+          memberId: $("content-owner").value,
+          value: {
+            book: $("book").value,
+            from: Number($("from-page").value),
+            to: Number($("to-page").value),
+            review: $("review").checked,
+            note: $("content-note").value,
+          },
+        });
+      });
+      $("reset-ppt").onclick = () => reset("PPT");
+      $("reset-regular").onclick = () => reset("REGULAR");
+      $("reset-online").onclick = () => reset("REGULAR", "ONLINE");
+
+      const open = (ttl) => ({ type: "OPEN_QR", ttl });
+      const checkin = (name, memberId = null, geo = "inside") => ({
+        type: "CHECKIN",
+        name,
+        memberId,
+        geo,
+      });
+      const content = (memberId, from, to, review = false) => ({
+        type: "CONTENT",
+        memberId,
+        value: {
+          book: "Livro do estágio",
+          from,
+          to,
+          review,
+          note: review
+            ? "Revisão de conteúdo já estudado"
+            : "Atividades e conversação das páginas indicadas",
+        },
+      });
+      const absent = { type: "RESOLVE_MISSING" };
+      const close = { type: "FINALIZE" };
+      const scenarios = [
+        {
+          name: "PPT completo",
+          mode: "PPT",
+          description:
+            "Dois alunos presentes em estágios diferentes. Um avança; outro revisa. Só a baixa confirma frequência.",
+          steps: [
+            ["Abrir QR por 15 minutos", open(15)],
+            ["Brno Mendes envia · auto-match claro", checkin("Brno Mendes")],
+            ["Ana escolhe DEMO-01 e envia", checkin("Ana Luiza Costa", "ana1")],
+            ["Professora revisa os demais como falta", absent],
+            ["Bruno trabalha páginas 12–16", content("bruno", 12, 16)],
+            ["Ana revisa página 22, sem avanço", content("ana1", 22, 22, true)],
+            ["Professora confere e dá baixa", close],
+          ],
+          verdict:
+            "Bruno e Ana DEMO-01 presentes. Ana revisou sem avançar e a aula pôde ter baixa. A reposição de Davi não foi compensada.",
+        },
+        {
+          name: "Homônimos",
+          mode: "PPT",
+          description:
+            "Existem duas Ana Luiza Costa nesta aula. Digitar o nome completo ainda não identifica qual delas está enviando.",
+          steps: [
+            ["Abrir QR", open(15)],
+            ["Enviar Ana Luiza Costa sem escolher · observar bloqueio", checkin("Ana Luiza Costa")],
+            ["Escolher Ana DEMO-02 e enviar", checkin("Ana Luiza Costa", "ana2")],
+            ["Professora revisa os demais como falta", absent],
+            ["Registrar revisão da Ana DEMO-02", content("ana2", 40, 40, true)],
+            ["Dar baixa", close],
+          ],
+          verdict:
+            "Somente Ana DEMO-02 recebeu presença. O auto-match ambíguo não marcou a outra Ana.",
+        },
+        {
+          name: "QR vencido",
+          mode: "PPT",
+          description:
+            "O aluno está na sala, mas o link venceu. A professora registra a presença com motivo, sem depender do QR.",
+          steps: [
+            ["Abrir QR por 5 minutos", open(5)],
+            ["Avançar relógio 10 minutos", { type: "TICK", minutes: 10 }],
+            ["Bruno tenta enviar pelo link vencido", checkin("Bruno Mendes")],
+            [
+              "Professora registra Bruno presente",
+              {
+                type: "DECIDE",
+                memberId: "bruno",
+                status: "PRESENT",
+                reason: "Aluno presente em sala; link já havia vencido",
+              },
+            ],
+            ["Revisar demais como falta", absent],
+            ["Registrar páginas de Bruno", content("bruno", 12, 15)],
+            ["Dar baixa", close],
+          ],
+          verdict:
+            "Bruno ficou presente por registro docente atribuído e justificado. A tentativa pelo QR vencido não criou envio.",
+        },
+        {
+          name: "Localização falha",
+          mode: "PPT",
+          description:
+            "A permissão foi negada ou o aparelho não conseguiu localizar. Nenhuma falta é gerada automaticamente.",
+          steps: [
+            ["Abrir QR", open(15)],
+            ["Bruno tenta com localização indisponível", checkin("Bruno Mendes", null, "denied")],
+            [
+              "Professora confirma Bruno em sala",
+              {
+                type: "DECIDE",
+                memberId: "bruno",
+                status: "PRESENT",
+                reason: "Aluno presente; celular não conseguiu validar localização",
+              },
+            ],
+            ["Revisar demais como falta", absent],
+            ["Registrar revisão de Bruno", content("bruno", 12, 12, true)],
+            ["Dar baixa", close],
+          ],
+          verdict:
+            "A falha de localização não virou falta. O professor registrou a presença e o conteúdo de revisão.",
+        },
+        {
+          name: "Online / regular",
+          mode: "REGULAR",
+          format: "ONLINE",
+          description:
+            "O link online não verifica proximidade da escola. A professora também pode marcar quem acompanhou pela videochamada.",
+          steps: [
+            ["Abrir link de presença", open(15)],
+            ["Bruno envia de fora da escola · online", checkin("Bruno Mendes", null, "outside")],
+            [
+              "Professora registra Carla pela videochamada",
+              {
+                type: "DECIDE",
+                memberId: "carla",
+                status: "PRESENT",
+                reason: "Participou da aula online; não utilizou o link",
+              },
+            ],
+            ["Revisar demais como falta", absent],
+            ["Registrar conteúdo compartilhado da regular", content("class", 24, 28)],
+            ["Dar baixa", close],
+          ],
+          verdict:
+            "Bruno e Carla presentes; uma entrada pelo link e outra pela professora. Conteúdo registrado uma vez para a turma regular.",
+        },
+        {
+          name: "Reposição",
+          mode: "PPT",
+          description:
+            "Davi é visitante com reposição vinculada a uma falta. O envio duplicado não cria crédito adicional; a compensação só ocorre na baixa.",
+          steps: [
+            ["Abrir QR", open(15)],
+            ["Davi envia presença", checkin("Davi Rocha")],
+            ["Davi envia novamente · observar duplicidade", checkin("Davi Rocha")],
+            ["Revisar demais como falta", absent],
+            ["Registrar páginas de Davi nesta reposição", content("davi", 35, 38)],
+            ["Dar baixa", close],
+          ],
+          verdict:
+            "Uma falta de origem compensada uma vez. Frequência fictícia de Davi: 4/5 → 5/5. A falta original permanece no histórico.",
+        },
+        {
+          name: "Conteúdo obrigatório",
+          mode: "PPT",
+          description:
+            "A presença chegou, mas o professor ainda não registrou páginas. Revisão sem avanço resolve a pendência e permite a baixa.",
+          steps: [
+            ["Abrir QR", open(15)],
+            ["Bruno envia presença", checkin("Bruno Mendes")],
+            ["Revisar demais como falta", absent],
+            ["Tentar dar baixa sem conteúdo · observar pendência", close],
+            ["Registrar revisão da página 12", content("bruno", 12, 12, true)],
+            ["Dar baixa com revisão registrada", close],
+          ],
+          verdict:
+            "A baixa ficou pendente até o registro do conteúdo; a revisão sem avanço foi aceita.",
+        },
+      ];
+      function beginScenario(index) {
+        const scenario = scenarios[index];
+        reset(scenario.mode, scenario.format || "IN_PERSON");
+        activeScenario = index;
+        stepIndex = 0;
+        render();
+      }
+      function renderScenario() {
+        $("scenario-tabs").innerHTML = scenarios
+          .map(
+            (scenario, index) =>
+              `<button type="button" id="scenario-tab-${index}" role="tab" aria-selected="${activeScenario === index}" aria-controls="scenario-panel" data-scenario="${index}">${escape(scenario.name)}</button>`,
+          )
+          .join("");
+        const scenario = activeScenario === null ? null : scenarios[activeScenario];
+        $("scenario-title").textContent = scenario
+          ? scenario.name
+          : "Escolha um cenário para começar";
+        $("scenario-description").textContent = scenario
+          ? scenario.description
+          : "Você está no modo livre. Escolha uma aba para iniciar um roteiro com estado conhecido.";
+        $("restart-scenario").hidden = !scenario;
+        $("scenario-feedback").hidden = !scenario;
+        $("scenario-feedback").textContent = state.feedback.text;
+        $("scenario-feedback").dataset.tone = state.feedback.tone;
+        $("scenario-panel").removeAttribute("aria-labelledby");
+        if (scenario)
+          $("scenario-panel").setAttribute("aria-labelledby", `scenario-tab-${activeScenario}`);
+        $("scenario-steps").innerHTML = scenario
+          ? scenario.steps
+              .map(
+                ([label], index) =>
+                  `<li><button type="button" data-step="${index}" ${index === stepIndex ? 'class="current"' : index < stepIndex ? 'class="done"' : ""} ${index === stepIndex ? "" : "disabled"}>${index < stepIndex ? "✓" : index + 1} · ${escape(label)}</button></li>`,
+              )
+              .join("")
+          : "";
+        $("scenario-verdict").hidden = !scenario || stepIndex < scenario.steps.length;
+        $("scenario-verdict").textContent =
+          scenario && stepIndex >= scenario.steps.length
+            ? `Resultado para avaliar: ${scenario.verdict}`
+            : "";
+      }
+      $("scenario-tabs").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-scenario]");
+        if (button) beginScenario(Number(button.dataset.scenario));
+      });
+      $("restart-scenario").onclick = () => {
+        if (activeScenario !== null) beginScenario(activeScenario);
+      };
+      $("scenario-steps").addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-step]");
+        if (!button || activeScenario === null || Number(button.dataset.step) !== stepIndex) return;
+        const action = scenarios[activeScenario].steps[stepIndex][1];
+        stepIndex++;
+        dispatch(action, true);
+      });
+      render();
+    </script>
+  </body>
+</html>
