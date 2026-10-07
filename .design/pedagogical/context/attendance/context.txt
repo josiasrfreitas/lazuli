@@ -1,0 +1,2 @@
+alteramos a forma de registro de aula. antes era feito no card impresso e alimentado manualmente nas planilhas de controle. agora usamos o appsheet, que alimenta as planilhas automaticamente
+reposition-control: fazemos o input do conteúdo que precisa ser reposto manualmente com base no conteúdo dado em sala de aula na data que o aluno perdeu aula. a reposição tbm pode ser agendada por outro motivo q n seja a reposição de conteúdo de aula perdida, ex: aluno ppt quer repor carga horaria; aluno com dificuldade no conteudo e precisa de reforço
