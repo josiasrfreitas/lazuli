@@ -3,6 +3,32 @@
 This is the starting point for current Lazuli frontend work. Historical frontend plans under
 `docs/legacy/` are provenance only and do not define current requirements.
 
+## Mandatory interface and workshop standards
+
+These rules apply to product UI and disposable prototypes.
+
+- **Explore before choosing.** A workshop must offer meaningfully different directions so the
+  user can choose or combine them. For UI workshops, use three structurally different alternatives
+  by default: vary layout, information hierarchy, or interaction flow, not merely colors or copy.
+  Exercise the same end-to-end scenarios in each alternative and explain its tradeoffs. For logic
+  workshops, make unresolved choices explicit and offer alternative behaviors to compare.
+- **Validate the direction with the user.** Keep proposals and assumptions visibly distinct from
+  accepted decisions. Browser checks prove that a prototype works, not that its design is accepted.
+  Record the user's choice before treating a workshop direction as settled.
+- **Establish action hierarchy.** Give each task context one visually dominant primary action.
+  Secondary actions use lower-emphasis variants and contextual placement; uncommon or destructive
+  actions belong in a menu or a separate confirmation. Avoid stacks of equally prominent buttons.
+- **Compose compact, coherent groups.** Use grid and flex layouts to align related information,
+  labels, controls, and actions. Size short fields such as dates, times, codes, and counts to their
+  content; let names and descriptions take the remaining space. Use spacing to separate meaningful
+  groups, avoiding oversized gaps, isolated controls, and stretched forms.
+- **Reuse the visual system.** Use existing form and operational-table primitives and semantic
+  tokens. A workshop explores composition without inventing a competing table or control style.
+- **Inspect before handing over.** Exercise the actual flows in the browser and inspect desktop
+  and narrow layouts for action hierarchy, field widths, alignment, empty gaps, overflow, and
+  keyboard behavior. Fix observable defects before requesting feedback. If browser validation is
+  unavailable, state the limitation; do not report the design as validated.
+
 ## Component boundary
 
 **Hard rule: a component implementation file must not exceed 200 physical lines.** Imports,

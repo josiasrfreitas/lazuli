@@ -37,6 +37,8 @@ anything left to CI with a concrete reason.
 
 ## Hard boundaries
 
+- For UI changes and prototype workshops, read `docs/frontend/README.md` first and follow its
+  mandatory visual hierarchy, layout, alternative exploration, and browser-validation standards.
 - `apps/web` does not import Prisma or `worker-handlers`; `job-contracts` does not import
   `worker-handlers`; `domain` imports no `ui`, `api`, or `db` package.
 - Heavy or scheduled work crosses the worker boundary instead of running inline.

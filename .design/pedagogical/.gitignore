@@ -1,0 +1,2 @@
+# Local stakeholder images contain student data. Keep them out of Git.
+context/**/*.jpeg

@@ -108,3 +108,31 @@ _Avoid_: Lesson, aula, meeting
 A replacement session scheduled for a student in response to an absence. Its outcome counts
 toward the student's attendance. A sub-concept of Attendance, not an area of its own.
 _Avoid_: Reposição, make-up class, recovery session
+
+## Pedagogical terms
+
+**Pedagogical Progress**:
+A student's stage placement over time, separate from operational class membership.
+
+**Stage Plan**:
+The planned dates and learning activities for completing a stage. Regular classes share a
+semester plan; personalized students each have an individual plan and duration limit.
+
+**Competency**:
+An individually assessed dimension of learning: oral, listening, written or participation.
+
+**Assessment Block**:
+One of the two assessment groups within a stage, containing one grade for each competency.
+
+**Pedagogical Occurrence**:
+A teacher's report of an atypical situation after a class, including the initial response.
+
+**Pedagogical Intervention**:
+Follow-up conducted by the pedagogical department, which may result from its review of an occurrence.
+
+**Experimental Session**:
+A prospective student's participation in a scheduled meeting of an existing class.
+
+**Introductory Session**:
+A separately scheduled meeting between a prospective student and a teacher to introduce the
+personalized course and its materials and operation.
