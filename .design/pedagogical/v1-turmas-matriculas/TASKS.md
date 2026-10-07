@@ -1,8 +1,10 @@
 # V1 — Turmas e matrículas
 
-Issue: [#157](https://github.com/josiasrfreitas/lazuli/issues/157). Épico: #156. Fonte: decisões da conversa de 07/10/2026 e `.design/pedagogical/DISCOVERY_REVIEW.md`.
+Issue: [#157](https://github.com/josiasrfreitas/lazuli/issues/157). Épico: #156. Fonte: [DESIGN_BRIEF.md](DESIGN_BRIEF.md), [INFORMATION_ARCHITECTURE.md](INFORMATION_ARCHITECTURE.md) e decisões da conversa de 07/10/2026.
 
 Uma única issue de implementação, com quatro slices verticais sequenciais. Cada slice entrega uma experiência utilizável com interface, regras, persistência e testes. Não abrir issues por camada técnica. O usuário encerrou o workshop e pediu evolução diretamente no app; a estrutura de navegação foi escolhida, mas o visual do protótipo não foi aprovado. O protótipo foi descartado.
+
+Problemas e soluções do módulo: [brief pedagógico](../DESIGN_BRIEF.md). Referência visual: [DESIGN_TOKENS.md](DESIGN_TOKENS.md).
 
 ## Experiência e decisões confirmadas
 
