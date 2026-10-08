@@ -15,7 +15,7 @@ import {
   MAKEUP_SAME_CLASS_MESSAGE,
   MAKEUP_TARGET_CANCELLED_MESSAGE,
   MAKEUP_TARGET_IN_PAST_MESSAGE,
-} from "./makeup-errors.js";
+} from "./errors.js";
 
 type ScheduleInput = z.infer<typeof makeupScheduleInputSchema>;
 

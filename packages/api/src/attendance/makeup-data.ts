@@ -2,7 +2,7 @@ import type { Prisma } from "@lazuli/db";
 
 import type { AttendanceDatabase } from "./data.js";
 import { notFound } from "../trpc/errors.js";
-import { MAKEUP_NOT_FOUND_MESSAGE, ORIGIN_ENROLLMENT_NOT_FOUND_MESSAGE } from "./makeup-errors.js";
+import { MAKEUP_NOT_FOUND_MESSAGE, ORIGIN_ENROLLMENT_NOT_FOUND_MESSAGE } from "./errors.js";
 
 /** The makeup service touches the same session/enrollment tables plus the `makeup` delegate. */
 export type MakeupDatabase = AttendanceDatabase & Pick<Prisma.TransactionClient, "makeup">;

@@ -8,7 +8,7 @@ import {
   MAKEUP_ALREADY_ATTENDED_MESSAGE,
   MAKEUP_ALREADY_CANCELLED_MESSAGE,
   MAKEUP_NOT_FOUND_MESSAGE,
-} from "../../src/attendance/makeup-errors.js";
+} from "../../src/attendance/errors.js";
 import { rejectionMessage } from "../support/attendance-test-support.js";
 import { cancelHarness as harness } from "../support/makeup-namespaces.js";
 import { FAR_FUTURE_DATE, insertMakeup } from "../support/makeup-test-support.js";

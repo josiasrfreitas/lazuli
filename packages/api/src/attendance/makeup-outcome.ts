@@ -4,10 +4,7 @@ import type { StaffUser } from "../trpc/context.js";
 import { badRequest } from "../trpc/errors.js";
 import { assertResourceScope } from "../trpc/rbac.js";
 import { loadMakeupWithTarget, type MakeupDatabase, type MakeupWithTarget } from "./makeup-data.js";
-import {
-  MAKEUP_ALREADY_CANCELLED_MESSAGE,
-  MAKEUP_TARGET_CANCELLED_MESSAGE,
-} from "./makeup-errors.js";
+import { MAKEUP_ALREADY_CANCELLED_MESSAGE, MAKEUP_TARGET_CANCELLED_MESSAGE } from "./errors.js";
 
 type OutcomeInput = z.infer<typeof makeupOutcomeInputSchema>;
 
