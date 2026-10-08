@@ -1,6 +1,3 @@
-// Reuse the shared TRPCError factories so BAD_REQUEST / NOT_FOUND construction is defined once.
-export { badRequest, notFound } from "../classes/errors.js";
-
 export const MAKEUP_NOT_FOUND_MESSAGE = "Reposicao nao encontrada.";
 export const ORIGIN_ENROLLMENT_NOT_FOUND_MESSAGE = "Matricula de origem nao encontrada.";
 export const MAKEUP_TARGET_IN_PAST_MESSAGE =

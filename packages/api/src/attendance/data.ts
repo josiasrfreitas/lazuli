@@ -1,6 +1,7 @@
 import type { Prisma } from "@lazuli/db";
 
-import { SESSION_NOT_FOUND_MESSAGE, notFound } from "./errors.js";
+import { notFound } from "../trpc/errors.js";
+import { SESSION_NOT_FOUND_MESSAGE } from "./errors.js";
 
 /** Prisma delegates the attendance service touches; the router passes `ctx.db` or a transaction client. */
 export type AttendanceDatabase = Pick<

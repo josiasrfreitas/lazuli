@@ -1,11 +1,11 @@
 import type { makeupCancelInputSchema, z } from "@lazuli/validators";
 
 import type { StaffUser } from "../trpc/context.js";
+import { badRequest } from "../trpc/errors.js";
 import { loadMakeupWithTarget, type MakeupDatabase, type MakeupWithTarget } from "./makeup-data.js";
 import {
   MAKEUP_ALREADY_ATTENDED_MESSAGE,
   MAKEUP_ALREADY_CANCELLED_MESSAGE,
-  badRequest,
 } from "./makeup-errors.js";
 
 type CancelInput = z.infer<typeof makeupCancelInputSchema>;

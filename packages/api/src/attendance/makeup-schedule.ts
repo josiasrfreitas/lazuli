@@ -2,6 +2,7 @@ import { isAtLeastTomorrowInSaoPaulo } from "@lazuli/domain";
 import type { makeupScheduleInputSchema, z } from "@lazuli/validators";
 
 import type { StaffUser } from "../trpc/context.js";
+import { badRequest } from "../trpc/errors.js";
 import { loadSessionWithClass, type SessionWithClass } from "./data.js";
 import {
   loadOriginEnrollment,
@@ -14,7 +15,6 @@ import {
   MAKEUP_SAME_CLASS_MESSAGE,
   MAKEUP_TARGET_CANCELLED_MESSAGE,
   MAKEUP_TARGET_IN_PAST_MESSAGE,
-  badRequest,
 } from "./makeup-errors.js";
 
 type ScheduleInput = z.infer<typeof makeupScheduleInputSchema>;

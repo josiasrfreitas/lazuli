@@ -1,6 +1,3 @@
-// Reuse the shared TRPCError factories so BAD_REQUEST / NOT_FOUND construction is defined once.
-export { badRequest, notFound } from "../classes/errors.js";
-
 export const SESSION_NOT_FOUND_MESSAGE = "Sessao nao encontrada.";
 export const ENROLLMENT_NOT_FOUND_MESSAGE = "Matricula nao encontrada.";
 export const SEMESTER_NOT_FOUND_MESSAGE = "Semestre nao encontrado.";

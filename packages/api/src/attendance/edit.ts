@@ -1,6 +1,7 @@
 import type { attendanceEditSessionInputSchema, z } from "@lazuli/validators";
 
 import type { StaffUser } from "../trpc/context.js";
+import { badRequest } from "../trpc/errors.js";
 import { assertResourceScope } from "../trpc/rbac.js";
 import { assertAttendanceWriteWindow } from "./access.js";
 import {
@@ -13,7 +14,6 @@ import {
   ATTENDANCE_NOT_CONFIRMED_MESSAGE,
   ROSTER_COUNT_MISMATCH_MESSAGE,
   SESSION_CANCELLED_MESSAGE,
-  badRequest,
 } from "./errors.js";
 import { buildRequestedStatuses, type AttendanceStatus } from "./rows.js";
 
