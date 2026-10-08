@@ -1,5 +1,6 @@
 import type { SettlementLine } from "./settlement-data.js";
-import { badRequest, type FinanceDatabase, toDateOnly } from "./shared.js";
+import { badRequest } from "../../trpc/errors.js";
+import { type FinanceDatabase, toDateOnly } from "./shared.js";
 
 export function assertReceivablePayment(line: SettlementLine): void {
   const { quote } = line;

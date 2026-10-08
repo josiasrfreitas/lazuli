@@ -1,7 +1,8 @@
 import type { Prisma } from "@lazuli/db";
 import { createHash } from "node:crypto";
 import { quoteSettlement, saoPauloDateOnly, type SettlementQuote } from "@lazuli/domain";
-import { badRequest, type FinanceDatabase, toDateOnlyString } from "./shared.js";
+import { badRequest } from "../../trpc/errors.js";
+import { type FinanceDatabase, toDateOnlyString } from "./shared.js";
 
 const settlementInclude = {
   order: { include: { contract: true } },

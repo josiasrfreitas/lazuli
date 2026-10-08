@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { loadSettlementItems, settlementLine, type SettlementLine } from "./settlement-data.js";
 import { assertReceivablePayment, persistSettlementAdjustments } from "./settlement-write.js";
 import type { financeRegisterPaymentInputSchema, z } from "@lazuli/validators";
+import { badRequest, notFound } from "../../trpc/errors.js";
 
 import {
   calculateRemainingBalanceCents,
@@ -15,13 +16,11 @@ import {
   type PaymentEntrySummary,
 } from "./payment-store.js";
 import {
-  badRequest,
   CONTRACT_PAYMENT_COMMAND_REQUIRED_MESSAGE,
   ENTRY_OVER_ALLOCATION_MESSAGE,
   INSTALLMENT_NOT_FOUND_MESSAGE,
   INSTALLMENT_OVER_ALLOCATION_MESSAGE,
   INSTALLMENT_PAYER_MISMATCH_MESSAGE,
-  notFound,
   PAYMENT_COMMAND_CONFLICT_MESSAGE,
   PAYER_NOT_FOUND_MESSAGE,
   sortStrings,

@@ -4,6 +4,7 @@ import type {
   financeWaiveInstallmentInputSchema,
   z,
 } from "@lazuli/validators";
+import { badRequest, notFound } from "../../trpc/errors.js";
 
 import {
   calculateRemainingBalanceCents,
@@ -14,7 +15,6 @@ import {
 import {
   ADJUSTMENT_BELOW_PAID_MESSAGE,
   ADJUSTMENT_BELOW_ZERO_MESSAGE,
-  badRequest,
   CANCELLED_ORDER_INSTALLMENT_MESSAGE,
   CONTRACT_OPERATION_UNAVAILABLE_MESSAGE,
   DEFAULT_INTEREST_RATE_PCT_MONTHLY,
@@ -23,7 +23,6 @@ import {
   INSTALLMENT_NOT_FOUND_MESSAGE,
   INSTALLMENT_NOTHING_TO_WAIVE_MESSAGE,
   INVALID_ADJUSTMENT_SIGN_MESSAGE,
-  notFound,
   WAIVED_INSTALLMENT_ADJUSTMENT_MESSAGE,
   type FinanceDatabase,
 } from "./shared.js";

@@ -1,8 +1,6 @@
 import type { DatabaseClient } from "@lazuli/db";
 import { TRPCError } from "@trpc/server";
 
-export { badRequest, notFound } from "../../classes/errors.js";
-
 export const PAYER_NOT_FOUND_MESSAGE = "Pagador nao encontrado.";
 export const STUDENT_NOT_FOUND_MESSAGE = "Aluno nao encontrado.";
 export const ORDER_NOT_FOUND_MESSAGE = "Pedido nao encontrado.";

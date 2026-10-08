@@ -7,8 +7,8 @@ import type {
 } from "@lazuli/validators";
 
 import { createPayer } from "./payers.js";
+import { notFound } from "../../trpc/errors.js";
 import {
-  notFound,
   orderLocked,
   ORDER_NOT_FOUND_MESSAGE,
   PAYER_NOT_FOUND_MESSAGE,
