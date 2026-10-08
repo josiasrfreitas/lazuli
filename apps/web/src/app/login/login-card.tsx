@@ -2,11 +2,39 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 
+import { Button } from "@lazuli/ui";
+
 import { authClient } from "~/lib/auth-client";
 
 import { type LoginPending } from "./login-form";
 import { LoginMethods } from "./login-methods";
-import { MagicLinkSent } from "./magic-link-sent";
+
+/** Replaces the form after sending, so another send cannot invalidate the first link. */
+function MagicLinkSent({
+  email,
+  onUseAnotherEmail,
+}: {
+  email: string;
+  onUseAnotherEmail: () => void;
+}): ReactNode {
+  return (
+    <div className="flex flex-col" role="status">
+      <p className="font-mono text-micro uppercase tracking-eyebrow text-marquee-accent">
+        Link enviado
+      </p>
+      <p className="mt-3 text-body leading-relaxed">
+        Enviamos um link de acesso para <span className="font-semibold">{email}</span>.
+      </p>
+      <p className="mt-5 text-caption leading-relaxed text-marquee-muted">
+        Abra o email e clique no link para entrar. Se ele não chegar em alguns minutos, confira a
+        caixa de spam.
+      </p>
+      <Button className="mt-8 self-start" onClick={onUseAnotherEmail} size="lg" variant="secondary">
+        Usar outro email
+      </Button>
+    </div>
+  );
+}
 
 /**
  * Every rejection is reported with the same sentence, whatever the cause, so the
