@@ -31,8 +31,18 @@ const actionSelect = {
       exitReason: true,
       updatedAt: true,
       deletedAt: true,
+      returnActions: {
+        where: { kind: "RETURN", status: { in: ["SCHEDULED", "APPLIED"] } },
+        select: {
+          id: true,
+          updatedAt: true,
+          enrollment: { select: { entryDate: true, updatedAt: true } },
+        },
+        orderBy: { id: "asc" },
+      },
     },
   },
+  sourceEnrollment: { select: { exitDate: true, updatedAt: true } },
 } satisfies Prisma.EnrollmentActionSelect;
 const sessionSelect = {
   id: true,
@@ -79,12 +89,27 @@ function assertDateBounds(input: {
   const exitDate = input.action.enrollment.exitDate;
   if (input.isEntry && exitDate !== null && newDay > dateOnlyUtc(exitDate))
     throw badRequest("A entrada não pode ser posterior à saída.");
+  assertLinkedChronology(input.action, newDay);
+}
+function assertLinkedChronology(action: Action, newDay: string): void {
+  if (action.kind === "RETURN") {
+    const pauseDate = action.sourceEnrollment?.exitDate;
+    if (pauseDate === null || pauseDate === undefined || newDay < dateOnlyUtc(pauseDate))
+      throw badRequest("O retorno não pode anteceder a pausa de origem.");
+  }
+  if (
+    action.kind === "PAUSE" &&
+    action.enrollment.returnActions.some(
+      (linked) => newDay > dateOnlyUtc(linked.enrollment.entryDate),
+    )
+  ) {
+    throw badRequest("A pausa não pode ser posterior ao retorno vinculado.");
+  }
 }
 function validateChange(input: { action: Action; newDate: Date; now: Date }): {
   oldDate: Date;
   start: Date;
   end: Date;
-  isEntry: boolean;
 } {
   const { action, newDate, now } = input;
   assertCorrectable(action);
@@ -93,21 +118,19 @@ function validateChange(input: { action: Action; newDate: Date; now: Date }): {
   if (oldDate === null) throw badRequest("A ação ainda não foi efetivada.");
   assertDateBounds({ action, oldDate, newDate, now, isEntry });
   const before = dateOnlyUtc(oldDate) < dateOnlyUtc(newDate);
-  return { oldDate, start: before ? oldDate : newDate, end: before ? newDate : oldDate, isEntry };
+  return { oldDate, start: before ? oldDate : newDate, end: before ? newDate : oldDate };
 }
 async function affectedRecords(input: {
   database: Database;
   action: Action;
-  window: { start: Date; end: Date; isEntry: boolean };
+  window: { start: Date; end: Date };
 }): Promise<{ sessions: Session[]; attendance: Attendance[] }> {
   const { database, action, window } = input;
   const sessions = await database.classSession.findMany({
     where: {
       classId: action.enrollment.classId,
       deletedAt: null,
-      date: window.isEntry
-        ? { gte: window.start, lt: window.end }
-        : { gt: window.start, lte: window.end },
+      date: { gte: window.start, lt: window.end },
     },
     select: sessionSelect,
     orderBy: { date: "asc" },
@@ -133,6 +156,13 @@ function snapshotVersion(input: {
       JSON.stringify({
         action: action.updatedAt,
         enrollment: action.enrollment.updatedAt,
+        source: action.sourceEnrollment,
+        linkedReturns: action.enrollment.returnActions.map((linked) => [
+          linked.id,
+          linked.updatedAt,
+          linked.enrollment.entryDate,
+          linked.enrollment.updatedAt,
+        ]),
         sessions: sessions.map(({ id, updatedAt }) => [id, updatedAt]),
         attendance: attendance.map(({ id, updatedAt }) => [id, updatedAt]),
       }),

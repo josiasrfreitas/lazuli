@@ -56,7 +56,7 @@ export async function loadSessionWithClass(input: {
 
 /**
  * The session roster: enrollments of the session's class whose window contains the session date
- * (`entryDate <= date <= exitDate|open`), ordered by student name. Window containment (not "currently
+ * (`entryDate <= date < exitDate|open`), ordered by student name. Window containment (not "currently
  * active") keeps a student who later dropped on the roster of the sessions they attended, matching the
  * attendance-percent held-sessions definition (§4.6).
  */
@@ -69,7 +69,7 @@ export async function loadActiveRoster(input: {
     where: {
       classId: input.classId,
       entryDate: { lte: input.date },
-      OR: [{ exitDate: null }, { exitDate: { gte: input.date } }],
+      OR: [{ exitDate: null }, { exitDate: { gt: input.date } }],
     },
     select: rosterEnrollmentSelect,
     orderBy: { student: { fullName: "asc" } },

@@ -22,6 +22,7 @@ void describe("attendance.sessionRoster", () => {
 
   registerRosterOrderingTest();
   registerWindowExclusionTest();
+  registerExitDateBoundaryTest();
   registerOtherClassExclusionTest();
   registerUntakenFlagTest();
   registerUnknownSessionTest();
@@ -53,6 +54,33 @@ function registerRosterOrderingTest(): void {
     assert.equal(roster.entries[0]?.committedStatus, null);
     assert.deepEqual(roster.makeupVisitors, []);
     assert.equal(roster.session.classId, scenario.classId);
+  });
+}
+
+function registerExitDateBoundaryTest(): void {
+  void it("excludes a student on the first nonmember day", async () => {
+    const scenario = await harness.seedBaseScenario();
+    const student = await harness.enrollStudent({
+      classId: scenario.classId,
+      stageId: scenario.stageId,
+      suffix: "Exits Today",
+      entryDate: new Date("2011-03-09"),
+    });
+    await db.$transaction(async (database) => {
+      await database.pedagogicalProgress.updateMany({
+        where: { enrollmentId: student.enrollmentId, endDate: null },
+        data: { endDate: harness.ns.sessionDate, endReason: "DROPPED" },
+      });
+      await database.enrollment.update({
+        where: { id: student.enrollmentId },
+        data: { exitDate: harness.ns.sessionDate, exitReason: "DROPPED" },
+      });
+    });
+
+    const roster = await harness
+      .caller()
+      .attendance.sessionRoster({ sessionId: scenario.sessionId });
+    assert.equal(roster.entries.length, 0);
   });
 }
 
