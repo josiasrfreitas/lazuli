@@ -7,6 +7,7 @@ const INVALID_YEAR_MESSAGE = "Ano invalido.";
 const MIN_YEAR = 2000;
 const MAX_YEAR = 2100;
 const MAX_REASON_LENGTH = 160;
+const CIVIL_YEAR_LENGTH = 4;
 const MIN_CIVIL_YEAR = 100;
 
 export const calendarYearSchema = z
@@ -19,7 +20,8 @@ export const calendarDateSchema = z
   .string({ required_error: INVALID_DATE_MESSAGE })
   .regex(CIVIL_DATE_PATTERN, INVALID_DATE_MESSAGE)
   .refine(
-    (value) => Number(value.slice(0, 4)) >= MIN_CIVIL_YEAR && isRealCivilDate(value),
+    (value) =>
+      Number(value.slice(0, CIVIL_YEAR_LENGTH)) >= MIN_CIVIL_YEAR && isRealCivilDate(value),
     INVALID_DATE_MESSAGE,
   );
 
