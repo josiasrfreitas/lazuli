@@ -34,12 +34,7 @@ export class ArtifactStorageNotConfiguredError extends Error {
   }
 }
 
-export type ArtifactStorage = {
-  put(input: ArtifactPutInput): Promise<ArtifactPutResult>;
-  getSignedUrl(key: string): Promise<string>;
-};
-
-export function createNoOpArtifactStorage(): ArtifactStorage {
+export function createNoOpArtifactStorage() {
   return {
     put: (input) =>
       Promise.resolve({
