@@ -14,7 +14,7 @@ export type ClassRow = RouterOutputs["classes"]["list"]["rows"][number];
 const COLUMN_WIDTHS = {
   code: "standard",
   teacher: "standard",
-  schedule: "narrow",
+  schedule: "wide",
   occupancy: "narrow",
 } as const satisfies Record<string, NonNullable<DataTableColumn<ClassRow>["width"]>>;
 

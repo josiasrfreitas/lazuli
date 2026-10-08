@@ -14,29 +14,21 @@ function slot(weekday: string, [start, end]: [string, string]): ScheduleSlot {
   };
 }
 
-void test("groups matching weekdays into shift codes while preserving exact partial-hour times", () => {
-  const slots = [slot("TUESDAY", ["19:00", "20:30"]), slot("THURSDAY", ["19:00", "20:30"])];
-  assert.equal(formatClassSchedule(slots), "3N2-5N3");
-  assert.equal(formatClassScheduleTime(slots), "Ter 19:00–20:30, Qui 19:00–20:30");
+void test("groups matching weekdays and preserves exact partial-hour times", () => {
+  const slots = [slot("MONDAY", ["17:00", "19:00"]), slot("THURSDAY", ["17:00", "19:00"])];
+  assert.equal(formatClassSchedule(slots), "Seg/Qui • 17:00 - 19:00");
+  assert.equal(formatClassScheduleTime(slots), "Seg 17:00–19:00, Qui 17:00–19:00");
+  assert.equal(formatClassSchedule([slot("TUESDAY", ["19:00", "20:30"])]), "Ter • 19:00 - 20:30");
 });
 
-void test("numbers each shift independently and excludes the block beginning at the end time", () => {
-  assert.equal(formatClassSchedule([slot("MONDAY", ["06:00", "07:00"])]), "2M1");
-  assert.equal(formatClassSchedule([slot("TUESDAY", ["12:00", "13:00"])]), "3T1");
-  assert.equal(formatClassSchedule([slot("WEDNESDAY", ["18:00", "19:00"])]), "4N1");
-  assert.equal(formatClassSchedule([slot("SATURDAY", ["09:00", "12:00"])]), "7M4-7M6");
-  assert.equal(formatClassSchedule([slot("MONDAY", ["15:30", "17:00"])]), "2T4-2T5");
-  assert.equal(formatClassSchedule([slot("FRIDAY", ["11:30", "13:00"])]), "6M6-6T1");
-});
-
-void test("keeps different exact intervals separate and preserves schedules outside defined shifts", () => {
+void test("keeps different intervals separate without imposing shift boundaries", () => {
   assert.equal(
     formatClassSchedule([
       slot("TUESDAY", ["19:00", "20:00"]),
       slot("THURSDAY", ["19:30", "20:00"]),
     ]),
-    "3N2, 5N2",
+    "Ter • 19:00 - 20:00, Qui • 19:30 - 20:00",
   );
-  assert.equal(formatClassSchedule([slot("MONDAY", ["05:00", "07:00"])]), "2 05:00–07:00");
+  assert.equal(formatClassSchedule([slot("MONDAY", ["05:00", "07:00"])]), "Seg • 05:00 - 07:00");
   assert.equal(formatClassSchedule([]), "");
 });
