@@ -58,6 +58,9 @@ it(
           active += 1;
           peak = Math.max(peak, active);
           visits.push(id);
+          await assert.rejects(fs.mkdir(path.join(root, ".git/lazuli-workspace-allocation.lock")), {
+            code: "EEXIST",
+          });
           await nextTurn();
           active -= 1;
         }),
@@ -116,5 +119,52 @@ it(
     });
     assert.equal(visits, 1);
     assert.deepEqual(await fs.readdir(directory), []);
+  },
+);
+
+it(
+  "waits when a legacy mkdir owner acquires after queue intent is published",
+  { timeout: 10000 },
+  async (context) => {
+    const { root } = await fixture(context);
+    const legacy = path.join(root, ".git/lazuli-workspace-allocation.lock");
+    const original = { rename: fs.rename, symlink: fs.symlink };
+    const blocked = Promise.withResolvers();
+    const entered = Promise.withResolvers();
+    const release = Promise.withResolvers();
+    let injected = false;
+    context.mock.method(fs.default, "rename", async (...args) => {
+      await original.rename(...args);
+      if (!injected) {
+        injected = true;
+        await fs.mkdir(legacy);
+      }
+    });
+    context.mock.method(fs.default, "symlink", async (...args) => {
+      try {
+        return await original.symlink(...args);
+      } catch (error) {
+        if (error.code !== "EEXIST") throw error;
+        blocked.resolve("blocked");
+        await release.promise;
+        throw error;
+      }
+    });
+    syncBuiltinESMExports();
+    context.after(() => {
+      context.mock.restoreAll();
+      syncBuiltinESMExports();
+    });
+    const allocation = withWorkspaceAllocationLock(root, () => entered.resolve("overlap"));
+    try {
+      assert.equal(await Promise.race([blocked.promise, entered.promise]), "blocked");
+      const legacyLock = await fs.lstat(legacy);
+      assert.equal(legacyLock.isDirectory(), true);
+    } finally {
+      await fs.rm(legacy, { recursive: true, force: true });
+      release.resolve();
+      await allocation;
+    }
+    await assert.rejects(fs.lstat(legacy), { code: "ENOENT" });
   },
 );

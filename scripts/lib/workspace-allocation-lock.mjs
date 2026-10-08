@@ -1,12 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
 
 const RETRY_MS = 25;
 const TIMEOUT_MS = 10_000;
-const LEGACY_OWNER_GRACE_MS = 1000;
 
 function processStartedAt(pid) {
   const result = spawnSync("ps", ["-p", String(pid), "-o", "lstart="], { encoding: "utf8" });
@@ -61,22 +60,43 @@ async function retry(deadline) {
   await wait(RETRY_MS);
 }
 
-async function legacyOwnerMayBeStarting(directory) {
-  try {
-    const lock = await stat(directory);
-    return Date.now() - lock.birthtimeMs <= LEGACY_OWNER_GRACE_MS;
-  } catch (error) {
-    if (error.code === "ENOENT") return false;
-    throw error;
-  }
+async function recoverLegacyOwner(directory, ownersDirectory) {
+  const owner = await readOwner(path.join(directory, "owner.json"));
+  // Ownerless directories belong to the original mkdir-only protocol. We
+  // cannot infer that their owner died, so leave them in place.
+  if (!owner || isLive(owner)) return false;
+  await rm(directory, { force: true, recursive: true });
+  if (
+    typeof owner.name === "string" &&
+    owner.name.endsWith(".json") &&
+    path.basename(owner.name) === owner.name
+  )
+    await rm(path.join(ownersDirectory, owner.name), { force: true, recursive: true });
+  return true;
 }
 
-async function waitForLegacyOwner(directory, deadline) {
-  while (true) {
-    const owner = await readOwner(path.join(directory, "owner.json"));
-    const busy = owner ? isLive(owner) : await legacyOwnerMayBeStarting(directory);
-    if (!busy) return;
-    await retry(deadline);
+async function withLegacyAllocationLock({ directory, owner, deadline }, callback) {
+  const ownersDirectory = `${directory}.owners`;
+  const candidate = path.join(ownersDirectory, owner.name);
+  await mkdir(candidate, { recursive: true });
+  let acquired = false;
+  try {
+    await writeFile(path.join(candidate, "owner.json"), JSON.stringify(owner));
+    while (!acquired) {
+      try {
+        // A prepared symlink claims the same pathname as legacy mkdir callers
+        // atomically, with owner metadata already present even if we die now.
+        await symlink(candidate, directory);
+        acquired = true;
+      } catch (error) {
+        if (error.code !== "EEXIST") throw error;
+        if (!(await recoverLegacyOwner(directory, ownersDirectory))) await retry(deadline);
+      }
+    }
+    return await callback();
+  } finally {
+    if (acquired) await rm(directory, { force: true, recursive: true });
+    await rm(candidate, { force: true, recursive: true });
   }
 }
 
@@ -97,14 +117,14 @@ async function waitForTurn({ directory, deadline }, own) {
 
 /** Lamport's bakery protocol: publish intent, choose a ticket, then wait in order. */
 export async function withAllocationQueue({ directory, legacyDirectory }, callback) {
-  // The queue directory stays in place. Every process removes only its own
-  // unique record; recovery never deletes or replaces shared lock paths.
+  // The queue directory stays in place. Records are unique; only the queue
+  // winner can acquire or recover the shared legacy gate.
   await mkdir(directory, { recursive: true });
   const deadline = Date.now() + TIMEOUT_MS;
-  await waitForLegacyOwner(legacyDirectory, deadline);
   const name = `${process.pid}-${randomUUID()}.json`;
   const file = path.join(directory, name);
   const owner = {
+    name,
     pid: process.pid,
     startedAt: processStartedAt(process.pid),
     choosing: true,
@@ -118,7 +138,10 @@ export async function withAllocationQueue({ directory, legacyDirectory }, callba
     owner.choosing = false;
     await publish(file, owner);
     await waitForTurn({ directory, deadline }, { ...owner, name });
-    return await callback();
+    return await withLegacyAllocationLock(
+      { directory: legacyDirectory, owner, deadline },
+      callback,
+    );
   } finally {
     await rm(file, { force: true });
     await rm(`${file}.tmp`, { force: true });
