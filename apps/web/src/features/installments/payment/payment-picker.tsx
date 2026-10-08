@@ -1,12 +1,41 @@
 import { useId, useState, type ReactElement } from "react";
-import { Plus, X } from "lucide-react";
-import { SearchField } from "./payment-search-field";
-import { Button } from "@lazuli/ui";
+import { Plus, Search, X } from "lucide-react";
+import { Button, Field, Input, Label } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
 import { formatBRLFromCents as money } from "~/lib/format";
 import { usePaymentSearch, type PaymentFormState } from "./logic";
 import { paymentDateLabel } from "./draft";
 import { originLabel } from "../view-model";
+
+function SearchField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}): ReactElement {
+  return (
+    <Field>
+      <Label className="sr-only">Buscar por pagador ou aluno</Label>
+      <div className="relative">
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          name="search"
+          autoComplete="off"
+          placeholder="Nome do pagador ou aluno"
+          size="sm"
+          className="h-11 pl-9 text-base sm:h-control-sm sm:text-control"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </div>
+    </Field>
+  );
+}
+
 export function PaymentPicker({ state }: { state: PaymentFormState }): ReactElement {
   const [open, setOpen] = useState(state.draft.items.length === 0);
   const searchId = useId();
