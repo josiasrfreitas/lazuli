@@ -97,6 +97,72 @@ function partyField(input: PartyFieldInput): TableFilterField {
   };
 }
 
+type ContractPartyFiltersInput = {
+  filters: ContractFilters;
+  search: string;
+  parties: PartiesQuery;
+  payerOptions: TableFilterOption[];
+  studentOptions: TableFilterOption[];
+  setSearch: (value: string) => void;
+};
+
+function contractPartyFilterFields(input: ContractPartyFiltersInput): TableFilterField[] {
+  const { filters, search, parties, payerOptions, studentOptions, setSearch } = input;
+  return [
+    partyField({
+      id: "payer",
+      label: "Pagador",
+      selectedId: filters.payerId,
+      selectedOptions: payerOptions,
+      search,
+      result: lookup({ search, parties, kind: "payers" }),
+      onSearchChange: setSearch,
+      onSelectedChange: (id) => filters.setFilters({ pagador: id }),
+    }),
+    partyField({
+      id: "student",
+      label: "Beneficiário",
+      selectedId: filters.studentId,
+      selectedOptions: studentOptions,
+      search,
+      result: lookup({ search, parties, kind: "students" }),
+      onSearchChange: setSearch,
+      onSelectedChange: (id) => filters.setFilters({ beneficiario: id }),
+    }),
+  ];
+}
+
+function contractTermFilterField(filters: ContractFilters): TableFilterField {
+  return {
+    id: "term",
+    label: "Vigência",
+    kind: "period",
+    promoted: true,
+    from: filters.startsFrom ?? "",
+    to: filters.endsTo ?? "",
+    onChange: (from, to) => {
+      if (from && to && from > to) {
+        if (from === filters.startsFrom) from = "";
+        else to = "";
+      }
+      filters.setFilters({ vigenciaDe: from || null, vigenciaAte: to || null });
+    },
+    onClear: () => filters.setFilters({ vigenciaDe: null, vigenciaAte: null }),
+  };
+}
+
+function contractStatusFilterField(filters: ContractFilters): TableFilterField {
+  return {
+    id: "status",
+    label: "Situação",
+    kind: "options",
+    options: STATUS_OPTIONS,
+    selected: filters.status ? [filters.status] : [],
+    onChange: (ids) => filters.setFilters({ situacao: ids.at(-1) ?? null }),
+    onClear: () => filters.setFilters({ situacao: null }),
+  };
+}
+
 function useContractFilterFields(filters: ContractFilters): TableFilterField[] {
   const [search, setSearch] = useState("");
   const parties = trpc.finance.searchContractParties.useQuery(
@@ -112,54 +178,19 @@ function useContractFilterFields(filters: ContractFilters): TableFilterField[] {
     { enabled: Boolean(filters.studentId) },
   );
   return [
-    partyField({
-      id: "payer",
-      label: "Pagador",
-      selectedId: filters.payerId,
-      selectedOptions: (payer.data?.payers ?? []).map((row) => ({ id: row.id, label: row.name })),
+    ...contractPartyFilterFields({
+      filters,
       search,
-      result: lookup({ search, parties, kind: "payers" }),
-      onSearchChange: setSearch,
-      onSelectedChange: (id) => filters.setFilters({ pagador: id }),
-    }),
-    partyField({
-      id: "student",
-      label: "Beneficiário",
-      selectedId: filters.studentId,
-      selectedOptions: (student.data?.students ?? []).map((row) => ({
+      parties,
+      payerOptions: (payer.data?.payers ?? []).map((row) => ({ id: row.id, label: row.name })),
+      studentOptions: (student.data?.students ?? []).map((row) => ({
         id: row.id,
         label: row.name,
       })),
-      search,
-      result: lookup({ search, parties, kind: "students" }),
-      onSearchChange: setSearch,
-      onSelectedChange: (id) => filters.setFilters({ beneficiario: id }),
+      setSearch,
     }),
-    {
-      id: "term",
-      label: "Vigência",
-      kind: "period",
-      promoted: true,
-      from: filters.startsFrom ?? "",
-      to: filters.endsTo ?? "",
-      onChange: (from, to) => {
-        if (from && to && from > to) {
-          if (from === filters.startsFrom) from = "";
-          else to = "";
-        }
-        filters.setFilters({ vigenciaDe: from || null, vigenciaAte: to || null });
-      },
-      onClear: () => filters.setFilters({ vigenciaDe: null, vigenciaAte: null }),
-    },
-    {
-      id: "status",
-      label: "Situação",
-      kind: "options",
-      options: STATUS_OPTIONS,
-      selected: filters.status ? [filters.status] : [],
-      onChange: (ids) => filters.setFilters({ situacao: ids.at(-1) ?? null }),
-      onClear: () => filters.setFilters({ situacao: null }),
-    },
+    contractTermFilterField(filters),
+    contractStatusFilterField(filters),
   ];
 }
 
