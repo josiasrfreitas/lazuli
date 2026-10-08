@@ -27,9 +27,11 @@ void it("offers teacher search and two masked schedule rows without a manual yea
   assert.match(markup, /name="sharedStageId"/u);
   for (const index of [0, 1]) {
     assert.match(markup, new RegExp(`name="weekday-${index}"`, "u"));
-    for (const field of ["startTime", "endTime"]) {
+    for (const [field, placeholder] of [
+      ["startTime", "19:00"],
+      ["endTime", "20:30"],
+    ]) {
       const input = inputs.find((tag) => tag.includes(`name="${field}-${index}"`));
-      const placeholder = field === "startTime" ? "19:00" : "20:30";
       assert.match(input ?? "", new RegExp(`placeholder="${placeholder}"`, "u"));
       assert.match(input ?? "", /inputMode="numeric"|inputmode="numeric"/u);
       assert.match(input ?? "", /autoComplete="off"|autocomplete="off"/u);

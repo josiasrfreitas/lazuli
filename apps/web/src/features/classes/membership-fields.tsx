@@ -11,6 +11,7 @@ type State = ReturnType<typeof useMembershipState>;
 type Options = RouterOutputs["classes"]["formOptions"];
 type Props = {
   mode: MembershipMode;
+  sourceName?: string | undefined;
   state: State;
   options: Options;
   scheduleType: "REGULAR" | "PERSONALIZED";
@@ -96,7 +97,11 @@ function PlacementFields({ mode, state, options, scheduleType }: Props): ReactEl
 export function MembershipFields(props: Props): ReactElement {
   return (
     <div className="space-y-4">
-      <StudentChoice mode={props.mode} state={props.state} />
+      {props.sourceName ? (
+        <p className="text-body font-medium">{props.sourceName}</p>
+      ) : (
+        <StudentChoice mode={props.mode} state={props.state} />
+      )}
       <PlacementFields {...props} />
     </div>
   );

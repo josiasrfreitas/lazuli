@@ -31,15 +31,16 @@ export function RosterStudent({
   row,
   today,
   close,
+  resume,
   showStage = true,
 }: {
   row: RosterRow;
   today: string;
   close: (row: RosterRow) => void;
+  resume?: ((row: RosterRow) => void) | undefined;
   showStage?: boolean;
 }): ReactElement {
   const status = rosterStatus(row, today) as keyof typeof tones;
-  const whatsAppUrl = toWhatsAppUrl(row.student.phone);
   return (
     <li
       className={cn(
@@ -47,18 +48,7 @@ export function RosterStudent({
         !showStage && "gap-2 py-3",
       )}
     >
-      <div className="flex items-start gap-3">
-        <Avatar name={row.student.fullName} colorKey={row.studentId} />
-        <div className="min-w-0 flex-1">
-          <h3
-            className="truncate text-body font-medium"
-            title={row.student.fullName}
-            aria-label={row.student.fullName}
-          >
-            {row.student.fullName.trim().split(/\s+/u).slice(0, 2).join(" ")}
-          </h3>
-        </div>
-      </div>
+      <StudentIdentity row={row} />
       {showStage && <StudentLearningContext row={row} />}
       {status !== "Vigente" && (
         <div>
@@ -66,31 +56,60 @@ export function RosterStudent({
         </div>
       )}
       <div className="mt-auto flex items-center justify-between gap-2">
-        <div className="min-w-0 space-y-1 text-caption text-muted-foreground">
-          <p className="flex items-center gap-2">
-            <Cake aria-hidden="true" className="size-3.5 shrink-0" />
-            <span>{studentAgeLabel(row.student.birthDate, today)}</span>
-          </p>
-          <p className="flex min-w-0 items-center gap-2">
-            <Phone aria-hidden="true" className="size-3.5 shrink-0" />
-            {whatsAppUrl ? (
-              <a
-                href={whatsAppUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Abrir WhatsApp de ${row.student.fullName}`}
-                className="break-words rounded-sm font-numeric tabular-nums text-interactive underline-offset-4 hover:text-interactive-hover hover:underline focus-visible:outline-none focus-visible:shadow-focus"
-              >
-                {row.student.phone}
-              </a>
-            ) : (
-              <span>Sem telefone</span>
-            )}
-          </p>
-        </div>
-        <StudentActions row={row} close={close} canClose={status === "Vigente"} />
+        <StudentContact row={row} today={today} />
+        <StudentActions
+          row={row}
+          close={close}
+          resume={status === "Pausada" && row.returnActions.length === 0 ? resume : undefined}
+          canClose={status === "Vigente"}
+        />
       </div>
     </li>
+  );
+}
+
+function StudentIdentity({ row }: { row: RosterRow }): ReactElement {
+  return (
+    <div className="flex items-start gap-3">
+      <Avatar name={row.student.fullName} colorKey={row.studentId} />
+      <div className="min-w-0 flex-1">
+        <h3
+          className="truncate text-body font-medium"
+          title={row.student.fullName}
+          aria-label={row.student.fullName}
+        >
+          {row.student.fullName.trim().split(/\s+/u).slice(0, 2).join(" ")}
+        </h3>
+      </div>
+    </div>
+  );
+}
+
+function StudentContact({ row, today }: { row: RosterRow; today: string }): ReactElement {
+  const whatsAppUrl = toWhatsAppUrl(row.student.phone);
+  return (
+    <div className="min-w-0 space-y-1 text-caption text-muted-foreground">
+      <p className="flex items-center gap-2">
+        <Cake aria-hidden="true" className="size-3.5 shrink-0" />
+        <span>{studentAgeLabel(row.student.birthDate, today)}</span>
+      </p>
+      <p className="flex min-w-0 items-center gap-2">
+        <Phone aria-hidden="true" className="size-3.5 shrink-0" />
+        {whatsAppUrl ? (
+          <a
+            href={whatsAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Abrir WhatsApp de ${row.student.fullName}`}
+            className="break-words rounded-sm font-numeric tabular-nums text-interactive underline-offset-4 hover:text-interactive-hover hover:underline focus-visible:outline-none focus-visible:shadow-focus"
+          >
+            {row.student.phone}
+          </a>
+        ) : (
+          <span>Sem telefone</span>
+        )}
+      </p>
+    </div>
   );
 }
 
@@ -138,6 +157,7 @@ export function RosterList({
   setPage,
   close,
   showStage,
+  resume,
 }: {
   data: List | undefined;
   failed: boolean;
@@ -145,6 +165,7 @@ export function RosterList({
   page: number;
   setPage: (page: number) => void;
   close: (row: RosterRow) => void;
+  resume?: ((row: RosterRow) => void) | undefined;
   showStage: boolean;
 }): ReactElement {
   if (failed) return <RosterError refetch={refetch} />;
@@ -169,20 +190,7 @@ export function RosterList({
           tabIndex={0}
           className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-xl focus-visible:outline-none focus-visible:shadow-focus"
         >
-          <ul
-            aria-label="Alunos da turma"
-            className="grid content-start gap-3 @lg:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4 @7xl:grid-cols-5"
-          >
-            {data.rows.map((row) => (
-              <RosterStudent
-                key={row.id}
-                row={row}
-                today={data.today}
-                close={close}
-                showStage={showStage}
-              />
-            ))}
-          </ul>
+          <RosterCards data={data} close={close} resume={resume} showStage={showStage} />
         </div>
       )}
       <RosterPagination data={data} page={page} setPage={setPage} />
@@ -190,13 +198,45 @@ export function RosterList({
   );
 }
 
+function RosterCards({
+  data,
+  close,
+  resume,
+  showStage,
+}: {
+  data: List;
+  close: (row: RosterRow) => void;
+  resume?: ((row: RosterRow) => void) | undefined;
+  showStage: boolean;
+}): ReactElement {
+  return (
+    <ul
+      aria-label="Alunos da turma"
+      className="grid content-start gap-3 @lg:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4 @7xl:grid-cols-5"
+    >
+      {data.rows.map((row) => (
+        <RosterStudent
+          key={row.id}
+          row={row}
+          today={data.today}
+          close={close}
+          resume={resume}
+          showStage={showStage}
+        />
+      ))}
+    </ul>
+  );
+}
+
 function StudentActions({
   row,
   close,
   canClose,
+  resume,
 }: {
   row: RosterRow;
   close: (row: RosterRow) => void;
+  resume?: ((row: RosterRow) => void) | undefined;
   canClose: boolean;
 }): ReactElement {
   return (
@@ -218,17 +258,44 @@ function StudentActions({
           Entrada em {row.entryDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
         </p>
         <StudentMembershipDates row={row} />
-        {canClose && (
-          <div className="mt-3">
-            <PopoverClose
-              render={<Button size="sm" variant="secondary" onClick={() => close(row)} />}
-            >
-              Pausar ou encerrar vínculo
-            </PopoverClose>
-          </div>
-        )}
+        <StudentActionButtons row={row} close={close} resume={resume} canClose={canClose} />
       </PopoverContent>
     </Popover>
+  );
+}
+
+function StudentActionButtons({
+  row,
+  close,
+  resume,
+  canClose,
+}: {
+  row: RosterRow;
+  close: (row: RosterRow) => void;
+  resume?: ((row: RosterRow) => void) | undefined;
+  canClose: boolean;
+}): ReactElement {
+  return (
+    <>
+      {resume && (
+        <div className="mt-3">
+          <PopoverClose
+            render={<Button size="sm" variant="secondary" onClick={() => resume(row)} />}
+          >
+            Retomar matrícula
+          </PopoverClose>
+        </div>
+      )}
+      {canClose && (
+        <div className="mt-3">
+          <PopoverClose
+            render={<Button size="sm" variant="secondary" onClick={() => close(row)} />}
+          >
+            Pausar ou encerrar vínculo
+          </PopoverClose>
+        </div>
+      )}
+    </>
   );
 }
 

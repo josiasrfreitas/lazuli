@@ -1,4 +1,4 @@
-import { timeOfDaySchema } from "@lazuli/validators";
+import { classScheduleSlotsInputSchema, timeOfDaySchema } from "@lazuli/validators";
 import type { ClassDraft } from "./create-model";
 
 type Slot = ClassDraft["slots"][number];
@@ -45,8 +45,11 @@ export function updateScheduleDraft({
       !slot.endTime &&
       (!slot.weekday || slot.weekday === value.weekday),
   );
+  const suggested = updated.map((slot, position) => (position === target ? suggestion : slot));
+  if (!classScheduleSlotsInputSchema.safeParse(suggested).success)
+    return { slots: updated, autoFillUsed: true };
   return {
-    slots: updated.map((slot, position) => (position === target ? suggestion : slot)),
+    slots: suggested,
     autoFillUsed: true,
   };
 }

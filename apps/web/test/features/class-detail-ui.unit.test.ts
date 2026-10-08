@@ -22,6 +22,7 @@ const row: RosterRow = {
   exitReason: null,
   progressRecords: [{ stage: { name: "A2", track: { name: "Adultos / English Main" } } }],
   actions: [],
+  returnActions: [],
 };
 
 void it("renders weekday meetings in calendar order and keeps exact wall-clock times", () => {

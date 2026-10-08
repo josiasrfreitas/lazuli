@@ -14,7 +14,7 @@ export const STORYBOOK_PORT_RANGE = { start: 6006, end: 6999 };
 const WORKSPACE_ALLOCATION_LOCK_NAME = "lazuli-workspace-allocation.lock";
 const WORKSPACE_ALLOCATION_LOCK_RETRY_MS = 25;
 const WORKSPACE_ALLOCATION_LOCK_TIMEOUT_MS = 10_000;
-const WORKSPACE_ALLOCATION_OWNER_GRACE_MS = 1_000;
+const WORKSPACE_ALLOCATION_OWNER_GRACE_MS = 1000;
 
 export function normalizeWorkspaceIdentity(directoryName) {
   return directoryName
@@ -205,10 +205,7 @@ export async function withWorkspaceAllocationLock(root, callback) {
       break;
     } catch (error) {
       if (error.code !== "EEXIST") throw error;
-      if (await allocationOwnerIsDead(lockPath)) {
-        await rm(lockPath, { force: true, recursive: true });
-        continue;
-      }
+      if (await recoverAllocationLock(lockPath)) continue;
       if (Date.now() >= deadline) {
         throw new Error(
           "timed out waiting for another workspace setup to finish allocating identity and ports",
@@ -222,6 +219,25 @@ export async function withWorkspaceAllocationLock(root, callback) {
     return await callback();
   } finally {
     await rm(lockPath, { force: true, recursive: true });
+  }
+}
+
+async function recoverAllocationLock(lockPath) {
+  // Serialize recovery and re-read ownership after admission. A stale waiter
+  // must never remove the live lock acquired after another waiter recovered it.
+  const recoveryPath = `${lockPath}.recovery`;
+  try {
+    await mkdir(recoveryPath);
+  } catch (error) {
+    if (error.code === "EEXIST") return false;
+    throw error;
+  }
+  try {
+    if (!(await allocationOwnerIsDead(lockPath))) return false;
+    await rm(lockPath, { force: true, recursive: true });
+    return true;
+  } finally {
+    await rm(recoveryPath, { force: true, recursive: true });
   }
 }
 

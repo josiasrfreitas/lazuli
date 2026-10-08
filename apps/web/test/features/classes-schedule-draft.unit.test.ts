@@ -61,3 +61,17 @@ void it("preserves manually entered values in the other row", () => {
   assert.deepEqual(result.slots, [saturday, manual]);
   assert.equal(result.autoFillUsed, true);
 });
+
+for (const endTime of ["09:30", "10:00"]) {
+  void it(`keeps an otherwise valid meeting ending at ${endTime} within the weekly limit`, () => {
+    const meeting = { ...saturday, endTime };
+    const result = updateScheduleDraft({
+      slots: [emptyClassSlot(), emptyClassSlot()],
+      index: 0,
+      value: meeting,
+      autoFillUsed: false,
+    });
+    assert.deepEqual(result.slots, [meeting, emptyClassSlot()]);
+    assert.equal(result.autoFillUsed, true);
+  });
+}

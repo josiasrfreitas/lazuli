@@ -115,11 +115,15 @@ export function homeHrefFor(role: StaffRole): string | null {
 }
 
 /** Child pages return to their listing, preserving only a same-list query string. */
-export function navReturnFor(
-  pathname: string,
-  role: StaffRole,
-  back: string | null,
-): { href: string; label: string } | null {
+export function navReturnFor({
+  pathname,
+  role,
+  back,
+}: {
+  pathname: string;
+  role: StaffRole;
+  back: string | null;
+}): { href: string; label: string } | null {
   const parent = navItemsFor(role).find(
     (item) => item.href !== "/" && pathname.startsWith(`${item.href}/`),
   );

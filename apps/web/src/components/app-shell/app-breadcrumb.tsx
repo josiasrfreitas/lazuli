@@ -14,7 +14,7 @@ export function AppBreadcrumb({ role }: { role: StaffRole }): ReactNode {
   const pathname = usePathname();
   const params = useSearchParams();
   const breadcrumb = navBreadcrumbFor(pathname, role);
-  const parent = navReturnFor(pathname, role, params.get("voltar"));
+  const parent = navReturnFor({ pathname, role, back: params.get("voltar") });
 
   if (breadcrumb === null) {
     return null;

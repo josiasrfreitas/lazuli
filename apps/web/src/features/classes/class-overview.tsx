@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { UserRoundPlus } from "lucide-react";
-import { Avatar, Badge, Button, Input } from "@lazuli/ui";
+import { Avatar, Badge, Button, Input, cn } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { CLASS_REFERENCE_CAPACITY } from "@lazuli/domain";
 import {
@@ -108,13 +108,10 @@ function ClassOccupancy({ detail }: { detail: Detail }): ReactElement {
       <p className="text-caption text-muted-foreground">Alunos na turma</p>
       <div className="flex items-baseline gap-1.5 font-numeric tabular-nums">
         <strong
-          className={
-            indicator.variant === "over-capacity"
-              ? "text-h2 font-semibold text-over-capacity"
-              : indicator.variant === "destructive"
-                ? "text-h2 font-semibold text-destructive"
-                : "text-h2 font-semibold"
-          }
+          className={cn("text-h2 font-semibold", {
+            "text-over-capacity": indicator.variant === "over-capacity",
+            "text-destructive": indicator.variant === "destructive",
+          })}
         >
           {detail.occupancy}
         </strong>

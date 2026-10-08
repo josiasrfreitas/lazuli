@@ -65,25 +65,7 @@ export function ActionHistoryEntry({
             <span className="font-semibold">{row.enrollment.student.fullName}</span>
             <span className="text-muted-foreground"> · {kindLabel[row.kind]}</span>
           </p>
-          <div className="flex shrink-0 items-center gap-1">
-            <time
-              className="font-numeric text-caption tabular-nums text-muted-foreground"
-              dateTime={row.effectiveDate.toISOString().slice(0, DATE_LENGTH)}
-            >
-              {row.effectiveDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-            </time>
-            {row.status === "APPLIED" && row.kind !== "CORRECTION" && (
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label={`Corrigir data de ${row.enrollment.student.fullName}`}
-                title="Corrigir data"
-                onClick={() => controls.correct(row)}
-              >
-                <PencilLine aria-hidden="true" />
-              </Button>
-            )}
-          </div>
+          <HistoryEntryDate row={row} controls={controls} />
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <Badge variant={row.status === "SCHEDULED" ? "info" : "neutral"}>
@@ -97,5 +79,35 @@ export function ActionHistoryEntry({
         )}
       </div>
     </li>
+  );
+}
+
+function HistoryEntryDate({
+  row,
+  controls,
+}: {
+  row: HistoryRow;
+  controls: Controls;
+}): ReactElement {
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      <time
+        className="font-numeric text-caption tabular-nums text-muted-foreground"
+        dateTime={row.effectiveDate.toISOString().slice(0, DATE_LENGTH)}
+      >
+        {row.effectiveDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+      </time>
+      {row.status === "APPLIED" && row.kind !== "CORRECTION" && (
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          aria-label={`Corrigir data de ${row.enrollment.student.fullName}`}
+          title="Corrigir data"
+          onClick={() => controls.correct(row)}
+        >
+          <PencilLine aria-hidden="true" />
+        </Button>
+      )}
+    </div>
   );
 }

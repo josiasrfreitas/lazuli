@@ -63,28 +63,40 @@ function SearchResults({
               {emptyMessage}
             </p>
           )}
-          <Combobox.List className="scrollbar-subtle max-h-60 overflow-y-auto">
-            {items.map((item, index) => (
-              <Combobox.Item
-                key={`${item.kind}:${item.id}`}
-                value={item}
-                index={index}
-                disabled={loading && item.kind === "option"}
-                className="flex cursor-default flex-col rounded-sm px-2 py-2 text-control outline-none select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-disabled"
-              >
-                <span className="flex items-center gap-2">
-                  {item.kind === "create" && <Plus aria-hidden="true" className="size-4" />}
-                  {item.label}
-                </span>
-                {item.description && (
-                  <span className="text-caption text-muted-foreground">{item.description}</span>
-                )}
-              </Combobox.Item>
-            ))}
-          </Combobox.List>
+          <SearchResultItems items={items} loading={loading} />
         </Combobox.Popup>
       </Combobox.Positioner>
     </Combobox.Portal>
+  );
+}
+
+function SearchResultItems({
+  items,
+  loading,
+}: {
+  items: readonly SearchItem[];
+  loading: boolean;
+}): ReactElement {
+  return (
+    <Combobox.List className="scrollbar-subtle max-h-60 overflow-y-auto">
+      {items.map((item, index) => (
+        <Combobox.Item
+          key={`${item.kind}:${item.id}`}
+          value={item}
+          index={index}
+          disabled={loading && item.kind === "option"}
+          className="flex cursor-default flex-col rounded-sm px-2 py-2 text-control outline-none select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-disabled"
+        >
+          <span className="flex items-center gap-2">
+            {item.kind === "create" && <Plus aria-hidden="true" className="size-4" />}
+            {item.label}
+          </span>
+          {item.description && (
+            <span className="text-caption text-muted-foreground">{item.description}</span>
+          )}
+        </Combobox.Item>
+      ))}
+    </Combobox.List>
   );
 }
 

@@ -59,6 +59,7 @@ void it("combines student search and selection in one named control beside a cal
 void it("keeps the individual stage choice available for personalized classes", () => {
   const markup = render({
     scheduleType: "PERSONALIZED",
+    state: { ...state, stageId: "stage" },
     options: {
       teachers: [],
       semesters: [],
@@ -75,4 +76,12 @@ void it("preserves the prior placement explanation when returning a student", ()
   const markup = render({ mode: "RETURN" });
   assert.match(markup, /nova colocação pedagógica e preserva o percurso anterior/u);
   assert.doesNotMatch(markup, /<select/u);
+});
+
+void it("keeps the paused student fixed for a contextual return", () => {
+  const markup = render({ mode: "RETURN", sourceName: "Ana Beatriz" });
+  assert.match(markup, /Ana Beatriz/u);
+  assert.doesNotMatch(markup, /name="studentSearch"/u);
+  assert.match(markup, /name="entryDate"/u);
+  assert.match(markup, /preserva o percurso anterior/u);
 });
