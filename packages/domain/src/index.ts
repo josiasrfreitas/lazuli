@@ -92,3 +92,14 @@ export {
   type SettlementQuote,
 } from "./payment-settlement.js";
 export { CLASS_REFERENCE_CAPACITY, classOccupancyLevel } from "./class-occupancy.js";
+export {
+  weekDates,
+  weekdayOf,
+  effectiveTeacherId,
+  intervalsOverlap,
+  responsibleTeacherId,
+  teachingMinutes,
+  teacherWeekMinutes,
+  type TeacherCommitment,
+  type TeacherWeekday,
+} from "./teacher-schedule.js";

@@ -1,5 +1,6 @@
 import type { Prisma } from "@lazuli/db";
 
+import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { notFound } from "../trpc/errors.js";
 import { SESSION_NOT_FOUND_MESSAGE } from "./errors.js";
 
@@ -11,6 +12,8 @@ export type AttendanceDatabase = Pick<
 
 const sessionWithClassSelect = {
   id: true,
+  usualTeacherId: true,
+  responsibilityFrozenAt: true,
   classId: true,
   date: true,
   startTime: true,
@@ -19,12 +22,13 @@ const sessionWithClassSelect = {
   attendanceConfirmedAt: true,
   attendanceConfirmedById: true,
   attendanceLastCommittedAt: true,
-  class: { select: { teacherId: true } },
+  class: { select: responsibilitySelect },
 } satisfies Prisma.ClassSessionSelect;
 
-export type SessionWithClass = Prisma.ClassSessionGetPayload<{
-  select: typeof sessionWithClassSelect;
-}>;
+export type SessionWithClass = Omit<
+  Prisma.ClassSessionGetPayload<{ select: typeof sessionWithClassSelect }>,
+  "class"
+> & { class: { teacherId: string | null } };
 
 export type RosterEnrollment = {
   enrollmentId: string;
@@ -51,7 +55,14 @@ export async function loadSessionWithClass(input: {
   if (session === null) {
     throw notFound(SESSION_NOT_FOUND_MESSAGE);
   }
-  return session;
+  return {
+    ...session,
+    class: {
+      teacherId: session.responsibilityFrozenAt
+        ? session.usualTeacherId
+        : (usualTeacherOn(session.class, session.date)?.id ?? null),
+    },
+  };
 }
 
 /**

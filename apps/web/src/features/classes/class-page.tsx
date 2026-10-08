@@ -8,6 +8,7 @@ import type { RouterOutputs } from "@lazuli/api";
 
 import { ClassOverview, ClassContextSidebar } from "./class-overview";
 import { MembershipDialog } from "./membership-dialog";
+import { AssignmentDialog } from "../teachers/assignment-dialog";
 import { RosterSection } from "./roster-section";
 
 export function ClassPage({ id }: { id: string }): ReactElement {
@@ -40,6 +41,7 @@ function ClassDetailView({
   detail: RouterOutputs["classes"]["byId"];
   id: string;
 }): ReactElement {
+  const [assigning, setAssigning] = useState(false);
   const [membershipOpen, setMembershipOpen] = useState(false);
   const [search, setSearch] = useState("");
   return (
@@ -55,8 +57,11 @@ function ClassDetailView({
         classId={id}
         search={search}
         showStage={detail.scheduleType === "PERSONALIZED"}
-        sidebar={<ClassContextSidebar detail={detail} />}
+        sidebar={<ClassContextSidebar detail={detail} onAssign={() => setAssigning(true)} />}
       />
+      {assigning && (
+        <AssignmentDialog classId={id} classCode={detail.internalCode} onClose={() => setAssigning(false)} />
+      )}
       {membershipOpen && (
         <MembershipDialog
           mode="ENTRY"

@@ -1,5 +1,10 @@
 import { isSessionUntaken, saoPauloDateOnly, saoPauloMonthInstantBounds } from "@lazuli/domain";
 
+import {
+  responsibilitySelect,
+  usualTeacherOn,
+  teacherResponsibilityPeriods,
+} from "../teachers/responsibility.js";
 import type { Context, StaffUser } from "../trpc/context.js";
 
 type Database = Context["db"];
@@ -140,58 +145,81 @@ export async function readTeacherHome(input: {
   };
 }
 
-function findTeacherTodaySessions(input: {
+async function findTeacherTodaySessions(input: {
   database: Database;
   teacherId: string;
   todayDate: Date;
 }): Promise<ClassSessionRow[]> {
-  return input.database.classSession.findMany({
+  const rows = await input.database.classSession.findMany({
     where: {
       date: input.todayDate,
       status: "SCHEDULED",
       class: {
-        teacherId: input.teacherId,
         status: "ACTIVE",
+        OR: [
+          { teacherId: input.teacherId },
+          { teacherAssignments: { some: { teacherId: input.teacherId } } },
+        ],
       },
     },
     orderBy: [{ startTime: "asc" }, { class: { internalCode: "asc" } }],
-    select: sessionSummarySelect(),
+    select: {
+      ...sessionSummarySelect(),
+      class: { select: { ...sessionSummarySelect().class.select, ...responsibilitySelect } },
+    },
   });
+  return rows.filter((row) => usualTeacherOn(row.class, row.date)?.id === input.teacherId);
 }
 
-function findTeacherClassesWithNextSession(input: {
+async function findTeacherClassesWithNextSession(input: {
   database: Database;
   teacherId: string;
   todayDate: Date;
 }): Promise<
-  Array<{
-    id: string;
-    internalCode: string;
-    portalClassName: string;
-    sessions: ClassSessionRow[];
-  }>
+  Array<{ id: string; internalCode: string; portalClassName: string; sessions: ClassSessionRow[] }>
 > {
-  return input.database.class.findMany({
+  const rows = await input.database.class.findMany({
     where: {
-      teacherId: input.teacherId,
       status: "ACTIVE",
+      deletedAt: null,
+      OR: [
+        { teacherId: input.teacherId },
+        { teacherAssignments: { some: { teacherId: input.teacherId } } },
+      ],
     },
     orderBy: { internalCode: "asc" },
-    select: {
-      id: true,
-      internalCode: true,
-      portalClassName: true,
-      sessions: {
+    select: { id: true, internalCode: true, portalClassName: true, ...responsibilitySelect },
+  });
+  const results = await Promise.all(
+    rows.map(async (row) => {
+      const periods = teacherResponsibilityPeriods(row, input.teacherId).filter(
+        (period) => !period.end || period.end > input.todayDate,
+      );
+      if (!periods.length) return null;
+      const session = await input.database.classSession.findFirst({
         where: {
+          classId: row.id,
           status: "SCHEDULED",
-          date: { gte: input.todayDate },
+          deletedAt: null,
+          OR: periods.map((period) => ({
+            date: {
+              gte: new Date(Math.max(period.start.getTime(), input.todayDate.getTime())),
+              ...(period.end ? { lt: period.end } : {}),
+            },
+          })),
         },
         orderBy: [{ date: "asc" }, { startTime: "asc" }],
-        take: 1,
         select: sessionSummarySelect(),
-      },
-    },
-  });
+      });
+      return {
+        id: row.id,
+        internalCode: row.internalCode,
+        portalClassName: row.portalClassName,
+        sessions: session ? [session] : [],
+      };
+    }),
+  );
+  return results.filter((row) => row !== null);
 }
 
 function sessionSummarySelect(): {

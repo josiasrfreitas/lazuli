@@ -1,9 +1,21 @@
 import { CLASS_REFERENCE_CAPACITY } from "@lazuli/domain";
 import { generateClassInternalCode } from "./internal-code.js";
 import type { Prisma } from "@lazuli/db";
+import {
+  assertClassTeacherAvailable,
+  databaseSlotToCandidate,
+  lockTeacher,
+} from "../teachers/availability.js";
+import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { findNextStageInTrack } from "@lazuli/domain";
 
-import { archiveClass, classSummarySelect, type ClassDatabase, type ClassSummary } from "./data.js";
+import {
+  archiveClass,
+  classSummarySelect,
+  recordInitialTeacher,
+  type ClassDatabase,
+  type ClassSummary,
+} from "./data.js";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
   CLASS_NOT_ACTIVE_MESSAGE,
@@ -46,7 +58,9 @@ export async function cloneClassForNextPeriod(input: {
   year: number;
   sharedStageId?: string;
   portalClassName?: string;
+  recordedById?: string;
 }): Promise<{ source: ClassSummary; successor: ClassSummary }> {
+  await lockTeacher(input.database, "");
   const source = await loadSourceClass(input.database, input.id);
 
   if (source.status !== "ACTIVE") {
@@ -56,6 +70,26 @@ export async function cloneClassForNextPeriod(input: {
   await assertTeacherIsActive({ database: input.database, teacherId: source.teacherId });
 
   const semester = await loadSemester({ database: input.database, semesterId: input.semesterId });
+  const targetSemester = await input.database.semester.findUniqueOrThrow({
+    where: { id: input.semesterId },
+    select: { startDate: true },
+  });
+  const responsibility = await input.database.class.findUniqueOrThrow({
+    where: { id: source.id },
+    select: responsibilitySelect,
+  });
+  const teacher = usualTeacherOn(responsibility, targetSemester.startDate);
+  if (!teacher)
+    throw badRequest(
+      "A turma está sem professor no próximo período. Atribua um docente antes de clonar.",
+    );
+  source.teacherId = teacher.id;
+  await assertClassTeacherAvailable({
+    database: input.database,
+    teacherId: source.teacherId,
+    semesterId: input.semesterId,
+    slots: source.scheduleSlots.map(databaseSlotToCandidate),
+  });
   const successorStageId = await resolveSuccessorStageId({
     database: input.database,
     source,
@@ -81,6 +115,7 @@ export async function cloneClassForNextPeriod(input: {
     select: classSummarySelect,
   });
 
+  await recordInitialTeacher(input.database, successor.id, input.recordedById);
   const archivedSource = await archiveClass({ database: input.database, id: source.id });
   return { source: archivedSource, successor };
 }

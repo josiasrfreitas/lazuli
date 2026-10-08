@@ -4,7 +4,7 @@ import { Input as InputPrimitive } from "@base-ui/react/input";
 
 import { cn } from "../lib/utils";
 
-export type InputSize = "xs" | "sm" | "md" | "lg";
+export type InputSize = "xs" | "sm" | "md" | "lg" | "compact-responsive";
 
 export type InputProps = Omit<ComponentProps<"input">, "size"> & {
   /** Marks the control invalid and exposes its state to assistive technologies. */
@@ -31,6 +31,8 @@ export function Input({
           "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-disabled",
           "read-only:cursor-default read-only:bg-muted read-only:text-muted-foreground",
           size === "xs" && "h-11 rounded-sm px-2 text-base sm:h-control-xs sm:text-control",
+          size === "compact-responsive" &&
+            "h-11 rounded-sm px-2.5 text-base sm:h-control-sm sm:text-control",
           size === "sm" && "h-control-sm rounded-sm px-2.5",
           size === "md" && "h-control-md rounded-md px-3",
           size === "lg" && "h-control-lg rounded-lg px-4",

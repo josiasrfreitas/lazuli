@@ -9,6 +9,7 @@ import {
   formatScheduleType,
   formatTrackName,
 } from "./labels";
+import { dateLabel } from "../teachers/format";
 import { ClassSchedule } from "./class-schedule";
 import { ActionHistory } from "./action-history";
 
@@ -62,7 +63,7 @@ export function ClassOverview({
   );
 }
 
-export function ClassContextSidebar({ detail }: { detail: Detail }): ReactElement {
+export function ClassContextSidebar({ detail, onAssign }: { detail: Detail; onAssign: () => void }): ReactElement {
   return (
     <aside
       aria-label="Informações da turma"
@@ -72,9 +73,15 @@ export function ClassContextSidebar({ detail }: { detail: Detail }): ReactElemen
         <div>
           <p className="mb-2 text-caption text-muted-foreground">Professor</p>
           <div className="flex items-center gap-2">
-            <Avatar name={detail.teacher.name} colorKey={detail.teacher.id} />
-            <p className="min-w-0 break-words text-body font-medium">{detail.teacher.name}</p>
+            {detail.currentTeacher && <Avatar name={detail.currentTeacher.name} colorKey={detail.currentTeacher.id} />}
+            <p className="min-w-0 break-words text-body font-medium">{detail.currentTeacher?.name ?? "Sem professor"}</p>
           </div>
+          <Button variant="ghost" size="sm" onClick={onAssign}>Trocar docente</Button>
+          {detail.teacherAssignments.map((assignment) => (
+            <p key={assignment.id} className="text-caption text-muted-foreground">
+              {assignment.teacher.name} · desde {dateLabel(assignment.effectiveDate)}
+            </p>
+          ))}
         </div>
         {detail.scheduleType === "REGULAR" && (
           <dl className="space-y-3">

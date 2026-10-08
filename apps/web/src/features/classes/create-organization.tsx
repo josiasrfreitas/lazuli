@@ -1,6 +1,8 @@
 "use client";
 import type { ReactElement } from "react";
 import { Field, FormRow, Label, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
+import { TeacherPicker } from "../teachers/teacher-picker";
+import { todayInSchool } from "../teachers/format";
 import type { ClassFieldsProps } from "./create-fields";
 import { NativeSelect } from "./form-controls";
 
@@ -50,12 +52,19 @@ function PeopleAndStage({
   return (
     <>
       <FormRow columns={2}>
-        <NativeSelect
-          name="teacherId"
-          label="Professor"
-          value={draft.teacherId}
-          onChange={(value) => change("teacherId", value)}
-          choices={options.teachers.map((item) => ({ value: item.id, label: item.name }))}
+        <TeacherPicker
+          date={todayInSchool()}
+          value={
+            draft.teacherId
+              ? {
+                  id: draft.teacherId,
+                  label:
+                    options.teachers.find((teacher) => teacher.id === draft.teacherId)?.name ??
+                    "Professor selecionado",
+                }
+              : null
+          }
+          onChange={(value) => change("teacherId", value?.id ?? "")}
         />
         <NativeSelect
           name="semesterId"

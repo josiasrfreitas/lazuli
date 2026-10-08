@@ -111,10 +111,13 @@ export function canAccess(role: StaffRole, router: RouterName): boolean {
 /**
  * Teacher resource-scope guard (§5.2). Call inside a shared-router resolver after
  * loading the owning resource. ADMIN has full access; a TEACHER may only touch
- * resources they own (`Class.teacherId === ctx.staffUser.id`). Every other case —
+ * resources owned by their dated usual-teacher responsibility. Every other case —
  * including the deferred SECRETARY/FINANCE roles — rejects with FORBIDDEN (HTTP 403).
  */
-export function assertResourceScope(staffUser: StaffUser, resource: { teacherId: string }): void {
+export function assertResourceScope(
+  staffUser: StaffUser,
+  resource: { teacherId: string | null },
+): void {
   if (staffUser.role === "ADMIN" || staffUser.role === "SYSTEM_ADMIN") {
     return;
   }

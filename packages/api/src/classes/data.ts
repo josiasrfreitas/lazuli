@@ -3,6 +3,7 @@ import { generateClassInternalCode } from "./internal-code.js";
 import type { Prisma } from "@lazuli/db";
 import type { classCreateInputSchema, z } from "@lazuli/validators";
 
+import { assertClassTeacherAvailable } from "../teachers/availability.js";
 import { notFound } from "../trpc/errors.js";
 import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
 import { assertTeacherIsActive, loadActiveStage, loadSemester } from "./guards.js";
@@ -13,10 +14,7 @@ import {
 import { timeStringToDate } from "./time.js";
 
 type ClassCreateInput = z.infer<typeof classCreateInputSchema>;
-export type ClassDatabase = Pick<
-  Prisma.TransactionClient,
-  "class" | "user" | "stage" | "semester" | "track"
->;
+export type ClassDatabase = Prisma.TransactionClient;
 
 export type ClassSummary = {
   id: string;
@@ -45,16 +43,24 @@ type SlotRow = {
 export async function createClass(input: {
   database: ClassDatabase;
   values: ClassCreateInput;
+  recordedById?: string;
 }): Promise<ClassSummary> {
   await assertTeacherIsActive({ database: input.database, teacherId: input.values.teacherId });
 
+  await assertClassTeacherAvailable({
+    database: input.database,
+    teacherId: input.values.teacherId,
+    semesterId: input.values.semesterId ?? "",
+    slots: input.values.slots,
+  });
   const slotRows = input.values.slots.map((slot) => toSlotRow(slot));
 
-  if (input.values.scheduleType === "REGULAR") {
-    return createRegularClass({ database: input.database, values: input.values, slotRows });
-  }
-
-  return createPersonalizedClass({ database: input.database, values: input.values, slotRows });
+  const created =
+    input.values.scheduleType === "REGULAR"
+      ? await createRegularClass({ database: input.database, values: input.values, slotRows })
+      : await createPersonalizedClass({ database: input.database, values: input.values, slotRows });
+  await recordInitialTeacher(input.database, created.id, input.recordedById);
+  return created;
 }
 
 async function createRegularClass(input: {
@@ -216,4 +222,23 @@ async function assertSemesterExistsForGeneration(input: {
   if (existing === null) {
     throw notFound("Semestre nao encontrado.");
   }
+}
+
+export async function recordInitialTeacher(
+  database: ClassDatabase,
+  classId: string,
+  recordedById?: string,
+): Promise<void> {
+  const row = await database.class.findUniqueOrThrow({
+    where: { id: classId },
+    select: { teacherId: true, semester: { select: { startDate: true } } },
+  });
+  await database.classTeacherAssignment.create({
+    data: {
+      classId,
+      teacherId: row.teacherId,
+      effectiveDate: row.semester.startDate,
+      recordedById: recordedById ?? null,
+    },
+  });
 }

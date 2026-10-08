@@ -31,6 +31,8 @@ export const buttonVariants = cva(
       size: {
         inline: "min-h-control-sm gap-1.5 rounded-sm",
         sm: "h-control-sm gap-1.5 rounded-sm px-3",
+        "compact-responsive": "h-11 gap-1.5 rounded-sm px-3 sm:h-control-sm",
+        "icon-compact-responsive": "size-11 rounded-sm sm:size-control-sm",
         md: "h-control-md gap-2 rounded-md px-4",
         lg: "h-control-lg gap-2 rounded-lg px-5",
         "icon-sm": "size-control-sm rounded-sm",

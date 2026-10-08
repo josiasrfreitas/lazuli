@@ -2,6 +2,7 @@ import type { Prisma } from "@lazuli/db";
 import { CLASS_REFERENCE_CAPACITY, saoPauloDateOnly } from "@lazuli/domain";
 import type { classListInputSchema, z } from "@lazuli/validators";
 
+import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
 import { notFound } from "../trpc/errors.js";
 
@@ -12,7 +13,8 @@ type Database = Pick<
 type ListInput = z.infer<typeof classListInputSchema>;
 
 const classInclude = {
-  teacher: { select: { id: true, name: true } },
+  teacher: responsibilitySelect.teacher,
+  teacherAssignments: responsibilitySelect.teacherAssignments,
   semester: { select: { id: true, name: true } },
   sharedStage: { select: { id: true, name: true, track: { select: { name: true } } } },
   scheduleSlots: {
@@ -35,7 +37,7 @@ function currentEnrollmentWhere(today: Date): Prisma.EnrollmentWhereInput {
   };
 }
 function classWhere(values: ListInput): Prisma.ClassWhereInput {
-  const { search, scheduleTypes, formats, teacherIds, stageIds, semesterIds, statuses } = values;
+  const { search, scheduleTypes, formats, stageIds, semesterIds, statuses } = values;
   return {
     deletedAt: null,
     ...(search
@@ -44,12 +46,16 @@ function classWhere(values: ListInput): Prisma.ClassWhereInput {
             { internalCode: { contains: search, mode: "insensitive" } },
             { portalClassName: { contains: search, mode: "insensitive" } },
             { teacher: { name: { contains: search, mode: "insensitive" } } },
+            {
+              teacherAssignments: {
+                some: { teacher: { name: { contains: search, mode: "insensitive" } } },
+              },
+            },
           ],
         }
       : {}),
     ...(scheduleTypes.length > 0 ? { scheduleType: { in: scheduleTypes } } : {}),
     ...(formats.length > 0 ? { format: { in: formats } } : {}),
-    ...(teacherIds.length > 0 ? { teacherId: { in: teacherIds } } : {}),
     ...(stageIds.length > 0
       ? { AND: [{ scheduleType: "REGULAR", sharedStageId: { in: stageIds } }] }
       : {}),
@@ -61,10 +67,26 @@ export async function listClasses(input: {
   database: Database;
   values: ListInput;
   now: Date;
-}): Promise<Page<ClassBase & { occupancy: number }>> {
+}): Promise<
+  Page<ClassBase & { occupancy: number; currentTeacher: { id: string; name: string } | null }>
+> {
   const today = new Date(saoPauloDateOnly(input.now));
   const { page, pageSize } = input.values;
   const where = classWhere(input.values);
+  if (input.values.teacherIds.length) {
+    const candidates = await input.database.class.findMany({
+      where,
+      select: { id: true, ...responsibilitySelect },
+    });
+    where.id = {
+      in: candidates
+        .filter((row) => {
+          const teacher = usualTeacherOn(row, today);
+          return teacher && input.values.teacherIds.includes(teacher.id);
+        })
+        .map((row) => row.id),
+    };
+  }
   const [rows, total] = await Promise.all([
     input.database.class.findMany({
       where,
@@ -88,6 +110,7 @@ export async function listClasses(input: {
     rows: rows.map(({ _count, ...row }) => ({
       ...row,
       capacity: CLASS_REFERENCE_CAPACITY,
+      currentTeacher: usualTeacherOn(row, today),
       occupancy: _count.enrollments,
     })),
     page,
@@ -97,11 +120,13 @@ export async function listClasses(input: {
   };
 }
 
-export async function readClass(input: {
-  database: Database;
-  id: string;
-  now: Date;
-}): Promise<ClassBase & { occupancy: number; scheduledEntries: number }> {
+export async function readClass(input: { database: Database; id: string; now: Date }): Promise<
+  ClassBase & {
+    occupancy: number;
+    scheduledEntries: number;
+    currentTeacher: { id: string; name: string } | null;
+  }
+> {
   const row = await input.database.class.findFirst({
     where: { id: input.id, deletedAt: null },
     include: {
@@ -121,6 +146,7 @@ export async function readClass(input: {
   return {
     ...row,
     capacity: CLASS_REFERENCE_CAPACITY,
+    currentTeacher: usualTeacherOn(row, today),
     occupancy,
     scheduledEntries,
   };
@@ -251,7 +277,15 @@ export async function classFormOptions(database: Database): Promise<{
 }> {
   const [teachers, semesters, stages] = await Promise.all([
     database.user.findMany({
-      where: { role: "TEACHER", isEnabled: true, deletedAt: null },
+      where: {
+        role: "TEACHER",
+        deletedAt: null,
+        OR: [
+          { teacherProfile: null },
+          { teacherProfile: { departureDate: null } },
+          { teacherProfile: { departureDate: { gt: new Date(saoPauloDateOnly(new Date())) } } },
+        ],
+      },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

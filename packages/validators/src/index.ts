@@ -160,3 +160,13 @@ export {
   type PaymentPreviewInput,
   type PaymentOperationInput,
 } from "./payment-operation.js";
+export {
+  teacherCreateInputSchema,
+  teacherUpdateInputSchema,
+  teacherIdInputSchema,
+  teacherListInputSchema,
+  teacherWeekInputSchema,
+  teacherDepartureInputSchema,
+  classTeacherAssignInputSchema,
+  classSubstituteInputSchema,
+} from "./teacher.js";

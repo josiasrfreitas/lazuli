@@ -36,6 +36,11 @@ export function contextWithQueue(input: {
 
 export async function ensureTeacherUser(): Promise<void> {
   await db.user.upsert({
+    where: { id: ADMIN.id },
+    create: ADMIN,
+    update: {},
+  });
+  await db.user.upsert({
     where: { id: TEACHER_USER_ID },
     create: {
       id: TEACHER_USER_ID,
@@ -131,6 +136,12 @@ async function seedSemesterFixtures(): Promise<{ semesterId: string; nextSemeste
 }
 
 export async function cleanClassDatabase(): Promise<void> {
+  await db.classSubstitution.deleteMany({
+    where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
+  });
+  await db.classTeacherAssignment.deleteMany({
+    where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
+  });
   await db.classSession.deleteMany({
     where: { class: { teacherId: TEACHER_USER_ID } },
   });

@@ -2,8 +2,9 @@
 
 import { useMemo, useRef, useState, type ReactElement, type RefObject } from "react";
 import { Combobox } from "@base-ui/react/combobox";
-import { Plus, X } from "lucide-react";
-import { Input } from "./input";
+import { Plus } from "lucide-react";
+import { Input, type InputSize } from "./input";
+import { SelectedTags } from "./search-select-value";
 
 export type SearchSelectOption = {
   id: string;
@@ -15,6 +16,7 @@ const POPUP_OFFSET = 4;
 
 type SearchItem = SearchSelectOption & { kind: "option" | "create" };
 export type SearchSelectProps = {
+  size?: InputSize;
   name: string;
   placeholder: string;
   value: SearchSelectOption | null;
@@ -108,7 +110,7 @@ function SearchInput({
   return (
     <Combobox.Input
       name={props.name}
-      render={<Input size="sm" invalid={props.invalid ?? false} />}
+      render={<Input size={props.size ?? "sm"} invalid={props.invalid ?? false} />}
       placeholder={props.placeholder}
       onFocus={() => {
         if (props.openOnFocus) open();
@@ -131,38 +133,6 @@ function SearchInput({
   );
 }
 
-function SelectedTags({
-  value,
-  onClear,
-  disabled,
-}: {
-  value: SearchSelectOption;
-  onClear: () => void;
-  disabled: boolean | undefined;
-}): ReactElement {
-  return (
-    <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-2">
-      <span className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-sm bg-accent px-2 py-1 text-control text-accent-foreground">
-        <span className="truncate">{value.label}</span>
-        <button
-          type="button"
-          aria-label={`Remover ${value.label}`}
-          disabled={disabled}
-          onClick={onClear}
-          className="shrink-0 rounded-sm p-0.5 hover:bg-background/60 focus-visible:outline-none focus-visible:shadow-focus"
-        >
-          <X aria-hidden="true" className="size-3.5" />
-        </button>
-      </span>
-      {value.document && (
-        <span className="max-w-full truncate rounded-sm bg-accent px-2 py-1 text-control text-accent-foreground">
-          {value.document}
-        </span>
-      )}
-    </div>
-  );
-}
-
 /** Server-filtered results with optional creation. Enter selects a result without submitting. */
 export function SearchSelect(props: SearchSelectProps): ReactElement {
   const { value, query, options, loading = false, failed = false } = props;
@@ -171,7 +141,14 @@ export function SearchSelect(props: SearchSelectProps): ReactElement {
   const allowCreate = props.onCreate !== undefined;
   const items = useMemo(() => searchItems(options, allowCreate), [options, allowCreate]);
   if (value)
-    return <SelectedTags value={value} onClear={props.onClear} disabled={props.disabled} />;
+    return (
+      <SelectedTags
+        touchSized={props.size === "compact-responsive"}
+        value={value}
+        onClear={props.onClear}
+        disabled={props.disabled}
+      />
+    );
   return (
     <Combobox.Root<SearchItem>
       autoHighlight

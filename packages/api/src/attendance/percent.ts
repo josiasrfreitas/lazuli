@@ -1,10 +1,12 @@
 import {
   computeAttendancePercent,
+  saoPauloDateOnly,
   intersectEnrollmentSemesterWindows,
   type AttendancePercent,
 } from "@lazuli/domain";
 import type { attendanceEnrollmentSemesterPercentInputSchema, z } from "@lazuli/validators";
 
+import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import type { StaffUser } from "../trpc/context.js";
 import { notFound } from "../trpc/errors.js";
 import { assertResourceScope } from "../trpc/rbac.js";
@@ -22,7 +24,7 @@ export type EnrollmentWindow = {
 };
 
 type EnrollmentForPercent = EnrollmentWindow & {
-  class: { teacherId: string };
+  class: { teacherId: string | null };
 };
 
 export type SemesterWindowDates = {
@@ -110,7 +112,7 @@ async function loadEnrollment(input: {
       classId: true,
       entryDate: true,
       exitDate: true,
-      class: { select: { teacherId: true } },
+      class: { select: responsibilitySelect },
     },
   });
 
@@ -118,7 +120,13 @@ async function loadEnrollment(input: {
     throw notFound(ENROLLMENT_NOT_FOUND_MESSAGE);
   }
 
-  return enrollment;
+  return {
+    ...enrollment,
+    class: {
+      teacherId:
+        usualTeacherOn(enrollment.class, new Date(saoPauloDateOnly(new Date())))?.id ?? null,
+    },
+  };
 }
 
 async function loadSemester(input: {

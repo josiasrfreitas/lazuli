@@ -3,6 +3,7 @@ import type { Weekday } from "@lazuli/domain";
 import { saoPauloDateOnly, saoPauloMidnightToInstant } from "@lazuli/domain";
 import type { StudentListInput, StudentListStatusFilter } from "@lazuli/validators";
 
+import { responsibilitySelect } from "../teachers/responsibility.js";
 import type { Context } from "../trpc/context.js";
 
 /**
@@ -43,7 +44,7 @@ const openEnrollmentSelect = {
   class: {
     select: {
       internalCode: true,
-      teacher: { select: { name: true } },
+      ...responsibilitySelect,
       scheduleSlots: {
         where: { deletedAt: null },
         orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
