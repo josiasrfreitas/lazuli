@@ -16,6 +16,7 @@ import { studentPaginationPolicy } from "@lazuli/validators";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { TeacherDialog } from "./teacher-dialog";
 import { TeacherTable } from "./teacher-table";
+import { TeacherCoverage } from "./teacher-coverage";
 
 const activity = ["all", "active", "scheduled", "departed"] as const;
 const access = ["all", "enabled", "disabled"] as const;
@@ -102,6 +103,7 @@ function TeacherListControls(props: TeacherListControlsProps): ReactElement {
           props.pagination.setPage(1);
         }}
       />
+      <TeacherCoverage back="/professores" />
       <Button size="compact-responsive" onClick={() => props.setCreating(true)}>
         Novo professor
       </Button>

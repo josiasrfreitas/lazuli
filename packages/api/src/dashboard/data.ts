@@ -1,3 +1,4 @@
+import type { Prisma } from "@lazuli/db";
 import { isSessionUntaken, saoPauloDateOnly, saoPauloMonthInstantBounds } from "@lazuli/domain";
 import {
   responsibilitySelect,
@@ -157,10 +158,17 @@ async function findTeacherTodaySessions(
     orderBy: [{ startTime: "asc" }, { class: { internalCode: "asc" } }],
     select: {
       ...sessionSummarySelect(),
+      responsibilityFrozenAt: true,
+      usualTeacherId: true,
       class: { select: { ...sessionSummarySelect().class.select, ...responsibilitySelect } },
     },
   });
-  return rows.filter((row) => usualTeacherOn(row.class, row.date)?.id === input.teacherId);
+  return rows.filter((row) => {
+    const teacherId = row.responsibilityFrozenAt
+      ? row.usualTeacherId
+      : usualTeacherOn(row.class, row.date)?.id;
+    return teacherId === input.teacherId;
+  });
 }
 
 async function findTeacherClassesWithNextSession(
@@ -185,22 +193,18 @@ async function findTeacherClassesWithNextSession(
       const periods = teacherResponsibilityPeriods(row, input.teacherId).filter(
         (period) => !period.end || period.end > input.todayDate,
       );
-      if (periods.length === 0) return null;
       const session = await input.database.classSession.findFirst({
         where: {
           classId: row.id,
           status: "SCHEDULED",
           deletedAt: null,
-          OR: periods.map((period) => ({
-            date: {
-              gte: new Date(Math.max(period.start.getTime(), input.todayDate.getTime())),
-              ...(period.end ? { lt: period.end } : {}),
-            },
-          })),
+          date: { gte: input.todayDate },
+          OR: nextSessionResponsibility({ teacherId: input.teacherId, periods }),
         },
         orderBy: [{ date: "asc" }, { startTime: "asc" }],
         select: sessionSummarySelect(),
       });
+      if (periods.length === 0 && !session) return null;
       return {
         id: row.id,
         internalCode: row.internalCode,
@@ -274,3 +278,20 @@ type FindTeacherClassesWithNextSessionInput = {
   teacherId: string;
   todayDate: Date;
 };
+
+type NextSessionResponsibilityInput = {
+  teacherId: string;
+  periods: Array<{ start: Date; end: Date | null }>;
+};
+function nextSessionResponsibility({
+  teacherId,
+  periods,
+}: NextSessionResponsibilityInput): Prisma.ClassSessionWhereInput[] {
+  return [
+    { responsibilityFrozenAt: { not: null }, usualTeacherId: teacherId },
+    ...periods.map((period) => ({
+      responsibilityFrozenAt: null,
+      date: { gte: period.start, ...(period.end ? { lt: period.end } : {}) },
+    })),
+  ];
+}

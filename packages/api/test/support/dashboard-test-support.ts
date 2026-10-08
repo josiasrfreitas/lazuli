@@ -184,6 +184,9 @@ export async function callHttpQuery(input: {
 }
 
 export async function cleanDashboardDatabase(): Promise<void> {
+  await db.classTeacherAssignment.deleteMany({
+    where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
+  });
   await db.classSession.deleteMany({
     where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
   });

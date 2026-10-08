@@ -137,10 +137,10 @@ async function seedSemesterFixtures(): Promise<{ semesterId: string; nextSemeste
 
 export async function cleanClassDatabase(): Promise<void> {
   await db.classSubstitution.deleteMany({
-    where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
+    where: { class: { teacherId: TEACHER_USER_ID } },
   });
   await db.classTeacherAssignment.deleteMany({
-    where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
+    where: { class: { teacherId: TEACHER_USER_ID } },
   });
   await db.classSession.deleteMany({
     where: { class: { teacherId: TEACHER_USER_ID } },
