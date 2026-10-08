@@ -28,7 +28,7 @@ function ContractFinancialStatus({ row }: { row: ContractRow }): ReactElement {
 
 const PERCENT = 100;
 
-function ContractPaymentProgress({
+export function ContractPaymentProgress({
   progress,
 }: {
   progress: ContractRow["paymentProgress"];
