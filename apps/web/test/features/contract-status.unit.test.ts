@@ -3,10 +3,7 @@ import { it } from "node:test";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import {
-  contractColumns,
-  type ContractRow,
-} from "../../src/features/contracts/contract-columns.js";
+import { contractColumns, type ContractRow } from "../../src/features/contracts/contracts-table.js";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 

@@ -7,7 +7,7 @@ import {
   ContractPaymentProgress,
   contractColumns,
   type ContractRow,
-} from "../../src/features/contracts/contract-columns.js";
+} from "../../src/features/contracts/contracts-table.js";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
