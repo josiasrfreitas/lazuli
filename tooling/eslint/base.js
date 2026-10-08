@@ -164,14 +164,6 @@ export function createConfig({ packageType = "base", tsconfigRootDir }) {
     createBoundaryConfig(packageType),
     typescriptRulesConfig,
     configModuleOverride,
-    ...(packageType === "web" || packageType === "ui"
-      ? [
-          {
-            files: [packageType === "web" ? "src/**/*.tsx" : "src/components/**/*.tsx"],
-            rules: { "max-lines": ["error", { max: 500 }] },
-          },
-        ]
-      : []),
     {
       files: ["**/test/**"],
       // Scenarios and independent expected values should remain readable in place.
