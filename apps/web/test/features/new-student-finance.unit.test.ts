@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { completionErrorMessage } from "../../src/features/students/new-student/completion-errors.js";
+import { completionErrorMessage } from "../../src/features/students/new-student/finance-model.js";
 import { it } from "node:test";
 import { emptyContractFields } from "../../src/features/contracts/contract-form-model.js";
 import {

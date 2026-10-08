@@ -15,7 +15,7 @@ import {
   toCreateInput,
   type StudentCreateInput,
 } from "./finance-model";
-import { completionErrorMessage } from "./completion-errors";
+import { completionErrorMessage } from "./finance-model";
 import type { NewStudentFields } from "./reducer";
 
 const EMPTY_FINANCE_FIELDS = emptyContractFields;
