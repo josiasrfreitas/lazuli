@@ -3,6 +3,7 @@ import type { enrollmentCreateInputSchema, z } from "@lazuli/validators";
 
 import { loadActiveStage } from "../classes/guards.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
+import { badRequest, notFound } from "../trpc/errors.js";
 import {
   CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
   CLASS_ARCHIVED_MESSAGE,
@@ -14,8 +15,6 @@ import {
   REGULAR_REJECTS_STAGE_MESSAGE,
   STUDENT_NOT_ACTIVE_MESSAGE,
   STUDENT_NOT_FOUND_MESSAGE,
-  badRequest,
-  notFound,
 } from "./errors.js";
 
 type EnrollmentCreateInput = z.infer<typeof enrollmentCreateInputSchema>;
