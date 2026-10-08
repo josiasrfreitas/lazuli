@@ -11,9 +11,11 @@ import { studentPaginationPolicy, type StudentListRow } from "@lazuli/validators
 import type { StudentsFilters } from "../../src/features/students/logic.js";
 import { tablePaginationPropsFor } from "../../src/lib/pagination.js";
 import { StudentsTable } from "../../src/features/students/students-table.js";
-import { StudentsTableRow } from "../../src/features/students/students-table-row.js";
-import { studentFilterFields } from "../../src/features/students/student-filter-fields.js";
-import { StudentsControls } from "../../src/features/students/students-toolbar.js";
+import { StudentsTableRow } from "../../src/features/students/students-table.js";
+import {
+  studentFilterFields,
+  StudentsControls,
+} from "../../src/features/students/students-page.js";
 
 const PAGE_SIZE = 10;
 const LARGE_PAGE_SIZE = 25;
