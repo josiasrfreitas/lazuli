@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import type { RouterOutputs } from "@lazuli/api";
 import { teacherCreateInputSchema } from "@lazuli/validators";
 import { useScrollToError } from "~/lib/scroll-to-error";
-import { trpc } from "~/lib/trpc";
+import { trpc, type ClientError } from "~/lib/trpc";
 type Teacher = RouterOutputs["teachers"]["byId"];
 export function useTeacherForm(teacher: Teacher | undefined, onClose: () => void) {
   const departed = Boolean(
@@ -29,10 +29,7 @@ export function useTeacherForm(teacher: Teacher | undefined, onClose: () => void
     onClose();
     if (!teacher) router.push(`/professores/${result.id}`);
   };
-  const onError = (error: {
-    message: string;
-    data?: { zodError?: { fieldErrors: Record<string, string[] | undefined> } | null } | null;
-  }) => {
+  const onError = (error: ClientError) => {
     setFailure(error.message);
     setErrors(
       Object.fromEntries(

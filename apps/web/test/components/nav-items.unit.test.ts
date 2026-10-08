@@ -12,6 +12,7 @@ import {
 } from "../../src/components/app-shell/nav-items.js";
 
 const STUDENTS_PATH = "/alunos";
+const TEACHERS_PATH = "/professores";
 const CLASSES_PATH = "/turmas";
 const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
@@ -28,10 +29,10 @@ function sectionsSummary(sections: NavSection[]): ReturnType<typeof sectionSumma
 }
 
 void describe("role-aware navigation", () => {
-  void it("shows Alunos and Turmas only to roles their procedures accept", () => {
+  void it("shows Alunos, Professores and Turmas only to roles their procedures accept", () => {
     assert.deepEqual(
       navItemsFor("ADMIN").map((item) => item.href),
-      ["/", STUDENTS_PATH, CLASSES_PATH, CONTRACTS_PATH, RECEIVABLES_PATH],
+      ["/", STUDENTS_PATH, TEACHERS_PATH, CLASSES_PATH, CONTRACTS_PATH, RECEIVABLES_PATH],
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
@@ -39,10 +40,10 @@ void describe("role-aware navigation", () => {
     );
   });
 
-  void it("places Alunos and Turmas under Pedagógico and hides empty sections", () => {
+  void it("places Alunos, Professores and Turmas under Pedagógico and hides empty sections", () => {
     assert.deepEqual(sectionsSummary(navSectionsFor("ADMIN")), [
       { label: null, items: ["Início"] },
-      { label: PEDAGOGICAL_LABEL, items: [STUDENTS_LABEL, "Turmas"] },
+      { label: PEDAGOGICAL_LABEL, items: [STUDENTS_LABEL, "Professores", "Turmas"] },
       { label: "Financeiro", items: ["Contratos", "Recebíveis"] },
     ]);
     assert.deepEqual(
@@ -98,7 +99,7 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
 void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigation", () => {
   assert.deepEqual(
     navItemsFor("SYSTEM_ADMIN").map((item) => item.href),
-    ["/", STUDENTS_PATH, CLASSES_PATH, CONTRACTS_PATH, RECEIVABLES_PATH, SETTINGS_PATH],
+    ["/", STUDENTS_PATH, TEACHERS_PATH, CLASSES_PATH, CONTRACTS_PATH, RECEIVABLES_PATH, SETTINGS_PATH],
   );
   assert.equal(
     navItemsFor("ADMIN").some((item) => item.href === SETTINGS_PATH),

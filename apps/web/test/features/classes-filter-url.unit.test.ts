@@ -61,6 +61,7 @@ void test("changing and clearing class filters resets pagination without losing 
   assert.deepEqual({ ...current }, { ...params, tipo: null, pagina: 1 });
   const stage = fields.find((field) => field.id === "estagio");
   assert.ok(stage);
+  assert.equal(stage.kind, "options");
   assert.equal(stage.label, "Estágio");
   assert.notEqual(stage.promoted, true);
   stage.onClear();
