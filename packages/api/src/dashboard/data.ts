@@ -1,5 +1,10 @@
+import type { Prisma } from "@lazuli/db";
 import { isSessionUntaken, saoPauloDateOnly, saoPauloMonthInstantBounds } from "@lazuli/domain";
-
+import {
+  responsibilitySelect,
+  usualTeacherOn,
+  teacherResponsibilityPeriods,
+} from "../teachers/responsibility.js";
 import type { Context, StaffUser } from "../trpc/context.js";
 
 type Database = Context["db"];
@@ -55,10 +60,9 @@ export type TeacherHome = {
   }>;
 };
 
-export async function readAdminDashboardMetrics(input: {
-  database: Database;
-  now: Date;
-}): Promise<AdminDashboardMetrics> {
+export async function readAdminDashboardMetrics(
+  input: ReadAdminDashboardMetricsInput,
+): Promise<AdminDashboardMetrics> {
   const { startInstant, endExclusiveInstant } = saoPauloMonthInstantBounds(input.now);
   const today = dateOnlyToDate(saoPauloDateOnly(input.now));
   const [totalActiveStudents, newThisMonth, untakenCandidates] = await Promise.all([
@@ -107,11 +111,7 @@ export async function readAdminDashboardMetrics(input: {
   };
 }
 
-export async function readTeacherHome(input: {
-  database: Database;
-  staffUser: StaffUser;
-  now: Date;
-}): Promise<TeacherHome> {
+export async function readTeacherHome(input: ReadTeacherHomeInput): Promise<TeacherHome> {
   const today = saoPauloDateOnly(input.now);
   const todayDate = dateOnlyToDate(today);
   const [todaySessions, classes] = await Promise.all([
@@ -140,58 +140,80 @@ export async function readTeacherHome(input: {
   };
 }
 
-function findTeacherTodaySessions(input: {
-  database: Database;
-  teacherId: string;
-  todayDate: Date;
-}): Promise<ClassSessionRow[]> {
-  return input.database.classSession.findMany({
+async function findTeacherTodaySessions(
+  input: FindTeacherTodaySessionsInput,
+): Promise<ClassSessionRow[]> {
+  const rows = await input.database.classSession.findMany({
     where: {
       date: input.todayDate,
       status: "SCHEDULED",
       class: {
-        teacherId: input.teacherId,
         status: "ACTIVE",
+        OR: [
+          { teacherId: input.teacherId },
+          { teacherAssignments: { some: { teacherId: input.teacherId } } },
+        ],
       },
     },
     orderBy: [{ startTime: "asc" }, { class: { internalCode: "asc" } }],
-    select: sessionSummarySelect(),
+    select: {
+      ...sessionSummarySelect(),
+      responsibilityFrozenAt: true,
+      usualTeacherId: true,
+      class: { select: { ...sessionSummarySelect().class.select, ...responsibilitySelect } },
+    },
+  });
+  return rows.filter((row) => {
+    const teacherId = row.responsibilityFrozenAt
+      ? row.usualTeacherId
+      : usualTeacherOn(row.class, row.date)?.id;
+    return teacherId === input.teacherId;
   });
 }
 
-function findTeacherClassesWithNextSession(input: {
-  database: Database;
-  teacherId: string;
-  todayDate: Date;
-}): Promise<
-  Array<{
-    id: string;
-    internalCode: string;
-    portalClassName: string;
-    sessions: ClassSessionRow[];
-  }>
+async function findTeacherClassesWithNextSession(
+  input: FindTeacherClassesWithNextSessionInput,
+): Promise<
+  Array<{ id: string; internalCode: string; portalClassName: string; sessions: ClassSessionRow[] }>
 > {
-  return input.database.class.findMany({
+  const rows = await input.database.class.findMany({
     where: {
-      teacherId: input.teacherId,
       status: "ACTIVE",
+      deletedAt: null,
+      OR: [
+        { teacherId: input.teacherId },
+        { teacherAssignments: { some: { teacherId: input.teacherId } } },
+      ],
     },
     orderBy: { internalCode: "asc" },
-    select: {
-      id: true,
-      internalCode: true,
-      portalClassName: true,
-      sessions: {
+    select: { id: true, internalCode: true, portalClassName: true, ...responsibilitySelect },
+  });
+  const results = await Promise.all(
+    rows.map(async (row) => {
+      const periods = teacherResponsibilityPeriods(row, input.teacherId).filter(
+        (period) => !period.end || period.end > input.todayDate,
+      );
+      const session = await input.database.classSession.findFirst({
         where: {
+          classId: row.id,
           status: "SCHEDULED",
+          deletedAt: null,
           date: { gte: input.todayDate },
+          OR: nextSessionResponsibility({ teacherId: input.teacherId, periods }),
         },
         orderBy: [{ date: "asc" }, { startTime: "asc" }],
-        take: 1,
         select: sessionSummarySelect(),
-      },
-    },
-  });
+      });
+      if (periods.length === 0 && !session) return null;
+      return {
+        id: row.id,
+        internalCode: row.internalCode,
+        portalClassName: row.portalClassName,
+        sessions: session ? [session] : [],
+      };
+    }),
+  );
+  return results.filter((row) => row !== null);
 }
 
 function sessionSummarySelect(): {
@@ -235,4 +257,41 @@ function dateOnly(date: Date): string {
 
 function timeOnly(date: Date): string {
   return date.toISOString().slice(TIME_ONLY_START_INDEX, TIME_ONLY_END_INDEX);
+}
+
+type ReadAdminDashboardMetricsInput = {
+  database: Database;
+  now: Date;
+};
+type ReadTeacherHomeInput = {
+  database: Database;
+  staffUser: StaffUser;
+  now: Date;
+};
+type FindTeacherTodaySessionsInput = {
+  database: Database;
+  teacherId: string;
+  todayDate: Date;
+};
+type FindTeacherClassesWithNextSessionInput = {
+  database: Database;
+  teacherId: string;
+  todayDate: Date;
+};
+
+type NextSessionResponsibilityInput = {
+  teacherId: string;
+  periods: Array<{ start: Date; end: Date | null }>;
+};
+function nextSessionResponsibility({
+  teacherId,
+  periods,
+}: NextSessionResponsibilityInput): Prisma.ClassSessionWhereInput[] {
+  return [
+    { responsibilityFrozenAt: { not: null }, usualTeacherId: teacherId },
+    ...periods.map((period) => ({
+      responsibilityFrozenAt: null,
+      date: { gte: period.start, ...(period.end ? { lt: period.end } : {}) },
+    })),
+  ];
 }

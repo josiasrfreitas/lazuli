@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { UserRoundPlus } from "lucide-react";
-import { Avatar, Badge, Button, Input, cn } from "@lazuli/ui";
+import { Avatar, Badge, Button, Input } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { CLASS_REFERENCE_CAPACITY } from "@lazuli/domain";
 import {
@@ -9,6 +9,7 @@ import {
   formatScheduleType,
   formatTrackName,
 } from "./labels";
+import { dateLabel } from "../teachers/format";
 import { ClassSchedule } from "./class-schedule";
 import { ActionHistory } from "./action-history";
 
@@ -19,12 +20,7 @@ export function ClassOverview({
   enroll,
   search,
   onSearchChange,
-}: {
-  detail: Detail;
-  enroll: () => void;
-  search: string;
-  onSearchChange: (value: string) => void;
-}): ReactElement {
+}: ClassOverviewInput): ReactElement {
   return (
     <header className="min-w-0 shrink-0 space-y-2">
       <h1 className="min-w-0 max-w-full break-words font-display text-h1 font-medium">
@@ -62,7 +58,7 @@ export function ClassOverview({
   );
 }
 
-export function ClassContextSidebar({ detail }: { detail: Detail }): ReactElement {
+export function ClassContextSidebar({ detail, onAssign }: ClassContextSidebarInput): ReactElement {
   return (
     <aside
       aria-label="Informações da turma"
@@ -72,28 +68,23 @@ export function ClassContextSidebar({ detail }: { detail: Detail }): ReactElemen
         <div>
           <p className="mb-2 text-caption text-muted-foreground">Professor</p>
           <div className="flex items-center gap-2">
-            <Avatar name={detail.teacher.name} colorKey={detail.teacher.id} />
-            <p className="min-w-0 break-words text-body font-medium">{detail.teacher.name}</p>
+            {detail.currentTeacher && (
+              <Avatar name={detail.currentTeacher.name} colorKey={detail.currentTeacher.id} />
+            )}
+            <p className="min-w-0 break-words text-body font-medium">
+              {detail.currentTeacher?.name ?? "Sem professor"}
+            </p>
           </div>
+          <Button variant="ghost" size="sm" onClick={onAssign}>
+            Trocar docente
+          </Button>
+          {detail.teacherAssignments.map((assignment) => (
+            <p key={assignment.id} className="text-caption text-muted-foreground">
+              {assignment.teacher.name} · desde {dateLabel(assignment.effectiveDate)}
+            </p>
+          ))}
         </div>
-        {detail.scheduleType === "REGULAR" && (
-          <dl className="space-y-3">
-            <div>
-              <dt className="text-caption text-muted-foreground">Trilha</dt>
-              <dd className="mt-1 break-words text-body">
-                {detail.sharedStage
-                  ? formatTrackName(detail.sharedStage.track.name)
-                  : "Trilha não informada"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-caption text-muted-foreground">Estágio</dt>
-              <dd className="mt-1 break-words text-body">
-                {detail.sharedStage?.name ?? "Estágio não informado"}
-              </dd>
-            </div>
-          </dl>
-        )}
+        {detail.scheduleType === "REGULAR" && <ClassStageSummary detail={detail} />}
         <ClassOccupancy detail={detail} />
         <ClassSchedule slots={detail.scheduleSlots} />
       </div>
@@ -101,20 +92,13 @@ export function ClassContextSidebar({ detail }: { detail: Detail }): ReactElemen
   );
 }
 
-function ClassOccupancy({ detail }: { detail: Detail }): ReactElement {
+function ClassOccupancy({ detail }: ClassOccupancyInput): ReactElement {
   const indicator = classOccupancyIndicator(detail.occupancy);
   return (
     <div className="space-y-2 border-t border-border pt-4">
       <p className="text-caption text-muted-foreground">Alunos na turma</p>
       <div className="flex items-baseline gap-1.5 font-numeric tabular-nums">
-        <strong
-          className={cn("text-h2 font-semibold", {
-            "text-over-capacity": indicator.variant === "over-capacity",
-            "text-destructive": indicator.variant === "destructive",
-          })}
-        >
-          {detail.occupancy}
-        </strong>
+        <strong className={occupancyClassName(indicator.variant)}>{detail.occupancy}</strong>
         <span className="text-caption text-muted-foreground">
           / {CLASS_REFERENCE_CAPACITY} alunos
         </span>
@@ -127,4 +111,46 @@ function ClassOccupancy({ detail }: { detail: Detail }): ReactElement {
       )}
     </div>
   );
+}
+
+type ClassOverviewInput = {
+  detail: Detail;
+  enroll: () => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+};
+type ClassContextSidebarInput = {
+  detail: Detail;
+  onAssign: () => void;
+};
+type ClassOccupancyInput = { detail: Detail };
+
+type ClassStageSummaryProps = {
+  detail: Detail;
+};
+function ClassStageSummary(props: ClassStageSummaryProps): ReactElement {
+  return (
+    <dl className="space-y-3">
+      <div>
+        <dt className="text-caption text-muted-foreground">Trilha</dt>
+        <dd className="mt-1 break-words text-body">
+          {props.detail.sharedStage
+            ? formatTrackName(props.detail.sharedStage.track.name)
+            : "Trilha não informada"}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-caption text-muted-foreground">Estágio</dt>
+        <dd className="mt-1 break-words text-body">
+          {props.detail.sharedStage?.name ?? "Estágio não informado"}
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+function occupancyClassName(variant: string): string {
+  if (variant === "over-capacity") return "text-h2 font-semibold text-over-capacity";
+  if (variant === "destructive") return "text-h2 font-semibold text-destructive";
+  return "text-h2 font-semibold";
 }

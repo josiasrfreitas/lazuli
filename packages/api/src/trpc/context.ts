@@ -43,7 +43,9 @@ export async function createTRPCContext(input: CreateTRPCContextInput): Promise<
   const db = input.db ?? (await resolveDefaultDb());
   const session = input.session;
   const staffUser =
-    session === null ? null : await resolveStaffUser({ db, email: session.user.email });
+    session === null
+      ? null
+      : await resolveStaffUser({ db, email: session.user.email, now: input.now ?? new Date() });
 
   return {
     db,
@@ -59,6 +61,16 @@ async function resolveDefaultDb(): Promise<DbClient> {
   return db;
 }
 
-async function resolveStaffUser(input: { db: DbClient; email: string }): Promise<StaffUser | null> {
-  return resolveStaffIdentity(await input.db.user.findUnique({ where: { email: input.email } }));
+async function resolveStaffUser(input: {
+  db: DbClient;
+  email: string;
+  now: Date;
+}): Promise<StaffUser | null> {
+  return resolveStaffIdentity(
+    await input.db.user.findUnique({
+      where: { email: input.email },
+      include: { teacherProfile: { select: { departureDate: true } } },
+    }),
+    input.now,
+  );
 }

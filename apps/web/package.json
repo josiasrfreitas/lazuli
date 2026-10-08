@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --webpack --port ${LAZULI_WEB_PORT:-3000}",
-    "build": "next build --webpack",
+    "dev": "RAYON_NUM_THREADS=${RAYON_NUM_THREADS:-2} next dev --turbopack --port ${LAZULI_WEB_PORT:-3000}",
+    "build": "next typegen && pnpm typecheck && RAYON_NUM_THREADS=${RAYON_NUM_THREADS:-2} next build --turbopack",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

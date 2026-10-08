@@ -37,6 +37,21 @@ Docker Compose for local services.
 Common commands: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm test:integration`,
 `pnpm test:transport`, `pnpm build`, and `pnpm format:check`.
 
+Web development and production builds use Turbopack with the Rayon/SWC thread pool defaulting to
+two threads. Override it when needed with `RAYON_NUM_THREADS=4 pnpm dev` or
+`RAYON_NUM_THREADS=4 pnpm build`. Next's production worker count is also limited to two through
+`experimental.cpus`. These settings do not limit CPU affinity, the Turbopack scheduler, or total
+process memory; Next 16.2 configures its Tokio scheduler from the machine's available CPUs and
+ignores `TOKIO_WORKER_THREADS`.
+
+Both modes use `apps/web/tsconfig.turbopack.json` for NodeNext module resolution, which enables
+Turbopack 16.2 to resolve `.js` imports to TypeScript source. Keep internal source packages used by
+Web in `transpilePackages`. Editor/typecheck configuration uses the normal Bundler tsconfig.
+Use `pnpm build` (or `pnpm -F @lazuli/web build`) to build: it generates Next route types, runs the
+normal typecheck, and only then compiles with Turbopack. Next's duplicate built-in typecheck is
+disabled because its resolver-only NodeNext config would reject extensionless source imports.
+Invoking `next build` directly bypasses the typecheck gate.
+
 ### Worktrees
 
 New linked worktrees run `pnpm workspace:setup light` from the checkout hook. The light profile

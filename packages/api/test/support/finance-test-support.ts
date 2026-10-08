@@ -38,7 +38,7 @@ export async function ensureAdminUser(): Promise<void> {
       role: "ADMIN",
       isEnabled: true,
     },
-    update: {},
+    update: { name: "GRE-43 Finance Admin" },
   });
 }
 

@@ -1,6 +1,12 @@
-import { resolveSemesterForDate, SemesterBucketError, type SemesterWindow } from "@lazuli/domain";
+import type { Prisma } from "@lazuli/db";
+import {
+  resolveSemesterForDate,
+  saoPauloDateOnly,
+  SemesterBucketError,
+  type SemesterWindow,
+} from "@lazuli/domain";
 import type { StudentListInput, StudentListOutput, StudentListRow } from "@lazuli/validators";
-
+import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { computeEnrollmentPercentInWindow } from "../attendance/percent.js";
 import { finance, type StudentOverdueTotal } from "../finance/index.js";
 import { notFound } from "../trpc/errors.js";
@@ -37,7 +43,8 @@ type AttendanceFacts = StudentListRow["attendance"];
 const NO_ATTENDANCE_DATA: AttendanceFacts = { percent: null, flagged: false };
 
 export async function listStudents(input: ListStudentsInput): Promise<StudentListOutput> {
-  const where = buildStudentListWhere(input.values);
+  const where = buildStudentListWhere({ ...input.values, teacherIds: [] });
+  await applyTeacherFilter(input, where);
   const semester = await resolveCurrentSemester(input.database, input.values.now);
   const { page, pageSize } = input.values;
   const [students, counts, header, total] = await Promise.all([
@@ -121,7 +128,7 @@ export async function buildRows(input: BuildRowsInput): Promise<StudentListRow[]
     isMinor: isMinorInSaoPaulo({ birthDate: student.birthDate, now: input.values.now }),
     status: student.status,
     phone: student.phone,
-    enrollment: toEnrollmentFacts(student.enrollments[0]),
+    enrollment: toEnrollmentFacts(student.enrollments[0], input.values.now),
     attendance: attendanceByStudent.get(student.id) ?? NO_ATTENDANCE_DATA,
     finance: toFinanceFacts(financeByStudent.get(student.id)),
   }));
@@ -156,10 +163,7 @@ async function readFinanceByStudent(
   return new Map(totals.map((total) => [total.studentId, total]));
 }
 
-async function readAttendance(input: {
-  database: StudentListDatabase;
-  values: { enrollment: OpenEnrollmentRow | undefined; semester: SemesterWindow | null };
-}): Promise<AttendanceFacts> {
+async function readAttendance(input: ReadAttendanceInput): Promise<AttendanceFacts> {
   const { enrollment, semester } = input.values;
 
   if (enrollment === undefined || semester === null) {
@@ -176,6 +180,7 @@ async function readAttendance(input: {
 
 function toEnrollmentFacts(
   enrollment: OpenEnrollmentRow | undefined,
+  now: Date,
 ): StudentListRow["enrollment"] {
   if (enrollment === undefined) {
     return null;
@@ -186,7 +191,8 @@ function toEnrollmentFacts(
     classId: enrollment.classId,
     classCode: enrollment.class.internalCode,
     scheduleLabel: toScheduleLabel(enrollment.class.scheduleSlots),
-    teacherName: enrollment.class.teacher.name,
+    teacherName:
+      usualTeacherOn(enrollment.class, new Date(saoPauloDateOnly(now)))?.name ?? "Sem professor",
   };
 }
 
@@ -226,3 +232,46 @@ export async function resolveCurrentSemester(
 function pageCountFor(total: number, pageSize: StudentListInput["pageSize"]): number {
   return Math.max(Math.ceil(total / pageSize), 1);
 }
+
+async function applyTeacherFilter(
+  input: ListStudentsInput,
+  where: Prisma.StudentWhereInput,
+): Promise<void> {
+  if (input.values.teacherIds?.length) {
+    const classes = await input.database.class.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { teacherId: { in: input.values.teacherIds } },
+          { teacherAssignments: { some: { teacherId: { in: input.values.teacherIds } } } },
+        ],
+      },
+      select: { id: true, ...responsibilitySelect },
+    });
+    const today = new Date(saoPauloDateOnly(input.values.now));
+    const classIds = classes
+      .filter((row) => {
+        const teacher = usualTeacherOn(row, today);
+        return teacher && input.values.teacherIds?.includes(teacher.id);
+      })
+      .map((row) => row.id);
+    where.AND = [
+      ...(where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : []),
+      {
+        enrollments: {
+          some: {
+            deletedAt: null,
+            classId: { in: classIds },
+            entryDate: { lte: today },
+            OR: [{ exitDate: null }, { exitDate: { gt: today } }],
+          },
+        },
+      },
+    ];
+  }
+}
+
+type ReadAttendanceInput = {
+  database: StudentListDatabase;
+  values: { enrollment: OpenEnrollmentRow | undefined; semester: SemesterWindow | null };
+};

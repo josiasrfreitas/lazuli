@@ -1,3 +1,5 @@
+const ISO_DATE_LENGTH = 10;
+
 export const STAFF_ACCESS_DENIED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
 
 /**
@@ -31,6 +33,7 @@ export type StaffAccessUser = {
   email: string;
   role: StaffRole;
   isEnabled: boolean;
+  teacherProfile?: { departureDate: Date | null } | null;
 };
 
 export type StaffAccessDeniedReason = "UNKNOWN_EMAIL" | "DISABLED_USER" | "ROLE_NOT_ENABLED";
@@ -61,8 +64,9 @@ export type StaffIdentity = {
  */
 export function resolveStaffIdentity(
   user: (StaffAccessUser & { id: string; name: string }) | null,
+  now = new Date(),
 ): StaffIdentity | null {
-  if (user === null || !evaluateStaffAccess(user).allowed) {
+  if (user === null || !evaluateStaffAccess(user, now).allowed) {
     return null;
   }
 
@@ -75,13 +79,29 @@ export function resolveStaffIdentity(
   };
 }
 
-export function evaluateStaffAccess(user: StaffAccessUser | null): StaffAccessResult {
+export function evaluateStaffAccess(
+  user: StaffAccessUser | null,
+  now = new Date(),
+): StaffAccessResult {
   if (user === null) {
     return denied("UNKNOWN_EMAIL");
   }
 
   if (!user.isEnabled) {
     return denied("DISABLED_USER");
+  }
+
+  if (user.role === "TEACHER" && user.teacherProfile?.departureDate) {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(now);
+    const part = (name: string): string => parts.find((item) => item.type === name)?.value ?? "";
+    const today = `${part("year")}-${part("month")}-${part("day")}`;
+    if (user.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) <= today)
+      return denied("DISABLED_USER");
   }
 
   if (!ENABLED_ROLES.has(user.role)) {

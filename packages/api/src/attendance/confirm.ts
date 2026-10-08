@@ -74,6 +74,7 @@ export async function confirmSession(input: {
     sessionId: session.id,
     staffUserId: input.staffUser.id,
     confirmedAt,
+    usualTeacherId: session.class.teacherId,
   });
 
   return summarize({ sessionId: session.id, confirmedAt, roster, requested });
@@ -114,10 +115,13 @@ async function stampSessionConfirmed(input: {
   sessionId: string;
   staffUserId: string;
   confirmedAt: Date;
+  usualTeacherId: string | null;
 }): Promise<void> {
   await input.database.classSession.update({
     where: { id: input.sessionId },
     data: {
+      usualTeacherId: input.usualTeacherId,
+      responsibilityFrozenAt: input.confirmedAt,
       attendanceConfirmedAt: input.confirmedAt,
       attendanceConfirmedById: input.staffUserId,
       attendanceLastCommittedAt: input.confirmedAt,

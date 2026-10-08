@@ -46,7 +46,7 @@ export function classColumns(params: ClassListParams): readonly DataTableColumn<
       id: "teacher",
       header: "Professor",
       width: COLUMN_WIDTHS.teacher,
-      cell: (row: ClassRow) => row.teacher.name,
+      cell: (row: ClassRow) => row.currentTeacher?.name ?? "Sem professor",
     },
     {
       id: "stage",

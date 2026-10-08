@@ -16,6 +16,8 @@ export const ADMIN: StaffUser = {
 };
 
 export const TEACHER_USER_ID = "00000000-0000-0000-0000-000000002901";
+export const SECOND_TEACHER_USER_ID = "00000000-0000-0000-0000-000000002902";
+const FIXTURE_TEACHER_IDS = [TEACHER_USER_ID, SECOND_TEACHER_USER_ID];
 
 export type ClassCaller = ReturnType<typeof createCaller>;
 
@@ -36,11 +38,27 @@ export function contextWithQueue(input: {
 
 export async function ensureTeacherUser(): Promise<void> {
   await db.user.upsert({
+    where: { id: ADMIN.id },
+    create: ADMIN,
+    update: {},
+  });
+  await db.user.upsert({
     where: { id: TEACHER_USER_ID },
     create: {
       id: TEACHER_USER_ID,
       email: "gre29-class-teacher@example.com",
       name: "GRE-29 Class Teacher",
+      role: "TEACHER",
+      isEnabled: true,
+    },
+    update: {},
+  });
+  await db.user.upsert({
+    where: { id: SECOND_TEACHER_USER_ID },
+    create: {
+      id: SECOND_TEACHER_USER_ID,
+      email: "gre29-class-second-teacher@example.com",
+      name: "GRE-29 Class Second Teacher",
       role: "TEACHER",
       isEnabled: true,
     },
@@ -131,14 +149,20 @@ async function seedSemesterFixtures(): Promise<{ semesterId: string; nextSemeste
 }
 
 export async function cleanClassDatabase(): Promise<void> {
+  await db.classSubstitution.deleteMany({
+    where: { class: { teacherId: { in: FIXTURE_TEACHER_IDS } } },
+  });
+  await db.classTeacherAssignment.deleteMany({
+    where: { class: { teacherId: { in: FIXTURE_TEACHER_IDS } } },
+  });
   await db.classSession.deleteMany({
-    where: { class: { teacherId: TEACHER_USER_ID } },
+    where: { class: { teacherId: { in: FIXTURE_TEACHER_IDS } } },
   });
   await db.classScheduleSlot.deleteMany({
-    where: { class: { teacherId: TEACHER_USER_ID } },
+    where: { class: { teacherId: { in: FIXTURE_TEACHER_IDS } } },
   });
   await db.class.deleteMany({
-    where: { teacherId: TEACHER_USER_ID },
+    where: { teacherId: { in: FIXTURE_TEACHER_IDS } },
   });
   await db.semester.deleteMany({
     where: { name: { startsWith: TEST_PREFIX } },
@@ -153,7 +177,7 @@ export async function cleanClassDatabase(): Promise<void> {
     where: { key: { startsWith: "gre29_class_" } },
   });
   await db.user.deleteMany({
-    where: { id: TEACHER_USER_ID },
+    where: { id: { in: FIXTURE_TEACHER_IDS } },
   });
 }
 

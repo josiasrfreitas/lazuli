@@ -162,6 +162,14 @@ model User {
   accounts                      Account[]
   sessions                      Session[]
   classesTaught                 Class[]                 @relation("ClassTeacher")
+  usualSessions                 ClassSession[] @relation("SessionUsualTeacher")
+  teacherProfile                TeacherProfile?
+  teacherDeparturesRecorded     TeacherProfile[] @relation("TeacherDepartureRecorder")
+  datedClassesTaught            ClassTeacherAssignment[] @relation("DatedClassTeacher")
+  teacherAssignmentsRecorded    ClassTeacherAssignment[] @relation("ClassTeacherAssignmentRecorder")
+  substitutionsTaught           ClassSubstitution[] @relation("ClassSubstitute")
+  substitutionsRecorded         ClassSubstitution[] @relation("ClassSubstitutionRecorder")
+  substitutionsRevoked          ClassSubstitution[] @relation("ClassSubstitutionRevoker")
   closedDays                    SchoolClosedDay[]       @relation("SchoolClosedDayCreator")
   attendanceConfirmedSessions   ClassSession[]          @relation("ClassSessionAttendanceConfirmer")
   cancelledClassSessions        ClassSession[]          @relation("ClassSessionCanceller")
@@ -373,6 +381,8 @@ model Class {
   nextClasses   Class[]             @relation("ClassLineage")
   scheduleSlots ClassScheduleSlot[]
   sessions           ClassSession[]
+  teacherAssignments ClassTeacherAssignment[]
+  substitutions ClassSubstitution[]
   enrollments        Enrollment[]
   generatedArtifacts GeneratedArtifact[]
 
@@ -394,6 +404,7 @@ model ClassScheduleSlot {
 
   class    Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
   sessions ClassSession[]
+  substitutions ClassSubstitution[]
 
   @@unique([classId, weekday, startTime, endTime])
   @@unique([classId, id])
@@ -506,6 +517,69 @@ model PedagogicalProgress {
   @@index([stageId])
 }
 
+model TeacherProfile {
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  userId        String    @id @map("user_id") @db.Uuid
+  cpf           String?   @unique @db.VarChar(11)
+  departureDate DateTime? @map("departure_date") @db.Date
+  departureRecordedAt DateTime? @map("departure_recorded_at") @db.Timestamptz
+  departureRecordedById String? @map("departure_recorded_by_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  departureRecordedBy User? @relation("TeacherDepartureRecorder", fields: [departureRecordedById], references: [id], onDelete: Restrict)
+
+  @@index([departureDate])
+}
+
+model ClassTeacherAssignment {
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  id            String   @id @default(uuid()) @db.Uuid
+  classId       String   @map("class_id") @db.Uuid
+  teacherId     String   @map("teacher_id") @db.Uuid
+  effectiveDate DateTime @map("effective_date") @db.Date
+  supersededAt  DateTime? @map("superseded_at") @db.Timestamptz
+  recordedAt    DateTime @default(now()) @map("recorded_at") @db.Timestamptz
+  recordedById  String?  @map("recorded_by_id") @db.Uuid
+
+  class      Class @relation(fields: [classId], references: [id], onDelete: Restrict)
+  teacher    User @relation("DatedClassTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+  recordedBy User? @relation("ClassTeacherAssignmentRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([classId, effectiveDate])
+  @@index([teacherId, effectiveDate])
+}
+
+model ClassSubstitution {
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  id             String    @id @default(uuid()) @db.Uuid
+  classId        String    @map("class_id") @db.Uuid
+  scheduleSlotId String?   @map("schedule_slot_id") @db.Uuid
+  classSessionId String? @map("class_session_id") @db.Uuid
+  date           DateTime  @db.Date
+  teacherId      String    @map("teacher_id") @db.Uuid
+  recordedAt     DateTime  @default(now()) @map("recorded_at") @db.Timestamptz
+  recordedById   String    @map("recorded_by_id") @db.Uuid
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz
+  coverageResolvedAt DateTime? @map("coverage_resolved_at") @db.Timestamptz
+  revokedById    String?   @map("revoked_by_id") @db.Uuid
+
+  class        Class @relation(fields: [classId], references: [id], onDelete: Restrict)
+  scheduleSlot ClassScheduleSlot? @relation(fields: [classId, scheduleSlotId], references: [classId, id], onDelete: Restrict)
+  classSession ClassSession? @relation(fields: [classId, classSessionId], references: [classId, id], onDelete: Restrict)
+  teacher      User @relation("ClassSubstitute", fields: [teacherId], references: [id], onDelete: Restrict)
+  recordedBy   User @relation("ClassSubstitutionRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  revokedBy    User? @relation("ClassSubstitutionRevoker", fields: [revokedById], references: [id], onDelete: Restrict)
+
+  @@index([teacherId, date])
+  @@index([classId, date])
+}
+
 model ClassSession {
   id                        String             @id @default(uuid()) @db.Uuid
   createdAt                 DateTime           @default(now()) @map("created_at") @db.Timestamptz
@@ -513,6 +587,9 @@ model ClassSession {
   deletedAt                 DateTime?          @map("deleted_at") @db.Timestamptz
   classId                   String             @map("class_id") @db.Uuid
   scheduleSlotId            String?            @map("schedule_slot_id") @db.Uuid
+  usualTeacherId            String? @map("usual_teacher_id") @db.Uuid
+  responsibilityFrozenAt    DateTime? @map("responsibility_frozen_at") @db.Timestamptz
+  usualTeacher              User? @relation("SessionUsualTeacher", fields: [usualTeacherId], references: [id], onDelete: Restrict)
   date                      DateTime           @db.Date
   startTime                 DateTime           @map("start_time") @db.Time
   endTime                   DateTime           @map("end_time") @db.Time
@@ -531,7 +608,9 @@ model ClassSession {
   attendanceConfirmedBy User?              @relation("ClassSessionAttendanceConfirmer", fields: [attendanceConfirmedById], references: [id], onDelete: Restrict)
   attendanceRows        Attendance[]
   makeups               Makeup[]
+  substitutions         ClassSubstitution[]
 
+  @@unique([classId, id])
   @@index([classId])
   @@index([scheduleSlotId])
   @@index([cancelledById])

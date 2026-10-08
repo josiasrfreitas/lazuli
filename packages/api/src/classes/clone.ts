@@ -1,10 +1,20 @@
-import { CLASS_REFERENCE_CAPACITY } from "@lazuli/domain";
+import { CLASS_REFERENCE_CAPACITY, findNextStageInTrack } from "@lazuli/domain";
 import { generateClassInternalCode } from "./internal-code.js";
 import type { Prisma } from "@lazuli/db";
 import { classScheduleSlotsInputSchema } from "@lazuli/validators";
-import { findNextStageInTrack } from "@lazuli/domain";
-
-import { archiveClass, classSummarySelect, type ClassDatabase, type ClassSummary } from "./data.js";
+import {
+  assertClassTeacherAvailable,
+  databaseSlotToCandidate,
+  lockTeacher,
+} from "../teachers/availability.js";
+import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
+import {
+  archiveClass,
+  classSummarySelect,
+  recordInitialTeacher,
+  type ClassDatabase,
+  type ClassSummary,
+} from "./data.js";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
   CLASS_NOT_ACTIVE_MESSAGE,
@@ -40,32 +50,22 @@ const sourceClassInclude = {
 
 type SourceClass = Prisma.ClassGetPayload<{ include: typeof sourceClassInclude }>;
 
-export async function cloneClassForNextPeriod(input: {
-  database: ClassDatabase;
-  id: string;
-  semesterId: string;
-  sharedStageId?: string;
-  portalClassName?: string;
-}): Promise<{ source: ClassSummary; successor: ClassSummary }> {
+export async function cloneClassForNextPeriod(
+  input: CloneClassForNextPeriodInput,
+): Promise<{ source: ClassSummary; successor: ClassSummary }> {
+  await lockTeacher(input.database, "");
   const source = await loadSourceClass(input.database, input.id);
 
   if (source.status !== "ACTIVE") {
     throw badRequest(CLASS_NOT_ACTIVE_MESSAGE);
   }
 
-  const schedule = classScheduleSlotsInputSchema.safeParse(
-    source.scheduleSlots.map((slot) => ({
-      weekday: slot.weekday,
-      startTime: dateToTimeString(slot.startTime),
-      endTime: dateToTimeString(slot.endTime),
-    })),
-  );
-  if (!schedule.success)
-    throw badRequest(schedule.error.issues[0]?.message ?? "Horários inválidos.");
+  assertCloneSchedule(source);
 
   await assertTeacherIsActive({ database: input.database, teacherId: source.teacherId });
 
   const semester = await loadSemester({ database: input.database, semesterId: input.semesterId });
+  await assignCloneTeacher(input, source);
   const successorStageId = await resolveSuccessorStageId({
     database: input.database,
     source,
@@ -91,6 +91,11 @@ export async function cloneClassForNextPeriod(input: {
     select: classSummarySelect,
   });
 
+  await recordInitialTeacher({
+    database: input.database,
+    classId: successor.id,
+    recordedById: input.recordedById,
+  });
   const archivedSource = await archiveClass({ database: input.database, id: source.id });
   return { source: archivedSource, successor };
 }
@@ -108,14 +113,9 @@ async function loadSourceClass(database: ClassDatabase, id: string): Promise<Sou
   return source;
 }
 
-async function resolveClonePortalClassName(input: {
-  database: ClassDatabase;
-  source: SourceClass;
-  successorStageId: string | null;
-  semesterName: string;
-  year: number;
-  portalClassName?: string;
-}): Promise<string> {
+async function resolveClonePortalClassName(
+  input: ResolveClonePortalClassNameInput,
+): Promise<string> {
   if (input.source.scheduleType === "PERSONALIZED") {
     return resolvePersonalizedClonePortalClassName(input);
   }
@@ -138,10 +138,9 @@ async function resolveClonePortalClassName(input: {
   });
 }
 
-async function resolvePersonalizedClonePortalClassName(input: {
-  database: ClassDatabase;
-  portalClassName?: string;
-}): Promise<string> {
+async function resolvePersonalizedClonePortalClassName(
+  input: ResolvePersonalizedClonePortalClassNameInput,
+): Promise<string> {
   if (input.portalClassName === undefined) {
     throw badRequest("Turma personalizada exige nome Portal manual ao clonar.");
   }
@@ -152,11 +151,9 @@ async function resolvePersonalizedClonePortalClassName(input: {
   return input.portalClassName;
 }
 
-async function resolveSuccessorStageId(input: {
-  database: ClassDatabase;
-  source: SourceClass;
-  sharedStageIdOverride?: string;
-}): Promise<string | null> {
+async function resolveSuccessorStageId(
+  input: ResolveSuccessorStageIdInput,
+): Promise<string | null> {
   if (input.source.scheduleType === "PERSONALIZED") {
     return null;
   }
@@ -185,13 +182,9 @@ async function resolveSuccessorStageId(input: {
   return nextStage.id;
 }
 
-function buildSuccessorCreateData(input: {
-  year: number;
-  source: SourceClass;
-  successorStageId: string | null;
-  semesterId: string;
-  portalClassName: string;
-}): Prisma.ClassUncheckedCreateInput {
+function buildSuccessorCreateData(
+  input: BuildSuccessorCreateDataInput,
+): Prisma.ClassUncheckedCreateInput {
   return {
     internalCode: generateClassInternalCode(input.year),
     teacherId: input.source.teacherId,
@@ -224,4 +217,75 @@ function optionalPortalClassName(portalClassName: string | undefined): {
   portalClassName?: string;
 } {
   return typeof portalClassName === "string" ? { portalClassName } : {};
+}
+
+type CloneClassForNextPeriodInput = {
+  database: ClassDatabase;
+  id: string;
+  semesterId: string;
+  sharedStageId?: string;
+  portalClassName?: string;
+  recordedById?: string;
+};
+type ResolveClonePortalClassNameInput = {
+  database: ClassDatabase;
+  source: SourceClass;
+  successorStageId: string | null;
+  semesterName: string;
+  year: number;
+  portalClassName?: string;
+};
+type ResolvePersonalizedClonePortalClassNameInput = {
+  database: ClassDatabase;
+  portalClassName?: string;
+};
+type ResolveSuccessorStageIdInput = {
+  database: ClassDatabase;
+  source: SourceClass;
+  sharedStageIdOverride?: string;
+};
+type BuildSuccessorCreateDataInput = {
+  year: number;
+  source: SourceClass;
+  successorStageId: string | null;
+  semesterId: string;
+  portalClassName: string;
+};
+
+async function assignCloneTeacher(
+  input: CloneClassForNextPeriodInput,
+  source: SourceClass,
+): Promise<void> {
+  const targetSemester = await input.database.semester.findUniqueOrThrow({
+    where: { id: input.semesterId },
+    select: { startDate: true },
+  });
+  const responsibility = await input.database.class.findUniqueOrThrow({
+    where: { id: source.id },
+    select: responsibilitySelect,
+  });
+  const teacher = usualTeacherOn(responsibility, targetSemester.startDate);
+  if (!teacher)
+    throw badRequest(
+      "A turma está sem professor no próximo período. Atribua um docente antes de clonar.",
+    );
+  source.teacherId = teacher.id;
+  await assertClassTeacherAvailable({
+    database: input.database,
+    teacherId: source.teacherId,
+    semesterId: input.semesterId,
+    slots: source.scheduleSlots.map((slot) => databaseSlotToCandidate(slot)),
+  });
+}
+
+function assertCloneSchedule(source: SourceClass): void {
+  const schedule = classScheduleSlotsInputSchema.safeParse(
+    source.scheduleSlots.map((slot) => ({
+      weekday: slot.weekday,
+      startTime: dateToTimeString(slot.startTime),
+      endTime: dateToTimeString(slot.endTime),
+    })),
+  );
+  if (!schedule.success)
+    throw badRequest(schedule.error.issues[0]?.message ?? "Horários inválidos.");
 }

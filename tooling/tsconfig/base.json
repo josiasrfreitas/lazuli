@@ -3,7 +3,7 @@
   "display": "Lazuli base",
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "ES2023.Array"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "moduleDetection": "force",
@@ -13,7 +13,6 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
 
-    // Baseline strictness for all TypeScript packages.
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,

@@ -161,3 +161,39 @@ void it("enforces dashboard role procedures", async () => {
   await assert.rejects(caller(TEACHER, JULY_NOW).dashboard.adminMetrics(), /FORBIDDEN/);
   await assert.rejects(caller(ADMIN, JULY_NOW).dashboard.teacherHome(), /FORBIDDEN/);
 });
+
+void it("keeps started sessions with the frozen teacher after a same-day reassignment", async () => {
+  await cleanDashboardDatabase();
+  await ensureDashboardUsers();
+  const { stageId, semesterId } = await seedDashboardCatalog();
+  const classId = await seedClass({
+    code: "Reassigned",
+    teacherId: TEACHER.id,
+    semesterId,
+    stageId,
+  });
+  const startedId = await seedSession({ classId, date: TODAY_DATE });
+  const futureId = await seedSession({ classId, date: FUTURE_DATE });
+  const now = new Date(`${TODAY_DATE}T18:00:00.000Z`);
+  await caller(ADMIN, now).teachers.assignClass({
+    classId,
+    teacherId: OTHER_TEACHER.id,
+    effectiveDate: TODAY_DATE,
+  });
+
+  const previous = await caller(TEACHER, now).dashboard.teacherHome();
+  const current = await caller(OTHER_TEACHER, now).dashboard.teacherHome();
+  assert.deepEqual(
+    previous.todaySessions.map((row) => row.sessionId),
+    [startedId],
+  );
+  assert.deepEqual(current.todaySessions, []);
+  assert.deepEqual(
+    previous.nextSessionsByClass.map((row) => row.nextSession?.sessionId),
+    [startedId],
+  );
+  assert.deepEqual(
+    current.nextSessionsByClass.map((row) => row.nextSession?.sessionId),
+    [futureId],
+  );
+});

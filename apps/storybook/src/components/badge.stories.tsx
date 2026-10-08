@@ -12,6 +12,34 @@ const statuses = [
   { label: "Acima da referência", variant: "over-capacity" },
 ] as const;
 
+const semanticHierarchy = [
+  {
+    meaning: "Repouso ou inatividade",
+    feeling: "Sem ação necessária",
+    label: "Não habilitado",
+    variant: "neutral",
+  },
+  {
+    meaning: "Informação",
+    feeling: "Contexto para a operação",
+    label: "Substituição",
+    variant: "info",
+  },
+  { meaning: "Confirmação", feeling: "Pronto para uso", label: "Habilitado", variant: "success" },
+  {
+    meaning: "Atenção",
+    feeling: "Preparar ou resolver",
+    label: "Saída programada",
+    variant: "warning",
+  },
+  {
+    meaning: "Falha ou bloqueio",
+    feeling: "Intervenção necessária",
+    label: "Conflito de horário",
+    variant: "destructive",
+  },
+] as const;
+
 const meta = {
   title: "Components/Badge",
   component: Badge,
@@ -81,6 +109,42 @@ export const PaymentStatuses: Story = {
         <span className="text-caption">Agosto de 2026</span>
         <Badge variant="destructive">Em atraso</Badge>
       </div>
+    </div>
+  ),
+};
+
+export const SemanticHierarchy: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Neutral is the quiet baseline. Info and success provide context and confidence. Warning asks for attention; destructive marks failure or blocking conditions. Disabled access can be intentional and uses neutral. Always pair color with an explicit label. See docs/frontend/semantic-colors.md.",
+      },
+    },
+  },
+  render: () => (
+    <div className="grid w-full gap-4 lg:grid-cols-2">
+      {(["light", "dark"] as const).map((theme) => (
+        <section
+          key={theme}
+          className={`${theme} rounded-md border border-border bg-card p-4 text-card-foreground`}
+        >
+          <h2 className="mb-3 text-control font-semibold">
+            {theme === "light" ? "Tema claro" : "Tema escuro"}
+          </h2>
+          <div className="divide-y divide-border">
+            {semanticHierarchy.map(({ meaning, feeling, label, variant }) => (
+              <div key={variant} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div>
+                  <p className="text-control font-medium">{meaning}</p>
+                  <p className="text-caption text-muted-foreground">{feeling}</p>
+                </div>
+                <Badge variant={variant}>{label}</Badge>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   ),
 };

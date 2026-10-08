@@ -55,7 +55,9 @@ export const classesRouter = router({
   create: adminProcedure
     .input(classCreateInputSchema)
     .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => createClass({ database, values: input })),
+      ctx.db.$transaction((database) =>
+        createClass({ database, values: input, recordedById: ctx.staffUser.id }),
+      ),
     ),
   archive: adminProcedure
     .input(classArchiveInputSchema)
@@ -66,7 +68,10 @@ export const classesRouter = router({
     .input(classCloneForNextPeriodInputSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) =>
-        cloneClassForNextPeriod(buildCloneInput({ database, input })),
+        cloneClassForNextPeriod({
+          ...buildCloneInput({ database, input }),
+          recordedById: ctx.staffUser.id,
+        }),
       ),
     ),
   generateSessions: adminProcedure

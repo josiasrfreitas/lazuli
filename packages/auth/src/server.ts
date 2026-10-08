@@ -45,5 +45,10 @@ export async function getStaffIdentity(input: { headers: Headers }): Promise<Sta
 
   const { db } = await import("@lazuli/db");
 
-  return resolveStaffIdentity(await db.user.findUnique({ where: { email: session.user.email } }));
+  return resolveStaffIdentity(
+    await db.user.findUnique({
+      where: { email: session.user.email },
+      include: { teacherProfile: { select: { departureDate: true } } },
+    }),
+  );
 }

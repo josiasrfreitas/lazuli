@@ -1,5 +1,6 @@
 import type { Prisma } from "@lazuli/db";
 
+import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import type { AttendanceDatabase } from "./data.js";
 import { notFound } from "../trpc/errors.js";
 import { MAKEUP_NOT_FOUND_MESSAGE, ORIGIN_ENROLLMENT_NOT_FOUND_MESSAGE } from "./errors.js";
@@ -49,16 +50,23 @@ const makeupWithTargetSelect = {
   targetClassSession: {
     select: {
       id: true,
+      usualTeacherId: true,
+      responsibilityFrozenAt: true,
       classId: true,
       status: true,
       date: true,
       endTime: true,
-      class: { select: { teacherId: true } },
+      class: { select: responsibilitySelect },
     },
   },
 } satisfies Prisma.MakeupSelect;
 
-export type MakeupWithTarget = Prisma.MakeupGetPayload<{ select: typeof makeupWithTargetSelect }>;
+type MakeupRow = Prisma.MakeupGetPayload<{ select: typeof makeupWithTargetSelect }>;
+export type MakeupWithTarget = Omit<MakeupRow, "targetClassSession"> & {
+  targetClassSession: Omit<MakeupRow["targetClassSession"], "class"> & {
+    class: { teacherId: string | null };
+  };
+};
 
 /** Loads a makeup with the target-session fields cancel/outcome need, or throws not-found. */
 export async function loadMakeupWithTarget(input: {
@@ -73,7 +81,18 @@ export async function loadMakeupWithTarget(input: {
   if (makeup === null) {
     throw notFound(MAKEUP_NOT_FOUND_MESSAGE);
   }
-  return makeup;
+  return {
+    ...makeup,
+    targetClassSession: {
+      ...makeup.targetClassSession,
+      class: {
+        teacherId: makeup.targetClassSession.responsibilityFrozenAt
+          ? makeup.targetClassSession.usualTeacherId
+          : (usualTeacherOn(makeup.targetClassSession.class, makeup.targetClassSession.date)?.id ??
+            null),
+      },
+    },
+  };
 }
 
 /**
