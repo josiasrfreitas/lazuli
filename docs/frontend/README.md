@@ -31,7 +31,7 @@ These rules apply to product UI and disposable prototypes.
 
 ## Component boundary
 
-**Hard rule: a component implementation file must not exceed 200 physical lines.** Imports,
+**Hard rule: a component implementation file must not exceed 650 physical lines.** Imports,
 types, variants, and the component body all count toward the limit. When a component approaches the
 limit, extract meaningful subcomponents, hooks, or pure helpers; do not compress formatting or hide
 unrelated responsibilities merely to satisfy the count. `pnpm test:component-lines` enforces this

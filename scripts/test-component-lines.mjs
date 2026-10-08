@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const repositoryRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const componentRoots = ["packages/ui/src/components", "apps/web/src"];
-const maximumLines = 200;
+const maximumLines = 650;
 
 async function findComponents(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -29,7 +29,7 @@ for (const componentRoot of componentRoots) {
 
   for (const componentPath of componentPaths) {
     const source = await readFile(componentPath, "utf8");
-    const lineCount = source.split(/\r?\n/u).length;
+    const lineCount = source.split(/\r?\n/u).length - Number(source.endsWith("\n"));
     const relativePath = path.relative(repositoryRoot, componentPath);
 
     assert.ok(

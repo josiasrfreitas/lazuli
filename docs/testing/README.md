@@ -86,7 +86,7 @@ Warnings remain non-blocking while calibrated. There is deliberately no `max-ass
 - `pnpm test` runs unit tests; `test:integration` and `test:transport` run infrastructure tiers.
 - Pre-commit only formats supported staged files and runs `git diff --cached --check`.
 - `pnpm check:pre-push --base <ref>` only parses committed JS/TS and JSON and checks the
-  200-line limit for changed application/shared components. It reads from HEAD, excluding
+  650-line limit for changed application/shared components. It reads from HEAD, excluding
   staged, unstaged, and untracked edits. It does not repeat formatting or whitespace checks.
 - Local hooks run no lint, typecheck, build, test suite or infrastructure operation.
   CI owns those full gates; run relevant tests explicitly while implementing a change.

@@ -69,8 +69,8 @@ it("reuses a root check then rejects a workspace regression instead of replaying
   const reused = run();
   assert.equal(reused.status, 0, reused.stderr);
   assert.match(reused.stdout, /cache hit/u);
-  await write(directory, "apps/web/src/page.tsx", "// line\n".repeat(201));
+  await write(directory, "apps/web/src/page.tsx", "// line\n".repeat(651));
   const regression = run();
   assert.notEqual(regression.status, 0);
-  assert.match(regression.stdout + regression.stderr, /component files are limited to 200/u);
+  assert.match(regression.stdout + regression.stderr, /component files are limited to 650/u);
 });

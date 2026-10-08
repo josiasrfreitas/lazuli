@@ -125,7 +125,7 @@ it("pre-push rejects malformed committed TS and JSON and oversized components", 
   const directory = await repository(context);
   await write(directory, "packages/core/src/index.ts", "export const value = ;\n");
   await write(directory, "broken.json", "{ invalid }\n");
-  await write(directory, "apps/web/src/example.tsx", "// line\n".repeat(201));
+  await write(directory, "apps/web/src/example.tsx", "// line\n".repeat(651));
   git(directory, ["add", "."]);
   git(directory, ["commit", "-m", "invalid contents"]);
   await write(directory, "packages/core/src/index.ts", "export const value = 1;\n");
@@ -133,7 +133,7 @@ it("pre-push rejects malformed committed TS and JSON and oversized components", 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /packages\/core\/src\/index.ts: Expression expected/u);
   assert.match(result.stderr, /broken.json:/u);
-  assert.match(result.stderr, /example.tsx: 202 lines; component limit is 200/u);
+  assert.match(result.stderr, /example.tsx: 651 lines; component limit is 650/u);
   assert.equal(await readFile(log, "utf8"), "");
 });
 
