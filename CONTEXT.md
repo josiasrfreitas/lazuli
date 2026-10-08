@@ -104,6 +104,10 @@ _Avoid_: Late fee, cancellation fee
 One scheduled meeting of a class on a date.
 _Avoid_: Lesson, aula, meeting
 
+**Teaching Hour**:
+A unit of 60 minutes of teaching time. A two-hour Class Session comprises two Teaching Hours.
+_Avoid_: Class Session (as a synonym), hora-aula (in code)
+
 **Makeup**:
 A replacement session scheduled for a student in response to an absence. Its outcome counts
 toward the student's attendance. A sub-concept of Attendance, not an area of its own.

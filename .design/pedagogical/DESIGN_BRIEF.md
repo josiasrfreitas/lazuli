@@ -246,20 +246,36 @@ são decisões de V10. Contato por falta em V6 pode motivar intervenção, sem c
 
 ## 12. Alocação de professores precisa distinguir turma e encontro
 
-**Problema a detalhar em V2.** O responsável habitual da turma e o professor que realiza um
-encontro podem diferir. Também existem compromissos fora das aulas regulares, como introduções
-e atendimentos. Considerar apenas a turma pode ocultar carga ou atribuir acesso e autoria errados.
+**Problema.** A chegada de professores acompanha o aumento da demanda e a reorganização de
+turmas. A administração precisa reconhecer os compromissos de cada professor e resolver
+substituições e saídas, sem confundir atuação na escola com acesso ao sistema.
 
-**Direção confirmada no épico.** Administração gerencia professores; carga horária é
-informativa, sem teto individual impeditivo. Troca permanente é nova alocação; substituição
-pontual pode ocorrer por aula. V1 começa usando professores já habilitados.
+**Solução confirmada na descoberta de V2.** Cadastrar nome, CPF e e-mail; tornar acesso ao
+sistema opt-in, independente da elegibilidade para receber turmas e substituições. Não registrar
+disponibilidade ou acordos de horários nesta entrega. Associar docente na criação/manutenção
+da turma; redistribuição pertence a esse contexto e à organização semestral. Troca permanente
+tem vigência hoje ou futura. Substituição pontual pertence ao encontro e não muda o docente
+habitual; conceder acesso ao substituto fica para a futura experiência do professor.
 
-**Cenário.** Um professor assume só o encontro de quinta-feira. Isso não o torna responsável
-permanente pela turma nem define, por si só, acesso a todo o histórico dela.
+**Carga e agenda.** Carga prevista é informativa, sem teto individual. Exibir a semana com
+blocos delimitados por turma e por hora-aula: cada unidade tem 60 minutos. Um encontro de duas
+horas contém duas horas-aula; não se torna dois encontros por causa da divisão visual. Coincidência
+de compromissos de um professor bloqueia a atribuição. Encerrar sua atuação hoje ou em data
+futura pode deixar turmas/aulas sem professor, que devem permanecer visíveis como pendências.
+Na data efetiva, seu acesso é bloqueado. Substituições futuras já atribuídas em seus encontros
+são desfeitas ao programar a saída, exigindo nova cobertura mesmo se o substituto segue ativo.
+O histórico das atribuições anteriores é preservado.
 
-**Em aberto.** Disponibilidade, conflitos, vigência da alocação, acesso e autoria do substituto
-exigem planejamento de V2. A descoberta pode ocorrer junto da implementação de V1; alinhar o
-contrato de responsabilidade por turma/encontro antes de implementar alterações nessa relação.
+**Cenários.** Uma turma de terça e quinta, com uma hora por dia, e outra de sábado, com duas
+horas consecutivas, contribuem com duas horas-aula semanais cada. Um professor assume só o
+encontro de quinta sem receber acesso automático à turma. A saída programada de outro professor
+mostra quais compromissos precisarão de novo docente, preservando o passado.
+
+**Integração e limites.** O [brief de V2](v2-operacao-professores/DESIGN_BRIEF.md) detalha a
+experiência e distingue decisões de propostas; a [#158](https://github.com/josiasrfreitas/lazuli/issues/158)
+organiza a execução em três entregas verticais. A implementação de V1 segue em paralelo;
+alinhar o contrato de responsabilidade por turma/encontro antes de alterá-lo. Introduções e
+atendimentos continuam em V3/V6; sua integração futura não autoriza entregar esses fluxos na V2.
 
 ## 13. Presença informada pelo aluno ainda precisa de confirmação docente
 
