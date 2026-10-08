@@ -18,7 +18,7 @@ export type ClassFieldsProps = {
 export function ClassCreateFields(props: ClassFieldsProps): ReactElement {
   return (
     <div className="space-y-5">
-      <FormSection title="Organização">
+      <FormSection title="Modalidade">
         <OrganizationFields {...props} />
       </FormSection>
       <FormSection title="Horário e capacidade">

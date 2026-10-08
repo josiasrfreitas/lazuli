@@ -45,8 +45,8 @@ export function formatClassSchedule(slots: readonly ScheduleSlot[]): string {
   return [...groups].map(([interval, days]) => `${days.join("/")} • ${interval}`).join(", ");
 }
 
-const OCCUPANCY_WARNING_RATIO = 0.5;
-const OCCUPANCY_HIGH_RATIO = 0.8;
+const OCCUPANCY_WARNING_RATIO = 0.75;
+const OCCUPANCY_HIGH_RATIO = 1;
 
 export function classOccupancyIndicator(
   occupancy: number,

@@ -86,7 +86,7 @@ function YearCapacityFields({ draft, change, errors }: ClassFieldsProps): ReactE
       <TextControl
         name="capacity"
         label="Capacidade de referência"
-        placeholder="12"
+        placeholder="20"
         value={draft.capacity}
         onChange={(value) => change("capacity", value)}
         error={errors.capacity}

@@ -38,7 +38,7 @@ export function classColumns(params: ClassListParams): readonly DataTableColumn<
     },
     {
       id: "type",
-      header: "Organização",
+      header: "Modalidade",
       cell: scheduleTypeCell,
     },
     { id: "format", header: "Formato", cell: (row: ClassRow) => formatFormat(row.format) },

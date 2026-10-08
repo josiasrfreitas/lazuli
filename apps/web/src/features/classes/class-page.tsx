@@ -99,7 +99,7 @@ function ClassSummary({ detail }: { detail: RouterOutputs["classes"]["byId"] }):
   return (
     <dl className="grid gap-3 border-b border-border pb-4 text-control sm:grid-cols-2 lg:grid-cols-4">
       <div>
-        <dt className="text-caption text-muted-foreground">Organização</dt>
+        <dt className="text-caption text-muted-foreground">Modalidade</dt>
         <dd>
           <Badge variant={detail.scheduleType === "REGULAR" ? "info" : "neutral"}>
             {formatScheduleType(detail.scheduleType)}

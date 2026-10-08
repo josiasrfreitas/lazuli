@@ -3,7 +3,7 @@
  * `seed-dev.ts` turns these seeds into idempotent upserts keyed by stable UUIDs.
  */
 
-const DEFAULT_CAPACITY = 12;
+const DEFAULT_CAPACITY = 20;
 const KIDS_CAPACITY = 8;
 
 export type DevWeekday =
@@ -86,15 +86,14 @@ export const DEV_CLASSES: readonly DevClassSeed[] = [
     scheduleType: "PERSONALIZED",
     stageInternalCode: "E1",
     teacherKey: "camila",
-    capacity: 2,
+    capacity: DEFAULT_CAPACITY,
     slots: [{ weekday: "FRIDAY", startTime: "17:00", endTime: "19:00" }],
   },
   {
     key: "E1A",
     stageInternalCode: "E1",
     teacherKey: "camila",
-    // Three active students exceed the reference, exercising red occupancy.
-    capacity: 2,
+    capacity: DEFAULT_CAPACITY,
     slots: [
       { weekday: "TUESDAY", startTime: "19:00", endTime: "20:30" },
       { weekday: "THURSDAY", startTime: "19:00", endTime: "20:30" },
@@ -104,8 +103,7 @@ export const DEV_CLASSES: readonly DevClassSeed[] = [
     key: "T2A",
     stageInternalCode: "T2",
     teacherKey: "rafael",
-    // Two active students exercise moderate (yellow) occupancy.
-    capacity: 3,
+    capacity: DEFAULT_CAPACITY,
     slots: [
       { weekday: "MONDAY", startTime: "19:00", endTime: "20:30" },
       { weekday: "WEDNESDAY", startTime: "19:00", endTime: "20:30" },
@@ -328,4 +326,17 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     enrollments: [{ classKey: "MWYA" }],
     attendance: "good",
   },
+  ...occupancyStudents("E1A", 18),
+  ...occupancyStudents("T2A", 13),
 ];
+
+/** Existing enrollments plus these examples give E1A 21 students and T2A 15. */
+function occupancyStudents(classKey: string, count: number): DevStudentSeed[] {
+  return Array.from({ length: count }, (_, index) => ({
+    key: `occupancy-${classKey}-${index + 1}`,
+    fullName: `Estudante exemplo ${classKey} ${index + 1}`,
+    status: "ACTIVE",
+    enrollments: [{ classKey }],
+    attendance: "good",
+  }));
+}

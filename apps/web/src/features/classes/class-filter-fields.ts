@@ -6,7 +6,7 @@ import { classListQueryInput, type ClassListParams } from "./class-list-model";
 type FilterKey = "tipo" | "formato" | "professor" | "semestre" | "estado";
 type FormOptions = RouterOutputs["classes"]["formOptions"];
 const FILTER_CONFIG = {
-  tipo: { label: "Organização", icon: UsersRound, promoted: true },
+  tipo: { label: "Modalidade", icon: UsersRound, promoted: true },
   formato: { label: "Formato", icon: Monitor, promoted: true },
   professor: { label: "Professor", icon: GraduationCap, promoted: true },
   semestre: { label: "Semestre", icon: CalendarDays },

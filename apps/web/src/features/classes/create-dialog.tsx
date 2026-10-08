@@ -164,7 +164,7 @@ function CreateContent({ state, open }: { state: State; open: boolean }): ReactE
       <DialogHeader>
         <DialogTitle>Nova turma</DialogTitle>
         <DialogDescription>
-          Defina a organização, o professor e os horários da turma.
+          Defina a modalidade, o professor e os horários da turma.
         </DialogDescription>
       </DialogHeader>
       <CreateBody state={state} open={open} />

@@ -30,6 +30,6 @@ export const initialClassDraft: ClassDraft = {
   sharedStageId: "",
   portalClassName: "",
   year: String(new Date().getFullYear()),
-  capacity: "12",
+  capacity: "20",
   slots: [{ weekday: "MONDAY", startTime: "14:00", endTime: "15:00" }],
 };
