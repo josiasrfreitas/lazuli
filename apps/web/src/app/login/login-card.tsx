@@ -2,11 +2,11 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 
-import { Alert, AlertDescription, AlertIcon, Button } from "@lazuli/ui";
+import { Alert, AlertDescription, AlertIcon, Button, Field, Input, Label } from "@lazuli/ui";
 
 import { authClient } from "~/lib/auth-client";
 
-import { LoginForm, type LoginPending } from "./login-form";
+type LoginPending = "none" | "magic-link" | "google";
 
 /** Replaces the form after sending, so another send cannot invalidate the first link. */
 function MagicLinkSent({
@@ -167,12 +167,30 @@ function LoginMethods({
       {googleOAuthEnabled && (
         <OAuthSection onGoogle={() => void handleGoogle()} pending={pending === "google"} />
       )}
-      <LoginForm
-        email={email}
-        onEmailChange={setEmail}
-        onSubmit={(event) => void handleMagicLink(event)}
-        pending={pending}
-      />
+      <form className="flex flex-col gap-5" onSubmit={(event) => void handleMagicLink(event)}>
+        <Field>
+          <Label className="font-mono text-micro uppercase tracking-eyebrow text-marquee-muted">
+            Email institucional
+          </Label>
+          <Input
+            autoComplete="email"
+            /* text-body (16px): anything smaller makes iOS Safari zoom into the
+               field on focus, and this is the product's front door. */
+            className="h-control-lg rounded-none border-marquee-border bg-marquee-foreground/[0.03] text-body text-marquee-foreground placeholder:text-marquee-muted focus-visible:border-marquee-accent"
+            disabled={pending !== "none"}
+            name="email"
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="voce@escola.com.br"
+            required
+            type="email"
+            value={email}
+          />
+        </Field>
+
+        <Button loading={pending === "magic-link"} size="lg" type="submit">
+          Receber link de acesso
+        </Button>
+      </form>
     </div>
   );
 }
