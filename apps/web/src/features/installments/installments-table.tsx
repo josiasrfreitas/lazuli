@@ -1,4 +1,5 @@
 import type { ReactNode, ReactElement } from "react";
+import { BadgePercent } from "lucide-react";
 import {
   Avatar,
   Badge,
@@ -10,19 +11,66 @@ import {
   TableHeader,
   TableContainer,
   TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
   type DataTableColumn,
   type DataTableState,
 } from "@lazuli/ui";
 import type { FinanceInstallmentRow, FinanceOverduePayerGroup } from "@lazuli/validators";
 import { abbreviatedPersonName } from "~/lib/format";
-import { InstallmentAmount } from "./installment-amount";
-import { businessDate, installmentVm, overduePayerSummaryVm } from "./view-model";
+import {
+  businessDate,
+  installmentAmountVm,
+  installmentVm,
+  overduePayerSummaryVm,
+} from "./view-model";
 import {
   PaymentSelectionCell,
   PaymentSelectionCheckbox,
   PaymentSelectionHead,
   PaymentSelectionHeaderCheckbox,
 } from "./payment/selection";
+
+function InstallmentAmount({
+  row,
+  column,
+}: {
+  row: FinanceInstallmentRow;
+  column: "nominal" | "paid";
+}): ReactElement {
+  const amount = installmentAmountVm(row);
+  const description = column === "paid" ? amount.discount : null;
+  const formattedValue = column === "nominal" ? amount.nominal : amount.paid;
+  const value = (
+    <span className="font-numeric inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums">
+      {formattedValue}
+      {description === null ? null : (
+        <BadgePercent aria-hidden="true" className="size-3.5 text-muted-foreground" />
+      )}
+    </span>
+  );
+  if (description === null) return value;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span
+              tabIndex={0}
+              aria-label={`${formattedValue}. ${description}`}
+              className="inline-flex"
+            >
+              {value}
+            </span>
+          }
+        />
+        <TooltipContent side="top">{description}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 const OVERDUE_COLUMNS = [
   { key: "installment", label: "Sequência" },
