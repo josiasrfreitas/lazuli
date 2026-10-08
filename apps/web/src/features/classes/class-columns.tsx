@@ -70,7 +70,10 @@ export function classColumns(params: ClassListParams): readonly DataTableColumn<
 function scheduleCell(row: ClassRow): ReactElement {
   return (
     <Tooltip>
-      <TooltipTrigger aria-label={formatClassScheduleTime(row.scheduleSlots)}>
+      <TooltipTrigger
+        render={<span tabIndex={0} />}
+        aria-label={formatClassScheduleTime(row.scheduleSlots)}
+      >
         {formatClassSchedule(row.scheduleSlots)}
       </TooltipTrigger>
       <TooltipContent>{formatClassScheduleTime(row.scheduleSlots)}</TooltipContent>
@@ -85,7 +88,10 @@ function occupancyCell({ occupancy, capacity }: ClassRow): ReactElement {
   if (remaining < 0) detail = `${-remaining} acima da capacidade`;
   return (
     <Tooltip>
-      <TooltipTrigger aria-label={`${occupancy} alunos, capacidade ${capacity}. ${detail}`}>
+      <TooltipTrigger
+        render={<span tabIndex={0} />}
+        aria-label={`${occupancy} alunos, capacidade ${capacity}. ${detail}`}
+      >
         <Badge variant={remaining > 0 ? "neutral" : "warning"}>
           <span className="font-numeric">
             {occupancy}

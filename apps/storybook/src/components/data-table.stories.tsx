@@ -52,3 +52,28 @@ export const Error: Story = {
     await expect(args.onRetry).toHaveBeenCalledOnce();
   },
 };
+
+export const ClickableRows: Story = {
+  args: {
+    onRowClick: fn(),
+    columns: [
+      ...columns,
+      { id: "action", header: "Ação", cell: () => <button type="button">Ação interna</button> },
+    ],
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const row = canvas.getByRole("row", { name: "Ana R$ 250,00 Ação interna" });
+    await userEvent.click(canvas.getByRole("cell", { name: "R$ 250,00" }));
+    await expect(args.onRowClick).toHaveBeenCalledWith({
+      id: "example",
+      name: "Ana",
+      amount: "R$ 250,00",
+    });
+    row.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect(args.onRowClick).toHaveBeenCalledTimes(2);
+    await userEvent.click(canvas.getByRole("button", { name: "Ação interna" }));
+    await expect(args.onRowClick).toHaveBeenCalledTimes(2);
+  },
+};

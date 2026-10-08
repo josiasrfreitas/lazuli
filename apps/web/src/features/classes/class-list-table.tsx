@@ -1,9 +1,10 @@
 "use client";
 import type { ReactElement } from "react";
+import { useRouter } from "next/navigation";
 import { DataTable, type DataTableState } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { classColumns } from "./class-columns";
-import type { ClassListParams as Params } from "./class-list-model";
+import { classListReturnUrl, type ClassListParams as Params } from "./class-list-model";
 type List = RouterOutputs["classes"]["list"];
 type Row = List["rows"][number];
 function tableState(
@@ -28,9 +29,12 @@ export function ClassListTable({
   params: Params;
   setPage: (page: number) => void;
 }): ReactElement {
+  const router = useRouter();
+  const back = encodeURIComponent(classListReturnUrl(params));
   return (
     <DataTable
       label="Turmas"
+      onRowClick={(row) => router.push(`/turmas/${row.id}?voltar=${back}`)}
       columns={classColumns(params)}
       state={tableState(data, {
         error: isError,

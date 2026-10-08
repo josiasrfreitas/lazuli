@@ -31,6 +31,8 @@ export type DataTableProps<Row extends { id: string }> = {
   beforeTable?: ReactNode;
   updating?: boolean;
   onRetry: () => void;
+  /** Activates a data row by pointer or Enter; nested controls keep their own action. */
+  onRowClick?: (row: Row) => void;
   empty: { title: string; description: string };
   errorTitle: string;
 };
@@ -93,6 +95,61 @@ function StateRows<Row extends { id: string }>({
   );
 }
 
+function isRowControl(target: EventTarget): boolean {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest("a, button, input, select, textarea, [role='button'], [role='checkbox']"),
+    )
+  );
+}
+
+function DataRow<Row extends { id: string }>({
+  row,
+  columns,
+  onRowClick,
+}: {
+  row: Row;
+  columns: readonly DataTableColumn<Row>[];
+  onRowClick: DataTableProps<Row>["onRowClick"];
+}): ReactElement {
+  return (
+    <TableRow
+      interactive={Boolean(onRowClick)}
+      className={
+        onRowClick
+          ? "cursor-pointer hover:bg-accent focus-within:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          : undefined
+      }
+      tabIndex={onRowClick ? 0 : undefined}
+      onClick={
+        onRowClick
+          ? (event) => {
+              if (event.defaultPrevented || isRowControl(event.target)) return;
+              onRowClick(row);
+            }
+          : undefined
+      }
+      onKeyDown={
+        onRowClick
+          ? (event) => {
+              if (event.key === "Enter" && !isRowControl(event.target)) {
+                event.preventDefault();
+                onRowClick(row);
+              }
+            }
+          : undefined
+      }
+    >
+      {columns.map((column) => (
+        <TableCell key={column.id} numeric={column.numeric ?? false}>
+          {column.cell(row)}
+        </TableCell>
+      ))}
+    </TableRow>
+  );
+}
+
 /** Operational listings share one frame, density, sticky header, states and pagination.
  * Consumers supply columns and data; no density, row markup or styling overrides are exposed.
  */
@@ -130,13 +187,7 @@ export function DataTable<Row extends { id: string }>(props: DataTableProps<Row>
         <TableBody>
           {state.kind === "data" ? (
             state.rows.map((row) => (
-              <TableRow key={row.id} interactive={false}>
-                {columns.map((column) => (
-                  <TableCell key={column.id} numeric={column.numeric ?? false}>
-                    {column.cell(row)}
-                  </TableCell>
-                ))}
-              </TableRow>
+              <DataRow key={row.id} row={row} columns={columns} onRowClick={props.onRowClick} />
             ))
           ) : (
             <StateRows {...props} />
