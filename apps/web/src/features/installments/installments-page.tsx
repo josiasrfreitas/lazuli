@@ -316,21 +316,117 @@ export function InstallmentsPagination({
   );
 }
 
+type InstallmentsPageState = ReturnType<typeof useInstallments>;
+
+function InstallmentsTableFooter({
+  state,
+  toolbar,
+}: {
+  state: InstallmentsPageState;
+  toolbar: ReactElement | null;
+}): ReactElement {
+  return (
+    <div className="relative">
+      <p role="status" className="sr-only">
+        {state.query.isFetching ? "Atualizando recebíveis" : ""}
+      </p>
+      <InstallmentsPagination
+        data={state.data}
+        filters={state.filters}
+        setPage={state.setPage}
+        setPageSize={state.setPageSize}
+      />
+      {toolbar}
+    </div>
+  );
+}
+
+function InstallmentsTableContent({
+  state,
+  toolbar,
+}: {
+  state: InstallmentsPageState;
+  toolbar: ReactElement | null;
+}): ReactElement {
+  const { data, filters, query } = state;
+  return (
+    <InstallmentsTable
+      rows={data?.view === "all" || data?.view === "paid" ? data.rows : undefined}
+      groups={data?.view === "overdue" ? data.groups : undefined}
+      error={query.isError}
+      filtered={hasInstallmentFilters(filters)}
+      showOverdueSearchGuidance={filters.status === "vencidas" && filters.search.trim() !== ""}
+      updating={query.isFetching}
+      footer={<InstallmentsTableFooter state={state} toolbar={toolbar} />}
+      onRetry={() => {
+        void query.refetch();
+      }}
+    />
+  );
+}
+
+function InstallmentsTableFrame({
+  state,
+  beginPayment,
+  toolbar,
+}: {
+  state: InstallmentsPageState;
+  beginPayment: (rows: FinanceInstallmentRow[]) => void;
+  toolbar: ReactElement | null;
+}): ReactElement {
+  return (
+    <DataTablePage
+      title="Recebíveis"
+      controls={
+        <div className="flex flex-wrap items-center gap-2">
+          <InstallmentsControls
+            search={state.filters.search}
+            filters={state.filters}
+            onSearch={state.setSearch}
+            onFilters={state.setFilters}
+          />
+          <Button size="sm" onClick={() => beginPayment([])}>
+            <DollarSign aria-hidden="true" />
+            Registrar pagamento
+          </Button>
+        </div>
+      }
+    >
+      <InstallmentsTableContent state={state} toolbar={toolbar} />
+    </DataTablePage>
+  );
+}
+
+function PaymentRegisteredStatus({ registered }: { registered: boolean }): ReactElement | null {
+  return registered ? (
+    <p role="status" className="px-6 pt-2 text-caption text-success">
+      Pagamento registrado.
+    </p>
+  ) : null;
+}
+
+function PaymentEntryDialog({ entry }: { entry: EntrySession }): ReactElement | null {
+  return entry.session === null ? null : (
+    <PaymentDialog
+      rows={entry.session}
+      open={entry.open}
+      onOpenChange={entry.setOpen}
+      onRegistered={entry.complete}
+    />
+  );
+}
+
 export function InstallmentsPage(): ReactElement {
-  const { filters, data, query, setPage, setPageSize, setSearch, setFilters } = useInstallments();
+  const state = useInstallments();
   const [rows, setRows] = useState<FinanceInstallmentRow[]>([]);
   const entry = useEntrySession(() => setRows([]));
   const visible =
-    data?.view === "overdue" ? data.groups.flatMap((group) => group.rows) : (data?.rows ?? []);
+    state.data?.view === "overdue"
+      ? state.data.groups.flatMap((group) => group.rows)
+      : (state.data?.rows ?? []);
   const outside = rows.filter(
     (row) => !visible.some((item) => item.installmentId === row.installmentId),
   ).length;
-  const action = (
-    <Button size="sm" onClick={() => entry.begin([])}>
-      <DollarSign aria-hidden="true" />
-      Registrar pagamento
-    </Button>
-  );
   const toolbar =
     rows.length > 0 && !entry.open ? (
       <SelectionToolbar
@@ -340,7 +436,6 @@ export function InstallmentsPage(): ReactElement {
         begin={() => entry.begin(rows)}
       />
     ) : null;
-
   return (
     <PaymentSelectionContext.Provider
       value={{
@@ -350,54 +445,9 @@ export function InstallmentsPage(): ReactElement {
         toggleVisible: () => setRows((current) => toggleVisibleSelection(current, visible)),
       }}
     >
-      {entry.registered && (
-        <p role="status" className="px-6 pt-2 text-caption text-success">
-          Pagamento registrado.
-        </p>
-      )}
-      <DataTablePage
-        title="Recebíveis"
-        controls={
-          <div className="flex flex-wrap items-center gap-2">
-            <InstallmentsControls
-              search={filters.search}
-              filters={filters}
-              onSearch={setSearch}
-              onFilters={setFilters}
-            />
-            {action}
-          </div>
-        }
-      >
-        <InstallmentsTable
-          rows={data?.view === "all" || data?.view === "paid" ? data.rows : undefined}
-          groups={data?.view === "overdue" ? data.groups : undefined}
-          error={query.isError}
-          filtered={hasInstallmentFilters(filters)}
-          showOverdueSearchGuidance={filters.status === "vencidas" && filters.search.trim() !== ""}
-          updating={query.isFetching}
-          onRetry={() => {
-            void query.refetch();
-          }}
-          footer={
-            <div className="relative">
-              <p role="status" className="sr-only">
-                {query.isFetching ? "Atualizando recebíveis" : ""}
-              </p>
-              <InstallmentsPagination {...{ data, filters, setPage, setPageSize }} />
-              {toolbar}
-            </div>
-          }
-        />
-      </DataTablePage>
-      {entry.session !== null && (
-        <PaymentDialog
-          rows={entry.session}
-          open={entry.open}
-          onOpenChange={entry.setOpen}
-          onRegistered={entry.complete}
-        />
-      )}
+      <PaymentRegisteredStatus registered={entry.registered} />
+      <InstallmentsTableFrame state={state} beginPayment={entry.begin} toolbar={toolbar} />
+      <PaymentEntryDialog entry={entry} />
     </PaymentSelectionContext.Provider>
   );
 }
