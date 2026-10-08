@@ -5,6 +5,11 @@
 
 export const UI_PACKAGE = "@lazuli/ui" as const;
 
+export { BookLoader } from "./components/book-loader";
+export type { BookLoaderProps } from "./components/book-loader";
+export { TypewriterLoader } from "./components/typewriter-loader";
+export type { TypewriterLoaderProps } from "./components/typewriter-loader";
+
 export { Avatar, avatarVariants } from "./components/avatar";
 export type { AvatarProps, AvatarSize } from "./components/avatar";
 export { Badge, badgeVariants } from "./components/badge";

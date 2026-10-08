@@ -70,6 +70,12 @@
   --warning-muted: var(--lz-ref-amber-50);
   --info: var(--lz-ref-blue-700);
   --info-muted: var(--lz-ref-info-50);
+  --loading-book-cover-start: var(--lz-ref-blue-600);
+  --loading-book-cover-end: var(--lz-ref-blue-700);
+  --loading-book-paper: #ffffff;
+  --loading-typewriter-paper: #eef0fd;
+  --loading-typewriter-ink: #d3d4ec;
+  --loading-typewriter-tool: #fbc56c;
   --over-capacity: #7636a8;
   --over-capacity-muted: #f1e7fa;
   --destructive-muted: var(--lz-ref-red-50);

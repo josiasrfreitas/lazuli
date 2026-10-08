@@ -4,23 +4,31 @@ const config = {
   allowedDevOrigins: ["*.lazuli.localhost"],
   experimental: {
     useTypeScriptCli: true,
+    cpus: 2,
   },
 
   // Internal workspace packages are shipped as TypeScript source (T3 Turbo
   // "just-in-time" packages); Next transpiles them here.
-  transpilePackages: ["@lazuli/api", "@lazuli/auth", "@lazuli/db", "@lazuli/ui"],
-  webpack: (webpackConfig) => {
-    webpackConfig.resolve.extensionAlias = {
-      ...webpackConfig.resolve.extensionAlias,
-      ".js": [".ts", ".tsx", ".js"],
-      ".mjs": [".mts", ".mjs"],
-      ".cjs": [".cts", ".cjs"],
-    };
+  // Include transitive source packages too: Turbopack's TypeScript resolution
+  // maps their NodeNext-style .js imports to the corresponding .ts/.tsx files.
+  transpilePackages: [
+    "@lazuli/api",
+    "@lazuli/auth",
+    "@lazuli/db",
+    "@lazuli/domain",
+    "@lazuli/job-contracts",
+    "@lazuli/ui",
+    "@lazuli/validators",
+  ],
+  turbopack: {},
 
-    return webpackConfig;
+  typescript: {
+    // The build script generates route types and runs tsc with tsconfig.json
+    // before compilation. Avoid checking the resolver-only NodeNext config.
+    ignoreBuildErrors: true,
+    // Turbopack 16.2 resolves .js imports to TypeScript only in NodeNext mode.
+    tsconfigPath: "tsconfig.turbopack.json",
   },
-
-  typescript: { ignoreBuildErrors: false },
 };
 
 export default config;

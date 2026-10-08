@@ -44,6 +44,17 @@ export function TeacherTable({
           cell: (row) => <span className="break-all text-muted-foreground">{row.email}</span>,
         },
         {
+          id: "classes",
+          header: "Turmas",
+          width: "standard",
+          numeric: true,
+          cell: (row) => (
+            <span className="font-numeric tabular-nums" title="Turmas atuais sob responsabilidade do professor">
+              {row.classCount}
+            </span>
+          ),
+        },
+        {
           id: "activity",
           header: "Atuação",
           width: "wide",
@@ -58,15 +69,17 @@ export function TeacherTable({
           id: "access",
           header: "Acesso ao sistema",
           width: "standard",
-          cell: (row) => (
-            <Badge variant="neutral">
-              {row.isEnabled &&
+          cell: (row) => {
+            const enabled =
+              row.isEnabled &&
               (!row.teacherProfile?.departureDate ||
-                row.teacherProfile.departureDate.toISOString().slice(0, 10) > (data?.today ?? ""))
-                ? "Habilitado"
-                : "Não habilitado"}
-            </Badge>
-          ),
+                row.teacherProfile.departureDate.toISOString().slice(0, 10) > (data?.today ?? ""));
+            return (
+              <Badge variant={enabled ? "success" : "neutral"}>
+                {enabled ? "Habilitado" : "Não habilitado"}
+              </Badge>
+            );
+          },
         },
       ]}
       state={

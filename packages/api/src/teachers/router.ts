@@ -23,6 +23,7 @@ import {
   teacherOptions,
   uncoveredMeetings,
   teacherClasses,
+  teacherStudentCount,
 } from "./read.js";
 import { teacherWeek } from "./schedule.js";
 import { lockTeacher } from "./availability.js";
@@ -59,14 +60,19 @@ export const teachersRouter = router({
         pageSize: z.number().int().min(1).max(100).default(10),
       }),
     )
-    .query(({ ctx, input }) => teacherClasses(ctx.db, input)),
+    .query(({ ctx, input }) => teacherClasses(ctx.db, input, ctx.now ?? new Date())),
   list: adminProcedure
     .input(teacherListInputSchema)
     .query(({ ctx, input }) => listTeachers(ctx.db, input, ctx.now ?? new Date())),
-  byId: adminProcedure.input(teacherIdInputSchema).query(async ({ ctx, input }) => ({
-    ...(await readTeacher(ctx.db, input.id)),
-    today: saoPauloDateOnly(ctx.now ?? new Date()),
-  })),
+  byId: adminProcedure.input(teacherIdInputSchema).query(async ({ ctx, input }) => {
+    const now = ctx.now ?? new Date();
+    const teacher = await readTeacher(ctx.db, input.id);
+    return {
+      ...teacher,
+      today: saoPauloDateOnly(now),
+      studentCount: await teacherStudentCount(ctx.db, input.id, now),
+    };
+  }),
   options: adminProcedure
     .input(z.object({ date: civilDateSchema, search: z.string().max(80).default("") }))
     .query(({ ctx, input }) => teacherOptions(ctx.db, input.date, input.search)),

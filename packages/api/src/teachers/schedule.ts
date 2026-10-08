@@ -18,6 +18,9 @@ export type TeacherMeeting = TeacherCommitment & {
   sessionId: string | null;
   className: string;
   classCode: string;
+  scheduleType: "REGULAR" | "PERSONALIZED";
+  format: "IN_PERSON" | "ONLINE";
+  stageName: string | null;
   usualTeacherName: string | null;
   substituteTeacherName: string | null;
   minutes: number;
@@ -37,6 +40,9 @@ const classSelect = {
   status: true,
   internalCode: true,
   portalClassName: true,
+  scheduleType: true,
+  format: true,
+  sharedStage: { select: { name: true } },
   semester: { select: { startDate: true, endDate: true } },
   scheduleSlots: {
     where: { deletedAt: null },
@@ -166,6 +172,9 @@ export async function meetingsBetween(input: {
       cancelled: false,
       className: classRow.portalClassName,
       classCode: classRow.internalCode,
+      scheduleType: classRow.scheduleType,
+      format: classRow.format,
+      stageName: classRow.sharedStage?.name ?? null,
       minutes: 0,
       editable: false,
     };

@@ -5,6 +5,8 @@
 @import "./tokens/scale.css";
 @import "./tokens/effects.css";
 @import "./tokens/tailwind-bridge.css";
+@import "./components/book-loader.css";
+@import "./components/typewriter-loader.css";
 
 @custom-variant dark (&:is(.dark *));
 

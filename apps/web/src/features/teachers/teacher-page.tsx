@@ -1,12 +1,11 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { civilDateSchema } from "@lazuli/validators";
 import { Alert, Button, InlineSkeleton } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { mondayOf, safeTeacherReturn, todayInSchool } from "./format";
+import { mondayOf, todayInSchool } from "./format";
 import { TeacherDialog } from "./teacher-dialog";
 import { DepartureDialog } from "./departure-dialog";
 import { TeacherClasses } from "./teacher-classes";
@@ -25,13 +24,7 @@ export function TeacherPage({ id }: { id: string }) {
   const detail = teacher.data;
   const back = `/professores/${id}?${params.toString()}`;
   return (
-    <main className="mx-auto flex h-full min-h-0 w-full max-w-[96rem] flex-col gap-5 overflow-y-auto p-4 sm:p-6">
-      <Link
-        href={safeTeacherReturn(params.get("voltar"))}
-        className="w-fit text-caption text-muted-foreground underline-offset-4 hover:underline"
-      >
-        ← Voltar para Professores
-      </Link>
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-[96rem] flex-col gap-5 overflow-y-auto p-4 sm:p-6">
       {teacher.isPending && (
         <div role="status" className="grid gap-3">
           <InlineSkeleton className="h-6 w-48" />
@@ -62,6 +55,7 @@ export function TeacherPage({ id }: { id: string }) {
             id={id}
             week={week}
             today={detail.today}
+            studentCount={detail.studentCount}
             onWeekChange={(value) => void setAnchor(value)}
             onOpen={setMeeting}
           />
@@ -73,6 +67,6 @@ export function TeacherPage({ id }: { id: string }) {
           )}
         </>
       )}
-    </main>
+    </div>
   );
 }

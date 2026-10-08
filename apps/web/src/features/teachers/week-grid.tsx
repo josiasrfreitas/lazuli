@@ -1,18 +1,21 @@
 "use client";
+import { cn } from "@lazuli/ui";
 import { MeetingBlock } from "./meeting-block";
 import type { Meeting } from "./meeting-dialog";
 import { dateLabel, shiftDay } from "./format";
-import { dayGroups, hourSegments } from "./week-layout";
+import { dayGroups, visibleWeekSlots } from "./week-layout";
 const DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 export function WeekGrid({
   rows,
   week,
   teacherId,
+  today,
   onOpen,
 }: {
   rows: Meeting[];
   week: string;
   teacherId: string;
+  today: string;
   onOpen: (meeting: Meeting) => void;
 }) {
   const days = DAYS.map((name, index) => ({
@@ -20,11 +23,7 @@ export function WeekGrid({
     date: shiftDay(week, index),
     groups: dayGroups(rows.filter((row) => row.date === shiftDay(week, index))),
   }));
-  const boundaries = [
-    ...new Set(
-      rows.flatMap((row) => hourSegments(row).flatMap((segment) => [segment.start, segment.end])),
-    ),
-  ].sort();
+  const slots = visibleWeekSlots(rows);
   return (
     <>
       <div className="hidden overflow-hidden rounded-md border border-border xl:block">
@@ -34,43 +33,59 @@ export function WeekGrid({
         >
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              <th scope="col" className="w-20 p-3 text-caption font-normal text-muted-foreground">
+              <th scope="col" className="w-14 px-2 py-1 text-caption font-normal text-muted-foreground">
                 Horário
               </th>
               {days.map((day) => (
-                <th key={day.date} scope="col" className="border-l border-border p-3">
-                  <span className="block text-control font-medium">{day.name}</span>
-                  <span className="font-numeric text-caption font-normal text-muted-foreground">
-                    {dateLabel(day.date).slice(0, 5)}
+                <th
+                  key={day.date}
+                  scope="col"
+                  aria-current={day.date === today ? "date" : undefined}
+                  className={cn(
+                    "border-l border-border px-2 py-1",
+                    day.date === today && "bg-accent",
+                  )}
+                >
+                  <span className="inline-flex items-baseline gap-1 text-caption font-medium">
+                    {day.name}
+                    <span aria-hidden="true">·</span>
+                    <span className="font-numeric font-normal">
+                      {dateLabel(day.date).slice(0, 5)}
+                    </span>
                   </span>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {boundaries.slice(0, -1).map((time, index) => (
-              <tr key={time}>
+            {slots.map(({ start: time, end }) => (
+              <tr key={time} className="h-9">
                 <th
                   scope="row"
-                  className="border-t border-border p-2 align-top font-numeric text-caption font-normal text-muted-foreground"
+                  className="border-t border-border px-2 py-0.5 align-top font-numeric text-caption font-normal text-muted-foreground"
                 >
                   {time}
                 </th>
                 {days.map((day) => {
-                  const group = day.groups.find((item) => item.start <= time && item.end > time);
-                  if (group && group.start !== time) return null;
-                  const span = group ? boundaries.indexOf(group.end) - index : 1;
+                  const meetings = day.groups
+                    .flatMap((group) => group.meetings)
+                    .filter((meeting) =>
+                      meeting.startTime < end && meeting.endTime > time,
+                    );
                   return (
                     <td
                       key={day.date}
-                      rowSpan={span}
-                      className="h-14 border-t border-l border-border p-1.5 align-top"
+                      className={cn(
+                        "relative h-9 border-t border-l border-border p-0 align-top",
+                        meetings.length === 0 && "bg-muted/20",
+                      )}
                     >
-                      {group && (
-                        <div className="grid gap-1.5">
-                          {group.meetings.map((meeting) => (
+                      {meetings.length > 0 && (
+                        <div className="absolute inset-0 flex flex-col">
+                          {meetings.map((meeting) => (
                             <MeetingBlock
                               key={`${meeting.slotId ?? meeting.sessionId}:${meeting.date}`}
+                              compact
                               meeting={meeting}
                               teacherId={teacherId}
                               onOpen={onOpen}
@@ -86,21 +101,28 @@ export function WeekGrid({
           </tbody>
         </table>
       </div>
-      <div className="grid gap-5 xl:hidden">
+      <div className="grid gap-4 xl:hidden">
         {days.map((day) => (
           <section
             key={day.date}
             aria-label={`${day.name}, ${dateLabel(day.date)}`}
             className="grid gap-2"
           >
-            <h3 className="flex items-baseline justify-between border-b border-border pb-2 text-control font-semibold">
+            <h3
+              className={cn(
+                "flex items-baseline gap-1.5 border-b border-border px-2 py-1 text-control font-semibold",
+                day.date === today && "bg-accent text-accent-foreground",
+              )}
+              aria-current={day.date === today ? "date" : undefined}
+            >
               {day.name}
-              <span className="font-numeric text-caption font-normal text-muted-foreground">
-                {dateLabel(day.date)}
+              <span aria-hidden="true">·</span>
+              <span className="font-numeric text-caption font-normal">
+                {dateLabel(day.date).slice(0, 5)}
               </span>
             </h3>
             {day.groups.length ? (
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 lg:grid-cols-2">
                 {day.groups
                   .flatMap((group) => group.meetings)
                   .map((meeting) => (

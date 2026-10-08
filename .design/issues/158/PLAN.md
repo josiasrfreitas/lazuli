@@ -58,3 +58,35 @@ Implementation decisions refined during construction:
 The user's subsequent instruction “foco 100% em desktop” directs the final visual pass to desktop. Browser results, concrete frontend-design findings, screenshots and remaining validation limits are recorded in [VALIDATION.md](VALIDATION.md). Shared responsive control sizes were introduced before this direction and preserve the existing compact desktop sizes.
 
 The user subsequently authorized the checks present in commit and push hooks. Those hooks and whitespace checks passed; the broader lint/typecheck/build gates remain excluded.
+
+## Pending interface revisions — 2026-10-08
+
+Source: direct user feedback after the rebase onto the class-management branch. These changes
+are recorded for the next implementation pass; they have not been implemented or visually accepted.
+
+- Linked classes: place the semester beside the class name and status, in the same information group.
+- Linked classes: also show delivery format (Presencial / Online), track, and stage. For personalized
+  classes, preserve the distinction between the class and each student's individual stage.
+- Weekly calendar: show a complete calendar with empty time slots and days so the user can understand
+  the whole week, instead of deriving the visible calendar only from occupied lesson intervals.
+  This supersedes the recent choice to omit empty weekend columns. The visible daily time range
+  has not yet been specified; do not infer a 24-hour requirement.
+- Pause implementation while discussing the epic's curriculum-planning scope. The user's latest
+  validation instructions still apply: no static checks, tests, formatting commands, or browser
+  inspection until requested again.
+
+### Implementation update
+
+The user authorized the pending interface changes and requested smaller calendar cells plus an
+aligned weekly workload label. Linked-class cards now group semester with name/status and expose
+format, track and stage; PPT identifies the individual student context. The desktop calendar now
+shows all seven days, including empty weeks, with hourly boundaries from 07:00 to 22:00 and expands
+for commitments outside that display window. This time range is an implementation assumption,
+not a school operating-hours rule. Compact lesson blocks and a single-line workload label reduce
+height. No checks, tests, formatting commands or browser validation were run for this update.
+
+### Calendar color choice
+
+After comparing live samples, the user revised the color choice: blue for Regular lessons and green for PPT lessons.
+Lesson surfaces use the existing green and blue muted tokens based on the persisted class schedule
+type. Coverage and substitution remain explicit text, so color does not carry their meaning alone.

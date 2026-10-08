@@ -7,7 +7,7 @@ export function TeacherStatus({
   departure: Date | null | undefined;
   today: string;
 }) {
-  if (!departure) return <Badge variant="success">Em atuação</Badge>;
+  if (!departure) return <Badge variant="success">Ativa</Badge>;
   if (departure.toISOString().slice(0, 10) > today)
     return (
       <span className="flex flex-wrap items-center gap-2">
@@ -15,5 +15,5 @@ export function TeacherStatus({
         <span className="text-caption text-muted-foreground">{dateLabel(departure)}</span>
       </span>
     );
-  return <Badge variant="neutral">Atuação encerrada</Badge>;
+  return <Badge variant="neutral">Inativa</Badge>;
 }

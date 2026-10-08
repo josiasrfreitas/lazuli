@@ -54,6 +54,8 @@ data and actions; the shared component owns the frame, density, states and pagin
 - Keep source code, technical documentation, and Storybook examples in English unless a work item
   explicitly identifies user-facing content that must be localized.
 
+See [semantic colors](semantic-colors.md) for status meanings, attention hierarchy, and badge usage.
+
 ### Design-system lint
 
 `apps/web/eslint.config.js` owns the `@shadcn/lint` policy for frontend product source. Run it with

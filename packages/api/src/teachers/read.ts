@@ -2,6 +2,7 @@ import type { Prisma } from "@lazuli/db";
 import { responsibleTeacherId, saoPauloDateOnly } from "@lazuli/domain";
 import type { teacherListInputSchema, z } from "@lazuli/validators";
 import { notFound } from "../trpc/errors.js";
+import { responsibilitySelect, usualTeacherOn } from "./responsibility.js";
 import { meetingsBetween } from "./schedule.js";
 
 type Database = Prisma.TransactionClient;
@@ -63,7 +64,39 @@ export async function listTeachers(
     skip: (page - 1) * input.pageSize,
     take: input.pageSize,
   });
-  return { rows, page, pageSize: input.pageSize, pageCount, total, today: saoPauloDateOnly(now) };
+  const classCounts = await currentClassCounts(database, rows.map((row) => row.id), today);
+  return {
+    rows: rows.map((row) => ({ ...row, classCount: classCounts.get(row.id) ?? 0 })),
+    page,
+    pageSize: input.pageSize,
+    pageCount,
+    total,
+    today: saoPauloDateOnly(now),
+  };
+}
+
+async function currentClassCounts(database: Database, teacherIds: string[], today: Date) {
+  const counts = new Map<string, number>();
+  if (teacherIds.length === 0) return counts;
+  const classes = await database.class.findMany({
+    where: {
+      deletedAt: null,
+      status: "ACTIVE",
+      semester: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },
+      OR: [
+        { teacherId: { in: teacherIds } },
+        { teacherAssignments: { some: { teacherId: { in: teacherIds }, supersededAt: null } } },
+      ],
+    },
+    select: responsibilitySelect,
+  });
+  for (const row of classes) {
+    const teacher = usualTeacherOn(row, today);
+    if (teacher && teacherIds.includes(teacher.id)) {
+      counts.set(teacher.id, (counts.get(teacher.id) ?? 0) + 1);
+    }
+  }
+  return counts;
 }
 
 export async function teacherOptions(database: Database, date: string, search: string) {
@@ -122,8 +155,10 @@ export async function uncoveredMeetings(
 export async function teacherClasses(
   database: Database,
   input: { id: string; page: number; pageSize: number },
+  now: Date,
 ) {
   await readTeacher(database, input.id);
+  const today = new Date(saoPauloDateOnly(now));
   const where: Prisma.ClassWhereInput = {
     deletedAt: null,
     OR: [{ teacherId: input.id }, { teacherAssignments: { some: { teacherId: input.id } } }],
@@ -141,12 +176,77 @@ export async function teacherClasses(
       internalCode: true,
       status: true,
       portalClassName: true,
+      format: true,
+      scheduleType: true,
+      sharedStage: { select: { name: true, track: { select: { name: true } } } },
       semester: { select: { name: true } },
+      _count: {
+        select: {
+          enrollments: {
+            where: {
+              deletedAt: null,
+              entryDate: { lte: today },
+              OR: [{ exitDate: null }, { exitDate: { gt: today } }],
+              actions: {
+                none: {
+                  status: "SCHEDULED",
+                  kind: { in: ["PAUSE", "EXIT"] },
+                  effectiveDate: { lte: today },
+                },
+              },
+            },
+          },
+        },
+      },
       scheduleSlots: {
         where: { deletedAt: null },
         select: { weekday: true, startTime: true, endTime: true },
       },
     },
   });
-  return { rows, page, pageSize: input.pageSize, total, pageCount };
+  return {
+    rows: rows.map(({ _count, ...row }) => ({ ...row, studentCount: _count.enrollments })),
+    page,
+    pageSize: input.pageSize,
+    total,
+    pageCount,
+  };
+}
+
+/** Count distinct current students of the teacher's usual classes, as of the school date. */
+export async function teacherStudentCount(database: Database, teacherId: string, now: Date) {
+  const today = new Date(saoPauloDateOnly(now));
+  const classes = await database.class.findMany({
+    where: {
+      deletedAt: null,
+      status: "ACTIVE",
+      semester: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },
+      OR: [{ teacherId }, { teacherAssignments: { some: { teacherId, supersededAt: null } } }],
+    },
+    select: { id: true, ...responsibilitySelect },
+  });
+  const classIds = classes
+    .filter((row) => usualTeacherOn(row, today)?.id === teacherId)
+    .map((row) => row.id);
+  if (classIds.length === 0) return 0;
+  return database.student.count({
+    where: {
+      deletedAt: null,
+      enrollments: {
+        some: {
+          classId: { in: classIds },
+          deletedAt: null,
+          entryDate: { lte: today },
+          OR: [{ exitDate: null }, { exitDate: { gt: today } }],
+          actions: {
+            none: {
+              status: "SCHEDULED",
+              kind: { in: ["PAUSE", "EXIT"] },
+              effectiveDate: { lte: today },
+            },
+          },
+        },
+      },
+    },
+  });
 }
