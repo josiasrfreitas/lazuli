@@ -15,32 +15,3 @@ export type { SmtpEmailSenderConfig } from "./email/smtp-sender.js";
 export { createSmtpEmailSender } from "./email/smtp-sender.js";
 export type { EmailTransportSelection } from "./email/factory.js";
 export { createEmailSenderFromEnv, selectEmailTransport } from "./email/factory.js";
-
-export type ArtifactPutInput = {
-  key: string;
-  contentType: string;
-  body: Uint8Array;
-};
-
-export type ArtifactPutResult = {
-  bucket: string;
-  key: string;
-};
-
-export class ArtifactStorageNotConfiguredError extends Error {
-  constructor() {
-    super("NOT_CONFIGURED");
-    this.name = "ArtifactStorageNotConfiguredError";
-  }
-}
-
-export function createNoOpArtifactStorage() {
-  return {
-    put: (input) =>
-      Promise.resolve({
-        bucket: "local-stub",
-        key: input.key,
-      }),
-    getSignedUrl: () => Promise.reject(new ArtifactStorageNotConfiguredError()),
-  };
-}
