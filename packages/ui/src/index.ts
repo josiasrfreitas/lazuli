@@ -42,8 +42,6 @@ export type {
 export type { DataTablePageProps } from "./components/data-table-page";
 export { EmptyState } from "./components/empty-state";
 export type { EmptyStateProps } from "./components/empty-state";
-export { HelloWorld } from "./components/hello-world";
-export type { HelloWorldProps } from "./components/hello-world";
 export { Input } from "./components/input";
 export type { InputProps, InputSize } from "./components/input";
 export { CurrencyInput } from "./components/currency-input";
