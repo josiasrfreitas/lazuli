@@ -54,9 +54,9 @@ export async function seedClass(context: SeedContext, classSeed: DevClassSeed): 
       id: classId,
       internalCode: `${context.semester.name}-${classSeed.key}`,
       teacherId,
-      scheduleType: "REGULAR",
+      scheduleType: classSeed.scheduleType ?? "REGULAR",
       format: "IN_PERSON",
-      sharedStageId: stage.id,
+      sharedStageId: classSeed.scheduleType === "PERSONALIZED" ? null : stage.id,
       semesterId: context.semester.id,
       year: context.semester.year,
       capacity: classSeed.capacity,
@@ -74,7 +74,8 @@ function portalClassNameFor(input: { classSeed: DevClassSeed; semesterName: stri
   const [year = "", half = ""] = input.semesterName.split(".");
   const slotWindow = `${primarySlot.startTime}/${primarySlot.endTime}`;
   const suffix = `${half}S/${year.slice(-YEAR_SUFFIX_LENGTH)}-1`;
-  return `REG/${input.classSeed.stageInternalCode}-${weekday}-${slotWindow}-${suffix}`;
+  const prefix = input.classSeed.scheduleType === "PERSONALIZED" ? "PPT" : "REG";
+  return `${prefix}/${input.classSeed.stageInternalCode}-${weekday}-${slotWindow}-${suffix}`;
 }
 
 type ClassSessionsInput = { classSeed: DevClassSeed; classId: string; teacherId: string };

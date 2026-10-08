@@ -106,7 +106,7 @@ function EditFields({ state }: { state: State }): ReactElement {
         <FieldError match={Boolean(state.error)}>{state.error}</FieldError>
       </Field>
       <Field>
-        <Label htmlFor="edit-capacity">Capacidade</Label>
+        <Label htmlFor="edit-capacity">Capacidade de referência</Label>
         <Input
           id="edit-capacity"
           name="capacity"

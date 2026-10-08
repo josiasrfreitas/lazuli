@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge, Tooltip, TooltipTrigger, TooltipContent, type DataTableColumn } from "@lazuli/ui";
 import {
+  classOccupancyIndicator,
   formatClassSchedule,
   formatClassScheduleTime,
   formatFormat,
@@ -37,7 +38,7 @@ export function classColumns(params: ClassListParams): readonly DataTableColumn<
     {
       id: "type",
       header: "Organização",
-      cell: (row: ClassRow) => formatScheduleType(row.scheduleType),
+      cell: scheduleTypeCell,
     },
     { id: "format", header: "Formato", cell: (row: ClassRow) => formatFormat(row.format) },
     {
@@ -82,24 +83,24 @@ function scheduleCell(row: ClassRow): ReactElement {
 }
 
 function occupancyCell({ occupancy, capacity }: ClassRow): ReactElement {
-  const remaining = capacity - occupancy;
-  let detail = "Turma cheia";
-  if (remaining > 0) detail = `${remaining} vagas livres`;
-  if (remaining < 0) detail = `${-remaining} acima da capacidade`;
+  const indicator = classOccupancyIndicator(occupancy, capacity);
+  const detail = `${indicator.label}. A capacidade é uma referência e não bloqueia matrículas.`;
   return (
     <Tooltip>
-      <TooltipTrigger
-        render={<span tabIndex={0} />}
-        aria-label={`${occupancy} alunos, capacidade ${capacity}. ${detail}`}
-      >
-        <Badge variant={remaining > 0 ? "neutral" : "warning"}>
-          <span className="font-numeric">
-            {occupancy}
-            <span className="font-normal">/{capacity}</span>
-          </span>
+      <TooltipTrigger render={<span tabIndex={0} />} aria-label={`${occupancy} alunos. ${detail}`}>
+        <Badge variant={indicator.variant}>
+          <span className="font-numeric">{occupancy}</span>
         </Badge>
       </TooltipTrigger>
       <TooltipContent>{detail}</TooltipContent>
     </Tooltip>
+  );
+}
+
+function scheduleTypeCell(row: ClassRow): ReactElement {
+  return (
+    <Badge variant={row.scheduleType === "REGULAR" ? "info" : "neutral"}>
+      {formatScheduleType(row.scheduleType)}
+    </Badge>
   );
 }

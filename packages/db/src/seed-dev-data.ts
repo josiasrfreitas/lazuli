@@ -26,6 +26,7 @@ export type DevTeacherSeed = { key: string; name: string; email: string };
 
 export type DevClassSeed = {
   key: string;
+  scheduleType?: "REGULAR" | "PERSONALIZED";
   stageInternalCode: string;
   teacherKey: string;
   capacity: number;
@@ -80,6 +81,14 @@ export const DEV_TEACHERS: readonly DevTeacherSeed[] = [
 ];
 
 export const DEV_CLASSES: readonly DevClassSeed[] = [
+  {
+    key: "PPT-E1",
+    scheduleType: "PERSONALIZED",
+    stageInternalCode: "E1",
+    teacherKey: "camila",
+    capacity: 2,
+    slots: [{ weekday: "FRIDAY", startTime: "17:00", endTime: "19:00" }],
+  },
   {
     key: "E1A",
     stageInternalCode: "E1",
@@ -137,6 +146,13 @@ export const DEV_CLASSES: readonly DevClassSeed[] = [
 ];
 
 export const DEV_STUDENTS: readonly DevStudentSeed[] = [
+  {
+    key: "ppt-example",
+    fullName: "Marina Azevedo",
+    status: "ACTIVE",
+    enrollments: [{ classKey: "PPT-E1" }],
+    attendance: "good",
+  },
   {
     key: "ana",
     fullName: "Ana Beatriz Rocha",
