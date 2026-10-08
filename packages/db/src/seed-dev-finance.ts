@@ -1,6 +1,5 @@
 import type { DatabaseClient, TransactionClient } from "./client.js";
-import { addDays, stableUuid, utcDate } from "./seed-dev-support.js";
-import { createJointOrderForSharedPayerScenario } from "./seed-dev-finance-joint.js";
+import { addDays, isoOf, stableUuid, utcDate } from "./seed-dev-support.js";
 
 /** Loads standalone order scenarios; the public seed resets the database first. */
 const FINANCE_SETTINGS_ID = "singleton";
@@ -19,6 +18,9 @@ const PAYMENT_LEAD_DAYS = 2;
 const COMMON_INSTALLMENT_CENTS = 76_000;
 const PARTIAL_PAYMENT_CENTS = 30_000;
 const BRUNO_INSTALLMENT_CENTS = 38_000;
+const JOINT_ORDER_DUE_DAY = 10;
+const JOINT_ORDER_INSTALLMENT_CENTS = 35_000;
+const JOINT_ORDER_PARTIAL_PAYMENT_CENTS = 9000;
 
 export type FinanceSeedInput = {
   todayIso: string;
@@ -194,6 +196,71 @@ async function createBrunoScenario(
     installmentId: itemAt(installmentIds, 0),
     amountCents: BRUNO_INSTALLMENT_CENTS,
     date: addDays(itemAt(dueDates, 0), -1),
+  });
+}
+
+async function createJointOrderForSharedPayerScenario(
+  database: FinanceDatabase,
+  input: FinanceSeedInput,
+): Promise<void> {
+  const payerId = stableUuid([DEV_FINANCE_KEY, "shared-payer"]);
+  // Keep the historical key so existing local fixture identifiers remain stable.
+  const scenarioKey = "homonym-joint-order";
+  const orderId = stableUuid([DEV_FINANCE_KEY, `${scenarioKey}-order`]);
+  const currentDueDate = monthlyDueDate(input.todayIso, {
+    monthOffset: 0,
+    dueDay: JOINT_ORDER_DUE_DAY,
+  });
+  const dueDate =
+    isoOf(addDays(currentDueDate, 1)) > input.todayIso
+      ? monthlyDueDate(input.todayIso, { monthOffset: -1, dueDay: JOINT_ORDER_DUE_DAY })
+      : currentDueDate;
+  const orderData = {
+    id: orderId,
+    payerId,
+    kind: "TUITION" as const,
+    principalAmountCents: JOINT_ORDER_INSTALLMENT_CENTS,
+    startDate: monthlyDueDate(isoOf(dueDate), { monthOffset: -1, dueDay: JOINT_ORDER_DUE_DAY }),
+    dueDay: JOINT_ORDER_DUE_DAY,
+    deletedAt: null,
+  };
+  await database.order.upsert({
+    where: { id: orderId },
+    create: orderData,
+    update: orderData,
+  });
+  await upsertJointBeneficiaries(database, { input, orderId, scenarioKey });
+  const [installmentId] = await createInstallments(database, {
+    scenarioKey,
+    orderId,
+    amountCents: JOINT_ORDER_INSTALLMENT_CENTS,
+    dueDates: [dueDate],
+  });
+  if (installmentId === undefined) {
+    throw new Error("Dev seed misconfiguration: missing installment.");
+  }
+  await createPayment(database, {
+    scenarioKey: `${scenarioKey}-partial`,
+    payerId,
+    installmentId,
+    amountCents: JOINT_ORDER_PARTIAL_PAYMENT_CENTS,
+    date: addDays(dueDate, 1),
+  });
+}
+
+async function upsertJointBeneficiaries(
+  database: FinanceDatabase,
+  input: { input: FinanceSeedInput; orderId: string; scenarioKey: string },
+): Promise<void> {
+  const beneficiary = {
+    id: stableUuid([DEV_FINANCE_KEY, input.scenarioKey, "ana"]),
+    orderId: input.orderId,
+    studentId: studentId(input.input.studentIds, "ana"),
+  };
+  await database.orderBeneficiary.upsert({
+    where: { id: beneficiary.id },
+    create: beneficiary,
+    update: { ...beneficiary, deletedAt: null },
   });
 }
 
