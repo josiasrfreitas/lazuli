@@ -40,12 +40,7 @@ function TeacherClassCard(props: TeacherClassCardProps): ReactElement {
         <div className="grid min-w-0 flex-1 gap-2">
           <TeacherClassSummary {...props} />
           <p className="break-words text-control text-muted-foreground">
-            {formatFormat(props.row.format)} ·{" "}
-            {props.row.scheduleType === "PERSONALIZED"
-              ? "Trilha e estágio individuais por aluno"
-              : props.row.sharedStage
-                ? `${formatTrackName(props.row.sharedStage.track.name)} · ${props.row.sharedStage.name}`
-                : "Trilha e estágio não informados"}
+            {formatFormat(props.row.format)} · {teacherClassStage(props.row)}
           </p>
           <p className="flex items-start gap-2 text-control">
             <Clock3 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -133,4 +128,11 @@ function TeacherClassResults({
       )}
     </>
   );
+}
+
+function teacherClassStage(row: TeacherClassCardProps["row"]): string {
+  if (row.scheduleType === "PERSONALIZED") return "Trilha e estágio individuais por aluno";
+  if (row.sharedStage)
+    return `${formatTrackName(row.sharedStage.track.name)} · ${row.sharedStage.name}`;
+  return "Trilha e estágio não informados";
 }

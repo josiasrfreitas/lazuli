@@ -91,7 +91,7 @@ function TeacherFormFooter(props: TeacherFormFooterProps): ReactElement {
         Cancelar
       </Button>
       <Button size="compact-responsive" type="submit" form="teacher-form" disabled={props.pending}>
-        {props.pending ? "Salvando…" : props.teacher ? "Salvar alterações" : "Cadastrar professor"}
+        {teacherSaveLabel(props)}
       </Button>
     </DialogFooter>
   );
@@ -218,3 +218,8 @@ type TeacherDialogInput = {
   teacher?: Teacher;
   onClose: () => void;
 };
+
+function teacherSaveLabel(props: TeacherFormFooterProps): string {
+  if (props.pending) return "Salvando…";
+  return props.teacher ? "Salvar alterações" : "Cadastrar professor";
+}

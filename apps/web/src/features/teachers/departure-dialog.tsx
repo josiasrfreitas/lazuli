@@ -65,11 +65,7 @@ function DepartureFooter(props: DepartureFooterProps): ReactElement {
           (props.previewDate !== null && (props.previewIsFetching || props.previewIsError))
         }
       >
-        {props.saveIsPending
-          ? "Confirmando…"
-          : props.previewDate && props.previewData
-            ? "Confirmar encerramento"
-            : "Ver impactos"}
+        {departureSaveLabel(props)}
       </Button>
     </DialogFooter>
   );
@@ -312,4 +308,9 @@ function useDepartureSave({
       setPreviewDate(null);
     },
   });
+}
+
+function departureSaveLabel(props: DepartureFooterProps): string {
+  if (props.saveIsPending) return "Confirmando…";
+  return props.previewDate && props.previewData ? "Confirmar encerramento" : "Ver impactos";
 }

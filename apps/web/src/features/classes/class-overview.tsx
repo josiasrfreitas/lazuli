@@ -98,17 +98,7 @@ function ClassOccupancy({ detail }: ClassOccupancyInput): ReactElement {
     <div className="space-y-2 border-t border-border pt-4">
       <p className="text-caption text-muted-foreground">Alunos na turma</p>
       <div className="flex items-baseline gap-1.5 font-numeric tabular-nums">
-        <strong
-          className={
-            indicator.variant === "over-capacity"
-              ? "text-h2 font-semibold text-over-capacity"
-              : indicator.variant === "destructive"
-                ? "text-h2 font-semibold text-destructive"
-                : "text-h2 font-semibold"
-          }
-        >
-          {detail.occupancy}
-        </strong>
+        <strong className={occupancyClassName(indicator.variant)}>{detail.occupancy}</strong>
         <span className="text-caption text-muted-foreground">
           / {CLASS_REFERENCE_CAPACITY} alunos
         </span>
@@ -157,4 +147,10 @@ function ClassStageSummary(props: ClassStageSummaryProps): ReactElement {
       </div>
     </dl>
   );
+}
+
+function occupancyClassName(variant: string): string {
+  if (variant === "over-capacity") return "text-h2 font-semibold text-over-capacity";
+  if (variant === "destructive") return "text-h2 font-semibold text-destructive";
+  return "text-h2 font-semibold";
 }
