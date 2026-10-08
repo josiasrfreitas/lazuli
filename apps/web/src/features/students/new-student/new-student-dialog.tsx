@@ -29,7 +29,7 @@ import {
   type NewStudentAction,
   type NewStudentState,
 } from "./reducer";
-import { useScrollToError } from "./use-scroll-to-error";
+import { useScrollToError } from "~/lib/scroll-to-error";
 
 const STEPS = NEW_STUDENT_STEPS.map((label) => ({ label }));
 const DADOS_STEP = 0;

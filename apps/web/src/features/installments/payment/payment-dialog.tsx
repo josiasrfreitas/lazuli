@@ -26,7 +26,7 @@ import type { FinanceInstallmentRow } from "@lazuli/validators";
 import { paymentMethodSchema } from "@lazuli/validators";
 import { formatBRLFromCents as money } from "~/lib/format";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
-import { useScrollToError } from "~/features/students/new-student/use-scroll-to-error";
+import { useScrollToError } from "~/lib/scroll-to-error";
 import { usePaymentForm, type PaymentFormState } from "./logic";
 import { PaymentGrid } from "./payment-grid";
 import { PaymentPicker } from "./payment-picker";
