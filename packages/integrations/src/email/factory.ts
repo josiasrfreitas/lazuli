@@ -24,7 +24,11 @@ export function selectEmailTransport(environment: EmailEnvironment): EmailTransp
 
 /** Defaults to `process.env` (resolved inside the validated env module). */
 export function createEmailSenderFromEnv(source?: Record<string, string | undefined>): EmailSender {
-  const selection = selectEmailTransport(parseEmailEnvironment(source));
+  return createEmailSender(parseEmailEnvironment(source));
+}
+
+export function createEmailSender(environment: EmailEnvironment): EmailSender {
+  const selection = selectEmailTransport(environment);
 
   return selection.kind === "resend"
     ? createResendEmailSender(selection)

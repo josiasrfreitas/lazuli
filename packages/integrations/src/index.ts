@@ -14,4 +14,8 @@ export { createResendEmailSender, ResendSendError } from "./email/resend-sender.
 export type { SmtpEmailSenderConfig } from "./email/smtp-sender.js";
 export { createSmtpEmailSender } from "./email/smtp-sender.js";
 export type { EmailTransportSelection } from "./email/factory.js";
-export { createEmailSenderFromEnv, selectEmailTransport } from "./email/factory.js";
+export {
+  createEmailSender,
+  createEmailSenderFromEnv,
+  selectEmailTransport,
+} from "./email/factory.js";
