@@ -9,6 +9,7 @@ import {
   buildStudentListWhere,
   countHeaderFacts,
   countStudentsByTab,
+  findStudentRow,
   findStudentPage,
   toScheduleLabel,
   type OpenEnrollmentRow,
