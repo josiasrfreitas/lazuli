@@ -1,10 +1,23 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { CircleCheck, GraduationCap, Plus, Search, UsersRound } from "lucide-react";
 
-import { DataTablePage, TableFilterChips, type TableFilterField } from "@lazuli/ui";
-import { studentPaginationPolicy } from "@lazuli/validators";
+import {
+  Button,
+  DataTablePage,
+  Input,
+  TableFilterChips,
+  TableFilters,
+  type RemoteOptionsResult,
+  type TableFilterField,
+} from "@lazuli/ui";
+import {
+  STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH,
+  studentPaginationPolicy,
+} from "@lazuli/validators";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
+import { debounce } from "~/lib/debounce";
 
 import {
   useSelectedStudent,
@@ -12,14 +25,173 @@ import {
   useSelectedStudentFilterOptions,
   useStudentsFilters,
   useStudentsList,
+  type StudentsFilters,
 } from "./logic";
 import { studentFilterOptionResult } from "./filter-options";
 import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentPreviewPanel } from "./student-preview-panel";
 import { StudentsTable } from "./students-table";
-import { studentFilterFields } from "./student-filter-fields";
-import { StudentsControls } from "./students-toolbar";
 import { tableStateVm } from "./view-model";
+
+const SEARCH_DEBOUNCE_MS = 300;
+
+export type StudentsFilterFieldsProps = {
+  filters: StudentsFilters;
+  classOptions: { id: string; label: string }[];
+  teacherOptions: { id: string; label: string }[];
+  classSearch: string;
+  teacherSearch: string;
+  classResult: RemoteOptionsResult;
+  teacherResult: RemoteOptionsResult;
+  onClassSearchChange: (value: string) => void;
+  onTeacherSearchChange: (value: string) => void;
+};
+
+function remoteFilterFields({
+  filters,
+  classOptions,
+  teacherOptions,
+  classSearch,
+  teacherSearch,
+  classResult,
+  teacherResult,
+  onClassSearchChange,
+  onTeacherSearchChange,
+}: StudentsFilterFieldsProps): TableFilterField[] {
+  return [
+    {
+      id: "classes",
+      label: "Turma",
+      kind: "remote-options",
+      icon: UsersRound,
+      promoted: true,
+      selected: filters.classIds,
+      selectedOptions: classOptions,
+      search: classSearch,
+      searchMaxLength: STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH,
+      result: classResult,
+      onSearchChange: onClassSearchChange,
+      onChange: (values) => filters.setFilters({ classIds: values.join(",") || null }),
+      onClear: () => filters.setFilters({ classIds: null }),
+    },
+    {
+      id: "teachers",
+      label: "Professor",
+      kind: "remote-options",
+      icon: GraduationCap,
+      selected: filters.teacherIds,
+      selectedOptions: teacherOptions,
+      search: teacherSearch,
+      searchMaxLength: STUDENT_FILTER_OPTION_SEARCH_MAX_LENGTH,
+      result: teacherResult,
+      onSearchChange: onTeacherSearchChange,
+      onChange: (values) => filters.setFilters({ teacherIds: values.join(",") || null }),
+      onClear: () => filters.setFilters({ teacherIds: null }),
+    },
+  ];
+}
+
+export function studentFilterFields(props: StudentsFilterFieldsProps): TableFilterField[] {
+  const { filters } = props;
+  return [
+    {
+      id: "situations",
+      label: "Situação",
+      kind: "options",
+      icon: CircleCheck,
+      promoted: true,
+      options: [
+        { id: "active", label: "Ativo" },
+        { id: "inactive", label: "Inativo" },
+      ],
+      selected: filters.situations,
+      onChange: (values) => filters.setFilters({ situations: values.join(",") || null }),
+      onClear: () => filters.setFilters({ situations: null }),
+    },
+    ...remoteFilterFields(props),
+    {
+      id: "registered",
+      label: "Data de cadastro",
+      kind: "period",
+      from: filters.registeredFrom,
+      to: filters.registeredTo,
+      onChange: (from, to) => {
+        if (from && to && from > to) {
+          if (from === filters.registeredFrom) from = "";
+          else to = "";
+        }
+        filters.setFilters({ registeredFrom: from || null, registeredTo: to || null });
+      },
+      onClear: () => filters.setFilters({ registeredFrom: null, registeredTo: null }),
+    },
+  ];
+}
+
+function SearchField({ filters }: { filters: StudentsFilters }): ReactElement {
+  const [value, setValue] = useState(filters.search);
+  const commitSearch = useMemo(
+    () => debounce((nextValue: string) => filters.setSearch(nextValue), SEARCH_DEBOUNCE_MS),
+    [filters.setSearch],
+  );
+  useEffect(() => {
+    setValue(filters.search);
+    commitSearch.cancel();
+  }, [commitSearch, filters.search]);
+  useEffect(() => () => commitSearch.cancel(), [commitSearch]);
+  return (
+    <div className="relative w-full sm:w-80">
+      <Search
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+      />
+      <Input
+        aria-label="Buscar aluno"
+        className="pl-8"
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          setValue(nextValue);
+          commitSearch(nextValue);
+        }}
+        placeholder="Buscar por nome, turma ou professor"
+        size="sm"
+        type="search"
+        value={value}
+      />
+    </div>
+  );
+}
+
+export function StudentsControls({
+  filters,
+  fields,
+  onNewStudent,
+}: {
+  filters: StudentsFilters;
+  fields: TableFilterField[];
+  onNewStudent: () => void;
+}): ReactElement {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <SearchField filters={filters} />
+      <TableFilters
+        fields={fields}
+        onClearAll={() =>
+          filters.setFilters({
+            situations: null,
+            classIds: null,
+            teacherIds: null,
+            registeredFrom: null,
+            registeredTo: null,
+          })
+        }
+      />
+      <Button onClick={onNewStudent} size="sm">
+        <Plus aria-hidden="true" className="size-4" />
+        Novo aluno
+      </Button>
+    </div>
+  );
+}
 
 function paginationFor(filters: ReturnType<typeof useStudentsFilters>): UrlPagination {
   return {
