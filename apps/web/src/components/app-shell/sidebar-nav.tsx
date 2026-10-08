@@ -14,7 +14,7 @@ export function SidebarNav({ role }: { role: StaffRole }): ReactNode {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Navegação principal" className="flex flex-col gap-5 px-3">
+    <nav aria-label="Navegação principal" className="flex w-full flex-col gap-2 px-3">
       {navSectionsFor(role).map((section) => (
         <SidebarNavSection key={section.id} pathname={pathname} section={section} />
       ))}
@@ -34,12 +34,18 @@ function SidebarNavSection({
   return (
     <div aria-labelledby={section.label === null ? undefined : labelId} role="group">
       {section.label === null ? null : (
-        <p
-          className="mb-1 px-3 text-micro font-semibold uppercase tracking-wider text-muted-foreground"
-          id={labelId}
-        >
-          {section.label}
-        </p>
+        <div className="relative flex h-6 items-center overflow-hidden px-3">
+          <span
+            aria-hidden="true"
+            className="absolute hidden h-px w-4 bg-border transition-opacity duration-200 group-hover/sidebar:opacity-0 group-has-[:focus-visible]/sidebar:opacity-0 motion-reduce:transition-none sm:block"
+          />
+          <p
+            className="whitespace-nowrap text-micro font-semibold uppercase tracking-wider text-muted-foreground sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none"
+            id={labelId}
+          >
+            {section.label}
+          </p>
+        </div>
       )}
       <div className="flex flex-col gap-1">
         {section.items.map((item) => (
@@ -57,8 +63,9 @@ function SidebarNavLink({ item, pathname }: { item: NavItem; pathname: string })
   return (
     <Link
       aria-current={active ? "page" : undefined}
+      aria-label={label}
       className={cn(
-        "flex min-h-11 items-center gap-2.5 rounded-md px-3 py-2 text-control sm:min-h-0",
+        "flex min-h-11 items-center gap-2.5 overflow-hidden rounded-md px-3 py-2 text-control sm:min-h-0",
         "transition-colors duration-fast ease-standard",
         "focus-visible:outline-none focus-visible:shadow-focus",
         active
@@ -68,7 +75,9 @@ function SidebarNavLink({ item, pathname }: { item: NavItem; pathname: string })
       href={href}
     >
       <Icon aria-hidden="true" className="size-4 shrink-0" />
-      {label}
+      <span className="shrink-0 whitespace-nowrap sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none">
+        {label}
+      </span>
     </Link>
   );
 }

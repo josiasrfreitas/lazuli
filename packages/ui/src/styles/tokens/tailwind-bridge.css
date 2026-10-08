@@ -120,7 +120,12 @@
  */
 @utility scrollbar-subtle {
   scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-color: transparent transparent;
+
+  &:hover,
+  &:focus-within {
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -134,11 +139,16 @@
   &::-webkit-scrollbar-thumb {
     border: 2px solid transparent;
     border-radius: var(--lz-radius-full);
-    background-color: var(--scrollbar-thumb);
+    background-color: transparent;
     background-clip: padding-box;
   }
 
-  &::-webkit-scrollbar-thumb:hover {
+  &:hover::-webkit-scrollbar-thumb,
+  &:focus-within::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+  }
+
+  &:hover::-webkit-scrollbar-thumb:hover {
     background-color: var(--scrollbar-thumb-hover);
   }
 }

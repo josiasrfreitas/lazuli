@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { maskDateBR, maskPhoneBR, parseDateBR } from "../../src/lib/masks.js";
+import { maskDateBR, maskPhoneBR, maskTime24, parseDateBR } from "../../src/lib/masks.js";
 
 const FULL_DATE = "02/09/2008";
 
@@ -58,4 +58,18 @@ void describe("maskPhoneBR", () => {
     assert.equal(maskPhoneBR("11999998888"), "(11) 99999-8888");
     assert.equal(maskPhoneBR("+55 (11) 99999-8888 x"), "(55) 11999-9988");
   });
+});
+
+void it("formats time as HH:mm while preserving partial input", () => {
+  for (const [raw, expected] of [
+    ["", ""],
+    ["1", "1"],
+    ["14", "14"],
+    ["143", "14:3"],
+    ["1430", "14:30"],
+    ["14:30", "14:30"],
+    ["143099", "14:30"],
+  ]) {
+    assert.equal(maskTime24(raw ?? ""), expected);
+  }
 });

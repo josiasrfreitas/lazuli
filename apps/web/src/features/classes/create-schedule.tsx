@@ -1,8 +1,12 @@
 "use client";
-import type { ReactElement } from "react";
+import { useRef, type ReactElement } from "react";
 import { Button, FormRow } from "@lazuli/ui";
+import { X } from "lucide-react";
+import { maskTime24 } from "~/lib/masks";
+import { emptyClassSlot } from "./create-model";
 import type { ClassFieldsProps } from "./create-fields";
-import { NativeSelect, TextControl } from "./form-controls";
+import { SelectControl, TextControl } from "./form-controls";
+import { updateScheduleDraft } from "./schedule-draft";
 
 const WEEKDAY_CHOICES = [
   { value: "MONDAY", label: "Segunda" },
@@ -19,7 +23,6 @@ type SlotProps = {
   index: number;
   update: (value: Slot) => void;
   remove: () => void;
-  removable: boolean;
   error?: string | undefined;
 };
 function SlotInputs({
@@ -30,9 +33,10 @@ function SlotInputs({
 }: Pick<SlotProps, "slot" | "index" | "update" | "error">): ReactElement {
   return (
     <FormRow columns={3}>
-      <NativeSelect
+      <SelectControl
         name={`weekday-${index}`}
         label="Dia"
+        hideLabel
         value={slot.weekday}
         onChange={(value) => update({ ...slot, weekday: value as Slot["weekday"] })}
         choices={WEEKDAY_CHOICES}
@@ -40,92 +44,87 @@ function SlotInputs({
       <TextControl
         name={`startTime-${index}`}
         label="Início"
-        placeholder="14:00"
+        placeholder="19:00"
         value={slot.startTime}
-        onChange={(value) => update({ ...slot, startTime: value })}
-        error={error}
+        onChange={(value) => update({ ...slot, startTime: maskTime24(value) })}
+        inputMode="numeric"
+        invalid={Boolean(error)}
       />
       <TextControl
         name={`endTime-${index}`}
         label="Fim"
-        placeholder="15:00"
+        placeholder="20:30"
         value={slot.endTime}
-        onChange={(value) => update({ ...slot, endTime: value })}
-        error={error}
+        onChange={(value) => update({ ...slot, endTime: maskTime24(value) })}
+        inputMode="numeric"
+        invalid={Boolean(error)}
       />
     </FormRow>
   );
 }
 function SlotFields(props: SlotProps): ReactElement {
   return (
-    <div className="space-y-2 border-t border-border pt-3">
-      <div className="flex items-center justify-between">
-        <p className="text-caption font-semibold">Horário {props.index + 1}</p>
-        {props.removable && (
-          <Button type="button" size="sm" variant="secondary" onClick={props.remove}>
-            Remover
-          </Button>
-        )}
+    <div className="flex items-end gap-2">
+      <div className="min-w-0 flex-1">
+        <SlotInputs
+          slot={props.slot}
+          index={props.index}
+          update={props.update}
+          error={props.error}
+        />
       </div>
-      <SlotInputs slot={props.slot} index={props.index} update={props.update} error={props.error} />
+      <Button
+        type="button"
+        size="icon-sm"
+        variant="ghost"
+        onClick={props.remove}
+        aria-label={`Limpar horário ${props.index + 1}`}
+      >
+        <X aria-hidden="true" className="size-4" />
+      </Button>
     </div>
-  );
-}
-function YearField({ draft, change, errors }: ClassFieldsProps): ReactElement {
-  return (
-    <FormRow columns={2}>
-      <TextControl
-        name="year"
-        label="Ano"
-        placeholder="2026"
-        value={draft.year}
-        onChange={(value) => change("year", value)}
-        error={errors.year}
-        inputMode="numeric"
-      />
-    </FormRow>
   );
 }
 export function ScheduleFields(props: ClassFieldsProps): ReactElement {
   const { draft, change, errors } = props;
+  const autoFillUsed = useRef(false);
   function updateSlot(index: number, value: Slot): void {
-    change(
-      "slots",
-      draft.slots.map((slot, slotIndex) => (slotIndex === index ? value : slot)),
-    );
+    const next = updateScheduleDraft({
+      slots: draft.slots,
+      index,
+      value,
+      autoFillUsed: autoFillUsed.current,
+    });
+    autoFillUsed.current = next.autoFillUsed;
+    change("slots", next.slots);
   }
   return (
     <>
-      <YearField {...props} />
       {draft.slots.map((slot, index) => (
         <SlotFields
-          key={`${slot.weekday}-${index}`}
+          key={index}
           slot={slot}
           index={index}
+          error={errors.slots}
           update={(value) => updateSlot(index, value)}
           remove={() =>
-            change(
-              "slots",
-              draft.slots.filter((...entry) => entry[1] !== index),
-            )
+            draft.slots.length > 2
+              ? change(
+                  "slots",
+                  draft.slots.filter((...entry) => entry[1] !== index),
+                )
+              : updateSlot(index, emptyClassSlot())
           }
-          removable={draft.slots.length > 1}
-          error={errors.slots}
         />
       ))}
-      <Button
-        type="button"
-        size="sm"
-        variant="secondary"
-        onClick={() =>
-          change("slots", [
-            ...draft.slots,
-            { weekday: "MONDAY", startTime: "14:00", endTime: "15:00" },
-          ])
-        }
-      >
-        Adicionar horário
-      </Button>
+      {errors.slots && (
+        <p role="alert" className="text-caption text-destructive">
+          {errors.slots}
+        </p>
+      )}
+      <p className="text-caption text-muted-foreground">
+        Até 2 horas por semana · formato 24h (HH:mm).
+      </p>
     </>
   );
 }

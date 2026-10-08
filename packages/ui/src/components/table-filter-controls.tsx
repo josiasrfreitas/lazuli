@@ -16,6 +16,7 @@ import { CurrencyInput } from "./currency-input";
 import { Input } from "./input";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "./popover";
 import { Switch } from "./switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 import { summary, type TableFilterField, type TableFilterOption } from "./table-filter-model";
 
 const VISIBLE_LIMIT = 20;
@@ -126,6 +127,7 @@ function OptionsEditor({
   field: Extract<TableFilterField, { kind: "options" }>;
 }): ReactElement {
   const [search, setSearch] = useState("");
+  if (field.presentation === "dropdown") return <OptionsDropdown field={field} />;
   return (
     <div className="space-y-2">
       {field.onSearch ? (
@@ -166,6 +168,28 @@ function OptionsEditor({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function OptionsDropdown({
+  field,
+}: {
+  field: Extract<TableFilterField, { kind: "options" }>;
+}): ReactElement {
+  const items = field.options.map((option) => ({ value: option.id, label: option.label }));
+  return (
+    <Select multiple items={items} value={field.selected} onValueChange={field.onChange}>
+      <SelectTrigger size="sm" aria-label={field.label} disabled={items.length === 0}>
+        <SelectValue placeholder="Selecione" />
+      </SelectTrigger>
+      <SelectContent>
+        {items.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

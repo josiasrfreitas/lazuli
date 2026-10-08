@@ -70,6 +70,7 @@ export {
   classRelatedListInputSchema,
   classRosterInputSchema,
   classScheduleSlotInputSchema,
+  classScheduleSlotsInputSchema,
   classScheduleTypeSchema,
   timeOfDaySchema,
   weekdaySchema,

@@ -4,7 +4,7 @@ import { CalendarDays, Search } from "lucide-react";
 import { Field, FormRow, Input, Label, SearchSelect } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { parseDateBR } from "~/lib/masks";
-import { NativeSelect } from "./form-controls";
+import { SelectControl } from "./form-controls";
 import type { MembershipMode, useMembershipState } from "./membership-state";
 
 type State = ReturnType<typeof useMembershipState>;
@@ -73,7 +73,7 @@ function PlacementFields({ mode, state, options, scheduleType }: Props): ReactEl
           />
         </Field>
         {scheduleType === "PERSONALIZED" && (
-          <NativeSelect
+          <SelectControl
             name="stageId"
             label="Etapa individual"
             value={state.stageId}

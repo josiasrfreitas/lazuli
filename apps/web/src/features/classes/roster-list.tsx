@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { MoreHorizontal, Phone, UsersRound } from "lucide-react";
+import { Cake, MoreHorizontal, Phone, UsersRound } from "lucide-react";
 import {
   Avatar,
   Badge,
@@ -11,8 +11,10 @@ import {
   PopoverClose,
   PopoverTitle,
   Pagination,
+  cn,
 } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
+import { toWhatsAppUrl } from "~/lib/format";
 import { rosterStatus, type RosterRow } from "./roster-status";
 import { studentAgeLabel } from "./student-age";
 import { formatTrackName } from "./labels";
@@ -37,15 +39,24 @@ export function RosterStudent({
   showStage?: boolean;
 }): ReactElement {
   const status = rosterStatus(row, today) as keyof typeof tones;
+  const whatsAppUrl = toWhatsAppUrl(row.student.phone);
   return (
-    <li className="flex min-w-0 flex-col gap-4 rounded-xl border border-border/60 bg-card p-4">
+    <li
+      className={cn(
+        "flex min-w-0 flex-col gap-4 rounded-xl border border-border/60 bg-card p-4",
+        !showStage && "gap-2 py-3",
+      )}
+    >
       <div className="flex items-start gap-3">
         <Avatar name={row.student.fullName} colorKey={row.studentId} />
         <div className="min-w-0 flex-1">
-          <h3 className="break-words text-body font-medium">{row.student.fullName}</h3>
-          <p className="mt-1 text-caption text-muted-foreground">
-            {studentAgeLabel(row.student.birthDate, today)}
-          </p>
+          <h3
+            className="truncate text-body font-medium"
+            title={row.student.fullName}
+            aria-label={row.student.fullName}
+          >
+            {row.student.fullName.trim().split(/\s+/u).slice(0, 2).join(" ")}
+          </h3>
         </div>
       </div>
       {showStage && <StudentLearningContext row={row} />}
@@ -55,12 +66,28 @@ export function RosterStudent({
         </div>
       )}
       <div className="mt-auto flex items-center justify-between gap-2">
-        <p className="flex min-w-0 items-center gap-2 text-caption text-muted-foreground">
-          <Phone aria-hidden="true" className="size-3.5 shrink-0" />
-          <span className="break-words font-numeric tabular-nums">
-            {row.student.phone ?? "Sem telefone"}
-          </span>
-        </p>
+        <div className="min-w-0 space-y-1 text-caption text-muted-foreground">
+          <p className="flex items-center gap-2">
+            <Cake aria-hidden="true" className="size-3.5 shrink-0" />
+            <span>{studentAgeLabel(row.student.birthDate, today)}</span>
+          </p>
+          <p className="flex min-w-0 items-center gap-2">
+            <Phone aria-hidden="true" className="size-3.5 shrink-0" />
+            {whatsAppUrl ? (
+              <a
+                href={whatsAppUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Abrir WhatsApp de ${row.student.fullName}`}
+                className="break-words rounded-sm font-numeric tabular-nums text-interactive underline-offset-4 hover:text-interactive-hover hover:underline focus-visible:outline-none focus-visible:shadow-focus"
+              >
+                {row.student.phone}
+              </a>
+            ) : (
+              <span>Sem telefone</span>
+            )}
+          </p>
+        </div>
         <StudentActions row={row} close={close} canClose={status === "Vigente"} />
       </div>
     </li>

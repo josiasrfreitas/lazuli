@@ -7,8 +7,8 @@ const INVALID_SEMESTER_ID_MESSAGE = "Identificador de semestre invalido.";
 const MAX_CLASS_PAGE_SIZE = 100;
 const DEFAULT_CLASS_PAGE_SIZE = 20;
 const MAX_CLASS_SEARCH_LENGTH = 80;
-const MIN_CLASS_YEAR = 2000;
-const MAX_CLASS_YEAR = 2100;
+const MINUTES_PER_HOUR = 60;
+const MAX_WEEKLY_CLASS_MINUTES = 120;
 
 const requiredText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE);
 
@@ -48,6 +48,22 @@ export const classScheduleSlotInputSchema = z
     }
   });
 
+export const classScheduleSlotsInputSchema = z
+  .array(classScheduleSlotInputSchema)
+  .min(1, "Informe ao menos um horario.")
+  .superRefine((slots, context) => {
+    const minutes = slots.reduce(
+      (total, slot) => total + timeInMinutes(slot.endTime) - timeInMinutes(slot.startTime),
+      0,
+    );
+    if (minutes > MAX_WEEKLY_CLASS_MINUTES) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A turma pode ter no máximo 2 horas por semana.",
+      });
+    }
+  });
+
 export const classCreateInputSchema = z
   .object({
     teacherId: requiredText.uuid("Identificador de professor invalido."),
@@ -55,9 +71,8 @@ export const classCreateInputSchema = z
     format: classFormatSchema,
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").nullish(),
     semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE).nullish(),
-    year: z.number().int().min(MIN_CLASS_YEAR).max(MAX_CLASS_YEAR),
     portalClassName: requiredText.optional(),
-    slots: z.array(classScheduleSlotInputSchema).min(1, "Informe ao menos um horario."),
+    slots: classScheduleSlotsInputSchema,
   })
   .strict()
   .superRefine(validateClassCreateInput);
@@ -72,7 +87,6 @@ export const classCloneForNextPeriodInputSchema = z
   .object({
     id: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
     semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE),
-    year: z.number().int().min(MIN_CLASS_YEAR).max(MAX_CLASS_YEAR),
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").optional(),
     portalClassName: requiredText.optional(),
   })
@@ -187,4 +201,9 @@ function validatePersonalizedClassInput(input: ClassCreateInput, context: z.Refi
       path: ["semesterId"],
     });
   }
+}
+
+function timeInMinutes(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  return (hours ?? 0) * MINUTES_PER_HOUR + (minutes ?? 0);
 }

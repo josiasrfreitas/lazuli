@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, type ReactElement, type RefObject } from "react";
 import { Combobox } from "@base-ui/react/combobox";
-import { Plus, X } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { Input } from "./input";
 
 export type SearchSelectOption = {
@@ -17,6 +17,7 @@ type SearchItem = SearchSelectOption & { kind: "option" | "create" };
 export type SearchSelectProps = {
   name: string;
   placeholder: string;
+  showSearchIcon?: boolean;
   value: SearchSelectOption | null;
   query: string;
   options: readonly SearchSelectOption[];
@@ -106,28 +107,42 @@ function SearchInput({
   highlighted: RefObject<SearchItem | undefined>;
 }): ReactElement {
   return (
-    <Combobox.Input
-      name={props.name}
-      render={<Input size="sm" invalid={props.invalid ?? false} />}
-      placeholder={props.placeholder}
-      onFocus={() => {
-        if (props.openOnFocus) open();
-      }}
-      onChange={(event) => {
-        highlighted.current = undefined;
-        props.onQueryChange(event.currentTarget.value);
-      }}
-      onKeyDown={(event) => {
-        if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
-        // Let Base UI select the item reached with the arrow keys.
-        if (highlighted.current) return;
-        event.preventDefault();
-        event.preventBaseUIHandler();
-        if (!props.loading && props.options[0]) props.onSelect(props.options[0]);
-        else if (!props.loading) props.onCreate?.(props.query);
-        close();
-      }}
-    />
+    <div className="relative">
+      {props.showSearchIcon && (
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+      )}
+      <Combobox.Input
+        name={props.name}
+        render={
+          <Input
+            size="sm"
+            invalid={props.invalid ?? false}
+            className={props.showSearchIcon ? "pl-9" : undefined}
+          />
+        }
+        placeholder={props.placeholder}
+        onFocus={() => {
+          if (props.openOnFocus) open();
+        }}
+        onChange={(event) => {
+          highlighted.current = undefined;
+          props.onQueryChange(event.currentTarget.value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+          // Let Base UI select the item reached with the arrow keys.
+          if (highlighted.current) return;
+          event.preventDefault();
+          event.preventBaseUIHandler();
+          if (!props.loading && props.options[0]) props.onSelect(props.options[0]);
+          else if (!props.loading) props.onCreate?.(props.query);
+          close();
+        }}
+      />
+    </div>
   );
 }
 

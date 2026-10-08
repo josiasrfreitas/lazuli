@@ -16,21 +16,27 @@ const ROLE_LABELS: Record<StaffRole, string> = {
 
 export function Sidebar({ identity }: { identity: StaffIdentity }): ReactNode {
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-card sm:flex">
-      <div className="px-6 pb-5 pt-6">
-        <p className="font-display text-h3 font-semibold tracking-tight text-foreground">
-          Lazuli
-          <span aria-hidden="true" className="text-brand">
-            .
+    <aside className="group/sidebar hidden w-16 shrink-0 flex-col overflow-hidden border-r border-border bg-card transition-[width] duration-300 ease-standard hover:w-60 has-[:focus-visible]:w-60 motion-reduce:transition-none sm:flex">
+      <div className="w-60 px-6 pb-5 pt-6">
+        <p
+          aria-label="Lazuli"
+          className="flex items-baseline font-display text-h3 font-semibold tracking-tight text-foreground"
+        >
+          <span aria-hidden="true">L</span>
+          <span
+            aria-hidden="true"
+            className="opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100 group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none"
+          >
+            azuli<span className="text-brand">.</span>
           </span>
         </p>
       </div>
-      <div className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto pb-4">
+      <div className="scrollbar-subtle min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-4">
         <SidebarNav role={identity.role} />
       </div>
-      <footer className="flex items-center gap-3 border-t border-border px-4 py-4">
+      <footer className="flex w-60 items-center gap-3 border-t border-border px-4 py-4">
         <Avatar colorKey={identity.id} name={identity.name} />
-        <div className="min-w-0">
+        <div className="min-w-0 opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100 group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none">
           <p className="truncate text-caption font-semibold text-foreground">{identity.name}</p>
           <p className="truncate text-micro text-muted-foreground">{ROLE_LABELS[identity.role]}</p>
         </div>

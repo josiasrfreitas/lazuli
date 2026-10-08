@@ -76,7 +76,7 @@ async function createRegularClass(input: {
     stageInternalCode: stage.internalCode,
     slots: input.values.slots,
     semesterName: semester.name,
-    year: input.values.year,
+    year: semester.startDate.getUTCFullYear(),
   });
 
   return input.database.class.create({
@@ -85,6 +85,7 @@ async function createRegularClass(input: {
       portalClassName,
       sharedStageId: stage.id,
       semesterId: semester.id,
+      year: semester.startDate.getUTCFullYear(),
       slotRows: input.slotRows,
     }),
     select: classSummarySelect,
@@ -105,7 +106,7 @@ async function createPersonalizedClass(input: {
     database: input.database,
     slots: input.values.slots,
     semesterName: semester.name,
-    year: input.values.year,
+    year: semester.startDate.getUTCFullYear(),
   });
 
   return input.database.class.create({
@@ -114,6 +115,7 @@ async function createPersonalizedClass(input: {
       portalClassName,
       sharedStageId: null,
       semesterId: semester.id,
+      year: semester.startDate.getUTCFullYear(),
       slotRows: input.slotRows,
     }),
     select: classSummarySelect,
@@ -125,16 +127,17 @@ function buildClassCreateData(input: {
   portalClassName: string;
   sharedStageId: string | null;
   semesterId: string;
+  year: number;
   slotRows: SlotRow[];
 }): Prisma.ClassUncheckedCreateInput {
   return {
-    internalCode: generateClassInternalCode(input.values.year),
+    internalCode: generateClassInternalCode(input.year),
     teacherId: input.values.teacherId,
     scheduleType: input.values.scheduleType,
     format: input.values.format,
     sharedStageId: input.sharedStageId,
     semesterId: input.semesterId,
-    year: input.values.year,
+    year: input.year,
     capacity: CLASS_REFERENCE_CAPACITY,
     portalClassName: input.portalClassName,
     originalPortalClassName: input.portalClassName,
