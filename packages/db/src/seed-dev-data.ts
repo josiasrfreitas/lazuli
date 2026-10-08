@@ -5,6 +5,8 @@
 
 const DEFAULT_CAPACITY = 20;
 const KIDS_CAPACITY = 8;
+const EXTRA_HIGH_OCCUPANCY_STUDENTS = 18;
+const EXTRA_MODERATE_OCCUPANCY_STUDENTS = 13;
 
 export type DevWeekday =
   | "MONDAY"
@@ -326,13 +328,13 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     enrollments: [{ classKey: "MWYA" }],
     attendance: "good",
   },
-  ...occupancyStudents("E1A", 18),
-  ...occupancyStudents("T2A", 13),
+  ...occupancyStudents("E1A", EXTRA_HIGH_OCCUPANCY_STUDENTS),
+  ...occupancyStudents("T2A", EXTRA_MODERATE_OCCUPANCY_STUDENTS),
 ];
 
 /** Existing enrollments plus these examples give E1A 21 students and T2A 15. */
 function occupancyStudents(classKey: string, count: number): DevStudentSeed[] {
-  return Array.from({ length: count }, (_, index) => ({
+  return Array.from({ length: count }, (_unused, index) => ({
     key: `occupancy-${classKey}-${index + 1}`,
     fullName: `Estudante exemplo ${classKey} ${index + 1}`,
     status: "ACTIVE",
