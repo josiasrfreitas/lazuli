@@ -6,7 +6,8 @@ import type {
 } from "@lazuli/validators";
 
 import type { Context } from "../trpc/context.js";
-import { GUARDIAN_NOT_FOUND_MESSAGE, notFound } from "./errors.js";
+import { notFound } from "../trpc/errors.js";
+import { GUARDIAN_NOT_FOUND_MESSAGE } from "./errors.js";
 
 export type StudentDatabase = Pick<
   Context["db"],

@@ -1,7 +1,8 @@
 import type { studentSetStatusInputSchema, z } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
 
-import { notFound, STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
+import { notFound } from "../trpc/errors.js";
+import { STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
 import type { StudentDatabase } from "./related-records.js";
 
 type StudentSetStatusInput = z.infer<typeof studentSetStatusInputSchema>;

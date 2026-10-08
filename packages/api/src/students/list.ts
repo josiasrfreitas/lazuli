@@ -3,8 +3,9 @@ import type { StudentListInput, StudentListOutput, StudentListRow } from "@lazul
 
 import { computeEnrollmentPercentInWindow } from "../attendance/percent.js";
 import { finance, type StudentOverdueTotal } from "../finance/index.js";
+import { notFound } from "../trpc/errors.js";
 import { isMinorInSaoPaulo } from "./date-rules.js";
-import { notFound, STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
+import { STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
 import {
   buildStudentListWhere,
   countHeaderFacts,

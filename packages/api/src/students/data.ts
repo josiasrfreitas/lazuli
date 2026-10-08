@@ -11,8 +11,9 @@ import type {
 } from "@lazuli/validators";
 
 import type { Context } from "../trpc/context.js";
+import { badRequest, notFound } from "../trpc/errors.js";
 import { isMinorTodayInSaoPaulo } from "./date-rules.js";
-import { badRequest, notFound, STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
+import { STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
 import type { StudentProfile } from "./profile.js";
 import { toStudentProfile } from "./profile.js";
 import {
