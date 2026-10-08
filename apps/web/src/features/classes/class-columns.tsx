@@ -50,7 +50,7 @@ export function classColumns(params: ClassListParams): readonly DataTableColumn<
     },
     {
       id: "stage",
-      header: "Etapa",
+      header: "Estágio",
       width: COLUMN_WIDTHS.stage,
       cell: (row: ClassRow) => row.sharedStage?.name ?? "Individual",
     },
@@ -84,9 +84,9 @@ function scheduleCell(row: ClassRow): ReactElement {
   );
 }
 
-function occupancyCell({ occupancy, capacity }: ClassRow): ReactElement {
-  const indicator = classOccupancyIndicator(occupancy, capacity);
-  const detail = `${indicator.label}. A capacidade é uma referência e não bloqueia matrículas.`;
+function occupancyCell({ occupancy }: ClassRow): ReactElement {
+  const indicator = classOccupancyIndicator(occupancy);
+  const detail = `${indicator.label}. 25 alunos é a referência global e não bloqueia matrículas.`;
   return (
     <Tooltip>
       <TooltipTrigger render={<span tabIndex={0} />} aria-label={`${occupancy} alunos. ${detail}`}>

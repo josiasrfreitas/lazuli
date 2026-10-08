@@ -7,7 +7,6 @@ import {
   classListInputSchema,
   classRelatedListInputSchema,
   classRosterInputSchema,
-  classUpdateBasicInputSchema,
 } from "@lazuli/validators";
 import { createLocalSessionsGenerateQueue, enqueueSessionsGenerate } from "@lazuli/job-contracts";
 
@@ -53,13 +52,6 @@ export const classesRouter = router({
     }),
   ),
   formOptions: adminProcedure.query(({ ctx }) => classFormOptions(ctx.db)),
-  updateBasic: adminProcedure.input(classUpdateBasicInputSchema).mutation(({ ctx, input }) =>
-    ctx.db.class.update({
-      where: { id: input.id, deletedAt: null },
-      data: { internalCode: input.internalCode, capacity: input.capacity },
-      select: { id: true, internalCode: true, capacity: true },
-    }),
-  ),
   create: adminProcedure
     .input(classCreateInputSchema)
     .mutation(({ ctx, input }) =>
@@ -102,7 +94,6 @@ function buildCloneInput(input: {
   database: Parameters<typeof cloneClassForNextPeriod>[0]["database"];
   input: {
     id: string;
-    internalCode: string;
     semesterId: string;
     year: number;
     sharedStageId?: string | undefined;
@@ -112,7 +103,6 @@ function buildCloneInput(input: {
   return {
     database: input.database,
     id: input.input.id,
-    internalCode: input.input.internalCode,
     semesterId: input.input.semesterId,
     year: input.input.year,
     ...optionalSharedStageId(input.input.sharedStageId),

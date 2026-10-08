@@ -1,5 +1,6 @@
-import type { Prisma } from "@lazuli/db";
+import type { Prisma, TransactionClient } from "@lazuli/db";
 import { dateOnlyUtc } from "./effective-date.js";
+import { assertTrackAvailable } from "./eligibility.js";
 import type { enrollmentCreateInputSchema, z } from "@lazuli/validators";
 
 import { loadActiveStage } from "../classes/guards.js";
@@ -21,7 +22,8 @@ type EnrollmentCreateInput = z.infer<typeof enrollmentCreateInputSchema>;
 
 /** Keys touched here plus the ones `loadActiveStage` (classes/guards) structurally requires. */
 export type EnrollmentDatabase = Pick<
-  Prisma.TransactionClient,
+  TransactionClient,
+  | "$kysely"
   | "$queryRaw"
   | "enrollment"
   | "pedagogicalProgress"
@@ -305,6 +307,7 @@ export async function openEnrollmentAtStage(input: {
   capacityOverrideReason: string | undefined;
 }): Promise<{ enrollment: EnrollmentSummary; progress: ProgressSummary }> {
   await lockStudentEnrollment(input.database, input.studentId);
+  await assertTrackAvailable(input);
   const enrollment = await input.database.enrollment.create({
     data: {
       studentId: input.studentId,

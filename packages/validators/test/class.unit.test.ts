@@ -19,19 +19,17 @@ const STAGE_ID = "33333333-3333-4333-8333-333333333333";
 const SEMESTER_ID = "44444444-4444-4444-8444-444444444444";
 
 const REGULAR_CLASS_INPUT = {
-  internalCode: " GRE-29 ",
   teacherId: TEACHER_ID,
   scheduleType: "REGULAR",
   format: "IN_PERSON",
   sharedStageId: STAGE_ID,
   semesterId: SEMESTER_ID,
   year: 2026,
-  capacity: 12,
   slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
 };
 
 void describe("class schedule input", () => {
-  void it("accepts a valid regular class and trims staff-visible text", () => {
+  void it("accepts a regular class without a manually assigned code or capacity", () => {
     const parsed = classCreateInputSchema.parse({
       ...REGULAR_CLASS_INPUT,
       slots: [
@@ -40,7 +38,6 @@ void describe("class schedule input", () => {
       ],
     });
 
-    assert.equal(parsed.internalCode, "GRE-29");
     assert.equal(parsed.sharedStageId, STAGE_ID);
     assert.equal(parsed.portalClassName, undefined);
     assert.equal(parsed.slots.length, 2);
@@ -102,36 +99,34 @@ void describe("regular class placement input", () => {
 });
 
 void describe("personalized class placement input", () => {
-  void it("accepts personalized classes with manual names and no shared stage", () => {
+  void it("accepts personalized classes without a manual name or shared stage", () => {
     const parsed = classCreateInputSchema.parse({
       ...REGULAR_CLASS_INPUT,
       scheduleType: "PERSONALIZED",
       format: "ONLINE",
       sharedStageId: null,
-      portalClassName: "VIP Ana",
     });
     const omittedStage = classCreateInputSchema.parse({
       ...REGULAR_CLASS_INPUT,
       scheduleType: "PERSONALIZED",
       format: "ONLINE",
       sharedStageId: undefined,
-      portalClassName: "VIP Bruno",
     });
 
     assert.equal(parsed.scheduleType, "PERSONALIZED");
     assert.equal(parsed.sharedStageId, null);
-    assert.equal(parsed.portalClassName, "VIP Ana");
+    assert.equal(parsed.portalClassName, undefined);
     assert.equal(omittedStage.sharedStageId, undefined);
   });
 
-  void it("requires personalized classes to use a manual Portal name and no shared stage", () => {
+  void it("rejects a manual name and shared stage for personalized classes", () => {
     const result = classCreateInputSchema.safeParse({
       ...REGULAR_CLASS_INPUT,
       scheduleType: "PERSONALIZED",
       format: "ONLINE",
       sharedStageId: STAGE_ID,
       semesterId: undefined,
-      portalClassName: undefined,
+      portalClassName: "Manual",
     });
 
     assert.deepEqual(
@@ -147,7 +142,6 @@ void describe("personalized class placement input", () => {
       format: "ONLINE",
       sharedStageId: null,
       semesterId: null,
-      portalClassName: "VIP Ana",
     });
 
     assert.deepEqual(
@@ -194,23 +188,40 @@ void describe("class command input", () => {
   void it("validates clone and archive identifiers at the schema boundary", () => {
     const clone = classCloneForNextPeriodInputSchema.parse({
       id: CLASS_ID,
-      internalCode: " GRE-30 ",
+
       semesterId: SEMESTER_ID,
       year: 2099,
       sharedStageId: STAGE_ID,
     });
 
-    assert.equal(clone.internalCode, "GRE-30");
+    assert.equal(clone.year, 2099);
     assert.equal(classArchiveInputSchema.safeParse({ id: CLASS_ID }).success, true);
     assert.equal(classArchiveInputSchema.safeParse({ id: "not-a-uuid" }).success, false);
     assert.equal(
       classCloneForNextPeriodInputSchema.safeParse({
         id: CLASS_ID,
-        internalCode: "GRE-30",
+
         semesterId: SEMESTER_ID,
         year: 1999,
       }).success,
       false,
     );
   });
+});
+
+void it("rejects manually assigned internal codes and per-class capacity", () => {
+  for (const field of [{ internalCode: "MANUAL" }, { capacity: 12 }]) {
+    const result = classCreateInputSchema.safeParse({ ...REGULAR_CLASS_INPUT, ...field });
+    assert.equal(result.success, false);
+    assert.equal(result.error?.issues[0]?.code, "unrecognized_keys");
+  }
+  assert.equal(
+    classCloneForNextPeriodInputSchema.safeParse({
+      id: CLASS_ID,
+      internalCode: "MANUAL",
+      semesterId: SEMESTER_ID,
+      year: 2026,
+    }).success,
+    false,
+  );
 });

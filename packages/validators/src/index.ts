@@ -69,7 +69,6 @@ export {
   classListInputSchema,
   classRelatedListInputSchema,
   classRosterInputSchema,
-  classUpdateBasicInputSchema,
   classScheduleSlotInputSchema,
   classScheduleTypeSchema,
   timeOfDaySchema,
@@ -93,6 +92,7 @@ export {
   enrollmentCorrectionApplyInputSchema,
   enrollmentPausedSearchInputSchema,
   enrollmentCreateInputSchema,
+  enrollmentCandidateSearchInputSchema,
   enrollmentTransferInputSchema,
 } from "./enrollment.js";
 export {

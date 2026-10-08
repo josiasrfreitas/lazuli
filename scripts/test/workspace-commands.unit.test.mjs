@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import http from "node:http";
 import { tmpdir } from "node:os";
@@ -344,6 +344,32 @@ it("revalidates an orphan after the allocation lock admits a colliding worktree"
   assert.match(result.stdout, /collides with active worktree/u);
   assert.equal(await readFile(path.join(directory, ".fake-infra/database"), "utf8"), "exists\n");
   execFileSync("git", ["worktree", "remove", "--force", sibling], { cwd: directory });
+});
+
+it("recovers an allocation lock left by a terminated process", async (context) => {
+  const directory = await fixture(context, "lazuli-dead-allocation-owner");
+  const lockPath = path.join(directory, ".git/lazuli-workspace-allocation.lock");
+  const { withWorkspaceAllocationLock } = await import("../lib/workspace-metadata.mjs");
+  const child = spawn(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `import { withWorkspaceAllocationLock } from ${JSON.stringify(new URL("../lib/workspace-metadata.mjs", import.meta.url).href)}; await withWorkspaceAllocationLock(process.cwd(), async () => { process.stdout.write("locked\\n"); await new Promise(() => {}); });`,
+    ],
+    { cwd: directory, stdio: ["ignore", "pipe", "pipe"] },
+  );
+  await new Promise((resolve) => child.stdout.once("data", resolve));
+  child.kill("SIGKILL");
+  await new Promise((resolve) => child.once("close", resolve));
+
+  let entered = false;
+  await withWorkspaceAllocationLock(directory, async () => {
+    entered = true;
+  });
+
+  assert.equal(entered, true);
+  await assert.rejects(stat(lockPath), { code: "ENOENT" });
 });
 
 it("removes only full resources bearing this workspace ownership markers", async (context) => {

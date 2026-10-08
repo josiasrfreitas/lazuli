@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { generateRegularPortalClassName } from "../src/class-portal-name.js";
+import {
+  generateRegularPortalClassName,
+  generatePersonalizedPortalClassName,
+} from "../src/class-portal-name.js";
 
 void describe("generateRegularPortalClassName", () => {
   void it("builds the PRD example shape from structured fields", () => {
@@ -42,4 +45,18 @@ void describe("generateRegularPortalClassName", () => {
 
     assert.equal(name, "REG/TUI-TER-14:00/16:00-1S/26-3");
   });
+});
+
+void it("generates a PPT name from the primary slot and period without a shared stage", () => {
+  const name = generatePersonalizedPortalClassName({
+    slots: [
+      { weekday: "FRIDAY", startTime: "10:00", endTime: "11:00" },
+      { weekday: "MONDAY", startTime: "09:00", endTime: "10:00" },
+      { weekday: "MONDAY", startTime: "08:00", endTime: "09:00" },
+    ],
+    semesterName: "2026.2",
+    year: 2026,
+    sequence: 2,
+  });
+  assert.equal(name, "PPT/SEG-08:00/09:00-2S/26-2");
 });

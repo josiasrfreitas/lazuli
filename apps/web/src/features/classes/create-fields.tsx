@@ -21,7 +21,7 @@ export function ClassCreateFields(props: ClassFieldsProps): ReactElement {
       <FormSection title="Modalidade">
         <OrganizationFields {...props} />
       </FormSection>
-      <FormSection title="Horário e capacidade">
+      <FormSection title="Horários">
         <ScheduleFields {...props} />
       </FormSection>
     </div>

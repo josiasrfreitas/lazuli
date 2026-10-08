@@ -50,14 +50,12 @@ export const classScheduleSlotInputSchema = z
 
 export const classCreateInputSchema = z
   .object({
-    internalCode: requiredText,
     teacherId: requiredText.uuid("Identificador de professor invalido."),
     scheduleType: classScheduleTypeSchema,
     format: classFormatSchema,
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").nullish(),
     semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE).nullish(),
     year: z.number().int().min(MIN_CLASS_YEAR).max(MAX_CLASS_YEAR),
-    capacity: z.number().int().min(1),
     portalClassName: requiredText.optional(),
     slots: z.array(classScheduleSlotInputSchema).min(1, "Informe ao menos um horario."),
   })
@@ -73,7 +71,6 @@ export const classIdInputSchema = z
 export const classCloneForNextPeriodInputSchema = z
   .object({
     id: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
-    internalCode: requiredText,
     semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE),
     year: z.number().int().min(MIN_CLASS_YEAR).max(MAX_CLASS_YEAR),
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").optional(),
@@ -91,6 +88,7 @@ export const classListInputSchema = z
     scheduleTypes: z.array(classScheduleTypeSchema).default([]),
     formats: z.array(classFormatSchema).default([]),
     teacherIds: z.array(z.string().uuid()).default([]),
+    stageIds: z.array(z.string().uuid()).default([]),
     semesterIds: z.array(z.string().uuid()).default([]),
     statuses: z.array(z.enum(["ACTIVE", "ARCHIVED"])).default([]),
   })
@@ -107,14 +105,6 @@ export const classRosterInputSchema = classRelatedListInputSchema
   .extend({
     search: z.string().trim().max(MAX_CLASS_SEARCH_LENGTH).default(""),
     situations: z.array(z.enum(["CURRENT", "SCHEDULED", "PAUSED", "ENDED"])).default([]),
-  })
-  .strict();
-
-/** Fields whose change does not rewrite existing class sessions or placement. */
-export const classUpdateBasicInputSchema = classIdInputSchema
-  .extend({
-    capacity: z.number().int().min(1),
-    internalCode: requiredText,
   })
   .strict();
 
@@ -182,10 +172,10 @@ function validatePersonalizedClassInput(input: ClassCreateInput, context: z.Refi
     });
   }
 
-  if (input.portalClassName === null || input.portalClassName === undefined) {
+  if (input.portalClassName !== null && input.portalClassName !== undefined) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Turma personalizada exige nome Portal manual.",
+      message: "O nome da turma PPT é gerado automaticamente.",
       path: ["portalClassName"],
     });
   }

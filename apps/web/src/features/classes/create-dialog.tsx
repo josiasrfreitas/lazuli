@@ -31,17 +31,13 @@ type State = {
 };
 function parseClassDraft(draft: ClassDraft): ReturnType<typeof classCreateInputSchema.safeParse> {
   return classCreateInputSchema.safeParse({
-    internalCode: draft.internalCode,
     teacherId: draft.teacherId,
     scheduleType: draft.scheduleType,
     format: draft.format,
     semesterId: draft.semesterId,
     year: Number(draft.year),
-    capacity: Number(draft.capacity),
     slots: draft.slots,
-    ...(draft.scheduleType === "REGULAR"
-      ? { sharedStageId: draft.sharedStageId }
-      : { portalClassName: draft.portalClassName }),
+    ...(draft.scheduleType === "REGULAR" ? { sharedStageId: draft.sharedStageId } : {}),
   });
 }
 const useCreateClass = ({ onOpenChange }: Props): State => {
@@ -156,9 +152,7 @@ function CreateContent({ state, open }: { state: State; open: boolean }): ReactE
   return (
     <DialogContent
       className="md:max-w-2xl"
-      initialFocus={() =>
-        state.popup.current?.querySelector<HTMLInputElement>('input[name="internalCode"]') ?? true
-      }
+      initialFocus={() => state.popup.current?.querySelector<HTMLElement>('[role="radio"]') ?? true}
       ref={state.popup}
     >
       <DialogHeader>

@@ -6,6 +6,7 @@ import {
   matchesNavHref,
   navBreadcrumbFor,
   navItemsFor,
+  navReturnFor,
   navSectionsFor,
   type NavSection,
 } from "../../src/components/app-shell/nav-items.js";
@@ -107,4 +108,25 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
     section: "Sistema",
     page: "Ajustes",
   });
+});
+
+void it("returns child pages to the authorized list with its filters and ignores foreign destinations", () => {
+  assert.deepEqual(navReturnFor("/turmas/a-class", "ADMIN", "/turmas?search=C2&page=2"), {
+    href: "/turmas?search=C2&page=2",
+    label: "Turmas",
+  });
+  for (const back of [
+    null,
+    "//elsewhere.test",
+    "/turmas-other",
+    "/turmas/another-class",
+    "https://elsewhere.test",
+  ]) {
+    assert.deepEqual(navReturnFor("/turmas/a-class", "ADMIN", back), {
+      href: "/turmas",
+      label: "Turmas",
+    });
+  }
+  assert.equal(navReturnFor("/turmas", "ADMIN", null), null);
+  assert.equal(navReturnFor("/turmas/a-class", "TEACHER", null), null);
 });

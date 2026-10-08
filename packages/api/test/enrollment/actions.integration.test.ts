@@ -212,7 +212,11 @@ void it("schedules a new class in the same track after a future pause", async ()
   });
   await assert.rejects(
     callerAt("2026-09-11").enrollment.cancelScheduled({ actionId: scheduledPause.id }),
-    /Enrollment_active_student_track_key/u,
+    {
+      code: "BAD_REQUEST",
+      message:
+        "Este aluno já possui matrícula em outra turma da mesma trilha no período informado.",
+    },
   );
   const pauseAfterAttempt = await db.enrollmentAction.findUniqueOrThrow({
     where: { id: scheduledPause.id },

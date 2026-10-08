@@ -77,7 +77,7 @@ function MembershipBody({
   }
   return (
     <DialogContent
-      className="md:max-w-2xl"
+      className="md:max-w-md"
       initialFocus={() =>
         popup.current?.querySelector<HTMLInputElement>('input[name="studentSearch"]') ?? true
       }
@@ -86,7 +86,9 @@ function MembershipBody({
       <DialogHeader>
         <DialogTitle>{mode === "ENTRY" ? "Matricular aluno" : "Retornar aluno"}</DialogTitle>
         <DialogDescription>
-          Escolha o aluno, a data efetiva e a etapa quando a turma for PPT.
+          {scheduleType === "PERSONALIZED"
+            ? "Escolha o aluno, a data de entrada e a etapa individual."
+            : "Escolha o aluno e a data de entrada."}
         </DialogDescription>
       </DialogHeader>
       <MembershipForm

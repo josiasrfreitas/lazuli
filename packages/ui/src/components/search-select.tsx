@@ -23,7 +23,9 @@ export type SearchSelectProps = {
   onQueryChange: (query: string) => void;
   onSelect: (option: SearchSelectOption) => void;
   onClear: () => void;
-  onCreate: (query: string) => void;
+  onCreate?: (query: string) => void;
+  emptyMessage?: string;
+  openOnFocus?: boolean;
   loading?: boolean;
   failed?: boolean;
   invalid?: boolean;
@@ -34,10 +36,12 @@ function SearchResults({
   items,
   loading,
   failed,
+  emptyMessage,
 }: {
   items: readonly SearchItem[];
   loading: boolean;
   failed: boolean;
+  emptyMessage: string;
 }): ReactElement {
   return (
     <Combobox.Portal>
@@ -51,6 +55,11 @@ function SearchResults({
           {failed && (
             <p role="alert" className="p-2 text-caption text-destructive">
               Busca indisponível. Tente novamente.
+            </p>
+          )}
+          {!loading && !failed && items.length === 0 && (
+            <p role="status" className="p-2 text-caption text-muted-foreground">
+              {emptyMessage}
             </p>
           )}
           <Combobox.List className="scrollbar-subtle max-h-60 overflow-y-auto">
@@ -78,19 +87,21 @@ function SearchResults({
   );
 }
 
-function searchItems(options: readonly SearchSelectOption[]): SearchItem[] {
+function searchItems(options: readonly SearchSelectOption[], allowCreate: boolean): SearchItem[] {
   return [
     ...options.map((option) => ({ ...option, kind: "option" as const })),
-    { kind: "create", id: "", label: "Cadastrar novo" },
+    ...(allowCreate ? [{ kind: "create" as const, id: "", label: "Cadastrar novo" }] : []),
   ];
 }
 
 function SearchInput({
   props,
+  open,
   close,
   highlighted,
 }: {
   props: SearchSelectProps;
+  open: () => void;
   close: () => void;
   highlighted: RefObject<SearchItem | undefined>;
 }): ReactElement {
@@ -99,6 +110,9 @@ function SearchInput({
       name={props.name}
       render={<Input size="sm" invalid={props.invalid ?? false} />}
       placeholder={props.placeholder}
+      onFocus={() => {
+        if (props.openOnFocus) open();
+      }}
       onChange={(event) => {
         highlighted.current = undefined;
         props.onQueryChange(event.currentTarget.value);
@@ -110,7 +124,7 @@ function SearchInput({
         event.preventDefault();
         event.preventBaseUIHandler();
         if (!props.loading && props.options[0]) props.onSelect(props.options[0]);
-        else props.onCreate(props.query);
+        else if (!props.loading) props.onCreate?.(props.query);
         close();
       }}
     />
@@ -149,12 +163,13 @@ function SelectedTags({
   );
 }
 
-/** Server-filtered results, followed by creation. Enter selects the first highlighted result. */
+/** Server-filtered results with optional creation. Enter selects a result without submitting. */
 export function SearchSelect(props: SearchSelectProps): ReactElement {
   const { value, query, options, loading = false, failed = false } = props;
   const [open, setOpen] = useState(false);
   const highlighted = useRef<SearchItem | undefined>(undefined);
-  const items = useMemo(() => searchItems(options), [options]);
+  const allowCreate = props.onCreate !== undefined;
+  const items = useMemo(() => searchItems(options, allowCreate), [options, allowCreate]);
   if (value)
     return <SelectedTags value={value} onClear={props.onClear} disabled={props.disabled} />;
   return (
@@ -180,12 +195,22 @@ export function SearchSelect(props: SearchSelectProps): ReactElement {
       }
       onValueChange={(item) => {
         if (!item) return;
-        if (item.kind === "create") props.onCreate(query);
+        if (item.kind === "create") props.onCreate?.(query);
         else if (!loading) props.onSelect(item);
       }}
     >
-      <SearchInput props={props} close={() => setOpen(false)} highlighted={highlighted} />
-      <SearchResults items={items} loading={loading} failed={failed} />
+      <SearchInput
+        props={props}
+        open={() => setOpen(true)}
+        close={() => setOpen(false)}
+        highlighted={highlighted}
+      />
+      <SearchResults
+        items={items}
+        loading={loading}
+        failed={failed}
+        emptyMessage={props.emptyMessage ?? "Nenhum resultado encontrado."}
+      />
     </Combobox.Root>
   );
 }

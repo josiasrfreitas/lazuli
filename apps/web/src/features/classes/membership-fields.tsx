@@ -1,7 +1,9 @@
 "use client";
 import type { ReactElement } from "react";
-import { Field, FormRow, FormSection, Input, Label } from "@lazuli/ui";
+import { CalendarDays, Search } from "lucide-react";
+import { Field, FormRow, Input, Label, SearchSelect } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
+import { parseDateBR } from "~/lib/masks";
 import { NativeSelect } from "./form-controls";
 import type { MembershipMode, useMembershipState } from "./membership-state";
 
@@ -16,55 +18,58 @@ type Props = {
 function StudentChoice({ mode, state }: Pick<Props, "mode" | "state">): ReactElement {
   const choices =
     mode === "ENTRY"
-      ? state.students.map((item) => ({ value: item.id, label: item.fullName }))
+      ? state.students.map((item) => ({ id: item.id, label: item.fullName }))
       : state.paused.map((item) => ({
-          value: item.id,
+          id: item.id,
           label: `${item.student.fullName} · ${item.class.internalCode}`,
         }));
   return (
-    <FormSection title={mode === "ENTRY" ? "Aluno" : "Vínculo pausado"}>
-      <Field>
-        <Label htmlFor="studentSearch">Buscar aluno</Label>
-        <Input
-          id="studentSearch"
-          name="studentSearch"
-          autoComplete="off"
-          placeholder="Nome, documento ou telefone"
-          size="sm"
-          value={state.search}
-          onChange={(event) => state.setSearch(event.target.value)}
-        />
-      </Field>
-      {state.search.length >= 2 && (
-        <NativeSelect
-          name="studentId"
-          label={mode === "ENTRY" ? "Aluno" : "Pausa anterior"}
-          value={state.selectedId}
-          onChange={state.setSelectedId}
-          choices={choices}
-        />
-      )}
-      {state.search.length >= 2 && choices.length === 0 && !state.searching && (
-        <p className="text-caption text-muted-foreground">Nenhum vínculo encontrado.</p>
-      )}
-    </FormSection>
+    <Field name="studentSearch">
+      <Label className="flex items-center gap-1.5">
+        <Search aria-hidden="true" className="size-3.5" />
+        Buscar aluno
+      </Label>
+      <SearchSelect
+        name="studentSearch"
+        placeholder="Nome, documento ou telefone"
+        query={state.search}
+        value={choices.find((choice) => choice.id === state.selectedId) ?? null}
+        options={choices}
+        onQueryChange={state.setSearch}
+        onSelect={(choice) => state.setSelectedId(choice.id)}
+        onClear={() => state.setSearch("")}
+        loading={state.searching}
+        failed={state.searchFailed}
+        disabled={state.pending}
+        openOnFocus
+        emptyMessage="Nenhum aluno encontrado."
+      />
+    </Field>
   );
 }
 function PlacementFields({ mode, state, options, scheduleType }: Props): ReactElement {
   return (
-    <FormSection title="Entrada na turma">
-      <FormRow columns={2}>
+    <div className="grid gap-3">
+      <FormRow>
         <Field>
-          <Label htmlFor="entryDate">Data de entrada</Label>
+          <Label htmlFor="entryDate" className="flex items-center gap-1.5">
+            <CalendarDays aria-hidden="true" className="size-3.5" />
+            Data de entrada
+          </Label>
           <Input
             id="entryDate"
             name="entryDate"
             autoComplete="off"
-            inputMode="numeric"
             placeholder="dd/mm/aaaa"
             size="sm"
-            value={state.date}
-            onChange={(event) => state.setDate(event.target.value)}
+            type="date"
+            value={parseDateBR(state.date) ?? ""}
+            disabled={state.pending}
+            onChange={(event) => {
+              const [year, month, day] = event.target.value.split("-");
+              state.setDate(year && month && day ? `${day}/${month}/${year}` : "");
+            }}
+            onClick={(event) => event.currentTarget.showPicker?.()}
           />
         </Field>
         {scheduleType === "PERSONALIZED" && (
@@ -85,12 +90,12 @@ function PlacementFields({ mode, state, options, scheduleType }: Props): ReactEl
           O retorno inicia uma nova colocação pedagógica e preserva o percurso anterior.
         </p>
       )}
-    </FormSection>
+    </div>
   );
 }
 export function MembershipFields(props: Props): ReactElement {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <StudentChoice mode={props.mode} state={props.state} />
       <PlacementFields {...props} />
     </div>

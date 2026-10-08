@@ -14,6 +14,7 @@ export function ClassesPage(): ReactElement {
     tipo: parseAsString,
     formato: parseAsString,
     professor: parseAsString,
+    estagio: parseAsString,
     semestre: parseAsString,
     estado: parseAsString,
     pagina: parseAsInteger.withDefault(1),

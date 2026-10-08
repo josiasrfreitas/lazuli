@@ -2,20 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { classOccupancyIndicator } from "../../src/features/classes/labels.js";
 
-void test("colors occupancy by its proximity to the reference capacity", () => {
+void test("uses the school-wide thresholds: red from 20 through 25 and purple above 25", () => {
   for (const [occupancy, variant, label] of [
-    [0, "success", "Ocupação baixa"],
-    [3, "success", "Ocupação baixa"],
-    [14, "success", "Ocupação baixa"],
-    [15, "warning", "Ocupação moderada"],
-    [19, "warning", "Ocupação moderada"],
+    [0, "success", "Ocupação tranquila"],
+    [19, "success", "Ocupação tranquila"],
     [20, "destructive", "Ocupação alta"],
-    [21, "destructive", "Ocupação alta"],
+    [24, "destructive", "Ocupação alta"],
+    [25, "destructive", "Ocupação alta"],
+    [26, "over-capacity", "Acima da referência"],
+    [40, "over-capacity", "Acima da referência"],
   ] as const) {
-    assert.deepEqual(classOccupancyIndicator(occupancy, 20), { variant, label });
+    assert.deepEqual(classOccupancyIndicator(occupancy), { variant, label });
   }
-  assert.deepEqual(classOccupancyIndicator(15, 30), {
-    variant: "success",
-    label: "Ocupação baixa",
-  });
 });

@@ -1,3 +1,5 @@
+import { CLASS_REFERENCE_CAPACITY } from "@lazuli/domain";
+import { generateClassInternalCode } from "./internal-code.js";
 import type { Prisma } from "@lazuli/db";
 import type { classCreateInputSchema, z } from "@lazuli/validators";
 
@@ -5,7 +7,7 @@ import { notFound } from "../trpc/errors.js";
 import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
 import { assertTeacherIsActive, loadActiveStage, loadSemester } from "./guards.js";
 import {
-  assertActivePortalClassNameAvailable,
+  resolvePersonalizedPortalClassName,
   resolveRegularPortalClassName,
 } from "./portal-name.js";
 import { timeStringToDate } from "./time.js";
@@ -94,15 +96,16 @@ async function createPersonalizedClass(input: {
   values: ClassCreateInput;
   slotRows: SlotRow[];
 }): Promise<ClassSummary> {
-  const portalClassName = input.values.portalClassName ?? "";
   const semester = await loadSemester({
     database: input.database,
     semesterId: input.values.semesterId ?? "",
   });
 
-  await assertActivePortalClassNameAvailable({
+  const portalClassName = await resolvePersonalizedPortalClassName({
     database: input.database,
-    portalClassName,
+    slots: input.values.slots,
+    semesterName: semester.name,
+    year: input.values.year,
   });
 
   return input.database.class.create({
@@ -125,14 +128,14 @@ function buildClassCreateData(input: {
   slotRows: SlotRow[];
 }): Prisma.ClassUncheckedCreateInput {
   return {
-    internalCode: input.values.internalCode,
+    internalCode: generateClassInternalCode(input.values.year),
     teacherId: input.values.teacherId,
     scheduleType: input.values.scheduleType,
     format: input.values.format,
     sharedStageId: input.sharedStageId,
     semesterId: input.semesterId,
     year: input.values.year,
-    capacity: input.values.capacity,
+    capacity: CLASS_REFERENCE_CAPACITY,
     portalClassName: input.portalClassName,
     originalPortalClassName: input.portalClassName,
     scheduleSlots: { create: input.slotRows },

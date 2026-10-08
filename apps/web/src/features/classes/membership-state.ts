@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
-import { trpc } from "~/lib/trpc";
+import { trpc, type QueryResult } from "~/lib/trpc";
 import type { RouterOutputs } from "@lazuli/api";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
+import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 
 export type MembershipMode = "ENTRY" | "RETURN";
 type MembershipInput = { classId: string; mode: MembershipMode; onDone: () => void };
@@ -21,15 +22,16 @@ type Choice = {
 type MembershipState = Choice & {
   submit: () => void;
   pending: boolean;
-  students: RouterOutputs["students"]["search"];
+  students: RouterOutputs["enrollment"]["searchCandidates"];
   paused: RouterOutputs["enrollment"]["pausedSearch"];
   searching: boolean;
+  searchFailed: boolean;
 };
 function useChoice(): Choice {
   const [search, saveSearch] = useState("");
   const [selectedId, saveSelectedId] = useState("");
   const [stageId, saveStageId] = useState("");
-  const [date, saveDate] = useState("");
+  const [date, saveDate] = useState(() => formatDateOnlyBR(toDateOnlySaoPaulo(new Date())));
   const [error, setError] = useState<string | null>(null);
   return {
     search,
@@ -104,22 +106,43 @@ function useMembershipMutations(
   }
   return { submit, pending: create.isPending || returning.isPending };
 }
+function useEligibleStudents(
+  input: MembershipInput,
+  choice: Choice,
+): QueryResult<MembershipState["students"]> {
+  const entryDate = parseDateBR(choice.date);
+  return trpc.enrollment.searchCandidates.useQuery(
+    {
+      query: choice.search,
+      classId: input.classId,
+      ...(entryDate ? { entryDate: new Date(entryDate) } : {}),
+      ...(choice.stageId ? { stageId: choice.stageId } : {}),
+    },
+    { enabled: input.mode === "ENTRY" && entryDate !== null },
+  );
+}
 export function useMembershipState(input: MembershipInput): MembershipState {
   const choice = useChoice();
-  const studentResults = trpc.students.search.useQuery(
-    { query: choice.search },
-    { enabled: input.mode === "ENTRY" && choice.search.trim().length >= 2 },
-  );
+  const studentResults = useEligibleStudents(input, choice);
   const pausedResults = trpc.enrollment.pausedSearch.useQuery(
     { query: choice.search },
-    { enabled: input.mode === "RETURN" && choice.search.trim().length >= 2 },
+    { enabled: input.mode === "RETURN" },
   );
-  const operations = useMembershipMutations(input, choice);
-  return {
+  const eligibleChoice = {
     ...choice,
+    selectedId:
+      input.mode === "ENTRY" &&
+      !studentResults.data?.some((student) => student.id === choice.selectedId)
+        ? ""
+        : choice.selectedId,
+  };
+  const operations = useMembershipMutations(input, eligibleChoice);
+  return {
+    ...eligibleChoice,
     ...operations,
-    students: studentResults.data?.filter((student) => student.status === "ACTIVE") ?? [],
+    students: studentResults.data ?? [],
     paused: pausedResults.data ?? [],
-    searching: studentResults.isPending || pausedResults.isPending,
+    searching: input.mode === "ENTRY" ? studentResults.isFetching : pausedResults.isFetching,
+    searchFailed: input.mode === "ENTRY" ? studentResults.isError : pausedResults.isError,
   };
 }

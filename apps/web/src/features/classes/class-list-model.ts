@@ -5,6 +5,7 @@ export type ClassListParams = {
   tipo: string | null;
   formato: string | null;
   professor: string | null;
+  estagio: string | null;
   semestre: string | null;
   estado: string | null;
   pagina: number;
@@ -14,6 +15,7 @@ export const CLEAR_CLASS_FILTERS: Partial<ClassListParams> = {
   tipo: null,
   formato: null,
   professor: null,
+  estagio: null,
   semestre: null,
   estado: null,
   pagina: 1,
@@ -35,6 +37,7 @@ export function classListQueryInput(params: ClassListParams): z.infer<typeof cla
     scheduleTypes: selectedValues(params.tipo, fields.scheduleTypes.removeDefault().element),
     formats: selectedValues(params.formato, fields.formats.removeDefault().element),
     teacherIds: selectedValues(params.professor, fields.teacherIds.removeDefault().element),
+    stageIds: selectedValues(params.estagio, fields.stageIds.removeDefault().element),
     semesterIds: selectedValues(params.semestre, fields.semesterIds.removeDefault().element),
     statuses: selectedValues(params.estado, fields.statuses.removeDefault().element),
   };

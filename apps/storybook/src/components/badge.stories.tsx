@@ -9,6 +9,7 @@ const statuses = [
   { label: "Pendente", variant: "warning" },
   { label: "Em atraso", variant: "destructive" },
   { label: "Em análise", variant: "info" },
+  { label: "Acima da referência", variant: "over-capacity" },
 ] as const;
 
 const meta = {
@@ -22,7 +23,7 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["neutral", "success", "warning", "destructive", "info"],
+      options: ["neutral", "success", "warning", "destructive", "info", "over-capacity"],
     },
   },
   parameters: {

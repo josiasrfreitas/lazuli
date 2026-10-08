@@ -1,3 +1,5 @@
+import { classOccupancyLevel } from "@lazuli/domain";
+
 export function formatScheduleType(value: "REGULAR" | "PERSONALIZED"): string {
   return value === "REGULAR" ? "Regular" : "PPT";
 }
@@ -45,19 +47,18 @@ export function formatClassSchedule(slots: readonly ScheduleSlot[]): string {
   return [...groups].map(([interval, days]) => `${days.join("/")} • ${interval}`).join(", ");
 }
 
-const OCCUPANCY_WARNING_RATIO = 0.75;
-const OCCUPANCY_HIGH_RATIO = 1;
+const OCCUPANCY_INDICATORS = {
+  normal: { variant: "success", label: "Ocupação tranquila" },
+  high: { variant: "destructive", label: "Ocupação alta" },
+  over: { variant: "over-capacity", label: "Acima da referência" },
+} as const;
+export function classOccupancyIndicator(occupancy: number): {
+  variant: "success" | "destructive" | "over-capacity";
+  label: string;
+} {
+  return OCCUPANCY_INDICATORS[classOccupancyLevel(occupancy)];
+}
 
-export function classOccupancyIndicator(
-  occupancy: number,
-  capacity: number,
-): { variant: "success" | "warning" | "destructive"; label: string } {
-  const ratio = occupancy / capacity;
-  if (ratio >= OCCUPANCY_HIGH_RATIO) {
-    return { variant: "destructive", label: "Ocupação alta" } as const;
-  }
-  if (ratio >= OCCUPANCY_WARNING_RATIO) {
-    return { variant: "warning", label: "Ocupação moderada" } as const;
-  }
-  return { variant: "success", label: "Ocupação baixa" } as const;
+export function formatTrackName(name: string): string {
+  return name.replace(/\s+Main$/iu, "");
 }

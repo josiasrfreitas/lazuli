@@ -9,6 +9,7 @@ export { resolveSemesterForDate, SemesterBucketError } from "./semester.js";
 export type { SemesterBucketErrorCode, SemesterWindow } from "./semester.js";
 export {
   generateRegularPortalClassName,
+  generatePersonalizedPortalClassName,
   type GenerateRegularPortalClassNameInput,
   type PortalClassNameSlot,
   type Weekday,
@@ -90,3 +91,4 @@ export {
   type SettlementInput,
   type SettlementQuote,
 } from "./payment-settlement.js";
+export { CLASS_REFERENCE_CAPACITY, classOccupancyLevel } from "./class-occupancy.js";

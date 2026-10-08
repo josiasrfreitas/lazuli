@@ -71,7 +71,7 @@ function SlotFields(props: SlotProps): ReactElement {
     </div>
   );
 }
-function YearCapacityFields({ draft, change, errors }: ClassFieldsProps): ReactElement {
+function YearField({ draft, change, errors }: ClassFieldsProps): ReactElement {
   return (
     <FormRow columns={2}>
       <TextControl
@@ -81,15 +81,6 @@ function YearCapacityFields({ draft, change, errors }: ClassFieldsProps): ReactE
         value={draft.year}
         onChange={(value) => change("year", value)}
         error={errors.year}
-        inputMode="numeric"
-      />
-      <TextControl
-        name="capacity"
-        label="Capacidade de referência"
-        placeholder="20"
-        value={draft.capacity}
-        onChange={(value) => change("capacity", value)}
-        error={errors.capacity}
         inputMode="numeric"
       />
     </FormRow>
@@ -105,7 +96,7 @@ export function ScheduleFields(props: ClassFieldsProps): ReactElement {
   }
   return (
     <>
-      <YearCapacityFields {...props} />
+      <YearField {...props} />
       {draft.slots.map((slot, index) => (
         <SlotFields
           key={`${slot.weekday}-${index}`}

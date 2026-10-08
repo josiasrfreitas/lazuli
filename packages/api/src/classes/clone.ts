@@ -1,3 +1,5 @@
+import { CLASS_REFERENCE_CAPACITY } from "@lazuli/domain";
+import { generateClassInternalCode } from "./internal-code.js";
 import type { Prisma } from "@lazuli/db";
 import { findNextStageInTrack } from "@lazuli/domain";
 
@@ -40,7 +42,6 @@ type SourceClass = Prisma.ClassGetPayload<{ include: typeof sourceClassInclude }
 export async function cloneClassForNextPeriod(input: {
   database: ClassDatabase;
   id: string;
-  internalCode: string;
   semesterId: string;
   year: number;
   sharedStageId?: string;
@@ -175,21 +176,21 @@ async function resolveSuccessorStageId(input: {
 }
 
 function buildSuccessorCreateData(input: {
-  input: { internalCode: string; year: number };
+  input: { year: number };
   source: SourceClass;
   successorStageId: string | null;
   semesterId: string;
   portalClassName: string;
 }): Prisma.ClassUncheckedCreateInput {
   return {
-    internalCode: input.input.internalCode,
+    internalCode: generateClassInternalCode(input.input.year),
     teacherId: input.source.teacherId,
     scheduleType: input.source.scheduleType,
     format: input.source.format,
     sharedStageId: input.successorStageId,
     semesterId: input.semesterId,
     year: input.input.year,
-    capacity: input.source.capacity,
+    capacity: CLASS_REFERENCE_CAPACITY,
     previousClassId: input.source.id,
     portalClassName: input.portalClassName,
     originalPortalClassName: input.portalClassName,

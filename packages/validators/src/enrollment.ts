@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-import { dateOnlyInputSchema } from "./student.js";
+import { dateOnlyInputSchema, studentSearchInputSchema } from "./student.js";
 
 const CAPACITY_OVERRIDE_REASON_EMPTY_MESSAGE =
   "Motivo de excecao de capacidade nao pode ser vazio.";
 const INVALID_ENROLLMENT_ID_MESSAGE = "Identificador de matricula invalido.";
-const MAX_PAUSED_SEARCH_LENGTH = 80;
+const MAX_ENROLLMENT_SEARCH_LENGTH = 80;
 const INVALID_CLASS_ID_MESSAGE = "Identificador de turma invalido.";
 
 const enrollmentIdSchema = z.string().uuid(INVALID_ENROLLMENT_ID_MESSAGE);
@@ -25,6 +25,15 @@ export const enrollmentCreateInputSchema = z
     classId: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
     entryDate: dateOnlyInputSchema.optional(),
     stageId: z.string().uuid("Identificador de etapa invalido.").optional(),
+  })
+  .strict();
+
+export const enrollmentCandidateSearchInputSchema = studentSearchInputSchema
+  .extend({
+    query: z.string().trim().max(MAX_ENROLLMENT_SEARCH_LENGTH).default(""),
+    classId: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
+    entryDate: dateOnlyInputSchema.optional(),
+    stageId: z.string().uuid().optional(),
   })
   .strict();
 
@@ -95,5 +104,5 @@ export const enrollmentCorrectionApplyInputSchema = enrollmentCorrectionPreviewI
   .strict();
 
 export const enrollmentPausedSearchInputSchema = z
-  .object({ query: z.string().trim().min(1).max(MAX_PAUSED_SEARCH_LENGTH) })
+  .object({ query: z.string().trim().max(MAX_ENROLLMENT_SEARCH_LENGTH).default("") })
   .strict();

@@ -1,5 +1,5 @@
 import type { Prisma } from "@lazuli/db";
-import { saoPauloDateOnly } from "@lazuli/domain";
+import { CLASS_REFERENCE_CAPACITY, saoPauloDateOnly } from "@lazuli/domain";
 import type { classListInputSchema, z } from "@lazuli/validators";
 
 import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
@@ -14,7 +14,7 @@ type ListInput = z.infer<typeof classListInputSchema>;
 const classInclude = {
   teacher: { select: { id: true, name: true } },
   semester: { select: { id: true, name: true } },
-  sharedStage: { select: { id: true, name: true } },
+  sharedStage: { select: { id: true, name: true, track: { select: { name: true } } } },
   scheduleSlots: {
     where: { deletedAt: null },
     select: { id: true, weekday: true, startTime: true, endTime: true },
@@ -35,7 +35,7 @@ function currentEnrollmentWhere(today: Date): Prisma.EnrollmentWhereInput {
   };
 }
 function classWhere(values: ListInput): Prisma.ClassWhereInput {
-  const { search, scheduleTypes, formats, teacherIds, semesterIds, statuses } = values;
+  const { search, scheduleTypes, formats, teacherIds, stageIds, semesterIds, statuses } = values;
   return {
     deletedAt: null,
     ...(search
@@ -50,6 +50,9 @@ function classWhere(values: ListInput): Prisma.ClassWhereInput {
     ...(scheduleTypes.length > 0 ? { scheduleType: { in: scheduleTypes } } : {}),
     ...(formats.length > 0 ? { format: { in: formats } } : {}),
     ...(teacherIds.length > 0 ? { teacherId: { in: teacherIds } } : {}),
+    ...(stageIds.length > 0
+      ? { AND: [{ scheduleType: "REGULAR", sharedStageId: { in: stageIds } }] }
+      : {}),
     ...(semesterIds.length > 0 ? { semesterId: { in: semesterIds } } : {}),
     ...(statuses.length > 0 ? { status: { in: statuses } } : {}),
   };
@@ -82,7 +85,11 @@ export async function listClasses(input: {
     input.database.class.count({ where }),
   ]);
   return {
-    rows: rows.map(({ _count, ...row }) => ({ ...row, occupancy: _count.enrollments })),
+    rows: rows.map(({ _count, ...row }) => ({
+      ...row,
+      capacity: CLASS_REFERENCE_CAPACITY,
+      occupancy: _count.enrollments,
+    })),
     page,
     pageSize,
     pageCount: Math.max(1, Math.ceil(total / pageSize)),
@@ -113,6 +120,7 @@ export async function readClass(input: {
   ]);
   return {
     ...row,
+    capacity: CLASS_REFERENCE_CAPACITY,
     occupancy,
     scheduledEntries,
   };
@@ -124,10 +132,10 @@ const rosterSelect = {
   entryDate: true,
   exitDate: true,
   exitReason: true,
-  student: { select: { fullName: true } },
+  student: { select: { fullName: true, phone: true, birthDate: true } },
   progressRecords: {
     where: { deletedAt: null },
-    select: { stage: { select: { name: true } } },
+    select: { stage: { select: { name: true, track: { select: { name: true } } } } },
     orderBy: { startDate: "desc" },
     take: 1,
   },

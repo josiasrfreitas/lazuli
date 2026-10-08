@@ -2,7 +2,7 @@
 import type { ReactElement } from "react";
 import { Field, FormRow, Label, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
 import type { ClassFieldsProps } from "./create-fields";
-import { NativeSelect, TextControl } from "./form-controls";
+import { NativeSelect } from "./form-controls";
 
 function TypeAndFormat({
   draft,
@@ -42,35 +42,6 @@ function TypeAndFormat({
   );
 }
 
-function ClassCodes({
-  draft,
-  change,
-  errors,
-}: Pick<ClassFieldsProps, "draft" | "change" | "errors">): ReactElement {
-  return (
-    <FormRow columns={2}>
-      <TextControl
-        name="internalCode"
-        label="Código interno"
-        placeholder="Ex.: REG-2026-01"
-        value={draft.internalCode}
-        onChange={(value) => change("internalCode", value)}
-        error={errors.internalCode}
-      />
-      {draft.scheduleType === "PERSONALIZED" && (
-        <TextControl
-          name="portalClassName"
-          label="Nome no Portal"
-          placeholder="Ex.: PPT Ana"
-          value={draft.portalClassName}
-          onChange={(value) => change("portalClassName", value)}
-          error={errors.portalClassName}
-        />
-      )}
-    </FormRow>
-  );
-}
-
 function PeopleAndStage({
   draft,
   change,
@@ -97,7 +68,7 @@ function PeopleAndStage({
       {draft.scheduleType === "REGULAR" && (
         <NativeSelect
           name="sharedStageId"
-          label="Etapa compartilhada"
+          label="Estágio compartilhado"
           value={draft.sharedStageId}
           onChange={(value) => change("sharedStageId", value)}
           choices={options.stages.map((item) => ({
@@ -114,7 +85,6 @@ export function OrganizationFields(props: ClassFieldsProps): ReactElement {
   return (
     <>
       <TypeAndFormat {...props} />
-      <ClassCodes {...props} />
       <PeopleAndStage {...props} />
     </>
   );

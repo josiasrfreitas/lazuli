@@ -79,6 +79,8 @@
   --color-warning-muted: var(--warning-muted);
   --color-info: var(--info);
   --color-info-muted: var(--info-muted);
+  --color-over-capacity: var(--over-capacity);
+  --color-over-capacity-muted: var(--over-capacity-muted);
   --color-destructive-muted: var(--destructive-muted);
   --color-overlay: var(--overlay);
   --color-scrollbar-track: var(--scrollbar-track);

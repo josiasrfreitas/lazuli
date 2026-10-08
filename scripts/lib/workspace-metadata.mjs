@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rm } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
@@ -14,6 +14,7 @@ export const STORYBOOK_PORT_RANGE = { start: 6006, end: 6999 };
 const WORKSPACE_ALLOCATION_LOCK_NAME = "lazuli-workspace-allocation.lock";
 const WORKSPACE_ALLOCATION_LOCK_RETRY_MS = 25;
 const WORKSPACE_ALLOCATION_LOCK_TIMEOUT_MS = 10_000;
+const WORKSPACE_ALLOCATION_OWNER_GRACE_MS = 1_000;
 
 export function normalizeWorkspaceIdentity(directoryName) {
   return directoryName
@@ -197,9 +198,17 @@ export async function withWorkspaceAllocationLock(root, callback) {
   while (true) {
     try {
       await mkdir(lockPath);
+      await writeFile(
+        path.join(lockPath, "owner.json"),
+        JSON.stringify({ pid: process.pid, startedAt: processStartedAt(process.pid) }),
+      );
       break;
     } catch (error) {
       if (error.code !== "EEXIST") throw error;
+      if (await allocationOwnerIsDead(lockPath)) {
+        await rm(lockPath, { force: true, recursive: true });
+        continue;
+      }
       if (Date.now() >= deadline) {
         throw new Error(
           "timed out waiting for another workspace setup to finish allocating identity and ports",
@@ -214,6 +223,29 @@ export async function withWorkspaceAllocationLock(root, callback) {
   } finally {
     await rm(lockPath, { force: true, recursive: true });
   }
+}
+
+function processStartedAt(pid) {
+  const result = spawnSync("ps", ["-p", String(pid), "-o", "lstart="], { encoding: "utf8" });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
+async function allocationOwnerIsDead(lockPath) {
+  let owner;
+  try {
+    owner = JSON.parse(await readFile(path.join(lockPath, "owner.json"), "utf8"));
+  } catch (error) {
+    if (error.code !== "ENOENT") return false;
+    try {
+      const lock = await stat(lockPath);
+      return Date.now() - lock.birthtimeMs > WORKSPACE_ALLOCATION_OWNER_GRACE_MS;
+    } catch {
+      return false;
+    }
+  }
+  if (!Number.isInteger(owner.pid) || typeof owner.startedAt !== "string") return false;
+  const actualStart = processStartedAt(owner.pid);
+  return actualStart === null || actualStart !== owner.startedAt;
 }
 
 export async function registeredWorkspaces(root) {

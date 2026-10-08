@@ -7,6 +7,7 @@ import {
   enrollmentCorrectionApplyInputSchema,
   enrollmentPausedSearchInputSchema,
   enrollmentCreateInputSchema,
+  enrollmentCandidateSearchInputSchema,
   enrollmentTransferInputSchema,
 } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
@@ -19,9 +20,25 @@ import { returnEnrollment } from "./return.js";
 import { applyEnrollmentCorrection, previewEnrollmentCorrection } from "./correction.js";
 import { createEnrollment } from "./data.js";
 import { transferEnrollment } from "./transfer.js";
+import { searchEnrollmentCandidates } from "./search-candidates.js";
+import { TRACK_ENROLLMENT_CONFLICT_MESSAGE } from "./errors.js";
+import { badRequest } from "../trpc/errors.js";
+
+const enrollmentProcedure = adminProcedure.use(async ({ next }) => {
+  const result = await next();
+  if (!result.ok && result.error.message.includes("Enrollment_active_student_track_key")) {
+    throw badRequest(TRACK_ENROLLMENT_CONFLICT_MESSAGE);
+  }
+  return result;
+});
 
 export const enrollmentRouter = router({
-  create: adminProcedure.input(enrollmentCreateInputSchema).mutation(({ ctx, input }) =>
+  searchCandidates: enrollmentProcedure
+    .input(enrollmentCandidateSearchInputSchema)
+    .query(({ ctx, input }) =>
+      searchEnrollmentCandidates({ database: ctx.db, values: input, now: ctx.now ?? new Date() }),
+    ),
+  create: enrollmentProcedure.input(enrollmentCreateInputSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) =>
       createEnrollment({
         database,
@@ -31,14 +48,14 @@ export const enrollmentRouter = router({
       }),
     ),
   ),
-  advanceStage: adminProcedure
+  advanceStage: enrollmentProcedure
     .input(enrollmentAdvanceStageInputSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) =>
         advanceStage({ database, enrollmentId: input.enrollmentId, now: ctx.now ?? new Date() }),
       ),
     ),
-  close: adminProcedure.input(enrollmentCloseInputSchema).mutation(({ ctx, input }) =>
+  close: enrollmentProcedure.input(enrollmentCloseInputSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) =>
       closeEnrollment({
         database,
@@ -50,7 +67,7 @@ export const enrollmentRouter = router({
       }),
     ),
   ),
-  cancelScheduled: adminProcedure
+  cancelScheduled: enrollmentProcedure
     .input(enrollmentCancelScheduledInputSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) =>
@@ -62,7 +79,7 @@ export const enrollmentRouter = router({
         }),
       ),
     ),
-  return: adminProcedure.input(enrollmentReturnInputSchema).mutation(({ ctx, input }) =>
+  return: enrollmentProcedure.input(enrollmentReturnInputSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) =>
       returnEnrollment({
         database,
@@ -72,12 +89,12 @@ export const enrollmentRouter = router({
       }),
     ),
   ),
-  previewCorrection: adminProcedure
+  previewCorrection: enrollmentProcedure
     .input(enrollmentCorrectionPreviewInputSchema)
     .query(({ ctx, input }) =>
       previewEnrollmentCorrection({ database: ctx.db, values: input, now: ctx.now ?? new Date() }),
     ),
-  applyCorrection: adminProcedure
+  applyCorrection: enrollmentProcedure
     .input(enrollmentCorrectionApplyInputSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction(
@@ -91,32 +108,34 @@ export const enrollmentRouter = router({
         { isolationLevel: "Serializable" },
       ),
     ),
-  pausedSearch: adminProcedure.input(enrollmentPausedSearchInputSchema).query(({ ctx, input }) =>
-    ctx.db.enrollment.findMany({
-      where: {
-        deletedAt: null,
-        exitReason: "SUSPENDED",
-        exitDate: { lte: new Date(saoPauloDateOnly(ctx.now ?? new Date())) },
-        student: { fullName: { contains: input.query, mode: "insensitive" } },
-        returnActions: { none: { status: { in: ["SCHEDULED", "APPLIED"] } } },
-      },
-      select: {
-        id: true,
-        student: { select: { fullName: true } },
-        class: { select: { internalCode: true } },
-        exitDate: true,
-        progressRecords: {
-          where: { deletedAt: null },
-          select: { stage: { select: { name: true } } },
-          orderBy: { startDate: "desc" },
-          take: 1,
+  pausedSearch: enrollmentProcedure
+    .input(enrollmentPausedSearchInputSchema)
+    .query(({ ctx, input }) =>
+      ctx.db.enrollment.findMany({
+        where: {
+          deletedAt: null,
+          exitReason: "SUSPENDED",
+          exitDate: { lte: new Date(saoPauloDateOnly(ctx.now ?? new Date())) },
+          student: { fullName: { contains: input.query, mode: "insensitive" } },
+          returnActions: { none: { status: { in: ["SCHEDULED", "APPLIED"] } } },
         },
-      },
-      orderBy: { exitDate: "desc" },
-      take: 20,
-    }),
-  ),
-  transfer: adminProcedure
+        select: {
+          id: true,
+          student: { select: { fullName: true } },
+          class: { select: { internalCode: true } },
+          exitDate: true,
+          progressRecords: {
+            where: { deletedAt: null },
+            select: { stage: { select: { name: true } } },
+            orderBy: { startDate: "desc" },
+            take: 1,
+          },
+        },
+        orderBy: { exitDate: "desc" },
+        take: 20,
+      }),
+    ),
+  transfer: enrollmentProcedure
     .input(enrollmentTransferInputSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) => transferEnrollment({ database, values: input })),
