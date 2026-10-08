@@ -15,8 +15,7 @@ import {
 
 import { adminProcedure, router } from "../trpc/init.js";
 import { createStudent, readStudentProfile, searchStudents, updateStudentContact } from "./data.js";
-import { listStudents } from "./list.js";
-import { previewStudent } from "./preview.js";
+import { listStudents, previewStudent } from "./list.js";
 import { setStudentStatus } from "./status.js";
 import { completeStudent } from "./completion.js";
 
