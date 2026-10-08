@@ -12,7 +12,7 @@ import {
   type EnrollmentSummary,
   type ProgressSummary,
 } from "./data.js";
-import { badRequest, notFound } from "./errors.js";
+import { badRequest, notFound } from "../trpc/errors.js";
 
 async function pausedSource(input: {
   database: EnrollmentDatabase;

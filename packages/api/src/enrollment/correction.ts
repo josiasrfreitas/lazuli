@@ -7,7 +7,7 @@ import type {
   z,
 } from "@lazuli/validators";
 import { dateOnlyUtc } from "./effective-date.js";
-import { badRequest, notFound } from "./errors.js";
+import { badRequest, notFound } from "../trpc/errors.js";
 
 type Database = Pick<
   Prisma.TransactionClient,

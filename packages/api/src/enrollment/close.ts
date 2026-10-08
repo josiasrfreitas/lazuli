@@ -1,7 +1,8 @@
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { dateOnlyUtc } from "./effective-date.js";
 import { closeActiveEnrollment, loadActiveEnrollment, type EnrollmentDatabase } from "./data.js";
-import { ENROLLMENT_ALREADY_CLOSED_MESSAGE, badRequest } from "./errors.js";
+import { ENROLLMENT_ALREADY_CLOSED_MESSAGE } from "./errors.js";
+import { badRequest } from "../trpc/errors.js";
 
 export type CloseEnrollmentReason = "DROPPED" | "SUSPENDED";
 

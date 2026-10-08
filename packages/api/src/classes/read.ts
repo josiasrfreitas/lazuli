@@ -2,7 +2,8 @@ import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { classListInputSchema, z } from "@lazuli/validators";
 
-import { CLASS_NOT_FOUND_MESSAGE, notFound } from "./errors.js";
+import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
+import { notFound } from "../trpc/errors.js";
 
 type Database = Pick<
   Prisma.TransactionClient,

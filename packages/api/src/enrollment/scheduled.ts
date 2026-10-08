@@ -3,7 +3,7 @@ import { lockStudentEnrollment } from "./data.js";
 import { dateOnlyUtc } from "./effective-date.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
 
-import { badRequest, notFound } from "./errors.js";
+import { badRequest, notFound } from "../trpc/errors.js";
 
 type Database = Pick<
   Prisma.TransactionClient,
