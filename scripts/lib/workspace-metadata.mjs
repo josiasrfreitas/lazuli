@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
-import { setTimeout as wait } from "node:timers/promises";
+import { withAllocationQueue } from "./workspace-allocation-lock.mjs";
 
 export const WORKSPACE_METADATA_PATH = ".lazuli/workspace.json";
 export const WORKSPACE_SCHEMA_VERSION = 2;
@@ -12,9 +12,6 @@ export const MAX_WORKSPACE_IDENTITY_LENGTH = 56;
 export const WEB_PORT_RANGE = { start: 3000, end: 3999 };
 export const STORYBOOK_PORT_RANGE = { start: 6006, end: 6999 };
 const WORKSPACE_ALLOCATION_LOCK_NAME = "lazuli-workspace-allocation.lock";
-const WORKSPACE_ALLOCATION_LOCK_RETRY_MS = 25;
-const WORKSPACE_ALLOCATION_LOCK_TIMEOUT_MS = 10_000;
-const WORKSPACE_ALLOCATION_OWNER_GRACE_MS = 1000;
 
 export function normalizeWorkspaceIdentity(directoryName) {
   return directoryName
@@ -193,75 +190,8 @@ function workspaceAllocationLockPath(root) {
 }
 
 export async function withWorkspaceAllocationLock(root, callback) {
-  const lockPath = workspaceAllocationLockPath(root);
-  const deadline = Date.now() + WORKSPACE_ALLOCATION_LOCK_TIMEOUT_MS;
-  while (true) {
-    try {
-      await mkdir(lockPath);
-      await writeFile(
-        path.join(lockPath, "owner.json"),
-        JSON.stringify({ pid: process.pid, startedAt: processStartedAt(process.pid) }),
-      );
-      break;
-    } catch (error) {
-      if (error.code !== "EEXIST") throw error;
-      if (await recoverAllocationLock(lockPath)) continue;
-      if (Date.now() >= deadline) {
-        throw new Error(
-          "timed out waiting for another workspace setup to finish allocating identity and ports",
-          { cause: error },
-        );
-      }
-      await wait(WORKSPACE_ALLOCATION_LOCK_RETRY_MS);
-    }
-  }
-  try {
-    return await callback();
-  } finally {
-    await rm(lockPath, { force: true, recursive: true });
-  }
-}
-
-async function recoverAllocationLock(lockPath) {
-  // Serialize recovery and re-read ownership after admission. A stale waiter
-  // must never remove the live lock acquired after another waiter recovered it.
-  const recoveryPath = `${lockPath}.recovery`;
-  try {
-    await mkdir(recoveryPath);
-  } catch (error) {
-    if (error.code === "EEXIST") return false;
-    throw error;
-  }
-  try {
-    if (!(await allocationOwnerIsDead(lockPath))) return false;
-    await rm(lockPath, { force: true, recursive: true });
-    return true;
-  } finally {
-    await rm(recoveryPath, { force: true, recursive: true });
-  }
-}
-
-function processStartedAt(pid) {
-  const result = spawnSync("ps", ["-p", String(pid), "-o", "lstart="], { encoding: "utf8" });
-  return result.status === 0 ? result.stdout.trim() : null;
-}
-
-async function allocationOwnerIsDead(lockPath) {
-  let owner;
-  try {
-    owner = JSON.parse(await readFile(path.join(lockPath, "owner.json"), "utf8"));
-  } catch (error) {
-    if (error.code !== "ENOENT") return false;
-    try {
-      const lock = await stat(lockPath);
-      return Date.now() - lock.birthtimeMs > WORKSPACE_ALLOCATION_OWNER_GRACE_MS;
-    } catch {
-      return false;
-    }
-  }
-  if (!Number.isInteger(owner.pid) || typeof owner.startedAt !== "string") return false;
-  const actualStart = processStartedAt(owner.pid);
-  return actualStart === null || actualStart !== owner.startedAt;
+  const legacyDirectory = workspaceAllocationLockPath(root);
+  return withAllocationQueue({ directory: `${legacyDirectory}.queue`, legacyDirectory }, callback);
 }
 
 export async function registeredWorkspaces(root) {

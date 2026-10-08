@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import http from "node:http";
 import { tmpdir } from "node:os";
@@ -348,7 +348,7 @@ it("revalidates an orphan after the allocation lock admits a colliding worktree"
 
 it("recovers an allocation lock left by a terminated process", async (context) => {
   const directory = await fixture(context, "lazuli-dead-allocation-owner");
-  const lockPath = path.join(directory, ".git/lazuli-workspace-allocation.lock");
+  const lockPath = path.join(directory, ".git/lazuli-workspace-allocation.lock.queue");
   const { withWorkspaceAllocationLock } = await import("../lib/workspace-metadata.mjs");
   const child = spawn(
     process.execPath,
@@ -369,7 +369,7 @@ it("recovers an allocation lock left by a terminated process", async (context) =
   });
 
   assert.equal(entered, true);
-  await assert.rejects(stat(lockPath), { code: "ENOENT" });
+  assert.deepEqual(await readdir(lockPath), []);
 });
 
 it("removes only full resources bearing this workspace ownership markers", async (context) => {
