@@ -43,13 +43,7 @@ function actionControl(row: HistoryRow, input: Controls): ReactNode {
     );
   return null;
 }
-export function ActionHistoryEntry({
-  row,
-  controls,
-}: {
-  row: HistoryRow;
-  controls: Controls;
-}): ReactElement {
+export function ActionHistoryEntry({ row, controls }: ActionHistoryEntryInput): ReactElement {
   const Icon = icons[row.kind];
   return (
     <li className="relative flex gap-3 pb-5">
@@ -66,12 +60,7 @@ export function ActionHistoryEntry({
             <span className="text-muted-foreground"> · {kindLabel[row.kind]}</span>
           </p>
           <div className="flex shrink-0 items-center gap-1">
-            <time
-              className="font-numeric text-caption tabular-nums text-muted-foreground"
-              dateTime={row.effectiveDate.toISOString().slice(0, DATE_LENGTH)}
-            >
-              {row.effectiveDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-            </time>
+            <ActionEffectiveDate row={row} />
             {row.status === "APPLIED" && row.kind !== "CORRECTION" && (
               <Button
                 size="icon-sm"
@@ -99,3 +88,22 @@ export function ActionHistoryEntry({
     </li>
   );
 }
+
+type ActionEffectiveDateProps = {
+  row: HistoryRow;
+};
+function ActionEffectiveDate(props: ActionEffectiveDateProps): ReactElement {
+  return (
+    <time
+      className="font-numeric text-caption tabular-nums text-muted-foreground"
+      dateTime={props.row.effectiveDate.toISOString().slice(0, DATE_LENGTH)}
+    >
+      {props.row.effectiveDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+    </time>
+  );
+}
+
+type ActionHistoryEntryInput = {
+  row: HistoryRow;
+  controls: Controls;
+};

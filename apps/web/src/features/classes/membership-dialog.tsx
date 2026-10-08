@@ -34,17 +34,7 @@ function MembershipForm({
   state,
   options,
   submit,
-}: {
-  mode: MembershipMode;
-  scheduleType: Props["scheduleType"];
-  state: ReturnType<typeof useMembershipState>;
-  options: {
-    data: RouterOutputs["classes"]["formOptions"] | undefined;
-    isPending: boolean;
-    isError: boolean;
-  };
-  submit: (event: FormEvent<HTMLFormElement>) => void;
-}): ReactElement {
+}: MembershipFormInput): ReactElement {
   return (
     <DialogBody className="mt-4">
       <form id="membership-form" noValidate onSubmit={submit}>
@@ -83,14 +73,7 @@ function MembershipBody({
       }
       ref={popup}
     >
-      <DialogHeader>
-        <DialogTitle>{mode === "ENTRY" ? "Matricular aluno" : "Retornar aluno"}</DialogTitle>
-        <DialogDescription>
-          {scheduleType === "PERSONALIZED"
-            ? "Escolha o aluno, a data de entrada e a etapa individual."
-            : "Escolha o aluno e a data de entrada."}
-        </DialogDescription>
-      </DialogHeader>
+      <MembershipHeader mode={mode} scheduleType={scheduleType} />
       <MembershipForm
         mode={mode}
         scheduleType={scheduleType}
@@ -137,3 +120,29 @@ export function MembershipDialog({
     </Dialog>
   );
 }
+
+type MembershipHeaderProps = { mode: MembershipMode; scheduleType: "REGULAR" | "PERSONALIZED" };
+function MembershipHeader(props: MembershipHeaderProps): ReactElement {
+  return (
+    <DialogHeader>
+      <DialogTitle>{props.mode === "ENTRY" ? "Matricular aluno" : "Retornar aluno"}</DialogTitle>
+      <DialogDescription>
+        {props.scheduleType === "PERSONALIZED"
+          ? "Escolha o aluno, a data de entrada e a etapa individual."
+          : "Escolha o aluno e a data de entrada."}
+      </DialogDescription>
+    </DialogHeader>
+  );
+}
+
+type MembershipFormInput = {
+  mode: MembershipMode;
+  scheduleType: Props["scheduleType"];
+  state: ReturnType<typeof useMembershipState>;
+  options: {
+    data: RouterOutputs["classes"]["formOptions"] | undefined;
+    isPending: boolean;
+    isError: boolean;
+  };
+  submit: (event: FormEvent<HTMLFormElement>) => void;
+};

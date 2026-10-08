@@ -3,7 +3,7 @@
   "display": "Lazuli base",
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "ES2023.Array"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "moduleDetection": "force",

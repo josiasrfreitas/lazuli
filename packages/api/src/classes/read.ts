@@ -1,7 +1,6 @@
 import type { Prisma } from "@lazuli/db";
 import { CLASS_REFERENCE_CAPACITY, saoPauloDateOnly } from "@lazuli/domain";
 import type { classListInputSchema, z } from "@lazuli/validators";
-
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
 import { notFound } from "../trpc/errors.js";
@@ -63,30 +62,15 @@ function classWhere(values: ListInput): Prisma.ClassWhereInput {
     ...(statuses.length > 0 ? { status: { in: statuses } } : {}),
   };
 }
-export async function listClasses(input: {
-  database: Database;
-  values: ListInput;
-  now: Date;
-}): Promise<
+export async function listClasses(
+  input: ListClassesInput,
+): Promise<
   Page<ClassBase & { occupancy: number; currentTeacher: { id: string; name: string } | null }>
 > {
   const today = new Date(saoPauloDateOnly(input.now));
   const { page, pageSize } = input.values;
   const where = classWhere(input.values);
-  if (input.values.teacherIds.length) {
-    const candidates = await input.database.class.findMany({
-      where,
-      select: { id: true, ...responsibilitySelect },
-    });
-    where.id = {
-      in: candidates
-        .filter((row) => {
-          const teacher = usualTeacherOn(row, today);
-          return teacher && input.values.teacherIds.includes(teacher.id);
-        })
-        .map((row) => row.id),
-    };
-  }
+  await applyClassTeacherFilter({ ...input, today, where });
   const [rows, total] = await Promise.all([
     input.database.class.findMany({
       where,
@@ -120,7 +104,7 @@ export async function listClasses(input: {
   };
 }
 
-export async function readClass(input: { database: Database; id: string; now: Date }): Promise<
+export async function readClass(input: ReadClassInput): Promise<
   ClassBase & {
     occupancy: number;
     scheduledEntries: number;
@@ -242,12 +226,9 @@ const actionSelect = {
   cancelledBy: { select: { name: true } },
   enrollment: { select: { student: { select: { fullName: true } } } },
 } satisfies Prisma.EnrollmentActionSelect;
-export async function listClassActions(input: {
-  database: Database;
-  id: string;
-  page: number;
-  pageSize: number;
-}): Promise<Page<Prisma.EnrollmentActionGetPayload<{ select: typeof actionSelect }>>> {
+export async function listClassActions(
+  input: ListClassActionsInput,
+): Promise<Page<Prisma.EnrollmentActionGetPayload<{ select: typeof actionSelect }>>> {
   const exists = await input.database.class.count({ where: { id: input.id, deletedAt: null } });
   if (exists === 0) throw notFound(CLASS_NOT_FOUND_MESSAGE);
   const where: Prisma.EnrollmentActionWhereInput = { enrollment: { classId: input.id } };
@@ -303,3 +284,40 @@ export async function classFormOptions(database: Database): Promise<{
   ]);
   return { teachers, semesters, stages };
 }
+
+async function applyClassTeacherFilter(input: ApplyClassTeacherFilterInput): Promise<void> {
+  const { where, today } = input;
+  if (input.values.teacherIds.length > 0) {
+    const candidates = await input.database.class.findMany({
+      where,
+      select: { id: true, ...responsibilitySelect },
+    });
+    where.id = {
+      in: candidates
+        .filter((row) => {
+          const teacher = usualTeacherOn(row, today);
+          return teacher && input.values.teacherIds.includes(teacher.id);
+        })
+        .map((row) => row.id),
+    };
+  }
+}
+
+type ListClassesInput = {
+  database: Database;
+  values: ListInput;
+  now: Date;
+};
+type ReadClassInput = { database: Database; id: string; now: Date };
+type ListClassActionsInput = {
+  database: Database;
+  id: string;
+  page: number;
+  pageSize: number;
+};
+type ApplyClassTeacherFilterInput = {
+  database: Database;
+  values: ListInput;
+  today: Date;
+  where: Prisma.ClassWhereInput;
+};

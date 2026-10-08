@@ -8,17 +8,16 @@ import {
   lockTeacher,
 } from "./availability.js";
 import { freezeStartedMeetings } from "./freeze-today.js";
-import { meetingKey, meetingsBetween } from "./schedule.js";
+import { meetingKey, meetingsBetween, type TeacherMeeting } from "./schedule.js";
+const ISO_DATE_LENGTH = 10;
+const DAY_MILLISECONDS = 86_400_000;
 
 type Database = Prisma.TransactionClient;
-const dateOnly = (date: Date): string => date.toISOString().slice(0, 10);
+const dateOnly = (date: Date): string => date.toISOString().slice(0, ISO_DATE_LENGTH);
 const utcDate = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
 
-export async function createTeacher(input: {
-  database: Database;
-  values: { name: string; cpf: string; email: string; isEnabled: boolean };
-}): Promise<{ id: string }> {
-  await assertUniqueIdentity(input.database, input.values);
+export async function createTeacher(input: CreateTeacherInput): Promise<{ id: string }> {
+  await assertUniqueIdentity({ database: input.database, values: input.values });
   const teacher = await input.database.user.create({
     data: {
       name: input.values.name,
@@ -32,17 +31,18 @@ export async function createTeacher(input: {
   return teacher;
 }
 
-export async function updateTeacher(input: {
-  database: Database;
-  values: { id: string; name: string; cpf: string; email: string; isEnabled: boolean };
-}): Promise<{ id: string }> {
+export async function updateTeacher(input: UpdateTeacherInput): Promise<{ id: string }> {
   const current = await input.database.user.findUnique({
     where: { id: input.values.id },
     select: { role: true, deletedAt: true },
   });
   if (!current || current.role !== "TEACHER" || current.deletedAt)
     throw notFound("Professor não encontrado.");
-  await assertUniqueIdentity(input.database, input.values, input.values.id);
+  await assertUniqueIdentity({
+    database: input.database,
+    values: input.values,
+    exceptId: input.values.id,
+  });
   return input.database.user.update({
     where: { id: input.values.id },
     data: {
@@ -57,11 +57,11 @@ export async function updateTeacher(input: {
   });
 }
 
-async function assertUniqueIdentity(
-  database: Database,
-  values: { cpf: string; email: string },
-  exceptId?: string,
-): Promise<void> {
+async function assertUniqueIdentity({
+  database,
+  values,
+  exceptId,
+}: AssertUniqueIdentityInput): Promise<void> {
   const [emailOwner, cpfOwner] = await Promise.all([
     database.user.findFirst({
       where: {
@@ -76,17 +76,114 @@ async function assertUniqueIdentity(
     throw badRequest("CPF ou e-mail já cadastrado. Localize a identidade existente.");
 }
 
-export async function assignClassTeacher(input: {
+export async function assignClassTeacher(input: AssignClassTeacherInput): Promise<void> {
+  if (input.effectiveDate < saoPauloDateOnly(input.now))
+    throw badRequest("A vigência não pode ser retroativa.");
+  await lockTeacher(input.database, input.teacherId);
+  const classRow = await assignmentClass(input);
+  if (input.effectiveDate < dateOnly(classRow.semester.startDate))
+    throw badRequest("Escolha uma vigência a partir do início do semestre da turma.");
+  if (input.effectiveDate > dateOnly(classRow.semester.endDate))
+    throw badRequest("Data fora do semestre da turma.");
+  await assertTeacherEligible({
+    database: input.database,
+    teacherId: input.teacherId,
+    date: input.effectiveDate,
+  });
+  const { through, targetMeetings } = await assignmentMeetings(input, classRow);
+  if (input.effectiveDate <= through) {
+    await assertNoTeacherConflict({
+      database: input.database,
+      teacherId: input.teacherId,
+      from: input.effectiveDate,
+      through,
+      slots: classRow.scheduleSlots.map((slot) => databaseSlotToCandidate(slot)),
+      candidateMeetings: targetMeetings,
+      excludeClassId: classRow.id,
+    });
+  }
+  await persistAssignment(input, targetMeetings);
+}
+
+export async function substituteMeeting(input: SubstituteMeetingInput): Promise<void> {
+  if (input.date < saoPauloDateOnly(input.now))
+    throw badRequest("Não é possível alterar um encontro passado.");
+  await lockTeacher(input.database, input.teacherId);
+  await input.database
+    .$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${meetingKey(input)}, 158))`;
+  await assertTeacherEligible({
+    database: input.database,
+    teacherId: input.teacherId,
+    date: input.date,
+  });
+  const meeting = await substitutionMeeting(input);
+  await assertNoTeacherConflict({
+    database: input.database,
+    teacherId: input.teacherId,
+    from: input.date,
+    through: input.date,
+    slots: [
+      { weekday: weekdayOf(input.date), startTime: meeting.startTime, endTime: meeting.endTime },
+    ],
+    excludeMeeting: {
+      classId: input.classId,
+      slotId: input.slotId,
+      sessionId: input.sessionId,
+      date: input.date,
+    },
+  });
+  await input.database.classSubstitution.create({
+    data: {
+      classId: input.classId,
+      scheduleSlotId: input.slotId,
+      classSessionId: input.slotId ? null : input.sessionId,
+      date: utcDate(input.date),
+      teacherId: input.teacherId,
+      recordedById: input.recordedById,
+    },
+  });
+}
+
+type CreateTeacherInput = {
+  database: Database;
+  values: { name: string; cpf: string; email: string; isEnabled: boolean };
+};
+type UpdateTeacherInput = {
+  database: Database;
+  values: { id: string; name: string; cpf: string; email: string; isEnabled: boolean };
+};
+type AssertUniqueIdentityInput = {
+  database: Database;
+  values: { cpf: string; email: string };
+  exceptId?: string;
+};
+type AssignClassTeacherInput = {
   database: Database;
   classId: string;
   teacherId: string;
   effectiveDate: string;
   recordedById: string;
   now: Date;
-}): Promise<void> {
-  if (input.effectiveDate < saoPauloDateOnly(input.now))
-    throw badRequest("A vigência não pode ser retroativa.");
-  await lockTeacher(input.database, input.teacherId);
+};
+type SubstituteMeetingInput = {
+  database: Database;
+  classId: string;
+  slotId: string | null;
+  sessionId: string | null;
+  date: string;
+  teacherId: string;
+  recordedById: string;
+  now: Date;
+};
+
+type AssignmentClass = Prisma.ClassGetPayload<{
+  include: {
+    semester: { select: { startDate: true; endDate: true } };
+    scheduleSlots: { select: { weekday: true; startTime: true; endTime: true } };
+    teacherAssignments: { select: { effectiveDate: true } };
+  };
+}>;
+async function assignmentClass(input: AssignClassTeacherInput): Promise<AssignmentClass> {
   const classRow = await input.database.class.findUnique({
     where: { id: input.classId },
     include: {
@@ -104,48 +201,41 @@ export async function assignClassTeacher(input: {
     },
   });
   if (!classRow || classRow.deletedAt) throw notFound("Turma não encontrada.");
-  if (input.effectiveDate < dateOnly(classRow.semester.startDate))
-    throw badRequest("Escolha uma vigência a partir do início do semestre da turma.");
-  if (input.effectiveDate > dateOnly(classRow.semester.endDate))
-    throw badRequest("Data fora do semestre da turma.");
-  await assertTeacherEligible({
-    database: input.database,
-    teacherId: input.teacherId,
-    date: input.effectiveDate,
-  });
+  return classRow;
+}
+
+async function assignmentMeetings(
+  input: AssignClassTeacherInput,
+  classRow: AssignmentClass,
+): Promise<{ through: string; targetMeetings: TeacherMeeting[] }> {
   const next = classRow.teacherAssignments[0]?.effectiveDate;
   const through = next
-    ? new Date(next.getTime() - 86_400_000).toISOString().slice(0, 10)
+    ? new Date(next.getTime() - DAY_MILLISECONDS).toISOString().slice(0, ISO_DATE_LENGTH)
     : dateOnly(classRow.semester.endDate);
   const profile = await input.database.teacherProfile.findUnique({
     where: { userId: input.teacherId },
     select: { departureDate: true },
   });
-  const targetMeetings = (
-    await meetingsBetween({
-      database: input.database,
-      from: input.effectiveDate,
-      through,
-      now: input.now,
-    })
-  ).filter(
+  const meetings = await meetingsBetween({
+    database: input.database,
+    from: input.effectiveDate,
+    through,
+    now: input.now,
+  });
+  const targetMeetings = meetings.filter(
     (row) =>
       row.classId === input.classId &&
       row.editable &&
       !row.substituteTeacherId &&
       (!profile?.departureDate || new Date(row.date) < profile.departureDate),
   );
-  if (input.effectiveDate <= through) {
-    await assertNoTeacherConflict({
-      database: input.database,
-      teacherId: input.teacherId,
-      from: input.effectiveDate,
-      through,
-      slots: classRow.scheduleSlots.map(databaseSlotToCandidate),
-      candidateMeetings: targetMeetings,
-      excludeClassId: classRow.id,
-    });
-  }
+  return { through, targetMeetings };
+}
+
+async function persistAssignment(
+  input: AssignClassTeacherInput,
+  targetMeetings: TeacherMeeting[],
+): Promise<void> {
   await freezeStartedMeetings({
     database: input.database,
     classId: input.classId,
@@ -183,26 +273,7 @@ export async function assignClassTeacher(input: {
   });
 }
 
-export async function substituteMeeting(input: {
-  database: Database;
-  classId: string;
-  slotId: string | null;
-  sessionId: string | null;
-  date: string;
-  teacherId: string;
-  recordedById: string;
-  now: Date;
-}): Promise<void> {
-  if (input.date < saoPauloDateOnly(input.now))
-    throw badRequest("Não é possível alterar um encontro passado.");
-  await lockTeacher(input.database, input.teacherId);
-  await input.database
-    .$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${meetingKey(input)}, 158))`;
-  await assertTeacherEligible({
-    database: input.database,
-    teacherId: input.teacherId,
-    date: input.date,
-  });
+async function substitutionMeeting(input: SubstituteMeetingInput): Promise<TeacherMeeting> {
   const rows = await meetingsBetween({
     database: input.database,
     from: input.date,
@@ -222,29 +293,5 @@ export async function substituteMeeting(input: {
     (meeting.usualTeacherId === input.teacherId && !meeting.requiresCoverage)
   )
     throw badRequest("Encontro já atribuído a este professor ou a um substituto.");
-  await assertNoTeacherConflict({
-    database: input.database,
-    teacherId: input.teacherId,
-    from: input.date,
-    through: input.date,
-    slots: [
-      { weekday: weekdayOf(input.date), startTime: meeting.startTime, endTime: meeting.endTime },
-    ],
-    excludeMeeting: {
-      classId: input.classId,
-      slotId: input.slotId,
-      sessionId: input.sessionId,
-      date: input.date,
-    },
-  });
-  await input.database.classSubstitution.create({
-    data: {
-      classId: input.classId,
-      scheduleSlotId: input.slotId,
-      classSessionId: input.slotId ? null : input.sessionId,
-      date: utcDate(input.date),
-      teacherId: input.teacherId,
-      recordedById: input.recordedById,
-    },
-  });
+  return meeting;
 }

@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { type Dispatch, type SetStateAction, type ReactElement, useState } from "react";
+import { type ClientError, trpc } from "~/lib/trpc";
 import { useSearchParams } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { civilDateSchema } from "@lazuli/validators";
 import { Alert, Button, InlineSkeleton } from "@lazuli/ui";
-import { trpc } from "~/lib/trpc";
 import { mondayOf, todayInSchool } from "./format";
 import { TeacherDialog } from "./teacher-dialog";
 import { DepartureDialog } from "./departure-dialog";
@@ -12,7 +12,8 @@ import { TeacherClasses } from "./teacher-classes";
 import { TeacherHeader } from "./teacher-header";
 import { TeacherWeek } from "./teacher-week";
 import { MeetingDialog, type Meeting } from "./meeting-dialog";
-export function TeacherPage({ id }: { id: string }) {
+
+export function TeacherPage({ id }: TeacherPageInput): ReactElement {
   const params = useSearchParams();
   const [anchor, setAnchor] = useQueryState("semana", parseAsString);
   const parsed = civilDateSchema.safeParse(anchor);
@@ -33,40 +34,102 @@ export function TeacherPage({ id }: { id: string }) {
         </div>
       )}
       {teacher.isError && (
-        <Alert variant="destructive">
-          <p>{teacher.error.message}</p>
-          <Button
-            size="compact-responsive"
-            variant="secondary"
-            onClick={() => void teacher.refetch()}
-          >
-            Tentar novamente
-          </Button>
-        </Alert>
+        <TeacherLoadError
+          teacherError={teacher.error}
+          teacherRefetch={() => void teacher.refetch()}
+        />
       )}
       {detail && (
-        <>
-          <TeacherHeader
-            teacher={detail}
-            onEdit={() => setEditing(true)}
-            onDepart={() => setDeparting(true)}
-          />
-          <TeacherWeek
-            id={id}
-            week={week}
-            today={detail.today}
-            studentCount={detail.studentCount}
-            onWeekChange={(value) => void setAnchor(value)}
-            onOpen={setMeeting}
-          />
-          <TeacherClasses teacherId={id} back={back} />
-          {editing && <TeacherDialog teacher={detail} onClose={() => setEditing(false)} />}
-          {departing && <DepartureDialog teacher={detail} onClose={() => setDeparting(false)} />}
-          {meeting && (
-            <MeetingDialog meeting={meeting} back={back} onClose={() => setMeeting(null)} />
-          )}
-        </>
+        <TeacherDetails
+          detail={detail}
+          setEditing={setEditing}
+          setDeparting={setDeparting}
+          id={id}
+          week={week}
+          setAnchor={setAnchor}
+          setMeeting={setMeeting}
+          back={back}
+          editing={editing}
+          departing={departing}
+          meeting={meeting}
+        />
       )}
     </div>
+  );
+}
+
+type TeacherLoadErrorProps = {
+  teacherError: ClientError | null;
+  teacherRefetch: () => void;
+};
+function TeacherLoadError(props: TeacherLoadErrorProps): ReactElement {
+  return (
+    <Alert variant="destructive">
+      <p>{props.teacherError?.message}</p>
+      <Button
+        size="compact-responsive"
+        variant="secondary"
+        onClick={() => void props.teacherRefetch()}
+      >
+        Tentar novamente
+      </Button>
+    </Alert>
+  );
+}
+
+type TeacherPageInput = { id: string };
+
+type TeacherDetailsProps = {
+  detail: {
+    today: string;
+    studentCount: number;
+    teacherProfile: { cpf: string | null; departureDate: Date | null } | null;
+    id: string;
+    email: string;
+    name: string;
+    isEnabled: boolean;
+  };
+  setEditing: Dispatch<SetStateAction<boolean>>;
+  setDeparting: Dispatch<SetStateAction<boolean>>;
+  id: string;
+  week: string;
+  setAnchor: (value: string) => Promise<URLSearchParams>;
+  setMeeting: Dispatch<SetStateAction<Meeting | null>>;
+  back: string;
+  editing: boolean;
+  departing: boolean;
+  meeting: Meeting | null;
+};
+function TeacherDetails(props: TeacherDetailsProps): ReactElement {
+  return (
+    <>
+      <TeacherHeader
+        teacher={props.detail}
+        onEdit={() => props.setEditing(true)}
+        onDepart={() => props.setDeparting(true)}
+      />
+      <TeacherWeek
+        id={props.id}
+        week={props.week}
+        today={props.detail.today}
+        studentCount={props.detail.studentCount}
+        onWeekChange={(value) => void props.setAnchor(value)}
+        onOpen={props.setMeeting}
+      />
+      <TeacherClasses teacherId={props.id} back={props.back} />
+      {props.editing && (
+        <TeacherDialog teacher={props.detail} onClose={() => props.setEditing(false)} />
+      )}
+      {props.departing && (
+        <DepartureDialog teacher={props.detail} onClose={() => props.setDeparting(false)} />
+      )}
+      {props.meeting && (
+        <MeetingDialog
+          meeting={props.meeting}
+          back={props.back}
+          onClose={() => props.setMeeting(null)}
+        />
+      )}
+    </>
   );
 }

@@ -1,20 +1,15 @@
 "use client";
-import { useState } from "react";
+import { type ReactElement, useState } from "react";
 import { Field, FieldError, Label, SearchSelect, type SearchSelectOption } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+
 export function TeacherPicker({
   date,
   value,
   onChange,
   error,
   disabled = false,
-}: {
-  date: string;
-  value: SearchSelectOption | null;
-  onChange: (value: SearchSelectOption | null) => void;
-  error?: string | undefined;
-  disabled?: boolean;
-}) {
+}: TeacherPickerInput): ReactElement {
   const [search, setSearch] = useState("");
   const query = trpc.teachers.options.useQuery({ date, search });
   return (
@@ -39,3 +34,11 @@ export function TeacherPicker({
     </Field>
   );
 }
+
+type TeacherPickerInput = {
+  date: string;
+  value: SearchSelectOption | null;
+  onChange: (value: SearchSelectOption | null) => void;
+  error?: string | null;
+  disabled?: boolean;
+};

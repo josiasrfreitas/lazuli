@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { civilDateSchema } from "./civil-date.js";
 import { detectPersonDocument } from "./person-document.js";
+const MAX_SEARCH_LENGTH = 80;
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 20;
 
 const cpf = z.string().transform((value, context) => {
   const document = detectPersonDocument(value);
@@ -30,11 +33,11 @@ export const teacherUpdateInputSchema = teacherCreateInputSchema.extend({ id });
 export const teacherIdInputSchema = z.object({ id }).strict();
 export const teacherListInputSchema = z
   .object({
-    search: z.string().trim().max(80).default(""),
+    search: z.string().trim().max(MAX_SEARCH_LENGTH).default(""),
     active: z.enum(["all", "active", "scheduled", "departed"]).default("all"),
     access: z.enum(["all", "enabled", "disabled"]).default("all"),
     page: z.number().int().min(1).default(1),
-    pageSize: z.number().int().min(1).max(100).default(20),
+    pageSize: z.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
   })
   .strict();
 export const teacherWeekInputSchema = z.object({ id, week: date }).strict();

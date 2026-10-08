@@ -1,5 +1,4 @@
 "use client";
-
 import { useMemo, useRef, useState, type ReactElement, type RefObject } from "react";
 import { Combobox } from "@base-ui/react/combobox";
 import { Plus } from "lucide-react";
@@ -34,17 +33,7 @@ export type SearchSelectProps = {
   disabled?: boolean;
 };
 
-function SearchResults({
-  items,
-  loading,
-  failed,
-  emptyMessage,
-}: {
-  items: readonly SearchItem[];
-  loading: boolean;
-  failed: boolean;
-  emptyMessage: string;
-}): ReactElement {
+function SearchResults({ items, loading, failed, emptyMessage }: SearchResultsInput): ReactElement {
   return (
     <Combobox.Portal>
       <Combobox.Positioner sideOffset={POPUP_OFFSET} className="z-50">
@@ -96,17 +85,7 @@ function searchItems(options: readonly SearchSelectOption[], allowCreate: boolea
   ];
 }
 
-function SearchInput({
-  props,
-  open,
-  close,
-  highlighted,
-}: {
-  props: SearchSelectProps;
-  open: () => void;
-  close: () => void;
-  highlighted: RefObject<SearchItem | undefined>;
-}): ReactElement {
+function SearchInput({ props, open, close, highlighted }: SearchInputInput): ReactElement {
   return (
     <Combobox.Input
       name={props.name}
@@ -140,15 +119,7 @@ export function SearchSelect(props: SearchSelectProps): ReactElement {
   const highlighted = useRef<SearchItem | undefined>(undefined);
   const allowCreate = props.onCreate !== undefined;
   const items = useMemo(() => searchItems(options, allowCreate), [options, allowCreate]);
-  if (value)
-    return (
-      <SelectedTags
-        touchSized={props.size === "compact-responsive"}
-        value={value}
-        onClear={props.onClear}
-        disabled={props.disabled}
-      />
-    );
+  if (value) return <SelectedSearchValue {...props} value={value} />;
   return (
     <Combobox.Root<SearchItem>
       autoHighlight
@@ -191,3 +162,29 @@ export function SearchSelect(props: SearchSelectProps): ReactElement {
     </Combobox.Root>
   );
 }
+
+function SelectedSearchValue(
+  props: SearchSelectProps & { value: SearchSelectOption },
+): ReactElement {
+  return (
+    <SelectedTags
+      touchSized={props.size === "compact-responsive"}
+      value={props.value}
+      onClear={props.onClear}
+      disabled={props.disabled}
+    />
+  );
+}
+
+type SearchResultsInput = {
+  items: readonly SearchItem[];
+  loading: boolean;
+  failed: boolean;
+  emptyMessage: string;
+};
+type SearchInputInput = {
+  props: SearchSelectProps;
+  open: () => void;
+  close: () => void;
+  highlighted: RefObject<SearchItem | undefined>;
+};

@@ -1,17 +1,14 @@
 "use client";
-
 import { useState, type ReactElement } from "react";
-
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "@lazuli/api";
-
 import { ClassOverview, ClassContextSidebar } from "./class-overview";
 import { MembershipDialog } from "./membership-dialog";
 import { AssignmentDialog } from "../teachers/assignment-dialog";
 import { RosterSection } from "./roster-section";
 
-export function ClassPage({ id }: { id: string }): ReactElement {
+export function ClassPage({ id }: ClassPageInput): ReactElement {
   const query = trpc.classes.byId.useQuery({ id }, { retry: false });
   const detail = query.data;
   return (
@@ -34,13 +31,7 @@ export function ClassPage({ id }: { id: string }): ReactElement {
   );
 }
 
-function ClassDetailView({
-  detail,
-  id,
-}: {
-  detail: RouterOutputs["classes"]["byId"];
-  id: string;
-}): ReactElement {
+function ClassDetailView({ detail, id }: ClassDetailViewInput): ReactElement {
   const [assigning, setAssigning] = useState(false);
   const [membershipOpen, setMembershipOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -60,7 +51,11 @@ function ClassDetailView({
         sidebar={<ClassContextSidebar detail={detail} onAssign={() => setAssigning(true)} />}
       />
       {assigning && (
-        <AssignmentDialog classId={id} classCode={detail.internalCode} onClose={() => setAssigning(false)} />
+        <AssignmentDialog
+          classId={id}
+          classCode={detail.internalCode}
+          onClose={() => setAssigning(false)}
+        />
       )}
       {membershipOpen && (
         <MembershipDialog
@@ -74,3 +69,9 @@ function ClassDetailView({
     </>
   );
 }
+
+type ClassPageInput = { id: string };
+type ClassDetailViewInput = {
+  detail: RouterOutputs["classes"]["byId"];
+  id: string;
+};

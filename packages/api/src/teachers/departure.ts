@@ -4,8 +4,23 @@ import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
 import { badRequest, notFound } from "../trpc/errors.js";
 import { freezeStartedMeetings } from "./freeze-today.js";
 import { lockTeacher } from "./availability.js";
-import { meetingsBetween } from "./schedule.js";
+import { meetingsBetween, type TeacherMeeting } from "./schedule.js";
 import { responsibilitySelect, usualTeacherOn } from "./responsibility.js";
+const ISO_DATE_LENGTH = 10;
+type DepartureCommitment = Pick<
+  TeacherMeeting,
+  "classId" | "slotId" | "sessionId" | "classCode" | "date" | "startTime" | "endTime"
+>;
+type DepartureImpactResult = {
+  token: string;
+  commitments: DepartureCommitment[];
+  revocations: { id: string; recordedAt: Date }[];
+};
+type DeparturePreviewResult = {
+  token: string;
+  commitments: DepartureCommitment[];
+  revokedSubstitutions: number;
+};
 
 type Departure = {
   database: Prisma.TransactionClient;
@@ -13,7 +28,7 @@ type Departure = {
   effectiveDate: string;
   now: Date;
 };
-async function departureImpact(input: Departure) {
+async function departureImpact(input: Departure): Promise<DepartureImpactResult> {
   if (input.effectiveDate < saoPauloDateOnly(input.now))
     throw badRequest("A saída não pode ser retroativa.");
   const teacher = await input.database.user.findUnique({
@@ -32,46 +47,11 @@ async function departureImpact(input: Departure) {
   const meetings = await meetingsBetween({
     database: input.database,
     from: input.effectiveDate,
-    through: semester?.endDate.toISOString().slice(0, 10) ?? input.effectiveDate,
+    through: semester?.endDate.toISOString().slice(0, ISO_DATE_LENGTH) ?? input.effectiveDate,
     now: input.now,
   });
-  const commitments = meetings
-    .filter(
-      (row) =>
-        row.editable &&
-        (row.usualTeacherId === input.teacherId || row.substituteTeacherId === input.teacherId),
-    )
-    .map((row) => ({
-      classId: row.classId,
-      slotId: row.slotId,
-      sessionId: row.sessionId,
-      classCode: row.classCode,
-      date: row.date,
-      startTime: row.startTime,
-      endTime: row.endTime,
-    }));
-  const substitutions = await input.database.classSubstitution.findMany({
-    where: { revokedAt: null, date: { gte: new Date(input.effectiveDate) } },
-    select: {
-      id: true,
-      teacherId: true,
-      date: true,
-      recordedAt: true,
-      scheduleSlot: { select: { startTime: true } },
-      classSession: { select: { startTime: true } },
-      class: { select: responsibilitySelect },
-    },
-    orderBy: { id: "asc" },
-  });
-  const revocations = substitutions.filter((row) => {
-    const start = row.classSession?.startTime ?? row.scheduleSlot?.startTime;
-    return (
-      start &&
-      sessionEndInstant({ date: row.date, endTime: start }) > input.now &&
-      (row.teacherId === input.teacherId ||
-        usualTeacherOn(row.class, row.date)?.id === input.teacherId)
-    );
-  });
+  const commitments = departureCommitments(meetings, input.teacherId);
+  const revocations = await departureRevocations(input);
   const token = createHash("sha256")
     .update(
       JSON.stringify({
@@ -83,7 +63,7 @@ async function departureImpact(input: Departure) {
     .digest("hex");
   return { token, commitments, revocations };
 }
-export async function departurePreview(input: Departure) {
+export async function departurePreview(input: Departure): Promise<DeparturePreviewResult> {
   const impact = await departureImpact(input);
   return {
     token: impact.token,
@@ -100,7 +80,7 @@ export async function scheduleDeparture(
     select: { departureDate: true, departureRecordedById: true },
   });
   if (
-    existing?.departureDate?.toISOString().slice(0, 10) === input.effectiveDate &&
+    existing?.departureDate?.toISOString().slice(0, ISO_DATE_LENGTH) === input.effectiveDate &&
     existing.departureRecordedById === input.recordedById
   )
     return;
@@ -127,4 +107,53 @@ export async function scheduleDeparture(
     create: { userId: input.teacherId, ...values },
     update: values,
   });
+}
+
+function departureCommitments(
+  meetings: TeacherMeeting[],
+  teacherId: string,
+): DepartureCommitment[] {
+  const commitments = meetings
+    .filter(
+      (row) =>
+        row.editable && (row.usualTeacherId === teacherId || row.substituteTeacherId === teacherId),
+    )
+    .map((row) => ({
+      classId: row.classId,
+      slotId: row.slotId,
+      sessionId: row.sessionId,
+      classCode: row.classCode,
+      date: row.date,
+      startTime: row.startTime,
+      endTime: row.endTime,
+    }));
+  return commitments;
+}
+
+async function departureRevocations(
+  input: Departure,
+): Promise<DepartureImpactResult["revocations"]> {
+  const substitutions = await input.database.classSubstitution.findMany({
+    where: { revokedAt: null, date: { gte: new Date(input.effectiveDate) } },
+    select: {
+      id: true,
+      teacherId: true,
+      date: true,
+      recordedAt: true,
+      scheduleSlot: { select: { startTime: true } },
+      classSession: { select: { startTime: true } },
+      class: { select: responsibilitySelect },
+    },
+    orderBy: { id: "asc" },
+  });
+  const revocations = substitutions.filter((row) => {
+    const start = row.classSession?.startTime ?? row.scheduleSlot?.startTime;
+    return (
+      start &&
+      sessionEndInstant({ date: row.date, endTime: start }) > input.now &&
+      (row.teacherId === input.teacherId ||
+        usualTeacherOn(row.class, row.date)?.id === input.teacherId)
+    );
+  });
+  return revocations;
 }

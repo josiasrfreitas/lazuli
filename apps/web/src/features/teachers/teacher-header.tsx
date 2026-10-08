@@ -1,20 +1,16 @@
+import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { MoreHorizontal, Pencil } from "lucide-react";
 import { Avatar, Button, Popover, PopoverContent, PopoverTrigger } from "@lazuli/ui";
 import { TeacherStatus } from "./teacher-status";
-export function TeacherHeader({
-  teacher,
-  onEdit,
-  onDepart,
-}: {
-  teacher: RouterOutputs["teachers"]["byId"];
-  onEdit: () => void;
-  onDepart: () => void;
-}) {
+
+const ISO_DATE_LENGTH = 10;
+
+export function TeacherHeader({ teacher, onEdit, onDepart }: TeacherHeaderInput): ReactElement {
   const enabled =
     teacher.isEnabled &&
     (!teacher.teacherProfile?.departureDate ||
-      teacher.teacherProfile.departureDate.toISOString().slice(0, 10) > teacher.today);
+      teacher.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) > teacher.today);
   return (
     <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
       <div className="grid min-w-0 gap-1.5">
@@ -40,28 +36,39 @@ export function TeacherHeader({
           >
             <Pencil aria-hidden="true" />
           </Button>
-          {!teacher.teacherProfile?.departureDate && (
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-compact-responsive"
-                    aria-label="Mais ações do professor"
-                  />
-                }
-              >
-                <MoreHorizontal />
-              </PopoverTrigger>
-              <PopoverContent align="end">
-                <Button variant="ghost" size="compact-responsive" onClick={onDepart}>
-                  Encerrar atuação
-                </Button>
-              </PopoverContent>
-            </Popover>
-          )}
+          {!teacher.teacherProfile?.departureDate && <TeacherActions onDepart={onDepart} />}
         </div>
       </div>
     </header>
   );
 }
+
+type TeacherActionsProps = { onDepart: () => void };
+function TeacherActions(props: TeacherActionsProps): ReactElement {
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-compact-responsive"
+            aria-label="Mais ações do professor"
+          />
+        }
+      >
+        <MoreHorizontal />
+      </PopoverTrigger>
+      <PopoverContent align="end">
+        <Button variant="ghost" size="compact-responsive" onClick={props.onDepart}>
+          Encerrar atuação
+        </Button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+type TeacherHeaderInput = {
+  teacher: RouterOutputs["teachers"]["byId"];
+  onEdit: () => void;
+  onDepart: () => void;
+};

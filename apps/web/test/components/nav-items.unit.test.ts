@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-
 import {
   homeHrefFor,
   matchesNavHref,
@@ -99,7 +98,15 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
 void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigation", () => {
   assert.deepEqual(
     navItemsFor("SYSTEM_ADMIN").map((item) => item.href),
-    ["/", STUDENTS_PATH, TEACHERS_PATH, CLASSES_PATH, CONTRACTS_PATH, RECEIVABLES_PATH, SETTINGS_PATH],
+    [
+      "/",
+      STUDENTS_PATH,
+      TEACHERS_PATH,
+      CLASSES_PATH,
+      CONTRACTS_PATH,
+      RECEIVABLES_PATH,
+      SETTINGS_PATH,
+    ],
   );
   assert.equal(
     navItemsFor("ADMIN").some((item) => item.href === SETTINGS_PATH),
@@ -112,10 +119,13 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
 });
 
 void it("returns child pages to the authorized list with its filters and ignores foreign destinations", () => {
-  assert.deepEqual(navReturnFor("/turmas/a-class", "ADMIN", "/turmas?search=C2&page=2"), {
-    href: "/turmas?search=C2&page=2",
-    label: "Turmas",
-  });
+  assert.deepEqual(
+    navReturnFor({ pathname: "/turmas/a-class", role: "ADMIN", back: "/turmas?search=C2&page=2" }),
+    {
+      href: "/turmas?search=C2&page=2",
+      label: "Turmas",
+    },
+  );
   for (const back of [
     null,
     "//elsewhere.test",
@@ -123,11 +133,11 @@ void it("returns child pages to the authorized list with its filters and ignores
     "/turmas/another-class",
     "https://elsewhere.test",
   ]) {
-    assert.deepEqual(navReturnFor("/turmas/a-class", "ADMIN", back), {
+    assert.deepEqual(navReturnFor({ pathname: "/turmas/a-class", role: "ADMIN", back }), {
       href: "/turmas",
       label: "Turmas",
     });
   }
-  assert.equal(navReturnFor("/turmas", "ADMIN", null), null);
-  assert.equal(navReturnFor("/turmas/a-class", "TEACHER", null), null);
+  assert.equal(navReturnFor({ pathname: "/turmas", role: "ADMIN", back: null }), null);
+  assert.equal(navReturnFor({ pathname: "/turmas/a-class", role: "TEACHER", back: null }), null);
 });

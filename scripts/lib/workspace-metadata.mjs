@@ -14,7 +14,7 @@ export const STORYBOOK_PORT_RANGE = { start: 6006, end: 6999 };
 const WORKSPACE_ALLOCATION_LOCK_NAME = "lazuli-workspace-allocation.lock";
 const WORKSPACE_ALLOCATION_LOCK_RETRY_MS = 25;
 const WORKSPACE_ALLOCATION_LOCK_TIMEOUT_MS = 10_000;
-const WORKSPACE_ALLOCATION_OWNER_GRACE_MS = 1_000;
+const WORKSPACE_ALLOCATION_OWNER_GRACE_MS = 1000;
 
 export function normalizeWorkspaceIdentity(directoryName) {
   return directoryName

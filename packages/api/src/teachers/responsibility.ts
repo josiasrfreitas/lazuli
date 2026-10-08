@@ -1,5 +1,7 @@
 import type { Prisma } from "@lazuli/db";
 import { effectiveTeacherId } from "@lazuli/domain";
+const ISO_DATE_LENGTH = 10;
+
 export const responsibilitySelect = {
   teacherId: true,
   teacher: {
@@ -28,15 +30,15 @@ export function usualTeacherOn(
     initialTeacherId: row.teacherId,
     assignments: row.teacherAssignments.map((item) => ({
       teacherId: item.teacherId,
-      effectiveDate: item.effectiveDate.toISOString().slice(0, 10),
+      effectiveDate: item.effectiveDate.toISOString().slice(0, ISO_DATE_LENGTH),
     })),
     departureDates: new Map(
       teachers.map((teacher) => [
         teacher.id,
-        teacher.teacherProfile?.departureDate?.toISOString().slice(0, 10) ?? null,
+        teacher.teacherProfile?.departureDate?.toISOString().slice(0, ISO_DATE_LENGTH) ?? null,
       ]),
     ),
-    date: date.toISOString().slice(0, 10),
+    date: date.toISOString().slice(0, ISO_DATE_LENGTH),
   });
   const teacher = teachers.find((item) => item.id === id);
   return teacher ? { id: teacher.id, name: teacher.name } : null;
@@ -48,7 +50,7 @@ export function teacherResponsibilityPeriods(
 ): Array<{ start: Date; end: Date | null }> {
   const assignments = [
     { effectiveDate: new Date("0001-01-01"), teacher: row.teacher },
-    ...[...row.teacherAssignments].sort(
+    ...[...row.teacherAssignments].toSorted(
       (left, right) => left.effectiveDate.getTime() - right.effectiveDate.getTime(),
     ),
   ];

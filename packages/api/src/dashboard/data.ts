@@ -1,5 +1,4 @@
 import { isSessionUntaken, saoPauloDateOnly, saoPauloMonthInstantBounds } from "@lazuli/domain";
-
 import {
   responsibilitySelect,
   usualTeacherOn,
@@ -60,10 +59,9 @@ export type TeacherHome = {
   }>;
 };
 
-export async function readAdminDashboardMetrics(input: {
-  database: Database;
-  now: Date;
-}): Promise<AdminDashboardMetrics> {
+export async function readAdminDashboardMetrics(
+  input: ReadAdminDashboardMetricsInput,
+): Promise<AdminDashboardMetrics> {
   const { startInstant, endExclusiveInstant } = saoPauloMonthInstantBounds(input.now);
   const today = dateOnlyToDate(saoPauloDateOnly(input.now));
   const [totalActiveStudents, newThisMonth, untakenCandidates] = await Promise.all([
@@ -112,11 +110,7 @@ export async function readAdminDashboardMetrics(input: {
   };
 }
 
-export async function readTeacherHome(input: {
-  database: Database;
-  staffUser: StaffUser;
-  now: Date;
-}): Promise<TeacherHome> {
+export async function readTeacherHome(input: ReadTeacherHomeInput): Promise<TeacherHome> {
   const today = saoPauloDateOnly(input.now);
   const todayDate = dateOnlyToDate(today);
   const [todaySessions, classes] = await Promise.all([
@@ -145,11 +139,9 @@ export async function readTeacherHome(input: {
   };
 }
 
-async function findTeacherTodaySessions(input: {
-  database: Database;
-  teacherId: string;
-  todayDate: Date;
-}): Promise<ClassSessionRow[]> {
+async function findTeacherTodaySessions(
+  input: FindTeacherTodaySessionsInput,
+): Promise<ClassSessionRow[]> {
   const rows = await input.database.classSession.findMany({
     where: {
       date: input.todayDate,
@@ -171,11 +163,9 @@ async function findTeacherTodaySessions(input: {
   return rows.filter((row) => usualTeacherOn(row.class, row.date)?.id === input.teacherId);
 }
 
-async function findTeacherClassesWithNextSession(input: {
-  database: Database;
-  teacherId: string;
-  todayDate: Date;
-}): Promise<
+async function findTeacherClassesWithNextSession(
+  input: FindTeacherClassesWithNextSessionInput,
+): Promise<
   Array<{ id: string; internalCode: string; portalClassName: string; sessions: ClassSessionRow[] }>
 > {
   const rows = await input.database.class.findMany({
@@ -195,7 +185,7 @@ async function findTeacherClassesWithNextSession(input: {
       const periods = teacherResponsibilityPeriods(row, input.teacherId).filter(
         (period) => !period.end || period.end > input.todayDate,
       );
-      if (!periods.length) return null;
+      if (periods.length === 0) return null;
       const session = await input.database.classSession.findFirst({
         where: {
           classId: row.id,
@@ -264,3 +254,23 @@ function dateOnly(date: Date): string {
 function timeOnly(date: Date): string {
   return date.toISOString().slice(TIME_ONLY_START_INDEX, TIME_ONLY_END_INDEX);
 }
+
+type ReadAdminDashboardMetricsInput = {
+  database: Database;
+  now: Date;
+};
+type ReadTeacherHomeInput = {
+  database: Database;
+  staffUser: StaffUser;
+  now: Date;
+};
+type FindTeacherTodaySessionsInput = {
+  database: Database;
+  teacherId: string;
+  todayDate: Date;
+};
+type FindTeacherClassesWithNextSessionInput = {
+  database: Database;
+  teacherId: string;
+  todayDate: Date;
+};

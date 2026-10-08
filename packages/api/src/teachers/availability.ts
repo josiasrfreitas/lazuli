@@ -8,9 +8,11 @@ import {
 import { badRequest } from "../trpc/errors.js";
 import { dateToTimeString } from "../classes/time.js";
 import { meetingKey, meetingsBetween } from "./schedule.js";
+const ISO_DATE_LENGTH = 10;
+const DAY_MILLISECONDS = 86_400_000;
 
 export type CandidateSlot = { weekday: string; startTime: string; endTime: string };
-const dateOnly = (date: Date): string => date.toISOString().slice(0, 10);
+const dateOnly = (date: Date): string => date.toISOString().slice(0, ISO_DATE_LENGTH);
 
 export async function lockTeacher(
   database: Prisma.TransactionClient,
@@ -19,11 +21,7 @@ export async function lockTeacher(
   await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${"lazuli:teaching-schedule"}, 158))`;
 }
 
-export async function assertTeacherEligible(input: {
-  database: Prisma.TransactionClient;
-  teacherId: string;
-  date: string;
-}): Promise<void> {
+export async function assertTeacherEligible(input: AssertTeacherEligibleInput): Promise<void> {
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
     select: { role: true, deletedAt: true, teacherProfile: { select: { departureDate: true } } },
@@ -39,21 +37,7 @@ export async function assertTeacherEligible(input: {
   }
 }
 
-export async function assertNoTeacherConflict(input: {
-  database: Prisma.TransactionClient;
-  teacherId: string;
-  from: string;
-  through: string;
-  slots: readonly CandidateSlot[];
-  candidateMeetings?: readonly { date: string; startTime: string; endTime: string }[];
-  excludeClassId?: string;
-  excludeMeeting?: {
-    classId: string;
-    slotId: string | null;
-    sessionId?: string | null;
-    date: string;
-  };
-}): Promise<void> {
+export async function assertNoTeacherConflict(input: AssertNoTeacherConflictInput): Promise<void> {
   const meetings = await meetingsBetween({
     database: input.database,
     from: input.from,
@@ -72,16 +56,12 @@ export async function assertNoTeacherConflict(input: {
         );
     if (slot)
       throw badRequest(
-        `Conflito com ${meeting.classCode}, ${meeting.date.split("-").reverse().join("/")}, ${meeting.startTime}–${meeting.endTime}.`,
+        `Conflito com ${meeting.classCode}, ${meeting.date.split("-").toReversed().join("/")}, ${meeting.startTime}–${meeting.endTime}.`,
       );
   }
 }
 
-export function databaseSlotToCandidate(slot: {
-  weekday: string;
-  startTime: Date;
-  endTime: Date;
-}): CandidateSlot {
+export function databaseSlotToCandidate(slot: DatabaseSlotToCandidateInput): CandidateSlot {
   return {
     weekday: slot.weekday,
     startTime: dateToTimeString(slot.startTime),
@@ -89,19 +69,16 @@ export function databaseSlotToCandidate(slot: {
   };
 }
 
-export async function assertClassTeacherAvailable(input: {
-  database: Prisma.TransactionClient;
-  teacherId: string;
-  semesterId: string;
-  slots: readonly CandidateSlot[];
-}): Promise<void> {
+export async function assertClassTeacherAvailable(
+  input: AssertClassTeacherAvailableInput,
+): Promise<void> {
   await lockTeacher(input.database, input.teacherId);
   const semester = await input.database.semester.findUnique({ where: { id: input.semesterId } });
   if (!semester) throw badRequest("Semestre não encontrado.");
   await assertTeacherEligible({
     database: input.database,
     teacherId: input.teacherId,
-    date: [dateOnly(semester.startDate), saoPauloDateOnly(new Date())].sort().at(-1)!,
+    date: [dateOnly(semester.startDate), saoPauloDateOnly(new Date())].toSorted().at(-1)!,
   });
   for (const [index, slot] of input.slots.entries()) {
     if (
@@ -118,7 +95,9 @@ export async function assertClassTeacherAvailable(input: {
     select: { departureDate: true },
   });
   const end = profile?.departureDate
-    ? new Date(Math.min(semester.endDate.getTime(), profile.departureDate.getTime() - 86_400_000))
+    ? new Date(
+        Math.min(semester.endDate.getTime(), profile.departureDate.getTime() - DAY_MILLISECONDS),
+      )
     : semester.endDate;
   await assertNoTeacherConflict({
     ...input,
@@ -126,3 +105,35 @@ export async function assertClassTeacherAvailable(input: {
     through: dateOnly(end),
   });
 }
+
+type AssertTeacherEligibleInput = {
+  database: Prisma.TransactionClient;
+  teacherId: string;
+  date: string;
+};
+type AssertNoTeacherConflictInput = {
+  database: Prisma.TransactionClient;
+  teacherId: string;
+  from: string;
+  through: string;
+  slots: readonly CandidateSlot[];
+  candidateMeetings?: readonly { date: string; startTime: string; endTime: string }[];
+  excludeClassId?: string;
+  excludeMeeting?: {
+    classId: string;
+    slotId: string | null;
+    sessionId?: string | null;
+    date: string;
+  };
+};
+type DatabaseSlotToCandidateInput = {
+  weekday: string;
+  startTime: Date;
+  endTime: Date;
+};
+type AssertClassTeacherAvailableInput = {
+  database: Prisma.TransactionClient;
+  teacherId: string;
+  semesterId: string;
+  slots: readonly CandidateSlot[];
+};

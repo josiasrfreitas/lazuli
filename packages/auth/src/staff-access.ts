@@ -1,3 +1,5 @@
+const ISO_DATE_LENGTH = 10;
+
 export const STAFF_ACCESS_DENIED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
 
 /**
@@ -96,9 +98,9 @@ export function evaluateStaffAccess(
       month: "2-digit",
       day: "2-digit",
     }).formatToParts(now);
-    const part = (name: string) => parts.find((item) => item.type === name)?.value ?? "";
+    const part = (name: string): string => parts.find((item) => item.type === name)?.value ?? "";
     const today = `${part("year")}-${part("month")}-${part("day")}`;
-    if (user.teacherProfile.departureDate.toISOString().slice(0, 10) <= today)
+    if (user.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) <= today)
       return denied("DISABLED_USER");
   }
 

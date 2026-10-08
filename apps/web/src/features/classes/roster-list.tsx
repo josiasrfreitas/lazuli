@@ -30,12 +30,7 @@ export function RosterStudent({
   today,
   close,
   showStage = true,
-}: {
-  row: RosterRow;
-  today: string;
-  close: (row: RosterRow) => void;
-  showStage?: boolean;
-}): ReactElement {
+}: RosterStudentInput): ReactElement {
   const status = rosterStatus(row, today) as keyof typeof tones;
   return (
     <li className="flex min-w-0 flex-col gap-4 rounded-xl border border-border/60 bg-card p-4">
@@ -67,7 +62,7 @@ export function RosterStudent({
   );
 }
 
-function StudentLearningContext({ row }: { row: RosterRow }): ReactElement {
+function StudentLearningContext({ row }: StudentLearningContextInput): ReactElement {
   const stage = row.progressRecords[0]?.stage;
   return (
     <dl className="space-y-1 text-caption">
@@ -85,7 +80,7 @@ function StudentLearningContext({ row }: { row: RosterRow }): ReactElement {
   );
 }
 
-function StudentMembershipDates({ row }: { row: RosterRow }): ReactElement {
+function StudentMembershipDates({ row }: StudentMembershipDatesInput): ReactElement {
   return (
     <>
       {row.exitDate && (
@@ -111,15 +106,7 @@ export function RosterList({
   setPage,
   close,
   showStage,
-}: {
-  data: List | undefined;
-  failed: boolean;
-  refetch: () => void;
-  page: number;
-  setPage: (page: number) => void;
-  close: (row: RosterRow) => void;
-  showStage: boolean;
-}): ReactElement {
+}: RosterListInput): ReactElement {
   if (failed) return <RosterError refetch={refetch} />;
   if (!data)
     return (
@@ -130,11 +117,7 @@ export function RosterList({
   return (
     <div className="relative flex min-h-0 max-h-128 flex-col lg:max-h-none lg:flex-1">
       {data.rows.length === 0 ? (
-        <EmptyState
-          icon={<UsersRound />}
-          title="Nenhum vínculo encontrado"
-          description="Ajuste a busca ou matricule um aluno."
-        />
+        <EmptyRoster />
       ) : (
         <div
           role="region"
@@ -163,15 +146,7 @@ export function RosterList({
   );
 }
 
-function StudentActions({
-  row,
-  close,
-  canClose,
-}: {
-  row: RosterRow;
-  close: (row: RosterRow) => void;
-  canClose: boolean;
-}): ReactElement {
+function StudentActions({ row, close, canClose }: StudentActionsInput): ReactElement {
   return (
     <Popover>
       <PopoverTrigger
@@ -205,15 +180,7 @@ function StudentActions({
   );
 }
 
-function RosterPagination({
-  data,
-  page,
-  setPage,
-}: {
-  data: List;
-  page: number;
-  setPage: (page: number) => void;
-}): ReactElement | null {
+function RosterPagination({ data, page, setPage }: RosterPaginationInput): ReactElement | null {
   if (data.pageCount <= 1) return null;
   return (
     <div className="absolute bottom-2 right-3 z-10 w-fit rounded-full bg-background/85 px-2 py-1 shadow-sm ring-1 ring-border/60 backdrop-blur-sm">
@@ -227,7 +194,7 @@ function RosterPagination({
   );
 }
 
-function RosterError({ refetch }: { refetch: () => void }): ReactElement {
+function RosterError({ refetch }: RosterErrorInput): ReactElement {
   return (
     <EmptyState
       role="alert"
@@ -237,6 +204,45 @@ function RosterError({ refetch }: { refetch: () => void }): ReactElement {
           Tentar novamente
         </Button>
       }
+    />
+  );
+}
+
+type RosterStudentInput = {
+  row: RosterRow;
+  today: string;
+  close: (row: RosterRow) => void;
+  showStage?: boolean;
+};
+type StudentLearningContextInput = { row: RosterRow };
+type StudentMembershipDatesInput = { row: RosterRow };
+type RosterListInput = {
+  data: List | undefined;
+  failed: boolean;
+  refetch: () => void;
+  page: number;
+  setPage: (page: number) => void;
+  close: (row: RosterRow) => void;
+  showStage: boolean;
+};
+type StudentActionsInput = {
+  row: RosterRow;
+  close: (row: RosterRow) => void;
+  canClose: boolean;
+};
+type RosterPaginationInput = {
+  data: List;
+  page: number;
+  setPage: (page: number) => void;
+};
+type RosterErrorInput = { refetch: () => void };
+
+function EmptyRoster(): ReactElement {
+  return (
+    <EmptyState
+      icon={<UsersRound />}
+      title="Nenhum vínculo encontrado"
+      description="Ajuste a busca ou matricule um aluno."
     />
   );
 }

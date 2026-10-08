@@ -27,6 +27,13 @@ import {
 } from "./read.js";
 import { teacherWeek } from "./schedule.js";
 import { lockTeacher } from "./availability.js";
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_CLASS_PAGE_SIZE = 10;
+const MAX_SEARCH_LENGTH = 80;
+const DAYS_AFTER_MONDAY = 6;
+const DAYS_PER_WEEK = 7;
+const ISO_DATE_LENGTH = 10;
+const DEFAULT_PAGE_SIZE = 20;
 
 async function command<T>(
   database: Context["db"],
@@ -38,7 +45,7 @@ async function command<T>(
         await lockTeacher(tx, "");
         return work(tx);
       },
-      { timeout: 15000 },
+      { timeout: 15_000 },
     );
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
@@ -57,25 +64,33 @@ export const teachersRouter = router({
       z.object({
         id: z.string().uuid(),
         page: z.number().int().min(1).default(1),
-        pageSize: z.number().int().min(1).max(100).default(10),
+        pageSize: z.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_CLASS_PAGE_SIZE),
       }),
     )
-    .query(({ ctx, input }) => teacherClasses(ctx.db, input, ctx.now ?? new Date())),
+    .query(({ ctx, input }) =>
+      teacherClasses({ database: ctx.db, input, now: ctx.now ?? new Date() }),
+    ),
   list: adminProcedure
     .input(teacherListInputSchema)
-    .query(({ ctx, input }) => listTeachers(ctx.db, input, ctx.now ?? new Date())),
+    .query(({ ctx, input }) =>
+      listTeachers({ database: ctx.db, input, now: ctx.now ?? new Date() }),
+    ),
   byId: adminProcedure.input(teacherIdInputSchema).query(async ({ ctx, input }) => {
     const now = ctx.now ?? new Date();
     const teacher = await readTeacher(ctx.db, input.id);
     return {
       ...teacher,
       today: saoPauloDateOnly(now),
-      studentCount: await teacherStudentCount(ctx.db, input.id, now),
+      studentCount: await teacherStudentCount({ database: ctx.db, teacherId: input.id, now }),
     };
   }),
   options: adminProcedure
-    .input(z.object({ date: civilDateSchema, search: z.string().max(80).default("") }))
-    .query(({ ctx, input }) => teacherOptions(ctx.db, input.date, input.search)),
+    .input(
+      z.object({ date: civilDateSchema, search: z.string().max(MAX_SEARCH_LENGTH).default("") }),
+    )
+    .query(({ ctx, input }) =>
+      teacherOptions({ database: ctx.db, date: input.date, search: input.search }),
+    ),
   create: adminProcedure
     .input(teacherCreateInputSchema)
     .mutation(({ ctx, input }) =>
@@ -89,11 +104,13 @@ export const teachersRouter = router({
   week: adminProcedure.input(teacherWeekInputSchema).query(async ({ ctx, input }) => {
     await readTeacher(ctx.db, input.id);
     const anchor = new Date(input.week);
-    anchor.setUTCDate(anchor.getUTCDate() - ((anchor.getUTCDay() + 6) % 7));
+    anchor.setUTCDate(
+      anchor.getUTCDate() - ((anchor.getUTCDay() + DAYS_AFTER_MONDAY) % DAYS_PER_WEEK),
+    );
     return teacherWeek({
       database: ctx.db,
       teacherId: input.id,
-      week: anchor.toISOString().slice(0, 10),
+      week: anchor.toISOString().slice(0, ISO_DATE_LENGTH),
       now: ctx.now ?? new Date(),
     });
   }),
@@ -101,10 +118,12 @@ export const teachersRouter = router({
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
-        pageSize: z.number().int().min(1).max(100).default(20),
+        pageSize: z.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
       }),
     )
-    .query(({ ctx, input }) => uncoveredMeetings(ctx.db, input, ctx.now ?? new Date())),
+    .query(({ ctx, input }) =>
+      uncoveredMeetings({ database: ctx.db, input, now: ctx.now ?? new Date() }),
+    ),
   previewDeparture: adminProcedure.input(teacherDepartureInputSchema).query(({ ctx, input }) =>
     departurePreview({
       database: ctx.db,

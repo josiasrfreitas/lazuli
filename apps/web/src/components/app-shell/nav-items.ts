@@ -1,6 +1,12 @@
-import type { LucideIcon } from "lucide-react";
-import { BookOpen, DollarSign, FileText, Home, Settings, Users } from "lucide-react";
-
+import {
+  type LucideIcon,
+  BookOpen,
+  DollarSign,
+  FileText,
+  Home,
+  Settings,
+  Users,
+} from "lucide-react";
 import type { StaffRole } from "@lazuli/auth/server";
 
 /**
@@ -86,7 +92,7 @@ export function navSectionsFor(role: StaffRole): NavSection[] {
   });
 }
 
-export function matchesNavHref(input: { href: string; pathname: string }): boolean {
+export function matchesNavHref(input: MatchesNavHrefInput): boolean {
   return input.href === "/"
     ? input.pathname === input.href
     : input.pathname === input.href || input.pathname.startsWith(`${input.href}/`);
@@ -116,11 +122,11 @@ export function homeHrefFor(role: StaffRole): string | null {
 }
 
 /** Child pages return to their listing, preserving only a same-list query string. */
-export function navReturnFor(
-  pathname: string,
-  role: StaffRole,
-  back: string | null,
-): { href: string; label: string } | null {
+export function navReturnFor({
+  pathname,
+  role,
+  back,
+}: NavReturnForInput): { href: string; label: string } | null {
   const parent = navItemsFor(role).find(
     (item) => item.href !== "/" && pathname.startsWith(`${item.href}/`),
   );
@@ -128,3 +134,6 @@ export function navReturnFor(
   const href = back === parent.href || back?.startsWith(`${parent.href}?`) ? back : parent.href;
   return { href, label: parent.label };
 }
+
+type MatchesNavHrefInput = { href: string; pathname: string };
+type NavReturnForInput = { pathname: string; role: StaffRole; back: string | null };

@@ -2,7 +2,6 @@ import { CLASS_REFERENCE_CAPACITY } from "@lazuli/domain";
 import { generateClassInternalCode } from "./internal-code.js";
 import type { Prisma } from "@lazuli/db";
 import type { classCreateInputSchema, z } from "@lazuli/validators";
-
 import { assertClassTeacherAvailable } from "../teachers/availability.js";
 import { notFound } from "../trpc/errors.js";
 import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
@@ -40,11 +39,7 @@ type SlotRow = {
   endTime: Date;
 };
 
-export async function createClass(input: {
-  database: ClassDatabase;
-  values: ClassCreateInput;
-  recordedById?: string;
-}): Promise<ClassSummary> {
+export async function createClass(input: CreateClassInput): Promise<ClassSummary> {
   await assertTeacherIsActive({ database: input.database, teacherId: input.values.teacherId });
 
   await assertClassTeacherAvailable({
@@ -59,15 +54,15 @@ export async function createClass(input: {
     input.values.scheduleType === "REGULAR"
       ? await createRegularClass({ database: input.database, values: input.values, slotRows })
       : await createPersonalizedClass({ database: input.database, values: input.values, slotRows });
-  await recordInitialTeacher(input.database, created.id, input.recordedById);
+  await recordInitialTeacher({
+    database: input.database,
+    classId: created.id,
+    recordedById: input.recordedById,
+  });
   return created;
 }
 
-async function createRegularClass(input: {
-  database: ClassDatabase;
-  values: ClassCreateInput;
-  slotRows: SlotRow[];
-}): Promise<ClassSummary> {
+async function createRegularClass(input: CreateRegularClassInput): Promise<ClassSummary> {
   const stage = await loadActiveStage({
     database: input.database,
     stageId: input.values.sharedStageId ?? "",
@@ -97,11 +92,7 @@ async function createRegularClass(input: {
   });
 }
 
-async function createPersonalizedClass(input: {
-  database: ClassDatabase;
-  values: ClassCreateInput;
-  slotRows: SlotRow[];
-}): Promise<ClassSummary> {
+async function createPersonalizedClass(input: CreatePersonalizedClassInput): Promise<ClassSummary> {
   const semester = await loadSemester({
     database: input.database,
     semesterId: input.values.semesterId ?? "",
@@ -126,13 +117,7 @@ async function createPersonalizedClass(input: {
   });
 }
 
-function buildClassCreateData(input: {
-  values: ClassCreateInput;
-  portalClassName: string;
-  sharedStageId: string | null;
-  semesterId: string;
-  slotRows: SlotRow[];
-}): Prisma.ClassUncheckedCreateInput {
+function buildClassCreateData(input: BuildClassCreateDataInput): Prisma.ClassUncheckedCreateInput {
   return {
     internalCode: generateClassInternalCode(input.values.year),
     teacherId: input.values.teacherId,
@@ -156,10 +141,7 @@ function toSlotRow(slot: ClassCreateInput["slots"][number]): SlotRow {
   };
 }
 
-export async function archiveClass(input: {
-  database: ClassDatabase;
-  id: string;
-}): Promise<ClassSummary> {
+export async function archiveClass(input: ArchiveClassInput): Promise<ClassSummary> {
   const existing = await input.database.class.findUnique({
     where: { id: input.id },
     select: classSummarySelect,
@@ -180,11 +162,9 @@ export async function archiveClass(input: {
   });
 }
 
-export async function assertGenerationScopeExists(input: {
-  database: Pick<ClassDatabase, "class" | "semester">;
-  classId?: string;
-  semesterId?: string;
-}): Promise<void> {
+export async function assertGenerationScopeExists(
+  input: AssertGenerationScopeExistsInput,
+): Promise<void> {
   if (input.classId !== undefined) {
     await assertClassExistsForGeneration({ database: input.database, classId: input.classId });
     return;
@@ -196,10 +176,9 @@ export async function assertGenerationScopeExists(input: {
   });
 }
 
-async function assertClassExistsForGeneration(input: {
-  database: Pick<ClassDatabase, "class">;
-  classId: string;
-}): Promise<void> {
+async function assertClassExistsForGeneration(
+  input: AssertClassExistsForGenerationInput,
+): Promise<void> {
   const existing = await input.database.class.findUnique({
     where: { id: input.classId },
     select: { id: true },
@@ -210,10 +189,9 @@ async function assertClassExistsForGeneration(input: {
   }
 }
 
-async function assertSemesterExistsForGeneration(input: {
-  database: Pick<ClassDatabase, "semester">;
-  semesterId: string;
-}): Promise<void> {
+async function assertSemesterExistsForGeneration(
+  input: AssertSemesterExistsForGenerationInput,
+): Promise<void> {
   const existing = await input.database.semester.findUnique({
     where: { id: input.semesterId },
     select: { id: true },
@@ -224,11 +202,11 @@ async function assertSemesterExistsForGeneration(input: {
   }
 }
 
-export async function recordInitialTeacher(
-  database: ClassDatabase,
-  classId: string,
-  recordedById?: string,
-): Promise<void> {
+export async function recordInitialTeacher({
+  database,
+  classId,
+  recordedById,
+}: RecordInitialTeacherInput): Promise<void> {
   const row = await database.class.findUniqueOrThrow({
     where: { id: classId },
     select: { teacherId: true, semester: { select: { startDate: true } } },
@@ -242,3 +220,48 @@ export async function recordInitialTeacher(
     },
   });
 }
+
+type CreateClassInput = {
+  database: ClassDatabase;
+  values: ClassCreateInput;
+  recordedById?: string | undefined;
+};
+type CreateRegularClassInput = {
+  database: ClassDatabase;
+  values: ClassCreateInput;
+  slotRows: SlotRow[];
+};
+type CreatePersonalizedClassInput = {
+  database: ClassDatabase;
+  values: ClassCreateInput;
+  slotRows: SlotRow[];
+};
+type BuildClassCreateDataInput = {
+  values: ClassCreateInput;
+  portalClassName: string;
+  sharedStageId: string | null;
+  semesterId: string;
+  slotRows: SlotRow[];
+};
+type ArchiveClassInput = {
+  database: ClassDatabase;
+  id: string;
+};
+type AssertGenerationScopeExistsInput = {
+  database: Pick<ClassDatabase, "class" | "semester">;
+  classId?: string;
+  semesterId?: string;
+};
+type AssertClassExistsForGenerationInput = {
+  database: Pick<ClassDatabase, "class">;
+  classId: string;
+};
+type AssertSemesterExistsForGenerationInput = {
+  database: Pick<ClassDatabase, "semester">;
+  semesterId: string;
+};
+type RecordInitialTeacherInput = {
+  database: ClassDatabase;
+  classId: string;
+  recordedById?: string | undefined;
+};
