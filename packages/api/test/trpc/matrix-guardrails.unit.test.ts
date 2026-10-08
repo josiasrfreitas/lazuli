@@ -4,24 +4,16 @@ import { describe, it } from "node:test";
 import { evaluateStaffAccess } from "@lazuli/auth";
 import type { StaffRole } from "@lazuli/auth";
 
-import { routerAccess } from "@lazuli/api";
+import { ROLE_MATRIX } from "@lazuli/api";
 
-import { ALL_ROUTERS } from "../support/support.js";
-
-const ALL_ROLES: readonly StaffRole[] = [
-  "SYSTEM_ADMIN",
-  "ADMIN",
-  "SECRETARY",
-  "TEACHER",
-  "FINANCE",
-];
+const ALL_ROLES = Object.keys(ROLE_MATRIX) as StaffRole[];
 
 function isEnabledByAuth(role: StaffRole): boolean {
   return evaluateStaffAccess({ email: "probe@example.com", role, isEnabled: true }).allowed;
 }
 
 function reachesAnyRouter(role: StaffRole): boolean {
-  return ALL_ROUTERS.some((name) => routerAccess(role, name) !== "none");
+  return Object.values(ROLE_MATRIX[role]).some((access) => access !== "none");
 }
 
 void describe("ROLE_MATRIX stays aligned with the enabled-staff gate (D-0016)", () => {

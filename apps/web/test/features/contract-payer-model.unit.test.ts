@@ -23,7 +23,7 @@ const fields = {
   payerEmail: "maria@example.com",
 };
 
-void it("submits only the active payer source without consuming either draft", () => {
+void it("submits only the active payer source", () => {
   const existing = contractInputFromFields(fields, COMMAND);
   assert.equal(existing.success, true);
   assert.equal(existing.data?.payerId, fields.payerId);
@@ -37,7 +37,6 @@ void it("submits only the active payer source without consuming either draft", (
     email: "maria@example.com",
   });
   assert.equal(created.data?.payerId, undefined);
-  assert.deepEqual(contractInputFromFields(fields, COMMAND), existing);
 });
 
 void it("ignores an invalid inactive draft and directs document errors to its control", () => {

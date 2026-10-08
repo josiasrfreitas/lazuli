@@ -18,7 +18,7 @@ function isInputObject(value: JsInputValue): value is Record<string, JsInputValu
 }
 
 /** Adds the default UUIDEntity visibility condition unless the caller supplied one. */
-export function withActiveRecordFilter<Arguments extends JsArgs>(arguments_: Arguments): Arguments {
+function withActiveRecordFilter<Arguments extends JsArgs>(arguments_: Arguments): Arguments {
   const where = isInputObject(arguments_.where) ? arguments_.where : {};
 
   if (Object.hasOwn(where, "deletedAt")) {

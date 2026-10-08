@@ -1,19 +1,4 @@
-import type { Context, RouterName, StaffUser } from "@lazuli/api";
-
-/** The eleven routers governed by the §5.2 RBAC matrix (§5.1 router organization). */
-export const ALL_ROUTERS: readonly RouterName[] = [
-  "users",
-  "students",
-  "catalog",
-  "classes",
-  "calendar",
-  "enrollment",
-  "attendance",
-  "portal",
-  "finance",
-  "reports",
-  "dashboard",
-];
+import type { Context, StaffUser } from "@lazuli/api";
 
 export const ADMIN_FIXTURE: StaffUser = {
   id: "00000000-0000-0000-0000-0000000000ad",
