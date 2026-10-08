@@ -39,7 +39,7 @@ Do not add styling escape hatches to accommodate a single screen. Extend the sha
 when a concrete repeated behavior requires it, with a Storybook example and contract coverage.
 
 Use `onRowClick={(row) => ...}` for listings that open a detail page. The shared component
-provides a pointer cursor, whole-row accent hover/focus feedback, and Enter activation on
+provides a pointer cursor, subtle whole-row hover/focus feedback, and Enter activation on
 the focused row. Links, buttons, form fields, and selection controls inside a row keep their
 own interaction. Informational tooltip triggers may render as spans so clicking their text
 also activates the row. Header, loading, empty, and error rows remain noninteractive.

@@ -118,7 +118,7 @@ function DataRow<Row extends { id: string }>({
       interactive={Boolean(onRowClick)}
       className={
         onRowClick
-          ? "cursor-pointer hover:bg-accent focus-within:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          ? "cursor-pointer hover:bg-muted/60 focus-within:bg-muted/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
           : undefined
       }
       tabIndex={onRowClick ? 0 : undefined}
