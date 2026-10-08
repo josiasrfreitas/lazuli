@@ -1,7 +1,8 @@
 import type { Prisma } from "@lazuli/db";
 import { generateRegularPortalClassName, type PortalClassNameSlot } from "@lazuli/domain";
 
-import { PORTAL_NAME_COLLISION_MESSAGE, badRequest } from "./errors.js";
+import { badRequest } from "../trpc/errors.js";
+import { PORTAL_NAME_COLLISION_MESSAGE } from "./errors.js";
 
 const MAX_PORTAL_NAME_ATTEMPTS = 50;
 

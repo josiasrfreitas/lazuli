@@ -1,12 +1,11 @@
 import type { Prisma } from "@lazuli/db";
 
+import { badRequest, notFound } from "../trpc/errors.js";
 import {
   LEGACY_TRACK_MESSAGE,
   SEMESTER_NOT_FOUND_MESSAGE,
   STAGE_NOT_FOUND_MESSAGE,
   TEACHER_INVALID_MESSAGE,
-  badRequest,
-  notFound,
 } from "./errors.js";
 
 type GuardDatabase = Pick<Prisma.TransactionClient, "user" | "stage" | "semester" | "track">;

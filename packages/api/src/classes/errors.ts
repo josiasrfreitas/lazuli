@@ -1,5 +1,3 @@
-export { badRequest, notFound } from "../trpc/errors.js";
-
 export const CLASS_NOT_FOUND_MESSAGE = "Turma nao encontrada.";
 export const CLASS_NOT_ACTIVE_MESSAGE = "Somente turmas ativas podem ser clonadas.";
 export const TEACHER_INVALID_MESSAGE = "Professor invalido ou inativo.";
