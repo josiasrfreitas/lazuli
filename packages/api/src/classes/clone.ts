@@ -2,13 +2,12 @@ import type { Prisma } from "@lazuli/db";
 import { findNextStageInTrack } from "@lazuli/domain";
 
 import { archiveClass, classSummarySelect, type ClassDatabase, type ClassSummary } from "./data.js";
+import { badRequest, notFound } from "../trpc/errors.js";
 import {
   CLASS_NOT_ACTIVE_MESSAGE,
   CLASS_NOT_FOUND_MESSAGE,
   END_OF_TRACK_MESSAGE,
   STAGE_NOT_FOUND_MESSAGE,
-  badRequest,
-  notFound,
 } from "./errors.js";
 import { assertTeacherIsActive, loadActiveStage, loadSemester } from "./guards.js";
 import {

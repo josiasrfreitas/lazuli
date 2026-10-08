@@ -6,6 +6,7 @@ import {
 } from "@lazuli/validators";
 
 import { parseDateBR } from "~/lib/masks";
+import { formatBRLFromCents } from "~/lib/format";
 
 const CENTS_PER_REAL = 100;
 const MONTHS_PER_YEAR = 12;
@@ -67,6 +68,12 @@ export const emptyContractFields: ContractFields = {
   firstDueDate: "",
   monthlyAmount: "",
 };
+
+export function paymentPlanLabel(count: number, uniformAmountCents: number | null): string {
+  return uniformAmountCents === null
+    ? `${count} parcelas · valores variáveis`
+    : `${count} × ${formatBRLFromCents(uniformAmountCents)}`;
+}
 
 export function suggestMonthlyAmount(
   fields: ContractFields,

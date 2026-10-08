@@ -1,7 +1,17 @@
-import { PaymentAllocation, PaymentReceiptGroup } from "./payment-receipts";
-import { PaymentRowActions } from "./payment-row-actions";
-import { useState, type ReactElement } from "react";
-import { CurrencyInput, Field, FieldDescription, FieldError, Label } from "@lazuli/ui";
+import { useId, useState, type ReactElement, type ReactNode } from "react";
+import { Ellipsis } from "lucide-react";
+import {
+  Button,
+  CurrencyInput,
+  Field,
+  FieldDescription,
+  FieldError,
+  Label,
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@lazuli/ui";
 import { formatBRLFromCents as money } from "~/lib/format";
 import { originLabel } from "../view-model";
 import { draftReceipts, paymentDateLabel, type DraftItem, type PreviewRow } from "./draft";
@@ -150,4 +160,169 @@ function receivedFieldState(
     item.amount === null ||
     (amount !== null && (amount <= 0 || (quote !== undefined && amount > quote.settlementCents)));
   return { amount, invalid };
+}
+
+export function PaymentAllocation({
+  item,
+  state,
+}: {
+  item: DraftItem;
+  state: PaymentFormState;
+}): ReactElement {
+  const receipt = draftReceipts(state.draft, state.preview).find(
+    (entry) => entry.commandId === item.receiptId,
+  );
+  const items = state.draft.items.filter((entry) => entry.receiptId === item.receiptId);
+  return (
+    <div className="space-y-2 border-t border-border pt-3 text-caption text-muted-foreground">
+      <p>Pagador: {item.row.payer.name}</p>
+      <p>Recebido anteriormente nesta parcela: {money(item.row.paidAmountCents)}</p>
+      {items.length > 1 && (
+        <>
+          <p>Parcelas no mesmo recebimento:</p>
+          <ul className="space-y-1">
+            {items.map((entry) => (
+              <li key={entry.row.installmentId} className="flex justify-between gap-3">
+                <span>
+                  {entry.row.beneficiaries.map((person) => person.fullName).join(", ")}
+                  {" · "}
+                  {originLabel(entry.row.origin)} {entry.row.sequenceNumber}/
+                  {entry.row.scheduleTotal}
+                </span>
+                <span className="shrink-0 font-numeric">
+                  {money(
+                    receipt?.allocations.find(
+                      (allocation) => allocation.installmentId === entry.row.installmentId,
+                    )?.amountCents ?? 0,
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <p>O saldo considera os encargos novos e o desconto elegível na data efetiva.</p>
+    </div>
+  );
+}
+
+export function PaymentReceiptGroup({
+  items,
+  total,
+  children,
+}: {
+  items: DraftItem[];
+  total: number;
+  children: ReactNode;
+}): ReactElement {
+  const id = useId();
+  return (
+    <section aria-labelledby={id} className="overflow-hidden rounded-md border border-border">
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/50 px-3 py-2">
+        <div className="min-w-0">
+          <p className="text-caption text-muted-foreground">Pagador</p>
+          <h3 id={id} className="break-words text-control font-semibold">
+            {items[0]?.row.payer.name}
+          </h3>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="max-w-32 text-caption text-muted-foreground sm:max-w-none">
+            {items.length} {items.length === 1 ? "parcela" : "parcelas"} · 1 recebimento
+          </p>
+          <p className="font-numeric text-control font-medium">{money(total)}</p>
+        </div>
+      </div>
+      <div className="divide-y divide-border">{children}</div>
+    </section>
+  );
+}
+
+export function PaymentRowActions({
+  item,
+  state,
+  details,
+  setDetails,
+}: {
+  item: DraftItem;
+  state: PaymentFormState;
+  details: boolean;
+  setDetails: (value: boolean) => void;
+}): ReactElement {
+  const [open, setOpen] = useState(false);
+  const locked = state.submitting || state.uncertain;
+  const act = (action: () => void): void => {
+    action();
+    setOpen(false);
+  };
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        disabled={locked}
+        aria-label={`Ações da parcela ${item.row.sequenceNumber} de ${item.row.payer.name}`}
+        render={
+          <Button type="button" size="icon-sm" className="size-11 sm:size-8" variant="ghost" />
+        }
+      >
+        <Ellipsis aria-hidden="true" />
+      </PopoverTrigger>
+      <PopoverContent align="end" size="sm" showArrow={false} className="grid gap-1">
+        <PopoverTitle className="sr-only">Ações da parcela</PopoverTitle>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={locked}
+          className="justify-start"
+          onClick={() => act(() => setDetails(!details))}
+        >
+          {details ? "Ocultar detalhes" : "Ver detalhes e alocação"}
+        </Button>
+        <ReceiptMutationActions item={item} state={state} act={act} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function ReceiptMutationActions({
+  item,
+  state,
+  act,
+}: {
+  item: DraftItem;
+  state: PaymentFormState;
+  act: (action: () => void) => void;
+}): ReactElement {
+  const locked = state.submitting || state.uncertain;
+  const canSplit = state.draft.items.filter((row) => row.receiptId === item.receiptId).length > 1;
+  return (
+    <>
+      {canSplit && (
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={locked}
+          className="justify-start"
+          onClick={() =>
+            act(() =>
+              state.dispatch({
+                type: "split",
+                id: item.row.installmentId,
+                receiptId: crypto.randomUUID(),
+              }),
+            )
+          }
+        >
+          Separar recebimento
+        </Button>
+      )}
+      <Button
+        type="button"
+        variant="ghost"
+        disabled={locked}
+        className="justify-start"
+        onClick={() => act(() => state.dispatch({ type: "remove", id: item.row.installmentId }))}
+      >
+        Remover recebível
+      </Button>
+    </>
+  );
 }

@@ -10,7 +10,7 @@ import {
 } from "../../src/features/contracts/contract-form-model.js";
 import { fieldErrors } from "../../src/features/contracts/new-contract-state.js";
 import { PaymentSection } from "../../src/features/contracts/contract-payment-section.js";
-import { paymentPlanLabel } from "../../src/features/contracts/contract-payment-summary.js";
+import { paymentPlanLabel } from "../../src/features/contracts/contract-form-model.js";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 const commandId = "00000000-0000-4000-8000-000000000001";

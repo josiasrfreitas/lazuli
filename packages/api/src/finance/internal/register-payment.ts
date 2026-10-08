@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 
-import { prepareContractPayment } from "./contract-payment.js";
-import { persistSettlementAdjustments } from "./settlement-write.js";
+import { loadSettlementItems, settlementLine, type SettlementLine } from "./settlement-data.js";
+import { assertReceivablePayment, persistSettlementAdjustments } from "./settlement-write.js";
 import type { financeRegisterPaymentInputSchema, z } from "@lazuli/validators";
+import { badRequest, notFound } from "../../trpc/errors.js";
 
 import {
   calculateRemainingBalanceCents,
@@ -15,15 +16,15 @@ import {
   type PaymentEntrySummary,
 } from "./payment-store.js";
 import {
-  badRequest,
+  CONTRACT_PAYMENT_COMMAND_REQUIRED_MESSAGE,
   ENTRY_OVER_ALLOCATION_MESSAGE,
   INSTALLMENT_NOT_FOUND_MESSAGE,
   INSTALLMENT_OVER_ALLOCATION_MESSAGE,
   INSTALLMENT_PAYER_MISMATCH_MESSAGE,
-  notFound,
   PAYMENT_COMMAND_CONFLICT_MESSAGE,
   PAYER_NOT_FOUND_MESSAGE,
   sortStrings,
+  toDateOnlyString,
   WAIVED_INSTALLMENT_ALLOCATION_MESSAGE,
   type FinanceDatabase,
 } from "./shared.js";
@@ -92,6 +93,36 @@ export async function registerPayment(input: {
     allocations,
     unallocatedRemainderCents: input.values.amountCents - allocationTotalCents,
   };
+}
+
+async function prepareContractPayment(input: {
+  database: FinanceDatabase;
+  values: RegisterPaymentInput;
+  now: Date;
+}): Promise<SettlementLine[]> {
+  const items = await loadSettlementItems(
+    input.database,
+    input.values.allocations.map((row) => row.installmentId),
+  );
+  const contractual = items.filter((item) => item.order.contract !== null);
+  if (contractual.length === 0) return [];
+  if (!input.values.commandId) throw badRequest(CONTRACT_PAYMENT_COMMAND_REQUIRED_MESSAGE);
+  const allocated = input.values.allocations.reduce((sum, row) => sum + row.amountCents, 0);
+  if (allocated !== input.values.amountCents)
+    throw badRequest("Total recebido deve coincidir com as alocações.");
+  return contractual.map((item) => {
+    const amountCents = input.values.allocations
+      .filter((row) => row.installmentId === item.id)
+      .reduce((sum, row) => sum + row.amountCents, 0);
+    const line = settlementLine({
+      item,
+      date: toDateOnlyString(input.values.date),
+      amountCents,
+      now: input.now,
+    });
+    assertReceivablePayment(line);
+    return line;
+  });
 }
 
 function fingerprint(values: RegisterPaymentInput): string {

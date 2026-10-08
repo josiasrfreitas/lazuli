@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 
 import { getAuthEnvironment, isStaffAccessDeniedCode } from "@lazuli/auth";
 import { auth } from "@lazuli/auth/server";
+import { cn } from "@lazuli/ui";
 
-import { MarqueeCard } from "~/components/marquee/marquee-card";
 import {
   MarqueeBody,
   MarqueeEditorial,
@@ -56,12 +56,12 @@ export default async function LoginPage({
         <MarqueeNote>Uso restrito à equipe da escola</MarqueeNote>
       </MarqueeEditorial>
 
-      <MarqueeCard title="Acesso">
+      <LoginCardFrame>
         <LoginCard
           googleOAuthEnabled={getAuthEnvironment().googleOAuth !== undefined}
           initialError={resolveInitialError(params.error)}
         />
-      </MarqueeCard>
+      </LoginCardFrame>
     </MarqueePage>
   );
 }
@@ -72,4 +72,30 @@ function resolveInitialError(error: string | undefined): LoginInitialError | nul
   }
 
   return isStaffAccessDeniedCode(error) ? "denied" : "verification";
+}
+
+function LoginCardFrame({ children }: { children: ReactNode }): ReactNode {
+  return (
+    <section className="relative border border-marquee-border bg-marquee-foreground/[0.015]">
+      <header
+        className={cn([
+          "flex items-center justify-between gap-6 border-b border-marquee-border px-6 py-4 sm:px-10",
+          "font-mono text-micro font-semibold uppercase tracking-eyebrow",
+        ])}
+      >
+        <span className="text-marquee-muted">Acesso</span>
+      </header>
+      <div className="flex flex-col justify-center px-6 py-10 sm:px-10">{children}</div>
+      <span aria-hidden="true">
+        {[
+          "-top-px -left-px border-t border-l",
+          "-top-px -right-px border-t border-r",
+          "-bottom-px -left-px border-b border-l",
+          "-bottom-px -right-px border-b border-r",
+        ].map((corner) => (
+          <span className={cn("absolute size-4 border-marquee-accent/60", corner)} key={corner} />
+        ))}
+      </span>
+    </section>
+  );
 }

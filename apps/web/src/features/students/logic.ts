@@ -20,7 +20,7 @@ import { trpc, type ClientError, type QueryResult } from "~/lib/trpc";
 import { useUrlPagination } from "~/lib/pagination";
 
 import type { NewStudentErrors, NewStudentFieldName } from "./new-student/reducer";
-import type { StudentCreateInput } from "./new-student/to-create-input";
+import type { StudentCreateInput } from "./new-student/finance-model";
 
 /**
  * Client state of the listing: filters live in the URL (nuqs) so a filtered

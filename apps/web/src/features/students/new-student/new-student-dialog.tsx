@@ -3,6 +3,7 @@ import {
   Alert,
   AlertContent,
   AlertDescription,
+  Button,
   Dialog,
   DialogBackdrop,
   DialogBody,
@@ -11,21 +12,28 @@ import {
   DialogHeader,
   DialogPortal,
   DialogTitle,
+  DialogFooter,
+  EmptyState,
   Stepper,
 } from "@lazuli/ui";
+import { toDateOnlySaoPaulo } from "~/lib/format";
 import { useStudentCompletion, type StudentCompletion } from "./completion";
+import { DadosStep, DADOS_FORM_ID } from "./dados-step";
+import { FinanceStep, FINANCE_FORM_ID } from "./finance-step";
 import {
   initialNewStudentState,
   NEW_STUDENT_STEPS,
+  isGuardianSectionOpen,
+  isMinorFromFields,
   newStudentReducer,
   type NewStudentAction,
   type NewStudentState,
 } from "./reducer";
-import { useScrollToError } from "./use-scroll-to-error";
-import { WizardBody } from "./wizard-body";
-import { FINANCE_STEP, WizardFooter } from "./wizard-footer";
+import { useScrollToError } from "~/lib/scroll-to-error";
 
 const STEPS = NEW_STUDENT_STEPS.map((label) => ({ label }));
+const DADOS_STEP = 0;
+const FINANCE_STEP = 2;
 
 export type NewStudentDialogProps = {
   open: boolean;
@@ -127,5 +135,112 @@ function WizardContent({
       </DialogBody>
       <WizardFooter state={state} dispatch={dispatch} completion={completion} onCancel={onCancel} />
     </>
+  );
+}
+
+function WizardBody({
+  state,
+  dispatch,
+  completion,
+}: {
+  state: NewStudentState;
+  dispatch: Dispatch<NewStudentAction>;
+  completion: StudentCompletion;
+}): ReactElement {
+  const today = toDateOnlySaoPaulo(new Date());
+  const next = (): void => dispatch({ type: "nextRequested", today });
+  if (state.step === DADOS_STEP)
+    return (
+      <DadosStep
+        errors={state.errors}
+        fields={state.fields}
+        guardianOpen={isGuardianSectionOpen(state, today)}
+        minor={isMinorFromFields(state.fields, today)}
+        onFieldChange={(field, value) => dispatch({ type: "fieldChanged", field, value })}
+        onGuardianToggle={(open) => dispatch({ type: "guardianToggled", open })}
+        onSubmit={next}
+      />
+    );
+  if (state.step === FINANCE_STEP)
+    return <FinanceStep completion={completion} student={state.fields} />;
+  return (
+    <form
+      id="new-student-pedagogico"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        next();
+      }}
+    >
+      <EmptyState
+        description="Cadastre o aluno agora e matricule na turma depois."
+        title="Matrícula em breve"
+      />
+    </form>
+  );
+}
+
+function FinishActions({ completion }: { completion: StudentCompletion }): ReactElement {
+  return (
+    <>
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={completion.pending}
+        onClick={() => completion.finish(false)}
+      >
+        Pular e criar aluno
+      </Button>
+      <Button
+        form={FINANCE_FORM_ID}
+        type="submit"
+        disabled={completion.pending || !completion.offer.data}
+      >
+        {completion.pending ? "Criando…" : "Concluir com contrato"}
+      </Button>
+    </>
+  );
+}
+
+function WizardFooter({
+  state,
+  dispatch,
+  completion,
+  onCancel,
+}: {
+  state: NewStudentState;
+  dispatch: Dispatch<NewStudentAction>;
+  completion: StudentCompletion;
+  onCancel: () => void;
+}): ReactElement {
+  const { pending } = completion;
+  return (
+    <DialogFooter className="mt-4">
+      {state.step === DADOS_STEP ? (
+        <Button type="button" variant="ghost" onClick={onCancel}>
+          Cancelar
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          className="sm:mr-auto"
+          disabled={pending}
+          onClick={() => dispatch({ type: "backRequested" })}
+        >
+          Voltar
+        </Button>
+      )}
+      {state.step === FINANCE_STEP ? (
+        <FinishActions completion={completion} />
+      ) : (
+        <Button
+          form={state.step === DADOS_STEP ? DADOS_FORM_ID : "new-student-pedagogico"}
+          type="submit"
+        >
+          Avançar
+        </Button>
+      )}
+    </DialogFooter>
   );
 }

@@ -1,6 +1,7 @@
 import type { enrollmentTransferInputSchema, z } from "@lazuli/validators";
 
 import { saoPauloDateOnly } from "@lazuli/domain";
+import { badRequest } from "../trpc/errors.js";
 import {
   assertCapacity,
   assertNoDuplicateActiveEnrollment,
@@ -19,7 +20,6 @@ import {
   ENROLLMENT_ALREADY_CLOSED_MESSAGE,
   REGULAR_CLASS_MISSING_STAGE_MESSAGE,
   TRANSFER_SAME_CLASS_MESSAGE,
-  badRequest,
 } from "./errors.js";
 
 type EnrollmentTransferInput = z.infer<typeof enrollmentTransferInputSchema>;

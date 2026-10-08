@@ -31,8 +31,6 @@ const componentSourcePaths = {
   inputStory: "apps/storybook/src/components/input.stories.tsx",
   popoverSource: "packages/ui/src/components/popover.tsx",
   popoverStory: "apps/storybook/src/components/popover.stories.tsx",
-  selectContentSource: "packages/ui/src/components/select-content.tsx",
-  selectOptionsSource: "packages/ui/src/components/select-options.tsx",
   selectSource: "packages/ui/src/components/select.tsx",
   tableCellsSource: "packages/ui/src/components/table-cells.tsx",
   tableSource: "packages/ui/src/components/table.tsx",
@@ -125,7 +123,7 @@ function assertDialogContract({ dialogLayoutSource, dialogSource, dialogStory })
   }
 }
 
-function assertSelectContract({ selectSource, selectContentSource, selectOptionsSource }) {
+function assertSelectContract({ selectSource }) {
   assert.match(selectSource, /@base-ui\/react\/select/u);
   // The trigger styles child slots via arbitrary selectors; keep each
   // selector paired with the slot definition in the same file so a slot
@@ -135,15 +133,15 @@ function assertSelectContract({ selectSource, selectContentSource, selectOptions
   assert.match(selectSource, /\[&_\[data-slot=select-icon\]\]/u);
   assert.match(selectSource, /data-slot="select-icon"/u);
   assert.match(selectSource, /data-slot="select-trigger"/u);
-  assert.match(selectContentSource, /data-slot="select-content"/u);
-  assert.match(selectContentSource, /scrollbar-subtle/u);
+  assert.match(selectSource, /data-slot="select-content"/u);
+  assert.match(selectSource, /scrollbar-subtle/u);
   for (const slot of [
     "select-item",
     "select-item-text",
     "select-item-indicator",
     "select-separator",
   ]) {
-    assert.match(selectOptionsSource, new RegExp(`data-slot="${slot}"`, "u"));
+    assert.match(selectSource, new RegExp(`data-slot="${slot}"`, "u"));
   }
 }
 

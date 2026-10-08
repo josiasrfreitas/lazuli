@@ -5,7 +5,7 @@ import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { SettingsForm } from "../../src/features/settings/settings-form.js";
+import { SettingsForm } from "../../src/features/settings/settings-panel.js";
 import { SettingsPanel } from "../../src/features/settings/settings-panel.js";
 import type { SettingsRow } from "../../src/features/settings/settings-model.js";
 

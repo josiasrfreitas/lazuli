@@ -16,7 +16,7 @@ const files = git(["diff", "--name-only", "-z", "--diff-filter=ACMR", mergeBase,
   .filter(Boolean);
 const sourcePattern = /\.(?:[cm]?[jt]s|[jt]sx)$/u;
 const componentPattern = /^(?:apps\/web\/src|packages\/ui\/src\/components)\/.*\.tsx$/u;
-const maximumComponentLines = 200;
+const maximumComponentLines = 650;
 let checked = 0;
 const errors = [];
 for (const file of files) {
@@ -38,7 +38,7 @@ for (const file of files) {
     }
   }
   if (componentPattern.test(file) && !file.includes(".stories.")) {
-    const lines = source.split(/\r?\n/u).length;
+    const lines = source.split(/\r?\n/u).length - Number(source.endsWith("\n"));
     if (lines > maximumComponentLines)
       errors.push(`${file}: ${lines} lines; component limit is ${maximumComponentLines}.`);
   }

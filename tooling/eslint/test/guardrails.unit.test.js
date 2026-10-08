@@ -194,7 +194,7 @@ describe("shared ESLint guardrails", () => {
 it("allows literal, extensive test scenarios while retaining production readability rules", async () => {
   const source = [
     "export function scenario(): void {",
-    ...Array.from({ length: 360 }, () => '  String(20.00001 + Number("repeated scenario value"));'),
+    ...Array.from({ length: 660 }, () => '  String(20.00001 + Number("repeated scenario value"));'),
     "  [1].map(() => [1].map(() => [1].map(() => [1].map(() => 1))));",
     "}",
   ].join("\n");

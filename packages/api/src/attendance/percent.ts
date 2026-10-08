@@ -6,9 +6,10 @@ import {
 import type { attendanceEnrollmentSemesterPercentInputSchema, z } from "@lazuli/validators";
 
 import type { StaffUser } from "../trpc/context.js";
+import { notFound } from "../trpc/errors.js";
 import { assertResourceScope } from "../trpc/rbac.js";
 import type { AttendanceDatabase } from "./data.js";
-import { ENROLLMENT_NOT_FOUND_MESSAGE, SEMESTER_NOT_FOUND_MESSAGE, notFound } from "./errors.js";
+import { ENROLLMENT_NOT_FOUND_MESSAGE, SEMESTER_NOT_FOUND_MESSAGE } from "./errors.js";
 
 type PercentInput = z.infer<typeof attendanceEnrollmentSemesterPercentInputSchema>;
 

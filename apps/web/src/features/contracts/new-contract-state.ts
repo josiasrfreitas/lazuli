@@ -11,9 +11,9 @@ import {
   type SetStateAction,
 } from "react";
 import { addCalendarMonths } from "@lazuli/domain";
-import { monthlyAmountError } from "./contract-price";
+import { tuitionFloorCents } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
-import { toDateOnlySaoPaulo } from "~/lib/format";
+import { formatBRLFromCents, formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { parseDateBR } from "~/lib/masks";
 import type { FormProps } from "./contract-form-fields";
 import {
@@ -26,6 +26,7 @@ import {
 
 type Errors = Partial<Record<keyof ContractFields, string>>;
 type ParsedInput = ReturnType<typeof contractInputFromFields>;
+const CENTS_PER_REAL = 100;
 const DEFAULT_CONTRACT_MONTHS = 12;
 const FORM_KEYS = new Set<keyof ContractFields>([
   "studentId",
@@ -105,12 +106,7 @@ export function fieldErrors(parsed: ParsedInput, hasPreview: boolean): Errors {
 
 function suggestedContractEnd(value: string): string {
   const start = parseDateBR(value);
-  return start ? formatDateBR(addCalendarMonths(start, DEFAULT_CONTRACT_MONTHS)) : "";
-}
-
-function formatDateBR(value: string): string {
-  const [year, month, day] = value.split("-");
-  return [day, month, year].join("/");
+  return start ? formatDateOnlyBR(addCalendarMonths(start, DEFAULT_CONTRACT_MONTHS)) : "";
 }
 
 export type ContractFormState = {
@@ -133,7 +129,7 @@ function useAgreementDate(
 ): void {
   useEffect(() => {
     if (!open) return;
-    const today = formatDateBR(toDateOnlySaoPaulo(new Date()));
+    const today = formatDateOnlyBR(toDateOnlySaoPaulo(new Date()));
     setFields((current) => (current.agreedOn ? current : { ...current, agreedOn: today }));
   }, [open, setFields]);
 }
@@ -231,6 +227,23 @@ export type ContractOperation = {
   close: (next: boolean) => void;
   submit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 };
+
+function monthlyAmountError(text: string, offer: FormProps["offer"]): string | undefined {
+  const value = text.trim();
+  const amount = Math.round(Number(value.replace(",", ".")) * CENTS_PER_REAL);
+  if (!/^\d+(?:[.,]\d{1,2})?$/u.test(value) || !Number.isSafeInteger(amount) || amount <= 0) {
+    return "Informe uma mensalidade válida.";
+  }
+  if (!offer) return undefined;
+  if (amount > offer.tuitionCeilingCents) {
+    return `A mensalidade deve ser de no máximo ${formatBRLFromCents(offer.tuitionCeilingCents)}.`;
+  }
+  const floor = tuitionFloorCents(offer.tuitionCeilingCents, offer.maximumDiscountPct);
+  if (amount < floor) {
+    return `A mensalidade acordada deve ser de pelo menos ${formatBRLFromCents(floor)}.`;
+  }
+  return undefined;
+}
 
 function validatePrice(state: ContractFormState, offer: FormProps["offer"]): void {
   state.setFieldError("monthlyAmount", monthlyAmountError(state.fields.monthlyAmount, offer));

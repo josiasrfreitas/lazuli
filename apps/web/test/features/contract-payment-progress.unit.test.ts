@@ -3,11 +3,11 @@ import { it } from "node:test";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { ContractPaymentProgress } from "../../src/features/contracts/contract-payment-progress.js";
 import {
+  ContractPaymentProgress,
   contractColumns,
   type ContractRow,
-} from "../../src/features/contracts/contract-columns.js";
+} from "../../src/features/contracts/contracts-table.js";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 

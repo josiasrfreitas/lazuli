@@ -2,14 +2,13 @@ import type { Prisma } from "@lazuli/db";
 import { findNextStageInTrack, saoPauloDateOnly } from "@lazuli/domain";
 
 import { progressSummarySelect, type EnrollmentDatabase, type ProgressSummary } from "./data.js";
+import { badRequest, notFound } from "../trpc/errors.js";
 import {
   ACTIVE_PROGRESS_NOT_FOUND_MESSAGE,
   ADVANCE_REQUIRES_PERSONALIZED_MESSAGE,
   END_OF_TRACK_MESSAGE,
   ENROLLMENT_NOT_ACTIVE_MESSAGE,
   ENROLLMENT_NOT_FOUND_MESSAGE,
-  badRequest,
-  notFound,
 } from "./errors.js";
 
 // Active progress plus the ordered stages of its track, so `findNextStageInTrack` never leaves the

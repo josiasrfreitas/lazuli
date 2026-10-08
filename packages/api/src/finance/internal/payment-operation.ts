@@ -4,7 +4,8 @@ import type { PaymentOperationInput } from "@lazuli/validators";
 import { lockInstallments, persistPayment, type PaymentEntrySummary } from "./payment-store.js";
 import { loadSettlementItems, settlementLine, type SettlementLine } from "./settlement-data.js";
 import { assertReceivablePayment, persistSettlementAdjustments } from "./settlement-write.js";
-import { badRequest, sortStrings, toDateOnly, type FinanceDatabase } from "./shared.js";
+import { badRequest } from "../../trpc/errors.js";
+import { sortStrings, toDateOnly, type FinanceDatabase } from "./shared.js";
 
 type OperationContext = {
   database: FinanceDatabase;

@@ -1,7 +1,7 @@
 import type { BadgeVariant } from "@lazuli/ui";
 import type { FinanceInstallmentRow, FinanceOverduePayerGroup } from "@lazuli/validators";
 
-import { formatBRLFromCents } from "~/lib/format";
+import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 export { saoPauloDateOnly as businessDate } from "@lazuli/domain";
 type InstallmentVm = {
   sequence: string;
@@ -54,11 +54,10 @@ export function overduePayerSummaryVm(group: FinanceOverduePayerGroup): OverdueP
   };
 }
 export function installmentVm(row: FinanceInstallmentRow, today: string): InstallmentVm {
-  const [year, month, day] = row.dueDate.split("-");
   return {
     sequence: `${row.sequenceNumber} de ${row.scheduleTotal}`,
     origin: originLabel(row.origin),
-    dueDate: `${day}/${month}/${year}`,
+    dueDate: formatDateOnlyBR(row.dueDate),
     badge: statusBadge(row, today),
   };
 }

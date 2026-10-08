@@ -9,9 +9,13 @@ import {
   useContractFormState,
   type ContractFormState,
 } from "../../contracts/new-contract-state";
-import { studentContractInput, studentContractPreview } from "./finance-model";
-import { completionErrorMessage } from "./completion-errors";
-import { toCreateInput, type StudentCreateInput } from "./to-create-input";
+import {
+  studentContractInput,
+  studentContractPreview,
+  toCreateInput,
+  type StudentCreateInput,
+} from "./finance-model";
+import { completionErrorMessage } from "./finance-model";
 import type { NewStudentFields } from "./reducer";
 
 const EMPTY_FINANCE_FIELDS = emptyContractFields;

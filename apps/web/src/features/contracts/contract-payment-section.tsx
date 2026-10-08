@@ -3,15 +3,9 @@
 import { useId, type ReactElement } from "react";
 import { ChevronDown } from "lucide-react";
 import { Button, Field, FieldError, Input, Label } from "@lazuli/ui";
-import { formatBRLFromCents } from "~/lib/format";
+import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import type { FormProps } from "./contract-form-fields";
-import { paymentPlanLabel } from "./contract-payment-summary";
-
-function civilDateBR(value: string | undefined): string {
-  if (!value) return "—";
-  const [year, month, day] = value.split("-");
-  return `${day}/${month}/${year}`;
-}
+import { paymentPlanLabel } from "./contract-form-model";
 
 function PaymentCalendar({
   preview,
@@ -27,7 +21,7 @@ function PaymentCalendar({
             className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-caption font-numeric tabular-nums"
           >
             <span>Parcela {row.sequenceNumber}</span>
-            <time dateTime={row.dueDate}>{civilDateBR(row.dueDate)}</time>
+            <time dateTime={row.dueDate}>{formatDateOnlyBR(row.dueDate)}</time>
             <span>{formatBRLFromCents(row.amountCents)}</span>
           </li>
         ))}
@@ -54,7 +48,7 @@ function PaymentPreview({
         aria-live="polite"
       >
         <p>
-          Vigência até {civilDateBR(preview.endsOn)} · principal{" "}
+          Vigência até {formatDateOnlyBR(preview.endsOn)} · principal{" "}
           {formatBRLFromCents(preview.principalAmountCents)}
         </p>
         <p>{paymentPlanLabel(preview.installments.length, uniformAmount)}</p>
@@ -63,8 +57,8 @@ function PaymentPreview({
           da mensalidade acordada {formatBRLFromCents(preview.floorCents)}
         </p>
         <p>
-          Primeiro vencimento {civilDateBR(preview.installments[0]?.dueDate)} · último{" "}
-          {civilDateBR(preview.installments.at(-1)?.dueDate)}
+          Primeiro vencimento {formatDateOnlyBR(preview.installments[0]?.dueDate)} · último{" "}
+          {formatDateOnlyBR(preview.installments.at(-1)?.dueDate)}
         </p>
       </div>
       {special && <PaymentCalendar preview={preview} />}

@@ -1,7 +1,8 @@
 import type { Prisma } from "@lazuli/db";
 import type { classCreateInputSchema, z } from "@lazuli/validators";
 
-import { CLASS_NOT_FOUND_MESSAGE, notFound } from "./errors.js";
+import { notFound } from "../trpc/errors.js";
+import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
 import { assertTeacherIsActive, loadActiveStage, loadSemester } from "./guards.js";
 import {
   assertActivePortalClassNameAvailable,

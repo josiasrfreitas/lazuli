@@ -11,7 +11,7 @@ import {
   MAKEUP_TARGET_CANCELLED_MESSAGE,
   MAKEUP_TARGET_IN_PAST_MESSAGE,
   ORIGIN_ENROLLMENT_NOT_FOUND_MESSAGE,
-} from "../../src/attendance/makeup-errors.js";
+} from "../../src/attendance/errors.js";
 import { rejectionMessage } from "../support/attendance-test-support.js";
 import { scheduleHarness as harness } from "../support/makeup-namespaces.js";
 import { FAR_FUTURE_DATE } from "../support/makeup-test-support.js";

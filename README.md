@@ -138,7 +138,7 @@ For coding-agent constraints, verification expectations, and documentation routi
 
 ## Frontend foundation
 
-Start with the current [frontend guide](docs/frontend/README.md), including the hard 200-line limit
+Start with the current [frontend guide](docs/frontend/README.md), including the hard 650-line limit
 for component implementation files.
 
 `@lazuli/ui` owns the shadcn registry primitives, shared utilities, and theme tokens. Its

@@ -1,15 +1,59 @@
 "use client";
 
-import { type ComponentProps, createContext, forwardRef, type ReactNode, useContext } from "react";
+import {
+  type ComponentProps,
+  createContext,
+  forwardRef,
+  type ReactElement,
+  type ReactNode,
+  useContext,
+} from "react";
+import { ScrollArea } from "@base-ui/react/scroll-area";
 
 import { cn } from "../lib/utils";
-import { TableScrollArea } from "./table-scroll-area";
 
 export type TableDensity = "compact" | "default";
 
 // Density is chosen once on the root and read by the cells, so a header and its
 // body cannot drift to different row heights or paddings.
 const TableDensityContext = createContext<TableDensity>("default");
+
+// Keep the vertical thumb below the sticky header; native scrollbars span it.
+const scrollbarClassName =
+  "bg-scrollbar-track data-[orientation=horizontal]:h-2 data-[orientation=vertical]:w-2";
+const thumbClassName = cn(
+  "rounded-full border-2 border-transparent bg-scrollbar-thumb bg-clip-padding",
+  "hover:bg-scrollbar-thumb-hover",
+  "data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full",
+);
+
+function TableScrollArea({ children }: { children: ReactNode }): ReactElement {
+  return (
+    <ScrollArea.Root
+      className="relative flex min-h-0 flex-1 flex-col"
+      data-slot="table-scroll-area"
+    >
+      <ScrollArea.Viewport
+        // `relative` keeps off-screen cell labels inside the scroll area instead of widening the page.
+        className="relative min-h-0 flex-1 overscroll-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+        data-slot="table-viewport"
+      >
+        {children}
+      </ScrollArea.Viewport>
+      <ScrollArea.Scrollbar
+        className={scrollbarClassName}
+        orientation="vertical"
+        style={{ top: "var(--lz-table-scrollbar-top)" }}
+      >
+        <ScrollArea.Thumb className={thumbClassName} />
+      </ScrollArea.Scrollbar>
+      <ScrollArea.Scrollbar className={scrollbarClassName} orientation="horizontal">
+        <ScrollArea.Thumb className={thumbClassName} />
+      </ScrollArea.Scrollbar>
+      <ScrollArea.Corner className="bg-card" />
+    </ScrollArea.Root>
+  );
+}
 
 /** Row height and horizontal cell padding, per density. */
 export const tableCellSpacing: Record<TableDensity, string> = {

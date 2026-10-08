@@ -1,9 +1,6 @@
 import type { RosterEnrollment } from "./data.js";
-import {
-  DUPLICATE_ROSTER_ROW_MESSAGE,
-  ENROLLMENT_NOT_ON_ROSTER_MESSAGE,
-  badRequest,
-} from "./errors.js";
+import { badRequest } from "../trpc/errors.js";
+import { DUPLICATE_ROSTER_ROW_MESSAGE, ENROLLMENT_NOT_ON_ROSTER_MESSAGE } from "./errors.js";
 
 export type AttendanceStatus = "PRESENT" | "ABSENT";
 
