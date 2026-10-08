@@ -11,6 +11,7 @@ import {
   ensureTeacherUser,
   seedClassCatalogFixtures,
   TEACHER_USER_ID,
+  SECOND_TEACHER_USER_ID,
 } from "../support/class-test-support.js";
 import { recordingSessionsGenerateQueue } from "../support/session-generation-queue-support.js";
 
@@ -62,7 +63,11 @@ void it("generates personalized names and disambiguates identical schedules", as
     slots: [{ weekday: "FRIDAY", startTime: "10:00", endTime: "11:00" }],
   } as const;
   const created = await caller().classes.create({ ...values, slots: [...values.slots] });
-  const second = await caller().classes.create({ ...values, slots: [...values.slots] });
+  const second = await caller().classes.create({
+    ...values,
+    teacherId: SECOND_TEACHER_USER_ID,
+    slots: [...values.slots],
+  });
 
   assert.equal(created.portalClassName, "PPT/SEX-10:00/11:00-1S/26-1");
   assert.equal(second.portalClassName, "PPT/SEX-10:00/11:00-1S/26-2");
