@@ -3,14 +3,63 @@ import {
   classCloneForNextPeriodInputSchema,
   classCreateInputSchema,
   classGenerateSessionsInputSchema,
+  classIdInputSchema,
+  classListInputSchema,
+  classRelatedListInputSchema,
+  classRosterInputSchema,
+  classUpdateBasicInputSchema,
 } from "@lazuli/validators";
 import { createLocalSessionsGenerateQueue, enqueueSessionsGenerate } from "@lazuli/job-contracts";
 
 import { adminProcedure, router } from "../trpc/init.js";
 import { cloneClassForNextPeriod } from "./clone.js";
 import { archiveClass, assertGenerationScopeExists, createClass } from "./data.js";
+import {
+  classFormOptions,
+  listClassActions,
+  listClassRoster,
+  listClasses,
+  readClass,
+} from "./read.js";
 
 export const classesRouter = router({
+  list: adminProcedure
+    .input(classListInputSchema)
+    .query(({ ctx, input }) =>
+      listClasses({ database: ctx.db, values: input, now: ctx.now ?? new Date() }),
+    ),
+  byId: adminProcedure
+    .input(classIdInputSchema)
+    .query(({ ctx, input }) =>
+      readClass({ database: ctx.db, id: input.id, now: ctx.now ?? new Date() }),
+    ),
+  roster: adminProcedure.input(classRosterInputSchema).query(({ ctx, input }) =>
+    listClassRoster({
+      database: ctx.db,
+      id: input.id,
+      page: input.page,
+      pageSize: input.pageSize,
+      search: input.search,
+      ...(input.situation ? { situation: input.situation } : {}),
+      now: ctx.now ?? new Date(),
+    }),
+  ),
+  actions: adminProcedure.input(classRelatedListInputSchema).query(({ ctx, input }) =>
+    listClassActions({
+      database: ctx.db,
+      id: input.id,
+      page: input.page,
+      pageSize: input.pageSize,
+    }),
+  ),
+  formOptions: adminProcedure.query(({ ctx }) => classFormOptions(ctx.db)),
+  updateBasic: adminProcedure.input(classUpdateBasicInputSchema).mutation(({ ctx, input }) =>
+    ctx.db.class.update({
+      where: { id: input.id, deletedAt: null },
+      data: { internalCode: input.internalCode, capacity: input.capacity },
+      select: { id: true, internalCode: true, capacity: true },
+    }),
+  ),
   create: adminProcedure
     .input(classCreateInputSchema)
     .mutation(({ ctx, input }) =>

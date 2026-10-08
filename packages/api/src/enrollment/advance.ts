@@ -1,6 +1,7 @@
 import type { Prisma } from "@lazuli/db";
 import { findNextStageInTrack, saoPauloDateOnly } from "@lazuli/domain";
 
+import { dateOnlyUtc } from "./effective-date.js";
 import { progressSummarySelect, type EnrollmentDatabase, type ProgressSummary } from "./data.js";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
@@ -17,6 +18,7 @@ import {
 const advanceableEnrollmentSelect = {
   id: true,
   exitDate: true,
+  entryDate: true,
   class: { select: { scheduleType: true } },
   progressRecords: {
     where: { endDate: null, deletedAt: null },
@@ -61,6 +63,7 @@ export type AdvanceStageResult = {
 export async function advanceStage(input: {
   database: EnrollmentDatabase;
   enrollmentId: string;
+  now: Date;
 }): Promise<AdvanceStageResult> {
   const enrollment = await loadAdvanceableEnrollment(input);
   const activeProgress = requireActiveProgress(enrollment);
@@ -71,12 +74,14 @@ export async function advanceStage(input: {
     enrollmentId: enrollment.id,
     activeProgressId: activeProgress.id,
     nextStageId,
+    now: input.now,
   });
 }
 
 async function loadAdvanceableEnrollment(input: {
   database: EnrollmentDatabase;
   enrollmentId: string;
+  now: Date;
 }): Promise<AdvanceableEnrollment> {
   const enrollment = await input.database.enrollment.findUnique({
     where: { id: input.enrollmentId },
@@ -86,7 +91,10 @@ async function loadAdvanceableEnrollment(input: {
   if (enrollment === null) {
     throw notFound(ENROLLMENT_NOT_FOUND_MESSAGE);
   }
-  if (enrollment.exitDate !== null) {
+  if (
+    enrollment.exitDate !== null ||
+    dateOnlyUtc(enrollment.entryDate) > saoPauloDateOnly(input.now)
+  ) {
     throw badRequest(ENROLLMENT_NOT_ACTIVE_MESSAGE);
   }
   if (enrollment.class.scheduleType !== "PERSONALIZED") {
@@ -121,11 +129,12 @@ async function closeAndOpenProgress(input: {
   enrollmentId: string;
   activeProgressId: string;
   nextStageId: string;
+  now: Date;
 }): Promise<AdvanceStageResult> {
   // The no-overlap exclusion uses inclusive date ranges, so the closed record and the new one cannot
   // share a day: close today, start the next stage tomorrow. Close before create to respect the
   // one-active-progress partial unique index. Progress dates are structural history only.
-  const closeDate = new Date(saoPauloDateOnly(new Date()));
+  const closeDate = new Date(saoPauloDateOnly(input.now));
   const nextStartDate = addOneDay(closeDate);
 
   const previousProgress = await input.database.pedagogicalProgress.update({

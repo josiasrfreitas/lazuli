@@ -18,6 +18,10 @@ const SEMESTER_WINDOWS_BY_SUFFIX = {
     startDate: new Date("2083-02-01T00:00:00.000Z"),
     endDate: new Date("2083-06-30T00:00:00.000Z"),
   },
+  "future-scheduled": {
+    startDate: new Date("2090-02-01T00:00:00.000Z"),
+    endDate: new Date("2090-06-30T00:00:00.000Z"),
+  },
   "suspended-active": {
     startDate: new Date("2081-02-01T00:00:00.000Z"),
     endDate: new Date("2081-06-30T00:00:00.000Z"),
@@ -46,6 +50,7 @@ void describe("students status lifecycle API", () => {
   registerSetStatusTest();
   registerSuspendedCascadeTest();
   registerDroppedCascadeTest();
+  registerFutureLifecycleTest();
 });
 
 function registerSetStatusTest(): void {
@@ -62,7 +67,9 @@ function registerSetStatusTest(): void {
 function registerSuspendedCascadeTest(): void {
   void it("suspending a student closes active academic lifecycle rows when present", async () => {
     const student = await createAdultFixture();
-    const activeLifecycle = await createActiveLifecycleRows(student.id, "suspended-active");
+    const activeLifecycle = await createActiveLifecycleRows(student.id, {
+      suffix: "suspended-active",
+    });
     const closedLifecycle = await createClosedLifecycleRows(student.id, "suspended-closed");
 
     await caller().students.setStatus({ id: student.id, status: "SUSPENDED" });
@@ -89,6 +96,24 @@ function registerSuspendedCascadeTest(): void {
   });
 }
 
+function registerFutureLifecycleTest(): void {
+  void it("does not close a future enrollment before its effective entry date", async () => {
+    const student = await createAdultFixture();
+    const future = await createActiveLifecycleRows(student.id, {
+      suffix: "future-scheduled",
+      entryDate: new Date("2090-03-01"),
+    });
+    await caller().students.setStatus({ id: student.id, status: "SUSPENDED" });
+    const enrollment = await db.enrollment.findUniqueOrThrow({
+      where: { id: future.enrollmentId },
+    });
+    const progress = await db.pedagogicalProgress.findUniqueOrThrow({
+      where: { id: future.progressId },
+    });
+    assert.equal(enrollment.exitDate, null);
+    assert.equal(progress.endDate, null);
+  });
+}
 async function createAdultFixture(): Promise<{ id: string }> {
   return db.student.create({
     data: {
@@ -101,7 +126,7 @@ async function createAdultFixture(): Promise<{ id: string }> {
 function registerDroppedCascadeTest(): void {
   void it("dropping a student closes active academic lifecycle rows as dropped", async () => {
     const student = await createAdultFixture();
-    const lifecycle = await createActiveLifecycleRows(student.id, "dropped-active");
+    const lifecycle = await createActiveLifecycleRows(student.id, { suffix: "dropped-active" });
 
     await caller().students.setStatus({ id: student.id, status: "DROPPED" });
 
@@ -149,7 +174,7 @@ async function seedTeacher(): Promise<void> {
 
 async function createActiveLifecycleRows(
   studentId: string,
-  suffix: string,
+  { suffix, entryDate = LIFECYCLE_ENTRY_DATE }: { suffix: string; entryDate?: Date },
 ): Promise<{ enrollmentId: string; progressId: string }> {
   const stage = await createStageFixture(suffix);
   const classRow = await createClassFixture(suffix);
@@ -158,7 +183,7 @@ async function createActiveLifecycleRows(
     const enrollment = await transaction.enrollment.create({
       data: {
         classId: classRow.id,
-        entryDate: LIFECYCLE_ENTRY_DATE,
+        entryDate,
         studentId,
       },
       select: { id: true },
@@ -167,7 +192,7 @@ async function createActiveLifecycleRows(
       data: {
         enrollmentId: enrollment.id,
         stageId: stage.id,
-        startDate: LIFECYCLE_ENTRY_DATE,
+        startDate: entryDate,
       },
       select: { id: true },
     });

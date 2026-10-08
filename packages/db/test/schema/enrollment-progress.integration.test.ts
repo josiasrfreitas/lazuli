@@ -5,7 +5,6 @@ import {
   ACTIVE_PROGRESS_REQUIRED,
   ACTIVE_STUDENT_TRACK,
   ARCHIVED_CLASS,
-  CAPACITY_OVERRIDE_REQUIRED,
   CLOSE_DATE,
   CLOSED_PROGRESS_ABSENT,
   createAndCloseImportedLegacyLifecycle,
@@ -273,32 +272,22 @@ function registerLegacyTrackGuardTest(database: DatabaseClient): void {
   });
 }
 function registerCapacityOverrideTest(database: DatabaseClient): void {
-  void it("requires a capacity override reason when active enrollment exceeds capacity", async () => {
+  void it("allows active enrollment above capacity without a reason", async () => {
     const catalog = await seedCatalog(database);
     const firstStudent = await createStudent(database, "Capacity First");
     const secondStudent = await createStudent(database, "Capacity Second");
-    const thirdStudent = await createStudent(database, "Capacity Override");
     const classRow = await createPersonalizedClass(database, { code: "capacity", capacity: 1 });
     await createActiveEnrollmentWithProgress(database, {
       classId: classRow.id,
       stageId: catalog.activeStageId,
       studentId: firstStudent.id,
     });
-    const observedConstraint7 = await expectConstraintRejection(
-      createActiveEnrollmentWithProgress(database, {
-        classId: classRow.id,
-        stageId: catalog.activeStageId,
-        studentId: secondStudent.id,
-      }),
-      CAPACITY_OVERRIDE_REQUIRED,
-    );
-    assert.equal(observedConstraint7.includes(CAPACITY_OVERRIDE_REQUIRED), true);
     await createActiveEnrollmentWithProgress(database, {
-      capacityOverrideReason: "Manual coordinator approval for sibling schedule.",
       classId: classRow.id,
       stageId: catalog.activeStageId,
-      studentId: thirdStudent.id,
+      studentId: secondStudent.id,
     });
+    assert.equal(await database.enrollment.count({ where: { classId: classRow.id } }), 2);
   });
 }
 function registerRegularStageMatchTest(database: DatabaseClient): void {

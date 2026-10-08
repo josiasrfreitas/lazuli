@@ -47,6 +47,7 @@ async function closeActiveAcademicLifecycleRows(input: {
         "exit_reason" = ${input.reason}
     WHERE "student_id" = ${input.studentId}::uuid
       AND "exit_date" IS NULL
+      AND "entry_date" <= ${input.effectiveDate}::date
     RETURNING "id"::text AS "id"
   `;
 

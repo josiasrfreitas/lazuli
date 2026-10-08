@@ -3,7 +3,6 @@ import { randomUUID } from "node:crypto";
 import { describe, it } from "node:test";
 
 import {
-  CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
   CLASS_ARCHIVED_MESSAGE,
   CLASS_NOT_FOUND_MESSAGE,
   ENROLLMENT_ALREADY_CLOSED_MESSAGE,
@@ -300,7 +299,7 @@ function registerTransferMissingTarget(): void {
 }
 
 function registerTransferCapacity(): void {
-  void it("requires an override to transfer into a full class, then succeeds", async () => {
+  void it("transfers into a full class without an override reason", async () => {
     const catalog = await setup();
     const target = await createRegularClass({
       code: "cap-dst",
@@ -312,19 +311,12 @@ function registerTransferCapacity(): void {
     await enrollRegular({ studentId: filler.id, classId: target.id });
     const enrollmentId = await mountCapacitySource(catalog);
 
-    assert.equal(
-      await rejectionMessage(
-        caller().enrollment.transfer({ enrollmentId, targetClassId: target.id }),
-      ),
-      CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
-    );
-
     const result = await caller().enrollment.transfer({
       enrollmentId,
       targetClassId: target.id,
-      capacityOverrideReason: "Turma cheia, autorizado pela coordenacao.",
     });
     assert.equal(result.progress.stageId, catalog.firstStageId);
+    assert.equal(result.enrollment.capacityOverrideReason, null);
   });
 }
 

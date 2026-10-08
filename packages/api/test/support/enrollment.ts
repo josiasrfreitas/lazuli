@@ -17,12 +17,13 @@ import {
   type PersonalizedClassInput,
   type RegularClassInput,
   type StudentFixtureInput,
+  ENROLLMENT_ADMIN_ID,
 } from "./enrollment/fixtures.js";
 
 export type { CatalogFixture, TwoStageCatalog } from "./enrollment/fixtures.js";
 
 const ADMIN: StaffUser = {
-  id: "00000000-0000-0000-0000-0000000000ad",
+  id: ENROLLMENT_ADMIN_ID,
   name: "Admin de Teste",
   email: "admin@example.com",
   role: "ADMIN",

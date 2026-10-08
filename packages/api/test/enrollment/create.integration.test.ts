@@ -5,7 +5,6 @@ import { randomUUID } from "node:crypto";
 import { db } from "@lazuli/db";
 
 import {
-  CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
   CLASS_ARCHIVED_MESSAGE,
   DUPLICATE_ACTIVE_ENROLLMENT_MESSAGE,
   PERSONALIZED_REQUIRES_STAGE_MESSAGE,
@@ -24,8 +23,6 @@ const {
   rejectionMessage,
   seedCatalog,
 } = gre30Enrollment;
-
-const OVERRIDE_REASON = "Aprovacao manual da coordenacao.";
 
 async function setupCatalog(): Promise<CatalogFixture> {
   await ensureTeacherUser();
@@ -47,7 +44,7 @@ void describe("enrollment.create", () => {
   registerRegularHappyPath();
   registerPersonalizedHappyPath();
   registerPersonalizedRequiresStage();
-  registerCapacityOverride();
+  registerCapacityInformative();
   registerInactiveStudentRejected();
   registerStudentNotFound();
   registerArchivedClassRejected();
@@ -140,18 +137,17 @@ function registerPersonalizedRequiresStage(): void {
   });
 }
 
-function registerCapacityOverride(): void {
-  void it("requires an override reason over capacity, then allows it", async () => {
+function registerCapacityInformative(): void {
+  void it("allows a class to exceed capacity without an override reason", async () => {
     const catalog = await setupCatalog();
     const classRow = await createPersonalizedClass({
       code: "capacity",
       semesterId: catalog.semesterId,
       capacity: 1,
     });
-    const [first, second, third] = await Promise.all([
+    const [first, second] = await Promise.all([
       createStudent({ suffix: "Capacity One" }),
       createStudent({ suffix: "Capacity Two" }),
-      createStudent({ suffix: "Capacity Three" }),
     ]);
 
     await caller().enrollment.create({
@@ -159,24 +155,13 @@ function registerCapacityOverride(): void {
       classId: classRow.id,
       stageId: catalog.activeStageId,
     });
-    assert.equal(
-      await rejectionMessage(
-        caller().enrollment.create({
-          studentId: second.id,
-          classId: classRow.id,
-          stageId: catalog.activeStageId,
-        }),
-      ),
-      CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
-    );
-
-    const overridden = await caller().enrollment.create({
-      studentId: third.id,
+    const overCapacity = await caller().enrollment.create({
+      studentId: second.id,
       classId: classRow.id,
       stageId: catalog.activeStageId,
-      capacityOverrideReason: OVERRIDE_REASON,
     });
-    assert.equal(overridden.enrollment.capacityOverrideReason, OVERRIDE_REASON);
+    assert.equal(overCapacity.enrollment.capacityOverrideReason, null);
+    assert.equal(await db.enrollment.count({ where: { classId: classRow.id } }), 2);
   });
 }
 

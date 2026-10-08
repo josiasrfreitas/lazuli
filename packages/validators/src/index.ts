@@ -66,6 +66,10 @@ export {
   classGenerateSessionsInputSchema,
   classFormatSchema,
   classIdInputSchema,
+  classListInputSchema,
+  classRelatedListInputSchema,
+  classRosterInputSchema,
+  classUpdateBasicInputSchema,
   classScheduleSlotInputSchema,
   classScheduleTypeSchema,
   timeOfDaySchema,
@@ -83,6 +87,11 @@ export {
 export {
   enrollmentAdvanceStageInputSchema,
   enrollmentCloseInputSchema,
+  enrollmentCancelScheduledInputSchema,
+  enrollmentReturnInputSchema,
+  enrollmentCorrectionPreviewInputSchema,
+  enrollmentCorrectionApplyInputSchema,
+  enrollmentPausedSearchInputSchema,
   enrollmentCreateInputSchema,
   enrollmentTransferInputSchema,
 } from "./enrollment.js";

@@ -67,6 +67,48 @@ void it("creates a personalized class with manual portal name", async () => {
   assert.equal(created.sharedStageId, null);
 });
 
+void it("lists created classes with current occupancy and reads their roster", async () => {
+  await cleanClassDatabase();
+  await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
+  const created = await createRegularFixture(fixtures);
+
+  const list = await caller().classes.list({ search: `${TEST_PREFIX}Source` });
+  const detail = await caller().classes.byId({ id: created.id });
+
+  assert.equal(list.total, 1);
+  assert.equal(list.rows[0]?.id, created.id);
+  assert.equal(list.rows[0]?.occupancy, 0);
+  assert.equal(detail.internalCode, `${TEST_PREFIX}Source`);
+  const roster = await caller().classes.roster({
+    id: created.id,
+    page: 1,
+    pageSize: 20,
+    search: "",
+  });
+  assert.equal(roster.total, 0);
+  assert.equal(detail.scheduleSlots[0]?.weekday, "TUESDAY");
+});
+
+void it("updates only safe class identification and capacity fields", async () => {
+  await cleanClassDatabase();
+  await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
+  const created = await createRegularFixture(fixtures);
+
+  await caller().classes.updateBasic({
+    id: created.id,
+    internalCode: `${TEST_PREFIX}Renamed`,
+    capacity: 18,
+  });
+  const detail = await caller().classes.byId({ id: created.id });
+
+  assert.equal(detail.internalCode, `${TEST_PREFIX}Renamed`);
+  assert.equal(detail.capacity, 18);
+  assert.equal(detail.sharedStageId, fixtures.stageId);
+  assert.equal(detail.scheduleSlots[0]?.weekday, "TUESDAY");
+});
+
 void it("archives a class", async () => {
   await cleanClassDatabase();
   await ensureTeacherUser();

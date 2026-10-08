@@ -115,6 +115,12 @@ _Avoid_: Reposição, make-up class, recovery session
 
 ## Pedagogical terms
 
+**Class Hour** (hora-aula):
+A 60-minute unit of instructional time. A class meeting may contain more than one class hour; a two-hour meeting contains two class hours.
+
+**Recurring Class Schedule**:
+The weekdays and start/end times on which a class normally meets. A class may meet on one or more weekdays, and each meeting may have a different duration.
+
 **Pedagogical Progress**:
 A student's stage placement over time, separate from operational class membership.
 

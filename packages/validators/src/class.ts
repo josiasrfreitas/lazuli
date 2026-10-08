@@ -4,6 +4,9 @@ const REQUIRED_TEXT_MESSAGE = "Campo obrigatorio.";
 const INVALID_TIME_MESSAGE = "Horario invalido.";
 const INVALID_CLASS_ID_MESSAGE = "Identificador de turma invalido.";
 const INVALID_SEMESTER_ID_MESSAGE = "Identificador de semestre invalido.";
+const MAX_CLASS_PAGE_SIZE = 100;
+const DEFAULT_CLASS_PAGE_SIZE = 20;
+const MAX_CLASS_SEARCH_LENGTH = 80;
 const MIN_CLASS_YEAR = 2000;
 const MAX_CLASS_YEAR = 2100;
 
@@ -79,6 +82,41 @@ export const classCloneForNextPeriodInputSchema = z
   .strict();
 
 export const classArchiveInputSchema = classIdInputSchema;
+
+export const classListInputSchema = z
+  .object({
+    page: z.number().int().min(1).default(1),
+    pageSize: z.number().int().min(1).max(MAX_CLASS_PAGE_SIZE).default(DEFAULT_CLASS_PAGE_SIZE),
+    search: z.string().trim().max(MAX_CLASS_SEARCH_LENGTH).default(""),
+    scheduleType: classScheduleTypeSchema.optional(),
+    format: classFormatSchema.optional(),
+    teacherId: z.string().uuid().optional(),
+    semesterId: z.string().uuid().optional(),
+    status: z.enum(["ACTIVE", "ARCHIVED"]).optional(),
+  })
+  .strict();
+
+export const classRelatedListInputSchema = classIdInputSchema
+  .extend({
+    page: z.number().int().min(1).default(1),
+    pageSize: z.number().int().min(1).max(MAX_CLASS_PAGE_SIZE).default(DEFAULT_CLASS_PAGE_SIZE),
+  })
+  .strict();
+
+export const classRosterInputSchema = classRelatedListInputSchema
+  .extend({
+    search: z.string().trim().max(MAX_CLASS_SEARCH_LENGTH).default(""),
+    situation: z.enum(["CURRENT", "SCHEDULED", "PAUSED", "ENDED"]).optional(),
+  })
+  .strict();
+
+/** Fields whose change does not rewrite existing class sessions or placement. */
+export const classUpdateBasicInputSchema = classIdInputSchema
+  .extend({
+    capacity: z.number().int().min(1),
+    internalCode: requiredText,
+  })
+  .strict();
 
 export const classGenerateSessionsInputSchema = z
   .object({
