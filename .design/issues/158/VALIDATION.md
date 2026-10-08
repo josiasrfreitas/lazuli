@@ -45,6 +45,8 @@ Before evidence comes from the real committed V1 [class listing](../157/evidence
 
 ## Remaining validation limits
 
-Lint, typecheck, production build, whitespace gates and the full integration/transport suites were not run after the user's prohibition of checks. Browser testing and the focused domain tests do not establish those gates. New form contract coverage and the complete temporal/authentication regression matrix remain unverified.
+After the user explicitly authorized commit/push hook checks, `lefthook run pre-commit` passed formatting and whitespace for the committed file list, `git diff HEAD^ HEAD --check` and `git diff --check` passed, and `lefthook run pre-push` passed syntax/component checks for 125 committed files against `origin/main`.
+
+Lint, typecheck, production build and the full integration/transport suites were not run after the earlier prohibition; the later authorization was specific to hooks. Browser testing and the focused domain tests do not establish those gates. New form contract coverage and the complete temporal/authentication regression matrix remain unverified.
 
 The PR is stacked on `josiasrfreitas/issue-157`. The current CI workflow runs pull-request jobs only against `main`, so this base does not produce the required CI success signal. Do not report stable green CI or merge readiness from the browser results.

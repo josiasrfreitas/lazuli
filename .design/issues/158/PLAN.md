@@ -56,3 +56,5 @@ Implementation decisions refined during construction:
 ## Final desktop review scope
 
 The user's subsequent instruction “foco 100% em desktop” directs the final visual pass to desktop. Browser results, concrete frontend-design findings, screenshots and remaining validation limits are recorded in [VALIDATION.md](VALIDATION.md). Shared responsive control sizes were introduced before this direction and preserve the existing compact desktop sizes.
+
+The user subsequently authorized the checks present in commit and push hooks. Those hooks and whitespace checks passed; the broader lint/typecheck/build gates remain excluded.
