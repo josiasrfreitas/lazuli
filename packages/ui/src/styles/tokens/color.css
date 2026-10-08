@@ -70,6 +70,8 @@
   --warning-muted: var(--lz-ref-amber-50);
   --info: var(--lz-ref-blue-700);
   --info-muted: var(--lz-ref-info-50);
+  --over-capacity: #7636a8;
+  --over-capacity-muted: #f1e7fa;
   --destructive-muted: var(--lz-ref-red-50);
   --overlay: rgb(15 30 61 / 48%);
   --scrollbar-track: transparent;
@@ -129,6 +131,8 @@
   --warning-muted: #3c2c08;
   --info: #9bb2ff;
   --info-muted: #172650;
+  --over-capacity: #d3a5f5;
+  --over-capacity-muted: #30203f;
   --destructive-muted: #41151f;
   --overlay: rgb(0 0 0 / 64%);
   --scrollbar-track: transparent;

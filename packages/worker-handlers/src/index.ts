@@ -8,6 +8,7 @@ import { resolveSemesterForDate, type SemesterWindow } from "@lazuli/domain";
 import { sessionsGeneratePayloadSchema, type SessionsGeneratePayload } from "@lazuli/job-contracts";
 
 export const WORKER_HANDLERS_PACKAGE = "@lazuli/worker-handlers" as const;
+export { processDueEnrollmentActions } from "./enrollment/process-due-actions.js";
 
 const DATE_ONLY_LENGTH = 10;
 const MILLISECONDS_PER_DAY = 86_400_000;

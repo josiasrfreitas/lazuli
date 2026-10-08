@@ -132,13 +132,13 @@ async function seedSemesterFixtures(): Promise<{ semesterId: string; nextSemeste
 
 export async function cleanClassDatabase(): Promise<void> {
   await db.classSession.deleteMany({
-    where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
+    where: { class: { teacherId: TEACHER_USER_ID } },
   });
   await db.classScheduleSlot.deleteMany({
-    where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
+    where: { class: { teacherId: TEACHER_USER_ID } },
   });
   await db.class.deleteMany({
-    where: { internalCode: { startsWith: TEST_PREFIX } },
+    where: { teacherId: TEACHER_USER_ID },
   });
   await db.semester.deleteMany({
     where: { name: { startsWith: TEST_PREFIX } },

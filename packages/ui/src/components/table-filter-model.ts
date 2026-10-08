@@ -18,6 +18,7 @@ export type TableFilterField = FilterBase &
   (
     | {
         kind: "options";
+        presentation?: "dropdown";
         options: TableFilterOption[];
         selected: string[];
         onChange: (values: string[]) => void;

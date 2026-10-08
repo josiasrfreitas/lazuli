@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { DollarSign, FileText, Home, Settings, Users } from "lucide-react";
+import { BookOpen, DollarSign, FileText, Home, Settings, Users } from "lucide-react";
 
 import type { StaffRole } from "@lazuli/auth/server";
 
@@ -47,7 +47,10 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     id: "pedagogico",
     label: "Pedagógico",
     // students.* is adminProcedure; staffProcedure is deferred debt (PR #46).
-    items: [{ href: "/alunos", label: "Alunos", icon: Users, roles: ["ADMIN", "SYSTEM_ADMIN"] }],
+    items: [
+      { href: "/alunos", label: "Alunos", icon: Users, roles: ["ADMIN", "SYSTEM_ADMIN"] },
+      { href: "/turmas", label: "Turmas", icon: BookOpen, roles: ["ADMIN", "SYSTEM_ADMIN"] },
+    ],
   },
   {
     id: "financeiro",
@@ -109,4 +112,22 @@ export function homeHrefFor(role: StaffRole): string | null {
   const vertical = navItemsFor(role).find((item) => item.href !== "/");
 
   return vertical?.href ?? null;
+}
+
+/** Child pages return to their listing, preserving only a same-list query string. */
+export function navReturnFor({
+  pathname,
+  role,
+  back,
+}: {
+  pathname: string;
+  role: StaffRole;
+  back: string | null;
+}): { href: string; label: string } | null {
+  const parent = navItemsFor(role).find(
+    (item) => item.href !== "/" && pathname.startsWith(`${item.href}/`),
+  );
+  if (!parent) return null;
+  const href = back === parent.href || back?.startsWith(`${parent.href}?`) ? back : parent.href;
+  return { href, label: parent.label };
 }

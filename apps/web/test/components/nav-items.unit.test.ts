@@ -6,11 +6,13 @@ import {
   matchesNavHref,
   navBreadcrumbFor,
   navItemsFor,
+  navReturnFor,
   navSectionsFor,
   type NavSection,
 } from "../../src/components/app-shell/nav-items.js";
 
 const STUDENTS_PATH = "/alunos";
+const CLASSES_PATH = "/turmas";
 const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
 const SETTINGS_PATH = "/ajustes";
@@ -26,10 +28,10 @@ function sectionsSummary(sections: NavSection[]): ReturnType<typeof sectionSumma
 }
 
 void describe("role-aware navigation", () => {
-  void it("shows Alunos only to roles its procedures accept", () => {
+  void it("shows Alunos and Turmas only to roles their procedures accept", () => {
     assert.deepEqual(
       navItemsFor("ADMIN").map((item) => item.href),
-      ["/", STUDENTS_PATH, CONTRACTS_PATH, RECEIVABLES_PATH],
+      ["/", STUDENTS_PATH, CLASSES_PATH, CONTRACTS_PATH, RECEIVABLES_PATH],
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
@@ -37,10 +39,10 @@ void describe("role-aware navigation", () => {
     );
   });
 
-  void it("places Alunos under Pedagógico and hides empty sections", () => {
+  void it("places Alunos and Turmas under Pedagógico and hides empty sections", () => {
     assert.deepEqual(sectionsSummary(navSectionsFor("ADMIN")), [
       { label: null, items: ["Início"] },
-      { label: PEDAGOGICAL_LABEL, items: [STUDENTS_LABEL] },
+      { label: PEDAGOGICAL_LABEL, items: [STUDENTS_LABEL, "Turmas"] },
       { label: "Financeiro", items: ["Contratos", "Recebíveis"] },
     ]);
     assert.deepEqual(
@@ -57,6 +59,10 @@ void describe("role-aware navigation", () => {
     assert.deepEqual(navBreadcrumbFor(`${STUDENTS_PATH}/um-id`, "ADMIN"), {
       section: PEDAGOGICAL_LABEL,
       page: STUDENTS_LABEL,
+    });
+    assert.deepEqual(navBreadcrumbFor(`${CLASSES_PATH}/um-id`, "ADMIN"), {
+      section: PEDAGOGICAL_LABEL,
+      page: "Turmas",
     });
     assert.equal(navBreadcrumbFor(STUDENTS_PATH, "TEACHER"), null);
     assert.equal(navBreadcrumbFor("/", "ADMIN"), null);
@@ -92,7 +98,7 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
 void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigation", () => {
   assert.deepEqual(
     navItemsFor("SYSTEM_ADMIN").map((item) => item.href),
-    ["/", STUDENTS_PATH, CONTRACTS_PATH, RECEIVABLES_PATH, SETTINGS_PATH],
+    ["/", STUDENTS_PATH, CLASSES_PATH, CONTRACTS_PATH, RECEIVABLES_PATH, SETTINGS_PATH],
   );
   assert.equal(
     navItemsFor("ADMIN").some((item) => item.href === SETTINGS_PATH),
@@ -102,4 +108,28 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
     section: "Sistema",
     page: "Ajustes",
   });
+});
+
+void it("returns child pages to the authorized list with its filters and ignores foreign destinations", () => {
+  assert.deepEqual(
+    navReturnFor({ pathname: "/turmas/a-class", role: "ADMIN", back: "/turmas?search=C2&page=2" }),
+    {
+      href: "/turmas?search=C2&page=2",
+      label: "Turmas",
+    },
+  );
+  for (const back of [
+    null,
+    "//elsewhere.test",
+    "/turmas-other",
+    "/turmas/another-class",
+    "https://elsewhere.test",
+  ]) {
+    assert.deepEqual(navReturnFor({ pathname: "/turmas/a-class", role: "ADMIN", back }), {
+      href: "/turmas",
+      label: "Turmas",
+    });
+  }
+  assert.equal(navReturnFor({ pathname: "/turmas", role: "ADMIN", back: null }), null);
+  assert.equal(navReturnFor({ pathname: "/turmas/a-class", role: "TEACHER", back: null }), null);
 });

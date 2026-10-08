@@ -1,6 +1,7 @@
 import {
   deriveContractFinancialSummary,
   deriveContractServiceStatus,
+  saoPauloDateOnly,
   type ContractFinancialStatus,
   type ContractFinancialSummary,
   type ContractServiceStatus,
@@ -43,8 +44,10 @@ export const contractSelect = {
       id: true,
       fullName: true,
       enrollments: {
-        where: { deletedAt: null, exitDate: null },
+        where: { deletedAt: null },
         select: {
+          entryDate: true,
+          exitDate: true,
           class: { select: { internalCode: true } },
           progressRecords: {
             where: { deletedAt: null, endDate: null },
@@ -83,6 +86,8 @@ type SelectedContract = {
     id: string;
     fullName: string;
     enrollments: Array<{
+      entryDate: Date;
+      exitDate: Date | null;
       class: { internalCode: string };
       progressRecords: Array<{ stage: { internalCode: string } }>;
     }>;
@@ -108,13 +113,21 @@ type SelectedContract = {
 
 function academicPlacements(
   student: SelectedContract["student"],
+  now: Date,
 ): ContractListRow["student"]["placements"] {
-  return student.enrollments.flatMap((enrollment) =>
-    enrollment.progressRecords.map((progress) => ({
-      stageCode: progress.stage.internalCode,
-      classCode: enrollment.class.internalCode,
-    })),
-  );
+  const today = saoPauloDateOnly(now);
+  return student.enrollments
+    .filter(
+      (enrollment) =>
+        toDateOnlyString(enrollment.entryDate) <= today &&
+        (enrollment.exitDate === null || toDateOnlyString(enrollment.exitDate) > today),
+    )
+    .flatMap((enrollment) =>
+      enrollment.progressRecords.map((progress) => ({
+        stageCode: progress.stage.internalCode,
+        classCode: enrollment.class.internalCode,
+      })),
+    );
 }
 
 function uniformInstallmentAmount(order: SelectedContract["orders"][number]): number | null {
@@ -144,7 +157,7 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
     student: {
       id: row.student.id,
       fullName: row.student.fullName,
-      placements: academicPlacements(row.student),
+      placements: academicPlacements(row.student, now),
     },
     agreedOn: toDateOnlyString(row.agreedOn),
     startsOn: toDateOnlyString(row.startsOn),

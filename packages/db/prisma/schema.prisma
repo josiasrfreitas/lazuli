@@ -87,6 +87,20 @@ enum EnrollmentExitReason {
   CORRECTION
 }
 
+enum EnrollmentActionKind {
+  ENTRY
+  RETURN
+  PAUSE
+  EXIT
+  CORRECTION
+}
+
+enum EnrollmentActionStatus {
+  SCHEDULED
+  APPLIED
+  CANCELLED
+}
+
 enum ProgressEndReason {
   ADVANCED
   TRANSFERRED
@@ -172,6 +186,8 @@ model User {
   updatedPaymentAllocations     PaymentAllocation[]     @relation("PaymentAllocationUpdater")
   updatedFinanceSettings        FinanceSettings[]       @relation("FinanceSettingsUpdater")
   requestedArtifacts            GeneratedArtifact[]     @relation("ArtifactRequester")
+  recordedEnrollmentActions     EnrollmentAction[]      @relation("EnrollmentActionRecorder")
+  cancelledEnrollmentActions    EnrollmentAction[]      @relation("EnrollmentActionCanceller")
 }
 
 model Account {
@@ -435,9 +451,41 @@ model Enrollment {
   progressRecords PedagogicalProgress[]
   attendanceRows  Attendance[]
   makeups         Makeup[]
+  actions         EnrollmentAction[] @relation("EnrollmentActionTarget")
+  returnActions   EnrollmentAction[] @relation("EnrollmentActionSource")
 
   @@index([studentId])
   @@index([classId])
+}
+
+model EnrollmentAction {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime               @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime?              @map("deleted_at") @db.Timestamptz
+  enrollmentId       String                 @map("enrollment_id") @db.Uuid
+  sourceEnrollmentId String?                @map("source_enrollment_id") @db.Uuid
+  kind               EnrollmentActionKind
+  status             EnrollmentActionStatus
+  effectiveDate      DateTime               @map("effective_date") @db.Date
+  recordedById       String                 @map("recorded_by_id") @db.Uuid
+  cancelledAt        DateTime?              @map("cancelled_at") @db.Timestamptz
+  cancelledById      String?                @map("cancelled_by_id") @db.Uuid
+  correctionOfId     String?                @map("correction_of_id") @db.Uuid
+  previousDate       DateTime?              @map("previous_date") @db.Date
+  justification      String?
+
+  enrollment       Enrollment        @relation("EnrollmentActionTarget", fields: [enrollmentId], references: [id], onDelete: Restrict)
+  sourceEnrollment Enrollment?       @relation("EnrollmentActionSource", fields: [sourceEnrollmentId], references: [id], onDelete: Restrict)
+  recordedBy       User              @relation("EnrollmentActionRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  cancelledBy      User?             @relation("EnrollmentActionCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
+  correctionOf     EnrollmentAction? @relation("EnrollmentActionCorrections", fields: [correctionOfId], references: [id], onDelete: Restrict)
+  corrections      EnrollmentAction[] @relation("EnrollmentActionCorrections")
+
+  @@index([enrollmentId, effectiveDate])
+  @@index([status, effectiveDate])
+  @@index([sourceEnrollmentId])
+  @@index([correctionOfId])
 }
 
 model PedagogicalProgress {

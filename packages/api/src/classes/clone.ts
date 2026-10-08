@@ -1,4 +1,7 @@
+import { CLASS_REFERENCE_CAPACITY } from "@lazuli/domain";
+import { generateClassInternalCode } from "./internal-code.js";
 import type { Prisma } from "@lazuli/db";
+import { classScheduleSlotsInputSchema } from "@lazuli/validators";
 import { findNextStageInTrack } from "@lazuli/domain";
 
 import { archiveClass, classSummarySelect, type ClassDatabase, type ClassSummary } from "./data.js";
@@ -40,9 +43,7 @@ type SourceClass = Prisma.ClassGetPayload<{ include: typeof sourceClassInclude }
 export async function cloneClassForNextPeriod(input: {
   database: ClassDatabase;
   id: string;
-  internalCode: string;
   semesterId: string;
-  year: number;
   sharedStageId?: string;
   portalClassName?: string;
 }): Promise<{ source: ClassSummary; successor: ClassSummary }> {
@@ -51,6 +52,16 @@ export async function cloneClassForNextPeriod(input: {
   if (source.status !== "ACTIVE") {
     throw badRequest(CLASS_NOT_ACTIVE_MESSAGE);
   }
+
+  const schedule = classScheduleSlotsInputSchema.safeParse(
+    source.scheduleSlots.map((slot) => ({
+      weekday: slot.weekday,
+      startTime: dateToTimeString(slot.startTime),
+      endTime: dateToTimeString(slot.endTime),
+    })),
+  );
+  if (!schedule.success)
+    throw badRequest(schedule.error.issues[0]?.message ?? "Horários inválidos.");
 
   await assertTeacherIsActive({ database: input.database, teacherId: source.teacherId });
 
@@ -65,13 +76,13 @@ export async function cloneClassForNextPeriod(input: {
     source,
     successorStageId,
     semesterName: semester.name,
-    year: input.year,
+    year: semester.startDate.getUTCFullYear(),
     ...optionalPortalClassName(input.portalClassName),
   });
 
   const successor = await input.database.class.create({
     data: buildSuccessorCreateData({
-      input,
+      year: semester.startDate.getUTCFullYear(),
       source,
       successorStageId,
       semesterId: semester.id,
@@ -175,21 +186,21 @@ async function resolveSuccessorStageId(input: {
 }
 
 function buildSuccessorCreateData(input: {
-  input: { internalCode: string; year: number };
+  year: number;
   source: SourceClass;
   successorStageId: string | null;
   semesterId: string;
   portalClassName: string;
 }): Prisma.ClassUncheckedCreateInput {
   return {
-    internalCode: input.input.internalCode,
+    internalCode: generateClassInternalCode(input.year),
     teacherId: input.source.teacherId,
     scheduleType: input.source.scheduleType,
     format: input.source.format,
     sharedStageId: input.successorStageId,
     semesterId: input.semesterId,
-    year: input.input.year,
-    capacity: input.source.capacity,
+    year: input.year,
+    capacity: CLASS_REFERENCE_CAPACITY,
     previousClassId: input.source.id,
     portalClassName: input.portalClassName,
     originalPortalClassName: input.portalClassName,

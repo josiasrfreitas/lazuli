@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rm } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
-import { setTimeout as wait } from "node:timers/promises";
+import { withAllocationQueue } from "./workspace-allocation-lock.mjs";
 
 export const WORKSPACE_METADATA_PATH = ".lazuli/workspace.json";
 export const WORKSPACE_SCHEMA_VERSION = 2;
@@ -12,8 +12,6 @@ export const MAX_WORKSPACE_IDENTITY_LENGTH = 56;
 export const WEB_PORT_RANGE = { start: 3000, end: 3999 };
 export const STORYBOOK_PORT_RANGE = { start: 6006, end: 6999 };
 const WORKSPACE_ALLOCATION_LOCK_NAME = "lazuli-workspace-allocation.lock";
-const WORKSPACE_ALLOCATION_LOCK_RETRY_MS = 25;
-const WORKSPACE_ALLOCATION_LOCK_TIMEOUT_MS = 10_000;
 
 export function normalizeWorkspaceIdentity(directoryName) {
   return directoryName
@@ -192,28 +190,8 @@ function workspaceAllocationLockPath(root) {
 }
 
 export async function withWorkspaceAllocationLock(root, callback) {
-  const lockPath = workspaceAllocationLockPath(root);
-  const deadline = Date.now() + WORKSPACE_ALLOCATION_LOCK_TIMEOUT_MS;
-  while (true) {
-    try {
-      await mkdir(lockPath);
-      break;
-    } catch (error) {
-      if (error.code !== "EEXIST") throw error;
-      if (Date.now() >= deadline) {
-        throw new Error(
-          "timed out waiting for another workspace setup to finish allocating identity and ports",
-          { cause: error },
-        );
-      }
-      await wait(WORKSPACE_ALLOCATION_LOCK_RETRY_MS);
-    }
-  }
-  try {
-    return await callback();
-  } finally {
-    await rm(lockPath, { force: true, recursive: true });
-  }
+  const legacyDirectory = workspaceAllocationLockPath(root);
+  return withAllocationQueue({ directory: `${legacyDirectory}.queue`, legacyDirectory }, callback);
 }
 
 export async function registeredWorkspaces(root) {

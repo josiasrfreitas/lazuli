@@ -3,7 +3,6 @@ import type { enrollmentTransferInputSchema, z } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { badRequest } from "../trpc/errors.js";
 import {
-  assertCapacity,
   assertNoDuplicateActiveEnrollment,
   closeActiveEnrollment,
   loadActiveEnrollment,
@@ -62,12 +61,6 @@ export async function transferEnrollment(input: {
     studentId: source.studentId,
     classId: target.id,
   });
-  await assertCapacity({
-    database: input.database,
-    classRow: target,
-    capacityOverrideReason: input.values.capacityOverrideReason,
-  });
-
   return moveEnrollment({
     database: input.database,
     source,

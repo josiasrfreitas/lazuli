@@ -10,7 +10,6 @@ import {
   HTTP_OK,
   seedClassCatalogFixtures,
   TEACHER_USER_ID,
-  TEST_PREFIX,
 } from "../support/class-test-support.js";
 import { recordingSessionsGenerateQueue } from "../support/session-generation-queue-support.js";
 
@@ -31,14 +30,12 @@ void it("creates a regular class through the HTTP adapter", async () => {
   const response = await callHttpMutation({
     path: "classes.create",
     body: {
-      internalCode: `${TEST_PREFIX}HTTP Regular`,
       teacherId: TEACHER_USER_ID,
       scheduleType: "REGULAR",
       format: "IN_PERSON",
       sharedStageId: fixtures.stageId,
       semesterId: fixtures.semesterId,
-      year: 2026,
-      capacity: 10,
+
       slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
     },
   });
@@ -60,9 +57,8 @@ void it("clones a class through the HTTP adapter", async () => {
     path: "classes.cloneForNextPeriod",
     body: {
       id: created.result.data.json.id,
-      internalCode: `${TEST_PREFIX}HTTP Successor`,
+
       semesterId: fixtures.nextSemesterId,
-      year: 2026,
     },
   });
 
@@ -95,14 +91,12 @@ async function createSourceClassOverHttp(
   const createResponse = await callHttpMutation({
     path: "classes.create",
     body: {
-      internalCode: `${TEST_PREFIX}HTTP Source`,
       teacherId: TEACHER_USER_ID,
       scheduleType: "REGULAR",
       format: "IN_PERSON",
       sharedStageId: fixtures.stageId,
       semesterId: fixtures.semesterId,
-      year: 2026,
-      capacity: 10,
+
       slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
     },
   });

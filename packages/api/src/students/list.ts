@@ -41,8 +41,15 @@ export async function listStudents(input: ListStudentsInput): Promise<StudentLis
   const semester = await resolveCurrentSemester(input.database, input.values.now);
   const { page, pageSize } = input.values;
   const [students, counts, header, total] = await Promise.all([
-    findStudentPage({ database: input.database, values: { where, page, pageSize } }),
-    countStudentsByTab({ database: input.database, search: input.values.search }),
+    findStudentPage({
+      database: input.database,
+      values: { where, page, pageSize, now: input.values.now },
+    }),
+    countStudentsByTab({
+      database: input.database,
+      search: input.values.search,
+      now: input.values.now,
+    }),
     countHeaderFacts({ database: input.database, semesterId: semester?.id ?? null }),
     input.database.student.count({ where }),
   ]);
@@ -69,7 +76,11 @@ type PreviewStudentInput = {
  * row is not on the currently loaded page (direct link, changed filters).
  */
 export async function previewStudent(input: PreviewStudentInput): Promise<StudentListRow> {
-  const student = await findStudentRow({ database: input.database, id: input.values.id });
+  const student = await findStudentRow({
+    database: input.database,
+    id: input.values.id,
+    now: input.values.now,
+  });
 
   if (student === null) {
     throw notFound(STUDENT_NOT_FOUND_MESSAGE);

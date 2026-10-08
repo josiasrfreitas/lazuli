@@ -6,6 +6,8 @@
 
 const NON_DIGITS = /\D/g;
 const DATE_DIGITS = 8;
+const TIME_DIGITS = 4;
+const HOUR_END = 2;
 const DAY_END = 2;
 const MONTH_END = 4;
 const PHONE_MAX_DIGITS = 11;
@@ -89,4 +91,12 @@ export function maskPhoneBR(raw: string): string {
   const line = rest.slice(prefixEnd);
 
   return line.length === 0 ? `(${area}) ${prefix}` : `(${area}) ${prefix}-${line}`;
+}
+
+/** `"1430"` → `"14:30"`; incomplete input stays editable. */
+export function maskTime24(raw: string): string {
+  const digits = digitsOf(raw, TIME_DIGITS);
+  return digits.length <= HOUR_END
+    ? digits
+    : `${digits.slice(0, HOUR_END)}:${digits.slice(HOUR_END)}`;
 }

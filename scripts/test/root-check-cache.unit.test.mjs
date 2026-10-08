@@ -43,7 +43,7 @@ async function configureFixture(directory) {
     await readFile(path.join(root, "scripts/test-component-lines.mjs"), "utf8"),
   );
   await write(directory, "packages/ui/src/components/button.tsx", "export {};\n");
-  await write(directory, "apps/web/src/page.tsx", "export {};\n");
+  await write(directory, "apps/web/src/page.tsx", "// line\n".repeat(499) + "export {};");
   execFileSync("pnpm", ["install", "--offline", "--ignore-scripts"], {
     cwd: directory,
     env,

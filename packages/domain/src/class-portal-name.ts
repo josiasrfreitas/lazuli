@@ -1,4 +1,4 @@
-/** Weekday order for choosing the primary slot in multi-slot REGULAR classes. */
+/** Weekday order for choosing the primary slot in multi-slot classes. */
 const WEEKDAY_ORDER = [
   "MONDAY",
   "TUESDAY",
@@ -44,6 +44,19 @@ const YEAR_SUFFIX_DIVISOR = 100;
  * Multi-slot classes use the earliest weekday slot, then earliest start time.
  */
 export function generateRegularPortalClassName(input: GenerateRegularPortalClassNameInput): string {
+  return generatePortalClassName(input, `REG/${input.stageInternalCode}-`);
+}
+
+export function generatePersonalizedPortalClassName(
+  input: Omit<GenerateRegularPortalClassNameInput, "stageInternalCode">,
+): string {
+  return generatePortalClassName(input, "PPT/");
+}
+
+function generatePortalClassName(
+  input: Omit<GenerateRegularPortalClassNameInput, "stageInternalCode">,
+  prefix: string,
+): string {
   const primarySlot = selectPrimarySlot(input.slots);
   if (primarySlot === undefined) {
     throw new Error("At least one schedule slot is required to derive a Portal class name.");
@@ -52,15 +65,14 @@ export function generateRegularPortalClassName(input: GenerateRegularPortalClass
   const semesterSuffix = parseSemesterSuffix(input.semesterName);
   const yearSuffix = String(input.year % YEAR_SUFFIX_DIVISOR).padStart(2, "0");
 
-  return [
-    "REG",
-    input.stageInternalCode,
-    WEEKDAY_PORTAL_ABBREV[primarySlot.weekday],
-    `${primarySlot.startTime}/${primarySlot.endTime}`,
-    `${semesterSuffix}/${yearSuffix}-${input.sequence}`,
-  ]
-    .join("-")
-    .replace(/^REG-/, "REG/");
+  return (
+    prefix +
+    [
+      WEEKDAY_PORTAL_ABBREV[primarySlot.weekday],
+      `${primarySlot.startTime}/${primarySlot.endTime}`,
+      `${semesterSuffix}/${yearSuffix}-${input.sequence}`,
+    ].join("-")
+  );
 }
 
 function selectPrimarySlot(slots: readonly PortalClassNameSlot[]): PortalClassNameSlot | undefined {

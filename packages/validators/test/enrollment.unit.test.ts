@@ -4,6 +4,9 @@ import { describe, it } from "node:test";
 import {
   enrollmentAdvanceStageInputSchema,
   enrollmentCloseInputSchema,
+  enrollmentReturnInputSchema,
+  enrollmentCancelScheduledInputSchema,
+  enrollmentCorrectionApplyInputSchema,
   enrollmentCreateInputSchema,
   enrollmentTransferInputSchema,
 } from "../src/enrollment.js";
@@ -23,7 +26,6 @@ void describe("enrollmentCreateInputSchema", () => {
     assert.equal(parsed.classId, CLASS_ID);
     assert.equal(parsed.entryDate, undefined);
     assert.equal(parsed.stageId, undefined);
-    assert.equal(parsed.capacityOverrideReason, undefined);
   });
 
   void it("rejects non-UUID identifiers", () => {
@@ -37,11 +39,11 @@ void describe("enrollmentCreateInputSchema", () => {
     );
   });
 
-  void it("rejects a whitespace-only capacity override reason", () => {
+  void it("rejects an obsolete capacity override reason", () => {
     const result = enrollmentCreateInputSchema.safeParse({
       studentId: STUDENT_ID,
       classId: CLASS_ID,
-      capacityOverrideReason: "   ",
+      capacityOverrideReason: "Autorizado",
     });
 
     assert.equal(result.success, false);
@@ -94,7 +96,6 @@ void describe("enrollmentTransferInputSchema", () => {
     assert.equal(parsed.enrollmentId, ENROLLMENT_ID);
     assert.equal(parsed.targetClassId, CLASS_ID);
     assert.equal(parsed.entryDate, undefined);
-    assert.equal(parsed.capacityOverrideReason, undefined);
   });
 
   void it("rejects a non-UUID target class id", () => {
@@ -148,6 +149,54 @@ void describe("enrollmentCloseInputSchema", () => {
     assert.equal(
       enrollmentCloseInputSchema.safeParse({ enrollmentId: ENROLLMENT_ID }).success,
       false,
+    );
+  });
+});
+
+void describe("scheduled actions and correction form contracts", () => {
+  void it("accepts dated pause, return, and cancellation identifiers", () => {
+    const date = "2026-10-08";
+    assert.equal(
+      enrollmentCloseInputSchema
+        .parse({ enrollmentId: ENROLLMENT_ID, reason: "SUSPENDED", effectiveDate: date })
+        .effectiveDate?.toISOString(),
+      "2026-10-08T00:00:00.000Z",
+    );
+    assert.equal(
+      enrollmentReturnInputSchema
+        .parse({ sourceEnrollmentId: ENROLLMENT_ID, targetClassId: CLASS_ID, effectiveDate: date })
+        .effectiveDate?.toISOString(),
+      "2026-10-08T00:00:00.000Z",
+    );
+    assert.equal(
+      enrollmentCancelScheduledInputSchema.parse({ actionId: ENROLLMENT_ID }).actionId,
+      ENROLLMENT_ID,
+    );
+  });
+  void it("requires a meaningful justification and a reviewed version for retroactive correction", () => {
+    const base = {
+      actionId: ENROLLMENT_ID,
+      effectiveDate: "2026-10-06",
+      expectedVersion: "version-1",
+    };
+    assert.equal(
+      enrollmentCorrectionApplyInputSchema.safeParse({ ...base, justification: "   " }).success,
+      false,
+    );
+    assert.equal(
+      enrollmentCorrectionApplyInputSchema.safeParse({
+        actionId: ENROLLMENT_ID,
+        effectiveDate: "2026-10-06",
+        justification: "Data errada",
+      }).success,
+      false,
+    );
+    assert.equal(
+      enrollmentCorrectionApplyInputSchema.parse({
+        ...base,
+        justification: " Data informada incorretamente ",
+      }).justification,
+      "Data informada incorretamente",
     );
   });
 });

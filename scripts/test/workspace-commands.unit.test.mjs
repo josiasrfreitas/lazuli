@@ -346,6 +346,32 @@ it("revalidates an orphan after the allocation lock admits a colliding worktree"
   execFileSync("git", ["worktree", "remove", "--force", sibling], { cwd: directory });
 });
 
+it("recovers an allocation lock left by a terminated process", async (context) => {
+  const directory = await fixture(context, "lazuli-dead-allocation-owner");
+  const lockPath = path.join(directory, ".git/lazuli-workspace-allocation.lock.queue");
+  const { withWorkspaceAllocationLock } = await import("../lib/workspace-metadata.mjs");
+  const child = spawn(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `import { withWorkspaceAllocationLock } from ${JSON.stringify(new URL("../lib/workspace-metadata.mjs", import.meta.url).href)}; await withWorkspaceAllocationLock(process.cwd(), async () => { process.stdout.write("locked\\n"); await new Promise(() => {}); });`,
+    ],
+    { cwd: directory, stdio: ["ignore", "pipe", "pipe"] },
+  );
+  await new Promise((resolve) => child.stdout.once("data", resolve));
+  child.kill("SIGKILL");
+  await new Promise((resolve) => child.once("close", resolve));
+
+  let entered = false;
+  await withWorkspaceAllocationLock(directory, async () => {
+    entered = true;
+  });
+
+  assert.equal(entered, true);
+  assert.deepEqual(await readdir(lockPath), []);
+});
+
 it("removes only full resources bearing this workspace ownership markers", async (context) => {
   const directory = await fixture(context, "lazuli-full-teardown");
   assert.equal(run(directory, setupScript, ["light"]).status, 0);

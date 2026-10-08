@@ -11,6 +11,8 @@ export const PERSONALIZED_REQUIRES_STAGE_MESSAGE = "Turma personalizada exige et
 export const REGULAR_REJECTS_STAGE_MESSAGE = "Turma regular define a etapa automaticamente.";
 export const REGULAR_CLASS_MISSING_STAGE_MESSAGE = "Turma regular sem etapa configurada.";
 export const DUPLICATE_ACTIVE_ENROLLMENT_MESSAGE = "Aluno ja possui matricula ativa nesta turma.";
+export const TRACK_ENROLLMENT_CONFLICT_MESSAGE =
+  "Este aluno já possui matrícula em outra turma da mesma trilha no período informado.";
 export const ENROLLMENT_NOT_FOUND_MESSAGE = "Matricula nao encontrada.";
 export const ENROLLMENT_NOT_ACTIVE_MESSAGE = "Somente matriculas ativas podem avancar de etapa.";
 export const ADVANCE_REQUIRES_PERSONALIZED_MESSAGE =

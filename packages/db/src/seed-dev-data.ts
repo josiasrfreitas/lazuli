@@ -3,8 +3,10 @@
  * `seed-dev.ts` turns these seeds into idempotent upserts keyed by stable UUIDs.
  */
 
-const DEFAULT_CAPACITY = 12;
+const DEFAULT_CAPACITY = 20;
 const KIDS_CAPACITY = 8;
+const EXTRA_HIGH_OCCUPANCY_STUDENTS = 18;
+const EXTRA_MODERATE_OCCUPANCY_STUDENTS = 13;
 
 export type DevWeekday =
   | "MONDAY"
@@ -26,6 +28,7 @@ export type DevTeacherSeed = { key: string; name: string; email: string };
 
 export type DevClassSeed = {
   key: string;
+  scheduleType?: "REGULAR" | "PERSONALIZED";
   stageInternalCode: string;
   teacherKey: string;
   capacity: number;
@@ -80,6 +83,14 @@ export const DEV_TEACHERS: readonly DevTeacherSeed[] = [
 ];
 
 export const DEV_CLASSES: readonly DevClassSeed[] = [
+  {
+    key: "PPT-E1",
+    scheduleType: "PERSONALIZED",
+    stageInternalCode: "E1",
+    teacherKey: "camila",
+    capacity: DEFAULT_CAPACITY,
+    slots: [{ weekday: "FRIDAY", startTime: "17:00", endTime: "19:00" }],
+  },
   {
     key: "E1A",
     stageInternalCode: "E1",
@@ -137,6 +148,13 @@ export const DEV_CLASSES: readonly DevClassSeed[] = [
 ];
 
 export const DEV_STUDENTS: readonly DevStudentSeed[] = [
+  {
+    key: "ppt-example",
+    fullName: "Marina Azevedo",
+    status: "ACTIVE",
+    enrollments: [{ classKey: "PPT-E1" }],
+    attendance: "good",
+  },
   {
     key: "ana",
     fullName: "Ana Beatriz Rocha",
@@ -310,4 +328,17 @@ export const DEV_STUDENTS: readonly DevStudentSeed[] = [
     enrollments: [{ classKey: "MWYA" }],
     attendance: "good",
   },
+  ...occupancyStudents("E1A", EXTRA_HIGH_OCCUPANCY_STUDENTS),
+  ...occupancyStudents("T2A", EXTRA_MODERATE_OCCUPANCY_STUDENTS),
 ];
+
+/** Existing enrollments plus these examples give E1A 21 students and T2A 15. */
+function occupancyStudents(classKey: string, count: number): DevStudentSeed[] {
+  return Array.from({ length: count }, (_unused, index) => ({
+    key: `occupancy-${classKey}-${index + 1}`,
+    fullName: `Estudante exemplo ${classKey} ${index + 1}`,
+    status: "ACTIVE",
+    enrollments: [{ classKey }],
+    attendance: "good",
+  }));
+}

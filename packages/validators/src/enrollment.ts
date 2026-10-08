@@ -1,10 +1,11 @@
 import { z } from "zod";
 
-import { dateOnlyInputSchema } from "./student.js";
+import { dateOnlyInputSchema, studentSearchInputSchema } from "./student.js";
 
 const CAPACITY_OVERRIDE_REASON_EMPTY_MESSAGE =
   "Motivo de excecao de capacidade nao pode ser vazio.";
 const INVALID_ENROLLMENT_ID_MESSAGE = "Identificador de matricula invalido.";
+const MAX_ENROLLMENT_SEARCH_LENGTH = 80;
 const INVALID_CLASS_ID_MESSAGE = "Identificador de turma invalido.";
 
 const enrollmentIdSchema = z.string().uuid(INVALID_ENROLLMENT_ID_MESSAGE);
@@ -24,7 +25,15 @@ export const enrollmentCreateInputSchema = z
     classId: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
     entryDate: dateOnlyInputSchema.optional(),
     stageId: z.string().uuid("Identificador de etapa invalido.").optional(),
-    capacityOverrideReason: capacityOverrideReasonSchema.optional(),
+  })
+  .strict();
+
+export const enrollmentCandidateSearchInputSchema = studentSearchInputSchema
+  .extend({
+    query: z.string().trim().max(MAX_ENROLLMENT_SEARCH_LENGTH).default(""),
+    classId: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
+    entryDate: dateOnlyInputSchema.optional(),
+    stageId: z.string().uuid().optional(),
   })
   .strict();
 
@@ -63,5 +72,37 @@ export const enrollmentCloseInputSchema = z
   .object({
     enrollmentId: enrollmentIdSchema,
     reason: z.enum(["DROPPED", "SUSPENDED"]),
+    effectiveDate: dateOnlyInputSchema.optional(),
   })
+  .strict();
+
+export const enrollmentCancelScheduledInputSchema = z
+  .object({ actionId: z.string().uuid() })
+  .strict();
+
+export const enrollmentReturnInputSchema = z
+  .object({
+    sourceEnrollmentId: enrollmentIdSchema,
+    targetClassId: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
+    effectiveDate: dateOnlyInputSchema.optional(),
+    stageId: z.string().uuid().optional(),
+  })
+  .strict();
+
+export const enrollmentCorrectionPreviewInputSchema = z
+  .object({
+    actionId: z.string().uuid(),
+    effectiveDate: dateOnlyInputSchema,
+  })
+  .strict();
+
+export const enrollmentCorrectionApplyInputSchema = enrollmentCorrectionPreviewInputSchema
+  .extend({
+    justification: z.string().trim().min(1, "Informe a justificativa."),
+    expectedVersion: z.string().min(1),
+  })
+  .strict();
+
+export const enrollmentPausedSearchInputSchema = z
+  .object({ query: z.string().trim().max(MAX_ENROLLMENT_SEARCH_LENGTH).default("") })
   .strict();

@@ -62,8 +62,20 @@ export type EnrollmentSuiteFixtures = {
 
 const DEFAULT_CLASS_CAPACITY = 8;
 const FIXTURE_CLASS_YEAR = 2026;
+export const ENROLLMENT_ADMIN_ID = "00000000-0000-0000-0000-0000000030ad";
 
 export async function ensureTeacherFor(config: EnrollmentSuiteConfig): Promise<void> {
+  await db.user.upsert({
+    where: { id: ENROLLMENT_ADMIN_ID },
+    create: {
+      id: ENROLLMENT_ADMIN_ID,
+      email: "gre30-enrollment-admin@example.com",
+      name: "Enrollment Admin de Teste",
+      role: "ADMIN",
+      isEnabled: true,
+    },
+    update: {},
+  });
   await db.user.upsert({
     where: { id: config.teacherId },
     create: {
@@ -160,6 +172,15 @@ export async function createPersonalizedClassFor(
 }
 
 export async function cleanEnrollmentFixtures(config: EnrollmentFixtureConfig): Promise<void> {
+  await db.enrollmentAction.deleteMany({
+    where: { enrollment: { student: { fullName: { startsWith: config.prefix } } } },
+  });
+  await db.attendance.deleteMany({
+    where: { enrollment: { student: { fullName: { startsWith: config.prefix } } } },
+  });
+  await db.classSession.deleteMany({
+    where: { class: { internalCode: { startsWith: config.prefix } } },
+  });
   await db.pedagogicalProgress.deleteMany({
     where: { enrollment: { student: { fullName: { startsWith: config.prefix } } } },
   });

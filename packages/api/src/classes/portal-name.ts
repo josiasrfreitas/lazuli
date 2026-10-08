@@ -1,5 +1,9 @@
 import type { Prisma } from "@lazuli/db";
-import { generateRegularPortalClassName, type PortalClassNameSlot } from "@lazuli/domain";
+import {
+  generateRegularPortalClassName,
+  generatePersonalizedPortalClassName,
+  type PortalClassNameSlot,
+} from "@lazuli/domain";
 
 import { badRequest } from "../trpc/errors.js";
 import { PORTAL_NAME_COLLISION_MESSAGE } from "./errors.js";
@@ -15,16 +19,30 @@ export async function resolveRegularPortalClassName(input: {
   semesterName: string;
   year: number;
 }): Promise<string> {
-  for (let sequence = 1; sequence <= MAX_PORTAL_NAME_ATTEMPTS; sequence += 1) {
-    const candidate = generateRegularPortalClassName({
-      stageInternalCode: input.stageInternalCode,
-      slots: input.slots,
-      semesterName: input.semesterName,
-      year: input.year,
-      sequence,
-    });
+  return resolveGeneratedPortalClassName(input.database, (sequence) =>
+    generateRegularPortalClassName({ ...input, sequence }),
+  );
+}
 
-    const existing = await input.database.class.findFirst({
+export async function resolvePersonalizedPortalClassName(input: {
+  database: PortalNameDatabase;
+  slots: readonly PortalClassNameSlot[];
+  semesterName: string;
+  year: number;
+}): Promise<string> {
+  return resolveGeneratedPortalClassName(input.database, (sequence) =>
+    generatePersonalizedPortalClassName({ ...input, sequence }),
+  );
+}
+
+async function resolveGeneratedPortalClassName(
+  database: PortalNameDatabase,
+  generate: (sequence: number) => string,
+): Promise<string> {
+  for (let sequence = 1; sequence <= MAX_PORTAL_NAME_ATTEMPTS; sequence += 1) {
+    const candidate = generate(sequence);
+
+    const existing = await database.class.findFirst({
       where: {
         portalClassName: candidate,
         status: "ACTIVE",

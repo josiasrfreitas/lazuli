@@ -4,8 +4,11 @@ const REQUIRED_TEXT_MESSAGE = "Campo obrigatorio.";
 const INVALID_TIME_MESSAGE = "Horario invalido.";
 const INVALID_CLASS_ID_MESSAGE = "Identificador de turma invalido.";
 const INVALID_SEMESTER_ID_MESSAGE = "Identificador de semestre invalido.";
-const MIN_CLASS_YEAR = 2000;
-const MAX_CLASS_YEAR = 2100;
+const MAX_CLASS_PAGE_SIZE = 100;
+const DEFAULT_CLASS_PAGE_SIZE = 20;
+const MAX_CLASS_SEARCH_LENGTH = 80;
+const MINUTES_PER_HOUR = 60;
+const MAX_WEEKLY_CLASS_MINUTES = 120;
 
 const requiredText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE);
 
@@ -45,18 +48,31 @@ export const classScheduleSlotInputSchema = z
     }
   });
 
+export const classScheduleSlotsInputSchema = z
+  .array(classScheduleSlotInputSchema)
+  .min(1, "Informe ao menos um horario.")
+  .superRefine((slots, context) => {
+    const minutes = slots.reduce(
+      (total, slot) => total + timeInMinutes(slot.endTime) - timeInMinutes(slot.startTime),
+      0,
+    );
+    if (minutes > MAX_WEEKLY_CLASS_MINUTES) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A turma pode ter no máximo 2 horas por semana.",
+      });
+    }
+  });
+
 export const classCreateInputSchema = z
   .object({
-    internalCode: requiredText,
     teacherId: requiredText.uuid("Identificador de professor invalido."),
     scheduleType: classScheduleTypeSchema,
     format: classFormatSchema,
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").nullish(),
     semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE).nullish(),
-    year: z.number().int().min(MIN_CLASS_YEAR).max(MAX_CLASS_YEAR),
-    capacity: z.number().int().min(1),
     portalClassName: requiredText.optional(),
-    slots: z.array(classScheduleSlotInputSchema).min(1, "Informe ao menos um horario."),
+    slots: classScheduleSlotsInputSchema,
   })
   .strict()
   .superRefine(validateClassCreateInput);
@@ -70,15 +86,41 @@ export const classIdInputSchema = z
 export const classCloneForNextPeriodInputSchema = z
   .object({
     id: z.string().uuid(INVALID_CLASS_ID_MESSAGE),
-    internalCode: requiredText,
     semesterId: z.string().uuid(INVALID_SEMESTER_ID_MESSAGE),
-    year: z.number().int().min(MIN_CLASS_YEAR).max(MAX_CLASS_YEAR),
     sharedStageId: z.string().uuid("Identificador de etapa invalido.").optional(),
     portalClassName: requiredText.optional(),
   })
   .strict();
 
 export const classArchiveInputSchema = classIdInputSchema;
+
+export const classListInputSchema = z
+  .object({
+    page: z.number().int().min(1).default(1),
+    pageSize: z.number().int().min(1).max(MAX_CLASS_PAGE_SIZE).default(DEFAULT_CLASS_PAGE_SIZE),
+    search: z.string().trim().max(MAX_CLASS_SEARCH_LENGTH).default(""),
+    scheduleTypes: z.array(classScheduleTypeSchema).default([]),
+    formats: z.array(classFormatSchema).default([]),
+    teacherIds: z.array(z.string().uuid()).default([]),
+    stageIds: z.array(z.string().uuid()).default([]),
+    semesterIds: z.array(z.string().uuid()).default([]),
+    statuses: z.array(z.enum(["ACTIVE", "ARCHIVED"])).default([]),
+  })
+  .strict();
+
+export const classRelatedListInputSchema = classIdInputSchema
+  .extend({
+    page: z.number().int().min(1).default(1),
+    pageSize: z.number().int().min(1).max(MAX_CLASS_PAGE_SIZE).default(DEFAULT_CLASS_PAGE_SIZE),
+  })
+  .strict();
+
+export const classRosterInputSchema = classRelatedListInputSchema
+  .extend({
+    search: z.string().trim().max(MAX_CLASS_SEARCH_LENGTH).default(""),
+    situations: z.array(z.enum(["CURRENT", "SCHEDULED", "PAUSED", "ENDED"])).default([]),
+  })
+  .strict();
 
 export const classGenerateSessionsInputSchema = z
   .object({
@@ -144,10 +186,10 @@ function validatePersonalizedClassInput(input: ClassCreateInput, context: z.Refi
     });
   }
 
-  if (input.portalClassName === null || input.portalClassName === undefined) {
+  if (input.portalClassName !== null && input.portalClassName !== undefined) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Turma personalizada exige nome Portal manual.",
+      message: "O nome da turma PPT é gerado automaticamente.",
       path: ["portalClassName"],
     });
   }
@@ -159,4 +201,9 @@ function validatePersonalizedClassInput(input: ClassCreateInput, context: z.Refi
       path: ["semesterId"],
     });
   }
+}
+
+function timeInMinutes(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  return (hours ?? 0) * MINUTES_PER_HOUR + (minutes ?? 0);
 }

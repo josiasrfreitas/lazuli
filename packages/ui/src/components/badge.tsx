@@ -19,6 +19,7 @@ export const badgeVariants = cva(
         warning: "border-warning/20 bg-warning-muted text-warning",
         destructive: "border-destructive/20 bg-destructive-muted text-destructive",
         info: "border-info/20 bg-info-muted text-info",
+        "over-capacity": "border-over-capacity/20 bg-over-capacity-muted text-over-capacity",
       },
     },
     defaultVariants: {

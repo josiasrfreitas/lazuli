@@ -1,11 +1,12 @@
-import type { Prisma } from "@lazuli/db";
+import type { Prisma, TransactionClient } from "@lazuli/db";
+import { dateOnlyUtc } from "./effective-date.js";
+import { assertTrackAvailable } from "./eligibility.js";
 import type { enrollmentCreateInputSchema, z } from "@lazuli/validators";
 
 import { loadActiveStage } from "../classes/guards.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
-  CAPACITY_OVERRIDE_REQUIRED_MESSAGE,
   CLASS_ARCHIVED_MESSAGE,
   CLASS_NOT_FOUND_MESSAGE,
   DUPLICATE_ACTIVE_ENROLLMENT_MESSAGE,
@@ -21,7 +22,9 @@ type EnrollmentCreateInput = z.infer<typeof enrollmentCreateInputSchema>;
 
 /** Keys touched here plus the ones `loadActiveStage` (classes/guards) structurally requires. */
 export type EnrollmentDatabase = Pick<
-  Prisma.TransactionClient,
+  TransactionClient,
+  | "$kysely"
+  | "$queryRaw"
   | "enrollment"
   | "pedagogicalProgress"
   | "class"
@@ -30,6 +33,7 @@ export type EnrollmentDatabase = Pick<
   | "semester"
   | "track"
   | "user"
+  | "enrollmentAction"
 >;
 
 export type EnrollmentSummary = {
@@ -81,6 +85,7 @@ const activeEnrollmentSelect = {
   id: true,
   studentId: true,
   classId: true,
+  entryDate: true,
   exitDate: true,
   class: { select: { scheduleType: true } },
   progressRecords: {
@@ -142,7 +147,14 @@ export async function closeActiveEnrollment(input: {
 export async function createEnrollment(input: {
   database: EnrollmentDatabase;
   values: EnrollmentCreateInput;
+  staffUserId: string;
+  now: Date;
 }): Promise<EnrollmentCreateResult> {
+  const today = saoPauloDateOnly(input.now);
+  const entryDate = input.values.entryDate ?? new Date(today);
+  if (dateOnlyUtc(entryDate) < today) {
+    throw badRequest("A data de entrada deve ser hoje ou futura.");
+  }
   await assertStudentIsEnrollable({
     database: input.database,
     studentId: input.values.studentId,
@@ -162,16 +174,24 @@ export async function createEnrollment(input: {
     studentId: input.values.studentId,
     classId: classRow.id,
   });
-  await assertCapacity({
+  const created = await insertEnrollmentWithProgress({
     database: input.database,
-    classRow,
-    capacityOverrideReason: input.values.capacityOverrideReason,
+    values: { ...input.values, entryDate },
+    stageId,
   });
-
-  return insertEnrollmentWithProgress({ database: input.database, values: input.values, stageId });
+  await input.database.enrollmentAction.create({
+    data: {
+      enrollmentId: created.enrollment.id,
+      kind: "ENTRY",
+      status: dateOnlyUtc(entryDate) > today ? "SCHEDULED" : "APPLIED",
+      effectiveDate: entryDate,
+      recordedById: input.staffUserId,
+    },
+  });
+  return created;
 }
 
-async function assertStudentIsEnrollable(input: {
+export async function assertStudentIsEnrollable(input: {
   database: EnrollmentDatabase;
   studentId: string;
 }): Promise<void> {
@@ -206,7 +226,7 @@ export async function loadEnrollableClass(input: {
   return classRow;
 }
 
-async function resolveInitialStageId(input: {
+export async function resolveInitialStageId(input: {
   database: EnrollmentDatabase;
   classRow: EnrollableClass;
   stageId: string | undefined;
@@ -256,24 +276,6 @@ export async function assertNoDuplicateActiveEnrollment(input: {
   }
 }
 
-export async function assertCapacity(input: {
-  database: EnrollmentDatabase;
-  classRow: EnrollableClass;
-  capacityOverrideReason: string | undefined;
-}): Promise<void> {
-  if (input.capacityOverrideReason !== undefined) {
-    return;
-  }
-
-  const activeCount = await input.database.enrollment.count({
-    where: { classId: input.classRow.id, exitDate: null },
-  });
-
-  if (activeCount + 1 > input.classRow.capacity) {
-    throw badRequest(CAPACITY_OVERRIDE_REQUIRED_MESSAGE);
-  }
-}
-
 async function insertEnrollmentWithProgress(input: {
   database: EnrollmentDatabase;
   values: EnrollmentCreateInput;
@@ -285,7 +287,7 @@ async function insertEnrollmentWithProgress(input: {
     classId: input.values.classId,
     entryDate: input.values.entryDate ?? new Date(saoPauloDateOnly(new Date())),
     stageId: input.stageId,
-    capacityOverrideReason: input.values.capacityOverrideReason,
+    capacityOverrideReason: undefined,
   });
 
   return { ...opened, orderPromptRequired: true };
@@ -304,6 +306,8 @@ export async function openEnrollmentAtStage(input: {
   stageId: string;
   capacityOverrideReason: string | undefined;
 }): Promise<{ enrollment: EnrollmentSummary; progress: ProgressSummary }> {
+  await lockStudentEnrollment(input.database, input.studentId);
+  await assertTrackAvailable(input);
   const enrollment = await input.database.enrollment.create({
     data: {
       studentId: input.studentId,
@@ -321,4 +325,15 @@ export async function openEnrollmentAtStage(input: {
   });
 
   return { enrollment, progress };
+}
+
+/** Serialize entries and cancellations for one student until the transaction commits. */
+export async function lockStudentEnrollment(
+  database: Pick<Prisma.TransactionClient, "$queryRaw">,
+  studentId: string,
+): Promise<void> {
+  const key = `enrollment:${studentId.toLowerCase()}`;
+  await database.$queryRaw`
+    SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0)) IS NULL AS locked
+  `;
 }
