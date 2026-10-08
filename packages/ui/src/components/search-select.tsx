@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useRef, useState, type ReactElement, type RefObject } from "react";
 import { Combobox } from "@base-ui/react/combobox";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { Input, type InputSize } from "./input";
 import { SelectedTags } from "./search-select-value";
 
@@ -18,6 +18,7 @@ export type SearchSelectProps = {
   size?: InputSize;
   name: string;
   placeholder: string;
+  showSearchIcon?: boolean;
   value: SearchSelectOption | null;
   query: string;
   options: readonly SearchSelectOption[];
@@ -53,28 +54,40 @@ function SearchResults({ items, loading, failed, emptyMessage }: SearchResultsIn
               {emptyMessage}
             </p>
           )}
-          <Combobox.List className="scrollbar-subtle max-h-60 overflow-y-auto">
-            {items.map((item, index) => (
-              <Combobox.Item
-                key={`${item.kind}:${item.id}`}
-                value={item}
-                index={index}
-                disabled={loading && item.kind === "option"}
-                className="flex cursor-default flex-col rounded-sm px-2 py-2 text-control outline-none select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-disabled"
-              >
-                <span className="flex items-center gap-2">
-                  {item.kind === "create" && <Plus aria-hidden="true" className="size-4" />}
-                  {item.label}
-                </span>
-                {item.description && (
-                  <span className="text-caption text-muted-foreground">{item.description}</span>
-                )}
-              </Combobox.Item>
-            ))}
-          </Combobox.List>
+          <SearchResultItems items={items} loading={loading} />
         </Combobox.Popup>
       </Combobox.Positioner>
     </Combobox.Portal>
+  );
+}
+
+function SearchResultItems({
+  items,
+  loading,
+}: {
+  items: readonly SearchItem[];
+  loading: boolean;
+}): ReactElement {
+  return (
+    <Combobox.List className="scrollbar-subtle max-h-60 overflow-y-auto">
+      {items.map((item, index) => (
+        <Combobox.Item
+          key={`${item.kind}:${item.id}`}
+          value={item}
+          index={index}
+          disabled={loading && item.kind === "option"}
+          className="flex cursor-default flex-col rounded-sm px-2 py-2 text-control outline-none select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-disabled"
+        >
+          <span className="flex items-center gap-2">
+            {item.kind === "create" && <Plus aria-hidden="true" className="size-4" />}
+            {item.label}
+          </span>
+          {item.description && (
+            <span className="text-caption text-muted-foreground">{item.description}</span>
+          )}
+        </Combobox.Item>
+      ))}
+    </Combobox.List>
   );
 }
 
@@ -87,28 +100,42 @@ function searchItems(options: readonly SearchSelectOption[], allowCreate: boolea
 
 function SearchInput({ props, open, close, highlighted }: SearchInputInput): ReactElement {
   return (
-    <Combobox.Input
-      name={props.name}
-      render={<Input size={props.size ?? "sm"} invalid={props.invalid ?? false} />}
-      placeholder={props.placeholder}
-      onFocus={() => {
-        if (props.openOnFocus) open();
-      }}
-      onChange={(event) => {
-        highlighted.current = undefined;
-        props.onQueryChange(event.currentTarget.value);
-      }}
-      onKeyDown={(event) => {
-        if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
-        // Let Base UI select the item reached with the arrow keys.
-        if (highlighted.current) return;
-        event.preventDefault();
-        event.preventBaseUIHandler();
-        if (!props.loading && props.options[0]) props.onSelect(props.options[0]);
-        else if (!props.loading) props.onCreate?.(props.query);
-        close();
-      }}
-    />
+    <div className="relative">
+      {props.showSearchIcon && (
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+      )}
+      <Combobox.Input
+        name={props.name}
+        render={
+          <Input
+            size={props.size ?? "sm"}
+            invalid={props.invalid ?? false}
+            className={props.showSearchIcon ? "pl-9" : undefined}
+          />
+        }
+        placeholder={props.placeholder}
+        onFocus={() => {
+          if (props.openOnFocus) open();
+        }}
+        onChange={(event) => {
+          highlighted.current = undefined;
+          props.onQueryChange(event.currentTarget.value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+          // Let Base UI select the item reached with the arrow keys.
+          if (highlighted.current) return;
+          event.preventDefault();
+          event.preventBaseUIHandler();
+          if (!props.loading && props.options[0]) props.onSelect(props.options[0]);
+          else if (!props.loading) props.onCreate?.(props.query);
+          close();
+        }}
+      />
+    </div>
   );
 }
 

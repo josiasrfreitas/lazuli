@@ -77,7 +77,7 @@ async function createRegularClass(input: CreateRegularClassInput): Promise<Class
     stageInternalCode: stage.internalCode,
     slots: input.values.slots,
     semesterName: semester.name,
-    year: input.values.year,
+    year: semester.startDate.getUTCFullYear(),
   });
 
   return input.database.class.create({
@@ -86,6 +86,7 @@ async function createRegularClass(input: CreateRegularClassInput): Promise<Class
       portalClassName,
       sharedStageId: stage.id,
       semesterId: semester.id,
+      year: semester.startDate.getUTCFullYear(),
       slotRows: input.slotRows,
     }),
     select: classSummarySelect,
@@ -102,7 +103,7 @@ async function createPersonalizedClass(input: CreatePersonalizedClassInput): Pro
     database: input.database,
     slots: input.values.slots,
     semesterName: semester.name,
-    year: input.values.year,
+    year: semester.startDate.getUTCFullYear(),
   });
 
   return input.database.class.create({
@@ -111,6 +112,7 @@ async function createPersonalizedClass(input: CreatePersonalizedClassInput): Pro
       portalClassName,
       sharedStageId: null,
       semesterId: semester.id,
+      year: semester.startDate.getUTCFullYear(),
       slotRows: input.slotRows,
     }),
     select: classSummarySelect,
@@ -119,13 +121,13 @@ async function createPersonalizedClass(input: CreatePersonalizedClassInput): Pro
 
 function buildClassCreateData(input: BuildClassCreateDataInput): Prisma.ClassUncheckedCreateInput {
   return {
-    internalCode: generateClassInternalCode(input.values.year),
+    internalCode: generateClassInternalCode(input.year),
     teacherId: input.values.teacherId,
     scheduleType: input.values.scheduleType,
     format: input.values.format,
     sharedStageId: input.sharedStageId,
     semesterId: input.semesterId,
-    year: input.values.year,
+    year: input.year,
     capacity: CLASS_REFERENCE_CAPACITY,
     portalClassName: input.portalClassName,
     originalPortalClassName: input.portalClassName,
@@ -237,6 +239,7 @@ type CreatePersonalizedClassInput = {
   slotRows: SlotRow[];
 };
 type BuildClassCreateDataInput = {
+  year: number;
   values: ClassCreateInput;
   portalClassName: string;
   sharedStageId: string | null;

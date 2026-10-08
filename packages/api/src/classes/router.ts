@@ -100,7 +100,6 @@ function buildCloneInput(input: {
   input: {
     id: string;
     semesterId: string;
-    year: number;
     sharedStageId?: string | undefined;
     portalClassName?: string | undefined;
   };
@@ -109,7 +108,6 @@ function buildCloneInput(input: {
     database: input.database,
     id: input.input.id,
     semesterId: input.input.semesterId,
-    year: input.input.year,
     ...optionalSharedStageId(input.input.sharedStageId),
     ...optionalPortalClassName(input.input.portalClassName),
   };

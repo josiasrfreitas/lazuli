@@ -143,6 +143,11 @@ const rosterSelect = {
   exitDate: true,
   exitReason: true,
   student: { select: { fullName: true, phone: true, birthDate: true } },
+  returnActions: {
+    where: { kind: "RETURN", status: { in: ["SCHEDULED", "APPLIED"] } },
+    select: { id: true },
+    take: 1,
+  },
   progressRecords: {
     where: { deletedAt: null },
     select: { stage: { select: { name: true, track: { select: { name: true } } } } },

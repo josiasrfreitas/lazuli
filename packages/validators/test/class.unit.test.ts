@@ -24,7 +24,6 @@ const REGULAR_CLASS_INPUT = {
   format: "IN_PERSON",
   sharedStageId: STAGE_ID,
   semesterId: SEMESTER_ID,
-  year: 2026,
   slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
 };
 
@@ -33,7 +32,7 @@ void describe("class schedule input", () => {
     const parsed = classCreateInputSchema.parse({
       ...REGULAR_CLASS_INPUT,
       slots: [
-        ...REGULAR_CLASS_INPUT.slots,
+        { weekday: "TUESDAY", startTime: "14:00", endTime: "15:00" },
         { weekday: "THURSDAY", startTime: "08:00", endTime: "09:00" },
       ],
     });
@@ -190,11 +189,10 @@ void describe("class command input", () => {
       id: CLASS_ID,
 
       semesterId: SEMESTER_ID,
-      year: 2099,
       sharedStageId: STAGE_ID,
     });
 
-    assert.equal(clone.year, 2099);
+    assert.equal(clone.semesterId, SEMESTER_ID);
     assert.equal(classArchiveInputSchema.safeParse({ id: CLASS_ID }).success, true);
     assert.equal(classArchiveInputSchema.safeParse({ id: "not-a-uuid" }).success, false);
     assert.equal(
@@ -220,8 +218,38 @@ void it("rejects manually assigned internal codes and per-class capacity", () =>
       id: CLASS_ID,
       internalCode: "MANUAL",
       semesterId: SEMESTER_ID,
-      year: 2026,
     }).success,
     false,
   );
+});
+
+void it("limits the total weekly duration to two hours for both class types", () => {
+  for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
+    const input = {
+      ...REGULAR_CLASS_INPUT,
+      scheduleType,
+      sharedStageId: scheduleType === "REGULAR" ? STAGE_ID : null,
+    };
+    const allowed = classCreateInputSchema.safeParse({
+      ...input,
+      slots: [
+        { weekday: "MONDAY", startTime: "08:00", endTime: "09:00" },
+        { weekday: "WEDNESDAY", startTime: "08:00", endTime: "09:00" },
+      ],
+    });
+    const exceeded = classCreateInputSchema.safeParse({
+      ...input,
+      slots: [
+        { weekday: "MONDAY", startTime: "08:00", endTime: "09:00" },
+        { weekday: "WEDNESDAY", startTime: "08:00", endTime: "09:01" },
+      ],
+    });
+    assert.equal(allowed.success, true);
+    assert.equal(exceeded.success, false);
+    assert.equal(
+      exceeded.error?.issues[0]?.message,
+      "A turma pode ter no máximo 2 horas por semana.",
+    );
+    assert.deepEqual(exceeded.error?.issues[0]?.path, ["slots"]);
+  }
 });

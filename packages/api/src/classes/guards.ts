@@ -56,10 +56,10 @@ export async function loadActiveStage(input: {
 export async function loadSemester(input: {
   database: GuardDatabase;
   semesterId: string;
-}): Promise<{ id: string; name: string }> {
+}): Promise<{ id: string; name: string; startDate: Date }> {
   const semester = await input.database.semester.findUnique({
     where: { id: input.semesterId },
-    select: { id: true, name: true },
+    select: { id: true, name: true, startDate: true },
   });
 
   if (semester === null) {

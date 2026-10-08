@@ -35,8 +35,7 @@ function parseClassDraft(draft: ClassDraft): ReturnType<typeof classCreateInputS
     scheduleType: draft.scheduleType,
     format: draft.format,
     semesterId: draft.semesterId,
-    year: Number(draft.year),
-    slots: draft.slots,
+    slots: draft.slots.filter((slot) => slot.weekday || slot.startTime || slot.endTime),
     ...(draft.scheduleType === "REGULAR" ? { sharedStageId: draft.sharedStageId } : {}),
   });
 }
@@ -74,7 +73,10 @@ const useCreateClass = ({ onOpenChange }: Props): State => {
       ),
     );
     const first = Object.keys(fields)[0];
-    if (first) popup.current?.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+    if (first) {
+      const name = first === "slots" ? "weekday-0" : first;
+      popup.current?.querySelector<HTMLElement>(`[name="${name}"]`)?.focus();
+    }
   }
   return {
     draft,
@@ -152,7 +154,9 @@ function CreateContent({ state, open }: { state: State; open: boolean }): ReactE
   return (
     <DialogContent
       className="md:max-w-2xl"
-      initialFocus={() => state.popup.current?.querySelector<HTMLElement>('[role="radio"]') ?? true}
+      initialFocus={() =>
+        state.popup.current?.querySelector<HTMLElement>('[name="teacherId"]') ?? true
+      }
       ref={state.popup}
     >
       <DialogHeader>

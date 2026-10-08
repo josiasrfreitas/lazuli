@@ -20,7 +20,7 @@ const TableDensityContext = createContext<TableDensity>("default");
 
 // Keep the vertical thumb below the sticky header; native scrollbars span it.
 const scrollbarClassName =
-  "bg-scrollbar-track data-[orientation=horizontal]:h-2 data-[orientation=vertical]:w-2";
+  "bg-scrollbar-track opacity-0 transition-opacity duration-fast group-hover/table-scroll:opacity-100 group-focus-within/table-scroll:opacity-100 motion-reduce:transition-none data-[orientation=horizontal]:h-2 data-[orientation=vertical]:w-2";
 const thumbClassName = cn(
   "rounded-full border-2 border-transparent bg-scrollbar-thumb bg-clip-padding",
   "hover:bg-scrollbar-thumb-hover",
@@ -30,7 +30,7 @@ const thumbClassName = cn(
 function TableScrollArea({ children }: { children: ReactNode }): ReactElement {
   return (
     <ScrollArea.Root
-      className="relative flex min-h-0 flex-1 flex-col"
+      className="group/table-scroll relative flex min-h-0 flex-1 flex-col"
       data-slot="table-scroll-area"
     >
       <ScrollArea.Viewport

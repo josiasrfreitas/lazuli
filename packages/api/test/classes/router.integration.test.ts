@@ -35,7 +35,6 @@ void it("creates a regular class with generated portal name", async () => {
     format: "IN_PERSON",
     sharedStageId: fixtures.stageId,
     semesterId: fixtures.semesterId,
-    year: 2026,
 
     slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
   });
@@ -44,6 +43,7 @@ void it("creates a regular class with generated portal name", async () => {
   const stored = await db.class.findUniqueOrThrow({ where: { id: created.id } });
   assert.equal(stored.internalCode, created.internalCode);
   assert.equal(stored.capacity, 25);
+  assert.equal(stored.year, 2026);
   assert.equal(created.portalClassName, "REG/GRE29S1-TER-14:00/16:00-1S/26-1");
   assert.equal(created.status, "ACTIVE");
 });
@@ -58,7 +58,6 @@ void it("generates personalized names and disambiguates identical schedules", as
     scheduleType: "PERSONALIZED",
     format: "ONLINE",
     semesterId: fixtures.semesterId,
-    year: 2026,
 
     slots: [{ weekday: "FRIDAY", startTime: "10:00", endTime: "11:00" }],
   } as const;
@@ -109,7 +108,6 @@ void it("unions selected class filters and intersects different filter fields", 
     scheduleType: "PERSONALIZED",
     format: "ONLINE",
     semesterId: fixtures.semesterId,
-    year: 2026,
 
     slots: [{ weekday: "FRIDAY", startTime: "10:00", endTime: "11:00" }],
   });
@@ -205,7 +203,6 @@ void it("clones a regular class for the next period preserving lineage", async (
     id: source.id,
 
     semesterId: fixtures.nextSemesterId,
-    year: 2026,
   });
 
   assert.match(result.successor.internalCode, /^TUR-2026-[A-F0-9]{12}$/u);
@@ -246,7 +243,6 @@ async function createRegularFixture(
     format: "IN_PERSON",
     sharedStageId: fixtures.stageId,
     semesterId: fixtures.semesterId,
-    year: 2026,
 
     slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
   });

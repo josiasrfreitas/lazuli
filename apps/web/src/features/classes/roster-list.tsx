@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { MoreHorizontal, Phone, UsersRound } from "lucide-react";
+import { Cake, MoreHorizontal, Phone, UsersRound } from "lucide-react";
 import {
   Avatar,
   Badge,
@@ -11,8 +11,10 @@ import {
   PopoverClose,
   PopoverTitle,
   Pagination,
+  cn,
 } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
+import { toWhatsAppUrl } from "~/lib/format";
 import { rosterStatus, type RosterRow } from "./roster-status";
 import { studentAgeLabel } from "./student-age";
 import { formatTrackName } from "./labels";
@@ -29,20 +31,24 @@ export function RosterStudent({
   row,
   today,
   close,
+  resume,
   showStage = true,
-}: RosterStudentInput): ReactElement {
+}: {
+  row: RosterRow;
+  today: string;
+  close: (row: RosterRow) => void;
+  resume?: ((row: RosterRow) => void) | undefined;
+  showStage?: boolean;
+}): ReactElement {
   const status = rosterStatus(row, today) as keyof typeof tones;
   return (
-    <li className="flex min-w-0 flex-col gap-4 rounded-xl border border-border/60 bg-card p-4">
-      <div className="flex items-start gap-3">
-        <Avatar name={row.student.fullName} colorKey={row.studentId} />
-        <div className="min-w-0 flex-1">
-          <h3 className="break-words text-body font-medium">{row.student.fullName}</h3>
-          <p className="mt-1 text-caption text-muted-foreground">
-            {studentAgeLabel(row.student.birthDate, today)}
-          </p>
-        </div>
-      </div>
+    <li
+      className={cn(
+        "flex min-w-0 flex-col gap-4 rounded-xl border border-border/60 bg-card p-4",
+        !showStage && "gap-2 py-3",
+      )}
+    >
+      <StudentIdentity row={row} />
       {showStage && <StudentLearningContext row={row} />}
       {status !== "Vigente" && (
         <div>
@@ -50,19 +56,64 @@ export function RosterStudent({
         </div>
       )}
       <div className="mt-auto flex items-center justify-between gap-2">
-        <p className="flex min-w-0 items-center gap-2 text-caption text-muted-foreground">
-          <Phone aria-hidden="true" className="size-3.5 shrink-0" />
-          <span className="break-words font-numeric tabular-nums">
-            {row.student.phone ?? "Sem telefone"}
-          </span>
-        </p>
-        <StudentActions row={row} close={close} canClose={status === "Vigente"} />
+        <StudentContact row={row} today={today} />
+        <StudentActions
+          row={row}
+          close={close}
+          resume={status === "Pausada" && row.returnActions.length === 0 ? resume : undefined}
+          canClose={status === "Vigente"}
+        />
       </div>
     </li>
   );
 }
 
-function StudentLearningContext({ row }: StudentLearningContextInput): ReactElement {
+function StudentIdentity({ row }: { row: RosterRow }): ReactElement {
+  return (
+    <div className="flex items-start gap-3">
+      <Avatar name={row.student.fullName} colorKey={row.studentId} />
+      <div className="min-w-0 flex-1">
+        <h3
+          className="truncate text-body font-medium"
+          title={row.student.fullName}
+          aria-label={row.student.fullName}
+        >
+          {row.student.fullName.trim().split(/\s+/u).slice(0, 2).join(" ")}
+        </h3>
+      </div>
+    </div>
+  );
+}
+
+function StudentContact({ row, today }: { row: RosterRow; today: string }): ReactElement {
+  const whatsAppUrl = toWhatsAppUrl(row.student.phone);
+  return (
+    <div className="min-w-0 space-y-1 text-caption text-muted-foreground">
+      <p className="flex items-center gap-2">
+        <Cake aria-hidden="true" className="size-3.5 shrink-0" />
+        <span>{studentAgeLabel(row.student.birthDate, today)}</span>
+      </p>
+      <p className="flex min-w-0 items-center gap-2">
+        <Phone aria-hidden="true" className="size-3.5 shrink-0" />
+        {whatsAppUrl ? (
+          <a
+            href={whatsAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Abrir WhatsApp de ${row.student.fullName}`}
+            className="break-words rounded-sm font-numeric tabular-nums text-interactive underline-offset-4 hover:text-interactive-hover hover:underline focus-visible:outline-none focus-visible:shadow-focus"
+          >
+            {row.student.phone}
+          </a>
+        ) : (
+          <span>Sem telefone</span>
+        )}
+      </p>
+    </div>
+  );
+}
+
+function StudentLearningContext({ row }: { row: RosterRow }): ReactElement {
   const stage = row.progressRecords[0]?.stage;
   return (
     <dl className="space-y-1 text-caption">
@@ -80,7 +131,7 @@ function StudentLearningContext({ row }: StudentLearningContextInput): ReactElem
   );
 }
 
-function StudentMembershipDates({ row }: StudentMembershipDatesInput): ReactElement {
+function StudentMembershipDates({ row }: { row: RosterRow }): ReactElement {
   return (
     <>
       {row.exitDate && (
@@ -106,7 +157,17 @@ export function RosterList({
   setPage,
   close,
   showStage,
-}: RosterListInput): ReactElement {
+  resume,
+}: {
+  data: List | undefined;
+  failed: boolean;
+  refetch: () => void;
+  page: number;
+  setPage: (page: number) => void;
+  close: (row: RosterRow) => void;
+  resume?: ((row: RosterRow) => void) | undefined;
+  showStage: boolean;
+}): ReactElement {
   if (failed) return <RosterError refetch={refetch} />;
   if (!data)
     return (
@@ -117,7 +178,11 @@ export function RosterList({
   return (
     <div className="relative flex min-h-0 max-h-128 flex-col lg:max-h-none lg:flex-1">
       {data.rows.length === 0 ? (
-        <EmptyRoster />
+        <EmptyState
+          icon={<UsersRound />}
+          title="Nenhum vínculo encontrado"
+          description="Ajuste a busca ou matricule um aluno."
+        />
       ) : (
         <div
           role="region"
@@ -125,20 +190,7 @@ export function RosterList({
           tabIndex={0}
           className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-xl focus-visible:outline-none focus-visible:shadow-focus"
         >
-          <ul
-            aria-label="Alunos da turma"
-            className="grid content-start gap-3 @lg:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4 @7xl:grid-cols-5"
-          >
-            {data.rows.map((row) => (
-              <RosterStudent
-                key={row.id}
-                row={row}
-                today={data.today}
-                close={close}
-                showStage={showStage}
-              />
-            ))}
-          </ul>
+          <RosterCards data={data} close={close} resume={resume} showStage={showStage} />
         </div>
       )}
       <RosterPagination data={data} page={page} setPage={setPage} />
@@ -146,7 +198,47 @@ export function RosterList({
   );
 }
 
-function StudentActions({ row, close, canClose }: StudentActionsInput): ReactElement {
+function RosterCards({
+  data,
+  close,
+  resume,
+  showStage,
+}: {
+  data: List;
+  close: (row: RosterRow) => void;
+  resume?: ((row: RosterRow) => void) | undefined;
+  showStage: boolean;
+}): ReactElement {
+  return (
+    <ul
+      aria-label="Alunos da turma"
+      className="grid content-start gap-3 @lg:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4 @7xl:grid-cols-5"
+    >
+      {data.rows.map((row) => (
+        <RosterStudent
+          key={row.id}
+          row={row}
+          today={data.today}
+          close={close}
+          resume={resume}
+          showStage={showStage}
+        />
+      ))}
+    </ul>
+  );
+}
+
+function StudentActions({
+  row,
+  close,
+  canClose,
+  resume,
+}: {
+  row: RosterRow;
+  close: (row: RosterRow) => void;
+  resume?: ((row: RosterRow) => void) | undefined;
+  canClose: boolean;
+}): ReactElement {
   return (
     <Popover>
       <PopoverTrigger
@@ -166,21 +258,56 @@ function StudentActions({ row, close, canClose }: StudentActionsInput): ReactEle
           Entrada em {row.entryDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
         </p>
         <StudentMembershipDates row={row} />
-        {canClose && (
-          <div className="mt-3">
-            <PopoverClose
-              render={<Button size="sm" variant="secondary" onClick={() => close(row)} />}
-            >
-              Pausar ou encerrar vínculo
-            </PopoverClose>
-          </div>
-        )}
+        <StudentActionButtons row={row} close={close} resume={resume} canClose={canClose} />
       </PopoverContent>
     </Popover>
   );
 }
 
-function RosterPagination({ data, page, setPage }: RosterPaginationInput): ReactElement | null {
+function StudentActionButtons({
+  row,
+  close,
+  resume,
+  canClose,
+}: {
+  row: RosterRow;
+  close: (row: RosterRow) => void;
+  resume?: ((row: RosterRow) => void) | undefined;
+  canClose: boolean;
+}): ReactElement {
+  return (
+    <>
+      {resume && (
+        <div className="mt-3">
+          <PopoverClose
+            render={<Button size="sm" variant="secondary" onClick={() => resume(row)} />}
+          >
+            Retomar matrícula
+          </PopoverClose>
+        </div>
+      )}
+      {canClose && (
+        <div className="mt-3">
+          <PopoverClose
+            render={<Button size="sm" variant="secondary" onClick={() => close(row)} />}
+          >
+            Pausar ou encerrar vínculo
+          </PopoverClose>
+        </div>
+      )}
+    </>
+  );
+}
+
+function RosterPagination({
+  data,
+  page,
+  setPage,
+}: {
+  data: List;
+  page: number;
+  setPage: (page: number) => void;
+}): ReactElement | null {
   if (data.pageCount <= 1) return null;
   return (
     <div className="absolute bottom-2 right-3 z-10 w-fit rounded-full bg-background/85 px-2 py-1 shadow-sm ring-1 ring-border/60 backdrop-blur-sm">
@@ -194,7 +321,7 @@ function RosterPagination({ data, page, setPage }: RosterPaginationInput): React
   );
 }
 
-function RosterError({ refetch }: RosterErrorInput): ReactElement {
+function RosterError({ refetch }: { refetch: () => void }): ReactElement {
   return (
     <EmptyState
       role="alert"
@@ -204,45 +331,6 @@ function RosterError({ refetch }: RosterErrorInput): ReactElement {
           Tentar novamente
         </Button>
       }
-    />
-  );
-}
-
-type RosterStudentInput = {
-  row: RosterRow;
-  today: string;
-  close: (row: RosterRow) => void;
-  showStage?: boolean;
-};
-type StudentLearningContextInput = { row: RosterRow };
-type StudentMembershipDatesInput = { row: RosterRow };
-type RosterListInput = {
-  data: List | undefined;
-  failed: boolean;
-  refetch: () => void;
-  page: number;
-  setPage: (page: number) => void;
-  close: (row: RosterRow) => void;
-  showStage: boolean;
-};
-type StudentActionsInput = {
-  row: RosterRow;
-  close: (row: RosterRow) => void;
-  canClose: boolean;
-};
-type RosterPaginationInput = {
-  data: List;
-  page: number;
-  setPage: (page: number) => void;
-};
-type RosterErrorInput = { refetch: () => void };
-
-function EmptyRoster(): ReactElement {
-  return (
-    <EmptyState
-      icon={<UsersRound />}
-      title="Nenhum vínculo encontrado"
-      description="Ajuste a busca ou matricule um aluno."
     />
   );
 }

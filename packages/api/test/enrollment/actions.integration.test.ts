@@ -113,6 +113,8 @@ void it("programs a pause without closing progress early and returns with fresh 
     enrollmentId: created.enrollment.id,
     reason: "SUSPENDED",
   });
+  const pausedRoster = await callerAt("2026-09-13").classes.roster({ id: sourceClass.id });
+  assert.deepEqual(pausedRoster.rows[0]?.returnActions, []);
   const returned = await callerAt("2026-09-13").enrollment.return({
     sourceEnrollmentId: created.enrollment.id,
     targetClassId: targetClass.id,
@@ -120,6 +122,10 @@ void it("programs a pause without closing progress early and returns with fresh 
   });
 
   assert.equal(returned.progress.stageId, catalog.activeStageId);
+  const resumedRoster = await callerAt("2026-09-13").classes.roster({ id: sourceClass.id });
+  assert.equal(resumedRoster.rows[0]?.returnActions.length, 1);
+  const history = await callerAt("2026-09-13").classes.actions({ id: targetClass.id });
+  assert.equal(history.rows[0]?.kind, "RETURN");
   assert.equal(
     await db.pedagogicalProgress.count({
       where: { enrollmentId: created.enrollment.id, endReason: "SUSPENDED" },

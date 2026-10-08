@@ -6,7 +6,12 @@ import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 
 export type MembershipMode = "ENTRY" | "RETURN";
-type MembershipInput = { classId: string; mode: MembershipMode; onDone: () => void };
+type MembershipInput = {
+  classId: string;
+  mode: MembershipMode;
+  sourceEnrollmentId?: string | undefined;
+  onDone: () => void;
+};
 type Choice = {
   search: string;
   selectedId: string;
@@ -27,9 +32,9 @@ type MembershipState = Choice & {
   searching: boolean;
   searchFailed: boolean;
 };
-function useChoice(): Choice {
+function useChoice(sourceEnrollmentId?: string): Choice {
   const [search, saveSearch] = useState("");
-  const [selectedId, saveSelectedId] = useState("");
+  const [selectedId, saveSelectedId] = useState(sourceEnrollmentId ?? "");
   const [stageId, saveStageId] = useState("");
   const [date, saveDate] = useState(() => formatDateOnlyBR(toDateOnlySaoPaulo(new Date())));
   const [error, setError] = useState<string | null>(null);
@@ -59,20 +64,24 @@ function useChoice(): Choice {
     },
   };
 }
+function useMembershipDone(input: MembershipInput): () => Promise<void> {
+  const utils = trpc.useUtils();
+  return async () => {
+    await Promise.all([
+      utils.classes.byId.invalidate(),
+      utils.classes.roster.invalidate(),
+      utils.classes.actions.invalidate(),
+      utils.classes.list.invalidate(),
+    ]);
+    input.onDone();
+  };
+}
+
 function useMembershipMutations(
   input: MembershipInput,
   choice: Choice,
 ): { submit: () => void; pending: boolean } {
-  const utils = trpc.useUtils();
-  async function done(): Promise<void> {
-    await Promise.all([
-      utils.classes.byId.invalidate({ id: input.classId }),
-      utils.classes.roster.invalidate({ id: input.classId }),
-      utils.classes.actions.invalidate({ id: input.classId }),
-      utils.classes.list.invalidate(),
-    ]);
-    input.onDone();
-  }
+  const done = useMembershipDone(input);
   const create = trpc.enrollment.create.useMutation({
     onSuccess: done,
     onError: (cause) => choice.setError(cause.message),
@@ -82,6 +91,10 @@ function useMembershipMutations(
     onError: (cause) => choice.setError(cause.message),
   });
   function submit(): void {
+    if (!input.classId) {
+      choice.setError("Selecione a turma de destino.");
+      return;
+    }
     const iso = parseDateBR(choice.date);
     if (!choice.selectedId || !iso) {
       choice.setError("Selecione o aluno e informe uma data válida.");
@@ -122,11 +135,11 @@ function useEligibleStudents(
   );
 }
 export function useMembershipState(input: MembershipInput): MembershipState {
-  const choice = useChoice();
+  const choice = useChoice(input.sourceEnrollmentId);
   const studentResults = useEligibleStudents(input, choice);
   const pausedResults = trpc.enrollment.pausedSearch.useQuery(
     { query: choice.search },
-    { enabled: input.mode === "RETURN" },
+    { enabled: input.mode === "RETURN" && !input.sourceEnrollmentId },
   );
   const eligibleChoice = {
     ...choice,

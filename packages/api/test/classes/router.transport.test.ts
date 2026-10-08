@@ -35,7 +35,6 @@ void it("creates a regular class through the HTTP adapter", async () => {
       format: "IN_PERSON",
       sharedStageId: fixtures.stageId,
       semesterId: fixtures.semesterId,
-      year: 2026,
 
       slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
     },
@@ -60,7 +59,6 @@ void it("clones a class through the HTTP adapter", async () => {
       id: created.result.data.json.id,
 
       semesterId: fixtures.nextSemesterId,
-      year: 2026,
     },
   });
 
@@ -98,7 +96,6 @@ async function createSourceClassOverHttp(
       format: "IN_PERSON",
       sharedStageId: fixtures.stageId,
       semesterId: fixtures.semesterId,
-      year: 2026,
 
       slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
     },

@@ -43,7 +43,13 @@ function actionControl(row: HistoryRow, input: Controls): ReactNode {
     );
   return null;
 }
-export function ActionHistoryEntry({ row, controls }: ActionHistoryEntryInput): ReactElement {
+export function ActionHistoryEntry({
+  row,
+  controls,
+}: {
+  row: HistoryRow;
+  controls: Controls;
+}): ReactElement {
   const Icon = icons[row.kind];
   return (
     <li className="relative flex gap-3 pb-5">
@@ -59,20 +65,7 @@ export function ActionHistoryEntry({ row, controls }: ActionHistoryEntryInput): 
             <span className="font-semibold">{row.enrollment.student.fullName}</span>
             <span className="text-muted-foreground"> · {kindLabel[row.kind]}</span>
           </p>
-          <div className="flex shrink-0 items-center gap-1">
-            <ActionEffectiveDate row={row} />
-            {row.status === "APPLIED" && row.kind !== "CORRECTION" && (
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label={`Corrigir data de ${row.enrollment.student.fullName}`}
-                title="Corrigir data"
-                onClick={() => controls.correct(row)}
-              >
-                <PencilLine aria-hidden="true" />
-              </Button>
-            )}
-          </div>
+          <HistoryEntryDate row={row} controls={controls} />
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <Badge variant={row.status === "SCHEDULED" ? "info" : "neutral"}>
@@ -89,21 +82,32 @@ export function ActionHistoryEntry({ row, controls }: ActionHistoryEntryInput): 
   );
 }
 
-type ActionEffectiveDateProps = {
-  row: HistoryRow;
-};
-function ActionEffectiveDate(props: ActionEffectiveDateProps): ReactElement {
-  return (
-    <time
-      className="font-numeric text-caption tabular-nums text-muted-foreground"
-      dateTime={props.row.effectiveDate.toISOString().slice(0, DATE_LENGTH)}
-    >
-      {props.row.effectiveDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-    </time>
-  );
-}
-
-type ActionHistoryEntryInput = {
+function HistoryEntryDate({
+  row,
+  controls,
+}: {
   row: HistoryRow;
   controls: Controls;
-};
+}): ReactElement {
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      <time
+        className="font-numeric text-caption tabular-nums text-muted-foreground"
+        dateTime={row.effectiveDate.toISOString().slice(0, DATE_LENGTH)}
+      >
+        {row.effectiveDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+      </time>
+      {row.status === "APPLIED" && row.kind !== "CORRECTION" && (
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          aria-label={`Corrigir data de ${row.enrollment.student.fullName}`}
+          title="Corrigir data"
+          onClick={() => controls.correct(row)}
+        >
+          <PencilLine aria-hidden="true" />
+        </Button>
+      )}
+    </div>
+  );
+}

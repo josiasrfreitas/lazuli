@@ -4,9 +4,16 @@ export type ClassDraft = {
   teacherId: string;
   semesterId: string;
   sharedStageId: string;
-  year: string;
   slots: Array<{
-    weekday: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+    weekday:
+      | ""
+      | "MONDAY"
+      | "TUESDAY"
+      | "WEDNESDAY"
+      | "THURSDAY"
+      | "FRIDAY"
+      | "SATURDAY"
+      | "SUNDAY";
     startTime: string;
     endTime: string;
   }>;
@@ -24,6 +31,9 @@ export const initialClassDraft: ClassDraft = {
   teacherId: "",
   semesterId: "",
   sharedStageId: "",
-  year: String(new Date().getFullYear()),
-  slots: [{ weekday: "MONDAY", startTime: "14:00", endTime: "15:00" }],
+  slots: [emptyClassSlot(), emptyClassSlot()],
 };
+
+export function emptyClassSlot(): ClassDraft["slots"][number] {
+  return { weekday: "", startTime: "", endTime: "" };
+}
