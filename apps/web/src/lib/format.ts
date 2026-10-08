@@ -35,6 +35,13 @@ export function formatLongDateSaoPaulo(date: Date): string {
   return longDateFormatter.format(date);
 }
 
+/** Render a civil date (`yyyy-mm-dd`) as `dd/mm/yyyy` without a time zone conversion. */
+export function formatDateOnlyBR(value: string | undefined): string {
+  if (!value) return EM_DASH;
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 // en-CA is the locale whose date format is already yyyy-mm-dd.
 const dateOnlyFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: SAO_PAULO_TIME_ZONE });
 

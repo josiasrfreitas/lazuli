@@ -1,5 +1,6 @@
 import type { RouterOutputs } from "@lazuli/api";
 import type { FinanceInstallmentRow, PaymentOperationInput } from "@lazuli/validators";
+import { formatDateOnlyBR } from "~/lib/format";
 import { parseDateBR } from "~/lib/masks";
 
 export type PreviewRow = RouterOutputs["finance"]["previewPayments"][number];
@@ -135,6 +136,5 @@ function itemError(item: DraftItem, preview: PreviewRow[]): string | null {
   return null;
 }
 export function paymentDateLabel(date: string): string {
-  const [year, month, day] = date.split("-");
-  return `${day}/${month}/${year}`;
+  return formatDateOnlyBR(date);
 }

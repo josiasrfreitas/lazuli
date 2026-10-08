@@ -13,7 +13,7 @@ import {
 import { addCalendarMonths } from "@lazuli/domain";
 import { tuitionFloorCents } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
-import { formatBRLFromCents, toDateOnlySaoPaulo } from "~/lib/format";
+import { formatBRLFromCents, formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { parseDateBR } from "~/lib/masks";
 import type { FormProps } from "./contract-form-fields";
 import {
@@ -106,12 +106,7 @@ export function fieldErrors(parsed: ParsedInput, hasPreview: boolean): Errors {
 
 function suggestedContractEnd(value: string): string {
   const start = parseDateBR(value);
-  return start ? formatDateBR(addCalendarMonths(start, DEFAULT_CONTRACT_MONTHS)) : "";
-}
-
-function formatDateBR(value: string): string {
-  const [year, month, day] = value.split("-");
-  return [day, month, year].join("/");
+  return start ? formatDateOnlyBR(addCalendarMonths(start, DEFAULT_CONTRACT_MONTHS)) : "";
 }
 
 export type ContractFormState = {
@@ -134,7 +129,7 @@ function useAgreementDate(
 ): void {
   useEffect(() => {
     if (!open) return;
-    const today = formatDateBR(toDateOnlySaoPaulo(new Date()));
+    const today = formatDateOnlyBR(toDateOnlySaoPaulo(new Date()));
     setFields((current) => (current.agreedOn ? current : { ...current, agreedOn: today }));
   }, [open, setFields]);
 }
