@@ -41,6 +41,48 @@ concluídas; nenhuma caixa é marcada apenas por existir documentação ou um en
 - Preservar responsabilidade e autoria históricas. Não conceder novas permissões ao substituto:
   sua experiência e acesso às aulas permanecem em entrega posterior.
 
+## Contrato de reutilização da interface
+
+Antes de criar cada componente, conferir os exports de `packages/ui/src/index.ts`, os usos em
+`apps/web/src/features/`, as histórias em `apps/storybook/src/` e o código atualizado da V1.
+Reutilizar os componentes abaixo. Se faltar um comportamento, ampliar a API existente de forma
+restrita e cobrir seu contrato; a feature nova deve compor esses componentes. Uma cópia local
+de tabela, filtro, diálogo, campo, seleção ou estado visual não atende a esta issue.
+
+- **Lista de professores e pendências:** usar `DataTablePage` e `DataTable` de `@lazuli/ui`
+  (`packages/ui/src/components/data-table-page.tsx` e `data-table.tsx`). A página fornece colunas
+  e dados; `DataTable` já cuida de frame, rolagem, skeleton, vazio, erro, retry e paginação.
+- **Busca e filtros:** usar `Input`, `TableFilters` e `TableFilterChips` de `@lazuli/ui`, com
+  `useUrlPagination` e `tablePaginationPropsFor` de `apps/web/src/lib/pagination.ts`. Compor a
+  toolbar e o estado da URL sem novos primitives de filtro ou paginação.
+- **Formulários e confirmações:** usar `Dialog`, `DialogContent`, `DialogHeader`, `DialogBody`,
+  `DialogFooter`, `DialogTitle`, `DialogDescription` e `Button` de `@lazuli/ui`
+  (`packages/ui/src/components/dialog.tsx`). Seguir
+  `apps/storybook/src/patterns/dense-form.stories.tsx` e `docs/frontend/forms.md`.
+- **Campos e vigência:** usar `FormSection`, `FormRow`, `Field`, `Label`, `FieldError`, `Input` e
+  `Switch` de `@lazuli/ui`; acesso opt-in usa `Switch`. Datas usam texto com `maskDateBR` e
+  `parseDateBR` de `apps/web/src/lib/masks.ts`, sem calendário nativo ou máscara duplicada.
+- **CPF obrigatório:** verificar `PersonDocumentField` em
+  `apps/web/src/components/person-document-field.tsx` e `detectPersonDocument` em
+  `packages/validators/src/person-document.ts`. O campo atual aceita CPF/RG opcional. Adaptar o
+  existente para CPF obrigatório ou compor os primitives acima; não usá-lo sem adaptação nem
+  copiar a regra de validação do CPF.
+- **Escolha do substituto:** usar `SearchSelect` de
+  `packages/ui/src/components/search-select.tsx`. Como ele sempre oferece “Cadastrar novo”,
+  ampliar seu contrato para permitir seleção sem criação, mantendo os usos atuais. Não criar
+  outro combobox.
+- **Situações e avisos:** usar `Badge`, `Alert`, `EmptyState` e `InlineSkeleton` de `@lazuli/ui`
+  para acesso, saída, conflito e grade vazia. Na lista, deixar `DataTable` apresentar seus
+  próprios estados.
+- **Shell e navegação:** usar `AppShell`, `SidebarNav`, `MobileNavigation` e `nav-items.ts` em
+  `apps/web/src/components/app-shell/`. Estender o registro de navegação para Professores sem
+  criar outro shell, breadcrumb ou menu móvel.
+
+A composição **nova** da V2 é a grade semanal com blocos de turma/hora-aula e seus diálogos
+específicos. Antes de adicionar qualquer componente compartilhado, registrar no PR qual contrato
+dos existentes não atende ao caso e mostrar a necessidade com a tela/estado real. Verificar no
+diff final que nenhum componente novo repete o papel dos componentes listados acima.
+
 ## Entregas verticais
 
 - [ ] **1. Administração cadastra professores e consulta suas turmas na semana.** Entregar lista
@@ -64,9 +106,9 @@ concluídas; nenhuma caixa é marcada apenas por existir documentação ou um en
   concorrência; horários consecutivos sem sobreposição não são conflito. Identificar a turma e
   o intervalo que impedem salvar. Não modificar retroativamente as atribuições existentes.
 
-  **Experiência e implementação:** reutilizar AppShell, DataTablePage/DataTable, filtros,
-  paginação, Dialog, FormSection/FormRow, Field, Input, estados e tokens; criar a feature de
-  professores, formulários e composição semanal em `apps/web`. Estender navegação administrativa.
+  **Experiência e implementação:** aplicar o contrato de reutilização acima para lista,
+  filtros, paginação, cadastro, CPF, acesso e estados; criar apenas as composições próprias de
+  professores e da semana em `apps/web`. Estender `nav-items.ts` para navegação administrativa.
   Reaproveitar a identidade existente e acrescentar os dados/estado operacional necessários;
   separar a elegibilidade hoje acoplada a `User.isEnabled` da autorização de login. Criar consultas
   e comandos administrativos e integrar as opções/guards de `packages/api/src/classes` com V1,
@@ -97,10 +139,11 @@ concluídas; nenhuma caixa é marcada apenas por existir documentação ou um en
   no substituto, conta uma vez. A nova relação não concede acesso à chamada ou ao histórico.
   Ações retroativas e alterações em aulas já registradas não são habilitadas por inferência.
 
-  **Experiência e implementação:** reutilizar grade, resumo de professor e primitives da entrega 1;
-  criar detalhe do encontro e formulário de substituição com SearchSelect e identificação do
-  conflito. Acrescentar responsabilidade por encontro e comando transacional, sem usar autoria
-  da frequência como substituto desse conceito. Evoluir a mesma conferência de conflitos e as
+  **Experiência e implementação:** compor detalhe do encontro e formulário de substituição com
+  `Dialog`, `SearchSelect` adaptado para seleção sem criação, `Alert` e demais campos já
+  inventariados; reutilizar a grade da entrega 1. Acrescentar responsabilidade por encontro e
+  comando transacional. A autoria da frequência não representa o professor responsável pelo
+  encontro. Evoluir a mesma conferência de conflitos e as
   consultas semanais. Conciliar recorrências previstas e sessões materializadas sem gerar aulas
   pesadamente na requisição. Inspecionar consumidores de `class.teacherId` para evitar alteração
   acidental de escopo ou atribuição histórica.
@@ -134,9 +177,10 @@ concluídas; nenhuma caixa é marcada apenas por existir documentação ou um en
   substituto. Se a saída for do próprio substituto, o encontro também volta a exigir cobertura.
   Repetição, alteração concorrente após a prévia ou falha não deixam estado parcialmente aplicado.
 
-  **Experiência e implementação:** reutilizar cadastro, diálogos, grade, DataTable e validação
-  de conflito; criar relação de pendências, prévia de saída, comando de encerramento e formulário de troca
-  com vigência no contexto da turma de V1. Persistir atuação e responsabilidade temporal com
+  **Experiência e implementação:** compor a relação de pendências com `DataTable`, a prévia de
+  saída com `Dialog` e `Alert`, e a troca de docente com os campos e `SearchSelect` existentes;
+  reutilizar a grade e a validação de conflito. Criar os fluxos específicos de encerramento e
+  troca com vigência no contexto da turma de V1. Persistir atuação e responsabilidade temporal com
   autoria, sem assumir que um único `Class.teacherId` representa todo o histórico ou a ausência
   futura. Atualizar consumidores de atribuição de modo consistente; preservar identificação do
   autor de frequência. A efetividade das datas precisa funcionar mesmo sem um job ter rodado;
@@ -188,6 +232,8 @@ transporte para o que o adaptador acrescenta. Não duplicar testes entre camadas
 Validar a jornada real em desktop e largura estreita, incluindo teclado, foco, largura dos
 campos, alinhamento da grade e divisores de hora-aula. Executar checks proporcionais e
 `git diff --check`; inspecionar o diff completo. Browser funcional não equivale a aceite visual.
+Na revisão do diff, conferir a lista de componentes novos contra o inventário acima e justificar
+cada extensão compartilhada; rejeitar duplicação de componente existente.
 Revisão de design completa é separada, sob pedido; não abrir tarefa de revisão automática.
 
 Planejamento e criação da issue não autorizam iniciar a construção nesta conversa.

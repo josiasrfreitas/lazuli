@@ -150,15 +150,17 @@ ficam reunidos na lista de Professores, com caminho para resolver na turma ou no
 
 ## Inventário de componentes
 
-| Componente                                      | Tratamento                     | Uso                                                               |
-| ----------------------------------------------- | ------------------------------ | ----------------------------------------------------------------- |
-| AppShell, SidebarNav, MobileNavigation          | Reutilizar; estender navegação | Acesso administrativo a Professores.                              |
-| DataTablePage, DataTable, paginação e filtros   | Reutilizar                     | Encontrar professores e consultar relações operacionais.          |
-| Dialog, FormSection/FormRow, Field, Input       | Reutilizar                     | Cadastro, vigência e encerramento.                                |
-| SearchSelect e controles de data existentes     | Reutilizar                     | Seleção de professor, semana e data efetiva.                      |
-| Badge, Alert, EmptyState, carregamento          | Reutilizar                     | Acesso, atuação, substituição, conflito e pendência.              |
-| Consulta semanal e blocos de hora-aula          | Criar em apps/web              | Composição específica, com unidades agrupadas por encontro/turma. |
-| Formulário de substituição e resumo de impactos | Criar em apps/web              | Operações administrativas com efeito explícito.                   |
+| Componente                                      | Tratamento                     | Uso                                                                  |
+| ----------------------------------------------- | ------------------------------ | -------------------------------------------------------------------- |
+| AppShell, SidebarNav, MobileNavigation          | Reutilizar; estender navegação | Acesso administrativo a Professores.                                 |
+| DataTablePage, DataTable, paginação e filtros   | Reutilizar                     | Encontrar professores e consultar relações operacionais.             |
+| Dialog, FormSection/FormRow, Field, Input       | Reutilizar                     | Cadastro, vigência e encerramento.                                   |
+| SearchSelect                                    | Modificar contrato restrito    | Selecionar substituto sem a ação “Cadastrar novo” atual.             |
+| PersonDocumentField                             | Modificar ou compor primitives | Campo atual aceita CPF/RG opcional; cadastro de professor exige CPF. |
+| Switch, maskDateBR/parseDateBR                  | Reutilizar                     | Acesso opt-in e datas de vigência.                                   |
+| Badge, Alert, EmptyState, carregamento          | Reutilizar                     | Acesso, atuação, substituição, conflito e pendência.                 |
+| Consulta semanal e blocos de hora-aula          | Criar em apps/web              | Composição específica, com unidades agrupadas por encontro/turma.    |
+| Formulário de substituição e resumo de impactos | Criar em apps/web              | Operações administrativas com efeito explícito.                      |
 
 Não foi encontrado um componente compartilhado de agenda semanal pronto. Criar uma composição
 da feature com os primitives existentes; extrair API compartilhada apenas se houver necessidade
