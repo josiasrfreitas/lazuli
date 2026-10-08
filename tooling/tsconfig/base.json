@@ -13,7 +13,6 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
 
-    // Baseline strictness for all TypeScript packages.
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
