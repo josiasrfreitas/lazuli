@@ -12,7 +12,7 @@ import {
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { abbreviatedPersonName } from "~/lib/format";
-import { paymentPlanLabel } from "./contract-payment-summary";
+import { paymentPlanLabel } from "./contract-form-model";
 import type { ContractFilters } from "./contract-filters";
 
 const PAGE_SIZE = 20;

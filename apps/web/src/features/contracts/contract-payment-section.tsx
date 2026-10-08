@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { Button, Field, FieldError, Input, Label } from "@lazuli/ui";
 import { formatBRLFromCents } from "~/lib/format";
 import type { FormProps } from "./contract-form-fields";
-import { paymentPlanLabel } from "./contract-payment-summary";
+import { paymentPlanLabel } from "./contract-form-model";
 
 function civilDateBR(value: string | undefined): string {
   if (!value) return "—";
