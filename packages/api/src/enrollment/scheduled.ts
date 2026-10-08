@@ -1,4 +1,5 @@
 import type { Prisma } from "@lazuli/db";
+import { lockStudentEnrollment } from "./data.js";
 import { dateOnlyUtc } from "./effective-date.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
 
@@ -6,7 +7,7 @@ import { badRequest, notFound } from "./errors.js";
 
 type Database = Pick<
   Prisma.TransactionClient,
-  "enrollmentAction" | "enrollment" | "pedagogicalProgress"
+  "enrollmentAction" | "enrollment" | "pedagogicalProgress" | "$queryRaw"
 >;
 
 /** Cancellation is a recorded status change; a future entry's rows are soft-deleted. */
@@ -18,7 +19,14 @@ export async function cancelScheduledAction(input: {
 }): Promise<{ id: string; status: "CANCELLED" }> {
   const action = await input.database.enrollmentAction.findUnique({
     where: { id: input.actionId },
-    select: { id: true, enrollmentId: true, kind: true, status: true, effectiveDate: true },
+    select: {
+      id: true,
+      enrollmentId: true,
+      kind: true,
+      status: true,
+      effectiveDate: true,
+      enrollment: { select: { studentId: true } },
+    },
   });
   if (action === null) throw notFound("Programação não encontrada.");
   if (
@@ -27,6 +35,7 @@ export async function cancelScheduledAction(input: {
   ) {
     throw badRequest("A programação só pode ser cancelada antes da data efetiva.");
   }
+  await lockStudentEnrollment(input.database, action.enrollment.studentId);
   const result = await input.database.enrollmentAction.updateMany({
     where: { id: action.id, status: "SCHEDULED" },
     data: { status: "CANCELLED", cancelledAt: input.now, cancelledById: input.staffUserId },

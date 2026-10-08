@@ -212,6 +212,7 @@ void it("schedules a new class in the same track after a future pause", async ()
   });
   await assert.rejects(
     callerAt("2026-09-11").enrollment.cancelScheduled({ actionId: scheduledPause.id }),
+    /Enrollment_active_student_track_key/u,
   );
   const pauseAfterAttempt = await db.enrollmentAction.findUniqueOrThrow({
     where: { id: scheduledPause.id },
@@ -397,4 +398,56 @@ void it("previews and saves a past correction while preserving attendance record
     where: { id: attendance.id },
   });
   assert.equal(preservedAttendance.status, "ABSENT");
+});
+
+void it("unions roster situations while preserving class and search constraints", async () => {
+  const catalog = await seedCatalog();
+  const classRow = await createPersonalizedClass({
+    code: "roster-filters",
+    semesterId: catalog.semesterId,
+  });
+  const currentStudent = await createStudent({ suffix: "Roster Current" });
+  const futureStudent = await createStudent({ suffix: "Roster Future" });
+  const pausedStudent = await createStudent({ suffix: "Roster Paused" });
+  const admin = callerAt("2026-09-10");
+  const current = await admin.enrollment.create({
+    studentId: currentStudent.id,
+    classId: classRow.id,
+    stageId: catalog.activeStageId,
+  });
+  const future = await admin.enrollment.create({
+    studentId: futureStudent.id,
+    classId: classRow.id,
+    stageId: catalog.activeStageId,
+    entryDate: new Date("2026-09-20"),
+  });
+  const paused = await admin.enrollment.create({
+    studentId: pausedStudent.id,
+    classId: classRow.id,
+    stageId: catalog.activeStageId,
+  });
+  await admin.enrollment.close({ enrollmentId: paused.enrollment.id, reason: "SUSPENDED" });
+  const both = await admin.classes.roster({
+    id: classRow.id,
+    situations: ["CURRENT", "SCHEDULED"],
+  });
+  assert.deepEqual(
+    new Set(both.rows.map((row) => row.id)),
+    new Set([current.enrollment.id, future.enrollment.id]),
+  );
+  assert.equal(both.total, 2);
+  const searched = await admin.classes.roster({
+    id: classRow.id,
+    situations: ["CURRENT", "SCHEDULED"],
+    search: "Roster Future",
+  });
+  assert.deepEqual(
+    searched.rows.map((row) => row.id),
+    [future.enrollment.id],
+  );
+  const closed = await admin.classes.roster({ id: classRow.id, situations: ["PAUSED", "ENDED"] });
+  assert.deepEqual(
+    closed.rows.map((row) => row.id),
+    [paused.enrollment.id],
+  );
 });

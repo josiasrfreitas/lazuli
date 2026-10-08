@@ -34,7 +34,7 @@ function currentEnrollmentWhere(today: Date): Prisma.EnrollmentWhereInput {
   };
 }
 function classWhere(values: ListInput): Prisma.ClassWhereInput {
-  const { search, scheduleType, format, teacherId, semesterId, status } = values;
+  const { search, scheduleTypes, formats, teacherIds, semesterIds, statuses } = values;
   return {
     deletedAt: null,
     ...(search
@@ -42,14 +42,15 @@ function classWhere(values: ListInput): Prisma.ClassWhereInput {
           OR: [
             { internalCode: { contains: search, mode: "insensitive" } },
             { portalClassName: { contains: search, mode: "insensitive" } },
+            { teacher: { name: { contains: search, mode: "insensitive" } } },
           ],
         }
       : {}),
-    ...(scheduleType ? { scheduleType } : {}),
-    ...(format ? { format } : {}),
-    ...(teacherId ? { teacherId } : {}),
-    ...(semesterId ? { semesterId } : {}),
-    ...(status ? { status } : {}),
+    ...(scheduleTypes.length ? { scheduleType: { in: scheduleTypes } } : {}),
+    ...(formats.length ? { format: { in: formats } } : {}),
+    ...(teacherIds.length ? { teacherId: { in: teacherIds } } : {}),
+    ...(semesterIds.length ? { semesterId: { in: semesterIds } } : {}),
+    ...(statuses.length ? { status: { in: statuses } } : {}),
   };
 }
 export async function listClasses(input: {
@@ -141,25 +142,26 @@ type RosterInput = {
   page: number;
   pageSize: number;
   search: string;
-  situation?: "CURRENT" | "SCHEDULED" | "PAUSED" | "ENDED";
+  situations: Array<"CURRENT" | "SCHEDULED" | "PAUSED" | "ENDED">;
   now: Date;
 };
 function rosterWhere(input: RosterInput, today: Date): Prisma.EnrollmentWhereInput {
+  const situations: Record<RosterInput["situations"][number], Prisma.EnrollmentWhereInput> = {
+    CURRENT: currentEnrollmentWhere(today),
+    SCHEDULED: { entryDate: { gt: today } },
+    PAUSED: { exitReason: "SUSPENDED", exitDate: { lte: today } },
+    ENDED: {
+      exitReason: { in: ["DROPPED", "COMPLETED", "TRANSFERRED", "CORRECTION"] },
+      exitDate: { lte: today },
+    },
+  };
   return {
     classId: input.id,
     deletedAt: null,
     ...(input.search
       ? { student: { fullName: { contains: input.search, mode: "insensitive" } } }
       : {}),
-    ...(input.situation === "SCHEDULED" ? { entryDate: { gt: today } } : {}),
-    ...(input.situation === "CURRENT" ? currentEnrollmentWhere(today) : {}),
-    ...(input.situation === "PAUSED" ? { exitReason: "SUSPENDED", exitDate: { lte: today } } : {}),
-    ...(input.situation === "ENDED"
-      ? {
-          exitReason: { in: ["DROPPED", "COMPLETED", "TRANSFERRED", "CORRECTION"] },
-          exitDate: { lte: today },
-        }
-      : {}),
+    ...(input.situations.length ? { OR: input.situations.map((value) => situations[value]) } : {}),
   };
 }
 export async function listClassRoster(

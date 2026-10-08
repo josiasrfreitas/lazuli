@@ -22,6 +22,7 @@ type EnrollmentCreateInput = z.infer<typeof enrollmentCreateInputSchema>;
 /** Keys touched here plus the ones `loadActiveStage` (classes/guards) structurally requires. */
 export type EnrollmentDatabase = Pick<
   Prisma.TransactionClient,
+  | "$queryRaw"
   | "enrollment"
   | "pedagogicalProgress"
   | "class"
@@ -303,6 +304,7 @@ export async function openEnrollmentAtStage(input: {
   stageId: string;
   capacityOverrideReason: string | undefined;
 }): Promise<{ enrollment: EnrollmentSummary; progress: ProgressSummary }> {
+  await lockStudentEnrollment(input.database, input.studentId);
   const enrollment = await input.database.enrollment.create({
     data: {
       studentId: input.studentId,
@@ -320,4 +322,15 @@ export async function openEnrollmentAtStage(input: {
   });
 
   return { enrollment, progress };
+}
+
+/** Serialize entries and cancellations for one student until the transaction commits. */
+export async function lockStudentEnrollment(
+  database: Pick<Prisma.TransactionClient, "$queryRaw">,
+  studentId: string,
+): Promise<void> {
+  const key = `enrollment:${studentId.toLowerCase()}`;
+  await database.$queryRaw`
+    SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0)) IS NULL AS locked
+  `;
 }

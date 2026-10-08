@@ -117,6 +117,7 @@ _Avoid_: Reposição, make-up class, recovery session
 
 **Class Hour** (hora-aula):
 A 60-minute unit of instructional time. A class meeting may contain more than one class hour; a two-hour meeting contains two class hours.
+Weekdays in schedule codes use 1 = Sunday through 7 = Saturday. Schedule display codes number occupied one-hour blocks within each shift: M1 = 06:00–07:00, T1 = 12:00–13:00, N1 = 18:00–19:00. Partially occupied blocks are included; exact meeting times remain available. Equal time slots on multiple weekdays are grouped, e.g. Tuesday/Thursday 19:00–20:30 → `3N2-5N3`.
 
 **Recurring Class Schedule**:
 The weekdays and start/end times on which a class normally meets. A class may meet on one or more weekdays, and each meeting may have a different duration.

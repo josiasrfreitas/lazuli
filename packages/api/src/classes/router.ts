@@ -40,7 +40,7 @@ export const classesRouter = router({
       page: input.page,
       pageSize: input.pageSize,
       search: input.search,
-      ...(input.situation ? { situation: input.situation } : {}),
+      situations: input.situations,
       now: ctx.now ?? new Date(),
     }),
   ),

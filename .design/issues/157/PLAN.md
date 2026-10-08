@@ -43,3 +43,11 @@ Inspect existing tests before editing. Use unit tests for date and validation ru
 - Exercise creation, search, direct URL, filter-preserving return, over-capacity enrollment, scheduled and current movements, cancellation, return, and correction in the actual browser. Verify keyboard use and persistence after reload.
 - Capture real before and after desktop and narrow-viewport screenshots from the app; commit them under `.design/issues/157/evidence/` and link them in the PR. Never label a design mock or placeholder as evidence.
 - Use the `pr` template, push the branch, and watch the PR with `babysit-pr` until checks remain green and delivered feedback is handled. Never merge.
+
+## Review and owner refinements
+
+- Reuse `TableFilters` and `TableFilterChips`; promote Organization, Format, and Teacher. Search also matches teacher names. Multiple options within a filter are combined with OR; different filters are combined with AND.
+- Display compact numeric schedule codes using Sunday = 1 through Saturday = 7 and hourly shifts beginning at 06:00, 12:00, and 18:00. The owner-approved example is `3N2-5N3` for Tuesday/Thursday 19:00–20:30; tooltips preserve exact times. Use a compact numeric occupancy badge.
+- The owner raised the component-file limit to 500 lines. Documentation, ESLint, pre-push, and the component check must agree.
+- Pullfrog review: preserve temporal track windows, linked pause/return chronology, and half-open exit impacts. Serialize new entries and scheduled-action cancellations on one transaction-scoped student lock. A deterministic integration regression holds a new entry uncommitted and observes cancellation waiting before checking rollback.
+- Full integration, transport, builds, and repository-wide checks remain with CI at the owner's request. Run only focused checks locally; the owner is validating the interface directly.

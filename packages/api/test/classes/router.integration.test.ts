@@ -90,6 +90,59 @@ void it("lists created classes with current occupancy and reads their roster", a
   assert.equal(detail.scheduleSlots[0]?.weekday, "TUESDAY");
 });
 
+void it("unions selected class filters and intersects different filter fields", async () => {
+  await cleanClassDatabase();
+  await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
+  const regular = await createRegularFixture(fixtures);
+  const personalized = await caller().classes.create({
+    internalCode: `${TEST_PREFIX}Online`,
+    teacherId: TEACHER_USER_ID,
+    scheduleType: "PERSONALIZED",
+    format: "ONLINE",
+    semesterId: fixtures.semesterId,
+    year: 2026,
+    capacity: 1,
+    portalClassName: `${TEST_PREFIX}Online Portal`,
+    slots: [{ weekday: "FRIDAY", startTime: "10:00", endTime: "11:00" }],
+  });
+  const both = await caller().classes.list({
+    search: TEST_PREFIX,
+    scheduleTypes: ["REGULAR", "PERSONALIZED"],
+    formats: ["IN_PERSON", "ONLINE"],
+  });
+  assert.deepEqual(new Set(both.rows.map((row) => row.id)), new Set([regular.id, personalized.id]));
+  const online = await caller().classes.list({
+    search: TEST_PREFIX,
+    scheduleTypes: ["REGULAR", "PERSONALIZED"],
+    formats: ["ONLINE"],
+    teacherIds: [TEACHER_USER_ID],
+    semesterIds: [fixtures.semesterId],
+    statuses: ["ACTIVE"],
+  });
+  assert.deepEqual(
+    online.rows.map((row) => row.id),
+    [personalized.id],
+  );
+  assert.equal(online.total, 1);
+});
+
+void it("finds classes by teacher name while preserving selected filters", async () => {
+  await cleanClassDatabase();
+  await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
+  const regular = await createRegularFixture(fixtures);
+  const teacher = await db.user.findUniqueOrThrow({ where: { id: TEACHER_USER_ID } });
+  const found = await caller().classes.list({ search: teacher.name.toLowerCase() });
+  assert.deepEqual(
+    found.rows.map((row) => row.id),
+    [regular.id],
+  );
+  const excluded = await caller().classes.list({ search: teacher.name, formats: ["ONLINE"] });
+  assert.equal(excluded.total, 0);
+  assert.deepEqual(excluded.rows, []);
+});
+
 void it("updates only safe class identification and capacity fields", async () => {
   await cleanClassDatabase();
   await ensureTeacherUser();

@@ -94,6 +94,7 @@ it("keeps staged and merge-base sources independent and excludes local changes f
 it("pre-push checks committed syntax without package commands or local edits", async (context) => {
   const directory = await repository(context, { infrastructure: true });
   await write(directory, "packages/core/src/index.ts", "export const value: number = 3;\n");
+  await write(directory, "apps/web/src/example.tsx", "// line\n".repeat(499) + "export {};");
   git(directory, ["add", "."]);
   git(directory, ["commit", "-m", "change"]);
   await write(directory, "packages/core/src/index.ts", "export const value = ;\n");
@@ -101,7 +102,7 @@ it("pre-push checks committed syntax without package commands or local edits", a
   const { result, log } = run(directory, prePushScript, ["--base", "main"]);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(await readFile(log, "utf8"), "");
-  assert.match(result.stdout, /1 committed files/u);
+  assert.match(result.stdout, /2 committed files/u);
 });
 
 it("pre-commit checks only index whitespace, without package commands", async (context) => {

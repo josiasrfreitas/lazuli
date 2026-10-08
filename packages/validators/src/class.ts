@@ -88,11 +88,11 @@ export const classListInputSchema = z
     page: z.number().int().min(1).default(1),
     pageSize: z.number().int().min(1).max(MAX_CLASS_PAGE_SIZE).default(DEFAULT_CLASS_PAGE_SIZE),
     search: z.string().trim().max(MAX_CLASS_SEARCH_LENGTH).default(""),
-    scheduleType: classScheduleTypeSchema.optional(),
-    format: classFormatSchema.optional(),
-    teacherId: z.string().uuid().optional(),
-    semesterId: z.string().uuid().optional(),
-    status: z.enum(["ACTIVE", "ARCHIVED"]).optional(),
+    scheduleTypes: z.array(classScheduleTypeSchema).default([]),
+    formats: z.array(classFormatSchema).default([]),
+    teacherIds: z.array(z.string().uuid()).default([]),
+    semesterIds: z.array(z.string().uuid()).default([]),
+    statuses: z.array(z.enum(["ACTIVE", "ARCHIVED"])).default([]),
   })
   .strict();
 
@@ -106,7 +106,7 @@ export const classRelatedListInputSchema = classIdInputSchema
 export const classRosterInputSchema = classRelatedListInputSchema
   .extend({
     search: z.string().trim().max(MAX_CLASS_SEARCH_LENGTH).default(""),
-    situation: z.enum(["CURRENT", "SCHEDULED", "PAUSED", "ENDED"]).optional(),
+    situations: z.array(z.enum(["CURRENT", "SCHEDULED", "PAUSED", "ENDED"])).default([]),
   })
   .strict();
 

@@ -8,7 +8,7 @@ import { Badge, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "@lazuli/api";
 
-import { formatClassSchedule, formatFormat, formatScheduleType } from "./labels";
+import { formatClassScheduleTime, formatFormat, formatScheduleType } from "./labels";
 import { ClassEditDialog } from "./edit-dialog";
 import { MembershipDialog } from "./membership-dialog";
 import { RosterSection } from "./roster-section";
@@ -112,7 +112,7 @@ function ClassSummary({ detail }: { detail: RouterOutputs["classes"]["byId"] }):
       <div>
         <dt className="text-caption text-muted-foreground">Horário e ocupação</dt>
         <dd>
-          {formatClassSchedule(detail.scheduleSlots)} · {detail.occupancy}/{detail.capacity}{" "}
+          {formatClassScheduleTime(detail.scheduleSlots)} · {detail.occupancy}/{detail.capacity}{" "}
           {detail.occupancy >= detail.capacity && (
             <Badge variant="warning">
               {detail.occupancy > detail.capacity ? "Acima da capacidade" : "Cheia"}
