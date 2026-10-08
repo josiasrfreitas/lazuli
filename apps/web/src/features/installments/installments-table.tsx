@@ -248,14 +248,17 @@ const COLUMN_WIDTHS = {
   status: "standard",
 } as const satisfies Record<string, NonNullable<DataTableColumn<FinanceInstallmentRow>["width"]>>;
 
-function installmentColumns(today: string): readonly DataTableColumn<FinanceInstallmentRow>[] {
+function installmentSelectionColumn(): DataTableColumn<FinanceInstallmentRow> {
+  return {
+    id: "selection",
+    header: <PaymentSelectionHeaderCheckbox />,
+    width: COLUMN_WIDTHS.selection,
+    cell: (row) => <PaymentSelectionCheckbox row={row} />,
+  };
+}
+
+function installmentIdentityColumns(): DataTableColumn<FinanceInstallmentRow>[] {
   return [
-    {
-      id: "selection",
-      header: <PaymentSelectionHeaderCheckbox />,
-      width: COLUMN_WIDTHS.selection,
-      cell: (row) => <PaymentSelectionCheckbox row={row} />,
-    },
     {
       id: "sequence",
       header: "Sequência",
@@ -297,6 +300,11 @@ function installmentColumns(today: string): readonly DataTableColumn<FinanceInst
         <span className="font-numeric tabular-nums">{installmentVm(row, "").dueDate}</span>
       ),
     },
+  ];
+}
+
+function installmentAmountColumns(): DataTableColumn<FinanceInstallmentRow>[] {
+  return [
     {
       id: "nominal",
       header: "Valor nominal",
@@ -311,19 +319,31 @@ function installmentColumns(today: string): readonly DataTableColumn<FinanceInst
       numeric: true,
       cell: (row) => <InstallmentAmount row={row} column="paid" />,
     },
-    {
-      id: "status",
-      header: "Situação",
-      width: COLUMN_WIDTHS.status,
-      cell: (row) => {
-        const { badge } = installmentVm(row, today);
-        return (
-          <Badge variant={badge.variant} title={badge.description} className="whitespace-normal">
-            {badge.label}
-          </Badge>
-        );
-      },
+  ];
+}
+
+function installmentStatusColumn(today: string): DataTableColumn<FinanceInstallmentRow> {
+  return {
+    id: "status",
+    header: "Situação",
+    width: COLUMN_WIDTHS.status,
+    cell: (row) => {
+      const { badge } = installmentVm(row, today);
+      return (
+        <Badge variant={badge.variant} title={badge.description} className="whitespace-normal">
+          {badge.label}
+        </Badge>
+      );
     },
+  };
+}
+
+function installmentColumns(today: string): readonly DataTableColumn<FinanceInstallmentRow>[] {
+  return [
+    installmentSelectionColumn(),
+    ...installmentIdentityColumns(),
+    ...installmentAmountColumns(),
+    installmentStatusColumn(today),
   ];
 }
 type TableState = {
