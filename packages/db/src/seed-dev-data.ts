@@ -93,7 +93,8 @@ export const DEV_CLASSES: readonly DevClassSeed[] = [
     key: "E1A",
     stageInternalCode: "E1",
     teacherKey: "camila",
-    capacity: DEFAULT_CAPACITY,
+    // Three active students exceed the reference, exercising red occupancy.
+    capacity: 2,
     slots: [
       { weekday: "TUESDAY", startTime: "19:00", endTime: "20:30" },
       { weekday: "THURSDAY", startTime: "19:00", endTime: "20:30" },
@@ -103,7 +104,8 @@ export const DEV_CLASSES: readonly DevClassSeed[] = [
     key: "T2A",
     stageInternalCode: "T2",
     teacherKey: "rafael",
-    capacity: DEFAULT_CAPACITY,
+    // Two active students exercise moderate (yellow) occupancy.
+    capacity: 3,
     slots: [
       { weekday: "MONDAY", startTime: "19:00", endTime: "20:30" },
       { weekday: "WEDNESDAY", startTime: "19:00", endTime: "20:30" },
