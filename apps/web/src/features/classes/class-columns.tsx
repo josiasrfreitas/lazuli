@@ -15,7 +15,8 @@ export type ClassRow = RouterOutputs["classes"]["list"]["rows"][number];
 const COLUMN_WIDTHS = {
   code: "standard",
   teacher: "standard",
-  schedule: "wide",
+  stage: "wide",
+  schedule: "medium",
   occupancy: "narrow",
 } as const satisfies Record<string, NonNullable<DataTableColumn<ClassRow>["width"]>>;
 
@@ -50,6 +51,7 @@ export function classColumns(params: ClassListParams): readonly DataTableColumn<
     {
       id: "stage",
       header: "Etapa",
+      width: COLUMN_WIDTHS.stage,
       cell: (row: ClassRow) => row.sharedStage?.name ?? "Individual",
     },
     {
