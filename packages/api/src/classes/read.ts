@@ -46,11 +46,11 @@ function classWhere(values: ListInput): Prisma.ClassWhereInput {
           ],
         }
       : {}),
-    ...(scheduleTypes.length ? { scheduleType: { in: scheduleTypes } } : {}),
-    ...(formats.length ? { format: { in: formats } } : {}),
-    ...(teacherIds.length ? { teacherId: { in: teacherIds } } : {}),
-    ...(semesterIds.length ? { semesterId: { in: semesterIds } } : {}),
-    ...(statuses.length ? { status: { in: statuses } } : {}),
+    ...(scheduleTypes.length > 0 ? { scheduleType: { in: scheduleTypes } } : {}),
+    ...(formats.length > 0 ? { format: { in: formats } } : {}),
+    ...(teacherIds.length > 0 ? { teacherId: { in: teacherIds } } : {}),
+    ...(semesterIds.length > 0 ? { semesterId: { in: semesterIds } } : {}),
+    ...(statuses.length > 0 ? { status: { in: statuses } } : {}),
   };
 }
 export async function listClasses(input: {
@@ -161,7 +161,9 @@ function rosterWhere(input: RosterInput, today: Date): Prisma.EnrollmentWhereInp
     ...(input.search
       ? { student: { fullName: { contains: input.search, mode: "insensitive" } } }
       : {}),
-    ...(input.situations.length ? { OR: input.situations.map((value) => situations[value]) } : {}),
+    ...(input.situations.length > 0
+      ? { OR: input.situations.map((value) => situations[value]) }
+      : {}),
   };
 }
 export async function listClassRoster(
