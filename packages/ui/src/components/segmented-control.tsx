@@ -34,7 +34,7 @@ export const SegmentedControl = forwardRef<HTMLDivElement, SegmentedControlProps
       aria-invalid={invalid || undefined}
       className={cn(
         [
-          "group/segmented inline-flex w-fit max-w-full items-stretch gap-0.5 border border-input bg-transparent p-0.5",
+          "group/segmented inline-flex w-fit max-w-full items-stretch gap-0.5 border border-input bg-field p-0.5",
           "transition-[border-color,box-shadow] duration-fast ease-standard",
           "focus-within:border-ring aria-invalid:border-destructive",
           "data-disabled:cursor-not-allowed data-disabled:opacity-disabled",

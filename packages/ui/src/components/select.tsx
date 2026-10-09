@@ -39,14 +39,14 @@ export function SelectTrigger({
       aria-invalid={invalid || undefined}
       className={cn(
         [
-          "flex w-full min-w-0 items-center justify-between gap-2 border border-input bg-transparent",
+          "flex w-full min-w-0 items-center justify-between gap-2 border border-input bg-field",
           "text-control text-foreground outline-none transition-[border-color,box-shadow] duration-fast ease-standard",
           "focus-visible:border-ring focus-visible:shadow-focus",
           "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-disabled",
           "data-[readonly]:cursor-default data-[readonly]:bg-muted data-[readonly]:text-muted-foreground",
           "data-[placeholder]:text-muted-foreground [&_[data-slot=select-value]]:min-w-0",
           "[&_[data-slot=select-value]]:flex-1 [&_[data-slot=select-value]]:truncate",
-          "[&_[data-slot=select-icon]]:shrink-0 [&_[data-slot=select-icon]]:text-muted-foreground",
+          "[&_[data-slot=select-icon]]:shrink-0 [&_[data-slot=select-icon]]:text-icon",
           size === "sm" && "h-control-sm rounded-sm px-3",
           size === "md" && "h-control-md rounded-md px-3",
           size === "lg" && "h-control-lg rounded-lg px-4",

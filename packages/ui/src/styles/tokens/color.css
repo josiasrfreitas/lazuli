@@ -1,147 +1,184 @@
+/* Reference colors are private to the token layer. Components use the roles below. */
+:root {
+  --lz-ref-white: #ffffff;
+  --lz-ref-navy: #0f1e3d;
+  --lz-ref-gold: #d8ad4a;
+  --lz-ref-gold-ink: #846321;
+  --lz-ref-neutral-50: #f5f6f7;
+  --lz-ref-neutral-100: #edf0f3;
+  --lz-ref-neutral-200: #dce1e7;
+  --lz-ref-neutral-300: #c3cad3;
+  --lz-ref-neutral-400: #a1abb8;
+  --lz-ref-neutral-500: #7c8797;
+  --lz-ref-neutral-600: #606c7c;
+  --lz-ref-neutral-700: #404956;
+  --lz-ref-neutral-800: #303743;
+  --lz-ref-neutral-850: #252b35;
+  --lz-ref-neutral-900: #1b2029;
+  --lz-ref-neutral-950: #12151d;
+  --lz-ref-blue-50: #eaf0f8;
+  --lz-ref-blue-100: #dae5f3;
+  --lz-ref-blue-200: #c4d5eb;
+  --lz-ref-blue-300: #adc5e5;
+  --lz-ref-blue-400: #91add5;
+  --lz-ref-blue-500: #6b91c7;
+  --lz-ref-blue-600: #456f9f;
+  --lz-ref-blue-700: #305985;
+  --lz-ref-blue-800: #234266;
+  --lz-ref-blue-900: #213149;
+  --lz-ref-blue-950: #192638;
+}
+
 :root,
 .light {
   color-scheme: light;
 
-  --lz-ref-page: #f4f6fb;
-  --lz-ref-paper: #ffffff;
-  --lz-ref-navy-950: #0f1e3d;
-  --lz-ref-navy-800: #142a5f;
-  --lz-ref-slate-700: #52627c;
-  --lz-ref-slate-300: #bac5d9;
-  --lz-ref-slate-200: #d8dfec;
-  --lz-ref-slate-100: #e7ecf5;
-  --lz-ref-slate-50: #eef2f8;
-  --lz-ref-blue-700: #24408f;
-  --lz-ref-blue-800: #1c3373;
-  --lz-ref-blue-600: #3b5bc4;
-  --lz-ref-blue-200: #bacbff;
-  --lz-ref-blue-100: #cfdbff;
-  --lz-ref-blue-50: #e2e9ff;
-  --lz-ref-gold-500: #d8ad4a;
-  --lz-ref-navy-900: #0b1430;
-  --lz-ref-navy-700: #1e2c52;
-  --lz-ref-mist-50: #eef2fb;
-  --lz-ref-mist-400: #a8b7d6;
-  --lz-ref-red-700: #b3283f;
-  --lz-ref-red-800: #982138;
-  --lz-ref-red-900: #7c1b2e;
-  --lz-ref-red-950: #641324;
-  --lz-ref-red-50: #f9e6ea;
-  --lz-ref-green-700: #2e6e4a;
-  --lz-ref-green-50: #e2f2e8;
-  --lz-ref-amber-800: #7a5600;
-  --lz-ref-amber-50: #fff1cf;
-  --lz-ref-info-50: #e8eeff;
+  /* Surfaces: canvas → work surface → floating surface; fields stay identifiable. */
+  --background: var(--lz-ref-neutral-50);
+  --foreground: #27313f;
+  --heading: var(--lz-ref-navy);
+  --card: var(--lz-ref-white);
+  --card-foreground: var(--foreground);
+  --popover: var(--lz-ref-white);
+  --popover-foreground: var(--foreground);
+  --field: var(--lz-ref-white);
+  --table-heading: var(--lz-ref-blue-50);
+  --table-heading-foreground: var(--lz-ref-navy);
+  --table-heading-border: var(--brand-rule);
+  --muted: var(--lz-ref-neutral-100);
+  --muted-foreground: var(--lz-ref-neutral-600);
 
-  --background: var(--lz-ref-page);
-  --foreground: var(--lz-ref-navy-950);
-  --card: var(--lz-ref-paper);
-  --card-foreground: var(--lz-ref-navy-950);
-  --popover: var(--lz-ref-paper);
-  --popover-foreground: var(--lz-ref-navy-950);
-  --primary: var(--lz-ref-navy-800);
-  --primary-hover: var(--lz-ref-blue-600);
-  --primary-active: var(--lz-ref-blue-800);
-  --primary-foreground: var(--lz-ref-paper);
-  --secondary: var(--lz-ref-slate-100);
-  --secondary-foreground: var(--lz-ref-navy-950);
-  --muted: var(--lz-ref-slate-50);
-  --muted-foreground: var(--lz-ref-slate-700);
+  /* Actions and selection use blue. Gold is a signature, never a status. */
+  --primary: var(--lz-ref-navy);
+  --primary-hover: var(--lz-ref-blue-800);
+  --primary-active: var(--lz-ref-blue-900);
+  --primary-foreground: var(--lz-ref-white);
+  --secondary: var(--lz-ref-neutral-100);
+  --secondary-foreground: var(--foreground);
   --accent: var(--lz-ref-blue-50);
   --accent-hover: var(--lz-ref-blue-100);
   --accent-active: var(--lz-ref-blue-200);
-  --accent-foreground: var(--lz-ref-blue-700);
-  --destructive: var(--lz-ref-red-700);
-  --destructive-hover: var(--lz-ref-red-900);
-  --destructive-active: var(--lz-ref-red-950);
-  --destructive-foreground: var(--lz-ref-paper);
-  --border: var(--lz-ref-slate-200);
-  --border-strong: var(--lz-ref-slate-300);
-  --input: var(--lz-ref-slate-300);
+  --accent-foreground: var(--lz-ref-blue-800);
+  --interactive: var(--lz-ref-blue-700);
+  --interactive-hover: var(--lz-ref-blue-800);
+  --interactive-active: var(--lz-ref-navy);
   --ring: var(--lz-ref-blue-600);
-  --brand: var(--lz-ref-gold-500);
-  --brand-foreground: var(--lz-ref-navy-950);
-  --interactive: var(--lz-ref-blue-600);
-  --interactive-hover: var(--lz-ref-blue-700);
-  --interactive-active: var(--lz-ref-navy-800);
-  --success: var(--lz-ref-green-700);
-  --success-muted: var(--lz-ref-green-50);
-  --warning: var(--lz-ref-amber-800);
-  --warning-muted: var(--lz-ref-amber-50);
+
+  /* Nested separators are quieter than frames; control borders remain distinct. */
+  --border: var(--lz-ref-neutral-200);
+  --border-subtle: var(--lz-ref-neutral-100);
+  --border-strong: var(--lz-ref-neutral-300);
+  --input: var(--lz-ref-neutral-300);
+  --brand: var(--lz-ref-gold);
+  --brand-foreground: var(--lz-ref-navy);
+  --brand-rule: color-mix(in srgb, var(--lz-ref-gold) 60%, var(--border));
+  --icon: var(--lz-ref-blue-700);
+  --selection-indicator: var(--lz-ref-gold-ink);
+  --icon-active: var(--selection-indicator);
+
+  /* The same navy navigation anchors both themes. */
+  --navigation: var(--lz-ref-navy);
+  --navigation-foreground: #e9edf6;
+  --navigation-muted: #b1bfd3;
+  --navigation-active: #243958;
+  --navigation-border: #2b3f5e;
+  --navigation-icon: var(--lz-ref-blue-300);
+
+  --success: #296743;
+  --success-muted: #e9f3ed;
+  --warning: #805d16;
+  --warning-muted: #faf1db;
   --info: var(--lz-ref-blue-700);
-  --info-muted: var(--lz-ref-info-50);
+  --info-muted: var(--lz-ref-blue-50);
+  --destructive: #ad354b;
+  --destructive-hover: #91283d;
+  --destructive-active: #772134;
+  --destructive-foreground: var(--lz-ref-white);
+  --destructive-muted: #faecef;
+  --over-capacity: #763c98;
+  --over-capacity-muted: #f3ebf8;
+
+  --overlay: rgb(15 30 61 / 40%);
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: var(--lz-ref-neutral-300);
+  --scrollbar-thumb-hover: var(--lz-ref-neutral-500);
   --loading-book-cover-start: var(--lz-ref-blue-600);
-  --loading-book-cover-end: var(--lz-ref-blue-700);
-  --loading-book-paper: #ffffff;
+  --loading-book-cover-end: var(--lz-ref-blue-800);
+  --loading-book-paper: var(--lz-ref-white);
   --loading-typewriter-paper: #eef0fd;
   --loading-typewriter-ink: #d3d4ec;
-  --loading-typewriter-tool: #fbc56c;
-  --over-capacity: #7636a8;
-  --over-capacity-muted: #f1e7fa;
-  --destructive-muted: var(--lz-ref-red-50);
-  --overlay: rgb(15 30 61 / 48%);
-  --scrollbar-track: transparent;
-  --scrollbar-thumb: var(--lz-ref-slate-300);
-  --scrollbar-thumb-hover: var(--lz-ref-slate-700);
+  --loading-typewriter-tool: var(--lz-ref-gold);
 
-  /*
-   * Front-of-house surface: login, 403, and future error pages. Defined once
-   * outside the theme blocks because these screens are the school's cover, not
-   * a themeable part of the tool — they stay navy in either theme.
-   */
-  --marquee: var(--lz-ref-navy-900);
-  --marquee-foreground: var(--lz-ref-mist-50);
-  --marquee-muted: var(--lz-ref-mist-400);
-  --marquee-border: var(--lz-ref-navy-700);
+  /* The public entrance keeps its navy cover in both application themes. */
+  --marquee: var(--lz-ref-navy);
+  --marquee-foreground: #e9edf6;
+  --marquee-muted: #a8b7ce;
+  --marquee-border: #273957;
   --marquee-accent: var(--lz-ref-blue-200);
-  --marquee-accent-foreground: var(--lz-ref-navy-950);
+  --marquee-accent-foreground: var(--lz-ref-navy);
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #0a0c12;
+  --background: var(--lz-ref-neutral-950);
   --foreground: #e9edf6;
-  --card: #12151d;
-  --card-foreground: #e9edf6;
-  --popover: #12151d;
-  --popover-foreground: #e9edf6;
-  --primary: #e9edf6;
-  --primary-hover: #bacbff;
-  --primary-active: #9bb2ff;
-  --primary-foreground: #0a0c12;
-  --secondary: #1a1f2a;
-  --secondary-foreground: #e9edf6;
-  --muted: #1a1f2a;
-  --muted-foreground: #b8c1d2;
-  --accent: #1c2e5d;
-  --accent-hover: #263d78;
-  --accent-active: #304b91;
-  --accent-foreground: #dce6ff;
-  --destructive: #e0637a;
-  --destructive-hover: #ef91a1;
-  --destructive-active: #f4a9b5;
-  --destructive-foreground: #0a0c12;
-  --border: #2c3444;
-  --border-strong: #46526b;
-  --input: #46526b;
-  --ring: #6c8cf0;
-  --brand: #d8ad4a;
-  --brand-foreground: #0a0c12;
-  --interactive: #5c7ce6;
-  --interactive-hover: #7692ee;
-  --interactive-active: #91a8f5;
-  --success: #73d69b;
-  --success-muted: #112d1d;
-  --warning: #f3c95e;
-  --warning-muted: #3c2c08;
-  --info: #9bb2ff;
-  --info-muted: #172650;
-  --over-capacity: #d3a5f5;
-  --over-capacity-muted: #30203f;
-  --destructive-muted: #41151f;
-  --overlay: rgb(0 0 0 / 64%);
-  --scrollbar-track: transparent;
-  --scrollbar-thumb: #46526b;
-  --scrollbar-thumb-hover: #b8c1d2;
+  --heading: var(--foreground);
+  --card: var(--lz-ref-neutral-900);
+  --card-foreground: var(--foreground);
+  --popover: var(--lz-ref-neutral-850);
+  --popover-foreground: var(--foreground);
+  --field: #171c24;
+  --table-heading: var(--lz-ref-neutral-850);
+  --table-heading-foreground: var(--muted-foreground);
+  --table-heading-border: var(--border);
+  --muted: var(--lz-ref-neutral-850);
+  --muted-foreground: #a9b3c1;
+  --primary: var(--foreground);
+  --primary-hover: var(--lz-ref-white);
+  --primary-active: var(--lz-ref-neutral-200);
+  --primary-foreground: var(--lz-ref-navy);
+  --secondary: var(--lz-ref-neutral-850);
+  --secondary-foreground: var(--foreground);
+  --accent: var(--lz-ref-blue-900);
+  --accent-hover: #2a3e59;
+  --accent-active: #344e6e;
+  --accent-foreground: #d2e1f5;
+  --interactive: var(--lz-ref-blue-300);
+  --interactive-hover: var(--lz-ref-blue-200);
+  --interactive-active: var(--lz-ref-blue-100);
+  --ring: var(--lz-ref-blue-500);
+  --border: var(--lz-ref-neutral-800);
+  --border-subtle: var(--lz-ref-neutral-850);
+  --border-strong: #465364;
+  --input: #465364;
+  --brand: var(--lz-ref-gold);
+  --brand-foreground: var(--lz-ref-navy);
+  --brand-rule: color-mix(in srgb, var(--lz-ref-gold) 48%, var(--border));
+  --icon: #91a7c3;
+  --selection-indicator: var(--lz-ref-gold);
+  --icon-active: var(--selection-indicator);
+
+  --success: #8ccca4;
+  --success-muted: #20352b;
+  --warning: #dfbc6c;
+  --warning-muted: #3a3120;
+  --info: var(--lz-ref-blue-300);
+  --info-muted: var(--lz-ref-blue-950);
+  --destructive: #ee9aab;
+  --destructive-hover: #f3b0bd;
+  --destructive-active: #f7c5cf;
+  --destructive-foreground: #351520;
+  --destructive-muted: #3e252f;
+  --over-capacity: #cdabe3;
+  --over-capacity-muted: #34283f;
+  --overlay: rgb(5 8 14 / 64%);
+  --scrollbar-thumb: #465364;
+  --scrollbar-thumb-hover: var(--lz-ref-neutral-400);
+}
+
+/* Dark dialogs echo the navigation, with lighter fields to distinguish inputs. */
+.dark [data-slot="dialog-content"] {
+  --popover: var(--navigation);
+  --field: var(--lz-ref-blue-950);
 }

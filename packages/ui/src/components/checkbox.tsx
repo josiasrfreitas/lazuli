@@ -10,7 +10,7 @@ import { cn } from "../lib/utils";
 
 export const checkboxVariants = cva(
   [
-    "group/checkbox flex shrink-0 items-center justify-center border border-input bg-transparent p-0 text-primary-foreground",
+    "group/checkbox flex shrink-0 items-center justify-center border border-input bg-field p-0 text-primary-foreground",
     "outline-none transition-[background-color,border-color,box-shadow] duration-fast ease-standard",
     "hover:border-interactive hover:bg-accent",
     "focus-visible:border-ring focus-visible:shadow-focus",

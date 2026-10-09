@@ -19,7 +19,7 @@ import {
 import { SignOutButton } from "./sign-out-button";
 
 export const metadata: Metadata = {
-  title: "Acesso restrito — Lazuli",
+  title: "Acesso restrito",
 };
 
 /**

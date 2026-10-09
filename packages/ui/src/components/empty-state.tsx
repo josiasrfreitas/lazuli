@@ -30,16 +30,13 @@ export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(
       {icon ? (
         <span
           aria-hidden="true"
-          className="mb-2 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5"
+          className="mb-2 flex size-12 items-center justify-center rounded-full border border-brand-rule bg-muted text-icon [&_svg]:size-5"
           data-slot="empty-state-icon"
         >
           {icon}
         </span>
       ) : null}
-      <p
-        className="font-display text-h3 font-semibold text-foreground"
-        data-slot="empty-state-title"
-      >
+      <p className="font-display text-h3 font-semibold text-heading" data-slot="empty-state-title">
         {title}
       </p>
       {description ? (

@@ -7,6 +7,7 @@ import { formatLongDateSaoPaulo } from "~/lib/format";
 import { AppBreadcrumb } from "./app-breadcrumb";
 import { MobileNavigation } from "./mobile-navigation";
 import { Sidebar } from "./sidebar";
+import { ThemeToggle } from "./theme-toggle";
 
 /**
  * Frame of the authenticated product: fixed sidebar, a quiet topbar carrying
@@ -35,12 +36,15 @@ export function AppShell({
  * the date is the secretary's current working day, not a build-time value. */
 function TopBar({ role }: { role: StaffIdentity["role"] }): ReactNode {
   return (
-    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border px-6">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-3 sm:gap-4 sm:px-6">
       <MobileNavigation role={role} />
       <AppBreadcrumb role={role} />
-      <p className="ml-auto hidden shrink-0 text-sm text-muted-foreground sm:block">
-        {formatLongDateSaoPaulo(new Date())}
-      </p>
+      <div className="ml-auto flex shrink-0 items-center gap-3">
+        <p className="hidden text-sm text-muted-foreground sm:block">
+          {formatLongDateSaoPaulo(new Date())}
+        </p>
+        <ThemeToggle />
+      </div>
     </header>
   );
 }

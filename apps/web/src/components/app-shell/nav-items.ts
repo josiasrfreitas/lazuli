@@ -3,6 +3,7 @@ import {
   BookOpen,
   DollarSign,
   FileText,
+  GraduationCap,
   Home,
   Settings,
   Users,
@@ -55,7 +56,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     // students.* is adminProcedure; staffProcedure is deferred debt (PR #46).
     items: [
       { href: "/alunos", label: "Alunos", icon: Users, roles: ["ADMIN", "SYSTEM_ADMIN"] },
-      { href: "/professores", label: "Professores", icon: Users, roles: ["ADMIN", "SYSTEM_ADMIN"] },
+      {
+        href: "/professores",
+        label: "Professores",
+        icon: GraduationCap,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
       { href: "/turmas", label: "Turmas", icon: BookOpen, roles: ["ADMIN", "SYSTEM_ADMIN"] },
     ],
   },

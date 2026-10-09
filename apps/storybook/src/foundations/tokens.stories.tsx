@@ -5,6 +5,7 @@ const semanticPairs = [
   ["Page", "bg-background text-foreground"],
   ["Card", "bg-card text-card-foreground"],
   ["Popover", "bg-popover text-popover-foreground"],
+  ["Field", "bg-field text-foreground"],
   ["Primary", "bg-primary text-primary-foreground"],
   ["Secondary", "bg-secondary text-secondary-foreground"],
   ["Muted", "bg-muted text-muted-foreground"],
@@ -47,6 +48,7 @@ function ColorMatrix({ theme, title }: { theme: "light" | "dark"; title: string 
           Interactive action
         </a>
         <span className="rounded-full border-2 border-border-strong px-3 py-1">Strong border</span>
+        <span className="border-b border-brand-rule px-3 py-1 text-icon">Brand rule · Icon</span>
       </div>
     </section>
   );

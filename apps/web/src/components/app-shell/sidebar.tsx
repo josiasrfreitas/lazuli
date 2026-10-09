@@ -17,18 +17,20 @@ const ROLE_LABELS: Record<StaffRole, string> = {
 
 export function Sidebar({ identity }: { identity: StaffIdentity }): ReactNode {
   return (
-    <aside className="group/sidebar hidden w-16 shrink-0 flex-col overflow-hidden border-r border-border bg-card transition-[width] duration-300 ease-standard hover:w-60 has-[:focus-visible]:w-60 motion-reduce:transition-none sm:flex">
-      <div className="w-60 px-4 py-4">
+    <aside className="group/sidebar hidden w-11.75 shrink-0 flex-col overflow-hidden border-r border-navigation-border bg-navigation text-navigation-foreground transition-[width] duration-300 ease-standard hover:w-43.75 has-[:focus-visible]:w-43.75 motion-reduce:transition-none sm:flex">
+      <div className="flex h-14 w-43.75 shrink-0 items-center border-b border-navigation-border px-1.75">
         <BrandSignature />
       </div>
-      <div className="scrollbar-subtle min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-4">
+      <div className="scrollbar-subtle min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-4 pt-2">
         <SidebarNav role={identity.role} />
       </div>
-      <footer className="flex w-60 items-center gap-3 border-t border-border px-4 py-4">
+      <footer className="flex w-43.75 items-center gap-3 border-t border-navigation-border px-1.75 py-4">
         <Avatar colorKey={identity.id} name={identity.name} />
         <div className="min-w-0 opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100 group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none">
-          <p className="truncate text-caption font-semibold text-foreground">{identity.name}</p>
-          <p className="truncate text-micro text-muted-foreground">{ROLE_LABELS[identity.role]}</p>
+          <p className="truncate text-caption font-semibold text-navigation-foreground">
+            {identity.name}
+          </p>
+          <p className="truncate text-micro text-navigation-muted">{ROLE_LABELS[identity.role]}</p>
         </div>
       </footer>
     </aside>

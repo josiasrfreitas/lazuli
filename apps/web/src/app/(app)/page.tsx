@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -6,6 +7,8 @@ import { getStaffIdentity } from "@lazuli/auth/server";
 import { EmptyState } from "@lazuli/ui";
 
 import { homeHrefFor } from "~/components/app-shell/nav-items";
+
+export const metadata: Metadata = { title: "Início" };
 
 /**
  * There is no dashboard yet, so Início forwards to the role's first vertical.

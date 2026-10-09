@@ -16,7 +16,7 @@ export function ClassSchedule({ slots }: { slots: readonly ScheduleSlot[] }): Re
   return (
     <section aria-labelledby="class-schedule-title" className="min-w-0 border-t border-border pt-4">
       <div className="mb-3 flex items-center gap-2">
-        <CalendarDays aria-hidden="true" className="size-4 text-muted-foreground" />
+        <CalendarDays aria-hidden="true" className="size-4 text-icon" />
         <h2 id="class-schedule-title" className="text-body font-semibold">
           Agenda da turma
         </h2>

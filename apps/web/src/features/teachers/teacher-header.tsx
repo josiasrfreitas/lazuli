@@ -16,7 +16,9 @@ export function TeacherHeader({ teacher, onEdit, onDepart }: TeacherHeaderInput)
       <div className="grid min-w-0 gap-1.5">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <Avatar name={teacher.name} colorKey={teacher.id} />
-          <h1 className="break-words font-display text-h2 font-semibold">{teacher.name}</h1>
+          <h1 className="break-words font-display text-h2 font-semibold text-heading">
+            {teacher.name}
+          </h1>
           <TeacherStatus departure={teacher.teacherProfile?.departureDate} today={teacher.today} />
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">

@@ -18,7 +18,7 @@ export function WeekGrid({ rows, week, teacherId, today, onOpen }: WeekGridInput
   const slots = visibleWeekSlots(rows);
   return (
     <>
-      <div className="hidden overflow-hidden rounded-md border border-border xl:block">
+      <div className="hidden overflow-hidden rounded-md border border-border bg-card xl:block">
         <table
           className="w-full table-fixed border-collapse text-left"
           aria-label="Semana de aulas"
@@ -51,7 +51,7 @@ function WeekCell(props: WeekCellProps): ReactElement {
     <td
       key={props.day.date}
       className={cn(
-        "relative h-9 border-t border-l border-border p-0 align-top",
+        "relative h-9 border-t border-l border-border-subtle p-0 align-top",
         props.meetings.length === 0 && "bg-muted/20",
       )}
     >
@@ -79,8 +79,11 @@ type WeekHeadProps = {
 function WeekHead(props: WeekHeadProps): ReactElement {
   return (
     <thead>
-      <tr className="border-b border-border bg-muted/40">
-        <th scope="col" className="w-14 px-2 py-1 text-caption font-normal text-muted-foreground">
+      <tr className="border-b border-table-heading-border bg-table-heading text-table-heading-foreground">
+        <th
+          scope="col"
+          className="w-14 px-2 py-1 text-caption font-normal text-table-heading-foreground"
+        >
           Horário
         </th>
         {props.days.map((day) => (
@@ -90,7 +93,8 @@ function WeekHead(props: WeekHeadProps): ReactElement {
             aria-current={day.date === props.today ? "date" : undefined}
             className={cn(
               "border-l border-border px-2 py-1",
-              day.date === props.today && "bg-accent",
+              day.date === props.today &&
+                "border-b-2 border-b-selection-indicator bg-accent text-accent-foreground",
             )}
           >
             <span className="inline-flex items-baseline gap-1 text-caption font-medium">
@@ -119,7 +123,7 @@ function WeekHour(props: WeekHourProps): ReactElement {
     <tr key={props.time} className="h-9">
       <th
         scope="row"
-        className="border-t border-border px-2 py-0.5 align-top font-numeric text-caption font-normal text-muted-foreground"
+        className="border-t border-border-subtle px-2 py-0.5 align-top font-numeric text-caption font-normal text-muted-foreground"
       >
         {props.time}
       </th>
@@ -157,7 +161,8 @@ function WeekDay(props: WeekDayProps): ReactElement {
       <h3
         className={cn(
           "flex items-baseline gap-1.5 border-b border-border px-2 py-1 text-control font-semibold",
-          props.day.date === props.today && "bg-accent text-accent-foreground",
+          props.day.date === props.today &&
+            "border-selection-indicator bg-accent text-accent-foreground",
         )}
         aria-current={props.day.date === props.today ? "date" : undefined}
       >
