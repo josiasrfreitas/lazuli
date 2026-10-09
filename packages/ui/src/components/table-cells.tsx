@@ -27,7 +27,7 @@ function TableSortIcon({ direction }: { direction: TableSortDirection | undefine
   return (
     <Icon
       aria-hidden="true"
-      className={cn("size-3.5 shrink-0", !direction && "opacity-disabled")}
+      className={cn("size-3.5 shrink-0 text-table-heading-foreground", !direction && "opacity-60")}
       data-slot="table-sort-icon"
     />
   );
@@ -35,6 +35,10 @@ function TableSortIcon({ direction }: { direction: TableSortDirection | undefine
 
 /** Column-label typography, shared by the header cell and its sort button. */
 const tableHeadLabel = "text-micro font-semibold tracking-label uppercase";
+const tableHeadSpacing = {
+  compact: "h-8 px-3",
+  default: "h-9 px-5",
+} as const;
 
 export type TableHeadProps = ComponentProps<"th"> & {
   /** Right-aligns the column for currency, counts and dates. */
@@ -55,7 +59,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
     { children, className, numeric = false, onSort, scope = "col", sortDirection, ...props },
     ref,
   ) => {
-    const spacing = tableCellSpacing[useTableDensity()];
+    const spacing = tableHeadSpacing[useTableDensity()];
 
     return (
       <th
@@ -63,7 +67,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
         aria-sort={onSort ? (sortDirection ?? "none") : undefined}
         className={cn(
           spacing,
-          "text-left align-middle whitespace-nowrap text-muted-foreground",
+          "text-left align-middle whitespace-nowrap text-table-heading-foreground",
           tableHeadLabel,
           numeric && "text-right",
           onSort && "p-0",
@@ -81,7 +85,7 @@ export const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
               // the `th`, so it has to repeat it or the column reads unstyled.
               tableHeadLabel,
               "inline-flex w-full items-center gap-1.5 rounded-sm text-inherit",
-              "transition-colors duration-fast ease-standard hover:text-foreground",
+              "transition-colors duration-fast ease-standard hover:bg-table-heading-foreground/5",
               "focus-visible:outline-none focus-visible:shadow-focus",
               numeric && "justify-end",
             )}

@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { ClassPage } from "~/features/classes/class-page";
+
+export const metadata: Metadata = { title: "Detalhes da turma" };
 
 export default async function TurmaRoute({
   params,

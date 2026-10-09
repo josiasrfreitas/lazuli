@@ -148,8 +148,8 @@ export const TableHeader = forwardRef<HTMLTableSectionElement, TableHeaderProps>
     <thead
       {...props}
       className={cn(
-        "[&_tr]:border-b [&_tr]:border-border",
-        sticky && "sticky top-0 z-10 bg-card",
+        "bg-table-heading [&_tr]:border-b [&_tr]:border-table-heading-border",
+        sticky && "sticky top-0 z-10",
         className,
       )}
       data-slot="table-header"
@@ -204,8 +204,9 @@ export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
       {...props}
       aria-selected={selected || undefined}
       className={cn(
-        "border-b border-border data-[selected]:bg-accent",
-        interactive && "transition-colors duration-fast ease-standard hover:bg-muted",
+        "border-b border-border-subtle data-[selected]:bg-accent",
+        interactive &&
+          "transition-colors duration-fast ease-standard hover:bg-muted data-[selected]:hover:bg-accent-hover",
         className,
       )}
       data-selected={selected || undefined}

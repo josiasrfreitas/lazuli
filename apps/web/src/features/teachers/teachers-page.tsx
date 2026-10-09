@@ -1,4 +1,5 @@
 "use client";
+import { Plus } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { type UrlPagination, useUrlPagination } from "~/lib/pagination";
 import { type Dispatch, type SetStateAction, type ReactElement, useState } from "react";
@@ -105,6 +106,7 @@ function TeacherListControls(props: TeacherListControlsProps): ReactElement {
       />
       <TeacherCoverage back="/professores" />
       <Button size="compact-responsive" onClick={() => props.setCreating(true)}>
+        <Plus aria-hidden="true" />
         Novo professor
       </Button>
     </div>

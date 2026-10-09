@@ -259,10 +259,7 @@ void test("overdue groups contain wide tables while each payer card keeps its ow
   );
   assert.equal(countMatches(markup, /class="overflow-x-auto scrollbar-subtle"/gu), groups.length);
   assert.equal(
-    countMatches(
-      markup,
-      /class="border-b border-border data-\[selected\]:bg-accent" data-slot="table-row"/gu,
-    ),
+    countMatches(markup, /class="[^"]*border-border-subtle[^"]*" data-slot="table-row"/gu),
     groups.length * 2,
   );
 });
@@ -284,10 +281,7 @@ void test("flat table preserves the overdue status and permits wrapping in compa
   );
   assert.match(markup, /title="Vencida há 14 dias"/u);
   assert.match(markup, /class="[^"]*whitespace-normal[^"]*"[^>]*>Parcial · Vencida<\/span>/u);
-  assert.match(
-    markup,
-    /class="border-b border-border data-\[selected\]:bg-accent" data-slot="table-row"/u,
-  );
+  assert.match(markup, /class="[^"]*border-border-subtle[^"]*" data-slot="table-row"/u);
 });
 void test("flat and grouped rows show distinct origins under visible column headers", () => {
   const group = overdueGroup(PAYER_ONE_ID, INSTALLMENT_ONE_ID);

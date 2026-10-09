@@ -103,8 +103,8 @@ export function MeetingBlock({
           ? "min-h-0 flex-1 justify-center overflow-hidden px-2 py-0.5"
           : "gap-1 rounded-sm px-3 py-2",
         meeting.scheduleType === "REGULAR"
-          ? "bg-info-muted text-info hover:bg-info/15"
-          : "bg-success-muted text-success hover:bg-success/15",
+          ? "bg-accent text-accent-foreground hover:bg-accent-hover"
+          : "bg-secondary text-secondary-foreground hover:bg-border",
       )}
     >
       <MeetingTitle label={description.label} compact={compact} coverage={coverage} />

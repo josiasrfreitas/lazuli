@@ -40,7 +40,7 @@ export const DataTablePage = forwardRef<HTMLDivElement, DataTablePageProps>(
           className="flex flex-wrap items-baseline gap-x-3 gap-y-1"
           data-slot="data-table-page-header"
         >
-          <h1 className="font-display text-h2 font-semibold text-foreground">{title}</h1>
+          <h1 className="font-display text-h2 font-semibold text-heading">{title}</h1>
           {summary === undefined ? null : (
             <p className="text-caption text-muted-foreground">{summary}</p>
           )}

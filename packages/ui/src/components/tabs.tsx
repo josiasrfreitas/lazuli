@@ -27,7 +27,7 @@ export const tabsTabVariants = cva(
     "font-medium text-muted-foreground transition-colors duration-fast ease-standard",
     "hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus",
     // Base UI marks the active tab with `data-active`, not `data-selected`.
-    "data-[active]:text-foreground",
+    "data-[active]:text-accent-foreground",
     "data-[disabled]:pointer-events-none data-[disabled]:opacity-disabled",
     "[&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   ],
@@ -63,7 +63,7 @@ const tabsIndicatorVariants = cva(
         segmented:
           "top-0 h-(--active-tab-height) translate-y-(--active-tab-top) rounded-sm bg-card shadow-sm",
         // Rides the list's bottom rule; `-bottom-px` covers the border itself.
-        underline: "-bottom-px h-0.5 rounded-full bg-foreground",
+        underline: "-bottom-px h-0.5 rounded-full bg-selection-indicator",
       },
     },
     defaultVariants: {

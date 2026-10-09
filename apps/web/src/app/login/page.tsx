@@ -7,10 +7,10 @@ import { getAuthEnvironment, isStaffAccessDeniedCode } from "@lazuli/auth";
 import { auth } from "@lazuli/auth/server";
 import { cn } from "@lazuli/ui";
 
+import { BrandSignature } from "~/components/app-shell/brand-signature";
 import {
   MarqueeBody,
   MarqueeEditorial,
-  MarqueeEyebrow,
   MarqueeNote,
   MarqueePage,
   MarqueeTitle,
@@ -19,7 +19,7 @@ import {
 import { LoginCard, type LoginInitialError } from "./login-card";
 
 export const metadata: Metadata = {
-  title: "Entrar — Lazuli",
+  title: "Entrar",
 };
 
 /**
@@ -50,7 +50,9 @@ export default async function LoginPage({
   return (
     <MarqueePage>
       <MarqueeEditorial>
-        <MarqueeEyebrow detail="Entrar" label="Lazuli" />
+        <div className="mb-8">
+          <BrandSignature entry />
+        </div>
         <MarqueeTitle accent="simplificada." lead="Sua gestão escolar," />
         <MarqueeBody>Matrículas, presença e pagamentos num lugar só.</MarqueeBody>
         <MarqueeNote>Uso restrito à equipe da escola</MarqueeNote>

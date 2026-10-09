@@ -23,7 +23,7 @@ export function ClassOverview({
 }: ClassOverviewInput): ReactElement {
   return (
     <header className="min-w-0 shrink-0 space-y-2">
-      <h1 className="min-w-0 max-w-full break-words font-display text-h1 font-medium">
+      <h1 className="min-w-0 max-w-full break-words font-display text-h1 font-medium text-heading">
         {detail.portalClassName}
       </h1>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">

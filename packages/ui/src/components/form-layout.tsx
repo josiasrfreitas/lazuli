@@ -31,7 +31,7 @@ export const FormSection = forwardRef<HTMLFieldSetElement, FormSectionProps>(
       >
         <div className="flex items-start justify-between gap-3" data-slot="form-section-header">
           <div className="grid gap-0.5">
-            <p className="text-control font-semibold leading-5 text-foreground" id={titleId}>
+            <p className="text-control font-semibold leading-5 text-heading" id={titleId}>
               {title}
             </p>
             {description === undefined ? null : (

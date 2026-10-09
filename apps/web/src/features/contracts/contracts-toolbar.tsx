@@ -214,7 +214,7 @@ function ContractSearch({ filters }: { filters: ContractFilters }): ReactElement
     <div className="relative min-w-48 flex-1 sm:w-64 sm:flex-none">
       <Search
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-icon"
       />
       <Input
         aria-label="Buscar contrato por aluno ou pagador"

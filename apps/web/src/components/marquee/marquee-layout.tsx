@@ -19,7 +19,7 @@ export function MarqueePage({
   contentClassName?: string;
 }): ReactNode {
   return (
-    <main className="relative isolate min-h-svh overflow-hidden bg-marquee font-grotesk text-marquee-foreground">
+    <main className="dark relative isolate min-h-svh overflow-hidden bg-marquee font-grotesk text-marquee-foreground">
       <SurveyGrid />
       <div
         className={cn([

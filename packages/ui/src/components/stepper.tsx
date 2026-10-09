@@ -21,7 +21,7 @@ const stepIndicatorVariants = cva(
     variants: {
       state: {
         complete: "border-primary bg-primary text-primary-foreground",
-        current: "border-primary bg-transparent text-foreground",
+        current: "border-selection-indicator bg-accent text-accent-foreground",
         pending: "border-border-strong bg-transparent text-muted-foreground",
         disabled: "border-border bg-transparent text-muted-foreground",
       },

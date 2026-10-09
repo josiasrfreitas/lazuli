@@ -178,8 +178,12 @@ const [
   readFile(path.join(repositoryRoot, tokensStoryPath), "utf8"),
   readFile(path.join(repositoryRoot, classNameUtilityPath), "utf8"),
 ]);
-const lightTokens = getDeclarations(colorTokens, ":root,\n.light");
-const darkTokens = getDeclarations(colorTokens, ".dark");
+const referenceTokens = getDeclarations(colorTokens, ":root");
+const lightTokens = new Map([
+  ...referenceTokens,
+  ...getDeclarations(colorTokens, ":root,\n.light"),
+]);
+const darkTokens = new Map([...lightTokens, ...getDeclarations(colorTokens, ".dark")]);
 
 assert.match(getBlock(colorTokens, ":root,\n.light"), /color-scheme: light;/u);
 assert.match(getBlock(colorTokens, ".dark"), /color-scheme: dark;/u);
@@ -196,26 +200,26 @@ for (const [theme, tokens, expected] of [
     "light",
     lightTokens,
     {
-      background: "#f4f6fb",
-      foreground: "#0f1e3d",
-      primary: "#142a5f",
-      interactive: "#3b5bc4",
-      ring: "#3b5bc4",
+      background: "#f5f6f7",
+      foreground: "#27313f",
+      primary: "#0f1e3d",
+      interactive: "#305985",
+      ring: "#456f9f",
       brand: "#d8ad4a",
-      destructive: "#b3283f",
+      destructive: "#ad354b",
     },
   ],
   [
     "dark",
     darkTokens,
     {
-      background: "#0a0c12",
+      background: "#12151d",
       foreground: "#e9edf6",
       primary: "#e9edf6",
-      interactive: "#5c7ce6",
-      ring: "#6c8cf0",
+      interactive: "#adc5e5",
+      ring: "#6b91c7",
       brand: "#d8ad4a",
-      destructive: "#e0637a",
+      destructive: "#ee9aab",
     },
   ],
 ]) {

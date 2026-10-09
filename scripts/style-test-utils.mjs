@@ -35,15 +35,18 @@ export function getDeclarations(stylesheet, selector) {
 }
 
 export function resolveColor(declarations, token) {
-  const value = declarations.get(`--${token}`);
-  assert.ok(value, `Missing --${token} token.`);
+  let name = `--${token}`;
+  const visited = new Set();
 
-  const reference = value.match(/^var\((--[\w-]+)\)$/u);
-  if (!reference) return value.toLowerCase();
-
-  const referenceValue = declarations.get(reference[1]);
-  assert.ok(referenceValue, `Missing ${reference[1]} reference token.`);
-  return referenceValue.toLowerCase();
+  while (true) {
+    assert.ok(!visited.has(name), `Circular color token reference at ${name}.`);
+    visited.add(name);
+    const value = declarations.get(name);
+    assert.ok(value, `Missing ${name} token.`);
+    const reference = value.match(/^var\((--[\w-]+)\)$/u);
+    if (!reference) return value.toLowerCase();
+    name = reference[1];
+  }
 }
 
 function relativeLuminance(hex) {

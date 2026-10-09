@@ -1,8 +1,39 @@
 # Semantic colors
 
-Lazuli's status palette communicates meaning and the need for attention. Use the existing
-semantic tokens in `packages/ui/src/styles/tokens/color.css` and the matching `Badge` variants.
-The same meanings apply in light and dark themes.
+Components consume semantic roles from `packages/ui/src/styles/tokens/color.css`. Reference
+colors (`--lz-ref-*`) stay inside that file. The same roles apply in both themes; components
+should not branch on the theme to choose colors.
+
+## Surfaces and emphasis
+
+| Role                                         | Use                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `background`, `card`, `popover`              | Page canvas, working surface, and elevated panels                                    |
+| `field`                                      | Editable input surfaces, including selects and textareas                             |
+| `heading`, `foreground`, `muted-foreground`  | Headings, content, and supporting information                                        |
+| `navigation-*`                               | The navy navigation surface and its readable labels, icons, and active items         |
+| `table-heading-*`                            | Light blue column headers with navy text in light mode; neutral headers in dark mode |
+| `border-subtle`, `border`, `border-strong`   | Row separators, surface frames, and floating panel boundaries                        |
+| `primary`, `primary-foreground`              | The main action: navy in light mode and off-white in dark mode                       |
+| `accent`, `accent-foreground`                | Selected controls and contextual blue surfaces                                       |
+| `interactive`, `icon`                        | Links and supporting interface icons                                                 |
+| `brand`, `brand-rule`, `selection-indicator` | Gold identity details, restrained rules, and current-position markers                |
+
+Keep most of the workspace neutral. The navigation stays navy in both themes. Gold appears
+in the signature and selected navigation; light tables have a fine gold header rule, while
+dark tables use a neutral rule. Dropdowns use ordinary borders without an inset frame.
+In dark mode, dialogs use the navigation blue with slightly lighter blue input surfaces;
+their primary action stays off-white. Light-mode dialogs keep their white surface.
+Use explicit text or shape alongside selection color. Reserve status colors for operational
+meaning: a class modality, for example, uses accent or secondary surfaces rather than success.
+
+The header button switches directly between light and dark. The browser's preference supplies
+the initial theme; an explicit choice is stored on that browser and applied before the first
+paint. Login and access-restriction screens keep their navy entrance surface.
+
+## Status meanings
+
+Use the matching `Badge` variants for status labels. These meanings apply in both themes.
 
 | Meaning                       | Intended feeling                                  | Badge variant | Use                                            |
 | ----------------------------- | ------------------------------------------------- | ------------- | ---------------------------------------------- |

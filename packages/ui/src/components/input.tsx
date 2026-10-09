@@ -25,7 +25,7 @@ export function Input({
       aria-invalid={invalid || undefined}
       className={cn(
         [
-          "flex w-full min-w-0 border border-input bg-transparent",
+          "flex w-full min-w-0 border border-input bg-field",
           "text-control text-foreground outline-none transition-[border-color,box-shadow] duration-fast ease-standard",
           "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:shadow-focus",
           "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-disabled",
