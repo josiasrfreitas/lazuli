@@ -1,0 +1,48 @@
+{
+  "version": "0.1",
+  "adopted": "2026-10-09",
+  "concept": "Ex-líbris nas cores do Lazuli",
+  "origin": "Nome escolhido pelo azul usado no início do produto e pela pedra lápis-lazúli.",
+  "colors": {
+    "gold": "#d8ad4a",
+    "navy": "#0f1e3d",
+    "dark": "#12151d",
+    "white": "#ffffff",
+    "lightInk": "#e9edf6",
+    "mist": "#f4f6fb"
+  },
+  "minimumDigital": {
+    "symbol": 48,
+    "symbol-small": 32,
+    "stacked": 120,
+    "horizontal": 200,
+    "wordmark": 100
+  },
+  "files": [
+    "lazuli-horizontal-dark.svg",
+    "lazuli-horizontal-light.svg",
+    "lazuli-horizontal-mono-black.svg",
+    "lazuli-horizontal-mono-navy.svg",
+    "lazuli-horizontal-mono-white.svg",
+    "lazuli-stacked-dark.svg",
+    "lazuli-stacked-light.svg",
+    "lazuli-stacked-mono-black.svg",
+    "lazuli-stacked-mono-navy.svg",
+    "lazuli-stacked-mono-white.svg",
+    "lazuli-symbol-dark.svg",
+    "lazuli-symbol-light.svg",
+    "lazuli-symbol-mono-black.svg",
+    "lazuli-symbol-mono-navy.svg",
+    "lazuli-symbol-mono-white.svg",
+    "lazuli-symbol-small-dark.svg",
+    "lazuli-symbol-small-light.svg",
+    "lazuli-symbol-small-mono-black.svg",
+    "lazuli-symbol-small-mono-navy.svg",
+    "lazuli-symbol-small-mono-white.svg",
+    "lazuli-wordmark-dark.svg",
+    "lazuli-wordmark-light.svg",
+    "lazuli-wordmark-mono-black.svg",
+    "lazuli-wordmark-mono-navy.svg",
+    "lazuli-wordmark-mono-white.svg"
+  ]
+}

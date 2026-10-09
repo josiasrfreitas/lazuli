@@ -1,0 +1,182 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="900"
+  height="1040"
+  viewBox="220 60 900 1040"
+  role="img"
+  aria-labelledby="lazuli-owl-title lazuli-owl-description"
+>
+  <title id="lazuli-owl-title">Coruja Lazuli</title>
+  <desc id="lazuli-owl-description">
+    Coruja geométrica de olhar frontal e corpo levemente virado, com facetas em
+    azul-lazúli e azul-marinho, olhos, bico e detalhes em laranja, com fundo transparente.
+  </desc>
+
+  <g id="owl">
+    <g id="feet">
+      <path
+        id="far-foot"
+        fill="#ef6629"
+        d="M754 925 802 872 802 912 840 995H884
+           C905 995 919 1012 925 1034H784
+           L773 1011 758 995H788Z"
+      />
+      <path
+        id="near-foot"
+        fill="#f7772f"
+        d="M614 943 657 918 690 995H721
+           C740 995 753 1012 761 1034H578
+           C587 1010 600 995 617 995H638Z"
+      />
+    </g>
+
+    <path
+      id="silhouette"
+      fill="#131641"
+      d="M569 130 629 157 615 118 710 168
+         Q809 130 909 168L1004 118 992 157 1050 130
+         L1018 196 994 216
+         Q1022 261 1036 348
+         L989 408 1012 513 980 632 841 819 802 914
+         L802 872 755 928 737 899 724 921 697 864
+         L659 920 617 951 604 924 580 947 578 898
+         L550 916 532 951 397 1034 422 985 284 1039
+         L390 865 296 921 417 700 377 727 476 549
+         L526 456 552 430 591 370 570 347
+         Q594 266 624 216L600 197Z"
+    />
+
+    <g id="body-facets">
+      <path
+        id="far-wing"
+        fill="#223c88"
+        d="M891 432 1007 487 1012 513 980 632Z"
+      />
+      <path
+        id="breast-blue"
+        fill="#638edc"
+        d="M764 456 925 533 905 674Z"
+      />
+      <path
+        id="breast-orange"
+        fill="#f7772f"
+        d="M868 614 905 674 785 817Z"
+      />
+      <path
+        id="shoulder"
+        fill="#4874cb"
+        d="M476 549 526 456 552 430 630 405 666 421 556 500Z"
+      />
+      <path
+        id="upper-wing"
+        fill="#223c88"
+        d="M476 549 556 500 666 421 708 451 735 475 554 536Z"
+      />
+      <path
+        id="wing-orange"
+        fill="#f7772f"
+        d="M554 536 735 475 472 664Z"
+      />
+      <path
+        id="wing-plane"
+        fill="#2c4b9c"
+        d="M472 664 735 475 609 704 514 774 574 633 424 789Z"
+      />
+      <path
+        id="wing-light"
+        fill="#4874cb"
+        d="M735 475 758 539 774 594 609 704Z"
+      />
+      <path
+        id="outer-feather"
+        fill="#4874cb"
+        d="M417 700 472 664 424 789 296 921Z"
+      />
+      <path
+        id="long-feather"
+        fill="#2c4b9c"
+        d="M390 865 623 763 423 985 284 1039Z"
+      />
+      <path
+        id="long-feather-edge"
+        fill="#4874cb"
+        d="M390 865 407 864 333 974 284 1039Z"
+      />
+      <path
+        id="inner-feather"
+        fill="#223c88"
+        d="M774 594 710 806 550 916Z"
+      />
+      <path
+        id="tail-feather"
+        fill="#223c88"
+        d="M623 763 532 951 397 1034Z"
+      />
+    </g>
+
+    <g id="face">
+      <path
+        id="left-facial-disc"
+        fill="#638edc"
+        d="M647 229 718 270 751 336 790 434 652 382
+           C626 356 613 328 616 298
+           Q616 263 647 229Z"
+      />
+      <path
+        id="right-facial-disc"
+        fill="#638edc"
+        d="M971 229
+           C991 252 1001 280 1001 305
+           C1001 335 987 362 966 382
+           L826 434 868 346 888 286 904 270Z"
+      />
+      <path
+        id="left-temple"
+        fill="#2c4b9c"
+        d="M647 229 708 262 686 277 624 261Z"
+      />
+      <path
+        id="right-temple"
+        fill="#2c4b9c"
+        d="M971 229 993 261 931 277 910 262Z"
+      />
+
+      <g id="eyes">
+        <circle id="left-iris" cx="726" cy="306" r="44" fill="#f7772f" />
+        <circle id="right-iris" cx="894" cy="306" r="44" fill="#f7772f" />
+        <circle id="left-pupil" cx="733" cy="296" r="28" fill="#131641" />
+        <circle id="right-pupil" cx="887" cy="296" r="28" fill="#131641" />
+      </g>
+
+      <path
+        id="left-brow"
+        fill="#131641"
+        d="M624 216 647 229 719 274 708 287 751 291 781 333 802 312 737 248Z"
+      />
+      <path
+        id="right-brow"
+        fill="#131641"
+        d="M994 216 971 229 902 274 913 287 870 291 837 333 816 312 881 248Z"
+      />
+      <path
+        id="forehead"
+        fill="#223c88"
+        d="M710 168 783 212 809 240 836 210 909 168 868 233 816 312H802L750 233Z"
+      />
+      <path
+        id="left-ear-facet"
+        fill="#4874cb"
+        d="M615 118 710 168 802 312 737 248 629 157Z"
+      />
+      <path
+        id="right-ear-facet"
+        fill="#4874cb"
+        d="M1004 118 992 157 881 248 816 312 909 168Z"
+      />
+      <circle id="left-catchlight" cx="743" cy="288" r="8" fill="#ffffff" />
+      <circle id="right-catchlight" cx="878" cy="288" r="8" fill="#ffffff" />
+      <path id="beak" fill="#f7772f" d="M802 312H816L837 350 809 410 782 350Z" />
+      <path id="beak-facet" fill="#ef6629" d="M809 312H816L837 350 809 410Z" />
+    </g>
+  </g>
+</svg>
