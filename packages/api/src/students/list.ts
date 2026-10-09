@@ -189,7 +189,7 @@ function toEnrollmentFacts(
   return {
     enrollmentId: enrollment.id,
     classId: enrollment.classId,
-    classCode: enrollment.class.internalCode,
+    classCode: enrollment.class.portalClassName,
     scheduleLabel: toScheduleLabel(enrollment.class.scheduleSlots),
     teacherName:
       usualTeacherOn(enrollment.class, new Date(saoPauloDateOnly(now)))?.name ?? "Sem professor",

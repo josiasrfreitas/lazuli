@@ -48,7 +48,7 @@ export const contractSelect = {
         select: {
           entryDate: true,
           exitDate: true,
-          class: { select: { internalCode: true } },
+          class: { select: { portalClassName: true } },
           progressRecords: {
             where: { deletedAt: null, endDate: null },
             select: { stage: { select: { internalCode: true } } },
@@ -88,7 +88,7 @@ type SelectedContract = {
     enrollments: Array<{
       entryDate: Date;
       exitDate: Date | null;
-      class: { internalCode: string };
+      class: { portalClassName: string };
       progressRecords: Array<{ stage: { internalCode: string } }>;
     }>;
   };
@@ -125,7 +125,7 @@ function academicPlacements(
     .flatMap((enrollment) =>
       enrollment.progressRecords.map((progress) => ({
         stageCode: progress.stage.internalCode,
-        classCode: enrollment.class.internalCode,
+        classCode: enrollment.class.portalClassName,
       })),
     );
 }

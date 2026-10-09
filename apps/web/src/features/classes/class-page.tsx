@@ -53,7 +53,7 @@ function ClassDetailView({ detail, id }: ClassDetailViewInput): ReactElement {
       {assigning && (
         <AssignmentDialog
           classId={id}
-          classCode={detail.internalCode}
+          classCode={detail.portalClassName}
           onClose={() => setAssigning(false)}
         />
       )}

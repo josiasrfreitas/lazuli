@@ -22,7 +22,7 @@ function StudentChoice({ mode, state }: Pick<Props, "mode" | "state">): ReactEle
       ? state.students.map((item) => ({ id: item.id, label: item.fullName }))
       : state.paused.map((item) => ({
           id: item.id,
-          label: `${item.student.fullName} · ${item.class.internalCode}`,
+          label: `${item.student.fullName} · ${item.class.portalClassName}`,
         }));
   return (
     <Field name="studentSearch">

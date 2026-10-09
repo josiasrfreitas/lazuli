@@ -130,9 +130,24 @@ refuses a checkout with `.lazuli/workspace.json` so legacy and light ownership c
 
 Run `pnpm seed` in a full worktree to erase its database and fake-GCS bucket, apply migrations,
 and load the complete development dataset. This includes staff, students, classes, attendance,
-finance settings, standalone orders, contracts, payments, and versioned GCS fixture files.
+finance settings, annual tuition contracts, payments, and versioned GCS fixture files.
 Every order has one active beneficiary; every contract has one student. Students can share a payer.
 Manual edits, extra records, and extra bucket objects are removed on every run.
+
+The school scenario contains 160 students in 16 classes (4–14 students, averaging 10),
+seven teachers, and named administrative staff. There are 128 students in regular classes and
+32 in personalized classes. The 126 minors all have a guardian.
+Each student has one 12-month contract with twelve installments and a negotiated monthly price
+between R$ 200 and R$ 250. Eight students have the two most recent past installments unpaid;
+the other 152 have settled all installments due through today. Future installments stay open.
+Payments use the application's finance service, including punctuality-discount adjustments.
+Birthdays, the current academic semester, sessions and contract dates derive from the current
+business date in `America/Sao_Paulo`; no seed year needs to be updated manually.
+
+Classes use the same generated labels as the application: `REG 14:00` or `PPT 19:00`.
+The first meeting of the week supplies the start time. A short numeric suffix distinguishes
+active classes with matching labels (`REG 14:00 · 2`). Stage, full schedule and semester remain
+separate information; technical identifiers remain internal.
 
 The former `prisma:seed`, `seed:settings`, `seed:contracts`, `seed:gcs`, and
 `workspace:fixtures refresh` commands now delegate to the same complete reset.

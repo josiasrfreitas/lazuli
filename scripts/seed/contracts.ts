@@ -1,185 +1,122 @@
 import { finance } from "../../packages/api/src/finance/index.js";
+import { priceAfterDiscountCents } from "../../packages/domain/src/monthly-contract.js";
 import type { DatabaseClient, TransactionClient } from "../../packages/db/src/client.js";
-import { DEV_ADMIN, DEV_STUDENTS } from "../../packages/db/src/seed-dev-data.js";
-import { createPayment, monthlyDueDate } from "../../packages/db/src/seed-dev-finance.js";
-import { isoOf, stableUuid } from "../../packages/db/src/seed-dev-support.js";
+import {
+  DEV_ADMIN,
+  DEV_STUDENTS,
+  type DevStudentSeed,
+} from "../../packages/db/src/seed-dev-data.js";
+import { monthlyDueDate } from "../../packages/db/src/seed-dev-finance.js";
+import { addDays, isoOf, stableUuid, utcDate } from "../../packages/db/src/seed-dev-support.js";
 
-const SHARED_PAYER_KEY = "shared-payer";
-const DAY_ISO_OFFSET = -2;
-const CURRENT_MONTH_OFFSET = -3;
-const PAID_MONTH_OFFSET = -8;
-const CURRENT_DURATION_MONTHS = 12;
-const PAID_DURATION_MONTHS = 6;
-const DUE_DAY = 10;
-const PARTIAL_DIVISOR = 2;
-
-type Scenario = {
-  key: string;
-  student: string;
-  payer?: "shared-payer" | "bruno-payer";
-  outcome: "current" | "future" | "paid" | "late" | "partial" | "cancelled";
-  cents: number;
-  monthOffset?: number;
-  dueDay?: number;
-  months?: number;
-};
-const scenarios: readonly Scenario[] = [
-  {
-    key: "p05-ana",
-    student: "ana",
-    payer: SHARED_PAYER_KEY,
-    outcome: "current",
-    cents: 25_000,
-    dueDay: 31,
-  },
-  {
-    key: "p05-bruno",
-    student: "bruno",
-    payer: "bruno-payer",
-    outcome: "current",
-    cents: 24_000,
-    monthOffset: -2,
-    months: 6,
-  },
-  {
-    key: "p05-davi",
-    student: "davi",
-    payer: SHARED_PAYER_KEY,
-    outcome: "current",
-    cents: 25_000,
-    dueDay: 25,
-    months: 18,
-  },
-  {
-    key: "p05-isadora",
-    student: "isadora",
-    payer: SHARED_PAYER_KEY,
-    outcome: "future",
-    cents: 25_000,
-    monthOffset: 1,
-    dueDay: 25,
-    months: 6,
-  },
-  {
-    key: "seed-carla",
-    student: "carla",
-    outcome: "partial",
-    cents: 23_000,
-    monthOffset: 0,
-    dueDay: 1,
-  },
-  { key: "seed-elisa", student: "elisa", outcome: "current", cents: 22_000 },
-  { key: "seed-gabriela", student: "gabriela", outcome: "current", cents: 24_000 },
-  { key: "seed-henrique", student: "henrique", outcome: "current", cents: 21_000 },
-  { key: "seed-joao", student: "joao", outcome: "current", cents: 25_000 },
-  { key: "seed-larissa", student: "larissa", outcome: "current", cents: 23_000 },
-  { key: "seed-priscila", student: "priscila", outcome: "current", cents: 24_000 },
-  { key: "seed-theo", student: "theo", outcome: "current", cents: 22_000 },
-  { key: "seed-marcos", student: "marcos", outcome: "paid", cents: 20_000 },
-  { key: "seed-felipe", student: "felipe", outcome: "late", cents: 24_000 },
-  { key: "seed-otavio", student: "otavio", outcome: "cancelled", cents: 23_000 },
+const MONTHLY_PRICES = [
+  25_000, 25_000, 24_000, 25_000, 23_000, 25_000, 22_000, 25_000, 21_000, 20_000,
 ];
+const DUE_DAYS = [5, 10, 15, 20, 25];
+const CONTRACT_MONTHS = 12;
+const DELINQUENCY_CYCLE = 20;
+const DELINQUENCY_SPREAD = 37;
+const EARLIEST_START_MONTHS_AGO = 6;
+const START_MONTH_VARIATIONS = 3;
+const AGREEMENT_LEAD_DAYS = 7;
+const CONTRACT_TRANSACTION_TIMEOUT_MS = 30_000;
 
+/** Every student has one annual contract; 95% have settled every due installment. */
 export async function seedContracts(database: DatabaseClient, todayIso: string): Promise<void> {
-  const admin = await database.user.findFirstOrThrow({
-    where: { email: DEV_ADMIN.email, role: "ADMIN", isEnabled: true, deletedAt: null },
-    select: { id: true },
-  });
-  for (const scenario of scenarios) {
-    await database.$transaction(async (transaction) => {
-      await seedContract(transaction, { scenario, todayIso, adminId: admin.id });
-    });
-  }
-}
-
-type ScenarioInput = { scenario: Scenario; todayIso: string; adminId: string };
-async function seedContract(transaction: TransactionClient, input: ScenarioInput): Promise<void> {
-  const { scenario, todayIso, adminId } = input;
-  const student = DEV_STUDENTS.find(({ key }) => key === scenario.student);
-  if (!student) throw new Error(`Unknown development student ${scenario.student}.`);
-  const payerId = scenario.payer
-    ? stableUuid(["dev-finance", scenario.payer])
-    : stableUuid(["dev-contract-payer", scenario.student]);
-  await transaction.payer.upsert({
-    where: { id: payerId },
-    create: { id: payerId, name: student.guardian?.fullName ?? student.fullName },
-    update: {},
-  });
-  const { firstDueDate, durationMonths } = scenarioTerms(scenario, todayIso);
-  const commandId = stableUuid(["dev-contract", scenario.key]);
-  const contract =
-    (await transaction.contract.findUnique({ where: { commandId }, select: { id: true } })) ??
-    (await finance(transaction, adminId).createMonthlyContract({
-      commandId,
-      studentId: stableUuid(["student", scenario.student]),
-      payerId,
-      agreedOn: firstDueDate,
-      startsOn: firstDueDate,
-      durationMonths,
-      firstDueDate,
-      monthlyAmountCents: scenario.cents,
-    }));
-  await applyScenarioOutcome(transaction, { ...input, contractId: contract.id, payerId });
-  process.stdout.write(`Contract ${scenario.key} ready (${scenario.outcome}).\n`);
-}
-
-function scenarioTerms(
-  scenario: Scenario,
-  todayIso: string,
-): { firstDueDate: string; durationMonths: number } {
-  const paid = scenario.outcome === "paid";
-  return {
-    firstDueDate: isoOf(
-      monthlyDueDate(todayIso, {
-        monthOffset: scenario.monthOffset ?? (paid ? PAID_MONTH_OFFSET : CURRENT_MONTH_OFFSET),
-        dueDay: scenario.dueDay ?? DUE_DAY,
-      }),
-    ),
-    durationMonths: scenario.months ?? (paid ? PAID_DURATION_MONTHS : CURRENT_DURATION_MONTHS),
-  };
-}
-
-async function applyScenarioOutcome(
-  transaction: TransactionClient,
-  input: ScenarioInput & { contractId: string; payerId: string },
-): Promise<void> {
-  const { scenario, todayIso, contractId, payerId } = input;
-  const order = await transaction.order.findFirstOrThrow({
-    where: { contractId, deletedAt: null },
-    select: {
-      id: true,
-      installments: {
-        where: { deletedAt: null },
-        select: { id: true, sequenceNumber: true, dueDate: true, amountCents: true },
-        orderBy: { sequenceNumber: "asc" },
+  const admin = await database.user.findUniqueOrThrow({ where: { email: DEV_ADMIN.email } });
+  const settings = await database.financeSettings.findUniqueOrThrow({ where: { id: "singleton" } });
+  for (const [index, student] of DEV_STUDENTS.entries()) {
+    await database.$transaction(
+      async (transaction) => {
+        await seedContract(transaction, {
+          student,
+          index,
+          todayIso,
+          adminId: admin.id,
+          discountPct: Number(settings.punctualityDiscountPct),
+        });
       },
+      { timeout: CONTRACT_TRANSACTION_TIMEOUT_MS },
+    );
+  }
+  process.stdout.write(
+    `${DEV_STUDENTS.length} annual contracts loaded; ${Math.floor(DEV_STUDENTS.length / DELINQUENCY_CYCLE)} with overdue installments.\n`,
+  );
+}
+
+type ContractInput = {
+  student: DevStudentSeed;
+  index: number;
+  todayIso: string;
+  adminId: string;
+  discountPct: number;
+};
+
+async function seedContract(transaction: TransactionClient, input: ContractInput): Promise<void> {
+  const { student, index, todayIso, adminId } = input;
+  const payerId = stableUuid(["dev-contract-payer", student.key]);
+  await transaction.payer.create({
+    data: {
+      id: payerId,
+      name: student.guardian?.fullName ?? student.fullName,
+      phone: student.guardian?.phone ?? student.phone ?? null,
+      email: student.guardian?.email ?? student.email ?? null,
     },
   });
-  if (scenario.outcome === "cancelled") {
-    await transaction.order.update({
-      where: { id: order.id },
-      data: {
-        cancelledAt: monthlyDueDate(todayIso, {
-          monthOffset: 0,
-          dueDay: Number(todayIso.slice(DAY_ISO_OFFSET)),
-        }),
-        cancelledReason: "Cenário de desenvolvimento",
-      },
-    });
-    return;
-  }
-  if (["late", "future"].includes(scenario.outcome)) return;
-  for (const installment of order.installments) {
-    if (isoOf(installment.dueDate) > todayIso) continue;
-    await createPayment(transaction, {
-      scenarioKey: `contract-${scenario.student}-${installment.sequenceNumber}`,
+  // Ongoing annual terms start before the current academic semester, even at year boundaries.
+  const firstDueDate = isoOf(
+    monthlyDueDate(todayIso, {
+      monthOffset: -EARLIEST_START_MONTHS_AGO - (index % START_MONTH_VARIATIONS),
+      dueDay: DUE_DAYS[index % DUE_DAYS.length]!,
+    }),
+  );
+  const contract = await finance(transaction, adminId).createMonthlyContract({
+    commandId: stableUuid(["dev-contract", student.key]),
+    studentId: stableUuid(["student", student.key]),
+    payerId,
+    agreedOn: isoOf(addDays(utcDate(firstDueDate), -AGREEMENT_LEAD_DAYS)),
+    startsOn: firstDueDate,
+    durationMonths: CONTRACT_MONTHS,
+    firstDueDate,
+    monthlyAmountCents: MONTHLY_PRICES[index % MONTHLY_PRICES.length]!,
+  });
+  await seedPayments(transaction, { ...input, contractId: contract.id, payerId });
+}
+
+async function seedPayments(
+  transaction: TransactionClient,
+  input: ContractInput & { contractId: string; payerId: string },
+): Promise<void> {
+  const { student, index, todayIso, adminId, payerId, contractId } = input;
+  const installments = await transaction.installment.findMany({
+    where: { order: { contractId } },
+    orderBy: { sequenceNumber: "asc" },
+  });
+  const isLate =
+    (index * DELINQUENCY_SPREAD) % DEV_STUDENTS.length <
+    Math.floor(DEV_STUDENTS.length / DELINQUENCY_CYCLE);
+  const unpaidIds = new Set(
+    isLate
+      ? installments
+          .filter((row) => isoOf(row.dueDate) < todayIso)
+          .slice(-2)
+          .map((row) => row.id)
+      : [],
+  );
+  for (const installment of installments) {
+    if (isoOf(installment.dueDate) > todayIso || unpaidIds.has(installment.id)) continue;
+    const amountCents = priceAfterDiscountCents(installment.amountCents, input.discountPct);
+    await finance(transaction, adminId).registerPayment({
+      commandId: stableUuid([
+        "dev-contract-payment",
+        student.key,
+        String(installment.sequenceNumber),
+      ]),
       payerId,
-      installmentId: installment.id,
-      amountCents:
-        scenario.outcome === "partial"
-          ? Math.floor(installment.amountCents / PARTIAL_DIVISOR)
-          : installment.amountCents,
-      date: installment.dueDate,
+      date: addDays(installment.dueDate, -1),
+      amountCents,
+      method: "PIX",
+      allocations: [{ installmentId: installment.id, amountCents }],
     });
   }
 }

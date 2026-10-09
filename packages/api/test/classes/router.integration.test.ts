@@ -44,7 +44,7 @@ void it("creates a regular class with generated portal name", async () => {
   assert.equal(stored.internalCode, created.internalCode);
   assert.equal(stored.capacity, 25);
   assert.equal(stored.year, 2026);
-  assert.equal(created.portalClassName, "REG/GRE29S1-TER-14:00/16:00-1S/26-1");
+  assert.equal(created.portalClassName, "REG 14:00");
   assert.equal(created.status, "ACTIVE");
 });
 
@@ -68,11 +68,11 @@ void it("generates personalized names and disambiguates identical schedules", as
     slots: [...values.slots],
   });
 
-  assert.equal(created.portalClassName, "PPT/SEX-10:00/11:00-1S/26-1");
-  assert.equal(second.portalClassName, "PPT/SEX-10:00/11:00-1S/26-2");
+  assert.equal(created.portalClassName, "PPT 10:00");
+  assert.equal(second.portalClassName, "PPT 10:00 · 2");
   assert.equal(created.sharedStageId, null);
   const stored = await db.class.findUniqueOrThrow({ where: { id: created.id } });
-  assert.equal(stored.originalPortalClassName, "PPT/SEX-10:00/11:00-1S/26-1");
+  assert.equal(stored.originalPortalClassName, "PPT 10:00");
 });
 
 void it("lists created classes with current occupancy and reads their roster", async () => {
@@ -211,7 +211,7 @@ void it("clones a regular class for the next period preserving lineage", async (
   assert.equal(result.source.status, "ARCHIVED");
   assert.equal(result.successor.previousClassId, source.id);
   assert.equal(result.successor.sharedStageId, fixtures.nextStageId);
-  assert.equal(result.successor.portalClassName, "REG/GRE29S2-TER-14:00/16:00-2S/26-1");
+  assert.equal(result.successor.portalClassName, "REG 14:00 · 2");
 });
 
 void it("enqueues session generation without creating sessions inline", async () => {

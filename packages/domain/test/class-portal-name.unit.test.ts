@@ -7,7 +7,7 @@ import {
 } from "../src/class-portal-name.js";
 
 void describe("generateRegularPortalClassName", () => {
-  void it("builds the PRD example shape from structured fields", () => {
+  void it("uses only modality and start time in the class label", () => {
     const name = generateRegularPortalClassName({
       stageInternalCode: "TUI",
       slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
@@ -16,7 +16,7 @@ void describe("generateRegularPortalClassName", () => {
       sequence: 1,
     });
 
-    assert.equal(name, "REG/TUI-TER-14:00/16:00-1S/26-1");
+    assert.equal(name, "REG 14:00");
   });
 
   void it("uses the first slot when sorted by weekday then start time", () => {
@@ -31,7 +31,7 @@ void describe("generateRegularPortalClassName", () => {
       sequence: 2,
     });
 
-    assert.equal(name, "REG/C4-SEG-09:00/10:30-2S/26-2");
+    assert.equal(name, "REG 09:00 · 2");
   });
 
   void it("appends the disambiguation sequence suffix", () => {
@@ -43,11 +43,11 @@ void describe("generateRegularPortalClassName", () => {
       sequence: 3,
     });
 
-    assert.equal(name, "REG/TUI-TER-14:00/16:00-1S/26-3");
+    assert.equal(name, "REG 14:00 · 3");
   });
 });
 
-void it("generates a PPT name from the primary slot and period without a shared stage", () => {
+void it("generates a PPT name from the primary slot without a shared stage", () => {
   const name = generatePersonalizedPortalClassName({
     slots: [
       { weekday: "FRIDAY", startTime: "10:00", endTime: "11:00" },
@@ -58,5 +58,5 @@ void it("generates a PPT name from the primary slot and period without a shared 
     year: 2026,
     sequence: 2,
   });
-  assert.equal(name, "PPT/SEG-08:00/09:00-2S/26-2");
+  assert.equal(name, "PPT 08:00 · 2");
 });

@@ -62,7 +62,7 @@ void it("keeps a future entry out of current occupancy and records cancellation 
   const storedClass = await db.class.findUniqueOrThrow({ where: { id: classRow.id } });
   assert.equal(
     studentAfter.rows.find((row) => row.id === student.id)?.enrollment?.classCode,
-    storedClass.internalCode,
+    storedClass.portalClassName,
   );
   assert.equal(action.status, "SCHEDULED");
   await callerAt("2026-09-11").enrollment.cancelScheduled({ actionId: action.id });

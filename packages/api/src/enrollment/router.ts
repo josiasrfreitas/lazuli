@@ -122,7 +122,7 @@ export const enrollmentRouter = router({
         select: {
           id: true,
           student: { select: { fullName: true } },
-          class: { select: { internalCode: true } },
+          class: { select: { internalCode: true, portalClassName: true } },
           exitDate: true,
           progressRecords: {
             where: { deletedAt: null },

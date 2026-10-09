@@ -6,278 +6,168 @@ import {
   DEV_CLASSES,
   DEV_STUDENTS,
   DEV_TEACHERS,
-  type DevAttendanceProfile,
-  type DevExitReason,
   type DevStudentSeed,
 } from "./seed-dev-data.js";
-import { monthlyDueDate, seedDevFinance } from "./seed-dev-finance.js";
+import { monthlyDueDate } from "./seed-dev-finance.js";
 import {
   addDays,
   endOfDayUtc,
-  isoOf,
   requireValue,
-  saoPauloTodayIso,
   stableUuid,
   utcDate,
   type SeedContext,
-  type SeededClass,
-  type SeededSemester,
   type SemesterSeed,
+  type SeededClass,
 } from "./seed-dev-support.js";
 
-/**
- * Idempotent development seed for the students vertical. Sessions and payments
- * are generated relative to "today" in America/Sao_Paulo, keeping the
- * overdue/held-session fixtures meaningful on any run date.
- */
-
-const YEAR_END_INDEX = 4;
-const MONTH_START_INDEX = 5;
-const MONTH_END_INDEX = 7;
-const SECOND_HALF_FIRST_MONTH = 7;
-const EXIT_DAYS_AGO = 14;
-const GOOD_ABSENCE_CYCLE = 6;
 const MONTHS_PER_YEAR = 12;
-const DAY_ISO_OFFSET = -2;
+const SECOND_HALF_MONTH = 6;
+const GOOD_ABSENCE_CYCLE = 12;
 
+/** Loads a fresh database. The public pnpm seed command owns the reset. */
 export async function seedDevData(
   database: DatabaseClient,
-  todayIso = saoPauloTodayIso(),
+  input: { todayIso: string; resolveClassName: SeedContext["resolveClassName"] },
 ): Promise<void> {
-  const semester = await upsertSemester(database, currentSemesterSeed(todayIso));
-  const teacherIds = await upsertStaff(database);
-  const context: SeedContext = { database, todayIso, semester, teacherIds, classes: new Map() };
-  for (const classSeed of DEV_CLASSES) {
-    await seedClass(context, classSeed);
-  }
-  const studentIds = new Map<string, string>();
-  for (const studentSeed of DEV_STUDENTS) {
-    studentIds.set(studentSeed.key, await seedStudent(context, studentSeed));
-  }
-  await seedDevFinance(database, { todayIso, studentIds });
+  const { todayIso, resolveClassName } = input;
+  const semesterSeed = currentSemesterSeed(todayIso);
+  const semester = await database.semester.create({
+    data: {
+      name: semesterSeed.name,
+      startDate: utcDate(semesterSeed.startIso),
+      endDate: utcDate(semesterSeed.endIso),
+    },
+  });
+  const teacherIds = await createStaff(database);
+  const context: SeedContext = {
+    database,
+    todayIso,
+    semester: { ...semesterSeed, id: semester.id },
+    teacherIds,
+    classes: new Map(),
+    resolveClassName,
+  };
+  for (const classSeed of DEV_CLASSES) await seedClass(context, classSeed);
+  for (const studentSeed of DEV_STUDENTS) await seedStudent(context, studentSeed);
 }
 
 function currentSemesterSeed(todayIso: string): SemesterSeed {
-  const year = Number(todayIso.slice(0, YEAR_END_INDEX));
-  const month = Number(todayIso.slice(MONTH_START_INDEX, MONTH_END_INDEX));
-  if (month >= SECOND_HALF_FIRST_MONTH) {
-    return { name: `${year}.2`, startIso: `${year}-07-01`, endIso: `${year}-12-20`, year };
-  }
-  return { name: `${year}.1`, startIso: `${year}-01-02`, endIso: `${year}-06-30`, year };
+  const today = utcDate(todayIso);
+  const year = today.getUTCFullYear();
+  const secondHalf = today.getUTCMonth() >= SECOND_HALF_MONTH;
+  return {
+    name: `${year}.${secondHalf ? 2 : 1}`,
+    startIso: `${year}-${secondHalf ? "07-01" : "01-01"}`,
+    endIso: `${year}-${secondHalf ? "12-31" : "06-30"}`,
+    year,
+  };
 }
 
-async function upsertSemester(
-  database: DatabaseClient,
-  seed: SemesterSeed,
-): Promise<SeededSemester> {
-  const semester = await database.semester.upsert({
-    where: { name: seed.name },
-    create: {
-      name: seed.name,
-      startDate: utcDate(seed.startIso),
-      endDate: utcDate(seed.endIso),
-    },
-    update: {},
+async function createStaff(database: DatabaseClient): Promise<Map<string, string>> {
+  await database.user.create({ data: { ...DEV_ADMIN, role: "ADMIN", emailVerified: true } });
+  await database.user.create({
+    data: { ...DEV_SYSTEM_ADMIN, role: "SYSTEM_ADMIN", emailVerified: true },
   });
-  return { ...seed, id: semester.id };
-}
-
-async function upsertStaff(database: DatabaseClient): Promise<Map<string, string>> {
-  await upsertUser(database, { email: DEV_ADMIN.email, name: DEV_ADMIN.name, role: "ADMIN" });
-  await upsertUser(database, {
-    email: DEV_SYSTEM_ADMIN.email,
-    name: DEV_SYSTEM_ADMIN.name,
-    role: "SYSTEM_ADMIN",
-  });
-  const teacherIds = new Map<string, string>();
-  for (const teacher of DEV_TEACHERS) {
-    const user = await upsertUser(database, {
-      email: teacher.email,
-      name: teacher.name,
-      role: "TEACHER",
+  const teachers = new Map<string, string>();
+  for (const { key, name, email } of DEV_TEACHERS) {
+    const teacher = await database.user.create({
+      data: { name, email, role: "TEACHER", emailVerified: true },
     });
-    teacherIds.set(teacher.key, user.id);
+    teachers.set(key, teacher.id);
   }
-  return teacherIds;
+  return teachers;
 }
 
-async function upsertUser(
-  database: DatabaseClient,
-  input: { email: string; name: string; role: "SYSTEM_ADMIN" | "ADMIN" | "TEACHER" },
-): Promise<{ id: string }> {
-  return database.user.upsert({
-    where: { email: input.email },
-    create: { email: input.email, name: input.name, role: input.role, emailVerified: true },
-    update: { name: input.name, role: input.role },
-  });
-}
-
-async function seedStudent(context: SeedContext, studentSeed: DevStudentSeed): Promise<string> {
-  const guardianId =
-    studentSeed.guardian === undefined ? null : await upsertGuardian(context, studentSeed);
-  const studentId = stableUuid(["student", studentSeed.key]);
-  await context.database.student.upsert({
-    where: { id: studentId },
-    create: {
-      id: studentId,
-      fullName: studentSeed.fullName,
-      phone: studentSeed.phone ?? null,
-      email: studentSeed.email ?? null,
-      birthDate:
-        studentSeed.ageYears === undefined
-          ? null
-          : monthlyDueDate(context.todayIso, {
-              monthOffset: -studentSeed.ageYears * MONTHS_PER_YEAR,
-              dueDay: Number(context.todayIso.slice(DAY_ISO_OFFSET)),
-            }),
-      status: studentSeed.status,
-      guardianId,
-      notes: studentSeed.notes ?? null,
-    },
-    update: { fullName: studentSeed.fullName, status: studentSeed.status, guardianId },
-  });
-  for (const enrollmentSeed of studentSeed.enrollments) {
-    await seedEnrollment(context, { studentSeed, studentId, enrollmentSeed });
+async function seedStudent(context: SeedContext, student: DevStudentSeed): Promise<void> {
+  const id = stableUuid(["student", student.key]);
+  const guardianId = student.guardian ? stableUuid(["guardian", student.key]) : null;
+  if (student.guardian && guardianId) {
+    await context.database.guardian.create({ data: { id: guardianId, ...student.guardian } });
   }
-  return studentId;
-}
-
-async function upsertGuardian(context: SeedContext, studentSeed: DevStudentSeed): Promise<string> {
-  const guardian = requireValue(studentSeed.guardian, `guardian ${studentSeed.key}`);
-  const id = stableUuid(["guardian", studentSeed.key]);
-  await context.database.guardian.upsert({
-    where: { id },
-    create: {
+  const birthday =
+    student.ageYears === undefined
+      ? null
+      : addDays(
+          monthlyDueDate(context.todayIso, {
+            monthOffset: -student.ageYears * MONTHS_PER_YEAR,
+            dueDay: utcDate(context.todayIso).getUTCDate(),
+          }),
+          -(student.birthdayOffsetDays ?? 0),
+        );
+  await context.database.student.create({
+    data: {
       id,
-      fullName: guardian.fullName,
-      relationship: guardian.relationship,
-      phone: guardian.phone,
-      email: guardian.email ?? null,
+      fullName: student.fullName,
+      phone: student.phone ?? null,
+      email: student.email ?? null,
+      birthDate: birthday,
+      status: student.status,
+      guardianId,
+      notes: student.notes ?? null,
     },
-    update: { fullName: guardian.fullName, phone: guardian.phone },
   });
-  return id;
+  for (const enrollment of student.enrollments) {
+    await seedEnrollment(context, { student, enrollment });
+  }
 }
 
 type EnrollmentInput = {
-  studentSeed: DevStudentSeed;
-  studentId: string;
-  enrollmentSeed: DevStudentSeed["enrollments"][number];
+  student: DevStudentSeed;
+  enrollment: DevStudentSeed["enrollments"][number];
 };
-
 async function seedEnrollment(context: SeedContext, input: EnrollmentInput): Promise<void> {
-  const seededClass = requireValue(
-    context.classes.get(input.enrollmentSeed.classKey),
-    `class ${input.enrollmentSeed.classKey}`,
+  const { student, enrollment } = input;
+  const classroom = requireValue(
+    context.classes.get(enrollment.classKey),
+    `class ${enrollment.classKey}`,
   );
-  const enrollmentId = stableUuid([
-    "enrollment",
-    input.studentSeed.key,
-    input.enrollmentSeed.classKey,
-  ]);
-  const exitIso =
-    input.enrollmentSeed.exitReason === undefined
-      ? null
-      : isoOf(addDays(utcDate(context.todayIso), -EXIT_DAYS_AGO));
-  await upsertEnrollmentWithProgress(context, { ...input, enrollmentId, seededClass, exitIso });
-  await seedAttendanceRows(context, {
-    studentSeed: input.studentSeed,
-    enrollmentId,
-    seededClass,
-    exitIso,
-  });
-}
-
-type EnrollmentRowInput = EnrollmentInput & {
-  enrollmentId: string;
-  seededClass: SeededClass;
-  exitIso: string | null;
-};
-
-// The deferred Enrollment_progress_state_guard constraint trigger requires an
-// active enrollment and its single active pedagogical progress row to be
-// committed in the same transaction.
-async function upsertEnrollmentWithProgress(
-  context: SeedContext,
-  input: EnrollmentRowInput,
-): Promise<void> {
-  const progressId = stableUuid(["progress", input.studentSeed.key, input.enrollmentSeed.classKey]);
-  await context.database.$transaction([
-    context.database.enrollment.upsert({
-      where: { id: input.enrollmentId },
-      create: {
-        id: input.enrollmentId,
-        studentId: input.studentId,
-        classId: input.seededClass.id,
+  const stageId = enrollment.stageInternalCode
+    ? (
+        await context.database.stage.findFirstOrThrow({
+          where: { internalCode: enrollment.stageInternalCode },
+        })
+      ).id
+    : classroom.stageId;
+  const enrollmentId = stableUuid(["enrollment", student.key, enrollment.classKey]);
+  // The deferred progress constraint requires enrollment and placement in one transaction.
+  await context.database.$transaction(async (transaction) => {
+    await transaction.enrollment.create({
+      data: {
+        id: enrollmentId,
+        studentId: stableUuid(["student", student.key]),
+        classId: classroom.id,
         entryDate: utcDate(context.semester.startIso),
-        exitDate: input.exitIso === null ? null : utcDate(input.exitIso),
-        exitReason: input.enrollmentSeed.exitReason ?? null,
       },
-      update: {},
-    }),
-    context.database.pedagogicalProgress.upsert({
-      where: { id: progressId },
-      create: {
-        id: progressId,
-        enrollmentId: input.enrollmentId,
-        stageId: input.seededClass.stageId,
+    });
+    await transaction.pedagogicalProgress.create({
+      data: {
+        id: stableUuid(["progress", student.key, enrollment.classKey]),
+        enrollmentId,
+        stageId,
         startDate: utcDate(context.semester.startIso),
-        endDate: input.exitIso === null ? null : utcDate(input.exitIso),
-        endReason:
-          input.enrollmentSeed.exitReason === undefined
-            ? null
-            : progressEndReasonFor(input.enrollmentSeed.exitReason),
       },
-      update: {},
-    }),
-  ]);
-}
-
-function progressEndReasonFor(reason: DevExitReason): "ADVANCED" | "DROPPED" | "SUSPENDED" {
-  return reason === "COMPLETED" ? "ADVANCED" : reason;
-}
-
-type AttendanceRowsInput = {
-  studentSeed: DevStudentSeed;
-  enrollmentId: string;
-  seededClass: SeededClass;
-  exitIso: string | null;
-};
-
-async function seedAttendanceRows(context: SeedContext, input: AttendanceRowsInput): Promise<void> {
-  for (const session of input.seededClass.sessions) {
-    if (input.exitIso !== null && session.dateIso > input.exitIso) {
-      continue;
-    }
-    const status = attendanceStatusFor({
-      profile: input.studentSeed.attendance,
-      studentKey: input.studentSeed.key,
-      index: session.index,
     });
-    const id = stableUuid(["attendance", input.enrollmentId, session.id]);
-    await context.database.attendance.upsert({
-      where: { id },
-      create: {
-        id,
-        enrollmentId: input.enrollmentId,
-        classSessionId: session.id,
-        status,
-        recordedAt: endOfDayUtc(session.dateIso),
-        recordedById: input.seededClass.teacherId,
-      },
-      update: { status },
-    });
-  }
+  });
+  await seedAttendance(context, { student, classroom, enrollmentId });
 }
 
-function attendanceStatusFor(input: {
-  profile: DevAttendanceProfile;
-  studentKey: string;
-  index: number;
-}): "PRESENT" | "ABSENT" {
-  if (input.profile === "low") {
-    return input.index % 2 === 0 ? "PRESENT" : "ABSENT";
-  }
-  const offset = stableUuid([input.studentKey]).codePointAt(0) ?? 0;
-  return (input.index + offset) % GOOD_ABSENCE_CYCLE === 0 ? "ABSENT" : "PRESENT";
+async function seedAttendance(
+  context: SeedContext,
+  input: { student: DevStudentSeed; classroom: SeededClass; enrollmentId: string },
+): Promise<void> {
+  const { student, classroom, enrollmentId } = input;
+  const offset = stableUuid([student.key]).codePointAt(0) ?? 0;
+  await context.database.attendance.createMany({
+    data: classroom.sessions.map((session) => ({
+      id: stableUuid(["attendance", enrollmentId, session.id]),
+      enrollmentId,
+      classSessionId: session.id,
+      status:
+        (session.index + offset) % (student.attendance === "low" ? 2 : GOOD_ABSENCE_CYCLE) === 0
+          ? "ABSENT"
+          : "PRESENT",
+      recordedAt: endOfDayUtc(session.dateIso),
+      recordedById: classroom.teacherId,
+    })),
+  });
 }
