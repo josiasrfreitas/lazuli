@@ -44,6 +44,7 @@ const openEnrollmentSelect = {
   class: {
     select: {
       internalCode: true,
+      portalClassName: true,
       ...responsibilitySelect,
       scheduleSlots: {
         where: { deletedAt: null },
@@ -274,6 +275,7 @@ function searchFilter(search: string | undefined, now: Date): Prisma.StudentWher
     OR: [
       { fullName: contains },
       { enrollments: { some: { ...openEnrollment, class: { internalCode: contains } } } },
+      { enrollments: { some: { ...openEnrollment, class: { portalClassName: contains } } } },
       { enrollments: { some: { ...openEnrollment, class: { teacher: { name: contains } } } } },
     ],
   };

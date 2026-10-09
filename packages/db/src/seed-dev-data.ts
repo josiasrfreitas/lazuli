@@ -1,12 +1,4 @@
-/**
- * Deterministic development fixtures for the students vertical. Data only:
- * `seed-dev.ts` turns these seeds into idempotent upserts keyed by stable UUIDs.
- */
-
-const DEFAULT_CAPACITY = 20;
-const KIDS_CAPACITY = 8;
-const EXTRA_HIGH_OCCUPANCY_STUDENTS = 18;
-const EXTRA_MODERATE_OCCUPANCY_STUDENTS = 13;
+/** One school scenario, shared by academic and financial loading. */
 
 export type DevWeekday =
   | "MONDAY"
@@ -32,6 +24,9 @@ export type DevClassSeed = {
   stageInternalCode: string;
   teacherKey: string;
   capacity: number;
+  studentCount: number;
+  minimumAge: number;
+  ageSpread: number;
   slots: DevScheduleSlot[];
 };
 
@@ -42,12 +37,9 @@ export type DevGuardianSeed = {
   email?: string;
 };
 
-export type DevExitReason = "SUSPENDED" | "DROPPED" | "COMPLETED";
-
 export type DevEnrollmentSeed = {
   classKey: string;
-  /** When set, the enrollment exits on the shared dev exit date (two weeks ago). */
-  exitReason?: DevExitReason;
+  stageInternalCode?: string;
 };
 
 export type DevAttendanceProfile = "good" | "low";
@@ -57,6 +49,7 @@ export type DevStudentSeed = {
   fullName: string;
   status: "ACTIVE" | "INACTIVE" | "SUSPENDED" | "DROPPED";
   ageYears?: number;
+  birthdayOffsetDays?: number;
   phone?: string;
   email?: string;
   guardian?: DevGuardianSeed;
@@ -67,12 +60,12 @@ export type DevStudentSeed = {
 
 export const DEV_ADMIN = {
   email: "dev@lazuli.local",
-  name: "Secretaria Lazuli",
+  name: "Clara Ribeiro",
 } as const;
 
 export const DEV_SYSTEM_ADMIN = {
   email: "sistema@lazuli.local",
-  name: "Administrador do sistema",
+  name: "Marcelo Nogueira",
 } as const;
 
 export const DEV_TEACHERS: readonly DevTeacherSeed[] = [
@@ -80,265 +73,247 @@ export const DEV_TEACHERS: readonly DevTeacherSeed[] = [
   { key: "rafael", name: "Rafael Mendes", email: "rafael.mendes@lazuli.local" },
   { key: "juliana", name: "Juliana Prado", email: "juliana.prado@lazuli.local" },
   { key: "heitor", name: "Heitor Vasconcelos", email: "heitor.vasconcelos@lazuli.local" },
+  { key: "beatriz", name: "Beatriz Albuquerque", email: "beatriz.albuquerque@lazuli.local" },
+  { key: "lucas", name: "Lucas Monteiro", email: "lucas.monteiro@lazuli.local" },
+  { key: "renata", name: "Renata Cavalcanti", email: "renata.cavalcanti@lazuli.local" },
 ];
 
-export const DEV_CLASSES: readonly DevClassSeed[] = [
-  {
-    key: "PPT-E1",
-    scheduleType: "PERSONALIZED",
-    stageInternalCode: "E1",
-    teacherKey: "camila",
-    capacity: DEFAULT_CAPACITY,
-    slots: [{ weekday: "FRIDAY", startTime: "17:00", endTime: "19:00" }],
-  },
-  {
-    key: "E1A",
-    stageInternalCode: "E1",
-    teacherKey: "camila",
-    capacity: DEFAULT_CAPACITY,
-    slots: [
-      { weekday: "TUESDAY", startTime: "19:00", endTime: "20:30" },
-      { weekday: "THURSDAY", startTime: "19:00", endTime: "20:30" },
-    ],
-  },
-  {
-    key: "T2A",
-    stageInternalCode: "T2",
-    teacherKey: "rafael",
-    capacity: DEFAULT_CAPACITY,
-    slots: [
-      { weekday: "MONDAY", startTime: "19:00", endTime: "20:30" },
-      { weekday: "WEDNESDAY", startTime: "19:00", endTime: "20:30" },
-    ],
-  },
-  {
-    key: "F1A",
-    stageInternalCode: "F1",
-    teacherKey: "juliana",
-    capacity: DEFAULT_CAPACITY,
-    slots: [{ weekday: "SATURDAY", startTime: "09:00", endTime: "12:00" }],
-  },
-  {
-    key: "MWYA",
-    stageInternalCode: "MWY",
-    teacherKey: "juliana",
-    capacity: KIDS_CAPACITY,
-    slots: [
-      { weekday: "TUESDAY", startTime: "14:00", endTime: "15:00" },
-      { weekday: "THURSDAY", startTime: "14:00", endTime: "15:00" },
-    ],
-  },
-  {
-    key: "C2A",
-    stageInternalCode: "C2",
-    teacherKey: "heitor",
-    capacity: DEFAULT_CAPACITY,
-    slots: [
-      { weekday: "MONDAY", startTime: "15:30", endTime: "17:00" },
-      { weekday: "WEDNESDAY", startTime: "15:30", endTime: "17:00" },
-    ],
-  },
-  {
-    key: "S1A",
-    stageInternalCode: "S1",
-    teacherKey: "rafael",
-    capacity: DEFAULT_CAPACITY,
-    slots: [{ weekday: "FRIDAY", startTime: "19:00", endTime: "21:00" }],
-  },
+const ADULT_AGE = 18;
+
+// 160 students, with a mean of ten per class. Teachers' slots do not overlap.
+const CLASS_PROFILES = [
+  { key: "MWYA", stageInternalCode: "MWY", studentCount: 8, minimumAge: 6, ageSpread: 3 },
+  { key: "MWBA", stageInternalCode: "MWB", studentCount: 10, minimumAge: 7, ageSpread: 3 },
+  { key: "MWRA", stageInternalCode: "MWR", studentCount: 11, minimumAge: 8, ageSpread: 3 },
+  { key: "MWGA", stageInternalCode: "MWG", studentCount: 9, minimumAge: 9, ageSpread: 3 },
+  { key: "C1A", stageInternalCode: "C1", studentCount: 12, minimumAge: 11, ageSpread: 3 },
+  { key: "C2A", stageInternalCode: "C2", studentCount: 10, minimumAge: 12, ageSpread: 3 },
+  { key: "C3A", stageInternalCode: "C3", studentCount: 14, minimumAge: 13, ageSpread: 3 },
+  { key: "C4A", stageInternalCode: "C4", studentCount: 8, minimumAge: 14, ageSpread: 3 },
+  { key: "E1A", stageInternalCode: "E1", studentCount: 11, minimumAge: 15, ageSpread: 3 },
+  { key: "T2A", stageInternalCode: "T2", studentCount: 9, minimumAge: 15, ageSpread: 3 },
+  { key: "F1A", stageInternalCode: "F1", studentCount: 12, minimumAge: 18, ageSpread: 22 },
+  { key: "S1A", stageInternalCode: "S1", studentCount: 10, minimumAge: 20, ageSpread: 25 },
+  { key: "E2A", stageInternalCode: "E2", studentCount: 4, minimumAge: 15, ageSpread: 3 },
+  { key: "PPT-E1", stageInternalCode: "E1", studentCount: 10, minimumAge: 14, ageSpread: 3 },
+  { key: "PPT-C2", stageInternalCode: "C2", studentCount: 10, minimumAge: 12, ageSpread: 3 },
+  { key: "PPT-T1", stageInternalCode: "T1", studentCount: 12, minimumAge: 18, ageSpread: 20 },
+] as const;
+
+export const DEV_CLASSES: readonly DevClassSeed[] = CLASS_PROFILES.map((profile, index) => ({
+  key: profile.key,
+  scheduleType: profile.key.startsWith("PPT") ? "PERSONALIZED" : "REGULAR",
+  stageInternalCode: profile.stageInternalCode,
+  teacherKey: DEV_TEACHERS[index % DEV_TEACHERS.length]!.key,
+  capacity: 25,
+  studentCount: profile.studentCount,
+  minimumAge: profile.minimumAge,
+  ageSpread: profile.ageSpread,
+  slots: classSlots(index),
+}));
+
+function classSlots(index: number): DevScheduleSlot[] {
+  const windows = [
+    { startTime: "14:00", endTime: "15:30" },
+    { startTime: "16:00", endTime: "17:30" },
+    { startTime: "19:00", endTime: "20:30" },
+  ] as const;
+  // Adults meet in the evening; the younger groups attend in the afternoon.
+  const evening = CLASS_PROFILES[index]!.minimumAge >= ADULT_AGE;
+  const window =
+    CLASS_PROFILES[index]!.key === "PPT-C2"
+      ? { startTime: "17:30", endTime: "19:00" }
+      : windows[evening ? 2 : Math.floor(index / DEV_TEACHERS.length) % 2]!;
+  const weekdays: DevWeekday[] =
+    index % 2 === 0 ? ["MONDAY", "WEDNESDAY"] : ["TUESDAY", "THURSDAY"];
+  return weekdays.map((weekday) => ({ weekday, ...window }));
+}
+
+const FIRST_NAMES = [
+  "Ana Beatriz",
+  "Bruno",
+  "Carolina",
+  "Davi Lucca",
+  "Elisa",
+  "Felipe",
+  "Gabriela",
+  "Henrique",
+  "Isadora",
+  "João Pedro",
+  "Larissa",
+  "Marcos Vinícius",
+  "Natália",
+  "Otávio",
+  "Priscila",
+  "Théo",
+  "Marina",
+  "Arthur",
+  "Cecília",
+  "Daniel",
+  "Eduarda",
+  "Francisco",
+  "Helena",
+  "Igor",
+  "Júlia",
+  "Leonardo",
+  "Luísa",
+  "Miguel",
+  "Manuela",
+  "Nicolas",
+  "Olívia",
+  "Pedro Henrique",
+  "Rafaela",
+  "Samuel",
+  "Sofia",
+  "Tomás",
+  "Valentina",
+  "Vinícius",
+  "Yasmin",
+  "Alice",
+] as const;
+const SURNAMES = [
+  "Rocha",
+  "Carvalho",
+  "Menezes",
+  "Ferreira",
+  "Martins",
+  "Andrade",
+  "Nunes",
+  "Sales",
+  "Campos",
+  "Almeida",
+  "Fontes",
+  "Teles",
+  "Borges",
+  "Ramos",
+  "Lima",
+  "Siqueira",
+  "Azevedo",
+  "Barbosa",
+  "Costa",
+  "Oliveira",
+  "Pereira",
+  "Santana",
+  "Teixeira",
+  "Moreira",
+  "Farias",
+  "Cunha",
+  "Moura",
+  "Batista",
+  "Correia",
+  "Dias",
+  "Rezende",
+  "Lacerda",
+] as const;
+const GUARDIAN_NAMES = [
+  "Patrícia",
+  "Carlos",
+  "Mônica",
+  "Eduardo",
+  "Fernanda",
+  "Rodrigo",
+  "Adriana",
+  "André",
+] as const;
+// Preserve existing fixture keys even though their scenario is rebuilt.
+const EXISTING_KEYS = [
+  "ana",
+  "bruno",
+  "carla",
+  "davi",
+  "elisa",
+  "felipe",
+  "gabriela",
+  "henrique",
+  "isadora",
+  "joao",
+  "larissa",
+  "marcos",
+  "natalia",
+  "otavio",
+  "priscila",
+  "theo",
+  "ppt-example",
+  ...Array.from({ length: 18 }, (_unused, index) => `occupancy-E1A-${index + 1}`),
+  ...Array.from({ length: 13 }, (_unused, index) => `occupancy-T2A-${index + 1}`),
 ];
 
-export const DEV_STUDENTS: readonly DevStudentSeed[] = [
-  {
-    key: "ppt-example",
-    fullName: "Marina Azevedo",
-    status: "ACTIVE",
-    enrollments: [{ classKey: "PPT-E1" }],
-    attendance: "good",
-  },
-  {
-    key: "ana",
-    fullName: "Ana Beatriz Rocha",
-    status: "ACTIVE",
-    ageYears: 28,
-    phone: "(11) 98801-2233",
-    email: "ana.rocha@example.com",
-    enrollments: [{ classKey: "T2A" }],
-    attendance: "good",
-    notes: "Prefere contato por WhatsApp.",
-  },
-  {
-    key: "bruno",
-    fullName: "Bruno Carvalho",
-    status: "ACTIVE",
-    ageYears: 35,
-    phone: "(11) 98712-4455",
-    email: "bruno.carvalho@example.com",
-    enrollments: [{ classKey: "E1A" }],
-    attendance: "good",
-  },
-  {
-    key: "carla",
-    fullName: "Carla Menezes",
-    status: "ACTIVE",
-    ageYears: 39,
-    phone: "(11) 99655-7788",
-    enrollments: [{ classKey: "E1A" }],
-    attendance: "good",
-  },
-  {
-    key: "davi",
-    fullName: "Davi Lucca Ferreira",
-    status: "ACTIVE",
-    ageYears: 13,
-    phone: "(11) 98123-9012",
-    guardian: {
-      fullName: "Patrícia Ferreira",
-      relationship: "Mãe",
-      phone: "(11) 98123-9012",
-      email: "patricia.ferreira@example.com",
-    },
-    enrollments: [{ classKey: "C2A" }],
-    attendance: "good",
-  },
-  {
-    key: "elisa",
-    fullName: "Elisa Prado Martins",
-    status: "ACTIVE",
-    ageYears: 8,
-    guardian: {
-      fullName: "Renata Martins",
-      relationship: "Mãe",
-      phone: "(11) 99320-6677",
-      email: "renata.martins@example.com",
-    },
-    enrollments: [{ classKey: "MWYA" }],
-    attendance: "good",
-  },
-  {
-    key: "felipe",
-    fullName: "Felipe Andrade",
-    status: "ACTIVE",
-    ageYears: 31,
-    phone: "(11) 97244-1100",
-    email: "felipe.andrade@example.com",
-    enrollments: [{ classKey: "F1A" }],
-    attendance: "low",
-  },
-  {
-    key: "gabriela",
-    fullName: "Gabriela Nunes",
-    status: "ACTIVE",
-    ageYears: 27,
-    phone: "(11) 98466-3322",
-    email: "gabriela.nunes@example.com",
-    enrollments: [{ classKey: "S1A" }, { classKey: "F1A" }],
-    attendance: "good",
-  },
-  {
-    key: "henrique",
-    fullName: "Henrique Sales",
-    status: "ACTIVE",
-    ageYears: 42,
-    phone: "(11) 99870-5544",
-    enrollments: [],
-    attendance: "good",
-    notes: "Aguardando definição de turma.",
-  },
-  {
-    key: "isadora",
-    fullName: "Isadora Campos",
-    status: "ACTIVE",
-    ageYears: 14,
-    guardian: {
-      fullName: "Carlos Campos",
-      relationship: "Pai",
-      phone: "(11) 98005-8899",
-    },
-    enrollments: [{ classKey: "C2A" }],
-    attendance: "good",
-  },
-  {
-    key: "joao",
-    fullName: "João Pedro Almeida",
-    status: "ACTIVE",
-    ageYears: 25,
-    phone: "(11) 97551-2266",
-    email: "joao.almeida@example.com",
-    enrollments: [{ classKey: "T2A" }],
-    attendance: "good",
-  },
-  {
-    key: "larissa",
-    fullName: "Larissa Fontes",
-    status: "ACTIVE",
-    ageYears: 33,
-    phone: "(11) 99118-7733",
-    enrollments: [{ classKey: "E1A" }],
-    attendance: "good",
-  },
-  {
-    key: "marcos",
-    fullName: "Marcos Vinícius Teles",
-    status: "INACTIVE",
-    ageYears: 37,
-    phone: "(11) 98290-4411",
-    enrollments: [{ classKey: "T2A", exitReason: "COMPLETED" }],
-    attendance: "good",
-  },
-  {
-    key: "natalia",
-    fullName: "Natália Borges",
-    status: "SUSPENDED",
-    ageYears: 30,
-    phone: "(11) 97633-9955",
-    enrollments: [{ classKey: "F1A", exitReason: "SUSPENDED" }],
-    attendance: "good",
-    notes: "Matrícula trancada a pedido da aluna.",
-  },
-  {
-    key: "otavio",
-    fullName: "Otávio Ramos",
-    status: "DROPPED",
-    ageYears: 34,
-    phone: "(11) 98944-6600",
-    enrollments: [{ classKey: "S1A", exitReason: "DROPPED" }],
-    attendance: "low",
-  },
-  {
-    key: "priscila",
-    fullName: "Priscila Duarte Lima",
-    status: "ACTIVE",
-    ageYears: 29,
-    phone: "(11) 99402-1188",
-    email: "priscila.lima@example.com",
-    enrollments: [{ classKey: "S1A" }],
-    attendance: "good",
-  },
-  {
-    key: "theo",
-    fullName: "Théo Siqueira",
-    status: "ACTIVE",
-    ageYears: 7,
-    guardian: {
-      fullName: "Mônica Siqueira",
-      relationship: "Mãe",
-      phone: "(11) 98077-3300",
-      email: "monica.siqueira@example.com",
-    },
-    enrollments: [{ classKey: "MWYA" }],
-    attendance: "good",
-  },
-  ...occupancyStudents("E1A", EXTRA_HIGH_OCCUPANCY_STUDENTS),
-  ...occupancyStudents("T2A", EXTRA_MODERATE_OCCUPANCY_STUDENTS),
-];
+const SURNAME_STRIDE = 7;
+const SECOND_SURNAME_STRIDE = 11;
+const SECOND_SURNAME_OFFSET = 5;
+const PHONE_PREFIX = 8100;
+const PHONE_SUFFIX = 1200;
+const PHONE_STRIDE = 37;
+const PHONE_SUFFIX_LENGTH = 4;
+const BIRTHDAY_STRIDE = 47;
+const BIRTHDAY_VARIATIONS = 330;
+const LOW_ATTENDANCE_CYCLE = 17;
+const CHILD_PPT_STAGES = ["C1", "C2", "C3"];
+const TEEN_PPT_STAGES = ["E1", "E2", "T1"];
 
-/** Existing enrollments plus these examples give E1A 21 students and T2A 15. */
-function occupancyStudents(classKey: string, count: number): DevStudentSeed[] {
-  return Array.from({ length: count }, (_unused, index) => ({
-    key: `occupancy-${classKey}-${index + 1}`,
-    fullName: `Estudante exemplo ${classKey} ${index + 1}`,
+export const DEV_STUDENTS: readonly DevStudentSeed[] = buildStudents();
+
+function buildStudents(): DevStudentSeed[] {
+  const students: DevStudentSeed[] = [];
+  for (const classroom of DEV_CLASSES) {
+    for (let position = 0; position < classroom.studentCount; position += 1) {
+      students.push(studentProfile(classroom, { position, index: students.length }));
+    }
+  }
+  return students;
+}
+
+function studentProfile(
+  classroom: DevClassSeed,
+  input: { position: number; index: number },
+): DevStudentSeed {
+  const { position, index } = input;
+  const firstName = FIRST_NAMES[index % FIRST_NAMES.length]!;
+  const surname =
+    SURNAMES[(index * SURNAME_STRIDE + Math.floor(index / FIRST_NAMES.length)) % SURNAMES.length]!;
+  const secondSurname =
+    SURNAMES[(index * SECOND_SURNAME_STRIDE + SECOND_SURNAME_OFFSET) % SURNAMES.length]!;
+  const fullName = `${firstName} ${surname}${surname === secondSurname ? "" : ` ${secondSurname}`}`;
+  const ageYears = classroom.minimumAge + (position % classroom.ageSpread);
+  const phone = `(82) 9${String(PHONE_PREFIX + index)}-${String(PHONE_SUFFIX + index * PHONE_STRIDE).padStart(PHONE_SUFFIX_LENGTH, "0")}`;
+  const guardian =
+    ageYears < ADULT_AGE
+      ? {
+          fullName: `${GUARDIAN_NAMES[index % GUARDIAN_NAMES.length]} ${surname} ${secondSurname}`,
+          relationship: index % 2 === 0 ? "Mãe" : "Pai",
+          phone,
+          email: `familia.${emailSlug(fullName)}@example.com`,
+        }
+      : undefined;
+  return {
+    key: EXISTING_KEYS[index] ?? `school-student-${index + 1}`,
+    fullName,
     status: "ACTIVE",
-    enrollments: [{ classKey }],
-    attendance: "good",
-  }));
+    ageYears,
+    birthdayOffsetDays: (index * BIRTHDAY_STRIDE) % BIRTHDAY_VARIATIONS,
+    phone,
+    email: `${emailSlug(fullName)}@example.com`,
+    ...(guardian ? { guardian } : {}),
+    enrollments: [
+      {
+        classKey: classroom.key,
+        ...(classroom.scheduleType === "PERSONALIZED"
+          ? {
+              stageInternalCode: classroom.stageInternalCode.startsWith("C")
+                ? CHILD_PPT_STAGES[position % CHILD_PPT_STAGES.length]!
+                : TEEN_PPT_STAGES[position % TEEN_PPT_STAGES.length]!,
+            }
+          : {}),
+      },
+    ],
+    attendance: index % LOW_ATTENDANCE_CYCLE === 0 ? "low" : "good",
+  };
+}
+
+function emailSlug(name: string): string {
+  return name
+    .normalize("NFD")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
+    .toLowerCase()
+    .replaceAll(/\s+/gu, ".");
 }

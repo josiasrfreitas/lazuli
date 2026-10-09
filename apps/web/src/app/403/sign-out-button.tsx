@@ -1,31 +1,25 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { Button } from "@lazuli/ui";
 
-import { authClient } from "~/lib/auth-client";
+import { useSignOut } from "~/lib/use-sign-out";
 
-/**
- * The only way out of a session, for now. It lives on the 403 page because that
- * is where a signed-in person can be stuck: the authenticated shell will grow
- * its own sign-out menu, and this button goes away when it does.
- */
+/** Lets signed-in staff leave an account that cannot access the product. */
 export function SignOutButton(): ReactNode {
-  const router = useRouter();
-  const [signingOut, setSigningOut] = useState(false);
-
-  async function signOut(): Promise<void> {
-    setSigningOut(true);
-    await authClient.signOut();
-    router.replace("/login");
-    router.refresh();
-  }
+  const { pending, failed, signOut } = useSignOut();
 
   return (
-    <Button loading={signingOut} onClick={() => void signOut()} size="lg" variant="secondary">
-      Sair
-    </Button>
+    <div>
+      <Button loading={pending} onClick={() => void signOut()} size="lg" variant="secondary">
+        Sair
+      </Button>
+      {failed && (
+        <p className="mt-2 text-caption text-marquee-muted" role="alert">
+          Não foi possível sair. Tente novamente.
+        </p>
+      )}
+    </div>
   );
 }

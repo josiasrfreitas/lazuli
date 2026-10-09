@@ -204,7 +204,7 @@ function registerAttendanceTest(): void {
     assert.deepEqual(carla.attendance, { percent: null, flagged: false });
     assert.deepEqual(davi.attendance, { percent: null, flagged: false });
 
-    assert.equal(ana.enrollment?.classCode, CLASS_A_CODE);
+    assert.equal(ana.enrollment?.classCode, `${CLASS_A_CODE} portal`);
     assert.equal(ana.enrollment?.scheduleLabel, CLASS_A_SCHEDULE_LABEL);
     assert.equal(ana.enrollment?.teacherName, TEACHER_A_NAME);
     assert.equal(carla.enrollment?.scheduleLabel, CLASS_B_SCHEDULE_LABEL);

@@ -32,7 +32,7 @@ export function classColumns(params: ClassListParams): readonly DataTableColumn<
           className="font-medium text-primary underline-offset-2 hover:underline focus-visible:shadow-focus"
           href={`/turmas/${row.id}?voltar=${encodeURIComponent(back)}`}
         >
-          {row.internalCode}
+          {row.portalClassName}
         </Link>
       ),
     },

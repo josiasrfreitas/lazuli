@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 
+import type { DevClassSeed } from "./seed-dev-data.js";
+
 import type { DatabaseClient } from "./client.js";
 
 /**
- * Shared helpers for the idempotent dev seed. Every row is keyed by a UUID
- * derived from a stable seed key, so re-running only upserts.
+ * Shared date and identity helpers for the complete school seed.
  */
 
 const DATE_ONLY_LENGTH = 10;
@@ -30,6 +31,7 @@ export type SeedContext = {
   semester: SeededSemester;
   teacherIds: Map<string, string>;
   classes: Map<string, SeededClass>;
+  resolveClassName: (classSeed: DevClassSeed, semester: SeededSemester) => Promise<string>;
 };
 
 export function stableUuid(parts: readonly string[]): string {

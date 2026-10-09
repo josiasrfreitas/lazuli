@@ -93,7 +93,7 @@ function classMetadata(
 ): Pick<TeacherMeeting, "className" | "classCode" | "scheduleType" | "format" | "stageName"> {
   return {
     className: row.portalClassName,
-    classCode: row.internalCode,
+    classCode: row.portalClassName,
     scheduleType: row.scheduleType,
     format: row.format,
     stageName: row.sharedStage?.name ?? null,

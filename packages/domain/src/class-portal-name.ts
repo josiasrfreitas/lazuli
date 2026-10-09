@@ -23,34 +23,19 @@ export type GenerateRegularPortalClassNameInput = {
   slots: readonly PortalClassNameSlot[];
   semesterName: string;
   year: number;
-  /** Disambiguation suffix when active portalClassName would collide (-1, -2, …). */
+  /** Disambiguation suffix when active portalClassName would collide (· 2, · 3, …). */
   sequence: number;
 };
 
-const WEEKDAY_PORTAL_ABBREV: Record<Weekday, string> = {
-  MONDAY: "SEG",
-  TUESDAY: "TER",
-  WEDNESDAY: "QUA",
-  THURSDAY: "QUI",
-  FRIDAY: "SEX",
-  SATURDAY: "SAB",
-  SUNDAY: "DOM",
-};
-const YEAR_SUFFIX_DIVISOR = 100;
-
-/**
- * Interim REGULAR Portal class-name generator. Exact Portal semantics for 1S/2S
- * and trailing suffix remain unresolved.
- * Multi-slot classes use the earliest weekday slot, then earliest start time.
- */
+/** Human-facing class labels use modality and the first meeting's start time. */
 export function generateRegularPortalClassName(input: GenerateRegularPortalClassNameInput): string {
-  return generatePortalClassName(input, `REG/${input.stageInternalCode}-`);
+  return generatePortalClassName(input, "REG");
 }
 
 export function generatePersonalizedPortalClassName(
   input: Omit<GenerateRegularPortalClassNameInput, "stageInternalCode">,
 ): string {
-  return generatePortalClassName(input, "PPT/");
+  return generatePortalClassName(input, "PPT");
 }
 
 function generatePortalClassName(
@@ -61,18 +46,8 @@ function generatePortalClassName(
   if (primarySlot === undefined) {
     throw new Error("At least one schedule slot is required to derive a Portal class name.");
   }
-
-  const semesterSuffix = parseSemesterSuffix(input.semesterName);
-  const yearSuffix = String(input.year % YEAR_SUFFIX_DIVISOR).padStart(2, "0");
-
-  return (
-    prefix +
-    [
-      WEEKDAY_PORTAL_ABBREV[primarySlot.weekday],
-      `${primarySlot.startTime}/${primarySlot.endTime}`,
-      `${semesterSuffix}/${yearSuffix}-${input.sequence}`,
-    ].join("-")
-  );
+  const suffix = input.sequence === 1 ? "" : ` · ${input.sequence}`;
+  return `${prefix} ${primarySlot.startTime}${suffix}`;
 }
 
 function selectPrimarySlot(slots: readonly PortalClassNameSlot[]): PortalClassNameSlot | undefined {
@@ -94,16 +69,4 @@ function compareSlots(left: PortalClassNameSlot, right: PortalClassNameSlot): nu
   }
 
   return left.startTime.localeCompare(right.startTime);
-}
-
-/** Maps semester names like 2026.1 → the interim 1S suffix. */
-function parseSemesterSuffix(semesterName: string): string {
-  const match = /\.(\d+)$/.exec(semesterName);
-  if (match?.[1] === undefined) {
-    throw new Error(
-      `Semester name "${semesterName}" must end with .N to derive the Portal suffix.`,
-    );
-  }
-
-  return `${match[1]}S`;
 }

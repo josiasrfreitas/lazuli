@@ -1,7 +1,13 @@
+const DEFAULT_IMAGE_QUALITY = 75;
+const LOGIN_IMAGE_QUALITY = 90;
+
 /** @type {import("next").NextConfig} */
 const config = {
   reactStrictMode: true,
   allowedDevOrigins: ["*.lazuli.localhost"],
+  images: {
+    qualities: [DEFAULT_IMAGE_QUALITY, LOGIN_IMAGE_QUALITY],
+  },
   experimental: {
     useTypeScriptCli: true,
     cpus: 2,

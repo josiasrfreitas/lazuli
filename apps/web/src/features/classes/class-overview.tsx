@@ -28,8 +28,6 @@ export function ClassOverview({
       </h1>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted-foreground">
-          <span className="break-all font-numeric">{detail.internalCode}</span>
-          <span aria-hidden="true">·</span>
           <span>{detail.semester.name}</span>
           <Badge variant={detail.scheduleType === "REGULAR" ? "info" : "neutral"}>
             {formatScheduleType(detail.scheduleType)}

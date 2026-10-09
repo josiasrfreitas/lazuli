@@ -39,13 +39,18 @@ export const studentsRouter = router({
             deletedAt: null,
             ...(input.ids.length > 0
               ? { id: { in: input.ids } }
-              : { internalCode: { contains: input.search, mode: "insensitive" as const } }),
+              : {
+                  OR: [
+                    { internalCode: { contains: input.search, mode: "insensitive" as const } },
+                    { portalClassName: { contains: input.search, mode: "insensitive" as const } },
+                  ],
+                }),
           },
-          select: { id: true, internalCode: true },
-          orderBy: { internalCode: "asc" },
+          select: { id: true, portalClassName: true },
+          orderBy: { portalClassName: "asc" },
           take: FILTER_OPTION_LIMIT,
         });
-        return rows.map(({ id, internalCode }) => ({ id, label: internalCode }));
+        return rows.map(({ id, portalClassName }) => ({ id, label: portalClassName }));
       }
       const rows = await ctx.db.user.findMany({
         where: {

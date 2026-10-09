@@ -57,7 +57,7 @@ type TeacherClassSummaryProps = TeacherClassCardProps;
 function TeacherClassSummary(props: TeacherClassSummaryProps): ReactElement {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <h3 className="break-words text-body font-semibold">{props.row.internalCode}</h3>
+      <h3 className="break-words text-body font-semibold">{props.row.portalClassName}</h3>
       <Badge variant={props.row.status === "ACTIVE" ? "success" : "neutral"}>
         {props.row.status === "ACTIVE" ? "Ativa" : "Arquivada"}
       </Badge>
