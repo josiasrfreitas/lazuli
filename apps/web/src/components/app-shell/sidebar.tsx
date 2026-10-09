@@ -4,6 +4,7 @@ import type { StaffIdentity, StaffRole } from "@lazuli/auth/server";
 import { Avatar } from "@lazuli/ui";
 
 import { SidebarNav } from "./sidebar-nav";
+import { BrandSignature } from "./brand-signature";
 
 /* How each role reads under the person's name — areas, not titles. */
 const ROLE_LABELS: Record<StaffRole, string> = {
@@ -17,19 +18,8 @@ const ROLE_LABELS: Record<StaffRole, string> = {
 export function Sidebar({ identity }: { identity: StaffIdentity }): ReactNode {
   return (
     <aside className="group/sidebar hidden w-16 shrink-0 flex-col overflow-hidden border-r border-border bg-card transition-[width] duration-300 ease-standard hover:w-60 has-[:focus-visible]:w-60 motion-reduce:transition-none sm:flex">
-      <div className="w-60 px-6 pb-5 pt-6">
-        <p
-          aria-label="Lazuli"
-          className="flex items-baseline font-display text-h3 font-semibold tracking-tight text-foreground"
-        >
-          <span aria-hidden="true">L</span>
-          <span
-            aria-hidden="true"
-            className="opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100 group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none"
-          >
-            azuli<span className="text-brand">.</span>
-          </span>
-        </p>
+      <div className="w-60 px-4 py-4">
+        <BrandSignature />
       </div>
       <div className="scrollbar-subtle min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-4">
         <SidebarNav role={identity.role} />
