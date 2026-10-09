@@ -9,10 +9,32 @@ import {
 import { monthlyDueDate } from "../../packages/db/src/seed-dev-finance.js";
 import { addDays, isoOf, stableUuid, utcDate } from "../../packages/db/src/seed-dev-support.js";
 
+const STANDARD_MONTHLY_PRICE = 25_000;
+const NEGOTIATED_MONTHLY_PRICE_240 = 24_000;
+const NEGOTIATED_MONTHLY_PRICE_230 = 23_000;
+const NEGOTIATED_MONTHLY_PRICE_220 = 22_000;
+const NEGOTIATED_MONTHLY_PRICE_210 = 21_000;
+const NEGOTIATED_MONTHLY_PRICE_200 = 20_000;
 const MONTHLY_PRICES = [
-  25_000, 25_000, 24_000, 25_000, 23_000, 25_000, 22_000, 25_000, 21_000, 20_000,
+  STANDARD_MONTHLY_PRICE,
+  STANDARD_MONTHLY_PRICE,
+  NEGOTIATED_MONTHLY_PRICE_240,
+  STANDARD_MONTHLY_PRICE,
+  NEGOTIATED_MONTHLY_PRICE_230,
+  STANDARD_MONTHLY_PRICE,
+  NEGOTIATED_MONTHLY_PRICE_220,
+  STANDARD_MONTHLY_PRICE,
+  NEGOTIATED_MONTHLY_PRICE_210,
+  NEGOTIATED_MONTHLY_PRICE_200,
 ];
-const DUE_DAYS = [5, 10, 15, 20, 25];
+const FIRST_DUE_DAY = 5;
+const DUE_DAY_INTERVAL = 5;
+const DUE_DAY_OPTIONS = 5;
+const DUE_DAYS = Array.from(
+  { length: DUE_DAY_OPTIONS },
+  (_unused, index) => FIRST_DUE_DAY + index * DUE_DAY_INTERVAL,
+);
+const UNPAID_INSTALLMENTS = 2;
 const CONTRACT_MONTHS = 12;
 const DELINQUENCY_CYCLE = 20;
 const DELINQUENCY_SPREAD = 37;
@@ -99,7 +121,7 @@ async function seedPayments(
     isLate
       ? installments
           .filter((row) => isoOf(row.dueDate) < todayIso)
-          .slice(-2)
+          .slice(-UNPAID_INSTALLMENTS)
           .map((row) => row.id)
       : [],
   );

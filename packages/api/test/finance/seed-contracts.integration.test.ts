@@ -51,8 +51,10 @@ void it("funds every student for a year and derives 95% current contracts at a y
     }
     const service = finance(database, admin.id);
     const now = new Date(`${today}T12:00:00Z`);
-    assert.equal((await service.listContracts({ page: 1, status: "EM_DIA", now })).total, 152);
-    assert.equal((await service.listContracts({ page: 1, status: "INADIMPLENTE", now })).total, 8);
+    const currentContracts = await service.listContracts({ page: 1, status: "EM_DIA", now });
+    const overdueContracts = await service.listContracts({ page: 1, status: "INADIMPLENTE", now });
+    assert.equal(currentContracts.total, 152);
+    assert.equal(overdueContracts.total, 8);
     const first = contracts.find((contract) => contract.studentId === studentIds[0])!;
     assert.equal(first.payer.name, "Patrícia Rocha Andrade");
     const payments = await database.paymentEntry.findMany({ where: { payerId: { in: payerIds } } });

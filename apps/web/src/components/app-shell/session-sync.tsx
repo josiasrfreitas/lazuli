@@ -3,17 +3,24 @@
 import { useEffect } from "react";
 
 import { authClient } from "~/lib/auth-client";
+import { sessionRedirect } from "~/lib/session-sync";
 
 /** Mounts Better Auth's cross-tab session listener on authenticated screens. */
-export function SessionSync(): null {
+export function SessionSync({ renderedEmail }: { renderedEmail: string }): null {
   const { data: session, isPending, error } = authClient.useSession();
 
   useEffect(() => {
-    if (!isPending && error === null && session === null) {
+    const destination = sessionRedirect({
+      renderedEmail,
+      currentEmail: session?.user.email ?? null,
+      isPending,
+      hasError: error !== null,
+    });
+    if (destination !== null) {
       // A full navigation also discards the previous account's client-side cache.
-      window.location.replace("/login");
+      globalThis.location.replace(destination);
     }
-  }, [session, isPending, error]);
+  }, [session, isPending, error, renderedEmail]);
 
   return null;
 }

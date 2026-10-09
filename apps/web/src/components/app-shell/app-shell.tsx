@@ -24,7 +24,7 @@ export function AppShell({
 }): ReactNode {
   return (
     <div className="flex h-svh bg-background text-foreground dark:bg-gradient-to-br dark:from-marquee dark:via-navigation-active dark:to-marquee">
-      <SessionSync />
+      <SessionSync renderedEmail={identity.email} />
       <Sidebar identity={identity} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar identity={identity} />

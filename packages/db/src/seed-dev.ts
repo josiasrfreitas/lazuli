@@ -121,13 +121,12 @@ async function seedEnrollment(context: SeedContext, input: EnrollmentInput): Pro
     context.classes.get(enrollment.classKey),
     `class ${enrollment.classKey}`,
   );
-  const stageId = enrollment.stageInternalCode
-    ? (
-        await context.database.stage.findFirstOrThrow({
-          where: { internalCode: enrollment.stageInternalCode },
-        })
-      ).id
-    : classroom.stageId;
+  const stage = enrollment.stageInternalCode
+    ? await context.database.stage.findFirstOrThrow({
+        where: { internalCode: enrollment.stageInternalCode },
+      })
+    : null;
+  const stageId = stage?.id ?? classroom.stageId;
   const enrollmentId = stableUuid(["enrollment", student.key, enrollment.classKey]);
   // The deferred progress constraint requires enrollment and placement in one transaction.
   await context.database.$transaction(async (transaction) => {

@@ -1,36 +1,18 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { Button } from "@lazuli/ui";
 
-import { authClient } from "~/lib/auth-client";
+import { useSignOut } from "~/lib/use-sign-out";
 
 /** Lets signed-in staff leave an account that cannot access the product. */
 export function SignOutButton(): ReactNode {
-  const [signingOut, setSigningOut] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  async function signOut(): Promise<void> {
-    setSigningOut(true);
-    setFailed(false);
-    try {
-      const result = await authClient.signOut();
-      if (result.error !== null) {
-        setFailed(true);
-        setSigningOut(false);
-        return;
-      }
-      window.location.replace("/login");
-    } catch {
-      setFailed(true);
-      setSigningOut(false);
-    }
-  }
+  const { pending, failed, signOut } = useSignOut();
 
   return (
     <div>
-      <Button loading={signingOut} onClick={() => void signOut()} size="lg" variant="secondary">
+      <Button loading={pending} onClick={() => void signOut()} size="lg" variant="secondary">
         Sair
       </Button>
       {failed && (

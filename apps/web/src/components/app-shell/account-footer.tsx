@@ -1,12 +1,12 @@
 "use client";
 
 import { LogOut } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import type { StaffIdentity, StaffRole } from "@lazuli/auth/server";
 import { Avatar, Button } from "@lazuli/ui";
 
-import { authClient } from "~/lib/auth-client";
+import { useSignOut } from "~/lib/use-sign-out";
 
 const ROLE_LABELS: Record<StaffRole, string> = {
   SYSTEM_ADMIN: "Administração do sistema",
@@ -17,25 +17,7 @@ const ROLE_LABELS: Record<StaffRole, string> = {
 };
 
 export function AccountFooter({ identity }: { identity: StaffIdentity }): ReactNode {
-  const [pending, setPending] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  async function signOut(): Promise<void> {
-    setPending(true);
-    setFailed(false);
-    try {
-      const result = await authClient.signOut();
-      if (result.error !== null) {
-        setFailed(true);
-        setPending(false);
-        return;
-      }
-      window.location.replace("/login");
-    } catch {
-      setFailed(true);
-      setPending(false);
-    }
-  }
+  const { pending, failed, signOut } = useSignOut();
 
   return (
     <footer className="dark border-t border-navigation-border px-1.75 py-4">

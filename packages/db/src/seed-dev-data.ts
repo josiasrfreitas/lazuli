@@ -78,35 +78,37 @@ export const DEV_TEACHERS: readonly DevTeacherSeed[] = [
   { key: "renata", name: "Renata Cavalcanti", email: "renata.cavalcanti@lazuli.local" },
 ];
 
+const ADULT_AGE = 18;
+
 // 160 students, with a mean of ten per class. Teachers' slots do not overlap.
 const CLASS_PROFILES = [
-  ["MWYA", "MWY", 8, 6, 3],
-  ["MWBA", "MWB", 10, 7, 3],
-  ["MWRA", "MWR", 11, 8, 3],
-  ["MWGA", "MWG", 9, 9, 3],
-  ["C1A", "C1", 12, 11, 3],
-  ["C2A", "C2", 10, 12, 3],
-  ["C3A", "C3", 14, 13, 3],
-  ["C4A", "C4", 8, 14, 3],
-  ["E1A", "E1", 11, 15, 3],
-  ["T2A", "T2", 9, 15, 3],
-  ["F1A", "F1", 12, 18, 22],
-  ["S1A", "S1", 10, 20, 25],
-  ["E2A", "E2", 4, 15, 3],
-  ["PPT-E1", "E1", 10, 14, 3],
-  ["PPT-C2", "C2", 10, 12, 3],
-  ["PPT-T1", "T1", 12, 18, 20],
+  { key: "MWYA", stageInternalCode: "MWY", studentCount: 8, minimumAge: 6, ageSpread: 3 },
+  { key: "MWBA", stageInternalCode: "MWB", studentCount: 10, minimumAge: 7, ageSpread: 3 },
+  { key: "MWRA", stageInternalCode: "MWR", studentCount: 11, minimumAge: 8, ageSpread: 3 },
+  { key: "MWGA", stageInternalCode: "MWG", studentCount: 9, minimumAge: 9, ageSpread: 3 },
+  { key: "C1A", stageInternalCode: "C1", studentCount: 12, minimumAge: 11, ageSpread: 3 },
+  { key: "C2A", stageInternalCode: "C2", studentCount: 10, minimumAge: 12, ageSpread: 3 },
+  { key: "C3A", stageInternalCode: "C3", studentCount: 14, minimumAge: 13, ageSpread: 3 },
+  { key: "C4A", stageInternalCode: "C4", studentCount: 8, minimumAge: 14, ageSpread: 3 },
+  { key: "E1A", stageInternalCode: "E1", studentCount: 11, minimumAge: 15, ageSpread: 3 },
+  { key: "T2A", stageInternalCode: "T2", studentCount: 9, minimumAge: 15, ageSpread: 3 },
+  { key: "F1A", stageInternalCode: "F1", studentCount: 12, minimumAge: 18, ageSpread: 22 },
+  { key: "S1A", stageInternalCode: "S1", studentCount: 10, minimumAge: 20, ageSpread: 25 },
+  { key: "E2A", stageInternalCode: "E2", studentCount: 4, minimumAge: 15, ageSpread: 3 },
+  { key: "PPT-E1", stageInternalCode: "E1", studentCount: 10, minimumAge: 14, ageSpread: 3 },
+  { key: "PPT-C2", stageInternalCode: "C2", studentCount: 10, minimumAge: 12, ageSpread: 3 },
+  { key: "PPT-T1", stageInternalCode: "T1", studentCount: 12, minimumAge: 18, ageSpread: 20 },
 ] as const;
 
 export const DEV_CLASSES: readonly DevClassSeed[] = CLASS_PROFILES.map((profile, index) => ({
-  key: profile[0],
-  scheduleType: profile[0].startsWith("PPT") ? "PERSONALIZED" : "REGULAR",
-  stageInternalCode: profile[1],
+  key: profile.key,
+  scheduleType: profile.key.startsWith("PPT") ? "PERSONALIZED" : "REGULAR",
+  stageInternalCode: profile.stageInternalCode,
   teacherKey: DEV_TEACHERS[index % DEV_TEACHERS.length]!.key,
   capacity: 25,
-  studentCount: profile[2],
-  minimumAge: profile[3],
-  ageSpread: profile[4],
+  studentCount: profile.studentCount,
+  minimumAge: profile.minimumAge,
+  ageSpread: profile.ageSpread,
   slots: classSlots(index),
 }));
 
@@ -117,9 +119,9 @@ function classSlots(index: number): DevScheduleSlot[] {
     { startTime: "19:00", endTime: "20:30" },
   ] as const;
   // Adults meet in the evening; the younger groups attend in the afternoon.
-  const evening = [10, 11, 15].includes(index);
+  const evening = CLASS_PROFILES[index]!.minimumAge >= ADULT_AGE;
   const window =
-    index === 14
+    CLASS_PROFILES[index]!.key === "PPT-C2"
       ? { startTime: "17:30", endTime: "19:00" }
       : windows[evening ? 2 : Math.floor(index / DEV_TEACHERS.length) % 2]!;
   const weekdays: DevWeekday[] =
@@ -232,9 +234,22 @@ const EXISTING_KEYS = [
   "priscila",
   "theo",
   "ppt-example",
-  ...Array.from({ length: 18 }, (_, index) => `occupancy-E1A-${index + 1}`),
-  ...Array.from({ length: 13 }, (_, index) => `occupancy-T2A-${index + 1}`),
+  ...Array.from({ length: 18 }, (_unused, index) => `occupancy-E1A-${index + 1}`),
+  ...Array.from({ length: 13 }, (_unused, index) => `occupancy-T2A-${index + 1}`),
 ];
+
+const SURNAME_STRIDE = 7;
+const SECOND_SURNAME_STRIDE = 11;
+const SECOND_SURNAME_OFFSET = 5;
+const PHONE_PREFIX = 8100;
+const PHONE_SUFFIX = 1200;
+const PHONE_STRIDE = 37;
+const PHONE_SUFFIX_LENGTH = 4;
+const BIRTHDAY_STRIDE = 47;
+const BIRTHDAY_VARIATIONS = 330;
+const LOW_ATTENDANCE_CYCLE = 17;
+const CHILD_PPT_STAGES = ["C1", "C2", "C3"];
+const TEEN_PPT_STAGES = ["E1", "E2", "T1"];
 
 export const DEV_STUDENTS: readonly DevStudentSeed[] = buildStudents();
 
@@ -254,13 +269,15 @@ function studentProfile(
 ): DevStudentSeed {
   const { position, index } = input;
   const firstName = FIRST_NAMES[index % FIRST_NAMES.length]!;
-  const surname = SURNAMES[(index * 7 + Math.floor(index / FIRST_NAMES.length)) % SURNAMES.length]!;
-  const secondSurname = SURNAMES[(index * 11 + 5) % SURNAMES.length]!;
+  const surname =
+    SURNAMES[(index * SURNAME_STRIDE + Math.floor(index / FIRST_NAMES.length)) % SURNAMES.length]!;
+  const secondSurname =
+    SURNAMES[(index * SECOND_SURNAME_STRIDE + SECOND_SURNAME_OFFSET) % SURNAMES.length]!;
   const fullName = `${firstName} ${surname}${surname === secondSurname ? "" : ` ${secondSurname}`}`;
   const ageYears = classroom.minimumAge + (position % classroom.ageSpread);
-  const phone = `(82) 9${String(8100 + index)}-${String(1200 + index * 37).padStart(4, "0")}`;
+  const phone = `(82) 9${String(PHONE_PREFIX + index)}-${String(PHONE_SUFFIX + index * PHONE_STRIDE).padStart(PHONE_SUFFIX_LENGTH, "0")}`;
   const guardian =
-    ageYears < 18
+    ageYears < ADULT_AGE
       ? {
           fullName: `${GUARDIAN_NAMES[index % GUARDIAN_NAMES.length]} ${surname} ${secondSurname}`,
           relationship: index % 2 === 0 ? "Mãe" : "Pai",
@@ -273,7 +290,7 @@ function studentProfile(
     fullName,
     status: "ACTIVE",
     ageYears,
-    birthdayOffsetDays: (index * 47) % 330,
+    birthdayOffsetDays: (index * BIRTHDAY_STRIDE) % BIRTHDAY_VARIATIONS,
     phone,
     email: `${emailSlug(fullName)}@example.com`,
     ...(guardian ? { guardian } : {}),
@@ -283,20 +300,20 @@ function studentProfile(
         ...(classroom.scheduleType === "PERSONALIZED"
           ? {
               stageInternalCode: classroom.stageInternalCode.startsWith("C")
-                ? ["C1", "C2", "C3"][position % 3]!
-                : ["E1", "E2", "T1"][position % 3]!,
+                ? CHILD_PPT_STAGES[position % CHILD_PPT_STAGES.length]!
+                : TEEN_PPT_STAGES[position % TEEN_PPT_STAGES.length]!,
             }
           : {}),
       },
     ],
-    attendance: index % 17 === 0 ? "low" : "good",
+    attendance: index % LOW_ATTENDANCE_CYCLE === 0 ? "low" : "good",
   };
 }
 
 function emailSlug(name: string): string {
   return name
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/gu, "")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
     .toLowerCase()
-    .replace(/\s+/gu, ".");
+    .replaceAll(/\s+/gu, ".");
 }
