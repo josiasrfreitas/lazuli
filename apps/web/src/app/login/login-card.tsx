@@ -18,9 +18,7 @@ function MagicLinkSent({
 }): ReactNode {
   return (
     <div className="flex flex-col" role="status">
-      <p className="font-mono text-micro uppercase tracking-eyebrow text-marquee-accent">
-        Link enviado
-      </p>
+      <p className="text-caption font-semibold text-marquee-accent">Link enviado</p>
       <p className="mt-3 text-body leading-relaxed">
         Enviamos um link de acesso para <span className="font-semibold">{email}</span>.
       </p>
@@ -169,9 +167,7 @@ function LoginMethods({
       )}
       <form className="flex flex-col gap-5" onSubmit={(event) => void handleMagicLink(event)}>
         <Field>
-          <Label className="font-mono text-micro uppercase tracking-eyebrow text-marquee-muted">
-            Email institucional
-          </Label>
+          <Label className="text-caption text-marquee-muted">Email institucional</Label>
           <Input
             autoComplete="email"
             /* text-body (16px): anything smaller makes iOS Safari zoom into the
@@ -208,7 +204,7 @@ function OAuthSection({
         <GoogleMark />
         Entrar com Google
       </Button>
-      <p className="flex items-center gap-4 font-mono text-micro uppercase tracking-eyebrow text-marquee-muted">
+      <p className="flex items-center gap-4 text-caption text-marquee-muted">
         <span aria-hidden="true" className="h-px flex-1 bg-marquee-border" />
         ou
         <span aria-hidden="true" className="h-px flex-1 bg-marquee-border" />

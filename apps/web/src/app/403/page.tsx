@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { auth } from "@lazuli/auth/server";
 import { Button } from "@lazuli/ui";
 
+import { SessionSync } from "~/components/app-shell/session-sync";
 import {
   MarqueeActions,
   MarqueeBody,
@@ -32,6 +33,7 @@ export default async function ForbiddenPage(): Promise<ReactNode> {
 
   return (
     <MarqueePage contentClassName="gap-2 py-5 lg:max-w-[1680px] lg:grid-cols-[minmax(25rem,0.72fr)_minmax(0,1.28fr)] lg:gap-6 lg:px-10 lg:py-8">
+      {session !== null && <SessionSync />}
       <MarqueeEditorial>
         <MarqueeTitle
           accent="é restrita."

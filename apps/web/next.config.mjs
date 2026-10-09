@@ -2,6 +2,9 @@
 const config = {
   reactStrictMode: true,
   allowedDevOrigins: ["*.lazuli.localhost"],
+  images: {
+    qualities: [75, 90],
+  },
   experimental: {
     useTypeScriptCli: true,
     cpus: 2,

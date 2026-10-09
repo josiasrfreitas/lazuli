@@ -1,38 +1,22 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { getAuthEnvironment, isStaffAccessDeniedCode } from "@lazuli/auth";
 import { auth } from "@lazuli/auth/server";
-import { cn } from "@lazuli/ui";
 
 import { BrandSignature } from "~/components/app-shell/brand-signature";
-import {
-  MarqueeBody,
-  MarqueeEditorial,
-  MarqueeNote,
-  MarqueePage,
-  MarqueeTitle,
-} from "~/components/marquee/marquee-layout";
 
+import loginHero from "../../../public/brand/login-students.jpg";
 import { LoginCard, type LoginInitialError } from "./login-card";
 
 export const metadata: Metadata = {
   title: "Entrar",
 };
 
-/**
- * The door. Anyone who already has a session is sent straight through it —
- * there is no "you are already signed in" screen to read.
- *
- * The `error` query parameter is set by Better Auth when a verification comes
- * back here: a staff-access denial arrives under one of the codes
- * `isStaffAccessDeniedCode` knows, and everything else is some flavour of
- * failed link. The card only ever distinguishes those two — telling someone
- * without access to "request a new link" would be a lie, and naming the
- * denial reason would leak whether an email exists.
- */
+/** Redirect signed-in staff and translate verification errors without exposing account status. */
 export default async function LoginPage({
   searchParams,
 }: {
@@ -48,23 +32,56 @@ export default async function LoginPage({
   }
 
   return (
-    <MarqueePage>
-      <MarqueeEditorial>
-        <div className="mb-8">
-          <BrandSignature entry />
-        </div>
-        <MarqueeTitle accent="simplificada." lead="Sua gestão escolar," />
-        <MarqueeBody>Matrículas, presença e pagamentos num lugar só.</MarqueeBody>
-        <MarqueeNote>Uso restrito à equipe da escola</MarqueeNote>
-      </MarqueeEditorial>
-
-      <LoginCardFrame>
-        <LoginCard
-          googleOAuthEnabled={getAuthEnvironment().googleOAuth !== undefined}
-          initialError={resolveInitialError(params.error)}
+    <main className="dark grid min-h-svh bg-marquee font-body text-marquee-foreground lg:grid-cols-[minmax(0,1.1fr)_minmax(440px,0.9fr)]">
+      <section className="relative isolate flex min-h-[320px] flex-col justify-between overflow-hidden px-7 py-8 sm:min-h-[420px] sm:px-12 sm:py-11 lg:min-h-svh lg:px-16 lg:py-14">
+        <Image
+          alt="Estudantes conversam e estudam juntos em uma biblioteca"
+          className="-z-20 object-cover object-center"
+          fill
+          priority
+          quality={90}
+          sizes="(min-width: 1024px) max(55vw, 163vh), max(100vw, 685px)"
+          src={loginHero}
         />
-      </LoginCardFrame>
-    </MarqueePage>
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 bg-gradient-to-b from-marquee/75 via-marquee/45 to-marquee/95"
+        />
+        <BrandSignature entry />
+        <div className="max-w-xl">
+          <p className="mb-5 text-caption font-semibold text-marquee-accent">
+            Educação em movimento
+          </p>
+          <h1 className="text-hero font-bold leading-tight">
+            <span className="block">Mais tempo para</span>
+            <span className="block whitespace-nowrap">o que transforma.</span>
+          </h1>
+          <p className="mt-5 max-w-[37ch] text-body leading-relaxed text-marquee-foreground/85">
+            Uma gestão mais clara para quem faz a aprendizagem acontecer todos os dias.
+          </p>
+        </div>
+      </section>
+
+      <section
+        className="flex min-h-[520px] items-center justify-center bg-gradient-to-br from-marquee via-navigation-active to-marquee px-7 py-16 sm:px-12 lg:px-16"
+        aria-labelledby="login-title"
+      >
+        <div className="w-full max-w-md">
+          <h2 className="text-4xl font-semibold tracking-tight" id="login-title">
+            Boas-vindas de volta.
+          </h2>
+          <p className="mt-3 text-body leading-relaxed text-marquee-muted">
+            Entre com o email da escola para continuar.
+          </p>
+          <div className="mt-10">
+            <LoginCard
+              googleOAuthEnabled={getAuthEnvironment().googleOAuth !== undefined}
+              initialError={resolveInitialError(params.error)}
+            />
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -74,30 +91,4 @@ function resolveInitialError(error: string | undefined): LoginInitialError | nul
   }
 
   return isStaffAccessDeniedCode(error) ? "denied" : "verification";
-}
-
-function LoginCardFrame({ children }: { children: ReactNode }): ReactNode {
-  return (
-    <section className="relative border border-marquee-border bg-marquee-foreground/[0.015]">
-      <header
-        className={cn([
-          "flex items-center justify-between gap-6 border-b border-marquee-border px-6 py-4 sm:px-10",
-          "font-mono text-micro font-semibold uppercase tracking-eyebrow",
-        ])}
-      >
-        <span className="text-marquee-muted">Acesso</span>
-      </header>
-      <div className="flex flex-col justify-center px-6 py-10 sm:px-10">{children}</div>
-      <span aria-hidden="true">
-        {[
-          "-top-px -left-px border-t border-l",
-          "-top-px -right-px border-t border-r",
-          "-bottom-px -left-px border-b border-l",
-          "-bottom-px -right-px border-b border-r",
-        ].map((corner) => (
-          <span className={cn("absolute size-4 border-marquee-accent/60", corner)} key={corner} />
-        ))}
-      </span>
-    </section>
-  );
 }
