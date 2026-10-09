@@ -6,7 +6,6 @@ from pathlib import Path
 from copy import deepcopy
 from html import escape
 from tempfile import TemporaryDirectory
-from zipfile import ZipFile, ZIP_DEFLATED
 import json
 import shutil
 import subprocess
@@ -404,21 +403,11 @@ def export_book():
             paragraphs += f'<p>Referência histórica: <a href="{source[1]}">{escape(source[0])}</a>.</p>'
         chapters.append(f'<section id="chapter-{i+1}" aria-labelledby="title-{i+1}"><h2 id="title-{i+1}">{i+1:02} / {escape(item["title"])}</h2>{item["svg"]}<details><summary>Ler o conteúdo desta página</summary><div>{paragraphs}</div></details></section>')
     css = '''*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#0a0c12;color:#e9edf6;font:16px/1.6 "Helvetica Neue","Segoe UI",sans-serif}a{color:inherit;text-underline-offset:4px}a:focus-visible,summary:focus-visible{outline:2px solid #d8ad4a;outline-offset:5px}header{padding:32px clamp(20px,5vw,80px);border-bottom:1px solid #2c3444}header p{margin:0;color:#b8c1d2}h1{font:clamp(32px,5vw,56px)/1.15 Georgia,serif;margin:12px 0 24px}header nav{display:flex;flex-wrap:wrap;gap:12px 24px}header nav a{padding:10px 0}main{max-width:1440px;margin:auto;padding:32px 16px 80px}.contents{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:6px 24px;padding:0 16px 40px}.contents a{padding:8px;color:#b8c1d2;text-decoration:none}.contents a:hover{color:#d8ad4a}section{scroll-margin-top:24px;margin-bottom:48px}h2{font-size:14px;font-weight:400;letter-spacing:.08em;margin:0 0 12px 8px}section>svg{display:block;width:100%;height:auto;border:1px solid #2c3444}details{padding:12px 16px;background:#12151d}summary{cursor:pointer;min-height:32px}details div{max-width:76ch;color:#e9edf6;padding:8px 0}details p{margin:12px 0}footer{padding:32px;color:#b8c1d2;border-top:1px solid #2c3444}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media print{header,.contents,h2,details,footer{display:none}body,main{padding:0;margin:0;background:white}section{margin:0;break-after:page}section>svg{border:0}@page{size:landscape;margin:0}}'''
-    html = f'<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Lazuli — Brand book 01</title><style>{css}</style></head><body><header><p>LAZULI / IDENTIDADE 01 / OUTUBRO DE 2026</p><h1>Cuidar da escola.<br>Abrir espaço para aprender.</h1><nav aria-label="Arquivos"><a href="lazuli-brand-book.pdf" download>Baixar brand book em PDF</a><a href="lazuli-brand-kit.zip" download>Baixar arquivos da marca</a><a href="#contents">Ver capítulos</a></nav></header><main><nav class="contents" id="contents" aria-label="Capítulos">{nav}</nav>{"".join(chapters)}</main><footer>Base adotada: Ex-líbris nas cores do Lazuli. Narrativa e aplicações: primeira edição em desenvolvimento.<br>Origem do nome registrada a partir do relato do criador. Os materiais de aplicação são demonstrativos.</footer></body></html>'
+    html = f'<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Lazuli — Brand book 01</title><style>{css}</style></head><body><header><p>LAZULI / IDENTIDADE 01 / OUTUBRO DE 2026</p><h1>Cuidar da escola.<br>Abrir espaço para aprender.</h1><nav aria-label="Arquivos"><a href="lazuli-brand-book.pdf" download>Baixar brand book em PDF</a><a href="#contents">Ver capítulos</a></nav></header><main><nav class="contents" id="contents" aria-label="Capítulos">{nav}</nav>{"".join(chapters)}</main><footer>Base adotada: Ex-líbris nas cores do Lazuli. Narrativa e aplicações: primeira edição em desenvolvimento.<br>Origem do nome registrada a partir do relato do criador. Os materiais de aplicação são demonstrativos.</footer></body></html>'
     (ROOT / 'index.html').write_text(html)
-    with ZipFile(ROOT / 'lazuli-brand-kit.zip', 'w', ZIP_DEFLATED) as archive:
-        for folder in ('assets', 'applications'):
-            for path in sorted((ROOT / folder).rglob('*')):
-                if path.is_file():
-                    archive.write(path, path.relative_to(ROOT))
-        for name in ('identity.json', 'README.md', 'preview.svg', 'preview.png'):
-            path = ROOT / name
-            if path.exists():
-                archive.write(path, name)
     shutil.copyfile(ROOT / 'index.html', PUBLIC / 'brand-book.html')
-    for name in ('lazuli-brand-book.pdf', 'lazuli-brand-kit.zip'):
-        shutil.copyfile(ROOT / name, PUBLIC / name)
-    print(f'Built {len(PAGES)} pages, {len(list(SVG.glob("*.svg")))} logo assets, 6 applications, HTML, PDF and ZIP.')
+    shutil.copyfile(ROOT / 'lazuli-brand-book.pdf', PUBLIC / 'lazuli-brand-book.pdf')
+    print(f'Built {len(PAGES)} pages, {len(list(SVG.glob("*.svg")))} logo assets, 6 applications, HTML and PDF.')
 
 
 if __name__ == '__main__':
