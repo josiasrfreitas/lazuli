@@ -379,6 +379,13 @@ def make_closing():
 
 def export_book():
     from pypdf import PdfWriter
+
+    preview = root_svg(1440, 1500, 'Lazuli — visão geral das 15 páginas do brand book')
+    for index, item in enumerate(PAGES):
+        group = ET.SubElement(preview, f'{{{NS}}}g', {'transform': f'translate({index % 3 * 480} {index // 3 * 300}) scale(.333333)'})
+        group.append(ET.parse(ROOT / 'pages' / item['file']).getroot())
+    write_svg(ROOT / 'preview.svg', preview)
+    render(ROOT / 'preview.svg', ROOT / 'preview.png')
     with TemporaryDirectory() as tmp:
         writer = PdfWriter()
         for i, item in enumerate(PAGES):
@@ -404,7 +411,7 @@ def export_book():
             for path in sorted((ROOT / folder).rglob('*')):
                 if path.is_file():
                     archive.write(path, path.relative_to(ROOT))
-        for name in ('identity.json', 'README.md'):
+        for name in ('identity.json', 'README.md', 'preview.svg', 'preview.png'):
             path = ROOT / name
             if path.exists():
                 archive.write(path, name)

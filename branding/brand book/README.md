@@ -4,6 +4,8 @@ Open [the visual book](index.html), [the PDF](lazuli-brand-book.pdf), or downloa
 [the identity kit](lazuli-brand-kit.zip). The local app also serves the book at
 `/brand/brand-book.html`.
 
+The [contact sheet](preview.png) shows all 15 pages at a glance.
+
 ## Recorded direction
 
 On 2026-10-09, the creator selected **Ex-líbris in Lazuli's existing colors** as the
@@ -23,18 +25,19 @@ school's own name or identity on its documents.
 
 ## Files
 
-| Location                | Purpose                                                                                           |
-| ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `index.html`            | Self-contained visual book, chapter navigation and readable transcripts; opens offline            |
-| `lazuli-brand-book.pdf` | Vector PDF with 15 pages                                                                          |
-| `lazuli-brand-kit.zip`  | Logos, applications, manifest and this guide                                                      |
-| `identity.json`         | Colors, asset inventory and proposed minimum sizes                                                |
-| `assets/svg/`           | Transparent vector signatures: symbol, small symbol, stacked, horizontal and wordmark             |
-| `assets/png/`           | Transparent raster exports; symbols at 1024 px, compositions at 1920 px; separate 32 px specimens |
-| `applications/`         | Six separate editable SVG compositions with PNG exports                                           |
-| `pages/`                | Each page of the book in SVG and PNG                                                              |
-| `source/masters/`       | Copy of the selected full-size artwork, independent of the prototype                              |
-| `source/build.py`       | Offline generator for assets, book, PDF, ZIP and public runtime copies                            |
+| Location                      | Purpose                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| `index.html`                  | Self-contained visual book, chapter navigation and readable transcripts; opens offline            |
+| `lazuli-brand-book.pdf`       | Vector PDF with 15 pages                                                                          |
+| `lazuli-brand-kit.zip`        | Logos, applications, manifest and this guide                                                      |
+| `identity.json`               | Colors, asset inventory and proposed minimum sizes                                                |
+| `assets/svg/`                 | Transparent vector signatures: symbol, small symbol, stacked, horizontal and wordmark             |
+| `assets/png/`                 | Transparent raster exports; symbols at 1024 px, compositions at 1920 px; separate 32 px specimens |
+| `applications/`               | Six separate editable SVG compositions with PNG exports                                           |
+| `pages/`                      | Each page of the book in SVG and PNG                                                              |
+| `source/masters/`             | Copy of the selected full-size artwork used to rebuild the official kit                           |
+| `source/build.py`             | Offline generator for assets, book, PDF, ZIP and public runtime copies                            |
+| `preview.svg` / `preview.png` | Contact sheet for reviewing every page together                                                   |
 
 ## Choosing an asset
 
@@ -70,7 +73,6 @@ It copies the final SVG logos, HTML book, PDF and ZIP into `apps/web/public/bran
 These are runtime exports of this folder. Edit this source and rebuild rather
 than changing public copies independently. The selected identity is used by
 `apps/web/src/components/app-shell/brand-signature.tsx` at 32 px in the sidebar.
-Unselected concepts remain historical studies in the development-only workshop.
 
 ## Historical reference
 
