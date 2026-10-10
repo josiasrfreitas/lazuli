@@ -10,6 +10,7 @@ import { auth } from "@lazuli/auth/server";
 import { BrandSignature } from "~/components/app-shell/brand-signature";
 
 import { LoginCard, type LoginInitialError } from "./login-card";
+import { LoginEntrance } from "./login-entrance";
 
 export const metadata: Metadata = {
   title: "Entrar",
@@ -31,14 +32,14 @@ export default async function LoginPage({
   }
 
   return (
-    <main className="dark grid min-h-svh bg-marquee font-body text-marquee-foreground lg:grid-cols-[minmax(0,1.1fr)_minmax(440px,0.9fr)]">
+    <LoginEntrance skip={params.error !== undefined}>
       <LoginHero />
 
       <section
         className="flex min-h-[520px] items-center justify-center bg-gradient-to-br from-marquee via-navigation-active to-marquee px-7 py-16 sm:px-12 lg:px-16"
         aria-labelledby="login-title"
       >
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md" data-login-reveal="form">
           <h2 className="text-4xl font-semibold tracking-tight" id="login-title">
             Boas-vindas de volta.
           </h2>
@@ -53,7 +54,7 @@ export default async function LoginPage({
           </div>
         </div>
       </section>
-    </main>
+    </LoginEntrance>
   );
 }
 
@@ -67,9 +68,13 @@ function resolveInitialError(error: string | undefined): LoginInitialError | nul
 
 function LoginHero(): ReactNode {
   return (
-    <section className="relative isolate flex min-h-[320px] flex-col justify-between overflow-hidden px-7 py-8 sm:min-h-[420px] sm:px-12 sm:py-11 lg:min-h-svh lg:px-16 lg:py-14">
+    <section
+      data-login-hero
+      className="relative isolate flex min-h-[320px] flex-col justify-between overflow-hidden px-7 py-8 sm:min-h-[420px] sm:px-12 sm:py-11 lg:min-h-svh lg:px-16 lg:py-14"
+    >
       <Image
         alt="Estudantes conversam e estudam juntos em uma biblioteca"
+        data-login-photo
         className="-z-20 object-cover object-center"
         fill
         priority
@@ -83,12 +88,24 @@ function LoginHero(): ReactNode {
       />
       <BrandSignature entry />
       <div className="max-w-xl">
-        <p className="mb-5 text-caption font-semibold text-marquee-accent">Educação em movimento</p>
+        <p
+          data-login-reveal="eyebrow"
+          className="mb-5 text-caption font-semibold text-marquee-accent"
+        >
+          Educação em movimento
+        </p>
         <h1 className="text-hero font-bold leading-tight">
-          <span className="block">Mais tempo para</span>
-          <span className="block whitespace-nowrap">o que transforma.</span>
+          <span data-login-reveal="line-one" className="block">
+            Mais tempo para
+          </span>
+          <span data-login-reveal="line-two" className="block whitespace-nowrap">
+            o que transforma.
+          </span>
         </h1>
-        <p className="mt-5 max-w-[37ch] text-body leading-relaxed text-marquee-foreground/85">
+        <p
+          data-login-reveal="description"
+          className="mt-5 max-w-[37ch] text-body leading-relaxed text-marquee-foreground/85"
+        >
           Uma gestão mais clara para quem faz a aprendizagem acontecer todos os dias.
         </p>
       </div>
