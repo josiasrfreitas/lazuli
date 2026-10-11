@@ -1,10 +1,9 @@
-import type { Prisma } from "@lazuli/db";
+import type { TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 
-type Database = Pick<
-  Prisma.TransactionClient,
-  "enrollmentAction" | "enrollment" | "pedagogicalProgress"
->;
+import { reconcileDueSemesterPlacements } from "./semester-placements.js";
+
+type Database = TransactionClient;
 
 /** Applies due actions once; the action status is the concurrency guard across workers. */
 export async function processDueEnrollmentActions(input: {
@@ -12,9 +11,10 @@ export async function processDueEnrollmentActions(input: {
   now: Date;
 }): Promise<number> {
   const today = new Date(saoPauloDateOnly(input.now));
+  await reconcileDueSemesterPlacements(input.database, today, input.now);
   const due = await input.database.enrollmentAction.findMany({
     where: { status: "SCHEDULED", effectiveDate: { lte: today } },
-    select: { id: true, enrollmentId: true, kind: true, effectiveDate: true },
+    select: { id: true, enrollmentId: true, kind: true, effectiveDate: true, exitReason: true },
     orderBy: [{ effectiveDate: "asc" }, { createdAt: "asc" }],
     take: 100,
   });
@@ -26,7 +26,12 @@ export async function processDueEnrollmentActions(input: {
     });
     if (claimed.count === 0) continue;
     if (action.kind === "PAUSE" || action.kind === "EXIT") {
-      const reason = action.kind === "PAUSE" ? "SUSPENDED" : "DROPPED";
+      const reason =
+        action.kind === "PAUSE"
+          ? "SUSPENDED"
+          : action.exitReason === "TRANSFERRED"
+            ? "TRANSFERRED"
+            : "DROPPED";
       const enrollment = await input.database.enrollment.findUnique({
         where: { id: action.enrollmentId },
         select: { exitDate: true, deletedAt: true },
