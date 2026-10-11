@@ -38,7 +38,7 @@ function render(overrides: Partial<Props> = {}): string {
   );
 }
 
-void it("combines student search and selection in one named control beside a calendar date", () => {
+void it("combines student search and selection with a single masked Brazilian date control", () => {
   const markup = render();
   const inputs = (markup.match(/<input\b[^>]*>/gu) ?? []).filter((tag) =>
     tag.includes('data-slot="input"'),
@@ -47,8 +47,9 @@ void it("combines student search and selection in one named control beside a cal
   assert.match(inputs[0] ?? "", /role="combobox"/u);
   assert.match(inputs[0] ?? "", /name="studentSearch"/u);
   assert.match(inputs[1] ?? "", /name="entryDate"/u);
-  assert.match(inputs[1] ?? "", /type="date"/u);
-  assert.match(inputs[1] ?? "", /value="2026-10-08"/u);
+  assert.match(inputs[1] ?? "", /inputMode="numeric"/u);
+  assert.match(inputs[1] ?? "", /value="08\/10\/2026"/u);
+  assert.doesNotMatch(markup, /type="date"/u);
   assert.doesNotMatch(markup, /<select|Entrada na turma/u);
   for (const tag of inputs) {
     assert.match(tag, /placeholder="[^"]+"/u);
@@ -83,5 +84,6 @@ void it("keeps the paused student fixed for a contextual return", () => {
   assert.match(markup, /Ana Beatriz/u);
   assert.doesNotMatch(markup, /name="studentSearch"/u);
   assert.match(markup, /name="entryDate"/u);
+  assert.match(markup, /Data de retorno/u);
   assert.match(markup, /preserva o percurso anterior/u);
 });
