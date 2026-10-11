@@ -56,13 +56,15 @@ function initialDraft(candidate?: Candidate): Draft {
 export function CandidateDialog({
   candidate,
   onClose,
+  startAtAvailability = false,
 }: {
   candidate?: Candidate;
+  startAtAvailability?: boolean;
   onClose: () => void;
 }): ReactElement {
   const [id] = useState(() => candidate?.id ?? crypto.randomUUID());
   const [draft, setDraft] = useState(() => initialDraft(candidate));
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(startAtAvailability ? 1 : 0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [revision, setRevision] = useState(0);
   const body = useScrollToError(revision);

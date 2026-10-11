@@ -64,3 +64,9 @@ Validated against the isolated V3 database through the embedded Orca browser, wi
 Screenshots: `evidence/teacher-week.png`, `evidence/teacher-conflict.png`, `evidence/detail-light.png`, `evidence/detail-narrow.png`, `evidence/enroll-minor-narrow.png`. `detail-desktop.png` records an earlier iteration.
 
 Automated coverage added for availability, administrative role gates, conversion retry/concurrency, attendance separation and atomic rescheduling/conflicts. Suites have **not** been run locally, following the user's explicit instruction; CI execution remains pending. Remaining browser coverage: expired availability renewal, existing-student linking/conversion, and reverse conflict through class/substitution UI.
+
+Additional browser validation:
+
+- Used a deliberately expired local fixture: allocation and scheduling were blocked. Renewing opened directly on availability, saved the new validity and restored matching classes.
+- Used a deliberately historical introductory-lesson fixture: recording attendance succeeded while the candidate remained WAITING with no enrollment.
+- Linked an existing synthetic student through search, selected the compatible class with keyboard support and confirmed enrollment using that existing registration. Evidence: `evidence/existing-student.png`.
