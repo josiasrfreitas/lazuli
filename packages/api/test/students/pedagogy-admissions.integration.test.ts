@@ -100,6 +100,10 @@ void describe("student pedagogical profile", () => {
     assert.deepEqual(profile.enrollments[1]?.attendance, {
       heldSessions: 0,
       presentCount: 0,
+      heldMinutes: 0,
+      presentMinutes: 0,
+      compensatedMinutes: 0,
+      missingMinutes: 0,
       percent: null,
       flagged: false,
     });

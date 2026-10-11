@@ -1,4 +1,4 @@
-import type { ClassRecordSnapshot } from "@lazuli/validators";
+import type { AppointmentSnapshot, ClassRecordSnapshot } from "@lazuli/validators";
 
 export type SessionSummary = {
   id: string;
@@ -14,8 +14,17 @@ export type SessionSummary = {
   teacher: string | null;
   state: "CANCELLED" | "RECORDED" | "UPCOMING" | "PENDING";
   attendanceOnly: boolean;
+  guestCount: number;
+};
+export type ClassRecordGuest = {
+  id: string;
+  targetClassSessionId: string | null;
+  purpose: AppointmentSnapshot["purpose"];
+  status: AppointmentSnapshot["status"];
+  student: { id: string; fullName: string };
 };
 export type ClassRecordDetail = {
+  guests: ClassRecordGuest[];
   session: Omit<SessionSummary, "state" | "attendanceOnly"> & {
     cancelled: boolean;
     upcoming: boolean;

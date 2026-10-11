@@ -1,104 +1,68 @@
-import { isAtLeastTomorrowInSaoPaulo } from "@lazuli/domain";
+import { randomUUID } from "node:crypto";
+import type { Prisma } from "@lazuli/db";
 import type { makeupScheduleInputSchema, z } from "@lazuli/validators";
-
 import type { StaffUser } from "../trpc/context.js";
-import { badRequest } from "../trpc/errors.js";
-import { loadSessionWithClass, type SessionWithClass } from "./data.js";
-import {
-  loadOriginEnrollment,
-  makeupExists,
-  type MakeupDatabase,
-  type OriginEnrollment,
-} from "./makeup-data.js";
-import {
-  MAKEUP_DUPLICATE_MESSAGE,
-  MAKEUP_SAME_CLASS_MESSAGE,
-  MAKEUP_TARGET_CANCELLED_MESSAGE,
-  MAKEUP_TARGET_IN_PAST_MESSAGE,
-} from "./errors.js";
+import { badRequest, notFound } from "../trpc/errors.js";
+import { lockTeacher } from "../teachers/availability.js";
+import { scheduleAppointment } from "../appointments/schedule.js";
 
-type ScheduleInput = z.infer<typeof makeupScheduleInputSchema>;
-
-export type ScheduleMakeupResult = {
-  makeupId: string;
-  originEnrollmentId: string;
-  targetClassSessionId: string;
-  scheduledAt: Date;
-};
-
-/**
- * Schedules a makeup visitor into a future target session. The target must be SCHEDULED and at least
- * tomorrow in `America/Sao_Paulo`; the target class must differ from the origin class unless the caller
- * records an override `reason`. No attendance row is created here; the outcome is set later and makeups
- * never affect attendance percentage.
- */
+/** Compatibility entry point; source validation and responsibility use the appointment service. */
 export async function scheduleMakeup(input: {
-  database: MakeupDatabase;
+  database: Prisma.TransactionClient;
   staffUser: StaffUser;
-  values: ScheduleInput;
-}): Promise<ScheduleMakeupResult> {
-  const origin = await loadOriginEnrollment({
-    database: input.database,
-    enrollmentId: input.values.originEnrollmentId,
+  values: z.infer<typeof makeupScheduleInputSchema>;
+  now?: Date;
+}) {
+  const { database, values } = input;
+  const now = input.now ?? new Date();
+  await lockTeacher(database, "");
+  const origin = await database.enrollment.findUnique({ where: { id: values.originEnrollmentId } });
+  if (!origin) throw notFound("Matrícula de origem não encontrada.");
+  const target = await database.classSession.findUnique({
+    where: { id: values.targetClassSessionId },
   });
-  const target = await loadSessionWithClass({
-    database: input.database,
-    sessionId: input.values.targetClassSessionId,
+  if (!target) throw notFound("Aula de destino não encontrada.");
+  if (
+    await database.makeup.findFirst({
+      where: { originEnrollmentId: origin.id, targetClassSessionId: target.id, deletedAt: null },
+    })
+  )
+    throw badRequest("Já existe uma reposição para esta matrícula e aula.");
+  const sources = await database.attendance.findMany({
+    where: { id: { in: values.coverages.map((row) => row.attendanceId) }, enrollmentId: origin.id },
   });
-
-  assertTargetSchedulable(target);
-  assertDistinctClass({ origin, target, reason: input.values.reason });
-  await assertNotDuplicate({ database: input.database, origin, target });
-
-  const created = await input.database.makeup.create({
+  if (sources.length !== values.coverages.length)
+    throw badRequest("As faltas devem pertencer à matrícula de origem.");
+  const makeupId = randomUUID();
+  await database.makeup.create({
     data: {
+      id: makeupId,
       originEnrollmentId: origin.id,
-      targetClassSessionId: target.id,
+      targetClassSessionId: values.targetClassSessionId,
       scheduledById: input.staffUser.id,
-      reason: input.values.reason ?? null,
+      scheduledAt: now,
+      reason: values.reason ?? null,
     },
-    select: { id: true, scheduledAt: true },
   });
-
+  await scheduleAppointment(
+    { database, staffUser: input.staffUser, now },
+    {
+      id: makeupId,
+      studentId: origin.studentId,
+      enrollmentId: origin.id,
+      purpose: "MAKEUP",
+      meeting: { kind: "CLASS", sessionId: values.targetClassSessionId },
+      coverages: values.coverages,
+      plannedContent: values.plannedContent,
+      notes: values.reason ?? "",
+    },
+    undefined,
+    makeupId,
+  );
   return {
-    makeupId: created.id,
+    makeupId,
     originEnrollmentId: origin.id,
-    targetClassSessionId: target.id,
-    scheduledAt: created.scheduledAt,
+    targetClassSessionId: values.targetClassSessionId,
+    scheduledAt: now,
   };
-}
-
-function assertTargetSchedulable(target: SessionWithClass): void {
-  if (target.status === "CANCELLED") {
-    throw badRequest(MAKEUP_TARGET_CANCELLED_MESSAGE);
-  }
-  if (!isAtLeastTomorrowInSaoPaulo({ targetDate: target.date, now: new Date() })) {
-    throw badRequest(MAKEUP_TARGET_IN_PAST_MESSAGE);
-  }
-}
-
-function assertDistinctClass(input: {
-  origin: OriginEnrollment;
-  target: SessionWithClass;
-  reason: string | undefined;
-}): void {
-  const sameClass = input.origin.classId === input.target.classId;
-  if (sameClass && input.reason === undefined) {
-    throw badRequest(MAKEUP_SAME_CLASS_MESSAGE);
-  }
-}
-
-async function assertNotDuplicate(input: {
-  database: MakeupDatabase;
-  origin: OriginEnrollment;
-  target: SessionWithClass;
-}): Promise<void> {
-  const exists = await makeupExists({
-    database: input.database,
-    originEnrollmentId: input.origin.id,
-    targetClassSessionId: input.target.id,
-  });
-  if (exists) {
-    throw badRequest(MAKEUP_DUPLICATE_MESSAGE);
-  }
 }

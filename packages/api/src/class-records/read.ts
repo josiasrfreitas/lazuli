@@ -19,8 +19,10 @@ import type {
   SessionSummary,
   ClassRecordDetail,
   ClassRecordRevision,
+  ClassRecordGuest,
   RevisionPage,
 } from "./types.js";
+import { sessionAppointmentGuests } from "./guests.js";
 const HISTORY_PAGE_SIZE = 20;
 
 export async function listClassRecords(
@@ -37,19 +39,28 @@ export async function listClassRecords(
     include: recordSessionInclude,
     orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
   });
-  return sessions
-    .filter((session) => canRead(context, session))
-    .map((session) => summarizeSession(session, context.now));
+  const visible = sessions.filter((session) => canRead(context, session));
+  const guests = await sessionAppointmentGuests(context, visible);
+  return visible.map((session) =>
+    summarizeSession(session, {
+      now: context.now,
+      guestCount: guests.get(session.id)?.length ?? 0,
+    }),
+  );
 }
 function recordState(session: RecordSession, now: Date): SessionSummary["state"] {
   if (session.status === "CANCELLED") return "CANCELLED";
   if (session.classRecord) return "RECORDED";
   return sessionEndInstant(session) > now ? "UPCOMING" : "PENDING";
 }
-function summarizeSession(session: RecordSession, now: Date): SessionSummary {
+function summarizeSession(
+  session: RecordSession,
+  { now, guestCount }: { now: Date; guestCount: number },
+): SessionSummary {
   const teacher = responsibleTeacher(session);
   return {
     id: session.id,
+    guestCount,
     classId: session.classId,
     className: session.class.portalClassName,
     scheduleType: session.class.scheduleType,
@@ -92,8 +103,10 @@ export async function readClassRecord(
       where: { classSessionId: session.id, deletedAt: null },
     }),
   );
-  const summary = summarizeSession(session, context.now);
+  const guests = await readSessionGuests(context, session);
+  const summary = summarizeSession(session, { now: context.now, guestCount: guests.length });
   return {
+    guests,
     declarations,
     hasAttendanceWindows,
     recordedAttendanceIds: attendance.map((row) => row.enrollmentId),
@@ -170,12 +183,25 @@ export async function pendingClassRecords(
   const pageCount = Math.max(1, Math.ceil(visible.length / PENDING_PAGE_SIZE));
   const page = Math.min(input.page, pageCount);
   const start = (page - 1) * PENDING_PAGE_SIZE;
+  const pageRows = visible.slice(start, start + PENDING_PAGE_SIZE);
+  const guests = await sessionAppointmentGuests(context, pageRows);
   return {
-    rows: visible
-      .slice(start, start + PENDING_PAGE_SIZE)
-      .map((session) => summarizeSession(session, context.now)),
+    rows: pageRows.map((session) =>
+      summarizeSession(session, {
+        now: context.now,
+        guestCount: guests.get(session.id)?.length ?? 0,
+      }),
+    ),
     total: visible.length,
     page,
     pageCount,
   };
+}
+
+async function readSessionGuests(
+  context: RecordContext,
+  session: RecordSession,
+): Promise<ClassRecordGuest[]> {
+  const rows = await sessionAppointmentGuests(context, [session]);
+  return rows.get(session.id) ?? [];
 }

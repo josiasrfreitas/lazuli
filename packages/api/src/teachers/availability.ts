@@ -1,4 +1,5 @@
 import { assertNoIntroductionConflict } from "../admissions/teacher-commitments.js";
+import { assertNoAppointmentConflict } from "../appointments/commitments.js";
 import type { Prisma } from "@lazuli/db";
 import {
   intervalsOverlap,
@@ -40,6 +41,7 @@ export async function assertTeacherEligible(input: AssertTeacherEligibleInput): 
 
 export async function assertNoTeacherConflict(input: AssertNoTeacherConflictInput): Promise<void> {
   await assertNoIntroductionConflict(input);
+  await assertNoAppointmentConflict(input);
   const meetings = await meetingsBetween({
     database: input.database,
     from: input.from,
@@ -121,6 +123,7 @@ type AssertNoTeacherConflictInput = {
   slots: readonly CandidateSlot[];
   candidateMeetings?: readonly { date: string; startTime: string; endTime: string }[];
   excludeClassId?: string;
+  excludeAppointmentId?: string;
   excludeMeeting?: {
     classId: string;
     slotId: string | null;

@@ -9,6 +9,13 @@ import {
 
 const ENROLLMENT_ID = "11111111-1111-4111-8111-111111111111";
 const SESSION_ID = "22222222-2222-4222-8222-222222222222";
+const COVERAGES = [{ attendanceId: "44444444-4444-4444-8444-444444444444", minutes: 90 }];
+const ACTUAL = {
+  expectedVersion: 1,
+  performedContent: "Prática oral orientada",
+  performedMinutes: 90,
+  coverages: COVERAGES,
+};
 const MAKEUP_ID = "33333333-3333-4333-8333-333333333333";
 
 void describe("makeup schedule input", () => {
@@ -16,10 +23,12 @@ void describe("makeup schedule input", () => {
     const withoutReason = makeupScheduleInputSchema.parse({
       originEnrollmentId: ENROLLMENT_ID,
       targetClassSessionId: SESSION_ID,
+      coverages: COVERAGES,
     });
     const withReason = makeupScheduleInputSchema.parse({
       originEnrollmentId: ENROLLMENT_ID,
       targetClassSessionId: SESSION_ID,
+      coverages: COVERAGES,
       reason: " Aula extra ",
     });
 
@@ -32,6 +41,7 @@ void describe("makeup schedule input", () => {
       makeupScheduleInputSchema.safeParse({
         originEnrollmentId: "not-a-uuid",
         targetClassSessionId: SESSION_ID,
+        coverages: COVERAGES,
       }).success,
       false,
     );
@@ -39,6 +49,7 @@ void describe("makeup schedule input", () => {
       makeupScheduleInputSchema.safeParse({
         originEnrollmentId: ENROLLMENT_ID,
         targetClassSessionId: SESSION_ID,
+        coverages: COVERAGES,
         reason: "   ",
       }).success,
       false,
@@ -50,25 +61,36 @@ void describe("makeup lifecycle input", () => {
   void it("requires a non-blank cancellation reason", () => {
     const parsed = makeupCancelInputSchema.parse({
       makeupId: MAKEUP_ID,
+      expectedVersion: 0,
       reason: " Cancelar ",
     });
 
     assert.equal(parsed.reason, "Cancelar");
     assert.equal(makeupCancelInputSchema.safeParse({ makeupId: MAKEUP_ID }).success, false);
     assert.equal(
-      makeupCancelInputSchema.safeParse({ makeupId: MAKEUP_ID, reason: "   " }).success,
+      makeupCancelInputSchema.safeParse({ makeupId: MAKEUP_ID, expectedVersion: 0, reason: "   " })
+        .success,
       false,
     );
   });
 
   void it("accepts only boolean makeup outcomes", () => {
-    const attended = makeupOutcomeInputSchema.parse({ makeupId: MAKEUP_ID, attended: true });
-    const noShow = makeupOutcomeInputSchema.parse({ makeupId: MAKEUP_ID, attended: false });
+    const attended = makeupOutcomeInputSchema.parse({
+      ...ACTUAL,
+      makeupId: MAKEUP_ID,
+      attended: true,
+    });
+    const noShow = makeupOutcomeInputSchema.parse({
+      ...ACTUAL,
+      makeupId: MAKEUP_ID,
+      attended: false,
+    });
 
     assert.equal(attended.attended, true);
     assert.equal(noShow.attended, false);
     assert.equal(
-      makeupOutcomeInputSchema.safeParse({ makeupId: MAKEUP_ID, attended: "true" }).success,
+      makeupOutcomeInputSchema.safeParse({ ...ACTUAL, makeupId: MAKEUP_ID, attended: "true" })
+        .success,
       false,
     );
   });
