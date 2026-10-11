@@ -1,3 +1,4 @@
+import { assertAttendanceOnlyWrite } from "../class-records/data.js";
 import { sessionSubject, makeupSubject } from "../activity/subjects.js";
 import { activityTransaction } from "../activity/record.js";
 import {
@@ -40,13 +41,15 @@ export const attendanceRouter = router({
       activityTransaction(
         ctx,
         "attendance.confirmSession",
-        (database) =>
-          confirmSession({
+        async (database) => {
+          await assertAttendanceOnlyWrite(database, input.sessionId);
+          return confirmSession({
             database,
             staffUser: ctx.staffUser,
             values: input,
             now: ctx.now ?? new Date(),
-          }),
+          });
+        },
         async (_result, database) => ({ subject: await sessionSubject(database, input.sessionId) }),
       ),
     ),
@@ -54,13 +57,15 @@ export const attendanceRouter = router({
     activityTransaction(
       ctx,
       "attendance.editSession",
-      (database) =>
-        editSession({
+      async (database) => {
+        await assertAttendanceOnlyWrite(database, input.sessionId);
+        return editSession({
           database,
           staffUser: ctx.staffUser,
           values: input,
           now: ctx.now ?? new Date(),
-        }),
+        });
+      },
       async (_result, database) => ({ subject: await sessionSubject(database, input.sessionId) }),
     ),
   ),

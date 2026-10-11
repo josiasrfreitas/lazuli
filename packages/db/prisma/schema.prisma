@@ -208,6 +208,7 @@ model User {
   createdInterventions PedagogicalIntervention[] @relation("InterventionAuthor")
   pedagogicalFollowUps PedagogicalFollowUp[]
   occurrenceRelations OccurrenceRelation[]
+  recordedClassRevisions ClassSessionRecordRevision[] @relation("ClassRecordAuthor")
 }
 
 model Account {
@@ -1109,7 +1110,6 @@ model ClassSessionRecord {
   classSession      ClassSession                 @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
   teachingTeacher   User?                        @relation("ClassRecordTeacher", fields: [teachingTeacherId], references: [id], onDelete: Restrict)
   revisions         ClassSessionRecordRevision[]
-
   @@index([teachingTeacherId])
 }
 
@@ -1125,7 +1125,6 @@ model ClassSessionRecordRevision {
   recordedById String             @map("recorded_by_id") @db.Uuid
   record       ClassSessionRecord @relation(fields: [recordId], references: [id], onDelete: Restrict)
   recordedBy   User               @relation("ClassRecordAuthor", fields: [recordedById], references: [id], onDelete: Restrict)
-
   @@unique([recordId, version])
   @@index([recordedById])
 }
