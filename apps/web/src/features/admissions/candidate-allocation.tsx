@@ -88,15 +88,16 @@ function AllocationHeader({ allocation }: { allocation: Allocation }): ReactElem
     </div>
   );
 }
+type AllocationResultsProps = {
+  candidate: Candidate;
+  allocation: Allocation;
+  onEdit: () => void;
+};
 function AllocationResults({
   candidate,
   allocation,
   onEdit,
-}: {
-  candidate: Candidate;
-  allocation: Allocation;
-  onEdit: () => void;
-}): ReactElement {
+}: AllocationResultsProps): ReactElement {
   if (!candidate.stageId)
     return (
       <div className="grid justify-items-start gap-3 border-t border-border pt-4">

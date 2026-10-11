@@ -20,19 +20,7 @@ export type VisitFieldsProps = {
 };
 export function initialVisitDraft(candidate: Candidate, previousId?: string): VisitDraft {
   const previous = candidate.visits.find((visit) => visit.id === previousId);
-  if (previous)
-    return {
-      kind: previous.kind,
-      date: dateLabel(previous.date),
-      classId: previous.classId ?? "",
-      meetingKey: previous.scheduleSlotId ?? previous.classSessionId ?? "",
-      teacher: previous.teacherId
-        ? { id: previous.teacherId, label: previous.teacherName ?? "Professor" }
-        : null,
-      startTime: previous.startTime ?? "",
-      endTime: previous.endTime ?? "",
-      notes: previous.notes ?? "",
-    };
+  if (previous) return previousVisitDraft(previous);
   return {
     kind: candidate.scheduleType === "PERSONALIZED" ? "INTRODUCTION" : "TRIAL",
     date: dateLabel(candidate.today),
@@ -42,6 +30,20 @@ export function initialVisitDraft(candidate: Candidate, previousId?: string): Vi
     startTime: "",
     endTime: "",
     notes: "",
+  };
+}
+function previousVisitDraft(previous: Candidate["visits"][number]): VisitDraft {
+  return {
+    kind: previous.kind,
+    date: dateLabel(previous.date),
+    classId: previous.classId ?? "",
+    meetingKey: previous.scheduleSlotId ?? previous.classSessionId ?? "",
+    teacher: previous.teacherId
+      ? { id: previous.teacherId, label: previous.teacherName ?? "Professor" }
+      : null,
+    startTime: previous.startTime ?? "",
+    endTime: previous.endTime ?? "",
+    notes: previous.notes ?? "",
   };
 }
 export function selectedVisitMeeting(

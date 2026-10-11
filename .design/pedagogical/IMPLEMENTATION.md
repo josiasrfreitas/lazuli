@@ -20,7 +20,7 @@ The user specifically requests a modern, premium UI; Professores is the current 
 ## Consolidated progress
 
 - V1/V2 baseline is on main.
-- V3 entry/allocation: main workflows browser-validated; draft implementation consolidated from 2033bf0. Remaining decomposition and CI findings still need resolution. The entry/return date now uses the shared Brazilian masked-date standard. Browser inspection confirmed text input, numeric keyboard hint, `dd/mm/aaaa`, masked typing and a single date control; the existing form contract was updated and awaits CI. Correction to the earlier checkpoint: issue #157 explicitly excludes transfers from V1; the absent UI is not an unfinished V1 acceptance criterion. The older transfer API is not authorization to expose an additional movement workflow.
+- V3 entry/allocation: draft implementation consolidated from 2033bf0; contact, availability, visit and enrollment forms now separate controllers, fields and pure input models. Known findings from the old draft CI were addressed, with automated execution still pending. Browser validation on 11 October covers required contact, compatible classes, real trial meetings, introductory scheduling/rescheduling/cancellation, guardian validation, existing-student conversion, future entry and attributed activity; see `v3-entrada-alocacao/VALIDATION.md`. Entry/return uses the shared masked Brazilian date control. Issue #157 explicitly excludes transfers from V1; the older transfer API does not authorize an additional movement UI.
 - Student profile: pedagogical/financial data, payment flow, contact/guardian, list/roster navigation and responsive light/dark UI implemented and browser-validated. Consolidated from aluno-perfil through c215183.
 - Turmas (#170): visual refinement implemented using Professores as reference; class information, teacher, schedule, roster and enrollment actions retained. Responsive light/dark evidence is in `turmas-ui/VALIDATION.md`.
 - V7 academic assessment (#175): two blocks and competency-specific recovery, pedagogical confirmation, justified corrections, student progression and class comparison implemented. Browser evidence includes the confirmed-grade correction flow; the complete seed supplies incomplete, sufficient, below-threshold and recovery cases. Student/class chart evidence is recorded in `assessments/VALIDATION.md`. Local automated checks remain deferred.
@@ -65,6 +65,19 @@ and 12 published future enrollments across four future classes. Browser QA subse
 actual classes, nine plans, 33 proposals, 13 publications and 34 availability confirmations, while
 retaining exactly 250 students. Earlier vertical QA records were replaced by the official rebuild;
 their screenshots remain historical evidence. One real Hatchet worker with one slot remains active.
+
+Final V3 browser validation created one synthetic lead, linked Manuela Carvalho Barbosa's existing
+student record and scheduled her entry into REG 14:00 · 6 on 13 October. The class retains ten
+current students and shows one scheduled entry. A real trial meeting remains scheduled; introductory
+rescheduling and justified cancellation retain both historical visits. The activity timeline names
+Clara Ribeiro and records the conversion time. Direct database reads still show 250 students and
+220 contracts; the conversion did not create a financial contract.
+
+The integrated implementation is ready for the user's product review. Recent finishing commits
+include the V8 paired-action batch correction (`8c0c038`), semester form refinements (`d40c466`),
+administrative route protection and evidence (`c27d356`), admissions form decomposition (`521572a`)
+and explicit semester test promises/concurrent error typing (`673cb68`). This checkpoint is a
+review handoff, not the final PR stack or a claim that automated gates passed.
 
 Preview: http://operacao-pedagogica.lazuli.localhost (port 3004). One web server remains active.
 The original checkout's unrelated edits are untouched. Work remains in the integrated branch;

@@ -45,9 +45,14 @@ Referência: operação de Professores (orientação do usuário em 10/10/2026),
 
 ## Progresso
 
-- [ ] Interessados, disponibilidade e turmas compatíveis.
-- [ ] Aulas de entrada e conflitos bidirecionais.
-- [ ] Conversão, interface e browser.
+- [x] Leads, disponibilidade e turmas compatíveis.
+- [x] Aulas de entrada e conflitos bidirecionais.
+- [x] Conversão, interface e browser.
+
+Estado integrado em 11/10/2026: implementação pronta para o parecer do usuário, com formulários
+decompostos e nova validação registrada em [VALIDATION.md](VALIDATION.md). As suites automatizadas
+continuam pendentes de CI. O pedido posterior do usuário substitui a entrega imediata por PR:
+a stack será organizada após a revisão do produto completo.
 
 ## Browser evidence — 10/10/2026
 
