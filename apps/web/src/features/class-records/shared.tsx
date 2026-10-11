@@ -1,0 +1,129 @@
+import type { ReactElement } from "react";
+import type { RouterOutputs } from "@lazuli/api";
+import type { ClassRecordContent, ClassRecordSnapshot } from "@lazuli/validators";
+import { Alert, Badge, Button, InlineSkeleton } from "@lazuli/ui";
+import { formatDateOnlyBR } from "~/lib/format";
+export type ClassRecord = RouterOutputs["classRecords"]["detail"];
+export const attendanceLabel = (present: number, total: number) =>
+  `${present} ${present === 1 ? "presente" : "presentes"} · ${total - present} ${total - present === 1 ? "falta" : "faltas"}`;
+export const dateLabel = formatDateOnlyBR;
+export const kindLabels = {
+  CONTENT: "Conteúdo",
+  REVIEW: "Revisão",
+  ASSESSMENT: "Avaliação",
+  ACTIVITY: "Atividade",
+} as const;
+export function RecordState({
+  pending,
+  error,
+  retry,
+}: {
+  pending: boolean;
+  error: { message: string } | null;
+  retry: () => void;
+}): ReactElement | null {
+  if (pending) return <InlineSkeleton className="h-64 w-full" />;
+  return error ? (
+    <Alert variant="destructive">
+      <span>{error.message}</span>
+      <Button variant="secondary" onClick={retry}>
+        Tentar novamente
+      </Button>
+    </Alert>
+  ) : null;
+}
+export function PlannedReference({
+  value,
+}: {
+  value: ClassRecordSnapshot["sharedPlanned"];
+}): ReactElement {
+  return (
+    <aside className="grid gap-3 rounded-md border border-border bg-muted p-4">
+      <h3 className="text-caption font-semibold">
+        Previsto para este encontro{value ? ` · versão ${value.version}` : ""}
+      </h3>
+      {value?.items.length ? (
+        <ul className="grid gap-3">
+          {value.items.map((item) => (
+            <li key={item.id} className="grid gap-1 text-caption">
+              <span className="font-medium">{item.title}</span>
+              <span className="text-muted-foreground">
+                {kindLabels[item.kind]}
+                {item.reference ? ` · ${item.reference}` : ""}
+                {item.pageFrom !== null
+                  ? ` · pág. ${item.pageFrom}${item.pageTo && item.pageTo !== item.pageFrom ? `–${item.pageTo}` : ""}`
+                  : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-caption text-muted-foreground">
+          {value
+            ? "Nenhuma atividade prevista para esta data."
+            : "Sem plano registrado até este encontro."}
+        </p>
+      )}
+    </aside>
+  );
+}
+export function PerformedContent({ value }: { value: ClassRecordContent }): ReactElement {
+  return (
+    <div className="grid gap-2">
+      <Badge variant="neutral">{kindLabels[value.kind]}</Badge>
+      <p className="whitespace-pre-wrap text-sm leading-relaxed">{value.account}</p>
+      {(value.reference || value.pageFrom !== null) && (
+        <p className="text-caption text-muted-foreground">
+          {value.reference}
+          {value.pageFrom !== null
+            ? `${value.reference ? " · " : ""}Pág. ${value.pageFrom}${value.pageTo !== null && value.pageTo !== value.pageFrom ? `–${value.pageTo}` : ""}`
+            : ""}
+        </p>
+      )}
+    </div>
+  );
+}
+export function SnapshotView({ snapshot }: { snapshot: ClassRecordSnapshot }): ReactElement {
+  const present = snapshot.entries.filter((row) => row.status === "PRESENT").length;
+  return (
+    <div className="grid min-w-0 gap-5">
+      <p className="text-caption text-muted-foreground">
+        {attendanceLabel(present, snapshot.entries.length)}
+      </p>
+      {snapshot.sharedContent && (
+        <section className="grid gap-4">
+          <h3 className="text-sm font-semibold">Realizado pela turma</h3>
+          <PerformedContent value={snapshot.sharedContent} />
+          <PlannedReference value={snapshot.sharedPlanned} />
+        </section>
+      )}
+      <div className="divide-y divide-border rounded-md border border-border">
+        {snapshot.entries.map((row) => (
+          <article key={row.enrollmentId} className="grid gap-3 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold">{row.name}</h3>
+                {row.stage && <p className="text-caption text-muted-foreground">{row.stage}</p>}
+              </div>
+              <Badge variant={row.status === "PRESENT" ? "success" : "warning"}>
+                {row.status === "PRESENT" ? "Presente" : "Falta"}
+              </Badge>
+            </div>
+            {row.content && (
+              <>
+                <PerformedContent value={row.content} />
+                <PlannedReference value={row.planned} />
+              </>
+            )}
+          </article>
+        ))}
+      </div>
+      {snapshot.note && (
+        <section className="grid gap-2">
+          <h3 className="text-caption font-semibold">Observação da aula</h3>
+          <p className="whitespace-pre-wrap text-sm">{snapshot.note}</p>
+        </section>
+      )}
+    </div>
+  );
+}

@@ -43,20 +43,29 @@ function ClassDetailView({ detail, id }: ClassDetailViewInput): ReactElement {
       <ClassContext detail={detail} onAssign={() => setAssigning(true)} />
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 sm:px-6">
         <div>
-          <h2 className="text-sm font-semibold">Planejamento de estágio</h2>
+          <h2 className="text-sm font-semibold">Rotina pedagógica</h2>
           <p className="mt-1 text-caption text-muted-foreground">
             {detail.scheduleType === "REGULAR"
               ? "Cronograma compartilhado, atividades e prazo do semestre."
               : "Roteiro e prazo individual para cada aluno do PPT."}
           </p>
         </div>
-        <Button
-          variant="secondary"
-          nativeButton={false}
-          render={<Link href={`/planejamento?turma=${id}`} />}
-        >
-          Abrir planejamento
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            nativeButton={false}
+            render={<Link href={`/planejamento?turma=${id}`} />}
+          >
+            Planejamento
+          </Button>
+          <Button
+            variant="secondary"
+            nativeButton={false}
+            render={<Link href={`/aulas?turma=${id}`} />}
+          >
+            Aulas da turma
+          </Button>
+        </div>
       </div>
       <ClassPerformance classId={id} />
       <RosterHeading search={search} onSearchChange={setSearch} />

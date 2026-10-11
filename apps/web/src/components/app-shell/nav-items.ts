@@ -2,6 +2,7 @@ import {
   type LucideIcon,
   ChartNoAxesCombined,
   CalendarRange,
+  ClipboardCheck,
   BookOpen,
   DollarSign,
   FileText,
@@ -68,6 +69,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
       { href: "/turmas", label: "Turmas", icon: BookOpen, roles: ["ADMIN", "SYSTEM_ADMIN"] },
+      {
+        href: "/aulas",
+        label: "Aulas",
+        icon: ClipboardCheck,
+        roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+      },
       {
         href: "/acompanhamento",
         label: "Acompanhamento",
