@@ -16,19 +16,22 @@ import {
 import { studentPaginationPolicy } from "@lazuli/validators";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { tablePaginationPropsFor, useUrlPagination } from "~/lib/pagination";
-import { CandidateDialog } from "./candidate-dialog";
+import { LeadCaptureDialog } from "./lead-capture-dialog";
 import { admissionColumns } from "./admission-columns";
 import type { CandidateRow } from "./labels";
 
+const followUpViews = ["ALL", "TODAY", "OVERDUE", "UNPLANNED"] as const;
 const states = ["WAITING", "ENROLLED", "ARCHIVED", "ALL"] as const;
 type CandidateQuery = QueryResult<RouterOutputs["admissions"]["list"]>;
 export function AdmissionsPage(): ReactElement {
   const [params, setParams] = useQueryStates({
+    retorno: parseAsStringLiteral(followUpViews).withDefault("ALL"),
     busca: parseAsString.withDefault(""),
     situacao: parseAsStringLiteral(states).withDefault("WAITING"),
   });
   const pagination = useUrlPagination(studentPaginationPolicy);
   const query = trpc.admissions.list.useQuery({
+    followUp: params.retorno,
     search: params.busca,
     status: params.situacao,
     page: pagination.page,
@@ -59,14 +62,27 @@ export function AdmissionsPage(): ReactElement {
           <AdmissionFilters
             value={params.situacao}
             onChange={(situacao) => {
-              void setParams({ situacao });
+              void setParams({ situacao, retorno: "ALL" });
               pagination.setPage(1);
             }}
           />
-          <AdmissionsTable query={query} pagination={pagination} search={params.busca} />
+          {params.situacao === "WAITING" && (
+            <FollowUpFilters
+              value={params.retorno}
+              onChange={(retorno) => {
+                void setParams({ retorno });
+                pagination.setPage(1);
+              }}
+            />
+          )}
+          <AdmissionsTable
+            query={query}
+            pagination={pagination}
+            filtered={Boolean(params.busca) || params.retorno !== "ALL"}
+          />
         </div>
       </DataTablePage>
-      {creating && <CandidateDialog onClose={() => setCreating(false)} />}
+      {creating && <LeadCaptureDialog onClose={() => setCreating(false)} />}
     </>
   );
 }
@@ -117,7 +133,7 @@ function AdmissionFilters({
             onChange(next as (typeof states)[number]);
         }}
       >
-        <SegmentedControlItem value="WAITING">Aguardando</SegmentedControlItem>
+        <SegmentedControlItem value="WAITING">Em acompanhamento</SegmentedControlItem>
         <SegmentedControlItem value="ENROLLED">Matriculados</SegmentedControlItem>
         <SegmentedControlItem value="ARCHIVED">Arquivados</SegmentedControlItem>
         <SegmentedControlItem value="ALL">Todos</SegmentedControlItem>
@@ -126,20 +142,20 @@ function AdmissionFilters({
     </div>
   );
 }
-function tableState(query: CandidateQuery, search: string): DataTableState<CandidateRow> {
+function tableState(query: CandidateQuery, filtered: boolean): DataTableState<CandidateRow> {
   if (query.isError) return { kind: "error" };
   if (!query.data) return { kind: "loading" };
   if (query.data.rows.length > 0) return { kind: "data", rows: query.data.rows };
-  return { kind: search ? "noResults" : "empty" };
+  return { kind: filtered ? "noResults" : "empty" };
 }
 function AdmissionsTable({
   query,
   pagination,
-  search,
+  filtered,
 }: {
   query: CandidateQuery;
   pagination: ReturnType<typeof useUrlPagination>;
-  search: string;
+  filtered: boolean;
 }): ReactElement {
   const router = useRouter();
   return (
@@ -147,7 +163,7 @@ function AdmissionsTable({
       <DataTable
         label="Leads"
         columns={admissionColumns(query.data?.today ?? "")}
-        state={tableState(query, search)}
+        state={tableState(query, filtered)}
         updating={query.isFetching}
         onRowClick={(row) => router.push(`/interessados/${row.id}`)}
         onRetry={() => void query.refetch()}
@@ -163,5 +179,30 @@ function AdmissionsTable({
         }}
       />
     </div>
+  );
+}
+
+function FollowUpFilters({
+  value,
+  onChange,
+}: {
+  value: (typeof followUpViews)[number];
+  onChange: (value: (typeof followUpViews)[number]) => void;
+}): ReactElement {
+  return (
+    <SegmentedControl
+      aria-label="Fila de retornos"
+      size="sm"
+      value={value}
+      onValueChange={(next) => {
+        if (followUpViews.includes(next as (typeof followUpViews)[number]))
+          onChange(next as (typeof followUpViews)[number]);
+      }}
+    >
+      <SegmentedControlItem value="ALL">Todos os retornos</SegmentedControlItem>
+      <SegmentedControlItem value="TODAY">Hoje</SegmentedControlItem>
+      <SegmentedControlItem value="OVERDUE">Em atraso</SegmentedControlItem>
+      <SegmentedControlItem value="UNPLANNED">Sem próximo passo</SegmentedControlItem>
+    </SegmentedControl>
   );
 }

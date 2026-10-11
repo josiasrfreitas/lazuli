@@ -11,7 +11,7 @@ export const weekdays = [
   { value: "SUNDAY", label: "Domingo" },
 ];
 export const statusLabels = {
-  WAITING: "Aguardando alocação",
+  WAITING: "Em acompanhamento",
   ENROLLED: "Matriculado",
   ARCHIVED: "Arquivado",
 };
@@ -21,9 +21,21 @@ export const visitLabels = {
   ABSENT: "Não compareceu",
   CANCELLED: "Cancelada",
 };
-export const dateOnly = (value: Date): string => value.toISOString().slice(0, 10);
-export const dateLabel = (value: Date | string): string =>
-  (typeof value === "string" ? value : dateOnly(value)).split("-").toReversed().join("/");
+export const dateOnly = (value: Date | null): string =>
+  value ? value.toISOString().slice(0, 10) : "";
+export const dateLabel = (value: Date | string | null): string =>
+  value === null
+    ? "Não definida"
+    : (typeof value === "string" ? value : dateOnly(value)).split("-").toReversed().join("/");
 export const timeLabel = (value: Date): string => value.toISOString().slice(11, 16);
 export const dayLabel = (value: string): string =>
   weekdays.find((day) => day.value === value)?.label ?? value;
+
+export function interestLabel(value: CandidateRow["scheduleType"]): string {
+  if (!value) return "Modalidade a definir";
+  return value === "REGULAR" ? "Regular" : "Personalizado";
+}
+export function formatLabel(value: CandidateRow["format"]): string {
+  if (!value) return "Formato a definir";
+  return value === "IN_PERSON" ? "Presencial" : "Online";
+}

@@ -47,7 +47,14 @@ export async function enrollCandidate(input: EnrollmentInput): Promise<Enrollmen
   });
   await database.admissionCandidate.update({
     where: { id: candidate.id },
-    data: { status: "ENROLLED", studentId, enrollmentId: created.enrollment.id, recordedById },
+    data: {
+      nextAction: null,
+      nextActionOn: null,
+      status: "ENROLLED",
+      studentId,
+      enrollmentId: created.enrollment.id,
+      recordedById,
+    },
   });
   return { studentId, enrollmentId: created.enrollment.id, classId: choice.id };
 }

@@ -38,6 +38,8 @@ type Draft = Omit<Values, "availableUntil"> & { availableUntil: string };
 function initialDraft(candidate?: Candidate): Draft {
   return {
     fullName: candidate?.fullName ?? "",
+    contactName: candidate?.contactName ?? "",
+    source: candidate?.source ?? "",
     phone: candidate?.phone ?? "",
     email: candidate?.email ?? "",
     notes: candidate?.notes ?? "",
@@ -45,12 +47,14 @@ function initialDraft(candidate?: Candidate): Draft {
     studentId: candidate?.studentId ?? null,
     scheduleType: candidate?.scheduleType ?? "REGULAR",
     format: candidate?.format ?? "IN_PERSON",
-    availableUntil: candidate ? dateLabel(candidate.availableUntil) : "",
-    availability: candidate?.availability.map((slot) => ({
-      weekday: slot.weekday,
-      startTime: timeLabel(slot.startTime),
-      endTime: timeLabel(slot.endTime),
-    })) ?? [{ weekday: "MONDAY", startTime: "", endTime: "" }],
+    availableUntil: candidate?.availableUntil ? dateLabel(candidate.availableUntil) : "",
+    availability: candidate?.availability.length
+      ? candidate.availability.map((slot) => ({
+          weekday: slot.weekday,
+          startTime: timeLabel(slot.startTime),
+          endTime: timeLabel(slot.endTime),
+        }))
+      : [{ weekday: "MONDAY", startTime: "", endTime: "" }],
   };
 }
 export function CandidateDialog({
@@ -176,6 +180,22 @@ export function CandidateDialog({
                       />
                     </FormRow>
                   </FormSection>
+                  <FormRow columns={2}>
+                    <TextControl
+                      name="contactName"
+                      label="Pessoa de contato"
+                      value={draft.contactName ?? ""}
+                      onChange={(value) => change("contactName", value)}
+                      placeholder="Se diferente do futuro aluno"
+                    />
+                    <TextControl
+                      name="source"
+                      label="Como chegou à escola"
+                      value={draft.source ?? ""}
+                      onChange={(value) => change("source", value)}
+                      placeholder="Ex.: indicação de uma família"
+                    />
+                  </FormRow>
                   <StudentLink
                     studentId={draft.studentId}
                     name={draft.fullName}

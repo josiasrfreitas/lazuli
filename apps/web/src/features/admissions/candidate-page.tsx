@@ -1,4 +1,5 @@
 "use client";
+import { interestLabel, formatLabel } from "./labels";
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import {
@@ -23,6 +24,8 @@ import {
   PopoverTrigger,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+import { LeadCaptureDialog } from "./lead-capture-dialog";
+import { LeadFollowUp } from "./lead-follow-up";
 import { CandidateDialog } from "./candidate-dialog";
 import { CandidateAllocation } from "./candidate-allocation";
 import { CandidateVisits } from "./candidate-visits";
@@ -72,10 +75,13 @@ function CandidateWorkspace({ candidate }: { candidate: Candidate }): ReactEleme
         onEdit={setEditing}
         onSchedule={() => setScheduling(true)}
       />
-      {editing && (
+      {editing === "profile" && (
+        <LeadCaptureDialog candidate={candidate} onClose={() => setEditing(null)} />
+      )}
+      {editing === "availability" && (
         <CandidateDialog
           candidate={candidate}
-          startAtAvailability={editing === "availability"}
+          startAtAvailability={Boolean(candidate.scheduleType)}
           onClose={() => setEditing(null)}
         />
       )}
@@ -122,7 +128,7 @@ function CandidateIdentity({ candidate }: { candidate: Candidate }): ReactElemen
     <div className="flex min-w-0 items-start gap-3">
       <Avatar name={candidate.fullName} colorKey={candidate.id} />
       <div className="grid min-w-0 gap-2">
-        <p className="text-caption text-muted-foreground">Entrada e alocação</p>
+        <p className="text-caption text-muted-foreground">Lead · Comercial</p>
         <h1 className="break-words font-display text-h2 font-semibold text-heading">
           {candidate.fullName}
         </h1>
@@ -178,7 +184,7 @@ function HeaderActions({
               disabled={pending}
               onClick={onStatus}
             >
-              {candidate.status === "ARCHIVED" ? "Reabrir interesse" : "Arquivar interesse"}
+              {candidate.status === "ARCHIVED" ? "Reabrir lead" : "Arquivar lead"}
             </PopoverClose>
           </PopoverContent>
         </Popover>
@@ -224,6 +230,7 @@ function CandidateDetail(props: CandidateActions): ReactElement {
         )}
       </aside>
       <div className="grid min-w-0 gap-6">
+        <LeadFollowUp candidate={candidate} />
         {candidate.status === "WAITING" && (
           <CandidateAllocation candidate={candidate} onEdit={() => props.onEdit("availability")} />
         )}
@@ -239,7 +246,8 @@ function CandidateAvailability({
   candidate: Candidate;
   onRenew: () => void;
 }): ReactElement {
-  const expired = dateOnly(candidate.availableUntil) < candidate.today;
+  const expired =
+    Boolean(candidate.availableUntil) && dateOnly(candidate.availableUntil) < candidate.today;
   return (
     <section className="grid gap-3 border-t border-border pt-5" aria-label="Disponibilidade">
       <div className="flex items-center justify-between gap-2">
@@ -255,8 +263,15 @@ function CandidateAvailability({
         </div>
       ))}
       <p className="text-caption text-muted-foreground">
-        Confirmada até {dateLabel(candidate.availableUntil)}
+        {candidate.availableUntil
+          ? `Confirmada até ${dateLabel(candidate.availableUntil)}`
+          : "Horários ainda não informados"}
       </p>
+      {!candidate.availableUntil && candidate.status === "WAITING" && (
+        <Button variant="secondary" size="sm" onClick={onRenew}>
+          Definir interesse e horários
+        </Button>
+      )}
       {expired && candidate.status === "WAITING" && (
         <Alert variant="warning">
           <p>Confirme novamente os horários para continuar a alocação.</p>
@@ -305,15 +320,24 @@ function CandidateProfile({ candidate }: { candidate: Candidate }): ReactElement
     <section className="grid gap-4" aria-label="Perfil do lead">
       <h2 className="text-h3 font-semibold">Interesse</h2>
       <div>
-        <p className="font-medium">
-          {candidate.scheduleType === "REGULAR" ? "Curso regular" : "Curso personalizado"}
-        </p>
+        <p className="font-medium">{interestLabel(candidate.scheduleType)}</p>
         <p className="text-caption text-muted-foreground">
-          {candidate.format === "IN_PERSON" ? "Presencial" : "Online"} ·{" "}
-          {candidate.stage?.name ?? "Nivelamento pendente"}
+          {formatLabel(candidate.format)} · {candidate.stage?.name ?? "Nivelamento pendente"}
         </p>
       </div>
       <div className="grid gap-2 text-caption">
+        {candidate.contactName && (
+          <p>
+            <span className="text-muted-foreground">Pessoa de contato: </span>
+            {candidate.contactName}
+          </p>
+        )}
+        {candidate.source && (
+          <p>
+            <span className="text-muted-foreground">Origem: </span>
+            {candidate.source}
+          </p>
+        )}
         {candidate.phone && (
           <p className="flex items-center gap-2">
             <Phone className="size-4 shrink-0 text-muted-foreground" />
