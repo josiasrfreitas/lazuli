@@ -17,6 +17,7 @@ import { adminProcedure, router } from "../trpc/init.js";
 import { createStudent, readStudentProfile, searchStudents, updateStudentContact } from "./data.js";
 import { listStudents, previewStudent } from "./list.js";
 import { setStudentStatus } from "./status.js";
+import { readStudentPedagogy } from "./pedagogy.js";
 import { completeStudent } from "./completion.js";
 
 const FILTER_OPTION_LIMIT = 50;
@@ -83,6 +84,11 @@ export const studentsRouter = router({
         database: ctx.db,
         values: { id: input.id, now: ctx.now ?? new Date(), staffUserId: ctx.staffUser.id },
       }),
+    ),
+  pedagogy: adminProcedure
+    .input(studentIdInputSchema)
+    .query(({ ctx, input }) =>
+      readStudentPedagogy({ database: ctx.db, id: input.id, now: ctx.now ?? new Date() }),
     ),
   byId: adminProcedure
     .input(studentIdInputSchema)

@@ -12,7 +12,7 @@ type QueryInput = {
   search: string | undefined;
 } & Pick<
   FinanceInstallmentsInput,
-  "statuses" | "origins" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
+  "statuses" | "origins" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents" | "studentId"
 >;
 type AggregateDatabase = KyselyDatabase & {
   adjustment_totals: { installment_id: string; amount_cents: number };
@@ -123,6 +123,7 @@ function ledgerQuery(input: QueryInput): QueryCreator<LedgerDatabase> {
       .where("Installment.deleted_at", "is", null)
       .where("Order.deleted_at", "is", null)
       .where("Order.cancelled_at", "is", null)
+      .where(matchesStudent(input.studentId))
       .where("Payer.deleted_at", "is", null);
     return query;
   }) as object as QueryCreator<LedgerDatabase>;
@@ -313,4 +314,18 @@ function escapeLikePattern(value: string): string {
     .replaceAll(escape, escape.repeat(2))
     .replaceAll("%", `${escape}%`)
     .replaceAll("_", `${escape}_`);
+}
+
+/** Scope before grouping so a shared payer never includes another student's orders. */
+function matchesStudent(studentId: string | undefined): RawBuilder<boolean> {
+  if (!studentId) return sql<boolean>`true`;
+  return sql<boolean>`(
+    ("Contract".student_id = ${studentId}::uuid and "Contract".deleted_at is null)
+    or exists (
+      select 1 from "OrderBeneficiary" beneficiary
+      where beneficiary.order_id = "Order".id
+        and beneficiary.student_id = ${studentId}::uuid
+        and beneficiary.deleted_at is null
+    )
+  )`;
 }
