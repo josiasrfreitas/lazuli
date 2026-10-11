@@ -148,6 +148,12 @@ enum ArtifactKind {
 }
 
 model User {
+  semesterClassPlans SemesterClassPlan[] @relation("SemesterPlanAuthor")
+  semesterPlacementsCreated SemesterPlacement[] @relation("SemesterPlacementAuthor")
+  semesterPlacementsPublished SemesterPlacement[] @relation("SemesterPlacementPublisher")
+  semesterPlacementRevisions SemesterPlacementRevision[]
+  studentAvailabilityConfirmations StudentAvailability[]
+  plannedSemesterTeaching SemesterClassPlan[] @relation("SemesterPlanTeacher")
   sessionGenerationRequests SessionGenerationRequest[]
   assignedAppointments PedagogicalAppointment[] @relation("AppointmentTeacher")
   scheduledAppointments PedagogicalAppointment[] @relation("AppointmentScheduler")
@@ -273,6 +279,8 @@ model Verification {
 }
 
 model Student {
+  semesterPlacements SemesterPlacement[]
+  availabilityConfirmations StudentAvailability[]
   appointments PedagogicalAppointment[]
   absenceContacts AbsenceContact[]
   stagePlans StagePlan[]
@@ -354,6 +362,9 @@ model Address {
 // non-overlap exclusion constraint on daterange(start_date, end_date, '[]') live
 // in the GRE-22 raw-SQL migration (Prisma cannot express exclusion constraints).
 model Semester {
+  classPlans SemesterClassPlan[]
+  placements SemesterPlacement[]
+  studentAvailability StudentAvailability[]
   sessionGenerationRequests SessionGenerationRequest[]
   id        String    @id @default(uuid()) @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -394,6 +405,7 @@ model ProductLine {
 }
 
 model Class {
+  semesterPlan SemesterClassPlan?
   sessionGenerationRequests SessionGenerationRequest[]
   stagePlan StagePlan?
   entryVisits EntryVisit[]
@@ -487,6 +499,7 @@ model ClassScheduleSlot {
 }
 
 model Track {
+  semesterPlacements SemesterPlacement[]
   id            String        @id @default(uuid()) @db.Uuid
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
@@ -503,6 +516,8 @@ model Track {
 }
 
 model Stage {
+  semesterClassPlans SemesterClassPlan[]
+  semesterPlacements SemesterPlacement[]
   plans StagePlan[]
   assessments StageAssessment[]
   admissionCandidates AdmissionCandidate[]
@@ -524,6 +539,8 @@ model Stage {
 }
 
 model Enrollment {
+  sourceSemesterPlacements SemesterPlacement[] @relation("SemesterPlacementSource")
+  futureSemesterPlacements SemesterPlacement[] @relation("SemesterPlacementTarget")
   appointments PedagogicalAppointment[]
   attendanceDeclarations AttendanceDeclaration[]
   admissionCandidate AdmissionCandidate?
@@ -551,6 +568,9 @@ model Enrollment {
 }
 
 model EnrollmentAction {
+  semesterEntries SemesterPlacement[] @relation("SemesterPlacementEntry")
+  semesterExits SemesterPlacement[] @relation("SemesterPlacementExit")
+  exitReason EnrollmentExitReason? @map("exit_reason")
   id                 String                 @id @default(uuid()) @db.Uuid
   createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime               @updatedAt @map("updated_at") @db.Timestamptz
@@ -581,6 +601,7 @@ model EnrollmentAction {
 }
 
 model PedagogicalProgress {
+  semesterPlacements SemesterPlacement[]
   stagePlanId String? @map("stage_plan_id") @db.Uuid
   stagePlan StagePlan? @relation(fields: [stagePlanId], references: [id], onDelete: Restrict)
   assessmentId String? @map("assessment_id") @db.Uuid
@@ -1603,4 +1624,122 @@ model AbsenceContact {
   @@index([studentId, contactedAt])
   @@index([attendanceId])
   @@index([nextContactDate])
+}
+
+
+enum SemesterPlacementMode {
+  ENTRY
+  CONTINUE
+  ADVANCE
+  REPEAT
+}
+
+model SemesterClassPlan {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  semesterId String @map("semester_id") @db.Uuid
+  name String
+  scheduleType ClassScheduleType @map("schedule_type")
+  format ClassFormat
+  sharedStageId String? @map("shared_stage_id") @db.Uuid
+  teacherId String? @map("teacher_id") @db.Uuid
+  slots Json
+  version Int @default(1)
+  classId String? @unique @map("class_id") @db.Uuid
+  recordedById String @map("recorded_by_id") @db.Uuid
+
+  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  sharedStage Stage? @relation(fields: [sharedStageId], references: [id], onDelete: Restrict)
+  teacher User? @relation("SemesterPlanTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+  class Class? @relation(fields: [classId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("SemesterPlanAuthor", fields: [recordedById], references: [id], onDelete: Restrict)
+  placements SemesterPlacement[]
+
+  @@index([semesterId])
+}
+
+model StudentAvailability {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  studentId String @map("student_id") @db.Uuid
+  semesterId String @map("semester_id") @db.Uuid
+  confirmed Boolean @default(true)
+  validUntil DateTime @map("valid_until") @db.Date
+  formats ClassFormat[]
+  slots Json
+  notes String?
+  recordedById String @map("recorded_by_id") @db.Uuid
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  recordedBy User @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  placements SemesterPlacement[]
+
+  @@index([studentId, semesterId, createdAt])
+}
+
+model SemesterPlacement {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  semesterId String @map("semester_id") @db.Uuid
+  planId String? @map("plan_id") @db.Uuid
+  studentId String @map("student_id") @db.Uuid
+  trackId String @map("track_id") @db.Uuid
+  stageId String? @map("stage_id") @db.Uuid
+  sourceEnrollmentId String? @map("source_enrollment_id") @db.Uuid
+  sourceProgressId String? @map("source_progress_id") @db.Uuid
+  mode SemesterPlacementMode
+  version Int @default(1)
+  notes String?
+  recordedById String @map("recorded_by_id") @db.Uuid
+  publishedAt DateTime? @map("published_at") @db.Timestamptz
+  publishedById String? @map("published_by_id") @db.Uuid
+  enrollmentId String? @map("enrollment_id") @db.Uuid
+  entryActionId String? @map("entry_action_id") @db.Uuid
+  sourceExitActionId String? @map("source_exit_action_id") @db.Uuid
+  availabilityId String? @map("availability_id") @db.Uuid
+  publishedEvidence Json? @map("published_evidence")
+
+  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  plan SemesterClassPlan? @relation(fields: [planId], references: [id], onDelete: Restrict)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  track Track @relation(fields: [trackId], references: [id], onDelete: Restrict)
+  stage Stage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  sourceEnrollment Enrollment? @relation("SemesterPlacementSource", fields: [sourceEnrollmentId], references: [id], onDelete: Restrict)
+  sourceProgress PedagogicalProgress? @relation(fields: [sourceProgressId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("SemesterPlacementAuthor", fields: [recordedById], references: [id], onDelete: Restrict)
+  publishedBy User? @relation("SemesterPlacementPublisher", fields: [publishedById], references: [id], onDelete: Restrict)
+  enrollment Enrollment? @relation("SemesterPlacementTarget", fields: [enrollmentId], references: [id], onDelete: Restrict)
+  entryAction EnrollmentAction? @relation("SemesterPlacementEntry", fields: [entryActionId], references: [id], onDelete: Restrict)
+  sourceExitAction EnrollmentAction? @relation("SemesterPlacementExit", fields: [sourceExitActionId], references: [id], onDelete: Restrict)
+  availability StudentAvailability? @relation(fields: [availabilityId], references: [id], onDelete: Restrict)
+  revisions SemesterPlacementRevision[]
+
+  @@index([semesterId, planId])
+  @@index([entryActionId])
+  @@index([sourceExitActionId])
+}
+
+model SemesterPlacementRevision {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  placementId String @map("placement_id") @db.Uuid
+  version Int
+  action String
+  reason String?
+  snapshot Json
+  recordedById String? @map("recorded_by_id") @db.Uuid
+
+  placement SemesterPlacement @relation(fields: [placementId], references: [id], onDelete: Restrict)
+  recordedBy User? @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@unique([placementId, version])
 }

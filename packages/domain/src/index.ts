@@ -127,3 +127,4 @@ export {
   type AttendancePoint,
 } from "./student-attendance.js";
 export * from "./compensated-attendance.js";
+export * from "./semester-organization.js";
