@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type FormEvent, type ReactElement } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import {
@@ -30,6 +30,7 @@ import { trpc } from "~/lib/trpc";
 import { useScrollToError } from "~/lib/scroll-to-error";
 import { maskDateBR, maskPhoneBR, maskTime24, parseDateBR } from "~/lib/masks";
 import { SelectControl, TextControl } from "~/features/classes/form-controls";
+import { StudentLink } from "./student-link";
 import { dateLabel, timeLabel, weekdays, type Candidate } from "./labels";
 
 type Values = RouterInputs["admissions"]["save"]["values"];
@@ -66,6 +67,9 @@ export function CandidateDialog({
   const [revision, setRevision] = useState(0);
   const body = useScrollToError(revision);
   const first = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (step === 1) body.current?.querySelector<HTMLInputElement>("input")?.focus();
+  }, [step, body]);
   const utils = trpc.useUtils();
   const router = useRouter();
   const save = trpc.admissions.save.useMutation({
@@ -77,7 +81,11 @@ export function CandidateDialog({
   });
   function change<K extends keyof Draft>(key: K, value: Draft[K]): void {
     setDraft((current) => ({ ...current, [key]: value }));
-    setErrors((current) => ({ ...current, [key]: "" }));
+    setErrors((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([field]) => field !== key && !field.startsWith(`${key}.`)),
+      ),
+    );
     save.reset();
   }
   function submit(event: FormEvent): void {
@@ -166,6 +174,11 @@ export function CandidateDialog({
                       />
                     </FormRow>
                   </FormSection>
+                  <StudentLink
+                    studentId={draft.studentId}
+                    name={draft.fullName}
+                    onChange={(value) => change("studentId", value)}
+                  />
                   <FormSection title="O que procura">
                     <FormRow columns={2}>
                       <Field>

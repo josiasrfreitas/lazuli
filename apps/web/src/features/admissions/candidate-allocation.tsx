@@ -93,6 +93,31 @@ export function CandidateAllocation({
                 key={row.id}
                 role="radio"
                 aria-checked={selected === row.id}
+                tabIndex={
+                  selected === row.id || (!selected && row.id === query.data?.[0]?.id) ? 0 : -1
+                }
+                onKeyDown={(event) => {
+                  if (!["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft"].includes(event.key))
+                    return;
+                  event.preventDefault();
+                  const choices = query.data ?? [];
+                  const direction =
+                    event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : -1;
+                  const next =
+                    choices[
+                      (choices.findIndex((item) => item.id === row.id) +
+                        direction +
+                        choices.length) %
+                        choices.length
+                    ];
+                  if (next) {
+                    setSelected(next.id);
+                    event.currentTarget.parentElement
+                      ?.querySelector<HTMLButtonElement>(`[data-class-id="${next.id}"]`)
+                      ?.focus();
+                  }
+                }}
+                data-class-id={row.id}
                 onClick={() => setSelected(row.id)}
                 className={cn(
                   "flex w-full items-start gap-3 rounded-md border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

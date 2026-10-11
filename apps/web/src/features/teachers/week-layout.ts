@@ -23,7 +23,9 @@ export function dayGroups(meetings: Meeting[], wholeHours = false): MeetingGroup
 }
 
 /** Keep a full teaching day visible, extending it for commitments outside that window. */
-export function weekBoundaries(meetings: Meeting[]): string[] {
+export function weekBoundaries(
+  meetings: readonly Pick<Meeting, "startTime" | "endTime">[],
+): string[] {
   const startHour = Math.min(
     DAY_START_HOUR,
     ...meetings.map((meeting) => Number(meeting.startTime.slice(0, 2))),
@@ -43,7 +45,9 @@ export function weekBoundaries(meetings: Meeting[]): string[] {
 }
 
 /** Retain all hourly cells within shifts that contain a lesson anywhere in the week. */
-export function visibleWeekSlots(meetings: Meeting[]): Array<{ start: string; end: string }> {
+export function visibleWeekSlots(
+  meetings: readonly Pick<Meeting, "startTime" | "endTime">[],
+): Array<{ start: string; end: string }> {
   const boundaries = weekBoundaries(meetings);
   const shifts = [
     { start: boundaries[0] ?? "07:00", end: "12:00" },

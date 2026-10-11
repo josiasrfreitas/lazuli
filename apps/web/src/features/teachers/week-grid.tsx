@@ -2,6 +2,7 @@
 import { type MeetingGroup, dayGroups, visibleWeekSlots } from "./week-layout";
 import type { ReactElement } from "react";
 import { cn } from "@lazuli/ui";
+import { IntroductionBlock, type Introduction } from "./teacher-introductions";
 import { MeetingBlock } from "./meeting-block";
 import type { Meeting } from "./meeting-dialog";
 import { dateLabel, shiftDay } from "./format";
@@ -9,13 +10,21 @@ import { dateLabel, shiftDay } from "./format";
 const DATE_MONTH_OFFSET = 5;
 
 const DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
-export function WeekGrid({ rows, week, teacherId, today, onOpen }: WeekGridInput): ReactElement {
+export function WeekGrid({
+  rows,
+  introductions = [],
+  week,
+  teacherId,
+  today,
+  onOpen,
+}: WeekGridInput): ReactElement {
   const days = DAYS.map((name, index) => ({
     name,
     date: shiftDay(week, index),
     groups: dayGroups(rows.filter((row) => row.date === shiftDay(week, index))),
+    introductions: introductions.filter((row) => row.date === shiftDay(week, index)),
   }));
-  const slots = visibleWeekSlots(rows);
+  const slots = visibleWeekSlots([...rows, ...introductions]);
   return (
     <>
       <div className="hidden overflow-hidden rounded-md border border-border bg-card xl:block">
@@ -26,23 +35,38 @@ export function WeekGrid({ rows, week, teacherId, today, onOpen }: WeekGridInput
           <WeekHead days={days} today={today} />
           <tbody>
             {slots.map(({ start: time, end }) => (
-              <WeekHour time={time} days={days} end={end} teacherId={teacherId} onOpen={onOpen} />
+              <WeekHour
+                key={time}
+                time={time}
+                days={days}
+                end={end}
+                teacherId={teacherId}
+                onOpen={onOpen}
+              />
             ))}
           </tbody>
         </table>
       </div>
       <div className="grid gap-4 xl:hidden">
         {days.map((day) => (
-          <WeekDay day={day} today={today} teacherId={teacherId} onOpen={onOpen} />
+          <WeekDay key={day.date} day={day} today={today} teacherId={teacherId} onOpen={onOpen} />
         ))}
       </div>
     </>
   );
 }
 
+type WeekDayData = {
+  name: string;
+  date: string;
+  groups: MeetingGroup[];
+  introductions: Introduction[];
+};
+
 type WeekCellProps = {
-  day: { name: string; date: string; groups: MeetingGroup[] };
+  day: WeekDayData;
   meetings: Meeting[];
+  introductions: Introduction[];
   teacherId: string;
   onOpen: (meeting: Meeting) => void;
 };
@@ -52,11 +76,14 @@ function WeekCell(props: WeekCellProps): ReactElement {
       key={props.day.date}
       className={cn(
         "relative h-9 border-t border-l border-border-subtle p-0 align-top",
-        props.meetings.length === 0 && "bg-muted/20",
+        props.meetings.length === 0 && props.introductions.length === 0 && "bg-muted/20",
       )}
     >
-      {props.meetings.length > 0 && (
+      {(props.meetings.length > 0 || props.introductions.length > 0) && (
         <div className="absolute inset-0 flex flex-col">
+          {props.introductions.map((row) => (
+            <IntroductionBlock key={row.id} row={row} compact />
+          ))}
           {props.meetings.map((meeting) => (
             <MeetingBlock
               key={`${meeting.slotId ?? meeting.sessionId}:${meeting.date}`}
@@ -73,7 +100,7 @@ function WeekCell(props: WeekCellProps): ReactElement {
 }
 
 type WeekHeadProps = {
-  days: { name: string; date: string; groups: MeetingGroup[] }[];
+  days: WeekDayData[];
   today: string;
 };
 function WeekHead(props: WeekHeadProps): ReactElement {
@@ -113,7 +140,7 @@ function WeekHead(props: WeekHeadProps): ReactElement {
 
 type WeekHourProps = {
   time: string;
-  days: { name: string; date: string; groups: MeetingGroup[] }[];
+  days: WeekDayData[];
   end: string;
   teacherId: string;
   onOpen: (meeting: Meeting) => void;
@@ -136,6 +163,9 @@ function WeekHour(props: WeekHourProps): ReactElement {
             key={day.date}
             day={day}
             meetings={meetings}
+            introductions={day.introductions.filter(
+              (row) => row.startTime < props.end && row.endTime > props.time,
+            )}
             teacherId={props.teacherId}
             onOpen={props.onOpen}
           />
@@ -146,7 +176,7 @@ function WeekHour(props: WeekHourProps): ReactElement {
 }
 
 type WeekDayProps = {
-  day: { name: string; date: string; groups: MeetingGroup[] };
+  day: WeekDayData;
   today: string;
   teacherId: string;
   onOpen: (meeting: Meeting) => void;
@@ -172,8 +202,11 @@ function WeekDay(props: WeekDayProps): ReactElement {
           {dateLabel(props.day.date).slice(0, DATE_MONTH_OFFSET)}
         </span>
       </h3>
-      {props.day.groups.length > 0 ? (
+      {props.day.groups.length > 0 || props.day.introductions.length > 0 ? (
         <div className="grid gap-2 lg:grid-cols-2">
+          {props.day.introductions.map((row) => (
+            <IntroductionBlock key={row.id} row={row} />
+          ))}
           {props.day.groups
             .flatMap((group) => group.meetings)
             .map((meeting) => (
@@ -194,6 +227,7 @@ function WeekDay(props: WeekDayProps): ReactElement {
 
 type WeekGridInput = {
   rows: Meeting[];
+  introductions?: Introduction[];
   week: string;
   teacherId: string;
   today: string;

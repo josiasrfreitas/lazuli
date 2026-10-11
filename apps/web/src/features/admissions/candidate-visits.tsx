@@ -82,7 +82,7 @@ export function CandidateVisits({ candidate }: { candidate: Candidate }): ReactE
                         <Button
                           variant="ghost"
                           size="icon-compact-responsive"
-                          aria-label={`Ações da aula de ${dateLabel(visit.date)}`}
+                          aria-label={`Ações da aula de ${dateLabel(visit.date)} às ${visit.startTime}`}
                         />
                       }
                     >
