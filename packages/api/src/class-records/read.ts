@@ -52,7 +52,13 @@ export async function listClassRecords(
 export async function readClassRecord(context: RecordContext, sessionId: string) {
   const session = await loadRecordSession(context, sessionId);
   const record = session.classRecord;
+  const guests = await context.database.pedagogicalAppointment.findMany({
+    where: { targetClassSessionId: sessionId, deletedAt: null, status: { not: "CANCELLED" } },
+    select: { id: true, purpose: true, status: true, student: { select: { fullName: true } } },
+    orderBy: { student: { fullName: "asc" } },
+  });
   return {
+    guests,
     session: {
       id: session.id,
       classId: session.classId,

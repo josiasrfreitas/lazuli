@@ -1,5 +1,5 @@
 import type { Prisma } from "@lazuli/db";
-import { saoPauloDateOnly, type AttendancePercent } from "@lazuli/domain";
+import { saoPauloDateOnly, type AttendanceProgress } from "@lazuli/domain";
 import type { Context } from "../trpc/context.js";
 import { notFound } from "../trpc/errors.js";
 import { computeEnrollmentPercentInWindow } from "../attendance/percent.js";
@@ -61,7 +61,7 @@ const TIME_END = 16;
 
 export async function readStudentPedagogy(input: Input): Promise<{
   today: string;
-  enrollments: Array<ReturnType<typeof enrollmentView> & { attendance: AttendancePercent }>;
+  enrollments: Array<ReturnType<typeof enrollmentView> & { attendance: AttendanceProgress }>;
 }> {
   const student = await input.database.student.findUnique({
     where: { id: input.id },

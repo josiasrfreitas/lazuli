@@ -320,6 +320,18 @@ export async function rejectionMessage(promise: Promise<unknown>): Promise<strin
 /** Prefix/key/user-scoped cleanup in FK-safe order. */
 async function cleanNamespace(ns: Namespace): Promise<void> {
   const byStudent = { enrollment: { student: { fullName: { startsWith: ns.prefix } } } };
+  const appointmentScope = { student: { fullName: { startsWith: ns.prefix } } };
+  await db.makeupCoverage.deleteMany({ where: { appointment: appointmentScope } });
+  await db.appointmentRevision.deleteMany({ where: { appointment: appointmentScope } });
+  await db.absenceContact.deleteMany({ where: appointmentScope });
+  await db.pedagogicalAppointment.updateMany({
+    where: appointmentScope,
+    data: { rescheduledFromId: null },
+  });
+  await db.pedagogicalAppointment.deleteMany({ where: appointmentScope });
+  await db.activityEvent.deleteMany({
+    where: { actorId: { in: [ns.admin.id, ns.teacher.id, ns.otherTeacher.id] } },
+  });
   await db.attendance.deleteMany({ where: byStudent });
   await db.makeup.deleteMany({
     where: { originEnrollment: { student: { fullName: { startsWith: ns.prefix } } } },

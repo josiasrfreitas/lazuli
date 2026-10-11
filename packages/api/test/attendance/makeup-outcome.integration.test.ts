@@ -1,171 +1,134 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe, it } from "node:test";
-
+import { after, beforeEach, it } from "node:test";
 import { db } from "@lazuli/db";
-
-import {
-  MAKEUP_ALREADY_CANCELLED_MESSAGE,
-  MAKEUP_TARGET_CANCELLED_MESSAGE,
-} from "../../src/attendance/errors.js";
-import { rejectionMessage } from "../support/attendance-test-support.js";
 import { outcomeHarness as harness } from "../support/makeup-namespaces.js";
-import { attendanceRowCount, insertMakeup } from "../support/makeup-test-support.js";
-
-type OutcomeSetup = {
-  originEnrollmentId: string;
-  targetClassSessionId: string;
-  cancelledSessionId: string;
+import { appointmentFixture } from "../support/appointment-fixtures.js";
+import { insertMakeup, attendanceRowCount } from "../support/makeup-test-support.js";
+beforeEach(() => harness.clean());
+after(async () => {
+  await harness.clean();
+  await db.$disconnect();
+});
+const actual = {
+  attended: true,
+  expectedVersion: 0,
+  performedContent: "Retomada de escuta e perguntas em duplas.",
+  performedMinutes: 120,
+  notes: "",
+  reason: "",
 };
 
-// The target session lives in the base class owned by ns.teacher; the origin enrollment is in a separate
-// class owned by ns.otherTeacher, so outcome resource-scope is exercised on the target owner only.
-async function setup(): Promise<OutcomeSetup> {
-  const scenario = await harness.seedBaseScenario();
-  const originClassId = await harness.createClass({
-    code: "origin",
-    teacherId: harness.ns.otherTeacher.id,
-    stageId: scenario.stageId,
-    semesterId: scenario.semesterId,
+void it("records actual delivery through the legacy entry point without rewriting original attendance", async () => {
+  const f = await appointmentFixture(harness);
+  const makeupId = await insertMakeup({
+    originEnrollmentId: f.enrollmentId,
+    targetClassSessionId: f.targetId,
   });
-  const student = await harness.enrollStudent({
-    classId: originClassId,
-    stageId: scenario.stageId,
-    suffix: "Bento",
+  await harness
+    .caller(harness.ns.otherTeacher, f.after)
+    .attendance.markMakeupOutcome({ ...actual, makeupId, coverages: f.input.coverages });
+  const row = await db.makeup.findUniqueOrThrow({
+    where: { id: makeupId },
+    include: { appointment: true },
   });
-  const cancelledSessionId = await harness.createSession({
-    classId: scenario.classId,
-    date: harness.ns.afterSessionDate,
-    status: "CANCELLED",
-  });
-
-  return {
-    originEnrollmentId: student.enrollmentId,
-    targetClassSessionId: scenario.sessionId,
-    cancelledSessionId,
-  };
-}
-
-void describe("attendance.markMakeupOutcome", () => {
-  void before(async () => {
-    await db.$connect();
-  });
-  void beforeEach(async () => {
-    await harness.clean();
-  });
-  void after(async () => {
-    await harness.clean();
-    await db.$disconnect();
-  });
-
-  registerAttendedTest();
-  registerClearTest();
-  registerScopeTest();
-  registerCancelledMakeupTest();
-  registerCancelledTargetTest();
-  registerNoAttendanceRowTest();
+  assert.equal(row.attendedAt?.toISOString(), f.after.toISOString());
+  assert.equal(row.attendedById, harness.ns.otherTeacher.id);
+  assert.equal(row.appointment?.performedMinutes, 120);
+  assert.equal(row.appointment?.performedContent, actual.performedContent);
+  assert.equal(
+    await attendanceRowCount({ enrollmentId: f.enrollmentId, classSessionId: f.targetId }),
+    0,
+  );
+  assert.equal(
+    (await db.attendance.findUniqueOrThrow({ where: { id: f.absence.id } })).status,
+    "ABSENT",
+  );
+  const percent = await harness
+    .caller()
+    .attendance.enrollmentSemesterPercent({
+      enrollmentId: f.enrollmentId,
+      semesterId: f.semesterId,
+    });
+  assert.equal(percent.percent, 1);
+  assert.equal(percent.presentCount, 0);
 });
-
-function registerAttendedTest(): void {
-  void it("stamps attendedAt/attendedById when the owning teacher marks attended", async () => {
-    const context = await setup();
-    const makeupId = await insertMakeup(context);
-
-    const result = await harness.caller(harness.ns.teacher).attendance.markMakeupOutcome({
+void it("corrects to a no-show with a reason while preserving actual delivery in history", async () => {
+  const f = await appointmentFixture(harness);
+  const makeupId = await insertMakeup({
+    originEnrollmentId: f.enrollmentId,
+    targetClassSessionId: f.targetId,
+  });
+  const caller = harness.caller(undefined, f.after);
+  await caller.attendance.markMakeupOutcome({ ...actual, makeupId, coverages: f.input.coverages });
+  await assert.rejects(
+    caller.attendance.markMakeupOutcome({
+      ...actual,
       makeupId,
-      attended: true,
-    });
-
-    assert.equal(result.attended, true);
-    const row = await db.makeup.findUnique({
-      where: { id: makeupId },
-      select: { attendedAt: true, attendedById: true },
-    });
-    assert.notEqual(row?.attendedAt, null);
-    assert.equal(row?.attendedById, harness.ns.teacher.id);
+      expectedVersion: 1,
+      attended: false,
+      coverages: [],
+    }),
+    { code: "BAD_REQUEST", message: /motivo/ },
+  );
+  await caller.attendance.markMakeupOutcome({
+    ...actual,
+    makeupId,
+    expectedVersion: 1,
+    attended: false,
+    coverages: [],
+    reason: "Registro conferido; o aluno não compareceu.",
   });
-}
-
-function registerClearTest(): void {
-  void it("clears attendance when re-marked as not attended (reversible)", async () => {
-    const context = await setup();
-    const makeupId = await insertMakeup(context);
-    const caller = harness.caller(harness.ns.admin);
-
-    await caller.attendance.markMakeupOutcome({ makeupId, attended: true });
-    await caller.attendance.markMakeupOutcome({ makeupId, attended: false });
-
-    const row = await db.makeup.findUnique({
-      where: { id: makeupId },
-      select: { attendedAt: true, attendedById: true },
-    });
-    assert.equal(row?.attendedAt, null);
-    assert.equal(row?.attendedById, null);
+  const row = await db.makeup.findUniqueOrThrow({
+    where: { id: makeupId },
+    include: { appointment: true },
   });
-}
-
-function registerScopeTest(): void {
-  void it("forbids a teacher who does not own the target session", async () => {
-    const context = await setup();
-    const makeupId = await insertMakeup(context);
-
-    await assert.rejects(
-      harness.caller(harness.ns.otherTeacher).attendance.markMakeupOutcome({
-        makeupId,
-        attended: true,
-      }),
-      /FORBIDDEN/,
-    );
+  assert.equal(row.attendedAt, null);
+  assert.equal(row.attendedById, null);
+  const detail = await caller.appointments.detail({ id: row.appointment!.id });
+  assert.equal(detail.snapshot.status, "NO_SHOW");
+  assert.equal(detail.history[1]?.snapshot.performedContent, actual.performedContent);
+  assert.equal(detail.absences.find((item) => item.id === f.absence.id)?.available, 120);
+});
+void it("enforces teacher scope, encounter end and the teacher's business day", async () => {
+  const f = await appointmentFixture(harness);
+  const makeupId = await insertMakeup({
+    originEnrollmentId: f.enrollmentId,
+    targetClassSessionId: f.targetId,
   });
-}
-
-function registerCancelledMakeupTest(): void {
-  void it("rejects marking a cancelled makeup", async () => {
-    const context = await setup();
-    const makeupId = await insertMakeup({ ...context, cancelledAt: new Date() });
-
-    assert.equal(
-      await rejectionMessage(
-        harness
-          .caller(harness.ns.teacher)
-          .attendance.markMakeupOutcome({ makeupId, attended: true }),
-      ),
-      MAKEUP_ALREADY_CANCELLED_MESSAGE,
-    );
+  const input = { ...actual, makeupId, coverages: f.input.coverages };
+  await assert.rejects(
+    harness.caller(harness.ns.teacher, f.after).attendance.markMakeupOutcome(input),
+    { code: "FORBIDDEN" },
+  );
+  await assert.rejects(
+    harness.caller(harness.ns.otherTeacher, f.before).attendance.markMakeupOutcome(input),
+    { code: "BAD_REQUEST", message: /término/ },
+  );
+  await assert.rejects(
+    harness
+      .caller(harness.ns.otherTeacher, new Date(f.after.getTime() + 86400000))
+      .attendance.markMakeupOutcome(input),
+    { code: "BAD_REQUEST", message: /administração/ },
+  );
+  assert.equal((await db.makeup.findUniqueOrThrow({ where: { id: makeupId } })).attendedAt, null);
+});
+void it("rejects cancelled bookings and cancelled destination classes", async () => {
+  const f = await appointmentFixture(harness);
+  const makeupId = await insertMakeup({
+    originEnrollmentId: f.enrollmentId,
+    targetClassSessionId: f.targetId,
   });
-}
-
-function registerCancelledTargetTest(): void {
-  void it("rejects marking a makeup whose target session is cancelled", async () => {
-    const context = await setup();
-    const makeupId = await insertMakeup({
-      originEnrollmentId: context.originEnrollmentId,
-      targetClassSessionId: context.cancelledSessionId,
-    });
-
-    assert.equal(
-      await rejectionMessage(
-        harness
-          .caller(harness.ns.teacher)
-          .attendance.markMakeupOutcome({ makeupId, attended: true }),
-      ),
-      MAKEUP_TARGET_CANCELLED_MESSAGE,
-    );
+  const input = { ...actual, makeupId, coverages: f.input.coverages };
+  await db.classSession.update({ where: { id: f.targetId }, data: { status: "CANCELLED" } });
+  await assert.rejects(harness.caller(undefined, f.after).attendance.markMakeupOutcome(input), {
+    code: "BAD_REQUEST",
+    message: /destino foi cancelada/,
   });
-}
-
-function registerNoAttendanceRowTest(): void {
-  void it("never writes an Attendance row (makeups do not affect the %)", async () => {
-    const context = await setup();
-    const makeupId = await insertMakeup(context);
-
-    await harness
-      .caller(harness.ns.teacher)
-      .attendance.markMakeupOutcome({ makeupId, attended: true });
-
-    const count = await attendanceRowCount({
-      enrollmentId: context.originEnrollmentId,
-      classSessionId: context.targetClassSessionId,
-    });
-    assert.equal(count, 0);
+  await db.classSession.update({ where: { id: f.targetId }, data: { status: "SCHEDULED" } });
+  await db.makeup.update({ where: { id: makeupId }, data: { cancelledAt: f.before } });
+  await assert.rejects(harness.caller(undefined, f.after).attendance.markMakeupOutcome(input), {
+    code: "BAD_REQUEST",
+    message: /atendimento foi cancelado/,
   });
-}
+  assert.equal((await db.makeup.findUniqueOrThrow({ where: { id: makeupId } })).attendedAt, null);
+});

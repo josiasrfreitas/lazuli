@@ -6,6 +6,12 @@ export const ACTIVITY_AREAS = {
 } as const;
 export type ActivityArea = keyof typeof ACTIVITY_AREAS;
 export const ACTIVITY_ACTIONS = {
+  "appointments.schedule": ["PEDAGOGICAL", "Atendimento agendado"],
+  "appointments.record": ["PEDAGOGICAL", "Atendimento registrado"],
+  "appointments.correct": ["PEDAGOGICAL", "Atendimento corrigido"],
+  "appointments.cancel": ["PEDAGOGICAL", "Atendimento cancelado"],
+  "appointments.reschedule": ["PEDAGOGICAL", "Atendimento reagendado"],
+  "appointments.contact": ["PEDAGOGICAL", "Contato sobre frequência registrado"],
   "studentAttendance.open": ["PEDAGOGICAL", "Link de presença aberto"],
   "studentAttendance.close": ["PEDAGOGICAL", "Link de presença encerrado"],
   "classRecords.cancelSession": ["PEDAGOGICAL", "Aula cancelada"],
