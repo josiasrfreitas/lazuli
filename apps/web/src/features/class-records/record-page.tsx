@@ -6,9 +6,16 @@ import { Alert, Badge, Button, Tabs, TabsList, TabsTab } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { ClassRecordEditor } from "./editor";
 import { ClassRecordHistory } from "./history";
+import { StudentAttendanceSection } from "~/features/student-attendance/staff-section";
 import { dateLabel, RecordState, SnapshotView, PlannedReference, type ClassRecord } from "./shared";
 export function ClassRecordPage({ id }: { id: string }): ReactElement {
-  const query = trpc.classRecords.detail.useQuery({ sessionId: id }, { retry: false });
+  const query = trpc.classRecords.detail.useQuery(
+    { sessionId: id },
+    {
+      retry: false,
+      refetchInterval: (query) => (query.state.data?.session.upcoming ? 30_000 : false),
+    },
+  );
   return (
     <div
       id="class-record-scroll"
@@ -30,6 +37,13 @@ export function ClassRecordPage({ id }: { id: string }): ReactElement {
   );
 }
 function RecordContent({ data }: { data: ClassRecord }): ReactElement {
+  const declarations = trpc.studentAttendance.status.useQuery(
+    { sessionId: data.session.id },
+    {
+      refetchInterval: (query) =>
+        query.state.data?.windows.some((row) => row.active) ? 8000 : false,
+    },
+  );
   const [editing, setEditing] = useState(false);
   const [view, setView] = useState("record");
   const editorOpen = !data.restriction && (data.version === 0 || editing);
@@ -79,9 +93,16 @@ function RecordContent({ data }: { data: ClassRecord }): ReactElement {
           {data.session.cancelReason ? ` ${data.session.cancelReason}` : ""}
         </Alert>
       )}
+      <StudentAttendanceSection
+        sessionId={data.session.id}
+        status={declarations.data}
+        failed={declarations.isError}
+        refresh={() => void declarations.refetch()}
+      />
       {editorOpen ? (
         <ClassRecordEditor
           data={data}
+          declarations={declarations.data?.declarations ?? []}
           onClose={() => {
             setEditing(false);
             document.getElementById("class-record-scroll")?.scrollTo({ top: 0 });

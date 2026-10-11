@@ -6,12 +6,18 @@ import { trpc } from "~/lib/trpc";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import { ContentFields, contentInput, draftContent } from "./content-fields";
 import { attendanceLabel, PlannedReference, type ClassRecord } from "./shared";
+import {
+  DeclarationEvidence,
+  type AttendanceStatus,
+} from "~/features/student-attendance/staff-section";
 export function ClassRecordEditor({
   data,
   onClose,
+  declarations,
 }: {
   data: ClassRecord;
   onClose: () => void;
+  declarations: AttendanceStatus["declarations"];
 }): ReactElement {
   const [opened] = useState(data);
   const regular = opened.session.scheduleType === "REGULAR";
@@ -35,6 +41,7 @@ export function ClassRecordEditor({
         utils.students.invalidate(),
         utils.classes.invalidate(),
         utils.activity.invalidate(),
+        utils.studentAttendance.invalidate(),
       ]);
       setReview(null);
       onClose();
@@ -155,6 +162,11 @@ export function ClassRecordEditor({
                       </p>
                     )}
                   </div>
+                  {declarations
+                    .filter((declaration) => declaration.enrollmentId === row.enrollmentId)
+                    .map((declaration) => (
+                      <DeclarationEvidence key={declaration.id} value={declaration} />
+                    ))}
                   <SegmentedControl
                     size="sm"
                     value={row.status}
