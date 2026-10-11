@@ -62,7 +62,7 @@ export function AppointmentsAgenda() {
   );
   const student = query.data?.[0]?.student;
   return (
-    <div className="mx-auto grid h-full w-full max-w-6xl content-start gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto grid h-full w-full max-w-6xl grid-cols-1 content-start gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-h2 font-semibold text-heading">Atendimentos</h1>
