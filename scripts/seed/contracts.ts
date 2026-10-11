@@ -37,8 +37,20 @@ const DUE_DAYS = Array.from(
 const CONTRACT_COHORT_SIZE = 20;
 const UNPAID_INSTALLMENT_DEPTHS = [2, 3, 4, 5] as const;
 const CONTRACT_MONTHS = 12;
-const EARLIEST_START_MONTHS_AGO = 6;
-const START_MONTH_VARIATIONS = 3;
+// Older cohorts retain the evidence needed for partial payments and aging buckets.
+const HISTORICAL_CLOSING_MONTHS_AGO = [8, 7, 6, 5] as const;
+const PUNCTUAL_CLOSING_COHORTS = [
+  { monthsAgo: 8, contracts: 35 },
+  { monthsAgo: 7, contracts: 24 },
+  { monthsAgo: 6, contracts: 20 },
+  { monthsAgo: 5, contracts: 16 },
+  { monthsAgo: 4, contracts: 26 },
+  { monthsAgo: 3, contracts: 22 },
+  { monthsAgo: 2, contracts: 18 },
+  { monthsAgo: 1, contracts: 16 },
+  { monthsAgo: 0, contracts: 10 },
+] as const;
+const AGREEMENT_DAY_VARIATIONS = 28;
 const AGREEMENT_LEAD_DAYS = 7;
 const CONTRACT_TRANSACTION_TIMEOUT_MS = 30_000;
 const LATE_PAYMENT_DAYS = [3, 5, 7, 10] as const;
@@ -66,12 +78,14 @@ export async function seedContracts(database: DatabaseClient, todayIso: string):
   const admin = await database.user.findUniqueOrThrow({ where: { email: DEV_ADMIN.email } });
   const settings = await database.financeSettings.findUniqueOrThrow({ where: { id: "singleton" } });
   const contractedStudents = DEV_STUDENTS.filter((student) => student.enrollments.length > 0);
+  const closingMonths = closingMonthOffsets(contractedStudents);
   for (const [index, student] of contractedStudents.entries()) {
     await database.$transaction(
       async (transaction) => {
         await seedContract(transaction, {
           student,
           index,
+          agreementMonthOffset: closingMonths[index]!,
           todayIso,
           adminId: admin.id,
           discountPct: Number(settings.punctualityDiscountPct),
@@ -88,13 +102,14 @@ export async function seedContracts(database: DatabaseClient, todayIso: string):
 type ContractInput = {
   student: DevStudentSeed;
   index: number;
+  agreementMonthOffset: number;
   todayIso: string;
   adminId: string;
   discountPct: number;
 };
 
 async function seedContract(transaction: TransactionClient, input: ContractInput): Promise<void> {
-  const { student, index, todayIso, adminId } = input;
+  const { student, index, adminId } = input;
   const payerId = stableUuid(["dev-contract-payer", payerKey(student)]);
   const selectionIndex = cohortSelectionIndex(index);
   await transaction.payer.upsert({
@@ -107,24 +122,61 @@ async function seedContract(transaction: TransactionClient, input: ContractInput
       email: student.guardian?.email ?? student.email ?? null,
     },
   });
-  // Ongoing annual terms start before the current academic semester, even at year boundaries.
-  const firstDueDate = isoOf(
-    monthlyDueDate(todayIso, {
-      monthOffset: -EARLIEST_START_MONTHS_AGO - (index % START_MONTH_VARIATIONS),
-      dueDay: DUE_DAYS[selectionIndex % DUE_DAYS.length]!,
-    }),
-  );
+  const { agreedOn, firstDueDate } = contractDates(input);
   const contract = await finance(transaction, adminId).createMonthlyContract({
     commandId: stableUuid(["dev-contract", student.key]),
     studentId: stableUuid(["student", student.key]),
     payerId,
-    agreedOn: isoOf(addDays(utcDate(firstDueDate), -AGREEMENT_LEAD_DAYS)),
+    agreedOn,
     startsOn: firstDueDate,
     durationMonths: CONTRACT_MONTHS,
     firstDueDate,
     monthlyAmountCents: MONTHLY_PRICES[selectionIndex % MONTHLY_PRICES.length]!,
   });
   await seedPayments(transaction, { ...input, contractId: contract.id, payerId });
+}
+
+function closingMonthOffsets(students: readonly DevStudentSeed[]): number[] {
+  let punctualPosition = 0;
+  let historicalPosition = 0;
+  return students.map((student) => {
+    if ((student.financeProfile ?? "punctual") === "punctual")
+      return -punctualClosingMonthsAgo(punctualPosition++);
+    const monthsAgo =
+      HISTORICAL_CLOSING_MONTHS_AGO[historicalPosition++ % HISTORICAL_CLOSING_MONTHS_AGO.length]!;
+    return -monthsAgo;
+  });
+}
+
+function punctualClosingMonthsAgo(position: number): number {
+  let remaining = position;
+  for (const cohort of PUNCTUAL_CLOSING_COHORTS) {
+    if (remaining < cohort.contracts) return cohort.monthsAgo;
+    remaining -= cohort.contracts;
+  }
+  throw new Error("Development contract closing cohorts must cover all punctual students.");
+}
+
+function contractDates(input: ContractInput): { agreedOn: string; firstDueDate: string } {
+  const { todayIso, index, agreementMonthOffset } = input;
+  const selectionIndex = cohortSelectionIndex(index);
+  const dayLimit =
+    agreementMonthOffset === 0
+      ? Math.min(AGREEMENT_DAY_VARIATIONS, utcDate(todayIso).getUTCDate())
+      : AGREEMENT_DAY_VARIATIONS;
+  const agreedOn = monthlyDueDate(todayIso, {
+    monthOffset: agreementMonthOffset,
+    dueDay: 1 + (selectionIndex % dayLimit),
+  });
+  const earliestDue = addDays(agreedOn, AGREEMENT_LEAD_DAYS);
+  const dueDay = DUE_DAYS[selectionIndex % DUE_DAYS.length]!;
+  let dueMonthOffset = agreementMonthOffset;
+  let firstDueDate = monthlyDueDate(todayIso, { monthOffset: dueMonthOffset, dueDay });
+  while (firstDueDate < earliestDue) {
+    dueMonthOffset += 1;
+    firstDueDate = monthlyDueDate(todayIso, { monthOffset: dueMonthOffset, dueDay });
+  }
+  return { agreedOn: isoOf(agreedOn), firstDueDate: isoOf(firstDueDate) };
 }
 
 function payerKey(student: DevStudentSeed): string {
