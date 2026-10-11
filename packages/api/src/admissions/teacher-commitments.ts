@@ -4,12 +4,27 @@ import { badRequest } from "../trpc/errors.js";
 import { dateToTimeString } from "../classes/time.js";
 
 const ISO_DATE_LENGTH = 10;
-export async function introductoryMeetings(
-  database: Prisma.TransactionClient,
-  teacherId: string,
-  from: string,
-  through: string,
-) {
+export type Introduction = {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: Prisma.EntryVisitGetPayload<Record<string, never>>["status"];
+  format: Prisma.EntryVisitGetPayload<Record<string, never>>["format"];
+};
+export async function introductoryMeetings({
+  database,
+  teacherId,
+  from,
+  through,
+}: {
+  database: Prisma.TransactionClient;
+  teacherId: string;
+  from: string;
+  through: string;
+}): Promise<Introduction[]> {
   const rows = await database.entryVisit.findMany({
     where: {
       kind: "INTRODUCTION",
@@ -39,12 +54,7 @@ export async function assertNoIntroductionConflict(input: {
   slots: readonly { weekday: string; startTime: string; endTime: string }[];
   candidateMeetings?: readonly { date: string; startTime: string; endTime: string }[];
 }): Promise<void> {
-  const visits = await introductoryMeetings(
-    input.database,
-    input.teacherId,
-    input.from,
-    input.through,
-  );
+  const visits = await introductoryMeetings(input);
   for (const visit of visits) {
     if (visit.status === "CANCELLED") continue;
     const overlaps = input.candidateMeetings

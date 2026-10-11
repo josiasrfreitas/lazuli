@@ -70,3 +70,7 @@ Additional browser validation:
 - Used a deliberately expired local fixture: allocation and scheduling were blocked. Renewing opened directly on availability, saved the new validity and restored matching classes.
 - Used a deliberately historical introductory-lesson fixture: recording attendance succeeded while the candidate remained WAITING with no enrollment.
 - Linked an existing synthetic student through search, selected the compatible class with keyboard support and confirmed enrollment using that existing registration. Evidence: `evidence/existing-student.png`.
+
+- Confirmed reverse conflict through the real substitution dialog: assigning Rafael to another class's 14/10 14:00–15:30 meeting was blocked by the existing 14:00–15:00 introductory lesson. Evidence: `evidence/reverse-conflict.png`.
+- Experimental guests are now visible separately in the teacher's meeting detail, linking to their entry record. Narrow-layout evidence: `evidence/experimental-guests.png`.
+- Draft PR: https://github.com/josiasrfreitas/lazuli/pull/169. First CI pass identified pagination response metadata and the extended transaction-client type; both corrected. Function-size/style findings are being addressed by separating form controllers and presentation; no local suites invoked.

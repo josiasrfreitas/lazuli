@@ -198,6 +198,7 @@ export {
   admissionListSchema,
   admissionMatchesSchema,
   entryVisitScheduleSchema,
+  entryVisitGuestsSchema,
   entryVisitOutcomeSchema,
   admissionEnrollSchema,
 } from "./admissions.js";

@@ -6,6 +6,7 @@ import { contextFor, TEACHER_FIXTURE } from "../support/support.js";
 type Caller = ReturnType<typeof createCaller>;
 const invalid = {} as never;
 const operations = [
+  { name: "guests", invoke: (caller: Caller) => caller.admissions.guests(invalid) },
   { name: "list", invoke: (caller: Caller) => caller.admissions.list(invalid) },
   { name: "byId", invoke: (caller: Caller) => caller.admissions.byId(invalid) },
   { name: "matches", invoke: (caller: Caller) => caller.admissions.matches(invalid) },
