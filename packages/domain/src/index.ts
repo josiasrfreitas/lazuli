@@ -108,3 +108,14 @@ export {
   availabilityIsCurrent,
   type AvailabilityWindow,
 } from "./admission-availability.js";
+export {
+  ACADEMIC_COMPETENCES,
+  ACADEMIC_PASS_SCORE,
+  ACADEMIC_MAX_SCORE,
+  assessmentResults,
+  assessmentStatus,
+  type AcademicCompetence,
+  type AssessmentPhase,
+  type AcademicGrade,
+  type CompetenceResult,
+} from "./assessment.js";
