@@ -137,7 +137,7 @@ export function AbsenceList({ from, through }: { from: string; through: string }
     },
   ];
   return (
-    <section className="grid min-w-0 gap-4">
+    <section className="grid min-w-0 grid-cols-1 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-caption text-muted-foreground">
           {query.data ? `${query.data.total} faltas neste recorte` : "Carregando faltas"}
@@ -165,7 +165,7 @@ export function AbsenceList({ from, through }: { from: string; through: string }
           />
         </div>
       </div>
-      <div className="h-128 min-h-80">
+      <div className="h-128 min-h-80 min-w-0">
         <DataTable
           label="Faltas e reposições"
           columns={columns}
