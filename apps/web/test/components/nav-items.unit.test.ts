@@ -17,6 +17,8 @@ const ANALYTICS_PATH = "/financeiro";
 const CLASSES_PATH = "/turmas";
 const ASSESSMENTS_PATH = "/avaliacoes";
 const CLASS_RECORDS_PATH = "/aulas";
+const APPOINTMENTS_PATH = "/atendimentos";
+const NEXT_SEMESTER_PATH = "/proximo-semestre";
 const FOLLOW_UP_PATH = "/acompanhamento";
 const PLANNING_PATH = "/planejamento";
 const RECEIVABLES_PATH = "/recebiveis";
@@ -35,7 +37,7 @@ function sectionsSummary(sections: NavSection[]): ReturnType<typeof sectionSumma
 }
 
 void describe("role-aware navigation", () => {
-  void it("shows Alunos, Professores and Turmas only to roles their procedures accept", () => {
+  void it("shows administrative organization only to administrators and teaching work to teachers", () => {
     assert.deepEqual(
       navItemsFor("ADMIN").map((item) => item.href),
       [
@@ -44,8 +46,10 @@ void describe("role-aware navigation", () => {
         TEACHERS_PATH,
         CLASSES_PATH,
         CLASS_RECORDS_PATH,
+        APPOINTMENTS_PATH,
         FOLLOW_UP_PATH,
         PLANNING_PATH,
+        NEXT_SEMESTER_PATH,
         LEADS_PATH,
         ANALYTICS_PATH,
         CONTRACTS_PATH,
@@ -55,7 +59,7 @@ void describe("role-aware navigation", () => {
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
-      ["/", CLASS_RECORDS_PATH, FOLLOW_UP_PATH, PLANNING_PATH, ASSESSMENTS_PATH],
+      ["/", CLASS_RECORDS_PATH, APPOINTMENTS_PATH, FOLLOW_UP_PATH, PLANNING_PATH, ASSESSMENTS_PATH],
     );
   });
 
@@ -64,7 +68,16 @@ void describe("role-aware navigation", () => {
       { label: null, items: ["Início"] },
       {
         label: PEDAGOGICAL_LABEL,
-        items: [STUDENTS_LABEL, "Professores", "Turmas", "Aulas", "Acompanhamento", "Planejamento"],
+        items: [
+          STUDENTS_LABEL,
+          "Professores",
+          "Turmas",
+          "Aulas",
+          "Atendimentos",
+          "Acompanhamento",
+          "Planejamento",
+          "Próximo semestre",
+        ],
       },
       { label: "Comercial", items: ["Leads"] },
       { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
@@ -116,7 +129,14 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
     assert.deepEqual(
       navItemsFor(role).map((item) => item.href),
       role === "TEACHER"
-        ? ["/", CLASS_RECORDS_PATH, FOLLOW_UP_PATH, PLANNING_PATH, ASSESSMENTS_PATH]
+        ? [
+            "/",
+            CLASS_RECORDS_PATH,
+            APPOINTMENTS_PATH,
+            FOLLOW_UP_PATH,
+            PLANNING_PATH,
+            ASSESSMENTS_PATH,
+          ]
         : ["/"],
     );
   }
@@ -131,8 +151,10 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       TEACHERS_PATH,
       CLASSES_PATH,
       CLASS_RECORDS_PATH,
+      APPOINTMENTS_PATH,
       FOLLOW_UP_PATH,
       PLANNING_PATH,
+      NEXT_SEMESTER_PATH,
       LEADS_PATH,
       ANALYTICS_PATH,
       CONTRACTS_PATH,

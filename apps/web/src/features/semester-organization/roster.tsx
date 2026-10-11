@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ArrowUpRight, Check, MoreHorizontal } from "lucide-react";
 import {
   Alert,
-  Badge,
   Button,
   Checkbox,
   DataTable,
@@ -39,7 +38,7 @@ export function SemesterRoster({
   onAction,
 }: {
   board: SemesterBoard;
-  plan?: ClassPlan;
+  plan?: ClassPlan | undefined;
   rows: Placement[];
   readOnly: boolean;
   onAction: (action: PlacementAction) => void;
@@ -117,7 +116,8 @@ export function SemesterRoster({
     <div className="grid min-w-0 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-caption text-muted-foreground">
-          {rows.length} propostas · {ready.length} prontas para publicar
+          {rows.length} {rows.length === 1 ? "proposta" : "propostas"} · {ready.length}{" "}
+          {ready.length === 1 ? "pronta" : "prontas"} para publicar
         </p>
         {plan && !readOnly && (
           <Button disabled={!selected.length} onClick={() => setConfirm(true)}>
@@ -172,7 +172,7 @@ export function SemesterRoster({
           title={`Publicar ${selected.length} ${selected.length === 1 ? "aluno" : "alunos"}`}
           description={plan.name}
           formId="semester-publish"
-          firstField="semester-publish-confirm"
+          firstField="semester-publish-submit"
           submitLabel="Confirmar publicação"
           onClose={() => setConfirm(false)}
           pending={mutation.isPending}
@@ -207,9 +207,6 @@ export function SemesterRoster({
               {rows.filter((row) => !row.publishedAt).length - selected.length} propostas permanecem
               em preparação. As informações serão conferidas novamente ao publicar.
             </Alert>
-            <button id="semester-publish-confirm" className="sr-only" type="submit">
-              Confirmar alunos selecionados
-            </button>
           </form>
         </TaskDialog>
       )}
@@ -247,7 +244,13 @@ function AvailabilityCell({
   const availability = row.availability;
   return (
     <div className="grid justify-items-start gap-1">
-      <Button variant="ghost" size="sm" disabled={readOnly} onClick={onClick}>
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label={`Disponibilidade de ${row.studentName}`}
+        disabled={readOnly}
+        onClick={onClick}
+      >
         {availability?.confirmed
           ? `Até ${formatDateOnlyBR(dateOnly(availability.validUntil))}`
           : availability

@@ -62,7 +62,7 @@ export function SemesterOrganizationPage() {
           </p>
           <h1 className="font-display text-h2 font-semibold text-heading">Próximo semestre</h1>
           <p className="mt-2 max-w-xl text-caption text-muted-foreground">
-            Prepare as próximas turmas enquanto a escola segue em movimento.
+            Turmas, horários e alocações para o próximo período.
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
@@ -322,7 +322,7 @@ function PlanOverview({
               type="button"
               key={plan.id}
               onClick={() => onSelect(plan.id)}
-              className="group grid gap-5 rounded-md border border-border bg-card p-5 text-left transition-colors hover:border-interactive focus-visible:outline-none focus-visible:shadow-focus"
+              className="group grid content-start gap-5 rounded-md border border-border bg-card p-5 text-left transition-colors hover:border-interactive focus-visible:outline-none focus-visible:shadow-focus"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="grid gap-2">
@@ -346,10 +346,14 @@ function PlanOverview({
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
                 <span className="inline-flex items-center gap-2 text-caption">
                   <Users className="size-4 text-muted-foreground" />
-                  {rows.length} alunos · {published} publicados
+                  {rows.length} {rows.length === 1 ? "aluno" : "alunos"} · {published} publicados
                 </span>
                 <span className="text-micro text-muted-foreground">
-                  {pending ? `${pending} pendentes` : rows.length ? "Tudo conferido" : "A compor"}
+                  {pending
+                    ? `${pending} ${pending === 1 ? "pendente" : "pendentes"}`
+                    : rows.length
+                      ? "Tudo conferido"
+                      : "A compor"}
                 </span>
               </div>
               {plan.draftConflicts.length > 0 && (

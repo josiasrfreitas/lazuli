@@ -74,7 +74,9 @@ function PlacementFields({
   const options = trpc.classes.formOptions.useQuery();
   const initialSource =
     data.progress.find((item) => item.id === row?.sourceProgressId) ?? data.progress[0];
-  const [sourceId, setSourceId] = useState(row?.sourceProgressId ?? initialSource?.id ?? "new");
+  const [sourceId, setSourceId] = useState(
+    row ? (row.sourceProgressId ?? "new") : (initialSource?.id ?? "new"),
+  );
   const defaultMode = initialSource
     ? initialSource.enrollment.class.scheduleType === "PERSONALIZED"
       ? "CONTINUE"
@@ -104,7 +106,10 @@ function PlacementFields({
       onClose();
     },
   });
-  function changeMode(next: keyof typeof modes, progress = source) {
+  function changeMode(
+    next: keyof typeof modes,
+    progress: StudentContext["progress"][number] | undefined,
+  ) {
     setMode(next);
     setStageId(
       progress
@@ -184,7 +189,7 @@ function PlacementFields({
             label="Próximo passo"
             value={mode}
             options={{ CONTINUE: modes.CONTINUE, ADVANCE: modes.ADVANCE, REPEAT: modes.REPEAT }}
-            onChange={(value) => changeMode(value as keyof typeof modes)}
+            onChange={(value) => changeMode(value as keyof typeof modes, source)}
           />
         )}
         <SelectControl

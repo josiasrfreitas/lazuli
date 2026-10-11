@@ -130,7 +130,7 @@ export function TaskDialog({
             <Button variant="secondary" disabled={pending} onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" form={formId} disabled={pending}>
+            <Button id={`${formId}-submit`} type="submit" form={formId} disabled={pending}>
               {pending ? "Salvando…" : submitLabel}
             </Button>
           </DialogFooter>
