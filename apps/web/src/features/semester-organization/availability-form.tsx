@@ -154,13 +154,15 @@ function AvailabilityFields({
               error={validation.errors.validUntil}
             />
           </div>
-          <Choices
-            name="availability-format"
-            label="Pode estudar"
-            value={format}
-            options={{ IN_PERSON: "Presencial", ONLINE: "Online", BOTH: "Ambos" }}
-            onChange={setFormat}
-          />
+          <div className="min-w-56 flex-1">
+            <Choices
+              name="availability-format"
+              label="Pode estudar"
+              value={format}
+              options={{ IN_PERSON: "Presencial", ONLINE: "Online", BOTH: "Ambos" }}
+              onChange={setFormat}
+            />
+          </div>
         </div>
         <SlotFields
           slots={slots}

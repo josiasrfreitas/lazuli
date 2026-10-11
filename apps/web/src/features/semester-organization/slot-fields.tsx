@@ -1,4 +1,5 @@
-import { Button, FieldError } from "@lazuli/ui";
+import { useId } from "react";
+import { Button } from "@lazuli/ui";
 import { Plus, X } from "lucide-react";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
 import { maskTime24 } from "~/lib/masks";
@@ -13,14 +14,19 @@ export function SlotFields({
   onChange: (slots: SlotDraft[]) => void;
   error?: string | undefined;
 }) {
+  const errorId = useId();
   const update = (index: number, field: keyof SlotDraft, value: string) =>
     onChange(slots.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot)));
   return (
-    <fieldset className="grid gap-3">
+    <fieldset
+      className="grid gap-3"
+      aria-invalid={Boolean(error)}
+      aria-describedby={error ? errorId : undefined}
+    >
       <legend className="mb-2 text-caption font-medium">Horários da semana</legend>
       {slots.map((slot, index) => (
-        <div key={index} className="flex flex-wrap items-start gap-2">
-          <div className="min-w-28 flex-1">
+        <div key={index} className="grid gap-2 sm:flex sm:items-end">
+          <div className="min-w-0 flex-1">
             <SelectControl
               name={`slot-day-${index}`}
               label={`Dia ${index + 1}`}
@@ -29,40 +35,46 @@ export function SlotFields({
               choices={Object.entries(weekdays).map(([value, label]) => ({ value, label }))}
             />
           </div>
-          <div className="w-24">
-            <TextControl
-              name={`slot-start-${index}`}
-              label="Início"
-              value={slot.startTime}
-              placeholder="14:00"
-              inputMode="numeric"
-              onChange={(value) => update(index, "startTime", maskTime24(value))}
-            />
-          </div>
-          <div className="w-24">
-            <TextControl
-              name={`slot-end-${index}`}
-              label="Fim"
-              value={slot.endTime}
-              placeholder="15:00"
-              inputMode="numeric"
-              onChange={(value) => update(index, "endTime", maskTime24(value))}
-            />
-          </div>
-          <div className="self-end pb-0.5">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`Remover horário ${index + 1}`}
-              disabled={slots.length === 1}
-              onClick={() => onChange(slots.filter((_, i) => i !== index))}
-            >
-              <X />
-            </Button>
+          <div className="flex items-end gap-2">
+            <div className="min-w-0 flex-1 sm:w-24 sm:flex-none">
+              <TextControl
+                name={`slot-start-${index}`}
+                label="Início"
+                value={slot.startTime}
+                placeholder="14:00"
+                inputMode="numeric"
+                onChange={(value) => update(index, "startTime", maskTime24(value))}
+              />
+            </div>
+            <div className="min-w-0 flex-1 sm:w-24 sm:flex-none">
+              <TextControl
+                name={`slot-end-${index}`}
+                label="Fim"
+                value={slot.endTime}
+                placeholder="15:00"
+                inputMode="numeric"
+                onChange={(value) => update(index, "endTime", maskTime24(value))}
+              />
+            </div>
+            <div className="self-end pb-0.5">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Remover horário ${index + 1}`}
+                disabled={slots.length === 1}
+                onClick={() => onChange(slots.filter((_, i) => i !== index))}
+              >
+                <X />
+              </Button>
+            </div>
           </div>
         </div>
       ))}
-      <FieldError match={Boolean(error)}>{error}</FieldError>
+      {error && (
+        <p id={errorId} role="alert" className="text-caption text-destructive">
+          {error}
+        </p>
+      )}
       <div>
         <Button
           variant="secondary"

@@ -152,6 +152,19 @@ The weekdays and start/end times on which a class normally meets. A class may me
 **Pedagogical Progress**:
 A student's stage placement over time, separate from operational class membership.
 
+**Semester Class Plan**:
+A proposed class for a future semester, with its schedule, format and intended teacher.
+Its students can be published in separate groups as their placements become ready.
+
+**Semester Placement**:
+A student's proposed destination and academic step for the next semester: a new entry,
+PPT continuation, stage advancement or repetition. Publication schedules the future membership
+and any related departure without ending the current membership early.
+
+**Student Availability**:
+The student's confirmed weekly time intervals and permitted formats for a particular semester,
+with an explicit validity date. Earlier preferences remain a reference until confirmed again.
+
 **Stage Plan**:
 The planned dates and learning activities for completing a stage. Regular classes share a
 semester plan; personalized students each have an individual plan and duration limit. The individual
