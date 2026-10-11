@@ -240,3 +240,4 @@ export {
 export * from "./class-records.js";
 export * from "./student-attendance.js";
 export * from "./appointments.js";
+export * from "./semester-organization.js";
