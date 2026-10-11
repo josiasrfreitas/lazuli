@@ -81,7 +81,12 @@ export async function computeEnrollmentPercentInWindow(input: {
       deletedAt: null,
       status: "SCHEDULED",
       attendanceConfirmedAt: { not: null },
-      date: { gte: window.startDate, lte: window.endDate },
+      // The exit date is the first day outside the roster; semester end remains inclusive.
+      date: {
+        gte: window.startDate,
+        lte: window.endDate,
+        ...(input.values.enrollment.exitDate ? { lt: input.values.enrollment.exitDate } : {}),
+      },
     },
     select: {
       startTime: true,
