@@ -9,7 +9,7 @@ function BrandArtwork({ kind }: { kind: "symbol" | "symbol-small" | "wordmark" }
     return (
       <svg aria-hidden="true" className="size-full text-brand" viewBox="0 0 330 100">
         <image height="100" href="/brand/lazuli-wordmark-dark.svg" width="320" />
-        <circle cx="317" cy="69" fill="currentColor" r="5" />
+        <circle data-brand-dot cx="317" cy="69" fill="currentColor" r="5" />
       </svg>
     );
   }

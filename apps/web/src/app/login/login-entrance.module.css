@@ -1,0 +1,22 @@
+.flight {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  color: var(--brand);
+}
+
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+  :global(html[data-login-entrance-pending] [data-login-hero] [data-brand-dot]) {
+    opacity: 0;
+  }
+
+  .flight {
+    display: block;
+  }
+}

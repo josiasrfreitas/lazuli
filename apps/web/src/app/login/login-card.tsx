@@ -1,5 +1,6 @@
 "use client";
 
+import { Link2 } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 
 import { Alert, AlertDescription, AlertIcon, Button, Field, Input, Label } from "@lazuli/ui";
@@ -184,6 +185,7 @@ function LoginMethods({
         </Field>
 
         <Button loading={pending === "magic-link"} size="lg" type="submit">
+          <Link2 aria-hidden="true" />
           Receber link de acesso
         </Button>
       </form>
