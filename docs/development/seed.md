@@ -315,6 +315,61 @@ loaders antes das avaliações, ocorrências, visitas e reposições. O seed pre
 a coleta antes da confirmação é validada pelo fluxo real e pelas fixtures isoladas da V5. Não há
 aplicação parcial nem alteração do banco durante a edição destes arquivos.
 
+## Atendimentos, reposições e contatos de faltas
+
+V6 preserva as cinco reposições legadas, seus IDs, destinos e evidências de agendamento e
+comparecimento, acrescentando um atendimento vinculado a cada uma. A origem é verificada
+reproduzindo a escolha original de data, turma E1A, destino E1B e identificador; não se extrai
+uma falta do texto livre. Quando essa verificação não é possível, o vínculo permanece uma
+importação de versão zero, sem inventar origem, duração realizada, conteúdo ou autoria e sem
+gerar compensação. As origens conhecidas do cenário sintético recebem cobertura e registro
+próprios; nenhuma linha legada de `Makeup` é alterada.
+
+O recorte pretende acrescentar doze atendimentos independentes aos cinco legados:
+
+- F1A: uma falta de 90 minutos com 45 minutos realizados e outros 45 reservados para uma data
+  futura; outra pessoa tem 120 minutos realizados distribuídos entre duas faltas, em 90 + 30.
+- C3A: reserva cancelada a pedido da família e sucessora remarcada, já realizada. Ambas ficam
+  vinculadas; a reserva cancelada não ocupa saldo nem agenda.
+- S1A: reposição com não comparecimento, liberando a reserva; S2A: reforço online com não
+  comparecimento, sem falta de origem.
+- PPT-E1 e PPT-C2: complemento individual realizado e futuro, respectivamente; C3A: reforço
+  realizado com complemento justificado do relato na mesma data.
+- PPT-T1: avaliação oral realizada e outra avaliação futura. Esses encontros não lançam notas,
+  recuperações ou decisões acadêmicas; a V7 continua responsável por esses registros.
+
+Se todos os cenários couberem, são 17 atendimentos: oito realizados, seis agendados, dois com
+não comparecimento e um cancelado. As datas se adaptam ao dia de referência: usam dias úteis
+próximos, preferem horários de apoio às sextas e exigem professor em atuação, escola aberta e
+ausência de conflito com aulas, substituições, introduções e outros atendimentos. Também são
+verificados os compromissos do aluno e a vigência da matrícula. Falta confirmada, origem livre
+e horários suficientes são pré-condições: um cenário incompatível é omitido, não fabricado.
+Os totais definitivos devem ser lidos no resultado da reconstrução oficial.
+
+A ausência original permanece `ABSENT`. Somente minutos realizados e cobertos aumentam a
+frequência da matrícula e do semestre de origem; reserva futura, cancelamento, não comparecimento
+e apoio sem origem contribuem zero. O caso de 45 + 45 continua com 45 minutos ausentes até
+concluir a segunda parte, e a segunda falta do caso de 90 + 30 conserva 60 minutos pendentes.
+Coberturas retiradas por não comparecimento recebem exclusão lógica, preservando ID e primeira
+fotografia; revisões posteriores incluem apenas coberturas ativas. As versões preservam estado,
+autores, horários e alocações com o mesmo contrato de snapshot da API. O Log registra os fatos
+correspondentes de agendamento, remarcação, registro e correção.
+
+Conteúdo planejado de reposição usa somente o relato real disponível na baixa V4 da aula de
+origem; quando ele não existe, fica desconhecido. O relato realizado no atendimento é uma
+evidência sintética independente, sem copiar páginas de um plano. Realizações e correções
+acontecem depois do término, no mesmo dia civil de São Paulo e antes da data de referência;
+atendimentos futuros não recebem realização. O segundo agendamento parcial ocorre depois do
+primeiro registro, e a sucessora remarcada é agendada depois do cancelamento.
+
+Há até 14 contatos datados em oito alunos com faltas reais, alternando quatro responsáveis e
+quatro alunos adultos, com um a três contatos por pessoa. WhatsApp, telefone, e-mail e presencial
+mostram retorno, tentativa sem resposta ou horário combinado; próximas datas podem estar
+vencidas, futuras ou ausentes. Autoria administrativa e datas dos contatos são preservadas,
+sem enviar mensagem, alterar chamada ou gerar cobrança. O loader participa somente do
+`pnpm seed` completo, depois de V4/V5 e antes do Log, sem workflow incremental ou aplicação
+parcial. A reconstrução oficial de 11/10/2026 foi concluída no banco isolado da branch integrada: 17 atendimentos e 14 contatos, preservando os 250 alunos, 22 turmas e 7 professores. A validação dos fluxos reais fica registrada na evidência da vertical V6.
+
 ## Log de atividades
 
 O bootstrap termina com uma linha do tempo baseada nos fatos que acabou de carregar: entradas
