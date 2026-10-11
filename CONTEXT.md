@@ -104,6 +104,11 @@ _Avoid_: Late fee, cancellation fee
 One scheduled meeting of a class on a date.
 _Avoid_: Lesson, aula, meeting
 
+**Class Record**:
+The confirmed account of a Class Session: attendance and work actually performed, shared in a
+regular class and individual for each present PPT student. A correction preserves the previous
+account and its authorship. Planned work remains a distinct intention.
+
 **Teaching Hour**:
 A unit of 60 minutes of teaching time. A two-hour Class Session comprises two Teaching Hours.
 _Avoid_: Class Session (as a synonym), hora-aula (in code)

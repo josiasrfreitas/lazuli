@@ -148,6 +148,8 @@ enum ArtifactKind {
 }
 
 model User {
+  taughtClassRecords ClassSessionRecord[] @relation("ClassRecordTeacher")
+  recordedClassRevisions ClassSessionRecordRevision[] @relation("ClassRecordAuthor")
   stagePlansCreated StagePlan[] @relation("StagePlanCreator")
   stagePlanRevisions StagePlanRevision[]
   pedagogicalOccurrences PedagogicalOccurrence[] @relation("OccurrenceAuthor")
@@ -615,6 +617,7 @@ model ClassSubstitution {
 }
 
 model ClassSession {
+  classRecord ClassSessionRecord?
   pedagogicalOccurrences PedagogicalOccurrence[]
 
   entryVisits EntryVisit[]
@@ -1350,4 +1353,35 @@ model StagePlanRevision {
   recordedBy User @relation(fields: [recordedById], references: [id], onDelete: Restrict)
 
   @@unique([planId, version])
+}
+
+model ClassSessionRecord {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  classSessionId String @unique @map("class_session_id") @db.Uuid
+  teachingTeacherId String? @map("teaching_teacher_id") @db.Uuid
+  version Int @default(1)
+  snapshot Json
+  classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  teachingTeacher User? @relation("ClassRecordTeacher", fields: [teachingTeacherId], references: [id], onDelete: Restrict)
+  revisions ClassSessionRecordRevision[]
+  @@index([teachingTeacherId])
+}
+
+model ClassSessionRecordRevision {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  recordId String @map("record_id") @db.Uuid
+  version Int
+  reason String
+  snapshot Json
+  recordedById String @map("recorded_by_id") @db.Uuid
+  record ClassSessionRecord @relation(fields: [recordId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("ClassRecordAuthor", fields: [recordedById], references: [id], onDelete: Restrict)
+  @@unique([recordId, version])
+  @@index([recordedById])
 }
