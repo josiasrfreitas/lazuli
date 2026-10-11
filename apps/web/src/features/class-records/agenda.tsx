@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
 import { Badge, Button, EmptyState, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { dateLabel, RecordState } from "./shared";
+import { GenerationNotice } from "./generation-notice";
 function shiftDate(date: string, days: number) {
   const value = new Date(`${date}T12:00:00Z`);
   value.setUTCDate(value.getUTCDate() + days);
@@ -91,6 +92,7 @@ export function ClassAgenda(): ReactElement {
           </Link>
         </div>
       )}
+      <GenerationNotice {...(classId ? { classId } : {})} from={from} to={to} />
       <RecordState
         pending={query.isPending}
         error={query.error}

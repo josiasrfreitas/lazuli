@@ -9,6 +9,7 @@ import { MembershipDialog } from "./membership-dialog";
 import { AssignmentDialog } from "../teachers/assignment-dialog";
 import { ClassPerformance } from "~/features/assessments/class-performance";
 import { RosterSection } from "./roster-section";
+import { GenerationNotice } from "../class-records/generation-notice";
 
 export function ClassPage({ id }: ClassPageInput): ReactElement {
   const query = trpc.classes.byId.useQuery({ id }, { retry: false });
@@ -41,6 +42,7 @@ function ClassDetailView({ detail, id }: ClassDetailViewInput): ReactElement {
     <>
       <ClassOverview detail={detail} enroll={() => setMembershipOpen(true)} />
       <ClassContext detail={detail} onAssign={() => setAssigning(true)} />
+      <GenerationNotice classId={id} />
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 sm:px-6">
         <div>
           <h2 className="text-sm font-semibold">Rotina pedagógica</h2>
