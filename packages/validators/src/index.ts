@@ -202,3 +202,11 @@ export {
   entryVisitOutcomeSchema,
   admissionEnrollSchema,
 } from "./admissions.js";
+export {
+  assessmentProgressSchema,
+  assessmentSaveSchema,
+  assessmentConfirmSchema,
+  type AssessmentSave,
+  type AssessmentConfirm,
+} from "./assessment.js";
+export { leadCaptureSchema, leadNextStepSchema, leadContactSchema } from "./leads.js";
