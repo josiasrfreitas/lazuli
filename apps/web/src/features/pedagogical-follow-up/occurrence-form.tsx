@@ -6,7 +6,7 @@ import { occurrenceCreateSchema } from "@lazuli/validators";
 import { SelectControl, TextControl } from "~/features/classes/form-controls";
 import { trpc } from "~/lib/trpc";
 import { CATEGORY, dateLabel, QueryState } from "./shared";
-import { FollowUpDialog, NarrativeField, useValidation } from "./form-parts";
+import { TaskDialog, NarrativeField, useValidation } from "~/features/shared/task-form";
 export function OccurrenceForm({ onClose }: { onClose: () => void }): ReactElement {
   const [values, setValues] = useState({
     classSessionId: "",
@@ -42,7 +42,7 @@ export function OccurrenceForm({ onClose }: { onClose: () => void }): ReactEleme
     save.reset();
   };
   return (
-    <FollowUpDialog
+    <TaskDialog
       title="Registrar ocorrência"
       description="Registre o que aconteceu e a primeira resposta em sala."
       onClose={onClose}
@@ -160,6 +160,6 @@ export function OccurrenceForm({ onClose }: { onClose: () => void }): ReactEleme
           />
         </details>
       </form>
-    </FollowUpDialog>
+    </TaskDialog>
   );
 }

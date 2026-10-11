@@ -23,3 +23,10 @@ Integration coverage authored for same-student/minimum-two rules, symmetric idem
 Prisma deployment and client generation were necessary runtime setup. The existing web server was restarted once for the new model delegates; the old Next process exit was verified before starting its replacement. Only port 3004 remains in use for this workspace.
 
 Manual review and commit hooks check formatting/whitespace. Final stacked PRs still await the user's integrated product review. Other pending epic verticals are not treated as completed by V10.
+
+## Later seed reset
+
+The official V9 rebuild on 11 October replaced the local database through the single public
+`pnpm seed` workflow (ADR0024). The manual 41/seven state above describes the earlier validation
+moment; after reset the baseline contains 38 occurrences and six interventions. The earlier
+additive application is historical evidence, not an alternative supported seed command.

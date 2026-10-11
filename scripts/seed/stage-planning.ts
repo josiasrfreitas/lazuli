@@ -300,6 +300,7 @@ async function createPlan(
         snapshot: version.snapshot,
         recordedById: version.author.id,
         createdAt: version.createdAt,
+        updatedAt: version.createdAt,
       },
     });
     await planningActivity(transaction, context, version);

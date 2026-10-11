@@ -81,6 +81,24 @@ function HistoryClass({ row }: { row: StudentEnrollment }): ReactElement {
         {row.class.name}
       </Link>
       <span className="text-caption text-muted-foreground">{row.class.semester}</span>
+      {row.class.scheduleType === "PERSONALIZED" ? (
+        row.progress.toReversed().map((progress) => (
+          <Link
+            key={progress.id}
+            className="text-caption text-interactive hover:underline"
+            href={`/planejamento?turma=${row.class.id}&percurso=${progress.id}`}
+          >
+            Plano · {progress.stage}
+          </Link>
+        ))
+      ) : (
+        <Link
+          className="text-caption text-interactive hover:underline"
+          href={`/planejamento?turma=${row.class.id}`}
+        >
+          Planejamento da turma
+        </Link>
+      )}
     </div>
   );
 }

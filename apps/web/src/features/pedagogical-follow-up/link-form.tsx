@@ -4,7 +4,7 @@ import { FormSection } from "@lazuli/ui";
 import { z } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { SelectControl } from "~/features/classes/form-controls";
-import { FollowUpDialog, useValidation } from "./form-parts";
+import { TaskDialog, useValidation } from "~/features/shared/task-form";
 import { dateLabel, QueryState } from "./shared";
 export function LinkOccurrenceForm({
   studentId,
@@ -32,7 +32,7 @@ export function LinkOccurrenceForm({
   const pending = occurrence.isPending || intervention.isPending;
   const choices = (rows.data ?? []).filter((row) => !exclude.includes(row.id));
   return (
-    <FollowUpDialog
+    <TaskDialog
       title={
         target.type === "occurrence" ? "Relacionar ocorrências" : "Incluir ocorrência motivadora"
       }
@@ -89,6 +89,6 @@ export function LinkOccurrenceForm({
           )}
         </FormSection>
       </form>
-    </FollowUpDialog>
+    </TaskDialog>
   );
 }
