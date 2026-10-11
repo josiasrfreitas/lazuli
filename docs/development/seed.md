@@ -224,6 +224,51 @@ frequência. O baseline ainda não inventa transferências ou pausas PPT para de
 esses cenários operacionais dependem de fixtures autorizadas. O loader integra exclusivamente
 o `pnpm seed`, conforme ADR0024, sem workflow de aplicação parcial.
 
+## Registro e baixa da aula
+
+V4 seleciona as quatro últimas aulas passadas de cada turma, até 88 encontros. Na reconstrução
+de 11/10/2026 foram carregadas 87 baixas (75 regulares, 12 PPT), 89 versões, uma aula cancelada
+e uma aula sem presentes. As duas correções de conteúdo couberam no recorte; a correção de
+presença foi omitida pelas dependências existentes. Na configuração
+atual, um encontro regular é cancelado e outro termina sem presentes; os demais recebem conteúdo
+realizado. Aulas antigas conservam frequência confirmada sem baixa de conteúdo, distinção visível
+na operação. O recorte não cria registros futuros nem transforma automaticamente presença em
+conteúdo realizado.
+
+No regular há um relato compartilhado por aula com presentes. No PPT, cada presente tem seu
+relato e o estágio vigente naquela data; ausentes não recebem conteúdo individual. Os relatos
+variam entre conteúdo com referência e páginas, revisão, verificação de aprendizagem e atividade
+oral ou lúdica sem página. Uma verificação não lança nota nem aprova o estágio. Referências são
+sintéticas, independentes dos títulos e das páginas do roteiro. Até duas comparações regulares e
+duas individuais mostram conteúdo planejado que deu lugar a revisão. Só há comparação quando
+existia uma atividade de conteúdo planejada para aquela data.
+
+O snapshot congela a versão do plano existente até o fim do encontro e suas atividades daquela
+data, usando a mesma leitura temporal da API. Um plano sem atividade na data tem lista vazia;
+um plano ainda não criado na época não é retroativamente associado. Correções preservam essa
+intenção inicial e não reescrevem planos, notas ou progressões.
+
+Há até duas substituições passadas, uma regular e uma PPT, cadastradas sinteticamente no dia
+anterior. O professor deve estar em atuação e livre de conflitos com aulas, outras substituições
+e introduções; a disponibilidade é verificada pelas regras existentes. O titular congelado e
+o docente que ministrou a aula permanecem fatos distintos. A chamada e a baixa são atribuídas
+ao docente efetivo. Somente nas aulas deste recorte, os horários sintéticos de frequência passam
+para cinco minutos após o término e a baixa para dez minutos após, no dia civil de São Paulo.
+
+Três aulas podem ter correção: uma regular e uma PPT recebem complemento do relato pelo docente
+no mesmo dia; outra PPT tem presença corrigida pela administração às 15h do dia seguinte. Nesse
+caso, o conteúdo do aluno fica na primeira versão, enquanto a versão atual o mostra ausente sem
+conteúdo realizado. Motivo, autoria e horário ficam nas revisões, nos metadados de frequência
+alterada e no Log. Datas insuficientes ou dependências impedem o cenário, sem fabricar evidência.
+
+Cancelamento, ausência total e troca de presença exigem sessão segura: nenhuma nota naquela data,
+ocorrência ou acompanhamento dependente, visita ou reposição afetada. Para cancelamento/ausência
+total, evitam-se também turmas com narrativas de ocorrências dos seus alunos. A cancelada conserva
+motivo e autoria, fica sem chamada ativa e sem baixa; IDs das linhas sintéticas retiradas são
+preservados por exclusão lógica. A aula sem presentes conserva as faltas e uma observação, sem
+conteúdo inventado. Esses casos são escolhidos depois dos loaders dependentes, dentro da mesma
+reconstrução oficial, protegendo os fatos que eles já carregaram. Integração apenas pelo `pnpm seed`.
+
 ## Log de atividades
 
 O bootstrap termina com uma linha do tempo baseada nos fatos que acabou de carregar: entradas
@@ -246,8 +291,8 @@ do mesmo fato; o loader participa apenas da reconstrução coordenada do seed.
 
 Suspensos e inativos representam o estado atual cadastral. Este seed não inventa matrículas de
 semestres anteriores nem cancelamentos contratuais sem operação de domínio implementada.
-Planejamento não preenche automaticamente a execução de conteúdo em aula; essa vertical ainda
-precisa de cenários próprios. A ausência desses dados não representa conclusão dessas áreas.
+Planejamento não preenche automaticamente a execução de conteúdo em aula. A frequência histórica
+anterior ao recorte V4 não recebe relato fabricado apenas para parecer uma baixa completa.
 
 A distribuição dos fechamentos e os efeitos nos totais estão detalhados em
 [Fechamentos comerciais](../../.design/pedagogical/analytics/SEED-CLOSINGS.md).
