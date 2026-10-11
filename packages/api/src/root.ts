@@ -12,6 +12,8 @@ import { financeRouter } from "./finance/router.js";
 import { reportsRouter } from "./reports/router.js";
 import { studentsRouter } from "./students/router.js";
 
+import { occurrencesRouter, interventionsRouter } from "./occurrences/router.js";
+
 export const appRouter = router({
   health: publicProcedure.query(() => ({ status: "ok" as const })),
   me: protectedProcedure.query(({ ctx }) => ctx.staffUser),
@@ -23,6 +25,8 @@ export const appRouter = router({
   enrollment: enrollmentRouter,
   attendance: attendanceRouter,
   assessments: assessmentsRouter,
+  occurrences: occurrencesRouter,
+  interventions: interventionsRouter,
   activity: activityRouter,
   finance: financeRouter,
   reports: reportsRouter,

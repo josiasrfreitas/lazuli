@@ -191,3 +191,17 @@ export {
 } from "./assessment.js";
 export { leadCaptureSchema, leadNextStepSchema, leadContactSchema } from "./leads.js";
 export { activityListSchema, type ActivityListInput } from "./activity.js";
+export {
+  occurrenceCategorySchema,
+  pedagogicalListSchema,
+  occurrenceCreateSchema,
+  occurrenceLinkSchema,
+  occurrenceNoteSchema,
+  interventionCreateSchema,
+  interventionUpdateSchema,
+  interventionLinkSchema,
+  type PedagogicalList,
+  type OccurrenceCreate,
+  type InterventionCreate,
+  type InterventionUpdate,
+} from "./occurrences.js";
