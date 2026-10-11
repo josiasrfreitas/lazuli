@@ -164,7 +164,32 @@ function Metric({
 }
 type MonthlyRow = Analytics["months"][number] & { id: string };
 function MonthlyTable({ data }: { data: Analytics }): ReactElement {
-  const columns: DataTableColumn<MonthlyRow>[] = [
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <section>
+      <Button variant="ghost" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+        Consultar valores mês a mês
+      </Button>
+      {expanded && (
+        <div className="mt-3 h-96">
+          <DataTable
+            onRetry={() => {}}
+            errorTitle="Não foi possível carregar os valores"
+            empty={{ title: "Sem valores", description: "Nenhuma movimentação no período." }}
+            label="Detalhamento financeiro mensal"
+            columns={monthlyColumns(data)}
+            state={{
+              kind: "data",
+              rows: data.months.map((month) => ({ ...month, id: month.month })),
+            }}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+function monthlyColumns(data: Analytics): DataTableColumn<MonthlyRow>[] {
+  return [
     {
       id: "month",
       header: "Mês",
@@ -203,24 +228,4 @@ function MonthlyTable({ data }: { data: Analytics }): ReactElement {
       ),
     },
   ];
-  return (
-    <details className="group">
-      <summary className="cursor-pointer py-3 text-sm font-medium text-interactive focus-visible:shadow-focus">
-        Consultar valores mês a mês
-      </summary>
-      <div className="mt-3">
-        <DataTable
-          onRetry={() => {}}
-          errorTitle="Não foi possível carregar os valores"
-          empty={{ title: "Sem valores", description: "Nenhuma movimentação no período." }}
-          label="Detalhamento financeiro mensal"
-          columns={columns}
-          state={{
-            kind: "data",
-            rows: data.months.map((month) => ({ ...month, id: month.month })),
-          }}
-        />
-      </div>
-    </details>
-  );
 }
