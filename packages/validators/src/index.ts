@@ -171,3 +171,14 @@ export {
   classTeacherAssignInputSchema,
   classSubstituteInputSchema,
 } from "./teacher.js";
+export {
+  admissionIdSchema,
+  admissionValuesSchema,
+  admissionSaveSchema,
+  admissionListSchema,
+  admissionMatchesSchema,
+  entryVisitScheduleSchema,
+  entryVisitGuestsSchema,
+  entryVisitOutcomeSchema,
+  admissionEnrollSchema,
+} from "./admissions.js";

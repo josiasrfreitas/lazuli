@@ -39,6 +39,19 @@ async function departureImpact(input: Departure): Promise<DepartureImpactResult>
     throw notFound("Professor não encontrado.");
   if (teacher.teacherProfile?.departureDate)
     throw badRequest("Saída já programada para este professor.");
+  const introduction = await input.database.entryVisit.findFirst({
+    where: {
+      teacherId: input.teacherId,
+      kind: "INTRODUCTION",
+      status: "SCHEDULED",
+      date: { gte: new Date(input.effectiveDate) },
+      deletedAt: null,
+    },
+  });
+  if (introduction)
+    throw badRequest(
+      "Remarque ou cancele as aulas introdutórias pendentes a partir da saída antes de encerrar a atuação.",
+    );
   const semester = await input.database.semester.findFirst({
     where: { deletedAt: null, endDate: { gte: new Date(input.effectiveDate) } },
     orderBy: { endDate: "desc" },

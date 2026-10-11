@@ -148,6 +148,9 @@ enum ArtifactKind {
 }
 
 model User {
+  admissionChanges AdmissionCandidate[] @relation("AdmissionRecorder")
+  entryVisits EntryVisit[] @relation("EntryVisitTeacher")
+  recordedEntryVisits EntryVisit[] @relation("EntryVisitRecorder")
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -245,6 +248,7 @@ model Verification {
 }
 
 model Student {
+  admissionCandidates AdmissionCandidate[]
   id             String        @id @default(uuid()) @db.Uuid
   commandId      String?       @unique @map("command_id") @db.Uuid
   commandFingerprint String?   @map("command_fingerprint")
@@ -357,6 +361,7 @@ model ProductLine {
 }
 
 model Class {
+  entryVisits EntryVisit[]
   id                      String            @id @default(uuid()) @db.Uuid
   createdAt               DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt               DateTime          @updatedAt @map("updated_at") @db.Timestamptz
@@ -393,6 +398,7 @@ model Class {
 }
 
 model ClassScheduleSlot {
+  entryVisits EntryVisit[]
   id        String    @id @default(uuid()) @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -428,6 +434,7 @@ model Track {
 }
 
 model Stage {
+  admissionCandidates AdmissionCandidate[]
   id           String    @id @default(uuid()) @db.Uuid
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -446,6 +453,7 @@ model Stage {
 }
 
 model Enrollment {
+  admissionCandidate AdmissionCandidate?
   id                     String                @id @default(uuid()) @db.Uuid
   createdAt              DateTime              @default(now()) @map("created_at") @db.Timestamptz
   updatedAt              DateTime              @updatedAt @map("updated_at") @db.Timestamptz
@@ -581,6 +589,7 @@ model ClassSubstitution {
 }
 
 model ClassSession {
+  entryVisits EntryVisit[]
   id                        String             @id @default(uuid()) @db.Uuid
   createdAt                 DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                 DateTime           @updatedAt @map("updated_at") @db.Timestamptz
@@ -930,4 +939,99 @@ model GeneratedArtifact {
   @@index([orderId])
   @@index([kind])
   @@map("generated_artifacts")
+}
+
+
+enum AdmissionStatus {
+  WAITING
+  ENROLLED
+  ARCHIVED
+}
+
+enum EntryVisitKind {
+  TRIAL
+  INTRODUCTION
+}
+
+enum EntryVisitStatus {
+  SCHEDULED
+  ATTENDED
+  ABSENT
+  CANCELLED
+}
+
+model AdmissionCandidate {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  fullName String @map("full_name")
+  phone String?
+  email String?
+  notes String?
+  status AdmissionStatus @default(WAITING)
+  scheduleType ClassScheduleType @map("schedule_type")
+  format ClassFormat
+  stageId String? @map("stage_id") @db.Uuid
+  studentId String? @map("student_id") @db.Uuid
+  enrollmentId String? @unique @map("enrollment_id") @db.Uuid
+  availableUntil DateTime @map("available_until") @db.Date
+  availabilityConfirmedAt DateTime @default(now()) @map("availability_confirmed_at") @db.Timestamptz
+  recordedById String @map("recorded_by_id") @db.Uuid
+
+  stage Stage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("AdmissionRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  availability AdmissionAvailability[]
+  visits EntryVisit[]
+
+  @@index([status, createdAt])
+  @@index([stageId])
+  @@index([studentId])
+}
+
+model AdmissionAvailability {
+  id String @id @default(uuid()) @db.Uuid
+  candidateId String @map("candidate_id") @db.Uuid
+  weekday Weekday
+  startTime DateTime @map("start_time") @db.Time
+  endTime DateTime @map("end_time") @db.Time
+  candidate AdmissionCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  @@unique([candidateId, weekday, startTime, endTime])
+}
+
+model EntryVisit {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  candidateId String @map("candidate_id") @db.Uuid
+  kind EntryVisitKind
+  status EntryVisitStatus @default(SCHEDULED)
+  date DateTime @db.Date
+  startTime DateTime @map("start_time") @db.Time
+  endTime DateTime @map("end_time") @db.Time
+  format ClassFormat
+  teacherId String? @map("teacher_id") @db.Uuid
+  classId String? @map("class_id") @db.Uuid
+  scheduleSlotId String? @map("schedule_slot_id") @db.Uuid
+  classSessionId String? @map("class_session_id") @db.Uuid
+  previousVisitId String? @unique @map("previous_visit_id") @db.Uuid
+  notes String?
+  cancellationReason String? @map("cancellation_reason")
+  recordedById String @map("recorded_by_id") @db.Uuid
+
+  candidate AdmissionCandidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  teacher User? @relation("EntryVisitTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("EntryVisitRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  class Class? @relation(fields: [classId], references: [id], onDelete: Restrict)
+  scheduleSlot ClassScheduleSlot? @relation(fields: [scheduleSlotId], references: [id], onDelete: Restrict)
+  classSession ClassSession? @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  previousVisit EntryVisit? @relation("EntryVisitReschedule", fields: [previousVisitId], references: [id], onDelete: Restrict)
+  nextVisit EntryVisit? @relation("EntryVisitReschedule")
+
+  @@index([candidateId, date])
+  @@index([teacherId, date, status])
+  @@index([classId, date])
 }

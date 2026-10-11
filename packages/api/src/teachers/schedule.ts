@@ -1,3 +1,5 @@
+import { introductoryMeetings } from "../admissions/teacher-commitments.js";
+import { teachingMinutes } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
 import { responsibleTeacherId, saoPauloDateOnly, weekdayOf, weekDates } from "@lazuli/domain";
 import { loadScheduleData, type ScheduleClass, type ScheduleData } from "./schedule-data.js";
@@ -92,9 +94,12 @@ export async function meetingsBetween(input: MeetingsBetweenInput): Promise<Teac
     ),
   );
 }
-export async function teacherWeek(
-  input: TeacherWeekInput,
-): Promise<{ rows: TeacherMeeting[]; minutes: number; week: string }> {
+export async function teacherWeek(input: TeacherWeekInput): Promise<{
+  rows: TeacherMeeting[];
+  introductions: Awaited<ReturnType<typeof introductoryMeetings>>;
+  minutes: number;
+  week: string;
+}> {
   const days = weekDates(input.week);
   const meetings = await meetingsBetween({
     database: input.database,
@@ -109,7 +114,17 @@ export async function teacherWeek(
     (sum, row) => sum + (responsibleTeacherId(row) === input.teacherId ? row.minutes : 0),
     0,
   );
-  return { rows, minutes, week: input.week };
+  const introductions = await introductoryMeetings({
+    database: input.database,
+    teacherId: input.teacherId,
+    from: days[0]!,
+    through: days[LAST_WEEK_DAY]!,
+  });
+  const introductionMinutes = introductions.reduce(
+    (sum, row) => sum + (row.status === "CANCELLED" ? 0 : teachingMinutes(row)),
+    0,
+  );
+  return { rows, introductions, minutes: minutes + introductionMinutes, week: input.week };
 }
 
 type RecordedMeetingKeyInput = { classId: string; scheduleSlotId: string | null; date: Date };
