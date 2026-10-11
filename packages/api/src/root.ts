@@ -3,6 +3,7 @@ import { classRecordsRouter } from "./class-records/router.js";
 import { planningRouter } from "./stage-planning/router.js";
 import { createCallerFactory, protectedProcedure, publicProcedure, router } from "./trpc/init.js";
 import { classRecordsRouter } from "./class-records/router.js";
+import { studentAttendanceRouter } from "./student-attendance/router.js";
 import { planningRouter } from "./stage-planning/router.js";
 import { assessmentsRouter } from "./assessments/router.js";
 import { activityRouter } from "./activity/router.js";
@@ -35,6 +36,7 @@ export const appRouter = router({
   assessments: assessmentsRouter,
   planning: planningRouter,
   classRecords: classRecordsRouter,
+  studentAttendance: studentAttendanceRouter,
   occurrences: occurrencesRouter,
   interventions: interventionsRouter,
   activity: activityRouter,

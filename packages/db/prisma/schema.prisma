@@ -1151,11 +1151,11 @@ model AttendanceWindow {
   closedBy           User?                   @relation("AttendanceWindowCloser", fields: [closedById], references: [id], onDelete: Restrict)
   declarations       AttendanceDeclaration[]
   projections        AttendanceProjection[]
-
   @@unique([classSessionId, id])
   @@index([classSessionId, openedAt])
   @@index([openedById])
   @@index([closedById])
+  referenceAccuracy Float? @map("reference_accuracy")
 }
 
 model AttendanceDeclaration {
@@ -1177,7 +1177,6 @@ model AttendanceDeclaration {
   window         AttendanceWindow @relation(fields: [classSessionId, windowId], references: [classSessionId, id], onDelete: Restrict)
   classSession   ClassSession     @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
   enrollment     Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
-
   @@unique([classSessionId, enrollmentId])
   @@unique([classSessionId, browserHash])
   @@index([windowId])

@@ -109,6 +109,15 @@ The confirmed account of a Class Session: attendance and work actually performed
 regular class and individual for each present PPT student. A correction preserves the previous
 account and its authorship. Planned work remains a distinct intention.
 
+**Attendance Declaration**:
+A student’s own report of presence for one Class Session, submitted for the teacher’s review.
+It is separate from the final attendance confirmed by staff.
+_Avoid_: Confirmed attendance, check-in approval
+
+**Attendance Window**:
+The teacher-opened period during which students can submit presence declarations for a Class Session.
+Closing or replacing the window preserves declarations already received.
+
 **Teaching Hour**:
 A unit of 60 minutes of teaching time. A two-hour Class Session comprises two Teaching Hours.
 _Avoid_: Class Session (as a synonym), hora-aula (in code)
