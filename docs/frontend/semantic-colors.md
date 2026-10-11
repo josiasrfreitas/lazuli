@@ -6,24 +6,26 @@ should not branch on the theme to choose colors.
 
 ## Surfaces and emphasis
 
-| Role                                         | Use                                                                                  |
-| -------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `background`, `card`, `popover`              | Page canvas, working surface, and elevated panels                                    |
-| `field`                                      | Editable input surfaces, including selects and textareas                             |
-| `heading`, `foreground`, `muted-foreground`  | Headings, content, and supporting information                                        |
-| `navigation-*`                               | The navy navigation surface and its readable labels, icons, and active items         |
-| `table-heading-*`                            | Light blue column headers with navy text in light mode; neutral headers in dark mode |
-| `border-subtle`, `border`, `border-strong`   | Row separators, surface frames, and floating panel boundaries                        |
-| `primary`, `primary-foreground`              | The main action: navy in light mode and off-white in dark mode                       |
-| `accent`, `accent-foreground`                | Selected controls and contextual blue surfaces                                       |
-| `interactive`, `icon`                        | Links and supporting interface icons                                                 |
-| `brand`, `brand-rule`, `selection-indicator` | Gold identity details, restrained rules, and current-position markers                |
+| Role                                         | Use                                                                                    |
+| -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `background`, `card`, `popover`              | Page canvas, working surface, and elevated panels                                      |
+| `field`                                      | Editable input surfaces, including selects and textareas                               |
+| `heading`, `foreground`, `muted-foreground`  | Headings, content, and supporting information                                          |
+| `navigation-*`                               | The navy navigation surface and its readable labels, icons, and active items           |
+| `table-heading-*`                            | Light blue column headers with navy text in light mode; blue-gray headers in dark mode |
+| `border-subtle`, `border`, `border-strong`   | Row separators, surface frames, and floating panel boundaries                          |
+| `primary`, `primary-foreground`              | The main action: navy in light mode and off-white in dark mode                         |
+| `accent`, `accent-foreground`                | Selected controls and contextual blue surfaces                                         |
+| `interactive`, `icon`                        | Links and supporting interface icons                                                   |
+| `brand`, `brand-rule`, `selection-indicator` | Gold identity details, restrained rules, and current-position markers                  |
 
 Keep most of the workspace neutral. The navigation stays navy in both themes. Gold appears
 in the signature and selected navigation; light tables have a fine gold header rule, while
-dark tables use a neutral rule. Dropdowns use ordinary borders without an inset frame.
+dark tables use blue-gray surfaces and rules, scoped to the table frame. Dropdowns use ordinary borders without an inset frame.
 In dark mode, dialogs use the navigation blue with slightly lighter blue input surfaces;
-their primary action stays off-white. Light-mode dialogs keep their white surface.
+buttons use blue primary actions with white labels, blue-gray secondary surfaces, and matching
+hover and pressed states. These overrides are scoped to buttons; other controls retain the
+theme's default primary roles. Light-mode dialogs keep their white surface.
 Use explicit text or shape alongside selection color. Reserve status colors for operational
 meaning: a class modality, for example, uses accent or secondary surfaces rather than success.
 

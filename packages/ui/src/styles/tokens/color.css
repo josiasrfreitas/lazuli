@@ -27,6 +27,9 @@
   --lz-ref-blue-800: #234266;
   --lz-ref-blue-900: #213149;
   --lz-ref-blue-950: #192638;
+  --lz-ref-blue-gray-800: #2c3c51;
+  --lz-ref-blue-gray-850: #1e2c3e;
+  --lz-ref-blue-gray-900: #182230;
 }
 
 :root,
@@ -181,4 +184,27 @@
 .dark [data-slot="dialog-content"] {
   --popover: var(--navigation);
   --field: var(--lz-ref-blue-950);
+}
+
+/* Dark tables use blue-gray surfaces to connect with the navy navigation. */
+.dark [data-slot="table-container"] {
+  --card: var(--lz-ref-blue-gray-900);
+  --table-heading: var(--lz-ref-blue-gray-850);
+  --table-heading-border: var(--border);
+  --muted: var(--lz-ref-blue-gray-850);
+  --border: var(--lz-ref-blue-gray-800);
+  --border-subtle: color-mix(in srgb, var(--border) 60%, var(--card));
+}
+
+/* Dark buttons share the tables' blue-gray palette, with blue primary actions. */
+.dark [data-slot="button"] {
+  --primary: var(--lz-ref-blue-700);
+  --primary-hover: var(--lz-ref-blue-600);
+  --primary-active: var(--lz-ref-blue-800);
+  --primary-foreground: var(--lz-ref-white);
+  --card: var(--lz-ref-blue-gray-850);
+  --border-strong: var(--lz-ref-blue-gray-800);
+  --accent: var(--lz-ref-blue-gray-850);
+  --accent-hover: var(--lz-ref-blue-gray-800);
+  --accent-active: var(--lz-ref-blue-900);
 }
