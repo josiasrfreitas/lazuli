@@ -33,10 +33,10 @@ const eligible: SemesterEligibility = {
     slots: [{ weekday: "MONDAY", startTime: "18:00", endTime: "19:00" }],
   },
 };
-it("accepts exact availability boundaries and a pedagogically confirmed next stage", () => {
+void it("accepts exact availability boundaries and a pedagogically confirmed next stage", () => {
   assert.deepEqual(semesterPlacementBlockers(eligible), []);
 });
-it("blocks expired availability, missing teacher, and unconfirmed academic progression independently", () => {
+void it("blocks expired availability, missing teacher, and unconfirmed academic progression independently", () => {
   assert.deepEqual(
     semesterPlacementBlockers({
       ...eligible,
@@ -53,7 +53,7 @@ it("blocks expired availability, missing teacher, and unconfirmed academic progr
     ["Aprovação pedagógica pendente"],
   );
 });
-it("rejects an invented terminal successor or a skip even when the source was approved", () => {
+void it("rejects an invented terminal successor or a skip even when the source was approved", () => {
   assert.deepEqual(
     semesterPlacementBlockers({
       ...eligible,
@@ -69,7 +69,7 @@ it("rejects an invented terminal successor or a skip even when the source was ap
     ["Avanço exige o próximo estágio da mesma trilha"],
   );
 });
-it("requires PPT on both sides for continuing an unfinished attempt", () => {
+void it("requires PPT on both sides for continuing an unfinished attempt", () => {
   assert.deepEqual(
     semesterPlacementBlockers({
       ...eligible,

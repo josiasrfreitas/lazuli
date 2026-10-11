@@ -184,7 +184,7 @@ async function fixture() {
     return { source, sourceProgress, target, entry, exit, placement, student, next };
   });
 }
-it("applies the paired next-semester movement as TRANSFERRED once, only on its school-local effective date", async () => {
+void it("applies the paired next-semester movement as TRANSFERRED once, only on its school-local effective date", async () => {
   const data = await fixture();
   assert.equal(
     await db.$transaction((database) =>
@@ -211,7 +211,7 @@ it("applies the paired next-semester movement as TRANSFERRED once, only on its s
     0,
   );
 });
-it("returns a publication with invalidated availability to review and preserves the current membership", async () => {
+void it("returns a publication with invalidated availability to review and preserves the current membership", async () => {
   const data = await fixture();
   await db.studentAvailability.create({
     data: {
@@ -256,7 +256,7 @@ it("returns a publication with invalidated availability to review and preserves 
   assert.match(history.reason ?? "", /Confirme a disponibilidade/u);
 });
 
-it("keeps a published exit and entry atomic when the movement straddles the due-action batch boundary", async () => {
+void it("keeps a published exit and entry atomic when the movement straddles the due-action batch boundary", async () => {
   const data = await fixture();
   const students = await db.student.createManyAndReturn({
     data: Array.from({ length: 99 }, (unused, index) => ({ fullName: `${PREFIX}Batch ${index}` })),

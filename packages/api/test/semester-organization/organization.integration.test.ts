@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, beforeEach, it } from "node:test";
 import { createCaller, type StaffUser } from "@lazuli/api";
 import { db } from "@lazuli/db";
+import { TRPCError } from "@trpc/server";
 import {
   ensureTeacherFor,
   seedTwoStageCatalogFor,
@@ -133,7 +134,7 @@ async function fixture() {
   return { catalog, semester, plan, student };
 }
 
-it("publishes only selected eligible students, preserving the current PPT attempt and both temporal memberships", async () => {
+void it("publishes only selected eligible students, preserving the current PPT attempt and both temporal memberships", async () => {
   const scope = await fixture();
   const first = await scope.student("Ana");
   const second = await scope.student("Bia", false);
@@ -208,7 +209,7 @@ it("publishes only selected eligible students, preserving the current PPT attemp
   );
 });
 
-it("rechecks latest availability and refuses an invalid subset atomically", async () => {
+void it("rechecks latest availability and refuses an invalid subset atomically", async () => {
   const scope = await fixture();
   const first = await scope.student("Cris");
   const second = await scope.student("Dani", false);
@@ -254,7 +255,7 @@ it("rechecks latest availability and refuses an invalid subset atomically", asyn
   );
 });
 
-it("serializes duplicate publication and rejects a stale proposal version without a second enrollment", async () => {
+void it("serializes duplicate publication and rejects a stale proposal version without a second enrollment", async () => {
   const scope = await fixture();
   const student = await scope.student("Eva");
   const input = {
@@ -268,7 +269,9 @@ it("serializes duplicate publication and rejects a stale proposal version withou
   ]);
   assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
   const rejection = results.find((result) => result.status === "rejected");
-  assert.equal(rejection?.status === "rejected" ? rejection.reason.code : null, "CONFLICT");
+  const reason: unknown = rejection?.reason;
+  assert.ok(reason instanceof TRPCError);
+  assert.equal(reason.code, "CONFLICT");
   assert.equal(
     await db.enrollment.count({
       where: { studentId: student.id, class: { semesterId: scope.semester.id } },
