@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 
+import Link from "next/link";
 import { MessageCircle } from "lucide-react";
 
 import type { StudentListRow } from "@lazuli/validators";
@@ -15,10 +16,6 @@ import {
   SheetFooter,
   SheetPortal,
   SheetTitle,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
 } from "@lazuli/ui";
 
 import { EM_DASH } from "~/lib/format";
@@ -96,20 +93,9 @@ function PanelActions({ row }: { row: StudentListRow }): ReactElement {
 
   return (
     <SheetFooter className="mt-auto flex-row">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <span className="inline-flex" tabIndex={0}>
-                <Button disabled variant="secondary">
-                  Abrir perfil
-                </Button>
-              </span>
-            }
-          />
-          <TooltipContent side="top">Em breve</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Button nativeButton={false} variant="secondary" render={<Link href={`/alunos/${row.id}`} />}>
+        Abrir perfil
+      </Button>
       {whatsApp === null ? null : (
         <Button
           nativeButton={false}
