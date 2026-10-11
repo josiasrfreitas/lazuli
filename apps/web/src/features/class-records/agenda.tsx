@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
 import { Badge, Button, EmptyState, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { dateLabel, RecordState } from "./shared";
-import { GenerationNotice } from "./generation-notice";
+import { GenerationState, useSessionGeneration } from "./generation-notice";
 function shiftDate(date: string, days: number) {
   const value = new Date(`${date}T12:00:00Z`);
   value.setUTCDate(value.getUTCDate() + days);
@@ -33,6 +33,11 @@ export function ClassAgenda(): ReactElement {
   const query = trpc.classRecords.list.useQuery({ from, to, ...(classId ? { classId } : {}) });
   const rows = (query.data ?? []).filter((row) => view === "all" || row.state === view);
   const dates = [...new Set(rows.map((row) => row.date))];
+  const generation = useSessionGeneration({ from, to, ...(classId ? { classId } : {}) });
+  const awaitingPreparation = generation.data?.some(
+    (row) =>
+      row.pending || row.request?.status === "FAILED" || (!row.request && row.sessionCount === 0),
+  );
   return (
     <div className="mx-auto grid h-full w-full max-w-6xl content-start gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -85,20 +90,20 @@ export function ClassAgenda(): ReactElement {
       {classId && (
         <div className="flex flex-wrap items-center gap-3 text-caption">
           <span className="text-muted-foreground">
-            Turma: {query.data?.[0]?.className ?? "selecionada"}
+            Turma: {query.data?.[0]?.className ?? generation.data?.[0]?.className ?? "selecionada"}
           </span>
           <Link className="text-interactive hover:underline" href={`/aulas?semana=${from}`}>
             Ver todas as turmas
           </Link>
         </div>
       )}
-      <GenerationNotice {...(classId ? { classId } : {})} from={from} to={to} />
+      <GenerationState query={generation} showReady={Boolean(classId)} />
       <RecordState
         pending={query.isPending}
         error={query.error}
         retry={() => void query.refetch()}
       />
-      {query.data && rows.length === 0 && (
+      {query.data && rows.length === 0 && !awaitingPreparation && (
         <EmptyState
           title="Nenhum encontro neste recorte"
           description="Escolha outra semana ou veja todas as situações."
