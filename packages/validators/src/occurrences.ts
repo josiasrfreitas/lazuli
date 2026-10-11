@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { civilDateSchema } from "./civil-date.js";
-const id = z.string().uuid();
+const id = z.string().uuid("Selecione uma opção válida.");
 const body = z.string().trim().min(3, "Descreva o contexto com mais detalhes.").max(5000);
 const title = z.string().trim().min(3, "Informe um título.").max(160);
 export const occurrenceCategorySchema = z.enum([
