@@ -93,6 +93,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
         icon: CalendarRange,
         roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
       },
+      {
+        href: "/proximo-semestre",
+        label: "Próximo semestre",
+        icon: CalendarRange,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
       { href: "/avaliacoes", label: "Avaliações", icon: GraduationCap, roles: ["TEACHER"] },
     ],
   },
