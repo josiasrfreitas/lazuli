@@ -345,10 +345,8 @@ model Semester {
   name      String    @unique
   startDate DateTime  @map("start_date") @db.Date
   endDate   DateTime  @map("end_date") @db.Date
-
   classes Class[]
   sessionGenerationRequests SessionGenerationRequest[]
-
 }
 
 model SchoolClosedDay {

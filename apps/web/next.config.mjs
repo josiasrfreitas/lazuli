@@ -4,6 +4,7 @@ const LOGIN_IMAGE_QUALITY = 90;
 /** @type {import("next").NextConfig} */
 const config = {
   reactStrictMode: true,
+  serverExternalPackages: ["@hatchet-dev/typescript-sdk"],
   allowedDevOrigins: ["*.lazuli.localhost"],
   images: {
     qualities: [DEFAULT_IMAGE_QUALITY, LOGIN_IMAGE_QUALITY],
@@ -23,6 +24,7 @@ const config = {
     "@lazuli/db",
     "@lazuli/domain",
     "@lazuli/job-contracts",
+    "@lazuli/integrations",
     "@lazuli/ui",
     "@lazuli/validators",
   ],

@@ -5,6 +5,7 @@ import {
   type ReportGenerateQueue,
   type SessionsGenerateQueue,
 } from "@lazuli/job-contracts";
+import { createHatchetSessionsGenerateQueue } from "@lazuli/integrations/hatchet";
 
 /** The Prisma client type, taken without a runtime import so `@lazuli/api` stays
  * importable (e.g. in unit tests) without requiring `DATABASE_URL`. The real

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   enqueueSessionsGenerate,
+  createUnavailableSessionsGenerateQueue,
   SESSIONS_GENERATE_WORKFLOW,
   type SessionsGeneratePayload,
   type SessionsGenerateQueue,
@@ -48,6 +49,16 @@ void describe("sessions-generate contract", () => {
     });
 
     assert.deepEqual(result.payload, { semesterId: SEMESTER_ID });
+  });
+
+  void it("reports an unconfigured queue instead of returning a fabricated job", async () => {
+    await assert.rejects(
+      enqueueSessionsGenerate({
+        queue: createUnavailableSessionsGenerateQueue(),
+        payload: { classId: CLASS_ID },
+      }),
+      /SESSION_QUEUE_UNAVAILABLE/u,
+    );
   });
 
   void it("rejects a payload with both class and semester scope", async () => {
