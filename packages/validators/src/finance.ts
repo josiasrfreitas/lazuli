@@ -52,6 +52,7 @@ export const financeInstallmentsInputSchema = z
   .object({
     studentId: z.string().uuid().optional(),
     view: financeInstallmentViewSchema.default("all"),
+    studentId: z.string().uuid().optional(),
     page: financeInstallmentsPaginationPolicy.pageSchema,
     pageSize: financeInstallmentsPaginationPolicy.pageSizeSchema,
     search: z.string().trim().max(FINANCE_INSTALLMENTS_SEARCH_MAX_LENGTH).optional(),

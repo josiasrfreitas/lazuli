@@ -51,6 +51,7 @@ void describe("finance installments query", { concurrency: 1 }, () => {
   registerVisibilityTest();
   registerCombinedFiltersTest();
   registerOriginTest();
+  registerStudentScopeTest();
 });
 
 function registerCombinedFiltersTest(): void {
@@ -358,5 +359,37 @@ function registerFlatTotalsTest(): void {
       { view: paid.view, total: paid.total, pages: paid.pageCount },
       { view: "paid", total: 2, pages: 1 },
     );
+  });
+}
+
+function registerStudentScopeTest(): void {
+  void it("scopes counts and shared-payer overdue groups to the exact student", async () => {
+    const own = await createOrder({ beneficiaryNames: ["Profile target"], dueDate: "2026-02-10" });
+    const sibling = await createOrder({
+      beneficiaryNames: ["Profile sibling"],
+      dueDate: "2026-02-10",
+    });
+    await db.order.update({ where: { id: sibling.orderId }, data: { payerId: own.payerId } });
+    const studentId = own.studentIds[0]!;
+    const all = await read({ studentId, search: "" });
+    assert.equal(all.total, 1);
+    assert.deepEqual(
+      all.rows.map((row) => row.orderId),
+      [own.orderId],
+    );
+    assert.deepEqual(all.counts, { all: 1, paid: 0, overdue: 1 });
+    const overdue = await read({ studentId, search: "", view: "overdue" });
+    assert.equal(overdue.groups.length, 1);
+    assert.deepEqual(
+      overdue.groups.flatMap((group) => group.rows.map((row) => row.orderId)),
+      [own.orderId],
+    );
+    await db.orderBeneficiary.updateMany({
+      where: { orderId: own.orderId },
+      data: { deletedAt: new Date() },
+    });
+    const removed = await read({ studentId, search: "" });
+    assert.equal(removed.total, 0);
+    assert.deepEqual(removed.rows, []);
   });
 }
