@@ -179,11 +179,10 @@ it("publishes only selected eligible students, preserving the current PPT attemp
   assert.equal(origin.exitDate, null);
   assert.equal(origin.progressRecords[0]?.endDate, null);
   assert.equal(origin.actions.find((row) => row.kind === "EXIT")?.exitReason, "TRANSFERRED");
-  assert.equal(
-    (await db.semesterPlacement.findUniqueOrThrow({ where: { id: second.proposal.id } }))
-      .publishedAt,
-    null,
-  );
+  const unselected = await db.semesterPlacement.findUniqueOrThrow({
+    where: { id: second.proposal.id },
+  });
+  assert.equal(unselected.publishedAt, null);
   await assert.rejects(
     caller().enrollment.cancelScheduled({ actionId: future.actions[0]!.id }),
     /organização do próximo semestre/u,
@@ -194,20 +193,17 @@ it("publishes only selected eligible students, preserving the current PPT attemp
     reason: "Família pediu outro horário para o próximo período.",
   });
   assert.equal(await db.enrollment.count({ where: { id: future.id } }), 0);
-  assert.equal(
-    (await db.enrollment.findUniqueOrThrow({ where: { id: origin.id } })).exitDate,
-    null,
-  );
+  const retained = await db.enrollment.findUniqueOrThrow({ where: { id: origin.id } });
+  assert.equal(retained.exitDate, null);
   assert.equal(
     await db.enrollmentAction.count({
       where: { enrollmentId: origin.id, kind: "EXIT", status: "SCHEDULED" },
     }),
     0,
   );
+  const history = await caller().semesterOrganization.history({ id: first.proposal.id });
   assert.deepEqual(
-    (await caller().semesterOrganization.history({ id: first.proposal.id })).map(
-      (row) => row.action,
-    ),
+    history.map((row) => row.action),
     ["WITHDRAWN", "PUBLISHED", "PROPOSED"],
   );
 });
@@ -248,10 +244,10 @@ it("rechecks latest availability and refuses an invalid subset atomically", asyn
     }),
     /Confirme a disponibilidade/u,
   );
-  assert.equal(
-    (await db.enrollment.findUniqueOrThrow({ where: { id: first.source.enrollment.id } })).exitDate,
-    null,
-  );
+  const current = await db.enrollment.findUniqueOrThrow({
+    where: { id: first.source.enrollment.id },
+  });
+  assert.equal(current.exitDate, null);
   await assert.rejects(
     caller("TEACHER").semesterOrganization.detail({ semesterId: scope.semester.id }),
     { code: "FORBIDDEN" },
