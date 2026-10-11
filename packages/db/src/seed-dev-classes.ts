@@ -44,7 +44,7 @@ export async function seedClass(context: SeedContext, classSeed: DevClassSeed): 
       internalCode: `${context.semester.name}-${classSeed.key}`,
       teacherId,
       scheduleType: classSeed.scheduleType ?? "REGULAR",
-      format: "IN_PERSON",
+      format: classSeed.format ?? "IN_PERSON",
       sharedStageId: classSeed.scheduleType === "PERSONALIZED" ? null : stage.id,
       semesterId: context.semester.id,
       year: context.semester.year,

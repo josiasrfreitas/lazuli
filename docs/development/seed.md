@@ -28,6 +28,9 @@ suas chaves e identificadores derivados. As seis classes adicionais completam 22
 de dez alunos: 19 regulares e três personalizadas. A ocupação varia de quatro a 14; as capacidades
 são 16 no regular e 12 no personalizado. Sete docentes possuem perfis e horários sem sobreposição;
 crianças estudam à tarde e os grupos adultos à noite. Há capacidade para entradas e reposições.
+A S2A, regular adulta, nasce online; as outras 21 turmas são presenciais. Seus horários, alunos e
+identificadores são preservados. Ela não participa das visitas de entrada sintéticas, que continuam
+usando as turmas presenciais já definidas; contratos, notas e planos mantêm os mesmos fatos.
 
 ## Calendário, entrada e frequência
 
@@ -268,6 +271,49 @@ motivo e autoria, fica sem chamada ativa e sem baixa; IDs das linhas sintéticas
 preservados por exclusão lógica. A aula sem presentes conserva as faltas e uma observação, sem
 conteúdo inventado. Esses casos são escolhidos depois dos loaders dependentes, dentro da mesma
 reconstrução oficial, protegendo os fatos que eles já carregaram. Integração apenas pelo `pnpm seed`.
+
+## Presença informada pelo aluno
+
+V5 acrescenta até seis encontros passados com baixas V4 existentes, sete janelas e 31 declarações:
+MWYB com seis envios, PPT-E1 com seis, F1A com cinco, S2A com cinco, MWBA com quatro e PPT-C2 com
+cinco. A seleção respeita as matrículas na data e exige pelo menos um presente confirmado pelo
+docente sem declaração. Os resultados da chamada, seus autores, conteúdos, notas e demais fatos
+não são alterados. Se o semestre ainda não oferece aulas com participantes suficientes, o cenário
+é omitido; as quantidades acima são limites pretendidos, não uma autorização para fabricar presença.
+
+Na MWYB, os irmãos de sobrenome Martins Andrade enviam esse nome parcial e escolhem seus próprios
+registros. Outros envios alternam nome completo com correspondência exata e identificação parcial
+com escolha explícita. O seed não renomeia alunos para criar homônimos integrais; esse caso pertence
+às fixtures isoladas de teste. Na PPT-E1, a seleção prioriza a aula com substituto já registrado
+pela V4 e atribui a abertura ao docente que efetivamente ministrou o encontro.
+
+A F1A mostra uma janela de dez minutos que expira antes da chamada, convivendo com presença manual.
+Quando há um ausente naquele encontro, um dos envios fica associado à falta já confirmada: a
+declaração permanece evidência para conferência e não transforma o resultado final. O cenário
+não registra tentativas recusadas nem inventa uma causa para a divergência. A MWBA abre a coleta
+perto do fim, limita a validade ao término do encontro e encerra manualmente antes disso. Na PPT-C2,
+um novo link substitui o anterior; dois envios ficam na primeira janela e três na segunda, sem
+duplicar aluno ou sobrescrever evidências. Todas as outras janelas recebem o fechamento da chamada
+já existente. Validades usam dez, vinte ou trinta minutos, com abertura no dia civil de São Paulo,
+dentro da janela permitida e antes das baixas. Nenhum QR fica artificialmente aberto.
+
+Os envios presenciais possuem latitude, longitude, precisão e captura cinco segundos antes do
+envio. Uma grade de coordenadas explicitamente sintética varia distância e precisão; não representa
+endereço da escola, medição real nem regra de bloqueio por raio. Parte das janelas tem referência
+sintética do docente; a F1A demonstra referência ausente. Na S2A online, todas as localizações do
+aluno e da referência docente são nulas. Falha ou recusa de localização continua sendo um caminho
+para presença manual, sem falsa declaração persistida nem motivo inventado.
+
+Tokens aleatórios de 32 bytes são gerados apenas para calcular seus hashes SHA256; o token bruto
+não é armazenado, retornado ou impresso, e não há link utilizável documentado. Janelas e declarações
+mantêm IDs derivados estáveis; os hashes mudam em cada reconstrução. O Log recebe abertura e
+fechamento de até sete janelas, com autoria e data, sem evento global por declaração ou localização.
+
+O loader roda depois da V4 e antes do Log no único `pnpm seed`. O encontro pendente foi omitido:
+os encontros recentes já possuem baixa, e retirar uma delas exigiria preparar exceções em outros
+loaders antes das avaliações, ocorrências, visitas e reposições. O seed preserva esses históricos;
+a coleta antes da confirmação é validada pelo fluxo real e pelas fixtures isoladas da V5. Não há
+aplicação parcial nem alteração do banco durante a edição destes arquivos.
 
 ## Log de atividades
 

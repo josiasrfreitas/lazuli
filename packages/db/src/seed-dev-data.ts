@@ -21,6 +21,7 @@ export type DevTeacherSeed = { key: string; name: string; email: string };
 export type DevClassSeed = {
   key: string;
   scheduleType?: "REGULAR" | "PERSONALIZED";
+  format?: "IN_PERSON" | "ONLINE";
   stageInternalCode: string;
   teacherKey: string;
   capacity: number;
@@ -140,6 +141,7 @@ const CLASS_PROFILES = [
 export const DEV_CLASSES: readonly DevClassSeed[] = CLASS_PROFILES.map((profile, index) => ({
   key: profile.key,
   scheduleType: profile.key.startsWith("PPT") ? "PERSONALIZED" : "REGULAR",
+  format: profile.key === "S2A" ? "ONLINE" : "IN_PERSON",
   stageInternalCode: profile.stageInternalCode,
   teacherKey: DEV_TEACHERS[index % DEV_TEACHERS.length]!.key,
   capacity: profile.key.startsWith("PPT") ? PERSONALIZED_CAPACITY : REGULAR_CAPACITY,
