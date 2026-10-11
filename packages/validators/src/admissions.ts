@@ -50,8 +50,14 @@ export const admissionSaveSchema = z
 export const admissionListSchema = z
   .object({
     search: z.string().trim().max(MAX_NAME).default(""),
-    status: z.enum(["WAITING", "ENROLLED", "ARCHIVED", "ALL"]).default("WAITING"),
-    followUp: z.enum(["ALL", "TODAY", "OVERDUE", "UNPLANNED"]).default("ALL"),
+    statuses: z
+      .array(z.enum(["WAITING", "ENROLLED", "ARCHIVED"]))
+      .max(3)
+      .default(["WAITING"]),
+    followUps: z
+      .array(z.enum(["TODAY", "OVERDUE", "UNPLANNED"]))
+      .max(3)
+      .default([]),
     expiredOnly: z.boolean().default(false),
     page: z.number().int().min(1).default(1),
     pageSize: z.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),

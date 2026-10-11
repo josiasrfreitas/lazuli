@@ -116,8 +116,10 @@ export async function listCandidates(
   const today = saoPauloDateOnly(now);
   const where: Prisma.AdmissionCandidateWhereInput = {
     deletedAt: null,
-    ...(input.status === "ALL" ? {} : { status: input.status }),
-    ...followUpWhere(input.followUp, today),
+    ...(input.statuses.length ? { status: { in: input.statuses } } : {}),
+    ...(input.followUps.length
+      ? { AND: [{ OR: input.followUps.map((view) => followUpWhere(view, today)) }] }
+      : {}),
     ...(input.expiredOnly ? { availableUntil: { lt: new Date(today) } } : {}),
     ...(input.search
       ? {

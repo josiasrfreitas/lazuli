@@ -36,3 +36,15 @@ typecheck or build ran locally; these remain for CI. Commit formatting/whitespac
 
 The richer commercial seed has been authored but has not yet replaced the live dataset. The
 browser flows above used a new local demonstration lead against the existing 250-student seed.
+
+## Shared filters refinement — 2026-10-11
+
+Replaced the two segmented rows with the design system's TableFilters/TableFilterChips, matching
+Turmas and Professores. Situação and Retornos allow combined selections; URL state and pagination
+reset are preserved. The API uses union within each group and intersection with the name search.
+
+Browser selected Hoje + Em atraso and displayed 12 leads (six due today and six overdue) from the
+20 active candidates. Inspected desktop 1280×900 and narrow 390×844; filters wrap and active chips
+use the shared horizontal scroller. Screenshots: filters-desktop.png and filters-mobile.png.
+Local checks remain deferred by user instruction. The existing queue integration test was extended
+for combined returns and their intersection with search.
