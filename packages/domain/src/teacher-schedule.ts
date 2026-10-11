@@ -59,7 +59,9 @@ export function responsibleTeacherId(commitment: TeacherCommitment): string | nu
   );
 }
 
-export function teachingMinutes(commitment: TeacherCommitment): number {
+export function teachingMinutes(
+  commitment: Pick<TeacherCommitment, "startTime" | "endTime"> & { cancelled?: boolean },
+): number {
   if (commitment.cancelled) return 0;
   const [startHour = 0, startMinute = 0] = commitment.startTime.split(":").map(Number);
   const [endHour = 0, endMinute = 0] = commitment.endTime.split(":").map(Number);

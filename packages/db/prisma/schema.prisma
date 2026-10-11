@@ -13,17 +13,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// UUIDEntity is not a Prisma model. Repeat this block on each domain model.
-// Better Auth adapter tables and FinanceSettings are the documented exceptions.
-//
-//   id         String    @id @default(uuid()) @db.Uuid
-//   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
-//   updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-//   deletedAt  DateTime? @map("deleted_at") @db.Timestamptz
-//
-// Domain models are added by their owning issues (P01-P08). Keeping this
-// foundation schema model-free prevents P00-03 from pre-empting those designs.
-
 enum UserRole {
   SYSTEM_ADMIN
   ADMIN
@@ -151,7 +140,6 @@ model User {
   attendanceSettingsUpdated AttendanceSettings[] @relation("AttendanceSettingsAuthor")
   attendanceWindowsOpened AttendanceWindow[] @relation("AttendanceWindowOpener")
   attendanceWindowsClosed AttendanceWindow[] @relation("AttendanceWindowCloser")
-
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -162,7 +150,6 @@ model User {
   isEnabled     Boolean   @default(true) @map("is_enabled")
   emailVerified Boolean   @default(false) @map("email_verified")
   image         String?
-
   accounts                      Account[]
   sessions                      Session[]
   classesTaught                 Class[]                 @relation("ClassTeacher")
@@ -202,13 +189,14 @@ model User {
   recordedEnrollmentActions     EnrollmentAction[]      @relation("EnrollmentActionRecorder")
   cancelledEnrollmentActions    EnrollmentAction[]      @relation("EnrollmentActionCanceller")
   sessionGenerationRequests SessionGenerationRequest[]
-
-
   stagePlansCreated StagePlan[] @relation("StagePlanCreator")
   stagePlanRevisions StagePlanRevision[]
   taughtClassRecords ClassSessionRecord[] @relation("ClassRecordTeacher")
   classRecordRevisions ClassSessionRecordRevision[] @relation("ClassRecordAuthor")
   activityEvents ActivityEvent[]
+  admissionChanges AdmissionCandidate[] @relation("AdmissionRecorder")
+  entryVisits EntryVisit[] @relation("EntryVisitTeacher")
+  recordedEntryVisits EntryVisit[] @relation("EntryVisitRecorder")
 }
 
 model Account {
@@ -274,22 +262,20 @@ model Student {
   guardianId     String?       @map("guardian_id") @db.Uuid
   status         StudentStatus @default(ACTIVE)
   notes          String?
-
   address     Address?           @relation(fields: [addressId], references: [id], onDelete: SetNull)
   guardian    Guardian?          @relation(fields: [guardianId], references: [id], onDelete: SetNull)
   enrollments         Enrollment[]
   orderLinks          OrderBeneficiary[]
   contracts           Contract[]
   generatedArtifacts  GeneratedArtifact[]
-
   @@index([addressId])
   @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_full_name_trgm_idx")
   @@index([documentNumber(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_document_number_trgm_idx")
   @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_phone_trgm_idx")
   @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_email_trgm_idx")
   @@index([guardianId])
-
   stagePlans StagePlan[]
+  admissionCandidates AdmissionCandidate[]
 }
 
 model Guardian {
@@ -328,10 +314,6 @@ model Address {
   guardians Guardian[]
 }
 
-// Academic calendar window. Semester setup is the
-// trigger for session generation. A start_date <= end_date CHECK and a
-// non-overlap exclusion constraint on daterange(start_date, end_date, '[]') live
-// in the GRE-22 raw-SQL migration (Prisma cannot express exclusion constraints).
 model Semester {
   id        String    @id @default(uuid()) @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -390,7 +372,6 @@ model Class {
   previousClassId         String?           @map("previous_class_id") @db.Uuid
   portalClassName         String            @map("portal_class_name")
   originalPortalClassName String?           @map("original_portal_class_name")
-
   teacher       User                @relation("ClassTeacher", fields: [teacherId], references: [id])
   sharedStage   Stage?              @relation(fields: [sharedStageId], references: [id])
   semester      Semester            @relation(fields: [semesterId], references: [id])
@@ -402,18 +383,17 @@ model Class {
   substitutions ClassSubstitution[]
   enrollments        Enrollment[]
   generatedArtifacts GeneratedArtifact[]
-
   sessionGenerationRequests SessionGenerationRequest[]
-
   @@index([teacherId])
   @@index([sharedStageId])
   @@index([semesterId])
   @@index([previousClassId])
-
   stagePlan StagePlan?
+  entryVisits EntryVisit[]
 }
 
 model ClassScheduleSlot {
+  entryVisits EntryVisit[]
   id        String    @id @default(uuid()) @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -457,20 +437,17 @@ model Stage {
   name         String
   internalCode String    @map("internal_code")
   sequence     Int
-
   track           Track                 @relation(fields: [trackId], references: [id], onDelete: Restrict)
   classes         Class[]
   progressRecords PedagogicalProgress[]
-
   @@unique([trackId, internalCode])
   @@unique([trackId, sequence])
-
   stagePlans StagePlan[]
+  admissionCandidates AdmissionCandidate[]
 }
 
 model Enrollment {
   attendanceDeclarations AttendanceDeclaration[]
-
   id                     String                @id @default(uuid()) @db.Uuid
   createdAt              DateTime              @default(now()) @map("created_at") @db.Timestamptz
   updatedAt              DateTime              @updatedAt @map("updated_at") @db.Timestamptz
@@ -481,7 +458,6 @@ model Enrollment {
   exitDate               DateTime?             @map("exit_date") @db.Date
   exitReason             EnrollmentExitReason? @map("exit_reason")
   capacityOverrideReason String?               @map("capacity_override_reason")
-
   student         Student               @relation(fields: [studentId], references: [id], onDelete: Restrict)
   class           Class                 @relation(fields: [classId], references: [id], onDelete: Restrict)
   progressRecords PedagogicalProgress[]
@@ -489,9 +465,9 @@ model Enrollment {
   makeups         Makeup[]
   actions         EnrollmentAction[] @relation("EnrollmentActionTarget")
   returnActions   EnrollmentAction[] @relation("EnrollmentActionSource")
-
   @@index([studentId])
   @@index([classId])
+  admissionCandidate AdmissionCandidate?
 }
 
 model EnrollmentAction {
@@ -612,7 +588,6 @@ model ClassSession {
   attendanceWindows AttendanceWindow[]
   attendanceDeclarations AttendanceDeclaration[]
   attendanceProjection AttendanceProjection?
-
   id                        String             @id @default(uuid()) @db.Uuid
   createdAt                 DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                 DateTime           @updatedAt @map("updated_at") @db.Timestamptz
@@ -633,7 +608,6 @@ model ClassSession {
   attendanceConfirmedById   String?            @map("attendance_confirmed_by_id") @db.Uuid
   attendanceLastCommittedAt DateTime?          @map("attendance_last_committed_at") @db.Timestamptz
   portalSubmittedAt         DateTime?          @map("portal_submitted_at") @db.Timestamptz
-
   class                 Class              @relation(fields: [classId], references: [id], onDelete: Restrict)
   scheduleSlot          ClassScheduleSlot? @relation(fields: [classId, scheduleSlotId], references: [classId, id], onDelete: Restrict)
   cancelledBy           User?              @relation("ClassSessionCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
@@ -641,14 +615,13 @@ model ClassSession {
   attendanceRows        Attendance[]
   makeups               Makeup[]
   substitutions         ClassSubstitution[]
-
   @@unique([classId, id])
   @@index([classId])
   @@index([scheduleSlotId])
   @@index([cancelledById])
   @@index([attendanceConfirmedById])
-
   classRecord ClassSessionRecord?
+  entryVisits EntryVisit[]
 }
 
 model Attendance {
@@ -1025,7 +998,6 @@ model SessionGenerationRequest {
   @@index([requestedById])
 }
 
-
 enum StagePlanActivityKind {
   CONTENT
   REVIEW
@@ -1227,4 +1199,98 @@ model AttendanceSettings {
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
   updatedById       String    @map("updated_by_id") @db.Uuid
   updatedBy         User      @relation("AttendanceSettingsAuthor", fields: [updatedById], references: [id], onDelete: Restrict)
+}
+
+enum AdmissionStatus {
+  WAITING
+  ENROLLED
+  ARCHIVED
+}
+
+enum EntryVisitKind {
+  TRIAL
+  INTRODUCTION
+}
+
+enum EntryVisitStatus {
+  SCHEDULED
+  ATTENDED
+  ABSENT
+  CANCELLED
+}
+
+model AdmissionCandidate {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  fullName String @map("full_name")
+  phone String?
+  email String?
+  notes String?
+  status AdmissionStatus @default(WAITING)
+  scheduleType ClassScheduleType @map("schedule_type")
+  format ClassFormat
+  stageId String? @map("stage_id") @db.Uuid
+  studentId String? @map("student_id") @db.Uuid
+  enrollmentId String? @unique @map("enrollment_id") @db.Uuid
+  availableUntil DateTime @map("available_until") @db.Date
+  availabilityConfirmedAt DateTime @default(now()) @map("availability_confirmed_at") @db.Timestamptz
+  recordedById String @map("recorded_by_id") @db.Uuid
+
+  stage Stage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("AdmissionRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  availability AdmissionAvailability[]
+  visits EntryVisit[]
+
+  @@index([status, createdAt])
+  @@index([stageId])
+  @@index([studentId])
+}
+
+model AdmissionAvailability {
+  id String @id @default(uuid()) @db.Uuid
+  candidateId String @map("candidate_id") @db.Uuid
+  weekday Weekday
+  startTime DateTime @map("start_time") @db.Time
+  endTime DateTime @map("end_time") @db.Time
+  candidate AdmissionCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  @@unique([candidateId, weekday, startTime, endTime])
+}
+
+model EntryVisit {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  candidateId String @map("candidate_id") @db.Uuid
+  kind EntryVisitKind
+  status EntryVisitStatus @default(SCHEDULED)
+  date DateTime @db.Date
+  startTime DateTime @map("start_time") @db.Time
+  endTime DateTime @map("end_time") @db.Time
+  format ClassFormat
+  teacherId String? @map("teacher_id") @db.Uuid
+  classId String? @map("class_id") @db.Uuid
+  scheduleSlotId String? @map("schedule_slot_id") @db.Uuid
+  classSessionId String? @map("class_session_id") @db.Uuid
+  previousVisitId String? @unique @map("previous_visit_id") @db.Uuid
+  notes String?
+  cancellationReason String? @map("cancellation_reason")
+  recordedById String @map("recorded_by_id") @db.Uuid
+
+  candidate AdmissionCandidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  teacher User? @relation("EntryVisitTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("EntryVisitRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  class Class? @relation(fields: [classId], references: [id], onDelete: Restrict)
+  scheduleSlot ClassScheduleSlot? @relation(fields: [scheduleSlotId], references: [id], onDelete: Restrict)
+  classSession ClassSession? @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  previousVisit EntryVisit? @relation("EntryVisitReschedule", fields: [previousVisitId], references: [id], onDelete: Restrict)
+  nextVisit EntryVisit? @relation("EntryVisitReschedule")
+
+  @@index([candidateId, date])
+  @@index([teacherId, date, status])
+  @@index([classId, date])
 }

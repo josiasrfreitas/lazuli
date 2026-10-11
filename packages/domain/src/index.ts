@@ -114,3 +114,8 @@ export {
 export { planningBand } from "./planning-band.js";
 
 export * from "./student-attendance.js";
+export {
+  availabilityCovers,
+  availabilityIsCurrent,
+  type AvailabilityWindow,
+} from "./admission-availability.js";

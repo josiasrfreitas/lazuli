@@ -191,3 +191,13 @@ export * from "./stage-planning.js";
 export * from "./class-records.js";
 
 export * from "./student-attendance.js";
+export {
+  admissionIdSchema,
+  admissionValuesSchema,
+  admissionSaveSchema,
+  admissionListSchema,
+  admissionMatchesSchema,
+  entryVisitScheduleSchema,
+  entryVisitOutcomeSchema,
+  admissionEnrollSchema,
+} from "./admissions.js";
