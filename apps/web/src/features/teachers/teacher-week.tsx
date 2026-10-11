@@ -1,3 +1,4 @@
+import { TeacherIntroductions } from "./teacher-introductions";
 import type { RouterOutputs } from "@lazuli/api";
 import type { ReactElement } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -33,8 +34,9 @@ export function TeacherWeek({
         today={today}
       />
       <WeekSchedule schedule={schedule} id={id} today={today} onOpen={onOpen} />
+      {schedule.data && <TeacherIntroductions rows={schedule.data.introductions} />}
       <p className="text-caption text-muted-foreground">
-        {schedule.data?.rows.length === 0
+        {schedule.data?.rows.length === 0 && schedule.data.introductions.length === 0
           ? "Nenhum compromisso nesta semana."
           : "Abra uma aula para consultar ou registrar uma substituição."}
       </p>

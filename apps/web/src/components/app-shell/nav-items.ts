@@ -8,6 +8,7 @@ import {
   Home,
   Settings,
   Users,
+  UserRoundPlus,
 } from "lucide-react";
 import type { StaffRole } from "@lazuli/auth/server";
 
@@ -61,6 +62,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
         href: "/professores",
         label: "Professores",
         icon: GraduationCap,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
+      {
+        href: "/interessados",
+        label: "Interessados",
+        icon: UserRoundPlus,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
       { href: "/turmas", label: "Turmas", icon: BookOpen, roles: ["ADMIN", "SYSTEM_ADMIN"] },
