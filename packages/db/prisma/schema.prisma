@@ -459,6 +459,7 @@ model Stage {
   stagePlans StagePlan[]
   admissionCandidates AdmissionCandidate[]
   assessments StageAssessment[]
+  plans StagePlan[]
 }
 
 model Enrollment {
@@ -1055,7 +1056,6 @@ model StagePlan {
   objective      String?
   version        Int       @default(1)
   createdById    String    @map("created_by_id") @db.Uuid
-
   class           Class?                @relation(fields: [classId], references: [id], onDelete: Restrict)
   student         Student?              @relation(fields: [studentId], references: [id], onDelete: Restrict)
   stage           Stage                 @relation(fields: [stageId], references: [id], onDelete: Restrict)
@@ -1063,7 +1063,6 @@ model StagePlan {
   progressRecords PedagogicalProgress[]
   items           StagePlanItem[]
   revisions       StagePlanRevision[]
-
   @@index([studentId, stageId])
 }
 
@@ -1080,7 +1079,6 @@ model StagePlanItem {
   pageFrom  Int?                  @map("page_from")
   pageTo    Int?                  @map("page_to")
   plan      StagePlan             @relation(fields: [planId], references: [id], onDelete: Restrict)
-
   @@index([planId, plannedOn])
 }
 
@@ -1096,7 +1094,6 @@ model StagePlanRevision {
   recordedById String    @map("recorded_by_id") @db.Uuid
   plan         StagePlan @relation(fields: [planId], references: [id], onDelete: Restrict)
   recordedBy   User      @relation(fields: [recordedById], references: [id], onDelete: Restrict)
-
   @@unique([planId, version])
 }
 

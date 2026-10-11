@@ -127,7 +127,10 @@ A student's stage placement over time, separate from operational class membershi
 
 **Stage Plan**:
 The planned dates and learning activities for completing a stage. Regular classes share a
-semester plan; personalized students each have an individual plan and duration limit.
+semester plan; personalized students each have an individual plan and duration limit. The individual
+plan follows the same stage attempt across class transfers and pause/return. A new stage starts a
+new plan. Planned activities and the target end date are intentions, separate from actual class
+records, grades and stage completion. Attributed revisions preserve earlier versions.
 
 **Competency**:
 An individually assessed dimension of learning: oral, listening, written or participation.
