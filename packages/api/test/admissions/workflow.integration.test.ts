@@ -136,6 +136,16 @@ void it("trial attendance follows the class meeting and never creates an academi
       classSessionId: null,
     },
   });
+  const guests = await caller().admissions.guests({
+    classId: fixture.classId,
+    date: "2071-02-02",
+    scheduleSlotId: fixture.slotId,
+    classSessionId: null,
+  });
+  assert.deepEqual(
+    guests.map((guest) => guest.candidate.id),
+    [fixture.id],
+  );
   await assert.rejects(
     caller().admissions.outcome({ id: visit.id, status: "ATTENDED" }),
     /após o início/u,

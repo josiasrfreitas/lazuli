@@ -1,27 +1,27 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import Link from "next/link";
+import type { RouterOutputs } from "@lazuli/api";
 import { useRouter } from "next/navigation";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { Plus } from "lucide-react";
 import {
-  Badge,
   Button,
   DataTable,
   DataTablePage,
   Input,
   SegmentedControl,
   SegmentedControlItem,
-  type DataTableColumn,
   type DataTableState,
 } from "@lazuli/ui";
 import { studentPaginationPolicy } from "@lazuli/validators";
-import { trpc } from "~/lib/trpc";
+import { trpc, type QueryResult } from "~/lib/trpc";
 import { tablePaginationPropsFor, useUrlPagination } from "~/lib/pagination";
 import { CandidateDialog } from "./candidate-dialog";
-import { dateLabel, dateOnly, statusLabels, type CandidateRow } from "./labels";
+import { admissionColumns } from "./admission-columns";
+import type { CandidateRow } from "./labels";
 
 const states = ["WAITING", "ENROLLED", "ARCHIVED", "ALL"] as const;
+type CandidateQuery = QueryResult<RouterOutputs["admissions"]["list"]>;
 export function AdmissionsPage(): ReactElement {
   const [params, setParams] = useQueryStates({
     busca: parseAsString.withDefault(""),
@@ -35,77 +35,6 @@ export function AdmissionsPage(): ReactElement {
     pageSize: pagination.pageSize,
   });
   const [creating, setCreating] = useState(false);
-  const router = useRouter();
-  const columns: DataTableColumn<CandidateRow>[] = [
-    {
-      id: "name",
-      header: "Interessado",
-      width: "wide",
-      cell: (row) => (
-        <div className="grid gap-1">
-          <Link
-            className="font-medium underline-offset-4 hover:underline"
-            href={`/interessados/${row.id}`}
-          >
-            {row.fullName}
-          </Link>
-          <span className="text-caption text-muted-foreground">{row.phone || row.email}</span>
-        </div>
-      ),
-    },
-    {
-      id: "interest",
-      header: "Interesse",
-      width: "standard",
-      cell: (row) => (
-        <div className="grid gap-1">
-          <span>{row.scheduleType === "REGULAR" ? "Regular" : "Personalizado"}</span>
-          <span className="text-caption text-muted-foreground">
-            {row.format === "IN_PERSON" ? "Presencial" : "Online"}
-          </span>
-        </div>
-      ),
-    },
-    {
-      id: "stage",
-      header: "Estágio indicado",
-      width: "wide",
-      cell: (row) => (
-        <span className={row.stage ? "" : "text-muted-foreground"}>
-          {row.stage?.name ?? "Aguardando nivelamento"}
-        </span>
-      ),
-    },
-    {
-      id: "availability",
-      header: "Disponibilidade",
-      width: "standard",
-      cell: (row) =>
-        dateOnly(row.availableUntil) < (query.data?.today ?? "") && row.status === "WAITING" ? (
-          <Badge variant="warning">Confirmar horários</Badge>
-        ) : (
-          <span className="text-caption text-muted-foreground">
-            Até {dateLabel(row.availableUntil)}
-          </span>
-        ),
-    },
-    {
-      id: "status",
-      header: "Situação",
-      width: "wide",
-      cell: (row) => (
-        <Badge variant={row.status === "ENROLLED" ? "success" : "neutral"}>
-          {statusLabels[row.status]}
-        </Badge>
-      ),
-    },
-  ];
-  let state: DataTableState<CandidateRow> = { kind: "loading" };
-  if (query.isError) state = { kind: "error" };
-  else if (query.data)
-    state = query.data.rows.length
-      ? { kind: "data", rows: query.data.rows }
-      : { kind: params.busca ? "noResults" : "empty" };
   return (
     <>
       <DataTablePage
@@ -116,71 +45,123 @@ export function AdmissionsPage(): ReactElement {
             : undefined
         }
         controls={
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="w-full sm:w-56">
-              <Input
-                name="candidate-search"
-                aria-label="Buscar interessado"
-                placeholder="Nome, telefone ou e-mail"
-                autoComplete="off"
-                size="compact-responsive"
-                value={params.busca}
-                onChange={(event) => {
-                  void setParams({ busca: event.target.value });
-                  pagination.setPage(1);
-                }}
-              />
-            </div>
-            <Button size="compact-responsive" onClick={() => setCreating(true)}>
-              <Plus />
-              Novo interessado
-            </Button>
-          </div>
+          <AdmissionControls
+            search={params.busca}
+            onCreate={() => setCreating(true)}
+            onSearch={(busca) => {
+              void setParams({ busca });
+              pagination.setPage(1);
+            }}
+          />
         }
       >
         <div className="flex h-full min-h-0 flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <SegmentedControl
-              aria-label="Situação do interessado"
-              size="sm"
-              value={params.situacao}
-              onValueChange={(value) => {
-                if (states.includes(value as (typeof states)[number])) {
-                  void setParams({ situacao: value as (typeof states)[number] });
-                  pagination.setPage(1);
-                }
-              }}
-            >
-              <SegmentedControlItem value="WAITING">Aguardando</SegmentedControlItem>
-              <SegmentedControlItem value="ENROLLED">Matriculados</SegmentedControlItem>
-              <SegmentedControlItem value="ARCHIVED">Arquivados</SegmentedControlItem>
-              <SegmentedControlItem value="ALL">Todos</SegmentedControlItem>
-            </SegmentedControl>
-            <p className="text-caption text-muted-foreground">Do primeiro contato à turma certa.</p>
-          </div>
-          <div className="min-h-0 flex-1">
-            <DataTable
-              label="Interessados"
-              columns={columns}
-              state={state}
-              updating={query.isFetching}
-              onRowClick={(row) => router.push(`/interessados/${row.id}`)}
-              onRetry={() => void query.refetch()}
-              empty={{
-                title: "O próximo aluno começa por aqui",
-                description:
-                  "Registre um interesse, encontre horários compatíveis e acompanhe a primeira aula.",
-              }}
-              errorTitle="Não foi possível carregar os interessados"
-              pagination={{
-                ...tablePaginationPropsFor(pagination, query.data),
-                itemLabel: { singular: "interessado", plural: "interessados" },
-              }}
-            />
-          </div>
+          <AdmissionFilters
+            value={params.situacao}
+            onChange={(situacao) => {
+              void setParams({ situacao });
+              pagination.setPage(1);
+            }}
+          />
+          <AdmissionsTable query={query} pagination={pagination} search={params.busca} />
         </div>
       </DataTablePage>
       {creating && <CandidateDialog onClose={() => setCreating(false)} />}
     </>
+  );
+}
+function AdmissionControls({
+  search,
+  onSearch,
+  onCreate,
+}: {
+  search: string;
+  onSearch: (search: string) => void;
+  onCreate: () => void;
+}): ReactElement {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-full sm:w-56">
+        <Input
+          name="candidate-search"
+          aria-label="Buscar interessado"
+          placeholder="Nome, telefone ou e-mail"
+          autoComplete="off"
+          size="compact-responsive"
+          value={search}
+          onChange={(event) => onSearch(event.target.value)}
+        />
+      </div>
+      <Button size="compact-responsive" onClick={onCreate}>
+        <Plus />
+        Novo interessado
+      </Button>
+    </div>
+  );
+}
+function AdmissionFilters({
+  value,
+  onChange,
+}: {
+  value: (typeof states)[number];
+  onChange: (value: (typeof states)[number]) => void;
+}): ReactElement {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <SegmentedControl
+        aria-label="Situação do interessado"
+        size="sm"
+        value={value}
+        onValueChange={(next) => {
+          if (states.includes(next as (typeof states)[number]))
+            onChange(next as (typeof states)[number]);
+        }}
+      >
+        <SegmentedControlItem value="WAITING">Aguardando</SegmentedControlItem>
+        <SegmentedControlItem value="ENROLLED">Matriculados</SegmentedControlItem>
+        <SegmentedControlItem value="ARCHIVED">Arquivados</SegmentedControlItem>
+        <SegmentedControlItem value="ALL">Todos</SegmentedControlItem>
+      </SegmentedControl>
+      <p className="text-caption text-muted-foreground">Do primeiro contato à turma certa.</p>
+    </div>
+  );
+}
+function tableState(query: CandidateQuery, search: string): DataTableState<CandidateRow> {
+  if (query.isError) return { kind: "error" };
+  if (!query.data) return { kind: "loading" };
+  if (query.data.rows.length > 0) return { kind: "data", rows: query.data.rows };
+  return { kind: search ? "noResults" : "empty" };
+}
+function AdmissionsTable({
+  query,
+  pagination,
+  search,
+}: {
+  query: CandidateQuery;
+  pagination: ReturnType<typeof useUrlPagination>;
+  search: string;
+}): ReactElement {
+  const router = useRouter();
+  return (
+    <div className="min-h-0 flex-1">
+      <DataTable
+        label="Interessados"
+        columns={admissionColumns(query.data?.today ?? "")}
+        state={tableState(query, search)}
+        updating={query.isFetching}
+        onRowClick={(row) => router.push(`/interessados/${row.id}`)}
+        onRetry={() => void query.refetch()}
+        empty={{
+          title: "O próximo aluno começa por aqui",
+          description:
+            "Registre um interesse, encontre horários compatíveis e acompanhe a primeira aula.",
+        }}
+        errorTitle="Não foi possível carregar os interessados"
+        pagination={{
+          ...tablePaginationPropsFor(pagination, query.data),
+          itemLabel: { singular: "interessado", plural: "interessados" },
+        }}
+      />
+    </div>
   );
 }

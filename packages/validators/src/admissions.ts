@@ -13,7 +13,7 @@ const MAX_NOTES = 2000;
 const MAX_WINDOWS = 28;
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 20;
-const contact = z.string().trim().max(160).nullable();
+const contact = z.string().trim().max(MAX_NAME).nullable();
 export const admissionIdSchema = z.object({ id: z.string().uuid() }).strict();
 export const admissionValuesSchema = z
   .object({
@@ -123,3 +123,16 @@ export const admissionEnrollSchema = admissionMatchesSchema
     ]),
   })
   .strict();
+
+export const entryVisitGuestsSchema = z
+  .object({
+    classId: z.string().uuid(),
+    date: civilDateSchema,
+    scheduleSlotId: z.string().uuid().nullable(),
+    classSessionId: z.string().uuid().nullable(),
+  })
+  .strict()
+  .refine(
+    (value) => Boolean(value.scheduleSlotId) !== Boolean(value.classSessionId),
+    "Informe um único encontro.",
+  );

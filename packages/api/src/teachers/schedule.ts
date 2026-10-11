@@ -94,9 +94,7 @@ export async function meetingsBetween(input: MeetingsBetweenInput): Promise<Teac
     ),
   );
 }
-export async function teacherWeek(
-  input: TeacherWeekInput,
-): Promise<{
+export async function teacherWeek(input: TeacherWeekInput): Promise<{
   rows: TeacherMeeting[];
   introductions: Awaited<ReturnType<typeof introductoryMeetings>>;
   minutes: number;
@@ -116,12 +114,12 @@ export async function teacherWeek(
     (sum, row) => sum + (responsibleTeacherId(row) === input.teacherId ? row.minutes : 0),
     0,
   );
-  const introductions = await introductoryMeetings(
-    input.database,
-    input.teacherId,
-    days[0]!,
-    days[LAST_WEEK_DAY]!,
-  );
+  const introductions = await introductoryMeetings({
+    database: input.database,
+    teacherId: input.teacherId,
+    from: days[0]!,
+    through: days[LAST_WEEK_DAY]!,
+  });
   const introductionMinutes = introductions.reduce(
     (sum, row) => sum + (row.status === "CANCELLED" ? 0 : teachingMinutes(row)),
     0,
