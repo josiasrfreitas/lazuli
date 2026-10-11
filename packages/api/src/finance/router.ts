@@ -1,4 +1,5 @@
 import {
+  z,
   paymentPreviewSchema,
   paymentOperationSchema,
   financeAddInstallmentAdjustmentInputSchema,
@@ -19,7 +20,22 @@ import {
 import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
 import { finance } from "./index.js";
 
+const MIN_ANALYTICS_YEAR = 2000;
+const MAX_ANALYTICS_YEAR = 2100;
+
 export const financeRouter = router({
+  analytics: adminProcedure
+    .input(z.object({ year: z.number().int().min(MIN_ANALYTICS_YEAR).max(MAX_ANALYTICS_YEAR) }))
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (transaction) =>
+          finance(transaction, ctx.staffUser.id).analytics({
+            year: input.year,
+            now: ctx.now ?? new Date(),
+          }),
+        { isolationLevel: "RepeatableRead" },
+      ),
+    ),
   previewPayments: adminProcedure
     .input(paymentPreviewSchema)
     .query(({ ctx, input }) =>

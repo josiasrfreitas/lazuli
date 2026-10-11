@@ -1,5 +1,6 @@
 import {
   type LucideIcon,
+  ChartNoAxesCombined,
   BookOpen,
   DollarSign,
   FileText,
@@ -76,6 +77,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     id: "financeiro",
     label: "Financeiro",
     items: [
+      {
+        href: "/financeiro",
+        label: "Visão financeira",
+        icon: ChartNoAxesCombined,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
       { href: "/contratos", label: "Contratos", icon: FileText, roles: ["ADMIN", "SYSTEM_ADMIN"] },
       {
         href: "/recebiveis",
