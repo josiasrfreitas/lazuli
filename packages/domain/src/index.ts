@@ -103,3 +103,8 @@ export {
   type TeacherCommitment,
   type TeacherWeekday,
 } from "./teacher-schedule.js";
+export {
+  availabilityCovers,
+  availabilityIsCurrent,
+  type AvailabilityWindow,
+} from "./admission-availability.js";
