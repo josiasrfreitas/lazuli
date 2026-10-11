@@ -759,6 +759,9 @@ importers:
       '@lazuli/job-contracts':
         specifier: workspace:*
         version: link:../job-contracts
+      '@lazuli/validators':
+        specifier: workspace:*
+        version: link:../validators
     devDependencies:
       '@lazuli/eslint-config':
         specifier: workspace:*
