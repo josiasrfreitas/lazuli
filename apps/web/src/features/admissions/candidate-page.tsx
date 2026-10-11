@@ -19,6 +19,7 @@ import {
   InlineSkeleton,
   Popover,
   PopoverContent,
+  PopoverClose,
   PopoverTrigger,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -59,7 +60,7 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
   const expired = dateOnly(candidate.availableUntil) < candidate.today;
   return (
     <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col gap-6 overflow-y-auto p-4 sm:p-6">
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-border pb-5">
         <div className="flex min-w-0 items-start gap-3">
           <Avatar name={candidate.fullName} colorKey={candidate.id} />
           <div className="grid min-w-0 gap-2">
@@ -72,7 +73,10 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
                 {statusLabels[candidate.status]}
               </Badge>
               <span className="text-caption text-muted-foreground">
-                Desde {dateLabel(candidate.createdAt)}
+                Desde{" "}
+                {new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(
+                  candidate.createdAt,
+                )}
               </span>
             </div>
           </div>
@@ -102,9 +106,8 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
                 <MoreHorizontal />
               </PopoverTrigger>
               <PopoverContent align="end">
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <PopoverClose
+                  render={<Button variant="ghost" size="sm" />}
                   disabled={status.isPending}
                   onClick={() =>
                     status.mutate({
@@ -114,7 +117,7 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
                   }
                 >
                   {candidate.status === "ARCHIVED" ? "Reabrir interesse" : "Arquivar interesse"}
-                </Button>
+                </PopoverClose>
               </PopoverContent>
             </Popover>
           )}
@@ -133,6 +136,7 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
             <Button
               variant="secondary"
               size="sm"
+              nativeButton={false}
               render={<Link href={`/turmas/${candidate.enrollment.classId}`} />}
             >
               Abrir turma
@@ -142,7 +146,7 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
         </Alert>
       )}
       <div className="grid items-start gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="grid gap-6">
+        <aside className="order-2 grid gap-6 lg:order-none">
           <CandidateProfile candidate={candidate} />
           <section className="grid gap-3 border-t border-border pt-5" aria-label="Disponibilidade">
             <div className="flex items-center justify-between gap-2">

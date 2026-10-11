@@ -33,17 +33,24 @@ export function VisitDialog({
   previousVisitId?: string;
   onClose: () => void;
 }): ReactElement {
+  const previous = candidate.visits.find((visit) => visit.id === previousVisitId);
   const [id] = useState(() => crypto.randomUUID());
   const [kind, setKind] = useState<"TRIAL" | "INTRODUCTION">(
-    candidate.scheduleType === "PERSONALIZED" ? "INTRODUCTION" : "TRIAL",
+    previous?.kind ?? (candidate.scheduleType === "PERSONALIZED" ? "INTRODUCTION" : "TRIAL"),
   );
-  const [date, setDate] = useState(dateLabel(candidate.today));
-  const [classId, setClassId] = useState("");
-  const [meetingKey, setMeetingKey] = useState("");
-  const [teacher, setTeacher] = useState<SearchSelectOption | null>(null);
-  const [startTime, setStart] = useState("");
-  const [endTime, setEnd] = useState("");
-  const [notes, setNotes] = useState("");
+  const [date, setDate] = useState(dateLabel(previous?.date ?? candidate.today));
+  const [classId, setClassId] = useState(previous?.classId ?? "");
+  const [meetingKey, setMeetingKey] = useState(
+    previous?.scheduleSlotId ?? previous?.classSessionId ?? "",
+  );
+  const [teacher, setTeacher] = useState<SearchSelectOption | null>(
+    previous?.teacherId
+      ? { id: previous.teacherId, label: previous.teacherName ?? "Professor" }
+      : null,
+  );
+  const [startTime, setStart] = useState(previous?.startTime ?? "");
+  const [endTime, setEnd] = useState(previous?.endTime ?? "");
+  const [notes, setNotes] = useState(previous?.notes ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const popup = useRef<HTMLDivElement>(null);
   const parsedDate = parseDateBR(date);
@@ -65,7 +72,10 @@ export function VisitDialog({
   function submit(event: FormEvent): void {
     event.preventDefault();
     if (mutation.isPending) return;
-    const selected = meetings.data?.find((row) => (row.slotId ?? row.sessionId) === meetingKey);
+    const selected =
+      meetings.data?.length === 1
+        ? meetings.data[0]
+        : meetings.data?.find((row) => (row.slotId ?? row.sessionId) === meetingKey);
     const parsed = entryVisitScheduleSchema.safeParse({
       id,
       candidateId: candidate.id,
@@ -175,7 +185,23 @@ export function VisitDialog({
                       Nenhuma turma compatível com o interesse e os horários nesta data.
                     </p>
                   )}
-                  {classId && (
+                  {classId && meetings.data?.length === 1 && (
+                    <div className="grid gap-1 rounded-md border border-border bg-muted p-3">
+                      <p className="text-caption text-muted-foreground">Encontro da turma</p>
+                      <p className="font-medium">
+                        {meetings.data[0]!.startTime}–{meetings.data[0]!.endTime}
+                      </p>
+                      <p className="text-caption">
+                        {meetings.data[0]!.substituteTeacherName ??
+                          meetings.data[0]!.usualTeacherName ??
+                          "Sem professor"}
+                      </p>
+                    </div>
+                  )}
+                  {meetings.isError && (
+                    <Alert variant="destructive">{meetings.error.message}</Alert>
+                  )}
+                  {classId && (meetings.data?.length ?? 0) > 1 && (
                     <SelectControl
                       name="meeting"
                       label="Encontro da turma"

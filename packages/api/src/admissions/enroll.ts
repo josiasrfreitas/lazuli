@@ -1,6 +1,7 @@
 import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { admissionEnrollSchema, z } from "@lazuli/validators";
+import { lockTeacher } from "../teachers/availability.js";
 import { badRequest } from "../trpc/errors.js";
 import { createStudent } from "../students/data.js";
 import { createEnrollment } from "../enrollment/data.js";
@@ -13,6 +14,7 @@ export async function enrollCandidate(input: {
   now: Date;
 }) {
   const { database, values, now, recordedById } = input;
+  await lockTeacher(database, "");
   await lockCandidate(database, values.id);
   const candidate = await readCandidate(database, values.id);
   if (candidate.enrollmentId)
@@ -34,6 +36,14 @@ export async function enrollCandidate(input: {
     (values.student.mode !== "existing" || values.student.id !== candidate.studentId)
   )
     throw badRequest("Use o aluno já vinculado a este interessado.");
+  if (
+    values.student.mode === "existing" &&
+    !(await database.student.findFirst({
+      where: { id: values.student.id, deletedAt: null },
+      select: { id: true },
+    }))
+  )
+    throw badRequest("Aluno não encontrado. Atualize a seleção.");
   const studentId =
     values.student.mode === "existing"
       ? values.student.id

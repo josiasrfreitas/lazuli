@@ -16,7 +16,13 @@ import {
 } from "../teachers/availability.js";
 import { meetingKey, meetingsBetween } from "../teachers/schedule.js";
 import { dateToTimeString, timeStringToDate } from "../classes/time.js";
-import { assertAllocatable, dateOnly, lockCandidate, readCandidate } from "./candidates.js";
+import {
+  assertAllocatable,
+  dateOnly,
+  lockCandidate,
+  matchingClasses,
+  readCandidate,
+} from "./candidates.js";
 
 type ScheduleInput = {
   database: Prisma.TransactionClient;
@@ -48,6 +54,9 @@ async function resolveVisit(input: ScheduleInput) {
       classSessionId: null,
     };
   }
+  const choices = await matchingClasses(database, values.candidateId, values.date);
+  if (!choices.some((row) => row.id === meeting.classId))
+    throw badRequest("Turma incompatível com o interesse e a disponibilidade.");
   const rows = await meetingsBetween({ database, from: values.date, through: values.date, now });
   const match = rows.find(
     (row) =>
@@ -159,42 +168,63 @@ export async function recordVisitOutcome(input: {
   const visit = await database.entryVisit.findUnique({ where: { id: values.id } });
   if (!visit || visit.deletedAt) throw notFound("Aula de entrada não encontrada.");
   if (visit.status === "CANCELLED") throw badRequest("Aula cancelada. Agende uma nova aula.");
+  const actual =
+    values.status === "CANCELLED" ? null : await outcomeMeeting({ database, visit, now });
   if (
     values.status !== "CANCELLED" &&
-    sessionEndInstant({ date: visit.date, endTime: visit.startTime }) > now
+    sessionEndInstant({ date: visit.date, endTime: actual?.startTime ?? visit.startTime }) > now
   )
     throw badRequest("Registre o comparecimento após o início da aula.");
-  if (values.status !== "CANCELLED" && visit.kind === "TRIAL") {
-    const meetings = await meetingsBetween({
-      database,
-      from: dateOnly(visit.date),
-      through: dateOnly(visit.date),
-      now,
-    });
-    const current = meetings.find(
-      (row) =>
-        meetingKey(row) ===
-        meetingKey({
-          classId: visit.classId!,
-          slotId: visit.scheduleSlotId,
-          sessionId: visit.classSessionId,
-          date: dateOnly(visit.date),
-        }),
-    );
-    if (!current || current.cancelled)
-      throw badRequest("O encontro da turma foi cancelado. Cancele ou remarque a aula de entrada.");
-  }
   return database.entryVisit.update({
     where: { id: visit.id },
     data: {
       status: values.status,
       recordedById,
+      ...(actual
+        ? {
+            teacherId: responsibleTeacherId(actual),
+            startTime: timeStringToDate(actual.startTime),
+            endTime: timeStringToDate(actual.endTime),
+          }
+        : {}),
       ...(values.status === "CANCELLED"
         ? { cancellationReason: values.notes }
         : { notes: values.notes || null }),
     },
     select: { id: true },
   });
+}
+async function outcomeMeeting({
+  database,
+  visit,
+  now,
+}: {
+  database: Prisma.TransactionClient;
+  visit: Prisma.EntryVisitGetPayload<Record<string, never>>;
+  now: Date;
+}): Promise<Awaited<ReturnType<typeof meetingsBetween>>[number] | null> {
+  if (visit.kind !== "TRIAL") return null;
+  const meetings = await meetingsBetween({
+    database,
+    from: dateOnly(visit.date),
+    through: dateOnly(visit.date),
+    now,
+  });
+  const current = meetings.find(
+    (row) =>
+      meetingKey(row) ===
+      meetingKey({
+        classId: visit.classId!,
+        slotId: visit.scheduleSlotId,
+        sessionId: visit.classSessionId,
+        date: dateOnly(visit.date),
+      }),
+  );
+  if (!current || current.cancelled || !responsibleTeacherId(current))
+    throw badRequest(
+      "O encontro da turma foi cancelado ou está sem professor. Cancele ou remarque a aula de entrada.",
+    );
+  return current;
 }
 export async function candidateVisits(
   database: Prisma.TransactionClient,

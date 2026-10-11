@@ -48,3 +48,19 @@ Referência: operação de Professores (orientação do usuário em 10/10/2026),
 - [ ] Interessados, disponibilidade e turmas compatíveis.
 - [ ] Aulas de entrada e conflitos bidirecionais.
 - [ ] Conversão, interface e browser.
+
+## Browser evidence — 10/10/2026
+
+Validated against the isolated V3 database through the embedded Orca browser, with an actual admin magic-link session. All names in the evidence are local synthetic fixtures.
+
+- Created a candidate through the two-step form, verified masked phone/date/time and validation of required contact; step two receives focus on stage search.
+- Created an experimental lesson from the real class meeting. Scheduling an introductory lesson over that teacher's class was rejected with the conflicting class/date/time; scheduling in a free interval succeeded.
+- Confirmed an introductory lesson occupies the teacher's week grid and contributes one hour to weekly load.
+- Converted a minor into an enrollment after required guardian validation; navigated to the actual class and observed the new student and count change from 11 to 12. Reload preserved the enrollment. Lessons remained separate from enrollment.
+- Attempted attendance before lesson start and received the explicit timing error.
+- Rescheduled an introductory lesson, preserving the cancelled original and guidance; cancel required a reason. Archiving with a pending lesson was rejected. After cancellation, archive and reopen succeeded.
+- Inspected 1280 px desktop and 390 px narrow views in light/dark themes. Narrow document width and scroll width both measured 390 px. Corrected mobile action order, school-local creation date, link-button semantics, and empty-looking teacher grid cells.
+
+Screenshots: `evidence/teacher-week.png`, `evidence/teacher-conflict.png`, `evidence/detail-light.png`, `evidence/detail-narrow.png`, `evidence/enroll-minor-narrow.png`. `detail-desktop.png` records an earlier iteration.
+
+Automated coverage added for availability, administrative role gates, conversion retry/concurrency, attendance separation and atomic rescheduling/conflicts. Suites have **not** been run locally, following the user's explicit instruction; CI execution remains pending. Remaining browser coverage: expired availability renewal, existing-student linking/conversion, and reverse conflict through class/substitution UI.
