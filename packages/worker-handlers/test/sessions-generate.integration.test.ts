@@ -3,7 +3,7 @@ import { after, before, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
 
-import { generateClassSessions } from "../src/index.js";
+import { generateClassSessions, processSessionGeneration } from "../src/index.js";
 
 const TEST_PREFIX = "GRE-65 Sessions ";
 const TEACHER_ID = "00000000-0000-0000-0000-000000006501";
@@ -52,6 +52,72 @@ void describe("sessions-generate worker", () => {
         { classId: fixtures.regularClassId, date: "2040-03-13" },
         { classId: fixtures.personalizedClassId, date: "2040-03-16" },
       ],
+    );
+  });
+  void it("persists completion once under duplicate delivery and preserves confirmed encounters on a fresh retry", async () => {
+    await cleanDatabase();
+    const fixtures = await seedGenerationFixtures();
+    const request = await db.sessionGenerationRequest.create({
+      data: { semesterId: fixtures.semesterId, status: "QUEUED" },
+    });
+    const payload = { semesterId: fixtures.semesterId, requestId: request.id };
+    await Promise.all([
+      processSessionGeneration({ database: db, payload }),
+      processSessionGeneration({ database: db, payload }),
+    ]);
+    const saved = await db.sessionGenerationRequest.findUniqueOrThrow({
+      where: { id: request.id },
+    });
+    assert.equal(saved.status, "SUCCEEDED");
+    assert.equal(saved.sessionsCreated, 4);
+    assert.equal(saved.sessionsPlanned, 4);
+    const first = await db.classSession.findFirstOrThrow({
+      where: { classId: fixtures.regularClassId },
+      orderBy: { date: "asc" },
+    });
+    const confirmedAt = new Date("2040-03-06T18:00:00Z");
+    await db.classSession.update({
+      where: { id: first.id },
+      data: { attendanceConfirmedAt: confirmedAt, attendanceConfirmedById: TEACHER_ID },
+    });
+    const retry = await db.sessionGenerationRequest.create({
+      data: { classId: fixtures.regularClassId },
+    });
+    const result = await processSessionGeneration({
+      database: db,
+      payload: { classId: fixtures.regularClassId, requestId: retry.id },
+    });
+    assert.equal(result.sessionsCreated, 0);
+    assert.equal(result.sessionsPlanned, 2);
+    const preserved = await db.classSession.findUniqueOrThrow({ where: { id: first.id } });
+    assert.equal(preserved.attendanceConfirmedAt?.toISOString(), "2040-03-06T18:00:00.000Z");
+    assert.equal(preserved.attendanceConfirmedById, TEACHER_ID);
+    assert.equal(
+      await db.classSession.count({ where: { class: { semesterId: fixtures.semesterId } } }),
+      4,
+    );
+  });
+
+  void it("rejects a delivery for another scope without changing that request or generating encounters", async () => {
+    await cleanDatabase();
+    const fixtures = await seedGenerationFixtures();
+    const request = await db.sessionGenerationRequest.create({
+      data: { classId: fixtures.regularClassId, status: "QUEUED" },
+    });
+    await assert.rejects(
+      processSessionGeneration({
+        database: db,
+        payload: { classId: fixtures.personalizedClassId, requestId: request.id },
+      }),
+      /SESSION_GENERATION_FAILED/u,
+    );
+    const preserved = await db.sessionGenerationRequest.findUniqueOrThrow({
+      where: { id: request.id },
+    });
+    assert.equal(preserved.status, "QUEUED");
+    assert.equal(
+      await db.classSession.count({ where: { class: { semesterId: fixtures.semesterId } } }),
+      0,
     );
   });
 });

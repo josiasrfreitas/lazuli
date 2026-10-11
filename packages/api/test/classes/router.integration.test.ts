@@ -228,8 +228,83 @@ void it("enqueues session generation without creating sessions inline", async ()
 
   assert.equal(result.workflowName, "sessions-generate");
   assert.equal(result.jobId, "job-1");
-  assert.deepEqual(queue.calls, [{ classId: created.id }]);
+  assert.deepEqual(queue.calls, [{ classId: created.id, requestId: result.id }]);
+  const request = await db.sessionGenerationRequest.findUniqueOrThrow({ where: { id: result.id } });
+  assert.equal(request.status, "QUEUED");
+  assert.equal(request.jobId, "job-1");
   assert.equal(sessionCount, 0);
+});
+
+void it("keeps a saved class recoverable when dispatch fails, then retries through the real queue contract", async () => {
+  await cleanClassDatabase();
+  await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
+  const failedQueue = {
+    enqueueSessionsGenerate: () => Promise.reject(new Error("engine unavailable")),
+  };
+  const created = await createCaller(contextWithQueue({ queue: failedQueue })).classes.create({
+    teacherId: TEACHER_USER_ID,
+    scheduleType: "REGULAR",
+    format: "IN_PERSON",
+    sharedStageId: fixtures.stageId,
+    semesterId: fixtures.semesterId,
+    slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
+  });
+  const saved = await caller().classes.byId({ id: created.id });
+  const status = await caller().sessionGeneration.status({ classId: created.id });
+  assert.equal(saved.portalClassName, "REG 14:00");
+  assert.equal(status[0]?.request?.status, "FAILED");
+  assert.equal(status[0]?.request?.failureCode, "DISPATCH_FAILED");
+  assert.equal(status[0]?.canGenerate, true);
+  assert.equal(status[0]?.sessionCount, 0);
+  const queue = recordingSessionsGenerateQueue("recovered-job");
+  const retried = await createCaller(contextWithQueue({ queue })).classes.generateSessions({
+    classId: created.id,
+  });
+  assert.equal(retried.status, "QUEUED");
+  assert.deepEqual(queue.calls, [{ classId: created.id, requestId: retried.id }]);
+  assert.equal(await db.sessionGenerationRequest.count({ where: { classId: created.id } }), 2);
+  await assert.rejects(
+    caller().classes.generateSessions({ classId: created.id }),
+    /já estão sendo preparadas/u,
+  );
+});
+
+void it("dispatches generation automatically after class creation commits", async () => {
+  await cleanClassDatabase();
+  await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
+  const observed: string[] = [];
+  const queue = {
+    enqueueSessionsGenerate: async (payload: {
+      classId?: string;
+      semesterId?: string;
+      requestId?: string;
+    }) => {
+      if (!payload.classId || !payload.requestId) throw new Error("Missing scoped request");
+      const saved = await db.class.findUniqueOrThrow({ where: { id: payload.classId } });
+      const request = await db.sessionGenerationRequest.findUniqueOrThrow({
+        where: { id: payload.requestId },
+      });
+      observed.push(saved.portalClassName, request.status);
+      return { workflowName: "sessions-generate" as const, jobId: "created-job", payload };
+    },
+  };
+  const created = await createCaller(contextWithQueue({ queue })).classes.create({
+    teacherId: TEACHER_USER_ID,
+    scheduleType: "REGULAR",
+    format: "IN_PERSON",
+    sharedStageId: fixtures.stageId,
+    semesterId: fixtures.semesterId,
+    slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
+  });
+  assert.deepEqual(observed, ["REG 14:00", "PENDING"]);
+  assert.equal(await db.classSession.count({ where: { classId: created.id } }), 0);
+  const request = await db.sessionGenerationRequest.findUniqueOrThrow({
+    where: { id: created.generationRequestId },
+  });
+  assert.equal(request.status, "QUEUED");
+  assert.equal(request.jobId, "created-job");
 });
 
 type CreatedClass = Awaited<ReturnType<ReturnType<typeof caller>["classes"]["create"]>>;

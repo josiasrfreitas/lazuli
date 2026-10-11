@@ -1,0 +1,72 @@
+import { createHash } from "node:crypto";
+import type { HatchetClient } from "@hatchet-dev/typescript-sdk";
+import {
+  SESSIONS_GENERATE_WORKFLOW,
+  sessionsGeneratePayloadSchema,
+  type SessionsGenerateQueue,
+} from "@lazuli/job-contracts";
+
+const DISPATCH_TIMEOUT_MS = 5_000;
+let client: Promise<HatchetClient> | undefined;
+
+/** Shared Hatchet instances must never deliver one workspace's jobs to another database. */
+export function sessionWorkflowNamespace(environment: NodeJS.ProcessEnv): string {
+  if (environment.HATCHET_CLIENT_NAMESPACE) return environment.HATCHET_CLIENT_NAMESPACE;
+  if (!environment.DATABASE_URL) throw new Error("SESSION_DATABASE_UNCONFIGURED");
+  const database = new URL(environment.DATABASE_URL);
+  const identity = `${database.host}${database.pathname}`;
+  return `lazuli-${createHash("sha256").update(identity).digest("hex").slice(0, 16)}`;
+}
+
+export function getHatchetClient(): Promise<HatchetClient> {
+  client ??= connect().catch((error: unknown) => {
+    client = undefined;
+    throw error;
+  });
+  return client;
+}
+
+async function connect(): Promise<HatchetClient> {
+  if (!process.env.HATCHET_CLIENT_TOKEN) throw new Error("SESSION_QUEUE_UNCONFIGURED");
+  const { HatchetClient } = await import("@hatchet-dev/typescript-sdk");
+  return HatchetClient.init(
+    {
+      namespace: sessionWorkflowNamespace(process.env),
+      log_level: "ERROR",
+      retrier: { maxAttempts: 1 },
+    },
+    undefined,
+    { timeout: DISPATCH_TIMEOUT_MS },
+  );
+}
+
+export function createHatchetSessionsGenerateQueue(): SessionsGenerateQueue {
+  return {
+    async enqueueSessionsGenerate(input) {
+      const payload = sessionsGeneratePayloadSchema.parse(input);
+      const jobId = await boundedDispatch(async () => {
+        const hatchet = await getHatchetClient();
+        const run = await hatchet.runNoWait(SESSIONS_GENERATE_WORKFLOW, payload);
+        return run.runId;
+      });
+      return { workflowName: SESSIONS_GENERATE_WORKFLOW, jobId, payload };
+    },
+  };
+}
+
+async function boundedDispatch<T>(dispatch: () => Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      dispatch(),
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("SESSION_DISPATCH_TIMEOUT")),
+          DISPATCH_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}

@@ -10,7 +10,10 @@ import {
   classRelatedListInputSchema,
   classRosterInputSchema,
 } from "@lazuli/validators";
-import { createLocalSessionsGenerateQueue, enqueueSessionsGenerate } from "@lazuli/job-contracts";
+import {
+  requestSessionGeneration,
+  dispatchSessionGeneration,
+} from "../session-generation/requests.js";
 
 import { adminProcedure, router } from "../trpc/init.js";
 import { cloneClassForNextPeriod } from "./clone.js";
@@ -54,17 +57,36 @@ export const classesRouter = router({
     }),
   ),
   formOptions: adminProcedure.query(({ ctx }) => classFormOptions(ctx.db)),
-  create: adminProcedure.input(classCreateInputSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
+  create: adminProcedure.input(classCreateInputSchema).mutation(async ({ ctx, input }) => {
+    const result = await activityTransaction(
       ctx,
       "classes.create",
-      (database) => createClass({ database, values: input, recordedById: ctx.staffUser.id }),
+      async (database) => {
+        const created = await createClass({
+          database,
+          values: input,
+          recordedById: ctx.staffUser.id,
+        });
+        const generation = await requestSessionGeneration(
+          database,
+          { classId: created.id },
+          ctx.staffUser.id,
+          ctx.now ?? new Date(),
+        );
+        return { ...created, generationRequestId: generation.id };
+      },
       async (result, database) => ({
         subject: await classSubject(database, result.id),
         deduplicationKey: `classes.create:${result.id}`,
       }),
-    ),
-  ),
+    );
+    await dispatchSessionGeneration({
+      database: ctx.db,
+      requestId: result.generationRequestId,
+      ...(ctx.sessionGenerationQueue ? { queue: ctx.sessionGenerationQueue } : {}),
+    });
+    return result;
+  }),
   archive: adminProcedure.input(classArchiveInputSchema).mutation(({ ctx, input }) =>
     activityTransaction(
       ctx,
@@ -75,39 +97,56 @@ export const classesRouter = router({
   ),
   cloneForNextPeriod: adminProcedure
     .input(classCloneForNextPeriodInputSchema)
-    .mutation(({ ctx, input }) =>
-      activityTransaction(
+    .mutation(async ({ ctx, input }) => {
+      const result = await activityTransaction(
         ctx,
         "classes.cloneForNextPeriod",
-        (database) =>
-          cloneClassForNextPeriod({
+        async (database) => {
+          const cloned = await cloneClassForNextPeriod({
             ...buildCloneInput({ database, input }),
             recordedById: ctx.staffUser.id,
-          }),
+          });
+          const generation = await requestSessionGeneration(
+            database,
+            { classId: cloned.successor.id },
+            ctx.staffUser.id,
+            ctx.now ?? new Date(),
+          );
+          return { ...cloned, generationRequestId: generation.id };
+        },
         async (result, database) => ({
           subject: await classSubject(database, result.successor.id),
           description: `Continuação de ${result.source.portalClassName}.`,
           deduplicationKey: `classes.clone:${result.successor.id}`,
         }),
-      ),
-    ),
+      );
+      await dispatchSessionGeneration({
+        database: ctx.db,
+        requestId: result.generationRequestId,
+        ...(ctx.sessionGenerationQueue ? { queue: ctx.sessionGenerationQueue } : {}),
+      });
+      return result;
+    }),
   generateSessions: adminProcedure
     .input(classGenerateSessionsInputSchema)
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.$transaction((database) =>
-        assertGenerationScopeExists({
+      const request = await ctx.db.$transaction(async (database) => {
+        await assertGenerationScopeExists({
           database,
           ...optionalClassId(input.classId),
           ...optionalSemesterId(input.semesterId),
-        }),
-      );
-
-      return enqueueSessionsGenerate({
-        queue: ctx.sessionGenerationQueue ?? createLocalSessionsGenerateQueue(),
-        payload: {
-          ...optionalClassId(input.classId),
-          ...optionalSemesterId(input.semesterId),
-        },
+        });
+        return requestSessionGeneration(
+          database,
+          { ...optionalClassId(input.classId), ...optionalSemesterId(input.semesterId) },
+          ctx.staffUser.id,
+          ctx.now ?? new Date(),
+        );
+      });
+      return dispatchSessionGeneration({
+        database: ctx.db,
+        requestId: request.id,
+        ...(ctx.sessionGenerationQueue ? { queue: ctx.sessionGenerationQueue } : {}),
       });
     }),
 });

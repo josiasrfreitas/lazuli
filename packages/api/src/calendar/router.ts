@@ -5,7 +5,10 @@ import {
   importBrazilFederalHolidaysInputSchema,
   removeClosedDayInputSchema,
 } from "@lazuli/validators";
-import { createLocalSessionsGenerateQueue, enqueueSessionsGenerate } from "@lazuli/job-contracts";
+import {
+  requestSessionGeneration,
+  dispatchSessionGeneration,
+} from "../session-generation/requests.js";
 
 import { adminProcedure, router } from "../trpc/init.js";
 import {
@@ -19,28 +22,37 @@ export const calendarRouter = router({
   createSemester: adminProcedure
     .input(createSemesterInputSchema)
     .mutation(async ({ ctx, input }) => {
-      const semester = await activityTransaction(
+      const result = await activityTransaction(
         ctx,
         "calendar.createSemester",
-        (database) =>
-          createSemester({
+        async (database) => {
+          const semester = await createSemester({
             database,
             name: input.name,
             startDate: input.startDate,
             endDate: input.endDate,
-          }),
+          });
+          const generation = await requestSessionGeneration(
+            database,
+            { semesterId: semester.id },
+            ctx.staffUser.id,
+            ctx.now ?? new Date(),
+          );
+          return { semester, generationRequestId: generation.id };
+        },
         (result) => ({
-          subject: { type: "school", name: result.name },
-          deduplicationKey: `calendar.createSemester:${result.id}`,
+          subject: { type: "school", name: result.semester.name },
+          deduplicationKey: `calendar.createSemester:${result.semester.id}`,
         }),
       );
 
-      const enqueueResult = await enqueueSessionsGenerate({
-        queue: ctx.sessionGenerationQueue ?? createLocalSessionsGenerateQueue(),
-        payload: { semesterId: semester.id },
+      const enqueueResult = await dispatchSessionGeneration({
+        database: ctx.db,
+        requestId: result.generationRequestId,
+        ...(ctx.sessionGenerationQueue ? { queue: ctx.sessionGenerationQueue } : {}),
       });
 
-      return { semester, sessionsGenerateJob: enqueueResult };
+      return { semester: result.semester, sessionsGenerateJob: enqueueResult };
     }),
   importBrazilFederalHolidays: adminProcedure
     .input(importBrazilFederalHolidaysInputSchema)

@@ -148,6 +148,7 @@ enum ArtifactKind {
 }
 
 model User {
+  sessionGenerationRequests SessionGenerationRequest[]
   assignedAppointments PedagogicalAppointment[] @relation("AppointmentTeacher")
   scheduledAppointments PedagogicalAppointment[] @relation("AppointmentScheduler")
   recordedAppointments PedagogicalAppointment[] @relation("AppointmentRecorder")
@@ -353,6 +354,7 @@ model Address {
 // non-overlap exclusion constraint on daterange(start_date, end_date, '[]') live
 // in the GRE-22 raw-SQL migration (Prisma cannot express exclusion constraints).
 model Semester {
+  sessionGenerationRequests SessionGenerationRequest[]
   id        String    @id @default(uuid()) @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -392,6 +394,7 @@ model ProductLine {
 }
 
 model Class {
+  sessionGenerationRequests SessionGenerationRequest[]
   stagePlan StagePlan?
   entryVisits EntryVisit[]
   id                      String            @id @default(uuid()) @db.Uuid
@@ -427,6 +430,40 @@ model Class {
   @@index([sharedStageId])
   @@index([semesterId])
   @@index([previousClassId])
+}
+
+enum SessionGenerationStatus {
+  PENDING
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model SessionGenerationRequest {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  classId String? @map("class_id") @db.Uuid
+  semesterId String? @map("semester_id") @db.Uuid
+  requestedById String? @map("requested_by_id") @db.Uuid
+  status SessionGenerationStatus @default(PENDING)
+  jobId String? @map("job_id")
+  startedAt DateTime? @map("started_at") @db.Timestamptz
+  completedAt DateTime? @map("completed_at") @db.Timestamptz
+  failureCode String? @map("failure_code")
+  classesMatched Int? @map("classes_matched")
+  sessionsCreated Int? @map("sessions_created")
+  sessionsPlanned Int? @map("sessions_planned")
+
+  class Class? @relation(fields: [classId], references: [id], onDelete: Cascade)
+  semester Semester? @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  requestedBy User? @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+
+  @@index([classId, createdAt])
+  @@index([semesterId, createdAt])
+  @@index([requestedById])
 }
 
 model ClassScheduleSlot {

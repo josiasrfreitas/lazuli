@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./hatchet": "./src/hatchet.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -14,6 +15,8 @@
     "clean": "rm -rf .turbo dist"
   },
   "dependencies": {
+    "@hatchet-dev/typescript-sdk": "1.37.0",
+    "@lazuli/job-contracts": "workspace:*",
     "nodemailer": "catalog:",
     "resend": "catalog:",
     "zod": "catalog:"
