@@ -10,6 +10,7 @@ import {
   callHttpMutation,
   callHttpQuery,
   cleanDatabase,
+  ensureStudentAdmin,
   HTTP_TEST_PREFIX,
   HTTP_OK,
 } from "../support/student-test-support.js";
@@ -19,6 +20,7 @@ const EXPANDED_PAGE_SIZE = STUDENT_PAGE_SIZE_OPTIONS[1];
 void describe("students API over the tRPC HTTP boundary", () => {
   void before(async () => {
     await db.$connect();
+    await ensureStudentAdmin();
   });
 
   void after(async () => {

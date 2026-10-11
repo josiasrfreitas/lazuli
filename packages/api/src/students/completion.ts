@@ -3,7 +3,9 @@ import type { TransactionClient } from "@lazuli/db";
 import type { StudentCompletionInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 import { finance } from "../finance/index.js";
-import type { Context } from "../trpc/context.js";
+import type { Context, StaffUser } from "../trpc/context.js";
+import { activityTransaction, recordActivity } from "../activity/record.js";
+import { studentSubject } from "../activity/subjects.js";
 import { createStudent } from "./data.js";
 import { assertCreationCommandOwner, lockCreationCommand } from "../creation-command.js";
 
@@ -64,11 +66,36 @@ export async function persistStudentCompletion(input: {
 export async function completeStudent(input: {
   database: Context["db"];
   values: StudentCompletionInput;
-  staffUserId: string;
+  staffUser: StaffUser;
+  now?: Date;
 }): Promise<CompletedStudent> {
   try {
-    return await input.database.$transaction((database) =>
-      persistStudentCompletion({ ...input, database }),
+    return await activityTransaction(
+      { ...input, db: input.database },
+      "students.completeCreation",
+      async (database) => {
+        const student = await persistStudentCompletion({
+          database,
+          values: input.values,
+          staffUserId: input.staffUser.id,
+        });
+        if ("contract" in input.values) {
+          const contract = await database.contract.findUniqueOrThrow({
+            where: { commandId: input.values.contract.commandId },
+            select: { id: true },
+          });
+          const subject = await studentSubject(database, student.id);
+          await recordActivity(database, input, "finance.createMonthlyContract", {
+            subject: { ...subject, type: "contract", id: contract.id },
+            deduplicationKey: `finance.contract:${contract.id}`,
+          });
+        }
+        return student;
+      },
+      async (student, database) => ({
+        subject: await studentSubject(database, student.id),
+        deduplicationKey: `students.completeCreation:${student.id}`,
+      }),
     );
   } catch (error) {
     // The losing concurrent transaction rolls back; recover only the same committed command.

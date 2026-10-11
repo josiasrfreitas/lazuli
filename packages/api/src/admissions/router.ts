@@ -1,3 +1,5 @@
+import { leadSubject, visitSubject } from "../activity/subjects.js";
+import { activityTransaction } from "../activity/record.js";
 import {
   captureLead,
   updateLeadDetails,
@@ -37,54 +39,72 @@ import { meetingsBetween } from "../teachers/schedule.js";
 import { lockTeacher } from "../teachers/availability.js";
 
 export const admissionsRouter = router({
-  details: adminProcedure
-    .input(leadCaptureSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
+  details: adminProcedure.input(leadCaptureSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "admissions.details",
+      (database) =>
         updateLeadDetails({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      ),
+      async (_result, database) => ({ subject: await leadSubject(database, input.id) }),
     ),
-  capture: adminProcedure
-    .input(leadCaptureSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
+  ),
+  capture: adminProcedure.input(leadCaptureSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "admissions.capture",
+      (database) =>
         captureLead({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      ),
+      async (result, database) => ({
+        subject: await leadSubject(database, result.id),
+        deduplicationKey: `admissions.capture:${result.id}`,
+      }),
     ),
-  nextStep: adminProcedure
-    .input(leadNextStepSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
+  ),
+  nextStep: adminProcedure.input(leadNextStepSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "admissions.nextStep",
+      (database) =>
         setLeadNextStep({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      ),
+      async (_result, database) => ({
+        subject: await leadSubject(database, input.id),
+        description: input.nextAction ?? "Próximo passo removido.",
+      }),
     ),
-  contact: adminProcedure
-    .input(leadContactSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
+  ),
+  contact: adminProcedure.input(leadContactSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "admissions.contact",
+      (database) =>
         recordLeadContact({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      ),
+      async (result, database) => ({
+        subject: await leadSubject(database, input.candidateId),
+        description: input.summary,
+        deduplicationKey: `admissions.contact:${result.id}`,
+      }),
     ),
+  ),
   owners: adminProcedure.query(({ ctx }) =>
     ctx.db.user.findMany({
       where: { isEnabled: true, role: { in: ["ADMIN", "SYSTEM_ADMIN"] } },
@@ -117,13 +137,17 @@ export const admissionsRouter = router({
     today: saoPauloDateOnly(ctx.now ?? new Date()),
   })),
   save: adminProcedure.input(admissionSaveSchema).mutation(({ ctx, input }) =>
-    ctx.db.$transaction((database) =>
-      saveCandidate({
-        database,
-        input,
-        recordedById: ctx.staffUser.id,
-        now: ctx.now ?? new Date(),
-      }),
+    activityTransaction(
+      ctx,
+      "admissions.save",
+      (database) =>
+        saveCandidate({
+          database,
+          input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      async (_result, database) => ({ subject: await leadSubject(database, input.id) }),
     ),
   ),
   matches: adminProcedure
@@ -143,60 +167,87 @@ export const admissionsRouter = router({
       return rows.filter((row) => row.classId === input.classId && !row.cancelled);
     }),
   schedule: adminProcedure.input(entryVisitScheduleSchema).mutation(({ ctx, input }) =>
-    ctx.db.$transaction((database) =>
-      scheduleVisit({
-        database,
-        values: input,
-        recordedById: ctx.staffUser.id,
-        now: ctx.now ?? new Date(),
+    activityTransaction(
+      ctx,
+      "admissions.schedule",
+      (database) =>
+        scheduleVisit({
+          database,
+          values: input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      async (result, database) => ({
+        subject: await leadSubject(database, input.candidateId),
+        deduplicationKey: `admissions.schedule:${result.id}`,
       }),
     ),
   ),
   outcome: adminProcedure.input(entryVisitOutcomeSchema).mutation(({ ctx, input }) =>
-    ctx.db.$transaction((database) =>
-      recordVisitOutcome({
-        database,
-        values: input,
-        recordedById: ctx.staffUser.id,
-        now: ctx.now ?? new Date(),
-      }),
+    activityTransaction(
+      ctx,
+      "admissions.outcome",
+      (database) =>
+        recordVisitOutcome({
+          database,
+          values: input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      async (_result, database) => ({ subject: await visitSubject(database, input.id) }),
     ),
   ),
   enroll: adminProcedure.input(admissionEnrollSchema).mutation(({ ctx, input }) =>
-    ctx.db.$transaction((database) =>
-      enrollCandidate({
-        database,
-        values: input,
-        recordedById: ctx.staffUser.id,
-        now: ctx.now ?? new Date(),
+    activityTransaction(
+      ctx,
+      "admissions.enroll",
+      (database) =>
+        enrollCandidate({
+          database,
+          values: input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      async (_result, database) => ({
+        subject: await leadSubject(database, input.id),
+        deduplicationKey: `admissions.enroll:${input.id}`,
       }),
     ),
   ),
   setStatus: adminProcedure
     .input(admissionIdSchema.extend({ status: z.enum(["WAITING", "ARCHIVED"]) }))
     .mutation(({ ctx, input }) =>
-      ctx.db.$transaction(async (database) => {
-        await lockTeacher(database, "");
-        await lockCandidate(database, input.id);
-        const candidate = await readCandidate(database, input.id);
-        if (candidate.enrollmentId)
-          throw badRequest("O lead já foi matriculado. Gerencie o vínculo na turma.");
-        if (
-          input.status === "ARCHIVED" &&
-          (await database.entryVisit.count({
-            where: { candidateId: input.id, status: "SCHEDULED", deletedAt: null },
-          }))
-        )
-          throw badRequest("Conclua ou cancele as aulas de entrada pendentes antes de arquivar.");
-        return database.admissionCandidate.update({
-          where: { id: input.id },
-          data: {
-            status: input.status,
-            ...(input.status === "ARCHIVED" ? { nextAction: null, nextActionOn: null } : {}),
-            recordedById: ctx.staffUser.id,
-          },
-          select: { id: true },
-        });
-      }),
+      activityTransaction(
+        ctx,
+        "admissions.setStatus",
+        async (database) => {
+          await lockTeacher(database, "");
+          await lockCandidate(database, input.id);
+          const candidate = await readCandidate(database, input.id);
+          if (candidate.enrollmentId)
+            throw badRequest("O lead já foi matriculado. Gerencie o vínculo na turma.");
+          if (
+            input.status === "ARCHIVED" &&
+            (await database.entryVisit.count({
+              where: { candidateId: input.id, status: "SCHEDULED", deletedAt: null },
+            }))
+          )
+            throw badRequest("Conclua ou cancele as aulas de entrada pendentes antes de arquivar.");
+          return database.admissionCandidate.update({
+            where: { id: input.id },
+            data: {
+              status: input.status,
+              ...(input.status === "ARCHIVED" ? { nextAction: null, nextActionOn: null } : {}),
+              recordedById: ctx.staffUser.id,
+            },
+            select: { id: true },
+          });
+        },
+        async (_result, database) => ({
+          subject: await leadSubject(database, input.id),
+          description:
+            input.status === "ARCHIVED" ? "Lead arquivado." : "Lead reaberto para acompanhamento.",
+        }),
+      ),
     ),
 });

@@ -1,3 +1,5 @@
+import { recordActivity, activityTransaction } from "../activity/record.js";
+import { classSubject } from "../activity/subjects.js";
 import {
   classArchiveInputSchema,
   classCloneForNextPeriodInputSchema,
@@ -78,6 +80,10 @@ export const classesRouter = router({
         requestedById: ctx.staffUser.id,
         now: ctx.now ?? new Date(),
       });
+      await recordActivity(database, ctx, "classes.create", {
+        subject: await classSubject(database, created.id),
+        deduplicationKey: `classes.create:${created.id}`,
+      });
       return { ...created, generationRequestId: request.id };
     });
     await dispatchSessionGeneration({
@@ -90,7 +96,9 @@ export const classesRouter = router({
   archive: adminProcedure
     .input(classArchiveInputSchema)
     .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => archiveClass({ database, id: input.id })),
+      activityTransaction(ctx, "classes.archive",
+        (database) => archiveClass({ database, id: input.id }),
+        async (_result, database) => ({ subject: await classSubject(database, input.id) })),
     ),
   cloneForNextPeriod: adminProcedure
     .input(classCloneForNextPeriodInputSchema)
@@ -104,6 +112,11 @@ export const classesRouter = router({
           scope: { classId: cloned.successor.id },
           requestedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
+        });
+        await recordActivity(database, ctx, "classes.cloneForNextPeriod", {
+          subject: await classSubject(database, cloned.successor.id),
+          description: `Continuação de ${cloned.source.portalClassName}.`,
+          deduplicationKey: `classes.clone:${cloned.successor.id}`,
         });
         return { ...cloned, generationRequestId: request.id };
       });

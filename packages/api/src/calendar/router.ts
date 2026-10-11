@@ -1,3 +1,4 @@
+import { recordActivity } from "../activity/record.js";
 import {
   addClosedDayInputSchema,
   createSemesterInputSchema,
@@ -32,6 +33,10 @@ export const calendarRouter = router({
           scope: { semesterId: semester.id },
           requestedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
+        });
+        await recordActivity(database, ctx, "calendar.createSemester", {
+          subject: { type: "school", name: semester.name },
+          deduplicationKey: `calendar.createSemester:${semester.id}`,
         });
         return { semester, requestId: request.id };
       });

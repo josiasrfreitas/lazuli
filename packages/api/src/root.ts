@@ -3,6 +3,7 @@ import { classRecordsRouter } from "./class-records/router.js";
 import { planningRouter } from "./stage-planning/router.js";
 import { createCallerFactory, protectedProcedure, publicProcedure, router } from "./trpc/init.js";
 import { assessmentsRouter } from "./assessments/router.js";
+import { activityRouter } from "./activity/router.js";
 import { attendanceRouter } from "./attendance/router.js";
 import { calendarRouter } from "./calendar/router.js";
 import { admissionsRouter } from "./admissions/router.js";
@@ -28,6 +29,7 @@ export const appRouter = router({
   enrollment: enrollmentRouter,
   attendance: attendanceRouter,
   assessments: assessmentsRouter,
+  activity: activityRouter,
   finance: financeRouter,
   reports: reportsRouter,
   dashboard: dashboardRouter,

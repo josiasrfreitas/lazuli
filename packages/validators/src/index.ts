@@ -210,3 +210,4 @@ export {
   type AssessmentConfirm,
 } from "./assessment.js";
 export { leadCaptureSchema, leadNextStepSchema, leadContactSchema } from "./leads.js";
+export { activityListSchema, type ActivityListInput } from "./activity.js";

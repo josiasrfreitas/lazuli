@@ -1,3 +1,5 @@
+import { sessionSubject, makeupSubject } from "../activity/subjects.js";
+import { activityTransaction } from "../activity/record.js";
 import {
   attendanceConfirmSessionInputSchema,
   attendanceEditSessionInputSchema,
@@ -35,46 +37,60 @@ export const attendanceRouter = router({
   confirmSession: staffProcedure
     .input(attendanceConfirmSessionInputSchema)
     .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        confirmSession({
+      activityTransaction(
+        ctx,
+        "attendance.confirmSession",
+        (database) =>
+          confirmSession({
+            database,
+            staffUser: ctx.staffUser,
+            values: input,
+            now: ctx.now ?? new Date(),
+          }),
+        async (_result, database) => ({ subject: await sessionSubject(database, input.sessionId) }),
+      ),
+    ),
+  editSession: staffProcedure.input(attendanceEditSessionInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "attendance.editSession",
+      (database) =>
+        editSession({
           database,
           staffUser: ctx.staffUser,
           values: input,
           now: ctx.now ?? new Date(),
         }),
-      ),
-    ),
-  editSession: staffProcedure.input(attendanceEditSessionInputSchema).mutation(({ ctx, input }) =>
-    ctx.db.$transaction((database) =>
-      editSession({
-        database,
-        staffUser: ctx.staffUser,
-        values: input,
-        now: ctx.now ?? new Date(),
-      }),
+      async (_result, database) => ({ subject: await sessionSubject(database, input.sessionId) }),
     ),
   ),
   // Coordination (logged in as ADMIN) schedules/cancels makeups (S-ATT-3, D-0010).
-  scheduleMakeup: adminProcedure
-    .input(makeupScheduleInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        scheduleMakeup({ database, staffUser: ctx.staffUser, values: input }),
-      ),
+  scheduleMakeup: adminProcedure.input(makeupScheduleInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "attendance.scheduleMakeup",
+      (database) => scheduleMakeup({ database, staffUser: ctx.staffUser, values: input }),
+      async (result, database) => ({
+        subject: await makeupSubject(database, result.makeupId),
+        deduplicationKey: `attendance.scheduleMakeup:${result.makeupId}`,
+      }),
     ),
-  cancelMakeup: adminProcedure
-    .input(makeupCancelInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        cancelMakeup({ database, staffUser: ctx.staffUser, values: input }),
-      ),
+  ),
+  cancelMakeup: adminProcedure.input(makeupCancelInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "attendance.cancelMakeup",
+      (database) => cancelMakeup({ database, staffUser: ctx.staffUser, values: input }),
+      async (_result, database) => ({ subject: await makeupSubject(database, input.makeupId) }),
     ),
+  ),
   // The owning teacher (or ADMIN) records whether the visitor showed up (S-ATT-2).
-  markMakeupOutcome: staffProcedure
-    .input(makeupOutcomeInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        markMakeupOutcome({ database, staffUser: ctx.staffUser, values: input }),
-      ),
+  markMakeupOutcome: staffProcedure.input(makeupOutcomeInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "attendance.markMakeupOutcome",
+      (database) => markMakeupOutcome({ database, staffUser: ctx.staffUser, values: input }),
+      async (_result, database) => ({ subject: await makeupSubject(database, input.makeupId) }),
     ),
+  ),
 });

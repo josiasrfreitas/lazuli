@@ -202,6 +202,7 @@ model User {
   assessmentsCreated StageAssessment[] @relation("AssessmentCreator")
   assessmentsConfirmed StageAssessment[] @relation("AssessmentConfirmer")
   gradesRecorded AssessmentGrade[] @relation("GradeRecorder")
+  activities ActivityEvent[]
 }
 
 model Account {
@@ -1028,7 +1029,6 @@ model ActivityEvent {
   description      String?
   deduplicationKey String?   @unique @map("deduplication_key")
   actor            User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
-
   @@index([occurredAt, id])
   @@index([area, occurredAt])
   @@index([actorId, occurredAt])
