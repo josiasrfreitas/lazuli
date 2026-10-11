@@ -119,7 +119,13 @@ export async function updateIntervention(
 ): Promise<void> {
   const row = await loadIntervention(context, input.id);
   assertTransition(row.status, input.kind);
-  const body = await assignmentNote(context, input, row.teacher.name);
+  if (
+    row.status === "CONCLUDED" &&
+    input.kind === "NOTE" &&
+    (input.nextStep !== undefined || input.dueOn !== undefined)
+  )
+    invalid("Reabra a intervenção antes de mudar o próximo passo ou prazo.");
+  const body = continuityNote(await assignmentNote(context, input, row.teacher.name), input, row);
   const status =
     input.kind === "CONCLUDE"
       ? "CONCLUDED"
@@ -179,4 +185,23 @@ export async function addInterventionOccurrence(
     subject: { type: "student", id: intervention.studentId, name: intervention.student.fullName },
     description: `${intervention.title} · ${occurrence.title}`,
   });
+}
+
+function continuityNote(
+  body: string,
+  input: InterventionUpdate,
+  previous: { nextStep: string; dueOn: Date | null },
+): string {
+  const parts = [body];
+  if (input.nextStep && input.nextStep !== previous.nextStep)
+    parts.push(`Próximo passo: ${previous.nextStep} → ${input.nextStep}`);
+  const priorDate = previous.dueOn?.toISOString().slice(0, 10) ?? null;
+  if (input.dueOn !== undefined && input.dueOn !== priorDate)
+    parts.push(`Prazo: ${deadlineLabel(priorDate)} → ${deadlineLabel(input.dueOn)}`);
+  return parts.join("\n\n");
+}
+function deadlineLabel(date: string | null): string {
+  return date
+    ? new Date(date).toLocaleDateString("pt-BR", { timeZone: "UTC" })
+    : "sem prazo definido";
 }

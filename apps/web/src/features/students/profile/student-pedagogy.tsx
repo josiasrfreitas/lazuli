@@ -6,6 +6,7 @@ import { formatAttendancePercent, formatDateOnlyBR } from "~/lib/format";
 import { useStudentPedagogy, type StudentEnrollment } from "./logic";
 import { ProfileLoading, ProfileError, ProfileMetric } from "./profile-shared";
 import { StudentAcademicProgress } from "~/features/assessments/student-progress";
+import { StudentFollowUp } from "~/features/pedagogical-follow-up/student-follow-up";
 import { EnrollmentHistory } from "./student-history";
 
 export function StudentPedagogySection({ id }: { id: string }): ReactElement {
@@ -47,6 +48,7 @@ export function StudentPedagogySection({ id }: { id: string }): ReactElement {
         />
       )}
       <StudentAcademicProgress studentId={id} />
+      <StudentFollowUp studentId={id} />
       <EnrollmentHistory rows={history} today={query.data.today} />
     </div>
   );

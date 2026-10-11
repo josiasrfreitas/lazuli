@@ -21,6 +21,7 @@ const config = {
   semesterStart: "2074-02-01",
   semesterEnd: "2074-06-30",
 };
+const substituteId = "00000000-0000-0000-0000-000000001792";
 const now = new Date("2074-02-15T21:00:00Z");
 const admin: StaffUser = {
   id: ENROLLMENT_ADMIN_ID,
@@ -47,7 +48,20 @@ async function clean(): Promise<void> {
   await db.pedagogicalIntervention.deleteMany({ where });
   await db.pedagogicalOccurrence.deleteMany({ where });
   await db.activityEvent.deleteMany({ where: { subjectName: { startsWith: config.prefix } } });
-  await db.teacherProfile.deleteMany({ where: { userId: config.teacherId } });
+  await db.classSubstitution.deleteMany({
+    where: { class: { internalCode: { startsWith: config.prefix } } },
+  });
+  await db.classSession.updateMany({
+    where: { class: { internalCode: { startsWith: config.prefix } } },
+    data: { scheduleSlotId: null },
+  });
+  await db.classScheduleSlot.deleteMany({
+    where: { class: { internalCode: { startsWith: config.prefix } } },
+  });
+  await db.teacherProfile.deleteMany({
+    where: { userId: { in: [config.teacherId, substituteId] } },
+  });
+  await db.user.deleteMany({ where: { id: substituteId } });
   await cleanEnrollmentFixtures(config);
 }
 beforeEach(clean);
@@ -255,4 +269,47 @@ void it("rejects cancelled and future sessions and students outside the session 
     message: /não pertencia/,
   });
   assert.equal(await db.pedagogicalOccurrence.count({ where: { studentId: f.ana.id } }), 2);
+});
+
+void it("uses a substitution on the recurring slot to give only its actual teacher the reporting roster", async () => {
+  const f = await fixture();
+  const substitute: StaffUser = {
+    ...teacher,
+    id: substituteId,
+    name: "Substitute 179",
+    email: "substitute179@example.com",
+  };
+  await db.user.create({ data: substitute });
+  const slot = await db.classScheduleSlot.create({
+    data: {
+      classId: f.session.classId,
+      weekday: "WEDNESDAY",
+      startTime: f.session.startTime,
+      endTime: f.session.endTime,
+    },
+  });
+  await db.classSession.update({ where: { id: f.session.id }, data: { scheduleSlotId: slot.id } });
+  await db.classSubstitution.create({
+    data: {
+      classId: f.session.classId,
+      date: f.session.date,
+      scheduleSlotId: slot.id,
+      teacherId: substitute.id,
+      recordedById: admin.id,
+    },
+  });
+  await assert.rejects(caller(teacher).occurrences.roster({ id: f.session.id }), {
+    code: "BAD_REQUEST",
+    message: /Aula indisponível/,
+  });
+  const roster = await caller(substitute).occurrences.roster({ id: f.session.id });
+  assert.deepEqual(roster.map((row) => row.id).sort(), [f.ana.id, f.bruno.id].sort());
+  const report = await caller(substitute).occurrences.create({
+    studentId: f.ana.id,
+    classSessionId: f.session.id,
+    title: "Relato da aula substituída",
+    category: "LEARNING",
+    account: "Conferida a compreensão das instruções com o aluno.",
+  });
+  assert.equal((await caller().occurrences.byId(report)).recordedBy.id, substitute.id);
 });
