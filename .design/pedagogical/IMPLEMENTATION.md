@@ -20,12 +20,13 @@ The user specifically requests a modern, premium UI; Professores is the current 
 ## Consolidated progress
 
 - V1/V2 baseline is on main.
-- V3 entry/allocation: main workflows browser-validated; draft implementation consolidated from 2033bf0. Remaining decomposition and CI findings still need resolution. Browser inspection also found no transfer action despite the existing enrollment API; complete this V1/V3 movement path and modernize the return date field before final review.
+- V3 entry/allocation: main workflows browser-validated; draft implementation consolidated from 2033bf0. Remaining decomposition and CI findings still need resolution. The native return date field needs alignment with the shared masked-date form standard. Correction to the earlier checkpoint: issue #157 explicitly excludes transfers from V1; the absent UI is not an unfinished V1 acceptance criterion. The older transfer API is not authorization to expose an additional movement workflow.
 - Student profile: pedagogical/financial data, payment flow, contact/guardian, list/roster navigation and responsive light/dark UI implemented and browser-validated. Consolidated from aluno-perfil through c215183.
 - Turmas (#170): visual refinement implemented using Professores as reference; class information, teacher, schedule, roster and enrollment actions retained. Responsive light/dark evidence is in `turmas-ui/VALIDATION.md`.
 - V7 academic assessment (#175): two blocks and competency-specific recovery, pedagogical confirmation, justified corrections, student progression and class comparison implemented. Browser evidence includes the confirmed-grade correction flow; the complete seed supplies incomplete, sufficient, below-threshold and recovery cases. Student/class chart evidence is recorded in `assessments/VALIDATION.md`. Local automated checks remain deferred.
 - V10 occurrences/interventions (#179): related reports, teacher responsibility, attributed follow-up, conclusion/reopening, student context and activity log implemented. Browser validation covers admin/teacher permissions and desktop/mobile; see `occurrences/VALIDATION.md`. Commits `530e1af`, `5e27995` and `dbf6293`.
-- V9 manual stage planning (#180): shared regular plans, individual PPT plans, immutable versions, attributed revisions and continuity through same-stage pause/return implemented and browser-validated; see `stage-planning/VALIDATION.md`. V4, V5, V6 and V8 remain pending. V4 lesson recording is next. This checkpoint does not mark the pedagogical epic complete or treat the open hypotheses in the module brief as implemented behavior.
+- V9 manual stage planning (#180): shared regular plans, individual PPT plans, immutable versions, attributed revisions and continuity through same-stage pause/return implemented and browser-validated; see `stage-planning/VALIDATION.md`. V5, V6 and V8 remain pending. This checkpoint does not mark the pedagogical epic complete or treat the open hypotheses in the module brief as implemented behavior.
+- V4 class records (#181): weekly agenda, regular/shared and PPT/individual actual content, manual attendance, explicit closure, attributed corrections and immutable history implemented. Browser validation covers required fields, prior-call preservation, presence/content correction, no-present/cancelled/future encounters, teacher/substitute reads and scope, Log, desktop/mobile and dark mode; see `class-records/VALIDATION.md`. Current-day teacher writing, concurrent V4 submissions and later-plan edits remain covered by authored tests awaiting CI, not browser execution.
 
 ## Additional direction
 
@@ -51,9 +52,7 @@ Recent integrated commits:
 The official full seed was applied to the isolated workspace database and bucket on 11/10/2026:
 250 students, 22 classes, 7 teachers and 220 annual contracts. October's 10 agreements produce
 R$ 28,200 nominal projected tuition and R$ 2,350 equivalent monthly amount. Those are synthetic
-commercial values, not cash receipts. The V9 official rebuild removed earlier manual lead/V10 validation records. Its baseline adds 61
-stage plans and 74 snapshots. Subsequent V9 browser QA added REG 07:00, revised Arthur Menezes
-Campos’s plan and paused/returned his enrollment; these remain disposable validation data.
+commercial values, not cash receipts. The latest V4 official rebuild removed earlier manual lead/V10/V9 validation records, including REG 07:00 and Arthur’s manual pause/return. Its baseline has 61 stage plans and 74 snapshots, plus 87 completed class records and 89 class-record revisions. V4 browser QA subsequently completed two earlier encounters and corrected attendance/content; the observed flows and disposable data are documented in `class-records/VALIDATION.md`.
 
 Preview: http://operacao-pedagogica.lazuli.localhost (port 3004). One web server remains active.
 The original checkout's unrelated edits are untouched. Work remains in the integrated branch;
