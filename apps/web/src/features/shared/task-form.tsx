@@ -30,12 +30,22 @@ export function useValidation() {
       return parsed.data;
     }
     setErrors(
-      Object.fromEntries(parsed.error.issues.map((issue) => [issue.path[0], issue.message])),
+      Object.fromEntries(
+        parsed.error.issues.flatMap((issue) => [
+          [issue.path[0], issue.message],
+          [issue.path.join("."), issue.message],
+        ]),
+      ),
     );
     setRevision((value) => value + 1);
     return null;
   }
-  const clear = (name: string): void => setErrors((value) => ({ ...value, [name]: "" }));
+  const clear = (name: string): void =>
+    setErrors((value) =>
+      Object.fromEntries(
+        Object.entries(value).filter(([key]) => key !== name && !key.startsWith(`${name}.`)),
+      ),
+    );
   return { errors, body, validate, clear };
 }
 export function NarrativeField({
@@ -102,7 +112,12 @@ export function TaskDialog({
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent initialFocus={() => document.getElementById(firstField)}>
+        <DialogContent
+          initialFocus={() =>
+            document.getElementById(firstField) ??
+            document.querySelector<HTMLElement>(`[name="${CSS.escape(firstField)}"]`)
+          }
+        >
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>{description}</DialogDescription>

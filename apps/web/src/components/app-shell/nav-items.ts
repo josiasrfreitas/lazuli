@@ -76,6 +76,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
         roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
       },
       {
+        href: "/atendimentos",
+        label: "Atendimentos",
+        icon: CalendarRange,
+        roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+      },
+      {
         href: "/acompanhamento",
         label: "Acompanhamento",
         icon: MessagesSquare,

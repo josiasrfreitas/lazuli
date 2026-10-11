@@ -3,6 +3,10 @@ import { type MeetingGroup, dayGroups, visibleWeekSlots } from "./week-layout";
 import type { ReactElement } from "react";
 import { cn } from "@lazuli/ui";
 import { IntroductionBlock, type Introduction } from "./teacher-introductions";
+import {
+  TeacherAppointmentBlock,
+  type TeacherAppointment,
+} from "~/features/appointments/teacher-block";
 import { MeetingBlock } from "./meeting-block";
 import type { Meeting } from "./meeting-dialog";
 import { dateLabel, shiftDay } from "./format";
@@ -13,6 +17,7 @@ const DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domi
 export function WeekGrid({
   rows,
   introductions = [],
+  appointments = [],
   week,
   teacherId,
   today,
@@ -22,9 +27,10 @@ export function WeekGrid({
     name,
     date: shiftDay(week, index),
     groups: dayGroups(rows.filter((row) => row.date === shiftDay(week, index))),
+    appointments: appointments.filter((row) => row.date === shiftDay(week, index)),
     introductions: introductions.filter((row) => row.date === shiftDay(week, index)),
   }));
-  const slots = visibleWeekSlots([...rows, ...introductions]);
+  const slots = visibleWeekSlots([...rows, ...introductions, ...appointments]);
   return (
     <>
       <div className="hidden overflow-hidden rounded-md border border-border bg-card xl:block">
@@ -61,12 +67,14 @@ type WeekDayData = {
   date: string;
   groups: MeetingGroup[];
   introductions: Introduction[];
+  appointments: TeacherAppointment[];
 };
 
 type WeekCellProps = {
   day: WeekDayData;
   meetings: Meeting[];
   introductions: Introduction[];
+  appointments: TeacherAppointment[];
   teacherId: string;
   onOpen: (meeting: Meeting) => void;
 };
@@ -76,11 +84,19 @@ function WeekCell(props: WeekCellProps): ReactElement {
       key={props.day.date}
       className={cn(
         "relative h-9 border-t border-l border-border-subtle p-0 align-top",
-        props.meetings.length === 0 && props.introductions.length === 0 && "bg-muted/20",
+        props.meetings.length === 0 &&
+          props.introductions.length === 0 &&
+          props.appointments.length === 0 &&
+          "bg-muted/20",
       )}
     >
-      {(props.meetings.length > 0 || props.introductions.length > 0) && (
+      {(props.meetings.length > 0 ||
+        props.introductions.length > 0 ||
+        props.appointments.length > 0) && (
         <div className="absolute inset-0 flex flex-col">
+          {props.appointments.map((row) => (
+            <TeacherAppointmentBlock key={row.id} row={row} compact />
+          ))}
           {props.introductions.map((row) => (
             <IntroductionBlock key={row.id} row={row} compact />
           ))}
@@ -163,6 +179,9 @@ function WeekHour(props: WeekHourProps): ReactElement {
             key={day.date}
             day={day}
             meetings={meetings}
+            appointments={day.appointments.filter(
+              (row) => row.startTime < props.end && row.endTime > props.time,
+            )}
             introductions={day.introductions.filter(
               (row) => row.startTime < props.end && row.endTime > props.time,
             )}
@@ -202,8 +221,13 @@ function WeekDay(props: WeekDayProps): ReactElement {
           {dateLabel(props.day.date).slice(0, DATE_MONTH_OFFSET)}
         </span>
       </h3>
-      {props.day.groups.length > 0 || props.day.introductions.length > 0 ? (
+      {props.day.groups.length > 0 ||
+      props.day.introductions.length > 0 ||
+      props.day.appointments.length > 0 ? (
         <div className="grid gap-2 lg:grid-cols-2">
+          {props.day.appointments.map((row) => (
+            <TeacherAppointmentBlock key={row.id} row={row} />
+          ))}
           {props.day.introductions.map((row) => (
             <IntroductionBlock key={row.id} row={row} />
           ))}
@@ -228,6 +252,7 @@ function WeekDay(props: WeekDayProps): ReactElement {
 type WeekGridInput = {
   rows: Meeting[];
   introductions?: Introduction[];
+  appointments?: TeacherAppointment[];
   week: string;
   teacherId: string;
   today: string;

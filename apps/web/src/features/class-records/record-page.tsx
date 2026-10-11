@@ -7,6 +7,7 @@ import { trpc } from "~/lib/trpc";
 import { ClassRecordEditor } from "./editor";
 import { ClassRecordHistory } from "./history";
 import { StudentAttendanceSection } from "~/features/student-attendance/staff-section";
+import { AppointmentBadge, purposes } from "~/features/appointments/shared";
 import { dateLabel, RecordState, SnapshotView, PlannedReference, type ClassRecord } from "./shared";
 export function ClassRecordPage({ id }: { id: string }): ReactElement {
   const query = trpc.classRecords.detail.useQuery(
@@ -99,6 +100,29 @@ function RecordContent({ data }: { data: ClassRecord }): ReactElement {
         failed={declarations.isError}
         refresh={() => void declarations.refetch()}
       />
+      {data.guests.length > 0 && (
+        <section className="grid gap-3 rounded-md border border-border bg-card p-4">
+          <h2 className="text-sm font-semibold">Alunos convidados · {data.guests.length}</h2>
+          <p className="text-caption text-muted-foreground">
+            O comparecimento destes alunos é registrado no atendimento vinculado.
+          </p>
+          {data.guests.map((guest) => (
+            <Link
+              key={guest.id}
+              href={`/atendimentos/${guest.id}`}
+              className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3"
+            >
+              <div>
+                <span className="text-sm font-medium text-interactive">
+                  {guest.student.fullName}
+                </span>
+                <p className="text-caption text-muted-foreground">{purposes[guest.purpose]}</p>
+              </div>
+              <AppointmentBadge status={guest.status} />
+            </Link>
+          ))}
+        </section>
+      )}
       {editorOpen ? (
         <ClassRecordEditor
           data={data}
