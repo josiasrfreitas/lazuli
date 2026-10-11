@@ -89,7 +89,7 @@ void describe("student pedagogical profile", () => {
     assert.equal(profile.today, "2080-03-01");
     assert.deepEqual(
       profile.enrollments.map((row) => row.id),
-      [entries[2]!.id, entries[1]!.id, entries[0]!.id],
+      [entries[2].id, entries[1].id, entries[0].id],
     );
     assert.deepEqual(
       profile.enrollments.map((row) => row.current),

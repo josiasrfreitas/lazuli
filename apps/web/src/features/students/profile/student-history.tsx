@@ -35,15 +35,7 @@ function historyColumns(today: string): DataTableColumn<StudentEnrollment>[] {
       id: "status",
       header: "Situação",
       width: "standard",
-      cell: (row) => (
-        <Badge variant="neutral">
-          {row.entryDate > today
-            ? "Agendada"
-            : row.exitReason
-              ? EXIT_LABELS[row.exitReason]
-              : "Encerrada"}
-        </Badge>
-      ),
+      cell: (row) => <Badge variant="neutral">{historyStatus(row, today)}</Badge>,
     },
     {
       id: "attendance",
@@ -67,7 +59,7 @@ export function EnrollmentHistory({
       <DataTable
         label="Histórico de matrículas do aluno"
         columns={historyColumns(today)}
-        state={rows.length ? { kind: "data", rows } : { kind: "empty" }}
+        state={rows.length > 0 ? { kind: "data", rows } : { kind: "empty" }}
         onRetry={() => undefined}
         empty={{
           title: "Sem outras matrículas",
@@ -91,4 +83,9 @@ function HistoryClass({ row }: { row: StudentEnrollment }): ReactElement {
       <span className="text-caption text-muted-foreground">{row.class.semester}</span>
     </div>
   );
+}
+
+function historyStatus(row: StudentEnrollment, today: string): string {
+  if (row.entryDate > today) return "Agendada";
+  return row.exitReason ? EXIT_LABELS[row.exitReason] : "Encerrada";
 }

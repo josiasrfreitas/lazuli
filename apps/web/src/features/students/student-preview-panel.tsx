@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 
 import type { StudentListRow } from "@lazuli/validators";
@@ -89,11 +90,18 @@ function StudentFacts({ row }: { row: StudentListRow }): ReactElement {
 }
 
 function PanelActions({ row }: { row: StudentListRow }): ReactElement {
+  const params = new URLSearchParams(useSearchParams().toString());
+  params.delete("aluno");
+  const back = `/alunos?${params.toString()}`;
   const whatsApp = whatsAppVm(row);
 
   return (
     <SheetFooter className="mt-auto flex-row">
-      <Button nativeButton={false} variant="secondary" render={<Link href={`/alunos/${row.id}`} />}>
+      <Button
+        nativeButton={false}
+        variant="secondary"
+        render={<Link href={`/alunos/${row.id}?voltar=${encodeURIComponent(back)}`} />}
+      >
         Abrir perfil
       </Button>
       {whatsApp === null ? null : (
