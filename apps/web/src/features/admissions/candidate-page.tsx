@@ -31,7 +31,7 @@ import { dateLabel, dateOnly, dayLabel, statusLabels, timeLabel, type Candidate 
 
 export function CandidatePage({ id }: { id: string }): ReactElement {
   const query = trpc.admissions.byId.useQuery({ id }, { retry: false });
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState<"profile" | "availability" | null>(null);
   const [scheduling, setScheduling] = useState(false);
   const utils = trpc.useUtils();
   const status = trpc.admissions.setStatus.useMutation({
@@ -87,7 +87,7 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
               size="icon-compact-responsive"
               variant="ghost"
               aria-label="Editar interessado"
-              onClick={() => setEditing(true)}
+              onClick={() => setEditing("profile")}
             >
               <Pencil />
             </Button>
@@ -167,7 +167,7 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
             {expired && candidate.status === "WAITING" && (
               <Alert variant="warning">
                 <p>Confirme novamente os horários para continuar a alocação.</p>
-                <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                <Button variant="secondary" size="sm" onClick={() => setEditing("availability")}>
                   Renovar disponibilidade
                 </Button>
               </Alert>
@@ -184,7 +184,7 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
         </aside>
         <div className="grid min-w-0 gap-6">
           {candidate.status === "WAITING" && (
-            <CandidateAllocation candidate={candidate} onEdit={() => setEditing(true)} />
+            <CandidateAllocation candidate={candidate} onEdit={() => setEditing("availability")} />
           )}
           <section className="grid gap-4 rounded-lg border border-border bg-card p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -210,7 +210,13 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
           </section>
         </div>
       </div>
-      {editing && <CandidateDialog candidate={candidate} onClose={() => setEditing(false)} />}
+      {editing && (
+        <CandidateDialog
+          candidate={candidate}
+          startAtAvailability={editing === "availability"}
+          onClose={() => setEditing(null)}
+        />
+      )}
       {scheduling && <VisitDialog candidate={candidate} onClose={() => setScheduling(false)} />}
     </div>
   );
