@@ -126,3 +126,4 @@ export {
   type AttendanceNameCandidate,
   type AttendancePoint,
 } from "./student-attendance.js";
+export * from "./compensated-attendance.js";
