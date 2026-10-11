@@ -7,7 +7,7 @@ const baseColumns: DataTableColumn<CandidateRow>[] = [
     header: "Lead",
     width: "wide",
     cell: (row) => (
-      <div className="grid gap-1">
+      <div className="grid gap-0.5">
         <Link
           className="font-medium underline-offset-4 hover:underline"
           href={`/interessados/${row.id}`}
@@ -23,7 +23,7 @@ const baseColumns: DataTableColumn<CandidateRow>[] = [
     header: "Interesse",
     width: "standard",
     cell: (row) => (
-      <div className="grid gap-1">
+      <div className="grid gap-0.5">
         <span>{row.scheduleType === "REGULAR" ? "Regular" : "Personalizado"}</span>
         <span className="text-caption text-muted-foreground">
           {row.format === "IN_PERSON" ? "Presencial" : "Online"}

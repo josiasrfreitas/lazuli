@@ -58,7 +58,7 @@ function TableScrollArea({ children }: { children: ReactNode }): ReactElement {
 /** Row height and horizontal cell padding, per density. */
 export const tableCellSpacing: Record<TableDensity, string> = {
   compact: "h-10 px-3",
-  default: "h-12 px-5",
+  default: "h-12.5 px-5 py-1.5",
 };
 
 export function useTableDensity(): TableDensity {
