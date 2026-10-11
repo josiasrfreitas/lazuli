@@ -12,6 +12,7 @@ import {
 
 const STUDENTS_PATH = "/alunos";
 const TEACHERS_PATH = "/professores";
+const LEADS_PATH = "/interessados";
 const CLASSES_PATH = "/turmas";
 const LESSONS_PATH = "/aulas";
 const PLANNING_PATH = "/planejamento";
@@ -41,6 +42,7 @@ void describe("role-aware navigation", () => {
         CLASSES_PATH,
         LESSONS_PATH,
         PLANNING_PATH,
+        LEADS_PATH,
         ANALYTICS_PATH,
         CONTRACTS_PATH,
         RECEIVABLES_PATH,
@@ -59,6 +61,7 @@ void describe("role-aware navigation", () => {
         label: PEDAGOGICAL_LABEL,
         items: [STUDENTS_LABEL, "Professores", "Turmas", "Aulas", "Planejamento"],
       },
+      { label: "Comercial", items: ["Leads"] },
       { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
     ]);
     assert.deepEqual(
@@ -138,6 +141,7 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       CLASSES_PATH,
       LESSONS_PATH,
       PLANNING_PATH,
+      LEADS_PATH,
       ANALYTICS_PATH,
       CONTRACTS_PATH,
       RECEIVABLES_PATH,

@@ -139,7 +139,7 @@ async function cancelPrevious({ database, values, recordedById }: ScheduleInput)
       where: { id: values.previousVisitId },
     });
     if (!previous || previous.candidateId !== values.candidateId || previous.status !== "SCHEDULED")
-      throw badRequest("Somente um agendamento pendente deste interessado pode ser remarcado.");
+      throw badRequest("Somente um agendamento pendente deste lead pode ser remarcado.");
     await database.entryVisit.update({
       where: { id: previous.id },
       data: {
@@ -193,7 +193,7 @@ async function assertVisitAllowed(
       }),
     )
   )
-    throw badRequest("Este interessado já possui outro encontro neste horário.");
+    throw badRequest("Este lead já possui outro encontro neste horário.");
 }
 export async function recordVisitOutcome(input: {
   database: Prisma.TransactionClient;

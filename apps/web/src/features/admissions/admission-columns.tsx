@@ -4,7 +4,7 @@ import { dateLabel, dateOnly, statusLabels, type CandidateRow } from "./labels";
 const baseColumns: DataTableColumn<CandidateRow>[] = [
   {
     id: "name",
-    header: "Interessado",
+    header: "Lead",
     width: "wide",
     cell: (row) => (
       <div className="grid gap-1">

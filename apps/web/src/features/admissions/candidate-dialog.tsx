@@ -132,7 +132,7 @@ export function CandidateDialog({
         <DialogBackdrop />
         <DialogContent initialFocus={first}>
           <DialogHeader>
-            <DialogTitle>{candidate ? "Editar interesse" : "Novo interessado"}</DialogTitle>
+            <DialogTitle>{candidate ? "Editar lead" : "Novo lead"}</DialogTitle>
             <DialogDescription>
               {step === 0 ? "1 de 2 · Pessoa e interesse" : "2 de 2 · Horários e nivelamento"}
             </DialogDescription>
@@ -150,7 +150,7 @@ export function CandidateDialog({
                         ref={first}
                         size="sm"
                         autoComplete="off"
-                        placeholder="Nome do interessado"
+                        placeholder="Nome do lead"
                         value={draft.fullName}
                         invalid={Boolean(errors.fullName)}
                         onChange={(event) => change("fullName", event.target.value)}
@@ -317,7 +317,7 @@ export function CandidateDialog({
                   ? "Continuar"
                   : candidate
                     ? "Salvar alterações"
-                    : "Cadastrar interessado"}
+                    : "Cadastrar lead"}
             </Button>
           </DialogFooter>
         </DialogContent>

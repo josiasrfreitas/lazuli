@@ -147,3 +147,18 @@ A prospective student's participation in a scheduled meeting of an existing clas
 **Introductory Session**:
 A separately scheduled meeting between a prospective student and a teacher to introduce the
 personalized course and its materials and operation.
+
+## Lead terms
+
+**Lead**:
+An enrollment opportunity for a prospective learner or an existing student seeking a new placement.
+The person contacted may be the learner or someone acting on their behalf.
+_Avoid_: Student (as a synonym), interested person, candidate (in product language)
+
+**Lead Contact**:
+The person with whom the school discusses an enrollment opportunity, such as the learner or a parent.
+A lead contact is not automatically the student's legal guardian or payer.
+
+**Next Step**:
+The next agreed action for an open lead, with a due date and an owner when assigned.
+A scheduled introductory or trial class remains a separate appointment with its own outcome.

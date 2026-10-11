@@ -101,6 +101,6 @@ async function enrollmentChoice(
     candidate.studentId &&
     (values.student.mode !== "existing" || values.student.id !== candidate.studentId)
   )
-    throw badRequest("Use o aluno já vinculado a este interessado.");
+    throw badRequest("Use o aluno já vinculado a este lead.");
   return choice;
 }
