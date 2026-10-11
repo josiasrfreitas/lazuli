@@ -11,7 +11,7 @@ export const AXIS_STYLE = { fill: "var(--muted-foreground)", fontSize: 12 };
 export const TOOLTIP_STYLE = {
   background: "var(--popover)",
   border: "1px solid var(--border)",
-  borderRadius: 12,
+  borderRadius: "var(--radius-lg)",
   color: "var(--foreground)",
   fontFamily: "var(--font-numeric)",
 };
