@@ -1,167 +1,24 @@
-import Link from "next/link";
 import type { ReactElement } from "react";
-import { Cake, MoreHorizontal, Phone, UsersRound } from "lucide-react";
+import Link from "next/link";
+import { MessageCircle } from "lucide-react";
 import {
   Avatar,
   Badge,
   Button,
-  EmptyState,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  PopoverClose,
-  PopoverTitle,
-  Pagination,
-  cn,
+  DataTable,
+  type DataTableColumn,
+  type DataTableState,
+  type TablePaginationConfig,
 } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { toWhatsAppUrl } from "~/lib/format";
 import { rosterStatus, type RosterRow } from "./roster-status";
 import { studentAgeLabel } from "./student-age";
 import { formatTrackName } from "./labels";
+import { StudentActions } from "./roster-actions";
 
 type List = RouterOutputs["classes"]["roster"];
-const tones = {
-  Vigente: "success",
-  Programada: "info",
-  Pausada: "warning",
-  Encerrada: "neutral",
-  "Aguardando execução": "warning",
-} as const;
-export function RosterStudent({
-  row,
-  today,
-  close,
-  resume,
-  showStage = true,
-}: {
-  row: RosterRow;
-  today: string;
-  close: (row: RosterRow) => void;
-  resume?: ((row: RosterRow) => void) | undefined;
-  showStage?: boolean;
-}): ReactElement {
-  const status = rosterStatus(row, today) as keyof typeof tones;
-  return (
-    <li
-      className={cn(
-        "flex min-w-0 flex-col gap-4 rounded-xl border border-border/60 bg-card p-4",
-        !showStage && "gap-2 py-3",
-      )}
-    >
-      <StudentIdentity row={row} />
-      {showStage && <StudentLearningContext row={row} />}
-      {status !== "Vigente" && (
-        <div>
-          <Badge variant={tones[status]}>{status}</Badge>
-        </div>
-      )}
-      <div className="mt-auto flex items-center justify-between gap-2">
-        <StudentContact row={row} today={today} />
-        <StudentActions
-          row={row}
-          close={close}
-          resume={status === "Pausada" && row.returnActions.length === 0 ? resume : undefined}
-          canClose={status === "Vigente"}
-        />
-      </div>
-    </li>
-  );
-}
-
-function StudentIdentity({ row }: { row: RosterRow }): ReactElement {
-  return (
-    <div className="flex items-start gap-3">
-      <Avatar name={row.student.fullName} colorKey={row.studentId} />
-      <div className="min-w-0 flex-1">
-        <h3
-          className="truncate text-body font-medium"
-          title={row.student.fullName}
-          aria-label={row.student.fullName}
-        >
-          <Link className="hover:underline" href={`/alunos/${row.studentId}`}>
-            {row.student.fullName}
-          </Link>
-        </h3>
-      </div>
-    </div>
-  );
-}
-
-function StudentContact({ row, today }: { row: RosterRow; today: string }): ReactElement {
-  const whatsAppUrl = toWhatsAppUrl(row.student.phone);
-  return (
-    <div className="min-w-0 space-y-1 text-caption text-muted-foreground">
-      <p className="flex items-center gap-2">
-        <Cake aria-hidden="true" className="size-3.5 shrink-0" />
-        <span>{studentAgeLabel(row.student.birthDate, today)}</span>
-      </p>
-      <p className="flex min-w-0 items-center gap-2">
-        <Phone aria-hidden="true" className="size-3.5 shrink-0" />
-        {whatsAppUrl ? (
-          <a
-            href={whatsAppUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Abrir WhatsApp de ${row.student.fullName}`}
-            className="break-words rounded-sm font-numeric tabular-nums text-interactive underline-offset-4 hover:text-interactive-hover hover:underline focus-visible:outline-none focus-visible:shadow-focus"
-          >
-            {row.student.phone}
-          </a>
-        ) : (
-          <span>Sem telefone</span>
-        )}
-      </p>
-    </div>
-  );
-}
-
-function StudentLearningContext({ row }: { row: RosterRow }): ReactElement {
-  const stage = row.progressRecords[0]?.stage;
-  return (
-    <dl className="space-y-1 text-caption">
-      <div className="flex flex-wrap gap-x-1.5">
-        <dt className="text-muted-foreground">Trilha</dt>
-        <dd className="min-w-0 break-words">
-          {stage ? formatTrackName(stage.track.name) : "Não informada"}
-        </dd>
-      </div>
-      <div className="flex flex-wrap gap-x-1.5">
-        <dt className="text-muted-foreground">Estágio</dt>
-        <dd className="min-w-0 break-words">{stage?.name ?? "Não informado"}</dd>
-      </div>
-    </dl>
-  );
-}
-
-function StudentMembershipDates({ row }: { row: RosterRow }): ReactElement {
-  return (
-    <>
-      {row.exitDate && (
-        <p className="mt-1 text-caption text-muted-foreground">
-          Saída em {row.exitDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-        </p>
-      )}
-      {row.actions[0] && (
-        <p className="mt-1 text-caption text-muted-foreground">
-          {row.actions[0].kind === "PAUSE" ? "Pausa" : "Saída"} em{" "}
-          {row.actions[0].effectiveDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-        </p>
-      )}
-    </>
-  );
-}
-
-export function RosterList({
-  data,
-  failed,
-  refetch,
-  page,
-  setPage,
-  close,
-  showStage,
-  resume,
-}: {
+type Props = {
   data: List | undefined;
   failed: boolean;
   refetch: () => void;
@@ -170,170 +27,168 @@ export function RosterList({
   close: (row: RosterRow) => void;
   resume?: ((row: RosterRow) => void) | undefined;
   showStage: boolean;
-}): ReactElement {
-  if (failed) return <RosterError refetch={refetch} />;
-  if (!data)
-    return (
-      <p role="status" className="p-5 text-muted-foreground">
-        Carregando alunos…
-      </p>
-    );
+  filtered?: boolean;
+};
+const PAGE_SIZE = 20;
+const TONES = {
+  Vigente: "success",
+  Programada: "info",
+  Pausada: "warning",
+  Encerrada: "neutral",
+  "Aguardando execução": "warning",
+} as const;
+export function RosterList(props: Props): ReactElement {
   return (
-    <div className="relative flex min-h-0 max-h-128 flex-col lg:max-h-none lg:flex-1">
-      {data.rows.length === 0 ? (
-        <EmptyState
-          icon={<UsersRound />}
-          title="Nenhum vínculo encontrado"
-          description="Ajuste a busca ou matricule um aluno."
-        />
-      ) : (
-        <div
-          role="region"
-          aria-label="Lista de alunos"
-          tabIndex={0}
-          className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-xl focus-visible:outline-none focus-visible:shadow-focus"
-        >
-          <RosterCards data={data} close={close} resume={resume} showStage={showStage} />
-        </div>
-      )}
-      <RosterPagination data={data} page={page} setPage={setPage} />
-    </div>
-  );
-}
-
-function RosterCards({
-  data,
-  close,
-  resume,
-  showStage,
-}: {
-  data: List;
-  close: (row: RosterRow) => void;
-  resume?: ((row: RosterRow) => void) | undefined;
-  showStage: boolean;
-}): ReactElement {
-  return (
-    <ul
-      aria-label="Alunos da turma"
-      className="grid content-start gap-3 @lg:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4 @7xl:grid-cols-5"
-    >
-      {data.rows.map((row) => (
-        <RosterStudent
-          key={row.id}
-          row={row}
-          today={data.today}
-          close={close}
-          resume={resume}
-          showStage={showStage}
-        />
-      ))}
-    </ul>
-  );
-}
-
-function StudentActions({
-  row,
-  close,
-  canClose,
-  resume,
-}: {
-  row: RosterRow;
-  close: (row: RosterRow) => void;
-  resume?: ((row: RosterRow) => void) | undefined;
-  canClose: boolean;
-}): ReactElement {
-  return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            aria-label={`Detalhes de ${row.student.fullName}`}
-          />
-        }
-      >
-        <MoreHorizontal aria-hidden="true" />
-      </PopoverTrigger>
-      <PopoverContent align="end">
-        <PopoverTitle>{row.student.fullName}</PopoverTitle>
-        <p className="mt-2 text-caption text-muted-foreground">
-          Entrada em {row.entryDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-        </p>
-        <StudentMembershipDates row={row} />
-        <StudentActionButtons row={row} close={close} resume={resume} canClose={canClose} />
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function StudentActionButtons({
-  row,
-  close,
-  resume,
-  canClose,
-}: {
-  row: RosterRow;
-  close: (row: RosterRow) => void;
-  resume?: ((row: RosterRow) => void) | undefined;
-  canClose: boolean;
-}): ReactElement {
-  return (
-    <>
-      {resume && (
-        <div className="mt-3">
-          <PopoverClose
-            render={<Button size="sm" variant="secondary" onClick={() => resume(row)} />}
-          >
-            Retomar matrícula
-          </PopoverClose>
-        </div>
-      )}
-      {canClose && (
-        <div className="mt-3">
-          <PopoverClose
-            render={<Button size="sm" variant="secondary" onClick={() => close(row)} />}
-          >
-            Pausar ou encerrar vínculo
-          </PopoverClose>
-        </div>
-      )}
-    </>
-  );
-}
-
-function RosterPagination({
-  data,
-  page,
-  setPage,
-}: {
-  data: List;
-  page: number;
-  setPage: (page: number) => void;
-}): ReactElement | null {
-  if (data.pageCount <= 1) return null;
-  return (
-    <div className="absolute bottom-2 right-3 z-10 w-fit rounded-full bg-background/85 px-2 py-1 shadow-sm ring-1 ring-border/60 backdrop-blur-sm">
-      <Pagination
-        label="Páginas de alunos"
-        page={page}
-        pageCount={data.pageCount}
-        onPageChange={setPage}
-      />
-    </div>
-  );
-}
-
-function RosterError({ refetch }: { refetch: () => void }): ReactElement {
-  return (
-    <EmptyState
-      role="alert"
-      title="Não foi possível carregar os alunos"
-      action={
-        <Button size="sm" variant="secondary" onClick={refetch}>
-          Tentar novamente
-        </Button>
-      }
+    <DataTable
+      label="Alunos da turma"
+      columns={rosterColumns(props)}
+      state={rosterState(props)}
+      onRetry={props.refetch}
+      errorTitle="Não foi possível carregar os alunos"
+      empty={{
+        title: "Nenhum vínculo encontrado",
+        description: "Matricule um aluno para começar esta turma.",
+      }}
+      pagination={rosterPagination(props)}
     />
+  );
+}
+function rosterState(props: Props): DataTableState<RosterRow> {
+  if (props.failed) return { kind: "error" };
+  if (!props.data) return { kind: "loading" };
+  if (props.data.rows.length === 0) return { kind: props.filtered ? "noResults" : "empty" };
+  return { kind: "data", rows: props.data.rows };
+}
+function rosterPagination(props: Props): TablePaginationConfig {
+  const base = {
+    page: props.page,
+    pageSize: PAGE_SIZE,
+    onPageChange: props.setPage,
+    itemLabel: { singular: "aluno", plural: "alunos" },
+  };
+  return props.data
+    ? { ...base, pageCount: props.data.pageCount, totalItems: props.data.total }
+    : { ...base, loading: true };
+}
+function rosterColumns(props: Props): DataTableColumn<RosterRow>[] {
+  const today = props.data?.today ?? "";
+  const columns: DataTableColumn<RosterRow>[] = [
+    {
+      id: "student",
+      header: "Aluno",
+      width: "wide",
+      cell: (row) => <StudentIdentity row={row} today={today} />,
+    },
+    {
+      id: "contact",
+      header: "Contato",
+      width: "medium",
+      cell: (row) => <StudentContact row={row} />,
+    },
+  ];
+  if (props.showStage)
+    columns.push({
+      id: "stage",
+      header: "Estágio / trilha",
+      width: "medium",
+      cell: (row) => <StudentLearningContext row={row} />,
+    });
+  return [
+    ...columns,
+    {
+      id: "membership",
+      header: "Vínculo",
+      width: "medium",
+      cell: (row) => <StudentMembership row={row} today={today} />,
+    },
+    {
+      id: "actions",
+      header: <span className="sr-only">Ações</span>,
+      width: "selection",
+      cell: (row) => (
+        <StudentActions
+          row={row}
+          close={props.close}
+          canClose={rosterStatus(row, today) === "Vigente"}
+          resume={
+            rosterStatus(row, today) === "Pausada" && row.returnActions.length === 0
+              ? props.resume
+              : undefined
+          }
+        />
+      ),
+    },
+  ];
+}
+function StudentIdentity({ row, today }: { row: RosterRow; today: string }): ReactElement {
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <Avatar name={row.student.fullName} colorKey={row.studentId} size="sm" />
+      <div className="grid min-w-0 gap-1">
+        <Link
+          className="font-medium text-interactive hover:underline"
+          href={`/alunos/${row.studentId}`}
+        >
+          {row.student.fullName}
+        </Link>
+        <span className="text-caption text-muted-foreground">
+          {studentAgeLabel(row.student.birthDate, today)}
+        </span>
+      </div>
+    </div>
+  );
+}
+function StudentContact({ row }: { row: RosterRow }): ReactElement {
+  const whatsapp = toWhatsAppUrl(row.student.phone);
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="font-numeric text-caption tabular-nums">
+        {row.student.phone ?? "Sem telefone"}
+      </span>
+      {whatsapp && (
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          nativeButton={false}
+          render={
+            <a
+              href={whatsapp}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Abrir WhatsApp de ${row.student.fullName}`}
+            />
+          }
+        >
+          <MessageCircle aria-hidden="true" />
+        </Button>
+      )}
+    </div>
+  );
+}
+function StudentLearningContext({ row }: { row: RosterRow }): ReactElement {
+  const stage = row.progressRecords[0]?.stage;
+  return (
+    <div className="grid gap-1">
+      <span>{stage?.name ?? "Estágio não informado"}</span>
+      <span className="text-caption text-muted-foreground">
+        {stage ? formatTrackName(stage.track.name) : "Trilha não informada"}
+      </span>
+    </div>
+  );
+}
+function StudentMembership({ row, today }: { row: RosterRow; today: string }): ReactElement {
+  const status = rosterStatus(row, today) as keyof typeof TONES;
+  return (
+    <div className="grid justify-items-start gap-1">
+      {status !== "Vigente" && <Badge variant={TONES[status]}>{status}</Badge>}
+      <span className="text-caption text-muted-foreground">
+        Desde {row.entryDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+      </span>
+      {row.exitDate && (
+        <span className="text-caption text-muted-foreground">
+          Até {row.exitDate.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+        </span>
+      )}
+    </div>
   );
 }

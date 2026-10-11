@@ -1,9 +1,9 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import { Button } from "@lazuli/ui";
+import { Button, Input } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "@lazuli/api";
-import { ClassOverview, ClassContextSidebar } from "./class-overview";
+import { ClassOverview, ClassContext } from "./class-overview";
 import { MembershipDialog } from "./membership-dialog";
 import { AssignmentDialog } from "../teachers/assignment-dialog";
 import { RosterSection } from "./roster-section";
@@ -12,7 +12,7 @@ export function ClassPage({ id }: ClassPageInput): ReactElement {
   const query = trpc.classes.byId.useQuery({ id }, { retry: false });
   const detail = query.data;
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-6 overflow-y-auto p-4 lg:overflow-hidden">
+    <div className="mx-auto flex h-full min-h-0 w-full min-w-0 max-w-7xl flex-col gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
       {query.isError && (
         <div role="alert" className="space-y-2">
           <p>
@@ -37,18 +37,14 @@ function ClassDetailView({ detail, id }: ClassDetailViewInput): ReactElement {
   const [search, setSearch] = useState("");
   return (
     <>
-      <ClassOverview
-        detail={detail}
-        enroll={() => setMembershipOpen(true)}
-        search={search}
-        onSearchChange={setSearch}
-      />
+      <ClassOverview detail={detail} enroll={() => setMembershipOpen(true)} />
+      <ClassContext detail={detail} onAssign={() => setAssigning(true)} />
+      <RosterHeading search={search} onSearchChange={setSearch} />
       <RosterSection
         key={`${id}/${search}`}
         classId={id}
         search={search}
         showStage={detail.scheduleType === "PERSONALIZED"}
-        sidebar={<ClassContextSidebar detail={detail} onAssign={() => setAssigning(true)} />}
       />
       {assigning && (
         <AssignmentDialog
@@ -75,3 +71,25 @@ type ClassDetailViewInput = {
   detail: RouterOutputs["classes"]["byId"];
   id: string;
 };
+
+function RosterHeading({
+  search,
+  onSearchChange,
+}: {
+  search: string;
+  onSearchChange: (value: string) => void;
+}): ReactElement {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="text-lg font-semibold">Alunos da turma</h2>
+      <div className="w-full sm:w-64">
+        <Input
+          aria-label="Buscar aluno na turma"
+          placeholder="Buscar aluno"
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+        />
+      </div>
+    </div>
+  );
+}

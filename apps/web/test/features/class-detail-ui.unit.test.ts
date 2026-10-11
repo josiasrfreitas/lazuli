@@ -4,7 +4,7 @@ import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ClassSchedule } from "../../src/features/classes/class-schedule.js";
-import { RosterStudent } from "../../src/features/classes/roster-list.js";
+import { RosterList } from "../../src/features/classes/roster-list.js";
 import type { RosterRow } from "../../src/features/classes/roster-status.js";
 import { studentAgeLabel } from "../../src/features/classes/student-age.js";
 
@@ -52,9 +52,7 @@ void it("explains the missing schedule instead of showing a blank agenda", () =>
 });
 
 void it("shows identity, age, phone and placement without a redundant current status", () => {
-  const markup = renderToStaticMarkup(
-    createElement(RosterStudent, { row, today: "2026-10-07", close: () => {} }),
-  );
+  const markup = renderRoster(row);
   assert.match(markup, /Ana Beatriz/u);
   assert.match(markup, /13 anos/u);
   assert.match(markup, /\(11\) 98801-2233/u);
@@ -64,17 +62,11 @@ void it("shows identity, age, phone and placement without a redundant current st
   assert.match(markup, /aria-label="Detalhes de Ana Beatriz"/u);
 });
 
-void it("shows overdue scheduled closure on the student card", () => {
-  const markup = renderToStaticMarkup(
-    createElement(RosterStudent, {
-      row: {
-        ...row,
-        actions: [{ kind: "PAUSE", effectiveDate: new Date("2026-10-06T00:00:00Z") }],
-      },
-      today: "2026-10-07",
-      close: () => {},
-    }),
-  );
+void it("shows overdue scheduled closure in the roster", () => {
+  const markup = renderRoster({
+    ...row,
+    actions: [{ kind: "PAUSE", effectiveDate: new Date("2026-10-06T00:00:00Z") }],
+  });
   assert.match(markup, /Aguardando execução/u);
   assert.match(markup, /aria-label="Detalhes de Ana Beatriz"/u);
 });
@@ -86,17 +78,27 @@ void it("updates age on the birthday using the school's civil date", () => {
   assert.equal(studentAgeLabel(birthDate, "2026-10-09"), "14 anos");
 });
 
-void it("keeps missing student information explicit and omits shared stage on regular cards", () => {
-  const markup = renderToStaticMarkup(
-    createElement(RosterStudent, {
-      row: { ...row, student: { fullName: "Ana Beatriz", phone: null, birthDate: null } },
-      today: "2026-10-08",
-      close: () => {},
-      showStage: false,
-    }),
+void it("keeps missing student information explicit and omits shared stage on regular rosters", () => {
+  const markup = renderRoster(
+    { ...row, student: { fullName: "Ana Beatriz", phone: null, birthDate: null } },
+    false,
   );
   assert.match(markup, /Idade não informada/u);
   assert.match(markup, /Sem telefone/u);
   assert.doesNotMatch(markup, />A2</u);
   assert.doesNotMatch(markup, /Adultos \/ English/u);
 });
+
+function renderRoster(student: RosterRow, showStage = true): string {
+  return renderToStaticMarkup(
+    createElement(RosterList, {
+      data: { rows: [student], today: "2026-10-07", page: 1, pageSize: 20, pageCount: 1, total: 1 },
+      failed: false,
+      refetch: () => {},
+      page: 1,
+      setPage: () => {},
+      close: () => {},
+      showStage,
+    }),
+  );
+}
