@@ -29,7 +29,7 @@ export function StudentPedagogySection({ id }: { id: string }): ReactElement {
           </p>
         </div>
       </div>
-      {current.length ? (
+      {current.length > 0 ? (
         current.map((enrollment) => (
           <CurrentEnrollment key={enrollment.id} enrollment={enrollment} today={query.data.today} />
         ))
@@ -125,9 +125,9 @@ function EnrollmentSchedule({ enrollment }: { enrollment: StudentEnrollment }): 
       <div className="flex flex-wrap gap-2">
         {enrollment.class.schedule
           .toSorted(
-            (a, b) =>
-              WEEKDAYS.indexOf(a.weekday) - WEEKDAYS.indexOf(b.weekday) ||
-              a.startTime.localeCompare(b.startTime),
+            (left, right) =>
+              WEEKDAYS.indexOf(left.weekday) - WEEKDAYS.indexOf(right.weekday) ||
+              left.startTime.localeCompare(right.startTime),
           )
           .map((slot) => (
             <div
@@ -166,16 +166,12 @@ function ProgressJourney({
             <span className="text-sm font-medium">{item.stage}</span>
             <span className="text-caption text-muted-foreground">
               {formatDateOnlyBR(item.startDate)}
-              {item.endDate
-                ? ` — ${formatDateOnlyBR(item.endDate)}`
-                : item.startDate > today
-                  ? " · agendado"
-                  : " · em andamento"}
+              {progressEndLabel(item, today)}
             </span>
           </li>
         ))}
       </ol>
-      {!enrollment.progress.length && (
+      {enrollment.progress.length === 0 && (
         <p className="text-sm text-muted-foreground">Nenhum estágio registrado nesta matrícula.</p>
       )}
     </section>
@@ -209,4 +205,9 @@ function EnrollmentHeading({
       </Badge>
     </div>
   );
+}
+
+function progressEndLabel(item: StudentEnrollment["progress"][number], today: string): string {
+  if (item.endDate) return ` — ${formatDateOnlyBR(item.endDate)}`;
+  return item.startDate > today ? " · agendado" : " · em andamento";
 }
