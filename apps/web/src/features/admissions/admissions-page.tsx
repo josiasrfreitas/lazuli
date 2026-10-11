@@ -2,15 +2,16 @@
 import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { useRouter } from "next/navigation";
-import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
+import { parseAsString, useQueryStates } from "nuqs";
 import { Plus } from "lucide-react";
 import {
   Button,
   DataTable,
   DataTablePage,
   Input,
-  SegmentedControl,
-  SegmentedControlItem,
+  TableFilters,
+  TableFilterChips,
+  type TableFilterField,
   type DataTableState,
 } from "@lazuli/ui";
 import { studentPaginationPolicy } from "@lazuli/validators";
@@ -19,25 +20,27 @@ import { tablePaginationPropsFor, useUrlPagination } from "~/lib/pagination";
 import { LeadCaptureDialog } from "./lead-capture-dialog";
 import { admissionColumns } from "./admission-columns";
 import type { CandidateRow } from "./labels";
+import { leadFilterFields, leadFilterInput } from "./lead-filter-fields";
 
-const followUpViews = ["ALL", "TODAY", "OVERDUE", "UNPLANNED"] as const;
-const states = ["WAITING", "ENROLLED", "ARCHIVED", "ALL"] as const;
 type CandidateQuery = QueryResult<RouterOutputs["admissions"]["list"]>;
 export function AdmissionsPage(): ReactElement {
   const [params, setParams] = useQueryStates({
-    retorno: parseAsStringLiteral(followUpViews).withDefault("ALL"),
+    retorno: parseAsString.withDefault("ALL"),
     busca: parseAsString.withDefault(""),
-    situacao: parseAsStringLiteral(states).withDefault("WAITING"),
+    situacao: parseAsString.withDefault("WAITING"),
   });
   const pagination = useUrlPagination(studentPaginationPolicy);
   const query = trpc.admissions.list.useQuery({
-    followUp: params.retorno,
+    ...leadFilterInput(params),
     search: params.busca,
-    status: params.situacao,
     page: pagination.page,
     pageSize: pagination.pageSize,
   });
   const [creating, setCreating] = useState(false);
+  const fields = leadFilterFields(params, (values) => {
+    void setParams(values);
+    pagination.setPage(1);
+  });
   return (
     <>
       <DataTablePage
@@ -50,6 +53,11 @@ export function AdmissionsPage(): ReactElement {
         controls={
           <AdmissionControls
             search={params.busca}
+            fields={fields}
+            onClear={() => {
+              void setParams({ situacao: "ALL", retorno: "ALL" });
+              pagination.setPage(1);
+            }}
             onCreate={() => setCreating(true)}
             onSearch={(busca) => {
               void setParams({ busca });
@@ -58,27 +66,14 @@ export function AdmissionsPage(): ReactElement {
           />
         }
       >
-        <div className="flex h-full min-h-0 flex-col gap-4">
-          <AdmissionFilters
-            value={params.situacao}
-            onChange={(situacao) => {
-              void setParams({ situacao, retorno: "ALL" });
-              pagination.setPage(1);
-            }}
-          />
-          {params.situacao === "WAITING" && (
-            <FollowUpFilters
-              value={params.retorno}
-              onChange={(retorno) => {
-                void setParams({ retorno });
-                pagination.setPage(1);
-              }}
-            />
-          )}
+        <div className="flex h-full min-h-0 flex-col gap-2">
+          <TableFilterChips fields={fields} />
           <AdmissionsTable
             query={query}
             pagination={pagination}
-            filtered={Boolean(params.busca) || params.retorno !== "ALL"}
+            filtered={
+              Boolean(params.busca) || params.retorno !== "ALL" || params.situacao !== "ALL"
+            }
           />
         </div>
       </DataTablePage>
@@ -90,10 +85,14 @@ function AdmissionControls({
   search,
   onSearch,
   onCreate,
+  fields,
+  onClear,
 }: {
   search: string;
   onSearch: (search: string) => void;
   onCreate: () => void;
+  fields: TableFilterField[];
+  onClear: () => void;
 }): ReactElement {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -108,37 +107,11 @@ function AdmissionControls({
           onChange={(event) => onSearch(event.target.value)}
         />
       </div>
+      <TableFilters fields={fields} onClearAll={onClear} />
       <Button size="compact-responsive" onClick={onCreate}>
         <Plus />
         Novo lead
       </Button>
-    </div>
-  );
-}
-function AdmissionFilters({
-  value,
-  onChange,
-}: {
-  value: (typeof states)[number];
-  onChange: (value: (typeof states)[number]) => void;
-}): ReactElement {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <SegmentedControl
-        aria-label="Situação do lead"
-        size="sm"
-        value={value}
-        onValueChange={(next) => {
-          if (states.includes(next as (typeof states)[number]))
-            onChange(next as (typeof states)[number]);
-        }}
-      >
-        <SegmentedControlItem value="WAITING">Em acompanhamento</SegmentedControlItem>
-        <SegmentedControlItem value="ENROLLED">Matriculados</SegmentedControlItem>
-        <SegmentedControlItem value="ARCHIVED">Arquivados</SegmentedControlItem>
-        <SegmentedControlItem value="ALL">Todos</SegmentedControlItem>
-      </SegmentedControl>
-      <p className="text-caption text-muted-foreground">Do primeiro contato à turma certa.</p>
     </div>
   );
 }
@@ -179,30 +152,5 @@ function AdmissionsTable({
         }}
       />
     </div>
-  );
-}
-
-function FollowUpFilters({
-  value,
-  onChange,
-}: {
-  value: (typeof followUpViews)[number];
-  onChange: (value: (typeof followUpViews)[number]) => void;
-}): ReactElement {
-  return (
-    <SegmentedControl
-      aria-label="Fila de retornos"
-      size="sm"
-      value={value}
-      onValueChange={(next) => {
-        if (followUpViews.includes(next as (typeof followUpViews)[number]))
-          onChange(next as (typeof followUpViews)[number]);
-      }}
-    >
-      <SegmentedControlItem value="ALL">Todos os retornos</SegmentedControlItem>
-      <SegmentedControlItem value="TODAY">Hoje</SegmentedControlItem>
-      <SegmentedControlItem value="OVERDUE">Em atraso</SegmentedControlItem>
-      <SegmentedControlItem value="UNPLANNED">Sem próximo passo</SegmentedControlItem>
-    </SegmentedControl>
   );
 }

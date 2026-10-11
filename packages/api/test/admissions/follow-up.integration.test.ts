@@ -94,21 +94,37 @@ void it("queues next steps by São Paulo civil date and keeps unplanned leads se
     nextAction: "Ligar para combinar horário",
     nextActionOn: "2071-02-01",
   });
-  const today = await caller().admissions.list({ search: prefix, followUp: "TODAY" });
+  const today = await caller().admissions.list({ search: prefix, followUps: ["TODAY"] });
   assert.deepEqual(
     today.rows.map((row) => row.id),
     [due.id],
   );
   assert.equal(today.rows[0]?.owner?.name, "Lead Admin");
   const later = caller(new Date("2071-02-02T12:00:00Z"));
-  const overdue = await later.admissions.list({ search: prefix, followUp: "OVERDUE" });
+  const overdue = await later.admissions.list({ search: prefix, followUps: ["OVERDUE"] });
   assert.deepEqual(
     overdue.rows.map((row) => row.id),
     [due.id],
   );
-  const noStep = await later.admissions.list({ search: prefix, followUp: "UNPLANNED" });
+  const noStep = await later.admissions.list({ search: prefix, followUps: ["UNPLANNED"] });
   assert.deepEqual(
     noStep.rows.map((row) => row.id),
+    [unplanned.id],
+  );
+  const combined = await later.admissions.list({
+    search: prefix,
+    followUps: ["OVERDUE", "UNPLANNED"],
+  });
+  assert.deepEqual(
+    combined.rows.map((row) => row.id),
+    [due.id, unplanned.id],
+  );
+  const matchingName = await later.admissions.list({
+    search: `${prefix}Unplanned`,
+    followUps: ["OVERDUE", "UNPLANNED"],
+  });
+  assert.deepEqual(
+    matchingName.rows.map((row) => row.id),
     [unplanned.id],
   );
 });
