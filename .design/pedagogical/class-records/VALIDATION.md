@@ -25,3 +25,7 @@ Integration coverage was authored for atomic attendance/content, required accoun
 ## Evidence
 
 Screenshots in `evidence/` capture the agenda, regular editor and original revision, PPT history, mobile record/editor, teacher and substitute access in dark mode, and the real activity log. This validates implementation behavior and composition; final product acceptance remains with the user during the integrated review.
+
+## Subsequent V5 validation
+
+The official V5 seed rebuild removed the disposable V4 mutations above. On 11 October, V5 browser QA exercised current-day writing by Camila in a disposable Sunday online encounter: reviewed two declarations, marked one student absent, recorded actual content and confirmed one present/one absent. The remaining link closed atomically with attributed author/time. See `../student-attendance/VALIDATION.md`. This adds browser evidence for current-day teacher writing; concurrent writers and later-plan edits still await CI.
