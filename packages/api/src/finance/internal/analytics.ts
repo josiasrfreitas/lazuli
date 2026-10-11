@@ -1,6 +1,7 @@
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { FinanceDatabase } from "./shared.js";
 import { ledgerQuery, type InstallmentQueryRow } from "./installments-query.js";
+import { readContractClosings, type ContractClosings } from "./contract-closings.js";
 
 const MONTHS_IN_YEAR = 12;
 const MONTH_KEY_LENGTH = 7;
@@ -15,6 +16,7 @@ type MonthlyAmounts = {
 };
 type AgingAmounts = { label: string; balanceCents: number; count: number };
 export type FinanceAnalytics = {
+  contractClosings: ContractClosings;
   year: number;
   asOf: string;
   months: MonthlyAmounts[];
@@ -47,11 +49,13 @@ export async function readAnalytics(
     },
     select: { date: true, amountCents: true, method: true },
   });
-  return aggregateAnalytics({ ...input, asOf, installments, payments });
+  const contractClosings = await readContractClosings(database, { year: input.year, asOf });
+  return aggregateAnalytics({ ...input, asOf, installments, payments, contractClosings });
 }
 
 type LedgerRow = InstallmentQueryRow;
 type AggregateInput = AnalyticsInput & {
+  contractClosings: ContractClosings;
   asOf: string;
   installments: LedgerRow[];
   payments: { date: Date; amountCents: number; method: string }[];
@@ -79,6 +83,7 @@ function aggregateAnalytics(input: AggregateInput): FinanceAnalytics {
   );
   const overdue = input.installments.filter((row) => row.status === "OVERDUE");
   return {
+    contractClosings: input.contractClosings,
     year: input.year,
     asOf: input.asOf,
     months,

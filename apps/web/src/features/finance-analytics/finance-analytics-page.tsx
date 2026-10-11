@@ -11,6 +11,7 @@ import {
   toDateOnlySaoPaulo,
 } from "~/lib/format";
 import { RevenueChart } from "./revenue-chart";
+import { ContractClosings } from "./contract-closings";
 import { AgingChart, PaymentMethodsChart } from "./distribution-charts";
 import { type Analytics, monthLabel } from "./chart-shared";
 const MONTH_KEY_LENGTH = 7;
@@ -96,6 +97,7 @@ function AnalyticsHeader({
 function AnalyticsContent({ data }: { data: Analytics }): ReactElement {
   return (
     <>
+      <ContractClosings data={data} />
       <AnalyticsMetrics data={data} />
       <RevenueChart data={data} />
       <div className="grid min-w-0 gap-6 lg:grid-cols-2">

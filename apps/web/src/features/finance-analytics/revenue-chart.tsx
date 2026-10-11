@@ -30,7 +30,7 @@ export function RevenueChart({ data }: { data: Analytics }): ReactElement {
   }));
   return (
     <ChartPanel
-      title="Receita ao longo do ano"
+      title="Cobranças e recebimentos ao longo do ano"
       description="Cobranças por mês de vencimento · recebimentos pela data de pagamento. O mês atual está em andamento."
     >
       <div className="mt-5 flex flex-wrap gap-5">

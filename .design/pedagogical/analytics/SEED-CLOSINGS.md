@@ -66,5 +66,6 @@ Alterar apenas `agreedOn` mantendo os recebimentos antigos produziria uma cronol
 isso acordo e início de cobrança mudam juntos. A documentação operacional anterior sobre três
 coortes de seis a oito meses precisa ser atualizada pelo integrador.
 
-Esta alteração prepara o próximo `pnpm seed` coordenado no banco isolado. Não atualiza o banco
-ativo, não é um comando incremental e não foi executada nem submetida a checks locais nesta tarefa.
+O integrador executou o `pnpm seed` completo no banco isolado em 11/10/2026. O navegador confirmou
+os dez contratos de outubro, R$ 2.350 de mensalidade equivalente e R$ 28.200 projetados. O seed
+não é incremental. Lint, testes, typecheck e build não foram executados por orientação do usuário.
