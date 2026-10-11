@@ -148,6 +148,8 @@ enum ArtifactKind {
 }
 
 model User {
+  stagePlansCreated StagePlan[] @relation("StagePlanCreator")
+  stagePlanRevisions StagePlanRevision[]
   pedagogicalOccurrences PedagogicalOccurrence[] @relation("OccurrenceAuthor")
   assignedInterventions PedagogicalIntervention[] @relation("InterventionOwner")
   createdInterventions PedagogicalIntervention[] @relation("InterventionAuthor")
@@ -260,6 +262,7 @@ model Verification {
 }
 
 model Student {
+  stagePlans StagePlan[]
   pedagogicalOccurrences PedagogicalOccurrence[]
   pedagogicalInterventions PedagogicalIntervention[]
 
@@ -377,6 +380,7 @@ model ProductLine {
 }
 
 model Class {
+  stagePlan StagePlan?
   entryVisits EntryVisit[]
   id                      String            @id @default(uuid()) @db.Uuid
   createdAt               DateTime          @default(now()) @map("created_at") @db.Timestamptz
@@ -450,6 +454,7 @@ model Track {
 }
 
 model Stage {
+  plans StagePlan[]
   assessments StageAssessment[]
   admissionCandidates AdmissionCandidate[]
   id           String    @id @default(uuid()) @db.Uuid
@@ -525,6 +530,8 @@ model EnrollmentAction {
 }
 
 model PedagogicalProgress {
+  stagePlanId String? @map("stage_plan_id") @db.Uuid
+  stagePlan StagePlan? @relation(fields: [stagePlanId], references: [id], onDelete: Restrict)
   assessmentId String? @map("assessment_id") @db.Uuid
   assessment StageAssessment? @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
   id           String             @id @default(uuid()) @db.Uuid
@@ -1276,4 +1283,71 @@ model PedagogicalFollowUp {
   recordedBy User @relation(fields: [recordedById], references: [id], onDelete: Restrict)
   @@index([occurrenceId, createdAt])
   @@index([interventionId, createdAt])
+}
+
+
+enum StagePlanActivityKind {
+  CONTENT
+  REVIEW
+  ASSESSMENT
+  ACTIVITY
+}
+
+// One class-wide regular plan, or one individual PPT stage attempt carried by progress records.
+model StagePlan {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  classId String? @unique @map("class_id") @db.Uuid
+  studentId String? @map("student_id") @db.Uuid
+  stageId String @map("stage_id") @db.Uuid
+  plannedStartOn DateTime @map("planned_start_on") @db.Date
+  plannedEndOn DateTime @map("planned_end_on") @db.Date
+  objective String?
+  version Int @default(1)
+  createdById String @map("created_by_id") @db.Uuid
+
+  class Class? @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  createdBy User @relation("StagePlanCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  progressRecords PedagogicalProgress[]
+  items StagePlanItem[]
+  revisions StagePlanRevision[]
+
+  @@index([studentId, stageId])
+}
+
+model StagePlanItem {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  planId String @map("plan_id") @db.Uuid
+  plannedOn DateTime @map("planned_on") @db.Date
+  kind StagePlanActivityKind
+  title String
+  reference String?
+  pageFrom Int? @map("page_from")
+  pageTo Int? @map("page_to")
+  plan StagePlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([planId, plannedOn])
+}
+
+model StagePlanRevision {
+  id String @id @default(uuid()) @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  planId String @map("plan_id") @db.Uuid
+  version Int
+  reason String
+  snapshot Json
+  recordedById String @map("recorded_by_id") @db.Uuid
+  plan StagePlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  recordedBy User @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@unique([planId, version])
 }

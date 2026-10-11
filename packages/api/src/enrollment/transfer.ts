@@ -113,6 +113,9 @@ async function moveEnrollment(input: {
     classId: input.target.id,
     entryDate: input.entryDate,
     stageId: input.stageId,
+    stagePlanId:
+      input.source.progressRecords.find((progress) => progress.stageId === input.stageId)
+        ?.stagePlanId ?? null,
     assessmentId:
       input.source.progressRecords.find((progress) => progress.stageId === input.stageId)
         ?.assessmentId ?? null,

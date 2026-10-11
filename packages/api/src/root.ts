@@ -1,4 +1,5 @@
 import { createCallerFactory, protectedProcedure, publicProcedure, router } from "./trpc/init.js";
+import { planningRouter } from "./stage-planning/router.js";
 import { assessmentsRouter } from "./assessments/router.js";
 import { activityRouter } from "./activity/router.js";
 import { attendanceRouter } from "./attendance/router.js";
@@ -25,6 +26,7 @@ export const appRouter = router({
   enrollment: enrollmentRouter,
   attendance: attendanceRouter,
   assessments: assessmentsRouter,
+  planning: planningRouter,
   occurrences: occurrencesRouter,
   interventions: interventionsRouter,
   activity: activityRouter,

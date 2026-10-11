@@ -22,7 +22,7 @@ async function pausedSource(input: {
 }): Promise<{
   id: string;
   studentId: string;
-  progress: { stageId: string; assessmentId: string | null } | null;
+  progress: { stageId: string; assessmentId: string | null; stagePlanId: string | null } | null;
 }> {
   await lockEnrollmentOwner(input.database, input.id);
   const source = await input.database.enrollment.findUnique({
@@ -37,7 +37,7 @@ async function pausedSource(input: {
         where: { deletedAt: null },
         orderBy: { startDate: "desc" },
         take: 1,
-        select: { stageId: true, assessmentId: true },
+        select: { stageId: true, assessmentId: true, stagePlanId: true },
       },
     },
   });
@@ -93,6 +93,7 @@ export async function returnEnrollment(input: {
     classId: target.id,
     entryDate: effectiveDate,
     stageId,
+    stagePlanId: source.progress?.stageId === stageId ? source.progress.stagePlanId : null,
     assessmentId: source.progress?.stageId === stageId ? source.progress.assessmentId : null,
     capacityOverrideReason: undefined,
   });

@@ -205,3 +205,15 @@ export {
   type InterventionCreate,
   type InterventionUpdate,
 } from "./occurrences.js";
+export {
+  stagePlanTargetSchema,
+  stagePlanKindSchema,
+  stagePlanWindowSchema,
+  stagePlanItemSchema,
+  stagePlanRemoveSchema,
+  stagePlanSnapshotSchema,
+  type StagePlanTarget,
+  type StagePlanWindow,
+  type StagePlanItemInput,
+  type StagePlanRemove,
+} from "./stage-planning.js";

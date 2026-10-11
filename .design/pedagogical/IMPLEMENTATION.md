@@ -24,7 +24,8 @@ The user specifically requests a modern, premium UI; Professores is the current 
 - Student profile: pedagogical/financial data, payment flow, contact/guardian, list/roster navigation and responsive light/dark UI implemented and browser-validated. Consolidated from aluno-perfil through c215183.
 - Turmas (#170): visual refinement implemented using Professores as reference; class information, teacher, schedule, roster and enrollment actions retained. Responsive light/dark evidence is in `turmas-ui/VALIDATION.md`.
 - V7 academic assessment (#175): two blocks and competency-specific recovery, pedagogical confirmation, justified corrections, student progression and class comparison implemented. Browser evidence includes the confirmed-grade correction flow; the complete seed supplies incomplete, sufficient, below-threshold and recovery cases. Student/class chart evidence is recorded in `assessments/VALIDATION.md`. Local automated checks remain deferred.
-- V4, V5, V6, V8, V9 and V10 remain pending. This checkpoint does not mark the pedagogical epic complete or treat the open hypotheses in the module brief as implemented behavior.
+- V10 occurrences/interventions (#179): related reports, teacher responsibility, attributed follow-up, conclusion/reopening, student context and activity log implemented. Browser validation covers admin/teacher permissions and desktop/mobile; see `occurrences/VALIDATION.md`. Commits `530e1af`, `5e27995` and `dbf6293`.
+- V4, V5, V6, V8 and V9 remain pending; V9 manual stage planning is now in progress. This checkpoint does not mark the pedagogical epic complete or treat the open hypotheses in the module brief as implemented behavior.
 
 ## Additional direction
 

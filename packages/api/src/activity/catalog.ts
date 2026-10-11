@@ -6,6 +6,8 @@ export const ACTIVITY_AREAS = {
 } as const;
 export type ActivityArea = keyof typeof ACTIVITY_AREAS;
 export const ACTIVITY_ACTIONS = {
+  "planning.create": ["PEDAGOGICAL", "Planejamento de estágio criado"],
+  "planning.revise": ["PEDAGOGICAL", "Planejamento de estágio revisado"],
   "occurrences.create": ["PEDAGOGICAL", "Ocorrência registrada"],
   "occurrences.link": ["PEDAGOGICAL", "Ocorrências relacionadas"],
   "occurrences.note": ["PEDAGOGICAL", "Ocorrência complementada"],
