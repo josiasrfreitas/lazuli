@@ -1,9 +1,8 @@
 import type { ReactElement } from "react";
+import Link from "next/link";
 import { Badge, DataTable, type DataTableColumn } from "@lazuli/ui";
 import { formatAttendancePercent, formatDateOnlyBR } from "~/lib/format";
 import type { StudentEnrollment } from "./logic";
-import { EnrollmentSchedule, ProgressJourney } from "./current-enrollment";
-
 const EXIT_LABELS = {
   COMPLETED: "Concluída",
   TRANSFERRED: "Transferência",
@@ -11,18 +10,21 @@ const EXIT_LABELS = {
   SUSPENDED: "Pausada",
   CORRECTION: "Correção",
 };
-
 function historyColumns(today: string): DataTableColumn<StudentEnrollment>[] {
   return [
     {
       id: "class",
-      header: "Turma e percurso",
+      header: "Turma / semestre",
       width: "wide",
       cell: (row) => (
-        <div className="grid gap-2">
-          <EnrollmentSchedule enrollment={row} />
-          <p className="text-caption text-muted-foreground">{row.class.semester}</p>
-          {row.progress.length > 0 && <ProgressJourney enrollment={row} />}
+        <div className="grid gap-1">
+          <Link
+            className="font-medium text-interactive hover:underline"
+            href={`/turmas/${row.class.id}`}
+          >
+            {row.class.name}
+          </Link>
+          <span className="text-caption text-muted-foreground">{row.class.semester}</span>
         </div>
       ),
     },
@@ -43,48 +45,40 @@ function historyColumns(today: string): DataTableColumn<StudentEnrollment>[] {
       id: "status",
       header: "Situação",
       width: "standard",
-      cell: (row) => <Badge variant="neutral">{historyStatus(row, today)}</Badge>,
+      cell: (row) => (
+        <Badge variant="neutral">
+          {row.entryDate > today
+            ? "Agendada"
+            : row.exitReason
+              ? EXIT_LABELS[row.exitReason]
+              : "Encerrada"}
+        </Badge>
+      ),
     },
     {
       id: "attendance",
       header: "Frequência",
-      width: "narrow",
       numeric: true,
+      width: "narrow",
       cell: (row) => formatAttendancePercent(row.attendance.percent),
     },
   ];
 }
-
-function historyStatus(row: StudentEnrollment, today: string): string {
-  if (row.entryDate > today) return "Agendada";
-  return row.exitReason ? EXIT_LABELS[row.exitReason] : "Encerrada";
-}
-
 export function EnrollmentHistory({
   rows,
   today,
-  onRetry,
 }: {
   rows: StudentEnrollment[];
   today: string;
-  onRetry: () => void;
-}): ReactElement | null {
-  if (rows.length === 0) return null;
+}): ReactElement {
   return (
-    <section className="grid min-w-0 gap-3" aria-labelledby="enrollment-history">
-      <div>
-        <h2 id="enrollment-history" className="font-display text-xl font-semibold text-heading">
-          Outras matrículas
-        </h2>
-        <p className="text-caption text-muted-foreground">
-          Matrículas anteriores e entradas agendadas
-        </p>
-      </div>
+    <section className="grid min-w-0 gap-3">
+      <h2 className="text-base font-semibold">Histórico de matrículas</h2>
       <DataTable
         label="Histórico de matrículas do aluno"
         columns={historyColumns(today)}
-        state={{ kind: "data", rows }}
-        onRetry={onRetry}
+        state={rows.length ? { kind: "data", rows } : { kind: "empty" }}
+        onRetry={() => undefined}
         empty={{
           title: "Sem outras matrículas",
           description: "Matrículas anteriores e entradas agendadas aparecem aqui.",

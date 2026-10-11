@@ -1,30 +1,28 @@
 import type { ReactElement, ReactNode } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
-import { Alert, Button } from "@lazuli/ui";
+import { Alert, Button, InlineSkeleton } from "@lazuli/ui";
 
-export const MISSING_DETAIL = "Não informado";
-
+export function ProfileLoading(): ReactElement {
+  return (
+    <div role="status" className="grid gap-4 py-6">
+      <InlineSkeleton className="h-8 w-48" />
+      <InlineSkeleton className="h-4 w-64" />
+      <span className="sr-only">Carregando informações do aluno</span>
+    </div>
+  );
+}
 export function ProfileError({
   message,
   onRetry,
-  isRetrying = false,
 }: {
   message: string;
   onRetry: () => void;
-  isRetrying?: boolean;
 }): ReactElement {
   return (
-    <Alert variant="neutral" aria-busy={isRetrying}>
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <AlertCircle className="size-4 shrink-0 text-destructive" aria-hidden="true" />
-          <p>{message}</p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={onRetry} disabled={isRetrying}>
-          <RefreshCw aria-hidden="true" />
-          {isRetrying ? "Tentando novamente…" : "Tentar novamente"}
-        </Button>
-      </div>
+    <Alert variant="destructive">
+      <p>{message}</p>
+      <Button variant="secondary" onClick={onRetry}>
+        Tentar novamente
+      </Button>
     </Alert>
   );
 }
@@ -37,10 +35,25 @@ export function ProfileFact({
 }): ReactElement {
   return (
     <div className="grid min-w-0 gap-1">
-      <dt className="text-micro font-semibold uppercase tracking-label text-muted-foreground">
-        {label}
-      </dt>
-      <dd className="break-words text-base sm:text-sm">{children}</dd>
+      <dt className="text-caption text-muted-foreground">{label}</dt>
+      <dd className="break-words text-sm font-medium">{children}</dd>
+    </div>
+  );
+}
+export function ProfileMetric({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: ReactNode;
+  detail: string;
+}): ReactElement {
+  return (
+    <div className="grid content-start gap-1 py-2">
+      <dt className="text-caption text-muted-foreground">{label}</dt>
+      <dd className="font-numeric text-2xl font-semibold tracking-tight tabular-nums">{value}</dd>
+      <dd className="text-caption text-muted-foreground">{detail}</dd>
     </div>
   );
 }
