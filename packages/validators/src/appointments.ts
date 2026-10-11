@@ -2,7 +2,7 @@ import { z } from "zod";
 import { civilDateSchema } from "./civil-date.js";
 import { classFormatSchema, timeOfDaySchema } from "./class.js";
 
-const id = z.string().uuid();
+const id = z.string().uuid("Selecione um registro válido.");
 const note = z.string().trim().max(4000);
 export const appointmentPurposeSchema = z.enum([
   "MAKEUP",
@@ -12,7 +12,14 @@ export const appointmentPurposeSchema = z.enum([
 ]);
 export const appointmentStatusSchema = z.enum(["SCHEDULED", "ATTENDED", "NO_SHOW", "CANCELLED"]);
 export const makeupCoverageSchema = z
-  .object({ attendanceId: id, minutes: z.number().int().min(1).max(1440) })
+  .object({
+    attendanceId: id,
+    minutes: z
+      .number()
+      .int("Informe minutos inteiros.")
+      .min(1, "Informe pelo menos 1 minuto.")
+      .max(1440, "Informe até 1.440 minutos."),
+  })
   .strict();
 export const appointmentMeetingSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("CLASS"), sessionId: id }).strict(),
@@ -79,7 +86,12 @@ export const appointmentRecordSchema = appointmentVersionSchema
   .extend({
     attended: z.boolean(),
     performedContent: note,
-    performedMinutes: z.number().int().min(1).max(1440).nullable(),
+    performedMinutes: z
+      .number()
+      .int("Informe minutos inteiros.")
+      .min(1, "Informe pelo menos 1 minuto.")
+      .max(1440, "Informe até 1.440 minutos.")
+      .nullable(),
     notes: note,
     reason: note,
     coverages: z.array(makeupCoverageSchema).max(20),
@@ -137,7 +149,7 @@ export const absenceContactSchema = z
     id,
     studentId: id,
     attendanceId: id.nullable(),
-    contactedAt: z.string().datetime(),
+    contactedAt: z.string().datetime("Informe uma data e um horário válidos."),
     channel: z.enum(["PHONE", "WHATSAPP", "EMAIL", "IN_PERSON"]),
     outcome: z.enum(["NO_ANSWER", "REPLIED", "APPOINTMENT_AGREED", "OTHER"]),
     notes: note.min(1, "Registre o resultado do contato."),

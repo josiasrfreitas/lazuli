@@ -8,6 +8,7 @@ import { ProfileLoading, ProfileError, ProfileMetric } from "./profile-shared";
 import { StudentAcademicProgress } from "~/features/assessments/student-progress";
 import { StudentFollowUp } from "~/features/pedagogical-follow-up/student-follow-up";
 import { EnrollmentHistory } from "./student-history";
+import { StudentAppointments } from "~/features/appointments/student-section";
 
 export function StudentPedagogySection({ id }: { id: string }): ReactElement {
   const query = useStudentPedagogy(id);
@@ -48,6 +49,7 @@ export function StudentPedagogySection({ id }: { id: string }): ReactElement {
         />
       )}
       <StudentAcademicProgress studentId={id} />
+      <StudentAppointments studentId={id} />
       <StudentFollowUp studentId={id} />
       <EnrollmentHistory rows={history} today={query.data.today} />
     </div>
@@ -70,7 +72,7 @@ function CurrentEnrollment({
             value={formatAttendancePercent(enrollment.attendance.percent)}
             detail={
               enrollment.attendance.heldSessions
-                ? `${enrollment.attendance.presentCount} presenças em ${enrollment.attendance.heldSessions} aulas`
+                ? `${enrollment.attendance.presentCount} presenças em ${enrollment.attendance.heldSessions} aulas · ${enrollment.attendance.compensatedMinutes} min repostos`
                 : "Sem chamadas confirmadas"
             }
           />
@@ -84,6 +86,14 @@ function CurrentEnrollment({
             }
           />
         </dl>
+        {enrollment.attendance.heldMinutes > 0 && (
+          <p className="text-caption text-muted-foreground">
+            Frequência por tempo de aula: {enrollment.attendance.presentMinutes} min de presença +{" "}
+            {enrollment.attendance.compensatedMinutes} min de reposição, em{" "}
+            {enrollment.attendance.heldMinutes} min confirmados. Restam{" "}
+            {enrollment.attendance.missingMinutes} min ausentes.
+          </p>
+        )}
         <EnrollmentSchedule enrollment={enrollment} />
         {enrollment.attendance.flagged && (
           <p className="text-sm text-warning">

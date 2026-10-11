@@ -1,6 +1,6 @@
 "use client";
 import { useState, type ReactElement, type ReactNode } from "react";
-import { Check, X } from "lucide-react";
+import { ArrowLeft, Check, X } from "lucide-react";
 import type { z } from "@lazuli/validators";
 import {
   Alert,
@@ -26,6 +26,10 @@ type Validation = {
   body: ReturnType<typeof useScrollToError>;
   validate: <T>(schema: z.ZodType<T>, values: object) => T | null;
   clear: (name: string) => void;
+  validateFields: (
+    schema: z.ZodType<object>,
+    input: { values: object; fields: string[] },
+  ) => boolean;
 };
 export function useValidation(): Validation {
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -52,7 +56,24 @@ export function useValidation(): Validation {
         Object.entries(value).filter(([key]) => key !== name && !key.startsWith(`${name}.`)),
       ),
     );
-  return { errors, body, validate, clear };
+  function validateFields(
+    schema: z.ZodType<object>,
+    input: { values: object; fields: string[] },
+  ): boolean {
+    const parsed = schema.safeParse(input.values);
+    const issues = parsed.success
+      ? []
+      : parsed.error.issues.filter((issue) => input.fields.includes(String(issue.path[0])));
+    const next: Record<string, string> = {};
+    for (const issue of issues) {
+      next[String(issue.path[0])] = issue.message;
+      next[issue.path.join(".")] = issue.message;
+    }
+    setErrors(next);
+    if (issues.length > 0) setRevision((value) => value + 1);
+    return issues.length === 0;
+  }
+  return { errors, body, validate, validateFields, clear };
 }
 const DEFAULT_ROWS = 3;
 export function NarrativeField({
@@ -109,7 +130,16 @@ type TaskDialogProps = {
   formId: string;
   firstField: string;
   submitLabel: string;
-  children: ReactNode;
+  children: ReactNode | ((actions: ReactNode) => ReactNode);
+  size?: "default" | "medium" | "wide" | "extra-wide";
+  onBack?: (() => void) | undefined;
+  submitDisabled?: boolean;
+  actionSize?: "sm" | "md";
+  submitIcon?: ReactNode;
+  cancelIcon?: ReactNode;
+  backIcon?: ReactNode;
+  layout?: "default" | "expanded" | "calendar";
+  compactHeader?: boolean;
   error?: string | undefined;
   bodyRef?: React.RefObject<HTMLDivElement | null> | undefined;
   submitVariant?: ButtonVariant;
@@ -124,45 +154,75 @@ export function TaskDialog(props: TaskDialogProps): ReactElement {
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent
-          showCloseButton={!props.pending}
-          initialFocus={() =>
-            document.querySelector<HTMLElement>(
-              `#${CSS.escape(props.firstField)}, [name="${CSS.escape(props.firstField)}"]`,
-            )
-          }
-        >
-          <DialogHeader>
-            <DialogTitle>{props.title}</DialogTitle>
-            <DialogDescription>{props.description}</DialogDescription>
-          </DialogHeader>
-          <DialogBody ref={props.bodyRef}>
-            {props.children}
-            {props.error && <Alert variant="destructive">{props.error}</Alert>}
-          </DialogBody>
-          <TaskActions {...props} />
-        </DialogContent>
+        <TaskContent {...props} />
       </DialogPortal>
     </Dialog>
   );
 }
-
-function TaskActions(props: TaskDialogProps): ReactElement {
+function TaskContent(props: TaskDialogProps): ReactElement {
+  const actions = <TaskActions {...props} />;
   return (
-    <DialogFooter>
-      <Button type="button" variant="secondary" disabled={props.pending} onClick={props.onClose}>
-        <X aria-hidden />
-        Cancelar
+    <DialogContent
+      size={props.size ?? "default"}
+      layout={props.layout === "calendar" ? "workspace" : (props.layout ?? "default")}
+      showCloseButton={!props.pending}
+      initialFocus={() =>
+        document.querySelector<HTMLElement>(
+          `#${CSS.escape(props.firstField)}, [name="${CSS.escape(props.firstField)}"]`,
+        )
+      }
+    >
+      <DialogHeader
+        className={
+          props.compactHeader ? "flex-row flex-wrap items-baseline gap-x-3 gap-y-1" : undefined
+        }
+      >
+        <DialogTitle>{props.title}</DialogTitle>
+        <DialogDescription>{props.description}</DialogDescription>
+      </DialogHeader>
+      <DialogBody ref={props.bodyRef} scroll={props.layout !== "calendar"}>
+        {typeof props.children === "function" ? props.children(actions) : props.children}
+        {props.error && <Alert variant="destructive">{props.error}</Alert>}
+      </DialogBody>
+      {typeof props.children !== "function" && <DialogFooter>{actions}</DialogFooter>}
+    </DialogContent>
+  );
+}
+function TaskActions(props: TaskDialogProps): ReactElement {
+  const size = props.actionSize ?? "md";
+  return (
+    <>
+      {props.onBack && (
+        <Button
+          type="button"
+          size={size}
+          variant="ghost"
+          disabled={props.pending}
+          onClick={props.onBack}
+        >
+          {props.backIcon ?? <ArrowLeft aria-hidden="true" />} Voltar
+        </Button>
+      )}
+      <Button
+        type="button"
+        size={size}
+        variant="secondary"
+        disabled={props.pending}
+        onClick={props.onClose}
+      >
+        {props.cancelIcon ?? <X aria-hidden="true" />} Cancelar
       </Button>
       <Button
+        id={`${props.formId}-submit`}
         type="submit"
         form={props.formId}
-        disabled={props.pending}
+        size={size}
+        disabled={props.pending || props.submitDisabled}
         variant={props.submitVariant ?? "primary"}
       >
-        <Check aria-hidden />
+        {props.submitIcon ?? <Check aria-hidden="true" />}
         {props.pending ? "Salvando…" : props.submitLabel}
       </Button>
-    </DialogFooter>
+    </>
   );
 }
