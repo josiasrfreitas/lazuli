@@ -14,6 +14,7 @@ import {
   type RecordSession,
 } from "./data.js";
 import { initialSnapshot } from "./planned.js";
+import { closeAttendanceWindows } from "../student-attendance/data.js";
 export async function saveClassRecord(context: RecordContext, input: ClassRecordSave) {
   await lockClassRecord(context.database, input.sessionId);
   const session = await loadRecordSession(context, input.sessionId);
@@ -43,6 +44,18 @@ export async function saveClassRecord(context: RecordContext, input: ClassRecord
   if (previous && JSON.stringify(previous) === JSON.stringify(snapshot))
     throw badRequest("Altere a presença, o conteúdo ou a observação antes de salvar uma correção.");
   await commitAttendance(context, session, snapshot);
+  const closedWindows = await closeAttendanceWindows(
+    context.database,
+    session.id,
+    context.staffUser.id,
+    context.now,
+  );
+  if (closedWindows > 0)
+    await recordActivity(context.database, context, "studentAttendance.close", {
+      subject: { type: "class", id: session.classId, name: session.class.portalClassName },
+      description:
+        "Recebimento de presença encerrado na baixa da aula. Envios recebidos preservados.",
+    });
   const version = input.version + (changedConfirmedAttendance ? 2 : 1);
   const record = session.classRecord
     ? await context.database.classSessionRecord.update({

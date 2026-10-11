@@ -119,3 +119,10 @@ export {
   type AcademicGrade,
   type CompetenceResult,
 } from "./assessment.js";
+export {
+  normalizeAttendanceName,
+  matchAttendanceNames,
+  attendanceDistance,
+  type AttendanceNameCandidate,
+  type AttendancePoint,
+} from "./student-attendance.js";

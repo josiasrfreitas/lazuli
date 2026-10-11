@@ -15,6 +15,7 @@ export const recordSessionInclude = {
       id: true,
       portalClassName: true,
       scheduleType: true,
+      format: true,
       sharedStage: { select: { id: true, name: true } },
       ...responsibilitySelect,
       substitutions: {

@@ -1,6 +1,7 @@
 import { assertAttendanceOnlyWrite } from "../class-records/data.js";
+import { closeAttendanceWindows } from "../student-attendance/data.js";
 import { sessionSubject, makeupSubject } from "../activity/subjects.js";
-import { activityTransaction } from "../activity/record.js";
+import { activityTransaction, recordActivity } from "../activity/record.js";
 import {
   attendanceConfirmSessionInputSchema,
   attendanceEditSessionInputSchema,
@@ -43,6 +44,18 @@ export const attendanceRouter = router({
         "attendance.confirmSession",
         async (database) => {
           await assertAttendanceOnlyWrite(database, input.sessionId);
+          const closedWindows = await closeAttendanceWindows(
+            database,
+            input.sessionId,
+            ctx.staffUser.id,
+            ctx.now ?? new Date(),
+          );
+          if (closedWindows > 0)
+            await recordActivity(database, ctx, "studentAttendance.close", {
+              subject: await sessionSubject(database, input.sessionId),
+              description:
+                "Recebimento de presença encerrado na confirmação da chamada. Envios recebidos preservados.",
+            });
           return confirmSession({
             database,
             staffUser: ctx.staffUser,

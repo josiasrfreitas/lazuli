@@ -6,6 +6,8 @@ export const ACTIVITY_AREAS = {
 } as const;
 export type ActivityArea = keyof typeof ACTIVITY_AREAS;
 export const ACTIVITY_ACTIONS = {
+  "studentAttendance.open": ["PEDAGOGICAL", "Link de presença aberto"],
+  "studentAttendance.close": ["PEDAGOGICAL", "Link de presença encerrado"],
   "classRecords.cancelSession": ["PEDAGOGICAL", "Aula cancelada"],
   "classRecords.confirm": ["PEDAGOGICAL", "Baixa de aula registrada"],
   "classRecords.correct": ["PEDAGOGICAL", "Registro de aula corrigido"],
