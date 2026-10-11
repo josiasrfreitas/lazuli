@@ -235,7 +235,7 @@ export function SemesterOrganizationPage() {
           )}
         </>
       )}
-      {!semesters.isPending && !semesters.data?.length && (
+      {!semesters.isPending && !semesters.isError && !semesters.data?.length && (
         <EmptyState
           icon={<CalendarRange />}
           title="Organize o próximo período"
