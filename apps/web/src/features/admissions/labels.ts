@@ -21,13 +21,17 @@ export const visitLabels = {
   ABSENT: "Não compareceu",
   CANCELLED: "Cancelada",
 };
+const ISO_DATE_LENGTH = 10;
+const ISO_TIME_START = 11;
+const ISO_TIME_END = 16;
 export const dateOnly = (value: Date | null): string =>
-  value ? value.toISOString().slice(0, 10) : "";
+  value ? value.toISOString().slice(0, ISO_DATE_LENGTH) : "";
 export const dateLabel = (value: Date | string | null): string =>
   value === null
     ? "Não definida"
     : (typeof value === "string" ? value : dateOnly(value)).split("-").toReversed().join("/");
-export const timeLabel = (value: Date): string => value.toISOString().slice(11, 16);
+export const timeLabel = (value: Date): string =>
+  value.toISOString().slice(ISO_TIME_START, ISO_TIME_END);
 export const dayLabel = (value: string): string =>
   weekdays.find((day) => day.value === value)?.label ?? value;
 

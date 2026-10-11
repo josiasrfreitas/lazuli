@@ -3,15 +3,12 @@ import { useState, type ReactElement } from "react";
 import { Button, Field, Label, SearchSelect, type SearchSelectOption } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 
-export function StudentLink({
-  studentId,
-  name,
-  onChange,
-}: {
+type StudentLinkProps = {
   studentId: string | null;
   name: string;
   onChange: (id: string | null) => void;
-}): ReactElement {
+};
+export function StudentLink({ studentId, name, onChange }: StudentLinkProps): ReactElement {
   const [open, setOpen] = useState(Boolean(studentId));
   const [search, setSearch] = useState(name);
   const [selected, setSelected] = useState<SearchSelectOption | null>(

@@ -188,10 +188,8 @@ void it("rescheduling is atomic, preserves the previous visit and prevents confl
     }),
     /Conflito com/u,
   );
-  assert.equal(
-    (await db.entryVisit.findUniqueOrThrow({ where: { id: first.id } })).status,
-    "SCHEDULED",
-  );
+  const retainedVisit = await db.entryVisit.findUniqueOrThrow({ where: { id: first.id } });
+  assert.equal(retainedVisit.status, "SCHEDULED");
   await assert.rejects(
     db.$transaction((database) =>
       assertNoTeacherConflict({
