@@ -3,7 +3,7 @@ import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
 
-import { caller } from "../support/student-test-support.js";
+import { caller, ensureStudentAdmin } from "../support/student-test-support.js";
 
 const TEST_PREFIX = "GRE-23 Student ";
 const CATALOG_KEY = "gre23_status_line";
@@ -35,6 +35,7 @@ const SEMESTER_WINDOWS_BY_SUFFIX = {
 void describe("students status lifecycle API", () => {
   void before(async () => {
     await db.$connect();
+    await ensureStudentAdmin();
   });
 
   void beforeEach(async () => {

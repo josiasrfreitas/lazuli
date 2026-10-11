@@ -41,8 +41,8 @@ for (const mode of ["skip", "contract"] as const) {
     assert.equal(await db.payer.count({ where: { name: terms.newPayer.name } }), 0);
     assert.equal(await db.contract.count({ where: { commandId: terms.commandId } }), 0);
     assert.equal(await db.order.count({ where: { contract: { commandId: terms.commandId } } }), 0);
-    const completed = await completeStudent({ database: db, values, staffUserId: ADMIN.id });
-    const replay = await completeStudent({ database: db, values, staffUserId: ADMIN.id });
+    const completed = await completeStudent({ database: db, values, staffUser: ADMIN });
+    const replay = await completeStudent({ database: db, values, staffUser: ADMIN });
     assert.equal(replay.id, completed.id);
     assert.equal(await db.student.count({ where: { fullName: student.fullName } }), 1);
     assert.equal(
@@ -91,7 +91,7 @@ for (const mode of ["skip", "contract"] as const) {
           }
         : { ...values, student: { ...student, fullName: `${student.fullName} edited` } };
     await assert.rejects(
-      completeStudent({ database: db, values: changed, staffUserId: ADMIN.id }),
+      completeStudent({ database: db, values: changed, staffUser: ADMIN }),
       /dados diferentes/u,
     );
     assert.equal(await db.student.count({ where: { fullName: `${student.fullName} edited` } }), 0);

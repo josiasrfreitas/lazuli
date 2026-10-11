@@ -148,6 +148,7 @@ enum ArtifactKind {
 }
 
 model User {
+  activities ActivityEvent[]
   assignedLeads AdmissionCandidate[] @relation("LeadOwner")
   leadContacts LeadContact[] @relation("LeadContactRecorder")
   assessmentsCreated StageAssessment[] @relation("AssessmentCreator")
@@ -1130,4 +1131,27 @@ model LeadContact {
   candidate AdmissionCandidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
   recordedBy User @relation("LeadContactRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
   @@index([candidateId, contactedOn])
+}
+
+model ActivityEvent {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz
+  actorId String? @map("actor_id") @db.Uuid
+  actorName String @map("actor_name")
+  area String
+  action String
+  title String
+  subjectType String @map("subject_type")
+  subjectId String? @map("subject_id") @db.Uuid
+  subjectName String @map("subject_name")
+  description String?
+  deduplicationKey String? @unique @map("deduplication_key")
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([occurredAt, id])
+  @@index([area, occurredAt])
+  @@index([actorId, occurredAt])
 }

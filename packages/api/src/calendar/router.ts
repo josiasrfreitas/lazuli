@@ -1,3 +1,4 @@
+import { activityTransaction } from "../activity/record.js";
 import {
   addClosedDayInputSchema,
   createSemesterInputSchema,
@@ -18,12 +19,19 @@ export const calendarRouter = router({
   createSemester: adminProcedure
     .input(createSemesterInputSchema)
     .mutation(async ({ ctx, input }) => {
-      const semester = await ctx.db.$transaction((database) =>
-        createSemester({
-          database,
-          name: input.name,
-          startDate: input.startDate,
-          endDate: input.endDate,
+      const semester = await activityTransaction(
+        ctx,
+        "calendar.createSemester",
+        (database) =>
+          createSemester({
+            database,
+            name: input.name,
+            startDate: input.startDate,
+            endDate: input.endDate,
+          }),
+        (result) => ({
+          subject: { type: "school", name: result.name },
+          deduplicationKey: `calendar.createSemester:${result.id}`,
         }),
       );
 
@@ -37,27 +45,44 @@ export const calendarRouter = router({
   importBrazilFederalHolidays: adminProcedure
     .input(importBrazilFederalHolidaysInputSchema)
     .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        importBrazilFederalHolidays({
-          database,
-          year: input.year,
-          createdById: ctx.staffUser.id,
-        }),
+      activityTransaction(
+        ctx,
+        "calendar.importBrazilFederalHolidays",
+        (database) =>
+          importBrazilFederalHolidays({
+            database,
+            year: input.year,
+            createdById: ctx.staffUser.id,
+          }),
+        () => ({ subject: { type: "school", name: `Calendário ${input.year}` } }),
       ),
     ),
   addClosedDay: adminProcedure.input(addClosedDayInputSchema).mutation(({ ctx, input }) =>
-    ctx.db.$transaction((database) =>
-      addClosedDay({
-        database,
-        date: input.date,
-        reason: input.reason,
-        createdById: ctx.staffUser.id,
+    activityTransaction(
+      ctx,
+      "calendar.addClosedDay",
+      (database) =>
+        addClosedDay({
+          database,
+          date: input.date,
+          reason: input.reason,
+          createdById: ctx.staffUser.id,
+        }),
+      () => ({
+        subject: { type: "school", name: "Calendário escolar" },
+        description: input.reason,
       }),
     ),
   ),
-  removeClosedDay: adminProcedure
-    .input(removeClosedDayInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => removeClosedDay({ database, date: input.date })),
+  removeClosedDay: adminProcedure.input(removeClosedDayInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "calendar.removeClosedDay",
+      (database) => removeClosedDay({ database, date: input.date }),
+      () => ({
+        subject: { type: "school", name: "Calendário escolar" },
+        description: `Dia removido: ${input.date.split("-").reverse().join("/")}.`,
+      }),
     ),
+  ),
 });

@@ -1,3 +1,5 @@
+import { classSubject } from "../activity/subjects.js";
+import { activityTransaction } from "../activity/record.js";
 import {
   classArchiveInputSchema,
   classCloneForNextPeriodInputSchema,
@@ -52,25 +54,40 @@ export const classesRouter = router({
     }),
   ),
   formOptions: adminProcedure.query(({ ctx }) => classFormOptions(ctx.db)),
-  create: adminProcedure
-    .input(classCreateInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        createClass({ database, values: input, recordedById: ctx.staffUser.id }),
-      ),
+  create: adminProcedure.input(classCreateInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "classes.create",
+      (database) => createClass({ database, values: input, recordedById: ctx.staffUser.id }),
+      async (result, database) => ({
+        subject: await classSubject(database, result.id),
+        deduplicationKey: `classes.create:${result.id}`,
+      }),
     ),
-  archive: adminProcedure
-    .input(classArchiveInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => archiveClass({ database, id: input.id })),
+  ),
+  archive: adminProcedure.input(classArchiveInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "classes.archive",
+      (database) => archiveClass({ database, id: input.id }),
+      async (_result, database) => ({ subject: await classSubject(database, input.id) }),
     ),
+  ),
   cloneForNextPeriod: adminProcedure
     .input(classCloneForNextPeriodInputSchema)
     .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        cloneClassForNextPeriod({
-          ...buildCloneInput({ database, input }),
-          recordedById: ctx.staffUser.id,
+      activityTransaction(
+        ctx,
+        "classes.cloneForNextPeriod",
+        (database) =>
+          cloneClassForNextPeriod({
+            ...buildCloneInput({ database, input }),
+            recordedById: ctx.staffUser.id,
+          }),
+        async (result, database) => ({
+          subject: await classSubject(database, result.successor.id),
+          description: `Continuação de ${result.source.portalClassName}.`,
+          deduplicationKey: `classes.clone:${result.successor.id}`,
         }),
       ),
     ),

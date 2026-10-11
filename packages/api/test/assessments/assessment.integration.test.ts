@@ -135,6 +135,22 @@ void it("requires a reason for confirmed corrections, invalidates approval and r
     [null, null, null],
   );
   assert.equal(corrected.results[0]?.effective, 55);
+  const history = await db.activityEvent.findMany({
+    where: { subjectId: fixture.studentId, action: "assessments.save" },
+  });
+  const correctionEvent = history.find((event) =>
+    event.description?.includes("Correção de transcrição"),
+  );
+  assert.equal(history.length, 2);
+  assert.equal(correctionEvent?.actorName, "Assessment Admin");
+  assert.match(
+    correctionEvent?.description ?? "",
+    /Oral · Bloco 1: 60 em 15\/02\/2073, por Enrollment Admin de Teste → 50 em 15\/02\/2073\./u,
+  );
+  assert.match(
+    correctionEvent?.description ?? "",
+    /A confirmação pedagógica anterior foi retirada\./u,
+  );
   assert.equal(
     corrected.grades.find((grade) => grade.phase === "BLOCK_ONE" && grade.competence === "ORAL")
       ?.reason,
@@ -180,6 +196,12 @@ void it("does not replace the original author or invalidate a confirmed assessme
   });
   assert.equal(unchanged.version, confirmed.version);
   assert.equal(unchanged.decision, "APPROVED");
+  assert.equal(
+    await db.activityEvent.count({
+      where: { subjectId: fixture.studentId, action: "assessments.save" },
+    }),
+    1,
+  );
   assert.deepEqual(
     unchanged.grades.map((grade) => grade.recordedBy),
     Array(8).fill("Assessment Teacher"),

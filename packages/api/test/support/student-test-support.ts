@@ -21,6 +21,10 @@ export const ADMIN: StaffUser = {
 
 export type StudentCaller = ReturnType<typeof createCaller>;
 
+export async function ensureStudentAdmin(): Promise<void> {
+  await db.user.upsert({ where: { id: ADMIN.id }, create: ADMIN, update: {} });
+}
+
 export function caller(): StudentCaller {
   return createCaller(contextFor(ADMIN));
 }
@@ -74,6 +78,9 @@ export async function callHttpQuery(input: {
 }
 
 export async function cleanDatabase(prefix = TEST_PREFIX): Promise<void> {
+  await db.activityEvent.deleteMany({
+    where: { actorId: ADMIN.id, subjectName: { startsWith: prefix } },
+  });
   const students = await db.student.findMany({
     where: { fullName: { startsWith: prefix } },
     select: { id: true, addressId: true, guardianId: true },

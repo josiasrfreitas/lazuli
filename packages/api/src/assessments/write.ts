@@ -4,6 +4,8 @@ import { badRequest } from "../trpc/errors.js";
 import { lockProgress, type AssessmentContext, type Progress } from "./data.js";
 import { readAssessment, type AssessmentView } from "./read.js";
 import { assertGradeChanges, gradeChanges } from "./rules.js";
+import { recordAssessmentChanges } from "./activity.js";
+import { recordActivity } from "../activity/record.js";
 
 export async function saveAssessment(
   context: AssessmentContext,
@@ -25,6 +27,7 @@ export async function saveAssessment(
       confirmedById: null,
     },
   });
+  await recordAssessmentChanges(context, progress, values, changes);
   return readAssessment(context, progress.id);
 }
 async function ensureAssessment(context: AssessmentContext, progress: Progress): Promise<string> {
@@ -95,6 +98,14 @@ export async function confirmAssessment(
       confirmedAt: context.now,
       confirmedById: context.staffUser.id,
     },
+  });
+  await recordActivity(context.database, context, "assessments.confirm", {
+    subject: {
+      type: "student",
+      id: progress.enrollment.studentId,
+      name: `${progress.enrollment.student.fullName} · ${progress.stage.name}`,
+    },
+    description: `${values.decision === "APPROVED" ? "Aprovação" : "Repetência"} confirmada. ${values.reason}`,
   });
   return readAssessment(context, progress.id);
 }
