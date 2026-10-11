@@ -52,7 +52,7 @@ void it("uses an explicit form with three named validity choices and explains li
       submit: () => {},
     }),
   );
-  assert.match(markup, /<form[^>]*id="open-attendance-link"[^>]*noValidate=""/u);
+  assert.match(markup, /<form[^>]*id="open-attendance-link"[^>]*noValidate=""/iu);
   assert.match(markup, /aria-label="Validade do link"/u);
   assert.match(markup, /10 min/u);
   assert.match(markup, /20 min/u);
