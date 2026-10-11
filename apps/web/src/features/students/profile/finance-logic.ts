@@ -11,7 +11,7 @@ export type StudentFinanceState = {
   page: number;
   setPage: (page: number) => void;
   filter: FinanceFilter;
-  setFilter: (value: unknown) => void;
+  setFilter: (value: string | number | null) => void;
   payment: FinanceInstallmentRow | null;
   setPayment: (row: FinanceInstallmentRow | null) => void;
   registered: () => void;

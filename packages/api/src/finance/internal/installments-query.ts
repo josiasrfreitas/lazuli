@@ -319,13 +319,15 @@ function escapeLikePattern(value: string): string {
 /** Scope before grouping so a shared payer never includes another student's orders. */
 function matchesStudent(studentId: string | undefined): RawBuilder<boolean> {
   if (!studentId) return sql<boolean>`true`;
-  return sql<boolean>`(
-    ("Contract".student_id = ${studentId}::uuid and "Contract".deleted_at is null)
-    or exists (
-      select 1 from "OrderBeneficiary" beneficiary
-      where beneficiary.order_id = "Order".id
-        and beneficiary.student_id = ${studentId}::uuid
-        and beneficiary.deleted_at is null
+  return sql<boolean>`
+    (
+      ("Contract".student_id = ${studentId}::uuid and "Contract".deleted_at is null)
+      or exists (
+        select 1 from "OrderBeneficiary" beneficiary
+        where beneficiary.order_id = "Order".id
+          and beneficiary.student_id = ${studentId}::uuid
+          and beneficiary.deleted_at is null
+      )
     )
-  )`;
+  `;
 }

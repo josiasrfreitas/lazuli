@@ -73,6 +73,11 @@ function InstallmentAmounts({ row }: { row: FinanceRow }): ReactElement {
   return (
     <div className="grid gap-1">
       <span>{money(row.originalAmountCents)}</span>
+      {row.paidAmountCents > 0 && (
+        <span className="text-caption text-muted-foreground">
+          Pago {money(row.paidAmountCents)}
+        </span>
+      )}
       {row.collectibleBalanceCents > 0 && (
         <span className="text-caption text-muted-foreground">
           Saldo {money(row.collectibleBalanceCents)}

@@ -96,9 +96,9 @@ function financeTableState(state: StudentFinanceState): DataTableState<FinanceRo
   if (state.query.isError) return { kind: "error" };
   if (!state.data) return { kind: "loading" };
   const rows = state.data.rows.map((row) => ({ ...row, id: row.installmentId }));
-  return rows.length
+  return rows.length > 0
     ? { kind: "data", rows }
-    : { kind: state.filter !== "all" ? "noResults" : "empty" };
+    : { kind: state.filter === "all" ? "empty" : "noResults" };
 }
 function financePagination(state: StudentFinanceState): TablePaginationConfig {
   const common = {
