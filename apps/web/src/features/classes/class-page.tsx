@@ -6,6 +6,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { ClassOverview, ClassContext } from "./class-overview";
 import { MembershipDialog } from "./membership-dialog";
 import { AssignmentDialog } from "../teachers/assignment-dialog";
+import { ClassPerformance } from "~/features/assessments/class-performance";
 import { RosterSection } from "./roster-section";
 
 export function ClassPage({ id }: ClassPageInput): ReactElement {
@@ -39,6 +40,7 @@ function ClassDetailView({ detail, id }: ClassDetailViewInput): ReactElement {
     <>
       <ClassOverview detail={detail} enroll={() => setMembershipOpen(true)} />
       <ClassContext detail={detail} onAssign={() => setAssigning(true)} />
+      <ClassPerformance classId={id} />
       <RosterHeading search={search} onSearchChange={setSearch} />
       <RosterSection
         key={`${id}/${search}`}

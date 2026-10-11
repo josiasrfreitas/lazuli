@@ -54,6 +54,7 @@ function registerHappyPath(): void {
       classId: classRow.id,
       stageId: catalog.firstStageId,
     });
+    await approveAssessment(enrollmentId);
 
     const result = await caller().enrollment.advanceStage({ enrollmentId });
 
@@ -68,6 +69,30 @@ function registerHappyPath(): void {
     assert.equal(closed.length, 1);
     assert.equal(closed[0]?.stageId, catalog.firstStageId);
     assert.equal(closed[0]?.endReason, "ADVANCED");
+  });
+}
+
+async function approveAssessment(enrollmentId: string): Promise<void> {
+  const progress = await db.pedagogicalProgress.findFirstOrThrow({
+    where: { enrollmentId, endDate: null },
+  });
+  const view = await caller().assessments.byProgress({ progressId: progress.id });
+  const grades = (["ORAL", "LISTENING", "WRITTEN", "PARTICIPATION"] as const).flatMap(
+    (competence) =>
+      (["BLOCK_ONE", "BLOCK_TWO"] as const).map((phase) => ({
+        competence,
+        phase,
+        score: 60,
+        assessedOn: view.today,
+        reason: null,
+      })),
+  );
+  const saved = await caller().assessments.save({ progressId: progress.id, version: 0, grades });
+  await caller().assessments.confirm({
+    progressId: progress.id,
+    version: saved.version,
+    decision: "APPROVED",
+    reason: "Competências verificadas antes do avanço",
   });
 }
 

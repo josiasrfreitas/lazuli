@@ -6,6 +6,7 @@ import {
   assertNoDuplicateActiveEnrollment,
   assertStudentIsEnrollable,
   loadEnrollableClass,
+  lockEnrollmentOwner,
   openEnrollmentAtStage,
   resolveInitialStageId,
   type EnrollmentDatabase,
@@ -18,10 +19,27 @@ async function pausedSource(input: {
   database: EnrollmentDatabase;
   id: string;
   today: string;
-}): Promise<{ id: string; studentId: string }> {
+}): Promise<{
+  id: string;
+  studentId: string;
+  progress: { stageId: string; assessmentId: string | null } | null;
+}> {
+  await lockEnrollmentOwner(input.database, input.id);
   const source = await input.database.enrollment.findUnique({
     where: { id: input.id },
-    select: { id: true, studentId: true, exitDate: true, exitReason: true, deletedAt: true },
+    select: {
+      id: true,
+      studentId: true,
+      exitDate: true,
+      exitReason: true,
+      deletedAt: true,
+      progressRecords: {
+        where: { deletedAt: null },
+        orderBy: { startDate: "desc" },
+        take: 1,
+        select: { stageId: true, assessmentId: true },
+      },
+    },
   });
   if (source === null || source.deletedAt !== null)
     throw notFound("Vínculo pausado não encontrado.");
@@ -32,7 +50,11 @@ async function pausedSource(input: {
   ) {
     throw badRequest("O retorno exige um vínculo já pausado.");
   }
-  return { id: source.id, studentId: source.studentId };
+  return {
+    id: source.id,
+    studentId: source.studentId,
+    progress: source.progressRecords[0] ?? null,
+  };
 }
 
 export async function returnEnrollment(input: {
@@ -71,6 +93,7 @@ export async function returnEnrollment(input: {
     classId: target.id,
     entryDate: effectiveDate,
     stageId,
+    assessmentId: source.progress?.stageId === stageId ? source.progress.assessmentId : null,
     capacityOverrideReason: undefined,
   });
   await input.database.enrollmentAction.create({

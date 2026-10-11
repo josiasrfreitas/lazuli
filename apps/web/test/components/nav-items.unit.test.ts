@@ -15,6 +15,7 @@ const TEACHERS_PATH = "/professores";
 const LEADS_PATH = "/interessados";
 const ANALYTICS_PATH = "/financeiro";
 const CLASSES_PATH = "/turmas";
+const ASSESSMENTS_PATH = "/avaliacoes";
 const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
 const SETTINGS_PATH = "/ajustes";
@@ -46,7 +47,7 @@ void describe("role-aware navigation", () => {
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
-      ["/"],
+      ["/", ASSESSMENTS_PATH],
     );
   });
 
@@ -59,7 +60,7 @@ void describe("role-aware navigation", () => {
     ]);
     assert.deepEqual(
       navSectionsFor("TEACHER").map((section) => section.label),
-      [null],
+      [null, PEDAGOGICAL_LABEL],
     );
   });
 
@@ -83,7 +84,7 @@ void describe("role-aware navigation", () => {
 
   void it("sends Início to the role's first vertical, or nowhere", () => {
     assert.equal(homeHrefFor("ADMIN"), STUDENTS_PATH);
-    assert.equal(homeHrefFor("TEACHER"), null);
+    assert.equal(homeHrefFor("TEACHER"), ASSESSMENTS_PATH);
     assert.equal(homeHrefFor("SECRETARY"), null);
     assert.equal(homeHrefFor("FINANCE"), null);
   });
@@ -102,7 +103,7 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
     assert.equal(navBreadcrumbFor(RECEIVABLES_PATH, role), null);
     assert.deepEqual(
       navItemsFor(role).map((item) => item.href),
-      ["/"],
+      role === "TEACHER" ? ["/", ASSESSMENTS_PATH] : ["/"],
     );
   }
 });

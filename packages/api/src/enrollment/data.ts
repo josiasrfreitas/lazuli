@@ -90,7 +90,7 @@ const activeEnrollmentSelect = {
   class: { select: { scheduleType: true } },
   progressRecords: {
     where: { endDate: null, deletedAt: null },
-    select: { stageId: true },
+    select: { stageId: true, assessmentId: true },
   },
 } satisfies Prisma.EnrollmentSelect;
 
@@ -108,6 +108,7 @@ export async function loadActiveEnrollment(input: {
   enrollmentId: string;
   notActiveMessage: string;
 }): Promise<ActiveEnrollment> {
+  await lockEnrollmentOwner(input.database, input.enrollmentId);
   const enrollment = await input.database.enrollment.findUnique({
     where: { id: input.enrollmentId },
     select: activeEnrollmentSelect,
@@ -305,6 +306,7 @@ export async function openEnrollmentAtStage(input: {
   entryDate: Date;
   stageId: string;
   capacityOverrideReason: string | undefined;
+  assessmentId?: string | null;
 }): Promise<{ enrollment: EnrollmentSummary; progress: ProgressSummary }> {
   await lockStudentEnrollment(input.database, input.studentId);
   await assertTrackAvailable(input);
@@ -320,7 +322,12 @@ export async function openEnrollmentAtStage(input: {
     select: enrollmentSummarySelect,
   });
   const progress = await input.database.pedagogicalProgress.create({
-    data: { enrollmentId: enrollment.id, stageId: input.stageId, startDate: input.entryDate },
+    data: {
+      enrollmentId: enrollment.id,
+      stageId: input.stageId,
+      startDate: input.entryDate,
+      assessmentId: input.assessmentId ?? null,
+    },
     select: progressSummarySelect,
   });
 
@@ -336,4 +343,16 @@ export async function lockStudentEnrollment(
   await database.$queryRaw`
     SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0)) IS NULL AS locked
   `;
+}
+
+export async function lockEnrollmentOwner(
+  database: EnrollmentDatabase,
+  enrollmentId: string,
+): Promise<void> {
+  const enrollment = await database.enrollment.findUnique({
+    where: { id: enrollmentId },
+    select: { studentId: true },
+  });
+  if (!enrollment) throw notFound(ENROLLMENT_NOT_FOUND_MESSAGE);
+  await lockStudentEnrollment(database, enrollment.studentId);
 }
