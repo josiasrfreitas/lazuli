@@ -1,3 +1,4 @@
+import { semesterOrganizationRouter } from "./semester-organization/router.js";
 import { createCallerFactory, protectedProcedure, publicProcedure, router } from "./trpc/init.js";
 import { appointmentsRouter } from "./appointments/router.js";
 import { sessionGenerationRouter } from "./session-generation/router.js";
@@ -20,6 +21,7 @@ import { studentsRouter } from "./students/router.js";
 import { occurrencesRouter, interventionsRouter } from "./occurrences/router.js";
 
 export const appRouter = router({
+  semesterOrganization: semesterOrganizationRouter,
   health: publicProcedure.query(() => ({ status: "ok" as const })),
   me: protectedProcedure.query(({ ctx }) => ctx.staffUser),
   students: studentsRouter,

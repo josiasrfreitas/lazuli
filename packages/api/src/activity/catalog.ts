@@ -6,6 +6,18 @@ export const ACTIVITY_AREAS = {
 } as const;
 export type ActivityArea = keyof typeof ACTIVITY_AREAS;
 export const ACTIVITY_ACTIONS = {
+  "semesterOrganization.savePlan": ["PEDAGOGICAL", "Turma do próximo semestre organizada"],
+  "semesterOrganization.savePlacement": ["PEDAGOGICAL", "Proposta de alocação registrada"],
+  "semesterOrganization.confirmAvailability": [
+    "PEDAGOGICAL",
+    "Disponibilidade do aluno confirmada",
+  ],
+  "semesterOrganization.invalidateAvailability": [
+    "PEDAGOGICAL",
+    "Disponibilidade do aluno invalidada",
+  ],
+  "semesterOrganization.publish": ["PEDAGOGICAL", "Alocações do próximo semestre publicadas"],
+  "semesterOrganization.withdraw": ["PEDAGOGICAL", "Publicação do próximo semestre desfeita"],
   "appointments.schedule": ["PEDAGOGICAL", "Atendimento agendado"],
   "appointments.record": ["PEDAGOGICAL", "Atendimento registrado"],
   "appointments.correct": ["PEDAGOGICAL", "Atendimento corrigido"],

@@ -16,8 +16,9 @@ async function processEnrollmentActions(): Promise<void> {
   if (applyingEnrollmentActions) return;
   applyingEnrollmentActions = true;
   try {
-    const applied = await db.$transaction((database) =>
-      processDueEnrollmentActions({ database, now: new Date() }),
+    const applied = await db.$transaction(
+      (database) => processDueEnrollmentActions({ database, now: new Date() }),
+      { timeout: 30_000 },
     );
     if (applied > 0) log(`applied ${applied} scheduled enrollment actions`);
   } catch {
