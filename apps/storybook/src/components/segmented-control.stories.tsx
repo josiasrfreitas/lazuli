@@ -11,6 +11,9 @@ const meta = {
   title: "Components/SegmentedControl",
   component: SegmentedControl,
   tags: ["autodocs"],
+  argTypes: {
+    wrap: { control: "boolean", description: "Wrap longer choices within narrow forms." },
+  },
   parameters: {
     docs: {
       description: {
@@ -90,4 +93,29 @@ export const States: Story = {
       <DocumentTypeExample disabled />
     </div>
   ),
+};
+
+export const WrappedChoices: Story = {
+  args: { value: "makeup", onValueChange: () => {}, wrap: true, size: "sm" },
+  render: (args) => (
+    <div className="w-64">
+      <SegmentedControl {...args} aria-label="Appointment purpose">
+        <SegmentedControlItem value="makeup">Absence replacement</SegmentedControlItem>
+        <SegmentedControlItem value="support">Academic support</SegmentedControlItem>
+        <SegmentedControlItem value="assessment">Assessment</SegmentedControlItem>
+      </SegmentedControl>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const group = within(canvasElement).getByRole("group", { name: "Appointment purpose" });
+    const first = within(group).getByRole("button", { name: "Absence replacement" });
+    const last = within(group).getByRole("button", { name: "Assessment" });
+    await expect(last.getBoundingClientRect().top).toBeGreaterThan(
+      first.getBoundingClientRect().top,
+    );
+    await expect(group.scrollWidth).toBeLessThanOrEqual(group.clientWidth);
+    await userEvent.click(first);
+    await userEvent.keyboard("{ArrowRight}");
+    await expect(within(group).getByRole("button", { name: "Academic support" })).toHaveFocus();
+  },
 };
