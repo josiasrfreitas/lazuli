@@ -203,6 +203,11 @@ model User {
   assessmentsConfirmed StageAssessment[] @relation("AssessmentConfirmer")
   gradesRecorded AssessmentGrade[] @relation("GradeRecorder")
   activities ActivityEvent[]
+  pedagogicalOccurrences PedagogicalOccurrence[] @relation("OccurrenceAuthor")
+  assignedInterventions PedagogicalIntervention[] @relation("InterventionOwner")
+  createdInterventions PedagogicalIntervention[] @relation("InterventionAuthor")
+  pedagogicalFollowUps PedagogicalFollowUp[]
+  occurrenceRelations OccurrenceRelation[]
 }
 
 model Account {
@@ -283,6 +288,8 @@ model Student {
   stagePlans StagePlan[]
   admissionCandidates AdmissionCandidate[]
   assessments StageAssessment[]
+  pedagogicalOccurrences PedagogicalOccurrence[]
+  pedagogicalInterventions PedagogicalIntervention[]
 }
 
 model Guardian {
@@ -629,6 +636,7 @@ model ClassSession {
   @@index([attendanceConfirmedById])
   classRecord ClassSessionRecord?
   entryVisits EntryVisit[]
+  pedagogicalOccurrences PedagogicalOccurrence[]
 }
 
 model Attendance {
@@ -1384,4 +1392,114 @@ model LeadContact {
   candidate AdmissionCandidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
   recordedBy User @relation("LeadContactRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
   @@index([candidateId, contactedOn])
+}
+
+enum OccurrenceCategory {
+  MATERIAL
+  HOMEWORK
+  PARTICIPATION
+  BEHAVIOR
+  LEARNING
+  OTHER
+}
+
+enum InterventionStatus {
+  OPEN
+  IN_PROGRESS
+  CONCLUDED
+}
+
+model PedagogicalOccurrence {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  studentId String @map("student_id") @db.Uuid
+  classSessionId String @map("class_session_id") @db.Uuid
+  category OccurrenceCategory
+  title String
+  account String
+  initialResponse String? @map("initial_response")
+  recordedById String @map("recorded_by_id") @db.Uuid
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("OccurrenceAuthor", fields: [recordedById], references: [id], onDelete: Restrict)
+  relationsFrom OccurrenceRelation[] @relation("OccurrenceFrom")
+  relationsTo OccurrenceRelation[] @relation("OccurrenceTo")
+  interventions InterventionOccurrence[]
+  followUps PedagogicalFollowUp[]
+  @@index([studentId, createdAt])
+  @@index([recordedById, createdAt])
+  @@index([classSessionId])
+}
+
+model OccurrenceRelation {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  fromId String @map("from_id") @db.Uuid
+  toId String @map("to_id") @db.Uuid
+  recordedById String @map("recorded_by_id") @db.Uuid
+  from PedagogicalOccurrence @relation("OccurrenceFrom", fields: [fromId], references: [id], onDelete: Restrict)
+  to PedagogicalOccurrence @relation("OccurrenceTo", fields: [toId], references: [id], onDelete: Restrict)
+  recordedBy User @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  @@unique([fromId, toId])
+  @@index([toId])
+}
+
+model PedagogicalIntervention {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  studentId String @map("student_id") @db.Uuid
+  teacherId String @map("teacher_id") @db.Uuid
+  recordedById String @map("recorded_by_id") @db.Uuid
+  title String
+  objective String
+  nextStep String @map("next_step")
+  dueOn DateTime? @map("due_on") @db.Date
+  status InterventionStatus @default(OPEN)
+  concludedAt DateTime? @map("concluded_at") @db.Timestamptz
+  outcome String?
+  version Int @default(0)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  teacher User @relation("InterventionOwner", fields: [teacherId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("InterventionAuthor", fields: [recordedById], references: [id], onDelete: Restrict)
+  occurrences InterventionOccurrence[]
+  followUps PedagogicalFollowUp[]
+  @@index([studentId, createdAt])
+  @@index([teacherId, status])
+  @@index([status, dueOn])
+}
+
+model InterventionOccurrence {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  interventionId String @map("intervention_id") @db.Uuid
+  occurrenceId String @map("occurrence_id") @db.Uuid
+  intervention PedagogicalIntervention @relation(fields: [interventionId], references: [id], onDelete: Restrict)
+  occurrence PedagogicalOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Restrict)
+  @@unique([interventionId, occurrenceId])
+  @@index([occurrenceId])
+}
+
+model PedagogicalFollowUp {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  occurrenceId String? @map("occurrence_id") @db.Uuid
+  interventionId String? @map("intervention_id") @db.Uuid
+  recordedById String @map("recorded_by_id") @db.Uuid
+  kind String
+  body String
+  occurrence PedagogicalOccurrence? @relation(fields: [occurrenceId], references: [id], onDelete: Restrict)
+  intervention PedagogicalIntervention? @relation(fields: [interventionId], references: [id], onDelete: Restrict)
+  recordedBy User @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  @@index([occurrenceId, createdAt])
+  @@index([interventionId, createdAt])
 }

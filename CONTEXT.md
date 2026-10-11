@@ -137,9 +137,11 @@ One of the two assessment groups within a stage, containing one grade for each c
 
 **Pedagogical Occurrence**:
 A teacher's report of an atypical situation after a class, including the initial response.
+Occurrences may relate to one another independently of an intervention.
 
 **Pedagogical Intervention**:
-Follow-up conducted by the pedagogical department, which may result from its review of an occurrence.
+A series of related occurrences that requires a teacher’s action. It groups the motivating
+occurrences and identifies the responsible teacher, with follow-up and an outcome.
 
 **Experimental Session**:
 A prospective student's participation in a scheduled meeting of an existing class.

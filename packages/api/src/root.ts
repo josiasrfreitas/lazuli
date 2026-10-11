@@ -15,6 +15,8 @@ import { financeRouter } from "./finance/router.js";
 import { reportsRouter } from "./reports/router.js";
 import { studentsRouter } from "./students/router.js";
 
+import { occurrencesRouter, interventionsRouter } from "./occurrences/router.js";
+
 export const appRouter = router({
   studentAttendance: studentAttendanceRouter,
   classRecords: classRecordsRouter,
@@ -29,6 +31,8 @@ export const appRouter = router({
   enrollment: enrollmentRouter,
   attendance: attendanceRouter,
   assessments: assessmentsRouter,
+  occurrences: occurrencesRouter,
+  interventions: interventionsRouter,
   activity: activityRouter,
   finance: financeRouter,
   reports: reportsRouter,
