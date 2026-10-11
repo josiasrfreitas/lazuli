@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState, type ReactElement } from "react";
 import { Button, Input } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -40,6 +41,23 @@ function ClassDetailView({ detail, id }: ClassDetailViewInput): ReactElement {
     <>
       <ClassOverview detail={detail} enroll={() => setMembershipOpen(true)} />
       <ClassContext detail={detail} onAssign={() => setAssigning(true)} />
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 sm:px-6">
+        <div>
+          <h2 className="text-sm font-semibold">Planejamento de estágio</h2>
+          <p className="mt-1 text-caption text-muted-foreground">
+            {detail.scheduleType === "REGULAR"
+              ? "Cronograma compartilhado, atividades e prazo do semestre."
+              : "Roteiro e prazo individual para cada aluno do PPT."}
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          nativeButton={false}
+          render={<Link href={`/planejamento?turma=${id}`} />}
+        >
+          Abrir planejamento
+        </Button>
+      </div>
       <ClassPerformance classId={id} />
       <RosterHeading search={search} onSearchChange={setSearch} />
       <RosterSection

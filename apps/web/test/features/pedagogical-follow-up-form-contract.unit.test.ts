@@ -3,7 +3,7 @@ import { it } from "node:test";
 import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { NarrativeField } from "../../src/features/pedagogical-follow-up/form-parts.js";
+import { NarrativeField } from "../../src/features/shared/task-form.js";
 import {
   InterventionFields,
   MotivatingOccurrenceFields,

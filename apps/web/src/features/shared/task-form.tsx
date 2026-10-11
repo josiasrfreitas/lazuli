@@ -70,7 +70,7 @@ export function NarrativeField({
     </Field>
   );
 }
-export function FollowUpDialog({
+export function TaskDialog({
   title,
   description,
   onClose,

@@ -151,7 +151,7 @@ void it("preserves original intention, removed item identity and attributed revi
     caller().planning.removeItem({ ...f.target, itemId, version: 2, reason: "Tela antiga." }),
     { code: "CONFLICT" },
   );
-  const history = await caller().planning.history(f.target);
+  const history = await caller().planning.history({ ...f.target, direction: "forward" });
   assert.deepEqual(
     history.items.map((row) => row.version),
     [3, 2, 1],
@@ -248,4 +248,52 @@ void it("restricts the plan to its class owner and rejects financial access and 
     { code: "NOT_FOUND" },
   );
   assert.equal((await caller("2075-02-15", teacher).planning.detail(f.target)).plan?.version, 1);
+});
+
+void it("closes the old plan for editing on the actual advance day and starts the next stage without borrowing it", async () => {
+  const f = await fixture();
+  await caller().planning.saveWindow({ ...f.target, ...dates, version: 0 });
+  const grades = (["ORAL", "LISTENING", "WRITTEN", "PARTICIPATION"] as const).flatMap(
+    (competence) =>
+      (["BLOCK_ONE", "BLOCK_TWO"] as const).map((phase) => ({
+        competence,
+        phase,
+        score: 80,
+        assessedOn: "2075-02-15",
+        reason: null,
+      })),
+  );
+  const assessment = await caller().assessments.save({
+    progressId: f.enrollment.progress.id,
+    version: 0,
+    grades,
+  });
+  await caller().assessments.confirm({
+    progressId: f.enrollment.progress.id,
+    version: assessment.version,
+    decision: "APPROVED",
+    reason: "Competências suficientes para o próximo estágio.",
+  });
+  const advanced = await caller().enrollment.advanceStage({
+    enrollmentId: f.enrollment.enrollment.id,
+  });
+  const previous = await caller().planning.detail(f.target);
+  assert.equal(previous.scope.readOnly, true);
+  assert.equal(previous.plan?.plannedEndOn, "2075-06-20");
+  await assert.rejects(
+    caller().planning.saveWindow({
+      ...f.target,
+      ...dates,
+      version: 1,
+      reason: "Alteração tardia do roteiro.",
+    }),
+    { code: "BAD_REQUEST", message: /contexto está encerrado/ },
+  );
+  const next = await caller("2075-02-16").planning.detail({
+    classId: f.group.id,
+    progressId: advanced.progress.id,
+  });
+  assert.equal(next.plan, null);
+  assert.equal(next.scope.stage.id, f.catalog.secondStageId);
+  assert.equal((await caller().planning.history(f.target)).items.length, 1);
 });

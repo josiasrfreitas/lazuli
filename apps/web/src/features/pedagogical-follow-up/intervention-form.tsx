@@ -7,7 +7,7 @@ import { SelectControl, TextControl } from "~/features/classes/form-controls";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { trpc } from "~/lib/trpc";
 import { dateLabel, type Occurrence, type OccurrenceRow, QueryState } from "./shared";
-import { FollowUpDialog, NarrativeField, useValidation } from "./form-parts";
+import { TaskDialog, NarrativeField, useValidation } from "~/features/shared/task-form";
 export function InterventionForm({
   source,
   onClose,
@@ -42,7 +42,7 @@ export function InterventionForm({
     save.reset();
   };
   return (
-    <FollowUpDialog
+    <TaskDialog
       title="Organizar intervenção"
       description={`${source.student.fullName} · ${step === 0 ? "Reúna os relatos que motivam a atuação." : "Combine a atuação e o próximo passo."}`}
       firstField={step === 0 ? "motivating-first" : "intervention-title"}
@@ -115,7 +115,7 @@ export function InterventionForm({
           </Button>
         )}
       </form>
-    </FollowUpDialog>
+    </TaskDialog>
   );
 }
 type Fields = {

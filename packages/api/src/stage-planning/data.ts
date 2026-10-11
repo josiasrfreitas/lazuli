@@ -97,7 +97,7 @@ export async function loadPlanningScope(
   }
   const ended =
     progress &&
-    ((progress.endDate && dateOnly(progress.endDate) < today) ||
+    ((progress.endDate && dateOnly(progress.endDate) <= today) ||
       (progress.enrollment.exitDate && dateOnly(progress.enrollment.exitDate) <= today));
   if (
     context.staffUser.role === "TEACHER" &&

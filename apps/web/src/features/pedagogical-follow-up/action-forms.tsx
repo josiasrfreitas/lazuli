@@ -7,7 +7,7 @@ import { trpc } from "~/lib/trpc";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { SelectControl, TextControl } from "~/features/classes/form-controls";
 import { dateLabel, type Intervention } from "./shared";
-import { FollowUpDialog, NarrativeField, useValidation } from "./form-parts";
+import { TaskDialog, NarrativeField, useValidation } from "~/features/shared/task-form";
 export function OccurrenceNoteForm({
   id,
   onClose,
@@ -25,7 +25,7 @@ export function OccurrenceNoteForm({
     },
   });
   return (
-    <FollowUpDialog
+    <TaskDialog
       title="Complementar relato"
       description="O relato original será preservado, com este complemento e sua autoria."
       formId="occurrence-note"
@@ -62,7 +62,7 @@ export function OccurrenceNoteForm({
           />
         </FormSection>
       </form>
-    </FollowUpDialog>
+    </TaskDialog>
   );
 }
 const actionTitles = {
@@ -111,7 +111,7 @@ export function InterventionUpdateForm({
     save.reset();
   };
   return (
-    <FollowUpDialog
+    <TaskDialog
       title={actionTitles[kind]}
       description={row.student.fullName}
       formId="intervention-update"
@@ -195,6 +195,6 @@ export function InterventionUpdateForm({
           </FormSection>
         )}
       </form>
-    </FollowUpDialog>
+    </TaskDialog>
   );
 }

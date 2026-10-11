@@ -180,11 +180,9 @@ do semestre, cenários sem aulas ou tempo suficiente são omitidos, sem fabricar
 Relações usam o par de UUIDs em ordem lexical, e acompanhamentos pertencem a uma ocorrência ou
 uma intervenção. Os eventos correspondentes aparecem no log de atividades com autoria e data.
 
-O loader integra o bootstrap. A função exportada `seedPedagogicalFollowUp(database, todayIso)`
-também permite ao integrador aplicar somente V10 ao banco isolado já populado, quando coordenado.
-Não cria um comando público adicional nem reinicia dados. Cada cenário é uma transação; se qualquer
-registro raiz daquele cenário já existe, inclusive excluído logicamente, ele é preservado por
-inteiro. Reaplicações não duplicam registros nem sobrescrevem alterações feitas durante validações.
+O loader participa da reconstrução completa pelo `pnpm seed`, conforme ADR0024. Cada cenário
+é carregado em uma transação. A proteção interna contra duplicidade é um detalhe do loader;
+o comando oficial recria a base e substitui também os registros manuais de validação.
 
 ## Planejamento de estágio
 
@@ -193,6 +191,7 @@ No regular, 12 roteiros estão detalhados até o fim do semestre, cinco estão p
 iniciados. No PPT, são 18 detalhados, dez parciais e quatro iniciados. Completude aqui descreve
 o roteiro planejado; não comprova conteúdo realizado nem aprovação. Os dez estágios PPT já
 avançados também conservam planos históricos enxutos, com prazos anteriores ao avanço real.
+Na reconstrução de 11/10/2026, são 61 planos, 984 atividades ativas e três retiradas do roteiro.
 No começo do semestre, o número de históricos acompanha os avanços que já puderam ocorrer.
 Alunos sem matrícula não recebem planos ou estágios artificiais.
 
@@ -213,7 +212,8 @@ Prazo vencido não identifica atividade não realizada e não muda a data efetiv
 Cada plano possui snapshot inicial v1 com autoria. Quatro planos regulares e oito PPT têm
 revisões adicionais; dois PPT recebem duas mudanças, totalizando até 14 revisões além das iniciais.
 As alterações ficam 21 e 35 dias após o início, sempre antes do dia atual; sem tempo suficiente,
-a revisão é omitida. Criação usa autoria sintética da administração, primeira revisão do docente
+a revisão é omitida. Em 11/10/2026 há 13 revisões adicionais e 74 snapshots no total: um estágio
+iniciado em 04/10 ainda não chegou à primeira revisão prevista em 25/10. Criação usa autoria sintética da administração, primeira revisão do docente
 da turma e segunda da administração. Os snapshots guardam o estado completo após cada mudança,
 em ordem de data, criação e ID: substituição por revisão sem página, ajuste de prazo/objetivo,
 remoção preservada logicamente e repetição intencional de uma referência. Itens removidos mantêm

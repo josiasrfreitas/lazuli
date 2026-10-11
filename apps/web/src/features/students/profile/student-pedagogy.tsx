@@ -91,6 +91,15 @@ function CurrentEnrollment({
           </p>
         )}
       </div>
+      <div className="px-5 pb-5 sm:px-6">
+        <Button
+          variant="secondary"
+          nativeButton={false}
+          render={<Link href={planningHref(enrollment, today)} />}
+        >
+          Ver planejamento do estágio
+        </Button>
+      </div>
       <ProgressJourney enrollment={enrollment} today={today} />
     </article>
   );
@@ -167,7 +176,18 @@ function ProgressJourney({
             key={item.id}
             className="flex flex-wrap items-baseline justify-between gap-2 border-l-2 border-border-strong pl-3"
           >
-            <span className="text-sm font-medium">{item.stage}</span>
+            <div className="flex flex-wrap items-baseline gap-3">
+              <span className="text-sm font-medium">{item.stage}</span>
+              {enrollment.class.scheduleType === "PERSONALIZED" && (
+                <Link
+                  className="text-caption text-interactive hover:underline"
+                  href={`/planejamento?turma=${enrollment.class.id}&percurso=${item.id}`}
+                  aria-label={`Planejamento de ${item.stage}`}
+                >
+                  Planejamento
+                </Link>
+              )}
+            </div>
             <span className="text-caption text-muted-foreground">
               {formatDateOnlyBR(item.startDate)}
               {progressEndLabel(item, today)}
@@ -214,4 +234,14 @@ function EnrollmentHeading({
 function progressEndLabel(item: StudentEnrollment["progress"][number], today: string): string {
   if (item.endDate) return ` — ${formatDateOnlyBR(item.endDate)}`;
   return item.startDate > today ? " · agendado" : " · em andamento";
+}
+
+function planningHref(enrollment: StudentEnrollment, today: string): string {
+  const progress = enrollment.progress.find(
+    (item) => item.startDate <= today && (!item.endDate || item.endDate >= today),
+  );
+  const params = new URLSearchParams({ turma: enrollment.class.id });
+  if (enrollment.class.scheduleType === "PERSONALIZED" && progress)
+    params.set("percurso", progress.id);
+  return `/planejamento?${params.toString()}`;
 }

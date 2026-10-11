@@ -20,7 +20,12 @@ export const planningRouter = router({
     .input(stagePlanTargetSchema)
     .query(({ ctx, input }) => readPlanning(context(ctx), input)),
   history: staffProcedure
-    .input(stagePlanTargetSchema.extend({ cursor: z.number().int().positive().optional() }))
+    .input(
+      stagePlanTargetSchema.extend({
+        cursor: z.number().int().positive().optional(),
+        direction: z.enum(["forward", "backward"]).optional(),
+      }),
+    )
     .query(({ ctx, input }) => planningHistory(context(ctx), input)),
   saveWindow: staffProcedure
     .input(stagePlanWindowSchema)

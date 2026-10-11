@@ -15,7 +15,10 @@ const HISTORY_PAGE_SIZE = 20;
 export async function planningContexts(context: PlanningContext) {
   const today = new Date(saoPauloDateOnly(context.now));
   const rows = await context.database.class.findMany({
-    where: { deletedAt: null, status: "ACTIVE" },
+    where: {
+      deletedAt: null,
+      ...(context.staffUser.role === "TEACHER" ? { status: "ACTIVE" as const } : {}),
+    },
     orderBy: [{ semester: { startDate: "desc" } }, { portalClassName: "asc" }],
     select: {
       ...responsibilitySelect,
@@ -26,15 +29,18 @@ export async function planningContexts(context: PlanningContext) {
       enrollments: {
         where: {
           deletedAt: null,
-          OR: [{ exitDate: null }, { exitDate: { gt: today } }],
+          ...(context.staffUser.role === "TEACHER"
+            ? { OR: [{ exitDate: null }, { exitDate: { gt: today } }] }
+            : {}),
           student: { deletedAt: null },
         },
         select: {
+          exitDate: true,
           student: { select: { id: true, fullName: true } },
           progressRecords: {
-            where: { deletedAt: null, OR: [{ endDate: null }, { endDate: { gte: today } }] },
+            where: { deletedAt: null },
             orderBy: { startDate: "asc" },
-            select: { id: true, stage: { select: stageSelect }, startDate: true },
+            select: { id: true, stage: { select: stageSelect }, startDate: true, endDate: true },
           },
         },
       },
@@ -62,9 +68,18 @@ export async function planningContexts(context: PlanningContext) {
                   name: enrollment.student.fullName,
                   stage: progress.stage.name,
                   startOn: dateOnly(progress.startDate),
+                  historical: Boolean(
+                    (progress.endDate && progress.endDate <= today) ||
+                    (enrollment.exitDate && enrollment.exitDate <= today),
+                  ),
                 })),
               )
-              .toSorted((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+              .toSorted(
+                (a, b) =>
+                  Number(a.historical) - Number(b.historical) ||
+                  a.name.localeCompare(b.name, "pt-BR") ||
+                  b.startOn.localeCompare(a.startOn),
+              ),
     }));
 }
 export async function readPlanning(context: PlanningContext, target: StagePlanTarget) {
@@ -106,15 +121,13 @@ export async function planningHistory(
     orderBy: { version: "desc" },
     take: HISTORY_PAGE_SIZE + 1,
   });
-  const items = rows
-    .slice(0, HISTORY_PAGE_SIZE)
-    .map((row) => ({
-      id: row.id,
-      version: row.version,
-      reason: row.reason,
-      createdAt: row.createdAt,
-      recordedBy: row.recordedBy.name,
-      snapshot: stagePlanSnapshotSchema.parse(row.snapshot),
-    }));
+  const items = rows.slice(0, HISTORY_PAGE_SIZE).map((row) => ({
+    id: row.id,
+    version: row.version,
+    reason: row.reason,
+    createdAt: row.createdAt,
+    recordedBy: row.recordedBy.name,
+    snapshot: stagePlanSnapshotSchema.parse(row.snapshot),
+  }));
   return { items, nextCursor: rows.length > HISTORY_PAGE_SIZE ? items.at(-1)?.version : undefined };
 }

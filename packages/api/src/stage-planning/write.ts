@@ -98,19 +98,26 @@ export async function savePlanItem(context: PlanningContext, input: StagePlanIte
     context,
     scope,
     plan.id,
-    input.reason ?? `Atividade incluída: ${input.title}.`,
+    previous
+      ? `Atividade revisada: ${previous.title}. ${input.reason}`
+      : `Atividade incluída: ${input.title}.${input.reason ? ` ${input.reason}` : ""}`,
   );
 }
 export async function removePlanItem(context: PlanningContext, input: StagePlanRemove) {
   const { scope, plan } = await editablePlan(context, input, input.version);
-  if (!plan || !plan.items.some((item) => item.id === input.itemId))
-    throw notFound("Atividade não encontrada neste plano.");
+  const item = plan?.items.find((row) => row.id === input.itemId);
+  if (!plan || !item) throw notFound("Atividade não encontrada neste plano.");
   await bumpVersion(context, plan);
   await context.database.stagePlanItem.update({
     where: { id: input.itemId },
     data: { deletedAt: context.now },
   });
-  return recordRevision(context, scope, plan.id, input.reason);
+  return recordRevision(
+    context,
+    scope,
+    plan.id,
+    `Atividade retirada: ${item.title}. ${input.reason}`,
+  );
 }
 async function bumpVersion(context: PlanningContext, plan: Plan): Promise<void> {
   const result = await context.database.stagePlan.updateMany({
