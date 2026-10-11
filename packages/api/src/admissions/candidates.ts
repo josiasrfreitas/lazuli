@@ -15,6 +15,7 @@ const ISO_DATE_LENGTH = 10;
 const ADMISSION_LOCK_NAMESPACE = 168;
 export const dateOnly = (date: Date): string => date.toISOString().slice(0, ISO_DATE_LENGTH);
 const candidateInclude = {
+  owner: { select: { id: true, name: true } },
   availability: true,
   stage: { include: { track: { select: { name: true } } } },
   student: { select: { id: true, fullName: true } },
@@ -40,7 +41,15 @@ export async function lockCandidate(database: Prisma.TransactionClient, id: stri
 export function assertAllocatable(
   row: Awaited<ReturnType<typeof readCandidate>>,
   date: string,
-): void {
+): asserts row is AdmissionCandidate & {
+  availableUntil: Date;
+  scheduleType: NonNullable<AdmissionCandidate["scheduleType"]>;
+  format: NonNullable<AdmissionCandidate["format"]>;
+} {
+  if (!row.availableUntil || !row.scheduleType || !row.format || row.availability.length === 0)
+    throw badRequest(
+      "Defina modalidade, formato e disponibilidade antes de buscar uma turma ou agendar aula.",
+    );
   if (row.status !== "WAITING") throw badRequest("Este lead não está aguardando alocação.");
   if (!availabilityIsCurrent(dateOnly(row.availableUntil), date))
     throw badRequest(
@@ -108,10 +117,11 @@ export async function listCandidates(
   const where: Prisma.AdmissionCandidateWhereInput = {
     deletedAt: null,
     ...(input.status === "ALL" ? {} : { status: input.status }),
+    ...followUpWhere(input.followUp, today),
     ...(input.expiredOnly ? { availableUntil: { lt: new Date(today) } } : {}),
     ...(input.search
       ? {
-          OR: ["fullName", "phone", "email"].map((field) => ({
+          OR: ["fullName", "phone", "email", "contactName"].map((field) => ({
             [field]: { contains: input.search, mode: "insensitive" },
           })),
         }
@@ -121,7 +131,11 @@ export async function listCandidates(
     database.admissionCandidate.findMany({
       where,
       include: candidateInclude,
-      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+      orderBy: [
+        { nextActionOn: { sort: "asc", nulls: "last" } },
+        { createdAt: "desc" },
+        { id: "asc" },
+      ],
       skip: (input.page - 1) * input.pageSize,
       take: input.pageSize,
     }),
@@ -195,7 +209,13 @@ type ClassMatch = {
   enrolled: number;
   capacity: number;
 };
-function matchingWhere(candidate: AdmissionCandidate, date: string): Prisma.ClassWhereInput {
+function matchingWhere(
+  candidate: AdmissionCandidate & {
+    scheduleType: NonNullable<AdmissionCandidate["scheduleType"]>;
+    format: NonNullable<AdmissionCandidate["format"]>;
+  },
+  date: string,
+): Prisma.ClassWhereInput {
   return {
     deletedAt: null,
     status: "ACTIVE",
@@ -208,4 +228,11 @@ function matchingWhere(candidate: AdmissionCandidate, date: string): Prisma.Clas
       endDate: { gte: new Date(date) },
     },
   };
+}
+
+function followUpWhere(view: string, today: string): Prisma.AdmissionCandidateWhereInput {
+  if (view === "OVERDUE") return { status: "WAITING", nextActionOn: { lt: new Date(today) } };
+  if (view === "TODAY") return { status: "WAITING", nextActionOn: new Date(today) };
+  if (view === "UNPLANNED") return { status: "WAITING", nextActionOn: null };
+  return {};
 }

@@ -84,7 +84,13 @@ export function VisitDialog({
       ...(previousVisitId ? { previousVisitId } : {}),
       meeting:
         kind === "INTRODUCTION"
-          ? { kind, teacherId: teacher?.id ?? "", startTime, endTime, format: candidate.format }
+          ? {
+              kind,
+              teacherId: teacher?.id ?? "",
+              startTime,
+              endTime,
+              format: candidate.format ?? "IN_PERSON",
+            }
           : {
               kind,
               classId,

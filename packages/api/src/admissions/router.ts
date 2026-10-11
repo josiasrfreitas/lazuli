@@ -1,6 +1,16 @@
+import {
+  captureLead,
+  updateLeadDetails,
+  setLeadNextStep,
+  recordLeadContact,
+  leadContacts,
+} from "./follow-up.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   z,
+  leadCaptureSchema,
+  leadNextStepSchema,
+  leadContactSchema,
   admissionIdSchema,
   admissionSaveSchema,
   admissionListSchema,
@@ -27,6 +37,61 @@ import { meetingsBetween } from "../teachers/schedule.js";
 import { lockTeacher } from "../teachers/availability.js";
 
 export const admissionsRouter = router({
+  details: adminProcedure
+    .input(leadCaptureSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        updateLeadDetails({
+          database,
+          values: input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      ),
+    ),
+  capture: adminProcedure
+    .input(leadCaptureSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        captureLead({
+          database,
+          values: input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      ),
+    ),
+  nextStep: adminProcedure
+    .input(leadNextStepSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        setLeadNextStep({
+          database,
+          values: input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      ),
+    ),
+  contact: adminProcedure
+    .input(leadContactSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        recordLeadContact({
+          database,
+          values: input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      ),
+    ),
+  owners: adminProcedure.query(({ ctx }) =>
+    ctx.db.user.findMany({
+      where: { isEnabled: true, role: { in: ["ADMIN", "SYSTEM_ADMIN"] } },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ),
   guests: adminProcedure.input(entryVisitGuestsSchema).query(({ ctx, input }) =>
     ctx.db.entryVisit.findMany({
       where: {
@@ -47,6 +112,7 @@ export const admissionsRouter = router({
     .query(({ ctx, input }) => listCandidates(ctx.db, { input, now: ctx.now ?? new Date() })),
   byId: adminProcedure.input(admissionIdSchema).query(async ({ ctx, input }) => ({
     ...(await readCandidate(ctx.db, input.id)),
+    contacts: await leadContacts(ctx.db, input.id),
     visits: await candidateVisits(ctx.db, { id: input.id, now: ctx.now ?? new Date() }),
     today: saoPauloDateOnly(ctx.now ?? new Date()),
   })),
@@ -124,7 +190,11 @@ export const admissionsRouter = router({
           throw badRequest("Conclua ou cancele as aulas de entrada pendentes antes de arquivar.");
         return database.admissionCandidate.update({
           where: { id: input.id },
-          data: { status: input.status, recordedById: ctx.staffUser.id },
+          data: {
+            status: input.status,
+            ...(input.status === "ARCHIVED" ? { nextAction: null, nextActionOn: null } : {}),
+            recordedById: ctx.staffUser.id,
+          },
           select: { id: true },
         });
       }),

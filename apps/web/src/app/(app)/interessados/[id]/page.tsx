@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import { CandidatePage } from "~/features/admissions/candidate-page";
-export const metadata: Metadata = { title: "Entrada e alocação" };
+export const metadata: Metadata = { title: "Lead" };
 export default async function CandidateRoute({
   params,
 }: {
