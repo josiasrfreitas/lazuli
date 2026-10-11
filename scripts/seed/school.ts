@@ -11,6 +11,7 @@ import { seedContracts } from "./contracts.js";
 import { seedAdmissions } from "./admissions.js";
 import { seedAssessments } from "./assessments.js";
 import { seedActivity } from "./activity.js";
+import { seedPedagogicalFollowUp } from "./pedagogical-follow-up.js";
 
 /** Shared by initial provisioning and the destructive pnpm seed entry point. */
 export async function seedSchool(database: DatabaseClient, todayIso: string): Promise<void> {
@@ -36,6 +37,7 @@ export async function seedSchool(database: DatabaseClient, todayIso: string): Pr
   await seedContracts(database, todayIso);
   await seedAdmissions(database, todayIso);
   await seedAssessments(database, todayIso);
+  await seedPedagogicalFollowUp(database, todayIso);
   await seedActivity(database, todayIso);
   process.stdout.write(
     `School loaded for ${todayIso}: ${DEV_STUDENTS.length} students, ${DEV_CLASSES.length} classes and ${DEV_TEACHERS.length} teachers.\n`,

@@ -161,6 +161,31 @@ O loader integra o único `pnpm seed`; não cria um comando de atualização par
 cenários exige uma reconstrução coordenada do banco isolado depois que a exploração atual tiver
 terminado. A implementação do loader não modifica o banco em uso.
 
+## Ocorrências e intervenções
+
+O cenário V10 acrescenta até 38 ocorrências de 22 alunos: 12 pontuais, quatro pares relacionados
+sem intervenção e seis intervenções com três ocorrências motivadoras cada. Os relatos cobrem
+material, atividade de casa, participação, combinados de convivência, aprendizagem e organização
+da rotina. Descrevem situações observáveis e o apoio oferecido, sem rótulos ou diagnósticos.
+
+Cada relato usa uma aula passada com presença confirmada, dentro da matrícula, e o docente
+responsável congelado nessa aula. A administração cria e atribui as intervenções; o professor
+responsável registra os acompanhamentos. Duas intervenções ficam abertas, duas em andamento,
+uma concluída e uma reaberta em andamento. Uma aberta e uma em andamento têm prazo vencido;
+o acompanhamento de prática oral ainda não possui prazo definido. A concluída possui resultado e data; na reaberta, a conclusão anterior e seu resultado permanecem
+nos acompanhamentos, seguidos do motivo da reabertura. O resultado atual da reaberta é nulo.
+
+Datas respeitam a sequência de aulas, relatos, atribuição e observações posteriores. No começo
+do semestre, cenários sem aulas ou tempo suficiente são omitidos, sem fabricar histórico.
+Relações usam o par de UUIDs em ordem lexical, e acompanhamentos pertencem a uma ocorrência ou
+uma intervenção. Os eventos correspondentes aparecem no log de atividades com autoria e data.
+
+O loader integra o bootstrap. A função exportada `seedPedagogicalFollowUp(database, todayIso)`
+também permite ao integrador aplicar somente V10 ao banco isolado já populado, quando coordenado.
+Não cria um comando público adicional nem reinicia dados. Cada cenário é uma transação; se qualquer
+registro raiz daquele cenário já existe, inclusive excluído logicamente, ele é preservado por
+inteiro. Reaplicações não duplicam registros nem sobrescrevem alterações feitas durante validações.
+
 ## Log de atividades
 
 O bootstrap termina com uma linha do tempo baseada nos fatos que acabou de carregar: entradas
