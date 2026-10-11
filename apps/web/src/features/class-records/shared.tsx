@@ -37,36 +37,37 @@ export function PlannedReference({
 }: {
   value: ClassRecordSnapshot["sharedPlanned"];
 }): ReactElement {
+  if (!value?.items.length)
+    return (
+      <p className="text-caption text-muted-foreground">
+        {value
+          ? `Nenhuma atividade prevista para esta data · plano v${value.version}.`
+          : "Sem plano registrado até este encontro."}
+      </p>
+    );
   return (
     <aside className="grid gap-3 rounded-md border border-border bg-muted p-4">
       <h3 className="text-caption font-semibold">
-        Previsto para este encontro{value ? ` · versão ${value.version}` : ""}
+        Previsto para este encontro · versão {value.version}
       </h3>
-      {value?.items.length ? (
-        <ul className="grid gap-3">
-          {value.items.map((item) => (
-            <li key={item.id} className="grid gap-1 text-caption">
-              <span className="font-medium">{item.title}</span>
-              <span className="text-muted-foreground">
-                {kindLabels[item.kind]}
-                {item.reference ? ` · ${item.reference}` : ""}
-                {item.pageFrom !== null
-                  ? ` · pág. ${item.pageFrom}${item.pageTo && item.pageTo !== item.pageFrom ? `–${item.pageTo}` : ""}`
-                  : ""}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-caption text-muted-foreground">
-          {value
-            ? "Nenhuma atividade prevista para esta data."
-            : "Sem plano registrado até este encontro."}
-        </p>
-      )}
+      <ul className="grid gap-3">
+        {value.items.map((item) => (
+          <li key={item.id} className="grid gap-1 text-caption">
+            <span className="font-medium">{item.title}</span>
+            <span className="text-muted-foreground">
+              {kindLabels[item.kind]}
+              {item.reference ? ` · ${item.reference}` : ""}
+              {item.pageFrom !== null
+                ? ` · pág. ${item.pageFrom}${item.pageTo && item.pageTo !== item.pageFrom ? `–${item.pageTo}` : ""}`
+                : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
     </aside>
   );
 }
+
 export function PerformedContent({ value }: { value: ClassRecordContent }): ReactElement {
   return (
     <div className="grid gap-2">

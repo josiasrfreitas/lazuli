@@ -1,3 +1,4 @@
+import { sessionEndInstant } from "@lazuli/domain";
 import type { classRecordListSchema, z } from "@lazuli/validators";
 import { classRecordSnapshotSchema } from "@lazuli/validators";
 import {
@@ -42,7 +43,9 @@ export async function listClassRecords(
           ? ("CANCELLED" as const)
           : session.classRecord
             ? ("RECORDED" as const)
-            : ("PENDING" as const),
+            : sessionEndInstant(session) > context.now
+              ? ("UPCOMING" as const)
+              : ("PENDING" as const),
       attendanceOnly: Boolean(session.attendanceConfirmedAt && !session.classRecord),
     }));
 }
@@ -59,6 +62,7 @@ export async function readClassRecord(context: RecordContext, sessionId: string)
       startTime: timeOnly(session.startTime),
       endTime: timeOnly(session.endTime),
       cancelled: session.status === "CANCELLED",
+      upcoming: sessionEndInstant(session) > context.now,
       cancelReason: session.cancelReason,
       teacher: responsibleTeacher(session)?.name ?? null,
     },
@@ -85,16 +89,14 @@ export async function classRecordHistory(
     take: 21,
     include: { recordedBy: { select: { name: true } } },
   });
-  const items = rows
-    .slice(0, 20)
-    .map((row) => ({
-      id: row.id,
-      version: row.version,
-      reason: row.reason,
-      author: row.recordedBy.name,
-      authorId: row.recordedById,
-      recordedAt: row.createdAt,
-      snapshot: classRecordSnapshotSchema.parse(row.snapshot),
-    }));
+  const items = rows.slice(0, 20).map((row) => ({
+    id: row.id,
+    version: row.version,
+    reason: row.reason,
+    author: row.recordedBy.name,
+    authorId: row.recordedById,
+    recordedAt: row.createdAt,
+    snapshot: classRecordSnapshotSchema.parse(row.snapshot),
+  }));
   return { items, nextCursor: rows.length > 20 ? items.at(-1)?.version : undefined };
 }

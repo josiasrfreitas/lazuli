@@ -145,7 +145,9 @@ export function ClassAgenda(): ReactElement {
                         ? "Com baixa"
                         : row.state === "CANCELLED"
                           ? "Cancelada"
-                          : "A registrar"}
+                          : row.state === "UPCOMING"
+                            ? "Prevista"
+                            : "A registrar"}
                     </Badge>
                     <Button
                       variant="ghost"

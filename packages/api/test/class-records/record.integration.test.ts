@@ -255,6 +255,11 @@ void it("corrects PPT presence and actual content together while retaining the a
 });
 void it("requires an observation for no-present classes and rejects cancelled, unfinished and off-roster submissions", async () => {
   const f = await fixture();
+  const upcoming = await caller("2076-02-15T12:59:00Z").classRecords.list({
+    from: "2076-02-15",
+    to: "2076-02-15",
+  });
+  assert.equal(upcoming.find((row) => row.id === f.session.id)?.state, "UPCOMING");
   const input = {
     sessionId: f.session.id,
     version: 0,

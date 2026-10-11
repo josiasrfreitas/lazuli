@@ -10,7 +10,10 @@ import { dateLabel, RecordState, SnapshotView, PlannedReference, type ClassRecor
 export function ClassRecordPage({ id }: { id: string }): ReactElement {
   const query = trpc.classRecords.detail.useQuery({ sessionId: id }, { retry: false });
   return (
-    <div className="mx-auto grid h-full w-full max-w-6xl content-start gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
+    <div
+      id="class-record-scroll"
+      className="mx-auto grid h-full w-full max-w-6xl content-start gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8"
+    >
       <div>
         <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/aulas" />}>
           <ArrowLeft />
@@ -53,7 +56,9 @@ function RecordContent({ data }: { data: ClassRecord }): ReactElement {
               ? "Cancelada"
               : data.version
                 ? `Com baixa · versão ${data.version}`
-                : "A registrar"}
+                : data.session.upcoming
+                  ? "Prevista"
+                  : "A registrar"}
           </Badge>
           {data.version > 0 && !data.restriction && !editorOpen && (
             <Button
@@ -75,7 +80,13 @@ function RecordContent({ data }: { data: ClassRecord }): ReactElement {
         </Alert>
       )}
       {editorOpen ? (
-        <ClassRecordEditor data={data} onClose={() => setEditing(false)} />
+        <ClassRecordEditor
+          data={data}
+          onClose={() => {
+            setEditing(false);
+            document.getElementById("class-record-scroll")?.scrollTo({ top: 0 });
+          }}
+        />
       ) : data.version > 0 ? (
         <>
           <Tabs variant="underline" value={view} onValueChange={setView}>
