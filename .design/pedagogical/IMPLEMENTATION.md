@@ -24,3 +24,9 @@ The user specifically requests a modern, premium UI; Professores is the current 
 - Student profile: pedagogical/financial data, payment flow, contact/guardian, list/roster navigation and responsive light/dark UI implemented and browser-validated. Consolidated from aluno-perfil through c215183.
 - Turmas visual refinement: implementation pending in this branch.
 - V4–V10: implementation pending.
+
+## Additional direction
+
+- Recharts finance analytics (#173) and realistic 250-student seed (#174) implemented in the integrated branch. Academic charts depend on V7 (#175), now in progress.
+- Keep only one development server active: the integrated workspace, port 3004. Old root/V3/student servers were stopped and process exit verified on 2026-10-11.
+- Product vocabulary is now Leads. The user asks for simple commercial follow-up before a future discussion with sales: fast capture, owner, dated next step and contact history; avoid speculative sales stages, scoring, targets or automated messages.

@@ -12,6 +12,8 @@ import {
 
 const STUDENTS_PATH = "/alunos";
 const TEACHERS_PATH = "/professores";
+const LEADS_PATH = "/interessados";
+const ANALYTICS_PATH = "/financeiro";
 const CLASSES_PATH = "/turmas";
 const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
@@ -31,7 +33,16 @@ void describe("role-aware navigation", () => {
   void it("shows Alunos, Professores and Turmas only to roles their procedures accept", () => {
     assert.deepEqual(
       navItemsFor("ADMIN").map((item) => item.href),
-      ["/", STUDENTS_PATH, TEACHERS_PATH, CLASSES_PATH, CONTRACTS_PATH, RECEIVABLES_PATH],
+      [
+        "/",
+        STUDENTS_PATH,
+        TEACHERS_PATH,
+        CLASSES_PATH,
+        LEADS_PATH,
+        ANALYTICS_PATH,
+        CONTRACTS_PATH,
+        RECEIVABLES_PATH,
+      ],
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
@@ -43,7 +54,8 @@ void describe("role-aware navigation", () => {
     assert.deepEqual(sectionsSummary(navSectionsFor("ADMIN")), [
       { label: null, items: ["Início"] },
       { label: PEDAGOGICAL_LABEL, items: [STUDENTS_LABEL, "Professores", "Turmas"] },
-      { label: "Financeiro", items: ["Contratos", "Recebíveis"] },
+      { label: "Comercial", items: ["Leads"] },
+      { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
     ]);
     assert.deepEqual(
       navSectionsFor("TEACHER").map((section) => section.label),
@@ -103,6 +115,8 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       STUDENTS_PATH,
       TEACHERS_PATH,
       CLASSES_PATH,
+      LEADS_PATH,
+      ANALYTICS_PATH,
       CONTRACTS_PATH,
       RECEIVABLES_PATH,
       SETTINGS_PATH,

@@ -64,13 +64,19 @@ export const NAV_SECTIONS: readonly NavSection[] = [
         icon: GraduationCap,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
+      { href: "/turmas", label: "Turmas", icon: BookOpen, roles: ["ADMIN", "SYSTEM_ADMIN"] },
+    ],
+  },
+  {
+    id: "comercial",
+    label: "Comercial",
+    items: [
       {
         href: "/interessados",
-        label: "Interessados",
+        label: "Leads",
         icon: UserRoundPlus,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
-      { href: "/turmas", label: "Turmas", icon: BookOpen, roles: ["ADMIN", "SYSTEM_ADMIN"] },
     ],
   },
   {

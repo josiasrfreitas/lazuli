@@ -31,7 +31,7 @@ export async function readCandidate(
     where: { id },
     include: candidateInclude,
   });
-  if (!row || row.deletedAt) throw notFound("Interessado não encontrado.");
+  if (!row || row.deletedAt) throw notFound("Lead não encontrado.");
   return row;
 }
 export async function lockCandidate(database: Prisma.TransactionClient, id: string): Promise<void> {
@@ -41,7 +41,7 @@ export function assertAllocatable(
   row: Awaited<ReturnType<typeof readCandidate>>,
   date: string,
 ): void {
-  if (row.status !== "WAITING") throw badRequest("Este interessado não está aguardando alocação.");
+  if (row.status !== "WAITING") throw badRequest("Este lead não está aguardando alocação.");
   if (!availabilityIsCurrent(dateOnly(row.availableUntil), date))
     throw badRequest(
       "Disponibilidade vencida. Confirme os horários e renove a validade antes de continuar.",
@@ -66,7 +66,7 @@ export async function saveCandidate(input: {
     throw notFound("Aluno não encontrado.");
   const existing = await database.admissionCandidate.findUnique({ where: { id } });
   if (existing && existing.status !== "WAITING")
-    throw badRequest("Reabra o interessado antes de alterar os dados.");
+    throw badRequest("Reabra o lead antes de alterar os dados.");
   const { availability, ...fields } = values;
   const data = {
     ...fields,

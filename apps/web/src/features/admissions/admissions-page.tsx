@@ -38,7 +38,7 @@ export function AdmissionsPage(): ReactElement {
   return (
     <>
       <DataTablePage
-        title="Interessados"
+        title="Leads"
         summary={
           query.data
             ? `${query.data.total} ${query.data.total === 1 ? "pessoa" : "pessoas"}`
@@ -84,7 +84,7 @@ function AdmissionControls({
       <div className="w-full sm:w-56">
         <Input
           name="candidate-search"
-          aria-label="Buscar interessado"
+          aria-label="Buscar lead"
           placeholder="Nome, telefone ou e-mail"
           autoComplete="off"
           size="compact-responsive"
@@ -94,7 +94,7 @@ function AdmissionControls({
       </div>
       <Button size="compact-responsive" onClick={onCreate}>
         <Plus />
-        Novo interessado
+        Novo lead
       </Button>
     </div>
   );
@@ -109,7 +109,7 @@ function AdmissionFilters({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <SegmentedControl
-        aria-label="Situação do interessado"
+        aria-label="Situação do lead"
         size="sm"
         value={value}
         onValueChange={(next) => {
@@ -145,7 +145,7 @@ function AdmissionsTable({
   return (
     <div className="min-h-0 flex-1">
       <DataTable
-        label="Interessados"
+        label="Leads"
         columns={admissionColumns(query.data?.today ?? "")}
         state={tableState(query, search)}
         updating={query.isFetching}
@@ -156,10 +156,10 @@ function AdmissionsTable({
           description:
             "Registre um interesse, encontre horários compatíveis e acompanhe a primeira aula.",
         }}
-        errorTitle="Não foi possível carregar os interessados"
+        errorTitle="Não foi possível carregar os leads"
         pagination={{
           ...tablePaginationPropsFor(pagination, query.data),
-          itemLabel: { singular: "interessado", plural: "interessados" },
+          itemLabel: { singular: "lead", plural: "leads" },
         }}
       />
     </div>

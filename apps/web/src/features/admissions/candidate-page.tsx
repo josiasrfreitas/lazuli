@@ -42,14 +42,14 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
       <div className="grid gap-4 p-6" role="status">
         <InlineSkeleton className="h-8 w-56" />
         <InlineSkeleton className="h-40 w-full" />
-        <span className="sr-only">Carregando interessado</span>
+        <span className="sr-only">Carregando lead</span>
       </div>
     );
   if (!query.data)
     return (
       <div className="p-6">
         <Alert variant="destructive">
-          {query.error?.message ?? "Não foi possível abrir o interessado."}
+          {query.error?.message ?? "Não foi possível abrir o lead."}
           <Button variant="secondary" onClick={() => void query.refetch()}>
             Tentar novamente
           </Button>
@@ -153,7 +153,7 @@ function HeaderActions({
         <Button
           size="icon-compact-responsive"
           variant="ghost"
-          aria-label="Editar interessado"
+          aria-label="Editar lead"
           onClick={onEdit}
         >
           <Pencil />
@@ -166,7 +166,7 @@ function HeaderActions({
               <Button
                 variant="ghost"
                 size="icon-compact-responsive"
-                aria-label="Mais ações do interessado"
+                aria-label="Mais ações do lead"
               />
             }
           >
@@ -302,7 +302,7 @@ function EntryLessons({
 }
 function CandidateProfile({ candidate }: { candidate: Candidate }): ReactElement {
   return (
-    <section className="grid gap-4" aria-label="Perfil do interessado">
+    <section className="grid gap-4" aria-label="Perfil do lead">
       <h2 className="text-h3 font-semibold">Interesse</h2>
       <div>
         <p className="font-medium">

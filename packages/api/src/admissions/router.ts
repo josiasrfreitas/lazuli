@@ -114,7 +114,7 @@ export const admissionsRouter = router({
         await lockCandidate(database, input.id);
         const candidate = await readCandidate(database, input.id);
         if (candidate.enrollmentId)
-          throw badRequest("O interessado já foi matriculado. Gerencie o vínculo na turma.");
+          throw badRequest("O lead já foi matriculado. Gerencie o vínculo na turma.");
         if (
           input.status === "ARCHIVED" &&
           (await database.entryVisit.count({
