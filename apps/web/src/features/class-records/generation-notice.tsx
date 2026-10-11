@@ -8,7 +8,7 @@ import { trpc } from "~/lib/trpc";
 type Row = RouterOutputs["sessionGeneration"]["status"][number];
 type Props = { classId?: string; from?: string; to?: string };
 
-export function GenerationNotice(props: Props): ReactElement | null {
+export function useSessionGeneration(props: Props) {
   const utils = trpc.useUtils();
   const query = trpc.sessionGeneration.status.useQuery(props, {
     refetchInterval: (state) =>
@@ -21,6 +21,21 @@ export function GenerationNotice(props: Props): ReactElement | null {
   useEffect(() => {
     if (completionKey) void utils.classRecords.list.invalidate();
   }, [completionKey, utils]);
+  return query;
+}
+
+export function GenerationNotice(props: Props): ReactElement | null {
+  const query = useSessionGeneration(props);
+  return <GenerationState query={query} showReady={Boolean(props.classId)} />;
+}
+
+export function GenerationState({
+  query,
+  showReady,
+}: {
+  query: ReturnType<typeof useSessionGeneration>;
+  showReady: boolean;
+}): ReactElement | null {
   if (query.isError)
     return (
       <p className="text-caption text-muted-foreground">
@@ -33,7 +48,7 @@ export function GenerationNotice(props: Props): ReactElement | null {
   const rows =
     query.data?.filter(
       (row) =>
-        props.classId || row.pending || row.request?.status === "FAILED" || row.sessionCount === 0,
+        showReady || row.pending || row.request?.status === "FAILED" || row.sessionCount === 0,
     ) ?? [];
   if (rows.length === 0) return null;
   return (
