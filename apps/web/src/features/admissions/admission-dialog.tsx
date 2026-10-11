@@ -62,7 +62,12 @@ export function AdmissionDialog(props: AdmissionDialogProps): ReactElement {
             >
               {props.backLabel ?? "Voltar"}
             </Button>
-            <Button type="submit" form={props.formId} disabled={props.pending}>
+            <Button
+              id={`${props.formId}-submit`}
+              type="submit"
+              form={props.formId}
+              disabled={props.pending}
+            >
               {props.submitLabel}
             </Button>
           </DialogFooter>
