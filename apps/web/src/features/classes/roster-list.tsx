@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactElement } from "react";
 import { Cake, MoreHorizontal, Phone, UsersRound } from "lucide-react";
 import {
@@ -78,7 +79,9 @@ function StudentIdentity({ row }: { row: RosterRow }): ReactElement {
           title={row.student.fullName}
           aria-label={row.student.fullName}
         >
-          {row.student.fullName.trim().split(/\s+/u).slice(0, 2).join(" ")}
+          <Link className="hover:underline" href={`/alunos/${row.studentId}`}>
+            {row.student.fullName}
+          </Link>
         </h3>
       </div>
     </div>
