@@ -17,10 +17,10 @@ void it("keeps absent blocks unknown instead of treating them as zero", () => {
   assert.equal(assessmentStatus([]), "INCOMPLETE");
 });
 void it("requires sixty in every competence without rounding or compensation", () => {
-  const grades: AcademicGrade[] = ["LISTENING", "WRITTEN", "PARTICIPATION"].flatMap(
+  const grades: AcademicGrade[] = (["LISTENING", "WRITTEN", "PARTICIPATION"] as const).flatMap(
     (competence) => [
-      { competence: competence as AcademicGrade["competence"], phase: "BLOCK_ONE", score: 100 },
-      { competence: competence as AcademicGrade["competence"], phase: "BLOCK_TWO", score: 100 },
+      { competence, phase: "BLOCK_ONE" as const, score: 100 },
+      { competence, phase: "BLOCK_TWO" as const, score: 100 },
     ],
   );
   grades.push(

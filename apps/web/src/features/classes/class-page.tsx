@@ -9,6 +9,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { ClassOverview } from "./class-overview";
 import { MembershipDialog } from "./membership-dialog";
 import { AssignmentDialog } from "../teachers/assignment-dialog";
+import { ClassPerformance } from "~/features/assessments/class-performance";
 import { RosterSection } from "./roster-section";
 import { ActionHistory } from "./action-history";
 import { ClassSessions, GenerationNotice } from "./class-sessions";
@@ -42,6 +43,7 @@ function ClassDetailView({ detail }: { detail: RouterOutputs["classes"]["byId"] 
     <div className="grid min-w-0 gap-5">
       <ClassOverview detail={detail} onAssign={() => setAssigning(true)} />
       <GenerationNotice classId={detail.id} />
+      <ClassPerformance classId={detail.id} />
       <ClassSections detail={detail} enroll={() => setMembershipOpen(true)} />
       {assigning && (
         <AssignmentDialog

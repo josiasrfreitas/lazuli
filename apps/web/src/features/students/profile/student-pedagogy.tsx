@@ -5,6 +5,7 @@ import { Badge, Button, EmptyState } from "@lazuli/ui";
 import { formatAttendancePercent, formatDateOnlyBR } from "~/lib/format";
 import { useStudentPedagogy, type StudentEnrollment } from "./logic";
 import { ProfileLoading, ProfileError, ProfileMetric } from "./profile-shared";
+import { StudentAcademicProgress } from "~/features/assessments/student-progress";
 import { EnrollmentHistory } from "./student-history";
 
 export function StudentPedagogySection({ id }: { id: string }): ReactElement {
@@ -45,6 +46,7 @@ export function StudentPedagogySection({ id }: { id: string }): ReactElement {
           }
         />
       )}
+      <StudentAcademicProgress studentId={id} />
       <EnrollmentHistory rows={history} today={query.data.today} />
     </div>
   );
@@ -186,7 +188,7 @@ function EnrollmentHeading({
   today: string;
 }): ReactElement {
   const stage = enrollment.progress.find(
-    (item) => item.startDate <= today && (!item.endDate || item.endDate > today),
+    (item) => item.startDate <= today && (!item.endDate || item.endDate >= today),
   );
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
