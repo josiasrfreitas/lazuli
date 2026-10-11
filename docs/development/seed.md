@@ -60,11 +60,37 @@ na sexta-feira. As experimentais futuras são distribuídas por semanas para pre
 Se o semestre não oferece uma sessão elegível, o candidato fica sem visita. Disponibilidades
 expiradas aparecem nos arquivados. Introduções evitam os dias de fechamento.
 
+## Leads comerciais
+
+Os mesmos 28 candidatos possuem dados comerciais: 20 em espera, dois arquivados e seis convertidos.
+Os 12 interessados adicionais continuam separados dos alunos; dez dos candidatos em espera já têm
+cadastro de aluno aguardando alocação. Cada candidato conserva sua chave e seu identificador.
+
+Três interessados em espera (`prospect-3`, `prospect-5` e `prospect-9`) representam cadastro rápido:
+modalidade, formato, estágio e disponibilidade ainda são desconhecidos. Não possuem horários nem
+visitas. Os demais conservam a definição pedagógica e os tipos de visita anteriores, sujeitos à
+existência de sessões elegíveis no semestre.
+
+Todos possuem origem comercial, responsável interno vinculado ao administrador de desenvolvimento
+e de um a três contatos passados com autoria. As origens incluem Instagram, indicação de aluno,
+site, WhatsApp e visita à escola. Quatro prospects têm o responsável como pessoa de contato; alunos
+com responsável também usam seu nome no contato comercial, conservando a identidade do aluno.
+Telefones e e-mails existentes são preservados.
+
+Na fila em espera, seis próximas ações estão vencidas há três dias, seis vencem hoje, quatro ficam
+para cinco dias depois e quatro candidatos não possuem próximo passo. Arquivados e convertidos
+não possuem próxima ação nem integram a fila ativa. O último contato dos arquivados registra o
+encerramento; o dos convertidos registra o acordo antes da entrada. Os contatos ocorrem após a
+criação do candidato e antes da referência atual; os convertidos também têm histórico anterior à
+matrícula. Candidato e histórico comercial são criados juntos, sem atualização parcial do banco
+que estiver em uso.
+
 ## Contratos e recebimentos
 
 Os 220 alunos alocados possuem contratos anuais separados, distribuídos por 205 pagadores. Os
-termos comerciais começam de seis a oito meses antes da referência e continuam além do semestre;
-a janela comercial não é a janela de matrícula. Mensalidades nominais variam de R$ 200 a R$ 250,
+acordos se distribuem por nove meses, de oito meses antes da referência até o mês atual, com
+44, 32, 28, 24, 26, 22, 18, 16 e dez contratos. A vigência começa no primeiro vencimento, pelo
+menos sete dias após o acordo, e dura 12 meses; a janela comercial não é a janela de matrícula. Mensalidades nominais variam de R$ 200 a R$ 250,
 com dias de vencimento entre 5 e 25 e desconto por pontualidade definido nos ajustes financeiros.
 Nenhuma parcela futura recebe pagamento.
 
@@ -87,22 +113,81 @@ ocorrem de um a sete dias antes do vencimento, com antecedência de cinco dias e
 dezembro. Vencimentos no começo do mês podem, assim, produzir recebimentos no mês anterior.
 
 Os gráficos usam fatos existentes: recebimento pela data do pagamento, cobrança pela data do
-vencimento e saldo calculado pelas regras financeiras. As três coortes de início de contrato e a
+vencimento e saldo calculado pelas regras financeiras. As nove coortes de fechamento e a
 variação da data de recebimento produzem crescimento inicial e oscilação mensal. O histórico
-de contratos começa de seis a oito meses antes da referência; os primeiros recebimentos podem
-anteceder esse início em até sete dias. Esse recorte não representa um ciclo anual completo de
+de contratos começa oito meses antes da referência; pagamentos antecipados sempre ocorrem após
+o acordo. Dez contratos são fechados no mês atual, podendo ter vigência futura. Esse recorte não representa um ciclo anual completo de
 sazonalidade; meses anteriores ao primeiro fato financeiro têm zero movimento neste cenário.
 
 Pagamentos e ajustes passam pelas regras financeiras existentes, sem
 fabricar saldos ou juros diretamente no banco. Irmãos compartilham pagador, conservando contratos
 por beneficiário.
 
+## Avaliações e progressão
+
+Cada passagem de estágio do cenário recebe uma avaliação identificada pelo aluno, estágio e data
+de início. O progresso referencia essa avaliação; suas notas não pertencem ao vínculo operacional
+da classe. O loader não associa registros manuais ou inventa transferências e retornos.
+
+Os 220 estágios atuais distribuem os perfis pretendidos em 66 incompletos, 88 suficientes, 44 com
+dificuldades e 22 em recuperação. Essa distribuição descreve o perfil, não garante dois blocos já
+lançados: as datas e a presença do aluno prevalecem. Entradas recentes e estágios PPT iniciados
+após uma progressão podem ainda não ter notas ou ter apenas o primeiro bloco.
+
+As competências oral, listening, escrita e participação recebem notas individuais entre zero e 100. Há pontos fortes diferentes, melhora entre blocos, pequenas quedas e médias próximas do corte,
+incluindo 60. Dificuldades se concentram em oral, listening e escrita; participação também pode
+exigir apoio. Alguns alunos apresentam duas competências insuficientes. As médias são separadas;
+nenhuma média geral compensa uma competência abaixo de 60.
+
+No estágio atual, o primeiro bloco ocorre a partir de 28 dias e o segundo a partir de 63 dias,
+com variações individuais. A data efetiva é uma sessão em que o aluno esteve presente, dentro da
+passagem pelo estágio e anterior ao dia atual. Recuperações vêm depois dos dois blocos da própria
+competência, preservam os originais, têm motivo e substituem apenas aquela média. Entre os perfis
+de recuperação atuais, 14 têm recuperação planejada suficiente e oito ainda insuficiente; a nota
+só aparece quando a sessão correspondente já ocorreu.
+
+Nos dez históricos PPT, os dois blocos e eventuais recuperações cabem nos 60 dias antes da
+progressão. Três históricos passam por recuperação; todos têm desempenho suficiente confirmado
+pela coordenação antes de avançar. As transições são E1→E2 ou C1→C2; o loader rejeita um avanço
+para o mesmo estágio.
+
+A maioria das avaliações atuais fica aguardando confirmação. Pequenas coortes com todas as
+evidências disponíveis mostram decisões explícitas de aprovação ou repetição, registradas pela
+coordenação no dia posterior à última avaliação. Incompletos nunca recebem decisão. Aprovação não
+altera a matrícula nem avança automaticamente o estágio. Registros e confirmações têm horários
+coerentes com o dia civil de São Paulo e não são lançados no futuro.
+
+O loader integra o único `pnpm seed`; não cria um comando de atualização parcial. Aplicar estes
+cenários exige uma reconstrução coordenada do banco isolado depois que a exploração atual tiver
+terminado. A implementação do loader não modifica o banco em uso.
+
+## Log de atividades
+
+O bootstrap termina com uma linha do tempo baseada nos fatos que acabou de carregar: entradas
+aplicadas, cadastros sem matrícula, turmas, contratos, candidatos e contatos comerciais, conversões
+e decisões pedagógicas. Para manter o volume legível, inclui até três aulas confirmadas por turma,
+16 grupos recentes de notas por bloco ou recuperação e oito recebimentos por mês, com até dois
+por método. As descrições usam os nomes e as datas dos registros, com títulos e áreas do catálogo
+de atividades.
+
+Autores registrados nos fatos são preservados. Cadastros de alunos sem matrícula, turmas,
+docentes e semestre usam a autoria sintética do administrador que constrói o cenário; isso não
+acrescenta inferência de autoria à operação de produção. Esses cadastros conservam o `createdAt`
+do bootstrap; não simulam um histórico anterior de criação. Dias sem aula refletem seu autor e momento de cadastro, mesmo quando o
+fechamento planejado ainda vai ocorrer. Contratos, matrículas e pagamentos usam suas datas civis
+de acordo, entrada e recebimento, com horário sintético às 15h de São Paulo. Eventos com instante
+futuro ou dia posterior à referência são excluídos. Chaves de deduplicação impedem eventos repetidos
+do mesmo fato; o loader participa apenas da reconstrução coordenada do seed.
+
 ## Limites e próximas verticais
 
 Suspensos e inativos representam o estado atual cadastral. Este seed não inventa matrículas de
 semestres anteriores nem cancelamentos contratuais sem operação de domínio implementada. Planos
-de estágio, avaliações e competências devem ganhar cenários quando suas respectivas
-verticais estiverem implementadas. A ausência desses dados não representa conclusão dessas áreas.
+de estágio devem ganhar cenários quando sua vertical estiver implementada. A ausência desses
+dados não representa conclusão dessas áreas.
+
+A distribuição dos fechamentos e os efeitos nos totais estão detalhados em
+[Fechamentos comerciais](../../.design/pedagogical/analytics/SEED-CLOSINGS.md).
 
 As expectativas de distribuição, unicidade, contatos, conflitos de horário e datas estão nos testes
 unitários de seed do pacote `db`. O teste financeiro de integração cobre os contratos, pagadores

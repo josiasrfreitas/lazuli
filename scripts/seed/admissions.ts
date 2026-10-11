@@ -8,7 +8,13 @@ import {
   type DevStudentSeed,
   type DevWeekday,
 } from "../../packages/db/src/seed-dev-data.js";
-import { addDays, stableUuid, timeOfDay, utcDate } from "../../packages/db/src/seed-dev-support.js";
+import {
+  addDays,
+  endOfDayUtc,
+  stableUuid,
+  timeOfDay,
+  utcDate,
+} from "../../packages/db/src/seed-dev-support.js";
 
 const PROSPECTS = [
   "Amanda Queiroz Barros",
@@ -24,6 +30,18 @@ const PROSPECTS = [
   "Aline Pacheco Falcão",
   "Diego Amaral Sá",
 ] as const;
+const QUICK_LEAD_KEYS = new Set(["prospect-3", "prospect-5", "prospect-9"]);
+const PROSPECT_CONTACTS = new Map([
+  ["prospect-3", "Mariana Freire Gusmão"],
+  ["prospect-5", "Cláudia Torres Peixoto"],
+  ["prospect-7", "Fernanda Pinheiro Viana"],
+  ["prospect-9", "Ricardo Chaves Neves"],
+]);
+const LEAD_SOURCES = ["Instagram", "Indicação de aluno", "Site", "WhatsApp", "Visita à escola"];
+const CONTACT_DAY_OFFSETS = [2, 6, 10];
+const NEXT_ACTION_CYCLE = 4;
+const NEXT_ACTION_OVERDUE_DAYS = 3;
+const NEXT_ACTION_FUTURE_DAYS = 5;
 const PROSPECT_PHONE_START = 1100;
 const PERSONALIZED_CYCLE = 3;
 const ARCHIVED_PROSPECT_START = 10;
@@ -44,6 +62,7 @@ const PERSONALIZED_CLASS_KEY = "PPT-E1";
 type CandidateSeed = {
   key: string;
   fullName: string;
+  contactName: string;
   phone: string | null;
   email: string | null;
   studentId: string | null;
@@ -54,6 +73,39 @@ type CandidateInput = {
   todayIso: string;
   adminId: string;
 };
+type CandidateRecordInput = CandidateInput & {
+  id: string;
+  classSeed: DevClassSeed;
+  stageId: string | null;
+  archived: boolean;
+  unknownPedagogy: boolean;
+};
+type CommercialInput = CandidateInput & {
+  createdOn: Date;
+  status: "WAITING" | "ARCHIVED" | "ENROLLED";
+};
+type LeadContactSeed = {
+  id: string;
+  contactedOn: Date;
+  createdAt: Date;
+  recordedById: string;
+  summary: string;
+};
+type NextActionSeed = { nextAction: string | null; nextActionOn: Date | null };
+type CommercialSeed = NextActionSeed & {
+  contactName: string;
+  source: string;
+  ownerId: string;
+  contacts: { create: LeadContactSeed[] };
+};
+type PedagogySeed = {
+  scheduleType: NonNullable<DevClassSeed["scheduleType"]> | null;
+  format: "IN_PERSON" | null;
+  stageId: string | null;
+  availableUntil: Date | null;
+  availabilityConfirmedAt: Date | null;
+  availability: { create: ReturnType<typeof candidateAvailability> };
+};
 type VisitInput = { candidateId: string; index: number; todayIso: string; adminId: string };
 
 /** Prospects are separate from the 250 students; waiting student records retain their identity. */
@@ -62,7 +114,7 @@ export async function seedAdmissions(database: DatabaseClient, todayIso: string)
   for (const [index, candidate] of candidateSeeds().entries()) {
     await seedCandidate(database, { candidate, index, todayIso, adminId: admin.id });
   }
-  await seedConvertedCandidates(database, admin.id);
+  await seedConvertedCandidates(database, { adminId: admin.id, todayIso });
 }
 
 function candidateSeeds(): CandidateSeed[] {
@@ -73,18 +125,24 @@ function candidateSeeds(): CandidateSeed[] {
     ...PROSPECTS.map((fullName, index) => ({
       key: `prospect-${index + 1}`,
       fullName,
+      contactName: PROSPECT_CONTACTS.get(`prospect-${index + 1}`) ?? fullName,
       phone: `(82) 98400-${String(PROSPECT_PHONE_START + index)}`,
       email: `interesse.${index + 1}@example.com`,
       studentId: null,
     })),
-    ...waiting.map((student) => ({
-      key: student.key,
-      fullName: student.fullName,
-      phone: student.phone ?? null,
-      email: student.email ?? null,
-      studentId: stableUuid(["student", student.key]),
-    })),
+    ...waiting.map(studentCandidate),
   ];
+}
+
+function studentCandidate(student: DevStudentSeed): CandidateSeed {
+  return {
+    key: student.key,
+    fullName: student.fullName,
+    contactName: student.guardian?.fullName ?? student.fullName,
+    phone: student.phone ?? null,
+    email: student.email ?? null,
+    studentId: stableUuid(["student", student.key]),
+  };
 }
 
 async function seedCandidate(database: DatabaseClient, input: CandidateInput): Promise<void> {
@@ -93,12 +151,22 @@ async function seedCandidate(database: DatabaseClient, input: CandidateInput): P
   const archived = !candidate.studentId && index >= ARCHIVED_PROSPECT_START;
   const classKey = candidateClassKey(input);
   const classSeed = DEV_CLASSES.find((row) => row.key === classKey)!;
-  const stage = await database.stage.findFirstOrThrow({
-    where: { internalCode: classSeed.stageInternalCode },
-  });
+  const unknownPedagogy = QUICK_LEAD_KEYS.has(candidate.key);
+  const stage = unknownPedagogy
+    ? null
+    : await database.stage.findFirstOrThrow({
+        where: { internalCode: classSeed.stageInternalCode },
+      });
   const id = stableUuid(["admission", candidate.key]);
-  await createCandidateRecord(database, { ...input, id, classSeed, stageId: stage.id, archived });
-  if (archived) return;
+  await createCandidateRecord(database, {
+    ...input,
+    id,
+    classSeed,
+    stageId: stage?.id ?? null,
+    archived,
+    unknownPedagogy,
+  });
+  if (archived || unknownPedagogy) return;
   const visit = { candidateId: id, index, todayIso, adminId };
   if (personalized) await seedIntroduction(database, visit);
   else await seedTrial(database, { ...visit, classKey });
@@ -111,14 +179,11 @@ function candidateClassKey(input: CandidateInput): string {
 
 async function createCandidateRecord(
   database: DatabaseClient,
-  input: CandidateInput & {
-    id: string;
-    classSeed: DevClassSeed;
-    stageId: string;
-    archived: boolean;
-  },
+  input: CandidateRecordInput,
 ): Promise<void> {
-  const { candidate, id, classSeed, archived, todayIso } = input;
+  const { candidate, id, archived, todayIso } = input;
+  const createdOn = addDays(utcDate(todayIso), archived ? -AVAILABLE_DAYS : -CREATION_DAYS_AGO);
+  const status = archived ? "ARCHIVED" : "WAITING";
   await database.admissionCandidate.create({
     data: {
       id,
@@ -126,23 +191,86 @@ async function createCandidateRecord(
       phone: candidate.phone,
       email: candidate.email,
       studentId: candidate.studentId,
-      status: archived ? "ARCHIVED" : "WAITING",
-      scheduleType: classSeed.scheduleType,
-      format: "IN_PERSON",
-      stageId: input.stageId,
+      status,
       recordedById: input.adminId,
-      availableUntil: addDays(utcDate(todayIso), archived ? -EXPIRED_DAYS_AGO : AVAILABLE_DAYS),
-      availabilityConfirmedAt: addDays(
-        utcDate(todayIso),
-        archived ? -AVAILABLE_DAYS : -CONFIRMATION_DAYS_AGO,
-      ),
-      createdAt: addDays(utcDate(todayIso), archived ? -AVAILABLE_DAYS : -CREATION_DAYS_AGO),
+      createdAt: createdOn,
       notes: archived
         ? "Contato encerrado a pedido da família; sem matrícula."
-        : "Interesse confirmado; aguardando visita e definição de alocação.",
-      availability: { create: candidateAvailability(candidate, classSeed) },
+        : input.unknownPedagogy
+          ? "Primeiro interesse registrado; curso e horários ainda serão definidos."
+          : "Interesse confirmado; aguardando visita e definição de alocação.",
+      ...candidatePedagogy(input),
+      ...commercialFields({ ...input, createdOn, status }),
     },
   });
+}
+
+function candidatePedagogy(input: CandidateRecordInput): PedagogySeed {
+  const { candidate, classSeed, archived, todayIso, unknownPedagogy } = input;
+  return {
+    scheduleType: unknownPedagogy ? null : (classSeed.scheduleType ?? "REGULAR"),
+    format: unknownPedagogy ? null : "IN_PERSON",
+    stageId: input.stageId,
+    availableUntil: unknownPedagogy
+      ? null
+      : addDays(utcDate(todayIso), archived ? -EXPIRED_DAYS_AGO : AVAILABLE_DAYS),
+    availabilityConfirmedAt: unknownPedagogy
+      ? null
+      : addDays(utcDate(todayIso), archived ? -AVAILABLE_DAYS : -CONFIRMATION_DAYS_AGO),
+    availability: { create: unknownPedagogy ? [] : candidateAvailability(candidate, classSeed) },
+  };
+}
+
+function commercialFields(input: CommercialInput): CommercialSeed {
+  const { candidate, index, adminId } = input;
+  return {
+    contactName: candidate.contactName,
+    source: LEAD_SOURCES[index % LEAD_SOURCES.length]!,
+    ownerId: adminId,
+    ...nextAction(input),
+    contacts: {
+      create: CONTACT_DAY_OFFSETS.slice(0, (index % CONTACT_DAY_OFFSETS.length) + 1).map(
+        (offset, sequence, offsets) => {
+          const contactedOn = addDays(input.createdOn, offset);
+          return {
+            id: stableUuid(["lead-contact", candidate.key, String(sequence)]),
+            contactedOn,
+            createdAt: endOfDayUtc(contactedOn.toISOString().slice(0, 10)),
+            recordedById: adminId,
+            summary: contactSummary({ ...input, sequence, last: sequence === offsets.length - 1 }),
+          };
+        },
+      ),
+    },
+  };
+}
+
+function nextAction(input: CommercialInput): NextActionSeed {
+  const bucket = input.index % NEXT_ACTION_CYCLE;
+  if (input.status !== "WAITING" || bucket === NEXT_ACTION_CYCLE - 1)
+    return { nextAction: null, nextActionOn: null };
+  const actions = [
+    "Retomar proposta enviada e registrar retorno.",
+    "Enviar proposta e confirmar os horários de preferência.",
+    "Combinar conversa sobre o curso e as condições de matrícula.",
+  ];
+  const offsets = [-NEXT_ACTION_OVERDUE_DAYS, 0, NEXT_ACTION_FUTURE_DAYS];
+  return {
+    nextAction: actions[bucket]!,
+    nextActionOn: addDays(utcDate(input.todayIso), offsets[bucket]!),
+  };
+}
+
+function contactSummary(input: CommercialInput & { sequence: number; last: boolean }): string {
+  if (input.last && input.status === "ARCHIVED")
+    return "Família solicitou encerrar o contato; interesse arquivado.";
+  if (input.last && input.status === "ENROLLED")
+    return "Condições aceitas e horário combinado; entrada será concluída pela secretaria.";
+  if (input.sequence === 0)
+    return `Contato inicial com ${input.candidate.contactName}; apresentou interesse no curso.`;
+  if (input.sequence === 1)
+    return "Enviadas condições comerciais e esclarecidas dúvidas sobre material e mensalidade.";
+  return "Retorno recebido; família segue avaliando a proposta e suas preferências de horário.";
 }
 
 function candidateAvailability(
@@ -244,11 +372,15 @@ async function nextOpenFriday(database: DatabaseClient, todayIso: string): Promi
   return date;
 }
 
-async function seedConvertedCandidates(database: DatabaseClient, adminId: string): Promise<void> {
+async function seedConvertedCandidates(
+  database: DatabaseClient,
+  input: { adminId: string; todayIso: string },
+): Promise<void> {
   const students = DEV_STUDENTS.filter(
     (row) => (row.enrollments[0]?.entryOffsetDays ?? 0) > 0,
   ).slice(0, CONVERTED_CANDIDATES);
-  for (const student of students) await createConvertedCandidate(database, { student, adminId });
+  for (const [index, student] of students.entries())
+    await createConvertedCandidate(database, { ...input, student, index });
 }
 
 async function createConvertedCandidate(
@@ -256,6 +388,8 @@ async function createConvertedCandidate(
   input: {
     student: DevStudentSeed;
     adminId: string;
+    todayIso: string;
+    index: number;
   },
 ): Promise<void> {
   const { student, adminId } = input;
@@ -280,6 +414,12 @@ async function createConvertedCandidate(
       createdAt: addDays(enrollment.entryDate, -CREATION_DAYS_AGO),
       recordedById: adminId,
       notes: "Horário acordado e entrada concluída pela secretaria.",
+      ...commercialFields({
+        ...input,
+        candidate: studentCandidate(student),
+        createdOn: addDays(enrollment.entryDate, -CREATION_DAYS_AGO),
+        status: "ENROLLED",
+      }),
     },
   });
 }
