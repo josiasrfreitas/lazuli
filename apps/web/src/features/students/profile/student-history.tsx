@@ -16,17 +16,7 @@ function historyColumns(today: string): DataTableColumn<StudentEnrollment>[] {
       id: "class",
       header: "Turma / semestre",
       width: "wide",
-      cell: (row) => (
-        <div className="grid gap-1">
-          <Link
-            className="font-medium text-interactive hover:underline"
-            href={`/turmas/${row.class.id}`}
-          >
-            {row.class.name}
-          </Link>
-          <span className="text-caption text-muted-foreground">{row.class.semester}</span>
-        </div>
-      ),
+      cell: (row) => <HistoryClass row={row} />,
     },
     {
       id: "period",
@@ -86,5 +76,19 @@ export function EnrollmentHistory({
         errorTitle="Não foi possível carregar o histórico"
       />
     </section>
+  );
+}
+
+function HistoryClass({ row }: { row: StudentEnrollment }): ReactElement {
+  return (
+    <div className="grid gap-1">
+      <Link
+        className="font-medium text-interactive hover:underline"
+        href={`/turmas/${row.class.id}`}
+      >
+        {row.class.name}
+      </Link>
+      <span className="text-caption text-muted-foreground">{row.class.semester}</span>
+    </div>
   );
 }

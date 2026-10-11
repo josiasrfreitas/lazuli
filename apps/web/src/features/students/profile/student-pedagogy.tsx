@@ -56,29 +56,10 @@ function CurrentEnrollment({
   enrollment: StudentEnrollment;
   today: string;
 }): ReactElement {
-  const stage = enrollment.progress.find(
-    (item) => item.startDate <= today && (!item.endDate || item.endDate > today),
-  );
   return (
     <article className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="grid gap-5 p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="grid gap-2">
-            <span className="text-micro font-semibold uppercase tracking-label text-muted-foreground">
-              Matrícula vigente · {enrollment.class.semester}
-            </span>
-            <h3 className="text-2xl font-semibold tracking-tight">
-              {stage?.stage ?? "Estágio não informado"}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {stage?.track ?? "Trilha não informada"}
-            </p>
-          </div>
-          <Badge variant="info">
-            {enrollment.class.scheduleType === "REGULAR" ? "Regular" : "PPT"} ·{" "}
-            {enrollment.class.format === "IN_PERSON" ? "Presencial" : "Online"}
-          </Badge>
-        </div>
+        <EnrollmentHeading enrollment={enrollment} today={today} />
         <dl className="grid grid-cols-2 gap-4 border-y border-border py-3">
           <ProfileMetric
             label="Frequência no semestre"
@@ -106,7 +87,7 @@ function CurrentEnrollment({
           </p>
         )}
       </div>
-      <ProgressJourney enrollment={enrollment} />
+      <ProgressJourney enrollment={enrollment} today={today} />
     </article>
   );
 }
@@ -164,7 +145,13 @@ function EnrollmentSchedule({ enrollment }: { enrollment: StudentEnrollment }): 
     </div>
   );
 }
-function ProgressJourney({ enrollment }: { enrollment: StudentEnrollment }): ReactElement {
+function ProgressJourney({
+  enrollment,
+  today,
+}: {
+  enrollment: StudentEnrollment;
+  today: string;
+}): ReactElement {
   return (
     <section className="grid gap-3 border-t border-border bg-muted/30 p-5 sm:px-6">
       <h4 className="text-micro font-semibold uppercase tracking-label text-muted-foreground">
@@ -179,7 +166,11 @@ function ProgressJourney({ enrollment }: { enrollment: StudentEnrollment }): Rea
             <span className="text-sm font-medium">{item.stage}</span>
             <span className="text-caption text-muted-foreground">
               {formatDateOnlyBR(item.startDate)}
-              {item.endDate ? ` — ${formatDateOnlyBR(item.endDate)}` : " · em andamento"}
+              {item.endDate
+                ? ` — ${formatDateOnlyBR(item.endDate)}`
+                : item.startDate > today
+                  ? " · agendado"
+                  : " · em andamento"}
             </span>
           </li>
         ))}
@@ -188,5 +179,34 @@ function ProgressJourney({ enrollment }: { enrollment: StudentEnrollment }): Rea
         <p className="text-sm text-muted-foreground">Nenhum estágio registrado nesta matrícula.</p>
       )}
     </section>
+  );
+}
+
+function EnrollmentHeading({
+  enrollment,
+  today,
+}: {
+  enrollment: StudentEnrollment;
+  today: string;
+}): ReactElement {
+  const stage = enrollment.progress.find(
+    (item) => item.startDate <= today && (!item.endDate || item.endDate > today),
+  );
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="grid gap-2">
+        <span className="text-micro font-semibold uppercase tracking-label text-muted-foreground">
+          Matrícula vigente · {enrollment.class.semester}
+        </span>
+        <h3 className="text-2xl font-semibold tracking-tight">
+          {stage?.stage ?? "Estágio não informado"}
+        </h3>
+        <p className="text-sm text-muted-foreground">{stage?.track ?? "Trilha não informada"}</p>
+      </div>
+      <Badge variant="info">
+        {enrollment.class.scheduleType === "REGULAR" ? "Regular" : "PPT"} ·{" "}
+        {enrollment.class.format === "IN_PERSON" ? "Presencial" : "Online"}
+      </Badge>
+    </div>
   );
 }

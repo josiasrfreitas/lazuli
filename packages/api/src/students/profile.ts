@@ -42,7 +42,7 @@ export type StudentProfile = {
     email: string | null;
     fullName: string;
     phone: string | null;
-    status: string;
+    status: Student["status"];
   };
   finance: { installments: []; openOrders: []; paymentHistory: [] };
   guardian: GuardianProfile | null;
