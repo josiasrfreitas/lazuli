@@ -6,6 +6,7 @@ import {
   FileText,
   GraduationCap,
   Home,
+  History,
   Settings,
   Users,
   UserRoundPlus,
@@ -114,7 +115,15 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: "sistema",
     label: "Sistema",
-    items: [{ href: "/ajustes", label: "Ajustes", icon: Settings, roles: ["SYSTEM_ADMIN"] }],
+    items: [
+      {
+        href: "/atividades",
+        label: "Log de atividades",
+        icon: History,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
+      { href: "/ajustes", label: "Ajustes", icon: Settings, roles: ["SYSTEM_ADMIN"] },
+    ],
   },
 ];
 
