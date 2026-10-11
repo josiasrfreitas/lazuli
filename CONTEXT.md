@@ -123,11 +123,24 @@ A unit of 60 minutes of teaching time. A two-hour Class Session comprises two Te
 _Avoid_: Class Session (as a synonym), hora-aula (in code)
 
 **Makeup**:
-A replacement session scheduled for a student in response to an absence. Its outcome counts
-toward the student's attendance. A sub-concept of Attendance, not an area of its own.
+A Pedagogical Appointment that replaces missed teaching time from identified absences. Confirmed
+coverage compensates attendance while preserving the original absences.
 _Avoid_: Reposição, make-up class, recovery session
 
+**Makeup Coverage**:
+The portion of an original absence addressed by a Makeup, measured in teaching minutes.
+A planned allocation reserves that portion; confirmed delivery compensates it.
+
+**Absence Contact**:
+An attributed record of contact with a student or responsible adult about attendance, including
+its outcome and any planned follow-up.
+
 ## Pedagogical terms
+
+**Pedagogical Appointment**:
+A scheduled teaching encounter for one student, with the explicit purpose of Makeup, PPT hour
+complement, reinforcement or assessment. Its attendance and actual content are distinct from grades
+and academic progression.
 
 **Class Hour** (hora-aula):
 A 60-minute unit of instructional time. A class meeting may contain more than one class hour; a two-hour meeting contains two class hours.
