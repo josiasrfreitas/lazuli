@@ -7,7 +7,7 @@ import type { StudentProfile } from "./logic";
 import { ProfileFact } from "./profile-shared";
 
 export function StudentHeader({ profile }: { profile: StudentProfile }): ReactElement {
-  const status = statusBadgeVm(profile.contact.status as Parameters<typeof statusBadgeVm>[0]);
+  const status = statusBadgeVm(profile.contact.status);
   return (
     <header className="flex flex-wrap items-center justify-between gap-5 border-b border-border pb-6">
       <div className="flex min-w-0 items-center gap-4">
@@ -47,39 +47,7 @@ export function StudentContact({ profile }: { profile: StudentProfile }): ReactE
           <UserRound aria-hidden="true" className="size-4 text-muted-foreground" />
           Dados do aluno
         </h2>
-        <dl className="grid gap-4">
-          <ProfileFact label="Nascimento">
-            {profile.contact.birthDate
-              ? formatDateOnlyBR(profile.contact.birthDate)
-              : "Não informado"}
-          </ProfileFact>
-          <ProfileFact label="Telefone">{profile.contact.phone ?? "Não informado"}</ProfileFact>
-          <ProfileFact label="E-mail">
-            {profile.contact.email ? (
-              <a
-                className="text-interactive hover:underline"
-                href={`mailto:${profile.contact.email}`}
-              >
-                {profile.contact.email}
-              </a>
-            ) : (
-              "Não informado"
-            )}
-          </ProfileFact>
-          {profile.address && (
-            <ProfileFact label="Endereço">
-              {[
-                profile.address.street,
-                profile.address.number,
-                profile.address.neighborhood,
-                profile.address.city,
-                profile.address.state,
-              ]
-                .filter(Boolean)
-                .join(", ") || "Não informado"}
-            </ProfileFact>
-          )}
-        </dl>
+        <StudentContactFacts profile={profile} />
       </section>
       {profile.guardian && <GuardianContact guardian={profile.guardian} />}
       {profile.notes && (
@@ -134,5 +102,38 @@ function GuardianContact({
         )}
       </div>
     </section>
+  );
+}
+
+function StudentContactFacts({ profile }: { profile: StudentProfile }): ReactElement {
+  return (
+    <dl className="grid gap-4">
+      <ProfileFact label="Nascimento">
+        {profile.contact.birthDate ? formatDateOnlyBR(profile.contact.birthDate) : "Não informado"}
+      </ProfileFact>
+      <ProfileFact label="Telefone">{profile.contact.phone ?? "Não informado"}</ProfileFact>
+      <ProfileFact label="E-mail">
+        {profile.contact.email ? (
+          <a className="text-interactive hover:underline" href={`mailto:${profile.contact.email}`}>
+            {profile.contact.email}
+          </a>
+        ) : (
+          "Não informado"
+        )}
+      </ProfileFact>
+      {profile.address && (
+        <ProfileFact label="Endereço">
+          {[
+            profile.address.street,
+            profile.address.number,
+            profile.address.neighborhood,
+            profile.address.city,
+            profile.address.state,
+          ]
+            .filter(Boolean)
+            .join(", ") || "Não informado"}
+        </ProfileFact>
+      )}
+    </dl>
   );
 }
