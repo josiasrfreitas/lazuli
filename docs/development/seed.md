@@ -186,6 +186,44 @@ Não cria um comando público adicional nem reinicia dados. Cada cenário é uma
 registro raiz daquele cenário já existe, inclusive excluído logicamente, ele é preservado por
 inteiro. Reaplicações não duplicam registros nem sobrescrevem alterações feitas durante validações.
 
+## Planejamento de estágio
+
+V9 acrescenta 51 planos atuais: 19 compartilhados por turma regular e 32 individuais PPT.
+No regular, 12 roteiros estão detalhados até o fim do semestre, cinco estão parciais e dois apenas
+iniciados. No PPT, são 18 detalhados, dez parciais e quatro iniciados. Completude aqui descreve
+o roteiro planejado; não comprova conteúdo realizado nem aprovação. Os dez estágios PPT já
+avançados também conservam planos históricos enxutos, com prazos anteriores ao avanço real.
+No começo do semestre, o número de históricos acompanha os avanços que já puderam ocorrer.
+Alunos sem matrícula não recebem planos ou estágios artificiais.
+
+Os roteiros somam aproximadamente mil atividades de conteúdo, revisão, avaliação e prática,
+variando entre turmas e alunos. Cerca de 40% não têm páginas; avaliações, revisões e atividades
+orais ou lúdicas são válidas assim. Referências de livro, unidades e páginas são sintéticas,
+sem pretender reproduzir o sumário oficial dos materiais. Datas usam dias habituais da turma,
+evitam fechamentos cadastrados, feriados nacionais fixos e o recesso sintético de 20/12 a 10/01.
+Fora do semestre existente, datas PPT são intenções; nenhuma aula ou presença é fabricada.
+
+Oito planos individuais têm travessia explícita de semestre: seis prazos longos até fevereiro
+do próximo ano e duas extensões após o semestre atual. Na referência de outubro, os oito
+atravessam também o ano. Quatro outros planos têm prazo vencido a revisar, quando há pelo menos
+duas semanas reais de estágio; no início do período não se inventa atraso. Os demais prazos
+variam conforme início e data atual; perto do fim do semestre também podem atravessar períodos.
+Prazo vencido não identifica atividade não realizada e não muda a data efetiva do estágio.
+
+Cada plano possui snapshot inicial v1 com autoria. Quatro planos regulares e oito PPT têm
+revisões adicionais; dois PPT recebem duas mudanças, totalizando até 14 revisões além das iniciais.
+As alterações ficam 21 e 35 dias após o início, sempre antes do dia atual; sem tempo suficiente,
+a revisão é omitida. Criação usa autoria sintética da administração, primeira revisão do docente
+da turma e segunda da administração. Os snapshots guardam o estado completo após cada mudança,
+em ordem de data, criação e ID: substituição por revisão sem página, ajuste de prazo/objetivo,
+remoção preservada logicamente e repetição intencional de uma referência. Itens removidos mantêm
+ID e versão anterior; nunca são apagados do histórico. Criação e cada revisão aparecem no Log.
+
+O vínculo individual é carregado pelo progresso no estágio, sem alterar suas datas, notas ou
+frequência. O baseline ainda não inventa transferências ou pausas PPT para demonstrar continuidade;
+esses cenários operacionais dependem de fixtures autorizadas. O loader integra exclusivamente
+o `pnpm seed`, conforme ADR0024, sem workflow de aplicação parcial.
+
 ## Log de atividades
 
 O bootstrap termina com uma linha do tempo baseada nos fatos que acabou de carregar: entradas
@@ -207,9 +245,9 @@ do mesmo fato; o loader participa apenas da reconstrução coordenada do seed.
 ## Limites e próximas verticais
 
 Suspensos e inativos representam o estado atual cadastral. Este seed não inventa matrículas de
-semestres anteriores nem cancelamentos contratuais sem operação de domínio implementada. Planos
-de estágio devem ganhar cenários quando sua vertical estiver implementada. A ausência desses
-dados não representa conclusão dessas áreas.
+semestres anteriores nem cancelamentos contratuais sem operação de domínio implementada.
+Planejamento não preenche automaticamente a execução de conteúdo em aula; essa vertical ainda
+precisa de cenários próprios. A ausência desses dados não representa conclusão dessas áreas.
 
 A distribuição dos fechamentos e os efeitos nos totais estão detalhados em
 [Fechamentos comerciais](../../.design/pedagogical/analytics/SEED-CLOSINGS.md).
