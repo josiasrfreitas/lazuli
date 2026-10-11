@@ -148,6 +148,11 @@ enum ArtifactKind {
 }
 
 model User {
+  assignedLeads AdmissionCandidate[] @relation("LeadOwner")
+  leadContacts LeadContact[] @relation("LeadContactRecorder")
+  assessmentsCreated StageAssessment[] @relation("AssessmentCreator")
+  assessmentsConfirmed StageAssessment[] @relation("AssessmentConfirmer")
+  gradesRecorded AssessmentGrade[] @relation("GradeRecorder")
   admissionChanges AdmissionCandidate[] @relation("AdmissionRecorder")
   entryVisits EntryVisit[] @relation("EntryVisitTeacher")
   recordedEntryVisits EntryVisit[] @relation("EntryVisitRecorder")
@@ -248,6 +253,7 @@ model Verification {
 }
 
 model Student {
+  assessments StageAssessment[]
   admissionCandidates AdmissionCandidate[]
   id             String        @id @default(uuid()) @db.Uuid
   commandId      String?       @unique @map("command_id") @db.Uuid
@@ -434,6 +440,7 @@ model Track {
 }
 
 model Stage {
+  assessments StageAssessment[]
   admissionCandidates AdmissionCandidate[]
   id           String    @id @default(uuid()) @db.Uuid
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -508,6 +515,8 @@ model EnrollmentAction {
 }
 
 model PedagogicalProgress {
+  assessmentId String? @map("assessment_id") @db.Uuid
+  assessment StageAssessment? @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
   id           String             @id @default(uuid()) @db.Uuid
   createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz
@@ -966,17 +975,24 @@ model AdmissionCandidate {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
   fullName String @map("full_name")
+  contactName String? @map("contact_name")
+  source String?
+  ownerId String? @map("owner_id") @db.Uuid
+  nextAction String? @map("next_action")
+  nextActionOn DateTime? @map("next_action_on") @db.Date
+  owner User? @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  contacts LeadContact[]
   phone String?
   email String?
   notes String?
   status AdmissionStatus @default(WAITING)
-  scheduleType ClassScheduleType @map("schedule_type")
-  format ClassFormat
+  scheduleType ClassScheduleType? @map("schedule_type")
+  format ClassFormat?
   stageId String? @map("stage_id") @db.Uuid
   studentId String? @map("student_id") @db.Uuid
   enrollmentId String? @unique @map("enrollment_id") @db.Uuid
-  availableUntil DateTime @map("available_until") @db.Date
-  availabilityConfirmedAt DateTime @default(now()) @map("availability_confirmed_at") @db.Timestamptz
+  availableUntil DateTime? @map("available_until") @db.Date
+  availabilityConfirmedAt DateTime? @default(now()) @map("availability_confirmed_at") @db.Timestamptz
   recordedById String @map("recorded_by_id") @db.Uuid
 
   stage Stage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
@@ -1034,4 +1050,84 @@ model EntryVisit {
   @@index([candidateId, date])
   @@index([teacherId, date, status])
   @@index([classId, date])
+}
+
+
+enum AcademicCompetence {
+  ORAL
+  LISTENING
+  WRITTEN
+  PARTICIPATION
+}
+
+enum AssessmentPhase {
+  BLOCK_ONE
+  BLOCK_TWO
+  RECOVERY
+}
+
+enum AcademicDecision {
+  APPROVED
+  REPEAT
+}
+
+model StageAssessment {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  studentId String @map("student_id") @db.Uuid
+  stageId String @map("stage_id") @db.Uuid
+  startedOn DateTime @map("started_on") @db.Date
+  version Int @default(1)
+  decision AcademicDecision?
+  decisionReason String? @map("decision_reason")
+  confirmedAt DateTime? @map("confirmed_at") @db.Timestamptz
+  confirmedById String? @map("confirmed_by_id") @db.Uuid
+  createdById String @map("created_by_id") @db.Uuid
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  createdBy User @relation("AssessmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  confirmedBy User? @relation("AssessmentConfirmer", fields: [confirmedById], references: [id], onDelete: Restrict)
+  progressRecords PedagogicalProgress[]
+  grades AssessmentGrade[]
+
+  @@index([studentId, startedOn])
+  @@index([stageId])
+}
+
+model AssessmentGrade {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  assessmentId String @map("assessment_id") @db.Uuid
+  phase AssessmentPhase
+  competence AcademicCompetence
+  score Decimal @db.Decimal(4, 1)
+  assessedOn DateTime @map("assessed_on") @db.Date
+  reason String?
+  recordedById String @map("recorded_by_id") @db.Uuid
+
+  assessment StageAssessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("GradeRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@unique([assessmentId, phase, competence])
+  @@index([recordedById])
+}
+
+
+model LeadContact {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  candidateId String @map("candidate_id") @db.Uuid
+  contactedOn DateTime @map("contacted_on") @db.Date
+  summary String
+  recordedById String @map("recorded_by_id") @db.Uuid
+  candidate AdmissionCandidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("LeadContactRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  @@index([candidateId, contactedOn])
 }
