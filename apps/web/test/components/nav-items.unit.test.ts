@@ -19,6 +19,7 @@ const ASSESSMENTS_PATH = "/avaliacoes";
 const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
 const SETTINGS_PATH = "/ajustes";
+const ACTIVITY_PATH = "/atividades";
 const STUDENTS_LABEL = "Alunos";
 const PEDAGOGICAL_LABEL = "Pedagógico";
 
@@ -43,6 +44,7 @@ void describe("role-aware navigation", () => {
         ANALYTICS_PATH,
         CONTRACTS_PATH,
         RECEIVABLES_PATH,
+        ACTIVITY_PATH,
       ],
     );
     assert.deepEqual(
@@ -57,6 +59,7 @@ void describe("role-aware navigation", () => {
       { label: PEDAGOGICAL_LABEL, items: [STUDENTS_LABEL, "Professores", "Turmas"] },
       { label: "Comercial", items: ["Leads"] },
       { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
+      { label: "Sistema", items: ["Log de atividades"] },
     ]);
     assert.deepEqual(
       navSectionsFor("TEACHER").map((section) => section.label),
@@ -120,6 +123,7 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       ANALYTICS_PATH,
       CONTRACTS_PATH,
       RECEIVABLES_PATH,
+      ACTIVITY_PATH,
       SETTINGS_PATH,
     ],
   );
