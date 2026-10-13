@@ -39,7 +39,12 @@ export function CurrentEnrollment({
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 border-t border-border/60 pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-          <EnrollmentAttendance attendance={enrollment.attendance} />
+          <EnrollmentAttendance
+            attendance={enrollment.attendance}
+            studentId={profile.id}
+            studentName={profile.contact.fullName}
+            enrollmentId={enrollment.id}
+          />
           <EnrollmentGradeAverage progressId={stage?.id} />
         </div>
       </div>

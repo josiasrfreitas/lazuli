@@ -46,7 +46,12 @@ export function StudentPedagogySection({ profile }: { profile: StudentProfile })
         <StudentAppointments studentId={id} />
         <StudentFollowUp studentId={id} />
       </div>
-      <EnrollmentHistory rows={history} today={query.data.today} />
+      <EnrollmentHistory
+        rows={history}
+        today={query.data.today}
+        studentId={id}
+        studentName={profile.contact.fullName}
+      />
     </div>
   );
 }

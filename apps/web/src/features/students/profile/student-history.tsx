@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Badge, DataTable, type DataTableColumn } from "@lazuli/ui";
 import { formatAttendancePercent, formatDateOnlyBR } from "~/lib/format";
 import type { StudentEnrollment } from "./logic";
+import { AttendanceHistoryDialog } from "./attendance-history-dialog";
 const EXIT_LABELS = {
   COMPLETED: "Concluída",
   TRANSFERRED: "Transferência",
@@ -49,17 +50,30 @@ function historyColumns(today: string): DataTableColumn<StudentEnrollment>[] {
 export function EnrollmentHistory({
   rows,
   today,
+  studentId,
+  studentName,
 }: {
   rows: StudentEnrollment[];
   today: string;
+  studentId: string;
+  studentName: string;
 }): ReactElement {
   return (
     <section className="grid min-w-0 gap-3 border-t border-border pt-5">
       <div className="flex flex-wrap items-baseline gap-3">
-        <h2 className="font-display text-xl font-semibold text-heading">Histórico de matrículas</h2>
-        <p className="text-caption text-muted-foreground">
-          Matrículas anteriores e entradas agendadas
-        </p>
+        <div className="mr-auto flex flex-wrap items-baseline gap-3">
+          <h2 className="font-display text-xl font-semibold text-heading">
+            Histórico de matrículas
+          </h2>
+          <p className="text-caption text-muted-foreground">
+            Matrículas anteriores e entradas agendadas
+          </p>
+        </div>
+        <AttendanceHistoryDialog
+          studentId={studentId}
+          studentName={studentName}
+          triggerLabel="Ver frequência"
+        />
       </div>
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">Sem outras matrículas registradas.</p>

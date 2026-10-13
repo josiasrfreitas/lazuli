@@ -59,6 +59,43 @@ Evidence: [pedagogy dark](student-pedagogy-desktop-dark.png), [pedagogy light at
 
 The complete implementation diff was inspected. No manual code checks, lint, typecheck, build, or test suites were run, as explicitly requested. An earlier-authored mean unit test remains unexecuted. Commit formatting/whitespace hooks are retained; broader code verification remains for CI. Browser evidence demonstrates the exercised states, not final user approval.
 
+## Complete attendance history — 2026-10-13
+
+The attendance indicator now opens “Ver aulas e presenças”. “Ver frequência” in enrollment
+history provides the same dialog without requiring a current enrollment. The dialog follows
+the accepted desktop direction, using the shared Dialog, DataTable, selectors, badges, and
+semantic colors. Its compact summary stays independent of the presence filter and pagination.
+
+The history lists lesson date, time, class, semester, attendance, notes, and completed source-linked
+makeup minutes. Dates link to lesson details. It opens on the current enrollment and supports all
+enrollments, presences, absences, missing calls/records, and cancelled lessons. Ten rows per page
+are ordered newest first. At shorter desktop heights, the rows scroll inside the table while the
+filters and pagination remain visible.
+
+The admin-only read scopes both enrollments and attendance rows to the student. Lesson dates
+respect the enrollment/semester intersection, exclusive exit date, and today's school civil date.
+Cancelled and unconfirmed lessons remain visible but do not enter the attendance denominator.
+Confirmed calls without a student record display “Sem registro”, never an invented absence.
+Only completed, non-deleted makeup coverage contributes minutes; compensation preserves the
+original absence. The established domain calculation supplies the frequency summary.
+
+Browser evidence from the populated João Pedro example:
+
+- 30 lessons through October 13: 27 presences, two absences, and one pending call; frequency 95%.
+- All three pages reached, from October 13 back to July 2.
+- Absence filter showed September 8 with 45 of 90 minutes compensated and July 28 without
+  compensation. The scheduled makeup was not counted as completed.
+- Pending-call filter showed October 13; selecting the future 2027.1 enrollment showed an empty
+  history, zero recorded counts, and no invented percentage.
+- Dark desktop at 1440 × 1060 and light desktop at 1280 × 800 inspected. The final smaller-height
+  layout had no dialog-body overflow, with pagination ending at y=704 inside the y=768 dialog.
+- The close control returned focus to the trigger. Exhaustive keyboard, screen-reader, transport
+  failure, and cancellation scenarios were not exercised in this pass.
+
+Final compact-desktop evidence: [attendance history](student-attendance-desktop-light.png).
+The source diff was inspected manually. No test suites, lint, typecheck, build, or manual code
+checks were run, as requested; normal commit formatting/whitespace hooks remain enabled.
+
 ## Original browser evidence — 2026-10-10
 
 Validated in the isolated `aluno-perfil` worktree with its seeded database and real magic-link login, on 2026-10-10 (school date).
