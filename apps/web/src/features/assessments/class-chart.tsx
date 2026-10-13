@@ -98,8 +98,8 @@ export function ClassPerformanceChart({
         ))}
       </dl>
       <p className="text-caption text-muted-foreground">
-        Azul: turma · Dourado: aluno selecionado. Cada média usa somente competências com os dois
-        blocos registrados, incluindo a recuperação quando houver.
+        Azul: turma · Dourado: aluno selecionado. Cada média usa somente competências com as duas
+        unidades registradas, incluindo a recuperação quando houver.
       </p>
     </div>
   );

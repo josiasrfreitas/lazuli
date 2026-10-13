@@ -9,7 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from "@lazuli/ui";
-import { COMPETENCE_LABELS, gradeLabel, type Assessment } from "./shared";
+import {
+  COMPETENCE_LABELS,
+  COMPETENCE_VISUALS,
+  PHASE_LABELS,
+  gradeLabel,
+  type Assessment,
+} from "./shared";
 
 export function AssessmentResults({ data }: { data: Assessment }): ReactElement {
   return (
@@ -18,8 +24,8 @@ export function AssessmentResults({ data }: { data: Assessment }): ReactElement 
         <TableHeader>
           <TableRow interactive={false}>
             <TableHead>Competência</TableHead>
-            <TableHead numeric>Bloco 1</TableHead>
-            <TableHead numeric>Bloco 2</TableHead>
+            <TableHead numeric>{PHASE_LABELS.BLOCK_ONE}</TableHead>
+            <TableHead numeric>{PHASE_LABELS.BLOCK_TWO}</TableHead>
             <TableHead numeric>Média</TableHead>
             <TableHead numeric>Recup.</TableHead>
             <TableHead>Resultado</TableHead>
@@ -28,7 +34,11 @@ export function AssessmentResults({ data }: { data: Assessment }): ReactElement 
         <TableBody>
           {data.results.map((result) => (
             <TableRow key={result.competence} interactive={false}>
-              <TableCell>{COMPETENCE_LABELS[result.competence]}</TableCell>
+              <TableCell>
+                <Badge variant={COMPETENCE_VISUALS[result.competence].badge}>
+                  {COMPETENCE_LABELS[result.competence]}
+                </Badge>
+              </TableCell>
               <TableCell numeric>{gradeLabel(result.blockOne)}</TableCell>
               <TableCell numeric>{gradeLabel(result.blockTwo)}</TableCell>
               <TableCell numeric>{gradeLabel(result.average)}</TableCell>

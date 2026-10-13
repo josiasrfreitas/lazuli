@@ -14,7 +14,7 @@ import {
 } from "@lazuli/ui";
 import { formatDateOnlyBR, toWhatsAppUrl } from "~/lib/format";
 import type { StudentProfile } from "./logic";
-import { MISSING_DETAIL, ProfileFact } from "./profile-shared";
+import { ProfileFact } from "./profile-shared";
 
 export function StudentContactButton({ profile }: { profile: StudentProfile }): ReactElement {
   return (
@@ -22,10 +22,10 @@ export function StudentContactButton({ profile }: { profile: StudentProfile }): 
       <SheetTrigger
         aria-label="Cadastro completo"
         title="Cadastro completo"
-        render={<Button variant="link" size="inline" />}
+        render={<Button variant="ghost" size="compact-responsive" />}
       >
         <UserRound aria-hidden="true" />
-        <span>Cadastro completo</span>
+        <span className="hidden sm:inline">Cadastro completo</span>
       </SheetTrigger>
       <SheetPortal>
         <SheetBackdrop />
@@ -58,16 +58,16 @@ function StudentContactFacts({ profile }: { profile: StudentProfile }): ReactEle
   return (
     <dl className="grid gap-4">
       <ProfileFact label="Nascimento">
-        {profile.contact.birthDate ? formatDateOnlyBR(profile.contact.birthDate) : MISSING_DETAIL}
+        {profile.contact.birthDate ? formatDateOnlyBR(profile.contact.birthDate) : "Não informado"}
       </ProfileFact>
-      <ProfileFact label="Telefone">{profile.contact.phone ?? MISSING_DETAIL}</ProfileFact>
+      <ProfileFact label="Telefone">{profile.contact.phone ?? "Não informado"}</ProfileFact>
       <ProfileFact label="E-mail">
         {profile.contact.email ? (
           <a className="text-interactive hover:underline" href={`mailto:${profile.contact.email}`}>
             {profile.contact.email}
           </a>
         ) : (
-          MISSING_DETAIL
+          "Não informado"
         )}
       </ProfileFact>
       {profile.address && (
@@ -82,7 +82,7 @@ function StudentContactFacts({ profile }: { profile: StudentProfile }): ReactEle
             profile.address.postalCode,
           ]
             .filter(Boolean)
-            .join(", ") || MISSING_DETAIL}
+            .join(", ") || "Não informado"}
         </ProfileFact>
       )}
     </dl>

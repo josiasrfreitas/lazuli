@@ -7,7 +7,7 @@ const competencies = {
   WRITTEN: "Written",
   PARTICIPATION: "Participação",
 };
-const phases = { BLOCK_ONE: "Bloco 1", BLOCK_TWO: "Bloco 2", RECOVERY: "Recuperação" };
+const phases = { BLOCK_ONE: "Unidade 1", BLOCK_TWO: "Unidade 2", RECOVERY: "Recuperação" };
 const dateLabel = (date: string): string => date.split("-").reverse().join("/");
 export async function recordAssessmentChanges(
   context: AssessmentContext,

@@ -54,19 +54,28 @@ export function EnrollmentHistory({
   today: string;
 }): ReactElement {
   return (
-    <section className="grid min-w-0 gap-3">
-      <h2 className="text-base font-semibold">Histórico de matrículas</h2>
-      <DataTable
-        label="Histórico de matrículas do aluno"
-        columns={historyColumns(today)}
-        state={rows.length > 0 ? { kind: "data", rows } : { kind: "empty" }}
-        onRetry={() => undefined}
-        empty={{
-          title: "Sem outras matrículas",
-          description: "Matrículas anteriores e entradas agendadas aparecem aqui.",
-        }}
-        errorTitle="Não foi possível carregar o histórico"
-      />
+    <section className="grid min-w-0 gap-3 border-t border-border pt-5">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h2 className="font-display text-xl font-semibold text-heading">Histórico de matrículas</h2>
+        <p className="text-caption text-muted-foreground">
+          Matrículas anteriores e entradas agendadas
+        </p>
+      </div>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Sem outras matrículas registradas.</p>
+      ) : (
+        <DataTable
+          label="Histórico de matrículas do aluno"
+          columns={historyColumns(today)}
+          state={rows.length > 0 ? { kind: "data", rows } : { kind: "empty" }}
+          onRetry={() => undefined}
+          empty={{
+            title: "Sem outras matrículas",
+            description: "Matrículas anteriores e entradas agendadas aparecem aqui.",
+          }}
+          errorTitle="Não foi possível carregar o histórico"
+        />
+      )}
     </section>
   );
 }

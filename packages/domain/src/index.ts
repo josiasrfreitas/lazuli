@@ -139,3 +139,8 @@ export {
 } from "./student-attendance.js";
 export * from "./compensated-attendance.js";
 export * from "./semester-organization.js";
+export {
+  studentFinanceSummary,
+  type StudentFinanceSummary,
+  type StudentSettlement,
+} from "./student-finance.js";

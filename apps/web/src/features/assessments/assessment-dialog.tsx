@@ -52,7 +52,7 @@ export function AssessmentDialog({
               className="grid gap-5 pt-4"
             >
               <SegmentedControl
-                aria-label="Bloco de avaliação"
+                aria-label="Unidade de avaliação"
                 value={state.phase}
                 onValueChange={(value) => {
                   if (PHASES.includes(value as typeof state.phase))
@@ -89,7 +89,7 @@ export function AssessmentDialog({
               {data.confirmedAt && (
                 <Alert variant="warning">
                   Salvar a correção retira a confirmação anterior. A coordenação precisará confirmar
-                  o resultado novamente.
+                  a avaliação novamente.
                 </Alert>
               )}
               {state.save.error && <Alert variant="destructive">{state.save.error.message}</Alert>}
