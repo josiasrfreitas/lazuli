@@ -16,18 +16,6 @@ export const statuses = {
   NO_SHOW: "Não compareceu",
   CANCELLED: "Cancelado",
 } as const;
-export const channels = {
-  PHONE: "Telefone",
-  WHATSAPP: "WhatsApp",
-  EMAIL: "E-mail",
-  IN_PERSON: "Presencial",
-} as const;
-export const outcomes = {
-  NO_ANSWER: "Sem resposta",
-  REPLIED: "Respondeu",
-  APPOINTMENT_AGREED: "Atendimento combinado",
-  OTHER: "Outro retorno",
-} as const;
 export function today() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",

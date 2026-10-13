@@ -44,7 +44,7 @@ export function StudentPedagogySection({ profile }: { profile: StudentProfile })
       <StudentAcademicProgress studentId={id} />
       <div className="grid min-w-0 border border-border bg-accent xl:grid-cols-2">
         <StudentAppointments studentId={id} />
-        <StudentFollowUp studentId={id} />
+        <StudentFollowUp studentId={id} studentName={profile.contact.fullName} />
       </div>
       <EnrollmentHistory
         rows={history}

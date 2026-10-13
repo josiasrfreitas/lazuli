@@ -9,7 +9,6 @@ import {
   appointmentListSchema,
   appointmentStudentSchema,
   absenceListSchema,
-  absenceContactSchema,
 } from "@lazuli/validators";
 import { adminProcedure, router, staffProcedure } from "../trpc/init.js";
 import { scheduleAppointment } from "./schedule.js";
@@ -22,7 +21,6 @@ import {
   listAppointments,
 } from "./read.js";
 import { listAbsences } from "./absences.js";
-import { recordAbsenceContact } from "./contacts.js";
 
 export const appointmentsRouter = router({
   list: staffProcedure
@@ -58,13 +56,11 @@ export const appointmentsRouter = router({
         input.date,
       ),
     ),
-  absences: adminProcedure
-    .input(absenceListSchema)
-    .query(({ ctx, input }) =>
-      ctx.db.$transaction((database) => listAbsences(database, input), {
-        isolationLevel: "RepeatableRead",
-      }),
-    ),
+  absences: adminProcedure.input(absenceListSchema).query(({ ctx, input }) =>
+    ctx.db.$transaction((database) => listAbsences(database, input), {
+      isolationLevel: "RepeatableRead",
+    }),
+  ),
   schedule: adminProcedure
     .input(appointmentScheduleSchema)
     .mutation(({ ctx, input }) =>
@@ -109,16 +105,6 @@ export const appointmentsRouter = router({
             input,
           ),
         { timeout: 15000 },
-      ),
-    ),
-  contact: adminProcedure
-    .input(absenceContactSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        recordAbsenceContact(
-          { database, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
-          input,
-        ),
       ),
     ),
 });

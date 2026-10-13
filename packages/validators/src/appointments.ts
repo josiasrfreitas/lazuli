@@ -144,18 +144,6 @@ export const absenceListSchema = z
   })
   .strict()
   .refine((value) => value.through >= value.from, { message: "Informe um período válido." });
-export const absenceContactSchema = z
-  .object({
-    id,
-    studentId: id,
-    attendanceId: id.nullable(),
-    contactedAt: z.string().datetime("Informe uma data e um horário válidos."),
-    channel: z.enum(["PHONE", "WHATSAPP", "EMAIL", "IN_PERSON"]),
-    outcome: z.enum(["NO_ANSWER", "REPLIED", "APPOINTMENT_AGREED", "OTHER"]),
-    notes: note.min(1, "Registre o resultado do contato."),
-    nextContactDate: civilDateSchema.nullable(),
-  })
-  .strict();
 export type AppointmentScheduleInput = z.infer<typeof appointmentScheduleSchema>;
 export type AppointmentRecordInput = z.infer<typeof appointmentRecordSchema>;
 export type AppointmentMeetingInput = z.infer<typeof appointmentMeetingSchema>;

@@ -171,3 +171,19 @@ empty state, and dark/light desktop rendering were exercised. The final 1280 × 
 keeps pagination visible while only lesson rows scroll. Evidence and limits are recorded in
 [student profile tasks](aluno-perfil/TASKS.md). The user's no-tests/no-lint instruction remains in
 force; normal commit hooks are retained.
+
+### Frequency contacts removed — 2026-10-13
+
+The user explicitly unified frequency follow-up under interventions. The separate contact section,
+form, absence-queue column/action, active API, and seed writer were removed. Existing database rows
+and historical activity rendering are preserved. The agenda tab now reads “Faltas e reposições”.
+
+A student-bound intervention can be created from the profile or absence queue without prior
+occurrences, with the existing objective, responsible teacher, next step, deadline, and outcome
+workflow. Optional occurrences retain same-student and uniqueness constraints. João Pedro's local
+review example now has 15 appointments, 15 occurrences, 8 interventions, and 33 follow-up records.
+One standalone intervention and its family-conversation follow-up were created through the real UI.
+
+The new form/detail were visually reviewed in light mode. Orca disconnected during the final absence
+agenda validation; see [student profile tasks](aluno-perfil/TASKS.md) for the precise evidence and
+remaining limits. No test/lint/build commands were run, per the user's explicit instruction.

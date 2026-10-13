@@ -223,7 +223,7 @@ void it("reschedules atomically and keeps cancelled reservations available to th
   assert.equal(next.snapshot.coverages[0]?.minutes, 120);
   assert.equal(before.history[1]?.snapshot.status, "SCHEDULED");
 });
-void it("scopes teacher access and same-day recording, and attributes append-only absence contacts", async () => {
+void it("scopes teacher access and same-day recording", async () => {
   const f = await appointmentFixture(harness);
   await harness.caller(undefined, f.before).appointments.schedule(f.input);
   await assert.rejects(
@@ -241,51 +241,25 @@ void it("scopes teacher access and same-day recording, and attributes append-onl
       }),
     { code: "BAD_REQUEST", message: /administração/ },
   );
-  const contact = {
-    id: randomUUID(),
-    studentId: f.studentId,
-    attendanceId: f.absence.id,
-    contactedAt: f.before.toISOString(),
-    channel: "PHONE" as const,
-    outcome: "REPLIED" as const,
-    notes: "Família confirmou o novo horário.",
-    nextContactDate: null,
-  };
-  await harness.caller(undefined, f.after).appointments.contact(contact);
-  const stored = await harness.caller().appointments.student({ studentId: f.studentId });
-  assert.equal(stored.contacts[0]?.notes, contact.notes);
-  assert.equal(stored.contacts[0]?.contactedAt.toISOString(), contact.contactedAt);
-  assert.equal(
-    (await db.absenceContact.findUniqueOrThrow({ where: { id: contact.id } })).actorId,
-    harness.ns.admin.id,
-  );
-  assert.equal(
-    await db.activityEvent.count({
-      where: { action: "appointments.contact", subjectId: f.studentId },
-    }),
-    1,
-  );
 });
 
 void it("blocks a later class from occupying an independent appointment and frees the slot after cancellation", async () => {
   const f = await appointmentFixture(harness);
   const date = f.before.toISOString().slice(0, 10);
   const before = new Date(`${date}T11:00:00Z`);
-  await harness
-    .caller(undefined, before)
-    .appointments.schedule({
-      ...f.input,
-      purpose: "REINFORCEMENT",
-      coverages: [],
-      meeting: {
-        kind: "INDEPENDENT",
-        teacherId: harness.ns.otherTeacher.id,
-        date,
-        startTime: "10:00",
-        endTime: "11:00",
-        format: "ONLINE",
-      },
-    });
+  await harness.caller(undefined, before).appointments.schedule({
+    ...f.input,
+    purpose: "REINFORCEMENT",
+    coverages: [],
+    meeting: {
+      kind: "INDEPENDENT",
+      teacherId: harness.ns.otherTeacher.id,
+      date,
+      startTime: "10:00",
+      endTime: "11:00",
+      format: "ONLINE",
+    },
+  });
   const values = {
     teacherId: harness.ns.otherTeacher.id,
     semesterId: f.semesterId,
@@ -302,13 +276,11 @@ void it("blocks a later class from occupying an independent appointment and free
     .caller(undefined, before)
     .teachers.week({ id: harness.ns.otherTeacher.id, week: date });
   assert.equal(week.appointments.find((row) => row.id === f.input.id)?.studentId, f.studentId);
-  await harness
-    .caller(undefined, before)
-    .appointments.cancel({
-      id: f.input.id,
-      expectedVersion: 1,
-      reason: "Família solicitou outro dia.",
-    });
+  await harness.caller(undefined, before).appointments.cancel({
+    id: f.input.id,
+    expectedVersion: 1,
+    reason: "Família solicitou outro dia.",
+  });
   const created = await harness.caller(undefined, before).classes.create(values);
   const stored = await db.class.findUniqueOrThrow({
     where: { id: created.id },
@@ -332,12 +304,10 @@ void it("requires a dated PPT enrollment and keeps an assessment appointment ind
   await harness
     .caller(undefined, f.after)
     .appointments.record({ ...actual, id: scheduled.id, expectedVersion: 1, coverages: [] });
-  const percent = await harness
-    .caller()
-    .attendance.enrollmentSemesterPercent({
-      enrollmentId: f.enrollmentId,
-      semesterId: f.semesterId,
-    });
+  const percent = await harness.caller().attendance.enrollmentSemesterPercent({
+    enrollmentId: f.enrollmentId,
+    semesterId: f.semesterId,
+  });
   assert.equal(percent.compensatedMinutes, 0);
   assert.equal(percent.missingMinutes, 120);
   assert.equal(await db.stageAssessment.count({ where: { studentId: f.studentId } }), 0);
@@ -356,12 +326,10 @@ void it("excludes the exit day from the frequency denominator just as the dated 
       reason: "SUSPENDED",
       effectiveDate: harness.ns.sessionDate,
     });
-  const result = await harness
-    .caller()
-    .attendance.enrollmentSemesterPercent({
-      enrollmentId: f.enrollmentId,
-      semesterId: f.semesterId,
-    });
+  const result = await harness.caller().attendance.enrollmentSemesterPercent({
+    enrollmentId: f.enrollmentId,
+    semesterId: f.semesterId,
+  });
   assert.equal(result.heldSessions, 0);
   assert.equal(result.percent, null);
   assert.equal(

@@ -141,9 +141,9 @@ void it("links reports symmetrically without creating an intervention and retain
     1,
   );
 });
-void it("requires two distinct reports for one student, denying cross-student links without success events", async () => {
+void it("rejects missing student context, repeated reports and cross-student links without success events", async () => {
   const f = await fixture();
-  for (const occurrenceIds of [[f.first.id], [f.first.id, f.first.id], [f.first.id, f.third.id]]) {
+  for (const occurrenceIds of [[], [f.first.id, f.first.id], [f.first.id, f.third.id]]) {
     await assert.rejects(caller().interventions.create({ ...interventionValues, occurrenceIds }), {
       code: "BAD_REQUEST",
     });

@@ -61,18 +61,13 @@ export function InterventionForm({
           event.preventDefault();
           if (save.isPending) return;
           if (step === 0) {
-            if (ids.length < 2) {
-              validation.validate(interventionCreateSchema.pick({ occurrenceIds: true }), {
-                occurrenceIds: ids,
-              });
-              return;
-            }
             setStep(1);
             requestAnimationFrame(() => document.getElementById("intervention-title")?.focus());
             return;
           }
           const parsed = validation.validate(interventionCreateSchema, {
             ...values,
+            studentId: source.studentId,
             occurrenceIds: ids,
             dueOn: values.dueOn ? (parseDateBR(values.dueOn) ?? "") : null,
           });
@@ -200,7 +195,7 @@ export function MotivatingOccurrenceFields({
     <FormSection title="Ocorrências motivadoras">
       <Field name="occurrenceIds">
         <p className="text-caption text-muted-foreground">
-          Selecione pelo menos dois relatos. Eles continuam disponíveis no histórico do aluno.
+          Vincule os relatos que ajudam a explicar a intervenção. A seleção é opcional.
         </p>
         <div className="grid max-h-80 gap-2 overflow-y-auto">
           {rows.map((row, index) => (
