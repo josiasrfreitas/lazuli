@@ -7,6 +7,7 @@ import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { RecordState } from "~/features/class-records/shared";
+import { ProfileRecordList } from "~/features/students/profile/profile-record-list";
 import { AppointmentBadge, monthBounds, purposes, shiftMonth, today } from "./shared";
 
 type AppointmentRow = RouterOutputs["appointments"]["list"][number];
@@ -24,10 +25,15 @@ export function StudentAppointments({ studentId }: { studentId: string }): React
       (a.status === "SCHEDULED" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)),
   );
   return (
-    <section className="grid min-w-0 content-start gap-4 p-5">
+    <section
+      aria-label="Atendimentos do aluno"
+      className="grid min-w-0 content-start gap-4 border border-border bg-accent p-5 xl:col-span-2"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-xl font-semibold text-heading">Atendimentos</h2>
+          <h2 className="font-display text-2xl font-medium tracking-tight text-heading">
+            Atendimentos
+          </h2>
           <p className="mt-1 text-caption text-muted-foreground">
             Reposições, reforço e apoio ao aluno
           </p>
@@ -49,15 +55,19 @@ export function StudentAppointments({ studentId }: { studentId: string }): React
         }}
       />
       {agenda.data && (
-        <div className="grid gap-1">
-          <p className="text-micro text-muted-foreground">
+        <div className="grid gap-3">
+          <p className="border-b border-border pb-3 text-caption text-muted-foreground">
             {formatDateOnlyBR(range.from)} a {formatDateOnlyBR(range.through)}
           </p>
-          <div className="divide-y divide-border">
-            {rows.slice(0, 5).map((row) => (
-              <AppointmentItem key={row.id} row={row} />
-            ))}
-          </div>
+          {rows.length > 0 && (
+            <ProfileRecordList total={rows.length} label="Atendimentos no período">
+              {rows.map((row) => (
+                <li key={row.id}>
+                  <AppointmentItem row={row} />
+                </li>
+              ))}
+            </ProfileRecordList>
+          )}
           {!rows.length && (
             <p className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
               <CalendarDays aria-hidden="true" className="size-5 shrink-0 text-icon" />
@@ -78,27 +88,29 @@ function AppointmentItem({ row }: { row: AppointmentRow }): ReactElement {
   return (
     <Link
       href={`/atendimentos/${row.id}`}
-      className="group flex items-center gap-4 py-3 outline-offset-4 transition-colors hover:text-interactive focus-visible:outline-2 focus-visible:outline-ring"
+      className="group flex items-start gap-3 py-4 outline-offset-2 transition-colors hover:text-interactive focus-visible:outline-2 focus-visible:outline-ring"
     >
       <time
         dateTime={row.date}
-        className="grid w-10 shrink-0 justify-items-center border-r border-border pr-3 text-heading"
+        className="grid w-12 shrink-0 justify-items-center border-r border-border pr-3 text-heading"
       >
-        <span className="font-numeric text-2xl font-semibold leading-none tabular-nums">
+        <span className="font-display text-3xl font-medium leading-none tabular-nums">
           {row.date.slice(8)}
         </span>
         <span className="mt-1 text-micro uppercase">{month}</span>
       </time>
       <div className="min-w-0 flex-1">
-        <h3 className="text-sm font-semibold">{purposes[row.purpose]}</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold">{purposes[row.purpose]}</h3>
+          <AppointmentBadge status={row.status} overdue={row.overdue} />
+        </div>
         <p className="mt-1 text-caption text-muted-foreground">
           <span className="font-numeric tabular-nums">
             {row.startTime}–{row.endTime}
           </span>{" "}
-          · {row.teacher?.name ?? "Professor a definir"}
+          · <span className="break-words">{row.teacher?.name ?? "Professor a definir"}</span>
         </p>
       </div>
-      <AppointmentBadge status={row.status} overdue={row.overdue} />
       <ArrowUpRight className="size-3.5 shrink-0 text-icon" aria-hidden="true" />
     </Link>
   );

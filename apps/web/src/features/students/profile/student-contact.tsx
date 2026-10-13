@@ -22,10 +22,10 @@ export function StudentContactButton({ profile }: { profile: StudentProfile }): 
       <SheetTrigger
         aria-label="Cadastro completo"
         title="Cadastro completo"
-        render={<Button variant="ghost" size="compact-responsive" />}
+        render={<Button variant="link" size="inline" />}
       >
         <UserRound aria-hidden="true" />
-        <span className="hidden sm:inline">Cadastro completo</span>
+        <span>Cadastro completo</span>
       </SheetTrigger>
       <SheetPortal>
         <SheetBackdrop />
