@@ -27,7 +27,7 @@ export function StudentAppointments({ studentId }: { studentId: string }): React
   return (
     <section
       aria-label="Atendimentos do aluno"
-      className="grid min-w-0 content-start gap-4 border border-border bg-accent p-5 xl:col-span-2"
+      className="grid min-w-0 gap-4 border border-border bg-accent p-5 xl:col-span-2 xl:row-span-3 xl:grid-rows-subgrid"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -47,35 +47,37 @@ export function StudentAppointments({ studentId }: { studentId: string }): React
           Ver agenda <ArrowUpRight aria-hidden="true" />
         </Button>
       </div>
-      <RecordState
-        pending={agenda.isPending}
-        error={agenda.error}
-        retry={() => {
-          void agenda.refetch();
-        }}
-      />
-      {agenda.data && (
-        <div className="grid gap-3">
-          <p className="border-b border-border pb-3 text-caption text-muted-foreground">
-            {formatDateOnlyBR(range.from)} a {formatDateOnlyBR(range.through)}
-          </p>
-          {rows.length > 0 && (
-            <ProfileRecordList total={rows.length} label="Atendimentos no período">
-              {rows.map((row) => (
-                <li key={row.id}>
-                  <AppointmentItem row={row} />
-                </li>
-              ))}
-            </ProfileRecordList>
-          )}
-          {!rows.length && (
-            <p className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
-              <CalendarDays aria-hidden="true" className="size-5 shrink-0 text-icon" />
-              Nenhum atendimento neste período.
-            </p>
-          )}
-        </div>
-      )}
+      <p className="flex min-h-8 items-center border-b border-border text-caption text-muted-foreground">
+        {formatDateOnlyBR(range.from)} a {formatDateOnlyBR(range.through)}
+      </p>
+      <div>
+        <RecordState
+          pending={agenda.isPending}
+          error={agenda.error}
+          retry={() => {
+            void agenda.refetch();
+          }}
+        />
+        {agenda.data && (
+          <>
+            {rows.length > 0 && (
+              <ProfileRecordList total={rows.length} label="Atendimentos no período">
+                {rows.map((row) => (
+                  <li key={row.id}>
+                    <AppointmentItem row={row} />
+                  </li>
+                ))}
+              </ProfileRecordList>
+            )}
+            {!rows.length && (
+              <p className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
+                <CalendarDays aria-hidden="true" className="size-5 shrink-0 text-icon" />
+                Nenhum atendimento neste período.
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </section>
   );
 }

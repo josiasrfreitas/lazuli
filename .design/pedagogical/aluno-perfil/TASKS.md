@@ -206,3 +206,26 @@ Critique run notes: dual independent assessments; ignore list absent; CLI and in
 scan both clean; temporary detector server stopped and assessment tabs closed; temporary report
 removed after archive write. First critique for this target, no trend yet. The primary review tab
 remains open on the populated example.
+
+## Default scrolling and aligned sections — 2026-10-13
+
+The user rejected the “Ver mais” interaction and requested scrolling by default, plus alignment of
+both sections. This supersedes the collapsed preview behavior above. Removed expansion state,
+preview slicing and expand/collapse controls. Every loaded row is immediately inside the 384 px
+scroll viewport; server totals and complete-history access remain explicit.
+
+Both desktop sections now share three grid tracks through subgrid: heading, period/tabs, and content.
+Matching insets align heading tops, list starts, footer rules and section bottoms without assuming a
+fixed heading height. The existing distinct surfaces and unequal column widths are retained.
+
+Browser validation measured exact matching positions at 1440 × 1000 light and 1280 × 800 dark:
+section height 589 px, both list viewports 384 px, and zero difference in heading/list/footer/bottom
+coordinates. Switching to occurrences preserved those alignments. All 12 appointments, 23 loaded
+active interventions and 15 occurrences were present without an expansion click. Setting the
+intervention viewport scrollTop to 800 succeeded while its height remained 384 px. No horizontal
+page overflow or expand/collapse controls remained.
+
+Evidence: [aligned light](student-support-aligned-light.png),
+[aligned dark](student-support-aligned-dark.png). Reviewed the complete task diff, formatted changed
+files and passed `git diff --check`. No new tests were warranted for this removal of presentation
+state; no tests, lint, typecheck or build were run per the continuing review-session preference.

@@ -36,7 +36,7 @@ export function StudentFollowUp({
   return (
     <section
       aria-label="Acompanhamento pedagógico do aluno"
-      className="grid min-w-0 content-start gap-4 border-t border-border-strong pt-4 xl:col-span-3"
+      className="grid min-w-0 gap-4 border border-transparent border-t-border-strong p-5 xl:col-span-3 xl:row-span-3 xl:grid-rows-subgrid"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -51,7 +51,12 @@ export function StudentFollowUp({
           <Plus aria-hidden="true" /> Nova intervenção
         </Button>
       </div>
-      <Tabs value={view} onValueChange={(value) => setView(String(value))} variant="underline">
+      <Tabs
+        className="contents"
+        value={view}
+        onValueChange={(value) => setView(String(value))}
+        variant="underline"
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <TabsList aria-label="Registros pedagógicos do aluno">
             <TabsTab value="interventions">Em aberto · {ready ? total : "…"}</TabsTab>
@@ -80,7 +85,6 @@ export function StudentFollowUp({
               <ProfileRecordList
                 total={total}
                 label="Intervenções em aberto, por prazo de revisão"
-                previewCount={2}
                 historyHref={`/acompanhamento?aluno=${studentId}&view=interventions`}
               >
                 {active.map((row) => (
@@ -104,7 +108,6 @@ export function StudentFollowUp({
               <ProfileRecordList
                 total={occurrences.data.total}
                 label="Ocorrências recentes"
-                previewCount={2}
                 historyHref={`/acompanhamento?aluno=${studentId}&view=occurrences`}
               >
                 {occurrences.data.rows.map((row) => (
