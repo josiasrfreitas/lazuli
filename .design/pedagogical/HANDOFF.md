@@ -155,3 +155,19 @@ implementation ready for continued user review, not final visual approval or a C
 
 Continue applying page feedback in the integrated branch and committing incrementally. The
 consolidated historical implementation remains in [IMPLEMENTATION.md](IMPLEMENTATION.md).
+
+### Attendance history addition — 2026-10-13
+
+The student attendance metric now opens a complete lesson-history dialog. Enrollment history
+also offers access for students without a current enrollment. It includes dates, times, class,
+presence, notes, completed makeup minutes, enrollment/status filters, and pagination. The
+student-scoped admin read respects enrollment and semester windows, excludes the exit date,
+and lists lessons through today's school date. Pending and cancelled calls remain visible
+without being counted as absences; only completed makeup coverage contributes to frequency.
+
+João Pedro's populated example shows 30 lessons, 27 presences, two absences, one pending call,
+45 compensated minutes, and 95% attendance. Pagination, absence/pending filters, future-enrollment
+empty state, and dark/light desktop rendering were exercised. The final 1280 × 800 composition
+keeps pagination visible while only lesson rows scroll. Evidence and limits are recorded in
+[student profile tasks](aluno-perfil/TASKS.md). The user's no-tests/no-lint instruction remains in
+force; normal commit hooks are retained.

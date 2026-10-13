@@ -5,10 +5,21 @@ import { formatAttendancePercent } from "~/lib/format";
 import type { StudentEnrollment } from "./logic";
 import styles from "./student-profile.module.css";
 import { MetricHeading } from "./metric-heading";
+import { AttendanceHistoryDialog } from "./attendance-history-dialog";
 
 type Attendance = StudentEnrollment["attendance"];
 
-export function EnrollmentAttendance({ attendance }: { attendance: Attendance }): ReactElement {
+export function EnrollmentAttendance({
+  attendance,
+  studentId,
+  studentName,
+  enrollmentId,
+}: {
+  attendance: Attendance;
+  studentId: string;
+  studentName: string;
+  enrollmentId: string;
+}): ReactElement {
   return (
     <section aria-label="Frequência no semestre" className="grid min-w-0 content-start gap-2">
       <div className="grid gap-2">
@@ -48,6 +59,13 @@ export function EnrollmentAttendance({ attendance }: { attendance: Attendance })
           Abaixo de 75%. Acompanhe as ausências.
         </p>
       )}
+      <div className="justify-self-start">
+        <AttendanceHistoryDialog
+          studentId={studentId}
+          studentName={studentName}
+          enrollmentId={enrollmentId}
+        />
+      </div>
     </section>
   );
 }

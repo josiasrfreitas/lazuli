@@ -20,6 +20,7 @@ import { createStudent, readStudentProfile, searchStudents, updateStudentContact
 import { listStudents, previewStudent } from "./list.js";
 import { setStudentStatus } from "./status.js";
 import { readStudentPedagogy } from "./pedagogy.js";
+import { readStudentAttendanceHistory } from "./attendance-history.js";
 import { completeStudent } from "./completion.js";
 import { readStudentPedagogy } from "./pedagogy.js";
 
@@ -93,6 +94,17 @@ export const studentsRouter = router({
     .query(({ ctx, input }) =>
       readStudentPedagogy({ database: ctx.db, id: input.id, now: ctx.now ?? new Date() }),
     ),
+  attendanceHistory: adminProcedure
+    .input(
+      studentIdInputSchema.extend({
+        enrollmentId: z.string().uuid().optional(),
+        status: z.enum(["ALL", "PRESENT", "ABSENT", "PENDING", "CANCELLED"]).default("ALL"),
+        page: z.number().int().min(1).default(1),
+      }),
+    )
+    .query(({ ctx, input }) =>
+      readStudentAttendanceHistory({ ...input, database: ctx.db, now: ctx.now ?? new Date() }),
+    ),
   byId: adminProcedure
     .input(studentIdInputSchema)
     .query(({ ctx, input }) => readStudentProfile({ database: ctx.db, id: input.id })),
@@ -115,16 +127,14 @@ export const studentsRouter = router({
       }),
     ),
   ),
-  completeCreation: adminProcedure
-    .input(studentCompletionInputSchema)
-    .mutation(({ ctx, input }) =>
-      completeStudent({
-        database: ctx.db,
-        values: input,
-        staffUser: ctx.staffUser,
-        now: ctx.now ?? new Date(),
-      }),
-    ),
+  completeCreation: adminProcedure.input(studentCompletionInputSchema).mutation(({ ctx, input }) =>
+    completeStudent({
+      database: ctx.db,
+      values: input,
+      staffUser: ctx.staffUser,
+      now: ctx.now ?? new Date(),
+    }),
+  ),
   updateContact: adminProcedure
     .input(studentUpdateContactProcedureInputSchema)
     .mutation(({ ctx, input }) =>
