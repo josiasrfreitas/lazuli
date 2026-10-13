@@ -33,7 +33,9 @@ export function CalendarDatePicker({
       }}
     >
       <PopoverTrigger className={styles.monthTrigger}>
-        {calendarDate(date, { month: "long", year: "numeric" })}
+        {calendarDate(date, { month: "long", year: "numeric" }).replace(/^./, (letter) =>
+          letter.toUpperCase(),
+        )}
         <ChevronDown aria-hidden />
       </PopoverTrigger>
       <PopoverContent size="md" showArrow={false} align="start">
