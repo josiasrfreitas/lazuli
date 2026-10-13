@@ -1,5 +1,8 @@
 # Integrated pedagogical delivery
 
+Current review handoff (13/10/2026): [HANDOFF.md](HANDOFF.md). The user will review each screen and
+request changes on the integrated branch before the final PR stack.
+
 ## Current user direction (2026-10-11)
 
 Implement the complete requested feature set in one working branch, `josiasrfreitas/operacao-pedagogica`, with incremental commits and real browser validation. This supersedes opening one PR as each vertical is implemented.
