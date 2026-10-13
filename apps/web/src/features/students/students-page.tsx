@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CircleCheck, GraduationCap, Plus, Search, UsersRound } from "lucide-react";
 
 import {
@@ -20,7 +21,6 @@ import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
 import { debounce } from "~/lib/debounce";
 
 import {
-  useSelectedStudent,
   useStudentFilterOptions,
   useSelectedStudentFilterOptions,
   useStudentsFilters,
@@ -29,7 +29,6 @@ import {
 } from "./logic";
 import { studentFilterOptionResult } from "./filter-options";
 import { NewStudentDialog } from "./new-student/new-student-dialog";
-import { StudentPreviewPanel } from "./student-preview-panel";
 import { StudentsTable } from "./students-table";
 import { tableStateVm } from "./view-model";
 
@@ -253,11 +252,18 @@ function studentTableState(
 
 export function StudentsPage(): ReactElement {
   const filters = useStudentsFilters();
-  const selection = useSelectedStudent();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const students = useStudentsList(filters);
   const fields = useStudentFilterFields(filters);
   const [creating, setCreating] = useState(false);
   const pagination = paginationFor(filters);
+  const openStudent = (id: string): void => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("aluno");
+    const back = params.size > 0 ? `/alunos?${params.toString()}` : "/alunos";
+    router.push(`/alunos/${id}?voltar=${encodeURIComponent(back)}`);
+  };
 
   return (
     <>
@@ -280,19 +286,17 @@ export function StudentsPage(): ReactElement {
               onRetry={() => {
                 void students.refetch();
               }}
-              onSelectRow={selection.select}
-              selectedId={selection.selectedId}
+              onOpenRow={openStudent}
               state={studentTableState(filters, students)}
               pagination={tablePaginationPropsFor(pagination, students.data)}
             />
           </div>
         </div>
       </DataTablePage>
-      <StudentPreviewPanel selection={selection} />
       <NewStudentDialog
         onCreated={(id) => {
           setCreating(false);
-          selection.select(id);
+          openStudent(id);
         }}
         onOpenChange={setCreating}
         open={creating}

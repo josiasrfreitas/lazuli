@@ -46,7 +46,6 @@ export function useStudentFinance(id: string): StudentFinanceState {
       setPayment(null);
       void utils.finance.installments.invalidate();
       void utils.finance.studentSummary.invalidate({ studentId: id });
-      void utils.students.preview.invalidate({ id });
       void utils.students.list.invalidate();
     },
   };
