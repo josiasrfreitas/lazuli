@@ -27,7 +27,6 @@ import {
   recordSeedAppointment,
   type AppointmentDraft,
 } from "./appointments-persistence.js";
-import { seedAppointmentContacts } from "./appointments-contacts.js";
 
 const STAFF_SELECT = { id: true, name: true, email: true, role: true, isEnabled: true } as const;
 
@@ -64,12 +63,8 @@ export async function seedAppointments(database: DatabaseClient, todayIso: strin
       { timeout: 30_000 },
     );
   }
-  const contacts = await database.$transaction(
-    (transaction) => seedAppointmentContacts({ ...base, database: transaction }),
-    { timeout: 30_000 },
-  );
   process.stdout.write(
-    `Pedagogical appointments loaded: ${legacyCount} legacy, ${newCount} new, ${contacts} contacts.\n`,
+    `Pedagogical appointments loaded: ${legacyCount} legacy, ${newCount} new.\n`,
   );
 }
 

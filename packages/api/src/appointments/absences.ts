@@ -14,12 +14,6 @@ const absenceInclude = {
     },
     include: { appointment: { select: { id: true, status: true, date: true } } },
   },
-  absenceContacts: {
-    where: { deletedAt: null },
-    orderBy: [{ contactedAt: "desc" }, { id: "desc" }],
-    take: 1,
-    include: { actor: { select: { name: true } } },
-  },
 } satisfies Prisma.AttendanceInclude;
 type Absence = Prisma.AttendanceGetPayload<{ include: typeof absenceInclude }>;
 
@@ -43,7 +37,6 @@ function absenceView(row: Absence, excludeAppointmentId?: string) {
       parsed.data.entries.find((item) => item.enrollmentId === row.enrollmentId)?.content ??
       null)
     : null;
-  const contact = row.absenceContacts[0];
   return {
     id: row.id,
     studentId: row.enrollment.studentId,
@@ -59,15 +52,6 @@ function absenceView(row: Absence, excludeAppointmentId?: string) {
     reserved,
     available: Math.max(0, duration - compensated - reserved),
     content,
-    lastContact: contact
-      ? {
-          at: contact.contactedAt,
-          author: contact.actor.name,
-          outcome: contact.outcome,
-          notes: contact.notes,
-          nextContactDate: contact.nextContactDate ? dateOnly(contact.nextContactDate) : null,
-        }
-      : null,
   };
 }
 

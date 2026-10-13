@@ -33,11 +33,11 @@ export const occurrenceLinkSchema = z.object({ occurrenceId: id, relatedId: id }
 export const occurrenceNoteSchema = z.object({ id, body }).strict();
 const occurrenceIds = z
   .array(id)
-  .min(2, "Selecione pelo menos duas ocorrências.")
   .max(50)
   .refine((ids) => new Set(ids).size === ids.length, "Selecione ocorrências distintas.");
 export const interventionCreateSchema = z
   .object({
+    studentId: id.optional(),
     occurrenceIds,
     teacherId: id,
     title,

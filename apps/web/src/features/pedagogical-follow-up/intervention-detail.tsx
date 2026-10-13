@@ -1,7 +1,8 @@
 "use client";
 import { useState, type ReactElement } from "react";
+import Link from "next/link";
 import type { InterventionUpdate } from "@lazuli/validators";
-import { Badge, Button } from "@lazuli/ui";
+import { Badge, Button, cn } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import {
   BackLink,
@@ -40,9 +41,12 @@ function InterventionContent({ row }: { row: Intervention }): ReactElement {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid min-w-0 gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-caption font-semibold text-interactive">
+            <Link
+              href={`/alunos/${row.studentId}`}
+              className="text-caption font-semibold text-interactive hover:underline"
+            >
               {row.student.fullName}
-            </span>
+            </Link>
             <StatusBadge status={row.status} />
             {overdue && <Badge variant="warning">Prazo vencido</Badge>}
           </div>
@@ -57,7 +61,12 @@ function InterventionContent({ row }: { row: Intervention }): ReactElement {
           {closed ? "Reabrir intervenção" : "Registrar acompanhamento"}
         </Button>
       </header>
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div
+        className={cn(
+          "grid items-start gap-6",
+          row.occurrences.length > 0 && "lg:grid-cols-[minmax(0,1fr)_20rem]",
+        )}
+      >
         <div className="grid min-w-0 gap-7">
           <article className="grid gap-5 rounded-lg border border-border bg-card p-5 sm:p-6">
             <section className="grid gap-3">
@@ -131,11 +140,22 @@ function InterventionContent({ row }: { row: Intervention }): ReactElement {
               {row.occurrences.length}
             </span>
           </div>
+          {!row.occurrences.length && (
+            <p className="text-sm text-muted-foreground">
+              Esta intervenção foi aberta diretamente para o aluno. Ocorrências podem ser vinculadas
+              conforme o acompanhamento avança.
+            </p>
+          )}
           {row.occurrences.map((occurrence) => (
             <OccurrenceLink key={occurrence.id} row={occurrence} />
           ))}
           {row.canOrganize && !closed && (
-            <Button variant="secondary" size="compact-responsive" onClick={() => setAction("LINK")}>
+            <Button
+              variant="secondary"
+              size="compact-responsive"
+              className={cn(!row.occurrences.length && "justify-self-start")}
+              onClick={() => setAction("LINK")}
+            >
               Incluir ocorrência
             </Button>
           )}

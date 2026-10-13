@@ -73,16 +73,22 @@ export async function createIntervention(context: FollowUpContext, input: Interv
   const occurrences = await Promise.all(
     input.occurrenceIds.map((id) => loadOccurrence(context, id)),
   );
-  const first = occurrences[0];
-  if (!first || occurrences.some((row) => row.studentId !== first.studentId))
-    invalid("Reúna pelo menos duas ocorrências do mesmo aluno.");
+  const studentId = input.studentId ?? occurrences[0]?.studentId;
+  if (!studentId) invalid("Selecione o aluno da intervenção.");
+  if (occurrences.some((row) => row.studentId !== studentId))
+    invalid("Selecione ocorrências do mesmo aluno.");
+  const student = await context.database.student.findFirst({
+    where: { id: studentId, deletedAt: null },
+    select: { id: true, fullName: true },
+  });
+  if (!student) invalid("Aluno não encontrado.");
   await assertEligibleTeacher(context, input.teacherId);
   const { occurrenceIds, dueOn, ...values } = input;
   const row = await context.database.pedagogicalIntervention.create({
     data: {
       ...values,
       dueOn: dueOn ? new Date(dueOn) : null,
-      studentId: first.studentId,
+      studentId: student.id,
       recordedById: context.staffUser.id,
       createdAt: context.now,
       occurrences: {
@@ -91,7 +97,7 @@ export async function createIntervention(context: FollowUpContext, input: Interv
     },
   });
   await recordActivity(context.database, context, "interventions.create", {
-    subject: { type: "student", id: first.studentId, name: first.student.fullName },
+    subject: { type: "student", id: student.id, name: student.fullName },
     description: input.title,
   });
   return { id: row.id };

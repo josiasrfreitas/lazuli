@@ -2,7 +2,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Badge,
   Button,
   DataTable,
   Input,
@@ -15,13 +14,15 @@ import { trpc } from "~/lib/trpc";
 import { tablePaginationPropsFor, useUrlPagination } from "~/lib/pagination";
 import { formatDateOnlyBR } from "~/lib/format";
 import { ScheduleAppointmentDialog } from "./schedule-dialog";
-import { AbsenceContactDialog } from "./contact-dialog";
-import { outcomes, type Absence } from "./shared";
+import { StudentInterventionForm } from "~/features/pedagogical-follow-up/student-intervention-form";
+import type { Absence } from "./shared";
 
 export function AbsenceList({ from, through }: { from: string; through: string }) {
   const [search, setSearch] = useState("");
   const [onlyOpen, setOnlyOpen] = useState(true);
-  const [action, setAction] = useState<{ kind: "schedule" | "contact"; row: Absence } | null>(null);
+  const [action, setAction] = useState<{ kind: "schedule" | "intervention"; row: Absence } | null>(
+    null,
+  );
   const pagination = useUrlPagination(studentPaginationPolicy);
   const query = trpc.appointments.absences.useQuery({
     from,
@@ -81,38 +82,9 @@ export function AbsenceList({ from, through }: { from: string; through: string }
       ),
     },
     {
-      id: "contact",
-      header: "Último contato",
-      width: "wide",
-      cell: (row) =>
-        row.lastContact ? (
-          <div className="grid gap-1">
-            <span>
-              {outcomes[row.lastContact.outcome as keyof typeof outcomes] ??
-                row.lastContact.outcome}
-            </span>
-            <span className="text-caption text-muted-foreground">
-              {new Intl.DateTimeFormat("pt-BR", {
-                timeZone: "America/Sao_Paulo",
-                day: "2-digit",
-                month: "2-digit",
-              }).format(row.lastContact.at)}{" "}
-              · {row.lastContact.author}
-            </span>
-            {row.lastContact.nextContactDate && (
-              <Badge variant="neutral">
-                Retorno {formatDateOnlyBR(row.lastContact.nextContactDate)}
-              </Badge>
-            )}
-          </div>
-        ) : (
-          <span className="text-muted-foreground">Sem contato registrado</span>
-        ),
-    },
-    {
       id: "actions",
       header: "Ações",
-      width: "medium",
+      width: "wide",
       cell: (row) => (
         <div className="flex flex-wrap gap-1">
           <Button
@@ -127,10 +99,10 @@ export function AbsenceList({ from, through }: { from: string; through: string }
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setAction({ kind: "contact", row })}
-            aria-label={`Contato com ${row.studentName}`}
+            onClick={() => setAction({ kind: "intervention", row })}
+            aria-label={`Criar intervenção para ${row.studentName}`}
           >
-            Contato
+            Criar intervenção
           </Button>
         </div>
       ),
@@ -198,10 +170,9 @@ export function AbsenceList({ from, through }: { from: string; through: string }
           onClose={() => setAction(null)}
         />
       )}
-      {action?.kind === "contact" && (
-        <AbsenceContactDialog
+      {action?.kind === "intervention" && (
+        <StudentInterventionForm
           student={{ id: action.row.studentId, name: action.row.studentName }}
-          attendanceId={action.row.id}
           onClose={() => setAction(null)}
         />
       )}

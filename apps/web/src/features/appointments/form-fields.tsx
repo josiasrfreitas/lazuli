@@ -3,7 +3,7 @@ import type { AppointmentSnapshot } from "@lazuli/validators";
 import { TextControl } from "~/features/classes/form-controls";
 import { NarrativeField } from "~/features/shared/task-form";
 import { maskDateBR, maskTime24 } from "~/lib/masks";
-import { channels, outcomes, purposes } from "./shared";
+import { purposes } from "./shared";
 
 function Choices({
   name,
@@ -157,86 +157,6 @@ export function AppointmentWorkFields({
         onChange={onContent}
         error={errors.performedContent}
       />
-    </>
-  );
-}
-
-export interface ContactValues {
-  date: string;
-  time: string;
-  channel: string;
-  outcome: string;
-  notes: string;
-  next: string;
-}
-export function ContactFields({
-  values,
-  change,
-  errors,
-}: {
-  values: ContactValues;
-  change: (field: keyof ContactValues, value: string) => void;
-  errors: Record<string, string>;
-}) {
-  return (
-    <>
-      <div className="flex flex-wrap gap-3">
-        <div className="w-40">
-          <TextControl
-            name="contact-date"
-            label="Data do contato"
-            placeholder="dd/mm/aaaa"
-            inputMode="numeric"
-            value={values.date}
-            onChange={(value) => change("date", maskDateBR(value))}
-            error={errors.contactedAt}
-          />
-        </div>
-        <div className="w-28">
-          <TextControl
-            name="contact-time"
-            label="Horário"
-            placeholder="14:30"
-            inputMode="numeric"
-            value={values.time}
-            onChange={(value) => change("time", maskTime24(value))}
-            error={errors.contactedAt}
-          />
-        </div>
-      </div>
-      <Choices
-        name="contact-channel"
-        label="Canal"
-        value={values.channel}
-        options={channels}
-        onChange={(value) => change("channel", value)}
-      />
-      <Choices
-        name="contact-outcome"
-        label="Retorno"
-        value={values.outcome}
-        options={outcomes}
-        onChange={(value) => change("outcome", value)}
-      />
-      <NarrativeField
-        name="contact-notes"
-        label="O que foi conversado"
-        placeholder="Resultado do contato e combinados"
-        value={values.notes}
-        onChange={(value) => change("notes", value)}
-        error={errors.notes}
-      />
-      <div className="w-48">
-        <TextControl
-          name="contact-next"
-          label="Próximo contato · opcional"
-          placeholder="dd/mm/aaaa"
-          inputMode="numeric"
-          value={values.next}
-          onChange={(value) => change("next", maskDateBR(value))}
-          error={errors.nextContactDate}
-        />
-      </div>
     </>
   );
 }

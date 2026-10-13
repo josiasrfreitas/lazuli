@@ -96,6 +96,35 @@ Final compact-desktop evidence: [attendance history](student-attendance-desktop-
 The source diff was inspected manually. No test suites, lint, typecheck, build, or manual code
 checks were run, as requested; normal commit formatting/whitespace hooks remain enabled.
 
+## Unified interventions and populated review example — 2026-10-13
+
+The user removed frequency contacts as a separate product concept. The profile section, absence-list
+column and contact action, contact form, active API reads/mutation, validator, and contact seed
+writer are removed. The attendance agenda tab is now “Faltas e reposições”. Existing stored contact
+records and their activity-event label remain historical data; no destructive migration was made.
+This decision supersedes the frequency-contact UI described in the earlier review above.
+
+“Nova intervenção” on the student profile and “Criar intervenção” in the absence queue open the same
+student-bound form. An intervention can now start without an occurrence; optional linked occurrences
+must still belong to that student and cannot repeat. The existing teacher responsibility, objective,
+next step, deadline, follow-up history, and conclusion flow are retained. Details without occurrences
+use the available content width and link back to the student.
+
+João Pedro Fontes Azevedo is now the stress example: **15 appointments, 15 occurrences, 8 interventions,
+and 33 follow-up records**, alongside the existing grades, lesson history, family details, enrollment
+history, and 18 installments. The new appointments include attended, missed, cancelled, and scheduled
+support. Interventions include open, in-progress, concluded, overdue, and undated examples with long
+narratives. These additions exist only in the isolated local database; do not reseed during review.
+
+Browser validation created “Combinar a retomada da frequência com a família” directly from João's
+profile without selecting occurrences, then saved an example family conversation and revised next
+step through “Registrar acompanhamento”. Both persisted and rendered in the intervention detail.
+The populated profile no longer displayed frequency contacts. The light-theme form and detail were
+visually inspected. The Orca runtime closed its connection while opening the absence agenda, so
+validation of that entry point and the final small layout refinements remains pending. Existing tests
+were synchronized only where removed APIs/components and the former two-occurrence requirement made
+assertions obsolete; no test suite, lint, typecheck, or build was run at the user's request.
+
 ## Original browser evidence — 2026-10-10
 
 Validated in the isolated `aluno-perfil` worktree with its seeded database and real magic-link login, on 2026-10-10 (school date).

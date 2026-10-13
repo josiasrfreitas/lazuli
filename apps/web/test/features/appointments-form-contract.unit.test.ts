@@ -5,7 +5,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   AppointmentWorkFields,
-  ContactFields,
   MeetingDateField,
   MeetingTimeFields,
   PurposeField,
@@ -82,39 +81,6 @@ void it("requires actual teaching evidence separately from planned work and expo
   assert.match(markup, /<fieldset[^>]*aria-invalid="true"[^>]*aria-describedby="coverage-error"/u);
   assert.match(markup, /Selecione pelo menos uma falta de origem\./u);
   assert.match(markup, /Nenhuma falta com saldo disponível\./u);
-});
-
-void it("records contact time, channel and outcome with visible choices and labelled errors", () => {
-  const markup = renderToStaticMarkup(
-    createElement(ContactFields, {
-      values: { date: "", time: "", channel: "WHATSAPP", outcome: "REPLIED", notes: "", next: "" },
-      change: () => {},
-      errors: {
-        contactedAt: "Informe uma data e um horário válidos.",
-        notes: "Registre o resultado do contato.",
-      },
-    }),
-  );
-  for (const name of ["contact-date", "contact-time", "contact-next", "contact-notes"]) {
-    const control =
-      markup.match(new RegExp(`<(?:input|textarea)[^>]*name="${name}"[^>]*>`, "u"))?.[0] ?? "";
-    assert.match(control, /placeholder="[^"]+"/u);
-    assert.match(control, /autoComplete="off"/iu);
-    assert.match(markup, new RegExp(`for="${name}"`, "u"));
-  }
-  assert.doesNotMatch(markup, /role="combobox"|type="date"/u);
-  for (const label of [
-    "Telefone",
-    "WhatsApp",
-    "E-mail",
-    "Presencial",
-    "Sem resposta",
-    "Respondeu",
-    "Atendimento combinado",
-    "Outro retorno",
-  ])
-    assert.match(markup, new RegExp(`>${label}</button>`, "u"));
-  assert.match(markup, /Registre o resultado do contato\./u);
 });
 
 void it("keeps cancellation and rescheduling reasons labelled and invalid until explained", () => {

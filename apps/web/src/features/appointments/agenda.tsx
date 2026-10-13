@@ -85,7 +85,7 @@ export function AppointmentsAgenda() {
         >
           <TabsList aria-label="Atendimentos e frequência">
             <TabsTab value="agenda">Agenda</TabsTab>
-            {admin && <TabsTab value="faltas">Faltas e contatos</TabsTab>}
+            {admin && <TabsTab value="faltas">Faltas e reposições</TabsTab>}
           </TabsList>
         </Tabs>
         <div className="flex items-center gap-2">

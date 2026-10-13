@@ -1,15 +1,23 @@
 "use client";
 import Link from "next/link";
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { ArrowUpRight, CalendarClock, MessageSquareText } from "lucide-react";
 import { Button, cn } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { today } from "~/features/appointments/shared";
 import { CATEGORY, dateLabel, QueryState, StatusBadge, type OccurrenceRow } from "./shared";
+import { StudentInterventionForm } from "./student-intervention-form";
 
 type InterventionRow = RouterOutputs["interventions"]["list"]["rows"][number];
-export function StudentFollowUp({ studentId }: { studentId: string }): ReactElement {
+export function StudentFollowUp({
+  studentId,
+  studentName,
+}: {
+  studentId: string;
+  studentName: string;
+}): ReactElement {
+  const [creating, setCreating] = useState(false);
   const interventions = trpc.interventions.list.useQuery({ studentId });
   const occurrences = trpc.occurrences.list.useQuery({ studentId });
   const active = interventions.data?.rows.filter((row) => row.status !== "CONCLUDED") ?? [];
@@ -21,17 +29,22 @@ export function StudentFollowUp({ studentId }: { studentId: string }): ReactElem
             Acompanhamento pedagógico
           </h2>
           <p className="mt-1 text-caption text-muted-foreground">
-            Intervenções e observações em sala
+            Intervenções, próximos passos e observações
           </p>
         </div>
-        <Button
-          variant="link"
-          size="inline"
-          nativeButton={false}
-          render={<Link href={`/acompanhamento?aluno=${studentId}`} />}
-        >
-          Ver histórico <ArrowUpRight aria-hidden="true" />
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setCreating(true)}>
+            Nova intervenção
+          </Button>
+          <Button
+            variant="link"
+            size="inline"
+            nativeButton={false}
+            render={<Link href={`/acompanhamento?aluno=${studentId}`} />}
+          >
+            Ver histórico <ArrowUpRight aria-hidden="true" />
+          </Button>
+        </div>
       </div>
       <QueryState
         pending={interventions.isPending || occurrences.isPending}
@@ -54,6 +67,12 @@ export function StudentFollowUp({ studentId }: { studentId: string }): ReactElem
         <RecentOccurrences
           rows={occurrences.data.rows.slice(0, 3)}
           total={occurrences.data.total}
+        />
+      )}
+      {creating && (
+        <StudentInterventionForm
+          student={{ id: studentId, name: studentName }}
+          onClose={() => setCreating(false)}
         />
       )}
     </section>

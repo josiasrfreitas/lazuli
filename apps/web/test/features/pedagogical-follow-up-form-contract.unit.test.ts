@@ -59,11 +59,11 @@ void it("renders the motivating-report validation inside its field without losin
     createElement(MotivatingOccurrenceFields, {
       rows: [],
       ids: [],
-      error: "Selecione pelo menos duas ocorrências.",
+      error: "Selecione ocorrências distintas.",
       onChange: () => {},
     }),
   );
-  assert.match(markup, /Selecione pelo menos duas ocorrências\./u);
-  assert.match(markup, /Eles continuam disponíveis no histórico do aluno\./u);
+  assert.match(markup, /Selecione ocorrências distintas\./u);
+  assert.match(markup, /A seleção é opcional\./u);
   assert.match(markup, /data-slot="field-error"/u);
 });

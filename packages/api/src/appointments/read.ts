@@ -83,18 +83,12 @@ export async function appointmentStudentOptions(
     select: { id: true, fullName: true },
   });
   if (!student) throw notFound("Aluno não encontrado.");
-  const [absences, enrollments, contacts] = await Promise.all([
+  const [absences, enrollments] = await Promise.all([
     studentAbsences(context.database, studentId, excludeAppointmentId),
     context.database.enrollment.findMany({
       where: { studentId, deletedAt: null },
       include: { class: { select: { portalClassName: true, scheduleType: true } } },
       orderBy: { entryDate: "desc" },
-    }),
-    context.database.absenceContact.findMany({
-      where: { studentId },
-      orderBy: [{ contactedAt: "desc" }, { id: "desc" }],
-      take: 30,
-      include: { actor: { select: { name: true } } },
     }),
   ]);
   return {
@@ -106,17 +100,6 @@ export async function appointmentStudentOptions(
       scheduleType: row.class.scheduleType,
       entryDate: dateOnly(row.entryDate),
       exitDate: row.exitDate ? dateOnly(row.exitDate) : null,
-    })),
-    contacts: contacts.map((row) => ({
-      id: row.id,
-      attendanceId: row.attendanceId,
-      contactedAt: row.contactedAt,
-      recordedAt: row.recordedAt,
-      author: row.actor.name,
-      channel: row.channel,
-      outcome: row.outcome,
-      notes: row.notes,
-      nextContactDate: row.nextContactDate ? dateOnly(row.nextContactDate) : null,
     })),
   };
 }
