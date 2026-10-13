@@ -12,33 +12,26 @@ export function StudentAcademicProgress({ studentId }: { studentId: string }): R
   const rows = query.data ?? [];
   const active =
     rows.find((row) => row.progressId === selected) ?? rows.find((row) => row.current) ?? rows[0];
+  const selector = rows.length > 1 && (
+    <div className="w-full sm:w-60">
+      <SelectControl
+        name="academic-journey"
+        label="Estágio avaliado"
+        hideLabel
+        value={active?.progressId ?? ""}
+        onChange={setSelected}
+        choices={rows.map((row) => ({
+          value: row.progressId,
+          label: `${row.stage.name} · ${formatDateOnlyBR(row.startedOn)}`,
+        }))}
+      />
+    </div>
+  );
   return (
-    <section
-      className="grid min-w-0 gap-5 rounded-lg border border-border bg-card p-4 sm:p-6"
-      aria-label="Progressão acadêmica"
-    >
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="font-display text-h3 font-semibold">Progressão acadêmica</h2>
-          <p className="mt-1 text-caption text-muted-foreground">
-            Desempenho por competência ao longo do estágio.
-          </p>
-        </div>
-        {rows.length > 1 && (
-          <div className="w-full sm:w-64">
-            <SelectControl
-              name="academic-journey"
-              label="Percurso"
-              value={active?.progressId ?? ""}
-              onChange={setSelected}
-              choices={rows.map((row) => ({
-                value: row.progressId,
-                label: `${row.stage.name} · ${formatDateOnlyBR(row.startedOn)}`,
-              }))}
-            />
-          </div>
-        )}
-      </div>
+    <section className="grid min-w-0 gap-4" aria-label="Progressão acadêmica">
+      {!active && (
+        <h2 className="font-display text-xl font-semibold text-heading">Progressão acadêmica</h2>
+      )}
       {query.isPending && <InlineSkeleton className="h-60 w-full" />}
       {query.isError && (
         <Alert variant="destructive">
@@ -48,9 +41,16 @@ export function StudentAcademicProgress({ studentId }: { studentId: string }): R
           </Button>
         </Alert>
       )}
-      {active && <AssessmentSummary key={active.progressId} data={active} />}
+      {active && (
+        <AssessmentSummary
+          key={active.progressId}
+          data={active}
+          layout="profile"
+          selector={selector}
+        />
+      )}
       {!query.isPending && !query.isError && !active && (
-        <p className="text-caption text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           As avaliações ficam disponíveis quando o aluno inicia um estágio.
         </p>
       )}

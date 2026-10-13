@@ -35,25 +35,10 @@ export function ProfileFact({
 }): ReactElement {
   return (
     <div className="grid min-w-0 gap-1">
-      <dt className="text-caption text-muted-foreground">{label}</dt>
-      <dd className="break-words text-sm font-medium">{children}</dd>
-    </div>
-  );
-}
-export function ProfileMetric({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: ReactNode;
-  detail: string;
-}): ReactElement {
-  return (
-    <div className="grid content-start gap-1 py-2">
-      <dt className="text-caption text-muted-foreground">{label}</dt>
-      <dd className="font-numeric text-2xl font-semibold tracking-tight tabular-nums">{value}</dd>
-      <dd className="text-caption text-muted-foreground">{detail}</dd>
+      <dt className="text-micro font-semibold uppercase tracking-label text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="break-words text-base sm:text-sm">{children}</dd>
     </div>
   );
 }

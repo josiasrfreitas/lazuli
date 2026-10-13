@@ -85,7 +85,7 @@ export async function confirmAssessment(
   );
   if (status === "INCOMPLETE")
     throw badRequest(
-      "Complete os dois blocos de todas as competências antes de confirmar o resultado.",
+      "Complete as duas unidades de todas as competências antes de concluir a avaliação.",
     );
   if (values.decision === "APPROVED" && status !== "SUFFICIENT")
     throw badRequest("A aprovação exige pelo menos 60 em todas as competências.");

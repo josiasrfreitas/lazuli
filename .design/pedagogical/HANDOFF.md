@@ -120,5 +120,38 @@ concorrência, execução futura do worker e demais contratos aguardam CI. Achad
 antigo do draft #169 foram tratados, mas não há comprovação de CI verde para o HEAD integrado.
 Sucesso de GPS real e outras limitações específicas estão discriminados nas validações.
 
-Próximo trabalho: receber o feedback da primeira tela, aplicar na branch integrada, validar no
-browser e registrar o commit. O histórico consolidado está em [IMPLEMENTATION.md](IMPLEMENTATION.md).
+## Student profile review — 2026-10-13
+
+The student page has received the user's selected editorial premium direction in this same
+worktree, starting from `0446f1a`. The latest instruction is **desktop only**, with feature work
+and visual browser validation; no manual code checks, test suites, lint, typecheck, or build.
+The user explicitly requested frontend-design and Impeccable craft, polish, and bolder.
+
+The compact header keeps tabs alongside identity and actions. Contact facts moved into the
+overview footer; the complete record opens in a Sheet. Current-stage mean, attendance, stage
+metadata, and contextual teaching-plan access are integrated. Appointments and follow-up share
+a readable working surface. The decorative gold line below the name was removed.
+
+Assessment copy now uses “Unidade”, with competence badges matching chart colors; Participação
+is purple and Oral blue. The graph defaults to a labeled crop of the recorded score range and
+offers a full 0–100 scale. Persisted phase identifiers and academic approval rules are unchanged.
+
+Finance now presents received/outstanding money, partial-payment progress, payment punctuality
+and recurring delays, discreet contract terms, and an oldest-first overdue action queue. The
+complete-situation link opens Recebíveis filtered by student. The summary uses the existing
+student-scoped ledger through the finance module; there are no schema changes.
+
+Populated local example: **João Pedro Fontes Azevedo**,
+`/alunos/ed109528-32f1-1f06-fb75-381bb3ad838f`. It includes eight current grades, a previous stage,
+three appointments, two frequency contacts, occurrences, an active intervention, guardian and
+address details, annual tuition, and a six-installment material order illustrating punctual,
+late, partial, overdue, and future payments. These are additions to the isolated local database,
+not official seed changes. Do not reseed them away during review.
+
+Desktop browser review covered the populated page, finance actions and filters, contact and
+assessment forms, empty states, both themes, and 1280/1440/1920 widths. Details, limits, and current
+screenshots are recorded in [student profile tasks](aluno-perfil/TASKS.md). This remains an
+implementation ready for continued user review, not final visual approval or a CI result.
+
+Continue applying page feedback in the integrated branch and committing incrementally. The
+consolidated historical implementation remains in [IMPLEMENTATION.md](IMPLEMENTATION.md).

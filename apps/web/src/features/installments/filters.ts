@@ -18,6 +18,7 @@ type InstallmentStatus = (typeof INSTALLMENT_STATUSES)[number];
 type InstallmentOrigin = (typeof orderKindSchema.options)[number];
 
 export type InstallmentParams = {
+  studentId?: string | null;
   status: string | null;
   search: string | null;
   situations: string | null;
@@ -31,11 +32,19 @@ export type InstallmentParams = {
 export type InstallmentFilterPatch = Partial<
   Pick<
     InstallmentParams,
-    "status" | "situations" | "origins" | "dueFrom" | "dueTo" | "amountFrom" | "amountTo"
+    | "status"
+    | "situations"
+    | "origins"
+    | "dueFrom"
+    | "dueTo"
+    | "amountFrom"
+    | "amountTo"
+    | "studentId"
   >
 >;
 
 export type InstallmentFilters = {
+  studentId?: string;
   status: "vencidas" | null;
   search: string;
   situations: InstallmentStatus[];
@@ -86,6 +95,7 @@ export function normalizeFilters(
   const dueRange = orderedRange({ from: dueFrom, to: dueTo });
   const amountRange = orderedRange({ from: amountFrom, to: amountTo, compareValue: Number });
   return {
+    ...(params.studentId ? { studentId: params.studentId } : {}),
     status: params.status === "vencidas" ? "vencidas" : null,
     search: (params.search ?? "").slice(0, SEARCH_MAX_LENGTH),
     situations: normalizedSituations(params.status, situations),
@@ -173,6 +183,7 @@ function amountRangeInput(
 
 export function queryInput(filters: InstallmentFilters): FinanceInstallmentsInput {
   return {
+    ...(filters.studentId ? { studentId: filters.studentId } : {}),
     view: filters.status === "vencidas" ? "overdue" : "all",
     page: filters.page,
     pageSize: filters.status === "vencidas" ? FINANCE_OVERDUE_PAYERS_PAGE_SIZE : filters.pageSize,

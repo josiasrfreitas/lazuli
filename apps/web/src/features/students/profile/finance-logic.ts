@@ -6,7 +6,7 @@ export type FinanceFilter = "all" | "overdue" | "paid";
 type Result = RouterOutputs["finance"]["installments"];
 export type StudentFinanceState = {
   query: QueryResult<Result>;
-  totals: QueryResult<Result>;
+  summary: QueryResult<RouterOutputs["finance"]["studentSummary"]>;
   data: Extract<Result, { view: "all" }> | undefined;
   page: number;
   setPage: (page: number) => void;
@@ -18,15 +18,10 @@ export type StudentFinanceState = {
 };
 export function useStudentFinance(id: string): StudentFinanceState {
   const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<FinanceFilter>("all");
+  const [filter, setFilter] = useState<FinanceFilter>("overdue");
   const [payment, setPayment] = useState<FinanceInstallmentRow | null>(null);
   const utils = trpc.useUtils();
-  const totals = trpc.finance.installments.useQuery({
-    studentId: id,
-    view: "all",
-    page: 1,
-    pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
-  });
+  const summary = trpc.finance.studentSummary.useQuery({ studentId: id });
   const query = trpc.finance.installments.useQuery({
     studentId: id,
     view: "all",
@@ -36,7 +31,7 @@ export function useStudentFinance(id: string): StudentFinanceState {
   });
   return {
     query,
-    totals,
+    summary,
     data: query.data?.view === "all" ? query.data : undefined,
     page,
     setPage,
@@ -50,6 +45,7 @@ export function useStudentFinance(id: string): StudentFinanceState {
     registered: () => {
       setPayment(null);
       void utils.finance.installments.invalidate();
+      void utils.finance.studentSummary.invalidate({ studentId: id });
       void utils.students.preview.invalidate({ id });
       void utils.students.list.invalidate();
     },

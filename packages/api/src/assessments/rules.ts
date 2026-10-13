@@ -85,10 +85,10 @@ function assertGradeSequence(grades: GradeInput[]): void {
     const second = own.find((grade) => grade.phase === "BLOCK_TWO");
     const recovery = own.find((grade) => grade.phase === "RECOVERY");
     if (first?.assessedOn && second?.assessedOn && second.assessedOn < first.assessedOn)
-      throw badRequest("O segundo bloco não pode ter data anterior ao primeiro.");
+      throw badRequest("A segunda unidade não pode ter data anterior à primeira.");
     if (recovery && (!first || !second))
-      throw badRequest("Registre os dois blocos da competência antes da recuperação.");
+      throw badRequest("Registre as duas unidades da competência antes da recuperação.");
     if (recovery?.assessedOn && second?.assessedOn && recovery.assessedOn < second.assessedOn)
-      throw badRequest("A recuperação não pode ter data anterior aos dois blocos.");
+      throw badRequest("A recuperação não pode ter data anterior às duas unidades.");
   }
 }

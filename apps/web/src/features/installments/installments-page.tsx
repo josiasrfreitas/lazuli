@@ -19,6 +19,7 @@ import {
   type FinanceInstallmentRow,
 } from "@lazuli/validators";
 import { debounce } from "~/lib/debounce";
+import { trpc } from "~/lib/trpc";
 import { tablePaginationPropsFor } from "~/lib/pagination";
 import {
   INSTALLMENT_STATUSES,
@@ -41,6 +42,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 function hasInstallmentFilters(filters: InstallmentFilters): boolean {
   return Boolean(
+    filters.studentId ||
     filters.search ||
     filters.status ||
     filters.situations.length > 0 ||
@@ -192,7 +194,30 @@ function InstallmentsControls({
   onSearch: (value: string) => void;
   onFilters: (patch: InstallmentFilterPatch) => void;
 }): ReactElement {
+  const student = trpc.students.byId.useQuery(
+    { id: filters.studentId ?? "" },
+    { enabled: Boolean(filters.studentId) },
+  );
   const filterFields = [
+    ...(filters.studentId
+      ? [
+          {
+            id: "student",
+            label: "Aluno",
+            kind: "options" as const,
+            promoted: true,
+            options: [
+              {
+                id: filters.studentId,
+                label: student.data?.contact.fullName ?? "Aluno selecionado",
+              },
+            ],
+            selected: [filters.studentId],
+            onChange: (values: string[]) => onFilters({ studentId: values[0] ?? null }),
+            onClear: () => onFilters({ studentId: null }),
+          },
+        ]
+      : []),
     situationField({ filters, onFilters }),
     originField({ filters, onFilters }),
     dueField({ filters, onFilters }),
@@ -205,6 +230,7 @@ function InstallmentsControls({
         fields={filterFields}
         onClearAll={() =>
           onFilters({
+            studentId: null,
             status: null,
             situations: null,
             origins: null,
@@ -419,6 +445,7 @@ function PaymentEntryDialog({ entry }: { entry: EntrySession }): ReactElement | 
 export function InstallmentsPage(): ReactElement {
   const state = useInstallments();
   const [rows, setRows] = useState<FinanceInstallmentRow[]>([]);
+  useEffect(() => setRows([]), [state.filters.studentId]);
   const entry = useEntrySession(() => setRows([]));
   const visible =
     state.data?.view === "overdue"

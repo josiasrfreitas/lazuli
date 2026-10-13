@@ -27,6 +27,18 @@ const MIN_ANALYTICS_YEAR = 2000;
 const MAX_ANALYTICS_YEAR = 2100;
 
 export const financeRouter = router({
+  studentSummary: adminProcedure
+    .input(z.object({ studentId: z.string().uuid() }).strict())
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (transaction) =>
+          finance(transaction, ctx.staffUser.id).studentSummary({
+            studentId: input.studentId,
+            now: ctx.now ?? new Date(),
+          }),
+        { isolationLevel: "RepeatableRead" },
+      ),
+    ),
   analytics: adminProcedure
     .input(z.object({ year: z.number().int().min(MIN_ANALYTICS_YEAR).max(MAX_ANALYTICS_YEAR) }))
     .query(({ ctx, input }) =>

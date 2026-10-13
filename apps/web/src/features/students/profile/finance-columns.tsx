@@ -33,9 +33,10 @@ const COLUMNS: DataTableColumn<FinanceRow>[] = [
 ];
 export function financeColumns(
   onReceive: (row: FinanceRow) => void,
+  priorityId?: string,
 ): DataTableColumn<FinanceRow>[] {
   return [
-    ...COLUMNS,
+    ...(priorityId ? queueColumns() : COLUMNS),
     {
       id: "action",
       header: <span className="sr-only">Ações</span>,
@@ -44,13 +45,49 @@ export function financeColumns(
         row.collectibleBalanceCents > 0 ? (
           <Button
             size="sm"
-            variant="secondary"
+            variant={row.installmentId === priorityId ? "primary" : "secondary"}
             onClick={() => onReceive(row)}
             aria-label={`Receber parcela ${row.sequenceNumber} com vencimento em ${formatDateOnlyBR(row.dueDate)}`}
           >
             Receber
           </Button>
         ) : null,
+    },
+  ];
+}
+function queueColumns(): DataTableColumn<FinanceRow>[] {
+  return [
+    {
+      id: "due",
+      header: "Tempo em atraso",
+      width: "standard",
+      cell: (row) => (
+        <div className="grid gap-1">
+          <span className="font-medium text-warning">{row.overdueDays} dias em atraso</span>
+          <span className="text-caption text-muted-foreground">
+            Venceu em {formatDateOnlyBR(row.dueDate)}
+          </span>
+        </div>
+      ),
+    },
+    COLUMNS[0]!,
+    {
+      id: "balance",
+      header: "Saldo a receber",
+      width: "standard",
+      numeric: true,
+      cell: (row) => (
+        <div className="grid gap-1">
+          <span className="font-numeric text-lg font-semibold">
+            {money(row.collectibleBalanceCents)}
+          </span>
+          <span className="text-caption text-muted-foreground">
+            {row.paidAmountCents > 0
+              ? `${money(row.paidAmountCents)} já pagos`
+              : "Nenhum pagamento"}
+          </span>
+        </div>
+      ),
     },
   ];
 }

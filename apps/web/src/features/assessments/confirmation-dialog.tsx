@@ -59,10 +59,10 @@ export function ConfirmationDialog({
         <DialogBackdrop />
         <DialogContent initialFocus={() => document.getElementById("assessment-reason")}>
           <DialogHeader>
-            <DialogTitle>Confirmar resultado pedagógico</DialogTitle>
+            <DialogTitle>Concluir avaliação do estágio</DialogTitle>
             <DialogDescription>
-              {data.student.fullName} · {data.stage.name}. A confirmação registra a decisão da
-              coordenação.
+              {data.student.fullName} · {data.stage.name}. Registre o parecer da coordenação sobre a
+              aprovação ou a repetição do estágio.
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
@@ -101,7 +101,11 @@ export function ConfirmationDialog({
               Cancelar
             </Button>
             <Button type="submit" form="assessment-confirm" disabled={confirm.isPending}>
-              {confirm.isPending ? "Confirmando…" : "Confirmar resultado"}
+              {confirm.isPending
+                ? "Registrando…"
+                : decision === "APPROVED"
+                  ? "Registrar aprovação"
+                  : "Registrar repetência"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -40,7 +40,7 @@ export const assessmentSaveSchema = assessmentProgressSchema
       context.addIssue({
         code: "custom",
         path: ["grades"],
-        message: "Competência repetida no mesmo bloco.",
+        message: "Competência repetida na mesma unidade.",
       });
   });
 export const assessmentConfirmSchema = assessmentProgressSchema.extend({

@@ -1,4 +1,5 @@
 import { readAnalytics } from "./internal/analytics.js";
+import { readStudentSummary } from "./internal/student-summary.js";
 import { previewPayments } from "./internal/payment-preview.js";
 import { confirmPayments } from "./internal/payment-operation.js";
 import type { PaymentPreviewInput, PaymentOperationInput } from "@lazuli/validators";
@@ -62,6 +63,7 @@ import type {
 export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule {
   return {
     analytics: (values) => readAnalytics(db, values),
+    studentSummary: (values) => readStudentSummary(db, values),
     previewPayments: (values, now) => previewPayments({ database: db, values, now }),
     confirmPayments: (values, now) => confirmPayments({ database: db, values, staffUserId, now }),
     readSettings: () => readSettings(db),
@@ -88,6 +90,10 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
 }
 
 export type FinanceModule = {
+  studentSummary: (values: {
+    studentId: string;
+    now: Date;
+  }) => ReturnType<typeof readStudentSummary>;
   analytics: (values: { year: number; now: Date }) => ReturnType<typeof readAnalytics>;
   previewPayments: (values: PaymentPreviewInput, now: Date) => ReturnType<typeof previewPayments>;
   confirmPayments: (values: PaymentOperationInput, now: Date) => ReturnType<typeof confirmPayments>;
