@@ -21,7 +21,7 @@ export function ProfileRecordList({
         role="region"
         aria-label={label}
         tabIndex={0}
-        className="scrollbar-subtle h-96 min-w-0 overflow-y-auto overscroll-y-contain px-1 focus-visible:outline-2 focus-visible:outline-ring"
+        className="scrollbar-subtle h-96 min-w-0 overflow-y-auto px-1 focus-visible:outline-2 focus-visible:outline-ring"
       >
         <ul className="divide-y divide-border">{children}</ul>
       </div>
