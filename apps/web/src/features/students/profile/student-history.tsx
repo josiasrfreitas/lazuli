@@ -57,7 +57,9 @@ export function EnrollmentHistory({
   today: string;
   studentId: string;
   studentName: string;
-}): ReactElement {
+}): ReactElement | null {
+  if (rows.length === 0) return null;
+
   return (
     <section className="grid min-w-0 gap-3 border-t border-border pt-5">
       <div className="flex flex-wrap items-baseline gap-3">
@@ -75,21 +77,17 @@ export function EnrollmentHistory({
           triggerLabel="Ver frequência"
         />
       </div>
-      {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Sem outras matrículas registradas.</p>
-      ) : (
-        <DataTable
-          label="Histórico de matrículas do aluno"
-          columns={historyColumns(today)}
-          state={rows.length > 0 ? { kind: "data", rows } : { kind: "empty" }}
-          onRetry={() => undefined}
-          empty={{
-            title: "Sem outras matrículas",
-            description: "Matrículas anteriores e entradas agendadas aparecem aqui.",
-          }}
-          errorTitle="Não foi possível carregar o histórico"
-        />
-      )}
+      <DataTable
+        label="Histórico de matrículas do aluno"
+        columns={historyColumns(today)}
+        state={{ kind: "data", rows }}
+        onRetry={() => undefined}
+        empty={{
+          title: "Sem outras matrículas",
+          description: "Matrículas anteriores e entradas agendadas aparecem aqui.",
+        }}
+        errorTitle="Não foi possível carregar o histórico"
+      />
     </section>
   );
 }
