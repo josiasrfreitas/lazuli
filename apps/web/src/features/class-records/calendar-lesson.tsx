@@ -1,7 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, CheckCheck, Clock3, UserRound } from "lucide-react";
+import {
+  ArrowUpRight,
+  CheckCheck,
+  Clock3,
+  UserRound,
+  CircleCheck,
+  CircleDashed,
+  CircleX,
+  CircleAlert,
+} from "lucide-react";
 import {
   Badge,
   Button,
@@ -15,6 +24,14 @@ import { calendarDate, lessonStates, type CalendarLesson } from "./calendar-mode
 import styles from "./calendar.module.css";
 
 export function CalendarLessonCard({ lesson }: { lesson: CalendarLesson }) {
+  const StateIcon =
+    lesson.state === "RECORDED"
+      ? CircleCheck
+      : lesson.state === "CANCELLED"
+        ? CircleX
+        : lesson.state === "PENDING"
+          ? CircleAlert
+          : CircleDashed;
   return (
     <Popover>
       <PopoverTrigger
@@ -24,14 +41,9 @@ export function CalendarLessonCard({ lesson }: { lesson: CalendarLesson }) {
       >
         <span className={styles.lessonTitle}>{lesson.className}</span>
         <span className={styles.lessonTeacher}>{lesson.teacher ?? "Professor a definir"}</span>
-        <span className={styles.lessonMeta}>
-          <span>{lesson.endTime}</span>
-          <span className={styles.state}>
-            <span className={styles.dot} />
-            {lessonStates[lesson.state]}
-          </span>
+        <span className={styles.state} title={lessonStates[lesson.state]}>
+          <StateIcon aria-hidden />
         </span>
-        {lesson.attendanceOnly && <span className={styles.attendance}>Chamada confirmada</span>}
       </PopoverTrigger>
       <PopoverContent size="md" align="start" showArrow={false}>
         <div className="grid gap-4">

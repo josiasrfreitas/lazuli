@@ -1,31 +1,15 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import type { ReactElement } from "react";
 import { parseAsString, useQueryStates } from "nuqs";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import {
-  Button,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@lazuli/ui";
+import { Button, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { RecordState } from "./shared";
 import { GenerationState, useSessionGeneration } from "./generation-notice";
 import { LessonCalendar } from "./calendar";
 import { CalendarDatePicker } from "./calendar-date-picker";
-import {
-  calendarDate,
-  lessonStates,
-  monday,
-  schoolToday,
-  shiftDate,
-  validDate,
-} from "./calendar-model";
+import { calendarDate, monday, schoolToday, shiftDate, validDate } from "./calendar-model";
 import styles from "./calendar.module.css";
 
 export function ClassAgenda(): ReactElement {
@@ -36,8 +20,6 @@ export function ClassAgenda(): ReactElement {
     dia: parseAsString,
     visao: parseAsString.withDefault("week"),
   });
-  const [state, setState] = useState("all");
-  const [teacher, setTeacher] = useState("all");
   const from = validDate(params.semana) ? monday(params.semana) : monday(today);
   const to = shiftDate(from, 6);
   const date =
@@ -50,15 +32,7 @@ export function ClassAgenda(): ReactElement {
   const range = { from, to, ...(params.turma ? { classId: params.turma } : {}) };
   const query = trpc.classRecords.list.useQuery(range);
   const generation = useSessionGeneration(range);
-  const all = query.data ?? [];
-  const teachers = [
-    ...new Set(all.map((lesson) => lesson.teacher ?? "Professor a definir")),
-  ].sort();
-  if (teacher !== "all" && !teachers.includes(teacher)) teachers.push(teacher);
-  const teacherLessons = all.filter(
-    (lesson) => teacher === "all" || (lesson.teacher ?? "Professor a definir") === teacher,
-  );
-  const lessons = teacherLessons.filter((lesson) => state === "all" || lesson.state === state);
+  const lessons = query.data ?? [];
   const scopedLessons = mode === "day" ? lessons.filter((lesson) => lesson.date === date) : lessons;
   function selectDate(next: string) {
     void setParams({ semana: monday(next), dia: next });
@@ -66,16 +40,10 @@ export function ClassAgenda(): ReactElement {
   function move(delta: number) {
     selectDate(shiftDate(mode === "day" ? date : from, mode === "day" ? delta : delta * 7));
   }
-  const filtersActive = teacher !== "all" || state !== "all" || Boolean(params.turma);
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
-        <div>
-          <h1 className="font-display text-h2 font-semibold text-heading">Aulas</h1>
-          <p className="mt-1 text-caption text-muted-foreground">
-            A semana da escola, encontro por encontro.
-          </p>
-        </div>
+        <h1 className="font-display text-h2 font-semibold text-heading">Aulas</h1>
         <p className={styles.summary} aria-live="polite">
           {query.isPending ? (
             "Carregando aulas…"
@@ -139,72 +107,13 @@ export function ClassAgenda(): ReactElement {
             </SegmentedControl>
           </div>
         </div>
-        <div className={styles.filters}>
-          <div className={styles.statusFilters} aria-label="Situação das aulas">
-            {[
-              { value: "all", label: "Todas" },
-              ...Object.entries(lessonStates).map(([value, label]) => ({ value, label })),
-            ].map((filter) => (
-              <button
-                type="button"
-                key={filter.value}
-                aria-pressed={state === filter.value}
-                data-selected={state === filter.value}
-                className={styles.statusFilter}
-                onClick={() => setState(filter.value)}
-              >
-                {filter.label}
-                <span>
-                  {
-                    teacherLessons.filter(
-                      (lesson) =>
-                        (filter.value === "all" || lesson.state === filter.value) &&
-                        (mode === "week" || lesson.date === date),
-                    ).length
-                  }
-                </span>
-              </button>
-            ))}
-          </div>
-          <div className={styles.teacherFilter}>
-            <Select
-              value={teacher}
-              onValueChange={(value) => {
-                if (value) setTeacher(value);
-              }}
-            >
-              <SelectTrigger size="sm" aria-label="Filtrar por professor">
-                <SelectValue>{teacher === "all" ? "Todos os professores" : teacher}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os professores</SelectItem>
-                {teachers.map((name) => (
-                  <SelectItem key={name} value={name}>
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        {filtersActive && (
+        {params.turma && (
           <div className={styles.activeFilters}>
             <span>
-              {params.turma
-                ? `Turma: ${all[0]?.className ?? generation.data?.[0]?.className ?? "selecionada"}`
-                : "Agenda filtrada"}
+              Turma: {lessons[0]?.className ?? generation.data?.[0]?.className ?? "selecionada"}
             </span>
-            <Button
-              variant="text"
-              size="sm"
-              onClick={() => {
-                setTeacher("all");
-                setState("all");
-                void setParams({ turma: null });
-              }}
-            >
-              <X />
-              Limpar filtros
+            <Button variant="text" size="sm" onClick={() => void setParams({ turma: null })}>
+              <X /> Ver todas as turmas
             </Button>
           </div>
         )}
@@ -218,7 +127,7 @@ export function ClassAgenda(): ReactElement {
           </div>
         ) : (
           <LessonCalendar
-            key={`${from}-${teacher}-${state}`}
+            key={from}
             from={from}
             today={today}
             date={date}
@@ -227,10 +136,6 @@ export function ClassAgenda(): ReactElement {
             onSelectDay={(day) => void setParams({ dia: day, visao: "day" })}
           />
         )}
-        <footer className={styles.footer}>
-          <span>Horários de Brasília</span>
-          <span>Selecione uma aula para ver os detalhes.</span>
-        </footer>
       </section>
       <GenerationState query={generation} showReady={Boolean(params.turma)} />
     </div>
