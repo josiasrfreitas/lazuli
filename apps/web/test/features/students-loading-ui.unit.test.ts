@@ -73,9 +73,7 @@ const missing: { data?: never } = {};
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 function studentRowMarkup(row: StudentListRow): string {
-  return renderToStaticMarkup(
-    createElement(StudentsTableRow, { onSelect: () => {}, row, selected: false }),
-  );
+  return renderToStaticMarkup(createElement(StudentsTableRow, { onOpen: () => {}, row }));
 }
 
 void test("first load preserves pagination furniture and only skeletonizes fetched values", () => {
@@ -171,7 +169,7 @@ void test("fixed student columns and fact tones survive a static class declarati
     createElement(StudentsTable, {
       state: { kind: "data", rows: [TABLE_ROW] },
       onRetry: () => {},
-      onSelectRow: () => {},
+      onOpenRow: () => {},
       pagination: {
         loading: false,
         onPageChange: () => {},
@@ -181,7 +179,6 @@ void test("fixed student columns and fact tones survive a static class declarati
         pageSize: PAGE_SIZE,
         totalItems: 1,
       },
-      selectedId: null,
     }),
   );
   const flaggedFactsMarkup = studentRowMarkup(TABLE_ROW);

@@ -229,3 +229,22 @@ Evidence: [aligned light](student-support-aligned-light.png),
 [aligned dark](student-support-aligned-dark.png). Reviewed the complete task diff, formatted changed
 files and passed `git diff --check`. No new tests were warranted for this removal of presentation
 state; no tests, lint, typecheck or build were run per the continuing review-session preference.
+
+## Direct student navigation — 2026-10-13
+
+The user removed the intermediate student preview. Clicking a student row or pressing Enter on the
+focused row now opens `/alunos/<id>` directly. Successful student creation uses the same destination.
+The return URL preserves listing filters and pagination, excluding the retired preview-selection
+parameter. Removed the preview component, its selection/query hooks, selected-row state, and its
+unused finance cache invalidation. The existing API procedure is unchanged.
+
+Browser verification clicked the populated student from a name-filtered list and reached the profile
+with no intermediate dialog. Returning restored the name query and search input. Enter on the row
+also navigated directly. The separate WhatsApp action kept the list route unchanged; the external
+anchor's default navigation was prevented for that check, so no external page or message was opened.
+The post-creation callback was inspected but no additional student was created for this refinement.
+
+Existing table-render coverage was adjusted only for the removed selection props and renamed open
+callback; assertions and fixture identifiers were preserved and the touched test reviewed as a whole.
+Diff inspection, formatting and `git diff --check` passed. Tests, lint, typecheck and build remain
+unrun under the review-session preference recorded above.

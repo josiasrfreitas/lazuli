@@ -120,21 +120,18 @@ function WhatsAppCell({ row }: { row: StudentListRow }): ReactElement {
 
 export function StudentsTableRow({
   row,
-  selected,
-  onSelect,
+  onOpen,
 }: {
   row: StudentListRow;
-  selected: boolean;
-  onSelect: (id: string) => void;
+  onOpen: (id: string) => void;
 }): ReactElement {
   return (
     <TableRow
       className="cursor-pointer focus-visible:outline-none focus-visible:shadow-focus"
-      onClick={() => onSelect(row.id)}
+      onClick={() => onOpen(row.id)}
       onKeyDown={(event) => {
-        if (event.key === "Enter" && event.target === event.currentTarget) onSelect(row.id);
+        if (event.key === "Enter" && event.target === event.currentTarget) onOpen(row.id);
       }}
-      selected={selected}
       tabIndex={0}
     >
       <TableCell>
@@ -242,14 +239,12 @@ function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): Re
 export function StudentsTable({
   state,
   onRetry,
-  selectedId,
-  onSelectRow,
+  onOpenRow,
   pagination,
 }: {
   state: StudentsTableState;
   onRetry: () => void;
-  selectedId: string | null;
-  onSelectRow: (id: string) => void;
+  onOpenRow: (id: string) => void;
   pagination: StudentsTablePagination;
 }): ReactElement {
   return (
@@ -267,14 +262,7 @@ export function StudentsTable({
         </TableHeader>
         <TableBody>
           {state.kind === "data" ? (
-            state.rows.map((row) => (
-              <StudentsTableRow
-                key={row.id}
-                onSelect={onSelectRow}
-                row={row}
-                selected={row.id === selectedId}
-              />
-            ))
+            state.rows.map((row) => <StudentsTableRow key={row.id} onOpen={onOpenRow} row={row} />)
           ) : (
             <StatesRow onRetry={onRetry} state={state} />
           )}
