@@ -1,177 +1,238 @@
 "use client";
+
 import { useState, type ReactElement } from "react";
-import Link from "next/link";
-import { useQueryState, parseAsString } from "nuqs";
-import { ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
-import { Badge, Button, EmptyState, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
+import { parseAsString, useQueryStates } from "nuqs";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { dateLabel, RecordState } from "./shared";
+import { RecordState } from "./shared";
 import { GenerationState, useSessionGeneration } from "./generation-notice";
-function shiftDate(date: string, days: number) {
-  const value = new Date(`${date}T12:00:00Z`);
-  value.setUTCDate(value.getUTCDate() + days);
-  return value.toISOString().slice(0, 10);
-}
-function currentMonday() {
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  return shiftDate(today, -((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7));
-}
+import { LessonCalendar } from "./calendar";
+import { CalendarDatePicker } from "./calendar-date-picker";
+import {
+  calendarDate,
+  lessonStates,
+  monday,
+  schoolToday,
+  shiftDate,
+  validDate,
+} from "./calendar-model";
+import styles from "./calendar.module.css";
+
 export function ClassAgenda(): ReactElement {
-  const [week, setWeek] = useQueryState("semana", parseAsString.withDefault(currentMonday()));
-  const [classId] = useQueryState("turma", parseAsString);
-  const [view, setView] = useState("all");
-  const from =
-    /^\d{4}-\d{2}-\d{2}$/.test(week) && !Number.isNaN(new Date(week).getTime())
-      ? week
-      : currentMonday();
+  const today = schoolToday();
+  const [params, setParams] = useQueryStates({
+    semana: parseAsString.withDefault(monday(today)),
+    turma: parseAsString,
+    dia: parseAsString,
+    visao: parseAsString.withDefault("week"),
+  });
+  const [state, setState] = useState("all");
+  const [teacher, setTeacher] = useState("all");
+  const from = validDate(params.semana) ? monday(params.semana) : monday(today);
   const to = shiftDate(from, 6);
-  const query = trpc.classRecords.list.useQuery({ from, to, ...(classId ? { classId } : {}) });
-  const rows = (query.data ?? []).filter((row) => view === "all" || row.state === view);
-  const dates = [...new Set(rows.map((row) => row.date))];
-  const generation = useSessionGeneration({ from, to, ...(classId ? { classId } : {}) });
-  const awaitingPreparation = generation.data?.some(
-    (row) =>
-      row.pending || row.request?.status === "FAILED" || (!row.request && row.sessionCount === 0),
+  const date =
+    params.dia && validDate(params.dia) && params.dia >= from && params.dia <= to
+      ? params.dia
+      : today >= from && today <= to
+        ? today
+        : from;
+  const mode = params.visao === "day" ? "day" : "week";
+  const range = { from, to, ...(params.turma ? { classId: params.turma } : {}) };
+  const query = trpc.classRecords.list.useQuery(range);
+  const generation = useSessionGeneration(range);
+  const all = query.data ?? [];
+  const teachers = [
+    ...new Set(all.map((lesson) => lesson.teacher ?? "Professor a definir")),
+  ].sort();
+  if (teacher !== "all" && !teachers.includes(teacher)) teachers.push(teacher);
+  const teacherLessons = all.filter(
+    (lesson) => teacher === "all" || (lesson.teacher ?? "Professor a definir") === teacher,
   );
+  const lessons = teacherLessons.filter((lesson) => state === "all" || lesson.state === state);
+  const scopedLessons = mode === "day" ? lessons.filter((lesson) => lesson.date === date) : lessons;
+  function selectDate(next: string) {
+    void setParams({ semana: monday(next), dia: next });
+  }
+  function move(delta: number) {
+    selectDate(shiftDate(mode === "day" ? date : from, mode === "day" ? delta : delta * 7));
+  }
+  const filtersActive = teacher !== "all" || state !== "all" || Boolean(params.turma);
   return (
-    <div className="mx-auto grid h-full w-full max-w-6xl content-start gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+    <div className={styles.page}>
+      <header className={styles.pageHeader}>
         <div>
           <h1 className="font-display text-h2 font-semibold text-heading">Aulas</h1>
           <p className="mt-1 text-caption text-muted-foreground">
-            Acompanhe cada encontro, da chamada ao que foi realizado.
+            A semana da escola, encontro por encontro.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="icon-sm"
-            variant="secondary"
-            aria-label="Semana anterior"
-            onClick={() => void setWeek(shiftDate(from, -7))}
-          >
-            <ChevronLeft />
-          </Button>
-          <Button variant="ghost" onClick={() => void setWeek(currentMonday())}>
-            Esta semana
-          </Button>
-          <Button
-            size="icon-sm"
-            variant="secondary"
-            aria-label="Próxima semana"
-            onClick={() => void setWeek(shiftDate(from, 7))}
-          >
-            <ChevronRight />
-          </Button>
-        </div>
+        <p className={styles.summary} aria-live="polite">
+          {query.isPending ? (
+            "Carregando aulas…"
+          ) : query.isError ? (
+            "Agenda indisponível"
+          ) : (
+            <>
+              <strong>{scopedLessons.length}</strong>{" "}
+              {scopedLessons.length === 1 ? "aula" : "aulas"}{" "}
+              {mode === "day" ? "no dia" : "na semana"}
+              <span>·</span>
+              <strong>
+                {scopedLessons.filter((lesson) => lesson.state === "PENDING").length}
+              </strong>{" "}
+              a registrar
+            </>
+          )}
+        </p>
       </header>
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
-        <h2 className="font-display text-xl font-semibold">
-          {dateLabel(from)} — {dateLabel(to)}
-        </h2>
-        <div className="max-w-full overflow-x-auto">
-          <SegmentedControl
-            value={view}
-            onValueChange={(value) => {
-              if (value) setView(value);
-            }}
-            aria-label="Situação das aulas"
-          >
-            <SegmentedControlItem value="all">Todas</SegmentedControlItem>
-            <SegmentedControlItem value="PENDING">A registrar</SegmentedControlItem>
-            <SegmentedControlItem value="RECORDED">Com baixa</SegmentedControlItem>
-          </SegmentedControl>
-        </div>
-      </div>
-      {classId && (
-        <div className="flex flex-wrap items-center gap-3 text-caption">
-          <span className="text-muted-foreground">
-            Turma: {query.data?.[0]?.className ?? generation.data?.[0]?.className ?? "selecionada"}
-          </span>
-          <Link className="text-interactive hover:underline" href={`/aulas?semana=${from}`}>
-            Ver todas as turmas
-          </Link>
-        </div>
-      )}
-      <GenerationState query={generation} showReady={Boolean(classId)} />
-      <RecordState
-        pending={query.isPending}
-        error={query.error}
-        retry={() => void query.refetch()}
-      />
-      {query.data && rows.length === 0 && !awaitingPreparation && (
-        <EmptyState
-          title="Nenhum encontro neste recorte"
-          description="Escolha outra semana ou veja todas as situações."
-        />
-      )}
-      {dates.map((date) => (
-        <section key={date} className="grid gap-3 sm:grid-cols-5">
-          <h3 className="pt-3 text-caption font-semibold text-muted-foreground">
-            {new Intl.DateTimeFormat("pt-BR", {
-              weekday: "long",
-              day: "2-digit",
-              month: "short",
-              timeZone: "UTC",
-            }).format(new Date(`${date}T12:00:00Z`))}
-          </h3>
-          <div className="divide-y divide-border rounded-lg border border-border bg-card sm:col-span-4">
-            {rows
-              .filter((row) => row.date === date)
-              .map((row) => (
-                <article
-                  key={row.id}
-                  className="flex flex-wrap items-center justify-between gap-3 p-4"
-                >
-                  <div className="flex min-w-0 items-start gap-4">
-                    <span className="font-numeric text-caption tabular-nums text-muted-foreground">
-                      {row.startTime}
-                      <br />
-                      {row.endTime}
-                    </span>
-                    <div className="grid gap-1">
-                      <h4 className="text-sm font-semibold">{row.className}</h4>
-                      <p className="text-caption text-muted-foreground">
-                        {row.teacher ?? "Professor a definir"} ·{" "}
-                        {row.scheduleType === "REGULAR" ? "Regular" : "PPT"}
-                      </p>
-                      {row.attendanceOnly && (
-                        <span className="text-micro text-muted-foreground">
-                          Chamada confirmada · conteúdo a registrar
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant={row.state === "RECORDED" ? "success" : "neutral"}>
-                      {row.state === "RECORDED"
-                        ? "Com baixa"
-                        : row.state === "CANCELLED"
-                          ? "Cancelada"
-                          : row.state === "UPCOMING"
-                            ? "Prevista"
-                            : "A registrar"}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      nativeButton={false}
-                      render={<Link href={`/aulas/${row.id}`} />}
-                      aria-label={`Abrir ${row.className} em ${dateLabel(date)} às ${row.startTime}`}
-                    >
-                      Abrir
-                      <ArrowUpRight />
-                    </Button>
-                  </div>
-                </article>
-              ))}
+      <section className={styles.calendar} aria-label="Agenda de aulas">
+        <div className={styles.toolbar}>
+          <div className={styles.dateControls}>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={mode === "day" ? "Dia anterior" : "Semana anterior"}
+                onClick={() => move(-1)}
+              >
+                <ChevronLeft />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={mode === "day" ? "Próximo dia" : "Próxima semana"}
+                onClick={() => move(1)}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
+            <CalendarDatePicker date={date} today={today} onChange={selectDate} />
+            <Button variant="secondary" size="sm" onClick={() => selectDate(today)}>
+              Hoje
+            </Button>
           </div>
-        </section>
-      ))}
+          <div className={styles.viewControls}>
+            <span className={styles.range}>
+              {calendarDate(from, { day: "numeric", month: "short" })} —{" "}
+              {calendarDate(to, { day: "numeric", month: "short" })}
+            </span>
+            <SegmentedControl
+              value={mode}
+              onValueChange={(value) => {
+                if (value) void setParams({ visao: value });
+              }}
+              size="sm"
+              aria-label="Visualização do calendário"
+            >
+              <SegmentedControlItem value="week">Semana</SegmentedControlItem>
+              <SegmentedControlItem value="day">Dia</SegmentedControlItem>
+            </SegmentedControl>
+          </div>
+        </div>
+        <div className={styles.filters}>
+          <div className={styles.statusFilters} aria-label="Situação das aulas">
+            {[
+              { value: "all", label: "Todas" },
+              ...Object.entries(lessonStates).map(([value, label]) => ({ value, label })),
+            ].map((filter) => (
+              <button
+                type="button"
+                key={filter.value}
+                aria-pressed={state === filter.value}
+                data-selected={state === filter.value}
+                className={styles.statusFilter}
+                onClick={() => setState(filter.value)}
+              >
+                {filter.label}
+                <span>
+                  {
+                    teacherLessons.filter(
+                      (lesson) =>
+                        (filter.value === "all" || lesson.state === filter.value) &&
+                        (mode === "week" || lesson.date === date),
+                    ).length
+                  }
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className={styles.teacherFilter}>
+            <Select
+              value={teacher}
+              onValueChange={(value) => {
+                if (value) setTeacher(value);
+              }}
+            >
+              <SelectTrigger size="sm" aria-label="Filtrar por professor">
+                <SelectValue>{teacher === "all" ? "Todos os professores" : teacher}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os professores</SelectItem>
+                {teachers.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {filtersActive && (
+          <div className={styles.activeFilters}>
+            <span>
+              {params.turma
+                ? `Turma: ${all[0]?.className ?? generation.data?.[0]?.className ?? "selecionada"}`
+                : "Agenda filtrada"}
+            </span>
+            <Button
+              variant="text"
+              size="sm"
+              onClick={() => {
+                setTeacher("all");
+                setState("all");
+                void setParams({ turma: null });
+              }}
+            >
+              <X />
+              Limpar filtros
+            </Button>
+          </div>
+        )}
+        {query.isPending || query.error ? (
+          <div className="p-4">
+            <RecordState
+              pending={query.isPending}
+              error={query.error}
+              retry={() => void query.refetch()}
+            />
+          </div>
+        ) : (
+          <LessonCalendar
+            key={`${from}-${teacher}-${state}`}
+            from={from}
+            today={today}
+            date={date}
+            mode={mode}
+            lessons={lessons}
+            onSelectDay={(day) => void setParams({ dia: day, visao: "day" })}
+          />
+        )}
+        <footer className={styles.footer}>
+          <span>Horários de Brasília</span>
+          <span>Selecione uma aula para ver os detalhes.</span>
+        </footer>
+      </section>
+      <GenerationState query={generation} showReady={Boolean(params.turma)} />
     </div>
   );
 }
