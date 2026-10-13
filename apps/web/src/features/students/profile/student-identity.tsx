@@ -22,22 +22,6 @@ export function StudentHeader({
         </h1>
         <Badge variant={status.variant}>{status.label}</Badge>
       </div>
-      <div className="flex items-center gap-1">
-        <StudentContactButton profile={profile} />
-        {profile.whatsAppUrl && (
-          <Button
-            nativeButton={false}
-            variant="secondary"
-            size="compact-responsive"
-            aria-label="WhatsApp do aluno"
-            title="WhatsApp do aluno"
-            render={<a href={profile.whatsAppUrl} target="_blank" rel="noreferrer" />}
-          >
-            <MessageCircle aria-hidden="true" />
-            <span className="hidden sm:inline">WhatsApp</span>
-          </Button>
-        )}
-      </div>
       {navigation}
     </header>
   );
@@ -45,46 +29,64 @@ export function StudentHeader({
 
 export function StudentContactSummary({ profile }: { profile: StudentProfile }): ReactElement {
   return (
-    <dl className="flex min-w-0 flex-wrap gap-x-6 gap-y-1">
-      <IdentityFact label="Nascimento">
-        {profile.contact.birthDate ? formatDateOnlyBR(profile.contact.birthDate) : "Não informado"}
-      </IdentityFact>
-      <IdentityFact label="Telefone">
-        {profile.contact.phone ? (
-          <a
-            className="inline-flex min-h-11 items-center hover:text-interactive sm:min-h-0"
-            href={`tel:${profile.contact.phone}`}
-          >
-            {profile.contact.phone}
-          </a>
-        ) : (
-          "Não informado"
-        )}
-      </IdentityFact>
-      <IdentityFact label="E-mail">
-        {profile.contact.email ? (
-          <a
-            className="inline-flex min-h-11 items-center break-all text-interactive hover:underline sm:min-h-0"
-            href={`mailto:${profile.contact.email}`}
-          >
-            {profile.contact.email}
-          </a>
-        ) : (
-          "Não informado"
-        )}
-      </IdentityFact>
-      {profile.guardian && (
-        <IdentityFact
-          label={
-            profile.guardian.relationship
-              ? `Responsável (${profile.guardian.relationship})`
-              : "Responsável"
-          }
-        >
-          {profile.guardian.fullName}
+    <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3">
+      <dl className="flex min-w-0 flex-wrap gap-x-6 gap-y-1">
+        <IdentityFact label="Nascimento">
+          {profile.contact.birthDate
+            ? formatDateOnlyBR(profile.contact.birthDate)
+            : "Não informado"}
         </IdentityFact>
-      )}
-    </dl>
+        <IdentityFact label="Telefone">
+          {profile.contact.phone ? (
+            <a
+              className="inline-flex min-h-11 items-center hover:text-interactive sm:min-h-0"
+              href={`tel:${profile.contact.phone}`}
+            >
+              {profile.contact.phone}
+            </a>
+          ) : (
+            "Não informado"
+          )}
+        </IdentityFact>
+        <IdentityFact label="E-mail">
+          {profile.contact.email ? (
+            <a
+              className="inline-flex min-h-11 items-center break-all text-interactive hover:underline sm:min-h-0"
+              href={`mailto:${profile.contact.email}`}
+            >
+              {profile.contact.email}
+            </a>
+          ) : (
+            "Não informado"
+          )}
+        </IdentityFact>
+        {profile.guardian && (
+          <IdentityFact
+            label={
+              profile.guardian.relationship
+                ? `Responsável (${profile.guardian.relationship})`
+                : "Responsável"
+            }
+          >
+            {profile.guardian.fullName}
+          </IdentityFact>
+        )}
+      </dl>
+      <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-2">
+        {profile.whatsAppUrl && (
+          <Button
+            nativeButton={false}
+            variant="link"
+            size="inline"
+            aria-label="WhatsApp do aluno"
+            render={<a href={profile.whatsAppUrl} target="_blank" rel="noreferrer" />}
+          >
+            <MessageCircle aria-hidden="true" /> WhatsApp
+          </Button>
+        )}
+        <StudentContactButton profile={profile} />
+      </div>
+    </div>
   );
 }
 function IdentityFact({ label, children }: { label: string; children: ReactNode }): ReactElement {

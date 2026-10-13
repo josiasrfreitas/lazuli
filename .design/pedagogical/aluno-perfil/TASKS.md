@@ -138,3 +138,71 @@ Validated in the isolated `aluno-perfil` worktree with its seeded database and r
 - No local lint, test suite, typecheck or build. Commit hooks formatted staged code and checked whitespace; push hook parsed committed files and enforced component size.
 
 PR: https://github.com/josiasrfreitas/lazuli/pull/172
+
+## Bounded support sections and contact actions — 2026-10-13
+
+The user requested an Impeccable critique and bolder refinement of appointments and pedagogical
+follow-up, explicitly identifying unbounded height and asking for limited records with expansion.
+They also requested moving WhatsApp/full registration into the main student card and leaving a
+populated local student for review. This extends the previous accepted editorial desktop scope.
+
+Independent design and detector assessments scored the old composition 26/40. The detector found no
+mechanical anti-patterns, while the browser confirmed the empty appointment half stretched to match
+unbounded follow-up content. The critique is archived at
+[the critique snapshot](../../../.impeccable/critique/2026-10-13T12-42-16Z__res-students-profile-student-pedagogy-tsx-d9c6d963.md).
+Considered route-only summaries, bounded expanding lists, and one combined tabbed surface. Implemented
+bounded expanding lists in the existing visual language: a smaller appointment rail and a wider
+follow-up section, with deadline-first records and separate intervention/occurrence tabs. This is an
+implemented refinement for user review, not a newly approved workshop direction.
+
+Protected UI contract: adding records or long narratives must not indefinitely increase the student
+profile height, and a preview must not claim its loaded rows are the full active total. Existing API
+pagination and form tests were inspected. No new source-shaped tests were added for this reversible
+composition; real browser evidence exercises the contract. No backend contracts changed.
+
+- Appointments initially show three records; interventions and occurrences show two. The latter
+  limit was adjusted after the first browser pass showed a partially cut-off third record.
+- Expanded lists scroll inside a 384 px maximum viewport. Initial lists shrink to fit. Counts and
+  collapse actions stay outside that scrolling region; complete histories retain the student filter.
+- Active totals combine the server totals for OPEN and IN_PROGRESS. Up to one page of each is loaded
+  into the preview, ordered by deadline. The stress example truthfully shows 27 active records even
+  though 23 are loaded; expanded footer says “Exibindo 23 de 27 · Ver todos”. The full history includes
+  concluded interventions and retains its existing pagination.
+- Next-step previews are clamped, with the full narrative accessible through the linked title.
+- WhatsApp and Cadastro completo are inline actions beside contact facts in the main card, including
+  the financial overview through the shared contact summary. WhatsApp was not opened or sent.
+
+The local database initially contained only 0 appointments, 3 occurrences and 1 intervention for the
+previously linked demonstration student, despite the earlier handoff counts. After verifying isolated
+workspace ownership, added demonstration data through the application caller with existing scheduling
+and conflict checks. No reset or reseed. The same review link above now has **12 appointments,
+29 interventions (24 OPEN, 3 IN_PROGRESS, 2 CONCLUDED), 15 occurrences and 33 follow-ups**. Cases include
+missed/cancelled/completed/scheduled appointments, overdue/undated interventions, long titles and an
+approximately 3,000-character next step. All additions are local demonstration records.
+
+Final browser pass:
+
+- Measured 1280 × 800 dark and 1440 × 1000 light, with no document horizontal overflow.
+- At 1280, collapsed appointment viewport 245 px / three records; intervention viewport 342 px / two
+  records. Expanded viewports remained 384 px with 12 appointments and 23 loaded interventions.
+- At 1440, two interventions fit in 314 px; two occurrences fit in 253 px.
+- Opened the long intervention narrative successfully. Occurrence-history navigation retained the
+  student and view, and showed all 15 records. Registration sheet opened inside the card and closed
+  with Escape. Both moved actions were present inside the main enrollment card.
+- A separate existing empty student rendered explicit empty states; appointment/follow-up section
+  heights were 207/188 px, without a stretched shared background.
+- Focus reached the scroll region. Orca's synthetic ArrowDown/PageDown did not change scrollTop, so
+  native keyboard scrolling is not claimed as verified. Mobile, simulated network errors and writes
+  through the unchanged creation form were not re-exercised in this refinement.
+
+Evidence: [light support](student-support-bounded-light.png),
+[expanded dark support](student-support-bounded-dark.png),
+[contact actions](student-contact-actions-in-card.png).
+Source diff reviewed, changed files formatted, and `git diff --check` passed. No tests, lint, typecheck
+or build were run, preserving the user's explicit review-session preference recorded in the handoff;
+those gates remain for CI. No push or PR creation in this pass.
+
+Critique run notes: dual independent assessments; ignore list absent; CLI and injected browser
+scan both clean; temporary detector server stopped and assessment tabs closed; temporary report
+removed after archive write. First critique for this target, no trend yet. The primary review tab
+remains open on the populated example.
