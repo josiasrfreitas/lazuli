@@ -18,6 +18,7 @@ const windowFields = {
   objective: z.string().trim().max(MAX_TEXT).nullable(),
 };
 const itemFields = {
+  programActivityId: z.string().uuid().nullable().optional(),
   plannedOn: civilDateSchema,
   kind: stagePlanKindSchema,
   title: z.string().trim().min(3, "Descreva a atividade planejada.").max(MAX_TITLE),

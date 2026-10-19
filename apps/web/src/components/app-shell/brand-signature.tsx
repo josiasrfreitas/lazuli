@@ -3,25 +3,45 @@ import type { ReactNode } from "react";
 
 import { cn } from "@lazuli/ui";
 
-/** The navigation and entrance both provide a dark surface for the signature. */
+/** Use the matching brand artwork without waiting for client theme hydration. */
 function BrandArtwork({ kind }: { kind: "symbol" | "symbol-small" | "wordmark" }): ReactNode {
   if (kind === "wordmark") {
     return (
       <svg aria-hidden="true" className="size-full text-brand" viewBox="0 0 330 100">
-        <image height="100" href="/brand/lazuli-wordmark-dark.svg" width="320" />
+        <image
+          className="dark:hidden"
+          height="100"
+          href="/brand/lazuli-wordmark-light.svg"
+          width="320"
+        />
+        <image
+          className="hidden dark:block"
+          height="100"
+          href="/brand/lazuli-wordmark-dark.svg"
+          width="320"
+        />
         <circle data-brand-dot cx="317" cy="69" fill="currentColor" r="5" />
       </svg>
     );
   }
 
   return (
-    <Image
-      alt=""
-      className="size-full object-contain"
-      height={100}
-      width={100}
-      src={`/brand/lazuli-${kind}-dark.svg`}
-    />
+    <>
+      <Image
+        alt=""
+        className="size-full object-contain dark:hidden"
+        height={100}
+        width={100}
+        src={`/brand/lazuli-${kind}-light.svg`}
+      />
+      <Image
+        alt=""
+        className="hidden size-full object-contain dark:block"
+        height={100}
+        width={100}
+        src={`/brand/lazuli-${kind}-dark.svg`}
+      />
+    </>
   );
 }
 

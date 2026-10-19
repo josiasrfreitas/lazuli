@@ -1,5 +1,6 @@
-const FLIGHT_TIMING: KeyframeAnimationOptions = { duration: 1250, fill: "both" };
-const FLIGHT_EASING = "cubic-bezier(0.35, 0, 0.2, 1)";
+const FLIGHT_TIMING: KeyframeAnimationOptions = { duration: 1800, fill: "both" };
+const FLIGHT_EASING = "cubic-bezier(0.77, 0, 0.175, 1)";
+const REVEAL_EASING = "cubic-bezier(0.23, 1, 0.32, 1)";
 const POINT_SAMPLES = 100;
 const POINT_SWELL = 0.8;
 const POINT_FADE_RATE = 12;
@@ -22,11 +23,14 @@ const CURVE = {
 
 /** Measure the rendered composition so the point lands on the actual brand punctuation. */
 export function animateEntrance(root: HTMLElement, overlay: SVGSVGElement): Animation[] {
+  const bounds = root.getBoundingClientRect();
+  if (bounds.width <= 980 || bounds.height <= 540) return animateContent(root);
+
   const hero = root.querySelector<HTMLElement>("[data-login-hero]");
   const destination = root.querySelector<SVGCircleElement>("[data-brand-dot]");
   const path = overlay.querySelector("path");
   const point = overlay.querySelector("circle");
-  const caption = root.querySelector<HTMLElement>('[data-login-reveal="eyebrow"]');
+  const caption = root.querySelector<HTMLElement>("[data-login-caption]");
   if (
     hero === null ||
     destination === null ||
@@ -37,14 +41,13 @@ export function animateEntrance(root: HTMLElement, overlay: SVGSVGElement): Anim
     return [];
   }
 
-  const bounds = root.getBoundingClientRect();
   const target = destination.getBoundingClientRect();
   overlay.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
   point.setAttribute("r", String(target.width / 2));
   path.setAttribute(
     "d",
     flightPath({
-      panel: hero.getBoundingClientRect(),
+      panel: bounds,
       target,
       captionTop: caption.getBoundingClientRect().top,
     }),
@@ -122,24 +125,32 @@ function animateContent(root: HTMLElement): Animation[] {
     animations.push(
       photo.animate(
         [
-          { opacity: 0.3, transform: "scale(1.035)" },
+          { opacity: 0.45, transform: "scale(1.12)" },
           { opacity: 1, transform: "scale(1)" },
         ],
-        { duration: 1100, fill: "both", easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" },
+        { duration: 2400, fill: "both", easing: REVEAL_EASING },
       ),
     );
   }
-  const reveals = { eyebrow: 80, "line-one": 160, "line-two": 260, description: 360, form: 380 };
-  for (const [name, delay] of Object.entries(reveals)) {
+  const reveals = [
+    { name: "seal", delay: 0, duration: 1000, from: "scale(0.9) rotate(-12deg)" },
+    { name: "wordmark", delay: 80, duration: 1100, from: "translateX(-18px)" },
+    { name: "line-one", delay: 160, duration: 1100, from: "translateY(105%)" },
+    { name: "line-two", delay: 240, duration: 1100, from: "translateY(105%)" },
+    { name: "description", delay: 320, duration: 900, from: "translateY(12px)" },
+    { name: "panel", delay: 0, duration: 280, from: "none" },
+    { name: "form", delay: 0, duration: 280, from: "translateY(8px)" },
+  ];
+  for (const { name, delay, duration, from } of reveals) {
     const element = root.querySelector(`[data-login-reveal="${name}"]`);
     if (element !== null) {
       animations.push(
         element.animate(
           [
-            { opacity: 0, transform: "translateY(18px)" },
-            { opacity: 1, transform: "translateY(0)" },
+            { opacity: name.startsWith("line-") || name === "panel" ? 1 : 0, transform: from },
+            { opacity: 1, transform: "none" },
           ],
-          { duration: 580, delay, fill: "both", easing: "cubic-bezier(0.16, 1, 0.3, 1)" },
+          { duration, delay, fill: "both", easing: REVEAL_EASING },
         ),
       );
     }

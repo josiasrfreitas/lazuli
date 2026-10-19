@@ -20,7 +20,7 @@ export function IntroductionBlock({
     CANCELLED: "Cancelada",
   }[row.status];
   const interval = `${dateLabel(row.date)}, ${row.startTime}–${row.endTime}`;
-  const description = `Aula introdutória, ${row.candidateName}, ${interval}, ${status}`;
+  const description = `Aula experimental individual, ${row.candidateName}, ${interval}, ${status}`;
   return (
     <Link
       href={`/interessados/${row.candidateId}`}
@@ -37,7 +37,7 @@ export function IntroductionBlock({
       <span
         className={cn("truncate font-semibold", compact ? "text-xs leading-3.5" : "text-caption")}
       >
-        Introdutória · {row.candidateName}
+        Experimental individual · {row.candidateName}
       </span>
       <span className={compact ? "text-micro leading-3 opacity-80" : "text-caption opacity-80"}>
         {compact

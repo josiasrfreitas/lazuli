@@ -33,9 +33,37 @@ const newContractPayerSchema = payerCreateInputSchema
     message: DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE,
   });
 
+export const contractMaterialInputSchema = z
+  .object({
+    stageIds: z.array(z.string().uuid()).min(1, "Selecione pelo menos um livro."),
+    category: z.enum(["CHILD", "ADULT"]),
+    payment: z.enum(["INSTALLMENTS", "CASH"]),
+    quoteVersion: z.string().regex(/^[a-f0-9]{64}$/u),
+    expectedTotalCents: z.number().int().nonnegative().max(MAX_PERSISTED_AMOUNT_CENTS),
+  })
+  .strict()
+  .refine((value) => new Set(value.stageIds).size === value.stageIds.length, {
+    path: ["stageIds"],
+    message: "Selecione livros de estágios diferentes.",
+  });
+
+export const addContractMaterialInputSchema = z
+  .object({
+    commandId: z.string().uuid(),
+    contractId: z.string().uuid(),
+    firstDueDate: civilDateSchema,
+    material: contractMaterialInputSchema,
+  })
+  .strict();
+
+export type ContractMaterialInput = z.infer<typeof contractMaterialInputSchema>;
+export type AddContractMaterialInput = z.infer<typeof addContractMaterialInputSchema>;
+
 export const createMonthlyContractInputSchema = z
   .object({
     commandId: z.string().uuid(),
+    renewedFromId: z.string().uuid().optional(),
+    material: contractMaterialInputSchema.optional(),
     studentId: z.string().uuid().optional(),
     payerId: z.string().uuid().optional(),
     agreedOn: civilDateSchema,

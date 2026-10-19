@@ -1,13 +1,24 @@
+import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
 import { CLASS_REFERENCE_CAPACITY, saoPauloDateOnly } from "@lazuli/domain";
 import type { classListInputSchema, z } from "@lazuli/validators";
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
 import { notFound } from "../trpc/errors.js";
+import { computeEnrollmentPercentInWindow } from "../attendance/percent.js";
 
 type Database = Pick<
   Prisma.TransactionClient,
-  "class" | "user" | "semester" | "stage" | "enrollment" | "enrollmentAction"
+  | "$queryRaw"
+  | "class"
+  | "user"
+  | "semester"
+  | "stage"
+  | "enrollment"
+  | "enrollmentAction"
+  | "classSession"
+  | "attendance"
+  | "makeup"
 >;
 type ListInput = z.infer<typeof classListInputSchema>;
 
@@ -36,23 +47,9 @@ function currentEnrollmentWhere(today: Date): Prisma.EnrollmentWhereInput {
   };
 }
 function classWhere(values: ListInput): Prisma.ClassWhereInput {
-  const { search, scheduleTypes, formats, stageIds, semesterIds, statuses } = values;
+  const { scheduleTypes, formats, stageIds, semesterIds, statuses } = values;
   return {
     deletedAt: null,
-    ...(search
-      ? {
-          OR: [
-            { internalCode: { contains: search, mode: "insensitive" } },
-            { portalClassName: { contains: search, mode: "insensitive" } },
-            { teacher: { name: { contains: search, mode: "insensitive" } } },
-            {
-              teacherAssignments: {
-                some: { teacher: { name: { contains: search, mode: "insensitive" } } },
-              },
-            },
-          ],
-        }
-      : {}),
     ...(scheduleTypes.length > 0 ? { scheduleType: { in: scheduleTypes } } : {}),
     ...(formats.length > 0 ? { format: { in: formats } } : {}),
     ...(stageIds.length > 0
@@ -70,6 +67,19 @@ export async function listClasses(
   const today = new Date(saoPauloDateOnly(input.now));
   const { page, pageSize } = input.values;
   const where = classWhere(input.values);
+  if (input.values.search) {
+    const [classes, teachers] = await Promise.all([
+      searchIds(input.database, "Class", input.values.search),
+      searchIds(input.database, "User", input.values.search),
+    ]);
+    where.OR = classes
+      ? [
+          { id: classes },
+          { teacher: { id: teachers } },
+          { teacherAssignments: { some: { teacher: { id: teachers } } } },
+        ]
+      : undefined;
+  }
   await applyClassTeacherFilter({ ...input, today, where });
   const [rows, total] = await Promise.all([
     input.database.class.findMany({
@@ -150,9 +160,15 @@ const rosterSelect = {
   },
   progressRecords: {
     where: { deletedAt: null },
-    select: { stage: { select: { name: true, track: { select: { name: true } } } } },
+    select: {
+      startDate: true,
+      endDate: true,
+      stage: { select: { name: true, track: { select: { name: true } } } },
+      assessment: {
+        select: { grades: { where: { deletedAt: null }, select: { score: true } } },
+      },
+    },
     orderBy: { startDate: "desc" },
-    take: 1,
   },
   actions: {
     where: { status: "SCHEDULED", kind: { in: ["PAUSE", "EXIT"] } },
@@ -182,21 +198,27 @@ function rosterWhere(input: RosterInput, today: Date): Prisma.EnrollmentWhereInp
   return {
     classId: input.id,
     deletedAt: null,
-    ...(input.search
-      ? { student: { fullName: { contains: input.search, mode: "insensitive" } } }
-      : {}),
     ...(input.situations.length > 0
       ? { OR: input.situations.map((value) => situations[value]) }
       : {}),
   };
 }
-export async function listClassRoster(
-  input: RosterInput,
-): Promise<Page<Prisma.EnrollmentGetPayload<{ select: typeof rosterSelect }>> & { today: string }> {
-  const exists = await input.database.class.count({ where: { id: input.id, deletedAt: null } });
-  if (exists === 0) throw notFound(CLASS_NOT_FOUND_MESSAGE);
+export async function listClassRoster(input: RosterInput): Promise<
+  Page<
+    Prisma.EnrollmentGetPayload<{ select: typeof rosterSelect }> & {
+      gradeAverage: number | null;
+      attendancePercent: number | null;
+    }
+  > & { today: string }
+> {
+  const classRow = await input.database.class.findFirst({
+    where: { id: input.id, deletedAt: null },
+    select: { semester: { select: { startDate: true, endDate: true } } },
+  });
+  if (classRow === null) throw notFound(CLASS_NOT_FOUND_MESSAGE);
   const today = new Date(saoPauloDateOnly(input.now));
   const where = rosterWhere(input, today);
+  where.student = { id: await searchIds(input.database, "Student", input.search) };
   const [rows, total] = await Promise.all([
     input.database.enrollment.findMany({
       where,
@@ -208,7 +230,27 @@ export async function listClassRoster(
     input.database.enrollment.count({ where }),
   ]);
   return {
-    rows,
+    rows: await Promise.all(
+      rows.map(async (row) => {
+        const currentProgress = row.progressRecords.find(
+          (progress) =>
+            progress.startDate <= today && (!progress.endDate || progress.endDate >= today),
+        );
+        const grades = currentProgress?.assessment?.grades ?? [];
+        const attendance = await computeEnrollmentPercentInWindow({
+          database: input.database,
+          values: { enrollment: { ...row, classId: input.id }, semester: classRow.semester },
+        });
+        return {
+          ...row,
+          gradeAverage:
+            grades.length > 0
+              ? grades.reduce((sum, grade) => sum + Number(grade.score), 0) / grades.length
+              : null,
+          attendancePercent: attendance.percent,
+        };
+      }),
+    ),
     page: input.page,
     pageSize: input.pageSize,
     pageCount: Math.max(1, Math.ceil(total / input.pageSize)),
@@ -264,7 +306,7 @@ export async function classFormOptions(database: Database): Promise<{
   const [teachers, semesters, stages] = await Promise.all([
     database.user.findMany({
       where: {
-        role: "TEACHER",
+        AND: [teacherIdentityWhere],
         deletedAt: null,
         OR: [
           { teacherProfile: null },
@@ -326,3 +368,4 @@ type ApplyClassTeacherFilterInput = {
   today: Date;
   where: Prisma.ClassWhereInput;
 };
+import { teacherIdentityWhere } from "../teachers/identity.js";

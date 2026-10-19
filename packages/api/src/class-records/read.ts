@@ -12,7 +12,9 @@ import {
   writeRestriction,
   type RecordContext,
 } from "./data.js";
+import { usualTeacherOn } from "../teachers/responsibility.js";
 import { initialSnapshot } from "./planned.js";
+import { sessionGuests } from "./guests.js";
 export async function listClassRecords(
   context: RecordContext,
   input: z.infer<typeof classRecordListSchema>,
@@ -27,42 +29,59 @@ export async function listClassRecords(
     include: recordSessionInclude,
     orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
   });
-  return sessions
-    .filter((session) => canRead(context, session))
-    .map((session) => ({
-      id: session.id,
-      classId: session.classId,
-      className: session.class.portalClassName,
-      scheduleType: session.class.scheduleType,
-      date: dateOnly(session.date),
-      startTime: timeOnly(session.startTime),
-      endTime: timeOnly(session.endTime),
-      teacher: responsibleTeacher(session)?.name ?? null,
-      state:
-        session.status === "CANCELLED"
-          ? ("CANCELLED" as const)
-          : session.classRecord
-            ? ("RECORDED" as const)
-            : sessionEndInstant(session) > context.now
-              ? ("UPCOMING" as const)
-              : ("PENDING" as const),
-      attendanceOnly: Boolean(session.attendanceConfirmedAt && !session.classRecord),
-    }));
+  const visibleSessions = sessions.filter((session) => canRead(context, session));
+  const guests = await sessionGuests(context, visibleSessions);
+  return visibleSessions.map((session) => ({
+    id: session.id,
+    leadGuests: guests.get(session.id)?.leads ?? [],
+    guestCount:
+      (guests.get(session.id)?.appointments.length ?? 0) +
+      (guests.get(session.id)?.leads.length ?? 0),
+    classId: session.classId,
+    className: session.class.portalClassName,
+    scheduleType: session.class.scheduleType,
+    format: session.class.format,
+    stageName: session.class.sharedStage?.name ?? null,
+    date: dateOnly(session.date),
+    startTime: timeOnly(session.startTime),
+    endTime: timeOnly(session.endTime),
+    teacherId: responsibleTeacher(session)?.id ?? null,
+    teacher: responsibleTeacher(session)?.name ?? null,
+    state:
+      session.status === "CANCELLED"
+        ? ("CANCELLED" as const)
+        : session.classRecord
+          ? ("RECORDED" as const)
+          : sessionEndInstant(session) > context.now
+            ? ("UPCOMING" as const)
+            : ("PENDING" as const),
+    attendanceOnly: Boolean(session.attendanceConfirmedAt && !session.classRecord),
+  }));
 }
 export async function readClassRecord(context: RecordContext, sessionId: string) {
   const session = await loadRecordSession(context, sessionId);
   const record = session.classRecord;
-  const guests = await context.database.pedagogicalAppointment.findMany({
-    where: { targetClassSessionId: sessionId, deletedAt: null, status: { not: "CANCELLED" } },
-    select: { id: true, purpose: true, status: true, student: { select: { fullName: true } } },
-    orderBy: { student: { fullName: "asc" } },
-  });
+  const usualTeacher = session.responsibilityFrozenAt
+    ? ([session.class.teacher, ...session.class.teacherAssignments.map((row) => row.teacher)].find(
+        (teacher) => teacher.id === session.usualTeacherId,
+      ) ?? null)
+    : usualTeacherOn(session.class, session.date);
+  const [guestRows, attendance] = await Promise.all([
+    sessionGuests(context, [session]),
+    context.database.attendance.findMany({
+      where: { classSessionId: session.id, deletedAt: null },
+      select: { enrollmentId: true },
+    }),
+  ]);
   return {
-    guests,
+    guests: guestRows.get(session.id)?.appointments ?? [],
+    leadGuests: guestRows.get(session.id)?.leads ?? [],
+    recordedAttendanceIds: attendance.map((row) => row.enrollmentId),
     session: {
       id: session.id,
       classId: session.classId,
       className: session.class.portalClassName,
+      stageName: session.class.sharedStage?.name ?? null,
       scheduleType: session.class.scheduleType,
       date: dateOnly(session.date),
       startTime: timeOnly(session.startTime),
@@ -70,6 +89,8 @@ export async function readClassRecord(context: RecordContext, sessionId: string)
       cancelled: session.status === "CANCELLED",
       upcoming: sessionEndInstant(session) > context.now,
       cancelReason: session.cancelReason,
+      format: session.class.format,
+      usualTeacher: usualTeacher?.name ?? null,
       teacher: responsibleTeacher(session)?.name ?? null,
     },
     version: record?.version ?? 0,

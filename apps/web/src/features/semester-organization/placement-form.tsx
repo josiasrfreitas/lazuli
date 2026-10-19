@@ -1,13 +1,16 @@
 "use client";
 import { useState } from "react";
-import { Alert } from "@lazuli/ui";
+import { Alert, InlineSkeleton } from "@lazuli/ui";
 import { semesterPlacementSchema } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
-import { SelectControl } from "~/features/classes/form-controls";
+import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
+import { maskDateBR, parseDateBR } from "~/lib/masks";
+import { TextControl, SelectControl } from "~/features/classes/form-controls";
 import { RecordState } from "~/features/class-records/shared";
 import { TaskDialog, NarrativeField, useValidation } from "~/features/shared/task-form";
 import {
   Choices,
+  dateOnly,
   modes,
   useOrganizationRefresh,
   type Placement,
@@ -32,7 +35,8 @@ export function PlacementForm({
     studentId,
     semesterId: board.semester.id,
   });
-  return query.data ? (
+  const options = trpc.classes.formOptions.useQuery();
+  return query.data && options.data ? (
     <PlacementFields
       data={query.data}
       row={row}
@@ -42,19 +46,38 @@ export function PlacementForm({
     />
   ) : (
     <TaskDialog
-      title="Organizar aluno"
-      description="Carregando percurso acadêmico…"
+      compactHeader
+      actionSize="sm"
+      title={row ? "Revisar proposta" : "Organizar aluno"}
+      description={`${row?.studentName ?? "Aluno"} · semestre ${board.semester.name}`}
+      bodyClassName="min-h-80"
+      submitDisabled
       formId="placement-loading"
       firstField=""
       submitLabel="Carregando…"
       pending={false}
       onClose={onClose}
     >
-      <RecordState
-        pending={query.isPending}
-        error={query.error}
-        retry={() => void query.refetch()}
-      />
+      {query.isPending || options.isPending ? (
+        <div className="grid gap-4 py-4" role="status" aria-label="Carregando dados do aluno">
+          <InlineSkeleton className="h-12 w-full" />
+          <InlineSkeleton className="h-12 w-full" />
+          <div className="grid grid-cols-2 gap-3">
+            <InlineSkeleton className="h-12 w-full" />
+            <InlineSkeleton className="h-12 w-full" />
+          </div>
+          <InlineSkeleton className="h-20 w-full" />
+        </div>
+      ) : (
+        <RecordState
+          pending={false}
+          error={query.error ?? options.error}
+          retry={() => {
+            void query.refetch();
+            void options.refetch();
+          }}
+        />
+      )}
     </TaskDialog>
   );
 }
@@ -77,25 +100,20 @@ function PlacementFields({
   const [sourceId, setSourceId] = useState(
     row ? (row.sourceProgressId ?? "new") : (initialSource?.id ?? "new"),
   );
-  const defaultMode = initialSource
-    ? initialSource.enrollment.class.scheduleType === "PERSONALIZED"
-      ? "CONTINUE"
-      : initialSource.assessment?.decision === "REPEAT"
-        ? "REPEAT"
-        : "ADVANCE"
-    : "ENTRY";
+  const defaultMode = initialSource ? "CONTINUE" : "ENTRY";
   const [mode, setMode] = useState<keyof typeof modes>(row?.mode ?? defaultMode);
-  const suggestedStage = initialSource
-    ? defaultMode === "ADVANCE"
-      ? initialSource.stage.track.stages.find(
-          (item) => item.sequence === initialSource.stage.sequence + 1,
-        )?.id
-      : initialSource.stageId
-    : data.lead?.stageId;
+  const suggestedStage = initialSource?.stageId ?? data.lead?.stageId;
   const [stageId, setStageId] = useState(
     row ? (row.stageId ?? "pending") : (suggestedStage ?? "pending"),
   );
-  const [planId, setPlanId] = useState(row?.planId ?? initialPlanId ?? "pending");
+  const [planId, setPlanId] = useState(initialPlanId ?? row?.planId ?? "pending");
+  const [effectiveDate, setEffectiveDate] = useState(
+    formatDateOnlyBR(
+      row?.effectiveDate
+        ? dateOnly(row.effectiveDate)
+        : [dateOnly(board.semester.startDate), toDateOnlySaoPaulo(new Date())].sort().at(-1)!,
+    ),
+  );
   const [notes, setNotes] = useState(row?.notes ?? "");
   const validation = useValidation();
   const refresh = useOrganizationRefresh();
@@ -125,6 +143,8 @@ function PlacementFields({
   }
   return (
     <TaskDialog
+      compactHeader
+      actionSize="sm"
       title={row ? "Revisar proposta" : "Organizar aluno"}
       description={`${data.student.fullName} · semestre ${board.semester.name}`}
       formId="semester-placement"
@@ -150,6 +170,7 @@ function PlacementFields({
             stageId: stageId === "pending" ? null : stageId,
             sourceProgressId: sourceId === "new" ? null : sourceId,
             mode,
+            effectiveDate: parseDateBR(effectiveDate) ?? "",
             notes,
           });
           if (values && !mutation.isPending) mutation.mutate(values);
@@ -171,16 +192,7 @@ function PlacementFields({
           onChange={(value) => {
             setSourceId(value);
             const progress = data.progress.find((item) => item.id === value);
-            changeMode(
-              progress
-                ? progress.enrollment.class.scheduleType === "PERSONALIZED"
-                  ? "CONTINUE"
-                  : progress.assessment?.decision === "REPEAT"
-                    ? "REPEAT"
-                    : "ADVANCE"
-                : "ENTRY",
-              progress,
-            );
+            changeMode(progress ? "CONTINUE" : "ENTRY", progress);
           }}
         />
         {sourceId !== "new" && (
@@ -208,23 +220,37 @@ function PlacementFields({
           ]}
           error={validation.errors.planId}
         />
-        <SelectControl
-          name="placement-stage"
-          label="Estágio de destino"
-          value={stageId}
-          onChange={(value) => {
-            setStageId(value);
-            validation.clear("stageId");
-          }}
-          choices={[
-            { value: "pending", label: "A definir" },
-            ...(options.data?.stages ?? []).map((item) => ({
-              value: item.id,
-              label: `${item.internalCode} · ${item.name}`,
-            })),
-          ]}
-          error={validation.errors.stageId}
-        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SelectControl
+            name="placement-stage"
+            label="Estágio de destino"
+            value={stageId}
+            onChange={(value) => {
+              setStageId(value);
+              validation.clear("stageId");
+            }}
+            choices={[
+              { value: "pending", label: "A definir" },
+              ...(options.data?.stages ?? []).map((item) => ({
+                value: item.id,
+                label: `${item.internalCode} · ${item.name}`,
+              })),
+            ]}
+            error={validation.errors.stageId}
+          />
+          <TextControl
+            name="placement-effective"
+            label="Válida a partir de"
+            placeholder="dd/mm/aaaa"
+            inputMode="numeric"
+            value={effectiveDate}
+            onChange={(value) => {
+              setEffectiveDate(maskDateBR(value));
+              validation.clear("effectiveDate");
+            }}
+            error={validation.errors.effectiveDate}
+          />
+        </div>
         {source && (
           <p className="text-caption text-muted-foreground">
             Origem: {source.enrollment.class.portalClassName}. Resultado:{" "}
@@ -233,7 +259,7 @@ function PlacementFields({
                 ? "aprovação confirmada"
                 : "repetência confirmada"
               : "confirmação pendente"}
-            .{mode === "CONTINUE" ? " O plano e a avaliação PPT acompanham o aluno." : ""}
+            .{mode === "CONTINUE" ? " O estágio atual será mantido." : ""}
           </p>
         )}
         {data.student.status !== "ACTIVE" && (

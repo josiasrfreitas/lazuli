@@ -227,3 +227,36 @@ export { FormRow, FormSection } from "./components/form-layout";
 export type { FormRowColumns, FormRowProps, FormSectionProps } from "./components/form-layout";
 export { SearchSelect } from "./components/search-select";
 export type { SearchSelectOption, SearchSelectProps } from "./components/search-select";
+
+export { DetailHeader, DetailFacts, DetailFact } from "./components/detail-header";
+
+export { PencilLoader } from "./components/pencil-loader";
+export type { PencilLoaderProps } from "./components/pencil-loader";
+
+export { useStickyBoundary } from "./hooks/use-sticky-boundary";
+
+export { CommandMenu } from "./components/command-menu";
+export type { CommandMenuItem, CommandMenuProps } from "./components/command-menu";
+
+export { ScheduleCalendar, getScheduleCalendarRange, getScheduleCalendarNavigation } from "./components/schedule-calendar";
+export type {
+  ScheduleCalendarProps,
+  CalendarDateRange,
+  CalendarDateWindow,
+  CalendarView,
+  CalendarEvent,
+  CalendarInterval,
+  CalendarBlockedInterval,
+  CalendarRangeSelection,
+  CalendarEventRenderContext,
+} from "./components/schedule-calendar";
+export { ScheduleCalendarDatePicker } from "./components/schedule-calendar-date-picker";
+
+export { Timeline, TimelineSkeleton } from "./components/timeline";
+export type {
+  TimelineProps,
+  TimelineItem,
+  TimelineGroup,
+  TimelineLayout,
+  TimelineSkeletonProps,
+} from "./components/timeline";

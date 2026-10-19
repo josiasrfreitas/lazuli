@@ -174,7 +174,7 @@ function useHistory(classId: string): HistoryState {
   const [page, setPage] = useState(1);
   const [correcting, setCorrecting] = useState<HistoryRow | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const query = trpc.classes.actions.useQuery({ id: classId, page, pageSize: 20 });
+  const query = trpc.classes.actions.useQuery({ id: classId, page, pageSize: 25 });
   const utils = trpc.useUtils();
   const cancel = trpc.enrollment.cancelScheduled.useMutation({
     onSuccess: async () => {

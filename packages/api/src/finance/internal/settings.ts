@@ -1,6 +1,8 @@
+import { materialPriceVersion } from "./material-price-version.js";
 import type { FinanceSettingsInput } from "@lazuli/validators";
 import { tuitionFloorCents } from "@lazuli/validators";
 
+import { materialPriceQuote } from "@lazuli/domain";
 import type { FinanceDatabase } from "./shared.js";
 
 export type FinanceSettingsView = {
@@ -12,6 +14,11 @@ export type FinanceSettingsView = {
   interestRatePctMonthly: number | null;
   cancellationFeePct: number | null;
   materialPriceCents: number | null;
+  childMaterialInstallments: number;
+  childMaterialInstallmentCents: number;
+  adultMaterialInstallments: number;
+  adultMaterialInstallmentCents: number;
+  materialCardFeePct: number;
   updatedAt: Date;
   updatedByName: string | null;
 };
@@ -36,6 +43,11 @@ export async function readSettings(database: FinanceDatabase): Promise<FinanceSe
       row.interestRatePctMonthly === null ? null : Number(row.interestRatePctMonthly),
     cancellationFeePct: row.cancellationFeePct === null ? null : Number(row.cancellationFeePct),
     materialPriceCents: row.materialPriceCents,
+    childMaterialInstallments: row.childMaterialInstallments,
+    childMaterialInstallmentCents: row.childMaterialInstallmentCents,
+    adultMaterialInstallments: row.adultMaterialInstallments,
+    adultMaterialInstallmentCents: row.adultMaterialInstallmentCents,
+    materialCardFeePct: Number(row.materialCardFeePct),
     updatedAt: row.updatedAt,
     updatedByName: row.updatedBy?.name ?? null,
   };
@@ -58,4 +70,47 @@ export async function saveSettings(input: {
     update: { ...data, updatedById: staffUserId },
   });
   return readSettings(database);
+}
+
+/** Acquisition forms receive book pricing without exposing other financial settings. */
+export async function readMaterialPrice(database: FinanceDatabase) {
+  const row = await database.financeSettings.findUnique({
+    where: { id: "singleton" },
+    select: {
+      childMaterialInstallments: true,
+      childMaterialInstallmentCents: true,
+      adultMaterialInstallments: true,
+      adultMaterialInstallmentCents: true,
+      materialCardFeePct: true,
+    },
+  });
+  if (!row) return null;
+  const cardFeePct = Number(row.materialCardFeePct);
+  return {
+    child: {
+      ...materialPriceQuote(
+        row.childMaterialInstallments,
+        row.childMaterialInstallmentCents,
+        cardFeePct,
+      ),
+      version: materialPriceVersion(
+        row.childMaterialInstallments,
+        row.childMaterialInstallmentCents,
+        cardFeePct,
+      ),
+    },
+    adult: {
+      ...materialPriceQuote(
+        row.adultMaterialInstallments,
+        row.adultMaterialInstallmentCents,
+        cardFeePct,
+      ),
+      version: materialPriceVersion(
+        row.adultMaterialInstallments,
+        row.adultMaterialInstallmentCents,
+        cardFeePct,
+      ),
+    },
+    cardFeePct,
+  };
 }

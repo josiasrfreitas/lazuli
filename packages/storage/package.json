@@ -1,0 +1,20 @@
+{
+  "name": "@lazuli/storage",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .turbo dist"
+  },
+  "dependencies": { "@aws-sdk/client-s3": "3.1152.0" },
+  "devDependencies": {
+    "@lazuli/eslint-config": "workspace:*",
+    "@lazuli/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

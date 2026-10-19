@@ -2,14 +2,12 @@ import {
   type LucideIcon,
   ChartNoAxesCombined,
   CalendarRange,
-  ClipboardCheck,
   BookOpen,
   DollarSign,
   FileText,
   GraduationCap,
   Home,
   History,
-  MessagesSquare,
   Settings,
   Users,
   UserRoundPlus,
@@ -71,31 +69,19 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { href: "/turmas", label: "Turmas", icon: BookOpen, roles: ["ADMIN", "SYSTEM_ADMIN"] },
       {
         href: "/aulas",
-        label: "Aulas",
-        icon: ClipboardCheck,
-        roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
-      },
-      {
-        href: "/atendimentos",
-        label: "Atendimentos",
+        label: "Agenda",
         icon: CalendarRange,
         roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
       },
       {
-        href: "/acompanhamento",
-        label: "Acompanhamento",
-        icon: MessagesSquare,
-        roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+        href: "/estagios",
+        label: "Estágios",
+        icon: BookOpen,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
       {
-        href: "/planejamento",
-        label: "Planejamento",
-        icon: CalendarRange,
-        roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
-      },
-      {
-        href: "/proximo-semestre",
-        label: "Próximo semestre",
+        href: "/organizacao",
+        label: "Organização de turmas",
         icon: CalendarRange,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
@@ -144,6 +130,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
       { href: "/ajustes", label: "Ajustes", icon: Settings, roles: ["SYSTEM_ADMIN"] },
+      {
+        href: "/configuracoes/presenca",
+        label: "Localização da escola",
+        icon: Settings,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
     ],
   },
 ];
@@ -154,6 +146,42 @@ export function navItemsFor(role: StaffRole): NavItem[] {
 
 /** Empty sections disappear when none of their items are available to a role. */
 export function navSectionsFor(role: StaffRole): NavSection[] {
+  if (role === "TEACHER")
+    return [
+      {
+        id: "professor",
+        label: null,
+        items: [
+          { href: "/professor", label: "Minha agenda", icon: CalendarRange, roles: ["TEACHER"] },
+          { href: "/professor/turmas", label: "Minhas turmas", icon: BookOpen, roles: ["TEACHER"] },
+          { href: "/professor/alunos", label: "Meus alunos", icon: Users, roles: ["TEACHER"] },
+          {
+            href: "/professor/atendimentos",
+            label: "Atendimentos",
+            icon: CalendarRange,
+            roles: ["TEACHER"],
+          },
+          {
+            href: "/professor/experimentais",
+            label: "Experimentais e nivelamentos",
+            icon: GraduationCap,
+            roles: ["TEACHER"],
+          },
+          {
+            href: "/professor/acompanhamento",
+            label: "Acompanhamento",
+            icon: History,
+            roles: ["TEACHER"],
+          },
+          {
+            href: "/avaliacoes",
+            label: "Notas e avaliações",
+            icon: GraduationCap,
+            roles: ["TEACHER"],
+          },
+        ],
+      },
+    ];
   return NAV_SECTIONS.flatMap((section) => {
     const items = section.items.filter((item) => item.roles.includes(role));
 
@@ -162,6 +190,7 @@ export function navSectionsFor(role: StaffRole): NavSection[] {
 }
 
 export function matchesNavHref(input: MatchesNavHrefInput): boolean {
+  if (input.href === "/professor") return input.pathname === input.href;
   return input.href === "/"
     ? input.pathname === input.href
     : input.pathname === input.href || input.pathname.startsWith(`${input.href}/`);

@@ -1,6 +1,6 @@
 "use client";
 import type { ReactElement } from "react";
-import { Button } from "@lazuli/ui";
+import { Button, PencilLoader } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { RecordState, SnapshotView } from "./shared";
 export function ClassRecordHistory({ sessionId }: { sessionId: string }): ReactElement {
@@ -10,11 +10,14 @@ export function ClassRecordHistory({ sessionId }: { sessionId: string }): ReactE
   );
   return (
     <section className="grid gap-4" aria-label="Histórico da baixa">
-      <RecordState
-        pending={query.isPending}
-        error={query.error}
-        retry={() => void query.refetch()}
-      />
+      {query.isPending ? (
+        <div className="flex items-center gap-3 py-4 text-caption text-muted-foreground">
+          <PencilLoader size="sm" label="Carregando histórico" />
+          <span aria-hidden="true">Carregando histórico…</span>
+        </div>
+      ) : (
+        <RecordState pending={false} error={query.error} retry={() => void query.refetch()} />
+      )}
       {query.data?.pages
         .flatMap((page) => page.items)
         .map((row) => (

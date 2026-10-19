@@ -11,6 +11,7 @@ import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "./root.js";
 
 export const API_PACKAGE = "@lazuli/api" as const;
+export { receiveAssessmentFile, downloadAssessmentFile } from "./assessment-files/transport.js";
 
 export { appRouter, createCaller } from "./root.js";
 export type { AppRouter } from "./root.js";

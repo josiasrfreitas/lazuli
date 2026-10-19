@@ -1,4 +1,6 @@
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
+import { Handshake, TriangleAlert } from "lucide-react";
+import { TreatmentDialog } from "~/features/financial-treatments/treatment-dialog";
 import { CheckCircle2 } from "lucide-react";
 import {
   Button,
@@ -14,17 +16,45 @@ import { PaymentDialog } from "~/features/installments/payment/payment-dialog";
 import { useStudentFinance, type StudentFinanceState } from "./finance-logic";
 import { financeColumns, type FinanceRow } from "./finance-columns";
 import { FinanceOverview } from "./finance-overview";
+import { visibleFinanceContracts } from "./finance-contract-terms";
+import { ContractTerminationDialog } from "./contract-termination-dialog";
+import { formatDateOnlyBR } from "~/lib/format";
 import type { StudentProfile } from "./logic";
 
-export function StudentFinanceSection({ profile }: { profile: StudentProfile }): ReactElement {
-  const state = useStudentFinance(profile.id);
+export function StudentFinanceSection({
+  id,
+  profile,
+}: {
+  id: string;
+  profile?: StudentProfile;
+}): ReactElement {
+  const state = useStudentFinance(id);
+  const [terminationId, setTerminationId] = useState<string | null>(null);
+  const [treatmentIds, setTreatmentIds] = useState<string[] | null>(null);
   return (
     <div className="grid min-w-0 gap-6">
       <FinanceOverview state={state} profile={profile} />
       <section className="grid min-w-0 gap-3" aria-labelledby="student-charges-heading">
-        <FinanceHeading state={state} />
-        <FinanceTable state={state} />
+        <FinanceHeading
+          state={state}
+          onTreat={() => setTreatmentIds([])}
+          onTerminate={setTerminationId}
+        />
+        <FinanceTable state={state} onTreat={(row) => setTreatmentIds([row.installmentId])} />
       </section>
+      {terminationId && (
+        <ContractTerminationDialog
+          contractId={terminationId}
+          onClose={() => setTerminationId(null)}
+        />
+      )}
+      {treatmentIds && (
+        <TreatmentDialog
+          studentId={id}
+          initialIds={treatmentIds}
+          onClose={() => setTreatmentIds(null)}
+        />
+      )}
       {state.payment && (
         <PaymentDialog
           open
@@ -39,7 +69,16 @@ export function StudentFinanceSection({ profile }: { profile: StudentProfile }):
   );
 }
 
-function FinanceHeading({ state }: { state: StudentFinanceState }): ReactElement {
+function FinanceHeading({
+  state,
+  onTreat,
+  onTerminate,
+}: {
+  state: StudentFinanceState;
+  onTreat: () => void;
+  onTerminate: (contractId: string) => void;
+}): ReactElement {
+  const contracts = state.summary.data ? visibleFinanceContracts(state.summary.data) : [];
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -57,20 +96,44 @@ function FinanceHeading({ state }: { state: StudentFinanceState }): ReactElement
               : "Todas as cobranças vinculadas a este aluno, com seus saldos atuais."}
         </p>
       </div>
-      <Tabs value={state.filter} onValueChange={state.setFilter}>
-        <TabsList aria-label="Filtrar parcelas">
-          <TabsTab value="overdue">
-            Pendências{state.summary.data ? ` · ${state.summary.data.overdueCount}` : ""}
-          </TabsTab>
-          <TabsTab value="all">Todas</TabsTab>
-          <TabsTab value="paid">Pagas</TabsTab>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap items-center gap-3">
+        {contracts.map((contract) => (
+          <Button
+            key={contract.id}
+            variant="destructive-ghost"
+            size="sm"
+            onClick={() => onTerminate(contract.id)}
+          >
+            <TriangleAlert aria-hidden="true" /> Rescindir contrato
+            {contracts.length > 1 && contract.startsOn
+              ? ` · ${formatDateOnlyBR(contract.startsOn)}`
+              : ""}
+          </Button>
+        ))}
+        <Button variant="ghost" size="sm" onClick={onTreat}>
+          <Handshake aria-hidden="true" /> Negociar parcelas
+        </Button>
+        <Tabs value={state.filter} onValueChange={state.setFilter}>
+          <TabsList aria-label="Filtrar parcelas">
+            <TabsTab value="overdue">
+              Pendências{state.summary.data ? ` · ${state.summary.data.overdueCount}` : ""}
+            </TabsTab>
+            <TabsTab value="all">Todas</TabsTab>
+            <TabsTab value="paid">Pagas</TabsTab>
+          </TabsList>
+        </Tabs>
+      </div>
     </div>
   );
 }
 
-function FinanceTable({ state }: { state: StudentFinanceState }): ReactElement {
+function FinanceTable({
+  state,
+  onTreat,
+}: {
+  state: StudentFinanceState;
+  onTreat: (row: FinanceRow) => void;
+}): ReactElement {
   if (state.filter === "overdue" && state.data?.total === 0 && !state.query.isError)
     return (
       <div className="flex flex-wrap items-center justify-between gap-4 border-y border-border py-5">
@@ -98,6 +161,7 @@ function FinanceTable({ state }: { state: StudentFinanceState }): ReactElement {
       columns={financeColumns(
         state.setPayment,
         state.filter === "overdue" ? state.data?.rows[0]?.installmentId : undefined,
+        onTreat,
       )}
       state={financeTableState(state)}
       onRetry={() => void state.query.refetch()}

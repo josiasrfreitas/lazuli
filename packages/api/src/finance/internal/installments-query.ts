@@ -1,3 +1,4 @@
+import { searchMatchKysely } from "../../search.js";
 import type { DatabaseClient, KyselyDatabase } from "@lazuli/db";
 import {
   FINANCE_OVERDUE_PAYERS_PAGE_SIZE,
@@ -187,6 +188,7 @@ function ledgerSelection(input: {
     "Payer.name as payerName",
     sql<string>`to_char("Installment".due_date, 'YYYY-MM-DD')`.as("dueDate"),
     sql<string>`to_char("Installment".due_date, 'YYYY-MM-DD')`.as("dueDateSort"),
+    sql<string | null>`to_char("Installment".suspended_until, 'YYYY-MM-DD')`.as("suspendedUntil"),
     "Installment.amount_cents as originalAmountCents",
     input.expected.as("expectedAmountCents"),
     input.paid.as("paidAmountCents"),
@@ -195,7 +197,7 @@ function ledgerSelection(input: {
     ),
     sql<
       number | null
-    >`case when "Contract".punctuality_discount_pct is not null and "Installment".waived_at is null and "Installment".due_date >= ${input.businessDate}::date and ${input.paid} <= round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer and ${input.paid} < ${input.expected} then round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer else null end`.as(
+    >`case when "Order".kind = 'TUITION' and not exists (select 1 from "InstallmentAgreement" where installment_id = "Installment".id) and "Contract".punctuality_discount_pct is not null and "Installment".waived_at is null and "Installment".due_date >= ${input.businessDate}::date and ${input.paid} <= round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer and ${input.paid} < ${input.expected} then round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer else null end`.as(
       "onTimeAmountCents",
     ),
     input.status.as("status"),
@@ -205,18 +207,17 @@ function ledgerSelection(input: {
 
 function matchesSearch(search: string | undefined): RawBuilder<boolean> {
   if (search === undefined) return sql<boolean>`true`;
-  const pattern = `%${escapeLikePattern(search)}%`;
   return sql<boolean>`
-    ("payerName" ilike ${pattern} escape '\\' or exists (
+    (${searchMatchKysely(sql.ref("payerName"), search)} or exists (
         select 1 from "OrderBeneficiary" join "Student" on "Student".id = "OrderBeneficiary".student_id
         where "OrderBeneficiary".order_id = ledger."orderId"
           and "OrderBeneficiary".deleted_at is null and "Student".deleted_at is null
-          and "Student".full_name ilike ${pattern} escape '\\'
+          and ${searchMatchKysely(sql.ref("Student.full_name"), search)}
       ) or exists (
         select 1 from "Order" join "Contract" on "Contract".id = "Order".contract_id
         join "Student" on "Student".id = "Contract".student_id
         where "Order".id = ledger."orderId" and "Student".deleted_at is null
-          and "Student".full_name ilike ${pattern} escape '\\'
+          and ${searchMatchKysely(sql.ref("Student.full_name"), search)}
       ))
   `;
 }
@@ -306,14 +307,6 @@ export async function loadOverduePage(
     .orderBy("overdue.dueDate", "asc")
     .orderBy("overdue.installmentId", "asc")
     .execute();
-}
-
-function escapeLikePattern(value: string): string {
-  const escape = String.fromCodePoint(BACKSLASH_CODE_POINT);
-  return value
-    .replaceAll(escape, escape.repeat(2))
-    .replaceAll("%", `${escape}%`)
-    .replaceAll("_", `${escape}_`);
 }
 
 /** Scope before grouping so a shared payer never includes another student's orders. */

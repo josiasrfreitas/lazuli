@@ -13,7 +13,7 @@ export async function saveAssessment(
 ): Promise<AssessmentView> {
   const progress = await lockProgress(context, values.progressId);
   const changes = gradeChanges(progress, values);
-  assertGradeChanges(context, progress, values, changes);
+  await assertGradeChanges(context, progress, values, changes);
   if (changes.length === 0) return readAssessment(context, progress.id);
   const id = await ensureAssessment(context, progress);
   for (const grade of changes) await writeGrade(context, id, grade, values.correctionReason);
@@ -30,7 +30,7 @@ export async function saveAssessment(
   await recordAssessmentChanges(context, progress, values, changes);
   return readAssessment(context, progress.id);
 }
-async function ensureAssessment(context: AssessmentContext, progress: Progress): Promise<string> {
+export async function ensureAssessment(context: AssessmentContext, progress: Progress): Promise<string> {
   if (progress.assessmentId) return progress.assessmentId;
   const created = await context.database.stageAssessment.create({
     data: {

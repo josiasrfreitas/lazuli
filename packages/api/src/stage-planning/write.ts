@@ -1,3 +1,4 @@
+import { resolvePlannedProgramActivity } from "./program-activity.js";
 import type {
   StagePlanWindow,
   StagePlanItemInput,
@@ -82,12 +83,25 @@ export async function savePlanItem(context: PlanningContext, input: StagePlanIte
   if (input.itemId && !previous) throw notFound("Atividade não encontrada neste plano.");
   if (!input.itemId && plan.items.length >= MAX_PLAN_ITEMS)
     throw badRequest("Este plano já possui 500 atividades.");
+  const programActivityId =
+    input.programActivityId === undefined
+      ? (previous?.programActivityId ?? null)
+      : input.programActivityId;
+  const programContent = programActivityId
+    ? await resolvePlannedProgramActivity(
+        context,
+        scope,
+        programActivityId,
+        previous?.programActivityId ?? null,
+      )
+    : null;
   await bumpVersion(context, plan);
   const data = {
+    programActivityId,
     plannedOn: new Date(input.plannedOn),
-    kind: input.kind,
-    title: input.title,
-    reference: input.reference || null,
+    kind: programContent?.kind ?? input.kind,
+    title: programContent?.title ?? input.title,
+    reference: programContent?.reference ?? (input.reference || null),
     pageFrom: input.pageFrom,
     pageTo: input.pageTo,
   };

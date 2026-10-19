@@ -261,7 +261,7 @@ type LoadedEditableOrder = {
   contractId: string | null;
   installments: Array<{
     waivedAt: Date | null;
-    _count: { allocations: number; adjustments: number };
+    _count: { allocations: number; adjustments: number; agreements: number };
   }>;
 };
 
@@ -281,6 +281,7 @@ async function loadEditableOrder(
             select: {
               allocations: true,
               adjustments: true,
+              agreements: true,
             },
           },
         },
@@ -294,7 +295,8 @@ function assertOrderEditable(order: LoadedEditableOrder): void {
     (installment) =>
       installment.waivedAt !== null ||
       installment._count.allocations > 0 ||
-      installment._count.adjustments > 0,
+      installment._count.adjustments > 0 ||
+      installment._count.agreements > 0,
   );
 
   if (hasFinancialActivity) {

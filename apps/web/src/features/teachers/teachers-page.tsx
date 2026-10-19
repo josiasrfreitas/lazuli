@@ -1,5 +1,6 @@
 "use client";
-import { Plus } from "lucide-react";
+import { useSearchDraft } from "~/lib/use-search-draft";
+import { Plus, Search } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { type UrlPagination, useUrlPagination } from "~/lib/pagination";
 import { type Dispatch, type SetStateAction, type ReactElement, useState } from "react";
@@ -81,20 +82,26 @@ type TeacherListControlsProps = {
   setCreating: Dispatch<SetStateAction<boolean>>;
 };
 function TeacherListControls(props: TeacherListControlsProps): ReactElement {
+  const [search, setSearch] = useSearchDraft(props.params.busca, (busca) => {
+    void props.setParams({ busca });
+    props.pagination.setPage(1);
+  });
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="w-full sm:w-56">
+      <div className="relative w-full sm:w-56">
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-icon"
+        />
         <Input
+          className="pl-9"
           name="teacher-search"
           aria-label="Buscar professor"
           placeholder="Buscar por nome"
           autoComplete="off"
           size="compact-responsive"
-          value={props.params.busca}
-          onChange={(event) => {
-            void props.setParams({ busca: event.target.value });
-            props.pagination.setPage(1);
-          }}
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
         />
       </div>
       <TableFilters

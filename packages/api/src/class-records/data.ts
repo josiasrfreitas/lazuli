@@ -63,9 +63,10 @@ export function writeRestriction(context: RecordContext, session: RecordSession)
     return "A baixa fica disponível após o término da aula.";
   if (
     context.staffUser.role === "TEACHER" &&
+    session.classRecord !== null &&
     dateOnly(session.date) !== saoPauloDateOnly(context.now)
   )
-    return "A administração pode completar ou corrigir o registro de aulas de dias anteriores.";
+    return "A administração pode corrigir registros já encerrados em dias anteriores.";
   return null;
 }
 export async function loadRecordSession(context: RecordContext, sessionId: string) {

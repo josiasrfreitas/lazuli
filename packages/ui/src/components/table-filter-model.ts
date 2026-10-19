@@ -19,6 +19,8 @@ export type TableFilterField = FilterBase &
     | {
         kind: "options";
         presentation?: "dropdown";
+        /** Single selection uses the shared select inside the filter popover. */
+        selectionMode?: "single" | "multiple";
         options: TableFilterOption[];
         selected: string[];
         onChange: (values: string[]) => void;

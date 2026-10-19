@@ -59,6 +59,19 @@ const PAYER_KEYS: Record<string, keyof ContractFields> = {
 function assignIssue(errors: Errors, issue: ContractIssue): void {
   const section = issue.path[0];
   const property = String(issue.path[1]);
+  if (section === "material") {
+    const key =
+      property === "stageIds"
+        ? "materialStageIds"
+        : property === "category"
+          ? "materialCategory"
+          : property === "payment"
+            ? "materialPayment"
+            : "materialTotal";
+    errors[key] =
+      property === "expectedTotalCents" ? "Aguarde o preço do material." : "Selecione uma opção.";
+    return;
+  }
   if (section === "newStudent") {
     assignStudentIssue(errors, issue);
     return;
@@ -245,11 +258,11 @@ function monthlyAmountError(text: string, offer: FormProps["offer"]): string | u
   return undefined;
 }
 
-function validatePrice(state: ContractFormState, offer: FormProps["offer"]): void {
+export function validatePrice(state: ContractFormState, offer: FormProps["offer"]): void {
   state.setFieldError("monthlyAmount", monthlyAmountError(state.fields.monthlyAmount, offer));
 }
 
-function useContractOffer(
+export function useContractOffer(
   open: boolean,
   suggest: (tuitionCeilingCents: number) => void,
 ): ContractOperation["offer"] {
@@ -295,6 +308,7 @@ export function useContractOperation(input: {
       state.reset();
       input.onOpenChange(false);
     } catch (error) {
+      void utils.finance.readMaterialPrice.invalidate();
       state.setSubmissionError(
         error instanceof Error ? error.message : "Não foi possível criar o contrato.",
       );

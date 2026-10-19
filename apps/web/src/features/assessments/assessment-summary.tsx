@@ -7,24 +7,27 @@ import { ConfirmationDialog } from "./confirmation-dialog";
 import { AssessmentResults } from "./results-table";
 import { AcademicProgressChart } from "./progress-chart";
 import { STATUS_LABELS, type Assessment } from "./shared";
+import { AssessmentAttachments } from "~/features/assessment-files/attachments";
 
 type SummaryProps = {
   data: Assessment;
   chart?: boolean;
   layout?: "stacked" | "profile";
   selector?: ReactNode;
+  showHeading?: boolean;
 };
 export function AssessmentSummary({
   data,
   chart = true,
   layout = "stacked",
   selector,
+  showHeading = true,
 }: SummaryProps): ReactElement {
   const [dialog, setDialog] = useState<"grades" | "confirm" | null>(null);
   return (
     <div className="grid min-w-0 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <AssessmentHeading data={data} layout={layout} />
+        {showHeading && <AssessmentHeading data={data} layout={layout} />}
         <div className="flex flex-wrap items-end gap-3">
           {selector}
           <div className="flex flex-wrap gap-2">
@@ -79,6 +82,7 @@ export function AssessmentSummary({
         </div>
       </div>
       {dialog === "grades" && <AssessmentDialog data={data} onClose={() => setDialog(null)} />}
+      <AssessmentAttachments progressId={data.progressId} studentId={data.student.id} />
       {dialog === "confirm" && <ConfirmationDialog data={data} onClose={() => setDialog(null)} />}
     </div>
   );
@@ -93,21 +97,7 @@ function AssessmentHeading({ data, layout }: Pick<SummaryProps, "data" | "layout
         ) : (
           <h3 className="font-display text-h3 font-semibold">{data.stage.name}</h3>
         )}
-        <Badge
-          variant={
-            data.decision === "APPROVED"
-              ? "success"
-              : data.status === "NEEDS_SUPPORT"
-                ? "warning"
-                : "neutral"
-          }
-        >
-          {data.decision === "APPROVED"
-            ? "Aprovação confirmada"
-            : data.decision === "REPEAT"
-              ? "Repetência confirmada"
-              : STATUS_LABELS[data.status]}
-        </Badge>
+        <AssessmentStatusBadge data={data} />
       </div>
       <p className="text-caption text-muted-foreground">
         {layout === "profile" && `${data.stage.name} · `}
@@ -117,20 +107,31 @@ function AssessmentHeading({ data, layout }: Pick<SummaryProps, "data" | "layout
   );
 }
 
+export function AssessmentStatusBadge({ data }: { data: Assessment }): ReactElement {
+  return (
+    <Badge
+      variant={
+        data.decision === "APPROVED"
+          ? "success"
+          : data.status === "NEEDS_SUPPORT"
+            ? "warning"
+            : "neutral"
+      }
+    >
+      {data.decision === "APPROVED"
+        ? "Aprovação confirmada"
+        : data.decision === "REPEAT"
+          ? "Repetência confirmada"
+          : STATUS_LABELS[data.status]}
+    </Badge>
+  );
+}
+
 function AssessmentDecision({ data }: { data: Assessment }): ReactElement | null {
-  if (data.confirmedBy)
-    return (
-      <div className="grid gap-1">
-        <p className="text-caption font-medium">Resultado confirmado por {data.confirmedBy}</p>
-        <p className="text-caption text-muted-foreground">{data.decisionReason}</p>
-      </div>
-    );
-  if (data.decision) return null;
+  if (data.decision || data.status === "INCOMPLETE") return null;
   return (
     <p className="text-caption text-muted-foreground">
-      {data.status === "INCOMPLETE"
-        ? "Complete as duas unidades para avaliar a conclusão do estágio."
-        : "A recuperação, quando lançada, substitui a média da competência."}
+      A recuperação, quando lançada, substitui a média da competência.
     </p>
   );
 }

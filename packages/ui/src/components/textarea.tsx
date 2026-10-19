@@ -5,6 +5,8 @@ import { cn } from "../lib/utils";
 export type TextareaProps = ComponentProps<"textarea"> & {
   /** Marks the control invalid and exposes its state to assistive technologies. */
   invalid?: boolean;
+  /** Compact fields keep two lines visible; the default reserves room for longer text. */
+  size?: "sm" | "md";
 };
 
 /**
@@ -13,14 +15,20 @@ export type TextareaProps = ComponentProps<"textarea"> & {
  * It retains native textarea behavior, including keyboard interaction and
  * vertical resizing, while aligning its semantic states with other controls.
  */
-export function Textarea({ className, invalid = false, ...props }: TextareaProps): ReactElement {
+export function Textarea({
+  className,
+  invalid = false,
+  size = "md",
+  ...props
+}: TextareaProps): ReactElement {
   return (
     <textarea
       {...props}
       aria-invalid={invalid || undefined}
       className={cn(
         [
-          "scrollbar-subtle flex min-h-24 w-full min-w-0 resize-y rounded-md border border-input bg-field px-3 py-2",
+          "scrollbar-subtle flex w-full min-w-0 resize-y rounded-md border border-input bg-field px-3 py-2",
+          size === "sm" ? "min-h-16" : "min-h-24",
           "text-control text-foreground outline-none transition-[border-color,box-shadow] duration-fast ease-standard",
           "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:shadow-focus",
           "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-disabled",

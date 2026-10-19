@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -7,13 +7,16 @@ import type { ReactNode } from "react";
 import { getAuthEnvironment, isStaffAccessDeniedCode } from "@lazuli/auth";
 import { auth } from "@lazuli/auth/server";
 
-import { BrandSignature } from "~/components/app-shell/brand-signature";
-
 import { LoginCard, type LoginInitialError } from "./login-card";
 import { LoginEntrance } from "./login-entrance";
+import styles from "./login-entrance.module.css";
 
 export const metadata: Metadata = {
   title: "Entrar",
+};
+
+export const viewport: Viewport = {
+  interactiveWidget: "resizes-content",
 };
 
 /** Redirect signed-in staff and translate verification errors without exposing account status. */
@@ -33,26 +36,25 @@ export default async function LoginPage({
 
   return (
     <LoginEntrance skip={params.error !== undefined}>
+      <div className={styles.photograph} aria-hidden="true">
+        <Image
+          alt=""
+          data-login-photo
+          className={styles.photo}
+          fill
+          priority
+          quality={90}
+          sizes="100vw"
+          src="/brand/login-students.jpg"
+        />
+        <div className={styles.scrim} />
+      </div>
       <LoginHero />
-
-      <section
-        className="flex min-h-[520px] items-center justify-center bg-gradient-to-br from-marquee via-navigation-active to-marquee px-7 py-16 sm:px-12 lg:px-16"
-        aria-labelledby="login-title"
-      >
-        <div className="w-full max-w-md" data-login-reveal="form">
-          <h2 className="text-4xl font-semibold tracking-tight" id="login-title">
-            Boas-vindas de volta.
-          </h2>
-          <p className="mt-3 text-body leading-relaxed text-marquee-muted">
-            Entre com o email da escola para continuar.
-          </p>
-          <div className="mt-10">
-            <LoginCard
-              googleOAuthEnabled={getAuthEnvironment().googleOAuth !== undefined}
-              initialError={resolveInitialError(params.error)}
-            />
-          </div>
-        </div>
+      <section className={styles.access} aria-labelledby="login-title" data-login-reveal="panel">
+        <LoginCard
+          googleOAuthEnabled={getAuthEnvironment().googleOAuth !== undefined}
+          initialError={resolveInitialError(params.error)}
+        />
       </section>
     </LoginEntrance>
   );
@@ -68,47 +70,18 @@ function resolveInitialError(error: string | undefined): LoginInitialError | nul
 
 function LoginHero(): ReactNode {
   return (
-    <section
-      data-login-hero
-      className="relative isolate flex min-h-[320px] flex-col justify-between overflow-hidden px-7 py-8 sm:min-h-[420px] sm:px-12 sm:py-11 lg:min-h-svh lg:px-16 lg:py-14"
-    >
-      <Image
-        alt="Estudantes conversam e estudam juntos em uma biblioteca"
-        data-login-photo
-        className="-z-20 object-cover object-center"
-        fill
-        priority
-        quality={90}
-        sizes="(min-width: 1024px) max(55vw, 163vh), max(100vw, 685px)"
-        src="/brand/login-students.jpg"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-gradient-to-b from-marquee/75 via-marquee/45 to-marquee/95"
-      />
-      <BrandSignature entry />
-      <div className="max-w-xl">
-        <p
-          data-login-reveal="eyebrow"
-          className="mb-5 text-caption font-semibold text-marquee-accent"
-        >
-          Educação em movimento
-        </p>
-        <h1 className="text-hero font-bold leading-tight">
-          <span data-login-reveal="line-one" className="block">
-            Mais tempo para
-          </span>
-          <span data-login-reveal="line-two" className="block whitespace-nowrap">
-            o que transforma.
-          </span>
-        </h1>
-        <p
-          data-login-reveal="description"
-          className="mt-5 max-w-[37ch] text-body leading-relaxed text-marquee-foreground/85"
-        >
-          Uma gestão mais clara para quem faz a aprendizagem acontecer todos os dias.
-        </p>
-      </div>
+    <section data-login-hero className={styles.hero}>
+      <h1 className={styles.headline} data-login-caption>
+        <span className={styles.line}>
+          <span data-login-reveal="line-one">Mais tempo para</span>
+        </span>
+        <span className={styles.line}>
+          <span data-login-reveal="line-two">o que transforma.</span>
+        </span>
+      </h1>
+      <p data-login-reveal="description" className={styles.description}>
+        Uma gestão mais clara para quem faz a aprendizagem acontecer todos os dias.
+      </p>
     </section>
   );
 }

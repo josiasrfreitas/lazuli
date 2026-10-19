@@ -29,6 +29,7 @@ type Props = {
   mode: MembershipMode;
   source?: { id: string; name: string } | undefined;
   classId: string;
+  classLabel?: string | undefined;
   scheduleType: "REGULAR" | "PERSONALIZED";
   open: boolean;
   onOpenChange: (value: boolean) => void;
@@ -124,7 +125,14 @@ function useMembershipBodyState({
   return { popup, target, state, options, submit, destination };
 }
 
-function MembershipBody({ mode, classId, scheduleType, onDone, source }: BodyProps): ReactElement {
+function MembershipBody({
+  mode,
+  classId,
+  classLabel,
+  scheduleType,
+  onDone,
+  source,
+}: BodyProps): ReactElement {
   const { popup, target, state, options, submit, destination } = useMembershipBodyState({
     mode,
     classId,
@@ -146,6 +154,7 @@ function MembershipBody({ mode, classId, scheduleType, onDone, source }: BodyPro
         mode={mode}
         scheduleType={target.scheduleType}
         contextual={Boolean(source)}
+        classLabel={classLabel}
       />
       <MembershipForm
         source={source}
@@ -192,10 +201,12 @@ function MembershipHeader({
   mode,
   scheduleType,
   contextual,
+  classLabel,
 }: {
   mode: MembershipMode;
   scheduleType: Props["scheduleType"];
   contextual: boolean;
+  classLabel?: string | undefined;
 }): ReactElement {
   const description = contextual
     ? "Escolha a turma de destino e a data de retorno. O histórico da pausa será preservado."
@@ -204,6 +215,9 @@ function MembershipHeader({
     <DialogHeader>
       <DialogTitle>{mode === "ENTRY" ? "Matricular aluno" : "Retomar matrícula"}</DialogTitle>
       <DialogDescription>
+        {mode === "ENTRY" && classLabel && (
+          <span className="mb-2 block font-medium text-heading">Turma {classLabel}</span>
+        )}
         {description}
         {scheduleType === "PERSONALIZED" && " Informe também o estágio individual."}
       </DialogDescription>
@@ -214,6 +228,7 @@ function MembershipHeader({
 export function MembershipDialog({
   mode,
   classId,
+  classLabel,
   scheduleType,
   open,
   onOpenChange,
@@ -228,6 +243,7 @@ export function MembershipDialog({
             source={source}
             mode={mode}
             classId={classId}
+            classLabel={classLabel}
             scheduleType={scheduleType}
             onDone={() => onOpenChange(false)}
           />

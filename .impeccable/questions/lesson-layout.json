@@ -1,0 +1,45 @@
+{
+  "title": "Página da aula",
+  "question": "Consulta de presença e conteúdo; PPT somente presença. Qual composição funciona melhor?",
+  "options": [
+    {
+      "id": "aula-painel",
+      "label": "Presença e conteúdo lado a lado",
+      "kicker": "THE ROLL",
+      "thesis": "Lista de presença à esquerda; conteúdo coberto à direita. PPT ocupa a largura com presença.",
+      "risk": "Comparação imediata; em telas menores os blocos se empilham.",
+      "palette": ["#142340", "#202630", "#d1b56b"],
+      "materials": ["Componentes e tipografia do Lazuli"],
+      "viewport": "Lista de presença à esquerda; conteúdo coberto à direita. PPT ocupa a largura com presença.",
+      "html": ".impeccable/mocks/decision/aula-painel.html",
+      "comp": ".impeccable/mocks/decision/aula-painel.png"
+    },
+    {
+      "id": "aula-relato",
+      "label": "Conteúdo em destaque",
+      "kicker": "",
+      "thesis": "Conteúdo coberto ocupa a área principal; presença em uma coluna lateral.",
+      "risk": "O relato ganha destaque, mas nomes longos têm menos espaço.",
+      "palette": ["#142340", "#202630", "#d1b56b"],
+      "materials": ["Componentes e tipografia do Lazuli"],
+      "viewport": "Conteúdo coberto ocupa a área principal; presença em uma coluna lateral.",
+      "html": ".impeccable/mocks/decision/aula-relato.html",
+      "comp": ".impeccable/mocks/decision/aula-relato.png"
+    },
+    {
+      "id": "aula-resumo",
+      "label": "Resumo do encontro",
+      "kicker": "",
+      "thesis": "Conteúdo primeiro, faixa de presença abaixo e lista expansível de alunos.",
+      "risk": "Mais compacto; consultar um aluno exige expandir a lista.",
+      "palette": ["#142340", "#202630", "#d1b56b"],
+      "materials": ["Componentes e tipografia do Lazuli"],
+      "viewport": "Conteúdo primeiro, faixa de presença abaixo e lista expansível de alunos.",
+      "html": ".impeccable/mocks/decision/aula-resumo.html",
+      "comp": ".impeccable/mocks/decision/aula-resumo.png"
+    }
+  ],
+  "reroll": true,
+  "steer": true,
+  "buildPath": { "value": "code", "toggle": true }
+}

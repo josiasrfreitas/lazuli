@@ -1,3 +1,5 @@
+import { searchIds } from "../search.js";
+import { teacherIdentityWhere } from "./identity.js";
 import type { Prisma } from "@lazuli/db";
 import { responsibleTeacherId, saoPauloDateOnly } from "@lazuli/domain";
 import type { teacherListInputSchema, z } from "@lazuli/validators";
@@ -56,7 +58,7 @@ export const teacherSelect = {
 
 export async function readTeacher(database: Database, id: string): Promise<ReadTeacherResult> {
   const teacher = await database.user.findFirst({
-    where: { id, role: "TEACHER", deletedAt: null },
+    where: { id, AND: [teacherIdentityWhere], deletedAt: null },
     select: teacherSelect,
   });
   if (!teacher) throw notFound("Professor não encontrado.");
@@ -70,6 +72,7 @@ export async function listTeachers({
 }: ListTeachersInput): Promise<ListTeachersResult> {
   const today = new Date(saoPauloDateOnly(now));
   const where = teacherListWhere(input, today);
+  where.id = await searchIds(database, "User", input.search);
   const total = await database.user.count({ where });
   const pageCount = Math.max(1, Math.ceil(total / input.pageSize));
   const page = Math.min(input.page, pageCount);
@@ -130,9 +133,9 @@ export async function teacherOptions({
 }: TeacherOptionsInput): Promise<TeacherOptionsResult> {
   return database.user.findMany({
     where: {
-      role: "TEACHER",
+      AND: [teacherIdentityWhere],
       deletedAt: null,
-      name: { contains: search, mode: "insensitive" },
+      id: await searchIds(database, "User", search),
       OR: [
         { teacherProfile: null },
         { teacherProfile: { departureDate: null } },
@@ -252,10 +255,9 @@ function teacherListWhere(
     ],
   };
   const where: Prisma.UserWhereInput = {
-    role: "TEACHER",
     deletedAt: null,
-    name: { contains: input.search, mode: "insensitive" },
     AND: [
+      teacherIdentityWhere,
       ...(input.active === "active" ? [eligible] : []),
       ...(input.active === "departed"
         ? [{ teacherProfile: { departureDate: { lte: today } } }]

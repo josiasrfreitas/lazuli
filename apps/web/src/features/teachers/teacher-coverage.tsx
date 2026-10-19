@@ -22,7 +22,7 @@ import { dateLabel } from "./format";
 import { formatFormat } from "../classes/labels";
 import { MeetingDialog, type Meeting } from "./meeting-dialog";
 
-const COVERAGE_PAGE_SIZE = 10;
+const COVERAGE_PAGE_SIZE = 25;
 type CoverageData = RouterOutputs["teachers"]["uncovered"];
 type CoverageProps = { back: string };
 

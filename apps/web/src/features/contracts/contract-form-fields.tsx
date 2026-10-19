@@ -1,4 +1,5 @@
 "use client";
+import { ContractMaterialSection } from "./contract-material-section";
 
 import type { ReactElement } from "react";
 import { Button, CurrencyInput, Field, FieldError, FormRow, Label } from "@lazuli/ui";
@@ -232,6 +233,7 @@ export function ContractFormFields(props: FormProps): ReactElement {
     <>
       <PartiesSection {...props} />
       <ConditionsSection {...props} />
+      <ContractMaterialSection {...props} />
       <PaymentSection {...props} />
     </>
   );

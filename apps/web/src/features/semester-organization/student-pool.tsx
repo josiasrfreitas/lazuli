@@ -154,7 +154,7 @@ export function StudentPool({
         errorTitle="Não foi possível carregar os alunos"
         pagination={{
           page,
-          pageSize: 20,
+          pageSize: 25,
           pageCount: Math.max(1, Math.ceil((query.data?.total ?? 0) / 20)),
           totalItems: query.data?.total ?? 0,
           onPageChange: setPage,

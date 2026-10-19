@@ -1,4 +1,5 @@
 "use client";
+import { ArrowRight, CalendarCheck, CalendarClock, CheckCircle2, X } from "lucide-react";
 import { useState } from "react";
 import {
   appointmentScheduleSchema,
@@ -7,24 +8,23 @@ import {
   type MakeupCoverageInput,
 } from "@lazuli/validators";
 import {
-  Alert,
   Field,
   FieldError,
-  FormSection,
+  InlineSkeleton,
   Label,
   SearchSelect,
   SegmentedControl,
   SegmentedControlItem,
   type SearchSelectOption,
 } from "@lazuli/ui";
+import styles from "./schedule-dialog.module.css";
 import { trpc } from "~/lib/trpc";
 import { parseDateBR } from "~/lib/masks";
 import { formatDateOnlyBR } from "~/lib/format";
-import { SelectControl } from "~/features/classes/form-controls";
-import { TeacherPicker } from "~/features/teachers/teacher-picker";
 import { TaskDialog, NarrativeField, useValidation } from "~/features/shared/task-form";
 import { RecordState } from "~/features/class-records/shared";
-import { PurposeField, MeetingDateField, MeetingTimeFields } from "./form-fields";
+import { PurposeField } from "./form-fields";
+import { ClassMeetingStep, type ScheduleSelection } from "./class-meeting-step";
 import { CoverageFields } from "./coverage-fields";
 import { purposes, today, useAppointmentRefresh, type Absence } from "./shared";
 
@@ -48,21 +48,26 @@ export function ScheduleAppointmentDialog({
         : null,
   );
   const [search, setSearch] = useState("");
+  const [step, setStep] = useState<"details" | "schedule">("details");
   const [purpose, setPurpose] = useState<AppointmentSnapshot["purpose"]>(
     previous?.purpose ?? "MAKEUP",
   );
   const [kind, setKind] = useState<"CLASS" | "INDEPENDENT">(
     previous?.targetClassSessionId ? "CLASS" : "INDEPENDENT",
   );
-  const [date, setDate] = useState(formatDateOnlyBR(today()));
-  const [sessionId, setSessionId] = useState("");
-  const [enrollmentId, setEnrollmentId] = useState(previous?.enrollmentId ?? "");
-  const [teacher, setTeacher] = useState<SearchSelectOption | null>(
-    previous?.teacher ? { id: previous.teacher.id, label: previous.teacher.name } : null,
+  const [date, setDate] = useState(formatDateOnlyBR(previous?.date ?? today()));
+  const [sessionId, setSessionId] = useState(previous?.targetClassSessionId ?? "");
+  const [teacherSelection, setTeacher] = useState<SearchSelectOption | null | undefined>(
+    previous
+      ? previous.teacher
+        ? { id: previous.teacher.id, label: previous.teacher.name }
+        : null
+      : undefined,
   );
   const [startTime, setStart] = useState(previous?.startTime ?? "");
   const [endTime, setEnd] = useState(previous?.endTime ?? "");
   const [format, setFormat] = useState<"IN_PERSON" | "ONLINE">(previous?.format ?? "IN_PERSON");
+  const [selectionReady, setSelectionReady] = useState(false);
   const [planned, setPlanned] = useState(previous?.plannedContent ?? "");
   const [notes, setNotes] = useState(previous?.notes ?? "");
   const [reason, setReason] = useState("");
@@ -83,11 +88,14 @@ export function ScheduleAppointmentDialog({
     { studentId: student?.id ?? "", ...(previous ? { excludeAppointmentId: previous.id } : {}) },
     { enabled: Boolean(student), retry: false },
   );
+  const defaultTeacher = options.data?.defaultTeacher;
+  const teacher =
+    teacherSelection !== undefined
+      ? teacherSelection
+      : defaultTeacher
+        ? { id: defaultTeacher.id, label: defaultTeacher.name }
+        : null;
   const parsedDate = parseDateBR(date);
-  const destinations = trpc.appointments.destinations.useQuery(
-    { date: parsedDate ?? today() },
-    { enabled: kind === "CLASS" && Boolean(parsedDate), retry: false },
-  );
   const refresh = useAppointmentRefresh();
   const saved = async () => {
     await refresh();
@@ -97,11 +105,15 @@ export function ScheduleAppointmentDialog({
   const reschedule = trpc.appointments.reschedule.useMutation({ onSuccess: saved });
   const pending = schedule.isPending || reschedule.isPending;
   function submit() {
-    const values = validation.validate(appointmentScheduleSchema, {
+    if (pending || unavailable) return;
+    const draft = {
       id,
       studentId: student?.id ?? "",
       purpose,
-      enrollmentId: enrollmentId || null,
+      enrollmentId:
+        purpose === "PPT_COMPLEMENT"
+          ? (activePptEnrollment?.id ?? null)
+          : (previous?.enrollmentId ?? null),
       plannedContent: planned,
       notes,
       coverages: purpose === "MAKEUP" ? coverages : [],
@@ -116,8 +128,27 @@ export function ScheduleAppointmentDialog({
               endTime,
               format,
             },
-    });
-    if (!values || pending) return;
+    };
+    if (step === "details") {
+      if (
+        !validation.validateFields(appointmentScheduleSchema, {
+          values: draft,
+          fields: ["studentId", "purpose", "enrollmentId", "plannedContent", "notes", "coverages"],
+        })
+      )
+        return;
+      if (
+        previous &&
+        !validation.validate(appointmentRescheduleSchema.pick({ reason: true }), { reason })
+      )
+        return;
+      setSelectionReady(false);
+      setStep("schedule");
+      return;
+    }
+    if (enrollmentDateError || !selectionReady) return;
+    const values = validation.validate(appointmentScheduleSchema, draft);
+    if (!values) return;
     if (previous) {
       const replacement = validation.validate(appointmentRescheduleSchema, {
         id: previous.id,
@@ -128,250 +159,353 @@ export function ScheduleAppointmentDialog({
       if (replacement) reschedule.mutate(replacement);
     } else schedule.mutate(values);
   }
-  const availableEnrollments =
-    options.data?.enrollments.filter(
-      (row) =>
-        purpose !== "PPT_COMPLEMENT" ||
-        (row.scheduleType === "PERSONALIZED" &&
-          (!parsedDate ||
-            (row.entryDate <= parsedDate && (!row.exitDate || row.exitDate > parsedDate)))),
-    ) ?? [];
+  const currentDate = today();
+  const activePptEnrollment = options.data?.enrollments.find(
+    (row) =>
+      row.scheduleType === "PERSONALIZED" &&
+      row.entryDate <= currentDate &&
+      (!row.exitDate || row.exitDate > currentDate),
+  );
+  const hasMakeupSources = Boolean(
+    options.data?.absences.some(
+      (row) => row.available > 0 || coverages.some((coverage) => coverage.attendanceId === row.id),
+    ),
+  );
+  const noMakeupSources =
+    purpose === "MAKEUP" && Boolean(student) && options.isSuccess && !hasMakeupSources;
+  const noPptEnrollment =
+    purpose === "PPT_COMPLEMENT" && Boolean(student) && options.isSuccess && !activePptEnrollment;
+  const noCurrentEnrollment = options.isSuccess && !options.data.hasCurrentEnrollment;
+  const unavailable =
+    Boolean(student) &&
+    (options.isPending ||
+      options.isError ||
+      noCurrentEnrollment ||
+      noMakeupSources ||
+      noPptEnrollment);
+  const classStep = step === "schedule";
+  const enrollmentDateError =
+    classStep &&
+    purpose === "PPT_COMPLEMENT" &&
+    activePptEnrollment &&
+    parsedDate &&
+    (activePptEnrollment.entryDate > parsedDate ||
+      (activePptEnrollment.exitDate && activePptEnrollment.exitDate <= parsedDate))
+      ? "A matrícula PPT atual não está vigente neste dia. Escolha outra data."
+      : undefined;
   return (
     <TaskDialog
+      size={classStep ? "extra-wide" : "wide"}
+      contentClassName={classStep ? `${styles.dialog} ${styles.calendarDialog}` : styles.dialog}
+      compactHeader={classStep}
+      bodyClassName={classStep ? styles.calendarBody : undefined}
       title={previous ? "Reagendar atendimento" : "Agendar atendimento"}
-      description={student?.label ?? "Um encontro com propósito e acompanhamento."}
+      description={
+        classStep
+          ? (student?.label ?? "Selecione um horário")
+          : `${student?.label ?? "Selecione o aluno para agendar."} · Etapa 1 de 2: atendimento`
+      }
       formId="appointment-schedule"
       firstField={
         previous
-          ? "appointment-date"
+          ? "appointment-kind"
           : initialStudent
             ? "appointment-purpose"
             : "appointment-student"
       }
       pending={pending}
       onClose={onClose}
-      submitLabel={previous ? "Confirmar reagendamento" : "Agendar atendimento"}
+      onBack={
+        classStep
+          ? () => {
+              setStep("details");
+              requestAnimationFrame(() => document.getElementById("appointment-kind")?.focus());
+            }
+          : undefined
+      }
+      actionSize="sm"
+      cancelIcon={<X aria-hidden="true" />}
+      submitIcon={
+        !classStep ? <ArrowRight aria-hidden="true" /> : <CalendarCheck aria-hidden="true" />
+      }
+      submitDisabled={
+        unavailable || (classStep && (!selectionReady || Boolean(enrollmentDateError)))
+      }
+      submitLabel={
+        !classStep
+          ? "Selecionar horário"
+          : previous
+            ? "Confirmar reagendamento"
+            : "Agendar atendimento"
+      }
       error={schedule.error?.message ?? reschedule.error?.message}
       bodyRef={validation.body}
     >
-      <form
-        id="appointment-schedule"
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault();
-          submit();
-        }}
-        className="grid gap-5 pt-4"
-      >
-        {!initialStudent && !previous && (
-          <Field>
-            <Label>Aluno</Label>
-            <SearchSelect
-              name="appointment-student"
-              placeholder="Buscar pelo nome"
-              query={search}
-              value={student}
-              options={(results.data ?? []).map((row) => ({ id: row.id, label: row.fullName }))}
-              onQueryChange={setSearch}
-              onSelect={(next) => {
-                setStudent(next);
-                validation.clear("studentId");
-                setCoverages([]);
-                setEnrollmentId("");
+      {(actions) => (
+        <form
+          id="appointment-schedule"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            submit();
+          }}
+          className={classStep ? styles.scheduleLayout : styles.layout}
+        >
+          {classStep ? (
+            <ClassMeetingStep
+              actions={actions}
+              durationMinutes={
+                purpose === "MAKEUP" ? coverages.reduce((sum, row) => sum + row.minutes, 0) : 60
+              }
+              kind={kind}
+              studentId={student?.id ?? ""}
+              previousId={previous?.id}
+              teacher={teacher}
+              onTeacherChange={(value) => {
+                setTeacher(value);
+                setSessionId("");
+                setStart("");
+                setEnd("");
+                validation.clear("meeting");
               }}
-              onClear={() => {
-                setStudent(null);
-                setCoverages([]);
-                setEnrollmentId("");
+              date={parsedDate ?? today()}
+              startTime={startTime}
+              endTime={endTime}
+              format={format}
+              sessionId={sessionId}
+              onDateChange={(value) => {
+                setSelectionReady(false);
+                setDate(formatDateOnlyBR(value));
+                setSessionId("");
+                validation.clear("meeting");
               }}
-              loading={results.isFetching}
-              invalid={Boolean(validation.errors.studentId)}
+              onSelect={(value: ScheduleSelection) => {
+                setDate(formatDateOnlyBR(value.date));
+                setStart(value.startTime);
+                setEnd(value.endTime);
+                setSessionId(value.sessionId ?? "");
+                if (value.format) setFormat(value.format);
+                validation.clear("meeting");
+              }}
+              onStartChange={(value) => {
+                setSelectionReady(false);
+                setStart(value);
+              }}
+              onEndChange={(value) => {
+                setSelectionReady(false);
+                setEnd(value);
+              }}
+              onFormatChange={setFormat}
+              onReadyChange={setSelectionReady}
+              error={enrollmentDateError ?? validation.errors.meeting}
             />
-            <FieldError match={Boolean(validation.errors.studentId)}>
-              {validation.errors.studentId}
-            </FieldError>
-          </Field>
-        )}
-        {previous ? (
-          <p className="text-caption text-muted-foreground">
-            {purposes[purpose]} · O agendamento anterior será preservado como reagendado.
-          </p>
-        ) : (
-          <PurposeField
-            value={purpose}
-            onChange={(value) => {
-              setPurpose(value);
-              setEnrollmentId("");
-              validation.clear("purpose");
-              validation.clear("coverages");
-            }}
-          />
-        )}
-        {student && (
-          <RecordState
-            pending={options.isPending}
-            error={options.error}
-            retry={() => void options.refetch()}
-          />
-        )}
-        {purpose === "MAKEUP" && options.data && (
-          <CoverageFields
-            sources={options.data.absences}
-            value={coverages}
-            onChange={(value) => {
-              setCoverages(value);
-              validation.clear("coverages");
-            }}
-            error={validation.errors.coverages}
-          />
-        )}
-        {purpose === "PPT_COMPLEMENT" && (
-          <SelectControl
-            name="enrollmentId"
-            label="Matrícula PPT"
-            value={enrollmentId}
-            onChange={(value) => {
-              setEnrollmentId(value);
-              validation.clear("enrollmentId");
-            }}
-            choices={availableEnrollments.map((row) => ({ value: row.id, label: row.className }))}
-            error={validation.errors.enrollmentId}
-          />
-        )}
-        <FormSection title="Encontro" className="border-t border-border pt-4">
-          <SegmentedControl
-            size="sm"
-            aria-label="Local do atendimento"
-            value={kind}
-            onValueChange={(value) => {
-              if (value === "CLASS" || value === "INDEPENDENT") setKind(value);
-            }}
-          >
-            <SegmentedControlItem value="INDEPENDENT">Horário individual</SegmentedControlItem>
-            <SegmentedControlItem value="CLASS">Participação em turma</SegmentedControlItem>
-          </SegmentedControl>
-          <MeetingDateField
-            value={date}
-            onChange={(value) => {
-              setDate(value);
-              setSessionId("");
-              validation.clear("meeting");
-            }}
-            error={validation.errors["meeting.date"]}
-          />
-          {kind === "CLASS" ? (
-            <>
-              <RecordState
-                pending={destinations.isPending}
-                error={destinations.error}
-                retry={() => void destinations.refetch()}
-              />
-              <SelectControl
-                name="appointment-session"
-                label="Aula de destino"
-                value={sessionId}
-                onChange={(value) => {
-                  setSessionId(value);
-                  validation.clear("meeting");
-                }}
-                choices={(destinations.data ?? []).map((row) => ({
-                  value: row.id,
-                  label: `${row.startTime}–${row.endTime} · ${row.name} · ${row.teacher?.name ?? ""}`,
-                }))}
-                error={validation.errors.meeting}
-              />
-              {destinations.data?.length === 0 && (
-                <p className="text-caption text-muted-foreground">
-                  Nenhuma aula disponível nesta data. Escolha outra data ou um horário individual.
-                </p>
-              )}
-            </>
           ) : (
             <>
-              <TeacherPicker
-                date={parsedDate ?? today()}
-                value={teacher}
-                onChange={(value) => {
-                  setTeacher(value);
-                  validation.clear("meeting");
-                }}
-                error={validation.errors["meeting.teacherId"]}
-              />
-              <MeetingTimeFields
-                start={startTime}
-                end={endTime}
-                onStart={(value) => {
-                  setStart(value);
-                  validation.clear("meeting");
-                }}
-                onEnd={(value) => {
-                  setEnd(value);
-                  validation.clear("meeting");
-                }}
-                errors={validation.errors}
-              />
-              <SegmentedControl
-                size="sm"
-                aria-label="Formato"
-                value={format}
-                onValueChange={(value) => {
-                  if (value === "IN_PERSON" || value === "ONLINE") setFormat(value);
-                }}
-              >
-                <SegmentedControlItem value="IN_PERSON">Presencial</SegmentedControlItem>
-                <SegmentedControlItem value="ONLINE">Online</SegmentedControlItem>
-              </SegmentedControl>
+              <div className={styles.context}>
+                {!initialStudent && !previous && (
+                  <Field>
+                    <Label>Aluno</Label>
+                    <SearchSelect
+                      showSearchIcon
+                      name="appointment-student"
+                      placeholder="Buscar pelo nome"
+                      query={search}
+                      value={student}
+                      options={(results.data ?? []).map((row) => ({
+                        id: row.id,
+                        label: row.fullName,
+                      }))}
+                      onQueryChange={setSearch}
+                      onSelect={(next) => {
+                        setStudent(next);
+                        setTeacher(undefined);
+                        validation.clear("studentId");
+                        setCoverages([]);
+                      }}
+                      onClear={() => {
+                        setStudent(null);
+                        setTeacher(undefined);
+                        setCoverages([]);
+                      }}
+                      loading={results.isFetching}
+                      invalid={Boolean(validation.errors.studentId)}
+                    />
+                    <FieldError match={Boolean(validation.errors.studentId)}>
+                      {validation.errors.studentId}
+                    </FieldError>
+                  </Field>
+                )}
+                <div className={styles.choices}>
+                  {previous ? (
+                    <p className="text-caption text-muted-foreground">
+                      {purposes[purpose]} · O agendamento anterior será preservado como reagendado.
+                    </p>
+                  ) : (
+                    <PurposeField
+                      value={purpose}
+                      onChange={(value) => {
+                        setPurpose(value);
+                        validation.clear("purpose");
+                        validation.clear("coverages");
+                      }}
+                    />
+                  )}
+                  <div className={styles.choiceGroup}>
+                    <Field>
+                      <Label id="appointment-kind-label">
+                        <span className="inline-flex items-center gap-2">
+                          <CalendarClock className="size-4" aria-hidden="true" />
+                          Tipo de encontro
+                        </span>
+                      </Label>
+                      <SegmentedControl
+                        size="sm"
+                        wrap
+                        aria-labelledby="appointment-kind-label"
+                        value={kind}
+                        onValueChange={(value) => {
+                          if (value === "CLASS" || value === "INDEPENDENT") {
+                            setKind(value);
+                            setSessionId("");
+                            setStart("");
+                            setEnd("");
+                            setSelectionReady(false);
+                            validation.clear("meeting");
+                          }
+                        }}
+                      >
+                        <SegmentedControlItem id="appointment-kind" value="INDEPENDENT">
+                          Horário individual
+                        </SegmentedControlItem>
+                        <SegmentedControlItem value="CLASS">
+                          Participação em turma
+                        </SegmentedControlItem>
+                      </SegmentedControl>
+                    </Field>
+                  </div>
+                </div>
+                {student && (
+                  <RecordState
+                    pending={false}
+                    error={options.error}
+                    retry={() => void options.refetch()}
+                  />
+                )}
+              </div>
+              <div className={styles.details}>
+                {purpose === "MAKEUP" && (
+                  <div className={styles.coverage}>
+                    {noMakeupSources ? (
+                      <div className="flex items-start gap-3 text-caption" role="status">
+                        <CheckCircle2
+                          className="size-4 shrink-0 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                        <div className="grid gap-1">
+                          <p className="font-medium">Nenhuma falta com saldo para repor</p>
+                          <p className="text-muted-foreground">
+                            Escolha outra finalidade para este atendimento.
+                          </p>
+                        </div>
+                      </div>
+                    ) : student ? (
+                      <CoverageFields
+                        key={student.id}
+                        compact
+                        sources={options.data?.absences ?? []}
+                        loading={options.isPending}
+                        value={coverages}
+                        onChange={(value) => {
+                          setCoverages(value);
+                          validation.clear("coverages");
+                        }}
+                        error={validation.errors.coverages}
+                      />
+                    ) : (
+                      <p className="text-caption text-muted-foreground">
+                        Selecione o aluno para consultar as faltas disponíveis.
+                      </p>
+                    )}
+                  </div>
+                )}
+                {purpose === "PPT_COMPLEMENT" && student && options.isPending && (
+                  <div
+                    role="status"
+                    aria-label="Carregando matrícula PPT"
+                    className="flex items-center gap-2 text-caption text-muted-foreground"
+                  >
+                    <InlineSkeleton className="h-4 w-24" />
+                    Consultando matrícula ativa…
+                  </div>
+                )}
+                {noCurrentEnrollment && (
+                  <p role="status" className="text-sm text-muted-foreground">
+                    Este aluno está sem matrícula vigente. Organize a matrícula antes de agendar um
+                    atendimento.
+                  </p>
+                )}
+                {!noCurrentEnrollment && noPptEnrollment && (
+                  <p role="status" className="text-caption text-muted-foreground">
+                    O aluno não possui matrícula PPT ativa. Escolha outra finalidade.
+                  </p>
+                )}
+                {enrollmentDateError && (
+                  <p role="alert" className="text-caption text-destructive">
+                    {enrollmentDateError}
+                  </p>
+                )}
+
+                <div className={styles.notes}>
+                  <div
+                    className={styles.noteFields}
+                    data-reschedule={Boolean(previous) || undefined}
+                  >
+                    <NarrativeField
+                      rows={2}
+                      name="plannedContent"
+                      label="O que trabalhar · opcional"
+                      value={planned}
+                      onChange={(value) => {
+                        setPlanned(value);
+                        validation.clear("plannedContent");
+                      }}
+                      placeholder="Conteúdo, objetivo ou referência para o professor"
+                      error={validation.errors.plannedContent}
+                    />
+                    <NarrativeField
+                      rows={2}
+                      name="appointment-notes"
+                      label="Observação · opcional"
+                      value={notes}
+                      onChange={(value) => {
+                        setNotes(value);
+                        validation.clear("notes");
+                      }}
+                      placeholder="Combinados com o aluno ou responsável"
+                      error={validation.errors.notes}
+                    />
+                    {previous && (
+                      <NarrativeField
+                        rows={2}
+                        name="reschedule-reason"
+                        label="Motivo do reagendamento"
+                        value={reason}
+                        onChange={(value) => {
+                          setReason(value);
+                          validation.clear("reason");
+                        }}
+                        placeholder="O que mudou no combinado"
+                        error={validation.errors.reason}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
             </>
           )}
-          {validation.errors.meeting && (
-            <Alert variant="destructive">{validation.errors.meeting}</Alert>
-          )}
-        </FormSection>
-        <details
-          open={Boolean(validation.errors.plannedContent || validation.errors.notes) || undefined}
-        >
-          <summary className="cursor-pointer text-caption text-interactive">
-            Orientações e observações · opcional
-          </summary>
-          <div className="mt-3 grid gap-3">
-            <NarrativeField
-              name="plannedContent"
-              label="O que trabalhar · opcional"
-              value={planned}
-              onChange={(value) => {
-                setPlanned(value);
-                validation.clear("plannedContent");
-              }}
-              placeholder="Conteúdo, objetivo ou referência para o professor"
-              error={validation.errors.plannedContent}
-            />
-            <NarrativeField
-              name="appointment-notes"
-              label="Observação · opcional"
-              value={notes}
-              onChange={(value) => {
-                setNotes(value);
-                validation.clear("notes");
-              }}
-              placeholder="Combinados com o aluno ou responsável"
-              error={validation.errors.notes}
-            />
-          </div>
-        </details>
-        {previous && (
-          <NarrativeField
-            name="reschedule-reason"
-            label="Motivo do reagendamento"
-            value={reason}
-            onChange={(value) => {
-              setReason(value);
-              validation.clear("reason");
-            }}
-            placeholder="O que mudou no combinado"
-            error={validation.errors.reason}
-          />
-        )}
-      </form>
+          {!classStep && <div className="flex flex-wrap justify-end gap-3">{actions}</div>}
+        </form>
+      )}
     </TaskDialog>
   );
 }

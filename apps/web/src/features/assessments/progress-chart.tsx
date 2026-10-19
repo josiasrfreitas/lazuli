@@ -111,12 +111,6 @@ export function AcademicProgressChart({ data }: { data: Assessment }): ReactElem
           ))}
         </LineChart>
       </ResponsiveContainer>
-      <p className="text-center text-caption text-muted-foreground">
-        {fullScale || (cropped[0] === 0 && cropped[1] === MAX)
-          ? "Escala de 0 a 100"
-          : `Recorte de ${cropped[0]} a ${cropped[1]}`}{" "}
-        · Referência de aprovação: 60.
-      </p>
     </div>
   );
 }

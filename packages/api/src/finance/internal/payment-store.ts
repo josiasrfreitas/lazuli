@@ -99,7 +99,7 @@ export async function persistPayment(input: {
 }
 
 export async function lockInstallments(
-  database: FinanceDatabase,
+  database: Pick<FinanceDatabase, "$queryRaw">,
   installmentIds: string[],
 ): Promise<void> {
   await database.$queryRaw`

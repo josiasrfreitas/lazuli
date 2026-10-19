@@ -9,7 +9,7 @@ export const STANDARD_PAGE_SIZE_OPTIONS = [
   LARGE_PAGE_SIZE,
 ] as const;
 const FIRST_PAGE = 1;
-const FIXED_PAGE_SIZE = STANDARD_PAGE_SIZE_OPTIONS[0];
+const FIXED_PAGE_SIZE = MEDIUM_PAGE_SIZE;
 
 type PaginationResultFields = {
   page: z.ZodNumber;
@@ -61,7 +61,7 @@ export function paginationResultFields(
 
 export const studentPaginationPolicy = definePaginationPolicy({
   pageSizeOptions: STANDARD_PAGE_SIZE_OPTIONS,
-  defaultPageSize: 10,
+  defaultPageSize: 25,
 });
 
 export const financeInstallmentsPaginationPolicy = definePaginationPolicy({

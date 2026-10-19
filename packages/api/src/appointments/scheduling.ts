@@ -1,3 +1,4 @@
+import { requireCurrentEnrollment } from "../enrollment/require-current.js";
 import { intervalsOverlap, sessionEndInstant } from "@lazuli/domain";
 import type { AppointmentScheduleInput } from "@lazuli/validators";
 import {
@@ -21,6 +22,7 @@ export async function resolveAppointmentMeeting(
     where: { id: input.studentId, deletedAt: null },
   });
   if (!student) throw notFound("Aluno não encontrado.");
+  await requireCurrentEnrollment(context, input.studentId);
   const meeting = input.meeting;
   const session =
     meeting.kind === "CLASS"
@@ -68,15 +70,24 @@ export async function resolveAppointmentMeeting(
   });
   if (closed) throw badRequest(`A escola está fechada nesta data: ${closed.reason}.`);
   await assertTeacherEligible({ database, teacherId: values.teacherId, date });
-  if (!session)
-    await assertNoTeacherConflict({
-      database,
-      teacherId: values.teacherId,
-      from: date,
-      through: date,
-      slots: [],
-      candidateMeetings: [candidate],
-    });
+  await assertNoTeacherConflict({
+    database,
+    teacherId: values.teacherId,
+    from: date,
+    through: date,
+    slots: [],
+    candidateMeetings: [candidate],
+    ...(session
+      ? {
+          excludeMeeting: {
+            classId: session.classId,
+            slotId: session.scheduleSlotId,
+            sessionId: session.id,
+            date,
+          },
+        }
+      : {}),
+  });
   if (input.enrollmentId) {
     const enrollment = await database.enrollment.findFirst({
       where: { id: input.enrollmentId, studentId: input.studentId, deletedAt: null },
@@ -136,5 +147,5 @@ async function assertStudentAvailable(
       }),
     )
   )
-    throw badRequest("O aluno já tem outro atendimento ou aula de entrada neste horário.");
+    throw badRequest("O aluno já tem outro atendimento ou aula experimental neste horário.");
 }

@@ -14,15 +14,28 @@ export function ClassRecordEditor({
   data,
   onClose,
   declarations,
+  externalSubmit = false,
+  onStateChange,
 }: {
   data: ClassRecord;
   onClose: () => void;
   declarations: AttendanceStatus["declarations"];
+  externalSubmit?: boolean;
+  onStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
 }): ReactElement {
   const [opened] = useState(data);
   const regular = opened.session.scheduleType === "REGULAR";
   const [rows, setRows] = useState(
-    opened.snapshot.entries.map((row) => ({ ...row, draft: draftContent(row.content) })),
+    opened.snapshot.entries.map((row) => ({
+      ...row,
+      status:
+        opened.version || opened.attendanceOnly
+          ? row.status
+          : declarations.some((item) => item.enrollmentId === row.enrollmentId)
+            ? ("PRESENT" as const)
+            : ("PENDING" as const),
+      draft: draftContent(row.content),
+    })),
   );
   const [selected, setSelected] = useState(
     rows.find((row) => row.status === "PRESENT")?.enrollmentId ?? rows[0]?.enrollmentId,
@@ -30,6 +43,8 @@ export function ClassRecordEditor({
   const [shared, setShared] = useState(draftContent(opened.snapshot.sharedContent));
   const [note, setNote] = useState(opened.snapshot.note ?? "");
   const [reason, setReason] = useState("");
+  const [initialDraft] = useState(() => JSON.stringify({ rows, shared, note, reason }));
+  const dirty = JSON.stringify({ rows, shared, note, reason }) !== initialDraft;
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [focusField, setFocusField] = useState<{ id: string } | null>(null);
   const [review, setReview] = useState<ClassRecordSave | null>(null);
@@ -42,11 +57,23 @@ export function ClassRecordEditor({
         utils.classes.invalidate(),
         utils.activity.invalidate(),
         utils.studentAttendance.invalidate(),
+        utils.teacherWorkspace.invalidate(),
       ]);
       setReview(null);
       onClose();
     },
   });
+  useEffect(() => {
+    onStateChange?.({ dirty, pending: save.isPending });
+  }, [dirty, save.isPending, onStateChange]);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
   useEffect(() => {
     document.getElementById("presence-first")?.focus();
   }, []);
@@ -79,6 +106,8 @@ export function ClassRecordEditor({
     };
     const parsed = classRecordSaveSchema.safeParse(value);
     const nextErrors: Record<string, string> = {};
+    if (rows.some((row) => row.status === "PENDING"))
+      nextErrors.presence = "Revise cada aluno: marque presente ou falta antes de confirmar.";
     if (!parsed.success)
       for (const issue of parsed.error.issues) {
         const key =
@@ -122,12 +151,20 @@ export function ClassRecordEditor({
             realizado.
           </Alert>
         )}
+        {!opened.version && !opened.attendanceOnly && (
+          <Alert>
+            Confira as declarações e marque a presença de cada aluno. Alunos sem resposta não serão
+            considerados presentes automaticamente.
+          </Alert>
+        )}
+        {errors.presence && <Alert variant="destructive">{errors.presence}</Alert>}
         <div className="grid min-w-0 items-start gap-6 lg:grid-cols-5">
           <section className="grid min-w-0 gap-3 lg:col-span-2" aria-label="Chamada da aula">
             <div className="flex items-baseline justify-between gap-2">
               <h2 className="text-sm font-semibold">Chamada</h2>
               <span className="text-caption text-muted-foreground">
-                {attendanceLabel(present, rows.length)}
+                {present} {present === 1 ? "presente" : "presentes"} ·{" "}
+                {rows.filter((row) => row.status === "PENDING").length} por revisar
               </span>
             </div>
             <div className="divide-y divide-border rounded-lg border border-border bg-card">
@@ -191,6 +228,9 @@ export function ClassRecordEditor({
                       Falta
                     </SegmentedControlItem>
                   </SegmentedControl>
+                  {row.status === "PENDING" && (
+                    <p className="text-caption text-warning">Presença por revisar</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -216,7 +256,9 @@ export function ClassRecordEditor({
                 <ContentFields prefix="shared" value={shared} change={setShared} errors={errors} />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Sem presentes nesta aula. Registre abaixo a observação do encontro.
+                  {rows.some((row) => row.status === "PENDING")
+                    ? "Revise a chamada para registrar o conteúdo dos alunos presentes."
+                    : "Sem presentes nesta aula. Registre abaixo a observação do encontro."}
                 </p>
               )
             ) : active?.status === "PRESENT" ? (
@@ -234,8 +276,9 @@ export function ClassRecordEditor({
               />
             ) : (
               <p className="text-sm text-muted-foreground">
-                Este aluno está marcado como falta. A baixa não incluirá conteúdo realizado para
-                ele.
+                {active?.status === "PENDING"
+                  ? "Marque a presença deste aluno antes de preencher seu conteúdo."
+                  : "Este aluno está marcado como falta. A baixa não incluirá conteúdo realizado para ele."}
               </p>
             )}
             <PlannedReference
@@ -271,16 +314,18 @@ export function ClassRecordEditor({
               ? "A versão anterior ficará preservada no histórico."
               : "Confira a chamada e o conteúdo antes de confirmar a baixa."}
           </p>
-          <div className="flex items-center gap-2">
-            {opened.version > 0 && (
-              <Button variant="secondary" type="button" onClick={onClose}>
-                Cancelar correção
+          {!externalSubmit && (
+            <div className="flex items-center gap-2">
+              {opened.version > 0 && (
+                <Button variant="secondary" type="button" onClick={onClose}>
+                  Cancelar correção
+                </Button>
+              )}
+              <Button type="submit">
+                {opened.version ? "Conferir correção" : "Conferir e dar baixa"}
               </Button>
-            )}
-            <Button type="submit">
-              {opened.version ? "Conferir correção" : "Conferir e dar baixa"}
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
       </form>
       {review && (
@@ -308,7 +353,9 @@ export function ClassRecordEditor({
                   ? "A aula será registrada sem presentes, com a observação informada."
                   : regular
                     ? "O relato compartilhado será salvo junto da chamada."
-                    : `${present} relatos individuais serão salvos junto da chamada.`}
+                    : present === 1
+                      ? "1 relato individual será salvo junto da chamada."
+                      : `${present} relatos individuais serão salvos junto da chamada.`}
               </p>
               {rows.some((row) => row.status === "ABSENT") && (
                 <p className="text-caption text-muted-foreground">

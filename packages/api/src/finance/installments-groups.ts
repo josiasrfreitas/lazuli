@@ -30,6 +30,7 @@ export function toPublicRow(
     payer: { id: row.payerId, name: row.payerName },
     beneficiaries: beneficiaries.byOrder.get(row.orderId) ?? [],
     dueDate: row.dueDate,
+    suspendedUntil: row.suspendedUntil,
     originalAmountCents: row.originalAmountCents,
     expectedAmountCents: row.expectedAmountCents,
     paidAmountCents: row.paidAmountCents,

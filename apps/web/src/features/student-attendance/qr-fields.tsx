@@ -23,7 +23,7 @@ export function QrWindowForm({
         submit();
       }}
     >
-      <Field>
+      {format === "ONLINE" ? <Field>
         <Label>Receber envios por</Label>
         <SegmentedControl
           value={String(minutes)}
@@ -39,14 +39,14 @@ export function QrWindowForm({
             </SegmentedControlItem>
           ))}
         </SegmentedControl>
-      </Field>
+      </Field> : <p className="text-sm font-medium">Cada QR presencial recebe envios por 5 minutos.</p>}
       <p className="text-caption text-muted-foreground">
         O recebimento termina, no máximo, no fim da aula.
         {active ? " Gerar outro link encerra o anterior e preserva os envios já recebidos." : ""}
       </p>
       {format === "IN_PERSON" && (
         <p className="text-caption text-muted-foreground">
-          Se você permitir, sua localização será a referência para conferir a distância dos envios.
+          O aluno precisa permitir a localização e estar dentro da área da escola. Quem não conseguir pode entrar na chamada manual.
         </p>
       )}
     </form>

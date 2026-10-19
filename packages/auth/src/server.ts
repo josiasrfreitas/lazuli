@@ -1,5 +1,6 @@
 import type { AuthInstance } from "./auth.js";
-import { resolveStaffIdentity, type StaffIdentity } from "./staff-access.js";
+import { resolveStaffIdentity, staffRoleFromHeaders, type StaffIdentity } from "./staff-access.js";
+export { STAFF_ROLE_COOKIE } from "./staff-access.js";
 
 export type { StaffIdentity, StaffRole } from "./staff-access.js";
 
@@ -48,7 +49,9 @@ export async function getStaffIdentity(input: { headers: Headers }): Promise<Sta
   return resolveStaffIdentity(
     await db.user.findUnique({
       where: { email: session.user.email },
-      include: { teacherProfile: { select: { departureDate: true } } },
+      include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
     }),
+    new Date(),
+    staffRoleFromHeaders(input.headers),
   );
 }

@@ -1,4 +1,6 @@
-import type { ReactElement } from "react";
+"use client";
+
+import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { ArrowUpRight, CalendarDays, ChevronDown, GraduationCap } from "lucide-react";
 import { Button } from "@lazuli/ui";
@@ -7,6 +9,8 @@ import type { StudentEnrollment, StudentProfile } from "./logic";
 import { StudentContactSummary } from "./student-identity";
 import { EnrollmentAttendance } from "./enrollment-attendance";
 import { EnrollmentGradeAverage } from "./enrollment-grade-average";
+
+import styles from "./student-profile.module.css";
 
 type EnrollmentProps = { enrollment: StudentEnrollment; today: string };
 
@@ -29,23 +33,27 @@ export function CurrentEnrollment({
               variant="link"
               size="inline"
               nativeButton={false}
-              render={<Link href={planningHref(enrollment, today)} />}
+              render={<Link href={planningHref(enrollment, today, profile.id)} />}
             >
               Ver plano de ensino <ArrowUpRight aria-hidden="true" />
             </Button>
             {enrollment.progress.length > 1 && (
-              <ProgressJourney enrollment={enrollment} today={today} />
+              <ProgressJourney enrollment={enrollment} today={today} studentId={profile.id} />
             )}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 border-t border-border/60 pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        <div className="grid grid-cols-1 gap-4 border-t sm:grid-cols-2 border-border/60 pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
           <EnrollmentAttendance
             attendance={enrollment.attendance}
             studentId={profile.id}
             studentName={profile.contact.fullName}
             enrollmentId={enrollment.id}
           />
-          <EnrollmentGradeAverage progressId={stage?.id} />
+          <EnrollmentGradeAverage
+            progressId={stage?.id}
+            studentId={profile.id}
+            studentName={profile.contact.fullName}
+          />
         </div>
       </div>
       <div className="border-t border-border/60 bg-background/15 px-5 py-3">
@@ -131,10 +139,22 @@ function EnrollmentSchedule({ enrollment }: { enrollment: StudentEnrollment }): 
   );
 }
 
-function ProgressJourney({ enrollment, today }: EnrollmentProps): ReactElement {
+function ProgressJourney({
+  enrollment,
+  today,
+  studentId,
+}: EnrollmentProps & { studentId: string }): ReactElement {
+  const [pointerNavigation, setPointerNavigation] = useState(false);
   return (
-    <details className="group open:basis-full">
-      <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-2 text-caption text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0">
+    <details
+      className={`group open:basis-full ${styles.journey}`}
+      data-pointer-navigation={pointerNavigation || undefined}
+    >
+      <summary
+        onClick={(event) => setPointerNavigation(event.detail > 0)}
+        onKeyDown={() => setPointerNavigation(false)}
+        className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-2 text-caption text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+      >
         <ChevronDown
           aria-hidden="true"
           className="size-3.5 transition-transform group-open:rotate-180 motion-reduce:transition-none"
@@ -156,7 +176,7 @@ function ProgressJourney({ enrollment, today }: EnrollmentProps): ReactElement {
             {enrollment.class.scheduleType === "PERSONALIZED" && (
               <Link
                 className="inline-flex min-h-11 items-center text-caption text-interactive hover:underline sm:min-h-0"
-                href={`/planejamento?turma=${enrollment.class.id}&percurso=${item.id}`}
+                href={`/alunos/${studentId}?secao=planejamento&percurso=${item.id}`}
                 aria-label={`Ver plano de ensino de ${item.stage}`}
               >
                 Ver plano de ensino
@@ -177,12 +197,11 @@ function progressEndLabel(item: StudentEnrollment["progress"][number], today: st
   if (item.endDate) return ` — ${formatDateOnlyBR(item.endDate)}`;
   return item.startDate > today ? " · agendado" : " · em andamento";
 }
-function planningHref(enrollment: StudentEnrollment, today: string): string {
+function planningHref(enrollment: StudentEnrollment, today: string, studentId: string): string {
+  if (enrollment.class.scheduleType === "REGULAR")
+    return `/turmas/${enrollment.class.id}?secao=planejamento`;
   const progress = enrollment.progress.find(
     (item) => item.startDate <= today && (!item.endDate || item.endDate >= today),
   );
-  const params = new URLSearchParams({ turma: enrollment.class.id });
-  if (enrollment.class.scheduleType === "PERSONALIZED" && progress)
-    params.set("percurso", progress.id);
-  return `/planejamento?${params.toString()}`;
+  return `/alunos/${studentId}?secao=planejamento${progress ? `&percurso=${progress.id}` : ""}`;
 }

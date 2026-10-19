@@ -38,10 +38,6 @@ const PROSPECT_CONTACTS = new Map([
   ["prospect-9", "Ricardo Chaves Neves"],
 ]);
 const LEAD_SOURCES = ["Instagram", "Indicação de aluno", "Site", "WhatsApp", "Visita à escola"];
-const CONTACT_DAY_OFFSETS = [2, 6, 10];
-const NEXT_ACTION_CYCLE = 4;
-const NEXT_ACTION_OVERDUE_DAYS = 3;
-const NEXT_ACTION_FUTURE_DAYS = 5;
 const PROSPECT_PHONE_START = 1100;
 const PERSONALIZED_CYCLE = 3;
 const ARCHIVED_PROSPECT_START = 10;
@@ -84,20 +80,7 @@ type CommercialInput = CandidateInput & {
   createdOn: Date;
   status: "WAITING" | "ARCHIVED" | "ENROLLED";
 };
-type LeadContactSeed = {
-  id: string;
-  contactedOn: Date;
-  createdAt: Date;
-  recordedById: string;
-  summary: string;
-};
-type NextActionSeed = { nextAction: string | null; nextActionOn: Date | null };
-type CommercialSeed = NextActionSeed & {
-  contactName: string;
-  source: string;
-  ownerId: string;
-  contacts: { create: LeadContactSeed[] };
-};
+type CommercialSeed = { contactName: string; source: string };
 type PedagogySeed = {
   scheduleType: NonNullable<DevClassSeed["scheduleType"]> | null;
   format: "IN_PERSON" | null;
@@ -222,55 +205,10 @@ function candidatePedagogy(input: CandidateRecordInput): PedagogySeed {
 }
 
 function commercialFields(input: CommercialInput): CommercialSeed {
-  const { candidate, index, adminId } = input;
   return {
-    contactName: candidate.contactName,
-    source: LEAD_SOURCES[index % LEAD_SOURCES.length]!,
-    ownerId: adminId,
-    ...nextAction(input),
-    contacts: {
-      create: CONTACT_DAY_OFFSETS.slice(0, (index % CONTACT_DAY_OFFSETS.length) + 1).map(
-        (offset, sequence, offsets) => {
-          const contactedOn = addDays(input.createdOn, offset);
-          return {
-            id: stableUuid(["lead-contact", candidate.key, String(sequence)]),
-            contactedOn,
-            createdAt: endOfDayUtc(contactedOn.toISOString().slice(0, 10)),
-            recordedById: adminId,
-            summary: contactSummary({ ...input, sequence, last: sequence === offsets.length - 1 }),
-          };
-        },
-      ),
-    },
+    contactName: input.candidate.contactName,
+    source: LEAD_SOURCES[input.index % LEAD_SOURCES.length]!,
   };
-}
-
-function nextAction(input: CommercialInput): NextActionSeed {
-  const bucket = input.index % NEXT_ACTION_CYCLE;
-  if (input.status !== "WAITING" || bucket === NEXT_ACTION_CYCLE - 1)
-    return { nextAction: null, nextActionOn: null };
-  const actions = [
-    "Retomar proposta enviada e registrar retorno.",
-    "Enviar proposta e confirmar os horários de preferência.",
-    "Combinar conversa sobre o curso e as condições de matrícula.",
-  ];
-  const offsets = [-NEXT_ACTION_OVERDUE_DAYS, 0, NEXT_ACTION_FUTURE_DAYS];
-  return {
-    nextAction: actions[bucket]!,
-    nextActionOn: addDays(utcDate(input.todayIso), offsets[bucket]!),
-  };
-}
-
-function contactSummary(input: CommercialInput & { sequence: number; last: boolean }): string {
-  if (input.last && input.status === "ARCHIVED")
-    return "Família solicitou encerrar o contato; interesse arquivado.";
-  if (input.last && input.status === "ENROLLED")
-    return "Condições aceitas e horário combinado; entrada será concluída pela secretaria.";
-  if (input.sequence === 0)
-    return `Contato inicial com ${input.candidate.contactName}; apresentou interesse no curso.`;
-  if (input.sequence === 1)
-    return "Enviadas condições comerciais e esclarecidas dúvidas sobre material e mensalidade.";
-  return "Retorno recebido; família segue avaliando a proposta e suas preferências de horário.";
 }
 
 function candidateAvailability(

@@ -1,0 +1,201 @@
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+.calendar {
+  height: 100%;
+  min-height: 25rem;
+  min-width: 92rem;
+  font-family: inherit;
+  color: var(--foreground);
+  font-size: var(--lz-text-caption);
+}
+.calendar :global(.rbc-event) {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: none;
+  min-height: 0;
+}
+.calendar :global(.rbc-event-label) {
+  display: none;
+}
+.calendar :global(.rbc-event-content) {
+  container-type: size;
+  width: 100%;
+  height: 100%;
+}
+.calendar :global(.rbc-header),
+.calendar :global(.rbc-day-slot) {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+.calendar :global(.rbc-header).expandedDay,
+.calendar :global(.rbc-day-slot).expandedDay {
+  flex-grow: 2;
+  max-width: 32rem;
+}
+.calendar :global(.rbc-event).expandedBlock {
+  border-color: var(--interactive);
+}
+.calendar :global(.rbc-event).compactBlock {
+  border-color: var(--border);
+}
+.calendar :global(.rbc-day-slot .rbc-events-container) {
+  margin-right: 0;
+}
+.lessonCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.125rem;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 0.25rem 0.375rem;
+  text-align: left;
+  font-size: var(--lz-text-micro);
+  line-height: 1.2;
+  cursor: pointer;
+  overflow: hidden;
+  container: weekly-lesson / size;
+}
+@container calendar-event (width < 6rem) {
+  .lessonCard {
+    padding-inline: 0.125rem;
+  }
+}
+@container calendar-event (height < 3rem) {
+  .lessonCard {
+    padding-block: 0.125rem;
+  }
+}
+.lessonCard[data-modality="Regular"] {
+  background: var(--lesson-regular-surface);
+  color: var(--lesson-regular-foreground);
+}
+.lessonCard[data-modality="PPT"] {
+  background: var(--lesson-personalized-surface);
+  color: var(--lesson-personalized-foreground);
+}
+.lessonCard[data-modality="Atendimento"] {
+  background: var(--appointment-surface);
+  color: var(--appointment-foreground);
+}
+.lessonCard[data-modality="Experimental"] {
+  background: var(--experimental-surface);
+  color: var(--experimental-foreground);
+}
+.lessonCard[data-kind="overflow"] {
+  padding-inline: 0.125rem;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.lessonCard[data-kind="overflow"] strong {
+  white-space: normal;
+}
+.scroll:focus-visible,
+.lessonCard:focus-visible,
+.calendar :global(.rbc-button-link):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+/* Same spatial transition as the daily agenda; never animate temporal geometry. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .scroll[data-timeline-motion="true"] .calendar :global(.rbc-header),
+  .scroll[data-timeline-motion="true"] .calendar :global(.rbc-day-slot) {
+    transition: flex-grow var(--lz-duration-slow) var(--lz-ease-standard);
+  }
+  .scroll[data-timeline-motion="true"] .calendar :global(.rbc-event) {
+    transition:
+      left var(--lz-duration-slow) var(--lz-ease-standard),
+      width var(--lz-duration-slow) var(--lz-ease-standard);
+  }
+}
+
+@media (max-width: 700px) {
+  .calendar :global(.rbc-header).expandedDay,
+  .calendar :global(.rbc-day-slot).expandedDay {
+    flex-grow: 1.6;
+  }
+}
+
+.overflowNames {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.calendar :global(.rbc-header).revealedDay,
+.calendar :global(.rbc-day-slot).revealedDay {
+  flex-grow: 5;
+  max-width: 64rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lessonCard[data-expanded="true"]:hover {
+    box-shadow: inset 0 0 0 1px var(--interactive);
+  }
+}
+
+/* Scheduling keeps the agenda's grid and events in a bounded dialog viewport. */
+.scroll[data-selecting] {
+  flex: none;
+  height: clamp(17rem, calc(100dvh - 23rem), 27rem);
+}
+.scroll[data-selecting] .calendar {
+  min-width: 40rem;
+  min-height: 0;
+}
+.scroll[data-selecting] .lessonCard:disabled {
+  cursor: default;
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
+.scroll[data-selecting] .lessonCard[aria-pressed="true"] {
+  background: var(--muted);
+  color: var(--foreground);
+  box-shadow: inset 0 0 0 2px var(--interactive);
+}
+.selectionTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+.unavailableSlot,
+.calendar :global(.rbc-header).unavailableDay {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  cursor: not-allowed;
+}
+.scroll[data-selecting] .calendar :global(.rbc-slot-selection) {
+  background: var(--muted);
+  color: var(--foreground);
+  border: 1px solid var(--interactive);
+}
+
+.lessonCard[data-has-markers="true"] {
+  position: relative;
+}
+
+/* The temporal wrapper stays fixed; the content surface follows the horizontal clock. */
+:global(.rbc-event):has(.lessonCard[data-reveal="true"]) {
+  overflow: visible;
+  z-index: 10;
+}
+.lessonCard[data-reveal="true"] {
+  container-type: inline-size;
+  min-height: 100%;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--interactive);
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  :global([data-timeline-motion="true"]) .lessonCard {
+    transition: height var(--lz-calendar-expansion-duration) var(--lz-ease-standard);
+  }
+}

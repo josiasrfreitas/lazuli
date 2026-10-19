@@ -1,6 +1,6 @@
+import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
 import type { PedagogicalList } from "@lazuli/validators";
-import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   occurrenceInclude,
   interventionInclude,
@@ -11,7 +11,7 @@ import {
   loadIntervention,
   type FollowUpContext,
 } from "./data.js";
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 25;
 export async function listOccurrences(context: FollowUpContext, input: PedagogicalList) {
   const where: Prisma.PedagogicalOccurrenceWhereInput = {
     AND: [
@@ -21,8 +21,8 @@ export async function listOccurrences(context: FollowUpContext, input: Pedagogic
         ...(input.search
           ? {
               OR: [
-                { title: { contains: input.search, mode: "insensitive" } },
-                { student: { fullName: { contains: input.search, mode: "insensitive" } } },
+                { id: await searchIds(context.database, "PedagogicalOccurrence", input.search) },
+                { student: { id: await searchIds(context.database, "Student", input.search) } },
               ],
             }
           : {}),
@@ -41,26 +41,21 @@ export async function listOccurrences(context: FollowUpContext, input: Pedagogic
   ]);
   return { rows, total, pageSize: PAGE_SIZE };
 }
-function interventionFilter(
+async function interventionFilter(
   context: FollowUpContext,
   input: PedagogicalList,
-): Prisma.PedagogicalInterventionWhereInput {
+): Promise<Prisma.PedagogicalInterventionWhereInput> {
   return {
     AND: [
       interventionScope(context),
       {
         ...(input.studentId ? { studentId: input.studentId } : {}),
-        ...(input.status === "OVERDUE"
-          ? { status: { not: "CONCLUDED" }, dueOn: { lt: new Date(saoPauloDateOnly(context.now)) } }
-          : input.status === "ALL"
-            ? {}
-            : { status: input.status }),
         ...(input.search
           ? {
               OR: [
-                { title: { contains: input.search, mode: "insensitive" } },
-                { student: { fullName: { contains: input.search, mode: "insensitive" } } },
-                { teacher: { name: { contains: input.search, mode: "insensitive" } } },
+                { id: await searchIds(context.database, "PedagogicalIntervention", input.search) },
+                { student: { id: await searchIds(context.database, "Student", input.search) } },
+                { responsible: { id: await searchIds(context.database, "User", input.search) } },
               ],
             }
           : {}),
@@ -69,17 +64,12 @@ function interventionFilter(
   };
 }
 export async function listInterventions(context: FollowUpContext, input: PedagogicalList) {
-  const where = interventionFilter(context, input);
+  const where = await interventionFilter(context, input);
   const [rows, total] = await Promise.all([
     context.database.pedagogicalIntervention.findMany({
       where,
       include: interventionInclude,
-      orderBy: [
-        { status: "asc" },
-        { dueOn: { sort: "asc", nulls: "last" } },
-        { createdAt: "desc" },
-        { id: "desc" },
-      ],
+      orderBy: [{ performedOn: "desc" }, { createdAt: "desc" }, { id: "desc" }],
       take: PAGE_SIZE,
       skip: (input.page - 1) * PAGE_SIZE,
     }),
@@ -89,7 +79,7 @@ export async function listInterventions(context: FollowUpContext, input: Pedagog
 }
 export async function occurrenceDetail(context: FollowUpContext, id: string) {
   const row = await loadOccurrence(context, id);
-  const [relations, interventions, followUps] = await Promise.all([
+  const [relations, interventions] = await Promise.all([
     context.database.occurrenceRelation.findMany({
       where: {
         deletedAt: null,
@@ -108,17 +98,11 @@ export async function occurrenceDetail(context: FollowUpContext, id: string) {
       },
       include: interventionInclude,
     }),
-    context.database.pedagogicalFollowUp.findMany({
-      where: { occurrenceId: id, deletedAt: null },
-      include: followUpInclude,
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    }),
   ]);
   return {
     ...row,
     related: relations.map((link) => (link.fromId === id ? link.to : link.from)),
     interventions,
-    followUps,
     canOrganize: context.staffUser.role !== "TEACHER",
   };
 }
@@ -141,7 +125,6 @@ export async function interventionDetail(context: FollowUpContext, id: string) {
     occurrences,
     followUps,
     canOrganize: context.staffUser.role !== "TEACHER",
-    today: saoPauloDateOnly(context.now),
   };
 }
 export async function studentOccurrences(context: FollowUpContext, studentId: string) {

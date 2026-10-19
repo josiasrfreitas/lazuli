@@ -1,29 +1,20 @@
+import { searchIds } from "../../search.js";
 import type { FinanceDatabase } from "./shared.js";
 
-function partySearchWhere(
+async function partySearchWhere(
+  database: FinanceDatabase,
   query: string,
-  field: "name" | "fullName",
-): {
-  deletedAt: null;
-  OR: Array<{
-    id?: string;
-    name?: { contains: string; mode: "insensitive" };
-    fullName?: { contains: string; mode: "insensitive" };
-  }>;
-} {
-  const exactId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(query)
-    ? query
-    : null;
+  table: "Student" | "Payer",
+) {
+  const exactId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(query);
+  const matches = await searchIds(database, table, query);
   return {
     deletedAt: null,
-    OR: [
-      { [field]: { contains: query, mode: "insensitive" as const } },
-      ...(exactId ? [{ id: exactId }] : []),
-    ],
+    ...(matches ? { OR: [{ id: matches }, ...(exactId ? [{ id: query }] : [])] } : {}),
   };
 }
 
-function findContractStudents(
+async function findContractStudents(
   database: FinanceDatabase,
   query: string,
 ): Promise<
@@ -34,14 +25,14 @@ function findContractStudents(
   }>
 > {
   return database.student.findMany({
-    where: partySearchWhere(query, "fullName"),
+    where: await partySearchWhere(database, query, "Student"),
     select: { id: true, fullName: true, documentType: true, documentNumber: true },
     orderBy: { fullName: "asc" },
     take: 20,
   });
 }
 
-function findContractPayers(
+async function findContractPayers(
   database: FinanceDatabase,
   query: string,
 ): Promise<
@@ -55,7 +46,7 @@ function findContractPayers(
   }>
 > {
   return database.payer.findMany({
-    where: partySearchWhere(query, "name"),
+    where: await partySearchWhere(database, query, "Payer"),
     select: {
       id: true,
       name: true,

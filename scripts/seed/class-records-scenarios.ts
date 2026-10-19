@@ -30,10 +30,7 @@ export async function safeAttendanceScenario(
     database.pedagogicalFollowUp.count({
       where: {
         createdAt: { gte: dayStart, lt: addDays(dayStart, 1) },
-        OR: [
-          { occurrence: { studentId: { in: studentIds } } },
-          { intervention: { studentId: { in: studentIds } } },
-        ],
+        intervention: { studentId: { in: studentIds } },
       },
     }),
     database.assessmentGrade.count({

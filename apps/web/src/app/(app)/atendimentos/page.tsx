@@ -1,6 +1,10 @@
-import type { Metadata } from "next";
-import { AppointmentsAgenda } from "~/features/appointments/agenda";
-export const metadata: Metadata = { title: "Atendimentos" };
-export default function Page() {
-  return <AppointmentsAgenda />;
+import { redirect } from "next/navigation";
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ aluno?: string }>;
+}) {
+  const { aluno } = await searchParams;
+  redirect(aluno ? `/aulas?aluno=${encodeURIComponent(aluno)}` : "/aulas");
 }

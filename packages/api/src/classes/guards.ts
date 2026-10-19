@@ -1,4 +1,5 @@
 import type { Prisma } from "@lazuli/db";
+import { hasTeacherIdentity } from "../teachers/identity.js";
 
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
@@ -16,10 +17,10 @@ export async function assertTeacherIsActive(input: {
 }): Promise<void> {
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
-    select: { role: true, deletedAt: true },
+    select: { role: true, deletedAt: true, teacherProfile: { select: { userId: true, deletedAt: true } } },
   });
 
-  if (teacher === null || teacher.role !== "TEACHER" || teacher.deletedAt !== null) {
+  if (teacher === null || !hasTeacherIdentity(teacher) || teacher.deletedAt !== null) {
     throw badRequest(TEACHER_INVALID_MESSAGE);
   }
 }

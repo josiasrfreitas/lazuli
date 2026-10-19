@@ -6,6 +6,7 @@ import { Alert, Button, Tabs, TabsList, TabsTab } from "@lazuli/ui";
 import { appointmentCancelSchema, type AppointmentSnapshot } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
+import { ClassRecordTrigger } from "~/features/class-records/class-record-trigger";
 import { RecordState } from "~/features/class-records/shared";
 import { NarrativeField, TaskDialog, useValidation } from "~/features/shared/task-form";
 import { AppointmentRecordForm } from "./record-form";
@@ -32,14 +33,9 @@ export function AppointmentDetailPage({ id }: { id: string }) {
   return (
     <div className="mx-auto grid h-full w-full max-w-6xl content-start gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
       <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          nativeButton={false}
-          render={<Link href="/atendimentos" />}
-        >
+        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/aulas" />}>
           <ArrowLeft />
-          Atendimentos
+          Agenda
         </Button>
       </div>
       <RecordState
@@ -51,7 +47,16 @@ export function AppointmentDetailPage({ id }: { id: string }) {
     </div>
   );
 }
-function AppointmentContent({ data, admin }: { data: Appointment; admin: boolean }) {
+export function AppointmentContent({
+  data,
+  admin,
+  embedded = false,
+}: {
+  data: Appointment;
+  admin: boolean;
+  embedded?: boolean;
+}) {
+  const Heading = embedded ? "h3" : "h1";
   const row = data.snapshot;
   const [view, setView] = useState("record");
   const [editing, setEditing] = useState(false);
@@ -64,7 +69,9 @@ function AppointmentContent({ data, admin }: { data: Appointment; admin: boolean
           <span className="text-caption text-muted-foreground">
             {formatDateOnlyBR(row.date)} · {row.startTime}–{row.endTime}
           </span>
-          <h1 className="font-display text-h2 font-semibold text-heading">{row.student.name}</h1>
+          <Heading className="font-display text-h2 font-semibold text-heading">
+            {embedded ? purposes[row.purpose] : row.student.name}
+          </Heading>
           <p className="text-sm text-muted-foreground">
             {purposes[row.purpose]} · {row.teacher?.name ?? "Professor a definir"}
           </p>
@@ -111,12 +118,9 @@ function AppointmentContent({ data, admin }: { data: Appointment; admin: boolean
           <div className="grid gap-1">
             <h2 className="text-caption font-semibold text-muted-foreground">Encontro</h2>
             {row.targetClassSessionId ? (
-              <Link
-                href={`/aulas/${row.targetClassSessionId}`}
-                className="text-sm font-medium text-interactive hover:underline"
-              >
+              <ClassRecordTrigger sessionId={row.targetClassSessionId}>
                 {row.targetClassName} · Abrir aula
-              </Link>
+              </ClassRecordTrigger>
             ) : (
               <p className="text-sm">Atendimento individual</p>
             )}
@@ -153,7 +157,7 @@ function AppointmentContent({ data, admin }: { data: Appointment; admin: boolean
               </p>
             )}
           </div>
-          {admin && (
+          {admin && !embedded && (
             <Link
               href={`/alunos/${row.student.id}`}
               className="text-sm font-medium text-interactive hover:underline"
@@ -183,7 +187,7 @@ function AppointmentContent({ data, admin }: { data: Appointment; admin: boolean
             <Tabs variant="underline" value={view} onValueChange={setView}>
               <TabsList aria-label="Registro do atendimento">
                 <TabsTab value="record">Registro atual</TabsTab>
-                <TabsTab value="history">Histórico · {data.history.length}</TabsTab>
+                <TabsTab value="history">Histórico de alterações · {data.history.length}</TabsTab>
               </TabsList>
             </Tabs>
           )}
@@ -195,7 +199,6 @@ function AppointmentContent({ data, admin }: { data: Appointment; admin: boolean
                 <details key={revision.id} className="rounded-md border border-border bg-card p-4">
                   <summary className="cursor-pointer text-sm">
                     <span className="font-medium">
-                      Versão {revision.version} ·{" "}
                       {revision.author?.name ?? "Autoria não registrada"}
                     </span>
                     <span className="mt-1 block text-caption text-muted-foreground">
@@ -239,7 +242,7 @@ function AppointmentContent({ data, admin }: { data: Appointment; admin: boolean
     </>
   );
 }
-function AppointmentAccount({ row }: { row: AppointmentSnapshot }) {
+export function AppointmentAccount({ row }: { row: AppointmentSnapshot }) {
   const activeMinutes = row.coverages
     .filter((item) => item.applicable)
     .reduce((sum, item) => sum + item.minutes, 0);
@@ -317,7 +320,7 @@ function AppointmentAccount({ row }: { row: AppointmentSnapshot }) {
     </div>
   );
 }
-function CancelAppointmentDialog({
+export function CancelAppointmentDialog({
   row,
   onClose,
 }: {
@@ -340,6 +343,7 @@ function CancelAppointmentDialog({
       firstField="cancel-reason"
       formId="appointment-cancel"
       submitLabel="Confirmar cancelamento"
+      submitVariant="destructive"
       pending={mutation.isPending}
       onClose={onClose}
       error={mutation.error?.message}

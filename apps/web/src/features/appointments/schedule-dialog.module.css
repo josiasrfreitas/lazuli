@@ -1,0 +1,72 @@
+.dialog {
+  max-height: min(calc(110dvh - 4.4rem), calc(100dvh - 1rem));
+}
+
+.layout {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  padding-top: 16px;
+}
+.context {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+.scheduleLayout {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  padding-top: 8px;
+}
+.choices {
+  display: grid;
+  align-items: start;
+  gap: 16px 24px;
+}
+.choiceGroup {
+  min-width: 0;
+  max-width: 100%;
+}
+.details {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+.coverage {
+  min-width: 0;
+}
+.notes {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.noteFields {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+@media (min-width: 768px) {
+  .choices {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .noteFields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .noteFields[data-reschedule] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.calendarDialog {
+  width: calc(100vw - 2rem);
+  max-width: 1224px;
+  height: 85dvh;
+  max-height: calc(100dvh - 2rem);
+}
+
+.calendarBody {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}

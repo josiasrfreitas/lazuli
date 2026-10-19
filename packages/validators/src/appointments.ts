@@ -140,7 +140,7 @@ export const absenceListSchema = z
     search: z.string().trim().max(160).default(""),
     onlyOpen: z.boolean().default(true),
     page: z.number().int().min(1).default(1),
-    pageSize: z.number().int().min(1).max(100).default(20),
+    pageSize: z.number().int().min(1).max(100).default(25),
   })
   .strict()
   .refine((value) => value.through >= value.from, { message: "Informe um período válido." });

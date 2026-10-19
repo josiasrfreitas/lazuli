@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Alert, Button, InlineSkeleton, DataTable, type DataTableColumn } from "@lazuli/ui";
+import { Alert, Button, DataTable, type DataTableColumn } from "@lazuli/ui";
+import { PlanningLoading } from "./planning-loading";
 import { formatDateOnlyBR } from "~/lib/format";
 export type Planning = RouterOutputs["planning"]["detail"];
 export type PlannedItem = NonNullable<Planning["plan"]>["items"][number];
@@ -26,7 +27,7 @@ export function PlanningState({
   error: { message: string } | null;
   retry: () => void;
 }): ReactElement | null {
-  if (pending) return <InlineSkeleton className="h-64 w-full" />;
+  if (pending) return <PlanningLoading />;
   if (error)
     return (
       <Alert variant="destructive">
@@ -41,8 +42,10 @@ export function PlanningState({
 export function PlanTable({
   items,
   onEdit,
+  filtered = false,
 }: {
   items: PlannedItem[];
+  filtered?: boolean;
   onEdit?: ((item: PlannedItem) => void) | undefined;
 }): ReactElement {
   const columns: DataTableColumn<PlannedItem>[] = [
@@ -102,7 +105,9 @@ export function PlanTable({
     <DataTable
       label="Roteiro de atividades planejadas"
       columns={columns}
-      state={items.length ? { kind: "data", rows: items } : { kind: "empty" }}
+      state={
+        items.length ? { kind: "data", rows: items } : { kind: filtered ? "noResults" : "empty" }
+      }
       empty={{
         title: "O roteiro começa aqui",
         description:

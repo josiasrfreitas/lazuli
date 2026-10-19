@@ -2,8 +2,26 @@ import { z, classRecordListSchema, classRecordSaveSchema } from "@lazuli/validat
 import { router, staffProcedure } from "../trpc/init.js";
 import { classRecordHistory, listClassRecords, readClassRecord } from "./read.js";
 import { saveClassRecord } from "./write.js";
+import { classStageProgress } from "./progress.js";
+import { individualExperimentalSessions } from "./experimental-sessions.js";
 const target = z.object({ sessionId: z.string().uuid() }).strict();
 export const classRecordsRouter = router({
+  experimentalSessions: staffProcedure
+    .input(classRecordListSchema)
+    .query(({ ctx, input }) =>
+      individualExperimentalSessions(
+        { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
+        input,
+      ),
+    ),
+  progress: staffProcedure
+    .input(z.object({ classId: z.string().uuid() }).strict())
+    .query(({ ctx, input }) =>
+      classStageProgress(
+        { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
+        input.classId,
+      ),
+    ),
   list: staffProcedure
     .input(classRecordListSchema)
     .query(({ ctx, input }) =>

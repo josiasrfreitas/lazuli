@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { semesterPlanSchema, createSemesterInputSchema } from "@lazuli/validators";
-import { Alert } from "@lazuli/ui";
+import { Alert, InlineSkeleton } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { TaskDialog, useValidation } from "~/features/shared/task-form";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
@@ -45,10 +45,33 @@ export function ClassPlanForm({
     setter(value);
     validation.clear(field);
   };
+  if (options.isPending)
+    return (
+      <TaskDialog
+        compactHeader
+        actionSize="sm"
+        title={plan ? "Revisar turma planejada" : "Planejar turma"}
+        description="Carregando professores e estágios…"
+        formId="plan-loading"
+        firstField=""
+        submitLabel="Salvar turma"
+        submitDisabled
+        pending={false}
+        onClose={onClose}
+      >
+        <div className="grid gap-4 py-4" role="status" aria-label="Carregando turma">
+          <InlineSkeleton className="h-12 w-full" />
+          <InlineSkeleton className="h-12 w-full" />
+          <InlineSkeleton className="h-24 w-full" />
+        </div>
+      </TaskDialog>
+    );
   return (
     <TaskDialog
+      compactHeader
+      actionSize="sm"
       title={plan ? "Revisar turma planejada" : "Planejar turma"}
-      description="Defina a composição inicial. Você pode publicar os alunos aos poucos."
+      description="Horário, professor e composição podem ser preparados aos poucos."
       formId="semester-plan"
       firstField="plan-name"
       submitLabel="Salvar turma"
@@ -139,8 +162,8 @@ export function ClassPlanForm({
           error={validation.errors.slots}
         />
         <p className="text-caption text-muted-foreground">
-          Até 2 horas por semana. Referência de 25 alunos; o professor pode ser definido antes da
-          publicação.
+          Novos horários: até 2 horas por semana. Horários herdados podem ser mantidos. O professor
+          pode ser definido antes da confirmação.
         </p>
       </form>
     </TaskDialog>
@@ -167,6 +190,8 @@ export function SemesterForm({
   });
   return (
     <TaskDialog
+      compactHeader
+      actionSize="sm"
       title="Novo semestre"
       description="O período acadêmico organiza as aulas e as futuras matrículas."
       formId="semester-create"

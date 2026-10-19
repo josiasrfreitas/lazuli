@@ -1,0 +1,48 @@
+{
+  "title": "Aulas · direções para o desktop",
+  "question": "Três formas de olhar o mesmo dia. Abra cada proposta em tamanho real e compare o horário das 14h. Dados ilustrativos.",
+  "options": [
+    {
+      "id": "agenda",
+      "label": "Agenda com detalhe fixo",
+      "thesis": "O dia inteiro em uma lista alinhada; a aula escolhida ocupa um painel ao lado.",
+      "palette": ["#0f1e3d", "#ffffff", "#eaf0f8", "#d8ad4a"],
+      "materials": ["Sistema visual Lazuli", "Desktop · visão diária"],
+      "viewport": "O dia inteiro em uma lista alinhada; a aula escolhida ocupa um painel ao lado.",
+      "risk": "Boa leitura de nomes longos; comparar seis detalhes exige alternar a seleção.",
+      "html": ".impeccable/mocks/decision/agenda.html",
+      "htmlFrame": "1440x900",
+      "comp": ".impeccable/mocks/decision/agenda.png"
+    },
+    {
+      "id": "faixas",
+      "label": "Horários em faixas",
+      "thesis": "Cada hora ocupa uma faixa inteira, com as seis aulas lado a lado.",
+      "palette": ["#0f1e3d", "#ffffff", "#eaf0f8", "#d8ad4a"],
+      "materials": ["Sistema visual Lazuli", "Desktop · visão diária"],
+      "viewport": "Cada hora ocupa uma faixa inteira, com as seis aulas lado a lado.",
+      "risk": "Comparação imediata por horário; dias cheios exigem rolagem vertical.",
+      "html": ".impeccable/mocks/decision/faixas.html",
+      "htmlFrame": "1440x900",
+      "comp": ".impeccable/mocks/decision/faixas.png"
+    },
+    {
+      "id": "professores",
+      "label": "Grade por professor",
+      "thesis": "O tempo cruza seis colunas de professores; cada aula tem posição estável.",
+      "palette": ["#0f1e3d", "#ffffff", "#eaf0f8", "#d8ad4a"],
+      "materials": ["Sistema visual Lazuli", "Desktop · visão diária"],
+      "viewport": "O tempo cruza seis colunas de professores; cada aula tem posição estável.",
+      "risk": "Mostra disponibilidade e sequência; muitos professores ampliam a grade.",
+      "html": ".impeccable/mocks/decision/professores.html",
+      "htmlFrame": "1440x900",
+      "comp": ".impeccable/mocks/decision/professores.png"
+    }
+  ],
+  "buildPath": {
+    "value": "code",
+    "toggle": true
+  },
+  "steer": true,
+  "reroll": true
+}

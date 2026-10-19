@@ -3,7 +3,7 @@ import { civilDateSchema } from "./civil-date.js";
 import { detectPersonDocument } from "./person-document.js";
 const MAX_SEARCH_LENGTH = 80;
 const MAX_PAGE_SIZE = 100;
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 25;
 
 const cpf = z.string().transform((value, context) => {
   const document = detectPersonDocument(value);

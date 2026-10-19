@@ -1,3 +1,4 @@
+import { seedTeachingPrograms } from "./teaching-programs.js";
 import type { DatabaseClient } from "../../packages/db/src/client.js";
 import { seedCourseCatalog } from "../../packages/db/src/seed-course-catalog.js";
 import { seedDevData } from "../../packages/db/src/seed-dev.js";
@@ -21,6 +22,7 @@ import { seedSemesterOrganization } from "./semester-organization.js";
 /** Shared by initial provisioning and the destructive pnpm seed entry point. */
 export async function seedSchool(database: DatabaseClient, todayIso: string): Promise<void> {
   await seedCourseCatalog(database);
+  await seedTeachingPrograms(database);
   await seedDevData(database, {
     todayIso,
     resolveClassName: (classSeed, semester) => {

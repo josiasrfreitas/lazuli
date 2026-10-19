@@ -41,7 +41,7 @@ const caller = (staffUser = admin) => createCaller({ db, staffUser, now });
 async function clean(): Promise<void> {
   const where = { student: { fullName: { startsWith: config.prefix } } };
   await db.pedagogicalFollowUp.deleteMany({
-    where: { OR: [{ occurrence: where }, { intervention: where }] },
+    where: { intervention: where },
   });
   await db.occurrenceRelation.deleteMany({ where: { from: where } });
   await db.interventionOccurrence.deleteMany({ where: { intervention: where } });
@@ -83,7 +83,14 @@ async function fixture() {
   ]);
   for (const student of [ana, bruno])
     await db.enrollment.create({
-      data: { studentId: student.id, classId: group.id, entryDate: new Date("2074-02-01") },
+      data: {
+        studentId: student.id,
+        classId: group.id,
+        entryDate: new Date("2074-02-01"),
+        progressRecords: {
+          create: { stageId: catalog.firstStageId, startDate: new Date("2074-02-01") },
+        },
+      },
     });
   const session = await db.classSession.create({
     data: {
@@ -109,19 +116,28 @@ async function fixture() {
 }
 const interventionValues = {
   title: "Acompanhar rotina de estudos",
-  objective: "Retomar atividades com apoio do professor.",
-  nextStep: "Combinar um plano curto com o aluno.",
-  teacherId: config.teacherId,
-  dueOn: "2074-02-20",
+  treatment: "Conversamos com o aluno e organizamos as atividades em etapas menores.",
+  responsibleId: config.teacherId,
+  performedOn: "2074-02-14",
 };
-void it("links reports symmetrically without creating an intervention and retains attributed addenda", async () => {
+void it("links reports symmetrically and edits the account without creating an intervention", async () => {
   const f = await fixture();
   await caller(teacher).occurrences.link({ occurrenceId: f.first.id, relatedId: f.second.id });
   await caller(teacher).occurrences.link({ occurrenceId: f.second.id, relatedId: f.first.id });
-  await caller(teacher).occurrences.note({
+  const original = await caller(teacher).occurrences.byId(f.first);
+  await caller(teacher).occurrences.update({
     id: f.first.id,
-    body: "Correção: a entrega havia sido combinada para sexta.",
+    account: "A entrega havia sido combinada para sexta.",
+    expectedUpdatedAt: original.updatedAt,
   });
+  await assert.rejects(
+    caller(teacher).occurrences.update({
+      id: f.first.id,
+      account: "Uma edição antiga não deve substituir o relato atualizado.",
+      expectedUpdatedAt: original.updatedAt,
+    }),
+    { code: "CONFLICT" },
+  );
   const first = await caller().occurrences.byId(f.first);
   const second = await caller().occurrences.byId(f.second);
   assert.deepEqual(
@@ -133,9 +149,12 @@ void it("links reports symmetrically without creating an intervention and retain
     [f.first.id],
   );
   assert.deepEqual(first.interventions, []);
-  assert.equal(first.account, "Atividade não entregue na aula combinada.");
-  assert.equal(first.followUps[0]?.recordedBy.id, teacher.id);
-  assert.equal(first.followUps[0]?.createdAt.toISOString(), "2074-02-15T21:00:00.000Z");
+  assert.equal(first.account, "A entrega havia sido combinada para sexta.");
+  assert.equal(first.recordedBy.id, teacher.id);
+  assert.equal(
+    await db.activityEvent.count({ where: { subjectId: f.ana.id, action: "occurrences.update" } }),
+    1,
+  );
   assert.equal(
     await db.activityEvent.count({ where: { subjectId: f.ana.id, action: "occurrences.link" } }),
     1,
@@ -160,50 +179,88 @@ void it("rejects missing student context, repeated reports and cross-student lin
     0,
   );
 });
-void it("preserves conclusion and reopening history, rejecting stale versions atomically", async () => {
+void it("records a treatment and attributed follow-ups while rejecting stale writes atomically", async () => {
   const f = await fixture();
   const intervention = await caller().interventions.create({
     ...interventionValues,
     occurrenceIds: [f.first.id, f.second.id],
   });
-  await caller(teacher).interventions.update({
+  const original = await caller().interventions.byId(intervention);
+  assert.equal(
+    original.treatment,
+    "Conversamos com o aluno e organizamos as atividades em etapas menores.",
+  );
+  assert.equal(original.performedOn.toISOString(), "2074-02-14T00:00:00.000Z");
+  assert.equal(original.responsible.id, teacher.id);
+  assert.equal(original.recordedBy.id, admin.id);
+  assert.deepEqual(
+    original.occurrences.map((row) => row.id).sort(),
+    [f.first.id, f.second.id].sort(),
+  );
+  await caller(teacher).interventions.followUp({
     ...intervention,
     version: 0,
-    kind: "CONCLUDE",
-    body: "Aluno entregou as duas atividades no prazo acordado.",
+    body: "Aluno entregou as duas atividades combinadas.",
   });
-  const closed = await caller().interventions.byId(intervention);
-  assert.equal(closed.status, "CONCLUDED");
-  assert.equal(closed.concludedAt?.toISOString(), now.toISOString());
-  assert.equal(closed.outcome, "Aluno entregou as duas atividades no prazo acordado.");
   await assert.rejects(
-    caller(teacher).interventions.update({
+    caller(teacher).interventions.followUp({
       ...intervention,
       version: 0,
-      kind: "REOPEN",
-      body: "Voltou a precisar de apoio na organização.",
+      body: "Registro enviado com uma versão desatualizada.",
     }),
     { code: "CONFLICT" },
   );
-  assert.equal((await caller().interventions.byId(intervention)).followUps.length, 1);
-  await caller(teacher).interventions.update({
-    ...intervention,
-    version: 1,
-    kind: "REOPEN",
-    body: "Voltou a precisar de apoio na organização.",
-  });
-  const reopened = await caller().interventions.byId(intervention);
+  const after = await caller().interventions.byId(intervention);
+  assert.equal(after.version, 1);
   assert.deepEqual(
-    [reopened.status, reopened.concludedAt, reopened.outcome, reopened.version],
-    ["IN_PROGRESS", null, null, 2],
+    after.followUps.map((row) => ({
+      body: row.body,
+      author: row.recordedBy.id,
+      at: row.createdAt.toISOString(),
+    })),
+    [
+      {
+        body: "Aluno entregou as duas atividades combinadas.",
+        author: teacher.id,
+        at: "2074-02-15T21:00:00.000Z",
+      },
+    ],
   );
-  assert.deepEqual(reopened.followUps.map((row) => row.kind).sort(), ["CONCLUDE", "REOPEN"]);
+  assert.equal(
+    after.treatment,
+    "Conversamos com o aluno e organizamos as atividades em etapas menores.",
+  );
   assert.equal(
     await db.activityEvent.count({
-      where: { subjectId: f.ana.id, action: "interventions.update" },
+      where: { subjectId: f.ana.id, action: "interventions.followUp" },
     }),
-    2,
+    1,
   );
+});
+void it("records a standalone treatment by non-teaching staff and rejects future dates", async () => {
+  const f = await fixture();
+  const values = {
+    ...interventionValues,
+    studentId: f.ana.id,
+    responsibleId: admin.id,
+    occurrenceIds: [],
+  };
+  await assert.rejects(caller().interventions.create({ ...values, performedOn: "2074-02-16" }), {
+    code: "BAD_REQUEST",
+    message: /já realizada/,
+  });
+  const intervention = await caller().interventions.create(values);
+  const row = await caller().interventions.byId(intervention);
+  assert.equal(row.responsible.id, admin.id);
+  assert.equal(row.performedOn.toISOString(), "2074-02-14T00:00:00.000Z");
+  assert.deepEqual(row.occurrences, []);
+  await caller().interventions.link({ ...intervention, version: 0, occurrenceId: f.first.id });
+  const linked = await caller().interventions.byId(intervention);
+  assert.deepEqual(
+    linked.occurrences.map((item) => item.id),
+    [f.first.id],
+  );
+  assert.deepEqual(linked.followUps, []);
 });
 void it("restricts narratives, roster and writes to the responsible teachers and administrators", async () => {
   const f = await fixture();
@@ -228,10 +285,9 @@ void it("restricts narratives, roster and writes to the responsible teachers and
   });
   assert.equal((await caller(teacher).interventions.byId(intervention)).occurrences.length, 2);
   await assert.rejects(
-    stranger.interventions.update({
+    stranger.interventions.followUp({
       ...intervention,
       version: 0,
-      kind: "NOTE",
       body: "Não pode acessar.",
     }),
     { code: "NOT_FOUND" },
@@ -312,4 +368,55 @@ void it("uses a substitution on the recurring slot to give only its actual teach
     account: "Conferida a compreensão das instruções com o aluno.",
   });
   assert.equal((await caller().occurrences.byId(report)).recordedBy.id, substitute.id);
+});
+
+void it("keeps history readable but refuses new pedagogical activity after the enrollment ends", async () => {
+  const f = await fixture();
+  const intervention = await caller().interventions.create({
+    ...interventionValues,
+    studentId: f.ana.id,
+    occurrenceIds: [],
+  });
+  await db.$transaction(async (tx) => {
+    await tx.pedagogicalProgress.updateMany({
+      where: { enrollment: { studentId: f.ana.id } },
+      data: { endDate: new Date("2074-02-15"), endReason: "DROPPED" },
+    });
+    await tx.enrollment.updateMany({
+      where: { studentId: f.ana.id },
+      data: { exitDate: new Date("2074-02-15"), exitReason: "DROPPED" },
+    });
+  });
+  await assert.rejects(
+    caller().occurrences.create({
+      studentId: f.ana.id,
+      classSessionId: f.session.id,
+      title: "Novo relato",
+      category: "HOMEWORK",
+      account: "Relato posterior ao encerramento.",
+      initialResponse: "",
+    }),
+    { code: "BAD_REQUEST", message: /sem matrícula vigente/ },
+  );
+  await assert.rejects(
+    caller().interventions.create({
+      ...interventionValues,
+      studentId: f.ana.id,
+      occurrenceIds: [],
+    }),
+    { code: "BAD_REQUEST", message: /sem matrícula vigente/ },
+  );
+  const previous = await caller().interventions.byId(intervention);
+  await assert.rejects(
+    caller().interventions.followUp({
+      id: intervention.id,
+      version: previous.version,
+      body: "Nova evolução após encerramento.",
+    }),
+    { code: "BAD_REQUEST", message: /sem matrícula vigente/ },
+  );
+  assert.equal((await caller().occurrences.byId(f.first)).title, "Primeiro relato");
+  assert.equal((await caller().interventions.byId(intervention)).followUps.length, 0);
+  assert.equal(await db.pedagogicalOccurrence.count({ where: { studentId: f.ana.id } }), 2);
+  assert.equal(await db.pedagogicalIntervention.count({ where: { studentId: f.ana.id } }), 1);
 });

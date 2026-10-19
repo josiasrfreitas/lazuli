@@ -21,7 +21,7 @@ export function EnrollmentAttendance({
   enrollmentId: string;
 }): ReactElement {
   return (
-    <section aria-label="Frequência no semestre" className="grid min-w-0 content-start gap-2">
+    <section aria-label="Frequência no semestre" className="flex min-w-0 flex-col gap-2">
       <div className="grid gap-2">
         <MetricHeading label="Frequência">
           {attendance.presentMinutes} min de presença + {attendance.compensatedMinutes} min de
@@ -59,7 +59,7 @@ export function EnrollmentAttendance({
           Abaixo de 75%. Acompanhe as ausências.
         </p>
       )}
-      <div className="justify-self-start">
+      <div className="mt-auto pt-1">
         <AttendanceHistoryDialog
           studentId={studentId}
           studentName={studentName}

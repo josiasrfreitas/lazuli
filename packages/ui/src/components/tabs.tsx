@@ -6,6 +6,7 @@ import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "../lib/utils";
+import { useStickyBoundary } from "../hooks/use-sticky-boundary";
 
 export const tabsListVariants = cva("relative inline-flex items-center", {
   variants: {
@@ -108,7 +109,7 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
     <TabsContext.Provider value={{ size, variant, activeWeight }}>
       <TabsPrimitive.Root
         {...props}
-        className={cn("flex flex-col gap-4", className)}
+        className={cn("relative flex flex-col gap-4", className)}
         data-slot="tabs"
         ref={ref}
       />
@@ -118,29 +119,48 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
 
 Tabs.displayName = "Tabs";
 
-export type TabsListProps = TabsPrimitive.List.Props;
+export type TabsListProps = TabsPrimitive.List.Props & {
+  /** Keep navigation at the top of the nearest scroll container. */
+  sticky?: boolean;
+};
 
 /**
  * Groups the tab buttons and renders the moving indicator behind them.
  */
 export const TabsList = forwardRef<HTMLDivElement, TabsListProps>(
-  ({ children, className, ...props }, ref) => {
+  ({ children, className, sticky = false, ...props }, ref) => {
     const { variant } = useContext(TabsContext);
+    const { sentinelRef, stuck } = useStickyBoundary(sticky);
 
     return (
-      <TabsPrimitive.List
-        {...props}
-        className={cn(tabsListVariants({ variant }), className)}
-        data-slot="tabs-list"
-        ref={ref}
-      >
-        {children}
-        <TabsPrimitive.Indicator
-          className={cn(tabsIndicatorVariants({ variant }))}
-          data-slot="tabs-indicator"
-          renderBeforeHydration
-        />
-      </TabsPrimitive.List>
+      <>
+        {sticky && (
+          <span
+            ref={sentinelRef}
+            aria-hidden="true"
+            className="pointer-events-none absolute top-0 h-px w-px"
+          />
+        )}
+        <TabsPrimitive.List
+          {...props}
+          className={cn(
+            tabsListVariants({ variant }),
+            sticky &&
+              "sticky top-0 z-20 shrink-0 data-[stuck]:bg-background dark:data-[stuck]:bg-marquee",
+            className,
+          )}
+          data-slot="tabs-list"
+          data-stuck={stuck || undefined}
+          ref={ref}
+        >
+          {children}
+          <TabsPrimitive.Indicator
+            className={cn(tabsIndicatorVariants({ variant }))}
+            data-slot="tabs-indicator"
+            renderBeforeHydration
+          />
+        </TabsPrimitive.List>
+      </>
     );
   },
 );

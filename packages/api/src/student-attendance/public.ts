@@ -1,5 +1,5 @@
 import type { Prisma } from "@lazuli/db";
-import { matchAttendanceNames, sessionEndInstant } from "@lazuli/domain";
+import { attendanceDistance, matchAttendanceNames, sessionEndInstant } from "@lazuli/domain";
 import type { attendanceDeclarationSchema, z } from "@lazuli/validators";
 import { badRequest } from "../trpc/errors.js";
 import { lockClassRecord, dateOnly, timeOnly } from "../class-records/data.js";
@@ -39,6 +39,7 @@ export async function inspectAttendanceLink(context: PublicContext, token: strin
     endTime: timeOnly(session.endTime),
     format: window.format,
     expiresAt: window.expiresAt,
+    sessionId: session.id,
   };
 }
 export async function findAttendanceName(
@@ -62,6 +63,15 @@ export async function submitAttendanceDeclaration(
   const initial = await activeWindow(context, input.token);
   await lockClassRecord(context.database, initial.classSessionId);
   const window = await activeWindow(context, input.token);
+  const browserHash = tokenHash(`${window.classSessionId}:${input.browserId}`);
+  const usedBrowser = await context.database.attendanceDeclaration.findUnique({
+    where: { classSessionId_browserHash: { classSessionId: window.classSessionId, browserHash } },
+    include: { enrollment: { select: { student: { select: { fullName: true } } } } },
+  });
+  if (usedBrowser) {
+    if (usedBrowser.enrollmentId !== input.enrollmentId) throw badRequest("Este navegador já confirmou uma pessoa nesta aula. Peça ao professor para registrar sua presença manualmente.");
+    return { submittedAt: usedBrowser.submittedAt, name: usedBrowser.enrollment.student.fullName, repeated: true };
+  }
   const matches = matchAttendanceNames(
     await declarationRoster(
       context.database,
@@ -85,14 +95,20 @@ export async function submitAttendanceDeclaration(
       },
     },
   });
-  if (existing) return { submittedAt: existing.submittedAt, name: person.name, repeated: true };
+  if (existing) throw badRequest("Este nome já enviou uma declaração nesta aula. Confira com o professor. A tentativa não consumiu a confirmação deste navegador.");
   if (window.format === "IN_PERSON" && !input.location)
     throw badRequest(
       "Compartilhe sua localização para enviar a presença presencial. O professor também pode registrar manualmente.",
     );
   if (window.format === "ONLINE" && input.location)
     throw badRequest("Aulas online não utilizam localização.");
-  if (input.location) assertFreshLocation(input.location, context.now);
+  if (input.location) {
+    assertFreshLocation(input.location, context.now);
+    const settings = await context.database.attendanceSettings.findUnique({ where: { id: "school" } });
+    if (!settings) throw badRequest("A localização da escola ainda não foi configurada. Peça ao professor para registrar manualmente.");
+    if (input.location.accuracy > settings.maxAccuracyMeters) throw badRequest("Sua localização não tem precisão suficiente. Tente novamente perto de uma janela ou peça a chamada manual ao professor.");
+    if (attendanceDistance(input.location, settings) > settings.radiusMeters) throw badRequest("Sua localização está fora da área da escola. Se você está na sala, peça ao professor para registrar sua presença manualmente.");
+  }
   const declaration = await context.database.attendanceDeclaration.create({
     data: {
       classSessionId: window.classSessionId,
@@ -100,6 +116,7 @@ export async function submitAttendanceDeclaration(
       enrollmentId: input.enrollmentId,
       declaredName: input.name,
       matchKind: matches.exactId === input.enrollmentId ? "EXACT" : "SELECTED",
+      browserHash,
       submittedAt: context.now,
       latitude: input.location?.latitude ?? null,
       longitude: input.location?.longitude ?? null,

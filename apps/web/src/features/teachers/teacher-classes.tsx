@@ -3,13 +3,14 @@ import type { RouterOutputs } from "@lazuli/api";
 import { type ReactElement, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, BookOpen, Clock3, Users } from "lucide-react";
-import { Alert, Badge, Button, EmptyState, InlineSkeleton, Pagination } from "@lazuli/ui";
+import { Alert, Badge, Button, EmptyState, Pagination } from "@lazuli/ui";
+import { TeacherClassesLoading } from "./teacher-loading";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { formatClassScheduleTime, formatFormat, formatTrackName } from "../classes/labels";
 
 export function TeacherClasses({ teacherId, back }: TeacherClassesInput): ReactElement {
   const [page, setPage] = useState(1);
-  const query = trpc.teachers.classes.useQuery({ id: teacherId, page, pageSize: 10 });
+  const query = trpc.teachers.classes.useQuery({ id: teacherId, page, pageSize: 25 });
   return (
     <section className="grid gap-3 border-t border-border pt-5" aria-label="Turmas vinculadas">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -97,13 +98,7 @@ function TeacherClassResults({
         </Button>
       </Alert>
     );
-  if (!query.data || query.isFetching)
-    return (
-      <div role="status" className="grid gap-3 py-4">
-        <InlineSkeleton className="w-48" />
-        <span className="sr-only">Carregando turmas</span>
-      </div>
-    );
+  if (!query.data) return <TeacherClassesLoading />;
   if (query.data.rows.length === 0)
     return (
       <EmptyState

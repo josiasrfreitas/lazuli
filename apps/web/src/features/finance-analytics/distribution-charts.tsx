@@ -40,7 +40,7 @@ export function PaymentMethodsChart({ data }: { data: Analytics }): ReactElement
     label: METHOD_LABELS[row.method] ?? row.method,
   }));
   return (
-    <ChartPanel title="Como a receita chegou" description={`Meios de pagamento · ${data.year}`}>
+    <ChartPanel title="Meios de pagamento" description={`Recebimentos de ${data.year}`}>
       {methods.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">
           Nenhum recebimento neste período.

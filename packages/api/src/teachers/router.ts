@@ -28,15 +28,16 @@ import {
   teacherClasses,
   teacherStudentCount,
 } from "./read.js";
+import { teacherAgenda } from "./agenda.js";
 import { teacherWeek } from "./schedule.js";
 import { lockTeacher } from "./availability.js";
 const MAX_PAGE_SIZE = 100;
-const DEFAULT_CLASS_PAGE_SIZE = 10;
+const DEFAULT_CLASS_PAGE_SIZE = 25;
 const MAX_SEARCH_LENGTH = 80;
 const DAYS_AFTER_MONDAY = 6;
 const DAYS_PER_WEEK = 7;
 const ISO_DATE_LENGTH = 10;
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 25;
 
 async function command<T>(
   context: { db: Context["db"]; staffUser: StaffUser; now?: Date },
@@ -103,7 +104,7 @@ export const teachersRouter = router({
     command(
       ctx,
       "teachers.create",
-      (database) => createTeacher({ database, values: input }),
+      (database) => createTeacher({ database, values: input, actorRole: ctx.staffUser.role }),
       async (result, database) => ({
         subject: await teacherSubject(database, result.id),
         deduplicationKey: `teachers.create:${result.id}`,
@@ -114,7 +115,7 @@ export const teachersRouter = router({
     command(
       ctx,
       "teachers.update",
-      (database) => updateTeacher({ database, values: input }),
+      (database) => updateTeacher({ database, values: input, actorRole: ctx.staffUser.role }),
       async (_result, database) => ({
         subject: await teacherSubject(database, input.id),
         description: input.isEnabled
@@ -123,6 +124,10 @@ export const teachersRouter = router({
       }),
     ),
   ),
+  agenda: adminProcedure.input(teacherIdInputSchema).query(async ({ ctx, input }) => {
+    await readTeacher(ctx.db, input.id);
+    return teacherAgenda({ database: ctx.db, teacherId: input.id, now: ctx.now ?? new Date() });
+  }),
   week: adminProcedure.input(teacherWeekInputSchema).query(async ({ ctx, input }) => {
     await readTeacher(ctx.db, input.id);
     const anchor = new Date(input.week);

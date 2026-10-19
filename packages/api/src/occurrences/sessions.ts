@@ -1,26 +1,36 @@
 import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
-import { invalid, type FollowUpContext } from "./data.js";
+import { eligibleInterventionStaff, invalid, type FollowUpContext } from "./data.js";
 const sessionInclude = {
+  usualTeacher: { select: { id: true, name: true } },
   class: {
     select: {
       id: true,
       portalClassName: true,
+      scheduleType: true,
+      format: true,
+      sharedStage: { select: { name: true } },
       ...responsibilitySelect,
       substitutions: {
         where: { revokedAt: null, deletedAt: null },
-        select: { teacherId: true, date: true, scheduleSlotId: true, classSessionId: true },
+        select: {
+          teacherId: true,
+          teacher: { select: { id: true, name: true } },
+          date: true,
+          scheduleSlotId: true,
+          classSessionId: true,
+        },
         orderBy: { recordedAt: "desc" },
       },
     },
   },
 } satisfies Prisma.ClassSessionInclude;
 type Session = Prisma.ClassSessionGetPayload<{ include: typeof sessionInclude }>;
-function canReport(context: FollowUpContext, session: Session): boolean {
+function reportTeacher(session: Session) {
   const usual = session.responsibilityFrozenAt
-    ? session.usualTeacherId
-    : usualTeacherOn(session.class, session.date)?.id;
+    ? session.usualTeacher
+    : usualTeacherOn(session.class, session.date);
   const substitute = session.class.substitutions.find(
     (row) =>
       row.date.getTime() === session.date.getTime() &&
@@ -28,33 +38,85 @@ function canReport(context: FollowUpContext, session: Session): boolean {
         ? row.scheduleSlotId === session.scheduleSlotId
         : row.classSessionId === session.id),
   );
-  return (
-    context.staffUser.role !== "TEACHER" ||
-    (substitute?.teacherId ?? usual) === context.staffUser.id
-  );
+  return { teacher: substitute?.teacher ?? usual, substitute: Boolean(substitute) };
 }
-export async function occurrenceSessions(context: FollowUpContext) {
+function canReport(context: FollowUpContext, session: Session): boolean {
+  return context.staffUser.role !== "TEACHER" || reportTeacher(session).teacher?.id === context.staffUser.id;
+}
+const schoolTime = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "America/Sao_Paulo",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
+function hasStarted(session: { date: Date; startTime: Date }, now: Date): boolean {
+  const today = saoPauloDateOnly(now);
+  const date = session.date.toISOString().slice(0, 10);
+  const time = schoolTime.format(now);
+  return date < today || (date === today && session.startTime.toISOString().slice(11, 19) <= time);
+}
+
+export async function occurrenceSessions(
+  context: FollowUpContext,
+  studentId?: string,
+  range?: { from: string; to: string },
+) {
   const today = new Date(saoPauloDateOnly(context.now));
+  const through = range && new Date(range.to) < today ? new Date(range.to) : today;
+  if (range && new Date(range.from) > through) return [];
+  const enrollments = studentId
+    ? await context.database.enrollment.findMany({
+        where: {
+          studentId,
+          deletedAt: null,
+          entryDate: { lte: through },
+          ...(range
+            ? { OR: [{ exitDate: null }, { exitDate: { gt: new Date(range.from) } }] }
+            : {}),
+        },
+        select: { classId: true, entryDate: true, exitDate: true },
+      })
+    : null;
+  if (enrollments?.length === 0) return [];
   const rows = await context.database.classSession.findMany({
     where: {
       deletedAt: null,
       status: "SCHEDULED",
-      date: { lte: today },
+      date: { lte: through, ...(range ? { gte: new Date(range.from) } : {}) },
       class: { deletedAt: null },
+      ...(enrollments
+        ? {
+            OR: enrollments.map((row) => ({
+              classId: row.classId,
+              date: { gte: row.entryDate, ...(row.exitDate ? { lt: row.exitDate } : {}) },
+            })),
+          }
+        : {}),
     },
     include: sessionInclude,
     orderBy: [{ date: "desc" }, { startTime: "desc" }],
-    take: 600,
+    ...(range ? {} : { take: 600 }),
   });
   return rows
-    .filter((row) => canReport(context, row))
-    .map((row) => ({
-      id: row.id,
-      date: row.date,
-      startTime: row.startTime,
-      className: row.class.portalClassName,
-      classId: row.classId,
-    }));
+    .filter((row) => hasStarted(row, context.now) && canReport(context, row))
+    .map((row) => {
+      const { teacher, substitute } = reportTeacher(row);
+      return {
+        id: row.id,
+        date: row.date,
+        startTime: row.startTime,
+        endTime: row.endTime,
+        className: row.class.portalClassName,
+        classId: row.classId,
+        teacherName: teacher?.name ?? null,
+        substitute,
+        stageName: row.class.sharedStage?.name ?? null,
+        scheduleType: row.class.scheduleType,
+        format: row.class.format,
+      };
+    });
 }
 export async function loadReportSession(context: FollowUpContext, id: string): Promise<Session> {
   const row = await context.database.classSession.findFirst({
@@ -62,8 +124,8 @@ export async function loadReportSession(context: FollowUpContext, id: string): P
     include: sessionInclude,
   });
   if (!row || !canReport(context, row)) invalid("Aula indisponível para este professor.");
-  if (row.date > new Date(saoPauloDateOnly(context.now)))
-    invalid("Escolha uma aula que já aconteceu.");
+  if (!hasStarted(row, context.now))
+    invalid("Escolha uma aula em andamento ou que já aconteceu.");
   return row;
 }
 export async function occurrenceRoster(context: FollowUpContext, sessionId: string) {
@@ -84,19 +146,46 @@ export async function occurrenceRoster(context: FollowUpContext, sessionId: stri
     orderBy: { fullName: "asc" },
   });
 }
-export async function interventionTeachers(context: FollowUpContext) {
+export async function interventionStaff(context: FollowUpContext) {
   return context.database.user.findMany({
-    where: {
-      deletedAt: null,
-      teacherProfile: {
-        deletedAt: null,
-        OR: [
-          { departureDate: null },
-          { departureDate: { gt: new Date(saoPauloDateOnly(context.now)) } },
-        ],
-      },
-    },
+    where: eligibleInterventionStaff(context),
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+}
+
+export async function interventionFormOptions(context: FollowUpContext, studentId: string) {
+  const today = new Date(saoPauloDateOnly(context.now));
+  const [staff, enrollments] = await Promise.all([
+    interventionStaff(context),
+    context.database.enrollment.findMany({
+      where: {
+        studentId,
+        student: { deletedAt: null },
+        deletedAt: null,
+        class: { deletedAt: null },
+        entryDate: { lte: today },
+        OR: [{ exitDate: null }, { exitDate: { gt: today } }],
+        actions: {
+          none: {
+            status: "SCHEDULED",
+            kind: { in: ["PAUSE", "EXIT"] },
+            effectiveDate: { lte: today },
+          },
+        },
+      },
+      select: { class: { select: { portalClassName: true, ...responsibilitySelect } } },
+    }),
+  ]);
+  const teachers = enrollments.map((row) => usualTeacherOn(row.class, today));
+  const teacherIds = new Set(teachers.map((teacher) => teacher?.id ?? null));
+  const onlyTeacher = teachers[0];
+  const suggestedResponsible =
+    teacherIds.size === 1 && onlyTeacher && staff.some((person) => person.id === onlyTeacher.id)
+      ? {
+          ...onlyTeacher,
+          classNames: [...new Set(enrollments.map((row) => row.class.portalClassName))],
+        }
+      : null;
+  return { staff, suggestedResponsible };
 }

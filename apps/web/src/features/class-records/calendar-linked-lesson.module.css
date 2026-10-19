@@ -1,0 +1,184 @@
+.frame {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 0fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--lesson-regular-surface);
+  color: var(--lesson-regular-foreground);
+}
+.frame[data-modality="PERSONALIZED"] {
+  background: var(--lesson-personalized-surface);
+  color: var(--lesson-personalized-foreground);
+}
+.frame[data-expanded="true"] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  border-color: var(--interactive);
+}
+.lessonMain {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.lessonMain > button {
+  padding-block: 0.125rem;
+  border: 0;
+  border-radius: 0;
+}
+.indicator {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  max-width: calc(100% - 0.75rem);
+  min-height: 1.25rem;
+  margin: 0 0.375rem 0.25rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  background: var(--info-muted);
+  color: var(--info);
+  font-family: var(--lz-font-numeric);
+  font-size: var(--lz-text-micro);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.indicatorLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.indicator svg {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.panel {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--card);
+  color: var(--foreground);
+}
+.panelContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.375rem;
+  border-left: 1px solid var(--border);
+  overflow: hidden;
+}
+/* A constant total of 2.2fr keeps both columns on the same progress as the outer lanes. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  [data-timeline-motion="true"] .frame {
+    transition: grid-template-columns var(--lz-duration-slow) var(--lz-ease-standard);
+  }
+}
+.heading {
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--lz-text-micro);
+  font-weight: 600;
+  line-height: 1.25;
+}
+.names {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.person {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 1.5rem;
+  padding-inline: 0.25rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--lz-text-caption);
+  text-align: left;
+  cursor: pointer;
+}
+.person > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.purpose {
+  flex-shrink: 0;
+  font-size: var(--lz-text-micro);
+  color: var(--muted-foreground);
+}
+.person[data-status="CANCELLED"] > span:first-child {
+  text-decoration: line-through;
+}
+.person:focus-visible,
+.indicator:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .person:hover {
+    background: var(--accent);
+  }
+  .indicator:hover {
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+}
+@media (hover: none), (pointer: coarse) {
+  .indicator,
+  .person {
+    min-height: 2rem;
+  }
+}
+/* Short cells give the indicator its own rail instead of covering the lesson text. */
+@container calendar-event (height <= 60px) {
+  .frame {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .lessonMain {
+    grid-row: 1;
+    padding-right: 2rem;
+  }
+  .indicator {
+    grid-row: 1;
+    align-self: end;
+    justify-self: end;
+    max-width: 2rem;
+    margin: 0 0.125rem;
+    padding-inline: 0.125rem;
+    gap: 0.125rem;
+  }
+  .indicatorLabel {
+    display: none;
+  }
+  .panelContent {
+    padding-block: 0.125rem;
+  }
+  .heading {
+    display: none;
+  }
+  .person {
+    flex-wrap: wrap;
+    gap: 0 0.25rem;
+  }
+}

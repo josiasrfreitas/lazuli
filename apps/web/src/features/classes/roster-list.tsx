@@ -1,20 +1,21 @@
 import type { ReactElement } from "react";
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
 import {
   Avatar,
   Badge,
-  Button,
   DataTable,
   type DataTableColumn,
   type DataTableState,
   type TablePaginationConfig,
 } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
-import { toWhatsAppUrl } from "~/lib/format";
+import { formatAttendancePercent, toWhatsAppUrl } from "~/lib/format";
+import { gradeLabel } from "~/features/assessments/shared";
 import { rosterStatus, type RosterRow } from "./roster-status";
 import { studentAgeLabel } from "./student-age";
 import { formatTrackName } from "./labels";
+import { StudentAssessmentsDialog } from "~/features/students/profile/student-assessments-dialog";
+import { AttendanceHistoryDialog } from "~/features/students/profile/attendance-history-dialog";
 import { StudentActions } from "./roster-actions";
 
 type List = RouterOutputs["classes"]["roster"];
@@ -29,7 +30,7 @@ type Props = {
   showStage: boolean;
   filtered?: boolean;
 };
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 25;
 const TONES = {
   Vigente: "success",
   Programada: "info",
@@ -93,6 +94,7 @@ function rosterColumns(props: Props): DataTableColumn<RosterRow>[] {
       width: "medium",
       cell: (row) => <StudentLearningContext row={row} />,
     });
+  columns.push(...rosterMetricColumns());
   return [
     ...columns,
     {
@@ -101,20 +103,56 @@ function rosterColumns(props: Props): DataTableColumn<RosterRow>[] {
       width: "medium",
       cell: (row) => <StudentMembership row={row} today={today} />,
     },
+    rosterActionsColumn(props, today),
+  ];
+}
+function rosterActionsColumn(props: Props, today: string): DataTableColumn<RosterRow> {
+  return {
+    id: "actions",
+    header: <span className="sr-only">Ações</span>,
+    width: "selection",
+    cell: (row) => (
+      <StudentActions
+        row={row}
+        close={props.close}
+        canClose={rosterStatus(row, today) === "Vigente"}
+        resume={
+          rosterStatus(row, today) === "Pausada" && row.returnActions.length === 0
+            ? props.resume
+            : undefined
+        }
+      />
+    ),
+  };
+}
+function rosterMetricColumns(): DataTableColumn<RosterRow>[] {
+  return [
     {
-      id: "actions",
-      header: <span className="sr-only">Ações</span>,
-      width: "selection",
+      id: "gradeAverage",
+      header: "Média",
+      numeric: true,
+      width: "narrow",
       cell: (row) => (
-        <StudentActions
-          row={row}
-          close={props.close}
-          canClose={rosterStatus(row, today) === "Vigente"}
-          resume={
-            rosterStatus(row, today) === "Pausada" && row.returnActions.length === 0
-              ? props.resume
-              : undefined
-          }
+        <StudentAssessmentsDialog
+          studentId={row.studentId}
+          studentName={row.student.fullName}
+          triggerLabel="Ver notas"
+          triggerValue={gradeLabel(row.gradeAverage)}
+        />
+      ),
+    },
+    {
+      id: "attendance",
+      header: "Frequência",
+      numeric: true,
+      width: "narrow",
+      cell: (row) => (
+        <AttendanceHistoryDialog
+          studentId={row.studentId}
+          studentName={row.student.fullName}
+          enrollmentId={row.id}
+          triggerLabel="Ver frequência"
+          triggerValue={formatAttendancePercent(row.attendancePercent)}
         />
       ),
     },
@@ -141,26 +179,19 @@ function StudentIdentity({ row, today }: { row: RosterRow; today: string }): Rea
 function StudentContact({ row }: { row: RosterRow }): ReactElement {
   const whatsapp = toWhatsAppUrl(row.student.phone);
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="font-numeric text-caption tabular-nums">
-        {row.student.phone ?? "Sem telefone"}
-      </span>
-      {whatsapp && (
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          nativeButton={false}
-          render={
-            <a
-              href={whatsapp}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Abrir WhatsApp de ${row.student.fullName}`}
-            />
-          }
+    <div className="font-numeric text-caption tabular-nums">
+      {whatsapp ? (
+        <a
+          className="text-interactive hover:underline focus-visible:underline"
+          href={whatsapp}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Abrir WhatsApp de ${row.student.fullName}: ${row.student.phone}`}
         >
-          <MessageCircle aria-hidden="true" />
-        </Button>
+          {row.student.phone}
+        </a>
+      ) : (
+        <span>{row.student.phone ?? "Sem telefone"}</span>
       )}
     </div>
   );

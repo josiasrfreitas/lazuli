@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { AlertCircle, ArrowUpRight, CheckCircle2 } from "lucide-react";
-import { Button, InlineSkeleton } from "@lazuli/ui";
+import { Button, PencilLoader, Tooltip, TooltipTrigger, TooltipContent } from "@lazuli/ui";
 import type { StudentFinanceSummary } from "@lazuli/domain";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import { ProfileError } from "./profile-shared";
@@ -9,14 +9,15 @@ import type { StudentFinanceState } from "./finance-logic";
 import type { StudentProfile } from "./logic";
 import { StudentContactSummary } from "./student-identity";
 import { FinanceContractTerms } from "./finance-contract-terms";
-import styles from "./student-profile.module.css";
+import { FinanceHistoryDialog } from "./finance-history-dialog";
+import { ContractTerminationNotice } from "./contract-termination-notice";
 
 export function FinanceOverview({
   state,
   profile,
 }: {
   state: StudentFinanceState;
-  profile: StudentProfile;
+  profile?: StudentProfile;
 }): ReactElement {
   const { summary } = state;
   if (summary.isError)
@@ -24,91 +25,161 @@ export function FinanceOverview({
       <ProfileError
         message="Não foi possível carregar o resumo financeiro."
         onRetry={() => void summary.refetch()}
+        isRetrying={summary.isFetching}
       />
     );
-  if (!summary.data)
+  if (!summary.data || !profile)
     return (
-      <div role="status" className="grid gap-4 py-5">
-        <InlineSkeleton className="h-7 w-52" />
-        <InlineSkeleton className="h-28 w-full" />
-        <span className="sr-only">Carregando vida financeira</span>
-      </div>
+      <section
+        aria-label="Resumo financeiro"
+        className="flex min-h-72 items-center justify-center border border-border bg-accent px-5 py-4"
+      >
+        <PencilLoader label="Carregando resumo financeiro" />
+      </section>
     );
   return (
     <section
       aria-label="Resumo financeiro"
-      className="grid gap-x-8 gap-y-4 border border-border bg-accent px-5 py-4 lg:grid-cols-5"
+      className={`grid gap-x-8 gap-y-4 border px-5 py-4 lg:grid-cols-5 ${
+        summary.data.debtState === "SEVERE_OVERDUE"
+          ? "border-destructive/50 bg-destructive/5"
+          : "border-border bg-accent"
+      }`}
     >
-      <FinanceBalance summary={summary.data} />
-      <PaymentBehavior summary={summary.data} studentId={profile.id} />
+      {summary.data.latestTermination && (
+        <div className="lg:col-span-5">
+          <ContractTerminationNotice termination={summary.data.latestTermination} />
+        </div>
+      )}
+      <FinanceBalance
+        summary={summary.data}
+        contractTerminated={Boolean(
+          summary.data.latestTermination && !summary.data.contracts.length,
+        )}
+      />
+      <PaymentBehavior
+        summary={summary.data}
+        studentId={profile.id}
+        studentName={profile.contact.fullName}
+      />
       <div className="grid gap-3 border-t border-border/60 pt-3 lg:col-span-5">
         <FinanceContractTerms summary={summary.data} />
-        <StudentContactSummary profile={profile} />
+        <StudentContactSummary profile={profile} highlightWhatsApp />
       </div>
     </section>
   );
 }
 
-function FinanceBalance({ summary }: { summary: StudentFinanceSummary }): ReactElement {
-  const progress =
-    summary.totalCents > 0 ? Math.round((summary.receivedCents / summary.totalCents) * 100) : null;
-  const hasDebt = summary.overdueCount > 0;
+function FinanceBalance({
+  summary,
+  contractTerminated,
+}: {
+  summary: StudentFinanceSummary;
+  contractTerminated: boolean;
+}): ReactElement {
+  const hasDebt = summary.debtState !== "NO_OVERDUE";
+  const severe = summary.debtState === "SEVERE_OVERDUE";
   return (
     <div className="grid content-start gap-4 lg:col-span-3">
       <div>
-        <h2 className="flex items-center gap-3 font-display text-2xl font-medium text-heading">
+        <h2
+          className={`flex items-center gap-3 font-display text-2xl font-medium ${hasDebt ? "text-destructive" : "text-heading"}`}
+        >
           {summary.installmentCount === 0
             ? "Sem cobranças vinculadas"
             : hasDebt
-              ? "Pendências em aberto"
+              ? severe
+                ? "Pendência grave · ação prioritária"
+                : "Pagamento em atraso"
               : summary.outstandingCents === 0
                 ? "Sem saldo a receber"
-                : "Em dia"}
+                : contractTerminated
+                  ? "Saldo pendente após rescisão"
+                  : "Em dia"}
           {hasDebt ? (
-            <AlertCircle className="size-5 shrink-0 text-warning" aria-hidden />
+            <AlertCircle className="size-5 shrink-0 text-destructive" aria-hidden />
           ) : summary.installmentCount > 0 ? (
             <CheckCircle2 className="size-5 shrink-0 text-success" aria-hidden />
           ) : null}
         </h2>
         <p className="mt-1 text-caption text-muted-foreground">
           {hasDebt
-            ? `${money(summary.overdueCents)} em atraso · vencimento mais antigo há ${summary.oldestOverdueDays} dias`
+            ? `${summary.overdueCount} ${summary.overdueCount === 1 ? "parcela vencida" : "parcelas vencidas"} · maior atraso de ${summary.oldestOverdueDays} dias`
             : summary.nextDueDate
               ? `Próximo vencimento em ${formatDateOnlyBR(summary.nextDueDate)} · ${money(summary.nextDueCents)}`
               : "Novas cobranças e recebimentos aparecerão aqui."}
         </p>
       </div>
-      <dl className="grid grid-cols-2 gap-4">
+      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div>
-          <dt className="text-caption text-muted-foreground">Já recebido</dt>
-          <dd className="mt-1 font-numeric text-3xl font-semibold tracking-tight tabular-nums text-heading">
+          <dt className={`text-caption ${hasDebt ? "text-destructive" : "text-muted-foreground"}`}>
+            Total vencido
+          </dt>
+          <dd
+            className={`mt-1 font-numeric text-3xl font-semibold tracking-tight tabular-nums ${hasDebt ? "text-destructive" : "text-heading"}`}
+          >
+            {money(summary.overdueCents)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-caption text-info">Já recebido</dt>
+          <dd className="mt-1 font-numeric text-3xl font-semibold tracking-tight tabular-nums text-info">
             {money(summary.receivedCents)}
           </dd>
         </div>
         <div>
-          <dt className="text-caption text-muted-foreground">Saldo em aberto</dt>
+          <dt className="text-caption text-muted-foreground">A vencer</dt>
           <dd className="mt-1 font-numeric text-3xl font-semibold tracking-tight tabular-nums text-heading">
-            {money(summary.outstandingCents)}
+            {money(summary.outstandingCents - summary.overdueCents)}
           </dd>
         </div>
       </dl>
-      <div className="grid gap-2">
-        <meter
-          className={styles.attendanceMeter}
-          min={0}
-          max={summary.totalCents || 1}
-          value={summary.receivedCents}
-          aria-label="Valor já pago"
-          aria-valuetext={`${money(summary.receivedCents)} pagos de ${money(summary.totalCents)}`}
-        />
-        <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-caption text-muted-foreground">
-          <span>
-            {progress === null
-              ? "Sem valores a acompanhar"
-              : `${progress}% pago · total de ${money(summary.totalCents)}`}
-          </span>
-          <span>Inclui pagamentos parciais</span>
-        </div>
+      <FinanceDistribution summary={summary} />
+    </div>
+  );
+}
+
+function FinanceDistribution({ summary }: { summary: StudentFinanceSummary }): ReactElement {
+  const total = summary.totalCents || 1;
+  const paid = (summary.receivedCents / total) * 100;
+  const overdue = (summary.overdueCents / total) * 100;
+  const upcoming = summary.outstandingCents - summary.overdueCents;
+  const description = `Pago: ${money(summary.receivedCents)}. Em atraso: ${money(summary.overdueCents)}. A vencer: ${money(upcoming)}.`;
+  return (
+    <div className="grid gap-2">
+      <Tooltip>
+        <TooltipTrigger
+          render={<div />}
+          tabIndex={0}
+          aria-label={description}
+          className="flex min-h-6 items-center rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          <svg
+            className="h-3 w-full overflow-hidden rounded-sm"
+            viewBox="0 0 100 12"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <rect width="100" height="12" className="fill-border" />
+            <rect width={paid} height="12" className="fill-info" />
+            <rect x={paid} width={overdue} height="12" className="fill-destructive" />
+          </svg>
+        </TooltipTrigger>
+        <TooltipContent>
+          <ul className="grid gap-1">
+            <li>Pago: {money(summary.receivedCents)}</li>
+            <li>Em atraso: {money(summary.overdueCents)}</li>
+            <li>A vencer: {money(upcoming)}</li>
+          </ul>
+        </TooltipContent>
+      </Tooltip>
+      <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-caption text-muted-foreground">
+        <span>
+          {summary.totalCents > 0
+            ? `Total de ${money(summary.totalCents)}`
+            : "Sem valores a acompanhar"}
+        </span>
+        <span>Inclui pagamentos parciais</span>
       </div>
     </div>
   );
@@ -117,28 +188,39 @@ function FinanceBalance({ summary }: { summary: StudentFinanceSummary }): ReactE
 function PaymentBehavior({
   summary,
   studentId,
+  studentName,
 }: {
   summary: StudentFinanceSummary;
   studentId: string;
+  studentName: string;
 }): ReactElement {
   const history = summary.history;
   return (
     <div className="grid content-start gap-3 border-t border-border pt-4 lg:col-span-2 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
       <div>
-        <h3 className="font-display text-2xl font-medium text-heading">{behaviorLabel(summary)}</h3>
+        <div className="flex items-start justify-between gap-3">
+          <h3
+            className={`font-display text-2xl font-medium ${history.paymentState === "RECURRING_DELAY" ? "text-warning" : "text-heading"}`}
+          >
+            {behaviorLabel(summary)}
+          </h3>
+          <FinanceHistoryDialog studentId={studentId} studentName={studentName} />
+        </div>
         <p className="mt-1 text-caption text-muted-foreground">
-          {history.lateMonths > 0
-            ? `Atrasos em ${history.lateMonths} ${history.lateMonths === 1 ? "mês de vencimento" : "meses de vencimento"}, incluindo pendências atuais.`
-            : history.settledCount > 0
-              ? "Todas as quitações registradas ocorreram até o vencimento."
-              : "A pontualidade aparecerá após os primeiros recebimentos."}
+          {history.paymentState === "RECURRING_DELAY"
+            ? `Pagamentos quitados com atraso em ${history.settledLateMonths} meses. Acompanhe os próximos vencimentos.`
+            : history.paymentState === "OCCASIONAL_DELAY"
+              ? "Há pagamento quitado com atraso em um mês de vencimento."
+              : history.settledCount > 0
+                ? "Todas as quitações registradas ocorreram até o vencimento."
+                : "A pontualidade aparecerá após as primeiras quitações."}
         </p>
       </div>
       <dl className="grid grid-cols-3 gap-3">
         <BehaviorFact label="Pagas em dia" value={String(history.onTimeCount)} />
         <BehaviorFact label="Pagas com atraso" value={String(history.lateCount)} />
         <BehaviorFact
-          label="Atraso médio"
+          label="Atraso médio nas quitações"
           value={history.averageLateDays === null ? "—" : `${history.averageLateDays} dias`}
         />
       </dl>
@@ -166,7 +248,14 @@ function BehaviorFact({ label, value }: { label: string; value: string }): React
 }
 
 function behaviorLabel({ history }: StudentFinanceSummary): string {
-  if (history.lateMonths > 1) return "Atrasos recorrentes";
-  if (history.lateMonths === 1) return "Atraso pontual";
-  return history.settledCount > 0 ? "Pagamentos pontuais" : "Histórico em formação";
+  switch (history.paymentState) {
+    case "RECURRING_DELAY":
+      return "Atrasos recorrentes";
+    case "OCCASIONAL_DELAY":
+      return "Atraso pontual nas quitações";
+    case "ON_TIME":
+      return "Pagamentos pontuais";
+    case "INSUFFICIENT_HISTORY":
+      return "Histórico em formação";
+  }
 }

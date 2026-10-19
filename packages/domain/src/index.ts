@@ -133,3 +133,18 @@ export {
   type StudentFinanceSummary,
   type StudentSettlement,
 } from "./student-finance.js";
+
+export { normalizeSearch } from "./search.js";
+
+export * from "./contract-termination.js";
+export { INITIAL_MATERIAL_PRICING, materialPriceQuote } from "./material-pricing.js";
+export { materialReminderState, stageMaterialAttention } from "./material-reminder.js";
+export {
+  TEACHING_HOUR_MINUTES,
+  DEFAULT_TEACHING_MODALITY,
+  assertTeachingProgram,
+  type TrackAgeGroup,
+  type ProgramActivityKind,
+  type TeachingProgramImport,
+} from "./teaching-program.js";
+export { studentPendingActions, type PendingAction } from "./pending-actions.js";

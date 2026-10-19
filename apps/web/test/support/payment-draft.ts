@@ -36,6 +36,7 @@ export const PAYMENT_PREVIEW: PreviewRow[] = [
       quote: {
         balanceCents: 25_000,
         newInterestCents: 0,
+        outstandingChargesCents: 0,
         discountCents: 2000,
         settlementCents: 23_000,
         receivedCents: 23_000,

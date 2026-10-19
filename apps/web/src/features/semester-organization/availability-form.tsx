@@ -41,8 +41,10 @@ export function AvailabilityForm({
     />
   ) : (
     <TaskDialog
+      compactHeader actionSize="sm"
       title="Disponibilidade do aluno"
       description="Carregando confirmações anteriores…"
+      submitDisabled
       formId="availability-loading"
       firstField=""
       submitLabel="Carregando…"
@@ -88,7 +90,7 @@ function AvailabilityFields({
   );
   const formats = previous?.formats ?? (data.lead?.format ? [data.lead.format] : ["IN_PERSON"]);
   const [format, setFormat] = useState(formats.length === 2 ? "BOTH" : (formats[0] ?? "IN_PERSON"));
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(previous?.notes ?? "");
   const validation = useValidation();
   const refresh = useOrganizationRefresh();
   const mutation = trpc.semesterOrganization.confirmAvailability.useMutation({
@@ -99,6 +101,7 @@ function AvailabilityFields({
   });
   return (
     <TaskDialog
+      compactHeader actionSize="sm"
       title="Confirmar disponibilidade"
       description={`${data.student.fullName} · semestre ${board.semester.name}`}
       formId="semester-availability"

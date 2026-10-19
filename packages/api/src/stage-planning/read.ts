@@ -10,8 +10,9 @@ import {
   dateOnly,
   type PlanningContext,
 } from "./data.js";
+import { planningRecords } from "./records.js";
 const UPCOMING_DATES = 6;
-const HISTORY_PAGE_SIZE = 20;
+const HISTORY_PAGE_SIZE = 25;
 export async function planningContexts(context: PlanningContext) {
   const today = new Date(saoPauloDateOnly(context.now));
   const rows = await context.database.class.findMany({
@@ -22,6 +23,7 @@ export async function planningContexts(context: PlanningContext) {
     orderBy: [{ semester: { startDate: "desc" } }, { portalClassName: "asc" }],
     select: {
       ...responsibilitySelect,
+      substitutions: { where: { teacherId: context.staffUser.id, date: { gte: today }, revokedAt: null, deletedAt: null }, select: { id: true } },
       id: true,
       portalClassName: true,
       scheduleType: true,
@@ -50,7 +52,7 @@ export async function planningContexts(context: PlanningContext) {
     .filter(
       (row) =>
         context.staffUser.role !== "TEACHER" ||
-        usualTeacherOn(row, today)?.id === context.staffUser.id,
+        usualTeacherOn(row, today)?.id === context.staffUser.id || row.substitutions.length > 0,
     )
     .map((row) => ({
       id: row.id,
@@ -101,6 +103,7 @@ export async function readPlanning(context: PlanningContext, target: StagePlanTa
     plan: plan
       ? { id: plan.id, version: plan.version, updatedAt: plan.updatedAt, ...planSnapshot(plan) }
       : null,
+    records: plan ? await planningRecords(context, scope, plan) : [],
     upcoming: sessions.map((session) => ({
       id: session.id,
       date: dateOnly(session.date),

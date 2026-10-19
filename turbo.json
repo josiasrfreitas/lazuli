@@ -3,6 +3,13 @@
   "globalDependencies": [".env"],
   "globalEnv": [
     "APP_URL",
+    "AWS_REGION",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+    "AWS_PROFILE",
+    "S3_BUCKET",
+    "S3_ENDPOINT",
     "BETTER_AUTH_SECRET",
     "BETTER_AUTH_URL",
     "DATABASE_URL",

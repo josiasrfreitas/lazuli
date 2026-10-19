@@ -32,7 +32,7 @@ export function ReasonDialog({
   onClose,
 }: {
   action: "withdraw" | "invalidate";
-  row: Placement;
+  row: Pick<Placement, "id" | "version" | "studentId" | "studentName">;
   previousId?: string;
   board: SemesterBoard;
   onClose: () => void;
@@ -107,6 +107,9 @@ export function ReasonDialog({
   );
 }
 const actions: Record<string, string> = {
+  INHERITED: "Continuidade herdada",
+  NOT_CONTINUING: "Não continuidade registrada",
+  CONFIRMED_CONTINUITY: "Continuidade confirmada",
   PROPOSED: "Proposta criada",
   REVISED: "Proposta revisada",
   PUBLISHED: "Publicação realizada",

@@ -55,7 +55,10 @@ export function overduePayerSummaryVm(group: FinanceOverduePayerGroup): OverdueP
 }
 export function installmentVm(row: FinanceInstallmentRow, today: string): InstallmentVm {
   return {
-    sequence: `${row.sequenceNumber} de ${row.scheduleTotal}`,
+    sequence:
+      row.origin === "MATERIAL"
+        ? "Recebimento único"
+        : `${row.sequenceNumber} de ${row.scheduleTotal}`,
     origin: originLabel(row.origin),
     dueDate: formatDateOnlyBR(row.dueDate),
     badge: statusBadge(row, today),
@@ -71,6 +74,12 @@ export function originLabel(origin: FinanceInstallmentRow["origin"]): string {
   }[origin];
 }
 function statusBadge(row: FinanceInstallmentRow, today: string): InstallmentVm["badge"] {
+  if (row.collectibleBalanceCents > 0 && row.suspendedUntil && row.suspendedUntil >= today)
+    return {
+      label: "Suspensa",
+      variant: "info",
+      description: `Novo vencimento em ${formatDateOnlyBR(row.suspendedUntil)}. Sem novos juros durante a suspensão.`,
+    };
   switch (row.status) {
     case "PAID": {
       return { label: "Paga", variant: "success" };

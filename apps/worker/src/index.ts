@@ -1,9 +1,8 @@
-import {
-  processDueEnrollmentActions,
-  processSessionGeneration,
-  type SessionGenerationResult,
-} from "@lazuli/worker-handlers";
-import { SESSIONS_GENERATE_WORKFLOW, type SessionsGeneratePayload } from "@lazuli/job-contracts";
+import { processAssessmentFile, recoverAssessmentFiles } from "@lazuli/worker-handlers/assessment-files";
+import { processDueEnrollmentActions } from "@lazuli/worker-handlers/enrollment";
+import { processSessionGeneration } from "@lazuli/worker-handlers/sessions";
+type SessionGenerationResult = Awaited<ReturnType<typeof processSessionGeneration>>;
+import { ASSESSMENT_FILE_WORKFLOW, type AssessmentFilePayload, SESSIONS_GENERATE_WORKFLOW, type SessionsGeneratePayload } from "@lazuli/job-contracts";
 import { getHatchetClient } from "@lazuli/integrations/hatchet";
 import { db } from "@lazuli/db";
 
@@ -37,19 +36,29 @@ async function start(): Promise<void> {
     scheduleTimeout: "5m",
     fn: (payload) => processSessionGeneration({ database: db, payload }),
   });
+  const files = hatchet.task<AssessmentFilePayload, { status: string }>({ name: ASSESSMENT_FILE_WORKFLOW, retries: 0, executionTimeout: "2m", scheduleTimeout: "5m", fn: (payload) => processAssessmentFile({ database: db, payload }) });
   const worker = await hatchet.worker("school", {
     slots: 1,
     durableSlots: 1,
-    workflows: [sessions],
+    workflows: [sessions, files],
     handleKill: false,
   });
   const enrollmentTimer = setInterval(() => void processEnrollmentActions(), ENROLLMENT_POLL_MS);
+  let recoveringFiles = false;
+  const recover = async () => {
+    if (recoveringFiles) return;
+    recoveringFiles = true;
+    try { await recoverAssessmentFiles(db); } catch { log("assessment file recovery failed"); } finally { recoveringFiles = false; }
+  };
+  const fileTimer = setInterval(() => void recover(), 15_000);
+  void recover();
   void processEnrollmentActions();
   let stopping = false;
   const shutdown = async () => {
     if (stopping) return;
     stopping = true;
     clearInterval(enrollmentTimer);
+    clearInterval(fileTimer);
     await worker.stop();
     await db.$disconnect();
   };
@@ -60,6 +69,7 @@ async function start(): Promise<void> {
     await worker.start();
   } finally {
     clearInterval(enrollmentTimer);
+    clearInterval(fileTimer);
   }
 }
 

@@ -1,93 +1,96 @@
 "use client";
 
-import Link from "next/link";
-import {
-  ArrowUpRight,
-  CheckCheck,
-  Clock3,
-  UserRound,
-  CircleCheck,
-  CircleDashed,
-  CircleX,
-  CircleAlert,
-} from "lucide-react";
-import {
-  Badge,
-  Button,
-  Popover,
-  PopoverContent,
-  PopoverDescription,
-  PopoverTitle,
-  PopoverTrigger,
-} from "@lazuli/ui";
-import { calendarDate, lessonStates, type CalendarLesson } from "./calendar-model";
+import { type KeyboardEvent, type ReactElement } from "react";
+import { visitLabels } from "~/features/admissions/labels";
+import { purposes, statuses } from "~/features/appointments/shared";
+import { stageIdentity, type CalendarLesson } from "./calendar-model";
+import { lessonFormatLabel } from "./lesson-format";
+import { LessonCardContent } from "./lesson-card-content";
+import { LessonMarkers } from "./lesson-markers";
+import { lessonStatus } from "./weekly-block-details";
 import styles from "./calendar.module.css";
 
-export function CalendarLessonCard({ lesson }: { lesson: CalendarLesson }) {
-  const StateIcon =
-    lesson.state === "RECORDED"
-      ? CircleCheck
-      : lesson.state === "CANCELLED"
-        ? CircleX
-        : lesson.state === "PENDING"
-          ? CircleAlert
-          : CircleDashed;
+export function CalendarLessonButton({
+  lesson,
+  expanded,
+  onOpen,
+}: {
+  lesson: CalendarLesson;
+  expanded: boolean;
+  onOpen: (lesson: CalendarLesson) => void;
+}): ReactElement {
+  const identity = stageIdentity(lesson);
+  const appointment = lesson.appointment;
+  const experiment = lesson.experimental;
+  const title = experiment
+    ? experiment.candidate.fullName
+    : appointment
+      ? appointment.student.name
+      : identity.stage;
+  const context = experiment
+    ? experiment.kind === "PLACEMENT"
+      ? "Nivelamento"
+      : "Individual"
+    : appointment
+      ? purposes[appointment.purpose]
+      : lesson.className;
+  const format = lessonFormatLabel(lesson);
+  const status = experiment
+    ? experiment.overdue
+      ? "A registrar"
+      : visitLabels[experiment.status]
+    : appointment
+      ? appointment.overdue
+        ? "A registrar"
+        : statuses[appointment.status]
+      : lessonStatus(lesson);
+  const kind = experiment
+    ? experiment.kind === "PLACEMENT"
+      ? "Atendimento"
+      : "Experimental"
+    : appointment
+      ? "Atendimento"
+      : lesson.scheduleType === "PERSONALIZED"
+        ? "PPT"
+        : "Regular";
   return (
-    <Popover>
-      <PopoverTrigger
-        className={styles.lesson}
-        data-state={lesson.state}
-        aria-label={`${lesson.className}, ${lesson.teacher ?? "Professor a definir"}, ${lesson.startTime} às ${lesson.endTime}, ${lessonStates[lesson.state]}`}
-      >
-        <span className={styles.lessonTitle}>{lesson.className}</span>
-        <span className={styles.lessonTeacher}>{lesson.teacher ?? "Professor a definir"}</span>
-        <span className={styles.state} title={lessonStates[lesson.state]}>
-          <StateIcon aria-hidden />
-        </span>
-      </PopoverTrigger>
-      <PopoverContent size="md" align="start" showArrow={false}>
-        <div className="grid gap-4">
-          <div className="grid gap-1">
-            <PopoverTitle>{lesson.className}</PopoverTitle>
-            <PopoverDescription>
-              {calendarDate(lesson.date, { weekday: "long", day: "numeric", month: "long" })}
-            </PopoverDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge
-              variant={
-                lesson.state === "RECORDED"
-                  ? "success"
-                  : lesson.state === "PENDING"
-                    ? "warning"
-                    : "neutral"
-              }
-            >
-              {lessonStates[lesson.state]}
-            </Badge>
-            <Badge variant="neutral">{lesson.scheduleType === "REGULAR" ? "Regular" : "PPT"}</Badge>
-          </div>
-          <div className="grid gap-2 text-caption">
-            <p className="flex items-center gap-2">
-              <Clock3 aria-hidden className="size-4 text-muted-foreground" />
-              {lesson.startTime}–{lesson.endTime}
-            </p>
-            <p className="flex items-center gap-2">
-              <UserRound aria-hidden className="size-4 text-muted-foreground" />
-              {lesson.teacher ?? "Professor a definir"}
-            </p>
-            {lesson.attendanceOnly && (
-              <p className="flex items-start gap-2 text-muted-foreground">
-                <CheckCheck aria-hidden className="size-4 shrink-0" />
-                Chamada confirmada. Conteúdo a registrar.
-              </p>
-            )}
-          </div>
-          <Button nativeButton={false} render={<Link href={`/aulas/${lesson.id}`} />}>
-            Abrir aula <ArrowUpRight />
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <button
+      id={
+        experiment
+          ? `experimental-cell-${experiment.id}`
+          : appointment
+            ? `appointment-cell-${appointment.id}`
+            : undefined
+      }
+      type="button"
+      className={styles.lesson}
+      data-state={lesson.state}
+      data-has-markers={!appointment && !experiment}
+      data-modality={
+        experiment ? "EXPERIMENTAL" : appointment ? "APPOINTMENT" : lesson.scheduleType
+      }
+      aria-haspopup="dialog"
+      aria-expanded={appointment ? expanded : undefined}
+      aria-label={`${kind}, ${title}, ${context}${format ? `, ${format}` : ""}, ${lesson.teacher ?? "Professor a definir"}, ${lesson.startTime} às ${lesson.endTime}, ${status}${lesson.guestCount > 0 ? `, com convidados: ${lesson.guestCount}` : ""}`}
+      title={`${lesson.startTime}–${lesson.endTime} · ${kind} · ${title} · ${context}${format ? ` · ${format}` : ""} · ${lesson.teacher ?? "Professor a definir"} · ${status}`}
+      data-start={lesson.startTime}
+      onKeyDown={navigateLessons}
+      onClick={() => onOpen(lesson)}
+    >
+      <LessonCardContent lesson={lesson} />
+      <LessonMarkers lesson={lesson} />
+    </button>
   );
+}
+
+function navigateLessons(event: KeyboardEvent<HTMLButtonElement>): void {
+  if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+  const button = event.currentTarget;
+  const column = button.closest('[role="group"]');
+  if (!column) return;
+  event.preventDefault();
+  const buttons = [...column.querySelectorAll<HTMLButtonElement>("button[data-start]")];
+  const step = ["ArrowDown", "ArrowRight"].includes(event.key) ? 1 : -1;
+  const target = buttons[buttons.indexOf(button) + step];
+  target?.focus();
 }

@@ -19,6 +19,7 @@ import {
   type DataTableState,
 } from "@lazuli/ui";
 import type { FinanceInstallmentRow, FinanceOverduePayerGroup } from "@lazuli/validators";
+import { InstallmentRowActions } from "./installment-actions";
 import { abbreviatedPersonName } from "~/lib/format";
 import {
   businessDate,
@@ -80,6 +81,7 @@ const OVERDUE_COLUMNS = [
   { key: "nominal", label: "Valor nominal" },
   { key: "paid", label: "Valor pago" },
   { key: "status", label: "Atraso" },
+  { key: "actions", label: "Ações" },
 ] as const;
 
 function beneficiaryNames(row: FinanceInstallmentRow): string {
@@ -122,6 +124,9 @@ function OverdueInstallmentRow({
           {row.paidAmountCents > 0 ? "Parcial · " : ""}
           {row.overdueDays} {row.overdueDays === 1 ? "dia" : "dias"}
         </Badge>
+      </TableCell>
+      <TableCell headers={`${groupHeadingId}-column-actions`}>
+        <InstallmentRowActions row={row} />
       </TableCell>
     </TableRow>
   );
@@ -168,7 +173,12 @@ function OverdueInstallmentsHead({ groupHeadingId }: { groupHeadingId: string })
             id={`${groupHeadingId}-column-${column.key}`}
             key={column.key}
             scope="col"
-            numeric={column.key === "nominal" || column.key === "paid" || column.key === "status"}
+            numeric={
+              column.key === "nominal" ||
+              column.key === "paid" ||
+              column.key === "status" ||
+              column.key === "actions"
+            }
           >
             {column.label}
           </TableHead>
@@ -198,7 +208,7 @@ function OverduePayerGroupCard({
         <Table
           aria-labelledby={groupId}
           aria-describedby={`${groupId}-summary`}
-          className="w-full table-fixed"
+          className="w-full min-w-5xl table-fixed"
           density="compact"
         >
           <colgroup>
@@ -206,6 +216,7 @@ function OverduePayerGroupCard({
             <col className="w-24" />
             <col className="w-28" />
             <col />
+            <col className="w-28" />
             <col className="w-28" />
             <col className="w-28" />
             <col className="w-28" />
@@ -344,6 +355,13 @@ function installmentColumns(today: string): readonly DataTableColumn<FinanceInst
     ...installmentIdentityColumns(),
     ...installmentAmountColumns(),
     installmentStatusColumn(today),
+    {
+      id: "actions",
+      header: "Ações",
+      width: "narrow",
+      numeric: true,
+      cell: (row) => <InstallmentRowActions row={row} />,
+    },
   ];
 }
 type TableState = {

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { hasTeacherIdentity } from "./identity.js";
 import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
 import { badRequest, notFound } from "../trpc/errors.js";
@@ -33,9 +34,9 @@ async function departureImpact(input: Departure): Promise<DepartureImpactResult>
     throw badRequest("A saída não pode ser retroativa.");
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
-    select: { role: true, deletedAt: true, teacherProfile: { select: { departureDate: true } } },
+    select: { role: true, deletedAt: true, teacherProfile: { select: { departureDate: true, deletedAt: true } } },
   });
-  if (!teacher || teacher.role !== "TEACHER" || teacher.deletedAt)
+  if (!teacher || !hasTeacherIdentity(teacher) || teacher.deletedAt)
     throw notFound("Professor não encontrado.");
   if (teacher.teacherProfile?.departureDate)
     throw badRequest("Saída já programada para este professor.");
@@ -50,7 +51,7 @@ async function departureImpact(input: Departure): Promise<DepartureImpactResult>
   });
   if (introduction)
     throw badRequest(
-      "Remarque ou cancele as aulas introdutórias pendentes a partir da saída antes de encerrar a atuação.",
+      "Remarque ou cancele as aulas experimentais individuais pendentes a partir da saída antes de encerrar a atuação.",
     );
   const semester = await input.database.semester.findFirst({
     where: { deletedAt: null, endDate: { gte: new Date(input.effectiveDate) } },

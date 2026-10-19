@@ -127,3 +127,38 @@ export const States: Story = {
     </div>
   ),
 };
+
+export const StickyNavigation: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Navigation scrolls with the brief until it reaches the scroll container's top. Only panel content continues past it. Keep the tabs root at least as tall as the scroll container to preserve this position for short panels.",
+      },
+    },
+  },
+  render: () => (
+    <div className="h-80 overflow-y-auto bg-background">
+      <div className="px-5 py-6">
+        <h2 className="font-display text-2xl">REG 14:00 · 5</h2>
+        <p className="text-sm text-muted-foreground">2026.2 · Regular · Presencial</p>
+      </div>
+      <Tabs defaultValue="alunos" variant="underline" size="md" className="min-h-80">
+        <TabsList sticky aria-label="Seções da turma">
+          <TabsTab value="alunos">Alunos</TabsTab>
+          <TabsTab value="desempenho">Desempenho</TabsTab>
+        </TabsList>
+        <TabsPanel value="alunos">
+          <ol className="divide-y divide-border">
+            {Array.from({ length: 12 }, (_item, index) => (
+              <li key={index} className="px-5 py-4">
+                Aluno {index + 1}
+              </li>
+            ))}
+          </ol>
+        </TabsPanel>
+        <TabsPanel value="desempenho">Nenhuma avaliação registrada.</TabsPanel>
+      </Tabs>
+    </div>
+  ),
+};

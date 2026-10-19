@@ -42,7 +42,7 @@ export function StudentAppointments({ studentId }: { studentId: string }): React
           variant="link"
           size="inline"
           nativeButton={false}
-          render={<Link href={`/atendimentos?aluno=${studentId}`} />}
+          render={<Link href={`/aulas?aluno=${studentId}`} />}
         >
           Ver agenda <ArrowUpRight aria-hidden="true" />
         </Button>

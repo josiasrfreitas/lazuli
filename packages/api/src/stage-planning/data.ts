@@ -52,14 +52,18 @@ export async function loadPlanningScope(
   });
   if (!classRow) throw notFound("Turma não encontrada.");
   const today = saoPauloDateOnly(context.now);
-  if (
-    context.staffUser.role === "TEACHER" &&
-    usualTeacherOn(classRow, new Date(today))?.id !== context.staffUser.id
-  )
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Planejamento disponível apenas para o professor responsável pela turma.",
+  const substituteOnly = context.staffUser.role === "TEACHER" &&
+    usualTeacherOn(classRow, new Date(today))?.id !== context.staffUser.id;
+  if (substituteOnly) {
+    const assignment = await context.database.classSubstitution.findFirst({
+      where: { classId: classRow.id, teacherId: context.staffUser.id, date: { gte: new Date(today) }, revokedAt: null, deletedAt: null },
+      select: { id: true },
     });
+    if (!assignment) throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Planejamento disponível apenas para os professores atribuídos à turma.",
+    });
+  }
   const progress = target.progressId
     ? await context.database.pedagogicalProgress.findFirst({
         where: {
@@ -121,7 +125,7 @@ export async function loadPlanningScope(
     planId: progress?.stagePlanId ?? null,
     progressStartOn: progress ? dateOnly(progress.startDate) : null,
     readOnly:
-      classRow.status !== "ACTIVE" ||
+      substituteOnly || classRow.status !== "ACTIVE" ||
       Boolean(ended) ||
       (!progress && dateOnly(classRow.semester.endDate) < today),
     today,
@@ -150,6 +154,7 @@ export function planSnapshot(plan: Plan) {
     objective: plan.objective,
     items: plan.items.map((item) => ({
       id: item.id,
+      programActivityId: item.programActivityId,
       plannedOn: dateOnly(item.plannedOn),
       kind: item.kind,
       title: item.title,
@@ -162,7 +167,7 @@ export function planSnapshot(plan: Plan) {
 export function assertEditable(scope: PlanningScope): void {
   if (scope.readOnly)
     throw badRequest(
-      "Este contexto está encerrado. O planejamento permanece disponível no histórico.",
+      "Este planejamento está disponível somente para consulta neste contexto.",
     );
 }
 export function assertVersion(plan: Plan | null, version: number): void {

@@ -337,3 +337,43 @@ void it("excludes the exit day from the frequency denominator just as the dated 
     0,
   );
 });
+
+for (const state of ["ended", "future", "deleted"] as const) {
+  void it(`rejects appointments for an ACTIVE student whose enrollment is ${state}`, async () => {
+    const f = await appointmentFixture(harness);
+    await db.$transaction(async (tx) => {
+      if (state === "ended") {
+        await tx.pedagogicalProgress.updateMany({
+          where: { enrollmentId: f.enrollmentId },
+          data: { endDate: new Date("2091-04-01"), endReason: "DROPPED" },
+        });
+        await tx.enrollment.update({
+          where: { id: f.enrollmentId },
+          data: { exitDate: new Date("2091-04-01"), exitReason: "DROPPED" },
+        });
+      } else if (state === "future") {
+        await tx.pedagogicalProgress.updateMany({
+          where: { enrollmentId: f.enrollmentId },
+          data: { startDate: new Date("2091-04-02") },
+        });
+        await tx.enrollment.update({
+          where: { id: f.enrollmentId },
+          data: { entryDate: new Date("2091-04-02") },
+        });
+      } else
+        await tx.enrollment.update({
+          where: { id: f.enrollmentId },
+          data: { deletedAt: f.before },
+        });
+    });
+    await assert.rejects(harness.caller(undefined, f.before).appointments.schedule(f.input), {
+      code: "BAD_REQUEST",
+      message: /sem matrícula vigente/,
+    });
+    assert.equal(await db.pedagogicalAppointment.count({ where: { id: f.input.id } }), 0);
+    const options = await harness
+      .caller(undefined, f.before)
+      .appointments.student({ studentId: f.studentId });
+    assert.equal(options.hasCurrentEnrollment, false);
+  });
+}

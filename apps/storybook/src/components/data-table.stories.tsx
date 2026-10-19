@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { DataTable, type DataTableColumn } from "@lazuli/ui";
@@ -75,5 +76,40 @@ export const ClickableRows: Story = {
     await expect(args.onRowClick).toHaveBeenCalledTimes(2);
     await userEvent.click(canvas.getByRole("button", { name: "Ação interna" }));
     await expect(args.onRowClick).toHaveBeenCalledTimes(2);
+  },
+};
+
+export const SelectedRow: Story = {
+  render: function SelectedRowStory(args) {
+    const [selectedRowId, setSelectedRowId] = useState("example");
+    return (
+      <div className="h-96 p-6">
+        <DataTable
+          {...args}
+          state={{
+            kind: "data",
+            rows: [
+              { id: "example", name: "Ana", amount: "R$ 250,00" },
+              { id: "second", name: "Bia", amount: "R$ 280,00" },
+            ],
+          }}
+          selectedRowId={selectedRowId}
+          onRowClick={(row) => setSelectedRowId(row.id)}
+        />
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const first = canvas.getByRole("row", { name: "Ana R$ 250,00" });
+    const second = canvas.getByRole("row", { name: "Bia R$ 280,00" });
+    await expect(first).toHaveAttribute("aria-selected", "true");
+    await userEvent.click(second);
+    await expect(second).toHaveAttribute("aria-selected", "true");
+    await expect(first).not.toHaveAttribute("aria-selected");
+    first.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect(first).toHaveAttribute("aria-selected", "true");
+    await expect(second).not.toHaveAttribute("aria-selected");
   },
 };

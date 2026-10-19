@@ -411,3 +411,64 @@ void it("detects an intervening attendance-only write and preserves its original
   const session = await db.classSession.findUniqueOrThrow({ where: { id: f.session.id } });
   assert.equal(session.attendanceConfirmedAt?.toISOString(), "2076-02-15T13:10:00.000Z");
 });
+
+void it("exposes the regular class stage in the calendar without assigning a shared stage to PPT", async () => {
+  const f = await fixture();
+  const personalized = await createPersonalizedClassFor(config, {
+    code: "PPT-calendar",
+    semesterId: f.catalog.semesterId,
+  });
+  await db.classSession.create({
+    data: {
+      classId: personalized.id,
+      date: new Date("2076-02-15"),
+      startTime: new Date("1970-01-01T09:00:00Z"),
+      endTime: new Date("1970-01-01T10:00:00Z"),
+    },
+  });
+  const stage = await db.stage.findUniqueOrThrow({ where: { id: f.catalog.firstStageId } });
+  const rows = await caller().classRecords.list({ from: "2076-02-15", to: "2076-02-15" });
+  assert.equal(rows.find((row) => row.classId === f.group.id)?.stageName, stage.name);
+  assert.equal(rows.find((row) => row.classId === personalized.id)?.stageName, null);
+});
+
+void it("exposes performed content in planning without replacing it with the planned pages", async () => {
+  const f = await fixture();
+  await caller().planning.saveWindow({
+    classId: f.group.id,
+    version: 0,
+    plannedStartOn: "2076-02-01",
+    plannedEndOn: "2076-06-30",
+    objective: null,
+  });
+  await caller().planning.saveItem({
+    classId: f.group.id,
+    version: 1,
+    plannedOn: "2076-02-15",
+    kind: "CONTENT",
+    title: "Leitura prevista",
+    reference: "Livro",
+    pageFrom: 12,
+    pageTo: 14,
+  });
+  assert.deepEqual((await caller().planning.detail({ classId: f.group.id })).records, []);
+  await caller().classRecords.save({
+    sessionId: f.session.id,
+    version: 0,
+    attendanceStamp: null,
+    rows: f.rows,
+    sharedContent: { ...content, pageFrom: 6, pageTo: 7 },
+    note: null,
+  });
+  const detail = await caller().planning.detail({ classId: f.group.id });
+  assert.deepEqual(detail.records, [
+    {
+      id: f.session.id,
+      classId: f.group.id,
+      date: "2076-02-15",
+      time: "09:00",
+      content: { ...content, pageFrom: 6, pageTo: 7 },
+    },
+  ]);
+  assert.equal(detail.plan?.items[0]?.pageTo, 14);
+});

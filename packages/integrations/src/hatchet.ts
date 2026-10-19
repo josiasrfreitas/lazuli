@@ -1,12 +1,17 @@
 import { createHash } from "node:crypto";
 import type { HatchetClient } from "@hatchet-dev/typescript-sdk";
 import {
+  ASSESSMENT_FILE_WORKFLOW, assessmentFilePayloadSchema, type AssessmentFilePayload,
   SESSIONS_GENERATE_WORKFLOW,
   sessionsGeneratePayloadSchema,
   type SessionsGenerateQueue,
 } from "@lazuli/job-contracts";
 
 const DISPATCH_TIMEOUT_MS = 5_000;
+export async function enqueueAssessmentFile(input: AssessmentFilePayload): Promise<void> {
+  const payload = assessmentFilePayloadSchema.parse(input);
+  await boundedDispatch(async () => { const hatchet = await getHatchetClient(); await hatchet.runNoWait(ASSESSMENT_FILE_WORKFLOW, payload); });
+}
 let client: Promise<HatchetClient> | undefined;
 
 /** Shared Hatchet instances must never deliver one workspace's jobs to another database. */

@@ -1,3 +1,5 @@
+import { studentFinancialActivityScope } from "./student-financial-scope.js";
+import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly, saoPauloMidnightToInstant } from "@lazuli/domain";
 import type { ActivityListInput } from "@lazuli/validators";
@@ -42,18 +44,18 @@ export async function listActivity(
 ): Promise<ActivityPage> {
   const snapshotAt = input.cursor && input.cursor.snapshotAt < now ? input.cursor.snapshotAt : now;
   const start = activityPeriodStart(input.period, snapshotAt);
+  const studentScope = input.financialStudentId
+    ? await studentFinancialActivityScope(database, input.financialStudentId)
+    : undefined;
+  const areas = input.areas ?? (input.area === "ALL" ? [] : [input.area]);
+  const actorIds = input.actorIds ?? (input.actorId ? [input.actorId] : []);
   const where: Prisma.ActivityEventWhereInput = {
+    ...(studentScope ? { AND: [studentScope] } : {}),
     deletedAt: null,
     occurredAt: { ...(start ? { gte: start } : {}), lte: snapshotAt },
-    ...(input.area === "ALL" ? {} : { area: input.area }),
-    ...(input.actorId ? { actorId: input.actorId } : {}),
-    ...(input.search
-      ? {
-          OR: ["title", "subjectName", "actorName", "description"].map((field) => ({
-            [field]: { contains: input.search, mode: "insensitive" },
-          })),
-        }
-      : {}),
+    ...(areas.length > 0 ? { area: { in: areas } } : {}),
+    ...(actorIds.length > 0 ? { actorId: { in: actorIds } } : {}),
+    id: await searchIds(database, "ActivityEvent", input.search),
   };
   const [rows, total] = await Promise.all([
     database.activityEvent.findMany({
@@ -62,6 +64,7 @@ export async function listActivity(
         ...(input.cursor
           ? {
               AND: [
+                ...(studentScope ? [studentScope] : []),
                 {
                   OR: [
                     { occurredAt: { lt: input.cursor.occurredAt } },

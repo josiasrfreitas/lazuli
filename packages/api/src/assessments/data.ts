@@ -49,11 +49,17 @@ export async function lockProgress(context: AssessmentContext, id: string): Prom
   const initial = await loadProgress(context.database, id);
   await lockStudentEnrollment(context.database, initial.enrollment.studentId);
   const progress = await loadProgress(context.database, id);
-  assertProgressAccess(context, progress);
+  await assertProgressAccess(context, progress);
   return progress;
 }
-export function assertProgressAccess(context: AssessmentContext, progress: Progress): void {
+export async function assertProgressAccess(context: AssessmentContext, progress: Progress): Promise<void> {
+  if (context.staffUser.role !== "TEACHER") return;
   const today = saoPauloDateOnly(context.now);
+  const assignedAssessment = await context.database.pedagogicalAppointment.findFirst({
+    where: { teacherId: context.staffUser.id, studentId: progress.enrollment.studentId, purpose: "ASSESSMENT", deletedAt: null, status: { not: "CANCELLED" },
+      enrollmentId: progress.enrollmentId, date: { gte: progress.startDate, ...(progress.endDate ? { lte: progress.endDate } : {}) } }, select: { id: true },
+  });
+  if (assignedAssessment) return;
   if (
     context.staffUser.role === "TEACHER" &&
     (dateOnly(progress.enrollment.entryDate) > today ||
@@ -63,7 +69,11 @@ export function assertProgressAccess(context: AssessmentContext, progress: Progr
       code: "FORBIDDEN",
       message: "Este aluno já não possui vínculo vigente nesta turma.",
     });
-  assertTeacherAccess(context.staffUser, progress.enrollment.class, new Date(today));
+  if (usualTeacherOn(progress.enrollment.class, new Date(today))?.id === context.staffUser.id) return;
+  const substitute = await context.database.classSubstitution.findFirst({
+    where: { classId: progress.enrollment.classId, teacherId: context.staffUser.id, deletedAt: null, revokedAt: null, date: new Date(today) }, select: { id: true },
+  });
+  if (!substitute) throw new TRPCError({ code: "FORBIDDEN", message: "Esta avaliação não pertence às suas atribuições atuais." });
 }
 export function assertTeacherAccess(
   staff: StaffUser,
@@ -75,4 +85,13 @@ export function assertTeacherAccess(
       code: "FORBIDDEN",
       message: "Somente o professor responsável por este percurso pode acessar as avaliações.",
     });
+}
+
+export async function assertAssessmentDateAccess(context: AssessmentContext, progress: Progress, date: Date): Promise<void> {
+  if (context.staffUser.role !== "TEACHER" || usualTeacherOn(progress.enrollment.class, date)?.id === context.staffUser.id) return;
+  const [substitution, appointment] = await Promise.all([
+    context.database.classSubstitution.findFirst({ where: { classId: progress.enrollment.classId, teacherId: context.staffUser.id, date, revokedAt: null, deletedAt: null }, select: { id: true } }),
+    context.database.pedagogicalAppointment.findFirst({ where: { studentId: progress.enrollment.studentId, enrollmentId: progress.enrollmentId, teacherId: context.staffUser.id, purpose: "ASSESSMENT", status: { not: "CANCELLED" }, deletedAt: null, date }, select: { id: true } }),
+  ]);
+  if (!substitution && !appointment) throw new TRPCError({ code: "FORBIDDEN", message: "Você não era responsável por esta avaliação na data informada." });
 }

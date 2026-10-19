@@ -66,7 +66,7 @@ export async function assertNoIntroductionConflict(input: {
         );
     if (overlaps)
       throw badRequest(
-        `Conflito com aula introdutória em ${visit.date.split("-").toReversed().join("/")}, ${visit.startTime}–${visit.endTime}.`,
+        `Conflito com aula experimental individual em ${visit.date.split("-").toReversed().join("/")}, ${visit.startTime}–${visit.endTime}.`,
       );
   }
 }

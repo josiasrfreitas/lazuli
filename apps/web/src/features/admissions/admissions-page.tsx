@@ -1,4 +1,5 @@
 "use client";
+import { useSearchDraft } from "~/lib/use-search-draft";
 import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { useRouter } from "next/navigation";
@@ -25,7 +26,7 @@ import { leadFilterFields, leadFilterInput } from "./lead-filter-fields";
 type CandidateQuery = QueryResult<RouterOutputs["admissions"]["list"]>;
 export function AdmissionsPage(): ReactElement {
   const [params, setParams] = useQueryStates({
-    retorno: parseAsString.withDefault("ALL"),
+    interesse: parseAsString.withDefault("ALL"),
     busca: parseAsString.withDefault(""),
     situacao: parseAsString.withDefault("WAITING"),
   });
@@ -55,7 +56,7 @@ export function AdmissionsPage(): ReactElement {
             search={params.busca}
             fields={fields}
             onClear={() => {
-              void setParams({ situacao: "ALL", retorno: "ALL" });
+              void setParams({ situacao: "ALL", interesse: "ALL" });
               pagination.setPage(1);
             }}
             onCreate={() => setCreating(true)}
@@ -72,7 +73,7 @@ export function AdmissionsPage(): ReactElement {
             query={query}
             pagination={pagination}
             filtered={
-              Boolean(params.busca) || params.retorno !== "ALL" || params.situacao !== "ALL"
+              Boolean(params.busca) || params.interesse !== "ALL" || params.situacao !== "ALL"
             }
           />
         </div>
@@ -94,6 +95,7 @@ function AdmissionControls({
   fields: TableFilterField[];
   onClear: () => void;
 }): ReactElement {
+  const [draft, setDraft] = useSearchDraft(search, onSearch);
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="w-full sm:w-56">
@@ -103,8 +105,8 @@ function AdmissionControls({
           placeholder="Nome, telefone ou e-mail"
           autoComplete="off"
           size="compact-responsive"
-          value={search}
-          onChange={(event) => onSearch(event.target.value)}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
         />
       </div>
       <TableFilters fields={fields} onClearAll={onClear} />
@@ -135,7 +137,7 @@ function AdmissionsTable({
     <div className="min-h-0 flex-1">
       <DataTable
         label="Leads"
-        columns={admissionColumns(query.data?.today ?? "")}
+        columns={admissionColumns}
         state={tableState(query, filtered)}
         updating={query.isFetching}
         onRowClick={(row) => router.push(`/interessados/${row.id}`)}
@@ -143,7 +145,7 @@ function AdmissionsTable({
         empty={{
           title: "O próximo aluno começa por aqui",
           description:
-            "Registre um interesse, encontre horários compatíveis e acompanhe a primeira aula.",
+            "Cadastre o lead, agende uma experimental e avance para o cadastro do aluno.",
         }}
         errorTitle="Não foi possível carregar os leads"
         pagination={{

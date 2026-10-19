@@ -33,7 +33,7 @@ export function classListQueryInput(params: ClassListParams): z.infer<typeof cla
   return {
     search: params.busca,
     page: params.pagina,
-    pageSize: 20,
+    pageSize: 25,
     scheduleTypes: selectedValues(params.tipo, fields.scheduleTypes.removeDefault().element),
     formats: selectedValues(params.formato, fields.formats.removeDefault().element),
     teacherIds: selectedValues(params.professor, fields.teacherIds.removeDefault().element),

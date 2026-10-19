@@ -19,6 +19,11 @@ const settings = {
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,
   materialPriceCents: 12_000,
+  childMaterialInstallments: 6,
+  childMaterialInstallmentCents: 12_300,
+  adultMaterialInstallments: 6,
+  adultMaterialInstallmentCents: 13_600,
+  materialCardFeePct: 10,
 };
 const HTTP_OK = 200;
 const HTTP_UNAUTHORIZED = 401;
@@ -68,6 +73,46 @@ void describe("settings over HTTP", { concurrency: 1 }, () => {
     };
     assert.equal(payload.result.data.json.tuitionFloorCents, EXPECTED_FLOOR_CENTS);
     assert.equal(payload.result.data.json.materialPriceCents, EXPECTED_MATERIAL_CENTS);
+  });
+
+  void it("lets catalog administrators read only the book pricing bands", async () => {
+    const write = await callHttpMutation({
+      path: SAVE_SETTINGS_PATH,
+      body: settings,
+      staffUser: SYSTEM_ADMIN,
+    });
+    assert.equal(write.status, HTTP_OK);
+    for (const staffUser of [ADMIN, SYSTEM_ADMIN]) {
+      const read = await callHttpQuery({ path: "finance.readMaterialPrice", staffUser });
+      assert.equal(read.status, HTTP_OK);
+      const payload = (await read.json()) as { result: { data: { json: unknown } } };
+      assert.deepEqual(payload.result.data.json, {
+        child: {
+          installments: 6,
+          installmentCents: 12300,
+          totalCents: 73800,
+          cashCents: 66420,
+          version: "e2346444ba1ceee23609b6bb233c5675ea63aa644c549671aa8a9607762bd9d8",
+        },
+        adult: {
+          installments: 6,
+          installmentCents: 13600,
+          totalCents: 81600,
+          cashCents: 73440,
+          version: "20afabb1b380f76599460efa5d8552e6e4b3922a6bb2e80004fc97a3cc8f4c76",
+        },
+        cardFeePct: 10,
+      });
+    }
+    for (const staffUser of [
+      TEACHER,
+      { ...ADMIN, role: "SECRETARY" as const },
+      { ...ADMIN, role: "FINANCE" as const },
+      null,
+    ]) {
+      const read = await callHttpQuery({ path: "finance.readMaterialPrice", staffUser });
+      assert.equal(read.status, staffUser === null ? HTTP_UNAUTHORIZED : HTTP_FORBIDDEN);
+    }
   });
 
   registerInvalidSettingsTest();

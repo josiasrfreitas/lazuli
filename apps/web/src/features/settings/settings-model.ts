@@ -5,11 +5,16 @@ import {
   type FinanceSettingsInput,
 } from "@lazuli/validators";
 
+import { INITIAL_MATERIAL_PRICING, materialPriceQuote } from "@lazuli/domain";
+
 const CENTS_PER_REAL = 100;
 const MAX_PERCENT = 100;
 const MONEY_DECIMAL_PLACES = 2;
 const PERCENT_DECIMAL_PLACES = 4;
-export type SettingsFields = Record<keyof FinanceSettingsInput, string>;
+export type SettingsFields = Record<
+  Exclude<keyof FinanceSettingsInput, "materialPriceCents">,
+  string
+>;
 export type SettingsErrors = Partial<SettingsFields>;
 export type SettingsRow = NonNullable<RouterOutputs["finance"]["readSettings"]>;
 
@@ -21,7 +26,7 @@ export function displaySetting(name: keyof SettingsFields, text: string): string
     minimumFractionDigits: monetary && !Number.isInteger(numeric) ? MONEY_DECIMAL_PLACES : 0,
     maximumFractionDigits: monetary ? MONEY_DECIMAL_PLACES : PERCENT_DECIMAL_PLACES,
   }).format(numeric);
-  return monetary ? `R$${value}` : `${value}%`;
+  return monetary ? `R$${value}` : name.endsWith("Installments") ? value : `${value}%`;
 }
 
 function number(value: number | null | undefined): string {
@@ -42,7 +47,21 @@ export function loadedFields(row: SettingsRow | null): SettingsFields {
     interestRatePctDaily: number(row?.interestRatePctDaily),
     interestRatePctMonthly: number(row?.interestRatePctMonthly),
     cancellationFeePct: number(row?.cancellationFeePct),
-    materialPriceCents: amount(row?.materialPriceCents),
+    childMaterialInstallments: number(
+      row?.childMaterialInstallments ?? INITIAL_MATERIAL_PRICING.childMaterialInstallments,
+    ),
+    childMaterialInstallmentCents: amount(
+      row?.childMaterialInstallmentCents ?? INITIAL_MATERIAL_PRICING.childMaterialInstallmentCents,
+    ),
+    adultMaterialInstallments: number(
+      row?.adultMaterialInstallments ?? INITIAL_MATERIAL_PRICING.adultMaterialInstallments,
+    ),
+    adultMaterialInstallmentCents: amount(
+      row?.adultMaterialInstallmentCents ?? INITIAL_MATERIAL_PRICING.adultMaterialInstallmentCents,
+    ),
+    materialCardFeePct: number(
+      row?.materialCardFeePct ?? INITIAL_MATERIAL_PRICING.materialCardFeePct,
+    ),
   };
 }
 
@@ -55,6 +74,11 @@ function fieldError(name: keyof SettingsFields, text: string): string | undefine
   if (text.trim() === "") return "Informe um valor.";
   const value = decimal(text);
   if (!Number.isFinite(value)) return "Use um número, como 10 ou 0,5.";
+  if (name.endsWith("Installments")) {
+    return /^\d+$/u.test(text.trim()) && value >= 1 && value <= 2_147_483_647
+      ? undefined
+      : "Informe uma quantidade inteira maior que zero.";
+  }
   if (!name.endsWith("Cents")) {
     if (value > MAX_PERCENT) return "Use um percentual entre 0 e 100.";
     if (!/^\d+(?:[.,]\d{1,4})?$/u.test(text.trim())) return "Use no máximo quatro casas decimais.";
@@ -82,7 +106,15 @@ export function validateSettings(
     interestRatePctDaily: decimal(fields.interestRatePctDaily),
     interestRatePctMonthly: decimal(fields.interestRatePctMonthly),
     cancellationFeePct: decimal(fields.cancellationFeePct),
-    materialPriceCents: Math.round(decimal(fields.materialPriceCents) * CENTS_PER_REAL),
+    childMaterialInstallments: decimal(fields.childMaterialInstallments),
+    childMaterialInstallmentCents: Math.round(
+      decimal(fields.childMaterialInstallmentCents) * CENTS_PER_REAL,
+    ),
+    adultMaterialInstallments: decimal(fields.adultMaterialInstallments),
+    adultMaterialInstallmentCents: Math.round(
+      decimal(fields.adultMaterialInstallmentCents) * CENTS_PER_REAL,
+    ),
+    materialCardFeePct: decimal(fields.materialCardFeePct),
   });
   if (result.success) return { success: true, values: result.data };
   for (const issue of result.error.issues) {
@@ -103,4 +135,25 @@ export function floorLabel(fields: SettingsFields): string {
     "tuitionCeilingCents",
     String(tuitionFloorCents(Math.round(ceiling * CENTS_PER_REAL), discount) / CENTS_PER_REAL),
   );
+}
+
+export function bookQuote(fields: SettingsFields, category: "child" | "adult") {
+  const count = category === "child" ? "childMaterialInstallments" : "adultMaterialInstallments";
+  const amountKey =
+    category === "child" ? "childMaterialInstallmentCents" : "adultMaterialInstallmentCents";
+  if (
+    [count, amountKey, "materialCardFeePct"].some((key) =>
+      fieldError(key as keyof SettingsFields, fields[key as keyof SettingsFields]),
+    )
+  )
+    return null;
+  try {
+    return materialPriceQuote(
+      decimal(fields[count]),
+      Math.round(decimal(fields[amountKey]) * CENTS_PER_REAL),
+      decimal(fields.materialCardFeePct),
+    );
+  } catch {
+    return null;
+  }
 }

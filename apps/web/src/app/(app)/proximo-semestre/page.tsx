@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { SemesterOrganizationPage } from "~/features/semester-organization/page";
+import { redirect } from "next/navigation";
 import { requireRole } from "~/lib/require-role";
 export const metadata: Metadata = { title: "Próximo semestre" };
 export default async function Page() {
   await requireRole(["ADMIN", "SYSTEM_ADMIN"]);
-  return <SemesterOrganizationPage />;
+  redirect("/organizacao");
 }

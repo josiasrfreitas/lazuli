@@ -19,6 +19,7 @@ void describe("payment settlement", () => {
       settlementCents: 101_000,
       receivedCents: 21_000,
       remainingCents: 80_000,
+      outstandingChargesCents: 1000,
     });
     const second = {
       ...overdue,
@@ -137,4 +138,40 @@ void it("keeps a settled ledger closed when an older punctuality discount has on
   assert.equal(result.balanceCents, 0);
   assert.equal(result.newInterestCents, 0);
   assert.equal(result.settlementCents, 0);
+});
+
+void describe("financial treatments in settlement", () => {
+  const suspended: SettlementInput = {
+    ...overdue,
+    postedInterestCents: 1000,
+    suspensions: [{ date: "2026-02-10", newDueDate: "2026-03-10" }],
+  };
+  void it("preserves prior interest and resumes accrual only after the replacement due date", () => {
+    const during = quoteSettlement({ ...suspended, effectiveDate: "2026-03-10" });
+    assert.equal(during.settlementCents, 101000);
+    assert.equal(during.newInterestCents, 0);
+    const after = quoteSettlement({ ...suspended, effectiveDate: "2026-03-11" });
+    assert.equal(after.newInterestCents, 100);
+    assert.equal(after.settlementCents, 101100);
+  });
+  void it("reduces charges without reducing principal and accepts payment during suspension", () => {
+    const result = quoteSettlement({
+      ...suspended,
+      chargeAdjustments: [{ date: "2026-02-10", amountCents: -500 }],
+      payments: [{ date: "2026-02-20", amountCents: 20500 }],
+      effectiveDate: "2026-03-11",
+    });
+    assert.equal(result.newInterestCents, 80);
+    assert.equal(result.outstandingChargesCents, 80);
+    assert.equal(result.settlementCents, 80080);
+  });
+  void it("extends a suspension without charging the suspended monthly anniversary", () => {
+    const result = quoteSettlement({
+      ...suspended,
+      suspensions: [...suspended.suspensions!, { date: "2026-03-05", newDueDate: "2026-04-10" }],
+      effectiveDate: "2026-04-10",
+    });
+    assert.equal(result.newInterestCents, 0);
+    assert.equal(result.settlementCents, 101000);
+  });
 });

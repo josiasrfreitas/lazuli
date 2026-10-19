@@ -2,6 +2,7 @@
 
 import type { ReactElement, ReactNode } from "react";
 import { SearchX } from "lucide-react";
+import { cn } from "../lib/utils";
 import { Button } from "./button";
 import { EmptyState } from "./empty-state";
 import { Table, TableBody, TableContainer, TableHeader, TableRow } from "./table";
@@ -30,9 +31,12 @@ export type DataTableProps<Row extends { id: string }> = {
   footer?: ReactNode;
   beforeTable?: ReactNode;
   updating?: boolean;
+  loadingRows?: number;
   onRetry: () => void;
   /** Activates a data row by pointer or Enter; nested controls keep their own action. */
   onRowClick?: (row: Row) => void;
+  /** The row whose detail is open; preserves the shared selection treatment. */
+  selectedRowId?: string;
   empty: { title: string; description: string };
   errorTitle: string;
 };
@@ -52,15 +56,16 @@ function StateRows<Row extends { id: string }>({
   onRetry,
   empty,
   errorTitle,
+  loadingRows = SKELETON_ROWS,
 }: Pick<
   DataTableProps<Row>,
-  "state" | "columns" | "onRetry" | "empty" | "errorTitle"
+  "state" | "columns" | "onRetry" | "empty" | "errorTitle" | "loadingRows"
 >): ReactElement {
   if (state.kind === "loading") {
     return (
       <TableSkeleton
         columns={columns.length}
-        rows={SKELETON_ROWS}
+        rows={loadingRows}
         numericColumns={columns.flatMap((column, index) => (column.numeric ? [index] : []))}
       />
     );
@@ -108,7 +113,9 @@ function DataRow<Row extends { id: string }>({
   row,
   columns,
   onRowClick,
+  selected,
 }: {
+  selected: boolean;
   row: Row;
   columns: readonly DataTableColumn<Row>[];
   onRowClick: DataTableProps<Row>["onRowClick"];
@@ -116,11 +123,12 @@ function DataRow<Row extends { id: string }>({
   return (
     <TableRow
       interactive={Boolean(onRowClick)}
-      className={
-        onRowClick
-          ? "cursor-pointer hover:bg-muted/60 focus-within:bg-muted/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-          : undefined
-      }
+      selected={selected}
+      className={cn(
+        selected && "outline outline-1 -outline-offset-1 outline-border-strong",
+        onRowClick &&
+          "cursor-pointer hover:bg-muted/60 focus-within:bg-muted/60 data-[selected]:focus-within:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+      )}
       tabIndex={onRowClick ? 0 : undefined}
       onClick={
         onRowClick
@@ -187,7 +195,13 @@ export function DataTable<Row extends { id: string }>(props: DataTableProps<Row>
         <TableBody>
           {state.kind === "data" ? (
             state.rows.map((row) => (
-              <DataRow key={row.id} row={row} columns={columns} onRowClick={props.onRowClick} />
+              <DataRow
+                key={row.id}
+                row={row}
+                columns={columns}
+                onRowClick={props.onRowClick}
+                selected={row.id === props.selectedRowId}
+              />
             ))
           ) : (
             <StateRows {...props} />

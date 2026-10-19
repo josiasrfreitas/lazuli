@@ -97,6 +97,7 @@ export const financeInstallmentRowSchema = z
     onTimeAmountCents: z.number().int().nonnegative().nullable(),
     status: financeInstallmentStatusSchema,
     overdueDays: z.number().int().nonnegative(),
+    suspendedUntil: civilDateSchema.nullable().optional(),
   })
   .strict();
 

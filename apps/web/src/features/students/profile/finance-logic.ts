@@ -18,17 +18,21 @@ export type StudentFinanceState = {
 };
 export function useStudentFinance(id: string): StudentFinanceState {
   const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState<FinanceFilter>("overdue");
+  const [selectedFilter, setFilter] = useState<FinanceFilter | null>(null);
   const [payment, setPayment] = useState<FinanceInstallmentRow | null>(null);
   const utils = trpc.useUtils();
   const summary = trpc.finance.studentSummary.useQuery({ studentId: id });
-  const query = trpc.finance.installments.useQuery({
-    studentId: id,
-    view: "all",
-    page,
-    pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
-    statuses: filter === "all" ? undefined : [filter === "paid" ? "PAID" : "OVERDUE"],
-  });
+  const filter = selectedFilter ?? (summary.data?.overdueCount === 0 ? "all" : "overdue");
+  const query = trpc.finance.installments.useQuery(
+    {
+      studentId: id,
+      view: "all",
+      page,
+      pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
+      statuses: filter === "all" ? undefined : [filter === "paid" ? "PAID" : "OVERDUE"],
+    },
+    { enabled: selectedFilter !== null || summary.isSuccess || summary.isError },
+  );
   return {
     query,
     summary,

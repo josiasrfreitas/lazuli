@@ -1,7 +1,7 @@
 import { ACADEMIC_COMPETENCES, saoPauloDateOnly } from "@lazuli/domain";
 import type { AssessmentSave } from "@lazuli/validators";
 import { badRequest } from "../trpc/errors.js";
-import { assertTeacherAccess, dateOnly, type AssessmentContext, type Progress } from "./data.js";
+import { assertAssessmentDateAccess, dateOnly, type AssessmentContext, type Progress } from "./data.js";
 
 type GradeInput = AssessmentSave["grades"][number];
 export function gradeChanges(progress: Progress, values: AssessmentSave): GradeInput[] {
@@ -17,12 +17,12 @@ export function gradeChanges(progress: Progress, values: AssessmentSave): GradeI
     );
   });
 }
-export function assertGradeChanges(
+export async function assertGradeChanges(
   context: AssessmentContext,
   progress: Progress,
   values: AssessmentSave,
   changes: GradeInput[],
-): void {
+): Promise<void> {
   if ((progress.assessment?.version ?? 0) !== values.version)
     throw badRequest(
       "As notas foram alteradas por outra pessoa. Atualize a página antes de salvar.",
@@ -33,7 +33,7 @@ export function assertGradeChanges(
   const today = saoPauloDateOnly(context.now);
   if (dateOnly(progress.startDate) > today) throw badRequest("Este estágio ainda não começou.");
   for (const grade of changes) {
-    assertCorrectionAccess(context, progress, grade);
+    await assertCorrectionAccess(context, progress, grade);
     if (grade.score === null) continue;
     if (
       !grade.assessedOn ||
@@ -44,15 +44,15 @@ export function assertGradeChanges(
       throw badRequest(
         "A data da avaliação deve estar no percurso do estágio e não pode estar no futuro.",
       );
-    assertTeacherAccess(context.staffUser, progress.enrollment.class, new Date(grade.assessedOn));
+    await assertAssessmentDateAccess(context, progress, new Date(grade.assessedOn));
   }
   assertGradeSequence(mergedGrades(progress, changes));
 }
-function assertCorrectionAccess(
+async function assertCorrectionAccess(
   context: AssessmentContext,
   progress: Progress,
   grade: GradeInput,
-): void {
+): Promise<void> {
   if (context.staffUser.role !== "TEACHER") return;
   const previous = progress.assessment?.grades.find(
     (row) => row.phase === grade.phase && row.competence === grade.competence,
@@ -62,7 +62,7 @@ function assertCorrectionAccess(
     if (!date) continue;
     if (date < dateOnly(progress.startDate))
       throw badRequest("Peça à coordenação a correção de notas anteriores a este vínculo.");
-    assertTeacherAccess(context.staffUser, progress.enrollment.class, new Date(date));
+    await assertAssessmentDateAccess(context, progress, new Date(date));
   }
 }
 function mergedGrades(progress: Progress, changes: GradeInput[]): GradeInput[] {

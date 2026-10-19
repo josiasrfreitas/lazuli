@@ -17,8 +17,8 @@ export async function lockSemester(context: OrganizationContext, semesterId: str
 export async function requireFutureSemester(context: OrganizationContext, semesterId: string) {
   const semester = await context.database.semester.findUnique({ where: { id: semesterId } });
   if (!semester) throw notFound("Semestre não encontrado.");
-  if (dateOnly(semester.startDate) <= saoPauloDateOnly(context.now))
-    throw badRequest("A organização só pode ser alterada antes do início do semestre.");
+  if (dateOnly(semester.endDate) < saoPauloDateOnly(context.now))
+    throw badRequest("Este período já terminou. Escolha um semestre atual ou futuro.");
   return semester;
 }
 export function assertVersion(current: number, expected: number) {
@@ -45,6 +45,9 @@ export async function recordPlacementRevision(
       createdAt: context.now,
       snapshot: {
         planId: row.planId,
+        effectiveDate: row.effectiveDate ? dateOnly(row.effectiveDate) : null,
+        declinedAt: row.declinedAt?.toISOString() ?? null,
+        declinedReason: row.declinedReason,
         studentId: row.studentId,
         mode: row.mode,
         stageId: row.stageId,

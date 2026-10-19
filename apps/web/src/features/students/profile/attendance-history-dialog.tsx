@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type ReactElement } from "react";
-import { ListChecks } from "lucide-react";
+import { ArrowUpRight, ListChecks } from "lucide-react";
 import {
   Button,
   DataTable,
@@ -21,11 +21,14 @@ import { formatAttendancePercent, formatDateOnlyBR } from "~/lib/format";
 import { SelectControl } from "~/features/classes/form-controls";
 import { attendanceHistoryColumns, type AttendanceHistory } from "./attendance-history-columns";
 
+import styles from "./student-profile.module.css";
+
 type Props = {
   studentId: string;
   studentName: string;
   enrollmentId?: string | undefined;
   triggerLabel?: string;
+  triggerValue?: string;
 };
 type AttendanceFilter = keyof AttendanceHistory["counts"];
 const FILTER_LABELS: Record<AttendanceFilter, string> = {
@@ -38,18 +41,46 @@ const FILTER_LABELS: Record<AttendanceFilter, string> = {
 
 export function AttendanceHistoryDialog({
   triggerLabel = "Ver aulas e presenças",
+  triggerValue,
   ...props
 }: Props): ReactElement {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="link" size="inline" />}>
-        <ListChecks aria-hidden="true" />
-        {triggerLabel}
+      <DialogTrigger
+        render={
+          triggerValue !== undefined ? (
+            <button
+              type="button"
+              className="inline-flex min-h-8 cursor-pointer items-center justify-end gap-1 rounded-sm font-numeric tabular-nums text-foreground transition-colors hover:text-interactive focus-visible:outline-none focus-visible:shadow-focus"
+              aria-label={`${triggerLabel} de ${props.studentName}`}
+              title={triggerLabel}
+            />
+          ) : (
+            <Button
+              variant="link"
+              size="inline"
+              className={styles.detailLink}
+              aria-label={`${triggerLabel} de ${props.studentName}`}
+            />
+          )
+        }
+      >
+        {triggerValue !== undefined ? (
+          <>
+            {triggerValue}
+            <ArrowUpRight aria-hidden="true" className="size-3.5 text-muted-foreground" />
+          </>
+        ) : (
+          <>
+            <ListChecks aria-hidden="true" />
+            {triggerLabel}
+          </>
+        )}
       </DialogTrigger>
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className="md:max-w-5xl">
+        <DialogContent className="h-160 md:max-w-7xl">
           <DialogHeader>
             <DialogTitle>Histórico de frequência</DialogTitle>
             <DialogDescription>
@@ -93,7 +124,7 @@ function AttendanceHistoryContent({ studentId, enrollmentId }: Props): ReactElem
     <DialogBody className="flex flex-col">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 pt-5">
         <AttendanceSummary data={query.isError ? undefined : data} loading={query.isPending} />
-        <div className="flex shrink-0 items-end gap-3">
+        <div className="flex shrink-0 flex-wrap items-end gap-3">
           <div className="w-96 max-w-full">
             <SelectControl
               name={`${fieldId}-enrollment`}
@@ -128,6 +159,7 @@ function AttendanceHistoryContent({ studentId, enrollmentId }: Props): ReactElem
         <div className="grid min-h-0 flex-1 grid-rows-1">
           <DataTable
             label="Aulas e presenças do aluno"
+            loadingRows={6}
             columns={attendanceHistoryColumns}
             state={
               query.isError
@@ -160,7 +192,7 @@ function AttendanceHistoryContent({ studentId, enrollmentId }: Props): ReactElem
                 : {
                     loading: true,
                     page,
-                    pageSize: 10,
+                    pageSize: 25,
                     itemLabel: { singular: "aula", plural: "aulas" },
                   }
             }
@@ -192,7 +224,7 @@ function AttendanceSummary({
     { label: "Minutos repostos", value: data?.attendance.compensatedMinutes },
   ];
   return (
-    <dl className="flex shrink-0 items-center gap-8 border-y border-border bg-accent px-4 py-3">
+    <dl className="flex shrink-0 flex-wrap items-center gap-x-8 gap-y-3 border-y border-border bg-accent px-4 py-3">
       {stats.map((stat) => (
         <div key={stat.label} className="flex items-baseline gap-2">
           <dt className="order-2 text-caption text-muted-foreground">{stat.label}</dt>

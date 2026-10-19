@@ -9,14 +9,12 @@ import { RosterList } from "./roster-list";
 
 export function RosterSection({
   classId,
-  search,
   showStage,
 }: {
   classId: string;
-  search: string;
   showStage: boolean;
 }): ReactElement {
-  const state = useRoster(classId, search);
+  const state = useRoster(classId);
   const [returning, setReturning] = useState<RosterRow | null>(null);
   return (
     <section aria-label="Alunos da turma" className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
@@ -25,7 +23,6 @@ export function RosterSection({
           key={state.page}
           data={state.query.data}
           failed={state.query.isError}
-          filtered={search.length > 0}
           refetch={() => void state.query.refetch()}
           page={state.page}
           setPage={state.setPage}
@@ -77,14 +74,13 @@ function RosterReturnDialog({
   );
 }
 
-function useRoster(classId: string, search: string): RosterState {
+function useRoster(classId: string): RosterState {
   const [page, setPage] = useState(1);
   const [closing, setClosing] = useState<{ id: string; studentName: string } | null>(null);
   const query = trpc.classes.roster.useQuery({
     id: classId,
-    search,
     page,
-    pageSize: 20,
+    pageSize: 25,
   });
   return {
     page,

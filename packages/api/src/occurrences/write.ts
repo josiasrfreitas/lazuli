@@ -1,8 +1,14 @@
-import type { OccurrenceCreate, InterventionCreate, InterventionUpdate } from "@lazuli/validators";
+import type {
+  OccurrenceCreate,
+  InterventionCreate,
+  InterventionFollowUp,
+} from "@lazuli/validators";
+import { saoPauloDateOnly } from "@lazuli/domain";
+import { requireCurrentEnrollment } from "../enrollment/require-current.js";
 import { recordActivity } from "../activity/record.js";
 import { occurrenceRoster } from "./sessions.js";
 import {
-  assertEligibleTeacher,
+  assertEligibleResponsible,
   claimVersion,
   invalid,
   loadOccurrence,
@@ -15,6 +21,7 @@ export async function createOccurrence(context: FollowUpContext, input: Occurren
   const roster = await occurrenceRoster(context, input.classSessionId);
   const student = roster.find((row) => row.id === input.studentId);
   if (!student) invalid("O aluno não pertencia à turma nesta data.");
+  await requireCurrentEnrollment(context, input.studentId);
   const row = await context.database.pedagogicalOccurrence.create({
     data: {
       ...input,
@@ -50,23 +57,23 @@ export async function linkOccurrences(
       description: `${first.title} · ${second.title}`,
     });
 }
-export async function addOccurrenceNote(
+export async function updateOccurrence(
   context: FollowUpContext,
-  input: { id: string; body: string },
+  input: { id: string; account: string; expectedUpdatedAt: Date },
 ): Promise<void> {
   const occurrence = await loadOccurrence(context, input.id);
-  await context.database.pedagogicalFollowUp.create({
-    data: {
-      occurrenceId: input.id,
-      kind: "NOTE",
-      body: input.body,
-      recordedById: context.staffUser.id,
-      createdAt: context.now,
-    },
+  const changed = await context.database.pedagogicalOccurrence.updateMany({
+    where: { id: occurrence.id, updatedAt: input.expectedUpdatedAt, deletedAt: null },
+    data: { account: input.account },
   });
-  await recordActivity(context.database, context, "occurrences.note", {
+  if (!changed.count)
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "O relato mudou. Atualize a página antes de salvar.",
+    });
+  await recordActivity(context.database, context, "occurrences.update", {
     subject: { type: "student", id: occurrence.studentId, name: occurrence.student.fullName },
-    description: `Complemento do relato: ${occurrence.title}`,
+    description: `Relato editado: ${occurrence.title}`,
   });
 }
 export async function createIntervention(context: FollowUpContext, input: InterventionCreate) {
@@ -82,12 +89,15 @@ export async function createIntervention(context: FollowUpContext, input: Interv
     select: { id: true, fullName: true },
   });
   if (!student) invalid("Aluno não encontrado.");
-  await assertEligibleTeacher(context, input.teacherId);
-  const { occurrenceIds, dueOn, ...values } = input;
+  await requireCurrentEnrollment(context, studentId);
+  await assertEligibleResponsible(context, input.responsibleId);
+  if (input.performedOn > saoPauloDateOnly(context.now))
+    invalid("Informe a data de uma tratativa já realizada.");
+  const { occurrenceIds, performedOn, ...values } = input;
   const row = await context.database.pedagogicalIntervention.create({
     data: {
       ...values,
-      dueOn: dueOn ? new Date(dueOn) : null,
+      performedOn: new Date(performedOn),
       studentId: student.id,
       recordedById: context.staffUser.id,
       createdAt: context.now,
@@ -102,62 +112,24 @@ export async function createIntervention(context: FollowUpContext, input: Interv
   });
   return { id: row.id };
 }
-function assertTransition(status: string, kind: InterventionUpdate["kind"]): void {
-  if (kind === "START" && status !== "OPEN") invalid("Esta intervenção já foi iniciada.");
-  if (kind === "REOPEN" && status !== "CONCLUDED")
-    invalid("Somente uma intervenção concluída pode ser reaberta.");
-  if (status === "CONCLUDED" && kind !== "REOPEN" && kind !== "NOTE")
-    invalid("Reabra a intervenção antes de alterá-la.");
-}
-async function assignmentNote(
+export async function addInterventionFollowUp(
   context: FollowUpContext,
-  input: InterventionUpdate,
-  previous: string,
-): Promise<string> {
-  if (!input.teacherId) return input.body;
-  if (context.staffUser.role === "TEACHER") throw new TRPCError({ code: "FORBIDDEN" });
-  const teacher = await assertEligibleTeacher(context, input.teacherId);
-  return `Responsável: ${previous} → ${teacher.name}. ${input.body}`;
-}
-export async function updateIntervention(
-  context: FollowUpContext,
-  input: InterventionUpdate,
+  input: InterventionFollowUp,
 ): Promise<void> {
   const row = await loadIntervention(context, input.id);
-  assertTransition(row.status, input.kind);
-  if (
-    row.status === "CONCLUDED" &&
-    input.kind === "NOTE" &&
-    (input.nextStep !== undefined || input.dueOn !== undefined)
-  )
-    invalid("Reabra a intervenção antes de mudar o próximo passo ou prazo.");
-  const body = continuityNote(await assignmentNote(context, input, row.teacher.name), input, row);
-  const status =
-    input.kind === "CONCLUDE"
-      ? "CONCLUDED"
-      : input.kind === "START" || input.kind === "REOPEN"
-        ? "IN_PROGRESS"
-        : row.status;
-  await claimVersion(context, input.id, input.version, {
-    status,
-    ...(input.teacherId ? { teacherId: input.teacherId } : {}),
-    ...(input.nextStep ? { nextStep: input.nextStep } : {}),
-    ...(input.dueOn !== undefined ? { dueOn: input.dueOn ? new Date(input.dueOn) : null } : {}),
-    concludedAt: status === "CONCLUDED" ? (row.concludedAt ?? context.now) : null,
-    outcome: input.kind === "CONCLUDE" ? input.body : status === "CONCLUDED" ? row.outcome : null,
-  });
+  await requireCurrentEnrollment(context, row.studentId);
+  await claimVersion(context, input.id, input.version);
   await context.database.pedagogicalFollowUp.create({
     data: {
       interventionId: row.id,
-      kind: input.kind,
-      body,
+      body: input.body,
       recordedById: context.staffUser.id,
       createdAt: context.now,
     },
   });
-  await recordActivity(context.database, context, "interventions.update", {
+  await recordActivity(context.database, context, "interventions.followUp", {
     subject: { type: "student", id: row.studentId, name: row.student.fullName },
-    description: `${row.title} · ${input.kind === "CONCLUDE" ? "Concluída" : input.kind === "REOPEN" ? "Reaberta" : "Acompanhamento registrado"}`,
+    description: row.title,
   });
 }
 export async function addInterventionOccurrence(
@@ -168,8 +140,6 @@ export async function addInterventionOccurrence(
     loadIntervention(context, input.id),
     loadOccurrence(context, input.occurrenceId),
   ]);
-  if (intervention.status === "CONCLUDED")
-    invalid("Reabra a intervenção para incluir novas ocorrências.");
   if (intervention.studentId !== occurrence.studentId)
     invalid("Escolha uma ocorrência do mesmo aluno.");
   await claimVersion(context, input.id, input.version);
@@ -178,36 +148,8 @@ export async function addInterventionOccurrence(
     skipDuplicates: true,
   });
   if (!linked.count) invalid("Esta ocorrência já motiva a intervenção.");
-  await context.database.pedagogicalFollowUp.create({
-    data: {
-      interventionId: input.id,
-      kind: "LINK",
-      body: `Ocorrência incluída: ${occurrence.title}`,
-      recordedById: context.staffUser.id,
-      createdAt: context.now,
-    },
-  });
   await recordActivity(context.database, context, "interventions.link", {
     subject: { type: "student", id: intervention.studentId, name: intervention.student.fullName },
     description: `${intervention.title} · ${occurrence.title}`,
   });
-}
-
-function continuityNote(
-  body: string,
-  input: InterventionUpdate,
-  previous: { nextStep: string; dueOn: Date | null },
-): string {
-  const parts = [body];
-  if (input.nextStep && input.nextStep !== previous.nextStep)
-    parts.push(`Próximo passo: ${previous.nextStep} → ${input.nextStep}`);
-  const priorDate = previous.dueOn?.toISOString().slice(0, 10) ?? null;
-  if (input.dueOn !== undefined && input.dueOn !== priorDate)
-    parts.push(`Prazo: ${deadlineLabel(priorDate)} → ${deadlineLabel(input.dueOn)}`);
-  return parts.join("\n\n");
-}
-function deadlineLabel(date: string | null): string {
-  return date
-    ? new Date(date).toLocaleDateString("pt-BR", { timeZone: "UTC" })
-    : "sem prazo definido";
 }

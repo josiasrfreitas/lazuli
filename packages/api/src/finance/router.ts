@@ -3,6 +3,11 @@ import { payerSubject, orderSubject, installmentSubject } from "../activity/subj
 import { activityTransaction } from "../activity/record.js";
 import {
   z,
+  contractTerminationPreviewSchema,
+  contractTerminationConfirmSchema,
+  financialTreatmentInstallmentsSchema,
+  financialTreatmentPreviewSchema,
+  financialTreatmentConfirmSchema,
   paymentPreviewSchema,
   paymentOperationSchema,
   financeAddInstallmentAdjustmentInputSchema,
@@ -16,17 +21,94 @@ import {
   financeWaiveInstallmentInputSchema,
   payerCreateProcedureInputSchema,
   createMonthlyContractInputSchema,
+  addContractMaterialInputSchema,
   listContractsInputSchema,
   contractPartySearchInputSchema,
 } from "@lazuli/validators";
 
 import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
+import { financialTreatments } from "./treatments/index.js";
 import { finance } from "./index.js";
+import { renewalTerms } from "./internal/renewal.js";
 
 const MIN_ANALYTICS_YEAR = 2000;
 const MAX_ANALYTICS_YEAR = 2100;
 
 export const financeRouter = router({
+  renewalTerms: adminProcedure
+    .input(z.object({ contractId: z.string().uuid() }))
+    .query(({ ctx, input }) => renewalTerms(ctx.db, input.contractId)),
+  previewTermination: adminProcedure
+    .input(contractTerminationPreviewSchema)
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (tx) =>
+          finance(tx, ctx.staffUser.id).previewTermination(input.contractId, ctx.now ?? new Date()),
+        { isolationLevel: "RepeatableRead" },
+      ),
+    ),
+  confirmTermination: adminProcedure
+    .input(contractTerminationConfirmSchema)
+    .mutation(({ ctx, input }) =>
+      activityTransaction(
+        ctx,
+        "finance.terminateContract",
+        (tx) => finance(tx, ctx.staffUser.id).confirmTermination(input, ctx.now ?? new Date()),
+        async (result, db) => ({
+          subject: {
+            type: "contract",
+            id: result.contractId,
+            name: (
+              await db.student.findUniqueOrThrow({
+                where: { id: result.studentId },
+                select: { fullName: true },
+              })
+            ).fullName,
+          },
+          description: `Multa negociada: ${input.feePct}%. Encargos mantidos: ${activityMoney(input.retainedChargesCents)}. ${input.enrollmentIds.length} matrícula(s) encerrada(s). ${input.reason}`,
+          deduplicationKey: `finance.terminateContract:${input.commandId}`,
+        }),
+        { timeout: 30_000 },
+      ),
+    ),
+  treatmentInstallments: adminProcedure
+    .input(financialTreatmentInstallmentsSchema)
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (tx) => financialTreatments(tx, ctx.staffUser, ctx.now ?? new Date()).available(input),
+        { isolationLevel: "RepeatableRead" },
+      ),
+    ),
+  treatmentHistory: adminProcedure
+    .input(z.object({ studentId: z.string().uuid() }))
+    .query(({ ctx, input }) =>
+      financialTreatments(ctx.db, ctx.staffUser, ctx.now ?? new Date()).history(input.studentId),
+    ),
+  previewTreatment: adminProcedure
+    .input(financialTreatmentPreviewSchema)
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (tx) => financialTreatments(tx, ctx.staffUser, ctx.now ?? new Date()).preview(input),
+        { isolationLevel: "RepeatableRead" },
+      ),
+    ),
+  confirmTreatment: adminProcedure
+    .input(financialTreatmentConfirmSchema)
+    .mutation(({ ctx, input }) =>
+      activityTransaction(
+        { ...ctx, now: ctx.now ?? new Date() },
+        "finance.treatment",
+        (tx) => financialTreatments(tx, ctx.staffUser, ctx.now ?? new Date()).confirm(input),
+        async (result, db) => ({
+          subject: input.studentId
+            ? await installmentSubject(db, input.rows[0]!.installmentId)
+            : { type: "receivable", name: "Tratativa em lote" },
+          description: `${result.count} parcela(s). ${input.reason}`,
+          deduplicationKey: `finance.treatment:${input.commandId}`,
+        }),
+        { timeout: 30_000 },
+      ),
+    ),
   studentSummary: adminProcedure
     .input(z.object({ studentId: z.string().uuid() }).strict())
     .query(({ ctx, input }) =>
@@ -74,6 +156,9 @@ export const financeRouter = router({
       }),
     ),
   ),
+  readMaterialPrice: adminProcedure.query(({ ctx }) =>
+    finance(ctx.db, ctx.staffUser.id).readMaterialPrice(),
+  ),
   readSettings: systemAdminProcedure.query(({ ctx }) =>
     finance(ctx.db, ctx.staffUser.id).readSettings(),
   ),
@@ -116,6 +201,28 @@ export const financeRouter = router({
         throw error;
       }
     }),
+  readContract: adminProcedure
+    .input(z.object({ contractId: z.string().uuid() }))
+    .query(({ ctx, input }) =>
+      finance(ctx.db, ctx.staffUser.id).readContract(input.contractId, ctx.now ?? new Date()),
+    ),
+  contractMaterialOptions: adminProcedure.query(({ ctx }) =>
+    finance(ctx.db, ctx.staffUser.id).contractMaterialOptions(),
+  ),
+  addContractMaterial: adminProcedure
+    .input(addContractMaterialInputSchema)
+    .mutation(({ ctx, input }) =>
+      activityTransaction(
+        ctx,
+        "finance.createOrder",
+        (tx) => finance(tx, ctx.staffUser.id).addContractMaterial(input),
+        async (result, database) => ({
+          subject: await orderSubject(database, result.orderId),
+          description: "Aquisição de material vinculada ao contrato.",
+          deduplicationKey: `finance.createOrder:${result.orderId}`,
+        }),
+      ),
+    ),
   listContracts: adminProcedure
     .input(listContractsInputSchema)
     .query(({ ctx, input }) =>

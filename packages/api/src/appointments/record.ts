@@ -1,3 +1,4 @@
+import { requireCurrentEnrollment } from "../enrollment/require-current.js";
 import type { AppointmentRecordInput } from "@lazuli/validators";
 import { lockClassRecord } from "../class-records/data.js";
 import { lockTeacher } from "../teachers/availability.js";
@@ -31,6 +32,7 @@ export async function recordAppointment(
   const restriction = appointmentRestriction(context, row);
   if (restriction) throw badRequest(restriction);
   const correcting = row.status !== "SCHEDULED";
+  if (!correcting) await requireCurrentEnrollment(context, row.studentId);
   if (correcting && !input.reason) throw badRequest("Explique o motivo da correção.");
   if (input.attended && (!input.performedContent.trim() || !input.performedMinutes))
     throw badRequest("Informe o conteúdo e os minutos realizados.");

@@ -1,3 +1,11 @@
+import { readContract } from "./internal/contract-detail.js";
+import { addContractMaterial, contractMaterialOptions } from "./internal/contract-materials.js";
+import type { AddContractMaterialInput } from "@lazuli/validators";
+import {
+  previewContractTermination,
+  confirmContractTermination,
+} from "./internal/contract-termination.js";
+import type { ContractTerminationConfirm } from "@lazuli/validators";
 import { readAnalytics } from "./internal/analytics.js";
 import { readStudentSummary } from "./internal/student-summary.js";
 import { previewPayments } from "./internal/payment-preview.js";
@@ -16,7 +24,7 @@ import {
   waiveInstallment,
   type AddInstallmentAdjustmentResult,
   type WaiveInstallmentResult,
-} from "./internal/installment-actions.js";
+} from "./treatments/index.js";
 import { listInstallments } from "./internal/installments.js";
 import {
   overdueList,
@@ -30,7 +38,7 @@ import {
   registerPayment,
   type RegisterPaymentResult,
 } from "./internal/register-payment.js";
-import { readSettings, saveSettings } from "./internal/settings.js";
+import { readSettings, saveSettings, readMaterialPrice } from "./internal/settings.js";
 import type { FinanceDatabase } from "./internal/shared.js";
 import { studentOverdueTotals, type StudentOverdueTotal } from "./internal/student-balances.js";
 import type { Payer } from "@lazuli/db";
@@ -62,11 +70,18 @@ import type {
  */
 export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule {
   return {
+    previewTermination: (id, now) => previewContractTermination(db, id, now),
+    confirmTermination: (values, now) =>
+      confirmContractTermination({ database: db, values, now, staffUserId }),
     analytics: (values) => readAnalytics(db, values),
     studentSummary: (values) => readStudentSummary(db, values),
     previewPayments: (values, now) => previewPayments({ database: db, values, now }),
     confirmPayments: (values, now) => confirmPayments({ database: db, values, staffUserId, now }),
+    readContract: (id, now) => readContract(db, id, now),
+    addContractMaterial: (values) => addContractMaterial({ database: db, staffUserId, values }),
+    contractMaterialOptions: () => contractMaterialOptions(db),
     readSettings: () => readSettings(db),
+    readMaterialPrice: () => readMaterialPrice(db),
     saveSettings: (values) => saveSettings({ database: db, staffUserId, values }),
     createPayer: (values) => createPayer({ database: db, values, staffUserId }),
     createMonthlyContract: (values) => createMonthlyContract({ database: db, values, staffUserId }),
@@ -90,6 +105,14 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
 }
 
 export type FinanceModule = {
+  readContract: (id: string, now: Date) => ReturnType<typeof readContract>;
+  addContractMaterial: (values: AddContractMaterialInput) => ReturnType<typeof addContractMaterial>;
+  contractMaterialOptions: () => ReturnType<typeof contractMaterialOptions>;
+  previewTermination: (id: string, now: Date) => ReturnType<typeof previewContractTermination>;
+  confirmTermination: (
+    values: ContractTerminationConfirm,
+    now: Date,
+  ) => ReturnType<typeof confirmContractTermination>;
   studentSummary: (values: {
     studentId: string;
     now: Date;
@@ -98,6 +121,7 @@ export type FinanceModule = {
   previewPayments: (values: PaymentPreviewInput, now: Date) => ReturnType<typeof previewPayments>;
   confirmPayments: (values: PaymentOperationInput, now: Date) => ReturnType<typeof confirmPayments>;
   readSettings: () => ReturnType<typeof readSettings>;
+  readMaterialPrice: () => ReturnType<typeof readMaterialPrice>;
   saveSettings: (values: FinanceSettingsInput) => ReturnType<typeof saveSettings>;
   createPayer: (values: z.infer<typeof payerCreateProcedureInputSchema>) => Promise<Payer>;
   createMonthlyContract: (
@@ -151,10 +175,7 @@ export type FinanceModule = {
 };
 
 export type { BatchReconcileResult } from "./internal/batch-reconcile.js";
-export type {
-  AddInstallmentAdjustmentResult,
-  WaiveInstallmentResult,
-} from "./internal/installment-actions.js";
+export type { AddInstallmentAdjustmentResult, WaiveInstallmentResult } from "./treatments/index.js";
 export type { OverdueListResult } from "./internal/ledger-read.js";
 export type { OrderScheduleResult } from "./internal/orders.js";
 export type { RegisterPaymentResult } from "./internal/register-payment.js";

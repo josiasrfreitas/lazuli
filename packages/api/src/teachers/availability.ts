@@ -1,4 +1,5 @@
 import { assertNoIntroductionConflict } from "../admissions/teacher-commitments.js";
+import { hasTeacherIdentity } from "./identity.js";
 import { assertNoAppointmentConflict } from "../appointments/commitments.js";
 import type { Prisma } from "@lazuli/db";
 import {
@@ -26,11 +27,11 @@ export async function lockTeacher(
 export async function assertTeacherEligible(input: AssertTeacherEligibleInput): Promise<void> {
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
-    select: { role: true, deletedAt: true, teacherProfile: { select: { departureDate: true } } },
+    select: { role: true, deletedAt: true, teacherProfile: { select: { departureDate: true, deletedAt: true } } },
   });
   if (
     !teacher ||
-    teacher.role !== "TEACHER" ||
+    !hasTeacherIdentity(teacher) ||
     teacher.deletedAt ||
     (teacher.teacherProfile?.departureDate &&
       dateOnly(teacher.teacherProfile.departureDate) <= input.date)

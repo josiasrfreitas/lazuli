@@ -176,10 +176,9 @@ export function TableFilters({ fields, onClearAll }: TableFiltersProps): ReactEl
           .map((field) => (
             <InlineField key={field.id} field={field} />
           ))}
-        <div className="inline-flex max-w-full items-center">
-          {secondary.length > 0 ? (
-            <MoreFilters fields={secondary} activeCount={activeSecondaryCount} />
-          ) : null}
+        {secondary.length > 0 && (
+          <div className="inline-flex max-w-full items-center">
+          <MoreFilters fields={secondary} activeCount={activeSecondaryCount} />
           <Tooltip>
             <TooltipTrigger
               aria-label="Limpar todos os filtros"
@@ -197,7 +196,8 @@ export function TableFilters({ fields, onClearAll }: TableFiltersProps): ReactEl
             />
             <TooltipContent>Limpar todos os filtros</TooltipContent>
           </Tooltip>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,26 +1,21 @@
 import type { Prisma } from "@lazuli/db";
 import {
-  availabilityCovers,
   intervalsOverlap,
   responsibleTeacherId,
   sessionEndInstant,
-  weekdayOf,
 } from "@lazuli/domain";
 import type { entryVisitScheduleSchema, entryVisitOutcomeSchema, z } from "@lazuli/validators";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
   assertTeacherEligible,
   assertNoTeacherConflict,
-  databaseSlotToCandidate,
   lockTeacher,
 } from "../teachers/availability.js";
 import { meetingKey, meetingsBetween } from "../teachers/schedule.js";
 import { dateToTimeString, timeStringToDate } from "../classes/time.js";
 import {
-  assertAllocatable,
   dateOnly,
   lockCandidate,
-  matchingClasses,
   readCandidate,
   type AdmissionCandidate,
 } from "./candidates.js";
@@ -46,9 +41,11 @@ async function resolveVisit(input: ScheduleInput): Promise<ResolvedVisit> {
   const meeting = values.meeting;
   if (meeting.kind === "INTRODUCTION")
     return resolveIntroduction({ database, values: { ...values, meeting } });
-  const choices = await matchingClasses(database, { id: values.candidateId, date: values.date });
-  if (!choices.some((row) => row.id === meeting.classId))
-    throw badRequest("Turma incompatível com o interesse e a disponibilidade.");
+  const target = await database.class.findFirst({ where: {
+    id: meeting.classId, deletedAt: null, status: "ACTIVE",
+    semester: { deletedAt: null, startDate: { lte: new Date(values.date) }, endDate: { gte: new Date(values.date) } },
+  } });
+  if (!target) throw badRequest("Escolha uma turma ativa nesta data.");
   const rows = await meetingsBetween({ database, from: values.date, through: values.date, now });
   const match = rows.find(
     (row) =>
@@ -114,7 +111,7 @@ export async function scheduleVisit(input: ScheduleInput): Promise<{ id: string 
     return { id: existing.id };
   }
   const candidate = await readCandidate(database, values.candidateId);
-  assertAllocatable(candidate, values.date);
+  if (candidate.status !== "WAITING") throw badRequest("Reabra o lead antes de agendar a aula.");
   await cancelPrevious(input);
   const meeting = await resolveVisit(input);
   await assertVisitAllowed(input, { candidate, meeting });
@@ -162,17 +159,6 @@ async function assertVisitAllowed(
 ): Promise<void> {
   if (sessionEndInstant({ date: values.date, endTime: meeting.startTime }) <= now)
     throw badRequest("Escolha um encontro que ainda não começou.");
-  if (
-    !availabilityCovers(
-      candidate.availability.map((slot) => databaseSlotToCandidate(slot)),
-      [{ weekday: weekdayOf(values.date), ...meeting }],
-    )
-  )
-    throw badRequest(
-      "O horário está fora da disponibilidade informada. Atualize-a antes de agendar.",
-    );
-  if (candidate.format !== meeting.format)
-    throw badRequest("O formato do encontro é diferente do interesse registrado.");
   const closed = await database.schoolClosedDay.findFirst({
     where: { date: new Date(values.date), deletedAt: null },
   });
@@ -204,7 +190,7 @@ export async function recordVisitOutcome(input: {
   const { database, values, now, recordedById } = input;
   await lockTeacher(database, "");
   const visit = await database.entryVisit.findUnique({ where: { id: values.id } });
-  if (!visit || visit.deletedAt) throw notFound("Aula de entrada não encontrada.");
+  if (!visit || visit.deletedAt) throw notFound("Aula experimental não encontrada.");
   if (visit.status === "CANCELLED") throw badRequest("Aula cancelada. Agende uma nova aula.");
   const actual =
     values.status === "CANCELLED" ? null : await outcomeMeeting({ database, visit, now });
@@ -251,7 +237,7 @@ async function outcomeMeeting({
   );
   if (!current || current.cancelled || !responsibleTeacherId(current))
     throw badRequest(
-      "O encontro da turma foi cancelado ou está sem professor. Cancele ou remarque a aula de entrada.",
+      "O encontro da turma foi cancelado ou está sem professor. Cancele ou remarque a aula experimental.",
     );
   return current;
 }

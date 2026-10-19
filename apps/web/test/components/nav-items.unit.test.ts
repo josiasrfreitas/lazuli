@@ -17,10 +17,8 @@ const ANALYTICS_PATH = "/financeiro";
 const CLASSES_PATH = "/turmas";
 const ASSESSMENTS_PATH = "/avaliacoes";
 const CLASS_RECORDS_PATH = "/aulas";
-const APPOINTMENTS_PATH = "/atendimentos";
-const NEXT_SEMESTER_PATH = "/proximo-semestre";
-const FOLLOW_UP_PATH = "/acompanhamento";
-const PLANNING_PATH = "/planejamento";
+const ORGANIZATION_PATH = "/organizacao";
+const MATERIALS_PATH = "/estagios";
 const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
 const SETTINGS_PATH = "/ajustes";
@@ -46,10 +44,8 @@ void describe("role-aware navigation", () => {
         TEACHERS_PATH,
         CLASSES_PATH,
         CLASS_RECORDS_PATH,
-        APPOINTMENTS_PATH,
-        FOLLOW_UP_PATH,
-        PLANNING_PATH,
-        NEXT_SEMESTER_PATH,
+        MATERIALS_PATH,
+        ORGANIZATION_PATH,
         LEADS_PATH,
         ANALYTICS_PATH,
         CONTRACTS_PATH,
@@ -59,7 +55,7 @@ void describe("role-aware navigation", () => {
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
-      ["/", CLASS_RECORDS_PATH, APPOINTMENTS_PATH, FOLLOW_UP_PATH, PLANNING_PATH, ASSESSMENTS_PATH],
+      ["/", CLASS_RECORDS_PATH, ASSESSMENTS_PATH],
     );
   });
 
@@ -72,11 +68,9 @@ void describe("role-aware navigation", () => {
           STUDENTS_LABEL,
           "Professores",
           "Turmas",
-          "Aulas",
-          "Atendimentos",
-          "Acompanhamento",
-          "Planejamento",
-          "Próximo semestre",
+          "Agenda",
+          "Estágios",
+          "Organização de turmas",
         ],
       },
       { label: "Comercial", items: ["Leads"] },
@@ -128,16 +122,7 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
     assert.equal(navBreadcrumbFor(RECEIVABLES_PATH, role), null);
     assert.deepEqual(
       navItemsFor(role).map((item) => item.href),
-      role === "TEACHER"
-        ? [
-            "/",
-            CLASS_RECORDS_PATH,
-            APPOINTMENTS_PATH,
-            FOLLOW_UP_PATH,
-            PLANNING_PATH,
-            ASSESSMENTS_PATH,
-          ]
-        : ["/"],
+      role === "TEACHER" ? ["/", CLASS_RECORDS_PATH, ASSESSMENTS_PATH] : ["/"],
     );
   }
 });
@@ -151,10 +136,8 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       TEACHERS_PATH,
       CLASSES_PATH,
       CLASS_RECORDS_PATH,
-      APPOINTMENTS_PATH,
-      FOLLOW_UP_PATH,
-      PLANNING_PATH,
-      NEXT_SEMESTER_PATH,
+      MATERIALS_PATH,
+      ORGANIZATION_PATH,
       LEADS_PATH,
       ANALYTICS_PATH,
       CONTRACTS_PATH,

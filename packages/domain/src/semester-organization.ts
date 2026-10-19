@@ -62,8 +62,6 @@ export function semesterPlacementBlockers(input: SemesterEligibility): string[] 
     return blockers;
   }
   if (input.mode === "CONTINUE") {
-    if (source.scheduleType !== "PERSONALIZED" || input.plan?.scheduleType !== "PERSONALIZED")
-      blockers.push("Continuidade no mesmo estágio exige origem e destino PPT");
     if (source.stageId !== input.stage?.id) blockers.push("Continuidade deve preservar o estágio");
   } else {
     const decision = input.mode === "ADVANCE" ? "APPROVED" : "REPEAT";

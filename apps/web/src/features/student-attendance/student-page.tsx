@@ -7,11 +7,14 @@ import type { RouterOutputs } from "@lazuli/api";
 import { attendanceTokenSchema } from "@lazuli/validators";
 import { StudentNameField, StudentNameChoices } from "./student-fields";
 import { currentAttendanceLocation, attendanceTime } from "./location";
+import { attendanceBrowserId } from "./browser";
 export function StudentAttendancePage(): ReactElement {
   const [token, setToken] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [invalid, setInvalid] = useState(false);
   const inspect = trpc.studentAttendance.inspect.useMutation();
+  const receipt = trpc.studentAttendance.receipt.useMutation();
+  const readReceipt = receipt.mutate;
   const inspectLink = inspect.mutate;
   useEffect(() => {
     const read = () => {
@@ -20,12 +23,15 @@ export function StudentAttendancePage(): ReactElement {
       setLoaded(true);
       const valid = attendanceTokenSchema.safeParse({ token: value }).success;
       setInvalid(Boolean(value) && !valid);
-      if (valid) inspectLink({ token: value });
+      if (valid) {
+        inspectLink({ token: value });
+        try { readReceipt({ token: value, browserId: attendanceBrowserId() }); } catch { /* The form explains unavailable browser storage before sending. */ }
+      }
     };
     read();
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);
-  }, [inspectLink]);
+  }, [inspectLink, readReceipt]);
   return (
     <main className="grid min-h-dvh content-start bg-background px-5 py-8 sm:content-center sm:py-12">
       <div className="mx-auto grid w-full max-w-md gap-8">
@@ -54,7 +60,7 @@ export function StudentAttendancePage(): ReactElement {
               Envie sua presença para a revisão do professor.
             </p>
           </div>
-          {!loaded || inspect.isPending ? (
+          {receipt.data ? <div role="status" className="grid gap-3"><CheckCircle2 className="size-8 text-success" /><h2 className="font-semibold">Este navegador já enviou uma presença</h2><p>{receipt.data.name}</p><p className="text-sm text-muted-foreground">Recebida às {attendanceTime(receipt.data.submittedAt)}. Para qualquer ajuste, fale com o professor.</p></div> : !loaded || inspect.isPending ? (
             <p role="status">Abrindo sua aula…</p>
           ) : !token ? (
             <Alert>Abra o QR ou o link de presença compartilhado pelo professor.</Alert>
@@ -104,7 +110,9 @@ function StudentDeclaration({ token, info }: { token: string; info: Info }): Rea
     setLocating(true);
     try {
       const location = info.format === "IN_PERSON" ? await currentAttendanceLocation() : null;
-      submit.mutate({ token, name: name.trim(), enrollmentId: selected, location });
+      let browserId: string;
+      try { browserId = attendanceBrowserId(); } catch { throw new Error("Permita o armazenamento deste navegador ou peça a chamada manual ao professor."); }
+      submit.mutate({ token, name: name.trim(), enrollmentId: selected, location, browserId });
     } catch (cause) {
       setLocationError(
         cause instanceof Error ? cause.message : "Tente obter a localização novamente.",
@@ -154,6 +162,7 @@ function StudentDeclaration({ token, info }: { token: string; info: Info }): Rea
           else search.mutate({ token, name: name.trim() });
         }}
       >
+        <Alert>Confirme somente o seu nome. Este navegador pode confirmar uma pessoa por aula. Se confirmar outra pessoa, você precisará pedir o registro manual da sua presença ao professor.</Alert>
         <StudentNameField
           name={name}
           disabled={pending}
@@ -185,7 +194,7 @@ function StudentDeclaration({ token, info }: { token: string; info: Info }): Rea
             <span>
               {info.format === "ONLINE"
                 ? "Aula online: confirme para enviar ao professor."
-                : "Ao enviar, compartilhe sua localização atual para a revisão do professor."}
+                : "Para confirmar, sua localização precisa estar na área da escola e ter precisão suficiente. Se não conseguir, peça a chamada manual."}
             </span>
           </p>
         )}

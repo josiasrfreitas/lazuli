@@ -1,3 +1,4 @@
+import { ContractMaterialSection } from "../../contracts/contract-material-section";
 import type { ReactElement } from "react";
 import { Button, FormSection } from "@lazuli/ui";
 import { ConditionsSection } from "../../contracts/contract-form-fields";
@@ -71,6 +72,7 @@ export function FinanceStep({ completion, student }: FinanceStepProps): ReactEle
         <FormSection title="Condições do contrato">
           <ConditionsSection {...props} />
         </FormSection>
+        <ContractMaterialSection {...props} />
         <PaymentSection {...props} />
       </fieldset>
       {state.submissionError && (

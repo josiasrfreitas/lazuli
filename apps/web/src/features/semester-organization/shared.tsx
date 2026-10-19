@@ -7,7 +7,7 @@ export type Placement = SemesterBoard["placements"][number];
 export type StudentContext = RouterOutputs["semesterOrganization"]["student"];
 export const modes = {
   ENTRY: "Nova entrada",
-  CONTINUE: "Continuar PPT",
+  CONTINUE: "Manter estágio",
   ADVANCE: "Avançar estágio",
   REPEAT: "Repetir estágio",
 } as const;

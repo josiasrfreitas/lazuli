@@ -1,4 +1,5 @@
 import type { Prisma } from "@lazuli/db";
+import { hasTeacherIdentity } from "./identity.js";
 import { saoPauloDateOnly, weekdayOf } from "@lazuli/domain";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
@@ -17,6 +18,16 @@ const dateOnly = (date: Date): string => date.toISOString().slice(0, ISO_DATE_LE
 const utcDate = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
 
 export async function createTeacher(input: CreateTeacherInput): Promise<{ id: string }> {
+  const existing = await input.database.user.findFirst({
+    where: { email: { equals: input.values.email, mode: "insensitive" }, deletedAt: null },
+    select: { id: true, role: true, teacherProfile: { select: { userId: true, deletedAt: true } } },
+  });
+  if (existing && !existing.teacherProfile && ["ADMIN", "SYSTEM_ADMIN"].includes(existing.role)) {
+    if (existing.role === "SYSTEM_ADMIN" && input.actorRole !== "SYSTEM_ADMIN") throw badRequest("Somente um administrador do sistema pode alterar este cadastro.");
+    await assertUniqueIdentity({ database: input.database, values: input.values, exceptId: existing.id });
+    await input.database.teacherProfile.create({ data: { userId: existing.id, cpf: input.values.cpf } });
+    return { id: existing.id };
+  }
   await assertUniqueIdentity({ database: input.database, values: input.values });
   const teacher = await input.database.user.create({
     data: {
@@ -34,10 +45,11 @@ export async function createTeacher(input: CreateTeacherInput): Promise<{ id: st
 export async function updateTeacher(input: UpdateTeacherInput): Promise<{ id: string }> {
   const current = await input.database.user.findUnique({
     where: { id: input.values.id },
-    select: { role: true, deletedAt: true },
+    select: { role: true, deletedAt: true, teacherProfile: { select: { userId: true, deletedAt: true } } },
   });
-  if (!current || current.role !== "TEACHER" || current.deletedAt)
+  if (!current || !hasTeacherIdentity(current) || current.deletedAt)
     throw notFound("Professor não encontrado.");
+  if (current.role === "SYSTEM_ADMIN" && input.actorRole !== "SYSTEM_ADMIN") throw badRequest("Somente um administrador do sistema pode alterar este cadastro.");
   await assertUniqueIdentity({
     database: input.database,
     values: input.values,
@@ -145,10 +157,12 @@ export async function substituteMeeting(input: SubstituteMeetingInput): Promise<
 }
 
 type CreateTeacherInput = {
+  actorRole?: string;
   database: Database;
   values: { name: string; cpf: string; email: string; isEnabled: boolean };
 };
 type UpdateTeacherInput = {
+  actorRole?: string;
   database: Database;
   values: { id: string; name: string; cpf: string; email: string; isEnabled: boolean };
 };

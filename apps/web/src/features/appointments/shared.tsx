@@ -48,7 +48,13 @@ export function AppointmentBadge({
   return (
     <Badge
       variant={
-        status === "ATTENDED" ? "success" : status === "NO_SHOW" || overdue ? "warning" : "neutral"
+        status === "ATTENDED"
+          ? "success"
+          : status === "CANCELLED"
+            ? "destructive"
+            : status === "NO_SHOW" || overdue
+              ? "warning"
+              : "info"
       }
     >
       {overdue ? "A registrar" : statuses[status]}
@@ -60,6 +66,7 @@ export function useAppointmentRefresh() {
   return async () => {
     await Promise.all([
       utils.appointments.invalidate(),
+      utils.teacherWorkspace.invalidate(),
       utils.teachers.invalidate(),
       utils.students.invalidate(),
       utils.attendance.invalidate(),

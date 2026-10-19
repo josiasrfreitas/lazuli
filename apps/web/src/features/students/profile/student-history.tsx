@@ -11,13 +11,13 @@ const EXIT_LABELS = {
   SUSPENDED: "Pausada",
   CORRECTION: "Correção",
 };
-function historyColumns(today: string): DataTableColumn<StudentEnrollment>[] {
+function historyColumns(today: string, studentId: string): DataTableColumn<StudentEnrollment>[] {
   return [
     {
       id: "class",
       header: "Turma / semestre",
       width: "wide",
-      cell: (row) => <HistoryClass row={row} />,
+      cell: (row) => <HistoryClass row={row} studentId={studentId} />,
     },
     {
       id: "period",
@@ -64,9 +64,7 @@ export function EnrollmentHistory({
     <section className="grid min-w-0 gap-3 border-t border-border pt-5">
       <div className="flex flex-wrap items-baseline gap-3">
         <div className="mr-auto flex flex-wrap items-baseline gap-3">
-          <h2 className="font-display text-xl font-semibold text-heading">
-            Histórico de matrículas
-          </h2>
+          <h2 className="font-display text-xl font-semibold text-heading">Matrículas do Aluno</h2>
           <p className="text-caption text-muted-foreground">
             Matrículas anteriores e entradas agendadas
           </p>
@@ -79,7 +77,7 @@ export function EnrollmentHistory({
       </div>
       <DataTable
         label="Histórico de matrículas do aluno"
-        columns={historyColumns(today)}
+        columns={historyColumns(today, studentId)}
         state={{ kind: "data", rows }}
         onRetry={() => undefined}
         empty={{
@@ -92,7 +90,13 @@ export function EnrollmentHistory({
   );
 }
 
-function HistoryClass({ row }: { row: StudentEnrollment }): ReactElement {
+function HistoryClass({
+  row,
+  studentId,
+}: {
+  row: StudentEnrollment;
+  studentId: string;
+}): ReactElement {
   return (
     <div className="grid gap-1">
       <Link
@@ -107,7 +111,7 @@ function HistoryClass({ row }: { row: StudentEnrollment }): ReactElement {
           <Link
             key={progress.id}
             className="text-caption text-interactive hover:underline"
-            href={`/planejamento?turma=${row.class.id}&percurso=${progress.id}`}
+            href={`/alunos/${studentId}?secao=planejamento&percurso=${progress.id}`}
           >
             Plano · {progress.stage}
           </Link>
@@ -115,7 +119,7 @@ function HistoryClass({ row }: { row: StudentEnrollment }): ReactElement {
       ) : (
         <Link
           className="text-caption text-interactive hover:underline"
-          href={`/planejamento?turma=${row.class.id}`}
+          href={`/turmas/${row.class.id}?secao=planejamento`}
         >
           Planejamento da turma
         </Link>

@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { Badge, type DataTableColumn } from "@lazuli/ui";
 import {
-  interestLabel,
-  formatLabel,
   dateLabel,
-  dateOnly,
+  formatLabel,
+  leadInterestLabels,
   statusLabels,
   type CandidateRow,
 } from "./labels";
-const baseColumns: DataTableColumn<CandidateRow>[] = [
+
+export const admissionColumns: DataTableColumn<CandidateRow>[] = [
   {
     id: "name",
     header: "Lead",
@@ -28,23 +28,30 @@ const baseColumns: DataTableColumn<CandidateRow>[] = [
   {
     id: "interest",
     header: "Interesse",
+    width: "medium",
+    cell: (row) => leadInterestLabels[row.interest],
+  },
+  {
+    id: "stage",
+    header: "Estágio",
     width: "wide",
     cell: (row) => (
       <div className="grid gap-0.5">
         <span>
-          {row.scheduleType
-            ? `${interestLabel(row.scheduleType)} · ${formatLabel(row.format)}`
-            : "Interesse a definir"}
+          {row.stage?.name ??
+            (row.englishExperience === "SOME" ? "Nivelamento pendente" : "A definir")}
         </span>
-        <span className="text-caption text-muted-foreground">
-          {row.stage?.name ?? "Nivelamento pendente"}
-        </span>
+        {row.format && (
+          <span className="text-caption text-muted-foreground">
+            Prefere {formatLabel(row.format).toLowerCase()}
+          </span>
+        )}
       </div>
     ),
   },
   {
     id: "status",
-    header: "Situação",
+    header: "Status",
     width: "medium",
     cell: (row) => (
       <Badge variant={row.status === "ENROLLED" ? "success" : "neutral"}>
@@ -52,38 +59,5 @@ const baseColumns: DataTableColumn<CandidateRow>[] = [
       </Badge>
     ),
   },
+  { id: "created", header: "Cadastro", width: "medium", cell: (row) => dateLabel(row.createdAt) },
 ];
-
-export function admissionColumns(today: string): DataTableColumn<CandidateRow>[] {
-  return [
-    baseColumns[0]!,
-    {
-      id: "next",
-      header: "Próximo passo",
-      width: "wide",
-      cell: (row) => (
-        <div className="grid gap-0.5">
-          <span>
-            {row.nextAction ?? (row.status === "WAITING" ? "Definir próximo passo" : "—")}
-          </span>
-          {row.nextActionOn && (
-            <span
-              className={`text-caption ${dateOnly(row.nextActionOn) < today && row.status === "WAITING" ? "text-warning" : "text-muted-foreground"}`}
-            >
-              {dateOnly(row.nextActionOn) < today ? "Em atraso · " : ""}
-              {dateLabel(row.nextActionOn)}
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: "owner",
-      header: "Responsável",
-      width: "medium",
-      cell: (row) => row.owner?.name ?? "Sem responsável",
-    },
-    baseColumns[1]!,
-    baseColumns[2]!,
-  ];
-}

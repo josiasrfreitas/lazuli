@@ -1,3 +1,4 @@
+import { DollarSign, Handshake } from "lucide-react";
 import type { ReactElement } from "react";
 import { Badge, Button, type DataTableColumn } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
@@ -34,23 +35,36 @@ const COLUMNS: DataTableColumn<FinanceRow>[] = [
 export function financeColumns(
   onReceive: (row: FinanceRow) => void,
   priorityId?: string,
+  onTreat?: (row: FinanceRow) => void,
 ): DataTableColumn<FinanceRow>[] {
   return [
     ...(priorityId ? queueColumns() : COLUMNS),
     {
       id: "action",
       header: <span className="sr-only">Ações</span>,
-      width: "narrow",
+      width: "wide",
       cell: (row) =>
         row.collectibleBalanceCents > 0 ? (
-          <Button
-            size="sm"
-            variant={row.installmentId === priorityId ? "primary" : "secondary"}
-            onClick={() => onReceive(row)}
-            aria-label={`Receber parcela ${row.sequenceNumber} com vencimento em ${formatDateOnlyBR(row.dueDate)}`}
-          >
-            Receber
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant={row.installmentId === priorityId ? "primary" : "secondary"}
+              onClick={() => onReceive(row)}
+              aria-label={`Receber parcela ${row.sequenceNumber} com vencimento em ${formatDateOnlyBR(row.dueDate)}`}
+            >
+              <DollarSign aria-hidden="true" /> Receber
+            </Button>
+            {onTreat && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onTreat(row)}
+                aria-label={`Negociar ou suspender parcela ${row.sequenceNumber}`}
+              >
+                <Handshake aria-hidden="true" /> Negociar
+              </Button>
+            )}
+          </div>
         ) : null,
     },
   ];
@@ -63,7 +77,7 @@ function queueColumns(): DataTableColumn<FinanceRow>[] {
       width: "standard",
       cell: (row) => (
         <div className="grid gap-1">
-          <span className="font-medium text-warning">{row.overdueDays} dias em atraso</span>
+          <span className="font-medium text-destructive">{row.overdueDays} dias em atraso</span>
           <span className="text-caption text-muted-foreground">
             Venceu em {formatDateOnlyBR(row.dueDate)}
           </span>
@@ -95,7 +109,13 @@ function InstallmentIdentity({ row }: { row: FinanceRow }): ReactElement {
   return (
     <div className="grid gap-1">
       <span className="font-medium">
-        {originLabel(row.origin)} · {row.sequenceNumber}/{row.scheduleTotal}
+        {originLabel(row.origin)}
+        {row.origin !== "MATERIAL" && (
+          <>
+            {" "}
+            · {row.sequenceNumber}/{row.scheduleTotal}
+          </>
+        )}
       </span>
       <span className="text-caption text-muted-foreground">{row.payer.name}</span>
       {row.beneficiaries.length > 1 && (

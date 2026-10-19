@@ -7,7 +7,6 @@ import { loadRecordSession, lockClassRecord, type RecordContext } from "../class
 import {
   tokenHash,
   openingRestriction,
-  assertFreshLocation,
   closeAttendanceWindows,
 } from "./data.js";
 export async function attendanceStatus(context: RecordContext, sessionId: string) {
@@ -82,11 +81,9 @@ export async function openAttendanceWindow(
   const session = await loadRecordSession(context, input.sessionId);
   const restriction = openingRestriction(session, context.now);
   if (restriction) throw badRequest(restriction);
-  if (input.location) {
-    if (session.class.format === "ONLINE")
-      throw badRequest("Aulas online não utilizam localização.");
-    assertFreshLocation(input.location, context.now);
-  }
+  const settings = session.class.format === "IN_PERSON" ? await context.database.attendanceSettings.findUnique({ where: { id: "school" } }) : null;
+  if (session.class.format === "IN_PERSON" && !settings) throw badRequest("A administração precisa configurar a localização da escola antes de abrir o QR presencial. Você pode fazer a chamada manual.");
+  if (session.class.format === "ONLINE" && input.location) throw badRequest("Aulas online não utilizam localização.");
   await closeAttendanceWindows(context.database, session.id, context.staffUser.id, context.now);
   const token = randomBytes(32).toString("base64url");
   const window = await context.database.attendanceWindow.create({
@@ -97,14 +94,14 @@ export async function openAttendanceWindow(
       openedAt: context.now,
       expiresAt: new Date(
         Math.min(
-          context.now.getTime() + input.minutes * 60_000,
+          context.now.getTime() + (session.class.format === "IN_PERSON" ? 5 : input.minutes) * 60_000,
           sessionEndInstant(session).getTime(),
         ),
       ),
       openedById: context.staffUser.id,
-      referenceLatitude: input.location?.latitude ?? null,
-      referenceLongitude: input.location?.longitude ?? null,
-      referenceAccuracy: input.location?.accuracy ?? null,
+      referenceLatitude: settings?.latitude ?? null,
+      referenceLongitude: settings?.longitude ?? null,
+      referenceAccuracy: null,
       createdAt: context.now,
       updatedAt: context.now,
     },
@@ -114,7 +111,11 @@ export async function openAttendanceWindow(
     subject: { type: "class", id: session.classId, name: session.class.portalClassName },
     description: "Abriu um novo link de presença para a aula; links anteriores foram encerrados.",
   });
-  return { ...window, token };
+  const previousProjection = await context.database.attendanceProjection.findUnique({ where: { classSessionId: session.id } });
+  const projectionToken = input.projectionToken && previousProjection?.tokenHash === tokenHash(input.projectionToken) ? input.projectionToken : randomBytes(32).toString("base64url");
+  const projectionData = { tokenHash: tokenHash(projectionToken), attendanceToken: token, windowExpiresAt: window.expiresAt, expiresAt: sessionEndInstant(session) };
+  await context.database.attendanceProjection.upsert({ where: { classSessionId: session.id }, create: { classSessionId: session.id, ...projectionData }, update: projectionData });
+  return { ...window, token, projectionToken };
 }
 export async function closeAttendanceWindow(context: RecordContext, sessionId: string) {
   await lockClassRecord(context.database, sessionId);
