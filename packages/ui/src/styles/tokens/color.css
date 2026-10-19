@@ -62,9 +62,20 @@
   --accent-hover: var(--lz-ref-blue-100);
   --accent-active: var(--lz-ref-blue-200);
   --accent-foreground: var(--lz-ref-blue-800);
+  --lesson-regular-surface: var(--accent);
+  --lesson-regular-foreground: var(--accent-foreground);
+  --lesson-personalized-surface: #f3ebf8;
+  --lesson-personalized-foreground: #763c98;
+  --appointment-surface: #f6ece6;
+  --appointment-foreground: #824c34;
+  --experimental-surface: #e3f2ee;
+  --experimental-foreground: #24665c;
   --interactive: var(--lz-ref-blue-700);
   --interactive-hover: var(--lz-ref-blue-800);
   --interactive-active: var(--lz-ref-navy);
+  --brand-link: var(--lz-ref-gold-ink);
+  --brand-link-hover: #6d5018;
+  --brand-link-active: #553d12;
   --ring: var(--lz-ref-blue-600);
 
   /* Nested separators are quieter than frames; control borders remain distinct. */
@@ -79,13 +90,13 @@
   --selection-indicator: var(--lz-ref-gold-ink);
   --icon-active: var(--selection-indicator);
 
-  /* The same navy navigation anchors both themes. */
-  --navigation: var(--lz-ref-navy);
-  --navigation-foreground: #e9edf6;
-  --navigation-muted: #b1bfd3;
-  --navigation-active: #243958;
-  --navigation-border: #2b3f5e;
-  --navigation-icon: var(--lz-ref-blue-300);
+  /* Light navigation shares the workspace's quiet surfaces and blue ink. */
+  --navigation: var(--lz-ref-white);
+  --navigation-foreground: var(--lz-ref-navy);
+  --navigation-muted: var(--lz-ref-neutral-600);
+  --navigation-active: var(--lz-ref-blue-50);
+  --navigation-border: var(--lz-ref-neutral-200);
+  --navigation-icon: var(--lz-ref-blue-700);
 
   --success: #296743;
   --success-muted: #e9f3ed;
@@ -147,9 +158,20 @@
   --accent-hover: #2a3e59;
   --accent-active: #344e6e;
   --accent-foreground: #d2e1f5;
+  --lesson-regular-surface: var(--accent);
+  --lesson-regular-foreground: var(--accent-foreground);
+  --lesson-personalized-surface: #34283f;
+  --lesson-personalized-foreground: #cdabe3;
+  --appointment-surface: #3e2d26;
+  --appointment-foreground: #e6b39a;
+  --experimental-surface: #203b36;
+  --experimental-foreground: #92d0c2;
   --interactive: var(--lz-ref-blue-300);
   --interactive-hover: var(--lz-ref-blue-200);
   --interactive-active: var(--lz-ref-blue-100);
+  --brand-link: var(--lz-ref-gold);
+  --brand-link-hover: #e6c572;
+  --brand-link-active: #f0d798;
   --ring: var(--lz-ref-blue-500);
   --border: var(--lz-ref-neutral-800);
   --border-subtle: var(--lz-ref-neutral-850);
@@ -161,6 +183,13 @@
   --icon: #91a7c3;
   --selection-indicator: var(--lz-ref-gold);
   --icon-active: var(--selection-indicator);
+
+  --navigation: var(--lz-ref-navy);
+  --navigation-foreground: #e9edf6;
+  --navigation-muted: #b1bfd3;
+  --navigation-active: #243958;
+  --navigation-border: #2b3f5e;
+  --navigation-icon: var(--lz-ref-blue-300);
 
   --success: #8ccca4;
   --success-muted: #20352b;
@@ -194,6 +223,14 @@
   --muted: var(--lz-ref-blue-gray-850);
   --border: var(--lz-ref-blue-gray-800);
   --border-subtle: color-mix(in srgb, var(--border) 60%, var(--card));
+}
+
+/* Selected controls stay blue against dark fields instead of using a white fill. */
+.dark :is([data-slot="switch"], [data-slot="segmented-control"]) {
+  --primary: var(--lz-ref-blue-700);
+  --primary-hover: var(--lz-ref-blue-600);
+  --primary-active: var(--lz-ref-blue-800);
+  --primary-foreground: var(--lz-ref-blue-50);
 }
 
 /* Dark buttons share the tables' blue-gray palette, with blue primary actions. */

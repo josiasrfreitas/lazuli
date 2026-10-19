@@ -1,0 +1,282 @@
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 0.125rem 0.5rem;
+  width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
+  text-align: left;
+}
+.title,
+.teacher,
+.context {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.title {
+  font-family: var(--lz-font-display);
+  font-size: clamp(var(--lz-text-caption), 6cqi, var(--lz-text-body));
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  min-width: 0;
+  font-family: var(--lz-font-numeric);
+  font-size: var(--lz-text-micro);
+  line-height: 1.25;
+}
+.time {
+  display: flex;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.indicators,
+.status,
+.guests {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.indicators {
+  flex-shrink: 0;
+}
+.indicators svg {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex-shrink: 0;
+}
+.format,
+.format > span {
+  display: inline-flex;
+  margin: 0;
+}
+.status {
+  padding: 0.0625rem 0.125rem;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+.status[data-tone="pending"] {
+  color: var(--warning);
+}
+.status[data-tone="recorded"] {
+  color: var(--success);
+}
+.status[data-tone="cancelled"] {
+  color: var(--destructive);
+}
+.statusText {
+  display: none;
+  white-space: nowrap;
+}
+.teacher {
+  font-size: var(--lz-text-caption);
+  line-height: 1.25;
+}
+.context {
+  font-family: var(--lz-font-numeric);
+  font-size: var(--lz-text-micro);
+  line-height: 1.25;
+}
+.content[data-cancelled="true"] .title {
+  text-decoration: line-through;
+}
+
+/* Long cells spend their vertical space on names instead of leaving empty space. */
+@container weekly-lesson (height >= 6.5rem) {
+  .title,
+  .teacher,
+  .context {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+@container weekly-lesson (width >= 16rem) {
+  .statusText {
+    display: inline;
+  }
+}
+
+/* Short cells share the supporting line only when both columns remain useful. */
+@container weekly-lesson (height < 4.5rem) {
+  .context {
+    display: none;
+  }
+}
+@container weekly-lesson (height < 4.5rem) and (width >= 12rem) {
+  .content {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    row-gap: 0.0625rem;
+  }
+  .title {
+    font-size: var(--lz-text-caption);
+  }
+  .teacher {
+    font-size: var(--lz-text-micro);
+  }
+  .status {
+    padding-block: 0;
+  }
+  .title,
+  .header {
+    grid-column: 1 / -1;
+  }
+  .context {
+    display: block;
+  }
+}
+@container weekly-lesson (height < 2.875rem) {
+  .teacher,
+  .context {
+    display: none;
+  }
+}
+@container weekly-lesson (height < 2.25rem) {
+  .header {
+    display: none;
+  }
+}
+@container weekly-lesson (height < 2.25rem) and (width >= 12rem) {
+  .content {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  .title,
+  .header {
+    grid-column: auto;
+  }
+  .header {
+    display: flex;
+  }
+  .indicators {
+    display: none;
+  }
+}
+
+/* Overlap lanes keep the title's full width; icons never sit in front of the name. */
+@container weekly-lesson (width < 9rem) {
+  .format {
+    display: none;
+  }
+  .indicators,
+  .guests {
+    gap: 0.125rem;
+  }
+}
+@container weekly-lesson (width < 8rem) {
+  .time {
+    flex-direction: column;
+  }
+  .timeSeparator {
+    display: none;
+  }
+  .indicators {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .teacher {
+    font-size: var(--lz-text-micro);
+  }
+}
+@container weekly-lesson (width < 8rem) and (height >= 6.5rem) {
+  .content {
+    row-gap: 0.0625rem;
+  }
+  .context {
+    display: block;
+    white-space: nowrap;
+  }
+}
+@container weekly-lesson (width < 8rem) and (height < 6.5rem) {
+  .context {
+    display: none;
+  }
+}
+@container weekly-lesson (width < 8rem) and (height < 4.5rem) {
+  .teacher {
+    display: none;
+  }
+}
+@container weekly-lesson (width < 8rem) and (height < 2.875rem) {
+  .header {
+    display: none;
+  }
+}
+@container weekly-lesson (width < 4rem) {
+  .header {
+    flex-wrap: wrap;
+  }
+  .time {
+    width: 100%;
+  }
+  .indicators {
+    flex-direction: row;
+  }
+  .teacher,
+  .context {
+    display: none;
+  }
+}
+@container weekly-lesson (width < 4rem) and (height >= 6.5rem) {
+  .title {
+    -webkit-line-clamp: 3;
+  }
+}
+@container weekly-lesson (width < 4rem) and (height < 6.5rem) {
+  .indicators {
+    display: none;
+  }
+}
+
+/* The existing reveal measures this complete layout once at its destination width. */
+:global([data-reveal="true"]) > .content {
+  width: var(--agenda-content-width);
+  grid-template-columns: minmax(0, 1fr);
+}
+:global([data-reveal="true"]) > .content [data-calendar-detail] {
+  display: block;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: unset;
+}
+:global([data-reveal="true"]) > .content .title {
+  font-size: var(--lz-text-body);
+}
+:global([data-reveal="true"]) > .content .header {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: auto;
+}
+:global([data-reveal="true"]) > .content .time {
+  display: flex;
+  flex-direction: row;
+  width: auto;
+  white-space: nowrap;
+}
+:global([data-reveal="true"]) > .content .timeSeparator {
+  display: inline;
+}
+:global([data-reveal="true"]) > .content .indicators {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  flex-shrink: 1;
+}
+:global([data-reveal="true"]) > .content .format {
+  display: inline-flex;
+}

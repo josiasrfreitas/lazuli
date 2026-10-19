@@ -15,9 +15,17 @@ const trpc = initTRPC.context<Context>().create({
   transformer: superjson,
   errorFormatter: ({ shape, error }) => ({
     ...shape,
+    message:
+      error.code === "INTERNAL_SERVER_ERROR"
+        ? "Não foi possível concluir a operação. Tente novamente."
+        : shape.message,
     data: {
       ...shape.data,
-      zodError: error.cause instanceof z.ZodError ? error.cause.flatten() : null,
+      stack: undefined,
+      zodError:
+        error.code === "BAD_REQUEST" && error.cause instanceof z.ZodError
+          ? error.cause.flatten()
+          : null,
     },
   }),
 });

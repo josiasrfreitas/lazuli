@@ -1,5 +1,5 @@
 import { useId, useState, type ReactElement, type ReactNode } from "react";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, UserRound } from "lucide-react";
 import {
   Button,
   CurrencyInput,
@@ -19,7 +19,10 @@ import type { PaymentFormState } from "./logic";
 type RowProps = { item: DraftItem; preview: PreviewRow | undefined; state: PaymentFormState };
 export function PaymentGrid({ state }: { state: PaymentFormState }): ReactElement {
   return (
-    <div className="grid gap-3" aria-label="Parcelas do pagamento">
+    <div
+      className="scrollbar-subtle flex max-h-96 min-w-0 flex-col gap-3 overflow-y-auto lg:max-h-[min(32rem,calc(100dvh-22rem))]"
+      aria-label="Parcelas do pagamento"
+    >
       {draftReceipts(state.draft, state.preview).map((receipt) => {
         const items = state.draft.items.filter((item) => item.receiptId === receipt.commandId);
         return (
@@ -42,10 +45,19 @@ function PaymentGridRow(props: RowProps): ReactElement {
   const [details, setDetails] = useState(false);
   const { item } = props;
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_2.75rem] items-start gap-x-2 gap-y-3 p-3 sm:grid-cols-[minmax(0,1fr)_10rem_2rem]">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2rem] items-start gap-x-3 gap-y-2 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_9rem_2rem]">
       <div className="min-w-0">
         <RowIdentity item={item} />
         <RowAmounts preview={props.preview} />
+        {props.preview?.line?.materialReceipt && (
+          <p className="mt-1 text-caption text-muted-foreground">
+            Venda {money(props.preview.line.materialReceipt.chargedCents)}
+            {" · Taxa do cartão "}
+            {money(props.preview.line.materialReceipt.feeCents)}
+            {" · Recebimento líquido "}
+            {money(props.preview.line.materialReceipt.netCents)}
+          </p>
+        )}
       </div>
       <ReceivedField {...props} />
       <div className="col-start-2 row-start-1 sm:col-start-3">
@@ -67,11 +79,17 @@ function PaymentGridRow(props: RowProps): ReactElement {
 function RowIdentity({ item }: Pick<RowProps, "item">): ReactElement {
   return (
     <div className="min-w-0 break-words">
-      <p className="text-control font-medium">
+      <p className="text-caption font-medium">
         {item.row.beneficiaries.map((person) => person.fullName).join(", ") || item.row.payer.name}
       </p>
-      <p className="mt-1 text-caption text-muted-foreground">
-        {originLabel(item.row.origin)} {item.row.sequenceNumber}/{item.row.scheduleTotal}
+      <p className="mt-0.5 text-caption text-muted-foreground">
+        {originLabel(item.row.origin)}
+        {item.row.origin !== "MATERIAL" && (
+          <>
+            {" "}
+            {item.row.sequenceNumber}/{item.row.scheduleTotal}
+          </>
+        )}
         {" · vence "}
         {paymentDateLabel(item.row.dueDate)}
       </p>
@@ -81,7 +99,7 @@ function RowIdentity({ item }: Pick<RowProps, "item">): ReactElement {
 function RowAmounts({ preview }: Pick<RowProps, "preview">): ReactElement {
   const quote = preview?.line?.quote;
   return (
-    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-caption">
+    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-caption">
       <p className="text-muted-foreground">
         Saldo{" "}
         <span className="whitespace-nowrap font-numeric text-foreground">
@@ -104,7 +122,7 @@ function RowAdjustments({ preview }: Pick<RowProps, "preview">): ReactElement | 
         </p>
       )}
       {quote.discountCents > 0 && (
-        <p className="whitespace-nowrap font-numeric text-success">
+        <p className="font-numeric text-success">
           − {money(quote.discountCents)} desconto por pontualidade
         </p>
       )}
@@ -120,14 +138,14 @@ function ReceivedField({ item, preview, state }: RowProps): ReactElement {
       ? "Revise esta parcela e atualize a prévia."
       : null);
   return (
-    <Field className="col-span-2 row-start-2 max-w-64 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+    <Field className="col-span-2 row-start-2 max-w-48 sm:col-span-1 sm:col-start-2 sm:row-start-1">
       <Label>Valor recebido</Label>
       <CurrencyInput
         name={`received-${item.row.installmentId}`}
         autoComplete="off"
         placeholder="R$ 0,00"
         size="sm"
-        className="h-11 text-right font-numeric text-base sm:h-control-sm sm:text-control"
+        className="text-right font-numeric"
         value={amount}
         invalid={invalid || Boolean(error)}
         onValueChange={(value) =>
@@ -217,19 +235,25 @@ export function PaymentReceiptGroup({
 }): ReactElement {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="overflow-hidden rounded-md border border-border">
-      <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/50 px-3 py-2">
+    <section
+      aria-labelledby={id}
+      className="min-w-0 shrink-0 overflow-hidden rounded-md border border-border"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 border-b border-border bg-muted px-3 py-2">
         <div className="min-w-0">
-          <p className="text-caption text-muted-foreground">Pagador</p>
-          <h3 id={id} className="break-words text-control font-semibold">
-            {items[0]?.row.payer.name}
+          <h3 id={id} className="flex min-w-0 items-start gap-2 text-caption font-semibold">
+            <UserRound className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="min-w-0 break-words">
+              <span className="sr-only">Pagador: </span>
+              {items[0]?.row.payer.name}
+            </span>
           </h3>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="max-w-32 text-caption text-muted-foreground sm:max-w-none">
+        <div className="flex w-full flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 sm:ml-auto sm:block sm:w-auto sm:shrink-0 sm:text-right">
+          <p className="text-caption text-muted-foreground">
             {items.length} {items.length === 1 ? "parcela" : "parcelas"} · 1 recebimento
           </p>
-          <p className="font-numeric text-control font-medium">{money(total)}</p>
+          <p className="font-numeric text-caption font-semibold">{money(total)}</p>
         </div>
       </div>
       <div className="divide-y divide-border">{children}</div>
@@ -259,9 +283,7 @@ export function PaymentRowActions({
       <PopoverTrigger
         disabled={locked}
         aria-label={`Ações da parcela ${item.row.sequenceNumber} de ${item.row.payer.name}`}
-        render={
-          <Button type="button" size="icon-sm" className="size-11 sm:size-8" variant="ghost" />
-        }
+        render={<Button type="button" size="icon-sm" variant="ghost" />}
       >
         <Ellipsis aria-hidden="true" />
       </PopoverTrigger>

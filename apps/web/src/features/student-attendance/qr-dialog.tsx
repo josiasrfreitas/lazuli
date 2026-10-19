@@ -16,10 +16,9 @@ import {
   DialogTitle,
 } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
-import type { AttendanceLocation } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { QrWindowForm } from "./qr-fields";
-import { currentAttendanceLocation, attendanceTime } from "./location";
+import { attendanceTime } from "./location";
 export type QrLink = RouterOutputs["studentAttendance"]["open"];
 export function AttendanceQrDialog({
   sessionId,
@@ -37,32 +36,23 @@ export function AttendanceQrDialog({
   onClose: () => void;
 }): ReactElement {
   const [minutes, setMinutes] = useState<10 | 20 | 30>(10);
-  const [locating, setLocating] = useState(false);
-  const [referenceMissing, setReferenceMissing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const utils = trpc.useUtils();
   const open = trpc.studentAttendance.open.useMutation({
     onSuccess: async (result) => {
       setLink(result);
+      try { sessionStorage.setItem(`attendance-projection:${sessionId}`, result.projectionToken); } catch { /* The current dialog still carries the projection link. */ }
       await utils.studentAttendance.status.invalidate({ sessionId });
       await utils.activity.invalidate();
     },
   });
-  const pending = locating || open.isPending;
+  const pending = open.isPending;
   const url = link ? `${window.location.origin}/presenca#${link.token}` : null;
   async function generate(): Promise<void> {
-    setLocating(true);
-    let location: AttendanceLocation | null = null;
-    if (format === "IN_PERSON") {
-      try {
-        location = await currentAttendanceLocation();
-      } catch {
-        setReferenceMissing(true);
-      }
-    }
-    setLocating(false);
-    open.mutate({ sessionId, minutes, location });
+    let projectionToken: string | undefined;
+    try { projectionToken = sessionStorage.getItem(`attendance-projection:${sessionId}`) ?? undefined; } catch { /* A new projection capability will be issued. */ }
+    open.mutate({ sessionId, minutes: format === "IN_PERSON" ? 5 : minutes, location: null, ...(projectionToken ? { projectionToken } : {}) });
   }
   return (
     <Dialog
@@ -133,6 +123,13 @@ export function AttendanceQrDialog({
                   >
                     Abrir página do aluno
                   </a>
+                  <div className="grid gap-3 border-t border-border pt-4">
+                    <h3 className="text-sm font-semibold">Projetar na tela da sala</h3>
+                    <p className="text-caption text-muted-foreground">Abra o endereço abaixo no computador da sala. O QR será atualizado quando você gerar um novo link pelo celular.</p>
+                    <a className="break-all text-caption text-interactive underline" target="_blank" rel="noreferrer" href={`/presenca/projecao#${link!.projectionToken}`}>{`${window.location.origin}/presenca/projecao#${link!.projectionToken}`}</a>
+                    <Button variant="secondary" onClick={() => { void navigator.clipboard?.writeText(`${window.location.origin}/presenca/projecao#${link!.projectionToken}`).then(() => setCopied(true), () => setCopyError(true)); }}>Copiar acesso da projeção</Button>
+                    <Button variant="ghost" disabled={pending} onClick={() => void generate()}>Gerar novo QR / link</Button>
+                  </div>
                   <p className="text-caption text-muted-foreground">
                     O envio do aluno fica disponível para a sua revisão. A presença final será
                     confirmada na baixa.
@@ -148,12 +145,6 @@ export function AttendanceQrDialog({
                     if (!pending) void generate();
                   }}
                 />
-              )}
-              {referenceMissing && (
-                <p className="text-caption text-muted-foreground">
-                  Referência de localização indisponível. Os alunos ainda poderão enviar sua
-                  localização para revisão.
-                </p>
               )}
               {open.error && <Alert variant="destructive">{open.error.message}</Alert>}
             </div>

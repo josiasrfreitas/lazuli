@@ -29,4 +29,10 @@ export const popoverWithRefs = (
 );
 
 // @ts-expect-error Popover size only accepts the sizes defined by the variants.
-export const invalidPopoverSize = <PopoverContent size="xl">Filtros</PopoverContent>;
+export const invalidPopoverSize = <PopoverContent size="unsupported">Filtros</PopoverContent>;
+
+export const expandedPopover = (
+  <PopoverContent size="xl" motion="instant">
+    Detalhes
+  </PopoverContent>
+);

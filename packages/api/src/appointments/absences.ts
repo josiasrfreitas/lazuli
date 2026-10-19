@@ -1,3 +1,4 @@
+import { searchMatchKysely } from "../search.js";
 import type { Prisma, TransactionClient } from "@lazuli/db";
 import { teachingMinutes } from "@lazuli/domain";
 import { classRecordSnapshotSchema, type absenceListSchema, type z } from "@lazuli/validators";
@@ -101,11 +102,7 @@ export async function listAbsences(
     .where("s.date", ">=", new Date(input.from))
     .where("s.date", "<=", new Date(input.through));
   if (input.search)
-    query = query.where(
-      "student.full_name",
-      "ilike",
-      `%${input.search.replace(/[\\%_]/g, "\\$&")}%`,
-    );
+    query = query.where(searchMatchKysely(sql.ref("student.full_name"), input.search));
   if (input.onlyOpen) query = query.where(available, ">", 0);
   const count = await query
     .select((eb) => eb.fn.countAll<string>().as("total"))

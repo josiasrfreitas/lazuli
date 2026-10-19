@@ -1,5 +1,5 @@
 import { useId, useState, type ReactElement } from "react";
-import { Plus, Search, X } from "lucide-react";
+import { ListChecks, Plus, Search, X } from "lucide-react";
 import { Button, Field, Input, Label } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
 import { formatBRLFromCents as money } from "~/lib/format";
@@ -27,7 +27,7 @@ function SearchField({
           autoComplete="off"
           placeholder="Nome do pagador ou aluno"
           size="sm"
-          className="h-11 pl-9 text-base sm:h-control-sm sm:text-control"
+          className="pl-9"
           value={value}
           onChange={(event) => onChange(event.target.value)}
         />
@@ -45,7 +45,7 @@ export function PaymentPicker({ state }: { state: PaymentFormState }): ReactElem
   const data = query.data;
   const rows = data && data.view !== "overdue" ? data.rows : [];
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 grid-cols-1 gap-2">
       <PickerHeader
         count={state.draft.items.length}
         open={open}
@@ -200,8 +200,10 @@ function PickerHeader({
 }): ReactElement {
   return (
     <>
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-control font-semibold">Parcelas{count > 0 ? ` (${count})` : ""}</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 text-control font-semibold">
+          <ListChecks className="size-4" aria-hidden /> Parcelas{count > 0 ? ` (${count})` : ""}
+        </h3>
         <Button
           type="button"
           size="sm"

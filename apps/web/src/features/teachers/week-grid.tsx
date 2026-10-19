@@ -1,260 +1,136 @@
 "use client";
-import { type MeetingGroup, dayGroups, visibleWeekSlots } from "./week-layout";
 import type { ReactElement } from "react";
-import { cn } from "@lazuli/ui";
-import { IntroductionBlock, type Introduction } from "./teacher-introductions";
-import {
-  TeacherAppointmentBlock,
-  type TeacherAppointment,
-} from "~/features/appointments/teacher-block";
-import { MeetingBlock } from "./meeting-block";
-import type { Meeting } from "./meeting-dialog";
-import { dateLabel, shiftDay } from "./format";
+import { cn, PencilLoader } from "@lazuli/ui";
+import { visibleWeekSlots } from "./week-layout";
+import { MeetingBlock, type AgendaSlot } from "./meeting-block";
 
-const DATE_MONTH_OFFSET = 5;
+const DAYS = [
+  { weekday: "MONDAY", name: "Segunda" },
+  { weekday: "TUESDAY", name: "Terça" },
+  { weekday: "WEDNESDAY", name: "Quarta" },
+  { weekday: "THURSDAY", name: "Quinta" },
+  { weekday: "FRIDAY", name: "Sexta" },
+  { weekday: "SATURDAY", name: "Sábado" },
+  { weekday: "SUNDAY", name: "Domingo" },
+];
 
-const DAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 export function WeekGrid({
   rows,
-  introductions = [],
-  appointments = [],
-  week,
-  teacherId,
-  today,
-  onOpen,
-}: WeekGridInput): ReactElement {
-  const days = DAYS.map((name, index) => ({
-    name,
-    date: shiftDay(week, index),
-    groups: dayGroups(rows.filter((row) => row.date === shiftDay(week, index))),
-    appointments: appointments.filter((row) => row.date === shiftDay(week, index)),
-    introductions: introductions.filter((row) => row.date === shiftDay(week, index)),
+  back,
+  loading = false,
+}: {
+  rows: AgendaSlot[];
+  back: string;
+  loading?: boolean;
+}): ReactElement {
+  const days = DAYS.map((day) => ({
+    ...day,
+    meetings: rows
+      .filter((row) => row.weekday === day.weekday)
+      .toSorted((a, b) => a.startTime.localeCompare(b.startTime)),
   }));
-  const slots = visibleWeekSlots([...rows, ...introductions, ...appointments]);
+  const slots = visibleWeekSlots(rows);
   return (
     <>
       <div className="hidden overflow-hidden rounded-md border border-border bg-card xl:block">
         <table
           className="w-full table-fixed border-collapse text-left"
-          aria-label="Semana de aulas"
+          aria-label="Agenda do professor"
         >
-          <WeekHead days={days} today={today} />
+          <thead>
+            <tr className="border-b border-table-heading-border bg-table-heading text-table-heading-foreground">
+              <th
+                scope="col"
+                className="w-14 px-2 py-1 text-caption font-normal text-table-heading-foreground"
+              >
+                Horário
+              </th>
+              {days.map((day) => (
+                <th
+                  key={day.weekday}
+                  scope="col"
+                  className="border-l border-border px-2 py-1 text-caption font-medium"
+                >
+                  {day.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
           <tbody>
-            {slots.map(({ start: time, end }) => (
-              <WeekHour
-                key={time}
-                time={time}
-                days={days}
-                end={end}
-                teacherId={teacherId}
-                onOpen={onOpen}
-              />
-            ))}
+            {loading ? (
+              <tr>
+                <td colSpan={8}>
+                  <div className="flex min-h-64 items-center justify-center">
+                    <PencilLoader label="Carregando agenda do professor" />
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              slots.map(({ start, end }) => (
+                <tr key={start} className="h-9">
+                  <th
+                    scope="row"
+                    className="border-t border-border-subtle px-2 py-0.5 align-top font-numeric text-caption font-normal text-muted-foreground"
+                  >
+                    {start}
+                  </th>
+                  {days.map((day) => {
+                    const meetings = day.meetings.filter(
+                      (row) => row.startTime < end && row.endTime > start,
+                    );
+                    return (
+                      <td
+                        key={day.weekday}
+                        className={cn(
+                          "relative h-9 border-t border-l border-border-subtle p-0 align-top",
+                          meetings.length === 0 && "bg-muted/20",
+                        )}
+                      >
+                        {meetings.length > 0 && (
+                          <div className="absolute inset-0 flex flex-col">
+                            {meetings.map((meeting) => (
+                              <MeetingBlock
+                                key={meeting.id}
+                                meeting={meeting}
+                                compact
+                                back={back}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
       <div className="grid gap-4 xl:hidden">
-        {days.map((day) => (
-          <WeekDay key={day.date} day={day} today={today} teacherId={teacherId} onOpen={onOpen} />
-        ))}
+        {loading ? (
+          <div className="flex min-h-64 items-center justify-center rounded-md border border-border bg-card">
+            <PencilLoader label="Carregando agenda do professor" />
+          </div>
+        ) : (
+          days.map((day) => (
+            <section key={day.weekday} aria-label={day.name} className="grid gap-2">
+              <h3 className="border-b border-border px-2 py-1 text-control font-semibold">
+                {day.name}
+              </h3>
+              {day.meetings.length > 0 ? (
+                <div className="grid gap-2 lg:grid-cols-2">
+                  {day.meetings.map((meeting) => (
+                    <MeetingBlock key={meeting.id} meeting={meeting} back={back} />
+                  ))}
+                </div>
+              ) : (
+                <p className="px-2 text-caption text-muted-foreground">Sem horários</p>
+              )}
+            </section>
+          ))
+        )}
       </div>
     </>
   );
 }
-
-type WeekDayData = {
-  name: string;
-  date: string;
-  groups: MeetingGroup[];
-  introductions: Introduction[];
-  appointments: TeacherAppointment[];
-};
-
-type WeekCellProps = {
-  day: WeekDayData;
-  meetings: Meeting[];
-  introductions: Introduction[];
-  appointments: TeacherAppointment[];
-  teacherId: string;
-  onOpen: (meeting: Meeting) => void;
-};
-function WeekCell(props: WeekCellProps): ReactElement {
-  return (
-    <td
-      key={props.day.date}
-      className={cn(
-        "relative h-9 border-t border-l border-border-subtle p-0 align-top",
-        props.meetings.length === 0 &&
-          props.introductions.length === 0 &&
-          props.appointments.length === 0 &&
-          "bg-muted/20",
-      )}
-    >
-      {(props.meetings.length > 0 ||
-        props.introductions.length > 0 ||
-        props.appointments.length > 0) && (
-        <div className="absolute inset-0 flex flex-col">
-          {props.appointments.map((row) => (
-            <TeacherAppointmentBlock key={row.id} row={row} compact />
-          ))}
-          {props.introductions.map((row) => (
-            <IntroductionBlock key={row.id} row={row} compact />
-          ))}
-          {props.meetings.map((meeting) => (
-            <MeetingBlock
-              key={`${meeting.slotId ?? meeting.sessionId}:${meeting.date}`}
-              compact
-              meeting={meeting}
-              teacherId={props.teacherId}
-              onOpen={props.onOpen}
-            />
-          ))}
-        </div>
-      )}
-    </td>
-  );
-}
-
-type WeekHeadProps = {
-  days: WeekDayData[];
-  today: string;
-};
-function WeekHead(props: WeekHeadProps): ReactElement {
-  return (
-    <thead>
-      <tr className="border-b border-table-heading-border bg-table-heading text-table-heading-foreground">
-        <th
-          scope="col"
-          className="w-14 px-2 py-1 text-caption font-normal text-table-heading-foreground"
-        >
-          Horário
-        </th>
-        {props.days.map((day) => (
-          <th
-            key={day.date}
-            scope="col"
-            aria-current={day.date === props.today ? "date" : undefined}
-            className={cn(
-              "border-l border-border px-2 py-1",
-              day.date === props.today &&
-                "border-b-2 border-b-selection-indicator bg-accent text-accent-foreground",
-            )}
-          >
-            <span className="inline-flex items-baseline gap-1 text-caption font-medium">
-              {day.name}
-              <span aria-hidden="true">·</span>
-              <span className="font-numeric font-normal">
-                {dateLabel(day.date).slice(0, DATE_MONTH_OFFSET)}
-              </span>
-            </span>
-          </th>
-        ))}
-      </tr>
-    </thead>
-  );
-}
-
-type WeekHourProps = {
-  time: string;
-  days: WeekDayData[];
-  end: string;
-  teacherId: string;
-  onOpen: (meeting: Meeting) => void;
-};
-function WeekHour(props: WeekHourProps): ReactElement {
-  return (
-    <tr key={props.time} className="h-9">
-      <th
-        scope="row"
-        className="border-t border-border-subtle px-2 py-0.5 align-top font-numeric text-caption font-normal text-muted-foreground"
-      >
-        {props.time}
-      </th>
-      {props.days.map((day) => {
-        const meetings = day.groups
-          .flatMap((group) => group.meetings)
-          .filter((meeting) => meeting.startTime < props.end && meeting.endTime > props.time);
-        return (
-          <WeekCell
-            key={day.date}
-            day={day}
-            meetings={meetings}
-            appointments={day.appointments.filter(
-              (row) => row.startTime < props.end && row.endTime > props.time,
-            )}
-            introductions={day.introductions.filter(
-              (row) => row.startTime < props.end && row.endTime > props.time,
-            )}
-            teacherId={props.teacherId}
-            onOpen={props.onOpen}
-          />
-        );
-      })}
-    </tr>
-  );
-}
-
-type WeekDayProps = {
-  day: WeekDayData;
-  today: string;
-  teacherId: string;
-  onOpen: (meeting: Meeting) => void;
-};
-function WeekDay(props: WeekDayProps): ReactElement {
-  return (
-    <section
-      key={props.day.date}
-      aria-label={`${props.day.name}, ${dateLabel(props.day.date)}`}
-      className="grid gap-2"
-    >
-      <h3
-        className={cn(
-          "flex items-baseline gap-1.5 border-b border-border px-2 py-1 text-control font-semibold",
-          props.day.date === props.today &&
-            "border-selection-indicator bg-accent text-accent-foreground",
-        )}
-        aria-current={props.day.date === props.today ? "date" : undefined}
-      >
-        {props.day.name}
-        <span aria-hidden="true">·</span>
-        <span className="font-numeric text-caption font-normal">
-          {dateLabel(props.day.date).slice(0, DATE_MONTH_OFFSET)}
-        </span>
-      </h3>
-      {props.day.groups.length > 0 ||
-      props.day.introductions.length > 0 ||
-      props.day.appointments.length > 0 ? (
-        <div className="grid gap-2 lg:grid-cols-2">
-          {props.day.appointments.map((row) => (
-            <TeacherAppointmentBlock key={row.id} row={row} />
-          ))}
-          {props.day.introductions.map((row) => (
-            <IntroductionBlock key={row.id} row={row} />
-          ))}
-          {props.day.groups
-            .flatMap((group) => group.meetings)
-            .map((meeting) => (
-              <MeetingBlock
-                key={`${meeting.slotId ?? meeting.sessionId}:${meeting.date}`}
-                meeting={meeting}
-                teacherId={props.teacherId}
-                onOpen={props.onOpen}
-              />
-            ))}
-        </div>
-      ) : (
-        <p className="text-caption text-muted-foreground">Sem compromissos</p>
-      )}
-    </section>
-  );
-}
-
-type WeekGridInput = {
-  rows: Meeting[];
-  introductions?: Introduction[];
-  appointments?: TeacherAppointment[];
-  week: string;
-  teacherId: string;
-  today: string;
-  onOpen: (meeting: Meeting) => void;
-};

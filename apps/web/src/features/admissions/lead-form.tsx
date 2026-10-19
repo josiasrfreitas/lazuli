@@ -1,5 +1,6 @@
 "use client";
 import { useState, type ReactElement, type ReactNode, type FormEvent } from "react";
+import { Check, X } from "lucide-react";
 import {
   Alert,
   Button,
@@ -29,7 +30,7 @@ export function useLeadErrors(): {
     body,
     clear: (field) => setFields((current) => ({ ...current, [field]: "" })),
     report: (issues) => {
-      setFields(Object.fromEntries(issues.map((issue) => [String(issue.path[0]), issue.message])));
+      setFields(Object.fromEntries(issues.map((issue) => [issue.path.join("."), issue.message])));
       setRevision((value) => value + 1);
     },
   };
@@ -46,6 +47,11 @@ export function LeadFormDialog({
   onSubmit,
   onClose,
   body,
+  wide = false,
+  steps,
+  cancelLabel = "Cancelar",
+  cancelIcon = <X aria-hidden="true" />,
+  submitIcon = <Check aria-hidden="true" />,
 }: {
   id: string;
   title: string;
@@ -58,6 +64,11 @@ export function LeadFormDialog({
   onSubmit: (event: FormEvent) => void;
   onClose: () => void;
   body: ReturnType<typeof useScrollToError>;
+  wide?: boolean;
+  steps?: ReactNode;
+  cancelLabel?: string;
+  cancelIcon?: ReactNode;
+  submitIcon?: ReactNode;
 }): ReactElement {
   return (
     <Dialog
@@ -68,11 +79,15 @@ export function LeadFormDialog({
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent initialFocus={() => document.getElementById(firstField)}>
+        <DialogContent
+          className={wide ? "md:max-w-3xl" : undefined}
+          initialFocus={() => document.getElementById(firstField)}
+        >
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>{description}</DialogDescription>
           </DialogHeader>
+          {steps}
           <DialogBody ref={body}>
             <form id={id} onSubmit={onSubmit} noValidate className="grid gap-4 pt-4">
               {children}
@@ -81,10 +96,12 @@ export function LeadFormDialog({
           </DialogBody>
           <DialogFooter>
             <Button variant="secondary" disabled={pending} onClick={onClose}>
-              Cancelar
+              {cancelIcon}
+              {cancelLabel}
             </Button>
-            <Button type="submit" form={id} disabled={pending}>
-              {pending ? "Salvando…" : submitLabel}
+            <Button type="submit" form={id} loading={pending}>
+              {submitIcon}
+              {submitLabel}
             </Button>
           </DialogFooter>
         </DialogContent>

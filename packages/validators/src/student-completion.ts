@@ -1,12 +1,34 @@
 import { z } from "zod";
 import { createMonthlyContractInputSchema } from "./contracts.js";
 import { studentCreateInputSchema } from "./student.js";
+import { classFormatSchema, classScheduleSlotInputSchema } from "./class.js";
+
+export const studentPedagogyIntakeSchema = z
+  .object({
+    semesterId: z.string().uuid(),
+    stageId: z.string().uuid().nullable(),
+    planId: z.string().uuid().nullable(),
+    formats: z.array(classFormatSchema).min(1).max(2),
+    slots: z.array(classScheduleSlotInputSchema).max(21),
+    notes: z.string().trim().max(1200).default(""),
+  })
+  .strict();
+export type StudentPedagogyIntake = z.infer<typeof studentPedagogyIntakeSchema>;
 
 /** The wizard owns an unpersisted beneficiary, never an existing student selection. */
 export const studentCompletionInputSchema = z.union([
-  z.object({ commandId: z.string().uuid(), student: studentCreateInputSchema }).strict(),
   z
-    .object({ contract: createMonthlyContractInputSchema })
+    .object({
+      commandId: z.string().uuid(),
+      student: studentCreateInputSchema,
+      pedagogy: studentPedagogyIntakeSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      contract: createMonthlyContractInputSchema,
+      pedagogy: studentPedagogyIntakeSchema.optional(),
+    })
     .strict()
     .superRefine((input, context) => {
       if (!input.contract.newStudent) {

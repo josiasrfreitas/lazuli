@@ -1,137 +1,67 @@
 import { useState, type ReactElement } from "react";
-import { SlidersHorizontal } from "lucide-react";
 import {
-  Button,
-  Checkbox,
   DataTable,
-  Popover,
-  PopoverContent,
-  PopoverTitle,
-  PopoverTrigger,
   SegmentedControl,
   SegmentedControlItem,
   type DataTableColumn,
 } from "@lazuli/ui";
-import { ChartLegend, monthLabel, type Analytics } from "./chart-shared";
+import { monthLabel, type Analytics } from "./chart-shared";
 import { ContractClosingsChart } from "./contract-closings-chart";
 import {
   closingMeasures,
   closingValue,
   closingSummary,
-  type ClosingMeasure,
+  closingRows,
+  closingGrowth,
+  type ClosingChartMeasure,
   type ClosingMonth,
 } from "./contract-closings-model";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 
-type ClosingLabelsProps = { labels: ClosingMeasure[]; onLabels: (value: ClosingMeasure[]) => void };
-type ClosingControlsProps = ClosingLabelsProps & { view: string; onView: (value: string) => void };
+const MONTH_KEY_LENGTH = 7;
+const growthFormat = new Intl.NumberFormat("pt-BR", {
+  style: "percent",
+  maximumFractionDigits: 1,
+  signDisplay: "exceptZero",
+});
 
-function ClosingMetric({
-  label,
-  value,
-  suffix,
-  primary = false,
+function ClosingSummary({
+  data,
+  measure,
 }: {
-  label: string;
-  value: string;
-  suffix?: string;
-  primary?: boolean;
+  data: Analytics;
+  measure: ClosingChartMeasure;
 }): ReactElement {
-  return (
-    <div className={primary ? "col-span-2 sm:col-span-1" : undefined}>
-      <dt className="text-caption text-muted-foreground">{label}</dt>
-      <dd
-        className={`mt-2 font-numeric font-semibold tabular-nums ${primary ? "text-3xl text-info" : "text-xl text-heading sm:text-2xl"}`}
-      >
-        {value}
-        {suffix && (
-          <span className="block text-caption font-normal text-muted-foreground sm:inline">
-            {suffix}
-          </span>
-        )}
-      </dd>
-    </div>
-  );
-}
-
-function ClosingSummary({ data }: { data: Analytics }): ReactElement {
   const { totals, period } = closingSummary(data);
+  const growth = closingGrowth(data, measure);
   return (
-    <dl className="mt-6 grid grid-cols-2 gap-5 border-y border-border py-5 sm:grid-cols-3">
-      <ClosingMetric
-        label={`Receita projetada · fechados ${period}`}
-        value={formatBRLFromCents(totals.projectedCents)}
-        primary
-      />
-      <ClosingMetric
-        label="Mensalidade equivalente"
-        value={formatBRLFromCents(totals.monthlyEquivalentCents)}
-        suffix="/mês"
-      />
-      <ClosingMetric label={`Contratos fechados ${period}`} value={String(totals.count)} />
+    <dl className="my-5 grid grid-cols-2 gap-5 border-y border-border py-4 sm:grid-cols-3">
+      <div>
+        <dt className="text-caption text-muted-foreground">Volume contratado {period}</dt>
+        <dd className="mt-1 font-numeric text-2xl font-semibold tabular-nums text-heading">
+          {formatBRLFromCents(totals.projectedCents)}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-caption text-muted-foreground">Contratos fechados</dt>
+        <dd className="mt-1 font-numeric text-2xl font-semibold tabular-nums text-heading">
+          {totals.count}
+        </dd>
+      </div>
+      <div className="col-span-2 sm:col-span-1">
+        <dt className="text-caption text-muted-foreground">
+          Variação mensal · {measure === "count" ? "quantidade" : "volume"}
+        </dt>
+        <dd className="mt-1 font-numeric text-2xl font-semibold tabular-nums text-heading">
+          {growth?.rate === null || !growth ? "—" : growthFormat.format(growth.rate)}
+        </dd>
+        <dd className="mt-1 text-caption text-muted-foreground">
+          {growth
+            ? `${monthLabel(growth.month)} vs. ${monthLabel(growth.previousMonth)} · ${growth.rate === null ? "sem base no mês anterior" : "meses encerrados"}`
+            : "Aguardando dois meses encerrados"}
+        </dd>
+      </div>
     </dl>
-  );
-}
-
-function ClosingLabelOptions({ labels, onLabels }: ClosingLabelsProps): ReactElement {
-  const toggle = (measure: ClosingMeasure, checked: boolean): void => {
-    onLabels(
-      checked
-        ? closingMeasures
-            .filter((option) => option.id === measure || labels.includes(option.id))
-            .map((option) => option.id)
-        : labels.filter((id) => id !== measure),
-    );
-  };
-  return (
-    <div className="mt-3 grid gap-1">
-      {closingMeasures.map((measure) => (
-        <label key={measure.id} className="flex min-h-11 cursor-pointer items-center gap-2">
-          <Checkbox
-            checked={labels.includes(measure.id)}
-            onCheckedChange={(checked) => toggle(measure.id, checked)}
-          />
-          {measure.label}
-        </label>
-      ))}
-    </div>
-  );
-}
-
-function ClosingControls({ view, onView, labels, onLabels }: ClosingControlsProps): ReactElement {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {view === "chart" && (
-        <Popover>
-          <PopoverTrigger
-            render={
-              <Button
-                variant="secondary"
-                size="compact-responsive"
-                aria-label="Valores nas barras"
-              />
-            }
-          >
-            <SlidersHorizontal />
-            <span className="sm:hidden">Valores</span>
-            <span className="hidden sm:inline">Valores nas barras</span>
-          </PopoverTrigger>
-          <PopoverContent align="end">
-            <PopoverTitle>Mostrar em cada mês</PopoverTitle>
-            <ClosingLabelOptions labels={labels} onLabels={onLabels} />
-          </PopoverContent>
-        </Popover>
-      )}
-      <SegmentedControl
-        aria-label="Visualização dos contratos fechados"
-        size="sm"
-        value={view}
-        onValueChange={onView}
-      >
-        <SegmentedControlItem value="chart">Gráfico</SegmentedControlItem>
-        <SegmentedControlItem value="table">Tabela</SegmentedControlItem>
-      </SegmentedControl>
-    </div>
   );
 }
 
@@ -157,21 +87,22 @@ const columns: DataTableColumn<ClosingMonth & { id: string }>[] = [
 ];
 
 function ClosingVisualization({
-  rows,
+  data,
   view,
-  labels,
+  measure,
 }: {
-  rows: ClosingMonth[];
+  data: Analytics;
   view: string;
-  labels: ClosingMeasure[];
+  measure: ClosingChartMeasure;
 }): ReactElement {
+  const rows = closingRows(data);
   if (rows.length === 0)
     return (
       <p className="py-12 text-center text-muted-foreground">Este período ainda não começou.</p>
     );
   if (view === "table")
     return (
-      <div className="mt-5 h-96">
+      <div className="h-80">
         <DataTable
           label="Contratos fechados por mês"
           columns={columns}
@@ -192,65 +123,82 @@ function ClosingVisualization({
       </p>
     );
   return (
-    <>
-      <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
-        <ChartLegend label="Altura total: receita projetada" color="var(--info)" />
-        <span className="text-caption text-muted-foreground">
-          Faixa destacada: mensalidade equivalente
-        </span>
-      </div>
-      <ContractClosingsChart rows={rows} labels={labels} />
-    </>
+    <ContractClosingsChart
+      rows={rows}
+      measure={measure}
+      currentMonth={data.asOf.slice(0, MONTH_KEY_LENGTH)}
+    />
   );
 }
 
 function ClosingBasis({ incompleteCount }: { incompleteCount: number }): ReactElement {
   return (
-    <>
-      <p className="mt-4 text-caption text-muted-foreground">
-        Valor nominal das mensalidades × prazo contratado, sujeito a descontos e cancelamentos.
-        Multas não compõem a projeção. Recebimentos aparecem no fluxo de caixa abaixo.
+    <details className="mt-4 text-caption text-muted-foreground">
+      <summary className="w-fit cursor-pointer rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        Como os valores são calculados
+        {incompleteCount > 0 ? ` · ${incompleteCount} contratos incompletos` : ""}
+      </summary>
+      <p className="mt-2 max-w-prose">
+        Mensalidade nominal × prazo completo, pelo mês de fechamento, mesmo com pagamento parcelado.
+        Inclui renovações; não representa novas inscrições nem dinheiro recebido. Descontos,
+        cancelamentos e multas não alteram este volume original.
       </p>
       {incompleteCount > 0 && (
-        <p className="mt-2 text-caption text-warning">
-          {incompleteCount} contratos sem valor ou prazo definidos entram na quantidade, mas ficaram
-          fora dos valores projetados.
+        <p className="mt-2 text-warning">
+          {incompleteCount} contratos sem valor ou prazo entram na quantidade, mas ficam fora do
+          volume em R$.
         </p>
       )}
-    </>
-  );
-}
-
-function ClosingPeriod({ data }: { data: Analytics }): ReactElement {
-  const ongoing = data.asOf.startsWith(`${data.year}-`);
-  return (
-    <p className="mt-1 text-caption text-muted-foreground">
-      Projeção pelo prazo completo dos contratos fechados em cada mês de {data.year}.
-      {ongoing && ` Até ${formatDateOnlyBR(data.asOf)}; mês atual em andamento.`}
-    </p>
+    </details>
   );
 }
 
 export function ContractClosings({ data }: { data: Analytics }): ReactElement {
   const [view, setView] = useState("chart");
-  const [labels, setLabels] = useState<ClosingMeasure[]>(["projectedCents", "count"]);
-  const rows = data.contractClosings.months.filter((month) => month.month <= data.asOf.slice(0, 7));
+  const [measure, setMeasure] = useState<ClosingChartMeasure>("projectedCents");
   return (
     <section
-      className="min-w-0 rounded-xl border border-border bg-card p-5 sm:p-6"
+      className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-5"
       aria-labelledby="contract-closings-title"
     >
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="contract-closings-title" className="text-lg font-semibold text-heading">
-            Receita trazida por novos contratos
+            Volume contratado
           </h2>
-          <ClosingPeriod data={data} />
+          <p className="mt-1 text-caption text-muted-foreground">
+            Pelo mês de fechamento · prazo completo de cada contrato.
+          </p>
         </div>
-        <ClosingControls view={view} onView={setView} labels={labels} onLabels={setLabels} />
+        <SegmentedControl
+          aria-label="Visualização dos contratos"
+          size="sm"
+          value={view}
+          onValueChange={setView}
+        >
+          <SegmentedControlItem value="chart">Gráfico</SegmentedControlItem>
+          <SegmentedControlItem value="table">Tabela</SegmentedControlItem>
+        </SegmentedControl>
       </header>
-      <ClosingSummary data={data} />
-      <ClosingVisualization rows={rows} view={view} labels={labels} />
+      <ClosingSummary data={data} measure={measure} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SegmentedControl
+          aria-label="Medida dos contratos"
+          size="sm"
+          value={measure}
+          onValueChange={(value) => setMeasure(value === "count" ? "count" : "projectedCents")}
+        >
+          <SegmentedControlItem value="projectedCents">Volume em R$</SegmentedControlItem>
+          <SegmentedControlItem value="count">Quantidade</SegmentedControlItem>
+        </SegmentedControl>
+        {data.asOf.startsWith(`${data.year}-`) && (
+          <p className="text-caption text-muted-foreground">
+            Até {formatDateOnlyBR(data.asOf)} · {monthLabel(data.asOf.slice(0, MONTH_KEY_LENGTH))}{" "}
+            em andamento
+          </p>
+        )}
+      </div>
+      <ClosingVisualization data={data} view={view} measure={measure} />
       <ClosingBasis incompleteCount={data.contractClosings.incompleteCount} />
     </section>
   );

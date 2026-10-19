@@ -38,12 +38,13 @@ export type AppointmentRow = Prisma.PedagogicalAppointmentGetPayload<{
   include: typeof appointmentInclude;
 }>;
 export type AbsenceSource = Prisma.AttendanceGetPayload<{ include: typeof sourceInclude }>;
-export function appointmentTeacher(row: AppointmentRow) {
+export type AppointmentAssignment = Pick<AppointmentRow, "targetClassSession" | "recordedAt" | "teacher">;
+export function appointmentTeacher(row: AppointmentAssignment) {
   return row.targetClassSession && !row.recordedAt
     ? responsibleTeacher(row.targetClassSession)
     : row.teacher;
 }
-export function canReadAppointment(context: AppointmentContext, row: AppointmentRow) {
+export function canReadAppointment(context: AppointmentContext, row: AppointmentAssignment) {
   return (
     context.staffUser.role !== "TEACHER" || appointmentTeacher(row)?.id === context.staffUser.id
   );

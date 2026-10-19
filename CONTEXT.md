@@ -88,9 +88,13 @@ A percentage reduction in tuition conditional on payment by the agreed deadline.
 _Avoid_: Fixed discount, waiver
 
 **Cancellation Fee**:
-A charge arising from early termination of an educational commitment that is not fully paid,
-calculated as the agreed percentage of future installments' nominal amounts, before punctuality discounts.
+A negotiable charge for early contract termination, defaulting to 20% of all unpaid principal,
+including overdue and future installments; amounts already paid and late charges are excluded from its base.
 _Avoid_: Late fee
+
+**Contract Termination**:
+An irreversible closure of a contract and its selected active enrollments, preserving receipts and
+replacing open installments with an agreed settlement of overdue principal, negotiated late charges and cancellation fee; future principal is released.
 
 **Late Payment Interest**:
 Simple interest accrued on an overdue installment for each day and each completed month of
@@ -118,9 +122,9 @@ _Avoid_: Confirmed attendance, check-in approval
 The teacher-opened period during which students can submit presence declarations for a Class Session.
 Closing or replacing the window preserves declarations already received.
 
-**Teaching Hour**:
-A unit of 60 minutes of teaching time. A two-hour Class Session comprises two Teaching Hours.
-_Avoid_: Class Session (as a synonym), hora-aula (in code)
+**Teaching Hour** (hora-aula):
+An ordered 60-minute block in a Teaching Program. A dated Class Session can cover one or more Teaching Hours.
+_Avoid_: Lesson, Class Session (as synonyms)
 
 **Makeup**:
 A Pedagogical Appointment that replaces missed teaching time from identified absences. Confirmed
@@ -138,12 +142,12 @@ its outcome and any planned follow-up.
 ## Pedagogical terms
 
 **Pedagogical Appointment**:
-A scheduled teaching encounter for one student, with the explicit purpose of Makeup, PPT hour
-complement, reinforcement or assessment. Its attendance and actual content are distinct from grades
-and academic progression.
+A scheduled teaching encounter for an existing student, either as a guest in an existing Class
+Session or at a separately scheduled time, with the explicit purpose of Makeup, PPT hour complement,
+reinforcement or assessment. Its attendance and actual content are distinct from grades and
+academic progression.
 
-**Class Hour** (hora-aula):
-A 60-minute unit of instructional time. A class meeting may contain more than one class hour; a two-hour meeting contains two class hours.
+**Schedule Code**:
 Weekdays in schedule codes use 1 = Sunday through 7 = Saturday. Schedule display codes number occupied one-hour blocks within each shift: M1 = 06:00–07:00, T1 = 12:00–13:00, N1 = 18:00–19:00. Partially occupied blocks are included; exact meeting times remain available. Equal time slots on multiple weekdays are grouped, e.g. Tuesday/Thursday 19:00–20:30 → `3N2-5N3`.
 
 **Recurring Class Schedule**:
@@ -164,6 +168,37 @@ and any related departure without ending the current membership early.
 **Student Availability**:
 The student's confirmed weekly time intervals and permitted formats for a particular semester,
 with an explicit validity date. Earlier preferences remain a reference until confirmed again.
+
+**Learning Material**:
+A book or supporting resource associated with a stage. The main book provides lesson references;
+PPT supports belong to the school and are lent to the student without a separate charge.
+
+**Track**:
+An ordered path of Stages within a Product Line. Every track has a pedagogical Age Group.
+
+**Track Age Group**:
+The catalog classification Adult or Child. Teens belong to Adult; Child is reserved for the young children's tracks, independently of a student's legal age.
+
+**Stage**:
+One step in a Track, with its learning material and teaching programs. Its position is defined within its own track.
+
+**Book Lesson** (lição):
+A numbered content unit in a stage's book. One lesson can span several Teaching Hours, and one Teaching Hour can cover parts of several lessons.
+
+**Teaching Modality**:
+The weekly teaching load, currently two Teaching Hours by default and extensible to other weekly loads. It is independent of Regular/PPT scheduling and in-person/online delivery.
+
+**Teaching Program**:
+The externally supplied, undated curriculum for a stage and teaching modality, organized into Program Units, Teaching Hours and structured activities. A revision preserves the curriculum that earlier plans and records referenced.
+
+**Program Unit** (unidade):
+The consecutive portion of a Teaching Program ending with its assessment. Units can contain different numbers of Teaching Hours.
+
+**Program Assessment** (prova da programação):
+A planned assessment closing a Program Unit, possibly spanning more than one teaching-hour segment. It is distinct from a student's grade or an Assessment Block.
+
+**Program Activity**:
+A structured portion of a Teaching Hour belonging to a Program Unit, with a duration and references to book lessons or a program assessment. A source abbreviation is provenance, not a substitute for its meaning.
 
 **Stage Plan**:
 The planned dates and learning activities for completing a stage. Regular classes share a
@@ -187,11 +222,13 @@ A series of related occurrences that requires a teacher’s action. It groups th
 occurrences and identifies the responsible teacher, with follow-up and an outcome.
 
 **Experimental Session**:
-A prospective student's participation in a scheduled meeting of an existing class.
+A lead's opportunity to experience a course modality, either as a guest in an existing Class Session
+or in an individually scheduled meeting with a teacher.
+_Avoid_: Introductory Session (as a separate kind of experience)
 
-**Introductory Session**:
-A separately scheduled meeting between a prospective student and a teacher to introduce the
-personalized course and its materials and operation.
+**Experimental Session Participation**:
+Whether an Experimental Session takes place in an existing class or individually. This choice is
+independent of the course modality and whether the meeting is online or in person.
 
 ## Lead terms
 
@@ -206,4 +243,12 @@ A lead contact is not automatically the student's legal guardian or payer.
 
 **Next Step**:
 The next agreed action for an open lead, with a due date and an owner when assigned.
-A scheduled introductory or trial class remains a separate appointment with its own outcome.
+A scheduled Experimental Session remains a separate appointment with its own outcome.
+
+## Curriculum and records
+
+**Planned Program Activity**:
+A Program Activity assigned a planned date within a class-wide or individual Stage Plan. It identifies the intended work; reaching the planned date does not establish completion.
+
+**Performed Program Activity**:
+The work actually reported by the teacher against a Program Activity, for the regular class or an individual PPT student. It may be partial, repeated or performed on another date; it is separate from attendance and grades.

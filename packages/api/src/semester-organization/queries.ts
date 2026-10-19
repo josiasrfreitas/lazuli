@@ -1,6 +1,8 @@
+import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { sql } from "kysely";
 import { jsonObjectFrom } from "kysely/helpers/postgres";
 import {
+  saoPauloDateOnly,
   semesterPlacementBlockers,
   intervalsOverlap,
   type SemesterEligibility,
@@ -26,6 +28,7 @@ export async function readClassPlans(context: OrganizationContext, semesterId: s
       "plan.shared_stage_id as sharedStageId",
       "plan.teacher_id as teacherId",
       "plan.class_id as classId",
+      "plan.source_class_id as sourceClassId",
       "stage.internal_code as stageCode",
       "stage.name as stageName",
       "teacher.name as teacherName",
@@ -56,7 +59,11 @@ export async function readClassPlans(context: OrganizationContext, semesterId: s
           .whereRef("assignment.class_id", "=", "plan.class_id")
           .where("assignment.deleted_at", "is", null)
           .where("assignment.superseded_at", "is", null)
-          .whereRef("assignment.effective_date", "<=", "semester.start_date")
+          .where(
+            "assignment.effective_date",
+            "<=",
+            sql<Date>`greatest(semester.start_date, ${saoPauloDateOnly(context.now)}::date)`,
+          )
           .orderBy("assignment.effective_date", "desc")
           .limit(1),
       ).as("assignedTeacher"),
@@ -76,7 +83,9 @@ export async function readClassPlans(context: OrganizationContext, semesterId: s
       teacherReady: Boolean(
         (teacher?.id ?? row.teacherId) &&
         !(teacher ? teacher.deletedAt : row.teacherDeletedAt) &&
-        (!departure || dateOnly(departure) > dateOnly(row.startDate)),
+        (!departure ||
+          dateOnly(departure) >
+            [dateOnly(row.startDate), saoPauloDateOnly(context.now)].sort().at(-1)!),
       ),
       active: !row.classId || (row.classStatus === "ACTIVE" && !row.classDeletedAt),
     };
@@ -127,6 +136,9 @@ export async function readPlacementRows(context: OrganizationContext, semesterId
       "placement.source_enrollment_id as sourceEnrollmentId",
       "placement.mode",
       "placement.notes",
+      "placement.effective_date as effectiveDate",
+      "placement.declined_at as declinedAt",
+      "placement.declined_reason as declinedReason",
       "placement.published_at as publishedAt",
       "placement.published_evidence as publishedEvidence",
       "placement.enrollment_id as enrollmentId",
@@ -171,9 +183,15 @@ export async function currentAvailability(context: OrganizationContext, semester
   return context.database.$kysely
     .selectFrom("StudentAvailability as availability")
     .innerJoin("User as actor", "actor.id", "availability.recorded_by_id")
+    .innerJoin(
+      "Student as availabilityStudent",
+      "availabilityStudent.id",
+      "availability.student_id",
+    )
     .select([
       "availability.id",
       "availability.student_id as studentId",
+      "availabilityStudent.full_name as studentName",
       "availability.confirmed",
       "availability.valid_until as validUntil",
       "availability.formats",
@@ -184,6 +202,7 @@ export async function currentAvailability(context: OrganizationContext, semester
     ])
     .where("availability.semester_id", "=", semesterId)
     .where("availability.deleted_at", "is", null)
+    .where("availabilityStudent.deleted_at", "is", null)
     .distinctOn("availability.student_id")
     .orderBy("availability.student_id")
     .orderBy("availability.created_at", "desc")
@@ -235,7 +254,7 @@ export function placementEligibility(
               !row.progressDeletedAt &&
               !row.sourceExitDate &&
               !row.progressEndDate &&
-              Boolean(row.sourceEntryDate && dateOnly(row.sourceEntryDate) < entryOn),
+              Boolean(row.sourceEntryDate && dateOnly(row.sourceEntryDate) <= entryOn),
             stageId: row.sourceStageId,
             trackId: row.sourceTrackId,
             sequence: row.sourceSequence,
@@ -260,7 +279,11 @@ export function placementBlockers(
   availability: CurrentAvailability | null,
   entryOn: string,
 ) {
-  if (row.publishedAt && row.entryStatus === "APPLIED") return [];
+  if (
+    row.declinedAt ||
+    (row.publishedAt && (row.entryStatus === "APPLIED" || (!row.entryActionId && row.enrollmentId)))
+  )
+    return [];
   const blockers = semesterPlacementBlockers(
     placementEligibility(row, plan, availability, entryOn),
   );
@@ -284,19 +307,115 @@ export async function readSemester(context: OrganizationContext, semesterId: str
     readPlacementRows(context, semesterId),
     currentAvailability(context, semesterId),
   ]);
+  const [contracts, sourceClasses, closedDays] = await Promise.all([
+    context.database.contract.findMany({
+      where: {
+        studentId: { in: rows.map((row) => row.studentId) },
+        deletedAt: null,
+        terminatedAt: null,
+      },
+      select: { id: true, studentId: true, startsOn: true, endsOn: true },
+      orderBy: { endsOn: "desc" },
+    }),
+    context.database.class.findMany({
+      where: {
+        id: {
+          in: [...new Set(rows.flatMap((row) => (row.sourceClassId ? [row.sourceClassId] : [])))],
+        },
+      },
+      select: {
+        id: true,
+        ...responsibilitySelect,
+        scheduleSlots: {
+          where: { deletedAt: null },
+          select: { weekday: true, startTime: true, endTime: true },
+        },
+      },
+    }),
+    context.database.schoolClosedDay.findMany({
+      where: { deletedAt: null, date: { gte: semester.startDate, lte: semester.endDate } },
+      orderBy: { date: "asc" },
+    }),
+  ]);
   const byStudent = new Map(availability.map((item) => [item.studentId, item]));
   const byPlan = new Map(plans.map((item) => [item.id, item]));
   const placements = rows.map((row) => {
     const available = byStudent.get(row.studentId) ?? null;
+    const sourceClass = sourceClasses.find((group) => group.id === row.sourceClassId);
+    const coverageDate =
+      row.publishedAt && row.entryStatus !== "SCHEDULED"
+        ? [saoPauloDateOnly(context.now), dateOnly(row.effectiveDate ?? semester.startDate)]
+            .sort()
+            .at(-1)!
+        : dateOnly(row.effectiveDate ?? semester.startDate);
+    const coveringContract =
+      contracts.find(
+        (contract) =>
+          contract.studentId === row.studentId &&
+          contract.startsOn &&
+          dateOnly(contract.startsOn) <= coverageDate &&
+          contract.endsOn &&
+          dateOnly(contract.endsOn) >= coverageDate,
+      ) ?? null;
+    const upcomingContract = coveringContract
+      ? null
+      : (contracts
+          .filter(
+            (contract) =>
+              contract.studentId === row.studentId &&
+              contract.startsOn &&
+              dateOnly(contract.startsOn) > coverageDate,
+          )
+          .sort((left, right) => left.startsOn!.getTime() - right.startsOn!.getTime())[0] ?? null);
     return {
       ...row,
+      upcomingContract,
+      contract:
+        contracts.find(
+          (contract) =>
+            contract.studentId === row.studentId &&
+            contract.startsOn &&
+            dateOnly(contract.startsOn) <= coverageDate &&
+            contract.endsOn &&
+            dateOnly(contract.endsOn) >= coverageDate,
+        ) ?? null,
+      lastContract: upcomingContract
+        ? null
+        : (contracts.find(
+            (contract) =>
+              contract.studentId === row.studentId &&
+              contract.startsOn &&
+              dateOnly(contract.startsOn) <= coverageDate,
+          ) ?? null),
+      sourceSchedule:
+        sourceClasses
+          .find((group) => group.id === row.sourceClassId)
+          ?.scheduleSlots.map((slot) => ({
+            weekday: slot.weekday,
+            startTime: slot.startTime.toISOString().slice(11, 16),
+            endTime: slot.endTime.toISOString().slice(11, 16),
+          })) ?? [],
+      sourceTeacher: sourceClass ? (usualTeacherOn(sourceClass, context.now)?.name ?? null) : null,
       availability: available ? { ...available, slots: readSlots(available.slots) } : null,
-      blockers: placementBlockers(
-        row,
-        byPlan.get(row.planId ?? "") ?? null,
-        available,
-        dateOnly(semester.startDate),
-      ),
+      blockers: [
+        ...(!row.publishedAt &&
+        !row.declinedAt &&
+        dateOnly(row.effectiveDate ?? semester.startDate) < saoPauloDateOnly(context.now)
+          ? ["Revise a vigência: a data proposta já passou"]
+          : []),
+        ...(!row.declinedAt &&
+        (dateOnly(row.effectiveDate ?? semester.startDate) < dateOnly(semester.startDate) ||
+          dateOnly(row.effectiveDate ?? semester.startDate) > dateOnly(semester.endDate)) &&
+        !row.publishedAt
+          ? ["Vigência fora do período letivo"]
+          : []),
+        ...placementBlockers(
+          row,
+          byPlan.get(row.planId ?? "") ?? null,
+          available,
+          dateOnly(row.effectiveDate ?? semester.startDate),
+        ),
+      ],
     };
   });
   const total = await context.database.$kysely
@@ -306,6 +425,10 @@ export async function readSemester(context: OrganizationContext, semesterId: str
     .executeTakeFirstOrThrow();
   return {
     semester,
+    intents: availability
+      .filter((item) => !rows.some((row) => row.studentId === item.studentId))
+      .map((item) => ({ ...item, slots: readSlots(item.slots) })),
+    closedDays,
     plans,
     placements,
     studentsTotal: total.count,

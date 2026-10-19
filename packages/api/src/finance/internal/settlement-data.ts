@@ -6,7 +6,7 @@ import { type FinanceDatabase, toDateOnlyString } from "./shared.js";
 
 const settlementInclude = {
   agreements: { orderBy: [{ effectiveDate: "asc" }, { createdAt: "asc" }, { id: "asc" }] },
-  order: { include: { contract: true } },
+  order: { include: { contract: true, material: true } },
   adjustments: { where: { deletedAt: null }, orderBy: { id: "asc" } },
   allocations: {
     where: { deletedAt: null, paymentEntry: { deletedAt: null } },
@@ -39,7 +39,7 @@ export function settlementLine(input: {
 }): SettlementLine {
   const { item, date } = input;
   validateSettlementItem(input);
-  const contract = item.order.contract;
+  const contract = item.order.kind === "TUITION" ? item.order.contract : null;
   const quote = quoteSettlement({
     nominalCents: item.amountCents,
     terms: settlementTerms(item),
@@ -69,7 +69,7 @@ function settlementFacts(
   import("@lazuli/domain").SettlementInput,
   "principalAdjustments" | "suspensions" | "chargeAdjustments"
 > {
-  const contract = item.order.contract;
+  const contract = item.order.kind === "TUITION" ? item.order.contract : null;
   return {
     principalAdjustments: item.adjustments
       .filter((row) => row.type !== "INTEREST" && row.type !== "LATE_FEE" && !row.chargeOnly)
@@ -143,7 +143,7 @@ function settlementTerms(item: SettlementItem): {
   monthlyPct: number;
   discountPct: number;
 } {
-  const contract = item.order.contract;
+  const contract = item.order.kind === "TUITION" ? item.order.contract : null;
   if (!contract)
     return {
       dueDate: toDateOnlyString(item.agreements[0]?.previousDueDate ?? item.dueDate),

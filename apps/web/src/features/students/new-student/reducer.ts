@@ -114,7 +114,7 @@ const DOCUMENT_TYPE_MESSAGE = "Informe o tipo do documento.";
 const GUARDIAN_REQUIRED_MESSAGE = "Responsável obrigatório para alunos menores de idade.";
 const GUARDIAN_CONTACT_MESSAGE = "Informe telefone ou email do responsável.";
 
-function validateDados(fields: NewStudentFields, today: string): NewStudentErrors {
+export function validateDados(fields: NewStudentFields, today: string): NewStudentErrors {
   const errors: NewStudentErrors = {};
 
   if (fields.fullName.trim() === "") {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { leadInterestSchema } from "./leads.js";
 import { civilDateSchema } from "./civil-date.js";
 import {
   classFormatSchema,
@@ -12,7 +13,7 @@ const MAX_NAME = 160;
 const MAX_NOTES = 2000;
 const MAX_WINDOWS = 28;
 const MAX_PAGE_SIZE = 100;
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 25;
 const contact = z.string().trim().max(MAX_NAME).nullable();
 export const admissionIdSchema = z.object({ id: z.string().uuid() }).strict();
 export const admissionValuesSchema = z
@@ -54,10 +55,8 @@ export const admissionListSchema = z
       .array(z.enum(["WAITING", "ENROLLED", "ARCHIVED"]))
       .max(3)
       .default(["WAITING"]),
-    followUps: z
-      .array(z.enum(["TODAY", "OVERDUE", "UNPLANNED"]))
-      .max(3)
-      .default([]),
+    interests: z.array(leadInterestSchema).max(4).default([]),
+    unlinkedOnly: z.boolean().default(false),
     expiredOnly: z.boolean().default(false),
     page: z.number().int().min(1).default(1),
     pageSize: z.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
@@ -145,3 +144,14 @@ export const entryVisitGuestsSchema = z
     (value) => Boolean(value.scheduleSlotId) !== Boolean(value.classSessionId),
     "Informe um único encontro.",
   );
+
+export const entryVisitCalendarSchema = z.object({
+  candidateId: z.string().uuid(),
+  from: civilDateSchema,
+  through: civilDateSchema,
+  teacherId: z.string().uuid().optional(),
+  previousVisitId: z.string().uuid().optional(),
+}).strict().refine(value => value.from <= value.through &&
+  Date.parse(value.through) - Date.parse(value.from) <= 6 * 86400000, {
+  path: ["through"], message: "Consulte até sete dias por vez.",
+});

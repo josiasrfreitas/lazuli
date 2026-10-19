@@ -1,4 +1,5 @@
 "use client";
+import { useSearchDraft } from "~/lib/use-search-draft";
 
 import { useEffect, useRef, type ReactElement, type RefObject } from "react";
 import {
@@ -7,15 +8,24 @@ import {
   useQueryStates,
   type UseQueryStatesReturn,
 } from "nuqs";
+import { activityListSchema, z } from "@lazuli/validators";
 import type { InfiniteData } from "@tanstack/react-query";
 import type { RouterInputs, RouterOutputs } from "@lazuli/api";
-import { History, LoaderCircle, RefreshCw } from "lucide-react";
-import { Button, EmptyState, InlineSkeleton, Input } from "@lazuli/ui";
-import { SelectControl } from "~/features/classes/form-controls";
+import { CalendarDays, History, Layers, RefreshCw, Search, UserRound } from "lucide-react";
+import {
+  Button,
+  EmptyState,
+  InlineSkeleton,
+  Input,
+  PencilLoader,
+  TimelineSkeleton,
+  TableFilters,
+  TableFilterChips,
+  type TableFilterField,
+} from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { ActivityTimeline } from "./activity-timeline";
 
-const areas = ["ALL", "PEDAGOGICAL", "COMMERCIAL", "FINANCIAL", "SCHOOL"] as const;
 const periods = ["TODAY", "7", "30", "90", "ALL"] as const;
 const areaChoices = [
   { value: "ALL", label: "Todas as áreas" },
@@ -31,12 +41,12 @@ const periodChoices = [
   { value: "90", label: "Últimos 90 dias" },
   { value: "ALL", label: "Todo o período" },
 ];
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 25;
 const queryFields = {
   busca: parseAsString.withDefault(""),
-  area: parseAsStringLiteral(areas).withDefault("ALL"),
+  area: parseAsString.withDefault(""),
   periodo: parseAsStringLiteral(periods).withDefault("30"),
-  autor: parseAsString.withDefault("all"),
+  autor: parseAsString.withDefault(""),
 };
 type QueryParams = UseQueryStatesReturn<typeof queryFields>;
 type ActivityPages = InfiniteData<
@@ -56,9 +66,9 @@ function useActivityQuery(): ActivityModel {
   const query = trpc.activity.list.useInfiniteQuery(
     {
       search: params.busca,
-      area: params.area,
+      areas: selectedValues(params.area, activityListSchema.shape.areas.unwrap().element),
       period: params.periodo,
-      ...(params.autor === "all" ? {} : { actorId: params.autor }),
+      actorIds: selectedValues(params.autor, activityListSchema.shape.actorIds.unwrap().element),
       pageSize: PAGE_SIZE,
     },
     { getNextPageParam: (page) => page.nextCursor },
@@ -114,15 +124,15 @@ export function ActivityPage(): ReactElement {
     model.refresh();
   };
   return (
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-col">
       <ActivityHeader model={model} refresh={refresh} />
       <div
         ref={scroller}
-        className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto p-4 sm:p-6"
+        className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6"
         aria-label="Histórico de atividades"
         tabIndex={0}
       >
-        <div className="mx-auto w-full max-w-3xl">
+        <div className="mx-auto w-full max-w-5xl">
           <ActivityFeed query={query} sentinel={sentinel} />
         </div>
       </div>
@@ -138,22 +148,21 @@ function ActivityHeader({
   refresh: () => void;
 }): ReactElement {
   return (
-    <div className="shrink-0 space-y-5 border-b border-border p-4 sm:p-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <div className="shrink-0 space-y-3 border-b border-border px-4 py-3 sm:px-6">
+      <header className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-4 gap-y-1">
           <h1 className="font-display text-h2 font-semibold text-heading">Log de atividades</h1>
-          <p className="mt-1 text-caption text-muted-foreground">
-            O dia a dia da escola, com contexto e autoria.
-          </p>
+          <ActivityCount query={model.query} />
         </div>
         <Button
-          variant="secondary"
+          variant="ghost"
           size="compact-responsive"
+          aria-label="Atualizar atividades"
           disabled={model.query.isFetching}
           onClick={refresh}
         >
-          <RefreshCw />
-          Atualizar
+          <RefreshCw aria-hidden="true" />
+          <span className="sr-only sm:not-sr-only">Atualizar</span>
         </Button>
       </header>
       <ActivityFilters model={model} />
@@ -162,67 +171,92 @@ function ActivityHeader({
 }
 
 function ActivityFilters({ model }: { model: ActivityModel }): ReactElement {
-  const { params, setParams, authors } = model;
+  const { params, setParams } = model;
+  const [search, setSearch] = useSearchDraft(params.busca, (busca) => {
+    void setParams({ busca });
+  });
+  const fields = activityFilterFields(model);
   return (
-    <div className="grid grid-cols-2 items-end gap-3 lg:grid-cols-4">
-      <div className="col-span-2 lg:col-span-1">
-        <Input
-          name="activity-search"
-          aria-label="Buscar no log"
-          autoComplete="off"
-          placeholder="Buscar ação, pessoa ou contexto"
-          size="compact-responsive"
-          value={params.busca}
-          onChange={(event) => {
-            void setParams({ busca: event.target.value });
-          }}
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-80">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-icon"
+          />
+          <Input
+            className="pl-9"
+            name="activity-search"
+            type="search"
+            aria-label="Buscar no log"
+            autoComplete="off"
+            placeholder="Buscar ação, pessoa ou contexto"
+            size="compact-responsive"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+        <TableFilters
+          fields={fields}
+          onClearAll={() => void setParams({ periodo: "ALL", area: null, autor: null })}
         />
       </div>
-      <ActivityPeriodAndArea model={model} />
-      <div className="col-span-2 lg:col-span-1">
-        <SelectControl
-          name="activity-actor"
-          label="Realizada por"
-          value={params.autor}
-          choices={[
-            { value: "all", label: "Todas as pessoas" },
-            ...(authors.data ?? []).map((actor) => ({ value: actor.id, label: actor.name })),
-          ]}
-          onChange={(autor) => {
-            void setParams({ autor });
-          }}
-        />
-      </div>
+      <TableFilterChips fields={fields} />
     </div>
   );
 }
 
-function ActivityPeriodAndArea({ model }: { model: ActivityModel }): ReactElement {
-  const { params, setParams } = model;
-  return (
-    <>
-      <SelectControl
-        name="activity-period"
-        label="Período"
-        value={params.periodo}
-        choices={periodChoices}
-        onChange={(value) => {
-          if (periods.includes(value as typeof params.periodo))
-            void setParams({ periodo: value as typeof params.periodo });
-        }}
-      />
-      <SelectControl
-        name="activity-area"
-        label="Área"
-        value={params.area}
-        choices={areaChoices}
-        onChange={(value) => {
-          if (areas.includes(value as typeof params.area))
-            void setParams({ area: value as typeof params.area });
-        }}
-      />
-    </>
-  );
+function selectedValues<T>(value: string, schema: z.ZodType<T>): T[] {
+  return [...new Set(value.split(","))].flatMap((item) => {
+    const result = schema.safeParse(item);
+    return result.success ? [result.data] : [];
+  });
+}
+
+function activityFilterFields({ params, setParams, authors }: ActivityModel): TableFilterField[] {
+  return [
+    {
+      id: "periodo",
+      label: "Período",
+      icon: CalendarDays,
+      promoted: true,
+      kind: "options",
+      selectionMode: "single",
+      options: periodChoices
+        .filter(({ value }) => value !== "ALL")
+        .map(({ value, label }) => ({ id: value, label })),
+      selected: params.periodo === "ALL" ? [] : [params.periodo],
+      onChange: (values) => {
+        const value = values[0] ?? "ALL";
+        if (periods.includes(value as typeof params.periodo))
+          void setParams({ periodo: value as typeof params.periodo });
+      },
+      onClear: () => void setParams({ periodo: "ALL" }),
+    },
+    {
+      id: "area",
+      label: "Área",
+      icon: Layers,
+      promoted: true,
+      kind: "options",
+      options: areaChoices
+        .filter(({ value }) => value !== "ALL")
+        .map(({ value, label }) => ({ id: value, label })),
+      selected: selectedValues(params.area, activityListSchema.shape.areas.unwrap().element),
+      onChange: (values) => void setParams({ area: values.join(",") || null }),
+      onClear: () => void setParams({ area: null }),
+    },
+    {
+      id: "autor",
+      label: "Realizada por",
+      icon: UserRound,
+      kind: "options",
+      options: (authors.data ?? []).map((actor) => ({ id: actor.id, label: actor.name })),
+      selected: selectedValues(params.autor, activityListSchema.shape.actorIds.unwrap().element),
+      onChange: (values) => void setParams({ autor: values.join(",") || null }),
+      onClear: () => void setParams({ autor: null }),
+    },
+  ];
 }
 
 function ActivityFeed({
@@ -232,7 +266,7 @@ function ActivityFeed({
   query: ActivityModel["query"];
   sentinel: RefObject<HTMLDivElement | null>;
 }): ReactElement {
-  if (query.isPending) return <TimelineLoading />;
+  if (query.isPending) return <TimelineSkeleton layout="alternating" />;
   if (!query.data)
     return (
       <EmptyState
@@ -254,13 +288,8 @@ function ActivityFeed({
         description="Ajuste os filtros para encontrar outros registros. As próximas ações da equipe aparecerão aqui."
       />
     );
-  const total = query.data.pages[0]?.total;
   return (
     <>
-      <p className="mb-6 text-caption text-muted-foreground">
-        {total} {total === 1 ? "atividade no período" : "atividades no período"} · Mais recentes
-        primeiro
-      </p>
       <ActivityTimeline rows={rows} />
       <div ref={sentinel} className="flex min-h-20 items-center justify-center py-6">
         <ActivityPagination query={query} />
@@ -270,16 +299,7 @@ function ActivityFeed({
 }
 
 function ActivityPagination({ query }: { query: ActivityModel["query"] }): ReactElement {
-  if (query.isFetchingNextPage)
-    return (
-      <p role="status" className="flex items-center gap-2 text-caption text-muted-foreground">
-        <LoaderCircle
-          aria-hidden="true"
-          className="size-4 animate-spin motion-reduce:animate-none"
-        />
-        Carregando atividades anteriores…
-      </p>
-    );
+  if (query.isFetchingNextPage) return <PencilLoader label="Carregando atividades anteriores" />;
   if (!query.hasNextPage)
     return (
       <p role="status" className="text-caption text-muted-foreground">
@@ -300,20 +320,14 @@ function ActivityPagination({ query }: { query: ActivityModel["query"] }): React
   );
 }
 
-function TimelineLoading(): ReactElement {
+function ActivityCount({ query }: { query: ActivityModel["query"] }): ReactElement | null {
+  const total = query.data?.pages[0]?.total;
+  if (query.isPending) return <InlineSkeleton className="w-36" />;
+  if (total === undefined) return null;
   return (
-    <div role="status" className="space-y-8 py-4">
-      <span className="sr-only">Carregando atividades</span>
-      {[0, 1, 2].map((index) => (
-        <div key={index} className="flex items-start gap-4">
-          <InlineSkeleton className="size-8" />
-          <div className="grid flex-1 gap-3">
-            <InlineSkeleton className="h-4 w-3/4" />
-            <InlineSkeleton className="h-3 w-1/2" />
-            <InlineSkeleton className="h-3 w-1/3" />
-          </div>
-        </div>
-      ))}
-    </div>
+    <p className="text-caption text-muted-foreground" aria-live="polite">
+      <span className="font-numeric tabular-nums">{total.toLocaleString("pt-BR")}</span>{" "}
+      {total === 1 ? "atividade" : "atividades"} · Mais recentes primeiro
+    </p>
   );
 }

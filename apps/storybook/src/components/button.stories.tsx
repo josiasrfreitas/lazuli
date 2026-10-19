@@ -17,7 +17,19 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["primary", "secondary", "ghost", "text", "destructive", "link"],
+      options: [
+        "primary",
+        "secondary",
+        "ghost",
+        "text",
+        "destructive",
+        "destructive-ghost",
+        "destructive-outline",
+        "success",
+        "warning",
+        "info",
+        "link",
+      ],
     },
     size: {
       control: "select",
@@ -61,6 +73,28 @@ export const Variants: Story = {
       </Button>
       <Button variant="destructive">Delete</Button>
       <Button variant="link">Open record</Button>
+    </div>
+  ),
+};
+
+export const SemanticActions: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Use success for positive confirmation, info for rescheduling, warning for corrections, and destructive-outline to place cancellation beside other outlined actions. Use destructive-ghost for lower emphasis. The final destructive confirmation uses destructive. Dismissing a dialog remains secondary.",
+      },
+    },
+  },
+  render: () => (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button variant="success">Record attendance</Button>
+      <Button variant="info">Reschedule</Button>
+      <Button variant="warning">Correct record</Button>
+      <Button variant="destructive-outline">Cancel appointment</Button>
+      <Button variant="destructive-ghost">Remove link</Button>
+      <Button variant="destructive">Confirm cancellation</Button>
+      <Button variant="secondary">Go back</Button>
     </div>
   ),
 };

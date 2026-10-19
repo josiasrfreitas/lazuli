@@ -42,13 +42,6 @@ export const OCCURRENCE_EXAMPLES = {
   },
 } as const;
 export type SeedOccurrenceCategory = keyof typeof OCCURRENCE_EXAMPLES;
-export type InterventionVariant =
-  | "open"
-  | "open-overdue"
-  | "progress"
-  | "progress-overdue"
-  | "concluded"
-  | "reopened";
 export type FollowUpScenario = {
   key: string;
   studentIndex: number;
@@ -56,11 +49,9 @@ export type FollowUpScenario = {
   daysAgo: readonly number[];
   related?: boolean;
   intervention?: {
-    variant: InterventionVariant;
     title: string;
-    objective: string;
-    nextStep: string;
-    outcome: string;
+    treatment: string;
+    evolution: string;
   };
 };
 
@@ -86,12 +77,11 @@ const INTERVENTIONS: FollowUpScenario[] = [
     category: "MATERIAL",
     daysAgo: [18, 11, 4],
     intervention: {
-      variant: "open",
       title: "Organização do material antes da aula",
-      objective: "Ampliar a autonomia para separar os itens usados nas atividades.",
-      nextStep: "Combinar uma lista curta de materiais e conferir sua utilização em duas aulas.",
-      outcome:
-        "Nas duas observações seguintes, o aluno localizou os materiais combinados com autonomia.",
+      treatment:
+        "Conversei com a mãe por telefone sobre as aulas em que o aluno ficou sem o livro. Ela explicou que o material fica em outra mochila. Combinamos separar o livro na noite anterior; disponibilizei uma cópia para a atividade de hoje.",
+      evolution:
+        "O aluno trouxe o livro nas duas aulas seguintes e realizou as atividades com o próprio material.",
     },
   },
   {
@@ -100,13 +90,11 @@ const INTERVENTIONS: FollowUpScenario[] = [
     category: "HOMEWORK",
     daysAgo: [35, 28, 21],
     intervention: {
-      variant: "open-overdue",
       title: "Retomada das etapas da atividade de casa",
-      objective: "Estabelecer uma rotina possível para concluir as etapas combinadas.",
-      nextStep:
-        "Conversar com o aluno sobre a rotina e definir uma etapa curta para a próxima aula.",
-      outcome:
-        "O aluno apresentou as etapas combinadas e explicou como organizou o tempo de realização.",
+      treatment:
+        "Conversei com o aluno após a aula. Ele relatou dificuldade para conciliar a tarefa com as provas da escola. Retomamos juntos os dois primeiros exercícios e combinamos entregar o restante na próxima aula. Enviei o combinado à família.",
+      evolution:
+        "O aluno entregou três dos cinco exercícios. Corrigimos as dúvidas em sala. A família ainda não respondeu à mensagem.",
     },
   },
   {
@@ -115,13 +103,11 @@ const INTERVENTIONS: FollowUpScenario[] = [
     category: "PARTICIPATION",
     daysAgo: [35, 25, 15],
     intervention: {
-      variant: "progress",
       title: "Preparação gradual para a prática oral",
-      objective:
-        "Participar de trocas orais com tempo de preparação e apoio progressivamente menor.",
-      nextStep: "Manter preparação em dupla e observar a passagem para uma fala curta sem leitura.",
-      outcome:
-        "O aluno realizou duas falas curtas com preparação prévia e menor dependência do modelo escrito.",
+      treatment:
+        "Conversei com o aluno em particular sobre o receio de falar inglês diante da turma. Fizemos um ensaio curto e ele escolheu apresentar o diálogo com um colega, usando palavras-chave no caderno.",
+      evolution:
+        "Na aula seguinte, apresentou o diálogo em dupla. Consultou o caderno algumas vezes e respondeu a uma pergunta sem ler.",
     },
   },
   {
@@ -130,13 +116,11 @@ const INTERVENTIONS: FollowUpScenario[] = [
     category: "LEARNING",
     daysAgo: [50, 40, 30],
     intervention: {
-      variant: "progress-overdue",
       title: "Acompanhamento de instruções em listening",
-      objective:
-        "Identificar instruções curtas com palavras de referência e conferir a compreensão.",
-      nextStep: "Rever o apoio usado nas últimas aulas e combinar uma nova observação com o aluno.",
-      outcome:
-        "Em duas atividades, o aluno identificou as instruções com uma repetição e apoio visual reduzido.",
+      treatment:
+        "Revimos juntos a atividade de listening após a aula. O aluno compreendeu o vocabulário, mas se perdeu ao ouvir todas as instruções de uma vez. Repeti o áudio em trechos e pedi que explicasse o que precisava fazer antes de responder.",
+      evolution:
+        "Conseguiu realizar a primeira parte com uma repetição do áudio. Na segunda, ainda precisou que eu dividisse a instrução em etapas.",
     },
   },
   {
@@ -145,12 +129,11 @@ const INTERVENTIONS: FollowUpScenario[] = [
     category: "BEHAVIOR",
     daysAgo: [60, 50, 40],
     intervention: {
-      variant: "concluded",
       title: "Combinados de escuta nas atividades em grupo",
-      objective: "Organizar os turnos de fala e retomar instruções antes da atividade em grupo.",
-      nextStep: "Manter os combinados de escuta e observar sua continuidade na rotina da turma.",
-      outcome:
-        "Nas duas últimas observações, o aluno aguardou o turno de fala e retomou a instrução antes de iniciar a atividade.",
+      treatment:
+        "Ouvi o aluno e o colega separadamente após a discussão durante o trabalho em grupo. Conversamos juntos sobre o que ocorreu e combinamos alternar os turnos de fala. Os dois retomaram a atividade e finalizaram o diálogo.",
+      evolution:
+        "Na atividade em grupo desta semana, os dois trabalharam juntos sem nova discussão. Foi necessário apenas um lembrete sobre o turno de fala.",
     },
   },
   {
@@ -159,14 +142,11 @@ const INTERVENTIONS: FollowUpScenario[] = [
     category: "OTHER",
     daysAgo: [65, 55, 45],
     intervention: {
-      variant: "reopened",
       title: "Autonomia na organização das atividades",
-      objective:
-        "Localizar materiais e seguir a sequência de tarefas com apoio gradualmente menor.",
-      nextStep:
-        "Ampliar a lista visual para atividades novas e observar a organização em outra sequência de tarefas.",
-      outcome:
-        "O aluno organizou a sequência de duas atividades conhecidas usando a lista visual combinada.",
+      treatment:
+        "Sentei com o aluno no início da aula e organizamos o livro, o caderno e a atividade impressa. Anotamos três passos no canto do quadro. Ele conferiu cada etapa antes de passar para a seguinte.",
+      evolution:
+        "Usou a lista sozinho na primeira atividade. Quando mudamos para uma tarefa nova, pediu ajuda para localizar a página e retomou o trabalho após a orientação.",
     },
   },
 ];

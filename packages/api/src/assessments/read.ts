@@ -86,7 +86,7 @@ export async function readAssessment(
   id: string,
 ): Promise<AssessmentView> {
   const progress = await loadProgress(context.database, id);
-  assertProgressAccess(context, progress);
+  await assertProgressAccess(context, progress);
   return assessmentView(progress, context);
 }
 export async function readStudentAssessments(
@@ -108,7 +108,14 @@ export async function readStudentAssessments(
     orderBy: [{ startDate: "desc" }, { id: "asc" }],
   });
   const seen = new Set<string>();
-  return progress.flatMap((row) => {
+  const visible = await Promise.all(progress.map(async (row) => {
+    try { await assertProgressAccess(context, row); return row; } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "FORBIDDEN") return null;
+      throw error;
+    }
+  }));
+  return visible.flatMap((row) => {
+    if (!row) return [];
     const key = row.assessmentId ?? row.id;
     if (seen.has(key)) return [];
     seen.add(key);
@@ -122,10 +129,10 @@ export async function readClassAssessments(
   const today = new Date(saoPauloDateOnly(context.now));
   const classRow = await context.database.class.findFirst({
     where: { id: classId, deletedAt: null },
-    select: responsibilitySelect,
+    select: { ...responsibilitySelect, substitutions: { where: { teacherId: context.staffUser.id, date: today, revokedAt: null, deletedAt: null }, select: { id: true } } },
   });
   if (!classRow) throw notFound("Turma não encontrada.");
-  assertTeacherAccess(context.staffUser, classRow, today);
+  if (!classRow.substitutions.length) assertTeacherAccess(context.staffUser, classRow, today);
   const progress = await context.database.pedagogicalProgress.findMany({
     where: {
       deletedAt: null,
@@ -154,6 +161,7 @@ export async function assessmentClasses(
       portalClassName: true,
       semester: { select: { name: true } },
       ...responsibilitySelect,
+      substitutions: { where: { teacherId: context.staffUser.id, date: today, revokedAt: null, deletedAt: null }, select: { id: true } },
     },
     orderBy: { portalClassName: "asc" },
   });
@@ -161,7 +169,7 @@ export async function assessmentClasses(
     .filter(
       (row) =>
         context.staffUser.role !== "TEACHER" ||
-        usualTeacherOn(row, today)?.id === context.staffUser.id,
+        usualTeacherOn(row, today)?.id === context.staffUser.id || row.substitutions.length > 0,
     )
     .map((row) => ({ id: row.id, name: row.portalClassName, semester: row.semester.name }));
 }

@@ -86,6 +86,7 @@
   --color-icon-active: var(--icon-active);
   --color-selection-indicator: var(--selection-indicator);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-link-hover: var(--brand-link-hover);
   --color-interactive: var(--interactive);
   --color-interactive-hover: var(--interactive-hover);
   --color-interactive-active: var(--interactive-active);

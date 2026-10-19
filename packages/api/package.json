@@ -15,6 +15,7 @@
     "clean": "rm -rf .turbo dist"
   },
   "dependencies": {
+    "@lazuli/storage": "workspace:*",
     "@lazuli/integrations": "workspace:*",
     "@lazuli/auth": "workspace:*",
     "@lazuli/db": "workspace:*",

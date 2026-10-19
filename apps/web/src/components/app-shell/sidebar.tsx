@@ -8,7 +8,10 @@ import { BrandSignature } from "./brand-signature";
 
 export function Sidebar({ identity }: { identity: StaffIdentity }): ReactNode {
   return (
-    <aside className="group/sidebar hidden w-11.75 shrink-0 flex-col overflow-hidden border-r border-navigation-border bg-navigation text-navigation-foreground transition-[width] duration-300 ease-standard hover:w-43.75 has-[:focus-visible]:w-43.75 motion-reduce:transition-none sm:flex">
+    <aside
+      data-slot="app-sidebar"
+      className="group/sidebar hidden w-11.75 shrink-0 flex-col overflow-hidden border-r border-navigation-border bg-navigation text-navigation-foreground transition-[width] duration-300 ease-standard hover:w-43.75 has-[:focus-visible]:w-43.75 motion-reduce:transition-none sm:flex"
+    >
       <div className="flex h-14 w-43.75 shrink-0 items-center border-b border-navigation-border px-1.75">
         <BrandSignature />
       </div>

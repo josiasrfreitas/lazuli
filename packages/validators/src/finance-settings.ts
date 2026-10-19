@@ -20,9 +20,37 @@ export const financeSettingsInputSchema = z
     interestRatePctDaily: percentage,
     interestRatePctMonthly: percentage,
     cancellationFeePct: percentage,
-    materialPriceCents: z.number().int().nonnegative(),
+    // Legacy clients may still submit the previous single-price field.
+    materialPriceCents: z.number().int().nonnegative().optional(),
+    childMaterialInstallments: z.number().int().positive().max(2_147_483_647).optional(),
+    childMaterialInstallmentCents: z.number().int().nonnegative().max(2_147_483_647).optional(),
+    adultMaterialInstallments: z.number().int().positive().max(2_147_483_647).optional(),
+    adultMaterialInstallmentCents: z.number().int().nonnegative().max(2_147_483_647).optional(),
+    materialCardFeePct: percentage.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((values, ctx) => {
+    for (const [countKey, amountKey] of [
+      ["childMaterialInstallments", "childMaterialInstallmentCents"],
+      ["adultMaterialInstallments", "adultMaterialInstallmentCents"],
+    ] as const) {
+      const count = values[countKey];
+      const amount = values[amountKey];
+      if ((count === undefined) !== (amount === undefined)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [count === undefined ? countKey : amountKey],
+          message: "Informe a quantidade e o valor das parcelas.",
+        });
+      } else if (count !== undefined && amount !== undefined && count * amount > 2_147_483_647) {
+        ctx.addIssue({
+          code: "custom",
+          path: [amountKey],
+          message: "O total excede o valor permitido.",
+        });
+      }
+    }
+  });
 
 export type FinanceSettingsInput = z.infer<typeof financeSettingsInputSchema>;
 

@@ -69,14 +69,14 @@ function SidebarNavLink({ item, pathname }: { item: NavItem; pathname: string })
         "transition-colors duration-fast ease-standard",
         "focus-visible:outline-none focus-visible:shadow-focus",
         active
-          ? "bg-navigation-active font-semibold text-navigation-foreground before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-brand"
+          ? "bg-navigation-active font-semibold text-navigation-foreground before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-selection-indicator"
           : "text-navigation-muted hover:bg-navigation-active/60 hover:text-navigation-foreground",
       )}
       href={href}
     >
       <Icon
         aria-hidden="true"
-        className={cn("size-4 shrink-0", active ? "text-brand" : "text-navigation-icon")}
+        className={cn("size-4 shrink-0", active ? "text-icon-active" : "text-navigation-icon")}
       />
       <span className="shrink-0 whitespace-nowrap sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none">
         {label}

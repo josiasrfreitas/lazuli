@@ -115,6 +115,7 @@ export const Sizes: Story = {
       <FilterPopover size="sm" triggerLabel="Pequeno" />
       <FilterPopover size="md" triggerLabel="Médio" />
       <FilterPopover size="lg" triggerLabel="Grande" />
+      <FilterPopover size="xl" triggerLabel="Comparação" />
     </div>
   ),
 };

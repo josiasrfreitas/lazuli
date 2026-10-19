@@ -19,6 +19,7 @@ import { useContractFilters } from "./contract-filters";
 import { ContractFormFields } from "./contract-form-fields";
 import { ContractsTable } from "./contracts-table";
 import { ContractsToolbar } from "./contracts-toolbar";
+import { emptyContractFields, type ContractFields } from "./contract-form-model";
 import {
   useContractFormState,
   useContractOperation,
@@ -97,16 +98,18 @@ function ContractDialogActions({ operation }: { operation: ContractOperation }):
   );
 }
 
-function NewContractDialog({
+export function NewContractDialog({
   open,
   onOpenChange,
   onCreated,
+  initialFields,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
+  initialFields?: Partial<ContractFields>;
 }): ReactElement {
-  const state = useContractFormState(open);
+  const state = useContractFormState(open, { ...emptyContractFields, ...initialFields });
   const operation = useContractOperation({ open, onOpenChange, onCreated, state });
   return (
     <Dialog open={open} onOpenChange={operation.close}>

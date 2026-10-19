@@ -1,8 +1,11 @@
 import { z } from "zod";
+import { placementScheduleSchema } from "./placement.js";
 import { civilDateSchema } from "./civil-date.js";
+import { classFormatSchema, classScheduleTypeSchema } from "./class.js";
 const MAX_NAME = 160;
-const MAX_NOTE = 2000;
 const optionalText = z.string().trim().max(MAX_NAME).nullable();
+export const leadInterestSchema = z.enum(["UNKNOWN", "LOW", "MEDIUM", "HIGH"]);
+
 export const leadCaptureSchema = z
   .object({
     id: z.string().uuid(),
@@ -11,9 +14,21 @@ export const leadCaptureSchema = z
     email: z.union([z.string().trim().email(), z.literal("")]).nullable(),
     contactName: optionalText,
     source: optionalText,
+    interest: leadInterestSchema.default("UNKNOWN"),
+    contactRole: z.enum(["STUDENT", "GUARDIAN"]).default("STUDENT"),
+    contactOwner: z.enum(["STUDENT", "GUARDIAN"]).default("STUDENT"),
+    birthDate: civilDateSchema.nullable().default(null),
+    englishExperience: z.enum(["NONE", "SOME", "UNKNOWN"]).default("UNKNOWN"),
+    stageId: z.string().uuid().nullable().default(null),
+    format: classFormatSchema.nullable().default(null),
+    scheduleType: classScheduleTypeSchema.nullable().default(null),
   })
   .strict()
   .superRefine((value, context) => {
+    if ((value.contactRole === "GUARDIAN" || value.contactOwner === "GUARDIAN") && !value.contactName)
+      context.addIssue({ code: "custom", path: ["contactName"], message: "Informe o nome do responsável." });
+    if (value.englishExperience === "NONE" && !value.stageId)
+      context.addIssue({ code: "custom", path: ["stageId"], message: "Escolha o estágio inicial." });
     if (!value.phone && !value.email)
       context.addIssue({
         code: "custom",
@@ -21,27 +36,14 @@ export const leadCaptureSchema = z
         message: "Informe telefone ou e-mail para contato.",
       });
   });
-export const leadNextStepSchema = z
-  .object({
-    id: z.string().uuid(),
-    ownerId: z.string().uuid().nullable(),
-    nextAction: z.string().trim().max(MAX_NOTE).nullable(),
-    nextActionOn: civilDateSchema.nullable(),
-  })
-  .strict()
-  .superRefine((value, context) => {
-    if (Boolean(value.nextAction) !== Boolean(value.nextActionOn))
-      context.addIssue({
-        code: "custom",
-        path: ["nextActionOn"],
-        message: "Informe o próximo passo e a data juntos.",
-      });
-  });
-export const leadContactSchema = z
-  .object({
-    id: z.string().uuid(),
-    candidateId: z.string().uuid(),
-    contactedOn: civilDateSchema,
-    summary: z.string().trim().min(1, "Registre o que foi conversado.").max(MAX_NOTE),
-  })
-  .strict();
+
+export const leadRegistrationSchema = z.object({
+  lead: leadCaptureSchema,
+  placement: placementScheduleSchema.nullable().default(null),
+  allowPending: z.boolean().default(false),
+}).strict().superRefine((value, context) => {
+  if (value.placement && (value.placement.candidateId !== value.lead.id || value.lead.englishExperience !== "SOME"))
+    context.addIssue({ code: "custom", path: ["placement"], message: "O agendamento deve pertencer a este lead com nivelamento." });
+  if (value.lead.englishExperience === "SOME" && !value.placement && !value.allowPending)
+    context.addIssue({ code: "custom", path: ["allowPending"], message: "Confirme o cadastro com nivelamento pendente." });
+});

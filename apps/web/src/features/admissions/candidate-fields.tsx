@@ -1,4 +1,5 @@
 "use client";
+import { normalizeSearch } from "@lazuli/domain";
 import { useState, type ReactElement } from "react";
 import { Plus, X } from "lucide-react";
 import {
@@ -49,7 +50,7 @@ export function CandidateContactFields(props: CandidateFieldsProps): ReactElemen
     </>
   );
 }
-function InterestChoice({
+export function InterestChoice({
   label,
   value,
   options,
@@ -248,9 +249,7 @@ function StageField({
         query={query}
         value={selected ? { id: selected.id, label: selected.name } : null}
         options={stages
-          .filter((row) =>
-            row.name.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")),
-          )
+          .filter((row) => normalizeSearch(row.name).includes(normalizeSearch(query)))
           .map((row) => ({ id: row.id, label: row.name }))}
         onQueryChange={setQuery}
         onSelect={(row) => {
@@ -276,7 +275,7 @@ type AvailabilityRowProps = {
   onChange: (value: CandidateDraft["availability"][number]) => void;
   onRemove?: (() => void) | undefined;
 };
-function AvailabilityRow({
+export function AvailabilityRow({
   slot,
   index,
   errors,

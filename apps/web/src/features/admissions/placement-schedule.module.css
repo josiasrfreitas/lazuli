@@ -1,0 +1,58 @@
+.dialog {
+  width: calc(100vw - 2rem);
+  max-width: 1224px;
+  height: 85dvh;
+  max-height: calc(100dvh - 2rem);
+}
+
+.body {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.form {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.calendar {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.footer {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.selection {
+  display: grid;
+  grid-template-columns: 160px 88px 88px max-content;
+  align-items: start;
+  gap: 12px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.calendar :global(.lz-schedule-calendar),
+.calendar :global(.lz-calendar-viewport) {
+  min-height: 0;
+}

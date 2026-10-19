@@ -200,6 +200,7 @@ export function planSnapshot(plan: Plan): PlanSnapshot {
     objective: plan.objective,
     items: plan.items.map((item) => ({
       id: item.id,
+      programActivityId: item.programActivityId,
       plannedOn: dateOnly(item.plannedOn),
       kind: item.kind,
       title: item.title,

@@ -5,7 +5,7 @@ import { Alert, Button, InlineSkeleton } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { TextControl } from "~/features/classes/form-controls";
-import { dateLabel, dateOnly, type Candidate } from "./labels";
+import { dateLabel, type Candidate } from "./labels";
 import { EnrollDialog } from "./enroll-dialog";
 import { MatchingClasses } from "./matching-classes";
 
@@ -14,9 +14,7 @@ function useAllocation(candidate: Candidate) {
   const [selected, setSelected] = useState("");
   const [enrolling, setEnrolling] = useState(false);
   const parsed = parseDateBR(date);
-  const enabled = Boolean(
-    parsed && candidate.stageId && dateOnly(candidate.availableUntil) >= parsed,
-  );
+  const enabled = Boolean(parsed && candidate.stageId);
   const query = trpc.admissions.matches.useQuery(
     { id: candidate.id, date: parsed ?? candidate.today },
     { enabled, retry: false },
@@ -70,9 +68,7 @@ function AllocationHeader({ allocation }: { allocation: Allocation }): ReactElem
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="grid gap-1">
         <h2 className="font-display text-h3 font-semibold">Encontre a turma certa</h2>
-        <p className="text-caption text-muted-foreground">
-          Estágio, formato e todos os horários compatíveis.
-        </p>
+        <p className="text-caption text-muted-foreground">Turmas do estágio e formato indicados.</p>
       </div>
       <div className="w-36">
         <TextControl
@@ -111,9 +107,7 @@ function AllocationResults({
     );
   if (!allocation.enabled)
     return (
-      <p className="text-caption text-muted-foreground">
-        Informe uma data coberta pela disponibilidade confirmada.
-      </p>
+      <p className="text-caption text-muted-foreground">Informe uma data de entrada válida.</p>
     );
   if (allocation.query.isError)
     return <Alert variant="destructive">{allocation.query.error.message}</Alert>;
@@ -149,8 +143,7 @@ function NoMatchingClass(): ReactElement {
       <div className="grid gap-1">
         <p className="font-medium">Nenhuma turma compatível por enquanto</p>
         <p className="text-caption text-muted-foreground">
-          O interesse continua registrado. Revise os horários ou consulte novamente após a abertura
-          de novas turmas.
+          O interesse continua registrado. Consulte novamente após a abertura de novas turmas.
         </p>
       </div>
     </div>

@@ -1,26 +1,27 @@
+import { normalizeSearch } from "@lazuli/domain";
+import { searchMatchSql } from "../../search.js";
 import { Prisma } from "@lazuli/db/prisma";
 import { saoPauloDateOnly, type ContractFinancialStatus } from "@lazuli/domain";
 
 import type { FinanceDatabase } from "./shared.js";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 25;
 
 /** The same registered balances and paid-installment rule used by the domain summary. */
 const STATUS_FACTS = Prisma.sql`
   LEFT JOIN LATERAL (
-    SELECT o.id, o.cancelled_at, o.installment_count
+    SELECT bool_and(o.cancelled_at IS NOT NULL) AS cancelled, COALESCE(SUM(o.installment_count), 0) AS installment_count
     FROM "Order" o
-    WHERE o.contract_id = filtered.id AND o.kind = 'TUITION'
-    LIMIT 1
+    WHERE o.contract_id = filtered.id AND o.kind = 'TUITION' AND o.deleted_at IS NULL
   ) contract_order ON true
   LEFT JOIN LATERAL (
     SELECT
       COALESCE(SUM(CASE
-        WHEN i.due_date < params.today AND i.waived_at IS NULL
+        WHEN i.due_date < params.today AND i.waived_at IS NULL AND o.cancelled_at IS NULL
         THEN GREATEST(i.amount_cents + adjustment.amount - allocation.amount, 0)
         ELSE 0 END), 0) AS overdue_cents,
       COALESCE(SUM(CASE
-        WHEN i.due_date >= params.today AND i.waived_at IS NULL
+        WHEN i.due_date >= params.today AND i.waived_at IS NULL AND o.cancelled_at IS NULL
         THEN GREATEST(i.amount_cents + adjustment.amount - allocation.amount, 0)
         ELSE 0 END), 0) AS current_future_cents,
       COALESCE(SUM(CASE
@@ -28,6 +29,7 @@ const STATUS_FACTS = Prisma.sql`
           AND allocation.amount >= i.amount_cents + adjustment.amount
         THEN 1 ELSE 0 END), 0) AS paid_count
     FROM "Installment" i
+    JOIN "Order" o ON o.id = i.order_id
     LEFT JOIN LATERAL (
       SELECT COALESCE(SUM(a.amount_cents), 0) AS amount
       FROM "InstallmentAdjustment" a
@@ -36,15 +38,16 @@ const STATUS_FACTS = Prisma.sql`
     LEFT JOIN LATERAL (
       SELECT COALESCE(SUM(a.amount_cents), 0) AS amount
       FROM "PaymentAllocation" a
+      JOIN "PaymentEntry" p ON p.id = a.payment_entry_id AND p.deleted_at IS NULL
       WHERE a.installment_id = i.id AND a.deleted_at IS NULL
     ) allocation ON true
-    WHERE i.order_id = contract_order.id AND i.deleted_at IS NULL
+    WHERE o.contract_id = filtered.id AND o.kind = 'TUITION' AND o.deleted_at IS NULL AND i.deleted_at IS NULL
   ) facts ON true
 `;
 
 const FINANCIAL_STATUS = Prisma.sql`
   CASE
-    WHEN contract_order.cancelled_at IS NOT NULL THEN 'CANCELADO'
+    WHEN filtered.terminated_at IS NOT NULL OR contract_order.cancelled THEN 'CANCELADO'
     WHEN facts.overdue_cents > 0 THEN 'INADIMPLENTE'
     WHEN contract_order.installment_count > 0
       AND facts.paid_count = contract_order.installment_count THEN 'QUITADO'
@@ -70,11 +73,11 @@ function candidateConditions(options: ContractStatusPageOptions): Prisma.Sql {
   if (options.studentId) conditions.push(Prisma.sql`c.student_id = ${options.studentId}::uuid`);
   if (options.startsFrom) conditions.push(Prisma.sql`c.ends_on >= ${options.startsFrom}::date`);
   if (options.endsTo) conditions.push(Prisma.sql`c.starts_on <= ${options.endsTo}::date`);
-  const query = options.query?.trim();
+  const query = normalizeSearch(options.query ?? "");
   if (query) {
     conditions.push(Prisma.sql`(
-      strpos(lower(s.full_name), lower(${query})) > 0 OR
-      strpos(lower(p.name), lower(${query})) > 0
+      ${searchMatchSql(Prisma.sql`s.full_name`, query)} OR
+      ${searchMatchSql(Prisma.sql`p.name`, query)}
     )`);
   }
   return Prisma.join(conditions, " AND ");
@@ -89,7 +92,7 @@ export async function contractStatusPage(
   const rows = await database.$queryRaw<Array<{ id: string | null; total: bigint }>>(Prisma.sql`
     WITH params AS (SELECT ${today}::date AS today),
     filtered AS MATERIALIZED (
-      SELECT c.id, c.agreed_on
+      SELECT c.id, c.agreed_on, c.terminated_at
       FROM "Contract" c
       JOIN "Student" s ON s.id = c.student_id
       JOIN "Payer" p ON p.id = c.payer_id

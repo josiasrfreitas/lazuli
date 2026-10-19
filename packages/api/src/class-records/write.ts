@@ -39,8 +39,7 @@ export async function saveClassRecord(
     now: context.now,
   });
   if (closed)
-    await recordActivity(context, {
-      action: "studentAttendance.close",
+    await recordActivity(context.database, context, "studentAttendance.close", {
       subject: {
         type: "class",
         id: state.session.classId,

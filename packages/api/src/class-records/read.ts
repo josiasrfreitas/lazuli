@@ -19,10 +19,9 @@ import type {
   SessionSummary,
   ClassRecordDetail,
   ClassRecordRevision,
-  ClassRecordGuest,
   RevisionPage,
 } from "./types.js";
-import { sessionAppointmentGuests } from "./guests.js";
+import { sessionGuests, type SessionLeadGuest } from "./guests.js";
 const HISTORY_PAGE_SIZE = 20;
 
 export async function listClassRecords(
@@ -40,11 +39,12 @@ export async function listClassRecords(
     orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
   });
   const visible = sessions.filter((session) => canRead(context, session));
-  const guests = await sessionAppointmentGuests(context, visible);
+  const guests = await sessionGuests(context, visible);
   return visible.map((session) =>
     summarizeSession(session, {
       now: context.now,
-      guestCount: guests.get(session.id)?.length ?? 0,
+      leadGuests: guests.get(session.id)?.leads ?? [],
+      guestCount: (guests.get(session.id)?.appointments.length ?? 0) + (guests.get(session.id)?.leads.length ?? 0),
     }),
   );
 }
@@ -55,12 +55,13 @@ function recordState(session: RecordSession, now: Date): SessionSummary["state"]
 }
 function summarizeSession(
   session: RecordSession,
-  { now, guestCount }: { now: Date; guestCount: number },
+  { now, guestCount, leadGuests = [] }: { now: Date; guestCount: number; leadGuests?: SessionLeadGuest[] },
 ): SessionSummary {
   const teacher = responsibleTeacher(session);
   return {
     id: session.id,
     guestCount,
+    leadGuests,
     classId: session.classId,
     className: session.class.portalClassName,
     scheduleType: session.class.scheduleType,
@@ -103,10 +104,12 @@ export async function readClassRecord(
       where: { classSessionId: session.id, deletedAt: null },
     }),
   );
-  const guests = await readSessionGuests(context, session);
-  const summary = summarizeSession(session, { now: context.now, guestCount: guests.length });
+  const guestContext = (await sessionGuests(context, [session])).get(session.id);
+  const guests = guestContext?.appointments ?? [];
+  const summary = summarizeSession(session, { now: context.now, guestCount: guests.length + (guestContext?.leads.length ?? 0), leadGuests: guestContext?.leads ?? [] });
   return {
     guests,
+    leadGuests: guestContext?.leads ?? [],
     declarations,
     hasAttendanceWindows,
     recordedAttendanceIds: attendance.map((row) => row.enrollmentId),
@@ -184,24 +187,17 @@ export async function pendingClassRecords(
   const page = Math.min(input.page, pageCount);
   const start = (page - 1) * PENDING_PAGE_SIZE;
   const pageRows = visible.slice(start, start + PENDING_PAGE_SIZE);
-  const guests = await sessionAppointmentGuests(context, pageRows);
+  const guests = await sessionGuests(context, pageRows);
   return {
     rows: pageRows.map((session) =>
       summarizeSession(session, {
         now: context.now,
-        guestCount: guests.get(session.id)?.length ?? 0,
+        leadGuests: guests.get(session.id)?.leads ?? [],
+      guestCount: (guests.get(session.id)?.appointments.length ?? 0) + (guests.get(session.id)?.leads.length ?? 0),
       }),
     ),
     total: visible.length,
     page,
     pageCount,
   };
-}
-
-async function readSessionGuests(
-  context: RecordContext,
-  session: RecordSession,
-): Promise<ClassRecordGuest[]> {
-  const rows = await sessionAppointmentGuests(context, [session]);
-  return rows.get(session.id) ?? [];
 }

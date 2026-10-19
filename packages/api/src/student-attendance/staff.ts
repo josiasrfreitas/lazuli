@@ -154,8 +154,7 @@ async function createWindow(
     },
     select: { id: true, expiresAt: true },
   });
-  await recordActivity(context, {
-    action: "studentAttendance.open",
+  await recordActivity(context.database, context, "studentAttendance.open", {
     subject: { type: "class", id: session.classId, name: session.class.portalClassName },
     description: "Abriu um novo link de presença para a aula; links anteriores foram encerrados.",
   });
@@ -200,8 +199,7 @@ export async function closeAttendanceWindow(
     userId: current.staffUser.id,
     now: current.now,
   });
-  await recordActivity(current, {
-    action: "studentAttendance.close",
+  await recordActivity(current.database, current, "studentAttendance.close", {
     subject: { type: "class", id: session.classId, name: session.class.portalClassName },
     description:
       "Encerrou o link de presença. Os envios recebidos continuam disponíveis para revisão.",

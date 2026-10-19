@@ -1,362 +1,267 @@
 "use client";
-import { interestLabel, formatLabel } from "./labels";
+
 import { useState, type ReactElement } from "react";
-import Link from "next/link";
-import {
-  ArrowUpRight,
-  CalendarDays,
-  Clock3,
-  Mail,
-  MoreHorizontal,
-  Pencil,
-  Phone,
-  UserRound,
-} from "lucide-react";
+import { Archive, CalendarDays, MoreHorizontal, Pencil, RotateCcw } from "lucide-react";
 import {
   Alert,
-  Avatar,
   Badge,
   Button,
+  DetailFact,
+  DetailFacts,
+  DetailHeader,
   InlineSkeleton,
+  PencilLoader,
   Popover,
-  PopoverContent,
   PopoverClose,
+  PopoverContent,
   PopoverTrigger,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+import { toWhatsAppUrl } from "~/lib/format";
 import { LeadCaptureDialog } from "./lead-capture-dialog";
-import { LeadFollowUp } from "./lead-follow-up";
-import { CandidateDialog } from "./candidate-dialog";
-import { CandidateAllocation } from "./candidate-allocation";
+import { LeadEnrollment } from "./lead-enrollment";
 import { CandidateVisits } from "./candidate-visits";
+import { PlacementSchedule } from "./placement-schedule";
 import { VisitDialog } from "./visit-dialog";
-import { dateLabel, dateOnly, dayLabel, statusLabels, timeLabel, type Candidate } from "./labels";
+import { dateLabel, formatLabel, leadInterestLabels, statusLabels, type Candidate } from "./labels";
 
-type EditTarget = "profile" | "availability";
-type CandidateActions = {
-  candidate: Candidate;
-  onEdit: (target: EditTarget) => void;
-  onSchedule: () => void;
-};
+const pageClass = "flex min-h-0 w-full min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8";
+
 export function CandidatePage({ id }: { id: string }): ReactElement {
   const query = trpc.admissions.byId.useQuery({ id }, { retry: false });
-  if (query.isPending)
-    return (
-      <div className="grid gap-4 p-6" role="status">
-        <InlineSkeleton className="h-8 w-56" />
-        <InlineSkeleton className="h-40 w-full" />
-        <span className="sr-only">Carregando lead</span>
-      </div>
-    );
-  if (!query.data)
-    return (
-      <div className="p-6">
-        <Alert variant="destructive">
-          {query.error?.message ?? "Não foi possível abrir o lead."}
-          <Button variant="secondary" onClick={() => void query.refetch()}>
-            Tentar novamente
-          </Button>
-        </Alert>
-      </div>
-    );
-  return <CandidateWorkspace candidate={query.data} />;
-}
-function CandidateWorkspace({ candidate }: { candidate: Candidate }): ReactElement {
-  const [editing, setEditing] = useState<EditTarget | null>(null);
-  const [scheduling, setScheduling] = useState(false);
   return (
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col gap-6 overflow-y-auto p-4 sm:p-6">
-      <CandidateHeader candidate={candidate} onEdit={() => setEditing("profile")} />
-      {candidate.status === "ENROLLED" && candidate.enrollment && (
-        <EnrollmentNotice classId={candidate.enrollment.classId} />
+    <div data-page-scroll="internal" className="flex h-full min-h-0 flex-col">
+      {query.isPending ? (
+        <CandidateLoading />
+      ) : query.data ? (
+        <CandidateWorkspace candidate={query.data} />
+      ) : (
+        <div className="p-6">
+          <Alert variant="destructive">
+            {query.error?.message ?? "Não foi possível abrir o lead."}
+            <Button variant="secondary" onClick={() => void query.refetch()}>
+              Tentar novamente
+            </Button>
+          </Alert>
+        </div>
       )}
-      <CandidateDetail
-        candidate={candidate}
-        onEdit={setEditing}
-        onSchedule={() => setScheduling(true)}
-      />
-      {editing === "profile" && (
-        <LeadCaptureDialog candidate={candidate} onClose={() => setEditing(null)} />
-      )}
-      {editing === "availability" && (
-        <CandidateDialog
-          candidate={candidate}
-          startAtAvailability={Boolean(candidate.scheduleType)}
-          onClose={() => setEditing(null)}
-        />
-      )}
-      {scheduling && <VisitDialog candidate={candidate} onClose={() => setScheduling(false)} />}
     </div>
   );
 }
-function CandidateHeader({
-  candidate,
-  onEdit,
-}: {
-  candidate: Candidate;
-  onEdit: () => void;
-}): ReactElement {
+
+function CandidateWorkspace({ candidate }: { candidate: Candidate }): ReactElement {
+  const [dialog, setDialog] = useState<"edit" | "trial" | "placement" | null>(null);
   const utils = trpc.useUtils();
   const status = trpc.admissions.setStatus.useMutation({
     onSuccess: () => utils.admissions.invalidate(),
   });
+  const active = candidate.status === "WAITING";
+  const hasPlacement = candidate.visits.some(
+    (visit) => visit.kind === "PLACEMENT" && visit.status === "SCHEDULED",
+  );
   return (
-    <>
-      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-border pb-5">
-        <CandidateIdentity candidate={candidate} />
-        <HeaderActions
-          candidate={candidate}
-          onEdit={onEdit}
-          pending={status.isPending}
-          onStatus={() =>
-            status.mutate({
-              id: candidate.id,
-              status: candidate.status === "ARCHIVED" ? "WAITING" : "ARCHIVED",
-            })
+    <div className={pageClass}>
+      <div className="shrink-0">
+        <DetailHeader
+          title={candidate.fullName}
+          metadata={
+            <Badge variant={candidate.status === "ENROLLED" ? "success" : "neutral"}>
+              {statusLabels[candidate.status]}
+            </Badge>
+          }
+          actions={
+            <div className="flex items-center gap-2">
+              {active && (
+                <Button variant="secondary" size="sm" onClick={() => setDialog("trial")}>
+                  <CalendarDays />
+                  Agendar experimental
+                </Button>
+              )}
+              <LeadEnrollment candidate={candidate} />
+              <Popover>
+                <PopoverTrigger
+                  render={<Button variant="ghost" size="icon" aria-label="Mais ações do lead" />}
+                >
+                  <MoreHorizontal />
+                </PopoverTrigger>
+                <PopoverContent align="end">
+                  <div className="grid gap-1">
+                    {active && (
+                      <PopoverClose
+                        render={<Button variant="ghost" size="sm" />}
+                        onClick={() => setDialog("edit")}
+                      >
+                        <Pencil />
+                        Editar lead
+                      </PopoverClose>
+                    )}
+                    {candidate.status !== "ENROLLED" && (
+                      <PopoverClose
+                        render={<Button variant="ghost" size="sm" />}
+                        disabled={status.isPending}
+                        onClick={() =>
+                          status.mutate({
+                            id: candidate.id,
+                            status: active ? "ARCHIVED" : "WAITING",
+                          })
+                        }
+                      >
+                        {active ? <Archive /> : <RotateCcw />}
+                        {active ? "Arquivar lead" : "Reabrir lead"}
+                      </PopoverClose>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           }
         />
-      </header>
-      {status.isError && <Alert variant="destructive">{status.error.message}</Alert>}
-    </>
-  );
-}
-function CandidateIdentity({ candidate }: { candidate: Candidate }): ReactElement {
-  const since = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(
-    candidate.createdAt,
-  );
-  return (
-    <div className="flex min-w-0 items-start gap-3">
-      <Avatar name={candidate.fullName} colorKey={candidate.id} />
-      <div className="grid min-w-0 gap-2">
-        <p className="text-caption text-muted-foreground">Lead · Comercial</p>
-        <h1 className="break-words font-display text-h2 font-semibold text-heading">
-          {candidate.fullName}
-        </h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={candidate.status === "ENROLLED" ? "success" : "neutral"}>
-            {statusLabels[candidate.status]}
-          </Badge>
-          <span className="text-caption text-muted-foreground">Desde {since}</span>
-        </div>
+        {status.error && (
+          <Alert variant="destructive" className="mt-3">
+            {status.error.message}
+          </Alert>
+        )}
       </div>
-    </div>
-  );
-}
-function HeaderActions({
-  candidate,
-  onEdit,
-  pending,
-  onStatus,
-}: {
-  candidate: Candidate;
-  onEdit: () => void;
-  pending: boolean;
-  onStatus: () => void;
-}): ReactElement {
-  return (
-    <div className="flex items-center gap-1">
-      {candidate.status === "WAITING" && (
-        <Button
-          size="icon-compact-responsive"
-          variant="ghost"
-          aria-label="Editar lead"
-          onClick={onEdit}
-        >
-          <Pencil />
-        </Button>
-      )}
-      {candidate.status !== "ENROLLED" && (
-        <Popover>
-          <PopoverTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-compact-responsive"
-                aria-label="Mais ações do lead"
-              />
-            }
-          >
-            <MoreHorizontal />
-          </PopoverTrigger>
-          <PopoverContent align="end">
-            <PopoverClose
-              render={<Button variant="ghost" size="sm" />}
-              disabled={pending}
-              onClick={onStatus}
-            >
-              {candidate.status === "ARCHIVED" ? "Reabrir lead" : "Arquivar lead"}
-            </PopoverClose>
-          </PopoverContent>
-        </Popover>
-      )}
-    </div>
-  );
-}
-function EnrollmentNotice({ classId }: { classId: string }): ReactElement {
-  return (
-    <Alert variant="success">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="font-medium">Matrícula confirmada</p>
-          <p className="text-caption">Continue o acompanhamento na turma.</p>
+      <section
+        aria-label="Dados do lead"
+        className="grid shrink-0 gap-4 rounded-lg bg-muted/40 p-4"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+          <CandidateContact candidate={candidate} />
+          {active && (
+            <Button variant="ghost" size="sm" onClick={() => setDialog("edit")}>
+              <Pencil />
+              Editar dados
+            </Button>
+          )}
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          nativeButton={false}
-          render={<Link href={`/turmas/${classId}`} />}
-        >
-          Abrir turma
-          <ArrowUpRight />
-        </Button>
-      </div>
-    </Alert>
-  );
-}
-function CandidateDetail(props: CandidateActions): ReactElement {
-  const { candidate } = props;
-  return (
-    <div className="grid items-start gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-      <aside className="order-2 grid gap-6 lg:order-none">
-        <CandidateProfile candidate={candidate} />
-        <CandidateAvailability candidate={candidate} onRenew={() => props.onEdit("availability")} />
+        <DetailFacts layout="columns">
+          <DetailFact label="Interesse">{leadInterestLabels[candidate.interest]}</DetailFact>
+          <DetailFact label="Estágio">
+            {candidate.stage?.name ??
+              (candidate.englishExperience === "SOME" ? "Nivelamento pendente" : "A definir")}
+          </DetailFact>
+          <DetailFact label="Preferência de formato">
+            {candidate.format ? formatLabel(candidate.format) : "Sem preferência"}
+          </DetailFact>
+          <DetailFact label="Origem">{candidate.source || "Não informada"}</DetailFact>
+        </DetailFacts>
         {candidate.notes && (
-          <section className="grid gap-2 border-t border-border pt-5">
-            <h2 className="text-caption font-semibold">Observações</h2>
-            <p className="whitespace-pre-wrap break-words text-caption text-muted-foreground">
-              {candidate.notes}
-            </p>
-          </section>
+          <p className="max-h-24 overflow-y-auto whitespace-pre-wrap break-words text-caption text-muted-foreground">
+            {candidate.notes}
+          </p>
         )}
-      </aside>
-      <div className="grid min-w-0 gap-6">
-        <LeadFollowUp candidate={candidate} />
-        {candidate.status === "WAITING" && (
-          <CandidateAllocation candidate={candidate} onEdit={() => props.onEdit("availability")} />
-        )}
-        <EntryLessons candidate={candidate} onSchedule={props.onSchedule} />
-      </div>
+      </section>
+      <section aria-label="Agendamentos do lead" className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+          <div className="flex items-baseline gap-2">
+            <h2 className="font-display text-xl font-medium text-heading">Agendamentos</h2>
+            <span className="text-caption text-muted-foreground">{candidate.visits.length}</span>
+          </div>
+          {active && candidate.englishExperience === "SOME" && !hasPlacement && (
+            <Button variant="secondary" size="sm" onClick={() => setDialog("placement")}>
+              <CalendarDays />
+              Agendar nivelamento
+            </Button>
+          )}
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <CandidateVisits candidate={candidate} />
+        </div>
+      </section>
+      <p className="shrink-0 text-caption text-muted-foreground">
+        Lead cadastrado em {dateLabel(candidate.createdAt)}
+      </p>
+      {dialog === "edit" && (
+        <LeadCaptureDialog candidate={candidate} onClose={() => setDialog(null)} />
+      )}
+      {dialog === "trial" && <VisitDialog candidate={candidate} onClose={() => setDialog(null)} />}
+      {dialog === "placement" && (
+        <PlacementSchedule candidate={candidate} onClose={() => setDialog(null)} />
+      )}
     </div>
   );
 }
-function CandidateAvailability({
-  candidate,
-  onRenew,
-}: {
-  candidate: Candidate;
-  onRenew: () => void;
-}): ReactElement {
-  const expired =
-    Boolean(candidate.availableUntil) && dateOnly(candidate.availableUntil) < candidate.today;
+
+function CandidateContact({ candidate }: { candidate: Candidate }): ReactElement {
+  const whatsapp = toWhatsAppUrl(candidate.phone);
   return (
-    <section className="grid gap-3 border-t border-border pt-5" aria-label="Disponibilidade">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-h3 font-semibold">Disponibilidade</h2>
-        <Clock3 className="size-4 text-muted-foreground" />
-      </div>
-      {candidate.availability.map((slot) => (
-        <div key={slot.id} className="flex items-center justify-between gap-3 text-caption">
-          <span>{dayLabel(slot.weekday)}</span>
-          <span className="font-numeric tabular-nums">
-            {timeLabel(slot.startTime)}–{timeLabel(slot.endTime)}
-          </span>
-        </div>
-      ))}
-      <p className="text-caption text-muted-foreground">
-        {candidate.availableUntil
-          ? `Confirmada até ${dateLabel(candidate.availableUntil)}`
-          : "Horários ainda não informados"}
-      </p>
-      {!candidate.availableUntil && candidate.status === "WAITING" && (
-        <Button variant="secondary" size="sm" onClick={onRenew}>
-          Definir interesse e horários
-        </Button>
+    <DetailFacts>
+      {candidate.contactName && (
+        <DetailFact label={candidate.contactRole === "GUARDIAN" ? "Responsável" : "Contato"}>
+          {candidate.contactName}
+        </DetailFact>
       )}
-      {expired && candidate.status === "WAITING" && (
-        <Alert variant="warning">
-          <p>Confirme novamente os horários para continuar a alocação.</p>
-          <Button variant="secondary" size="sm" onClick={onRenew}>
-            Renovar disponibilidade
-          </Button>
-        </Alert>
+      {candidate.birthDate && (
+        <DetailFact label="Nascimento">{dateLabel(candidate.birthDate)}</DetailFact>
       )}
-    </section>
-  );
-}
-function EntryLessons({
-  candidate,
-  onSchedule,
-}: {
-  candidate: Candidate;
-  onSchedule: () => void;
-}): ReactElement {
-  return (
-    <section className="grid gap-4 rounded-lg border border-border bg-card p-4 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-display text-h3 font-semibold">Aulas de entrada</h2>
-          <p className="mt-1 text-caption text-muted-foreground">
-            O primeiro contato com a experiência de estudar aqui.
-          </p>
-        </div>
-        {candidate.status === "WAITING" && (
-          <Button
-            variant="secondary"
-            size="compact-responsive"
-            disabled={dateOnly(candidate.availableUntil) < candidate.today}
-            onClick={onSchedule}
+      {candidate.phone && (
+        <DetailFact
+          label={candidate.contactOwner === "GUARDIAN" ? "Telefone do responsável" : "Telefone"}
+        >
+          <a
+            className="text-interactive hover:underline"
+            href={whatsapp ?? `tel:${candidate.phone}`}
+            target={whatsapp ? "_blank" : undefined}
+            rel="noreferrer"
           >
-            <CalendarDays />
-            Agendar aula
-          </Button>
-        )}
-      </div>
-      <CandidateVisits candidate={candidate} />
-    </section>
+            {candidate.phone}
+          </a>
+        </DetailFact>
+      )}
+      {candidate.email && (
+        <DetailFact
+          label={candidate.contactOwner === "GUARDIAN" ? "E-mail do responsável" : "E-mail"}
+        >
+          <a
+            className="break-all text-interactive hover:underline"
+            href={`mailto:${candidate.email}`}
+          >
+            {candidate.email}
+          </a>
+        </DetailFact>
+      )}
+    </DetailFacts>
   );
 }
-function CandidateProfile({ candidate }: { candidate: Candidate }): ReactElement {
+
+function CandidateLoading(): ReactElement {
   return (
-    <section className="grid gap-4" aria-label="Perfil do lead">
-      <h2 className="text-h3 font-semibold">Interesse</h2>
-      <div>
-        <p className="font-medium">{interestLabel(candidate.scheduleType)}</p>
-        <p className="text-caption text-muted-foreground">
-          {formatLabel(candidate.format)} · {candidate.stage?.name ?? "Nivelamento pendente"}
-        </p>
-      </div>
-      <div className="grid gap-2 text-caption">
-        {candidate.contactName && (
-          <p>
-            <span className="text-muted-foreground">Pessoa de contato: </span>
-            {candidate.contactName}
-          </p>
-        )}
-        {candidate.source && (
-          <p>
-            <span className="text-muted-foreground">Origem: </span>
-            {candidate.source}
-          </p>
-        )}
-        {candidate.phone && (
-          <p className="flex items-center gap-2">
-            <Phone className="size-4 shrink-0 text-muted-foreground" />
-            {candidate.phone}
-          </p>
-        )}
-        {candidate.email && (
-          <p className="flex items-start gap-2">
-            <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-            <span className="break-all">{candidate.email}</span>
-          </p>
-        )}
-        {candidate.student && (
-          <p className="flex items-center gap-2">
-            <UserRound className="size-4 shrink-0 text-muted-foreground" />
-            <span>Cadastro de aluno vinculado</span>
-          </p>
-        )}
-      </div>
-    </section>
+    <div className={pageClass} aria-busy="true" aria-label="Carregando lead">
+      <DetailHeader
+        title={<InlineSkeleton className="h-8 w-72" />}
+        metadata={<InlineSkeleton className="h-5 w-16" />}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" disabled>
+              <CalendarDays />
+              Agendar experimental
+            </Button>
+            <Button size="sm" disabled>
+              Cadastrar aluno
+            </Button>
+          </div>
+        }
+      />
+      <section className="grid gap-4 rounded-lg bg-muted/40 p-4" aria-hidden="true">
+        <div className="flex gap-6 border-b border-border pb-3">
+          <InlineSkeleton className="h-5 w-48" />
+          <InlineSkeleton className="h-5 w-52" />
+        </div>
+        <DetailFacts layout="columns">
+          {["Interesse", "Estágio", "Preferência de formato", "Origem"].map((label) => (
+            <DetailFact key={label} label={label}>
+              <InlineSkeleton className="h-5 w-28" />
+            </DetailFact>
+          ))}
+        </DetailFacts>
+      </section>
+      <section className="grid gap-4">
+        <h2 className="border-b border-border pb-3 font-display text-xl font-medium text-heading">
+          Agendamentos
+        </h2>
+        <PencilLoader size="sm" label="Carregando agendamentos" />
+      </section>
+    </div>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 import { useState, type ReactElement } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button, DataTable, InlineSkeleton, type DataTableColumn } from "@lazuli/ui";
+import { Button, DataTable, PencilLoader, type DataTableColumn } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import {
   formatAttendancePercent,
@@ -12,24 +13,42 @@ import {
 } from "~/lib/format";
 import { RevenueChart } from "./revenue-chart";
 import { ContractClosings } from "./contract-closings";
-import { AgingChart, PaymentMethodsChart } from "./distribution-charts";
+import { AnalyticsDetails } from "./analytics-details";
 import { type Analytics, monthLabel } from "./chart-shared";
+import { AnalyticsLoading } from "./finance-analytics-loading";
 const MONTH_KEY_LENGTH = 7;
 const MIN_YEAR = 2000;
 const MAX_YEAR = 2100;
-export function FinanceAnalyticsPage(): ReactElement {
-  const [year, setYear] = useState(() => Number(toDateOnlySaoPaulo(new Date()).split("-")[0]));
-  const query = trpc.finance.analytics.useQuery({ year });
+export function FinanceAnalyticsPage({
+  initial,
+}: {
+  initial?: { data: Analytics; updatedAt: number } | undefined;
+}): ReactElement {
+  const [year, setYear] = useState(
+    () => initial?.data.year ?? Number(toDateOnlySaoPaulo(new Date()).split("-")[0]),
+  );
+  const query = trpc.finance.analytics.useQuery(
+    { year },
+    {
+      initialData: initial?.data.year === year ? initial.data : undefined,
+      initialDataUpdatedAt: initial?.updatedAt,
+      placeholderData: keepPreviousData,
+    },
+  );
   return (
-    <div className="mx-auto h-full w-full min-w-0 max-w-7xl space-y-7 overflow-y-auto p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto w-full min-w-0 max-w-7xl space-y-5 p-4 sm:p-6 lg:p-8">
       <AnalyticsHeader year={year} setYear={setYear} />
-      {query.isPending && (
-        <div role="status" className="space-y-6">
-          <InlineSkeleton className="h-32 w-full" />
-          <InlineSkeleton className="h-80 w-full" />
-          <span className="sr-only">Carregando indicadores financeiros</span>
+      {query.isFetching && !query.isPending && (
+        <div className="flex items-center gap-2 text-caption text-muted-foreground">
+          <PencilLoader size="sm" label={`Atualizando indicadores de ${year}`} />
+          <span>
+            {query.isPlaceholderData
+              ? `Carregando ${year} · exibindo ${query.data.year}`
+              : `Atualizando ${year}`}
+          </span>
         </div>
       )}
+      {query.isPending && <AnalyticsLoading />}
       {query.isError && (
         <div role="alert" className="space-y-3">
           <p>Não foi possível carregar os indicadores.</p>
@@ -38,7 +57,11 @@ export function FinanceAnalyticsPage(): ReactElement {
           </Button>
         </div>
       )}
-      {query.data && <AnalyticsContent data={query.data} />}
+      {query.data && (
+        <div aria-busy={query.isFetching} className="space-y-5">
+          <AnalyticsContent data={query.data} />
+        </div>
+      )}
     </div>
   );
 }
@@ -49,17 +72,17 @@ function AnalyticsHeader({
   year: number;
   setYear: (year: number) => void;
 }): ReactElement {
+  const utils = trpc.useUtils();
+  const prefetch = (targetYear: number): void => {
+    if (targetYear >= MIN_YEAR && targetYear <= MAX_YEAR)
+      void utils.finance.analytics.prefetch({ year: targetYear });
+  };
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <p className="text-micro font-semibold uppercase tracking-label text-muted-foreground">
-          Visão financeira
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-heading">
-          A saúde das receitas
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Entradas, compromissos e valores que precisam de atenção.
+        <h1 className="text-2xl font-semibold tracking-tight text-heading">Visão financeira</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Contratos, recebimentos e valores em atraso.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
@@ -70,6 +93,8 @@ function AnalyticsHeader({
             aria-label="Ano anterior"
             disabled={year <= MIN_YEAR}
             onClick={() => setYear(year - 1)}
+            onMouseEnter={() => prefetch(year - 1)}
+            onFocus={() => prefetch(year - 1)}
           >
             <ChevronLeft />
           </Button>
@@ -82,6 +107,8 @@ function AnalyticsHeader({
             aria-label="Próximo ano"
             disabled={year >= MAX_YEAR}
             onClick={() => setYear(year + 1)}
+            onMouseEnter={() => prefetch(year + 1)}
+            onFocus={() => prefetch(year + 1)}
           >
             <ChevronRight />
           </Button>
@@ -100,11 +127,8 @@ function AnalyticsContent({ data }: { data: Analytics }): ReactElement {
       <ContractClosings data={data} />
       <AnalyticsMetrics data={data} />
       <RevenueChart data={data} />
-      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-        <AgingChart data={data} />
-        <PaymentMethodsChart data={data} />
-      </div>
       <MonthlyTable data={data} />
+      <AnalyticsDetails data={data} />
       <p className="pb-4 text-caption text-muted-foreground">
         Posição em {formatDateOnlyBR(data.asOf)}. Cobranças consideram ajustes registrados e excluem
         pedidos cancelados e parcelas isentas. Recebimentos incluem pagamentos registrados até esta

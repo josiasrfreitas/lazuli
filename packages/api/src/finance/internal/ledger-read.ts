@@ -16,6 +16,7 @@ type LoadedReceivablesInstallment = {
   dueDate: Date;
   waivedAt: Date | null;
   order: {
+    kind: string;
     cancelledAt: Date | null;
     payer: { id: string; name: string } | null;
     contract: {
@@ -108,7 +109,10 @@ async function loadDerivedReceivablesInstallments(
       adjustments: installment.adjustments,
       allocations: installment.allocations,
       now,
-      interestRatePctMonthly: installment.order.contract === null ? interestRatePctMonthly : 0,
+      interestRatePctMonthly:
+        installment.order.kind !== "MATERIAL" && installment.order.contract === null
+          ? interestRatePctMonthly
+          : 0,
     });
 
     return {
@@ -166,6 +170,7 @@ async function loadActiveOrderInstallments(
       waivedAt: true,
       order: {
         select: {
+          kind: true,
           cancelledAt: true,
           payer: { select: { id: true, name: true } },
           contract: {

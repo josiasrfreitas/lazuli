@@ -1,7 +1,6 @@
+import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
 import {
-  availabilityCovers,
-  availabilityIsCurrent,
   CLASS_REFERENCE_CAPACITY,
   saoPauloDateOnly,
 } from "@lazuli/domain";
@@ -15,7 +14,6 @@ const ISO_DATE_LENGTH = 10;
 const ADMISSION_LOCK_NAMESPACE = 168;
 export const dateOnly = (date: Date): string => date.toISOString().slice(0, ISO_DATE_LENGTH);
 const candidateInclude = {
-  owner: { select: { id: true, name: true } },
   availability: true,
   stage: { include: { track: { select: { name: true } } } },
   student: { select: { id: true, fullName: true } },
@@ -40,21 +38,17 @@ export async function lockCandidate(database: Prisma.TransactionClient, id: stri
 }
 export function assertAllocatable(
   row: Awaited<ReturnType<typeof readCandidate>>,
-  date: string,
+  _date: string,
 ): asserts row is AdmissionCandidate & {
-  availableUntil: Date;
   scheduleType: NonNullable<AdmissionCandidate["scheduleType"]>;
   format: NonNullable<AdmissionCandidate["format"]>;
 } {
-  if (!row.availableUntil || !row.scheduleType || !row.format || row.availability.length === 0)
+  if (!row.scheduleType || !row.format)
     throw badRequest(
-      "Defina modalidade, formato e disponibilidade antes de buscar uma turma ou agendar aula.",
+      "Defina modalidade e formato antes de buscar uma turma.",
     );
   if (row.status !== "WAITING") throw badRequest("Este lead não está aguardando alocação.");
-  if (!availabilityIsCurrent(dateOnly(row.availableUntil), date))
-    throw badRequest(
-      "Disponibilidade vencida. Confirme os horários e renove a validade antes de continuar.",
-    );
+
 }
 export async function saveCandidate(input: {
   database: Prisma.TransactionClient;
@@ -76,6 +70,8 @@ export async function saveCandidate(input: {
   const existing = await database.admissionCandidate.findUnique({ where: { id } });
   if (existing && existing.status !== "WAITING")
     throw badRequest("Reabra o lead antes de alterar os dados.");
+  if (existing?.englishExperience === "SOME" && values.stageId !== existing.stageId)
+    throw badRequest("Registre o estágio no resultado do atendimento de nivelamento.");
   const { availability, ...fields } = values;
   const data = {
     ...fields,
@@ -116,25 +112,17 @@ export async function listCandidates(
   const today = saoPauloDateOnly(now);
   const where: Prisma.AdmissionCandidateWhereInput = {
     deletedAt: null,
+    ...(input.unlinkedOnly ? { studentId: null, enrollmentId: null } : {}),
     ...(input.statuses.length ? { status: { in: input.statuses } } : {}),
-    ...(input.followUps.length
-      ? { AND: [{ OR: input.followUps.map((view) => followUpWhere(view, today)) }] }
-      : {}),
+    ...(input.interests.length ? { interest: { in: input.interests } } : {}),
     ...(input.expiredOnly ? { availableUntil: { lt: new Date(today) } } : {}),
-    ...(input.search
-      ? {
-          OR: ["fullName", "phone", "email", "contactName"].map((field) => ({
-            [field]: { contains: input.search, mode: "insensitive" },
-          })),
-        }
-      : {}),
+    id: await searchIds(database, "AdmissionCandidate", input.search),
   };
   const [rows, total] = await Promise.all([
     database.admissionCandidate.findMany({
       where,
       include: candidateInclude,
       orderBy: [
-        { nextActionOn: { sort: "asc", nulls: "last" } },
         { createdAt: "desc" },
         { id: "asc" },
       ],
@@ -181,12 +169,6 @@ export async function matchingClasses(
     orderBy: { portalClassName: "asc" },
   });
   return rows
-    .filter((row) =>
-      availabilityCovers(
-        candidate.availability.map((slot) => databaseSlotToCandidate(slot)),
-        row.scheduleSlots.map((slot) => databaseSlotToCandidate(slot)),
-      ),
-    )
     .map((row) => ({
       id: row.id,
       name: row.portalClassName,
@@ -230,11 +212,4 @@ function matchingWhere(
       endDate: { gte: new Date(date) },
     },
   };
-}
-
-function followUpWhere(view: string, today: string): Prisma.AdmissionCandidateWhereInput {
-  if (view === "OVERDUE") return { status: "WAITING", nextActionOn: { lt: new Date(today) } };
-  if (view === "TODAY") return { status: "WAITING", nextActionOn: new Date(today) };
-  if (view === "UNPLANNED") return { status: "WAITING", nextActionOn: null };
-  return {};
 }

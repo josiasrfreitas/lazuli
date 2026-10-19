@@ -1,6 +1,11 @@
 import type { PublishSemesterInput, z, withdrawSemesterSchema } from "@lazuli/validators";
+import { saoPauloDateOnly } from "@lazuli/domain";
 import { createClass } from "../classes/data.js";
-import { lockStudentEnrollment, openEnrollmentAtStage } from "../enrollment/data.js";
+import {
+  lockStudentEnrollment,
+  openEnrollmentAtStage,
+  closeActiveEnrollment,
+} from "../enrollment/data.js";
 import { cancelScheduledAction } from "../enrollment/scheduled.js";
 import {
   lockTeacher,
@@ -42,25 +47,29 @@ export async function publishPlacements(context: OrganizationContext, input: Pub
   assertVersion(current.version, input.version);
   if (!current.teacherId || !current.teacherReady)
     throw badRequest("Defina um professor em atuação na data de entrada.");
-  await assertTeacherEligible({
-    database: context.database,
-    teacherId: current.teacherId,
-    date: dateOnly(semester.startDate),
-  });
   const selected = input.placements.map((item) => {
     const row = board.placements.find(
       (candidate) => candidate.id === item.id && candidate.planId === plan.id,
     );
     if (!row) throw notFound("Proposta não encontrada.");
     assertVersion(row.version, item.version);
+    if (row.declinedAt) throw badRequest("O aluno não continuará neste semestre.");
+    if (dateOnly(row.effectiveDate ?? semester.startDate) < saoPauloDateOnly(context.now))
+      throw badRequest("Revise a vigência: a data proposta já passou.");
     if (row.publishedAt) throw badRequest("Um dos alunos já foi publicado. Atualize a página.");
     if (row.blockers.length) throw badRequest(`${row.studentName}: ${row.blockers.join("; ")}.`);
     return row;
   });
+  for (const row of selected)
+    await assertTeacherEligible({
+      database: context.database,
+      teacherId: current.teacherId,
+      date: dateOnly(row.effectiveDate ?? semester.startDate),
+    });
   await assertNoTeacherConflict({
     database: context.database,
     teacherId: current.teacherId,
-    from: dateOnly(semester.startDate),
+    from: selected.map((row) => dateOnly(row.effectiveDate ?? semester.startDate)).sort()[0]!,
     through: dateOnly(semester.endDate),
     slots: current.slots,
     ...(current.classId ? { excludeClassId: current.classId } : {}),
@@ -97,7 +106,13 @@ export async function publishPlacements(context: OrganizationContext, input: Pub
   for (const row of selected) {
     if (!row.stageId || !row.availability)
       throw badRequest("Confirme o estágio e a disponibilidade.");
-    await publishOne(context, row, row.availability, classRow.id, semester.startDate);
+    await publishOne(
+      context,
+      row,
+      row.availability,
+      classRow.id,
+      row.effectiveDate ? new Date(row.effectiveDate) : semester.startDate,
+    );
   }
   await recordActivity(context.database, context, "semesterOrganization.publish", {
     subject: { type: "class", id: classRow.id, name: current.name },
@@ -112,6 +127,20 @@ async function publishOne(
   classId: string,
   entryDate: Date,
 ) {
+  const immediate = dateOnly(entryDate) <= saoPauloDateOnly(context.now);
+  if (row.sourceClassId === classId && row.mode === "CONTINUE") {
+    await context.database.semesterPlacement.update({
+      where: { id: row.id },
+      data: {
+        publishedAt: context.now,
+        publishedById: context.staffUser.id,
+        enrollmentId: row.sourceEnrollmentId,
+        version: { increment: 1 },
+      },
+    });
+    await recordPlacementRevision(context, row.id, "CONFIRMED_CONTINUITY");
+    return;
+  }
   let sourceExitActionId: string | null = null;
   if (row.sourceEnrollmentId) {
     const pending = await context.database.enrollmentAction.count({
@@ -130,15 +159,22 @@ async function publishOne(
         data: {
           enrollmentId: row.sourceEnrollmentId,
           kind: "EXIT",
-          status: "SCHEDULED",
+          status: immediate ? "APPLIED" : "SCHEDULED",
           effectiveDate: entryDate,
           exitReason: "TRANSFERRED",
           recordedById: context.staffUser.id,
-          justification: "Organização do próximo semestre",
+          justification: "Organização de turmas",
         },
       })
     ).id;
   }
+  if (immediate && row.sourceEnrollmentId)
+    await closeActiveEnrollment({
+      database: context.database,
+      enrollmentId: row.sourceEnrollmentId,
+      effectiveDate: entryDate,
+      reason: "TRANSFERRED",
+    });
   const created = await openEnrollmentAtStage({
     database: context.database,
     studentId: row.studentId,
@@ -154,7 +190,7 @@ async function publishOne(
     data: {
       enrollmentId: created.enrollment.id,
       kind: "ENTRY",
-      status: "SCHEDULED",
+      status: immediate ? "APPLIED" : "SCHEDULED",
       effectiveDate: entryDate,
       recordedById: context.staffUser.id,
       ...(row.sourceEnrollmentId ? { sourceEnrollmentId: row.sourceEnrollmentId } : {}),

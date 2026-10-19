@@ -1,5 +1,7 @@
 "use client";
 
+import { materialPriceQuote, addCalendarMonths } from "@lazuli/domain";
+import { trpc } from "~/lib/trpc";
 import { useId, type ReactElement } from "react";
 import { ChevronDown } from "lucide-react";
 import { Button, Field, FieldError, Input, Label } from "@lazuli/ui";
@@ -8,21 +10,34 @@ import type { FormProps } from "./contract-form-fields";
 import { paymentPlanLabel } from "./contract-form-model";
 
 function PaymentCalendar({
-  preview,
+  rows,
 }: {
-  preview: NonNullable<FormProps["preview"]>;
+  rows: Array<{ dueDate: string; tuitionCents: number; materialCents: number }>;
 }): ReactElement {
   return (
     <div className="max-h-64 overflow-y-auto rounded-md border border-border">
       <ol aria-label="Calendário de parcelas" className="divide-y divide-border">
-        {preview.installments.map((row) => (
+        <li className="grid grid-cols-4 gap-2 px-3 py-2 text-caption text-muted-foreground">
+          <span>Vencimento</span>
+          <span className="text-right">Mensalidade</span>
+          <span className="text-right">Material</span>
+          <span className="text-right">Total</span>
+        </li>
+        {rows.map((row) => (
           <li
-            key={row.sequenceNumber}
-            className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-caption font-numeric tabular-nums"
+            key={row.dueDate}
+            className="grid grid-cols-4 gap-2 px-3 py-2 text-caption font-numeric tabular-nums"
           >
-            <span>Parcela {row.sequenceNumber}</span>
             <time dateTime={row.dueDate}>{formatDateOnlyBR(row.dueDate)}</time>
-            <span>{formatBRLFromCents(row.amountCents)}</span>
+            <span className="text-right">
+              {row.tuitionCents ? formatBRLFromCents(row.tuitionCents) : "—"}
+            </span>
+            <span className="text-right">
+              {row.materialCents ? formatBRLFromCents(row.materialCents) : "—"}
+            </span>
+            <strong className="text-right font-medium">
+              {formatBRLFromCents(row.tuitionCents + row.materialCents)}
+            </strong>
           </li>
         ))}
       </ol>
@@ -30,13 +45,7 @@ function PaymentCalendar({
   );
 }
 
-function PaymentPreview({
-  preview,
-  special,
-}: {
-  preview: NonNullable<FormProps["preview"]>;
-  special: boolean;
-}): ReactElement {
+function PaymentPreview({ preview }: { preview: NonNullable<FormProps["preview"]> }): ReactElement {
   const firstAmount = preview.installments[0]?.amountCents ?? null;
   const uniformAmount = preview.installments.every((row) => row.amountCents === firstAmount)
     ? firstAmount
@@ -48,7 +57,7 @@ function PaymentPreview({
         aria-live="polite"
       >
         <p>
-          Vigência até {formatDateOnlyBR(preview.endsOn)} · principal{" "}
+          Vigência até {formatDateOnlyBR(preview.endsOn)} · mensalidades{" "}
           {formatBRLFromCents(preview.principalAmountCents)}
         </p>
         <p>{paymentPlanLabel(preview.installments.length, uniformAmount)}</p>
@@ -61,12 +70,39 @@ function PaymentPreview({
           {formatDateOnlyBR(preview.installments.at(-1)?.dueDate)}
         </p>
       </div>
-      {special && <PaymentCalendar preview={preview} />}
     </>
   );
 }
 
 export function PaymentSection({ fields, errors, change, preview }: FormProps): ReactElement {
+  const prices = trpc.finance.readMaterialPrice.useQuery(undefined, {
+    enabled: fields.materialPayment !== "NONE",
+  });
+  const unitQuote =
+    fields.materialCategory === "CHILD"
+      ? prices.data?.child
+      : fields.materialCategory === "ADULT"
+        ? prices.data?.adult
+        : undefined;
+  const quote =
+    unitQuote && prices.data
+      ? {
+          ...materialPriceQuote(
+            unitQuote.installments * fields.materialStageIds.split(",").length,
+            unitQuote.installmentCents,
+            prices.data.cardFeePct,
+          ),
+          version: unitQuote.version,
+        }
+      : undefined;
+  const material =
+    fields.materialPayment !== "NONE" && quote
+      ? {
+          count: 1,
+          amountCents: quote.cashCents,
+        }
+      : null;
+  const rows = preview ? previewCalendar(preview.installments, material) : [];
   const id = useId();
   const special = fields.paymentPlan === "special";
   const arrowClass = special ? "rotate-180 transition-transform" : "transition-transform";
@@ -107,7 +143,18 @@ export function PaymentSection({ fields, errors, change, preview }: FormProps): 
         )}
       </div>
       {preview ? (
-        <PaymentPreview preview={preview} special={special} />
+        <>
+          <PaymentPreview preview={preview} />
+          {material && (
+            <p className="text-caption font-medium">
+              Total a receber pela escola{" "}
+              {formatBRLFromCents(
+                preview.principalAmountCents + material.count * material.amountCents,
+              )}
+            </p>
+          )}
+          {(special || material) && <PaymentCalendar rows={rows} />}
+        </>
       ) : (
         <p className="text-caption text-muted-foreground">
           Informe as datas, a mensalidade e uma quantidade válida para conferir as cobranças.
@@ -115,4 +162,17 @@ export function PaymentSection({ fields, errors, change, preview }: FormProps): 
       )}
     </div>
   );
+}
+
+export function previewCalendar(
+  tuition: Array<{ dueDate: string; amountCents: number }>,
+  material: { count: number; amountCents: number } | null,
+) {
+  const first = tuition[0]?.dueDate;
+  if (!first) return [];
+  return Array.from({ length: Math.max(tuition.length, material?.count ?? 0) }, (_, index) => ({
+    dueDate: addCalendarMonths(first, index),
+    tuitionCents: tuition[index]?.amountCents ?? 0,
+    materialCents: material && index < material.count ? material.amountCents : 0,
+  }));
 }

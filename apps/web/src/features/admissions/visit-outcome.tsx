@@ -64,7 +64,11 @@ function useOutcomeForm({ visit, cancel, onClose }: OutcomeInput): OutcomeForm {
   const utils = trpc.useUtils();
   const mutation = trpc.admissions.outcome.useMutation({
     onSuccess: async () => {
-      await Promise.all([utils.admissions.invalidate(), utils.teachers.invalidate()]);
+      await Promise.all([
+        utils.admissions.invalidate(),
+        utils.teachers.invalidate(),
+        utils.classRecords.invalidate(),
+      ]);
       onClose();
     },
   });
@@ -99,7 +103,7 @@ export function OutcomeDialog({ visit, cancel, onClose }: OutcomeInput): ReactEl
   const action = cancel ? "Confirmar cancelamento" : "Salvar comparecimento";
   return (
     <AdmissionDialog
-      title={cancel ? "Cancelar aula de entrada" : "Registrar comparecimento"}
+      title={cancel ? "Cancelar aula experimental" : "Registrar comparecimento"}
       description={`${dateLabel(visit.date)} · ${visit.startTime}–${visit.endTime}`}
       formId="visit-outcome"
       onSubmit={form.submit}

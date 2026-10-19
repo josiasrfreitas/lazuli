@@ -3,9 +3,18 @@ import { Button, InlineSkeleton } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { gradeAverage } from "~/features/assessments/grade-average";
 import { gradeLabel } from "~/features/assessments/shared";
+import { StudentAssessmentsDialog } from "./student-assessments-dialog";
 import { MetricHeading } from "./metric-heading";
 
-export function EnrollmentGradeAverage({ progressId }: { progressId?: string }): ReactElement {
+export function EnrollmentGradeAverage({
+  progressId,
+  studentId,
+  studentName,
+}: {
+  progressId?: string | undefined;
+  studentId: string;
+  studentName: string;
+}): ReactElement {
   const query = trpc.assessments.byProgress.useQuery(
     { progressId: progressId ?? "" },
     { enabled: Boolean(progressId) },
@@ -13,7 +22,7 @@ export function EnrollmentGradeAverage({ progressId }: { progressId?: string }):
   return (
     <section
       aria-label="Média geral do estágio atual"
-      className="grid min-w-0 content-start gap-2 border-l border-border/60 pl-4 sm:pl-5"
+      className="flex min-w-0 flex-col gap-2 border-l border-border/60 pl-4 sm:pl-5"
     >
       <MetricHeading label="Média geral">
         Média aritmética de todas as notas lançadas no estágio atual, incluindo recuperação. Notas
@@ -34,6 +43,13 @@ export function EnrollmentGradeAverage({ progressId }: { progressId?: string }):
       ) : (
         <GradeAverageReading grades={query.data?.grades ?? []} />
       )}
+      <div className="mt-auto pt-1">
+        <StudentAssessmentsDialog
+          studentId={studentId}
+          studentName={studentName}
+          progressId={progressId}
+        />
+      </div>
     </section>
   );
 }
@@ -45,7 +61,7 @@ function GradeAverageReading({ grades }: { grades: readonly { score: number }[] 
         {gradeLabel(gradeAverage(grades))}
       </p>
       <p className="text-caption text-muted-foreground">
-        {grades.length ? `${grades.length} notas · estágio atual` : "Sem notas lançadas"}
+        {grades.length > 0 ? `${grades.length} notas · estágio atual` : "Sem notas lançadas"}
       </p>
       <p className="text-caption text-muted-foreground">de 100 pontos possíveis</p>
     </>

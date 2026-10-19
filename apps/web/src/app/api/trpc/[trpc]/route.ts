@@ -12,7 +12,10 @@ function handleTRPCRequest(request: Request): Promise<Response> {
     req: request,
     router: appRouter,
     createContext: async () =>
-      createTRPCContext({ session: await auth.getSession({ headers: request.headers }) }),
+      createTRPCContext({
+        session: await auth.getSession({ headers: request.headers }),
+        headers: request.headers,
+      }),
     onError: ({ path, error }) => {
       if (isDevelopment) {
         process.stderr.write(`>>> tRPC failed on ${path ?? "<no-path>"}: ${error.message}\n`);

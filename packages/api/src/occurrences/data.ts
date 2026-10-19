@@ -17,7 +17,7 @@ export const occurrenceInclude = {
 } satisfies Prisma.PedagogicalOccurrenceInclude;
 export const interventionInclude = {
   student: { select: { id: true, fullName: true } },
-  teacher: { select: personSelect },
+  responsible: { select: personSelect },
   recordedBy: { select: personSelect },
   _count: { select: { occurrences: true } },
 } satisfies Prisma.PedagogicalInterventionInclude;
@@ -33,7 +33,7 @@ export function occurrenceScope(context: FollowUpContext): Prisma.PedagogicalOcc
               interventions: {
                 some: {
                   deletedAt: null,
-                  intervention: { deletedAt: null, teacherId: context.staffUser.id },
+                  intervention: { deletedAt: null, responsibleId: context.staffUser.id },
                 },
               },
             },
@@ -47,7 +47,7 @@ export function interventionScope(
 ): Prisma.PedagogicalInterventionWhereInput {
   return {
     deletedAt: null,
-    ...(context.staffUser.role === "TEACHER" ? { teacherId: context.staffUser.id } : {}),
+    ...(context.staffUser.role === "TEACHER" ? { responsibleId: context.staffUser.id } : {}),
   };
 }
 export async function loadOccurrence(context: FollowUpContext, id: string) {
@@ -71,30 +71,34 @@ export async function loadIntervention(context: FollowUpContext, id: string) {
     });
   return row;
 }
-export async function assertEligibleTeacher(
+export function eligibleInterventionStaff(context: FollowUpContext): Prisma.UserWhereInput {
+  return {
+    deletedAt: null,
+    isEnabled: true,
+    OR: [
+      { role: { not: "TEACHER" } },
+      {
+        role: "TEACHER",
+        teacherProfile: {
+          deletedAt: null,
+          OR: [
+            { departureDate: null },
+            { departureDate: { gt: new Date(saoPauloDateOnly(context.now)) } },
+          ],
+        },
+      },
+    ],
+  };
+}
+export async function assertEligibleResponsible(
   context: FollowUpContext,
   id: string,
-): Promise<{ id: string; name: string }> {
+): Promise<void> {
   const row = await context.database.user.findFirst({
-    where: {
-      id,
-      deletedAt: null,
-      teacherProfile: {
-        deletedAt: null,
-        OR: [
-          { departureDate: null },
-          { departureDate: { gt: new Date(saoPauloDateOnly(context.now)) } },
-        ],
-      },
-    },
-    select: personSelect,
+    where: { id, ...eligibleInterventionStaff(context) },
+    select: { id: true },
   });
-  if (!row)
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Escolha um professor em atuação na escola.",
-    });
-  return row;
+  if (!row) invalid("Escolha um membro ativo da equipe.");
 }
 export function invalid(message: string): never {
   throw new TRPCError({ code: "BAD_REQUEST", message });
@@ -103,11 +107,10 @@ export async function claimVersion(
   context: FollowUpContext,
   id: string,
   version: number,
-  data: Prisma.PedagogicalInterventionUpdateManyMutationInput = {},
 ): Promise<void> {
   const changed = await context.database.pedagogicalIntervention.updateMany({
     where: { id, version, ...interventionScope(context) },
-    data: { ...data, version: { increment: 1 } },
+    data: { version: { increment: 1 } },
   });
   if (!changed.count)
     throw new TRPCError({

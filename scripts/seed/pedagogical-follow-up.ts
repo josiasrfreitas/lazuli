@@ -15,12 +15,7 @@ import {
 } from "./pedagogical-follow-up-data.js";
 
 const ADMIN_UTC_HOUR = 18;
-const START_DELAY_DAYS = 1;
 const OBSERVATION_INTERVAL_DAYS = 7;
-const OPEN_DUE_DAYS = 10;
-const REOPENED_DUE_DAYS = 14;
-const CONCLUDED_DUE_DAYS = 28;
-const NOTE_DUE_DAYS = 5;
 
 const SUBJECT_INCLUDE = {
   student: true,
@@ -58,7 +53,6 @@ type OccurrenceSeed = {
 };
 type FollowUpSeed = {
   id: string;
-  kind: "NOTE" | "START" | "CONCLUDE" | "REOPEN" | "ASSIGN";
   body: string;
   createdAt: Date;
   recordedById: string;
@@ -229,87 +223,22 @@ function occurrenceSeed(input: {
 function interventionFollowUps(context: ScenarioContext): FollowUpSeed[] | null {
   const intervention = context.scenario.intervention;
   if (!intervention) return [];
-  const createdOn = addDays(utcDate(schoolDate(context.occurrences.at(-1)!.createdAt)), 1);
-  if (isoOf(createdOn) >= context.todayIso) return null;
-  const notes: FollowUpSeed[] = [
-    followUp(context, {
-      kind: "ASSIGN",
-      body: `Acompanhamento atribuído a ${context.subject.teacher.name}. ${intervention.nextStep}`,
-      createdAt: adminTimestamp(createdOn),
-      recordedById: context.admin.id,
-    }),
-  ];
-  if (intervention.variant.startsWith("open")) return notes;
-  notes.push(
-    followUp(context, {
-      kind: "START",
-      body: `Iniciado o acompanhamento. ${intervention.objective}`,
-      createdAt: adminTimestamp(addDays(createdOn, START_DELAY_DAYS)),
-      recordedById: context.subject.teacher.id,
-    }),
-  );
-  const first = observationNote(context, { after: createdOn, kind: "NOTE" });
-  if (!first) return null;
-  notes.push(first);
-  return remainingFollowUps(context, notes);
-}
-
-function remainingFollowUps(
-  context: ScenarioContext,
-  notes: FollowUpSeed[],
-): FollowUpSeed[] | null {
-  const variant = context.scenario.intervention!.variant;
-  if (variant === "progress") return notes;
-  const secondKind = variant === "reopened" ? "CONCLUDE" : "NOTE";
-  const second = observationNote(context, { after: notes.at(-1)!.createdAt, kind: secondKind });
-  if (!second) return null;
-  notes.push(second);
-  if (variant === "progress-overdue") return notes;
-  const thirdKind = variant === "reopened" ? "REOPEN" : "CONCLUDE";
-  const third = observationNote(context, { after: second.createdAt, kind: thirdKind });
-  if (!third) return null;
-  notes.push(third);
-  if (variant === "concluded") return notes;
-  const last = observationNote(context, { after: third.createdAt, kind: "NOTE" });
-  if (!last) return null;
-  notes.push(last);
-  return notes;
-}
-
-function observationNote(
-  context: ScenarioContext,
-  input: { after: Date; kind: "NOTE" | "CONCLUDE" | "REOPEN" },
-): FollowUpSeed | null {
-  const after = utcDate(schoolDate(input.after));
+  const performedOn = addDays(utcDate(schoolDate(context.occurrences.at(-1)!.createdAt)), 1);
+  if (isoOf(performedOn) > context.todayIso) return null;
   const session = context.subject.presentSessions.find(
-    (row) => row.date >= addDays(after, OBSERVATION_INTERVAL_DAYS),
+    (row) => row.date >= addDays(performedOn, OBSERVATION_INTERVAL_DAYS),
   );
-  if (!session) return null;
-  const intervention = context.scenario.intervention!;
-  const bodies = {
-    NOTE: `Observação de ${isoOf(session.date)}: retomado o apoio combinado e conferido com o aluno o próximo passo. ${intervention.nextStep}`,
-    CONCLUDE: intervention.outcome,
-    REOPEN:
-      "Reaberto porque, ao mudar a sequência de tarefas, foi necessário retomar o apoio de organização. O resultado anterior permanece registrado; o plano será ampliado para atividades novas.",
-  };
-  return followUp(context, {
-    kind: input.kind,
-    body: bodies[input.kind],
-    createdAt: endOfDayUtc(isoOf(session.date)),
-    recordedById: context.subject.teacher.id,
-  });
-}
-
-function followUp(context: ScenarioContext, data: Omit<FollowUpSeed, "id">): FollowUpSeed {
-  return {
-    ...data,
-    id: stableUuid([
-      "dev-follow-up",
-      context.interventionId,
-      data.kind,
-      data.createdAt.toISOString(),
-    ]),
-  };
+  if (!session) return [];
+  const createdAt = endOfDayUtc(isoOf(session.date));
+  return [
+    {
+      // Retain the identity of the existing first narrative follow-up.
+      id: stableUuid(["dev-follow-up", context.interventionId, "NOTE", createdAt.toISOString()]),
+      body: intervention.evolution,
+      createdAt,
+      recordedById: context.subject.teacher.id,
+    },
+  ];
 }
 
 async function createScenario(
@@ -339,7 +268,7 @@ async function createScenario(
     });
   if (context.scenario.related) await relatedOccurrences(transaction, context);
   else if (context.scenario.intervention) await createIntervention(transaction, context);
-  else await standaloneNote(transaction, context);
+
   return true;
 }
 
@@ -366,41 +295,6 @@ async function relatedOccurrences(
     description:
       "Relacionadas duas observações do mesmo aluno; acompanhamento mantido na rotina da aula.",
   });
-  await standaloneNote(transaction, context);
-}
-
-async function standaloneNote(
-  transaction: TransactionClient,
-  context: ScenarioContext,
-): Promise<void> {
-  if (!context.scenario.related && context.scenario.studentIndex % 2 === 0) return;
-  const occurrence = context.occurrences.at(-1)!;
-  const session = context.subject.presentSessions.find(
-    (row) => row.date >= addDays(utcDate(schoolDate(occurrence.createdAt)), NOTE_DUE_DAYS),
-  );
-  if (!session) return;
-  const id = stableUuid(["dev-occurrence-note", occurrence.id]);
-  const createdAt = endOfDayUtc(isoOf(session.date));
-  const body =
-    "Retomado o combinado com o aluno em aula posterior; apoio mantido na rotina, sem necessidade de intervenção formal neste momento.";
-  await transaction.pedagogicalFollowUp.create({
-    data: {
-      id,
-      occurrenceId: occurrence.id,
-      kind: "NOTE",
-      body,
-      createdAt,
-      recordedById: context.subject.teacher.id,
-    },
-  });
-  await activityEvent(transaction, {
-    context,
-    action: "occurrences.note",
-    key: id,
-    occurredAt: createdAt,
-    actor: context.subject.teacher,
-    description: body,
-  });
 }
 
 async function createIntervention(
@@ -408,30 +302,19 @@ async function createIntervention(
   context: ScenarioContext,
 ): Promise<void> {
   const intervention = context.scenario.intervention!;
-  const concluded = intervention.variant === "concluded";
-  const status = concluded
-    ? "CONCLUDED"
-    : intervention.variant.startsWith("open")
-      ? "OPEN"
-      : "IN_PROGRESS";
-  const createdAt = context.followUps[0]!.createdAt;
+  const performedOn = addDays(utcDate(schoolDate(context.occurrences.at(-1)!.createdAt)), 1);
+  const createdAt = adminTimestamp(performedOn);
   await transaction.pedagogicalIntervention.create({
     data: {
       id: context.interventionId,
       studentId: context.subject.id,
-      teacherId: context.subject.teacher.id,
+      responsibleId: context.subject.teacher.id,
       recordedById: context.admin.id,
       title: intervention.title,
-      objective: intervention.objective,
-      nextStep: intervention.nextStep,
-      status,
+      treatment: intervention.treatment,
+      performedOn,
       createdAt,
-      dueOn: interventionDueOn(context),
-      outcome: concluded ? intervention.outcome : null,
-      concludedAt: concluded
-        ? context.followUps.find((row) => row.kind === "CONCLUDE")!.createdAt
-        : null,
-      version: context.followUps.length - 1,
+      version: context.followUps.length,
       occurrences: {
         create: context.occurrences.map((row) => ({
           id: stableUuid(["dev-intervention-occurrence", context.interventionId, row.id]),
@@ -458,25 +341,15 @@ async function createIntervention(
     actor: context.admin,
     description: "Três ocorrências motivadoras vinculadas ao acompanhamento.",
   });
-  for (const row of context.followUps.filter((entry) => entry.kind !== "ASSIGN"))
+  for (const row of context.followUps)
     await activityEvent(transaction, {
       context,
-      action: "interventions.update",
+      action: "interventions.followUp",
       key: row.id,
       occurredAt: row.createdAt,
       actor: context.subject.teacher,
       description: row.body,
     });
-}
-
-function interventionDueOn(context: ScenarioContext): Date | null {
-  const variant = context.scenario.intervention!.variant;
-  const createdOn = utcDate(schoolDate(context.followUps[0]!.createdAt));
-  if (variant === "progress") return null;
-  if (variant.endsWith("overdue")) return addDays(createdOn, OPEN_DUE_DAYS);
-  if (variant === "concluded") return addDays(createdOn, CONCLUDED_DUE_DAYS);
-  const days = variant === "reopened" ? REOPENED_DUE_DAYS : OPEN_DUE_DAYS;
-  return addDays(utcDate(context.todayIso), days);
 }
 
 async function activityEvent(

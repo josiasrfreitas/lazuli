@@ -2,6 +2,8 @@ import type { TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { admissionEnrollSchema, z } from "@lazuli/validators";
 import { lockTeacher } from "../teachers/availability.js";
+import { assertPlacementReady } from "./placement.js";
+import { requireLeadGuardian } from "./guardian.js";
 import { badRequest } from "../trpc/errors.js";
 import { createStudent } from "../students/data.js";
 import { createEnrollment, type EnrollmentDatabase } from "../enrollment/data.js";
@@ -33,6 +35,8 @@ export async function enrollCandidate(input: EnrollmentInput): Promise<Enrollmen
       classId: candidate.enrollment!.classId,
     };
   const choice = await enrollmentChoice(input, candidate);
+  await assertPlacementReady(database, candidate);
+  await requireLeadGuardian(database, candidate, values.student);
   const studentId = await enrollmentStudent(input);
   const created = await createEnrollment({
     database: enrollmentDatabase,
@@ -48,8 +52,6 @@ export async function enrollCandidate(input: EnrollmentInput): Promise<Enrollmen
   await database.admissionCandidate.update({
     where: { id: candidate.id },
     data: {
-      nextAction: null,
-      nextActionOn: null,
       status: "ENROLLED",
       studentId,
       enrollmentId: created.enrollment.id,
@@ -76,7 +78,7 @@ async function enrollmentStudent({ database, values, now }: EnrollmentInput): Pr
 }
 
 /** Capture the extension's query builder before another concurrent transaction can replace it. */
-function captureEnrollmentTransaction(database: TransactionClient): EnrollmentDatabase {
+export function captureEnrollmentTransaction(database: TransactionClient): EnrollmentDatabase {
   return {
     $kysely: database.$kysely,
     $queryRaw: database.$queryRaw.bind(database),
@@ -102,7 +104,7 @@ async function enrollmentChoice(
   const choice = choices.find((row) => row.id === values.classId);
   if (!choice)
     throw badRequest(
-      "Turma incompatível com o estágio, a disponibilidade ou a modalidade. Atualize a seleção.",
+      "Turma incompatível com o estágio ou a modalidade. Atualize a seleção.",
     );
   if (
     candidate.studentId &&

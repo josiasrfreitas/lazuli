@@ -1,3 +1,5 @@
+import { normalizeSearch } from "@lazuli/domain";
+import { normalizedKysely, searchMatchKysely } from "../search.js";
 import type { KyselyDatabase, TransactionClient } from "@lazuli/db";
 import type { studentSearchInputSchema, z } from "@lazuli/validators";
 import { sql, type SelectQueryBuilder } from "kysely";
@@ -17,40 +19,34 @@ export function studentSearchQuery(
   database: Database,
   query: string,
 ): SelectQueryBuilder<SearchDatabase, "student", StudentSearchResult> {
+  query = normalizeSearch(query);
   const contains = `%${query}%`;
   const prefix = `${query}%`;
-  const wordPrefix = `% ${query}%`;
   return database.$kysely
     .selectFrom("Student as student")
     .select(["student.id", "student.full_name as fullName", "student.phone", "student.status"])
     .where("student.deleted_at", "is", null)
     .where(
-      sql<boolean>`
-        (
-              student.full_name ILIKE ${contains}
-              OR student.document_number ILIKE ${contains}
-              OR student.phone ILIKE ${contains}
-              OR student.email ILIKE ${contains}
-              OR similarity(student.full_name, ${query}::text) > 0.1
-              OR similarity(COALESCE(student.document_number, ''), ${query}::text) > 0.1
-              OR similarity(COALESCE(student.phone, ''), ${query}::text) > 0.1
-              OR similarity(COALESCE(student.email, ''), ${query}::text) > 0.1
-            )
-      `,
+      sql<boolean>`(
+      ${searchMatchKysely(sql.ref("student.full_name"), query)}
+      OR ${normalizedKysely(sql.ref("student.document_number"))} LIKE ${contains}
+      OR ${normalizedKysely(sql.ref("student.phone"))} LIKE ${contains}
+      OR ${normalizedKysely(sql.ref("student.email"))} LIKE ${contains}
+    )`,
     )
     .orderBy(
       sql<number>`
         CASE
-              WHEN student.full_name ILIKE ${prefix} OR student.full_name ILIKE ${wordPrefix} THEN 500
-              WHEN student.full_name ILIKE ${contains} THEN 400
-              WHEN student.document_number ILIKE ${contains} THEN 300
-              WHEN student.phone ILIKE ${contains} THEN 200
-              WHEN student.email ILIKE ${contains} THEN 100
+              WHEN ${normalizedKysely(sql.ref("student.full_name"))} ILIKE ${prefix} THEN 500
+              WHEN ${normalizedKysely(sql.ref("student.full_name"))} ILIKE ${contains} THEN 400
+              WHEN ${normalizedKysely(sql.ref("student.document_number"))} ILIKE ${contains} THEN 300
+              WHEN ${normalizedKysely(sql.ref("student.phone"))} ILIKE ${contains} THEN 200
+              WHEN ${normalizedKysely(sql.ref("student.email"))} ILIKE ${contains} THEN 100
               ELSE GREATEST(
-                similarity(student.full_name, ${query}::text),
-                similarity(COALESCE(student.document_number, ''), ${query}::text),
-                similarity(COALESCE(student.phone, ''), ${query}::text),
-                similarity(COALESCE(student.email, ''), ${query}::text)
+                similarity(${normalizedKysely(sql.ref("student.full_name"))}, ${query}::text),
+                similarity(${normalizedKysely(sql.ref("student.document_number"))}, ${query}::text),
+                similarity(${normalizedKysely(sql.ref("student.phone"))}, ${query}::text),
+                similarity(${normalizedKysely(sql.ref("student.email"))}, ${query}::text)
               ) END
       `,
       "desc",

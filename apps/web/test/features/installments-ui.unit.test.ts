@@ -9,7 +9,7 @@ import { InstallmentsTable } from "../../src/features/installments/installments-
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 10;
 const PAYER_ONE_ID = "11111111-1111-4111-8111-111111111111";
 const PAYER_TWO_ID = "22222222-2222-4222-8222-222222222222";
 const INSTALLMENT_ONE_ID = "66666666-6666-4666-8666-666666666666";
@@ -96,7 +96,7 @@ void test("overdue pagination counts payer groups and has no size selector", () 
   assert.match(overduePaginationMarkup(2), /11–11 de .*11.* pagadores/u);
   assert.doesNotMatch(overduePaginationMarkup(1), /Itens por página/u);
 });
-void test("table retains selection and eight semantic columns and distinguishes loading, empty, filtered and error", () => {
+void test("table retains selection, eight data columns and row actions across loading, empty, filtered and error", () => {
   const base = { error: false, filtered: false, updating: false, onRetry: () => {}, footer: null };
   const loading = renderToStaticMarkup(
     createElement(InstallmentsTable, { ...base, rows: undefined, updating: true }),

@@ -1,0 +1,7 @@
+-- Both educational service and the main book inherit parties from their agreement.
+-- Direct orders keep their existing payer/beneficiary source.
+ALTER TABLE "Order" DROP CONSTRAINT "Order_party_source_check";
+ALTER TABLE "Order" ADD CONSTRAINT "Order_party_source_check" CHECK (
+  ("contract_id" IS NOT NULL AND "payer_id" IS NULL AND "kind" IN ('TUITION', 'MATERIAL'))
+  OR ("contract_id" IS NULL AND "payer_id" IS NOT NULL)
+);

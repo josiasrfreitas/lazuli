@@ -11,9 +11,15 @@ export const weekdays = [
   { value: "SUNDAY", label: "Domingo" },
 ];
 export const statusLabels = {
-  WAITING: "Em acompanhamento",
+  WAITING: "Ativo",
   ENROLLED: "Matriculado",
   ARCHIVED: "Arquivado",
+};
+export const leadInterestLabels = {
+  UNKNOWN: "Não informado",
+  LOW: "Baixo",
+  MEDIUM: "Médio",
+  HIGH: "Alto",
 };
 export const visitLabels = {
   SCHEDULED: "Agendada",

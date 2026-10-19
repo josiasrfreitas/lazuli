@@ -19,10 +19,20 @@ import {
   appointmentDetail,
   appointmentStudentOptions,
   listAppointments,
+  studentAppointments,
 } from "./read.js";
+import { appointmentAvailability } from "./availability.js";
 import { listAbsences } from "./absences.js";
 
 export const appointmentsRouter = router({
+  forStudent: staffProcedure
+    .input(z.object({ studentId: z.string().uuid() }).strict())
+    .query(({ ctx, input }) =>
+      studentAppointments(
+        { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
+        input.studentId,
+      ),
+    ),
   list: staffProcedure
     .input(appointmentListSchema)
     .query(({ ctx, input }) =>
@@ -48,12 +58,49 @@ export const appointmentsRouter = router({
         input.excludeAppointmentId,
       ),
     ),
+  availability: adminProcedure
+    .input(
+      z
+        .object({
+          teacherId: z.string().uuid(),
+          studentId: z.string().uuid(),
+          week: civilDateSchema,
+          through: civilDateSchema.optional(),
+          excludeAppointmentId: z.string().uuid().optional(),
+        })
+        .strict()
+        .refine(
+          ({ week, through }) => !through || (
+            through >= week &&
+            Date.parse(through) - Date.parse(week) <= 6 * 24 * 60 * 60 * 1000
+          ),
+          { path: ["through"], message: "Escolha um período de até sete dias a partir da data inicial." },
+        ),
+    )
+    .query(({ ctx, input }) =>
+      appointmentAvailability(
+        { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
+        input,
+      ),
+    ),
   destinations: adminProcedure
-    .input(z.object({ date: civilDateSchema }).strict())
+    .input(
+      z
+        .object({ date: civilDateSchema, through: civilDateSchema.optional() })
+        .strict()
+        .refine(
+          ({ date, through }) =>
+            !through ||
+            (through >= date &&
+              new Date(through).getTime() - new Date(date).getTime() <= 6 * 86_400_000),
+          { message: "Consulte até uma semana de aulas." },
+        ),
+    )
     .query(({ ctx, input }) =>
       appointmentDestinations(
         { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
         input.date,
+        input.through,
       ),
     ),
   absences: adminProcedure.input(absenceListSchema).query(({ ctx, input }) =>

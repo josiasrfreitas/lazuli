@@ -1,5 +1,4 @@
 "use client";
-import { ArrowLeft } from "lucide-react";
 import type { ReactElement } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { Button, EmptyState } from "@lazuli/ui";
@@ -13,8 +12,7 @@ import { PlanningState, dateLabel } from "./shared";
 import styles from "./planning.module.css";
 
 type Contexts = RouterOutputs["planning"]["contexts"];
-type StudentOption = Contexts[number]["students"][number] & { classId: string; className: string };
-export function studentPlanningOptions(contexts: Contexts, studentId: string): StudentOption[] {
+export function studentPlanningOptions(contexts: Contexts, studentId: string) {
   const today = saoPauloDateOnly(new Date());
   return contexts
     .flatMap((group) =>
@@ -23,10 +21,10 @@ export function studentPlanningOptions(contexts: Contexts, studentId: string): S
         .map((student) => ({ ...student, classId: group.id, className: group.name })),
     )
     .toSorted(
-      (left, right) =>
-        Number(left.historical) - Number(right.historical) ||
-        Number(left.startOn > today) - Number(right.startOn > today) ||
-        right.startOn.localeCompare(left.startOn),
+      (a, b) =>
+        Number(a.historical) - Number(b.historical) ||
+        Number(a.startOn > today) - Number(b.startOn > today) ||
+        b.startOn.localeCompare(a.startOn),
     );
 }
 
@@ -43,14 +41,19 @@ export function StudentPlanning({ studentId }: { studentId: string }): ReactElem
         error={query.error}
         retry={() => void query.refetch()}
       />
-      {query.data && (
-        <StudentSelector
-          options={options}
-          selected={selected}
-          select={(value) => {
-            void setProgressId(value);
-          }}
-        />
+      {query.data && options.length > 1 && (
+        <div className={styles.selector}>
+          <SelectControl
+            name="planning-progress"
+            label="Estágio do aluno"
+            value={selected?.progressId ?? ""}
+            choices={options.map((row) => ({
+              value: row.progressId,
+              label: `${row.stage} · ${row.className} · ${dateLabel(row.startOn)}${row.historical ? " · histórico" : ""}`,
+            }))}
+            onChange={(value) => void setProgressId(value)}
+          />
+        </div>
       )}
       {selected && (
         <PlanningWorkspace
@@ -60,69 +63,22 @@ export function StudentPlanning({ studentId }: { studentId: string }): ReactElem
         />
       )}
       {query.data && !selected && (
-        <StudentPlanEmpty
-          progressId={progressId}
-          hasOptions={options.length > 0}
-          reset={() => {
-            void setProgressId(null);
-          }}
+        <EmptyState
+          action={
+            options.length ? (
+              <Button variant="secondary" onClick={() => void setProgressId(null)}>
+                Ver percurso atual
+              </Button>
+            ) : undefined
+          }
+          title={progressId ? "Percurso não disponível" : "Nenhum estágio PPT disponível"}
+          description={
+            progressId
+              ? "Este percurso não pertence ao aluno ou não está disponível para seu acesso."
+              : "O planejamento individual fica disponível quando o aluno possui um estágio em uma turma PPT."
+          }
         />
       )}
     </div>
-  );
-}
-
-function StudentSelector({
-  options,
-  selected,
-  select,
-}: {
-  options: StudentOption[];
-  selected: StudentOption | undefined;
-  select: (id: string) => void;
-}): ReactElement | null {
-  if (options.length <= 1) return null;
-  return (
-    <div className={styles.selector}>
-      <SelectControl
-        name="planning-progress"
-        label="Estágio do aluno"
-        value={selected?.progressId ?? ""}
-        choices={options.map((row) => ({
-          value: row.progressId,
-          label: `${row.stage} · ${row.className} · ${dateLabel(row.startOn)}${row.historical ? " · histórico" : ""}`,
-        }))}
-        onChange={(value) => select(value)}
-      />
-    </div>
-  );
-}
-
-function StudentPlanEmpty({
-  progressId,
-  hasOptions,
-  reset,
-}: {
-  progressId: string | null;
-  hasOptions: boolean;
-  reset: () => void;
-}): ReactElement {
-  return (
-    <EmptyState
-      action={
-        hasOptions ? (
-          <Button variant="secondary" onClick={reset}>
-            <ArrowLeft aria-hidden="true" />
-            Ver percurso atual
-          </Button>
-        ) : undefined
-      }
-      title={progressId ? "Percurso não disponível" : "Nenhum estágio PPT disponível"}
-      description={
-        progressId
-          ? "Este percurso não pertence ao aluno ou não está disponível para seu acesso."
-          : "O planejamento individual fica disponível quando o aluno possui um estágio em uma turma PPT."
-      }
-    />
   );
 }

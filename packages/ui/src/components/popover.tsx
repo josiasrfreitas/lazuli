@@ -29,7 +29,15 @@ export const popoverContentVariants = cva(
     "motion-reduce:transition-none motion-reduce:data-[starting-style]:translate-x-0 motion-reduce:data-[starting-style]:translate-y-0 motion-reduce:data-[starting-style]:scale-100",
   ],
   {
-    variants: { size: { sm: "w-56 p-3", md: "w-72 p-4", lg: "w-96 p-4" } },
+    variants: {
+      size: {
+        sm: "w-56 p-3",
+        md: "w-72 p-4",
+        lg: "w-96 p-4",
+        xl: "w-xl max-w-[calc(100vw-2rem)] max-h-[min(80dvh,var(--available-height))] overflow-y-auto overscroll-contain p-4",
+      },
+      motion: { default: "", instant: "transition-none" },
+    },
     defaultVariants: { size: "md" },
   },
 );
@@ -129,7 +137,7 @@ function splitContentProps({
  */
 export const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>((props, ref) => {
   const { popupProps, positionerProps } = splitContentProps(props);
-  const { children, className, showArrow = true, size, ...restPopupProps } = popupProps;
+  const { children, className, showArrow = true, size, motion, ...restPopupProps } = popupProps;
 
   return (
     <PopoverPrimitive.Portal>
@@ -140,7 +148,7 @@ export const PopoverContent = forwardRef<HTMLDivElement, PopoverContentProps>((p
       >
         <PopoverPrimitive.Popup
           {...restPopupProps}
-          className={cn(popoverContentVariants({ size }), className)}
+          className={cn(popoverContentVariants({ size, motion }), className)}
           data-slot="popover-content"
           ref={ref}
         >

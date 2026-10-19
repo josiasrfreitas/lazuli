@@ -53,7 +53,7 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
           before: async (session) => {
             const user = await database.user.findUnique({
               where: { id: session.userId },
-              include: { teacherProfile: { select: { departureDate: true } } },
+              include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
             });
             assertStaffAccess(user);
           },
@@ -77,7 +77,7 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
 async function assertStaffCanAuthenticate(database: StaffDatabase, email: string): Promise<void> {
   const user = await database.user.findUnique({
     where: { email },
-    include: { teacherProfile: { select: { departureDate: true } } },
+    include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
   });
   assertStaffAccess(user);
 }

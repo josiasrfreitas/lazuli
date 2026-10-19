@@ -1,0 +1,208 @@
+.container {
+  container: class-lessons / inline-size;
+  min-width: 0;
+  scroll-margin-top: 4rem;
+}
+.desk {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  height: clamp(26rem, 70dvh, 48rem);
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.rail,
+.detail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.rail {
+  border-right: 1px solid var(--border);
+}
+.railHeading {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.railHeading h2 {
+  color: var(--heading);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.railHeading h2 > span {
+  margin-left: 0.375rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  font-weight: 400;
+}
+.railHeading p {
+  margin-top: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  scrollbar-gutter: stable;
+  padding-inline: 0.5rem;
+}
+.lesson {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  cursor: pointer;
+}
+.lesson:hover {
+  background: var(--muted);
+}
+.lesson[aria-pressed="true"] {
+  background: var(--accent);
+  box-shadow: inset 2px 0 var(--interactive);
+}
+.lesson:focus-visible,
+.detailBody:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.lessonDate {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--heading);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.lessonDate svg {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted-foreground);
+}
+.time {
+  font-size: var(--lz-text-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.status svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+.status[data-recorded="true"] {
+  color: var(--success);
+}
+.detailHeading {
+  display: grid;
+  gap: 0.375rem;
+  padding: 1rem 1.25rem 0.75rem;
+}
+.detailTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+.detailTitle h2 {
+  color: var(--heading);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.detailHeading p {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  overflow-wrap: anywhere;
+}
+.detailBody {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  scrollbar-gutter: stable;
+  padding: 0 1.25rem 1.25rem;
+}
+.loading {
+  display: grid;
+  justify-items: center;
+  padding: 2rem 1rem;
+}
+.empty {
+  display: grid;
+  gap: 0.375rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+.empty h2 {
+  color: var(--heading);
+  font-size: 1rem;
+  font-weight: 500;
+}
+.empty p {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.mobileBack {
+  display: none;
+}
+@container class-lessons (max-width: 44rem) {
+  .desk {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rail {
+    border-right: 0;
+  }
+  .desk[data-show-list="false"] .rail,
+  .desk[data-show-list="true"] .detail {
+    display: none;
+  }
+  .mobileBack {
+    display: block;
+    padding: 0.5rem 0.75rem 0;
+  }
+  .detailHeading {
+    padding-inline: 1rem;
+  }
+  .detailBody {
+    padding-inline: 1rem;
+  }
+}
+
+.contentPreview {
+  font-size: var(--lz-text-caption);
+  color: var(--foreground);
+}
+.contentRecord {
+  display: grid;
+  gap: 0.5rem;
+  padding-block: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.contentRecord h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--heading);
+}
+.contentRecord > p {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  max-width: 75ch;
+}
+.contentRecord .contentMeta {
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}

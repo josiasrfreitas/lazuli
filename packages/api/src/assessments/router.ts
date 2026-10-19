@@ -25,7 +25,7 @@ export const assessmentsRouter = router({
         input.progressId,
       ),
     ),
-  student: adminProcedure
+  student: staffProcedure
     .input(z.object({ studentId: z.string().uuid() }).strict())
     .query(({ ctx, input }) =>
       readStudentAssessments(

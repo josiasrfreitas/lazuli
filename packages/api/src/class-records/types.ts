@@ -1,6 +1,8 @@
+import type { SessionLeadGuest } from "./guests.js";
 import type { AppointmentSnapshot, ClassRecordSnapshot } from "@lazuli/validators";
 
 export type SessionSummary = {
+  leadGuests: SessionLeadGuest[];
   id: string;
   classId: string;
   className: string;
@@ -24,6 +26,7 @@ export type ClassRecordGuest = {
   student: { id: string; fullName: string };
 };
 export type ClassRecordDetail = {
+  leadGuests: SessionLeadGuest[];
   guests: ClassRecordGuest[];
   session: Omit<SessionSummary, "state" | "attendanceOnly"> & {
     cancelled: boolean;

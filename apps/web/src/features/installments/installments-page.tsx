@@ -18,7 +18,7 @@ import {
   orderKindSchema,
   type FinanceInstallmentRow,
 } from "@lazuli/validators";
-import { debounce } from "~/lib/debounce";
+import { useSearchDraft } from "~/lib/use-search-draft";
 import { trpc } from "~/lib/trpc";
 import { tablePaginationPropsFor } from "~/lib/pagination";
 import {
@@ -28,6 +28,7 @@ import {
   type InstallmentFilters,
   type InstallmentFilterPatch,
 } from "./filters";
+import { InstallmentActionsContext } from "./installment-actions";
 import { InstallmentsTable } from "./installments-table";
 import { useInstallments } from "./logic";
 import { TreatmentDialog } from "~/features/financial-treatments/treatment-dialog";
@@ -38,8 +39,6 @@ import {
   toggleVisibleSelection,
 } from "./payment/selection";
 import { originLabel } from "./view-model";
-
-const SEARCH_DEBOUNCE_MS = 300;
 
 function hasInstallmentFilters(filters: InstallmentFilters): boolean {
   return Boolean(
@@ -62,19 +61,7 @@ function SearchField({
   search: string;
   onSearch: (value: string) => void;
 }): ReactElement {
-  const [value, setValue] = useState(search);
-  const location = useSearchParams().toString();
-  const commit = useMemo(() => debounce(onSearch, SEARCH_DEBOUNCE_MS), [onSearch]);
-  useEffect(() => {
-    setValue(search);
-    commit.cancel();
-  }, [search, location, commit]);
-  useEffect(
-    () => () => {
-      commit.cancel();
-    },
-    [commit],
-  );
+  const [value, setValue] = useSearchDraft(search, onSearch);
   return (
     <div className="relative w-full sm:w-44 lg:w-64 2xl:w-80">
       <Search
@@ -91,7 +78,6 @@ function SearchField({
         value={value}
         onChange={(event) => {
           setValue(event.target.value);
-          commit(event.target.value);
         }}
       />
     </div>
@@ -304,9 +290,11 @@ function SelectionToolbar({
       <span role="status" className="text-caption">
         {count} selecionados{outside > 0 ? ` · ${outside} fora da vista` : ""}
       </span>
-      <Button size="sm" variant="secondary" onClick={negotiate}>
-        <Handshake aria-hidden /> Negociar
+      <Button size="sm" variant="secondary" onClick={negotiate} disabled={count > 100}>
+        <Handshake aria-hidden="true" />
+        Negociar
       </Button>
+      {count > 100 && <span className="text-caption">Negocie até 100 parcelas por lote.</span>}
       <Button size="sm" onClick={begin}>
         <DollarSign aria-hidden="true" />
         Registrar pagamento
@@ -451,6 +439,10 @@ function PaymentEntryDialog({ entry }: { entry: EntrySession }): ReactElement | 
 export function InstallmentsPage(): ReactElement {
   const state = useInstallments();
   const [rows, setRows] = useState<FinanceInstallmentRow[]>([]);
+  const [paymentRow, setPaymentRow] = useState<FinanceInstallmentRow | null>(null);
+  const [rowPaymentRegistered, setRowPaymentRegistered] = useState(false);
+  const [treatmentIds, setTreatmentIds] = useState<string[] | null>(null);
+  const [treatmentRegistered, setTreatmentRegistered] = useState(false);
   useEffect(() => setRows([]), [state.filters.studentId]);
   const entry = useEntrySession(() => setRows([]));
   const [treatment, setTreatment] = useState<string[] | null>(null);
@@ -462,34 +454,77 @@ export function InstallmentsPage(): ReactElement {
     (row) => !visible.some((item) => item.installmentId === row.installmentId),
   ).length;
   const toolbar =
-    rows.length > 0 && !entry.open ? (
+    rows.length > 0 && !entry.open && !paymentRow && !treatmentIds ? (
       <SelectionToolbar
         count={rows.length}
         outside={outside}
         clear={() => setRows([])}
         begin={() => entry.begin(rows)}
-        negotiate={() => setTreatment(rows.map((row) => row.installmentId))}
+        negotiate={() => {
+          setTreatmentRegistered(false);
+          setTreatmentIds(rows.map((row) => row.installmentId));
+        }}
       />
     ) : null;
   return (
-    <PaymentSelectionContext.Provider
+    <InstallmentActionsContext.Provider
       value={{
-        rows,
-        visible,
-        toggle: (row) => setRows((current) => toggleSelected(current, row)),
-        toggleVisible: () => setRows((current) => toggleVisibleSelection(current, visible)),
+        receive: (row) => {
+          setRowPaymentRegistered(false);
+          setPaymentRow(row);
+        },
+        negotiate: (row) => {
+          setTreatmentRegistered(false);
+          setTreatmentIds([row.installmentId]);
+        },
       }}
     >
-      <PaymentRegisteredStatus registered={entry.registered} />
-      <InstallmentsTableFrame state={state} beginPayment={entry.begin} toolbar={toolbar} />
-      <PaymentEntryDialog entry={entry} />
-      {treatment !== null && (
-        <TreatmentDialog
-          initialIds={treatment}
-          onClose={() => setTreatment(null)}
-          onConfirmed={() => setRows([])}
-        />
-      )}
-    </PaymentSelectionContext.Provider>
+      <PaymentSelectionContext.Provider
+        value={{
+          rows,
+          visible,
+          toggle: (row) => setRows((current) => toggleSelected(current, row)),
+          toggleVisible: () => setRows((current) => toggleVisibleSelection(current, visible)),
+        }}
+      >
+        <PaymentRegisteredStatus registered={entry.registered || rowPaymentRegistered} />
+        <InstallmentsTableFrame state={state} beginPayment={entry.begin} toolbar={toolbar} />
+        <PaymentEntryDialog entry={entry} />
+        {paymentRow && (
+          <PaymentDialog
+            key={paymentRow.installmentId}
+            rows={[paymentRow]}
+            open
+            onOpenChange={(open) => {
+              if (!open) setPaymentRow(null);
+            }}
+            onRegistered={() => {
+              setRows((current) =>
+                current.filter((row) => row.installmentId !== paymentRow.installmentId),
+              );
+              setPaymentRow(null);
+              setRowPaymentRegistered(true);
+            }}
+          />
+        )}
+        {treatmentRegistered && (
+          <p role="status" className="px-6 pt-2 text-caption text-success">
+            Tratativa registrada.
+          </p>
+        )}
+        {treatmentIds && (
+          <TreatmentDialog
+            initialIds={treatmentIds}
+            onClose={() => setTreatmentIds(null)}
+            onConfirmed={() => {
+              setRows((current) =>
+                current.filter((row) => !treatmentIds.includes(row.installmentId)),
+              );
+              setTreatmentRegistered(true);
+            }}
+          />
+        )}
+      </PaymentSelectionContext.Provider>
+    </InstallmentActionsContext.Provider>
   );
 }

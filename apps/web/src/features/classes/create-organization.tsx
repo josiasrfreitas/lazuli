@@ -1,4 +1,5 @@
 "use client";
+import { normalizeSearch } from "@lazuli/domain";
 import { useState, type ReactElement } from "react";
 import {
   Field,
@@ -55,9 +56,7 @@ function TeacherSearch({ draft, change, options, errors }: ClassFieldsProps): Re
   const [query, setQuery] = useState("");
   const selected = options.teachers.find((teacher) => teacher.id === draft.teacherId);
   const choices = options.teachers
-    .filter((teacher) =>
-      teacher.name.toLocaleLowerCase("pt-BR").includes(query.trim().toLocaleLowerCase("pt-BR")),
-    )
+    .filter((teacher) => normalizeSearch(teacher.name).includes(normalizeSearch(query)))
     .map((teacher) => ({ id: teacher.id, label: teacher.name }));
   return (
     <Field name="teacherId">

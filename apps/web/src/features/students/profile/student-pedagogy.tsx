@@ -1,20 +1,33 @@
-import type { ReactElement } from "react";
-import Link from "next/link";
-import { BookOpen } from "lucide-react";
-import { Button } from "@lazuli/ui";
-import { useStudentPedagogy, type StudentProfile } from "./logic";
-import { StudentContactSummary } from "./student-identity";
-import { ProfileLoading, ProfileError } from "./profile-shared";
-import { StudentAcademicProgress } from "~/features/assessments/student-progress";
+import type { ReactElement, ReactNode } from "react";
+import { GraduationCap, CalendarDays } from "lucide-react";
+import { formatDateOnlyBR } from "~/lib/format";
+import { useStudentPedagogy, type StudentProfile, type StudentEnrollment } from "./logic";
+import { ProfileError } from "./profile-shared";
 import { StudentFollowUp } from "~/features/pedagogical-follow-up/student-follow-up";
+import { EnrollmentLoading } from "./student-loading";
 import { EnrollmentHistory } from "./student-history";
-import { StudentAppointments } from "~/features/appointments/student-section";
 import { CurrentEnrollment } from "./current-enrollment";
+import { StudentContactSummary } from "./student-identity";
+import { ContractTerminationNotice } from "./contract-termination-notice";
+import { OrganizationIntention } from "./organization-intention";
+import type { RouterOutputs } from "@lazuli/api";
 
-export function StudentPedagogySection({ profile }: { profile: StudentProfile }): ReactElement {
+type PedagogyProps = {
+  profile: StudentProfile;
+  pedagogyWorkspacePreview?: ReactNode;
+  latestTermination?: RouterOutputs["finance"]["studentSummary"]["latestTermination"] | undefined;
+};
+
+export function StudentPedagogySection(props: PedagogyProps): ReactElement {
+  const { profile, pedagogyWorkspacePreview } = props;
   const id = profile.id;
   const query = useStudentPedagogy(id);
-  if (query.isPending) return <ProfileLoading />;
+  if (query.isPending)
+    return (
+      <div className="grid min-w-0 gap-6">
+        <EnrollmentLoading />
+      </div>
+    );
   if (query.isError)
     return (
       <ProfileError
@@ -24,28 +37,45 @@ export function StudentPedagogySection({ profile }: { profile: StudentProfile })
     );
   const current = query.data.enrollments.filter((enrollment) => enrollment.current);
   const history = query.data.enrollments.filter((enrollment) => !enrollment.current);
+  if (!current.length) {
+    const upcoming = history
+      .filter((row) => row.entryDate > query.data.today)
+      .toSorted((a, b) => a.entryDate.localeCompare(b.entryDate))[0];
+    return (
+      <div className="flex min-h-full min-w-0 flex-col">
+        <ContractTerminationNotice termination={props.latestTermination} studentId={id} />
+        <section aria-label="Dados do aluno" className="border-b border-border py-4">
+          <StudentContactSummary profile={profile} />
+        </section>
+        <NoCurrentEnrollment
+          upcoming={upcoming}
+          hasHistory={history.some((row) => row.entryDate <= query.data.today)}
+        />
+        <StudentFollowUp studentId={id} studentName={profile.contact.fullName} canRecord={false} />
+        <EnrollmentHistory
+          rows={history}
+          today={query.data.today}
+          studentId={id}
+          studentName={profile.contact.fullName}
+        />
+      </div>
+    );
+  }
   return (
     <div className="grid min-w-0 gap-6">
-      {current.length > 0 ? (
-        current.map((enrollment) => (
-          <CurrentEnrollment
-            key={enrollment.id}
-            enrollment={enrollment}
-            today={query.data.today}
-            profile={profile}
-          />
-        ))
-      ) : (
-        <div className="grid gap-3">
-          <NoCurrentEnrollment />
-          <StudentContactSummary profile={profile} />
-        </div>
+      <ContractTerminationNotice termination={props.latestTermination} studentId={id} />
+      <OrganizationIntention studentId={id} />
+      {current.map((enrollment) => (
+        <CurrentEnrollment
+          key={enrollment.id}
+          enrollment={enrollment}
+          today={query.data.today}
+          profile={profile}
+        />
+      ))}
+      {pedagogyWorkspacePreview ?? (
+        <StudentFollowUp studentId={id} studentName={profile.contact.fullName} canRecord />
       )}
-      <StudentAcademicProgress studentId={id} />
-      <div className="grid min-w-0 gap-6 xl:grid-cols-5">
-        <StudentAppointments studentId={id} />
-        <StudentFollowUp studentId={id} studentName={profile.contact.fullName} />
-      </div>
       <EnrollmentHistory
         rows={history}
         today={query.data.today}
@@ -56,26 +86,34 @@ export function StudentPedagogySection({ profile }: { profile: StudentProfile })
   );
 }
 
-function NoCurrentEnrollment(): ReactElement {
+function NoCurrentEnrollment({
+  upcoming,
+  hasHistory,
+}: {
+  upcoming?: StudentEnrollment;
+  hasHistory: boolean;
+}): ReactElement {
+  const Icon = upcoming ? CalendarDays : GraduationCap;
   return (
-    <section className="flex flex-wrap items-center justify-between gap-4 border border-border bg-accent p-5">
-      <div className="flex items-start gap-3">
-        <BookOpen aria-hidden="true" className="mt-1 size-5 shrink-0 text-icon" />
-        <div className="grid gap-1">
-          <h2 className="text-lg font-semibold text-heading">Sem matrícula vigente</h2>
-          <p className="text-sm text-muted-foreground">
-            As matrículas anteriores e futuras aparecem no histórico abaixo.
-          </p>
-        </div>
-      </div>
-      <Button
-        nativeButton={false}
-        variant="secondary"
-        size="compact-responsive"
-        render={<Link href="/turmas" />}
-      >
-        Ver turmas
-      </Button>
+    <section
+      aria-labelledby="enrollment-empty-title"
+      className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center"
+    >
+      <Icon aria-hidden="true" className="mb-2 size-12 text-icon" strokeWidth={1.5} />
+      <h2 id="enrollment-empty-title" className="font-display text-2xl font-semibold text-heading">
+        {upcoming
+          ? "O próximo período já tem data"
+          : hasHistory
+            ? "Nenhuma matrícula em andamento"
+            : "O acompanhamento começa com a matrícula"}
+      </h2>
+      <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+        {upcoming
+          ? `A matrícula na turma ${upcoming.class.name} começa em ${formatDateOnlyBR(upcoming.entryDate)}. A partir dessa data, você poderá acompanhar as aulas e registrar os atendimentos do aluno.`
+          : hasHistory
+            ? "Este aluno está sem matrícula vigente. O histórico continua disponível abaixo; novos registros ficam disponíveis quando uma nova matrícula começar."
+            : "Este aluno ainda não tem matrícula em uma turma. Quando ela estiver vigente, as aulas, as avaliações e os registros pedagógicos terão seu lugar aqui."}
+      </p>
     </section>
   );
 }

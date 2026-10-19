@@ -25,6 +25,7 @@ const config = {
     "@lazuli/domain",
     "@lazuli/job-contracts",
     "@lazuli/integrations",
+    "@lazuli/storage",
     "@lazuli/ui",
     "@lazuli/validators",
   ],

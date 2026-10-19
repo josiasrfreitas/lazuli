@@ -41,6 +41,7 @@ export type FinanceDatabase = Pick<
   | "address"
   | "guardian"
   | "payer"
+  | "materialOrder"
   | "order"
   | "orderBeneficiary"
   | "installment"
@@ -51,6 +52,14 @@ export type FinanceDatabase = Pick<
   | "student"
   | "financeSettings"
   | "contract"
+  | "enrollment"
+  | "enrollmentAction"
+  | "pedagogicalProgress"
+  | "class"
+  | "stage"
+  | "semester"
+  | "track"
+  | "user"
 >;
 
 const DATE_ONLY_LENGTH = 10;

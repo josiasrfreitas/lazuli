@@ -1,6 +1,10 @@
 import { studentAttendanceRouter } from "./student-attendance/router.js";
 import { classRecordsRouter } from "./class-records/router.js";
 import { planningRouter } from "./stage-planning/router.js";
+import { teachingProgramsRouter } from "./teaching-programs/router.js";
+import { teacherWorkspaceRouter } from "./teacher-workspace/router.js";
+import { assessmentFilesRouter } from "./assessment-files/router.js";
+import { commandSearchRouter } from "./command-search/router.js";
 import { semesterOrganizationRouter } from "./semester-organization/router.js";
 import { createCallerFactory, protectedProcedure, publicProcedure, router } from "./trpc/init.js";
 import { appointmentsRouter } from "./appointments/router.js";
@@ -27,6 +31,10 @@ export const appRouter = router({
   studentAttendance: studentAttendanceRouter,
   classRecords: classRecordsRouter,
   planning: planningRouter,
+  teacherWorkspace: teacherWorkspaceRouter,
+  assessmentFiles: assessmentFilesRouter,
+  teachingPrograms: teachingProgramsRouter,
+  commandSearch: commandSearchRouter,
   semesterOrganization: semesterOrganizationRouter,
   health: publicProcedure.query(() => ({ status: "ok" as const })),
   me: protectedProcedure.query(({ ctx }) => ctx.staffUser),

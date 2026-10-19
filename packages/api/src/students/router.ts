@@ -1,7 +1,12 @@
-import { studentSubject } from "../activity/subjects.js";
-import { activityTransaction } from "../activity/record.js";
+import { searchIds } from "../search.js";
+import { enrollmentSubject, studentSubject } from "../activity/subjects.js";
+import { activityTransaction, recordActivity } from "../activity/record.js";
 import {
   studentCreateInputSchema,
+  studentIntakeOptionsSchema,
+  studentIntakeEnrollSchema,
+  studentIntakeAllocateSchema,
+  studentIntakeResumeSchema,
   studentCompletionInputSchema,
   studentIdInputSchema,
   studentListInputSchema,
@@ -27,6 +32,37 @@ import { readStudentPedagogy } from "./pedagogy.js";
 const FILTER_OPTION_LIMIT = 50;
 
 export const studentsRouter = router({
+  resumeIntake: adminProcedure.input(studentIntakeResumeSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, "students.resumeIntake", database => resumeStudentIntake({
+      database, values: input, recordedById: ctx.staffUser.id, now: ctx.now ?? new Date(),
+    }), async (result, database) => {
+      const subject = await studentSubject(database, result.studentId);
+      if (result.contractId) await recordActivity(database, ctx, "finance.createMonthlyContract", {
+        subject: { type: "contract", id: result.contractId, name: subject.name },
+        deduplicationKey: `finance.contract:${result.contractId}`,
+      });
+      return { subject };
+    }),
+  ),
+  pendingActions: adminProcedure.input(studentIdInputSchema).query(({ ctx, input }) => readStudentPendingActions(ctx.db, input.id, ctx.now ?? new Date())),
+  allocate: adminProcedure.input(studentIntakeAllocateSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, "enrollment.create", database => allocateIntakeStudent({
+      database, values: input, recordedById: ctx.staffUser.id, now: ctx.now ?? new Date(),
+    }), async (result, database) => ({ subject: await enrollmentSubject(database, result.enrollmentId), deduplicationKey: `enrollment.create:${result.enrollmentId}` })),
+  ),
+  intakeOptions: adminProcedure.input(studentIntakeOptionsSchema).query(({ ctx, input }) => studentIntakeOptions(ctx.db, input, ctx.now ?? new Date())),
+  enrollNew: adminProcedure.input(studentIntakeEnrollSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, "students.enrollNew", database => enrollNewStudent({
+      database, values: input, recordedById: ctx.staffUser.id, now: ctx.now ?? new Date(),
+    }), async (result, database) => {
+      const subject = await studentSubject(database, result.studentId);
+      if (result.contractId) await recordActivity(database, ctx, "finance.createMonthlyContract", {
+        subject: { type: "contract", id: result.contractId, name: subject.name },
+        deduplicationKey: `finance.contract:${result.contractId}`,
+      });
+      return { subject, deduplicationKey: `students.enrollNew:${result.studentId}` };
+    }),
+  ),
   listFilterOptions: adminProcedure
     .input(
       z
@@ -45,10 +81,7 @@ export const studentsRouter = router({
             ...(input.ids.length > 0
               ? { id: { in: input.ids } }
               : {
-                  OR: [
-                    { internalCode: { contains: input.search, mode: "insensitive" as const } },
-                    { portalClassName: { contains: input.search, mode: "insensitive" as const } },
-                  ],
+                  id: await searchIds(ctx.db, "Class", input.search),
                 }),
           },
           select: { id: true, portalClassName: true },
@@ -63,7 +96,7 @@ export const studentsRouter = router({
           classesTaught: { some: { deletedAt: null } },
           ...(input.ids.length > 0
             ? { id: { in: input.ids } }
-            : { name: { contains: input.search, mode: "insensitive" as const } }),
+            : { id: await searchIds(ctx.db, "User", input.search) }),
         },
         select: { id: true, name: true },
         orderBy: { name: "asc" },

@@ -1,4 +1,5 @@
-import { sessionEndInstant } from "@lazuli/domain";
+import type { Prisma } from "@lazuli/db";
+import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
 import { appointmentSnapshotSchema, type appointmentListSchema, type z } from "@lazuli/validators";
 import {
   dateOnly,
@@ -17,18 +18,34 @@ import {
   type AppointmentContext,
 } from "./data.js";
 import { appointmentSnapshot } from "./snapshot.js";
+import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { studentAbsences } from "./absences.js";
 
 export async function listAppointments(
   context: AppointmentContext,
   input: z.infer<typeof appointmentListSchema>,
 ) {
-  const rows = await context.database.pedagogicalAppointment.findMany({
+  return readAppointments(context, {
     where: {
       deletedAt: null,
       date: { gte: new Date(input.from), lte: new Date(input.through) },
       ...(input.studentId ? { studentId: input.studentId } : {}),
     },
+    teacherId: input.teacherId,
+  });
+}
+export async function studentAppointments(context: AppointmentContext, studentId: string) {
+  return readAppointments(context, { where: { deletedAt: null, studentId } });
+}
+async function readAppointments(
+  context: AppointmentContext,
+  options: {
+    where: Prisma.PedagogicalAppointmentWhereInput;
+    teacherId?: string | undefined;
+  },
+) {
+  const rows = await context.database.pedagogicalAppointment.findMany({
+    where: options.where,
     include: appointmentInclude,
     orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
   });
@@ -36,7 +53,7 @@ export async function listAppointments(
     .filter(
       (row) =>
         canReadAppointment(context, row) &&
-        (!input.teacherId || appointmentTeacher(row)?.id === input.teacherId),
+        (!options.teacherId || appointmentTeacher(row)?.id === options.teacherId),
     )
     .map((row) => ({
       ...appointmentSnapshot(row),
@@ -87,12 +104,39 @@ export async function appointmentStudentOptions(
     studentAbsences(context.database, studentId, excludeAppointmentId),
     context.database.enrollment.findMany({
       where: { studentId, deletedAt: null },
-      include: { class: { select: { portalClassName: true, scheduleType: true } } },
+      include: {
+        class: {
+          select: {
+            portalClassName: true,
+            scheduleType: true,
+            status: true,
+            deletedAt: true,
+            ...responsibilitySelect,
+          },
+        },
+      },
       orderBy: { entryDate: "desc" },
     }),
   ]);
+  const currentDate = saoPauloDateOnly(context.now);
+  const currentEnrollment = enrollments.find(
+    (row) =>
+      row.class.deletedAt === null &&
+      row.class.status === "ACTIVE" &&
+      dateOnly(row.entryDate) <= currentDate &&
+      (row.exitDate === null || dateOnly(row.exitDate) > currentDate),
+  );
   return {
     student,
+    hasCurrentEnrollment: enrollments.some(
+      (row) =>
+        row.class.deletedAt === null &&
+        dateOnly(row.entryDate) <= currentDate &&
+        (row.exitDate === null || dateOnly(row.exitDate) > currentDate),
+    ),
+    defaultTeacher: currentEnrollment
+      ? usualTeacherOn(currentEnrollment.class, new Date(currentDate))
+      : null,
     absences,
     enrollments: enrollments.map((row) => ({
       id: row.id,
@@ -103,17 +147,21 @@ export async function appointmentStudentOptions(
     })),
   };
 }
-export async function appointmentDestinations(context: AppointmentContext, date: string) {
+export async function appointmentDestinations(
+  context: AppointmentContext,
+  date: string,
+  through = date,
+) {
   requireAppointmentAdmin(context);
   const sessions = await context.database.classSession.findMany({
     where: {
-      date: new Date(date),
+      date: { gte: new Date(date), lte: new Date(through) },
       deletedAt: null,
       status: "SCHEDULED",
       class: { deletedAt: null, status: "ACTIVE" },
     },
     include: recordSessionInclude,
-    orderBy: [{ startTime: "asc" }, { classId: "asc" }],
+    orderBy: [{ date: "asc" }, { startTime: "asc" }, { classId: "asc" }],
   });
   return sessions
     .filter(
@@ -123,6 +171,7 @@ export async function appointmentDestinations(context: AppointmentContext, date:
     )
     .map((session) => ({
       id: session.id,
+      date: dateOnly(session.date),
       classId: session.classId,
       name: session.class.portalClassName,
       startTime: timeOnly(session.startTime),

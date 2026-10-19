@@ -1,3 +1,4 @@
+import { searchIds } from "../search.js";
 import { enrollmentSubject, enrollmentActionSubject } from "../activity/subjects.js";
 import { activityTransaction } from "../activity/record.js";
 import {
@@ -151,13 +152,13 @@ export const enrollmentRouter = router({
     ),
   pausedSearch: enrollmentProcedure
     .input(enrollmentPausedSearchInputSchema)
-    .query(({ ctx, input }) =>
+    .query(async ({ ctx, input }) =>
       ctx.db.enrollment.findMany({
         where: {
           deletedAt: null,
           exitReason: "SUSPENDED",
           exitDate: { lte: new Date(saoPauloDateOnly(ctx.now ?? new Date())) },
-          student: { fullName: { contains: input.query, mode: "insensitive" } },
+          student: { id: await searchIds(ctx.db, "Student", input.query) },
           returnActions: { none: { status: { in: ["SCHEDULED", "APPLIED"] } } },
         },
         select: {

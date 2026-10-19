@@ -24,9 +24,7 @@ export function studentFilterOptionResult(
     };
   }
   if (!query.data || query.isFetching) return { status: "loading", query: trimmed };
-  const matches = query.data.filter((option) =>
-    option.label.toLocaleLowerCase("pt-BR").includes(trimmed.toLocaleLowerCase("pt-BR")),
-  );
+  const matches = query.data;
   return {
     status: "ready",
     query: trimmed,

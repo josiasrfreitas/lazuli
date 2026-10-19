@@ -24,13 +24,17 @@ void describe("global finance settings", () => {
     assert.equal(tuitionFloorCents(FRACTIONAL_CEILING, DISCOUNT), ROUNDED_FLOOR);
   });
 
-  void it("requires each of the six settings", () => {
-    for (const key of Object.keys(valid) as (keyof typeof valid)[]) {
+  void it("requires general settings while allowing older clients to omit book terms", () => {
+    for (const key of Object.keys(valid).filter(
+      (key) => key !== "materialPriceCents",
+    ) as (keyof typeof valid)[]) {
       const candidate = { ...valid };
       delete (candidate as Partial<typeof valid>)[key];
       assert.equal(financeSettingsInputSchema.safeParse(candidate).success, false, key);
     }
     assert.deepEqual(financeSettingsInputSchema.parse(valid), valid);
+    const { materialPriceCents: _legacy, ...general } = valid;
+    assert.deepEqual(financeSettingsInputSchema.parse(general), general);
   });
 
   void it("rejects percentages the database would round at four decimal places", () => {
@@ -50,4 +54,26 @@ void describe("global finance settings", () => {
     assert.deepEqual(accepted, [true, true, true, true]);
     assert.deepEqual(rounded, [false, false, false, false]);
   });
+});
+
+void it("rejects incomplete, fractional and overflowing installment terms", () => {
+  for (const terms of [
+    { childMaterialInstallments: 6 },
+    { adultMaterialInstallmentCents: 13600 },
+    { childMaterialInstallments: 1.5, childMaterialInstallmentCents: 12300 },
+    { adultMaterialInstallments: 0, adultMaterialInstallmentCents: 13600 },
+    { adultMaterialInstallments: 2, adultMaterialInstallmentCents: 2147483647 },
+    { materialCardFeePct: 100.0001 },
+    { materialCardFeePct: 0.12345 },
+  ]) {
+    const result = financeSettingsInputSchema.safeParse({ ...valid, ...terms });
+    assert.equal(result.success, false, JSON.stringify(terms));
+  }
+  const terms = {
+    ...valid,
+    childMaterialInstallments: 6,
+    childMaterialInstallmentCents: 0,
+    materialCardFeePct: 100,
+  };
+  assert.deepEqual(financeSettingsInputSchema.parse(terms), terms);
 });

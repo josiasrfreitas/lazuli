@@ -1,3 +1,5 @@
+import { materialOrderData } from "./contract-materials.js";
+import { searchIds } from "../../search.js";
 import { createHash } from "node:crypto";
 
 import { previewMonthlyContract, type ContractFinancialStatus } from "@lazuli/domain";
@@ -70,14 +72,61 @@ async function readyTerms(input: {
   values: CreateMonthlyContractInput;
 }): Promise<ReadyTerms> {
   const { database, values } = input;
-  const [settings] = await Promise.all([
+  const [schoolSettings] = await Promise.all([
     database.financeSettings.findUnique({ where: { id: "singleton" } }),
     assertContractParties(database, values),
   ]);
+  if (values.renewedFromId)
+    await database.$queryRaw`SELECT id FROM "Contract" WHERE id = ${values.renewedFromId}::uuid FOR UPDATE`;
+  const prior = values.renewedFromId
+    ? await database.contract.findFirst({
+        where: {
+          id: values.renewedFromId,
+          deletedAt: null,
+          studentId: values.studentId,
+          terminatedAt: null,
+        },
+      })
+    : null;
+  if (
+    values.renewedFromId &&
+    (!prior ||
+      !values.studentId ||
+      !prior.endsOn ||
+      values.startsOn <= prior.endsOn.toISOString().slice(0, 10))
+  )
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "A renovação deve ser do mesmo aluno e começar após o contrato anterior.",
+    });
+  if (prior) {
+    await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`contract-renewal:${prior.id}`}, 0))`;
+    const existing = await database.contract.findFirst({
+      where: { renewedFromId: prior.id, deletedAt: null, terminatedAt: null },
+    });
+    if (existing)
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Este contrato já possui uma renovação. Consulte o financeiro do aluno.",
+      });
+  }
+  const settings =
+    prior && schoolSettings
+      ? {
+          ...schoolSettings,
+          tuitionCeilingCents: prior.tuitionCeilingCents,
+          maximumDiscountPct: prior.maximumDiscountPct,
+          punctualityDiscountPct: prior.punctualityDiscountPct!,
+          interestRatePctDaily: prior.interestRatePctDaily,
+          interestRatePctMonthly: prior.interestRatePctMonthly,
+          cancellationFeePct: prior.cancellationFeePct,
+        }
+      : schoolSettings;
   if (
     !settings ||
     settings.tuitionCeilingCents === null ||
     settings.maximumDiscountPct === null ||
+    settings.punctualityDiscountPct === null ||
     settings.interestRatePctDaily === null ||
     settings.interestRatePctMonthly === null ||
     settings.cancellationFeePct === null
@@ -125,10 +174,20 @@ type PersistContractInput = {
 async function persistContract(input: PersistContractInput): Promise<ContractListRow> {
   const { database, values, staffUserId, terms } = input;
   const { settings, preview } = terms;
+  const material = values.material
+    ? await materialOrderData({
+        database,
+        material: values.material,
+        settings,
+        firstDueDate: values.firstDueDate,
+        staffUserId,
+      })
+    : null;
   const contract = await database.contract.create({
     data: {
       commandId: values.commandId,
       commandFingerprint: contractFingerprint(values),
+      renewedFromId: values.renewedFromId ?? null,
       payerId: input.payerId,
       studentId: input.studentId,
       agreedOn: toDateOnly(values.agreedOn),
@@ -143,25 +202,28 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
       interestRatePctMonthly: settings.interestRatePctMonthly,
       cancellationFeePct: settings.cancellationFeePct,
       orders: {
-        create: {
-          kind: "TUITION",
-          principalAmountCents: preview.principalAmountCents,
-          startDate: toDateOnly(values.startsOn),
-          dueDay: Number(values.firstDueDate.slice(DUE_DAY_START, DUE_DAY_END)),
-          firstDueDate: toDateOnly(values.firstDueDate),
-          installmentCount: preview.installments.length,
-          createdById: staffUserId,
-          updatedById: staffUserId,
-          installments: {
-            create: preview.installments.map((row) => ({
-              sequenceNumber: row.sequenceNumber,
-              amountCents: row.amountCents,
-              dueDate: toDateOnly(row.dueDate),
-              createdById: staffUserId,
-              updatedById: staffUserId,
-            })),
+        create: [
+          {
+            kind: "TUITION",
+            principalAmountCents: preview.principalAmountCents,
+            startDate: toDateOnly(values.startsOn),
+            dueDay: Number(values.firstDueDate.slice(DUE_DAY_START, DUE_DAY_END)),
+            firstDueDate: toDateOnly(values.firstDueDate),
+            installmentCount: preview.installments.length,
+            createdBy: { connect: { id: staffUserId } },
+            updatedBy: { connect: { id: staffUserId } },
+            installments: {
+              create: preview.installments.map((row) => ({
+                sequenceNumber: row.sequenceNumber,
+                amountCents: row.amountCents,
+                dueDate: toDateOnly(row.dueDate),
+                createdById: staffUserId,
+                updatedById: staffUserId,
+              })),
+            },
           },
-        },
+          ...(material ? [material] : []),
+        ],
       },
     },
     select: contractSelect,
@@ -213,18 +275,6 @@ function contractListWhere(options: ContractListOptions): Prisma.ContractWhereIn
     ...(options.studentId ? { studentId: options.studentId } : {}),
     ...(options.startsFrom ? { endsOn: { gte: toDateOnly(options.startsFrom) } } : {}),
     ...(options.endsTo ? { startsOn: { lte: toDateOnly(options.endsTo) } } : {}),
-    ...(options.query?.trim() === "" || !options.query
-      ? {}
-      : {
-          OR: [
-            {
-              student: {
-                fullName: { contains: options.query.trim(), mode: "insensitive" as const },
-              },
-            },
-            { payer: { name: { contains: options.query.trim(), mode: "insensitive" as const } } },
-          ],
-        }),
   };
 }
 
@@ -238,8 +288,15 @@ export async function listContracts(
   total: number;
 }> {
   const { page, now = new Date() } = options;
-  const pageSize = 20;
+  const pageSize = 25;
   const where = contractListWhere(options);
+  if (options.query) {
+    const [students, payers] = await Promise.all([
+      searchIds(database, "Student", options.query),
+      searchIds(database, "Payer", options.query),
+    ]);
+    where.OR = students ? [{ student: { id: students } }, { payer: { id: payers } }] : undefined;
+  }
   if (options.status) {
     const match = await contractStatusPage(database, { ...options, status: options.status, now });
     const selected = await database.contract.findMany({

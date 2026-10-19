@@ -5,12 +5,14 @@ import type {
   z,
   invalidateAvailabilitySchema,
 } from "@lazuli/validators";
+import { classScheduleSlotsInputSchema } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { recordActivity } from "../activity/record.js";
 import { lockStudentEnrollment } from "../enrollment/data.js";
 import { loadActiveStage, assertTeacherIsActive } from "../classes/guards.js";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
+  readSlots,
   lockSemester,
   assertVersion,
   recordPlacementRevision,
@@ -34,6 +36,15 @@ export async function saveClassPlan(context: OrganizationContext, input: Semeste
     throw badRequest(
       "Esta turma já foi publicada. Use a operação da turma para alterar o professor.",
     );
+  const scheduleKey = (slots: typeof input.slots) =>
+    slots
+      .map((slot) => `${slot.weekday}:${slot.startTime}:${slot.endTime}`)
+      .sort()
+      .join("|");
+  if (!previous || scheduleKey(readSlots(previous.slots)) !== scheduleKey(input.slots)) {
+    const schedule = classScheduleSlotsInputSchema.safeParse(input.slots);
+    if (!schedule.success) throw badRequest(schedule.error.issues[0]!.message);
+  }
   const data = {
     name: input.name,
     scheduleType: input.scheduleType,
@@ -55,13 +66,22 @@ export async function saveClassPlan(context: OrganizationContext, input: Semeste
     subject: { type: "school", name: plan.name },
     description: previous
       ? "Organização da turma revisada."
-      : "Turma incluída na organização do próximo semestre.",
+      : "Turma incluída na organização do semestre.",
   });
   return { id: plan.id };
 }
 
 export async function savePlacement(context: OrganizationContext, input: SemesterPlacementInput) {
-  await lockSemester(context, input.semesterId);
+  const semester = await lockSemester(context, input.semesterId);
+  const effectiveDate =
+    input.effectiveDate ??
+    [semester.startDate.toISOString().slice(0, 10), saoPauloDateOnly(context.now)].sort().at(-1)!;
+  if (
+    effectiveDate < semester.startDate.toISOString().slice(0, 10) ||
+    effectiveDate > semester.endDate.toISOString().slice(0, 10) ||
+    effectiveDate < saoPauloDateOnly(context.now)
+  )
+    throw badRequest("Escolha uma vigência de hoje em diante, dentro do semestre.");
   await lockStudentEnrollment(context.database, input.studentId);
   const student = await context.database.student.findUnique({ where: { id: input.studentId } });
   if (!student) throw notFound("Aluno não encontrado.");
@@ -120,6 +140,9 @@ export async function savePlacement(context: OrganizationContext, input: Semeste
     sourceEnrollmentId: source?.enrollmentId ?? null,
     sourceProgressId: source?.id ?? null,
     mode: input.mode,
+    effectiveDate: new Date(effectiveDate),
+    declinedAt: null,
+    declinedReason: null,
     notes: input.notes || null,
     recordedById: context.staffUser.id,
   };
@@ -132,7 +155,7 @@ export async function savePlacement(context: OrganizationContext, input: Semeste
   await recordPlacementRevision(context, row.id, previous ? "REVISED" : "PROPOSED");
   await recordActivity(context.database, context, "semesterOrganization.savePlacement", {
     subject: { type: "student", id: student.id, name: student.fullName },
-    description: "Proposta para o próximo semestre registrada.",
+    description: "Proposta de alocação registrada.",
   });
   return { id: row.id };
 }

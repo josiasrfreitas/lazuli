@@ -1,11 +1,13 @@
 export { civilDateSchema } from "./civil-date.js";
-export { studentCompletionInputSchema } from "./student-completion.js";
-export type { StudentCompletionInput } from "./student-completion.js";
+export { studentCompletionInputSchema, studentPedagogyIntakeSchema } from "./student-completion.js";
+export type { StudentCompletionInput, StudentPedagogyIntake } from "./student-completion.js";
 export {
   createMonthlyContractInputSchema,
   listContractsInputSchema,
   contractPartySearchInputSchema,
 } from "./contracts.js";
+export { contractMaterialInputSchema, addContractMaterialInputSchema } from "./contracts.js";
+export type { ContractMaterialInput, AddContractMaterialInput } from "./contracts.js";
 export type { CreateMonthlyContractInput } from "./contracts.js";
 export { financeSettingsInputSchema, tuitionFloorCents } from "./finance-settings.js";
 export type { FinanceSettingsInput } from "./finance-settings.js";
@@ -198,6 +200,7 @@ export {
   admissionListSchema,
   admissionMatchesSchema,
   entryVisitScheduleSchema,
+  entryVisitCalendarSchema,
   entryVisitGuestsSchema,
   entryVisitOutcomeSchema,
   admissionEnrollSchema,
@@ -209,21 +212,23 @@ export {
   type AssessmentSave,
   type AssessmentConfirm,
 } from "./assessment.js";
-export { leadCaptureSchema, leadNextStepSchema, leadContactSchema } from "./leads.js";
+export { leadCaptureSchema, leadInterestSchema, leadRegistrationSchema } from "./leads.js";
+export { placementCalendarSchema, placementScheduleSchema, placementFileSchema, placementResultSchema, MAX_PLACEMENT_FILE_BYTES } from "./placement.js";
+export { studentIntakeOptionsSchema, studentIntakeEnrollSchema, studentIntakeAllocateSchema, studentIntakeResumeSchema } from "./student-intake.js";
 export { activityListSchema, type ActivityListInput } from "./activity.js";
 export {
   occurrenceCategorySchema,
   pedagogicalListSchema,
   occurrenceCreateSchema,
   occurrenceLinkSchema,
-  occurrenceNoteSchema,
+  occurrenceUpdateSchema,
   interventionCreateSchema,
-  interventionUpdateSchema,
+  interventionFollowUpSchema,
   interventionLinkSchema,
   type PedagogicalList,
   type OccurrenceCreate,
   type InterventionCreate,
-  type InterventionUpdate,
+  type InterventionFollowUp,
 } from "./occurrences.js";
 export {
   stagePlanTargetSchema,
@@ -241,3 +246,16 @@ export * from "./class-records.js";
 export * from "./student-attendance.js";
 export * from "./appointments.js";
 export * from "./semester-organization.js";
+export {
+  financialTreatmentInstallmentsSchema,
+  financialTreatmentPreviewSchema,
+  financialTreatmentConfirmSchema,
+} from "./financial-treatments.js";
+export type {
+  FinancialTreatmentInstallments,
+  FinancialTreatmentPreview,
+  FinancialTreatmentConfirm,
+} from "./financial-treatments.js";
+
+export * from "./contract-termination.js";
+export { teachingProgramImportSchema, trackAgeGroupSchema } from "./teaching-program.js";

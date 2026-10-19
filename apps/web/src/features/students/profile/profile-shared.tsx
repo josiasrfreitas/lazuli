@@ -1,4 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { Alert, Button, InlineSkeleton } from "@lazuli/ui";
 
 export function ProfileLoading(): ReactElement {
@@ -13,16 +14,24 @@ export function ProfileLoading(): ReactElement {
 export function ProfileError({
   message,
   onRetry,
+  isRetrying = false,
 }: {
   message: string;
   onRetry: () => void;
+  isRetrying?: boolean;
 }): ReactElement {
   return (
-    <Alert variant="destructive">
-      <p>{message}</p>
-      <Button variant="secondary" onClick={onRetry}>
-        Tentar novamente
-      </Button>
+    <Alert variant="neutral" aria-busy={isRetrying}>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <AlertCircle className="size-4 shrink-0 text-destructive" aria-hidden="true" />
+          <p>{message}</p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={onRetry} disabled={isRetrying}>
+          <RefreshCw aria-hidden="true" />
+          {isRetrying ? "Tentando novamente…" : "Tentar novamente"}
+        </Button>
+      </div>
     </Alert>
   );
 }

@@ -1,3 +1,4 @@
+import { searchMatchKysely } from "../search.js";
 import { sql } from "kysely";
 import { jsonArrayFrom } from "kysely/helpers/postgres";
 import { saoPauloDateOnly } from "@lazuli/domain";
@@ -12,7 +13,7 @@ export async function organizationStudents(
   let base = context.database.$kysely
     .selectFrom("Student as student")
     .where("student.deleted_at", "is", null)
-    .where("student.full_name", "ilike", `%${input.search}%`);
+    .where(searchMatchKysely(sql.ref("student.full_name"), input.search));
   if (input.unassigned)
     base = base.where((eb) =>
       eb.not(
@@ -61,11 +62,11 @@ export async function organizationStudents(
       )
       .orderBy("student.full_name")
       .orderBy("student.id")
-      .offset((input.page - 1) * 20)
-      .limit(20)
+      .offset((input.page - 1) * 25)
+      .limit(25)
       .execute(),
   ]);
-  return { rows, total: total.count, page: input.page, pageSize: 20 };
+  return { rows, total: total.count, page: input.page, pageSize: 25 };
 }
 export async function organizationStudent(
   context: OrganizationContext,

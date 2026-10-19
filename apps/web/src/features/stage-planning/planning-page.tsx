@@ -1,134 +1,42 @@
 "use client";
-import type { RouterOutputs } from "@lazuli/api";
-import type { ReactElement } from "react";
-import { useQueryStates, parseAsString } from "nuqs";
+import { useEffect, type ReactElement } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { SelectControl } from "~/features/classes/form-controls";
-import { PlanningWorkspace } from "./workspace";
 import { PlanningState } from "./shared";
 
-export function PlanningPage({
-  classId: fixedClassId,
-}: {
-  classId?: string | undefined;
-}): ReactElement {
+/** Compatibility for saved links; the plan itself only renders in its owner. */
+export function PlanningPage(): ReactElement {
+  const params = useSearchParams();
+  const router = useRouter();
   const query = trpc.planning.contexts.useQuery();
-  const [selection, setSelection] = useQueryStates({
-    turma: parseAsString,
-    percurso: parseAsString,
-  });
-  const { group, progress } = planningChoice(query.data, {
-    classId: fixedClassId ?? selection.turma,
-    progressId: selection.percurso,
-  });
+  const classId = params.get("turma");
+  const progressId = params.get("percurso");
+  const group = query.data?.find((row) => row.id === classId);
+  const student = group?.students.find((row) => row.progressId === progressId);
+  const destination = !classId
+    ? "/aulas"
+    : student
+      ? `/alunos/${student.studentId}?secao=planejamento&percurso=${student.progressId}`
+      : group && !progressId
+        ? `/turmas/${group.id}?secao=${group.scheduleType === "REGULAR" ? "planejamento" : "alunos"}`
+        : null;
+  useEffect(() => {
+    if (destination) router.replace(destination);
+  }, [destination, router]);
   return (
-    <div
-      className={
-        fixedClassId
-          ? "grid min-w-0 content-start gap-5"
-          : "grid min-w-0 content-start gap-5 p-4 sm:p-6"
-      }
-    >
-      {!fixedClassId && <h1 className="font-display text-h1 text-heading">Planejamento</h1>}
+    <>
       <PlanningState
-        pending={query.isPending}
+        pending={query.isPending || Boolean(destination)}
         error={query.error}
         retry={() => void query.refetch()}
       />
-      {query.data && (
-        <ContextSelectors
-          contexts={query.data}
-          group={group}
-          progress={progress}
-          fixed={Boolean(fixedClassId)}
-          select={(value) => {
-            void setSelection(value);
-          }}
-        />
-      )}
-      {query.data && <SelectedPlanning group={group} progress={progress} />}
-    </div>
-  );
-}
-
-type Group = RouterOutputs["planning"]["contexts"][number];
-type Choice = { group: Group | undefined; progress: Group["students"][number] | undefined };
-function ContextSelectors({
-  contexts,
-  group,
-  progress,
-  fixed,
-  select,
-}: Choice & {
-  contexts: Group[];
-  fixed: boolean;
-  select: (value: { turma?: string | null; percurso?: string | null }) => void;
-}): ReactElement {
-  return (
-    <div className="flex flex-wrap items-start gap-3">
-      {!fixed && (
-        <div className="w-full min-w-0 sm:w-72">
-          <SelectControl
-            name="planning-class"
-            label="Turma"
-            value={group?.id ?? ""}
-            choices={contexts.map((row) => ({
-              value: row.id,
-              label: `${row.name} · ${row.semester}`,
-            }))}
-            onChange={(value) => {
-              select({ turma: value, percurso: null });
-            }}
-          />
-        </div>
-      )}
-      {group?.scheduleType === "PERSONALIZED" && (
-        <div className="w-full min-w-0 sm:w-80">
-          <SelectControl
-            name="planning-student"
-            label="Percurso do aluno"
-            value={progress?.progressId ?? ""}
-            choices={group.students.map((row) => ({
-              value: row.progressId,
-              label: `${row.name} · ${row.stage}${row.historical ? " · histórico" : ""}`,
-            }))}
-            onChange={(value) => select({ percurso: value })}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SelectedPlanning({ group, progress }: Choice): ReactElement {
-  return (
-    <>
-      {" "}
-      {group && (group.scheduleType === "REGULAR" || progress) ? (
-        <PlanningWorkspace
-          key={`${group.id}/${progress?.progressId ?? "shared"}`}
-          classId={group.id}
-          {...(group.scheduleType === "PERSONALIZED" && progress
-            ? { progressId: progress.progressId }
-            : {})}
-        />
-      ) : (
+      {query.data && !destination && (
         <EmptyState
-          title="Nenhum contexto de planejamento"
-          description="Selecione uma turma com estágio ou um percurso individual PPT."
+          title="Planejamento não disponível"
+          description="A turma ou o percurso não está disponível para seu acesso."
         />
       )}
     </>
   );
-}
-
-function planningChoice(
-  contexts: Group[] | undefined,
-  { classId, progressId }: { classId: string | null; progressId: string | null },
-): Choice {
-  const group = classId ? contexts?.find((row) => row.id === classId) : contexts?.[0];
-  const progress =
-    group?.students.find((row) => row.progressId === progressId) ?? group?.students[0];
-  return { group, progress };
 }

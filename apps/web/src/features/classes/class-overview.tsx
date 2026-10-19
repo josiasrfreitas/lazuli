@@ -11,6 +11,8 @@ import {
 } from "./labels";
 import { ClassTeacher } from "./class-teacher";
 import { ClassSchedule } from "./class-schedule";
+import { ClassGradeAverage } from "./class-grade-average";
+import { ClassStageProgress } from "./class-stage-progress";
 import styles from "./class-page.module.css";
 
 type Detail = RouterOutputs["classes"]["byId"];
@@ -32,7 +34,13 @@ export function ClassOverview({
             {detail.status === "ARCHIVED" && <Badge>Arquivada</Badge>}
           </div>
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-muted-foreground">
-            <p className="text-base">{classTrackLabel(detail)}</p>
+            <p className="text-base">
+              {sharedStage
+                ? formatTrackName(sharedStage.track.name)
+                : detail.scheduleType === "PERSONALIZED"
+                  ? "Percursos individuais"
+                  : "Estágio não informado"}
+            </p>
             <p className="text-caption">
               {formatScheduleType(detail.scheduleType)} · {formatFormat(detail.format)}
             </p>
@@ -55,6 +63,12 @@ export function ClassOverview({
           <ClassSchedule slots={detail.scheduleSlots} />
         </div>
         <ClassOccupancy detail={detail} />
+        <ClassGradeAverage classId={detail.id} />
+        <ClassStageProgress
+          classId={detail.id}
+          className={detail.portalClassName}
+          personalized={detail.scheduleType === "PERSONALIZED"}
+        />
       </div>
     </header>
   );
@@ -87,11 +101,4 @@ function ClassOccupancy({ detail }: { detail: Detail }): ReactElement {
       )}
     </div>
   );
-}
-
-function classTrackLabel(detail: Detail): string {
-  if (detail.scheduleType === "PERSONALIZED") return "Percursos individuais";
-  return detail.sharedStage
-    ? formatTrackName(detail.sharedStage.track.name)
-    : "Estágio não informado";
 }

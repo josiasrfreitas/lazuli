@@ -1,0 +1,16 @@
+{
+  "id": "b68f26c280cca6ef",
+  "digest": "ad8451fa29638150",
+  "comps": [
+    ".impeccable/mocks/decision/agenda.png",
+    ".impeccable/mocks/decision/faixas.png",
+    ".impeccable/mocks/decision/professores.png"
+  ],
+  "sketches": [
+    ".impeccable/mocks/decision/agenda.html",
+    ".impeccable/mocks/decision/faixas.html",
+    ".impeccable/mocks/decision/professores.html"
+  ],
+  "pre": {},
+  "startedAt": 1791896952967
+}

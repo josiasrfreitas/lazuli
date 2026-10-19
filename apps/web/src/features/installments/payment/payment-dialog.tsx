@@ -1,4 +1,5 @@
 "use client";
+import { CalendarDays, Check, Wallet } from "lucide-react";
 import { useRef, type ReactNode, type ReactElement } from "react";
 import {
   Button,
@@ -14,6 +15,7 @@ import {
   Field,
   FieldError,
   FormRow,
+  FormSection,
   Input,
   Label,
   Select,
@@ -28,6 +30,7 @@ import { formatBRLFromCents as money } from "~/lib/format";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { useScrollToError } from "~/lib/scroll-to-error";
 import { usePaymentForm, type PaymentFormState } from "./logic";
+import { PaymentSummary } from "./payment-summary";
 import { PaymentGrid } from "./payment-grid";
 import { PaymentPicker } from "./payment-picker";
 import { draftReceipts } from "./draft";
@@ -58,14 +61,23 @@ export function PaymentDialog(props: Props): ReactElement {
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          className="md:max-w-180 [&_button]:min-h-11 sm:[&_button]:min-h-0"
+          className="md:max-w-[min(72rem,calc(100vw-2rem))]"
           ref={popup}
           initialFocus={() =>
-            popup.current?.querySelector<HTMLInputElement>('input[name="date"]') ?? true
+            popup.current?.querySelector<HTMLInputElement>(
+              state.draft.items.length ? 'input[name^="received-"]' : 'input[name="search"]',
+            ) ??
+            popup.current?.querySelector<HTMLInputElement>('input[name="date"]') ??
+            true
           }
         >
           <DialogHeader>
-            <DialogTitle>Registrar pagamento</DialogTitle>
+            <DialogTitle>
+              <span className="flex items-center gap-2.5">
+                <Wallet className="size-5 text-muted-foreground" aria-hidden />
+                Registrar pagamento
+              </span>
+            </DialogTitle>
             <DialogDescription>
               Informe quando e como recebeu. Confira os valores de cada parcela.
             </DialogDescription>
@@ -97,10 +109,18 @@ export function PaymentForm({
           state.submit();
         }}
       >
-        <fieldset disabled={state.submitting || state.uncertain} className="grid min-w-0 gap-4">
-          <PaymentFields state={state} />
-          {children}
-          <PaymentGrid state={state} />
+        <fieldset disabled={state.submitting || state.uncertain} className="min-w-0">
+          <legend className="sr-only">Dados do recebimento</legend>
+          <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:gap-6">
+            <div className="grid min-w-0 grid-cols-1 content-start gap-3">
+              {children}
+              <PaymentGrid state={state} />
+            </div>
+            <div className="grid min-w-0 content-start gap-5 border-t border-border pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+              <PaymentFields state={state} />
+              <PaymentSummary state={state} />
+            </div>
+          </div>
         </fieldset>
       </form>
       {state.error && (
@@ -129,35 +149,43 @@ export function PaymentForm({
 function PaymentFields({ state }: { state: PaymentFormState }): ReactElement {
   const invalid = state.revision > 0 && !parseDateBR(state.draft.date);
   return (
-    <FormRow className="grid-cols-[minmax(0,9rem)_minmax(0,1fr)] sm:grid-cols-[9rem_12rem_minmax(0,1fr)]">
-      <Field>
-        <Label>Data do recebimento</Label>
-        <Input
-          name="date"
-          autoComplete="off"
-          placeholder="dd/mm/aaaa"
-          inputMode="numeric"
-          size="sm"
-          className="h-11 font-numeric text-base sm:h-control-sm sm:text-control"
-          value={state.draft.date}
-          invalid={invalid}
-          onChange={(event) =>
-            state.dispatch({ type: "date", value: maskDateBR(event.target.value) })
-          }
-        />
-        {invalid && <FieldError match>Informe uma data válida.</FieldError>}
-      </Field>
-      <PaymentMethod state={state} />
-      <p className="col-span-2 text-caption text-muted-foreground sm:col-span-1 sm:self-end">
+    <FormSection
+      title={
+        <span className="flex items-center gap-2">
+          <CalendarDays className="size-4" aria-hidden /> Dados do recebimento
+        </span>
+      }
+    >
+      <FormRow className="sm:grid-cols-2 lg:grid-cols-1">
+        <Field className="max-w-36">
+          <Label>Data do recebimento</Label>
+          <Input
+            name="date"
+            autoComplete="off"
+            placeholder="dd/mm/aaaa"
+            inputMode="numeric"
+            size="sm"
+            className="font-numeric"
+            value={state.draft.date}
+            invalid={invalid}
+            onChange={(event) =>
+              state.dispatch({ type: "date", value: maskDateBR(event.target.value) })
+            }
+          />
+          {invalid && <FieldError match>Informe uma data válida.</FieldError>}
+        </Field>
+        <PaymentMethod state={state} />
+      </FormRow>
+      <p className="text-caption text-muted-foreground">
         Juros e descontos calculados na data do recebimento.
       </p>
-    </FormRow>
+    </FormSection>
   );
 }
 
 function PaymentMethod({ state }: { state: PaymentFormState }): ReactElement {
   return (
-    <Field>
+    <Field className="max-w-56">
       <Label id="payment-method-label">Forma de pagamento</Label>
       <Select
         value={state.draft.method}
@@ -166,11 +194,7 @@ function PaymentMethod({ state }: { state: PaymentFormState }): ReactElement {
           if (parsed.success) state.dispatch({ type: "method", value: parsed.data });
         }}
       >
-        <SelectTrigger
-          size="sm"
-          className="h-11 text-base sm:h-control-sm sm:text-control"
-          aria-labelledby="payment-method-label"
-        >
+        <SelectTrigger size="sm" aria-labelledby="payment-method-label">
           <SelectValue>{METHOD_LABELS[state.draft.method]}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -195,22 +219,15 @@ function PaymentFooter({
     (sum, receipt) => sum + receipt.amountCents,
     0,
   );
-  const remaining = state.preview.reduce(
-    (sum, row) => sum + (row.line?.quote.remainingCents ?? 0),
-    0,
-  );
   const disabled =
     state.submitting || (!state.uncertain && (state.loading || state.draft.items.length === 0));
   return (
-    <DialogFooter className="mt-4 flex-col items-stretch border-t border-border pt-4 sm:items-center">
-      <div className="mr-auto space-y-1 text-caption" aria-live="polite">
+    <DialogFooter className="mt-5 border-t border-border pt-4">
+      <div className="mr-auto self-center text-caption" aria-live="polite">
         <p className="flex items-baseline gap-3">
           <span className="text-muted-foreground">Total recebido</span>
-          <span className="font-numeric text-h3 font-semibold">{money(total)}</span>
+          <span className="font-numeric text-control font-semibold">{money(total)}</span>
         </p>
-        {state.draft.items.length > 0 && (
-          <p className="text-muted-foreground">{remainingLabel(state, remaining)}</p>
-        )}
       </div>
       <div className="flex justify-end gap-2">
         <Button
@@ -224,6 +241,7 @@ function PaymentFooter({
         </Button>
         <Button type="submit" form={FORM_ID} size="sm" disabled={disabled}>
           {submissionLabel(state, total)}
+          <Check className="size-4" aria-hidden />
         </Button>
       </div>
     </DialogFooter>
@@ -233,11 +251,4 @@ function PaymentFooter({
 function submissionLabel(state: PaymentFormState, total: number): string {
   if (state.submitting) return "Registrando…";
   return state.uncertain ? "Verificar registro" : `Registrar ${money(total)}`;
-}
-
-function remainingLabel(state: PaymentFormState, remaining: number): string {
-  if (state.loading) return "Calculando prévia…";
-  if (state.preview.length !== state.draft.items.length || state.preview.some((row) => !row.line))
-    return "Saldo após pagamento: prévia indisponível";
-  return `Saldo após pagamento: ${money(remaining)}`;
 }

@@ -1,5 +1,4 @@
-import { createHatchetSessionsGenerateQueue } from "@lazuli/integrations/hatchet";
-import { resolveStaffIdentity, type StaffIdentity, type StaffSession } from "@lazuli/auth";
+import { resolveStaffIdentity, staffRoleFromHeaders, type StaffIdentity, type StaffSession } from "@lazuli/auth";
 import {
   createLocalReportGenerateQueue,
   type ReportGenerateQueue,
@@ -24,6 +23,7 @@ export type Context = {
 };
 
 type CreateTRPCContextInput = {
+  headers?: Headers;
   db?: DbClient;
   now?: Date;
   reportGenerateQueue?: ReportGenerateQueue;
@@ -46,7 +46,7 @@ export async function createTRPCContext(input: CreateTRPCContextInput): Promise<
   const staffUser =
     session === null
       ? null
-      : await resolveStaffUser({ db, email: session.user.email, now: input.now ?? new Date() });
+      : await resolveStaffUser({ db, email: session.user.email, now: input.now ?? new Date(), role: staffRoleFromHeaders(input.headers) });
 
   return {
     db,
@@ -63,6 +63,7 @@ async function resolveDefaultDb(): Promise<DbClient> {
 }
 
 async function resolveStaffUser(input: {
+  role?: string;
   db: DbClient;
   email: string;
   now: Date;
@@ -70,8 +71,9 @@ async function resolveStaffUser(input: {
   return resolveStaffIdentity(
     await input.db.user.findUnique({
       where: { email: input.email },
-      include: { teacherProfile: { select: { departureDate: true } } },
+      include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
     }),
     input.now,
+    input.role,
   );
 }

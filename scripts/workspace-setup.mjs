@@ -100,6 +100,7 @@ async function configureEnvironment(workspace) {
       workspace.resources.database,
     ),
     GCS_ARTIFACTS_BUCKET: workspace.resources.bucket,
+    S3_BUCKET: workspace.resources.bucket,
     LAZULI_STORYBOOK_PORT: String(workspace.ports.storybook),
     LAZULI_WEB_PORT: String(workspace.ports.web),
   });

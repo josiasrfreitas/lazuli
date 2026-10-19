@@ -4,6 +4,7 @@
  */
 
 export const WORKER_HANDLERS_PACKAGE = "@lazuli/worker-handlers" as const;
+export { processAssessmentFile, recoverAssessmentFiles } from "./assessments/process-file.js";
 export {
   generateClassSessions,
   planClassSessionRows,

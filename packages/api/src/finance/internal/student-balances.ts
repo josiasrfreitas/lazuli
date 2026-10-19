@@ -18,6 +18,7 @@ export type StudentOverdueTotal = {
 type LoadedBeneficiary = {
   studentId: string;
   order: {
+    kind: string;
     cancelledAt: Date | null;
     installments: Array<{
       amountCents: number;
@@ -64,7 +65,8 @@ function sumOverdueCents(input: {
       ...installment,
       orderCancelledAt: input.link.order.cancelledAt,
       now: input.now,
-      interestRatePctMonthly: input.interestRatePctMonthly,
+      interestRatePctMonthly:
+        input.link.order.kind === "MATERIAL" ? 0 : input.interestRatePctMonthly,
     });
 
     if (ledger.status === "OVERDUE") {
@@ -89,6 +91,7 @@ async function loadBeneficiaries(
       deletedAt: null,
     },
     select: {
+      kind: true,
       cancelledAt: true,
       contract: { select: { studentId: true } },
       beneficiaries: {

@@ -1,3 +1,14 @@
+import { prepareSemester } from "./prepare.js";
+import {
+  moveSchema,
+  declineSchema,
+  closedRangeSchema,
+  periodSchema,
+  updatePeriod,
+  movePlacements,
+  declinePlacements,
+  closeRange,
+} from "./commands.js";
 import {
   z,
   semesterScopeSchema,
@@ -20,12 +31,95 @@ import {
 } from "./write.js";
 import { publishPlacements, withdrawPlacement } from "./publish.js";
 import { dispatchSessionGeneration } from "../session-generation/requests.js";
+import { saoPauloDateOnly } from "@lazuli/domain";
 const context = (ctx: Context & { staffUser: StaffUser }) => ({
   database: ctx.db,
   staffUser: ctx.staffUser,
   now: ctx.now ?? new Date(),
 });
 export const semesterOrganizationRouter = router({
+  studentIntent: adminProcedure
+    .input(z.object({ studentId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const records = await ctx.db.studentAvailability.findMany({
+        where: {
+          studentId: input.studentId,
+          deletedAt: null,
+          semester: {
+            endDate: { gte: new Date(saoPauloDateOnly(ctx.now ?? new Date())) },
+            deletedAt: null,
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        include: { semester: { select: { id: true, name: true, startDate: true, endDate: true } } },
+      });
+      const placements = await ctx.db.semesterPlacement.findMany({
+        where: {
+          studentId: input.studentId,
+          deletedAt: null,
+          semesterId: { in: records.map((record) => record.semesterId) },
+        },
+        include: { plan: { select: { name: true } }, stage: { select: { internalCode: true } } },
+      });
+      return records
+        .filter(
+          (record, index) =>
+            records.findIndex((candidate) => candidate.semesterId === record.semesterId) === index,
+        )
+        .map((record) => ({
+          semester: record.semester,
+          confirmed: record.confirmed,
+          notes: record.notes,
+          placement:
+            placements.find((placement) => placement.semesterId === record.semesterId) ?? null,
+        }));
+    }),
+  updatePeriod: adminProcedure
+    .input(periodSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => updatePeriod({ ...context(ctx), database }, input)),
+    ),
+  prepare: adminProcedure
+    .input(semesterScopeSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (database) => prepareSemester({ ...context(ctx), database }, input.semesterId),
+        { timeout: 30_000 },
+      ),
+    ),
+  move: adminProcedure
+    .input(moveSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => movePlacements({ ...context(ctx), database }, input), {
+        timeout: 30_000,
+      }),
+    ),
+  decline: adminProcedure
+    .input(declineSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => declinePlacements({ ...context(ctx), database }, input), {
+        timeout: 30_000,
+      }),
+    ),
+  closeRange: adminProcedure
+    .input(closedRangeSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => closeRange({ ...context(ctx), database }, input)),
+    ),
+  holidays: adminProcedure
+    .input(z.object({ year: z.number().int().min(2000).max(2100) }))
+    .query(async ({ input }) => {
+      const response = await fetch(`https://brasilapi.com.br/api/feriados/v1/${input.year}`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!response.ok)
+        throw new Error(
+          "A fonte de feriados está indisponível. Tente novamente ou cadastre a data manualmente.",
+        );
+      return z
+        .array(z.object({ date: z.string(), name: z.string(), type: z.string() }))
+        .parse(await response.json());
+    }),
   semesters: adminProcedure.query(({ ctx }) =>
     ctx.db.semester.findMany({ orderBy: { startDate: "desc" } }),
   ),

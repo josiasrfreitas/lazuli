@@ -18,10 +18,16 @@ export const semesterPlanSchema = semesterScopeSchema
     format: classFormatSchema,
     sharedStageId: id.nullable(),
     teacherId: id.nullable(),
-    slots: classScheduleSlotsInputSchema,
+    slots: z.array(classScheduleSlotInputSchema).min(1).max(21),
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (!value.id) {
+      const schedule = classScheduleSlotsInputSchema.safeParse(value.slots);
+      if (!schedule.success)
+        for (const issue of schedule.error.issues)
+          ctx.addIssue({ code: "custom", path: ["slots", ...issue.path], message: issue.message });
+    }
     if ((value.scheduleType === "REGULAR") !== Boolean(value.sharedStageId))
       ctx.addIssue({
         code: "custom",
@@ -54,6 +60,7 @@ export const semesterPlacementSchema = semesterScopeSchema
     studentId: id,
     stageId: id.nullable(),
     sourceProgressId: id.nullable(),
+    effectiveDate: calendarDateSchema.optional(),
     mode: z.enum(["ENTRY", "CONTINUE", "ADVANCE", "REPEAT"]),
     notes: z.string().trim().max(1200).default(""),
   })

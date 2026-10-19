@@ -1,0 +1,151 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 24px;
+  padding-block: 16px;
+}
+
+.sources {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding-inline-end: 24px;
+  border-inline-end: 1px solid var(--border);
+}
+
+.fields {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.occurrences {
+  max-height: min(44dvh, 380px);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  border-block: 1px solid var(--border);
+}
+
+.occurrences:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.occurrence {
+  padding: 8px;
+  border-block-end: 1px solid var(--border);
+}
+
+.occurrence:last-child {
+  border-block-end: 0;
+}
+
+.occurrence[data-selected="true"] {
+  background: var(--accent);
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.choice > [data-slot="checkbox"] {
+  margin-block-start: 2px;
+}
+
+.choiceText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+.choiceText strong {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--heading);
+}
+
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 2px;
+}
+
+.account {
+  margin-block-start: 4px;
+  margin-inline-start: 24px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.account summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--interactive);
+}
+
+.account summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.account p,
+.account div {
+  margin-block-start: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  padding: 24px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+@media (min-width: 768px) {
+  /* The form determines the row height; reports fill the remaining space. */
+  .sources {
+    contain: size;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .sources > [data-slot="form-section"],
+  .sources > [data-slot="form-section"] > [data-slot="field"]:last-child {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .occurrences {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sources {
+    padding-inline-end: 0;
+    border-inline-end: 0;
+  }
+
+  .occurrences {
+    max-height: 240px;
+  }
+}
