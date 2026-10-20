@@ -17,7 +17,11 @@ export function StudentPage({ id }: { id: string }): ReactElement {
     <div className="mx-auto grid w-full max-w-7xl content-start gap-6 p-4 sm:p-6">
       {profile.isPending && <ProfileLoading />}
       {profile.isError && (
-        <ProfileError message={profile.error.message} onRetry={() => void profile.refetch()} />
+        <ProfileError
+          message={profileErrorMessage(profile.error.data?.code)}
+          onRetry={() => void profile.refetch()}
+          isRetrying={profile.isFetching}
+        />
       )}
       {profile.data && (
         <>
@@ -27,6 +31,12 @@ export function StudentPage({ id }: { id: string }): ReactElement {
       )}
     </div>
   );
+}
+
+function profileErrorMessage(code: string | undefined): string {
+  if (code === "NOT_FOUND") return "Aluno não encontrado.";
+  if (code === "BAD_REQUEST") return "Endereço de aluno inválido.";
+  return "Não foi possível carregar o aluno. Tente novamente.";
 }
 
 function StudentIdentity({ profile }: { profile: StudentProfile }): ReactElement {
