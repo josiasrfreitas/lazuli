@@ -2,6 +2,7 @@ export type PendingFile = {
   id: string;
   progressId: string;
   phase: "BLOCK_ONE" | "BLOCK_TWO" | "RECOVERY";
+  competence?: "WRITTEN" | "LISTENING";
   appointmentId?: string;
   file: File;
   createdAt: number;
@@ -72,6 +73,7 @@ export function transferFile(item: PendingFile, onProgress: (value: number) => v
           id: item.id,
           progressId: item.progressId,
           phase: item.phase,
+          competence: item.competence,
           appointmentId: item.appointmentId,
           fileName: item.file.name,
           contentType: item.file.type,

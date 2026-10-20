@@ -49,6 +49,10 @@ export { EmptyState } from "./components/empty-state";
 export type { EmptyStateProps } from "./components/empty-state";
 export { Input } from "./components/input";
 export type { InputProps, InputSize } from "./components/input";
+export { FileUpload, formatFileSize } from "./components/file-upload";
+export type { FileUploadProps } from "./components/file-upload";
+export { FileAttachmentDialog } from "./components/file-attachment-dialog";
+export type { FileAttachmentDialogProps } from "./components/file-attachment-dialog";
 export { CurrencyInput } from "./components/currency-input";
 export type { CurrencyInputProps } from "./components/currency-input";
 export {
@@ -238,7 +242,11 @@ export { useStickyBoundary } from "./hooks/use-sticky-boundary";
 export { CommandMenu } from "./components/command-menu";
 export type { CommandMenuItem, CommandMenuProps } from "./components/command-menu";
 
-export { ScheduleCalendar, getScheduleCalendarRange, getScheduleCalendarNavigation } from "./components/schedule-calendar";
+export {
+  ScheduleCalendar,
+  getScheduleCalendarRange,
+  getScheduleCalendarNavigation,
+} from "./components/schedule-calendar";
 export type {
   ScheduleCalendarProps,
   CalendarDateRange,

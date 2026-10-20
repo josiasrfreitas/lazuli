@@ -10,7 +10,17 @@ import {
   type CalendarView,
 } from "@lazuli/ui";
 import { occurrenceCreateSchema } from "@lazuli/validators";
-import { CalendarDays, Check, FileText, MessageSquare, Tag, UserRound, X, Zap } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  FileText,
+  MessageSquare,
+  RefreshCw,
+  Tag,
+  UserRound,
+  X,
+  Zap,
+} from "lucide-react";
 import { SelectControl, TextControl } from "~/features/classes/form-controls";
 import { monday, schoolToday, shiftDate } from "~/features/class-records/calendar-model";
 import { TaskDialog, NarrativeField, useValidation } from "~/features/shared/task-form";
@@ -237,6 +247,7 @@ export function OccurrenceForm({
                     variant="secondary"
                     onClick={() => void roster.refetch()}
                   >
+                    <RefreshCw aria-hidden="true" />
                     Tentar novamente
                   </Button>
                 </div>

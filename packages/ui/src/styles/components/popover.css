@@ -1,0 +1,70 @@
+/* Reveal the anchored surface without changing layout; the negative inset retains its arrow. */
+.lz-popover-unfold {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  clip-path: inset(-2rem);
+  transition:
+    clip-path var(--lz-duration-base) var(--lz-ease-standard),
+    transform var(--lz-duration-base) var(--lz-ease-standard),
+    opacity var(--lz-duration-fast) var(--lz-ease-standard);
+}
+.lz-popover-unfold[data-starting-style],
+.lz-popover-unfold[data-ending-style] {
+  opacity: 0;
+  transform: translateY(-0.375rem) scale(0.97);
+  clip-path: inset(-1rem -1rem calc(100% - 1rem) -1rem);
+}
+.lz-popover-unfold[data-side="top"][data-starting-style],
+.lz-popover-unfold[data-side="top"][data-ending-style] {
+  transform: translateY(0.375rem) scale(0.97);
+  clip-path: inset(calc(100% - 1rem) -1rem -1rem -1rem);
+}
+.lz-popover-unfold[data-ending-style] {
+  transition-duration: var(--lz-duration-fast);
+}
+.lz-popover-unfold [data-menu-item] {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    transform var(--lz-duration-fast) var(--lz-ease-standard),
+    opacity var(--lz-duration-fast) var(--lz-ease-standard);
+}
+.lz-popover-unfold [data-menu-item]:nth-child(2) {
+  transition-delay: calc(var(--lz-duration-fast) / 4);
+}
+.lz-popover-unfold [data-menu-item]:nth-child(3) {
+  transition-delay: calc(var(--lz-duration-fast) / 2);
+}
+.lz-popover-unfold [data-menu-item]:nth-child(4) {
+  transition-delay: calc(var(--lz-duration-fast) * 3 / 4);
+}
+.lz-popover-unfold [data-menu-item]:nth-child(n + 5) {
+  transition-delay: var(--lz-duration-fast);
+}
+.lz-popover-unfold[data-starting-style] [data-menu-item] {
+  opacity: 0;
+  transform: translateY(-0.25rem);
+}
+.lz-popover-unfold[data-ending-style] [data-menu-item] {
+  opacity: 0;
+  transform: translateY(-0.25rem);
+  transition-delay: 0ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lz-popover-unfold,
+  .lz-popover-unfold[data-starting-style],
+  .lz-popover-unfold[data-ending-style],
+  .lz-popover-unfold[data-side="top"][data-starting-style],
+  .lz-popover-unfold[data-side="top"][data-ending-style] {
+    transform: none;
+    clip-path: none;
+    transition: opacity var(--lz-duration-fast) var(--lz-ease-standard);
+  }
+  .lz-popover-unfold [data-menu-item],
+  .lz-popover-unfold[data-starting-style] [data-menu-item],
+  .lz-popover-unfold[data-ending-style] [data-menu-item] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

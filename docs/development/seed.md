@@ -370,6 +370,34 @@ sem enviar mensagem, alterar chamada ou gerar cobrança. O loader participa some
 `pnpm seed` completo, depois de V4/V5 e antes do Log, sem workflow incremental ou aplicação
 parcial. A reconstrução oficial de 11/10/2026 foi concluída no banco isolado da branch integrada: 17 atendimentos e 14 contatos, preservando os 250 alunos, 22 turmas e 7 professores. A validação dos fluxos reais fica registrada na evidência da vertical V6.
 
+## Current class organization
+
+The complete seed also loads the current period in `/organizacao`, through
+`scripts/seed/class-organization.ts`. Run the public `pnpm seed` from the worktree root;
+this recreates that worktree's database and fake-GCS bucket.
+
+The additional scenarios preserve the original 250 student fixtures and their histories:
+
+- A regular E2 class on Monday, 10:00–12:00, with Camila Duarte and two new students,
+  Marina Azevedo Peixoto and Pedro Afonso Lacerda. It demonstrates low occupancy.
+- Existing E2A has four students (intermediate occupancy), with two possible departures and
+  distinct reasons. Existing groups with eight or more students demonstrate good occupancy.
+- Two current E1A students need to change classes, with confirmed availability on Tuesday and
+  Thursday, 20:00–21:00. They remain enrolled in their original class until a transfer is confirmed.
+- Five new E1 leads share that availability and prefer regular in-person classes. The E1 queue
+  groups them with the two school students so the coordinator can form a class from the group.
+- Isabela Paes Mendonça awaits placement assessment and has no stage yet.
+- An editable E1 evening draft and a closed C2 plan demonstrate opening and reopening. The latter
+  appears when closed classes are shown.
+- Existing annual contracts remain intact. Students whose contract covers the next semester
+  display expected continuity; the seed does not replace that evidence with a manual confirmation.
+
+The total school now contains 252 students and 23 actual current-period classes, plus drafts.
+Occupancy in this screen counts active enrollments at the period's reference date, not proposals
+or leads: 0–3 is low, 4–7 is intermediate, and 8+ is good. Future departures do not remove a student
+from today's count. Queue origin tags distinguish school students from leads, while each person's
+expanded row contains availability, reasons and the appropriate next action.
+
 ## Log de atividades
 
 O bootstrap termina com uma linha do tempo baseada nos fatos que acabou de carregar: entradas

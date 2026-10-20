@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays } from "lucide-react";
 import agenda from "~/features/appointments/student-carousel.module.css";
-import { Button, InlineSkeleton, PencilLoader } from "@lazuli/ui";
+import { Button, InlineSkeleton } from "@lazuli/ui";
 import { StudentDeskLoading } from "~/features/pedagogical-follow-up/student-desk-loading";
 import desk from "~/features/pedagogical-follow-up/student-desk.module.css";
 
@@ -72,7 +72,11 @@ export function PedagogyLoading(): ReactElement {
   );
 }
 
-export function AppointmentsLoading(): ReactElement {
+export function AppointmentsLoading({
+  canSchedule = false,
+}: {
+  canSchedule?: boolean;
+}): ReactElement {
   return (
     <section className={agenda.agenda} aria-label="Carregando atendimentos" aria-busy="true">
       <header className={agenda.heading}>
@@ -84,9 +88,11 @@ export function AppointmentsLoading(): ReactElement {
           <Button size="sm" variant="link" disabled>
             Ver agenda
           </Button>
-          <Button size="sm" variant="secondary" disabled>
-            <CalendarDays aria-hidden="true" /> Agendar atendimento
-          </Button>
+          {canSchedule && (
+            <Button size="sm" variant="secondary" disabled>
+              <CalendarDays aria-hidden="true" /> Agendar atendimento
+            </Button>
+          )}
           <Button size="icon-sm" variant="ghost" disabled aria-label="Atendimentos anteriores">
             <ArrowLeft />
           </Button>
@@ -96,12 +102,12 @@ export function AppointmentsLoading(): ReactElement {
         </div>
       </header>
       <ul className={agenda.rail} aria-hidden="true">
-        {[0, 1, 2, 3, 4].map((item) => (
+        {[0, 1].map((item) => (
           <li key={item}>
             <div className={agenda.cell}>
               <div className={agenda.date}>
                 <strong>
-                  <InlineSkeleton className="h-8 w-8" />
+                  <InlineSkeleton className="h-8 w-8 rounded-sm" />
                 </strong>
                 <span>
                   <InlineSkeleton className="h-3 w-16" />
@@ -109,12 +115,18 @@ export function AppointmentsLoading(): ReactElement {
               </div>
               <div className={agenda.body}>
                 <strong>
-                  <InlineSkeleton className="h-5 w-28" />
+                  <InlineSkeleton className="h-3.5 w-28 max-w-full rounded-sm" />
                 </strong>
                 <span className={agenda.reason}>
-                  {[0, 1, 2, 3, 4].map((line) => (
+                  {[0, 1].map((line) => (
                     <span key={line} className="flex h-5 items-center">
-                      <InlineSkeleton className={line === 4 ? "h-3 w-24" : "h-3 w-40"} />
+                      <InlineSkeleton
+                        className={
+                          line === 1
+                            ? "h-3 w-24 max-w-full rounded-sm"
+                            : "h-3 w-40 max-w-full rounded-sm"
+                        }
+                      />
                     </span>
                   ))}
                 </span>

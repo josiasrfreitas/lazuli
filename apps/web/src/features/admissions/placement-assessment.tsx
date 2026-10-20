@@ -1,6 +1,20 @@
 "use client";
-import { useState } from "react";
-import { CalendarDays, Download, FileUp } from "lucide-react";
+
+import { useId, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Check,
+  Download,
+  FileCheck2,
+  FileText,
+  FileUp,
+  GraduationCap,
+  MessageSquare,
+  Pencil,
+  UserRound,
+  X,
+} from "lucide-react";
 import {
   Alert,
   Badge,
@@ -9,57 +23,54 @@ import {
   DialogBackdrop,
   DialogBody,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogPortal,
   DialogTitle,
   Field,
-  Input,
   Label,
+  PencilLoader,
+  Textarea,
 } from "@lazuli/ui";
-import { MAX_PLACEMENT_FILE_BYTES } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
 import { schoolToday } from "~/features/class-records/calendar-model";
+import { PlacementAttachmentDialog } from "~/features/assessment-files/placement-attachment-dialog";
+import { downloadFileBase64 } from "~/features/assessment-files/file-transfer";
 import { IntakeStageSelect } from "./intake-fields";
 import { PlacementSchedule } from "./placement-schedule";
 import { dateLabel, formatLabel, type Candidate } from "./labels";
+import { placementHasStarted, placementStatus } from "./placement-state";
+import styles from "./placement-review.module.css";
 
 type Visit = Candidate["visits"][number];
 
 export function PlacementAssessment({ candidate }: { candidate: Candidate }) {
   const [scheduling, setScheduling] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
   const visits = candidate.visits.filter((row) => row.kind === "PLACEMENT");
-  const pending = visits.some((row) => row.status === "SCHEDULED");
-  const latest = visits.find((row) => row.status !== "CANCELLED");
-  const next = latest?.assessment?.stageId
-    ? "Estágio definido"
-    : latest?.assessment
-      ? "Aguardando correção"
-      : pending
-        ? "Prova agendada"
-        : "Agendar nivelamento";
   return (
-    <section className="grid gap-4 border-b border-border pb-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="grid gap-1">
-          <h2 className="font-display text-h3 font-semibold">Nivelamento</h2>
-          <p className="text-caption text-muted-foreground">{next}</p>
-        </div>
-        {candidate.status === "WAITING" && !pending && (
-          <Button variant="secondary" size="sm" onClick={() => setScheduling(true)}>
-            <CalendarDays />
-            {visits.length ? "Novo nivelamento" : "Agendar prova"}
-          </Button>
-        )}
-      </div>
-      {!visits.length && (
-        <p className="text-caption">
-          A prova pode ser presencial ou online. O professor define o estágio após a aplicação.
-        </p>
-      )}
+    <section className={styles.section}>
+      <h2>Nivelamento</h2>
       {visits.map((visit) => (
-        <PlacementVisit key={visit.id} visit={visit} editable={candidate.status === "WAITING"} />
+        <Button key={visit.id} variant="secondary" onClick={() => setSelected(visit.id)}>
+          {dateLabel(visit.date)} · {placementStatus(visit).label}
+        </Button>
       ))}
+      {candidate.status === "WAITING" && !visits.some((row) => row.status === "SCHEDULED") && (
+        <Button variant="secondary" onClick={() => setScheduling(true)}>
+          <CalendarDays />
+          Agendar nivelamento
+        </Button>
+      )}
+      {selected && (
+        <PlacementVisitDialog
+          candidateId={candidate.id}
+          visitId={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
       {scheduling && (
         <PlacementSchedule candidate={candidate} onClose={() => setScheduling(false)} />
       )}
@@ -67,207 +78,30 @@ export function PlacementAssessment({ candidate }: { candidate: Candidate }) {
   );
 }
 
-function readFile(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo."));
-    reader.onload = () => resolve(String(reader.result).split(",")[1]!);
-    reader.readAsDataURL(file);
-  });
-}
-
-export function PlacementVisit({ visit, editable }: { visit: Visit; editable: boolean }) {
-  const utils = trpc.useUtils();
-  const refresh = () =>
-    Promise.all([utils.admissions.invalidate(), utils.classRecords.invalidate()]);
-  const upload = trpc.admissions.placementUpload.useMutation({ onSuccess: refresh });
-  const download = trpc.admissions.placementDownload.useMutation();
-  const result = trpc.admissions.placementResult.useMutation({ onSuccess: refresh });
-  const cancel = trpc.admissions.outcome.useMutation({ onSuccess: refresh });
-  const teachers = trpc.teachers.options.useQuery({ date: schoolToday(), search: "" });
-  const assign = trpc.admissions.assignPlacement.useMutation({ onSuccess: refresh });
-  const [file, setFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState("");
-  const [reading, setReading] = useState(false);
-  const [stageId, setStageId] = useState<string | null>(visit.assessment?.stageId ?? null);
-  const [notes, setNotes] = useState(visit.assessment?.notes ?? "");
-  const [cancellation, setCancellation] = useState<string | null>(null);
-  const inactive = visit.status === "CANCELLED" || visit.status === "ABSENT";
-  const canEdit = editable && !inactive;
-  async function sendFile() {
-    if (!file || reading || upload.isPending) return;
-    setFileError("");
-    if (file.size > MAX_PLACEMENT_FILE_BYTES) return setFileError("O arquivo deve ter até 5 MB.");
-    if (!["application/pdf", "image/jpeg", "image/png"].includes(file.type))
-      return setFileError("Escolha um PDF, JPG ou PNG.");
-    setReading(true);
-    try {
-      await upload.mutateAsync({
-        id: visit.id,
-        fileName: file.name,
-        contentType: file.type as "application/pdf" | "image/jpeg" | "image/png",
-        base64: await readFile(file),
-      });
-      setFile(null);
-    } catch (error) {
-      setFileError(error instanceof Error ? error.message : "Não foi possível anexar a prova.");
-    } finally {
-      setReading(false);
-    }
-  }
-  async function downloadFile() {
-    try {
-      const attachment = await download.mutateAsync({ id: visit.id });
-      const bytes = Uint8Array.from(atob(attachment.base64), (char) => char.charCodeAt(0));
-      const url = URL.createObjectURL(new Blob([bytes], { type: attachment.contentType }));
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = attachment.fileName;
-      anchor.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch {
-      /* Mutation error is displayed below. */
-    }
-  }
-  return (
-    <div className="grid gap-3 rounded-lg border border-border p-4">
-      {canEdit && (
-        <SelectControl
-          name={`placement-teacher-${visit.id}`}
-          label="Professor responsável pela correção"
-          value={visit.teacherId ?? ""}
-          onChange={(value) => assign.mutate({ id: visit.id, teacherId: value || null })}
-          choices={[
-            { value: "", label: "Atribuir depois" },
-            ...(teachers.data ?? []).map((teacher) => ({ value: teacher.id, label: teacher.name })),
-          ]}
-        />
-      )}
-      {assign.error && <Alert variant="destructive">{assign.error.message}</Alert>}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-caption font-medium">
-          {dateLabel(visit.date)} · {visit.startTime}–{visit.endTime} · {formatLabel(visit.format)}
-        </p>
-        <Badge variant={visit.assessment?.stageId ? "success" : "neutral"}>
-          {inactive
-            ? visit.status === "CANCELLED"
-              ? "Cancelado"
-              : "Não compareceu"
-            : visit.assessment?.stageId
-              ? "Estágio definido"
-              : visit.assessment
-                ? "Aguardando correção"
-                : "Aguardando prova"}
-        </Badge>
-      </div>
-      {visit.assessment ? (
-        <>
-          <Button
-            variant="ghost"
-            className="justify-start"
-            disabled={download.isPending}
-            onClick={() => void downloadFile()}
-          >
-            <Download />
-            {visit.assessment.fileName}
-          </Button>
-          <p className="text-caption text-muted-foreground">
-            Anexada por {visit.assessment.uploadedBy.name}.
-          </p>
-          {visit.assessment.stage && (
-            <p className="text-caption">
-              {visit.assessment.stage.name} · Resultado registrado por{" "}
-              {visit.assessment.correctedBy?.name}.
-            </p>
-          )}
-          {canEdit && (
-            <>
-              <IntakeStageSelect value={stageId} onChange={setStageId} />
-              <TextControl
-                name={`placement-notes-${visit.id}`}
-                label="Observações da correção"
-                value={notes}
-                onChange={setNotes}
-              />
-              <Button
-                disabled={!stageId || result.isPending}
-                onClick={() => stageId && result.mutate({ id: visit.id, stageId, notes })}
-              >
-                {result.isPending ? "Salvando…" : "Registrar estágio"}
-              </Button>
-            </>
-          )}
-        </>
-      ) : (
-        canEdit && (
-          <>
-            <Field>
-              <Label>Arquivo da prova · PDF, JPG ou PNG, até 5 MB</Label>
-              <Input
-                type="file"
-                accept="application/pdf,image/jpeg,image/png"
-                onChange={(event) => {
-                  setFile(event.target.files?.[0] ?? null);
-                  setFileError("");
-                }}
-              />
-            </Field>
-            <Button
-              variant="secondary"
-              disabled={!file || reading || upload.isPending}
-              onClick={() => void sendFile()}
-            >
-              <FileUp />
-              {reading || upload.isPending ? "Enviando…" : "Anexar prova"}
-            </Button>
-          </>
-        )
-      )}
-      {canEdit &&
-        !visit.assessment &&
-        (cancellation === null ? (
-          <Button variant="ghost" size="sm" onClick={() => setCancellation("")}>
-            Cancelar atendimento
-          </Button>
-        ) : (
-          <div className="grid gap-2">
-            <TextControl
-              name={`cancel-${visit.id}`}
-              label="Motivo do cancelamento"
-              value={cancellation}
-              onChange={setCancellation}
-            />
-            <Button
-              variant="secondary"
-              disabled={!cancellation.trim() || cancel.isPending}
-              onClick={() =>
-                cancel.mutate({ id: visit.id, status: "CANCELLED", notes: cancellation })
-              }
-            >
-              Confirmar cancelamento
-            </Button>
-          </div>
-        ))}
-      {(fileError || download.error || result.error || cancel.error) && (
-        <Alert variant="destructive">
-          {fileError || download.error?.message || result.error?.message || cancel.error?.message}
-        </Alert>
-      )}
-    </div>
-  );
-}
-
 export function PlacementVisitDialog({
   candidateId,
   visitId,
   onClose,
+  initialUpload = false,
 }: {
   candidateId: string;
   visitId: string;
   onClose: () => void;
+  initialUpload?: boolean;
 }) {
   const query = trpc.admissions.byId.useQuery({ id: candidateId });
   const visit = query.data?.visits.find((row) => row.id === visitId);
+  if (visit && query.data)
+    return (
+      <PlacementVisit
+        key={visit.id}
+        visit={visit}
+        person={query.data.fullName}
+        editable={query.data.status === "WAITING"}
+        initialUpload={initialUpload}
+        onClose={onClose}
+      />
+    );
   return (
     <Dialog
       open
@@ -277,17 +111,400 @@ export function PlacementVisitDialog({
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className="md:max-w-xl">
+        <DialogContent className={`${styles.dialog} md:max-w-xl`}>
           <DialogHeader>
-            <DialogTitle>Nivelamento · {query.data?.fullName ?? "Lead"}</DialogTitle>
+            <DialogTitle>Nivelamento</DialogTitle>
+            <DialogDescription>{query.data?.fullName ?? "Atendimento do lead"}</DialogDescription>
           </DialogHeader>
           <DialogBody>
-            {visit ? (
-              <PlacementVisit visit={visit} editable={query.data?.status === "WAITING"} />
+            {query.error ? (
+              <Alert variant="destructive">
+                {query.error.message}
+                <Button variant="ghost" onClick={() => void query.refetch()}>
+                  Tentar novamente
+                </Button>
+              </Alert>
             ) : (
-              <p role="status">{query.error?.message ?? "Carregando atendimento…"}</p>
+              <div className={styles.body}>
+                <PencilLoader size="sm" label="Carregando atendimento" />
+              </div>
             )}
           </DialogBody>
+          <DialogFooter className={styles.footer}>
+            <Button variant="secondary" onClick={onClose}>
+              <X />
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
+  );
+}
+
+function PlacementVisit({
+  visit,
+  editable,
+  person,
+  initialUpload,
+  onClose,
+}: {
+  visit: Visit;
+  editable: boolean;
+  person: string;
+  initialUpload: boolean;
+  onClose: () => void;
+}) {
+  const utils = trpc.useUtils();
+  const refresh = () =>
+    Promise.all([
+      utils.admissions.invalidate(),
+      utils.classRecords.invalidate(),
+      utils.students.pendingActions.invalidate(),
+      utils.teacherWorkspace.invalidate(),
+    ]);
+  const download = trpc.admissions.placementDownload.useMutation();
+  const result = trpc.admissions.placementResult.useMutation({ onSuccess: refresh });
+  const upload = trpc.admissions.placementUpload.useMutation({ onSuccess: refresh });
+  const cancel = trpc.admissions.outcome.useMutation({ onSuccess: refresh });
+  const teachers = trpc.teachers.options.useQuery({ date: schoolToday(), search: "" });
+  const assign = trpc.admissions.assignPlacement.useMutation({ onSuccess: refresh });
+  const [stageId, setStageId] = useState<string | null>(visit.assessment?.stageId ?? null);
+  const [notes, setNotes] = useState(visit.assessment?.notes ?? "");
+  const [editing, setEditing] = useState(!visit.assessment?.stageId);
+  const [cancellation, setCancellation] = useState<string | null>(null);
+  const [attaching, setAttaching] = useState<"ORIGINAL" | "CORRECTED" | null>(
+    initialUpload ? "ORIGINAL" : null,
+  );
+  const title = useRef<HTMLHeadingElement>(null);
+  const formId = useId();
+  const inactive = visit.status === "CANCELLED" || visit.status === "ABSENT";
+  const canEdit = editable && !inactive;
+  const started = placementHasStarted(visit);
+  const pending = result.isPending || cancel.isPending || assign.isPending || upload.isPending;
+  const status = placementStatus(visit);
+  if (attaching)
+    return (
+      <PlacementAttachmentDialog
+        visit={visit}
+        person={person}
+        kind={attaching}
+        onUpload={(file) => upload.mutateAsync(file)}
+        onClose={() => {
+          if (initialUpload && attaching === "ORIGINAL" && !visit.assessment) onClose();
+          else setAttaching(null);
+        }}
+        onComplete={() => setAttaching(null)}
+      />
+    );
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !pending) onClose();
+      }}
+    >
+      <DialogPortal>
+        <DialogBackdrop />
+        <DialogContent
+          className={`${styles.dialog} md:max-w-xl`}
+          showCloseButton={!pending}
+          initialFocus={() => title.current}
+        >
+          <DialogHeader>
+            <DialogTitle ref={title} tabIndex={-1} className="outline-none">
+              Nivelamento
+            </DialogTitle>
+            <DialogDescription>{person}</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className={styles.body}>
+              <div className={styles.context}>
+                <p>
+                  {dateLabel(visit.date)} · {visit.startTime}–{visit.endTime}
+                  <br />
+                  {formatLabel(visit.format)}
+                </p>
+                <Badge variant={status.variant}>{status.label}</Badge>
+              </div>
+              <section className={styles.section}>
+                {visit.assessment ? (
+                  <div className={styles.proof}>
+                    <FileText aria-hidden="true" />
+                    <div>
+                      <p>Prova aplicada</p>
+                      <strong>{visit.assessment.fileName}</strong>
+                      <p>Anexada por {visit.assessment.uploadedBy.name}</p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="compact-responsive"
+                      loading={download.isPending}
+                      onClick={async () => {
+                        try {
+                          downloadFileBase64(await download.mutateAsync({ id: visit.id }));
+                        } catch {
+                          /* Shown below. */
+                        }
+                      }}
+                    >
+                      <Download />
+                      Baixar
+                    </Button>
+                  </div>
+                ) : (
+                  <div className={styles.emptyProof}>
+                    <FileUp aria-hidden="true" />
+                    <h3>{inactive ? "Nenhuma prova anexada" : "Anexe a prova aplicada"}</h3>
+                    <p>
+                      {inactive
+                        ? "Este atendimento está encerrado para alterações."
+                        : started
+                          ? "Envie uma foto ou PDF. Depois, registre o estágio indicado pelo professor."
+                          : "O envio fica disponível a partir do início do atendimento. Você pode definir o professor agora."}
+                    </p>
+                    {canEdit && (
+                      <Button
+                        size="compact-responsive"
+                        disabled={!started || pending}
+                        onClick={() => setAttaching("ORIGINAL")}
+                      >
+                        <FileUp />
+                        Anexar prova
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {download.error && <Alert variant="destructive">{download.error.message}</Alert>}
+              </section>
+              {visit.assessment && (
+                <section className={styles.result}>
+                  <div className={styles.resultActions}>
+                    <h3>Resultado do nivelamento</h3>
+                    {canEdit && !editing && (
+                      <Button
+                        variant="ghost"
+                        size="compact-responsive"
+                        onClick={() => setEditing(true)}
+                      >
+                        <Pencil />
+                        Editar resultado
+                      </Button>
+                    )}
+                  </div>
+                  {canEdit && editing ? (
+                    <form
+                      id={formId}
+                      className={styles.form}
+                      noValidate
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        if (stageId && !pending)
+                          result.mutate(
+                            { id: visit.id, stageId, notes },
+                            { onSuccess: () => setEditing(false) },
+                          );
+                      }}
+                    >
+                      <IntakeStageSelect
+                        value={stageId}
+                        onChange={setStageId}
+                        disabled={pending}
+                        openOnFocus={false}
+                        labelIcon={
+                          <GraduationCap aria-hidden="true" className="size-4 text-icon" />
+                        }
+                      />
+                      <Field>
+                        <Label htmlFor={`placement-notes-${visit.id}`}>
+                          <span className="inline-flex items-center gap-1.5">
+                            <MessageSquare aria-hidden="true" className="size-4 text-icon" />
+                            Observações da correção
+                          </span>
+                        </Label>
+                        <Textarea
+                          id={`placement-notes-${visit.id}`}
+                          name={`placement-notes-${visit.id}`}
+                          rows={4}
+                          maxLength={2000}
+                          disabled={pending}
+                          placeholder="Pontos observados na prova"
+                          value={notes}
+                          onChange={(event) => setNotes(event.target.value)}
+                        />
+                      </Field>
+                    </form>
+                  ) : (
+                    <>
+                      <strong>{visit.assessment.stage?.name ?? "Aguardando correção"}</strong>
+                      {visit.assessment.correctedBy && (
+                        <p>Resultado registrado por {visit.assessment.correctedBy.name}.</p>
+                      )}
+                      {visit.assessment.notes && <p>{visit.assessment.notes}</p>}
+                    </>
+                  )}
+                  {result.error && <Alert variant="destructive">{result.error.message}</Alert>}
+                  <div className={styles.correctedFile}>
+                    <h4>
+                      <FileCheck2 aria-hidden="true" />
+                      Prova corrigida <span>Opcional</span>
+                    </h4>
+                    {visit.assessment.correctedFile ? (
+                      <div className={styles.proof}>
+                        <FileCheck2 aria-hidden="true" />
+                        <div>
+                          <strong>{visit.assessment.correctedFile.fileName}</strong>
+                          <p>Anexada por {visit.assessment.correctedFile.uploadedBy.name}</p>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="compact-responsive"
+                          loading={download.isPending}
+                          onClick={async () => {
+                            try {
+                              downloadFileBase64(
+                                await download.mutateAsync({ id: visit.id, kind: "CORRECTED" }),
+                              );
+                            } catch {
+                              /* Shown above. */
+                            }
+                          }}
+                        >
+                          <Download />
+                          Baixar
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <p>
+                          {canEdit
+                            ? "Você pode anexar a versão com as correções do professor."
+                            : "Nenhuma versão corrigida anexada."}
+                        </p>
+                        {canEdit && (
+                          <Button
+                            variant="secondary"
+                            size="compact-responsive"
+                            disabled={pending}
+                            onClick={() => setAttaching("CORRECTED")}
+                          >
+                            <FileUp />
+                            Anexar prova corrigida
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </section>
+              )}
+              {canEdit && (
+                <section className={styles.secondary}>
+                  <SelectControl
+                    name={`placement-teacher-${visit.id}`}
+                    label="Professor responsável pela correção"
+                    labelIcon={<UserRound aria-hidden="true" className="size-4 text-icon" />}
+                    value={visit.teacherId ?? ""}
+                    onChange={(value) => {
+                      if (!pending) assign.mutate({ id: visit.id, teacherId: value || null });
+                    }}
+                    choices={[
+                      { value: "", label: "Atribuir depois" },
+                      ...(visit.teacherId &&
+                      !teachers.data?.some((teacher) => teacher.id === visit.teacherId)
+                        ? [
+                            {
+                              value: visit.teacherId,
+                              label: visit.teacherName ?? "Professor atribuído",
+                            },
+                          ]
+                        : []),
+                      ...(teachers.data ?? []).map((teacher) => ({
+                        value: teacher.id,
+                        label: teacher.name,
+                      })),
+                    ]}
+                  />
+                  {assign.error && <Alert variant="destructive">{assign.error.message}</Alert>}
+                  {!visit.assessment &&
+                    (cancellation === null ? (
+                      <Button
+                        variant="destructive-ghost"
+                        size="compact-responsive"
+                        onClick={() => setCancellation("")}
+                      >
+                        <X />
+                        Cancelar atendimento
+                      </Button>
+                    ) : (
+                      <form
+                        className={styles.form}
+                        noValidate
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          if (cancellation.trim() && !pending)
+                            cancel.mutate({
+                              id: visit.id,
+                              status: "CANCELLED",
+                              notes: cancellation,
+                            });
+                        }}
+                      >
+                        <TextControl
+                          name={`cancel-${visit.id}`}
+                          label="Motivo do cancelamento"
+                          labelIcon={
+                            <MessageSquare aria-hidden="true" className="size-4 text-icon" />
+                          }
+                          placeholder="Descreva o motivo"
+                          value={cancellation}
+                          onChange={setCancellation}
+                        />
+                        <div className={styles.resultActions}>
+                          <Button
+                            variant="ghost"
+                            disabled={pending}
+                            onClick={() => setCancellation(null)}
+                          >
+                            <ArrowLeft />
+                            Voltar
+                          </Button>
+                          <Button
+                            type="submit"
+                            variant="destructive"
+                            loading={cancel.isPending}
+                            disabled={!cancellation.trim() || pending}
+                          >
+                            <X />
+                            Confirmar cancelamento
+                          </Button>
+                        </div>
+                      </form>
+                    ))}
+                  {cancel.error && <Alert variant="destructive">{cancel.error.message}</Alert>}
+                </section>
+              )}
+              {visit.cancellationReason && (
+                <p className="text-caption text-muted-foreground">{visit.cancellationReason}</p>
+              )}
+            </div>
+          </DialogBody>
+          <DialogFooter className={styles.footer}>
+            <Button variant="secondary" disabled={pending} onClick={onClose}>
+              <X />
+              Fechar
+            </Button>
+            {canEdit && editing && visit.assessment && (
+              <Button
+                type="submit"
+                form={formId}
+                loading={result.isPending}
+                disabled={!stageId || pending}
+              >
+                <Check />
+                Registrar estágio
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </DialogPortal>
     </Dialog>

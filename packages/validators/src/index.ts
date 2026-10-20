@@ -208,13 +208,27 @@ export {
 export {
   assessmentProgressSchema,
   assessmentSaveSchema,
+  assessmentObservationsSchema,
   assessmentConfirmSchema,
   type AssessmentSave,
   type AssessmentConfirm,
 } from "./assessment.js";
 export { leadCaptureSchema, leadInterestSchema, leadRegistrationSchema } from "./leads.js";
-export { placementCalendarSchema, placementScheduleSchema, placementFileSchema, placementResultSchema, MAX_PLACEMENT_FILE_BYTES } from "./placement.js";
-export { studentIntakeOptionsSchema, studentIntakeEnrollSchema, studentIntakeAllocateSchema, studentIntakeResumeSchema } from "./student-intake.js";
+export { MAX_UPLOAD_FILE_MB, MAX_UPLOAD_FILE_BYTES } from "./file-upload.js";
+export {
+  placementCalendarSchema,
+  placementScheduleSchema,
+  placementFileSchema,
+  placementDownloadSchema,
+  placementResultSchema,
+  MAX_PLACEMENT_FILE_BYTES,
+} from "./placement.js";
+export {
+  studentIntakeOptionsSchema,
+  studentIntakeEnrollSchema,
+  studentIntakeAllocateSchema,
+  studentIntakeResumeSchema,
+} from "./student-intake.js";
 export { activityListSchema, type ActivityListInput } from "./activity.js";
 export {
   occurrenceCategorySchema,

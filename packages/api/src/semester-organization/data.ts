@@ -58,6 +58,8 @@ export async function recordPlacementRevision(
         availabilityId: row.availabilityId,
         publishedAt: row.publishedAt?.toISOString() ?? null,
         notes: row.notes,
+        continuity: row.continuity,
+        continuityReason: row.continuityReason,
       },
     },
   });

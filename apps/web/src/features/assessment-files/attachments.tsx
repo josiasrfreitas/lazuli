@@ -1,15 +1,14 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Alert, Badge, Button, Input } from "@lazuli/ui";
+import { ArrowLeft, ArrowUpRight, Check, FileText, Trash2 } from "lucide-react";
+import { Alert, Badge, Button, Input, PencilLoader } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { SelectControl } from "~/features/classes/form-controls";
 import { PHASE_LABELS } from "~/features/assessments/shared";
-import { useAssessmentUploads } from "./queue-provider";
-import { formatDateOnlyBR } from "~/lib/format";
 import type { RouterOutputs } from "@lazuli/api";
+import styles from "./attachments.module.css";
 
-type FileRow = RouterOutputs["assessmentFiles"]["list"][number];
+export type FileRow = RouterOutputs["assessmentFiles"]["list"][number];
 const status: Record<FileRow["status"], string> = {
   UPLOADING: "Recebimento pendente",
   RECEIVED: "Recebido · na fila",
@@ -20,137 +19,53 @@ const status: Record<FileRow["status"], string> = {
   REMOVED: "Retirado",
 };
 
-export function AssessmentAttachments({
-  progressId,
-  studentId,
-  appointmentId,
-}: {
-  progressId: string;
-  studentId: string;
-  appointmentId?: string;
-}) {
-  const query = trpc.assessmentFiles.list.useQuery({ progressId }, { refetchInterval: 5_000 });
-  const appointments = trpc.appointments.forStudent.useQuery({ studentId });
-  const [phase, setPhase] = useState<"BLOCK_ONE" | "BLOCK_TWO" | "RECOVERY">("BLOCK_ONE");
-  const [appointment, setAppointment] = useState(appointmentId ?? "");
-  const [error, setError] = useState("");
-  const [adding, setAdding] = useState(false);
-  const uploads = useAssessmentUploads();
-  const eligible =
-    appointments.data?.filter(
-      (row) => row.purpose === "ASSESSMENT" && row.status !== "CANCELLED",
-    ) ?? [];
-  return (
-    <section
-      className="grid min-w-0 gap-4 border-t border-border pt-5"
-      aria-label="Provas anexadas"
-    >
-      <div>
-        <h3 className="text-sm font-semibold">Provas · opcional</h3>
-        <p className="mt-1 text-caption text-muted-foreground">
-          Fotos JPG/PNG ou PDFs, até 20 MB por arquivo. As notas podem ser salvas sem anexos.
-        </p>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <SelectControl
-          name={`proof-phase-${progressId}`}
-          label="Unidade da prova"
-          value={phase}
-          onChange={(value) => setPhase(value as typeof phase)}
-          choices={Object.entries(PHASE_LABELS).map(([value, label]) => ({ value, label }))}
-        />
-        {eligible.length > 0 && (
-          <SelectControl
-            name={`proof-appointment-${progressId}`}
-            label="Atendimento de aplicação · opcional"
-            value={appointment}
-            onChange={setAppointment}
-            choices={[
-              { value: "", label: "Sem atendimento associado" },
-              ...eligible.map((row) => ({
-                value: row.id,
-                label: `${formatDateOnlyBR(row.date)} · ${row.startTime}`,
-              })),
-            ]}
-          />
-        )}
-      </div>
-      <label className="grid gap-2 text-sm">
-        Adicionar arquivos
-        <Input
-          type="file"
-          multiple
-          accept="application/pdf,image/jpeg,image/png"
-          disabled={adding}
-          onChange={async (event) => {
-            const files = Array.from(event.target.files ?? []);
-            event.target.value = "";
-            setError("");
-            setAdding(true);
-            try {
-              await uploads.add(files, {
-                progressId,
-                phase,
-                ...(appointment ? { appointmentId: appointment } : {}),
-              });
-            } catch (cause) {
-              setError(
-                cause instanceof Error
-                  ? cause.message
-                  : "Não foi possível colocar o arquivo na fila.",
-              );
-            } finally {
-              setAdding(false);
-            }
-          }}
-        />
-      </label>
-      {error && <Alert variant="destructive">{error}</Alert>}
-      {query.error && (
-        <Alert variant="destructive">
-          Não foi possível consultar os anexos.
-          <Button variant="ghost" onClick={() => void query.refetch()}>
-            Tentar novamente
-          </Button>
-        </Alert>
-      )}
-      {query.isPending && (
-        <p role="status" className="text-caption">
-          Consultando provas…
-        </p>
-      )}
-      {query.data && <FileList rows={query.data} refresh={() => void query.refetch()} />}
-    </section>
-  );
-}
-
 export function AppointmentAssessmentFiles({ id, studentId }: { id: string; studentId: string }) {
   const query = trpc.assessmentFiles.appointment.useQuery({ id });
   const me = trpc.me.useQuery();
   return (
-    <section className="grid gap-3 border-t border-border pt-4">
-      <h3 className="text-sm font-semibold">Provas deste atendimento</h3>
-      <p className="text-caption text-muted-foreground">
-        O arquivo é o mesmo disponível em Notas. A conclusão do atendimento não lança uma nota
-        automaticamente.
-      </p>
-      <Link
-        className="text-sm text-interactive underline"
-        href={
-          me.data?.role === "TEACHER"
-            ? `/professor/alunos/${studentId}?secao=notas`
-            : `/alunos/${studentId}`
-        }
-      >
-        Abrir notas e anexar prova
-      </Link>
-      {query.data && <FileList rows={query.data} refresh={() => void query.refetch()} />}
+    <section className={styles.section}>
+      <div className={styles.heading}>
+        <h3>Notas e provas</h3>
+        <Button
+          variant="link"
+          size="sm"
+          nativeButton={false}
+          render={
+            <Link
+              href={
+                me.data?.role === "TEACHER"
+                  ? `/professor/alunos/${studentId}?secao=notas`
+                  : `/alunos/${studentId}`
+              }
+            />
+          }
+        >
+          <ArrowUpRight aria-hidden="true" />
+          Abrir avaliações
+        </Button>
+      </div>
+      {query.isPending && <PencilLoader size="sm" label="Consultando provas" />}
+      {query.data && query.data.length > 0 && (
+        <FileList rows={query.data} refresh={() => void query.refetch()} />
+      )}
       {query.error && <Alert variant="destructive">{query.error.message}</Alert>}
     </section>
   );
 }
 
-function FileList({ rows, refresh }: { rows: FileRow[]; refresh: () => void }) {
+export function FileList({
+  rows,
+  refresh,
+  allowRemove = true,
+  showPhase = true,
+  identify = false,
+}: {
+  rows: FileRow[];
+  refresh: () => void;
+  allowRemove?: boolean;
+  showPhase?: boolean;
+  identify?: boolean;
+}) {
   const me = trpc.me.useQuery();
   const [removing, setRemoving] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -161,77 +76,126 @@ function FileList({ rows, refresh }: { rows: FileRow[]; refresh: () => void }) {
       refresh();
     },
   });
+  const identifyFile = trpc.assessmentFiles.identify.useMutation({ onSuccess: refresh });
   return (
-    <div className="grid gap-3">
+    <div className={styles.list}>
       {rows.length === 0 && (
         <p className="text-caption text-muted-foreground">Nenhuma prova anexada.</p>
       )}
       {rows.map((row) => (
-        <div key={row.id} className="grid gap-2 rounded-md border border-border p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-caption">{PHASE_LABELS[row.phase]}</span>
-            <Badge
-              variant={
-                row.status === "READY"
-                  ? "success"
-                  : row.status === "FAILED" || row.status === "REJECTED"
-                    ? "warning"
-                    : "neutral"
-              }
-            >
-              {status[row.status]}
-            </Badge>
+        <div key={row.id}>
+          <div className={styles.file}>
+            <FileText aria-hidden="true" />
+            <div className={styles.identity}>
+              {row.status === "READY" ? (
+                <a
+                  className={styles.filename}
+                  href={`/api/assessment-files/${row.id}`}
+                  aria-label={`Baixar ${row.fileName}`}
+                >
+                  {row.fileName}
+                </a>
+              ) : (
+                <p className={styles.filename}>{row.fileName}</p>
+              )}
+              <div className={styles.metadata}>
+                {showPhase && <span>{PHASE_LABELS[row.phase]}</span>}
+                <Badge
+                  variant={
+                    row.status === "READY"
+                      ? "success"
+                      : row.status === "FAILED" || row.status === "REJECTED"
+                        ? "warning"
+                        : "neutral"
+                  }
+                >
+                  {status[row.status]}
+                </Badge>
+              </div>
+            </div>
+            {allowRemove &&
+              removing !== row.id &&
+              me.data &&
+              (me.data.role !== "TEACHER" || row.uploadedById === me.data.id) && (
+                <Button
+                  size="icon-compact-responsive"
+                  variant="ghost"
+                  aria-label={`Retirar ${row.fileName}`}
+                  title="Retirar anexo"
+                  disabled={remove.isPending}
+                  onClick={() => {
+                    setReason("");
+                    remove.reset();
+                    setRemoving(row.id);
+                  }}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+              )}
           </div>
-          {row.status === "READY" ? (
-            <a
-              className="break-all text-sm text-interactive underline"
-              href={`/api/assessment-files/${row.id}`}
-            >
-              {row.fileName} · Baixar
-            </a>
-          ) : (
-            <p className="break-all text-sm">{row.fileName}</p>
-          )}
-          {removing === row.id ? (
-            <form
-              className="grid gap-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                remove.mutate({ id: row.id, reason });
-              }}
-            >
+          {identify &&
+            !row.competence &&
+            me.data &&
+            (me.data.role !== "TEACHER" || row.uploadedById === me.data.id) && (
+              <div className="flex flex-wrap items-center gap-2 py-1">
+                <span className="text-caption text-muted-foreground">Tipo de prova:</span>
+                {(["WRITTEN", "LISTENING"] as const).map((competence) => (
+                  <Button
+                    key={competence}
+                    size="sm"
+                    variant="secondary"
+                    disabled={identifyFile.isPending}
+                    onClick={() => identifyFile.mutate({ id: row.id, competence })}
+                  >
+                    <Check aria-hidden="true" />
+                    {competence === "WRITTEN" ? "Written" : "Listening"}
+                  </Button>
+                ))}
+              </div>
+            )}
+          {allowRemove && removing === row.id && (
+            <div className={styles.removal}>
               <Input
                 aria-label="Motivo da retirada"
+                size="dense"
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") return;
+                  event.preventDefault();
+                  if (!remove.isPending && reason.trim().length >= 3)
+                    remove.mutate({ id: row.id, reason: reason.trim() });
+                }}
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 placeholder="Motivo da retirada"
                 required
                 minLength={3}
+                disabled={remove.isPending}
               />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
-                  type="submit"
                   variant="destructive-outline"
-                  disabled={remove.isPending}
+                  disabled={remove.isPending || reason.trim().length < 3}
+                  onClick={() => remove.mutate({ id: row.id, reason: reason.trim() })}
                 >
-                  Confirmar retirada
+                  <Trash2 aria-hidden="true" />
+                  Retirar
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setRemoving(null)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={remove.isPending}
+                  onClick={() => setRemoving(null)}
+                >
+                  <ArrowLeft aria-hidden="true" />
                   Voltar
                 </Button>
               </div>
-            </form>
-          ) : (
-            me.data &&
-            (me.data.role !== "TEACHER" || row.uploadedById === me.data.id) && (
-              <Button size="sm" variant="ghost" onClick={() => setRemoving(row.id)}>
-                Retirar anexo
-              </Button>
-            )
+            </div>
           )}
         </div>
       ))}
+      {identifyFile.error && <Alert variant="destructive">{identifyFile.error.message}</Alert>}
       {remove.error && <Alert variant="destructive">{remove.error.message}</Alert>}
     </div>
   );

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useId, useState } from "react";
-import { Check, ChevronRight, CircleDashed, UserRoundPlus, X } from "lucide-react";
+import { Check, ChevronRight, CircleDashed, ListFilter, UserRoundPlus, X } from "lucide-react";
 import { Avatar, Button, Input } from "@lazuli/ui";
 import type { ClassRecord } from "./shared";
 import {
@@ -149,6 +149,7 @@ export function RecordAttendance({
                 setGuestsOnly(false);
               }}
             >
+              <ListFilter aria-hidden="true" />
               Limpar filtro
             </Button>
           )}

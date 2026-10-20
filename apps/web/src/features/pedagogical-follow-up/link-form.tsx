@@ -6,7 +6,7 @@ import { z } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { TaskDialog, useValidation } from "~/features/shared/task-form";
 import { CATEGORY, dateLabel, QueryState } from "./shared";
-import { FormFieldLoading } from "./form-field-loading";
+import { QueryLoading } from "~/components/query-loading";
 import styles from "./link-form.module.css";
 
 const normalize = (value: string): string =>
@@ -121,7 +121,7 @@ export function LinkOccurrenceForm({
         </Field>
         <QueryState pending={false} error={rows.error} retry={() => void rows.refetch()} />
         {rows.isPending ? (
-          <FormFieldLoading label="Relatos do aluno" />
+          <QueryLoading label="Carregando relatos do aluno" />
         ) : (
           !rows.isError && (
             <fieldset

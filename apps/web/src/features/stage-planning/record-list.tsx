@@ -1,3 +1,4 @@
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { Button, DataTable } from "@lazuli/ui";
 import { KIND_LABELS, dateLabel, type Planning } from "./shared";
@@ -59,6 +60,7 @@ export function PlanningRecords({
                       />
                     }
                   >
+                    <ArrowUpRight aria-hidden="true" />
                     Abrir aula
                   </Button>
                 ),

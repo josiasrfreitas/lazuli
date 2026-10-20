@@ -58,6 +58,8 @@ export type ScheduleCalendarProps<Event extends CalendarEvent = CalendarEvent> =
     /** Fixed window stays usable when there are no events. End can be 24:00. */
     hours?: { start: string; end: string };
     density?: "comfortable" | "compact";
+    /** Fit every day and overlap lane within the container, or retain readable scrolling lanes. */
+    widthBehavior?: "scroll" | "fit";
     status?: "ready" | "loading" | "error";
     errorMessage?: string;
     onRetry?: () => void;

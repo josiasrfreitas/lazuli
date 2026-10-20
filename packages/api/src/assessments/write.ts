@@ -6,6 +6,7 @@ import { readAssessment, type AssessmentView } from "./read.js";
 import { assertGradeChanges, gradeChanges } from "./rules.js";
 import { recordAssessmentChanges } from "./activity.js";
 import { recordActivity } from "../activity/record.js";
+import { mergeObservations, observationChanges } from "./observations.js";
 
 export async function saveAssessment(
   context: AssessmentContext,
@@ -13,24 +14,33 @@ export async function saveAssessment(
 ): Promise<AssessmentView> {
   const progress = await lockProgress(context, values.progressId);
   const changes = gradeChanges(progress, values);
+  const notes = observationChanges(progress, values);
   await assertGradeChanges(context, progress, values, changes);
-  if (changes.length === 0) return readAssessment(context, progress.id);
+  if (changes.length === 0 && notes.length === 0) return readAssessment(context, progress.id);
   const id = await ensureAssessment(context, progress);
   for (const grade of changes) await writeGrade(context, id, grade, values.correctionReason);
   await context.database.stageAssessment.update({
     where: { id },
     data: {
       version: values.version + 1,
-      decision: null,
-      decisionReason: null,
-      confirmedAt: null,
-      confirmedById: null,
+      ...(notes.length > 0 ? { observations: mergeObservations(progress, notes) } : {}),
+      ...(changes.length > 0
+        ? {
+            decision: null,
+            decisionReason: null,
+            confirmedAt: null,
+            confirmedById: null,
+          }
+        : {}),
     },
   });
-  await recordAssessmentChanges(context, progress, values, changes);
+  await recordAssessmentChanges(context, progress, values, changes, notes);
   return readAssessment(context, progress.id);
 }
-export async function ensureAssessment(context: AssessmentContext, progress: Progress): Promise<string> {
+export async function ensureAssessment(
+  context: AssessmentContext,
+  progress: Progress,
+): Promise<string> {
   if (progress.assessmentId) return progress.assessmentId;
   const created = await context.database.stageAssessment.create({
     data: {

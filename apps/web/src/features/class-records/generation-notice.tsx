@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, type ReactElement } from "react";
-import { Check, LoaderCircle, CalendarClock, RefreshCw } from "lucide-react";
+import { CalendarClock, Check, LoaderCircle, RefreshCw } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
@@ -41,6 +41,7 @@ export function GenerationState({
       <p className="text-caption text-muted-foreground">
         Não foi possível consultar a preparação das aulas.{" "}
         <Button variant="link" onClick={() => void query.refetch()}>
+          <RefreshCw aria-hidden="true" />
           Tentar novamente
         </Button>
       </p>

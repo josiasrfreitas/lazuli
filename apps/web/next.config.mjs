@@ -4,6 +4,8 @@ const LOGIN_IMAGE_QUALITY = 90;
 /** @type {import("next").NextConfig} */
 const config = {
   reactStrictMode: true,
+  // Keep the floating development badge from covering mobile account controls.
+  devIndicators: false,
   serverExternalPackages: ["@hatchet-dev/typescript-sdk"],
   allowedDevOrigins: ["*.lazuli.localhost"],
   images: {

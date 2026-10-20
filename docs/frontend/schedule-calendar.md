@@ -53,7 +53,9 @@ const events: CalendarEvent[] = [
 ```
 
 Give the component a bounded-height parent (for example `h-[38rem]`). The calendar fills that
-space and scrolls its time grid internally. `density="compact"` is intended for dialogs;
+space and scrolls its time grid internally, including short landscape viewports. Neither the
+root nor the time viewport enforces a minimum height beyond its parent's available space.
+`density="compact"` is intended for dialogs;
 `comfortable` preserves the spacious Agenda layout. Week view keeps readable columns and scrolls
 horizontally on narrow screens; day view remains available through the same controlled API.
 
@@ -81,12 +83,7 @@ import { ScheduleCalendar, getScheduleCalendarRange } from "@lazuli/ui";
 const window = { date, view, dayCount: 7, minDate: today };
 const { from, through } = getScheduleCalendarRange(window);
 // Fetch commitments for the inclusive from–through range, even across calendar weeks.
-<ScheduleCalendar
-  {...window}
-  events={events}
-  onDateChange={setDate}
-  onViewChange={setView}
-/>;
+<ScheduleCalendar {...window} events={events} onDateChange={setDate} onViewChange={setView} />;
 ```
 
 Previous/next move by the configured batch size (or one day in day view), with unavailable
@@ -187,6 +184,13 @@ lanes, bounded by the available grid width while retaining space for neighboring
 change event height or duration. The pixel target is converted to a flex share using the grid's
 available width, so opening, closing, and switching days retain the existing expansion transition.
 Omit it to retain the default proportional expansion.
+
+`widthBehavior="fit"` keeps the time axis, all visible dates and concurrent lanes within the
+container width, without the default per-day or per-lane minimum widths. Combine it with
+`density="compact"` for personal agendas and `expandEvents={false}` when lanes should stay
+stable. Custom event content must adapt to narrow cells and retain complete accessible labels;
+weekly headings still open a date in day view. The default `"scroll"` preserves readable minimum
+lane widths for dense administrative calendars. See the `Fitted` Storybook example.
 
 The Agenda's custom weekly card may reveal overflowing text in a taller overlay when individually
 expanded. The event wrapper retains its original time position and duration; the overlay grows only

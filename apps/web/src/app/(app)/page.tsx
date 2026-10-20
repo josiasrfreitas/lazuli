@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { userAgent } from "next/server";
 import type { ReactNode } from "react";
 
 import { getStaffIdentity } from "@lazuli/auth/server";
 import { EmptyState } from "@lazuli/ui";
 
 import { homeHrefFor } from "~/components/app-shell/nav-items";
+import { experienceActivationHref } from "~/lib/staff-experience";
 
 export const metadata: Metadata = { title: "Início" };
 
@@ -16,11 +18,20 @@ export const metadata: Metadata = { title: "Início" };
  * a screen whose procedures would deny it.
  */
 export default async function HomePage(): Promise<ReactNode> {
-  const identity = await getStaffIdentity({ headers: await headers() });
+  const requestHeaders = await headers();
+  const identity = await getStaffIdentity({ headers: requestHeaders });
 
   if (identity === null) {
     // The (app) layout guard already redirects; this only satisfies the type.
     redirect("/login");
+  }
+
+  if (
+    userAgent({ headers: requestHeaders }).device.type === "mobile" &&
+    identity.roles?.includes("TEACHER") &&
+    identity.role !== "TEACHER"
+  ) {
+    redirect(experienceActivationHref("TEACHER", "/professor"));
   }
 
   const home = homeHrefFor(identity.role);

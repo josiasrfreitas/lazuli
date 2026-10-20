@@ -89,16 +89,44 @@ function EnrollmentCell({ enrollment }: { enrollment: StudentListRow["enrollment
   );
 }
 
-function StudentActions({ row, onContinue }: { row: StudentListRow; onContinue?: (id: string) => void }): ReactElement {
+function StudentActions({
+  row,
+  onContinue,
+}: {
+  row: StudentListRow;
+  onContinue?: (id: string) => void;
+}): ReactElement {
   const whatsapp = whatsAppVm(row);
-  return <TableCell onClick={event => event.stopPropagation()}>
-    <div className="flex items-center justify-end gap-1">
-      {row.registrationPending && onContinue && <Button size="icon-sm" variant="ghost" title="Continuar cadastro"
-        aria-label={`Continuar cadastro de ${row.fullName}`} onClick={() => onContinue(row.id)}><ClipboardList aria-hidden="true" /></Button>}
-      {whatsapp && <Button nativeButton={false} render={<a aria-label={whatsapp.label} href={whatsapp.url} rel="noreferrer" target="_blank" />}
-        size="icon-sm" variant="ghost"><MessageCircle aria-hidden="true" /></Button>}
-    </div>
-  </TableCell>;
+  return (
+    <TableCell onClick={(event) => event.stopPropagation()}>
+      <div className="flex items-center justify-end gap-1">
+        {row.registrationPending && onContinue && (
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="cursor-pointer"
+            title="Continuar cadastro"
+            aria-label={`Continuar cadastro de ${row.fullName}`}
+            onClick={() => onContinue(row.id)}
+          >
+            <ClipboardList aria-hidden="true" />
+          </Button>
+        )}
+        {whatsapp && (
+          <Button
+            nativeButton={false}
+            render={
+              <a aria-label={whatsapp.label} href={whatsapp.url} rel="noreferrer" target="_blank" />
+            }
+            size="icon-sm"
+            variant="ghost"
+          >
+            <MessageCircle aria-hidden="true" />
+          </Button>
+        )}
+      </div>
+    </TableCell>
+  );
 }
 
 export function StudentsTableRow({
@@ -251,7 +279,9 @@ export function StudentsTable({
         </TableHeader>
         <TableBody>
           {state.kind === "data" ? (
-            state.rows.map((row) => <StudentsTableRow key={row.id} onOpen={onOpenRow} onContinue={onContinue} row={row} />)
+            state.rows.map((row) => (
+              <StudentsTableRow key={row.id} onOpen={onOpenRow} onContinue={onContinue} row={row} />
+            ))
           ) : (
             <StatesRow onRetry={onRetry} state={state} pageSize={pagination.pageSize} />
           )}

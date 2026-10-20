@@ -1,13 +1,12 @@
 "use client";
 import { useState, type ReactElement, type ReactNode } from "react";
-import { Badge, Button, cn } from "@lazuli/ui";
+import { Badge, Button } from "@lazuli/ui";
 import { formatDateOnlyBR } from "~/lib/format";
-import { AssessmentDialog } from "./assessment-dialog";
+import { Check } from "lucide-react";
+import { AssessmentWorkspace } from "./assessment-workspace";
 import { ConfirmationDialog } from "./confirmation-dialog";
-import { AssessmentResults } from "./results-table";
 import { AcademicProgressChart } from "./progress-chart";
 import { STATUS_LABELS, type Assessment } from "./shared";
-import { AssessmentAttachments } from "~/features/assessment-files/attachments";
 
 type SummaryProps = {
   data: Assessment;
@@ -23,67 +22,44 @@ export function AssessmentSummary({
   selector,
   showHeading = true,
 }: SummaryProps): ReactElement {
-  const [dialog, setDialog] = useState<"grades" | "confirm" | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [editorState, setEditorState] = useState({ dirty: false, pending: false });
   return (
-    <div className="grid min-w-0 gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {showHeading && <AssessmentHeading data={data} layout={layout} />}
-        <div className="flex flex-wrap items-end gap-3">
+    <div className="grid w-full min-w-0 gap-3">
+      {(showHeading || selector) && (
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          {showHeading && <AssessmentHeading data={data} layout={layout} />}
           {selector}
-          <div className="flex flex-wrap gap-2">
-            <Button size="compact-responsive" onClick={() => setDialog("grades")}>
-              {data.grades.length ? "Atualizar notas" : "Lançar notas"}
-            </Button>
-            {layout !== "profile" && data.canConfirm && !data.decision && (
-              <Button
-                variant="secondary"
-                size="compact-responsive"
-                disabled={data.status === "INCOMPLETE"}
-                onClick={() => setDialog("confirm")}
-              >
-                Concluir avaliação
-              </Button>
-            )}
-          </div>
         </div>
-      </div>
-      <div
-        className={cn(
-          "grid min-w-0 items-start gap-4",
-          layout === "profile" && chart && "xl:grid-cols-5 xl:gap-6",
-        )}
-      >
-        {chart && (
-          <div
-            className={cn(
-              "min-w-0",
-              layout === "profile" && "border border-border bg-accent p-4 xl:col-span-2",
-            )}
-          >
+      )}
+      <AssessmentWorkspace data={data} onStateChange={setEditorState} />
+      <AssessmentDecision data={data} />
+      {data.canConfirm && !data.decision && data.status !== "INCOMPLETE" && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="w-fit"
+          disabled={editorState.dirty || editorState.pending}
+          title={
+            editorState.dirty ? "Salve as alterações antes de concluir a avaliação." : undefined
+          }
+          onClick={() => setConfirming(true)}
+        >
+          <Check aria-hidden="true" />
+          Concluir avaliação
+        </Button>
+      )}
+      {chart && (
+        <details className="min-w-0 text-caption">
+          <summary className="w-fit cursor-pointer py-1 text-interactive">
+            Evolução das notas
+          </summary>
+          <div className="pt-2">
             <AcademicProgressChart data={data} />
           </div>
-        )}
-        <div className={cn("grid min-w-0 gap-3", layout === "profile" && chart && "xl:col-span-3")}>
-          <AssessmentResults data={data} />
-          <AssessmentDecision data={data} />
-          {layout === "profile" &&
-            data.canConfirm &&
-            !data.decision &&
-            data.status !== "INCOMPLETE" && (
-              <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
-                <p className="text-caption text-muted-foreground">
-                  Registre a aprovação ou a necessidade de repetir o estágio.
-                </p>
-                <Button variant="secondary" size="sm" onClick={() => setDialog("confirm")}>
-                  Concluir avaliação
-                </Button>
-              </div>
-            )}
-        </div>
-      </div>
-      {dialog === "grades" && <AssessmentDialog data={data} onClose={() => setDialog(null)} />}
-      <AssessmentAttachments progressId={data.progressId} studentId={data.student.id} />
-      {dialog === "confirm" && <ConfirmationDialog data={data} onClose={() => setDialog(null)} />}
+        </details>
+      )}
+      {confirming && <ConfirmationDialog data={data} onClose={() => setConfirming(false)} />}
     </div>
   );
 }
@@ -93,9 +69,11 @@ function AssessmentHeading({ data, layout }: Pick<SummaryProps, "data" | "layout
     <div className="grid gap-1.5">
       <div className="flex flex-wrap items-center gap-3">
         {layout === "profile" ? (
-          <h2 className="font-display text-xl font-semibold text-heading">Avaliações do estágio</h2>
+          <h2 className="font-display text-base font-semibold text-heading">
+            Avaliações do estágio
+          </h2>
         ) : (
-          <h3 className="font-display text-h3 font-semibold">{data.stage.name}</h3>
+          <h3 className="font-display text-base font-semibold">{data.stage.name}</h3>
         )}
         <AssessmentStatusBadge data={data} />
       </div>

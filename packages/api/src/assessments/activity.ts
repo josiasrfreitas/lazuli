@@ -14,6 +14,7 @@ export async function recordAssessmentChanges(
   progress: Progress,
   values: AssessmentSave,
   changes: AssessmentSave["grades"],
+  observations: AssessmentSave["grades"] = [],
 ): Promise<void> {
   const lines = changes.map((grade) => {
     const previous = progress.assessment?.grades.find(
@@ -34,8 +35,16 @@ export async function recordAssessmentChanges(
     },
     description: [
       ...lines,
+      ...observations.map(
+        (grade) =>
+          `${competencies[grade.competence]} · ${phases[grade.phase]}: ${
+            grade.notes ? `Observações: ${grade.notes}` : "Observações removidas."
+          }`,
+      ),
       values.correctionReason ?? "",
-      progress.assessment?.confirmedAt ? "A confirmação pedagógica anterior foi retirada." : "",
+      changes.length > 0 && progress.assessment?.confirmedAt
+        ? "A confirmação pedagógica anterior foi retirada."
+        : "",
     ]
       .filter(Boolean)
       .join("\n"),

@@ -54,12 +54,12 @@ export function CoverageFields({
           <div role="status" aria-label="Carregando faltas de origem" className="grid gap-4 p-3">
             {[0, 1].map((row) => (
               <div key={row} className="flex items-center gap-3" aria-hidden="true">
-                <InlineSkeleton className="h-4 w-4" />
+                <InlineSkeleton className="h-4 w-4 rounded-sm" />
                 <div className="grid flex-1 gap-2">
                   <InlineSkeleton className="h-4 w-1/2" />
                   <InlineSkeleton className="w-1/3" />
                 </div>
-                <InlineSkeleton className="h-8 w-20" />
+                <InlineSkeleton className="h-8 w-20 rounded-md" />
               </div>
             ))}
           </div>

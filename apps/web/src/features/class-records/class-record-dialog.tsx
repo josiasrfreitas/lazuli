@@ -2,7 +2,7 @@
 
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ClipboardCheck, Pencil, X } from "lucide-react";
 import {
   Alert,
   Badge,
@@ -30,13 +30,15 @@ import { DiscardRegistrationDialog } from "~/features/shared/discard-registratio
 export function ClassRecordDialog({
   id,
   onClose,
+  initialEditing = false,
 }: {
   id: string;
   onClose: () => void;
+  initialEditing?: boolean;
 }): ReactElement {
   const me = trpc.me.useQuery();
   const teacher = me.data?.role === "TEACHER";
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(initialEditing);
   const [editorState, setEditorState] = useState({ dirty: false, pending: false });
   const [discard, setDiscard] = useState(false);
   const requestClose = () => {
@@ -71,7 +73,7 @@ export function ClassRecordDialog({
             <LessonLoadingHeader />
           ) : (
             <DialogHeader>
-              <DialogTitle>Detalhes da aula</DialogTitle>
+              <DialogTitle className="text-base">Detalhes da aula</DialogTitle>
             </DialogHeader>
           )}
           <DialogBody aria-busy={query.isPending}>
@@ -82,14 +84,7 @@ export function ClassRecordDialog({
             )}
             {query.data && (
               <div className="grid min-w-0 gap-5">
-                {teacher && !editing && (
-                  <StudentAttendanceSection
-                    sessionId={id}
-                    status={attendance.data}
-                    failed={attendance.isError}
-                    refresh={() => void attendance.refetch()}
-                  />
-                )}
+                {teacher && !editing && <StudentAttendanceSection sessionId={id} />}
                 {editing ? (
                   <ClassRecordEditor
                     key={id}
@@ -111,6 +106,7 @@ export function ClassRecordDialog({
           </DialogBody>
           <DialogFooter>
             <Button variant="secondary" onClick={requestClose} disabled={editorState.pending}>
+              <X aria-hidden="true" />
               Fechar
             </Button>
             {query.data && !editing && (
@@ -129,11 +125,13 @@ export function ClassRecordDialog({
             )}
             {teacher && query.data && !query.data.restriction && !editing && (
               <Button onClick={() => setEditing(true)}>
+                <Pencil aria-hidden="true" />
                 {query.data.version ? "Corrigir registro" : "Registrar aula"}
               </Button>
             )}
             {editing && (
               <Button type="submit" form="class-record-editor" disabled={editorState.pending}>
+                <ClipboardCheck aria-hidden="true" />
                 {query.data?.version ? "Conferir correção" : "Conferir e dar baixa"}
               </Button>
             )}
@@ -163,7 +161,7 @@ function LessonHeader({ data }: { data: ClassRecord }): ReactElement {
     <DialogHeader>
       <div className={styles.headingRow}>
         <div className={styles.title}>
-          <DialogTitle>{session.className}</DialogTitle>
+          <DialogTitle className="text-base">{session.className}</DialogTitle>
           <Badge variant={recorded && !session.cancelled ? "success" : "neutral"}>{status}</Badge>
         </div>
         <DialogDescription>

@@ -10,6 +10,7 @@ import {
   DataTable,
   DataTablePage,
   Input,
+  PencilLoader,
   TableFilters,
   TableFilterChips,
   type TableFilterField,
@@ -133,6 +134,13 @@ function AdmissionsTable({
   filtered: boolean;
 }): ReactElement {
   const router = useRouter();
+  if (!query.data && !query.isError) {
+    return (
+      <div className="grid min-h-48 flex-1 place-items-center" aria-busy="true">
+        <PencilLoader label="Carregando leads" />
+      </div>
+    );
+  }
   return (
     <div className="min-h-0 flex-1">
       <DataTable

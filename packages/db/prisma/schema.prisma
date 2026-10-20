@@ -223,6 +223,7 @@ model User {
   plannedSemesterTeaching SemesterClassPlan[] @relation("SemesterPlanTeacher")
   placementFiles EntryVisitAssessment[] @relation("PlacementFileAuthor")
   placementResults EntryVisitAssessment[] @relation("PlacementResultAuthor")
+  correctedPlacementFiles EntryVisitCorrectedFile[]
 }
 
 model Account {
@@ -789,7 +790,7 @@ model Payer {
 model Contract {
   nextMaterialPurchaseOn DateTime? @map("next_material_purchase_on") @db.Date
   renewedFromId String? @map("renewed_from_id") @db.Uuid
-  renewedFrom Contract? @relation("ContractRenewal", fields: [renewedFromId], references: [id], onDelete: Restrict)
+  renewedFrom Contract? @relation("ContractRenewal", fields: [renewedFromId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   renewals Contract[] @relation("ContractRenewal")
   @@index([renewedFromId])
   terminatedAt DateTime? @map("terminated_at") @db.Timestamptz
@@ -1288,6 +1289,10 @@ enum EntryVisitStatus {
 }
 
 model AdmissionCandidate {
+  allocationPendingAt DateTime? @map("allocation_pending_at") @db.Timestamptz
+  allocationPendingReason String? @map("allocation_pending_reason")
+  allocationPlanId String? @map("allocation_plan_id") @db.Uuid
+  allocationPlan SemesterClassPlan? @relation(fields: [allocationPlanId], references: [id], onDelete: Restrict)
   id String @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
@@ -1404,6 +1409,7 @@ model StageAssessment {
   stageId String @map("stage_id") @db.Uuid
   startedOn DateTime @map("started_on") @db.Date
   version Int @default(1)
+  observations Json?
   decision AcademicDecision?
   decisionReason String? @map("decision_reason")
   confirmedAt DateTime? @map("confirmed_at") @db.Timestamptz
@@ -1680,7 +1686,9 @@ enum SemesterPlacementMode {
 }
 
 model SemesterClassPlan {
-  sourceClass Class? @relation("ClassOrganizationSource", fields: [sourceClassId], references: [id], onDelete: Restrict)
+  closedAt DateTime? @map("closed_at") @db.Timestamptz
+  waitingLeads AdmissionCandidate[]
+  sourceClass Class? @relation("ClassOrganizationSource", fields: [sourceClassId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   sourceClassId String? @map("source_class_id") @db.Uuid
   id String @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
@@ -1730,6 +1738,8 @@ model StudentAvailability {
 }
 
 model SemesterPlacement {
+  continuity String @default("UNDECIDED")
+  continuityReason String? @map("continuity_reason")
   effectiveDate DateTime? @map("effective_date") @db.Date
   declinedAt DateTime? @map("declined_at") @db.Timestamptz
   declinedReason String? @map("declined_reason")
@@ -1824,6 +1834,7 @@ model EntryVisitAssessment {
   stage Stage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
   uploadedBy User @relation("PlacementFileAuthor", fields: [uploadedById], references: [id], onDelete: Restrict)
   correctedBy User? @relation("PlacementResultAuthor", fields: [correctedById], references: [id], onDelete: Restrict)
+  correctedFile EntryVisitCorrectedFile?
 }
 
 enum AssessmentFileStatus {
@@ -1864,6 +1875,7 @@ model AssessmentFile {
   @@index([appointmentId])
   @@index([status, updatedAt])
   @@index([uploadedById])
+  competence AcademicCompetence?
 }
 
 model MaterialOrder {
@@ -2061,4 +2073,17 @@ model ProgramActivityLesson {
   lesson BookLesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
   @@unique([activityId, lessonId, part])
   @@index([lessonId])
+}
+
+model EntryVisitCorrectedFile {
+  visitId String @id @map("visit_id") @db.Uuid
+  bucket String
+  key String
+  fileName String @map("file_name")
+  contentType String @map("content_type")
+  byteLength Int @map("byte_length")
+  uploadedAt DateTime @default(now()) @map("uploaded_at") @db.Timestamptz
+  uploadedById String @map("uploaded_by_id") @db.Uuid
+  assessment EntryVisitAssessment @relation(fields: [visitId], references: [visitId], onDelete: Restrict)
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
 }

@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { BookOpenText, Search } from "lucide-react";
+import { BookOpenText, Plus, Search } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { QueryState } from "./shared";
@@ -68,6 +68,7 @@ export function DeskEmptyDetail({
         algo para compartilhar, comece por uma ocorrência.
       </p>
       <Button size="sm" onClick={create}>
+        <Plus aria-hidden="true" />
         Registrar primeira ocorrência
       </Button>
     </div>

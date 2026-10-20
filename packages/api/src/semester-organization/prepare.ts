@@ -32,12 +32,19 @@ export async function prepareSemester(context: OrganizationContext, semesterId: 
       enrollments: {
         where: {
           deletedAt: null,
-          exitDate: null,
+          OR: [{ exitDate: null }, { exitDate: { gt: new Date(today) } }],
           entryDate: { lte: new Date(today) },
           student: { deletedAt: null, status: "ACTIVE" },
         },
         include: {
-          progressRecords: { where: { deletedAt: null, endDate: null }, include: { stage: true } },
+          progressRecords: {
+            where: {
+              deletedAt: null,
+              startDate: { lte: new Date(today) },
+              OR: [{ endDate: null }, { endDate: { gte: new Date(today) } }],
+            },
+            include: { stage: true },
+          },
         },
       },
     },
@@ -91,6 +98,16 @@ export async function prepareSemester(context: OrganizationContext, semesterId: 
           },
         });
         if (exists) continue;
+        const previousPlacement = current
+          ? null
+          : await context.database.semesterPlacement.findFirst({
+              where: {
+                semesterId: source.id,
+                studentId: enrollment.studentId,
+                trackId: progress.stage.trackId,
+                deletedAt: null,
+              },
+            });
         const availability = await context.database.studentAvailability.findFirst({
           where: { semesterId, studentId: enrollment.studentId, deletedAt: null },
           orderBy: { createdAt: "desc" },
@@ -117,7 +134,9 @@ export async function prepareSemester(context: OrganizationContext, semesterId: 
         const row = await context.database.semesterPlacement.create({
           data: {
             semesterId,
-            planId: plan.id,
+            planId: previousPlacement?.continuity === "CHANGE" ? null : plan.id,
+            continuity: previousPlacement?.continuity ?? "UNDECIDED",
+            continuityReason: previousPlacement?.continuityReason ?? null,
             studentId: enrollment.studentId,
             trackId: progress.stage.trackId,
             stageId: progress.stageId,
@@ -138,6 +157,92 @@ export async function prepareSemester(context: OrganizationContext, semesterId: 
         await recordPlacementRevision(context, row.id, "INHERITED");
         students++;
       }
+    }
+  }
+  if (!current) {
+    const waiting = await context.database.semesterPlacement.findMany({
+      where: {
+        semesterId: source.id,
+        deletedAt: null,
+        declinedAt: null,
+        publishedAt: null,
+      },
+    });
+    for (const previous of waiting) {
+      if (
+        await context.database.semesterPlacement.findFirst({
+          where: {
+            semesterId,
+            studentId: previous.studentId,
+            trackId: previous.trackId,
+            deletedAt: null,
+          },
+        })
+      )
+        continue;
+      const row = await context.database.semesterPlacement.create({
+        data: {
+          semesterId,
+          studentId: previous.studentId,
+          trackId: previous.trackId,
+          stageId: previous.stageId,
+          sourceProgressId: previous.sourceProgressId,
+          sourceEnrollmentId: previous.sourceEnrollmentId,
+          mode: previous.mode,
+          notes: previous.notes,
+          effectiveDate: semester.startDate,
+          continuity: previous.continuity,
+          continuityReason: previous.continuityReason,
+          recordedById: context.staffUser.id,
+        },
+      });
+      await recordPlacementRevision(context, row.id, "CARRIED_FORWARD");
+      students++;
+    }
+    const previousAvailability = await context.database.studentAvailability.findMany({
+      where: {
+        semesterId: source.id,
+        deletedAt: null,
+        student: {
+          deletedAt: null,
+          status: "ACTIVE",
+          OR: [
+            { semesterPlacements: { none: { semesterId: source.id, deletedAt: null } } },
+            {
+              semesterPlacements: {
+                some: {
+                  semesterId: source.id,
+                  deletedAt: null,
+                  publishedAt: null,
+                  declinedAt: null,
+                },
+              },
+            },
+          ],
+        },
+      },
+      distinct: ["studentId"],
+      orderBy: { createdAt: "desc" },
+    });
+    for (const previous of previousAvailability) {
+      if (
+        await context.database.studentAvailability.findFirst({
+          where: { semesterId, studentId: previous.studentId, deletedAt: null },
+        })
+      )
+        continue;
+      await context.database.studentAvailability.create({
+        data: {
+          semesterId,
+          studentId: previous.studentId,
+          validUntil: semester.endDate,
+          formats: previous.formats,
+          slots: readSlots(previous.slots),
+          confirmed: false,
+          notes: previous.notes,
+          recordedById: context.staffUser.id,
+        },
+      });
     }
   }
   if (plans || students)

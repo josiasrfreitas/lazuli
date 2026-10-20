@@ -1,3 +1,4 @@
+import { CalendarDays } from "lucide-react";
 import type { ReactElement } from "react";
 import { Button } from "@lazuli/ui";
 import { calendarDate, monday, shiftDate } from "./calendar-model";
@@ -12,7 +13,9 @@ export function AgendaHeader({
   view,
   today,
   onSelectDate,
+  title = "Agenda",
 }: {
+  title?: string;
   date: string;
   view: "dia" | "semana";
   today: string;
@@ -26,12 +29,13 @@ export function AgendaHeader({
   return (
     <header className={styles.pageHeader}>
       <div className={styles.pageIdentity}>
-        <h1 className={styles.agendaTitle}>Agenda</h1>
+        <h1 className={styles.agendaTitle}>{title}</h1>
         <span className={styles.dateSubtitle}>
           {view === "semana" ? "Visão semanal" : "Visão diária"} · horários de São Paulo
         </span>
         <span className={styles.dateSubtitle}>{period}</span>
         <Button variant="ghost" size="sm" onClick={() => onSelectDate(today)}>
+          <CalendarDays aria-hidden="true" />
           Hoje
         </Button>
       </div>

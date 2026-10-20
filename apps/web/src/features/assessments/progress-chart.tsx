@@ -1,4 +1,5 @@
 "use client";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { Button } from "@lazuli/ui";
 import {
@@ -64,6 +65,7 @@ export function AcademicProgressChart({ data }: { data: Assessment }): ReactElem
             onClick={() => setFullScale(!fullScale)}
             aria-pressed={fullScale}
           >
+            {fullScale ? <ZoomIn aria-hidden="true" /> : <ZoomOut aria-hidden="true" />}
             {fullScale ? "Aproximar escala" : "Ver de 0 a 100"}
           </Button>
         )}

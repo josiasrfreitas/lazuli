@@ -32,12 +32,42 @@ import {
 import { publishPlacements, withdrawPlacement } from "./publish.js";
 import { dispatchSessionGeneration } from "../session-generation/requests.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
-const context = (ctx: Context & { staffUser: StaffUser }) => ({
+import {
+  continuitySchema,
+  saveContinuity,
+  pendingLeadSchema,
+  pendingLead,
+  planLifecycleSchema,
+  changePlanStatus,
+} from "./lifecycle.js";
+const context = (ctx: { db: Context["db"]; staffUser: StaffUser; now?: Date | undefined }) => ({
   database: ctx.db,
   staffUser: ctx.staffUser,
   now: ctx.now ?? new Date(),
 });
 export const semesterOrganizationRouter = router({
+  continuity: adminProcedure
+    .input(continuitySchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => saveContinuity({ ...context(ctx), database }, input)),
+    ),
+  pendingLead: adminProcedure
+    .input(pendingLeadSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => pendingLead({ ...context(ctx), database }, input)),
+    ),
+  planStatus: adminProcedure.input(planLifecycleSchema).mutation(async ({ ctx, input }) => {
+    const result = await ctx.db.$transaction((database) =>
+      changePlanStatus({ ...context(ctx), database }, input),
+    );
+    if (result.generationRequestId)
+      await dispatchSessionGeneration({
+        database: ctx.db,
+        requestId: result.generationRequestId,
+        ...(ctx.sessionGenerationQueue ? { queue: ctx.sessionGenerationQueue } : {}),
+      });
+    return result;
+  }),
   studentIntent: adminProcedure
     .input(z.object({ studentId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
@@ -87,20 +117,16 @@ export const semesterOrganizationRouter = router({
         { timeout: 30_000 },
       ),
     ),
-  move: adminProcedure
-    .input(moveSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => movePlacements({ ...context(ctx), database }, input), {
-        timeout: 30_000,
-      }),
-    ),
-  decline: adminProcedure
-    .input(declineSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => declinePlacements({ ...context(ctx), database }, input), {
-        timeout: 30_000,
-      }),
-    ),
+  move: adminProcedure.input(moveSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) => movePlacements({ ...context(ctx), database }, input), {
+      timeout: 30_000,
+    }),
+  ),
+  decline: adminProcedure.input(declineSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) => declinePlacements({ ...context(ctx), database }, input), {
+      timeout: 30_000,
+    }),
+  ),
   closeRange: adminProcedure
     .input(closedRangeSchema)
     .mutation(({ ctx, input }) =>
@@ -148,11 +174,33 @@ export const semesterOrganizationRouter = router({
       take: 40,
     }),
   ),
-  savePlan: adminProcedure
-    .input(semesterPlanSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => saveClassPlan({ ...context(ctx), database }, input)),
+  savePlan: adminProcedure.input(semesterPlanSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction(
+      async (database) => {
+        const scoped = { ...context(ctx), database };
+        const result = await saveClassPlan(scoped, input);
+        if (input.placements?.length) {
+          const semester = await database.semester.findUniqueOrThrow({
+            where: { id: input.semesterId },
+          });
+          await movePlacements(scoped, {
+            semesterId: input.semesterId,
+            planId: result.id,
+            selections: input.placements,
+            effectiveDate: [
+              semester.startDate.toISOString().slice(0, 10),
+              saoPauloDateOnly(scoped.now),
+            ]
+              .sort()
+              .at(-1)!,
+            reason: "Turma formada a partir da fila de alocação.",
+          });
+        }
+        return result;
+      },
+      { timeout: 30_000 },
     ),
+  ),
   savePlacement: adminProcedure
     .input(semesterPlacementSchema)
     .mutation(({ ctx, input }) =>

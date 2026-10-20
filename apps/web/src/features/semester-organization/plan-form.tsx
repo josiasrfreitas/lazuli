@@ -1,31 +1,38 @@
 "use client";
 import { useState } from "react";
 import { semesterPlanSchema, createSemesterInputSchema } from "@lazuli/validators";
-import { Alert, InlineSkeleton } from "@lazuli/ui";
+import { Alert, Badge, Checkbox, InlineSkeleton } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { TaskDialog, useValidation } from "~/features/shared/task-form";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { Choices, useOrganizationRefresh, type ClassPlan } from "./shared";
 import { SlotFields, type SlotDraft } from "./slot-fields";
+import { stageLabel, type PendingGroup } from "~/features/class-organization/model";
 
 export function ClassPlanForm({
   semesterId,
   plan,
+  group,
   onClose,
   onSaved,
 }: {
   semesterId: string;
   plan?: ClassPlan;
+  group?: PendingGroup;
   onClose: () => void;
   onSaved: (id: string) => void;
 }) {
   const options = trpc.classes.formOptions.useQuery();
-  const [name, setName] = useState(plan?.name ?? "");
+  const [name, setName] = useState(plan?.name ?? (group ? `${group.stageCode} · nova turma` : ""));
   const [kind, setKind] = useState(plan?.scheduleType ?? "REGULAR");
   const [format, setFormat] = useState(plan?.format ?? "IN_PERSON");
   const [teacher, setTeacher] = useState(plan?.teacherId ?? "pending");
-  const [stage, setStage] = useState(plan?.sharedStageId ?? "");
+  const [stage, setStage] = useState(plan?.sharedStageId ?? group?.stageId ?? "");
+  const [selected, setSelected] = useState<string[]>(() => [
+    ...(group?.rows.map((row) => row.id) ?? []),
+    ...(group?.leads.map((lead) => lead.id) ?? []),
+  ]);
   const [slots, setSlots] = useState<SlotDraft[]>(
     plan?.slots ?? [
       { weekday: "MONDAY", startTime: "", endTime: "" },
@@ -48,9 +55,10 @@ export function ClassPlanForm({
   if (options.isPending)
     return (
       <TaskDialog
+        key="loading-plan"
         compactHeader
         actionSize="sm"
-        title={plan ? "Revisar turma planejada" : "Planejar turma"}
+        title={plan ? "Editar turma" : "Nova turma"}
         description="Carregando professores e estágios…"
         formId="plan-loading"
         firstField=""
@@ -68,9 +76,16 @@ export function ClassPlanForm({
     );
   return (
     <TaskDialog
+      key="ready-plan"
       compactHeader
       actionSize="sm"
-      title={plan ? "Revisar turma planejada" : "Planejar turma"}
+      title={
+        plan
+          ? "Editar turma"
+          : group
+            ? `Formar turma · ${stageLabel(group.stageCode)}`
+            : "Nova turma"
+      }
       description="Horário, professor e composição podem ser preparados aos poucos."
       formId="semester-plan"
       firstField="plan-name"
@@ -96,13 +111,20 @@ export function ClassPlanForm({
             teacherId: teacher === "pending" ? null : teacher,
             sharedStageId: kind === "REGULAR" ? stage || null : null,
             slots,
+            placements:
+              group?.rows
+                .filter((row) => selected.includes(row.id))
+                .map(({ id, version }) => ({ id, version })) ?? [],
+            leadIds:
+              group?.leads.filter((lead) => selected.includes(lead.id)).map((lead) => lead.id) ??
+              [],
           });
           if (values && !mutation.isPending) mutation.mutate(values);
         }}
       >
         <TextControl
           name="plan-name"
-          label="Nome da turma planejada"
+          label="Nome da turma"
           placeholder="Connect 2 · tarde"
           value={name}
           onChange={change("name", setName)}
@@ -161,6 +183,52 @@ export function ClassPlanForm({
           }}
           error={validation.errors.slots}
         />
+        {group && (
+          <fieldset className="grid gap-2">
+            <legend className="text-caption font-medium mb-2">Pessoas para esta turma</legend>
+            {[
+              ...group.rows.map((row) => ({
+                id: row.id,
+                name: row.studentName,
+                label: row.sourceClassId ? "Troca de turma" : "Aguardando turma",
+                lead: false,
+              })),
+              ...group.leads.map((lead) => ({
+                id: lead.id,
+                name: lead.fullName,
+                label: "Matrícula a finalizar",
+                lead: true,
+              })),
+            ].map((person) => (
+              <label className="flex items-center gap-2 text-caption" key={person.id}>
+                <Checkbox
+                  size="sm"
+                  checked={selected.includes(person.id)}
+                  onCheckedChange={(checked) =>
+                    setSelected((previous) =>
+                      checked
+                        ? [...previous, person.id]
+                        : previous.filter((id) => id !== person.id),
+                    )
+                  }
+                />
+                <span className="grid gap-1">
+                  <span>{person.name}</span>
+                  <span className="flex items-center gap-2">
+                    <Badge variant={person.lead ? "info" : "neutral"}>
+                      {person.lead ? "Lead" : "Aluno da escola"}
+                    </Badge>
+                    <span className="text-muted-foreground">{person.label}</span>
+                  </span>
+                </span>
+              </label>
+            ))}
+            <p className="text-caption text-muted-foreground">
+              A turma e as propostas ficam salvas juntas. Confirme as alocações após combinar os
+              horários; leads concluem a matrícula pelo cadastro.
+            </p>
+          </fieldset>
+        )}
         <p className="text-caption text-muted-foreground">
           Novos horários: até 2 horas por semana. Horários herdados podem ser mantidos. O professor
           pode ser definido antes da confirmação.

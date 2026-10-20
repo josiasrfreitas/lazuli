@@ -14,6 +14,9 @@ export const ACTIVITY_ACTIONS = {
   "classRecords.correct": ["PEDAGOGICAL", "Registro da aula corrigido"],
   "semesterOrganization.savePlan": ["PEDAGOGICAL", "Turma do próximo semestre organizada"],
   "semesterOrganization.prepare": ["PEDAGOGICAL", "Estrutura de turmas reaproveitada"],
+  "semesterOrganization.continuity": ["PEDAGOGICAL", "Continuidade do aluno registrada"],
+  "semesterOrganization.pendingLead": ["PEDAGOGICAL", "Pendência de alocação atualizada"],
+  "semesterOrganization.planStatus": ["PEDAGOGICAL", "Situação da turma atualizada"],
   "semesterOrganization.updatePeriod": ["SCHOOL", "Período letivo revisado"],
   "semesterOrganization.savePlacement": ["PEDAGOGICAL", "Proposta de alocação registrada"],
   "semesterOrganization.confirmAvailability": [

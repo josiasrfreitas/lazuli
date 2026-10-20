@@ -9,7 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import { Button } from "@lazuli/ui";
-import { UploadCloud } from "lucide-react";
+import { MAX_UPLOAD_FILE_BYTES, MAX_UPLOAD_FILE_MB } from "@lazuli/validators";
+import { ListChecks, RefreshCw, Trash2, UploadCloud } from "lucide-react";
 import { trpc } from "~/lib/trpc";
 import {
   readPendingFiles,
@@ -67,6 +68,7 @@ export function AssessmentUploadProvider({
   const [storageError, setStorageError] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const running = useRef<XMLHttpRequest | null>(null);
+  const dismissed = useRef(new Set<string>());
   const utils = trpc.useUtils();
   const recent = trpc.assessmentFiles.recent.useQuery(undefined, {
     refetchInterval: items.some(
@@ -128,7 +130,11 @@ export function AssessmentUploadProvider({
           : item;
       });
       for (const row of received)
-        if (row.status !== "READY" && !next.some((item) => item.id === row.id))
+        if (
+          row.status !== "READY" &&
+          !dismissed.current.has(row.id) &&
+          !next.some((item) => item.id === row.id)
+        )
           next.push({
             id: row.id,
             name: row.fileName,
@@ -181,10 +187,10 @@ export function AssessmentUploadProvider({
     for (const file of files) {
       if (
         !file.size ||
-        file.size > 20 * 1024 * 1024 ||
+        file.size > MAX_UPLOAD_FILE_BYTES ||
         !["application/pdf", "image/jpeg", "image/png"].includes(file.type)
       )
-        throw new Error("Escolha fotos JPG/PNG ou PDFs de até 20 MB cada.");
+        throw new Error(`Escolha fotos JPG/PNG ou PDFs de até ${MAX_UPLOAD_FILE_MB} MB cada.`);
     }
     for (const file of files) {
       const pending: PendingFile = {
@@ -211,7 +217,9 @@ export function AssessmentUploadProvider({
         >
           <summary className="flex cursor-pointer items-center gap-2 text-sm">
             <UploadCloud className="size-4" />
-            {activeCount ? `${activeCount} envios para acompanhar` : "Provas recebidas"}
+            {activeCount
+              ? `${activeCount} ${activeCount === 1 ? "envio" : "envios"} para acompanhar`
+              : "Provas recebidas"}
           </summary>
           <div className="grid max-h-64 gap-3 overflow-y-auto py-3">
             <p className="text-caption text-muted-foreground">
@@ -227,6 +235,7 @@ export function AssessmentUploadProvider({
               <p role="alert" className="text-caption">
                 Não foi possível atualizar o processamento.{" "}
                 <Button size="sm" variant="ghost" onClick={() => void recent.refetch()}>
+                  <RefreshCw aria-hidden="true" />
                   Atualizar
                 </Button>
               </p>
@@ -251,7 +260,7 @@ export function AssessmentUploadProvider({
                 )}
                 {item.message && <p className="text-caption text-destructive">{item.message}</p>}
                 {item.status === "INTERRUPTED" && item.pending && (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       variant="secondary"
@@ -263,6 +272,7 @@ export function AssessmentUploadProvider({
                         )
                       }
                     >
+                      <UploadCloud aria-hidden="true" />
                       Retomar envio
                     </Button>
                     <Button
@@ -274,6 +284,7 @@ export function AssessmentUploadProvider({
                         );
                       }}
                     >
+                      <Trash2 aria-hidden="true" />
                       Descartar cópia local
                     </Button>
                   </div>
@@ -285,6 +296,7 @@ export function AssessmentUploadProvider({
                     disabled={retry.isPending}
                     onClick={() => retry.mutate({ id: item.id })}
                   >
+                    <RefreshCw aria-hidden="true" />
                     Tentar processar novamente
                   </Button>
                 )}
@@ -303,8 +315,19 @@ export function AssessmentUploadProvider({
                 {retry.error.message}
               </p>
             )}
-            {items.length > 0 && !activeCount && (
-              <Button variant="ghost" size="sm" onClick={() => setItems([])}>
+            {items.some((item) => item.status === "READY" || item.status === "REJECTED") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const finished = items.filter(
+                    (item) => item.status === "READY" || item.status === "REJECTED",
+                  );
+                  for (const item of finished) dismissed.current.add(item.id);
+                  setItems((current) => current.filter((item) => !dismissed.current.has(item.id)));
+                }}
+              >
+                <ListChecks aria-hidden="true" />
                 Limpar concluídos da fila
               </Button>
             )}

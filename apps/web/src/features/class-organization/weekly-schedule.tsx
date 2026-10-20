@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Button, Popover, PopoverTrigger, PopoverContent } from "@lazuli/ui";
-import { scheduleLabel, weekdays } from "~/features/semester-organization/shared";
-import { rowsFor, type ClassPlan, type SemesterBoard } from "./model";
+import { Button } from "@lazuli/ui";
+import { weekdays } from "~/features/semester-organization/shared";
+import { leavingFor, occupancy, stageLabel, type ClassPlan, type SemesterBoard } from "./model";
 import s from "./organization.module.css";
 
 /** Recurring class composition, grouped by time; height does not encode lesson duration. */
@@ -10,20 +10,24 @@ export function WeeklySchedule({
   query,
   selected,
   onSelect,
+  showClosed,
 }: {
   board: SemesterBoard;
   query: string;
   selected: string | null;
   onSelect: (id: string) => void;
+  showClosed: boolean;
 }) {
   const [day, setDay] = useState("all");
-  const plans = board.plans.filter((plan) =>
-    `${plan.name} ${plan.teacherName ?? ""} ${plan.stageCode ?? ""}`
-      .toLocaleLowerCase("pt-BR")
-      .includes(query.toLocaleLowerCase("pt-BR")),
+  const plans = board.plans.filter(
+    (plan) =>
+      (showClosed || plan.active) &&
+      `${plan.name} ${plan.teacherName ?? ""} ${plan.stageCode ?? ""}`
+        .toLocaleLowerCase("pt-BR")
+        .includes(query.toLocaleLowerCase("pt-BR")),
   );
   const activeDays = Object.entries(weekdays).filter(([key]) =>
-    board.plans.some((plan) => plan.slots.some((slot) => slot.weekday === key)),
+    plans.some((plan) => plan.slots.some((slot) => slot.weekday === key)),
   );
   const firstDay = activeDays[0]?.[0] ?? "all";
   useEffect(() => {
@@ -64,6 +68,11 @@ export function WeeklySchedule({
           ))}
         </div>
         <span className={s.small}>Horários recorrentes · {plans.length} turmas</span>
+      </div>
+      <div className={s.occupancyLegend} aria-label="Faixas de ocupação">
+        <span data-occupancy="destructive">Até 3 · poucos alunos</span>
+        <span data-occupancy="warning">4–7 · em composição</span>
+        <span data-occupancy="success">8+ · boa ocupação</span>
       </div>
       {day === "all" && (
         <p className={s.weekHint}>Deslize a grade para ver os outros dias, ou selecione um dia.</p>
@@ -134,59 +143,44 @@ function PlanCard({
   selected: boolean;
   onSelect: (id: string) => void;
 }) {
-  const rows = rowsFor(board, plan.id);
-  const waiting = rows.filter((row) => !row.publishedAt).length;
+  const health = occupancy(plan);
+  const leaving = leavingFor(board, plan).length;
+  const proposed =
+    board.placements.filter((row) => row.planId === plan.id && !row.publishedAt && !row.declinedAt)
+      .length + board.waitingLeads.filter((lead) => lead.allocationPlanId === plan.id).length;
   return (
-    <Popover>
-      <PopoverTrigger
-        openOnHover
-        delay={400}
-        render={
-          <button
-            type="button"
-            className={s.weeklyCard}
-            data-ppt={plan.scheduleType === "PERSONALIZED"}
-            data-selected={selected}
-            onClick={() => onSelect(plan.id)}
-            aria-label={`${plan.name}, ${plan.teacherName ?? "professor a definir"}, ${rows.length} ${rows.length === 1 ? "aluno" : "alunos"}`}
-          />
-        }
-      >
-        <span className={s.row}>
-          <strong>
-            {plan.scheduleType === "PERSONALIZED" ? "PPT" : (plan.stageCode ?? plan.name)}
-          </strong>
-          <span className={rows.length < 4 ? s.attention : s.small}>
-            {rows.length} {rows.length === 1 ? "aluno" : "alunos"}
-            {rows.length < 4 ? " · atenção" : ""}
+    <button
+      type="button"
+      className={s.weeklyCard}
+      data-occupancy={health.tone}
+      data-selected={selected}
+      data-closed={!plan.active}
+      aria-pressed={selected}
+      onClick={() => onSelect(plan.id)}
+      aria-label={`${plan.name}, ${plan.teacherName ?? "professor a definir"}, ${health.count} alunos${leaving ? `, ${leaving} possíveis saídas` : ""}`}
+    >
+      <strong>
+        {plan.scheduleType === "PERSONALIZED"
+          ? "PPT · estágios individuais"
+          : stageLabel(plan.stageCode)}
+      </strong>
+      <span className={s.occupancy}>
+        <b>{health.count}</b>
+        <span>
+          alunos
+          <span className={s.occupancyLabel}>
+            {!plan.active ? "Encerrada" : !plan.classId ? "Turma proposta" : health.label}
           </span>
         </span>
-        <span className={s.row}>
-          <span className={s.weeklyTeacher}>{plan.teacherName ?? "Professor a definir"}</span>
-          {plan.format === "ONLINE" && <span className={s.small}>Online</span>}
+      </span>
+      {proposed > 0 && <span className={s.small}>{proposed} em alocação</span>}
+      <span className={s.weeklyTeacher}>{plan.teacherName ?? "Professor a definir"}</span>
+      {leaving > 0 && (
+        <span className={`${s.small} ${s.attention}`}>
+          {leaving} {leaving === 1 ? "possível saída" : "possíveis saídas"}
         </span>
-      </PopoverTrigger>
-      <PopoverContent side="right" size="md">
-        <div className={s.diffDetails}>
-          <strong>{plan.name}</strong>
-          <p>{scheduleLabel(plan.slots)}</p>
-          <p>
-            {plan.teacherName ?? "Professor a definir"} ·{" "}
-            {plan.format === "ONLINE" ? "Online" : "Presencial"}
-          </p>
-          <p>
-            {rows.length} alunos · {waiting} alocações a confirmar
-          </p>
-          {plan.draftConflicts.length > 0 && (
-            <p className={s.attention}>
-              Professor também previsto em: {plan.draftConflicts.join(", ")}
-            </p>
-          )}
-          <Button size="sm" variant="secondary" onClick={() => onSelect(plan.id)}>
-            Organizar alunos desta turma
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+      )}
+      {plan.format === "ONLINE" && <span className={s.small}>Online</span>}
+    </button>
   );
 }

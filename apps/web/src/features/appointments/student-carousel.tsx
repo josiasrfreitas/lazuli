@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, CalendarDays } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
+import { QueryLoading } from "~/components/query-loading";
 import { RecordState } from "~/features/class-records/shared";
 import { AppointmentBadge, purposes } from "./shared";
 import { StudentAppointmentDialog } from "./student-appointment-dialog";
@@ -27,11 +28,9 @@ export function StudentAppointmentCarousel({
   const query = trpc.appointments.forStudent.useQuery({ studentId });
   if (query.isPending)
     return hideEmpty ? (
-      <p role="status" className="text-caption text-muted-foreground">
-        Consultando atendimentos anteriores…
-      </p>
+      <QueryLoading label="Consultando atendimentos anteriores" />
     ) : (
-      <AppointmentsLoading />
+      <AppointmentsLoading canSchedule={admin} />
     );
   if (query.isError)
     return (
@@ -81,6 +80,7 @@ function Carousel({
             nativeButton={false}
             render={<Link href={`/aulas?aluno=${studentId}`} />}
           >
+            <CalendarDays aria-hidden="true" />
             Ver agenda
           </Button>
           {admin && (

@@ -1,8 +1,8 @@
 "use client";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Save, UserRoundPlus } from "lucide-react";
-import { FormRow, FormSection, Stepper } from "@lazuli/ui";
+import { ArrowRight, MessageSquare, Save, UserRoundPlus } from "lucide-react";
+import { Field, FieldError, FormRow, FormSection, Label, Stepper, Textarea } from "@lazuli/ui";
 import { leadCaptureSchema, type placementScheduleSchema, type z } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { maskDateBR, maskPhoneBR, parseDateBR } from "~/lib/masks";
@@ -43,6 +43,7 @@ export function LeadCaptureDialog({
     email: candidate?.email ?? "",
     contactName: candidate?.contactName ?? "",
     source: candidate?.source ?? "",
+    notes: candidate?.notes ?? "",
     contactRole: candidate?.contactRole === "GUARDIAN" ? "GUARDIAN" : "STUDENT",
     contactOwner: candidate?.contactOwner === "GUARDIAN" ? "GUARDIAN" : "STUDENT",
     birthDate: candidate?.birthDate ? dateLabel(candidate.birthDate) : "",
@@ -306,6 +307,31 @@ export function LeadCaptureDialog({
                 O formato definitivo será escolhido no cadastro do aluno.
               </p>
             </FormSection>
+            <Field name="notes">
+              <Label htmlFor="lead-notes">
+                <span className="inline-flex items-center gap-1.5">
+                  <MessageSquare className="size-3.5" aria-hidden="true" />
+                  Observações (opcional)
+                </span>
+              </Label>
+              <Textarea
+                id="lead-notes"
+                name="notes"
+                autoComplete="off"
+                rows={4}
+                maxLength={2000}
+                placeholder="Objetivos com o inglês, preferências ou informações do primeiro contato"
+                value={draft.notes ?? ""}
+                onChange={(event) => change("notes", event.target.value)}
+                invalid={Boolean(errors.fields.notes)}
+                aria-describedby={errors.fields.notes ? "lead-notes-error" : undefined}
+              />
+              {errors.fields.notes && (
+                <FieldError id="lead-notes-error" match>
+                  {errors.fields.notes}
+                </FieldError>
+              )}
+            </Field>
           </div>
         </fieldset>
       </LeadFormDialog>

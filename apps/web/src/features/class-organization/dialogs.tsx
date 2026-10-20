@@ -21,6 +21,7 @@ import type { OrganizationAction, Placement, SemesterBoard } from "./model";
 import s from "./organization.module.css";
 import { ClosureForm, PeriodForm, HolidayForm } from "./calendar-forms";
 import { RenewalDialog } from "./renewal";
+import { ContinuityDialog, PlanStatusDialog } from "./continuity";
 
 export type OrganizationDialogProps = {
   action: OrganizationAction;
@@ -37,6 +38,19 @@ export function OrganizationDialogs(props: Props) {
   const [invalidate, setInvalidate] = useState<string | null>(null);
   const refresh = useOrganizationRefresh();
   switch (action.kind) {
+    case "continuity":
+      return (
+        <ContinuityDialog row={action.row} board={board} onClose={onClose} onAction={onAction} />
+      );
+    case "planStatus":
+      return (
+        <PlanStatusDialog
+          plan={action.plan}
+          open={action.open}
+          onClose={onClose}
+          onFeedback={props.onFeedback}
+        />
+      );
     case "renew":
       return (
         <RenewalDialog
@@ -54,6 +68,7 @@ export function OrganizationDialogs(props: Props) {
         <ClassPlanForm
           semesterId={board.semester.id}
           {...(action.plan ? { plan: action.plan } : {})}
+          {...(action.group ? { group: action.group } : {})}
           onClose={onClose}
           onSaved={props.onPlan}
         />
@@ -135,6 +150,7 @@ export function OrganizationDialogs(props: Props) {
 }
 
 function MovementForm({
+  action,
   rows,
   decline,
   board,
@@ -147,7 +163,7 @@ function MovementForm({
     { enabled: !decline && targetSemesterId !== board.semester.id },
   );
   const targetBoard = targetSemesterId === board.semester.id ? board : targetQuery.data;
-  const [planId, setPlanId] = useState("");
+  const [planId, setPlanId] = useState("planId" in action ? (action.planId ?? "") : "");
   const [date, setDate] = useState(
     formatDateOnlyBR(
       [dateOnly(board.semester.startDate), toDateOnlySaoPaulo(new Date())].sort().at(-1)!,

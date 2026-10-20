@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CalendarClock, Pencil, X } from "lucide-react";
 import { Alert, Button, Tabs, TabsList, TabsTab } from "@lazuli/ui";
 import { appointmentCancelSchema, type AppointmentSnapshot } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
@@ -81,9 +81,11 @@ export function AppointmentContent({
           {row.status === "SCHEDULED" && admin && (
             <>
               <Button variant="secondary" onClick={() => setAction("reschedule")}>
+                <CalendarClock aria-hidden="true" />
                 Reagendar
               </Button>
               <Button variant="ghost" onClick={() => setAction("cancel")}>
+                <X aria-hidden="true" />
                 Cancelar atendimento
               </Button>
             </>
@@ -96,6 +98,7 @@ export function AppointmentContent({
                 setView("record");
               }}
             >
+              <Pencil aria-hidden="true" />
               Corrigir registro
             </Button>
           )}

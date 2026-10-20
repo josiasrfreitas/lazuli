@@ -1,4 +1,5 @@
 "use client";
+import { Check, X } from "lucide-react";
 import { useState, type FormEvent, type ReactElement } from "react";
 import {
   Alert,
@@ -98,9 +99,11 @@ export function ConfirmationDialog({
           </DialogBody>
           <DialogFooter>
             <Button variant="secondary" disabled={confirm.isPending} onClick={onClose}>
+              <X aria-hidden="true" />
               Cancelar
             </Button>
             <Button type="submit" form="assessment-confirm" disabled={confirm.isPending}>
+              <Check aria-hidden="true" />
               {confirm.isPending
                 ? "Registrando…"
                 : decision === "APPROVED"

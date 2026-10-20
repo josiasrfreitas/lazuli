@@ -12,7 +12,9 @@
 @import "./components/book-loader.css";
 @import "./components/pencil-loader.css";
 @import "./components/command-menu.css";
+@import "./components/popover.css";
 @import "./components/typewriter-loader.css";
+@import "./components/file-upload.css";
 
 @custom-variant dark (&:is(.dark *));
 

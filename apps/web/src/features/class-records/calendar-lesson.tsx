@@ -14,10 +14,12 @@ export function CalendarLessonButton({
   lesson,
   expanded,
   onOpen,
+  personal = false,
 }: {
   lesson: CalendarLesson;
   expanded: boolean;
   onOpen: (lesson: CalendarLesson) => void;
+  personal?: boolean;
 }): ReactElement {
   const identity = stageIdentity(lesson);
   const appointment = lesson.appointment;
@@ -65,6 +67,7 @@ export function CalendarLessonButton({
       type="button"
       className={styles.lesson}
       data-state={lesson.state}
+      data-personal={personal}
       data-has-markers={!appointment && !experiment}
       data-modality={
         experiment ? "EXPERIMENTAL" : appointment ? "APPOINTMENT" : lesson.scheduleType
@@ -77,7 +80,7 @@ export function CalendarLessonButton({
       onKeyDown={navigateLessons}
       onClick={() => onOpen(lesson)}
     >
-      <LessonCardContent lesson={lesson} />
+      <LessonCardContent lesson={lesson} personal={personal} />
       <LessonMarkers lesson={lesson} />
     </button>
   );

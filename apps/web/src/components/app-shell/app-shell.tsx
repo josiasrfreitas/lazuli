@@ -7,6 +7,7 @@ import { CommandPalette } from "~/features/command-palette/command-palette";
 import { formatLongDateSaoPaulo } from "~/lib/format";
 
 import { AppBreadcrumb } from "./app-breadcrumb";
+import { AdminMobileNotice } from "./admin-mobile-notice";
 import { MobileNavigation } from "./mobile-navigation";
 import { Sidebar } from "./sidebar";
 import { SessionSync } from "./session-sync";
@@ -23,18 +24,22 @@ import { AssessmentUploadProvider } from "~/features/assessment-files/queue-prov
 export function AppShell({
   children,
   identity,
+  isMobileDevice,
 }: {
   children: ReactNode;
   identity: StaffIdentity;
+  isMobileDevice: boolean;
 }): ReactNode {
   return (
     <div className="flex h-svh bg-background text-foreground dark:bg-gradient-to-br dark:from-marquee dark:via-navigation-active dark:to-marquee">
       <SessionSync renderedEmail={identity.email} />
+      {(identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN") && (
+        <AdminMobileNotice key={identity.id} userId={identity.id} isMobileDevice={isMobileDevice} />
+      )}
       <Sidebar identity={identity} />
       <div className="flex min-w-0 flex-1 flex-col">
         <AssessmentUploadProvider userId={identity.id}>
           <TopBar identity={identity} />
-          {identity.role === "TEACHER" && <TeacherPendingNotice />}
           <main className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto">{children}</main>
           {identity.role === "TEACHER" && <TeacherNavigation />}
         </AssessmentUploadProvider>
@@ -47,14 +52,30 @@ export function AppShell({
  * the date is the secretary's current working day, not a build-time value. */
 function TopBar({ identity }: { identity: StaffIdentity }): ReactNode {
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-3 dark:bg-transparent sm:gap-4 sm:px-6">
+    <header
+      className={
+        identity.role === "TEACHER"
+          ? "flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card px-2 sm:px-4"
+          : "flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-3 dark:bg-transparent sm:gap-4 sm:px-6"
+      }
+    >
       <MobileNavigation identity={identity} />
       <AppBreadcrumb role={identity.role} />
-      <div className="ml-auto flex shrink-0 items-center gap-3">
+      <div
+        className={
+          identity.role === "TEACHER"
+            ? "ml-auto flex min-w-0 items-center gap-1"
+            : "ml-auto flex shrink-0 items-center gap-3"
+        }
+      >
         <CommandPalette role={identity.role} />
-        <p className="hidden text-sm text-muted-foreground sm:block">
-          {formatLongDateSaoPaulo(new Date())}
-        </p>
+        {identity.role === "TEACHER" ? (
+          <TeacherPendingNotice />
+        ) : (
+          <p className="hidden text-sm text-muted-foreground sm:block">
+            {formatLongDateSaoPaulo(new Date())}
+          </p>
+        )}
         <ThemeToggle />
         <AccountMenu identity={identity} />
       </div>

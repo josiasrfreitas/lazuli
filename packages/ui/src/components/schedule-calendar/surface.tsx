@@ -85,12 +85,13 @@ export function CalendarSurface(props: SurfaceProps): ReactElement {
         data-calendar-layout={scope}
         data-view={view}
         data-density={density}
+        data-width={props.widthBehavior ?? "scroll"}
         style={{ "--lz-calendar-day-count": dayCount } as CSSProperties}
       >
-        {view === "day" && (
+        {view === "day" && props.widthBehavior !== "fit" && (
           <style>{`[data-calendar-layout="${scope}"] > .lz-week-calendar { min-width: ${dailyWidth}px; }`}</style>
         )}
-        {view === "week" && dayCount !== 7 && (
+        {view === "week" && dayCount !== 7 && props.widthBehavior !== "fit" && (
           <style>{`.lz-calendar-viewport[data-calendar-layout="${scope}"][data-view="week"][data-density="${density}"] > .lz-week-calendar { min-width: ${TIME_AXIS_WIDTH + dayCount * (density === "compact" ? 84 : 203)}px; }`}</style>
         )}
         {view === "week" && (

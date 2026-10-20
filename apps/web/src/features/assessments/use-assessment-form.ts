@@ -4,8 +4,15 @@ import { trpc } from "~/lib/trpc";
 import { parseDateBR } from "~/lib/masks";
 import { formatDateOnlyBR } from "~/lib/format";
 import { useScrollToError } from "~/lib/scroll-to-error";
-import { COMPETENCES, PHASES, type Assessment, type Phase } from "./shared";
-import type { GradeDraft } from "./grade-fields";
+import { COMPETENCES, PHASES, type Assessment, type Competence, type Phase } from "./shared";
+export type GradeDraft = {
+  competence: Competence;
+  phase: Phase;
+  score: string;
+  date: string;
+  reason: string;
+  notes: string;
+};
 
 function initialGrades(data: Assessment): GradeDraft[] {
   return PHASES.flatMap((phase) =>
@@ -17,40 +24,57 @@ function initialGrades(data: Assessment): GradeDraft[] {
         score: grade ? String(grade.score).replace(".", ",") : "",
         date: formatDateOnlyBR(grade?.assessedOn ?? data.today),
         reason: grade?.reason ?? "",
+        notes:
+          data.observations?.find((row) => row.phase === phase && row.competence === competence)
+            ?.notes ?? "",
       };
     }),
   );
 }
-export function useAssessmentForm(data: Assessment, onClose: () => void) {
+export function useAssessmentForm(data: Assessment) {
   const [grades, setGrades] = useState(() => initialGrades(data));
-  const [phase, setPhase] = useState<Phase>("BLOCK_ONE");
+  const [version, setVersion] = useState(data.version);
   const [reason, setReason] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [revision, setRevision] = useState(0);
   const body = useScrollToError(revision);
   const utils = trpc.useUtils();
   const save = trpc.assessments.save.useMutation({
-    onSuccess: async () => {
-      await utils.assessments.invalidate();
-      onClose();
+    onSuccess: async (saved) => {
+      const next = initialGrades(saved);
+      setGrades(next);
+      setVersion(saved.version);
+      setReason("");
+      setErrors({});
+      await Promise.all([utils.assessments.invalidate(), utils.teacherWorkspace.invalidate()]);
     },
   });
-  function change(index: number, field: "score" | "date" | "reason", value: string): void {
+  function change(
+    index: number,
+    field: "score" | "date" | "reason" | "notes",
+    value: string,
+  ): void {
     setGrades((current) =>
       current.map((grade, position) => (position === index ? { ...grade, [field]: value } : grade)),
     );
     setErrors((current) => ({
       ...current,
       [`grades.${index}.${field === "date" ? "assessedOn" : field}`]: "",
+      ...(field === "score" && !value.trim()
+        ? {
+            [`grades.${index}.assessedOn`]: "",
+            [`grades.${index}.reason`]: "",
+          }
+        : {}),
     }));
     save.reset();
   }
-  function submit(event: FormEvent): void {
+  async function submit(event: FormEvent): Promise<GradeDraft[] | null> {
     event.preventDefault();
-    if (save.isPending) return;
+    if (save.isPending) return null;
     const parsed = assessmentSaveSchema.safeParse({
       progressId: data.progressId,
-      version: data.version,
+      version,
       correctionReason: reason,
       grades: grades.map((grade) => ({
         phase: grade.phase,
@@ -58,6 +82,7 @@ export function useAssessmentForm(data: Assessment, onClose: () => void) {
         score: grade.score.trim() === "" ? null : Number(grade.score.replace(",", ".")),
         assessedOn: grade.score.trim() === "" ? null : (parseDateBR(grade.date) ?? ""),
         reason: grade.reason || null,
+        notes: grade.notes || null,
       })),
     });
     if (!parsed.success) {
@@ -66,12 +91,15 @@ export function useAssessmentForm(data: Assessment, onClose: () => void) {
           parsed.error.issues.map((issue) => [issue.path.join("."), issue.message]),
         ),
       );
-      const index = parsed.error.issues.find((issue) => issue.path[0] === "grades")?.path[1];
-      if (typeof index === "number" && grades[index]) setPhase(grades[index].phase);
       setRevision((value) => value + 1);
-      return;
+      return null;
     }
-    save.mutate(parsed.data);
+    try {
+      const saved = await save.mutateAsync(parsed.data);
+      return initialGrades(saved);
+    } catch {
+      return null;
+    }
   }
-  return { grades, phase, setPhase, reason, setReason, errors, body, save, change, submit };
+  return { grades, reason, setReason, errors, body, save, change, submit };
 }

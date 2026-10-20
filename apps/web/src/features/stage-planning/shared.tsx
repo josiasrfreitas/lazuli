@@ -1,7 +1,8 @@
+import { Pencil, RefreshCw } from "lucide-react";
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Alert, Button, DataTable, type DataTableColumn } from "@lazuli/ui";
-import { PlanningLoading } from "./planning-loading";
+import { QueryLoading } from "~/components/query-loading";
 import { formatDateOnlyBR } from "~/lib/format";
 export type Planning = RouterOutputs["planning"]["detail"];
 export type PlannedItem = NonNullable<Planning["plan"]>["items"][number];
@@ -22,17 +23,20 @@ export function PlanningState({
   pending,
   error,
   retry,
+  label = "Carregando planejamento",
 }: {
   pending: boolean;
   error: { message: string } | null;
   retry: () => void;
+  label?: string;
 }): ReactElement | null {
-  if (pending) return <PlanningLoading />;
+  if (pending) return <QueryLoading label={label} />;
   if (error)
     return (
       <Alert variant="destructive">
         <span>{error.message}</span>
         <Button variant="secondary" onClick={retry}>
+          <RefreshCw aria-hidden="true" />
           Tentar novamente
         </Button>
       </Alert>
@@ -97,6 +101,7 @@ export function PlanTable({
           aria-label={`Editar ${item.title} de ${dateLabel(item.plannedOn)}`}
           onClick={() => onEdit(item)}
         >
+          <Pencil aria-hidden="true" />
           Editar
         </Button>
       ),

@@ -22,6 +22,7 @@ export async function readClassPlans(context: OrganizationContext, semesterId: s
       "plan.id",
       "plan.name",
       "plan.version",
+      "plan.closed_at as closedAt",
       "plan.slots",
       "plan.format",
       "plan.schedule_type as scheduleType",
@@ -40,6 +41,32 @@ export async function readClassPlans(context: OrganizationContext, semesterId: s
       "semester.start_date as startDate",
       "semester.end_date as endDate",
     ])
+    .select((eb) =>
+      eb
+        .selectFrom("Enrollment as occupied")
+        .innerJoin("Student as occupant", "occupant.id", "occupied.student_id")
+        .select(sql<number>`count(distinct occupied.student_id)::int`.as("count"))
+        .whereRef("occupied.class_id", "=", "plan.class_id")
+        .where("occupied.deleted_at", "is", null)
+        .where("occupant.deleted_at", "is", null)
+        .where("occupant.status", "=", "ACTIVE")
+        .where(
+          "occupied.entry_date",
+          "<=",
+          sql<Date>`greatest(semester.start_date, ${saoPauloDateOnly(context.now)}::date)`,
+        )
+        .where((eb) =>
+          eb.or([
+            eb("occupied.exit_date", "is", null),
+            eb(
+              "occupied.exit_date",
+              ">",
+              sql<Date>`greatest(semester.start_date, ${saoPauloDateOnly(context.now)}::date)`,
+            ),
+          ]),
+        )
+        .as("enrolledCount"),
+    )
     .select((eb) =>
       jsonObjectFrom(
         eb
@@ -87,7 +114,8 @@ export async function readClassPlans(context: OrganizationContext, semesterId: s
           dateOnly(departure) >
             [dateOnly(row.startDate), saoPauloDateOnly(context.now)].sort().at(-1)!),
       ),
-      active: !row.classId || (row.classStatus === "ACTIVE" && !row.classDeletedAt),
+      active:
+        !row.closedAt && (!row.classId || (row.classStatus === "ACTIVE" && !row.classDeletedAt)),
     };
   });
   return plans.map((plan) => ({
@@ -136,6 +164,8 @@ export async function readPlacementRows(context: OrganizationContext, semesterId
       "placement.source_enrollment_id as sourceEnrollmentId",
       "placement.mode",
       "placement.notes",
+      "placement.continuity",
+      "placement.continuity_reason as continuityReason",
       "placement.effective_date as effectiveDate",
       "placement.declined_at as declinedAt",
       "placement.declined_reason as declinedReason",
@@ -180,7 +210,7 @@ export async function readPlacementRows(context: OrganizationContext, semesterId
 }
 export type PlacementRow = Awaited<ReturnType<typeof readPlacementRows>>[number];
 export async function currentAvailability(context: OrganizationContext, semesterId: string) {
-  return context.database.$kysely
+  const rows = await context.database.$kysely
     .selectFrom("StudentAvailability as availability")
     .innerJoin("User as actor", "actor.id", "availability.recorded_by_id")
     .innerJoin(
@@ -194,12 +224,12 @@ export async function currentAvailability(context: OrganizationContext, semester
       "availabilityStudent.full_name as studentName",
       "availability.confirmed",
       "availability.valid_until as validUntil",
-      "availability.formats",
       "availability.slots",
       "availability.notes",
       "availability.created_at as confirmedAt",
       "actor.name as recordedBy",
     ])
+    .select(sql<string[]>`availability.formats::text[]`.as("formats"))
     .where("availability.semester_id", "=", semesterId)
     .where("availability.deleted_at", "is", null)
     .where("availabilityStudent.deleted_at", "is", null)
@@ -208,6 +238,10 @@ export async function currentAvailability(context: OrganizationContext, semester
     .orderBy("availability.created_at", "desc")
     .orderBy("availability.id", "desc")
     .execute();
+  return rows.map((row) => ({
+    ...row,
+    formats: z.array(z.enum(["IN_PERSON", "ONLINE"])).parse(row.formats),
+  }));
 }
 export type CurrentAvailability = Awaited<ReturnType<typeof currentAvailability>>[number];
 const evidenceSchema = z.object({
@@ -307,7 +341,7 @@ export async function readSemester(context: OrganizationContext, semesterId: str
     readPlacementRows(context, semesterId),
     currentAvailability(context, semesterId),
   ]);
-  const [contracts, sourceClasses, closedDays] = await Promise.all([
+  const [contracts, sourceClasses, closedDays, nextSemester, waitingLeads] = await Promise.all([
     context.database.contract.findMany({
       where: {
         studentId: { in: rows.map((row) => row.studentId) },
@@ -335,6 +369,29 @@ export async function readSemester(context: OrganizationContext, semesterId: str
     context.database.schoolClosedDay.findMany({
       where: { deletedAt: null, date: { gte: semester.startDate, lte: semester.endDate } },
       orderBy: { date: "asc" },
+    }),
+    context.database.semester.findFirst({
+      where: { deletedAt: null, startDate: { gt: semester.endDate } },
+      orderBy: { startDate: "asc" },
+      select: { id: true, name: true, startDate: true, endDate: true },
+    }),
+    context.database.admissionCandidate.findMany({
+      where: { deletedAt: null, status: "WAITING", allocationPendingAt: { not: null } },
+      select: {
+        id: true,
+        fullName: true,
+        studentId: true,
+        stageId: true,
+        scheduleType: true,
+        format: true,
+        notes: true,
+        allocationPendingReason: true,
+        allocationPlanId: true,
+        stage: { select: { internalCode: true } },
+        allocationPlan: { select: { id: true, name: true, classId: true, semesterId: true } },
+        availability: { select: { weekday: true, startTime: true, endTime: true } },
+      },
+      orderBy: { allocationPendingAt: "asc" },
     }),
   ]);
   const byStudent = new Map(availability.map((item) => [item.studentId, item]));
@@ -370,15 +427,27 @@ export async function readSemester(context: OrganizationContext, semesterId: str
     return {
       ...row,
       upcomingContract,
-      contract:
-        contracts.find(
+      contract: coveringContract,
+      periodCovered: contracts.some(
+        (contract) =>
+          contract.studentId === row.studentId &&
+          contract.startsOn &&
+          contract.endsOn &&
+          dateOnly(contract.startsOn) <=
+            [dateOnly(semester.startDate), coverageDate].sort().at(-1)! &&
+          dateOnly(contract.endsOn) >= dateOnly(semester.endDate),
+      ),
+      nextPeriodCovered: Boolean(
+        nextSemester &&
+        contracts.some(
           (contract) =>
             contract.studentId === row.studentId &&
             contract.startsOn &&
-            dateOnly(contract.startsOn) <= coverageDate &&
             contract.endsOn &&
-            dateOnly(contract.endsOn) >= coverageDate,
-        ) ?? null,
+            dateOnly(contract.startsOn) <= dateOnly(nextSemester.startDate) &&
+            dateOnly(contract.endsOn) >= dateOnly(nextSemester.endDate),
+        ),
+      ),
       lastContract: upcomingContract
         ? null
         : (contracts.find(
@@ -398,6 +467,9 @@ export async function readSemester(context: OrganizationContext, semesterId: str
       sourceTeacher: sourceClass ? (usualTeacherOn(sourceClass, context.now)?.name ?? null) : null,
       availability: available ? { ...available, slots: readSlots(available.slots) } : null,
       blockers: [
+        ...(row.continuity === "LEAVING" && !row.publishedAt
+          ? ["Conversar sobre a possível saída"]
+          : []),
         ...(!row.publishedAt &&
         !row.declinedAt &&
         dateOnly(row.effectiveDate ?? semester.startDate) < saoPauloDateOnly(context.now)
@@ -425,6 +497,15 @@ export async function readSemester(context: OrganizationContext, semesterId: str
     .executeTakeFirstOrThrow();
   return {
     semester,
+    nextSemester,
+    waitingLeads: waitingLeads.map((lead) => ({
+      ...lead,
+      slots: lead.availability.map((slot) => ({
+        weekday: slot.weekday,
+        startTime: slot.startTime.toISOString().slice(11, 16),
+        endTime: slot.endTime.toISOString().slice(11, 16),
+      })),
+    })),
     intents: availability
       .filter((item) => !rows.some((row) => row.studentId === item.studentId))
       .map((item) => ({ ...item, slots: readSlots(item.slots) })),

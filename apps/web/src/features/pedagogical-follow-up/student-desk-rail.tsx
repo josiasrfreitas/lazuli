@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState, type ReactElement } from "react";
 import { Badge, Button, Input, Tabs, TabsList, TabsTab, TabsPanel } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -105,11 +106,7 @@ function InterventionList({
     <section className={styles.group} aria-label="Intervenções">
       <div className={styles.listScroll} tabIndex={0} role="region" aria-label="Lista de registros">
         {query.isPending && <DeskRowsLoading />}
-        <QueryState
-          pending={false}
-          error={query.error}
-          retry={() => void query.refetch()}
-        />
+        <QueryState pending={false} error={query.error} retry={() => void query.refetch()} />
         {query.data?.rows.map((row) => (
           <button
             type="button"
@@ -153,11 +150,7 @@ function OccurrenceList({
     <section className={styles.group} aria-label="Ocorrências">
       <div className={styles.listScroll} tabIndex={0} role="region" aria-label="Lista de registros">
         {query.isPending && <DeskRowsLoading />}
-        <QueryState
-          pending={false}
-          error={query.error}
-          retry={() => void query.refetch()}
-        />
+        <QueryState pending={false} error={query.error} retry={() => void query.refetch()} />
         {query.data?.rows.map((row) => (
           <button
             type="button"
@@ -207,12 +200,14 @@ function DeskPagination({
   return (
     <nav className={styles.pagination} aria-label={`Páginas de ${label}`}>
       <Button size="sm" variant="ghost" disabled={page === 1} onClick={() => onPage(page - 1)}>
+        <ChevronLeft aria-hidden="true" />
         Anterior
       </Button>
       <span>
         {page} de {pages}
       </span>
       <Button size="sm" variant="ghost" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+        <ChevronRight aria-hidden="true" />
         Próxima
       </Button>
     </nav>

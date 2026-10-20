@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, CalendarDays, Check, MapPin, Pencil, UserRound } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Check, MapPin, Pencil, UserRound, X } from "lucide-react";
 import { sessionEndInstant } from "@lazuli/domain";
 import {
   Alert,
@@ -218,6 +218,7 @@ function ExperimentalDetails({
               </div>
               <div className={styles.actions}>
                 <Button variant="secondary" size="sm" onClick={onClose}>
+                  <X aria-hidden="true" />
                   Fechar
                 </Button>
                 {canRecord && (

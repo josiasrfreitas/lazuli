@@ -5,12 +5,23 @@ import { meetingKey, meetingsBetween, type TeacherMeeting } from "../teachers/sc
 import { dateOnly } from "./candidates.js";
 
 const visitInclude = {
-  assessment: { select: {
-    fileName: true, contentType: true, byteLength: true, uploadedAt: true,
-    stageId: true, correctedAt: true, notes: true,
-    uploadedBy: { select: { name: true } }, correctedBy: { select: { name: true } },
-    stage: { select: { name: true } },
-  } },
+  assessment: {
+    select: {
+      fileName: true,
+      contentType: true,
+      byteLength: true,
+      uploadedAt: true,
+      stageId: true,
+      correctedAt: true,
+      notes: true,
+      uploadedBy: { select: { name: true } },
+      correctedBy: { select: { name: true } },
+      correctedFile: {
+        select: { fileName: true, uploadedAt: true, uploadedBy: { select: { name: true } } },
+      },
+      stage: { select: { name: true } },
+    },
+  },
   teacher: { select: { name: true } },
   class: { select: { portalClassName: true } },
 } satisfies Prisma.EntryVisitInclude;

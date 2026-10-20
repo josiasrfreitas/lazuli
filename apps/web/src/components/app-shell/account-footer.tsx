@@ -24,7 +24,7 @@ export function AccountFooter({ identity }: { identity: StaffIdentity }): ReactN
     <footer className="border-t border-navigation-border px-1.75 py-4">
       <div className="flex items-center gap-2">
         <AccountMenu identity={identity} />
-        <div className="flex min-w-0 flex-1 items-center gap-1 sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none">
+        <div className="flex min-w-0 flex-1 items-center gap-1 sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 sm:group-has-[[data-popup-open]]/sidebar:opacity-100 motion-reduce:transition-none">
           <div className="min-w-0 flex-1">
             <p
               className="truncate text-caption font-semibold text-navigation-foreground"
