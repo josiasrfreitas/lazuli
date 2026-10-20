@@ -21,6 +21,16 @@ import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
 import { finance } from "./index.js";
 
 export const financeRouter = router({
+  analytics: adminProcedure.input(contractClosingsInputSchema).query(({ ctx, input }) =>
+    ctx.db.$transaction(
+      (transaction) =>
+        finance(transaction, ctx.staffUser.id).analytics({
+          year: input.year,
+          now: ctx.now ?? new Date(),
+        }),
+      { isolationLevel: "RepeatableRead" },
+    ),
+  ),
   contractClosings: adminProcedure
     .input(contractClosingsInputSchema)
     .query(({ ctx, input }) =>
