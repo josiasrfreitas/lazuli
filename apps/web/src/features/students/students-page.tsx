@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { useRouter } from "next/navigation";
 import { CircleCheck, GraduationCap, Plus, Search, UsersRound } from "lucide-react";
 
 import {
@@ -20,7 +21,6 @@ import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
 import { debounce } from "~/lib/debounce";
 
 import {
-  useSelectedStudent,
   useStudentFilterOptions,
   useSelectedStudentFilterOptions,
   useStudentsFilters,
@@ -29,7 +29,6 @@ import {
 } from "./logic";
 import { studentFilterOptionResult } from "./filter-options";
 import { NewStudentDialog } from "./new-student/new-student-dialog";
-import { StudentPreviewPanel } from "./student-preview-panel";
 import { StudentsTable } from "./students-table";
 import { tableStateVm } from "./view-model";
 
@@ -252,8 +251,8 @@ function studentTableState(
 }
 
 export function StudentsPage(): ReactElement {
+  const router = useRouter();
   const filters = useStudentsFilters();
-  const selection = useSelectedStudent();
   const students = useStudentsList(filters);
   const fields = useStudentFilterFields(filters);
   const [creating, setCreating] = useState(false);
@@ -280,19 +279,18 @@ export function StudentsPage(): ReactElement {
               onRetry={() => {
                 void students.refetch();
               }}
-              onSelectRow={selection.select}
-              selectedId={selection.selectedId}
+              onSelectRow={(id) => router.push(`/alunos/${id}`)}
+              selectedId={null}
               state={studentTableState(filters, students)}
               pagination={tablePaginationPropsFor(pagination, students.data)}
             />
           </div>
         </div>
       </DataTablePage>
-      <StudentPreviewPanel selection={selection} />
       <NewStudentDialog
         onCreated={(id) => {
           setCreating(false);
-          selection.select(id);
+          router.push(`/alunos/${id}`);
         }}
         onOpenChange={setCreating}
         open={creating}

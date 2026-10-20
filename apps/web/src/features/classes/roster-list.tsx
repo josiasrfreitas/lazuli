@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import Link from "next/link";
 import { Cake, MoreHorizontal, Phone, UsersRound } from "lucide-react";
 import {
   Avatar,
@@ -78,7 +79,13 @@ function StudentIdentity({ row }: { row: RosterRow }): ReactElement {
           title={row.student.fullName}
           aria-label={row.student.fullName}
         >
-          {row.student.fullName.trim().split(/\s+/u).slice(0, 2).join(" ")}
+          <Link
+            className="text-interactive hover:underline"
+            href={`/alunos/${row.studentId}`}
+            aria-label={`Abrir perfil de ${row.student.fullName}`}
+          >
+            {row.student.fullName.trim().split(/\s+/u).slice(0, 2).join(" ")}
+          </Link>
         </h3>
       </div>
     </div>
