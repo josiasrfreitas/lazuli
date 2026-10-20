@@ -100,7 +100,7 @@ export async function loadInstallmentPage(
     .execute();
 }
 
-function ledgerQuery(input: QueryInput): QueryCreator<LedgerDatabase> {
+export function ledgerQuery(input: QueryInput): QueryCreator<LedgerDatabase> {
   const aggregates = aggregateQuery(input.kysely);
   const expected = sql<number>`"Installment".amount_cents + coalesce(adjustment_totals.amount_cents, 0)`;
   const paid = sql<number>`coalesce(allocation_totals.amount_cents, 0)`;

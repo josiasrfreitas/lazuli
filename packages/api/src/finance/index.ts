@@ -1,4 +1,5 @@
 import { saoPauloDateOnly } from "@lazuli/domain";
+import { readAnalytics } from "./internal/analytics.js";
 import { readContractClosings } from "./internal/contract-closings.js";
 import { previewPayments } from "./internal/payment-preview.js";
 import { confirmPayments } from "./internal/payment-operation.js";
@@ -62,6 +63,7 @@ import type {
  */
 export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule {
   return {
+    analytics: (values) => readAnalytics(db, values),
     contractClosings: async (year, now) => {
       const asOf = saoPauloDateOnly(now);
       return { ...(await readContractClosings(db, { year, asOf })), year, asOf };
@@ -92,6 +94,7 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
 }
 
 export type FinanceModule = {
+  analytics: (values: { year: number; now: Date }) => ReturnType<typeof readAnalytics>;
   contractClosings: (
     year: number,
     now: Date,

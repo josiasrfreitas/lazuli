@@ -11,6 +11,7 @@ import {
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { ContractClosingsChart } from "./contract-closings-chart";
+import { CashPanel } from "./cash-panel";
 import {
   closingMeasures,
   closingRows,
@@ -56,7 +57,7 @@ export function ContractClosingsPage(): ReactElement {
     <div className="mx-auto w-full min-w-0 max-w-7xl space-y-5 p-4 sm:p-6 lg:p-8">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-heading">Visão financeira</h1>
-        <div className="flex items-center gap-3" aria-label="Ano dos fechamentos">
+        <div className="flex items-center gap-3" aria-label="Ano da visão financeira">
           <Button
             variant="ghost"
             size="icon-md"
@@ -90,6 +91,7 @@ export function ContractClosingsPage(): ReactElement {
         </div>
       )}
       {query.data && !query.isError && <ContractClosings data={query.data} />}
+      <CashPanel year={year} />
     </div>
   );
 }
