@@ -10,9 +10,11 @@ type ReviewLine = TreatmentReview["result"]["lines"][number];
 export function TreatmentReviewPanel({
   review,
   onEdit,
+  locked,
 }: {
   review: TreatmentReview;
   onEdit: () => void;
+  locked: boolean;
 }): ReactElement {
   return (
     <div className="grid min-w-0 gap-5 md:grid-cols-2 md:gap-6">
@@ -21,7 +23,7 @@ export function TreatmentReviewPanel({
           <p className="text-control font-semibold text-heading">
             {review.result.lines.length} parcela(s) no acordo
           </p>
-          <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
+          <Button type="button" variant="ghost" size="sm" disabled={locked} onClick={onEdit}>
             <Pencil aria-hidden /> Alterar
           </Button>
         </div>

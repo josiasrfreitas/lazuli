@@ -50,7 +50,7 @@ export function TreatmentDialog({
     <Dialog
       open
       onOpenChange={(open) => {
-        if (!open && !state.pending) onClose();
+        if (!open && !state.isLocked()) onClose();
       }}
     >
       <DialogPortal>
@@ -97,7 +97,11 @@ export function TreatmentForm({ state }: { state: TreatmentState }): ReactElemen
       <fieldset disabled={state.pending} className="min-w-0">
         <legend className="sr-only">Condições da tratativa financeira</legend>
         {state.review ? (
-          <TreatmentReviewPanel review={state.review} onEdit={state.edit} />
+          <TreatmentReviewPanel
+            review={state.review}
+            onEdit={state.edit}
+            locked={state.uncertain}
+          />
         ) : (
           <div className="grid min-w-0 gap-5 md:grid-cols-2 md:gap-6">
             <TreatmentInstallments state={state} />
@@ -110,7 +114,7 @@ export function TreatmentForm({ state }: { state: TreatmentState }): ReactElemen
     </form>
   );
 }
-function TreatmentFooter({
+export function TreatmentFooter({
   state,
   onClose,
 }: {
@@ -121,7 +125,6 @@ function TreatmentFooter({
     (sum, line) => sum + line.resultingBalanceCents,
     0,
   );
-  const label = state.review ? "Confirmar acordo" : "Revisar acordo";
   return (
     <DialogFooter>
       <div className="mr-auto self-center text-caption text-muted-foreground" aria-live="polite">
@@ -134,29 +137,52 @@ function TreatmentFooter({
           "O acordo fica registrado no histórico do aluno."
         )}
       </div>
-      <div className="flex justify-end gap-2">
-        <Button type="button" size="sm" variant="ghost" disabled={state.pending} onClick={onClose}>
-          Cancelar
-        </Button>
-        <Button
-          type="submit"
-          form={TREATMENT_FORM_ID}
-          size="sm"
-          disabled={
-            state.pending ||
-            state.available.isPending ||
-            state.available.isError ||
-            state.rows.length === 0
-          }
-        >
-          {state.pending ? "Aguarde…" : label}
-          {state.review ? (
-            <Check className="size-4" aria-hidden />
-          ) : (
-            <ArrowRight className="size-4" aria-hidden />
-          )}
-        </Button>
-      </div>
+      <TreatmentActions state={state} onClose={onClose} />
     </DialogFooter>
   );
+}
+
+function TreatmentActions({
+  state,
+  onClose,
+}: {
+  state: TreatmentState;
+  onClose: () => void;
+}): ReactElement {
+  return (
+    <div className="flex justify-end gap-2">
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        disabled={state.pending || state.uncertain}
+        onClick={() => {
+          if (!state.isLocked()) onClose();
+        }}
+      >
+        Cancelar
+      </Button>
+      <Button
+        type="submit"
+        form={TREATMENT_FORM_ID}
+        size="sm"
+        disabled={
+          state.pending ||
+          (!state.review &&
+            (state.available.isPending || state.available.isError || state.rows.length === 0))
+        }
+      >
+        {state.pending ? "Aguarde…" : treatmentLabel(state)}
+        {state.review ? (
+          <Check className="size-4" aria-hidden />
+        ) : (
+          <ArrowRight className="size-4" aria-hidden />
+        )}
+      </Button>
+    </div>
+  );
+}
+function treatmentLabel(state: TreatmentState): string {
+  if (state.uncertain) return "Verificar confirmação";
+  return state.review ? "Confirmar acordo" : "Revisar acordo";
 }

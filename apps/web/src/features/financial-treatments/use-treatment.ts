@@ -1,10 +1,11 @@
 "use client";
 import { useState, type RefObject } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { type FinancialTreatmentPreview, type FinancialTreatmentConfirm } from "@lazuli/validators";
+import { type FinancialTreatmentPreview } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { useScrollToError } from "~/lib/scroll-to-error";
 import { treatmentRequest, type TreatmentErrors } from "./treatment-request";
+import { TreatmentConfirmation } from "./treatment-confirmation";
 
 export type TreatmentRow = RouterOutputs["finance"]["treatmentInstallments"]["rows"][number];
 export type TreatmentReview = {
@@ -36,6 +37,8 @@ export type TreatmentState = {
   errors: TreatmentErrors;
   error: string | undefined;
   pending: boolean;
+  uncertain: boolean;
+  isLocked: () => boolean;
   review: TreatmentReview | undefined;
   body: RefObject<HTMLDivElement | null>;
   balance: number;
@@ -120,12 +123,40 @@ type TreatmentFlow = {
   review: TreatmentReview | undefined;
   error: string | undefined;
   pending: boolean;
+  uncertain: boolean;
+  isLocked: () => boolean;
   body: RefObject<HTMLDivElement | null>;
   errors: TreatmentErrors;
   clear: (...names: string[]) => void;
   edit: () => void;
   submit: (draft: Parameters<typeof treatmentRequest>[0]) => Promise<void>;
 };
+function useTreatmentConfirmation(
+  onClose: () => void,
+  onConfirmed?: () => void,
+): {
+  save: ReturnType<typeof trpc.finance.confirmTreatment.useMutation>;
+  attempt: TreatmentConfirmation;
+  uncertain: boolean;
+} {
+  const utils = trpc.useUtils();
+  const [attempt] = useState(() => new TreatmentConfirmation());
+  const [uncertain, setUncertain] = useState(false);
+  const save = trpc.finance.confirmTreatment.useMutation({
+    onSuccess: () => {
+      attempt.complete();
+      setUncertain(false);
+      void Promise.all([utils.finance.invalidate(), utils.students.list.invalidate()]);
+      onConfirmed?.();
+      onClose();
+    },
+    onError: (error) => {
+      attempt.reject(error.data?.code);
+      setUncertain(attempt.uncertain);
+    },
+  });
+  return { save, attempt, uncertain };
+}
 function useTreatmentReview(onClose: () => void, onConfirmed?: () => void): TreatmentFlow {
   const utils = trpc.useUtils();
   const [review, setReview] = useState<TreatmentReview>();
@@ -134,17 +165,15 @@ function useTreatmentReview(onClose: () => void, onConfirmed?: () => void): Trea
   const [loading, setLoading] = useState(false);
   const [revision, setRevision] = useState(0);
   const body = useScrollToError(revision);
-  const save = trpc.finance.confirmTreatment.useMutation({
-    onSuccess: async () => {
-      await Promise.all([utils.finance.invalidate(), utils.students.list.invalidate()]);
-      onConfirmed?.();
-      onClose();
-    },
-  });
+  const { save, attempt, uncertain } = useTreatmentConfirmation(onClose, onConfirmed);
 
   return {
     review,
-    error: error ?? save.error?.message,
+    error: uncertain
+      ? "Não foi possível confirmar o resultado. Verifique a confirmação antes de alterar ou fechar o acordo."
+      : (error ?? save.error?.message),
+    uncertain,
+    isLocked: () => loading || attempt.locked,
     pending: loading || save.isPending,
     body,
     errors,
@@ -154,6 +183,7 @@ function useTreatmentReview(onClose: () => void, onConfirmed?: () => void): Trea
         loading,
         review,
         save,
+        attempt,
         utils,
         body,
         setError,
@@ -170,6 +200,7 @@ function useTreatmentReview(onClose: () => void, onConfirmed?: () => void): Trea
       save.reset();
     },
     edit: () => {
+      if (attempt.locked) return;
       setReview(undefined);
       save.reset();
     },
@@ -180,7 +211,8 @@ type SubmitContext = {
   draft: Parameters<typeof treatmentRequest>[0];
   loading: boolean;
   review: TreatmentReview | undefined;
-  save: { isPending: boolean; mutate: (values: FinancialTreatmentConfirm) => void };
+  save: ReturnType<typeof trpc.finance.confirmTreatment.useMutation>;
+  attempt: TreatmentConfirmation;
   utils: ReturnType<typeof trpc.useUtils>;
   body: RefObject<HTMLDivElement | null>;
   setError: (error: string | undefined) => void;
@@ -194,6 +226,7 @@ async function submitTreatment(context: SubmitContext): Promise<void> {
     draft,
     loading,
     save,
+    attempt,
     review,
     utils,
     body,
@@ -203,15 +236,16 @@ async function submitTreatment(context: SubmitContext): Promise<void> {
     setLoading,
     setReview,
   } = context;
-  if (loading || save.isPending) return;
+  if (loading || attempt.pending) return;
   setError(undefined);
   if (review) {
-    save.mutate({
+    const command = attempt.begin({
       ...review.request,
       reason: review.reason,
       version: review.result.version,
       commandId: review.commandId,
     });
+    if (command) save.mutate(command);
     return;
   }
   const result = treatmentRequest(draft);
@@ -269,7 +303,7 @@ export function useTreatment({
     suspension,
     suspensionOnly,
     submit: async () => {
-      if (!available.isPending && !available.isError)
+      if (flow.review || (!available.isPending && !available.isError))
         await flow.submit({ ...draft, studentId, chosen, suspension });
     },
     ...treatmentActions({ draft, flow, rows }),
