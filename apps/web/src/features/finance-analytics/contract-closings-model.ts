@@ -42,9 +42,8 @@ export function closingValue(
   row: ClosingMonth | Omit<ClosingMonth, "month">,
   measure: ClosingMeasure,
 ): string {
-  return measure === "count"
-    ? `${row.count} contratos`
-    : `${formatBRLFromCents(row[measure])}${measure === "monthlyEquivalentCents" ? "/mês" : ""}`;
+  if (measure === "count") return `${row.count} ${row.count === 1 ? "contrato" : "contratos"}`;
+  return `${formatBRLFromCents(row[measure])}${measure === "monthlyEquivalentCents" ? "/mês" : ""}`;
 }
 
 export function closingGrowth(
