@@ -71,6 +71,8 @@ export function originLabel(origin: FinanceInstallmentRow["origin"]): string {
   }[origin];
 }
 function statusBadge(row: FinanceInstallmentRow, today: string): InstallmentVm["badge"] {
+  const suspension = suspensionBadge(row, today);
+  if (suspension) return suspension;
   switch (row.status) {
     case "PAID": {
       return { label: "Paga", variant: "success" };
@@ -91,4 +93,17 @@ function statusBadge(row: FinanceInstallmentRow, today: string): InstallmentVm["
         : { label: "A vencer", variant: "neutral" };
     }
   }
+}
+
+function suspensionBadge(
+  row: FinanceInstallmentRow,
+  today: string,
+): InstallmentVm["badge"] | undefined {
+  if (row.collectibleBalanceCents > 0 && row.suspendedUntil && row.suspendedUntil >= today)
+    return {
+      label: "Suspensa",
+      variant: "info",
+      description: `Novo vencimento em ${formatDateOnlyBR(row.suspendedUntil)}. Sem novos juros durante a suspensão.`,
+    };
+  return undefined;
 }

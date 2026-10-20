@@ -120,6 +120,7 @@ export {
   financeInstallmentCountsSchema,
   financeInstallmentRowSchema,
   financeInstallmentsInputSchema,
+  financeStudentSummaryInputSchema,
   financeInstallmentsOutputSchema,
   financeInstallmentStatusSchema,
   financeInstallmentViewSchema,
@@ -173,3 +174,15 @@ export {
 } from "./teacher.js";
 
 export { contractClosingsInputSchema } from "./finance.js";
+
+export {
+  FINANCIAL_TREATMENT_PAGE_SIZE,
+  financialTreatmentInstallmentsSchema,
+  financialTreatmentPreviewSchema,
+  financialTreatmentConfirmSchema,
+} from "./financial-treatments.js";
+export type {
+  FinancialTreatmentInstallments,
+  FinancialTreatmentPreview,
+  FinancialTreatmentConfirm,
+} from "./financial-treatments.js";

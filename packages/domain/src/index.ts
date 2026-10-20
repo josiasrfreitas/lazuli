@@ -103,3 +103,10 @@ export {
   type TeacherCommitment,
   type TeacherWeekday,
 } from "./teacher-schedule.js";
+
+export {
+  studentFinanceSummary,
+  type StudentFinanceSummary,
+  type StudentFinanceDebtState,
+  type StudentFinancePaymentState,
+} from "./student-finance.js";

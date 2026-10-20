@@ -1,5 +1,14 @@
+import { treatmentInstallments } from "./internal/treatment-data.js";
+import { previewTreatment } from "./internal/treatment-preview.js";
+import { confirmTreatment, treatmentHistory } from "./internal/treatment-confirm.js";
+import type {
+  FinancialTreatmentInstallments,
+  FinancialTreatmentPreview,
+  FinancialTreatmentConfirm,
+} from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { readAnalytics } from "./internal/analytics.js";
+import { readStudentSummary } from "./internal/student-summary.js";
 import { readContractClosings } from "./internal/contract-closings.js";
 import { previewPayments } from "./internal/payment-preview.js";
 import { confirmPayments } from "./internal/payment-operation.js";
@@ -63,7 +72,13 @@ import type {
  */
 export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule {
   return {
+    treatmentInstallments: (values, now) => treatmentInstallments(db, { values, now }),
+    previewTreatment: (values, now) => previewTreatment(db, { values, now }),
+    confirmTreatment: (values, { actorName, now }) =>
+      confirmTreatment({ database: db, values, actor: { id: staffUserId, name: actorName }, now }),
+    treatmentHistory: (studentId) => treatmentHistory(db, studentId),
     analytics: (values) => readAnalytics(db, values),
+    studentSummary: (values) => readStudentSummary(db, values),
     contractClosings: async (year, now) => {
       const asOf = saoPauloDateOnly(now);
       return { ...(await readContractClosings(db, { year, asOf })), year, asOf };
@@ -94,6 +109,23 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
 }
 
 export type FinanceModule = {
+  treatmentInstallments: (
+    values: FinancialTreatmentInstallments,
+    now: Date,
+  ) => ReturnType<typeof treatmentInstallments>;
+  previewTreatment: (
+    values: FinancialTreatmentPreview,
+    now: Date,
+  ) => ReturnType<typeof previewTreatment>;
+  confirmTreatment: (
+    values: FinancialTreatmentConfirm,
+    context: { actorName: string; now: Date },
+  ) => ReturnType<typeof confirmTreatment>;
+  treatmentHistory: (studentId: string) => ReturnType<typeof treatmentHistory>;
+  studentSummary: (values: {
+    studentId: string;
+    now: Date;
+  }) => ReturnType<typeof readStudentSummary>;
   analytics: (values: { year: number; now: Date }) => ReturnType<typeof readAnalytics>;
   contractClosings: (
     year: number,

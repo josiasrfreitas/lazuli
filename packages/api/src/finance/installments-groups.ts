@@ -37,6 +37,7 @@ export function toPublicRow(
     onTimeAmountCents: row.onTimeAmountCents,
     status: row.status,
     overdueDays: row.overdueDays,
+    ...(row.suspendedUntil ? { suspendedUntil: row.suspendedUntil } : {}),
   };
 }
 

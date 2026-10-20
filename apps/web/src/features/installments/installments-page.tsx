@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { useSearchParams } from "next/navigation";
-import { CircleCheck, DollarSign, Search, Tags, X } from "lucide-react";
+import { CircleCheck, DollarSign, Handshake, Search, Tags, X } from "lucide-react";
 import {
   Button,
   DataTablePage,
@@ -29,6 +29,7 @@ import {
 } from "./filters";
 import { InstallmentsTable } from "./installments-table";
 import { useInstallments } from "./logic";
+import { TreatmentDialog } from "~/features/financial-treatments/treatment-dialog";
 import { PaymentDialog } from "./payment/payment-dialog";
 import {
   PaymentSelectionContext,
@@ -261,11 +262,13 @@ function SelectionToolbar({
   outside,
   clear,
   begin,
+  negotiate,
 }: {
   count: number;
   outside: number;
   clear: () => void;
   begin: () => void;
+  negotiate: () => void;
 }): ReactElement {
   return (
     <FloatingToolbar aria-label="Recebíveis selecionados">
@@ -275,6 +278,9 @@ function SelectionToolbar({
       <span role="status" className="text-caption">
         {count} selecionados{outside > 0 ? ` · ${outside} fora da vista` : ""}
       </span>
+      <Button size="sm" variant="secondary" onClick={negotiate}>
+        <Handshake aria-hidden /> Negociar
+      </Button>
       <Button size="sm" onClick={begin}>
         <DollarSign aria-hidden="true" />
         Registrar pagamento
@@ -420,6 +426,7 @@ export function InstallmentsPage(): ReactElement {
   const state = useInstallments();
   const [rows, setRows] = useState<FinanceInstallmentRow[]>([]);
   const entry = useEntrySession(() => setRows([]));
+  const [treatment, setTreatment] = useState<string[] | null>(null);
   const visible =
     state.data?.view === "overdue"
       ? state.data.groups.flatMap((group) => group.rows)
@@ -434,6 +441,7 @@ export function InstallmentsPage(): ReactElement {
         outside={outside}
         clear={() => setRows([])}
         begin={() => entry.begin(rows)}
+        negotiate={() => setTreatment(rows.map((row) => row.installmentId))}
       />
     ) : null;
   return (
@@ -448,6 +456,13 @@ export function InstallmentsPage(): ReactElement {
       <PaymentRegisteredStatus registered={entry.registered} />
       <InstallmentsTableFrame state={state} beginPayment={entry.begin} toolbar={toolbar} />
       <PaymentEntryDialog entry={entry} />
+      {treatment !== null && (
+        <TreatmentDialog
+          initialIds={treatment}
+          onClose={() => setTreatment(null)}
+          onConfirmed={() => setRows([])}
+        />
+      )}
     </PaymentSelectionContext.Provider>
   );
 }

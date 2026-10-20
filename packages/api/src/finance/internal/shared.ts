@@ -45,6 +45,7 @@ export type FinanceDatabase = Pick<
   | "orderBeneficiary"
   | "installment"
   | "installmentAdjustment"
+  | "installmentAgreement"
   | "paymentEntry"
   | "paymentAllocation"
   | "student"

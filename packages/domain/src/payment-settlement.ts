@@ -35,13 +35,15 @@ function accrueInterest(input: {
   };
 }
 
-export type SettlementPayment = { date: string; amountCents: number };
+export type SettlementPayment = { date: string; amountCents: number; recordedAt?: string };
 export type SettlementInput = {
   nominalCents: number;
   terms: InterestTerms & { discountPct: number };
   payments: SettlementPayment[];
   principalAdjustments: SettlementPayment[];
   postedInterestCents: number;
+  chargeAdjustments?: SettlementPayment[];
+  suspensions?: { date: string; newDueDate: string; recordedAt?: string }[];
   effectiveDate: string;
   receivedCents?: number | undefined;
 };
@@ -52,6 +54,7 @@ export type SettlementQuote = {
   settlementCents: number;
   receivedCents: number;
   remainingCents: number;
+  outstandingChargesCents: number;
 };
 type AccrualState = {
   principal: number;
@@ -59,14 +62,17 @@ type AccrualState = {
   monthly: bigint;
   paidInterest: number;
   date: string;
+  charges: number;
+  dueDate: string;
 };
 
 /** Read-only calculation for one installment; never rewrites earlier financial facts. */
 export function quoteSettlement(input: SettlementInput): SettlementQuote {
   const paid = input.payments.reduce((sum, payment) => sum + payment.amountCents, 0);
   const balanceCents = input.nominalCents + recordedAdjustments(input) - paid;
+  const accrued = interestThroughDate(input);
   const newInterestCents =
-    balanceCents > 0 ? Math.max(0, interestThroughDate(input) - input.postedInterestCents) : 0;
+    balanceCents > 0 ? Math.max(0, accrued.total - input.postedInterestCents) : 0;
   const eligibleDiscount = discountAvailable(input, paid);
   const settlementCents = Math.max(0, balanceCents + newInterestCents - eligibleDiscount);
   const receivedCents = input.receivedCents ?? settlementCents;
@@ -78,38 +84,45 @@ export function quoteSettlement(input: SettlementInput): SettlementQuote {
     settlementCents,
     receivedCents,
     remainingCents: balanceCents + newInterestCents - discountCents - receivedCents,
+    outstandingChargesCents: Math.max(
+      0,
+      Math.min(balanceCents + newInterestCents, accrued.outstanding),
+    ),
   };
 }
 
 function discountAvailable(input: SettlementInput, paid: number): number {
+  if (input.suspensions?.length || input.chargeAdjustments?.length) return 0;
   if (input.effectiveDate > input.terms.dueDate || recordedAdjustments(input) !== 0) return 0;
   const discounted = priceAfterDiscountCents(input.nominalCents, input.terms.discountPct);
   if (paid >= discounted) return 0;
   return input.nominalCents - discounted;
 }
 
-function interestThroughDate(input: SettlementInput): number {
+function interestThroughDate(input: SettlementInput): { total: number; outstanding: number } {
   let state: AccrualState = {
     principal: input.nominalCents,
     daily: 0n,
     monthly: 0n,
     paidInterest: 0,
     date: input.terms.dueDate,
+    dueDate: input.terms.dueDate,
+    charges: 0,
   };
   for (const fact of orderedFacts(input)) {
     if (fact.date > input.effectiveDate) throw new Error("Pagamento anterior a fato já efetivado.");
     state = applyHistoricalFact({ state, fact, terms: input.terms });
   }
   const increment = accrueInterest({
-    terms: input.terms,
+    terms: { ...input.terms, dueDate: state.dueDate },
     from: state.date,
     through: input.effectiveDate,
     principalCents: state.principal,
   });
-  return (
+  const total =
     roundedInterest(state.daily + increment.daily) +
-    roundedInterest(state.monthly + increment.monthly)
-  );
+    roundedInterest(state.monthly + increment.monthly);
+  return { total, outstanding: total + state.charges - state.paidInterest };
 }
 
 function applyHistoricalFact(input: {
@@ -119,13 +132,19 @@ function applyHistoricalFact(input: {
 }): AccrualState {
   const { state, fact } = input;
   const increment = accrueInterest({
-    terms: input.terms,
+    terms: { ...input.terms, dueDate: state.dueDate },
     from: state.date,
     through: fact.date,
     principalCents: state.principal,
   });
   const daily = state.daily + increment.daily;
   const monthly = state.monthly + increment.monthly;
+  if (fact.kind === "suspension") {
+    return { ...state, daily, monthly, date: fact.date, dueDate: fact.newDueDate };
+  }
+  if (fact.kind === "charge") {
+    return { ...state, daily, monthly, date: fact.date, charges: state.charges + fact.amountCents };
+  }
   if (fact.kind === "adjustment") {
     return {
       ...state,
@@ -135,9 +154,13 @@ function applyHistoricalFact(input: {
       date: fact.date,
     };
   }
-  const unpaidInterest = roundedInterest(daily) + roundedInterest(monthly) - state.paidInterest;
+  const unpaidInterest = Math.max(
+    0,
+    roundedInterest(daily) + roundedInterest(monthly) + state.charges - state.paidInterest,
+  );
   const interestPaid = Math.min(fact.amountCents, unpaidInterest);
   return {
+    ...state,
     principal: Math.max(0, state.principal - (fact.amountCents - interestPaid)),
     daily,
     monthly,
@@ -146,15 +169,26 @@ function applyHistoricalFact(input: {
   };
 }
 
-type SettlementFact = SettlementPayment & { kind: "payment" | "adjustment" };
+type SettlementFact =
+  | (SettlementPayment & { kind: "payment" | "adjustment" | "charge" })
+  | { kind: "suspension"; date: string; newDueDate: string; recordedAt?: string };
 function orderedFacts(input: SettlementInput): SettlementFact[] {
   const facts: SettlementFact[] = [
     ...input.principalAdjustments.map((fact) => ({ ...fact, kind: "adjustment" as const })),
+    ...(input.chargeAdjustments ?? []).map((fact) => ({ ...fact, kind: "charge" as const })),
+    ...(input.suspensions ?? []).map((fact) => ({ ...fact, kind: "suspension" as const })),
     ...input.payments.map((fact) => ({ ...fact, kind: "payment" as const })),
   ];
   const result: SettlementFact[] = [];
   for (const fact of facts) {
-    const index = result.findIndex((entry) => entry.date > fact.date);
+    const index = result.findIndex(
+      (entry) =>
+        entry.date > fact.date ||
+        (entry.date === fact.date &&
+          entry.recordedAt !== undefined &&
+          fact.recordedAt !== undefined &&
+          entry.recordedAt > fact.recordedAt),
+    );
     result.splice(index === -1 ? result.length : index, 0, fact);
   }
   return result;
@@ -162,6 +196,7 @@ function orderedFacts(input: SettlementInput): SettlementFact[] {
 function recordedAdjustments(input: SettlementInput): number {
   return (
     input.postedInterestCents +
+    (input.chargeAdjustments ?? []).reduce((sum, fact) => sum + fact.amountCents, 0) +
     input.principalAdjustments.reduce((sum, fact) => sum + fact.amountCents, 0)
   );
 }

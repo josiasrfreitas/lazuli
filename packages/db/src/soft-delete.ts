@@ -11,7 +11,13 @@ const FILTERED_READ_OPERATIONS = new Set([
   "groupBy",
 ]);
 
-const UUID_ENTITY_EXCEPTIONS = new Set(["Account", "FinanceSettings", "Session", "Verification"]);
+const UUID_ENTITY_EXCEPTIONS = new Set([
+  "Account",
+  "FinanceSettings",
+  "Session",
+  "Verification",
+  "InstallmentAgreement",
+]);
 
 function isInputObject(value: JsInputValue): value is Record<string, JsInputValue> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

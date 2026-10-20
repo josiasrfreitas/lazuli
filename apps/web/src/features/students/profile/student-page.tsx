@@ -9,7 +9,7 @@ import { statusBadgeVm } from "../view-model";
 import { useStudentProfile, type StudentProfile } from "./logic";
 import { MISSING_DETAIL, ProfileError, ProfileFact } from "./profile-shared";
 import { StudentContactButton } from "./student-contact";
-import { StudentPedagogy } from "./student-pedagogy";
+import { StudentSections } from "./student-sections";
 
 export function StudentPage({ id }: { id: string }): ReactElement {
   const profile = useStudentProfile(id);
@@ -26,7 +26,7 @@ export function StudentPage({ id }: { id: string }): ReactElement {
       {profile.data && (
         <>
           <StudentIdentity profile={profile.data} />
-          <StudentPedagogy id={id} />
+          <StudentSections key={id} id={id} />
         </>
       )}
     </div>
