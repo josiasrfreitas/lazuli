@@ -19,6 +19,11 @@ export const semesterPlanSchema = semesterScopeSchema
     sharedStageId: id.nullable(),
     teacherId: id.nullable(),
     slots: z.array(classScheduleSlotInputSchema).min(1).max(21),
+    placements: z
+      .array(z.object({ id, version: z.number().int().positive() }))
+      .max(100)
+      .optional(),
+    leadIds: z.array(id).max(100).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {

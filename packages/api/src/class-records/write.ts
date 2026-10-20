@@ -2,7 +2,8 @@ import { TRPCError } from "@trpc/server";
 import type { ClassRecordSave, ClassRecordSnapshot } from "@lazuli/validators";
 import { badRequest } from "../trpc/errors.js";
 import { recordActivity } from "../activity/record.js";
-import { usualTeacherOn } from "../teachers/responsibility.js";
+import { resolveRecordedSteps } from "./planning-links.js";
+import { commitAttendance } from "./attendance.js";
 import {
   dateOnly,
   loadRecordSession,
@@ -31,6 +32,7 @@ export async function saveClassRecord(context: RecordContext, input: ClassRecord
   const previous = storedSnapshot(session);
   const before = previous ?? (await initialSnapshot(context, session));
   const snapshot = mergeRecord(before, input, session);
+  await resolveRecordedSteps(context, session, snapshot, previous);
   const changedConfirmedAttendance =
     !previous &&
     Boolean(session.attendanceConfirmedAt) &&
@@ -43,7 +45,7 @@ export async function saveClassRecord(context: RecordContext, input: ClassRecord
     throw badRequest("Informe o motivo para corrigir a chamada já confirmada.");
   if (previous && JSON.stringify(previous) === JSON.stringify(snapshot))
     throw badRequest("Altere a presença, o conteúdo ou a observação antes de salvar uma correção.");
-  await commitAttendance(context, session, snapshot);
+  await commitAttendance(context, session, snapshot.entries);
   const closedWindows = await closeAttendanceWindows(
     context.database,
     session.id,
@@ -141,56 +143,4 @@ function mergeRecord(
   if (present === 0 && !input.note?.trim())
     throw badRequest("Registre uma observação para a aula sem alunos presentes.");
   return { ...base, note: input.note, sharedContent: input.sharedContent, entries };
-}
-async function commitAttendance(
-  context: RecordContext,
-  session: RecordSession,
-  snapshot: ClassRecordSnapshot,
-) {
-  const current = await context.database.attendance.findMany({
-    where: { classSessionId: session.id, deletedAt: null },
-    select: { id: true, enrollmentId: true, status: true },
-  });
-  const ids = new Set(snapshot.entries.map((row) => row.enrollmentId));
-  if (current.some((row) => !ids.has(row.enrollmentId)))
-    throw badRequest(
-      "A frequência registrada diverge da matrícula histórica. Revise a movimentação antes de dar baixa.",
-    );
-  for (const row of snapshot.entries) {
-    const existing = current.find((entry) => entry.enrollmentId === row.enrollmentId);
-    if (!existing)
-      await context.database.attendance.create({
-        data: {
-          classSessionId: session.id,
-          enrollmentId: row.enrollmentId,
-          status: row.status,
-          recordedAt: context.now,
-          recordedById: context.staffUser.id,
-        },
-      });
-    else if (existing.status !== row.status)
-      await context.database.attendance.update({
-        where: { id: existing.id },
-        data: {
-          status: row.status,
-          lastModifiedAt: context.now,
-          lastModifiedById: context.staffUser.id,
-        },
-      });
-  }
-  await context.database.classSession.update({
-    where: { id: session.id },
-    data: {
-      ...(!session.responsibilityFrozenAt
-        ? {
-            usualTeacherId: usualTeacherOn(session.class, session.date)?.id ?? null,
-            responsibilityFrozenAt: context.now,
-          }
-        : {}),
-      ...(!session.attendanceConfirmedAt
-        ? { attendanceConfirmedAt: context.now, attendanceConfirmedById: context.staffUser.id }
-        : {}),
-      attendanceLastCommittedAt: context.now,
-    },
-  });
 }

@@ -1,72 +1,214 @@
 "use client";
-import { useState } from "react";
-import { Check, CalendarDays } from "lucide-react";
+
+import { CalendarDays, Check } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Alert, Button, ScheduleCalendar, type CalendarView } from "@lazuli/ui";
+import { Alert, Button, PencilLoader } from "@lazuli/ui";
 import { dayLabel } from "~/features/admissions/labels";
+import styles from "./intake-schedule.module.css";
 
 type Options = RouterOutputs["students"]["intakeOptions"];
-export function IntakeClasses({ data, pending, error, onRetry, selectedId, onSelect, date, onDateChange }: {
+type ClassChoice = Options["classes"][number];
+type Slot = ClassChoice["slots"][number];
+
+const WEEKDAYS: Slot["weekday"][] = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+];
+
+type SelectionProps = {
+  selectedId: string;
+  onSelect: (id: string) => void;
+};
+
+function ClassOption({
+  choice,
+  slot,
+  selectedId,
+  onSelect,
+}: SelectionProps & {
+  choice: ClassChoice;
+  slot?: Slot;
+}) {
+  const selected = selectedId === choice.id;
+  const schedule = slot
+    ? `${dayLabel(slot.weekday)}, ${slot.startTime}–${slot.endTime}`
+    : choice.slots
+        .map((item) => `${dayLabel(item.weekday)}, ${item.startTime}–${item.endTime}`)
+        .join("; ") || "Sem horário recorrente";
+  return (
+    <button
+      type="button"
+      className={styles.classOption}
+      aria-pressed={selected}
+      aria-label={`${choice.name}, ${schedule}, ${choice.enrolled} ${choice.enrolled === 1 ? "aluno" : "alunos"}`}
+      onClick={() => onSelect(choice.id)}
+    >
+      <span className={styles.classHeading}>
+        <strong>{choice.name}</strong>
+        {selected && <Check className="size-4 shrink-0" aria-label="Selecionada" />}
+      </span>
+      {slot ? (
+        <span className={styles.classTime}>
+          {slot.startTime}–{slot.endTime}
+        </span>
+      ) : (
+        <span className={styles.classSchedule}>
+          {choice.slots.length
+            ? choice.slots.map((item) => (
+                <span key={`${item.weekday}:${item.startTime}`}>
+                  {dayLabel(item.weekday)} · {item.startTime}–{item.endTime}
+                </span>
+              ))
+            : "Sem horário recorrente"}
+        </span>
+      )}
+      <span className={styles.classCount}>
+        {choice.enrolled} {choice.enrolled === 1 ? "aluno" : "alunos"}
+      </span>
+    </button>
+  );
+}
+
+function RecurringSchedule({ choices, ...selection }: SelectionProps & { choices: ClassChoice[] }) {
+  const days = WEEKDAYS.filter(
+    (day) =>
+      day !== "SUNDAY" ||
+      choices.some((choice) => choice.slots.some((slot) => slot.weekday === day)),
+  );
+  const times = [
+    ...new Set(choices.flatMap((choice) => choice.slots.map((slot) => slot.startTime))),
+  ].sort();
+  const unscheduled = choices.filter((choice) => !choice.slots.length);
+  return (
+    <>
+      <div className={styles.weeklySchedule}>
+        {times.length > 0 && (
+          <table className={styles.weeklyTable}>
+            <caption className="sr-only">Turmas por dia da semana e horário de início</caption>
+            <thead>
+              <tr>
+                <th scope="col">Início</th>
+                {days.map((day) => (
+                  <th key={day} scope="col">
+                    {dayLabel(day)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {times.map((time) => (
+                <tr key={time}>
+                  <th scope="row">{time}</th>
+                  {days.map((day) => {
+                    const entries = choices.flatMap((choice) =>
+                      choice.slots
+                        .filter((slot) => slot.weekday === day && slot.startTime === time)
+                        .map((slot) => ({ choice, slot })),
+                    );
+                    return (
+                      <td key={day}>
+                        <div className={styles.timeOptions}>
+                          {entries.length ? (
+                            entries.map(({ choice, slot }) => (
+                              <ClassOption
+                                key={choice.id}
+                                choice={choice}
+                                slot={slot}
+                                {...selection}
+                              />
+                            ))
+                          ) : (
+                            <span className={styles.emptyCell} aria-label="Sem turma">
+                              —
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {unscheduled.length > 0 && (
+          <section className={styles.unscheduled} aria-label="Turmas sem horário recorrente">
+            <h4>Sem horário recorrente</h4>
+            <div className={styles.unscheduledOptions}>
+              {unscheduled.map((choice) => (
+                <ClassOption key={choice.id} choice={choice} {...selection} />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+      <div className={styles.mobileClasses} role="group" aria-label="Escolher turma">
+        {[...choices.filter((choice) => choice.slots.length > 0), ...unscheduled].map((choice) => (
+          <ClassOption key={choice.id} choice={choice} {...selection} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+export function IntakeClasses({
+  data,
+  pending,
+  error,
+  onRetry,
+  ...selection
+}: SelectionProps & {
   data: Options | undefined;
   pending: boolean;
   error: string | undefined;
   onRetry: () => void;
-  selectedId: string;
-  onSelect: (id: string) => void;
-  date: string;
-  onDateChange: (date: string) => void;
 }) {
-  const [view, setView] = useState<CalendarView>("week");
   const choices = data?.classes ?? [];
-  const events = (data?.meetings ?? []).map((meeting, index) => {
-    const choice = choices.find(row => row.id === meeting.classId)!;
-    return { ...meeting, id: `${meeting.classId}:${meeting.date}:${index}`,
-      title: choice.name, subtitle: choice.scheduleType === "PERSONALIZED" ? "PPT" : choice.stageName,
-      description: `${choice.enrolled} ${choice.enrolled === 1 ? "aluno" : "alunos"}`,
-      tone: meeting.classId === selectedId ? "success" as const : "accent" as const,
-    };
-  });
-  const firstHour = events.length ? Math.min(...events.map(event => Number(event.startTime.slice(0, 2)))) : 8;
-  const lastHour = events.length ? Math.max(...events.map(event => Number(event.endTime.slice(0, 2)) + (event.endTime.endsWith(":00") ? 0 : 1))) : 20;
-  const hours = { start: `${String(firstHour).padStart(2, "0")}:00`, end: `${String(Math.min(24, Math.max(firstHour + 2, lastHour))).padStart(2, "0")}:00` };
-  return <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-    <div className="flex shrink-0 items-center justify-between gap-3">
-      <h3 className="text-control font-semibold">{pending && !data ? "Carregando turmas…" : `${choices.length} ${choices.length === 1 ? "turma disponível" : "turmas disponíveis"}`}</h3>
-      <span className="text-caption text-muted-foreground">{data?.semester?.name ?? "Semestre atual"}</span>
-    </div>
-    <div className="grid min-h-0 flex-1 grid-rows-[minmax(6rem,0.6fr)_minmax(12rem,1fr)] gap-5 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(0,1.65fr)] lg:grid-rows-1">
-      <div className="scrollbar-subtle min-h-0 overflow-y-auto overscroll-contain pr-2" role="group" aria-label="Escolher turma" tabIndex={0}>
-        <div className="grid gap-2">
-          {choices.map(choice => <button key={choice.id} type="button" aria-pressed={selectedId === choice.id}
-            onClick={() => onSelect(choice.id)}
-            className={`grid min-w-0 gap-2 rounded-md border p-4 text-left transition-colors focus-visible:outline-none focus-visible:shadow-focus ${selectedId === choice.id ? "border-primary bg-accent" : "border-border hover:bg-accent"}`}>
-            <span className="flex items-center justify-between gap-2">
-              <span className="text-control font-semibold">{choice.name}</span>
-              {selectedId === choice.id && <Check className="size-4 shrink-0 text-primary" aria-label="Selecionada" />}
-            </span>
-            <span className="grid gap-1 text-caption text-muted-foreground">
-              {choice.slots.length ? choice.slots.map(slot => <span key={`${slot.weekday}:${slot.startTime}`}>
-                {dayLabel(slot.weekday)} · {slot.startTime}–{slot.endTime}
-              </span>) : <span>Sem horário recorrente</span>}
-            </span>
-            <span className="text-caption text-muted-foreground">{choice.enrolled} {choice.enrolled === 1 ? "aluno" : "alunos"}</span>
-          </button>)}
-          {!pending && !error && !choices.length && <div className="grid justify-items-start gap-3 rounded-md border border-dashed border-border p-4">
-            <CalendarDays className="size-5 text-muted-foreground" />
-            <p className="text-caption text-muted-foreground">{data?.semester ? "Nenhuma turma nesta combinação. Altere os filtros ou deixe a turma para depois." : "Não há semestre vigente cadastrado."}</p>
-          </div>}
-          {error && <Alert variant="destructive">{error}<Button variant="ghost" size="sm" onClick={onRetry}>Tentar novamente</Button></Alert>}
+  return (
+    <section className={styles.classes} aria-label="Escolha da turma" aria-busy={pending}>
+      <div className={styles.classesHeading}>
+        <div>
+          <h3>Horários das turmas</h3>
         </div>
+        <span>
+          {data?.semester?.name ?? "Semestre atual"}
+          {!pending &&
+            !error &&
+            ` · ${choices.length} ${choices.length === 1 ? "turma" : "turmas"}`}
+        </span>
       </div>
-      <div className="min-h-0 min-w-0 overflow-hidden border-t border-border pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
-        <ScheduleCalendar date={date} view={view} events={events} onDateChange={onDateChange} onViewChange={setView}
-          minDate={data?.today} maxDate={data?.semester?.endDate.toISOString().slice(0, 10)}
-          density="compact" label="Turmas e horários disponíveis" hours={hours}
-          className="min-h-0 [&_.lz-calendar-toolbar]:px-1 [&_.lz-calendar-toolbar]:pb-2 [&_.lz-calendar-viewport]:min-h-0"
-          status={pending ? "loading" : error ? "error" : "ready"} {...(error ? { errorMessage: error } : {})} onRetry={onRetry}
-          onEventActivate={event => onSelect(event.classId)} selectedEventId={events.find(event => event.classId === selectedId)?.id}
-          emptyMessage="Sem encontros nesta semana. Escolha outra semana ou consulte os horários da turma." />
+      <div className={`${styles.classesContent} scrollbar-subtle`}>
+        {pending ? (
+          <div className={styles.centeredState}>
+            <PencilLoader label="Carregando turmas" />
+          </div>
+        ) : error ? (
+          <div className={styles.centeredState}>
+            <Alert variant="destructive">
+              {error}
+              <Button variant="secondary" size="sm" onClick={onRetry}>
+                Tentar novamente
+              </Button>
+            </Alert>
+          </div>
+        ) : choices.length ? (
+          <RecurringSchedule choices={choices} {...selection} />
+        ) : (
+          <div className={styles.centeredState}>
+            <CalendarDays className="size-6 text-muted-foreground" aria-hidden="true" />
+            <p>
+              {data?.semester
+                ? "Nenhuma turma nesta combinação. Altere os filtros ou deixe a turma para depois."
+                : "Não há semestre vigente cadastrado."}
+            </p>
+          </div>
+        )}
       </div>
-    </div>
-  </div>;
+    </section>
+  );
 }

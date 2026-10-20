@@ -1,6 +1,6 @@
-import type { ReactElement } from "react";
+import { Pencil } from "lucide-react";
 import {
-  Badge,
+  Button,
   InlineSkeleton,
   Table,
   TableBody,
@@ -11,67 +11,127 @@ import {
   TableRow,
 } from "@lazuli/ui";
 import {
-  COMPETENCES,
+  ASSESSMENT_ROW_ORDER,
   COMPETENCE_LABELS,
-  COMPETENCE_VISUALS,
-  PHASE_LABELS,
   gradeLabel,
   type Assessment,
+  type Competence,
 } from "./shared";
+import styles from "./assessment-workspace.module.css";
 
-export function AssessmentResults({ data }: { data?: Assessment }): ReactElement {
+export function AssessmentResults({
+  data,
+  recovery = false,
+  onEdit,
+}: {
+  data?: Assessment;
+  recovery?: boolean;
+  onEdit?: (competence: Competence, trigger: HTMLButtonElement) => void;
+}) {
+  const actions = !data || Boolean(onEdit);
   return (
     <TableContainer>
-      <Table aria-label="Notas por competência" density="compact" aria-busy={!data || undefined}>
+      <Table
+        aria-label={recovery ? "Notas de recuperação" : "Notas por unidade"}
+        density="dense"
+        className="min-w-0 table-fixed"
+        aria-busy={!data || undefined}
+      >
+        <colgroup>
+          <col className="w-22" />
+          <col />
+          {!recovery && <col />}
+          <col />
+          {actions && <col className="w-10" />}
+        </colgroup>
         <TableHeader>
           <TableRow interactive={false}>
-            <TableHead>Competência</TableHead>
-            <TableHead numeric>{PHASE_LABELS.BLOCK_ONE}</TableHead>
-            <TableHead numeric>{PHASE_LABELS.BLOCK_TWO}</TableHead>
-            <TableHead numeric>Média</TableHead>
-            <TableHead numeric>Recup.</TableHead>
-            <TableHead>Resultado</TableHead>
+            <TableHead>Avaliação</TableHead>
+            {recovery ? (
+              <TableHead numeric className="px-1 sm:px-1.5">
+                Nota
+              </TableHead>
+            ) : (
+              <>
+                <TableHead numeric className="px-1 sm:px-1.5" aria-label="Unidade 1">
+                  <span className="sm:hidden">U1</span>
+                  <span className="hidden sm:inline">Unid. 1</span>
+                </TableHead>
+                <TableHead numeric className="px-1 sm:px-1.5" aria-label="Unidade 2">
+                  <span className="sm:hidden">U2</span>
+                  <span className="hidden sm:inline">Unid. 2</span>
+                </TableHead>
+              </>
+            )}
+            <TableHead numeric className="px-1 sm:px-1.5" aria-label={recovery ? "Final" : "Média"}>
+              {recovery ? (
+                "Final"
+              ) : (
+                <>
+                  <span className="sm:hidden">Méd.</span>
+                  <span className="hidden sm:inline">Média</span>
+                </>
+              )}
+            </TableHead>
+            {actions && (
+              <TableHead className="px-1">
+                <span className="sr-only">Editar avaliação</span>
+              </TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {(data?.results.map((row) => row.competence) ?? COMPETENCES).map((competence) => {
+          {ASSESSMENT_ROW_ORDER.map((competence) => {
             const result = data?.results.find((row) => row.competence === competence);
+            const value = result ? (recovery ? result.effective : result.average) : null;
+            const scores = result
+              ? recovery
+                ? [result.recovery]
+                : [result.blockOne, result.blockTwo]
+              : Array.from({ length: recovery ? 1 : 2 }, () => null);
             return (
               <TableRow key={competence} interactive={false}>
-                <TableCell>
-                  <Badge variant={COMPETENCE_VISUALS[competence].badge}>
-                    {COMPETENCE_LABELS[competence]}
-                  </Badge>
-                </TableCell>
-                <TableCell numeric>
-                  {result ? gradeLabel(result.blockOne) : <InlineSkeleton className="w-8" />}
-                </TableCell>
-                <TableCell numeric>
-                  {result ? gradeLabel(result.blockTwo) : <InlineSkeleton className="w-8" />}
-                </TableCell>
-                <TableCell numeric>
-                  {result ? gradeLabel(result.average) : <InlineSkeleton className="w-8" />}
-                </TableCell>
-                <TableCell numeric>
-                  {result ? gradeLabel(result.recovery) : <InlineSkeleton className="w-8" />}
-                </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">{COMPETENCE_LABELS[competence]}</TableCell>
+                {scores.map((score, index) => (
+                  <TableCell key={index} numeric className="px-1 sm:px-1.5">
+                    {result ? (
+                      gradeLabel(score)
+                    ) : (
+                      <InlineSkeleton className="h-3 w-5 max-w-full rounded-sm" />
+                    )}
+                  </TableCell>
+                ))}
+                <TableCell numeric className="px-1 sm:px-1.5">
                   {result ? (
-                    <Badge
-                      variant={
-                        result.passed === null ? "neutral" : result.passed ? "success" : "warning"
+                    <span
+                      className={
+                        value === null ? styles.muted : value >= 60 ? styles.passed : styles.below
                       }
                     >
-                      {result.passed === null
-                        ? "Incompleto"
-                        : result.passed
-                          ? "Suficiente"
-                          : "Abaixo de 60"}
-                    </Badge>
+                      {gradeLabel(value)}
+                    </span>
                   ) : (
-                    <InlineSkeleton className="w-20" />
+                    <InlineSkeleton className="h-3 w-5 max-w-full rounded-sm" />
                   )}
                 </TableCell>
+                {actions && (
+                  <TableCell className="px-1">
+                    {onEdit ? (
+                      <Button
+                        size="icon-sm"
+                        variant="secondary"
+                        aria-label={`Editar ${COMPETENCE_LABELS[competence]}${recovery ? " · recuperação" : ""}`}
+                        title={`Editar ${COMPETENCE_LABELS[competence]}`}
+                        aria-haspopup="dialog"
+                        onClick={(event) => onEdit(competence, event.currentTarget)}
+                      >
+                        <Pencil aria-hidden="true" />
+                      </Button>
+                    ) : (
+                      <InlineSkeleton className="size-8 rounded-sm" />
+                    )}
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}

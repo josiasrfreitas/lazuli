@@ -17,16 +17,8 @@ const popoverArrowClassName = [
 
 export const popoverContentVariants = cva(
   [
-    "relative rounded-lg border border-border bg-popover text-popover-foreground shadow-lg outline-none",
-    "text-caption focus-visible:shadow-focus data-[ending-style]:duration-fast",
-    "origin-(--transform-origin) will-change-[opacity,transform] transition-[opacity,transform] duration-base ease-standard",
-    "data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
-    "data-[ending-style]:scale-98 data-[ending-style]:opacity-0",
-    "data-[side=top]:data-[starting-style]:translate-y-1.5 data-[side=top]:data-[ending-style]:translate-y-0.5",
-    "data-[side=bottom]:data-[starting-style]:-translate-y-1.5 data-[side=bottom]:data-[ending-style]:-translate-y-0.5",
-    "data-[side=left]:data-[starting-style]:translate-x-1.5 data-[side=left]:data-[ending-style]:translate-x-0.5",
-    "data-[side=right]:data-[starting-style]:-translate-x-1.5 data-[side=right]:data-[ending-style]:-translate-x-0.5",
-    "motion-reduce:transition-none motion-reduce:data-[starting-style]:translate-x-0 motion-reduce:data-[starting-style]:translate-y-0 motion-reduce:data-[starting-style]:scale-100",
+    "relative isolate rounded-lg border border-border bg-popover text-popover-foreground shadow-lg outline-none",
+    "text-caption focus-visible:shadow-focus origin-(--transform-origin)",
   ],
   {
     variants: {
@@ -35,10 +27,24 @@ export const popoverContentVariants = cva(
         md: "w-72 p-4",
         lg: "w-96 p-4",
         xl: "w-xl max-w-[calc(100vw-2rem)] max-h-[min(80dvh,var(--available-height))] overflow-y-auto overscroll-contain p-4",
+        menu: "w-max max-w-[calc(100vw-1rem)] p-1.5",
       },
-      motion: { default: "", instant: "transition-none" },
+      motion: {
+        default: [
+          "will-change-[opacity,transform] transition-[opacity,transform] duration-base ease-standard data-[ending-style]:duration-fast",
+          "data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
+          "data-[ending-style]:scale-98 data-[ending-style]:opacity-0",
+          "data-[side=top]:data-[starting-style]:translate-y-1.5 data-[side=top]:data-[ending-style]:translate-y-0.5",
+          "data-[side=bottom]:data-[starting-style]:-translate-y-1.5 data-[side=bottom]:data-[ending-style]:-translate-y-0.5",
+          "data-[side=left]:data-[starting-style]:translate-x-1.5 data-[side=left]:data-[ending-style]:translate-x-0.5",
+          "data-[side=right]:data-[starting-style]:-translate-x-1.5 data-[side=right]:data-[ending-style]:-translate-x-0.5",
+          "motion-reduce:transition-none motion-reduce:data-[starting-style]:translate-x-0 motion-reduce:data-[starting-style]:translate-y-0 motion-reduce:data-[starting-style]:scale-100",
+        ],
+        instant: "transition-none",
+        unfold: "lz-popover-unfold",
+      },
     },
-    defaultVariants: { size: "md" },
+    defaultVariants: { size: "md", motion: "default" },
   },
 );
 

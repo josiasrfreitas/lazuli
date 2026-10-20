@@ -1,4 +1,5 @@
 "use client";
+import { ArrowLeft } from "lucide-react";
 import type { ReactElement } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { Button, EmptyState } from "@lazuli/ui";
@@ -67,6 +68,7 @@ export function StudentPlanning({ studentId }: { studentId: string }): ReactElem
           action={
             options.length ? (
               <Button variant="secondary" onClick={() => void setProgressId(null)}>
+                <ArrowLeft aria-hidden="true" />
                 Ver percurso atual
               </Button>
             ) : undefined

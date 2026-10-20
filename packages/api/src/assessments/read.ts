@@ -6,6 +6,7 @@ import {
 } from "@lazuli/domain";
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { notFound } from "../trpc/errors.js";
+import { assessmentObservations } from "./observations.js";
 import {
   assertProgressAccess,
   assertTeacherAccess,
@@ -18,8 +19,10 @@ import {
 
 export type AssessmentView = {
   progressId: string;
+  fileScope: { enrollmentId: string; from: string; through: string | null };
   assessmentId: string | null;
   version: number;
+  observations?: ReturnType<typeof assessmentObservations>;
   student: Progress["enrollment"]["student"];
   class: { id: string; name: string };
   stage: Progress["stage"];
@@ -59,8 +62,14 @@ export function assessmentView(progress: Progress, context: AssessmentContext): 
   const today = saoPauloDateOnly(context.now);
   return {
     progressId: progress.id,
+    fileScope: {
+      enrollmentId: progress.enrollmentId,
+      from: dateOnly(progress.startDate),
+      through: progress.endDate ? dateOnly(progress.endDate) : null,
+    },
     assessmentId: assessment?.id ?? null,
     version: assessment?.version ?? 0,
+    observations: assessmentObservations(progress),
     student: progress.enrollment.student,
     class: { id: progress.enrollment.classId, name: progress.enrollment.class.portalClassName },
     stage: progress.stage,
@@ -108,12 +117,17 @@ export async function readStudentAssessments(
     orderBy: [{ startDate: "desc" }, { id: "asc" }],
   });
   const seen = new Set<string>();
-  const visible = await Promise.all(progress.map(async (row) => {
-    try { await assertProgressAccess(context, row); return row; } catch (error) {
-      if (error instanceof Error && "code" in error && error.code === "FORBIDDEN") return null;
-      throw error;
-    }
-  }));
+  const visible = await Promise.all(
+    progress.map(async (row) => {
+      try {
+        await assertProgressAccess(context, row);
+        return row;
+      } catch (error) {
+        if (error instanceof Error && "code" in error && error.code === "FORBIDDEN") return null;
+        throw error;
+      }
+    }),
+  );
   return visible.flatMap((row) => {
     if (!row) return [];
     const key = row.assessmentId ?? row.id;
@@ -129,7 +143,13 @@ export async function readClassAssessments(
   const today = new Date(saoPauloDateOnly(context.now));
   const classRow = await context.database.class.findFirst({
     where: { id: classId, deletedAt: null },
-    select: { ...responsibilitySelect, substitutions: { where: { teacherId: context.staffUser.id, date: today, revokedAt: null, deletedAt: null }, select: { id: true } } },
+    select: {
+      ...responsibilitySelect,
+      substitutions: {
+        where: { teacherId: context.staffUser.id, date: today, revokedAt: null, deletedAt: null },
+        select: { id: true },
+      },
+    },
   });
   if (!classRow) throw notFound("Turma não encontrada.");
   if (!classRow.substitutions.length) assertTeacherAccess(context.staffUser, classRow, today);
@@ -161,7 +181,10 @@ export async function assessmentClasses(
       portalClassName: true,
       semester: { select: { name: true } },
       ...responsibilitySelect,
-      substitutions: { where: { teacherId: context.staffUser.id, date: today, revokedAt: null, deletedAt: null }, select: { id: true } },
+      substitutions: {
+        where: { teacherId: context.staffUser.id, date: today, revokedAt: null, deletedAt: null },
+        select: { id: true },
+      },
     },
     orderBy: { portalClassName: "asc" },
   });
@@ -169,7 +192,8 @@ export async function assessmentClasses(
     .filter(
       (row) =>
         context.staffUser.role !== "TEACHER" ||
-        usualTeacherOn(row, today)?.id === context.staffUser.id || row.substitutions.length > 0,
+        usualTeacherOn(row, today)?.id === context.staffUser.id ||
+        row.substitutions.length > 0,
     )
     .map((row) => ({ id: row.id, name: row.portalClassName, semester: row.semester.name }));
 }

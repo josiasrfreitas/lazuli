@@ -1,4 +1,5 @@
 "use client";
+import { ClipboardCheck, UserRound, X } from "lucide-react";
 import { useState, useEffect, type ReactElement } from "react";
 import { classRecordSaveSchema, type ClassRecordSave } from "@lazuli/validators";
 import { Alert, Button, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
@@ -58,6 +59,7 @@ export function ClassRecordEditor({
         utils.activity.invalidate(),
         utils.studentAttendance.invalidate(),
         utils.teacherWorkspace.invalidate(),
+        utils.planning.invalidate(),
       ]);
       setReview(null);
       onClose();
@@ -138,7 +140,7 @@ export function ClassRecordEditor({
     <>
       <form
         id="class-record-editor"
-        className="grid min-w-0 gap-6"
+        className="grid min-w-0 gap-4"
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
@@ -158,7 +160,7 @@ export function ClassRecordEditor({
           </Alert>
         )}
         {errors.presence && <Alert variant="destructive">{errors.presence}</Alert>}
-        <div className="grid min-w-0 items-start gap-6 lg:grid-cols-5">
+        <div className="grid min-w-0 items-start gap-4 lg:grid-cols-5">
           <section className="grid min-w-0 gap-3 lg:col-span-2" aria-label="Chamada da aula">
             <div className="flex items-baseline justify-between gap-2">
               <h2 className="text-sm font-semibold">Chamada</h2>
@@ -169,7 +171,7 @@ export function ClassRecordEditor({
             </div>
             <div className="divide-y divide-border rounded-lg border border-border bg-card">
               {rows.map((row) => (
-                <div key={row.enrollmentId} className="grid gap-2 p-3">
+                <div key={row.enrollmentId} className="grid gap-1.5 p-2">
                   <div>
                     {regular ? (
                       <p className="text-sm font-medium">{row.name}</p>
@@ -178,6 +180,7 @@ export function ClassRecordEditor({
                         variant={row.enrollmentId === selected ? "secondary" : "ghost"}
                         size="sm"
                         type="button"
+                        className="max-w-full justify-start"
                         aria-pressed={row.enrollmentId === selected}
                         aria-label={`Realizado por ${row.name}`}
                         onClick={() => {
@@ -185,7 +188,8 @@ export function ClassRecordEditor({
                           setFocusField({ id: "performed-content" });
                         }}
                       >
-                        {row.name}
+                        <UserRound aria-hidden="true" />
+                        <span className="min-w-0 truncate">{row.name}</span>
                       </Button>
                     )}
                     {!regular && (
@@ -238,11 +242,11 @@ export function ClassRecordEditor({
           <section
             id="performed-content"
             tabIndex={-1}
-            className="grid min-w-0 gap-5 rounded-lg border border-border bg-card p-4 sm:p-5 lg:sticky lg:top-4 lg:col-span-3"
+            className="grid min-w-0 gap-3 lg:sticky lg:top-4 lg:col-span-3"
             aria-label="Conteúdo realizado"
           >
             <div>
-              <h2 className="font-display text-xl font-semibold">
+              <h2 className="text-sm font-semibold">
                 {regular ? "Realizado pela turma" : (active?.name ?? "Conteúdo individual")}
               </h2>
               <p className="mt-1 text-caption text-muted-foreground">
@@ -253,7 +257,17 @@ export function ClassRecordEditor({
             </div>
             {regular ? (
               present > 0 ? (
-                <ContentFields prefix="shared" value={shared} change={setShared} errors={errors} />
+                <ContentFields
+                  prefix="shared"
+                  value={shared}
+                  change={setShared}
+                  errors={errors}
+                  planning={{
+                    classId: opened.session.classId,
+                    date: opened.session.date,
+                    startTime: opened.session.startTime,
+                  }}
+                />
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {rows.some((row) => row.status === "PENDING")
@@ -273,6 +287,16 @@ export function ClassRecordEditor({
                   )
                 }
                 errors={errors}
+                planning={
+                  active.progressId
+                    ? {
+                        classId: opened.session.classId,
+                        progressId: active.progressId,
+                        date: opened.session.date,
+                        startTime: opened.session.startTime,
+                      }
+                    : undefined
+                }
               />
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -281,9 +305,14 @@ export function ClassRecordEditor({
                   : "Este aluno está marcado como falta. A baixa não incluirá conteúdo realizado para ele."}
               </p>
             )}
-            <PlannedReference
-              value={regular ? opened.snapshot.sharedPlanned : (active?.planned ?? null)}
-            />
+            <details className="text-caption">
+              <summary className="w-fit cursor-pointer py-1 text-interactive">
+                Plano registrado para esta aula
+              </summary>
+              <PlannedReference
+                value={regular ? opened.snapshot.sharedPlanned : (active?.planned ?? null)}
+              />
+            </details>
           </section>
         </div>
         <div className="grid max-w-3xl gap-4">
@@ -296,6 +325,7 @@ export function ClassRecordEditor({
             value={note}
             onChange={setNote}
             error={errors.note}
+            rows={2}
           />
           {needsReason && (
             <NarrativeField
@@ -315,13 +345,15 @@ export function ClassRecordEditor({
               : "Confira a chamada e o conteúdo antes de confirmar a baixa."}
           </p>
           {!externalSubmit && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {opened.version > 0 && (
                 <Button variant="secondary" type="button" onClick={onClose}>
+                  <X aria-hidden="true" />
                   Cancelar correção
                 </Button>
               )}
               <Button type="submit">
+                <ClipboardCheck aria-hidden="true" />
                 {opened.version ? "Conferir correção" : "Conferir e dar baixa"}
               </Button>
             </div>

@@ -88,7 +88,7 @@ export function LessonDetails({ data }: { data: ClassRecord }): ReactElement {
 
 function PerformedContent({ title, content }: { title: string; content: ClassRecordContent }) {
   return (
-    <div className="grid gap-2 rounded-md border border-border p-4">
+    <div className="grid gap-2 rounded-md border border-border p-3">
       <h3 className="text-sm font-semibold">{title}</h3>
       <p className="text-caption text-muted-foreground">
         {kindLabels[content.kind]}
@@ -97,6 +97,12 @@ function PerformedContent({ title, content }: { title: string; content: ClassRec
           ? ` · Pág. ${content.pageFrom}${content.pageTo !== null && content.pageTo !== content.pageFrom ? `–${content.pageTo}` : ""}`
           : ""}
       </p>
+      {content.planItemId && (
+        <p className="text-caption">
+          {content.planItemTitle ?? "Etapa do planejamento"} ·{" "}
+          {content.planItemStatus === "COMPLETED" ? "Concluída" : "Em andamento"}
+        </p>
+      )}
       <p className="whitespace-pre-wrap text-sm">{content.account}</p>
     </div>
   );

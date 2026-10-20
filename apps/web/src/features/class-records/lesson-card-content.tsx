@@ -5,10 +5,18 @@ import { purposes } from "~/features/appointments/shared";
 import styles from "./lesson-card-content.module.css";
 
 /** The agenda keeps the same reading order in daily, weekly and expanded cards. */
-export function LessonCardContent({ lesson }: { lesson: CalendarLesson }) {
+export function LessonCardContent({
+  lesson,
+  personal = false,
+}: {
+  lesson: CalendarLesson;
+  personal?: boolean;
+}) {
   const title =
     lesson.experimental?.candidate.fullName ??
-    lesson.appointment?.student.name.trim().split(/\s+/u).slice(0, 2).join(" ") ??
+    (personal
+      ? lesson.appointment?.student.name
+      : lesson.appointment?.student.name.trim().split(/\s+/u).slice(0, 2).join(" ")) ??
     stageIdentity(lesson).stage;
   const context = lesson.experimental
     ? lesson.experimental.kind === "PLACEMENT"
@@ -23,6 +31,7 @@ export function LessonCardContent({ lesson }: { lesson: CalendarLesson }) {
       data-cancelled={lesson.state === "CANCELLED"}
       data-markers={!lesson.appointment && !lesson.experimental}
       data-guests={lesson.guestCount > 0}
+      data-personal={personal}
     >
       <span className={styles.header}>
         <span className={styles.time} data-calendar-detail>

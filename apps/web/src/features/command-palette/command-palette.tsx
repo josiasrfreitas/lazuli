@@ -9,6 +9,7 @@ import {
   DollarSign,
   FileText,
   GraduationCap,
+  Search,
   type LucideIcon,
   UserRound,
   UserRoundPlus,
@@ -46,7 +47,6 @@ export function CommandPalette({ role }: { role: StaffRole }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<{ command: Command; query: string } | null>(null);
-  const [shortcut, setShortcut] = useState("Ctrl K");
   const intent = searchIntent(query);
   const lookup = useCommandSearch(
     intent.entityQuery,
@@ -62,7 +62,6 @@ export function CommandPalette({ role }: { role: StaffRole }) {
     }
   }
   useEffect(() => {
-    setShortcut(/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘ K" : "Ctrl K");
     function keydown(event: KeyboardEvent) {
       if (
         (event.metaKey || event.ctrlKey) &&
@@ -138,9 +137,12 @@ export function CommandPalette({ role }: { role: StaffRole }) {
       open={open}
       onOpenChange={changeOpen}
       trigger={
-        <Button variant="ghost" size="sm" aria-label={`Buscar no sistema (${shortcut})`}>
-          <Badge aria-hidden="true">⌘ + K</Badge>
-          <span className="hidden md:inline">Buscar</span>
+        <Button variant="ghost" size="compact-responsive" aria-label="Buscar no sistema">
+          <Search className="md:hidden" aria-hidden="true" />
+          <Badge className="hidden md:inline-flex" aria-hidden="true">
+            ⌘ + K
+          </Badge>
+          <span>Buscar</span>
         </Button>
       }
       query={query}

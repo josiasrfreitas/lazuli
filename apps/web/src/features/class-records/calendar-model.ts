@@ -69,7 +69,7 @@ export function agendaEvents(
         endTime: item.endTime,
         teacherId: item.teacher?.id ?? null,
         teacher:
-          item.kind === "PLACEMENT" ? "Aplicação sem professor" : (item.teacher?.name ?? null),
+          item.teacher?.name ?? (item.kind === "PLACEMENT" ? "Aplicação sem professor" : null),
         state:
           item.status === "CANCELLED"
             ? "CANCELLED"

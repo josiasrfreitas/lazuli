@@ -12,7 +12,7 @@ import { ScrollArea } from "@base-ui/react/scroll-area";
 
 import { cn } from "../lib/utils";
 
-export type TableDensity = "compact" | "default";
+export type TableDensity = "dense" | "compact" | "default";
 
 // Density is chosen once on the root and read by the cells, so a header and its
 // body cannot drift to different row heights or paddings.
@@ -57,6 +57,7 @@ function TableScrollArea({ children }: { children: ReactNode }): ReactElement {
 
 /** Row height and horizontal cell padding, per density. */
 export const tableCellSpacing: Record<TableDensity, string> = {
+  dense: "h-9 px-1.5",
   compact: "h-10 px-3",
   default: "h-12.5 px-5 py-1.5",
 };

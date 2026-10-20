@@ -1,4 +1,5 @@
 "use client";
+import { BookOpen } from "lucide-react";
 
 import { useState, type ReactNode } from "react";
 import { Button } from "@lazuli/ui";
@@ -20,11 +21,13 @@ export function ClassRecordTrigger({
       <Button
         variant="link"
         size="inline"
+        className="max-w-full"
         aria-haspopup="dialog"
         aria-label={label}
         onClick={() => setOpen(true)}
       >
-        {children}
+        <BookOpen aria-hidden="true" />
+        <span className="min-w-0 truncate">{children}</span>
       </Button>
       {open && <ClassRecordDialog id={sessionId} onClose={() => setOpen(false)} />}
     </>

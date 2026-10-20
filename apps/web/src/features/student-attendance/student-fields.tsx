@@ -8,11 +8,13 @@ export function StudentNameField({
   change,
   error,
   disabled,
+  hint,
 }: {
   name: string;
   change: (value: string) => void;
   error: string | null;
   disabled: boolean;
+  hint?: string;
 }): ReactElement {
   return (
     <Field>
@@ -29,7 +31,13 @@ export function StudentNameField({
         maxLength={120}
         disabled={disabled}
         invalid={Boolean(error)}
+        aria-describedby={hint ? "student-name-hint" : undefined}
       />
+      {hint && (
+        <p id="student-name-hint" className="text-caption text-muted-foreground">
+          {hint}
+        </p>
+      )}
       <FieldError match={Boolean(error)}>{error}</FieldError>
     </Field>
   );

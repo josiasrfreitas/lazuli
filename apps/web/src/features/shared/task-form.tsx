@@ -1,5 +1,6 @@
 "use client";
 import { useState, type ReactElement, type ReactNode } from "react";
+import { ArrowLeft, Check, X } from "lucide-react";
 import type { z } from "@lazuli/validators";
 import {
   Alert,
@@ -129,9 +130,9 @@ export function TaskDialog({
   onBack,
   submitDisabled = false,
   actionSize = "md",
-  submitIcon,
-  cancelIcon,
-  backIcon,
+  submitIcon = <Check aria-hidden="true" />,
+  cancelIcon = <X aria-hidden="true" />,
+  backIcon = <ArrowLeft aria-hidden="true" />,
   contentClassName,
   compactHeader = false,
   bodyClassName,

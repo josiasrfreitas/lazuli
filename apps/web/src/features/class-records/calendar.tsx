@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactElement, type ReactNode } from "react";
-import { CalendarPlus, MapPin, Video } from "lucide-react";
+import { CalendarPlus, ListFilter } from "lucide-react";
 import {
   Button,
   ScheduleCalendar,
@@ -20,16 +20,11 @@ import { CalendarLessonButton } from "./calendar-lesson";
 import { CalendarLinkedLesson } from "./calendar-linked-lesson";
 import { ClassRecordDialog } from "./class-record-dialog";
 import { CalendarExperimentalDialog } from "./calendar-experimental-dialog";
+import { CalendarEventFilters, EVENT_TYPES } from "./calendar-event-filters";
+import { TeacherAgendaHeader } from "./teacher-agenda-header";
 import styles from "./calendar.module.css";
 
 export { CalendarWeek } from "./calendar-week";
-
-const EVENT_TYPES = [
-  { id: "REGULAR", label: "Regular" },
-  { id: "PERSONALIZED", label: "PPT" },
-  { id: "EXPERIMENTAL", label: "Experimental" },
-  { id: "APPOINTMENT", label: "Atendimento" },
-];
 
 export function LessonCalendar({
   date,
@@ -38,14 +33,18 @@ export function LessonCalendar({
   view = "dia",
   onViewChange,
   onSelectDay,
+  onNavigateDate = onSelectDay,
   studentFilter,
+  teacherView = false,
   ...calendarState
 }: {
   date: string;
+  teacherView?: boolean;
   studentFilter?: ReactNode;
   view?: "dia" | "semana";
   onViewChange: (view: "dia" | "semana") => void;
   onSelectDay: (date: string) => void;
+  onNavigateDate?: (date: string) => void;
   lessons: CalendarLesson[];
   onSchedule?: (() => void) | undefined;
 } & Pick<ScheduleCalendarProps, "status" | "errorMessage" | "onRetry">): ReactElement {
@@ -88,82 +87,60 @@ export function LessonCalendar({
     else if (lesson.appointment) setAppointmentId(lesson.appointment.id);
     else setLessonId(lesson.id);
   };
+  const filterControls = (
+    <CalendarEventFilters
+      types={types}
+      formats={formats}
+      onTypesChange={setTypes}
+      onFormatsChange={setFormats}
+    />
+  );
   return (
     <>
-      <div className={styles.timelineControls}>
-        <CalendarTeacherFilter
-          lessons={lessons}
-          selected={teachers}
-          query={teacherSearch}
-          onQueryChange={setTeacherSearch}
-          onChange={setTeachers}
-        />
-        {studentFilter}
-        {onSchedule && (
-          <Button size="sm" onClick={onSchedule}>
-            <CalendarPlus aria-hidden="true" />
-            Agendar atendimento
-          </Button>
-        )}
-        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
-          <div className={styles.legend} role="group" aria-label="Filtrar por formato">
-            {[
-              { label: "Presencial", Icon: MapPin },
-              { label: "Online", Icon: Video },
-            ].map(({ label, Icon }) => (
-              <button
-                key={label}
-                type="button"
-                className="inline-flex items-center gap-1 text-muted-foreground"
-                data-format={label}
-                aria-label={`Filtrar por ${label}`}
-                aria-pressed={formats.includes(label)}
-                onClick={() =>
-                  setFormats((current) =>
-                    current.includes(label)
-                      ? current.filter((value) => value !== label)
-                      : [...current, label],
-                  )
-                }
-              >
-                <Icon className="size-3.5" aria-hidden="true" />
-                {label}
-              </button>
-            ))}
+      {teacherView ? (
+        <>
+          <TeacherAgendaHeader
+            date={date}
+            view={view}
+            onSelectDate={onNavigateDate}
+            onViewChange={onViewChange}
+            restricted={restricted}
+            filters={filterControls}
+          />
+          {studentFilter}
+        </>
+      ) : (
+        <div className={styles.timelineControls}>
+          <CalendarTeacherFilter
+            lessons={lessons}
+            selected={teachers}
+            query={teacherSearch}
+            onQueryChange={setTeacherSearch}
+            onChange={setTeachers}
+          />
+          {studentFilter}
+          {onSchedule && (
+            <Button size="sm" onClick={onSchedule}>
+              <CalendarPlus aria-hidden="true" />
+              Agendar atendimento
+            </Button>
+          )}
+          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3">
+            {filterControls}
+            <SegmentedControl
+              size="sm"
+              aria-label="Visualização da agenda"
+              value={view}
+              onValueChange={(value) => {
+                if (value === "dia" || value === "semana") onViewChange(value);
+              }}
+            >
+              <SegmentedControlItem value="dia">Dia</SegmentedControlItem>
+              <SegmentedControlItem value="semana">Semana</SegmentedControlItem>
+            </SegmentedControl>
           </div>
-          <div className={styles.legend} role="group" aria-label="Filtrar por tipo de evento">
-            {EVENT_TYPES.map((type) => (
-              <button
-                key={type.id}
-                type="button"
-                data-modality={type.id}
-                aria-pressed={types.includes(type.id)}
-                aria-label={`Filtrar por ${type.label}`}
-                onClick={() =>
-                  setTypes((current) =>
-                    current.includes(type.id)
-                      ? current.filter((id) => id !== type.id)
-                      : [...current, type.id],
-                  )
-                }
-              >
-                {type.label}
-              </button>
-            ))}
-          </div>
-          <SegmentedControl
-            size="sm"
-            aria-label="Visualização da agenda"
-            value={view}
-            onValueChange={(value) => {
-              if (value === "dia" || value === "semana") onViewChange(value);
-            }}
-          >
-            <SegmentedControlItem value="dia">Dia</SegmentedControlItem>
-            <SegmentedControlItem value="semana">Semana</SegmentedControlItem>
-          </SegmentedControl>
         </div>
-      </div>
+      )}
       {restricted && (
         <p className="px-4 pb-3 text-caption text-muted-foreground" role="status">
           Agenda filtrada · horários vazios podem conter compromissos ocultos.
@@ -177,6 +154,7 @@ export function LessonCalendar({
               setFormats(["Presencial", "Online"]);
             }}
           >
+            <ListFilter aria-hidden="true" />
             Mostrar tudo
           </Button>
         </p>
@@ -189,6 +167,9 @@ export function LessonCalendar({
         onDateChange={onSelectDay}
         onViewChange={(value) => onViewChange(value === "day" ? "dia" : "semana")}
         toolbar={false}
+        density={teacherView && view === "semana" ? "compact" : "comfortable"}
+        widthBehavior={teacherView ? "fit" : "scroll"}
+        expandedEventWidth={teacherView ? 256 : undefined}
         keepExpanded={Boolean(lessonId || appointmentId || experimentId)}
         expandedEventId={
           lessons.find((lesson) => lesson.appointments?.some((item) => item.id === appointmentId))
@@ -220,12 +201,14 @@ export function LessonCalendar({
               onOpen={openLesson}
               onOpenAppointment={setAppointmentId}
               onOpenExperimental={setExperimentId}
+              personal={teacherView}
             />
           ) : (
             <CalendarLessonButton
               lesson={lesson}
               expanded={lesson.appointment?.id === appointmentId}
               onOpen={openLesson}
+              personal={teacherView}
             />
           );
         }}

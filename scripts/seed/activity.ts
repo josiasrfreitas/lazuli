@@ -247,7 +247,7 @@ function assessmentGroups(input: { row: AssessmentFact; subject: ActivitySubject
 async function admissionActivity(context: ActivityContext): Promise<void> {
   const rows = await context.database.admissionCandidate.findMany({
     where: { deletedAt: null },
-    include: { contacts: { where: { deletedAt: null } }, enrollment: true },
+    include: { enrollment: true },
   });
   for (const row of rows) {
     const subject: ActivitySubject = { type: "lead", id: row.id, name: row.fullName };
@@ -259,15 +259,6 @@ async function admissionActivity(context: ActivityContext): Promise<void> {
       subject,
       description: row.source ? `Origem: ${row.source}.` : undefined,
     });
-    for (const contact of row.contacts)
-      appendEvent(context, {
-        action: "admissions.contact",
-        key: contact.id,
-        occurredAt: contact.createdAt,
-        actorId: contact.recordedById,
-        subject,
-        description: contact.summary,
-      });
     if (row.status === "ENROLLED" && row.enrollment)
       appendEvent(context, {
         action: "admissions.enroll",

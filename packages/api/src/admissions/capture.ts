@@ -1,8 +1,5 @@
 import type { Prisma } from "@lazuli/db";
-import type {
-  leadCaptureSchema,
-  z,
-} from "@lazuli/validators";
+import type { leadCaptureSchema, z } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { badRequest } from "../trpc/errors.js";
 import { lockCandidate, readCandidate } from "./candidates.js";
@@ -52,9 +49,12 @@ async function captureFields(
   const today = saoPauloDateOnly(input.now);
   if (birthDate && birthDate > today) throw badRequest("O nascimento não pode estar no futuro.");
   if (fields.englishExperience === "NONE") await assertInitialStage(input.database, fields.stageId);
-  const stageId = fields.englishExperience === "SOME"
-    ? (previous?.englishExperience === "SOME" ? previous.stageId : null)
-    : fields.stageId;
+  const stageId =
+    fields.englishExperience === "SOME"
+      ? previous?.englishExperience === "SOME"
+        ? previous.stageId
+        : null
+      : fields.stageId;
   return {
     ...fields,
     stageId,
@@ -62,6 +62,7 @@ async function captureFields(
     email: fields.email || null,
     contactName: fields.contactName || null,
     source: fields.source || null,
+    ...(fields.notes !== undefined ? { notes: fields.notes || null } : {}),
     birthDate: birthDate ? new Date(birthDate) : null,
   };
 }

@@ -16,7 +16,7 @@ import styles from "./calendar.module.css";
 
 const LAST_WEEKDAY = 6;
 
-export function ClassAgenda(): ReactElement {
+export function ClassAgenda({ teacherView = false }: { teacherView?: boolean }): ReactElement {
   const today = schoolToday();
   const [creating, setCreating] = useState(false);
   const me = trpc.me.useQuery();
@@ -55,8 +55,10 @@ export function ClassAgenda(): ReactElement {
     void setParams({ semana: monday(next), dia: next });
   }
   return (
-    <div className={styles.page}>
-      <AgendaHeader date={date} view={params.visao} today={today} onSelectDate={selectDate} />
+    <div className={styles.page} data-teacher={teacherView}>
+      {!teacherView && (
+        <AgendaHeader date={date} view={params.visao} today={today} onSelectDate={selectDate} />
+      )}
       {creating && <ScheduleAppointmentDialog onClose={() => setCreating(false)} />}
       <section className={styles.calendar} aria-label="Agenda de aulas e atendimentos">
         {params.turma && (
@@ -72,6 +74,7 @@ export function ClassAgenda(): ReactElement {
           </div>
         )}
         <LessonCalendar
+          teacherView={teacherView}
           status={pending ? "loading" : settledStatus}
           errorMessage={error?.message ?? "Não foi possível carregar a agenda."}
           onRetry={() => {
@@ -82,6 +85,7 @@ export function ClassAgenda(): ReactElement {
           date={date}
           view={params.visao}
           onViewChange={(visao) => void setParams({ visao })}
+          onNavigateDate={selectDate}
           onSelectDay={(next) => void setParams({ semana: monday(next), dia: next, visao: "dia" })}
           studentFilter={
             params.aluno ? (

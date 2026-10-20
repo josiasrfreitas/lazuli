@@ -108,6 +108,9 @@ export function ReasonDialog({
 }
 const actions: Record<string, string> = {
   INHERITED: "Continuidade herdada",
+  CONTINUITY: "Intenção de continuidade",
+  CARRIED_FORWARD: "Pendência trazida do período anterior",
+  ENROLLED: "Matrícula confirmada",
   NOT_CONTINUING: "Não continuidade registrada",
   CONFIRMED_CONTINUITY: "Continuidade confirmada",
   PROPOSED: "Proposta criada",

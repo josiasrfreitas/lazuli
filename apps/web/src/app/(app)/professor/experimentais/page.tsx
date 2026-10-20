@@ -1,4 +1,4 @@
-import { TeacherVisits } from "~/features/teacher-workspace/visits";
+import { redirect } from "next/navigation";
 export default function Page() {
-  return <TeacherVisits />;
+  redirect("/professor/agenda");
 }

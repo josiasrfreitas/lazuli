@@ -37,10 +37,10 @@ function SidebarNavSection({
         <div className="relative flex h-6 items-center overflow-hidden px-2.5 sm:px-1.75">
           <span
             aria-hidden="true"
-            className="absolute hidden h-px w-4 bg-navigation-border transition-opacity duration-200 group-hover/sidebar:opacity-0 group-has-[:focus-visible]/sidebar:opacity-0 motion-reduce:transition-none sm:block"
+            className="absolute hidden h-px w-4 bg-navigation-border transition-opacity duration-200 group-hover/sidebar:opacity-0 group-has-[:focus-visible]/sidebar:opacity-0 group-has-[[data-popup-open]]/sidebar:opacity-0 motion-reduce:transition-none sm:block"
           />
           <p
-            className="whitespace-nowrap text-micro font-semibold uppercase tracking-wider text-navigation-muted sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none"
+            className="whitespace-nowrap text-micro font-semibold uppercase tracking-wider text-navigation-muted sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 sm:group-has-[[data-popup-open]]/sidebar:opacity-100 motion-reduce:transition-none"
             id={labelId}
           >
             {section.label}
@@ -78,7 +78,7 @@ function SidebarNavLink({ item, pathname }: { item: NavItem; pathname: string })
         aria-hidden="true"
         className={cn("size-4 shrink-0", active ? "text-icon-active" : "text-navigation-icon")}
       />
-      <span className="shrink-0 whitespace-nowrap sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none">
+      <span className="shrink-0 whitespace-nowrap sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 sm:group-has-[[data-popup-open]]/sidebar:opacity-100 motion-reduce:transition-none">
         {label}
       </span>
     </Link>

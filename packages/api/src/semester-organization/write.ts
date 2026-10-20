@@ -11,6 +11,7 @@ import { recordActivity } from "../activity/record.js";
 import { lockStudentEnrollment } from "../enrollment/data.js";
 import { loadActiveStage, assertTeacherIsActive } from "../classes/guards.js";
 import { badRequest, notFound } from "../trpc/errors.js";
+import { lockCandidate } from "../admissions/candidates.js";
 import {
   readSlots,
   lockSemester,
@@ -62,6 +63,26 @@ export async function saveClassPlan(context: OrganizationContext, input: Semeste
     : await context.database.semesterClassPlan.create({
         data: { ...data, semesterId: input.semesterId },
       });
+  for (const id of [...new Set(input.leadIds ?? [])].sort()) {
+    await lockCandidate(context.database, id);
+    const lead = await context.database.admissionCandidate.findFirst({
+      where: { id, status: "WAITING", deletedAt: null, allocationPendingAt: { not: null } },
+    });
+    if (!lead) throw badRequest("Um dos leads já saiu da fila. Atualize a organização.");
+    if (input.scheduleType === "REGULAR" && lead.stageId !== input.sharedStageId)
+      throw badRequest(`${lead.fullName}: escolha uma turma do estágio indicado.`);
+    if (
+      (lead.scheduleType && lead.scheduleType !== input.scheduleType) ||
+      (lead.format && lead.format !== input.format)
+    )
+      throw badRequest(
+        `${lead.fullName}: a modalidade ou o formato não atende ao interesse registrado.`,
+      );
+    await context.database.admissionCandidate.update({
+      where: { id },
+      data: { allocationPlanId: plan.id },
+    });
+  }
   await recordActivity(context.database, context, "semesterOrganization.savePlan", {
     subject: { type: "school", name: plan.name },
     description: previous

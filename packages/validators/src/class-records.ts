@@ -9,6 +9,9 @@ export const classRecordContentSchema = z
     reference: z.string().trim().max(200).nullable(),
     pageFrom: z.number().int().min(1).max(10000).nullable(),
     pageTo: z.number().int().min(1).max(10000).nullable(),
+    planItemId: z.string().uuid().nullable().optional(),
+    planItemStatus: z.enum(["PARTIAL", "COMPLETED"]).optional(),
+    planItemTitle: z.string().max(160).optional(),
   })
   .strict()
   .refine(

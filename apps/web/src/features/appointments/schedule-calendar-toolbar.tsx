@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Button,
   getScheduleCalendarNavigation,
@@ -82,6 +82,7 @@ export function ScheduleCalendarToolbar({
           <ChevronRight />
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => onDateChange(today)}>
+          <CalendarDays aria-hidden="true" />
           Hoje
         </Button>
       </div>

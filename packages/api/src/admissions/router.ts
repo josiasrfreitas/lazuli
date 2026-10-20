@@ -1,9 +1,6 @@
 import { leadSubject, visitSubject } from "../activity/subjects.js";
 import { activityTransaction } from "../activity/record.js";
-import {
-  captureLead,
-  updateLeadDetails,
-} from "./capture.js";
+import { captureLead, updateLeadDetails } from "./capture.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   z,
@@ -21,6 +18,7 @@ import {
   placementCalendarSchema,
   placementScheduleSchema,
   placementFileSchema,
+  placementDownloadSchema,
   placementResultSchema,
 } from "@lazuli/validators";
 import { adminProcedure, router } from "../trpc/init.js";
@@ -40,31 +38,87 @@ import { enrollCandidate } from "./enroll.js";
 import { meetingsBetween } from "../teachers/schedule.js";
 import { lockTeacher, assertTeacherEligible } from "../teachers/availability.js";
 import { admissionStages } from "./catalog.js";
-import { placementCalendar, schedulePlacement, uploadPlacementFile, downloadPlacementFile, recordPlacementResult } from "./placement.js";
+import {
+  placementCalendar,
+  schedulePlacement,
+  uploadPlacementFile,
+  downloadPlacementFile,
+  recordPlacementResult,
+} from "./placement.js";
 
 export const admissionsRouter = router({
-  assignPlacement: adminProcedure.input(z.object({ id: z.string().uuid(), teacherId: z.string().uuid().nullable() }).strict()).mutation(({ ctx, input }) => activityTransaction(ctx, "admissions.placementSchedule", async (database) => {
-    await lockTeacher(database, "");
-    const visit = await database.entryVisit.findFirst({ where: { id: input.id, kind: "PLACEMENT", deletedAt: null } });
-    if (!visit || visit.status === "CANCELLED") throw badRequest("Nivelamento indisponível para atribuição.");
-    await lockCandidate(database, visit.candidateId);
-    if (input.teacherId) await assertTeacherEligible({ database, teacherId: input.teacherId, date: saoPauloDateOnly(ctx.now ?? new Date()) });
-    return database.entryVisit.update({ where: { id: visit.id }, data: { teacherId: input.teacherId }, select: { id: true } });
-  }, async (_result, database) => ({ subject: await visitSubject(database, input.id), description: "Atualizou o professor responsável pelo nivelamento." }))),
-  visitCalendar: adminProcedure.input(entryVisitCalendarSchema).query(({ ctx, input }) => visitCalendar(ctx.db, input, ctx.now ?? new Date())),
+  assignPlacement: adminProcedure
+    .input(z.object({ id: z.string().uuid(), teacherId: z.string().uuid().nullable() }).strict())
+    .mutation(({ ctx, input }) =>
+      activityTransaction(
+        ctx,
+        "admissions.placementSchedule",
+        async (database) => {
+          await lockTeacher(database, "");
+          const visit = await database.entryVisit.findFirst({
+            where: { id: input.id, kind: "PLACEMENT", deletedAt: null },
+          });
+          if (!visit || visit.status === "CANCELLED")
+            throw badRequest("Nivelamento indisponível para atribuição.");
+          await lockCandidate(database, visit.candidateId);
+          if (input.teacherId)
+            await assertTeacherEligible({
+              database,
+              teacherId: input.teacherId,
+              date: saoPauloDateOnly(ctx.now ?? new Date()),
+            });
+          return database.entryVisit.update({
+            where: { id: visit.id },
+            data: { teacherId: input.teacherId },
+            select: { id: true },
+          });
+        },
+        async (_result, database) => ({
+          subject: await visitSubject(database, input.id),
+          description: "Atualizou o professor responsável pelo nivelamento.",
+        }),
+      ),
+    ),
+  visitCalendar: adminProcedure
+    .input(entryVisitCalendarSchema)
+    .query(({ ctx, input }) => visitCalendar(ctx.db, input, ctx.now ?? new Date())),
   stages: adminProcedure.query(({ ctx }) => admissionStages(ctx.db)),
-  placementCalendar: adminProcedure.input(placementCalendarSchema).query(({ ctx, input }) => placementCalendar(ctx.db, input)),
+  placementCalendar: adminProcedure
+    .input(placementCalendarSchema)
+    .query(({ ctx, input }) => placementCalendar(ctx.db, input)),
   placementSchedule: adminProcedure.input(placementScheduleSchema).mutation(({ ctx, input }) =>
-    activityTransaction(ctx, "admissions.placementSchedule", database => schedulePlacement({
-      database, values: input, recordedById: ctx.staffUser.id, now: ctx.now ?? new Date(),
-    }), async (_result, database) => ({ subject: await leadSubject(database, input.candidateId) })),
+    activityTransaction(
+      ctx,
+      "admissions.placementSchedule",
+      (database) =>
+        schedulePlacement({
+          database,
+          values: input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      async (_result, database) => ({ subject: await leadSubject(database, input.candidateId) }),
+    ),
   ),
-  placementUpload: adminProcedure.input(placementFileSchema).mutation(({ ctx, input }) => uploadPlacementFile(ctx, input)),
-  placementDownload: adminProcedure.input(admissionIdSchema).mutation(({ ctx, input }) => downloadPlacementFile(ctx.db, input.id)),
+  placementUpload: adminProcedure
+    .input(placementFileSchema)
+    .mutation(({ ctx, input }) => uploadPlacementFile(ctx, input)),
+  placementDownload: adminProcedure
+    .input(placementDownloadSchema)
+    .mutation(({ ctx, input }) => downloadPlacementFile(ctx.db, input.id, input.kind)),
   placementResult: adminProcedure.input(placementResultSchema).mutation(({ ctx, input }) =>
-    activityTransaction(ctx, "admissions.placementResult", database => recordPlacementResult({
-      database, values: input, recordedById: ctx.staffUser.id, now: ctx.now ?? new Date(),
-    }), async (_result, database) => ({ subject: await visitSubject(database, input.id) })),
+    activityTransaction(
+      ctx,
+      "admissions.placementResult",
+      (database) =>
+        recordPlacementResult({
+          database,
+          values: input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      async (_result, database) => ({ subject: await visitSubject(database, input.id) }),
+    ),
   ),
   details: adminProcedure.input(leadCaptureSchema).mutation(({ ctx, input }) =>
     activityTransaction(
@@ -86,8 +140,19 @@ export const admissionsRouter = router({
       "admissions.capture",
       async (database) => {
         await lockTeacher(database, "");
-        const result = await captureLead({ database, values: input.lead, recordedById: ctx.staffUser.id, now: ctx.now ?? new Date() });
-        if (input.placement) await schedulePlacement({ database, values: input.placement, recordedById: ctx.staffUser.id, now: ctx.now ?? new Date() });
+        const result = await captureLead({
+          database,
+          values: input.lead,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        });
+        if (input.placement)
+          await schedulePlacement({
+            database,
+            values: input.placement,
+            recordedById: ctx.staffUser.id,
+            now: ctx.now ?? new Date(),
+          });
         return result;
       },
       async (result, database) => ({
@@ -215,7 +280,9 @@ export const admissionsRouter = router({
               where: { candidateId: input.id, status: "SCHEDULED", deletedAt: null },
             }))
           )
-            throw badRequest("Conclua ou cancele os atendimentos e aulas experimentais pendentes antes de arquivar.");
+            throw badRequest(
+              "Conclua ou cancele os atendimentos e aulas experimentais pendentes antes de arquivar.",
+            );
           return database.admissionCandidate.update({
             where: { id: input.id },
             data: {
@@ -227,8 +294,7 @@ export const admissionsRouter = router({
         },
         async (_result, database) => ({
           subject: await leadSubject(database, input.id),
-          description:
-            input.status === "ARCHIVED" ? "Lead arquivado." : "Lead reaberto.",
+          description: input.status === "ARCHIVED" ? "Lead arquivado." : "Lead reaberto.",
         }),
       ),
     ),

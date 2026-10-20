@@ -1,6 +1,15 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import { ArrowLeft, History, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  History,
+  Plus,
+} from "lucide-react";
 import { Badge, Button, EmptyState, Input } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { PlanWindowForm, PlanItemForm, PlanRemoveForm } from "./forms";
@@ -98,6 +107,7 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
             )}
             {plan && !scope.readOnly && (
               <Button size="sm" variant="ghost" onClick={() => setMode({ kind: "window" })}>
+                <CalendarDays aria-hidden="true" />
                 Editar período e objetivo
               </Button>
             )}
@@ -133,6 +143,7 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
                     aria-pressed={view === "plan"}
                     onClick={() => changeView("plan")}
                   >
+                    <BookOpen aria-hidden="true" />
                     Roteiro · {plan?.items.length ?? 0}
                   </Button>
                   <Button
@@ -141,6 +152,7 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
                     aria-pressed={view === "records"}
                     onClick={() => changeView("records")}
                   >
+                    <FileText aria-hidden="true" />
                     Aulas registradas · {data.records.length}
                   </Button>
                 </div>
@@ -185,6 +197,7 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
                         setPage(0);
                       }}
                     >
+                      <CalendarDays aria-hidden="true" />
                       {label}
                     </Button>
                   ))}
@@ -223,6 +236,7 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
                 action={
                   !scope.readOnly ? (
                     <Button onClick={() => setMode({ kind: "window" })}>
+                      <Plus aria-hidden="true" />
                       Iniciar planejamento
                     </Button>
                   ) : undefined
@@ -257,6 +271,7 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
                     disabled={currentPage === 0}
                     onClick={() => setPage(currentPage - 1)}
                   >
+                    <ChevronLeft aria-hidden="true" />
                     Anterior
                   </Button>
                   <span>
@@ -268,6 +283,7 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
                     disabled={currentPage + 1 >= pageCount}
                     onClick={() => setPage(currentPage + 1)}
                   >
+                    <ChevronRight aria-hidden="true" />
                     Próxima
                   </Button>
                 </div>

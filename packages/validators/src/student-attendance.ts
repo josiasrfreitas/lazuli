@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { attendanceConfirmSessionInputSchema } from "./attendance.js";
+export const attendanceReviewSchema = attendanceConfirmSessionInputSchema.extend({
+  attendanceStamp: z.string().datetime().nullable(),
+  declarationIds: z.array(z.string().uuid()),
+});
 export const attendanceLocationSchema = z
   .object({
     latitude: z.number().finite().min(-90).max(90),
@@ -11,7 +16,10 @@ export const attendanceWindowTargetSchema = z.object({ sessionId: z.string().uui
 export const attendanceWindowOpenSchema = attendanceWindowTargetSchema.extend({
   minutes: z.union([z.literal(5), z.literal(10), z.literal(20), z.literal(30)]),
   location: attendanceLocationSchema.nullable(),
-  projectionToken: z.string().regex(/^[A-Za-z0-9_-]{43}$/u).optional(),
+  projectionToken: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{43}$/u)
+    .optional(),
 });
 export const attendanceTokenSchema = z
   .object({ token: z.string().regex(/^[A-Za-z0-9_-]{43}$/u, "Link de presença inválido.") })
@@ -21,7 +29,9 @@ export const attendanceNameSearchSchema = attendanceTokenSchema.extend({
 });
 export const attendanceDeclarationSchema = attendanceNameSearchSchema.extend({
   enrollmentId: z.string().uuid("Selecione seu nome."),
-  browserId: z.string().uuid("Permita o armazenamento deste navegador para confirmar sua presença."),
+  browserId: z
+    .string()
+    .uuid("Permita o armazenamento deste navegador para confirmar sua presença."),
   location: attendanceLocationSchema.nullable(),
 });
 export type AttendanceLocation = z.infer<typeof attendanceLocationSchema>;

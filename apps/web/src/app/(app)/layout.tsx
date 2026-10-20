@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { userAgent } from "next/server";
 import type { ReactNode } from "react";
 
 import { auth, getStaffIdentity } from "@lazuli/auth/server";
@@ -16,9 +17,8 @@ import { AppShell } from "~/components/app-shell/app-shell";
  * Sending them to `/login` would loop, because that page bounces anyone with a
  * session back here.
  *
- * There is no `middleware.ts` on purpose: the guard lives next to the routes it
- * guards, so adding a protected page is a matter of putting the file in this
- * folder rather than remembering to widen a matcher somewhere else.
+ * The proxy only supplies the requested URL for experience changes. Session
+ * and role guards live next to the routes; the API enforces its own permissions.
  */
 export default async function AppLayout({ children }: { children: ReactNode }): Promise<ReactNode> {
   const requestHeaders = await headers();
@@ -29,5 +29,12 @@ export default async function AppLayout({ children }: { children: ReactNode }): 
     redirect(session === null ? "/login" : "/403");
   }
 
-  return <AppShell identity={identity}>{children}</AppShell>;
+  return (
+    <AppShell
+      identity={identity}
+      isMobileDevice={userAgent({ headers: requestHeaders }).device.type === "mobile"}
+    >
+      {children}
+    </AppShell>
+  );
 }

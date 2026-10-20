@@ -1,7 +1,9 @@
+import { RefreshCw } from "lucide-react";
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import type { ClassRecordContent, ClassRecordSnapshot } from "@lazuli/validators";
-import { Alert, Badge, Button, InlineSkeleton } from "@lazuli/ui";
+import { Alert, Badge, Button } from "@lazuli/ui";
+import { QueryLoading } from "~/components/query-loading";
 import { formatDateOnlyBR } from "~/lib/format";
 export type ClassRecord = RouterOutputs["classRecords"]["detail"];
 export const attendanceLabel = (present: number, total: number) =>
@@ -17,16 +19,19 @@ export function RecordState({
   pending,
   error,
   retry,
+  label = "Carregando registro",
 }: {
   pending: boolean;
   error: { message: string } | null;
   retry: () => void;
+  label?: string;
 }): ReactElement | null {
-  if (pending) return <InlineSkeleton className="h-64 w-full" />;
+  if (pending) return <QueryLoading label={label} />;
   return error ? (
     <Alert variant="destructive">
       <span>{error.message}</span>
       <Button variant="secondary" onClick={retry}>
+        <RefreshCw aria-hidden="true" />
         Tentar novamente
       </Button>
     </Alert>
@@ -72,6 +77,12 @@ export function PerformedContent({ value }: { value: ClassRecordContent }): Reac
   return (
     <div className="grid gap-2">
       <Badge variant="neutral">{kindLabels[value.kind]}</Badge>
+      {value.planItemId && (
+        <p className="text-caption">
+          {value.planItemTitle ?? "Etapa do planejamento"} ·{" "}
+          {value.planItemStatus === "COMPLETED" ? "Concluída" : "Em andamento"}
+        </p>
+      )}
       <p className="whitespace-pre-wrap text-sm leading-relaxed">{value.account}</p>
       {(value.reference || value.pageFrom !== null) && (
         <p className="text-caption text-muted-foreground">

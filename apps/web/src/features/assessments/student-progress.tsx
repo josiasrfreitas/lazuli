@@ -1,9 +1,9 @@
 "use client";
+import { RefreshCw } from "lucide-react";
 import { useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import {
   Alert,
   Button,
-  InlineSkeleton,
   DialogHeader,
   DialogTitle,
   DialogDescription,
@@ -13,7 +13,7 @@ import { trpc } from "~/lib/trpc";
 import { SelectControl } from "~/features/classes/form-controls";
 import { formatDateOnlyBR } from "~/lib/format";
 import { AssessmentSummary, AssessmentStatusBadge } from "./assessment-summary";
-import { AssessmentResults } from "./results-table";
+import { AssessmentLoading } from "./assessment-loading";
 import type { Assessment } from "./shared";
 
 export function StudentAcademicProgress({
@@ -34,7 +34,7 @@ export function StudentAcademicProgress({
     <>
       <DialogHeader>
         <div className="flex flex-wrap items-center gap-3">
-          <DialogTitle>
+          <DialogTitle className="text-base">
             {active ? `Avaliações · ${active.stage.name}` : "Avaliações do estágio"}
           </DialogTitle>
           {active && <AssessmentStatusBadge data={active} />}
@@ -79,7 +79,7 @@ function AssessmentDialogBody({ children }: { children: ReactNode }): ReactEleme
       ref={viewport}
       className={`flex-auto ${scrollable ? "overflow-y-auto" : "overflow-y-hidden"}`}
     >
-      <div ref={content} className="min-w-0 pt-5">
+      <div ref={content} className="min-w-0 pt-3">
         {children}
       </div>
     </DialogBody>
@@ -101,30 +101,13 @@ function StudentAssessmentBody({
   onRetry: () => void;
   onSelect: (value: string) => void;
 }): ReactElement {
-  if (pending)
-    return (
-      <div role="status" aria-label="Carregando avaliações" className="grid min-w-0 gap-4">
-        <InlineSkeleton className="h-8 w-32 rounded-md" />
-        <div className="grid gap-2" aria-hidden="true">
-          <h3 className="text-sm font-medium text-heading">Evolução das notas</h3>
-          <div className="flex h-60 flex-col justify-between border-b border-l border-border p-4">
-            {[0, 1, 2, 3].map((row) => (
-              <InlineSkeleton key={row} className="h-px w-full rounded-none" />
-            ))}
-          </div>
-          <div className="flex justify-around">
-            <InlineSkeleton className="w-16" />
-            <InlineSkeleton className="w-16" />
-          </div>
-        </div>
-        <AssessmentResults />
-      </div>
-    );
+  if (pending) return <AssessmentLoading />;
   if (error)
     return (
       <Alert variant="destructive">
         Não foi possível carregar as avaliações.
         <Button variant="secondary" onClick={onRetry}>
+          <RefreshCw aria-hidden="true" />
           Tentar novamente
         </Button>
       </Alert>

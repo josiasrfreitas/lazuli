@@ -152,21 +152,15 @@ export function navSectionsFor(role: StaffRole): NavSection[] {
         id: "professor",
         label: null,
         items: [
-          { href: "/professor", label: "Minha agenda", icon: CalendarRange, roles: ["TEACHER"] },
-          { href: "/professor/turmas", label: "Minhas turmas", icon: BookOpen, roles: ["TEACHER"] },
-          { href: "/professor/alunos", label: "Meus alunos", icon: Users, roles: ["TEACHER"] },
+          { href: "/professor", label: "Meu início", icon: Home, roles: ["TEACHER"] },
           {
-            href: "/professor/atendimentos",
-            label: "Atendimentos",
+            href: "/professor/agenda",
+            label: "Minha agenda",
             icon: CalendarRange,
             roles: ["TEACHER"],
           },
-          {
-            href: "/professor/experimentais",
-            label: "Experimentais e nivelamentos",
-            icon: GraduationCap,
-            roles: ["TEACHER"],
-          },
+          { href: "/professor/turmas", label: "Minhas turmas", icon: BookOpen, roles: ["TEACHER"] },
+          { href: "/professor/alunos", label: "Meus alunos", icon: Users, roles: ["TEACHER"] },
           {
             href: "/professor/acompanhamento",
             label: "Acompanhamento",

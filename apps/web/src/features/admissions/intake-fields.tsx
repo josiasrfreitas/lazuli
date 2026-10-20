@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { normalizeSearch } from "@lazuli/domain";
 import { Field, FieldError, Label, SearchSelect } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -10,19 +10,28 @@ export function IntakeStageSelect({
   initialOnly = false,
   disabled = false,
   error,
+  labelIcon,
+  openOnFocus = true,
 }: {
   value: string | null;
   onChange: (id: string | null) => void;
   initialOnly?: boolean;
   disabled?: boolean;
   error?: string | undefined;
+  labelIcon?: ReactNode;
+  openOnFocus?: boolean;
 }) {
   const stages = trpc.admissions.stages.useQuery();
   const [query, setQuery] = useState("");
   const selected = stages.data?.find((row) => row.id === value);
   return (
     <Field>
-      <Label>{initialOnly ? "Estágio inicial" : "Estágio indicado"}</Label>
+      <Label>
+        <span className="inline-flex items-center gap-1.5">
+          {labelIcon}
+          {initialOnly ? "Estágio inicial" : "Estágio indicado"}
+        </span>
+      </Label>
       <SearchSelect
         name="stageId"
         placeholder="Buscar estágio"
@@ -44,7 +53,7 @@ export function IntakeStageSelect({
           setQuery("");
         }}
         onClear={() => onChange(null)}
-        openOnFocus
+        openOnFocus={openOnFocus}
         invalid={Boolean(error)}
         emptyMessage="Nenhum estágio encontrado."
       />

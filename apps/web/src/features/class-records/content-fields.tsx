@@ -4,6 +4,7 @@ import { Field, Label, SegmentedControl, SegmentedControlItem } from "@lazuli/ui
 import { TextControl } from "~/features/classes/form-controls";
 import { NarrativeField } from "~/features/shared/task-form";
 import { kindLabels } from "./shared";
+import { LessonProgress, type LessonPlanningScope } from "./lesson-progress";
 export type ContentDraft = Omit<ClassRecordContent, "pageFrom" | "pageTo" | "reference"> & {
   reference: string;
   pageFrom: string;
@@ -16,6 +17,9 @@ export function draftContent(value: ClassRecordContent | null): ContentDraft {
     reference: value?.reference ?? "",
     pageFrom: value?.pageFrom?.toString() ?? "",
     pageTo: value?.pageTo?.toString() ?? "",
+    planItemId: value?.planItemId ?? null,
+    planItemStatus: value?.planItemStatus ?? "PARTIAL",
+    planItemTitle: value?.planItemTitle,
   };
 }
 export function contentInput(value: ContentDraft) {
@@ -31,20 +35,24 @@ export function ContentFields({
   value,
   change,
   errors,
+  planning,
 }: {
   prefix: string;
   value: ContentDraft;
   change: (value: ContentDraft) => void;
   errors: Record<string, string>;
+  planning?: LessonPlanningScope;
 }): ReactElement {
   const update = (name: keyof ContentDraft, next: string): void =>
     change({ ...value, [name]: next });
   return (
-    <div className="grid gap-4">
+    <div className="grid min-w-0 gap-3">
       <Field>
-        <Label id={`${prefix}-kind-label`}>Atividade principal</Label>
-        <div className="max-w-full overflow-x-auto">
+        <Label id={`${prefix}-kind-label`}>Tipo de atividade</Label>
+        <div className="min-w-0">
           <SegmentedControl
+            size="sm"
+            wrap
             aria-labelledby={`${prefix}-kind-label`}
             value={value.kind}
             onValueChange={(next) => {
@@ -59,6 +67,14 @@ export function ContentFields({
           </SegmentedControl>
         </div>
       </Field>
+      {value.kind === "ASSESSMENT" && (
+        <p className="text-caption text-muted-foreground">
+          Esta aula será registrada como avaliação. As notas e provas são lançadas no aluno.
+        </p>
+      )}
+      {planning && (
+        <LessonProgress scope={planning} prefix={prefix} value={value} change={change} />
+      )}
       <NarrativeField
         name={`${prefix}-account`}
         label="O que foi realizado"
@@ -66,6 +82,7 @@ export function ContentFields({
         value={value.account}
         onChange={(next) => update("account", next)}
         error={errors[`${prefix}-account`]}
+        rows={2}
       />
       <details
         className="rounded-md border border-border p-3"

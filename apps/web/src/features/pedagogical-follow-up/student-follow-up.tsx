@@ -4,6 +4,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { ArrowLeft, ClipboardList, Plus } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+import { QueryLoading } from "~/components/query-loading";
 import { StudentAppointmentCarousel } from "~/features/appointments/student-carousel";
 import { ScheduleAppointmentDialog } from "~/features/appointments/schedule-dialog";
 import { OccurrenceForm } from "./occurrence-form";
@@ -133,11 +134,12 @@ function StudentDesk({
   }, [studentId, occurrences.data, interventions.data, selection, select]);
   if (occurrences.isPending || interventions.isPending)
     return canRecord ? (
-      <StudentDeskLoading />
+      <>
+        {heading}
+        <StudentDeskLoading selected={Boolean(selection)} />
+      </>
     ) : (
-      <p role="status" className="text-caption text-muted-foreground">
-        Consultando histórico pedagógico…
-      </p>
+      <QueryLoading label="Consultando histórico pedagógico" />
     );
 
   if (!canRecord && occurrences.data?.total === 0 && interventions.data?.total === 0) return null;

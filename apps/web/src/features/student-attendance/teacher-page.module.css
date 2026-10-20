@@ -1,0 +1,196 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+  min-width: 0;
+}
+.previewTools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-block: 0.75rem;
+  border-block: 1px solid var(--border);
+  font-size: var(--lz-text-caption);
+}
+.review,
+.sharing {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+}
+.sharing {
+  grid-row: 1;
+}
+.listHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.listHeading h2 {
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+}
+.listHeading h2 span {
+  margin-left: 0.375rem;
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+.listHeading p,
+.hint,
+.commit p {
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+.listHeading p {
+  margin-top: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.listHeading strong {
+  color: var(--foreground);
+  font-weight: 500;
+}
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--success);
+  font-size: var(--lz-text-caption);
+}
+.saved svg {
+  width: 1rem;
+  height: 1rem;
+}
+.roster {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  border-block: 1px solid var(--border);
+}
+.person {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: 4rem;
+  padding: 0.625rem 0;
+}
+.person + .person {
+  border-top: 1px solid var(--border-subtle);
+}
+.identity {
+  flex: 1;
+  min-width: 0;
+}
+.identity label {
+  display: block;
+  cursor: pointer;
+  font-size: var(--lz-text-body);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.identity > span {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.presence {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.presence[data-present="true"] {
+  color: var(--success);
+}
+.commit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+.commit p {
+  flex: 1 1 16rem;
+  max-width: 60ch;
+}
+.sharePanel {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  background: var(--card);
+}
+.shareHeading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.shareHeading h2 {
+  flex: 1;
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+}
+.qr {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+}
+.qr svg {
+  width: min(100%, 15rem);
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.actions > * {
+  flex: 1 1 auto;
+}
+.link {
+  font-size: var(--lz-text-caption);
+  color: var(--interactive);
+  text-underline-offset: 0.2em;
+}
+.link:hover {
+  text-decoration: underline;
+}
+@media (max-width: 479px) {
+  .person {
+    gap: 0.5rem;
+  }
+  .presence {
+    flex-direction: column-reverse;
+    gap: 0.25rem;
+    min-width: 3.5rem;
+  }
+  .commit > button {
+    width: 100%;
+  }
+}
+@media (min-width: 960px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+    gap: 2rem;
+    padding-top: 0.5rem;
+  }
+  .sharing {
+    grid-row: auto;
+    position: sticky;
+    top: 1rem;
+  }
+}

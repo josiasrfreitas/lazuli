@@ -1,4 +1,5 @@
 "use client";
+import { Trash2 } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { Button } from "@lazuli/ui";
 import {
@@ -172,6 +173,7 @@ export function PlanItemForm({
             disabled={save.isPending}
             onClick={() => onRemove(item)}
           >
+            <Trash2 aria-hidden="true" />
             Retirar do roteiro
           </Button>
         </div>

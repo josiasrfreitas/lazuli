@@ -4,6 +4,7 @@ export type Assessment = RouterOutputs["assessments"]["byProgress"];
 export type Competence = Assessment["results"][number]["competence"];
 export type Phase = Assessment["grades"][number]["phase"];
 export const COMPETENCES: Competence[] = ["ORAL", "LISTENING", "WRITTEN", "PARTICIPATION"];
+export const ASSESSMENT_ROW_ORDER: Competence[] = ["WRITTEN", "LISTENING", "ORAL", "PARTICIPATION"];
 export const PHASES: Phase[] = ["BLOCK_ONE", "BLOCK_TWO", "RECOVERY"];
 export const COMPETENCE_LABELS: Record<Competence, string> = {
   ORAL: "Oral",

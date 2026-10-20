@@ -1,13 +1,15 @@
 "use client";
-import { useEffect, useState, type ReactElement } from "react";
-import { CheckCircle2, MapPin, Video, ArrowRight } from "lucide-react";
-import { Alert, Badge, Button } from "@lazuli/ui";
+import { useEffect, useRef, useState, type ReactElement } from "react";
+import { CheckCircle2, MapPin, CircleAlert, ArrowRight } from "lucide-react";
+import { Alert, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "@lazuli/api";
+import { matchAttendanceNames } from "@lazuli/domain";
 import { attendanceTokenSchema } from "@lazuli/validators";
 import { StudentNameField, StudentNameChoices } from "./student-fields";
 import { currentAttendanceLocation, attendanceTime } from "./location";
 import { attendanceBrowserId } from "./browser";
+import { StudentAttendanceFrame } from "./student-frame";
 export function StudentAttendancePage(): ReactElement {
   const [token, setToken] = useState("");
   const [loaded, setLoaded] = useState(false);
@@ -25,7 +27,11 @@ export function StudentAttendancePage(): ReactElement {
       setInvalid(Boolean(value) && !valid);
       if (valid) {
         inspectLink({ token: value });
-        try { readReceipt({ token: value, browserId: attendanceBrowserId() }); } catch { /* The form explains unavailable browser storage before sending. */ }
+        try {
+          readReceipt({ token: value, browserId: attendanceBrowserId() });
+        } catch {
+          /* The form explains unavailable browser storage before sending. */
+        }
       }
     };
     read();
@@ -33,85 +39,141 @@ export function StudentAttendancePage(): ReactElement {
     return () => window.removeEventListener("hashchange", read);
   }, [inspectLink, readReceipt]);
   return (
-    <main className="grid min-h-dvh content-start bg-background px-5 py-8 sm:content-center sm:py-12">
-      <div className="mx-auto grid w-full max-w-md gap-8">
-        <header className="flex items-center gap-3">
-          <img
-            src="/brand/lazuli-symbol-small-mono-navy.svg"
-            alt=""
-            className="size-9 dark:hidden"
-          />
-          <img
-            src="/brand/lazuli-symbol-small-mono-white.svg"
-            alt=""
-            className="hidden size-9 dark:block"
-          />
-          <span className="font-display text-lg font-semibold tracking-widest text-heading">
-            LAZULI
-          </span>
-        </header>
-        <section className="grid gap-6 rounded-lg border border-border bg-card p-5 sm:p-7">
-          <div className="grid gap-2">
-            <p className="text-caption font-medium uppercase tracking-widest text-muted-foreground">
-              Sua aula
-            </p>
-            <h1 className="font-display text-h2 font-semibold text-heading">Estou presente</h1>
-            <p className="text-sm text-muted-foreground">
-              Envie sua presença para a revisão do professor.
-            </p>
-          </div>
-          {receipt.data ? <div role="status" className="grid gap-3"><CheckCircle2 className="size-8 text-success" /><h2 className="font-semibold">Este navegador já enviou uma presença</h2><p>{receipt.data.name}</p><p className="text-sm text-muted-foreground">Recebida às {attendanceTime(receipt.data.submittedAt)}. Para qualquer ajuste, fale com o professor.</p></div> : !loaded || inspect.isPending ? (
-            <p role="status">Abrindo sua aula…</p>
-          ) : !token ? (
-            <Alert>Abra o QR ou o link de presença compartilhado pelo professor.</Alert>
-          ) : invalid ? (
-            <Alert>
-              Este link de presença está incompleto ou é inválido. Peça ao professor um novo acesso.
-            </Alert>
-          ) : inspect.error ? (
-            <div className="grid gap-4">
-              <Alert>{inspect.error.message}</Alert>
-              <Button
-                size="compact-responsive"
-                variant="secondary"
-                onClick={() => inspectLink({ token })}
-              >
-                Tentar novamente
-              </Button>
-            </div>
-          ) : inspect.data ? (
-            <StudentDeclaration key={token} token={token} info={inspect.data} />
-          ) : null}
-        </section>
-        <p className="text-center text-caption text-muted-foreground">
-          Precisa de ajuda? O professor também pode registrar sua presença.
-        </p>
-      </div>
-    </main>
+    <StudentAttendanceFrame lesson={inspect.data}>
+      {receipt.data ? (
+        <div role="status" className="grid gap-3">
+          <CheckCircle2 className="size-8 text-success" />
+          <h2 className="font-semibold">Este navegador já enviou uma presença</h2>
+          <p>{receipt.data.name}</p>
+          <p className="text-sm text-muted-foreground">
+            Recebida às {attendanceTime(receipt.data.submittedAt)}. Para qualquer ajuste, fale com o
+            professor.
+          </p>
+        </div>
+      ) : !loaded || inspect.isPending ? (
+        <p role="status">Abrindo sua aula…</p>
+      ) : !token ? (
+        <Alert>Abra o QR ou o link de presença compartilhado pelo professor.</Alert>
+      ) : invalid ? (
+        <Alert>
+          Este link de presença está incompleto ou é inválido. Peça ao professor um novo acesso.
+        </Alert>
+      ) : inspect.error ? (
+        <div className="grid gap-4">
+          <Alert>{inspect.error.message}</Alert>
+          <Button
+            size="compact-responsive"
+            variant="secondary"
+            onClick={() => inspectLink({ token })}
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      ) : inspect.data ? (
+        <StudentDeclaration key={token} token={token} info={inspect.data} />
+      ) : null}
+    </StudentAttendanceFrame>
   );
 }
 type Info = RouterOutputs["studentAttendance"]["inspect"];
-function StudentDeclaration({ token, info }: { token: string; info: Info }): ReactElement {
+export function StudentDeclaration({
+  token,
+  info,
+  preview = false,
+}: {
+  token: string;
+  info: Info;
+  preview?: boolean;
+}): ReactElement {
   const [name, setName] = useState("");
   const [selected, setSelected] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [locating, setLocating] = useState(false);
-  const search = trpc.studentAttendance.search.useMutation({
-    onSuccess: (result) => setSelected(result.exactId ?? ""),
-  });
+  const { mutateAsync: searchName } = trpc.studentAttendance.search.useMutation();
   const submit = trpc.studentAttendance.submit.useMutation();
-  const pending = search.isPending || submit.isPending || locating;
+  const searchVersion = useRef(0);
+  const [retry, setRetry] = useState(0);
+  const [searchState, setSearchState] = useState<{
+    matches: RouterOutputs["studentAttendance"]["search"] | null;
+    error: string | null;
+  } | null>(null);
+  const [previewReceipt, setPreviewReceipt] = useState<
+    RouterOutputs["studentAttendance"]["submit"] | null
+  >(null);
+  const matches = searchState?.matches;
+  const result = preview ? previewReceipt : submit.data;
+  const pending = submit.isPending || locating;
+  const searching = name.trim().length >= 3 && !searchState;
+  const canSubmit =
+    !pending &&
+    !searching &&
+    Boolean(matches?.options.some((person) => person.id === selected && !person.manualRequired));
+  useEffect(() => {
+    const query = name.trim();
+    if (query.length < 3) return;
+    const version = searchVersion.current;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      const lookup = preview
+        ? Promise.resolve(
+            matchAttendanceNames(
+              [
+                {
+                  id: "00000000-0000-4000-8000-000000000002",
+                  name: "Ana Beatriz Martins",
+                  phone: null,
+                },
+              ],
+              query,
+            ),
+          )
+        : searchName({ token, name: query });
+      void lookup.then(
+        (found) => {
+          if (!active || version !== searchVersion.current) return;
+          setSearchState({ matches: found, error: null });
+          setSelected(found.exactId ?? "");
+        },
+        (error: unknown) => {
+          if (!active || version !== searchVersion.current) return;
+          setSearchState({
+            matches: null,
+            error: error instanceof Error ? error.message : "Não foi possível buscar seu nome.",
+          });
+        },
+      );
+    }, 200);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [name, token, preview, searchName, retry]);
   useEffect(() => {
     document.getElementById("student-name")?.focus();
   }, []);
   async function send(): Promise<void> {
+    if (preview) {
+      setPreviewReceipt({ name: "Ana Beatriz Martins", submittedAt: new Date(), repeated: false });
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel("lazuli-attendance-preview");
+        channel.postMessage("ana-present");
+        channel.close();
+      }
+      return;
+    }
     setLocationError(null);
     setLocating(true);
     try {
       const location = info.format === "IN_PERSON" ? await currentAttendanceLocation() : null;
       let browserId: string;
-      try { browserId = attendanceBrowserId(); } catch { throw new Error("Permita o armazenamento deste navegador ou peça a chamada manual ao professor."); }
+      try {
+        browserId = attendanceBrowserId();
+      } catch {
+        throw new Error(
+          "Permita o armazenamento deste navegador ou peça a chamada manual ao professor.",
+        );
+      }
       submit.mutate({ token, name: name.trim(), enrollmentId: selected, location, browserId });
     } catch (cause) {
       setLocationError(
@@ -121,102 +183,130 @@ function StudentDeclaration({ token, info }: { token: string; info: Info }): Rea
       setLocating(false);
     }
   }
-  if (submit.data)
+  if (result)
     return (
       <div className="grid gap-4 border-t border-border pt-6" role="status">
         <CheckCircle2 className="size-9 text-success" aria-hidden="true" />
-        <h2 className="font-display text-xl font-semibold">Presença enviada</h2>
-        <p className="text-sm">{submit.data.name}</p>
+        <h2 className="font-display text-xl font-semibold">
+          {preview ? "Assim aparece a confirmação" : "Presença enviada"}
+        </h2>
+        <p className="text-sm">{result.name}</p>
         <p className="text-caption text-muted-foreground">
-          Recebida às {attendanceTime(submit.data.submittedAt)}. O professor vai conferir na
-          chamada.{submit.data.repeated ? " Seu primeiro envio foi preservado." : ""}
+          {preview
+            ? "Na aula, o professor recebe sua presença e confere a chamada."
+            : `Recebida às ${attendanceTime(result.submittedAt)}. O professor vai conferir na chamada.`}
+          {result.repeated ? " Seu primeiro envio foi preservado." : ""}
         </p>
+        {preview && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              searchVersion.current += 1;
+              setPreviewReceipt(null);
+              setSearchState(null);
+              setName("");
+              setSelected("");
+            }}
+          >
+            Ver novamente
+          </Button>
+        )}
       </div>
     );
   return (
     <>
-      <div className="grid gap-2 border-y border-border py-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold">{info.className}</h2>
-          <Badge variant="neutral">{info.format === "ONLINE" ? "Online" : "Presencial"}</Badge>
-        </div>
-        <p className="text-caption text-muted-foreground">
-          {info.date.split("-").reverse().join("/")} · {info.startTime}–{info.endTime}
-        </p>
-        <p className="text-caption text-muted-foreground">
-          Envios até {attendanceTime(info.expiresAt)}
-        </p>
-      </div>
       <form
         noValidate
         className="grid gap-5"
         onSubmit={(event) => {
           event.preventDefault();
-          if (pending) return;
+          if (pending || searching) return;
           if (name.trim().length < 3) {
             setNameError("Digite pelo menos três caracteres do seu nome.");
             document.getElementById("student-name")?.focus();
             return;
           }
-          if (search.data && selected) void send();
-          else search.mutate({ token, name: name.trim() });
+          if (canSubmit) void send();
         }}
       >
-        <Alert>Confirme somente o seu nome. Este navegador pode confirmar uma pessoa por aula. Se confirmar outra pessoa, você precisará pedir o registro manual da sua presença ao professor.</Alert>
         <StudentNameField
           name={name}
           disabled={pending}
           error={nameError}
+          hint={
+            name.trim().length < 3
+              ? "Digite pelo menos três letras. A busca é automática."
+              : undefined
+          }
           change={(value) => {
+            searchVersion.current += 1;
             setName(value);
             setSelected("");
             setNameError(null);
             setLocationError(null);
-            search.reset();
             submit.reset();
+            setSearchState(null);
           }}
         />
-        {search.data && (
+        {searching && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Buscando seu nome…
+          </p>
+        )}
+        {matches && (
           <StudentNameChoices
-            matches={search.data}
+            matches={matches}
             selected={selected}
             select={setSelected}
             disabled={pending}
           />
         )}
-        {selected && (
+        {selected && info.format === "IN_PERSON" && (
           <p className="flex items-start gap-2 text-caption text-muted-foreground">
-            {info.format === "ONLINE" ? (
-              <Video className="size-4 shrink-0" aria-hidden="true" />
-            ) : (
-              <MapPin className="size-4 shrink-0" aria-hidden="true" />
-            )}
+            <MapPin className="size-4 shrink-0" aria-hidden="true" />
             <span>
-              {info.format === "ONLINE"
-                ? "Aula online: confirme para enviar ao professor."
-                : "Para confirmar, sua localização precisa estar na área da escola e ter precisão suficiente. Se não conseguir, peça a chamada manual."}
+              Ao confirmar, permita sua localização para verificar que você está na escola.
             </span>
           </p>
         )}
-        {search.error && <Alert variant="destructive">{search.error.message}</Alert>}
+        {searchState?.error && (
+          <Alert variant="destructive">
+            {searchState.error}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                searchVersion.current += 1;
+                setSearchState(null);
+                setRetry((value) => value + 1);
+              }}
+            >
+              Tentar novamente
+            </Button>
+          </Alert>
+        )}
         {submit.error && <Alert variant="destructive">{submit.error.message}</Alert>}
         {locationError && <Alert>{locationError}</Alert>}
-        <Button
-          size="compact-responsive"
-          type="submit"
-          disabled={pending || Boolean(search.data && !selected)}
-        >
+        <Button size="compact-responsive" type="submit" disabled={!canSubmit}>
           {locating
             ? "Obtendo localização…"
             : submit.isPending
               ? "Enviando…"
-              : search.isPending
-                ? "Buscando…"
-                : selected
-                  ? "Enviar minha presença"
-                  : "Encontrar meu nome"}
+              : "Enviar minha presença"}
           <ArrowRight aria-hidden="true" />
         </Button>
+        <aside
+          className="flex gap-2.5 border-t border-border pt-4 text-caption text-muted-foreground"
+          aria-label="Atenção"
+        >
+          <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
+          <div className="grid gap-1.5">
+            <p className="font-semibold text-foreground">Atenção</p>
+            <p>Registre apenas uma presença por dispositivo nesta aula.</p>
+            <p>O professor sempre confere a chamada.</p>
+          </div>
+        </aside>
       </form>
     </>
   );

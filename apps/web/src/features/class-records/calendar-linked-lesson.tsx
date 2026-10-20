@@ -23,6 +23,7 @@ export function CalendarLinkedLesson({
   onOpen,
   onOpenAppointment,
   onOpenExperimental,
+  personal = false,
 }: {
   lesson: CalendarLesson;
   expanded: boolean;
@@ -31,6 +32,7 @@ export function CalendarLinkedLesson({
   onOpen: (lesson: CalendarLesson) => void;
   onOpenAppointment: (id: string) => void;
   onOpenExperimental: (id: string) => void;
+  personal?: boolean;
 }) {
   const appointments = lesson.appointments ?? [];
   const leads = lesson.leadGuests ?? [];
@@ -39,7 +41,12 @@ export function CalendarLinkedLesson({
   return (
     <div className={styles.frame} data-expanded={expanded} data-modality={lesson.scheduleType}>
       <div className={styles.lessonMain}>
-        <CalendarLessonButton lesson={lesson} expanded={false} onOpen={onOpen} />
+        <CalendarLessonButton
+          lesson={lesson}
+          expanded={false}
+          onOpen={onOpen}
+          personal={personal}
+        />
       </div>
       <button
         type="button"

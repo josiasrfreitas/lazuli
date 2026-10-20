@@ -90,6 +90,7 @@ const meta = {
     maxDate: { control: "text" },
     view: { control: "radio", options: ["day", "week"] },
     density: { control: "radio", options: ["comfortable", "compact"] },
+    widthBehavior: { control: "radio", options: ["scroll", "fit"] },
     expandedEventWidth: { control: { type: "number", min: 160, max: 640, step: 20 } },
     status: { control: "radio", options: ["ready", "loading", "error"] },
     events: { control: false },
@@ -161,6 +162,15 @@ export const SingleAllowedDate: Story = {
 export const Daily: Story = {
   args: { view: "day" },
   render: (args) => <Example key={args.view} {...args} />,
+};
+/** All days and concurrent events remain within the available phone width. */
+export const Fitted: Story = {
+  args: { view: "day", widthBehavior: "fit", expandEvents: false },
+  render: (args) => (
+    <div className="w-80 max-w-full">
+      <Example {...args} />
+    </div>
+  ),
 };
 /** Resize the canvas: short events use horizontal space before hiding supporting text. */
 export const ShortAppointments: Story = {

@@ -38,14 +38,15 @@ import styles from "./visit-dialog.module.css";
 type VisitInput = { candidate: Candidate; previousVisitId?: string; onClose: () => void };
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 function clock() {
+  const now = new Date();
   return {
-    date: toDateOnlySaoPaulo(new Date()),
+    date: toDateOnlySaoPaulo(now),
     time: new Intl.DateTimeFormat("pt-BR", {
       timeZone: "America/Sao_Paulo",
       hour: "2-digit",
       minute: "2-digit",
       hourCycle: "h23",
-    }).format(new Date()),
+    }).format(now),
   };
 }
 
@@ -109,7 +110,9 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
       onClose();
     },
   });
-  const meetings = calendar.data?.meetings ?? [];
+  const meetings = (calendar.data?.meetings ?? []).filter(
+    (row) => `${row.date} ${row.startTime}` > `${now.date} ${now.time}`,
+  );
   const chosen = meetings.find((row) => row.id === meetingId);
   const blocked: CalendarBlockedInterval[] = [
     ...(calendar.data?.leadBusy ?? []),
@@ -123,7 +126,10 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
     ...(kind === "INTRODUCTION"
       ? [
           ...(calendar.data?.teacherBusy ?? []),
-          ...meetings.map((row) => ({ ...row, label: `Aula do professor · ${row.className}` })),
+          ...(calendar.data?.meetings ?? []).map((row) => ({
+            ...row,
+            label: `Aula do professor · ${row.className}`,
+          })),
         ]
       : []),
   ];
@@ -381,7 +387,7 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
                   }}
                   emptyMessage={
                     kind === "TRIAL"
-                      ? "Nenhuma aula neste período. Escolha outra data ou turma."
+                      ? "Nenhuma aula futura neste período. Escolha outra data ou turma."
                       : teacher
                         ? "Escolha um horário livre para a experimental."
                         : "Selecione o professor para consultar a agenda."

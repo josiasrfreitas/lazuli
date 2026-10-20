@@ -3,8 +3,9 @@ import Link from "next/link";
 import { studentFollowUpHref } from "./student-navigation";
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Alert, Button, EmptyState, InlineSkeleton } from "@lazuli/ui";
-import { ArrowLeft, ArrowUpRight, MessagesSquare } from "lucide-react";
+import { Alert, Button, EmptyState } from "@lazuli/ui";
+import { QueryLoading } from "~/components/query-loading";
+import { ArrowLeft, ArrowUpRight, MessagesSquare, RefreshCw } from "lucide-react";
 export type Occurrence = RouterOutputs["occurrences"]["byId"];
 export type Intervention = RouterOutputs["interventions"]["byId"];
 export type OccurrenceRow = RouterOutputs["occurrences"]["list"]["rows"][number];
@@ -42,12 +43,13 @@ export function QueryState({
   error: { message: string } | null;
   retry: () => void;
 }): ReactElement | null {
-  if (pending) return <InlineSkeleton className="h-48 w-full" />;
+  if (pending) return <QueryLoading label="Carregando acompanhamento" />;
   if (error)
     return (
       <Alert variant="destructive">
         {error.message}
         <Button variant="secondary" onClick={retry}>
+          <RefreshCw aria-hidden="true" />
           Tentar novamente
         </Button>
       </Alert>

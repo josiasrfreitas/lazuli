@@ -15,6 +15,9 @@ import {
 import { requestSessionGeneration } from "../session-generation/requests.js";
 import { recordActivity } from "../activity/record.js";
 import { badRequest, notFound } from "../trpc/errors.js";
+import { lockCandidate, readCandidate } from "../admissions/candidates.js";
+import { assertPlacementReady } from "../admissions/placement.js";
+import { requireLeadGuardian } from "../admissions/guardian.js";
 import {
   lockSemester,
   assertVersion,
@@ -39,6 +42,15 @@ export async function publishPlacements(context: OrganizationContext, input: Pub
   });
   if (targets.length !== input.placements.length)
     throw badRequest("Selecione propostas desta turma.");
+  const leads = await context.database.admissionCandidate.findMany({
+    where: {
+      studentId: { in: targets.map((row) => row.studentId) },
+      status: "WAITING",
+      deletedAt: null,
+    },
+    orderBy: { id: "asc" },
+  });
+  for (const lead of leads) await lockCandidate(context.database, lead.id);
   for (const studentId of [...new Set(targets.map((row) => row.studentId))].toSorted())
     await lockStudentEnrollment(context.database, studentId);
   const board = await readSemester(context, semester.id);
@@ -54,12 +66,30 @@ export async function publishPlacements(context: OrganizationContext, input: Pub
     if (!row) throw notFound("Proposta não encontrada.");
     assertVersion(row.version, item.version);
     if (row.declinedAt) throw badRequest("O aluno não continuará neste semestre.");
+    if (row.continuity === "LEAVING")
+      throw badRequest(`${row.studentName}: converse sobre a possível saída antes de confirmar.`);
     if (dateOnly(row.effectiveDate ?? semester.startDate) < saoPauloDateOnly(context.now))
       throw badRequest("Revise a vigência: a data proposta já passou.");
     if (row.publishedAt) throw badRequest("Um dos alunos já foi publicado. Atualize a página.");
     if (row.blockers.length) throw badRequest(`${row.studentName}: ${row.blockers.join("; ")}.`);
     return row;
   });
+  for (const lead of leads) {
+    const candidate = await readCandidate(context.database, lead.id);
+    const row = selected.find((item) => item.studentId === candidate.studentId);
+    if (!row) continue;
+    if (
+      !candidate.stageId ||
+      candidate.stageId !== row.stageId ||
+      candidate.englishExperience === "UNKNOWN"
+    )
+      throw badRequest(
+        `${candidate.fullName}: confirme a experiência e o estágio no cadastro do lead.`,
+      );
+    if (candidate.englishExperience === "SOME")
+      await assertPlacementReady(context.database, candidate);
+    await requireLeadGuardian(context.database, candidate, { mode: "existing", id: row.studentId });
+  }
   for (const row of selected)
     await assertTeacherEligible({
       database: context.database,
@@ -135,6 +165,7 @@ async function publishOne(
         publishedAt: context.now,
         publishedById: context.staffUser.id,
         enrollmentId: row.sourceEnrollmentId,
+        continuity: "STAY",
         version: { increment: 1 },
       },
     });
@@ -202,6 +233,8 @@ async function publishOne(
       publishedAt: context.now,
       publishedById: context.staffUser.id,
       enrollmentId: created.enrollment.id,
+      continuity: "STAY",
+      continuityReason: null,
       entryActionId: entry.id,
       sourceExitActionId,
       availabilityId: availability.id,
@@ -212,6 +245,15 @@ async function publishOne(
         stagePlanId: row.stagePlanId,
         assessmentVersion: row.assessmentVersion,
       },
+    },
+  });
+  await context.database.admissionCandidate.updateMany({
+    where: { studentId: row.studentId, status: "WAITING", deletedAt: null },
+    data: {
+      status: "ENROLLED",
+      enrollmentId: created.enrollment.id,
+      allocationPendingAt: null,
+      allocationPendingReason: null,
     },
   });
   await recordPlacementRevision(context, row.id, "PUBLISHED");

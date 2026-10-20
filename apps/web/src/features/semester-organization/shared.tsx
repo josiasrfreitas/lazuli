@@ -34,6 +34,8 @@ export function useOrganizationRefresh() {
       utils.semesterOrganization.invalidate(),
       utils.classes.invalidate(),
       utils.enrollment.invalidate(),
+      utils.students.invalidate(),
+      utils.admissions.invalidate(),
       utils.activity.invalidate(),
     ]);
   };

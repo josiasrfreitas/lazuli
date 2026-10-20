@@ -1,4 +1,5 @@
 "use client";
+import { Link2, Pencil } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -122,10 +123,12 @@ function InterventionActions({
     <div className={styles.actions}>
       {row.canOrganize && (
         <Button size="sm" variant="ghost" onClick={() => open("LINK")}>
+          <Link2 aria-hidden="true" />
           Vincular ocorrência
         </Button>
       )}
       <Button size="sm" onClick={() => open("followUp")}>
+        <Pencil aria-hidden="true" />
         Registrar evolução
       </Button>
     </div>

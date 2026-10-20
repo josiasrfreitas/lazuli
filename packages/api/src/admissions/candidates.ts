@@ -1,9 +1,6 @@
 import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
-import {
-  CLASS_REFERENCE_CAPACITY,
-  saoPauloDateOnly,
-} from "@lazuli/domain";
+import { CLASS_REFERENCE_CAPACITY, saoPauloDateOnly } from "@lazuli/domain";
 import type { admissionSaveSchema, admissionListSchema, z } from "@lazuli/validators";
 import { badRequest, notFound } from "../trpc/errors.js";
 import { databaseSlotToCandidate } from "../teachers/availability.js";
@@ -14,6 +11,7 @@ const ISO_DATE_LENGTH = 10;
 const ADMISSION_LOCK_NAMESPACE = 168;
 export const dateOnly = (date: Date): string => date.toISOString().slice(0, ISO_DATE_LENGTH);
 const candidateInclude = {
+  allocationPlan: { select: { id: true, name: true, classId: true, semesterId: true } },
   availability: true,
   stage: { include: { track: { select: { name: true } } } },
   student: { select: { id: true, fullName: true } },
@@ -44,11 +42,8 @@ export function assertAllocatable(
   format: NonNullable<AdmissionCandidate["format"]>;
 } {
   if (!row.scheduleType || !row.format)
-    throw badRequest(
-      "Defina modalidade e formato antes de buscar uma turma.",
-    );
+    throw badRequest("Defina modalidade e formato antes de buscar uma turma.");
   if (row.status !== "WAITING") throw badRequest("Este lead não está aguardando alocação.");
-
 }
 export async function saveCandidate(input: {
   database: Prisma.TransactionClient;
@@ -122,10 +117,7 @@ export async function listCandidates(
     database.admissionCandidate.findMany({
       where,
       include: candidateInclude,
-      orderBy: [
-        { createdAt: "desc" },
-        { id: "asc" },
-      ],
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
       skip: (input.page - 1) * input.pageSize,
       take: input.pageSize,
     }),
@@ -168,18 +160,17 @@ export async function matchingClasses(
     },
     orderBy: { portalClassName: "asc" },
   });
-  return rows
-    .map((row) => ({
-      id: row.id,
-      name: row.portalClassName,
-      stageName: row.sharedStage?.name ?? candidate.stage?.name,
-      semester: row.semester.name,
-      through: dateOnly(row.semester.endDate),
-      scheduleType: row.scheduleType,
-      slots: row.scheduleSlots.map((slot) => databaseSlotToCandidate(slot)),
-      enrolled: row._count.enrollments,
-      capacity: CLASS_REFERENCE_CAPACITY,
-    }));
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.portalClassName,
+    stageName: row.sharedStage?.name ?? candidate.stage?.name,
+    semester: row.semester.name,
+    through: dateOnly(row.semester.endDate),
+    scheduleType: row.scheduleType,
+    slots: row.scheduleSlots.map((slot) => databaseSlotToCandidate(slot)),
+    enrolled: row._count.enrollments,
+    capacity: CLASS_REFERENCE_CAPACITY,
+  }));
 }
 
 type ClassMatch = {

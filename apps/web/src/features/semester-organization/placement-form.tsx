@@ -109,9 +109,12 @@ function PlacementFields({
   const [planId, setPlanId] = useState(initialPlanId ?? row?.planId ?? "pending");
   const [effectiveDate, setEffectiveDate] = useState(
     formatDateOnlyBR(
-      row?.effectiveDate
-        ? dateOnly(row.effectiveDate)
-        : [dateOnly(board.semester.startDate), toDateOnlySaoPaulo(new Date())].sort().at(-1)!,
+      [
+        row?.effectiveDate ? dateOnly(row.effectiveDate) : dateOnly(board.semester.startDate),
+        toDateOnlySaoPaulo(new Date()),
+      ]
+        .sort()
+        .at(-1)!,
     ),
   );
   const [notes, setNotes] = useState(row?.notes ?? "");
@@ -145,11 +148,11 @@ function PlacementFields({
     <TaskDialog
       compactHeader
       actionSize="sm"
-      title={row ? "Revisar proposta" : "Organizar aluno"}
+      title={row ? "Revisar alocação" : "Alocar aluno"}
       description={`${data.student.fullName} · semestre ${board.semester.name}`}
       formId="semester-placement"
       firstField="placement-source"
-      submitLabel="Salvar proposta"
+      submitLabel={planId === "pending" ? "Manter na fila" : "Salvar alocação"}
       onClose={onClose}
       pending={mutation.isPending}
       error={mutation.error?.message ?? options.error?.message}
@@ -206,7 +209,7 @@ function PlacementFields({
         )}
         <SelectControl
           name="placement-plan"
-          label="Turma planejada"
+          label="Turma"
           value={planId}
           onChange={(value) => {
             setPlanId(value);
@@ -216,7 +219,9 @@ function PlacementFields({
           }}
           choices={[
             { value: "pending", label: "Ainda sem turma" },
-            ...board.plans.map((item) => ({ value: item.id, label: item.name })),
+            ...board.plans
+              .filter((item) => item.active)
+              .map((item) => ({ value: item.id, label: item.name })),
           ]}
           error={validation.errors.planId}
         />
@@ -277,7 +282,7 @@ function PlacementFields({
         <NarrativeField
           name="placement-notes"
           label="Observações · opcional"
-          placeholder="Contexto para organizar a próxima etapa do aluno"
+          placeholder="Horário desejado, preferência de modalidade ou motivo da pendência"
           value={notes}
           onChange={(value) => {
             setNotes(value);

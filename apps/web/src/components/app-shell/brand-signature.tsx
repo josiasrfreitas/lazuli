@@ -63,7 +63,7 @@ export function BrandSignature({
           entry ? "-ml-1.5 h-16 w-52" : "h-8 w-28",
           !entry &&
             !expanded &&
-            "opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100 group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none",
+            "opacity-0 transition-opacity duration-200 group-hover/sidebar:opacity-100 group-has-[:focus-visible]/sidebar:opacity-100 group-has-[[data-popup-open]]/sidebar:opacity-100 motion-reduce:transition-none",
         )}
       >
         <BrandArtwork kind="wordmark" />

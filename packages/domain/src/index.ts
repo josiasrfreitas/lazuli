@@ -148,3 +148,4 @@ export {
   type TeachingProgramImport,
 } from "./teaching-program.js";
 export { studentPendingActions, type PendingAction } from "./pending-actions.js";
+export { planningBand } from "./planning-band.js";

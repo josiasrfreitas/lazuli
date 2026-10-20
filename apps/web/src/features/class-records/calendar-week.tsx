@@ -7,6 +7,7 @@ import { calendarDate, shiftDate } from "./calendar-model";
 import styles from "./calendar.module.css";
 
 type CalendarWeekInput = {
+  compact?: boolean;
   from: string;
   today: string;
   date: string;
@@ -21,6 +22,7 @@ export function CalendarWeek({
   date,
   onSelectDay,
   onChangeWeek,
+  compact = false,
 }: CalendarWeekInput): ReactElement {
   const rail = useRef<HTMLDivElement>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -67,7 +69,7 @@ export function CalendarWeek({
   }
 
   return (
-    <div className={styles.week} role="group" aria-label="Dias da semana">
+    <div className={styles.week} data-compact={compact} role="group" aria-label="Dias da semana">
       <Button
         variant="ghost"
         size="icon-sm"
@@ -102,7 +104,8 @@ export function CalendarWeek({
                   onClick={() => onSelectDay(day)}
                   aria-label={calendarDate(day, { weekday: "long", day: "numeric", month: "long" })}
                 >
-                  {calendarDate(day, { weekday: "short" }).replace(".", "")} {day.slice(-2)}
+                  <span>{calendarDate(day, { weekday: "short" }).replace(".", "")}</span>{" "}
+                  <span>{day.slice(-2)}</span>
                 </button>
               ),
             )}

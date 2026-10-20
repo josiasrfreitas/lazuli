@@ -198,13 +198,6 @@
   font-size: var(--lz-text-caption);
   text-align: center;
 }
-.loadingFact {
-  display: grid;
-  gap: 0.5rem;
-}
-.loadingFact > span {
-  max-width: 100%;
-}
 .history {
   display: grid;
   gap: 0.75rem;

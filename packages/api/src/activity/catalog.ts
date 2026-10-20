@@ -7,6 +7,9 @@ export const ACTIVITY_AREAS = {
 export type ActivityArea = keyof typeof ACTIVITY_AREAS;
 export const ACTIVITY_ACTIONS = {
   "semesterOrganization.prepare": ["PEDAGOGICAL", "Estrutura de turmas reaproveitada"],
+  "semesterOrganization.continuity": ["PEDAGOGICAL", "Continuidade do aluno registrada"],
+  "semesterOrganization.pendingLead": ["PEDAGOGICAL", "Pendência de alocação atualizada"],
+  "semesterOrganization.planStatus": ["PEDAGOGICAL", "Situação da turma atualizada"],
   "semesterOrganization.updatePeriod": ["SCHOOL", "Período letivo revisado"],
   "semesterOrganization.savePlan": ["PEDAGOGICAL", "Organização da turma atualizada"],
   "semesterOrganization.savePlacement": ["PEDAGOGICAL", "Proposta de alocação registrada"],

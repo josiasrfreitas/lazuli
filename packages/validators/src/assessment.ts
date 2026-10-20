@@ -4,13 +4,30 @@ const MAX_SCORE = 100;
 const DECIMAL_STEP = 0.1;
 const MAX_GRADES = 12;
 const MAX_REASON = 2000;
+export const assessmentObservationsSchema = z
+  .array(
+    z
+      .object({
+        phase: z.enum(["BLOCK_ONE", "BLOCK_TWO", "RECOVERY"]),
+        competence: z.enum(["ORAL", "LISTENING", "WRITTEN", "PARTICIPATION"]),
+        notes: z.string().trim().min(1).max(MAX_REASON),
+      })
+      .strict(),
+  )
+  .max(MAX_GRADES);
 const grade = z
   .object({
     phase: z.enum(["BLOCK_ONE", "BLOCK_TWO", "RECOVERY"]),
     competence: z.enum(["ORAL", "LISTENING", "WRITTEN", "PARTICIPATION"]),
-    score: z.number().min(0).max(MAX_SCORE).multipleOf(DECIMAL_STEP).nullable(),
+    score: z
+      .number({ invalid_type_error: "Informe uma nota válida." })
+      .min(0, "Use uma nota entre 0 e 100.")
+      .max(MAX_SCORE, "Use uma nota entre 0 e 100.")
+      .multipleOf(DECIMAL_STEP, "Use no máximo uma casa decimal.")
+      .nullable(),
     assessedOn: civilDateSchema.nullable(),
     reason: z.string().trim().max(MAX_REASON).nullable(),
+    notes: z.string().trim().max(MAX_REASON).nullable().optional(),
   })
   .strict()
   .superRefine((value, context) => {

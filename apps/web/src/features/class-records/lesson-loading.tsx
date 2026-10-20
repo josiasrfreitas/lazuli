@@ -4,14 +4,18 @@ import styles from "./class-record-dialog.module.css";
 export function LessonLoadingHeader() {
   return (
     <DialogHeader>
-      <DialogTitle>Detalhes da aula</DialogTitle>
-      <DialogDescription>Carregando informações do encontro…</DialogDescription>
+      <div className={styles.headingRow}>
+        <DialogTitle className="text-base">Detalhes da aula</DialogTitle>
+        <DialogDescription>
+          <span className="sr-only">Carregando informações do encontro…</span>
+          <InlineSkeleton className="h-3 w-48 max-w-full rounded-sm" />
+        </DialogDescription>
+      </div>
       <div className={styles.context} aria-hidden="true">
         {[0, 1].map((column) => (
-          <div className={styles.loadingFact} key={column}>
-            <InlineSkeleton className="h-3 w-20" />
-            <InlineSkeleton className="h-4 w-40" />
-            <InlineSkeleton className="h-3 w-28" />
+          <div key={column}>
+            <InlineSkeleton className="h-3 w-12 rounded-sm" />
+            <InlineSkeleton className="h-3 w-32 rounded-sm" />
           </div>
         ))}
       </div>
@@ -21,26 +25,37 @@ export function LessonLoadingHeader() {
 
 export function LessonLoadingList() {
   return (
-    <div className={styles.attendance} role="status" aria-label="Carregando alunos e presença">
+    <div
+      className={styles.attendance}
+      role="status"
+      aria-label="Carregando alunos e presença"
+      aria-busy="true"
+    >
       <span className="sr-only">Carregando alunos e presença…</span>
       <div aria-hidden="true">
         <div className={styles.listHeading}>
           <div className={styles.sectionHeading}>
             <h2>Alunos</h2>
-            <InlineSkeleton className="h-3 w-36" />
+            <InlineSkeleton className="h-3 w-24 rounded-sm" />
           </div>
         </div>
         <div className={styles.roster}>
-          {[0, 1, 2, 3, 4, 5].map((row) => (
+          {[0, 1, 2, 3].map((row) => (
             <div className={styles.loadingRow} key={row}>
               <span className={styles.person}>
                 <InlineSkeleton className="size-8" />
                 <span className={styles.student}>
-                  <InlineSkeleton className={row % 2 ? "h-4 w-36" : "h-4 w-44"} />
-                  <InlineSkeleton className="h-3 w-24" />
+                  <InlineSkeleton
+                    className={
+                      row % 2
+                        ? "h-3.5 w-36 max-w-full rounded-sm"
+                        : "h-3.5 w-44 max-w-full rounded-sm"
+                    }
+                  />
+                  <InlineSkeleton className="h-3 w-24 max-w-full rounded-sm" />
                 </span>
               </span>
-              <InlineSkeleton className="h-3 w-20" />
+              <InlineSkeleton className="h-3 w-20 rounded-sm" />
             </div>
           ))}
         </div>

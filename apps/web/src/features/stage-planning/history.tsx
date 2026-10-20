@@ -1,4 +1,5 @@
 "use client";
+import { ChevronDown, History } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { Button } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
@@ -15,6 +16,7 @@ export function PlanHistory({ data }: { data: Planning }): ReactElement {
         Cada versão preserva o roteiro e o prazo combinados naquele momento.
       </p>
       <PlanningState
+        label="Carregando versões do planejamento"
         pending={query.isPending}
         error={query.error}
         retry={() => void query.refetch()}
@@ -31,6 +33,7 @@ export function PlanHistory({ data }: { data: Planning }): ReactElement {
             disabled={query.isFetchingNextPage}
             onClick={() => void query.fetchNextPage()}
           >
+            <ChevronDown aria-hidden="true" />
             {query.isFetchingNextPage ? "Carregando…" : "Ver versões anteriores"}
           </Button>
         </div>
@@ -63,6 +66,7 @@ function RevisionCard({ revision }: { revision: Revision }): ReactElement {
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
         >
+          <History aria-hidden="true" />
           {expanded ? "Recolher" : `Ler versão ${revision.version}`}
         </Button>
       </div>

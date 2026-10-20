@@ -1,4 +1,5 @@
 "use client";
+import { ChevronDown } from "lucide-react";
 import type { ReactElement } from "react";
 import { Button, PencilLoader } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -56,6 +57,7 @@ export function ClassRecordHistory({ sessionId }: { sessionId: string }): ReactE
             onClick={() => void query.fetchNextPage()}
             disabled={query.isFetchingNextPage}
           >
+            <ChevronDown aria-hidden="true" />
             Ver versões anteriores
           </Button>
         </div>

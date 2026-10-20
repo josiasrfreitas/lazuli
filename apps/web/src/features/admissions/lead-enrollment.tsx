@@ -14,7 +14,7 @@ export function LeadEnrollment({ candidate }: { candidate: Candidate }) {
     <>
       {candidate.studentId ? (
         <Button
-          size="sm"
+          size="compact-responsive"
           nativeButton={false}
           render={<Link href={`/alunos/${candidate.studentId}`} />}
         >
@@ -23,7 +23,7 @@ export function LeadEnrollment({ candidate }: { candidate: Candidate }) {
         </Button>
       ) : (
         candidate.status === "WAITING" && (
-          <Button size="sm" onClick={() => setOpen(true)}>
+          <Button size="compact-responsive" onClick={() => setOpen(true)}>
             <UserRoundPlus />
             Cadastrar aluno
           </Button>
