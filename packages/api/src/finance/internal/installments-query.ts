@@ -12,7 +12,7 @@ type QueryInput = {
   search: string | undefined;
 } & Pick<
   FinanceInstallmentsInput,
-  "statuses" | "origins" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
+  "studentId" | "statuses" | "origins" | "dueFrom" | "dueTo" | "amountFromCents" | "amountToCents"
 >;
 type AggregateDatabase = KyselyDatabase & {
   adjustment_totals: { installment_id: string; amount_cents: number };
@@ -44,7 +44,11 @@ type LedgerTables =
   | "allocation_totals"
   | "schedule_totals";
 
-export type InstallmentQueryRow = Omit<FinanceInstallmentRow, "payer" | "beneficiaries"> & {
+export type InstallmentQueryRow = Omit<
+  FinanceInstallmentRow,
+  "payer" | "beneficiaries" | "suspendedUntil"
+> & {
+  suspendedUntil: string | null;
   payerId: string;
   payerName: string;
   dueDateSort: string;
@@ -123,9 +127,25 @@ export function ledgerQuery(input: QueryInput): QueryCreator<LedgerDatabase> {
       .where("Installment.deleted_at", "is", null)
       .where("Order.deleted_at", "is", null)
       .where("Order.cancelled_at", "is", null)
-      .where("Payer.deleted_at", "is", null);
+      .where("Payer.deleted_at", "is", null)
+      .where(matchesStudent(input.studentId));
     return query;
   }) as object as QueryCreator<LedgerDatabase>;
+}
+
+function matchesStudent(studentId: string | undefined): RawBuilder<boolean> {
+  if (studentId === undefined) return sql<boolean>`true`;
+  return sql<boolean>`
+    "Contract".deleted_at is null and exists (
+        select 1 from "Student" student
+        where student.id = ${studentId}::uuid and student.deleted_at is null
+          and ("Contract".student_id = student.id or exists (
+            select 1 from "OrderBeneficiary" beneficiary
+            where beneficiary.order_id = "Order".id and beneficiary.student_id = student.id
+              and beneficiary.deleted_at is null
+          ))
+      )
+  `;
 }
 
 function aggregateQuery(kysely: DatabaseClient["$kysely"]): QueryCreator<AggregateDatabase> {
@@ -194,11 +214,12 @@ function ledgerSelection(input: {
     ),
     sql<
       number | null
-    >`case when "Contract".punctuality_discount_pct is not null and "Installment".waived_at is null and "Installment".due_date >= ${input.businessDate}::date and ${input.paid} <= round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer and ${input.paid} < ${input.expected} then round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer else null end`.as(
+    >`case when not exists (select 1 from "InstallmentAgreement" agreement where agreement.installment_id = "Installment".id) and "Contract".punctuality_discount_pct is not null and "Installment".waived_at is null and "Installment".due_date >= ${input.businessDate}::date and ${input.paid} <= round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer and ${input.paid} < ${input.expected} then round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer else null end`.as(
       "onTimeAmountCents",
     ),
     input.status.as("status"),
     input.overdue.as("overdueDays"),
+    sql<string | null>`to_char("Installment".suspended_until, 'YYYY-MM-DD')`.as("suspendedUntil"),
   ] as const;
 }
 

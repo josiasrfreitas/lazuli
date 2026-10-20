@@ -6,6 +6,10 @@ import {
   financeBatchReconcileInputSchema,
   financeCreateOrderInputSchema,
   financeInstallmentsInputSchema,
+  financeStudentSummaryInputSchema,
+  financialTreatmentInstallmentsSchema,
+  financialTreatmentPreviewSchema,
+  financialTreatmentConfirmSchema,
   financeInstallmentsOutputSchema,
   financeRegisterPaymentInputSchema,
   financeSettingsInputSchema,
@@ -20,7 +24,55 @@ import {
 import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
 import { finance } from "./index.js";
 
+const AGREEMENT_TRANSACTION_TIMEOUT_MS = 30_000;
+
 export const financeRouter = router({
+  treatmentInstallments: adminProcedure
+    .input(financialTreatmentInstallmentsSchema)
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (transaction) =>
+          finance(transaction, ctx.staffUser.id).treatmentInstallments(
+            input,
+            ctx.now ?? new Date(),
+          ),
+        { isolationLevel: "RepeatableRead" },
+      ),
+    ),
+  treatmentHistory: adminProcedure
+    .input(financeStudentSummaryInputSchema)
+    .query(({ ctx, input }) => finance(ctx.db, ctx.staffUser.id).treatmentHistory(input.studentId)),
+  previewTreatment: adminProcedure
+    .input(financialTreatmentPreviewSchema)
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (transaction) =>
+          finance(transaction, ctx.staffUser.id).previewTreatment(input, ctx.now ?? new Date()),
+        { isolationLevel: "RepeatableRead" },
+      ),
+    ),
+  confirmTreatment: adminProcedure
+    .input(financialTreatmentConfirmSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (transaction) =>
+          finance(transaction, ctx.staffUser.id).confirmTreatment(input, {
+            actorName: ctx.staffUser.name,
+            now: ctx.now ?? new Date(),
+          }),
+        { timeout: AGREEMENT_TRANSACTION_TIMEOUT_MS },
+      ),
+    ),
+  studentSummary: adminProcedure.input(financeStudentSummaryInputSchema).query(({ ctx, input }) =>
+    ctx.db.$transaction(
+      (transaction) =>
+        finance(transaction, ctx.staffUser.id).studentSummary({
+          studentId: input.studentId,
+          now: ctx.now ?? new Date(),
+        }),
+      { isolationLevel: "RepeatableRead" },
+    ),
+  ),
   analytics: adminProcedure.input(contractClosingsInputSchema).query(({ ctx, input }) =>
     ctx.db.$transaction(
       (transaction) =>

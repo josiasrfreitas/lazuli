@@ -13,6 +13,7 @@ const overdue: SettlementInput = {
 void describe("payment settlement", () => {
   void it("allocates partial receipts to interest first and charges only incremental simple interest", () => {
     assert.deepEqual(quoteSettlement({ ...overdue, receivedCents: 21_000 }), {
+      outstandingChargesCents: 1000,
       balanceCents: 100_000,
       newInterestCents: 1000,
       discountCents: 0,
@@ -137,4 +138,34 @@ void it("keeps a settled ledger closed when an older punctuality discount has on
   assert.equal(result.balanceCents, 0);
   assert.equal(result.newInterestCents, 0);
   assert.equal(result.settlementCents, 0);
+});
+
+void it("forgives only accrued charges and pauses simple interest without changing the unpaid principal", () => {
+  const input: SettlementInput = {
+    ...overdue,
+    effectiveDate: "2026-02-25",
+    postedInterestCents: 1000,
+    chargeAdjustments: [{ date: "2026-02-10", amountCents: -500 }],
+    suspensions: [{ date: "2026-02-10", newDueDate: "2026-02-20" }],
+    payments: [{ date: "2026-02-15", amountCents: 20_500 }],
+  };
+  // Only the remaining 80,000 principal accrues five days at 0.1%, independently of unpaid interest.
+  const result = quoteSettlement(input);
+  assert.equal(result.newInterestCents, 400);
+  assert.equal(result.outstandingChargesCents, 400);
+  assert.equal(result.settlementCents, 80_400);
+  const suspended = quoteSettlement({ ...input, effectiveDate: "2026-02-20" });
+  assert.equal(suspended.newInterestCents, 0);
+  assert.equal(suspended.settlementCents, 80_000);
+});
+void it("does not restore the punctuality discount when an agreement moves the due date", () => {
+  const result = quoteSettlement({
+    ...overdue,
+    effectiveDate: "2026-02-15",
+    terms: { ...overdue.terms, discountPct: 20 },
+    suspensions: [{ date: "2026-01-20", newDueDate: "2026-02-20" }],
+  });
+  assert.equal(result.discountCents, 0);
+  assert.equal(result.newInterestCents, 0);
+  assert.equal(result.settlementCents, 100_000);
 });

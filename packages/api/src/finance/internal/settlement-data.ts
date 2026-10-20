@@ -5,6 +5,7 @@ import { badRequest } from "../../trpc/errors.js";
 import { type FinanceDatabase, toDateOnlyString } from "./shared.js";
 
 const settlementInclude = {
+  agreements: { orderBy: [{ effectiveDate: "asc" }, { createdAt: "asc" }, { id: "asc" }] },
   order: { include: { contract: true } },
   adjustments: { where: { deletedAt: null }, orderBy: { id: "asc" } },
   allocations: {
@@ -15,7 +16,7 @@ const settlementInclude = {
 } satisfies Prisma.InstallmentInclude;
 export type SettlementItem = Prisma.InstallmentGetPayload<{ include: typeof settlementInclude }>;
 export async function loadSettlementItems(
-  database: FinanceDatabase,
+  database: Pick<FinanceDatabase, "installment">,
   ids: string[],
 ): Promise<SettlementItem[]> {
   return database.installment.findMany({
@@ -45,17 +46,11 @@ export function settlementLine(input: {
     payments: item.allocations.map((row) => ({
       date: toDateOnlyString(row.paymentEntry.date),
       amountCents: row.amountCents,
+      recordedAt: row.paymentEntry.createdAt.toISOString(),
     })),
-    principalAdjustments: item.adjustments
-      .filter((row) => row.type !== "INTEREST")
-      .map((row) => ({
-        date: row.effectiveDate
-          ? toDateOnlyString(row.effectiveDate)
-          : saoPauloDateOnly(row.createdAt),
-        amountCents: row.amountCents,
-      })),
+    ...settlementFacts(item),
     postedInterestCents: item.adjustments
-      .filter((row) => row.type === "INTEREST")
+      .filter((row) => contract && row.type === "INTEREST")
       .reduce((sum, row) => sum + row.amountCents, 0),
     effectiveDate: date,
     receivedCents: input.amountCents,
@@ -65,6 +60,49 @@ export function settlementLine(input: {
     payerId: contract?.payerId ?? item.order.payerId ?? "",
     version: createHash("sha256").update(JSON.stringify({ item, date })).digest("hex"),
     quote,
+  };
+}
+
+function settlementFacts(
+  item: SettlementItem,
+): Pick<
+  import("@lazuli/domain").SettlementInput,
+  "principalAdjustments" | "suspensions" | "chargeAdjustments"
+> {
+  const contract = item.order.contract;
+  return {
+    principalAdjustments: item.adjustments
+      .filter((row) => row.type !== "INTEREST" && row.type !== "LATE_FEE" && !row.chargeOnly)
+      .map((row) => ({
+        date: row.effectiveDate
+          ? toDateOnlyString(row.effectiveDate)
+          : saoPauloDateOnly(row.createdAt),
+        amountCents: row.amountCents,
+        recordedAt: row.createdAt.toISOString(),
+      })),
+    suspensions: item.agreements.flatMap((row) =>
+      row.newDueDate === null
+        ? []
+        : [
+            {
+              date: toDateOnlyString(row.effectiveDate),
+              recordedAt: row.createdAt.toISOString(),
+              newDueDate: toDateOnlyString(row.newDueDate),
+            },
+          ],
+    ),
+    chargeAdjustments: item.adjustments
+      .filter(
+        (row) =>
+          row.chargeOnly || row.type === "LATE_FEE" || (!contract && row.type === "INTEREST"),
+      )
+      .map((row) => ({
+        date: row.effectiveDate
+          ? toDateOnlyString(row.effectiveDate)
+          : saoPauloDateOnly(row.createdAt),
+        amountCents: row.amountCents,
+        recordedAt: row.createdAt.toISOString(),
+      })),
   };
 }
 
@@ -81,7 +119,8 @@ function validateSettlementItem(input: { item: SettlementItem; date: string; now
       (row.effectiveDate ? toDateOnlyString(row.effectiveDate) : saoPauloDateOnly(row.createdAt)) >
       date,
   );
-  if (laterPayment || laterAdjustment)
+  const laterAgreement = item.agreements.some((row) => toDateOnlyString(row.effectiveDate) > date);
+  if (laterPayment || laterAdjustment || laterAgreement)
     throw badRequest(`Parcela ${item.sequenceNumber}: data anterior a fato já efetivado.`);
   assertContractRates(item);
 }
@@ -105,10 +144,21 @@ function settlementTerms(item: SettlementItem): {
   discountPct: number;
 } {
   const contract = item.order.contract;
+  if (!contract)
+    return {
+      dueDate: toDateOnlyString(item.agreements[0]?.previousDueDate ?? item.dueDate),
+      dailyPct: 0,
+      monthlyPct: 0,
+      discountPct: 0,
+    };
   return {
-    dueDate: toDateOnlyString(item.dueDate),
-    dailyPct: contract?.interestRatePctDaily?.toNumber() ?? 0,
-    monthlyPct: contract?.interestRatePctMonthly?.toNumber() ?? 0,
-    discountPct: contract?.punctualityDiscountPct?.toNumber() ?? 0,
+    dueDate: toDateOnlyString(item.agreements[0]?.previousDueDate ?? item.dueDate),
+    dailyPct: decimalRate(contract.interestRatePctDaily),
+    monthlyPct: decimalRate(contract.interestRatePctMonthly),
+    discountPct: decimalRate(contract.punctualityDiscountPct),
   };
+}
+
+function decimalRate(value: Prisma.Decimal | null): number {
+  return value?.toNumber() ?? 0;
 }

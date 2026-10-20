@@ -50,6 +50,7 @@ const FINANCE_INSTALLMENTS_SEARCH_MAX_LENGTH = 80;
 
 export const financeInstallmentsInputSchema = z
   .object({
+    studentId: z.string().uuid().optional(),
     view: financeInstallmentViewSchema.default("all"),
     page: financeInstallmentsPaginationPolicy.pageSchema,
     pageSize: financeInstallmentsPaginationPolicy.pageSizeSchema,
@@ -77,6 +78,8 @@ export const financeInstallmentsInputSchema = z
     { path: ["amountToCents"], message: "O máximo deve ser igual ou maior que o mínimo." },
   );
 
+export const financeStudentSummaryInputSchema = z.object({ studentId: z.string().uuid() }).strict();
+
 export const financeInstallmentRowSchema = z
   .object({
     installmentId: z.string().uuid(),
@@ -96,6 +99,7 @@ export const financeInstallmentRowSchema = z
     onTimeAmountCents: z.number().int().nonnegative().nullable(),
     status: financeInstallmentStatusSchema,
     overdueDays: z.number().int().nonnegative(),
+    suspendedUntil: civilDateSchema.nullable().optional(),
   })
   .strict();
 

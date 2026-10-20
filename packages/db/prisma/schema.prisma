@@ -194,6 +194,7 @@ model User {
   updatedPaymentAllocations     PaymentAllocation[]     @relation("PaymentAllocationUpdater")
   updatedFinanceSettings        FinanceSettings[]       @relation("FinanceSettingsUpdater")
   requestedArtifacts            GeneratedArtifact[]     @relation("ArtifactRequester")
+  financialTreatments           InstallmentAgreement[]
   recordedEnrollmentActions     EnrollmentAction[]      @relation("EnrollmentActionRecorder")
   cancelledEnrollmentActions    EnrollmentAction[]      @relation("EnrollmentActionCanceller")
 }
@@ -799,6 +800,8 @@ model OrderBeneficiary {
 }
 
 model Installment {
+  agreements     InstallmentAgreement[]
+  suspendedUntil DateTime? @map("suspended_until") @db.Date
   sequenceNumber        Int       @map("sequence_number")
   id                    String    @id @default(uuid()) @db.Uuid
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -825,6 +828,7 @@ model Installment {
 }
 
 model InstallmentAdjustment {
+  chargeOnly Boolean @default(false) @map("charge_only")
   effectiveDate DateTime? @map("effective_date") @db.Date
   id            String                    @id @default(uuid()) @db.Uuid
   createdAt     DateTime                  @default(now()) @map("created_at") @db.Timestamptz
@@ -930,4 +934,26 @@ model GeneratedArtifact {
   @@index([orderId])
   @@index([kind])
   @@map("generated_artifacts")
+}
+
+model InstallmentAgreement {
+  commandFingerprint   String      @map("command_fingerprint")
+  id                   String      @id @default(uuid()) @db.Uuid
+  commandId            String      @map("command_id") @db.Uuid
+  installmentId        String      @map("installment_id") @db.Uuid
+  effectiveDate        DateTime    @map("effective_date") @db.Date
+  previousDueDate      DateTime    @map("previous_due_date") @db.Date
+  newDueDate           DateTime?   @map("new_due_date") @db.Date
+  previousChargesCents Int         @map("previous_charges_cents")
+  reductionCents       Int         @map("reduction_cents")
+  previousBalanceCents Int         @map("previous_balance_cents")
+  reason               String
+  actorId              String      @map("actor_id") @db.Uuid
+  actorName            String      @map("actor_name")
+  actor                User        @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  createdAt            DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  installment          Installment @relation(fields: [installmentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([commandId, installmentId])
+  @@index([installmentId, createdAt])
 }

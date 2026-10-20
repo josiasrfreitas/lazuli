@@ -14,6 +14,7 @@ export type {
   Guardian,
   Installment,
   InstallmentAdjustment,
+  InstallmentAgreement,
   Order,
   OrderBeneficiary,
   Payer,
