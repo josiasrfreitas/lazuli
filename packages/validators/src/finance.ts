@@ -302,3 +302,9 @@ export const financeAddInstallmentAdjustmentInputSchema = z
     reason: optionalText,
   })
   .strict();
+
+const MIN_REPORT_YEAR = 2000;
+const MAX_REPORT_YEAR = 2100;
+export const contractClosingsInputSchema = z
+  .object({ year: z.number().int().min(MIN_REPORT_YEAR).max(MAX_REPORT_YEAR) })
+  .strict();

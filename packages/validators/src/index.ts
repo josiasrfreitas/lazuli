@@ -171,3 +171,5 @@ export {
   classTeacherAssignInputSchema,
   classSubstituteInputSchema,
 } from "./teacher.js";
+
+export { contractClosingsInputSchema } from "./finance.js";

@@ -1,3 +1,5 @@
+import { saoPauloDateOnly } from "@lazuli/domain";
+import { readContractClosings } from "./internal/contract-closings.js";
 import { previewPayments } from "./internal/payment-preview.js";
 import { confirmPayments } from "./internal/payment-operation.js";
 import type { PaymentPreviewInput, PaymentOperationInput } from "@lazuli/validators";
@@ -60,6 +62,10 @@ import type {
  */
 export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule {
   return {
+    contractClosings: async (year, now) => {
+      const asOf = saoPauloDateOnly(now);
+      return { ...(await readContractClosings(db, { year, asOf })), year, asOf };
+    },
     previewPayments: (values, now) => previewPayments({ database: db, values, now }),
     confirmPayments: (values, now) => confirmPayments({ database: db, values, staffUserId, now }),
     readSettings: () => readSettings(db),
@@ -86,6 +92,10 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
 }
 
 export type FinanceModule = {
+  contractClosings: (
+    year: number,
+    now: Date,
+  ) => Promise<Awaited<ReturnType<typeof readContractClosings>> & { year: number; asOf: string }>;
   previewPayments: (values: PaymentPreviewInput, now: Date) => ReturnType<typeof previewPayments>;
   confirmPayments: (values: PaymentOperationInput, now: Date) => ReturnType<typeof confirmPayments>;
   readSettings: () => ReturnType<typeof readSettings>;

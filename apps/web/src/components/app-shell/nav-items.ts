@@ -69,6 +69,12 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     id: "financeiro",
     label: "Financeiro",
     items: [
+      {
+        href: "/financeiro",
+        label: "Visão financeira",
+        icon: DollarSign,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
       { href: "/contratos", label: "Contratos", icon: FileText, roles: ["ADMIN", "SYSTEM_ADMIN"] },
       {
         href: "/recebiveis",

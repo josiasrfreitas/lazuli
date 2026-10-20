@@ -15,6 +15,7 @@ const TEACHERS_PATH = "/professores";
 const CLASSES_PATH = "/turmas";
 const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
+const ANALYTICS_PATH = "/financeiro";
 const SETTINGS_PATH = "/ajustes";
 const STUDENTS_LABEL = "Alunos";
 const PEDAGOGICAL_LABEL = "Pedagógico";
@@ -31,7 +32,15 @@ void describe("role-aware navigation", () => {
   void it("shows Alunos, Professores and Turmas only to roles their procedures accept", () => {
     assert.deepEqual(
       navItemsFor("ADMIN").map((item) => item.href),
-      ["/", STUDENTS_PATH, TEACHERS_PATH, CLASSES_PATH, CONTRACTS_PATH, RECEIVABLES_PATH],
+      [
+        "/",
+        STUDENTS_PATH,
+        TEACHERS_PATH,
+        CLASSES_PATH,
+        ANALYTICS_PATH,
+        CONTRACTS_PATH,
+        RECEIVABLES_PATH,
+      ],
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
@@ -43,7 +52,7 @@ void describe("role-aware navigation", () => {
     assert.deepEqual(sectionsSummary(navSectionsFor("ADMIN")), [
       { label: null, items: ["Início"] },
       { label: PEDAGOGICAL_LABEL, items: [STUDENTS_LABEL, "Professores", "Turmas"] },
-      { label: "Financeiro", items: ["Contratos", "Recebíveis"] },
+      { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
     ]);
     assert.deepEqual(
       navSectionsFor("TEACHER").map((section) => section.label),
@@ -78,6 +87,10 @@ void describe("role-aware navigation", () => {
 });
 
 void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
+  assert.deepEqual(navBreadcrumbFor(ANALYTICS_PATH, "ADMIN"), {
+    section: "Financeiro",
+    page: "Visão financeira",
+  });
   assert.deepEqual(navBreadcrumbFor(CONTRACTS_PATH, "ADMIN"), {
     section: "Financeiro",
     page: "Contratos",
@@ -88,6 +101,7 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
   });
   for (const role of ["SECRETARY", "FINANCE", "TEACHER"] as const) {
     assert.equal(navBreadcrumbFor(RECEIVABLES_PATH, role), null);
+    assert.equal(navBreadcrumbFor(ANALYTICS_PATH, role), null);
     assert.deepEqual(
       navItemsFor(role).map((item) => item.href),
       ["/"],
@@ -103,6 +117,7 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       STUDENTS_PATH,
       TEACHERS_PATH,
       CLASSES_PATH,
+      ANALYTICS_PATH,
       CONTRACTS_PATH,
       RECEIVABLES_PATH,
       SETTINGS_PATH,

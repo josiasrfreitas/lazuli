@@ -1,4 +1,5 @@
 import {
+  contractClosingsInputSchema,
   paymentPreviewSchema,
   paymentOperationSchema,
   financeAddInstallmentAdjustmentInputSchema,
@@ -20,6 +21,11 @@ import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
 import { finance } from "./index.js";
 
 export const financeRouter = router({
+  contractClosings: adminProcedure
+    .input(contractClosingsInputSchema)
+    .query(({ ctx, input }) =>
+      finance(ctx.db, ctx.staffUser.id).contractClosings(input.year, ctx.now ?? new Date()),
+    ),
   previewPayments: adminProcedure
     .input(paymentPreviewSchema)
     .query(({ ctx, input }) =>
