@@ -1,4 +1,4 @@
-import { Prisma } from "@lazuli/db";
+import type { Prisma } from "@lazuli/db";
 import { createHash } from "node:crypto";
 import { quoteSettlement, saoPauloDateOnly, type SettlementQuote } from "@lazuli/domain";
 import { badRequest } from "../../trpc/errors.js";

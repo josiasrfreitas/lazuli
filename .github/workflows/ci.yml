@@ -49,8 +49,6 @@ jobs:
       - name: Instalar dependências e restaurar cache
         uses: ./.github/actions/setup
       - name: Compilar aplicações e pacotes
-        env:
-          DATABASE_URL: postgresql://build:build@127.0.0.1:1/build?schema=public
         run: pnpm exec turbo run build --continue=dependencies-successful
 
   unit:
