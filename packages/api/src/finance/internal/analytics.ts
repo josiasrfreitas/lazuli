@@ -4,6 +4,7 @@ import { ledgerQuery } from "./installments-query.js";
 import type { FinanceDatabase } from "./shared.js";
 
 const MONTHS_IN_YEAR = 12;
+const AGING_LABELS = ["1–30 dias", "31–60 dias", "61–90 dias", "Mais de 90 dias"];
 type MonthlyAmounts = {
   month: string;
   expectedCents: number;
@@ -14,6 +15,8 @@ export type FinanceAnalytics = {
   year: number;
   asOf: string;
   months: MonthlyAmounts[];
+  methods: { method: string; receivedCents: number; count: number }[];
+  aging: { label: string; balanceCents: number; count: number }[];
   receivedCents: number;
   expectedCents: number;
   overdueCents: number;
@@ -37,8 +40,13 @@ export async function readAnalytics(
   const ledger = ledgerQuery({ kysely: database.$kysely, businessDate: asOf, search: undefined });
   const charges = await readChargeMonths(ledger, { year: input.year, asOf });
   const overdue = await readCurrentOverdue(ledger);
-  const payments = await readPaymentMonths(database, { year: input.year, asOf });
-  return aggregateAnalytics({ year: input.year, asOf, charges, payments, overdue });
+  const payments = await readPaymentAnalytics(database, { year: input.year, asOf });
+  const aging = await readAging(ledger);
+  return {
+    ...aggregateAnalytics({ year: input.year, asOf, charges, payments: payments.months, overdue }),
+    methods: payments.methods,
+    aging,
+  };
 }
 function readChargeMonths(ledger: Ledger, { year, asOf }: Period): Promise<ChargeMonth[]> {
   const monthKey = sql<string>`left("dueDate", 7)`;
@@ -71,23 +79,52 @@ function readCurrentOverdue(ledger: Ledger): Promise<Overdue> {
     .where("status", "=", "OVERDUE")
     .executeTakeFirstOrThrow();
 }
-function readPaymentMonths(
+async function readPaymentAnalytics(
   database: FinanceDatabase,
   { year, asOf }: Period,
-): Promise<PaymentMonth[]> {
+): Promise<{ months: PaymentMonth[]; methods: FinanceAnalytics["methods"] }> {
   const paymentMonth = sql<string>`to_char(date, 'YYYY-MM')`;
-  return database.$kysely
+  const payments = database.$kysely
     .selectFrom("PaymentEntry")
+    .where("deleted_at", "is", null)
+    .where("date", ">=", new Date(`${year}-01-01`))
+    .where("date", "<", new Date(`${year + 1}-01-01`))
+    .where("date", "<=", new Date(asOf));
+  const months = await payments
     .select([
       paymentMonth.as("month"),
       sql<number>`sum(amount_cents)::double precision`.as("receivedCents"),
     ])
-    .where("deleted_at", "is", null)
-    .where("date", ">=", new Date(`${year}-01-01`))
-    .where("date", "<", new Date(`${year + 1}-01-01`))
-    .where("date", "<=", new Date(asOf))
     .groupBy(paymentMonth)
     .execute();
+  const methods = await payments
+    .select("method")
+    .select([
+      sql<number>`sum(amount_cents)::double precision`.as("receivedCents"),
+      sql<number>`count(*)::integer`.as("count"),
+    ])
+    .groupBy("method")
+    .orderBy("receivedCents", "desc")
+    .orderBy("method", "asc")
+    .execute();
+  return { months, methods };
+}
+async function readAging(ledger: Ledger): Promise<FinanceAnalytics["aging"]> {
+  const bucket = sql<number>`case when "overdueDays" <= 30 then 0 when "overdueDays" <= 60 then 1 when "overdueDays" <= 90 then 2 else 3 end`;
+  const amounts = await ledger
+    .selectFrom("ledger")
+    .select([
+      bucket.as("bucket"),
+      sql<number>`sum("collectibleBalanceCents")::double precision`.as("balanceCents"),
+      sql<number>`count(*)::integer`.as("count"),
+    ])
+    .where("status", "=", "OVERDUE")
+    .groupBy(bucket)
+    .execute();
+  return AGING_LABELS.map((label, index) => {
+    const amount = amounts.find((row) => row.bucket === index);
+    return { label, balanceCents: amount?.balanceCents ?? 0, count: amount?.count ?? 0 };
+  });
 }
 function aggregateAnalytics({
   year,
@@ -99,7 +136,7 @@ function aggregateAnalytics({
   charges: ChargeMonth[];
   payments: PaymentMonth[];
   overdue: Overdue;
-}): FinanceAnalytics {
+}): Omit<FinanceAnalytics, "methods" | "aging"> {
   const totals = { expectedCents: 0, receivedCents: 0, maturedCents: 0, settledMaturedCents: 0 };
   for (const charge of charges) {
     totals.expectedCents += charge.expectedCents;

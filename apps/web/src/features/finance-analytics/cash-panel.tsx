@@ -12,6 +12,7 @@ import { trpc } from "~/lib/trpc";
 import { formatAttendancePercent, formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import { monthLabel } from "./contract-closings-model";
 import { RevenueChart, type Analytics, type CashMonth } from "./revenue-chart";
+import { DistributionDetails } from "./distribution-details";
 
 const MONTH_KEY_LENGTH = 7;
 const YEAR_LENGTH = 4;
@@ -101,6 +102,7 @@ function CashContent({ data }: { data: Analytics }): ReactElement {
         <SegmentedControlItem value="table">Tabela</SegmentedControlItem>
       </SegmentedControl>
       <CashVisualization data={data} view={view} />
+      <DistributionDetails data={data} />
       <p className="text-caption text-muted-foreground">
         Cobranças consideram ajustes e excluem pedidos cancelados e parcelas isentas. Recebimentos
         incluem pagamentos registrados até esta data, inclusive valores ainda não alocados. Saldo
