@@ -7,6 +7,19 @@ import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility
 import { toDateOnlyString } from "./date-rules.js";
 import { STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
 
+const teacherSelect = { ...responsibilitySelect.teacher.select, deletedAt: true };
+const profileResponsibilitySelect = {
+  ...responsibilitySelect,
+  teacher: { select: teacherSelect },
+  teacherAssignments: {
+    ...responsibilitySelect.teacherAssignments,
+    where: { ...responsibilitySelect.teacherAssignments.where, deletedAt: null },
+    select: {
+      ...responsibilitySelect.teacherAssignments.select,
+      teacher: { select: teacherSelect },
+    },
+  },
+} satisfies Prisma.ClassSelect;
 const enrollmentInclude = {
   class: {
     select: {
@@ -14,7 +27,7 @@ const enrollmentInclude = {
       portalClassName: true,
       format: true,
       scheduleType: true,
-      ...responsibilitySelect,
+      ...profileResponsibilitySelect,
       semester: true,
       scheduleSlots: { where: { deletedAt: null } },
     },
@@ -103,10 +116,7 @@ function enrollmentView(enrollment: Enrollment, today: string): EnrollmentView {
       format: enrollment.class.format,
       scheduleType: enrollment.class.scheduleType,
       semester: enrollment.class.semester.name,
-      teacher: usualTeacherOn(
-        enrollment.class,
-        new Date(exitDate && exitDate < today ? exitDate : today),
-      ),
+      teacher: visibleTeacherOn(enrollment.class, historicalTeacherDate(exitDate, today)),
       schedule: enrollment.class.scheduleSlots.map((slot) => ({
         id: slot.id,
         weekday: slot.weekday,
@@ -123,4 +133,22 @@ function enrollmentView(enrollment: Enrollment, today: string): EnrollmentView {
       endReason: progress.endReason,
     })),
   };
+}
+
+function historicalTeacherDate(exitDate: string | null, today: string): Date {
+  if (exitDate === null || exitDate > today) return new Date(today);
+  const lastMembershipDay = new Date(exitDate);
+  lastMembershipDay.setUTCDate(lastMembershipDay.getUTCDate() - 1);
+  return lastMembershipDay;
+}
+
+function visibleTeacherOn(
+  row: Enrollment["class"],
+  date: Date,
+): EnrollmentView["class"]["teacher"] {
+  const effective = usualTeacherOn(row, date);
+  const teachers = [row.teacher, ...row.teacherAssignments.map((assignment) => assignment.teacher)];
+  return teachers.some((teacher) => teacher.id === effective?.id && teacher.deletedAt === null)
+    ? effective
+    : null;
 }
