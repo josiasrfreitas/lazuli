@@ -5,6 +5,7 @@ import { Alert, Button } from "@lazuli/ui";
 import { InterestChoice } from "~/features/admissions/candidate-fields";
 import { IntakeStageSelect } from "~/features/admissions/intake-fields";
 import { IntakeClasses } from "./intake-classes";
+import type { LeadRegistration } from "~/features/admissions/lead-capture-dialog";
 
 export type IntakeFilters = {
   stageId: string | null;
@@ -13,6 +14,7 @@ export type IntakeFilters = {
 };
 
 type Props = {
+  draftRegistration?: LeadRegistration | null;
   filters: IntakeFilters;
   onFiltersChange: (filters: IntakeFilters) => void;
   lead:
@@ -30,8 +32,11 @@ export function IntakePedagogy({
   enrollment,
   classes,
   onCaptureLead,
+  draftRegistration,
 }: Props) {
-  const waitingPlacement = lead?.englishExperience === "SOME" && !lead.stageId;
+  const waitingPlacement =
+    draftRegistration?.lead.englishExperience === "SOME" ||
+    (lead?.englishExperience === "SOME" && !lead.stageId);
   const change = (patch: Partial<IntakeFilters>) => onFiltersChange({ ...filters, ...patch });
   if (enrollment)
     return (
@@ -65,7 +70,7 @@ export function IntakePedagogy({
               value={filters.stageId}
               onChange={(stageId) => change({ stageId })}
               initialOnly={!lead || lead.englishExperience === "NONE"}
-              disabled={lead?.englishExperience === "SOME"}
+              disabled={waitingPlacement || lead?.englishExperience === "SOME"}
             />
           </div>
         </div>
@@ -75,7 +80,9 @@ export function IntakePedagogy({
           </p>
           {onCaptureLead && (
             <Button variant="ghost" size="sm" onClick={onCaptureLead}>
-              Já estudou inglês? Cadastrar lead para nivelamento
+              {draftRegistration
+                ? "Editar lead e nivelamento em rascunho"
+                : "Já estudou inglês? Cadastrar lead para nivelamento"}
             </Button>
           )}
         </div>
@@ -83,14 +90,22 @@ export function IntakePedagogy({
           <Alert variant="warning">
             O estágio depende da prova. Você pode seguir para o contrato e resolver o nivelamento
             depois.{" "}
-            <Link
-              className="underline"
-              href={`/interessados/${lead.id}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Abrir nivelamento em outra aba
-            </Link>
+            {lead ? (
+              <Link
+                className="underline"
+                href={`/interessados/${lead.id}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Abrir nivelamento em outra aba
+              </Link>
+            ) : (
+              <span>
+                {draftRegistration?.placement
+                  ? `A prova será agendada em ${draftRegistration.placement.date.split("-").reverse().join("/")} às ${draftRegistration.placement.startTime} ao concluir o cadastro.`
+                  : "O nivelamento ficará pendente ao concluir o cadastro."}
+              </span>
+            )}
           </Alert>
         )}
       </div>

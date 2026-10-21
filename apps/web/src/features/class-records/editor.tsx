@@ -4,7 +4,6 @@ import { ClipboardCheck, X } from "lucide-react";
 import { Alert, Button } from "@lazuli/ui";
 import { NarrativeField } from "~/features/shared/task-form";
 import type { ClassRecord } from "./shared";
-import type { AttendanceStatus } from "~/features/student-attendance/staff-section";
 import { useRecordEditor, type RecordEditor } from "./editor-model";
 import { RecordRoster, RecordContent } from "./editor-fields";
 import { RecordReview } from "./editor-review";
@@ -17,11 +16,11 @@ export function ClassRecordEditor({
 }: {
   data: ClassRecord;
   onClose: () => void;
-  declarations?: AttendanceStatus["declarations"];
+  declarations?: ClassRecord["declarations"];
   externalSubmit?: boolean;
   onStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
 }): ReactElement {
-  const editor = useRecordEditor(data, onClose);
+  const editor = useRecordEditor(declarations ? { ...data, declarations } : data, onClose);
   useEffect(() => {
     onStateChange?.({ dirty: editor.dirty, pending: editor.save.isPending });
   }, [editor.dirty, editor.save.isPending, onStateChange]);

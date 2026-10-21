@@ -219,6 +219,7 @@ void it("reschedules atomically and keeps cancelled reservations available to th
   const next = await harness.caller().appointments.detail({ id: replacement.id });
   assert.equal(before.snapshot.status, "CANCELLED");
   assert.equal(before.rescheduledToId, replacement.id);
+  assert.equal(before.restriction, "Este atendimento foi reagendado. Consulte o novo agendamento.");
   assert.equal(next.snapshot.rescheduledFromId, f.input.id);
   assert.equal(next.snapshot.coverages[0]?.minutes, 120);
   assert.equal(before.history[1]?.snapshot.status, "SCHEDULED");

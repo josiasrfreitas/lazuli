@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactElement } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState, type ReactElement } from "react";
 import { CircleCheck, DollarSign, Handshake, Search, Tags, X } from "lucide-react";
 import {
   Button,
@@ -445,7 +444,6 @@ export function InstallmentsPage(): ReactElement {
   const [treatmentRegistered, setTreatmentRegistered] = useState(false);
   useEffect(() => setRows([]), [state.filters.studentId]);
   const entry = useEntrySession(() => setRows([]));
-  const [treatment, setTreatment] = useState<string[] | null>(null);
   const visible =
     state.data?.view === "overdue"
       ? state.data.groups.flatMap((group) => group.rows)

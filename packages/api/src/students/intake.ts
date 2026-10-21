@@ -15,6 +15,8 @@ import { captureEnrollmentTransaction } from "../admissions/enroll.js";
 import { assertInitialStage } from "../admissions/catalog.js";
 import { lockCandidate, readCandidate, dateOnly } from "../admissions/candidates.js";
 import { assertPlacementReady } from "../admissions/placement.js";
+import { schedulePlacement } from "../admissions/placement.js";
+import { captureLead } from "../admissions/capture.js";
 import { requireLeadGuardian } from "../admissions/guardian.js";
 import { meetingsBetween } from "../teachers/schedule.js";
 import { lockTeacher, databaseSlotToCandidate } from "../teachers/availability.js";
@@ -119,7 +121,10 @@ export async function enrollNewStudent({
   await lockTeacher(database, "");
   await lockCreationCommand(database, values.commandId);
   await assertCreationCommandOwner(database, { id: values.commandId, owner: "studentCompletion" });
-  const fingerprint = createHash("sha256").update(JSON.stringify(values)).digest("hex");
+  const { leadRegistration, ...existingIntake } = values;
+  const fingerprint = createHash("sha256")
+    .update(JSON.stringify(leadRegistration ? values : existingIntake))
+    .digest("hex");
   const previous = await database.student.findUnique({ where: { commandId: values.commandId } });
   if (previous) {
     if (previous.commandFingerprint !== fingerprint)
@@ -136,8 +141,20 @@ export async function enrollNewStudent({
       contractId: null,
     };
   }
-  if (values.candidateId) await lockCandidate(database, values.candidateId);
-  const candidate = values.candidateId ? await readCandidate(database, values.candidateId) : null;
+  const candidateId = values.candidateId ?? leadRegistration?.lead.id;
+  if (candidateId) await lockCandidate(database, candidateId);
+  if (leadRegistration) {
+    const existing = await database.admissionCandidate.findUnique({
+      where: { id: leadRegistration.lead.id },
+      select: { id: true },
+    });
+    if (existing)
+      throw badRequest("Este identificador de lead já foi utilizado. Selecione o lead existente.");
+    await captureLead({ database, values: leadRegistration.lead, recordedById, now });
+    if (leadRegistration.placement)
+      await schedulePlacement({ database, values: leadRegistration.placement, recordedById, now });
+  }
+  const candidate = candidateId ? await readCandidate(database, candidateId) : null;
   if (
     candidate &&
     (candidate.status !== "WAITING" || candidate.enrollmentId || candidate.studentId)

@@ -66,11 +66,11 @@ export type ScheduleCalendarProps<Event extends CalendarEvent = CalendarEvent> =
     selectedEventId?: string | null | undefined;
     expandedEventId?: string | null | undefined;
     /** Preferred expanded event width in pixels in week view, bounded by available space. */
-    expandedEventWidth?: number;
+    expandedEventWidth?: number | undefined;
     /** Expand clipped cards on hover/focus. Explicit overflow controls remain available. */
     expandEvents?: boolean;
     /** Optional label for the toolbar date picker. */
-    dateLabel?: string;
+    dateLabel?: string | undefined;
     keepExpanded?: boolean;
     onEventActivate?: (event: Event) => void;
     /** Replaces the entire event card; own its buttons and accessible labels. */

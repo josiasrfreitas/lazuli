@@ -3,7 +3,7 @@
 import { UserRoundPlus } from "lucide-react";
 import { abbreviatedPersonName } from "~/lib/format";
 import { visitLabels } from "~/features/admissions/labels";
-import { purposes, statuses } from "~/features/appointments/shared";
+import { purposes, appointmentStatus } from "~/features/appointments/shared";
 import type { CalendarLesson } from "./calendar-model";
 import { CalendarLessonButton } from "./calendar-lesson";
 import styles from "./calendar-linked-lesson.module.css";
@@ -76,14 +76,14 @@ export function CalendarLinkedLesson({
                 data-status={item.status}
                 aria-haspopup="dialog"
                 aria-expanded={appointmentId === item.id}
-                aria-label={`${item.student.name} · ${purposes[item.purpose]} · ${statuses[item.status]}`}
-                title={`${item.student.name} · ${purposes[item.purpose]} · ${statuses[item.status]}`}
+                aria-label={`${item.student.name} · ${purposes[item.purpose]} · ${appointmentStatus(item.status, Boolean(item.rescheduledToId))}`}
+                title={`${item.student.name} · ${purposes[item.purpose]} · ${appointmentStatus(item.status, Boolean(item.rescheduledToId))}`}
                 onClick={() => onOpenAppointment(item.id)}
               >
                 <span>{abbreviatedPersonName(item.student.name)}</span>
                 <span className={styles.purpose}>
                   {item.status === "CANCELLED"
-                    ? "Cancelado"
+                    ? appointmentStatus(item.status, Boolean(item.rescheduledToId))
                     : item.status === "NO_SHOW"
                       ? "Não veio"
                       : shortPurposes[item.purpose]}

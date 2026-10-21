@@ -47,8 +47,10 @@ export function PlanTable({
   items,
   onEdit,
   filtered = false,
+  pagination,
 }: {
   items: PlannedItem[];
+  pagination?: import("@lazuli/ui").TablePaginationConfig | undefined;
   filtered?: boolean;
   onEdit?: ((item: PlannedItem) => void) | undefined;
 }): ReactElement {
@@ -109,6 +111,7 @@ export function PlanTable({
   return (
     <DataTable
       label="Roteiro de atividades planejadas"
+      {...(pagination ? { pagination } : {})}
       columns={columns}
       state={
         items.length ? { kind: "data", rows: items } : { kind: filtered ? "noResults" : "empty" }

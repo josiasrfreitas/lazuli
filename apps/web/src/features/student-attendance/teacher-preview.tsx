@@ -43,7 +43,6 @@ function declaration(index: number): AttendanceReviewStatus["declarations"][numb
     format: "ONLINE",
     accuracy: null,
     distance: null,
-    referenceAccuracy: null,
   };
 }
 
@@ -172,6 +171,9 @@ export function TeacherAttendancePreview() {
                 : null,
               active: Boolean(access),
             }}
+            pending={false}
+            generating={false}
+            error={undefined}
             access={access}
             previousLink={previousLink}
             minutes={minutes}

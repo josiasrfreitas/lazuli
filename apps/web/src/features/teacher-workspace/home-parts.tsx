@@ -46,7 +46,7 @@ export function HomeSection({
   id: string;
   title: string;
   count: ReactNode;
-  description?: string;
+  description?: string | undefined;
   children: ReactNode;
   busy?: boolean;
 }): ReactElement {

@@ -65,7 +65,10 @@ export function PaymentMethodsChart({ data }: { data: Analytics }): ReactElement
                   isAnimationActive={false}
                 >
                   {methods.map((row, index) => (
-                    <Cell key={row.method} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    <Cell
+                      key={row.method}
+                      fill={CHART_COLORS[index % CHART_COLORS.length] ?? "var(--chart-1)"}
+                    />
                   ))}
                 </Pie>
                 <Tooltip

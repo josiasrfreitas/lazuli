@@ -3,6 +3,7 @@ import { createMonthlyContractInputSchema } from "./contracts.js";
 import { civilDateSchema } from "./civil-date.js";
 import { classFormatSchema, classScheduleTypeSchema } from "./class.js";
 import { studentCreateInputSchema, studentUpdateContactInputSchema } from "./student.js";
+import { leadRegistrationSchema } from "./leads.js";
 
 export const studentIntakeOptionsSchema = z
   .object({
@@ -25,6 +26,7 @@ export const studentIntakeEnrollSchema = z
   .object({
     commandId: z.string().uuid(),
     candidateId: z.string().uuid().nullable(),
+    leadRegistration: leadRegistrationSchema.nullable().default(null),
     student: studentCreateInputSchema,
     classId: z.string().uuid().nullable(),
     stageId: z.string().uuid().nullable(),
@@ -33,6 +35,12 @@ export const studentIntakeEnrollSchema = z
   })
   .strict()
   .superRefine((value, context) => {
+    if (value.candidateId && value.leadRegistration)
+      context.addIssue({
+        code: "custom",
+        path: ["leadRegistration"],
+        message: "Escolha um lead existente ou um novo rascunho.",
+      });
     if ((!value.classId || !value.contract) && !value.allowPending)
       context.addIssue({
         code: "custom",

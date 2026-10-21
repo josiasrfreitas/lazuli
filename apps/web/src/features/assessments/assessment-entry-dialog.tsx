@@ -26,7 +26,7 @@ import {
   Textarea,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { maskDateBR } from "~/lib/masks";
+import { AssessmentGradeFields } from "./assessment-grade-fields";
 import { FileList } from "~/features/assessment-files/attachments";
 import { useAssessmentUploads } from "~/features/assessment-files/queue-provider";
 import { DiscardRegistrationDialog } from "~/features/shared/discard-registration-dialog";
@@ -56,7 +56,7 @@ export function AssessmentEntryDialog({
   competence: Competence;
   initialPhase: Phase;
   trigger: HTMLButtonElement;
-  onStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
+  onStateChange?: ((state: { dirty: boolean; pending: boolean }) => void) | undefined;
   onSaved: (notice: string) => void;
   onClose: () => void;
 }) {
@@ -210,61 +210,15 @@ export function AssessmentEntryDialog({
                     ))}
                   </SegmentedControl>
                 </Field>
-                <div className={styles.fields}>
-                  <Field>
-                    <Label htmlFor={`${id}-score`}>Nota</Label>
-                    <Input
-                      id={`${id}-score`}
-                      size="dense"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      placeholder="0–100"
-                      value={grade.score}
-                      disabled={busy}
-                      invalid={Boolean(state.errors[`grades.${index}.score`])}
-                      onChange={(event) => state.change(index, "score", event.target.value)}
-                    />
-                    <FieldError match={Boolean(state.errors[`grades.${index}.score`])}>
-                      {state.errors[`grades.${index}.score`]}
-                    </FieldError>
-                  </Field>
-                  <Field>
-                    <Label htmlFor={`${id}-date`}>Data da avaliação</Label>
-                    <Input
-                      id={`${id}-date`}
-                      size="dense"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      placeholder="dd/mm/aaaa"
-                      value={grade.date}
-                      disabled={busy}
-                      invalid={Boolean(state.errors[`grades.${index}.assessedOn`])}
-                      onChange={(event) =>
-                        state.change(index, "date", maskDateBR(event.target.value))
-                      }
-                    />
-                    <FieldError match={Boolean(state.errors[`grades.${index}.assessedOn`])}>
-                      {state.errors[`grades.${index}.assessedOn`]}
-                    </FieldError>
-                  </Field>
-                </div>
-                {phase === "RECOVERY" && (
-                  <Field>
-                    <Label htmlFor={`${id}-reason`}>Recuperação realizada</Label>
-                    <Input
-                      id={`${id}-reason`}
-                      size="dense"
-                      value={grade.reason}
-                      disabled={busy}
-                      placeholder="Ex.: revisão orientada e nova prova"
-                      invalid={Boolean(state.errors[`grades.${index}.reason`])}
-                      onChange={(event) => state.change(index, "reason", event.target.value)}
-                    />
-                    <FieldError match={Boolean(state.errors[`grades.${index}.reason`])}>
-                      {state.errors[`grades.${index}.reason`]}
-                    </FieldError>
-                  </Field>
-                )}
+                <AssessmentGradeFields
+                  id={id}
+                  grade={grade}
+                  index={index}
+                  errors={state.errors}
+                  disabled={busy}
+                  className={styles.fields}
+                  onChange={(field, value) => state.change(index, field, value)}
+                />
                 <Field>
                   <Label htmlFor={`${id}-notes`}>
                     Observações{" "}

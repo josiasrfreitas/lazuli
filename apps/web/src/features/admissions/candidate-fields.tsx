@@ -218,7 +218,7 @@ function AvailabilityRows({ draft, change, errors }: CandidateFieldsProps): Reac
               ? () =>
                   change(
                     "availability",
-                    draft.availability.filter((item, position) => position !== index),
+                    draft.availability.filter((_, position) => position !== index),
                   )
               : undefined
           }

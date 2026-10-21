@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
@@ -21,6 +22,7 @@ import { trpc, type QueryResult } from "~/lib/trpc";
 import { dateLabel } from "./format";
 import { formatFormat } from "../classes/labels";
 import { MeetingDialog, type Meeting } from "./meeting-dialog";
+import { purposes } from "../appointments/shared";
 
 const COVERAGE_PAGE_SIZE = 25;
 type CoverageData = RouterOutputs["teachers"]["uncovered"];
@@ -58,8 +60,8 @@ function CoverageDialog({ back, onClose }: CoverageDialogProps): ReactElement {
           <DialogHeader>
             <DialogTitle>Pendências de docente</DialogTitle>
             <DialogDescription>
-              Aulas sem responsável. Abra uma aula para registrar cobertura ou acessar a turma e
-              trocar o docente.
+              Aulas e atendimentos sem responsável. Abra uma aula para registrar cobertura ou
+              reagende o atendimento com um professor disponível.
             </DialogDescription>
           </DialogHeader>
           <DialogBody className="my-5">
@@ -115,12 +117,34 @@ function CoverageResults({ query, onOpen }: CoverageResultsProps): ReactElement 
         Carregando pendências <InlineSkeleton />
       </p>
     );
-  if (query.data.rows.length === 0) return <p role="status">Nenhuma aula pendente de docente.</p>;
+  if (query.data.rows.length === 0)
+    return <p role="status">Nenhum encontro pendente de docente.</p>;
   return (
     <ul className="divide-y divide-border">
-      {query.data.rows.map((row) => (
-        <CoverageRow key={row.id} meeting={row} onOpen={onOpen} />
-      ))}
+      {query.data.rows.map((row) =>
+        row.kind === "CLASS" ? (
+          <CoverageRow key={row.id} meeting={row} onOpen={onOpen} />
+        ) : (
+          <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <div className="grid gap-1">
+              <p className="text-control font-semibold">
+                {row.studentName} · {purposes[row.purpose]}
+              </p>
+              <p className="text-caption text-muted-foreground">
+                {dateLabel(row.date)} · {row.startTime}–{row.endTime} · {formatFormat(row.format)}
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="compact-responsive"
+              nativeButton={false}
+              render={<Link href={`/atendimentos/${row.id}`} />}
+            >
+              Reagendar atendimento
+            </Button>
+          </li>
+        ),
+      )}
     </ul>
   );
 }

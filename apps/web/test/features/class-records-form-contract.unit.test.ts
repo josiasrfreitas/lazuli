@@ -11,6 +11,7 @@ void it("labels actual work independently from planning and exposes invalid opti
       prefix: "student",
       value: { kind: "REVIEW", account: "", reference: "", pageFrom: "", pageTo: "3" },
       change: () => {},
+      clearError: () => {},
       errors: {
         "student-account": "Descreva o que foi realizado.",
         "student-pageTo": "Informe um intervalo de páginas válido.",

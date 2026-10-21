@@ -26,7 +26,7 @@ export function StudentFinanceSection({
   profile,
 }: {
   id: string;
-  profile?: StudentProfile;
+  profile?: StudentProfile | undefined;
 }): ReactElement {
   const state = useStudentFinance(id);
   const [terminationId, setTerminationId] = useState<string | null>(null);

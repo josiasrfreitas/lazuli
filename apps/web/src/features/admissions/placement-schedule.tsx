@@ -63,6 +63,7 @@ export function PlacementSchedule({
   candidate: Pick<Candidate, "id" | "fullName" | "today" | "format">;
   onClose: () => void;
   registration?: {
+    id?: string;
     onConfirm: (values: z.infer<typeof placementScheduleSchema>) => void;
     onBack: () => void;
     onDefer: () => void;
@@ -70,12 +71,12 @@ export function PlacementSchedule({
     draft: PlacementScheduleDraft | null;
     onDraftChange: (draft: PlacementScheduleDraft) => void;
     pending: boolean;
-    error?: string;
+    error?: string | undefined;
   };
 }) {
   const [dirty, setDirty] = useState(false);
   const [discarding, setDiscarding] = useState(false);
-  const [id] = useState(() => crypto.randomUUID());
+  const [id] = useState(() => registration?.id ?? crypto.randomUUID());
   const [now, setNow] = useState(schoolClock);
   const [calendarDate, setCalendarDate] = useState(
     () => parseDateBR(registration?.draft?.date ?? "") ?? candidate.today,

@@ -89,7 +89,7 @@ export function ClassRecordDialog({
                   <ClassRecordEditor
                     key={id}
                     data={query.data}
-                    declarations={attendance.data?.declarations ?? []}
+                    declarations={attendance.data?.declarations ?? query.data.declarations}
                     externalSubmit
                     onStateChange={setEditorState}
                     onClose={() => {

@@ -1,5 +1,5 @@
 import { visitLabels } from "~/features/admissions/labels";
-import { purposes, statuses } from "~/features/appointments/shared";
+import { purposes, appointmentStatus } from "~/features/appointments/shared";
 import { lessonStage, lessonStates, type CalendarLesson } from "./calendar-model";
 
 export function lessonKind(lesson: CalendarLesson): string {
@@ -20,7 +20,9 @@ export function lessonStatus(lesson: CalendarLesson): string {
   if (lesson.experimental)
     return lesson.experimental.overdue ? "A registrar" : visitLabels[lesson.experimental.status];
   if (lesson.appointment)
-    return lesson.appointment.overdue ? "A registrar" : statuses[lesson.appointment.status];
+    return lesson.appointment.overdue
+      ? "A registrar"
+      : appointmentStatus(lesson.appointment.status, Boolean(lesson.appointment.rescheduledToId));
   if (lesson.attendanceOnly && lesson.state !== "CANCELLED") return "Presença registrada";
   return lessonStates[lesson.state];
 }

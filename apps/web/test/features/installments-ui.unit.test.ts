@@ -57,9 +57,9 @@ function overduePaginationMarkup(page: number): string {
       data: {
         view: "overdue",
         page,
-        pageSize: 10,
+        pageSize: 25,
         pageCount: 2,
-        total: 11,
+        total: 26,
         groups: [],
         counts: { all: 30, paid: 2, overdue: 24 },
       },
@@ -92,8 +92,8 @@ void test("installment pagination exposes the same size choices as Students", ()
   assert.match(selectable, /Itens por página/u);
 });
 void test("overdue pagination counts payer groups and has no size selector", () => {
-  assert.match(overduePaginationMarkup(1), /1–10 de .*11.* pagadores/u);
-  assert.match(overduePaginationMarkup(2), /11–11 de .*11.* pagadores/u);
+  assert.match(overduePaginationMarkup(1), /1–25 de .*26.* pagadores/u);
+  assert.match(overduePaginationMarkup(2), /26–26 de .*26.* pagadores/u);
   assert.doesNotMatch(overduePaginationMarkup(1), /Itens por página/u);
 });
 void test("table retains selection, eight data columns and row actions across loading, empty, filtered and error", () => {

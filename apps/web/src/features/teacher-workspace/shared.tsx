@@ -14,7 +14,7 @@ export function TeacherPage({
   actions,
 }: {
   title: string;
-  description?: string;
+  description?: string | undefined;
   children: ReactNode;
   back?: string;
   actions?: ReactNode;

@@ -108,6 +108,7 @@ void describe("staff identity resolution", () => {
       email: "admin.identity@example.com",
       role: "ADMIN",
       isEnabled: true,
+      roles: ["ADMIN"],
     });
   });
 

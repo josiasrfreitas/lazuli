@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
-import { Badge, Input } from "@lazuli/ui";
+import { Input } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+import { AppointmentBadge } from "~/features/appointments/shared";
 import { StudentAppointmentDialog } from "~/features/appointments/student-appointment-dialog";
 import { schoolToday, shiftDate } from "~/features/class-records/calendar-model";
 import { formatDateOnlyBR } from "~/lib/format";
@@ -56,15 +57,11 @@ export function TeacherAppointments() {
                   {formatDateOnlyBR(row.date)} · {row.startTime}–{row.endTime}
                 </span>
               </span>
-              <Badge variant={row.overdue ? "warning" : "neutral"}>
-                {row.overdue
-                  ? "Pendente"
-                  : row.status === "SCHEDULED"
-                    ? "Agendado"
-                    : row.status === "CANCELLED"
-                      ? "Cancelado"
-                      : "Registrado"}
-              </Badge>
+              <AppointmentBadge
+                status={row.status}
+                overdue={row.overdue}
+                rescheduled={Boolean(row.rescheduledToId)}
+              />
             </button>
           ))}
           {!query.data.length && (

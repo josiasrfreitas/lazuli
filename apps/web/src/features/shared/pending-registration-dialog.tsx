@@ -24,7 +24,7 @@ export function PendingRegistrationDialog({
   entity: "lead" | "aluno";
   pendingItems: string[];
   pending: boolean;
-  error?: string;
+  error?: string | undefined;
   onBack: () => void;
   onConfirm: () => void;
 }) {

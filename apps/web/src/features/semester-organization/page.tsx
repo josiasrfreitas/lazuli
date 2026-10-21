@@ -205,7 +205,7 @@ export function SemesterOrganizationPage() {
           )}
           {(action?.kind === "edit" || action?.kind === "newPlacement") && (
             <PlacementForm
-              studentId={action.kind === "edit" ? action.row.studentId : action.studentId}
+              studentId={action.kind === "newPlacement" ? action.studentId : action.row.studentId}
               {...(action.kind === "edit" ? { row: action.row } : {})}
               board={board}
               onClose={() => setAction(null)}

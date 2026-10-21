@@ -23,18 +23,17 @@ import {
   DialogContent,
   DialogFooter,
   DialogPortal,
-  Field,
-  FieldError,
-  Input,
-  Label,
-  SearchSelect,
   getScheduleCalendarRange,
 } from "@lazuli/ui";
 import { studentIntakeEnrollSchema, studentIntakeResumeSchema } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
-import { LeadCaptureDialog } from "~/features/admissions/lead-capture-dialog";
+import {
+  LeadCaptureDialog,
+  type LeadRegistration,
+} from "~/features/admissions/lead-capture-dialog";
 import { dateLabel } from "~/features/admissions/labels";
+import { IntakeNameField } from "./intake-name-field";
 import { IntakeStudentFields } from "./dados-step";
 import { IntakePedagogy } from "./intake-pedagogy";
 import { IntakeContract } from "./intake-contract";
@@ -59,7 +58,7 @@ export type NewStudentDialogProps = {
   open: boolean;
   initialSemesterId?: string;
   initialCandidateId?: string;
-  existingStudentId?: string;
+  existingStudentId?: string | undefined;
   onOpenChange: (open: boolean) => void;
   onCreated: (id: string) => void;
 };
@@ -83,6 +82,7 @@ function EnrollmentDialog({
   const [selectedId, setSelectedId] = useState("");
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [draftLead, setDraftLead] = useState<LeadRegistration | null>(null);
   const [capturingLead, setCapturingLead] = useState(false);
   const [step, setStep] = useState<"student" | "pedagogy" | "contract">("student");
   const [visitedContract, setVisitedContract] = useState(false);
@@ -162,7 +162,7 @@ function EnrollmentDialog({
   const leads = trpc.admissions.list.useQuery(
     { search, statuses: ["WAITING"], unlinkedOnly: true, pageSize: 8 },
     {
-      enabled: !existingStudentId && !candidateId && search.length >= 2,
+      enabled: !existingStudentId && !candidateId && !draftLead && search.length >= 2,
       retry: false,
     },
   );
@@ -201,14 +201,20 @@ function EnrollmentDialog({
     { enabled: step !== "student", retry: false },
   );
   const selected = options.data?.classes.find((row) => row.id === selectedId);
-  const minor = isMinorFromFields(state.fields, today) || lead?.contactRole === "GUARDIAN";
+  const minor =
+    isMinorFromFields(state.fields, today) ||
+    lead?.contactRole === "GUARDIAN" ||
+    draftLead?.lead.contactRole === "GUARDIAN";
   const blockedLead =
     !existingStudentId &&
     Boolean(candidateId && (!lead || lead.studentId || lead.status !== "WAITING"));
-  const waitingPlacement = lead?.englishExperience === "SOME" && !lead.stageId;
+  const waitingPlacement =
+    draftLead?.lead.englishExperience === "SOME" ||
+    (lead?.englishExperience === "SOME" && !lead.stageId);
   function clearLead() {
     setDirty(true);
     setCandidateId(null);
+    setDraftLead(null);
     prefilled.current = null;
     setStageId(null);
     setSelectedId("");
@@ -333,6 +339,7 @@ function EnrollmentDialog({
       : studentIntakeEnrollSchema.safeParse({
           commandId,
           candidateId,
+          leadRegistration: draftLead,
           student: toCreateInput(state.fields),
           ...shared,
         });
@@ -343,69 +350,43 @@ function EnrollmentDialog({
     else void persist(parsed.data);
   }
   const nameField = (
-    <Field>
-      <Label>Nome do aluno</Label>
-      {lead || existingStudentId ? (
-        <Input
-          name="fullName"
-          value={state.fields.fullName}
-          invalid={Boolean(state.errors.fullName)}
-          onChange={(event) => {
-            setDirty(true);
-            dispatch({ type: "fieldChanged", field: "fullName", value: event.target.value });
-          }}
-        />
-      ) : (
-        <SearchSelect
-          name="fullName"
-          showSearchIcon
-          openOnFocus
-          placeholder="Digite para buscar leads ou cadastrar um aluno"
-          query={state.fields.fullName}
-          value={null}
-          options={
-            !candidateId && search.length >= 2
-              ? (leads.data?.rows ?? []).map((row) => ({
-                  id: row.id,
-                  label: row.fullName,
-                  description: [row.contactName, row.phone, row.email].filter(Boolean).join(" · "),
-                }))
-              : []
-          }
-          loading={Boolean(
-            candidateId ? candidate.isFetching : search.length >= 2 && leads.isFetching,
-          )}
-          failed={candidateId ? candidate.isError : search.length >= 2 && leads.isError}
-          onQueryChange={(value) => {
-            setDirty(true);
-            dispatch({ type: "fieldChanged", field: "fullName", value });
-            setError("");
-          }}
-          onSelect={(row) => {
-            setDirty(true);
-            setCandidateId(row.id);
-            setSelectedId("");
-            setError("");
-          }}
-          onClear={clearLead}
-          invalid={Boolean(state.errors.fullName)}
-          emptyMessage={
-            search.length < 2
-              ? "Digite o nome do aluno."
-              : "Nenhum lead encontrado. Continue com este nome."
-          }
-        />
+    <IntakeNameField
+      name={state.fields.fullName}
+      error={state.errors.fullName}
+      linked={Boolean(lead || existingStudentId || draftLead)}
+      fromLead={Boolean(lead && !existingStudentId)}
+      options={
+        !candidateId && !draftLead && search.length >= 2
+          ? (leads.data?.rows ?? []).map((row) => ({
+              id: row.id,
+              label: row.fullName,
+              description: [row.contactName, row.phone, row.email].filter(Boolean).join(" · "),
+            }))
+          : []
+      }
+      loading={Boolean(
+        candidateId ? candidate.isFetching : !draftLead && search.length >= 2 && leads.isFetching,
       )}
-      {state.errors.fullName && <FieldError match>{state.errors.fullName}</FieldError>}
-      {lead && !existingStudentId && (
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-caption text-muted-foreground">Dados preenchidos a partir do lead.</p>
-          <Button variant="ghost" size="sm" onClick={clearLead}>
-            Trocar lead
-          </Button>
-        </div>
-      )}
-    </Field>
+      failed={candidateId ? candidate.isError : !draftLead && search.length >= 2 && leads.isError}
+      emptyMessage={
+        search.length < 2
+          ? "Digite o nome do aluno."
+          : "Nenhum lead encontrado. Continue com este nome."
+      }
+      onChange={(value) => {
+        setDirty(true);
+        dispatch({ type: "fieldChanged", field: "fullName", value });
+        setError("");
+      }}
+      onSelect={(id) => {
+        setDirty(true);
+        setDraftLead(null);
+        setCandidateId(id);
+        setSelectedId("");
+        setError("");
+      }}
+      onClear={clearLead}
+    />
   );
   if (existingStudentId && (!existing.data || !existingPending.data))
     return (
@@ -526,6 +507,7 @@ function EnrollmentDialog({
                         setSelectedId("");
                       }}
                       lead={lead}
+                      draftRegistration={draftLead}
                       enrollment={existingEnrollment}
                       onCaptureLead={
                         !candidateId && !existingStudentId
@@ -612,7 +594,27 @@ function EnrollmentDialog({
             initialName={state.fields.fullName}
             initialEnglishExperience="SOME"
             onClose={() => setCapturingLead(false)}
-            onCreated={setCandidateId}
+            destination={{
+              initial: draftLead,
+              identity: {
+                fullName: state.fields.fullName,
+                birthDate: state.fields.birthDate,
+                phone: minor ? state.fields.guardianPhone : state.fields.phone,
+                email: minor ? state.fields.guardianEmail : state.fields.email,
+                contactName: minor ? state.fields.guardianName : "",
+                contactRole: minor ? "GUARDIAN" : "STUDENT",
+                contactOwner: minor ? "GUARDIAN" : "STUDENT",
+              },
+              onConfirm: (registration) => {
+                setDraftLead(registration);
+                setDirty(true);
+                setStageId(
+                  registration.lead.englishExperience === "SOME" ? null : registration.lead.stageId,
+                );
+                setSelectedId("");
+                setError("");
+              },
+            }}
           />
         )}
         {confirmation && (

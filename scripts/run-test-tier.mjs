@@ -33,9 +33,11 @@ const infrastructure = tier === "integration" || tier === "transport";
 const needsTypeScriptLoader = testFiles.some(
   (file) => file.endsWith(".ts") || file.endsWith(".tsx"),
 );
+const setupPath = path.join(testRoot, "setup.mjs");
 const commonArguments = [
   ...(infrastructure ? ["--env-file-if-exists=../../.env"] : []),
   ...(needsTypeScriptLoader ? ["--import", "tsx"] : []),
+  ...(existsSync(setupPath) ? ["--import", setupPath] : []),
   "--test",
   ...(infrastructure ? ["--test-concurrency=1"] : []),
 ];

@@ -22,11 +22,11 @@ void test("empty search does not show remote options", () => {
   assert.deepEqual(result, { status: "idle", query: "" });
 });
 
-void test("typed search narrows the preview to matching labels", () => {
-  const result = studentFilterOptionResult("B2", {
+void test("preserves authorized fuzzy and accent matches returned by remote search", () => {
+  const result = studentFilterOptionResult("Jose", {
     data: [
-      { id: "a", label: "Turma A1" },
-      { id: "b", label: "Turma B2" },
+      { id: "a", label: "José" },
+      { id: "b", label: "Jozé" },
     ],
     isError: false,
     isFetching: false,
@@ -35,7 +35,11 @@ void test("typed search narrows the preview to matching labels", () => {
 
   const ready = result as Extract<RemoteOptionsResult, { status: "ready" }>;
   assert.equal(ready.status, "ready");
-  assert.deepEqual(ready.options, [{ id: "b", label: "Turma B2" }]);
+  assert.deepEqual(ready.options, [
+    { id: "a", label: "José" },
+    { id: "b", label: "Jozé" },
+  ]);
+  assert.equal(ready.query, "Jose");
   assert.equal(ready.hasMore, false);
 });
 

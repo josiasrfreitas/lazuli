@@ -17,6 +17,7 @@ const TAB_COUNTS = { all: 16, active: 13, inactive: 3 };
 const TABLE_ROW: StudentListRow = {
   id: "11111111-1111-4111-8111-111111111111",
   fullName: "Ana Beatriz Rocha",
+  registrationPending: false,
   isMinor: false,
   status: "ACTIVE",
   phone: "(11) 98801-2233",

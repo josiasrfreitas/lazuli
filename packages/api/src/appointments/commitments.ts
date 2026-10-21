@@ -17,7 +17,7 @@ export async function independentAppointments(input: {
       deletedAt: null,
       date: { gte: new Date(input.from), lte: new Date(input.through) },
     },
-    include: { student: { select: { fullName: true } } },
+    include: { student: { select: { fullName: true } }, rescheduledTo: { select: { id: true } } },
     orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
   });
   return rows.map((row) => ({
@@ -26,6 +26,7 @@ export async function independentAppointments(input: {
     studentName: row.student.fullName,
     purpose: row.purpose,
     status: row.status,
+    rescheduledToId: row.rescheduledTo?.id ?? null,
     format: row.format,
     date: dateOnly(row.date),
     startTime: timeOnly(row.startTime),

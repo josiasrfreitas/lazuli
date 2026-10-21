@@ -7,17 +7,23 @@ import { freezeStartedMeetings } from "./freeze-today.js";
 import { lockTeacher } from "./availability.js";
 import { meetingsBetween, type TeacherMeeting } from "./schedule.js";
 import { responsibilitySelect, usualTeacherOn } from "./responsibility.js";
+import {
+  independentAppointments,
+  type IndependentAppointment,
+} from "./independent-appointments.js";
 const ISO_DATE_LENGTH = 10;
 type DepartureCommitment = Pick<
   TeacherMeeting,
   "classId" | "slotId" | "sessionId" | "classCode" | "date" | "startTime" | "endTime"
 >;
 type DepartureImpactResult = {
+  appointments: IndependentAppointment[];
   token: string;
   commitments: DepartureCommitment[];
   revocations: { id: string; recordedAt: Date }[];
 };
 type DeparturePreviewResult = {
+  appointments: IndependentAppointment[];
   token: string;
   commitments: DepartureCommitment[];
   revokedSubstitutions: number;
@@ -69,23 +75,29 @@ async function departureImpact(input: Departure): Promise<DepartureImpactResult>
     now: input.now,
   });
   const commitments = departureCommitments(meetings, input.teacherId);
+  const appointments = await independentAppointments(input.database, {
+    from: input.effectiveDate,
+    teacherId: input.teacherId,
+  });
   const revocations = await departureRevocations(input);
   const token = createHash("sha256")
     .update(
       JSON.stringify({
+        appointments,
         commitments,
         revocations: revocations.map((row) => [row.id, row.recordedAt]),
         effectiveDate: input.effectiveDate,
       }),
     )
     .digest("hex");
-  return { token, commitments, revocations };
+  return { token, commitments, appointments, revocations };
 }
 export async function departurePreview(input: Departure): Promise<DeparturePreviewResult> {
   const impact = await departureImpact(input);
   return {
     token: impact.token,
     commitments: impact.commitments,
+    appointments: impact.appointments,
     revokedSubstitutions: impact.revocations.length,
   };
 }

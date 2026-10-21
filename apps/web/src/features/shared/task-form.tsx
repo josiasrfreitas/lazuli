@@ -4,6 +4,7 @@ import { ArrowLeft, Check, X } from "lucide-react";
 import type { z } from "@lazuli/validators";
 import {
   Alert,
+  cn,
   Button,
   type ButtonVariant,
   Dialog,
@@ -138,7 +139,8 @@ type TaskDialogProps = {
   submitIcon?: ReactNode;
   cancelIcon?: ReactNode;
   backIcon?: ReactNode;
-  layout?: "default" | "expanded" | "calendar";
+  contentClassName?: string | undefined;
+  bodyClassName?: string | undefined;
   compactHeader?: boolean;
   error?: string | undefined;
   bodyRef?: React.RefObject<HTMLDivElement | null> | undefined;
@@ -159,12 +161,17 @@ export function TaskDialog(props: TaskDialogProps): ReactElement {
     </Dialog>
   );
 }
+const dialogWidths = {
+  default: undefined,
+  medium: "md:max-w-3xl",
+  wide: "md:max-w-5xl",
+  "extra-wide": "md:max-w-6xl",
+} as const;
 function TaskContent(props: TaskDialogProps): ReactElement {
   const actions = <TaskActions {...props} />;
   return (
     <DialogContent
-      size={props.size ?? "default"}
-      layout={props.layout === "calendar" ? "workspace" : (props.layout ?? "default")}
+      className={cn(dialogWidths[props.size ?? "default"], props.contentClassName)}
       showCloseButton={!props.pending}
       initialFocus={() =>
         document.querySelector<HTMLElement>(
@@ -180,7 +187,7 @@ function TaskContent(props: TaskDialogProps): ReactElement {
         <DialogTitle>{props.title}</DialogTitle>
         <DialogDescription>{props.description}</DialogDescription>
       </DialogHeader>
-      <DialogBody ref={props.bodyRef} scroll={props.layout !== "calendar"}>
+      <DialogBody ref={props.bodyRef} className={props.bodyClassName}>
         {typeof props.children === "function" ? props.children(actions) : props.children}
         {props.error && <Alert variant="destructive">{props.error}</Alert>}
       </DialogBody>

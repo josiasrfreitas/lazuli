@@ -17,7 +17,7 @@ export function CoverageFields({
   sources: Absence[];
   value: MakeupCoverageInput[];
   onChange: (value: MakeupCoverageInput[]) => void;
-  error?: string;
+  error?: string | undefined;
   loading?: boolean;
   compact?: boolean;
 }) {

@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Alert } from "@lazuli/ui";
 import { dateLabel } from "./format";
+import { purposes } from "../appointments/shared";
 
 const IMPACT_PREVIEW_LIMIT = 6;
 
@@ -10,9 +11,11 @@ export function DepartureImpact({ impact, date }: DepartureImpactInput): ReactEl
     <>
       <Alert variant="warning">
         <p className="font-semibold">
-          {impact.commitments.length}{" "}
-          {impact.commitments.length === 1 ? "encontro afetado" : "encontros afetados"} a partir de{" "}
-          {dateLabel(date)}
+          {impact.commitments.length + impact.appointments.length}{" "}
+          {impact.commitments.length + impact.appointments.length === 1
+            ? "encontro afetado"
+            : "encontros afetados"}{" "}
+          a partir de {dateLabel(date)}
         </p>
         <p>
           {impact.revokedSubstitutions}{" "}
@@ -34,9 +37,32 @@ export function DepartureImpact({ impact, date }: DepartureImpactInput): ReactEl
           )}
         </div>
       )}
+      {impact.appointments.length > 0 && (
+        <div className="grid gap-2">
+          <h3 className="text-control font-semibold">Atendimentos que precisam de reagendamento</h3>
+          <ul className="divide-y divide-border text-caption">
+            {impact.appointments.slice(0, IMPACT_PREVIEW_LIMIT).map((row) => (
+              <li key={row.id} className="flex flex-wrap justify-between gap-2 py-2">
+                <span className="font-medium">
+                  {row.studentName} · {purposes[row.purpose]}
+                </span>
+                <span className="font-numeric text-muted-foreground">
+                  {dateLabel(row.date)} · {row.startTime}–{row.endTime}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {impact.appointments.length > IMPACT_PREVIEW_LIMIT && (
+            <p className="text-caption text-muted-foreground">
+              E mais {impact.appointments.length - IMPACT_PREVIEW_LIMIT} atendimentos nas pendências
+              de docente.
+            </p>
+          )}
+        </div>
+      )}
       <p className="text-caption text-muted-foreground">
-        Você pode confirmar agora e recompor a cobertura depois. As aulas permanecem programadas; os
-        registros anteriores são preservados.
+        Você pode confirmar agora e recompor a cobertura depois. Aulas e atendimentos permanecem
+        programados; os registros anteriores são preservados.
       </p>
     </>
   );

@@ -90,7 +90,7 @@ function NoCurrentEnrollment({
   upcoming,
   hasHistory,
 }: {
-  upcoming?: StudentEnrollment;
+  upcoming?: StudentEnrollment | undefined;
   hasHistory: boolean;
 }): ReactElement {
   const Icon = upcoming ? CalendarDays : GraduationCap;

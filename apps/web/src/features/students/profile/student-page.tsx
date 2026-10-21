@@ -19,7 +19,11 @@ import { StudentPlanning } from "~/features/stage-planning/student-planning";
 import { StudentPendingActions } from "./student-pending-actions";
 
 const SECTIONS = ["pedagogico", "financeiro", "planejamento"] as const;
-type PedagogyProps = { id: string; profile?: StudentProfile; pedagogyWorkspacePreview?: ReactNode };
+type PedagogyProps = {
+  id: string;
+  profile?: StudentProfile | undefined;
+  pedagogyWorkspacePreview?: ReactNode;
+};
 
 export function StudentPage({
   id,

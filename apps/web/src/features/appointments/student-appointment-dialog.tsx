@@ -24,7 +24,8 @@ import {
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { RecordState } from "~/features/class-records/shared";
-import { AppointmentAccount, CancelAppointmentDialog } from "./detail";
+import { CancelAppointmentDialog } from "./detail";
+import { AppointmentAccount } from "./appointment-account";
 import { AppointmentRecordForm } from "./record-form";
 import { ScheduleAppointmentDialog } from "./schedule-dialog";
 import type { Appointment } from "./shared";
@@ -222,7 +223,10 @@ function AppointmentDialogBody({
       )}
       {restriction && <Alert>{restriction}</Alert>}
       {row.cancellationReason && (
-        <p className={styles.reason}>Motivo do cancelamento: {row.cancellationReason}</p>
+        <p className={styles.reason}>
+          Motivo {data.rescheduledToId ? "do reagendamento" : "do cancelamento"}:{" "}
+          {row.cancellationReason}
+        </p>
       )}
       {editing ? (
         <AppointmentRecordForm
@@ -248,7 +252,7 @@ function AppointmentDialogBody({
               <MessageSquareText aria-hidden="true" />
               Registro do atendimento
             </h3>
-            <AppointmentAccount row={row} />
+            <AppointmentAccount row={row} rescheduled={Boolean(data.rescheduledToId)} />
           </section>
         </div>
       )}

@@ -13,6 +13,8 @@ import {
   expandedWeeklyBlock,
 } from "../../src/components/schedule-calendar/weekly-blocks.js";
 
+import { timelineGroups } from "../../src/components/schedule-calendar/timeline-layout.js";
+
 const events = ["Ana", "Bruno", "Carla"].map((title) => ({
   id: title,
   title,
@@ -99,5 +101,55 @@ void test("clicking More 2 expands the day and all six concurrent events after r
   assert.deepEqual(
     displayed.map((block) => [block.kind, block.revealed, block.columns]),
     Array.from({ length: 6 }, () => ["lesson", true, 6]),
+  );
+});
+
+void test("groups transitive overlaps without merging touching meetings or matching hours on another date", () => {
+  const entries = [
+    { id: "c", title: "C", date: "2026-10-16", startTime: "15:15", endTime: "16:00" },
+    { id: "a", title: "A", date: "2026-10-16", startTime: "14:00", endTime: "15:00" },
+    { id: "b", title: "B", date: "2026-10-16", startTime: "14:45", endTime: "15:30" },
+    { id: "touching", title: "Touching", date: "2026-10-16", startTime: "16:00", endTime: "17:00" },
+    { id: "tomorrow", title: "Tomorrow", date: "2026-10-17", startTime: "14:00", endTime: "15:00" },
+  ];
+  const groups = timelineGroups(entries);
+  assert.deepEqual(
+    groups.map((group) => group.placed.map((item) => item.lesson.id)),
+    [["a", "b", "c"], ["touching"], ["tomorrow"]],
+  );
+  assert.deepEqual(
+    groups[0]!.placed.map(({ lesson }) => [lesson.startTime, lesson.endTime]),
+    [
+      ["14:00", "15:00"],
+      ["14:45", "15:30"],
+      ["15:15", "16:00"],
+    ],
+  );
+  assert.deepEqual(
+    entries.map((item) => item.id),
+    ["c", "a", "b", "touching", "tomorrow"],
+  );
+});
+
+void test("keeps all short concurrent meetings accessible through shared overflow revelation", () => {
+  const entries = ["a", "b", "c", "d", "e", "f"].map((id) => ({
+    id,
+    title: id,
+    date: "2026-10-16",
+    startTime: "14:00",
+    endTime: "14:30",
+  }));
+  const collapsed = weeklyBlocks(entries, "2026-10-16");
+  const overflow = collapsed.find((block) => block.kind === "overflow");
+  assert.equal(overflow?.lessons.length, 2);
+  if (!overflow) throw new Error("Expected explicit overflow");
+  const revealed = revealWeeklyBlocks(collapsed, overflow.groupId);
+  assert.deepEqual(
+    revealed.map((block) => block.lessons[0]!.id),
+    ["a", "b", "c", "d", "e", "f"],
+  );
+  assert.deepEqual(
+    revealed.map((block) => [block.startTime, block.endTime]),
+    Array.from({ length: 6 }, () => ["14:00", "14:30"]),
   );
 });

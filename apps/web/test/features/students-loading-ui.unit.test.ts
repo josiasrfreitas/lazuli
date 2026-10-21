@@ -23,6 +23,7 @@ const FACT_COLUMN_COUNT = 3;
 const TABLE_ROW: StudentListRow = {
   id: "11111111-1111-4111-8111-111111111111",
   fullName: "Ana Beatriz Rocha",
+  registrationPending: false,
   isMinor: false,
   status: "ACTIVE",
   phone: null,

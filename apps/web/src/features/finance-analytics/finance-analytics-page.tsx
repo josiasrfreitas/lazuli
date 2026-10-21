@@ -30,8 +30,9 @@ export function FinanceAnalyticsPage({
   const query = trpc.finance.analytics.useQuery(
     { year },
     {
-      initialData: initial?.data.year === year ? initial.data : undefined,
-      initialDataUpdatedAt: initial?.updatedAt,
+      ...(initial?.data.year === year
+        ? { initialData: initial.data, initialDataUpdatedAt: initial.updatedAt }
+        : {}),
       placeholderData: keepPreviousData,
     },
   );

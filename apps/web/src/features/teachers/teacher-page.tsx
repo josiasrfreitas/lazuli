@@ -62,15 +62,17 @@ function TeacherLoadError(props: TeacherLoadErrorProps): ReactElement {
 type TeacherPageInput = { id: string };
 
 type TeacherDetailsProps = {
-  detail?: {
-    today: string;
-    studentCount: number;
-    teacherProfile: { cpf: string | null; departureDate: Date | null } | null;
-    id: string;
-    email: string;
-    name: string;
-    isEnabled: boolean;
-  };
+  detail?:
+    | {
+        today: string;
+        studentCount: number;
+        teacherProfile: { cpf: string | null; departureDate: Date | null } | null;
+        id: string;
+        email: string;
+        name: string;
+        isEnabled: boolean;
+      }
+    | undefined;
   setEditing: Dispatch<SetStateAction<boolean>>;
   setDeparting: Dispatch<SetStateAction<boolean>>;
   id: string;

@@ -67,7 +67,13 @@ export function TeacherClass({ id }: { id: string }) {
         retry={() => void query.refetch()}
       />
       {query.data && (
-        <Tabs value={tab} onValueChange={setTab} variant="underline">
+        <Tabs
+          value={tab}
+          onValueChange={(value: string) => {
+            void setTab(value);
+          }}
+          variant="underline"
+        >
           <TabsList aria-label="Seções da turma">
             <TabsTab value="aulas">Aulas</TabsTab>
             <TabsTab value="alunos">Alunos</TabsTab>

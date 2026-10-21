@@ -4,7 +4,11 @@ import { Button, Input, type TablePaginationConfig } from "@lazuli/ui";
 import { PlanHistory } from "./history";
 import { PlanTable, dateLabel, type Planning } from "./shared";
 import { PlanningRecords } from "./record-list";
-import type { WorkspaceProps } from "./workspace";
+import type { PlannedItem } from "./shared";
+type WorkspaceProps = {
+  data: Planning;
+  mode: (mode: { kind: "window" } | { kind: "item"; item: PlannedItem | null }) => void;
+};
 import styles from "./planning.module.css";
 type View = "plan" | "records";
 type Filter = "all" | "upcoming" | "past";

@@ -34,7 +34,6 @@ export const PAYMENT_PREVIEW: PreviewRow[] = [
       payerId: PAYMENT_ROW.payer.id,
       version: "version-one",
       quote: {
-        outstandingChargesCents: 0,
         balanceCents: 25_000,
         newInterestCents: 0,
         outstandingChargesCents: 0,

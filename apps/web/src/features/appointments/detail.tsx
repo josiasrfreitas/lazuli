@@ -9,6 +9,7 @@ import { formatDateOnlyBR } from "~/lib/format";
 import { ClassRecordTrigger } from "~/features/class-records/class-record-trigger";
 import { RecordState } from "~/features/class-records/shared";
 import { NarrativeField, TaskDialog, useValidation } from "~/features/shared/task-form";
+import { AppointmentAccount } from "./appointment-account";
 import { AppointmentRecordForm } from "./record-form";
 import { ScheduleAppointmentDialog } from "./schedule-dialog";
 import { AppointmentBadge, purposes, useAppointmentRefresh, type Appointment } from "./shared";
@@ -77,7 +78,7 @@ export function AppointmentContent({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <AppointmentBadge status={row.status} />
+          <AppointmentBadge status={row.status} rescheduled={Boolean(data.rescheduledToId)} />
           {row.status === "SCHEDULED" && admin && (
             <>
               <Button variant="secondary" onClick={() => setAction("reschedule")}>
@@ -154,7 +155,8 @@ export function AppointmentContent({
             )}
             {row.cancelledAt && (
               <p>
-                Cancelado por {row.cancelledBy?.name ?? "autoria não registrada"}
+                {data.rescheduledToId ? "Reagendado" : "Cancelado"} por{" "}
+                {row.cancelledBy?.name ?? "autoria não registrada"}
                 <br />
                 {stamp(row.cancelledAt)}
               </p>
@@ -234,7 +236,7 @@ export function AppointmentContent({
               )}
             </div>
           ) : (
-            <AppointmentAccount row={row} />
+            <AppointmentAccount row={row} rescheduled={Boolean(data.rescheduledToId)} />
           )}
         </section>
       </div>
@@ -243,84 +245,6 @@ export function AppointmentContent({
         <ScheduleAppointmentDialog previous={row} onClose={() => setAction(null)} />
       )}
     </>
-  );
-}
-export function AppointmentAccount({ row }: { row: AppointmentSnapshot }) {
-  const activeMinutes = row.coverages
-    .filter((item) => item.applicable)
-    .reduce((sum, item) => sum + item.minutes, 0);
-  return (
-    <div className="grid gap-5">
-      {row.status === "ATTENDED" ? (
-        <section className="grid gap-2">
-          <h2 className="text-lg font-semibold">
-            {row.performedMinutes !== null
-              ? `${row.performedMinutes} ${row.performedMinutes === 1 ? "minuto realizado" : "minutos realizados"}`
-              : "Comparecimento registrado"}
-          </h2>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
-            {row.performedContent ?? "Conteúdo realizado não registrado."}
-          </p>
-          {row.purpose === "MAKEUP" && (
-            <p className="text-caption text-muted-foreground">
-              {activeMinutes} {activeMinutes === 1 ? "minuto compensado" : "minutos compensados"}{" "}
-              nas faltas de origem.
-            </p>
-          )}
-        </section>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          {row.status === "NO_SHOW"
-            ? "O aluno não compareceu. As faltas continuam disponíveis para reposição."
-            : row.status === "CANCELLED"
-              ? "Agendamento cancelado; o histórico foi preservado."
-              : "O comparecimento será registrado após o término do encontro."}
-        </p>
-      )}
-      {row.coverages.length > 0 && (
-        <section className="grid gap-3">
-          <h2 className="text-sm font-semibold">Faltas vinculadas</h2>
-          <div className="divide-y divide-border rounded-md border border-border">
-            {row.coverages.map((source) => (
-              <div
-                key={source.attendanceId}
-                className="flex flex-wrap items-center justify-between gap-2 p-3"
-              >
-                <div>
-                  <p className="text-sm font-medium">
-                    {formatDateOnlyBR(source.date)} · {source.sourceClassName}
-                  </p>
-                  <p className="text-caption text-muted-foreground">
-                    {source.startTime}–{source.endTime}
-                  </p>
-                  {!source.applicable && (
-                    <p className="text-caption text-warning">
-                      A origem mudou; esta cobertura não entra na frequência.
-                    </p>
-                  )}
-                </div>
-                <span className="font-numeric text-sm tabular-nums">
-                  {source.minutes} min{" "}
-                  {row.status === "CANCELLED"
-                    ? "liberados"
-                    : row.status === "SCHEDULED"
-                      ? "reservados"
-                      : source.applicable
-                        ? "compensados"
-                        : "sem efeito"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      {row.notes && (
-        <section className="grid gap-2 border-t border-border pt-4">
-          <h2 className="text-sm font-semibold">Observação</h2>
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{row.notes}</p>
-        </section>
-      )}
-    </div>
   );
 }
 export function CancelAppointmentDialog({

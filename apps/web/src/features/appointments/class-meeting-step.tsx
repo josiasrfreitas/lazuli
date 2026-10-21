@@ -23,16 +23,19 @@ import styles from "./class-meeting-step.module.css";
 import { AppointmentCalendar } from "./appointment-calendar";
 
 export type ScheduleSelection = CalendarInterval & {
-  sessionId?: string;
-  format?: "IN_PERSON" | "ONLINE";
+  sessionId?: string | undefined;
+  format?: "IN_PERSON" | "ONLINE" | undefined;
 };
-type MeetingEvent = CalendarEvent & { sessionId?: string; format?: "IN_PERSON" | "ONLINE" };
+type MeetingEvent = CalendarEvent & {
+  sessionId?: string | undefined;
+  format?: "IN_PERSON" | "ONLINE" | undefined;
+};
 type Props = {
   actions?: ReactNode;
   durationMinutes?: number;
   kind: "CLASS" | "INDEPENDENT";
   studentId: string;
-  previousId?: string;
+  previousId?: string | undefined;
   teacher: SearchSelectOption | null;
   onTeacherChange: (value: SearchSelectOption | null) => void;
   date: string;
@@ -46,7 +49,7 @@ type Props = {
   onEndChange: (value: string) => void;
   onFormatChange: (value: "IN_PERSON" | "ONLINE") => void;
   onReadyChange: (ready: boolean) => void;
-  error?: string;
+  error?: string | undefined;
 };
 function schoolClock(): { date: string; time: string } {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -160,7 +163,7 @@ export function ClassMeetingStep(props: Props): ReactElement {
           .join(" · "),
         tone: row.selectable && !invalid ? "accent" : "neutral",
         disabled: props.kind !== "CLASS" || Boolean(reason),
-        disabledReason: reason,
+        ...(reason ? { disabledReason: reason } : {}),
       };
     }),
     ...(data?.teacherBusy ?? []).map(

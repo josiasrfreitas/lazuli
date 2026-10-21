@@ -183,7 +183,11 @@ function AppointmentCell({
           <small>
             {row.startTime}–{row.endTime}
           </small>
-          <AppointmentBadge status={row.status} overdue={row.overdue} />
+          <AppointmentBadge
+            status={row.status}
+            overdue={row.overdue}
+            rescheduled={Boolean(row.rescheduledToId)}
+          />
         </span>
       </span>
     </button>

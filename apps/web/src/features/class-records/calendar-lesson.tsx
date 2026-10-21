@@ -2,7 +2,7 @@
 
 import { type KeyboardEvent, type ReactElement } from "react";
 import { visitLabels } from "~/features/admissions/labels";
-import { purposes, statuses } from "~/features/appointments/shared";
+import { purposes, appointmentStatus } from "~/features/appointments/shared";
 import { stageIdentity, type CalendarLesson } from "./calendar-model";
 import { lessonFormatLabel } from "./lesson-format";
 import { LessonCardContent } from "./lesson-card-content";
@@ -44,7 +44,7 @@ export function CalendarLessonButton({
     : appointment
       ? appointment.overdue
         ? "A registrar"
-        : statuses[appointment.status]
+        : appointmentStatus(appointment.status, Boolean(appointment.rescheduledToId))
       : lessonStatus(lesson);
   const kind = experiment
     ? experiment.kind === "PLACEMENT"

@@ -9,7 +9,7 @@ import { DIRECTIONS, type WorkshopView } from "./controller";
 import styles from "./workshop.module.css";
 
 export function WorkshopBar({ vm }: { vm: WorkshopView }): ReactElement {
-  const { direction, setDirection, state, setSelection, cases } = vm;
+  const { direction, setDirection, state, setSelection } = vm;
   return (
     <header className={styles.workshopBar}>
       <div>
@@ -103,7 +103,7 @@ export function ProfileContext(): ReactElement {
   );
 }
 export function WorkspaceHeading({ vm }: { vm: WorkshopView }): ReactElement {
-  const { state, activeCount, open, occurrences } = vm;
+  const { state, activeCount, open } = vm;
   return (
     <header className={styles.sectionHeading}>
       <div>

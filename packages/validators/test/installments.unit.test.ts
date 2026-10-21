@@ -20,7 +20,7 @@ void it("accepts overdue groups and rejects flat/group mixing or an incorrect pa
     view: "overdue",
     groups: [],
     page: 1,
-    pageSize: 10,
+    pageSize: 25,
     total: 0,
     pageCount: 0,
     counts: { all: 0, paid: 0, overdue: 0 },
@@ -29,6 +29,8 @@ void it("accepts overdue groups and rejects flat/group mixing or an incorrect pa
   for (const invalid of [
     { ...response, rows: [] },
     { ...response, pageSize: 99 },
+    { ...response, pageSize: 10 },
+    { ...response, pageSize: 50 },
     { ...response, view: "all", pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE, rows: [] },
     { ...response, view: "paid", pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE, rows: [] },
   ]) {
@@ -77,20 +79,26 @@ void it("rejects non-collectible rows in the overdue response", () => {
     view: "overdue",
     groups: [group],
     page: 1,
-    pageSize: 10,
+    pageSize: 25,
     total: 1,
     pageCount: 1,
     counts: { all: 1, paid: 0, overdue: 1 },
   };
 
-  for (const invalidRow of [
-    { ...row, status: "PAID" },
-    { ...row, status: "UPCOMING" },
-    { ...row, overdueDays: 0 },
-    { ...row, collectibleBalanceCents: 0 },
-  ]) {
+  assert.deepEqual(financeInstallmentsOutputSchema.parse(response), response);
+  for (const [invalidRow, field] of [
+    [{ ...row, status: "PAID" }, "status"],
+    [{ ...row, status: "UPCOMING" }, "status"],
+    [{ ...row, overdueDays: 0 }, "overdueDays"],
+    [{ ...row, collectibleBalanceCents: 0 }, "collectibleBalanceCents"],
+  ] as const) {
     const invalid = { ...response, groups: [{ ...group, rows: [invalidRow] }] };
-    assert.equal(financeInstallmentsOutputSchema.safeParse(invalid).success, false);
+    const parsed = financeInstallmentsOutputSchema.safeParse(invalid);
+    assert.equal(parsed.success, false);
+    assert.deepEqual(
+      parsed.error.issues.map((issue) => issue.path),
+      [["groups", 0, "rows", 0, field]],
+    );
   }
 });
 

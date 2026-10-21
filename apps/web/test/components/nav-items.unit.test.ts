@@ -23,6 +23,15 @@ const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
 const SETTINGS_PATH = "/ajustes";
 const ACTIVITY_PATH = "/atividades";
+const SCHOOL_LOCATION_PATH = "/configuracoes/presenca";
+const TEACHER_PATHS = [
+  "/professor",
+  "/professor/agenda",
+  "/professor/turmas",
+  "/professor/alunos",
+  "/professor/acompanhamento",
+  ASSESSMENTS_PATH,
+];
 const STUDENTS_LABEL = "Alunos";
 const PEDAGOGICAL_LABEL = "Pedagógico";
 
@@ -51,11 +60,12 @@ void describe("role-aware navigation", () => {
         CONTRACTS_PATH,
         RECEIVABLES_PATH,
         ACTIVITY_PATH,
+        SCHOOL_LOCATION_PATH,
       ],
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
-      ["/", CLASS_RECORDS_PATH, ASSESSMENTS_PATH],
+      TEACHER_PATHS,
     );
   });
 
@@ -75,11 +85,11 @@ void describe("role-aware navigation", () => {
       },
       { label: "Comercial", items: ["Leads"] },
       { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
-      { label: "Sistema", items: ["Log de atividades"] },
+      { label: "Sistema", items: ["Log de atividades", "Localização da escola"] },
     ]);
     assert.deepEqual(
       navSectionsFor("TEACHER").map((section) => section.label),
-      [null, PEDAGOGICAL_LABEL],
+      [null],
     );
   });
 
@@ -103,7 +113,7 @@ void describe("role-aware navigation", () => {
 
   void it("sends Início to the role's first vertical, or nowhere", () => {
     assert.equal(homeHrefFor("ADMIN"), STUDENTS_PATH);
-    assert.equal(homeHrefFor("TEACHER"), CLASS_RECORDS_PATH);
+    assert.equal(homeHrefFor("TEACHER"), "/professor");
     assert.equal(homeHrefFor("SECRETARY"), null);
     assert.equal(homeHrefFor("FINANCE"), null);
   });
@@ -122,7 +132,7 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
     assert.equal(navBreadcrumbFor(RECEIVABLES_PATH, role), null);
     assert.deepEqual(
       navItemsFor(role).map((item) => item.href),
-      role === "TEACHER" ? ["/", CLASS_RECORDS_PATH, ASSESSMENTS_PATH] : ["/"],
+      role === "TEACHER" ? TEACHER_PATHS : ["/"],
     );
   }
 });
@@ -144,6 +154,7 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       RECEIVABLES_PATH,
       ACTIVITY_PATH,
       SETTINGS_PATH,
+      SCHOOL_LOCATION_PATH,
     ],
   );
   assert.equal(

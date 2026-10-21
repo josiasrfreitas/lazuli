@@ -34,8 +34,8 @@ type QueueItem = {
   name: string;
   status: QueueStatus;
   progress: number;
-  pending?: PendingFile;
-  message?: string;
+  pending?: PendingFile | undefined;
+  message?: string | undefined;
   received?: boolean;
 };
 const labels: Record<QueueStatus, string> = {

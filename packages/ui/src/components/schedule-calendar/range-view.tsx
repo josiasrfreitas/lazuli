@@ -1,7 +1,7 @@
 /// <reference path="./react-big-calendar-time-grid.d.ts" />
 import type { ReactElement } from "react";
 import type { NavigateAction, ViewProps } from "react-big-calendar";
-import TimeGrid from "react-big-calendar/lib/TimeGrid.js";
+import TimeGrid from "./time-grid.js";
 import { calendarRangeDates } from "./date-window";
 import { calendarDateKey, calendarWallDate, shiftDate } from "./model";
 import type { CalendarDateRange } from "./types";

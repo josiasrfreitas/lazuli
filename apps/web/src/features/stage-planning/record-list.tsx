@@ -7,13 +7,16 @@ import styles from "./planning.module.css";
 export function PlanningRecords({
   data,
   records,
+  pagination,
 }: {
   data: Planning;
   records: Planning["records"];
+  pagination?: import("@lazuli/ui").TablePaginationConfig | undefined;
 }) {
   return (
     <DataTable
       label="Conteúdo registrado nas aulas"
+      {...(pagination ? { pagination } : {})}
       columns={[
         {
           id: "date",

@@ -20,6 +20,7 @@ function lesson(id: string, [startTime, endTime]: [string, string]): CalendarLes
     stageName: "Stage 1",
     state: "UPCOMING",
     attendanceOnly: false,
+    guestCount: 0,
   };
 }
 
@@ -58,7 +59,7 @@ void test("partial overlaps reuse a free lane without colliding with the continu
 });
 
 void test("sixty concurrent lessons retain their identities for expansion", () => {
-  const rows = Array.from({ length: 60 }, (unused, index) =>
+  const rows = Array.from({ length: 60 }, (_unused, index) =>
     lesson(String(index).padStart(2, "0"), ["14:00", "15:30"]),
   );
   const groups = timelineGroups(rows);

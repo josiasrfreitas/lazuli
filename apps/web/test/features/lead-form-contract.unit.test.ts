@@ -1,44 +1,71 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import * as React from "react";
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CaptureFields } from "../../src/features/admissions/lead-capture-dialog.js";
-import { ContactFields } from "../../src/features/admissions/lead-contact-dialog.js";
-
+import {
+  LeadCaptureContactFields,
+  LeadCaptureNotesField,
+  type Draft,
+} from "../../src/features/admissions/lead-capture-fields.js";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-void it("quick capture exposes contact-only fields with format hints and field errors", () => {
-  const markup = renderToStaticMarkup(
-    createElement(CaptureFields, {
-      draft: { fullName: "", phone: "", email: "", contactName: "", source: "" },
-      errors: { phone: "Informe telefone ou e-mail para contato." },
-      onChange: () => {},
-    }),
-  );
-  const inputs = markup.match(/<input\b[^>]*>/gu) ?? [];
-  assert.equal(inputs.length, 5);
-  for (const input of inputs) {
-    assert.match(input, /name="lead-/u);
-    assert.match(input, /placeholder="[^"]+"/u);
-    assert.match(input, /autoComplete="off"/iu);
+const draft: Draft = {
+  fullName: "",
+  phone: "",
+  email: "",
+  contactName: "",
+  source: "",
+  notes: "",
+  contactRole: "STUDENT",
+  contactOwner: "STUDENT",
+  birthDate: "",
+  englishExperience: "SOME",
+  stageId: null,
+  interest: "UNKNOWN",
+  format: null,
+  scheduleType: null,
+};
+void it("labels contact ownership and masked birth date while exposing invalid lead contacts", () => {
+  for (const contactRole of ["STUDENT", "GUARDIAN"] as const) {
+    const markup = renderToStaticMarkup(
+      React.createElement(LeadCaptureContactFields, {
+        draft: { ...draft, contactRole, contactOwner: contactRole },
+        errors: { phone: "Informe telefone ou e-mail para contato." },
+        change: () => {},
+      }),
+    );
+    for (const name of [
+      "lead-name",
+      "phone",
+      "email",
+      "birthDate",
+      "source",
+      ...(contactRole === "GUARDIAN" ? ["contactName"] : []),
+    ]) {
+      const input = markup.match(new RegExp(`<input[^>]*name="${name}"[^>]*>`))?.[0] ?? "";
+      assert.match(input, /placeholder="[^"]+"/u);
+      assert.match(input, /autoComplete="off"/iu);
+    }
+    assert.match(markup.match(/<input[^>]*name="phone"[^>]*>/u)?.[0] ?? "", /aria-invalid="true"/u);
+    assert.match(markup, /Informe telefone ou e-mail para contato\./u);
+    assert.match(
+      markup.match(/<input[^>]*name="birthDate"[^>]*>/u)?.[0] ?? "",
+      /inputMode="numeric"/u,
+    );
+    assert.match(markup, /placeholder="dd\/mm\/aaaa"/u);
+    assert.doesNotMatch(markup, /type="date"|Documento|Contrato/u);
+    if (contactRole === "GUARDIAN") assert.match(markup, /De quem é o contato abaixo/u);
   }
-  assert.match(markup, /aria-invalid="true"/u);
-  assert.match(markup, /Informe telefone ou e-mail para contato\./u);
-  assert.doesNotMatch(markup, /Disponibilidade|Modalidade|type="date"/u);
 });
-void it("contact history uses a single masked date field and an accessible multiline summary", () => {
+void it("keeps current lead notes multiline with accessible localized errors", () => {
   const markup = renderToStaticMarkup(
-    createElement(ContactFields, {
-      date: "",
-      summary: "",
-      errors: { summary: "Registre o que foi conversado." },
-      onDate: () => {},
-      onSummary: () => {},
+    React.createElement(LeadCaptureNotesField, {
+      value: "",
+      onChange: () => {},
+      error: "Confira as observações.",
     }),
   );
-  assert.match(markup, /name="lead-contact-date"/u);
-  assert.match(markup, /placeholder="dd\/mm\/aaaa"/u);
-  assert.match(markup, /<textarea[^>]*name="lead-contact-summary"[^>]*aria-invalid="true"/u);
-  assert.match(markup, /Registre o que foi conversado\./u);
-  assert.doesNotMatch(markup, /type="date"/u);
+  assert.match(markup, /for="lead-notes"/u);
+  assert.match(markup, /<textarea[^>]*name="notes"[^>]*aria-invalid="true"/u);
+  assert.match(markup, /autoComplete="off"/iu);
+  assert.match(markup, /Confira as observações\./u);
 });

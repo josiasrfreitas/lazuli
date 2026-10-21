@@ -6,6 +6,11 @@ import type { teacherListInputSchema, z } from "@lazuli/validators";
 import { notFound } from "../trpc/errors.js";
 import { responsibilitySelect, usualTeacherOn } from "./responsibility.js";
 import { meetingsBetween, type TeacherMeeting } from "./schedule.js";
+import {
+  independentAppointments,
+  appointmentNeedsTeacher,
+  type IndependentAppointment,
+} from "./independent-appointments.js";
 const ISO_DATE_LENGTH = 10;
 type ReadTeacherResult = Prisma.UserGetPayload<{ select: typeof teacherSelect }>;
 type ListTeachersResult = {
@@ -18,7 +23,10 @@ type ListTeachersResult = {
 };
 type TeacherOptionsResult = { id: string; name: string }[];
 type UncoveredMeetingsResult = {
-  rows: Array<TeacherMeeting & { id: string }>;
+  rows: Array<
+    | (TeacherMeeting & { id: string; kind: "CLASS" })
+    | (IndependentAppointment & { kind: "APPOINTMENT" })
+  >;
   total: number;
   page: number;
   pageSize: number;
@@ -167,14 +175,30 @@ export async function uncoveredMeetings({
         now,
       })
     : [];
-  const rows = meetings.filter((row) => responsibleTeacherId(row) === null);
+  const appointments = await independentAppointments(database, { from });
+  const rows: UncoveredMeetingsResult["rows"] = [
+    ...meetings
+      .filter((row) => responsibleTeacherId(row) === null)
+      .map((row) => ({
+        ...row,
+        kind: "CLASS" as const,
+        id: `${row.classId}:${row.slotId ?? row.sessionId}:${row.date}`,
+      })),
+    ...appointments
+      .filter(appointmentNeedsTeacher)
+      .map((row) => ({ ...row, kind: "APPOINTMENT" as const })),
+  ];
+  rows.sort(
+    (left, right) =>
+      left.date.localeCompare(right.date) ||
+      left.startTime.localeCompare(right.startTime) ||
+      left.id.localeCompare(right.id),
+  );
   const total = rows.length;
   const pageCount = Math.max(1, Math.ceil(total / input.pageSize));
   const page = Math.min(input.page, pageCount);
   return {
-    rows: rows
-      .slice((page - 1) * input.pageSize, page * input.pageSize)
-      .map((row) => ({ ...row, id: `${row.classId}:${row.slotId ?? row.sessionId}:${row.date}` })),
+    rows: rows.slice((page - 1) * input.pageSize, page * input.pageSize),
     total,
     page,
     pageSize: input.pageSize,

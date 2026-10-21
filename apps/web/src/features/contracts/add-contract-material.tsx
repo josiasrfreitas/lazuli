@@ -71,15 +71,16 @@ export function AddContractMaterial({
               },
             });
             if (!parsed.success) {
+              const invalidStages =
+                fields.materialStageIds.split(",").some((id) => !id) ||
+                new Set(fields.materialStageIds.split(",")).size !==
+                  fields.materialStageIds.split(",").length;
               setErrors({
-                materialStageIds:
-                  fields.materialStageIds.split(",").some((id) => !id) ||
-                  new Set(fields.materialStageIds.split(",")).size !==
-                    fields.materialStageIds.split(",").length
-                    ? "Selecione um estágio diferente para cada livro."
-                    : undefined,
-                materialCategory: fields.materialCategory ? undefined : "Selecione a faixa.",
-                materialTotal: fields.materialTotal ? undefined : "Aguarde o preço do livro.",
+                ...(invalidStages
+                  ? { materialStageIds: "Selecione um estágio diferente para cada livro." }
+                  : {}),
+                ...(fields.materialCategory ? {} : { materialCategory: "Selecione a faixa." }),
+                ...(fields.materialTotal ? {} : { materialTotal: "Aguarde o preço do livro." }),
               });
               setError(
                 dueDate

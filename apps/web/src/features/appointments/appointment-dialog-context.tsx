@@ -4,6 +4,7 @@ import { CalendarDays, History, MapPin, UserRound } from "lucide-react";
 import { DialogDescription, DialogHeader, DialogTitle } from "@lazuli/ui";
 import { formatDateOnlyBR } from "~/lib/format";
 import { AppointmentBadge, purposes, type Appointment } from "./shared";
+import { AppointmentAccount } from "./appointment-account";
 import { appointmentChanges } from "./appointment-history-changes";
 import styles from "./student-appointment-dialog.module.css";
 
@@ -29,7 +30,7 @@ export function AppointmentDialogHeader({ data, admin }: { data: Appointment; ad
               row.student.name
             )}
           </DialogTitle>
-          <AppointmentBadge status={row.status} />
+          <AppointmentBadge status={row.status} rescheduled={Boolean(data.rescheduledToId)} />
         </div>
         <DialogDescription>{purposes[row.purpose]}</DialogDescription>
       </div>
@@ -79,7 +80,7 @@ export function AppointmentDialogHeader({ data, admin }: { data: Appointment; ad
   );
 }
 
-const events = {
+const events: Record<string, string> = {
   SCHEDULED: "Agendado",
   IMPORTED: "Registro importado",
   RESCHEDULED: "Reagendado",
@@ -107,10 +108,19 @@ export function AppointmentDialogHistory({ data }: { data: Appointment }) {
           const changes = previous ? appointmentChanges(previous.snapshot, revision.snapshot) : [];
           return (
             <li key={revision.id}>
-              <strong>{events[revision.kind]}</strong>
+              <strong>{events[revision.kind] ?? revision.kind}</strong>
               <p className={styles.attribution}>
                 {stamp(revision.at)} · {revision.author?.name ?? "Autoria não registrada"}
               </p>
+              {revision.reason && <p className="whitespace-pre-wrap text-sm">{revision.reason}</p>}
+              <p className={styles.attribution}>
+                {formatDateOnlyBR(revision.snapshot.date)} · {revision.snapshot.startTime}–
+                {revision.snapshot.endTime}
+              </p>
+              <AppointmentAccount
+                row={revision.snapshot}
+                rescheduled={revision.kind === "RESCHEDULED"}
+              />
               {changes.length > 0 && (
                 <dl className={styles.changes}>
                   {changes.map((change) => (

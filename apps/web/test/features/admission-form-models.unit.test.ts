@@ -9,7 +9,7 @@ import {
   enrollmentStudent,
   type EnrollmentDraft,
 } from "../../src/features/admissions/enrollment-model.js";
-import { visitMeetingInput, type VisitDraft } from "../../src/features/admissions/visit-model.js";
+import { trialVisitInput } from "../../src/features/admissions/trial-visit-input.js";
 
 void it("saves Brazilian lead dates as civil dates and preserves distinct weekly windows", () => {
   const draft = {
@@ -24,7 +24,6 @@ void it("saves Brazilian lead dates as civil dates and preserves distinct weekly
   };
   const result = parseCandidateDraft(draft);
   assert.equal(result.success, true);
-  if (!result.success) throw result.error;
   assert.equal(result.data.availableUntil, "2026-12-31");
   assert.deepEqual(result.data.availability, [
     { weekday: "MONDAY", startTime: "14:00", endTime: "18:00" },
@@ -71,37 +70,33 @@ void it("links an existing student without carrying unfinished new-student or gu
     student: "Escolha o cadastro do aluno.",
   });
 });
-void it("binds a trial to its selected real encounter and does not guess among multiple encounters", () => {
-  const draft: VisitDraft = {
-    kind: "TRIAL",
-    date: "12/10/2026",
-    classId: "class",
-    meetingKey: "second",
-    teacher: null,
-    startTime: "",
-    endTime: "",
-    notes: "",
-  };
+void it("binds a trial to an explicitly selected real encounter and never guesses", () => {
   const meetings = [
-    { slotId: "first", sessionId: null },
-    { slotId: null, sessionId: "second" },
+    {
+      id: "first-event",
+      date: "2026-10-12",
+      classId: "class",
+      scheduleSlotId: "first-slot",
+      classSessionId: null,
+    },
+    {
+      id: "second-event",
+      date: "2026-10-13",
+      classId: "class",
+      scheduleSlotId: null,
+      classSessionId: "second-session",
+    },
   ];
-  assert.deepEqual(visitMeetingInput(draft, "IN_PERSON", meetings), {
-    kind: "TRIAL",
-    classId: "class",
-    scheduleSlotId: null,
-    classSessionId: "second",
+  assert.deepEqual(trialVisitInput(meetings, "second-event"), {
+    date: "2026-10-13",
+    meeting: {
+      kind: "TRIAL",
+      classId: "class",
+      scheduleSlotId: null,
+      classSessionId: "second-session",
+    },
   });
-  assert.deepEqual(visitMeetingInput({ ...draft, meetingKey: "old" }, "IN_PERSON", meetings), {
-    kind: "TRIAL",
-    classId: "class",
-    scheduleSlotId: null,
-    classSessionId: null,
-  });
-  assert.deepEqual(visitMeetingInput({ ...draft, meetingKey: "" }, "IN_PERSON", [meetings[0]!]), {
-    kind: "TRIAL",
-    classId: "class",
-    scheduleSlotId: "first",
-    classSessionId: null,
-  });
+  assert.equal(trialVisitInput(meetings, "removed-event"), null);
+  assert.equal(trialVisitInput([meetings[0]!], null), null);
+  assert.equal(trialVisitInput([], "first-event"), null);
 });

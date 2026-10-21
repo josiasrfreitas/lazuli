@@ -34,6 +34,7 @@ import { InterestChoice } from "./candidate-fields";
 import { useLeadErrors } from "./lead-form";
 import { dateOnly, formatLabel, type Candidate } from "./labels";
 import styles from "./visit-dialog.module.css";
+import { trialVisitInput } from "./trial-visit-input";
 
 type VisitInput = { candidate: Candidate; previousVisitId?: string; onClose: () => void };
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -244,24 +245,20 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
     const parsed = entryVisitScheduleSchema.safeParse({
       id,
       candidateId: candidate.id,
-      date: selected.date,
       notes,
       ...(previousVisitId ? { previousVisitId } : {}),
-      meeting:
-        kind === "TRIAL" && chosen
-          ? {
-              kind,
-              classId: chosen.classId,
-              scheduleSlotId: chosen.scheduleSlotId,
-              classSessionId: chosen.classSessionId,
-            }
-          : {
+      ...(kind === "TRIAL"
+        ? trialVisitInput(meetings, meetingId)
+        : {
+            date: selected.date,
+            meeting: {
               kind: "INTRODUCTION",
               teacherId: teacher?.id,
               startTime: selected.startTime,
               endTime: selected.endTime,
               format,
             },
+          }),
     });
     if (!parsed.success) return errors.report(parsed.error.issues);
     save.mutate(parsed.data);

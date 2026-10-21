@@ -17,7 +17,7 @@ export function FinanceOverview({
   profile,
 }: {
   state: StudentFinanceState;
-  profile?: StudentProfile;
+  profile?: StudentProfile | undefined;
 }): ReactElement {
   const { summary } = state;
   if (summary.isError)

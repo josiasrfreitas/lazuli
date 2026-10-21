@@ -104,7 +104,11 @@ function AppointmentItem({ row }: { row: AppointmentRow }): ReactElement {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold">{purposes[row.purpose]}</h3>
-          <AppointmentBadge status={row.status} overdue={row.overdue} />
+          <AppointmentBadge
+            status={row.status}
+            overdue={row.overdue}
+            rescheduled={Boolean(row.rescheduledToId)}
+          />
         </div>
         <p className="mt-1 text-caption text-muted-foreground">
           <span className="font-numeric tabular-nums">

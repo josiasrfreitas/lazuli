@@ -16,6 +16,12 @@ export const statuses = {
   NO_SHOW: "Não compareceu",
   CANCELLED: "Cancelado",
 } as const;
+export function appointmentStatus(
+  status: AppointmentSnapshot["status"],
+  rescheduled = false,
+): string {
+  return status === "CANCELLED" && rescheduled ? "Reagendado" : statuses[status];
+}
 export function today() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
@@ -41,10 +47,13 @@ export function shiftMonth(month: string, delta: number) {
 export function AppointmentBadge({
   status,
   overdue = false,
+  rescheduled = false,
 }: {
+  rescheduled?: boolean;
   status: AppointmentSnapshot["status"];
   overdue?: boolean;
 }) {
+  if (status === "CANCELLED" && rescheduled) return <Badge variant="info">Reagendado</Badge>;
   return (
     <Badge
       variant={
@@ -57,7 +66,7 @@ export function AppointmentBadge({
               : "info"
       }
     >
-      {overdue ? "A registrar" : statuses[status]}
+      {overdue ? "A registrar" : appointmentStatus(status, rescheduled)}
     </Badge>
   );
 }

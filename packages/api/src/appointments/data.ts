@@ -56,7 +56,10 @@ export function appointmentRestriction(
   context: AppointmentContext,
   row: AppointmentRow,
 ): string | null {
-  if (row.status === "CANCELLED") return "Este atendimento foi cancelado.";
+  if (row.status === "CANCELLED")
+    return row.rescheduledTo
+      ? "Este atendimento foi reagendado. Consulte o novo agendamento."
+      : "Este atendimento foi cancelado.";
   if (row.targetClassSession?.status === "CANCELLED")
     return "A aula de destino foi cancelada. Reagende o atendimento.";
   if (sessionEndInstant(row) > context.now)

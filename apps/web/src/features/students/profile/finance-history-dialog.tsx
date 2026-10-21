@@ -75,7 +75,9 @@ function FinanceHistoryContent({ studentId }: { studentId: string }) {
           aria-label="Tipo de histórico financeiro"
           size="sm"
           value={tab}
-          onValueChange={setTab}
+          onValueChange={(value) => {
+            if (value) setTab(value);
+          }}
         >
           <SegmentedControlItem value="activity">Todas as atividades</SegmentedControlItem>
           <SegmentedControlItem value="treatments">Detalhes das tratativas</SegmentedControlItem>

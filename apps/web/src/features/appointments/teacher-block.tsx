@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
 import { cn } from "@lazuli/ui";
 import { formatDateOnlyBR } from "~/lib/format";
-import { purposes, statuses } from "./shared";
+import { purposes, appointmentStatus } from "./shared";
 export type TeacherAppointment = RouterOutputs["teachers"]["week"]["appointments"][number];
 export function TeacherAppointmentBlock({
   row,
@@ -11,7 +11,7 @@ export function TeacherAppointmentBlock({
   row: TeacherAppointment;
   compact?: boolean;
 }) {
-  const description = `${purposes[row.purpose]}, ${row.studentName}, ${formatDateOnlyBR(row.date)}, ${row.startTime}–${row.endTime}, ${statuses[row.status]}`;
+  const description = `${purposes[row.purpose]}, ${row.studentName}, ${formatDateOnlyBR(row.date)}, ${row.startTime}–${row.endTime}, ${appointmentStatus(row.status, Boolean(row.rescheduledToId))}`;
   return (
     <Link
       href={`/atendimentos/${row.id}`}
@@ -36,7 +36,7 @@ export function TeacherAppointmentBlock({
         }
       >
         {row.startTime}–{row.endTime}
-        {compact ? "" : ` · ${statuses[row.status]}`}
+        {compact ? "" : ` · ${appointmentStatus(row.status, Boolean(row.rescheduledToId))}`}
       </span>
     </Link>
   );

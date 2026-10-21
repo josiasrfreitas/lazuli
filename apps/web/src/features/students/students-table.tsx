@@ -94,7 +94,7 @@ function StudentActions({
   onContinue,
 }: {
   row: StudentListRow;
-  onContinue?: (id: string) => void;
+  onContinue?: ((id: string) => void) | undefined;
 }): ReactElement {
   const whatsapp = whatsAppVm(row);
   return (
@@ -136,7 +136,7 @@ export function StudentsTableRow({
 }: {
   row: StudentListRow;
   onOpen: (id: string) => void;
-  onContinue?: (id: string) => void;
+  onContinue?: ((id: string) => void) | undefined;
 }): ReactElement {
   return (
     <TableRow
@@ -261,7 +261,7 @@ export function StudentsTable({
   state: StudentsTableState;
   onRetry: () => void;
   onOpenRow: (id: string) => void;
-  onContinue?: (id: string) => void;
+  onContinue?: ((id: string) => void) | undefined;
   pagination: StudentsTablePagination;
 }): ReactElement {
   return (

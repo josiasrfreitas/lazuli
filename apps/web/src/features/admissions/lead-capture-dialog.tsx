@@ -1,12 +1,16 @@
 "use client";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, MessageSquare, Save, UserRoundPlus } from "lucide-react";
-import { Field, FieldError, FormRow, FormSection, Label, Stepper, Textarea } from "@lazuli/ui";
-import { leadCaptureSchema, type placementScheduleSchema, type z } from "@lazuli/validators";
+import { ArrowRight, Save, UserRoundPlus } from "lucide-react";
+import { FormSection, Stepper } from "@lazuli/ui";
+import {
+  leadCaptureSchema,
+  leadRegistrationSchema,
+  type placementScheduleSchema,
+  type z,
+} from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
-import { maskDateBR, maskPhoneBR, parseDateBR } from "~/lib/masks";
-import { TextControl } from "~/features/classes/form-controls";
+import { parseDateBR } from "~/lib/masks";
 import { LeadFormDialog, useLeadErrors } from "./lead-form";
 import { InterestChoice } from "./candidate-fields";
 import { IntakeStageSelect } from "./intake-fields";
@@ -16,7 +20,21 @@ import { DiscardRegistrationDialog } from "~/features/shared/discard-registratio
 import { PendingRegistrationDialog } from "~/features/shared/pending-registration-dialog";
 import { PlacementSchedule, type PlacementScheduleDraft } from "./placement-schedule";
 
-type Draft = Omit<z.infer<typeof leadCaptureSchema>, "id" | "birthDate"> & { birthDate: string };
+import { LeadCaptureContactFields, LeadCaptureNotesField, type Draft } from "./lead-capture-fields";
+export type LeadRegistration = z.infer<typeof leadRegistrationSchema>;
+type DraftDestination = {
+  initial: LeadRegistration | null;
+  identity: Partial<Draft>;
+  onConfirm: (registration: LeadRegistration) => void;
+};
+type CaptureProps = {
+  onClose: () => void;
+  initialName?: string;
+  initialEnglishExperience?: "NONE" | "SOME";
+} & (
+  | { candidate?: Candidate; onCreated?: (id: string) => void; destination?: never }
+  | { candidate?: never; onCreated?: never; destination: DraftDestination }
+);
 
 export function LeadCaptureDialog({
   candidate,
@@ -24,18 +42,19 @@ export function LeadCaptureDialog({
   initialName = "",
   initialEnglishExperience = "NONE",
   onCreated,
-}: {
-  candidate?: Candidate;
-  onClose: () => void;
-  initialName?: string;
-  initialEnglishExperience?: "NONE" | "SOME";
-  onCreated?: (id: string) => void;
-}) {
-  const [id] = useState(() => candidate?.id ?? crypto.randomUUID());
+  destination,
+}: CaptureProps) {
+  const [id] = useState(
+    () => destination?.initial?.lead.id ?? candidate?.id ?? crypto.randomUUID(),
+  );
+  const [placementId] = useState(() => destination?.initial?.placement?.id ?? crypto.randomUUID());
   const [dirty, setDirty] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const [scheduling, setScheduling] = useState(false);
-  const [placementDraft, setPlacementDraft] = useState<PlacementScheduleDraft | null>(null);
+  const [placementDraft, setPlacementDraft] = useState<PlacementScheduleDraft | null>(() => {
+    const placement = destination?.initial?.placement;
+    return placement ? { ...placement, date: dateLabel(placement.date) } : null;
+  });
   const [confirmPending, setConfirmPending] = useState(false);
   const [draft, setDraft] = useState<Draft>(() => ({
     fullName: candidate?.fullName ?? initialName,
@@ -57,6 +76,15 @@ export function LeadCaptureDialog({
     interest: candidate?.interest ?? "UNKNOWN",
     format: candidate?.format ?? null,
     scheduleType: candidate?.scheduleType ?? null,
+    ...destination?.identity,
+    ...(destination?.initial
+      ? {
+          ...destination.initial.lead,
+          birthDate: destination.initial.lead.birthDate
+            ? dateLabel(destination.initial.lead.birthDate)
+            : "",
+        }
+      : {}),
   }));
   const errors = useLeadErrors();
   const utils = trpc.useUtils();
@@ -97,7 +125,7 @@ export function LeadCaptureDialog({
     if (!parsed.success) return errors.report(parsed.error.issues);
     if (candidate) update.mutate(parsed.data);
     else if (draft.englishExperience === "SOME") setScheduling(true);
-    else capture.mutate({ lead: parsed.data, placement: null, allowPending: false });
+    else complete(null);
   }
   function complete(placement: z.infer<typeof placementScheduleSchema> | null) {
     const lead = leadCaptureSchema.parse({
@@ -105,7 +133,15 @@ export function LeadCaptureDialog({
       ...draft,
       birthDate: draft.birthDate ? parseDateBR(draft.birthDate) : null,
     });
-    capture.mutate({ lead, placement, allowPending: !placement });
+    const registration = leadRegistrationSchema.parse({
+      lead,
+      placement,
+      allowPending: lead.englishExperience === "SOME" && !placement,
+    });
+    if (destination) {
+      destination.onConfirm(registration);
+      onClose();
+    } else capture.mutate(registration);
   }
   if (scheduling)
     return (
@@ -119,6 +155,7 @@ export function LeadCaptureDialog({
           }}
           onClose={requestClose}
           registration={{
+            id: placementId,
             onConfirm: complete,
             onBack: () => setScheduling(false),
             onDefer: () => setConfirmPending(true),
@@ -150,7 +187,11 @@ export function LeadCaptureDialog({
         id="lead-capture"
         wide
         title={candidate ? "Editar lead" : "Novo lead"}
-        description="Registre o contato e o ponto de partida do aluno."
+        description={
+          destination
+            ? "O lead e o nivelamento serão salvos ao concluir o cadastro do aluno."
+            : "Registre o contato e o ponto de partida do aluno."
+        }
         firstField="lead-name"
         body={errors.body}
         pending={save.isPending}
@@ -186,82 +227,7 @@ export function LeadCaptureDialog({
       >
         <fieldset disabled={save.isPending} className="grid min-w-0 gap-6 md:grid-cols-2">
           <div className="grid content-start gap-5">
-            <FormSection title="Aluno e contato">
-              <InterestChoice
-                label="Quem está entrando em contato?"
-                value={draft.contactRole}
-                options={{ STUDENT: "Próprio aluno · maior", GUARDIAN: "Responsável · menor" }}
-                onChange={(value) => {
-                  change("contactRole", value as Draft["contactRole"]);
-                  change("contactOwner", value as Draft["contactOwner"]);
-                  if (value === "STUDENT") change("contactName", "");
-                }}
-              />
-              <TextControl
-                name="lead-name"
-                label="Nome do aluno"
-                placeholder="Nome completo do aluno"
-                value={draft.fullName}
-                onChange={(value) => change("fullName", value)}
-                error={errors.fields.fullName}
-              />
-              {draft.contactRole === "GUARDIAN" && (
-                <>
-                  <TextControl
-                    name="contactName"
-                    label="Nome do responsável"
-                    placeholder="Nome completo do responsável"
-                    value={draft.contactName ?? ""}
-                    onChange={(value) => change("contactName", value)}
-                    error={errors.fields.contactName}
-                  />
-                  <InterestChoice
-                    label="De quem é o contato abaixo?"
-                    value={draft.contactOwner}
-                    options={{ GUARDIAN: "Responsável", STUDENT: "Aluno" }}
-                    onChange={(value) => change("contactOwner", value as Draft["contactOwner"])}
-                  />
-                </>
-              )}
-              <FormRow columns={2}>
-                <TextControl
-                  name="phone"
-                  label="Telefone"
-                  placeholder="(11) 99999-9999"
-                  inputMode="tel"
-                  value={draft.phone ?? ""}
-                  onChange={(value) => change("phone", maskPhoneBR(value))}
-                  error={errors.fields.phone}
-                />
-                <TextControl
-                  name="email"
-                  label="E-mail"
-                  placeholder="nome@exemplo.com"
-                  inputMode="email"
-                  value={draft.email ?? ""}
-                  onChange={(value) => change("email", value)}
-                  error={errors.fields.email}
-                />
-              </FormRow>
-              <div className="w-40">
-                <TextControl
-                  name="birthDate"
-                  label="Nascimento (opcional)"
-                  placeholder="dd/mm/aaaa"
-                  inputMode="numeric"
-                  value={draft.birthDate}
-                  onChange={(value) => change("birthDate", maskDateBR(value))}
-                  error={errors.fields.birthDate}
-                />
-              </div>
-              <TextControl
-                name="source"
-                label="Como chegou à escola"
-                value={draft.source ?? ""}
-                onChange={(value) => change("source", value)}
-                placeholder="Indicação, Instagram…"
-              />
-            </FormSection>
+            <LeadCaptureContactFields draft={draft} errors={errors.fields} change={change} />
           </div>
           <div className="grid content-start gap-5 md:border-l md:border-border md:pl-6">
             <FormSection title="Ponto de partida">
@@ -307,31 +273,11 @@ export function LeadCaptureDialog({
                 O formato definitivo será escolhido no cadastro do aluno.
               </p>
             </FormSection>
-            <Field name="notes">
-              <Label htmlFor="lead-notes">
-                <span className="inline-flex items-center gap-1.5">
-                  <MessageSquare className="size-3.5" aria-hidden="true" />
-                  Observações (opcional)
-                </span>
-              </Label>
-              <Textarea
-                id="lead-notes"
-                name="notes"
-                autoComplete="off"
-                rows={4}
-                maxLength={2000}
-                placeholder="Objetivos com o inglês, preferências ou informações do primeiro contato"
-                value={draft.notes ?? ""}
-                onChange={(event) => change("notes", event.target.value)}
-                invalid={Boolean(errors.fields.notes)}
-                aria-describedby={errors.fields.notes ? "lead-notes-error" : undefined}
-              />
-              {errors.fields.notes && (
-                <FieldError id="lead-notes-error" match>
-                  {errors.fields.notes}
-                </FieldError>
-              )}
-            </Field>
+            <LeadCaptureNotesField
+              value={draft.notes ?? ""}
+              onChange={(value) => change("notes", value)}
+              error={errors.fields.notes}
+            />
           </div>
         </fieldset>
       </LeadFormDialog>

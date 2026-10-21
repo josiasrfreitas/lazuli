@@ -64,6 +64,7 @@ void it("renders the motivating-report validation inside its field without losin
     }),
   );
   assert.match(markup, /Selecione ocorrências distintas\./u);
-  assert.match(markup, /Ocorrências motivadoras \(opcional\)/u);
+  const text = markup.replace(/<[^>]*>/gu, "");
+  assert.match(text, /Buscar ocorrências motivadoras \(opcional\)/u);
   assert.match(markup, /data-slot="field-error"/u);
 });

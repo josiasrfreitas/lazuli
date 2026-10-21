@@ -1,5 +1,6 @@
 import { useState, type ReactElement } from "react";
 import {
+  Button,
   DataTable,
   SegmentedControl,
   SegmentedControlItem,
@@ -15,7 +16,9 @@ import {
   closingGrowth,
   type ClosingChartMeasure,
   type ClosingMonth,
+  type Closings,
 } from "./contract-closings-model";
+import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 
 const MONTH_KEY_LENGTH = 7;
@@ -29,7 +32,7 @@ function ClosingSummary({
   data,
   measure,
 }: {
-  data: Analytics;
+  data: Closings;
   measure: ClosingChartMeasure;
 }): ReactElement {
   const { totals, period } = closingSummary(data);
@@ -91,7 +94,7 @@ function ClosingVisualization({
   view,
   measure,
 }: {
-  data: Analytics;
+  data: Closings;
   view: string;
   measure: ClosingChartMeasure;
 }): ReactElement {
@@ -110,7 +113,10 @@ function ClosingVisualization({
             kind: "data",
             rows: [...rows].reverse().map((row) => ({ ...row, id: row.month })),
           }}
-          empty={{ title: "Sem contratos no período" }}
+          empty={{
+            title: "Sem contratos no período",
+            description: "Os contratos deste período aparecerão aqui.",
+          }}
           errorTitle="Não foi possível carregar os contratos"
           onRetry={() => {}}
         />
@@ -154,6 +160,20 @@ function ClosingBasis({ incompleteCount }: { incompleteCount: number }): ReactEl
 }
 
 export function ContractClosings({ data }: { data: Analytics }): ReactElement {
+  const query = trpc.finance.contractClosings.useQuery({ year: data.year });
+  if (query.isError)
+    return (
+      <div role="alert">
+        <p>Não foi possível carregar os fechamentos.</p>
+        <Button variant="secondary" onClick={() => void query.refetch()}>
+          Tentar novamente
+        </Button>
+      </div>
+    );
+  if (!query.data) return <p role="status">Carregando fechamentos…</p>;
+  return <ClosingPanel data={query.data} />;
+}
+function ClosingPanel({ data }: { data: Closings }): ReactElement {
   const [view, setView] = useState("chart");
   const [measure, setMeasure] = useState<ClosingChartMeasure>("projectedCents");
   return (
@@ -174,7 +194,9 @@ export function ContractClosings({ data }: { data: Analytics }): ReactElement {
           aria-label="Visualização dos contratos"
           size="sm"
           value={view}
-          onValueChange={setView}
+          onValueChange={(value) => {
+            if (value) setView(value);
+          }}
         >
           <SegmentedControlItem value="chart">Gráfico</SegmentedControlItem>
           <SegmentedControlItem value="table">Tabela</SegmentedControlItem>
@@ -199,7 +221,7 @@ export function ContractClosings({ data }: { data: Analytics }): ReactElement {
         )}
       </div>
       <ClosingVisualization data={data} view={view} measure={measure} />
-      <ClosingBasis incompleteCount={data.contractClosings.incompleteCount} />
+      <ClosingBasis incompleteCount={data.incompleteCount} />
     </section>
   );
 }
