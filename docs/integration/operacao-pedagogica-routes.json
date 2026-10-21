@@ -1,0 +1,1853 @@
+{
+  "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+  "source_base": "16f770907b19ffaa65b5b1e4da12204bed842934",
+  "main_audited_sha": "8c2e28c57fcf2ee261b8cf3af917fa354c70dd84",
+  "delivery": {
+    "remaining_pr_count": 3,
+    "line_limits": null,
+    "security": {
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "medium"
+    },
+    "qa": "removed"
+  },
+  "status": "All 48 page modules and shared guards read; imported feature semantics and final behavior audit remain in progress. Static graph leads are not coverage proof.",
+  "routes": [
+    {
+      "route": "/acompanhamento/intervencoes/[id]",
+      "source_page": "apps/web/src/app/(app)/acompanhamento/intervencoes/[id]/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "react",
+        "~/features/pedagogical-follow-up/intervention-detail",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/acompanhamento/ocorrencias/[id]",
+      "source_page": "apps/web/src/app/(app)/acompanhamento/ocorrencias/[id]/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "react",
+        "~/features/pedagogical-follow-up/occurrence-detail",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/acompanhamento",
+      "source_page": "apps/web/src/app/(app)/acompanhamento/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next/navigation",
+        "@lazuli/validators",
+        "~/features/pedagogical-follow-up/student-navigation"
+      ],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "aluno válido como UUID → acompanhamento do aluno",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "aluno ausente/inválido → /alunos",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/ajustes",
+      "source_page": "apps/web/src/app/(app)/ajustes/page.tsx",
+      "block": 3,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/settings/settings-panel",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/alunos/[id]",
+      "source_page": "apps/web/src/app/(app)/alunos/[id]/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "~/lib/require-role",
+        "~/features/stage-planning/teacher-context",
+        "next",
+        "react",
+        "~/features/students/profile/student-page"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "TEACHER → contexto de planejamento do aluno",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "ADMIN/SYSTEM_ADMIN → perfil administrativo",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/alunos",
+      "source_page": "apps/web/src/app/(app)/alunos/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/students/students-page",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/atendimentos/[id]",
+      "source_page": "apps/web/src/app/(app)/atendimentos/[id]/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next", "~/features/appointments/detail", "~/lib/require-role"],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/atendimentos",
+      "source_page": "apps/web/src/app/(app)/atendimentos/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next/navigation"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "query aluno presente → /aulas?aluno codificado",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "query aluno ausente → /aulas",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/atividades",
+      "source_page": "apps/web/src/app/(app)/atividades/page.tsx",
+      "block": 3,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/activity/activity-page",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/aulas",
+      "source_page": "apps/web/src/app/(app)/aulas/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next", "~/features/class-records/agenda", "~/lib/require-role"],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "TEACHER → ClassAgenda com teacherView=true",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "ADMIN/SYSTEM_ADMIN → ClassAgenda com teacherView=false",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/avaliacoes",
+      "source_page": "apps/web/src/app/(app)/avaliacoes/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/assessments/assessments-page",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["TEACHER", "ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/configuracoes/presenca",
+      "source_page": "apps/web/src/app/(app)/configuracoes/presenca/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/lib/require-role", "~/features/student-attendance/settings"],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/contratos",
+      "source_page": "apps/web/src/app/(app)/contratos/page.tsx",
+      "block": 2,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/contracts/contracts-page",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/estagios",
+      "source_page": "apps/web/src/app/(app)/estagios/page.tsx",
+      "block": 1,
+      "block_assignment": "confirmed from route imports",
+      "implementation": "catalog extracted; not yet published in PR",
+      "behavior": "not_audited",
+      "variants": [
+        {
+          "id": "catalog-state",
+          "behavior": "Carregando, erro/retry, catálogo vazio, filtro sem resultados, dados agrupados por track",
+          "source_review": "read in page and all nine stage-catalog files",
+          "destination_behavior": "pending browser verification on complete block",
+          "code": "stages-page.tsx;catalog-list.tsx"
+        },
+        {
+          "id": "selection",
+          "behavior": "Seleção explícita, F1 com programa como padrão, primeiro estágio com programa ou primeiro estágio disponível; Enter seleciona linha",
+          "source_review": "read in page and all nine stage-catalog files",
+          "destination_behavior": "pending browser verification on complete block",
+          "code": "stages-page.tsx;catalog-list.tsx"
+        },
+        {
+          "id": "identity",
+          "behavior": "Infantil/Adulto, track ACTIVE/LEGACY, lições conhecidas/desconhecidas",
+          "source_review": "read in page and all nine stage-catalog files",
+          "destination_behavior": "pending browser verification on complete block",
+          "code": "track-name.tsx;catalog-list.tsx"
+        },
+        {
+          "id": "program-state",
+          "behavior": "Detalhe carregando, erro/retry, programação ainda não importada, programação existente",
+          "source_review": "read in page and all nine stage-catalog files",
+          "destination_behavior": "pending browser verification on complete block",
+          "code": "detail.tsx;loading.tsx"
+        },
+        {
+          "id": "program-choice",
+          "behavior": "Programa selecionado, Regular preferido ou primeiro; até dois programas em pills, mais em Select; modalidade/carga semanal",
+          "source_review": "read in page and all nine stage-catalog files",
+          "destination_behavior": "pending browser verification on complete block",
+          "code": "detail.tsx"
+        },
+        {
+          "id": "map-filter",
+          "behavior": "Tudo ou só provas; estado sem provas",
+          "source_review": "read in page and all nine stage-catalog files",
+          "destination_behavior": "pending browser verification on complete block",
+          "code": "detail.tsx;program-map.tsx"
+        },
+        {
+          "id": "hour-grouping",
+          "behavior": "Atividades idênticas consecutivas agrupadas visualmente sem fundir identidades; múltiplas atividades por hora",
+          "source_review": "read in page and all nine stage-catalog files",
+          "destination_behavior": "pending browser verification on complete block",
+          "code": "program-map.tsx"
+        },
+        {
+          "id": "activity-types",
+          "behavior": "LESSON, INTRODUCTION, REVIEW, ASSESSMENT, VIDEO, ACTIVITY; descrição pendente mantém código da fonte",
+          "source_review": "read in page and all nine stage-catalog files",
+          "destination_behavior": "pending browser verification on complete block",
+          "code": "program-map.tsx"
+        },
+        {
+          "id": "layout",
+          "behavior": "Duas colunas desktop, lista superior no estreito; grade de atividades em 4/3/2/1 colunas conforme container",
+          "source_review": "read in page and all nine stage-catalog files",
+          "destination_behavior": "pending browser verification on complete block",
+          "code": "catalog.module.css;program-map.module.css"
+        }
+      ],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next", "~/features/stage-catalog/stages-page", "~/lib/require-role"],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/financeiro",
+      "source_page": "apps/web/src/app/(app)/financeiro/page.tsx",
+      "block": 2,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "@lazuli/api",
+        "~/features/finance-analytics/finance-analytics-loading",
+        "~/features/finance-analytics/finance-analytics-page",
+        "~/lib/require-role",
+        "~/lib/format"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "Suspense/carregamento inicial",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "prefetch analytics do ano civil em São Paulo com sucesso",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-3",
+          "behavior": "prefetch rejeitado → página cliente sem initial",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/interessados/[id]",
+      "source_page": "apps/web/src/app/(app)/interessados/[id]/page.tsx",
+      "block": 2,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/admissions/candidate-page",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/interessados",
+      "source_page": "apps/web/src/app/(app)/interessados/page.tsx",
+      "block": 2,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/admissions/admissions-page",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/materiais",
+      "source_page": "apps/web/src/app/(app)/materiais/page.tsx",
+      "block": 1,
+      "block_assignment": "confirmed: page is a redirect to /estagios, not a material-order workflow",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next/navigation"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "redireciona para /estagios",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/organizacao",
+      "source_page": "apps/web/src/app/(app)/organizacao/page.tsx",
+      "block": 3,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/class-organization/page",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/",
+      "source_page": "apps/web/src/app/(app)/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "next/headers",
+        "next/navigation",
+        "next/server",
+        "react",
+        "@lazuli/auth/server",
+        "@lazuli/ui",
+        "~/components/app-shell/nav-items",
+        "~/lib/staff-experience"
+      ],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "identidade ausente → /login",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "dispositivo mobile com papel TEACHER disponível e outro papel ativo → ativa experiência docente",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-3",
+          "behavior": "home permitido encontrado → redirecionamento",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-4",
+          "behavior": "nenhuma vertical disponível para o papel → estado vazio",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/planejamento",
+      "source_page": "apps/web/src/app/(app)/planejamento/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/stage-planning/planning-page",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/acompanhamento",
+      "source_page": "apps/web/src/app/(app)/professor/acompanhamento/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/teacher-workspace/follow-up"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/agenda/[id]/chamada",
+      "source_page": "apps/web/src/app/(app)/professor/agenda/[id]/chamada/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/student-attendance/teacher-page"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/agenda",
+      "source_page": "apps/web/src/app/(app)/professor/agenda/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/teacher-workspace/agenda", "react"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/alunos/[id]",
+      "source_page": "apps/web/src/app/(app)/professor/alunos/[id]/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/teacher-workspace/students"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/alunos",
+      "source_page": "apps/web/src/app/(app)/professor/alunos/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/teacher-workspace/students"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/atendimentos",
+      "source_page": "apps/web/src/app/(app)/professor/atendimentos/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next/navigation"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "redireciona para /professor/agenda",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/chamada/previa",
+      "source_page": "apps/web/src/app/(app)/professor/chamada/previa/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/student-attendance/teacher-preview"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/experimentais",
+      "source_page": "apps/web/src/app/(app)/professor/experimentais/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next/navigation"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "redireciona para /professor/agenda",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor",
+      "source_page": "apps/web/src/app/(app)/professor/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next/navigation", "react", "~/features/teacher-workspace/home"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "query dia presente → /professor/agenda preservando parâmetros string",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "query dia ausente → TeacherHome",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/pendencias",
+      "source_page": "apps/web/src/app/(app)/professor/pendencias/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/teacher-workspace/agenda"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/turmas/[id]",
+      "source_page": "apps/web/src/app/(app)/professor/turmas/[id]/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/teacher-workspace/classes"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professor/turmas",
+      "source_page": "apps/web/src/app/(app)/professor/turmas/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/teacher-workspace/classes"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        },
+        {
+          "file": "apps/web/src/app/(app)/professor/layout.tsx",
+          "variant": "requireRole(TEACHER), incluindo ativação de papel disponível ou recusa"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professores/[id]",
+      "source_page": "apps/web/src/app/(app)/professores/[id]/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next", "react", "~/features/teachers/teacher-page", "~/lib/require-role"],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/professores",
+      "source_page": "apps/web/src/app/(app)/professores/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/teachers/teachers-page",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/proximo-semestre",
+      "source_page": "apps/web/src/app/(app)/proximo-semestre/page.tsx",
+      "block": 3,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next", "next/navigation", "~/lib/require-role"],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "ADMIN/SYSTEM_ADMIN → /organizacao",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/recebiveis",
+      "source_page": "apps/web/src/app/(app)/recebiveis/page.tsx",
+      "block": 2,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "react",
+        "~/features/installments/installments-page",
+        "~/lib/require-role"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/turmas/[id]",
+      "source_page": "apps/web/src/app/(app)/turmas/[id]/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "~/lib/require-role",
+        "~/features/stage-planning/teacher-context",
+        "next",
+        "react",
+        "~/features/classes/class-page"
+      ],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "TEACHER → contexto de planejamento da turma",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "ADMIN/SYSTEM_ADMIN → ficha administrativa",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/turmas",
+      "source_page": "apps/web/src/app/(app)/turmas/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next", "react", "~/features/classes/classes-page", "~/lib/require-role"],
+      "page_roles": ["ADMIN", "SYSTEM_ADMIN"],
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/workshop/acompanhamento",
+      "source_page": "apps/web/src/app/(app)/workshop/acompanhamento/page.tsx",
+      "block": null,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "react",
+        "~/features/students/follow-up-workshop/config",
+        "next/navigation",
+        "~/features/students/follow-up-workshop/workshop"
+      ],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "workshopEnabled=false → notFound",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "workshopEnabled=true → FollowUpWorkshop",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/workshop/materiais",
+      "source_page": "apps/web/src/app/(app)/workshop/materiais/page.tsx",
+      "block": 1,
+      "block_assignment": "confirmed: page is a redirect to /estagios, not a material-order workflow",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next/navigation"],
+      "page_roles": null,
+      "inherited_guards": [
+        {
+          "file": "apps/web/src/app/(app)/layout.tsx",
+          "variant": "Sem identidade habilitada: sessão ausente→/login; sessão existente→/403; identidade habilitada→AppShell"
+        }
+      ],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "redireciona para /estagios",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/403",
+      "source_page": "apps/web/src/app/403/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "lucide-react",
+        "next",
+        "next/headers",
+        "next/image",
+        "next/link",
+        "react",
+        "@lazuli/auth/server",
+        "@lazuli/ui",
+        "~/components/app-shell/session-sync",
+        "~/components/marquee/marquee-layout",
+        "./sign-out-button"
+      ],
+      "page_roles": null,
+      "inherited_guards": [],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "sessão existente → SessionSync e ação de sair",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "sem sessão → explicação e ação de voltar ao início",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/login",
+      "source_page": "apps/web/src/app/login/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next",
+        "next/image",
+        "next/headers",
+        "next/navigation",
+        "react",
+        "@lazuli/auth",
+        "@lazuli/auth/server",
+        "./login-card",
+        "./login-entrance",
+        "./login-entrance.module.css"
+      ],
+      "page_roles": null,
+      "inherited_guards": [],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "sessão existente → /",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "error ausente → sem erro inicial e animação",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-3",
+          "behavior": "error de acesso negado → estado denied",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-4",
+          "behavior": "outro error → estado verification",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-5",
+          "behavior": "Google OAuth configurado/ausente → prop para LoginCard",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/perfil",
+      "source_page": "apps/web/src/app/perfil/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": [
+        "next/headers",
+        "next/navigation",
+        "@lazuli/auth/server",
+        "~/lib/staff-experience",
+        "./activate-experience"
+      ],
+      "page_roles": null,
+      "inherited_guards": [],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "identidade ausente → /login",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-2",
+          "behavior": "perfil não disponível na identidade → /403",
+          "destination_status": "pending",
+          "evidence": []
+        },
+        {
+          "id": "page-3",
+          "behavior": "perfil disponível → ActivateExperience com retorno interno validado",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/presenca",
+      "source_page": "apps/web/src/app/presenca/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["next", "~/features/student-attendance/student-page"],
+      "page_roles": null,
+      "inherited_guards": [],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/presenca/previa",
+      "source_page": "apps/web/src/app/presenca/previa/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/student-attendance/student-preview"],
+      "page_roles": null,
+      "inherited_guards": [],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/presenca/previa/projecao",
+      "source_page": "apps/web/src/app/presenca/previa/projecao/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/student-attendance/projection-preview"],
+      "page_roles": null,
+      "inherited_guards": [],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "route": "/presenca/projecao",
+      "source_page": "apps/web/src/app/presenca/projecao/page.tsx",
+      "block": 1,
+      "block_assignment": "candidate",
+      "implementation": "not_audited",
+      "behavior": "not_audited",
+      "variants": [],
+      "evidence": [],
+      "entrypoint_review": {
+        "state": "read",
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "scope": "page module only; imported feature variants remain pending unless separately recorded"
+      },
+      "direct_imports": ["~/features/student-attendance/projection-page"],
+      "page_roles": null,
+      "inherited_guards": [],
+      "entry_variants": [
+        {
+          "id": "page-1",
+          "behavior": "renderiza o componente importado após os guards aplicáveis; variantes internas pendentes",
+          "destination_status": "pending",
+          "evidence": []
+        }
+      ]
+    }
+  ],
+  "unrouted_scope": [
+    "workers/jobs",
+    "schema/migrations",
+    "auth/session/role selection",
+    "imports",
+    "seed",
+    "shared components and hooks",
+    "configuration/infrastructure",
+    "assets and scripts"
+  ],
+  "excluded": [],
+  "shared_entrypoint_variants": [
+    {
+      "file": "apps/web/src/lib/require-role.ts",
+      "behavior": "Papel ativo permitido conserva experiência; outro papel permitido na identidade redireciona via /perfil; nenhum papel permitido→/403; identidade ausente→/login",
+      "destination": "block1 auth/teacher experience",
+      "review": "source read; destination pending"
+    },
+    {
+      "file": "apps/web/src/lib/staff-experience.ts",
+      "behavior": "Retorno externo, inválido, /perfil e /api/* caem no início da experiência; ativação faz navegação completa e cookie de papel; Secure em HTTPS",
+      "destination": "block1 auth/teacher experience",
+      "review": "source read; destination pending"
+    }
+  ],
+  "dependency_graph": "operacao-pedagogica-route-graph.json"
+}

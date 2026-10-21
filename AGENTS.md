@@ -30,10 +30,17 @@ state unresolved limitations plainly.
 
 Run commands from the root. The usual checks are `pnpm format:check`, `pnpm lint`,
 `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:transport`, and
-`pnpm build`. For any code change, load and follow `ship-with-tests`;
-`docs/testing/README.md` owns test tiers, placement, guidance, and executable gates. Before
-finishing, inspect the complete diff, run `git diff --check`, run proportionate checks, and report
+`pnpm build`. For code changes, follow `docs/testing/README.md`; it owns test selection,
+tiers, placement, and executable gates. Before finishing, inspect the complete diff,
+run `git diff --check`, run proportionate checks, and report
 anything left to CI with a concrete reason.
+
+For extracting and integrating MVP workflows from a feature branch, use
+[`vibe-police`](.codex/skills/vibe-police/SKILL.md): vertical slices, selective tests, implementation checks and security review on every PR,
+and the owner's delivery plan. The remaining operacao-pedagogica scope is exactly three PRs
+(pedagogical operations; entry/commercial/contracts; class/semester organization, activity log and
+final seed), without line limits. Choose and audit scope by frontend route and every code variant;
+track non-route dependencies too. Report product lines separately from tests, documentation and scripts.
 
 ## Hard boundaries
 
