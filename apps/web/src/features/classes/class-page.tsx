@@ -1,18 +1,22 @@
 "use client";
 import { useState, type ReactElement } from "react";
-import { Button } from "@lazuli/ui";
+import { CalendarDays, UsersRound, UserRoundPlus } from "lucide-react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { Button, InlineSkeleton, Input, Tabs, TabsList, TabsPanel, TabsTab } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "@lazuli/api";
-import { ClassOverview, ClassContextSidebar } from "./class-overview";
+import { ClassOverview } from "./class-overview";
 import { MembershipDialog } from "./membership-dialog";
 import { AssignmentDialog } from "../teachers/assignment-dialog";
 import { RosterSection } from "./roster-section";
+import { ActionHistory } from "./action-history";
+import { ClassSessions, GenerationNotice } from "./class-sessions";
 
-export function ClassPage({ id }: ClassPageInput): ReactElement {
+const SECTIONS = ["alunos", "aulas"] as const;
+export function ClassPage({ id }: { id: string }): ReactElement {
   const query = trpc.classes.byId.useQuery({ id }, { retry: false });
-  const detail = query.data;
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-6 overflow-y-auto p-4 lg:overflow-hidden">
+    <div className="scrollbar-subtle h-full min-h-0 min-w-0 overflow-y-auto p-4 sm:p-6">
       {query.isError && (
         <div role="alert" className="space-y-2">
           <p>
@@ -25,34 +29,22 @@ export function ClassPage({ id }: ClassPageInput): ReactElement {
           </Button>
         </div>
       )}
-      {query.isPending && <p role="status">Carregando turma…</p>}
-      {detail && <ClassDetailView detail={detail} id={id} />}
+      {query.isPending && <InlineSkeleton className="h-40 w-full" aria-label="Carregando turma" />}
+      {query.data && <ClassDetailView key={id} detail={query.data} />}
     </div>
   );
 }
-
-function ClassDetailView({ detail, id }: ClassDetailViewInput): ReactElement {
+function ClassDetailView({ detail }: { detail: RouterOutputs["classes"]["byId"] }): ReactElement {
   const [assigning, setAssigning] = useState(false);
   const [membershipOpen, setMembershipOpen] = useState(false);
-  const [search, setSearch] = useState("");
   return (
-    <>
-      <ClassOverview
-        detail={detail}
-        enroll={() => setMembershipOpen(true)}
-        search={search}
-        onSearchChange={setSearch}
-      />
-      <RosterSection
-        key={`${id}/${search}`}
-        classId={id}
-        search={search}
-        showStage={detail.scheduleType === "PERSONALIZED"}
-        sidebar={<ClassContextSidebar detail={detail} onAssign={() => setAssigning(true)} />}
-      />
+    <div className="grid min-w-0 gap-5">
+      <ClassOverview detail={detail} onAssign={() => setAssigning(true)} />
+      <GenerationNotice classId={detail.id} />
+      <ClassSections detail={detail} enroll={() => setMembershipOpen(true)} />
       {assigning && (
         <AssignmentDialog
-          classId={id}
+          classId={detail.id}
           classCode={detail.portalClassName}
           onClose={() => setAssigning(false)}
         />
@@ -60,18 +52,97 @@ function ClassDetailView({ detail, id }: ClassDetailViewInput): ReactElement {
       {membershipOpen && (
         <MembershipDialog
           mode="ENTRY"
-          classId={id}
+          classId={detail.id}
           scheduleType={detail.scheduleType}
           open
           onOpenChange={setMembershipOpen}
         />
       )}
-    </>
+    </div>
+  );
+}
+type ClassSectionsInput = { detail: RouterOutputs["classes"]["byId"]; enroll: () => void };
+function ClassSections({ detail, enroll }: ClassSectionsInput): ReactElement {
+  const [section, setSection] = useQueryState(
+    "secao",
+    parseAsStringLiteral(SECTIONS).withDefault("alunos"),
+  );
+  const [search, setSearch] = useState("");
+  return (
+    <Tabs
+      className="min-w-0"
+      value={section}
+      variant="underline"
+      onValueChange={(value) => void setSection(value === "aulas" ? "aulas" : "alunos")}
+    >
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <TabsList aria-label="Seções da turma">
+          <TabsTab value="alunos">
+            <UsersRound aria-hidden />
+            Alunos
+          </TabsTab>
+          <TabsTab value="aulas">
+            <CalendarDays aria-hidden />
+            Aulas
+          </TabsTab>
+        </TabsList>
+        <ClassTools
+          classId={detail.id}
+          showStudents={section === "alunos"}
+          search={search}
+          onSearchChange={setSearch}
+          enroll={enroll}
+        />
+      </div>
+      <TabsPanel value="alunos">
+        <RosterSection
+          key={`${detail.id}/${search}`}
+          classId={detail.id}
+          search={search}
+          showStage={detail.scheduleType === "PERSONALIZED"}
+        />
+      </TabsPanel>
+      <TabsPanel value="aulas">
+        <ClassSessions classId={detail.id} />
+      </TabsPanel>
+    </Tabs>
   );
 }
 
-type ClassPageInput = { id: string };
-type ClassDetailViewInput = {
-  detail: RouterOutputs["classes"]["byId"];
-  id: string;
-};
+function ClassTools({
+  classId,
+  showStudents,
+  search,
+  onSearchChange,
+  enroll,
+}: {
+  classId: string;
+  showStudents: boolean;
+  search: string;
+  onSearchChange: (value: string) => void;
+  enroll: () => void;
+}): ReactElement {
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      {showStudents && (
+        <Input
+          aria-label="Buscar aluno na turma"
+          name="search"
+          autoComplete="off"
+          className="w-44"
+          size="sm"
+          placeholder="Buscar aluno"
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+        />
+      )}
+      <ActionHistory classId={classId} />
+      {showStudents && (
+        <Button size="sm" onClick={enroll}>
+          <UserRoundPlus aria-hidden />
+          Matricular aluno
+        </Button>
+      )}
+    </div>
+  );
+}

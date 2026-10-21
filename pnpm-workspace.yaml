@@ -4,11 +4,13 @@ packages:
   - "tooling/*"
 
 allowBuilds:
+  "@hatchet-dev/typescript-sdk": false
   "@prisma/engines": true
   core-js-pure: true
   esbuild: true
   lefthook: true
   prisma: true
+  protobufjs: false
   sharp: true
   unrs-resolver: true
 

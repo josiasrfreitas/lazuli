@@ -1,5 +1,5 @@
 "use client";
-import { useState, type ReactElement, type ReactNode } from "react";
+import { useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { CloseMembershipDialog } from "./close-dialog";
@@ -10,34 +10,28 @@ import { RosterList } from "./roster-list";
 export function RosterSection({
   classId,
   search,
-  sidebar,
   showStage,
 }: {
   classId: string;
   search: string;
-  sidebar: ReactNode;
   showStage: boolean;
 }): ReactElement {
   const state = useRoster(classId, search);
   const [returning, setReturning] = useState<RosterRow | null>(null);
   return (
     <section aria-label="Alunos da turma" className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-      <div className="grid min-h-0 min-w-0 gap-5 lg:flex lg:flex-1">
-        {sidebar}
-        <div className="@container flex min-h-0 min-w-0 flex-col lg:flex-1">
-          <RosterList
-            key={state.page}
-            data={state.query.data}
-            failed={state.query.isError}
-            refetch={() => void state.query.refetch()}
-            page={state.page}
-            setPage={state.setPage}
-            showStage={showStage}
-            resume={setReturning}
-            close={(row) => state.setClosing({ id: row.id, studentName: row.student.fullName })}
-          />
-        </div>
-      </div>
+      <RosterList
+        key={state.page}
+        data={state.query.data}
+        failed={state.query.isError}
+        refetch={() => void state.query.refetch()}
+        page={state.page}
+        setPage={state.setPage}
+        showStage={showStage}
+        filtered={Boolean(search)}
+        resume={setReturning}
+        close={(row) => state.setClosing({ id: row.id, studentName: row.student.fullName })}
+      />
       <RosterReturnDialog
         returning={returning}
         classId={classId}
@@ -88,7 +82,7 @@ function useRoster(classId: string, search: string): RosterState {
     id: classId,
     search,
     page,
-    pageSize: 20,
+    pageSize: 25,
   });
   return {
     page,

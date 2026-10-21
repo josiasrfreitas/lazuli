@@ -14,27 +14,29 @@ const DAYS = [
 
 export function ClassSchedule({ slots }: { slots: readonly ScheduleSlot[] }): ReactElement {
   return (
-    <section aria-labelledby="class-schedule-title" className="min-w-0 border-t border-border pt-4">
-      <div className="mb-3 flex items-center gap-2">
+    <section aria-labelledby="class-schedule-title" className="min-w-0">
+      <div className="flex items-center gap-2">
         <CalendarDays aria-hidden="true" className="size-4 text-icon" />
-        <h2 id="class-schedule-title" className="text-body font-semibold">
-          Agenda da turma
+        <h2 id="class-schedule-title" className="text-caption text-muted-foreground">
+          Horários
         </h2>
       </div>
       {slots.length === 0 ? (
         <p className="text-caption text-muted-foreground">Nenhum horário cadastrado.</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="mt-3.5 flex flex-wrap gap-x-8 gap-y-4">
           {DAYS.map(([weekday, label]) => {
-            const meetings = slots.filter((slot) => slot.weekday === weekday);
+            const meetings = slots
+              .filter((slot) => slot.weekday === weekday)
+              .toSorted((left, right) => left.startTime.getTime() - right.startTime.getTime());
             if (meetings.length === 0) return null;
             return (
-              <li key={weekday} className="border-l-2 border-border-strong pl-3">
-                <p className="text-caption text-muted-foreground">{label}</p>
+              <li key={weekday} className="min-w-0">
+                <p className="font-display text-2xl font-medium text-heading">{label}</p>
                 {meetings.map((slot) => (
                   <p
                     key={slot.startTime.toISOString()}
-                    className="mt-0.5 whitespace-nowrap font-numeric text-body tabular-nums"
+                    className="mt-1.5 whitespace-nowrap font-numeric text-base text-foreground"
                   >
                     {formatClassScheduleTime([slot]).replace(/^\S+ /u, "")}
                   </p>

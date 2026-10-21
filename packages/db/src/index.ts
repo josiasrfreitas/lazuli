@@ -15,6 +15,8 @@ export type {
   Installment,
   InstallmentAdjustment,
   InstallmentAgreement,
+  SessionGenerationRequest,
+  ClassSession,
   Order,
   OrderBeneficiary,
   Payer,

@@ -228,7 +228,10 @@ void it("enqueues session generation without creating sessions inline", async ()
 
   assert.equal(result.workflowName, "sessions-generate");
   assert.equal(result.jobId, "job-1");
-  assert.deepEqual(queue.calls, [{ classId: created.id }]);
+  assert.deepEqual(queue.calls, [{ classId: created.id, requestId: result.id }]);
+  const request = await db.sessionGenerationRequest.findUniqueOrThrow({ where: { id: result.id } });
+  assert.equal(request.classId, created.id);
+  assert.equal(request.status, "QUEUED");
   assert.equal(sessionCount, 0);
 });
 
@@ -247,3 +250,28 @@ async function createRegularFixture(
     slots: [{ weekday: "TUESDAY", startTime: "14:00", endTime: "16:00" }],
   });
 }
+
+void it("keeps a class saved after dispatch failure and exposes a recoverable request", async () => {
+  await cleanClassDatabase();
+  await ensureTeacherUser();
+  const fixtures = await seedClassCatalogFixtures();
+  const created = await createRegularFixture(fixtures);
+  const failed = await caller().classes.generation({ id: created.id });
+  assert.equal(failed.request?.status, "FAILED");
+  assert.equal(failed.sessionCount, 0);
+  assert.equal(failed.canGenerate, true);
+  const detail = await caller().classes.byId({ id: created.id });
+  assert.equal(detail.id, created.id);
+  const queue = recordingSessionsGenerateQueue("job-recovery");
+  const recovery = createCaller(contextWithQueue({ queue }));
+  await recovery.classes.generateSessions({ classId: created.id });
+  const queued = await recovery.classes.generation({ id: created.id });
+  assert.equal(queued.request?.status, "QUEUED");
+  assert.equal(queued.pending, true);
+  assert.equal(queued.canGenerate, false);
+  await assert.rejects(
+    recovery.classes.generateSessions({ classId: created.id }),
+    /já estão sendo preparadas/,
+  );
+  assert.equal(queue.calls.length, 1);
+});

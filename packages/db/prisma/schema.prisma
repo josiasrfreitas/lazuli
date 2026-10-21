@@ -197,6 +197,8 @@ model User {
   financialTreatments           InstallmentAgreement[]
   recordedEnrollmentActions     EnrollmentAction[]      @relation("EnrollmentActionRecorder")
   cancelledEnrollmentActions    EnrollmentAction[]      @relation("EnrollmentActionCanceller")
+  sessionGenerationRequests SessionGenerationRequest[]
+
 }
 
 model Account {
@@ -328,6 +330,8 @@ model Semester {
   endDate   DateTime  @map("end_date") @db.Date
 
   classes Class[]
+  sessionGenerationRequests SessionGenerationRequest[]
+
 }
 
 model SchoolClosedDay {
@@ -386,6 +390,8 @@ model Class {
   substitutions ClassSubstitution[]
   enrollments        Enrollment[]
   generatedArtifacts GeneratedArtifact[]
+
+  sessionGenerationRequests SessionGenerationRequest[]
 
   @@index([teacherId])
   @@index([sharedStageId])
@@ -956,4 +962,38 @@ model InstallmentAgreement {
 
   @@unique([commandId, installmentId])
   @@index([installmentId, createdAt])
+}
+
+enum SessionGenerationStatus {
+  PENDING
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model SessionGenerationRequest {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  classId String? @map("class_id") @db.Uuid
+  semesterId String? @map("semester_id") @db.Uuid
+  requestedById String? @map("requested_by_id") @db.Uuid
+  status SessionGenerationStatus @default(PENDING)
+  jobId String? @map("job_id")
+  startedAt DateTime? @map("started_at") @db.Timestamptz
+  completedAt DateTime? @map("completed_at") @db.Timestamptz
+  failureCode String? @map("failure_code")
+  classesMatched Int? @map("classes_matched")
+  sessionsCreated Int? @map("sessions_created")
+  sessionsPlanned Int? @map("sessions_planned")
+
+  class Class? @relation(fields: [classId], references: [id], onDelete: Cascade)
+  semester Semester? @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  requestedBy User? @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+
+  @@index([classId, createdAt])
+  @@index([semesterId, createdAt])
+  @@index([requestedById])
 }
