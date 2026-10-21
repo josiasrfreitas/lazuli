@@ -6,6 +6,7 @@ import type { RouterOutputs } from "@lazuli/api";
 import { QueryLoading } from "~/components/query-loading";
 import { trpc } from "~/lib/trpc";
 import { RecordState, SnapshotView } from "./shared";
+const MISSING_AUTHOR = "autoria não registrada";
 const historyTime = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
   timeStyle: "short",
@@ -68,16 +69,26 @@ function Revision({
         </summary>
         <div className="pt-4">
           <SnapshotView snapshot={row.snapshot} />
+          {row.snapshot.attendanceOrigin && (
+            <p className="mt-3 text-caption text-muted-foreground">
+              Chamada confirmada por{" "}
+              {row.snapshot.attendanceOrigin.confirmedBy?.name ?? MISSING_AUTHOR} ·{" "}
+              {row.snapshot.attendanceOrigin.confirmedAt
+                ? historyTime.format(new Date(row.snapshot.attendanceOrigin.confirmedAt))
+                : "horário não registrado"}
+              . Frequência anterior à baixa:
+            </p>
+          )}
           {row.snapshot.attendanceOrigin?.entries.map((entry) => (
             <p key={entry.enrollmentId} className="mt-2 text-caption text-muted-foreground">
               {
                 row.snapshot.entries.find((student) => student.enrollmentId === entry.enrollmentId)
                   ?.name
               }
-              : chamada por {entry.recordedBy?.name ?? "autoria não registrada"} em{" "}
+              : chamada por {entry.recordedBy?.name ?? MISSING_AUTHOR} em{" "}
               {historyTime.format(new Date(entry.recordedAt))}.
               {entry.modifiedAt &&
-                ` Alterada por ${entry.modifiedBy?.name ?? "autoria não registrada"} em ${historyTime.format(new Date(entry.modifiedAt))}.`}
+                ` Alterada por ${entry.modifiedBy?.name ?? MISSING_AUTHOR} em ${historyTime.format(new Date(entry.modifiedAt))}.`}
             </p>
           ))}
         </div>

@@ -121,7 +121,7 @@ export async function classRecordHistory(
   });
   const items = rows.slice(0, HISTORY_PAGE_SIZE).map((row) => {
     const snapshot = classRecordSnapshotSchema.parse(row.snapshot);
-    const origin = snapshot.attendanceOrigin;
+    const origin = snapshot.attendanceOrigin?.priorState ? snapshot.attendanceOrigin : undefined;
     return {
       id: row.id,
       version: row.version,

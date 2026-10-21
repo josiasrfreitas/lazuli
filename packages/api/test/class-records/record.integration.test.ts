@@ -625,7 +625,7 @@ void it("retains a retired linked step and its recorded label while correcting t
 
 void it("allows overdue narrative completion but reserves changes to confirmed attendance for administration", async () => {
   const fixtureData = await fixture();
-  await caller("2076-02-15T13:10:00Z", teacher).attendance.confirmSession({
+  await caller("2076-02-15T13:10:00Z").attendance.confirmSession({
     sessionId: fixtureData.session.id,
     rows: [],
   });
@@ -658,6 +658,13 @@ void it("allows overdue narrative completion but reserves changes to confirmed a
   await overdue.classRecords.save(input);
   const completed = await overdue.classRecords.detail({ sessionId: fixtureData.session.id });
   assert.equal(completed.version, 1);
+  const origin = completed.snapshot.attendanceOrigin!;
+  assert.equal(origin.confirmedBy!.id, admin.id);
+  assert.equal(origin.confirmedAt, "2076-02-15T13:10:00.000Z");
+  assert.equal(origin.priorState, false);
+  const history = await overdue.classRecords.history({ sessionId: fixtureData.session.id });
+  assert.equal(history.items[0]!.authorId, teacher.id);
+  assert.equal(history.items[0]!.recordedAt.toISOString(), "2076-02-16T14:00:00.000Z");
   assert.deepEqual(
     completed.snapshot.entries.map((row) => row.status),
     ["PRESENT", "PRESENT"],

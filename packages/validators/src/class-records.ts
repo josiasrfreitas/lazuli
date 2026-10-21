@@ -84,6 +84,8 @@ export const classRecordSnapshotSchema = z.object({
   attendanceOrigin: z
     .object({
       confirmedBy: attendanceAuthor,
+      confirmedAt: z.string().datetime().nullable().optional(),
+      priorState: z.boolean().default(true),
       entries: z.array(
         z.object({
           enrollmentId: z.string().uuid(),

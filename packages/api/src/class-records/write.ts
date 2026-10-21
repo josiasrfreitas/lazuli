@@ -61,19 +61,30 @@ async function prepareRecord(context: RecordContext, input: ClassRecordSave): Pr
         snapshot.entries.find((next) => next.enrollmentId === row.enrollmentId)?.status !==
         row.status,
     );
-  if (changedAttendance) {
-    assertAttendanceWriteWindow({
-      staffUser: context.staffUser,
-      sessionDate: session.date,
-      now: context.now,
-    });
-    before.attendanceOrigin = await preserveAttendance(context, session);
-  }
+  const state = { session, before, snapshot, changedAttendance };
+  await prepareAttendance(context, { state, priorRecord: Boolean(previous) });
   if (changedAttendance && !input.reason)
     throw badRequest("Informe o motivo para corrigir a chamada já confirmada.");
   if (previous && JSON.stringify(previous) === JSON.stringify(snapshot))
     throw badRequest("Altere a presença, o conteúdo ou a observação antes de salvar uma correção.");
-  return { session, before, snapshot, changedAttendance };
+  return state;
+}
+async function prepareAttendance(
+  context: RecordContext,
+  values: { state: RecordState; priorRecord: boolean },
+): Promise<void> {
+  const { state, priorRecord } = values;
+  if (state.changedAttendance)
+    assertAttendanceWriteWindow({
+      staffUser: context.staffUser,
+      sessionDate: state.session.date,
+      now: context.now,
+    });
+  if (!priorRecord && state.session.attendanceConfirmedAt) {
+    const origin = await preserveAttendance(context, state.session);
+    state.before.attendanceOrigin = origin;
+    state.snapshot.attendanceOrigin = { ...origin, priorState: false };
+  }
 }
 function assertCurrentVersion(session: RecordSession, input: ClassRecordSave): void {
   if (

@@ -24,6 +24,8 @@ export async function preserveAttendance(
   ]);
   return {
     confirmedBy: confirmation.attendanceConfirmedBy,
+    confirmedAt: session.attendanceConfirmedAt?.toISOString() ?? null,
+    priorState: true,
     entries: rows.map((row) => ({
       enrollmentId: row.enrollmentId,
       recordedBy: row.recordedBy,
