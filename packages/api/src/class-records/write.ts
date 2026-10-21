@@ -2,6 +2,8 @@ import { TRPCError } from "@trpc/server";
 import type { ClassRecordSave, ClassRecordSnapshot } from "@lazuli/validators";
 import { badRequest } from "../trpc/errors.js";
 import { recordActivity } from "../activity/record.js";
+import { assertAttendanceWriteWindow } from "../attendance/access.js";
+import { preserveAttendance } from "./attendance-origin.js";
 import { resolveRecordedSteps } from "./planning-links.js";
 import { commitAttendance } from "./attendance.js";
 import {
@@ -59,6 +61,14 @@ async function prepareRecord(context: RecordContext, input: ClassRecordSave): Pr
         snapshot.entries.find((next) => next.enrollmentId === row.enrollmentId)?.status !==
         row.status,
     );
+  if (changedAttendance) {
+    assertAttendanceWriteWindow({
+      staffUser: context.staffUser,
+      sessionDate: session.date,
+      now: context.now,
+    });
+    before.attendanceOrigin = await preserveAttendance(context, session);
+  }
   if (changedAttendance && !input.reason)
     throw badRequest("Informe o motivo para corrigir a chamada já confirmada.");
   if (previous && JSON.stringify(previous) === JSON.stringify(snapshot))
@@ -102,6 +112,8 @@ async function persistRecord(
       recordId: record.id,
       version: 1,
       snapshot: state.before,
+      recordedById: state.before.attendanceOrigin?.confirmedBy?.id ?? context.staffUser.id,
+      createdAt: session.attendanceConfirmedAt ?? context.now,
       reason: "Chamada anterior à baixa, preservada antes da correção de presença.",
     });
   await createRevision(context, {
@@ -114,13 +126,20 @@ async function persistRecord(
 }
 async function createRevision(
   context: RecordContext,
-  input: { recordId: string; version: number; snapshot: ClassRecordSnapshot; reason: string },
+  input: {
+    recordId: string;
+    version: number;
+    snapshot: ClassRecordSnapshot;
+    reason: string;
+    recordedById?: string;
+    createdAt?: Date;
+  },
 ): Promise<void> {
   await context.database.classSessionRecordRevision.create({
     data: {
       ...input,
-      recordedById: context.staffUser.id,
-      createdAt: context.now,
+      recordedById: input.recordedById ?? context.staffUser.id,
+      createdAt: input.createdAt ?? context.now,
       updatedAt: context.now,
     },
   });

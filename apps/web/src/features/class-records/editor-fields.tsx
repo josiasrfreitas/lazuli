@@ -59,6 +59,12 @@ function RosterName({ editor, row }: Props & { row: Row }): ReactElement {
   );
 }
 function PresenceControl({ editor, row }: Props & { row: Row }): ReactElement {
+  if (editor.opened.attendanceReadOnly)
+    return (
+      <p className="text-caption text-muted-foreground">
+        {row.status === "PRESENT" ? "Presente" : "Falta"} · Chamada confirmada
+      </p>
+    );
   return (
     <SegmentedControl
       size="sm"

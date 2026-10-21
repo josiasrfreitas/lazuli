@@ -6,6 +6,11 @@ import type { RouterOutputs } from "@lazuli/api";
 import { QueryLoading } from "~/components/query-loading";
 import { trpc } from "~/lib/trpc";
 import { RecordState, SnapshotView } from "./shared";
+const historyTime = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+  timeZone: "America/Sao_Paulo",
+});
 export function ClassRecordHistory({ sessionId }: { sessionId: string }): ReactElement {
   const query = trpc.classRecords.history.useInfiniteQuery(
     { sessionId },
@@ -53,12 +58,7 @@ function Revision({
           {row.version === 1 ? "Registro inicial" : `Correção · versão ${row.version}`}
         </h3>
         <p className="mt-1 text-caption text-muted-foreground">
-          {row.author} ·{" "}
-          {new Intl.DateTimeFormat("pt-BR", {
-            dateStyle: "short",
-            timeStyle: "short",
-            timeZone: "America/Sao_Paulo",
-          }).format(new Date(row.recordedAt))}
+          {row.author} · {historyTime.format(new Date(row.recordedAt))}
         </p>
       </div>
       <p className="whitespace-pre-wrap text-sm">{row.reason}</p>
@@ -68,6 +68,18 @@ function Revision({
         </summary>
         <div className="pt-4">
           <SnapshotView snapshot={row.snapshot} />
+          {row.snapshot.attendanceOrigin?.entries.map((entry) => (
+            <p key={entry.enrollmentId} className="mt-2 text-caption text-muted-foreground">
+              {
+                row.snapshot.entries.find((student) => student.enrollmentId === entry.enrollmentId)
+                  ?.name
+              }
+              : chamada por {entry.recordedBy?.name ?? "autoria não registrada"} em{" "}
+              {historyTime.format(new Date(entry.recordedAt))}.
+              {entry.modifiedAt &&
+                ` Alterada por ${entry.modifiedBy?.name ?? "autoria não registrada"} em ${historyTime.format(new Date(entry.modifiedAt))}.`}
+            </p>
+          ))}
         </div>
       </details>
     </article>

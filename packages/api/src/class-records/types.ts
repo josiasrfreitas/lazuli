@@ -27,6 +27,7 @@ export type ClassRecordDetail = {
   recordedAt: Date | null;
   attendanceStamp: string | null;
   attendanceOnly: boolean;
+  attendanceReadOnly: boolean;
   restriction: string | null;
   snapshot: ClassRecordSnapshot;
 };
@@ -35,7 +36,7 @@ export type ClassRecordRevision = {
   version: number;
   reason: string;
   author: string;
-  authorId: string;
+  authorId: string | null;
   recordedAt: Date;
   snapshot: ClassRecordSnapshot;
 };

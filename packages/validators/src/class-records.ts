@@ -79,7 +79,22 @@ const plannedSchema = z
     items: stagePlanSnapshotSchema.shape.items,
   })
   .nullable();
+const attendanceAuthor = z.object({ id: z.string().uuid(), name: z.string() }).nullable();
 export const classRecordSnapshotSchema = z.object({
+  attendanceOrigin: z
+    .object({
+      confirmedBy: attendanceAuthor,
+      entries: z.array(
+        z.object({
+          enrollmentId: z.string().uuid(),
+          recordedBy: attendanceAuthor,
+          recordedAt: z.string().datetime(),
+          modifiedBy: attendanceAuthor,
+          modifiedAt: z.string().datetime().nullable(),
+        }),
+      ),
+    })
+    .optional(),
   note: z.string().nullable(),
   sharedContent: classRecordContentSchema.nullable(),
   sharedPlanned: plannedSchema,

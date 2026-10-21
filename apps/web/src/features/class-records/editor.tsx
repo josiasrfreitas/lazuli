@@ -39,6 +39,13 @@ export function ClassRecordEditor({
   );
 }
 function EditorNotice({ editor: { opened } }: { editor: RecordEditor }): ReactElement | null {
+  if (opened.attendanceReadOnly)
+    return (
+      <Alert>
+        Complete o relato mantendo a chamada confirmada. Alterações de presença em dias anteriores
+        cabem à administração.
+      </Alert>
+    );
   if (opened.attendanceOnly)
     return (
       <Alert>

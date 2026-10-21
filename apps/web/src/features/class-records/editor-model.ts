@@ -66,7 +66,7 @@ function useDraft(data: ClassRecord): Draft {
 function useEditorFocus(dirty: boolean): (id: string) => void {
   const [field, setField] = useState<{ id: string } | null>(null);
   useEffect(() => {
-    document.querySelector<HTMLElement>("#presence-first")?.focus();
+    document.querySelector<HTMLElement>("#presence-first, textarea")?.focus();
   }, []);
   useEffect(() => {
     if (field)

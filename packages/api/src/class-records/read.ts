@@ -96,6 +96,10 @@ export async function readClassRecord(
     recordedAt: session.classRecord?.createdAt ?? null,
     attendanceStamp: session.attendanceLastCommittedAt?.toISOString() ?? null,
     attendanceOnly: summary.attendanceOnly,
+    attendanceReadOnly:
+      context.staffUser.role === "TEACHER" &&
+      summary.attendanceOnly &&
+      dateOnly(session.date) !== saoPauloDateOnly(context.now),
     restriction: writeRestriction(context, session),
     snapshot: storedSnapshot(session) ?? (await initialSnapshot(context, session)),
   };
@@ -115,15 +119,19 @@ export async function classRecordHistory(
     take: HISTORY_PAGE_SIZE + 1,
     include: { recordedBy: { select: { name: true } } },
   });
-  const items = rows.slice(0, HISTORY_PAGE_SIZE).map((row) => ({
-    id: row.id,
-    version: row.version,
-    reason: row.reason,
-    author: row.recordedBy.name,
-    authorId: row.recordedById,
-    recordedAt: row.createdAt,
-    snapshot: classRecordSnapshotSchema.parse(row.snapshot),
-  }));
+  const items = rows.slice(0, HISTORY_PAGE_SIZE).map((row) => {
+    const snapshot = classRecordSnapshotSchema.parse(row.snapshot);
+    const origin = snapshot.attendanceOrigin;
+    return {
+      id: row.id,
+      version: row.version,
+      reason: row.reason,
+      author: origin ? (origin.confirmedBy?.name ?? "Autoria não registrada") : row.recordedBy.name,
+      authorId: origin ? (origin.confirmedBy?.id ?? null) : row.recordedById,
+      recordedAt: row.createdAt,
+      snapshot,
+    };
+  });
   return { items, nextCursor: rows.length > HISTORY_PAGE_SIZE ? items.at(-1)?.version : undefined };
 }
 

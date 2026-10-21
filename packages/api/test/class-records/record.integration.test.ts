@@ -401,7 +401,7 @@ void it("authorizes the dated substitute, freezes responsibility and keeps teach
 
 void it("detects an intervening attendance-only write and preserves its original statuses when completing with a justified correction", async () => {
   const fixtureData = await fixture();
-  await caller("2076-02-15T13:10:00Z").attendance.confirmSession({
+  await caller("2076-02-15T13:10:00Z", teacher).attendance.confirmSession({
     sessionId: fixtureData.session.id,
     rows: [],
   });
@@ -428,6 +428,12 @@ void it("detects an intervening attendance-only write and preserves its original
     await db.classSessionRecord.count({ where: { classSessionId: fixtureData.session.id } }),
     0,
   );
+  const attendanceBefore = await db.attendance.findFirstOrThrow({
+    where: {
+      classSessionId: fixtureData.session.id,
+      enrollmentId: fixtureData.rows[0]!.enrollmentId,
+    },
+  });
   await caller().classRecords.save({
     ...input,
     attendanceStamp: refreshed.attendanceStamp,
@@ -438,10 +444,23 @@ void it("detects an intervening attendance-only write and preserves its original
     history.items.map((row) => row.version),
     [2, 1],
   );
-  assert.equal(history.items[1]?.snapshot.entries[0]?.status, "ABSENT");
-  assert.equal(history.items[1]?.snapshot.sharedContent, null);
-  assert.equal(history.items[0]?.snapshot.entries[0]?.status, "PRESENT");
-  assert.equal(history.items[0]?.snapshot.sharedContent?.account, content.account);
+  const original = history.items[1]!;
+  const corrected = history.items[0]!;
+  assert.equal(original.snapshot.entries[0]!.status, "ABSENT");
+  assert.equal(original.authorId, teacher.id);
+  assert.equal(original.recordedAt.toISOString(), "2076-02-15T13:10:00.000Z");
+  assert.equal(corrected.authorId, admin.id);
+  assert.equal(corrected.recordedAt.toISOString(), "2076-02-15T14:00:00.000Z");
+  const originalAttendance = original.snapshot.attendanceOrigin!.entries.find(
+    (row) => row.enrollmentId === fixtureData.rows[0]!.enrollmentId,
+  )!;
+  assert.equal(originalAttendance.recordedBy!.id, teacher.id);
+  assert.equal(originalAttendance.recordedAt, attendanceBefore.recordedAt.toISOString());
+  assert.equal(originalAttendance.modifiedBy!.id, admin.id);
+  assert.equal(originalAttendance.modifiedAt, "2076-02-15T13:20:00.000Z");
+  assert.equal(original.snapshot.sharedContent, null);
+  assert.equal(corrected.snapshot.entries[0]?.status, "PRESENT");
+  assert.equal(corrected.snapshot.sharedContent?.account, content.account);
   const session = await db.classSession.findUniqueOrThrow({
     where: { id: fixtureData.session.id },
   });
@@ -602,4 +621,56 @@ void it("retains a retired linked step and its recorded label while correcting t
   assert.equal(corrected.snapshot.sharedContent?.planItemTitle, "Perguntas sobre a rotina");
   const planAfterRetirement = await caller().planning.detail(target);
   assert.equal(planAfterRetirement.plan?.items.length, 0);
+});
+
+void it("allows overdue narrative completion but reserves changes to confirmed attendance for administration", async () => {
+  const fixtureData = await fixture();
+  await caller("2076-02-15T13:10:00Z", teacher).attendance.confirmSession({
+    sessionId: fixtureData.session.id,
+    rows: [],
+  });
+  const overdue = caller("2076-02-16T14:00:00Z", teacher);
+  const before = await overdue.classRecords.detail({ sessionId: fixtureData.session.id });
+  assert.equal(before.attendanceReadOnly, true);
+  const input = {
+    sessionId: fixtureData.session.id,
+    version: 0,
+    attendanceStamp: before.attendanceStamp,
+    rows: fixtureData.rows,
+    sharedContent: content,
+    note: null,
+  };
+  const correction = {
+    ...input,
+    rows: fixtureData.rows.map((row, index) =>
+      index === 0 ? { ...row, status: "ABSENT" as const } : row,
+    ),
+    reason: "Presença revisada pela administração.",
+  };
+  await assert.rejects(overdue.classRecords.save(correction), { code: "FORBIDDEN" });
+  const unchanged = await overdue.classRecords.detail({ sessionId: fixtureData.session.id });
+  assert.equal(unchanged.version, 0);
+  assert.equal(unchanged.attendanceStamp, before.attendanceStamp);
+  assert.deepEqual(
+    unchanged.snapshot.entries.map((row) => row.status),
+    ["PRESENT", "PRESENT"],
+  );
+  await overdue.classRecords.save(input);
+  const completed = await overdue.classRecords.detail({ sessionId: fixtureData.session.id });
+  assert.equal(completed.version, 1);
+  assert.deepEqual(
+    completed.snapshot.entries.map((row) => row.status),
+    ["PRESENT", "PRESENT"],
+  );
+  const result = await caller("2076-02-16T15:00:00Z").classRecords.save({
+    ...correction,
+    version: 1,
+    attendanceStamp: completed.attendanceStamp,
+  });
+  assert.equal(result.version, 2);
+  const corrected = await caller().classRecords.detail({ sessionId: fixtureData.session.id });
+  assert.deepEqual(
+    corrected.snapshot.entries.map((row) => row.status),
+    ["ABSENT", "PRESENT"],
+  );
 });
