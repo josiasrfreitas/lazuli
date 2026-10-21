@@ -199,6 +199,12 @@ model User {
   cancelledEnrollmentActions    EnrollmentAction[]      @relation("EnrollmentActionCanceller")
   sessionGenerationRequests SessionGenerationRequest[]
 
+
+  stagePlansCreated StagePlan[] @relation("StagePlanCreator")
+  stagePlanRevisions StagePlanRevision[]
+  taughtClassRecords ClassSessionRecord[] @relation("ClassRecordTeacher")
+  classRecordRevisions ClassSessionRecordRevision[] @relation("ClassRecordAuthor")
+  activityEvents ActivityEvent[]
 }
 
 model Account {
@@ -278,6 +284,8 @@ model Student {
   @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_phone_trgm_idx")
   @@index([email(ops: raw("gin_trgm_ops"))], type: Gin, map: "Student_email_trgm_idx")
   @@index([guardianId])
+
+  stagePlans StagePlan[]
 }
 
 model Guardian {
@@ -397,6 +405,8 @@ model Class {
   @@index([sharedStageId])
   @@index([semesterId])
   @@index([previousClassId])
+
+  stagePlan StagePlan?
 }
 
 model ClassScheduleSlot {
@@ -450,6 +460,8 @@ model Stage {
 
   @@unique([trackId, internalCode])
   @@unique([trackId, sequence])
+
+  stagePlans StagePlan[]
 }
 
 model Enrollment {
@@ -522,6 +534,9 @@ model PedagogicalProgress {
 
   @@index([enrollmentId])
   @@index([stageId])
+
+  stagePlanId String? @map("stage_plan_id") @db.Uuid
+  stagePlan StagePlan? @relation(fields: [stagePlanId], references: [id], onDelete: Restrict)
 }
 
 model TeacherProfile {
@@ -622,6 +637,8 @@ model ClassSession {
   @@index([scheduleSlotId])
   @@index([cancelledById])
   @@index([attendanceConfirmedById])
+
+  classRecord ClassSessionRecord?
 }
 
 model Attendance {
@@ -996,4 +1013,126 @@ model SessionGenerationRequest {
   @@index([classId, createdAt])
   @@index([semesterId, createdAt])
   @@index([requestedById])
+}
+
+
+enum StagePlanActivityKind {
+  CONTENT
+  REVIEW
+  ASSESSMENT
+  ACTIVITY
+}
+
+model ActivityEvent {
+  id               String    @id @default(uuid()) @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz
+  occurredAt       DateTime  @default(now()) @map("occurred_at") @db.Timestamptz
+  actorId          String?   @map("actor_id") @db.Uuid
+  actorName        String    @map("actor_name")
+  area             String
+  action           String
+  title            String
+  subjectType      String    @map("subject_type")
+  subjectId        String?   @map("subject_id") @db.Uuid
+  subjectName      String    @map("subject_name")
+  description      String?
+  deduplicationKey String?   @unique @map("deduplication_key")
+  actor            User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([occurredAt, id])
+  @@index([area, occurredAt])
+  @@index([actorId, occurredAt])
+}
+
+model StagePlan {
+  id             String    @id @default(uuid()) @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz
+  classId        String?   @unique @map("class_id") @db.Uuid
+  studentId      String?   @map("student_id") @db.Uuid
+  stageId        String    @map("stage_id") @db.Uuid
+  plannedStartOn DateTime  @map("planned_start_on") @db.Date
+  plannedEndOn   DateTime  @map("planned_end_on") @db.Date
+  objective      String?
+  version        Int       @default(1)
+  createdById    String    @map("created_by_id") @db.Uuid
+
+  class           Class?                @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student         Student?              @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  stage           Stage                 @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  createdBy       User                  @relation("StagePlanCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  progressRecords PedagogicalProgress[]
+  items           StagePlanItem[]
+  revisions       StagePlanRevision[]
+
+  @@index([studentId, stageId])
+}
+
+model StagePlanItem {
+  id        String                @id @default(uuid()) @db.Uuid
+  createdAt DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime?             @map("deleted_at") @db.Timestamptz
+  planId    String                @map("plan_id") @db.Uuid
+  plannedOn DateTime              @map("planned_on") @db.Date
+  kind      StagePlanActivityKind
+  title     String
+  reference String?
+  pageFrom  Int?                  @map("page_from")
+  pageTo    Int?                  @map("page_to")
+  plan      StagePlan             @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([planId, plannedOn])
+}
+
+model StagePlanRevision {
+  id           String    @id @default(uuid()) @db.Uuid
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  planId       String    @map("plan_id") @db.Uuid
+  version      Int
+  reason       String
+  snapshot     Json
+  recordedById String    @map("recorded_by_id") @db.Uuid
+  plan         StagePlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  recordedBy   User      @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@unique([planId, version])
+}
+
+model ClassSessionRecord {
+  id                String                       @id @default(uuid()) @db.Uuid
+  createdAt         DateTime                     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime                     @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt         DateTime?                    @map("deleted_at") @db.Timestamptz
+  classSessionId    String                       @unique @map("class_session_id") @db.Uuid
+  teachingTeacherId String?                      @map("teaching_teacher_id") @db.Uuid
+  version           Int                          @default(1)
+  snapshot          Json
+  classSession      ClassSession                 @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  teachingTeacher   User?                        @relation("ClassRecordTeacher", fields: [teachingTeacherId], references: [id], onDelete: Restrict)
+  revisions         ClassSessionRecordRevision[]
+
+  @@index([teachingTeacherId])
+}
+
+model ClassSessionRecordRevision {
+  id           String             @id @default(uuid()) @db.Uuid
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt    DateTime?          @map("deleted_at") @db.Timestamptz
+  recordId     String             @map("record_id") @db.Uuid
+  version      Int
+  reason       String
+  snapshot     Json
+  recordedById String             @map("recorded_by_id") @db.Uuid
+  record       ClassSessionRecord @relation(fields: [recordId], references: [id], onDelete: Restrict)
+  recordedBy   User               @relation("ClassRecordAuthor", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@unique([recordId, version])
+  @@index([recordedById])
 }

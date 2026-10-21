@@ -1,4 +1,5 @@
 "use client";
+import { PlanningPage } from "../stage-planning/planning-page";
 import { useState, type ReactElement } from "react";
 import { CalendarDays, UsersRound, UserRoundPlus } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
@@ -12,7 +13,7 @@ import { RosterSection } from "./roster-section";
 import { ActionHistory } from "./action-history";
 import { ClassSessions, GenerationNotice } from "./class-sessions";
 
-const SECTIONS = ["alunos", "aulas"] as const;
+const SECTIONS = ["alunos", "aulas", "planejamento"] as const;
 export function ClassPage({ id }: { id: string }): ReactElement {
   const query = trpc.classes.byId.useQuery({ id }, { retry: false });
   return (
@@ -73,19 +74,10 @@ function ClassSections({ detail, enroll }: ClassSectionsInput): ReactElement {
       className="min-w-0"
       value={section}
       variant="underline"
-      onValueChange={(value) => void setSection(value === "aulas" ? "aulas" : "alunos")}
+      onValueChange={(value: string | null) => void setSection(classSection(value))}
     >
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <TabsList aria-label="Seções da turma">
-          <TabsTab value="alunos">
-            <UsersRound aria-hidden />
-            Alunos
-          </TabsTab>
-          <TabsTab value="aulas">
-            <CalendarDays aria-hidden />
-            Aulas
-          </TabsTab>
-        </TabsList>
+        <ClassSectionTabs />
         <ClassTools
           classId={detail.id}
           showStudents={section === "alunos"}
@@ -101,6 +93,9 @@ function ClassSections({ detail, enroll }: ClassSectionsInput): ReactElement {
           search={search}
           showStage={detail.scheduleType === "PERSONALIZED"}
         />
+      </TabsPanel>
+      <TabsPanel value="planejamento">
+        <PlanningPage classId={detail.id} />
       </TabsPanel>
       <TabsPanel value="aulas">
         <ClassSessions classId={detail.id} />
@@ -145,4 +140,24 @@ function ClassTools({
       )}
     </div>
   );
+}
+
+function ClassSectionTabs(): ReactElement {
+  return (
+    <TabsList aria-label="Seções da turma">
+      <TabsTab value="alunos">
+        <UsersRound aria-hidden />
+        Alunos
+      </TabsTab>
+      <TabsTab value="aulas">
+        <CalendarDays aria-hidden />
+        Aulas
+      </TabsTab>
+      <TabsTab value="planejamento">Planejamento</TabsTab>
+    </TabsList>
+  );
+}
+
+function classSection(value: string | null): (typeof SECTIONS)[number] {
+  return SECTIONS.find((section) => section === value) ?? "alunos";
 }

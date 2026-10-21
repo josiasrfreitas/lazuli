@@ -20,6 +20,8 @@ export type SegmentedControlProps = Omit<
   /** Marks the group invalid and exposes its state to assistive technologies. */
   invalid?: boolean;
   size?: SegmentedControlSize;
+  /** Wrap labelled choices in narrow forms. */
+  wrap?: boolean;
 };
 
 /**
@@ -28,7 +30,10 @@ export type SegmentedControlProps = Omit<
  * items. Name the group via `aria-label` or `aria-labelledby`.
  */
 export const SegmentedControl = forwardRef<HTMLDivElement, SegmentedControlProps>(
-  ({ className, invalid = false, onValueChange, size = "md", value, ...props }, ref) => (
+  (
+    { className, invalid = false, onValueChange, size = "md", value, wrap = false, ...props },
+    ref,
+  ) => (
     <ToggleGroupPrimitive
       {...props}
       aria-invalid={invalid || undefined}
@@ -38,8 +43,8 @@ export const SegmentedControl = forwardRef<HTMLDivElement, SegmentedControlProps
           "transition-[border-color,box-shadow] duration-fast ease-standard",
           "focus-within:border-ring aria-invalid:border-destructive",
           "data-disabled:cursor-not-allowed data-disabled:opacity-disabled",
-          size === "sm" && "h-control-sm rounded-sm",
-          size === "md" && "h-control-md rounded-md",
+          controlSize(size, wrap),
+          wrap && "flex-wrap",
         ],
         className,
       )}
@@ -85,3 +90,8 @@ export const SegmentedControlItem = forwardRef<HTMLButtonElement, SegmentedContr
 );
 
 SegmentedControlItem.displayName = "SegmentedControlItem";
+
+function controlSize(size: SegmentedControlSize, wrap: boolean): string {
+  if (size === "sm") return wrap ? "min-h-control-sm rounded-sm" : "h-control-sm rounded-sm";
+  return wrap ? "min-h-control-md rounded-md" : "h-control-md rounded-md";
+}

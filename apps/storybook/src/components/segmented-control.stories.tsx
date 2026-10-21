@@ -11,6 +11,7 @@ const meta = {
   title: "Components/SegmentedControl",
   component: SegmentedControl,
   tags: ["autodocs"],
+  argTypes: { wrap: { control: "boolean" } },
   parameters: {
     docs: {
       description: {
@@ -88,6 +89,20 @@ export const States: Story = {
       <DocumentTypeExample />
       <DocumentTypeExample invalid />
       <DocumentTypeExample disabled />
+    </div>
+  ),
+};
+
+export const Wrapped: Story = {
+  args: { value: "review", onValueChange: () => {} },
+  render: (args) => (
+    <div className="w-48">
+      <SegmentedControl {...args} size="sm" wrap aria-label="Activity kind">
+        <SegmentedControlItem value="content">Content</SegmentedControlItem>
+        <SegmentedControlItem value="review">Review</SegmentedControlItem>
+        <SegmentedControlItem value="assessment">Assessment</SegmentedControlItem>
+        <SegmentedControlItem value="activity">Activity</SegmentedControlItem>
+      </SegmentedControl>
     </div>
   ),
 };

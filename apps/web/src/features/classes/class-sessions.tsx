@@ -1,4 +1,6 @@
 "use client";
+import Link from "next/link";
+
 import { useEffect, useState, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
@@ -24,7 +26,11 @@ const columns: DataTableColumn<Session>[] = [
   {
     id: "date",
     header: "Data",
-    cell: (row) => formatDateOnlyBR(row.date.toISOString().slice(0, DATE_ONLY_LENGTH)),
+    cell: (row) => (
+      <Link className="text-interactive hover:underline" href={`/aulas/${row.id}`}>
+        {formatDateOnlyBR(row.date.toISOString().slice(0, DATE_ONLY_LENGTH))}
+      </Link>
+    ),
   },
   {
     id: "time",

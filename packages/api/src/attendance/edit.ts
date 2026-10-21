@@ -1,3 +1,4 @@
+import { assertAttendanceOnlyWrite } from "../class-records/data.js";
 import type { attendanceEditSessionInputSchema, z } from "@lazuli/validators";
 
 import type { StaffUser } from "../trpc/context.js";
@@ -85,6 +86,7 @@ async function loadEditableSession(input: {
     sessionId: input.values.sessionId,
   });
   assertResourceScope(input.staffUser, { teacherId: session.class.teacherId });
+  await assertAttendanceOnlyWrite(input.database, session.id);
   assertAttendanceWriteWindow({
     staffUser: input.staffUser,
     sessionDate: session.date,
