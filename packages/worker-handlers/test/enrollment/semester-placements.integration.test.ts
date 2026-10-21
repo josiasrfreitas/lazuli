@@ -261,12 +261,22 @@ void it("keeps a published exit and entry atomic when the movement straddles the
   const students = await db.student.createManyAndReturn({
     data: Array.from({ length: 99 }, (_unused, index) => ({ fullName: `${PREFIX}Batch ${index}` })),
   });
-  const enrollments = await db.enrollment.createManyAndReturn({
-    data: students.map((student) => ({
-      studentId: student.id,
-      classId: data.target.classId,
-      entryDate: data.next.startDate,
-    })),
+  const enrollments = await db.$transaction(async (database) => {
+    const rows = await database.enrollment.createManyAndReturn({
+      data: students.map((student) => ({
+        studentId: student.id,
+        classId: data.target.classId,
+        entryDate: data.next.startDate,
+      })),
+    });
+    await database.pedagogicalProgress.createMany({
+      data: rows.map((enrollment) => ({
+        enrollmentId: enrollment.id,
+        stageId: data.sourceProgress.stageId,
+        startDate: data.next.startDate,
+      })),
+    });
+    return rows;
   });
   await db.enrollmentAction.createMany({
     data: enrollments.map((enrollment) => ({
