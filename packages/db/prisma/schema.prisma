@@ -148,6 +148,10 @@ enum ArtifactKind {
 }
 
 model User {
+  attendanceSettingsUpdated AttendanceSettings[] @relation("AttendanceSettingsAuthor")
+  attendanceWindowsOpened AttendanceWindow[] @relation("AttendanceWindowOpener")
+  attendanceWindowsClosed AttendanceWindow[] @relation("AttendanceWindowCloser")
+
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -465,6 +469,8 @@ model Stage {
 }
 
 model Enrollment {
+  attendanceDeclarations AttendanceDeclaration[]
+
   id                     String                @id @default(uuid()) @db.Uuid
   createdAt              DateTime              @default(now()) @map("created_at") @db.Timestamptz
   updatedAt              DateTime              @updatedAt @map("updated_at") @db.Timestamptz
@@ -603,6 +609,10 @@ model ClassSubstitution {
 }
 
 model ClassSession {
+  attendanceWindows AttendanceWindow[]
+  attendanceDeclarations AttendanceDeclaration[]
+  attendanceProjection AttendanceProjection?
+
   id                        String             @id @default(uuid()) @db.Uuid
   createdAt                 DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                 DateTime           @updatedAt @map("updated_at") @db.Timestamptz
@@ -1135,4 +1145,86 @@ model ClassSessionRecordRevision {
 
   @@unique([recordId, version])
   @@index([recordedById])
+}
+
+model AttendanceWindow {
+  id                 String                  @id @default(uuid()) @db.Uuid
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime                @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime?               @map("deleted_at") @db.Timestamptz
+  classSessionId     String                  @map("class_session_id") @db.Uuid
+  tokenHash          String                  @unique @map("token_hash")
+  format             ClassFormat
+  openedAt           DateTime                @map("opened_at") @db.Timestamptz
+  expiresAt          DateTime                @map("expires_at") @db.Timestamptz
+  openedById         String                  @map("opened_by_id") @db.Uuid
+  closedAt           DateTime?               @map("closed_at") @db.Timestamptz
+  closedById         String?                 @map("closed_by_id") @db.Uuid
+  referenceLatitude  Float?                  @map("reference_latitude")
+  referenceLongitude Float?                  @map("reference_longitude")
+  radiusMeters       Int?                    @map("radius_meters")
+  maxAccuracyMeters  Int?                    @map("max_accuracy_meters")
+  classSession       ClassSession            @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  openedBy           User                    @relation("AttendanceWindowOpener", fields: [openedById], references: [id], onDelete: Restrict)
+  closedBy           User?                   @relation("AttendanceWindowCloser", fields: [closedById], references: [id], onDelete: Restrict)
+  declarations       AttendanceDeclaration[]
+  projections        AttendanceProjection[]
+
+  @@unique([classSessionId, id])
+  @@index([classSessionId, openedAt])
+  @@index([openedById])
+  @@index([closedById])
+}
+
+model AttendanceDeclaration {
+  id             String           @id @default(uuid()) @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime?        @map("deleted_at") @db.Timestamptz
+  classSessionId String           @map("class_session_id") @db.Uuid
+  windowId       String           @map("window_id") @db.Uuid
+  enrollmentId   String           @map("enrollment_id") @db.Uuid
+  declaredName   String           @map("declared_name")
+  matchKind      String           @map("match_kind")
+  browserHash    String           @map("browser_hash")
+  submittedAt    DateTime         @map("submitted_at") @db.Timestamptz
+  latitude       Float?
+  longitude      Float?
+  accuracy       Float?
+  capturedAt     DateTime?        @map("captured_at") @db.Timestamptz
+  window         AttendanceWindow @relation(fields: [classSessionId, windowId], references: [classSessionId, id], onDelete: Restrict)
+  classSession   ClassSession     @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+  enrollment     Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+
+  @@unique([classSessionId, enrollmentId])
+  @@unique([classSessionId, browserHash])
+  @@index([windowId])
+  @@index([enrollmentId])
+}
+
+model AttendanceProjection {
+  id             String            @id @default(uuid()) @db.Uuid
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime?         @map("deleted_at") @db.Timestamptz
+  classSessionId String            @unique @map("class_session_id") @db.Uuid
+  tokenHash      String            @unique @map("token_hash")
+  windowId       String?           @map("window_id") @db.Uuid
+  expiresAt      DateTime          @map("expires_at") @db.Timestamptz
+  window         AttendanceWindow? @relation(fields: [classSessionId, windowId], references: [classSessionId, id], onDelete: Restrict)
+  classSession   ClassSession      @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
+}
+
+model AttendanceSettings {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key               String    @unique @default("school")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz
+  latitude          Float
+  longitude         Float
+  radiusMeters      Int       @map("radius_meters")
+  maxAccuracyMeters Int       @map("max_accuracy_meters")
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  updatedById       String    @map("updated_by_id") @db.Uuid
+  updatedBy         User      @relation("AttendanceSettingsAuthor", fields: [updatedById], references: [id], onDelete: Restrict)
 }

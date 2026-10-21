@@ -36,6 +36,8 @@ export const classRecordSaveSchema = z
     sessionId: z.string().uuid(),
     version: z.number().int().nonnegative(),
     attendanceStamp: z.string().datetime().nullable(),
+    qrReviewed: z.boolean().optional(),
+    declarationIds: z.array(z.string().uuid()).max(MAX_ROSTER_SIZE).optional(),
     rows: z
       .array(
         z

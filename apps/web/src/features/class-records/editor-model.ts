@@ -1,11 +1,16 @@
 "use client";
 import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
 import { classRecordSaveSchema, type ClassRecordSave } from "@lazuli/validators";
+import { applyQrReview } from "./qr-review";
 import { trpc } from "~/lib/trpc";
 import { contentInput, draftContent, type ContentDraft } from "./content-fields";
 import type { ClassRecord } from "./shared";
 type Setter<T> = Dispatch<SetStateAction<T>>;
-type DraftRow = ClassRecord["snapshot"]["entries"][number] & { draft: ContentDraft };
+type DraftRow = ClassRecord["snapshot"]["entries"][number] & {
+  draft: ContentDraft;
+  reviewed: boolean;
+  manuallyReviewed: boolean;
+};
 type Draft = {
   opened: ClassRecord;
   regular: boolean;
@@ -32,13 +37,13 @@ export type RecordEditor = Draft & {
   present: number;
   needsReason: boolean;
   active: DraftRow | undefined;
+  newDeclarationCount: number;
+  reviewDeclarations: () => void;
 };
 function useDraft(data: ClassRecord): Draft {
   const [opened] = useState(data);
   const regular = opened.session.scheduleType === "REGULAR";
-  const [rows, setRows] = useState(() =>
-    opened.snapshot.entries.map((row) => ({ ...row, draft: draftContent(row.content) })),
-  );
+  const [rows, setRows] = useRecordRows(opened, data);
   const [selected, setSelected] = useState(
     rows.find((row) => row.status === "PRESENT")?.enrollmentId ?? rows[0]?.enrollmentId,
   );
@@ -99,6 +104,7 @@ function recordInput(draft: Draft): object {
     sessionId: draft.opened.session.id,
     version: draft.opened.version,
     attendanceStamp: draft.opened.attendanceStamp,
+    declarationIds: draft.opened.declarations.map((entry) => entry.id),
     sharedContent: draft.regular && present ? contentInput(draft.shared) : null,
     rows: draft.rows.map((row) => ({
       enrollmentId: row.enrollmentId,
@@ -121,6 +127,9 @@ function parseRecord(draft: Draft): {
 } {
   const parsed = classRecordSaveSchema.safeParse(recordInput(draft));
   const errors: Record<string, string> = {};
+  for (const row of draft.rows)
+    if (!row.reviewed)
+      errors["presence-first"] = "Revise a presença dos alunos sem declaração antes de confirmar.";
   if (!parsed.success)
     for (const issue of parsed.error.issues)
       errors[fieldKey(issue.path, draft.rows)] = issue.message;
@@ -132,39 +141,36 @@ function parseRecord(draft: Draft): {
 }
 export function useRecordEditor(data: ClassRecord, onClose: () => void): RecordEditor {
   const draft = useDraft(data);
+  const declarations = useDeclarationReview(data);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [review, setReview] = useState<ClassRecordSave | null>(null);
+  useEffect(() => setReview(null), [data.hasAttendanceWindows, data.declarations.length]);
   const focus = useEditorFocus(draft.dirty);
-  const utils = trpc.useUtils();
-  const save = trpc.classRecords.save.useMutation({
-    onSuccess: async () => {
-      await Promise.all([
-        utils.classRecords.invalidate(),
-        utils.students.invalidate(),
-        utils.classes.invalidate(),
-        utils.planning.invalidate(),
-      ]);
-      setReview(null);
-      onClose();
-    },
+  const save = useRecordSave(() => {
+    setReview(null);
+    onClose();
   });
   const prepare = (): void => {
     const parsed = parseRecord(draft);
     setErrors(parsed.errors);
     const first = Object.keys(parsed.errors)[0];
     if (first) {
-      const student = draft.rows.find((row) => first.startsWith(row.enrollmentId));
-      if (student) draft.setSelected(student.enrollmentId);
-      focus(first);
+      focusEditorError(draft, { first, focus });
       return;
     }
     if (parsed.value) {
       save.reset();
-      setReview(parsed.value);
+      setReview({
+        ...parsed.value,
+        declarationIds: declarations.ids,
+        qrReviewed: data.hasAttendanceWindows,
+      });
     }
   };
   return {
     ...draft,
+    newDeclarationCount: declarations.count,
+    reviewDeclarations: declarations.review,
     clearError: (name) =>
       setErrors((current) =>
         Object.fromEntries(Object.entries(current).filter(([key]) => key !== name)),
@@ -179,4 +185,75 @@ export function useRecordEditor(data: ClassRecord, onClose: () => void): RecordE
     needsReason: correctionRequired(draft),
     active: draft.rows.find((row) => row.enrollmentId === draft.selected),
   };
+}
+
+function useDeclarationReview(data: ClassRecord): {
+  ids: string[];
+  count: number;
+  review: () => void;
+} {
+  const [ids, setIds] = useState(() => data.declarations.map((entry) => entry.id));
+  return {
+    ids,
+    count: data.declarations.filter((entry) => !ids.includes(entry.id)).length,
+    review: () => setIds(data.declarations.map((entry) => entry.id)),
+  };
+}
+
+function focusEditorError(
+  draft: Draft,
+  input: { first: string; focus: (id: string) => void },
+): void {
+  const student = draft.rows.find((row) => input.first.startsWith(row.enrollmentId));
+  if (student) draft.setSelected(student.enrollmentId);
+  input.focus(input.first);
+}
+
+function useRecordSave(onSuccess: () => void): RecordEditor["save"] {
+  const utils = trpc.useUtils();
+  return trpc.classRecords.save.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.classRecords.invalidate(),
+        utils.students.invalidate(),
+        utils.classes.invalidate(),
+        utils.planning.invalidate(),
+      ]);
+      onSuccess();
+    },
+  });
+}
+
+function useRecordRows(opened: ClassRecord, live: ClassRecord): [DraftRow[], Setter<DraftRow[]>] {
+  const [rows, setRows] = useState(() =>
+    opened.snapshot.entries.map((row) => {
+      const declared = opened.declarations.some((entry) => entry.enrollmentId === row.enrollmentId);
+      const needsReview = opened.hasAttendanceWindows && !opened.version && !opened.attendanceOnly;
+      return {
+        ...row,
+        status: needsReview && !declared ? ("ABSENT" as const) : row.status,
+        reviewed: !needsReview || declared,
+        manuallyReviewed: false,
+        draft: draftContent(row.content),
+      };
+    }),
+  );
+  const [qrReviewed, setQrReviewed] = useState(opened.hasAttendanceWindows);
+  useEffect(() => {
+    if (qrReviewed || !live.hasAttendanceWindows || opened.version || opened.attendanceOnly) return;
+    setRows((current) =>
+      applyQrReview(
+        current,
+        live.declarations.map((entry) => entry.enrollmentId),
+      ),
+    );
+    setQrReviewed(true);
+  }, [
+    live.hasAttendanceWindows,
+    live.declarations,
+    opened.version,
+    opened.attendanceOnly,
+    qrReviewed,
+  ]);
+  return [rows, setRows];
 }

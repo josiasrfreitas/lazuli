@@ -112,3 +112,5 @@ export {
 } from "./student-finance.js";
 
 export { planningBand } from "./planning-band.js";
+
+export * from "./student-attendance.js";

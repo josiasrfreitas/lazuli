@@ -1,3 +1,4 @@
+import { closeAttendanceWindows } from "../student-attendance/data.js";
 import { TRPCError } from "@trpc/server";
 import type { ClassRecordSave, ClassRecordSnapshot } from "@lazuli/validators";
 import { badRequest } from "../trpc/errors.js";
@@ -32,6 +33,21 @@ export async function saveClassRecord(
   await lockClassRecord(context.database, input.sessionId);
   const state = await prepareRecord(context, input);
   await commitAttendance(context, { session: state.session, entries: state.snapshot.entries });
+  const closed = await closeAttendanceWindows(context.database, {
+    sessionId: state.session.id,
+    userId: context.staffUser.id,
+    now: context.now,
+  });
+  if (closed)
+    await recordActivity(context, {
+      action: "studentAttendance.close",
+      subject: {
+        type: "class",
+        id: state.session.classId,
+        name: state.session.class.portalClassName,
+      },
+      description: "Encerrou o recebimento de declarações ao confirmar o registro da aula.",
+    });
   const result = await persistRecord(context, { input, state });
   await recordActivity(context, {
     action: input.version ? "classRecords.correct" : "classRecords.confirm",
@@ -49,6 +65,7 @@ async function prepareRecord(context: RecordContext, input: ClassRecordSave): Pr
   const restriction = writeRestriction(context, session);
   if (restriction) throw badRequest(restriction);
   assertCurrentVersion(session, input);
+  await assertDeclarationsReviewed(context, { session, input });
   const previous = storedSnapshot(session);
   const before = previous ?? (await initialSnapshot(context, session));
   const snapshot = mergeRecord(before, { input, session });
@@ -85,6 +102,34 @@ async function prepareAttendance(
     state.before.attendanceOrigin = origin;
     state.snapshot.attendanceOrigin = { ...origin, priorState: false };
   }
+}
+async function assertDeclarationsReviewed(
+  context: RecordContext,
+  values: { session: RecordSession; input: ClassRecordSave },
+): Promise<void> {
+  const { session, input } = values;
+  if (
+    !session.classRecord &&
+    !input.qrReviewed &&
+    (await context.database.attendanceWindow.count({ where: { classSessionId: session.id } }))
+  )
+    throw new TRPCError({
+      code: "CONFLICT",
+      message:
+        "Esta chamada passou a receber declarações. Atualize o registro e confira a presença novamente.",
+    });
+  const unseen = await context.database.attendanceDeclaration.count({
+    where: {
+      classSessionId: session.id,
+      deletedAt: null,
+      id: { notIn: input.declarationIds ?? [] },
+    },
+  });
+  if (!session.classRecord && unseen)
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Chegou uma nova declaração. Atualize o registro e confira a chamada novamente.",
+    });
 }
 function assertCurrentVersion(session: RecordSession, input: ClassRecordSave): void {
   if (

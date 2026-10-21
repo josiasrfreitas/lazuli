@@ -23,6 +23,8 @@ export type ClassRecordDetail = {
     usualTeacher: string | null;
   };
   recordedAttendanceIds: string[];
+  declarations: { id: string; enrollmentId: string; submittedAt: Date }[];
+  hasAttendanceWindows: boolean;
   version: number;
   recordedAt: Date | null;
   attendanceStamp: string | null;
