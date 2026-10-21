@@ -3,8 +3,6 @@ import type { Prisma } from "@lazuli/db";
 import { intervalsOverlap, sessionEndInstant } from "@lazuli/domain";
 import { getStorage } from "@lazuli/storage";
 import {
-  MAX_PLACEMENT_FILE_BYTES,
-  MAX_UPLOAD_FILE_MB,
   type placementCalendarSchema,
   type placementFileSchema,
   type placementResultSchema,
@@ -19,6 +17,7 @@ import { dateToTimeString, timeStringToDate } from "../classes/time.js";
 import { lockTeacher } from "../teachers/availability.js";
 import { dateOnly, lockCandidate, readCandidate } from "./candidates.js";
 import { admissionStages } from "./catalog.js";
+import { placementFileBytes } from "./placement-file-bytes.js";
 
 type Operation<T> = {
   database: Prisma.TransactionClient;
@@ -169,20 +168,6 @@ function assertEditable(visit: Awaited<ReturnType<typeof placementVisit>>, now: 
     throw badRequest("Registre a prova depois do início do atendimento.");
 }
 
-function fileBytes(values: Pick<z.infer<typeof placementFileSchema>, "base64" | "contentType">) {
-  const bytes = Buffer.from(values.base64, "base64");
-  if (bytes.length === 0 || bytes.length > MAX_PLACEMENT_FILE_BYTES)
-    throw badRequest(`Envie um arquivo de até ${MAX_UPLOAD_FILE_MB} MB.`);
-  const signatures: Record<string, number[]> = {
-    "application/pdf": [0x25, 0x50, 0x44, 0x46, 0x2d],
-    "image/jpeg": [0xff, 0xd8, 0xff],
-    "image/png": [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
-  };
-  if (!signatures[values.contentType]!.every((byte, index) => bytes[index] === byte))
-    throw badRequest("O conteúdo não corresponde a um arquivo PDF, JPG ou PNG válido.");
-  return bytes;
-}
-
 function assertFileCanBeAttached(
   visit: Awaited<ReturnType<typeof placementVisit>>,
   kind: "ORIGINAL" | "CORRECTED",
@@ -202,7 +187,7 @@ export async function uploadPlacementFile(
 ) {
   const now = ctx.now ?? new Date();
   const kind = values.kind ?? "ORIGINAL";
-  const bytes = fileBytes(values);
+  const bytes = placementFileBytes(values);
   const visit = await placementVisit(ctx.db, values.id);
   if (ctx.staffUser.role === "TEACHER" && visit.teacherId !== ctx.staffUser.id)
     throw notFound("Nivelamento não atribuído a você.");
