@@ -98,11 +98,11 @@ export async function receiveAssessmentFile(ctx: Context, request: Request): Pro
     } catch (error) {
       await getStorage()
         .remove(reference)
-        .catch(() => undefined);
+        .catch((): undefined => {});
       throw error;
     }
     // The durable database row remains RECEIVED if dispatch is unavailable; the worker recovers it.
-    await enqueueAssessmentFile({ fileId: claim.row.id }).catch(() => undefined);
+    await enqueueAssessmentFile({ fileId: claim.row.id }).catch((): undefined => {});
     return Response.json(
       { id: claim.row.id, status: "RECEIVED" },
       { headers: { "Cache-Control": "private, no-store" } },
@@ -114,7 +114,7 @@ export async function receiveAssessmentFile(ctx: Context, request: Request): Pro
           where: { id: claim.row.id, status: "UPLOADING", updatedAt: claim.row.updatedAt },
           data: { status: "FAILED", failureCode: "TRANSFER" },
         })
-        .catch(() => undefined);
+        .catch((): undefined => {});
     return failure(error);
   }
 }

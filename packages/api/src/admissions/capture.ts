@@ -63,7 +63,7 @@ async function captureFields(
     email: fields.email || null,
     contactName: fields.contactName || null,
     source: fields.source || null,
-    ...(notes !== undefined ? { notes: notes || null } : {}),
+    ...(notes === undefined ? {} : { notes: notes || null }),
     birthDate: birthDate ? new Date(birthDate) : null,
   };
 }

@@ -111,8 +111,8 @@ export async function listCandidates(
   const where: Prisma.AdmissionCandidateWhereInput = {
     deletedAt: null,
     ...(input.unlinkedOnly ? { studentId: null, enrollmentId: null } : {}),
-    ...(input.statuses.length ? { status: { in: input.statuses } } : {}),
-    ...(input.interests.length ? { interest: { in: input.interests } } : {}),
+    ...(input.statuses.length > 0 ? { status: { in: input.statuses } } : {}),
+    ...(input.interests.length > 0 ? { interest: { in: input.interests } } : {}),
     ...(input.expiredOnly ? { availableUntil: { lt: new Date(today) } } : {}),
     ...(matchingIds === undefined ? {} : { id: matchingIds }),
   };

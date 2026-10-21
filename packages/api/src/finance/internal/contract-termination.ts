@@ -161,7 +161,7 @@ export async function confirmContractTermination(input: {
     values.enrollmentIds.some((id) => !preview.enrollments.some((row) => row.id === id))
   )
     throw badRequest("Selecione apenas matrículas ativas deste aluno.");
-  if (preview.enrollments.length && !values.enrollmentIds.length)
+  if (preview.enrollments.length > 0 && values.enrollmentIds.length === 0)
     throw badRequest("Selecione a matrícula que será encerrada com o contrato.");
   if (
     preview.enrollments.some((row) => values.enrollmentIds.includes(row.id) && row.scheduledChanges)
@@ -171,7 +171,7 @@ export async function confirmContractTermination(input: {
     );
   const feeCents = terminationFeeCents(preview.openPrincipalCents, values.feePct);
   const totalCents = preview.overduePrincipalCents + values.retainedChargesCents + feeCents;
-  if (!Number.isSafeInteger(totalCents) || totalCents > 2147483647)
+  if (!Number.isSafeInteger(totalCents) || totalCents > 2_147_483_647)
     throw badRequest("O valor do acerto ultrapassa o limite permitido.");
   let settlementOrderId: string | null = null;
   if (totalCents > 0) {

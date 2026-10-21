@@ -60,7 +60,7 @@ export const assessmentFilesRouter = router({
       where: { id: row.id, status: "FAILED" },
       data: { status: "RECEIVED", failureCode: null },
     });
-    await enqueueAssessmentFile({ fileId: row.id }).catch(() => undefined);
+    await enqueueAssessmentFile({ fileId: row.id }).catch((): undefined => {});
     return { id: row.id };
   }),
   remove: staffProcedure

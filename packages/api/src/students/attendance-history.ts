@@ -57,47 +57,48 @@ export async function readStudentAttendanceHistory(input: Input) {
       const window = historyWindow(enrollment, today);
       return window ? [{ enrollment, ...window }] : [];
     });
-  const sessions = windows.length
-    ? await input.database.classSession.findMany({
-        where: {
-          deletedAt: null,
-          OR: windows.map(({ enrollment, startDate, endDate }) => ({
-            classId: enrollment.classId,
-            date: {
-              gte: startDate,
-              lte: endDate,
-              ...(enrollment.exitDate ? { lt: enrollment.exitDate } : {}),
-            },
-          })),
-        },
-        orderBy: [{ date: "desc" }, { startTime: "desc" }, { id: "asc" }],
-        select: {
-          id: true,
-          classId: true,
-          date: true,
-          startTime: true,
-          endTime: true,
-          status: true,
-          cancelReason: true,
-          attendanceConfirmedAt: true,
-          attendanceRows: {
-            where: {
-              enrollmentId: { in: windows.map((row) => row.enrollment.id) },
-              deletedAt: null,
-            },
-            select: {
-              enrollmentId: true,
-              status: true,
-              notes: true,
-              makeupCoverages: {
-                where: { deletedAt: null, appointment: { deletedAt: null, status: "ATTENDED" } },
-                select: { minutes: true },
+  const sessions =
+    windows.length > 0
+      ? await input.database.classSession.findMany({
+          where: {
+            deletedAt: null,
+            OR: windows.map(({ enrollment, startDate, endDate }) => ({
+              classId: enrollment.classId,
+              date: {
+                gte: startDate,
+                lte: endDate,
+                ...(enrollment.exitDate ? { lt: enrollment.exitDate } : {}),
+              },
+            })),
+          },
+          orderBy: [{ date: "desc" }, { startTime: "desc" }, { id: "asc" }],
+          select: {
+            id: true,
+            classId: true,
+            date: true,
+            startTime: true,
+            endTime: true,
+            status: true,
+            cancelReason: true,
+            attendanceConfirmedAt: true,
+            attendanceRows: {
+              where: {
+                enrollmentId: { in: windows.map((row) => row.enrollment.id) },
+                deletedAt: null,
+              },
+              select: {
+                enrollmentId: true,
+                status: true,
+                notes: true,
+                makeupCoverages: {
+                  where: { deletedAt: null, appointment: { deletedAt: null, status: "ATTENDED" } },
+                  select: { minutes: true },
+                },
               },
             },
           },
-        },
-      })
-    : [];
+        })
+      : [];
   const rows = sessions.flatMap((session) =>
     windows
       .filter(

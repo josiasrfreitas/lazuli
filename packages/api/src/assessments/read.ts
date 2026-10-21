@@ -152,7 +152,7 @@ export async function readClassAssessments(
     },
   });
   if (!classRow) throw notFound("Turma não encontrada.");
-  if (!classRow.substitutions.length) assertTeacherAccess(context.staffUser, classRow, today);
+  if (classRow.substitutions.length === 0) assertTeacherAccess(context.staffUser, classRow, today);
   const progress = await context.database.pedagogicalProgress.findMany({
     where: {
       deletedAt: null,

@@ -68,20 +68,21 @@ export async function readMaterialNeeds(
     }),
   ]);
   const acquiredStageIds = sales.flatMap((sale) =>
-    sale.items.length ? sale.items.map((item) => item.stageId) : [sale.stageId],
+    sale.items.length > 0 ? sale.items.map((item) => item.stageId) : [sale.stageId],
   );
   const tracks = [
     ...new Set(
       enrollments.flatMap((row) => row.progressRecords.map((progress) => progress.stage.trackId)),
     ),
   ];
-  const stages = tracks.length
-    ? await database.stage.findMany({
-        where: { trackId: { in: tracks }, deletedAt: null },
-        select: { id: true, name: true, sequence: true, trackId: true },
-        orderBy: { sequence: "asc" },
-      })
-    : [];
+  const stages =
+    tracks.length > 0
+      ? await database.stage.findMany({
+          where: { trackId: { in: tracks }, deletedAt: null },
+          select: { id: true, name: true, sequence: true, trackId: true },
+          orderBy: { sequence: "asc" },
+        })
+      : [];
   return enrollments.flatMap((enrollment) => {
     const progress = enrollment.progressRecords[0];
     if (!progress) return [];

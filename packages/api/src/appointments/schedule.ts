@@ -22,7 +22,7 @@ export async function scheduleAppointment(
       code: "CONFLICT",
       message: "Este agendamento já foi salvo. Atualize a agenda.",
     });
-  if (input.purpose === "MAKEUP" && !input.coverages.length)
+  if (input.purpose === "MAKEUP" && input.coverages.length === 0)
     throw badRequest("Selecione pelo menos uma falta de origem.");
   if (input.purpose === "PPT_COMPLEMENT" && !input.enrollmentId)
     throw badRequest("Selecione a matrícula PPT.");
@@ -59,7 +59,7 @@ export async function scheduleAppointment(
     context,
     row,
     "appointments.schedule",
-    `${row.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })} · ${timeOnly(row.startTime)}–${timeOnly(row.endTime)}. ${input.coverages.length ? `${input.coverages.reduce((sum, item) => sum + item.minutes, 0)} minutos reservados para reposição.` : "Acompanhamento pedagógico agendado."}`,
+    `${row.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })} · ${timeOnly(row.startTime)}–${timeOnly(row.endTime)}. ${input.coverages.length > 0 ? `${input.coverages.reduce((sum, item) => sum + item.minutes, 0)} minutos reservados para reposição.` : "Acompanhamento pedagógico agendado."}`,
   );
   return { id: row.id, version: row.version };
 }

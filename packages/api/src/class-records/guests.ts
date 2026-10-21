@@ -3,7 +3,7 @@ import { sessionEndInstant } from "@lazuli/domain";
 
 /** Guests attend a meeting without belonging to its roster on that date. */
 export async function sessionGuests(context: RecordContext, sessions: RecordSession[]) {
-  if (!sessions.length) return new Map<string, { appointments: never[]; leads: never[] }>();
+  if (sessions.length === 0) return new Map<string, { appointments: never[]; leads: never[] }>();
   const dates = sessions.map((session) => session.date).sort((a, b) => a.getTime() - b.getTime());
   const [appointments, visits, enrollments] = await Promise.all([
     context.database.pedagogicalAppointment.findMany({

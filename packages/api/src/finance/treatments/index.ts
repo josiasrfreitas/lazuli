@@ -65,12 +65,14 @@ export function financialTreatments(
       return {
         id,
         party: {
-          key: students.length
-            ? students.map((student) => student.id).join(":")
-            : `payer:${order.payer?.id ?? order.id}`,
-          name: students.length
-            ? students.map((student) => student.fullName).join(" / ")
-            : (order.payer?.name ?? "Sem aluno vinculado"),
+          key:
+            students.length > 0
+              ? students.map((student) => student.id).join(":")
+              : `payer:${order.payer?.id ?? order.id}`,
+          name:
+            students.length > 0
+              ? students.map((student) => student.fullName).join(" / ")
+              : (order.payer?.name ?? "Sem aluno vinculado"),
         },
       };
     });
@@ -169,7 +171,7 @@ export function financialTreatments(
         where: { commandId: values.commandId },
       });
       const fingerprint = hash(values);
-      if (previous.length) {
+      if (previous.length > 0) {
         if (previous.some((row) => row.commandFingerprint !== fingerprint))
           throw badRequest("Esta confirmação já foi usada para outra tratativa.");
         return { count: previous.length };

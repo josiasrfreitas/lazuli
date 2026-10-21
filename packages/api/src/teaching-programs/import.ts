@@ -42,7 +42,7 @@ export async function importTeachingProgram(database: DatabaseClient, payload: u
       const currentLessons = await tx.bookLesson.findMany({ where: { stageId: input.stageId } });
       // Catalog revisions must not silently change the meaning of previously referenced lessons.
       if (
-        currentLessons.length &&
+        currentLessons.length > 0 &&
         (currentLessons.length !== input.lessons.length ||
           currentLessons.some(
             (lesson) =>
@@ -158,6 +158,6 @@ export async function importTeachingProgram(database: DatabaseClient, payload: u
       }
       return { id: program.id, imported: true };
     },
-    { timeout: 60000 },
+    { timeout: 60_000 },
   );
 }

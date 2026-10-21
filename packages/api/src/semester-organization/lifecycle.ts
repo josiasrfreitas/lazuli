@@ -92,7 +92,7 @@ export async function pendingLead(
     data: {
       allocationPendingAt: input.pending ? context.now : null,
       allocationPendingReason: input.pending ? input.reason : null,
-      ...(!input.pending ? { allocationPlanId: null } : {}),
+      ...(input.pending ? {} : { allocationPlanId: null }),
     },
   });
   await recordActivity(context.database, context, "semesterOrganization.pendingLead", {
@@ -133,7 +133,17 @@ export async function changePlanStatus(
       teacherId: plan.teacherId,
       date: from,
     });
-    if (!classId) {
+    if (classId) {
+      await assertNoTeacherConflict({
+        database: context.database,
+        teacherId: plan.teacherId,
+        from,
+        through: dateOnly(semester.endDate),
+        slots: readSlots(plan.slots),
+        excludeClassId: classId,
+      });
+      await context.database.class.update({ where: { id: classId }, data: { status: "ACTIVE" } });
+    } else {
       const created = await createClass({
         database: context.database,
         recordedById: context.staffUser.id,
@@ -147,16 +157,6 @@ export async function changePlanStatus(
         },
       });
       classId = created.id;
-    } else {
-      await assertNoTeacherConflict({
-        database: context.database,
-        teacherId: plan.teacherId,
-        from,
-        through: dateOnly(semester.endDate),
-        slots: readSlots(plan.slots),
-        excludeClassId: classId,
-      });
-      await context.database.class.update({ where: { id: classId }, data: { status: "ACTIVE" } });
     }
     const preparing = await context.database.sessionGenerationRequest.findFirst({
       where: {

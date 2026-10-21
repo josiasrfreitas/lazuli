@@ -171,7 +171,7 @@ function assertEditable(visit: Awaited<ReturnType<typeof placementVisit>>, now: 
 
 function fileBytes(values: Pick<z.infer<typeof placementFileSchema>, "base64" | "contentType">) {
   const bytes = Buffer.from(values.base64, "base64");
-  if (!bytes.length || bytes.length > MAX_PLACEMENT_FILE_BYTES)
+  if (bytes.length === 0 || bytes.length > MAX_PLACEMENT_FILE_BYTES)
     throw badRequest(`Envie um arquivo de até ${MAX_UPLOAD_FILE_MB} MB.`);
   const signatures: Record<string, number[]> = {
     "application/pdf": [0x25, 0x50, 0x44, 0x46, 0x2d],
@@ -255,7 +255,7 @@ export async function uploadPlacementFile(
     );
   } catch (error) {
     // Best-effort compensation: do not mask the original transaction failure.
-    await storage.remove(reference).catch(() => undefined);
+    await storage.remove(reference).catch((): undefined => {});
     throw error;
   }
 }

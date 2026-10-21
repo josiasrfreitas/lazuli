@@ -119,7 +119,7 @@ export const appointmentsRouter = router({
             { database, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
             input,
           ),
-        { timeout: 15000 },
+        { timeout: 15_000 },
       ),
     ),
   record: staffProcedure
@@ -131,7 +131,7 @@ export const appointmentsRouter = router({
             { database, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
             input,
           ),
-        { timeout: 15000 },
+        { timeout: 15_000 },
       ),
     ),
   cancel: adminProcedure
@@ -153,7 +153,7 @@ export const appointmentsRouter = router({
             { database, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
             input,
           ),
-        { timeout: 15000 },
+        { timeout: 15_000 },
       ),
     ),
 });

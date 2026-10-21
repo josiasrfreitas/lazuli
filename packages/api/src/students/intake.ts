@@ -75,7 +75,7 @@ export async function studentIntakeOptions(
     : input.from;
   const through = semester ? [input.through, dateOnly(semester.endDate)].sort()[0]! : input.through;
   const meetings =
-    eligibleIds.size && from <= through
+    eligibleIds.size > 0 && from <= through
       ? (await meetingsBetween({ database, from, through, now })).filter(
           (row) => eligibleIds.has(row.classId) && !row.cancelled,
         )

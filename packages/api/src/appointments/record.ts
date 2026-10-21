@@ -36,13 +36,13 @@ export async function recordAppointment(
   if (correcting && !input.reason) throw badRequest("Explique o motivo da correção.");
   if (input.attended && (!input.performedContent.trim() || !input.performedMinutes))
     throw badRequest("Informe o conteúdo e os minutos realizados.");
-  if (!input.attended && input.coverages.length)
+  if (!input.attended && input.coverages.length > 0)
     throw badRequest("Sem comparecimento não há compensação.");
   if (
     input.attended &&
     row.purpose === "MAKEUP" &&
     (!correcting || row.version === 0) &&
-    !input.coverages.length
+    input.coverages.length === 0
   )
     throw badRequest("Associe a falta de origem antes de confirmar a reposição.");
   const teacher = appointmentTeacher(row);

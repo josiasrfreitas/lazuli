@@ -94,7 +94,7 @@ export async function readStageProgram(database: Database, id: string) {
         title: unit.title,
         teachingHours: program.teachingHours.flatMap((entry) => {
           const activities = entry.activities.filter((activity) => activity.unitId === unit.id);
-          if (!activities.length) return [];
+          if (activities.length === 0) return [];
           return [
             {
               id: entry.id,

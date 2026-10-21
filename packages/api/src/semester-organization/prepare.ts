@@ -58,7 +58,7 @@ export async function prepareSemester(context: OrganizationContext, semesterId: 
       startTime: slot.startTime.toISOString().slice(11, 16),
       endTime: slot.endTime.toISOString().slice(11, 16),
     }));
-    if (!slots.length) continue;
+    if (slots.length === 0) continue;
     let plan = await context.database.semesterClassPlan.findFirst({
       where: {
         semesterId,

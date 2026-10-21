@@ -17,7 +17,7 @@ export async function validateCoverages(
     coverages: readonly MakeupCoverageInput[];
   },
 ): Promise<void> {
-  if (input.purpose !== "MAKEUP" && input.coverages.length)
+  if (input.purpose !== "MAKEUP" && input.coverages.length > 0)
     throw badRequest("Este atendimento não compensa faltas.");
   const ids = input.coverages.map((row) => row.attendanceId);
   if (new Set(ids).size !== ids.length) throw badRequest("Selecione cada falta uma única vez.");

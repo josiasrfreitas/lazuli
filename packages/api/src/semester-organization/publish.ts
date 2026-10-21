@@ -71,7 +71,8 @@ export async function publishPlacements(context: OrganizationContext, input: Pub
     if (dateOnly(row.effectiveDate ?? semester.startDate) < saoPauloDateOnly(context.now))
       throw badRequest("Revise a vigência: a data proposta já passou.");
     if (row.publishedAt) throw badRequest("Um dos alunos já foi publicado. Atualize a página.");
-    if (row.blockers.length) throw badRequest(`${row.studentName}: ${row.blockers.join("; ")}.`);
+    if (row.blockers.length > 0)
+      throw badRequest(`${row.studentName}: ${row.blockers.join("; ")}.`);
     return row;
   });
   for (const lead of leads) {
