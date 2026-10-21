@@ -236,13 +236,18 @@ void it("charges the cash price once and never grants tuition punctuality discou
       { view: "all", page: 1, pageSize: 25, studentId: values.studentId },
       new Date("2026-01-31T12:00:00Z"),
     );
+    assert.equal(ledger.view, "all");
+    assert.ok("rows" in ledger);
     assert.equal(
       ledger.rows.find((row) => row.installmentId === item!.id)!.onTimeAmountCents,
       null,
     );
     await tx.installment.updateMany({
       where: { order: { contractId: contract.id, kind: "TUITION" } },
-      data: { waivedAt: NOW },
+      data: {
+        waivedAt: NOW,
+        waivedReason: "Mensalidades dispensadas no cenário de cobrança do material",
+      },
     });
     const overdue = await service.listContracts({
       page: 1,
@@ -255,7 +260,21 @@ void it("charges the cash price once and never grants tuition punctuality discou
     const studentFinance = await service.studentSummary({ studentId: values.studentId, now: NOW });
     assert.equal(studentFinance.overdueCents, 66420);
     // Closing educational service does not forgive or prevent collection of the acquired book.
-    await tx.contract.update({ where: { id: contract.id }, data: { terminatedAt: NOW } });
+    const termination = await service.previewTermination(contract.id, NOW);
+    await service.confirmTermination(
+      {
+        contractId: contract.id,
+        commandId: randomUUID(),
+        version: termination.version,
+        feePct: 0,
+        retainedChargesCents: 0,
+        dueDate: "2026-02-02",
+        enrollmentIds: [],
+        reason: "Encerramento do serviço preservando a cobrança do livro adquirido.",
+        acknowledged: true,
+      },
+      NOW,
+    );
     const [afterTermination] = await loadSettlementItems(tx, [item!.id]);
     assert.equal(
       settlementLine({ item: afterTermination!, date: "2026-02-02", now: NOW }).quote.balanceCents,

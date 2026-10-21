@@ -37,6 +37,7 @@ function registerEnabledStaffTest(): void {
         name: user.name,
         email: user.email,
         role,
+        roles: [role],
         isEnabled: true,
       });
     }

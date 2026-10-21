@@ -4,10 +4,12 @@ import type { PlanningContext, PlanningScope } from "./data.js";
 /** Bind a dated intention to the source activity without changing the imported curriculum. */
 export async function resolvePlannedProgramActivity(
   context: PlanningContext,
-  scope: PlanningScope,
-  id: string,
-  previousId: string | null,
-) {
+  { scope, id, previousId }: { scope: PlanningScope; id: string; previousId: string | null },
+): Promise<{
+  kind: "CONTENT" | "ASSESSMENT" | "REVIEW" | "ACTIVITY";
+  title: string;
+  reference: string;
+}> {
   const activity = await context.database.programActivity.findFirst({
     where: {
       id,

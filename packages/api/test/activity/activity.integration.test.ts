@@ -41,8 +41,8 @@ void it("records the actor and server time once for an idempotent capture and su
     contactName: null,
     source: "Indicação",
   };
-  await caller().admissions.capture(values);
-  await caller().admissions.capture(values);
+  await caller().admissions.capture({ lead: values });
+  await caller().admissions.capture({ lead: values });
   const page = await caller().activity.list({
     search: prefix,
     area: "COMMERCIAL",
@@ -105,23 +105,12 @@ void it("lists recent actions first, paginates and leaves no event for a rejecte
     contactName: null,
     source: null,
   };
-  await caller().admissions.capture(values);
+  await caller().admissions.capture({ lead: values });
   const later = createCaller({ ...context, now: new Date("2071-02-02T02:00:00Z") });
-  await later.admissions.nextStep({
-    id: values.id,
-    ownerId: actor.id,
-    nextAction: "Retornar ligação",
-    nextActionOn: "2071-02-02",
+  await later.admissions.details({ ...values, fullName: `${prefix}Updated timeline` });
+  await assert.rejects(later.admissions.details({ ...values, birthDate: "2071-02-03" }), {
+    code: "BAD_REQUEST",
   });
-  await assert.rejects(
-    later.admissions.nextStep({
-      id: values.id,
-      ownerId: actor.id,
-      nextAction: "Data inválida",
-      nextActionOn: "2071-01-31",
-    }),
-    { code: "BAD_REQUEST" },
-  );
   const first = await later.activity.list({ search: prefix, period: "TODAY", pageSize: 1 });
   const second = await later.activity.list({
     search: prefix,
@@ -130,8 +119,8 @@ void it("lists recent actions first, paginates and leaves no event for a rejecte
     cursor: first.nextCursor,
   });
   assert.equal(first.total, 2);
-  assert.equal(first.rows[0]?.action, "admissions.nextStep");
-  assert.equal(first.rows[0]?.description, "Retornar ligação");
+  assert.equal(first.rows[0]?.action, "admissions.details");
+  assert.equal(first.rows[0]?.title, "Contato do lead atualizado");
   assert.equal(second.rows[0]?.action, "admissions.capture");
   assert.equal(second.nextCursor, null);
 });
@@ -139,12 +128,14 @@ void it("lists recent actions first, paginates and leaves no event for a rejecte
 void it("keeps cursor order for simultaneous events while new activity arrives", async () => {
   for (const name of ["First", "Second", "Third"]) {
     await caller().admissions.capture({
-      id: randomUUID(),
-      fullName: `${prefix}${name}`,
-      phone: "82999994567",
-      email: null,
-      contactName: null,
-      source: null,
+      lead: {
+        id: randomUUID(),
+        fullName: `${prefix}${name}`,
+        phone: "82999994567",
+        email: null,
+        contactName: null,
+        source: null,
+      },
     });
   }
   const first = await caller().activity.list({ search: prefix, pageSize: 2 });
@@ -153,12 +144,14 @@ void it("keeps cursor order for simultaneous events while new activity arrives",
   assert.ok(first.nextCursor);
   const later = createCaller({ ...context, now: new Date("2071-02-02T02:00:00Z") });
   await later.admissions.capture({
-    id: randomUUID(),
-    fullName: `${prefix}Newest`,
-    phone: "82999994567",
-    email: null,
-    contactName: null,
-    source: null,
+    lead: {
+      id: randomUUID(),
+      fullName: `${prefix}Newest`,
+      phone: "82999994567",
+      email: null,
+      contactName: null,
+      source: null,
+    },
   });
   const second = await later.activity.list({
     search: prefix,

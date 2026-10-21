@@ -16,7 +16,7 @@ import {
   readInstallments as read,
 } from "../support/finance-installments-test-support.js";
 
-const GROUP_PAGE_SIZE = 10;
+const GROUP_PAGE_SIZE = 25;
 const GROUP_INSTALLMENT_COUNT = 3;
 const GROUP_BALANCE_CENTS = 30_000;
 const INSTALLMENT_CENTS = 10_000;
@@ -119,7 +119,7 @@ function registerPaginationTest(): void {
         size: beyond.pageSize,
         counts: beyond.counts,
       },
-      { groups: [], total: 11, pages: 2, size: 10, counts: { all: 36, paid: 0, overdue: 36 } },
+      { groups: [], total: 26, pages: 2, size: 25, counts: { all: 51, paid: 0, overdue: 51 } },
     );
   });
 }

@@ -158,7 +158,7 @@ export const enrollmentRouter = router({
           deletedAt: null,
           exitReason: "SUSPENDED",
           exitDate: { lte: new Date(saoPauloDateOnly(ctx.now ?? new Date())) },
-          student: { id: await searchIds(ctx.db, "Student", input.query) },
+          student: { id: (await searchIds(ctx.db, "Student", input.query)) ?? {} },
           returnActions: { none: { status: { in: ["SCHEDULED", "APPLIED"] } } },
         },
         select: {

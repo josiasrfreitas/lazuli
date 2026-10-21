@@ -10,8 +10,8 @@ export async function appointmentAvailability(
     teacherId: string;
     studentId: string;
     week: string;
-    through?: string;
-    excludeAppointmentId?: string;
+    through?: string | undefined;
+    excludeAppointmentId?: string | undefined;
   },
 ) {
   requireAppointmentAdmin(context);

@@ -201,7 +201,7 @@ void it("rescheduling is atomic, preserves the previous visit and prevents confl
         candidateMeetings: [{ date: "2071-02-02", startTime: "13:30", endTime: "14:30" }],
       }),
     ),
-    /Conflito com aula introdutória/u,
+    /Conflito com aula experimental individual/u,
   );
   const replacement = await caller().admissions.schedule({
     id: randomUUID(),
@@ -217,6 +217,6 @@ void it("rescheduling is atomic, preserves the previous visit and prevents confl
   assert.equal(current.status, "SCHEDULED");
   await assert.rejects(
     caller().admissions.setStatus({ id: fixture.id, status: "ARCHIVED" }),
-    /aulas de entrada pendentes/u,
+    /atendimentos e aulas experimentais pendentes/u,
   );
 });

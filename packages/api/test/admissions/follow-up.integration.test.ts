@@ -21,7 +21,7 @@ function caller(at = now): ReturnType<typeof createCaller> {
   });
 }
 async function clean(): Promise<void> {
-  await db.leadContact.deleteMany({ where: { candidate: { fullName: { startsWith: prefix } } } });
+  await db.activityEvent.deleteMany({ where: { actorId: adminId } });
   await db.admissionCandidate.deleteMany({ where: { fullName: { startsWith: prefix } } });
 }
 before(async () => {
@@ -46,12 +46,14 @@ after(async () => {
 });
 async function capture(suffix: string): Promise<{ id: string }> {
   return caller().admissions.capture({
-    id: randomUUID(),
-    fullName: `${prefix}${suffix}`,
-    phone: "82999991234",
-    email: null,
-    contactName: "Pessoa de contato",
-    source: "Indicação",
+    lead: {
+      id: randomUUID(),
+      fullName: `${prefix}${suffix}`,
+      phone: "82999991234",
+      email: null,
+      contactName: "Pessoa de contato",
+      source: "Indicação",
+    },
   });
 }
 void it("captures and edits contact details without requiring or fabricating pedagogical qualification", async () => {
@@ -85,101 +87,90 @@ void it("captures and edits contact details without requiring or fabricating ped
     message: /Defina modalidade/,
   });
 });
-void it("queues next steps by São Paulo civil date and keeps unplanned leads separate", async () => {
-  const due = await capture("Due");
-  const unplanned = await capture("Unplanned");
-  await caller().admissions.nextStep({
-    ...due,
-    ownerId: adminId,
-    nextAction: "Ligar para combinar horário",
-    nextActionOn: "2071-02-01",
-  });
-  const today = await caller().admissions.list({ search: prefix, followUps: ["TODAY"] });
+// The source consolidation retired next-step ownership/contact APIs in favor of lead interest
+// and registration/placement. Keep the tests on the current public contract, without reviving
+// the ignored historical columns or erasing their persisted data.
+void it("filters captured leads by interest and lifecycle without including unrelated candidates", async () => {
+  const high = await capture("High interest");
+  const archived = await capture("Archived");
+  const unknown = await capture("Unknown interest");
+  const values = {
+    id: high.id,
+    fullName: `${prefix}High interest`,
+    phone: "82999991234",
+    email: null,
+    contactName: "Pessoa de contato",
+    source: "Indicação",
+    interest: "HIGH" as const,
+  };
+  await caller().admissions.details(values);
+  await caller().admissions.setStatus({ ...archived, status: "ARCHIVED" });
+  const interested = await caller().admissions.list({ search: prefix, interests: ["HIGH"] });
   assert.deepEqual(
-    today.rows.map((row) => row.id),
-    [due.id],
+    interested.rows.map((row) => row.id),
+    [high.id],
   );
-  assert.equal(today.rows[0]?.owner?.name, "Lead Admin");
-  const later = caller(new Date("2071-02-02T12:00:00Z"));
-  const overdue = await later.admissions.list({ search: prefix, followUps: ["OVERDUE"] });
+  assert.equal(interested.total, 1);
+  const waiting = await caller().admissions.list({ search: prefix, statuses: ["WAITING"] });
+  assert.deepEqual(waiting.rows.map((row) => row.id).sort(), [high.id, unknown.id].sort());
+  assert.equal(waiting.total, 2);
+  const history = await caller().admissions.list({ search: prefix, statuses: ["ARCHIVED"] });
   assert.deepEqual(
-    overdue.rows.map((row) => row.id),
-    [due.id],
-  );
-  const noStep = await later.admissions.list({ search: prefix, followUps: ["UNPLANNED"] });
-  assert.deepEqual(
-    noStep.rows.map((row) => row.id),
-    [unplanned.id],
-  );
-  const combined = await later.admissions.list({
-    search: prefix,
-    followUps: ["OVERDUE", "UNPLANNED"],
-  });
-  assert.deepEqual(
-    combined.rows.map((row) => row.id),
-    [due.id, unplanned.id],
-  );
-  const matchingName = await later.admissions.list({
-    search: `${prefix}Unplanned`,
-    followUps: ["OVERDUE", "UNPLANNED"],
-  });
-  assert.deepEqual(
-    matchingName.rows.map((row) => row.id),
-    [unplanned.id],
+    history.rows.map((row) => row.id),
+    [archived.id],
   );
 });
-void it("keeps one authored contact on retries and retains its history after archiving", async () => {
+void it("keeps captured details and attributed activity readable after archiving and rejects edits until reopening", async () => {
   const lead = await capture("History");
-  const contact = {
-    id: randomUUID(),
-    candidateId: lead.id,
-    contactedOn: "2071-02-01",
-    summary: "Família pediu opções à tarde.",
+  const details = {
+    id: lead.id,
+    fullName: `${prefix}History`,
+    phone: "82999994567",
+    email: null,
+    contactName: "Pessoa de contato",
+    source: "Indicação",
+    notes: "Família pediu opções à tarde.",
   };
-  const results = await Promise.all([
-    caller().admissions.contact(contact),
-    caller().admissions.contact(contact),
-  ]);
-  assert.equal(results[0].id, results[1].id);
-  await caller().admissions.nextStep({
-    ...lead,
-    ownerId: adminId,
-    nextAction: "Enviar opções",
-    nextActionOn: "2071-02-03",
-  });
+  await caller().admissions.details(details);
   await caller().admissions.setStatus({ ...lead, status: "ARCHIVED" });
-  const archived = await caller().admissions.byId(lead);
-  assert.deepEqual([archived.nextAction, archived.nextActionOn], [null, null]);
-  assert.deepEqual(
-    archived.contacts.map((row) => ({ summary: row.summary, author: row.recordedBy.name })),
-    [{ summary: contact.summary, author: "Lead Admin" }],
-  );
-  await assert.rejects(caller().admissions.contact({ ...contact, id: randomUUID() }), {
+  await assert.rejects(caller().admissions.details({ ...details, notes: "Alteração recusada" }), {
     code: "BAD_REQUEST",
     message: /Reabra o lead/,
   });
+  const archived = await caller().admissions.byId(lead);
+  assert.equal(archived.status, "ARCHIVED");
+  assert.equal(archived.notes, "Família pediu opções à tarde.");
+  assert.equal(archived.phone, "82999994567");
+  const activity = await caller().activity.list({ search: `${prefix}History`, period: "ALL" });
+  assert.deepEqual(activity.rows.map((row) => row.action).sort(), [
+    "admissions.capture",
+    "admissions.details",
+    "admissions.setStatus",
+  ]);
+  assert.deepEqual([...new Set(activity.rows.map((row) => row.actorName))], ["Lead Admin"]);
+  await caller().admissions.setStatus({ ...lead, status: "WAITING" });
+  await caller().admissions.details({ ...details, notes: "Retomamos o contato com a família." });
+  assert.equal((await caller().admissions.byId(lead)).notes, "Retomamos o contato com a família.");
 });
-void it("rejects future contact history and past next steps using the school date", async () => {
-  const lead = await capture("Dates");
+void it("rejects a future birth date using the school day without persisting a capture or success event", async () => {
+  const id = randomUUID();
   await assert.rejects(
-    caller().admissions.contact({
-      id: randomUUID(),
-      candidateId: lead.id,
-      contactedOn: "2071-02-02",
-      summary: "Ainda não aconteceu",
+    caller().admissions.capture({
+      lead: {
+        id,
+        fullName: `${prefix}Future birth`,
+        phone: "82999991234",
+        email: null,
+        contactName: null,
+        source: null,
+        birthDate: "2071-02-02",
+      },
     }),
-    { code: "BAD_REQUEST", message: /futuro/ },
+    { code: "BAD_REQUEST", message: /nascimento.*futuro/ },
   );
-  await assert.rejects(
-    caller().admissions.nextStep({
-      ...lead,
-      ownerId: adminId,
-      nextAction: "Retornar",
-      nextActionOn: "2071-01-31",
-    }),
-    { code: "BAD_REQUEST", message: /hoje ou uma data futura/ },
+  assert.equal((await caller().admissions.list({ search: `${prefix}Future birth` })).total, 0);
+  assert.equal(
+    (await caller().activity.list({ search: `${prefix}Future birth`, period: "ALL" })).total,
+    0,
   );
-  const unchanged = await caller().admissions.byId(lead);
-  assert.deepEqual(unchanged.contacts, []);
-  assert.equal(unchanged.nextActionOn, null);
 });

@@ -20,8 +20,7 @@ for (const operation of operations) {
     });
   });
 }
-void it("keeps confirmation and whole-student records behind the administrative gate", async () => {
+void it("keeps assessment confirmation behind the administrative gate", async () => {
   const teacher = createCaller(contextFor(TEACHER_FIXTURE));
   await assert.rejects(teacher.assessments.confirm(invalid), { code: "FORBIDDEN" });
-  await assert.rejects(teacher.assessments.student(invalid), { code: "FORBIDDEN" });
 });

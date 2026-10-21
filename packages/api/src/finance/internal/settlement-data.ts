@@ -29,6 +29,7 @@ export type SettlementLine = {
   payerId: string;
   version: string;
   quote: SettlementQuote;
+  materialReceipt?: { name: string; chargedCents: number; feeCents: number; netCents: number };
 };
 
 export function settlementLine(input: {
@@ -57,9 +58,10 @@ export function settlementLine(input: {
   });
   return {
     installmentId: item.id,
-    payerId: contract?.payerId ?? item.order.payerId ?? "",
+    payerId: item.order.contract?.payerId ?? item.order.payerId ?? "",
     version: createHash("sha256").update(JSON.stringify({ item, date })).digest("hex"),
     quote,
+    ...materialReceipt(item),
   };
 }
 
@@ -161,4 +163,17 @@ function settlementTerms(item: SettlementItem): {
 
 function decimalRate(value: Prisma.Decimal | null): number {
   return value?.toNumber() ?? 0;
+}
+
+function materialReceipt(item: SettlementItem): Pick<SettlementLine, "materialReceipt"> {
+  const material = item.order.material;
+  if (material === null || material.chargedAmountCents === null) return {};
+  return {
+    materialReceipt: {
+      name: material.name,
+      chargedCents: material.chargedAmountCents,
+      feeCents: material.cardFeeCents ?? 0,
+      netCents: item.order.principalAmountCents,
+    },
+  };
 }

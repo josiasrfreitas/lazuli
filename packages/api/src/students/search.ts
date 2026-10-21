@@ -19,16 +19,18 @@ export function studentSearchQuery(
   database: Database,
   query: string,
 ): SelectQueryBuilder<SearchDatabase, "student", StudentSearchResult> {
+  const originalQuery = query;
   query = normalizeSearch(query);
   const contains = `%${query}%`;
   const prefix = `${query}%`;
+  const wordPrefix = `(^|[^[:alnum:]])${query}`;
   return database.$kysely
     .selectFrom("Student as student")
     .select(["student.id", "student.full_name as fullName", "student.phone", "student.status"])
     .where("student.deleted_at", "is", null)
     .where(
       sql<boolean>`(
-      ${searchMatchKysely(sql.ref("student.full_name"), query)}
+      ${searchMatchKysely(sql.ref("student.full_name"), originalQuery)}
       OR ${normalizedKysely(sql.ref("student.document_number"))} LIKE ${contains}
       OR ${normalizedKysely(sql.ref("student.phone"))} LIKE ${contains}
       OR ${normalizedKysely(sql.ref("student.email"))} LIKE ${contains}
@@ -37,7 +39,8 @@ export function studentSearchQuery(
     .orderBy(
       sql<number>`
         CASE
-              WHEN ${normalizedKysely(sql.ref("student.full_name"))} ILIKE ${prefix} THEN 500
+              WHEN ${normalizedKysely(sql.ref("student.full_name"))} ILIKE ${prefix}
+                OR lower(regexp_replace(normalize(student.full_name, NFD), '[̀-ͯ]', '', 'g')) ~ ${wordPrefix} THEN 500
               WHEN ${normalizedKysely(sql.ref("student.full_name"))} ILIKE ${contains} THEN 400
               WHEN ${normalizedKysely(sql.ref("student.document_number"))} ILIKE ${contains} THEN 300
               WHEN ${normalizedKysely(sql.ref("student.phone"))} ILIKE ${contains} THEN 200

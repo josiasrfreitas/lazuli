@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, beforeEach, it } from "node:test";
 import { createCaller, type StaffUser } from "@lazuli/api";
 import { db } from "@lazuli/db";
+import { SESSIONS_GENERATE_WORKFLOW } from "@lazuli/job-contracts";
 import { TRPCError } from "@trpc/server";
 import {
   ensureTeacherFor,
@@ -36,7 +37,13 @@ const caller = (role: StaffUser["role"] = "ADMIN") =>
     db,
     staffUser: { ...admin, role },
     now: new Date("2085-05-15T15:00:00Z"),
-    sessionGenerationQueue: { enqueueSessionsGenerate: async () => ({ jobId: "semester185-job" }) },
+    sessionGenerationQueue: {
+      enqueueSessionsGenerate: async (payload) => ({
+        workflowName: SESSIONS_GENERATE_WORKFLOW,
+        jobId: "semester185-job",
+        payload,
+      }),
+    },
   });
 async function clean() {
   const semesters = await db.semester.findMany({
@@ -267,7 +274,13 @@ void it("serializes duplicate publication and rejects a stale proposal version w
     caller().semesterOrganization.publish(input),
     caller().semesterOrganization.publish(input),
   ]);
-  assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+  assert.equal(
+    results.filter((result) => result.status === "fulfilled").length,
+    1,
+    results
+      .map((result) => (result.status === "rejected" ? String(result.reason) : "published"))
+      .join("\n"),
+  );
   const rejection = results.find((result) => result.status === "rejected");
   const reason: unknown = rejection?.reason;
   assert.ok(reason instanceof TRPCError);

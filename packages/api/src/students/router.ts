@@ -123,7 +123,7 @@ export const studentsRouter = router({
             ...(input.ids.length > 0
               ? { id: { in: input.ids } }
               : {
-                  id: await searchIds(ctx.db, "Class", input.search),
+                  id: (await searchIds(ctx.db, "Class", input.search)) ?? {},
                 }),
           },
           select: { id: true, portalClassName: true },
@@ -138,7 +138,7 @@ export const studentsRouter = router({
           classesTaught: { some: { deletedAt: null } },
           ...(input.ids.length > 0
             ? { id: { in: input.ids } }
-            : { id: await searchIds(ctx.db, "User", input.search) }),
+            : { id: (await searchIds(ctx.db, "User", input.search)) ?? {} }),
         },
         select: { id: true, name: true },
         orderBy: { name: "asc" },

@@ -35,7 +35,7 @@ void it("keeps partial grades incomplete and rejects approval and stage advance 
       decision: "APPROVED",
       reason: "Ainda incompleto",
     }),
-    { code: "BAD_REQUEST", message: /Complete os dois blocos/ },
+    { code: "BAD_REQUEST", message: /Complete as duas unidades/ },
   );
   await assert.rejects(caller.enrollment.advanceStage({ enrollmentId: fixture.enrollmentId }), {
     code: "BAD_REQUEST",
@@ -145,7 +145,7 @@ void it("requires a reason for confirmed corrections, invalidates approval and r
   assert.equal(correctionEvent?.actorName, "Assessment Admin");
   assert.match(
     correctionEvent?.description ?? "",
-    /Oral · Bloco 1: 60 em 15\/02\/2073, por Enrollment Admin de Teste → 50 em 15\/02\/2073\./u,
+    /Oral · Unidade 1: 60 em 15\/02\/2073, por Enrollment Admin de Teste → 50 em 15\/02\/2073\./u,
   );
   assert.match(
     correctionEvent?.description ?? "",
@@ -278,6 +278,12 @@ void it("restricts teacher access to current responsibility and administrative c
     grades: completeGrades(),
   });
   assert.equal(saved.canConfirm, false);
+  assert.deepEqual(
+    (await teacher.assessments.student({ studentId: fixture.studentId })).map(
+      (row) => row.progressId,
+    ),
+    [fixture.progressId],
+  );
   await assert.rejects(
     teacher.assessments.confirm({
       progressId: fixture.progressId,
@@ -291,6 +297,7 @@ void it("restricts teacher access to current responsibility and administrative c
     ...assessmentTeacher,
     id: "00000000-0000-0000-0000-000000000177",
   });
+  assert.deepEqual(await stranger.assessments.student({ studentId: fixture.studentId }), []);
   await assert.rejects(stranger.assessments.byProgress({ progressId: fixture.progressId }), {
     code: "FORBIDDEN",
   });
@@ -325,7 +332,7 @@ void it("rejects dates outside the stage and recovery before the two blocks with
       version: 0,
       grades: [{ ...completeGrades()[0]!, phase: "RECOVERY", reason: "Recuperação prematura" }],
     }),
-    { code: "BAD_REQUEST", message: /Registre os dois blocos/ },
+    { code: "BAD_REQUEST", message: /Registre as duas unidades/ },
   );
   const unchanged = await caller.assessments.byProgress({ progressId: fixture.progressId });
   assert.equal(unchanged.assessmentId, null);

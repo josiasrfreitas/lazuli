@@ -69,10 +69,24 @@ void describe("student pedagogical profile", () => {
         },
       }),
       db.enrollment.create({
-        data: { studentId: student.id, classId: classroom.id, entryDate: new Date("2080-04-01") },
+        data: {
+          studentId: student.id,
+          classId: classroom.id,
+          entryDate: new Date("2080-04-01"),
+          progressRecords: {
+            create: { stageId: catalog.firstStageId, startDate: new Date("2080-04-01") },
+          },
+        },
       }),
       db.enrollment.create({
-        data: { studentId: other.id, classId: classroom.id, entryDate: new Date("2080-01-01") },
+        data: {
+          studentId: other.id,
+          classId: classroom.id,
+          entryDate: new Date("2080-01-01"),
+          progressRecords: {
+            create: { stageId: catalog.firstStageId, startDate: new Date("2080-01-01") },
+          },
+        },
       }),
       db.enrollment.create({
         data: {

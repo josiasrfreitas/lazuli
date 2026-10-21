@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
-import { DEFAULT_STUDENT_PAGE_SIZE } from "@lazuli/validators";
 
 import {
   ANA_PRESENT_COUNT,
@@ -30,6 +29,7 @@ const PAGE_COUNT = 2;
 const EXPANDED_PAGE_SIZE = 25;
 const LAST_PAGE = 2;
 const LAST_PAGE_ROWS = 3;
+const SMALL_PAGE_SIZE = 10;
 const ANA_PERCENT = ANA_PRESENT_COUNT / HELD_SESSIONS;
 const BRUNO_PERCENT = BRUNO_PRESENT_COUNT / HELD_SESSIONS;
 const BEFORE_EIGHTEENTH_BIRTHDAY_IN_SP = new Date("2044-04-15T02:59:59.999Z");
@@ -118,7 +118,7 @@ function registerCombinedFiltersTest(): void {
 
 function registerCountsAndPaginationTest(): void {
   void it("counts every tab under the current search and paginates by name", async () => {
-    const firstPage = await caller().students.list({ search: PREFIX });
+    const firstPage = await caller().students.list({ search: PREFIX, pageSize: SMALL_PAGE_SIZE });
 
     assert.deepEqual(firstPage.counts, {
       all: FIXTURE_TOTAL,
@@ -126,7 +126,7 @@ function registerCountsAndPaginationTest(): void {
       inactive: FIXTURE_INACTIVE,
     });
     assert.equal(firstPage.pageCount, PAGE_COUNT);
-    assert.equal(firstPage.pageSize, DEFAULT_STUDENT_PAGE_SIZE);
+    assert.equal(firstPage.pageSize, SMALL_PAGE_SIZE);
     assert.equal(firstPage.total, FIXTURE_TOTAL);
     assert.deepEqual(
       firstPage.rows.map((row) => row.fullName),
@@ -135,7 +135,11 @@ function registerCountsAndPaginationTest(): void {
     assert.ok(firstPage.totalStudents >= FIXTURE_TOTAL);
     assert.ok(firstPage.activeClasses >= PAGE_COUNT);
 
-    const lastPage = await caller().students.list({ search: PREFIX, page: LAST_PAGE });
+    const lastPage = await caller().students.list({
+      search: PREFIX,
+      page: LAST_PAGE,
+      pageSize: SMALL_PAGE_SIZE,
+    });
 
     assert.equal(lastPage.page, LAST_PAGE);
     assert.equal(lastPage.rows.length, LAST_PAGE_ROWS);

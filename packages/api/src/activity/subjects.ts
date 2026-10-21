@@ -29,7 +29,8 @@ export async function leadSubject(database: Database, id: string): Promise<Activ
 }
 export async function enrollmentSubject(database: Database, id: string): Promise<ActivitySubject> {
   const row = await database.enrollment.findUniqueOrThrow({
-    where: { id },
+    // Cancelling a scheduled entry soft-deletes it before its attributed activity is recorded.
+    where: { id, deletedAt: {} },
     select: {
       student: { select: { id: true, fullName: true } },
       class: { select: { portalClassName: true } },

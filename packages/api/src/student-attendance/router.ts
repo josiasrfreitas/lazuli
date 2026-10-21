@@ -18,7 +18,7 @@ import {
   submitAttendanceDeclaration,
 } from "./public.js";
 export const studentAttendanceRouter = router({
-  review: staffProcedure
+  confirm: staffProcedure
     .input(attendanceReviewSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) =>

@@ -39,26 +39,25 @@ const snapshot: ClassRecordSnapshot = {
 };
 void it("selects only the student's current stage record and rejects another stage or student", () => {
   assert.deepEqual(
-    contentForPlan(
-      snapshot,
-      { student: { id: "student-a", fullName: "Ana" }, progressId: "progress-a" },
-      "plan-a",
-    ),
+    contentForPlan(snapshot, {
+      studentId: "student-a",
+      progressIds: new Set(["progress-a"]),
+      planId: "plan-a",
+    }),
     content,
   );
   assert.equal(
-    contentForPlan(
-      snapshot,
-      { student: { id: "student-a", fullName: "Ana" }, progressId: "progress-b" },
-      "plan-a",
-    ),
+    contentForPlan(snapshot, {
+      studentId: "student-a",
+      progressIds: new Set(["progress-b"]),
+      planId: "plan-a",
+    }),
     null,
   );
   assert.equal(
     contentForPlan(
       { ...snapshot, entries: snapshot.entries.map((entry) => ({ ...entry, status: "ABSENT" })) },
-      { student: { id: "student-a", fullName: "Ana" }, progressId: "progress-a" },
-      "plan-a",
+      { studentId: "student-a", progressIds: new Set(["progress-a"]), planId: "plan-a" },
     ),
     null,
   );
@@ -74,15 +73,18 @@ void it("retains recorded evidence from a transferred enrollment when the same p
     ],
   };
   assert.deepEqual(
-    contentForPlan(
-      transferred,
-      { student: { id: "student-a", fullName: "Ana" }, progressId: "progress-new" },
-      "plan-a",
-    ),
+    contentForPlan(transferred, {
+      studentId: "student-a",
+      progressIds: new Set(["progress-new"]),
+      planId: "plan-a",
+    }),
     content,
   );
-  assert.deepEqual(contentForPlan(snapshot, { student: null, progressId: null }, "plan-regular"), {
-    ...content,
-    account: "Conteúdo coletivo",
-  });
+  assert.deepEqual(
+    contentForPlan(snapshot, { studentId: null, progressIds: new Set(), planId: "plan-regular" }),
+    {
+      ...content,
+      account: "Conteúdo coletivo",
+    },
+  );
 });

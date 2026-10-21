@@ -8,9 +8,15 @@ const invalid = {} as never;
 const operations = [
   { name: "capture", invoke: (caller: Caller) => caller.admissions.capture(invalid) },
   { name: "details", invoke: (caller: Caller) => caller.admissions.details(invalid) },
-  { name: "nextStep", invoke: (caller: Caller) => caller.admissions.nextStep(invalid) },
-  { name: "contact", invoke: (caller: Caller) => caller.admissions.contact(invalid) },
-  { name: "owners", invoke: (caller: Caller) => caller.admissions.owners() },
+  {
+    name: "assignPlacement",
+    invoke: (caller: Caller) => caller.admissions.assignPlacement(invalid),
+  },
+  {
+    name: "placementSchedule",
+    invoke: (caller: Caller) => caller.admissions.placementSchedule(invalid),
+  },
+  { name: "stages", invoke: (caller: Caller) => caller.admissions.stages() },
   { name: "guests", invoke: (caller: Caller) => caller.admissions.guests(invalid) },
   { name: "list", invoke: (caller: Caller) => caller.admissions.list(invalid) },
   { name: "byId", invoke: (caller: Caller) => caller.admissions.byId(invalid) },

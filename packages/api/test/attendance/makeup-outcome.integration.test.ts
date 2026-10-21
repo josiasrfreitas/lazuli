@@ -117,12 +117,18 @@ void it("rejects cancelled bookings and cancelled destination classes", async ()
     targetClassSessionId: f.targetId,
   });
   const input = { ...actual, makeupId, coverages: f.input.coverages };
-  await db.classSession.update({ where: { id: f.targetId }, data: { status: "CANCELLED" } });
+  await db.classSession.update({
+    where: { id: f.targetId },
+    data: { status: "CANCELLED", cancelledAt: f.before, cancelReason: "Cancelada no cenário" },
+  });
   await assert.rejects(harness.caller(undefined, f.after).attendance.markMakeupOutcome(input), {
     code: "BAD_REQUEST",
     message: /destino foi cancelada/,
   });
-  await db.classSession.update({ where: { id: f.targetId }, data: { status: "SCHEDULED" } });
+  await db.classSession.update({
+    where: { id: f.targetId },
+    data: { status: "SCHEDULED", cancelledAt: null, cancelReason: null },
+  });
   await db.makeup.update({ where: { id: makeupId }, data: { cancelledAt: f.before } });
   await assert.rejects(harness.caller(undefined, f.after).attendance.markMakeupOutcome(input), {
     code: "BAD_REQUEST",

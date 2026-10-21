@@ -24,8 +24,7 @@
     "@lazuli/validators": "workspace:*",
     "@trpc/server": "catalog:",
     "kysely": "catalog:",
-    "superjson": "catalog:",
-    "@lazuli/integrations": "workspace:*"
+    "superjson": "catalog:"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

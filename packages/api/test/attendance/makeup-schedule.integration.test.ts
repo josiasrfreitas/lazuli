@@ -52,7 +52,10 @@ void it("rejects elapsed or cancelled targets without leaving either kind of boo
     code: "BAD_REQUEST",
     message: /ainda não começou/,
   });
-  await db.classSession.update({ where: { id: f.targetId }, data: { status: "CANCELLED" } });
+  await db.classSession.update({
+    where: { id: f.targetId },
+    data: { status: "CANCELLED", cancelledAt: f.before, cancelReason: "Cancelada no cenário" },
+  });
   await assert.rejects(harness.caller(undefined, f.before).attendance.scheduleMakeup(input), {
     code: "BAD_REQUEST",
     message: /não está disponível/,

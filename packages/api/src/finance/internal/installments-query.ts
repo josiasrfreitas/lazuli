@@ -214,7 +214,7 @@ function ledgerSelection(input: {
     ),
     sql<
       number | null
-    >`case when not exists (select 1 from "InstallmentAgreement" agreement where agreement.installment_id = "Installment".id) and "Contract".punctuality_discount_pct is not null and "Installment".waived_at is null and "Installment".due_date >= ${input.businessDate}::date and ${input.paid} <= round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer and ${input.paid} < ${input.expected} then round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer else null end`.as(
+    >`case when "Order".kind = 'TUITION' and not exists (select 1 from "InstallmentAgreement" agreement where agreement.installment_id = "Installment".id) and "Contract".punctuality_discount_pct is not null and "Installment".waived_at is null and "Installment".due_date >= ${input.businessDate}::date and ${input.paid} <= round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer and ${input.paid} < ${input.expected} then round("Installment".amount_cents * (1 - "Contract".punctuality_discount_pct / 100))::integer else null end`.as(
       "onTimeAmountCents",
     ),
     input.status.as("status"),

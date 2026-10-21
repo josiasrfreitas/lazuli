@@ -28,7 +28,7 @@ export async function attendanceStatus(
     sessionId,
     format: session.class.format,
     restriction: openingRestriction(session, context.now),
-    reviewRestriction: attendanceReviewRestriction(context, session),
+    confirmationRestriction: attendanceReviewRestriction(context, session),
     windows,
     declarations,
   };

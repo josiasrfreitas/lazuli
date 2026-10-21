@@ -55,7 +55,7 @@ export async function listActivity(
     occurredAt: { ...(start ? { gte: start } : {}), lte: snapshotAt },
     ...(areas.length > 0 ? { area: { in: areas } } : {}),
     ...(actorIds.length > 0 ? { actorId: { in: actorIds } } : {}),
-    id: await searchIds(database, "ActivityEvent", input.search),
+    id: (await searchIds(database, "ActivityEvent", input.search)) ?? {},
   };
   const [rows, total] = await Promise.all([
     database.activityEvent.findMany({

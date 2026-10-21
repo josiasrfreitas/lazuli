@@ -13,7 +13,7 @@ import {
 } from "../support/finance-test-support.js";
 
 const PROCEDURE = "finance.installments";
-const GROUP_PAGE_SIZE = 10;
+const GROUP_PAGE_SIZE = 25;
 const PREFIX = "Installments transport ";
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_FORBIDDEN = 403;
@@ -71,6 +71,7 @@ function registerSerializationTest(): void {
       collectibleBalanceCents: 10_000,
       onTimeAmountCents: null,
       status: "OVERDUE",
+      suspendedUntil: null,
       overdueDays: 1,
     });
   });

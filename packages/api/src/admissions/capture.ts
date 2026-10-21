@@ -19,6 +19,7 @@ export async function captureLead(
       id: values.id,
       ...fields,
       recordedById: input.recordedById,
+      availabilityConfirmedAt: null,
     },
     select: { id: true },
   });
@@ -45,7 +46,7 @@ async function captureFields(
   input: Context & { values: z.infer<typeof leadCaptureSchema> },
   previous?: { englishExperience: string; stageId: string | null },
 ) {
-  const { id: _id, birthDate, ...fields } = input.values;
+  const { id: _id, birthDate, notes, ...fields } = input.values;
   const today = saoPauloDateOnly(input.now);
   if (birthDate && birthDate > today) throw badRequest("O nascimento não pode estar no futuro.");
   if (fields.englishExperience === "NONE") await assertInitialStage(input.database, fields.stageId);
@@ -62,7 +63,7 @@ async function captureFields(
     email: fields.email || null,
     contactName: fields.contactName || null,
     source: fields.source || null,
-    ...(fields.notes !== undefined ? { notes: fields.notes || null } : {}),
+    ...(notes !== undefined ? { notes: notes || null } : {}),
     birthDate: birthDate ? new Date(birthDate) : null,
   };
 }

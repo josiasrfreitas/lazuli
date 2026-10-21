@@ -187,7 +187,7 @@ export async function normalizedStudentSearch(
     searchIds(database, "Class", search),
     searchIds(database, "User", search),
   ]);
-  if (!students) return {};
+  if (!students || !classes || !teachers) return {};
   return {
     OR: [
       { id: students },

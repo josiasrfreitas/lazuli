@@ -84,3 +84,21 @@ export function completeGrades(oral = 60): AssessmentSave["grades"] {
     })),
   );
 }
+
+/** Given an actual completed, coordinator-confirmed assessment before exercising stage movement. */
+export async function approveProgress(
+  caller: ReturnType<typeof createCaller>,
+  { progressId, assessedOn }: { progressId: string; assessedOn: string },
+): Promise<void> {
+  const saved = await caller.assessments.save({
+    progressId,
+    version: 0,
+    grades: completeGrades().map((grade) => ({ ...grade, assessedOn })),
+  });
+  await caller.assessments.confirm({
+    progressId,
+    version: saved.version,
+    decision: "APPROVED",
+    reason: "Competências concluídas antes do avanço de estágio.",
+  });
+}

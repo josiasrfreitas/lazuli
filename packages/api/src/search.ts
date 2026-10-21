@@ -22,15 +22,15 @@ export function normalizedKysely(value: RawBuilder<unknown>): RawBuilder<string>
 }
 
 const FUZZY_THRESHOLD = 0.6;
-function allowsFuzzy(needle: string): boolean {
-  return needle.length >= 4 && /^[\p{L}]+$/u.test(needle);
+function allowsFuzzy(query: string): boolean {
+  return normalizeSearch(query).length >= 4 && /^[\p{L}]+$/u.test(query.trim());
 }
 
 export function searchMatchSql(value: Prisma.Sql, query: string): Prisma.Sql {
   const needle = normalizeSearch(query);
   const normalized = normalizedSql(value);
   const exact = Prisma.sql`strpos(${normalized}, ${needle}) > 0`;
-  return allowsFuzzy(needle)
+  return allowsFuzzy(query)
     ? Prisma.sql`(${exact} OR word_similarity(${needle}, ${normalized}) > ${FUZZY_THRESHOLD})`
     : exact;
 }
@@ -39,7 +39,7 @@ export function searchMatchKysely(value: RawBuilder<unknown>, query: string): Ra
   const needle = normalizeSearch(query);
   const normalized = normalizedKysely(value);
   const exact = sql<boolean>`strpos(${normalized}, ${needle}) > 0`;
-  return allowsFuzzy(needle)
+  return allowsFuzzy(query)
     ? sql<boolean>`(${exact} OR word_similarity(${needle}, ${normalized}) > ${FUZZY_THRESHOLD})`
     : exact;
 }
@@ -53,7 +53,7 @@ export async function searchIds(
   const needle = normalizeSearch(query ?? "");
   if (!needle) return undefined;
   const conditions = searchColumns[table].map((column) =>
-    searchMatchSql(Prisma.raw(`"${column}"`), needle),
+    searchMatchSql(Prisma.raw(`"${column}"`), query ?? ""),
   );
   const rows = await database.$queryRaw<{ id: string }[]>(Prisma.sql`
     SELECT id FROM ${Prisma.raw(`"${table}"`)}

@@ -42,7 +42,7 @@ export function createDbClient(databaseUrl = getDatabaseUrl()): DatabaseClient {
     }),
   );
 
-  return extendedClient as object as DatabaseClient;
+  return isolateTransactionQueries(extendedClient as object as DatabaseClient);
 }
 
 const globalDatabase = globalThis as typeof globalThis & {
@@ -51,3 +51,43 @@ const globalDatabase = globalThis as typeof globalThis & {
 
 export const db = globalDatabase.lazuliDatabase ?? createDbClient();
 globalDatabase.lazuliDatabase = db;
+
+/** Pin Kysely before another callback overwrites the extension's shared client property. */
+function isolateTransactionQueries(client: DatabaseClient): DatabaseClient {
+  const transaction = client.$transaction.bind(client);
+  return new Proxy(client, {
+    get(target, property): DatabaseClient[keyof DatabaseClient] {
+      if (property !== "$transaction")
+        return Reflect.get(target, property) as DatabaseClient[keyof DatabaseClient];
+      return (<Result>(
+        operation:
+          | ((database: TransactionClient) => Promise<Result>)
+          | Prisma.PrismaPromise<Result>[],
+        options?: {
+          maxWait?: number;
+          timeout?: number;
+          isolationLevel?: Prisma.TransactionIsolationLevel;
+        },
+      ): Promise<Result | Result[]> => {
+        if (Array.isArray(operation)) return transaction(operation, options);
+        return transaction((database) => {
+          const kysely = database.$kysely;
+          const isolated = new Proxy(database, {
+            get(
+              transactionTarget,
+              transactionProperty,
+            ): TransactionClient[keyof TransactionClient] {
+              return transactionProperty === "$kysely"
+                ? kysely
+                : (Reflect.get(
+                    transactionTarget,
+                    transactionProperty,
+                  ) as TransactionClient[keyof TransactionClient]);
+            },
+          });
+          return operation(isolated);
+        }, options);
+      }) as DatabaseClient["$transaction"];
+    },
+  });
+}

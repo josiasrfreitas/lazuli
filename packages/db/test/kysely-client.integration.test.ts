@@ -18,6 +18,7 @@ void describe("Prisma-backed Kysely client", { concurrency: 1 }, () => {
 
   registerSharedTransactionReadTest();
   registerRollbackTest();
+  registerConcurrentTransactionTest();
   registerSoftDeleteTest();
 });
 
@@ -78,4 +79,31 @@ function registerSoftDeleteTest(): void {
 
 async function clean(): Promise<void> {
   await db.$executeRaw`delete from "Payer" where name like ${`${PREFIX}%`}`;
+}
+
+function registerConcurrentTransactionTest(): void {
+  void it("keeps concurrent Kysely reads on their own uncommitted transaction", async () => {
+    let release!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let arrivals = 0;
+    const names = [`${PREFIX}concurrent-first`, `${PREFIX}concurrent-second`];
+    const results = await Promise.all(
+      names.map((name) =>
+        db.$transaction(async (transaction) => {
+          await transaction.payer.create({ data: { name } });
+          arrivals += 1;
+          if (arrivals === names.length) release();
+          await ready;
+          return transaction.$kysely
+            .selectFrom("Payer")
+            .select("name")
+            .where("name", "in", names)
+            .execute();
+        }),
+      ),
+    );
+    assert.deepEqual(results, [[{ name: names[0] }], [{ name: names[1] }]]);
+  });
 }
