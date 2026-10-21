@@ -1,4 +1,4 @@
-import { Prisma } from "@lazuli/db";
+import { Prisma } from "@lazuli/db/prisma";
 import { normalizeSearch } from "@lazuli/domain";
 import { sql, type RawBuilder } from "kysely";
 

@@ -83,7 +83,6 @@ async function resolveStaffUser(input: {
       where: { email: input.email },
       include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
     }),
-    input.now,
-    input.role,
+    { now: input.now, requestedRole: input.role },
   );
 }

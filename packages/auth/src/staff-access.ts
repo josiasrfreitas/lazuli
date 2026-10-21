@@ -66,9 +66,9 @@ export type StaffIdentity = {
  */
 export function resolveStaffIdentity(
   user: (StaffAccessUser & { id: string; name: string }) | null,
-  now = new Date(),
-  requestedRole?: string | null,
+  options: { now?: Date; requestedRole?: string | null | undefined } = {},
 ): StaffIdentity | null {
+  const { now = new Date(), requestedRole } = options;
   if (user === null || !evaluateStaffAccess(user, now).allowed) {
     return null;
   }
@@ -117,7 +117,7 @@ export function availableStaffRoles(user: StaffAccessUser, now = new Date()): St
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(now);
-  const part = (name: string) => parts.find((item) => item.type === name)?.value ?? "";
+  const part = (name: string): string => parts.find((item) => item.type === name)?.value ?? "";
   const today = `${part("year")}-${part("month")}-${part("day")}`;
   const departed = user.teacherProfile?.departureDate
     ? user.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) <= today

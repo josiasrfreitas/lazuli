@@ -51,7 +51,6 @@ export async function getStaffIdentity(input: { headers: Headers }): Promise<Sta
       where: { email: session.user.email },
       include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
     }),
-    new Date(),
-    staffRoleFromHeaders(input.headers),
+    { now: new Date(), requestedRole: staffRoleFromHeaders(input.headers) },
   );
 }
