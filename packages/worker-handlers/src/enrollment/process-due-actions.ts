@@ -4,6 +4,7 @@ import { saoPauloDateOnly } from "@lazuli/domain";
 import { reconcileDueSemesterPlacements } from "./semester-placements.js";
 
 type Database = TransactionClient;
+type DueAction = Prisma.EnrollmentActionGetPayload<{ select: typeof actionSelection }>;
 
 const actionSelection = {
   id: true,
@@ -14,7 +15,7 @@ const actionSelection = {
 } satisfies Prisma.EnrollmentActionSelect;
 
 /** A bounded batch must carry both halves of a published semester movement. */
-async function dueActions(database: Database, today: Date) {
+async function dueActions(database: Database, today: Date): Promise<DueAction[]> {
   const batch = await database.enrollmentAction.findMany({
     where: { status: "SCHEDULED", effectiveDate: { lte: today } },
     select: actionSelection,
@@ -47,7 +48,7 @@ export async function processDueEnrollmentActions(input: {
   now: Date;
 }): Promise<number> {
   const today = new Date(saoPauloDateOnly(input.now));
-  await reconcileDueSemesterPlacements(input.database, today, input.now);
+  await reconcileDueSemesterPlacements(input.database, { today, now: input.now });
   const due = await dueActions(input.database, today);
   let applied = 0;
   for (const action of due) {
@@ -57,12 +58,7 @@ export async function processDueEnrollmentActions(input: {
     });
     if (claimed.count === 0) continue;
     if (action.kind === "PAUSE" || action.kind === "EXIT") {
-      const reason =
-        action.kind === "PAUSE"
-          ? "SUSPENDED"
-          : action.exitReason === "TRANSFERRED"
-            ? "TRANSFERRED"
-            : "DROPPED";
+      const reason = exitReason(action);
       const enrollment = await input.database.enrollment.findUnique({
         where: { id: action.enrollmentId },
         select: { exitDate: true, deletedAt: true },
@@ -86,4 +82,9 @@ export async function processDueEnrollmentActions(input: {
     applied += 1;
   }
   return applied;
+}
+
+function exitReason(action: DueAction): "SUSPENDED" | "TRANSFERRED" | "DROPPED" {
+  if (action.kind === "PAUSE") return "SUSPENDED";
+  return action.exitReason === "TRANSFERRED" ? "TRANSFERRED" : "DROPPED";
 }

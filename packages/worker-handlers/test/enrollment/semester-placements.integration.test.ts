@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { after, beforeEach, it } from "node:test";
-import { db } from "@lazuli/db";
+import { db, type Prisma } from "@lazuli/db";
 import { processDueEnrollmentActions } from "../../src/enrollment/process-due-actions.js";
 const PREFIX = "Semester185Worker ";
 const ADMIN = "00000000-0000-0000-0000-000000185001";
 const TEACHER = "00000000-0000-0000-0000-000000185002";
 const due = new Date("2094-07-01T03:00:00.000Z");
 const slots = [{ weekday: "MONDAY" as const, startTime: "14:00", endTime: "15:00" }];
-async function clean() {
+async function clean(): Promise<void> {
   const semesters = await db.semester.findMany({
     where: { name: { startsWith: PREFIX } },
     select: { id: true },
@@ -42,7 +42,17 @@ after(async () => {
   await clean();
   await db.$disconnect();
 });
-async function fixture() {
+type Fixture = {
+  source: Prisma.EnrollmentGetPayload<Prisma.EnrollmentDefaultArgs>;
+  sourceProgress: Prisma.PedagogicalProgressGetPayload<Prisma.PedagogicalProgressDefaultArgs>;
+  target: Prisma.EnrollmentGetPayload<Prisma.EnrollmentDefaultArgs>;
+  entry: Prisma.EnrollmentActionGetPayload<Prisma.EnrollmentActionDefaultArgs>;
+  exit: Prisma.EnrollmentActionGetPayload<Prisma.EnrollmentActionDefaultArgs>;
+  placement: Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;
+  student: Prisma.StudentGetPayload<Prisma.StudentDefaultArgs>;
+  next: Prisma.SemesterGetPayload<Prisma.SemesterDefaultArgs>;
+};
+async function fixture(): Promise<Fixture> {
   await db.user.createMany({
     data: [
       {
@@ -80,7 +90,10 @@ async function fixture() {
       endDate: new Date("2094-12-31"),
     },
   });
-  const makeClass = (semesterId: string, key: string) =>
+  const makeClass = (
+    semesterId: string,
+    key: string,
+  ): Promise<Prisma.ClassGetPayload<Prisma.ClassDefaultArgs>> =>
     db.class.create({
       data: {
         semesterId,
