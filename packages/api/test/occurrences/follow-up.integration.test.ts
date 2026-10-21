@@ -120,6 +120,45 @@ const interventionValues = {
   responsibleId: config.teacherId,
   performedOn: "2074-02-14",
 };
+void it("lets an intervention responsible read a colleague's report without rewriting its authorship", async () => {
+  const f = await fixture();
+  const report = await caller().occurrences.create({
+    studentId: f.ana.id,
+    classSessionId: f.session.id,
+    title: "Relato registrado pela coordenação",
+    category: "LEARNING",
+    account: "O aluno pediu apoio para acompanhar as instruções da atividade.",
+  });
+  await assert.rejects(caller(teacher).occurrences.byId(report), { code: "NOT_FOUND" });
+  await caller().interventions.create({
+    ...interventionValues,
+    occurrenceIds: [report.id],
+  });
+  const original = await caller(teacher).occurrences.byId(report);
+  assert.equal(original.canEdit, false);
+  assert.equal(original.account, "O aluno pediu apoio para acompanhar as instruções da atividade.");
+  assert.equal(original.recordedBy.id, admin.id);
+  await assert.rejects(
+    caller(teacher).occurrences.update({
+      ...report,
+      account: "Texto substituído pelo responsável pela intervenção.",
+      expectedUpdatedAt: original.updatedAt,
+    }),
+    { code: "FORBIDDEN" },
+  );
+  const unchanged = await caller().occurrences.byId(report);
+  assert.equal(unchanged.canEdit, true);
+  assert.equal(
+    unchanged.account,
+    "O aluno pediu apoio para acompanhar as instruções da atividade.",
+  );
+  assert.equal(unchanged.recordedBy.id, admin.id);
+  assert.equal(unchanged.updatedAt.toISOString(), original.updatedAt.toISOString());
+  assert.equal(
+    await db.activityEvent.count({ where: { subjectId: f.ana.id, action: "occurrences.update" } }),
+    0,
+  );
+});
 void it("links reports symmetrically and edits the account without creating an intervention", async () => {
   const f = await fixture();
   await caller(teacher).occurrences.link({ occurrenceId: f.first.id, relatedId: f.second.id });
@@ -303,14 +342,22 @@ void it("rejects cancelled and future sessions and students outside the session 
     title: "Novo relato",
     account: "Contexto que exige acompanhamento.",
   };
-  await db.classSession.update({ where: { id: f.session.id }, data: { status: "CANCELLED" } });
+  await db.classSession.update({
+    where: { id: f.session.id },
+    data: { status: "CANCELLED", cancelledAt: now, cancelReason: "Aula cancelada no cenário" },
+  });
   await assert.rejects(caller().occurrences.create(values), {
     code: "BAD_REQUEST",
     message: /Aula indisponível/,
   });
   await db.classSession.update({
     where: { id: f.session.id },
-    data: { status: "SCHEDULED", date: new Date("2074-02-16") },
+    data: {
+      status: "SCHEDULED",
+      cancelledAt: null,
+      cancelReason: null,
+      date: new Date("2074-02-16"),
+    },
   });
   await assert.rejects(caller().occurrences.create(values), {
     code: "BAD_REQUEST",

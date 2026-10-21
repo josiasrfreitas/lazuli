@@ -62,8 +62,18 @@ export async function updateOccurrence(
   input: { id: string; account: string; expectedUpdatedAt: Date },
 ): Promise<void> {
   const occurrence = await loadOccurrence(context, input.id);
+  if (context.staffUser.role === "TEACHER" && occurrence.recordedById !== context.staffUser.id)
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Somente o autor ou a coordenação pode editar este relato.",
+    });
   const changed = await context.database.pedagogicalOccurrence.updateMany({
-    where: { id: occurrence.id, updatedAt: input.expectedUpdatedAt, deletedAt: null },
+    where: {
+      id: occurrence.id,
+      updatedAt: input.expectedUpdatedAt,
+      deletedAt: null,
+      ...(context.staffUser.role === "TEACHER" ? { recordedById: context.staffUser.id } : {}),
+    },
     data: { account: input.account },
   });
   if (!changed.count)

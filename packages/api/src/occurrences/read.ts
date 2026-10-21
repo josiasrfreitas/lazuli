@@ -21,8 +21,16 @@ export async function listOccurrences(context: FollowUpContext, input: Pedagogic
         ...(input.search
           ? {
               OR: [
-                { id: await searchIds(context.database, "PedagogicalOccurrence", input.search) },
-                { student: { id: await searchIds(context.database, "Student", input.search) } },
+                {
+                  id:
+                    (await searchIds(context.database, "PedagogicalOccurrence", input.search)) ??
+                    {},
+                },
+                {
+                  student: {
+                    id: (await searchIds(context.database, "Student", input.search)) ?? {},
+                  },
+                },
               ],
             }
           : {}),
@@ -53,9 +61,21 @@ async function interventionFilter(
         ...(input.search
           ? {
               OR: [
-                { id: await searchIds(context.database, "PedagogicalIntervention", input.search) },
-                { student: { id: await searchIds(context.database, "Student", input.search) } },
-                { responsible: { id: await searchIds(context.database, "User", input.search) } },
+                {
+                  id:
+                    (await searchIds(context.database, "PedagogicalIntervention", input.search)) ??
+                    {},
+                },
+                {
+                  student: {
+                    id: (await searchIds(context.database, "Student", input.search)) ?? {},
+                  },
+                },
+                {
+                  responsible: {
+                    id: (await searchIds(context.database, "User", input.search)) ?? {},
+                  },
+                },
               ],
             }
           : {}),
@@ -103,6 +123,7 @@ export async function occurrenceDetail(context: FollowUpContext, id: string) {
     ...row,
     related: relations.map((link) => (link.fromId === id ? link.to : link.from)),
     interventions,
+    canEdit: context.staffUser.role !== "TEACHER" || row.recordedById === context.staffUser.id,
     canOrganize: context.staffUser.role !== "TEACHER",
   };
 }

@@ -70,10 +70,12 @@ function OccurrenceRecord({
         <OccurrenceBody
           row={row}
           select={select}
-          onEdit={readOnly ? undefined : () => setAction("edit")}
+          onEdit={readOnly || !row.canEdit ? undefined : () => setAction("edit")}
         />
       </div>
-      {action === "edit" && <OccurrenceEditForm row={row} onClose={() => setAction(null)} />}
+      {action === "edit" && !readOnly && row.canEdit && (
+        <OccurrenceEditForm row={row} onClose={() => setAction(null)} />
+      )}
       {action === "link" && (
         <LinkOccurrenceForm
           studentId={row.studentId}
@@ -92,7 +94,7 @@ function OccurrenceBody({
 }: {
   row: Occurrence;
   select: SelectFollowUp;
-  onEdit?: () => void;
+  onEdit?: (() => void) | undefined;
 }): ReactElement {
   return (
     <>
