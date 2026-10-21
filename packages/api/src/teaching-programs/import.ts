@@ -6,7 +6,10 @@ import { teachingProgramImportSchema } from "@lazuli/validators";
 const MILLISECONDS_PER_MINUTE = 60_000;
 
 /** Integration entry point. Not exposed as an interactive catalog mutation. */
-export async function importTeachingProgram(database: DatabaseClient, payload: unknown) {
+export async function importTeachingProgram(
+  database: DatabaseClient,
+  payload: unknown,
+): Promise<{ id: string; imported: boolean }> {
   const input: TeachingProgramImport = teachingProgramImportSchema.parse(payload);
   assertTeachingProgram(input);
   const contentHash = createHash("sha256").update(JSON.stringify(input)).digest("hex");

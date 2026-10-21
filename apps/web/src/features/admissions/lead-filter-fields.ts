@@ -6,7 +6,10 @@ const statuses = ["WAITING", "ENROLLED", "ARCHIVED"] as const;
 const interests = ["UNKNOWN", "LOW", "MEDIUM", "HIGH"] as const;
 export type LeadFilterParams = { situacao: string; interesse: string };
 
-export function leadFilterInput(params: LeadFilterParams) {
+export function leadFilterInput(params: LeadFilterParams): {
+  statuses: ("ARCHIVED" | "WAITING" | "ENROLLED")[];
+  interests: ("UNKNOWN" | "LOW" | "MEDIUM" | "HIGH")[];
+} {
   return {
     statuses: statuses.filter((value) => params.situacao.split(",").includes(value)),
     interests: interests.filter((value) => params.interesse.split(",").includes(value)),

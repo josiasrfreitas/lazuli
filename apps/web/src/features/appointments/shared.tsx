@@ -34,7 +34,7 @@ export function today(): string {
     day: "2-digit",
   }).format(new Date());
 }
-export function monthBounds(month: string) {
+export function monthBounds(month: string): { from: string; through: string } {
   const valid = /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : today().slice(0, 7);
   return {
     from: `${valid}-01`,

@@ -165,7 +165,7 @@ export function teacherDayLessons(
   lessons: CalendarLesson[],
   teacherId: string | null,
   date: string,
-) {
+): { placed: { lesson: CalendarLesson; lane: number }[]; lanes: number } {
   const ends: string[] = [];
   const placed = lessons
     .filter((lesson) => lesson.date === date && lesson.teacherId === teacherId)

@@ -38,7 +38,7 @@ export async function organizationSemester(
   const name = `${year}.${half}`;
   const semester = await database.semester.create({
     data: {
-      id: organizationId("window", name, "semester"),
+      id: organizationId("window", { semesterName: name, key: "semester" }),
       name,
       startDate,
       endDate: utcDate(`${year}-${half === 1 ? "06-30" : "12-31"}`),
@@ -95,7 +95,7 @@ export async function publishedOrganizationClass(input: {
     group.scheduleType === "PERSONALIZED"
       ? await resolvePersonalizedPortalClassName(naming)
       : await resolveRegularPortalClassName({ ...naming, stageInternalCode: group.stageCode! });
-  const id = organizationId("class", semester.name, group.key);
+  const id = organizationId("class", { semesterName: semester.name, key: group.key });
   await database.class.create({
     data: {
       id,
@@ -114,7 +114,10 @@ export async function publishedOrganizationClass(input: {
       updatedAt: publishedAt,
       scheduleSlots: {
         create: group.slots.map((slot) => ({
-          id: organizationId("slot", semester.name, `${group.key}/${slot.weekday}`),
+          id: organizationId("slot", {
+            semesterName: semester.name,
+            key: `${group.key}/${slot.weekday}`,
+          }),
           weekday: slot.weekday,
           startTime: timeOfDay(slot.startTime),
           endTime: timeOfDay(slot.endTime),
@@ -126,7 +129,7 @@ export async function publishedOrganizationClass(input: {
   });
   await database.classTeacherAssignment.create({
     data: {
-      id: organizationId("teacher-assignment", semester.name, group.key),
+      id: organizationId("teacher-assignment", { semesterName: semester.name, key: group.key }),
       classId: id,
       teacherId,
       effectiveDate: semester.startDate,

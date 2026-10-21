@@ -17,7 +17,10 @@ import {
 } from "./data.js";
 import { TRPCError } from "@trpc/server";
 
-export async function createOccurrence(context: FollowUpContext, input: OccurrenceCreate) {
+export async function createOccurrence(
+  context: FollowUpContext,
+  input: OccurrenceCreate,
+): Promise<{ id: string }> {
   const roster = await occurrenceRoster(context, input.classSessionId);
   const student = roster.find((row) => row.id === input.studentId);
   if (!student) invalid("O aluno não pertencia à turma nesta data.");
@@ -86,7 +89,10 @@ export async function updateOccurrence(
     description: `Relato editado: ${occurrence.title}`,
   });
 }
-export async function createIntervention(context: FollowUpContext, input: InterventionCreate) {
+export async function createIntervention(
+  context: FollowUpContext,
+  input: InterventionCreate,
+): Promise<{ id: string }> {
   const occurrences = await Promise.all(
     input.occurrenceIds.map((id) => loadOccurrence(context, id)),
   );

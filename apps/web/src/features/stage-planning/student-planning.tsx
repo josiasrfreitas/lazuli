@@ -13,7 +13,19 @@ import { PlanningState, dateLabel } from "./shared";
 import styles from "./planning.module.css";
 
 type Contexts = RouterOutputs["planning"]["contexts"];
-export function studentPlanningOptions(contexts: Contexts, studentId: string) {
+export function studentPlanningOptions(
+  contexts: Contexts,
+  studentId: string,
+): {
+  classId: string;
+  className: string;
+  progressId: string;
+  studentId: string;
+  name: string;
+  stage: string;
+  startOn: string;
+  historical: boolean;
+}[] {
   const today = saoPauloDateOnly(new Date());
   return contexts
     .flatMap((group) =>

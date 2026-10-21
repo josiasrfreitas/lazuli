@@ -116,7 +116,12 @@ export async function enrollNewStudent({
   values: z.infer<typeof studentIntakeEnrollSchema>;
   recordedById: string;
   now: Date;
-}) {
+}): Promise<{
+  studentId: string;
+  enrollmentId: string | null;
+  classId: string | null;
+  contractId: string | null;
+}> {
   const enrollmentDatabase = captureEnrollmentTransaction(database);
   const semester = await lockIntakeSemester(database, now);
   await lockTeacher(database, "");
@@ -272,7 +277,7 @@ export async function allocateIntakeStudent({
   values: z.infer<typeof studentIntakeAllocateSchema>;
   recordedById: string;
   now: Date;
-}) {
+}): Promise<{ studentId: string; enrollmentId: string }> {
   const enrollmentDatabase = captureEnrollmentTransaction(database);
   const semester = await lockIntakeSemester(database, now);
   await lockTeacher(database, "");
@@ -331,7 +336,7 @@ export async function resumeStudentIntake({
   values: z.infer<typeof studentIntakeResumeSchema>;
   recordedById: string;
   now: Date;
-}) {
+}): Promise<{ studentId: string; contractId: string | null }> {
   const semester = await lockIntakeSemester(database, now);
   await lockTeacher(database, "");
   await database.$executeRaw`SELECT id FROM "Student" WHERE id = ${values.studentId}::uuid FOR UPDATE`;

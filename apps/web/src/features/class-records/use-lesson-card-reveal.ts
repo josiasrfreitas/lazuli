@@ -59,7 +59,7 @@ export function useLessonCardReveal(dayWidth?: number, widthShare?: number) {
   return ref;
 }
 
-function measureContent(card: HTMLButtonElement, width: number) {
+function measureContent(card: HTMLButtonElement, width: number): { height: number; width: number } {
   const probe = card.cloneNode(true) as HTMLButtonElement;
   probe.inert = true;
   probe.setAttribute("aria-hidden", "true");

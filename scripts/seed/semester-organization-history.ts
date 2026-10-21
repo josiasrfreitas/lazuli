@@ -16,7 +16,10 @@ export async function placementRevision(
   });
   await context.database.semesterPlacementRevision.create({
     data: {
-      id: organizationId("revision", semesterName, `${placementId}/${row.version}`),
+      id: organizationId("revision", {
+        semesterName: semesterName,
+        key: `${placementId}/${row.version}`,
+      }),
       placementId,
       version: row.version,
       action,
@@ -63,10 +66,16 @@ export async function publishOrganizationStudent(input: {
     },
   });
   if (pending) throw new Error("A semester seed source already has a scheduled departure.");
-  const sourceExitActionId = organizationId("exit", semesterName, subject.key);
-  const enrollmentId = organizationId("enrollment", semesterName, subject.key);
-  const entryActionId = organizationId("entry", semesterName, subject.key);
-  const placementId = organizationId("placement", semesterName, subject.key);
+  const sourceExitActionId = organizationId("exit", {
+    semesterName: semesterName,
+    key: subject.key,
+  });
+  const enrollmentId = organizationId("enrollment", {
+    semesterName: semesterName,
+    key: subject.key,
+  });
+  const entryActionId = organizationId("entry", { semesterName: semesterName, key: subject.key });
+  const placementId = organizationId("placement", { semesterName: semesterName, key: subject.key });
   const authored = { createdAt: context.now, updatedAt: context.now };
   // This order is required by the deferred temporal same-track constraint.
   await database.enrollmentAction.create({
@@ -91,7 +100,7 @@ export async function publishOrganizationStudent(input: {
       ...authored,
       progressRecords: {
         create: {
-          id: organizationId("progress", semesterName, subject.key),
+          id: organizationId("progress", { semesterName: semesterName, key: subject.key }),
           stageId: subject.stage.id,
           startDate: entryDate,
           assessmentId: subject.mode === "CONTINUE" ? subject.progress.assessmentId : null,

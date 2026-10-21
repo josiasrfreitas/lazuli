@@ -141,7 +141,7 @@ function TeacherVisitBody({ visit }: { visit: Visit }): ReactJSX.Element {
   );
   const [notes, setNotes] = useState(visit.notes ?? "");
   const utils = trpc.useUtils();
-  const refresh = () =>
+  const refresh = (): Promise<[void, void]> =>
     Promise.all([utils.teacherWorkspace.invalidate(), utils.classRecords.invalidate()]);
   const save = trpc.teacherWorkspace.visitOutcome.useMutation({ onSuccess: refresh });
   return (
@@ -206,7 +206,7 @@ function TeacherVisitBody({ visit }: { visit: Visit }): ReactJSX.Element {
 }
 function TeacherPlacement({ visit }: { visit: Visit }): ReactJSX.Element {
   const utils = trpc.useUtils();
-  const refresh = () =>
+  const refresh = (): Promise<[void, void]> =>
     Promise.all([utils.teacherWorkspace.invalidate(), utils.classRecords.invalidate()]);
   const stages = trpc.teacherWorkspace.stages.useQuery();
   const result = trpc.teacherWorkspace.placementResult.useMutation({ onSuccess: refresh });

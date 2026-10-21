@@ -88,7 +88,7 @@ export function WeeklyCalendar({
     ...event,
     disabled: selection ? !selection.isLessonSelectable(event.lesson) : false,
   }));
-  const slot = (range: CalendarInterval) => ({
+  const slot = (range: CalendarInterval): { start: Date; end: Date } => ({
     start: calendarWallDate(range.date, range.startTime),
     end: calendarWallDate(range.date, range.endTime),
   });

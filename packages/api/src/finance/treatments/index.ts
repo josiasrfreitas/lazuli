@@ -38,7 +38,9 @@ export function financialTreatments(
   now: Date,
 ) {
   const today = saoPauloDateOnly(now);
-  async function scopedInstallments(where: Prisma.InstallmentWhereInput) {
+  async function scopedInstallments(
+    where: Prisma.InstallmentWhereInput,
+  ): Promise<{ id: string; party: { key: string; name: string } }[]> {
     const items = await database.installment.findMany({
       where,
       orderBy: [{ dueDate: "asc" }, { id: "asc" }],

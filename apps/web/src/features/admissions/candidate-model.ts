@@ -43,7 +43,14 @@ export function initialCandidateDraft(candidate?: Candidate): CandidateDraft {
         : emptyDraft.availability.map((slot) => ({ ...slot })),
   };
 }
-function candidateIdentity(candidate: Candidate) {
+function candidateIdentity(candidate: Candidate): {
+  fullName: string;
+  contactName: string;
+  source: string;
+  phone: string;
+  email: string;
+  notes: string;
+} {
   return {
     fullName: candidate.fullName,
     contactName: candidate.contactName ?? "",

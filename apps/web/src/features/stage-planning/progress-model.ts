@@ -3,8 +3,14 @@ export function planningPosition(
   items: readonly (PageRange & { plannedOn: string })[],
   records: readonly { date: string; time: string; content: PageRange }[],
   today: string,
-) {
-  const end = (range: PageRange) => range.pageTo ?? range.pageFrom;
+): {
+  expected: number | null;
+  actual: number | null;
+  lastDate: string | null;
+  scale: number;
+  hasPlannedPages: boolean;
+} {
+  const end = (range: PageRange): number | null => range.pageTo ?? range.pageFrom;
   const expected = items
     .filter((item) => item.plannedOn <= today)
     .flatMap((item) => (end(item) === null ? [] : [end(item)!]));

@@ -114,7 +114,7 @@ export const planLifecycleSchema = z
 export async function changePlanStatus(
   context: OrganizationContext,
   input: z.infer<typeof planLifecycleSchema>,
-) {
+): Promise<{ classId: string | null; generationRequestId: string | null }> {
   const initial = await context.database.semesterClassPlan.findUnique({ where: { id: input.id } });
   if (!initial) throw notFound("Turma não encontrada.");
   const semester = await lockSemester(context, initial.semesterId);

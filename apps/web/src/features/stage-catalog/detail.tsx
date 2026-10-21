@@ -19,7 +19,8 @@ import { TrackName } from "./track-name";
 import type { StageSummary, TeachingProgram } from "./types";
 import styles from "./catalog.module.css";
 
-const mode = (program: TeachingProgram) => (program.scheduleType === "REGULAR" ? "Regular" : "PPT");
+const mode = (program: TeachingProgram): "Regular" | "PPT" =>
+  program.scheduleType === "REGULAR" ? "Regular" : "PPT";
 const programLabel = (program: TeachingProgram): string =>
   `${mode(program)} · ${program.teachingHourCount} horas-aula`;
 

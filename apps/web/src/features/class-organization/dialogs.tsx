@@ -34,7 +34,7 @@ export type OrganizationDialogProps = {
   onFeedback: (message: string) => void;
 };
 type Props = OrganizationDialogProps;
-export function OrganizationDialogs(props: Props) {
+export function OrganizationDialogs(props: Props): ReactJSX.Element {
   const { action, board, onClose, onAction } = props;
   const [invalidate, setInvalidate] = useState<string | null>(null);
   const refresh = useOrganizationRefresh();

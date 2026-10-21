@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 
 /** URL acknowledgements must never replace a newer keystroke. */
-export function useSearchDraft(search: string, onCommit: (value: string) => void, delay = 300) {
+export function useSearchDraft(
+  search: string,
+  onCommit: (value: string) => void,
+  delay = 300,
+): readonly [string, (next: string) => void] {
   const [value, setValue] = useState(search);
   const commit = useRef(onCommit);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

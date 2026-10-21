@@ -32,7 +32,10 @@ const sessionInclude = {
   },
 } satisfies Prisma.ClassSessionInclude;
 type Session = Prisma.ClassSessionGetPayload<{ include: typeof sessionInclude }>;
-function reportTeacher(session: Session) {
+function reportTeacher(session: Session): {
+  teacher: { id: string; name: string } | null;
+  substitute: boolean;
+} {
   const usual = session.responsibilityFrozenAt
     ? session.usualTeacher
     : usualTeacherOn(session.class, session.date);
@@ -139,7 +142,10 @@ export async function loadReportSession(context: FollowUpContext, id: string): P
   if (!hasStarted(row, context.now)) invalid("Escolha uma aula em andamento ou que já aconteceu.");
   return row;
 }
-export async function occurrenceRoster(context: FollowUpContext, sessionId: string) {
+export async function occurrenceRoster(
+  context: FollowUpContext,
+  sessionId: string,
+): Promise<{ id: string; fullName: string }[]> {
   const session = await loadReportSession(context, sessionId);
   return context.database.student.findMany({
     where: {
@@ -157,7 +163,9 @@ export async function occurrenceRoster(context: FollowUpContext, sessionId: stri
     orderBy: { fullName: "asc" },
   });
 }
-export async function interventionStaff(context: FollowUpContext) {
+export async function interventionStaff(
+  context: FollowUpContext,
+): Promise<{ id: string; name: string }[]> {
   return context.database.user.findMany({
     where: eligibleInterventionStaff(context),
     select: { id: true, name: true },
@@ -165,7 +173,13 @@ export async function interventionStaff(context: FollowUpContext) {
   });
 }
 
-export async function interventionFormOptions(context: FollowUpContext, studentId: string) {
+export async function interventionFormOptions(
+  context: FollowUpContext,
+  studentId: string,
+): Promise<{
+  staff: { id: string; name: string }[];
+  suggestedResponsible: { classNames: string[]; id: string; name: string } | null;
+}> {
   const today = new Date(saoPauloDateOnly(context.now));
   const [staff, enrollments] = await Promise.all([
     interventionStaff(context),

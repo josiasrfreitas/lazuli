@@ -27,7 +27,10 @@ import {
 } from "./data.js";
 import { readSemester, type PlacementRow, type CurrentAvailability } from "./queries.js";
 
-export async function publishPlacements(context: OrganizationContext, input: PublishSemesterInput) {
+export async function publishPlacements(
+  context: OrganizationContext,
+  input: PublishSemesterInput,
+): Promise<{ classId: string; count: number; generationRequestId: string | null }> {
   const plan = await context.database.semesterClassPlan.findUnique({ where: { id: input.planId } });
   if (!plan) throw notFound("Turma planejada não encontrada.");
   const semester = await lockSemester(context, plan.semesterId);
@@ -259,7 +262,7 @@ async function publishOne(
 export async function withdrawPlacement(
   context: OrganizationContext,
   input: z.infer<typeof withdrawSemesterSchema>,
-) {
+): Promise<{ id: string }> {
   const placement = await context.database.semesterPlacement.findUnique({
     where: { id: input.id },
   });

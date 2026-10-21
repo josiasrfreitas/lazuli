@@ -43,7 +43,7 @@ export type PlacementScheduleDraft = {
   format: "IN_PERSON" | "ONLINE";
 };
 
-function schoolClock() {
+function schoolClock(): { date: string; time: string } {
   const now = new Date();
   return {
     date: toDateOnlySaoPaulo(now),

@@ -13,7 +13,7 @@ export const KIND_LABELS = {
   ACTIVITY: "Atividade",
 } as const;
 export const dateLabel = formatDateOnlyBR;
-export function targetFor(data: Planning) {
+export function targetFor(data: Planning): { progressId?: string; classId: string } {
   return {
     classId: data.scope.class.id,
     ...(data.scope.progressId ? { progressId: data.scope.progressId } : {}),

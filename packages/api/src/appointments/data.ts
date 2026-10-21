@@ -42,7 +42,9 @@ export type AppointmentAssignment = Pick<
   AppointmentRow,
   "targetClassSession" | "recordedAt" | "teacher"
 >;
-export function appointmentTeacher(row: AppointmentAssignment) {
+export function appointmentTeacher(
+  row: AppointmentAssignment,
+): { id: string; name: string } | null {
   return row.targetClassSession && !row.recordedAt
     ? responsibleTeacher(row.targetClassSession)
     : row.teacher;

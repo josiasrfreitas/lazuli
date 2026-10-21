@@ -15,7 +15,7 @@ export async function cancelAppointment(
   context: AppointmentContext,
   input: z.infer<typeof appointmentCancelSchema>,
   rescheduling = false,
-) {
+): Promise<{ id: string; version: number }> {
   requireAppointmentAdmin(context);
   await lockTeacher(context.database, "");
   const row = await loadAppointment(context, input.id);
@@ -53,7 +53,7 @@ export async function cancelAppointment(
 export async function rescheduleAppointment(
   context: AppointmentContext,
   input: z.infer<typeof appointmentRescheduleSchema>,
-) {
+): Promise<{ id: string; version: number }> {
   requireAppointmentAdmin(context);
   await lockTeacher(context.database, "");
   const row = await loadAppointment(context, input.id);

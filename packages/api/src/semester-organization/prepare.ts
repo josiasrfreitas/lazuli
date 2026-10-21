@@ -12,7 +12,10 @@ const ISO_TIME_START_INDEX = 11;
 const ISO_MINUTE_END_INDEX = 16;
 
 /** Copy only missing records. Repeating this command never overwrites the coordinator's edits. */
-export async function prepareSemester(context: OrganizationContext, semesterId: string) {
+export async function prepareSemester(
+  context: OrganizationContext,
+  semesterId: string,
+): Promise<{ plans: number; students: number }> {
   const semester = await lockSemester(context, semesterId);
   const today = saoPauloDateOnly(context.now);
   const current = dateOnly(semester.startDate) <= today;

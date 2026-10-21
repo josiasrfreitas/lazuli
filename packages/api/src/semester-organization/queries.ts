@@ -320,7 +320,7 @@ export function placementBlockers(
   plan: ClassPlan | null,
   availability: CurrentAvailability | null,
   entryOn: string,
-) {
+): string[] {
   if (
     row.declinedAt ||
     (row.publishedAt && (row.entryStatus === "APPLIED" || (!row.entryActionId && row.enrollmentId)))

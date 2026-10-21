@@ -22,7 +22,10 @@ import {
 
 const ISO_DATE_LENGTH = 10;
 
-export async function saveClassPlan(context: OrganizationContext, input: SemesterPlanInput) {
+export async function saveClassPlan(
+  context: OrganizationContext,
+  input: SemesterPlanInput,
+): Promise<{ id: string }> {
   await lockSemester(context, input.semesterId);
   if (input.teacherId)
     await assertTeacherIsActive({ database: context.database, teacherId: input.teacherId });
@@ -94,7 +97,10 @@ export async function saveClassPlan(context: OrganizationContext, input: Semeste
   return { id: plan.id };
 }
 
-export async function savePlacement(context: OrganizationContext, input: SemesterPlacementInput) {
+export async function savePlacement(
+  context: OrganizationContext,
+  input: SemesterPlacementInput,
+): Promise<{ id: string }> {
   const semester = await lockSemester(context, input.semesterId);
   const effectiveDate =
     input.effectiveDate ??
@@ -204,7 +210,7 @@ async function availabilityOwner(
 export async function confirmAvailability(
   context: OrganizationContext,
   input: StudentAvailabilityInput,
-) {
+): Promise<{ id: string }> {
   const { student, previous } = await availabilityOwner(context, input);
   if (input.validUntil < saoPauloDateOnly(context.now))
     throw badRequest("A validade da confirmação não pode estar no passado.");
@@ -231,7 +237,7 @@ export async function confirmAvailability(
 export async function invalidateAvailability(
   context: OrganizationContext,
   input: z.infer<typeof invalidateAvailabilitySchema>,
-) {
+): Promise<{ id: string }> {
   const { student, previous } = await availabilityOwner(context, input);
   if (!previous?.confirmed) throw badRequest("Esta disponibilidade já está invalidada.");
   const row = await context.database.studentAvailability.create({

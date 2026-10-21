@@ -7,7 +7,7 @@ import { lessonPresenceLabel } from "./lesson-markers";
 import { lessonKind, lessonStatus } from "./weekly-block-details";
 import styles from "./weekly-lesson-content.module.css";
 
-function cardIdentity(lesson: CalendarLesson) {
+function cardIdentity(lesson: CalendarLesson): { title: string; context: string } {
   return {
     title:
       lesson.experimental?.candidate.fullName ??

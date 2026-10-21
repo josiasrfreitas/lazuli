@@ -54,7 +54,9 @@ export function directoryMatches(value: string, search: string): boolean {
   return normalize(value).includes(normalize(search.trim()));
 }
 
-export function groupStudents(students: WorkspaceStudent[]) {
+export function groupStudents(
+  students: WorkspaceStudent[],
+): { id: string; name: string; students: WorkspaceStudent[] }[] {
   const groups = new Map<string, { id: string; name: string; students: WorkspaceStudent[] }>();
   for (const student of students) {
     const memberships =

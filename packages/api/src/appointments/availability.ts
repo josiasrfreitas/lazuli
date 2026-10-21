@@ -100,7 +100,12 @@ export async function appointmentAvailability(
           (!enrollment.exitDate || dateOnly(enrollment.exitDate) > row.date),
       ),
   );
-  const intervals = (row: { id: string; date: Date; startTime: Date; endTime: Date }) => ({
+  const intervals = (row: {
+    id: string;
+    date: Date;
+    startTime: Date;
+    endTime: Date;
+  }): { id: string; date: string; startTime: string; endTime: string } => ({
     id: row.id,
     date: dateOnly(row.date),
     startTime: timeOnly(row.startTime),

@@ -315,7 +315,7 @@ async function seedDrafts(context: SeedContext): Promise<void> {
   const stage = await database.stage.findFirstOrThrow({ where: { internalCode: "C2" } });
   await database.semesterClassPlan.create({
     data: {
-      id: organizationId("plan", semester.name, "closed-current"),
+      id: organizationId("plan", { semesterName: semester.name, key: "closed-current" }),
       semesterId: semester.id,
       name: "C2 · horário encerrado",
       scheduleType: "REGULAR",

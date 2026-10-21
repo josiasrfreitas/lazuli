@@ -127,7 +127,7 @@ export async function addContractMaterial(input: {
   database: FinanceDatabase;
   staffUserId: string;
   values: AddContractMaterialInput;
-}) {
+}): Promise<{ orderId: string; contractId: string }> {
   const { database, values, staffUserId } = input;
   await lockCreationCommand(database, values.commandId);
   const fingerprint = createHash("sha256").update(JSON.stringify(values)).digest("hex");

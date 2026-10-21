@@ -14,7 +14,7 @@ export async function scheduleAppointment(
   input: AppointmentScheduleInput,
   rescheduledFromId?: string,
   legacyMakeupId?: string,
-) {
+): Promise<{ id: string; version: number }> {
   requireAppointmentAdmin(context);
   await lockTeacher(context.database, "");
   if (await context.database.pedagogicalAppointment.findUnique({ where: { id: input.id } }))

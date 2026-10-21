@@ -157,7 +157,7 @@ function PlacementVisit({
   onClose: () => void;
 }): ReactJSX.Element {
   const utils = trpc.useUtils();
-  const refresh = () =>
+  const refresh = (): Promise<[void, void, void, void]> =>
     Promise.all([
       utils.admissions.invalidate(),
       utils.classRecords.invalidate(),

@@ -137,7 +137,15 @@ export function floorLabel(fields: SettingsFields): string {
   );
 }
 
-export function bookQuote(fields: SettingsFields, category: "child" | "adult") {
+export function bookQuote(
+  fields: SettingsFields,
+  category: "child" | "adult",
+): {
+  installments: number;
+  installmentCents: number;
+  totalCents: number;
+  cashCents: number;
+} | null {
   const count = category === "child" ? "childMaterialInstallments" : "adultMaterialInstallments";
   const amountKey =
     category === "child" ? "childMaterialInstallmentCents" : "adultMaterialInstallmentCents";

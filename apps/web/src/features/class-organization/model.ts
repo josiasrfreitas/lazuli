@@ -38,7 +38,11 @@ export const isQueueItem = (row: Placement): boolean =>
 export const stageLabel = (code: string | null | undefined): string =>
   code ? `Estágio ${code}` : "Estágio a definir";
 /** Proposals and leads are not enrolled students and must not inflate occupancy. */
-export function occupancy(plan: ClassPlan) {
+export function occupancy(plan: ClassPlan): {
+  readonly count: number;
+  readonly tone: "warning" | "success" | "destructive";
+  readonly label: "Poucos alunos" | "Em composição" | "Boa ocupação";
+} {
   const count = plan.enrolledCount ?? 0;
   return {
     count,
@@ -46,7 +50,15 @@ export function occupancy(plan: ClassPlan) {
     label: count < 4 ? "Poucos alunos" : count < 8 ? "Em composição" : "Boa ocupação",
   } as const;
 }
-export function continuityLabel(row: Placement, board: SemesterBoard) {
+export function continuityLabel(
+  row: Placement,
+  board: SemesterBoard,
+):
+  | "Possível saída"
+  | "Troca de turma"
+  | "Continua na turma"
+  | "Continuidade prevista · contrato"
+  | "A conversar" {
   if (row.continuity === "LEAVING" || row.declinedAt) return "Possível saída";
   if (row.continuity === "CHANGE") return "Troca de turma";
   if (row.continuity === "STAY") return "Continua na turma";

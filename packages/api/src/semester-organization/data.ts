@@ -12,13 +12,41 @@ export const dateOnly = (value: Date | string): string =>
   typeof value === "string"
     ? value.slice(0, ISO_DATE_LENGTH)
     : value.toISOString().slice(0, ISO_DATE_LENGTH);
-export const readSlots = (value: unknown) => z.array(classScheduleSlotInputSchema).parse(value);
-export async function lockSemester(context: OrganizationContext, semesterId: string) {
+export const readSlots = (
+  value: unknown,
+): {
+  weekday: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+  startTime: string;
+  endTime: string;
+}[] => z.array(classScheduleSlotInputSchema).parse(value);
+export async function lockSemester(
+  context: OrganizationContext,
+  semesterId: string,
+): Promise<{
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  name: string;
+  startDate: Date;
+  endDate: Date;
+}> {
   await context.database
     .$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`semester-organization:${semesterId}`}, 0))`;
   return requireFutureSemester(context, semesterId);
 }
-export async function requireFutureSemester(context: OrganizationContext, semesterId: string) {
+export async function requireFutureSemester(
+  context: OrganizationContext,
+  semesterId: string,
+): Promise<{
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  name: string;
+  startDate: Date;
+  endDate: Date;
+}> {
   const semester = await context.database.semester.findUnique({ where: { id: semesterId } });
   if (!semester) throw notFound("Semestre não encontrado.");
   if (dateOnly(semester.endDate) < saoPauloDateOnly(context.now))

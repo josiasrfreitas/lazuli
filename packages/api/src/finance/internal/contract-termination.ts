@@ -125,7 +125,7 @@ export async function confirmContractTermination(input: {
   values: ContractTerminationConfirm;
   staffUserId: string;
   now: Date;
-}) {
+}): Promise<{ contractId: string; studentId: string }> {
   const { database, values, staffUserId, now } = input;
   await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${values.commandId}, 0))`;
   await database.$queryRaw`SELECT id FROM "Contract" WHERE id = ${values.contractId}::uuid FOR UPDATE`;

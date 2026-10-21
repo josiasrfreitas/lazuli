@@ -60,7 +60,10 @@ export async function removePendingFile(userId: string, id: string): Promise<voi
   }
 }
 
-export function transferFile(item: PendingFile, onProgress: (value: number) => void) {
+export function transferFile(
+  item: PendingFile,
+  onProgress: (value: number) => void,
+): { request: XMLHttpRequest; completed: Promise<void> } {
   const request = new XMLHttpRequest();
   const completed = new Promise<void>((resolve, reject) => {
     request.open("POST", "/api/assessment-files");

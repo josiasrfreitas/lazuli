@@ -187,7 +187,10 @@ export async function readStudentAttendanceHistory(input: Input) {
   };
 }
 
-function historyWindow(enrollment: Enrollment, today: string) {
+function historyWindow(
+  enrollment: Enrollment,
+  today: string,
+): { startDate: Date; endDate: Date } | null {
   const window = intersectEnrollmentSemesterWindows({
     enrollment,
     semester: enrollment.class.semester,

@@ -1,6 +1,8 @@
 import { addDays, stableUuid, utcDate } from "../../packages/db/src/seed-dev-support.js";
 import { sessionEndInstant } from "../../packages/domain/src/session-time.js";
 import type { DevWeekday } from "../../packages/db/src/seed-dev-data.js";
+import { seedStudentIndex } from "./student-fixtures.js";
+const SATURDAY = 6;
 
 export type OrganizationSlot = { weekday: DevWeekday; startTime: string; endTime: string };
 export type OrganizationGroup = {
@@ -15,10 +17,18 @@ export type OrganizationGroup = {
   pending: number[];
 };
 
-const slots = (weekdays: DevWeekday[], startTime: string, endTime: string): OrganizationSlot[] =>
-  weekdays.map((weekday) => ({ weekday, startTime, endTime }));
+const slots = (
+  weekdays: DevWeekday[],
+  time: { startTime: string; endTime: string },
+): OrganizationSlot[] =>
+  weekdays.map((weekday) => ({ weekday, startTime: time.startTime, endTime: time.endTime }));
 const MW: DevWeekday[] = ["MONDAY", "WEDNESDAY"];
 const TT: DevWeekday[] = ["TUESDAY", "THURSDAY"];
+const SCHEDULE_CONFLICT_STUDENTS = {
+  pptSecondSlot: seedStudentIndex("school-student-136"),
+  regularC2: seedStudentIndex("occupancy-T2A-6"),
+  pptWithoutTeacher: seedStudentIndex("school-student-144"),
+};
 
 /** Every new group obeys the public 120-minute weekly limit; original classes are untouched. */
 export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
@@ -29,9 +39,9 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
     format: "IN_PERSON",
     stageCode: "MWB",
     teacherKey: "camila",
-    slots: slots(MW, "14:00", "15:00"),
-    published: [2, 5],
-    pending: [0, 3],
+    slots: slots(MW, { startTime: "14:00", endTime: "15:00" }),
+    published: [seedStudentIndex("carla"), seedStudentIndex("felipe")],
+    pending: [seedStudentIndex("ana"), seedStudentIndex("davi")],
   },
   {
     key: "s3",
@@ -40,9 +50,18 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
     format: "ONLINE",
     stageCode: "S3",
     teacherKey: "camila",
-    slots: slots(TT, "19:00", "20:00"),
-    published: [212, 215, 218, 219],
-    pending: [210, 213, 216],
+    slots: slots(TT, { startTime: "19:00", endTime: "20:00" }),
+    published: [
+      seedStudentIndex("school-student-213"),
+      seedStudentIndex("school-student-216"),
+      seedStudentIndex("school-student-219"),
+      seedStudentIndex("school-student-220"),
+    ],
+    pending: [
+      seedStudentIndex("school-student-211"),
+      seedStudentIndex("school-student-214"),
+      seedStudentIndex("school-student-217"),
+    ],
   },
   {
     key: "ppt-a",
@@ -51,9 +70,13 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
     format: "IN_PERSON",
     stageCode: null,
     teacherKey: "renata",
-    slots: slots(TT, "16:00", "17:00"),
-    published: [128, 129, 131],
-    pending: [134, 220],
+    slots: slots(TT, { startTime: "16:00", endTime: "17:00" }),
+    published: [
+      seedStudentIndex("school-student-129"),
+      seedStudentIndex("school-student-130"),
+      seedStudentIndex("school-student-132"),
+    ],
+    pending: [seedStudentIndex("school-student-135"), seedStudentIndex("school-student-221")],
   },
   {
     key: "ppt-b",
@@ -62,9 +85,13 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
     format: "IN_PERSON",
     stageCode: null,
     teacherKey: "renata",
-    slots: slots(TT, "17:00", "18:00"),
-    published: [130, 132, 133],
-    pending: [135, 223],
+    slots: slots(TT, { startTime: "17:00", endTime: "18:00" }),
+    published: [
+      seedStudentIndex("school-student-131"),
+      seedStudentIndex("school-student-133"),
+      seedStudentIndex("school-student-134"),
+    ],
+    pending: [SCHEDULE_CONFLICT_STUDENTS.pptSecondSlot, seedStudentIndex("school-student-224")],
   },
   {
     key: "mwy-repeat",
@@ -73,9 +100,9 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
     format: "IN_PERSON",
     stageCode: "MWY",
     teacherKey: "rafael",
-    slots: slots(MW, "14:00", "15:00"),
+    slots: slots(MW, { startTime: "14:00", endTime: "15:00" }),
     published: [],
-    pending: [1],
+    pending: [seedStudentIndex("bruno")],
   },
   {
     key: "c2",
@@ -84,9 +111,9 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
     format: "IN_PERSON",
     stageCode: "C2",
     teacherKey: "rafael",
-    slots: slots(MW, "14:00", "15:00"),
+    slots: slots(MW, { startTime: "14:00", endTime: "15:00" }),
     published: [],
-    pending: [40],
+    pending: [SCHEDULE_CONFLICT_STUDENTS.regularC2],
   },
   {
     key: "e1",
@@ -95,9 +122,16 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
     format: "IN_PERSON",
     stageCode: "E1",
     teacherKey: "juliana",
-    slots: slots(TT, "19:00", "20:00"),
+    slots: slots(TT, { startTime: "19:00", endTime: "20:00" }),
     published: [],
-    pending: [221, 222, 224, 225, 230, 231],
+    pending: [
+      seedStudentIndex("school-student-222"),
+      seedStudentIndex("school-student-223"),
+      seedStudentIndex("school-student-225"),
+      seedStudentIndex("school-student-226"),
+      seedStudentIndex("school-student-231"),
+      seedStudentIndex("school-student-232"),
+    ],
   },
   {
     key: "ppt-c",
@@ -106,9 +140,9 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
     format: "IN_PERSON",
     stageCode: null,
     teacherKey: null,
-    slots: slots(MW, "16:00", "17:00"),
+    slots: slots(MW, { startTime: "16:00", endTime: "17:00" }),
     published: [],
-    pending: [140, 143],
+    pending: [seedStudentIndex("school-student-141"), SCHEDULE_CONFLICT_STUDENTS.pptWithoutTeacher],
   },
 ];
 
@@ -118,10 +152,26 @@ export type AvailabilityProfile =
   | "EXPIRES_BEFORE_ENTRY"
   | "INCOMPATIBLE"
   | "UNKNOWN";
-const EXPIRED = new Set([3, 216, 140]);
-const EXPIRES_BEFORE_ENTRY = new Set([134, 222, 231]);
-const INCOMPATIBLE = new Set([135, 40, 223, 143]);
-const UNKNOWN = new Set([224, 225]);
+const EXPIRED = new Set([
+  seedStudentIndex("davi"),
+  seedStudentIndex("school-student-217"),
+  seedStudentIndex("school-student-141"),
+]);
+const EXPIRES_BEFORE_ENTRY = new Set([
+  seedStudentIndex("school-student-135"),
+  seedStudentIndex("school-student-223"),
+  seedStudentIndex("school-student-232"),
+]);
+const INCOMPATIBLE = new Set([
+  SCHEDULE_CONFLICT_STUDENTS.pptSecondSlot,
+  SCHEDULE_CONFLICT_STUDENTS.regularC2,
+  seedStudentIndex("school-student-224"),
+  SCHEDULE_CONFLICT_STUDENTS.pptWithoutTeacher,
+]);
+const UNKNOWN = new Set([
+  seedStudentIndex("school-student-225"),
+  seedStudentIndex("school-student-226"),
+]);
 
 export function availabilityProfile(index: number): AvailabilityProfile {
   if (EXPIRED.has(index)) return "EXPIRED";
@@ -134,19 +184,24 @@ export function availabilitySlots(
   index: number,
   group: OrganizationGroup | null,
 ): OrganizationSlot[] {
-  if (index === 135) return slots(TT, "15:00", "17:00");
-  if (index === 40) return slots(TT, "14:00", "16:00");
-  if (index === 143) return slots(MW, "14:00", "15:00");
-  return group?.slots.map((slot) => ({ ...slot })) ?? slots(MW, "14:00", "17:00");
+  if (index === SCHEDULE_CONFLICT_STUDENTS.pptSecondSlot)
+    return slots(TT, { startTime: "15:00", endTime: "17:00" });
+  if (index === SCHEDULE_CONFLICT_STUDENTS.regularC2)
+    return slots(TT, { startTime: "14:00", endTime: "16:00" });
+  if (index === SCHEDULE_CONFLICT_STUDENTS.pptWithoutTeacher)
+    return slots(MW, { startTime: "14:00", endTime: "15:00" });
+  return (
+    group?.slots.map((slot) => ({ ...slot })) ?? slots(MW, { startTime: "14:00", endTime: "17:00" })
+  );
 }
 
-export function organizationId(kind: string, semesterName: string, key: string): string {
-  return stableUuid([`semester-${kind}`, semesterName, key]);
+export function organizationId(kind: string, input: { semesterName: string; key: string }): string {
+  return stableUuid([`semester-${kind}`, input.semesterName, input.key]);
 }
 
 /** Authored facts precede today; future dates belong only to operational intentions. */
 export function organizationInstant(todayIso: string, daysAgo: number): Date {
   let date = addDays(utcDate(todayIso), -daysAgo);
-  while (date.getUTCDay() === 0 || date.getUTCDay() === 6) date = addDays(date, -1);
+  while (date.getUTCDay() === 0 || date.getUTCDay() === SATURDAY) date = addDays(date, -1);
   return sessionEndInstant({ date, endTime: "15:00" });
 }

@@ -74,7 +74,7 @@ export async function seedSemesterOrganization(
       group.scheduleType === "REGULAR"
         ? subjects.get([...group.published, ...group.pending][0]!)!.stage!.id
         : null;
-    const planId = organizationId("plan", semester.name, group.key);
+    const planId = organizationId("plan", { semesterName: semester.name, key: group.key });
     await database.semesterClassPlan.create({
       data: {
         id: planId,
@@ -116,7 +116,7 @@ export async function seedSemesterOrganization(
       const formats = index === 223 ? ["ONLINE" as const] : [group?.format ?? "IN_PERSON"];
       await database.studentAvailability.create({
         data: {
-          id: organizationId("availability", semester.name, subject.key),
+          id: organizationId("availability", { semesterName: semester.name, key: subject.key }),
           studentId: subject.student.id,
           semesterId: semester.id,
           confirmed: true,
@@ -149,12 +149,17 @@ export async function seedSemesterOrganization(
     }
     // One draft changes group later; its initial intention remains in revision 1.
     const initialGroup = index === 134 ? "ppt-b" : group?.key;
-    const placementId = organizationId("placement", semester.name, subject.key);
+    const placementId = organizationId("placement", {
+      semesterName: semester.name,
+      key: subject.key,
+    });
     await database.semesterPlacement.create({
       data: {
         id: placementId,
         semesterId: semester.id,
-        planId: initialGroup ? organizationId("plan", semester.name, initialGroup) : null,
+        planId: initialGroup
+          ? organizationId("plan", { semesterName: semester.name, key: initialGroup })
+          : null,
         studentId: subject.student.id,
         trackId: subject.trackId,
         stageId: subject.stage?.id ?? null,
@@ -182,11 +187,14 @@ export async function seedSemesterOrganization(
         : "Horário informado não cobre a turma proposta; manter em rascunho até conciliar a disponibilidade e o docente.";
     await database.$transaction(async (transaction) => {
       const context = { database: transaction, staffUser, now: dates.revised };
-      const placementId = organizationId("placement", semester.name, subject.key);
+      const placementId = organizationId("placement", {
+        semesterName: semester.name,
+        key: subject.key,
+      });
       await transaction.semesterPlacement.update({
         where: { id: placementId },
         data: {
-          planId: organizationId("plan", semester.name, group.key),
+          planId: organizationId("plan", { semesterName: semester.name, key: group.key }),
           notes: `${proposalNotes(subject)} ${reason}`,
           version: { increment: 1 },
           updatedAt: dates.revised,
@@ -210,11 +218,13 @@ export async function seedSemesterOrganization(
     await database.$transaction(
       async (transaction) => {
         const context = { database: transaction, staffUser, now: dates.published };
-        const planId = organizationId("plan", semester.name, group.key);
+        const planId = organizationId("plan", { semesterName: semester.name, key: group.key });
         const board = await readSemester(context, semester.id);
         const eligible = selected.map((subject) =>
           board.placements.find(
-            (row) => row.id === organizationId("placement", semester.name, subject.key),
+            (row) =>
+              row.id ===
+              organizationId("placement", { semesterName: semester.name, key: subject.key }),
           ),
         );
         if (eligible.some((row) => !row || row.blockers.length || !row.availability))
@@ -246,7 +256,10 @@ export async function seedSemesterOrganization(
             entryDate: semester.startDate,
             subject,
             classId: classroom.id,
-            availabilityId: organizationId("availability", semester.name, subject.key),
+            availabilityId: organizationId("availability", {
+              semesterName: semester.name,
+              key: subject.key,
+            }),
           });
         await recordActivity(transaction, context, "classes.create", {
           subject: { type: "class", id: classroom.id, name: classroom.portalClassName },

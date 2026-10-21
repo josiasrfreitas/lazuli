@@ -21,7 +21,7 @@ import {
 export async function recordAppointment(
   context: AppointmentContext,
   input: AppointmentRecordInput,
-) {
+): Promise<{ id: string; version: number }> {
   await lockTeacher(context.database, "");
   const initial = await loadAppointment(context, input.id);
   // Serialize the destination with cancellation and the dated class-record responsibility freeze.

@@ -12,7 +12,12 @@ export async function scheduleMakeup(input: {
   staffUser: StaffUser;
   values: z.infer<typeof makeupScheduleInputSchema>;
   now?: Date;
-}) {
+}): Promise<{
+  makeupId: `${string}-${string}-${string}-${string}-${string}`;
+  originEnrollmentId: string;
+  targetClassSessionId: string;
+  scheduledAt: Date;
+}> {
   const { database, values } = input;
   const now = input.now ?? new Date();
   await lockTeacher(database, "");

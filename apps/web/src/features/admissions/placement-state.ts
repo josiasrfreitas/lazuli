@@ -6,7 +6,10 @@ type Visit = Candidate["visits"][number];
 
 export function placementStatus(
   visit: Pick<Visit, "status" | "assessment" | "date" | "startTime">,
-) {
+):
+  | { label: string; variant: "neutral" }
+  | { label: string; variant: "warning" }
+  | { label: string; variant: "success" } {
   if (visit.status === "CANCELLED") return { label: "Cancelado", variant: "neutral" as const };
   if (visit.status === "ABSENT") return { label: "Não compareceu", variant: "warning" as const };
   if (visit.assessment?.stageId) return { label: "Estágio definido", variant: "success" as const };

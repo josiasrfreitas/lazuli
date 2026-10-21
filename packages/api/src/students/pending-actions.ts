@@ -19,7 +19,7 @@ export async function studentsWithPendingRegistration(
   database: Prisma.TransactionClient,
   ids: string[],
   now: Date,
-) {
+): Promise<Set<string>> {
   const rows = await database.student.findMany({
     where: {
       id: { in: ids },

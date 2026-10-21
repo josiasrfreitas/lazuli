@@ -49,7 +49,12 @@ export async function visitCalendar(
         })
       : [],
   ]);
-  const interval = (row: { id: string; date: Date; startTime: Date; endTime: Date }) => ({
+  const interval = (row: {
+    id: string;
+    date: Date;
+    startTime: Date;
+    endTime: Date;
+  }): { id: string; date: string; startTime: string; endTime: string } => ({
     id: row.id,
     date: dateOnly(row.date),
     startTime: dateToTimeString(row.startTime),

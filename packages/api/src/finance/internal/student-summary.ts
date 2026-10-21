@@ -100,7 +100,10 @@ function debtState(totals: {
   return totals.overdueCount > 0 ? "OVERDUE" : "NO_OVERDUE";
 }
 
-async function readLatestTermination(database: FinanceDatabase, studentId: string) {
+async function readLatestTermination(
+  database: FinanceDatabase,
+  studentId: string,
+): Promise<{ contractId: string; date: string } | null> {
   const contract = await database.contract.findFirst({
     where: { studentId, deletedAt: null, terminatedAt: { not: null } },
     select: { id: true, terminatedAt: true },
@@ -201,7 +204,14 @@ async function readStudentContractTerms(
   }));
 }
 
-function itemCollection(rows: ItemBalance[]) {
+function itemCollection(rows: ItemBalance[]): {
+  receivedCents: number;
+  balanceCents: number;
+  paidCount: number;
+  waivedCount: number;
+  overdueCount: number;
+  count: number;
+} {
   return {
     receivedCents: rows.reduce((sum, row) => sum + row.paidAmountCents, 0),
     balanceCents: rows.reduce((sum, row) => sum + row.collectibleBalanceCents, 0),

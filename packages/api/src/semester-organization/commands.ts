@@ -38,7 +38,7 @@ export const declineSchema = z.object({
 export async function movePlacements(
   context: OrganizationContext,
   input: z.infer<typeof moveSchema>,
-) {
+): Promise<{ count: number }> {
   for (const id of [
     ...new Set([input.semesterId, input.targetSemesterId ?? input.semesterId]),
   ].toSorted())
@@ -102,7 +102,10 @@ export async function movePlacements(
   return { count: input.selections.length };
 }
 
-async function moveToSemester(context: OrganizationContext, input: z.infer<typeof moveSchema>) {
+async function moveToSemester(
+  context: OrganizationContext,
+  input: z.infer<typeof moveSchema>,
+): Promise<{ count: number }> {
   const semesterId = input.targetSemesterId!;
   const targetSemester = await context.database.semester.findUniqueOrThrow({
     where: { id: semesterId },
@@ -173,7 +176,7 @@ async function moveToSemester(context: OrganizationContext, input: z.infer<typeo
 export async function declinePlacements(
   context: OrganizationContext,
   input: z.infer<typeof declineSchema>,
-) {
+): Promise<{ count: number }> {
   const semester = await lockSemester(context, input.semesterId);
   if (dateOnly(semester.startDate) <= saoPauloDateOnly(context.now))
     throw badRequest(
@@ -206,7 +209,7 @@ export const closedRangeSchema = z
 export async function closeRange(
   context: OrganizationContext,
   input: z.infer<typeof closedRangeSchema>,
-) {
+): Promise<{ added: number; affected: number }> {
   const dates: Date[] = [];
   for (
     let date = new Date(input.from);
@@ -244,7 +247,7 @@ export const periodSchema = z
 export async function updatePeriod(
   context: OrganizationContext,
   input: z.infer<typeof periodSchema>,
-) {
+): Promise<{ affected: number }> {
   const previous = await lockSemester(context, input.semesterId);
   if (
     dateOnly(previous.startDate) !== input.previousStart ||

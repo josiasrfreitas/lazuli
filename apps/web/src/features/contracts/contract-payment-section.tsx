@@ -167,7 +167,7 @@ export function PaymentSection({ fields, errors, change, preview }: FormProps): 
 export function previewCalendar(
   tuition: Array<{ dueDate: string; amountCents: number }>,
   material: { count: number; amountCents: number } | null,
-) {
+): { dueDate: string; tuitionCents: number; materialCents: number }[] {
   const first = tuition[0]?.dueDate;
   if (!first) return [];
   return Array.from(

@@ -10,7 +10,7 @@ export async function cancelMakeup(input: {
   staffUser: StaffUser;
   values: z.infer<typeof makeupCancelInputSchema>;
   now?: Date;
-}) {
+}): Promise<{ makeupId: string; cancelledAt: Date }> {
   const now = input.now ?? new Date();
   await lockTeacher(input.database, "");
   const row = await ensureLegacyAppointment(input.database, input.values.makeupId);

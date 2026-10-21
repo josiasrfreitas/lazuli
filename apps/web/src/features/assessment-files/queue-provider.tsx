@@ -52,7 +52,9 @@ const labels: Record<QueueStatus, string> = {
 const UploadContext = createContext<{
   add: (files: File[], target: Omit<PendingFile, "id" | "file" | "createdAt">) => Promise<void>;
 } | null>(null);
-export function useAssessmentUploads() {
+export function useAssessmentUploads(): {
+  add: (files: File[], target: Omit<PendingFile, "id" | "file" | "createdAt">) => Promise<void>;
+} {
   const value = useContext(UploadContext);
   if (!value) throw new Error("Uploads require the authenticated app shell.");
   return value;

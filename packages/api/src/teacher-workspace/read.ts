@@ -261,7 +261,16 @@ export async function workspaceStudent(context: RecordContext, id: string) {
   };
 }
 
-export async function pendingLessons(context: RecordContext) {
+export async function pendingLessons(context: RecordContext): Promise<
+  {
+    id: string;
+    classId: string;
+    className: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+  }[]
+> {
   const sessions = await context.database.classSession.findMany({
     where: {
       deletedAt: null,

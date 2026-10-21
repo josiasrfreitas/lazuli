@@ -100,7 +100,7 @@ async function fixture() {
       endTime: new Date("1970-01-01T19:00:00Z"),
     },
   });
-  const report = (studentId: string, title: string) =>
+  const report = (studentId: string, title: string): Promise<{ id: string }> =>
     caller(teacher).occurrences.create({
       studentId,
       classSessionId: session.id,

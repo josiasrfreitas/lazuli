@@ -29,7 +29,11 @@ type Operation<T> = {
 export async function placementCalendar(
   database: Prisma.TransactionClient,
   input: z.infer<typeof placementCalendarSchema>,
-) {
+): Promise<{
+  pendingPlacement: string | null;
+  visits: { id: string; date: string; startTime: string; endTime: string; label: string }[];
+  closedDays: { date: string; reason: string }[];
+}> {
   const candidate = input.candidateId ? await readCandidate(database, input.candidateId) : null;
   if (candidate && candidate.status !== "WAITING")
     throw badRequest("Reabra o lead para agendar o nivelamento.");
@@ -89,7 +93,7 @@ export async function schedulePlacement({
   values,
   now,
   recordedById,
-}: Operation<z.infer<typeof placementScheduleSchema>>) {
+}: Operation<z.infer<typeof placementScheduleSchema>>): Promise<{ id: string }> {
   await lockTeacher(database, "");
   await lockCandidate(database, values.candidateId);
   const candidate = await readCandidate(database, values.candidateId);
@@ -184,7 +188,7 @@ function assertFileCanBeAttached(
 export async function uploadPlacementFile(
   ctx: Context & { staffUser: NonNullable<Context["staffUser"]> },
   values: z.input<typeof placementFileSchema>,
-) {
+): Promise<{ id: string }> {
   const now = ctx.now ?? new Date();
   const kind = values.kind ?? "ORIGINAL";
   const bytes = placementFileBytes(values);
@@ -249,7 +253,7 @@ export async function downloadPlacementFile(
   database: Prisma.TransactionClient,
   id: string,
   kind: "ORIGINAL" | "CORRECTED" = "ORIGINAL",
-) {
+): Promise<{ fileName: string; contentType: string; base64: string }> {
   const visit = await placementVisit(database, id);
   const attachment = kind === "CORRECTED" ? visit.assessment?.correctedFile : visit.assessment;
   if (!attachment)
@@ -269,7 +273,7 @@ export async function recordPlacementResult({
   values,
   now,
   recordedById,
-}: Operation<z.infer<typeof placementResultSchema>>) {
+}: Operation<z.infer<typeof placementResultSchema>>): Promise<{ id: string }> {
   const snapshot = await placementVisit(database, values.id);
   await lockCandidate(database, snapshot.candidateId);
   const visit = await placementVisit(database, values.id);

@@ -31,7 +31,7 @@ export function attendanceReviewRestriction(context: RecordContext, session: Rec
 export async function confirmAttendanceReview(
   context: RecordContext,
   input: z.infer<typeof attendanceReviewSchema>,
-) {
+): Promise<{ attendanceStamp: string; present: number; absent: number }> {
   await lockClassRecord(context.database, input.sessionId);
   const session = await loadRecordSession(context, input.sessionId);
   await assertAttendanceOnlyWrite(context.database, input.sessionId);

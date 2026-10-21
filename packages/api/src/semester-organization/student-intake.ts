@@ -7,7 +7,18 @@ const ISO_TIME_START_INDEX = 11;
 const ISO_MINUTE_END_INDEX = 16;
 
 /** Keep the same lock order as allocation: period, teaching schedule, student. */
-export async function lockIntakeSemester(database: TransactionClient, now: Date) {
+export async function lockIntakeSemester(
+  database: TransactionClient,
+  now: Date,
+): Promise<{
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  name: string;
+  startDate: Date;
+  endDate: Date;
+} | null> {
   const today = new Date(saoPauloDateOnly(now));
   const semester = await database.semester.findFirst({
     where: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },

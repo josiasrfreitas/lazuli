@@ -5,7 +5,7 @@ async function partySearchWhere(
   database: FinanceDatabase,
   query: string,
   table: "Student" | "Payer",
-) {
+): Promise<{ OR?: ({ id: { in: string[] } } | { id: string })[]; deletedAt: null }> {
   const exactId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(query);
   const matches = await searchIds(database, table, query);
   return {

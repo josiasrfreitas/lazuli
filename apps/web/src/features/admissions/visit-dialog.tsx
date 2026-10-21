@@ -39,7 +39,7 @@ import { trialVisitInput } from "./trial-visit-input";
 
 type VisitInput = { candidate: Candidate; previousVisitId?: string; onClose: () => void };
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
-function clock() {
+function clock(): { date: string; time: string } {
   const now = new Date();
   return {
     date: toDateOnlySaoPaulo(now),

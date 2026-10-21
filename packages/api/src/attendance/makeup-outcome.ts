@@ -10,7 +10,7 @@ export async function markMakeupOutcome(input: {
   staffUser: StaffUser;
   values: z.infer<typeof makeupOutcomeInputSchema>;
   now?: Date;
-}) {
+}): Promise<{ makeupId: string; attended: boolean; attendedAt: Date | null }> {
   const now = input.now ?? new Date();
   await lockTeacher(input.database, "");
   const row = await ensureLegacyAppointment(input.database, input.values.makeupId);

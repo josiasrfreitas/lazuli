@@ -1,3 +1,7 @@
+import { seedStudentIndex } from "./student-fixtures.js";
+
+const FIRST_REPORT_DAYS_AGO = 3;
+
 export const OCCURRENCE_EXAMPLES = {
   MATERIAL: {
     title: "Material de apoio não estava disponível",
@@ -55,27 +59,45 @@ export type FollowUpScenario = {
   };
 };
 
-const SINGLE_STUDENT_INDICES = [0, 19, 38, 51, 63, 83, 95, 108, 121, 137, 164, 191];
+const SINGLE_STUDENT_INDICES = [
+  seedStudentIndex("ana"),
+  seedStudentIndex("occupancy-E1A-3"),
+  seedStudentIndex("occupancy-T2A-4"),
+  seedStudentIndex("school-student-52"),
+  seedStudentIndex("school-student-64"),
+  seedStudentIndex("school-student-84"),
+  seedStudentIndex("school-student-96"),
+  seedStudentIndex("school-student-109"),
+  seedStudentIndex("school-student-122"),
+  seedStudentIndex("school-student-138"),
+  seedStudentIndex("school-student-165"),
+  seedStudentIndex("school-student-192"),
+];
 const CATEGORIES = Object.keys(OCCURRENCE_EXAMPLES) as SeedOccurrenceCategory[];
 const SINGLES: FollowUpScenario[] = SINGLE_STUDENT_INDICES.map((studentIndex, index) => ({
   key: `point-${index + 1}`,
   studentIndex,
   category: CATEGORIES[index % CATEGORIES.length]!,
-  daysAgo: [3 + index * 2],
+  daysAgo: [FIRST_REPORT_DAYS_AGO + index * 2],
 }));
-const RELATED: FollowUpScenario[] = [12, 57, 132, 205].map((studentIndex, index) => ({
+const RELATED: FollowUpScenario[] = [
+  seedStudentIndex("natalia"),
+  seedStudentIndex("school-student-58"),
+  seedStudentIndex("school-student-133"),
+  seedStudentIndex("school-student-206"),
+].map((studentIndex, index) => ({
   key: `related-${index + 1}`,
   studentIndex,
   category: CATEGORIES[index % CATEGORIES.length]!,
-  daysAgo: [28, 14],
+  daysAgo: occurrenceDaysAgo({ first: 28, latest: 14 }),
   related: true,
 }));
 const INTERVENTIONS: FollowUpScenario[] = [
   {
     key: "material-open",
-    studentIndex: 27,
+    studentIndex: seedStudentIndex("occupancy-E1A-11"),
     category: "MATERIAL",
-    daysAgo: [18, 11, 4],
+    daysAgo: occurrenceDaysAgo({ first: 18, middle: 11, latest: 4 }),
     intervention: {
       title: "Organização do material antes da aula",
       treatment:
@@ -86,9 +108,9 @@ const INTERVENTIONS: FollowUpScenario[] = [
   },
   {
     key: "homework-open-overdue",
-    studentIndex: 70,
+    studentIndex: seedStudentIndex("school-student-71"),
     category: "HOMEWORK",
-    daysAgo: [35, 28, 21],
+    daysAgo: occurrenceDaysAgo({ first: 35, middle: 28, latest: 21 }),
     intervention: {
       title: "Retomada das etapas da atividade de casa",
       treatment:
@@ -99,9 +121,9 @@ const INTERVENTIONS: FollowUpScenario[] = [
   },
   {
     key: "oral-progress",
-    studentIndex: 94,
+    studentIndex: seedStudentIndex("school-student-95"),
     category: "PARTICIPATION",
-    daysAgo: [35, 25, 15],
+    daysAgo: occurrenceDaysAgo({ first: 35, middle: 25, latest: 15 }),
     intervention: {
       title: "Preparação gradual para a prática oral",
       treatment:
@@ -112,9 +134,9 @@ const INTERVENTIONS: FollowUpScenario[] = [
   },
   {
     key: "listening-progress-overdue",
-    studentIndex: 129,
+    studentIndex: seedStudentIndex("school-student-130"),
     category: "LEARNING",
-    daysAgo: [50, 40, 30],
+    daysAgo: occurrenceDaysAgo({ first: 50, middle: 40, latest: 30 }),
     intervention: {
       title: "Acompanhamento de instruções em listening",
       treatment:
@@ -125,9 +147,9 @@ const INTERVENTIONS: FollowUpScenario[] = [
   },
   {
     key: "turns-concluded",
-    studentIndex: 146,
+    studentIndex: seedStudentIndex("school-student-147"),
     category: "BEHAVIOR",
-    daysAgo: [60, 50, 40],
+    daysAgo: occurrenceDaysAgo({ first: 60, middle: 50, latest: 40 }),
     intervention: {
       title: "Combinados de escuta nas atividades em grupo",
       treatment:
@@ -138,9 +160,9 @@ const INTERVENTIONS: FollowUpScenario[] = [
   },
   {
     key: "routine-reopened",
-    studentIndex: 193,
+    studentIndex: seedStudentIndex("school-student-194"),
     category: "OTHER",
-    daysAgo: [65, 55, 45],
+    daysAgo: occurrenceDaysAgo({ first: 65, middle: 55, latest: 45 }),
     intervention: {
       title: "Autonomia na organização das atividades",
       treatment:
@@ -156,3 +178,9 @@ export const PEDAGOGICAL_FOLLOW_UP_SCENARIOS: readonly FollowUpScenario[] = [
   ...RELATED,
   ...INTERVENTIONS,
 ];
+
+function occurrenceDaysAgo(input: { first: number; middle?: number; latest: number }): number[] {
+  return input.middle === undefined
+    ? [input.first, input.latest]
+    : [input.first, input.middle, input.latest];
+}
