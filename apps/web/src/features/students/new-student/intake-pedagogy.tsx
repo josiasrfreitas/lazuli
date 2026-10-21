@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import type { ComponentProps } from "react";
 import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
@@ -33,7 +34,7 @@ export function IntakePedagogy({
   classes,
   onCaptureLead,
   draftRegistration,
-}: Props) {
+}: Props): ReactJSX.Element {
   const waitingPlacement =
     draftRegistration?.lead.englishExperience === "SOME" ||
     (lead?.englishExperience === "SOME" && !lead.stageId);

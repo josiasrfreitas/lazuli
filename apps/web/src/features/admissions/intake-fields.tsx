@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState, type ReactNode } from "react";
 import { normalizeSearch } from "@lazuli/domain";
 import { Field, FieldError, Label, SearchSelect } from "@lazuli/ui";
@@ -20,7 +21,7 @@ export function IntakeStageSelect({
   error?: string | undefined;
   labelIcon?: ReactNode;
   openOnFocus?: boolean;
-}) {
+}): ReactJSX.Element {
   const stages = trpc.admissions.stages.useQuery();
   const [query, setQuery] = useState("");
   const selected = stages.data?.find((row) => row.id === value);

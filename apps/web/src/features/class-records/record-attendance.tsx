@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { useId, useState } from "react";
 import { Check, ChevronRight, CircleDashed, ListFilter, UserRoundPlus, X } from "lucide-react";
@@ -21,7 +22,7 @@ const STATUS = {
 const searchKey = (value: string): string =>
   value
     .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+    .replaceAll(/\p{Diacritic}/gu, "")
     .toLocaleLowerCase("pt-BR")
     .trim();
 
@@ -35,7 +36,7 @@ export function RecordAttendance({
   teacher?: boolean;
   onAppointment: (id: string) => void;
   onExperimental: (id: string) => void;
-}) {
+}): ReactJSX.Element {
   const headingId = useId();
   const [search, setSearch] = useState("");
   const [guestsOnly, setGuestsOnly] = useState(false);
@@ -136,7 +137,7 @@ export function RecordAttendance({
       ) : (
         <div className={styles.empty} role="status">
           <p>
-            {participants.length
+            {participants.length > 0
               ? "Nenhum nome corresponde a este filtro."
               : "Nenhum aluno previsto para esta aula."}
           </p>
@@ -159,7 +160,7 @@ export function RecordAttendance({
   );
 }
 
-function ParticipantContent({ person }: { person: LessonParticipant }) {
+function ParticipantContent({ person }: { person: LessonParticipant }): ReactJSX.Element {
   const { icon: Icon, label } = STATUS[person.status];
   return (
     <>

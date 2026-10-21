@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { X } from "lucide-react";
 import { normalizeSearch } from "@lazuli/domain";
 import { Button, Field, Label, SearchSelect, type SearchSelectOption } from "@lazuli/ui";
@@ -17,7 +18,7 @@ export function CalendarTeacherFilter({
   query: string;
   onQueryChange: (query: string) => void;
   onChange: (teachers: SearchSelectOption[]) => void;
-}) {
+}): ReactJSX.Element {
   const search = normalizeSearch(query);
   const options = [
     ...new Map(

@@ -12,7 +12,7 @@ export function useSessionGeneration(props: Props) {
   const utils = trpc.useUtils();
   const query = trpc.sessionGeneration.status.useQuery(props, {
     refetchInterval: (state) =>
-      state.state.data?.some((row) => row.pending && !row.stale) ? 3_000 : false,
+      state.state.data?.some((row) => row.pending && !row.stale) ? 3000 : false,
   });
   const completionKey = query.data
     ?.filter((row) => row.request?.status === "SUCCEEDED")

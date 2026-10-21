@@ -48,7 +48,7 @@ export function ClassRecordDialog({
   };
   const attendance = trpc.studentAttendance.status.useQuery(
     { sessionId: id },
-    { enabled: teacher, refetchInterval: 5_000 },
+    { enabled: teacher, refetchInterval: 5000 },
   );
   const query = trpc.classRecords.detail.useQuery(
     { sessionId: id },

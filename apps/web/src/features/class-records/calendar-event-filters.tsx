@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { MapPin, Video } from "lucide-react";
 import styles from "./calendar.module.css";
 
@@ -18,7 +19,7 @@ export function CalendarEventFilters({
   formats: string[];
   onTypesChange: (values: string[]) => void;
   onFormatsChange: (values: string[]) => void;
-}) {
+}): ReactJSX.Element {
   return (
     <>
       <div className={styles.legend} role="group" aria-label="Filtrar por formato">

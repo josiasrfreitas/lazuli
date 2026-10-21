@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { useId } from "react";
 import { Button } from "@lazuli/ui";
 import { Plus, X } from "lucide-react";
@@ -13,7 +14,7 @@ export function SlotFields({
   slots: SlotDraft[];
   onChange: (slots: SlotDraft[]) => void;
   error?: string | undefined;
-}) {
+}): ReactJSX.Element {
   const errorId = useId();
   const update = (index: number, field: keyof SlotDraft, value: string) =>
     onChange(slots.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot)));

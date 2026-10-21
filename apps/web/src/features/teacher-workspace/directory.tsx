@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { Avatar, Badge, Button, Input } from "@lazuli/ui";
 import { History } from "lucide-react";
@@ -19,7 +20,7 @@ export function DirectoryTools({
   onSearch: (value: string) => void;
   history: boolean;
   onHistory: (value: boolean) => void;
-}) {
+}): ReactJSX.Element {
   return (
     <div className={styles.tools}>
       <div className={styles.search}>
@@ -48,7 +49,7 @@ export function directoryMatches(value: string, search: string): boolean {
   const normalize = (text: string) =>
     text
       .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
+      .replaceAll(/\p{Diacritic}/gu, "")
       .toLocaleLowerCase("pt-BR");
   return normalize(value).includes(normalize(search.trim()));
 }
@@ -56,9 +57,10 @@ export function directoryMatches(value: string, search: string): boolean {
 export function groupStudents(students: WorkspaceStudent[]) {
   const groups = new Map<string, { id: string; name: string; students: WorkspaceStudent[] }>();
   for (const student of students) {
-    const memberships = student.classes.length
-      ? student.classes
-      : [{ id: "", name: "Acompanhamento individual" }];
+    const memberships =
+      student.classes.length > 0
+        ? student.classes
+        : [{ id: "", name: "Acompanhamento individual" }];
     for (const membership of memberships) {
       const group = groups.get(membership.id) ?? {
         id: membership.id,
@@ -70,7 +72,7 @@ export function groupStudents(students: WorkspaceStudent[]) {
     }
   }
   return [...groups.values()].sort((left, right) =>
-    !left.id ? 1 : !right.id ? -1 : left.name.localeCompare(right.name, "pt-BR"),
+    left.id ? (right.id ? left.name.localeCompare(right.name, "pt-BR") : -1) : 1,
   );
 }
 
@@ -80,7 +82,7 @@ export function TeacherStudentRow({
 }: {
   student: WorkspaceStudent;
   classId?: string;
-}) {
+}): ReactJSX.Element {
   const stages = [
     ...new Set(
       student.classes
@@ -99,7 +101,7 @@ export function TeacherStudentRow({
   );
 }
 
-export function GroupedStudents({ students }: { students: WorkspaceStudent[] }) {
+export function GroupedStudents({ students }: { students: WorkspaceStudent[] }): ReactJSX.Element {
   return (
     <div className={styles.groups}>
       {groupStudents(students).map((group) => (

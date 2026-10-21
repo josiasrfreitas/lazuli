@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { addCalendarMonths, previewMonthlyContract } from "@lazuli/domain";
@@ -16,7 +17,7 @@ import {
 import { useContractFormState, fieldErrors } from "~/features/contracts/new-contract-state";
 
 type Props = { contractId: string; onClose: () => void; onSaved: () => void };
-export function RenewalDialog(props: Props) {
+export function RenewalDialog(props: Props): ReactJSX.Element {
   const query = trpc.finance.renewalTerms.useQuery({ contractId: props.contractId });
   return query.data ? (
     <RenewalFields {...props} data={query.data} />
@@ -55,7 +56,7 @@ function RenewalFields({
   data,
   onClose,
   onSaved,
-}: Props & { data: RouterOutputs["finance"]["renewalTerms"] }) {
+}: Props & { data: RouterOutputs["finance"]["renewalTerms"] }): ReactJSX.Element {
   const [initial] = useState(() => {
     const next = new Date(`${data.endsOn}T12:00:00Z`);
     next.setUTCDate(next.getUTCDate() + 1);

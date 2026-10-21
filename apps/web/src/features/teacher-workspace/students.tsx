@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { Badge, Tabs, TabsList, TabsTab, TabsPanel } from "@lazuli/ui";
@@ -15,7 +16,7 @@ import { DirectoryTools, directoryMatches, GroupedStudents } from "./directory";
 import { TeacherListLoading } from "./list-loading";
 import styles from "./workspace.module.css";
 
-export function TeacherStudents() {
+export function TeacherStudents(): ReactJSX.Element {
   const query = trpc.teacherWorkspace.students.useQuery();
   const [search, setSearch] = useState("");
   const [history, setHistory] = useState(false);
@@ -53,7 +54,7 @@ export function TeacherStudents() {
   );
 }
 
-export function TeacherStudent({ id }: { id: string }) {
+export function TeacherStudent({ id }: { id: string }): ReactJSX.Element {
   const query = trpc.teacherWorkspace.student.useQuery({ id });
   const [tab, setTab] = useQueryState("secao", parseAsString.withDefault("acompanhamento"));
   const [lesson, setLesson] = useState<string | null>(null);
@@ -116,7 +117,7 @@ export function TeacherStudent({ id }: { id: string }) {
                   </Badge>
                 </button>
               ))}
-              {!query.data.attendance.length && (
+              {query.data.attendance.length === 0 && (
                 <p className="p-6 text-sm text-muted-foreground">
                   Você ainda não registrou aulas deste aluno.
                 </p>
@@ -135,7 +136,7 @@ export function TeacherStudent({ id }: { id: string }) {
                   {query.data.classes.some((group) => group.scheduleType === "PERSONALIZED") && (
                     <StudentPlanning studentId={id} />
                   )}
-                  {!query.data.classes.length && (
+                  {query.data.classes.length === 0 && (
                     <p className="text-sm text-muted-foreground">
                       Consulte o planejamento nos seus encontros atribuídos.
                     </p>
@@ -154,7 +155,7 @@ export function TeacherStudent({ id }: { id: string }) {
   );
 }
 
-function TeacherStudentGrades({ studentId }: { studentId: string }) {
+function TeacherStudentGrades({ studentId }: { studentId: string }): ReactJSX.Element {
   const query = trpc.assessments.student.useQuery({ studentId });
   return (
     <div className="grid min-w-0 gap-6 pt-4">

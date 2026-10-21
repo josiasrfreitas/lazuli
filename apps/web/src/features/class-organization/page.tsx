@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { useQueryState, parseAsString } from "nuqs";
 import { ArrowLeft, CalendarRange, Copy, Plus, X, MoreHorizontal, Search } from "lucide-react";
@@ -15,7 +16,7 @@ import { OrganizationDialogs } from "./dialogs";
 import type { OrganizationAction } from "./model";
 import s from "./organization.module.css";
 
-export function OrganizationLoading() {
+export function OrganizationLoading(): ReactJSX.Element {
   return (
     <div className={s.loading} role="status" aria-label="Carregando organização">
       <div className={s.skeletonGrid}>
@@ -32,7 +33,7 @@ export function OrganizationLoading() {
     </div>
   );
 }
-export function ClassOrganizationPage() {
+export function ClassOrganizationPage(): ReactJSX.Element {
   const [selectedPeriod, setSelectedPeriod] = useQueryState(
     "semestre",
     parseAsString.withDefault(""),
@@ -247,7 +248,62 @@ export function ClassOrganizationPage() {
       )}
       {periods.isPending || (semesterId && query.isPending) ? (
         <OrganizationLoading />
-      ) : !semesterId ? (
+      ) : semesterId ? (
+        board ? (
+          <>
+            {board.plans.length === 0 && tab === "agenda" && (
+              <div className={s.empty}>
+                <h2>Use as turmas existentes como ponto de partida</h2>
+                <p>
+                  Horários, professores e alunos continuam juntos. Depois, revise apenas as exceções
+                  e acomode quem está chegando.
+                </p>
+                <div className={s.actions}>
+                  <Button
+                    size="sm"
+                    disabled={prepare.isPending || ended}
+                    onClick={() => prepare.mutate({ semesterId })}
+                  >
+                    {prepare.isPending
+                      ? "Preparando turmas e alunos…"
+                      : "Usar turmas deste semestre como base"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={ended}
+                    onClick={() => setAction({ kind: "plan" })}
+                  >
+                    Criar primeira turma
+                  </Button>
+                </div>
+              </div>
+            )}
+            {tab === "agenda" ? (
+              <OrganizationAgenda
+                key={semesterId}
+                board={board}
+                search={classSearch}
+                showClosed={showClosed}
+                onFeedback={setFeedback}
+                selected={planId}
+                onSelect={setPlanId}
+                onAction={setAction}
+              />
+            ) : tab === "review" ? (
+              <OrganizationReview
+                key={semesterId}
+                board={board}
+                query={search}
+                onAction={setAction}
+                onFeedback={setFeedback}
+              />
+            ) : (
+              <OrganizationCalendar board={board} onAction={setAction} />
+            )}
+          </>
+        ) : null
+      ) : (
         <div className={s.empty}>
           <h2>Comece pelo período letivo</h2>
           <p>
@@ -258,60 +314,7 @@ export function ClassOrganizationPage() {
             Criar semestre
           </Button>
         </div>
-      ) : board ? (
-        <>
-          {!board.plans.length && tab === "agenda" && (
-            <div className={s.empty}>
-              <h2>Use as turmas existentes como ponto de partida</h2>
-              <p>
-                Horários, professores e alunos continuam juntos. Depois, revise apenas as exceções e
-                acomode quem está chegando.
-              </p>
-              <div className={s.actions}>
-                <Button
-                  size="sm"
-                  disabled={prepare.isPending || ended}
-                  onClick={() => prepare.mutate({ semesterId })}
-                >
-                  {prepare.isPending
-                    ? "Preparando turmas e alunos…"
-                    : "Usar turmas deste semestre como base"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={ended}
-                  onClick={() => setAction({ kind: "plan" })}
-                >
-                  Criar primeira turma
-                </Button>
-              </div>
-            </div>
-          )}
-          {tab === "agenda" ? (
-            <OrganizationAgenda
-              key={semesterId}
-              board={board}
-              search={classSearch}
-              showClosed={showClosed}
-              onFeedback={setFeedback}
-              selected={planId}
-              onSelect={setPlanId}
-              onAction={setAction}
-            />
-          ) : tab === "review" ? (
-            <OrganizationReview
-              key={semesterId}
-              board={board}
-              query={search}
-              onAction={setAction}
-              onFeedback={setFeedback}
-            />
-          ) : (
-            <OrganizationCalendar board={board} onAction={setAction} />
-          )}
-        </>
-      ) : null}
+      )}
       {feedback && (
         <div className={s.feedback} role="status">
           <span>{feedback}</span>

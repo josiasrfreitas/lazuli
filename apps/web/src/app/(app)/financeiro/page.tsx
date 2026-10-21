@@ -20,7 +20,7 @@ async function FinanceAnalyticsData({ email }: { email: string }): Promise<React
   const caller = createCaller(await createTRPCContext({ session: { user: { email } } }));
   const initial = await caller.finance.analytics({ year }).then(
     (data) => ({ data, updatedAt: Date.now() }),
-    () => undefined,
+    (): undefined => {},
   );
   return <FinanceAnalyticsPage initial={initial} />;
 }

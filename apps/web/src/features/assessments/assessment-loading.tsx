@@ -1,7 +1,8 @@
+import type { JSX as ReactJSX } from "react";
 import { InlineSkeleton } from "@lazuli/ui";
 import { AssessmentResults } from "./results-table";
 
-function ChartLoading({ columns = 2 }: { columns?: number }) {
+function ChartLoading({ columns = 2 }: { columns?: number }): ReactJSX.Element {
   return (
     <div className="grid min-w-0 gap-3" aria-hidden="true">
       <div className="flex h-60 flex-col justify-between border-b border-l border-border p-4">
@@ -18,7 +19,7 @@ function ChartLoading({ columns = 2 }: { columns?: number }) {
   );
 }
 
-export function AssessmentLoading({ heading = false }: { heading?: boolean }) {
+export function AssessmentLoading({ heading = false }: { heading?: boolean }): ReactJSX.Element {
   return (
     <div
       role="status"
@@ -43,7 +44,7 @@ export function AssessmentLoading({ heading = false }: { heading?: boolean }) {
   );
 }
 
-export function ClassPerformanceLoading() {
+export function ClassPerformanceLoading(): ReactJSX.Element {
   return (
     <section
       className="grid min-w-0 shrink-0 gap-3 rounded-lg border border-border bg-card p-3 sm:p-4"

@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useState } from "react";
 
 import {
@@ -22,7 +23,7 @@ export function AdminMobileNotice({
 }: {
   userId: string;
   isMobileDevice: boolean;
-}) {
+}): ReactJSX.Element {
   const storageKey = `lazuli.admin-mobile-notice.v1:${userId}`;
   const [acknowledged, setAcknowledged] = useState(true);
   const [mobile, setMobile] = useState(isMobileDevice);

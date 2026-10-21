@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import type { ReactNode } from "react";
 import {
   CalendarDays,
@@ -36,7 +37,7 @@ export function TeacherAgendaHeader({
   onViewChange: (view: "dia" | "semana") => void;
   filters: ReactNode;
   restricted: boolean;
-}) {
+}): ReactJSX.Element {
   const today = schoolToday();
   const from = monday(date);
   return (

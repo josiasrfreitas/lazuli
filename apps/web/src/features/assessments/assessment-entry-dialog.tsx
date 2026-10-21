@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { RotateCcw, Save, X } from "lucide-react";
 import { MAX_UPLOAD_FILE_BYTES } from "@lazuli/validators";
@@ -59,14 +60,14 @@ export function AssessmentEntryDialog({
   onStateChange?: ((state: { dirty: boolean; pending: boolean }) => void) | undefined;
   onSaved: (notice: string) => void;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   const id = useId();
   const state = useAssessmentForm(data);
   const uploads = useAssessmentUploads();
   const proof = competence === "WRITTEN" || competence === "LISTENING";
   const files = trpc.assessmentFiles.list.useQuery(
     { progressId: data.progressId },
-    { enabled: proof, refetchInterval: proof ? 5_000 : false },
+    { enabled: proof, refetchInterval: proof ? 5000 : false },
   );
   const [phase, setPhase] = useState(initialPhase);
   const [baseline, setBaseline] = useState(state.grades);

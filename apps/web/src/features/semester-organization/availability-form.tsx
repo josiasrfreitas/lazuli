@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { Alert, Button } from "@lazuli/ui";
 import { z, classScheduleSlotInputSchema, studentAvailabilitySchema } from "@lazuli/validators";
@@ -27,7 +28,7 @@ export function AvailabilityForm({
   board: SemesterBoard;
   onClose: () => void;
   onInvalidate: (previousId: string) => void;
-}) {
+}): ReactJSX.Element {
   const query = trpc.semesterOrganization.student.useQuery({
     studentId,
     semesterId: board.semester.id,
@@ -70,7 +71,7 @@ function AvailabilityFields({
   board: SemesterBoard;
   onClose: () => void;
   onInvalidate: (previousId: string) => void;
-}) {
+}): ReactJSX.Element {
   const current = data.availability[0];
   const previous = current ?? data.previousAvailability;
   const prefilled = z.array(classScheduleSlotInputSchema).safeParse(previous?.slots);

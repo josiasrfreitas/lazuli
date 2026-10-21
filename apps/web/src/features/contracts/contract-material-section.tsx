@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { materialPriceQuote } from "@lazuli/domain";
 import { Plus, X } from "lucide-react";
 import { useEffect } from "react";
@@ -9,7 +10,12 @@ import { SelectControl } from "~/features/classes/form-controls";
 import type { FormProps } from "./contract-form-fields";
 
 type Props = Pick<FormProps, "fields" | "change" | "errors"> & { required?: boolean };
-export function ContractMaterialSection({ fields, change, errors, required = false }: Props) {
+export function ContractMaterialSection({
+  fields,
+  change,
+  errors,
+  required = false,
+}: Props): ReactJSX.Element {
   const selectedStages = fields.materialStageIds.split(",");
   const enabled = fields.materialPayment !== "NONE";
   const prices = trpc.finance.readMaterialPrice.useQuery(undefined, { enabled });
@@ -54,7 +60,7 @@ export function ContractMaterialSection({ fields, change, errors, required = fal
         onChange={(value) => change("materialPayment", value)}
         error={errors.materialPayment}
         choices={[
-          ...(!required ? [{ value: "NONE", label: "Sem nova aquisição" }] : []),
+          ...(required ? [] : [{ value: "NONE", label: "Sem nova aquisição" }]),
           { value: "INSTALLMENTS", label: "Cartão de crédito" },
           { value: "CASH", label: "À vista" },
         ]}

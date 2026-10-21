@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -53,7 +54,7 @@ export function PedagogyStep({
   draft: PedagogyDraft;
   onChange: (draft: PedagogyDraft) => void;
   onSubmit: () => void;
-}) {
+}): ReactJSX.Element {
   const periods = trpc.semesterOrganization.semesters.useQuery();
   const options = trpc.classes.formOptions.useQuery();
   const [error, setError] = useState("");
@@ -142,9 +143,9 @@ export function PedagogyStep({
                 <p className="text-caption text-muted-foreground">
                   {!current && !next
                     ? "Cadastre o semestre de entrada em Organização de turmas."
-                    : !next
-                      ? "O próximo semestre ainda não foi cadastrado."
-                      : "Não há semestre em andamento. A entrada será no próximo."}
+                    : next
+                      ? "Não há semestre em andamento. A entrada será no próximo."
+                      : "O próximo semestre ainda não foi cadastrado."}
                 </p>
               )}
             </Field>
@@ -190,7 +191,7 @@ export function PedagogyStep({
           </Field>
         )}
       </FormSection>
-      {draft.slots.length ? (
+      {draft.slots.length > 0 ? (
         <>
           <SlotFields slots={draft.slots} onChange={(slots) => set({ slots })} />
           <Button

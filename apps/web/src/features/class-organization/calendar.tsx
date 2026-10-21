@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { Button } from "@lazuli/ui";
 import { CalendarDays, Download, Plus } from "lucide-react";
 import { trpc } from "~/lib/trpc";
@@ -13,7 +14,7 @@ export function OrganizationCalendar({
 }: {
   board: SemesterBoard;
   onAction: (action: OrganizationAction) => void;
-}) {
+}): ReactJSX.Element {
   const start = dateOnly(board.semester.startDate),
     end = dateOnly(board.semester.endDate);
   const refresh = useOrganizationRefresh();
@@ -131,7 +132,7 @@ export function OrganizationCalendar({
               <span className={s.small}>{day.reason}</span>
             </div>
           ))}
-          {!board.closedDays.length && (
+          {board.closedDays.length === 0 && (
             <div className={s.detail}>
               <p className={s.small}>
                 Nenhuma exceção registrada. Importe os feriados nacionais e acrescente as datas de

@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { InlineSkeleton } from "@lazuli/ui";
 import styles from "./workspace.module.css";
 
@@ -9,7 +10,7 @@ export function TeacherListLoading({
   label: string;
   kind?: "classes" | "students" | "records" | "links";
   status?: boolean;
-}) {
+}): ReactJSX.Element {
   const grouped = kind === "classes" || kind === "students";
   return (
     <div role="status" aria-label={label} aria-busy="true" className={styles.groups}>

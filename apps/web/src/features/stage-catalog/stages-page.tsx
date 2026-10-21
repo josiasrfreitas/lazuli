@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { EmptyState, Input } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -7,7 +8,7 @@ import { StagePrograms } from "./detail";
 import { StageLoading } from "./loading";
 import styles from "./catalog.module.css";
 
-export function StagesPage() {
+export function StagesPage(): ReactJSX.Element {
   const query = trpc.teachingPrograms.catalog.useQuery();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -48,9 +49,9 @@ export function StagesPage() {
                   ? { kind: "loading" }
                   : query.isError
                     ? { kind: "error" }
-                    : filtered.length
+                    : filtered.length > 0
                       ? { kind: "data", rows: filtered }
-                      : { kind: stages.length ? "noResults" : "empty" }
+                      : { kind: stages.length > 0 ? "noResults" : "empty" }
               }
               selectedId={selected?.id ?? null}
               onSelect={(stage) => setSelectedId(stage.id)}

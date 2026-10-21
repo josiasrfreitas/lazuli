@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, RefreshCw } from "lucide-react";
@@ -18,7 +19,7 @@ export function TeacherPage({
   children: ReactNode;
   back?: string;
   actions?: ReactNode;
-}) {
+}): ReactJSX.Element {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -79,7 +80,7 @@ export function TeacherLinkRow({
   subtitle?: string;
   trailing?: ReactNode;
   leading?: ReactNode;
-}) {
+}): ReactJSX.Element {
   return (
     <Link href={href} className={styles.row}>
       {leading}

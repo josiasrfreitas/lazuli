@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { Button } from "@lazuli/ui";
 import { isQueueItem, type OrganizationAction, type SemesterBoard } from "./model";
@@ -24,7 +25,7 @@ export function OrganizationAgenda({
   onAction,
   onFeedback,
   showClosed,
-}: Props) {
+}: Props): ReactJSX.Element {
   const [mobilePanel, setMobilePanel] = useState(false);
   const plan = board.plans.find((item) => item.id === selected);
   const pendingRows = board.placements.filter(isQueueItem);
@@ -46,7 +47,7 @@ export function OrganizationAgenda({
       <div className={s.mobileContext}>
         <Button
           size="sm"
-          variant={!mobilePanel ? "secondary" : "ghost"}
+          variant={mobilePanel ? "ghost" : "secondary"}
           aria-pressed={!mobilePanel}
           onClick={() => setMobilePanel(false)}
         >

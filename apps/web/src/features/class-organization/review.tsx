@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, History } from "lucide-react";
@@ -36,7 +37,7 @@ export function OrganizationReview({
   query: string;
   onAction: (action: OrganizationAction) => void;
   onFeedback: (text: string) => void;
-}) {
+}): ReactJSX.Element {
   const [ids, setIds] = useState<string[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [working, setWorking] = useState(false);
@@ -49,11 +50,11 @@ export function OrganizationReview({
       row.studentName.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")),
   );
   const eligible = rows.filter(
-    (row) => !row.publishedAt && !row.declinedAt && !row.blockers.length && row.planId,
+    (row) => !row.publishedAt && !row.declinedAt && row.blockers.length === 0 && row.planId,
   );
   const selected = eligible.filter((row) => ids.includes(row.id));
   async function confirm() {
-    if (working || !selected.length) return;
+    if (working || selected.length === 0) return;
     setWorking(true);
     setError(null);
     let count = 0;
@@ -62,7 +63,7 @@ export function OrganizationReview({
         const placements = selected
           .filter((row) => row.planId === plan.id)
           .map(({ id, version }) => ({ id, version }));
-        if (!placements.length) continue;
+        if (placements.length === 0) continue;
         const result = await publish.mutateAsync({
           planId: plan.id,
           version: plan.version,
@@ -74,9 +75,9 @@ export function OrganizationReview({
       onFeedback(
         `${count} ${count === 1 ? "alocação confirmada" : "alocações confirmadas"}. Cada vínculo respeita sua data de vigência.`,
       );
-    } catch (cause) {
+    } catch (error_) {
       setError(
-        `${count ? `${count} alocações foram confirmadas. ` : ""}${cause instanceof Error ? cause.message : "Não foi possível concluir. Atualize e tente novamente."}`,
+        `${count ? `${count} alocações foram confirmadas. ` : ""}${error_ instanceof Error ? error_.message : "Não foi possível concluir. Atualize e tente novamente."}`,
       );
     } finally {
       await refresh();
@@ -114,7 +115,7 @@ export function OrganizationReview({
                 <Checkbox
                   size="sm"
                   aria-label="Selecionar alocações prontas"
-                  disabled={!eligible.length || working}
+                  disabled={eligible.length === 0 || working}
                   checked={eligible.length > 0 && selected.length === eligible.length}
                   indeterminate={selected.length > 0 && selected.length < eligible.length}
                   onCheckedChange={(value) => setIds(value ? eligible.map((row) => row.id) : [])}
@@ -174,7 +175,7 @@ export function OrganizationReview({
                       >
                         {row.declinedAt ? "Não continuará" : (plan?.name ?? "Turma a definir")}
                       </span>
-                      <span className={row.stageId !== row.sourceStageId ? s.changed : s.small}>
+                      <span className={row.stageId === row.sourceStageId ? s.small : s.changed}>
                         {row.stageCode ?? "Estágio a definir"}
                       </span>
                       <span className={s.small}>{plan ? scheduleLabel(plan.slots) : "—"}</span>
@@ -205,7 +206,7 @@ export function OrganizationReview({
                       {row.blockers.length > 2 && (
                         <span className={s.small}>+{row.blockers.length - 2} nos detalhes</span>
                       )}
-                      {!row.blockers.length && !row.declinedAt && (
+                      {row.blockers.length === 0 && !row.declinedAt && (
                         <span className={s.small}>
                           <Check size={12} className="inline" />
                           {row.publishedAt ? "Alocação confirmada" : "Alocação pronta"}
@@ -272,7 +273,7 @@ export function OrganizationReview({
             })}
           </tbody>
         </table>
-        {!rows.length && (
+        {rows.length === 0 && (
           <div className={s.empty}>
             <h2>Nenhuma mudança nesta seleção</h2>
             <p>
@@ -287,17 +288,21 @@ export function OrganizationReview({
           {selected.length} selecionados · {eligible.length} prontos para confirmar
         </span>
         <span className={`${s.small} ${s.push}`}>Contratos são tratados separadamente.</span>
-        <Button size="sm" disabled={!selected.length || working} onClick={() => void confirm()}>
+        <Button
+          size="sm"
+          disabled={selected.length === 0 || working}
+          onClick={() => void confirm()}
+        >
           {working
             ? "Confirmando alocações…"
-            : `Confirmar${selected.length ? ` ${selected.length}` : " selecionados"}`}
+            : `Confirmar${selected.length > 0 ? ` ${selected.length}` : " selecionados"}`}
         </Button>
       </footer>
     </section>
   );
 }
 
-function DiffDetails({ row, board }: { row: Placement; board: SemesterBoard }) {
+function DiffDetails({ row, board }: { row: Placement; board: SemesterBoard }): ReactJSX.Element {
   const plan = board.plans.find((item) => item.id === row.planId);
   return (
     <Popover>
@@ -326,7 +331,7 @@ function DiffDetails({ row, board }: { row: Placement; board: SemesterBoard }) {
               <div className={s.diffLine}>
                 <span className={s.origin}>{before}</span>
                 <ArrowRight size={12} />
-                <span className={before !== after ? s.changed : undefined}>{after}</span>
+                <span className={before === after ? undefined : s.changed}>{after}</span>
               </div>
             </div>
           ))}

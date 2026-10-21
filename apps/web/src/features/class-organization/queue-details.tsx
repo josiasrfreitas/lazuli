@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { Button } from "@lazuli/ui";
@@ -21,7 +22,7 @@ export function PendingStudent({
   board,
   onAction,
   onSelect,
-}: QueueProps & { row: Placement }) {
+}: QueueProps & { row: Placement }): ReactJSX.Element {
   const ended = dateOnly(board.semester.endDate) < toDateOnlySaoPaulo(new Date());
   const suggestions = suggestedPlans(row, board).filter(
     (plan) =>
@@ -83,7 +84,9 @@ export function PendingStudent({
           </details>
         )}
         <section className={s.suggestions}>
-          <h3>{suggestions.length ? "Turmas compatíveis" : "Sem turma compatível por enquanto"}</h3>
+          <h3>
+            {suggestions.length > 0 ? "Turmas compatíveis" : "Sem turma compatível por enquanto"}
+          </h3>
           {suggestions.slice(0, 5).map((plan) => (
             <button
               type="button"
@@ -99,7 +102,7 @@ export function PendingStudent({
               <ChevronRight size={14} />
             </button>
           ))}
-          {!suggestions.length && (
+          {suggestions.length === 0 && (
             <p className={s.small}>
               A pessoa permanece na fila. Você pode reunir outras do mesmo estágio e formar uma
               turma.
@@ -125,7 +128,9 @@ export function PendingLead({
   lead,
   board,
   onSelect,
-}: Pick<QueueProps, "board" | "onSelect"> & { lead: SemesterBoard["waitingLeads"][number] }) {
+}: Pick<QueueProps, "board" | "onSelect"> & {
+  lead: SemesterBoard["waitingLeads"][number];
+}): ReactJSX.Element {
   return (
     <div className={s.queueDetails}>
       <div className={s.detail}>
@@ -146,7 +151,7 @@ export function PendingLead({
                 : "Formato a combinar"}
           </dd>
           <dt>Horários</dt>
-          <dd>{lead.slots.length ? scheduleLabel(lead.slots) : "A combinar"}</dd>
+          <dd>{lead.slots.length > 0 ? scheduleLabel(lead.slots) : "A combinar"}</dd>
         </dl>
         {lead.allocationPlan && (
           <div className={s.summary}>

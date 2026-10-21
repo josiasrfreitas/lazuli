@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Save, UserRoundPlus } from "lucide-react";
@@ -43,7 +44,7 @@ export function LeadCaptureDialog({
   initialEnglishExperience = "NONE",
   onCreated,
   destination,
-}: CaptureProps) {
+}: CaptureProps): ReactJSX.Element {
   const [id] = useState(
     () => destination?.initial?.lead.id ?? candidate?.id ?? crypto.randomUUID(),
   );

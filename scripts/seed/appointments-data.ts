@@ -3,6 +3,9 @@ import type { TransactionClient } from "../../packages/db/src/client.js";
 import { addDays, isoOf, utcDate } from "../../packages/db/src/seed-dev-support.js";
 import { sessionEndInstant } from "../../packages/domain/src/session-time.js";
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+const SATURDAY = 6;
+
 export type SeedPurpose = "MAKEUP" | "PPT_COMPLEMENT" | "REINFORCEMENT" | "ASSESSMENT";
 export type AppointmentSeedContext = {
   database: TransactionClient;
@@ -110,18 +113,19 @@ export function businessInstant(date: Date, time: string): Date {
 }
 
 export function minutesAfter(instant: Date, minutes: number): Date {
-  return new Date(instant.getTime() + minutes * 60_000);
+  return new Date(instant.getTime() + minutes * MILLISECONDS_PER_MINUTE);
 }
 
 export function previousWeekday(date: Date): Date {
   let previous = addDays(date, -1);
-  while (previous.getUTCDay() === 0 || previous.getUTCDay() === 6) previous = addDays(previous, -1);
+  while (previous.getUTCDay() === 0 || previous.getUTCDay() === SATURDAY)
+    previous = addDays(previous, -1);
   return previous;
 }
 
 export function nextWeekday(date: Date): Date {
   let next = date;
-  while (next.getUTCDay() === 0 || next.getUTCDay() === 6) next = addDays(next, 1);
+  while (next.getUTCDay() === 0 || next.getUTCDay() === SATURDAY) next = addDays(next, 1);
   return next;
 }
 
@@ -130,7 +134,8 @@ export function sourcePlan(absences: SeedAbsence[]): string | null {
   if (known.length === 0) return null;
   return known
     .map(
-      (source) => `${isoOf(source.date).split("-").reverse().join("/")}: ${source.sourceContent}`,
+      (source) =>
+        `${isoOf(source.date).split("-").toReversed().join("/")}: ${source.sourceContent}`,
     )
     .join("\n");
 }

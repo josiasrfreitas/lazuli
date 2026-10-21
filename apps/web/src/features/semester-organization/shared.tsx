@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge, Field, Label, SegmentedControl, SegmentedControlItem } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -40,15 +41,15 @@ export function useOrganizationRefresh() {
     ]);
   };
 }
-export function PlacementBadge({ row }: { row: Placement }) {
+export function PlacementBadge({ row }: { row: Placement }): ReactJSX.Element {
   return (
     <Badge
       variant={
         row.publishedAt
-          ? row.blockers.length
+          ? row.blockers.length > 0
             ? "warning"
             : "success"
-          : row.blockers.length
+          : row.blockers.length > 0
             ? "neutral"
             : "info"
       }
@@ -56,10 +57,10 @@ export function PlacementBadge({ row }: { row: Placement }) {
       {row.publishedAt
         ? row.entryStatus === "APPLIED"
           ? "Efetivada"
-          : row.blockers.length
+          : row.blockers.length > 0
             ? "Revisar publicação"
             : "Publicada"
-        : row.blockers.length
+        : row.blockers.length > 0
           ? "Pendente"
           : "Pronta para publicar"}
     </Badge>
@@ -77,7 +78,7 @@ export function Choices({
   value: string;
   options: Record<string, string>;
   onChange: (value: string) => void;
-}) {
+}): ReactJSX.Element {
   return (
     <Field>
       <Label id={`${name}-label`}>{label}</Label>

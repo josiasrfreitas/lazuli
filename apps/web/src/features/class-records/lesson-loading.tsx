@@ -1,7 +1,8 @@
+import type { JSX as ReactJSX } from "react";
 import { DialogDescription, DialogHeader, DialogTitle, InlineSkeleton } from "@lazuli/ui";
 import styles from "./class-record-dialog.module.css";
 
-export function LessonLoadingHeader() {
+export function LessonLoadingHeader(): ReactJSX.Element {
   return (
     <DialogHeader>
       <div className={styles.headingRow}>
@@ -23,7 +24,7 @@ export function LessonLoadingHeader() {
   );
 }
 
-export function LessonLoadingList() {
+export function LessonLoadingList(): ReactJSX.Element {
   return (
     <div
       className={styles.attendance}

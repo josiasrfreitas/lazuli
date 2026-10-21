@@ -75,14 +75,14 @@ function ClassLessonsContent({ classId, personalized }: Props): ReactElement {
           state={
             query.isError
               ? { kind: "error" }
-              : !data
-                ? { kind: "loading" }
-                : total === 0
+              : data
+                ? total === 0
                   ? { kind: "empty" }
                   : {
                       kind: "data",
                       rows: data.rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
                     }
+                : { kind: "loading" }
           }
           onRetry={() => void query.refetch()}
           errorTitle="Não foi possível carregar as aulas"
@@ -130,20 +130,20 @@ function lessonColumns(personalized: boolean): DataTableColumn<Lesson>[] {
       width: "medium",
       cell: (row) => {
         const content = row.content;
-        return content?.pageFrom != null ? (
-          <span className="font-medium text-heading">
-            Pág. {content.pageFrom}
-            {content.pageTo != null && content.pageTo !== content.pageFrom
-              ? `–${content.pageTo}`
-              : ""}
-          </span>
-        ) : (
+        return content?.pageFrom == null ? (
           <span className="text-caption text-muted-foreground">
             {row.state === "CANCELLED" || row.state === "UPCOMING"
               ? "—"
               : personalized
                 ? "Por aluno"
                 : "Não informadas"}
+          </span>
+        ) : (
+          <span className="font-medium text-heading">
+            Pág. {content.pageFrom}
+            {content.pageTo != null && content.pageTo !== content.pageFrom
+              ? `–${content.pageTo}`
+              : ""}
           </span>
         );
       },

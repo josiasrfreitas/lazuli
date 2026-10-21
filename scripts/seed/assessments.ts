@@ -410,10 +410,10 @@ function confirmationTimestamp(
   context: AssessmentContext,
   grades: readonly SeedGrade[],
 ): Date | null {
-  const latest = grades.reduce(
-    (date, grade) => (grade.assessedOn > date ? grade.assessedOn : date),
-    context.progress.startDate,
-  );
+  let latest = context.progress.startDate;
+  for (const grade of grades) {
+    if (grade.assessedOn > latest) latest = grade.assessedOn;
+  }
   const date = addDays(latest, 1);
   if (isoOf(date) >= context.todayIso) return null;
   if (context.historical && context.progress.endDate && date > context.progress.endDate)

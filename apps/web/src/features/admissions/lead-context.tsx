@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { Mail, Phone, UserRound } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { toWhatsAppUrl } from "~/lib/format";
@@ -13,7 +14,13 @@ const experienceLabels: Record<string, string> = {
   UNKNOWN: "Não informada",
 };
 
-export function LeadContext({ candidate, onEdit }: { candidate: Candidate; onEdit: () => void }) {
+export function LeadContext({
+  candidate,
+  onEdit,
+}: {
+  candidate: Candidate;
+  onEdit: () => void;
+}): ReactJSX.Element {
   const whatsapp = toWhatsAppUrl(candidate.phone);
   return (
     <aside className={styles.context} aria-label="Dados do lead">

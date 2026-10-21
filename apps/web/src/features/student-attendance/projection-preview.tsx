@@ -1,9 +1,10 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
-export function AttendanceProjectionPreview() {
+export function AttendanceProjectionPreview(): ReactJSX.Element {
   const [url, setUrl] = useState("");
   useEffect(() => {
     setUrl(`${window.location.origin}/presenca/previa${window.location.search}`);

@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { DiscardRegistrationDialog } from "~/features/shared/discard-registration-dialog";
 import {
@@ -14,7 +15,13 @@ import {
 import { AssessmentWorkspace } from "./assessment-workspace";
 import type { Assessment } from "./shared";
 
-export function AssessmentDialog({ data, onClose }: { data: Assessment; onClose: () => void }) {
+export function AssessmentDialog({
+  data,
+  onClose,
+}: {
+  data: Assessment;
+  onClose: () => void;
+}): ReactJSX.Element {
   const [editorState, setEditorState] = useState({ dirty: false, pending: false });
   const [discard, setDiscard] = useState(false);
   function requestClose() {

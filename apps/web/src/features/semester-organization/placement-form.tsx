@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { Alert, InlineSkeleton } from "@lazuli/ui";
 import { semesterPlacementSchema } from "@lazuli/validators";
@@ -30,7 +31,7 @@ export function PlacementForm({
   board: SemesterBoard;
   initialPlanId?: string;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   const query = trpc.semesterOrganization.student.useQuery({
     studentId,
     semesterId: board.semester.id,
@@ -93,7 +94,7 @@ function PlacementFields({
   board: SemesterBoard;
   initialPlanId?: string | undefined;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   const options = trpc.classes.formOptions.useQuery();
   const initialSource =
     data.progress.find((item) => item.id === row?.sourceProgressId) ?? data.progress[0];
@@ -114,7 +115,7 @@ function PlacementFields({
         toDateOnlySaoPaulo(new Date()),
       ]
         .sort()
-        .at(-1)!,
+        .at(-1),
     ),
   );
   const [notes, setNotes] = useState(row?.notes ?? "");

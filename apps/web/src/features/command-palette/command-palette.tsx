@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -40,7 +41,7 @@ const ICONS: Record<CommandIcon, LucideIcon> = {
   contract: FileText,
 };
 
-export function CommandPalette({ role }: { role: StaffRole }) {
+export function CommandPalette({ role }: { role: StaffRole }): ReactJSX.Element {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();

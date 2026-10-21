@@ -152,8 +152,9 @@ export function contractInputFromFields(
     typeof command === "string" ? studentInput(fields) : { newStudent: command.newStudent };
   const parsed = createMonthlyContractInputSchema.safeParse({
     commandId,
-    ...(fields.materialPayment !== "NONE"
-      ? {
+    ...(fields.materialPayment === "NONE"
+      ? {}
+      : {
           material: {
             stageIds: fields.materialStageIds.split(","),
             quoteVersion: fields.materialQuoteVersion,
@@ -162,8 +163,7 @@ export function contractInputFromFields(
             expectedTotalCents:
               fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
           },
-        }
-      : {}),
+        }),
     ...(fields.paymentPlan === "special"
       ? { installmentCount: Number(fields.installmentCount) }
       : {}),

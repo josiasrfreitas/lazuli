@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import type { AppointmentSnapshot } from "@lazuli/validators";
 import { Badge } from "@lazuli/ui";
@@ -52,7 +53,7 @@ export function AppointmentBadge({
   rescheduled?: boolean;
   status: AppointmentSnapshot["status"];
   overdue?: boolean;
-}) {
+}): ReactJSX.Element {
   if (status === "CANCELLED" && rescheduled) return <Badge variant="info">Reagendado</Badge>;
   return (
     <Badge

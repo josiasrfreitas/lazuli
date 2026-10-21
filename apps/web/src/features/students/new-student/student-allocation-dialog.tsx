@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
@@ -32,7 +33,7 @@ export function StudentAllocationDialog({
   name: string;
   lead: Lead;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   const [stageId, setStageId] = useState<string | null>(lead?.stageId ?? null);
   const [format, setFormat] = useState<"IN_PERSON" | "ONLINE">(lead?.format ?? "IN_PERSON");
   const [scheduleType, setScheduleType] = useState<"REGULAR" | "PERSONALIZED">(

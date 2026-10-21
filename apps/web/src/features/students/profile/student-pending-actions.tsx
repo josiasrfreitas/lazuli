@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ClipboardList } from "lucide-react";
@@ -6,7 +7,12 @@ import { Alert, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { NewStudentDialog } from "../new-student/new-student-dialog";
 
-export function StudentPendingActions({ studentId }: { studentId: string; name: string }) {
+export function StudentPendingActions({
+  studentId,
+}: {
+  studentId: string;
+  name: string;
+}): ReactJSX.Element | null {
   const query = trpc.students.pendingActions.useQuery({ id: studentId });
   const [continuing, setContinuing] = useState(false);
   const utils = trpc.useUtils();

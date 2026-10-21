@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { parseAsString, useQueryStates } from "nuqs";
@@ -27,7 +28,7 @@ type Action =
   | PlacementAction
   | { kind: "newPlacement"; studentId: string }
   | { kind: "invalidate"; row: Placement; previousId: string };
-export function SemesterOrganizationPage() {
+export function SemesterOrganizationPage(): ReactJSX.Element {
   const [params, setParams] = useQueryStates({
     semestre: parseAsString,
     turma: parseAsString,
@@ -252,9 +253,11 @@ export function SemesterOrganizationPage() {
     </div>
   );
 }
-function SemesterSummary({ board }: { board: SemesterBoard }) {
+function SemesterSummary({ board }: { board: SemesterBoard }): ReactJSX.Element {
   const published = board.placements.filter((row) => row.publishedAt).length;
-  const ready = board.placements.filter((row) => !row.publishedAt && !row.blockers.length).length;
+  const ready = board.placements.filter(
+    (row) => !row.publishedAt && row.blockers.length === 0,
+  ).length;
   const pending = board.placements.filter((row) => row.blockers.length).length;
   const metrics = [
     [
@@ -299,7 +302,7 @@ function PlanOverview({
 }: {
   board: SemesterBoard;
   onSelect: (id: string) => void;
-}) {
+}): ReactJSX.Element {
   const unassigned = board.placements.filter((row) => !row.planId);
   return (
     <div className="grid gap-4">
@@ -351,7 +354,7 @@ function PlanOverview({
                 <span className="text-micro text-muted-foreground">
                   {pending
                     ? `${pending} ${pending === 1 ? "pendente" : "pendentes"}`
-                    : rows.length
+                    : rows.length > 0
                       ? "Tudo conferido"
                       : "A compor"}
                 </span>
@@ -383,7 +386,7 @@ function PlanOverview({
           <ArrowRight className="size-4 shrink-0" />
         </button>
       )}
-      {!board.plans.length && (
+      {board.plans.length === 0 && (
         <EmptyState
           title="O próximo semestre começa aqui"
           description="Planeje a primeira turma e organize os alunos conforme os horários e o percurso de cada um."

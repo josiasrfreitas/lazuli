@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { Button, Checkbox } from "@lazuli/ui";
 import { z, calendarDateSchema, closedDayReasonSchema } from "@lazuli/validators";
@@ -16,7 +17,7 @@ export function ClosureForm({
   initialDate,
   onClose,
   onFeedback,
-}: Props & { initialDate: string }) {
+}: Props & { initialDate: string }): ReactJSX.Element {
   const [from, setFrom] = useState(formatDateOnlyBR(initialDate)),
     [through, setThrough] = useState(formatDateOnlyBR(initialDate));
   const existing = board.closedDays.find((item) => dateOnly(item.date) === initialDate);
@@ -108,7 +109,7 @@ export function ClosureForm({
   );
 }
 
-export function PeriodForm({ board, onClose, onFeedback }: Props) {
+export function PeriodForm({ board, onClose, onFeedback }: Props): ReactJSX.Element {
   const [name, setName] = useState(board.semester.name),
     [start, setStart] = useState(formatDateOnlyBR(dateOnly(board.semester.startDate))),
     [end, setEnd] = useState(formatDateOnlyBR(dateOnly(board.semester.endDate)));
@@ -197,7 +198,7 @@ export function PeriodForm({ board, onClose, onFeedback }: Props) {
   );
 }
 
-export function HolidayForm({ board, onClose, onFeedback }: Props) {
+export function HolidayForm({ board, onClose, onFeedback }: Props): ReactJSX.Element {
   const [year, setYear] = useState(Number(dateOnly(board.semester.startDate).slice(0, 4)));
   const query = trpc.semesterOrganization.holidays.useQuery({ year }, { retry: false });
   const [excluded, setExcluded] = useState<string[]>([]),
@@ -225,7 +226,7 @@ export function HolidayForm({ board, onClose, onFeedback }: Props) {
       firstField="holiday-year"
       submitLabel={working ? "Importando…" : `Importar ${selected.length} datas`}
       pending={working}
-      submitDisabled={query.isPending || !selected.length}
+      submitDisabled={query.isPending || selected.length === 0}
       error={error ?? query.error?.message}
       onClose={onClose}
     >
@@ -255,9 +256,9 @@ export function HolidayForm({ board, onClose, onFeedback }: Props) {
                 `${added} feriados importados.${affected ? ` Revise ${affected} aulas já geradas na Agenda.` : ""}`,
               );
               onClose();
-            } catch (cause) {
+            } catch (error_) {
               setError(
-                `${added} datas importadas. ${cause instanceof Error ? cause.message : "Tente novamente."}`,
+                `${added} datas importadas. ${error_ instanceof Error ? error_.message : "Tente novamente."}`,
               );
               await refresh();
             } finally {
@@ -315,7 +316,7 @@ export function HolidayForm({ board, onClose, onFeedback }: Props) {
             </label>
           );
         })}
-        {query.data && !available.length && (
+        {query.data && available.length === 0 && (
           <p className={s.small}>Nenhuma data sugerida dentro deste semestre.</p>
         )}
         <p className={s.small}>

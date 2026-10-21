@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import {
   CalendarClock,
@@ -45,7 +46,7 @@ export function StudentAppointmentDialog({
   readOnly?: boolean;
   onClose: () => void;
   onSelect: (id: string) => void;
-}) {
+}): ReactJSX.Element {
   const query = trpc.appointments.detail.useQuery({ id }, { retry: false });
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
@@ -140,7 +141,7 @@ function AppointmentDialogActions({
   setEditing: (value: boolean) => void;
   setAction: (value: "cancel" | "reschedule") => void;
   onSelect: (id: string) => void;
-}) {
+}): ReactJSX.Element {
   const row = data.snapshot;
   const previousId = row.rescheduledFromId;
   const nextId = data.rescheduledToId;
@@ -197,7 +198,7 @@ function AppointmentDialogBody({
   onFinish: () => void;
   footerTarget: HTMLDivElement | null;
   onPendingChange: (pending: boolean) => void;
-}) {
+}): ReactJSX.Element {
   const row = data.snapshot;
   const restriction =
     data.restriction === "O registro fica disponível após o término do atendimento."

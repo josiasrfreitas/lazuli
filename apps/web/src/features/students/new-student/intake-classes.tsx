@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { CalendarDays, Check } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Alert, Button, PencilLoader } from "@lazuli/ui";
@@ -33,7 +34,7 @@ function ClassOption({
 }: SelectionProps & {
   choice: ClassChoice;
   slot?: Slot;
-}) {
+}): ReactJSX.Element {
   const selected = selectedId === choice.id;
   const schedule = slot
     ? `${dayLabel(slot.weekday)}, ${slot.startTime}–${slot.endTime}`
@@ -58,7 +59,7 @@ function ClassOption({
         </span>
       ) : (
         <span className={styles.classSchedule}>
-          {choice.slots.length
+          {choice.slots.length > 0
             ? choice.slots.map((item) => (
                 <span key={`${item.weekday}:${item.startTime}`}>
                   {dayLabel(item.weekday)} · {item.startTime}–{item.endTime}
@@ -74,7 +75,10 @@ function ClassOption({
   );
 }
 
-function RecurringSchedule({ choices, ...selection }: SelectionProps & { choices: ClassChoice[] }) {
+function RecurringSchedule({
+  choices,
+  ...selection
+}: SelectionProps & { choices: ClassChoice[] }): ReactJSX.Element {
   const days = WEEKDAYS.filter(
     (day) =>
       day !== "SUNDAY" ||
@@ -83,7 +87,7 @@ function RecurringSchedule({ choices, ...selection }: SelectionProps & { choices
   const times = [
     ...new Set(choices.flatMap((choice) => choice.slots.map((slot) => slot.startTime))),
   ].sort();
-  const unscheduled = choices.filter((choice) => !choice.slots.length);
+  const unscheduled = choices.filter((choice) => choice.slots.length === 0);
   return (
     <>
       <div className={styles.weeklySchedule}>
@@ -113,7 +117,7 @@ function RecurringSchedule({ choices, ...selection }: SelectionProps & { choices
                     return (
                       <td key={day}>
                         <div className={styles.timeOptions}>
-                          {entries.length ? (
+                          {entries.length > 0 ? (
                             entries.map(({ choice, slot }) => (
                               <ClassOption
                                 key={choice.id}
@@ -167,7 +171,7 @@ export function IntakeClasses({
   pending: boolean;
   error: string | undefined;
   onRetry: () => void;
-}) {
+}): ReactJSX.Element {
   const choices = data?.classes ?? [];
   return (
     <section className={styles.classes} aria-label="Escolha da turma" aria-busy={pending}>
@@ -196,7 +200,7 @@ export function IntakeClasses({
               </Button>
             </Alert>
           </div>
-        ) : choices.length ? (
+        ) : choices.length > 0 ? (
           <RecurringSchedule choices={choices} {...selection} />
         ) : (
           <div className={styles.centeredState}>

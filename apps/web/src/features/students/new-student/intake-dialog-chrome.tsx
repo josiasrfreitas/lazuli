@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import {
   Alert,
   Button,
@@ -27,7 +28,7 @@ export function IntakeDialogHeading({
   name: string;
   hasEnrollment: boolean;
   hasClass: boolean;
-}) {
+}): ReactJSX.Element {
   const description =
     step === "student"
       ? continuing
@@ -65,7 +66,7 @@ export function IntakeDialogLoading({
   error: string | undefined;
   onRetry: () => void;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   return (
     <Dialog
       open

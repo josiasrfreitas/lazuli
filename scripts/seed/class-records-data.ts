@@ -3,6 +3,10 @@ import type {
   ClassRecordSnapshot,
 } from "../../packages/validators/src/class-records.js";
 
+const FIRST_CONTENT_PAGE = 6;
+const CONTENT_PAGE_CYCLE = 14;
+const REFERENCE_PRACTICE_CYCLE = 8;
+
 const ACTIVITIES = [
   "CONTENT",
   "CONTENT",
@@ -41,7 +45,26 @@ export function performedContent(input: {
   const child = input.stage?.startsWith("Magic Way") ?? false;
   const topic = (child ? CHILD_TOPICS : TOPICS)[input.variation % TOPICS.length]!;
   const kind = input.review ? "REVIEW" : ACTIVITIES[input.variation % ACTIVITIES.length]!;
-  const account = {
+  const account = contentAccount(kind, { child, topic });
+  const pageFrom =
+    kind === "CONTENT" ? FIRST_CONTENT_PAGE + (input.variation % CONTENT_PAGE_CYCLE) * 2 : null;
+  return {
+    kind,
+    account,
+    reference:
+      kind === "CONTENT" || kind === "REVIEW"
+        ? `Material ${input.stage ?? "do estágio"} — prática ${1 + (input.variation % REFERENCE_PRACTICE_CYCLE)}`
+        : null,
+    pageFrom,
+    pageTo: pageFrom === null ? null : pageFrom + 1,
+  };
+}
+
+function contentAccount(
+  kind: ClassRecordContent["kind"],
+  { child, topic }: { child: boolean; topic: string },
+): string {
+  return {
     CONTENT: child
       ? `Praticamos ${topic} com imagens, escuta e uso das expressões em pequenos grupos.`
       : `Trabalhamos ${topic} com leitura breve, prática guiada e diálogo em duplas.`,
@@ -51,17 +74,6 @@ export function performedContent(input: {
       ? `Jogo de escuta, identificação e interação sobre ${topic}.`
       : `Atividade colaborativa de diálogo e produção curta sobre ${topic}.`,
   }[kind];
-  const pageFrom = kind === "CONTENT" ? 6 + (input.variation % 14) * 2 : null;
-  return {
-    kind,
-    account,
-    reference:
-      kind === "CONTENT" || kind === "REVIEW"
-        ? `Material ${input.stage ?? "do estágio"} — prática ${1 + (input.variation % 8)}`
-        : null,
-    pageFrom,
-    pageTo: pageFrom === null ? null : pageFrom + 1,
-  };
 }
 
 export function copyClassSnapshot(snapshot: ClassRecordSnapshot): ClassRecordSnapshot {

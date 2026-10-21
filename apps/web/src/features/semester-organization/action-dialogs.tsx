@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { z, invalidateAvailabilitySchema, withdrawSemesterSchema } from "@lazuli/validators";
 import {
@@ -36,7 +37,7 @@ export function ReasonDialog({
   previousId?: string;
   board: SemesterBoard;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   const [reason, setReason] = useState("");
   const validation = useValidation();
   const refresh = useOrganizationRefresh();
@@ -124,7 +125,13 @@ const snapshotSchema = z.object({
   mode: z.enum(["ENTRY", "CONTINUE", "ADVANCE", "REPEAT"]).optional(),
   notes: z.string().nullable().optional(),
 });
-export function PlacementHistory({ row, onClose }: { row: Placement; onClose: () => void }) {
+export function PlacementHistory({
+  row,
+  onClose,
+}: {
+  row: Placement;
+  onClose: () => void;
+}): ReactJSX.Element {
   const query = trpc.semesterOrganization.history.useQuery({ id: row.id });
   return (
     <Dialog

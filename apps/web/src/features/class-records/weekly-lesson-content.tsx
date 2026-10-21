@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { Ban, CircleCheck, CircleDashed, UsersRound, UserRoundX } from "lucide-react";
 import { purposes } from "~/features/appointments/shared";
 import { stageIdentity, type CalendarLesson } from "./calendar-model";
@@ -40,7 +41,7 @@ export function weeklyLessonLabel(lesson: CalendarLesson): string {
 }
 
 /** Weekly density follows the card's available area, independently of the daily layout. */
-export function WeeklyLessonContent({ lesson }: { lesson: CalendarLesson }) {
+export function WeeklyLessonContent({ lesson }: { lesson: CalendarLesson }): ReactJSX.Element {
   const { title, context } = cardIdentity(lesson);
   return (
     <span className={styles.content} data-cancelled={lesson.state === "CANCELLED"}>
@@ -76,7 +77,7 @@ export function WeeklyLessonContent({ lesson }: { lesson: CalendarLesson }) {
   );
 }
 
-function WeeklyLessonStatus({ lesson }: { lesson: CalendarLesson }) {
+function WeeklyLessonStatus({ lesson }: { lesson: CalendarLesson }): ReactJSX.Element {
   const absent =
     lesson.appointment?.status === "NO_SHOW" || lesson.experimental?.status === "ABSENT";
   const recorded = lesson.state === "RECORDED" || lesson.attendanceOnly;

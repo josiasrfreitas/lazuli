@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@lazuli/ui";
@@ -6,7 +7,7 @@ import { trpc } from "~/lib/trpc";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import type { Candidate } from "./labels";
 
-export function PendingAllocation({ candidate }: { candidate: Candidate }) {
+export function PendingAllocation({ candidate }: { candidate: Candidate }): ReactJSX.Element {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState(candidate.allocationPendingReason ?? "");
   const [error, setError] = useState("");

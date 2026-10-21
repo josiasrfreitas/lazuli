@@ -204,7 +204,9 @@ async function assessmentActivity(context: ActivityContext): Promise<void> {
   for (const phase of Object.keys(PHASE_LABELS) as Array<keyof typeof PHASE_LABELS>) {
     const own = groups
       .filter((row) => row.phase === phase)
-      .sort((left, right) => right.event.occurredAt.getTime() - left.event.occurredAt.getTime());
+      .toSorted(
+        (left, right) => right.event.occurredAt.getTime() - left.event.occurredAt.getTime(),
+      );
     for (const group of own.slice(0, RECENT_GRADE_GROUPS_PER_PHASE))
       appendEvent(context, group.event);
   }
@@ -225,7 +227,7 @@ function assessmentGroups(input: { row: AssessmentFact; subject: ActivitySubject
   const groups: GradeGroup[] = [];
   for (const phase of Object.keys(PHASE_LABELS) as Array<keyof typeof PHASE_LABELS>) {
     const grades = input.row.grades.filter((grade) => grade.phase === phase);
-    const latest = grades.sort(
+    const latest = grades.toSorted(
       (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
     )[0];
     if (!latest) continue;

@@ -207,7 +207,11 @@ async function seedEncounter(context: SeedContext, members: Member[]): Promise<v
         ),
         matchKind: selected ? "SELECTED" : "EXACT",
         submittedAt,
-        ...declarationLocation(session.class.format === "ONLINE", submittedAt, index),
+        ...declarationLocation({
+          online: session.class.format === "ONLINE",
+          submittedAt,
+          variation: index,
+        }),
         createdAt: submittedAt,
         updatedAt: submittedAt,
       },

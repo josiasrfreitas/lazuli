@@ -14,13 +14,13 @@ export function PlanningPage(): ReactElement {
   const progressId = params.get("percurso");
   const group = query.data?.find((row) => row.id === classId);
   const student = group?.students.find((row) => row.progressId === progressId);
-  const destination = !classId
-    ? "/aulas"
-    : student
+  const destination = classId
+    ? student
       ? `/alunos/${student.studentId}?secao=planejamento&percurso=${student.progressId}`
       : group && !progressId
         ? `/turmas/${group.id}?secao=${group.scheduleType === "REGULAR" ? "planejamento" : "alunos"}`
-        : null;
+        : null
+    : "/aulas";
   useEffect(() => {
     if (destination) router.replace(destination);
   }, [destination, router]);

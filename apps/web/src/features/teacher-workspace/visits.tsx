@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { Check, ChevronRight, Download, FileCheck2, FileUp, UserCheck, X } from "lucide-react";
 import { PlacementAttachmentDialog } from "~/features/assessment-files/placement-attachment-dialog";
@@ -33,7 +34,7 @@ const titles = {
   TRIAL: "Experimental na turma",
 };
 
-export function TeacherVisits() {
+export function TeacherVisits(): ReactJSX.Element {
   const query = trpc.teacherWorkspace.visits.useQuery();
   const [selected, setSelected] = useState<string | null>(null);
   return (
@@ -90,7 +91,13 @@ export function TeacherVisits() {
   );
 }
 
-export function TeacherVisitDialog({ id, onClose }: { id: string; onClose: () => void }) {
+export function TeacherVisitDialog({
+  id,
+  onClose,
+}: {
+  id: string;
+  onClose: () => void;
+}): ReactJSX.Element {
   const query = trpc.teacherWorkspace.visit.useQuery({ id });
   return (
     <Dialog
@@ -128,7 +135,7 @@ export function TeacherVisitDialog({ id, onClose }: { id: string; onClose: () =>
     </Dialog>
   );
 }
-function TeacherVisitBody({ visit }: { visit: Visit }) {
+function TeacherVisitBody({ visit }: { visit: Visit }): ReactJSX.Element {
   const [outcome, setOutcome] = useState<"ATTENDED" | "ABSENT">(
     visit.status === "ABSENT" ? "ABSENT" : "ATTENDED",
   );
@@ -197,7 +204,7 @@ function TeacherVisitBody({ visit }: { visit: Visit }) {
     </div>
   );
 }
-function TeacherPlacement({ visit }: { visit: Visit }) {
+function TeacherPlacement({ visit }: { visit: Visit }): ReactJSX.Element {
   const utils = trpc.useUtils();
   const refresh = () =>
     Promise.all([utils.teacherWorkspace.invalidate(), utils.classRecords.invalidate()]);

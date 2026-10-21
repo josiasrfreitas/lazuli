@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getStaffIdentity } from "@lazuli/auth/server";
@@ -9,7 +10,7 @@ export default async function ProfileRoute({
   searchParams,
 }: {
   searchParams: Promise<{ perfil?: string; retorno?: string }>;
-}) {
+}): Promise<ReactJSX.Element> {
   const identity = await getStaffIdentity({ headers: await headers() });
   if (!identity) redirect("/login");
   const { perfil, retorno } = await searchParams;

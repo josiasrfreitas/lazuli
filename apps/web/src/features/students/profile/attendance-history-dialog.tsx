@@ -49,32 +49,32 @@ export function AttendanceHistoryDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          triggerValue !== undefined ? (
-            <button
-              type="button"
-              className="inline-flex min-h-8 cursor-pointer items-center justify-end gap-1 rounded-sm font-numeric tabular-nums text-foreground transition-colors hover:text-interactive focus-visible:outline-none focus-visible:shadow-focus"
-              aria-label={`${triggerLabel} de ${props.studentName}`}
-              title={triggerLabel}
-            />
-          ) : (
+          triggerValue === undefined ? (
             <Button
               variant="link"
               size="inline"
               className={styles.detailLink}
               aria-label={`${triggerLabel} de ${props.studentName}`}
             />
+          ) : (
+            <button
+              type="button"
+              className="inline-flex min-h-8 cursor-pointer items-center justify-end gap-1 rounded-sm font-numeric tabular-nums text-foreground transition-colors hover:text-interactive focus-visible:outline-none focus-visible:shadow-focus"
+              aria-label={`${triggerLabel} de ${props.studentName}`}
+              title={triggerLabel}
+            />
           )
         }
       >
-        {triggerValue !== undefined ? (
-          <>
-            {triggerValue}
-            <ArrowUpRight aria-hidden="true" className="size-3.5 text-muted-foreground" />
-          </>
-        ) : (
+        {triggerValue === undefined ? (
           <>
             <ListChecks aria-hidden="true" />
             {triggerLabel}
+          </>
+        ) : (
+          <>
+            {triggerValue}
+            <ArrowUpRight aria-hidden="true" className="size-3.5 text-muted-foreground" />
           </>
         )}
       </DialogTrigger>
@@ -164,13 +164,13 @@ function AttendanceHistoryContent({ studentId, enrollmentId }: Props): ReactElem
             state={
               query.isError
                 ? { kind: "error" }
-                : !data
-                  ? { kind: "loading" }
-                  : data.rows.length
+                : data
+                  ? data.rows.length > 0
                     ? { kind: "data", rows: data.rows }
                     : status === "ALL"
                       ? { kind: "empty" }
                       : { kind: "noResults" }
+                  : { kind: "loading" }
             }
             updating={query.isFetching}
             onRetry={() => void query.refetch()}

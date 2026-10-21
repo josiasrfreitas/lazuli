@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, CalendarPlus, X } from "lucide-react";
 import {
@@ -73,7 +74,7 @@ export function PlacementSchedule({
     pending: boolean;
     error?: string | undefined;
   };
-}) {
+}): ReactJSX.Element {
   const [dirty, setDirty] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const [id] = useState(() => registration?.id ?? crypto.randomUUID());

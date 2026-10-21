@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { Mail, MessageCircle, Pencil, Phone } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { toWhatsAppUrl } from "~/lib/format";
@@ -18,7 +19,7 @@ export function ExperimentalLeadDetails({
   lead: Candidate | undefined;
   candidate: CalendarExperimental["candidate"];
   onEditContact: () => void;
-}) {
+}): ReactJSX.Element {
   const editable = lead?.status === "WAITING";
   const stage = lead ? lead.stage?.name : candidate.stage?.name;
   const scheduleType = lead ? lead.scheduleType : candidate.scheduleType;

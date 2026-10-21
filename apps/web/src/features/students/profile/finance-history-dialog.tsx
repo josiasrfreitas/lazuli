@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { History } from "lucide-react";
 import {
@@ -29,7 +30,7 @@ export function FinanceHistoryDialog({
 }: {
   studentId: string;
   studentName?: string | undefined;
-}) {
+}): ReactJSX.Element {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -61,7 +62,7 @@ export function FinanceHistoryDialog({
   );
 }
 
-function FinanceHistoryContent({ studentId }: { studentId: string }) {
+function FinanceHistoryContent({ studentId }: { studentId: string }): ReactJSX.Element {
   const [tab, setTab] = useState("activity");
   const history = trpc.activity.list.useInfiniteQuery(
     { financialStudentId: studentId, area: "FINANCIAL", period: "ALL", pageSize: 25 },

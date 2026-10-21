@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { MapPin, Video } from "lucide-react";
 import { Badge } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
@@ -15,7 +16,7 @@ const WEEKDAYS: Record<string, string> = {
   SUNDAY: "Dom",
 };
 
-export function TeacherClassList({ classes }: { classes: WorkspaceClass[] }) {
+export function TeacherClassList({ classes }: { classes: WorkspaceClass[] }): ReactJSX.Element {
   const semesters = [...new Set(classes.map((row) => row.semester.name))];
   return (
     <div className={styles.groups}>

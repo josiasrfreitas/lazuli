@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useId, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -46,7 +47,7 @@ import styles from "./placement-review.module.css";
 
 type Visit = Candidate["visits"][number];
 
-export function PlacementAssessment({ candidate }: { candidate: Candidate }) {
+export function PlacementAssessment({ candidate }: { candidate: Candidate }): ReactJSX.Element {
   const [scheduling, setScheduling] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const visits = candidate.visits.filter((row) => row.kind === "PLACEMENT");
@@ -88,7 +89,7 @@ export function PlacementVisitDialog({
   visitId: string;
   onClose: () => void;
   initialUpload?: boolean;
-}) {
+}): ReactJSX.Element {
   const query = trpc.admissions.byId.useQuery({ id: candidateId });
   const visit = query.data?.visits.find((row) => row.id === visitId);
   if (visit && query.data)
@@ -154,7 +155,7 @@ function PlacementVisit({
   person: string;
   initialUpload: boolean;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   const utils = trpc.useUtils();
   const refresh = () =>
     Promise.all([

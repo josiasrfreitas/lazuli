@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,7 +13,7 @@ import {
 import { trpc } from "~/lib/trpc";
 import styles from "./navigation.module.css";
 
-export function TeacherNavigation() {
+export function TeacherNavigation(): ReactJSX.Element {
   const pathname = usePathname();
   const links = [
     { href: "/professor", label: "Início", icon: Home },
@@ -44,12 +45,12 @@ export function TeacherNavigation() {
   );
 }
 
-export function TeacherPendingNotice() {
+export function TeacherPendingNotice(): ReactJSX.Element | null {
   const pending = trpc.teacherWorkspace.pending.useQuery(undefined, { refetchInterval: 60_000 });
   if (!pending.data?.length && !pending.error) return null;
   const label = pending.error
     ? "Não foi possível atualizar as pendências. Consultar"
-    : `${pending.data!.length} ${pending.data!.length === 1 ? "aula por registrar" : "aulas por registrar"}`;
+    : `${pending.data.length} ${pending.data.length === 1 ? "aula por registrar" : "aulas por registrar"}`;
   return (
     <Link
       href="/professor/pendencias"
@@ -58,7 +59,7 @@ export function TeacherPendingNotice() {
       className="flex min-h-11 shrink-0 items-center gap-1 rounded-sm px-2 text-caption text-interactive hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
     >
       <ClipboardList className="size-4 shrink-0" aria-hidden="true" />
-      <span aria-hidden="true">{pending.error ? "!" : pending.data!.length}</span>
+      <span aria-hidden="true">{pending.error ? "!" : pending.data.length}</span>
       <span aria-hidden="true" className="hidden sm:inline">
         por registrar
       </span>

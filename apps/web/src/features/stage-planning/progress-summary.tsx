@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { BookOpen } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { dateLabel, type Planning } from "./shared";
@@ -5,7 +6,13 @@ import { planningPosition } from "./progress-model";
 import { PlanningBand } from "./planning-band";
 import styles from "./planning.module.css";
 
-export function ProgressSummary({ data, onRecords }: { data: Planning; onRecords: () => void }) {
+export function ProgressSummary({
+  data,
+  onRecords,
+}: {
+  data: Planning;
+  onRecords: () => void;
+}): ReactJSX.Element {
   const items = data.plan?.items ?? [];
   const position = planningPosition(items, data.records, data.scope.today);
   const latestStep = data.records.find((row) => row.content.planItemId);

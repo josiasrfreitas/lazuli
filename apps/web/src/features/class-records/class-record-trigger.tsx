@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { BookOpen } from "lucide-react";
 
 import { useState, type ReactNode } from "react";
@@ -14,7 +15,7 @@ export function ClassRecordTrigger({
   sessionId: string;
   children: ReactNode;
   label?: string;
-}) {
+}): ReactJSX.Element {
   const [open, setOpen] = useState(false);
   return (
     <>

@@ -66,7 +66,7 @@ export function StudentPlanning({ studentId }: { studentId: string }): ReactElem
       {query.data && !selected && (
         <EmptyState
           action={
-            options.length ? (
+            options.length > 0 ? (
               <Button variant="secondary" onClick={() => void setProgressId(null)}>
                 <ArrowLeft aria-hidden="true" />
                 Ver percurso atual

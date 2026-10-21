@@ -1,6 +1,7 @@
+import type { JSX as ReactJSX } from "react";
 import { InlineSkeleton } from "@lazuli/ui";
 import styles from "./class-page.module.css";
-export function ClassOverviewLoading() {
+export function ClassOverviewLoading(): ReactJSX.Element {
   return (
     <header className={styles.overview} aria-busy="true" aria-label="Carregando turma">
       <div className={styles.overviewGrid}>

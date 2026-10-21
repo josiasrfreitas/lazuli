@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import type { ReactNode } from "react";
 import { CalendarDays, Clock3, FileText, Target } from "lucide-react";
 import {
@@ -30,7 +31,7 @@ function Choices({
   value: string;
   options: Record<string, string>;
   onChange: (value: string) => void;
-}) {
+}): ReactJSX.Element {
   return (
     <Field>
       <Label id={`${name}-label`}>{label}</Label>
@@ -59,7 +60,7 @@ export function PurposeField({
 }: {
   value: AppointmentSnapshot["purpose"];
   onChange: (value: AppointmentSnapshot["purpose"]) => void;
-}) {
+}): ReactJSX.Element {
   return (
     <Choices
       name="appointment-purpose"
@@ -90,7 +91,7 @@ export function MeetingDateField({
   fluid?: boolean;
   onChange: (value: string) => void;
   error?: string | undefined;
-}) {
+}): ReactJSX.Element {
   return (
     <div className={fluid ? "min-w-0 w-full" : compact ? "w-40" : "w-44"}>
       <Field>
@@ -150,7 +151,7 @@ export function MeetingTimeFields({
   onStart: (value: string) => void;
   onEnd: (value: string) => void;
   errors: Record<string, string>;
-}) {
+}): ReactJSX.Element {
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div className={compact ? "w-20" : "w-28"}>
@@ -189,7 +190,7 @@ export function AppointmentWorkFields({
   onMinutes: (value: string) => void;
   onContent: (value: string) => void;
   errors: Record<string, string>;
-}) {
+}): ReactJSX.Element {
   return (
     <>
       <AppointmentDurationField
@@ -214,7 +215,7 @@ export function AppointmentDurationField({
   value: string;
   onChange: (value: string) => void;
   error?: string | undefined;
-}) {
+}): ReactJSX.Element {
   return (
     <div className="w-40">
       <TextControl
@@ -224,7 +225,7 @@ export function AppointmentDurationField({
         placeholder="90"
         inputMode="numeric"
         value={value}
-        onChange={(next) => onChange(next.replace(/\D/g, ""))}
+        onChange={(next) => onChange(next.replaceAll(/\D/g, ""))}
         error={error}
       />
     </div>
@@ -239,7 +240,7 @@ export function AppointmentContentField({
   value: string;
   onChange: (value: string) => void;
   error?: string | undefined;
-}) {
+}): ReactJSX.Element {
   return (
     <NarrativeField
       name="performedContent"

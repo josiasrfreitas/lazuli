@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
 import type { RouterOutputs } from "@lazuli/api";
 import { cn } from "@lazuli/ui";
@@ -10,7 +11,7 @@ export function TeacherAppointmentBlock({
 }: {
   row: TeacherAppointment;
   compact?: boolean;
-}) {
+}): ReactJSX.Element {
   const description = `${purposes[row.purpose]}, ${row.studentName}, ${formatDateOnlyBR(row.date)}, ${row.startTime}–${row.endTime}, ${appointmentStatus(row.status, Boolean(row.rescheduledToId))}`;
   return (
     <Link

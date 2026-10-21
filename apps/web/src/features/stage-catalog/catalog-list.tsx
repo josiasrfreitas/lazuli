@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import type { ReactNode } from "react";
 import {
   DataTable,
@@ -14,7 +15,13 @@ import type { StageSummary } from "./types";
 import { TrackName } from "./track-name";
 import styles from "./catalog.module.css";
 
-function StageIdentity({ stage, selected }: { stage: StageSummary; selected: boolean }) {
+function StageIdentity({
+  stage,
+  selected,
+}: {
+  stage: StageSummary;
+  selected: boolean;
+}): ReactJSX.Element {
   return (
     <div className={styles.bookCell} data-selected={selected || undefined}>
       <div>
@@ -42,7 +49,7 @@ export function StageCatalogList({
   onSelect: (stage: StageSummary) => void;
   onRetry: () => void;
   footer: ReactNode;
-}) {
+}): ReactJSX.Element {
   if (state.kind !== "data") {
     return (
       <DataTable<StageSummary>

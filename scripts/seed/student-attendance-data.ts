@@ -1,20 +1,30 @@
 import { createHash, randomBytes } from "node:crypto";
 import { sessionEndInstant } from "../../packages/domain/src/session-time.js";
 
+const ENCOUNTER_TTLS = { SHORT: 10, STANDARD: 20, LONG: 30 } as const;
+const LOCATION_ACCURACY = { PRECISE: 12, NEAR: 25, BROAD: 65, DISTANT: 180 } as const;
+const MANUAL_OPEN_MINUTES_BEFORE_END = 7;
+const EARLY_OPEN_MINUTES = 5;
+const REFERENCE_ACCURACY = 15;
+const DISTANT_VARIATION_INDEX = 3;
+const DISTANT_LOCATION_OFFSET = 0.004;
+const NEAR_LOCATION_OFFSET_INCREMENT = 0.000_03;
+const CAPTURE_AGE_MS = 5000;
+
 export type AttendanceScenario = {
   classKey: string;
   declarations: number;
   kind: "FAMILY_NAME" | "SUBSTITUTE" | "EXPIRED" | "ONLINE" | "MANUAL_CLOSE" | "ROTATED";
-  ttl: 10 | 20 | 30;
+  ttl: (typeof ENCOUNTER_TTLS)[keyof typeof ENCOUNTER_TTLS];
 };
 
 export const ATTENDANCE_SCENARIOS: readonly AttendanceScenario[] = [
-  { classKey: "MWYB", declarations: 6, kind: "FAMILY_NAME", ttl: 20 },
-  { classKey: "PPT-E1", declarations: 6, kind: "SUBSTITUTE", ttl: 30 },
-  { classKey: "F1A", declarations: 5, kind: "EXPIRED", ttl: 10 },
-  { classKey: "S2A", declarations: 5, kind: "ONLINE", ttl: 20 },
-  { classKey: "MWBA", declarations: 4, kind: "MANUAL_CLOSE", ttl: 20 },
-  { classKey: "PPT-C2", declarations: 5, kind: "ROTATED", ttl: 20 },
+  { classKey: "MWYB", declarations: 6, kind: "FAMILY_NAME", ttl: ENCOUNTER_TTLS.STANDARD },
+  { classKey: "PPT-E1", declarations: 6, kind: "SUBSTITUTE", ttl: ENCOUNTER_TTLS.LONG },
+  { classKey: "F1A", declarations: 5, kind: "EXPIRED", ttl: ENCOUNTER_TTLS.SHORT },
+  { classKey: "S2A", declarations: 5, kind: "ONLINE", ttl: ENCOUNTER_TTLS.STANDARD },
+  { classKey: "MWBA", declarations: 4, kind: "MANUAL_CLOSE", ttl: ENCOUNTER_TTLS.STANDARD },
+  { classKey: "PPT-C2", declarations: 5, kind: "ROTATED", ttl: ENCOUNTER_TTLS.STANDARD },
 ];
 
 const MINUTE_MS = 60_000;
@@ -22,7 +32,12 @@ const TOKEN_BYTES = 32;
 // A synthetic coordinate grid, not the school's address or a real attendance measurement.
 const SYNTHETIC_LATITUDE = -9.6;
 const SYNTHETIC_LONGITUDE = -35.75;
-const LOCATION_ACCURACIES = [12, 25, 65, 180];
+const LOCATION_ACCURACIES = [
+  LOCATION_ACCURACY.PRECISE,
+  LOCATION_ACCURACY.NEAR,
+  LOCATION_ACCURACY.BROAD,
+  LOCATION_ACCURACY.DISTANT,
+];
 
 export function minutesAfter(instant: Date, minutes: number): Date {
   return new Date(instant.getTime() + minutes * MINUTE_MS);
@@ -41,8 +56,8 @@ export function encounterWindow(
   const end = sessionEndInstant(session);
   const openedAt =
     scenario.kind === "MANUAL_CLOSE"
-      ? minutesAfter(end, -7)
-      : minutesAfter(start, scenario.kind === "EXPIRED" ? 0 : -5);
+      ? minutesAfter(end, -MANUAL_OPEN_MINUTES_BEFORE_END)
+      : minutesAfter(start, scenario.kind === "EXPIRED" ? 0 : -EARLY_OPEN_MINUTES);
   return {
     openedAt,
     expiresAt: new Date(Math.min(minutesAfter(openedAt, scenario.ttl).getTime(), end.getTime())),
@@ -51,21 +66,44 @@ export function encounterWindow(
   };
 }
 
-export function referenceLocation(online: boolean, includeReference: boolean) {
+export function referenceLocation(
+  online: boolean,
+  includeReference: boolean,
+): {
+  referenceLatitude: number | null;
+  referenceLongitude: number | null;
+  referenceAccuracy: number | null;
+} {
   return {
     referenceLatitude: online || !includeReference ? null : SYNTHETIC_LATITUDE,
     referenceLongitude: online || !includeReference ? null : SYNTHETIC_LONGITUDE,
-    referenceAccuracy: online || !includeReference ? null : 15,
+    referenceAccuracy: online || !includeReference ? null : REFERENCE_ACCURACY,
   };
 }
 
-export function declarationLocation(online: boolean, submittedAt: Date, variation: number) {
+export function declarationLocation({
+  online,
+  submittedAt,
+  variation,
+}: {
+  online: boolean;
+  submittedAt: Date;
+  variation: number;
+}): {
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
+  capturedAt: Date | null;
+} {
   // Precision and distance vary for teacher review; neither decides the final attendance.
-  const offset = variation % LOCATION_ACCURACIES.length === 3 ? 0.004 : variation * 0.00003;
+  const offset =
+    variation % LOCATION_ACCURACIES.length === DISTANT_VARIATION_INDEX
+      ? DISTANT_LOCATION_OFFSET
+      : variation * NEAR_LOCATION_OFFSET_INCREMENT;
   return {
     latitude: online ? null : SYNTHETIC_LATITUDE + offset,
     longitude: online ? null : SYNTHETIC_LONGITUDE - offset,
     accuracy: online ? null : LOCATION_ACCURACIES[variation % LOCATION_ACCURACIES.length]!,
-    capturedAt: online ? null : new Date(submittedAt.getTime() - 5_000),
+    capturedAt: online ? null : new Date(submittedAt.getTime() - CAPTURE_AGE_MS),
   };
 }

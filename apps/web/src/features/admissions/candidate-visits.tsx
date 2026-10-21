@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import {
   ArrowUpRight,
@@ -37,7 +38,7 @@ const variants = {
   CANCELLED: "neutral",
 } as const;
 
-export function CandidateVisits({ candidate }: { candidate: Candidate }) {
+export function CandidateVisits({ candidate }: { candidate: Candidate }): ReactJSX.Element {
   const [action, setAction] = useState<VisitAction | null>(null);
   const [placement, setPlacement] = useState<{ id: string; upload: boolean } | null>(null);
   const visits = [...candidate.visits].sort((a, b) => {
@@ -47,7 +48,7 @@ export function CandidateVisits({ candidate }: { candidate: Candidate }) {
   });
   return (
     <>
-      {!visits.length ? (
+      {visits.length === 0 ? (
         <div className={styles.empty}>
           <CalendarDays aria-hidden="true" />
           <h3>
@@ -195,7 +196,7 @@ export function CandidateVisits({ candidate }: { candidate: Candidate }) {
   );
 }
 
-function EventNextStep({ visit }: { visit: Visit }) {
+function EventNextStep({ visit }: { visit: Visit }): ReactJSX.Element {
   if (visit.status === "CANCELLED") return <p>Agendamento encerrado.</p>;
   if (visit.status === "ABSENT") return <p>O lead não compareceu.</p>;
   if (visit.kind !== "PLACEMENT")
@@ -222,7 +223,7 @@ function EventNextStep({ visit }: { visit: Visit }) {
   );
 }
 
-function EventDate({ visit }: { visit: Visit }) {
+function EventDate({ visit }: { visit: Visit }): ReactJSX.Element {
   return (
     <time
       className={styles.eventDate}
@@ -252,7 +253,7 @@ function VisitMenu({
   visit: Visit;
   canReschedule: boolean;
   onAction: (action: VisitAction) => void;
-}) {
+}): ReactJSX.Element {
   return (
     <Popover>
       <PopoverTrigger

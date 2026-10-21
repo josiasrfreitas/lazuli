@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { LessonFormat } from "./lesson-format";
 import { stageIdentity, type CalendarLesson } from "./calendar-model";
 import { lessonStatus } from "./weekly-block-details";
@@ -11,7 +12,7 @@ export function LessonCardContent({
 }: {
   lesson: CalendarLesson;
   personal?: boolean;
-}) {
+}): ReactJSX.Element {
   const title =
     lesson.experimental?.candidate.fullName ??
     (personal

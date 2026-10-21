@@ -58,7 +58,7 @@ export function ActivityTimeline({ rows }: { rows: Activity[] }): ReactElement {
       groups={activityDays(rows, new Date()).map((day) => ({
         id: day.key,
         label: day.label,
-        description: day.label !== day.date ? day.date : undefined,
+        description: day.label === day.date ? undefined : day.date,
         items: day.rows.map((row) => {
           const Icon = icons[row.area as keyof typeof icons] ?? Building2;
           return {

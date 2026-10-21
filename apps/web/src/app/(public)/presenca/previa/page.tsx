@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { StudentAttendancePreview } from "~/features/student-attendance/student-preview";
 
 export const metadata = {
@@ -5,6 +6,6 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function Page() {
+export default function Page(): ReactJSX.Element {
   return <StudentAttendancePreview />;
 }

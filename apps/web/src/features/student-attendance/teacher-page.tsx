@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
@@ -10,11 +11,11 @@ import { AttendanceSharePanel } from "./share-panel";
 import type { AttendanceStatus } from "./staff-section";
 import { AttendanceReview } from "./attendance-review";
 
-export function TeacherAttendancePage({ sessionId }: { sessionId: string }) {
+export function TeacherAttendancePage({ sessionId }: { sessionId: string }): ReactJSX.Element {
   const detail = trpc.classRecords.detail.useQuery({ sessionId }, { retry: false });
   const status = trpc.studentAttendance.status.useQuery(
     { sessionId },
-    { refetchInterval: 3_000, retry: false },
+    { refetchInterval: 3000, retry: false },
   );
   const data = detail.data;
   return (
@@ -56,7 +57,7 @@ function LiveAttendanceReview({
   data: ClassRecord;
   status: AttendanceStatus;
   statusFailed: boolean;
-}) {
+}): ReactJSX.Element {
   const sessionId = data.session.id;
   const [record, setRecord] = useState(false);
   const [refreshing, setRefreshing] = useState(false);

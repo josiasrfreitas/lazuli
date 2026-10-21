@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { trpc } from "~/lib/trpc";
@@ -8,11 +9,11 @@ import { formatDateOnlyBR } from "~/lib/format";
 import { TeacherPage, TeacherQueryState } from "./shared";
 import { TeacherListLoading } from "./list-loading";
 
-export function TeacherAgenda() {
+export function TeacherAgenda(): ReactJSX.Element {
   return <ClassAgenda teacherView />;
 }
 
-export function TeacherPendingPage() {
+export function TeacherPendingPage(): ReactJSX.Element {
   const [selected, setSelected] = useState<string | null>(null);
   const query = trpc.teacherWorkspace.pending.useQuery();
   return (

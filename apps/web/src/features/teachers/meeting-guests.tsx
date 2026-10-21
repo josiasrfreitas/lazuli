@@ -19,7 +19,7 @@ export function MeetingGuests({ meeting }: { meeting: Meeting }): ReactElement |
     return (
       <Alert variant="warning">Não foi possível consultar os convidados deste encontro.</Alert>
     );
-  if (!query.data.length) return null;
+  if (query.data.length === 0) return null;
   return (
     <section
       className="grid gap-2 border-b border-border pb-4"

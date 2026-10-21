@@ -1,14 +1,15 @@
+import type { JSX as ReactJSX } from "react";
 import { Field, FieldError, Input, Label } from "@lazuli/ui";
 import { maskTime24 } from "~/lib/masks";
 
 function maskTime(raw: string, deleting = false): string {
   if (raw.includes(":")) {
     const [hour = "", minute = ""] = raw.split(":");
-    const digits = hour.replace(/\D/g, "").slice(0, 2);
+    const digits = hour.replaceAll(/\D/g, "").slice(0, 2);
     if (!digits) return "";
-    return `${digits.padStart(2, "0")}:${minute.replace(/\D/g, "").slice(0, 2)}`;
+    return `${digits.padStart(2, "0")}:${minute.replaceAll(/\D/g, "").slice(0, 2)}`;
   }
-  const digits = raw.replace(/\D/g, "").slice(0, 4);
+  const digits = raw.replaceAll(/\D/g, "").slice(0, 4);
   if (!deleting && digits.length === 1 && Number(digits) > 2) {
     return `0${digits}:`;
   }
@@ -43,7 +44,7 @@ export function TimeField({
   onChange: (value: string) => void;
   error?: string | undefined;
   align?: "start" | "center";
-}) {
+}): ReactJSX.Element {
   return (
     <Field>
       <Label htmlFor={name}>{label}</Label>

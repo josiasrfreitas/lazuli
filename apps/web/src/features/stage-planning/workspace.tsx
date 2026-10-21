@@ -218,7 +218,55 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
               />
             </div>
           )}
-          {!plan ? (
+          {plan ? (
+            history ? (
+              <div className={styles.history}>
+                <PlanHistory data={data} />
+              </div>
+            ) : (
+              <div className={styles.table}>
+                {view === "records" ? (
+                  <PlanningRecords data={data} records={records.slice(offset, offset + pageSize)} />
+                ) : (
+                  <PlanTable
+                    items={items.slice(offset, offset + pageSize)}
+                    filtered={Boolean(search.trim()) || filter !== "all"}
+                    onEdit={scope.readOnly ? undefined : (item) => setMode({ kind: "item", item })}
+                  />
+                )}
+                <div className={styles.pagination}>
+                  <span>
+                    {count
+                      ? `${offset + 1}–${Math.min(offset + pageSize, count)} de ${count}`
+                      : "Nenhum resultado"}
+                  </span>
+                  <div className={styles.actions}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={currentPage === 0}
+                      onClick={() => setPage(currentPage - 1)}
+                    >
+                      <ChevronLeft aria-hidden="true" />
+                      Anterior
+                    </Button>
+                    <span>
+                      {currentPage + 1} / {pageCount}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={currentPage + 1 >= pageCount}
+                      onClick={() => setPage(currentPage + 1)}
+                    >
+                      <ChevronRight aria-hidden="true" />
+                      Próxima
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )
+          ) : (
             <div className={styles.empty}>
               <EmptyState
                 title={
@@ -234,60 +282,14 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
                       : "Defina o período e distribua as atividades que a turma vai compartilhar."
                 }
                 action={
-                  !scope.readOnly ? (
+                  scope.readOnly ? undefined : (
                     <Button onClick={() => setMode({ kind: "window" })}>
                       <Plus aria-hidden="true" />
                       Iniciar planejamento
                     </Button>
-                  ) : undefined
+                  )
                 }
               />
-            </div>
-          ) : history ? (
-            <div className={styles.history}>
-              <PlanHistory data={data} />
-            </div>
-          ) : (
-            <div className={styles.table}>
-              {view === "records" ? (
-                <PlanningRecords data={data} records={records.slice(offset, offset + pageSize)} />
-              ) : (
-                <PlanTable
-                  items={items.slice(offset, offset + pageSize)}
-                  filtered={Boolean(search.trim()) || filter !== "all"}
-                  onEdit={scope.readOnly ? undefined : (item) => setMode({ kind: "item", item })}
-                />
-              )}
-              <div className={styles.pagination}>
-                <span>
-                  {count
-                    ? `${offset + 1}–${Math.min(offset + pageSize, count)} de ${count}`
-                    : "Nenhum resultado"}
-                </span>
-                <div className={styles.actions}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={currentPage === 0}
-                    onClick={() => setPage(currentPage - 1)}
-                  >
-                    <ChevronLeft aria-hidden="true" />
-                    Anterior
-                  </Button>
-                  <span>
-                    {currentPage + 1} / {pageCount}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={currentPage + 1 >= pageCount}
-                    onClick={() => setPage(currentPage + 1)}
-                  >
-                    <ChevronRight aria-hidden="true" />
-                    Próxima
-                  </Button>
-                </div>
-              </div>
             </div>
           )}
         </div>

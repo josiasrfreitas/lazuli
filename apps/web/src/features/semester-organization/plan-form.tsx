@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { semesterPlanSchema, createSemesterInputSchema } from "@lazuli/validators";
 import { Alert, Badge, Checkbox, InlineSkeleton } from "@lazuli/ui";
@@ -22,7 +23,7 @@ export function ClassPlanForm({
   group?: PendingGroup;
   onClose: () => void;
   onSaved: (id: string) => void;
-}) {
+}): ReactJSX.Element {
   const options = trpc.classes.formOptions.useQuery();
   const [name, setName] = useState(plan?.name ?? (group ? `${group.stageCode} · nova turma` : ""));
   const [kind, setKind] = useState(plan?.scheduleType ?? "REGULAR");
@@ -243,7 +244,7 @@ export function SemesterForm({
 }: {
   onClose: () => void;
   onSaved: (id: string) => void;
-}) {
+}): ReactJSX.Element {
   const [name, setName] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");

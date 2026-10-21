@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useState, type ReactElement } from "react";
 import { History } from "lucide-react";
 import { Alert, Button } from "@lazuli/ui";
@@ -86,16 +87,22 @@ export function LessonDetails({ data }: { data: ClassRecord }): ReactElement {
   );
 }
 
-function PerformedContent({ title, content }: { title: string; content: ClassRecordContent }) {
+function PerformedContent({
+  title,
+  content,
+}: {
+  title: string;
+  content: ClassRecordContent;
+}): ReactJSX.Element {
   return (
     <div className="grid gap-2 rounded-md border border-border p-3">
       <h3 className="text-sm font-semibold">{title}</h3>
       <p className="text-caption text-muted-foreground">
         {kindLabels[content.kind]}
         {content.reference ? ` · ${content.reference}` : ""}
-        {content.pageFrom !== null
-          ? ` · Pág. ${content.pageFrom}${content.pageTo !== null && content.pageTo !== content.pageFrom ? `–${content.pageTo}` : ""}`
-          : ""}
+        {content.pageFrom === null
+          ? ""
+          : ` · Pág. ${content.pageFrom}${content.pageTo !== null && content.pageTo !== content.pageFrom ? `–${content.pageTo}` : ""}`}
       </p>
       {content.planItemId && (
         <p className="text-caption">

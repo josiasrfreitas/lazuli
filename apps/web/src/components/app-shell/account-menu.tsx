@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useRef, useState } from "react";
 import { Check, ChevronDown, GraduationCap, LogOut, Shield } from "lucide-react";
 import type { StaffIdentity, StaffRole } from "@lazuli/auth/server";
@@ -8,7 +9,7 @@ import { activateExperience, experienceHome } from "~/lib/staff-experience";
 import { useSignOut } from "~/lib/use-sign-out";
 import styles from "./account-menu.module.css";
 
-export function AccountMenu({ identity }: { identity: StaffIdentity }) {
+export function AccountMenu({ identity }: { identity: StaffIdentity }): ReactJSX.Element {
   const { pending, failed, signOut } = useSignOut();
   const [open, setOpen] = useState(false);
   const [keyboard, setKeyboard] = useState(false);

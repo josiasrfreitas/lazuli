@@ -33,32 +33,32 @@ export function StudentAssessmentsDialog({
     <Dialog>
       <DialogTrigger
         render={
-          triggerValue !== undefined ? (
-            <button
-              type="button"
-              className="inline-flex min-h-8 cursor-pointer items-center justify-end gap-1 rounded-sm font-numeric tabular-nums text-foreground transition-colors hover:text-interactive focus-visible:outline-none focus-visible:shadow-focus"
-              aria-label={`${triggerLabel} de ${studentName}`}
-              title={triggerLabel}
-            />
-          ) : (
+          triggerValue === undefined ? (
             <Button
               variant="link"
               size="inline"
               className={styles.detailLink}
               aria-label={`${triggerLabel} de ${studentName}`}
             />
+          ) : (
+            <button
+              type="button"
+              className="inline-flex min-h-8 cursor-pointer items-center justify-end gap-1 rounded-sm font-numeric tabular-nums text-foreground transition-colors hover:text-interactive focus-visible:outline-none focus-visible:shadow-focus"
+              aria-label={`${triggerLabel} de ${studentName}`}
+              title={triggerLabel}
+            />
           )
         }
       >
-        {triggerValue !== undefined ? (
-          <>
-            {triggerValue}
-            <ArrowUpRight aria-hidden="true" className="size-3.5 text-muted-foreground" />
-          </>
-        ) : (
+        {triggerValue === undefined ? (
           <>
             <ChartNoAxesCombined aria-hidden="true" />
             {triggerLabel}
+          </>
+        ) : (
+          <>
+            {triggerValue}
+            <ArrowUpRight aria-hidden="true" className="size-3.5 text-muted-foreground" />
           </>
         )}
       </DialogTrigger>

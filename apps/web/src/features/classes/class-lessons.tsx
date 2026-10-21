@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useId, useState } from "react";
 import { ArrowLeft, Ban, CheckCircle2, ChevronRight, CircleDashed, Clock3 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
@@ -22,7 +23,7 @@ function presenceState(lesson: Lesson) {
   return { label: "Sem registro de presença", icon: CircleDashed, recorded: false };
 }
 
-export function ClassLessons({ classId }: { classId: string }) {
+export function ClassLessons({ classId }: { classId: string }): ReactJSX.Element {
   const query = trpc.classRecords.progress.useQuery({ classId }, { retry: false });
   const [selected, setSelected] = useQueryState("aula", parseAsString.withDefault(""));
   const [showList, setShowList] = useState(false);
@@ -78,7 +79,7 @@ export function ClassLessons({ classId }: { classId: string }) {
                     </span>
                     <span className={styles.contentPreview}>
                       {lesson.content
-                        ? `${KIND_LABELS[lesson.content.kind]}${lesson.content.pageFrom !== null ? ` · Pág. ${lesson.content.pageFrom}${lesson.content.pageTo && lesson.content.pageTo !== lesson.content.pageFrom ? `–${lesson.content.pageTo}` : ""}` : ""}`
+                        ? `${KIND_LABELS[lesson.content.kind]}${lesson.content.pageFrom === null ? "" : ` · Pág. ${lesson.content.pageFrom}${lesson.content.pageTo && lesson.content.pageTo !== lesson.content.pageFrom ? `–${lesson.content.pageTo}` : ""}`}`
                         : "Conteúdo não registrado"}
                     </span>
                     <span className={styles.status} data-recorded={recorded}>
@@ -109,7 +110,7 @@ export function ClassLessons({ classId }: { classId: string }) {
   );
 }
 
-function ClassLessonPresence({ lesson }: { lesson: Lesson }) {
+function ClassLessonPresence({ lesson }: { lesson: Lesson }): ReactJSX.Element {
   const query = trpc.classRecords.detail.useQuery(
     { sessionId: lesson.id },
     { retry: false, refetchInterval: 30_000 },
@@ -162,9 +163,9 @@ function ClassLessonPresence({ lesson }: { lesson: Lesson }) {
                   <>
                     <p className={styles.contentMeta}>
                       {KIND_LABELS[data.snapshot.sharedContent.kind]}
-                      {data.snapshot.sharedContent.pageFrom !== null
-                        ? ` · Pág. ${data.snapshot.sharedContent.pageFrom}${data.snapshot.sharedContent.pageTo && data.snapshot.sharedContent.pageTo !== data.snapshot.sharedContent.pageFrom ? `–${data.snapshot.sharedContent.pageTo}` : ""}`
-                        : ""}
+                      {data.snapshot.sharedContent.pageFrom === null
+                        ? ""
+                        : ` · Pág. ${data.snapshot.sharedContent.pageFrom}${data.snapshot.sharedContent.pageTo && data.snapshot.sharedContent.pageTo !== data.snapshot.sharedContent.pageFrom ? `–${data.snapshot.sharedContent.pageTo}` : ""}`}
                     </p>
                     <p>{data.snapshot.sharedContent.account}</p>
                     {data.snapshot.sharedContent.reference && (

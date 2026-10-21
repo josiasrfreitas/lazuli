@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, CalendarDays, Check, MapPin, Pencil, UserRound, X } from "lucide-react";
@@ -45,7 +46,7 @@ export function CalendarExperimentalDialog({
   visit: ExperimentalVisit;
   admin: boolean;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   if (!admin) return <TeacherVisitDialog id={visit.id} onClose={onClose} />;
   if (visit.kind === "PLACEMENT")
     return (
@@ -62,7 +63,7 @@ function ExperimentalDetails({
   visit: ExperimentalVisit;
   admin: boolean;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   const [editing, setEditing] = useState<"contact" | "outcome" | null>(null);
   // Commercial information and edits retain the existing admin-only permissions.
   const query = trpc.admissions.byId.useQuery(

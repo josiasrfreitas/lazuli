@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { Input } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -8,7 +9,7 @@ import { schoolToday, shiftDate } from "~/features/class-records/calendar-model"
 import { formatDateOnlyBR } from "~/lib/format";
 import { TeacherPage, TeacherQueryState } from "./shared";
 
-export function TeacherAppointments() {
+export function TeacherAppointments(): ReactJSX.Element {
   const [from, setFrom] = useState(() => shiftDate(schoolToday(), -30));
   const [through, setThrough] = useState(() => shiftDate(schoolToday(), 30));
   const [selected, setSelected] = useState<string | null>(null);
@@ -64,7 +65,7 @@ export function TeacherAppointments() {
               />
             </button>
           ))}
-          {!query.data.length && (
+          {query.data.length === 0 && (
             <p className="p-6 text-sm text-muted-foreground">Nenhum atendimento neste período.</p>
           )}
         </div>

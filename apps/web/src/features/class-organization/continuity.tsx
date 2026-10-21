@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@lazuli/ui";
@@ -20,7 +21,7 @@ export function ContinuityDialog({
   board: SemesterBoard;
   onClose: () => void;
   onAction: (action: OrganizationAction) => void;
-}) {
+}): ReactJSX.Element {
   const [value, setValue] = useState<Continuity>(row.continuity as Continuity);
   const [reason, setReason] = useState(row.continuityReason ?? "");
   const [error, setError] = useState("");
@@ -160,7 +161,7 @@ export function PlanStatusDialog({
   open: boolean;
   onClose: () => void;
   onFeedback: (message: string) => void;
-}) {
+}): ReactJSX.Element {
   const refresh = useOrganizationRefresh();
   const mutation = trpc.semesterOrganization.planStatus.useMutation({
     onSuccess: async () => {

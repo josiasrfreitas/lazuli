@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { FileAttachmentDialog } from "@lazuli/ui";
 import { MAX_PLACEMENT_FILE_BYTES } from "@lazuli/validators";
 import { dateLabel, formatLabel } from "~/features/admissions/labels";
@@ -33,7 +34,7 @@ export function PlacementAttachmentDialog({
   onClose: () => void;
   onComplete?: () => void;
   kind?: "ORIGINAL" | "CORRECTED";
-}) {
+}): ReactJSX.Element {
   const corrected = kind === "CORRECTED";
   return (
     <FileAttachmentDialog

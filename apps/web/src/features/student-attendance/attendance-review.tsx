@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Check, ClipboardCheck } from "lucide-react";
 import { Alert, Avatar, Button, Input, Switch } from "@lazuli/ui";
@@ -54,7 +55,7 @@ export function AttendanceReview({
   onRefresh?: () => void;
   onRecord?: () => void;
   sharing: ReactNode;
-}) {
+}): ReactJSX.Element {
   const sessionId = data.session.id;
   const confirmed = data.attendanceOnly || data.version > 0;
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
@@ -82,7 +83,7 @@ export function AttendanceReview({
   const searchKey = (value: string) =>
     value
       .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
+      .replaceAll(/\p{Diacritic}/gu, "")
       .toLocaleLowerCase("pt-BR")
       .trim();
   const visible = rows.filter((row) => searchKey(row.name).includes(searchKey(search)));
@@ -96,7 +97,7 @@ export function AttendanceReview({
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
-            if (blocked || !rows.length || (confirmed && !dirty)) return;
+            if (blocked || rows.length === 0 || (confirmed && !dirty)) return;
             onConfirm({
               sessionId,
               attendanceStamp: data.attendanceStamp,
@@ -175,9 +176,9 @@ export function AttendanceReview({
               </li>
             ))}
           </ul>
-          {!visible.length && (
+          {visible.length === 0 && (
             <p className={styles.hint}>
-              {rows.length
+              {rows.length > 0
                 ? "Nenhum aluno com esse nome."
                 : "Não há alunos previstos para esta aula."}
             </p>
@@ -208,7 +209,10 @@ export function AttendanceReview({
                 : "Ao confirmar, a presença é registrada e o QR e o link são encerrados."}
             </p>
             {!status.confirmationRestriction && (
-              <Button type="submit" disabled={blocked || !rows.length || (confirmed && !dirty)}>
+              <Button
+                type="submit"
+                disabled={blocked || rows.length === 0 || (confirmed && !dirty)}
+              >
                 <ClipboardCheck aria-hidden="true" />
                 {saving ? "Salvando…" : confirmed ? "Salvar ajustes" : "Confirmar chamada"}
               </Button>

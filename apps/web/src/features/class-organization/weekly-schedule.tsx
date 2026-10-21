@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useState } from "react";
 import { Button } from "@lazuli/ui";
 import { weekdays } from "~/features/semester-organization/shared";
@@ -17,7 +18,7 @@ export function WeeklySchedule({
   selected: string | null;
   onSelect: (id: string) => void;
   showClosed: boolean;
-}) {
+}): ReactJSX.Element {
   const [day, setDay] = useState("all");
   const plans = board.plans.filter(
     (plan) =>
@@ -78,7 +79,7 @@ export function WeeklySchedule({
         <p className={s.weekHint}>Deslize a grade para ver os outros dias, ou selecione um dia.</p>
       )}
       <div className={s.weeklyScroll}>
-        {times.length ? (
+        {times.length > 0 ? (
           <table className={s.weeklyTable} data-single={day !== "all"}>
             <thead>
               <tr>
@@ -142,7 +143,7 @@ function PlanCard({
   board: SemesterBoard;
   selected: boolean;
   onSelect: (id: string) => void;
-}) {
+}): ReactJSX.Element {
   const health = occupancy(plan);
   const leaving = leavingFor(board, plan).length;
   const proposed =
@@ -169,7 +170,7 @@ function PlanCard({
         <span>
           alunos
           <span className={s.occupancyLabel}>
-            {!plan.active ? "Encerrada" : !plan.classId ? "Turma proposta" : health.label}
+            {plan.active ? (plan.classId ? health.label : "Turma proposta") : "Encerrada"}
           </span>
         </span>
       </span>

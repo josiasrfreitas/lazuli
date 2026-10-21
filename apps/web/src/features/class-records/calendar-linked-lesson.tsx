@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { UserRoundPlus } from "lucide-react";
 import { abbreviatedPersonName } from "~/lib/format";
 import { visitLabels } from "~/features/admissions/labels";
@@ -33,7 +34,7 @@ export function CalendarLinkedLesson({
   onOpenAppointment: (id: string) => void;
   onOpenExperimental: (id: string) => void;
   personal?: boolean;
-}) {
+}): ReactJSX.Element {
   const appointments = lesson.appointments ?? [];
   const leads = lesson.leadGuests ?? [];
   const guestCount = appointments.length + leads.length;

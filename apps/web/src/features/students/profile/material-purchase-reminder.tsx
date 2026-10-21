@@ -1,11 +1,12 @@
+import type { JSX as ReactJSX } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { CalendarClock } from "lucide-react";
 import { formatDateOnlyBR } from "~/lib/format";
 
 type Needs = RouterOutputs["finance"]["studentSummary"]["materialNeeds"];
 /** Informational only: acquisitions remain available inside the contract, regardless of timing. */
-export function MaterialPurchaseNotice({ needs }: { needs: Needs }) {
-  if (!needs.length) return null;
+export function MaterialPurchaseNotice({ needs }: { needs: Needs }): ReactJSX.Element | null {
+  if (needs.length === 0) return null;
   return (
     <div className="grid gap-2 border-t border-border pt-3">
       {needs.map((need) => (

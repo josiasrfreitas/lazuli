@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { StudentAttendanceFrame } from "./student-frame";
 import { Button } from "@lazuli/ui";
@@ -7,7 +8,7 @@ import { matchAttendanceNames } from "@lazuli/domain";
 import { StudentNameField, StudentNameChoices } from "./student-fields";
 import { StudentReceipt } from "./receipt";
 
-export function StudentAttendancePreview() {
+export function StudentAttendancePreview(): ReactJSX.Element {
   const [expiresAt] = useState(() => new Date(Date.now() + 20 * 60_000));
   const info = {
     sessionId: "00000000-0000-4000-8000-000000000001",
@@ -25,7 +26,7 @@ export function StudentAttendancePreview() {
   );
 }
 
-function PreviewDeclaration() {
+function PreviewDeclaration(): ReactJSX.Element {
   const [name, setName] = useState("");
   const [selected, setSelected] = useState("");
   const [receipt, setReceipt] = useState<Date | null>(null);

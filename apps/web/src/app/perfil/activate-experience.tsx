@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useEffect } from "react";
 import { GraduationCap, Shield } from "lucide-react";
 import type { StaffRole } from "@lazuli/auth/roles";
@@ -11,7 +12,7 @@ export function ActivateExperience({
 }: {
   role: StaffRole;
   destination: string;
-}) {
+}): ReactJSX.Element {
   useEffect(() => {
     // Redirects may arrive without the original fragment, which is browser-only.
     activateExperience(role, `${destination}${destination.includes("#") ? "" : location.hash}`);

@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { createContext, useContext } from "react";
 import { DollarSign, Handshake } from "lucide-react";
 import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@lazuli/ui";
@@ -11,7 +12,11 @@ type InstallmentActions = {
 };
 export const InstallmentActionsContext = createContext<InstallmentActions | null>(null);
 
-export function InstallmentRowActions({ row }: { row: FinanceInstallmentRow }) {
+export function InstallmentRowActions({
+  row,
+}: {
+  row: FinanceInstallmentRow;
+}): ReactJSX.Element | null {
   const actions = useContext(InstallmentActionsContext);
   if (!actions) return null;
   const disabled = row.collectibleBalanceCents <= 0;

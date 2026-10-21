@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { RotateCcw, UserPlus } from "lucide-react";
 import { Button } from "@lazuli/ui";
@@ -46,7 +47,7 @@ function declaration(index: number): AttendanceReviewStatus["declarations"][numb
   };
 }
 
-export function TeacherAttendancePreview() {
+export function TeacherAttendancePreview(): ReactJSX.Element {
   const [round, setRound] = useState(0);
   const [confirmed, setConfirmed] = useState(false);
   const [entries, setEntries] = useState(roster);

@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { BookOpen, ClipboardCheck, Layers, RotateCcw, Video } from "lucide-react";
 import { EmptyState } from "@lazuli/ui";
 import type { ProgramActivity, TeachingHour, TeachingProgram } from "./types";
@@ -61,7 +62,7 @@ export function ProgramMap({
 }: {
   program: TeachingProgram;
   onlyAssessments: boolean;
-}) {
+}): ReactJSX.Element {
   const units = program.units
     .map((unit) => ({
       ...unit,
@@ -73,7 +74,7 @@ export function ProgramMap({
       ),
     }))
     .filter((unit) => unit.blocks.length);
-  if (!units.length)
+  if (units.length === 0)
     return (
       <EmptyState
         title="Nenhuma prova nesta programação"

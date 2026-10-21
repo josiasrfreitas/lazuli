@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { ClassRecordTrigger } from "~/features/class-records/class-record-trigger";
 import { CalendarDays, History, MapPin, UserRound } from "lucide-react";
@@ -15,7 +16,13 @@ const stamp = (value: string | Date) =>
     timeStyle: "short",
   }).format(new Date(value));
 
-export function AppointmentDialogHeader({ data, admin }: { data: Appointment; admin: boolean }) {
+export function AppointmentDialogHeader({
+  data,
+  admin,
+}: {
+  data: Appointment;
+  admin: boolean;
+}): ReactJSX.Element {
   const row = data.snapshot;
   return (
     <DialogHeader>
@@ -89,7 +96,7 @@ const events: Record<string, string> = {
   RECORDED: "Atendimento registrado",
 };
 
-export function AppointmentDialogHistory({ data }: { data: Appointment }) {
+export function AppointmentDialogHistory({ data }: { data: Appointment }): ReactJSX.Element {
   const revisions = [...data.history].sort((a, b) => b.version - a.version);
   return (
     <details className={styles.disclosure}>
@@ -102,7 +109,7 @@ export function AppointmentDialogHistory({ data }: { data: Appointment }) {
         {stamp(data.snapshot.scheduledAt)}
       </p>
       <ol className={styles.history}>
-        {!revisions.length && <li>Não há alterações registradas para este atendimento.</li>}
+        {revisions.length === 0 && <li>Não há alterações registradas para este atendimento.</li>}
         {revisions.map((revision, index) => {
           const previous = revisions[index + 1];
           const changes = previous ? appointmentChanges(previous.snapshot, revision.snapshot) : [];

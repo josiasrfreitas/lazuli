@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { Pencil } from "lucide-react";
 import {
   Button,
@@ -27,7 +28,7 @@ export function AssessmentResults({
   data?: Assessment;
   recovery?: boolean;
   onEdit?: (competence: Competence, trigger: HTMLButtonElement) => void;
-}) {
+}): ReactJSX.Element {
   const actions = !data || Boolean(onEdit);
   return (
     <TableContainer>

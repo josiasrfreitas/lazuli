@@ -34,8 +34,8 @@ void it("starts with two slots but submits one, two or three chosen books", () =
       command,
     );
     assert.equal(parsed.success, true);
-    assert.deepEqual(parsed.data!.material!.stageIds, books.slice(0, count));
-    assert.equal(parsed.data!.material!.expectedTotalCents, 81600 * count);
+    assert.deepEqual(parsed.data.material!.stageIds, books.slice(0, count));
+    assert.equal(parsed.data.material!.expectedTotalCents, 81600 * count);
   }
 });
 void it("rejects duplicate or unfinished book choices", () => {
@@ -45,6 +45,6 @@ void it("rejects duplicate or unfinished book choices", () => {
       command,
     );
     assert.equal(parsed.success, false);
-    assert.equal(parsed.error!.issues[0]!.path[1], "stageIds");
+    assert.equal(parsed.error.issues[0]!.path[1], "stageIds");
   }
 });

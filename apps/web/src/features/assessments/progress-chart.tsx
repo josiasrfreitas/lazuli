@@ -118,7 +118,7 @@ export function AcademicProgressChart({ data }: { data: Assessment }): ReactElem
 }
 
 function gradeRange(scores: number[]): [number, number] {
-  if (!scores.length) return [0, MAX];
+  if (scores.length === 0) return [0, MAX];
   const padding = 2;
   const step = 5;
   const minimumSpan = 20;

@@ -1,10 +1,11 @@
+import type { JSX as ReactJSX } from "react";
 import { ReceiptText } from "lucide-react";
 import { FormSection } from "@lazuli/ui";
 import { formatBRLFromCents as money } from "~/lib/format";
 import { draftReceipts, paymentDraftError } from "./draft";
 import type { PaymentFormState } from "./logic";
 
-export function PaymentSummary({ state }: { state: PaymentFormState }) {
+export function PaymentSummary({ state }: { state: PaymentFormState }): ReactJSX.Element {
   const receipts = draftReceipts(state.draft, state.preview);
   const ready =
     !state.loading &&

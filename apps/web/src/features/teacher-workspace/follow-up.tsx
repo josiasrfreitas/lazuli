@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Button, Input, Tabs, TabsList, TabsTab, TabsPanel } from "@lazuli/ui";
@@ -6,7 +7,7 @@ import { trpc } from "~/lib/trpc";
 import { TeacherPage, TeacherLinkRow, TeacherQueryState } from "./shared";
 import { TeacherListLoading } from "./list-loading";
 
-export function TeacherFollowUp() {
+export function TeacherFollowUp(): ReactJSX.Element {
   const [tab, setTab] = useState("intervencoes");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);

@@ -62,7 +62,7 @@ export function AppointmentCalendar<Event extends CalendarEvent>({
     .map((event) => event.endTime)
     .toSorted()
     .at(-1)!;
-  if (!windows.length) {
+  if (windows.length === 0) {
     windows.push({ start: earliest, end: latest, labels: ["Aulas"], lastIndex: 0 });
   } else {
     windows[0]!.start = earliest < windows[0]!.start ? earliest : windows[0]!.start;

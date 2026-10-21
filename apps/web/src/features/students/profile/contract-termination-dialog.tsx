@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, RefreshCw, TriangleAlert, X } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
@@ -18,7 +19,7 @@ export function ContractTerminationDialog({
 }: {
   contractId: string;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   const preview = trpc.finance.previewTermination.useQuery(
     { contractId },
     { retry: false, refetchOnWindowFocus: false },
@@ -73,7 +74,7 @@ function TerminationForm({
   preview: Preview;
   onClose: () => void;
   onRefresh: () => void;
-}) {
+}): ReactJSX.Element {
   const utils = trpc.useUtils();
   const [commandId] = useState(() => crypto.randomUUID());
   const [fee, setFee] = useState(String(preview.defaultFeePct));
@@ -173,7 +174,7 @@ function TerminationForm({
             setError("O vencimento deve ser hoje ou uma data futura.");
             return;
           }
-          if (preview.enrollments.length && !selected.length) {
+          if (preview.enrollments.length > 0 && selected.length === 0) {
             setEnrollmentError("Selecione a matrícula que será encerrada.");
             return;
           }
@@ -228,7 +229,63 @@ function TerminationForm({
               pago. Vencimentos de hoje entram no principal mantido.
             </p>
           </section>
-          {!review ? (
+          {review ? (
+            <div className="grid min-w-0 content-start gap-3 text-sm">
+              <h3 className="font-semibold">Confira o encerramento</h3>
+              <p>
+                <strong>Matrículas:</strong>{" "}
+                {selected.map((row) => row.className).join(", ") || "Nenhuma matrícula ativa"}.
+              </p>
+              <p>
+                <strong>Vencimento do acerto:</strong> {formatDateOnlyBR(dueDate)}.
+              </p>
+              <Field className="content-start">
+                <Label htmlFor="termination-review-reason">Motivo e negociação</Label>
+                <Textarea
+                  id="termination-review-reason"
+                  size="sm"
+                  rows={2}
+                  className="resize-none"
+                  readOnly
+                  value={reason}
+                />
+              </Field>
+              <Field className="content-start">
+                <Label htmlFor="termination-confirmation-name">Confirme o nome do aluno</Label>
+                <p
+                  id="termination-confirmation-help"
+                  className="text-caption text-muted-foreground"
+                >
+                  Digite <strong className="text-foreground">{preview.studentName}</strong> para
+                  confirmar a rescisão.
+                </p>
+                <Input
+                  id="termination-confirmation-name"
+                  name="termination-confirmation-name"
+                  size="sm"
+                  autoComplete="off"
+                  autoFocus
+                  spellCheck={false}
+                  required
+                  aria-describedby="termination-confirmation-help"
+                  value={confirmationName}
+                  onChange={(event) => setConfirmationName(event.target.value)}
+                  placeholder="Nome completo do aluno"
+                />
+              </Field>
+              <label className="flex items-start gap-2 rounded-sm border border-destructive/30 bg-destructive/5 p-2.5">
+                <Checkbox
+                  className="mt-0.5"
+                  checked={acknowledged}
+                  onCheckedChange={setAcknowledged}
+                />
+                <span>
+                  Conferi o acerto e autorizo rescindir o contrato e encerrar as matrículas
+                  selecionadas.
+                </span>
+              </label>
+            </div>
+          ) : (
             <div className="grid min-w-0 content-start gap-3">
               <div className="grid gap-2">
                 <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,0.65fr)_minmax(0,1fr)_minmax(0,1fr)]">
@@ -349,62 +406,6 @@ function TerminationForm({
                 />
               </Field>
             </div>
-          ) : (
-            <div className="grid min-w-0 content-start gap-3 text-sm">
-              <h3 className="font-semibold">Confira o encerramento</h3>
-              <p>
-                <strong>Matrículas:</strong>{" "}
-                {selected.map((row) => row.className).join(", ") || "Nenhuma matrícula ativa"}.
-              </p>
-              <p>
-                <strong>Vencimento do acerto:</strong> {formatDateOnlyBR(dueDate)}.
-              </p>
-              <Field className="content-start">
-                <Label htmlFor="termination-review-reason">Motivo e negociação</Label>
-                <Textarea
-                  id="termination-review-reason"
-                  size="sm"
-                  rows={2}
-                  className="resize-none"
-                  readOnly
-                  value={reason}
-                />
-              </Field>
-              <Field className="content-start">
-                <Label htmlFor="termination-confirmation-name">Confirme o nome do aluno</Label>
-                <p
-                  id="termination-confirmation-help"
-                  className="text-caption text-muted-foreground"
-                >
-                  Digite <strong className="text-foreground">{preview.studentName}</strong> para
-                  confirmar a rescisão.
-                </p>
-                <Input
-                  id="termination-confirmation-name"
-                  name="termination-confirmation-name"
-                  size="sm"
-                  autoComplete="off"
-                  autoFocus
-                  spellCheck={false}
-                  required
-                  aria-describedby="termination-confirmation-help"
-                  value={confirmationName}
-                  onChange={(event) => setConfirmationName(event.target.value)}
-                  placeholder="Nome completo do aluno"
-                />
-              </Field>
-              <label className="flex items-start gap-2 rounded-sm border border-destructive/30 bg-destructive/5 p-2.5">
-                <Checkbox
-                  className="mt-0.5"
-                  checked={acknowledged}
-                  onCheckedChange={setAcknowledged}
-                />
-                <span>
-                  Conferi o acerto e autorizo rescindir o contrato e encerrar as matrículas
-                  selecionadas.
-                </span>
-              </label>
-            </div>
           )}
         </div>
         {(error ?? mutation.error?.message) && (
@@ -432,7 +433,7 @@ function Amount({
   label: string;
   cents: number;
   total?: boolean;
-}) {
+}): ReactJSX.Element {
   return (
     <div
       className={`flex items-baseline justify-between gap-3 ${total ? "mt-1 border-t pt-3 font-semibold" : ""}`}

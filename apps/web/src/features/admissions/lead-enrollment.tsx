@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -7,7 +8,7 @@ import { Button } from "@lazuli/ui";
 import { NewStudentDialog } from "~/features/students/new-student/new-student-dialog";
 import type { Candidate } from "./labels";
 
-export function LeadEnrollment({ candidate }: { candidate: Candidate }) {
+export function LeadEnrollment({ candidate }: { candidate: Candidate }): ReactJSX.Element {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   return (

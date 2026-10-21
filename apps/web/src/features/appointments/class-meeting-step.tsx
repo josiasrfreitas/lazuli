@@ -148,7 +148,7 @@ export function ClassMeetingStep(props: Props): ReactElement {
     ...(data?.classes ?? []).map((row): MeetingEvent => {
       const range = { date: row.date, startTime: row.startTime, endTime: row.endTime };
       const invalid = intervalError(range, true);
-      const reason = !row.selectable ? "Aula ainda não preparada para agendamento." : invalid;
+      const reason = row.selectable ? invalid : "Aula ainda não preparada para agendamento.";
       return {
         ...range,
         id: `class-${row.id}`,
@@ -186,11 +186,11 @@ export function ClassMeetingStep(props: Props): ReactElement {
   );
   const manualError =
     props.kind === "INDEPENDENT"
-      ? dateDraft !== formatDateOnlyBR(props.date)
-        ? "Informe uma data válida."
-        : props.startTime && props.endTime
+      ? dateDraft === formatDateOnlyBR(props.date)
+        ? props.startTime && props.endTime
           ? intervalError(selectedRange)
           : undefined
+        : "Informe uma data válida."
       : undefined;
   const ready = Boolean(
     query.isSuccess &&

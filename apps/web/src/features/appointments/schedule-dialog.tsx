@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { ArrowRight, CalendarCheck, CalendarClock, CheckCircle2, X } from "lucide-react";
 import { useState } from "react";
 import {
@@ -38,7 +39,7 @@ export function ScheduleAppointmentDialog({
   source?: Absence;
   previous?: AppointmentSnapshot;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   const [id] = useState(() => crypto.randomUUID());
   const [student, setStudent] = useState<SearchSelectOption | null>(
     initialStudent
@@ -90,11 +91,11 @@ export function ScheduleAppointmentDialog({
   );
   const defaultTeacher = options.data?.defaultTeacher;
   const teacher =
-    teacherSelection !== undefined
-      ? teacherSelection
-      : defaultTeacher
+    teacherSelection === undefined
+      ? defaultTeacher
         ? { id: defaultTeacher.id, label: defaultTeacher.name }
-        : null;
+        : null
+      : teacherSelection;
   const parsedDate = parseDateBR(date);
   const refresh = useAppointmentRefresh();
   const saved = async () => {
@@ -226,17 +227,17 @@ export function ScheduleAppointmentDialog({
       actionSize="sm"
       cancelIcon={<X aria-hidden="true" />}
       submitIcon={
-        !classStep ? <ArrowRight aria-hidden="true" /> : <CalendarCheck aria-hidden="true" />
+        classStep ? <CalendarCheck aria-hidden="true" /> : <ArrowRight aria-hidden="true" />
       }
       submitDisabled={
         unavailable || (classStep && (!selectionReady || Boolean(enrollmentDateError)))
       }
       submitLabel={
-        !classStep
-          ? "Selecionar horário"
-          : previous
+        classStep
+          ? previous
             ? "Confirmar reagendamento"
             : "Agendar atendimento"
+          : "Selecionar horário"
       }
       error={schedule.error?.message ?? reschedule.error?.message}
       bodyRef={validation.body}

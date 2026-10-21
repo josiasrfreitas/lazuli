@@ -65,7 +65,7 @@ export function PaymentDialog(props: Props): ReactElement {
           ref={popup}
           initialFocus={() =>
             popup.current?.querySelector<HTMLInputElement>(
-              state.draft.items.length ? 'input[name^="received-"]' : 'input[name="search"]',
+              state.draft.items.length > 0 ? 'input[name^="received-"]' : 'input[name="search"]',
             ) ??
             popup.current?.querySelector<HTMLInputElement>('input[name="date"]') ??
             true

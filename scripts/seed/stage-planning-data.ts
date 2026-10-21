@@ -1,5 +1,12 @@
 import { addDays, isoOf, stableUuid, utcDate } from "../../packages/db/src/seed-dev-support.js";
 
+const MONTH_DAY_OFFSET = 5;
+const SPARSE_PLAN_FRACTION = 0.55;
+const ITEMS_PER_UNIT = 3;
+const FIRST_CONTENT_PAGE = 4;
+const PAGES_PER_UNIT = 4;
+const LAST_PAGE_OFFSET = 3;
+
 const KIND_CYCLE = [
   "CONTENT",
   "CONTENT",
@@ -67,9 +74,10 @@ export function planningDates(input: {
       "11-15",
       "11-20",
       "12-25",
-    ].includes(iso.slice(5));
+    ].includes(iso.slice(MONTH_DAY_OFFSET));
     // Future PPT semesters have no generated sessions; dates remain intentions on usual weekdays.
-    const yearEndRecess = iso.slice(5) >= "12-20" || iso.slice(5) <= "01-10";
+    const yearEndRecess =
+      iso.slice(MONTH_DAY_OFFSET) >= "12-20" || iso.slice(MONTH_DAY_OFFSET) <= "01-10";
     if (
       input.weekdays.includes(weekdays[date.getUTCDay()]!) &&
       !input.closedDates.has(iso) &&
@@ -92,11 +100,11 @@ export function plannedItems(input: {
   const count = Math.min(input.count, input.dates.length);
   const span = input.detailed
     ? input.dates.length
-    : Math.max(count, Math.ceil(input.dates.length * 0.55));
-  return Array.from({ length: count }, (_, index) => {
+    : Math.max(count, Math.ceil(input.dates.length * SPARSE_PLAN_FRACTION));
+  return Array.from({ length: count }, (_unused, index) => {
     const position = count <= 1 ? 0 : Math.floor((index * (span - 1)) / (count - 1));
     const kind = KIND_CYCLE[(index + input.variation) % KIND_CYCLE.length]!;
-    const unit = Math.floor(index / 3) + 1;
+    const unit = Math.floor(index / ITEMS_PER_UNIT) + 1;
     const topic = (input.stageCode.startsWith("MW") ? CHILD_TOPICS : TOPICS)[
       (unit + input.variation) % TOPICS.length
     ]!;
@@ -111,7 +119,7 @@ export function plannedItems(input: {
         ? "Jogo de escuta e interação em grupo"
         : "Atividade de diálogo e produção colaborativa",
     }[kind];
-    const pageFrom = kind === "CONTENT" ? 4 + (unit - 1) * 4 : null;
+    const pageFrom = kind === "CONTENT" ? FIRST_CONTENT_PAGE + (unit - 1) * PAGES_PER_UNIT : null;
     return {
       id: stableUuid(["stage-plan-item", input.planId, String(index)]),
       plannedOn: input.dates[position]!,
@@ -122,7 +130,7 @@ export function plannedItems(input: {
           ? `Livro ${input.stageCode} — Unidade ${unit}`
           : null,
       pageFrom,
-      pageTo: pageFrom === null ? null : pageFrom + 3,
+      pageTo: pageFrom === null ? null : pageFrom + LAST_PAGE_OFFSET,
     };
   });
 }
@@ -136,7 +144,7 @@ export function orderedSnapshot(
     ...snapshot,
     items: snapshot.items
       .map((item) => ({ ...item }))
-      .sort(
+      .toSorted(
         (left, right) =>
           left.plannedOn.localeCompare(right.plannedOn) ||
           createdAt.get(left.id)!.getTime() - createdAt.get(right.id)!.getTime() ||

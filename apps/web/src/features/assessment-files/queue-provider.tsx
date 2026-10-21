@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import {
   createContext,
   useCallback,
@@ -63,7 +64,7 @@ export function AssessmentUploadProvider({
 }: {
   userId: string;
   children: ReactNode;
-}) {
+}): ReactJSX.Element {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [storageError, setStorageError] = useState("");
   const [hydrated, setHydrated] = useState(false);
@@ -74,7 +75,7 @@ export function AssessmentUploadProvider({
     refetchInterval: items.some(
       (item) => !["READY", "REJECTED", "INTERRUPTED", "FAILED"].includes(item.status),
     )
-      ? 3_000
+      ? 3000
       : 15_000,
   });
   const retry = trpc.assessmentFiles.retry.useMutation({
@@ -115,7 +116,7 @@ export function AssessmentUploadProvider({
   useEffect(() => {
     if (!recent.data || !hydrated) return;
     const received = recent.data.filter((row) => row.receivedAt);
-    for (const row of received) void removePendingFile(userId, row.id).catch(() => undefined);
+    for (const row of received) void removePendingFile(userId, row.id).catch(() => {});
     setItems((current) => {
       const next = current.map((item) => {
         const row = received.find((file) => file.id === item.id);
@@ -157,7 +158,7 @@ export function AssessmentUploadProvider({
     running.current = transfer.request;
     void transfer.completed
       .then(async () => {
-        await removePendingFile(userId, next.id).catch(() => undefined);
+        await removePendingFile(userId, next.id).catch(() => {});
         change({ status: "RECEIVED", progress: 100, pending: undefined, received: true });
       })
       .catch((error: unknown) =>
@@ -186,7 +187,7 @@ export function AssessmentUploadProvider({
     if (!hydrated) throw new Error("Aguarde a recuperação dos envios anteriores.");
     for (const file of files) {
       if (
-        !file.size ||
+        file.size === 0 ||
         file.size > MAX_UPLOAD_FILE_BYTES ||
         !["application/pdf", "image/jpeg", "image/png"].includes(file.type)
       )

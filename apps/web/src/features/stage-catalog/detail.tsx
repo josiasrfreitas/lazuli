@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import {
   Button,
@@ -22,7 +23,7 @@ const mode = (program: TeachingProgram) => (program.scheduleType === "REGULAR" ?
 const programLabel = (program: TeachingProgram) =>
   `${mode(program)} · ${program.teachingHourCount} horas-aula`;
 
-export function StagePrograms({ stage }: { stage: StageSummary }) {
+export function StagePrograms({ stage }: { stage: StageSummary }): ReactJSX.Element {
   const query = trpc.teachingPrograms.detail.useQuery({ id: stage.id });
   const [programId, setProgramId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");

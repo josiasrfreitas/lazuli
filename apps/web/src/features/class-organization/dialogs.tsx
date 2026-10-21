@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { Button, Input } from "@lazuli/ui";
 import { z, calendarDateSchema } from "@lazuli/validators";
@@ -155,7 +156,7 @@ function MovementForm({
   decline,
   board,
   onClose,
-}: Props & { rows: Placement[]; decline: boolean }) {
+}: Props & { rows: Placement[]; decline: boolean }): ReactJSX.Element {
   const [targetSemesterId, setTargetSemesterId] = useState(board.semester.id);
   const periods = trpc.semesterOrganization.semesters.useQuery();
   const targetQuery = trpc.semesterOrganization.detail.useQuery(
@@ -166,7 +167,7 @@ function MovementForm({
   const [planId, setPlanId] = useState("planId" in action ? (action.planId ?? "") : "");
   const [date, setDate] = useState(
     formatDateOnlyBR(
-      [dateOnly(board.semester.startDate), toDateOnlySaoPaulo(new Date())].sort().at(-1)!,
+      [dateOnly(board.semester.startDate), toDateOnlySaoPaulo(new Date())].sort().at(-1),
     ),
   );
   const [reason, setReason] = useState("");
@@ -262,7 +263,7 @@ function MovementForm({
                 if (period)
                   setDate(
                     formatDateOnlyBR(
-                      [dateOnly(period.startDate), toDateOnlySaoPaulo(new Date())].sort().at(-1)!,
+                      [dateOnly(period.startDate), toDateOnlySaoPaulo(new Date())].sort().at(-1),
                     ),
                   );
               }}
@@ -319,7 +320,11 @@ function MovementForm({
   );
 }
 
-function FindStudent({ board, onClose, onAction }: Pick<Props, "board" | "onClose" | "onAction">) {
+function FindStudent({
+  board,
+  onClose,
+  onAction,
+}: Pick<Props, "board" | "onClose" | "onAction">): ReactJSX.Element {
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1);
   const query = trpc.semesterOrganization.students.useQuery({

@@ -35,7 +35,8 @@ export function ClassPerformanceChart({
     return {
       name: COMPETENCE_LABELS[competence],
       count: grades.length,
-      average: grades.length ? grades.reduce((sum, score) => sum + score, 0) / grades.length : null,
+      average:
+        grades.length > 0 ? grades.reduce((sum, score) => sum + score, 0) / grades.length : null,
       student:
         selected?.results.find((result) => result.competence === competence)?.effective ?? null,
     };

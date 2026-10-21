@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import {
   Button,
@@ -19,7 +20,7 @@ export function DiscardRegistrationDialog({
 }: {
   onKeep: () => void;
   onDiscard: () => void;
-}) {
+}): ReactJSX.Element {
   return (
     <Dialog
       open

@@ -1,8 +1,9 @@
+import type { JSX as ReactJSX } from "react";
 import { InlineSkeleton } from "@lazuli/ui";
 import styles from "./catalog.module.css";
 import mapStyles from "./program-map.module.css";
 
-export function ProgramLoading() {
+export function ProgramLoading(): ReactJSX.Element {
   return (
     <div className={mapStyles.map} aria-label="Carregando programação" aria-busy="true">
       <div className={mapStyles.unitHeader}>
@@ -20,7 +21,7 @@ export function ProgramLoading() {
     </div>
   );
 }
-export function StageLoading() {
+export function StageLoading(): ReactJSX.Element {
   return (
     <section className={styles.detail} aria-label="Carregando estágio" aria-busy="true">
       <header className={styles.detailHeader}>

@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Check, MessageSquareText, Pencil, UserCheck, X } from "lucide-react";
@@ -23,7 +24,7 @@ export function AppointmentRecordForm({
   context?: ReactNode;
   footerTarget?: HTMLElement | null;
   onPendingChange?: (pending: boolean) => void;
-}) {
+}): ReactJSX.Element {
   const [opened] = useState(data);
   const snapshot = opened.snapshot;
   const correcting = snapshot.status !== "SCHEDULED";
@@ -32,7 +33,7 @@ export function AppointmentRecordForm({
   const plannedMinutes =
     (new Date(`1970-01-01T${snapshot.endTime}:00Z`).getTime() -
       new Date(`1970-01-01T${snapshot.startTime}:00Z`).getTime()) /
-    60000;
+    60_000;
   const [minutes, setMinutes] = useState(String(snapshot.performedMinutes ?? plannedMinutes));
   const [coverages, setCoverages] = useState(
     snapshot.coverages

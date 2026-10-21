@@ -114,7 +114,9 @@ export function PlanTable({
       {...(pagination ? { pagination } : {})}
       columns={columns}
       state={
-        items.length ? { kind: "data", rows: items } : { kind: filtered ? "noResults" : "empty" }
+        items.length > 0
+          ? { kind: "data", rows: items }
+          : { kind: filtered ? "noResults" : "empty" }
       }
       empty={{
         title: "O roteiro começa aqui",

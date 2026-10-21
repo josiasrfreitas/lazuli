@@ -1,8 +1,9 @@
+import type { JSX as ReactJSX } from "react";
 import { Badge } from "@lazuli/ui";
 import type { StageSummary } from "./types";
 import styles from "./catalog.module.css";
 
-export function TrackName({ track }: { track: StageSummary["track"] }) {
+export function TrackName({ track }: { track: StageSummary["track"] }): ReactJSX.Element {
   const legacy = track.status === "LEGACY";
   const name = legacy ? track.name.replace(/\s+Legacy$/i, "") : track.name;
 

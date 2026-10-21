@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const durationsScript = path.join(root, "scripts/test-durations.mjs");

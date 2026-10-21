@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { Button, DataTable } from "@lazuli/ui";
@@ -12,7 +13,7 @@ export function PlanningRecords({
   data: Planning;
   records: Planning["records"];
   pagination?: import("@lazuli/ui").TablePaginationConfig | undefined;
-}) {
+}): ReactJSX.Element {
   return (
     <DataTable
       label="Conteúdo registrado nas aulas"
@@ -37,17 +38,18 @@ export function PlanningRecords({
             <div className={styles.recordContent}>
               <span>
                 {KIND_LABELS[row.content.kind]}
-                {row.content.pageFrom !== null
-                  ? ` · Pág. ${row.content.pageFrom}${row.content.pageTo && row.content.pageTo !== row.content.pageFrom ? `–${row.content.pageTo}` : ""}`
-                  : ""}
+                {row.content.pageFrom === null
+                  ? ""
+                  : ` · Pág. ${row.content.pageFrom}${row.content.pageTo && row.content.pageTo !== row.content.pageFrom ? `–${row.content.pageTo}` : ""}`}
               </span>
               <p>{row.content.account}</p>
               {row.content.reference && <small>{row.content.reference}</small>}
             </div>
           ),
         },
-        ...(!data.scope.student
-          ? [
+        ...(data.scope.student
+          ? []
+          : [
               {
                 id: "open",
                 header: "",
@@ -68,13 +70,12 @@ export function PlanningRecords({
                   </Button>
                 ),
               },
-            ]
-          : []),
+            ]),
       ]}
       state={
-        records.length
+        records.length > 0
           ? { kind: "data", rows: records }
-          : { kind: data.records.length ? "noResults" : "empty" }
+          : { kind: data.records.length > 0 ? "noResults" : "empty" }
       }
       empty={{
         title: "Nenhum conteúdo registrado",

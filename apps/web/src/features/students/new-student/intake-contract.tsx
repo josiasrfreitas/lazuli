@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { Alert, Button, FormSection } from "@lazuli/ui";
 import { ConditionsSection } from "~/features/contracts/contract-form-fields";
 import { ContractPayerFields } from "~/features/contracts/contract-payer-fields";
@@ -22,7 +23,7 @@ export function IntakeContract({
   student: NewStudentFields;
   offer: ContractOperation["offer"];
   pending: boolean;
-}) {
+}): ReactJSX.Element {
   const props = {
     fields: contractFieldsWithStudent(state.fields, student),
     errors: state.errors,

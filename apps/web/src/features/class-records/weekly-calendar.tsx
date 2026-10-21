@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import {
   ScheduleCalendar,
   type CalendarEvent,
@@ -45,7 +46,7 @@ export function WeeklyLessonCard({
   expandedDayWidth?: number | undefined;
   expandedWidthShare?: number | undefined;
   onOpen: () => void;
-}) {
+}): ReactJSX.Element {
   const ref = useLessonCardReveal(expandedDayWidth, expandedWidthShare);
   return (
     <button
@@ -82,7 +83,7 @@ export function WeeklyCalendar({
   onSelectDay: (date: string) => void;
   keepExpanded: boolean;
   selection?: WeeklyCalendarSelection;
-}) {
+}): ReactJSX.Element {
   const events = lessonCalendarEvents(lessons).map((event) => ({
     ...event,
     disabled: selection ? !selection.isLessonSelectable(event.lesson) : false,
@@ -108,15 +109,16 @@ export function WeeklyCalendar({
       view="week"
       events={events}
       onDateChange={onSelectDay}
-      onViewChange={() => undefined}
+      onViewChange={() => {}}
       toolbar={false}
       density={selection ? "compact" : "comfortable"}
       keepExpanded={keepExpanded}
       selectedEventId={selection?.selectedId}
       status={selection?.loading ? "loading" : "ready"}
       onEventActivate={(event) => onOpen(event.lesson)}
-      {...(!selection
-        ? {
+      {...(selection
+        ? {}
+        : {
             renderEvent: (event: LessonCalendarEvent, context: CalendarEventRenderContext) => (
               <WeeklyLessonCard
                 lesson={event.lesson}
@@ -126,8 +128,7 @@ export function WeeklyCalendar({
                 onOpen={context.activate}
               />
             ),
-          }
-        : {})}
+          })}
       rangeSelection={
         selection?.onSelectSlot
           ? {

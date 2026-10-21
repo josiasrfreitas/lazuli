@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Badge, Button, DataTable, Input, TableFilters, type DataTableColumn } from "@lazuli/ui";
@@ -13,7 +14,7 @@ export function StudentPool({
   board: SemesterBoard;
   readOnly: boolean;
   onOrganize: (studentId: string) => void;
-}) {
+}): ReactJSX.Element {
   const [search, setSearch] = useState("");
   const [unassigned, setUnassigned] = useState(true);
   const [page, setPage] = useState(1);
@@ -42,7 +43,7 @@ export function StudentPool({
       header: "Percurso atual",
       width: "wide",
       cell: (row) =>
-        row.current.length ? (
+        row.current.length > 0 ? (
           <div className="grid gap-1">
             {row.current.map((item) => (
               <div key={item.id}>
@@ -63,7 +64,7 @@ export function StudentPool({
       width: "medium",
       cell: (row) => {
         const proposals = board.placements.filter((item) => item.studentId === row.id);
-        return proposals.length ? (
+        return proposals.length > 0 ? (
           <div className="grid gap-1">
             {proposals.map((item) => (
               <span key={item.id}>

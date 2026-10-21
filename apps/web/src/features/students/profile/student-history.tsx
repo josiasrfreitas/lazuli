@@ -79,7 +79,7 @@ export function EnrollmentHistory({
         label="Histórico de matrículas do aluno"
         columns={historyColumns(today, studentId)}
         state={{ kind: "data", rows }}
-        onRetry={() => undefined}
+        onRetry={() => {}}
         empty={{
           title: "Sem outras matrículas",
           description: "Matrículas anteriores e entradas agendadas aparecem aqui.",

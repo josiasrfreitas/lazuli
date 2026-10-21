@@ -25,11 +25,12 @@ export function lessonParticipants(data: ClassRecord): LessonParticipant[] {
           ? `Aluno da turma · ${row.stage}`
           : "Aluno da turma",
       kind: "student",
-      status: !(recorded || recordedIds.has(row.enrollmentId))
-        ? "pending"
-        : row.status === "PRESENT"
-          ? "present"
-          : "absent",
+      status:
+        recorded || recordedIds.has(row.enrollmentId)
+          ? row.status === "PRESENT"
+            ? "present"
+            : "absent"
+          : "pending",
       colorKey: row.studentId,
     }),
   );

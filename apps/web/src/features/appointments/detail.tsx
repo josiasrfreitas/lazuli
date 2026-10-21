@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CalendarClock, Pencil, X } from "lucide-react";
@@ -20,13 +21,13 @@ const stamp = (value: string | Date) =>
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(value));
-export function AppointmentDetailPage({ id }: { id: string }) {
+export function AppointmentDetailPage({ id }: { id: string }): ReactJSX.Element {
   const query = trpc.appointments.detail.useQuery(
     { id },
     {
       retry: false,
       refetchInterval: (current) =>
-        current.state.data?.snapshot.status === "SCHEDULED" ? 30000 : false,
+        current.state.data?.snapshot.status === "SCHEDULED" ? 30_000 : false,
     },
   );
   const me = trpc.me.useQuery();
@@ -56,7 +57,7 @@ export function AppointmentContent({
   data: Appointment;
   admin: boolean;
   embedded?: boolean;
-}) {
+}): ReactJSX.Element {
   const Heading = embedded ? "h3" : "h1";
   const row = data.snapshot;
   const [view, setView] = useState("record");
@@ -229,7 +230,7 @@ export function AppointmentContent({
                   </div>
                 </details>
               ))}
-              {!data.history.length && (
+              {data.history.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                   O próximo registro preservará a informação legada no histórico.
                 </p>
@@ -253,7 +254,7 @@ export function CancelAppointmentDialog({
 }: {
   row: AppointmentSnapshot;
   onClose: () => void;
-}) {
+}): ReactJSX.Element {
   const [reason, setReason] = useState("");
   const validation = useValidation();
   const refresh = useAppointmentRefresh();

@@ -54,7 +54,7 @@ export function FinanceOverview({
       <FinanceBalance
         summary={summary.data}
         contractTerminated={Boolean(
-          summary.data.latestTermination && !summary.data.contracts.length,
+          summary.data.latestTermination && summary.data.contracts.length === 0,
         )}
       />
       <PaymentBehavior

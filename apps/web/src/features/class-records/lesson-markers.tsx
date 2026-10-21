@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { Ban, CircleCheck, CircleDashed, UsersRound } from "lucide-react";
 import type { CalendarLesson } from "./calendar-model";
 import styles from "./lesson-markers.module.css";
@@ -10,7 +11,7 @@ export function lessonPresenceLabel(lesson: CalendarLesson): string {
 }
 
 /** Always visible on lesson cards, even when compact layout hides the text labels. */
-export function LessonMarkers({ lesson }: { lesson: CalendarLesson }) {
+export function LessonMarkers({ lesson }: { lesson: CalendarLesson }): ReactJSX.Element | null {
   if (lesson.appointment || lesson.experimental) return null;
   const recorded = lesson.state === "RECORDED" || lesson.attendanceOnly;
   const cancelled = lesson.state === "CANCELLED";

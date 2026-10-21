@@ -37,7 +37,7 @@ export function StudentPedagogySection(props: PedagogyProps): ReactElement {
     );
   const current = query.data.enrollments.filter((enrollment) => enrollment.current);
   const history = query.data.enrollments.filter((enrollment) => !enrollment.current);
-  if (!current.length) {
+  if (current.length === 0) {
     const upcoming = history
       .filter((row) => row.entryDate > query.data.today)
       .toSorted((a, b) => a.entryDate.localeCompare(b.entryDate))[0];

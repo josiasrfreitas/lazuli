@@ -12,7 +12,7 @@ import styles from "./link-form.module.css";
 const normalize = (value: string): string =>
   value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase("pt-BR");
 
 export function LinkOccurrenceForm({
@@ -172,12 +172,12 @@ export function LinkOccurrenceForm({
               ) : (
                 <div className={styles.empty}>
                   <strong>
-                    {choices.length
+                    {choices.length > 0
                       ? "Nenhum relato corresponde à busca"
                       : "Nenhum relato disponível para relacionar"}
                   </strong>
                   <p>
-                    {choices.length
+                    {choices.length > 0
                       ? "Tente outro título, trecho ou data."
                       : "Os demais relatos deste aluno já estão relacionados ou ainda não foram registrados."}
                   </p>

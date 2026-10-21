@@ -105,9 +105,10 @@ export function entityCommands(data: Lookup | undefined): Command[] {
         id: `student:${row.id}`,
         kind: "student",
         title: row.name,
-        description: row.classes.length
-          ? row.classes.map((group) => group.name).join(" · ")
-          : "Sem matrícula vigente",
+        description:
+          row.classes.length > 0
+            ? row.classes.map((group) => group.name).join(" · ")
+            : "Sem matrícula vigente",
         section: "Alunos",
         href: `/alunos/${row.id}?secao=pedagogico`,
         icon: "student",

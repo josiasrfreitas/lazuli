@@ -107,7 +107,7 @@ function candidateSeeds(): CandidateSeed[] {
       email: `interesse.${index + 1}@example.com`,
       studentId: null,
     })),
-    ...waiting.map(studentCandidate),
+    ...waiting.map((student) => studentCandidate(student)),
   ];
 }
 
@@ -145,8 +145,9 @@ async function seedCandidate(database: DatabaseClient, input: CandidateInput): P
   });
   if (archived || unknownPedagogy) return;
   const visit = { candidateId: id, index, todayIso, adminId };
-  if (personalized) await seedIntroduction(database, visit);
-  else await seedTrial(database, { ...visit, classKey });
+  await (personalized
+    ? seedIntroduction(database, visit)
+    : seedTrial(database, { ...visit, classKey }));
 }
 
 function candidateClassKey(input: CandidateInput): string {
@@ -171,15 +172,18 @@ async function createCandidateRecord(
       status,
       recordedById: input.adminId,
       createdAt: createdOn,
-      notes: archived
-        ? "Contato encerrado a pedido da família; sem matrícula."
-        : input.unknownPedagogy
-          ? "Primeiro interesse registrado; curso e horários ainda serão definidos."
-          : "Interesse confirmado; aguardando visita e definição de alocação.",
+      notes: candidateNotes(input),
       ...candidatePedagogy(input),
       ...commercialFields({ ...input, createdOn, status }),
     },
   });
+}
+
+function candidateNotes(input: CandidateRecordInput): string {
+  if (input.archived) return "Contato encerrado a pedido da família; sem matrícula.";
+  if (input.unknownPedagogy)
+    return "Primeiro interesse registrado; curso e horários ainda serão definidos.";
+  return "Interesse confirmado; aguardando visita e definição de alocação.";
 }
 
 function candidatePedagogy(input: CandidateRecordInput): PedagogySeed {

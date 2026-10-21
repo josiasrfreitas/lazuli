@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { Badge, Tabs, TabsList, TabsTab, TabsPanel } from "@lazuli/ui";
@@ -12,7 +13,7 @@ import { TeacherClassList } from "./class-list";
 import { TeacherListLoading } from "./list-loading";
 import styles from "./workspace.module.css";
 
-export function TeacherClasses() {
+export function TeacherClasses(): ReactJSX.Element {
   const query = trpc.teacherWorkspace.classes.useQuery();
   const [search, setSearch] = useState("");
   const [historical, setHistorical] = useState(false);
@@ -50,7 +51,7 @@ export function TeacherClasses() {
   );
 }
 
-export function TeacherClass({ id }: { id: string }) {
+export function TeacherClass({ id }: { id: string }): ReactJSX.Element {
   const query = trpc.teacherWorkspace.class.useQuery({ id });
   const [selected, setSelected] = useState<string | null>(null);
   const [tab, setTab] = useQueryState("secao", parseAsString.withDefault("aulas"));
@@ -107,7 +108,7 @@ export function TeacherClass({ id }: { id: string }) {
                   </Badge>
                 </button>
               ))}
-              {!query.data.lessons.length && (
+              {query.data.lessons.length === 0 && (
                 <p className="p-6 text-sm text-muted-foreground">
                   Sem aulas atribuídas neste período.
                 </p>
@@ -122,7 +123,7 @@ export function TeacherClass({ id }: { id: string }) {
                 </li>
               ))}
             </ul>
-            {!query.data.students.length && (
+            {query.data.students.length === 0 && (
               <p className={styles.empty}>
                 {query.data.current
                   ? "Nenhum aluno vinculado."

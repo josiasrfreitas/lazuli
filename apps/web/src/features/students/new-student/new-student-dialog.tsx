@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useReducer, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
@@ -63,7 +64,7 @@ export type NewStudentDialogProps = {
   onCreated: (id: string) => void;
 };
 
-export function NewStudentDialog(props: NewStudentDialogProps) {
+export function NewStudentDialog(props: NewStudentDialogProps): ReactJSX.Element | null {
   return props.open ? <EnrollmentDialog {...props} /> : null;
 }
 
@@ -72,7 +73,7 @@ function EnrollmentDialog({
   existingStudentId,
   onOpenChange,
   onCreated,
-}: NewStudentDialogProps) {
+}: NewStudentDialogProps): ReactJSX.Element {
   const today = toDateOnlySaoPaulo(new Date());
   const [state, dispatch] = useReducer(newStudentReducer, initialNewStudentState);
   const [candidateId, setCandidateId] = useState<string | null>(initialCandidateId ?? null);
@@ -233,7 +234,7 @@ function EnrollmentDialog({
       if (!state.fields.guardianPhone.trim() && !state.fields.guardianEmail.trim())
         errors.guardianPhone = "Informe telefone ou e-mail do responsável.";
     }
-    if (Object.keys(errors).length) {
+    if (Object.keys(errors).length > 0) {
       dispatch({ type: "serverRejected", errors, formError: null });
       requestAnimationFrame(() =>
         popup.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
@@ -270,10 +271,10 @@ function EnrollmentDialog({
       ]);
       onCreated(result.studentId);
       onOpenChange(false);
-    } catch (failure) {
+    } catch (error_) {
       setError(
-        failure instanceof Error
-          ? failure.message
+        error_ instanceof Error
+          ? error_.message
           : "Não foi possível concluir o cadastro. Os dados continuam em rascunho.",
       );
     } finally {
@@ -346,7 +347,7 @@ function EnrollmentDialog({
     if (!parsed.success)
       return setError(parsed.error.issues[0]?.message ?? "Confira os dados do aluno.");
     setError("");
-    if (items.length) setConfirmation({ input: parsed.data, items });
+    if (items.length > 0) setConfirmation({ input: parsed.data, items });
     else void persist(parsed.data);
   }
   const nameField = (
@@ -554,9 +555,9 @@ function EnrollmentDialog({
                 ? `Turma: ${selected.name}`
                 : existingEnrollment
                   ? `Turma: ${existingEnrollment.class.portalClassName}`
-                  : step !== "student"
-                    ? "Turma pendente"
-                    : ""}
+                  : step === "student"
+                    ? ""
+                    : "Turma pendente"}
             </p>
             {step === "student" && visitedContract && (
               <Button

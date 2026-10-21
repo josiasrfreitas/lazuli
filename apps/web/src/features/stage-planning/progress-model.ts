@@ -13,7 +13,7 @@ export function planningPosition(
     .toSorted((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time))[0];
   const plannedPages = items.flatMap((item) => (end(item) === null ? [] : [end(item)!]));
   return {
-    expected: expected.length ? Math.max(...expected) : null,
+    expected: expected.length > 0 ? Math.max(...expected) : null,
     actual: last ? end(last.content) : null,
     lastDate: last?.date ?? null,
     scale: Math.max(1, ...plannedPages, last ? end(last.content)! : 0),

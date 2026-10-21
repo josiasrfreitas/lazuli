@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Check, MoreHorizontal } from "lucide-react";
@@ -42,11 +43,13 @@ export function SemesterRoster({
   rows: Placement[];
   readOnly: boolean;
   onAction: (action: PlacementAction) => void;
-}) {
+}): ReactJSX.Element {
   const [selection, setSelection] = useState<string[]>([]);
   const [confirm, setConfirm] = useState(false);
   const refresh = useOrganizationRefresh();
-  const ready = rows.filter((row) => !row.publishedAt && !row.blockers.length && !readOnly && plan);
+  const ready = rows.filter(
+    (row) => !row.publishedAt && row.blockers.length === 0 && !readOnly && plan,
+  );
   const selected = ready.filter((row) => selection.includes(row.id));
   const mutation = trpc.semesterOrganization.publish.useMutation({
     onSuccess: async () => {
@@ -67,7 +70,7 @@ export function SemesterRoster({
           aria-label="Selecionar alunos prontos"
           checked={ready.length > 0 && selected.length === ready.length}
           indeterminate={selected.length > 0 && selected.length < ready.length}
-          disabled={!ready.length}
+          disabled={ready.length === 0}
           onCheckedChange={(value) => setSelection(value ? ready.map((row) => row.id) : [])}
         />
       ),
@@ -120,9 +123,9 @@ export function SemesterRoster({
           {ready.length === 1 ? "pronta" : "prontas"} para publicar
         </p>
         {plan && !readOnly && (
-          <Button disabled={!selected.length} onClick={() => setConfirm(true)}>
+          <Button disabled={selected.length === 0} onClick={() => setConfirm(true)}>
             <Check />
-            Publicar selecionados{selected.length ? ` (${selected.length})` : ""}
+            Publicar selecionados{selected.length > 0 ? ` (${selected.length})` : ""}
           </Button>
         )}
       </div>
@@ -130,7 +133,7 @@ export function SemesterRoster({
         <DataTable
           label="Propostas de alunos para o próximo semestre"
           columns={columns}
-          state={rows.length ? { kind: "data", rows } : { kind: "empty" }}
+          state={rows.length > 0 ? { kind: "data", rows } : { kind: "empty" }}
           onRetry={() => void refresh()}
           empty={{
             title: "Organize os primeiros alunos",
@@ -184,7 +187,7 @@ export function SemesterRoster({
             className="grid gap-4 pt-4"
             onSubmit={(event) => {
               event.preventDefault();
-              if (!mutation.isPending && selected.length)
+              if (!mutation.isPending && selected.length > 0)
                 mutation.mutate({
                   planId: plan.id,
                   version: plan.version,
@@ -213,7 +216,7 @@ export function SemesterRoster({
     </div>
   );
 }
-function StudentCell({ row }: { row: Placement }) {
+function StudentCell({ row }: { row: Placement }): ReactJSX.Element {
   return (
     <div className="grid gap-1">
       <Link
@@ -240,7 +243,7 @@ function AvailabilityCell({
   row: Placement;
   readOnly: boolean;
   onClick: () => void;
-}) {
+}): ReactJSX.Element {
   const availability = row.availability;
   return (
     <div className="grid justify-items-start gap-1">
@@ -266,7 +269,7 @@ function AvailabilityCell({
     </div>
   );
 }
-function Readiness({ row }: { row: Placement }) {
+function Readiness({ row }: { row: Placement }): ReactJSX.Element {
   return (
     <div className="grid justify-items-start gap-1.5">
       <PlacementBadge row={row} />
@@ -305,7 +308,7 @@ function RowActions({
   row: Placement;
   readOnly: boolean;
   onAction: (action: PlacementAction) => void;
-}) {
+}): ReactJSX.Element {
   return (
     <Popover>
       <PopoverTrigger

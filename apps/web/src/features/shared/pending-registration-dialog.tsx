@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { AlertTriangle, ArrowLeft, Check } from "lucide-react";
 import {
   Button,
@@ -27,7 +28,7 @@ export function PendingRegistrationDialog({
   error?: string | undefined;
   onBack: () => void;
   onConfirm: () => void;
-}) {
+}): ReactJSX.Element {
   return (
     <Dialog
       open

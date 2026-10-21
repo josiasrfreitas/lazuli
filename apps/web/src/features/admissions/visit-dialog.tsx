@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useState, type FormEvent } from "react";
 import { CalendarPlus, X } from "lucide-react";
 import {
@@ -51,7 +52,7 @@ function clock() {
   };
 }
 
-export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput) {
+export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput): ReactJSX.Element {
   const previous = candidate.visits.find((row) => row.id === previousVisitId);
   const [dirty, setDirty] = useState(false);
   const [discarding, setDiscarding] = useState(false);
@@ -206,7 +207,7 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
           ]
         : [];
   const times = [
-    ...(kind === "TRIAL" && events.length ? [] : ["08:00", "22:00"]),
+    ...(kind === "TRIAL" && events.length > 0 ? [] : ["08:00", "22:00"]),
     ...events.flatMap((row) => [row.startTime, row.endTime]),
     ...(ready && selected ? [selected.startTime, selected.endTime] : []),
   ].toSorted();

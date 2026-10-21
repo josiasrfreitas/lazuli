@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { FileX2 } from "lucide-react";
 import { Alert, AlertContent, AlertDescription, AlertIcon, AlertTitle, Button } from "@lazuli/ui";
@@ -13,7 +14,7 @@ export function ContractTerminationNotice({
   termination: Termination | undefined;
   /** Pedagogy offers a route to the financial settlement. */
   studentId?: string;
-}) {
+}): ReactJSX.Element | null {
   if (!termination) return null;
   return (
     <Alert variant={studentId ? "info" : "neutral"} role="note">

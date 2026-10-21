@@ -1,6 +1,7 @@
+import type { JSX as ReactJSX } from "react";
 import { InlineSkeleton } from "@lazuli/ui";
 import styles from "./planning.module.css";
-export function PlanningLoading() {
+export function PlanningLoading(): ReactJSX.Element {
   return (
     <section
       className={styles.workspace}

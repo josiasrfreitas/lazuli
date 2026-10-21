@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Check, FileText, Trash2 } from "lucide-react";
@@ -19,7 +20,13 @@ const status: Record<FileRow["status"], string> = {
   REMOVED: "Retirado",
 };
 
-export function AppointmentAssessmentFiles({ id, studentId }: { id: string; studentId: string }) {
+export function AppointmentAssessmentFiles({
+  id,
+  studentId,
+}: {
+  id: string;
+  studentId: string;
+}): ReactJSX.Element {
   const query = trpc.assessmentFiles.appointment.useQuery({ id });
   const me = trpc.me.useQuery();
   return (
@@ -65,7 +72,7 @@ export function FileList({
   allowRemove?: boolean;
   showPhase?: boolean;
   identify?: boolean;
-}) {
+}): ReactJSX.Element {
   const me = trpc.me.useQuery();
   const [removing, setRemoving] = useState<string | null>(null);
   const [reason, setReason] = useState("");

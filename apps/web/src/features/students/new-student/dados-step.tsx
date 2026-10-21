@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import type { ComponentProps, FormEvent, ReactElement, ReactNode } from "react";
 import { UserMinus, UserPlus } from "lucide-react";
 
@@ -252,7 +253,7 @@ export function DadosStep(props: DadosStepProps): ReactElement {
 
 export function IntakeStudentFields(
   props: Omit<DadosStepProps, "onSubmit"> & { nameField: ReactNode },
-) {
+): ReactJSX.Element {
   return (
     <div className="grid gap-5">
       <IdentitySection {...props} />

@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useEffect, useRef, useState } from "react";
 import { addCalendarMonths } from "@lazuli/domain";
 import { addContractMaterialInputSchema } from "@lazuli/validators";
@@ -29,7 +30,7 @@ export function AddContractMaterial({
   onPendingChange: (pending: boolean) => void;
   onClose: () => void;
   onSaved: () => void;
-}) {
+}): ReactJSX.Element {
   const today = toDateOnlySaoPaulo(new Date());
   const [month, setMonth] = useState((today > firstDueDate ? today : firstDueDate).slice(0, 7));
   const [fields, setFields] = useState<ContractFields>({

@@ -31,7 +31,7 @@ type Contract = Summary["contracts"][number];
 
 export function FinanceContractTerms({ summary }: { summary: Summary }): ReactElement | null {
   const visible = visibleFinanceContracts(summary);
-  if (!visible.length && !summary.materialNeeds.length) return null;
+  if (visible.length === 0 && summary.materialNeeds.length === 0) return null;
   return (
     <div className="grid min-w-0 gap-3">
       {visible.map((contract) => {
@@ -60,7 +60,7 @@ export function FinanceContractTerms({ summary }: { summary: Summary }): ReactEl
                 {bookCount} {bookCount === 1 ? "material" : "materiais"}
               </span>
               <div className="grid justify-items-start gap-1">
-                {materials.length
+                {materials.length > 0
                   ? materials.map((row) => <MaterialTerms key={row.id} item={row} />)
                   : "—"}
               </div>
@@ -78,9 +78,9 @@ function MaterialTerms({ item }: { item: FinanceSchedule }): ReactElement {
   const material = item.material;
   const card = material?.payment === "INSTALLMENTS";
   const terms =
-    material?.chargedAmountCents != null
-      ? `${card ? material.quotedInstallments : 1}× de ${money(card ? material.quotedInstallmentCents : material.chargedAmountCents)}`
-      : paymentTerms(item);
+    material?.chargedAmountCents == null
+      ? paymentTerms(item)
+      : `${card ? material.quotedInstallments : 1}× de ${money(card ? material.quotedInstallmentCents : material.chargedAmountCents)}`;
   return (
     <Tooltip>
       <TooltipTrigger
@@ -206,5 +206,5 @@ export function visibleFinanceContracts(summary: Summary): Contract[] {
     (row) =>
       row.startsOn && row.endsOn && row.startsOn <= summary.asOf && row.endsOn >= summary.asOf,
   );
-  return current.length ? current : summary.contracts.slice(0, 1);
+  return current.length > 0 ? current : summary.contracts.slice(0, 1);
 }

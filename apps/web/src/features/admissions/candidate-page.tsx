@@ -131,7 +131,7 @@ function CandidateWorkspace({ candidate }: { candidate: Candidate }): ReactEleme
                     onClick={() => setDialog("placement")}
                   >
                     <CalendarPlus />
-                    {placements.length ? "Novo nivelamento" : "Agendar nivelamento"}
+                    {placements.length > 0 ? "Novo nivelamento" : "Agendar nivelamento"}
                   </Button>
                 )}
                 <Button

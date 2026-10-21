@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import type { CalendarEvent, CalendarEventRenderContext } from "@lazuli/ui";
 import { Check, UserRound } from "lucide-react";
 import styles from "./occurrence-calendar-event.module.css";
@@ -16,7 +17,7 @@ export function OccurrenceLessonCard({
 }: {
   event: OccurrenceCalendarEvent;
   context: CalendarEventRenderContext;
-}) {
+}): ReactJSX.Element {
   const detailed = context.view === "day" || context.expanded;
   const teacher = `${event.teacherName ?? "Professor a definir"}${event.substitute ? " · substituto" : ""}`;
   const stage =

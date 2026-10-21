@@ -69,7 +69,7 @@ export function StudentAppointments({ studentId }: { studentId: string }): React
                 ))}
               </ProfileRecordList>
             )}
-            {!rows.length && (
+            {rows.length === 0 && (
               <p className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
                 <CalendarDays aria-hidden="true" className="size-5 shrink-0 text-icon" />
                 Nenhum atendimento neste período.

@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { Button, InlineSkeleton } from "@lazuli/ui";
@@ -7,7 +8,11 @@ import { dateOnly } from "~/features/semester-organization/shared";
 import { OrganizationDialogs } from "~/features/class-organization/dialogs";
 import type { OrganizationAction } from "~/features/class-organization/model";
 
-export function OrganizationIntention({ studentId }: { studentId: string }) {
+export function OrganizationIntention({
+  studentId,
+}: {
+  studentId: string;
+}): ReactJSX.Element | null {
   const query = trpc.semesterOrganization.studentIntent.useQuery({ studentId });
   const [semesterId, setSemesterId] = useState("");
   const [action, setAction] = useState<OrganizationAction | null>(null);

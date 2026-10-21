@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { trpc } from "~/lib/trpc";
 import { FileList } from "~/features/assessment-files/attachments";
@@ -14,10 +15,10 @@ export function AssessmentWorkspace({
 }: {
   data: Assessment;
   onStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
-}) {
+}): ReactJSX.Element {
   const files = trpc.assessmentFiles.list.useQuery(
     { progressId: data.progressId },
-    { refetchInterval: 5_000 },
+    { refetchInterval: 5000 },
   );
   const [active, setActive] = useState<{
     competence: Competence;

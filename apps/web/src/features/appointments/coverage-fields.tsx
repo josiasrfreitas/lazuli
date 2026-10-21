@@ -1,3 +1,4 @@
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, ListChecks } from "lucide-react";
 import { Button, Checkbox, InlineSkeleton, Input } from "@lazuli/ui";
@@ -20,7 +21,7 @@ export function CoverageFields({
   error?: string | undefined;
   loading?: boolean;
   compact?: boolean;
-}) {
+}): ReactJSX.Element {
   const selected = new Map(value.map((row) => [row.attendanceId, row.minutes]));
   const [page, setPage] = useState(0);
   const available = sources.filter((row) => row.available > 0 || selected.has(row.id));
@@ -117,7 +118,10 @@ export function CoverageFields({
                           onChange(
                             value.map((row) =>
                               row.attendanceId === source.id
-                                ? { ...row, minutes: Number(event.target.value.replace(/\D/g, "")) }
+                                ? {
+                                    ...row,
+                                    minutes: Number(event.target.value.replaceAll(/\D/g, "")),
+                                  }
                                 : row,
                             ),
                           )
@@ -138,7 +142,7 @@ export function CoverageFields({
                           onChange(
                             value.map((row) =>
                               row.attendanceId === source.id
-                                ? { ...row, minutes: Number(next.replace(/\D/g, "")) }
+                                ? { ...row, minutes: Number(next.replaceAll(/\D/g, "")) }
                                 : row,
                             ),
                           )
@@ -155,9 +159,9 @@ export function CoverageFields({
                   <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
                     {source.content.account}
                     {source.content.reference ? ` · ${source.content.reference}` : ""}
-                    {source.content.pageFrom !== null
-                      ? ` · pág. ${source.content.pageFrom}${source.content.pageTo ? `–${source.content.pageTo}` : ""}`
-                      : ""}
+                    {source.content.pageFrom === null
+                      ? ""
+                      : ` · pág. ${source.content.pageFrom}${source.content.pageTo ? `–${source.content.pageTo}` : ""}`}
                   </p>
                 </details>
               ) : (

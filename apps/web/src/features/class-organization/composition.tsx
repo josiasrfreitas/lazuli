@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, MoreHorizontal } from "lucide-react";
@@ -34,13 +35,13 @@ export function Composition({
   onBack: () => void;
   onAction: (action: OrganizationAction) => void;
   onFeedback: (message: string) => void;
-}) {
+}): ReactJSX.Element {
   const rows = rowsFor(board, plan.id);
   const health = occupancy(plan);
   const leaving = leavingFor(board, plan);
   const leads = board.waitingLeads.filter((lead) => lead.allocationPlanId === plan.id);
   const ready = rows.filter(
-    (row) => !row.publishedAt && !row.blockers.length && row.continuity !== "LEAVING",
+    (row) => !row.publishedAt && row.blockers.length === 0 && row.continuity !== "LEAVING",
   );
   const ended = dateOnly(board.semester.endDate) < toDateOnlySaoPaulo(new Date());
   const [menuOpen, setMenuOpen] = useState(false);
@@ -121,7 +122,7 @@ export function Composition({
         <p className={s.small}>
           {plan.teacherName ?? "Professor a definir"} ·{" "}
           {plan.format === "ONLINE" ? "Online" : "Presencial"} ·{" "}
-          {!plan.active ? "Encerrada" : !plan.classId ? "Em formação" : `${health.count} alunos`}
+          {plan.active ? (plan.classId ? `${health.count} alunos` : "Em formação") : "Encerrada"}
         </p>
         {plan.active && (
           <Badge variant={health.tone}>
@@ -167,7 +168,7 @@ export function Composition({
               </span>
               {!row.publishedAt && (
                 <span className={s.small}>
-                  {row.blockers.length ? "Alocação a revisar" : "Pronto para confirmar"}
+                  {row.blockers.length > 0 ? "Alocação a revisar" : "Pronto para confirmar"}
                 </span>
               )}
             </span>
@@ -186,7 +187,7 @@ export function Composition({
             <ChevronRight size={14} />
           </Link>
         ))}
-        {!rows.length && !leads.length && (
+        {rows.length === 0 && leads.length === 0 && (
           <div className={s.empty}>
             <h3>A turma está pronta para receber alunos</h3>
             <p>Escolha uma pessoa nas pendências ou adicione um aluno.</p>
@@ -203,7 +204,7 @@ export function Composition({
       )}
       {!ended && plan.active && (
         <footer className={s.selection}>
-          {ready.length ? (
+          {ready.length > 0 ? (
             <Button
               size="sm"
               disabled={publish.isPending}
@@ -219,14 +220,14 @@ export function Composition({
                 ? "Confirmando…"
                 : `Confirmar ${ready.length} ${ready.length === 1 ? "alocação" : "alocações"}`}
             </Button>
-          ) : !plan.classId ? (
-            <Button size="sm" onClick={() => onAction({ kind: "planStatus", plan, open: true })}>
-              Abrir turma
-            </Button>
-          ) : (
+          ) : plan.classId ? (
             <p className={s.small}>
               Selecione um aluno para registrar continuidade, troca ou possível saída.
             </p>
+          ) : (
+            <Button size="sm" onClick={() => onAction({ kind: "planStatus", plan, open: true })}>
+              Abrir turma
+            </Button>
           )}
         </footer>
       )}

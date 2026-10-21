@@ -1,4 +1,5 @@
 "use client";
+import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 import { Badge, Button, Input } from "@lazuli/ui";
@@ -8,7 +9,7 @@ import { isPending, isQueueItem, stageLabel, type PendingGroup } from "./model";
 import { PendingLead, PendingStudent, type QueueProps } from "./queue-details";
 import s from "./organization.module.css";
 
-export function AccommodationQueue({ board, onAction, onSelect }: QueueProps) {
+export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): ReactJSX.Element {
   const [search, setSearch] = useState("");
   const ended = dateOnly(board.semester.endDate) < toDateOnlySaoPaulo(new Date());
   const pending = board.placements.filter(isQueueItem);
@@ -99,7 +100,7 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps) {
                 (a, b) => Number(b.continuity === "LEAVING") - Number(a.continuity === "LEAVING"),
               );
             const items = group.leads.filter((item) => match(item.fullName));
-            if (!rows.length && !items.length) return null;
+            if (rows.length === 0 && items.length === 0) return null;
             const allocationGroup = { ...group, rows: group.rows.filter(isPending) };
             const available = allocationGroup.rows.length + group.leads.length;
             return (
