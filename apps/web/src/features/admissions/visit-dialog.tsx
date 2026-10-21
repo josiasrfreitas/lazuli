@@ -90,8 +90,8 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
   const errors = useLeadErrors();
   const utils = trpc.useUtils();
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(clock()), CLOCK_REFRESH_INTERVAL_MS);
-    return () => window.clearInterval(timer);
+    const timer = globalThis.setInterval(() => setNow(clock()), CLOCK_REFRESH_INTERVAL_MS);
+    return () => globalThis.clearInterval(timer);
   }, []);
   const calendarWindow = { date, view, dayCount: 7, minDate: now.date };
   const period = getScheduleCalendarRange(calendarWindow);

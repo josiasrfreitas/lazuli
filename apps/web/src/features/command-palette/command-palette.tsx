@@ -73,8 +73,8 @@ export function CommandPalette({ role }: { role: StaffRole }): ReactJSX.Element 
         if (!event.repeat) setOpen((current) => !current);
       }
     }
-    window.addEventListener("keydown", keydown);
-    return () => window.removeEventListener("keydown", keydown);
+    globalThis.addEventListener("keydown", keydown);
+    return () => globalThis.removeEventListener("keydown", keydown);
   }, []);
   useEffect(() => {
     setOpen(false);

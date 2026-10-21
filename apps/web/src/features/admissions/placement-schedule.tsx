@@ -99,8 +99,8 @@ export function PlacementSchedule({
     onDraftChange?.(draft);
   }, [draft, onDraftChange]);
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(schoolClock()), CLOCK_REFRESH_INTERVAL_MS);
-    return () => window.clearInterval(timer);
+    const timer = globalThis.setInterval(() => setNow(schoolClock()), CLOCK_REFRESH_INTERVAL_MS);
+    return () => globalThis.clearInterval(timer);
   }, []);
   const errors = useLeadErrors();
   const utils = trpc.useUtils();

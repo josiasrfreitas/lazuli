@@ -35,7 +35,7 @@ export function AdminMobileNotice({
       setAcknowledged(false);
     }
 
-    const viewport = window.matchMedia("(max-width: 767px)");
+    const viewport = globalThis.matchMedia("(max-width: 767px)");
     const updateMobile = (): void => setMobile(isMobileDevice || viewport.matches);
     updateMobile();
     viewport.addEventListener("change", updateMobile);

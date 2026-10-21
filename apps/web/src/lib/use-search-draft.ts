@@ -18,7 +18,7 @@ export function useSearchDraft(
 
   useEffect(() => {
     const index = acknowledgements.current.findIndex((sent) => sent.trim() === search.trim());
-    if (index >= 0) {
+    if (index !== -1) {
       acknowledgements.current.splice(0, index + 1);
       return;
     }
@@ -34,10 +34,10 @@ export function useSearchDraft(
       timer.current = null;
       acknowledgements.current = [];
     }
-    window.addEventListener("popstate", cancelPending);
+    globalThis.addEventListener("popstate", cancelPending);
     return () => {
       cancelPending();
-      window.removeEventListener("popstate", cancelPending);
+      globalThis.removeEventListener("popstate", cancelPending);
     };
   }, []);
 

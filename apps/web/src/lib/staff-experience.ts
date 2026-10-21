@@ -42,5 +42,5 @@ export function experienceActivationHref(role: StaffRole, destination: string): 
 /** A full navigation discards cached data and the previous experience's shell. */
 export function activateExperience(role: StaffRole, destination: string): void {
   document.cookie = `${STAFF_ROLE_COOKIE}=${role}; Path=/; Max-Age=${ROLE_COOKIE_MAX_AGE}; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
-  window.location.replace(experienceDestination(destination, role));
+  globalThis.location.replace(experienceDestination(destination, role));
 }

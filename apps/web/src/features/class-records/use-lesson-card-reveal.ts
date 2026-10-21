@@ -54,8 +54,8 @@ export function useLessonCardReveal(dayWidth?: number, widthShare?: number) {
       return;
     }
     // Keep the destination text layout during closing; never re-wrap on every frame.
-    const closing = window.setTimeout(reset, duration);
-    return () => window.clearTimeout(closing);
+    const closing = globalThis.setTimeout(reset, duration);
+    return () => globalThis.clearTimeout(closing);
   }, [dayWidth, widthShare]);
 
   return ref;

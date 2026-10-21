@@ -14,7 +14,7 @@ const QUEUE_SEARCH_THRESHOLD = 6;
 export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): ReactJSX.Element {
   const [search, setSearch] = useState("");
   const ended = dateOnly(board.semester.endDate) < toDateOnlySaoPaulo(new Date());
-  const pending = board.placements.filter(isQueueItem);
+  const pending = board.placements.filter((row) => isQueueItem(row));
   const leads = board.waitingLeads.filter(
     (lead) => !pending.some((row) => row.studentId === lead.studentId),
   );
@@ -104,7 +104,7 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
               );
             const items = group.leads.filter((item) => match(item.fullName));
             if (rows.length === 0 && items.length === 0) return null;
-            const allocationGroup = { ...group, rows: group.rows.filter(isPending) };
+            const allocationGroup = { ...group, rows: group.rows.filter((row) => isPending(row)) };
             const available = allocationGroup.rows.length + group.leads.length;
             return (
               <section
@@ -232,7 +232,7 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
             ...pending.map((item) => item.studentName),
             ...leads.map((item) => item.fullName),
             ...intents.map((item) => item.studentName),
-          ].some(match) && (
+          ].some((name) => match(name)) && (
             <div className={styles.empty}>
               <p>Nenhuma pessoa encontrada. Tente outro nome.</p>
             </div>

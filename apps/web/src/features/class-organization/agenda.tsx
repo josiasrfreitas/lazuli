@@ -28,7 +28,7 @@ export function OrganizationAgenda({
 }: Props): ReactJSX.Element {
   const [mobilePanel, setMobilePanel] = useState(false);
   const plan = board.plans.find((item) => item.id === selected);
-  const pendingRows = board.placements.filter(isQueueItem);
+  const pendingRows = board.placements.filter((row) => isQueueItem(row));
   const waitingLeads = board.waitingLeads.filter(
     (lead) => !pendingRows.some((row) => row.studentId === lead.studentId),
   );

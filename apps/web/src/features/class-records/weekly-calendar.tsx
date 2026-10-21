@@ -94,7 +94,7 @@ export function WeeklyCalendar({
   });
   const blocked = selection
     ? Array.from({ length: 7 }, (_unused, day) => shiftDate(monday(date), day))
-        .filter(selection.isDateDisabled)
+        .filter((date) => selection.isDateDisabled(date))
         .map((day) => ({
           id: day,
           date: day,

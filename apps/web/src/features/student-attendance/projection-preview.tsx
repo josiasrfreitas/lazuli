@@ -7,7 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 export function AttendanceProjectionPreview(): ReactJSX.Element {
   const [url, setUrl] = useState("");
   useEffect(() => {
-    setUrl(`${window.location.origin}/presenca/previa${window.location.search}`);
+    setUrl(`${globalThis.location.origin}/presenca/previa${globalThis.location.search}`);
   }, []);
   return (
     <main className="grid min-h-dvh place-content-center gap-6 bg-background p-6 text-center">

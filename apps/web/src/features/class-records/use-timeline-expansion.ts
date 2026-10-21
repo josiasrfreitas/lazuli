@@ -16,7 +16,7 @@ export function useTimelineExpansion() {
     if (id === expandedId) return;
     const timeline = timelineRef.current;
     const pointerMotion =
-      pointer && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+      pointer && globalThis.matchMedia("(hover: hover) and (pointer: fine)").matches;
     if (timeline) timeline.dataset.timelineMotion = String(pointerMotion);
     setExpandedId(id);
   }
@@ -39,7 +39,7 @@ export function useTimelineExpansion() {
   useLayoutEffect(() => {
     const timeline = timelineRef.current;
     if (!timeline) return;
-    if (expandedId && window.matchMedia("(max-width: 700px)").matches) {
+    if (expandedId && globalThis.matchMedia("(max-width: 700px)").matches) {
       const selected = [...timeline.querySelectorAll<HTMLElement>("[data-position]")].find(
         (item) => item.dataset.position === expandedId,
       );

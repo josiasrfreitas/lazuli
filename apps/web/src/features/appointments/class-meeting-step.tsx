@@ -87,8 +87,8 @@ export function ClassMeetingStep(props: Props): ReactElement {
   useEffect(() => setDateDraft(formatDateOnlyBR(props.date)), [props.date]);
   useEffect(() => step.current?.focus(), []);
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(schoolClock()), CLOCK_REFRESH_INTERVAL_MS);
-    return () => window.clearInterval(timer);
+    const timer = globalThis.setInterval(() => setNow(schoolClock()), CLOCK_REFRESH_INTERVAL_MS);
+    return () => globalThis.clearInterval(timer);
   }, []);
   const dateWindow = { date: calendarDate, view, dayCount: 7, minDate: now.date };
   const visibleRange = getScheduleCalendarRange(dateWindow);

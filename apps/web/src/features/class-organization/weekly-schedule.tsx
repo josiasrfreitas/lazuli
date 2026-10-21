@@ -34,7 +34,7 @@ export function WeeklySchedule({
   );
   const firstDay = activeDays[0]?.[0] ?? "all";
   useEffect(() => {
-    if (window.matchMedia("(max-width: 760px)").matches) setDay(firstDay);
+    if (globalThis.matchMedia("(max-width: 760px)").matches) setDay(firstDay);
   }, [firstDay]);
   const days = activeDays.filter(([key]) => day === "all" || key === day);
   const times = [

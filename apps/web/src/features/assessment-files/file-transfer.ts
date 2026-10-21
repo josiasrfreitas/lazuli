@@ -15,7 +15,7 @@ export function downloadFileBase64(file: {
   contentType: string;
   fileName: string;
 }): void {
-  const bytes = Uint8Array.from(atob(file.base64), (char) => char.charCodeAt(0));
+  const bytes = Uint8Array.from(atob(file.base64), (char) => char.codePointAt(0)!);
   const url = URL.createObjectURL(new Blob([bytes], { type: file.contentType }));
   const anchor = document.createElement("a");
   anchor.href = url;

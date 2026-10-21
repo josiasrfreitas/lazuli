@@ -65,7 +65,7 @@ export function CalendarWeek({
   function move(direction: number, pointer: boolean): void {
     const node = rail.current;
     if (!node || changing.current) return;
-    if (!pointer || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!pointer || globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       onChangeWeek(shiftDate(from, direction * DAYS_PER_WEEK));
       return;
     }

@@ -88,7 +88,7 @@ export function TeacherAttendancePreview(): ReactJSX.Element {
   }, [access, confirmed, receive]);
 
   function generate(): void {
-    const origin = window.location.origin;
+    const origin = globalThis.location.origin;
     const instance = crypto.randomUUID();
     setAccess({
       url: `${origin}/presenca/previa?ensaio=${instance}`,
@@ -149,7 +149,7 @@ export function TeacherAttendancePreview(): ReactJSX.Element {
           <Button
             variant="secondary"
             size="compact-responsive"
-            disabled={!access || confirmed || next < 0}
+            disabled={!access || confirmed || next === -1}
             onClick={() => receive(next)}
           >
             <UserPlus aria-hidden="true" /> Simular envio
