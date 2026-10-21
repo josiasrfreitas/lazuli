@@ -15,12 +15,13 @@ async function database(userId: string): Promise<IDBDatabase> {
     const request = indexedDB.open(`lazuli-proof-uploads:${userId}`, 1);
     request.onupgradeneeded = () => request.result.createObjectStore("files", { keyPath: "id" });
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () =>
+    request.addEventListener("error", () =>
       reject(
         new Error(
           "Não foi possível guardar o arquivo neste navegador. Libere espaço e tente novamente.",
         ),
-      );
+      ),
+    );
   });
 }
 export async function readPendingFiles(userId: string): Promise<PendingFile[]> {
@@ -29,7 +30,9 @@ export async function readPendingFiles(userId: string): Promise<PendingFile[]> {
     return await new Promise((resolve, reject) => {
       const request = db.transaction("files").objectStore("files").getAll();
       request.onsuccess = () => resolve(request.result as PendingFile[]);
-      request.onerror = () => reject(request.error);
+      request.addEventListener("error", () =>
+        reject(request.error ?? new Error("Não foi possível ler os arquivos pendentes.")),
+      );
     });
   } finally {
     db.close();
@@ -42,8 +45,9 @@ export async function storePendingFile(userId: string, file: PendingFile): Promi
       const transaction = db.transaction("files", "readwrite");
       transaction.objectStore("files").put(file);
       transaction.oncomplete = () => resolve();
-      transaction.onerror = () =>
-        reject(new Error("Sem espaço para guardar o envio. Libere espaço no navegador."));
+      transaction.addEventListener("error", () =>
+        reject(new Error("Sem espaço para guardar o envio. Libere espaço no navegador.")),
+      );
     });
   } finally {
     db.close();
@@ -56,7 +60,9 @@ export async function removePendingFile(userId: string, id: string): Promise<voi
       const transaction = db.transaction("files", "readwrite");
       transaction.objectStore("files").delete(id);
       transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
+      transaction.addEventListener("error", () =>
+        reject(transaction.error ?? new Error("Não foi possível remover o arquivo pendente.")),
+      );
     });
   } finally {
     db.close();
@@ -87,26 +93,28 @@ export function transferFile(
         }),
       ),
     );
-    request.upload.onprogress = (event) => {
+    request.upload.addEventListener("progress", (event) => {
       if (event.lengthComputable)
         onProgress(Math.round((event.loaded / event.total) * COMPLETE_UPLOAD_PERCENT));
-    };
-    request.onload = () => {
+    });
+    request.addEventListener("load", () => {
       if (request.status >= HTTP_SUCCESS_START && request.status < HTTP_SUCCESS_END) resolve();
       else {
         let message = "Não foi possível receber o arquivo. Tente novamente.";
         try {
-          message = JSON.parse(request.responseText).message ?? message;
+          const response = JSON.parse(request.responseText) as { message?: string } | null;
+          message = response?.message ?? message;
         } catch {
           /* Keep the safe default. */
         }
         reject(new Error(message));
       }
-    };
-    request.onerror =
-      request.ontimeout =
-      request.onabort =
-        () => reject(new Error("Envio interrompido. Retome quando a conexão estiver disponível."));
+    });
+    const failTransfer = (): void =>
+      reject(new Error("Envio interrompido. Retome quando a conexão estiver disponível."));
+    request.addEventListener("error", failTransfer);
+    request.addEventListener("timeout", failTransfer);
+    request.addEventListener("abort", failTransfer);
     request.send(item.file);
   });
   return { request, completed };

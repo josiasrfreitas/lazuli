@@ -2,10 +2,19 @@ const DOWNLOAD_URL_REVOKE_DELAY_MS = 1000;
 export function readFileBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () =>
-      reject(new Error("Não foi possível ler o arquivo. Selecione novamente."));
-    reader.onabort = () => reject(new Error("A leitura foi interrompida. Tente novamente."));
-    reader.onload = () => resolve(String(reader.result).split(",")[1]!);
+    reader.addEventListener("error", () =>
+      reject(new Error("Não foi possível ler o arquivo. Selecione novamente.")),
+    );
+    reader.addEventListener("abort", () =>
+      reject(new Error("A leitura foi interrompida. Tente novamente.")),
+    );
+    reader.addEventListener("load", () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("Não foi possível ler o arquivo. Selecione novamente."));
+        return;
+      }
+      resolve(reader.result.split(",")[1]!);
+    });
     reader.readAsDataURL(file);
   });
 }
