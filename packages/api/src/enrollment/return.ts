@@ -6,6 +6,7 @@ import {
   assertNoDuplicateActiveEnrollment,
   assertStudentIsEnrollable,
   loadEnrollableClass,
+  lockEnrollmentOwner,
   openEnrollmentAtStage,
   resolveInitialStageId,
   type EnrollmentDatabase,
@@ -18,10 +19,27 @@ async function pausedSource(input: {
   database: EnrollmentDatabase;
   id: string;
   today: string;
-}): Promise<{ id: string; studentId: string }> {
+}): Promise<{
+  id: string;
+  studentId: string;
+  progress: { stageId: string; stagePlanId: string | null } | null;
+}> {
+  await lockEnrollmentOwner(input.database, input.id);
   const source = await input.database.enrollment.findUnique({
     where: { id: input.id },
-    select: { id: true, studentId: true, exitDate: true, exitReason: true, deletedAt: true },
+    select: {
+      id: true,
+      studentId: true,
+      exitDate: true,
+      exitReason: true,
+      deletedAt: true,
+      progressRecords: {
+        where: { deletedAt: null },
+        orderBy: { startDate: "desc" },
+        take: 1,
+        select: { stageId: true, stagePlanId: true },
+      },
+    },
   });
   if (source === null || source.deletedAt !== null)
     throw notFound("Vínculo pausado não encontrado.");
@@ -32,7 +50,11 @@ async function pausedSource(input: {
   ) {
     throw badRequest("O retorno exige um vínculo já pausado.");
   }
-  return { id: source.id, studentId: source.studentId };
+  return {
+    id: source.id,
+    studentId: source.studentId,
+    progress: source.progressRecords[0] ?? null,
+  };
 }
 
 export async function returnEnrollment(input: {
@@ -65,13 +87,12 @@ export async function returnEnrollment(input: {
     studentId: source.studentId,
     classId: target.id,
   });
-  const opened = await openEnrollmentAtStage({
+  const opened = await resumeStage({
     database: input.database,
-    studentId: source.studentId,
-    classId: target.id,
-    entryDate: effectiveDate,
+    source,
     stageId,
-    capacityOverrideReason: undefined,
+    targetId: target.id,
+    effectiveDate,
   });
   await input.database.enrollmentAction.create({
     data: {
@@ -84,6 +105,24 @@ export async function returnEnrollment(input: {
     },
   });
   return opened;
+}
+async function resumeStage(input: {
+  database: EnrollmentDatabase;
+  source: Awaited<ReturnType<typeof pausedSource>>;
+  stageId: string;
+  targetId: string;
+  effectiveDate: Date;
+}): Promise<{ enrollment: EnrollmentSummary; progress: ProgressSummary }> {
+  const { source, stageId, effectiveDate } = input;
+  return openEnrollmentAtStage({
+    database: input.database,
+    studentId: source.studentId,
+    classId: input.targetId,
+    entryDate: effectiveDate,
+    stageId,
+    stagePlanId: source.progress?.stageId === stageId ? source.progress.stagePlanId : null,
+    capacityOverrideReason: undefined,
+  });
 }
 
 function assertReturnDate(effectiveDate: Date, today: string): void {

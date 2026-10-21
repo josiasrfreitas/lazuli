@@ -13,6 +13,7 @@ const meta = {
   },
   argTypes: {
     invalid: { control: "boolean" },
+    size: { control: "inline-radio", options: ["sm", "md"] },
     rows: { control: { min: 2, max: 12, type: "number" } },
   },
   parameters: {
@@ -127,4 +128,14 @@ export const InteractionRegression: Story = {
     await userEvent.type(readOnlyTextarea, " Texto alterado.");
     await expect(readOnlyTextarea).toHaveValue("Registro importado.");
   },
+};
+
+export const Compact: Story = {
+  args: { size: "sm", rows: 2 },
+  render: (args) => (
+    <label className="grid w-full max-w-sm gap-2 text-caption font-medium">
+      Brief account
+      <Textarea {...args} />
+    </label>
+  ),
 };

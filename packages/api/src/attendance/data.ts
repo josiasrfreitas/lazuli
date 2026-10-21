@@ -7,7 +7,13 @@ import { SESSION_NOT_FOUND_MESSAGE } from "./errors.js";
 /** Prisma delegates the attendance service touches; the router passes `ctx.db` or a transaction client. */
 export type AttendanceDatabase = Pick<
   Prisma.TransactionClient,
-  "classSession" | "enrollment" | "attendance" | "makeup" | "semester"
+  | "classSession"
+  | "enrollment"
+  | "attendance"
+  | "makeup"
+  | "semester"
+  | "classSessionRecord"
+  | "$queryRaw"
 >;
 
 const sessionWithClassSelect = {
