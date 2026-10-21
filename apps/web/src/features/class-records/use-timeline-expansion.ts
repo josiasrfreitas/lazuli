@@ -2,6 +2,10 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 
+const TIMELINE_VIEWPORT_RESERVE = 60;
+const CARD_VISIBILITY_INSET = 52;
+const CARD_SCROLL_INSET = 56;
+
 /** CSS interpolates the real lane sizes; this hook owns selection and viewport access. */
 export function useTimelineExpansion() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -22,7 +26,9 @@ export function useTimelineExpansion() {
     const viewport = timeline?.closest<HTMLElement>('[role="region"]');
     if (!timeline || !viewport) return;
     const measure = (): void =>
-      setAvailableShare(Math.max(0, viewport.clientWidth - 60) / timeline.clientWidth);
+      setAvailableShare(
+        Math.max(0, viewport.clientWidth - TIMELINE_VIEWPORT_RESERVE) / timeline.clientWidth,
+      );
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(viewport);
@@ -41,8 +47,8 @@ export function useTimelineExpansion() {
       if (selected && viewport) {
         const card = selected.getBoundingClientRect();
         const bounds = viewport.getBoundingClientRect();
-        if (card.left < bounds.left + 52 || card.right > bounds.right) {
-          viewport.scrollLeft += card.left - bounds.left - 56;
+        if (card.left < bounds.left + CARD_VISIBILITY_INSET || card.right > bounds.right) {
+          viewport.scrollLeft += card.left - bounds.left - CARD_SCROLL_INSET;
         }
       }
     }

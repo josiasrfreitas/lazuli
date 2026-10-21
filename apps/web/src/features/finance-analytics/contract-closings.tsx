@@ -21,6 +21,8 @@ import {
 import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 
+const ISO_YEAR_LENGTH = 4;
+
 const MONTH_KEY_LENGTH = 7;
 const growthFormat = new Intl.NumberFormat("pt-BR", {
   style: "percent",
@@ -74,7 +76,7 @@ const columns: DataTableColumn<ClosingMonth & { id: string }>[] = [
     header: "Mês de fechamento",
     cell: (row) => (
       <span className="capitalize">
-        {monthLabel(row.month)} / {row.month.slice(0, 4)}
+        {monthLabel(row.month)} / {row.month.slice(0, ISO_YEAR_LENGTH)}
       </span>
     ),
   },

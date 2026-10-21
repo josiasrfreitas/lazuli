@@ -15,6 +15,8 @@ import { AppointmentRecordForm } from "./record-form";
 import { ScheduleAppointmentDialog } from "./schedule-dialog";
 import { AppointmentBadge, purposes, useAppointmentRefresh, type Appointment } from "./shared";
 
+const APPOINTMENT_REFRESH_INTERVAL_MS = 30_000;
+
 const stamp = (value: string | Date): string =>
   new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
@@ -27,7 +29,9 @@ export function AppointmentDetailPage({ id }: { id: string }): ReactJSX.Element 
     {
       retry: false,
       refetchInterval: (current) =>
-        current.state.data?.snapshot.status === "SCHEDULED" ? 30_000 : false,
+        current.state.data?.snapshot.status === "SCHEDULED"
+          ? APPOINTMENT_REFRESH_INTERVAL_MS
+          : false,
     },
   );
   const me = trpc.me.useQuery();

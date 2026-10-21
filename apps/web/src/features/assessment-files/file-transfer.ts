@@ -1,3 +1,4 @@
+const DOWNLOAD_URL_REVOKE_DELAY_MS = 1000;
 export function readFileBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -20,5 +21,5 @@ export function downloadFileBase64(file: {
   anchor.href = url;
   anchor.download = file.fileName;
   anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_REVOKE_DELAY_MS);
 }

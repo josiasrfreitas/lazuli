@@ -19,6 +19,8 @@ import { TrackName } from "./track-name";
 import type { StageSummary, TeachingProgram } from "./types";
 import styles from "./catalog.module.css";
 
+const MINUTES_PER_HOUR = 60;
+
 const mode = (program: TeachingProgram): "Regular" | "PPT" =>
   program.scheduleType === "REGULAR" ? "Regular" : "PPT";
 const programLabel = (program: TeachingProgram): string =>
@@ -85,7 +87,7 @@ export function StagePrograms({ stage }: { stage: StageSummary }): ReactJSX.Elem
                   </SelectContent>
                 </Select>
               )}
-              <span>{program.modality.weeklyMinutes / 60}h por semana</span>
+              <span>{program.modality.weeklyMinutes / MINUTES_PER_HOUR}h por semana</span>
             </div>
             <SegmentedControl
               size="sm"

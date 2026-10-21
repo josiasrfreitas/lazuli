@@ -5,6 +5,8 @@ import { weekdays } from "~/features/semester-organization/shared";
 import { leavingFor, occupancy, stageLabel, type ClassPlan, type SemesterBoard } from "./model";
 import styles from "./organization.module.css";
 
+const WEEKDAY_LABEL_LENGTH = 3;
+
 /** Recurring class composition, grouped by time; height does not encode lesson duration. */
 export function WeeklySchedule({
   board,
@@ -64,7 +66,7 @@ export function WeeklySchedule({
               aria-pressed={day === key}
               onClick={() => setDay(key)}
             >
-              {label.slice(0, 3)}
+              {label.slice(0, WEEKDAY_LABEL_LENGTH)}
             </Button>
           ))}
         </div>

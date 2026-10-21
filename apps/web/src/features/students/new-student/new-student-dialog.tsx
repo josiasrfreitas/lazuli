@@ -55,6 +55,8 @@ import {
   studentDialogClassName,
 } from "./intake-dialog-chrome";
 
+const DUPLICATE_SEARCH_DEBOUNCE_MS = 250;
+
 export type NewStudentDialogProps = {
   open: boolean;
   initialSemesterId?: string;
@@ -157,7 +159,10 @@ function EnrollmentDialog({
   );
   const lead = candidate.data?.id === candidateId ? candidate.data : undefined;
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(state.fields.fullName.trim()), 250);
+    const timer = setTimeout(
+      () => setSearch(state.fields.fullName.trim()),
+      DUPLICATE_SEARCH_DEBOUNCE_MS,
+    );
     return () => clearTimeout(timer);
   }, [state.fields.fullName]);
   const leads = trpc.admissions.list.useQuery(

@@ -4,6 +4,10 @@ import type { AppointmentSnapshot } from "@lazuli/validators";
 import { Badge } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 
+const ISO_MONTH_LENGTH = 7;
+const ISO_YEAR_LENGTH = 4;
+const ISO_MONTH_START_INDEX = 5;
+
 const ISO_DATE_LENGTH = 10;
 
 export type Appointment = RouterOutputs["appointments"]["detail"];
@@ -35,10 +39,16 @@ export function today(): string {
   }).format(new Date());
 }
 export function monthBounds(month: string): { from: string; through: string } {
-  const valid = /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : today().slice(0, 7);
+  const valid = /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : today().slice(0, ISO_MONTH_LENGTH);
   return {
     from: `${valid}-01`,
-    through: new Date(Date.UTC(Number(valid.slice(0, 4)), Number(valid.slice(5, 7)), 0))
+    through: new Date(
+      Date.UTC(
+        Number(valid.slice(0, ISO_YEAR_LENGTH)),
+        Number(valid.slice(ISO_MONTH_START_INDEX, ISO_MONTH_LENGTH)),
+        0,
+      ),
+    )
       .toISOString()
       .slice(0, ISO_DATE_LENGTH),
   };
@@ -46,7 +56,7 @@ export function monthBounds(month: string): { from: string; through: string } {
 export function shiftMonth(month: string, delta: number): string {
   const date = new Date(`${monthBounds(month).from}T12:00:00Z`);
   date.setUTCMonth(date.getUTCMonth() + delta);
-  return date.toISOString().slice(0, 7);
+  return date.toISOString().slice(0, ISO_MONTH_LENGTH);
 }
 export function AppointmentBadge({
   status,

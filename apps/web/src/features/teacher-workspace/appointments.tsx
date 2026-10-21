@@ -9,9 +9,12 @@ import { schoolToday, shiftDate } from "~/features/class-records/calendar-model"
 import { formatDateOnlyBR } from "~/lib/format";
 import { TeacherPage, TeacherQueryState } from "./shared";
 
+const DEFAULT_RANGE_START_OFFSET = -30;
+const DEFAULT_RANGE_END_OFFSET = 30;
+
 export function TeacherAppointments(): ReactJSX.Element {
-  const [from, setFrom] = useState(() => shiftDate(schoolToday(), -30));
-  const [through, setThrough] = useState(() => shiftDate(schoolToday(), 30));
+  const [from, setFrom] = useState(() => shiftDate(schoolToday(), DEFAULT_RANGE_START_OFFSET));
+  const [through, setThrough] = useState(() => shiftDate(schoolToday(), DEFAULT_RANGE_END_OFFSET));
   const [selected, setSelected] = useState<string | null>(null);
   const query = trpc.appointments.list.useQuery(
     { from, through },

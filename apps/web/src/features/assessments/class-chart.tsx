@@ -21,6 +21,10 @@ import {
   gradeLabel,
   type Assessment,
 } from "./shared";
+
+const LOW_SCORE_TICK = 20;
+const MID_SCORE_TICK = 40;
+const HIGH_SCORE_TICK = 80;
 export function ClassPerformanceChart({
   rows,
   selected,
@@ -57,7 +61,7 @@ export function ClassPerformanceChart({
             <XAxis dataKey="name" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis
               domain={[0, MAX]}
-              ticks={[0, 20, 40, PASS, 80, MAX]}
+              ticks={[0, LOW_SCORE_TICK, MID_SCORE_TICK, PASS, HIGH_SCORE_TICK, MAX]}
               tick={AXIS}
               axisLine={false}
               tickLine={false}

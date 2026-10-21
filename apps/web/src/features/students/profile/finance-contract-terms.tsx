@@ -26,6 +26,8 @@ import { MaterialPurchaseNotice } from "./material-purchase-reminder";
 import { ContractInvoice, paymentTerms, type FinanceSchedule } from "./contract-invoice";
 import styles from "./contract-invoice.module.css";
 
+const ANNUAL_CONTRACT_MONTHS = 12;
+
 type Summary = RouterOutputs["finance"]["studentSummary"];
 type Contract = Summary["contracts"][number];
 
@@ -197,7 +199,7 @@ function ContractDates({ contract }: { contract: Contract }): ReactElement {
   );
 }
 function contractLabel(contract: Contract): string {
-  if (contract.durationMonths === 12) return "Contrato anual";
+  if (contract.durationMonths === ANNUAL_CONTRACT_MONTHS) return "Contrato anual";
   if (contract.durationMonths) return `Contrato de ${contract.durationMonths} meses`;
   return "Contrato";
 }

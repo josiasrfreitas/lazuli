@@ -1,3 +1,6 @@
+const COMPLETE_UPLOAD_PERCENT = 100;
+const HTTP_SUCCESS_START = 200;
+const HTTP_SUCCESS_END = 300;
 export type PendingFile = {
   id: string;
   progressId: string;
@@ -85,10 +88,11 @@ export function transferFile(
       ),
     );
     request.upload.onprogress = (event) => {
-      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+      if (event.lengthComputable)
+        onProgress(Math.round((event.loaded / event.total) * COMPLETE_UPLOAD_PERCENT));
     };
     request.onload = () => {
-      if (request.status >= 200 && request.status < 300) resolve();
+      if (request.status >= HTTP_SUCCESS_START && request.status < HTTP_SUCCESS_END) resolve();
       else {
         let message = "Não foi possível receber o arquivo. Tente novamente.";
         try {

@@ -2,6 +2,10 @@ import type { JSX as ReactJSX } from "react";
 import { Field, FieldError, Input, Label } from "@lazuli/ui";
 import { maskTime24 } from "~/lib/masks";
 
+const TIME_DIGIT_COUNT = 4;
+const SHORT_TIME_DIGIT_COUNT = 3;
+const MAX_HOUR = 23;
+
 function maskTime(raw: string, deleting = false): string {
   if (raw.includes(":")) {
     const [hour = "", minute = ""] = raw.split(":");
@@ -9,12 +13,12 @@ function maskTime(raw: string, deleting = false): string {
     if (!digits) return "";
     return `${digits.padStart(2, "0")}:${minute.replaceAll(/\D/g, "").slice(0, 2)}`;
   }
-  const digits = raw.replaceAll(/\D/g, "").slice(0, 4);
+  const digits = raw.replaceAll(/\D/g, "").slice(0, TIME_DIGIT_COUNT);
   if (!deleting && digits.length === 1 && Number(digits) > 2) {
     return `0${digits}:`;
   }
   if (!deleting && digits.length === 2) return `${digits}:`;
-  if (digits.length === 3 && Number(digits.slice(0, 2)) > 23) {
+  if (digits.length === SHORT_TIME_DIGIT_COUNT && Number(digits.slice(0, 2)) > MAX_HOUR) {
     return `0${digits[0]}:${digits.slice(1)}`;
   }
   return maskTime24(digits);

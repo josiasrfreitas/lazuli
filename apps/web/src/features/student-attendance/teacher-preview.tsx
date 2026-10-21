@@ -4,6 +4,7 @@ import type { JSX as ReactJSX } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { RotateCcw, UserPlus } from "lucide-react";
 import { Button } from "@lazuli/ui";
+import type { ONLINE_WINDOW_MINUTES } from "@lazuli/validators";
 import { TeacherPage } from "~/features/teacher-workspace/shared";
 import {
   AttendanceReview,
@@ -13,6 +14,8 @@ import {
 } from "./attendance-review";
 import { AttendanceShareControls, type AttendanceShareAccess } from "./share-controls";
 import styles from "./teacher-page.module.css";
+
+const SHORT_PREVIEW_MINUTES = 10;
 
 const MILLISECONDS_PER_MINUTE = 60_000;
 
@@ -55,7 +58,8 @@ export function TeacherAttendancePreview(): ReactJSX.Element {
   const [entries, setEntries] = useState(roster);
   const [declarations, setDeclarations] = useState(() => [declaration(1), declaration(2)]);
   const [access, setAccess] = useState<AttendanceShareAccess | null>(null);
-  const [minutes, setMinutes] = useState<10 | 20 | 30>(10);
+  const [minutes, setMinutes] =
+    useState<(typeof ONLINE_WINDOW_MINUTES)[number]>(SHORT_PREVIEW_MINUTES);
   const [previousLink, setPreviousLink] = useState(false);
   const [notice, setNotice] = useState("");
   const [stamp, setStamp] = useState<string | null>(null);
@@ -115,7 +119,7 @@ export function TeacherAttendancePreview(): ReactJSX.Element {
     setDeclarations([declaration(1), declaration(2)]);
     setAccess(null);
     setPreviousLink(false);
-    setMinutes(10);
+    setMinutes(SHORT_PREVIEW_MINUTES);
     setStamp(null);
     setNotice("");
     setRound((value) => value + 1);

@@ -3,11 +3,13 @@ import { InlineSkeleton, Input } from "@lazuli/ui";
 import { QueryLoading } from "~/components/query-loading";
 import styles from "./student-desk.module.css";
 
+const SKELETON_ROW_COUNT = 4;
+
 export function DeskRowsLoading(): ReactElement {
   return (
     <div role="status" aria-label="Carregando registros" aria-busy="true">
       <span className="sr-only">Carregando registros…</span>
-      {[0, 1, 2, 3].map((row) => (
+      {Array.from({ length: SKELETON_ROW_COUNT }, (_unused, index) => index).map((row) => (
         <div key={row} className={styles.recordButton} aria-hidden="true">
           <InlineSkeleton className="h-3.5 w-48 max-w-full rounded-sm" />
           <InlineSkeleton className="h-3 w-32 max-w-full rounded-sm" />

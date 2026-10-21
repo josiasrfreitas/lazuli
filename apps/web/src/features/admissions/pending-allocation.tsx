@@ -7,6 +7,8 @@ import { trpc } from "~/lib/trpc";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import type { Candidate } from "./labels";
 
+const MIN_PENDING_REASON_LENGTH = 3;
+
 export function PendingAllocation({ candidate }: { candidate: Candidate }): ReactJSX.Element {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState(candidate.allocationPendingReason ?? "");
@@ -56,7 +58,7 @@ export function PendingAllocation({ candidate }: { candidate: Candidate }): Reac
             className="grid gap-4 pt-4"
             onSubmit={(event) => {
               event.preventDefault();
-              if (reason.trim().length < 3) {
+              if (reason.trim().length < MIN_PENDING_REASON_LENGTH) {
                 setError("Informe o motivo da pendência.");
                 return;
               }

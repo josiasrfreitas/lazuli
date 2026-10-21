@@ -11,6 +11,8 @@ import { TaskDialog } from "~/features/shared/task-form";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import { trpc } from "~/lib/trpc";
 
+const MAX_TERMINATION_FEE_PERCENT = 100;
+
 type Preview = RouterOutputs["finance"]["previewTermination"];
 
 export function ContractTerminationDialog({
@@ -97,7 +99,11 @@ function TerminationForm({
   });
   const feePct = Number(fee.replace(",", "."));
   const retainedChargesCents = charges ?? 0;
-  const validFee = fee.trim() !== "" && Number.isFinite(feePct) && feePct >= 0 && feePct <= 100;
+  const validFee =
+    fee.trim() !== "" &&
+    Number.isFinite(feePct) &&
+    feePct >= 0 &&
+    feePct <= MAX_TERMINATION_FEE_PERCENT;
   const feeCents = validFee ? terminationFeeCents(preview.openPrincipalCents, feePct) : 0;
   const total =
     preview.overduePrincipalCents +

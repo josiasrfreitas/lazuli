@@ -9,6 +9,8 @@ import { PHASE_LABELS } from "~/features/assessments/shared";
 import type { RouterOutputs } from "@lazuli/api";
 import styles from "./attachments.module.css";
 
+const MIN_REMOVAL_REASON_LENGTH = 3;
+
 export type FileRow = RouterOutputs["assessmentFiles"]["list"][number];
 const status: Record<FileRow["status"], string> = {
   UPLOADING: "Recebimento pendente",
@@ -168,7 +170,7 @@ export function FileList({
                 onKeyDown={(event) => {
                   if (event.key !== "Enter") return;
                   event.preventDefault();
-                  if (!remove.isPending && reason.trim().length >= 3)
+                  if (!remove.isPending && reason.trim().length >= MIN_REMOVAL_REASON_LENGTH)
                     remove.mutate({ id: row.id, reason: reason.trim() });
                 }}
                 value={reason}
@@ -182,7 +184,7 @@ export function FileList({
                 <Button
                   size="sm"
                   variant="destructive-outline"
-                  disabled={remove.isPending || reason.trim().length < 3}
+                  disabled={remove.isPending || reason.trim().length < MIN_REMOVAL_REASON_LENGTH}
                   onClick={() => remove.mutate({ id: row.id, reason: reason.trim() })}
                 >
                   <Trash2 aria-hidden="true" />

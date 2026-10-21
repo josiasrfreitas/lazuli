@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { normalizeSearch } from "@lazuli/domain";
 import { trpc } from "~/lib/trpc";
 
+const SEARCH_DEBOUNCE_MS = 180;
+
 export function useCommandSearch(query: string, enabled: boolean) {
   const [debounced, setDebounced] = useState(query);
   useEffect(() => {
-    const timeout = setTimeout(() => setDebounced(query), 180);
+    const timeout = setTimeout(() => setDebounced(query), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timeout);
   }, [query]);
   const searchable = enabled && normalizeSearch(query).length >= 2;

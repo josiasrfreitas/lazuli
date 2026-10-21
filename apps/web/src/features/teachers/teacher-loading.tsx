@@ -2,6 +2,8 @@ import type { ReactElement } from "react";
 import { BookOpen, Clock3, Pencil, MoreHorizontal } from "lucide-react";
 import { Button, InlineSkeleton } from "@lazuli/ui";
 
+const SKELETON_ROW_COUNT = 4;
+
 export function TeacherHeaderLoading(): ReactElement {
   return (
     <header
@@ -45,7 +47,7 @@ export function TeacherHeaderLoading(): ReactElement {
 export function TeacherClassesLoading(): ReactElement {
   return (
     <ul className="grid gap-3 lg:grid-cols-2" aria-label="Carregando turmas" aria-busy="true">
-      {[0, 1, 2, 3].map((item) => (
+      {Array.from({ length: SKELETON_ROW_COUNT }, (_unused, index) => index).map((item) => (
         <li
           key={item}
           className="flex items-start gap-3 rounded-md border border-border bg-card p-4"

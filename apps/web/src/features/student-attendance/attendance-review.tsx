@@ -10,6 +10,8 @@ import type { AttendanceStatus } from "./staff-section";
 import { attendanceTime } from "./location";
 import styles from "./teacher-page.module.css";
 
+const ATTENDANCE_SEARCH_THRESHOLD = 8;
+
 export type AttendanceReviewData = {
   session: { id: string };
   attendanceOnly: boolean;
@@ -134,7 +136,7 @@ export function AttendanceReview({
               antes de salvar.
             </p>
           )}
-          {rows.length > 8 && (
+          {rows.length > ATTENDANCE_SEARCH_THRESHOLD && (
             <Input
               type="search"
               size="sm"

@@ -10,10 +10,13 @@ import { RecordState } from "~/features/class-records/shared";
 import { ProfileRecordList } from "~/features/students/profile/profile-record-list";
 import { AppointmentBadge, monthBounds, purposes, shiftMonth, today } from "./shared";
 
+const ISO_MONTH_LENGTH = 7;
+const ISO_DAY_START_INDEX = 8;
+
 type AppointmentRow = RouterOutputs["appointments"]["list"][number];
 
 export function StudentAppointments({ studentId }: { studentId: string }): ReactElement {
-  const month = today().slice(0, 7);
+  const month = today().slice(0, ISO_MONTH_LENGTH);
   const range = {
     from: monthBounds(shiftMonth(month, -1)).from,
     through: monthBounds(shiftMonth(month, 1)).through,
@@ -99,7 +102,7 @@ function AppointmentItem({ row }: { row: AppointmentRow }): ReactElement {
         className="grid w-12 shrink-0 justify-items-center border-r border-border pr-3 text-heading"
       >
         <span className="font-display text-3xl font-medium leading-none tabular-nums">
-          {row.date.slice(8)}
+          {row.date.slice(ISO_DAY_START_INDEX)}
         </span>
         <span className="mt-1 text-micro uppercase">{month}</span>
       </time>

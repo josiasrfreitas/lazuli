@@ -42,6 +42,8 @@ import {
 } from "./shared";
 import styles from "./assessment-workspace.module.css";
 
+const ATTACHMENT_REFRESH_INTERVAL_MS = 5000;
+
 type AttachmentDraft = { phase: Phase; files: File[] };
 
 export function AssessmentEntryDialog({
@@ -67,7 +69,7 @@ export function AssessmentEntryDialog({
   const proof = competence === "WRITTEN" || competence === "LISTENING";
   const files = trpc.assessmentFiles.list.useQuery(
     { progressId: data.progressId },
-    { enabled: proof, refetchInterval: proof ? 5000 : false },
+    { enabled: proof, refetchInterval: proof ? ATTACHMENT_REFRESH_INTERVAL_MS : false },
   );
   const [phase, setPhase] = useState(initialPhase);
   const [baseline, setBaseline] = useState(state.grades);

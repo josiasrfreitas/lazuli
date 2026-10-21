@@ -13,6 +13,8 @@ import {
 } from "./record-participants";
 import styles from "./class-record-dialog.module.css";
 
+const ATTENDANCE_SEARCH_THRESHOLD = 8;
+
 const STATUS = {
   present: { label: "Presente", icon: Check },
   absent: { label: "Falta", icon: X },
@@ -79,7 +81,10 @@ export function RecordAttendance({
             })}
           </div>
         </div>
-        {(participants.length > 8 || guests > 0 || search || guestsOnly) && (
+        {(participants.length > ATTENDANCE_SEARCH_THRESHOLD ||
+          guests > 0 ||
+          search ||
+          guestsOnly) && (
           <div className={styles.listControls}>
             <div className={styles.search}>
               <Input

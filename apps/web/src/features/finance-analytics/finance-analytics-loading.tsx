@@ -1,6 +1,8 @@
 import type { ReactElement } from "react";
 import { InlineSkeleton, PencilLoader } from "@lazuli/ui";
 
+const SKELETON_ROW_COUNT = 4;
+
 export function AnalyticsLoading(): ReactElement {
   return (
     <div aria-label="Carregando indicadores financeiros" aria-busy="true" className="space-y-5">
@@ -25,7 +27,7 @@ export function AnalyticsLoading(): ReactElement {
         className="grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-5 xl:grid-cols-4"
         aria-hidden="true"
       >
-        {[0, 1, 2, 3].map((index) => (
+        {Array.from({ length: SKELETON_ROW_COUNT }, (_unused, index) => index).map((index) => (
           <div key={index} className="grid gap-3">
             <InlineSkeleton className="w-24" />
             <InlineSkeleton className="h-7 w-28" />

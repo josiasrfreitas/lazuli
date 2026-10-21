@@ -24,6 +24,10 @@ import { ClosureForm, PeriodForm, HolidayForm } from "./calendar-forms";
 import { RenewalDialog } from "./renewal";
 import { ContinuityDialog, PlanStatusDialog } from "./continuity";
 
+const MIN_REASON_LENGTH = 3;
+const MAX_REASON_LENGTH = 1200;
+const STUDENT_PAGE_SIZE = 25;
+
 export type OrganizationDialogProps = {
   action: OrganizationAction;
   board: SemesterBoard;
@@ -231,7 +235,13 @@ function MovementForm({
           };
           if (decline) {
             const values = validation.validate(
-              z.object({ reason: z.string().trim().min(3, "Informe o motivo.").max(1200) }),
+              z.object({
+                reason: z
+                  .string()
+                  .trim()
+                  .min(MIN_REASON_LENGTH, "Informe o motivo.")
+                  .max(MAX_REASON_LENGTH),
+              }),
               { reason },
             );
             if (values) stop.mutate({ ...base, ...values });
@@ -240,7 +250,7 @@ function MovementForm({
               z.object({
                 planId: z.string().uuid("Escolha uma turma."),
                 effectiveDate: calendarDateSchema,
-                reason: z.string().trim().max(1200),
+                reason: z.string().trim().max(MAX_REASON_LENGTH),
               }),
               { planId, effectiveDate: parseDateBR(date) ?? "", reason },
             );
@@ -416,7 +426,7 @@ function FindStudent({
             <p className={styles.small}>Nenhum aluno encontrado. Você pode cadastrar um novo.</p>
           )}
         </div>
-        {query.data && query.data.total > 25 && (
+        {query.data && query.data.total > STUDENT_PAGE_SIZE && (
           <div className={styles.row}>
             <Button
               size="sm"
@@ -430,7 +440,7 @@ function FindStudent({
             <Button
               size="sm"
               variant="ghost"
-              disabled={page * 25 >= query.data.total}
+              disabled={page * STUDENT_PAGE_SIZE >= query.data.total}
               onClick={() => setPage(page + 1)}
             >
               Próxima

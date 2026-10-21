@@ -5,6 +5,8 @@ import type { RouterOutputs } from "@lazuli/api";
 import { Badge, Button, DataTable, Input, TableFilters, type DataTableColumn } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { SemesterBoard } from "./shared";
+
+const STUDENT_PAGE_SIZE = 20;
 type Student = RouterOutputs["semesterOrganization"]["students"]["rows"][number];
 export function StudentPool({
   board,
@@ -156,7 +158,7 @@ export function StudentPool({
         pagination={{
           page,
           pageSize: 25,
-          pageCount: Math.max(1, Math.ceil((query.data?.total ?? 0) / 20)),
+          pageCount: Math.max(1, Math.ceil((query.data?.total ?? 0) / STUDENT_PAGE_SIZE)),
           totalItems: query.data?.total ?? 0,
           onPageChange: setPage,
           itemLabel: { singular: "aluno", plural: "alunos" },

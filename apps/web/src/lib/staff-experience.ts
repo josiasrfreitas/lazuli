@@ -1,6 +1,12 @@
 import { STAFF_ROLE_COOKIE, type StaffRole } from "@lazuli/auth/roles";
 
-const ROLE_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
+const SECONDS_PER_MINUTE = 60;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+const ROLE_COOKIE_LIFETIME_DAYS = 30;
+
+const ROLE_COOKIE_MAX_AGE =
+  SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * ROLE_COOKIE_LIFETIME_DAYS;
 const INTERNAL_ORIGIN = "https://lazuli.invalid";
 
 export function experienceHome(role: StaffRole): string {

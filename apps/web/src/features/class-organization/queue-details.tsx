@@ -12,6 +12,8 @@ import {
   type SemesterBoard,
 } from "./model";
 import styles from "./organization.module.css";
+
+const MAX_PLAN_SUGGESTIONS = 5;
 export type QueueProps = {
   board: SemesterBoard;
   onAction: (action: OrganizationAction) => void;
@@ -87,7 +89,7 @@ export function PendingStudent({
           <h3>
             {suggestions.length > 0 ? "Turmas compatíveis" : "Sem turma compatível por enquanto"}
           </h3>
-          {suggestions.slice(0, 5).map((plan) => (
+          {suggestions.slice(0, MAX_PLAN_SUGGESTIONS).map((plan) => (
             <button
               type="button"
               className={styles.queueItem}

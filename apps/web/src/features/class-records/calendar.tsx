@@ -24,6 +24,8 @@ import { CalendarEventFilters, EVENT_TYPES } from "./calendar-event-filters";
 import { TeacherAgendaHeader } from "./teacher-agenda-header";
 import styles from "./calendar.module.css";
 
+const EXPANDED_TEACHER_EVENT_WIDTH = 256;
+
 export { CalendarWeek } from "./calendar-week";
 
 export function LessonCalendar({
@@ -169,7 +171,7 @@ export function LessonCalendar({
         toolbar={false}
         density={teacherView && view === "semana" ? "compact" : "comfortable"}
         widthBehavior={teacherView ? "fit" : "scroll"}
-        expandedEventWidth={teacherView ? 256 : undefined}
+        expandedEventWidth={teacherView ? EXPANDED_TEACHER_EVENT_WIDTH : undefined}
         keepExpanded={Boolean(lessonId || appointmentId || experimentId)}
         expandedEventId={
           lessons.find((lesson) => lesson.appointments?.some((item) => item.id === appointmentId))

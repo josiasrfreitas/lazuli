@@ -5,6 +5,8 @@ import { Button } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 
+const GENERATION_REFRESH_INTERVAL_MS = 3000;
+
 type Row = RouterOutputs["sessionGeneration"]["status"][number];
 type Props = { classId?: string; from?: string; to?: string };
 
@@ -12,7 +14,9 @@ export function useSessionGeneration(props: Props) {
   const utils = trpc.useUtils();
   const query = trpc.sessionGeneration.status.useQuery(props, {
     refetchInterval: (state) =>
-      state.state.data?.some((row) => row.pending && !row.stale) ? 3000 : false,
+      state.state.data?.some((row) => row.pending && !row.stale)
+        ? GENERATION_REFRESH_INTERVAL_MS
+        : false,
   });
   const completionKey = query.data
     ?.filter((row) => row.request?.status === "SUCCEEDED")

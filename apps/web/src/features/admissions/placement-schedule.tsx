@@ -34,6 +34,8 @@ import { useLeadErrors } from "./lead-form";
 import type { Candidate } from "./labels";
 import styles from "./placement-schedule.module.css";
 
+const CLOCK_REFRESH_INTERVAL_MS = 30_000;
+
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
 export type PlacementScheduleDraft = {
@@ -97,7 +99,7 @@ export function PlacementSchedule({
     onDraftChange?.(draft);
   }, [draft, onDraftChange]);
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(schoolClock()), 30_000);
+    const timer = window.setInterval(() => setNow(schoolClock()), CLOCK_REFRESH_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, []);
   const errors = useLeadErrors();

@@ -21,6 +21,10 @@ import {
   type PendingFile,
 } from "./local-queue";
 
+const ACTIVE_QUEUE_REFRESH_INTERVAL_MS = 3000;
+const IDLE_QUEUE_REFRESH_INTERVAL_MS = 15_000;
+const COMPLETE_UPLOAD_PERCENT = 100;
+
 type QueueStatus =
   | "QUEUED"
   | "UPLOADING"
@@ -77,8 +81,8 @@ export function AssessmentUploadProvider({
     refetchInterval: items.some(
       (item) => !["READY", "REJECTED", "INTERRUPTED", "FAILED"].includes(item.status),
     )
-      ? 3000
-      : 15_000,
+      ? ACTIVE_QUEUE_REFRESH_INTERVAL_MS
+      : IDLE_QUEUE_REFRESH_INTERVAL_MS,
   });
   const retry = trpc.assessmentFiles.retry.useMutation({
     onSuccess: () => utils.assessmentFiles.invalidate(),
@@ -251,7 +255,7 @@ export function AssessmentUploadProvider({
                 <p className="break-all text-sm font-medium">{item.name}</p>
                 <p className="text-caption text-muted-foreground" role="status">
                   {item.status === "UPLOADING"
-                    ? item.progress === 100
+                    ? item.progress === COMPLETE_UPLOAD_PERCENT
                       ? "Concluindo recebimento…"
                       : `Enviando · ${item.progress}%`
                     : labels[item.status]}

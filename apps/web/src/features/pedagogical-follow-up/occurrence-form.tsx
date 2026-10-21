@@ -32,6 +32,8 @@ import { CATEGORY, dateLabel } from "./shared";
 import { studentFollowUpHref } from "./student-navigation";
 import styles from "./occurrence-form.module.css";
 
+const WEEK_END_OFFSET = 6;
+
 const ISO_DATE_LENGTH = 10;
 const ISO_TIME_START_INDEX = 11;
 const ISO_MINUTE_END_INDEX = 16;
@@ -59,7 +61,7 @@ export function OccurrenceForm({
   const from = view === "week" ? monday(date) : date;
   const sessions = trpc.occurrences.sessions.useQuery({
     ...(student ? { studentId: student.id } : {}),
-    range: { from, to: view === "week" ? shiftDate(from, 6) : date },
+    range: { from, to: view === "week" ? shiftDate(from, WEEK_END_OFFSET) : date },
   });
   const roster = trpc.occurrences.roster.useQuery(
     { id: values.classSessionId },
@@ -172,7 +174,7 @@ export function OccurrenceForm({
                         timeZone: "UTC",
                       }).formatRange(
                         new Date(`${from}T12:00:00Z`),
-                        new Date(`${shiftDate(from, 6)}T12:00:00Z`),
+                        new Date(`${shiftDate(from, WEEK_END_OFFSET)}T12:00:00Z`),
                       )
                 }
                 {...(hours ? { hours } : {})}

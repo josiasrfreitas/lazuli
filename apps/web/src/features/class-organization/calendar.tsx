@@ -8,6 +8,9 @@ import { dateOnly, useOrganizationRefresh } from "~/features/semester-organizati
 import type { OrganizationAction, SemesterBoard } from "./model";
 import styles from "./organization.module.css";
 
+const ISO_MONTH_LENGTH = 7;
+const CALENDAR_UTC_HOUR = 12;
+
 const ISO_DATE_LENGTH = 10;
 
 export function OrganizationCalendar({
@@ -23,9 +26,9 @@ export function OrganizationCalendar({
   const remove = trpc.calendar.removeClosedDay.useMutation({ onSuccess: refresh });
   const months: Date[] = [];
   for (
-    let date = new Date(`${start.slice(0, 7)}-01T12:00:00Z`);
+    let date = new Date(`${start.slice(0, ISO_MONTH_LENGTH)}-01T12:00:00Z`);
     date.toISOString().slice(0, ISO_DATE_LENGTH) <= end;
-    date = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1, 12))
+    date = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1, CALENDAR_UTC_HOUR))
   )
     months.push(date);
   return (
@@ -59,7 +62,7 @@ export function OrganizationCalendar({
                     <span key={`empty-${position}`} />
                   ))}
                   {Array.from({ length: count }, (_unused, position) => {
-                    const date = `${month.toISOString().slice(0, 7)}-${String(position + 1).padStart(2, "0")}`;
+                    const date = `${month.toISOString().slice(0, ISO_MONTH_LENGTH)}-${String(position + 1).padStart(2, "0")}`;
                     const closed = board.closedDays.find((item) => dateOnly(item.date) === date);
                     return (
                       <button

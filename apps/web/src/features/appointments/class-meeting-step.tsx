@@ -22,6 +22,9 @@ import { ScheduleCalendarToolbar } from "./schedule-calendar-toolbar";
 import styles from "./class-meeting-step.module.css";
 import { AppointmentCalendar } from "./appointment-calendar";
 
+const CLOCK_REFRESH_INTERVAL_MS = 30_000;
+const DEFAULT_APPOINTMENT_MINUTES = 60;
+
 export type ScheduleSelection = CalendarInterval & {
   sessionId?: string | undefined;
   format?: "IN_PERSON" | "ONLINE" | undefined;
@@ -84,7 +87,7 @@ export function ClassMeetingStep(props: Props): ReactElement {
   useEffect(() => setDateDraft(formatDateOnlyBR(props.date)), [props.date]);
   useEffect(() => step.current?.focus(), []);
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(schoolClock()), 30_000);
+    const timer = window.setInterval(() => setNow(schoolClock()), CLOCK_REFRESH_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, []);
   const dateWindow = { date: calendarDate, view, dayCount: 7, minDate: now.date };
@@ -266,7 +269,7 @@ export function ClassMeetingStep(props: Props): ReactElement {
           rangeSelection={
             props.kind === "INDEPENDENT"
               ? {
-                  clickDurationMinutes: props.durationMinutes || 60,
+                  clickDurationMinutes: props.durationMinutes || DEFAULT_APPOINTMENT_MINUTES,
                   value: props.startTime && props.endTime && !manualError ? selectedRange : null,
                   minimum: now,
                   blocked,

@@ -9,6 +9,8 @@ import { isPending, isQueueItem, stageLabel, type PendingGroup } from "./model";
 import { PendingLead, PendingStudent, type QueueProps } from "./queue-details";
 import styles from "./organization.module.css";
 
+const QUEUE_SEARCH_THRESHOLD = 6;
+
 export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): ReactJSX.Element {
   const [search, setSearch] = useState("");
   const ended = dateOnly(board.semester.endDate) < toDateOnlySaoPaulo(new Date());
@@ -65,7 +67,7 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
         <p className={styles.small}>
           Alocações, trocas e continuidade. Expanda para cuidar de cada caso.
         </p>
-        {count > 6 && (
+        {count > QUEUE_SEARCH_THRESHOLD && (
           <Input
             size="sm"
             leadingIcon={<Search size={14} />}

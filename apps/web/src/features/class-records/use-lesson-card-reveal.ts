@@ -2,6 +2,8 @@
 
 import { useLayoutEffect, useRef } from "react";
 
+const MILLISECONDS_PER_SECOND = 1000;
+
 /** Measure once at the destination width, then let CSS move both axes together. */
 export function useLessonCardReveal(dayWidth?: number, widthShare?: number) {
   const ref = useRef<HTMLButtonElement>(null);
@@ -45,7 +47,7 @@ export function useLessonCardReveal(dayWidth?: number, widthShare?: number) {
     const duration = Math.max(
       ...getComputedStyle(card)
         .transitionDuration.split(",")
-        .map((value) => Number.parseFloat(value) * 1000),
+        .map((value) => Number.parseFloat(value) * MILLISECONDS_PER_SECOND),
     );
     if (!duration || event.dataset.weekRevealed === "true") {
       reset();

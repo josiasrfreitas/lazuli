@@ -10,6 +10,8 @@ import { Choices, dateOnly, useOrganizationRefresh } from "~/features/semester-o
 import type { OrganizationAction, Placement, SemesterBoard, ClassPlan } from "./model";
 import styles from "./organization.module.css";
 
+const MIN_CONTINUITY_REASON_LENGTH = 3;
+
 type Continuity = "UNDECIDED" | "STAY" | "CHANGE" | "LEAVING";
 export function ContinuityDialog({
   row,
@@ -51,7 +53,10 @@ export function ContinuityDialog({
         className={styles.form}
         onSubmit={(event) => {
           event.preventDefault();
-          if (["CHANGE", "LEAVING"].includes(value) && reason.trim().length < 3) {
+          if (
+            ["CHANGE", "LEAVING"].includes(value) &&
+            reason.trim().length < MIN_CONTINUITY_REASON_LENGTH
+          ) {
             setError("Registre o motivo para a equipe acompanhar.");
             return;
           }

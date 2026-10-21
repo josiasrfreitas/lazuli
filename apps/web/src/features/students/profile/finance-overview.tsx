@@ -12,6 +12,8 @@ import { FinanceContractTerms } from "./finance-contract-terms";
 import { FinanceHistoryDialog } from "./finance-history-dialog";
 import { ContractTerminationNotice } from "./contract-termination-notice";
 
+const PERCENT_SCALE = 100;
+
 export function FinanceOverview({
   state,
   profile,
@@ -141,8 +143,8 @@ function FinanceBalance({
 
 function FinanceDistribution({ summary }: { summary: StudentFinanceSummary }): ReactElement {
   const total = summary.totalCents || 1;
-  const paid = (summary.receivedCents / total) * 100;
-  const overdue = (summary.overdueCents / total) * 100;
+  const paid = (summary.receivedCents / total) * PERCENT_SCALE;
+  const overdue = (summary.overdueCents / total) * PERCENT_SCALE;
   const upcoming = summary.outstandingCents - summary.overdueCents;
   const description = `Pago: ${money(summary.receivedCents)}. Em atraso: ${money(summary.overdueCents)}. A vencer: ${money(upcoming)}.`;
   return (

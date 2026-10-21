@@ -10,11 +10,17 @@ import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
 import { ContractMaterialSection } from "./contract-material-section";
 import { emptyContractFields, type ContractFields } from "./contract-form-model";
 
+const ISO_YEAR_LENGTH = 4;
+const MONTHS_PER_YEAR = 12;
+const ISO_MONTH_START_INDEX = 5;
+const ISO_MONTH_LENGTH = 7;
+
 function dueDateInMonth(anchor: string, month: string): string {
   const offset =
-    (Number(month.slice(0, 4)) - Number(anchor.slice(0, 4))) * 12 +
-    Number(month.slice(5, 7)) -
-    Number(anchor.slice(5, 7));
+    (Number(month.slice(0, ISO_YEAR_LENGTH)) - Number(anchor.slice(0, ISO_YEAR_LENGTH))) *
+      MONTHS_PER_YEAR +
+    Number(month.slice(ISO_MONTH_START_INDEX, ISO_MONTH_LENGTH)) -
+    Number(anchor.slice(ISO_MONTH_START_INDEX, ISO_MONTH_LENGTH));
   return /^\d{4}-\d{2}$/u.test(month) && offset >= 0 ? addCalendarMonths(anchor, offset) : "";
 }
 
@@ -32,7 +38,9 @@ export function AddContractMaterial({
   onSaved: () => void;
 }): ReactJSX.Element {
   const today = toDateOnlySaoPaulo(new Date());
-  const [month, setMonth] = useState((today > firstDueDate ? today : firstDueDate).slice(0, 7));
+  const [month, setMonth] = useState(
+    (today > firstDueDate ? today : firstDueDate).slice(0, ISO_MONTH_LENGTH),
+  );
   const [fields, setFields] = useState<ContractFields>({
     ...emptyContractFields,
     materialPayment: "INSTALLMENTS",
@@ -137,7 +145,7 @@ export function AddContractMaterial({
                   name="materialMonth"
                   type="month"
                   value={month}
-                  min={firstDueDate.slice(0, 7)}
+                  min={firstDueDate.slice(0, ISO_MONTH_LENGTH)}
                   onChange={(event) => setMonth(event.target.value)}
                 />
               </Field>

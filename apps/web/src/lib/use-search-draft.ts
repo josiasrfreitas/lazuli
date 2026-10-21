@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
+const DEFAULT_SEARCH_DEBOUNCE_MS = 300;
+
 /** URL acknowledgements must never replace a newer keystroke. */
 export function useSearchDraft(
   search: string,
   onCommit: (value: string) => void,
-  delay = 300,
+  delay = DEFAULT_SEARCH_DEBOUNCE_MS,
 ): readonly [string, (next: string) => void] {
   const [value, setValue] = useState(search);
   const commit = useRef(onCommit);

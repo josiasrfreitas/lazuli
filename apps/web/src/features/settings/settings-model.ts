@@ -7,6 +7,8 @@ import {
 
 import { INITIAL_MATERIAL_PRICING, materialPriceQuote } from "@lazuli/domain";
 
+const MAX_DATABASE_INTEGER = 2_147_483_647;
+
 const CENTS_PER_REAL = 100;
 const MAX_PERCENT = 100;
 const MONEY_DECIMAL_PLACES = 2;
@@ -75,7 +77,7 @@ function fieldError(name: keyof SettingsFields, text: string): string | undefine
   const value = decimal(text);
   if (!Number.isFinite(value)) return "Use um número, como 10 ou 0,5.";
   if (name.endsWith("Installments")) {
-    return /^\d+$/u.test(text.trim()) && value >= 1 && value <= 2_147_483_647
+    return /^\d+$/u.test(text.trim()) && value >= 1 && value <= MAX_DATABASE_INTEGER
       ? undefined
       : "Informe uma quantidade inteira maior que zero.";
   }

@@ -16,6 +16,9 @@ import {
 } from "~/features/contracts/contract-form-model";
 import { useContractFormState, fieldErrors } from "~/features/contracts/new-contract-state";
 
+const CENTS_PER_REAL = 100;
+const CALENDAR_UTC_HOUR = 12;
+
 const ISO_DATE_LENGTH = 10;
 
 type Props = { contractId: string; onClose: () => void; onSaved: () => void };
@@ -69,7 +72,7 @@ function RenewalFields({
       studentName: data.student.fullName,
       payerId: data.payer.id,
       payerLabel: data.payer.name,
-      monthlyAmount: (data.monthlyAmountCents / 100).toFixed(2),
+      monthlyAmount: (data.monthlyAmountCents / CENTS_PER_REAL).toFixed(2),
       agreedOn: formatDateOnlyBR(toDateOnlySaoPaulo(new Date())),
       firstDueDate: formatDateOnlyBR(start),
       endsOn: formatDateOnlyBR(addCalendarMonths(start, data.durationMonths)),
@@ -88,7 +91,7 @@ function RenewalFields({
           data.dueDay,
           new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0)).getUTCDate(),
         ),
-        12,
+        CALENDAR_UTC_HOUR,
       ),
     );
     if (date < start) {

@@ -12,6 +12,8 @@ import { CoverageFields } from "./coverage-fields";
 import { useAppointmentRefresh, type Appointment } from "./shared";
 import styles from "./appointment-record-form.module.css";
 
+const CONTEXT_NOTE_ROWS = 3;
+
 const MILLISECONDS_PER_MINUTE = 60_000;
 
 export function AppointmentRecordForm({
@@ -202,7 +204,7 @@ export function AppointmentRecordForm({
                     className="size-3.5 text-muted-foreground"
                   />
                 }
-                rows={context ? 3 : 2}
+                rows={context ? CONTEXT_NOTE_ROWS : 2}
                 placeholder="Devolutiva e próximos passos"
                 value={notes}
                 onChange={(value) => {

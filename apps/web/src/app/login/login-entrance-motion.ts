@@ -1,3 +1,5 @@
+const COMPACT_VIEWPORT_WIDTH = 980;
+const COMPACT_VIEWPORT_HEIGHT = 540;
 const FLIGHT_TIMING: KeyframeAnimationOptions = { duration: 1800, fill: "both" };
 const FLIGHT_EASING = "cubic-bezier(0.77, 0, 0.175, 1)";
 const REVEAL_EASING = "cubic-bezier(0.23, 1, 0.32, 1)";
@@ -24,7 +26,8 @@ const CURVE = {
 /** Measure the rendered composition so the point lands on the actual brand punctuation. */
 export function animateEntrance(root: HTMLElement, overlay: SVGSVGElement): Animation[] {
   const bounds = root.getBoundingClientRect();
-  if (bounds.width <= 980 || bounds.height <= 540) return animateContent(root);
+  if (bounds.width <= COMPACT_VIEWPORT_WIDTH || bounds.height <= COMPACT_VIEWPORT_HEIGHT)
+    return animateContent(root);
 
   const hero = root.querySelector<HTMLElement>("[data-login-hero]");
   const destination = root.querySelector<SVGCircleElement>("[data-brand-dot]");

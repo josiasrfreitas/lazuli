@@ -12,6 +12,8 @@ import { dateOnly, useOrganizationRefresh } from "~/features/semester-organizati
 import type { OrganizationDialogProps as Props } from "./dialogs";
 import styles from "./organization.module.css";
 
+const ISO_YEAR_LENGTH = 4;
+
 export function ClosureForm({
   board,
   initialDate,
@@ -199,7 +201,9 @@ export function PeriodForm({ board, onClose, onFeedback }: Props): ReactJSX.Elem
 }
 
 export function HolidayForm({ board, onClose, onFeedback }: Props): ReactJSX.Element {
-  const [year, setYear] = useState(Number(dateOnly(board.semester.startDate).slice(0, 4)));
+  const [year, setYear] = useState(
+    Number(dateOnly(board.semester.startDate).slice(0, ISO_YEAR_LENGTH)),
+  );
   const query = trpc.semesterOrganization.holidays.useQuery({ year }, { retry: false });
   const [excluded, setExcluded] = useState<string[]>([]),
     [working, setWorking] = useState(false),
@@ -277,8 +281,8 @@ export function HolidayForm({ board, onClose, onFeedback }: Props): ReactJSX.Ele
           }}
           choices={[
             ...new Set([
-              dateOnly(board.semester.startDate).slice(0, 4),
-              dateOnly(board.semester.endDate).slice(0, 4),
+              dateOnly(board.semester.startDate).slice(0, ISO_YEAR_LENGTH),
+              dateOnly(board.semester.endDate).slice(0, ISO_YEAR_LENGTH),
             ]),
           ].map((value) => ({ value, label: value }))}
         />

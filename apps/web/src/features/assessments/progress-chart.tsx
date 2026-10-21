@@ -26,6 +26,12 @@ import {
   type Assessment,
 } from "./shared";
 
+const WIDE_SCORE_RANGE = 50;
+const WIDE_SCORE_TICK_STEP = 20;
+const MEDIUM_SCORE_RANGE = 30;
+const MEDIUM_SCORE_TICK_STEP = 10;
+const MIN_SCORE_TICK_SPACING = 5;
+
 export function AcademicProgressChart({ data }: { data: Assessment }): ReactElement {
   const [fullScale, setFullScale] = useState(false);
   const cropped = gradeRange(data.grades.map((grade) => grade.score));
@@ -133,11 +139,17 @@ function gradeRange(scores: number[]): [number, number] {
   return [min, max];
 }
 function scaleTicks(min: number, max: number): number[] {
-  const step = max - min > 50 ? 20 : max - min > 30 ? 10 : 5;
+  const step =
+    max - min > WIDE_SCORE_RANGE
+      ? WIDE_SCORE_TICK_STEP
+      : max - min > MEDIUM_SCORE_RANGE
+        ? MEDIUM_SCORE_TICK_STEP
+        : MIN_SCORE_TICK_SPACING;
   const ticks = [min, max];
   if (min <= PASS && max >= PASS) ticks.push(PASS);
   for (let value = Math.ceil(min / step) * step; value < max; value += step) {
-    if (value - min >= 5 && max - value >= 5) ticks.push(value);
+    if (value - min >= MIN_SCORE_TICK_SPACING && max - value >= MIN_SCORE_TICK_SPACING)
+      ticks.push(value);
   }
   return [...new Set(ticks)].toSorted((left, right) => left - right);
 }

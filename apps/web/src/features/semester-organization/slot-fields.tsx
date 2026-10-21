@@ -5,6 +5,8 @@ import { Plus, X } from "lucide-react";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
 import { maskTime24 } from "~/lib/masks";
 import { weekdays } from "./shared";
+
+const MAX_WEEKLY_SLOTS = 7;
 export type SlotDraft = { weekday: keyof typeof weekdays; startTime: string; endTime: string };
 export function SlotFields({
   slots,
@@ -82,7 +84,7 @@ export function SlotFields({
         <Button
           variant="secondary"
           size="sm"
-          disabled={slots.length >= 7}
+          disabled={slots.length >= MAX_WEEKLY_SLOTS}
           onClick={() => onChange([...slots, { weekday: "WEDNESDAY", startTime: "", endTime: "" }])}
         >
           <Plus />

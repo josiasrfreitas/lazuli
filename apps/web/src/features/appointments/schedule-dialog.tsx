@@ -29,6 +29,8 @@ import { ClassMeetingStep, type ScheduleSelection } from "./class-meeting-step";
 import { CoverageFields } from "./coverage-fields";
 import { purposes, today, useAppointmentRefresh, type Absence } from "./shared";
 
+const DEFAULT_APPOINTMENT_MINUTES = 60;
+
 export function ScheduleAppointmentDialog({
   student: initialStudent,
   source,
@@ -256,7 +258,9 @@ export function ScheduleAppointmentDialog({
             <ClassMeetingStep
               actions={actions}
               durationMinutes={
-                purpose === "MAKEUP" ? coverages.reduce((sum, row) => sum + row.minutes, 0) : 60
+                purpose === "MAKEUP"
+                  ? coverages.reduce((sum, row) => sum + row.minutes, 0)
+                  : DEFAULT_APPOINTMENT_MINUTES
               }
               kind={kind}
               studentId={student?.id ?? ""}

@@ -21,6 +21,8 @@ import {
   compactMoney,
   type Analytics,
 } from "./chart-shared";
+
+const BAR_CORNER_RADIUS = 4;
 const METHOD_LABELS: Record<string, string> = {
   PIX: "Pix",
   CARD: "Cartão",
@@ -138,7 +140,7 @@ export function AgingChart({ data }: { data: Analytics }): ReactElement {
               dataKey="balanceCents"
               name="Saldo vencido"
               fill="var(--warning)"
-              radius={[0, 4, 4, 0]}
+              radius={[0, BAR_CORNER_RADIUS, BAR_CORNER_RADIUS, 0]}
               maxBarSize={20}
               isAnimationActive={false}
             />

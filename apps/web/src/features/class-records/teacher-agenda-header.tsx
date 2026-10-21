@@ -23,6 +23,10 @@ import { CalendarWeek } from "./calendar-week";
 import { calendarDate, monday, schoolToday, shiftDate } from "./calendar-model";
 import styles from "./teacher-agenda.module.css";
 
+const PREVIOUS_WEEK_OFFSET = -7;
+const DAYS_PER_WEEK = 7;
+const WEEK_END_OFFSET = 6;
+
 export function TeacherAgendaHeader({
   date,
   view,
@@ -67,7 +71,9 @@ export function TeacherAgendaHeader({
             variant="ghost"
             size="icon-sm"
             aria-label={view === "dia" ? "Dia anterior" : "Semana anterior"}
-            onClick={() => onSelectDate(shiftDate(date, view === "dia" ? -1 : -7))}
+            onClick={() =>
+              onSelectDate(shiftDate(date, view === "dia" ? -1 : PREVIOUS_WEEK_OFFSET))
+            }
           >
             <ChevronLeft />
           </Button>
@@ -75,7 +81,7 @@ export function TeacherAgendaHeader({
             variant="ghost"
             size="icon-sm"
             aria-label={view === "dia" ? "Próximo dia" : "Próxima semana"}
-            onClick={() => onSelectDate(shiftDate(date, view === "dia" ? 1 : 7))}
+            onClick={() => onSelectDate(shiftDate(date, view === "dia" ? 1 : DAYS_PER_WEEK))}
           >
             <ChevronRight />
           </Button>
@@ -132,19 +138,19 @@ export function TeacherAgendaHeader({
               variant="ghost"
               size="icon-sm"
               aria-label="Semana anterior"
-              onClick={() => onSelectDate(shiftDate(date, -7))}
+              onClick={() => onSelectDate(shiftDate(date, PREVIOUS_WEEK_OFFSET))}
             >
               <ChevronLeft />
             </Button>
             <span>
               {calendarDate(from, { day: "numeric", month: "short" })} –{" "}
-              {calendarDate(shiftDate(from, 6), { day: "numeric", month: "short" })}
+              {calendarDate(shiftDate(from, WEEK_END_OFFSET), { day: "numeric", month: "short" })}
             </span>
             <Button
               variant="ghost"
               size="icon-sm"
               aria-label="Próxima semana"
-              onClick={() => onSelectDate(shiftDate(date, 7))}
+              onClick={() => onSelectDate(shiftDate(date, DAYS_PER_WEEK))}
             >
               <ChevronRight />
             </Button>

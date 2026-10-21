@@ -4,6 +4,8 @@ import { trpc } from "~/lib/trpc";
 import { hoursLabel } from "./format";
 import { WeekGrid } from "./week-grid";
 
+const HOUR_LESSON_MINUTES = 60;
+
 export function TeacherWeek({
   id,
   back,
@@ -35,7 +37,9 @@ export function TeacherWeek({
                 <span className="font-numeric text-h2 font-semibold text-foreground tabular-nums">
                   {schedule.data ? hoursLabel(schedule.data.minutes) : <InlineSkeleton />}
                 </span>
-                <span>{schedule.data?.minutes === 60 ? "hora-aula" : "horas-aula"}</span>
+                <span>
+                  {schedule.data?.minutes === HOUR_LESSON_MINUTES ? "hora-aula" : "horas-aula"}
+                </span>
               </TooltipTrigger>
               <TooltipContent>1 hora-aula = 60 minutos.</TooltipContent>
             </Tooltip>

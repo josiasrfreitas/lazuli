@@ -6,6 +6,10 @@ import { Button } from "@lazuli/ui";
 import { calendarDate, shiftDate } from "./calendar-model";
 import styles from "./calendar.module.css";
 
+const DAYS_PER_WEEK = 7;
+const WEEK_SETTLE_DELAY_MS = 140;
+const ISO_DAY_SUFFIX_START = -2;
+
 type CalendarWeekInput = {
   compact?: boolean;
   from: string;
@@ -55,14 +59,14 @@ export function CalendarWeek({
     const offset = Math.round(node.scrollLeft / node.clientWidth) - 1;
     if (offset === 0) return;
     changing.current = true;
-    onChangeWeek(shiftDate(from, offset * 7));
+    onChangeWeek(shiftDate(from, offset * DAYS_PER_WEEK));
   }
 
   function move(direction: number, pointer: boolean): void {
     const node = rail.current;
     if (!node || changing.current) return;
     if (!pointer || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      onChangeWeek(shiftDate(from, direction * 7));
+      onChangeWeek(shiftDate(from, direction * DAYS_PER_WEEK));
       return;
     }
     node.scrollTo({ left: node.clientWidth * (1 + direction), behavior: "smooth" });
@@ -83,7 +87,7 @@ export function CalendarWeek({
         className={styles.weekCarousel}
         onScroll={() => {
           if (settleTimer.current) clearTimeout(settleTimer.current);
-          settleTimer.current = setTimeout(settle, 140);
+          settleTimer.current = setTimeout(settle, WEEK_SETTLE_DELAY_MS);
         }}
       >
         {[-1, 0, 1].map((offset) => (
@@ -93,22 +97,22 @@ export function CalendarWeek({
             aria-hidden={offset !== 0}
             inert={offset !== 0}
           >
-            {Array.from({ length: 7 }, (_unused, index) => shiftDate(from, offset * 7 + index)).map(
-              (day) => (
-                <button
-                  key={day}
-                  type="button"
-                  className={styles.day}
-                  aria-pressed={day === date}
-                  aria-current={day === today ? "date" : undefined}
-                  onClick={() => onSelectDay(day)}
-                  aria-label={calendarDate(day, { weekday: "long", day: "numeric", month: "long" })}
-                >
-                  <span>{calendarDate(day, { weekday: "short" }).replace(".", "")}</span>{" "}
-                  <span>{day.slice(-2)}</span>
-                </button>
-              ),
-            )}
+            {Array.from({ length: 7 }, (_unused, index) =>
+              shiftDate(from, offset * DAYS_PER_WEEK + index),
+            ).map((day) => (
+              <button
+                key={day}
+                type="button"
+                className={styles.day}
+                aria-pressed={day === date}
+                aria-current={day === today ? "date" : undefined}
+                onClick={() => onSelectDay(day)}
+                aria-label={calendarDate(day, { weekday: "long", day: "numeric", month: "long" })}
+              >
+                <span>{calendarDate(day, { weekday: "short" }).replace(".", "")}</span>{" "}
+                <span>{day.slice(ISO_DAY_SUFFIX_START)}</span>
+              </button>
+            ))}
           </div>
         ))}
       </div>

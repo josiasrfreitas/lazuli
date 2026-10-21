@@ -37,6 +37,8 @@ import { dateOnly, formatLabel, type Candidate } from "./labels";
 import styles from "./visit-dialog.module.css";
 import { trialVisitInput } from "./trial-visit-input";
 
+const CLOCK_REFRESH_INTERVAL_MS = 30_000;
+
 type VisitInput = { candidate: Candidate; previousVisitId?: string; onClose: () => void };
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 function clock(): { date: string; time: string } {
@@ -88,7 +90,7 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
   const errors = useLeadErrors();
   const utils = trpc.useUtils();
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(clock()), 30_000);
+    const timer = window.setInterval(() => setNow(clock()), CLOCK_REFRESH_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, []);
   const calendarWindow = { date, view, dayCount: 7, minDate: now.date };

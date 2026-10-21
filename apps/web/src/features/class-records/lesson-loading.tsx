@@ -2,6 +2,8 @@ import type { JSX as ReactJSX } from "react";
 import { DialogDescription, DialogHeader, DialogTitle, InlineSkeleton } from "@lazuli/ui";
 import styles from "./class-record-dialog.module.css";
 
+const SKELETON_ROW_COUNT = 4;
+
 export function LessonLoadingHeader(): ReactJSX.Element {
   return (
     <DialogHeader>
@@ -41,7 +43,7 @@ export function LessonLoadingList(): ReactJSX.Element {
           </div>
         </div>
         <div className={styles.roster}>
-          {[0, 1, 2, 3].map((row) => (
+          {Array.from({ length: SKELETON_ROW_COUNT }, (_unused, index) => index).map((row) => (
             <div className={styles.loadingRow} key={row}>
               <span className={styles.person}>
                 <InlineSkeleton className="size-8" />

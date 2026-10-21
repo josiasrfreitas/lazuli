@@ -20,6 +20,8 @@ import {
 } from "./shared";
 import styles from "./assessment-workspace.module.css";
 
+const PASSING_SCORE = 60;
+
 export function AssessmentResults({
   data,
   recovery = false,
@@ -106,7 +108,11 @@ export function AssessmentResults({
                   {result ? (
                     <span
                       className={
-                        value === null ? styles.muted : value >= 60 ? styles.passed : styles.below
+                        value === null
+                          ? styles.muted
+                          : value >= PASSING_SCORE
+                            ? styles.passed
+                            : styles.below
                       }
                     >
                       {gradeLabel(value)}

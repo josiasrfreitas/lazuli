@@ -2,11 +2,13 @@ import type { JSX as ReactJSX } from "react";
 import { InlineSkeleton } from "@lazuli/ui";
 import { AssessmentResults } from "./results-table";
 
+const SKELETON_ROW_COUNT = 4;
+
 function ChartLoading({ columns = 2 }: { columns?: number }): ReactJSX.Element {
   return (
     <div className="grid min-w-0 gap-3" aria-hidden="true">
       <div className="flex h-60 flex-col justify-between border-b border-l border-border p-4">
-        {[0, 1, 2, 3].map((row) => (
+        {Array.from({ length: SKELETON_ROW_COUNT }, (_unused, index) => index).map((row) => (
           <InlineSkeleton key={row} className="h-px w-full rounded-none" />
         ))}
       </div>
@@ -72,7 +74,7 @@ export function ClassPerformanceLoading(): ReactJSX.Element {
       </div>
       <ChartLoading columns={4} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-hidden="true">
-        {[0, 1, 2, 3].map((item) => (
+        {Array.from({ length: SKELETON_ROW_COUNT }, (_unused, index) => index).map((item) => (
           <div key={item} className="grid gap-2">
             <InlineSkeleton className="h-3 w-28 max-w-full rounded-sm" />
             <InlineSkeleton className="h-4 w-6 rounded-sm" />

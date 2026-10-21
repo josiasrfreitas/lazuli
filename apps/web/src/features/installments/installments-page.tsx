@@ -39,6 +39,8 @@ import {
 } from "./payment/selection";
 import { originLabel } from "./view-model";
 
+const MAX_NEGOTIATION_INSTALLMENTS = 100;
+
 function hasInstallmentFilters(filters: InstallmentFilters): boolean {
   return Boolean(
     filters.studentId ||
@@ -289,11 +291,18 @@ function SelectionToolbar({
       <span role="status" className="text-caption">
         {count} selecionados{outside > 0 ? ` · ${outside} fora da vista` : ""}
       </span>
-      <Button size="sm" variant="secondary" onClick={negotiate} disabled={count > 100}>
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={negotiate}
+        disabled={count > MAX_NEGOTIATION_INSTALLMENTS}
+      >
         <Handshake aria-hidden="true" />
         Negociar
       </Button>
-      {count > 100 && <span className="text-caption">Negocie até 100 parcelas por lote.</span>}
+      {count > MAX_NEGOTIATION_INSTALLMENTS && (
+        <span className="text-caption">Negocie até 100 parcelas por lote.</span>
+      )}
       <Button size="sm" onClick={begin}>
         <DollarSign aria-hidden="true" />
         Registrar pagamento

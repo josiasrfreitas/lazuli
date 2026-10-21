@@ -27,6 +27,8 @@ import { formatDateOnlyBR } from "~/lib/format";
 import { SelectControl } from "~/features/classes/form-controls";
 import { TeacherPage, TeacherQueryState } from "./shared";
 import { TeacherListLoading } from "./list-loading";
+
+const DOWNLOAD_URL_REVOKE_DELAY_MS = 1000;
 type Visit = RouterOutputs["teacherWorkspace"]["visit"];
 const titles = {
   PLACEMENT: "Nivelamento",
@@ -235,7 +237,7 @@ function TeacherPlacement({ visit }: { visit: Visit }): ReactJSX.Element {
                 anchor.href = url;
                 anchor.download = file.fileName;
                 anchor.click();
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_REVOKE_DELAY_MS);
               } catch {
                 /* Mutation error is shown below. */
               }
