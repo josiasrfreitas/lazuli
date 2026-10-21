@@ -65,6 +65,7 @@ For each route, inspect layouts, components and conditional paths; record roles,
 
 ## Dependency and branch leads
 
+The JSON indexes link to JSONL records (one file/module per line), keeping the reviewable diff compact.
 `operacao-pedagogica-route-graph.json` records the static import closure, inherited route boundaries,
 source files, conditional expressions and tRPC calls. It was built from the pinned source while its
 checkout was clean. The first pass found 587 reachable files and 6,387 conditional leads. These are
