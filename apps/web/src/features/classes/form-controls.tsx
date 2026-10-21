@@ -1,5 +1,5 @@
 "use client";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import {
   Field,
   FieldError,
@@ -66,6 +66,7 @@ export function TextControl({
   inputMode,
   invalid,
   disabled,
+  labelIcon,
 }: {
   name: string;
   label: string;
@@ -76,10 +77,11 @@ export function TextControl({
   inputMode?: "numeric" | undefined;
   invalid?: boolean | undefined;
   disabled?: boolean | undefined;
+  labelIcon?: ReactNode;
 }): ReactElement {
   return (
     <Field>
-      <Label htmlFor={name}>{label}</Label>
+      <TextControlLabel name={name} label={label} icon={labelIcon} />
       <Input
         id={name}
         name={name}
@@ -94,5 +96,28 @@ export function TextControl({
       />
       <FieldError match={Boolean(error)}>{error}</FieldError>
     </Field>
+  );
+}
+
+function TextControlLabel({
+  name,
+  label,
+  icon,
+}: {
+  name: string;
+  label: string;
+  icon: ReactNode;
+}): ReactElement {
+  return (
+    <Label htmlFor={name}>
+      {icon ? (
+        <span className="inline-flex items-center gap-1.5">
+          {icon}
+          {label}
+        </span>
+      ) : (
+        label
+      )}
+    </Label>
   );
 }

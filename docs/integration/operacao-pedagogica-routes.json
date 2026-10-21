@@ -287,8 +287,8 @@
       "source_page": "apps/web/src/app/(app)/atendimentos/[id]/page.tsx",
       "block": 1,
       "block_assignment": "candidate",
-      "implementation": "not_audited",
-      "behavior": "not_audited",
+      "implementation": "in_progress; core UI and backend connected, global agenda/profile entrypoints and full route reconciliation remain pending",
+      "behavior": "SSR contracts and selected PostgreSQL journey verified; application browser lifecycle pending",
       "variants": [],
       "evidence": [],
       "entrypoint_review": {
@@ -321,6 +321,297 @@
             "block": 2,
             "dependency": "EntryVisit/admission candidate conflicts for both teacher and student; source variant must be restored when experimental visits exist",
             "state": "pending; main has no entry visit feature"
+          }
+        ]
+      },
+      "feature_review": {
+        "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+        "modules_read": [
+          "apps/web/src/features/appointments/detail.tsx",
+          "apps/web/src/features/appointments/record-form.tsx",
+          "apps/web/src/features/appointments/schedule-dialog.tsx",
+          "apps/web/src/features/appointments/form-fields.tsx",
+          "apps/web/src/features/appointments/coverage-fields.tsx",
+          "apps/web/src/features/appointments/shared.tsx",
+          "apps/web/src/features/appointments/class-meeting-step.tsx",
+          "apps/web/src/features/appointments/appointment-calendar.tsx",
+          "apps/web/src/features/appointments/schedule-calendar-toolbar.tsx",
+          "apps/web/src/features/appointments/student-appointment-dialog.tsx",
+          "apps/web/src/features/appointments/appointment-dialog-context.tsx",
+          "apps/web/src/features/appointments/appointment-history-changes.ts",
+          "apps/web/src/features/class-records/class-record-dialog.tsx",
+          "apps/web/src/features/class-records/class-record-trigger.tsx",
+          "apps/web/src/features/class-records/calendar-date-picker.tsx",
+          "apps/web/src/features/class-records/lesson-details.tsx",
+          "apps/web/src/features/class-records/lesson-loading.tsx",
+          "apps/web/src/features/class-records/record-attendance.tsx",
+          "apps/web/src/features/class-records/record-participants.ts",
+          "apps/web/src/features/shared/time-field.tsx"
+        ],
+        "scope": "Explicit source behavior groups below remain separate from implementation/evidence. This does not assert exhaustive final route coverage.",
+        "variants": [
+          {
+            "id": "detail-query",
+            "source_behavior": "Loading, recoverable query failure, missing/forbidden record and scheduled-only30s refresh",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "detail-context",
+            "source_behavior": "Standalone Agenda back link/student heading/admin profile link versus embedded purpose heading",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "detail-actions",
+            "source_behavior": "Scheduled admin reschedule/cancel; permitted completed record correction; restriction hides edit actions",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "legacy",
+            "source_behavior": "Version0 explanatory notice preserves missing historical facts",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "restriction",
+            "source_behavior": "Server restriction and reason; cancelled record with successor is identified as rescheduled without enabling edits",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "ssr_187_verified"
+          },
+          {
+            "id": "meeting",
+            "source_behavior": "Real class-session consultation versus independent encounter and presencial/online label",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "planned",
+            "source_behavior": "Optional planned content, scheduling/record/cancel authors with missing-author fallback and São Paulo timestamps",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "replacement-links",
+            "source_behavior": "Previous and successor appointment links shown only when persisted relations exist",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "ssr_187_verified"
+          },
+          {
+            "id": "record-tabs",
+            "source_behavior": "Allowed scheduled/correction form versus current-account/history tabs",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "history",
+            "source_behavior": "Empty history, revision kinds/authorship/reason, immutable snapshot accounts and rescheduling transition",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "ssr_187_verified"
+          },
+          {
+            "id": "account-outcome",
+            "source_behavior": "Attended duration/content and applicable compensated minutes; missing legacy actuals; no-show/cancel/reschedule/scheduled explanations",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "account-sources",
+            "source_behavior": "Optional linked sources, changed-origin warning and reserved/released/compensated/ineffective minutes; optional notes",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "cancel-form",
+            "source_behavior": "Required reason/version, real Enter-submit form, field errors, pending close/duplicate guard and server error",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "form_markup_verified;effects_pending"
+          },
+          {
+            "id": "schedule-student",
+            "source_behavior": "Fixed student or previous appointment versus searchable student lookup after2characters; selection clears teacher/coverages",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "schedule-purpose",
+            "source_behavior": "MAKEUP/PPT_COMPLEMENT/REINFORCEMENT/ASSESSMENT; previous purpose fixed and reschedule reason required",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "form_markup_verified;effects_pending"
+          },
+          {
+            "id": "schedule-options",
+            "source_behavior": "Options loading/error, no current enrollment, no absence balance, no active PPT and selected-date PPT validity",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "schedule-sources",
+            "source_behavior": "Selected zero-balance source retained; compact2-row pagination versus full scroll; loading/empty; selected minutes and source content/reference/pages",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "form_markup_verified;effects_pending"
+          },
+          {
+            "id": "schedule-text",
+            "source_behavior": "Planned content/notes optional; reschedule reason conditional; all text controls named, placeholders and autofill off",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "form_markup_verified"
+          },
+          {
+            "id": "schedule-steps",
+            "source_behavior": "Details validate only their own fields before calendar; Back retains values and focuses kind; final save revalidates whole versioned payload",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "schedule-selection",
+            "source_behavior": "Teacher/kind/date changes clear or revalidate selection; manual time edits reset readiness; date change preserves masked draft and updates visible range",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "availability",
+            "source_behavior": "Exact seven-day batches/day view, São Paulo clock refresh, current-time minimum, prepared classes and ready state only after availability settles",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "availability-conflicts",
+            "source_behavior": "Closed day, teacher/student commitments and visible-range failure; class participation excludes the class itself but retains other conflicts",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "availability-class",
+            "source_behavior": "Prepared session selection, selected class/date/time/format summary, collapsed empty shifts while preserving unusual/cross-gap class intervals",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "availability-independent",
+            "source_behavior": "Free interval click/drag or masked keyboard date/start/end, format pills, reserved-minute click duration or60-minute fallback",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "form_markup_verified;calendar_component_verified;application_pending"
+          },
+          {
+            "id": "schedule-pending",
+            "source_behavior": "Versioned create/atomic replacement, pending duplicate/close guards, disabled fieldset and failed mutation feedback",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "record-draft",
+            "source_behavior": "Immutable opened snapshot/version, actual or planned duration prefill, attended/no-show fields and correction reason",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "form_markup_verified;effects_pending"
+          },
+          {
+            "id": "record-context",
+            "source_behavior": "Standalone versus embedded planning context; compact sources, footer portal, pending callback, first attendance focus and post-save close",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "record-save",
+            "source_behavior": "No-show omits actual content/coverage; corrections require reason; all fields disabled while pending; refresh finishes before closing",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "form_markup_verified;effects_pending"
+          },
+          {
+            "id": "appointment-dialog",
+            "source_behavior": "Loading/error, role-specific student link/header, read-only action suppression and pending dismissal protection",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "appointment-dialog-history",
+            "source_behavior": "Descending revisions, scheduled attribution, enum value transitions, rescheduled label and successor navigation",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "ssr_187_verified;navigation_pending"
+          },
+          {
+            "id": "appointment-files",
+            "source_behavior": "Assessment-purpose appointment exposes existing private proof queue/attachments with actual appointment/student scope",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "linked-lesson-dialog",
+            "source_behavior": "Dated responsible teacher/header, regular/PPT context, pending/error/data, dirty discard/keep, external editor submission and preserved main QR-review/read-only rules",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "linked-lesson-roster",
+            "source_behavior": "Roster plus real appointment guests, unfiltered presence counts, accent-insensitive search, >8/guest filter controls, empty/reset, teacher/admin profile paths and guest dialog focus",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          },
+          {
+            "id": "linked-lesson-content",
+            "source_behavior": "Cancelled lesson notice, teacher shared/individual performed content, regular note and conditional history disclosure",
+            "destination": "block1",
+            "implementation": "connected_core;entrypoint_reconciliation_pending",
+            "behavior": "pending_application_browser"
+          }
+        ],
+        "authority": [184, 187],
+        "evidence": [
+          "apps/web/test/features/appointment-form-contract.unit.test.ts",
+          "packages/api/test/appointments/appointments.integration.test.ts",
+          "docs/integration/operacao-pedagogica.md"
+        ],
+        "intentional_divergences": [
+          "Issue187: display persisted replacement as Reagendado with reason/link, keeping server cancellation restrictions.",
+          "Forms standard: named/autofill-protected compact minutes, disabled pending scheduling fields and CSS-escaped focus selectors.",
+          "Shared dialog size/layout/scroll contracts preserve source composition without dynamic class or lint suppressions.",
+          "Main class-record declarations, QR review, frozen teacher attribution and attendance-read-only behavior retained; source editor does not replace those controllers.",
+          "Node/webpack CommonJS default normalization at the actual TimeGrid dependency boundary, caught by real calendar server rendering."
+        ],
+        "deferred_variants": [
+          {
+            "variant": "Trial/lead guests and experimental dialog reached from lesson consultation",
+            "destination": "block2 entry/commercial/contracts",
+            "state": "pending; no empty lead API seam created"
+          },
+          {
+            "variant": "Dedicated teacher QR/chamada route and source attendance share/navigation composition",
+            "destination": "block1 teacher experience",
+            "state": "pending; current main sharing/evidence behavior retained"
           }
         ]
       }

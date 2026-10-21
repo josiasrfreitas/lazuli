@@ -82,16 +82,38 @@ export const DialogBackdrop = forwardRef<HTMLDivElement, DialogBackdropProps>(
 
 DialogBackdrop.displayName = "DialogBackdrop";
 
-export const dialogContentVariants = cva([
-  "fixed inset-x-4 top-1/2 z-50 flex max-h-[calc(100dvh-4rem)] w-auto -translate-y-1/2 flex-col overflow-hidden",
-  "rounded-lg border border-border-strong bg-popover p-6 text-popover-foreground shadow-lg outline-none",
-  "transition-[opacity,transform] duration-base ease-standard motion-reduce:transition-none",
-  "focus-visible:shadow-focus data-[starting-style]:translate-y-[calc(-50%+0.5rem)] data-[starting-style]:opacity-0",
-  "data-[ending-style]:translate-y-[calc(-50%+0.5rem)] data-[ending-style]:opacity-0",
-  "md:left-1/2 md:w-full md:max-w-lg md:-translate-x-1/2",
-]);
+export const dialogContentVariants = cva(
+  [
+    "fixed inset-x-4 top-1/2 z-50 flex max-h-[calc(100dvh-4rem)] w-auto -translate-y-1/2 flex-col overflow-hidden",
+    "rounded-lg border border-border-strong bg-popover p-6 text-popover-foreground shadow-lg outline-none",
+    "transition-[opacity,transform] duration-base ease-standard motion-reduce:transition-none",
+    "focus-visible:shadow-focus data-[starting-style]:translate-y-[calc(-50%+0.5rem)] data-[starting-style]:opacity-0",
+    "data-[ending-style]:translate-y-[calc(-50%+0.5rem)] data-[ending-style]:opacity-0",
+    "md:left-1/2 md:w-full md:max-w-lg md:-translate-x-1/2",
+  ],
+  {
+    variants: {
+      size: {
+        default: "",
+        medium: "md:max-w-3xl",
+        wide: "md:max-w-5xl",
+        "extra-wide": "md:max-w-6xl",
+      },
+      layout: {
+        default: "",
+        expanded: "max-h-[min(calc(110dvh-4.4rem),calc(100dvh-1rem))]",
+        workspace:
+          "h-[85dvh] w-[calc(100vw-2rem)] max-w-[1224px] max-h-[calc(100dvh-2rem)] md:max-w-[1224px]",
+      },
+    },
+    defaultVariants: { size: "default", layout: "default" },
+  },
+);
 
 export type DialogContentProps = DialogPrimitive.Popup.Props & {
+  /** Layout sizes for wider forms and an internally scrolling workspace. */
+  size?: "default" | "medium" | "wide" | "extra-wide";
+  layout?: "default" | "expanded" | "workspace";
   /** Accessible name of the built-in close button. */
   closeLabel?: string;
   /** Hides the built-in close button rendered in the top-right corner. */
@@ -99,10 +121,13 @@ export type DialogContentProps = DialogPrimitive.Popup.Props & {
 };
 
 export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
-  ({ children, className, closeLabel = "Fechar", showCloseButton = true, ...props }, ref) => (
+  (
+    { children, className, closeLabel = "Fechar", showCloseButton = true, size, layout, ...props },
+    ref,
+  ) => (
     <DialogPrimitive.Popup
       {...props}
-      className={cn(dialogContentVariants(), className)}
+      className={cn(dialogContentVariants({ size, layout }), className)}
       data-slot="dialog-content"
       ref={ref}
     >

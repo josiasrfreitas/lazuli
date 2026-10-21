@@ -51,7 +51,10 @@ export const DialogHeader = forwardRef<HTMLDivElement, DialogHeaderProps>(
 
 DialogHeader.displayName = "DialogHeader";
 
-export type DialogBodyProps = ComponentPropsWithoutRef<"div">;
+export type DialogBodyProps = ComponentPropsWithoutRef<"div"> & {
+  /** Disable the outer scrollbar when an embedded workspace owns scrolling. */
+  scroll?: boolean;
+};
 
 /**
  * The dialog's scrollable region. Header, footer, and the close button stay
@@ -60,10 +63,14 @@ export type DialogBodyProps = ComponentPropsWithoutRef<"div">;
  * sits at the popup edge.
  */
 export const DialogBody = forwardRef<HTMLDivElement, DialogBodyProps>(
-  ({ className, ...props }, ref) => (
+  ({ className, scroll = true, ...props }, ref) => (
     <div
       {...props}
-      className={cn("scrollbar-subtle -mx-6 min-h-0 flex-1 overflow-y-auto px-6", className)}
+      className={cn(
+        "scrollbar-subtle -mx-6 min-h-0 flex-1 px-6",
+        scroll ? "overflow-y-auto" : "flex flex-col overflow-hidden",
+        className,
+      )}
       data-slot="dialog-body"
       ref={ref}
     />

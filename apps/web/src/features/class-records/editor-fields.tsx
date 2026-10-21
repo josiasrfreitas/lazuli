@@ -4,10 +4,15 @@ import { FormSection, Button, SegmentedControl, SegmentedControlItem } from "@la
 import { LessonProgress } from "./lesson-progress";
 import { ContentFields, type ContentDraft } from "./content-fields";
 import { PlannedReference } from "./shared";
+import { attendanceTime } from "~/features/student-attendance/location";
+import type { AttendanceStatus } from "~/features/student-attendance/staff-section";
 import type { RecordEditor } from "./editor-model";
 type Props = { editor: RecordEditor };
 type Row = RecordEditor["rows"][number];
-export function RecordRoster({ editor }: Props): ReactElement {
+export function RecordRoster({
+  editor,
+  declarations,
+}: Props & { declarations?: AttendanceStatus["declarations"] | undefined }): ReactElement {
   return (
     <FormSection
       className="min-w-0 lg:col-span-2"
@@ -31,19 +36,39 @@ export function RecordRoster({ editor }: Props): ReactElement {
             {!row.reviewed && (
               <p className="text-caption text-warning">Presença pendente de revisão</p>
             )}
-            {editor.opened.declarations.some(
-              (entry) => entry.enrollmentId === row.enrollmentId,
-            ) && (
-              <p className="text-caption text-muted-foreground">
-                Declaração recebida · confira a presença
-              </p>
-            )}
+            <DeclarationReceipts editor={editor} row={row} entries={declarations} />
           </div>
         ))}
       </div>
     </FormSection>
   );
 }
+function DeclarationReceipts({
+  editor,
+  row,
+  entries,
+}: Props & {
+  row: Row;
+  entries: AttendanceStatus["declarations"] | undefined;
+}): ReactElement | null {
+  const received = entries?.filter((entry) => entry.enrollmentId === row.enrollmentId) ?? [];
+  if (received.length > 0)
+    return (
+      <>
+        {received.map((entry) => (
+          <p key={entry.id} className="text-caption text-muted-foreground">
+            {entry.format === "ONLINE" ? "Link" : "QR Code"} · {attendanceTime(entry.submittedAt)}
+          </p>
+        ))}
+      </>
+    );
+  if (!editor.opened.declarations.some((entry) => entry.enrollmentId === row.enrollmentId))
+    return null;
+  return (
+    <p className="text-caption text-muted-foreground">Declaração recebida · confira a presença</p>
+  );
+}
+
 function contentLabel(row: Row): string {
   if (row.status === "ABSENT") return "Sem realizado";
   return row.draft.account.trim() ? "Relato preenchido" : "Relato pendente";

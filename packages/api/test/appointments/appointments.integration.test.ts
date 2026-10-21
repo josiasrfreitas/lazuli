@@ -101,6 +101,30 @@ void it("serializes competing reservations and rejects stale records, foreign or
 void it("reschedules atomically and keeps cancelled reservations available to the successor", async () => {
   const fixture = await appointmentFixture(harness);
   await harness.caller(undefined, fixture.before).appointments.schedule(fixture.input);
+  const targetApi = harness.caller(harness.ns.otherTeacher, fixture.before);
+  const targetBefore = await targetApi.classRecords.detail({ sessionId: fixture.targetId });
+  assert.deepEqual(targetBefore.guests, [
+    {
+      id: fixture.input.id,
+      targetClassSessionId: fixture.targetId,
+      purpose: "MAKEUP",
+      status: "SCHEDULED",
+      student: { id: fixture.studentId, fullName: `${harness.ns.prefix}Bento` },
+    },
+  ]);
+  assert.equal(targetBefore.snapshot.entries.length, 0);
+  const calendarBefore = await targetApi.classRecords.list({
+    from: "2091-04-01",
+    to: "2091-04-01",
+    classId: fixture.targetClassId,
+  });
+  assert.equal(calendarBefore[0]?.guestCount, 1);
+  await assert.rejects(
+    harness
+      .caller(harness.ns.teacher, fixture.before)
+      .classRecords.detail({ sessionId: fixture.targetId }),
+    { code: "FORBIDDEN" },
+  );
   const replacement = {
     ...fixture.input,
     id: randomUUID(),
@@ -126,6 +150,20 @@ void it("reschedules atomically and keeps cancelled reservations available to th
   assert.equal(next.snapshot.rescheduledFromId, fixture.input.id);
   assert.equal(next.snapshot.coverages[0]?.minutes, 120);
   assert.equal(before.history[1]?.snapshot.status, "SCHEDULED");
+  const targetAfter = await targetApi.classRecords.detail({ sessionId: fixture.targetId });
+  assert.deepEqual(targetAfter.guests, []);
+  assert.equal(targetAfter.snapshot.entries.length, 0);
+  const calendarAfter = await targetApi.classRecords.list({
+    from: "2091-04-01",
+    to: "2091-04-01",
+    classId: fixture.targetClassId,
+  });
+  assert.equal(calendarAfter[0]?.guestCount, 0);
+  const enrollments = await db.enrollment.findMany({
+    where: { studentId: fixture.studentId, deletedAt: null },
+    select: { id: true, classId: true },
+  });
+  assert.deepEqual(enrollments, [{ id: fixture.enrollmentId, classId: fixture.classId }]);
 });
 
 void it("counts delivered compensation by minutes in its source enrollment and never counts it again after source correction", async () => {

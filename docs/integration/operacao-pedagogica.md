@@ -338,3 +338,69 @@ Appointment detail, scheduling/record forms, #187 rescheduling identification, c
 and profile/agenda entrypoints are still being integrated in the same block. Admissions/trial guests
 belong to block 2. Legacy makeup API reconciliation, historical attribution and #179's pending owner
 choice remain open as recorded above. No PR or security agent has started for this incomplete block.
+
+## Appointment core and linked lesson consultation checkpoint
+
+The source appointment detail route, two-phase scheduler, outcome/correction form and contextual
+student dialog are connected to the existing versioned APIs. Their dependencies include masked
+time/date fields, source-linked compensation selection, the shared calendar, private assessment
+attachments and linked lesson consultation. The route audit records source behavior groups and
+keeps application-browser status pending. Source modules were decomposed into state, validation,
+queries and presentation without disabling lint rules or adding missing-router stubs.
+
+Issue 187 is an intentional source divergence: a cancelled original with a persisted successor is
+shown as Reagendado in page/modal badges, explanatory account and historical transition. The reason
+is identified as rescheduling and the successor remains reachable; server cancellation/edit
+restrictions are unchanged. New form text controls preserve names, placeholders, masks and autofill
+protection, including compact compensation minutes. Pending scheduling disables its fields in
+addition to the existing submit/dismiss guards. Shared DialogContent size/layout and DialogBody
+scroll contracts own the source calendar workspace geometry instead of passing opaque class names.
+
+Lesson detail now reads actual appointment guests without enrolling them in the target class.
+Queries only receive already-authorized sessions, exclude deleted/cancelled appointments/students,
+and suppress guests already belonging to the dated roster. Calendar summaries count those guests.
+Main's overdue pending records, dated/frozen teacher identity, declarations and QR review remain;
+the new modal extends the existing editor with external actions and dirty/pending notifications.
+Unrecorded lessons retain main's five-second declaration refresh, and a known declaration keeps its
+existing receipt notice until detailed QR/link metadata arrives, including a failed metadata query.
+Experimental/trial guests require the admissions models and remain assigned to block 2; no synthetic
+empty guest endpoint or fake candidate model was added.
+
+The existing atomic replacement integration journey now also verifies the responsible teacher's
+exact guest result, no new roster entry, guest count, denial to the other teacher and disappearance
+from the old class after replacement, while preserving the student's original enrollment. The
+selected appointment/class-record suites passed 13 cases in a fresh migrated PostgreSQL database
+with zero drift and removal afterwards. The initial new expectation contained an extra separator
+in a synthetic student's name; it was corrected against the existing fixture construction, without
+changing an identifier or weakening a product assertion.
+
+Four selected frontend tests cover the actual three form/controller compositions and issue 187's
+page/modal/history labels. Text-control checks exclude Base UI's hidden checkbox, which is not a
+text control or the submitted compensation payload. The calendar phase is server-rendered rather
+than stubbed: this exposed the internal library's CommonJS default wrapper in Node, unlike webpack.
+The small typed runtime boundary now normalizes both shapes. All four cases passed, retaining
+complete calendar rendering. React's development warning about the dependency's older JSX
+transform remains a dependency warning; the source package version has not been changed.
+
+The complete frontend regression suite passed 220 cases, and production build passed all three
+tasks with one cached. Focused API/UI lint passed with the bounded diagnostics below. The final small shared-label
+extraction passed the four form cases afterward; the complete 13-package typecheck also passed.
+Prospective test quality has no errors; its fixed-case loop warnings describe deliberately selected
+nonempty outcome/phase cases and the conditional form controls they assert. Styles, component size,
+formatting and whitespace checks passed. The complete block will receive its final build/reviews
+before a PR; the application browser lifecycle remains pending.
+Global agenda/profile entrypoints, actual appointment browser lifecycle, file-scope reconciliation,
+legacy makeup bridge, historical attribution and #179 remain pending. No appointment completion,
+PR readiness or security approval is claimed by these component/backend checks.
+
+### Bounded source styling diagnostics
+
+The imported compact headers, divided modal footer, inline date-picker action, centered numeric
+time and viewport gutter retain the source's compact composition. The existing primitive lacks
+header/footer density, input trailing-action/alignment and viewport-inset options; those are the
+narrow shared contracts to consider if these patterns repeat. For this extraction their explicit
+classes are a documented composition exception, not an ESLint disable. The two viewport calculations
+use valid CSS spacing. Typography tokens such as text-caption/text-h2 are declared by the design
+system and are misclassified as colors by the lint rule; they are not raw color values. The status
+record is indexed only by a validated finite appointment status. The unrelated agenda indexing
+warning predates this checkpoint. Actual layouts still need application-browser inspection.
