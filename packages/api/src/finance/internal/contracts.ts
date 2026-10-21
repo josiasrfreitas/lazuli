@@ -294,8 +294,8 @@ export async function listContracts(
   const where = contractListWhere(options);
   if (options.query) {
     const [students, payers] = await Promise.all([
-      searchIds(database, "Student", options.query),
-      searchIds(database, "Payer", options.query),
+      searchIds(database, { table: "Student", query: options.query }),
+      searchIds(database, { table: "Payer", query: options.query }),
     ]);
     if (students !== undefined && payers !== undefined)
       where.OR = [{ student: { id: students } }, { payer: { id: payers } }];

@@ -13,9 +13,13 @@ import { scheduleAppointment } from "./schedule.js";
 
 export async function cancelAppointment(
   context: AppointmentContext,
-  input: z.infer<typeof appointmentCancelSchema>,
-  rescheduling = false,
+  options: {
+    input: z.infer<typeof appointmentCancelSchema>;
+    rescheduling?: boolean | undefined;
+  },
 ): Promise<{ id: string; version: number }> {
+  const { input, rescheduling = false } = options;
+
   requireAppointmentAdmin(context);
   await lockTeacher(context.database, "");
   const row = await loadAppointment(context, input.id);
@@ -35,19 +39,17 @@ export async function cancelAppointment(
       version: { increment: 1 },
     },
   });
-  const saved = await recordAppointmentRevision(
-    context,
-    row.id,
-    rescheduling ? "RESCHEDULED" : "CANCELLED",
-    input.reason,
-  );
+  const saved = await recordAppointmentRevision(context, {
+    id: row.id,
+    kind: rescheduling ? "RESCHEDULED" : "CANCELLED",
+    reason: input.reason,
+  });
   await synchronizeLegacyMakeup(context, saved);
-  await appointmentActivity(
-    context,
-    saved,
-    rescheduling ? "appointments.reschedule" : "appointments.cancel",
-    input.reason,
-  );
+  await appointmentActivity(context, {
+    row: saved,
+    action: rescheduling ? "appointments.reschedule" : "appointments.cancel",
+    description: input.reason,
+  });
   return { id: saved.id, version: saved.version };
 }
 export async function rescheduleAppointment(
@@ -61,6 +63,6 @@ export async function rescheduleAppointment(
     throw badRequest(
       "O reagendamento preserva o aluno e a finalidade. Para outra finalidade, cancele e crie um novo atendimento.",
     );
-  await cancelAppointment(context, input, true);
-  return scheduleAppointment(context, input.replacement, row.id);
+  await cancelAppointment(context, { input, rescheduling: true });
+  return scheduleAppointment(context, { input: input.replacement, rescheduledFromId: row.id });
 }

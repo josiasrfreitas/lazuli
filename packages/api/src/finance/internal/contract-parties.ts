@@ -3,11 +3,15 @@ import type { FinanceDatabase } from "./shared.js";
 
 async function partySearchWhere(
   database: FinanceDatabase,
-  query: string,
-  table: "Student" | "Payer",
+  options: {
+    query: string;
+    table: "Student" | "Payer";
+  },
 ): Promise<{ OR?: ({ id: { in: string[] } } | { id: string })[]; deletedAt: null }> {
+  const { query, table } = options;
+
   const exactId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(query);
-  const matches = await searchIds(database, table, query);
+  const matches = await searchIds(database, { table, query });
   return {
     deletedAt: null,
     ...(matches ? { OR: [{ id: matches }, ...(exactId ? [{ id: query }] : [])] } : {}),
@@ -25,7 +29,7 @@ async function findContractStudents(
   }>
 > {
   return database.student.findMany({
-    where: await partySearchWhere(database, query, "Student"),
+    where: await partySearchWhere(database, { query, table: "Student" }),
     select: { id: true, fullName: true, documentType: true, documentNumber: true },
     orderBy: { fullName: "asc" },
     take: 20,
@@ -46,7 +50,7 @@ async function findContractPayers(
   }>
 > {
   return database.payer.findMany({
-    where: await partySearchWhere(database, query, "Payer"),
+    where: await partySearchWhere(database, { query, table: "Payer" }),
     select: {
       id: true,
       name: true,

@@ -3,7 +3,15 @@ import { TRPCError } from "@trpc/server";
 import { contractSelect, toRow } from "./contracts-select.js";
 import { toDateOnlyString, type FinanceDatabase } from "./shared.js";
 
-export async function readContract(database: FinanceDatabase, id: string, now: Date) {
+export async function readContract(
+  database: FinanceDatabase,
+  options: {
+    id: string;
+    now: Date;
+  },
+) {
+  const { id, now } = options;
+
   const contract = await database.contract.findFirst({
     where: { id, deletedAt: null, commandId: { not: null } },
     select: { ...contractSelect, punctualityDiscountPct: true },

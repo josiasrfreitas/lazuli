@@ -33,10 +33,14 @@ export async function preserveImportedAppointment(
 }
 export async function recordAppointmentRevision(
   context: AppointmentContext,
-  id: string,
-  kind: "SCHEDULED" | "RECORDED" | "CORRECTED" | "CANCELLED" | "RESCHEDULED",
-  reason: string | null,
-) {
+  options: {
+    id: string;
+    kind: "SCHEDULED" | "RECORDED" | "CORRECTED" | "CANCELLED" | "RESCHEDULED";
+    reason: string | null;
+  },
+): Promise<AppointmentRow> {
+  const { id, kind, reason } = options;
+
   const row = await context.database.pedagogicalAppointment.findUniqueOrThrow({
     where: { id },
     include: appointmentInclude,
@@ -56,14 +60,22 @@ export async function recordAppointmentRevision(
 }
 export async function appointmentActivity(
   context: AppointmentContext,
-  row: AppointmentRow,
-  action: ActivityAction,
-  description: string,
+  options: {
+    row: AppointmentRow;
+    action: ActivityAction;
+    description: string;
+  },
 ): Promise<void> {
-  await recordActivity(context.database, context, action, {
-    subject: { type: "student", id: row.studentId, name: row.student.fullName },
-    description,
-    deduplicationKey: `${action}:${row.id}:${row.version}`,
+  const { row, action, description } = options;
+
+  await recordActivity(context.database, {
+    context,
+    action,
+    details: {
+      subject: { type: "student", id: row.studentId, name: row.student.fullName },
+      description,
+      deduplicationKey: `${action}:${row.id}:${row.version}`,
+    },
   });
 }
 export async function synchronizeLegacyMakeup(

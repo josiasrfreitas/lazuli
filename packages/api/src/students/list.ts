@@ -45,11 +45,10 @@ type AttendanceFacts = StudentListRow["attendance"];
 const NO_ATTENDANCE_DATA: AttendanceFacts = { percent: null, flagged: false };
 
 export async function listStudents(input: ListStudentsInput): Promise<StudentListOutput> {
-  const searchWhere = await normalizedStudentSearch(
-    input.database,
-    input.values.search,
-    input.values.now,
-  );
+  const searchWhere = await normalizedStudentSearch(input.database, {
+    search: input.values.search,
+    now: input.values.now,
+  });
   const where = buildStudentListWhere({ ...input.values, teacherIds: [] }, searchWhere);
   await applyTeacherFilter(input, where);
   const semester = await resolveCurrentSemester(input.database, input.values.now);
@@ -128,11 +127,10 @@ export async function buildRows(input: BuildRowsInput): Promise<StudentListRow[]
   const [attendanceByStudent, financeByStudent, pendingRegistration] = await Promise.all([
     readAttendanceByStudent(input),
     readFinanceByStudent(input),
-    studentsWithPendingRegistration(
-      input.database,
-      input.students.map((row) => row.id),
-      input.values.now,
-    ),
+    studentsWithPendingRegistration(input.database, {
+      ids: input.students.map((row) => row.id),
+      now: input.values.now,
+    }),
   ]);
 
   return input.students.map((student) => ({

@@ -102,15 +102,23 @@ export async function resolveAppointmentMeeting(
     )
       throw badRequest("Complemento PPT exige uma matrícula PPT vigente na data.");
   }
-  await assertStudentAvailable(context, input.studentId, candidate);
+  await assertStudentAvailable(context, { studentId: input.studentId, candidate });
   return { ...values, teacherId: values.teacherId, student };
 }
 
 async function assertStudentAvailable(
   context: AppointmentContext,
-  studentId: string,
-  candidate: { date: string; startTime: string; endTime: string },
+  options: {
+    studentId: string;
+    candidate: {
+      date: string;
+      startTime: string;
+      endTime: string;
+    };
+  },
 ): Promise<void> {
+  const { studentId, candidate } = options;
+
   const { database } = context;
   const date = new Date(candidate.date);
   const [enrollments, appointments, visits, meetings] = await Promise.all([

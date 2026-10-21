@@ -52,17 +52,19 @@ export async function scheduleMakeup(input: {
   await scheduleAppointment(
     { database, staffUser: input.staffUser, now },
     {
-      id: makeupId,
-      studentId: origin.studentId,
-      enrollmentId: origin.id,
-      purpose: "MAKEUP",
-      meeting: { kind: "CLASS", sessionId: values.targetClassSessionId },
-      coverages: values.coverages,
-      plannedContent: values.plannedContent,
-      notes: values.reason ?? "",
+      input: {
+        id: makeupId,
+        studentId: origin.studentId,
+        enrollmentId: origin.id,
+        purpose: "MAKEUP",
+        meeting: { kind: "CLASS", sessionId: values.targetClassSessionId },
+        coverages: values.coverages,
+        plannedContent: values.plannedContent,
+        notes: values.reason ?? "",
+      },
+      rescheduledFromId: undefined,
+      legacyMakeupId: makeupId,
     },
-    undefined,
-    makeupId,
   );
   return {
     makeupId,

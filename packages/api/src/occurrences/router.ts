@@ -70,7 +70,9 @@ export const occurrencesRouter = router({
         .strict()
         .optional(),
     )
-    .query(({ ctx, input }) => occurrenceSessions(context(ctx), input?.studentId, input?.range)),
+    .query(({ ctx, input }) =>
+      occurrenceSessions(context(ctx), { studentId: input?.studentId, range: input?.range }),
+    ),
   roster: staffProcedure
     .input(byId)
     .query(({ ctx, input }) => occurrenceRoster(context(ctx), input.id)),

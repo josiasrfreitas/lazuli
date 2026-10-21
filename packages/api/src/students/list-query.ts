@@ -178,14 +178,18 @@ export function findStudentPage(input: {
 
 export async function normalizedStudentSearch(
   database: StudentListDatabase,
-  search: string | undefined,
-  now: Date,
+  options: {
+    search: string | undefined;
+    now: Date;
+  },
 ): Promise<Prisma.StudentWhereInput> {
+  const { search, now } = options;
+
   if (!search) return {};
   const [students, classes, teachers] = await Promise.all([
-    searchIds(database, "Student", search),
-    searchIds(database, "Class", search),
-    searchIds(database, "User", search),
+    searchIds(database, { table: "Student", query: search }),
+    searchIds(database, { table: "Class", query: search }),
+    searchIds(database, { table: "User", query: search }),
   ]);
   if (!students || !classes || !teachers) return {};
   return {
@@ -212,7 +216,10 @@ export async function countStudentsByTab(input: {
 }): Promise<{ all: number; active: number; inactive: number }> {
   const searchWhere =
     input.searchWhere ??
-    (await normalizedStudentSearch(input.database, input.search, input.now ?? new Date()));
+    (await normalizedStudentSearch(input.database, {
+      search: input.search,
+      now: input.now ?? new Date(),
+    }));
   const [all, active, inactive] = await Promise.all(
     TAB_FILTERS.map((status) =>
       input.database.student.count({

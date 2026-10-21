@@ -44,8 +44,8 @@ export async function readStudentSummary(
     .executeTakeFirst();
   const balances = await ledgerQuery(query).selectFrom("ledger").selectAll().execute();
   return {
-    materialNeeds: await readMaterialNeeds(database, input.studentId, asOf),
-    contracts: await readStudentContractTerms(database, input.studentId, balances),
+    materialNeeds: await readMaterialNeeds(database, { studentId: input.studentId, asOf }),
+    contracts: await readStudentContractTerms(database, { studentId: input.studentId, balances }),
     latestTermination: await readLatestTermination(database, input.studentId),
     ...totals,
     asOf,
@@ -122,9 +122,13 @@ type ItemBalance = {
 };
 async function readStudentContractTerms(
   database: FinanceDatabase,
-  studentId: string,
-  balances: ItemBalance[],
+  options: {
+    studentId: string;
+    balances: ItemBalance[];
+  },
 ) {
+  const { studentId, balances } = options;
+
   const contracts = await database.contract.findMany({
     where: {
       studentId,

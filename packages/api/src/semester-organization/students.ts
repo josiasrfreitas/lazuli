@@ -68,11 +68,14 @@ export async function organizationStudents(
   ]);
   return { rows, total: total.count, page: input.page, pageSize: 25 };
 }
+type OrganizationStudentOptions = { studentId: string; semesterId: string };
+
 export async function organizationStudent(
   context: OrganizationContext,
-  studentId: string,
-  semesterId: string,
+  options: OrganizationStudentOptions,
 ) {
+  const { studentId, semesterId } = options;
+
   const today = new Date(saoPauloDateOnly(context.now));
   const student = await context.database.student.findUnique({
     where: { id: studentId },

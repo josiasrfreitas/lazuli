@@ -39,10 +39,9 @@ export const attendanceRouter = router({
   confirmSession: staffProcedure
     .input(attendanceConfirmSessionInputSchema)
     .mutation(({ ctx, input }) =>
-      activityTransaction(
-        ctx,
-        "attendance.confirmSession",
-        async (database) => {
+      activityTransaction(ctx, {
+        action: "attendance.confirmSession",
+        work: async (database) => {
           await assertAttendanceOnlyWrite(database, input.sessionId);
           const closedWindows = await closeAttendanceWindows(database, {
             sessionId: input.sessionId,
@@ -50,10 +49,14 @@ export const attendanceRouter = router({
             now: ctx.now ?? new Date(),
           });
           if (closedWindows > 0)
-            await recordActivity(database, ctx, "studentAttendance.close", {
-              subject: await sessionSubject(database, input.sessionId),
-              description:
-                "Recebimento de presença encerrado na confirmação da chamada. Envios recebidos preservados.",
+            await recordActivity(database, {
+              context: ctx,
+              action: "studentAttendance.close",
+              details: {
+                subject: await sessionSubject(database, input.sessionId),
+                description:
+                  "Recebimento de presença encerrado na confirmação da chamada. Envios recebidos preservados.",
+              },
             });
           return confirmSession({
             database,
@@ -62,14 +65,15 @@ export const attendanceRouter = router({
             now: ctx.now ?? new Date(),
           });
         },
-        async (_result, database) => ({ subject: await sessionSubject(database, input.sessionId) }),
-      ),
+        describe: async (_result, database) => ({
+          subject: await sessionSubject(database, input.sessionId),
+        }),
+      }),
     ),
   editSession: staffProcedure.input(attendanceEditSessionInputSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "attendance.editSession",
-      async (database) => {
+    activityTransaction(ctx, {
+      action: "attendance.editSession",
+      work: async (database) => {
         await assertAttendanceOnlyWrite(database, input.sessionId);
         return editSession({
           database,
@@ -78,8 +82,10 @@ export const attendanceRouter = router({
           now: ctx.now ?? new Date(),
         });
       },
-      async (_result, database) => ({ subject: await sessionSubject(database, input.sessionId) }),
-    ),
+      describe: async (_result, database) => ({
+        subject: await sessionSubject(database, input.sessionId),
+      }),
+    }),
   ),
   scheduleMakeup: adminProcedure.input(makeupScheduleInputSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) =>

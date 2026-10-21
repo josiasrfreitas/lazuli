@@ -82,13 +82,17 @@ void it("rolls back the business write when the event cannot be recorded", async
   await assert.rejects(
     activityTransaction(
       { ...context, staffUser: { ...actor, id: randomUUID() } },
-      "students.create",
-      (database) =>
-        database.student.create({
-          data: { fullName: `${prefix}Rolled back` },
-          select: { id: true },
+      {
+        action: "students.create",
+        work: (database) =>
+          database.student.create({
+            data: { fullName: `${prefix}Rolled back` },
+            select: { id: true },
+          }),
+        describe: (result) => ({
+          subject: { type: "student", id: result.id, name: `${prefix}Rolled back` },
         }),
-      (result) => ({ subject: { type: "student", id: result.id, name: `${prefix}Rolled back` } }),
+      },
     ),
     { code: "P2003" },
   );

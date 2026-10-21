@@ -86,19 +86,17 @@ export async function recordAppointment(
       recordedById: context.staffUser.id,
     },
   });
-  const saved = await recordAppointmentRevision(
-    context,
-    row.id,
-    correcting ? "CORRECTED" : "RECORDED",
-    input.reason || null,
-  );
+  const saved = await recordAppointmentRevision(context, {
+    id: row.id,
+    kind: correcting ? "CORRECTED" : "RECORDED",
+    reason: input.reason || null,
+  });
   await synchronizeLegacyMakeup(context, saved);
   const compensated = input.coverages.reduce((sum, item) => sum + item.minutes, 0);
-  await appointmentActivity(
-    context,
-    saved,
-    correcting ? "appointments.correct" : "appointments.record",
-    `${input.attended ? `Compareceu · ${input.performedMinutes} minutos realizados${compensated ? ` · ${compensated} minutos compensados` : ""}.` : "Não compareceu. Reservas de compensação liberadas."}${input.reason ? ` ${input.reason}` : ""}`,
-  );
+  await appointmentActivity(context, {
+    row: saved,
+    action: correcting ? "appointments.correct" : "appointments.record",
+    description: `${input.attended ? `Compareceu · ${input.performedMinutes} minutos realizados${compensated ? ` · ${compensated} minutos compensados` : ""}.` : "Não compareceu. Reservas de compensação liberadas."}${input.reason ? ` ${input.reason}` : ""}`,
+  });
   return { id: saved.id, version: saved.version };
 }

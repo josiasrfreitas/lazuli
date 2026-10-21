@@ -315,10 +315,14 @@ async function appendRevision(
     CANCELLED: "appointments.cancel",
     RESCHEDULED: "appointments.reschedule",
   } as const;
-  await recordActivity(context.database, { staffUser: actor, now: at }, action[kind], {
-    subject: { type: "student", id: row.studentId, name: row.student.fullName },
-    description: reason ?? defaultRevisionDescription(kind, row),
-    deduplicationKey: `seed-appointment/${id}/${row.version}`,
+  await recordActivity(context.database, {
+    context: { staffUser: actor, now: at },
+    action: action[kind],
+    details: {
+      subject: { type: "student", id: row.studentId, name: row.student.fullName },
+      description: reason ?? defaultRevisionDescription(kind, row),
+      deduplicationKey: `seed-appointment/${id}/${row.version}`,
+    },
   });
 }
 

@@ -140,17 +140,16 @@ async function recordRevision(
       createdAt: context.now,
     },
   });
-  await recordActivity(
-    context.database,
+  await recordActivity(context.database, {
     context,
-    plan.version === 1 ? "planning.create" : "planning.revise",
-    {
+    action: plan.version === 1 ? "planning.create" : "planning.revise",
+    details: {
       subject: scope.student
         ? { type: "student", id: scope.student.id, name: scope.student.fullName }
         : { type: "class", id: scope.class.id, name: scope.class.name },
       description: `${scope.stage.name} · versão ${plan.version}. ${reason}`,
     },
-  );
+  });
   return { id: plan.id, version: plan.version };
 }
 

@@ -48,10 +48,9 @@ export const teacherWorkspaceRouter = router({
       target.extend({ status: z.enum(["ATTENDED", "ABSENT"]), notes: z.string().trim().max(2000) }),
     )
     .mutation(({ ctx, input }) =>
-      activityTransaction(
-        ctx,
-        "admissions.outcome",
-        async (database) => {
+      activityTransaction(ctx, {
+        action: "admissions.outcome",
+        work: async (database) => {
           await lockTeacher(database, "");
           const visit = await assignedVisit({ ...context(ctx), database }, input.id);
           if (!visit.canRecord)
@@ -63,24 +62,25 @@ export const teacherWorkspaceRouter = router({
             now: ctx.now ?? new Date(),
           });
         },
-        async (_result, database) => ({ subject: await visitSubject(database, input.id) }),
-      ),
+        describe: async (_result, database) => ({
+          subject: await visitSubject(database, input.id),
+        }),
+      }),
     ),
   placementDownload: teacherProcedure
     .input(placementDownloadSchema)
     .mutation(async ({ ctx, input }) => {
       await assignedVisit(context(ctx), input.id);
-      return downloadPlacementFile(ctx.db, input.id, input.kind);
+      return downloadPlacementFile(ctx.db, { id: input.id, kind: input.kind });
     }),
   placementUpload: teacherProcedure.input(placementFileSchema).mutation(async ({ ctx, input }) => {
     await assignedVisit(context(ctx), input.id);
     return uploadPlacementFile(ctx, input);
   }),
   placementResult: teacherProcedure.input(placementResultSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "admissions.placementResult",
-      async (database) => {
+    activityTransaction(ctx, {
+      action: "admissions.placementResult",
+      work: async (database) => {
         await lockTeacher(database, "");
         await assignedVisit({ ...context(ctx), database }, input.id);
         return recordPlacementResult({
@@ -90,8 +90,8 @@ export const teacherWorkspaceRouter = router({
           now: ctx.now ?? new Date(),
         });
       },
-      async (_result, database) => ({ subject: await visitSubject(database, input.id) }),
-    ),
+      describe: async (_result, database) => ({ subject: await visitSubject(database, input.id) }),
+    }),
   ),
   classes: teacherProcedure.query(({ ctx }) => workspaceClasses(context(ctx))),
   class: teacherProcedure

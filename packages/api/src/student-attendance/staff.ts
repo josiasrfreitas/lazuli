@@ -159,9 +159,13 @@ async function createWindow(
     },
     select: { id: true, expiresAt: true },
   });
-  await recordActivity(context.database, context, "studentAttendance.open", {
-    subject: { type: "class", id: session.classId, name: session.class.portalClassName },
-    description: "Abriu um novo link de presença para a aula; links anteriores foram encerrados.",
+  await recordActivity(context.database, {
+    context,
+    action: "studentAttendance.open",
+    details: {
+      subject: { type: "class", id: session.classId, name: session.class.portalClassName },
+      description: "Abriu um novo link de presença para a aula; links anteriores foram encerrados.",
+    },
   });
   const projectionData = {
     tokenHash: tokenHash(projectionToken),
@@ -204,10 +208,14 @@ export async function closeAttendanceWindow(
     userId: current.staffUser.id,
     now: current.now,
   });
-  await recordActivity(current.database, current, "studentAttendance.close", {
-    subject: { type: "class", id: session.classId, name: session.class.portalClassName },
-    description:
-      "Encerrou o link de presença. Os envios recebidos continuam disponíveis para revisão.",
+  await recordActivity(current.database, {
+    context: current,
+    action: "studentAttendance.close",
+    details: {
+      subject: { type: "class", id: session.classId, name: session.class.portalClassName },
+      description:
+        "Encerrou o link de presença. Os envios recebidos continuam disponíveis para revisão.",
+    },
   });
   return { closed: true };
 }

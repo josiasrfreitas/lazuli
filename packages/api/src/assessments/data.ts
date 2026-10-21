@@ -100,9 +100,13 @@ export async function assertProgressAccess(
 }
 export function assertTeacherAccess(
   staff: StaffUser,
-  classRow: Parameters<typeof usualTeacherOn>[0],
-  date: Date,
+  options: {
+    classRow: Parameters<typeof usualTeacherOn>[0];
+    date: Date;
+  },
 ): void {
+  const { classRow, date } = options;
+
   if (staff.role === "TEACHER" && usualTeacherOn(classRow, date)?.id !== staff.id)
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -112,9 +116,13 @@ export function assertTeacherAccess(
 
 export async function assertAssessmentDateAccess(
   context: AssessmentContext,
-  progress: Progress,
-  date: Date,
+  options: {
+    progress: Progress;
+    date: Date;
+  },
 ): Promise<void> {
+  const { progress, date } = options;
+
   if (
     context.staffUser.role !== "TEACHER" ||
     usualTeacherOn(progress.enrollment.class, date)?.id === context.staffUser.id

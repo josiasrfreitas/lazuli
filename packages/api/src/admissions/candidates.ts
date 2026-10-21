@@ -107,7 +107,10 @@ export async function listCandidates(
   pageCount: number;
 }> {
   const today = saoPauloDateOnly(now);
-  const matchingIds = await searchIds(database, "AdmissionCandidate", input.search);
+  const matchingIds = await searchIds(database, {
+    table: "AdmissionCandidate",
+    query: input.search,
+  });
   const where: Prisma.AdmissionCandidateWhereInput = {
     deletedAt: null,
     ...(input.unlinkedOnly ? { studentId: null, enrollmentId: null } : {}),

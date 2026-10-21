@@ -22,6 +22,14 @@ export const interventionInclude = {
   _count: { select: { occurrences: true } },
 } satisfies Prisma.PedagogicalInterventionInclude;
 export const followUpInclude = { recordedBy: { select: personSelect } } as const;
+export type OccurrenceRow = Prisma.PedagogicalOccurrenceGetPayload<{
+  include: typeof occurrenceInclude;
+}>;
+export type InterventionRow = Prisma.PedagogicalInterventionGetPayload<{
+  include: typeof interventionInclude;
+}>;
+export type FollowUpRow = Prisma.PedagogicalFollowUpGetPayload<{ include: typeof followUpInclude }>;
+
 export function occurrenceScope(context: FollowUpContext): Prisma.PedagogicalOccurrenceWhereInput {
   return {
     deletedAt: null,
@@ -50,7 +58,7 @@ export function interventionScope(
     ...(context.staffUser.role === "TEACHER" ? { responsibleId: context.staffUser.id } : {}),
   };
 }
-export async function loadOccurrence(context: FollowUpContext, id: string) {
+export async function loadOccurrence(context: FollowUpContext, id: string): Promise<OccurrenceRow> {
   const row = await context.database.pedagogicalOccurrence.findFirst({
     where: { id, ...occurrenceScope(context) },
     include: occurrenceInclude,
@@ -59,7 +67,10 @@ export async function loadOccurrence(context: FollowUpContext, id: string) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Ocorrência não encontrada ou sem acesso." });
   return row;
 }
-export async function loadIntervention(context: FollowUpContext, id: string) {
+export async function loadIntervention(
+  context: FollowUpContext,
+  id: string,
+): Promise<InterventionRow> {
   const row = await context.database.pedagogicalIntervention.findFirst({
     where: { id, ...interventionScope(context) },
     include: interventionInclude,
@@ -105,9 +116,13 @@ export function invalid(message: string): never {
 }
 export async function claimVersion(
   context: FollowUpContext,
-  id: string,
-  version: number,
+  options: {
+    id: string;
+    version: number;
+  },
 ): Promise<void> {
+  const { id, version } = options;
+
   const changed = await context.database.pedagogicalIntervention.updateMany({
     where: { id, version, ...interventionScope(context) },
     data: { version: { increment: 1 } },

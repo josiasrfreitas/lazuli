@@ -85,7 +85,7 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
     confirmTreatment: (values, { actorName, now }) =>
       confirmTreatment({ database: db, values, actor: { id: staffUserId, name: actorName }, now }),
     treatmentHistory: (studentId) => treatmentHistory(db, studentId),
-    previewTermination: (id, now) => previewContractTermination(db, id, now),
+    previewTermination: (id, now) => previewContractTermination(db, { contractId: id, now }),
     confirmTermination: (values, now) =>
       confirmContractTermination({ database: db, values, now, staffUserId }),
     analytics: (values) => readAnalytics(db, values),
@@ -96,7 +96,7 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
     },
     previewPayments: (values, now) => previewPayments({ database: db, values, now }),
     confirmPayments: (values, now) => confirmPayments({ database: db, values, staffUserId, now }),
-    readContract: (id, now) => readContract(db, id, now),
+    readContract: (id, now) => readContract(db, { id, now }),
     addContractMaterial: (values) => addContractMaterial({ database: db, staffUserId, values }),
     contractMaterialOptions: () => contractMaterialOptions(db),
     readSettings: () => readSettings(db),

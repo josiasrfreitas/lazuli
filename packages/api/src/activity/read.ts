@@ -39,9 +39,13 @@ export function activityPeriodStart(
 }
 export async function listActivity(
   database: Prisma.TransactionClient,
-  input: ActivityListInput,
-  now: Date,
+  options: {
+    input: ActivityListInput;
+    now: Date;
+  },
 ): Promise<ActivityPage> {
+  const { input, now } = options;
+
   const snapshotAt = input.cursor && input.cursor.snapshotAt < now ? input.cursor.snapshotAt : now;
   const start = activityPeriodStart(input.period, snapshotAt);
   const studentScope = input.financialStudentId
@@ -55,7 +59,7 @@ export async function listActivity(
     occurredAt: { ...(start ? { gte: start } : {}), lte: snapshotAt },
     ...(areas.length > 0 ? { area: { in: areas } } : {}),
     ...(actorIds.length > 0 ? { actorId: { in: actorIds } } : {}),
-    id: (await searchIds(database, "ActivityEvent", input.search)) ?? {},
+    id: (await searchIds(database, { table: "ActivityEvent", query: input.search })) ?? {},
   };
   const [rows, total] = await Promise.all([
     database.activityEvent.findMany({

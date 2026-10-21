@@ -59,9 +59,13 @@ function absenceView(row: Absence, excludeAppointmentId?: string) {
 /** A student's bounded teaching history; caller owns access to the student/appointment. */
 export async function studentAbsences(
   database: Prisma.TransactionClient,
-  studentId: string,
-  excludeAppointmentId?: string,
+  options: {
+    studentId: string;
+    excludeAppointmentId?: string | undefined;
+  },
 ) {
+  const { studentId, excludeAppointmentId } = options;
+
   const rows = await database.attendance.findMany({
     where: {
       deletedAt: null,

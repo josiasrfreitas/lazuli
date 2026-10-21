@@ -20,5 +20,7 @@ export const commandSearchRouter = router({
         })
         .strict(),
     )
-    .query(({ ctx, input }) => lookupCommands(ctx.db, input.query, ctx.now ?? new Date())),
+    .query(({ ctx, input }) =>
+      lookupCommands(ctx.db, { query: input.query, now: ctx.now ?? new Date() }),
+    ),
 });

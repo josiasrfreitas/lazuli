@@ -11,10 +11,14 @@ import { appointmentActivity, recordAppointmentRevision } from "./evidence.js";
 
 export async function scheduleAppointment(
   context: AppointmentContext,
-  input: AppointmentScheduleInput,
-  rescheduledFromId?: string,
-  legacyMakeupId?: string,
+  options: {
+    input: AppointmentScheduleInput;
+    rescheduledFromId?: string | undefined;
+    legacyMakeupId?: string | undefined;
+  },
 ): Promise<{ id: string; version: number }> {
+  const { input, rescheduledFromId, legacyMakeupId } = options;
+
   requireAppointmentAdmin(context);
   await lockTeacher(context.database, "");
   if (await context.database.pedagogicalAppointment.findUnique({ where: { id: input.id } }))
@@ -54,12 +58,15 @@ export async function scheduleAppointment(
       coverages: { create: input.coverages },
     },
   });
-  const row = await recordAppointmentRevision(context, input.id, "SCHEDULED", null);
-  await appointmentActivity(
-    context,
+  const row = await recordAppointmentRevision(context, {
+    id: input.id,
+    kind: "SCHEDULED",
+    reason: null,
+  });
+  await appointmentActivity(context, {
     row,
-    "appointments.schedule",
-    `${row.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })} · ${timeOnly(row.startTime)}–${timeOnly(row.endTime)}. ${input.coverages.length > 0 ? `${input.coverages.reduce((sum, item) => sum + item.minutes, 0)} minutos reservados para reposição.` : "Acompanhamento pedagógico agendado."}`,
-  );
+    action: "appointments.schedule",
+    description: `${row.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })} · ${timeOnly(row.startTime)}–${timeOnly(row.endTime)}. ${input.coverages.length > 0 ? `${input.coverages.reduce((sum, item) => sum + item.minutes, 0)} minutos reservados para reposição.` : "Acompanhamento pedagógico agendado."}`,
+  });
   return { id: row.id, version: row.version };
 }

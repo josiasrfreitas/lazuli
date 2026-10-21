@@ -34,9 +34,16 @@ export function financialTreatments(
     FinanceDatabase,
     "installment" | "installmentAgreement" | "installmentAdjustment" | "$queryRaw"
   >,
-  actor: { id: string; name: string },
-  now: Date,
+  options: {
+    actor: {
+      id: string;
+      name: string;
+    };
+    now: Date;
+  },
 ) {
+  const { actor, now } = options;
+
   const today = saoPauloDateOnly(now);
   async function scopedInstallments(
     where: Prisma.InstallmentWhereInput,

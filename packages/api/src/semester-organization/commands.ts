@@ -193,7 +193,11 @@ export async function declinePlacements(
       where: { id: row.id },
       data: { declinedAt: context.now, declinedReason: input.reason, version: { increment: 1 } },
     });
-    await recordPlacementRevision(context, row.id, "NOT_CONTINUING", input.reason);
+    await recordPlacementRevision(context, {
+      id: row.id,
+      action: "NOT_CONTINUING",
+      reason: input.reason,
+    });
   }
   return { count: input.selections.length };
 }
@@ -224,9 +228,13 @@ export async function closeRange(
   const affected = await context.database.classSession.count({
     where: { deletedAt: null, date: { gte: new Date(input.from), lte: new Date(input.through) } },
   });
-  await recordActivity(context.database, context, "calendar.addClosedDay", {
-    subject: { type: "school", name: "Calendário letivo" },
-    description: `${input.reason} · ${input.from} a ${input.through}`,
+  await recordActivity(context.database, {
+    context,
+    action: "calendar.addClosedDay",
+    details: {
+      subject: { type: "school", name: "Calendário letivo" },
+      description: `${input.reason} · ${input.from} a ${input.through}`,
+    },
   });
   return { added: result.count, affected };
 }
@@ -289,9 +297,13 @@ export async function updatePeriod(
       OR: [{ date: { lt: startDate } }, { date: { gt: endDate } }],
     },
   });
-  await recordActivity(context.database, context, "semesterOrganization.updatePeriod", {
-    subject: { type: "school", name: input.name },
-    description: `Período revisado: ${input.startDate} a ${input.endDate}.`,
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.updatePeriod",
+    details: {
+      subject: { type: "school", name: input.name },
+      description: `Período revisado: ${input.startDate} a ${input.endDate}.`,
+    },
   });
   return { affected };
 }

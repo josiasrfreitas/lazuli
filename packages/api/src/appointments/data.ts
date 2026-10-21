@@ -87,7 +87,10 @@ export function sourceApplicable(row: AbsenceSource): boolean {
     (!row.enrollment.exitDate || row.enrollment.exitDate > session.date)
   );
 }
-export async function loadAppointment(context: AppointmentContext, id: string) {
+export async function loadAppointment(
+  context: AppointmentContext,
+  id: string,
+): Promise<AppointmentRow> {
   const row = await context.database.pedagogicalAppointment.findFirst({
     where: { id, deletedAt: null },
     include: appointmentInclude,

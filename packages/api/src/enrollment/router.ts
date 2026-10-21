@@ -42,40 +42,37 @@ export const enrollmentRouter = router({
       searchEnrollmentCandidates({ database: ctx.db, values: input, now: ctx.now ?? new Date() }),
     ),
   create: enrollmentProcedure.input(enrollmentCreateInputSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "enrollment.create",
-      (database) =>
+    activityTransaction(ctx, {
+      action: "enrollment.create",
+      work: (database) =>
         createEnrollment({
           database,
           values: input,
           staffUserId: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (result, database) => ({
+      describe: async (result, database) => ({
         subject: await enrollmentSubject(database, result.enrollment.id),
         deduplicationKey: `enrollment.create:${result.enrollment.id}`,
       }),
-    ),
+    }),
   ),
   advanceStage: enrollmentProcedure
     .input(enrollmentAdvanceStageInputSchema)
     .mutation(({ ctx, input }) =>
-      activityTransaction(
-        ctx,
-        "enrollment.advanceStage",
-        (database) =>
+      activityTransaction(ctx, {
+        action: "enrollment.advanceStage",
+        work: (database) =>
           advanceStage({ database, enrollmentId: input.enrollmentId, now: ctx.now ?? new Date() }),
-        async (_result, database) => ({
+        describe: async (_result, database) => ({
           subject: await enrollmentSubject(database, input.enrollmentId),
         }),
-      ),
+      }),
     ),
   close: enrollmentProcedure.input(enrollmentCloseInputSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "enrollment.close",
-      (database) =>
+    activityTransaction(ctx, {
+      action: "enrollment.close",
+      work: (database) =>
         closeEnrollment({
           database,
           enrollmentId: input.enrollmentId,
@@ -84,46 +81,44 @@ export const enrollmentRouter = router({
           staffUserId: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (_result, database) => ({
+      describe: async (_result, database) => ({
         subject: await enrollmentSubject(database, input.enrollmentId),
         description: input.reason === "SUSPENDED" ? "Pausa da matrícula." : "Saída da matrícula.",
       }),
-    ),
+    }),
   ),
   cancelScheduled: enrollmentProcedure
     .input(enrollmentCancelScheduledInputSchema)
     .mutation(({ ctx, input }) =>
-      activityTransaction(
-        ctx,
-        "enrollment.cancelScheduled",
-        (database) =>
+      activityTransaction(ctx, {
+        action: "enrollment.cancelScheduled",
+        work: (database) =>
           cancelScheduledAction({
             database,
             actionId: input.actionId,
             staffUserId: ctx.staffUser.id,
             now: ctx.now ?? new Date(),
           }),
-        async (_result, database) => ({
+        describe: async (_result, database) => ({
           subject: await enrollmentActionSubject(database, input.actionId),
         }),
-      ),
+      }),
     ),
   return: enrollmentProcedure.input(enrollmentReturnInputSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "enrollment.return",
-      (database) =>
+    activityTransaction(ctx, {
+      action: "enrollment.return",
+      work: (database) =>
         returnEnrollment({
           database,
           values: input,
           staffUserId: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (result, database) => ({
+      describe: async (result, database) => ({
         subject: await enrollmentSubject(database, result.enrollment.id),
         deduplicationKey: `enrollment.return:${result.enrollment.id}`,
       }),
-    ),
+    }),
   ),
   previewCorrection: enrollmentProcedure
     .input(enrollmentCorrectionPreviewInputSchema)
@@ -133,22 +128,21 @@ export const enrollmentRouter = router({
   applyCorrection: enrollmentProcedure
     .input(enrollmentCorrectionApplyInputSchema)
     .mutation(({ ctx, input }) =>
-      activityTransaction(
-        ctx,
-        "enrollment.applyCorrection",
-        (database) =>
+      activityTransaction(ctx, {
+        action: "enrollment.applyCorrection",
+        work: (database) =>
           applyEnrollmentCorrection({
             database,
             values: input,
             staffUserId: ctx.staffUser.id,
             now: ctx.now ?? new Date(),
           }),
-        async (_result, database) => ({
+        describe: async (_result, database) => ({
           subject: await enrollmentActionSubject(database, input.actionId),
           description: input.justification,
         }),
-        { isolationLevel: "Serializable" },
-      ),
+        options: { isolationLevel: "Serializable" },
+      }),
     ),
   pausedSearch: enrollmentProcedure
     .input(enrollmentPausedSearchInputSchema)
@@ -158,7 +152,9 @@ export const enrollmentRouter = router({
           deletedAt: null,
           exitReason: "SUSPENDED",
           exitDate: { lte: new Date(saoPauloDateOnly(ctx.now ?? new Date())) },
-          student: { id: (await searchIds(ctx.db, "Student", input.query)) ?? {} },
+          student: {
+            id: (await searchIds(ctx.db, { table: "Student", query: input.query })) ?? {},
+          },
           returnActions: { none: { status: { in: ["SCHEDULED", "APPLIED"] } } },
         },
         select: {
@@ -178,14 +174,13 @@ export const enrollmentRouter = router({
       }),
     ),
   transfer: enrollmentProcedure.input(enrollmentTransferInputSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "enrollment.transfer",
-      (database) => transferEnrollment({ database, values: input }),
-      async (result, database) => ({
+    activityTransaction(ctx, {
+      action: "enrollment.transfer",
+      work: (database) => transferEnrollment({ database, values: input }),
+      describe: async (result, database) => ({
         subject: await enrollmentSubject(database, result.enrollment.id),
         deduplicationKey: `enrollment.transfer:${result.enrollment.id}`,
       }),
-    ),
+    }),
   ),
 });

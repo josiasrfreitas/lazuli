@@ -13,9 +13,13 @@ const hash = (value: unknown): string =>
 
 export async function previewContractTermination(
   database: FinanceDatabase,
-  contractId: string,
-  now: Date,
+  options: {
+    contractId: string;
+    now: Date;
+  },
 ) {
+  const { contractId, now } = options;
+
   const today = saoPauloDateOnly(now);
   const contract = await database.contract.findUnique({
     where: { id: contractId },
@@ -146,7 +150,10 @@ export async function confirmContractTermination(input: {
     select: { id: true },
   });
   await lockInstallments(database, ids.map((row) => row.id).toSorted());
-  const preview = await previewContractTermination(database, values.contractId, now);
+  const preview = await previewContractTermination(database, {
+    contractId: values.contractId,
+    now,
+  });
   if (preview.version !== values.version)
     throw badRequest(
       "O contrato, as parcelas ou a matrícula mudaram. Atualize a prévia antes de confirmar.",

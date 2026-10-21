@@ -80,7 +80,7 @@ export async function listTeachers({
 }: ListTeachersInput): Promise<ListTeachersResult> {
   const today = new Date(saoPauloDateOnly(now));
   const where = teacherListWhere(input, today);
-  where.id = (await searchIds(database, "User", input.search)) ?? {};
+  where.id = (await searchIds(database, { table: "User", query: input.search })) ?? {};
   const total = await database.user.count({ where });
   const pageCount = Math.max(1, Math.ceil(total / input.pageSize));
   const page = Math.min(input.page, pageCount);
@@ -143,7 +143,7 @@ export async function teacherOptions({
     where: {
       AND: [teacherIdentityWhere],
       deletedAt: null,
-      id: (await searchIds(database, "User", search)) ?? {},
+      id: (await searchIds(database, { table: "User", query: search })) ?? {},
       OR: [
         { teacherProfile: null },
         { teacherProfile: { departureDate: null } },

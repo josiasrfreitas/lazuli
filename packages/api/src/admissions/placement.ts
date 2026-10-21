@@ -204,10 +204,9 @@ export async function uploadPlacementFile(
     contentType: values.contentType,
   });
   try {
-    return await activityTransaction(
-      ctx,
-      "admissions.placementFile",
-      async (database) => {
+    return await activityTransaction(ctx, {
+      action: "admissions.placementFile",
+      work: async (database) => {
         await lockCandidate(database, visit.candidateId);
         const current = await placementVisit(database, values.id);
         if (ctx.staffUser.role === "TEACHER" && current.teacherId !== ctx.staffUser.id)
@@ -234,14 +233,14 @@ export async function uploadPlacementFile(
         }
         return { id: visit.id };
       },
-      async (_result, database) => ({
+      describe: async (_result, database) => ({
         subject: await leadSubject(database, visit.candidateId),
         description:
           kind === "CORRECTED"
             ? "Anexou a prova de nivelamento corrigida."
             : "Anexou a prova de nivelamento aplicada.",
       }),
-    );
+    });
   } catch (error) {
     // Best-effort compensation: do not mask the original transaction failure.
     await storage.remove(reference).catch((): undefined => {});
@@ -251,9 +250,13 @@ export async function uploadPlacementFile(
 
 export async function downloadPlacementFile(
   database: Prisma.TransactionClient,
-  id: string,
-  kind: "ORIGINAL" | "CORRECTED" = "ORIGINAL",
+  options: {
+    id: string;
+    kind?: ("ORIGINAL" | "CORRECTED") | undefined;
+  },
 ): Promise<{ fileName: string; contentType: string; base64: string }> {
+  const { id, kind = "ORIGINAL" } = options;
+
   const visit = await placementVisit(database, id);
   const attachment = kind === "CORRECTED" ? visit.assessment?.correctedFile : visit.assessment;
   if (!attachment)

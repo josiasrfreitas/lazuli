@@ -4,9 +4,13 @@ import { toDateOnlyString, type FinanceDatabase } from "./shared.js";
 /** Read academic plans and organization decisions; finance never advances an enrollment. */
 export async function readMaterialNeeds(
   database: FinanceDatabase,
-  studentId: string,
-  asOf: string,
+  options: {
+    studentId: string;
+    asOf: string;
+  },
 ) {
+  const { studentId, asOf } = options;
+
   const today = new Date(asOf);
   const [enrollments, sales] = await Promise.all([
     database.enrollment.findMany({

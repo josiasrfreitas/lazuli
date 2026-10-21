@@ -10,9 +10,16 @@ import {
   loadOccurrence,
   loadIntervention,
   type FollowUpContext,
+  type OccurrenceRow,
+  type InterventionRow,
+  type FollowUpRow,
 } from "./data.js";
 const PAGE_SIZE = 25;
-export async function listOccurrences(context: FollowUpContext, input: PedagogicalList) {
+type FollowUpPage<Row> = { rows: Row[]; total: number; pageSize: number };
+export async function listOccurrences(
+  context: FollowUpContext,
+  input: PedagogicalList,
+): Promise<FollowUpPage<OccurrenceRow>> {
   const where: Prisma.PedagogicalOccurrenceWhereInput = {
     AND: [
       occurrenceScope(context),
@@ -23,12 +30,18 @@ export async function listOccurrences(context: FollowUpContext, input: Pedagogic
               OR: [
                 {
                   id:
-                    (await searchIds(context.database, "PedagogicalOccurrence", input.search)) ??
-                    {},
+                    (await searchIds(context.database, {
+                      table: "PedagogicalOccurrence",
+                      query: input.search,
+                    })) ?? {},
                 },
                 {
                   student: {
-                    id: (await searchIds(context.database, "Student", input.search)) ?? {},
+                    id:
+                      (await searchIds(context.database, {
+                        table: "Student",
+                        query: input.search,
+                      })) ?? {},
                   },
                 },
               ],
@@ -63,17 +76,25 @@ async function interventionFilter(
               OR: [
                 {
                   id:
-                    (await searchIds(context.database, "PedagogicalIntervention", input.search)) ??
-                    {},
+                    (await searchIds(context.database, {
+                      table: "PedagogicalIntervention",
+                      query: input.search,
+                    })) ?? {},
                 },
                 {
                   student: {
-                    id: (await searchIds(context.database, "Student", input.search)) ?? {},
+                    id:
+                      (await searchIds(context.database, {
+                        table: "Student",
+                        query: input.search,
+                      })) ?? {},
                   },
                 },
                 {
                   responsible: {
-                    id: (await searchIds(context.database, "User", input.search)) ?? {},
+                    id:
+                      (await searchIds(context.database, { table: "User", query: input.search })) ??
+                      {},
                   },
                 },
               ],
@@ -83,7 +104,10 @@ async function interventionFilter(
     ],
   };
 }
-export async function listInterventions(context: FollowUpContext, input: PedagogicalList) {
+export async function listInterventions(
+  context: FollowUpContext,
+  input: PedagogicalList,
+): Promise<FollowUpPage<InterventionRow>> {
   const where = await interventionFilter(context, input);
   const [rows, total] = await Promise.all([
     context.database.pedagogicalIntervention.findMany({
@@ -97,7 +121,17 @@ export async function listInterventions(context: FollowUpContext, input: Pedagog
   ]);
   return { rows, total, pageSize: PAGE_SIZE };
 }
-export async function occurrenceDetail(context: FollowUpContext, id: string) {
+export async function occurrenceDetail(
+  context: FollowUpContext,
+  id: string,
+): Promise<
+  OccurrenceRow & {
+    related: OccurrenceRow[];
+    interventions: InterventionRow[];
+    canEdit: boolean;
+    canOrganize: boolean;
+  }
+> {
   const row = await loadOccurrence(context, id);
   const [relations, interventions] = await Promise.all([
     context.database.occurrenceRelation.findMany({
@@ -127,7 +161,12 @@ export async function occurrenceDetail(context: FollowUpContext, id: string) {
     canOrganize: context.staffUser.role !== "TEACHER",
   };
 }
-export async function interventionDetail(context: FollowUpContext, id: string) {
+export async function interventionDetail(
+  context: FollowUpContext,
+  id: string,
+): Promise<
+  InterventionRow & { occurrences: OccurrenceRow[]; followUps: FollowUpRow[]; canOrganize: boolean }
+> {
   const row = await loadIntervention(context, id);
   const [occurrences, followUps] = await Promise.all([
     context.database.pedagogicalOccurrence.findMany({
@@ -148,7 +187,10 @@ export async function interventionDetail(context: FollowUpContext, id: string) {
     canOrganize: context.staffUser.role !== "TEACHER",
   };
 }
-export async function studentOccurrences(context: FollowUpContext, studentId: string) {
+export async function studentOccurrences(
+  context: FollowUpContext,
+  studentId: string,
+): Promise<OccurrenceRow[]> {
   return context.database.pedagogicalOccurrence.findMany({
     where: { studentId, ...occurrenceScope(context) },
     include: occurrenceInclude,

@@ -27,9 +27,13 @@ import { lockIntakeSemester, syncStudentIntake } from "../semester-organization/
 
 export async function studentIntakeOptions(
   database: Prisma.TransactionClient,
-  input: z.infer<typeof studentIntakeOptionsSchema>,
-  now: Date,
+  options: {
+    input: z.infer<typeof studentIntakeOptionsSchema>;
+    now: Date;
+  },
 ) {
+  const { input, now } = options;
+
   const today = saoPauloDateOnly(now);
   const semester = await database.semester.findFirst({
     where: {
@@ -169,12 +173,20 @@ export async function enrollNewStudent({
       "Este lead já está vinculado a um aluno ou não está em acompanhamento. Abra o cadastro existente.",
     );
   if (candidate)
-    await requireLeadGuardian(database, candidate, { mode: "create", values: values.student });
+    await requireLeadGuardian(database, {
+      candidate,
+      student: { mode: "create", values: values.student },
+    });
   const today = saoPauloDateOnly(now);
   if (values.student.birthDate && values.student.birthDate > new Date(today))
     throw badRequest("O nascimento não pode estar no futuro.");
   const target = values.classId
-    ? await intakeTarget(database, values.classId, values.stageId, candidate, today)
+    ? await intakeTarget(database, {
+        classId: values.classId,
+        stageId: values.stageId,
+        candidate,
+        today,
+      })
     : null;
   const contract = values.contract
     ? await finance(database, recordedById).createMonthlyContract({
@@ -235,11 +247,15 @@ export async function enrollNewStudent({
 
 async function intakeTarget(
   database: Prisma.TransactionClient,
-  classId: string,
-  stageId: string | null,
-  candidate: Awaited<ReturnType<typeof readCandidate>> | null,
-  today: string,
+  options: {
+    classId: string;
+    stageId: string | null;
+    candidate: Awaited<ReturnType<typeof readCandidate>> | null;
+    today: string;
+  },
 ) {
+  const { classId, stageId, candidate, today } = options;
+
   if (!stageId) throw badRequest("Escolha o estágio antes de confirmar a turma.");
   if (candidate?.englishExperience === "SOME") {
     await assertPlacementReady(database, candidate);
@@ -288,9 +304,17 @@ export async function allocateIntakeStudent({
   if (snapshot) await lockCandidate(database, snapshot.id);
   const candidate = snapshot ? await readCandidate(database, snapshot.id) : null;
   const today = saoPauloDateOnly(now);
-  const target = await intakeTarget(database, values.classId, values.stageId, candidate, today);
+  const target = await intakeTarget(database, {
+    classId: values.classId,
+    stageId: values.stageId,
+    candidate,
+    today,
+  });
   if (candidate)
-    await requireLeadGuardian(database, candidate, { mode: "existing", id: values.studentId });
+    await requireLeadGuardian(database, {
+      candidate,
+      student: { mode: "existing", id: values.studentId },
+    });
   const result = await createEnrollment({
     database: enrollmentDatabase,
     staffUserId: recordedById,
@@ -340,7 +364,7 @@ export async function resumeStudentIntake({
   const semester = await lockIntakeSemester(database, now);
   await lockTeacher(database, "");
   await database.$executeRaw`SELECT id FROM "Student" WHERE id = ${values.studentId}::uuid FOR UPDATE`;
-  const state = await readStudentPendingActions(database, values.studentId, now);
+  const state = await readStudentPendingActions(database, { id: values.studentId, now });
   if (state.enrollment && values.classId && state.enrollment.classId !== values.classId)
     throw badRequest("Este aluno já tem turma. Atualize o cadastro para continuar.");
   if (state.contract && values.contract) {
@@ -359,7 +383,10 @@ export async function resumeStudentIntake({
   await updateStudentContact({ database, id: values.studentId, values: values.contact });
   if (state.lead) {
     const candidate = await readCandidate(database, state.lead.id);
-    await requireLeadGuardian(database, candidate, { mode: "existing", id: values.studentId });
+    await requireLeadGuardian(database, {
+      candidate,
+      student: { mode: "existing", id: values.studentId },
+    });
   }
   if (!state.enrollment && values.classId) {
     if (!values.stageId) throw badRequest("Escolha o estágio antes de confirmar a turma.");

@@ -9,9 +9,13 @@ import { candidateVisits } from "./visit-read.js";
 
 export async function visitCalendar(
   database: Prisma.TransactionClient,
-  input: z.infer<typeof entryVisitCalendarSchema>,
-  now: Date,
+  options: {
+    input: z.infer<typeof entryVisitCalendarSchema>;
+    now: Date;
+  },
 ) {
+  const { input, now } = options;
+
   const candidate = await readCandidate(database, input.candidateId);
   if (candidate.status !== "WAITING")
     throw badRequest("Reabra o lead para agendar uma experimental.");

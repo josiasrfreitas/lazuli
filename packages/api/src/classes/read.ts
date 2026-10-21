@@ -71,8 +71,8 @@ export async function listClasses(
   const where = classWhere(input.values);
   if (input.values.search) {
     const [classes, teachers] = await Promise.all([
-      searchIds(input.database, "Class", input.values.search),
-      searchIds(input.database, "User", input.values.search),
+      searchIds(input.database, { table: "Class", query: input.values.search }),
+      searchIds(input.database, { table: "User", query: input.values.search }),
     ]);
     if (classes && teachers)
       where.OR = [
@@ -219,7 +219,9 @@ export async function listClassRoster(input: RosterInput): Promise<
   if (classRow === null) throw notFound(CLASS_NOT_FOUND_MESSAGE);
   const today = new Date(saoPauloDateOnly(input.now));
   const where = rosterWhere(input, today);
-  where.student = { id: (await searchIds(input.database, "Student", input.search)) ?? {} };
+  where.student = {
+    id: (await searchIds(input.database, { table: "Student", query: input.search })) ?? {},
+  };
   const [rows, total] = await Promise.all([
     input.database.enrollment.findMany({
       where,

@@ -370,16 +370,15 @@ async function persistRecord(
         updatedAt: version.at,
       },
     });
-    await recordActivity(
-      database,
-      { staffUser: version.author, now: version.at },
-      index === 0 ? "classRecords.confirm" : "classRecords.correct",
-      {
+    await recordActivity(database, {
+      context: { staffUser: version.author, now: version.at },
+      action: index === 0 ? "classRecords.confirm" : "classRecords.correct",
+      details: {
         subject: { type: "class", id: session.classId, name: session.class.portalClassName },
         description: `${isoOf(session.date).split("-").toReversed().join("/")} · ${version.reason}`,
         deduplicationKey: `seed-class-record/${id}/${index + 1}`,
       },
-    );
+    });
   }
   await database.classSession.update({
     where: { id: session.id },

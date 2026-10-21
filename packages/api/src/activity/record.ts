@@ -17,10 +17,14 @@ type ActorContext = { staffUser: StaffUser; now?: Date | undefined };
 /** The caller owns the transaction; failed business operations cannot leave a success event. */
 export async function recordActivity(
   database: Pick<Prisma.TransactionClient, "activityEvent">,
-  context: ActorContext,
-  action: ActivityAction,
-  details: ActivityDetails,
+  options: {
+    context: ActorContext;
+    action: ActivityAction;
+    details: ActivityDetails;
+  },
 ): Promise<void> {
+  const { context, action, details } = options;
+
   const [area, title] = ACTIVITY_ACTIONS[action];
   const data = {
     action,
@@ -46,18 +50,27 @@ export async function recordActivity(
 
 export async function activityTransaction<T>(
   context: ActorContext & { db: Context["db"] },
-  action: ActivityAction,
-  work: (database: TransactionClient) => Promise<T>,
-  describe: (
-    result: T,
-    database: TransactionClient,
-  ) => ActivityDetails | null | Promise<ActivityDetails | null>,
-  options?: { timeout?: number; isolationLevel?: Prisma.TransactionIsolationLevel },
+  command: {
+    action: ActivityAction;
+    work: (database: TransactionClient) => Promise<T>;
+    describe: (
+      result: T,
+      database: TransactionClient,
+    ) => ActivityDetails | null | Promise<ActivityDetails | null>;
+    options?:
+      | {
+          timeout?: number;
+          isolationLevel?: Prisma.TransactionIsolationLevel;
+        }
+      | undefined;
+  },
 ): Promise<T> {
+  const { action, work, describe, options } = command;
+
   return context.db.$transaction(async (database) => {
     const result = await work(database);
     const details = await describe(result, database);
-    if (details) await recordActivity(database, context, action, details);
+    if (details) await recordActivity(database, { context, action, details });
     return result;
   }, options);
 }

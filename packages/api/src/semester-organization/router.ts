@@ -167,7 +167,10 @@ export const semesterOrganizationRouter = router({
   student: adminProcedure
     .input(semesterScopeSchema.extend({ studentId: z.string().uuid() }))
     .query(({ ctx, input }) =>
-      organizationStudent(context(ctx), input.studentId, input.semesterId),
+      organizationStudent(context(ctx), {
+        studentId: input.studentId,
+        semesterId: input.semesterId,
+      }),
     ),
   history: adminProcedure.input(z.object({ id: z.string().uuid() })).query(({ ctx, input }) =>
     ctx.db.semesterPlacementRevision.findMany({

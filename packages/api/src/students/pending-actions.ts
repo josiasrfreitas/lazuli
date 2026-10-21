@@ -17,9 +17,13 @@ export function intakeEnrollmentWhere(now: Date): Prisma.EnrollmentWhereInput {
 
 export async function studentsWithPendingRegistration(
   database: Prisma.TransactionClient,
-  ids: string[],
-  now: Date,
+  options: {
+    ids: string[];
+    now: Date;
+  },
 ): Promise<Set<string>> {
+  const { ids, now } = options;
+
   const rows = await database.student.findMany({
     where: {
       id: { in: ids },
@@ -37,9 +41,13 @@ export async function studentsWithPendingRegistration(
 
 export async function readStudentPendingActions(
   database: Prisma.TransactionClient,
-  id: string,
-  now: Date,
+  options: {
+    id: string;
+    now: Date;
+  },
 ) {
+  const { id, now } = options;
+
   const student = await database.student.findFirst({
     where: { id, deletedAt: null },
     select: {

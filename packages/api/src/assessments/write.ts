@@ -15,10 +15,15 @@ export async function saveAssessment(
   const progress = await lockProgress(context, values.progressId);
   const changes = gradeChanges(progress, values);
   const notes = observationChanges(progress, values);
-  await assertGradeChanges(context, progress, values, changes);
+  await assertGradeChanges(context, { progress, values, changes });
   if (changes.length === 0 && notes.length === 0) return readAssessment(context, progress.id);
   const id = await ensureAssessment(context, progress);
-  for (const grade of changes) await writeGrade(context, id, grade, values.correctionReason);
+  for (const grade of changes)
+    await writeGrade(context, {
+      assessmentId: id,
+      grade,
+      correctionReason: values.correctionReason,
+    });
   await context.database.stageAssessment.update({
     where: { id },
     data: {
@@ -34,7 +39,7 @@ export async function saveAssessment(
         : {}),
     },
   });
-  await recordAssessmentChanges(context, progress, values, changes, notes);
+  await recordAssessmentChanges(context, { progress, values, changes, observations: notes });
   return readAssessment(context, progress.id);
 }
 export async function ensureAssessment(
@@ -55,10 +60,14 @@ export async function ensureAssessment(
 }
 async function writeGrade(
   context: AssessmentContext,
-  assessmentId: string,
-  grade: AssessmentSave["grades"][number],
-  correctionReason?: string,
+  options: {
+    assessmentId: string;
+    grade: AssessmentSave["grades"][number];
+    correctionReason?: string | undefined;
+  },
 ): Promise<void> {
+  const { assessmentId, grade, correctionReason } = options;
+
   const { database, staffUser, now } = context;
   const where = { assessmentId, phase: grade.phase, competence: grade.competence };
   const reason = grade.phase === "RECOVERY" ? grade.reason : correctionReason || null;
@@ -109,13 +118,17 @@ export async function confirmAssessment(
       confirmedById: context.staffUser.id,
     },
   });
-  await recordActivity(context.database, context, "assessments.confirm", {
-    subject: {
-      type: "student",
-      id: progress.enrollment.studentId,
-      name: `${progress.enrollment.student.fullName} · ${progress.stage.name}`,
+  await recordActivity(context.database, {
+    context,
+    action: "assessments.confirm",
+    details: {
+      subject: {
+        type: "student",
+        id: progress.enrollment.studentId,
+        name: `${progress.enrollment.student.fullName} · ${progress.stage.name}`,
+      },
+      description: `${values.decision === "APPROVED" ? "Aprovação" : "Repetência"} confirmada. ${values.reason}`,
     },
-    description: `${values.decision === "APPROVED" ? "Aprovação" : "Repetência"} confirmada. ${values.reason}`,
   });
   return readAssessment(context, progress.id);
 }

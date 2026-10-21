@@ -16,7 +16,13 @@ export async function cancelMakeup(input: {
   const row = await ensureLegacyAppointment(input.database, input.values.makeupId);
   await cancelAppointment(
     { database: input.database, staffUser: input.staffUser, now },
-    { id: row.id, expectedVersion: input.values.expectedVersion, reason: input.values.reason },
+    {
+      input: {
+        id: row.id,
+        expectedVersion: input.values.expectedVersion,
+        reason: input.values.reason,
+      },
+    },
   );
   return { makeupId: input.values.makeupId, cancelledAt: now };
 }

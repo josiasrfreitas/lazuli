@@ -65,7 +65,10 @@ export async function materialOrderData(input: {
   if (
     total !== material.expectedTotalCents ||
     material.quoteVersion !==
-      materialPriceVersion(perBookInstallments, quote.installmentCents, cardFeePct)
+      materialPriceVersion(perBookInstallments, {
+        installmentCents: quote.installmentCents,
+        cardFeePct,
+      })
   )
     throw new TRPCError({
       code: "CONFLICT",

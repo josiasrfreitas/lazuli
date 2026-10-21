@@ -5,9 +5,15 @@ import { badRequest } from "../trpc/errors.js";
 /** The declared minor path still requires a guardian when birth date is not yet known. */
 export async function requireLeadGuardian(
   database: Prisma.TransactionClient,
-  candidate: { contactRole: string },
-  student: z.infer<typeof admissionEnrollSchema>["student"],
+  options: {
+    candidate: {
+      contactRole: string;
+    };
+    student: z.infer<typeof admissionEnrollSchema>["student"];
+  },
 ): Promise<void> {
+  const { candidate, student } = options;
+
   if (candidate.contactRole !== "GUARDIAN") return;
   const reference = student.mode === "create" ? student.values.guardian : null;
   const existing =

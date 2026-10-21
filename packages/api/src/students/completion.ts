@@ -58,7 +58,11 @@ export async function persistStudentCompletion(input: {
     student = await createStudent({ database: input.database, values: input.values.student });
   }
   if (input.values.pedagogy)
-    await recordStudentIntake(input.database, student.id, input.staffUserId, input.values.pedagogy);
+    await recordStudentIntake(input.database, {
+      studentId: student.id,
+      recordedById: input.staffUserId,
+      input: input.values.pedagogy,
+    });
   return input.database.student.update({
     where: { id: student.id },
     data: { commandId: command.id, commandFingerprint: command.fingerprint },
@@ -75,30 +79,36 @@ export async function completeStudent(input: {
   try {
     return await activityTransaction(
       { ...input, db: input.database },
-      "students.completeCreation",
-      async (database) => {
-        const student = await persistStudentCompletion({
-          database,
-          values: input.values,
-          staffUserId: input.staffUser.id,
-        });
-        if ("contract" in input.values) {
-          const contract = await database.contract.findUniqueOrThrow({
-            where: { commandId: input.values.contract.commandId },
-            select: { id: true },
+      {
+        action: "students.completeCreation",
+        work: async (database) => {
+          const student = await persistStudentCompletion({
+            database,
+            values: input.values,
+            staffUserId: input.staffUser.id,
           });
-          const subject = await studentSubject(database, student.id);
-          await recordActivity(database, input, "finance.createMonthlyContract", {
-            subject: { ...subject, type: "contract", id: contract.id },
-            deduplicationKey: `finance.contract:${contract.id}`,
-          });
-        }
-        return student;
+          if ("contract" in input.values) {
+            const contract = await database.contract.findUniqueOrThrow({
+              where: { commandId: input.values.contract.commandId },
+              select: { id: true },
+            });
+            const subject = await studentSubject(database, student.id);
+            await recordActivity(database, {
+              context: input,
+              action: "finance.createMonthlyContract",
+              details: {
+                subject: { ...subject, type: "contract", id: contract.id },
+                deduplicationKey: `finance.contract:${contract.id}`,
+              },
+            });
+          }
+          return student;
+        },
+        describe: async (student, database) => ({
+          subject: await studentSubject(database, student.id),
+          deduplicationKey: `students.completeCreation:${student.id}`,
+        }),
       },
-      async (student, database) => ({
-        subject: await studentSubject(database, student.id),
-        deduplicationKey: `students.completeCreation:${student.id}`,
-      }),
     );
   } catch (error) {
     // The losing concurrent transaction rolls back; recover only the same committed command.

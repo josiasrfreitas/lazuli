@@ -62,10 +62,14 @@ export function assertVersion(current: number, expected: number): void {
 }
 export async function recordPlacementRevision(
   context: OrganizationContext,
-  id: string,
-  action: string,
-  reason?: string,
+  options: {
+    id: string;
+    action: string;
+    reason?: string | undefined;
+  },
 ): Promise<void> {
+  const { id, action, reason } = options;
+
   const row = await context.database.semesterPlacement.findUniqueOrThrow({ where: { id } });
   await context.database.semesterPlacementRevision.create({
     data: {

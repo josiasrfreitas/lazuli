@@ -1,3 +1,4 @@
+import type { Prisma } from "@lazuli/db";
 import { TRPCError } from "@trpc/server";
 import { MAX_UPLOAD_FILE_BYTES, z } from "@lazuli/validators";
 import { badRequest, notFound } from "../trpc/errors.js";
@@ -9,6 +10,8 @@ import {
 } from "../assessments/data.js";
 import { ensureAssessment } from "../assessments/write.js";
 import { loadAppointment } from "../appointments/data.js";
+
+type AssessmentFileRow = Prisma.AssessmentFileGetPayload<true>;
 
 export const MAX_ASSESSMENT_BYTES = MAX_UPLOAD_FILE_BYTES;
 export const fileInputSchema = z
@@ -43,7 +46,7 @@ export const fileView = {
 export async function prepareFile(
   context: AssessmentContext,
   input: z.infer<typeof fileInputSchema>,
-) {
+): Promise<{ row: AssessmentFileRow; received: boolean }> {
   const progress = await lockProgress(context, input.progressId);
   if (input.appointmentId) {
     const appointment = await loadAppointment(context, input.appointmentId);
@@ -114,7 +117,12 @@ export async function prepareFile(
   return { row, received: false };
 }
 
-export async function authorizedFile(context: AssessmentContext, id: string) {
+export async function authorizedFile(
+  context: AssessmentContext,
+  id: string,
+): Promise<
+  AssessmentFileRow & { assessment: { deletedAt: Date | null; progressRecords: { id: string }[] } }
+> {
   const row = await context.database.assessmentFile.findUnique({
     where: { id },
     include: {
@@ -143,7 +151,10 @@ export async function authorizedFile(context: AssessmentContext, id: string) {
   });
 }
 
-export async function filesForProgress(context: AssessmentContext, progressId: string) {
+export async function filesForProgress(
+  context: AssessmentContext,
+  progressId: string,
+): Promise<Prisma.AssessmentFileGetPayload<{ select: typeof fileView }>[]> {
   const progress = await loadProgress(context.database, progressId);
   await assertProgressAccess(context, progress);
   return progress.assessmentId

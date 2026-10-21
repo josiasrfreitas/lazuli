@@ -36,7 +36,7 @@ export async function enrollCandidate(input: EnrollmentInput): Promise<Enrollmen
     };
   const choice = await enrollmentChoice(input, candidate);
   await assertPlacementReady(database, candidate);
-  await requireLeadGuardian(database, candidate, values.student);
+  await requireLeadGuardian(database, { candidate, student: values.student });
   const studentId = await enrollmentStudent(input);
   const created = await createEnrollment({
     database: enrollmentDatabase,

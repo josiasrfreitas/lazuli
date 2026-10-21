@@ -75,9 +75,18 @@ function hasStarted(session: { date: Date; startTime: Date }, now: Date): boolea
 
 export async function occurrenceSessions(
   context: FollowUpContext,
-  studentId?: string,
-  range?: { from: string; to: string },
+  options: {
+    studentId?: string | undefined;
+    range?:
+      | {
+          from: string;
+          to: string;
+        }
+      | undefined;
+  },
 ) {
+  const { studentId, range } = options;
+
   const today = new Date(saoPauloDateOnly(context.now));
   const through = range && new Date(range.to) < today ? new Date(range.to) : today;
   if (range && new Date(range.from) > through) return [];

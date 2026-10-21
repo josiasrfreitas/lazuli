@@ -161,7 +161,7 @@ export async function prepareSemester(
               : {}),
           },
         });
-        await recordPlacementRevision(context, row.id, "INHERITED");
+        await recordPlacementRevision(context, { id: row.id, action: "INHERITED" });
         students++;
       }
     }
@@ -203,7 +203,7 @@ export async function prepareSemester(
           recordedById: context.staffUser.id,
         },
       });
-      await recordPlacementRevision(context, row.id, "CARRIED_FORWARD");
+      await recordPlacementRevision(context, { id: row.id, action: "CARRIED_FORWARD" });
       students++;
     }
     const previousAvailability = await context.database.studentAvailability.findMany({
@@ -253,9 +253,13 @@ export async function prepareSemester(
     }
   }
   if (plans || students)
-    await recordActivity(context.database, context, "semesterOrganization.prepare", {
-      subject: { type: "school", name: semester.name },
-      description: `${plans} turma(s) e ${students} aluno(s) incorporados. Alterações anteriores preservadas.`,
+    await recordActivity(context.database, {
+      context,
+      action: "semesterOrganization.prepare",
+      details: {
+        subject: { type: "school", name: semester.name },
+        description: `${plans} turma(s) e ${students} aluno(s) incorporados. Alterações anteriores preservadas.`,
+      },
     });
   return { plans, students };
 }

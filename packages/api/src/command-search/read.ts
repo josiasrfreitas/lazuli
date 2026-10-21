@@ -19,7 +19,15 @@ function relevance(field: RawBuilder<unknown>, query: string): RawBuilder<number
 }
 
 /** Bounded, read-only lookup. No document numbers, contact details or financial balances. */
-export async function lookupCommands(database: TransactionClient, query: string, now: Date) {
+export async function lookupCommands(
+  database: TransactionClient,
+  options: {
+    query: string;
+    now: Date;
+  },
+) {
+  const { query, now } = options;
+
   const db = database.$kysely;
   const today = new Date(saoPauloDateOnly(now));
   const [students, teachers, classes, leads] = await Promise.all([

@@ -66,7 +66,7 @@ async function readAppointments(
 export async function appointmentDetail(context: AppointmentContext, id: string) {
   const row = await loadAppointment(context, id);
   const [absences, revisions] = await Promise.all([
-    studentAbsences(context.database, row.studentId, row.id),
+    studentAbsences(context.database, { studentId: row.studentId, excludeAppointmentId: row.id }),
     context.database.appointmentRevision.findMany({
       where: { appointmentId: row.id },
       orderBy: { version: "desc" },
@@ -91,9 +91,13 @@ export async function appointmentDetail(context: AppointmentContext, id: string)
 }
 export async function appointmentStudentOptions(
   context: AppointmentContext,
-  studentId: string,
-  excludeAppointmentId?: string,
+  options: {
+    studentId: string;
+    excludeAppointmentId?: string | undefined;
+  },
 ) {
+  const { studentId, excludeAppointmentId } = options;
+
   requireAppointmentAdmin(context);
   const student = await context.database.student.findFirst({
     where: { id: studentId, deletedAt: null },
@@ -101,7 +105,7 @@ export async function appointmentStudentOptions(
   });
   if (!student) throw notFound("Aluno não encontrado.");
   const [absences, enrollments] = await Promise.all([
-    studentAbsences(context.database, studentId, excludeAppointmentId),
+    studentAbsences(context.database, { studentId, excludeAppointmentId }),
     context.database.enrollment.findMany({
       where: { studentId, deletedAt: null },
       include: {
@@ -149,9 +153,13 @@ export async function appointmentStudentOptions(
 }
 export async function appointmentDestinations(
   context: AppointmentContext,
-  date: string,
-  through = date,
+  options: {
+    date: string;
+    through?: string | undefined;
+  },
 ) {
+  const { date, through = date } = options;
+
   requireAppointmentAdmin(context);
   const sessions = await context.database.classSession.findMany({
     where: {

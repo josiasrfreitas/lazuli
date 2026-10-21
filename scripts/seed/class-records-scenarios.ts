@@ -83,16 +83,15 @@ export async function cancelSeedSession(
       responsibilityFrozenAt: null,
     },
   });
-  await recordActivity(
-    database,
-    { staffUser: admin, now: cancelledAt },
-    "classRecords.cancelSession",
-    {
+  await recordActivity(database, {
+    context: { staffUser: admin, now: cancelledAt },
+    action: "classRecords.cancelSession",
+    details: {
       subject: { type: "class", id: session.classId, name: session.class.portalClassName },
       description: `${isoOf(session.date).split("-").toReversed().join("/")} · Manutenção da sala; famílias avisadas previamente.`,
       deduplicationKey: `seed-class-record-cancel/${session.id}`,
     },
-  );
+  });
 }
 
 /** A past fixture is scheduled beforehand; production still rejects retroactive substitution. */
@@ -171,9 +170,13 @@ async function storeSubstitution(
       updatedAt: recordedAt,
     },
   });
-  await recordActivity(database, { staffUser: admin, now: recordedAt }, "teachers.substitute", {
-    subject: { type: "class", id: session.classId, name: session.class.portalClassName },
-    description: `${teacher.name} ficou responsável pelo encontro de ${date.split("-").toReversed().join("/")}.`,
-    deduplicationKey: `seed-class-record-substitution/${id}`,
+  await recordActivity(database, {
+    context: { staffUser: admin, now: recordedAt },
+    action: "teachers.substitute",
+    details: {
+      subject: { type: "class", id: session.classId, name: session.class.portalClassName },
+      description: `${teacher.name} ficou responsável pelo encontro de ${date.split("-").toReversed().join("/")}.`,
+      deduplicationKey: `seed-class-record-substitution/${id}`,
+    },
   });
 }

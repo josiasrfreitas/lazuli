@@ -47,9 +47,13 @@ export function searchMatchKysely(value: RawBuilder<unknown>, query: string): Ra
 /** Return IDs only; callers retain their authorization, relation and pagination predicates. */
 export async function searchIds(
   database: Pick<Prisma.TransactionClient, "$queryRaw">,
-  table: keyof typeof searchColumns,
-  query: string | undefined,
+  options: {
+    table: keyof typeof searchColumns;
+    query: string | undefined;
+  },
 ): Promise<{ in: string[] } | undefined> {
+  const { table, query } = options;
+
   const needle = normalizeSearch(query ?? "");
   if (!needle) return undefined;
   const conditions = searchColumns[table].map((column) =>

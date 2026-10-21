@@ -92,7 +92,10 @@ export async function publishPlacements(
       );
     if (candidate.englishExperience === "SOME")
       await assertPlacementReady(context.database, candidate);
-    await requireLeadGuardian(context.database, candidate, { mode: "existing", id: row.studentId });
+    await requireLeadGuardian(context.database, {
+      candidate,
+      student: { mode: "existing", id: row.studentId },
+    });
   }
   for (const row of selected)
     await assertTeacherEligible({
@@ -138,27 +141,34 @@ export async function publishPlacements(
   for (const row of selected) {
     if (!row.stageId || !row.availability)
       throw badRequest("Confirme o estágio e a disponibilidade.");
-    await publishOne(
-      context,
+    await publishOne(context, {
       row,
-      row.availability,
-      classRow.id,
-      row.effectiveDate ? new Date(row.effectiveDate) : semester.startDate,
-    );
+      availability: row.availability,
+      classId: classRow.id,
+      entryDate: row.effectiveDate ? new Date(row.effectiveDate) : semester.startDate,
+    });
   }
-  await recordActivity(context.database, context, "semesterOrganization.publish", {
-    subject: { type: "class", id: classRow.id, name: current.name },
-    description: `${selected.length} aluno(s) com entrada programada em ${dateOnly(semester.startDate).split("-").toReversed().join("/")}.`,
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.publish",
+    details: {
+      subject: { type: "class", id: classRow.id, name: current.name },
+      description: `${selected.length} aluno(s) com entrada programada em ${dateOnly(semester.startDate).split("-").toReversed().join("/")}.`,
+    },
   });
   return { classId: classRow.id, count: selected.length, generationRequestId };
 }
 async function publishOne(
   context: OrganizationContext,
-  row: PlacementRow,
-  availability: CurrentAvailability,
-  classId: string,
-  entryDate: Date,
+  options: {
+    row: PlacementRow;
+    availability: CurrentAvailability;
+    classId: string;
+    entryDate: Date;
+  },
 ): Promise<void> {
+  const { row, availability, classId, entryDate } = options;
+
   const immediate = dateOnly(entryDate) <= saoPauloDateOnly(context.now);
   if (row.sourceClassId === classId && row.mode === "CONTINUE") {
     await context.database.semesterPlacement.update({
@@ -171,7 +181,7 @@ async function publishOne(
         version: { increment: 1 },
       },
     });
-    await recordPlacementRevision(context, row.id, "CONFIRMED_CONTINUITY");
+    await recordPlacementRevision(context, { id: row.id, action: "CONFIRMED_CONTINUITY" });
     return;
   }
   let sourceExitActionId: string | null = null;
@@ -257,7 +267,7 @@ async function publishOne(
       allocationPendingReason: null,
     },
   });
-  await recordPlacementRevision(context, row.id, "PUBLISHED");
+  await recordPlacementRevision(context, { id: row.id, action: "PUBLISHED" });
 }
 export async function withdrawPlacement(
   context: OrganizationContext,
@@ -306,7 +316,11 @@ export async function withdrawPlacement(
     where: { id: current.id },
     data: { version: { increment: 1 } },
   });
-  await recordPlacementRevision(context, current.id, "WITHDRAWN", input.reason);
+  await recordPlacementRevision(context, {
+    id: current.id,
+    action: "WITHDRAWN",
+    reason: input.reason,
+  });
   await context.database.semesterPlacement.update({
     where: { id: current.id },
     data: {
@@ -321,9 +335,13 @@ export async function withdrawPlacement(
   const student = await context.database.student.findUniqueOrThrow({
     where: { id: current.studentId },
   });
-  await recordActivity(context.database, context, "semesterOrganization.withdraw", {
-    subject: { type: "student", id: student.id, name: student.fullName },
-    description: input.reason,
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.withdraw",
+    details: {
+      subject: { type: "student", id: student.id, name: student.fullName },
+      description: input.reason,
+    },
   });
   return { id: current.id };
 }

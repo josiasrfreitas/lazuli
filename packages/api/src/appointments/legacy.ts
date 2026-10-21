@@ -6,7 +6,7 @@ import { notFound } from "../trpc/errors.js";
 export async function ensureLegacyAppointment(
   database: Prisma.TransactionClient,
   makeupId: string,
-) {
+): Promise<Prisma.PedagogicalAppointmentGetPayload<true>> {
   const linked = await database.pedagogicalAppointment.findUnique({
     where: { legacyMakeupId: makeupId },
   });

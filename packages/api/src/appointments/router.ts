@@ -56,8 +56,7 @@ export const appointmentsRouter = router({
     .query(({ ctx, input }) =>
       appointmentStudentOptions(
         { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
-        input.studentId,
-        input.excludeAppointmentId,
+        { studentId: input.studentId, excludeAppointmentId: input.excludeAppointmentId },
       ),
     ),
   availability: adminProcedure
@@ -103,8 +102,7 @@ export const appointmentsRouter = router({
     .query(({ ctx, input }) =>
       appointmentDestinations(
         { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
-        input.date,
-        input.through,
+        { date: input.date, through: input.through },
       ),
     ),
   absences: adminProcedure.input(absenceListSchema).query(({ ctx, input }) =>
@@ -119,7 +117,7 @@ export const appointmentsRouter = router({
         (database) =>
           scheduleAppointment(
             { database, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
-            input,
+            { input },
           ),
         { timeout: 15_000 },
       ),
@@ -142,7 +140,7 @@ export const appointmentsRouter = router({
       ctx.db.$transaction((database) =>
         cancelAppointment(
           { database, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
-          input,
+          { input },
         ),
       ),
     ),

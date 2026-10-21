@@ -5,7 +5,7 @@ import { listActivity } from "./read.js";
 export const activityRouter = router({
   list: adminProcedure
     .input(activityListSchema)
-    .query(({ ctx, input }) => listActivity(ctx.db, input, ctx.now ?? new Date())),
+    .query(({ ctx, input }) => listActivity(ctx.db, { input, now: ctx.now ?? new Date() })),
   actors: adminProcedure.query(async ({ ctx }) => {
     const rows = await ctx.db.activityEvent.findMany({
       where: { deletedAt: null, actorId: { not: null } },

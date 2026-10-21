@@ -75,14 +75,13 @@ export async function confirmAttendanceReview(
     now: context.now,
   });
   const present = input.rows.filter((row) => row.status === "PRESENT").length;
-  await recordActivity(
-    context.database,
+  await recordActivity(context.database, {
     context,
-    session.attendanceConfirmedAt ? "attendance.editSession" : "attendance.confirmSession",
-    {
+    action: session.attendanceConfirmedAt ? "attendance.editSession" : "attendance.confirmSession",
+    details: {
       subject: { type: "class", id: session.classId, name: session.class.portalClassName },
       description: `${dateOnly(session.date).split("-").toReversed().join("/")} · ${present} presentes, ${roster.length - present} faltas. Chamada conferida pelo professor; recebimento por QR e link encerrado.`,
     },
-  );
+  });
   return { attendanceStamp: context.now.toISOString(), present, absent: roster.length - present };
 }

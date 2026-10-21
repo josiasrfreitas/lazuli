@@ -322,24 +322,22 @@ async function recordWindowActivity(
     name: session.class.portalClassName,
   };
   const date = isoOf(session.date).split("-").toReversed().join("/");
-  await recordActivity(
-    database,
-    { staffUser: teacher, now: times.openedAt },
-    "studentAttendance.open",
-    {
+  await recordActivity(database, {
+    context: { staffUser: teacher, now: times.openedAt },
+    action: "studentAttendance.open",
+    details: {
       subject,
       description: `${date} · ${version > 1 ? "Novo link substitui o anterior; envios já recebidos são preservados." : "Recebimento de presença pelo aluno aberto para este encontro."}`,
       deduplicationKey: `seed-student-attendance/open/${id}`,
     },
-  );
-  await recordActivity(
-    database,
-    { staffUser: closer, now: times.closedAt },
-    "studentAttendance.close",
-    {
+  });
+  await recordActivity(database, {
+    context: { staffUser: closer, now: times.closedAt },
+    action: "studentAttendance.close",
+    details: {
       subject,
       description: `${date} · ${manualClose ? "Recebimento encerrado pelo professor" : "Recebimento encerrado na confirmação da chamada"}; envios recebidos preservados.`,
       deduplicationKey: `seed-student-attendance/close/${id}`,
     },
-  );
+  });
 }

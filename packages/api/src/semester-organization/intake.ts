@@ -8,11 +8,15 @@ const ISO_DATE_LENGTH = 10;
 /** Part of student creation's transaction: the intention must not be lost between wizard steps. */
 export async function recordStudentIntake(
   database: TransactionClient,
-  studentId: string,
-  recordedById: string,
-  input: StudentPedagogyIntake,
-  now = new Date(),
+  options: {
+    studentId: string;
+    recordedById: string;
+    input: StudentPedagogyIntake;
+    now?: Date | undefined;
+  },
 ): Promise<void> {
+  const { studentId, recordedById, input, now = new Date() } = options;
+
   await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`semester-organization:${input.semesterId}`}, 0))`;
   const semester = await database.semester.findUnique({
     where: { id: input.semesterId, deletedAt: null },

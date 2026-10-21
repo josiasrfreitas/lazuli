@@ -24,10 +24,14 @@ export function gradeChanges(progress: Progress, values: AssessmentSave): GradeI
 }
 export async function assertGradeChanges(
   context: AssessmentContext,
-  progress: Progress,
-  values: AssessmentSave,
-  changes: GradeInput[],
+  options: {
+    progress: Progress;
+    values: AssessmentSave;
+    changes: GradeInput[];
+  },
 ): Promise<void> {
+  const { progress, values, changes } = options;
+
   if ((progress.assessment?.version ?? 0) !== values.version)
     throw badRequest(
       "As notas foram alteradas por outra pessoa. Atualize a página antes de salvar.",
@@ -38,7 +42,7 @@ export async function assertGradeChanges(
   const today = saoPauloDateOnly(context.now);
   if (dateOnly(progress.startDate) > today) throw badRequest("Este estágio ainda não começou.");
   for (const grade of changes) {
-    await assertCorrectionAccess(context, progress, grade);
+    await assertCorrectionAccess(context, { progress, grade });
     if (grade.score === null) continue;
     if (
       !grade.assessedOn ||
@@ -49,15 +53,19 @@ export async function assertGradeChanges(
       throw badRequest(
         "A data da avaliação deve estar no percurso do estágio e não pode estar no futuro.",
       );
-    await assertAssessmentDateAccess(context, progress, new Date(grade.assessedOn));
+    await assertAssessmentDateAccess(context, { progress, date: new Date(grade.assessedOn) });
   }
   assertGradeSequence(mergedGrades(progress, changes));
 }
 async function assertCorrectionAccess(
   context: AssessmentContext,
-  progress: Progress,
-  grade: GradeInput,
+  options: {
+    progress: Progress;
+    grade: GradeInput;
+  },
 ): Promise<void> {
+  const { progress, grade } = options;
+
   if (context.staffUser.role !== "TEACHER") return;
   const previous = progress.assessment?.grades.find(
     (row) => row.phase === grade.phase && row.competence === grade.competence,
@@ -67,7 +75,7 @@ async function assertCorrectionAccess(
     if (!date) continue;
     if (date < dateOnly(progress.startDate))
       throw badRequest("Peça à coordenação a correção de notas anteriores a este vínculo.");
-    await assertAssessmentDateAccess(context, progress, new Date(date));
+    await assertAssessmentDateAccess(context, { progress, date: new Date(date) });
   }
 }
 function mergedGrades(progress: Progress, changes: GradeInput[]): GradeInput[] {

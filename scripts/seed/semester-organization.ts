@@ -90,10 +90,14 @@ async function organizationContext(
     authoredAt: dates.planned,
     adminId: staffUser.id,
   });
-  await recordActivity(database, { staffUser, now: dates.planned }, "calendar.createSemester", {
-    subject: { type: "school", name: "Calendário escolar" },
-    description: `Semestre ${semester.name}: ${isoOf(semester.startDate)} a ${isoOf(semester.endDate)}.`,
-    deduplicationKey: `seed/semester-window/${semester.name}`,
+  await recordActivity(database, {
+    context: { staffUser, now: dates.planned },
+    action: "calendar.createSemester",
+    details: {
+      subject: { type: "school", name: "Calendário escolar" },
+      description: `Semestre ${semester.name}: ${isoOf(semester.startDate)} a ${isoOf(semester.endDate)}.`,
+      deduplicationKey: `seed/semester-window/${semester.name}`,
+    },
   });
   const teachers = await organizationTeachers(database);
   const entries: { index: number; group: OrganizationGroup | null }[] = ORGANIZATION_GROUPS.flatMap(
@@ -151,16 +155,15 @@ async function createOrganizationPlan(
       updatedAt: dates.planned,
     },
   });
-  await recordActivity(
-    database,
-    { staffUser, now: dates.planned },
-    "semesterOrganization.savePlan",
-    {
+  await recordActivity(database, {
+    context: { staffUser, now: dates.planned },
+    action: "semesterOrganization.savePlan",
+    details: {
       subject: { type: "school", name: "Organização do próximo semestre" },
       description: `${group.name} planejada para ${semester.name}; 120 minutos por semana.`,
       deduplicationKey: `seed/semester-plan/${planId}`,
     },
-  );
+  });
 }
 
 async function proposeOrganizationStudent(
@@ -232,16 +235,15 @@ async function confirmOrganizationAvailability(
         updatedAt: dates.availability,
       },
     });
-    await recordActivity(
-      database,
-      { staffUser, now: dates.availability },
-      "semesterOrganization.confirmAvailability",
-      {
+    await recordActivity(database, {
+      context: { staffUser, now: dates.availability },
+      action: "semesterOrganization.confirmAvailability",
+      details: {
         subject: { type: "student", id: subject.student.id, name: subject.student.fullName },
         description: `Disponibilidade de ${semester.name} confirmada até ${isoOf(validUntil)}.`,
         deduplicationKey: `seed/semester-availability/${semester.name}/${subject.key}`,
       },
-    );
+    });
   }
 }
 
@@ -396,14 +398,22 @@ async function recordPublishedGroup(
 ): Promise<void> {
   const { classroom, semester, selected, planId } = input;
   const transaction = context.database;
-  await recordActivity(transaction, context, "classes.create", {
-    subject: { type: "class", id: classroom.id, name: classroom.portalClassName },
-    description: `Turma de ${semester.name} criada na publicação da organização do semestre.`,
-    deduplicationKey: `seed/semester-class/${classroom.id}`,
+  await recordActivity(transaction, {
+    context,
+    action: "classes.create",
+    details: {
+      subject: { type: "class", id: classroom.id, name: classroom.portalClassName },
+      description: `Turma de ${semester.name} criada na publicação da organização do semestre.`,
+      deduplicationKey: `seed/semester-class/${classroom.id}`,
+    },
   });
-  await recordActivity(transaction, context, "semesterOrganization.publish", {
-    subject: { type: "class", id: classroom.id, name: classroom.portalClassName },
-    description: `${selected.length} aluno(s) com entrada programada em ${isoOf(semester.startDate)}; as matrículas de origem permanecem vigentes até essa data.`,
-    deduplicationKey: `seed/semester-publish/${planId}`,
+  await recordActivity(transaction, {
+    context,
+    action: "semesterOrganization.publish",
+    details: {
+      subject: { type: "class", id: classroom.id, name: classroom.portalClassName },
+      description: `${selected.length} aluno(s) com entrada programada em ${isoOf(semester.startDate)}; as matrículas de origem permanecem vigentes até essa data.`,
+      deduplicationKey: `seed/semester-publish/${planId}`,
+    },
   });
 }

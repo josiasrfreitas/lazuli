@@ -34,9 +34,13 @@ export const calendarRouter = router({
           requestedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         });
-        await recordActivity(database, ctx, "calendar.createSemester", {
-          subject: { type: "school", name: semester.name },
-          deduplicationKey: `calendar.createSemester:${semester.id}`,
+        await recordActivity(database, {
+          context: ctx,
+          action: "calendar.createSemester",
+          details: {
+            subject: { type: "school", name: semester.name },
+            deduplicationKey: `calendar.createSemester:${semester.id}`,
+          },
         });
         return { semester, requestId: request.id };
       });

@@ -255,10 +255,14 @@ const evidenceSchema = z.object({
 });
 export function placementEligibility(
   row: PlacementRow,
-  plan: ClassPlan | null,
-  availability: CurrentAvailability | null,
-  entryOn: string,
+  options: {
+    plan: ClassPlan | null;
+    availability: CurrentAvailability | null;
+    entryOn: string;
+  },
 ): SemesterEligibility {
+  const { plan, availability, entryOn } = options;
+
   return {
     entryOn,
     semesterId: row.semesterId,
@@ -317,17 +321,21 @@ export function placementEligibility(
 }
 export function placementBlockers(
   row: PlacementRow,
-  plan: ClassPlan | null,
-  availability: CurrentAvailability | null,
-  entryOn: string,
+  options: {
+    plan: ClassPlan | null;
+    availability: CurrentAvailability | null;
+    entryOn: string;
+  },
 ): string[] {
+  const { plan, availability, entryOn } = options;
+
   if (
     row.declinedAt ||
     (row.publishedAt && (row.entryStatus === "APPLIED" || (!row.entryActionId && row.enrollmentId)))
   )
     return [];
   const blockers = semesterPlacementBlockers(
-    placementEligibility(row, plan, availability, entryOn),
+    placementEligibility(row, { plan, availability, entryOn }),
   );
   const evidence = evidenceSchema.safeParse(row.publishedEvidence);
   if (
@@ -492,12 +500,11 @@ export async function readSemester(context: OrganizationContext, semesterId: str
         !row.publishedAt
           ? ["Vigência fora do período letivo"]
           : []),
-        ...placementBlockers(
-          row,
-          byPlan.get(row.planId ?? "") ?? null,
-          available,
-          dateOnly(row.effectiveDate ?? semester.startDate),
-        ),
+        ...placementBlockers(row, {
+          plan: byPlan.get(row.planId ?? "") ?? null,
+          availability: available,
+          entryOn: dateOnly(row.effectiveDate ?? semester.startDate),
+        }),
       ],
     };
   });

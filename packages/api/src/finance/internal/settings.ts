@@ -94,11 +94,10 @@ export async function readMaterialPrice(database: FinanceDatabase) {
         installmentCents: row.childMaterialInstallmentCents,
         cardFeePct,
       }),
-      version: materialPriceVersion(
-        row.childMaterialInstallments,
-        row.childMaterialInstallmentCents,
+      version: materialPriceVersion(row.childMaterialInstallments, {
+        installmentCents: row.childMaterialInstallmentCents,
         cardFeePct,
-      ),
+      }),
     },
     adult: {
       ...materialPriceQuote({
@@ -106,11 +105,10 @@ export async function readMaterialPrice(database: FinanceDatabase) {
         installmentCents: row.adultMaterialInstallmentCents,
         cardFeePct,
       }),
-      version: materialPriceVersion(
-        row.adultMaterialInstallments,
-        row.adultMaterialInstallmentCents,
+      version: materialPriceVersion(row.adultMaterialInstallments, {
+        installmentCents: row.adultMaterialInstallmentCents,
         cardFeePct,
-      ),
+      }),
     },
     cardFeePct,
   };

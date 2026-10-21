@@ -6,7 +6,11 @@ import { enqueueAssessmentFile } from "@lazuli/integrations/hatchet";
 import type { Context } from "../trpc/context.js";
 import { authorizedFile, fileInputSchema, MAX_ASSESSMENT_BYTES, prepareFile } from "./data.js";
 
-function staffContext(ctx: Context) {
+function staffContext(ctx: Context): {
+  database: Context["db"];
+  staffUser: NonNullable<Context["staffUser"]>;
+  now: Date;
+} {
   if (!ctx.staffUser || !["TEACHER", "ADMIN", "SYSTEM_ADMIN"].includes(ctx.staffUser.role))
     throw new TRPCError({ code: "UNAUTHORIZED" });
   return { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() };

@@ -54,15 +54,23 @@ export async function saveContinuity(
       version: { increment: 1 },
     },
   });
-  await recordPlacementRevision(context, row.id, "CONTINUITY", input.reason);
-  await recordActivity(context.database, context, "semesterOrganization.continuity", {
-    subject: { type: "student", id: row.studentId, name: row.student.fullName },
-    description: {
-      UNDECIDED: "Continuidade a conversar.",
-      STAY: "Intenção de continuar na turma.",
-      CHANGE: "Continuará na escola; aguarda outra turma.",
-      LEAVING: "Possível saída da escola; acompanhamento necessário.",
-    }[input.continuity],
+  await recordPlacementRevision(context, {
+    id: row.id,
+    action: "CONTINUITY",
+    reason: input.reason,
+  });
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.continuity",
+    details: {
+      subject: { type: "student", id: row.studentId, name: row.student.fullName },
+      description: {
+        UNDECIDED: "Continuidade a conversar.",
+        STAY: "Intenção de continuar na turma.",
+        CHANGE: "Continuará na escola; aguarda outra turma.",
+        LEAVING: "Possível saída da escola; acompanhamento necessário.",
+      }[input.continuity],
+    },
   });
 }
 
@@ -95,11 +103,15 @@ export async function pendingLead(
       ...(input.pending ? {} : { allocationPlanId: null }),
     },
   });
-  await recordActivity(context.database, context, "semesterOrganization.pendingLead", {
-    subject: { type: "lead", id: lead.id, name: lead.fullName },
-    description: input.pending
-      ? `Aguarda turma: ${input.reason}`
-      : "Pendência de alocação removida.",
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.pendingLead",
+    details: {
+      subject: { type: "lead", id: lead.id, name: lead.fullName },
+      description: input.pending
+        ? `Aguarda turma: ${input.reason}`
+        : "Pendência de alocação removida.",
+    },
   });
 }
 
@@ -190,9 +202,13 @@ export async function changePlanStatus(
     where: { id: plan.id },
     data: { classId, closedAt: input.open ? null : context.now, version: { increment: 1 } },
   });
-  await recordActivity(context.database, context, "semesterOrganization.planStatus", {
-    subject: { type: "school", name: plan.name },
-    description: input.open ? "Turma aberta para receber alunos." : "Turma encerrada.",
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.planStatus",
+    details: {
+      subject: { type: "school", name: plan.name },
+      description: input.open ? "Turma aberta para receber alunos." : "Turma encerrada.",
+    },
   });
   return { classId, generationRequestId };
 }

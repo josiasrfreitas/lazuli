@@ -33,9 +33,13 @@ export async function createOccurrence(
       createdAt: context.now,
     },
   });
-  await recordActivity(context.database, context, "occurrences.create", {
-    subject: { type: "student", id: student.id, name: student.fullName },
-    description: input.title,
+  await recordActivity(context.database, {
+    context,
+    action: "occurrences.create",
+    details: {
+      subject: { type: "student", id: student.id, name: student.fullName },
+      description: input.title,
+    },
   });
   return { id: row.id };
 }
@@ -55,9 +59,13 @@ export async function linkOccurrences(
     skipDuplicates: true,
   });
   if (created.count)
-    await recordActivity(context.database, context, "occurrences.link", {
-      subject: { type: "student", id: first.studentId, name: first.student.fullName },
-      description: `${first.title} · ${second.title}`,
+    await recordActivity(context.database, {
+      context,
+      action: "occurrences.link",
+      details: {
+        subject: { type: "student", id: first.studentId, name: first.student.fullName },
+        description: `${first.title} · ${second.title}`,
+      },
     });
 }
 export async function updateOccurrence(
@@ -84,9 +92,13 @@ export async function updateOccurrence(
       code: "CONFLICT",
       message: "O relato mudou. Atualize a página antes de salvar.",
     });
-  await recordActivity(context.database, context, "occurrences.update", {
-    subject: { type: "student", id: occurrence.studentId, name: occurrence.student.fullName },
-    description: `Relato editado: ${occurrence.title}`,
+  await recordActivity(context.database, {
+    context,
+    action: "occurrences.update",
+    details: {
+      subject: { type: "student", id: occurrence.studentId, name: occurrence.student.fullName },
+      description: `Relato editado: ${occurrence.title}`,
+    },
   });
 }
 export async function createIntervention(
@@ -122,9 +134,13 @@ export async function createIntervention(
       },
     },
   });
-  await recordActivity(context.database, context, "interventions.create", {
-    subject: { type: "student", id: student.id, name: student.fullName },
-    description: input.title,
+  await recordActivity(context.database, {
+    context,
+    action: "interventions.create",
+    details: {
+      subject: { type: "student", id: student.id, name: student.fullName },
+      description: input.title,
+    },
   });
   return { id: row.id };
 }
@@ -134,7 +150,7 @@ export async function addInterventionFollowUp(
 ): Promise<void> {
   const row = await loadIntervention(context, input.id);
   await requireCurrentEnrollment(context, row.studentId);
-  await claimVersion(context, input.id, input.version);
+  await claimVersion(context, { id: input.id, version: input.version });
   await context.database.pedagogicalFollowUp.create({
     data: {
       interventionId: row.id,
@@ -143,9 +159,13 @@ export async function addInterventionFollowUp(
       createdAt: context.now,
     },
   });
-  await recordActivity(context.database, context, "interventions.followUp", {
-    subject: { type: "student", id: row.studentId, name: row.student.fullName },
-    description: row.title,
+  await recordActivity(context.database, {
+    context,
+    action: "interventions.followUp",
+    details: {
+      subject: { type: "student", id: row.studentId, name: row.student.fullName },
+      description: row.title,
+    },
   });
 }
 export async function addInterventionOccurrence(
@@ -158,14 +178,18 @@ export async function addInterventionOccurrence(
   ]);
   if (intervention.studentId !== occurrence.studentId)
     invalid("Escolha uma ocorrência do mesmo aluno.");
-  await claimVersion(context, input.id, input.version);
+  await claimVersion(context, { id: input.id, version: input.version });
   const linked = await context.database.interventionOccurrence.createMany({
     data: [{ interventionId: input.id, occurrenceId: input.occurrenceId, createdAt: context.now }],
     skipDuplicates: true,
   });
   if (!linked.count) invalid("Esta ocorrência já motiva a intervenção.");
-  await recordActivity(context.database, context, "interventions.link", {
-    subject: { type: "student", id: intervention.studentId, name: intervention.student.fullName },
-    description: `${intervention.title} · ${occurrence.title}`,
+  await recordActivity(context.database, {
+    context,
+    action: "interventions.link",
+    details: {
+      subject: { type: "student", id: intervention.studentId, name: intervention.student.fullName },
+      description: `${intervention.title} · ${occurrence.title}`,
+    },
   });
 }

@@ -50,10 +50,9 @@ export const admissionsRouter = router({
   assignPlacement: adminProcedure
     .input(z.object({ id: z.string().uuid(), teacherId: z.string().uuid().nullable() }).strict())
     .mutation(({ ctx, input }) =>
-      activityTransaction(
-        ctx,
-        "admissions.placementSchedule",
-        async (database) => {
+      activityTransaction(ctx, {
+        action: "admissions.placementSchedule",
+        work: async (database) => {
           await lockTeacher(database, "");
           const visit = await database.entryVisit.findFirst({
             where: { id: input.id, kind: "PLACEMENT", deletedAt: null },
@@ -73,72 +72,72 @@ export const admissionsRouter = router({
             select: { id: true },
           });
         },
-        async (_result, database) => ({
+        describe: async (_result, database) => ({
           subject: await visitSubject(database, input.id),
           description: "Atualizou o professor responsável pelo nivelamento.",
         }),
-      ),
+      }),
     ),
   visitCalendar: adminProcedure
     .input(entryVisitCalendarSchema)
-    .query(({ ctx, input }) => visitCalendar(ctx.db, input, ctx.now ?? new Date())),
+    .query(({ ctx, input }) => visitCalendar(ctx.db, { input, now: ctx.now ?? new Date() })),
   stages: adminProcedure.query(({ ctx }) => admissionStages(ctx.db)),
   placementCalendar: adminProcedure
     .input(placementCalendarSchema)
     .query(({ ctx, input }) => placementCalendar(ctx.db, input)),
   placementSchedule: adminProcedure.input(placementScheduleSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "admissions.placementSchedule",
-      (database) =>
+    activityTransaction(ctx, {
+      action: "admissions.placementSchedule",
+      work: (database) =>
         schedulePlacement({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (_result, database) => ({ subject: await leadSubject(database, input.candidateId) }),
-    ),
+      describe: async (_result, database) => ({
+        subject: await leadSubject(database, input.candidateId),
+      }),
+    }),
   ),
   placementUpload: adminProcedure
     .input(placementFileSchema)
     .mutation(({ ctx, input }) => uploadPlacementFile(ctx, input)),
   placementDownload: adminProcedure
     .input(placementDownloadSchema)
-    .mutation(({ ctx, input }) => downloadPlacementFile(ctx.db, input.id, input.kind)),
+    .mutation(({ ctx, input }) =>
+      downloadPlacementFile(ctx.db, { id: input.id, kind: input.kind }),
+    ),
   placementResult: adminProcedure.input(placementResultSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "admissions.placementResult",
-      (database) =>
+    activityTransaction(ctx, {
+      action: "admissions.placementResult",
+      work: (database) =>
         recordPlacementResult({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (_result, database) => ({ subject: await visitSubject(database, input.id) }),
-    ),
+      describe: async (_result, database) => ({ subject: await visitSubject(database, input.id) }),
+    }),
   ),
   details: adminProcedure.input(leadCaptureSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "admissions.details",
-      (database) =>
+    activityTransaction(ctx, {
+      action: "admissions.details",
+      work: (database) =>
         updateLeadDetails({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (_result, database) => ({ subject: await leadSubject(database, input.id) }),
-    ),
+      describe: async (_result, database) => ({ subject: await leadSubject(database, input.id) }),
+    }),
   ),
   capture: adminProcedure.input(leadRegistrationSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "admissions.capture",
-      async (database) => {
+    activityTransaction(ctx, {
+      action: "admissions.capture",
+      work: async (database) => {
         await lockTeacher(database, "");
         const result = await captureLead({
           database,
@@ -155,11 +154,11 @@ export const admissionsRouter = router({
           });
         return result;
       },
-      async (result, database) => ({
+      describe: async (result, database) => ({
         subject: await leadSubject(database, result.id),
         deduplicationKey: `admissions.capture:${result.id}`,
       }),
-    ),
+    }),
   ),
   guests: adminProcedure.input(entryVisitGuestsSchema).query(({ ctx, input }) =>
     ctx.db.entryVisit.findMany({
@@ -185,18 +184,17 @@ export const admissionsRouter = router({
     today: saoPauloDateOnly(ctx.now ?? new Date()),
   })),
   save: adminProcedure.input(admissionSaveSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "admissions.save",
-      (database) =>
+    activityTransaction(ctx, {
+      action: "admissions.save",
+      work: (database) =>
         saveCandidate({
           database,
           input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (_result, database) => ({ subject: await leadSubject(database, input.id) }),
-    ),
+      describe: async (_result, database) => ({ subject: await leadSubject(database, input.id) }),
+    }),
   ),
   matches: adminProcedure
     .input(admissionMatchesSchema)
@@ -215,60 +213,56 @@ export const admissionsRouter = router({
       return rows.filter((row) => row.classId === input.classId && !row.cancelled);
     }),
   schedule: adminProcedure.input(entryVisitScheduleSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "admissions.schedule",
-      (database) =>
+    activityTransaction(ctx, {
+      action: "admissions.schedule",
+      work: (database) =>
         scheduleVisit({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (result, database) => ({
+      describe: async (result, database) => ({
         subject: await leadSubject(database, input.candidateId),
         deduplicationKey: `admissions.schedule:${result.id}`,
       }),
-    ),
+    }),
   ),
   outcome: adminProcedure.input(entryVisitOutcomeSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "admissions.outcome",
-      (database) =>
+    activityTransaction(ctx, {
+      action: "admissions.outcome",
+      work: (database) =>
         recordVisitOutcome({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (_result, database) => ({ subject: await visitSubject(database, input.id) }),
-    ),
+      describe: async (_result, database) => ({ subject: await visitSubject(database, input.id) }),
+    }),
   ),
   enroll: adminProcedure.input(admissionEnrollSchema).mutation(({ ctx, input }) =>
-    activityTransaction(
-      ctx,
-      "admissions.enroll",
-      (database) =>
+    activityTransaction(ctx, {
+      action: "admissions.enroll",
+      work: (database) =>
         enrollCandidate({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (_result, database) => ({
+      describe: async (_result, database) => ({
         subject: await leadSubject(database, input.id),
         deduplicationKey: `admissions.enroll:${input.id}`,
       }),
-    ),
+    }),
   ),
   setStatus: adminProcedure
     .input(admissionIdSchema.extend({ status: z.enum(["WAITING", "ARCHIVED"]) }))
     .mutation(({ ctx, input }) =>
-      activityTransaction(
-        ctx,
-        "admissions.setStatus",
-        async (database) => {
+      activityTransaction(ctx, {
+        action: "admissions.setStatus",
+        work: async (database) => {
           await lockTeacher(database, "");
           await lockCandidate(database, input.id);
           const candidate = await readCandidate(database, input.id);
@@ -292,10 +286,10 @@ export const admissionsRouter = router({
             select: { id: true },
           });
         },
-        async (_result, database) => ({
+        describe: async (_result, database) => ({
           subject: await leadSubject(database, input.id),
           description: input.status === "ARCHIVED" ? "Lead arquivado." : "Lead reaberto.",
         }),
-      ),
+      }),
     ),
 });

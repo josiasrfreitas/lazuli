@@ -88,11 +88,15 @@ export async function saveClassPlan(
       data: { allocationPlanId: plan.id },
     });
   }
-  await recordActivity(context.database, context, "semesterOrganization.savePlan", {
-    subject: { type: "school", name: plan.name },
-    description: previous
-      ? "Organização da turma revisada."
-      : "Turma incluída na organização do semestre.",
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.savePlan",
+    details: {
+      subject: { type: "school", name: plan.name },
+      description: previous
+        ? "Organização da turma revisada."
+        : "Turma incluída na organização do semestre.",
+    },
   });
   return { id: plan.id };
 }
@@ -183,10 +187,14 @@ export async function savePlacement(
         data: { ...data, version: { increment: 1 } },
       })
     : await context.database.semesterPlacement.create({ data });
-  await recordPlacementRevision(context, row.id, previous ? "REVISED" : "PROPOSED");
-  await recordActivity(context.database, context, "semesterOrganization.savePlacement", {
-    subject: { type: "student", id: student.id, name: student.fullName },
-    description: "Proposta de alocação registrada.",
+  await recordPlacementRevision(context, { id: row.id, action: previous ? "REVISED" : "PROPOSED" });
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.savePlacement",
+    details: {
+      subject: { type: "student", id: student.id, name: student.fullName },
+      description: "Proposta de alocação registrada.",
+    },
   });
   return { id: row.id };
 }
@@ -228,9 +236,13 @@ export async function confirmAvailability(
       ),
     },
   });
-  await recordActivity(context.database, context, "semesterOrganization.confirmAvailability", {
-    subject: { type: "student", id: student.id, name: student.fullName },
-    description: `Disponibilidade confirmada até ${input.validUntil.split("-").toReversed().join("/")}.`,
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.confirmAvailability",
+    details: {
+      subject: { type: "student", id: student.id, name: student.fullName },
+      description: `Disponibilidade confirmada até ${input.validUntil.split("-").toReversed().join("/")}.`,
+    },
   });
   return { id: row.id };
 }
@@ -255,9 +267,13 @@ export async function invalidateAvailability(
       ),
     },
   });
-  await recordActivity(context.database, context, "semesterOrganization.invalidateAvailability", {
-    subject: { type: "student", id: student.id, name: student.fullName },
-    description: input.reason,
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.invalidateAvailability",
+    details: {
+      subject: { type: "student", id: student.id, name: student.fullName },
+      description: input.reason,
+    },
   });
   return { id: row.id };
 }

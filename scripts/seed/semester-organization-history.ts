@@ -121,10 +121,14 @@ export async function recordOrganizationProposal(
   input: { semesterName: string; subject: PlacementSubject; version: number },
 ): Promise<void> {
   const { semesterName, subject, version } = input;
-  await recordActivity(context.database, context, "semesterOrganization.savePlacement", {
-    subject: { type: "student", id: subject.student.id, name: subject.student.fullName },
-    description: `Proposta para ${semesterName}; ${version === 1 ? "primeira versão registrada" : "proposta revisada"}.`,
-    deduplicationKey: `seed/semester-proposal/${semesterName}/${subject.key}/${version}`,
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.savePlacement",
+    details: {
+      subject: { type: "student", id: subject.student.id, name: subject.student.fullName },
+      description: `Proposta para ${semesterName}; ${version === 1 ? "primeira versão registrada" : "proposta revisada"}.`,
+      deduplicationKey: `seed/semester-proposal/${semesterName}/${subject.key}/${version}`,
+    },
   });
 }
 
