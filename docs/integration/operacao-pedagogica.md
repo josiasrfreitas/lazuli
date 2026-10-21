@@ -128,7 +128,7 @@ chain, and never creates a bucket. No cloud resource was provisioned. The local 
 put/read/remove, stable database-derived isolation, production guards and removal of its own bucket.
 
 The appointment APIs retain the shared teaching-schedule and class-record locks. The source's
-EntryVisit/student/teacher conflict dependency is explicitly assigned to block2, where experimental
+EntryVisit/student/teacher conflict dependency is explicitly assigned to block 2, where experimental
 visits are introduced; it must be reconciled there. Main currently has no entry-visit feature.
 
 Five selected new integration cases protect changed contracts: teacher access and administrative
@@ -169,7 +169,7 @@ are implemented over the prior backend checkpoint. Main's existing class-record 
 behavior remains in place. Source functions were split into meaningful controllers, fields and
 rendering components to satisfy existing lint rules without suppressions. The picker and pencil
 loader are shared UI exports with Storybook examples; the generic placement attachment dialog and
-base64 adapter remain explicitly assigned to block2.
+base64 adapter remain explicitly assigned to block 2.
 
 A controlled comparison of actual source/current component rendering and file-selection callbacks
 passed 473 cases. It checks text, props, conditional layouts, status/permission branches, chart
@@ -299,3 +299,42 @@ checks signed-out and teacher denial with serialized error codes, plus the admin
 history and São Paulo date without inventing a frequency denominator. Full production build passed
 all three tasks (one cached); Turbo's worker-output warning remains a build-configuration warning,
 not a failed task. Prospective test quality reported zero errors and contextual warnings.
+
+## Shared appointment-calendar dependency checkpoint
+
+The frozen source calendar dependency is imported with its exact resolved versions: date-fns 4.4.0,
+react-big-calendar 1.20.0 and its 1.16.3 type declarations. The lockfile change is restricted to this
+new dependency tree and the existing Base UI optional date-fns peer resolution. UI and Storybook
+now include ES2023.Array, matching the shared TypeScript base instead of hiding unresolved array
+operations. The internal TimeGrid import has a small local runtime/type boundary rather than a
+consumer-visible ambient declaration. No generated dependency code was edited.
+
+The component preserves controlled civil dates, day/week and anchored batches, inclusive bounds,
+loading/error/empty states, generic original-event callbacks, temporal geometry, overlap overflow,
+keyboard access, filtered-out blockers and authoritative-consumer validation. Large source
+functions were separated into selection, viewport, dimension/style and navigation responsibilities;
+no lint rule was disabled. The source Storybook variants and calendar contract are included.
+
+Three selected source regression tests protect observable overlap behavior: equal daily lanes,
+weekly expansion without changed temporal geometry, and revealing all six overlapping meetings.
+Their expected widths and identities are explicit rather than derived by the production layout.
+The existing UI unit suite plus these cases passed 11 tests. Separate source/current pure-function
+comparisons passed 3,991 cases covering bounds/navigation, overlaps/reveal and interval errors; they
+are preservation evidence and do not certify effects, application APIs or source requirements.
+
+UI/Storybook typechecks, focused lint, styles and component-size checks passed. Storybook production
+build passed with bundle-size warnings. In the built Storybook through Orca, both pointer and
+keyboard opened all seven concurrent events; keyboard focus reached the first revealed event.
+A bounded 20–29 October window stopped at the shortened 27–29 final batch with Next disabled.
+A hidden 13:00–15:00 commitment rejected a 13:30–14:30 request, while 15:00–16:00 produced the selected
+range and feedback. Desktop 1280x800 and narrow 390x844 were explicitly measured with no page overflow;
+screenshots were inspected. The first narrow daily render exposed a clipped fourth text line. The
+calendar now hides supporting descriptions when a card is below 5.5rem in either view; the existing
+wide two-row layout can still show them when space permits, and complete accessible labels remain.
+This intentional CSS divergence follows the frontend visibility standard; source temporal geometry
+and interaction are unchanged. These are component checks, not completion of the appointment route.
+
+Appointment detail, scheduling/record forms, #187 rescheduling identification, class guest read/UI
+and profile/agenda entrypoints are still being integrated in the same block. Admissions/trial guests
+belong to block 2. Legacy makeup API reconciliation, historical attribution and #179's pending owner
+choice remain open as recorded above. No PR or security agent has started for this incomplete block.

@@ -36,7 +36,9 @@
     "@base-ui/react": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
+    "date-fns": "4.4.0",
     "lucide-react": "catalog:",
+    "react-big-calendar": "1.20.0",
     "tailwind-merge": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:"
@@ -46,6 +48,7 @@
     "@lazuli/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
+    "@types/react-big-calendar": "1.16.3",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
     "react": "catalog:",

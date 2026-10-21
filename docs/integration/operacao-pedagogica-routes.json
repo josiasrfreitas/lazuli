@@ -2134,6 +2134,36 @@
       "behavior": "Retorno externo, inválido, /perfil e /api/* caem no início da experiência; ativação faz navegação completa e cookie de papel; Secure em HTTPS",
       "destination": "block1 auth/teacher experience",
       "review": "source read; destination pending"
+    },
+    {
+      "file": "packages/ui/src/components/schedule-calendar.tsx",
+      "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
+      "destination": "block1 shared calendar; source consumers and block2 reuse remain independently tracked",
+      "source_review": "Calendar source modules and Storybook variants read; no source history rewritten",
+      "implementation": "Shared dependency imported and decomposed without lint suppressions; original typed events, overlap timing, bounds, range selection and states retained",
+      "behavior": "Component only: 3991 identical pure source/current comparisons; 3 selected overlap regression tests; built Storybook exercised through Orca at 1280x800 and 390x844",
+      "variants": [
+        "day/week and anchored batches",
+        "inclusive date bounds and shortened final batch",
+        "simultaneous events and overflow reveal by pointer/keyboard",
+        "complete labels with narrow fitted lanes",
+        "filtered-out commitments still block interval selection",
+        "free interval selection feedback",
+        "loading/error/empty and custom render/actions: imported, full browser reconciliation pending"
+      ],
+      "evidence": [
+        "docs/frontend/schedule-calendar.md",
+        "packages/ui/test/components/schedule-calendar.unit.test.ts",
+        "apps/storybook/src/components/schedule-calendar.stories.tsx"
+      ],
+      "pending": "Appointment and agenda consumer completion, application mutations and final route variant audit remain pending; this is not a route completion",
+      "intentional_divergences": [
+        {
+          "behavior": "Hide supporting description below 5.5rem in daily cards as already done in weekly cards; wide two-row rules retain their fit behavior",
+          "authority": "docs/frontend/README.md: fix observable overflow defects before handover",
+          "evidence": "Built Storybook narrow fitted example showed a clipped fourth line; accessible labels and temporal geometry retained"
+        }
+      ]
     }
   ],
   "dependency_graph": "operacao-pedagogica-route-graph.json"

@@ -232,3 +232,21 @@ export { FileUpload, formatFileSize } from "./components/file-upload";
 export type { FileUploadProps } from "./components/file-upload";
 
 export { PencilLoader, type PencilLoaderProps } from "./components/pencil-loader";
+
+export {
+  ScheduleCalendar,
+  getScheduleCalendarRange,
+  getScheduleCalendarNavigation,
+} from "./components/schedule-calendar";
+export type {
+  CalendarDateRange,
+  CalendarDateWindow,
+  CalendarView,
+  CalendarEvent,
+  CalendarInterval,
+  CalendarBlockedInterval,
+  CalendarRangeSelection,
+  CalendarEventRenderContext,
+  ScheduleCalendarProps,
+} from "./components/schedule-calendar";
+export { ScheduleCalendarDatePicker } from "./components/schedule-calendar-date-picker";
