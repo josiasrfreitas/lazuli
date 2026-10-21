@@ -384,10 +384,36 @@
       "route": "/avaliacoes",
       "source_page": "apps/web/src/app/(app)/avaliacoes/page.tsx",
       "block": 1,
-      "block_assignment": "candidate",
-      "implementation": "not_audited",
+      "block_assignment": "confirmed from teacher/admin assessment workflow and issue175",
+      "implementation": "Pure grading rules and validators copied; API/schema/UI and attachment/appointment dependencies pending",
       "behavior": "not_audited",
-      "variants": [],
+      "variants": [
+        {
+          "id": "grade-decision",
+          "behavior": "Four competences, separate averages of two blocks, missing remains incomplete, threshold60 without rounding; recovery replaces only the effective score and preserves both blocks",
+          "source_review": "read and compared with issue175",
+          "implementation": "domain/validator checkpoint",
+          "evidence": [
+            "2 independent unit cases from issue175",
+            "864 differential valid/missing/threshold/recovery cases identical to source snapshot"
+          ],
+          "destination_behavior": "API/UI and progression guard still pending"
+        },
+        {
+          "id": "class-selector",
+          "behavior": "Loading skeleton; error/retry; no assigned class; explicit selected class or first available class",
+          "source_review": "read in assessments-page.tsx",
+          "implementation": "pending",
+          "evidence": []
+        },
+        {
+          "id": "workspace-editor",
+          "behavior": "Competence edit opens BLOCK_ONE dialog with trigger; recovery disclosure renders RECOVERY editor; files without competence enter identification disclosure; save/status notices and dirty/pending reports",
+          "source_review": "read in assessment-workspace.tsx; dialog descendants pending",
+          "implementation": "pending",
+          "evidence": []
+        }
+      ],
       "evidence": [],
       "entrypoint_review": {
         "state": "read",
@@ -414,6 +440,17 @@
           "destination_status": "pending",
           "evidence": []
         }
+      ],
+      "work_items": [175, 186, 191],
+      "source_reviewed_files": [
+        "apps/web/src/features/assessments/assessments-page.tsx",
+        "apps/web/src/features/assessments/assessment-workspace.tsx",
+        "packages/domain/src/assessment.ts",
+        "packages/validators/src/assessment.ts",
+        "packages/api/src/assessments/router.ts",
+        "packages/api/src/assessments/data.ts",
+        "packages/api/src/assessment-files/data.ts",
+        "packages/api/src/assessment-files/transport.ts"
       ]
     },
     {

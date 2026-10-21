@@ -193,3 +193,5 @@ export * from "./class-records.js";
 export * from "./student-attendance.js";
 
 export * from "./teaching-program.js";
+
+export * from "./assessment.js";

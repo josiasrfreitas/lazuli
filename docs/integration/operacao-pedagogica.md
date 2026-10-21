@@ -100,3 +100,12 @@ Workers, imports, schema, permissions, seed, shared UI and operational configura
 ## Completion gate
 
 Before each PR is complete, every assigned route variant must have implementation and behavior evidence on its final head. Before the full goal is complete, every source delta file and work-item requirement must be reconciled with the observed merged main, with justified exclusions and no unassigned scope. The current inventory is an audit starting point, not a completion claim.
+
+## Assessment route started
+
+`/avaliacoes` belongs to block1 (#175/#186/#191). Source page/workspace, grade rules/validators and
+core API/file boundaries were read; the remaining descendants and their variants are still pending.
+The pure grade rules and validator are being carried forward, preserving #175's independent cutoff
+and recovery rules. Two unit cases from those requirements and 864 comparisons with the source
+cover missing grades, all four competences, boundary values and recovery; outcomes are identical.
+This does not establish completion of the assessment API, uploads, UI, progression or seeded data.
