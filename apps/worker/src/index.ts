@@ -1,6 +1,13 @@
+import { processAssessmentFile } from "@lazuli/worker-handlers/assessment-files";
+import { startAssessmentRecovery } from "./assessment-recovery.js";
 import { processDueEnrollmentActions } from "@lazuli/worker-handlers";
 import { processSessionGeneration } from "@lazuli/worker-handlers/sessions";
-import { SESSIONS_GENERATE_WORKFLOW, type SessionsGeneratePayload } from "@lazuli/job-contracts";
+import {
+  ASSESSMENT_FILE_WORKFLOW,
+  type AssessmentFilePayload,
+  SESSIONS_GENERATE_WORKFLOW,
+  type SessionsGeneratePayload,
+} from "@lazuli/job-contracts";
 import { getHatchetClient } from "@lazuli/integrations/hatchet";
 import { db } from "@lazuli/db";
 
@@ -35,18 +42,27 @@ async function start(): Promise<void> {
     scheduleTimeout: "5m",
     fn: (payload) => processSessionGeneration({ database: db, payload }),
   });
+  const files = hatchet.task<AssessmentFilePayload, { status: string }>({
+    name: ASSESSMENT_FILE_WORKFLOW,
+    retries: 0,
+    executionTimeout: "2m",
+    scheduleTimeout: "5m",
+    fn: (payload) => processAssessmentFile({ database: db, payload }),
+  });
   const worker = await hatchet.worker("school", {
     slots: 1,
     durableSlots: 1,
-    workflows: [sessions],
+    workflows: [sessions, files],
     handleKill: false,
   });
   const timer = setInterval(() => void processEnrollmentActions(), ENROLLMENT_POLL_MS);
+  const stopRecovery = startAssessmentRecovery();
   let stopping = false;
   const shutdown = (): void => {
     if (stopping) return;
     stopping = true;
     clearInterval(timer);
+    stopRecovery();
     void worker.stop();
   };
   process.once("SIGINT", shutdown);
@@ -57,6 +73,7 @@ async function start(): Promise<void> {
     await worker.start();
   } finally {
     clearInterval(timer);
+    stopRecovery();
     await db.$disconnect();
   }
 }

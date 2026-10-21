@@ -35,3 +35,5 @@ type RouterInputs = inferRouterInputs<AppRouter>;
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export type { RouterInputs, RouterOutputs };
+
+export { receiveAssessmentFile, downloadAssessmentFile } from "./assessment-files/transport.js";

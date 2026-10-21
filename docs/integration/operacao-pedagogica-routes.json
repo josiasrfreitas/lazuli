@@ -46,7 +46,14 @@
           "destination_status": "pending",
           "evidence": []
         }
-      ]
+      ],
+      "requirement_conflict": {
+        "issue": 179,
+        "state": "owner_answer_pending",
+        "source": "date/narrative treatment without workflow states",
+        "issue_acceptance": "stateful follow-up with completion/reopening",
+        "action": "Continue independent assessments and appointments; do not implement dependent treatment behavior before answer"
+      }
     },
     {
       "route": "/acompanhamento/ocorrencias/[id]",
@@ -81,7 +88,14 @@
           "destination_status": "pending",
           "evidence": []
         }
-      ]
+      ],
+      "requirement_conflict": {
+        "issue": 179,
+        "state": "owner_answer_pending",
+        "source": "date/narrative treatment without workflow states",
+        "issue_acceptance": "stateful follow-up with completion/reopening",
+        "action": "Continue independent assessments and appointments; do not implement dependent treatment behavior before answer"
+      }
     },
     {
       "route": "/acompanhamento",
@@ -122,7 +136,14 @@
           "destination_status": "pending",
           "evidence": []
         }
-      ]
+      ],
+      "requirement_conflict": {
+        "issue": 179,
+        "state": "owner_answer_pending",
+        "source": "date/narrative treatment without workflow states",
+        "issue_acceptance": "stateful follow-up with completion/reopening",
+        "action": "Continue independent assessments and appointments; do not implement dependent treatment behavior before answer"
+      }
     },
     {
       "route": "/ajustes",
@@ -268,7 +289,19 @@
           "destination_status": "pending",
           "evidence": []
         }
-      ]
+      ],
+      "backend_checkpoint": {
+        "implementation": "Schema and appointment API imported/adapted, teacher conflict guard connected",
+        "behavior": "Concurrent absence reservations, atomic reschedule and stale/early/foreign-source rejections passed in PostgreSQL; UI and teacher agenda/frequency/legacy-API integration pending",
+        "work_items": [184],
+        "cross_block_dependencies": [
+          {
+            "block": 2,
+            "dependency": "EntryVisit/admission candidate conflicts for both teacher and student; source variant must be restored when experimental visits exist",
+            "state": "pending; main has no entry visit feature"
+          }
+        ]
+      }
     },
     {
       "route": "/atendimentos",
@@ -305,7 +338,19 @@
           "destination_status": "pending",
           "evidence": []
         }
-      ]
+      ],
+      "backend_checkpoint": {
+        "implementation": "Schema and appointment API imported/adapted, teacher conflict guard connected",
+        "behavior": "Concurrent absence reservations, atomic reschedule and stale/early/foreign-source rejections passed in PostgreSQL; UI and teacher agenda/frequency/legacy-API integration pending",
+        "work_items": [184],
+        "cross_block_dependencies": [
+          {
+            "block": 2,
+            "dependency": "EntryVisit/admission candidate conflicts for both teacher and student; source variant must be restored when experimental visits exist",
+            "state": "pending; main has no entry visit feature"
+          }
+        ]
+      }
     },
     {
       "route": "/atividades",
@@ -385,7 +430,7 @@
       "source_page": "apps/web/src/app/(app)/avaliacoes/page.tsx",
       "block": 1,
       "block_assignment": "confirmed from teacher/admin assessment workflow and issue175",
-      "implementation": "Pure grading rules and validators copied; API/schema/UI and attachment/appointment dependencies pending",
+      "implementation": "Domain, schema, grade API and private file API/worker checkpoint; frontend and progression/continuity wiring still pending",
       "behavior": "not_audited",
       "variants": [
         {
@@ -412,6 +457,74 @@
           "source_review": "read in assessment-workspace.tsx; dialog descendants pending",
           "implementation": "pending",
           "evidence": []
+        },
+        {
+          "id": "grade-api-authorization-and-revision",
+          "behavior": "Dated teacher/class/substitute/assessment appointment access; admin confirmation; no-op save preserves author/version/confirmation; justified correction clears confirmation; stale versions rejected under enrollment lock",
+          "source_review": "read in assessment API modules and compared with issue175",
+          "implementation": "backend checkpoint",
+          "evidence": [
+            "3 Postgres cases: unchanged save, teacher scope/confirmation, concurrent justified corrections"
+          ],
+          "destination_behavior": "API checked; route UI, advancement and assessment continuity still pending"
+        },
+        {
+          "id": "private-assessment-attachments",
+          "behavior": "Bounded PDF/JPEG/PNG transfer with idempotent claim, opaque object key, worker signature/checksum validation, durable recovery, authenticated download, competence identification and reasoned removal",
+          "source_review": "read file data/router/transport, storage and worker modules; accepted ADR0025 checked",
+          "implementation": "API/storage/worker registered; frontend and complete file lifecycle verification pending",
+          "evidence": [
+            "S3Mock put/read/remove and isolated local bucket probe passed; production bucket and explicit-region guards checked"
+          ],
+          "destination_behavior": "Full upload/download/removal flow not yet verified"
+        },
+        {
+          "id": "entry-draft-and-upload",
+          "behavior": "Editor alternates both units/recovery for one competence; score/date/recovery reason/optional notes; confirmed grade changes require justification; WRITTEN/LISTENING show proof picker/list/error/retry with 5s polling; other competences omit uploads. Save preserves unsent files after failure and queues each successful draft separately. Busy blocks close; dirty close opens discard; focus returns to trigger.",
+          "source_review": "read in the 16 assessment feature modules at pinned SHA; shared child imports still need separate reconciliation",
+          "implementation": "frontend pending",
+          "evidence": [],
+          "destination_behavior": "not yet verified"
+        },
+        {
+          "id": "confirmation-and-status",
+          "behavior": "Admin can conclude only complete unconfirmed results and while editor is clean; insufficient disables approve and defaults repeat; justification required/focused; pending prevents duplicate submit and close; error remains visible. Approval/repeat badge and confirmation are distinct from scores; confirmation does not move enrollment.",
+          "source_review": "read in the 16 assessment feature modules at pinned SHA; shared child imports still need separate reconciliation",
+          "implementation": "frontend pending",
+          "evidence": [],
+          "destination_behavior": "not yet verified"
+        },
+        {
+          "id": "results-layout",
+          "behavior": "Written/Listening/Oral/Participation order; two units+mean versus recovery+effective; skeleton and absent score dash remain distinct; compact and narrow labels; edit column only when editable/loading; threshold60 changes semantic color without rounding approval.",
+          "source_review": "read in the 16 assessment feature modules at pinned SHA; shared child imports still need separate reconciliation",
+          "implementation": "frontend pending",
+          "evidence": [],
+          "destination_behavior": "not yet verified"
+        },
+        {
+          "id": "class-performance-and-selection",
+          "behavior": "Loading/error+retry/empty; counts sufficient/support/incomplete; stage filter shown only for multiple stages and resets student; class comparison uses only nonmissing effective competence results, includes counts; selecting a student opens editable summary, all-stage view explains mixed stages.",
+          "source_review": "read in the 16 assessment feature modules at pinned SHA; shared child imports still need separate reconciliation",
+          "implementation": "frontend pending",
+          "evidence": [],
+          "destination_behavior": "not yet verified"
+        },
+        {
+          "id": "student-history-and-chart",
+          "behavior": "Initial progress ID then current then newest fallback; loading/error+retry/no-stage; selector only with multiple assessments, remount on progress. Chart disclosure has no-grades state, optional recovery phase, missing points do not connect; crop/full-scale toggle and reference at60 only when in range; accessible table/data context remains.",
+          "source_review": "read in the 16 assessment feature modules at pinned SHA; shared child imports still need separate reconciliation",
+          "implementation": "frontend pending",
+          "evidence": [],
+          "destination_behavior": "not yet verified"
+        },
+        {
+          "id": "form-local-validation",
+          "behavior": "12 phase/competence draft rows, comma decimal and BR masked date parsing, null missing scores/date/reason; field errors identify phase and scroll/focus; mutation errors retain draft; successful save refreshes assessments and teacherWorkspace; notes-only edits preserve confirmation per backend rule.",
+          "source_review": "read in the 16 assessment feature modules at pinned SHA; shared child imports still need separate reconciliation",
+          "implementation": "frontend pending",
+          "evidence": [],
+          "destination_behavior": "not yet verified"
         }
       ],
       "evidence": [],
@@ -450,8 +563,37 @@
         "packages/api/src/assessments/router.ts",
         "packages/api/src/assessments/data.ts",
         "packages/api/src/assessment-files/data.ts",
-        "packages/api/src/assessment-files/transport.ts"
-      ]
+        "packages/api/src/assessment-files/transport.ts",
+        "packages/api/src/assessments/read.ts",
+        "packages/api/src/assessments/rules.ts",
+        "packages/api/src/assessments/activity.ts",
+        "packages/api/src/assessments/observations.ts",
+        "packages/api/src/assessments/write.ts",
+        "packages/api/src/assessment-files/router.ts",
+        "packages/worker-handlers/src/assessments/process-file.ts",
+        "apps/web/src/features/assessments/assessment-dialog.tsx",
+        "apps/web/src/features/assessments/assessment-entry-dialog.tsx",
+        "apps/web/src/features/assessments/assessment-loading.tsx",
+        "apps/web/src/features/assessments/assessment-summary.tsx",
+        "apps/web/src/features/assessments/assessment-workspace.module.css",
+        "apps/web/src/features/assessments/class-chart.tsx",
+        "apps/web/src/features/assessments/class-performance.tsx",
+        "apps/web/src/features/assessments/confirmation-dialog.tsx",
+        "apps/web/src/features/assessments/grade-average.ts",
+        "apps/web/src/features/assessments/progress-chart.tsx",
+        "apps/web/src/features/assessments/results-table.tsx",
+        "apps/web/src/features/assessments/shared.ts",
+        "apps/web/src/features/assessments/student-progress.tsx",
+        "apps/web/src/features/assessments/use-assessment-form.ts"
+      ],
+      "remaining_shared_dependencies": [
+        "assessment-files attachments and queue/provider",
+        "shared FileUpload/FileList contracts",
+        "teacherWorkspace invalidation and routes",
+        "SelectControl/TextControl and scroll-to-error",
+        "shared discard dialog and app-level uploads provider"
+      ],
+      "legacy_attribution_reconciliation": "Before PR, compare legacy backfill usual-teacher fallback against main dated substitutions/frozen class-record responsibility; preserve evidenced historical attribution without editing applied migration."
     },
     {
       "route": "/configuracoes/presenca",
@@ -933,7 +1075,14 @@
           "destination_status": "pending",
           "evidence": []
         }
-      ]
+      ],
+      "requirement_conflict": {
+        "issue": 179,
+        "state": "owner_answer_pending",
+        "source": "date/narrative treatment without workflow states",
+        "issue_acceptance": "stateful follow-up with completion/reopening",
+        "action": "Continue independent assessments and appointments; do not implement dependent treatment behavior before answer"
+      }
     },
     {
       "route": "/professor/agenda/[id]/chamada",
@@ -1108,7 +1257,19 @@
           "destination_status": "pending",
           "evidence": []
         }
-      ]
+      ],
+      "backend_checkpoint": {
+        "implementation": "Schema and appointment API imported/adapted, teacher conflict guard connected",
+        "behavior": "Concurrent absence reservations, atomic reschedule and stale/early/foreign-source rejections passed in PostgreSQL; UI and teacher agenda/frequency/legacy-API integration pending",
+        "work_items": [184],
+        "cross_block_dependencies": [
+          {
+            "block": 2,
+            "dependency": "EntryVisit/admission candidate conflicts for both teacher and student; source variant must be restored when experimental visits exist",
+            "state": "pending; main has no entry visit feature"
+          }
+        ]
+      }
     },
     {
       "route": "/professor/chamada/previa",

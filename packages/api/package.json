@@ -23,7 +23,8 @@
     "@trpc/server": "catalog:",
     "kysely": "catalog:",
     "superjson": "catalog:",
-    "@lazuli/integrations": "workspace:*"
+    "@lazuli/integrations": "workspace:*",
+    "@lazuli/storage": "workspace:*"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

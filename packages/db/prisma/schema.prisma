@@ -148,6 +148,15 @@ enum ArtifactKind {
 }
 
 model User {
+  assignedAppointments PedagogicalAppointment[] @relation("AppointmentTeacher")
+  scheduledAppointments PedagogicalAppointment[] @relation("AppointmentScheduler")
+  recordedAppointments PedagogicalAppointment[] @relation("AppointmentRecorder")
+  cancelledAppointments PedagogicalAppointment[] @relation("AppointmentCanceller")
+  appointmentRevisions AppointmentRevision[]
+  absenceContacts AbsenceContact[]
+  assessmentsCreated StageAssessment[] @relation("AssessmentCreator")
+  assessmentsConfirmed StageAssessment[] @relation("AssessmentConfirmer")
+  gradesRecorded AssessmentGrade[] @relation("GradeRecorder")
   attendanceSettingsUpdated AttendanceSettings[] @relation("AttendanceSettingsAuthor")
   attendanceWindowsOpened AttendanceWindow[] @relation("AttendanceWindowOpener")
   attendanceWindowsClosed AttendanceWindow[] @relation("AttendanceWindowCloser")
@@ -258,6 +267,9 @@ model Verification {
 }
 
 model Student {
+  appointments PedagogicalAppointment[]
+  absenceContacts AbsenceContact[]
+  assessments StageAssessment[]
   id             String        @id @default(uuid()) @db.Uuid
   commandId      String?       @unique @map("command_id") @db.Uuid
   commandFingerprint String?   @map("command_fingerprint")
@@ -455,6 +467,7 @@ model Track {
 }
 
 model Stage {
+  assessments StageAssessment[]
   bookLessonCount Int? @map("book_lesson_count")
   bookLessons BookLesson[]
   teachingPrograms TeachingProgram[]
@@ -478,6 +491,7 @@ model Stage {
 }
 
 model Enrollment {
+  appointments PedagogicalAppointment[]
   attendanceDeclarations AttendanceDeclaration[]
 
   id                     String                @id @default(uuid()) @db.Uuid
@@ -534,6 +548,8 @@ model EnrollmentAction {
 }
 
 model PedagogicalProgress {
+  assessment StageAssessment? @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  assessmentId String? @map("assessment_id") @db.Uuid
   id           String             @id @default(uuid()) @db.Uuid
   createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz
@@ -618,6 +634,7 @@ model ClassSubstitution {
 }
 
 model ClassSession {
+  appointments PedagogicalAppointment[]
   attendanceWindows AttendanceWindow[]
   attendanceDeclarations AttendanceDeclaration[]
   attendanceProjection AttendanceProjection?
@@ -661,6 +678,8 @@ model ClassSession {
 }
 
 model Attendance {
+  makeupCoverages MakeupCoverage[]
+  absenceContacts AbsenceContact[]
   id               String           @id @default(uuid()) @db.Uuid
   createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz
@@ -687,6 +706,7 @@ model Attendance {
 }
 
 model Makeup {
+  appointment PedagogicalAppointment?
   id                   String    @id @default(uuid()) @db.Uuid
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -1398,4 +1418,228 @@ model ProgramActivityLesson {
 
   @@unique([activityId, lessonId, part])
   @@index([lessonId])
+}
+
+
+enum AcademicCompetence {
+  ORAL
+  LISTENING
+  WRITTEN
+  PARTICIPATION
+}
+
+enum AssessmentPhase {
+  BLOCK_ONE
+  BLOCK_TWO
+  RECOVERY
+}
+
+enum AcademicDecision {
+  APPROVED
+  REPEAT
+}
+
+model StageAssessment {
+  files AssessmentFile[]
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  studentId String @map("student_id") @db.Uuid
+  stageId String @map("stage_id") @db.Uuid
+  startedOn DateTime @map("started_on") @db.Date
+  version Int @default(1)
+  observations Json?
+  decision AcademicDecision?
+  decisionReason String? @map("decision_reason")
+  confirmedAt DateTime? @map("confirmed_at") @db.Timestamptz
+  confirmedById String? @map("confirmed_by_id") @db.Uuid
+  createdById String @map("created_by_id") @db.Uuid
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  createdBy User @relation("AssessmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  confirmedBy User? @relation("AssessmentConfirmer", fields: [confirmedById], references: [id], onDelete: Restrict)
+  progressRecords PedagogicalProgress[]
+  grades AssessmentGrade[]
+
+  @@index([studentId, startedOn])
+  @@index([stageId])
+}
+
+model AssessmentGrade {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  assessmentId String @map("assessment_id") @db.Uuid
+  phase AssessmentPhase
+  competence AcademicCompetence
+  score Decimal @db.Decimal(4, 1)
+  assessedOn DateTime @map("assessed_on") @db.Date
+  reason String?
+  recordedById String @map("recorded_by_id") @db.Uuid
+
+  assessment StageAssessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  recordedBy User @relation("GradeRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@unique([assessmentId, phase, competence])
+  @@index([recordedById])
+}
+
+enum AppointmentPurpose {
+  MAKEUP
+  PPT_COMPLEMENT
+  REINFORCEMENT
+  ASSESSMENT
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  ATTENDED
+  NO_SHOW
+  CANCELLED
+}
+
+model PedagogicalAppointment {
+  assessmentFiles AssessmentFile[]
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  studentId String @map("student_id") @db.Uuid
+  enrollmentId String? @map("enrollment_id") @db.Uuid
+  teacherId String? @map("teacher_id") @db.Uuid
+  targetClassSessionId String? @map("target_class_session_id") @db.Uuid
+  legacyMakeupId String? @unique @map("legacy_makeup_id") @db.Uuid
+  rescheduledFromId String? @unique @map("rescheduled_from_id") @db.Uuid
+  purpose AppointmentPurpose
+  status AppointmentStatus @default(SCHEDULED)
+  format ClassFormat
+  date DateTime @db.Date
+  startTime DateTime @map("start_time") @db.Time
+  endTime DateTime @map("end_time") @db.Time
+  plannedContent String? @map("planned_content")
+  performedContent String? @map("performed_content")
+  performedMinutes Int? @map("performed_minutes")
+  notes String?
+  version Int @default(1)
+  scheduledAt DateTime @default(now()) @map("scheduled_at") @db.Timestamptz
+  scheduledById String? @map("scheduled_by_id") @db.Uuid
+  recordedAt DateTime? @map("recorded_at") @db.Timestamptz
+  recordedById String? @map("recorded_by_id") @db.Uuid
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz
+  cancelledById String? @map("cancelled_by_id") @db.Uuid
+  cancellationReason String? @map("cancellation_reason")
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  teacher User? @relation("AppointmentTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
+  targetClassSession ClassSession? @relation(fields: [targetClassSessionId], references: [id], onDelete: Restrict)
+  legacyMakeup Makeup? @relation(fields: [legacyMakeupId], references: [id], onDelete: Restrict)
+  rescheduledFrom PedagogicalAppointment? @relation("AppointmentRescheduling", fields: [rescheduledFromId], references: [id], onDelete: Restrict)
+  rescheduledTo PedagogicalAppointment? @relation("AppointmentRescheduling")
+  scheduledBy User? @relation("AppointmentScheduler", fields: [scheduledById], references: [id], onDelete: Restrict)
+  recordedBy User? @relation("AppointmentRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  cancelledBy User? @relation("AppointmentCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
+  coverages MakeupCoverage[]
+  revisions AppointmentRevision[]
+  @@index([studentId, date])
+  @@index([teacherId, date])
+  @@index([date, status])
+  @@index([enrollmentId])
+  @@index([targetClassSessionId])
+}
+
+enum AssessmentFileStatus {
+  UPLOADING
+  RECEIVED
+  PROCESSING
+  READY
+  FAILED
+  REJECTED
+  REMOVED
+}
+
+model AssessmentFile {
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  id String @id @db.Uuid
+  assessmentId String @map("assessment_id") @db.Uuid
+  phase AssessmentPhase
+  competence AcademicCompetence?
+  appointmentId String? @map("appointment_id") @db.Uuid
+  fileName String @map("file_name")
+  contentType String @map("content_type")
+  byteLength Int @map("byte_length")
+  bucket String?
+  key String? @unique
+  checksum String?
+  status AssessmentFileStatus @default(UPLOADING)
+  failureCode String? @map("failure_code")
+  uploadedById String @map("uploaded_by_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  receivedAt DateTime? @map("received_at") @db.Timestamptz
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+  removedAt DateTime? @map("removed_at") @db.Timestamptz
+  removedById String? @map("removed_by_id") @db.Uuid
+  removalReason String? @map("removal_reason")
+  assessment StageAssessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  appointment PedagogicalAppointment? @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  @@index([assessmentId, phase])
+  @@index([appointmentId])
+  @@index([status, updatedAt])
+  @@index([uploadedById])
+}
+
+model MakeupCoverage {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  appointmentId String @map("appointment_id") @db.Uuid
+  attendanceId String @map("attendance_id") @db.Uuid
+  minutes Int
+  appointment PedagogicalAppointment @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Restrict)
+  @@unique([appointmentId, attendanceId])
+  @@index([attendanceId])
+}
+
+model AppointmentRevision {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  appointmentId String @map("appointment_id") @db.Uuid
+  version Int
+  actorId String? @map("actor_id") @db.Uuid
+  recordedAt DateTime @map("recorded_at") @db.Timestamptz
+  kind String
+  reason String?
+  snapshot Json
+  appointment PedagogicalAppointment @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  actor User? @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  @@unique([appointmentId, version])
+}
+
+model AbsenceContact {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  studentId String @map("student_id") @db.Uuid
+  attendanceId String? @map("attendance_id") @db.Uuid
+  actorId String @map("actor_id") @db.Uuid
+  recordedAt DateTime @default(now()) @map("recorded_at") @db.Timestamptz
+  contactedAt DateTime @map("contacted_at") @db.Timestamptz
+  channel String
+  outcome String
+  notes String
+  nextContactDate DateTime? @map("next_contact_date") @db.Date
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  attendance Attendance? @relation(fields: [attendanceId], references: [id], onDelete: Restrict)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  @@index([studentId, contactedAt])
+  @@index([attendanceId])
+  @@index([nextContactDate])
 }

@@ -118,3 +118,4 @@ export * from "./student-attendance.js";
 export * from "./teaching-program.js";
 
 export * from "./assessment.js";
+export { normalizeSearch } from "./search.js";

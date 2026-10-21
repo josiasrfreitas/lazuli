@@ -195,3 +195,7 @@ export * from "./student-attendance.js";
 export * from "./teaching-program.js";
 
 export * from "./assessment.js";
+
+export * from "./appointments.js";
+
+export { MAX_UPLOAD_FILE_MB, MAX_UPLOAD_FILE_BYTES } from "./file-upload.js";

@@ -8,6 +8,7 @@ type ActivityContext = {
 };
 type ActivityDetails = {
   action: ActivityAction;
+  deduplicationKey?: string;
   subject: { type: "student" | "class"; id: string; name: string };
   description: string;
 };
@@ -17,18 +18,24 @@ export async function recordActivity(
   details: ActivityDetails,
 ): Promise<void> {
   const [area, title] = ACTIVITY_ACTIONS[details.action];
-  await context.database.activityEvent.create({
-    data: {
-      action: details.action,
-      area,
-      title,
-      actorId: context.staffUser.id,
-      actorName: context.staffUser.name,
-      occurredAt: context.now,
-      subjectType: details.subject.type,
-      subjectId: details.subject.id,
-      subjectName: details.subject.name,
-      description: details.description,
-    },
-  });
+  const data = {
+    action: details.action,
+    area,
+    title,
+    actorId: context.staffUser.id,
+    actorName: context.staffUser.name,
+    occurredAt: context.now,
+    subjectType: details.subject.type,
+    subjectId: details.subject.id,
+    subjectName: details.subject.name,
+    description: details.description,
+    deduplicationKey: details.deduplicationKey ?? null,
+  };
+  await (details.deduplicationKey
+    ? context.database.activityEvent.upsert({
+        where: { deduplicationKey: details.deduplicationKey },
+        create: data,
+        update: {},
+      })
+    : context.database.activityEvent.create({ data }));
 }

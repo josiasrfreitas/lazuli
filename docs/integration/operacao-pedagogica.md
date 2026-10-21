@@ -109,3 +109,55 @@ The pure grade rules and validator are being carried forward, preserving #175's 
 and recovery rules. Two unit cases from those requirements and 864 comparisons with the source
 cover missing grades, all four competences, boundary values and recovery; outcomes are identical.
 This does not establish completion of the assessment API, uploads, UI, progression or seeded data.
+
+## Assessment and appointment backend checkpoint
+
+The next checkpoint adds the real schema and APIs for grades, appointments and private assessment
+files. It does not finish these routes: frontend variants, progression/continuity, frequency,
+teacher agenda, legacy makeup endpoints and the complete attachment lifecycle remain pending.
+
+Prisma generated `20261021052429_assessments_and_pedagogical_appointments`. Unsupported CHECKs and
+the historical makeup backfill were appended before its first application. Existing makeup IDs,
+authors and dates survive; absent performed content/minutes and absence links are not invented.
+The common lifecycle `deletedAt` is present on AssessmentFile for the main client's soft-delete policy.
+
+The accepted source ADR0025, dated 2026-10-19, supersedes the GCP provider choice for new file
+storage. This checkpoint brings its S3 module and local S3Mock service, leaving existing bootstrap
+resources in place. Production requires an explicit bucket and region, uses the SDK credential
+chain, and never creates a bucket. No cloud resource was provisioned. The local probe verified
+put/read/remove, stable database-derived isolation, production guards and removal of its own bucket.
+
+The appointment APIs retain the shared teaching-schedule and class-record locks. The source's
+EntryVisit/student/teacher conflict dependency is explicitly assigned to block2, where experimental
+visits are introduced; it must be reconciled there. Main currently has no entry-visit feature.
+
+Five selected new integration cases protect changed contracts: teacher access and administrative
+confirmation, no-op save preserving authorship/approval, concurrent corrections withdrawing approval
+once, competing reservations for the same absent minutes, and atomic rescheduling with historical
+snapshots. Thirteen existing catalog/record cases also passed in the same fresh PostgreSQL run:
+18/18, with full migration deploy, zero drift and database cleanup. Broader frequency/continuity
+and upload transport cases will be selected when their remaining wiring lands; no API-only success
+is being counted as completed route behavior. The preexisting source tests were inspected; stale
+Bloco/Unidade text and unimplemented downstream dependencies were not used to redefine expectations.
+
+Appointment validator refactoring preserves all accepted values and complete validation errors
+in 272 differential cases against the pinned source. Earlier grading differential evidence remains
+864 identical cases. Lint-driven parameter grouping changes helper signatures, not the API schemas.
+
+Occurrences/interventions have a real requirement conflict: #179 requests states with completion
+and reopening, while source uses a dated narrative treatment. The owner question is pending;
+independent work continues without choosing either dependent behavior.
+
+The broader unit run exposed an eager Prisma import from the source search helper; using the
+existing `@lazuli/db/prisma` entry point preserves schema utilities without initializing the
+Postgres singleton at module load. The production build now succeeds without DATABASE_URL.
+Navigation expectations were expanded for the already-imported administrative /estagios route;
+the teacher exclusion and breadcrumb are explicitly checked. Across the completed package runs,
+631 unit cases passed (including 214 web cases after that expectation update); the root scripts
+passed 64 cases plus component/style gates. Initial fail-fast cancellations are not counted as
+passes. The prospective quality gate reported zero errors and zero contextual warnings.
+
+Legacy historical teacher attribution remains a reconciliation lead before the PR: the source
+SQL backfill uses usual-teacher/class fallback, while current main can use substitutions and
+frozen class-record responsibility. Verify this against real historical cases before claiming
+legacy parity; any correction must use a new migration, never rewrite an applied one.

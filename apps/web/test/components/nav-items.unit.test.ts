@@ -13,6 +13,7 @@ import {
 const STUDENTS_PATH = "/alunos";
 const TEACHERS_PATH = "/professores";
 const CLASSES_PATH = "/turmas";
+const STAGES_PATH = "/estagios";
 const LESSONS_PATH = "/aulas";
 const PLANNING_PATH = "/planejamento";
 const RECEIVABLES_PATH = "/recebiveis";
@@ -39,6 +40,7 @@ void describe("role-aware navigation", () => {
         STUDENTS_PATH,
         TEACHERS_PATH,
         CLASSES_PATH,
+        STAGES_PATH,
         LESSONS_PATH,
         PLANNING_PATH,
         ANALYTICS_PATH,
@@ -57,7 +59,7 @@ void describe("role-aware navigation", () => {
       { label: null, items: ["Início"] },
       {
         label: PEDAGOGICAL_LABEL,
-        items: [STUDENTS_LABEL, "Professores", "Turmas", "Aulas", "Planejamento"],
+        items: [STUDENTS_LABEL, "Professores", "Turmas", "Estágios", "Aulas", "Planejamento"],
       },
       { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
     ]);
@@ -80,6 +82,12 @@ void describe("role-aware navigation", () => {
       section: PEDAGOGICAL_LABEL,
       page: "Turmas",
     });
+    // The imported stage catalog is an administrative planning route.
+    assert.deepEqual(navBreadcrumbFor(STAGES_PATH, "ADMIN"), {
+      section: PEDAGOGICAL_LABEL,
+      page: "Estágios",
+    });
+    assert.equal(navBreadcrumbFor(STAGES_PATH, "TEACHER"), null);
     assert.equal(navBreadcrumbFor(STUDENTS_PATH, "TEACHER"), null);
     assert.equal(navBreadcrumbFor("/", "ADMIN"), null);
     assert.equal(matchesNavHref({ href: STUDENTS_PATH, pathname: "/alunos-inativos" }), false);
@@ -136,6 +144,7 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       STUDENTS_PATH,
       TEACHERS_PATH,
       CLASSES_PATH,
+      STAGES_PATH,
       LESSONS_PATH,
       PLANNING_PATH,
       ANALYTICS_PATH,
