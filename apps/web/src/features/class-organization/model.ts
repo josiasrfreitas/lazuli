@@ -8,8 +8,10 @@ import {
 
 const ISO_DATE_LENGTH = 10;
 const MILLISECONDS_PER_DAY = 86_400_000;
+const OCCUPANCY_LEVELS = { underfilled: 4, good: 8 } as const;
+const RENEWAL_WARNING_DAYS = 45;
 
-export type { ClassPlan, Placement, SemesterBoard };
+export type { ClassPlan, Placement, SemesterBoard } from "~/features/semester-organization/shared";
 export type OrganizationAction =
   | { kind: "plan"; plan?: ClassPlan; group?: PendingGroup }
   | { kind: "placement"; studentId: string; row?: Placement; planId?: string }
@@ -44,12 +46,14 @@ export function occupancy(plan: ClassPlan): {
   readonly label: "Poucos alunos" | "Em composição" | "Boa ocupação";
 } {
   const count = plan.enrolledCount ?? 0;
-  return {
-    count,
-    tone: count < 4 ? "destructive" : count < 8 ? "warning" : "success",
-    label: count < 4 ? "Poucos alunos" : count < 8 ? "Em composição" : "Boa ocupação",
-  } as const;
+  return { count, ...occupancyState(count) } as const;
 }
+function occupancyState(count: number): Omit<ReturnType<typeof occupancy>, "count"> {
+  if (count < OCCUPANCY_LEVELS.underfilled) return { tone: "destructive", label: "Poucos alunos" };
+  if (count < OCCUPANCY_LEVELS.good) return { tone: "warning", label: "Em composição" };
+  return { tone: "success", label: "Boa ocupação" };
+}
+
 export function continuityLabel(
   row: Placement,
   board: SemesterBoard,
@@ -67,7 +71,7 @@ export function continuityLabel(
     return "Continuidade prevista · contrato";
   return "A conversar";
 }
-export function leavingFor(board: SemesterBoard, plan: ClassPlan) {
+export function leavingFor(board: SemesterBoard, plan: ClassPlan): Placement[] {
   return board.placements.filter(
     (row) =>
       (row.continuity === "LEAVING" || row.declinedAt) &&
@@ -115,7 +119,7 @@ export function contractLabel(row: Placement): { label: string; warning: boolean
   const days = row.contract.endsOn
     ? Math.ceil((new Date(row.contract.endsOn).getTime() - Date.now()) / MILLISECONDS_PER_DAY)
     : null;
-  return days !== null && days <= 45
+  return days !== null && days <= RENEWAL_WARNING_DAYS
     ? { label: `Vence em ${Math.max(0, days)} dias`, warning: true }
     : { label: "Contrato vigente", warning: false };
 }

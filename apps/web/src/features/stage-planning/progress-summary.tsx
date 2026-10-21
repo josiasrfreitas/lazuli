@@ -14,7 +14,7 @@ export function ProgressSummary({
   onRecords: () => void;
 }): ReactJSX.Element {
   const items = data.plan?.items ?? [];
-  const position = planningPosition(items, data.records, data.scope.today);
+  const position = planningPosition(items, { records: data.records, today: data.scope.today });
   const latestStep = data.records.find((row) => row.content.planItemId);
   return (
     <section className={styles.progress} aria-label="Progresso previsto e registrado">

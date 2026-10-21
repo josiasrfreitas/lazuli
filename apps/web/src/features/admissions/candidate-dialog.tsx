@@ -36,7 +36,10 @@ export function CandidateDialog({
       initialFocus={() => form.body.current?.querySelector("input") ?? false}
       backLabel={form.step === 1 ? "Voltar" : "Cancelar"}
       onBack={() => (form.step === 1 ? form.setStep(0) : onClose())}
-      submitLabel={candidateSubmitLabel(save.isPending, form.step, Boolean(candidate))}
+      submitLabel={candidateSubmitLabel(save.isPending, {
+        step: form.step,
+        editing: Boolean(candidate),
+      })}
       onSubmit={(event) => {
         event.preventDefault();
         if (save.isPending) return;

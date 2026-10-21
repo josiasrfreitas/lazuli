@@ -5,6 +5,7 @@ const LAST_WEEKDAY = 6;
 const DAYS_PER_WEEK = 7;
 const DEFAULT_START_HOUR = 8;
 const DEFAULT_END_HOUR = 20;
+const STAGE_SEPARATOR = " - ";
 
 export type CalendarAppointment = RouterOutputs["appointments"]["list"][number];
 export type CalendarExperimental = RouterOutputs["classRecords"]["experimentalSessions"][number];
@@ -19,9 +20,12 @@ export type CalendarLesson = Omit<ClassLesson, "leadGuests" | "format"> & {
 
 export function agendaEvents(
   lessons: CalendarLesson[],
-  appointments: CalendarAppointment[],
-  experiments: CalendarExperimental[] = [],
+  options: {
+    appointments: CalendarAppointment[];
+    experiments?: CalendarExperimental[] | undefined;
+  },
 ): CalendarLesson[] {
+  const { appointments, experiments = [] } = options;
   const lessonIds = new Set(lessons.map((lesson) => lesson.id));
   return [
     ...lessons.map((lesson) => ({
@@ -30,61 +34,59 @@ export function agendaEvents(
     })),
     ...appointments
       .filter((item) => !item.targetClassSessionId || !lessonIds.has(item.targetClassSessionId))
-      .map(
-        (item): CalendarLesson => ({
-          id: `appointment-${item.id}`,
-          classId: "",
-          className: item.student.name,
-          format: item.format,
-          scheduleType: "REGULAR",
-          stageName: null,
-          date: item.date,
-          startTime: item.startTime,
-          endTime: item.endTime,
-          teacherId: item.teacher?.id ?? null,
-          teacher: item.teacher?.name ?? null,
-          state:
-            item.status === "CANCELLED"
-              ? "CANCELLED"
-              : item.status === "SCHEDULED"
-                ? item.overdue
-                  ? "PENDING"
-                  : "UPCOMING"
-                : "RECORDED",
-          attendanceOnly: false,
-          guestCount: 0,
-          appointment: item,
-        }),
-      ),
-    ...experiments.map(
-      (item): CalendarLesson => ({
-        id: `experimental-${item.id}`,
-        classId: "",
-        className: item.kind === "PLACEMENT" ? "Nivelamento" : "Experimental individual",
-        format: item.format,
-        scheduleType: item.candidate.scheduleType ?? "REGULAR",
-        stageName: null,
-        date: item.date,
-        startTime: item.startTime,
-        endTime: item.endTime,
-        teacherId: item.teacher?.id ?? null,
-        teacher:
-          item.teacher?.name ?? (item.kind === "PLACEMENT" ? "Aplicação sem professor" : null),
-        state:
-          item.status === "CANCELLED"
-            ? "CANCELLED"
-            : item.status === "SCHEDULED"
-              ? item.overdue
-                ? "PENDING"
-                : "UPCOMING"
-              : "RECORDED",
-        attendanceOnly: false,
-        guestCount: 0,
-        experimental: item,
-      }),
-    ),
+      .map((item) => appointmentLesson(item)),
+    ...experiments.map((item) => experimentalLesson(item)),
   ];
 }
+
+function appointmentLesson(item: CalendarAppointment): CalendarLesson {
+  return {
+    id: `appointment-${item.id}`,
+    classId: "",
+    className: item.student.name,
+    format: item.format,
+    scheduleType: "REGULAR",
+    stageName: null,
+    date: item.date,
+    startTime: item.startTime,
+    endTime: item.endTime,
+    teacherId: item.teacher?.id ?? null,
+    teacher: item.teacher?.name ?? null,
+    state: guestLessonState(item),
+    attendanceOnly: false,
+    guestCount: 0,
+    appointment: item,
+  };
+}
+
+function experimentalLesson(item: CalendarExperimental): CalendarLesson {
+  return {
+    id: `experimental-${item.id}`,
+    classId: "",
+    className: item.kind === "PLACEMENT" ? "Nivelamento" : "Experimental individual",
+    format: item.format,
+    scheduleType: item.candidate.scheduleType ?? "REGULAR",
+    stageName: null,
+    date: item.date,
+    startTime: item.startTime,
+    endTime: item.endTime,
+    teacherId: item.teacher?.id ?? null,
+    teacher: item.teacher?.name ?? (item.kind === "PLACEMENT" ? "Aplicação sem professor" : null),
+    state: guestLessonState(item),
+    attendanceOnly: false,
+    guestCount: 0,
+    experimental: item,
+  };
+}
+
+function guestLessonState(
+  item: Pick<CalendarAppointment | CalendarExperimental, "status" | "overdue">,
+): CalendarLesson["state"] {
+  if (item.status === "CANCELLED") return "CANCELLED";
+  if (item.status === "SCHEDULED") return item.overdue ? "PENDING" : "UPCOMING";
+  return "RECORDED";
+}
+
 export const lessonStates = {
   PENDING: "A registrar",
   RECORDED: "Com baixa",
@@ -134,10 +136,10 @@ export function lessonStage(lesson: CalendarLesson): string {
 
 export function stageIdentity(lesson: CalendarLesson): { series: string; stage: string } {
   const name = lessonStage(lesson);
-  const separator = name.lastIndexOf(" - ");
-  return separator < 0
+  const separator = name.lastIndexOf(STAGE_SEPARATOR);
+  return separator === -1
     ? { series: lesson.scheduleType === "PERSONALIZED" ? "PPT" : "Regular", stage: name }
-    : { series: name.slice(0, separator), stage: name.slice(separator + 3) };
+    : { series: name.slice(0, separator), stage: name.slice(separator + STAGE_SEPARATOR.length) };
 }
 
 export type TeacherColumn = { id: string | null; name: string };
@@ -151,21 +153,23 @@ export function calendarTeachers(lessons: CalendarLesson[]): TeacherColumn[] {
       name: lesson.teacher ?? "Professor a definir",
     });
   }
-  return [...teachers.values()].toSorted((left, right) =>
-    left.id === null
-      ? 1
-      : right.id === null
-        ? -1
-        : left.name.localeCompare(right.name, "pt-BR") || left.id.localeCompare(right.id),
-  );
+  return [...teachers.values()].toSorted((left, right) => {
+    if (left.id === null) return 1;
+    if (right.id === null) return -1;
+    return left.name.localeCompare(right.name, "pt-BR") || left.id.localeCompare(right.id);
+  });
 }
 
 /** Overlapping lessons belonging to one teacher remain separately selectable. */
 export function teacherDayLessons(
   lessons: CalendarLesson[],
-  teacherId: string | null,
-  date: string,
+  options: {
+    teacherId: string | null;
+    date: string;
+  },
 ): { placed: { lesson: CalendarLesson; lane: number }[]; lanes: number } {
+  const { teacherId, date } = options;
+
   const ends: string[] = [];
   const placed = lessons
     .filter((lesson) => lesson.date === date && lesson.teacherId === teacherId)
@@ -175,7 +179,7 @@ export function teacherDayLessons(
     )
     .map((lesson) => {
       const free = ends.findIndex((end) => end <= lesson.startTime);
-      const lane = free < 0 ? ends.length : free;
+      const lane = free === -1 ? ends.length : free;
       ends[lane] = lesson.endTime;
       return { lesson, lane };
     });

@@ -97,13 +97,12 @@ export function CommandPalette({ role }: { role: StaffRole }): ReactJSX.Element 
         section: "Destinos do aluno",
         keywords: [action.description],
       }));
-      return rankCommands(actions, query, context);
+      return rankCommands(actions, { query, context });
     }
     return rankCommands(
       [...contextCommands(role, pathname), ...pageCommands(role), ...entityCommands(lookup.data)],
-      query,
-      context,
-    ).map((command) => preferredCommand(command, searchIntent(query), context));
+      { query, context },
+    ).map((command) => preferredCommand(command, { intent: searchIntent(query), context }));
   }, [scope, pathname, studentSection, role, query, lookup.data]);
   const items = useMemo(
     () =>

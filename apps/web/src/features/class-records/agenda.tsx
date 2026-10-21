@@ -50,7 +50,10 @@ export function ClassAgenda({ teacherView = false }: { teacherView?: boolean }):
   const error = query.error ?? appointments.error ?? experiments.error;
   const settledStatus = error ? "error" : "ready";
   const lessons = query.data ?? [];
-  const events = agendaEvents(lessons, appointments.data ?? [], experiments.data ?? []);
+  const events = agendaEvents(lessons, {
+    appointments: appointments.data ?? [],
+    experiments: experiments.data ?? [],
+  });
   function selectDate(next: string): void {
     void setParams({ semana: monday(next), dia: next });
   }

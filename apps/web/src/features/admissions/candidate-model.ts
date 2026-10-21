@@ -60,13 +60,23 @@ function candidateIdentity(candidate: Candidate): {
     notes: candidate.notes ?? "",
   };
 }
-export function parseCandidateDraft(draft: CandidateDraft) {
+export function parseCandidateDraft(
+  draft: CandidateDraft,
+): ReturnType<typeof admissionValuesSchema.safeParse> {
   return admissionValuesSchema.safeParse({
     ...draft,
     availableUntil: parseDateBR(draft.availableUntil) ?? "",
   });
 }
-export function candidateSubmitLabel(pending: boolean, step: number, editing: boolean): string {
+export function candidateSubmitLabel(
+  pending: boolean,
+  options: {
+    step: number;
+    editing: boolean;
+  },
+): string {
+  const { step, editing } = options;
+
   if (pending) return "Salvando…";
   if (step === 0) return "Continuar";
   return editing ? "Salvar alterações" : "Cadastrar lead";

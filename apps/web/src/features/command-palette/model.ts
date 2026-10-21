@@ -1,6 +1,26 @@
 import { normalizeSearch } from "@lazuli/domain";
 
 const MILLISECONDS_PER_DAY = 86_400_000;
+const TRIGRAM_LENGTH = 3;
+const MINIMUM_FUZZY_QUERY_LENGTH = 4;
+const MAX_COMMAND_RESULTS = 16;
+const SEARCH_SCORES = {
+  exact: 1000,
+  prefix: 800,
+  substring: 600,
+  fuzzyThreshold: 0.45,
+  fuzzyBase: 300,
+  fuzzyScale: 100,
+  keywordWeight: 0.8,
+  matchedEntity: 450,
+  defaultBase: 100,
+  section: 500,
+  sameArea: 25,
+  action: 40,
+  frequencyLimit: 40,
+  frequencyScale: 8,
+  recencyLimit: 20,
+} as const;
 
 export type CommandKind = "page" | "student" | "teacher" | "class" | "lead" | "action";
 export type CommandIcon = CommandKind | "finance" | "pedagogy" | "calendar" | "contract";
@@ -93,62 +113,38 @@ export type RankingContext = {
 
 function trigrams(value: string): Set<string> {
   const result = new Set<string>();
-  for (let index = 0; index <= value.length - 3; index++) result.add(value.slice(index, index + 3));
+  for (let index = 0; index <= value.length - TRIGRAM_LENGTH; index++)
+    result.add(value.slice(index, index + TRIGRAM_LENGTH));
   return result;
 }
 function textScore(text: string, query: string): number {
   const value = normalizeSearch(text);
-  if (value === query) return 1000;
-  if (value.startsWith(query)) return 800;
-  if (value.includes(query)) return 600;
-  if (query.length < 4) return 0;
+  if (value === query) return SEARCH_SCORES.exact;
+  if (value.startsWith(query)) return SEARCH_SCORES.prefix;
+  if (value.includes(query)) return SEARCH_SCORES.substring;
+  if (query.length < MINIMUM_FUZZY_QUERY_LENGTH) return 0;
   const left = trigrams(value);
   const right = trigrams(query);
   const common = [...right].filter((part) => left.has(part)).length;
   const similarity = (2 * common) / Math.max(1, left.size + right.size);
-  return similarity >= 0.45 ? 300 + similarity * 100 : 0;
+  return similarity >= SEARCH_SCORES.fuzzyThreshold
+    ? SEARCH_SCORES.fuzzyBase + similarity * SEARCH_SCORES.fuzzyScale
+    : 0;
 }
+
+type CommandSearch = { normalized: string; intent: SearchIntent; entityNeedle: string };
+type RankedCommand = { command: Command; score: number };
 
 export function rankCommands(
   commands: readonly Command[],
-  query: string,
-  context: RankingContext,
+  options: { query: string; context: RankingContext },
 ): Command[] {
+  const { query, context } = options;
   const normalized = normalizeSearch(query);
   const intent = searchIntent(query);
-  const entityNeedle = normalizeSearch(intent.entityQuery);
+  const search = { normalized, intent, entityNeedle: normalizeSearch(intent.entityQuery) };
   return commands
-    .map((command, index) => {
-      const entity = command.kind !== "page" && command.kind !== "action";
-      const needle = entity ? entityNeedle : normalized;
-      let score = normalized
-        ? Math.max(
-            needle ? textScore(command.title, needle) : 0,
-            ...command.keywords.map((word) => (needle ? textScore(word, needle) * 0.8 : 0)),
-            command.matchedEntity ? 450 : 0,
-          )
-        : 100 - index;
-      if (intent.entityKind && entity && command.kind !== intent.entityKind) score = 0;
-      if (
-        intent.section &&
-        !entityNeedle &&
-        command.section === (intent.section === "finance" ? "Financeiro" : "Pedagógico")
-      )
-        score = Math.max(score, 500);
-      if (score <= 0) return { command, score: 0 };
-      const inArea =
-        context.pathname !== "/" &&
-        command.href.split("?")[0]?.split("/")[1] === context.pathname.split("/")[1];
-      if (inArea) score += 25;
-      if (command.kind === "action") score += 40;
-      const signal = context.signals?.[command.id];
-      if (signal) {
-        score += Math.min(40, Math.log2(1 + Math.max(0, signal.frequency)) * 8);
-        if (signal.lastUsedAt && context.now)
-          score += Math.max(0, 20 - (context.now - signal.lastUsedAt) / MILLISECONDS_PER_DAY);
-      }
-      return { command, score };
-    })
+    .map((command, index) => scoredCommand(command, { index, search, context }))
     .filter(({ score }) => score > 0)
     .toSorted(
       (comparedLeft, comparedRight) =>
@@ -156,14 +152,83 @@ export function rankCommands(
         comparedLeft.command.id.localeCompare(comparedRight.command.id),
     )
     .map(({ command }) => command)
-    .slice(0, 16);
+    .slice(0, MAX_COMMAND_RESULTS);
+}
+
+function scoredCommand(
+  command: Command,
+  input: { index: number; search: CommandSearch; context: RankingContext },
+): RankedCommand {
+  const { index, search, context } = input;
+  const { normalized, intent, entityNeedle } = search;
+  const entity = command.kind !== "page" && command.kind !== "action";
+  const needle = entity ? entityNeedle : normalized;
+  let score = baseCommandScore(command, { normalized, needle, index });
+  if (intent.entityKind && entity && command.kind !== intent.entityKind) score = 0;
+  if (matchesSection(command, search)) score = Math.max(score, SEARCH_SCORES.section);
+  if (score <= 0) return { command, score: 0 };
+  return { command, score: contextualScore(command, { score, context }) };
+}
+
+function baseCommandScore(
+  command: Command,
+  input: { normalized: string; needle: string; index: number },
+): number {
+  const { normalized, needle, index } = input;
+  if (!normalized) return SEARCH_SCORES.defaultBase - index;
+  return Math.max(
+    needle ? textScore(command.title, needle) : 0,
+    ...command.keywords.map((word) =>
+      needle ? textScore(word, needle) * SEARCH_SCORES.keywordWeight : 0,
+    ),
+    command.matchedEntity ? SEARCH_SCORES.matchedEntity : 0,
+  );
+}
+
+function matchesSection(command: Command, search: CommandSearch): boolean {
+  const { intent, entityNeedle } = search;
+  return Boolean(
+    intent.section &&
+    !entityNeedle &&
+    command.section === (intent.section === "finance" ? "Financeiro" : "Pedagógico"),
+  );
+}
+
+function contextualScore(
+  command: Command,
+  input: { score: number; context: RankingContext },
+): number {
+  let { score } = input;
+  const { context } = input;
+  const inArea =
+    context.pathname !== "/" &&
+    command.href.split("?")[0]?.split("/")[1] === context.pathname.split("/")[1];
+  if (inArea) score += SEARCH_SCORES.sameArea;
+  if (command.kind === "action") score += SEARCH_SCORES.action;
+  const signal = context.signals?.[command.id];
+  if (signal) {
+    score += Math.min(
+      SEARCH_SCORES.frequencyLimit,
+      Math.log2(1 + Math.max(0, signal.frequency)) * SEARCH_SCORES.frequencyScale,
+    );
+    if (signal.lastUsedAt && context.now)
+      score += Math.max(
+        0,
+        SEARCH_SCORES.recencyLimit - (context.now - signal.lastUsedAt) / MILLISECONDS_PER_DAY,
+      );
+  }
+  return score;
 }
 
 export function preferredCommand(
   command: Command,
-  intent: SearchIntent,
-  context: RankingContext,
+  options: {
+    intent: SearchIntent;
+    context: RankingContext;
+  },
 ): Command {
+  const { intent, context } = options;
+
   if (command.kind !== "student" || !command.actions) return command;
   const finance =
     intent.section === "finance" ||

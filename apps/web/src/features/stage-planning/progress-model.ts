@@ -1,8 +1,14 @@
 type PageRange = { pageFrom: number | null; pageTo: number | null };
 export function planningPosition(
   items: readonly (PageRange & { plannedOn: string })[],
-  records: readonly { date: string; time: string; content: PageRange }[],
-  today: string,
+  options: {
+    records: readonly {
+      date: string;
+      time: string;
+      content: PageRange;
+    }[];
+    today: string;
+  },
 ): {
   expected: number | null;
   actual: number | null;
@@ -10,6 +16,8 @@ export function planningPosition(
   scale: number;
   hasPlannedPages: boolean;
 } {
+  const { records, today } = options;
+
   const end = (range: PageRange): number | null => range.pageTo ?? range.pageFrom;
   const expected = items
     .filter((item) => item.plannedOn <= today)
