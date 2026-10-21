@@ -288,6 +288,17 @@ export async function withdrawPlacement(
       now: context.now,
       semesterPlacementId: current.id,
     });
+  if (current.enrollmentId)
+    await context.database.admissionCandidate.updateMany({
+      where: { enrollmentId: current.enrollmentId, status: "ENROLLED", deletedAt: null },
+      data: {
+        status: "WAITING",
+        enrollmentId: null,
+        allocationPendingAt: context.now,
+        allocationPendingReason: input.reason,
+        allocationPlanId: current.planId,
+      },
+    });
   // Revision retains the published links; the proposal can then be edited and published again.
   await context.database.semesterPlacement.update({
     where: { id: current.id },

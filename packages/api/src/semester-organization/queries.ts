@@ -157,6 +157,7 @@ export async function readPlacementRows(context: OrganizationContext, semesterId
       "placement.id",
       "placement.version",
       "placement.student_id as studentId",
+      "placement.semester_id as semesterId",
       "placement.plan_id as planId",
       "placement.stage_id as stageId",
       "placement.track_id as trackId",
@@ -190,6 +191,7 @@ export async function readPlacementRows(context: OrganizationContext, semesterId
       "sourceClass.schedule_type as sourceScheduleType",
       "sourceClass.portal_class_name as sourceClassName",
       "sourceClass.id as sourceClassId",
+      "sourceClass.semester_id as sourceSemesterId",
       "progress.stage_id as sourceStageId",
       "progress.end_date as progressEndDate",
       "progress.deleted_at as progressDeletedAt",
@@ -256,6 +258,7 @@ export function placementEligibility(
 ): SemesterEligibility {
   return {
     entryOn,
+    semesterId: row.semesterId,
     studentActive: row.studentStatus === "ACTIVE" && !row.studentDeletedAt,
     mode: row.mode,
     stage:
@@ -281,8 +284,10 @@ export function placementEligibility(
       row.sourceStageId &&
       row.sourceTrackId &&
       row.sourceSequence !== null &&
-      row.sourceScheduleType
+      row.sourceScheduleType &&
+      row.sourceSemesterId
         ? {
+            semesterId: row.sourceSemesterId,
             active:
               !row.sourceDeletedAt &&
               !row.progressDeletedAt &&

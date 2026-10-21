@@ -13,6 +13,7 @@ async function clean() {
     select: { id: true },
   });
   const ids = semesters.map((row) => row.id);
+  await db.admissionCandidate.deleteMany({ where: { fullName: { startsWith: PREFIX } } });
   await db.semesterPlacementRevision.deleteMany({
     where: { placement: { semesterId: { in: ids } } },
   });
@@ -213,6 +214,16 @@ void it("applies the paired next-semester movement as TRANSFERRED once, only on 
 });
 void it("returns a publication with invalidated availability to review and preserves the current membership", async () => {
   const data = await fixture();
+  const lead = await db.admissionCandidate.create({
+    data: {
+      fullName: data.student.fullName,
+      phone: "11999990000",
+      studentId: data.student.id,
+      enrollmentId: data.target.id,
+      status: "ENROLLED",
+      recordedById: ADMIN,
+    },
+  });
   await db.studentAvailability.create({
     data: {
       studentId: data.student.id,
@@ -254,6 +265,40 @@ void it("returns a publication with invalidated availability to review and prese
   assert.equal(history.action, "REQUIRES_REVIEW");
   assert.equal(history.recordedById, null);
   assert.match(history.reason ?? "", /Confirme a disponibilidade/u);
+  const reopened = await db.admissionCandidate.findUniqueOrThrow({ where: { id: lead.id } });
+  assert.equal(reopened.status, "WAITING");
+  assert.equal(reopened.enrollmentId, null);
+  assert.equal(reopened.allocationPlanId, data.placement.planId);
+  assert.match(reopened.allocationPendingReason ?? "", /Confirme a disponibilidade/u);
+  assert.equal(
+    await db.$transaction((database) => processDueEnrollmentActions({ database, now: due })),
+    0,
+  );
+});
+
+void it("returns a cross-semester regular continuation to review before applying either movement", async () => {
+  const data = await fixture();
+  await db.class.updateMany({
+    where: { id: { in: [data.source.classId, data.target.classId] } },
+    data: { scheduleType: "REGULAR", sharedStageId: data.sourceProgress.stageId },
+  });
+  assert.equal(
+    await db.$transaction((database) => processDueEnrollmentActions({ database, now: due })),
+    0,
+  );
+  const source = await db.enrollment.findUniqueOrThrow({ where: { id: data.source.id } });
+  assert.equal(source.exitDate, null);
+  const history = await db.semesterPlacementRevision.findFirstOrThrow({
+    where: { placementId: data.placement.id },
+  });
+  assert.match(history.reason ?? "", /Continuidade no mesmo estágio exige origem e destino PPT/u);
+  assert.equal(await db.enrollment.count({ where: { id: data.target.id } }), 0);
+  assert.equal(
+    await db.enrollmentAction.count({
+      where: { id: { in: [data.entry.id, data.exit.id] }, status: "CANCELLED" },
+    }),
+    2,
+  );
 });
 
 void it("keeps a published exit and entry atomic when the movement straddles the due-action batch boundary", async () => {

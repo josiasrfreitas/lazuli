@@ -104,6 +104,7 @@ function eligibility(
     : null;
   return {
     entryOn,
+    semesterId: row.semesterId,
     studentActive: row.student.status === "ACTIVE" && !row.student.deletedAt,
     mode: row.mode,
     stage:
@@ -113,6 +114,7 @@ function eligibility(
     source:
       source && row.sourceEnrollment
         ? {
+            semesterId: row.sourceEnrollment.class.semesterId,
             active:
               !source.deletedAt &&
               !source.endDate &&
@@ -159,6 +161,16 @@ async function returnToReview(
   now: Date,
 ) {
   if (row.enrollmentId) {
+    await database.admissionCandidate.updateMany({
+      where: { enrollmentId: row.enrollmentId, status: "ENROLLED", deletedAt: null },
+      data: {
+        status: "WAITING",
+        enrollmentId: null,
+        allocationPendingAt: now,
+        allocationPendingReason: reason,
+        allocationPlanId: row.planId,
+      },
+    });
     await database.pedagogicalProgress.updateMany({
       where: { enrollmentId: row.enrollmentId, deletedAt: null },
       data: { deletedAt: now },

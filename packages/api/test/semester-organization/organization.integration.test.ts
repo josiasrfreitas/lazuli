@@ -51,6 +51,7 @@ async function clean() {
     select: { id: true },
   });
   const ids = semesters.map((row) => row.id);
+  await db.admissionCandidate.deleteMany({ where: { fullName: { startsWith: config.prefix } } });
   await db.semesterPlacementRevision.deleteMany({
     where: { placement: { semesterId: { in: ids } } },
   });
@@ -145,6 +146,17 @@ void it("publishes only selected eligible students, preserving the current PPT a
   const scope = await fixture();
   const first = await scope.student("Ana");
   const second = await scope.student("Bia", false);
+  const lead = await db.admissionCandidate.create({
+    data: {
+      fullName: `${config.prefix}Ana`,
+      phone: "11999990000",
+      studentId: first.id,
+      englishExperience: "NONE",
+      stageId: scope.catalog.firstStageId,
+      status: "WAITING",
+      recordedById: admin.id,
+    },
+  });
   const assessment = await db.stageAssessment.create({
     data: {
       studentId: first.id,
@@ -176,6 +188,9 @@ void it("publishes only selected eligible students, preserving the current PPT a
     include: { progressRecords: true, actions: true },
   });
   assert.equal(published.count, 1);
+  const converted = await db.admissionCandidate.findUniqueOrThrow({ where: { id: lead.id } });
+  assert.equal(converted.status, "ENROLLED");
+  assert.equal(converted.enrollmentId, future.id);
   assert.equal(future.entryDate.toISOString().slice(0, 10), "2085-07-01");
   assert.equal(future.progressRecords[0]?.assessmentId, assessment.id);
   assert.equal(future.progressRecords[0]?.stagePlanId, plan.id);
@@ -201,6 +216,14 @@ void it("publishes only selected eligible students, preserving the current PPT a
     reason: "Família pediu outro horário para o próximo período.",
   });
   assert.equal(await db.enrollment.count({ where: { id: future.id } }), 0);
+  const reopened = await db.admissionCandidate.findUniqueOrThrow({ where: { id: lead.id } });
+  assert.equal(reopened.status, "WAITING");
+  assert.equal(reopened.enrollmentId, null);
+  assert.equal(reopened.allocationPlanId, scope.plan.id);
+  assert.equal(
+    reopened.allocationPendingReason,
+    "Família pediu outro horário para o próximo período.",
+  );
   const retained = await db.enrollment.findUniqueOrThrow({ where: { id: origin.id } });
   assert.equal(retained.exitDate, null);
   assert.equal(
@@ -259,6 +282,30 @@ void it("rechecks latest availability and refuses an invalid subset atomically",
   await assert.rejects(
     caller("TEACHER").semesterOrganization.detail({ semesterId: scope.semester.id }),
     { code: "FORBIDDEN" },
+  );
+});
+
+void it("rejects regular continuity into another semester before creating a future membership", async () => {
+  const scope = await fixture();
+  const first = await scope.student("Repetition");
+  await db.class.update({
+    where: { id: scope.sourceClass.id },
+    data: { scheduleType: "REGULAR", sharedStageId: scope.catalog.firstStageId },
+  });
+  await assert.rejects(
+    caller().semesterOrganization.publish({
+      planId: scope.plan.id,
+      version: 1,
+      placements: [{ id: first.proposal.id, version: 1 }],
+    }),
+    /Continuidade no mesmo estágio exige origem e destino PPT/u,
+  );
+  assert.equal(await db.class.count({ where: { semesterId: scope.semester.id } }), 0);
+  assert.equal(
+    await db.enrollmentAction.count({
+      where: { enrollmentId: first.source.enrollment.id, kind: "EXIT" },
+    }),
+    0,
   );
 });
 
