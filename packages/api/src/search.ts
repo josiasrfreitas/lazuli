@@ -2,6 +2,8 @@ import { Prisma } from "@lazuli/db/prisma";
 import { normalizeSearch } from "@lazuli/domain";
 import { sql, type RawBuilder } from "kysely";
 
+const MIN_FUZZY_QUERY_LENGTH = 4;
+
 const searchColumns = {
   Student: ["full_name"],
   User: ["name"],
@@ -23,7 +25,9 @@ export function normalizedKysely(value: RawBuilder<unknown>): RawBuilder<string>
 
 const FUZZY_THRESHOLD = 0.6;
 function allowsFuzzy(query: string): boolean {
-  return normalizeSearch(query).length >= 4 && /^[\p{L}]+$/u.test(query.trim());
+  return (
+    normalizeSearch(query).length >= MIN_FUZZY_QUERY_LENGTH && /^[\p{L}]+$/u.test(query.trim())
+  );
 }
 
 export function searchMatchSql(value: Prisma.Sql, query: string): Prisma.Sql {

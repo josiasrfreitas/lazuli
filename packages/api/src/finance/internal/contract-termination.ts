@@ -8,6 +8,9 @@ import { loadSettlementItems, settlementLine } from "./settlement-data.js";
 import { lockInstallments } from "./payment-store.js";
 import { toDateOnly, toDateOnlyString, type FinanceDatabase } from "./shared.js";
 
+const MAX_DATABASE_INTEGER_CENTS = 2_147_483_647;
+const ISO_DAY_SUFFIX_START = -2;
+
 const hash = (value: unknown): string =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
@@ -177,7 +180,7 @@ export async function confirmContractTermination(input: {
     );
   const feeCents = terminationFeeCents(preview.openPrincipalCents, values.feePct);
   const totalCents = preview.overduePrincipalCents + values.retainedChargesCents + feeCents;
-  if (!Number.isSafeInteger(totalCents) || totalCents > 2_147_483_647)
+  if (!Number.isSafeInteger(totalCents) || totalCents > MAX_DATABASE_INTEGER_CENTS)
     throw badRequest("O valor do acerto ultrapassa o limite permitido.");
   let settlementOrderId: string | null = null;
   if (totalCents > 0) {
@@ -187,7 +190,7 @@ export async function confirmContractTermination(input: {
         kind: "OTHER",
         principalAmountCents: totalCents,
         startDate: toDateOnly(preview.today),
-        dueDay: Number(values.dueDate.slice(-2)),
+        dueDay: Number(values.dueDate.slice(ISO_DAY_SUFFIX_START)),
         firstDueDate: toDateOnly(values.dueDate),
         installmentCount: 1,
         createdById: staffUserId,

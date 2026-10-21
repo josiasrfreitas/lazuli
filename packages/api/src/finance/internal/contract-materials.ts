@@ -7,6 +7,13 @@ import { TRPCError } from "@trpc/server";
 import { lockCreationCommand } from "../../creation-command.js";
 import { toDateOnly, toDateOnlyString, type FinanceDatabase } from "./shared.js";
 
+const ISO_DAY_START_INDEX = 8;
+const ISO_DATE_LENGTH = 10;
+const ISO_YEAR_END_INDEX = 4;
+const MONTHS_PER_YEAR = 12;
+const ISO_MONTH_START_INDEX = 5;
+const ISO_MONTH_END_INDEX = 7;
+
 // Explicit scope until the SGF catalog supplies a durable language attribute.
 const ENGLISH_TRACKS = [
   "Adultos / English Main",
@@ -85,7 +92,9 @@ export async function materialOrderData(input: {
     principalAmountCents: receivableCents,
     startDate: toDateOnly(firstDueDate),
     firstDueDate: toDateOnly(firstDueDate),
-    dueDay: Number((input.scheduleAnchor?.date ?? firstDueDate).slice(8, 10)),
+    dueDay: Number(
+      (input.scheduleAnchor?.date ?? firstDueDate).slice(ISO_DAY_START_INDEX, ISO_DATE_LENGTH),
+    ),
     installmentCount: 1,
     createdBy: { connect: { id: staffUserId } },
     updatedBy: { connect: { id: staffUserId } },
@@ -161,9 +170,11 @@ export async function addContractMaterial(input: {
     });
   const anchor = toDateOnlyString(first);
   const monthDistance =
-    (Number(values.firstDueDate.slice(0, 4)) - Number(anchor.slice(0, 4))) * 12 +
-    Number(values.firstDueDate.slice(5, 7)) -
-    Number(anchor.slice(5, 7));
+    (Number(values.firstDueDate.slice(0, ISO_YEAR_END_INDEX)) -
+      Number(anchor.slice(0, ISO_YEAR_END_INDEX))) *
+      MONTHS_PER_YEAR +
+    Number(values.firstDueDate.slice(ISO_MONTH_START_INDEX, ISO_MONTH_END_INDEX)) -
+    Number(anchor.slice(ISO_MONTH_START_INDEX, ISO_MONTH_END_INDEX));
   if (monthDistance < 0 || addCalendarMonths(anchor, monthDistance) !== values.firstDueDate)
     throw new TRPCError({
       code: "BAD_REQUEST",

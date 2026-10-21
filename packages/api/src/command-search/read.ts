@@ -4,6 +4,8 @@ import { sql, type RawBuilder } from "kysely";
 import { jsonArrayFrom } from "kysely/helpers/postgres";
 import { normalizedKysely, searchMatchKysely } from "../search.js";
 
+const MAX_STUDENT_CLASSES = 3;
+
 const RESULT_LIMIT = 6;
 
 function relevance(field: RawBuilder<unknown>, query: string): RawBuilder<number> {
@@ -66,7 +68,7 @@ export async function lookupCommands(
             )
             .orderBy("enrollment.entry_date", "desc")
             .orderBy("enrollment.id", "asc")
-            .limit(3),
+            .limit(MAX_STUDENT_CLASSES),
         ).as("classes"),
       )
       .where("student.deleted_at", "is", null)

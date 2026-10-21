@@ -4,6 +4,9 @@ import { enqueueAssessmentFile } from "@lazuli/integrations/hatchet";
 import { authorizedFile, filesForProgress, fileView } from "./data.js";
 import { badRequest } from "../trpc/errors.js";
 import { loadAppointment } from "../appointments/data.js";
+
+const MIN_REMOVAL_REASON_LENGTH = 3;
+const MAX_REMOVAL_REASON_LENGTH = 500;
 const byId = z.object({ id: z.string().uuid() }).strict();
 export const assessmentFilesRouter = router({
   list: staffProcedure
@@ -64,7 +67,11 @@ export const assessmentFilesRouter = router({
     return { id: row.id };
   }),
   remove: staffProcedure
-    .input(byId.extend({ reason: z.string().trim().min(3).max(500) }))
+    .input(
+      byId.extend({
+        reason: z.string().trim().min(MIN_REMOVAL_REASON_LENGTH).max(MAX_REMOVAL_REASON_LENGTH),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const row = await authorizedFile(
         { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },

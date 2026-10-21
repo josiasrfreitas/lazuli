@@ -7,9 +7,14 @@ import {
   loadProgress,
   lockProgress,
   type AssessmentContext,
+  type Progress,
 } from "../assessments/data.js";
 import { ensureAssessment } from "../assessments/write.js";
 import { loadAppointment } from "../appointments/data.js";
+
+const MAX_FILE_NAME_LENGTH = 180;
+const UPLOAD_CLAIM_TIMEOUT_MS = 120_000;
+const MAX_FILES_PER_PHASE = 20;
 
 type AssessmentFileRow = Prisma.AssessmentFileGetPayload<true>;
 
@@ -21,7 +26,7 @@ export const fileInputSchema = z
     phase: z.enum(["BLOCK_ONE", "BLOCK_TWO", "RECOVERY"]),
     competence: z.enum(["WRITTEN", "LISTENING"]).optional(),
     appointmentId: z.string().uuid().optional(),
-    fileName: z.string().trim().min(1).max(180),
+    fileName: z.string().trim().min(1).max(MAX_FILE_NAME_LENGTH),
     contentType: z.enum(["application/pdf", "image/jpeg", "image/png"]),
     byteLength: z.number().int().positive().max(MAX_ASSESSMENT_BYTES),
   })
@@ -43,60 +48,98 @@ export const fileView = {
   uploadedById: true,
 } as const;
 
-export async function prepareFile(
+export type FileInput = z.infer<typeof fileInputSchema>;
+export type PreparedFileClaim = { row: AssessmentFileRow; received: boolean };
+
+async function assertAssessmentAppointment(
   context: AssessmentContext,
-  input: z.infer<typeof fileInputSchema>,
-): Promise<{ row: AssessmentFileRow; received: boolean }> {
-  const progress = await lockProgress(context, input.progressId);
-  if (input.appointmentId) {
-    const appointment = await loadAppointment(context, input.appointmentId);
-    if (
-      appointment.studentId !== progress.enrollment.studentId ||
-      appointment.enrollmentId !== progress.enrollmentId ||
-      appointment.date < progress.startDate ||
-      (progress.endDate && appointment.date > progress.endDate) ||
-      appointment.purpose !== "ASSESSMENT" ||
-      appointment.status === "CANCELLED"
-    )
-      throw badRequest("Associe um atendimento de avaliação deste aluno.");
-  }
-  const existing = await context.database.assessmentFile.findUnique({ where: { id: input.id } });
-  if (existing) {
-    if (
-      existing.uploadedById !== context.staffUser.id ||
-      existing.assessmentId !== progress.assessmentId ||
-      existing.fileName !== input.fileName ||
-      existing.phase !== input.phase ||
-      existing.competence !== (input.competence ?? null) ||
-      existing.byteLength !== input.byteLength ||
-      existing.contentType !== input.contentType ||
-      existing.appointmentId !== (input.appointmentId ?? null)
-    )
-      throw badRequest(
-        "O identificador deste envio já foi utilizado. Selecione o arquivo novamente.",
-      );
-    if (["RECEIVED", "PROCESSING", "READY"].includes(existing.status))
-      return { row: existing, received: true };
-    if (existing.status === "REMOVED" || existing.status === "REJECTED")
-      throw badRequest("Selecione um novo arquivo para substituir este envio.");
-    if (
-      existing.status === "UPLOADING" &&
-      context.now.getTime() - existing.updatedAt.getTime() < 120_000
-    )
-      throw badRequest(
-        "Este arquivo ainda está sendo recebido. Aguarde alguns instantes antes de tentar novamente.",
-      );
-    const row = await context.database.assessmentFile.update({
-      where: { id: input.id },
-      data: { status: "UPLOADING", failureCode: null, updatedAt: context.now },
-    });
-    return { row, received: false };
-  }
+  { appointmentId, progress }: { appointmentId: string; progress: Progress },
+): Promise<void> {
+  const appointment = await loadAppointment(context, appointmentId);
+  if (
+    appointment.studentId !== progress.enrollment.studentId ||
+    appointment.enrollmentId !== progress.enrollmentId ||
+    appointment.date < progress.startDate ||
+    (progress.endDate && appointment.date > progress.endDate) ||
+    appointment.purpose !== "ASSESSMENT" ||
+    appointment.status === "CANCELLED"
+  )
+    throw badRequest("Associe um atendimento de avaliação deste aluno.");
+}
+
+function matchesFileInput(existing: AssessmentFileRow, input: FileInput): boolean {
+  return (
+    existing.fileName === input.fileName &&
+    existing.phase === input.phase &&
+    existing.competence === (input.competence ?? null) &&
+    existing.byteLength === input.byteLength &&
+    existing.contentType === input.contentType &&
+    existing.appointmentId === (input.appointmentId ?? null)
+  );
+}
+
+function assertClaimMatches(
+  existing: AssessmentFileRow,
+  {
+    input,
+    uploadedById,
+    assessmentId,
+  }: {
+    input: FileInput;
+    uploadedById: string;
+    assessmentId: string | null;
+  },
+): void {
+  if (
+    existing.uploadedById !== uploadedById ||
+    existing.assessmentId !== assessmentId ||
+    !matchesFileInput(existing, input)
+  )
+    throw badRequest(
+      "O identificador deste envio já foi utilizado. Selecione o arquivo novamente.",
+    );
+}
+
+async function reuseClaim(
+  context: AssessmentContext,
+  {
+    existing,
+    input,
+    assessmentId,
+  }: {
+    existing: AssessmentFileRow;
+    input: FileInput;
+    assessmentId: string | null;
+  },
+): Promise<PreparedFileClaim> {
+  assertClaimMatches(existing, { input, uploadedById: context.staffUser.id, assessmentId });
+  if (["RECEIVED", "PROCESSING", "READY"].includes(existing.status))
+    return { row: existing, received: true };
+  if (existing.status === "REMOVED" || existing.status === "REJECTED")
+    throw badRequest("Selecione um novo arquivo para substituir este envio.");
+  if (
+    existing.status === "UPLOADING" &&
+    context.now.getTime() - existing.updatedAt.getTime() < UPLOAD_CLAIM_TIMEOUT_MS
+  )
+    throw badRequest(
+      "Este arquivo ainda está sendo recebido. Aguarde alguns instantes antes de tentar novamente.",
+    );
+  const row = await context.database.assessmentFile.update({
+    where: { id: input.id },
+    data: { status: "UPLOADING", failureCode: null, updatedAt: context.now },
+  });
+  return { row, received: false };
+}
+
+async function createClaim(
+  context: AssessmentContext,
+  { progress, input }: { progress: Progress; input: FileInput },
+): Promise<PreparedFileClaim> {
   const assessmentId = await ensureAssessment(context, progress);
   const count = await context.database.assessmentFile.count({
     where: { assessmentId, phase: input.phase, removedAt: null, status: { not: "REJECTED" } },
   });
-  if (count >= 20)
+  if (count >= MAX_FILES_PER_PHASE)
     throw badRequest(
       "Esta unidade já possui 20 anexos. Remova um envio incorreto antes de acrescentar outro.",
     );
@@ -115,6 +158,19 @@ export async function prepareFile(
     },
   });
   return { row, received: false };
+}
+
+export async function prepareFile(
+  context: AssessmentContext,
+  input: FileInput,
+): Promise<PreparedFileClaim> {
+  const progress = await lockProgress(context, input.progressId);
+  if (input.appointmentId)
+    await assertAssessmentAppointment(context, { appointmentId: input.appointmentId, progress });
+  const existing = await context.database.assessmentFile.findUnique({ where: { id: input.id } });
+  if (existing)
+    return reuseClaim(context, { existing, input, assessmentId: progress.assessmentId });
+  return createClaim(context, { progress, input });
 }
 
 export async function authorizedFile(

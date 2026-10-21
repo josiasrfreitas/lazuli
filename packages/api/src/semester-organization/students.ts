@@ -5,6 +5,8 @@ import { saoPauloDateOnly } from "@lazuli/domain";
 import type { OrganizationContext } from "./data.js";
 import { notFound } from "../trpc/errors.js";
 
+const PAGE_SIZE = 25;
+
 export async function organizationStudents(
   context: OrganizationContext,
   input: { semesterId: string; search: string; page: number; unassigned: boolean },
@@ -62,8 +64,8 @@ export async function organizationStudents(
       )
       .orderBy("student.full_name")
       .orderBy("student.id")
-      .offset((input.page - 1) * 25)
-      .limit(25)
+      .offset((input.page - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
       .execute(),
   ]);
   return { rows, total: total.count, page: input.page, pageSize: 25 };

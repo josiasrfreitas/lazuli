@@ -3,6 +3,8 @@ import { z } from "@lazuli/validators";
 import { adminProcedure, router } from "../trpc/init.js";
 import { lookupCommands } from "./read.js";
 
+const MAX_QUERY_LENGTH = 100;
+
 export const commandSearchRouter = router({
   lookup: adminProcedure
     .input(
@@ -12,7 +14,7 @@ export const commandSearchRouter = router({
             .string()
             .trim()
             .min(2)
-            .max(100)
+            .max(MAX_QUERY_LENGTH)
             .refine(
               (value) => normalizeSearch(value).length >= 2,
               "Digite pelo menos dois caracteres.",

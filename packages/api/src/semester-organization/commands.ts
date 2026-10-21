@@ -14,12 +14,18 @@ import { badRequest, notFound } from "../trpc/errors.js";
 import { recordActivity } from "../activity/record.js";
 import { lockStudentEnrollment } from "../enrollment/data.js";
 
+const MAX_SELECTIONS = 100;
+const MAX_REASON_LENGTH = 1200;
+const MIN_REASON_LENGTH = 3;
+const MAX_CLOSED_RANGE_DAYS = 366;
+const MAX_SEMESTER_NAME_LENGTH = 80;
+
 const MILLISECONDS_PER_DAY = 86_400_000;
 
 const selection = z
   .array(z.object({ id: z.string().uuid(), version: z.number().int() }))
   .min(1)
-  .max(100);
+  .max(MAX_SELECTIONS);
 export const moveSchema = z.object({
   semesterId: z.string().uuid(),
   selections: selection,
@@ -27,12 +33,12 @@ export const moveSchema = z.object({
   targetVersions: z.record(z.number().int()).optional(),
   planId: z.string().uuid(),
   effectiveDate: calendarDateSchema,
-  reason: z.string().trim().max(1200).default(""),
+  reason: z.string().trim().max(MAX_REASON_LENGTH).default(""),
 });
 export const declineSchema = z.object({
   semesterId: z.string().uuid(),
   selections: selection,
-  reason: z.string().trim().min(3).max(1200),
+  reason: z.string().trim().min(MIN_REASON_LENGTH).max(MAX_REASON_LENGTH),
 });
 
 export async function movePlacements(
@@ -207,7 +213,7 @@ export const closedRangeSchema = z
     (value) =>
       value.from <= value.through &&
       new Date(value.through).getTime() - new Date(value.from).getTime() <=
-        366 * MILLISECONDS_PER_DAY,
+        MAX_CLOSED_RANGE_DAYS * MILLISECONDS_PER_DAY,
     "Escolha um intervalo de até um ano.",
   );
 export async function closeRange(
@@ -242,7 +248,7 @@ export async function closeRange(
 export const periodSchema = z
   .object({
     semesterId: z.string().uuid(),
-    name: z.string().trim().min(1).max(80),
+    name: z.string().trim().min(1).max(MAX_SEMESTER_NAME_LENGTH),
     startDate: calendarDateSchema,
     endDate: calendarDateSchema,
     previousStart: calendarDateSchema,

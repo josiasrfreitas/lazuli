@@ -20,17 +20,21 @@ import {
   type OrganizationContext,
 } from "./data.js";
 
+const MAX_REASON_LENGTH = 1200;
+const MIN_REASON_LENGTH = 3;
+
 export const continuitySchema = z
   .object({
     semesterId: z.string().uuid(),
     id: z.string().uuid(),
     version: z.number().int().positive(),
     continuity: z.enum(["UNDECIDED", "STAY", "CHANGE", "LEAVING"]),
-    reason: z.string().trim().max(1200).default(""),
+    reason: z.string().trim().max(MAX_REASON_LENGTH).default(""),
   })
   .strict()
   .refine(
-    (value) => !["CHANGE", "LEAVING"].includes(value.continuity) || value.reason.length >= 3,
+    (value) =>
+      !["CHANGE", "LEAVING"].includes(value.continuity) || value.reason.length >= MIN_REASON_LENGTH,
     { path: ["reason"], message: "Registre o motivo para a equipe acompanhar." },
   );
 
@@ -78,10 +82,10 @@ export const pendingLeadSchema = z
   .object({
     id: z.string().uuid(),
     pending: z.boolean(),
-    reason: z.string().trim().max(1200).default(""),
+    reason: z.string().trim().max(MAX_REASON_LENGTH).default(""),
   })
   .strict()
-  .refine((value) => !value.pending || value.reason.length >= 3, {
+  .refine((value) => !value.pending || value.reason.length >= MIN_REASON_LENGTH, {
     path: ["reason"],
     message: "Informe o motivo da pendência.",
   });

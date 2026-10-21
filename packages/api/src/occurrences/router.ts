@@ -34,6 +34,8 @@ import {
   addInterventionOccurrence,
 } from "./write.js";
 
+const MAX_DAY_RANGE_OFFSET = 6;
+
 const MILLISECONDS_PER_DAY = 86_400_000;
 
 const byId = z.object({ id: z.string().uuid() }).strict();
@@ -62,7 +64,8 @@ export const occurrencesRouter = router({
             .strict()
             .refine(
               ({ from, to }) =>
-                from <= to && Date.parse(to) - Date.parse(from) <= 6 * MILLISECONDS_PER_DAY,
+                from <= to &&
+                Date.parse(to) - Date.parse(from) <= MAX_DAY_RANGE_OFFSET * MILLISECONDS_PER_DAY,
               "Escolha um período de até sete dias.",
             )
             .optional(),

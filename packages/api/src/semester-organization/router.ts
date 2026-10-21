@@ -41,6 +41,11 @@ import {
   changePlanStatus,
 } from "./lifecycle.js";
 
+const MIN_HOLIDAY_YEAR = 2000;
+const MAX_HOLIDAY_YEAR = 2100;
+const HOLIDAY_REQUEST_TIMEOUT_MS = 8000;
+const MAX_STUDENT_SEARCH_LENGTH = 100;
+
 const ISO_DATE_LENGTH = 10;
 
 const context = (ctx: { db: Context["db"]; staffUser: StaffUser; now?: Date | undefined }) => ({
@@ -136,10 +141,10 @@ export const semesterOrganizationRouter = router({
       ctx.db.$transaction((database) => closeRange({ ...context(ctx), database }, input)),
     ),
   holidays: adminProcedure
-    .input(z.object({ year: z.number().int().min(2000).max(2100) }))
+    .input(z.object({ year: z.number().int().min(MIN_HOLIDAY_YEAR).max(MAX_HOLIDAY_YEAR) }))
     .query(async ({ input }) => {
       const response = await fetch(`https://brasilapi.com.br/api/feriados/v1/${input.year}`, {
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(HOLIDAY_REQUEST_TIMEOUT_MS),
       });
       if (!response.ok)
         throw new Error(
@@ -158,7 +163,7 @@ export const semesterOrganizationRouter = router({
   students: adminProcedure
     .input(
       semesterScopeSchema.extend({
-        search: z.string().trim().max(100).default(""),
+        search: z.string().trim().max(MAX_STUDENT_SEARCH_LENGTH).default(""),
         page: z.number().int().min(1).default(1),
         unassigned: z.boolean().default(true),
       }),

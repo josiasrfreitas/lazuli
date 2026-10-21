@@ -30,6 +30,8 @@ import { lockTeacher } from "../teachers/availability.js";
 import { badRequest } from "../trpc/errors.js";
 import { teacherHomeOverview } from "./home.js";
 
+const MAX_VISIT_NOTES_LENGTH = 2000;
+
 const context = (ctx: {
   db: Context["db"];
   staffUser: NonNullable<Context["staffUser"]>;
@@ -45,7 +47,10 @@ export const teacherWorkspaceRouter = router({
   stages: teacherProcedure.query(({ ctx }) => admissionStages(ctx.db)),
   visitOutcome: teacherProcedure
     .input(
-      target.extend({ status: z.enum(["ATTENDED", "ABSENT"]), notes: z.string().trim().max(2000) }),
+      target.extend({
+        status: z.enum(["ATTENDED", "ABSENT"]),
+        notes: z.string().trim().max(MAX_VISIT_NOTES_LENGTH),
+      }),
     )
     .mutation(({ ctx, input }) =>
       activityTransaction(ctx, {

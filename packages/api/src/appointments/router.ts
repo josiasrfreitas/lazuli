@@ -24,6 +24,8 @@ import {
 import { appointmentAvailability } from "./availability.js";
 import { listAbsences } from "./absences.js";
 
+const MAX_AVAILABILITY_DAY_OFFSET = 6;
+
 const MILLISECONDS_PER_DAY = 86_400_000;
 
 export const appointmentsRouter = router({
@@ -73,7 +75,9 @@ export const appointmentsRouter = router({
         .refine(
           ({ week, through }) =>
             !through ||
-            (through >= week && Date.parse(through) - Date.parse(week) <= 6 * 24 * 60 * 60 * 1000),
+            (through >= week &&
+              Date.parse(through) - Date.parse(week) <=
+                MAX_AVAILABILITY_DAY_OFFSET * MILLISECONDS_PER_DAY),
           {
             path: ["through"],
             message: "Escolha um período de até sete dias a partir da data inicial.",
@@ -95,7 +99,8 @@ export const appointmentsRouter = router({
           ({ date, through }) =>
             !through ||
             (through >= date &&
-              new Date(through).getTime() - new Date(date).getTime() <= 6 * MILLISECONDS_PER_DAY),
+              new Date(through).getTime() - new Date(date).getTime() <=
+                MAX_AVAILABILITY_DAY_OFFSET * MILLISECONDS_PER_DAY),
           { message: "Consulte até uma semana de aulas." },
         ),
     )

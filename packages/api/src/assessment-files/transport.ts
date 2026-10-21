@@ -4,7 +4,20 @@ import { getStorage } from "@lazuli/storage";
 import { MAX_UPLOAD_FILE_MB } from "@lazuli/validators";
 import { enqueueAssessmentFile } from "@lazuli/integrations/hatchet";
 import type { Context } from "../trpc/context.js";
-import { authorizedFile, fileInputSchema, MAX_ASSESSMENT_BYTES, prepareFile } from "./data.js";
+import {
+  authorizedFile,
+  fileInputSchema,
+  MAX_ASSESSMENT_BYTES,
+  prepareFile,
+  type FileInput,
+  type PreparedFileClaim,
+} from "./data.js";
+
+const HTTP_UNAUTHORIZED = 401;
+const HTTP_FORBIDDEN = 403;
+const HTTP_NOT_FOUND = 404;
+const HTTP_BAD_REQUEST = 400;
+const HTTP_INTERNAL_SERVER_ERROR = 500;
 
 function staffContext(ctx: Context): {
   database: Context["db"];
@@ -16,7 +29,7 @@ function staffContext(ctx: Context): {
   return { database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() };
 }
 async function readBytes(request: Request, size: number): Promise<Uint8Array> {
-  const reader = request.body?.getReader();
+  const reader: ReadableStreamDefaultReader<Uint8Array> | undefined = request.body?.getReader();
   if (!reader) throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo vazio." });
   const chunks: Uint8Array[] = [];
   let length = 0;
@@ -37,80 +50,94 @@ async function readBytes(request: Request, size: number): Promise<Uint8Array> {
     });
   return Buffer.concat(chunks, length);
 }
-function failure(error: unknown): Response {
-  const known = error instanceof TRPCError;
+const PRIVATE_FILE_HEADERS = { "Cache-Control": "private, no-store" };
+
+function failureStatus(error: TRPCError | null): number {
+  switch (error?.code) {
+    case "UNAUTHORIZED": {
+      return HTTP_UNAUTHORIZED;
+    }
+    case "FORBIDDEN": {
+      return HTTP_FORBIDDEN;
+    }
+    case "NOT_FOUND": {
+      return HTTP_NOT_FOUND;
+    }
+    default: {
+      return error ? HTTP_BAD_REQUEST : HTTP_INTERNAL_SERVER_ERROR;
+    }
+  }
+}
+function failure(error: TRPCError | null): Response {
   return Response.json(
-    { message: known ? error.message : "Não foi possível concluir o envio. Tente novamente." },
+    { message: error ? error.message : "Não foi possível concluir o envio. Tente novamente." },
     {
-      status:
-        known && error.code === "UNAUTHORIZED"
-          ? 401
-          : known && error.code === "FORBIDDEN"
-            ? 403
-            : known && error.code === "NOT_FOUND"
-              ? 404
-              : known
-                ? 400
-                : 500,
-      headers: { "Cache-Control": "private, no-store" },
+      status: failureStatus(error),
+      headers: PRIVATE_FILE_HEADERS,
     },
   );
 }
+function assertSameOrigin(request: Request): void {
+  const requestUrl = new URL(request.url);
+  const protocol =
+    request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+    requestUrl.protocol.slice(0, -1);
+  const publicOrigin = `${protocol}://${request.headers.get("host") || requestUrl.host}`;
+  if (request.headers.get("origin") !== publicOrigin)
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Abra o sistema novamente para enviar o arquivo.",
+    });
+}
+function readUploadInput(request: Request): FileInput {
+  const header = request.headers.get("x-upload-metadata");
+  const parsed = fileInputSchema.safeParse(header ? JSON.parse(decodeURIComponent(header)) : null);
+  if (!parsed.success)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Escolha uma foto JPG/PNG ou PDF de até ${MAX_UPLOAD_FILE_MB} MB.`,
+    });
+  return parsed.data;
+}
+async function completeUpload(
+  ctx: Context,
+  { claim, input, request }: { claim: PreparedFileClaim; input: FileInput; request: Request },
+): Promise<Response> {
+  const bytes = await readBytes(request, input.byteLength);
+  const reference = await getStorage().put({
+    key: `academic-assessments/${randomUUID()}`,
+    bytes,
+    contentType: input.contentType,
+  });
+  try {
+    const changed = await ctx.db.assessmentFile.updateMany({
+      where: { id: claim.row.id, status: "UPLOADING", updatedAt: claim.row.updatedAt },
+      data: { ...reference, receivedAt: new Date(), status: "RECEIVED", failureCode: null },
+    });
+    if (!changed.count)
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Outro envio substituiu esta tentativa. Atualize a fila.",
+      });
+  } catch (error) {
+    await getStorage()
+      .remove(reference)
+      .catch((): undefined => {});
+    throw error;
+  }
+  // The durable database row remains RECEIVED if dispatch is unavailable; the worker recovers it.
+  await enqueueAssessmentFile({ fileId: claim.row.id }).catch((): undefined => {});
+  return Response.json({ id: claim.row.id, status: "RECEIVED" }, { headers: PRIVATE_FILE_HEADERS });
+}
 export async function receiveAssessmentFile(ctx: Context, request: Request): Promise<Response> {
-  let claim: Awaited<ReturnType<typeof prepareFile>> | undefined;
+  let claim: PreparedFileClaim | undefined;
   try {
     const context = staffContext(ctx);
-    const requestUrl = new URL(request.url);
-    const protocol =
-      request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
-      requestUrl.protocol.slice(0, -1);
-    const publicOrigin = `${protocol}://${request.headers.get("host") || requestUrl.host}`;
-    if (request.headers.get("origin") !== publicOrigin)
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Abra o sistema novamente para enviar o arquivo.",
-      });
-    const header = request.headers.get("x-upload-metadata");
-    const parsed = fileInputSchema.safeParse(
-      header ? JSON.parse(decodeURIComponent(header)) : null,
-    );
-    if (!parsed.success)
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Escolha uma foto JPG/PNG ou PDF de até ${MAX_UPLOAD_FILE_MB} MB.`,
-      });
-    claim = await ctx.db.$transaction((database) =>
-      prepareFile({ ...context, database }, parsed.data),
-    );
+    assertSameOrigin(request);
+    const input = readUploadInput(request);
+    claim = await ctx.db.$transaction((database) => prepareFile({ ...context, database }, input));
     if (claim.received) return Response.json({ id: claim.row.id, status: claim.row.status });
-    const bytes = await readBytes(request, parsed.data.byteLength);
-    const reference = await getStorage().put({
-      key: `academic-assessments/${randomUUID()}`,
-      bytes,
-      contentType: parsed.data.contentType,
-    });
-    try {
-      const changed = await ctx.db.assessmentFile.updateMany({
-        where: { id: claim.row.id, status: "UPLOADING", updatedAt: claim.row.updatedAt },
-        data: { ...reference, receivedAt: new Date(), status: "RECEIVED", failureCode: null },
-      });
-      if (!changed.count)
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Outro envio substituiu esta tentativa. Atualize a fila.",
-        });
-    } catch (error) {
-      await getStorage()
-        .remove(reference)
-        .catch((): undefined => {});
-      throw error;
-    }
-    // The durable database row remains RECEIVED if dispatch is unavailable; the worker recovers it.
-    await enqueueAssessmentFile({ fileId: claim.row.id }).catch((): undefined => {});
-    return Response.json(
-      { id: claim.row.id, status: "RECEIVED" },
-      { headers: { "Cache-Control": "private, no-store" } },
-    );
+    return await completeUpload(ctx, { claim, input, request });
   } catch (error) {
     if (claim && !claim.received)
       await ctx.db.assessmentFile
@@ -119,9 +146,10 @@ export async function receiveAssessmentFile(ctx: Context, request: Request): Pro
           data: { status: "FAILED", failureCode: "TRANSFER" },
         })
         .catch((): undefined => {});
-    return failure(error);
+    return failure(error instanceof TRPCError ? error : null);
   }
 }
+
 export async function downloadAssessmentFile(ctx: Context, id: string): Promise<Response> {
   try {
     const row = await authorizedFile(staffContext(ctx), id);
@@ -141,6 +169,6 @@ export async function downloadAssessmentFile(ctx: Context, id: string): Promise<
       },
     });
   } catch (error) {
-    return failure(error);
+    return failure(error instanceof TRPCError ? error : null);
   }
 }
