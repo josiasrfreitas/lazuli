@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { it } from "node:test";
 import { db } from "@lazuli/db";
+import type { RouterOutputs } from "@lazuli/api";
 import { ADMIN, callHttpQuery } from "../support/finance-test-support.js";
 
 void it("protects the learning profile over HTTP and serializes the authorized empty state", async () => {
@@ -71,7 +72,9 @@ void it("keeps attendance history administrative over HTTP and serializes an emp
       now: new Date("2044-04-15T02:30:00Z"),
     });
     assert.equal(admin.status, 200);
-    const result = (await admin.json()) as { result: { data: { json: unknown } } };
+    const result = (await admin.json()) as {
+      result: { data: { json: RouterOutputs["students"]["attendanceHistory"] } };
+    };
     assert.deepEqual(result.result.data.json, {
       today: "2044-04-14",
       enrollments: [],
