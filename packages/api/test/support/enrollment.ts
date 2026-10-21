@@ -68,6 +68,38 @@ async function rejectionMessage(promise: Promise<unknown>): Promise<string> {
   );
 }
 
+async function savePassingAssessment(
+  enrollmentId: string,
+): Promise<Awaited<ReturnType<EnrollmentCaller["assessments"]["save"]>>> {
+  const progress = await db.pedagogicalProgress.findFirstOrThrow({
+    where: { enrollmentId, deletedAt: null, endDate: null },
+    select: { id: true },
+  });
+  const api = caller();
+  const current = await api.assessments.byProgress({ progressId: progress.id });
+  const grades = (["ORAL", "LISTENING", "WRITTEN", "PARTICIPATION"] as const).flatMap(
+    (competence) =>
+      (["BLOCK_ONE", "BLOCK_TWO"] as const).map((phase) => ({
+        competence,
+        phase,
+        score: 60,
+        assessedOn: current.today,
+        reason: null,
+      })),
+  );
+  return api.assessments.save({ progressId: progress.id, version: current.version, grades });
+}
+
+async function approveEnrollment(enrollmentId: string): Promise<void> {
+  const saved = await savePassingAssessment(enrollmentId);
+  await caller().assessments.confirm({
+    progressId: saved.progressId,
+    version: saved.version,
+    decision: "APPROVED",
+    reason: "Competências conferidas para avanço de estágio.",
+  });
+}
+
 const common = { ADMIN, HTTP_OK, caller, callHttpMutation, rejectionMessage };
 
 const CREATE_CONFIG: EnrollmentSuiteConfig = {
@@ -113,6 +145,8 @@ const advanceSuite = createEnrollmentSuite(ADVANCE_CONFIG);
 export const gre31AdvanceEnrollment = {
   ...common,
   ...advanceSuite,
+  savePassingAssessment,
+  approveEnrollment,
   createPersonalizedClass: (code: string, semesterId: string) =>
     createPersonalizedClassFor(ADVANCE_CONFIG, { code, semesterId }),
   enrollAtStage: enrollStudent,

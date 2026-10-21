@@ -234,3 +234,25 @@ tasks. Targeted web lint reports zero errors with 75 contextual warnings; shared
 Storybook examples lint cleanly. Development browser tab and owned web/worker processes were
 closed after verification; the user's main2 server and shared infrastructure remain running.
 Full first-block acceptance, CI, security and PullFrog remain required before delivery.
+
+## Assessment continuity and advancement checkpoint
+
+Issue175's remaining enrollment boundary is now wired: same-stage transfers and returns reconnect
+the same StageAssessment, retaining grades, original start date and confirmation. A changed stage
+opens fresh assessment scope; it does not copy the prior stage's grades or decision. PPT advancement
+requires an active, confirmed APPROVED assessment, and shares the existing student enrollment lock
+with corrections and transfers. Regular advancement and end-of-track behavior remain unchanged.
+The implementation follows the pinned source while retaining main's extracted return helper.
+
+The existing advancement integration case now first rejects missing/unconfirmed approval, then
+confirms through the real assessment API and verifies successful advancement, fresh next-stage
+scope and retained prior approval. Its HTTP success fixture now obtains that approval through the
+same real API rather than bypassing the new requirement. A single additional integration journey
+covers transfer, pause, return and a subsequent different-stage transfer, with identity, grade,
+confirmation, start-date and student-history deduplication assertions. Shared fixture cleanup
+removes only assessments owned by its existing test prefix; no fixture identifiers were changed.
+
+Selected checks passed 28 integration cases and three HTTP transport cases in a fresh PostgreSQL
+database with all migrations, zero drift and removal afterwards. Twelve existing enrollment role
+gates, API typecheck and focused lint passed. No frontend completion follows from these backend
+checks: profile/roster entrypoints and their frequency metrics still need their source dependencies.

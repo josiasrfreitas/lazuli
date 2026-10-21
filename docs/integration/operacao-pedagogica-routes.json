@@ -430,7 +430,7 @@
       "source_page": "apps/web/src/app/(app)/avaliacoes/page.tsx",
       "block": 1,
       "block_assignment": "confirmed from teacher/admin assessment workflow and issue175",
-      "implementation": "Assessment route, editors, charts and persistent proof queue implemented over backend; profile/history entrypoints, progression and teacher workspace coupling pending",
+      "implementation": "Assessment route/editor/queue plus enrollment continuity and PPT approval guard implemented; profile/history entrypoints, teacher workspace and final route reconciliation pending",
       "behavior": "partial: teacher class/read/save/validation/discard, upload restart/resume/worker/download and narrow editor observed; other route variants pending",
       "variants": [
         {
@@ -543,6 +543,18 @@
             "473 controlled source rendering/selection comparisons with documented form-policy overlay; not full browser coverage"
           ],
           "destination_behavior": "not yet verified"
+        },
+        {
+          "id": "assessment-continuity-and-ppt-advancement",
+          "behavior": "Same-stage transfer/return retains StageAssessment, grades/start/confirmation; changed stage starts empty; PPT advancement requires active confirmed approval and serializes with correction; regular/end-of-track rules unchanged",
+          "source_review": "read enrollment advance/data/transfer/return from pinned source; compared with issue175 and accepted ADR0009",
+          "implementation": "wired over existing main enrollment helpers and locks",
+          "destination_behavior": "28 Postgres and3 HTTP cases passed, including selected continuity journey and updated advance contract; route entrypoints still pending",
+          "evidence": [
+            "Existing advancement test obtains real approval and verifies no notes copied to next stage",
+            "One added journey observes same assessment across transfer/pause/return, deduplicated student history and fresh different-stage scope",
+            "12 existing role gates plus API typecheck and focused lint passed"
+          ]
         }
       ],
       "evidence": [
@@ -551,7 +563,8 @@
         "216 web unit cases; two selected real form contract cases",
         "Orca real local teacher login; save59.9, invalid101, recovery narrative, dirty keep/discard and trigger focus",
         "Orca390x844 inspected screenshots, zero page overflow; actual upload→S3Mock→Hatchet READY/REJECTED→authenticated exact-byte download",
-        "Orca admin1280x800 approval + justified correction withdraws approval; no page overflow; inspected screenshot"
+        "Orca admin1280x800 approval + justified correction withdraws approval; no page overflow; inspected screenshot",
+        "Assessment continuity/advancement checkpoint:28 integration+3 HTTP+12 role cases; fresh migrated zero-drift database removed"
       ],
       "entrypoint_review": {
         "state": "read",
@@ -618,12 +631,16 @@
         "packages/ui/src/components/file-upload.tsx",
         "packages/ui/src/components/pencil-loader.tsx",
         "packages/ui/src/styles/components/file-upload.css",
-        "packages/ui/src/styles/components/pencil-loader.css"
+        "packages/ui/src/styles/components/pencil-loader.css",
+        "packages/api/src/enrollment/advance.ts",
+        "packages/api/src/enrollment/data.ts",
+        "packages/api/src/enrollment/transfer.ts",
+        "packages/api/src/enrollment/return.ts"
       ],
       "remaining_shared_dependencies": [
+        "student history/profile and class roster assessment entrypoints plus coupled frequency metrics",
         "teacher workspace and role experience",
-        "student history/profile and class roster assessment entrypoints",
-        "progression/continuity and final-head route reconciliation"
+        "final-head route reconciliation"
       ],
       "legacy_attribution_reconciliation": "Before PR, compare legacy backfill usual-teacher fallback against main dated substitutions/frozen class-record responsibility; preserve evidenced historical attribution without editing applied migration.",
       "intentional_divergences": [

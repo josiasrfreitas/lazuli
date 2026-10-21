@@ -27,6 +27,7 @@ const {
   rejectionMessage,
   registerAdvanceDbLifecycle,
   seedTwoStageCatalog,
+  savePassingAssessment,
 } = gre31AdvanceEnrollment;
 
 async function setup(): Promise<TwoStageCatalogFixture> {
@@ -45,7 +46,7 @@ void describe("enrollment.advanceStage", () => {
 });
 
 function registerHappyPath(): void {
-  void it("moves the active progress to the next stage, keeping the enrollment active", async () => {
+  void it("requires confirmed approval before advancing, keeps enrollment open and starts fresh assessment scope", async () => {
     const catalog = await setup();
     const classRow = await createPersonalizedClass("happy", catalog.semesterId);
     const student = await createStudent("Happy Student");
@@ -55,10 +56,31 @@ function registerHappyPath(): void {
       stageId: catalog.firstStageId,
     });
 
+    await assert.rejects(caller().enrollment.advanceStage({ enrollmentId }), {
+      code: "BAD_REQUEST",
+      message: /Confirme a aprovação pedagógica/,
+    });
+    const saved = await savePassingAssessment(enrollmentId);
+    await assert.rejects(caller().enrollment.advanceStage({ enrollmentId }), {
+      code: "BAD_REQUEST",
+      message: /Confirme a aprovação pedagógica/,
+    });
+    await caller().assessments.confirm({
+      progressId: saved.progressId,
+      version: saved.version,
+      decision: "APPROVED",
+      reason: "Todas as competências atingiram o corte de 60.",
+    });
     const result = await caller().enrollment.advanceStage({ enrollmentId });
 
     assert.equal(result.progress.stageId, catalog.secondStageId);
     assert.equal(result.previousProgress.stageId, catalog.firstStageId);
+    const next = await caller().assessments.byProgress({ progressId: result.progress.id });
+    assert.equal(next.assessmentId, null);
+    assert.deepEqual(next.grades, []);
+    const previous = await caller().assessments.byProgress({ progressId: saved.progressId });
+    assert.equal(previous.assessmentId, saved.assessmentId);
+    assert.equal(previous.decision, "APPROVED");
     await assertActiveStageAndOpenEnrollment({ enrollmentId, stageId: catalog.secondStageId });
 
     const closed = await db.pedagogicalProgress.findMany({

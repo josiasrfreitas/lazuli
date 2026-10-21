@@ -9,7 +9,11 @@ import {
   completeGrades,
   ASSESSMENT_DATE,
 } from "../support/assessments.js";
-import { registerDbLifecycle } from "../support/enrollment/fixtures.js";
+import {
+  registerDbLifecycle,
+  createPersonalizedClassFor,
+  createRegularClassFor,
+} from "../support/enrollment/fixtures.js";
 
 async function cleanAssessmentRecords(): Promise<void> {
   const where = { student: { fullName: { startsWith: assessmentConfig.prefix } } };
@@ -139,4 +143,76 @@ void it("serializes corrections to a confirmed result and withdraws approval onc
     }),
     2,
   );
+});
+
+void it("retains one assessment across same-stage transfer and return, then starts empty at a different stage", async () => {
+  const fixture = await assessmentFixture();
+  const api = assessmentCaller();
+  const saved = await api.assessments.save({
+    progressId: fixture.progressId,
+    version: 0,
+    grades: completeGrades(),
+  });
+  await api.assessments.confirm({
+    progressId: fixture.progressId,
+    version: saved.version,
+    decision: "APPROVED",
+    reason: "Competências conferidas antes da movimentação.",
+  });
+  const target = await createPersonalizedClassFor(assessmentConfig, {
+    code: "same-stage-transfer",
+    semesterId: fixture.semesterId,
+  });
+  const moved = await assessmentCaller("2073-02-16").enrollment.transfer({
+    enrollmentId: fixture.enrollmentId,
+    targetClassId: target.id,
+    entryDate: new Date("2073-02-16"),
+  });
+  const movedView = await assessmentCaller("2073-02-16").assessments.byProgress({
+    progressId: moved.progress.id,
+  });
+  assert.equal(movedView.assessmentId, saved.assessmentId);
+  assert.equal(movedView.decision, "APPROVED");
+  assert.deepEqual(
+    movedView.grades.map((grade) => `${grade.phase}:${grade.competence}:${grade.score}`).toSorted(),
+    completeGrades()
+      .map((grade) => `${grade.phase}:${grade.competence}:${grade.score}`)
+      .toSorted(),
+  );
+  await assessmentCaller("2073-02-17").enrollment.close({
+    enrollmentId: moved.enrollment.id,
+    reason: "SUSPENDED",
+  });
+  const resumed = await assessmentCaller("2073-02-18").enrollment.return({
+    sourceEnrollmentId: moved.enrollment.id,
+    targetClassId: fixture.classId,
+    stageId: fixture.stageId,
+  });
+  const returned = await assessmentCaller("2073-02-18").assessments.student({
+    studentId: fixture.studentId,
+  });
+  assert.equal(returned.length, 1);
+  assert.equal(returned[0]?.progressId, resumed.progress.id);
+  assert.equal(returned[0]?.assessmentId, saved.assessmentId);
+  assert.equal(returned[0]?.startedOn, ASSESSMENT_DATE);
+  assert.equal(returned[0]?.decision, "APPROVED");
+  assert.equal(returned[0]?.grades.length, 8);
+  const regular = await createRegularClassFor(assessmentConfig, {
+    code: "different-stage-transfer",
+    semesterId: fixture.semesterId,
+    sharedStageId: fixture.nextStageId,
+  });
+  const nextStage = await assessmentCaller("2073-02-20").enrollment.transfer({
+    enrollmentId: resumed.enrollment.id,
+    targetClassId: regular.id,
+    entryDate: new Date("2073-02-20"),
+  });
+  const fresh = await assessmentCaller("2073-02-20").assessments.byProgress({
+    progressId: nextStage.progress.id,
+  });
+  assert.equal(fresh.assessmentId, null);
+  assert.deepEqual(fresh.grades, []);
+  assert.equal(fresh.decision, null);
+  assert.equal(fresh.status, "INCOMPLETE");
+  assert.equal(await db.stageAssessment.count({ where: { studentId: fixture.studentId } }), 1);
 });

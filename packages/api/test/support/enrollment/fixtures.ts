@@ -181,9 +181,13 @@ export async function cleanEnrollmentFixtures(config: EnrollmentFixtureConfig): 
   await db.classSession.deleteMany({
     where: { class: { internalCode: { startsWith: config.prefix } } },
   });
+  const assessmentScope = { student: { fullName: { startsWith: config.prefix } } };
+  await db.assessmentFile.deleteMany({ where: { assessment: assessmentScope } });
+  await db.assessmentGrade.deleteMany({ where: { assessment: assessmentScope } });
   await db.pedagogicalProgress.deleteMany({
     where: { enrollment: { student: { fullName: { startsWith: config.prefix } } } },
   });
+  await db.stageAssessment.deleteMany({ where: assessmentScope });
   await db.enrollment.deleteMany({
     where: { student: { fullName: { startsWith: config.prefix } } },
   });

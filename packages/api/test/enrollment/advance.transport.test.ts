@@ -5,6 +5,7 @@ import { gre31AdvanceEnrollment } from "../support/enrollment.js";
 
 const {
   ADMIN,
+  approveEnrollment,
   callHttpMutation,
   createPersonalizedClass,
   createStudent,
@@ -32,6 +33,8 @@ void describe("enrollment.advanceStage over the tRPC HTTP boundary", () => {
       classId: classRow.id,
       stageId: catalog.firstStageId,
     });
+
+    await approveEnrollment(enrollmentId);
 
     const response = await callHttpMutation({
       path: "enrollment.advanceStage",
