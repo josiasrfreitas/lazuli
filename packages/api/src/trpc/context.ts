@@ -1,6 +1,6 @@
+import { createHatchetSessionsGenerateQueue } from "@lazuli/integrations/hatchet";
 import { resolveStaffIdentity, type StaffIdentity, type StaffSession } from "@lazuli/auth";
 import {
-  createLocalSessionsGenerateQueue,
   createLocalReportGenerateQueue,
   type ReportGenerateQueue,
   type SessionsGenerateQueue,
@@ -51,7 +51,7 @@ export async function createTRPCContext(input: CreateTRPCContextInput): Promise<
     db,
     ...(input.now === undefined ? {} : { now: input.now }),
     reportGenerateQueue: input.reportGenerateQueue ?? createLocalReportGenerateQueue(),
-    sessionGenerationQueue: input.sessionGenerationQueue ?? createLocalSessionsGenerateQueue(),
+    sessionGenerationQueue: input.sessionGenerationQueue ?? createHatchetSessionsGenerateQueue(),
     staffUser,
   };
 }

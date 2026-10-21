@@ -17,6 +17,7 @@ export const sessionsGeneratePayloadSchema = z
   .object({
     classId: z.string().uuid().optional(),
     semesterId: z.string().uuid().optional(),
+    requestId: z.string().uuid().optional(),
   })
   .strict()
   .superRefine((payload, context) => {
@@ -45,17 +46,10 @@ export async function enqueueSessionsGenerate(input: {
   return input.queue.enqueueSessionsGenerate(payload);
 }
 
-export function createLocalSessionsGenerateQueue(): SessionsGenerateQueue {
+/** Unconfigured runtimes must never report an imaginary successful dispatch. */
+export function createUnavailableSessionsGenerateQueue(): SessionsGenerateQueue {
   return {
-    enqueueSessionsGenerate: (payload) =>
-      Promise.resolve({
-        workflowName: SESSIONS_GENERATE_WORKFLOW,
-        jobId: buildLocalJobId(
-          SESSIONS_GENERATE_WORKFLOW,
-          payload.classId ?? payload.semesterId ?? "invalid",
-        ),
-        payload,
-      }),
+    enqueueSessionsGenerate: () => Promise.reject(new Error("SESSION_QUEUE_UNAVAILABLE")),
   };
 }
 

@@ -117,5 +117,7 @@ void it("create semester enqueues session generation", async () => {
 
   assert.equal(result.semester.name, SEMESTER_NAME);
   assert.equal(result.sessionsGenerateJob.workflowName, "sessions-generate");
-  assert.deepEqual(queue.calls, [{ semesterId: result.semester.id }]);
+  assert.deepEqual(queue.calls, [
+    { semesterId: result.semester.id, requestId: result.sessionsGenerateJob.id },
+  ]);
 });

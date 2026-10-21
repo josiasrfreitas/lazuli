@@ -4,7 +4,10 @@ import {
   importBrazilFederalHolidaysInputSchema,
   removeClosedDayInputSchema,
 } from "@lazuli/validators";
-import { createLocalSessionsGenerateQueue, enqueueSessionsGenerate } from "@lazuli/job-contracts";
+import {
+  requestSessionGeneration,
+  dispatchSessionGeneration,
+} from "../session-generation/requests.js";
 
 import { adminProcedure, router } from "../trpc/init.js";
 import {
@@ -18,21 +21,26 @@ export const calendarRouter = router({
   createSemester: adminProcedure
     .input(createSemesterInputSchema)
     .mutation(async ({ ctx, input }) => {
-      const semester = await ctx.db.$transaction((database) =>
-        createSemester({
+      const result = await ctx.db.$transaction(async (database) => {
+        const semester = await createSemester({
           database,
           name: input.name,
           startDate: input.startDate,
           endDate: input.endDate,
-        }),
-      );
-
-      const enqueueResult = await enqueueSessionsGenerate({
-        queue: ctx.sessionGenerationQueue ?? createLocalSessionsGenerateQueue(),
-        payload: { semesterId: semester.id },
+        });
+        const request = await requestSessionGeneration(database, {
+          scope: { semesterId: semester.id },
+          requestedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        });
+        return { semester, requestId: request.id };
       });
-
-      return { semester, sessionsGenerateJob: enqueueResult };
+      const sessionsGenerateJob = await dispatchSessionGeneration({
+        database: ctx.db,
+        requestId: result.requestId,
+        queue: ctx.sessionGenerationQueue,
+      });
+      return { semester: result.semester, sessionsGenerateJob };
     }),
   importBrazilFederalHolidays: adminProcedure
     .input(importBrazilFederalHolidaysInputSchema)
