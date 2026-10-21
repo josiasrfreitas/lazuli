@@ -121,6 +121,7 @@ export async function prepareSemester(context: OrganizationContext, semesterId: 
             data: {
               semesterId,
               studentId: enrollment.studentId,
+              confirmed: false,
               validUntil: semester.endDate,
               formats: previous?.formats ?? [group.format],
               slots: previous ? readSlots(previous.slots) : slots,

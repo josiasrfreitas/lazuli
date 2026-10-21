@@ -29,8 +29,16 @@ export async function readMaterialNeeds(
           },
         },
         sourceSemesterPlacements: {
-          where: { deletedAt: null, declinedAt: null },
-          orderBy: { updatedAt: "desc" },
+          where: {
+            deletedAt: null,
+            declinedAt: null,
+            semester: { deletedAt: null },
+            OR: [
+              { effectiveDate: { gt: today } },
+              { effectiveDate: null, semester: { startDate: { gt: today } } },
+            ],
+          },
+          orderBy: [{ semester: { startDate: "asc" } }, { effectiveDate: "asc" }, { id: "asc" }],
           take: 1,
           select: { stage: { select: { id: true, name: true } } },
         },

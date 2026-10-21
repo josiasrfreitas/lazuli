@@ -4,6 +4,7 @@ import type { attendanceReviewSchema, z } from "@lazuli/validators";
 import { recordActivity } from "../activity/record.js";
 import { commitAttendance } from "../class-records/attendance.js";
 import {
+  assertAttendanceOnlyWrite,
   dateOnly,
   loadRecordSession,
   lockClassRecord,
@@ -33,6 +34,7 @@ export async function confirmAttendanceReview(
 ) {
   await lockClassRecord(context.database, input.sessionId);
   const session = await loadRecordSession(context, input.sessionId);
+  await assertAttendanceOnlyWrite(context.database, input.sessionId);
   const restriction = attendanceReviewRestriction(context, session);
   if (restriction) throw badRequest(restriction);
   if ((session.attendanceLastCommittedAt?.toISOString() ?? null) !== input.attendanceStamp)

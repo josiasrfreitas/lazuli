@@ -143,7 +143,7 @@ async function moveToSemester(context: OrganizationContext, input: z.infer<typeo
           data: {
             semesterId,
             studentId: source.studentId,
-            confirmed: previous.confirmed,
+            confirmed: false,
             formats: previous.formats,
             slots: readSlots(previous.slots),
             validUntil: targetSemester.endDate,

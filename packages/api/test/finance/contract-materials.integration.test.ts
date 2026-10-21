@@ -497,10 +497,37 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
           where: { id: enrollment.progressRecords[0]!.id },
           data: { stagePlanId: plan.id },
         });
-      else
+      else {
         await tx.semesterPlacement.create({
           data: {
             semesterId: semester.id,
+            studentId: values.studentId,
+            trackId: stage.trackId,
+            stageId,
+            sourceEnrollmentId: enrollment.id,
+            sourceProgressId: enrollment.progressRecords[0]!.id,
+            mode: "ENTRY",
+            effectiveDate: new Date("2026-01-01"),
+            recordedById: ADMIN.id,
+          },
+        });
+        const withoutDestination = await finance(tx, ADMIN.id).studentSummary({
+          studentId: values.studentId,
+          now: NOW,
+        });
+        assert.equal(withoutDestination.materialNeeds.length, 1);
+        assert.equal(withoutDestination.materialNeeds[0]!.nextStage, null);
+        assert.equal(withoutDestination.materialNeeds[0]!.stagePending, true);
+        const nextSemester = await tx.semester.create({
+          data: {
+            name: randomUUID(),
+            startDate: new Date("2026-07-01"),
+            endDate: new Date("2026-12-31"),
+          },
+        });
+        await tx.semesterPlacement.create({
+          data: {
+            semesterId: nextSemester.id,
             studentId: values.studentId,
             trackId: stage.trackId,
             stageId: next.id,
@@ -510,6 +537,7 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
             recordedById: ADMIN.id,
           },
         });
+      }
       const service = finance(tx, ADMIN.id);
       const contract = await service.createMonthlyContract(values);
       const summary = await service.studentSummary({ studentId: values.studentId, now: NOW });

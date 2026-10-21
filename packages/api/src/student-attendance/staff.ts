@@ -28,7 +28,10 @@ export async function attendanceStatus(
     sessionId,
     format: session.class.format,
     restriction: openingRestriction(session, context.now),
-    confirmationRestriction: attendanceReviewRestriction(context, session),
+    confirmationRestriction:
+      windows.length > 0
+        ? "Confira as declarações e confirme presença e conteúdo pelo registro da aula."
+        : attendanceReviewRestriction(context, session),
     windows,
     declarations,
   };

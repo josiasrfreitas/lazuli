@@ -138,7 +138,7 @@ async function fixture() {
       : null;
     return { ...row, source, proposal, availability };
   }
-  return { catalog, semester, plan, student };
+  return { catalog, semester, plan, student, sourceClass };
 }
 
 void it("publishes only selected eligible students, preserving the current PPT attempt and both temporal memberships", async () => {
@@ -294,6 +294,124 @@ void it("serializes duplicate publication and rejects a stale proposal version w
   assert.equal(
     await db.enrollmentAction.count({
       where: { enrollmentId: student.source.enrollment.id, status: "SCHEDULED", kind: "EXIT" },
+    }),
+    1,
+  );
+});
+
+void it("requires explicit confirmation for availability inherited by preparation or movement between semesters", async () => {
+  const scope = await fixture();
+  const student = await createStudentFor(config, { suffix: "Inherited availability" });
+  await db.classScheduleSlot.create({
+    data: {
+      classId: scope.sourceClass.id,
+      weekday: "MONDAY",
+      startTime: new Date("1970-01-01T14:00:00Z"),
+      endTime: new Date("1970-01-01T15:00:00Z"),
+    },
+  });
+  await caller().enrollment.create({
+    studentId: student.id,
+    classId: scope.sourceClass.id,
+    stageId: scope.catalog.firstStageId,
+  });
+  await db.studentAvailability.create({
+    data: {
+      semesterId: scope.catalog.semesterId,
+      studentId: student.id,
+      confirmed: true,
+      validUntil: new Date("2085-04-30"),
+      formats: ["IN_PERSON"],
+      slots,
+      recordedById: admin.id,
+    },
+  });
+  await caller().semesterOrganization.prepare({ semesterId: scope.semester.id });
+  const prepared = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
+  const proposal = prepared.placements.find((row) => row.studentId === student.id)!;
+  const plan = prepared.plans.find((row) => row.id === proposal.planId)!;
+  const inherited = await db.studentAvailability.findFirstOrThrow({
+    where: { semesterId: scope.semester.id, studentId: student.id },
+  });
+  assert.equal(inherited.confirmed, false);
+  assert.ok(proposal.blockers.some((reason) => reason.includes("Confirme a disponibilidade")));
+  await assert.rejects(
+    caller().semesterOrganization.publish({
+      planId: plan.id,
+      version: plan.version,
+      placements: [{ id: proposal.id, version: proposal.version }],
+    }),
+    /Confirme a disponibilidade/u,
+  );
+  await caller().semesterOrganization.confirmAvailability({
+    semesterId: scope.semester.id,
+    studentId: student.id,
+    previousId: inherited.id,
+    validUntil: "2085-12-31",
+    formats: ["IN_PERSON"],
+    slots,
+  });
+  const later = await db.semester.create({
+    data: {
+      name: `${config.prefix}2086.1`,
+      startDate: new Date("2086-02-01"),
+      endDate: new Date("2086-06-30"),
+    },
+  });
+  const laterPlan = await caller().semesterOrganization.savePlan({
+    semesterId: later.id,
+    name: `${config.prefix}PPT later`,
+    scheduleType: "PERSONALIZED",
+    format: "IN_PERSON",
+    sharedStageId: null,
+    teacherId: config.teacherId,
+    slots,
+  });
+  await caller().semesterOrganization.move({
+    semesterId: scope.semester.id,
+    targetSemesterId: later.id,
+    selections: [{ id: proposal.id, version: proposal.version }],
+    planId: laterPlan.id,
+    effectiveDate: "2086-02-01",
+    reason: "Revisar disponibilidade no novo período",
+  });
+  const moved = await caller().semesterOrganization.detail({ semesterId: later.id });
+  const movedProposal = moved.placements.find((row) => row.studentId === student.id)!;
+  const copied = await db.studentAvailability.findFirstOrThrow({
+    where: { semesterId: later.id, studentId: student.id },
+  });
+  assert.equal(copied.confirmed, false);
+  await assert.rejects(
+    caller().semesterOrganization.publish({
+      planId: laterPlan.id,
+      version: moved.plans.find((row) => row.id === laterPlan.id)!.version,
+      placements: [{ id: movedProposal.id, version: movedProposal.version }],
+    }),
+    /Confirme a disponibilidade/u,
+  );
+  assert.equal(
+    await db.enrollment.count({
+      where: { studentId: student.id, class: { semesterId: later.id } },
+    }),
+    0,
+  );
+  await caller().semesterOrganization.confirmAvailability({
+    semesterId: later.id,
+    studentId: student.id,
+    previousId: copied.id,
+    validUntil: "2086-06-30",
+    formats: ["IN_PERSON"],
+    slots,
+  });
+  const published = await caller().semesterOrganization.publish({
+    planId: laterPlan.id,
+    version: moved.plans.find((row) => row.id === laterPlan.id)!.version,
+    placements: [{ id: movedProposal.id, version: movedProposal.version }],
+  });
+  assert.equal(published.count, 1);
+  assert.equal(
+    await db.enrollment.count({
+      where: { studentId: student.id, class: { semesterId: later.id } },
     }),
     1,
   );
