@@ -23,11 +23,11 @@ export function ContractMaterialSection({ fields, change, errors, required = fal
   const quote =
     unitQuote && prices.data
       ? {
-          ...materialPriceQuote(
-            unitQuote.installments * selectedStages.length,
-            unitQuote.installmentCents,
-            prices.data.cardFeePct,
-          ),
+          ...materialPriceQuote({
+            installments: unitQuote.installments * selectedStages.length,
+            installmentCents: unitQuote.installmentCents,
+            cardFeePct: prices.data.cardFeePct,
+          }),
           version: unitQuote.version,
         }
       : undefined;

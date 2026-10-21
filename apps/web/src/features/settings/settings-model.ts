@@ -148,11 +148,11 @@ export function bookQuote(fields: SettingsFields, category: "child" | "adult") {
   )
     return null;
   try {
-    return materialPriceQuote(
-      decimal(fields[count]),
-      Math.round(decimal(fields[amountKey]) * CENTS_PER_REAL),
-      decimal(fields.materialCardFeePct),
-    );
+    return materialPriceQuote({
+      installments: decimal(fields[count]),
+      installmentCents: Math.round(decimal(fields[amountKey]) * CENTS_PER_REAL),
+      cardFeePct: decimal(fields.materialCardFeePct),
+    });
   } catch {
     return null;
   }

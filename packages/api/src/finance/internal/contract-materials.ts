@@ -53,11 +53,13 @@ export async function materialOrderData(input: {
   const perBookInstallments = child
     ? settings.childMaterialInstallments
     : settings.adultMaterialInstallments;
-  const quote = materialPriceQuote(
-    perBookInstallments * stageIds.length,
-    child ? settings.childMaterialInstallmentCents : settings.adultMaterialInstallmentCents,
+  const quote = materialPriceQuote({
+    installments: perBookInstallments * stageIds.length,
+    installmentCents: child
+      ? settings.childMaterialInstallmentCents
+      : settings.adultMaterialInstallmentCents,
     cardFeePct,
-  );
+  });
   const cash = material.payment === "CASH";
   const total = cash ? quote.cashCents : quote.totalCents;
   if (

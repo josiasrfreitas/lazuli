@@ -2,7 +2,7 @@
 export function normalizeSearch(value: string): string {
   return value
     .normalize("NFD")
-    .replace(/\p{M}/gu, "")
+    .replaceAll(/\p{M}/gu, "")
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}]/gu, "");
+    .replaceAll(/[^\p{L}\p{N}]/gu, "");
 }

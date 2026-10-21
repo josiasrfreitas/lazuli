@@ -1,4 +1,5 @@
 import type { AttendancePercent } from "./attendance-percent.js";
+const MIN_ATTENDANCE_PERCENT = 0.75;
 
 export type AttendanceProgress = AttendancePercent & {
   heldMinutes: number;
@@ -38,6 +39,6 @@ export function computeCompensatedAttendance(
     compensatedMinutes,
     missingMinutes: heldMinutes - presentMinutes - compensatedMinutes,
     percent,
-    flagged: percent !== null && percent < 0.75,
+    flagged: percent !== null && percent < MIN_ATTENDANCE_PERCENT,
   };
 }

@@ -17,14 +17,17 @@ export type CompetenceResult = {
   effective: number | null;
   passed: boolean | null;
 };
+function gradeScore(grades: readonly AcademicGrade[], phase: AssessmentPhase): number | null {
+  return grades.find((grade) => grade.phase === phase)?.score ?? null;
+}
 
 /** Missing grades stay unknown; no overall mean can compensate for a failed competence. */
 export function assessmentResults(grades: readonly AcademicGrade[]): CompetenceResult[] {
   return ACADEMIC_COMPETENCES.map((competence) => {
     const own = grades.filter((grade) => grade.competence === competence);
-    const blockOne = own.find((grade) => grade.phase === "BLOCK_ONE")?.score ?? null;
-    const blockTwo = own.find((grade) => grade.phase === "BLOCK_TWO")?.score ?? null;
-    const recovery = own.find((grade) => grade.phase === "RECOVERY")?.score ?? null;
+    const blockOne = gradeScore(own, "BLOCK_ONE");
+    const blockTwo = gradeScore(own, "BLOCK_TWO");
+    const recovery = gradeScore(own, "RECOVERY");
     const average = blockOne === null || blockTwo === null ? null : (blockOne + blockTwo) / 2;
     const effective = average === null ? null : (recovery ?? average);
     return {

@@ -87,11 +87,11 @@ export function PaymentSection({ fields, errors, change, preview }: FormProps): 
   const quote =
     unitQuote && prices.data
       ? {
-          ...materialPriceQuote(
-            unitQuote.installments * fields.materialStageIds.split(",").length,
-            unitQuote.installmentCents,
-            prices.data.cardFeePct,
-          ),
+          ...materialPriceQuote({
+            installments: unitQuote.installments * fields.materialStageIds.split(",").length,
+            installmentCents: unitQuote.installmentCents,
+            cardFeePct: prices.data.cardFeePct,
+          }),
           version: unitQuote.version,
         }
       : undefined;

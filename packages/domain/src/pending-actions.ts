@@ -54,15 +54,18 @@ export function studentPendingActions(input: {
       action: { type: "ALLOCATE_STUDENT", label: "Escolher turma", resourceId: input.id },
       blockedBy: needsPlacement ? [placementId] : [],
     });
-  if (!input.hasContract)
-    items.push({
-      id: `${input.id}:contract`,
-      type: "CONTRACT",
-      subject,
-      title: "Criar contrato",
-      description: "O contrato pode ser acertado mesmo antes da definição da turma.",
-      action: { type: "CREATE_CONTRACT", label: "Criar contrato", resourceId: input.id },
-      blockedBy: [],
-    });
+  if (!input.hasContract) items.push(contractPendingAction(subject));
   return items;
+}
+
+function contractPendingAction(subject: PendingAction["subject"]): PendingAction {
+  return {
+    id: `${subject.id}:contract`,
+    type: "CONTRACT",
+    subject,
+    title: "Criar contrato",
+    description: "O contrato pode ser acertado mesmo antes da definição da turma.",
+    action: { type: "CREATE_CONTRACT", label: "Criar contrato", resourceId: subject.id },
+    blockedBy: [],
+  };
 }
