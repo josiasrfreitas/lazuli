@@ -11,6 +11,7 @@ type StageSeed = {
 type TrackSeed = {
   name: string;
   status: CatalogStatusValue;
+  ageGroup: "ADULT" | "CHILD";
   portalPrefix: string | null;
   stages: StageSeed[];
 };
@@ -32,6 +33,7 @@ export const COURSE_CATALOG: readonly ProductLineSeed[] = [
     tracks: [
       {
         name: "Adultos / English Main",
+        ageGroup: "ADULT",
         status: "ACTIVE",
         portalPrefix: null,
         stages: [
@@ -46,6 +48,7 @@ export const COURSE_CATALOG: readonly ProductLineSeed[] = [
       },
       {
         name: "Adultos / Speed",
+        ageGroup: "ADULT",
         status: "ACTIVE",
         portalPrefix: null,
         stages: [
@@ -56,6 +59,7 @@ export const COURSE_CATALOG: readonly ProductLineSeed[] = [
       },
       {
         name: "Adultos / Espanol",
+        ageGroup: "ADULT",
         status: "ACTIVE",
         portalPrefix: null,
         stages: [
@@ -74,6 +78,7 @@ export const COURSE_CATALOG: readonly ProductLineSeed[] = [
     tracks: [
       {
         name: "Infantil",
+        ageGroup: "CHILD",
         status: "ACTIVE",
         portalPrefix: null,
         stages: [
@@ -102,6 +107,7 @@ export const COURSE_CATALOG: readonly ProductLineSeed[] = [
     tracks: [
       {
         name: "Teens Legacy",
+        ageGroup: "ADULT",
         status: "LEGACY",
         portalPrefix: null,
         stages: [
@@ -125,6 +131,7 @@ export const COURSE_CATALOG: readonly ProductLineSeed[] = [
     tracks: [
       {
         name: "Teens Connect",
+        ageGroup: "ADULT",
         status: "ACTIVE",
         portalPrefix: null,
         stages: [
@@ -144,6 +151,7 @@ export const COURSE_CATALOG: readonly ProductLineSeed[] = [
     tracks: [
       {
         name: "Teenstation Legacy",
+        ageGroup: "ADULT",
         status: "LEGACY",
         portalPrefix: null,
         stages: [
@@ -202,11 +210,13 @@ async function seedTrack(
       productLineId,
       name: trackSeed.name,
       status: trackSeed.status,
+      ageGroup: trackSeed.ageGroup,
       portalPrefix: trackSeed.portalPrefix,
     },
     update: {
       name: trackSeed.name,
       status: trackSeed.status,
+      ageGroup: trackSeed.ageGroup,
       portalPrefix: trackSeed.portalPrefix,
     },
   });

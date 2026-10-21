@@ -114,3 +114,5 @@ export {
 export { planningBand } from "./planning-band.js";
 
 export * from "./student-attendance.js";
+
+export * from "./teaching-program.js";

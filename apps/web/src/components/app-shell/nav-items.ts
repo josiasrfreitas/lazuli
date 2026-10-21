@@ -64,6 +64,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
       { href: "/turmas", label: "Turmas", icon: BookOpen, roles: ["ADMIN", "SYSTEM_ADMIN"] },
+      { href: "/estagios", label: "Estágios", icon: BookOpen, roles: ["ADMIN", "SYSTEM_ADMIN"] },
       {
         href: "/aulas",
         label: "Aulas",

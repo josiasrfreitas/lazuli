@@ -1,3 +1,4 @@
+import { teachingProgramsRouter } from "./teaching-programs/router.js";
 import { studentAttendanceRouter } from "./student-attendance/router.js";
 import { classRecordsRouter } from "./class-records/router.js";
 import { planningRouter } from "./stage-planning/router.js";
@@ -13,6 +14,7 @@ import { reportsRouter } from "./reports/router.js";
 import { studentsRouter } from "./students/router.js";
 
 export const appRouter = router({
+  teachingPrograms: teachingProgramsRouter,
   studentAttendance: studentAttendanceRouter,
   classRecords: classRecordsRouter,
   planning: planningRouter,

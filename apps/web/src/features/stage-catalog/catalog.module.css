@@ -1,0 +1,229 @@
+.workspace {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 24px;
+  color: var(--foreground);
+  overflow: hidden;
+}
+.canvas {
+  min-height: 0;
+  flex: 1;
+}
+.catalog {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+  height: 100%;
+}
+.catalogList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.catalogHeading {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  flex-shrink: 0;
+}
+.catalogHeading h1 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--heading);
+}
+.listTools {
+  flex-shrink: 0;
+}
+.catalogList > [data-slot="table-container"] {
+  flex: 1;
+  min-height: 0;
+}
+.trackHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding-block: 8px;
+  white-space: normal;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.trackHeading h2 {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--heading);
+}
+.trackHeading > span {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.trackName {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+.bookCell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-left: 12px;
+}
+.bookCell > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.bookCell strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+.bookCell > div > span {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.bookCell[data-selected] strong {
+  font-weight: 700;
+  color: var(--heading);
+}
+.detail {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-left: 20px;
+  border-left: 1px solid var(--border);
+}
+.detailHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.identity {
+  min-width: 0;
+}
+.stageTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+.stageTitle h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--heading);
+}
+.stageTitle > span,
+.identity p,
+.programChoice > span {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.identity p {
+  margin-top: 4px;
+}
+.programTools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+.programChoice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  min-width: 0;
+}
+.detailBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.source {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
+  padding: 24px;
+}
+@media (max-width: 1200px) {
+  .workspace {
+    padding-inline: 16px;
+  }
+  .catalog {
+    grid-template-columns: 270px minmax(0, 1fr);
+    gap: 16px;
+  }
+  .detail {
+    padding-left: 16px;
+  }
+}
+@media (max-width: 760px) {
+  .workspace {
+    overflow: auto;
+    padding-inline: 12px;
+  }
+  .canvas {
+    flex: none;
+  }
+  .catalog {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    gap: 20px;
+  }
+  .catalogList {
+    height: 280px;
+  }
+  .detail {
+    height: auto;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 16px 0 0;
+  }
+  .detailHeader {
+    align-items: start;
+    gap: 8px;
+    padding-bottom: 16px;
+  }
+  .detailBody {
+    flex: none;
+  }
+  .programTools {
+    align-items: start;
+  }
+  .programChoice {
+    flex-basis: 100%;
+  }
+  .source {
+    margin-top: 16px;
+  }
+}

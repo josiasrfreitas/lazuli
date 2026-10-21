@@ -432,7 +432,13 @@ model ClassScheduleSlot {
   @@index([classId])
 }
 
+enum TrackAgeGroup {
+  ADULT
+  CHILD
+}
+
 model Track {
+  ageGroup TrackAgeGroup @default(ADULT) @map("age_group")
   id            String        @id @default(uuid()) @db.Uuid
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
@@ -449,6 +455,9 @@ model Track {
 }
 
 model Stage {
+  bookLessonCount Int? @map("book_lesson_count")
+  bookLessons BookLesson[]
+  teachingPrograms TeachingProgram[]
   id           String    @id @default(uuid()) @db.Uuid
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -1082,6 +1091,9 @@ model StagePlan {
 }
 
 model StagePlanItem {
+  programActivityId String? @map("program_activity_id") @db.Uuid
+  programActivity ProgramActivity? @relation(fields: [programActivityId], references: [id], onDelete: Restrict)
+  @@index([programActivityId])
   id        String                @id @default(uuid()) @db.Uuid
   createdAt DateTime              @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime              @updatedAt @map("updated_at") @db.Timestamptz
@@ -1227,4 +1239,163 @@ model AttendanceSettings {
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
   updatedById       String    @map("updated_by_id") @db.Uuid
   updatedBy         User      @relation("AttendanceSettingsAuthor", fields: [updatedById], references: [id], onDelete: Restrict)
+}
+
+enum ProgramActivityKind {
+  LESSON
+  INTRODUCTION
+  REVIEW
+  ASSESSMENT
+  VIDEO
+  ACTIVITY
+}
+
+model TeachingModality {
+  id            String            @id @default(uuid()) @db.Uuid
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt     DateTime?         @map("deleted_at") @db.Timestamptz
+  code          String            @unique
+  name          String
+  weeklyMinutes Int               @default(120) @map("weekly_minutes")
+  programs      TeachingProgram[]
+}
+
+model BookLesson {
+  id              String                  @id @default(uuid()) @db.Uuid
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime                @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt       DateTime?               @map("deleted_at") @db.Timestamptz
+  stageId         String                  @map("stage_id") @db.Uuid
+  sourceKey       String                  @map("source_key")
+  sequence        Int
+  title           String
+  stage           Stage                   @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  activityLessons ProgramActivityLesson[]
+
+  @@unique([stageId, sourceKey])
+  @@unique([stageId, sequence])
+}
+
+model TeachingProgram {
+  id              String              @id @default(uuid()) @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt       DateTime?           @map("deleted_at") @db.Timestamptz
+  stageId         String              @map("stage_id") @db.Uuid
+  modalityId      String              @map("modality_id") @db.Uuid
+  scheduleType    ClassScheduleType   @map("schedule_type")
+  sourceProvider  String              @map("source_provider")
+  sourceReference String              @map("source_reference")
+  sourceRevision  String              @map("source_revision")
+  contentHash     String              @map("content_hash")
+  importedAt      DateTime            @default(now()) @map("imported_at") @db.Timestamptz
+  retiredAt       DateTime?           @map("retired_at") @db.Timestamptz
+  stage           Stage               @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  modality        TeachingModality    @relation(fields: [modalityId], references: [id], onDelete: Restrict)
+  units           ProgramUnit[]
+  teachingHours   TeachingHour[]
+  assessments     ProgramAssessment[]
+
+  @@unique([stageId, modalityId, scheduleType, sourceProvider, sourceReference, sourceRevision])
+  @@index([stageId, retiredAt])
+}
+
+model ProgramUnit {
+  id          String              @id @default(uuid()) @db.Uuid
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime?           @map("deleted_at") @db.Timestamptz
+  programId   String              @map("program_id") @db.Uuid
+  sourceKey   String              @map("source_key")
+  sequence    Int
+  title       String
+  program     TeachingProgram     @relation(fields: [programId], references: [id], onDelete: Restrict)
+  activities  ProgramActivity[]
+  assessments ProgramAssessment[]
+
+  @@unique([programId, sourceKey])
+  @@unique([programId, sequence])
+  @@unique([programId, id])
+}
+
+model TeachingHour {
+  id              String            @id @default(uuid()) @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt       DateTime?         @map("deleted_at") @db.Timestamptz
+  programId       String            @map("program_id") @db.Uuid
+  sourceKey       String            @map("source_key")
+  sequence        Int
+  durationMinutes Int               @map("duration_minutes")
+  program         TeachingProgram   @relation(fields: [programId], references: [id], onDelete: Restrict)
+  activities      ProgramActivity[]
+
+  @@unique([programId, sourceKey])
+  @@unique([programId, sequence])
+  @@unique([programId, id])
+}
+
+model ProgramAssessment {
+  id         String            @id @default(uuid()) @db.Uuid
+  createdAt  DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt  DateTime?         @map("deleted_at") @db.Timestamptz
+  programId  String            @map("program_id") @db.Uuid
+  unitId     String            @map("unit_id") @db.Uuid
+  sourceKey  String            @map("source_key")
+  sequence   Int
+  title      String
+  program    TeachingProgram   @relation(fields: [programId], references: [id], onDelete: Restrict)
+  unit       ProgramUnit       @relation(fields: [programId, unitId], references: [programId, id], onDelete: Restrict)
+  activities ProgramActivity[]
+
+  @@unique([programId, sourceKey])
+  @@unique([programId, sequence])
+  @@unique([unitId, id])
+  @@index([programId, unitId])
+}
+
+model ProgramActivity {
+  id                 String                  @id @default(uuid()) @db.Uuid
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime                @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime?               @map("deleted_at") @db.Timestamptz
+  programId          String                  @map("program_id") @db.Uuid
+  teachingHourId     String                  @map("teaching_hour_id") @db.Uuid
+  unitId             String                  @map("unit_id") @db.Uuid
+  assessmentId       String?                 @map("assessment_id") @db.Uuid
+  sourceKey          String                  @map("source_key")
+  sequence           Int
+  durationMinutes    Int                     @map("duration_minutes")
+  kind               ProgramActivityKind
+  title              String
+  sourceCode         String?                 @map("source_code")
+  descriptionPending Boolean                 @default(false) @map("description_pending")
+  teachingHour       TeachingHour            @relation(fields: [programId, teachingHourId], references: [programId, id], onDelete: Restrict)
+  unit               ProgramUnit             @relation(fields: [programId, unitId], references: [programId, id], onDelete: Restrict)
+  assessment         ProgramAssessment?      @relation(fields: [unitId, assessmentId], references: [unitId, id], onDelete: Restrict)
+  lessons            ProgramActivityLesson[]
+  plannedItems       StagePlanItem[]
+
+  @@unique([programId, sourceKey])
+  @@unique([programId, sequence])
+  @@index([programId, teachingHourId])
+  @@index([programId, unitId])
+  @@index([unitId, assessmentId])
+}
+
+model ProgramActivityLesson {
+  id         String          @id @default(uuid()) @db.Uuid
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt  DateTime?       @map("deleted_at") @db.Timestamptz
+  activityId String          @map("activity_id") @db.Uuid
+  lessonId   String          @map("lesson_id") @db.Uuid
+  part       String          @default("")
+  activity   ProgramActivity @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  lesson     BookLesson      @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+
+  @@unique([activityId, lessonId, part])
+  @@index([lessonId])
 }
