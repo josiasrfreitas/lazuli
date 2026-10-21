@@ -7,8 +7,8 @@ export type FinanceContract = RouterOutputs["finance"]["studentSummary"]["contra
 export type FinanceSchedule = FinanceContract["schedules"][number];
 
 export function ContractInvoice({ contract }: { contract: FinanceContract }): ReactElement {
-  const rows = [...contract.schedules].sort(
-    (a, b) => Number(b.kind === "TUITION") - Number(a.kind === "TUITION"),
+  const rows = [...contract.schedules].toSorted(
+    (left, right) => Number(right.kind === "TUITION") - Number(left.kind === "TUITION"),
   );
   const tuition = rows.find((row) => row.kind === "TUITION");
   const gross = rows.reduce((sum, row) => sum + itemAmount(row), 0);
@@ -64,17 +64,19 @@ export function ContractInvoice({ contract }: { contract: FinanceContract }): Re
   );
 }
 function InvoiceItem({ item }: { item: FinanceSchedule }): ReactElement {
-  const c = item.collection;
+  const collectionValue = item.collection;
   const status =
-    c.overdueCount > 0
+    collectionValue.overdueCount > 0
       ? { label: "Em atraso", variant: "destructive" as const }
-      : c.balanceCents === 0 && c.paidCount > 0 && c.waivedCount > 0
+      : collectionValue.balanceCents === 0 &&
+          collectionValue.paidCount > 0 &&
+          collectionValue.waivedCount > 0
         ? { label: "Sem saldo", variant: "neutral" as const }
-        : c.balanceCents === 0 && c.paidCount > 0
+        : collectionValue.balanceCents === 0 && collectionValue.paidCount > 0
           ? { label: "Quitado", variant: "success" as const }
-          : c.balanceCents === 0 && c.waivedCount > 0
+          : collectionValue.balanceCents === 0 && collectionValue.waivedCount > 0
             ? { label: "Dispensado", variant: "neutral" as const }
-            : c.receivedCents > 0
+            : collectionValue.receivedCents > 0
               ? { label: "Parcial", variant: "warning" as const }
               : { label: "A receber", variant: "neutral" as const };
   const card =
@@ -107,7 +109,8 @@ function InvoiceItem({ item }: { item: FinanceSchedule }): ReactElement {
           {item.kind === "MATERIAL" && item.firstDueDate && (
             <p className="text-muted-foreground">
               Recebimento único
-              {c.balanceCents > 0 && ` · previsto para ${formatDateOnlyBR(item.firstDueDate)}`}
+              {collectionValue.balanceCents > 0 &&
+                ` · previsto para ${formatDateOnlyBR(item.firstDueDate)}`}
             </p>
           )}
         </div>
@@ -131,13 +134,15 @@ function InvoiceItem({ item }: { item: FinanceSchedule }): ReactElement {
         <div className="grid gap-1 text-caption text-muted-foreground">
           <p>
             {item.kind === "TUITION"
-              ? c.waivedCount > 0
-                ? `${c.paidCount} pagas · ${c.waivedCount} dispensadas`
-                : `${c.paidCount} de ${c.count} mensalidades pagas`
-              : `${money(c.receivedCents)} recebido`}
+              ? collectionValue.waivedCount > 0
+                ? `${collectionValue.paidCount} pagas · ${collectionValue.waivedCount} dispensadas`
+                : `${collectionValue.paidCount} de ${collectionValue.count} mensalidades pagas`
+              : `${money(collectionValue.receivedCents)} recebido`}
           </p>
-          {c.balanceCents > 0 && (
-            <p className="font-numeric text-sm tabular-nums">Saldo {money(c.balanceCents)}</p>
+          {collectionValue.balanceCents > 0 && (
+            <p className="font-numeric text-sm tabular-nums">
+              Saldo {money(collectionValue.balanceCents)}
+            </p>
           )}
         </div>
       </div>
@@ -164,11 +169,11 @@ export function itemAmount(schedule: FinanceSchedule): number {
   return schedule.material?.chargedAmountCents ?? schedule.totalCents;
 }
 export function paymentTerms(schedule: FinanceSchedule): string {
-  const m = schedule.material;
-  if (m?.chargedAmountCents != null)
-    return m.payment === "INSTALLMENTS"
-      ? `${m.quotedInstallments} × ${money(m.quotedInstallmentCents)}`
-      : `${money(m.chargedAmountCents)} à vista`;
+  const materialValue = schedule.material;
+  if (materialValue?.chargedAmountCents != null)
+    return materialValue.payment === "INSTALLMENTS"
+      ? `${materialValue.quotedInstallments} × ${money(materialValue.quotedInstallmentCents)}`
+      : `${money(materialValue.chargedAmountCents)} à vista`;
   return schedule.uniformAmountCents === null
     ? "Parcelas com valores variáveis"
     : `${schedule.installmentCount} × ${money(schedule.uniformAmountCents)}`;

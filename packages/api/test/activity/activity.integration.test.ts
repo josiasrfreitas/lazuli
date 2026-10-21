@@ -163,15 +163,15 @@ void it("keeps cursor order for simultaneous events while new activity arrives",
   assert.equal(second.nextCursor, null);
   const combined = [...first.rows, ...second.rows];
   assert.deepEqual(
-    combined.map((row) => row.subjectName).sort(),
+    combined.map((row) => row.subjectName).toSorted(),
     ["First", "Second", "Third"].map((name) => `${prefix}${name}`),
   );
   assert.deepEqual(
     combined.map((row) => row.id),
     combined
       .map((row) => row.id)
-      .sort()
-      .reverse(),
+      .toSorted()
+      .toReversed(),
   );
   const refreshed = await later.activity.list({ search: prefix, pageSize: 2 });
   assert.equal(refreshed.total, 4);

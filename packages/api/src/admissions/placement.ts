@@ -278,7 +278,8 @@ export async function recordPlacementResult({
   const latest = await latestPlacement(database, visit.candidateId);
   if (latest?.id !== visit.id)
     throw badRequest("Registre o resultado no atendimento mais recente.");
-  if (!(await admissionStages(database)).some((stage) => stage.id === values.stageId))
+  const activeStages = await admissionStages(database);
+  if (!activeStages.some((stage) => stage.id === values.stageId))
     throw badRequest("Escolha um estágio ativo.");
   await database.entryVisitAssessment.update({
     where: { visitId: visit.id },

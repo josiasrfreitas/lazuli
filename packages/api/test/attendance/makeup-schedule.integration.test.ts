@@ -11,11 +11,11 @@ after(async () => {
 });
 
 void it("schedules the compatibility makeup with verified origins, same-day notice and attributed appointment evidence", async () => {
-  const f = await appointmentFixture(harness);
-  const result = await harness.caller(undefined, f.before).attendance.scheduleMakeup({
-    originEnrollmentId: f.enrollmentId,
-    targetClassSessionId: f.targetId,
-    coverages: f.input.coverages,
+  const fixtureData = await appointmentFixture(harness);
+  const result = await harness.caller(undefined, fixtureData.before).attendance.scheduleMakeup({
+    originEnrollmentId: fixtureData.enrollmentId,
+    targetClassSessionId: fixtureData.targetId,
+    coverages: fixtureData.input.coverages,
     plannedContent: "Revisão orientada.",
   });
   const row = await db.makeup.findUniqueOrThrow({
@@ -23,95 +23,117 @@ void it("schedules the compatibility makeup with verified origins, same-day noti
     include: { appointment: true },
   });
   assert.equal(row.scheduledById, harness.ns.admin.id);
-  assert.equal(row.targetClassSessionId, f.targetId);
-  assert.equal(row.appointment?.studentId, f.studentId);
+  assert.equal(row.targetClassSessionId, fixtureData.targetId);
+  assert.equal(row.appointment?.studentId, fixtureData.studentId);
   assert.equal(row.appointment?.plannedContent, "Revisão orientada.");
   assert.equal(
     await db.makeupCoverage.count({
-      where: { appointmentId: row.appointment!.id, attendanceId: f.absence.id },
+      where: { appointmentId: row.appointment!.id, attendanceId: fixtureData.absence.id },
     }),
     1,
   );
   await assert.rejects(
-    harness.caller(undefined, f.before).attendance.scheduleMakeup({
-      originEnrollmentId: f.enrollmentId,
-      targetClassSessionId: f.targetId,
-      coverages: f.input.coverages,
+    harness.caller(undefined, fixtureData.before).attendance.scheduleMakeup({
+      originEnrollmentId: fixtureData.enrollmentId,
+      targetClassSessionId: fixtureData.targetId,
+      coverages: fixtureData.input.coverages,
     }),
     { code: "BAD_REQUEST", message: /Já existe/ },
   );
 });
 void it("rejects elapsed or cancelled targets without leaving either kind of booking", async () => {
-  const f = await appointmentFixture(harness);
+  const fixtureData = await appointmentFixture(harness);
   const input = {
-    originEnrollmentId: f.enrollmentId,
-    targetClassSessionId: f.targetId,
-    coverages: f.input.coverages,
+    originEnrollmentId: fixtureData.enrollmentId,
+    targetClassSessionId: fixtureData.targetId,
+    coverages: fixtureData.input.coverages,
   };
-  await assert.rejects(harness.caller(undefined, f.after).attendance.scheduleMakeup(input), {
-    code: "BAD_REQUEST",
-    message: /ainda não começou/,
-  });
+  await assert.rejects(
+    harness.caller(undefined, fixtureData.after).attendance.scheduleMakeup(input),
+    {
+      code: "BAD_REQUEST",
+      message: /ainda não começou/,
+    },
+  );
   await db.classSession.update({
-    where: { id: f.targetId },
-    data: { status: "CANCELLED", cancelledAt: f.before, cancelReason: "Cancelada no cenário" },
+    where: { id: fixtureData.targetId },
+    data: {
+      status: "CANCELLED",
+      cancelledAt: fixtureData.before,
+      cancelReason: "Cancelada no cenário",
+    },
   });
-  await assert.rejects(harness.caller(undefined, f.before).attendance.scheduleMakeup(input), {
-    code: "BAD_REQUEST",
-    message: /não está disponível/,
-  });
-  assert.equal(await db.makeup.count({ where: { originEnrollmentId: f.enrollmentId } }), 0);
-  assert.equal(await db.pedagogicalAppointment.count({ where: { studentId: f.studentId } }), 0);
+  await assert.rejects(
+    harness.caller(undefined, fixtureData.before).attendance.scheduleMakeup(input),
+    {
+      code: "BAD_REQUEST",
+      message: /não está disponível/,
+    },
+  );
+  assert.equal(
+    await db.makeup.count({ where: { originEnrollmentId: fixtureData.enrollmentId } }),
+    0,
+  );
+  assert.equal(
+    await db.pedagogicalAppointment.count({ where: { studentId: fixtureData.studentId } }),
+    0,
+  );
 });
 void it("rejects unknown and foreign origins and an overlap with the student's own class", async () => {
-  const f = await appointmentFixture(harness);
+  const fixtureData = await appointmentFixture(harness);
   const input = {
-    originEnrollmentId: f.enrollmentId,
-    targetClassSessionId: f.targetId,
-    coverages: f.input.coverages,
+    originEnrollmentId: fixtureData.enrollmentId,
+    targetClassSessionId: fixtureData.targetId,
+    coverages: fixtureData.input.coverages,
   };
   await assert.rejects(
     harness
-      .caller(undefined, f.before)
+      .caller(undefined, fixtureData.before)
       .attendance.scheduleMakeup({ ...input, originEnrollmentId: randomUUID() }),
     { code: "NOT_FOUND" },
   );
   await assert.rejects(
     harness
-      .caller(undefined, f.before)
+      .caller(undefined, fixtureData.before)
       .attendance.scheduleMakeup({ ...input, targetClassSessionId: randomUUID() }),
     { code: "NOT_FOUND" },
   );
   await assert.rejects(
-    harness.caller(undefined, f.before).attendance.scheduleMakeup({
+    harness.caller(undefined, fixtureData.before).attendance.scheduleMakeup({
       ...input,
       coverages: [{ attendanceId: randomUUID(), minutes: 120 }],
     }),
     { code: "BAD_REQUEST", message: /matrícula de origem/ },
   );
   const ownSession = await harness.createSession({
-    classId: f.classId,
+    classId: fixtureData.classId,
     date: harness.ns.afterSessionDate,
   });
   await assert.rejects(
-    harness.caller(undefined, f.before).attendance.scheduleMakeup({
+    harness.caller(undefined, fixtureData.before).attendance.scheduleMakeup({
       ...input,
       targetClassSessionId: ownSession,
       reason: "Aula extra",
     }),
     { code: "BAD_REQUEST", message: /aluno já tem aula/ },
   );
-  assert.equal(await db.makeup.count({ where: { originEnrollmentId: f.enrollmentId } }), 0);
+  assert.equal(
+    await db.makeup.count({ where: { originEnrollmentId: fixtureData.enrollmentId } }),
+    0,
+  );
 });
 void it("keeps scheduling administrative", async () => {
-  const f = await appointmentFixture(harness);
+  const fixtureData = await appointmentFixture(harness);
   await assert.rejects(
-    harness.caller(harness.ns.teacher, f.before).attendance.scheduleMakeup({
-      originEnrollmentId: f.enrollmentId,
-      targetClassSessionId: f.targetId,
-      coverages: f.input.coverages,
+    harness.caller(harness.ns.teacher, fixtureData.before).attendance.scheduleMakeup({
+      originEnrollmentId: fixtureData.enrollmentId,
+      targetClassSessionId: fixtureData.targetId,
+      coverages: fixtureData.input.coverages,
     }),
     { code: "FORBIDDEN" },
   );
-  assert.equal(await db.makeup.count({ where: { originEnrollmentId: f.enrollmentId } }), 0);
+  assert.equal(
+    await db.makeup.count({ where: { originEnrollmentId: fixtureData.enrollmentId } }),
+    0,
+  );
 });

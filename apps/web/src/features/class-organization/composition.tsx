@@ -21,7 +21,7 @@ import {
   type OrganizationAction,
   type SemesterBoard,
 } from "./model";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
 
 export function Composition({
   plan,
@@ -55,9 +55,9 @@ export function Composition({
     },
   });
   return (
-    <aside className={s.panel} aria-label={`Alunos de ${plan.name}`}>
-      <header className={s.panelHeader}>
-        <div className={s.row}>
+    <aside className={styles.panel} aria-label={`Alunos de ${plan.name}`}>
+      <header className={styles.panelHeader}>
+        <div className={styles.row}>
           <Button size="sm" variant="ghost" onClick={onBack}>
             <ArrowLeft size={14} /> Pendências
           </Button>
@@ -113,13 +113,13 @@ export function Composition({
           </Popover>
         </div>
         <h2>{plan.name}</h2>
-        <p className={s.small}>
+        <p className={styles.small}>
           {plan.scheduleType === "PERSONALIZED"
             ? "Estágios individuais"
             : stageLabel(plan.stageCode)}{" "}
           · {scheduleLabel(plan.slots)}
         </p>
-        <p className={s.small}>
+        <p className={styles.small}>
           {plan.teacherName ?? "Professor a definir"} ·{" "}
           {plan.format === "ONLINE" ? "Online" : "Presencial"} ·{" "}
           {plan.active ? (plan.classId ? `${health.count} alunos` : "Em formação") : "Encerrada"}
@@ -131,7 +131,7 @@ export function Composition({
         )}
       </header>
       {leaving.length > 0 && (
-        <div className={s.note}>
+        <div className={styles.note}>
           <strong>
             {leaving.length} {leaving.length === 1 ? "possível saída" : "possíveis saídas"}
           </strong>
@@ -142,12 +142,12 @@ export function Composition({
           </p>
         </div>
       )}
-      <div className={s.scroll}>
+      <div className={styles.scroll}>
         {rows.map((row) => (
           <button
             key={row.id}
             type="button"
-            className={s.queueItem}
+            className={styles.queueItem}
             disabled={ended}
             onClick={() =>
               onAction(
@@ -157,17 +157,19 @@ export function Composition({
               )
             }
           >
-            <span className={s.person}>
+            <span className={styles.person}>
               <strong>{row.studentName}</strong>
               <Badge variant="neutral">Aluno da escola</Badge>
-              <span className={`${s.small} ${row.continuity === "LEAVING" ? s.attention : ""}`}>
+              <span
+                className={`${styles.small} ${row.continuity === "LEAVING" ? styles.attention : ""}`}
+              >
                 {stageLabel(row.stageCode)} ·{" "}
                 {row.publishedAt || row.sourceClassId
                   ? continuityLabel(row, board)
                   : "Nova entrada"}
               </span>
               {!row.publishedAt && (
-                <span className={s.small}>
+                <span className={styles.small}>
                   {row.blockers.length > 0 ? "Alocação a revisar" : "Pronto para confirmar"}
                 </span>
               )}
@@ -176,19 +178,19 @@ export function Composition({
           </button>
         ))}
         {leads.map((lead) => (
-          <Link key={lead.id} href={`/interessados/${lead.id}`} className={s.queueItem}>
-            <span className={s.person}>
+          <Link key={lead.id} href={`/interessados/${lead.id}`} className={styles.queueItem}>
+            <span className={styles.person}>
               <strong>{lead.fullName}</strong>
-              <span className={s.queueMeta}>
+              <span className={styles.queueMeta}>
                 <Badge variant="info">Lead</Badge>
-                <span className={s.small}>Finalizar matrícula</span>
+                <span className={styles.small}>Finalizar matrícula</span>
               </span>
             </span>
             <ChevronRight size={14} />
           </Link>
         ))}
         {rows.length === 0 && leads.length === 0 && (
-          <div className={s.empty}>
+          <div className={styles.empty}>
             <h3>A turma está pronta para receber alunos</h3>
             <p>Escolha uma pessoa nas pendências ou adicione um aluno.</p>
             <Button size="sm" variant="secondary" onClick={onBack}>
@@ -198,12 +200,12 @@ export function Composition({
         )}
       </div>
       {publish.error && (
-        <p role="alert" className={s.error}>
+        <p role="alert" className={styles.error}>
           {publish.error.message}
         </p>
       )}
       {!ended && plan.active && (
-        <footer className={s.selection}>
+        <footer className={styles.selection}>
           {ready.length > 0 ? (
             <Button
               size="sm"
@@ -221,7 +223,7 @@ export function Composition({
                 : `Confirmar ${ready.length} ${ready.length === 1 ? "alocação" : "alocações"}`}
             </Button>
           ) : plan.classId ? (
-            <p className={s.small}>
+            <p className={styles.small}>
               Selecione um aluno para registrar continuidade, troca ou possível saída.
             </p>
           ) : (

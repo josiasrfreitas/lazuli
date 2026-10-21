@@ -9,11 +9,13 @@ const RESULT_LIMIT = 6;
 function relevance(field: RawBuilder<unknown>, query: string): RawBuilder<number> {
   const text = normalizedKysely(field);
   const needle = normalizeSearch(query);
-  return sql<number>`case
-    when ${text} = ${needle} then 1000
-    when ${text} like ${`${needle}%`} then 800
-    when strpos(${text}, ${needle}) > 0 then 600
-    else word_similarity(${needle}, ${text}) * 400 end`;
+  return sql<number>`
+    case
+        when ${text} = ${needle} then 1000
+        when ${text} like ${`${needle}%`} then 800
+        when strpos(${text}, ${needle}) > 0 then 600
+        else word_similarity(${needle}, ${text}) * 400 end
+  `;
 }
 
 /** Bounded, read-only lookup. No document numbers, contact details or financial balances. */

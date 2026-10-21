@@ -1,6 +1,6 @@
 type DatedAppointment = { id: string; date: string; startTime: string; status: string };
 export function sortStudentAppointments<T extends DatedAppointment>(rows: readonly T[]): T[] {
-  return [...rows].sort((left, right) => {
+  return [...rows].toSorted((left, right) => {
     const scheduled = Number(right.status === "SCHEDULED") - Number(left.status === "SCHEDULED");
     if (scheduled) return scheduled;
     const chronological =

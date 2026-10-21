@@ -113,7 +113,7 @@ export function ContractMaterialSection({
                     onClick={() =>
                       change(
                         "materialStageIds",
-                        selectedStages.filter((_, position) => position !== index).join(","),
+                        selectedStages.filter((_unused, position) => position !== index).join(","),
                       )
                     }
                   >

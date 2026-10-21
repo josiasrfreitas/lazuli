@@ -19,7 +19,7 @@ import {
 } from "~/features/semester-organization/shared";
 import { NewStudentDialog } from "~/features/students/new-student/new-student-dialog";
 import type { OrganizationAction, Placement, SemesterBoard } from "./model";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
 import { ClosureForm, PeriodForm, HolidayForm } from "./calendar-forms";
 import { RenewalDialog } from "./renewal";
 import { ContinuityDialog, PlanStatusDialog } from "./continuity";
@@ -39,11 +39,12 @@ export function OrganizationDialogs(props: Props) {
   const [invalidate, setInvalidate] = useState<string | null>(null);
   const refresh = useOrganizationRefresh();
   switch (action.kind) {
-    case "continuity":
+    case "continuity": {
       return (
         <ContinuityDialog row={action.row} board={board} onClose={onClose} onAction={onAction} />
       );
-    case "planStatus":
+    }
+    case "planStatus": {
       return (
         <PlanStatusDialog
           plan={action.plan}
@@ -52,7 +53,8 @@ export function OrganizationDialogs(props: Props) {
           onFeedback={props.onFeedback}
         />
       );
-    case "renew":
+    }
+    case "renew": {
       return (
         <RenewalDialog
           contractId={action.contractId}
@@ -64,7 +66,8 @@ export function OrganizationDialogs(props: Props) {
           }
         />
       );
-    case "plan":
+    }
+    case "plan": {
       return (
         <ClassPlanForm
           semesterId={board.semester.id}
@@ -74,9 +77,11 @@ export function OrganizationDialogs(props: Props) {
           onSaved={props.onPlan}
         />
       );
-    case "newSemester":
+    }
+    case "newSemester": {
       return <SemesterForm onClose={onClose} onSaved={props.onSemester} />;
-    case "placement":
+    }
+    case "placement": {
       return (
         <PlacementForm
           studentId={action.studentId}
@@ -86,22 +91,15 @@ export function OrganizationDialogs(props: Props) {
           onClose={onClose}
         />
       );
-    case "withdraw":
+    }
+    case "withdraw": {
       return <ReasonDialog action="withdraw" row={action.row} board={board} onClose={onClose} />;
-    case "history":
+    }
+    case "history": {
       return <PlacementHistory row={action.row} onClose={onClose} />;
+    }
     case "availability": {
-      const intent = board.intents.find((item) => item.studentId === action.studentId);
-      const row =
-        board.placements.find((item) => item.studentId === action.studentId) ??
-        (intent
-          ? {
-              id: intent.id,
-              version: 0,
-              studentId: intent.studentId,
-              studentName: intent.studentName,
-            }
-          : undefined);
+      const row = availabilitySubject(board, action.studentId);
       return invalidate && row ? (
         <ReasonDialog
           action="invalidate"
@@ -120,19 +118,24 @@ export function OrganizationDialogs(props: Props) {
       );
     }
     case "move":
-    case "decline":
+    case "decline": {
       return <MovementForm {...props} rows={action.rows} decline={action.kind === "decline"} />;
-    case "closure":
+    }
+    case "closure": {
       return (
         <ClosureForm {...props} initialDate={action.date ?? dateOnly(board.semester.startDate)} />
       );
-    case "period":
+    }
+    case "period": {
       return <PeriodForm {...props} />;
-    case "holidays":
+    }
+    case "holidays": {
       return <HolidayForm {...props} />;
-    case "findStudent":
+    }
+    case "findStudent": {
       return <FindStudent board={board} onClose={onClose} onAction={onAction} />;
-    case "student":
+    }
+    case "student": {
       return (
         <NewStudentDialog
           open
@@ -147,7 +150,26 @@ export function OrganizationDialogs(props: Props) {
           }}
         />
       );
+    }
   }
+}
+
+function availabilitySubject(
+  board: SemesterBoard,
+  studentId: string,
+): Pick<Placement, "id" | "version" | "studentId" | "studentName"> | undefined {
+  const intent = board.intents.find((item) => item.studentId === studentId);
+  return (
+    board.placements.find((item) => item.studentId === studentId) ??
+    (intent
+      ? {
+          id: intent.id,
+          version: 0,
+          studentId: intent.studentId,
+          studentName: intent.studentName,
+        }
+      : undefined)
+  );
 }
 
 function MovementForm({
@@ -167,7 +189,7 @@ function MovementForm({
   const [planId, setPlanId] = useState("planId" in action ? (action.planId ?? "") : "");
   const [date, setDate] = useState(
     formatDateOnlyBR(
-      [dateOnly(board.semester.startDate), toDateOnlySaoPaulo(new Date())].sort().at(-1),
+      [dateOnly(board.semester.startDate), toDateOnlySaoPaulo(new Date())].toSorted().at(-1),
     ),
   );
   const [reason, setReason] = useState("");
@@ -197,7 +219,7 @@ function MovementForm({
       bodyRef={validation.body}
     >
       <form
-        className={s.form}
+        className={styles.form}
         id="organization-movement"
         noValidate
         onSubmit={(event) => {
@@ -234,11 +256,11 @@ function MovementForm({
           }
         }}
       >
-        <div className={s.summary}>
+        <div className={styles.summary}>
           {rows.map((row) => (
-            <div className={s.row} key={row.id}>
+            <div className={styles.row} key={row.id}>
               <strong>{row.studentName}</strong>
-              <span className={s.small}>
+              <span className={styles.small}>
                 {row.stageCode} ·{" "}
                 {board.plans.find((plan) => plan.id === row.planId)?.name ?? "Sem turma"}
               </span>
@@ -246,7 +268,7 @@ function MovementForm({
           ))}
         </div>
         {decline ? (
-          <p className={s.small}>
+          <p className={styles.small}>
             Retira a continuidade deste semestre. O vínculo atual e os contratos permanecem sujeitos
             às suas próprias datas e condições.
           </p>
@@ -263,7 +285,9 @@ function MovementForm({
                 if (period)
                   setDate(
                     formatDateOnlyBR(
-                      [dateOnly(period.startDate), toDateOnlySaoPaulo(new Date())].sort().at(-1),
+                      [dateOnly(period.startDate), toDateOnlySaoPaulo(new Date())]
+                        .toSorted()
+                        .at(-1),
                     ),
                   );
               }}
@@ -272,7 +296,7 @@ function MovementForm({
                 .map((period) => ({ value: period.id, label: period.name }))}
             />
             {targetQuery.error && (
-              <p role="alert" className={s.attention}>
+              <p role="alert" className={styles.attention}>
                 {targetQuery.error.message}
               </p>
             )}
@@ -300,7 +324,7 @@ function MovementForm({
                 error={validation.errors.effectiveDate}
               />
             </div>
-            <p className={s.small}>
+            <p className={styles.small}>
               O aluno permanece na turma atual até a vigência. A revisão mostra incompatibilidades
               antes da confirmação.
             </p>
@@ -348,7 +372,7 @@ function FindStudent({
     >
       <form
         id="organization-find"
-        className={s.form}
+        className={styles.form}
         onSubmit={(event) => {
           event.preventDefault();
           onAction({ kind: "student" });
@@ -367,18 +391,18 @@ function FindStudent({
         />
         <div className="min-h-48 max-h-80 overflow-auto" aria-busy={query.isFetching}>
           {query.isPending ? (
-            <p className={s.small}>Carregando alunos…</p>
+            <p className={styles.small}>Carregando alunos…</p>
           ) : (
             query.data?.rows.map((student) => (
               <button
                 type="button"
-                className={s.queueItem}
+                className={styles.queueItem}
                 key={student.id}
                 onClick={() => onAction({ kind: "placement", studentId: student.id })}
               >
-                <span className={s.person}>
+                <span className={styles.person}>
                   <strong>{student.name}</strong>
-                  <span className={s.small}>
+                  <span className={styles.small}>
                     {student.current
                       .map((current) => `${current.stageCode} · ${current.className}`)
                       .join(" / ") || "Sem turma atual"}
@@ -389,11 +413,11 @@ function FindStudent({
             ))
           )}
           {query.data?.rows.length === 0 && (
-            <p className={s.small}>Nenhum aluno encontrado. Você pode cadastrar um novo.</p>
+            <p className={styles.small}>Nenhum aluno encontrado. Você pode cadastrar um novo.</p>
           )}
         </div>
         {query.data && query.data.total > 25 && (
-          <div className={s.row}>
+          <div className={styles.row}>
             <Button
               size="sm"
               variant="ghost"
@@ -402,7 +426,7 @@ function FindStudent({
             >
               Anterior
             </Button>
-            <span className={s.small}>Página {page}</span>
+            <span className={styles.small}>Página {page}</span>
             <Button
               size="sm"
               variant="ghost"

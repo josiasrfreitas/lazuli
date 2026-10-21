@@ -125,7 +125,8 @@ async function seedLegacyAppointments(context: AppointmentSeedContext): Promise<
 async function seedPartialCoverage(context: AppointmentSeedContext): Promise<number> {
   const enrollment = await scenarioEnrollment(context, 104);
   if (!enrollment) return 0;
-  const source = (await scenarioAbsences(context, enrollment)).find((row) => row.minutes === 90);
+  const absences = await scenarioAbsences(context, enrollment);
+  const source = absences.find((row) => row.minutes === 90);
   if (!source) return 0;
   const attended = await findAppointmentSlot(context, {
     enrollment,
@@ -178,9 +179,8 @@ async function seedPartialCoverage(context: AppointmentSeedContext): Promise<num
 async function seedRescheduledCoverage(context: AppointmentSeedContext): Promise<number> {
   const enrollment = await scenarioEnrollment(context, 73);
   if (!enrollment) return 0;
-  const source = (await scenarioAbsences(context, enrollment, 14)).find(
-    (row) => row.minutes === 90,
-  );
+  const absences = await scenarioAbsences(context, enrollment, 14);
+  const source = absences.find((row) => row.minutes === 90);
   if (!source) return 0;
   const previous = await findAppointmentSlot(context, {
     enrollment,
@@ -233,7 +233,8 @@ async function seedRescheduledCoverage(context: AppointmentSeedContext): Promise
 async function seedNoShowCoverage(context: AppointmentSeedContext): Promise<number> {
   const enrollment = await scenarioEnrollment(context, 121);
   if (!enrollment) return 0;
-  const source = (await scenarioAbsences(context, enrollment)).find((row) => row.minutes === 90);
+  const absences = await scenarioAbsences(context, enrollment);
+  const source = absences.find((row) => row.minutes === 90);
   if (!source) return 0;
   const slot = await findAppointmentSlot(context, {
     enrollment,
@@ -258,9 +259,8 @@ async function seedNoShowCoverage(context: AppointmentSeedContext): Promise<numb
 async function seedMultipleCoverage(context: AppointmentSeedContext): Promise<number> {
   const enrollment = await scenarioEnrollment(context, 102);
   if (!enrollment) return 0;
-  const sources = (await scenarioAbsences(context, enrollment))
-    .filter((row) => row.minutes === 90)
-    .slice(0, 2);
+  const absences = await scenarioAbsences(context, enrollment);
+  const sources = absences.filter((row) => row.minutes === 90).slice(0, 2);
   if (sources.length !== 2) return 0;
   const slot = await findAppointmentSlot(context, {
     enrollment,

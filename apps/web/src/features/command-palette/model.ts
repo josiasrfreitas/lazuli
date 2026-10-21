@@ -1,5 +1,7 @@
 import { normalizeSearch } from "@lazuli/domain";
 
+const MILLISECONDS_PER_DAY = 86_400_000;
+
 export type CommandKind = "page" | "student" | "teacher" | "class" | "lead" | "action";
 export type CommandIcon = CommandKind | "finance" | "pedagogy" | "calendar" | "contract";
 export type CommandAction = {
@@ -143,12 +145,16 @@ export function rankCommands(
       if (signal) {
         score += Math.min(40, Math.log2(1 + Math.max(0, signal.frequency)) * 8);
         if (signal.lastUsedAt && context.now)
-          score += Math.max(0, 20 - (context.now - signal.lastUsedAt) / 86_400_000);
+          score += Math.max(0, 20 - (context.now - signal.lastUsedAt) / MILLISECONDS_PER_DAY);
       }
       return { command, score };
     })
     .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score || a.command.id.localeCompare(b.command.id))
+    .toSorted(
+      (comparedLeft, comparedRight) =>
+        comparedRight.score - comparedLeft.score ||
+        comparedLeft.command.id.localeCompare(comparedRight.command.id),
+    )
     .map(({ command }) => command)
     .slice(0, 16);
 }

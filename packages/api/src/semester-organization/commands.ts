@@ -14,6 +14,8 @@ import { badRequest, notFound } from "../trpc/errors.js";
 import { recordActivity } from "../activity/record.js";
 import { lockStudentEnrollment } from "../enrollment/data.js";
 
+const MILLISECONDS_PER_DAY = 86_400_000;
+
 const selection = z
   .array(z.object({ id: z.string().uuid(), version: z.number().int() }))
   .min(1)
@@ -39,7 +41,7 @@ export async function movePlacements(
 ) {
   for (const id of [
     ...new Set([input.semesterId, input.targetSemesterId ?? input.semesterId]),
-  ].sort())
+  ].toSorted())
     await lockSemester(context, id);
   if (input.targetSemesterId && input.targetSemesterId !== input.semesterId)
     return moveToSemester(context, input);
@@ -197,7 +199,8 @@ export const closedRangeSchema = z
   .refine(
     (value) =>
       value.from <= value.through &&
-      new Date(value.through).getTime() - new Date(value.from).getTime() <= 366 * 86_400_000,
+      new Date(value.through).getTime() - new Date(value.from).getTime() <=
+        366 * MILLISECONDS_PER_DAY,
     "Escolha um intervalo de até um ano.",
   );
 export async function closeRange(
@@ -208,7 +211,7 @@ export async function closeRange(
   for (
     let date = new Date(input.from);
     date <= new Date(input.through);
-    date = new Date(date.getTime() + 86_400_000)
+    date = new Date(date.getTime() + MILLISECONDS_PER_DAY)
   )
     dates.push(date);
   const result = await context.database.schoolClosedDay.createMany({

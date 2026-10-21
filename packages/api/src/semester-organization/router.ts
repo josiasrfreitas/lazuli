@@ -40,6 +40,9 @@ import {
   planLifecycleSchema,
   changePlanStatus,
 } from "./lifecycle.js";
+
+const ISO_DATE_LENGTH = 10;
+
 const context = (ctx: { db: Context["db"]; staffUser: StaffUser; now?: Date | undefined }) => ({
   database: ctx.db,
   staffUser: ctx.staffUser,
@@ -188,10 +191,10 @@ export const semesterOrganizationRouter = router({
             planId: result.id,
             selections: input.placements,
             effectiveDate: [
-              semester.startDate.toISOString().slice(0, 10),
+              semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH),
               saoPauloDateOnly(scoped.now),
             ]
-              .sort()
+              .toSorted()
               .at(-1)!,
             reason: "Turma formada a partir da fila de alocação.",
           });

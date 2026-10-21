@@ -8,8 +8,10 @@ import { matchAttendanceNames } from "@lazuli/domain";
 import { StudentNameField, StudentNameChoices } from "./student-fields";
 import { StudentReceipt } from "./receipt";
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+
 export function StudentAttendancePreview(): ReactJSX.Element {
-  const [expiresAt] = useState(() => new Date(Date.now() + 20 * 60_000));
+  const [expiresAt] = useState(() => new Date(Date.now() + 20 * MILLISECONDS_PER_MINUTE));
   const info = {
     sessionId: "00000000-0000-4000-8000-000000000001",
     className: "Essentials 1",

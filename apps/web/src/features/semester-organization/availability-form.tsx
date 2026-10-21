@@ -18,6 +18,9 @@ import {
 } from "./shared";
 import { SlotFields, type SlotDraft } from "./slot-fields";
 
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
+
 export function AvailabilityForm({
   studentId,
   board,
@@ -77,8 +80,8 @@ function AvailabilityFields({
   const prefilled = z.array(classScheduleSlotInputSchema).safeParse(previous?.slots);
   const leadSlots = data.lead?.availability.map((slot) => ({
     weekday: slot.weekday,
-    startTime: slot.startTime.toISOString().slice(11, 16),
-    endTime: slot.endTime.toISOString().slice(11, 16),
+    startTime: slot.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+    endTime: slot.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
   }));
   const [slots, setSlots] = useState<SlotDraft[]>(
     prefilled.success

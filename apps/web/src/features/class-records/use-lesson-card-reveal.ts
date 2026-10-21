@@ -25,8 +25,8 @@ export function useLessonCardReveal(dayWidth?: number, widthShare?: number) {
       const dayInset =
         day.getBoundingClientRect().width -
         lanes.getBoundingClientRect().width +
-        parseFloat(laneStyle.borderLeftWidth) +
-        parseFloat(laneStyle.borderRightWidth);
+        Number.parseFloat(laneStyle.borderLeftWidth) +
+        Number.parseFloat(laneStyle.borderRightWidth);
       const eventInset = event.getBoundingClientRect().width - card.getBoundingClientRect().width;
       // weeklyDayLayout reserves two pixels between lanes; retain the event's borders too.
       const width = (dayWidth - dayInset) * widthShare - 2 - eventInset;
@@ -45,7 +45,7 @@ export function useLessonCardReveal(dayWidth?: number, widthShare?: number) {
     const duration = Math.max(
       ...getComputedStyle(card)
         .transitionDuration.split(",")
-        .map((value) => parseFloat(value) * 1000),
+        .map((value) => Number.parseFloat(value) * 1000),
     );
     if (!duration || event.dataset.weekRevealed === "true") {
       reset();

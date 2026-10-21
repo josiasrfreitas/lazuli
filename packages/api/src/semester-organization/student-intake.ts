@@ -3,6 +3,9 @@ import { saoPauloDateOnly } from "@lazuli/domain";
 import type { AdmissionCandidate } from "../admissions/candidates.js";
 import { readSlots } from "./data.js";
 
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
+
 /** Keep the same lock order as allocation: period, teaching schedule, student. */
 export async function lockIntakeSemester(database: TransactionClient, now: Date) {
   const today = new Date(saoPauloDateOnly(now));
@@ -43,8 +46,8 @@ export async function syncStudentIntake(
   const stage = stageId ? await database.stage.findUnique({ where: { id: stageId } }) : null;
   const slots = (enrollment?.class.scheduleSlots ?? candidate?.availability ?? []).map((slot) => ({
     weekday: slot.weekday,
-    startTime: slot.startTime.toISOString().slice(11, 16),
-    endTime: slot.endTime.toISOString().slice(11, 16),
+    startTime: slot.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+    endTime: slot.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
   }));
   const available = await database.studentAvailability.findFirst({
     where: { semesterId: semester.id, studentId, deletedAt: null },

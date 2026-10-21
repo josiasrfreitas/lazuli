@@ -54,7 +54,7 @@ export async function assertNoAppointmentConflict(input: {
         );
     if (overlaps)
       throw badRequest(
-        `Conflito com atendimento em ${row.date.split("-").reverse().join("/")}, ${row.startTime}–${row.endTime}.`,
+        `Conflito com atendimento em ${row.date.split("-").toReversed().join("/")}, ${row.startTime}–${row.endTime}.`,
       );
   }
 }

@@ -296,7 +296,7 @@ function TerminationForm({
                       id="termination-fee"
                       inputMode="decimal"
                       value={fee}
-                      onChange={(e) => setFee(e.target.value)}
+                      onChange={(changeEvent) => setFee(changeEvent.target.value)}
                     />
                   </Field>
                   <Field className="content-start">
@@ -316,7 +316,7 @@ function TerminationForm({
                       type="date"
                       min={preview.today}
                       value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
+                      onChange={(changeEvent) => setDueDate(changeEvent.target.value)}
                     />
                   </Field>
                 </div>

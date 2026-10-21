@@ -19,10 +19,12 @@ export function StudentAppointments({ studentId }: { studentId: string }): React
     through: monthBounds(shiftMonth(month, 1)).through,
   };
   const agenda = trpc.appointments.list.useQuery({ ...range, studentId });
-  const rows = [...(agenda.data ?? [])].sort(
-    (a, b) =>
-      Number(b.status === "SCHEDULED") - Number(a.status === "SCHEDULED") ||
-      (a.status === "SCHEDULED" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)),
+  const rows = [...(agenda.data ?? [])].toSorted(
+    (left, right) =>
+      Number(right.status === "SCHEDULED") - Number(left.status === "SCHEDULED") ||
+      (left.status === "SCHEDULED"
+        ? left.date.localeCompare(right.date)
+        : right.date.localeCompare(left.date)),
   );
   return (
     <section

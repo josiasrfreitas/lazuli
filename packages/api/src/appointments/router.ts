@@ -24,6 +24,8 @@ import {
 import { appointmentAvailability } from "./availability.js";
 import { listAbsences } from "./absences.js";
 
+const MILLISECONDS_PER_DAY = 86_400_000;
+
 export const appointmentsRouter = router({
   forStudent: staffProcedure
     .input(z.object({ studentId: z.string().uuid() }).strict())
@@ -94,7 +96,7 @@ export const appointmentsRouter = router({
           ({ date, through }) =>
             !through ||
             (through >= date &&
-              new Date(through).getTime() - new Date(date).getTime() <= 6 * 86_400_000),
+              new Date(through).getTime() - new Date(date).getTime() <= 6 * MILLISECONDS_PER_DAY),
           { message: "Consulte até uma semana de aulas." },
         ),
     )

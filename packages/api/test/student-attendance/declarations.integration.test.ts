@@ -60,15 +60,14 @@ void it("keeps a student's receipt separate from final attendance and preserves 
     where: { id: fixture.session.id },
   });
   assert.equal(unconfirmed.attendanceConfirmedAt, null);
+  const declarations = await db.attendanceDeclaration.findMany({
+    where: { classSessionId: fixture.session.id },
+    select: { id: true },
+  });
   const review = {
     sessionId: fixture.session.id,
     attendanceStamp: null,
-    declarationIds: (
-      await db.attendanceDeclaration.findMany({
-        where: { classSessionId: fixture.session.id },
-        select: { id: true },
-      })
-    ).map((row) => row.id),
+    declarationIds: declarations.map((row) => row.id),
     rows: fixture.students.map((row) => ({
       enrollmentId: row.enrollmentId,
       status: "PRESENT" as const,
@@ -81,15 +80,12 @@ void it("keeps a student's receipt separate from final attendance and preserves 
     );
   }
   assert.equal(await db.attendance.count({ where: { classSessionId: fixture.session.id } }), 0);
-  assert.equal(
-    (await db.classSession.findUniqueOrThrow({ where: { id: fixture.session.id } }))
-      .attendanceConfirmedAt,
-    null,
-  );
-  assert.equal(
-    (await db.attendanceWindow.findUniqueOrThrow({ where: { id: window.id } })).closedAt,
-    null,
-  );
+  const unconfirmedSession = await db.classSession.findUniqueOrThrow({
+    where: { id: fixture.session.id },
+  });
+  assert.equal(unconfirmedSession.attendanceConfirmedAt, null);
+  const openWindow = await db.attendanceWindow.findUniqueOrThrow({ where: { id: window.id } });
+  assert.equal(openWindow.closedAt, null);
   const content = {
     kind: "REVIEW" as const,
     account: "Retomamos a conversa sobre rotinas.",

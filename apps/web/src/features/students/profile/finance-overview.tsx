@@ -249,13 +249,17 @@ function BehaviorFact({ label, value }: { label: string; value: string }): React
 
 function behaviorLabel({ history }: StudentFinanceSummary): string {
   switch (history.paymentState) {
-    case "RECURRING_DELAY":
+    case "RECURRING_DELAY": {
       return "Atrasos recorrentes";
-    case "OCCASIONAL_DELAY":
+    }
+    case "OCCASIONAL_DELAY": {
       return "Atraso pontual nas quitações";
-    case "ON_TIME":
+    }
+    case "ON_TIME": {
       return "Pagamentos pontuais";
-    case "INSUFFICIENT_HISTORY":
+    }
+    case "INSUFFICIENT_HISTORY": {
       return "Histórico em formação";
+    }
   }
 }

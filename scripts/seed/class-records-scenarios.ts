@@ -9,6 +9,9 @@ import { recordActivity } from "../../packages/api/src/activity/record.js";
 import { addDays, isoOf, stableUuid } from "../../packages/db/src/seed-dev-support.js";
 import { sessionEndInstant } from "../../packages/domain/src/session-time.js";
 
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
+
 /** Existing grades, observations, visits and makeups remain independent evidence. */
 export async function safeAttendanceScenario(
   database: TransactionClient,
@@ -85,7 +88,7 @@ export async function cancelSeedSession(
     "classRecords.cancelSession",
     {
       subject: { type: "class", id: session.classId, name: session.class.portalClassName },
-      description: `${isoOf(session.date).split("-").reverse().join("/")} · Manutenção da sala; famílias avisadas previamente.`,
+      description: `${isoOf(session.date).split("-").toReversed().join("/")} · Manutenção da sala; famílias avisadas previamente.`,
       deduplicationKey: `seed-class-record-cancel/${session.id}`,
     },
   );
@@ -112,8 +115,12 @@ export async function seedSessionSubstitute(
         candidateMeetings: [
           {
             date,
-            startTime: session.startTime.toISOString().slice(11, 16),
-            endTime: session.endTime.toISOString().slice(11, 16),
+            startTime: session.startTime
+              .toISOString()
+              .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+            endTime: session.endTime
+              .toISOString()
+              .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
           },
         ],
         excludeMeeting: {
@@ -145,7 +152,7 @@ export async function seedSessionSubstitute(
     });
     await recordActivity(database, { staffUser: admin, now: recordedAt }, "teachers.substitute", {
       subject: { type: "class", id: session.classId, name: session.class.portalClassName },
-      description: `${teacher.name} ficou responsável pelo encontro de ${date.split("-").reverse().join("/")}.`,
+      description: `${teacher.name} ficou responsável pelo encontro de ${date.split("-").toReversed().join("/")}.`,
       deduplicationKey: `seed-class-record-substitution/${id}`,
     });
     return teacher;

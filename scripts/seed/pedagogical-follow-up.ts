@@ -280,7 +280,7 @@ async function relatedOccurrences(
   transaction: TransactionClient,
   context: ScenarioContext,
 ): Promise<void> {
-  const [fromId, toId] = context.occurrences.map((row) => row.id).sort();
+  const [fromId, toId] = context.occurrences.map((row) => row.id).toSorted();
   const createdAt = context.occurrences.at(-1)!.createdAt;
   const id = stableUuid(["dev-occurrence-relation", fromId!, toId!]);
   await transaction.occurrenceRelation.create({

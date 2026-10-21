@@ -32,6 +32,10 @@ import { CATEGORY, dateLabel } from "./shared";
 import { studentFollowUpHref } from "./student-navigation";
 import styles from "./occurrence-form.module.css";
 
+const ISO_DATE_LENGTH = 10;
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
+
 export function OccurrenceForm({
   onClose,
   student,
@@ -174,9 +178,13 @@ export function OccurrenceForm({
                 {...(hours ? { hours } : {})}
                 events={(sessions.data ?? []).map((row) => ({
                   id: row.id,
-                  date: row.date.toISOString().slice(0, 10),
-                  startTime: row.startTime.toISOString().slice(11, 16),
-                  endTime: row.endTime.toISOString().slice(11, 16),
+                  date: row.date.toISOString().slice(0, ISO_DATE_LENGTH),
+                  startTime: row.startTime
+                    .toISOString()
+                    .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+                  endTime: row.endTime
+                    .toISOString()
+                    .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
                   title: row.className,
                   tone: "info" as const,
                   teacherName: row.teacherName,
@@ -222,8 +230,14 @@ export function OccurrenceForm({
                   <div>
                     <strong>{selected.className}</strong>
                     <p>
-                      {dateLabel(selected.date)} · {selected.startTime.toISOString().slice(11, 16)}–
-                      {selected.endTime.toISOString().slice(11, 16)}
+                      {dateLabel(selected.date)} ·{" "}
+                      {selected.startTime
+                        .toISOString()
+                        .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX)}
+                      –
+                      {selected.endTime
+                        .toISOString()
+                        .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX)}
                     </p>
                   </div>
                 </>

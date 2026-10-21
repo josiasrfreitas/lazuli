@@ -202,7 +202,7 @@ export function HomeLoading({ kind }: { kind: keyof typeof loadingSections }): R
         </div>
       ) : (
         <ul className={styles.list} aria-hidden="true">
-          {Array.from({ length: kind === "assessments" ? 2 : 1 }, (_, index) => (
+          {Array.from({ length: kind === "assessments" ? 2 : 1 }, (_unused, index) => (
             <li key={index}>
               <div className={styles.row}>
                 <div className="grid min-w-0 flex-1 gap-2">

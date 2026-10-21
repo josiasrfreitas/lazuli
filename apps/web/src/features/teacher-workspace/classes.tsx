@@ -84,7 +84,7 @@ export function TeacherClass({ id }: { id: string }): ReactJSX.Element {
           </TabsList>
           <TabsPanel value="aulas">
             <div className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">
-              {[...query.data.lessons].reverse().map((row) => (
+              {[...query.data.lessons].toReversed().map((row) => (
                 <button
                   type="button"
                   key={row.id}

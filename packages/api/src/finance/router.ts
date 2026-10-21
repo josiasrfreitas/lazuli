@@ -54,20 +54,21 @@ export const financeRouter = router({
         ctx,
         "finance.terminateContract",
         (tx) => finance(tx, ctx.staffUser.id).confirmTermination(input, ctx.now ?? new Date()),
-        async (result, db) => ({
-          subject: {
-            type: "contract",
-            id: result.contractId,
-            name: (
-              await db.student.findUniqueOrThrow({
-                where: { id: result.studentId },
-                select: { fullName: true },
-              })
-            ).fullName,
-          },
-          description: `Multa negociada: ${input.feePct}%. Encargos mantidos: ${activityMoney(input.retainedChargesCents)}. ${input.enrollmentIds.length} matrícula(s) encerrada(s). ${input.reason}`,
-          deduplicationKey: `finance.terminateContract:${input.commandId}`,
-        }),
+        async (result, db) => {
+          const student = await db.student.findUniqueOrThrow({
+            where: { id: result.studentId },
+            select: { fullName: true },
+          });
+          return {
+            subject: {
+              type: "contract",
+              id: result.contractId,
+              name: student.fullName,
+            },
+            description: `Multa negociada: ${input.feePct}%. Encargos mantidos: ${activityMoney(input.retainedChargesCents)}. ${input.enrollmentIds.length} matrícula(s) encerrada(s). ${input.reason}`,
+            deduplicationKey: `finance.terminateContract:${input.commandId}`,
+          };
+        },
         { timeout: 30_000 },
       ),
     ),
@@ -294,7 +295,7 @@ export const financeRouter = router({
                 description: `${result.paymentEntries.length} recebimentos registrados.`,
                 deduplicationKey: `finance.batchReconcile:${result.paymentEntries
                   .map((row) => row.id)
-                  .sort()
+                  .toSorted()
                   .join(",")}`,
               },
       ),

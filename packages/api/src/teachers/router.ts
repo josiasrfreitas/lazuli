@@ -176,7 +176,7 @@ export const teachersRouter = router({
           }),
         async (_result, database) => ({
           subject: await teacherSubject(database, input.id),
-          description: `Saída em ${input.effectiveDate.split("-").reverse().join("/")}.`,
+          description: `Saída em ${input.effectiveDate.split("-").toReversed().join("/")}.`,
         }),
       ),
     ),
@@ -197,7 +197,7 @@ export const teachersRouter = router({
         }),
       async (_result, database) => ({
         subject: await classSubject(database, input.classId),
-        description: `Substituição em ${input.date.split("-").reverse().join("/")}.`,
+        description: `Substituição em ${input.date.split("-").toReversed().join("/")}.`,
       }),
     ),
   ),
@@ -212,10 +212,11 @@ export const teachersRouter = router({
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      async (_result, database) => ({
-        subject: await classSubject(database, input.classId),
-        description: `Docente: ${(await teacherSubject(database, input.teacherId)).name}.`,
-      }),
+      async (_result, database) => {
+        const subject = await classSubject(database, input.classId);
+        const teacher = await teacherSubject(database, input.teacherId);
+        return { subject, description: `Docente: ${teacher.name}.` };
+      },
     ),
   ),
 });

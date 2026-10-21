@@ -46,7 +46,7 @@ export async function linkOccurrences(
     loadOccurrence(context, input.relatedId),
   ]);
   if (first.studentId !== second.studentId) invalid("Relacione ocorrências do mesmo aluno.");
-  const [fromId, toId] = [first.id, second.id].sort() as [string, string];
+  const [fromId, toId] = [first.id, second.id].toSorted() as [string, string];
   const created = await context.database.occurrenceRelation.createMany({
     data: [{ fromId, toId, recordedById: context.staffUser.id, createdAt: context.now }],
     skipDuplicates: true,

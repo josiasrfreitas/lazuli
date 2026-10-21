@@ -9,6 +9,8 @@ import {
   type SeedAbsence,
 } from "./appointments-data.js";
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+
 const ABSENCE_SELECT = {
   id: true,
   enrollmentId: true,
@@ -87,7 +89,8 @@ export async function scenarioAbsences(
       _sum: { minutes: true },
     });
     const minutes =
-      (row.classSession.endTime.getTime() - row.classSession.startTime.getTime()) / 60_000;
+      (row.classSession.endTime.getTime() - row.classSession.startTime.getTime()) /
+      MILLISECONDS_PER_MINUTE;
     if ((allocated._sum.minutes ?? 0) !== 0) continue;
     const parsed = row.classSession.classRecord
       ? classRecordSnapshotSchema.safeParse(row.classSession.classRecord.snapshot)
@@ -161,7 +164,9 @@ export async function knownLegacySource(
     studentId: row.enrollment.studentId,
     date: row.classSession.date,
     confirmedAt: row.classSession.attendanceConfirmedAt!,
-    minutes: (row.classSession.endTime.getTime() - row.classSession.startTime.getTime()) / 60_000,
+    minutes:
+      (row.classSession.endTime.getTime() - row.classSession.startTime.getTime()) /
+      MILLISECONDS_PER_MINUTE,
     sourceContent: parsed?.success ? (parsed.data.sharedContent?.account ?? null) : null,
   };
 }

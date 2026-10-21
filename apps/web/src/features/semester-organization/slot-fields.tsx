@@ -17,7 +17,9 @@ export function SlotFields({
 }): ReactJSX.Element {
   const errorId = useId();
   const update = (index: number, field: keyof SlotDraft, value: string): void =>
-    onChange(slots.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot)));
+    onChange(
+      slots.map((slot, position) => (position === index ? { ...slot, [field]: value } : slot)),
+    );
   return (
     <fieldset
       className="grid gap-3"
@@ -63,7 +65,7 @@ export function SlotFields({
                 size="icon-sm"
                 aria-label={`Remover horário ${index + 1}`}
                 disabled={slots.length === 1}
-                onClick={() => onChange(slots.filter((_, i) => i !== index))}
+                onClick={() => onChange(slots.filter((_unused, position) => position !== index))}
               >
                 <X />
               </Button>

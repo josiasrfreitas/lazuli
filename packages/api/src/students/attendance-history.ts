@@ -11,6 +11,9 @@ import { ENROLLMENT_NOT_FOUND_MESSAGE } from "../attendance/errors.js";
 import { STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
 import { toDateOnlyString } from "./date-rules.js";
 
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
+
 type AttendanceFilter = "ALL" | "PRESENT" | "ABSENT" | "PENDING" | "CANCELLED";
 type Input = {
   database: Context["db"];
@@ -117,8 +120,8 @@ export async function readStudentAttendanceHistory(input: Input) {
             : confirmed && attendance
               ? attendance.status
               : ("PENDING" as const);
-        const startTime = session.startTime.toISOString().slice(11, 16);
-        const endTime = session.endTime.toISOString().slice(11, 16);
+        const startTime = sessionTime(session.startTime);
+        const endTime = sessionTime(session.endTime);
         const minutes = teachingMinutes({ startTime, endTime });
         return {
           id: `${enrollment.id}:${session.id}`,
@@ -192,4 +195,8 @@ function historyWindow(enrollment: Enrollment, today: string) {
   if (!window) return null;
   const endDate = new Date(Math.min(window.endDate.getTime(), new Date(today).getTime()));
   return window.startDate <= endDate ? { startDate: window.startDate, endDate } : null;
+}
+
+function sessionTime(value: Date): string {
+  return value.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX);
 }

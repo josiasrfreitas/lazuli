@@ -25,7 +25,7 @@ import {
   type Placement,
   type SemesterBoard,
 } from "./model";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
 
 export function OrganizationReview({
   board,
@@ -85,30 +85,30 @@ export function OrganizationReview({
     }
   }
   return (
-    <section className={s.review} aria-label="Revisão das mudanças">
-      <div className={s.row}>
+    <section className={styles.review} aria-label="Revisão das mudanças">
+      <div className={styles.row}>
         <div>
           <h2 className="text-body font-semibold">Antes de confirmar</h2>
-          <p className={s.small}>
+          <p className={styles.small}>
             Compare origem e destino. Passe sobre a mudança ou abra os detalhes.
           </p>
         </div>
-        <label className={s.rowStart}>
+        <label className={styles.rowStart}>
           <Checkbox
             size="sm"
             checked={showAll}
             onCheckedChange={(value) => setShowAll(Boolean(value))}
           />
-          <span className={s.small}>Incluir confirmados</span>
+          <span className={styles.small}>Incluir confirmados</span>
         </label>
       </div>
       {error && (
-        <div role="alert" className={s.error}>
+        <div role="alert" className={styles.error}>
           {error}
         </div>
       )}
-      <div className={s.reviewTable}>
-        <table className={s.table}>
+      <div className={styles.reviewTable}>
+        <table className={styles.table}>
           <thead>
             <tr>
               <th>
@@ -151,7 +151,7 @@ export function OrganizationReview({
                     />
                   </td>
                   <td>
-                    <div className={s.person}>
+                    <div className={styles.person}>
                       <Link href={`/alunos/${row.studentId}`}>
                         <strong>{row.studentName}</strong>
                       </Link>
@@ -159,35 +159,43 @@ export function OrganizationReview({
                     </div>
                   </td>
                   <td>
-                    <div className={s.origin}>
+                    <div className={styles.origin}>
                       <span>{row.sourceClassName ?? "Sem vínculo anterior"}</span>
-                      <span className={s.small}>{row.sourceStageCode ?? "Nova entrada"}</span>
-                      <span className={s.small}>{scheduleLabel(row.sourceSchedule) || "—"}</span>
-                      <span className={s.small}>{row.sourceTeacher ?? "—"}</span>
+                      <span className={styles.small}>{row.sourceStageCode ?? "Nova entrada"}</span>
+                      <span className={styles.small}>
+                        {scheduleLabel(row.sourceSchedule) || "—"}
+                      </span>
+                      <span className={styles.small}>{row.sourceTeacher ?? "—"}</span>
                     </div>
                   </td>
                   <td>
-                    <div className={s.destination}>
+                    <div className={styles.destination}>
                       <span
                         className={
-                          changeLabel(row, board) === "Transferência" ? s.changed : undefined
+                          changeLabel(row, board) === "Transferência" ? styles.changed : undefined
                         }
                       >
                         {row.declinedAt ? "Não continuará" : (plan?.name ?? "Turma a definir")}
                       </span>
-                      <span className={row.stageId === row.sourceStageId ? s.small : s.changed}>
+                      <span
+                        className={
+                          row.stageId === row.sourceStageId ? styles.small : styles.changed
+                        }
+                      >
                         {row.stageCode ?? "Estágio a definir"}
                       </span>
-                      <span className={s.small}>{plan ? scheduleLabel(plan.slots) : "—"}</span>
-                      <span className={s.small}>{plan?.teacherName ?? "Professor a definir"}</span>
+                      <span className={styles.small}>{plan ? scheduleLabel(plan.slots) : "—"}</span>
+                      <span className={styles.small}>
+                        {plan?.teacherName ?? "Professor a definir"}
+                      </span>
                     </div>
                   </td>
                   <td className="whitespace-nowrap">
-                    <div className={s.person}>
+                    <div className={styles.person}>
                       <span>
                         {formatDateOnlyBR(dateOnly(row.effectiveDate ?? board.semester.startDate))}
                       </span>
-                      <span className={s.small}>
+                      <span className={styles.small}>
                         {row.declinedAt
                           ? "Registrada"
                           : row.publishedAt
@@ -197,17 +205,19 @@ export function OrganizationReview({
                     </div>
                   </td>
                   <td>
-                    <div className={s.person}>
+                    <div className={styles.person}>
                       {row.blockers.slice(0, 2).map((blocker) => (
-                        <span key={blocker} className={`${s.small} ${s.attention}`}>
+                        <span key={blocker} className={`${styles.small} ${styles.attention}`}>
                           {blocker}
                         </span>
                       ))}
                       {row.blockers.length > 2 && (
-                        <span className={s.small}>+{row.blockers.length - 2} nos detalhes</span>
+                        <span className={styles.small}>
+                          +{row.blockers.length - 2} nos detalhes
+                        </span>
                       )}
                       {row.blockers.length === 0 && !row.declinedAt && (
-                        <span className={s.small}>
+                        <span className={styles.small}>
                           <Check size={12} className="inline" />
                           {row.publishedAt ? "Alocação confirmada" : "Alocação pronta"}
                         </span>
@@ -215,7 +225,7 @@ export function OrganizationReview({
                       {contract.warning && row.lastContract ? (
                         <button
                           type="button"
-                          className={`${s.small} ${s.attention} text-left underline underline-offset-4`}
+                          className={`${styles.small} ${styles.attention} text-left underline underline-offset-4`}
                           onClick={() =>
                             onAction({ kind: "renew", contractId: row.lastContract!.id })
                           }
@@ -225,7 +235,7 @@ export function OrganizationReview({
                       ) : (
                         <Link
                           href={`/alunos/${row.studentId}?secao=financeiro`}
-                          className={`${s.small} ${contract.warning ? s.attention : ""}`}
+                          className={`${styles.small} ${contract.warning ? styles.attention : ""}`}
                         >
                           {contract.label}
                         </Link>
@@ -233,7 +243,7 @@ export function OrganizationReview({
                     </div>
                   </td>
                   <td>
-                    <div className={s.actions}>
+                    <div className={styles.actions}>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -274,7 +284,7 @@ export function OrganizationReview({
           </tbody>
         </table>
         {rows.length === 0 && (
-          <div className={s.empty}>
+          <div className={styles.empty}>
             <h2>Nenhuma mudança nesta seleção</h2>
             <p>
               Inclua os confirmados para consultar a composição ou organize novos alunos pela
@@ -283,11 +293,13 @@ export function OrganizationReview({
           </div>
         )}
       </div>
-      <footer className={s.selection}>
-        <span className={s.small}>
+      <footer className={styles.selection}>
+        <span className={styles.small}>
           {selected.length} selecionados · {eligible.length} prontos para confirmar
         </span>
-        <span className={`${s.small} ${s.push}`}>Contratos são tratados separadamente.</span>
+        <span className={`${styles.small} ${styles.push}`}>
+          Contratos são tratados separadamente.
+        </span>
         <Button
           size="sm"
           disabled={selected.length === 0 || working}
@@ -315,7 +327,7 @@ function DiffDetails({ row, board }: { row: Placement; board: SemesterBoard }): 
       </PopoverTrigger>
       <PopoverContent size="lg">
         <PopoverTitle>{row.studentName}</PopoverTitle>
-        <div className={`${s.diffDetails} mt-3`}>
+        <div className={`${styles.diffDetails} mt-3`}>
           {[
             ["Turma", row.sourceClassName ?? "Sem turma", plan?.name ?? "A definir"],
             ["Estágio", row.sourceStageCode ?? "—", row.stageCode ?? "A definir"],
@@ -327,11 +339,11 @@ function DiffDetails({ row, board }: { row: Placement; board: SemesterBoard }): 
             ["Professor", row.sourceTeacher ?? "—", plan?.teacherName ?? "A definir"],
           ].map(([label, before, after]) => (
             <div key={label}>
-              <span className={s.small}>{label}</span>
-              <div className={s.diffLine}>
-                <span className={s.origin}>{before}</span>
+              <span className={styles.small}>{label}</span>
+              <div className={styles.diffLine}>
+                <span className={styles.origin}>{before}</span>
                 <ArrowRight size={12} />
-                <span className={before === after ? undefined : s.changed}>{after}</span>
+                <span className={before === after ? undefined : styles.changed}>{after}</span>
               </div>
             </div>
           ))}
@@ -339,9 +351,9 @@ function DiffDetails({ row, board }: { row: Placement; board: SemesterBoard }): 
             Válida a partir de{" "}
             {formatDateOnlyBR(dateOnly(row.effectiveDate ?? board.semester.startDate))}.
           </p>
-          {row.notes && <p className={s.small}>{row.notes}</p>}
+          {row.notes && <p className={styles.small}>{row.notes}</p>}
           {row.blockers.map((blocker) => (
-            <p key={blocker} className={s.attention}>
+            <p key={blocker} className={styles.attention}>
               {blocker}
             </p>
           ))}

@@ -14,19 +14,19 @@ import { OrganizationReview } from "./review";
 import { OrganizationCalendar } from "./calendar";
 import { OrganizationDialogs } from "./dialogs";
 import type { OrganizationAction } from "./model";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
 
 export function OrganizationLoading(): ReactJSX.Element {
   return (
-    <div className={s.loading} role="status" aria-label="Carregando organização">
-      <div className={s.skeletonGrid}>
-        {Array.from({ length: 35 }, (_, i) => (
-          <span key={i} />
+    <div className={styles.loading} role="status" aria-label="Carregando organização">
+      <div className={styles.skeletonGrid}>
+        {Array.from({ length: 35 }, (_unused, position) => (
+          <span key={position} />
         ))}
       </div>
-      <div className={s.skeletonPanel}>
-        {Array.from({ length: 9 }, (_, i) => (
-          <span key={i} />
+      <div className={styles.skeletonPanel}>
+        {Array.from({ length: 9 }, (_unused, position) => (
+          <span key={position} />
         ))}
       </div>
       <span className="sr-only">Carregando turmas e alunos…</span>
@@ -80,10 +80,10 @@ export function ClassOrganizationPage(): ReactJSX.Element {
   }
   const ended = board ? dateOnly(board.semester.endDate) < today : false;
   return (
-    <section className={s.page} aria-label="Organização de turmas">
-      <header className={s.header}>
+    <section className={styles.page} aria-label="Organização de turmas">
+      <header className={styles.header}>
         <h1>Organização de turmas</h1>
-        <div className={s.period}>
+        <div className={styles.period}>
           {periods.isPending ? (
             <InlineSkeleton className="h-8 w-full" />
           ) : (
@@ -100,7 +100,7 @@ export function ClassOrganizationPage(): ReactJSX.Element {
             />
           )}
         </div>
-        <span className={s.description}>
+        <span className={styles.description}>
           {board &&
             (dateOnly(board.semester.startDate) > today
               ? "Próximo período"
@@ -110,10 +110,10 @@ export function ClassOrganizationPage(): ReactJSX.Element {
         </span>
         {tab === "agenda" && (
           <>
-            <span className={s.headerHint}>
+            <span className={styles.headerHint}>
               Selecione uma turma para cuidar dos alunos e da continuidade.
             </span>
-            <div className={s.headerSearch}>
+            <div className={styles.headerSearch}>
               <Input
                 size="sm"
                 leadingIcon={<Search aria-hidden="true" />}
@@ -125,8 +125,8 @@ export function ClassOrganizationPage(): ReactJSX.Element {
             </div>
           </>
         )}
-        <div className={`${s.actions} ${s.push}`}>
-          <span className={s.busy} role="status">
+        <div className={`${styles.actions} ${styles.push}`}>
+          <span className={styles.busy} role="status">
             {(query.isFetching && board) || prepare.isPending ? "Atualizando…" : ""}
           </span>
           <Button
@@ -204,7 +204,7 @@ export function ClassOrganizationPage(): ReactJSX.Element {
         </div>
       </header>
       {tab !== "agenda" && (
-        <div className={s.toolbar}>
+        <div className={styles.toolbar}>
           <Button
             size="sm"
             variant="ghost"
@@ -215,13 +215,13 @@ export function ClassOrganizationPage(): ReactJSX.Element {
           >
             <ArrowLeft size={14} /> Turmas e pendências
           </Button>
-          <span className={s.small}>
+          <span className={styles.small}>
             {tab === "review" ? "Revisar alocações" : "Calendário letivo"}
           </span>
           {tab === "review" && (
             <Input
               size="sm"
-              className={`${s.search} ${s.push}`}
+              className={`${styles.search} ${styles.push}`}
               aria-label="Buscar aluno na revisão"
               placeholder="Buscar aluno…"
               value={search}
@@ -231,7 +231,7 @@ export function ClassOrganizationPage(): ReactJSX.Element {
         </div>
       )}
       {(query.error || periods.error || prepare.error) && (
-        <div role="alert" className={s.error}>
+        <div role="alert" className={styles.error}>
           <span>{query.error?.message ?? periods.error?.message ?? prepare.error?.message}</span>
           <Button
             size="sm"
@@ -252,13 +252,13 @@ export function ClassOrganizationPage(): ReactJSX.Element {
         board ? (
           <>
             {board.plans.length === 0 && tab === "agenda" && (
-              <div className={s.empty}>
+              <div className={styles.empty}>
                 <h2>Use as turmas existentes como ponto de partida</h2>
                 <p>
                   Horários, professores e alunos continuam juntos. Depois, revise apenas as exceções
                   e acomode quem está chegando.
                 </p>
-                <div className={s.actions}>
+                <div className={styles.actions}>
                   <Button
                     size="sm"
                     disabled={prepare.isPending || ended}
@@ -304,7 +304,7 @@ export function ClassOrganizationPage(): ReactJSX.Element {
           </>
         ) : null
       ) : (
-        <div className={s.empty}>
+        <div className={styles.empty}>
           <h2>Comece pelo período letivo</h2>
           <p>
             Defina as datas reais do semestre. A estrutura de turmas poderá ser reaproveitada e
@@ -316,10 +316,10 @@ export function ClassOrganizationPage(): ReactJSX.Element {
         </div>
       )}
       {feedback && (
-        <div className={s.feedback} role="status">
+        <div className={styles.feedback} role="status">
           <span>{feedback}</span>
           <Button
-            className={s.push}
+            className={styles.push}
             size="sm"
             variant="ghost"
             aria-label="Dispensar mensagem"

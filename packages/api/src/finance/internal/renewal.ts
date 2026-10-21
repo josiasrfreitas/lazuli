@@ -1,6 +1,8 @@
 import type { FinanceDatabase } from "./shared.js";
 import { badRequest, notFound } from "../../trpc/errors.js";
 
+const ISO_DATE_LENGTH = 10;
+
 export async function renewalTerms(database: FinanceDatabase, contractId: string) {
   const row = await database.contract.findFirst({
     where: { id: contractId, deletedAt: null, terminatedAt: null },
@@ -39,7 +41,7 @@ export async function renewalTerms(database: FinanceDatabase, contractId: string
     updatedAt: row.updatedAt,
     student: row.student,
     payer: row.payer,
-    endsOn: row.endsOn.toISOString().slice(0, 10),
+    endsOn: row.endsOn.toISOString().slice(0, ISO_DATE_LENGTH),
     durationMonths: row.durationMonths,
     monthlyAmountCents: row.monthlyAmountCents,
     installmentCount: row.orders[0]?.installmentCount ?? row.durationMonths,

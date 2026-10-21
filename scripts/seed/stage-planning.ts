@@ -91,7 +91,7 @@ export async function seedStagePlanning(database: DatabaseClient, todayIso: stri
     const studentId = stableUuid(["student", student.key]);
     const records = progress
       .filter((row) => row.enrollment.studentId === studentId)
-      .sort((left, right) => left.startDate.getTime() - right.startDate.getTime());
+      .toSorted((left, right) => left.startDate.getTime() - right.startDate.getTime());
     for (const row of records) {
       const historical = row.endDate !== null;
       const index = historical ? DEV_STUDENTS.indexOf(student) : currentIndex++;
@@ -343,7 +343,7 @@ function reviseSnapshot(input: {
   } else {
     const previous = items
       .slice(0, index)
-      .reverse()
+      .toReversed()
       .find((row) => row.kind === "CONTENT");
     if (!previous) return null;
     items[index] = {

@@ -80,7 +80,7 @@ export async function seedClassRecords(database: DatabaseClient, todayIso: strin
       orderBy: [{ date: "desc" }, { startTime: "desc" }],
       take: RECENT_SESSIONS,
     });
-    for (const [rank, session] of sessions.reverse().entries()) {
+    for (const [rank, session] of sessions.toReversed().entries()) {
       await database.$transaction(
         (transaction) =>
           seedRecordedSession(
@@ -321,7 +321,7 @@ async function persistRecord(
       index === 0 ? "classRecords.confirm" : "classRecords.correct",
       {
         subject: { type: "class", id: session.classId, name: session.class.portalClassName },
-        description: `${isoOf(session.date).split("-").reverse().join("/")} · ${version.reason}`,
+        description: `${isoOf(session.date).split("-").toReversed().join("/")} · ${version.reason}`,
         deduplicationKey: `seed-class-record/${id}/${index + 1}`,
       },
     );

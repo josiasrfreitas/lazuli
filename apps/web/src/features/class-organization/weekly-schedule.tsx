@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@lazuli/ui";
 import { weekdays } from "~/features/semester-organization/shared";
 import { leavingFor, occupancy, stageLabel, type ClassPlan, type SemesterBoard } from "./model";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
 
 /** Recurring class composition, grouped by time; height does not encode lesson duration. */
 export function WeeklySchedule({
@@ -43,11 +43,11 @@ export function WeeklySchedule({
           .map((slot) => slot.startTime),
       ),
     ),
-  ].sort();
+  ].toSorted();
   return (
-    <div className={s.weekly}>
-      <div className={s.weeklyToolbar}>
-        <div className={s.dayControls}>
+    <div className={styles.weekly}>
+      <div className={styles.weeklyToolbar}>
+        <div className={styles.dayControls}>
           <Button
             size="sm"
             variant={day === "all" ? "secondary" : "ghost"}
@@ -68,19 +68,21 @@ export function WeeklySchedule({
             </Button>
           ))}
         </div>
-        <span className={s.small}>Horários recorrentes · {plans.length} turmas</span>
+        <span className={styles.small}>Horários recorrentes · {plans.length} turmas</span>
       </div>
-      <div className={s.occupancyLegend} aria-label="Faixas de ocupação">
+      <div className={styles.occupancyLegend} aria-label="Faixas de ocupação">
         <span data-occupancy="destructive">Até 3 · poucos alunos</span>
         <span data-occupancy="warning">4–7 · em composição</span>
         <span data-occupancy="success">8+ · boa ocupação</span>
       </div>
       {day === "all" && (
-        <p className={s.weekHint}>Deslize a grade para ver os outros dias, ou selecione um dia.</p>
+        <p className={styles.weekHint}>
+          Deslize a grade para ver os outros dias, ou selecione um dia.
+        </p>
       )}
-      <div className={s.weeklyScroll}>
+      <div className={styles.weeklyScroll}>
         {times.length > 0 ? (
-          <table className={s.weeklyTable} data-single={day !== "all"}>
+          <table className={styles.weeklyTable} data-single={day !== "all"}>
             <thead>
               <tr>
                 <th scope="col">Início</th>
@@ -99,7 +101,7 @@ export function WeeklySchedule({
                   </th>
                   {days.map(([key]) => (
                     <td key={key}>
-                      <div className={s.weeklyStack}>
+                      <div className={styles.weeklyStack}>
                         {plans
                           .filter((plan) =>
                             plan.slots.some(
@@ -123,7 +125,7 @@ export function WeeklySchedule({
             </tbody>
           </table>
         ) : (
-          <div className={s.empty}>
+          <div className={styles.empty}>
             <h2>Nenhuma turma nesta seleção</h2>
             <p>Ajuste o dia ou a busca para encontrar os horários.</p>
           </div>
@@ -152,7 +154,7 @@ function PlanCard({
   return (
     <button
       type="button"
-      className={s.weeklyCard}
+      className={styles.weeklyCard}
       data-occupancy={health.tone}
       data-selected={selected}
       data-closed={!plan.active}
@@ -165,23 +167,23 @@ function PlanCard({
           ? "PPT · estágios individuais"
           : stageLabel(plan.stageCode)}
       </strong>
-      <span className={s.occupancy}>
+      <span className={styles.occupancy}>
         <b>{health.count}</b>
         <span>
           alunos
-          <span className={s.occupancyLabel}>
+          <span className={styles.occupancyLabel}>
             {plan.active ? (plan.classId ? health.label : "Turma proposta") : "Encerrada"}
           </span>
         </span>
       </span>
-      {proposed > 0 && <span className={s.small}>{proposed} em alocação</span>}
-      <span className={s.weeklyTeacher}>{plan.teacherName ?? "Professor a definir"}</span>
+      {proposed > 0 && <span className={styles.small}>{proposed} em alocação</span>}
+      <span className={styles.weeklyTeacher}>{plan.teacherName ?? "Professor a definir"}</span>
       {leaving > 0 && (
-        <span className={`${s.small} ${s.attention}`}>
+        <span className={`${styles.small} ${styles.attention}`}>
           {leaving} {leaving === 1 ? "possível saída" : "possíveis saídas"}
         </span>
       )}
-      {plan.format === "ONLINE" && <span className={s.small}>Online</span>}
+      {plan.format === "ONLINE" && <span className={styles.small}>Online</span>}
     </button>
   );
 }

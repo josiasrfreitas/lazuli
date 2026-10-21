@@ -11,6 +11,10 @@ import {
   type AppointmentSeedContext,
 } from "./appointments-data.js";
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
+
 export type AppointmentSeedSlot = {
   date: Date;
   startTime: Date;
@@ -32,7 +36,7 @@ export async function findAppointmentSlot(
   context: AppointmentSeedContext,
   input: SlotRequest,
 ): Promise<AppointmentSeedSlot | null> {
-  const dates = Array.from({ length: 21 }, (_, index) =>
+  const dates = Array.from({ length: 21 }, (_unused, index) =>
     scenarioDate(context.todayIso, input.future ? index + 1 : index - 21),
   ).filter(
     (date) =>
@@ -51,7 +55,7 @@ export async function findAppointmentSlot(
       Number(right.getUTCDay() === 5) - Number(left.getUTCDay() === 5) ||
       left.getTime() - right.getTime(),
   );
-  const teachers = [...context.teachers].sort(
+  const teachers = [...context.teachers].toSorted(
     (left, right) =>
       Number(right.id === input.enrollment.class.teacherId) -
       Number(left.id === input.enrollment.class.teacherId),
@@ -68,7 +72,7 @@ export async function findAppointmentSlot(
     if (closed) continue;
     for (const start of ["15:00", "17:30", "10:00", "11:00"]) {
       const startTime = timeOfDay(start);
-      const endTime = new Date(startTime.getTime() + input.minutes * 60_000);
+      const endTime = new Date(startTime.getTime() + input.minutes * MILLISECONDS_PER_MINUTE);
       if (scheduledAt >= businessInstant(date, start)) continue;
       if (!(await studentIsFree(context, input.enrollment.studentId, { date, startTime, endTime })))
         continue;
@@ -89,8 +93,8 @@ async function teacherIsFree(
   const date = isoOf(slot.date);
   const candidate = {
     date,
-    startTime: slot.startTime.toISOString().slice(11, 16),
-    endTime: slot.endTime.toISOString().slice(11, 16),
+    startTime: slot.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+    endTime: slot.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
   };
   try {
     await assertTeacherEligible({ database: context.database, teacherId, date });
@@ -165,9 +169,12 @@ async function studentIsFree(
 }
 
 export function appointmentEndedAt(slot: AppointmentSeedSlot): Date {
-  return businessInstant(slot.date, slot.endTime.toISOString().slice(11, 16));
+  return businessInstant(
+    slot.date,
+    slot.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+  );
 }
 
 export function cancellationInstant(slot: AppointmentSeedSlot): Date {
-  return new Date(slot.scheduledAt.getTime() + 60 * 60_000);
+  return new Date(slot.scheduledAt.getTime() + 60 * MILLISECONDS_PER_MINUTE);
 }

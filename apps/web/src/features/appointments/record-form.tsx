@@ -12,6 +12,8 @@ import { CoverageFields } from "./coverage-fields";
 import { useAppointmentRefresh, type Appointment } from "./shared";
 import styles from "./appointment-record-form.module.css";
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+
 export function AppointmentRecordForm({
   data,
   onClose,
@@ -33,7 +35,7 @@ export function AppointmentRecordForm({
   const plannedMinutes =
     (new Date(`1970-01-01T${snapshot.endTime}:00Z`).getTime() -
       new Date(`1970-01-01T${snapshot.startTime}:00Z`).getTime()) /
-    60_000;
+    MILLISECONDS_PER_MINUTE;
   const [minutes, setMinutes] = useState(String(snapshot.performedMinutes ?? plannedMinutes));
   const [coverages, setCoverages] = useState(
     snapshot.coverages

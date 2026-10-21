@@ -112,7 +112,7 @@ void it("filters captured leads by interest and lifecycle without including unre
   );
   assert.equal(interested.total, 1);
   const waiting = await caller().admissions.list({ search: prefix, statuses: ["WAITING"] });
-  assert.deepEqual(waiting.rows.map((row) => row.id).sort(), [high.id, unknown.id].sort());
+  assert.deepEqual(waiting.rows.map((row) => row.id).toSorted(), [high.id, unknown.id].toSorted());
   assert.equal(waiting.total, 2);
   const history = await caller().admissions.list({ search: prefix, statuses: ["ARCHIVED"] });
   assert.deepEqual(
@@ -142,7 +142,7 @@ void it("keeps captured details and attributed activity readable after archiving
   assert.equal(archived.notes, "Família pediu opções à tarde.");
   assert.equal(archived.phone, "82999994567");
   const activity = await caller().activity.list({ search: `${prefix}History`, period: "ALL" });
-  assert.deepEqual(activity.rows.map((row) => row.action).sort(), [
+  assert.deepEqual(activity.rows.map((row) => row.action).toSorted(), [
     "admissions.capture",
     "admissions.details",
     "admissions.setStatus",
@@ -150,7 +150,8 @@ void it("keeps captured details and attributed activity readable after archiving
   assert.deepEqual([...new Set(activity.rows.map((row) => row.actorName))], ["Lead Admin"]);
   await caller().admissions.setStatus({ ...lead, status: "WAITING" });
   await caller().admissions.details({ ...details, notes: "Retomamos o contato com a família." });
-  assert.equal((await caller().admissions.byId(lead)).notes, "Retomamos o contato com a família.");
+  const resumed = await caller().admissions.byId(lead);
+  assert.equal(resumed.notes, "Retomamos o contato com a família.");
 });
 void it("rejects a future birth date using the school day without persisting a capture or success event", async () => {
   const id = randomUUID();
@@ -168,9 +169,8 @@ void it("rejects a future birth date using the school day without persisting a c
     }),
     { code: "BAD_REQUEST", message: /nascimento.*futuro/ },
   );
-  assert.equal((await caller().admissions.list({ search: `${prefix}Future birth` })).total, 0);
-  assert.equal(
-    (await caller().activity.list({ search: `${prefix}Future birth`, period: "ALL" })).total,
-    0,
-  );
+  const captured = await caller().admissions.list({ search: `${prefix}Future birth` });
+  assert.equal(captured.total, 0);
+  const events = await caller().activity.list({ search: `${prefix}Future birth`, period: "ALL" });
+  assert.equal(events.total, 0);
 });

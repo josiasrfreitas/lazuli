@@ -20,6 +20,8 @@ import {
   type OrganizationContext,
 } from "./data.js";
 
+const ISO_DATE_LENGTH = 10;
+
 export async function saveClassPlan(context: OrganizationContext, input: SemesterPlanInput) {
   await lockSemester(context, input.semesterId);
   if (input.teacherId)
@@ -40,7 +42,7 @@ export async function saveClassPlan(context: OrganizationContext, input: Semeste
   const scheduleKey = (slots: typeof input.slots): string =>
     slots
       .map((slot) => `${slot.weekday}:${slot.startTime}:${slot.endTime}`)
-      .sort()
+      .toSorted()
       .join("|");
   if (!previous || scheduleKey(readSlots(previous.slots)) !== scheduleKey(input.slots)) {
     const schedule = classScheduleSlotsInputSchema.safeParse(input.slots);
@@ -63,7 +65,7 @@ export async function saveClassPlan(context: OrganizationContext, input: Semeste
     : await context.database.semesterClassPlan.create({
         data: { ...data, semesterId: input.semesterId },
       });
-  for (const id of [...new Set(input.leadIds ?? [])].sort()) {
+  for (const id of [...new Set(input.leadIds ?? [])].toSorted()) {
     await lockCandidate(context.database, id);
     const lead = await context.database.admissionCandidate.findFirst({
       where: { id, status: "WAITING", deletedAt: null, allocationPendingAt: { not: null } },
@@ -96,10 +98,12 @@ export async function savePlacement(context: OrganizationContext, input: Semeste
   const semester = await lockSemester(context, input.semesterId);
   const effectiveDate =
     input.effectiveDate ??
-    [semester.startDate.toISOString().slice(0, 10), saoPauloDateOnly(context.now)].sort().at(-1)!;
+    [semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH), saoPauloDateOnly(context.now)]
+      .toSorted()
+      .at(-1)!;
   if (
-    effectiveDate < semester.startDate.toISOString().slice(0, 10) ||
-    effectiveDate > semester.endDate.toISOString().slice(0, 10) ||
+    effectiveDate < semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH) ||
+    effectiveDate > semester.endDate.toISOString().slice(0, ISO_DATE_LENGTH) ||
     effectiveDate < saoPauloDateOnly(context.now)
   )
     throw badRequest("Escolha uma vigência de hoje em diante, dentro do semestre.");

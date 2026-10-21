@@ -6,5 +6,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     session: await auth.getSession({ headers: request.headers }),
     headers: request.headers,
   });
-  return downloadAssessmentFile(ctx, (await params).id);
+  const { id } = await params;
+  return downloadAssessmentFile(ctx, id);
 }

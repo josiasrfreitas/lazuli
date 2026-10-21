@@ -93,7 +93,7 @@ export function CalendarWeek({
             aria-hidden={offset !== 0}
             inert={offset !== 0}
           >
-            {Array.from({ length: 7 }, (_, index) => shiftDate(from, offset * 7 + index)).map(
+            {Array.from({ length: 7 }, (_unused, index) => shiftDate(from, offset * 7 + index)).map(
               (day) => (
                 <button
                   key={day}

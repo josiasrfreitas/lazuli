@@ -81,7 +81,7 @@ export async function confirmAttendanceReview(
     session.attendanceConfirmedAt ? "attendance.editSession" : "attendance.confirmSession",
     {
       subject: { type: "class", id: session.classId, name: session.class.portalClassName },
-      description: `${dateOnly(session.date).split("-").reverse().join("/")} · ${present} presentes, ${roster.length - present} faltas. Chamada conferida pelo professor; recebimento por QR e link encerrado.`,
+      description: `${dateOnly(session.date).split("-").toReversed().join("/")} · ${present} presentes, ${roster.length - present} faltas. Chamada conferida pelo professor; recebimento por QR e link encerrado.`,
     },
   );
   return { attendanceStamp: context.now.toISOString(), present, absent: roster.length - present };

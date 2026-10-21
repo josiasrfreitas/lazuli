@@ -2,6 +2,11 @@ import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { eligibleInterventionStaff, invalid, type FollowUpContext } from "./data.js";
+
+const ISO_DATE_LENGTH = 10;
+const ISO_TIME_START_INDEX = 11;
+const ISO_SECOND_END_INDEX = 19;
+
 const sessionInclude = {
   usualTeacher: { select: { id: true, name: true } },
   class: {
@@ -56,9 +61,13 @@ const schoolTime = new Intl.DateTimeFormat("en-GB", {
 
 function hasStarted(session: { date: Date; startTime: Date }, now: Date): boolean {
   const today = saoPauloDateOnly(now);
-  const date = session.date.toISOString().slice(0, 10);
+  const date = session.date.toISOString().slice(0, ISO_DATE_LENGTH);
   const time = schoolTime.format(now);
-  return date < today || (date === today && session.startTime.toISOString().slice(11, 19) <= time);
+  return (
+    date < today ||
+    (date === today &&
+      session.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_SECOND_END_INDEX) <= time)
+  );
 }
 
 export async function occurrenceSessions(

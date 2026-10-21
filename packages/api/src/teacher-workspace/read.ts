@@ -85,7 +85,8 @@ export function currentEnrollment(today: Date): Prisma.EnrollmentWhereInput {
 
 export async function workspaceStudents(context: RecordContext) {
   const today = new Date(saoPauloDateOnly(context.now));
-  const classes = (await workspaceClasses(context)).filter((row) => row.current);
+  const assignedClasses = await workspaceClasses(context);
+  const classes = assignedClasses.filter((row) => row.current);
   const candidates = await context.database.pedagogicalAppointment.findMany({
     where: {
       deletedAt: null,
@@ -208,7 +209,8 @@ export async function workspaceStudents(context: RecordContext) {
 }
 
 export async function workspaceClass(context: RecordContext, id: string) {
-  const group = (await workspaceClasses(context)).find((row) => row.id === id);
+  const assignedClasses = await workspaceClasses(context);
+  const group = assignedClasses.find((row) => row.id === id);
   if (!group) throw notFound("Turma não encontrada entre suas atribuições.");
   const [students, lessons] = await Promise.all([
     workspaceStudents(context),
@@ -228,7 +230,8 @@ export async function workspaceClass(context: RecordContext, id: string) {
 }
 
 export async function workspaceStudent(context: RecordContext, id: string) {
-  const student = (await workspaceStudents(context)).find((row) => row.id === id);
+  const accessibleStudents = await workspaceStudents(context);
+  const student = accessibleStudents.find((row) => row.id === id);
   if (!student) throw notFound("Aluno não encontrado entre suas atribuições.");
   const attendance = await context.database.attendance.findMany({
     where: {

@@ -71,15 +71,16 @@ export async function studentIntakeOptions(
       : [];
   const eligibleIds = new Set(classes.map((row) => row.id));
   const from = semester
-    ? [input.from, dateOnly(semester.startDate), today].sort().at(-1)!
+    ? [input.from, dateOnly(semester.startDate), today].toSorted().at(-1)!
     : input.from;
-  const through = semester ? [input.through, dateOnly(semester.endDate)].sort()[0]! : input.through;
-  const meetings =
+  const through = semester
+    ? [input.through, dateOnly(semester.endDate)].toSorted()[0]!
+    : input.through;
+  const candidates =
     eligibleIds.size > 0 && from <= through
-      ? (await meetingsBetween({ database, from, through, now })).filter(
-          (row) => eligibleIds.has(row.classId) && !row.cancelled,
-        )
+      ? await meetingsBetween({ database, from, through, now })
       : [];
+  const meetings = candidates.filter((row) => eligibleIds.has(row.classId) && !row.cancelled);
   return {
     today,
     semester,

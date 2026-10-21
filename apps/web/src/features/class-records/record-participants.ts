@@ -76,7 +76,7 @@ export function lessonParticipants(data: ClassRecord): LessonParticipant[] {
     pending: 2,
     cancelled: 3,
   };
-  return [...students, ...appointments, ...experiments].sort(
+  return [...students, ...appointments, ...experiments].toSorted(
     (left, right) =>
       rank[left.status] - rank[right.status] || left.name.localeCompare(right.name, "pt-BR"),
   );

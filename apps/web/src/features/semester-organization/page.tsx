@@ -36,7 +36,7 @@ export function SemesterOrganizationPage(): ReactJSX.Element {
   });
   const semesters = trpc.semesterOrganization.semesters.useQuery();
   const upcoming = [...(semesters.data ?? [])]
-    .reverse()
+    .toReversed()
     .find((item) => dateOnly(item.startDate) > today());
   const semesterId = params.semestre ?? upcoming?.id ?? semesters.data?.[0]?.id;
   const query = trpc.semesterOrganization.detail.useQuery(

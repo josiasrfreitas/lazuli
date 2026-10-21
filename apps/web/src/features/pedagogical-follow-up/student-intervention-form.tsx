@@ -27,7 +27,7 @@ export function StudentInterventionForm({
   const [values, setValues] = useState({
     title: "",
     responsibleId: null as string | null,
-    performedOn: maskDateBR(saoPauloDateOnly(new Date()).split("-").reverse().join("")),
+    performedOn: maskDateBR(saoPauloDateOnly(new Date()).split("-").toReversed().join("")),
     treatment: "",
   });
   const [occurrenceIds, setOccurrenceIds] = useState<string[]>(initialOccurrenceIds);

@@ -6,7 +6,7 @@ import { isQueueItem, type OrganizationAction, type SemesterBoard } from "./mode
 import { WeeklySchedule } from "./weekly-schedule";
 import { Composition } from "./composition";
 import { AccommodationQueue } from "./queue";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
 
 type Props = {
   board: SemesterBoard;
@@ -43,8 +43,8 @@ export function OrganizationAgenda({
     setMobilePanel(true);
   }
   return (
-    <div className={`${s.workspace} ${s.agendaWorkspace}`} data-panel={mobilePanel}>
-      <div className={s.mobileContext}>
+    <div className={`${styles.workspace} ${styles.agendaWorkspace}`} data-panel={mobilePanel}>
+      <div className={styles.mobileContext}>
         <Button
           size="sm"
           variant={mobilePanel ? "ghost" : "secondary"}
@@ -62,8 +62,8 @@ export function OrganizationAgenda({
           {plan ? "Alunos da turma" : `Pendências · ${pending}`}
         </Button>
       </div>
-      <div className={s.agenda}>
-        <div className={s.calendar}>
+      <div className={styles.agenda}>
+        <div className={styles.calendar}>
           <WeeklySchedule
             board={board}
             query={search}

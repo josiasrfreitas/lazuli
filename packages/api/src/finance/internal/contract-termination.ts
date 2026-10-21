@@ -58,12 +58,11 @@ export async function previewContractTermination(
       orderBy: { id: "asc" },
     }),
   ]);
-  const items = (
-    await loadSettlementItems(
-      database,
-      installments.map((row) => row.id),
-    )
-  ).sort((a, b) => a.id.localeCompare(b.id));
+  const settlementItems = await loadSettlementItems(
+    database,
+    installments.map((row) => row.id),
+  );
+  const items = settlementItems.toSorted((left, right) => left.id.localeCompare(right.id));
   const lines = items
     .filter((item) => !item.waivedAt)
     .map((item) => {
@@ -146,7 +145,7 @@ export async function confirmContractTermination(input: {
     where: { order: { contractId: contract.id, kind: "TUITION" }, deletedAt: null },
     select: { id: true },
   });
-  await lockInstallments(database, ids.map((row) => row.id).sort());
+  await lockInstallments(database, ids.map((row) => row.id).toSorted());
   const preview = await previewContractTermination(database, values.contractId, now);
   if (preview.version !== values.version)
     throw badRequest(

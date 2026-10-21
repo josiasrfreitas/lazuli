@@ -80,10 +80,12 @@ export async function listAbsences(
   database: TransactionClient,
   input: z.infer<typeof absenceListSchema>,
 ) {
-  const available = sql<number>`greatest(0, extract(epoch from (s.end_time - s.start_time)) / 60 - coalesce((
-    select sum(c.minutes) from "MakeupCoverage" c join "PedagogicalAppointment" p on p.id = c.appointment_id
-    where c.attendance_id = a.id and c.deleted_at is null and p.deleted_at is null and p.status in ('SCHEDULED', 'ATTENDED')
-  ), 0))`;
+  const available = sql<number>`
+    greatest(0, extract(epoch from (s.end_time - s.start_time)) / 60 - coalesce((
+        select sum(c.minutes) from "MakeupCoverage" c join "PedagogicalAppointment" p on p.id = c.appointment_id
+        where c.attendance_id = a.id and c.deleted_at is null and p.deleted_at is null and p.status in ('SCHEDULED', 'ATTENDED')
+      ), 0))
+  `;
   let query = database.$kysely
     .selectFrom("Attendance as a")
     .innerJoin("ClassSession as s", "s.id", "a.class_session_id")

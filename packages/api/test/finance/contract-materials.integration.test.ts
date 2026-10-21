@@ -549,10 +549,11 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
         where: { id: plan.id },
         data: { plannedEndOn: new Date("2026-06-01") },
       });
-      assert.deepEqual(
-        (await service.studentSummary({ studentId: values.studentId, now: NOW })).materialNeeds,
-        [],
-      );
+      const coveredSummary = await service.studentSummary({
+        studentId: values.studentId,
+        now: NOW,
+      });
+      assert.deepEqual(coveredSummary.materialNeeds, []);
       await tx.stagePlan.update({
         where: { id: plan.id },
         data: { plannedEndOn: new Date("2026-02-28") },

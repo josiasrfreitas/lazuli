@@ -114,7 +114,7 @@ function PlacementFields({
         row?.effectiveDate ? dateOnly(row.effectiveDate) : dateOnly(board.semester.startDate),
         toDateOnlySaoPaulo(new Date()),
       ]
-        .sort()
+        .toSorted()
         .at(-1),
     ),
   );

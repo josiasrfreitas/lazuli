@@ -10,7 +10,7 @@ export function ProgramLoading(): ReactJSX.Element {
         <InlineSkeleton className="h-5 w-32" />
       </div>
       <div className={mapStyles.blocks}>
-        {Array.from({ length: 8 }, (_, index) => (
+        {Array.from({ length: 8 }, (_unused, index) => (
           <div key={index} className={mapStyles.block}>
             <InlineSkeleton className="h-3 w-24" />
             <InlineSkeleton className="h-5 w-32" />

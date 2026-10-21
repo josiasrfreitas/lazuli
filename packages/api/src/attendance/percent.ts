@@ -14,6 +14,9 @@ import { assertResourceScope } from "../trpc/rbac.js";
 import type { AttendanceDatabase } from "./data.js";
 import { ENROLLMENT_NOT_FOUND_MESSAGE, SEMESTER_NOT_FOUND_MESSAGE } from "./errors.js";
 
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
+
 type PercentInput = z.infer<typeof attendanceEnrollmentSemesterPercentInputSchema>;
 
 /** The enrollment facts the percent window needs; `class` is only used for RBAC scoping. */
@@ -108,8 +111,10 @@ export async function computeEnrollmentPercentInWindow(input: {
       const attendance = session.attendanceRows[0];
       return {
         minutes: teachingMinutes({
-          startTime: session.startTime.toISOString().slice(11, 16),
-          endTime: session.endTime.toISOString().slice(11, 16),
+          startTime: session.startTime
+            .toISOString()
+            .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+          endTime: session.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
         }),
         status: attendance?.status ?? null,
         compensatedMinutes:

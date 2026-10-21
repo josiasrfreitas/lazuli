@@ -65,7 +65,7 @@ void it("funds allocated students for a year with shared payers, partial payment
     const partial = contracts.find((contract) => contract.studentId === studentIds[1])!;
     const lastDue = partial.orders[0]!.installments.filter(
       (item) => item.dueDate < new Date(today),
-    ).sort((left, right) => right.sequenceNumber - left.sequenceNumber)[0]!;
+    ).toSorted((left, right) => right.sequenceNumber - left.sequenceNumber)[0]!;
     assert.equal(
       lastDue.allocations.reduce((sum, row) => sum + row.amountCents, 0),
       lastDue.amountCents / 2,

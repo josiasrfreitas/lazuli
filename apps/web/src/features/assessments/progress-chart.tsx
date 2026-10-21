@@ -139,5 +139,5 @@ function scaleTicks(min: number, max: number): number[] {
   for (let value = Math.ceil(min / step) * step; value < max; value += step) {
     if (value - min >= 5 && max - value >= 5) ticks.push(value);
   }
-  return [...new Set(ticks)].sort((left, right) => left - right);
+  return [...new Set(ticks)].toSorted((left, right) => left - right);
 }

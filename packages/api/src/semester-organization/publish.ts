@@ -100,7 +100,7 @@ export async function publishPlacements(context: OrganizationContext, input: Pub
   await assertNoTeacherConflict({
     database: context.database,
     teacherId: current.teacherId,
-    from: selected.map((row) => dateOnly(row.effectiveDate ?? semester.startDate)).sort()[0]!,
+    from: selected.map((row) => dateOnly(row.effectiveDate ?? semester.startDate)).toSorted()[0]!,
     through: dateOnly(semester.endDate),
     slots: current.slots,
     ...(current.classId ? { excludeClassId: current.classId } : {}),
@@ -125,13 +125,12 @@ export async function publishPlacements(context: OrganizationContext, input: Pub
       where: { id: plan.id },
       data: { classId: classRow.id, version: { increment: 1 } },
     });
-    generationRequestId = (
-      await requestSessionGeneration(context.database, {
-        scope: { classId: classRow.id },
-        requestedById: context.staffUser.id,
-        now: context.now,
-      })
-    ).id;
+    const generation = await requestSessionGeneration(context.database, {
+      scope: { classId: classRow.id },
+      requestedById: context.staffUser.id,
+      now: context.now,
+    });
+    generationRequestId = generation.id;
   }
   for (const row of selected) {
     if (!row.stageId || !row.availability)
@@ -185,19 +184,18 @@ async function publishOne(
       throw badRequest(
         `${row.studentName} já possui uma pausa ou saída programada. Revise essa movimentação antes de publicar.`,
       );
-    sourceExitActionId = (
-      await context.database.enrollmentAction.create({
-        data: {
-          enrollmentId: row.sourceEnrollmentId,
-          kind: "EXIT",
-          status: immediate ? "APPLIED" : "SCHEDULED",
-          effectiveDate: entryDate,
-          exitReason: "TRANSFERRED",
-          recordedById: context.staffUser.id,
-          justification: "Organização de turmas",
-        },
-      })
-    ).id;
+    const sourceExitAction = await context.database.enrollmentAction.create({
+      data: {
+        enrollmentId: row.sourceEnrollmentId,
+        kind: "EXIT",
+        status: immediate ? "APPLIED" : "SCHEDULED",
+        effectiveDate: entryDate,
+        exitReason: "TRANSFERRED",
+        recordedById: context.staffUser.id,
+        justification: "Organização de turmas",
+      },
+    });
+    sourceExitActionId = sourceExitAction.id;
   }
   if (immediate && row.sourceEnrollmentId)
     await closeActiveEnrollment({

@@ -15,7 +15,7 @@ export function TeacherListLoading({
   return (
     <div role="status" aria-label={label} aria-busy="true" className={styles.groups}>
       <span className="sr-only">{label}…</span>
-      {Array.from({ length: kind === "students" ? 2 : 1 }, (_, group) => (
+      {Array.from({ length: kind === "students" ? 2 : 1 }, (_unused, group) => (
         <div className={styles.group} key={group} aria-hidden="true">
           {grouped && (
             <div className={styles.groupHeader}>

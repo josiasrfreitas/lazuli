@@ -14,6 +14,8 @@ import {
 import { AttendanceShareControls, type AttendanceShareAccess } from "./share-controls";
 import styles from "./teacher-page.module.css";
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+
 const names = [
   "Ana Beatriz Martins",
   "Marcos Vinícius Costa",
@@ -87,7 +89,7 @@ export function TeacherAttendancePreview(): ReactJSX.Element {
     setAccess({
       url: `${origin}/presenca/previa?ensaio=${instance}`,
       projectionUrl: `${origin}/presenca/previa/projecao?ensaio=${instance}`,
-      expiresAt: new Date(Date.now() + minutes * 60_000),
+      expiresAt: new Date(Date.now() + minutes * MILLISECONDS_PER_MINUTE),
     });
     setPreviousLink(true);
     setNotice("QR e link de demonstração abertos. Você já pode simular um envio.");

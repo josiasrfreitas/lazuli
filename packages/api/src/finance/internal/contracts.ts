@@ -14,6 +14,8 @@ import { createContractPayer } from "./payers.js";
 import { toDateOnly, type FinanceDatabase } from "./shared.js";
 import { assertCreationCommandOwner, lockCreationCommand } from "../../creation-command.js";
 
+const ISO_DATE_LENGTH = 10;
+
 const DUE_DAY_START = 8;
 const DUE_DAY_END = 10;
 
@@ -93,7 +95,7 @@ async function readyTerms(input: {
     (!prior ||
       !values.studentId ||
       !prior.endsOn ||
-      values.startsOn <= prior.endsOn.toISOString().slice(0, 10))
+      values.startsOn <= prior.endsOn.toISOString().slice(0, ISO_DATE_LENGTH))
   )
     throw new TRPCError({
       code: "BAD_REQUEST",

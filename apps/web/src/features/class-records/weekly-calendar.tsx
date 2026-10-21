@@ -93,7 +93,7 @@ export function WeeklyCalendar({
     end: calendarWallDate(range.date, range.endTime),
   });
   const blocked = selection
-    ? Array.from({ length: 7 }, (_, day) => shiftDate(monday(date), day))
+    ? Array.from({ length: 7 }, (_unused, day) => shiftDate(monday(date), day))
         .filter(selection.isDateDisabled)
         .map((day) => ({
           id: day,

@@ -264,7 +264,7 @@ async function persistWindow(
     id: session.classId,
     name: session.class.portalClassName,
   };
-  const date = isoOf(session.date).split("-").reverse().join("/");
+  const date = isoOf(session.date).split("-").toReversed().join("/");
   await recordActivity(
     database,
     { staffUser: teacher, now: times.openedAt },

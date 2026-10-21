@@ -22,10 +22,10 @@ export function studentPlanningOptions(contexts: Contexts, studentId: string) {
         .map((student) => ({ ...student, classId: group.id, className: group.name })),
     )
     .toSorted(
-      (a, b) =>
-        Number(a.historical) - Number(b.historical) ||
-        Number(a.startOn > today) - Number(b.startOn > today) ||
-        b.startOn.localeCompare(a.startOn),
+      (left, right) =>
+        Number(left.historical) - Number(right.historical) ||
+        Number(left.startOn > today) - Number(right.startOn > today) ||
+        right.startOn.localeCompare(left.startOn),
     );
 }
 

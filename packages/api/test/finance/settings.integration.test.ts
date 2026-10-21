@@ -71,7 +71,8 @@ void describe("global finance settings persistence", { concurrency: 1 }, () => {
       childMaterialInstallments: 6,
       childMaterialInstallmentCents: 0,
     });
-    assert.deepEqual((await finance(db, ADMIN.id).readMaterialPrice())?.child, {
+    const savedPrice = await finance(db, ADMIN.id).readMaterialPrice();
+    assert.deepEqual(savedPrice?.child, {
       installments: 6,
       installmentCents: 0,
       totalCents: 0,

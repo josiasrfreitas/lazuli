@@ -71,7 +71,7 @@ export function groupStudents(students: WorkspaceStudent[]) {
       groups.set(membership.id, group);
     }
   }
-  return [...groups.values()].sort((left, right) =>
+  return [...groups.values()].toSorted((left, right) =>
     left.id ? (right.id ? left.name.localeCompare(right.name, "pt-BR") : -1) : 1,
   );
 }

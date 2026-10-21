@@ -8,6 +8,9 @@ import {
 } from "./data.js";
 import { recordActivity } from "../activity/record.js";
 
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
+
 /** Copy only missing records. Repeating this command never overwrites the coordinator's edits. */
 export async function prepareSemester(context: OrganizationContext, semesterId: string) {
   const semester = await lockSemester(context, semesterId);
@@ -55,8 +58,8 @@ export async function prepareSemester(context: OrganizationContext, semesterId: 
   for (const group of classes) {
     const slots = group.scheduleSlots.map((slot) => ({
       weekday: slot.weekday,
-      startTime: slot.startTime.toISOString().slice(11, 16),
-      endTime: slot.endTime.toISOString().slice(11, 16),
+      startTime: slot.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+      endTime: slot.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
     }));
     if (slots.length === 0) continue;
     let plan = await context.database.semesterClassPlan.findFirst({

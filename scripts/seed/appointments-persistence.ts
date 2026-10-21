@@ -12,6 +12,8 @@ import {
   type SeedPurpose,
 } from "./appointments-data.js";
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+
 export type AppointmentDraft = {
   id: string;
   studentId: string;
@@ -205,7 +207,7 @@ async function assertSeedCoverages(
   draft: AppointmentDraft,
   coverages: SeedCoverage[],
 ): Promise<void> {
-  const duration = (draft.endTime.getTime() - draft.startTime.getTime()) / 60_000;
+  const duration = (draft.endTime.getTime() - draft.startTime.getTime()) / MILLISECONDS_PER_MINUTE;
   if (
     (draft.purpose === "MAKEUP") !== coverages.length > 0 ||
     new Set(coverages.map((row) => row.attendanceId)).size !== coverages.length ||

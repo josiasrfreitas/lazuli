@@ -33,6 +33,9 @@ import {
   addInterventionFollowUp,
   addInterventionOccurrence,
 } from "./write.js";
+
+const MILLISECONDS_PER_DAY = 86_400_000;
+
 const byId = z.object({ id: z.string().uuid() }).strict();
 const context = (ctx: Context & { staffUser: StaffUser }): FollowUpContext => ({
   database: ctx.db,
@@ -58,7 +61,8 @@ export const occurrencesRouter = router({
             .object({ from: civilDateSchema, to: civilDateSchema })
             .strict()
             .refine(
-              ({ from, to }) => from <= to && Date.parse(to) - Date.parse(from) <= 6 * 86_400_000,
+              ({ from, to }) =>
+                from <= to && Date.parse(to) - Date.parse(from) <= 6 * MILLISECONDS_PER_DAY,
               "Escolha um período de até sete dias.",
             )
             .optional(),

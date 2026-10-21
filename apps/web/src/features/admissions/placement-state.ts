@@ -1,5 +1,7 @@
 import type { Candidate } from "./labels";
 
+const ISO_DATE_LENGTH = 10;
+
 type Visit = Candidate["visits"][number];
 
 export function placementStatus(
@@ -17,7 +19,7 @@ export function placementStatus(
 export function placementHasStarted(visit: { date: Date | string; startTime: string }): boolean {
   const date =
     typeof visit.date === "string"
-      ? visit.date.slice(0, 10)
-      : visit.date.toISOString().slice(0, 10);
+      ? visit.date.slice(0, ISO_DATE_LENGTH)
+      : visit.date.toISOString().slice(0, ISO_DATE_LENGTH);
   return new Date(`${date}T${visit.startTime}:00-03:00`).getTime() <= Date.now();
 }

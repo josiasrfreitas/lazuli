@@ -91,7 +91,11 @@ export async function teacherHomeOverview(context: RecordContext): Promise<Teach
         startTime: row.startTime,
         correctionPending: Boolean(row.assessment && !row.assessment.stageId),
       }))
-      .toSorted((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)),
+      .toSorted(
+        (comparedLeft, comparedRight) =>
+          comparedLeft.date.localeCompare(comparedRight.date) ||
+          comparedLeft.startTime.localeCompare(comparedRight.startTime),
+      ),
     ...planning,
   };
 }

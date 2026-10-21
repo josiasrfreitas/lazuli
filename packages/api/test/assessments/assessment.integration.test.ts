@@ -278,10 +278,9 @@ void it("restricts teacher access to current responsibility and administrative c
     grades: completeGrades(),
   });
   assert.equal(saved.canConfirm, false);
+  const progress = await teacher.assessments.student({ studentId: fixture.studentId });
   assert.deepEqual(
-    (await teacher.assessments.student({ studentId: fixture.studentId })).map(
-      (row) => row.progressId,
-    ),
+    progress.map((row) => row.progressId),
     [fixture.progressId],
   );
   await assert.rejects(

@@ -30,8 +30,8 @@ after(async () => {
 });
 
 void it("includes independent appointments in departure impact and coverage without cancelling them", async () => {
-  const f = await appointmentFixture(harness);
-  const caller = harness.caller(undefined, f.before);
+  const fixtureData = await appointmentFixture(harness);
+  const caller = harness.caller(undefined, fixtureData.before);
   const departure = { id: harness.ns.otherTeacher.id, effectiveDate: "2091-04-02" };
   const stalePreview = await caller.teachers.previewDeparture(departure);
   const meeting = {
@@ -43,9 +43,9 @@ void it("includes independent appointments in departure impact and coverage with
     format: "IN_PERSON" as const,
   };
   await caller.appointments.schedule({
-    ...f.input,
+    ...fixtureData.input,
     meeting,
-    coverages: [{ attendanceId: f.absence.id, minutes: 60 }],
+    coverages: [{ attendanceId: fixtureData.absence.id, minutes: 60 }],
   });
   await assert.rejects(
     caller.teachers.depart({ ...departure, token: stalePreview.token }),
@@ -54,34 +54,35 @@ void it("includes independent appointments in departure impact and coverage with
   const preview = await caller.teachers.previewDeparture(departure);
   assert.deepEqual(
     preview.appointments.map((row) => row.id),
-    [f.input.id],
+    [fixtureData.input.id],
   );
   assert.equal(preview.appointments[0]?.date, "2091-04-03");
-  const original = await caller.appointments.detail({ id: f.input.id });
+  const original = await caller.appointments.detail({ id: fixtureData.input.id });
   await caller.teachers.depart({ ...departure, token: preview.token });
-  const afterDeparture = await caller.appointments.detail({ id: f.input.id });
+  const afterDeparture = await caller.appointments.detail({ id: fixtureData.input.id });
   assert.deepEqual(afterDeparture.snapshot, original.snapshot);
   assert.deepEqual(afterDeparture.history, original.history);
   const pending = await caller.teachers.uncovered({ page: 1, pageSize: 25 });
-  assert.equal(pending.rows.find((row) => row.id === f.input.id)?.kind, "APPOINTMENT");
+  assert.equal(pending.rows.find((row) => row.id === fixtureData.input.id)?.kind, "APPOINTMENT");
   const replacementId = randomUUID();
   await caller.appointments.reschedule({
-    id: f.input.id,
+    id: fixtureData.input.id,
     expectedVersion: 1,
     reason: "Recompor cobertura após saída docente.",
     replacement: {
-      ...f.input,
+      ...fixtureData.input,
       id: replacementId,
       meeting: { ...meeting, teacherId: harness.ns.teacher.id },
-      coverages: [{ attendanceId: f.absence.id, minutes: 60 }],
+      coverages: [{ attendanceId: fixtureData.absence.id, minutes: 60 }],
     },
   });
   const resolved = await caller.teachers.uncovered({ page: 1, pageSize: 25 });
   assert.equal(
-    resolved.rows.filter((row) => row.id === f.input.id || row.id === replacementId).length,
+    resolved.rows.filter((row) => row.id === fixtureData.input.id || row.id === replacementId)
+      .length,
     0,
   );
   const successor = await caller.appointments.detail({ id: replacementId });
-  assert.equal(successor.snapshot.rescheduledFromId, f.input.id);
+  assert.equal(successor.snapshot.rescheduledFromId, fixtureData.input.id);
   assert.equal(successor.snapshot.teacher?.id, harness.ns.teacher.id);
 });

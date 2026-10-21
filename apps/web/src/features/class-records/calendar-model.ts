@@ -151,7 +151,7 @@ export function calendarTeachers(lessons: CalendarLesson[]): TeacherColumn[] {
       name: lesson.teacher ?? "Professor a definir",
     });
   }
-  return [...teachers.values()].sort((left, right) =>
+  return [...teachers.values()].toSorted((left, right) =>
     left.id === null
       ? 1
       : right.id === null

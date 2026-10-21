@@ -111,7 +111,7 @@ function ClosingVisualization({
           columns={columns}
           state={{
             kind: "data",
-            rows: [...rows].reverse().map((row) => ({ ...row, id: row.month })),
+            rows: [...rows].toReversed().map((row) => ({ ...row, id: row.month })),
           }}
           empty={{
             title: "Sem contratos no período",

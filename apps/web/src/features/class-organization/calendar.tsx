@@ -6,7 +6,9 @@ import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
 import type { OrganizationAction, SemesterBoard } from "./model";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
+
+const ISO_DATE_LENGTH = 10;
 
 export function OrganizationCalendar({
   board,
@@ -22,26 +24,26 @@ export function OrganizationCalendar({
   const months: Date[] = [];
   for (
     let date = new Date(`${start.slice(0, 7)}-01T12:00:00Z`);
-    date.toISOString().slice(0, 10) <= end;
+    date.toISOString().slice(0, ISO_DATE_LENGTH) <= end;
     date = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1, 12))
   )
     months.push(date);
   return (
-    <div className={s.workspace}>
-      <div className={s.scroll}>
-        <div className={`${s.row} px-4 pt-3`}>
-          <span className={s.small}>
+    <div className={styles.workspace}>
+      <div className={styles.scroll}>
+        <div className={`${styles.row} px-4 pt-3`}>
+          <span className={styles.small}>
             Calendário letivo · selecione uma data para registrar uma exceção
           </span>
-          <span className={`${s.small} ${s.attention}`}>Sublinhado: dia sem aula</span>
+          <span className={`${styles.small} ${styles.attention}`}>Sublinhado: dia sem aula</span>
         </div>
-        <div className={s.months}>
+        <div className={styles.months}>
           {months.map((month) => {
             const count = new Date(
               Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0),
             ).getUTCDate();
             return (
-              <section className={s.month} key={month.toISOString()}>
+              <section className={styles.month} key={month.toISOString()}>
                 <h3>
                   {new Intl.DateTimeFormat("pt-BR", {
                     month: "long",
@@ -49,15 +51,15 @@ export function OrganizationCalendar({
                     timeZone: "UTC",
                   }).format(month)}
                 </h3>
-                <div className={s.days}>
-                  {["D", "S", "T", "Q", "Q", "S", "S"].map((day, i) => (
-                    <span key={i}>{day}</span>
+                <div className={styles.days}>
+                  {["D", "S", "T", "Q", "Q", "S", "S"].map((day, position) => (
+                    <span key={position}>{day}</span>
                   ))}
-                  {Array.from({ length: month.getUTCDay() }, (_, i) => (
-                    <span key={`empty-${i}`} />
+                  {Array.from({ length: month.getUTCDay() }, (_unused, position) => (
+                    <span key={`empty-${position}`} />
                   ))}
-                  {Array.from({ length: count }, (_, i) => {
-                    const date = `${month.toISOString().slice(0, 7)}-${String(i + 1).padStart(2, "0")}`;
+                  {Array.from({ length: count }, (_unused, position) => {
+                    const date = `${month.toISOString().slice(0, 7)}-${String(position + 1).padStart(2, "0")}`;
                     const closed = board.closedDays.find((item) => dateOnly(item.date) === date);
                     return (
                       <button
@@ -70,7 +72,7 @@ export function OrganizationCalendar({
                         aria-label={`${formatDateOnlyBR(date)}${closed ? `, ${closed.reason}` : ", registrar dia sem aula"}`}
                         onClick={() => onAction({ kind: "closure", date })}
                       >
-                        {i + 1}
+                        {position + 1}
                       </button>
                     );
                   })}
@@ -80,16 +82,16 @@ export function OrganizationCalendar({
           })}
         </div>
       </div>
-      <aside className={s.panel}>
-        <header className={s.panelHeader}>
+      <aside className={styles.panel}>
+        <header className={styles.panelHeader}>
           <h2>Datas que organizam o semestre</h2>
-          <dl className={s.facts}>
+          <dl className={styles.facts}>
             <dt>Início</dt>
             <dd>{formatDateOnlyBR(start)}</dd>
             <dt>Encerramento</dt>
             <dd>{formatDateOnlyBR(end)}</dd>
           </dl>
-          <div className={s.actions}>
+          <div className={styles.actions}>
             <Button size="sm" variant="secondary" onClick={() => onAction({ kind: "period" })}>
               <CalendarDays size={14} />
               Editar período
@@ -99,7 +101,7 @@ export function OrganizationCalendar({
             </Button>
           </div>
         </header>
-        <div className={s.selection}>
+        <div className={styles.selection}>
           <Button size="sm" variant="secondary" onClick={() => onAction({ kind: "closure" })}>
             <Plus size={14} />
             Dia ou intervalo
@@ -110,14 +112,14 @@ export function OrganizationCalendar({
           </Button>
         </div>
         {remove.error && (
-          <div className={s.error} role="alert">
+          <div className={styles.error} role="alert">
             {remove.error.message}
           </div>
         )}
-        <div className={s.scroll}>
+        <div className={styles.scroll}>
           {board.closedDays.map((day) => (
-            <div className={s.closedRow} key={day.id}>
-              <div className={s.row}>
+            <div className={styles.closedRow} key={day.id}>
+              <div className={styles.row}>
                 <strong className="text-caption">{formatDateOnlyBR(dateOnly(day.date))}</strong>
                 <Button
                   size="sm"
@@ -129,12 +131,12 @@ export function OrganizationCalendar({
                   Remover
                 </Button>
               </div>
-              <span className={s.small}>{day.reason}</span>
+              <span className={styles.small}>{day.reason}</span>
             </div>
           ))}
           {board.closedDays.length === 0 && (
-            <div className={s.detail}>
-              <p className={s.small}>
+            <div className={styles.detail}>
+              <p className={styles.small}>
                 Nenhuma exceção registrada. Importe os feriados nacionais e acrescente as datas de
                 Lagarto, férias e recessos da escola.
               </p>

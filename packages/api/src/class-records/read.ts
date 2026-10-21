@@ -110,7 +110,8 @@ export async function readClassRecord(
       where: { classSessionId: session.id, deletedAt: null },
     }),
   );
-  const guestContext = (await sessionGuests(context, [session])).get(session.id);
+  const sessionGuestMap = await sessionGuests(context, [session]);
+  const guestContext = sessionGuestMap.get(session.id);
   const guests = guestContext?.appointments ?? [];
   const summary = summarizeSession(session, {
     now: context.now,

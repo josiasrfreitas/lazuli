@@ -41,10 +41,11 @@ const variants = {
 export function CandidateVisits({ candidate }: { candidate: Candidate }): ReactJSX.Element {
   const [action, setAction] = useState<VisitAction | null>(null);
   const [placement, setPlacement] = useState<{ id: string; upload: boolean } | null>(null);
-  const visits = [...candidate.visits].sort((a, b) => {
-    const status = Number(b.status === "SCHEDULED") - Number(a.status === "SCHEDULED");
-    const time = a.date.getTime() - b.date.getTime() || a.startTime.localeCompare(b.startTime);
-    return status || (a.status === "SCHEDULED" ? time : -time);
+  const visits = [...candidate.visits].toSorted((left, right) => {
+    const status = Number(right.status === "SCHEDULED") - Number(left.status === "SCHEDULED");
+    const time =
+      left.date.getTime() - right.date.getTime() || left.startTime.localeCompare(right.startTime);
+    return status || (left.status === "SCHEDULED" ? time : -time);
   });
   return (
     <>

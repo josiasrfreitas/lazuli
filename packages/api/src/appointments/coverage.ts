@@ -25,7 +25,7 @@ export async function validateCoverages(
     where: { id: { in: ids } },
     select: { classSessionId: true },
   });
-  for (const sessionId of [...new Set(sessions.map((row) => row.classSessionId))].sort())
+  for (const sessionId of [...new Set(sessions.map((row) => row.classSessionId))].toSorted())
     await lockClassRecord(context.database, sessionId);
   const sources = await context.database.attendance.findMany({
     where: { id: { in: ids } },

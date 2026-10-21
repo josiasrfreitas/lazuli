@@ -11,7 +11,7 @@ import {
   type Placement,
   type SemesterBoard,
 } from "./model";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
 export type QueueProps = {
   board: SemesterBoard;
   onAction: (action: OrganizationAction) => void;
@@ -35,12 +35,12 @@ export function PendingStudent({
         : { kind: "placement", studentId: row.studentId, row, ...(planId ? { planId } : {}) },
     );
   return (
-    <div className={s.queueDetails}>
-      <div className={s.detail}>
+    <div className={styles.queueDetails}>
+      <div className={styles.detail}>
         {(row.continuityReason || row.notes) && (
           <p className="text-caption">{row.continuityReason || row.notes}</p>
         )}
-        <dl className={s.facts}>
+        <dl className={styles.facts}>
           {row.sourceClassName && (
             <>
               <dt>Turma atual</dt>
@@ -60,7 +60,7 @@ export function PendingStudent({
                 : contractLabel(row).label}
           </dd>
         </dl>
-        <div className={s.actions}>
+        <div className={styles.actions}>
           <Button
             size="sm"
             variant="ghost"
@@ -74,7 +74,7 @@ export function PendingStudent({
           </Link>
         </div>
         {row.blockers.length > 0 && (
-          <details className={s.small}>
+          <details className={styles.small}>
             <summary>O que falta confirmar · {row.blockers.length}</summary>
             <ul className="grid gap-1 pt-2">
               {row.blockers.map((blocker) => (
@@ -83,27 +83,27 @@ export function PendingStudent({
             </ul>
           </details>
         )}
-        <section className={s.suggestions}>
+        <section className={styles.suggestions}>
           <h3>
             {suggestions.length > 0 ? "Turmas compatíveis" : "Sem turma compatível por enquanto"}
           </h3>
           {suggestions.slice(0, 5).map((plan) => (
             <button
               type="button"
-              className={s.queueItem}
+              className={styles.queueItem}
               key={plan.id}
               disabled={ended}
               onClick={() => choose(plan.id)}
             >
-              <span className={s.person}>
+              <span className={styles.person}>
                 <strong>{plan.name}</strong>
-                <span className={s.small}>{scheduleLabel(plan.slots)}</span>
+                <span className={styles.small}>{scheduleLabel(plan.slots)}</span>
               </span>
               <ChevronRight size={14} />
             </button>
           ))}
           {suggestions.length === 0 && (
-            <p className={s.small}>
+            <p className={styles.small}>
               A pessoa permanece na fila. Você pode reunir outras do mesmo estágio e formar uma
               turma.
             </p>
@@ -115,7 +115,7 @@ export function PendingStudent({
           </Button>
         )}
       </div>
-      <footer className={s.selection}>
+      <footer className={styles.selection}>
         <Button size="sm" disabled={ended} onClick={() => choose()}>
           Escolher turma <ArrowRight size={14} />
         </Button>
@@ -132,10 +132,10 @@ export function PendingLead({
   lead: SemesterBoard["waitingLeads"][number];
 }): ReactJSX.Element {
   return (
-    <div className={s.queueDetails}>
-      <div className={s.detail}>
+    <div className={styles.queueDetails}>
+      <div className={styles.detail}>
         <p className="text-caption">{lead.allocationPendingReason}</p>
-        <dl className={s.facts}>
+        <dl className={styles.facts}>
           <dt>Interesse</dt>
           <dd>
             {lead.scheduleType === "PERSONALIZED"
@@ -154,7 +154,7 @@ export function PendingLead({
           <dd>{lead.slots.length > 0 ? scheduleLabel(lead.slots) : "A combinar"}</dd>
         </dl>
         {lead.allocationPlan && (
-          <div className={s.summary}>
+          <div className={styles.summary}>
             <strong>Turma proposta: {lead.allocationPlan.name}</strong>
             <p>
               {lead.allocationPlan.classId
@@ -168,9 +168,9 @@ export function PendingLead({
             )}
           </div>
         )}
-        {lead.notes && <p className={s.small}>{lead.notes}</p>}
+        {lead.notes && <p className={styles.small}>{lead.notes}</p>}
       </div>
-      <footer className={s.selection}>
+      <footer className={styles.selection}>
         <Button size="sm" nativeButton={false} render={<Link href={`/interessados/${lead.id}`} />}>
           Continuar pelo lead <ArrowRight size={14} />
         </Button>

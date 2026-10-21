@@ -33,7 +33,7 @@ export function CalendarTeacherFilter({
         !selected.some((item) => item.id === teacher.id) &&
         normalizeSearch(teacher.label).includes(search),
     )
-    .sort((left, right) => left.label.localeCompare(right.label, "pt-BR"));
+    .toSorted((left, right) => left.label.localeCompare(right.label, "pt-BR"));
 
   return (
     <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">

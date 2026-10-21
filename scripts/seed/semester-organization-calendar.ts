@@ -20,6 +20,9 @@ import {
 } from "../../packages/api/src/teachers/availability.js";
 import { organizationId, type OrganizationGroup } from "./semester-organization-data.js";
 
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
+
 export async function organizationSemester(
   database: TransactionClient,
   authoredAt: Date,
@@ -157,7 +160,7 @@ export async function publishedOrganizationClass(input: {
         "session",
         row.classId,
         isoOf(row.date),
-        row.startTime.toISOString().slice(11, 16),
+        row.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
       ]),
       createdAt: publishedAt,
       updatedAt: publishedAt,

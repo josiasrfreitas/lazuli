@@ -27,7 +27,7 @@ export function WeekGrid({
     ...day,
     meetings: rows
       .filter((row) => row.weekday === day.weekday)
-      .toSorted((a, b) => a.startTime.localeCompare(b.startTime)),
+      .toSorted((left, right) => left.startTime.localeCompare(right.startTime)),
   }));
   const slots = visibleWeekSlots(rows);
   return (

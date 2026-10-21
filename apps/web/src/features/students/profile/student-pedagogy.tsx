@@ -40,7 +40,7 @@ export function StudentPedagogySection(props: PedagogyProps): ReactElement {
   if (current.length === 0) {
     const upcoming = history
       .filter((row) => row.entryDate > query.data.today)
-      .toSorted((a, b) => a.entryDate.localeCompare(b.entryDate))[0];
+      .toSorted((left, right) => left.entryDate.localeCompare(right.entryDate))[0];
     return (
       <div className="flex min-h-full min-w-0 flex-col">
         <ContractTerminationNotice termination={props.latestTermination} studentId={id} />

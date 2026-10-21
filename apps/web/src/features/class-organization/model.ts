@@ -5,6 +5,10 @@ import {
   type Placement,
   type SemesterBoard,
 } from "~/features/semester-organization/shared";
+
+const ISO_DATE_LENGTH = 10;
+const MILLISECONDS_PER_DAY = 86_400_000;
+
 export type { ClassPlan, Placement, SemesterBoard };
 export type OrganizationAction =
   | { kind: "plan"; plan?: ClassPlan; group?: PendingGroup }
@@ -73,7 +77,7 @@ export function compatible(row: Placement, plan: ClassPlan): boolean {
 export function suggestedPlans(row: Placement, board: SemesterBoard): ClassPlan[] {
   return board.plans
     .filter((plan) => compatible(row, plan))
-    .sort(
+    .toSorted(
       (left, right) =>
         Number(right.sourceClassId === row.sourceClassId) -
         Number(left.sourceClassId === row.sourceClassId),
@@ -91,13 +95,13 @@ export function changeLabel(row: Placement, board: SemesterBoard): string {
 export function contractLabel(row: Placement): { label: string; warning: boolean } {
   if (!row.contract && row.upcomingContract?.startsOn)
     return {
-      label: `Contrato começa em ${formatDateOnlyBR(row.upcomingContract.startsOn.toISOString().slice(0, 10))}`,
+      label: `Contrato começa em ${formatDateOnlyBR(row.upcomingContract.startsOn.toISOString().slice(0, ISO_DATE_LENGTH))}`,
       warning: true,
     };
   if (!row.contract)
     return { label: row.lastContract ? "Renovar contrato" : "Sem contrato", warning: true };
   const days = row.contract.endsOn
-    ? Math.ceil((new Date(row.contract.endsOn).getTime() - Date.now()) / 86_400_000)
+    ? Math.ceil((new Date(row.contract.endsOn).getTime() - Date.now()) / MILLISECONDS_PER_DAY)
     : null;
   return days !== null && days <= 45
     ? { label: `Vence em ${Math.max(0, days)} dias`, warning: true }

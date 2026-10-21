@@ -16,6 +16,8 @@ import {
 } from "~/features/contracts/contract-form-model";
 import { useContractFormState, fieldErrors } from "~/features/contracts/new-contract-state";
 
+const ISO_DATE_LENGTH = 10;
+
 type Props = { contractId: string; onClose: () => void; onSaved: () => void };
 export function RenewalDialog(props: Props): ReactJSX.Element {
   const query = trpc.finance.renewalTerms.useQuery({ contractId: props.contractId });
@@ -60,7 +62,7 @@ function RenewalFields({
   const [initial] = useState(() => {
     const next = new Date(`${data.endsOn}T12:00:00Z`);
     next.setUTCDate(next.getUTCDate() + 1);
-    const start = next.toISOString().slice(0, 10);
+    const start = next.toISOString().slice(0, ISO_DATE_LENGTH);
     return {
       ...emptyContractFields,
       studentId: data.student.id,
@@ -99,7 +101,7 @@ function RenewalFields({
         ),
       );
     }
-    return formatDateOnlyBR(date.toISOString().slice(0, 10));
+    return formatDateOnlyBR(date.toISOString().slice(0, ISO_DATE_LENGTH));
   });
   const [dueError, setDueError] = useState("");
   const parsed = contractInputFromFields(state.fields, state.commandId.current);

@@ -3,6 +3,9 @@ import type { RouterOutputs } from "@lazuli/api";
 import type { AppointmentSnapshot } from "@lazuli/validators";
 import { Badge } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+
+const ISO_DATE_LENGTH = 10;
+
 export type Appointment = RouterOutputs["appointments"]["detail"];
 export type Absence = RouterOutputs["appointments"]["student"]["absences"][number];
 export const purposes = {
@@ -37,7 +40,7 @@ export function monthBounds(month: string) {
     from: `${valid}-01`,
     through: new Date(Date.UTC(Number(valid.slice(0, 4)), Number(valid.slice(5, 7)), 0))
       .toISOString()
-      .slice(0, 10),
+      .slice(0, ISO_DATE_LENGTH),
   };
 }
 export function shiftMonth(month: string, delta: number): string {

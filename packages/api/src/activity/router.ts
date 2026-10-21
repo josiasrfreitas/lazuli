@@ -15,6 +15,6 @@ export const activityRouter = router({
     });
     return rows
       .flatMap((row) => (row.actorId ? [{ id: row.actorId, name: row.actorName }] : []))
-      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      .toSorted((left, right) => left.name.localeCompare(right.name, "pt-BR"));
   }),
 });

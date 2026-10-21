@@ -7,7 +7,7 @@ import { dateOnly } from "~/features/semester-organization/shared";
 import { toDateOnlySaoPaulo } from "~/lib/format";
 import { isPending, isQueueItem, stageLabel, type PendingGroup } from "./model";
 import { PendingLead, PendingStudent, type QueueProps } from "./queue-details";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
 
 export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): ReactJSX.Element {
   const [search, setSearch] = useState("");
@@ -46,11 +46,11 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
   }
   const count = pending.length + leads.length + intents.length;
   return (
-    <aside className={s.panel} aria-label="Pendências">
-      <header className={s.panelHeader}>
-        <div className={s.row}>
+    <aside className={styles.panel} aria-label="Pendências">
+      <header className={styles.panelHeader}>
+        <div className={styles.row}>
           <h2>
-            Pendências <span className={s.small}>· {count}</span>
+            Pendências <span className={styles.small}>· {count}</span>
           </h2>
           <Button
             size="sm"
@@ -62,7 +62,7 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
             <Plus size={16} />
           </Button>
         </div>
-        <p className={s.small}>
+        <p className={styles.small}>
           Alocações, trocas e continuidade. Expanda para cuidar de cada caso.
         </p>
         {count > 6 && (
@@ -76,28 +76,29 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
           />
         )}
       </header>
-      <div className={s.scroll}>
+      <div className={styles.scroll}>
         {!count && (
-          <div className={s.empty}>
+          <div className={styles.empty}>
             <h3>Nenhuma pendência</h3>
             <p>Leads aguardando turma e alunos que precisam de atenção aparecem aqui.</p>
           </div>
         )}
         {[...groups.values()]
-          .sort((a, b) => {
+          .toSorted((left, right) => {
             const attention = (group: PendingGroup): number =>
               group.rows.filter((row) => row.continuity === "LEAVING" || row.declinedAt).length;
             return (
-              attention(b) - attention(a) ||
-              b.rows.length + b.leads.length - (a.rows.length + a.leads.length) ||
-              a.stageCode.localeCompare(b.stageCode)
+              attention(right) - attention(left) ||
+              right.rows.length + right.leads.length - (left.rows.length + left.leads.length) ||
+              left.stageCode.localeCompare(right.stageCode)
             );
           })
           .map((group) => {
             const rows = group.rows
               .filter((item) => match(item.studentName))
-              .sort(
-                (a, b) => Number(b.continuity === "LEAVING") - Number(a.continuity === "LEAVING"),
+              .toSorted(
+                (left, right) =>
+                  Number(right.continuity === "LEAVING") - Number(left.continuity === "LEAVING"),
               );
             const items = group.leads.filter((item) => match(item.fullName));
             if (rows.length === 0 && items.length === 0) return null;
@@ -108,10 +109,10 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
                 key={group.stageId}
                 aria-label={`Pendências · ${stageLabel(group.stageCode)}`}
               >
-                <div className={s.groupHeader}>
+                <div className={styles.groupHeader}>
                   <h3>
                     {stageLabel(group.stageCode)}{" "}
-                    <span className={s.small}>· {group.rows.length + group.leads.length}</span>
+                    <span className={styles.small}>· {group.rows.length + group.leads.length}</span>
                   </h3>
                   {group.stageId && available >= 2 && (
                     <Button
@@ -135,23 +136,25 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
                         : "Aguardando turma";
                   const reason = item.continuityReason || item.declinedReason || item.notes;
                   return (
-                    <details key={item.id} className={s.queueEntry} data-attention={leaving}>
-                      <summary className={s.queueItem}>
-                        <span className={s.person}>
+                    <details key={item.id} className={styles.queueEntry} data-attention={leaving}>
+                      <summary className={styles.queueItem}>
+                        <span className={styles.person}>
                           <strong>{item.studentName}</strong>
-                          <span className={s.queueMeta}>
+                          <span className={styles.queueMeta}>
                             <Badge variant="neutral">Aluno da escola</Badge>
-                            <span className={leaving ? s.attention : s.small}>{status}</span>
+                            <span className={leaving ? styles.attention : styles.small}>
+                              {status}
+                            </span>
                           </span>
-                          {reason && <span className={s.queuePreview}>{reason}</span>}
+                          {reason && <span className={styles.queuePreview}>{reason}</span>}
                         </span>
                         <ChevronDown size={14} />
                       </summary>
                       {leaving ? (
-                        <div className={s.detail}>
+                        <div className={styles.detail}>
                           {reason && <p className="text-caption">{reason}</p>}
                           {item.sourceClassName && (
-                            <p className={s.small}>Turma atual: {item.sourceClassName}</p>
+                            <p className={styles.small}>Turma atual: {item.sourceClassName}</p>
                           )}
                           <Button
                             size="sm"
@@ -178,18 +181,20 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
                   );
                 })}
                 {items.map((item) => (
-                  <details key={item.id} className={s.queueEntry}>
-                    <summary className={s.queueItem}>
-                      <span className={s.person}>
+                  <details key={item.id} className={styles.queueEntry}>
+                    <summary className={styles.queueItem}>
+                      <span className={styles.person}>
                         <strong>{item.fullName}</strong>
-                        <span className={s.queueMeta}>
+                        <span className={styles.queueMeta}>
                           <Badge variant="info">Lead</Badge>
-                          <span className={s.small}>
+                          <span className={styles.small}>
                             {item.allocationPlan ? "Turma proposta" : "Aguardando turma"}
                           </span>
                         </span>
                         {item.allocationPendingReason && (
-                          <span className={s.queuePreview}>{item.allocationPendingReason}</span>
+                          <span className={styles.queuePreview}>
+                            {item.allocationPendingReason}
+                          </span>
                         )}
                       </span>
                       <ChevronDown size={14} />
@@ -206,15 +211,15 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
             <button
               type="button"
               key={intent.id}
-              className={s.queueItem}
+              className={styles.queueItem}
               disabled={ended}
               onClick={() => onAction({ kind: "placement", studentId: intent.studentId })}
             >
-              <span className={s.person}>
+              <span className={styles.person}>
                 <strong>{intent.studentName}</strong>
-                <span className={s.queueMeta}>
+                <span className={styles.queueMeta}>
                   <Badge variant="neutral">Aluno da escola</Badge>
-                  <span className={s.small}>Definir estágio</span>
+                  <span className={styles.small}>Definir estágio</span>
                 </span>
               </span>
               <ChevronRight size={14} />
@@ -226,7 +231,7 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
             ...leads.map((item) => item.fullName),
             ...intents.map((item) => item.studentName),
           ].some(match) && (
-            <div className={s.empty}>
+            <div className={styles.empty}>
               <p>Nenhuma pessoa encontrada. Tente outro nome.</p>
             </div>
           )}

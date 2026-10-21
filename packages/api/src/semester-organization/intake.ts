@@ -3,6 +3,8 @@ import type { StudentPedagogyIntake } from "@lazuli/validators";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { badRequest } from "../trpc/errors.js";
 
+const ISO_DATE_LENGTH = 10;
+
 /** Part of student creation's transaction: the intention must not be lost between wizard steps. */
 export async function recordStudentIntake(
   database: TransactionClient,
@@ -16,7 +18,7 @@ export async function recordStudentIntake(
     where: { id: input.semesterId, deletedAt: null },
   });
   const today = saoPauloDateOnly(now);
-  if (!semester || semester.endDate.toISOString().slice(0, 10) < today)
+  if (!semester || semester.endDate.toISOString().slice(0, ISO_DATE_LENGTH) < today)
     throw badRequest("Escolha um semestre atual ou futuro para o aluno.");
   const stage = input.stageId
     ? await database.stage.findFirst({
@@ -57,7 +59,7 @@ export async function recordStudentIntake(
         planId: plan?.id ?? null,
         mode: "ENTRY",
         effectiveDate: new Date(
-          [today, semester.startDate.toISOString().slice(0, 10)].sort().at(-1)!,
+          [today, semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH)].toSorted().at(-1)!,
         ),
         notes: input.notes || null,
         recordedById,

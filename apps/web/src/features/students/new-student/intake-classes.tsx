@@ -86,7 +86,7 @@ function RecurringSchedule({
   );
   const times = [
     ...new Set(choices.flatMap((choice) => choice.slots.map((slot) => slot.startTime))),
-  ].sort();
+  ].toSorted();
   const unscheduled = choices.filter((choice) => choice.slots.length === 0);
   return (
     <>

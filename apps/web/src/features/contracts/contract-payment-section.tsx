@@ -170,9 +170,12 @@ export function previewCalendar(
 ) {
   const first = tuition[0]?.dueDate;
   if (!first) return [];
-  return Array.from({ length: Math.max(tuition.length, material?.count ?? 0) }, (_, index) => ({
-    dueDate: addCalendarMonths(first, index),
-    tuitionCents: tuition[index]?.amountCents ?? 0,
-    materialCents: material && index < material.count ? material.amountCents : 0,
-  }));
+  return Array.from(
+    { length: Math.max(tuition.length, material?.count ?? 0) },
+    (_unused, index) => ({
+      dueDate: addCalendarMonths(first, index),
+      tuitionCents: tuition[index]?.amountCents ?? 0,
+      materialCents: material && index < material.count ? material.amountCents : 0,
+    }),
+  );
 }

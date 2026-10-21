@@ -29,12 +29,14 @@ export function studentSearchQuery(
     .select(["student.id", "student.full_name as fullName", "student.phone", "student.status"])
     .where("student.deleted_at", "is", null)
     .where(
-      sql<boolean>`(
-      ${searchMatchKysely(sql.ref("student.full_name"), originalQuery)}
-      OR ${normalizedKysely(sql.ref("student.document_number"))} LIKE ${contains}
-      OR ${normalizedKysely(sql.ref("student.phone"))} LIKE ${contains}
-      OR ${normalizedKysely(sql.ref("student.email"))} LIKE ${contains}
-    )`,
+      sql<boolean>`
+        (
+              ${searchMatchKysely(sql.ref("student.full_name"), originalQuery)}
+              OR ${normalizedKysely(sql.ref("student.document_number"))} LIKE ${contains}
+              OR ${normalizedKysely(sql.ref("student.phone"))} LIKE ${contains}
+              OR ${normalizedKysely(sql.ref("student.email"))} LIKE ${contains}
+            )
+      `,
     )
     .orderBy(
       sql<number>`

@@ -63,7 +63,7 @@ export function PedagogyStep({
   const today = toDateOnlySaoPaulo(new Date());
   const availablePeriods = [...(periods.data ?? [])]
     .filter((period) => !period.deletedAt)
-    .sort((left, right) => dateOnly(left.startDate).localeCompare(dateOnly(right.startDate)));
+    .toSorted((left, right) => dateOnly(left.startDate).localeCompare(dateOnly(right.startDate)));
   const current = availablePeriods.find(
     (period) => dateOnly(period.startDate) <= today && dateOnly(period.endDate) >= today,
   );

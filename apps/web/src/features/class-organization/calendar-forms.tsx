@@ -10,7 +10,7 @@ import { TaskDialog, useValidation } from "~/features/shared/task-form";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
 import { dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
 import type { OrganizationDialogProps as Props } from "./dialogs";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
 
 export function ClosureForm({
   board,
@@ -48,7 +48,7 @@ export function ClosureForm({
       bodyRef={validation.body}
     >
       <form
-        className={s.form}
+        className={styles.form}
         id="organization-closure"
         noValidate
         onSubmit={(event) => {
@@ -77,7 +77,7 @@ export function ClosureForm({
           onChange={setReason}
           error={validation.errors.reason}
         />
-        <div className={s.formRow}>
+        <div className={styles.formRow}>
           <TextControl
             name="closure-from"
             label="De"
@@ -100,7 +100,7 @@ export function ClosureForm({
             error={validation.errors.through}
           />
         </div>
-        <p className={s.small}>
+        <p className={styles.small}>
           Use a mesma data para um único dia. Datas já cadastradas serão preservadas. Aulas já
           geradas precisam ser revisadas na Agenda.
         </p>
@@ -139,7 +139,7 @@ export function PeriodForm({ board, onClose, onFeedback }: Props): ReactJSX.Elem
       bodyRef={validation.body}
     >
       <form
-        className={s.form}
+        className={styles.form}
         id="organization-period"
         noValidate
         onSubmit={(event) => {
@@ -169,7 +169,7 @@ export function PeriodForm({ board, onClose, onFeedback }: Props): ReactJSX.Elem
           onChange={setName}
           error={validation.errors.name}
         />
-        <div className={s.formRow}>
+        <div className={styles.formRow}>
           <TextControl
             name="period-start"
             label="Primeiro dia letivo"
@@ -189,7 +189,7 @@ export function PeriodForm({ board, onClose, onFeedback }: Props): ReactJSX.Elem
             error={validation.errors.endDate}
           />
         </div>
-        <div className={s.summary}>
+        <div className={styles.summary}>
           <span>Alocações confirmadas mantêm a vigência combinada.</span>
           <span>Férias e recessos são registrados como intervalos sem aula.</span>
         </div>
@@ -231,7 +231,7 @@ export function HolidayForm({ board, onClose, onFeedback }: Props): ReactJSX.Ele
       onClose={onClose}
     >
       <form
-        className={s.form}
+        className={styles.form}
         id="organization-holidays"
         onSubmit={(event) => {
           event.preventDefault();
@@ -283,7 +283,7 @@ export function HolidayForm({ board, onClose, onFeedback }: Props): ReactJSX.Ele
           ].map((value) => ({ value, label: value }))}
         />
         {query.isPending && (
-          <div className={s.summary} role="status">
+          <div className={styles.summary} role="status">
             Buscando datas…
           </div>
         )}
@@ -295,7 +295,7 @@ export function HolidayForm({ board, onClose, onFeedback }: Props): ReactJSX.Ele
         {available.map((day) => {
           const exists = board.closedDays.some((item) => dateOnly(item.date) === day.date);
           return (
-            <label key={day.date} className={s.rowStart}>
+            <label key={day.date} className={styles.rowStart}>
               <Checkbox
                 size="sm"
                 checked={exists || !excluded.includes(day.date)}
@@ -306,9 +306,9 @@ export function HolidayForm({ board, onClose, onFeedback }: Props): ReactJSX.Ele
                   )
                 }
               />
-              <span className={s.person}>
+              <span className={styles.person}>
                 <strong>{day.name}</strong>
-                <span className={s.small}>
+                <span className={styles.small}>
                   {formatDateOnlyBR(day.date)}
                   {exists ? " · já cadastrado" : ""}
                 </span>
@@ -317,9 +317,9 @@ export function HolidayForm({ board, onClose, onFeedback }: Props): ReactJSX.Ele
           );
         })}
         {query.data && available.length === 0 && (
-          <p className={s.small}>Nenhuma data sugerida dentro deste semestre.</p>
+          <p className={styles.small}>Nenhuma data sugerida dentro deste semestre.</p>
         )}
-        <p className={s.small}>
+        <p className={styles.small}>
           Confira o calendário da escola. Feriados de Lagarto e datas próprias podem ser incluídos
           manualmente em “Dia ou intervalo”.
         </p>

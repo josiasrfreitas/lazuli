@@ -10,6 +10,9 @@ import {
 import { z } from "@lazuli/validators";
 import { dateOnly, readSlots, type OrganizationContext } from "./data.js";
 
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
+
 export async function readClassPlans(context: OrganizationContext, semesterId: string) {
   const rows = await context.database.$kysely
     .selectFrom("SemesterClassPlan as plan")
@@ -112,7 +115,7 @@ export async function readClassPlans(context: OrganizationContext, semesterId: s
         !(teacher ? teacher.deletedAt : row.teacherDeletedAt) &&
         (!departure ||
           dateOnly(departure) >
-            [dateOnly(row.startDate), saoPauloDateOnly(context.now)].sort().at(-1)!),
+            [dateOnly(row.startDate), saoPauloDateOnly(context.now)].toSorted().at(-1)!),
       ),
       active:
         !row.closedAt && (!row.classId || (row.classStatus === "ACTIVE" && !row.classDeletedAt)),
@@ -407,7 +410,7 @@ export async function readSemester(context: OrganizationContext, semesterId: str
     const coverageDate =
       row.publishedAt && row.entryStatus !== "SCHEDULED"
         ? [saoPauloDateOnly(context.now), dateOnly(row.effectiveDate ?? semester.startDate)]
-            .sort()
+            .toSorted()
             .at(-1)!
         : dateOnly(row.effectiveDate ?? semester.startDate);
     const coveringContract =
@@ -428,7 +431,8 @@ export async function readSemester(context: OrganizationContext, semesterId: str
               contract.startsOn &&
               dateOnly(contract.startsOn) > coverageDate,
           )
-          .sort((left, right) => left.startsOn!.getTime() - right.startsOn!.getTime())[0] ?? null);
+          .toSorted((left, right) => left.startsOn!.getTime() - right.startsOn!.getTime())[0] ??
+        null);
     return {
       ...row,
       upcomingContract,
@@ -439,7 +443,7 @@ export async function readSemester(context: OrganizationContext, semesterId: str
           contract.startsOn &&
           contract.endsOn &&
           dateOnly(contract.startsOn) <=
-            [dateOnly(semester.startDate), coverageDate].sort().at(-1)! &&
+            [dateOnly(semester.startDate), coverageDate].toSorted().at(-1)! &&
           dateOnly(contract.endsOn) >= dateOnly(semester.endDate),
       ),
       nextPeriodCovered: Boolean(
@@ -466,8 +470,10 @@ export async function readSemester(context: OrganizationContext, semesterId: str
           .find((group) => group.id === row.sourceClassId)
           ?.scheduleSlots.map((slot) => ({
             weekday: slot.weekday,
-            startTime: slot.startTime.toISOString().slice(11, 16),
-            endTime: slot.endTime.toISOString().slice(11, 16),
+            startTime: slot.startTime
+              .toISOString()
+              .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+            endTime: slot.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
           })) ?? [],
       sourceTeacher: sourceClass ? (usualTeacherOn(sourceClass, context.now)?.name ?? null) : null,
       availability: available ? { ...available, slots: readSlots(available.slots) } : null,
@@ -507,8 +513,8 @@ export async function readSemester(context: OrganizationContext, semesterId: str
       ...lead,
       slots: lead.availability.map((slot) => ({
         weekday: slot.weekday,
-        startTime: slot.startTime.toISOString().slice(11, 16),
-        endTime: slot.endTime.toISOString().slice(11, 16),
+        startTime: slot.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+        endTime: slot.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
       })),
     })),
     intents: availability

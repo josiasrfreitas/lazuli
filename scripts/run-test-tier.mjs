@@ -49,7 +49,7 @@ const result = spawnSync(process.execPath, [...commonArguments, ...reportArgumen
     ...process.env,
     NODE_ENV: "test",
     // Unit imports may initialize database clients, but must never reach a real database.
-    ...(!infrastructure ? { DATABASE_URL: "postgresql://unit:unit@127.0.0.1:1/lazuli_unit" } : {}),
+    ...(infrastructure ? {} : { DATABASE_URL: "postgresql://unit:unit@127.0.0.1:1/lazuli_unit" }),
   },
   stdio: "inherit",
 });

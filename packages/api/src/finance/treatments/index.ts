@@ -150,7 +150,7 @@ export function financialTreatments(
           };
         })
         .filter((row) => row.balanceCents > 0)
-        .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        .toSorted((left, right) => left.dueDate.localeCompare(right.dueDate));
     },
     history(studentId: string) {
       return database.installmentAgreement.findMany({

@@ -103,7 +103,7 @@ export function IntakePedagogy({
             ) : (
               <span>
                 {draftRegistration?.placement
-                  ? `A prova será agendada em ${draftRegistration.placement.date.split("-").reverse().join("/")} às ${draftRegistration.placement.startTime} ao concluir o cadastro.`
+                  ? `A prova será agendada em ${draftRegistration.placement.date.split("-").toReversed().join("/")} às ${draftRegistration.placement.startTime} ao concluir o cadastro.`
                   : "O nivelamento ficará pendente ao concluir o cadastro."}
               </span>
             )}

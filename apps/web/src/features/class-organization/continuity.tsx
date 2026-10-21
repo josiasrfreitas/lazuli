@@ -8,7 +8,7 @@ import { formatDateOnlyBR } from "~/lib/format";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import { Choices, dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
 import type { OrganizationAction, Placement, SemesterBoard, ClassPlan } from "./model";
-import s from "./organization.module.css";
+import styles from "./organization.module.css";
 
 type Continuity = "UNDECIDED" | "STAY" | "CHANGE" | "LEAVING";
 export function ContinuityDialog({
@@ -48,7 +48,7 @@ export function ContinuityDialog({
       <form
         id="student-continuity"
         noValidate
-        className={s.form}
+        className={styles.form}
         onSubmit={(event) => {
           event.preventDefault();
           if (["CHANGE", "LEAVING"].includes(value) && reason.trim().length < 3) {
@@ -88,7 +88,7 @@ export function ContinuityDialog({
               : "Registre o combinado para a equipe acompanhar a continuidade."}
         </p>
         {(row.nextPeriodCovered || row.periodCovered) && (
-          <div className={s.summary}>
+          <div className={styles.summary}>
             <strong>
               {row.nextPeriodCovered
                 ? `Contrato cobre o próximo período (${board.nextSemester?.name})`
@@ -101,7 +101,9 @@ export function ContinuityDialog({
           </div>
         )}
         {row.contract?.endsOn && (
-          <p className={s.small}>Contrato até {formatDateOnlyBR(dateOnly(row.contract.endsOn))}.</p>
+          <p className={styles.small}>
+            Contrato até {formatDateOnlyBR(dateOnly(row.contract.endsOn))}.
+          </p>
         )}
         <NarrativeField
           name="continuity-reason"
@@ -117,7 +119,7 @@ export function ContinuityDialog({
             setError("");
           }}
         />
-        <div className={s.actions}>
+        <div className={styles.actions}>
           <Button
             type="button"
             size="sm"
@@ -188,7 +190,7 @@ export function PlanStatusDialog({
       onClose={onClose}
     >
       <form
-        className={s.form}
+        className={styles.form}
         id="plan-status"
         onSubmit={(event) => {
           event.preventDefault();

@@ -5,9 +5,13 @@ import { classScheduleSlotInputSchema, z } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 import { badRequest, notFound } from "../trpc/errors.js";
 
+const ISO_DATE_LENGTH = 10;
+
 export type OrganizationContext = { database: TransactionClient; staffUser: StaffUser; now: Date };
 export const dateOnly = (value: Date | string): string =>
-  typeof value === "string" ? value.slice(0, 10) : value.toISOString().slice(0, 10);
+  typeof value === "string"
+    ? value.slice(0, ISO_DATE_LENGTH)
+    : value.toISOString().slice(0, ISO_DATE_LENGTH);
 export const readSlots = (value: unknown) => z.array(classScheduleSlotInputSchema).parse(value);
 export async function lockSemester(context: OrganizationContext, semesterId: string) {
   await context.database

@@ -3,6 +3,8 @@ import type { DatabaseClient } from "@lazuli/db";
 import { assertTeachingProgram, type TeachingProgramImport } from "@lazuli/domain";
 import { teachingProgramImportSchema } from "@lazuli/validators";
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+
 /** Integration entry point. Not exposed as an interactive catalog mutation. */
 export async function importTeachingProgram(database: DatabaseClient, payload: unknown) {
   const input: TeachingProgramImport = teachingProgramImportSchema.parse(payload);
@@ -158,6 +160,6 @@ export async function importTeachingProgram(database: DatabaseClient, payload: u
       }
       return { id: program.id, imported: true };
     },
-    { timeout: 60_000 },
+    { timeout: MILLISECONDS_PER_MINUTE },
   );
 }

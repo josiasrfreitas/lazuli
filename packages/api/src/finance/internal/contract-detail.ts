@@ -91,7 +91,7 @@ export async function readContract(database: FinanceDatabase, id: string, now: D
     terminated: Boolean(contract.terminatedAt),
     orders,
     calendar: [...calendar.values()]
-      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+      .toSorted((left, right) => left.dueDate.localeCompare(right.dueDate))
       .map((row) => ({ ...row, id: row.dueDate })),
   };
 }

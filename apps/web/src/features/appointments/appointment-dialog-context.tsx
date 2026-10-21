@@ -97,7 +97,7 @@ const events: Record<string, string> = {
 };
 
 export function AppointmentDialogHistory({ data }: { data: Appointment }): ReactJSX.Element {
-  const revisions = [...data.history].sort((a, b) => b.version - a.version);
+  const revisions = [...data.history].toSorted((left, right) => right.version - left.version);
   return (
     <details className={styles.disclosure}>
       <summary>

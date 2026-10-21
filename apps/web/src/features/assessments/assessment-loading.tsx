@@ -11,7 +11,7 @@ function ChartLoading({ columns = 2 }: { columns?: number }): ReactJSX.Element {
         ))}
       </div>
       <div className="flex justify-around gap-3">
-        {Array.from({ length: columns }, (_, column) => (
+        {Array.from({ length: columns }, (_unused, column) => (
           <InlineSkeleton key={column} className="h-3 w-12 min-w-0 shrink rounded-sm" />
         ))}
       </div>

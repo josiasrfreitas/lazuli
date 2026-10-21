@@ -127,7 +127,7 @@ export async function changePlanStatus(
   let generationRequestId: string | null = null;
   if (input.open) {
     if (!plan.teacherId) throw badRequest("Defina o professor antes de abrir a turma.");
-    const from = [saoPauloDateOnly(context.now), dateOnly(semester.startDate)].sort().at(-1)!;
+    const from = [saoPauloDateOnly(context.now), dateOnly(semester.startDate)].toSorted().at(-1)!;
     await assertTeacherEligible({
       database: context.database,
       teacherId: plan.teacherId,
@@ -166,14 +166,14 @@ export async function changePlanStatus(
         createdAt: { gt: new Date(context.now.getTime() - GENERATION_STALE_MS) },
       },
     });
-    if (!preparing)
-      generationRequestId = (
-        await requestSessionGeneration(context.database, {
-          scope: { classId },
-          requestedById: context.staffUser.id,
-          now: context.now,
-        })
-      ).id;
+    if (!preparing) {
+      const generation = await requestSessionGeneration(context.database, {
+        scope: { classId },
+        requestedById: context.staffUser.id,
+        now: context.now,
+      });
+      generationRequestId = generation.id;
+    }
   } else if (classId) {
     const active = await context.database.enrollment.count({
       where: {
