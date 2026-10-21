@@ -25,13 +25,13 @@ export type PendingGroup = {
   rows: Placement[];
   leads: SemesterBoard["waitingLeads"];
 };
-export const isPending = (row: Placement) =>
+export const isPending = (row: Placement): boolean =>
   !row.declinedAt &&
   row.continuity !== "LEAVING" &&
   (!row.publishedAt || row.continuity === "CHANGE");
-export const isQueueItem = (row: Placement) =>
+export const isQueueItem = (row: Placement): boolean =>
   isPending(row) || row.continuity === "LEAVING" || Boolean(row.declinedAt);
-export const stageLabel = (code: string | null | undefined) =>
+export const stageLabel = (code: string | null | undefined): string =>
   code ? `Estágio ${code}` : "Estágio a definir";
 /** Proposals and leads are not enrolled students and must not inflate occupancy. */
 export function occupancy(plan: ClassPlan) {

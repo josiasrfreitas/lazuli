@@ -149,7 +149,7 @@ export function AssessmentUploadProvider({
   useEffect(() => {
     const next = items.find((item) => item.status === "QUEUED" && item.pending);
     if (!next?.pending || running.current) return;
-    const change = (patch: Partial<QueueItem>) =>
+    const change = (patch: Partial<QueueItem>): void =>
       setItems((current) =>
         current.map((item) => (item.id === next.id ? { ...item, ...patch } : item)),
       );
@@ -174,7 +174,7 @@ export function AssessmentUploadProvider({
       });
   }, [items, userId, refresh]);
   useEffect(() => {
-    const leaving = (event: BeforeUnloadEvent) => {
+    const leaving = (event: BeforeUnloadEvent): void => {
       if (running.current) {
         event.preventDefault();
         event.returnValue = "";
@@ -183,7 +183,10 @@ export function AssessmentUploadProvider({
     window.addEventListener("beforeunload", leaving);
     return () => window.removeEventListener("beforeunload", leaving);
   }, []);
-  async function add(files: File[], target: Omit<PendingFile, "id" | "file" | "createdAt">) {
+  async function add(
+    files: File[],
+    target: Omit<PendingFile, "id" | "file" | "createdAt">,
+  ): Promise<void> {
     if (!hydrated) throw new Error("Aguarde a recuperação dos envios anteriores.");
     for (const file of files) {
       if (

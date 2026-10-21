@@ -41,7 +41,7 @@ export async function assertNoAppointmentConflict(input: {
   slots: readonly { weekday: string; startTime: string; endTime: string }[];
   candidateMeetings?: readonly { date: string; startTime: string; endTime: string }[];
   excludeAppointmentId?: string;
-}) {
+}): Promise<void> {
   const appointments = await independentAppointments(input);
   for (const row of appointments) {
     if (row.status === "CANCELLED" || row.id === input.excludeAppointmentId) continue;

@@ -42,7 +42,10 @@ function useEnrollmentForm({ candidate, choice, date, onClose }: EnrollmentInput
   const [revision, setRevision] = useState(0);
   const body = useScrollToError(revision);
   const mutation = useEnrollMutation(onClose);
-  const change = <Key extends keyof EnrollmentDraft>(key: Key, value: EnrollmentDraft[Key]) => {
+  const change = <Key extends keyof EnrollmentDraft>(
+    key: Key,
+    value: EnrollmentDraft[Key],
+  ): void => {
     setDraft((current) => ({ ...current, [key]: value }));
     setErrors((current) =>
       key === "mode"
@@ -51,7 +54,7 @@ function useEnrollmentForm({ candidate, choice, date, onClose }: EnrollmentInput
     );
     if (!mutation.isPending) mutation.reset();
   };
-  const submit = (event: FormEvent) => {
+  const submit = (event: FormEvent): void => {
     event.preventDefault();
     if (mutation.isPending) return;
     const next = enrollmentErrors(draft, candidate.today);

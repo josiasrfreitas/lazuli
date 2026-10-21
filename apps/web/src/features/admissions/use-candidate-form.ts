@@ -14,7 +14,7 @@ export function useCandidateForm(candidate: Candidate | undefined, startAtAvaila
   useEffect(() => {
     if (step === 1) body.current?.querySelector<HTMLInputElement>("input")?.focus();
   }, [step, body]);
-  const change = <Key extends keyof CandidateDraft>(key: Key, value: CandidateDraft[Key]) => {
+  const change = <Key extends keyof CandidateDraft>(key: Key, value: CandidateDraft[Key]): void => {
     setDraft((current) => ({ ...current, [key]: value }));
     setErrors((current) =>
       Object.fromEntries(

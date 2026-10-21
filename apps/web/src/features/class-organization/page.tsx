@@ -71,7 +71,7 @@ export function ClassOrganizationPage(): ReactJSX.Element {
       );
     },
   });
-  function selectPeriod(id: string) {
+  function selectPeriod(id: string): void {
     void setSelectedPeriod(id);
     setPlanId(null);
     setAction(null);

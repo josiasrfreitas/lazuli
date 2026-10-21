@@ -19,7 +19,7 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
   const intents = board.intents.filter(
     (intent) => !leads.some((lead) => lead.studentId === intent.studentId),
   );
-  const match = (name: string) =>
+  const match = (name: string): boolean =>
     name.toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR"));
   const groups = new Map<string, PendingGroup>();
   for (const item of pending) {
@@ -85,7 +85,7 @@ export function AccommodationQueue({ board, onAction, onSelect }: QueueProps): R
         )}
         {[...groups.values()]
           .sort((a, b) => {
-            const attention = (group: PendingGroup) =>
+            const attention = (group: PendingGroup): number =>
               group.rows.filter((row) => row.continuity === "LEAVING" || row.declinedAt).length;
             return (
               attention(b) - attention(a) ||

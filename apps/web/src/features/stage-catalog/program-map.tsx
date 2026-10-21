@@ -20,7 +20,7 @@ const labels = {
   VIDEO: "Vídeo",
   ACTIVITY: "Atividade",
 };
-const number = (value: number) => String(value).padStart(2, "0");
+const number = (value: number): string => String(value).padStart(2, "0");
 
 /** Visual grouping only; source identities, units and assessment counts come from the API. */
 function blocksFor(hours: TeachingHour[]) {

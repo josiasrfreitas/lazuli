@@ -23,7 +23,7 @@ export function appointmentStatus(
 ): string {
   return status === "CANCELLED" && rescheduled ? "Reagendado" : statuses[status];
 }
-export function today() {
+export function today(): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
@@ -40,7 +40,7 @@ export function monthBounds(month: string) {
       .slice(0, 10),
   };
 }
-export function shiftMonth(month: string, delta: number) {
+export function shiftMonth(month: string, delta: number): string {
   const date = new Date(`${monthBounds(month).from}T12:00:00Z`);
   date.setUTCMonth(date.getUTCMonth() + delta);
   return date.toISOString().slice(0, 7);

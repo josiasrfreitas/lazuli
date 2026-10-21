@@ -11,7 +11,8 @@ import { loadSettlementItems, settlementLine } from "../internal/settlement-data
 import { lockInstallments } from "../internal/payment-store.js";
 import { type FinanceDatabase, toDateOnly, toDateOnlyString } from "../internal/shared.js";
 
-const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+const hash = (value: unknown): string =>
+  createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const studentScope = (studentId?: string) => ({
   deletedAt: null,
   order: {

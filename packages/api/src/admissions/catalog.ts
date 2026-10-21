@@ -18,7 +18,7 @@ export async function admissionStages(database: Prisma.TransactionClient) {
 export async function assertInitialStage(
   database: Prisma.TransactionClient,
   stageId: string | null,
-) {
+): Promise<void> {
   const stages = await admissionStages(database);
   if (!stages.some((stage) => stage.id === stageId && stage.initial))
     throw badRequest("Escolha o primeiro estágio de uma track para quem está começando.");

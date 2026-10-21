@@ -45,7 +45,7 @@ const caller = (role: StaffUser["role"] = "ADMIN") =>
       }),
     },
   });
-async function clean() {
+async function clean(): Promise<void> {
   const semesters = await db.semester.findMany({
     where: { name: { startsWith: config.prefix } },
     select: { id: true },

@@ -47,7 +47,7 @@ export function RecordAttendance({
       (!guestsOnly || person.kind !== "student") &&
       searchKey(person.name).includes(searchKey(search)),
   );
-  const count = (status: ParticipantStatus) =>
+  const count = (status: ParticipantStatus): number =>
     participants.filter((person) => person.status === status).length;
   return (
     <section className={styles.attendance} aria-labelledby={headingId}>

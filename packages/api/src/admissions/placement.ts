@@ -158,7 +158,7 @@ async function placementVisit(database: Prisma.TransactionClient, id: string) {
   return visit;
 }
 
-function assertEditable(visit: Awaited<ReturnType<typeof placementVisit>>, now: Date) {
+function assertEditable(visit: Awaited<ReturnType<typeof placementVisit>>, now: Date): void {
   if (
     visit.candidate.status !== "WAITING" ||
     visit.status === "CANCELLED" ||
@@ -186,7 +186,7 @@ function fileBytes(values: Pick<z.infer<typeof placementFileSchema>, "base64" | 
 function assertFileCanBeAttached(
   visit: Awaited<ReturnType<typeof placementVisit>>,
   kind: "ORIGINAL" | "CORRECTED",
-) {
+): void {
   if (kind === "CORRECTED") {
     if (!visit.assessment) throw badRequest("Anexe a prova aplicada antes da versão corrigida.");
     if (visit.assessment.correctedFile)
@@ -326,7 +326,7 @@ function latestPlacement(database: Prisma.TransactionClient, candidateId: string
 export async function assertPlacementReady(
   database: Prisma.TransactionClient,
   candidate: { id: string; englishExperience: string; stageId: string | null },
-) {
+): Promise<void> {
   if (candidate.englishExperience !== "SOME") return;
   const latest = await latestPlacement(database, candidate.id);
   if (

@@ -27,7 +27,7 @@ export async function syncStudentIntake(
     recordedById: string;
     now: Date;
   },
-) {
+): Promise<void> {
   const { semester, studentId, candidate, recordedById, now } = input;
   if (!semester) return;
   const enrollment = input.enrollmentId

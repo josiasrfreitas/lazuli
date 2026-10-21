@@ -119,23 +119,23 @@ export function PlacementSchedule({
     },
   });
   const pending = save.isPending || Boolean(registration?.pending);
-  function requestClose() {
+  function requestClose(): void {
     if (pending || discarding) return;
     if (!registration && dirty) setDiscarding(true);
     else onClose();
   }
-  function markDirty() {
+  function markDirty(): void {
     setDirty(true);
     registration?.onDirty();
   }
-  function change<K extends keyof typeof draft>(key: K, value: (typeof draft)[K]) {
+  function change<K extends keyof typeof draft>(key: K, value: (typeof draft)[K]): void {
     markDirty();
     setDraft((current) => ({ ...current, [key]: value }));
     errors.clear(key);
     errors.clear("schedule");
     save.reset();
   }
-  function navigate(date: string) {
+  function navigate(date: string): void {
     setCalendarDate(date);
     setDraft((current) => ({
       ...current,
@@ -199,7 +199,7 @@ export function PlacementSchedule({
     ...events.flatMap((event) => [event.startTime, event.endTime]),
     ...(selection && !selectionError ? [selection.startTime, selection.endTime] : []),
   ].toSorted();
-  function submit(event: FormEvent) {
+  function submit(event: FormEvent): void {
     event.preventDefault();
     if (pending) return;
     if (!parsedDate) {

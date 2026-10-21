@@ -7,7 +7,7 @@ export async function requireLeadGuardian(
   database: Prisma.TransactionClient,
   candidate: { contactRole: string },
   student: z.infer<typeof admissionEnrollSchema>["student"],
-) {
+): Promise<void> {
   if (candidate.contactRole !== "GUARDIAN") return;
   const reference = student.mode === "create" ? student.values.guardian : null;
   const existing =

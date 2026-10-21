@@ -16,7 +16,7 @@ export function SlotFields({
   error?: string | undefined;
 }): ReactJSX.Element {
   const errorId = useId();
-  const update = (index: number, field: keyof SlotDraft, value: string) =>
+  const update = (index: number, field: keyof SlotDraft, value: string): void =>
     onChange(slots.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot)));
   return (
     <fieldset

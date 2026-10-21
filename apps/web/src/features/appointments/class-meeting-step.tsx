@@ -61,7 +61,7 @@ function schoolClock(): { date: string; time: string } {
     minute: "2-digit",
     hourCycle: "h23",
   }).formatToParts(new Date());
-  const part = (key: Intl.DateTimeFormatPartTypes) =>
+  const part = (key: Intl.DateTimeFormatPartTypes): string =>
     parts.find((item) => item.type === key)!.value;
   return {
     date: `${part("year")}-${part("month")}-${part("day")}`,

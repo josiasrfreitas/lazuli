@@ -28,7 +28,7 @@ export function PendingStudent({
     (plan) =>
       row.continuity !== "CHANGE" || (plan.classId !== row.sourceClassId && plan.id !== row.planId),
   );
-  const choose = (planId?: string) =>
+  const choose = (planId?: string): void =>
     onAction(
       row.publishedAt
         ? { kind: "move", rows: [row], ...(planId ? { planId } : {}) }

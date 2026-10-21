@@ -38,7 +38,7 @@ export function IntakePedagogy({
   const waitingPlacement =
     draftRegistration?.lead.englishExperience === "SOME" ||
     (lead?.englishExperience === "SOME" && !lead.stageId);
-  const change = (patch: Partial<IntakeFilters>) => onFiltersChange({ ...filters, ...patch });
+  const change = (patch: Partial<IntakeFilters>): void => onFiltersChange({ ...filters, ...patch });
   if (enrollment)
     return (
       <section className="grid gap-2 rounded-lg border border-border p-5">

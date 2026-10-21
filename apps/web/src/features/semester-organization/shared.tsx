@@ -21,9 +21,9 @@ export const weekdays = {
   SATURDAY: "Sábado",
   SUNDAY: "Domingo",
 } as const;
-export const dateOnly = (date: Date | string) =>
+export const dateOnly = (date: Date | string): string =>
   typeof date === "string" ? date.slice(0, 10) : date.toISOString().slice(0, 10);
-export function scheduleLabel(slots: ClassPlan["slots"]) {
+export function scheduleLabel(slots: ClassPlan["slots"]): string {
   return slots
     .map((slot) => `${weekdays[slot.weekday].slice(0, 3)} ${slot.startTime}–${slot.endTime}`)
     .join(" · ");

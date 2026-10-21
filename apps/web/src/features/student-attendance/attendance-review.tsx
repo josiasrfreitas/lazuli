@@ -63,7 +63,7 @@ export function AttendanceReview({
   const dirty = Object.keys(overrides).length > 0;
   useEffect(() => {
     if (!dirty || saved) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    const warn = (event: BeforeUnloadEvent): void => event.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty, saved]);
@@ -80,7 +80,7 @@ export function AttendanceReview({
     };
   });
   const present = rows.filter((row) => row.present).length;
-  const searchKey = (value: string) =>
+  const searchKey = (value: string): string =>
     value
       .normalize("NFD")
       .replaceAll(/\p{Diacritic}/gu, "")

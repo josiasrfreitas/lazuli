@@ -46,7 +46,7 @@ export function DirectoryTools({
 }
 
 export function directoryMatches(value: string, search: string): boolean {
-  const normalize = (text: string) =>
+  const normalize = (text: string): string =>
     text
       .normalize("NFD")
       .replaceAll(/\p{Diacritic}/gu, "")

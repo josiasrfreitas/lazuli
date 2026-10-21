@@ -38,7 +38,7 @@ export function OrganizationAgenda({
     board.intents.filter(
       (intent) => !waitingLeads.some((lead) => lead.studentId === intent.studentId),
     ).length;
-  function selectPlan(id: string | null) {
+  function selectPlan(id: string | null): void {
     onSelect(id);
     setMobilePanel(true);
   }

@@ -79,7 +79,7 @@ function PlanContent({ data }: { data: Planning }): ReactElement {
   const pageCount = Math.max(1, Math.ceil(count / pageSize));
   const currentPage = Math.min(page, pageCount - 1);
   const offset = currentPage * pageSize;
-  const changeView = (next: "plan" | "records") => {
+  const changeView = (next: "plan" | "records"): void => {
     setView(next);
     setPage(0);
     setHistory(false);

@@ -37,7 +37,7 @@ export async function saveClassPlan(context: OrganizationContext, input: Semeste
     throw badRequest(
       "Esta turma já foi publicada. Use a operação da turma para alterar o professor.",
     );
-  const scheduleKey = (slots: typeof input.slots) =>
+  const scheduleKey = (slots: typeof input.slots): string =>
     slots
       .map((slot) => `${slot.weekday}:${slot.startTime}:${slot.endTime}`)
       .sort()

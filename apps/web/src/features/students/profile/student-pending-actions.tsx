@@ -16,7 +16,7 @@ export function StudentPendingActions({
   const query = trpc.students.pendingActions.useQuery({ id: studentId });
   const [continuing, setContinuing] = useState(false);
   const utils = trpc.useUtils();
-  const refresh = () => {
+  const refresh = (): void => {
     void Promise.all([utils.students.invalidate(), utils.finance.invalidate()]);
   };
   if (query.isError)

@@ -108,7 +108,7 @@ function ContractItemsDialog({ contract }: { contract: Contract }): ReactElement
   const addButton = useRef<HTMLButtonElement>(null);
   const utils = trpc.useUtils();
   const firstDueDate = contract.schedules.find((row) => row.kind === "TUITION")?.firstDueDate;
-  function returnToItems() {
+  function returnToItems(): void {
     setAdding(false);
     requestAnimationFrame(() => requestAnimationFrame(() => addButton.current?.focus()));
   }

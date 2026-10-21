@@ -211,24 +211,24 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
     ...events.flatMap((row) => [row.startTime, row.endTime]),
     ...(ready && selected ? [selected.startTime, selected.endTime] : []),
   ].toSorted();
-  function requestClose() {
+  function requestClose(): void {
     if (save.isPending || discarding) return;
     if (dirty) setDiscarding(true);
     else onClose();
   }
-  function resetSelection() {
+  function resetSelection(): void {
     setMeetingId(null);
     setStart("");
     setEnd("");
     errors.clear("schedule");
     save.reset();
   }
-  function navigate(next: string) {
+  function navigate(next: string): void {
     setDate(next);
     setDraftDate(formatDateOnlyBR(next));
     resetSelection();
   }
-  function selectRange(range: CalendarInterval) {
+  function selectRange(range: CalendarInterval): void {
     setDirty(true);
     setDraftDate(formatDateOnlyBR(range.date));
     setStart(range.startTime);
@@ -236,7 +236,7 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
     errors.clear("schedule");
     save.reset();
   }
-  function submit(event: FormEvent) {
+  function submit(event: FormEvent): void {
     event.preventDefault();
     if (save.isPending) return;
     if (!ready || !selected)

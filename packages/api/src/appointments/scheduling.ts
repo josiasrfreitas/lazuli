@@ -110,7 +110,7 @@ async function assertStudentAvailable(
   context: AppointmentContext,
   studentId: string,
   candidate: { date: string; startTime: string; endTime: string },
-) {
+): Promise<void> {
   const { database } = context;
   const date = new Date(candidate.date);
   const [enrollments, appointments, visits, meetings] = await Promise.all([

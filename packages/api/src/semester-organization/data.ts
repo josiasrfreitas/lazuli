@@ -21,7 +21,7 @@ export async function requireFutureSemester(context: OrganizationContext, semest
     throw badRequest("Este período já terminou. Escolha um semestre atual ou futuro.");
   return semester;
 }
-export function assertVersion(current: number, expected: number) {
+export function assertVersion(current: number, expected: number): void {
   if (current !== expected)
     throw new TRPCError({
       code: "CONFLICT",
@@ -33,7 +33,7 @@ export async function recordPlacementRevision(
   id: string,
   action: string,
   reason?: string,
-) {
+): Promise<void> {
   const row = await context.database.semesterPlacement.findUniqueOrThrow({ where: { id } });
   await context.database.semesterPlacementRevision.create({
     data: {

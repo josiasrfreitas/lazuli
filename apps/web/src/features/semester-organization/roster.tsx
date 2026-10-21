@@ -58,7 +58,7 @@ export function SemesterRoster({
       await refresh();
     },
   });
-  const select = (row: Placement, value: boolean) =>
+  const select = (row: Placement, value: boolean): void =>
     setSelection((current) =>
       value ? [...new Set([...current, row.id])] : current.filter((id) => id !== row.id),
     );

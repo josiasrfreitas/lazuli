@@ -19,7 +19,7 @@ function useAllocation(candidate: Candidate) {
     { id: candidate.id, date: parsed ?? candidate.today },
     { enabled, retry: false },
   );
-  const changeDate = (value: string) => {
+  const changeDate = (value: string): void => {
     setDate(maskDateBR(value));
     setSelected("");
   };

@@ -18,14 +18,14 @@ export function AccountMenu({ identity }: { identity: StaffIdentity }): ReactJSX
   const roles = identity.roles ?? [identity.role];
   const switching = selectedRole !== identity.role;
 
-  function selectRole(role: StaffRole) {
+  function selectRole(role: StaffRole): void {
     if (role === identity.role || switching) return;
     destination.current = role;
     setSelectedRole(role);
     setOpen(false);
   }
 
-  function finishClose(isOpen: boolean) {
+  function finishClose(isOpen: boolean): void {
     if (!isOpen && destination.current) {
       const role = destination.current;
       destination.current = null;

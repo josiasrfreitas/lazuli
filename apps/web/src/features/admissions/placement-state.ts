@@ -14,7 +14,7 @@ export function placementStatus(
   return { label: "Aguardando prova", variant: "neutral" as const };
 }
 
-export function placementHasStarted(visit: { date: Date | string; startTime: string }) {
+export function placementHasStarted(visit: { date: Date | string; startTime: string }): boolean {
   const date =
     typeof visit.date === "string"
       ? visit.date.slice(0, 10)

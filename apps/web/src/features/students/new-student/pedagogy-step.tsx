@@ -83,7 +83,7 @@ export function PedagogyStep({
   const matchingStages = stages.filter((stage) =>
     normalizeSearch(stage.label).includes(normalizeSearch(stageQuery)),
   );
-  const set = (patch: Partial<PedagogyDraft>) => {
+  const set = (patch: Partial<PedagogyDraft>): void => {
     onChange({ ...draft, ...patch });
     setError("");
   };

@@ -82,7 +82,7 @@ export function LessonCalendar({
       (lessonFormatLabel(lesson) === null || formats.includes(lessonFormatLabel(lesson)!)),
   );
   const restricted = types.length < EVENT_TYPES.length || teachers.length > 0 || formats.length < 2;
-  const openLesson = (lesson: CalendarLesson) => {
+  const openLesson = (lesson: CalendarLesson): void => {
     if (lesson.experimental) setExperimentId(lesson.experimental.id);
     else if (lesson.appointment) setAppointmentId(lesson.appointment.id);
     else setLessonId(lesson.id);

@@ -10,7 +10,7 @@ export async function recordStudentIntake(
   recordedById: string,
   input: StudentPedagogyIntake,
   now = new Date(),
-) {
+): Promise<void> {
   await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`semester-organization:${input.semesterId}`}, 0))`;
   const semester = await database.semester.findUnique({
     where: { id: input.semesterId, deletedAt: null },

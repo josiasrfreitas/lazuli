@@ -53,7 +53,8 @@ export function SemesterOrganizationPage(): ReactJSX.Element {
     board?.placements.filter((row) =>
       params.turma === "unassigned" ? !row.planId : row.planId === selectedPlan?.id,
     ) ?? [];
-  const selectPlan = (id: string | null) => void setParams({ turma: id, visao: "turmas" });
+  const selectPlan = (id: string | null): undefined =>
+    void setParams({ turma: id, visao: "turmas" });
   return (
     <div className="mx-auto grid h-full w-full max-w-7xl grid-cols-1 content-start gap-6 overflow-y-auto p-4 sm:p-6 lg:p-8">
       <header className="flex flex-wrap items-start justify-between gap-4">

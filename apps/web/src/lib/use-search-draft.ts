@@ -23,7 +23,7 @@ export function useSearchDraft(search: string, onCommit: (value: string) => void
   }, [search]);
 
   useEffect(() => {
-    function cancelPending() {
+    function cancelPending(): void {
       if (timer.current !== null) clearTimeout(timer.current);
       timer.current = null;
       acknowledgements.current = [];
@@ -35,7 +35,7 @@ export function useSearchDraft(search: string, onCommit: (value: string) => void
     };
   }, []);
 
-  function change(next: string) {
+  function change(next: string): void {
     setValue(next);
     if (timer.current !== null) clearTimeout(timer.current);
     timer.current = setTimeout(() => {

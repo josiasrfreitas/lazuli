@@ -114,13 +114,13 @@ export function AssessmentEntryDialog({
     if (invalid?.competence === competence) setPhase(invalid.phase);
   }, [state.errors, state.grades, competence]);
 
-  function requestClose() {
+  function requestClose(): void {
     if (busy) return;
     if (dirty) setDiscard(true);
     else onClose();
   }
 
-  async function submit(event: FormEvent) {
+  async function submit(event: FormEvent): Promise<void> {
     event.preventDefault();
     event.stopPropagation();
     if (busy) return;

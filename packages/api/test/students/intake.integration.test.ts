@@ -18,7 +18,7 @@ const harness = createHarness(
   }),
 );
 const now = new Date("2091-03-10T15:00:00Z");
-async function clean() {
+async function clean(): Promise<void> {
   await db.entryVisit.deleteMany({
     where: { candidate: { fullName: { startsWith: harness.ns.prefix } } },
   });

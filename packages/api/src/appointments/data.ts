@@ -47,7 +47,10 @@ export function appointmentTeacher(row: AppointmentAssignment) {
     ? responsibleTeacher(row.targetClassSession)
     : row.teacher;
 }
-export function canReadAppointment(context: AppointmentContext, row: AppointmentAssignment) {
+export function canReadAppointment(
+  context: AppointmentContext,
+  row: AppointmentAssignment,
+): boolean {
   return (
     context.staffUser.role !== "TEACHER" || appointmentTeacher(row)?.id === context.staffUser.id
   );
@@ -68,7 +71,7 @@ export function appointmentRestriction(
     return "A administração pode registrar ou corrigir atendimentos de dias anteriores.";
   return null;
 }
-export function sourceApplicable(row: AbsenceSource) {
+export function sourceApplicable(row: AbsenceSource): boolean {
   const session = row.classSession;
   return (
     !row.deletedAt &&
@@ -95,7 +98,7 @@ export async function loadAppointment(context: AppointmentContext, id: string) {
     });
   return row;
 }
-export function requireAppointmentAdmin(context: AppointmentContext) {
+export function requireAppointmentAdmin(context: AppointmentContext): void {
   if (context.staffUser.role !== "ADMIN" && context.staffUser.role !== "SYSTEM_ADMIN")
     throw new TRPCError({ code: "FORBIDDEN", message: "Esta operação é da administração." });
 }

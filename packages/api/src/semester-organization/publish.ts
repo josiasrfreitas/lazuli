@@ -155,7 +155,7 @@ async function publishOne(
   availability: CurrentAvailability,
   classId: string,
   entryDate: Date,
-) {
+): Promise<void> {
   const immediate = dateOnly(entryDate) <= saoPauloDateOnly(context.now);
   if (row.sourceClassId === classId && row.mode === "CONTINUE") {
     await context.database.semesterPlacement.update({

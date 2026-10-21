@@ -8,7 +8,7 @@ export function useTimelineExpansion() {
   const timelineRef = useRef<HTMLDivElement>(null);
   const [availableShare, setAvailableShare] = useState(1);
 
-  function expand(id: string | null, pointer = false) {
+  function expand(id: string | null, pointer = false): void {
     if (id === expandedId) return;
     const timeline = timelineRef.current;
     const pointerMotion =
@@ -21,7 +21,7 @@ export function useTimelineExpansion() {
     const timeline = timelineRef.current;
     const viewport = timeline?.closest<HTMLElement>('[role="region"]');
     if (!timeline || !viewport) return;
-    const measure = () =>
+    const measure = (): void =>
       setAvailableShare(Math.max(0, viewport.clientWidth - 60) / timeline.clientWidth);
     measure();
     const observer = new ResizeObserver(measure);

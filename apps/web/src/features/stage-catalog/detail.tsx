@@ -20,7 +20,7 @@ import type { StageSummary, TeachingProgram } from "./types";
 import styles from "./catalog.module.css";
 
 const mode = (program: TeachingProgram) => (program.scheduleType === "REGULAR" ? "Regular" : "PPT");
-const programLabel = (program: TeachingProgram) =>
+const programLabel = (program: TeachingProgram): string =>
   `${mode(program)} · ${program.teachingHourCount} horas-aula`;
 
 export function StagePrograms({ stage }: { stage: StageSummary }): ReactJSX.Element {

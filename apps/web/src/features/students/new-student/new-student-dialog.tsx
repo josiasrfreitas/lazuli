@@ -212,7 +212,7 @@ function EnrollmentDialog({
   const waitingPlacement =
     draftLead?.lead.englishExperience === "SOME" ||
     (lead?.englishExperience === "SOME" && !lead.stageId);
-  function clearLead() {
+  function clearLead(): void {
     setDirty(true);
     setCandidateId(null);
     setDraftLead(null);
@@ -222,12 +222,12 @@ function EnrollmentDialog({
     dispatch({ type: "reset" });
     setError("");
   }
-  function close() {
+  function close(): void {
     if (busy.current || confirmation || discarding || capturingLead) return;
     if (dirty) setDiscarding(true);
     else onOpenChange(false);
   }
-  function validateStudent() {
+  function validateStudent(): boolean {
     const errors = validateDados(state.fields, today);
     if (minor) {
       if (!state.fields.guardianName.trim()) errors.guardianName = "Informe o nome do responsável.";
@@ -243,7 +243,7 @@ function EnrollmentDialog({
     }
     return true;
   }
-  function advance(event: FormEvent) {
+  function advance(event: FormEvent): void {
     event.preventDefault();
     if (!validateStudent() || blockedLead) return;
     setError("");
@@ -255,7 +255,7 @@ function EnrollmentDialog({
   }
   async function persist(
     input: RouterInputs["students"]["enrollNew"] | RouterInputs["students"]["resumeIntake"],
-  ) {
+  ): Promise<void> {
     if (busy.current) return;
     busy.current = true;
     setError("");
@@ -281,7 +281,7 @@ function EnrollmentDialog({
       busy.current = false;
     }
   }
-  function requestSave(withContract: boolean) {
+  function requestSave(withContract: boolean): void {
     if (busy.current || step !== "contract") return;
     if (!validateStudent()) {
       setStep("student");

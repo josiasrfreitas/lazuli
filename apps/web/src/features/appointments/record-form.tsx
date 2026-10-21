@@ -56,7 +56,7 @@ export function AppointmentRecordForm({
   useEffect(() => {
     onPendingChange?.(save.isPending);
   }, [save.isPending, onPendingChange]);
-  function submit() {
+  function submit(): void {
     const parsed = validation.validate(
       appointmentRecordSchema.refine((value) => !correcting || Boolean(value.reason.trim()), {
         path: ["reason"],

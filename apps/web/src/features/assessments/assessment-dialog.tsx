@@ -24,7 +24,7 @@ export function AssessmentDialog({
 }): ReactJSX.Element {
   const [editorState, setEditorState] = useState({ dirty: false, pending: false });
   const [discard, setDiscard] = useState(false);
-  function requestClose() {
+  function requestClose(): void {
     if (editorState.pending) return;
     if (editorState.dirty) setDiscard(true);
     else onClose();

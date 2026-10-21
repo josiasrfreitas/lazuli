@@ -78,7 +78,7 @@ function LiveAttendanceReview({
       void utils.studentAttendance.status.invalidate({ sessionId });
     },
   });
-  async function refresh() {
+  async function refresh(): Promise<void> {
     setRefreshing(true);
     try {
       await Promise.all([

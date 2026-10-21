@@ -81,7 +81,7 @@ export function TeacherAttendancePreview(): ReactJSX.Element {
     return () => channel.close();
   }, [access, confirmed, receive]);
 
-  function generate() {
+  function generate(): void {
     const origin = window.location.origin;
     const instance = crypto.randomUUID();
     setAccess({
@@ -93,7 +93,7 @@ export function TeacherAttendancePreview(): ReactJSX.Element {
     setNotice("QR e link de demonstração abertos. Você já pode simular um envio.");
   }
 
-  function confirm(input: AttendanceReviewInput) {
+  function confirm(input: AttendanceReviewInput): void {
     setEntries((current) =>
       current.map((row) => ({
         ...row,
@@ -107,7 +107,7 @@ export function TeacherAttendancePreview(): ReactJSX.Element {
     setNotice("Chamada confirmada na prévia. Nenhum registro real foi alterado.");
   }
 
-  function reset() {
+  function reset(): void {
     setConfirmed(false);
     setEntries(roster);
     setDeclarations([declaration(1), declaration(2)]);

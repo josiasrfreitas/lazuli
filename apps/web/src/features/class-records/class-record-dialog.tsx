@@ -41,7 +41,7 @@ export function ClassRecordDialog({
   const [editing, setEditing] = useState(initialEditing);
   const [editorState, setEditorState] = useState({ dirty: false, pending: false });
   const [discard, setDiscard] = useState(false);
-  const requestClose = () => {
+  const requestClose = (): void => {
     if (editorState.pending) return;
     if (editorState.dirty) setDiscard(true);
     else onClose();

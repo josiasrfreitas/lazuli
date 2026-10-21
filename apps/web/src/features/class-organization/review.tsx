@@ -53,7 +53,7 @@ export function OrganizationReview({
     (row) => !row.publishedAt && !row.declinedAt && row.blockers.length === 0 && row.planId,
   );
   const selected = eligible.filter((row) => ids.includes(row.id));
-  async function confirm() {
+  async function confirm(): Promise<void> {
     if (working || selected.length === 0) return;
     setWorking(true);
     setError(null);

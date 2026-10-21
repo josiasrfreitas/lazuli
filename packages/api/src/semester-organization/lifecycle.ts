@@ -37,7 +37,7 @@ export const continuitySchema = z
 export async function saveContinuity(
   context: OrganizationContext,
   input: z.infer<typeof continuitySchema>,
-) {
+): Promise<void> {
   await lockSemester(context, input.semesterId);
   const row = await context.database.semesterPlacement.findFirst({
     where: { id: input.id, semesterId: input.semesterId, deletedAt: null },
@@ -81,7 +81,7 @@ export const pendingLeadSchema = z
 export async function pendingLead(
   context: OrganizationContext,
   input: z.infer<typeof pendingLeadSchema>,
-) {
+): Promise<void> {
   await lockCandidate(context.database, input.id);
   const lead = await context.database.admissionCandidate.findFirst({
     where: { id: input.id, deletedAt: null, status: "WAITING" },

@@ -17,7 +17,7 @@ const harness = createHarness(
     otherTeacherId: "00000000-0000-0000-0000-000000207582",
   }),
 );
-async function clean() {
+async function clean(): Promise<void> {
   await db.teacherProfile.deleteMany({
     where: { userId: { in: [harness.ns.teacher.id, harness.ns.otherTeacher.id] } },
   });

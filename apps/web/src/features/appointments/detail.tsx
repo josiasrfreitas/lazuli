@@ -15,7 +15,7 @@ import { AppointmentRecordForm } from "./record-form";
 import { ScheduleAppointmentDialog } from "./schedule-dialog";
 import { AppointmentBadge, purposes, useAppointmentRefresh, type Appointment } from "./shared";
 
-const stamp = (value: string | Date) =>
+const stamp = (value: string | Date): string =>
   new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
     dateStyle: "short",

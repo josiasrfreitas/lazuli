@@ -55,7 +55,7 @@ export function CommandPalette({ role }: { role: StaffRole }): ReactJSX.Element 
   );
   const studentSection = params.get("secao");
 
-  function changeOpen(next: boolean) {
+  function changeOpen(next: boolean): void {
     setOpen(next);
     if (!next) {
       setQuery("");
@@ -63,7 +63,7 @@ export function CommandPalette({ role }: { role: StaffRole }): ReactJSX.Element 
     }
   }
   useEffect(() => {
-    function keydown(event: KeyboardEvent) {
+    function keydown(event: KeyboardEvent): void {
       if (
         (event.metaKey || event.ctrlKey) &&
         event.key.toLowerCase() === "k" &&

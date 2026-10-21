@@ -19,7 +19,7 @@ const prices = {
 };
 async function scenario(
   run: (tx: TransactionClient, data: Awaited<ReturnType<typeof fixture>>) => Promise<void>,
-) {
+): Promise<void> {
   try {
     await db.$transaction(
       async (tx) => {

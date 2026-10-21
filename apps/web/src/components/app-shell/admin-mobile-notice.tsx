@@ -36,13 +36,13 @@ export function AdminMobileNotice({
     }
 
     const viewport = window.matchMedia("(max-width: 767px)");
-    const updateMobile = () => setMobile(isMobileDevice || viewport.matches);
+    const updateMobile = (): void => setMobile(isMobileDevice || viewport.matches);
     updateMobile();
     viewport.addEventListener("change", updateMobile);
     return () => viewport.removeEventListener("change", updateMobile);
   }, [isMobileDevice, storageKey]);
 
-  function acknowledge() {
+  function acknowledge(): void {
     setAcknowledged(true);
     try {
       localStorage.setItem(storageKey, "1");

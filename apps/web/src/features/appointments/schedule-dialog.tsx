@@ -98,14 +98,14 @@ export function ScheduleAppointmentDialog({
       : teacherSelection;
   const parsedDate = parseDateBR(date);
   const refresh = useAppointmentRefresh();
-  const saved = async () => {
+  const saved = async (): Promise<void> => {
     await refresh();
     onClose();
   };
   const schedule = trpc.appointments.schedule.useMutation({ onSuccess: saved });
   const reschedule = trpc.appointments.reschedule.useMutation({ onSuccess: saved });
   const pending = schedule.isPending || reschedule.isPending;
-  function submit() {
+  function submit(): void {
     if (pending || unavailable) return;
     const draft = {
       id,

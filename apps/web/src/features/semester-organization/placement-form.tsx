@@ -131,7 +131,7 @@ function PlacementFields({
   function changeMode(
     next: keyof typeof modes,
     progress: StudentContext["progress"][number] | undefined,
-  ) {
+  ): void {
     setMode(next);
     setStageId(
       progress

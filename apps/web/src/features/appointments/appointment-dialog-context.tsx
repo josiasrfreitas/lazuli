@@ -9,7 +9,7 @@ import { AppointmentAccount } from "./appointment-account";
 import { appointmentChanges } from "./appointment-history-changes";
 import styles from "./student-appointment-dialog.module.css";
 
-const stamp = (value: string | Date) =>
+const stamp = (value: string | Date): string =>
   new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
     dateStyle: "short",

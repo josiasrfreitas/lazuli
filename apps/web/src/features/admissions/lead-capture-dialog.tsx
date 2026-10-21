@@ -90,11 +90,11 @@ export function LeadCaptureDialog({
   const errors = useLeadErrors();
   const utils = trpc.useUtils();
   const router = useRouter();
-  async function saved(result: { id: string }) {
+  async function saved(result: { id: string }): Promise<void> {
     await utils.admissions.invalidate();
     finish(result.id);
   }
-  function finish(savedId: string) {
+  function finish(savedId: string): void {
     onClose();
     if (onCreated) onCreated(savedId);
     else if (!candidate) router.push(`/interessados/${savedId}`);
@@ -102,18 +102,18 @@ export function LeadCaptureDialog({
   const capture = trpc.admissions.capture.useMutation({ onSuccess: saved });
   const update = trpc.admissions.details.useMutation({ onSuccess: saved });
   const save = candidate ? update : capture;
-  function requestClose() {
+  function requestClose(): void {
     if (save.isPending || confirmPending || discarding) return;
     if (dirty) setDiscarding(true);
     else onClose();
   }
-  function change<K extends keyof Draft>(key: K, value: Draft[K]) {
+  function change<K extends keyof Draft>(key: K, value: Draft[K]): void {
     setDirty(true);
     setDraft((current) => ({ ...current, [key]: value }));
     errors.clear(key);
     save.reset();
   }
-  function submit(event: FormEvent) {
+  function submit(event: FormEvent): void {
     event.preventDefault();
     if (save.isPending) return;
     const birthDate = draft.birthDate ? parseDateBR(draft.birthDate) : null;
@@ -128,7 +128,7 @@ export function LeadCaptureDialog({
     else if (draft.englishExperience === "SOME") setScheduling(true);
     else complete(null);
   }
-  function complete(placement: z.infer<typeof placementScheduleSchema> | null) {
+  function complete(placement: z.infer<typeof placementScheduleSchema> | null): void {
     const lead = leadCaptureSchema.parse({
       id,
       ...draft,

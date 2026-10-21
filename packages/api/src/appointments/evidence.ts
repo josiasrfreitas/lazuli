@@ -4,7 +4,7 @@ import type { ActivityAction } from "../activity/catalog.js";
 import { appointmentInclude, type AppointmentContext, type AppointmentRow } from "./data.js";
 import { appointmentSnapshot } from "./snapshot.js";
 
-export function assertAppointmentVersion(row: AppointmentRow, expectedVersion: number) {
+export function assertAppointmentVersion(row: AppointmentRow, expectedVersion: number): void {
   if (row.version !== expectedVersion)
     throw new TRPCError({
       code: "CONFLICT",
@@ -14,7 +14,7 @@ export function assertAppointmentVersion(row: AppointmentRow, expectedVersion: n
 export async function preserveImportedAppointment(
   context: AppointmentContext,
   row: AppointmentRow,
-) {
+): Promise<void> {
   if (!row.legacyMakeupId || row.version !== 0) return;
   await context.database.appointmentRevision.upsert({
     where: { appointmentId_version: { appointmentId: row.id, version: 0 } },
@@ -59,14 +59,17 @@ export async function appointmentActivity(
   row: AppointmentRow,
   action: ActivityAction,
   description: string,
-) {
+): Promise<void> {
   await recordActivity(context.database, context, action, {
     subject: { type: "student", id: row.studentId, name: row.student.fullName },
     description,
     deduplicationKey: `${action}:${row.id}:${row.version}`,
   });
 }
-export async function synchronizeLegacyMakeup(context: AppointmentContext, row: AppointmentRow) {
+export async function synchronizeLegacyMakeup(
+  context: AppointmentContext,
+  row: AppointmentRow,
+): Promise<void> {
   if (!row.legacyMakeupId) return;
   await context.database.makeup.update({
     where: { id: row.legacyMakeupId },

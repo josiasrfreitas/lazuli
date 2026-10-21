@@ -13,7 +13,7 @@ export function useLessonCardReveal(dayWidth?: number, widthShare?: number) {
     const lanes = event?.parentElement;
     if (!card || !event || !day || !lanes) return;
 
-    const reset = () => {
+    const reset = (): void => {
       delete card.dataset.reveal;
       card.style.removeProperty("height");
       card.style.removeProperty("--agenda-content-width");
