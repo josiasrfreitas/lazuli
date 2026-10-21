@@ -6,7 +6,14 @@ import type { attendanceWindowOpenSchema, z } from "@lazuli/validators";
 import { badRequest } from "../trpc/errors.js";
 import { recordActivity } from "../activity/record.js";
 import { loadRecordSession, lockClassRecord, type RecordContext } from "../class-records/data.js";
-import { tokenHash, windowToken, openingRestriction, closeAttendanceWindows } from "./data.js";
+import {
+  tokenHash,
+  windowToken,
+  openingRestriction,
+  closeAttendanceWindows,
+  refreshAttendanceClock,
+  type AttendanceClock,
+} from "./data.js";
 const TOKEN_BYTES = 32;
 const MINUTE_MS = 60_000;
 export async function attendanceStatus(
@@ -90,31 +97,32 @@ async function readDeclarations(
   }));
 }
 export async function openAttendanceWindow(
-  context: RecordContext,
+  context: RecordContext & AttendanceClock,
   input: z.infer<typeof attendanceWindowOpenSchema>,
 ): Promise<OpenedWindow> {
   await lockClassRecord(context.database, input.sessionId);
-  const session = await loadRecordSession(context, input.sessionId);
-  const restriction = openingRestriction(session, context.now);
+  const current = refreshAttendanceClock(context);
+  const session = await loadRecordSession(current, input.sessionId);
+  const restriction = openingRestriction(session, current.now);
   if (restriction) throw badRequest(restriction);
   const settings =
     session.class.format === "IN_PERSON"
-      ? await context.database.attendanceSettings.findUnique({ where: { key: "school" } })
+      ? await current.database.attendanceSettings.findUnique({ where: { key: "school" } })
       : null;
   assertOpeningSettings(session, { settings, input });
-  await closeAttendanceWindows(context.database, {
+  await closeAttendanceWindows(current.database, {
     sessionId: session.id,
-    userId: context.staffUser.id,
-    now: context.now,
+    userId: current.staffUser.id,
+    now: current.now,
   });
-  const previousProjection = await context.database.attendanceProjection.findUnique({
+  const previousProjection = await current.database.attendanceProjection.findUnique({
     where: { classSessionId: session.id },
   });
   const projectionToken =
     input.projectionToken && previousProjection?.tokenHash === tokenHash(input.projectionToken)
       ? input.projectionToken
       : randomBytes(TOKEN_BYTES).toString("base64url");
-  return createWindow(context, { session, settings, projectionToken, input });
+  return createWindow(current, { session, settings, projectionToken, input });
 }
 async function createWindow(
   context: RecordContext,
@@ -177,21 +185,22 @@ function windowExpiration(
 }
 
 export async function closeAttendanceWindow(
-  context: RecordContext,
+  context: RecordContext & AttendanceClock,
   sessionId: string,
 ): Promise<{ closed: boolean }> {
   await lockClassRecord(context.database, sessionId);
-  const session = await loadRecordSession(context, sessionId);
-  const current = await context.database.attendanceWindow.findFirst({
+  const current = refreshAttendanceClock(context);
+  const session = await loadRecordSession(current, sessionId);
+  const window = await current.database.attendanceWindow.findFirst({
     where: { classSessionId: sessionId, closedAt: null, deletedAt: null },
   });
-  if (!current) return { closed: true };
-  await closeAttendanceWindows(context.database, {
+  if (!window) return { closed: true };
+  await closeAttendanceWindows(current.database, {
     sessionId,
-    userId: context.staffUser.id,
-    now: context.now,
+    userId: current.staffUser.id,
+    now: current.now,
   });
-  await recordActivity(context, {
+  await recordActivity(current, {
     action: "studentAttendance.close",
     subject: { type: "class", id: session.classId, name: session.class.portalClassName },
     description:

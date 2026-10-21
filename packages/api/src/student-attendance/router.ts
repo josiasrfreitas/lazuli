@@ -42,26 +42,32 @@ export const studentAttendanceRouter = router({
         input.sessionId,
       ),
     ),
-  open: staffProcedure
-    .input(attendanceWindowOpenSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        openAttendanceWindow(
-          { database, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
-          input,
-        ),
+  open: staffProcedure.input(attendanceWindowOpenSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) =>
+      openAttendanceWindow(
+        {
+          database,
+          staffUser: ctx.staffUser,
+          now: ctx.now ?? new Date(),
+          clock: () => ctx.now ?? new Date(),
+        },
+        input,
       ),
     ),
-  close: staffProcedure
-    .input(attendanceWindowTargetSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        closeAttendanceWindow(
-          { database, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
-          input.sessionId,
-        ),
+  ),
+  close: staffProcedure.input(attendanceWindowTargetSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) =>
+      closeAttendanceWindow(
+        {
+          database,
+          staffUser: ctx.staffUser,
+          now: ctx.now ?? new Date(),
+          clock: () => ctx.now ?? new Date(),
+        },
+        input.sessionId,
       ),
     ),
+  ),
   // Public reads use POST so the capability never enters request URLs or referrer/query logs.
   inspect: publicProcedure
     .input(attendanceTokenSchema)
@@ -77,7 +83,10 @@ export const studentAttendanceRouter = router({
     .input(attendanceDeclarationSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) =>
-        submitAttendanceDeclaration({ database, now: ctx.now ?? new Date() }, input),
+        submitAttendanceDeclaration(
+          { database, now: ctx.now ?? new Date(), clock: () => ctx.now ?? new Date() },
+          input,
+        ),
       ),
     ),
 });

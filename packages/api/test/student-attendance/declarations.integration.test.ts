@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, after, it } from "node:test";
 import { db } from "@lazuli/db";
+import { submitAttendanceDeclaration } from "../../src/student-attendance/public.js";
 import {
   cleanDeclarations,
   declarationFixture,
@@ -476,5 +477,57 @@ void it("blocks presential sending without explicit campus criteria, outside the
       })),
     }),
     /registro da aula/u,
+  );
+});
+
+void it("rechecks time after the encounter lock for GPS freshness, accepted timestamps and expiry", async () => {
+  const fixture = await declarationFixture();
+  const opened = await declarationCaller().studentAttendance.open({
+    sessionId: fixture.session.id,
+    minutes: 5,
+    location: null,
+  });
+  const person = fixture.students[0]!;
+  const input = {
+    token: opened.token,
+    name: person.name,
+    enrollmentId: person.enrollmentId,
+    browserId,
+    location,
+  };
+  let lockedTime = new Date("2077-03-10T12:08:00Z");
+  const submit = (values: typeof input): ReturnType<typeof submitAttendanceDeclaration> =>
+    db.$transaction((database) =>
+      submitAttendanceDeclaration(
+        { database, now: new Date(now), clock: () => lockedTime },
+        values,
+      ),
+    );
+  await assert.rejects(submit(input), /Atualize a localização/u);
+  assert.equal(
+    await db.attendanceDeclaration.count({ where: { classSessionId: fixture.session.id } }),
+    0,
+  );
+  lockedTime = new Date("2077-03-10T12:09:00Z");
+  const receipt = await submit({
+    ...input,
+    location: { ...location, capturedAt: "2077-03-10T12:09:00Z" },
+  });
+  assert.equal(receipt.submittedAt.toISOString(), "2077-03-10T12:09:00.000Z");
+  lockedTime = new Date("2077-03-10T12:10:00Z");
+  const other = fixture.students[1]!;
+  await assert.rejects(
+    submit({
+      ...input,
+      name: other.name,
+      enrollmentId: other.enrollmentId,
+      browserId: "00000000-0000-4000-8000-000000001824",
+      location: { ...location, capturedAt: "2077-03-10T12:10:00Z" },
+    }),
+    /encerrado ou venceu/u,
+  );
+  assert.equal(
+    await db.attendanceDeclaration.count({ where: { classSessionId: fixture.session.id } }),
+    1,
   );
 });

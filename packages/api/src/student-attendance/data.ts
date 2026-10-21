@@ -64,3 +64,9 @@ export async function closeAttendanceWindows(
   });
   return closed.count;
 }
+
+export type AttendanceClock = { now: Date; clock?: () => Date };
+/** Refresh after acquiring the encounter lock; requests may have waited across a deadline. */
+export function refreshAttendanceClock<Context extends AttendanceClock>(context: Context): Context {
+  return { ...context, now: context.clock?.() ?? context.now };
+}

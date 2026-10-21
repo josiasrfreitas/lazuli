@@ -8,9 +8,15 @@ import {
 import type { attendanceDeclarationSchema, AttendanceLocation, z } from "@lazuli/validators";
 import { badRequest } from "../trpc/errors.js";
 import { lockClassRecord, dateOnly, timeOnly } from "../class-records/data.js";
-import { tokenHash, declarationRoster, assertFreshLocation } from "./data.js";
+import {
+  tokenHash,
+  declarationRoster,
+  assertFreshLocation,
+  refreshAttendanceClock,
+  type AttendanceClock,
+} from "./data.js";
 import type { DeclarationReceipt, LinkInfo } from "./types.js";
-type PublicContext = { database: Prisma.TransactionClient; now: Date };
+type PublicContext = { database: Prisma.TransactionClient } & AttendanceClock;
 type DeclarationInput = z.infer<typeof attendanceDeclarationSchema>;
 const windowInclude = {
   classSession: { include: { class: { select: { portalClassName: true, deletedAt: true } } } },
@@ -78,11 +84,12 @@ export async function submitAttendanceDeclaration(
 ): Promise<DeclarationReceipt> {
   const initial = await activeWindow(context, input.token);
   await lockClassRecord(context.database, initial.classSessionId);
-  const window = await activeWindow(context, input.token);
+  const current = refreshAttendanceClock(context);
+  const window = await activeWindow(current, input.token);
   const browserHash = tokenHash(`${window.classSessionId}:${input.browserId}`);
-  const repeated = await previousDeclaration(context, { window, input, browserHash });
+  const repeated = await previousDeclaration(current, { window, input, browserHash });
   if (repeated) return repeated;
-  const matches = await findAttendanceName(context, input);
+  const matches = await findAttendanceName(current, input);
   const person = matches.options.find(
     (row) => row.id === input.enrollmentId && !row.manualRequired,
   );
@@ -90,8 +97,8 @@ export async function submitAttendanceDeclaration(
     throw badRequest(
       "Confira o nome e selecione seu cadastro. Se houver dúvida, peça o registro manual ao professor.",
     );
-  assertDeclarationLocation(window, { location: input.location, now: context.now });
-  const declaration = await createDeclaration(context, {
+  assertDeclarationLocation(window, { location: input.location, now: current.now });
+  const declaration = await createDeclaration(current, {
     window,
     input,
     browserHash,

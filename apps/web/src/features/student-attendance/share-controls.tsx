@@ -30,6 +30,11 @@ export function AttendanceShareControls(props: Props): ReactElement {
         {props.status.active && <Badge variant="success">Aberto</Badge>}
       </div>
       <SharingContent {...props} />
+      {props.status.active && !props.access && (
+        <Button type="button" variant="ghost" disabled={props.pending} onClick={props.close}>
+          Encerrar link
+        </Button>
+      )}
       {props.error && <Alert variant="destructive">{props.error}</Alert>}
     </section>
   );
