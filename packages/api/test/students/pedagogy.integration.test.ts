@@ -38,10 +38,14 @@ void it("reads the student's real learning context and classifies membership at 
     );
     assert.equal(enrollment.progress[0]?.stage, `${PREFIX}Stage`);
     assert.equal(enrollment.progress[0]?.track, `${PREFIX}Track`);
-    // Four confirmed sessions, three presences: the listing and profile share the same rule.
+    // Four 90-minute confirmed sessions, three presences; no completed source-linked compensation.
     assert.deepEqual(enrollment.attendance, {
       heldSessions: 4,
       presentCount: 3,
+      heldMinutes: 360,
+      presentMinutes: 270,
+      compensatedMinutes: 0,
+      missingMinutes: 90,
       percent: 0.75,
       flagged: false,
     });
@@ -204,6 +208,73 @@ void it("resolves historical responsibility before the exclusive exit day, inclu
       where: { class: { internalCode: { startsWith: PREFIX } } },
     });
     await db.teacherProfile.deleteMany({ where: { user: { name: TEACHER_A_NAME } } });
+    await cleanStudentsListFixture();
+    await db.$disconnect();
+  }
+});
+
+void it("scopes attendance history to the student's exclusive roster window and keeps cancelled and pending calls outside the percentage", async () => {
+  await cleanStudentsListFixture();
+  try {
+    await seedStudentsListFixture();
+    const student = await db.student.findFirstOrThrow({
+      where: { fullName: fullNameOf("Ana Attend") },
+    });
+    const enrollment = await db.enrollment.findFirstOrThrow({ where: { studentId: student.id } });
+    await db.$transaction(async (transaction) => {
+      await transaction.pedagogicalProgress.updateMany({
+        where: { enrollmentId: enrollment.id, endDate: null },
+        data: { endDate: new Date("2044-03-15"), endReason: "DROPPED" },
+      });
+      await transaction.enrollment.update({
+        where: { id: enrollment.id },
+        data: { exitDate: new Date("2044-03-16"), exitReason: "DROPPED" },
+      });
+    });
+    await db.classSession.createMany({
+      data: [
+        {
+          classId: enrollment.classId,
+          date: new Date("2044-03-05"),
+          startTime: new Date("1970-01-01T19:00:00Z"),
+          endTime: new Date("1970-01-01T20:30:00Z"),
+          status: "CANCELLED",
+          cancelReason: "Feriado local",
+          cancelledAt: new Date("2044-03-04"),
+        },
+        {
+          classId: enrollment.classId,
+          date: new Date("2044-03-07"),
+          startTime: new Date("1970-01-01T19:00:00Z"),
+          endTime: new Date("1970-01-01T20:30:00Z"),
+        },
+      ],
+    });
+    const history = await caller().students.attendanceHistory({ id: student.id });
+    assert.deepEqual(history.counts, { ALL: 4, PRESENT: 2, ABSENT: 0, PENDING: 1, CANCELLED: 1 });
+    assert.deepEqual(
+      history.rows.map((row) => row.date),
+      ["2044-03-09", "2044-03-07", "2044-03-05", "2044-03-02"],
+    );
+    assert.equal(history.attendance.heldMinutes, 180);
+    assert.equal(history.attendance.percent, 1);
+    assert.equal(history.rows.find((row) => row.status === "CANCELLED")?.notes, "Feriado local");
+    const anotherStudent = await db.student.findFirstOrThrow({
+      where: { fullName: fullNameOf("Bruno Low") },
+    });
+    const foreign = await db.enrollment.findFirstOrThrow({
+      where: { studentId: anotherStudent.id },
+    });
+    await assert.rejects(
+      caller().students.attendanceHistory({ id: student.id, enrollmentId: foreign.id }),
+      { code: "NOT_FOUND" },
+    );
+    const beforeEntry = await caller(new Date("2044-01-31T15:00:00Z")).students.attendanceHistory({
+      id: student.id,
+    });
+    assert.deepEqual(beforeEntry.rows, []);
+    assert.equal(beforeEntry.attendance.percent, null);
+  } finally {
     await cleanStudentsListFixture();
     await db.$disconnect();
   }

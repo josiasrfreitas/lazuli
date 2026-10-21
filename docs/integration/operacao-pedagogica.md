@@ -256,3 +256,46 @@ Selected checks passed 28 integration cases and three HTTP transport cases in a 
 database with all migrations, zero drift and removal afterwards. Twelve existing enrollment role
 gates, API typecheck and focused lint passed. No frontend completion follows from these backend
 checks: profile/roster entrypoints and their frequency metrics still need their source dependencies.
+
+## Minute-based frequency and historical calls checkpoint
+
+Issue184 defines the new frequency rule: present teaching minutes plus completed, source-linked
+compensation, divided by confirmed noncancelled teaching minutes in the enrollment/semester window.
+Original present/session counts remain separate; reservations, support without an absence and
+unlinked historical makeups do not add attendance. Source corrections to PRESENT suppress their
+compensation contribution while retaining the linked historical records. The exit date is excluded
+from the old enrollment's window. The 75% flag and no-data denominator remain unchanged.
+
+The source's pure compensated-attendance calculator and bounded query are now wired into the
+existing percentage API, student listing and pedagogical profile. Main's dated teacher visibility
+and other profile behavior were retained. The source historical-call read API is added with its
+original administrator gate and shared identifier validator. It includes pending/cancelled calls
+for explanation while excluding them from the percentage, scopes enrollment choices to the
+student, keeps unfiltered counts/summary when filtering rows, and clamps pagination. Refactoring
+extracts the query, row construction and summary without changing those behaviors.
+
+One added real appointment journey distinguishes minutes from session counts: a 120-minute absence
+and a 60-minute presence produce 60/180 before the scheduled replacement; delivering 45 minutes
+produces 105/180, with the original row still ABSENT. Correcting that source to PRESENT yields
+180/180 and zero counted compensation without deleting its linked coverage. The same journey
+checks the profile and filtered historical call. A second added case checks exclusive exit-day
+boundaries, cancelled/pending explanations, foreign-enrollment rejection and no-data before entry.
+The existing profile expectation now explicitly derives 360/270 minutes from its four 90-minute
+sessions, preserving its original 75% result.
+
+Selected PostgreSQL checks passed 26 cases with all migrations, zero drift and database removal.
+The existing 145 domain unit cases passed. API/web typechecks and focused API/domain lints passed.
+In a separate fresh Postgres database, actual source/current history read functions produced
+identical complete output/errors in 143 cases: filters, pagination, date windows, missing and
+soft-deleted attendance, cancellation, empty histories and foreign enrollment identifiers. These
+are backend comparisons and do not claim that the frontend variants have been exercised.
+
+Profile/roster components and history dialogs still need their complete UI integration. Legacy
+makeup endpoints must be moved onto the appointment allocation/outcome rules, and historical teacher
+attribution needs its previously recorded reconciliation. No issue184 completion is claimed here.
+
+The existing profile HTTP case and one selected new history transport case also passed. The latter
+checks signed-out and teacher denial with serialized error codes, plus the administrator's empty
+history and São Paulo date without inventing a frequency denominator. Full production build passed
+all three tasks (one cached); Turbo's worker-output warning remains a build-configuration warning,
+not a failed task. Prospective test quality reported zero errors and contextual warnings.

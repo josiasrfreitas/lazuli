@@ -19,6 +19,7 @@ import { listStudents, previewStudent } from "./list.js";
 import { setStudentStatus } from "./status.js";
 import { completeStudent } from "./completion.js";
 import { readStudentPedagogy } from "./pedagogy.js";
+import { readStudentAttendanceHistory } from "./attendance-history.js";
 
 const FILTER_OPTION_LIMIT = 50;
 
@@ -92,6 +93,21 @@ export const studentsRouter = router({
     .input(studentIdInputSchema)
     .query(({ ctx, input }) =>
       readStudentPedagogy({ database: ctx.db, id: input.id, now: ctx.now ?? new Date() }),
+    ),
+  attendanceHistory: adminProcedure
+    .input(
+      studentIdInputSchema.extend({
+        enrollmentId: z.string().uuid().optional(),
+        status: z.enum(["ALL", "PRESENT", "ABSENT", "PENDING", "CANCELLED"]).default("ALL"),
+        page: z.number().int().min(1).default(1),
+      }),
+    )
+    .query(({ ctx, input }) =>
+      readStudentAttendanceHistory({
+        database: ctx.db,
+        ...input,
+        now: ctx.now ?? new Date(),
+      }),
     ),
   search: adminProcedure
     .input(studentSearchInputSchema)

@@ -35,6 +35,7 @@ export type { EnrollmentDateWindow, SemesterDateWindow } from "./window-intersec
 export { isSessionUntaken } from "./session-status.js";
 export { deriveMakeupDisplayStatus, type MakeupDisplayStatus } from "./makeup-status.js";
 export { computeAttendancePercent, type AttendancePercent } from "./attendance-percent.js";
+export { computeCompensatedAttendance, type AttendanceProgress } from "./compensated-attendance.js";
 export {
   deriveFirstDueDate,
   FINANCE_DUE_DAY_FIFTEENTH,

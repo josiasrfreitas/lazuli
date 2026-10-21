@@ -127,3 +127,85 @@ void it("reschedules atomically and keeps cancelled reservations available to th
   assert.equal(next.snapshot.coverages[0]?.minutes, 120);
   assert.equal(before.history[1]?.snapshot.status, "SCHEDULED");
 });
+
+void it("counts delivered compensation by minutes in its source enrollment and never counts it again after source correction", async () => {
+  const fixture = await appointmentFixture(harness);
+  const presentSession = await harness.createSession({
+    classId: fixture.classId,
+    date: new Date("2091-03-12"),
+  });
+  await db.classSession.update({
+    where: { id: presentSession },
+    data: { endTime: new Date("1970-01-01T15:00:00Z") },
+  });
+  const api = harness.caller(undefined, fixture.after);
+  await api.attendance.confirmSession({ sessionId: presentSession, rows: [] });
+  await harness.caller(undefined, fixture.before).appointments.schedule(fixture.input);
+  const readPercent = (): ReturnType<typeof api.attendance.enrollmentSemesterPercent> =>
+    api.attendance.enrollmentSemesterPercent({
+      enrollmentId: fixture.enrollmentId,
+      semesterId: fixture.semesterId,
+    });
+  const planned = await readPercent();
+  assert.equal(planned.heldMinutes, 180);
+  assert.equal(planned.presentMinutes, 60);
+  assert.equal(planned.compensatedMinutes, 0);
+  assert.equal(planned.percent, 1 / 3);
+  await api.appointments.record({
+    ...actual,
+    id: fixture.input.id,
+    expectedVersion: 1,
+    coverages: [{ attendanceId: fixture.absence.id, minutes: 45 }],
+  });
+  const completed = await readPercent();
+  assert.deepEqual(
+    {
+      heldSessions: completed.heldSessions,
+      presentCount: completed.presentCount,
+      heldMinutes: completed.heldMinutes,
+      presentMinutes: completed.presentMinutes,
+      compensatedMinutes: completed.compensatedMinutes,
+      missingMinutes: completed.missingMinutes,
+      percent: completed.percent,
+      flagged: completed.flagged,
+    },
+    {
+      heldSessions: 2,
+      presentCount: 1,
+      heldMinutes: 180,
+      presentMinutes: 60,
+      compensatedMinutes: 45,
+      missingMinutes: 75,
+      percent: 105 / 180,
+      flagged: true,
+    },
+  );
+  const history = await api.students.attendanceHistory({ id: fixture.studentId, status: "ABSENT" });
+  assert.equal(history.totalItems, 1);
+  assert.equal(history.rows[0]?.sessionId, fixture.sessionId);
+  assert.equal(history.rows[0]?.compensatedMinutes, 45);
+  assert.equal(history.attendance.percent, 105 / 180);
+  assert.deepEqual(history.counts, { ALL: 2, PRESENT: 1, ABSENT: 1, PENDING: 0, CANCELLED: 0 });
+  const source = await db.attendance.findUniqueOrThrow({ where: { id: fixture.absence.id } });
+  assert.equal(source.status, "ABSENT");
+  const profile = await api.students.pedagogy({ id: fixture.studentId });
+  assert.equal(
+    profile.enrollments.find((row) => row.id === fixture.enrollmentId)?.attendance.percent,
+    105 / 180,
+  );
+  await api.attendance.editSession({
+    sessionId: fixture.sessionId,
+    rows: [{ enrollmentId: fixture.enrollmentId, status: "PRESENT" }],
+  });
+  const corrected = await readPercent();
+  assert.equal(corrected.percent, 1);
+  assert.equal(corrected.presentMinutes, 180);
+  assert.equal(corrected.compensatedMinutes, 0);
+  assert.equal(corrected.missingMinutes, 0);
+  assert.equal(
+    await db.makeupCoverage.count({
+      where: { attendanceId: fixture.absence.id, appointmentId: fixture.input.id, deletedAt: null },
+    }),
+    1,
+  );
+});

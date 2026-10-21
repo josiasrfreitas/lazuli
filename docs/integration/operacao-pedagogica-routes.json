@@ -186,10 +186,25 @@
       "source_page": "apps/web/src/app/(app)/alunos/[id]/page.tsx",
       "block": 1,
       "block_assignment": "candidate",
-      "implementation": "not_audited",
-      "behavior": "not_audited",
-      "variants": [],
-      "evidence": [],
+      "implementation": "partial: main profile preserved; shared minute-based frequency and historical read API integrated; source profile UI, assessments entrypoint and follow-up dependencies pending",
+      "behavior": "partial: backend metrics and history verified; source frontend profile variants not yet reconciled",
+      "variants": [
+        {
+          "id": "minute-frequency-and-historical-calls",
+          "behavior": "Confirmed minutes weighted by duration; completed source-linked makeup only; source PRESENT suppresses double counting without deleting history; enrollment exit exclusive; history retains pending/cancelled explanations, filters counts and pagination and rejects foreign enrollment",
+          "source_review": "read source compensated-attendance, attendance percent, student pedagogy/history and dependent profile metric/history components; compared with issue184; profile shell and follow-up dependencies still pending",
+          "implementation": "domain, shared percent query, profile/list metrics and administrative historical read API wired; UI consumers pending",
+          "destination_behavior": "26 Postgres cases,145 domain units;143 real source/current history comparisons; no UI completion claim",
+          "evidence": [
+            "Selected appointment journey proves60/180→105/180→180/180 after source correction, original absence/history retained",
+            "Exclusive exit, pending/cancelled rows, foreign enrollment404 and pre-entry no-data checked",
+            "Real source/current reads return identical full results/errors across143 fresh-Postgres scenarios"
+          ]
+        }
+      ],
+      "evidence": [
+        "Minute-based frequency/history checkpoint in operacao-pedagogica.md; source0563389 comparisons143cases"
+      ],
       "entrypoint_review": {
         "state": "read",
         "source_sha": "056338910a1a183ee70d02fe7ff48308d496b7c1",
@@ -222,7 +237,14 @@
           "destination_status": "pending",
           "evidence": []
         }
-      ]
+      ],
+      "source_reviewed_files": [
+        "packages/domain/src/compensated-attendance.ts",
+        "packages/api/src/attendance/percent.ts",
+        "packages/api/src/students/attendance-history.ts",
+        "packages/api/src/students/pedagogy.ts"
+      ],
+      "work_items": [175, 184, 199]
     },
     {
       "route": "/alunos",
