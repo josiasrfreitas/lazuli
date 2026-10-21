@@ -1,5 +1,5 @@
 import { timeMinutes, calendarWallDate, monday, shiftDate } from "./model";
-import type { CalendarEvent } from "./types";
+import type { CalendarEvent, CalendarDateRange } from "./types";
 import { timelineGroups, type TimelineGroup } from "./timeline-layout";
 
 const LAST_WEEKDAY = 6;
@@ -111,11 +111,11 @@ function groupEntries(group: TimelineGroup): WeeklyBlock[] {
 /** Overflow exists only while more than four lessons actually coincide. */
 export function weeklyBlocks(
   lessons: CalendarEvent[],
-  date: string,
-  range = { from: monday(date), through: shiftDate(monday(date), LAST_WEEKDAY) },
+  { date, range }: { date: string; range?: CalendarDateRange },
 ): WeeklyBlock[] {
+  const visible = range ?? { from: monday(date), through: shiftDate(monday(date), LAST_WEEKDAY) };
   return timelineGroups(
-    lessons.filter((event) => event.date >= range.from && event.date <= range.through),
+    lessons.filter((event) => event.date >= visible.from && event.date <= visible.through),
   ).flatMap((group) => groupEntries(group));
 }
 

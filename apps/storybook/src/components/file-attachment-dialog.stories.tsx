@@ -1,6 +1,11 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactElement } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { Button, FileAttachmentDialog, type FileAttachmentDialogProps } from "@lazuli/ui";
+
+const MAX_UPLOAD_BYTES = 52_428_800;
+
+const SIMULATED_UPLOAD_MS = 1500;
+const SIMULATED_RETRY_MS = 1000;
 
 const meta = {
   title: "Components/FileAttachmentDialog",
@@ -8,18 +13,18 @@ const meta = {
   tags: ["autodocs"],
   args: {
     open: false,
-    onOpenChange: () => undefined,
+    onOpenChange: () => {},
     target: {
       name: "Aluno de exemplo",
       description: "Prova de nivelamento",
       detail: "20/10/2026 · 14:00–15:00 · Presencial",
     },
-    maxSize: 50 * 1024 * 1024,
+    maxSize: MAX_UPLOAD_BYTES,
     accept: "application/pdf,image/jpeg,image/png",
     acceptLabel: "PDF, JPG ou PNG",
     camera: true,
     onAttach: async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, SIMULATED_UPLOAD_MS));
     },
   },
   parameters: {
@@ -34,7 +39,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function AttachmentExample(props: FileAttachmentDialogProps) {
+function AttachmentExample(props: FileAttachmentDialogProps): ReactElement {
   const [open, setOpen] = useState(props.open);
   return (
     <>
@@ -60,13 +65,13 @@ export const Retry: Story = {
   },
 };
 
-function RetryExample(props: FileAttachmentDialogProps) {
+function RetryExample(props: FileAttachmentDialogProps): ReactElement {
   const attempts = useRef(0);
   return (
     <AttachmentExample
       {...props}
       onAttach={async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, SIMULATED_RETRY_MS));
         if (attempts.current++ === 0)
           throw new Error(
             "A conexão foi interrompida. O arquivo continua selecionado; tente novamente.",

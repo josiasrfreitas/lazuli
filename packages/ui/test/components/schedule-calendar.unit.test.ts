@@ -83,7 +83,7 @@ void test("clicking More 2 expands the day and all six concurrent events after r
     ...events,
     ...["Dora", "Eva", "Fabio"].map((title) => ({ ...events[0]!, id: title, title })),
   ];
-  const resting = weeklyBlocks(concurrent, props.date);
+  const resting = weeklyBlocks(concurrent, { date: props.date });
   const overflow = resting.find((block) => block.kind === "overflow")!;
   assert.equal(overflow.lessons.length, 2);
   const displayed = revealWeeklyBlocks(resting, overflow.groupId);
@@ -139,7 +139,7 @@ void test("keeps all short concurrent meetings accessible through shared overflo
     startTime: "14:00",
     endTime: "14:30",
   }));
-  const collapsed = weeklyBlocks(entries, "2026-10-16");
+  const collapsed = weeklyBlocks(entries, { date: "2026-10-16" });
   const overflow = collapsed.find((block) => block.kind === "overflow");
   assert.equal(overflow?.lessons.length, 2);
   if (!overflow) throw new Error("Expected explicit overflow");

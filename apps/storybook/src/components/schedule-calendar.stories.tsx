@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { CalendarPlus, UsersRound } from "lucide-react";
 import {
   Button,
@@ -10,10 +10,13 @@ import {
   type ScheduleCalendarProps,
 } from "@lazuli/ui";
 
+const MONDAY = "2026-10-19";
+const TUESDAY = "2026-10-20";
+
 const events: CalendarEvent[] = [
   {
     id: "group-a",
-    date: "2026-10-19",
+    date: MONDAY,
     startTime: "09:00",
     endTime: "10:30",
     title: "Turma A",
@@ -23,7 +26,7 @@ const events: CalendarEvent[] = [
   },
   {
     id: "group-b",
-    date: "2026-10-19",
+    date: MONDAY,
     startTime: "09:30",
     endTime: "11:00",
     title: "Turma B",
@@ -33,7 +36,7 @@ const events: CalendarEvent[] = [
   },
   {
     id: "appointment",
-    date: "2026-10-20",
+    date: TUESDAY,
     startTime: "14:00",
     endTime: "15:00",
     title: "Atendimento",
@@ -74,14 +77,14 @@ const meta = {
     },
   },
   args: {
-    date: "2026-10-19",
+    date: MONDAY,
     view: "week",
     events,
     density: "compact",
     status: "ready",
     timeZone: "America/Sao_Paulo",
-    onDateChange: () => undefined,
-    onViewChange: () => undefined,
+    onDateChange: () => {},
+    onViewChange: () => {},
   },
   argTypes: {
     date: { control: "text" },
@@ -103,7 +106,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function Example(props: ScheduleCalendarProps) {
+function Example(props: ScheduleCalendarProps): ReactElement {
   const [date, setDate] = useState(props.date);
   const [view, setView] = useState<CalendarView>(props.view);
   useEffect(() => setDate(props.date), [props.date]);
@@ -133,7 +136,7 @@ export const Weekly: Story = {
 };
 export const TuesdayToMonday: Story = {
   args: {
-    date: "2026-10-20",
+    date: TUESDAY,
     dayCount: 7,
     events: [...events, { ...events[0]!, id: "following-monday", date: "2026-10-26" }],
   },
@@ -144,19 +147,19 @@ export const WednesdayToTuesday: Story = {
   render: (args) => <Example {...args} />,
 };
 export const ThreeDays: Story = {
-  args: { date: "2026-10-20", dayCount: 3 },
+  args: { date: TUESDAY, dayCount: 3 },
   render: (args) => <Example {...args} />,
 };
 export const TenDays: Story = {
-  args: { date: "2026-10-20", dayCount: 10 },
+  args: { date: TUESDAY, dayCount: 10 },
   render: (args) => <Example {...args} />,
 };
 export const BoundedPeriod: Story = {
-  args: { date: "2026-10-20", dayCount: 7, minDate: "2026-10-20", maxDate: "2026-10-29" },
+  args: { date: TUESDAY, dayCount: 7, minDate: TUESDAY, maxDate: "2026-10-29" },
   render: (args) => <Example {...args} />,
 };
 export const SingleAllowedDate: Story = {
-  args: { date: "2026-10-20", dayCount: 1, minDate: "2026-10-20", maxDate: "2026-10-20" },
+  args: { date: TUESDAY, dayCount: 1, minDate: TUESDAY, maxDate: TUESDAY },
   render: (args) => <Example {...args} />,
 };
 export const Daily: Story = {
@@ -196,7 +199,7 @@ export const ContentFits: Story = {
     events: [
       {
         id: "readable-event",
-        date: "2026-10-19",
+        date: MONDAY,
         startTime: "09:00",
         endTime: "11:00",
         title: "Turma A",
@@ -214,7 +217,7 @@ export const ContentNeedsRoom: Story = {
     events: [
       {
         id: "long-event",
-        date: "2026-10-19",
+        date: MONDAY,
         startTime: "09:00",
         endTime: "11:00",
         title: "Revisão das atividades de conversação",
@@ -236,14 +239,14 @@ export const Loading: Story = {
   render: (args) => <Example {...args} />,
 };
 export const Error: Story = {
-  args: { status: "error", onRetry: () => undefined },
+  args: { status: "error", onRetry: () => {} },
   render: (args) => <Example {...args} />,
 };
 export const ManyOverlaps: Story = {
   args: {
-    events: Array.from({ length: 7 }, (_, index) => ({
+    events: Array.from({ length: 7 }, (_unused, index) => ({
       id: `overlap-${index}`,
-      date: "2026-10-19",
+      date: MONDAY,
       startTime: "09:00",
       endTime: index % 2 === 0 ? "11:00" : "10:00",
       title: `Compromisso ${index + 1}`,
@@ -254,7 +257,7 @@ export const ManyOverlaps: Story = {
   render: (args) => <Example {...args} />,
 };
 
-function SelectionExample(props: ScheduleCalendarProps) {
+function SelectionExample(props: ScheduleCalendarProps): ReactElement {
   const [date, setDate] = useState(props.date);
   const [view, setView] = useState(props.view);
   useEffect(() => setDate(props.date), [props.date]);
@@ -271,7 +274,7 @@ function SelectionExample(props: ScheduleCalendarProps) {
         rangeSelection={{
           value: selection,
           onSelect: setSelection,
-          minimum: { date: "2026-10-19", time: "08:00" },
+          minimum: { date: MONDAY, time: "08:00" },
           blocked: [
             ...events.map((event) => ({ ...event, label: event.title })),
             {

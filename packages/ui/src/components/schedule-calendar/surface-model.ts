@@ -22,7 +22,7 @@ export function useCalendarSurface(props: SurfaceProps): SurfaceLayout {
   const blocks = useMemo(
     () =>
       view === "week"
-        ? weeklyBlocks([...events], date, { from, through })
+        ? weeklyBlocks([...events], { date, range: { from, through } })
         : dailyBlocks([...events], date),
     [view, events, date, from, through],
   );

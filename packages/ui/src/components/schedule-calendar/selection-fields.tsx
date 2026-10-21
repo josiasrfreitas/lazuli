@@ -8,6 +8,15 @@ import { Field } from "../field";
 import type { CalendarInterval, CalendarRangeSelection } from "./types";
 import { selectionError } from "./model";
 
+type SelectionFieldsProps = {
+  date: string;
+  minDate?: string | undefined;
+  maxDate?: string | undefined;
+  selection: CalendarRangeSelection;
+  disabled: boolean;
+  onSelect: (range: CalendarInterval) => void;
+};
+
 export function CalendarSelectionFields({
   date,
   minDate,
@@ -15,14 +24,7 @@ export function CalendarSelectionFields({
   selection,
   disabled,
   onSelect,
-}: {
-  date: string;
-  minDate?: string | undefined;
-  maxDate?: string | undefined;
-  selection: CalendarRangeSelection;
-  disabled: boolean;
-  onSelect: (range: CalendarInterval) => void;
-}): ReactElement {
+}: SelectionFieldsProps): ReactElement {
   const id = useId();
   const [draft, setDraft] = useState<CalendarInterval>(
     selection.value ?? { date, startTime: "", endTime: "" },
@@ -95,7 +97,7 @@ function SelectionField({
         size="sm"
         min={
           name === "date"
-            ? [minDate, selection.minimum?.date].filter(Boolean).sort().at(-1)
+            ? [minDate, selection.minimum?.date].filter(Boolean).toSorted().at(-1)
             : undefined
         }
         max={name === "date" ? maxDate : undefined}

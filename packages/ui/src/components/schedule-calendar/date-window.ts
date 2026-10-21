@@ -1,6 +1,8 @@
 import { calendarDateKey, calendarWallDate, monday, shiftDate } from "./model";
 import type { CalendarDateRange, CalendarDateWindow } from "./types";
 
+const DAYS_PER_WEEK = 7;
+
 type Bounds = Pick<CalendarDateWindow, "minDate" | "maxDate">;
 
 function assertDate(date: string): void {
@@ -16,17 +18,12 @@ export function clampCalendarDate(date: string, { minDate, maxDate }: Bounds): s
 
 /** Inclusive visible dates; use the same range when fetching calendar data. */
 export function getScheduleCalendarRange(window: CalendarDateWindow): CalendarDateRange {
+  assertWindow(window);
   const { dayCount, minDate, maxDate } = window;
-  assertDate(window.date);
-  if (minDate) assertDate(minDate);
-  if (maxDate) assertDate(maxDate);
-  if (minDate && maxDate && minDate > maxDate) throw new RangeError("minDate must precede maxDate");
-  if (dayCount !== undefined && (!Number.isSafeInteger(dayCount) || dayCount < 1))
-    throw new RangeError("dayCount must be a positive integer");
   const date = clampCalendarDate(window.date, window);
   if (window.view === "day") return { from: date, through: date };
   const start = dayCount === undefined ? monday(date) : date;
-  const end = shiftDate(start, (dayCount ?? 7) - 1);
+  const end = shiftDate(start, (dayCount ?? DAYS_PER_WEEK) - 1);
   return {
     from: minDate && start < minDate ? minDate : start,
     through: maxDate && end > maxDate ? maxDate : end,
@@ -49,7 +46,7 @@ export function getScheduleCalendarNavigation(
   todayDate: string | null;
 } {
   const range = getScheduleCalendarRange(window);
-  const step = window.view === "day" ? 1 : (window.dayCount ?? 7);
+  const step = window.view === "day" ? 1 : (window.dayCount ?? DAYS_PER_WEEK);
   return {
     previousDate:
       window.minDate && range.from <= window.minDate
@@ -67,4 +64,14 @@ export function calendarDateError(date: string, { minDate, maxDate }: Bounds): s
   if (minDate && date < minDate) return "Escolha uma data a partir do início do período permitido.";
   if (maxDate && date > maxDate) return "Escolha uma data até o fim do período permitido.";
   return undefined;
+}
+
+function assertWindow(window: CalendarDateWindow): void {
+  const { dayCount, minDate, maxDate } = window;
+  assertDate(window.date);
+  if (minDate) assertDate(minDate);
+  if (maxDate) assertDate(maxDate);
+  if (minDate && maxDate && minDate > maxDate) throw new RangeError("minDate must precede maxDate");
+  if (dayCount !== undefined && (!Number.isSafeInteger(dayCount) || dayCount < 1))
+    throw new RangeError("dayCount must be a positive integer");
 }

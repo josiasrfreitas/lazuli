@@ -6,13 +6,20 @@ import type { CalendarView } from "./types";
 const NEIGHBOR_SPACE = 96;
 const DEFAULT_MAX_DAY_WIDTH = 512;
 
+const DAYS_PER_WEEK = 7;
+type ExpandedDayInput = {
+  timelineRef: RefObject<HTMLDivElement | null>;
+  view: CalendarView;
+  preferredWidth: number | null;
+  dayCount?: number;
+};
 /** Convert a pixel target to the flex share used by the existing expansion transition. */
-export function useExpandedDayGrow(
-  timelineRef: RefObject<HTMLDivElement | null>,
-  view: CalendarView,
-  preferredWidth: number | null,
-  dayCount = 7,
-): { grow: number; width: number } {
+export function useExpandedDayGrow({
+  timelineRef,
+  view,
+  preferredWidth,
+  dayCount = DAYS_PER_WEEK,
+}: ExpandedDayInput): { grow: number; width: number } {
   const [daysWidth, setDaysWidth] = useState(0);
 
   useLayoutEffect(() => {

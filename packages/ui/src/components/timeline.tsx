@@ -103,7 +103,7 @@ export function TimelineSkeleton({
             id: "loading",
             label: "",
             description: <InlineSkeleton className="w-32" />,
-            items: Array.from({ length: 3 }, (_, index) => ({
+            items: Array.from({ length: 3 }, (_unused, index) => ({
               id: String(index),
               title: <InlineSkeleton className="h-5 w-3/4" />,
               metadata: <InlineSkeleton className="w-20" />,

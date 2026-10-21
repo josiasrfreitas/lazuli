@@ -1,7 +1,42 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import { BookOpen, DollarSign, Search, UserRound } from "lucide-react";
 import { Button, CommandMenu, type CommandMenuProps } from "@lazuli/ui";
+
+const SCOPED_ITEMS: CommandMenuProps["items"] = [
+  {
+    id: "pedagogy",
+    label: "Abrir Pedagógico",
+    description: "Matrícula, frequência e acompanhamento",
+    group: "Destinos do aluno",
+    icon: <BookOpen />,
+  },
+  {
+    id: "finance",
+    label: "Abrir Financeiro",
+    description: "Saldos, parcelas e tratativas",
+    group: "Destinos do aluno",
+    icon: <DollarSign />,
+  },
+];
+const DEFAULT_ITEMS: CommandMenuProps["items"] = [
+  {
+    id: "student",
+    label: "João — aluno de exemplo",
+    description: "English 2 · Terça e quinta",
+    group: "Melhor resultado",
+    icon: <UserRound />,
+    expandable: true,
+    hint: "Pedagógico",
+  },
+  {
+    id: "overview",
+    label: "Financeiro",
+    description: "Visão geral financeira",
+    group: "Outros destinos",
+    icon: <DollarSign />,
+  },
+];
 
 function Example({
   pending = false,
@@ -11,45 +46,11 @@ function Example({
   pending?: boolean;
   error?: boolean;
   empty?: boolean;
-}) {
+}): ReactElement {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [scoped, setScoped] = useState(false);
-  const items: CommandMenuProps["items"] = scoped
-    ? [
-        {
-          id: "pedagogy",
-          label: "Abrir Pedagógico",
-          description: "Matrícula, frequência e acompanhamento",
-          group: "Destinos do aluno",
-          icon: <BookOpen />,
-        },
-        {
-          id: "finance",
-          label: "Abrir Financeiro",
-          description: "Saldos, parcelas e tratativas",
-          group: "Destinos do aluno",
-          icon: <DollarSign />,
-        },
-      ]
-    : [
-        {
-          id: "student",
-          label: "João — aluno de exemplo",
-          description: "English 2 · Terça e quinta",
-          group: "Melhor resultado",
-          icon: <UserRound />,
-          expandable: true,
-          hint: "Pedagógico",
-        },
-        {
-          id: "overview",
-          label: "Financeiro",
-          description: "Visão geral financeira",
-          group: "Outros destinos",
-          icon: <DollarSign />,
-        },
-      ];
+  const items = scoped ? SCOPED_ITEMS : DEFAULT_ITEMS;
   return (
     <CommandMenu
       open={open}

@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { FileUpload, type FileUploadProps } from "@lazuli/ui";
+
+const MAX_UPLOAD_BYTES = 52_428_800;
+
+const SAMPLE_FILE_NAME = "prova-de-nivelamento.pdf";
+const SAMPLE_CONTENT_TYPE = "application/pdf";
 
 const meta = {
   title: "Components/FileUpload",
@@ -8,8 +13,8 @@ const meta = {
   tags: ["autodocs"],
   args: {
     value: [],
-    onValueChange: () => undefined,
-    maxSize: 50 * 1024 * 1024,
+    onValueChange: () => {},
+    maxSize: MAX_UPLOAD_BYTES,
     accept: "application/pdf,image/jpeg,image/png",
     acceptLabel: "PDF, JPG ou PNG",
     camera: true,
@@ -26,7 +31,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function PlaygroundUpload(props: FileUploadProps) {
+function PlaygroundUpload(props: FileUploadProps): ReactElement {
   const [files, setFiles] = useState<File[]>([]);
   return (
     <div className="mx-auto max-w-lg">
@@ -48,7 +53,7 @@ export const Uploading: Story = {
   render: (args) => (
     <FileUpload
       {...args}
-      value={[new File(["Example"], "prova-de-nivelamento.pdf", { type: "application/pdf" })]}
+      value={[new File(["Example"], SAMPLE_FILE_NAME, { type: SAMPLE_CONTENT_TYPE })]}
       status="uploading"
       progress={42}
     />
@@ -58,7 +63,7 @@ export const Indeterminate: Story = {
   render: (args) => (
     <FileUpload
       {...args}
-      value={[new File(["Example"], "prova-de-nivelamento.pdf", { type: "application/pdf" })]}
+      value={[new File(["Example"], SAMPLE_FILE_NAME, { type: SAMPLE_CONTENT_TYPE })]}
       status="uploading"
     />
   ),
@@ -67,7 +72,7 @@ export const Success: Story = {
   render: (args) => (
     <FileUpload
       {...args}
-      value={[new File(["Example"], "prova-de-nivelamento.pdf", { type: "application/pdf" })]}
+      value={[new File(["Example"], SAMPLE_FILE_NAME, { type: SAMPLE_CONTENT_TYPE })]}
       status="success"
     />
   ),
@@ -76,7 +81,7 @@ export const LongFilename: Story = {
   render: (args) => <PlaygroundUploadWithFile {...args} />,
 };
 
-function PlaygroundUploadWithFile(props: FileUploadProps) {
+function PlaygroundUploadWithFile(props: FileUploadProps): ReactElement {
   const [files, setFiles] = useState(() => [
     new File(["Example"], "prova-de-nivelamento-com-nome-longo-para-conferencia-no-celular.pdf", {
       type: "application/pdf",

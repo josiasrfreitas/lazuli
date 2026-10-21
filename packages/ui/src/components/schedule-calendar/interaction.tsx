@@ -25,6 +25,7 @@ export type Interaction = {
     | ((event: CalendarEvent, context: CalendarEventRenderContext) => ReactNode)
     | undefined;
 };
+const PERCENT = 100;
 export const CalendarInteraction = createContext<Interaction | null>(null);
 function useInteraction(): Interaction {
   const value = useContext(CalendarInteraction);
@@ -54,7 +55,7 @@ export function CalendarBlock({ event }: EventProps<WeeklyBlock>): ReactNode {
     ...(interaction.view === "week" && expanded && !event.revealed
       ? {
           expandedDayWidth: interaction.expandedDayWidth,
-          expandedWidthShare: weeklyLaneGeometry(event, event).width / 100,
+          expandedWidthShare: weeklyLaneGeometry(event, event).width / PERCENT,
         }
       : {}),
     selected: item.id === interaction.selectedId,

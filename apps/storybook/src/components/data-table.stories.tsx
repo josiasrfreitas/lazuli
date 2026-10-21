@@ -4,6 +4,8 @@ import { expect, fn, userEvent, within } from "storybook/test";
 import { DataTable, type DataTableColumn } from "@lazuli/ui";
 
 type Row = { id: string; name: string; amount: string };
+const SELECTED_ATTRIBUTE = "aria-selected";
+
 const columns: readonly DataTableColumn<Row>[] = [
   { id: "name", header: "Aluno", width: "wide", cell: (row) => row.name },
   { id: "amount", header: "Mensalidade", numeric: true, cell: (row) => row.amount },
@@ -103,13 +105,13 @@ export const SelectedRow: Story = {
     const canvas = within(canvasElement);
     const first = canvas.getByRole("row", { name: "Ana R$ 250,00" });
     const second = canvas.getByRole("row", { name: "Bia R$ 280,00" });
-    await expect(first).toHaveAttribute("aria-selected", "true");
+    await expect(first).toHaveAttribute(SELECTED_ATTRIBUTE, "true");
     await userEvent.click(second);
-    await expect(second).toHaveAttribute("aria-selected", "true");
-    await expect(first).not.toHaveAttribute("aria-selected");
+    await expect(second).toHaveAttribute(SELECTED_ATTRIBUTE, "true");
+    await expect(first).not.toHaveAttribute(SELECTED_ATTRIBUTE);
     first.focus();
     await userEvent.keyboard("{Enter}");
-    await expect(first).toHaveAttribute("aria-selected", "true");
-    await expect(second).not.toHaveAttribute("aria-selected");
+    await expect(first).toHaveAttribute(SELECTED_ATTRIBUTE, "true");
+    await expect(second).not.toHaveAttribute(SELECTED_ATTRIBUTE);
   },
 };

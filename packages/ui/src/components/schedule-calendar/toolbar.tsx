@@ -13,14 +13,7 @@ function CalendarNavigation(props: ScheduleCalendarProps): ReactElement {
   return (
     <div className="lz-calendar-navigation">
       <ScheduleCalendarDatePicker
-        trigger={
-          props.dateLabel ? (
-            <Button type="button" variant="ghost" size="sm">
-              {props.dateLabel}
-              <ChevronDown aria-hidden="true" />
-            </Button>
-          ) : undefined
-        }
+        trigger={navigationTrigger(props.dateLabel)}
         date={props.date}
         today={today}
         minDate={props.minDate}
@@ -84,4 +77,13 @@ export function CalendarToolbar(props: ScheduleCalendarProps): ReactElement {
       </div>
     </div>
   );
+}
+
+function navigationTrigger(label: string | undefined): ReactElement | undefined {
+  return label ? (
+    <Button type="button" variant="ghost" size="sm">
+      {label}
+      <ChevronDown aria-hidden="true" />
+    </Button>
+  ) : undefined;
 }

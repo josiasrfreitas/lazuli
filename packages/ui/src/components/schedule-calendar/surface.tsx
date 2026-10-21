@@ -20,6 +20,9 @@ import {
 import type { WeeklyBlock } from "./weekly-blocks";
 import { weeklyLaneGeometry } from "./weekly-layout";
 import { useExpandedDayGrow } from "./use-expanded-day-grow";
+const DAYS_PER_WEEK = 7;
+const COMPACT_DAY_WIDTH = 84;
+const COMFORTABLE_DAY_WIDTH = 203;
 const TIME_AXIS_WIDTH = 52;
 const EVENT_MIN_WIDTH = 164;
 const PERCENT = 100;
@@ -27,8 +30,7 @@ const components = { event: CalendarBlock, eventWrapper: CalendarBlockWrapper };
 
 function interaction(
   props: SurfaceProps,
-  layout: SurfaceLayout,
-  expandedDayWidth: number,
+  { layout, expandedDayWidth }: { layout: SurfaceLayout; expandedDayWidth: number },
 ): Interaction {
   return {
     expandedId: layout.activeId,
@@ -58,22 +60,18 @@ function interaction(
 }
 export function CalendarSurface(props: SurfaceProps): ReactElement {
   const layout = useCalendarSurface(props);
-  const range = getScheduleCalendarRange(props);
-  const dayCount = calendarRangeDates(range).length;
   const scope = useId().replaceAll(":", "");
-  const dailyWidth =
-    TIME_AXIS_WIDTH +
-    Math.max(1, ...layout.displayed.map((block) => block.columns)) * EVENT_MIN_WIDTH;
+  const { range, dayCount, dailyWidth, expandedDayWidth } = surfaceDimensions(props, layout);
   const { view, density = "comfortable", status = "ready" } = props;
-  const expanded = layout.displayed.find((block) => block.id === layout.activeId);
-  const preferredWidth = props.expandedEventWidth;
-  // Include neighboring lanes so the requested width belongs to the expanded card.
-  const expandedDayWidth = expanded?.revealed
-    ? expanded.columns * EVENT_MIN_WIDTH
-    : preferredDayWidth({ view, expanded, preferredWidth });
-  const expandedDayGrow = useExpandedDayGrow(layout.timelineRef, view, expandedDayWidth, dayCount);
+  const expandedDayGrow = useExpandedDayGrow({
+    timelineRef: layout.timelineRef,
+    view,
+    preferredWidth: expandedDayWidth,
+    dayCount,
+  });
+  const context = interaction(props, { layout, expandedDayWidth: expandedDayGrow.width });
   return (
-    <CalendarInteraction value={interaction(props, layout, expandedDayGrow.width)}>
+    <CalendarInteraction value={context}>
       <div
         className="lz-calendar-viewport"
         role="region"
@@ -88,24 +86,14 @@ export function CalendarSurface(props: SurfaceProps): ReactElement {
         data-width={props.widthBehavior ?? "scroll"}
         style={{ "--lz-calendar-day-count": dayCount } as CSSProperties}
       >
-        {view === "day" && props.widthBehavior !== "fit" && (
-          <style>{`[data-calendar-layout="${scope}"] > .lz-week-calendar { min-width: ${dailyWidth}px; }`}</style>
-        )}
-        {view === "week" && dayCount !== 7 && props.widthBehavior !== "fit" && (
-          <style>{`.lz-calendar-viewport[data-calendar-layout="${scope}"][data-view="week"][data-density="${density}"] > .lz-week-calendar { min-width: ${TIME_AXIS_WIDTH + dayCount * (density === "compact" ? 84 : 203)}px; }`}</style>
-        )}
-        {view === "week" && (
-          <style>{`
-            .lz-calendar-viewport[data-calendar-layout="${scope}"] .rbc-header,
-            .lz-calendar-viewport[data-calendar-layout="${scope}"] .rbc-day-slot {
-              max-width: none;
-            }
-            .lz-calendar-viewport[data-calendar-layout="${scope}"] .rbc-header.lz-calendar-expanded-day,
-            .lz-calendar-viewport[data-calendar-layout="${scope}"] .rbc-day-slot.lz-calendar-expanded-day {
-              flex-grow: ${expandedDayGrow.grow};
-            }
-          `}</style>
-        )}
+        <CalendarSurfaceStyles
+          props={props}
+          scope={scope}
+          dailyWidth={dailyWidth}
+          dayCount={dayCount}
+          grow={expandedDayGrow.grow}
+        />
+
         <CalendarGrid<WeeklyBlock>
           view={view}
           range={range}
@@ -116,17 +104,7 @@ export function CalendarSurface(props: SurfaceProps): ReactElement {
           {...gridTimes(props)}
           {...gridBehavior(props, layout)}
         />
-        {status === "error" && (
-          <div className="lz-calendar-state" role="alert">
-            <p>{props.errorMessage ?? "Não foi possível carregar a agenda."}</p>
-            {props.onRetry && (
-              <Button type="button" variant="secondary" size="sm" onClick={props.onRetry}>
-                <RefreshCw />
-                Tentar novamente
-              </Button>
-            )}
-          </div>
-        )}
+        {status === "error" && <CalendarSurfaceError props={props} />}
       </div>
     </CalendarInteraction>
   );
@@ -150,4 +128,80 @@ function preferredDayWidth({
   )
     return null;
   return ((preferredWidth + 2) * PERCENT) / weeklyLaneGeometry(expanded, expanded).width;
+}
+
+type SurfaceStyleProps = {
+  props: SurfaceProps;
+  scope: string;
+  dailyWidth: number;
+  dayCount: number;
+  grow: number;
+};
+function CalendarSurfaceStyles({
+  props,
+  scope,
+  dailyWidth,
+  dayCount,
+  grow,
+}: SurfaceStyleProps): ReactElement {
+  const { view, density = "comfortable" } = props;
+  return (
+    <>
+      {view === "day" && props.widthBehavior !== "fit" && (
+        <style>{`[data-calendar-layout="${scope}"] > .lz-week-calendar { min-width: ${dailyWidth}px; }`}</style>
+      )}
+      {view === "week" && dayCount !== DAYS_PER_WEEK && props.widthBehavior !== "fit" && (
+        <style>{`.lz-calendar-viewport[data-calendar-layout="${scope}"][data-view="week"][data-density="${density}"] > .lz-week-calendar { min-width: ${TIME_AXIS_WIDTH + dayCount * (density === "compact" ? COMPACT_DAY_WIDTH : COMFORTABLE_DAY_WIDTH)}px; }`}</style>
+      )}
+      {view === "week" && (
+        <style>{`
+            .lz-calendar-viewport[data-calendar-layout="${scope}"] .rbc-header,
+            .lz-calendar-viewport[data-calendar-layout="${scope}"] .rbc-day-slot {
+              max-width: none;
+            }
+            .lz-calendar-viewport[data-calendar-layout="${scope}"] .rbc-header.lz-calendar-expanded-day,
+            .lz-calendar-viewport[data-calendar-layout="${scope}"] .rbc-day-slot.lz-calendar-expanded-day {
+              flex-grow: ${grow};
+            }
+          `}</style>
+      )}
+    </>
+  );
+}
+function CalendarSurfaceError({ props }: { props: SurfaceProps }): ReactElement {
+  return (
+    <div className="lz-calendar-state" role="alert">
+      <p>{props.errorMessage ?? "Não foi possível carregar a agenda."}</p>
+      {props.onRetry && (
+        <Button type="button" variant="secondary" size="sm" onClick={props.onRetry}>
+          <RefreshCw />
+          Tentar novamente
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function surfaceDimensions(
+  props: SurfaceProps,
+  layout: SurfaceLayout,
+): {
+  range: ReturnType<typeof getScheduleCalendarRange>;
+  dayCount: number;
+  dailyWidth: number;
+  expandedDayWidth: number | null;
+} {
+  const range = getScheduleCalendarRange(props);
+  const dayCount = calendarRangeDates(range).length;
+  const dailyWidth =
+    TIME_AXIS_WIDTH +
+    Math.max(1, ...layout.displayed.map((block) => block.columns)) * EVENT_MIN_WIDTH;
+  const { view } = props;
+  const expanded = layout.displayed.find((block) => block.id === layout.activeId);
+  const preferredWidth = props.expandedEventWidth;
+  // Include neighboring lanes so the requested width belongs to the expanded card.
+  const expandedDayWidth = expanded?.revealed
+    ? expanded.columns * EVENT_MIN_WIDTH
+    : preferredDayWidth({ view, expanded, preferredWidth });
+  return { range, dayCount, dailyWidth, expandedDayWidth };
 }

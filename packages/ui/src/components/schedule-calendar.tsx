@@ -64,11 +64,7 @@ export function ScheduleCalendar<Event extends CalendarEvent>(
   );
   const status = props.status ?? "ready";
   const range = getScheduleCalendarRange(props);
-  const selection = props.rangeSelection && {
-    ...props.rangeSelection,
-    getError: (value: CalendarInterval) =>
-      calendarDateError(value.date, props) ?? props.rangeSelection?.getError?.(value),
-  };
+  const selection = boundedSelection(props);
   const surface = adaptEvents({
     ...props,
     date: clampCalendarDate(props.date, props),
@@ -81,11 +77,7 @@ export function ScheduleCalendar<Event extends CalendarEvent>(
     setMessage(error);
     if (!error) selection.onSelect(range);
   }
-  const feedback =
-    message ??
-    (selected
-      ? `Selecionado: ${selected.date.split("-").toReversed().join("/")}, ${selected.startTime}–${selected.endTime}.`
-      : undefined);
+  const feedback = selectionFeedback(message, selected);
   return (
     <div
       className={cn("lz-schedule-calendar", props.className)}
@@ -107,5 +99,28 @@ export function ScheduleCalendar<Event extends CalendarEvent>(
       </div>
       <CalendarFooter props={surface} message={feedback} onSelect={select} />
     </div>
+  );
+}
+
+function boundedSelection(
+  props: Pick<ScheduleCalendarProps, "rangeSelection" | "minDate" | "maxDate">,
+): ScheduleCalendarProps["rangeSelection"] {
+  return (
+    props.rangeSelection && {
+      ...props.rangeSelection,
+      getError: (value: CalendarInterval) =>
+        calendarDateError(value.date, props) ?? props.rangeSelection?.getError?.(value),
+    }
+  );
+}
+function selectionFeedback(
+  message: string | undefined,
+  selected: CalendarInterval | null | undefined,
+): string | undefined {
+  return (
+    message ??
+    (selected
+      ? `Selecionado: ${selected.date.split("-").toReversed().join("/")}, ${selected.startTime}–${selected.endTime}.`
+      : undefined)
   );
 }
