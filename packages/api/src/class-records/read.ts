@@ -82,8 +82,20 @@ export async function readClassRecord(
     where: { classSessionId: session.id, deletedAt: null },
     select: { enrollmentId: true },
   });
+  const declarations = await context.database.attendanceDeclaration.findMany({
+    where: { classSessionId: session.id, deletedAt: null },
+    select: { id: true, enrollmentId: true, submittedAt: true },
+    orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
+  });
+  const hasAttendanceWindows = Boolean(
+    await context.database.attendanceWindow.count({
+      where: { classSessionId: session.id, deletedAt: null },
+    }),
+  );
   const summary = summarizeSession(session, context.now);
   return {
+    declarations,
+    hasAttendanceWindows,
     recordedAttendanceIds: attendance.map((row) => row.enrollmentId),
     session: {
       ...summary,

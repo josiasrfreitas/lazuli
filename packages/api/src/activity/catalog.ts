@@ -1,4 +1,6 @@
 export const ACTIVITY_ACTIONS = {
+  "studentAttendance.open": ["PEDAGOGICAL", "Abriu link de presença"],
+  "studentAttendance.close": ["PEDAGOGICAL", "Encerrou link de presença"],
   "planning.create": ["PEDAGOGICAL", "Planejamento criado"],
   "planning.revise": ["PEDAGOGICAL", "Planejamento revisado"],
   "classRecords.confirm": ["PEDAGOGICAL", "Aula registrada"],

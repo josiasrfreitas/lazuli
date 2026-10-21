@@ -1,4 +1,5 @@
 "use client";
+import { StudentAttendanceSection } from "~/features/student-attendance/staff-section";
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { Alert, Badge, Button, type BadgeVariant } from "@lazuli/ui";
@@ -7,8 +8,15 @@ import { ClassRecordEditor } from "./editor";
 import { ClassRecordHistory } from "./history";
 import { RecordState, SnapshotView, dateLabel, type ClassRecord } from "./shared";
 
+const DECLARATION_POLL_MS = 5000;
 export function ClassRecordPage({ id }: { id: string }): ReactElement {
-  const query = trpc.classRecords.detail.useQuery({ sessionId: id }, { retry: false });
+  const query = trpc.classRecords.detail.useQuery(
+    { sessionId: id },
+    {
+      retry: false,
+      refetchInterval: (query) => (query.state.data?.version === 0 ? DECLARATION_POLL_MS : false),
+    },
+  );
   const [editing, setEditing] = useState(false);
   return (
     <div className="mx-auto grid w-full min-w-0 max-w-7xl content-start gap-5 p-4 sm:p-6">
@@ -23,19 +31,14 @@ export function ClassRecordPage({ id }: { id: string }): ReactElement {
       {query.data && (
         <>
           <RecordHeader data={query.data} />
+          <StudentAttendanceSection sessionId={id} />
           {query.data.restriction && <Alert>{query.data.restriction}</Alert>}
           {editing ? (
             <ClassRecordEditor key={id} data={query.data} onClose={() => setEditing(false)} />
           ) : (
             <>
               <RecordAction data={query.data} start={() => setEditing(true)} />
-              {!query.data.version && (
-                <Alert>
-                  {query.data.attendanceOnly
-                    ? "A frequência já foi confirmada. Falta registrar o conteúdo realizado."
-                    : "A chamada ainda não foi confirmada. A presença exibida é uma prévia para revisão."}
-                </Alert>
-              )}
+              <AttendanceHint data={query.data} />
               <SnapshotView
                 snapshot={query.data.snapshot}
                 draft={!query.data.version && !query.data.attendanceOnly}
@@ -91,5 +94,16 @@ function RecordAction({
         {data.version ? "Corrigir registro" : "Registrar aula"}
       </Button>
     </div>
+  );
+}
+
+function AttendanceHint({ data }: { data: ClassRecord }): ReactElement | null {
+  if (data.version) return null;
+  return (
+    <Alert>
+      {data.attendanceOnly
+        ? "A frequência já foi confirmada. Falta registrar o conteúdo realizado."
+        : "A chamada ainda não foi confirmada. A presença exibida é uma prévia para revisão."}
+    </Alert>
   );
 }

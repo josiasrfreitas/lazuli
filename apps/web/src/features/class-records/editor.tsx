@@ -27,6 +27,15 @@ export function ClassRecordEditor({
         }}
       >
         <EditorNotice editor={editor} />
+        {editor.newDeclarationCount > 0 && (
+          <Alert>
+            {editor.newDeclarationCount} novas declarações recebidas. Confira os nomes acima e
+            revise a chamada.
+            <Button type="button" variant="secondary" onClick={editor.reviewDeclarations}>
+              Conferi as novas declarações
+            </Button>
+          </Alert>
+        )}
         <div className="grid min-w-0 items-start gap-4 lg:grid-cols-5">
           <RecordRoster editor={editor} />
           <RecordContent editor={editor} />

@@ -1,3 +1,4 @@
+import { studentAttendanceRouter } from "./student-attendance/router.js";
 import { classRecordsRouter } from "./class-records/router.js";
 import { planningRouter } from "./stage-planning/router.js";
 import { createCallerFactory, protectedProcedure, publicProcedure, router } from "./trpc/init.js";
@@ -12,6 +13,7 @@ import { reportsRouter } from "./reports/router.js";
 import { studentsRouter } from "./students/router.js";
 
 export const appRouter = router({
+  studentAttendance: studentAttendanceRouter,
   classRecords: classRecordsRouter,
   planning: planningRouter,
   health: publicProcedure.query(() => ({ status: "ok" as const })),

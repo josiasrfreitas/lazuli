@@ -18,11 +18,26 @@ export function RecordRoster({ editor }: Props): ReactElement {
         </span>
       }
     >
+      {editor.errors["presence-first"] && (
+        <p role="alert" className="text-caption text-destructive">
+          {editor.errors["presence-first"]}
+        </p>
+      )}
       <div className="divide-y divide-border rounded-lg border border-border bg-card">
         {editor.rows.map((row) => (
           <div key={row.enrollmentId} className="grid gap-1.5 p-2">
             <RosterName editor={editor} row={row} />
             <PresenceControl editor={editor} row={row} />
+            {!row.reviewed && (
+              <p className="text-caption text-warning">Presença pendente de revisão</p>
+            )}
+            {editor.opened.declarations.some(
+              (entry) => entry.enrollmentId === row.enrollmentId,
+            ) && (
+              <p className="text-caption text-muted-foreground">
+                Declaração recebida · confira a presença
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -68,13 +83,15 @@ function PresenceControl({ editor, row }: Props & { row: Row }): ReactElement {
   return (
     <SegmentedControl
       size="sm"
-      value={row.status}
+      value={row.reviewed ? row.status : null}
       aria-label={`Presença de ${row.name}`}
       onValueChange={(status) => {
         if (status === "PRESENT" || status === "ABSENT")
           editor.setRows((current) =>
             current.map((item) =>
-              item.enrollmentId === row.enrollmentId ? { ...item, status } : item,
+              item.enrollmentId === row.enrollmentId
+                ? { ...item, status, reviewed: true, manuallyReviewed: true }
+                : item,
             ),
           );
       }}

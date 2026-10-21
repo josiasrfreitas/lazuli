@@ -13,6 +13,7 @@ export type AttendanceDatabase = Pick<
   | "makeup"
   | "semester"
   | "classSessionRecord"
+  | "attendanceWindow"
   | "$queryRaw"
 >;
 

@@ -100,7 +100,7 @@ export async function lockClassRecord(
 }
 /** Legacy attendance cannot bypass the attributed class-record correction. Shares the write lock. */
 export async function assertAttendanceOnlyWrite(
-  database: Pick<Prisma.TransactionClient, "$queryRaw" | "classSessionRecord">,
+  database: Pick<Prisma.TransactionClient, "$queryRaw" | "classSessionRecord" | "attendanceWindow">,
   sessionId: string,
 ): Promise<void> {
   await lockClassRecord(database, sessionId);
@@ -111,4 +111,8 @@ export async function assertAttendanceOnlyWrite(
     })
   )
     throw badRequest("Corrija a presença pelo registro da aula, informando o motivo da alteração.");
+  if (await database.attendanceWindow.count({ where: { classSessionId: sessionId } }))
+    throw badRequest(
+      "Confira as declarações e confirme presença e conteúdo pelo registro da aula.",
+    );
 }

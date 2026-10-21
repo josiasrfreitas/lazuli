@@ -1,0 +1,43 @@
+.sharePanel {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  background: var(--card);
+}
+.shareHeading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.shareHeading h2 {
+  flex: 1;
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+}
+.qr {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+}
+.qr svg {
+  width: min(100%, 15rem);
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.actions > * {
+  flex: 1 1 auto;
+}
+.hint {
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
