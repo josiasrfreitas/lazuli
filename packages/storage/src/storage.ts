@@ -15,34 +15,16 @@ export type Storage = {
   remove(file: StoredFileReference): Promise<void>;
 };
 
-/** Server-only. Callers own authorization, size limits and database metadata. */
-export function createStorage(options: {
+export type StorageOptions = {
   bucket: string;
   client: S3ClientConfig;
   createLocalBucket?: boolean;
-}): Storage {
+};
+
+/** Server-only. Callers own authorization, size limits and database metadata. */
+export function createStorage(options: StorageOptions): Storage {
   const client = new S3Client(options.client);
-  let bucketReady: Promise<void> | undefined;
-  function prepareBucket(): Promise<void> {
-    if (!options.createLocalBucket) return Promise.resolve();
-    bucketReady ??= client
-      .send(new CreateBucketCommand({ Bucket: options.bucket }))
-      .then(() => undefined)
-      .catch((error: unknown) => {
-        if (
-          error instanceof Error &&
-          (error.name === "BucketAlreadyOwnedByYou" || error.name === "BucketAlreadyExists")
-        )
-          return;
-        bucketReady = undefined;
-        throw error;
-      });
-    return bucketReady;
-  }
-  function objectInput(file: StoredFileReference) {
-    if (!file.key || !file.bucket) throw new Error("Storage requires a bucket and object key.");
-    return { Bucket: file.bucket, Key: file.key };
-  }
+  const prepareBucket = bucketInitializer(client, options);
   return {
     async put(file) {
       const reference = { bucket: options.bucket, key: file.key };
@@ -68,5 +50,32 @@ export function createStorage(options: {
     async remove(file) {
       await client.send(new DeleteObjectCommand(objectInput(file)));
     },
+  };
+}
+
+function objectInput(file: StoredFileReference): { Bucket: string; Key: string } {
+  if (!file.key || !file.bucket) throw new Error("Storage requires a bucket and object key.");
+  return { Bucket: file.bucket, Key: file.key };
+}
+
+function bucketInitializer(client: S3Client, options: StorageOptions): () => Promise<void> {
+  let bucketReady: Promise<void> | undefined;
+  async function provisionBucket(): Promise<void> {
+    try {
+      await client.send(new CreateBucketCommand({ Bucket: options.bucket }));
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.name === "BucketAlreadyOwnedByYou" || error.name === "BucketAlreadyExists")
+      )
+        return;
+      bucketReady = undefined;
+      throw error;
+    }
+  }
+  return function prepareBucket(): Promise<void> {
+    if (!options.createLocalBucket) return Promise.resolve();
+    bucketReady ??= provisionBucket();
+    return bucketReady;
   };
 }
