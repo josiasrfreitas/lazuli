@@ -6,11 +6,14 @@ import type { PlacementSubject } from "./semester-organization-sources.js";
 
 export async function placementRevision(
   context: OrganizationContext,
-  semesterName: string,
-  placementId: string,
-  action: "PROPOSED" | "REVISED" | "PUBLISHED",
-  reason: string | null = null,
+  input: {
+    semesterName: string;
+    placementId: string;
+    action: "PROPOSED" | "REVISED" | "PUBLISHED";
+    reason?: string | null;
+  },
 ): Promise<void> {
+  const { semesterName, placementId, action, reason = null } = input;
   const row = await context.database.semesterPlacement.findUniqueOrThrow({
     where: { id: placementId },
   });
@@ -45,18 +48,36 @@ export async function placementRevision(
 }
 
 /** The source stays active today; the exit bounds its track reservation on the future entry date. */
-export async function publishOrganizationStudent(input: {
+type StudentPublication = {
   context: OrganizationContext;
   semesterName: string;
   entryDate: Date;
   subject: PlacementSubject;
   classId: string;
   availabilityId: string;
-}): Promise<void> {
-  const { context, semesterName, subject, entryDate, classId, availabilityId } = input;
-  const database: TransactionClient = context.database;
-  if (!subject.source || !subject.progress || !subject.stage)
+};
+
+type VerifiedPublication = StudentPublication & {
+  subject: PlacementSubject & {
+    source: NonNullable<PlacementSubject["source"]>;
+    progress: NonNullable<PlacementSubject["progress"]>;
+    stage: NonNullable<PlacementSubject["stage"]>;
+  };
+};
+
+export async function publishOrganizationStudent(input: StudentPublication): Promise<void> {
+  verifyPublication(input);
+  await publishVerifiedStudent(input);
+}
+
+function verifyPublication(input: StudentPublication): asserts input is VerifiedPublication {
+  if (!input.subject.source || !input.subject.progress || !input.subject.stage)
     throw new Error("Published seed placements require a real source and target stage.");
+}
+
+async function publishVerifiedStudent(input: VerifiedPublication): Promise<void> {
+  const { context, semesterName, subject, entryDate } = input;
+  const database: TransactionClient = context.database;
   const pending = await database.enrollmentAction.count({
     where: {
       enrollmentId: subject.source.id,
@@ -91,6 +112,30 @@ export async function publishOrganizationStudent(input: {
       ...authored,
     },
   });
+  await createFutureEnrollment(input, { enrollmentId, entryActionId });
+  await publishPlacement(input, { placementId, enrollmentId, entryActionId, sourceExitActionId });
+}
+
+export async function recordOrganizationProposal(
+  context: OrganizationContext,
+  input: { semesterName: string; subject: PlacementSubject; version: number },
+): Promise<void> {
+  const { semesterName, subject, version } = input;
+  await recordActivity(context.database, context, "semesterOrganization.savePlacement", {
+    subject: { type: "student", id: subject.student.id, name: subject.student.fullName },
+    description: `Proposta para ${semesterName}; ${version === 1 ? "primeira versão registrada" : "proposta revisada"}.`,
+    deduplicationKey: `seed/semester-proposal/${semesterName}/${subject.key}/${version}`,
+  });
+}
+
+async function createFutureEnrollment(
+  input: VerifiedPublication,
+  ids: { enrollmentId: string; entryActionId: string },
+): Promise<void> {
+  const { context, semesterName, subject, entryDate, classId } = input;
+  const database = context.database;
+  const { enrollmentId, entryActionId } = ids;
+  const authored = { createdAt: context.now, updatedAt: context.now };
   await database.enrollment.create({
     data: {
       id: enrollmentId,
@@ -122,6 +167,20 @@ export async function publishOrganizationStudent(input: {
       ...authored,
     },
   });
+}
+
+async function publishPlacement(
+  input: VerifiedPublication,
+  ids: {
+    placementId: string;
+    enrollmentId: string;
+    entryActionId: string;
+    sourceExitActionId: string;
+  },
+): Promise<void> {
+  const { context, semesterName, subject, availabilityId } = input;
+  const database = context.database;
+  const { placementId, enrollmentId, entryActionId, sourceExitActionId } = ids;
   await database.semesterPlacement.update({
     where: { id: placementId },
     data: {
@@ -141,18 +200,5 @@ export async function publishOrganizationStudent(input: {
       },
     },
   });
-  await placementRevision(context, semesterName, placementId, "PUBLISHED");
-}
-
-export async function recordOrganizationProposal(
-  context: OrganizationContext,
-  semesterName: string,
-  subject: PlacementSubject,
-  version: number,
-): Promise<void> {
-  await recordActivity(context.database, context, "semesterOrganization.savePlacement", {
-    subject: { type: "student", id: subject.student.id, name: subject.student.fullName },
-    description: `Proposta para ${semesterName}; ${version === 1 ? "primeira versão registrada" : "proposta revisada"}.`,
-    deduplicationKey: `seed/semester-proposal/${semesterName}/${subject.key}/${version}`,
-  });
+  await placementRevision(context, { semesterName, placementId, action: "PUBLISHED" });
 }

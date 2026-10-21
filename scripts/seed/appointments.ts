@@ -1,3 +1,5 @@
+import type { Prisma } from "../../packages/db/src/index.js";
+import { seedStudentIndex } from "./student-fixtures.js";
 import type { DatabaseClient } from "../../packages/db/src/client.js";
 import {
   recordSessionInclude,
@@ -12,6 +14,7 @@ import {
   type AppointmentEnrollment,
   type AppointmentSeedContext,
   type SeedCoverage,
+  type SeedAbsence,
 } from "./appointments-data.js";
 import { knownLegacySource, scenarioAbsences, scenarioEnrollment } from "./appointments-sources.js";
 import {
@@ -27,6 +30,31 @@ import {
   recordSeedAppointment,
   type AppointmentDraft,
 } from "./appointments-persistence.js";
+
+const MAKEUP_MINUTES = { full: 90, half: 45, multiple: 120, remainder: 30 };
+const FOLLOWUP_SCHEDULING_DELAY_MINUTES = 11;
+const OUTCOME_DELAY_MINUTES = 10;
+const CORRECTION_DELAY_MINUTES = 30;
+type LegacyMakeup = Prisma.MakeupGetPayload<{
+  include: {
+    originEnrollment: { select: { studentId: true } };
+    targetClassSession: { include: typeof recordSessionInclude };
+  };
+}>;
+type IndependentDraftInput = {
+  enrollment: AppointmentEnrollment;
+  slot: AppointmentSeedSlot;
+  key: string;
+  purpose: AppointmentDraft["purpose"];
+  plannedContent: string | null;
+};
+type IndependentOutcome = {
+  id: string;
+  slot: AppointmentSeedSlot;
+  attended: boolean;
+  minutes: number;
+  content: string;
+};
 
 const STAFF_SELECT = { id: true, name: true, email: true, role: true, isEnabled: true } as const;
 
@@ -82,214 +110,269 @@ async function seedLegacyAppointments(context: AppointmentSeedContext): Promise<
     const teacher = responsibleTeacher(session);
     const source = await knownLegacySource(context, makeup);
     const recorder = context.teachers.find((person) => person.id === makeup.attendedById);
-    const draft: AppointmentDraft = {
-      id: makeup.id,
-      legacyMakeupId: makeup.id,
-      rescheduledFromId: null,
-      studentId: makeup.originEnrollment.studentId,
-      enrollmentId: makeup.originEnrollmentId,
-      teacherId: teacher?.id ?? makeup.attendedById,
-      targetClassSessionId: makeup.targetClassSessionId,
-      purpose: "MAKEUP",
-      format: session.class.format,
-      date: session.date,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      plannedContent: source ? sourcePlan([source]) : null,
-      notes: makeup.reason,
-      scheduledAt: makeup.scheduledAt,
-      scheduledById: makeup.scheduledById,
-    };
+    const draft = legacyDraft({ makeup, teacher, source });
     if (!source || makeup.cancelledAt || (makeup.attendedAt && !recorder)) {
       draft.plannedContent = null;
-      await importUnknownLegacyAppointment(context, draft, makeup);
+      await importUnknownLegacyAppointment(context, { draft, legacy: makeup });
       continue;
     }
-    await createScheduledAppointment(context, draft, [
-      { attendanceId: source.id, minutes: source.minutes },
-    ]);
+    await createScheduledAppointment(context, {
+      draft,
+      coverages: [{ attendanceId: source.id, minutes: source.minutes }],
+    });
     if (makeup.attendedAt && recorder) {
-      await recordSeedAppointment(context, draft.id, {
-        actor: recorder,
-        at: makeup.attendedAt,
-        attended: true,
-        minutes: source.minutes,
-        content:
-          "Participou da aula de reposição com prática orientada de perguntas e respostas, escuta e esclarecimento de dúvidas.",
+      await recordSeedAppointment(context, {
+        id: draft.id,
+        outcome: {
+          actor: recorder,
+          at: makeup.attendedAt,
+          attended: true,
+          minutes: source.minutes,
+          content:
+            "Participou da aula de reposição com prática orientada de perguntas e respostas, escuta e esclarecimento de dúvidas.",
+        },
       });
     }
   }
   return makeups.length;
 }
 
+function legacyDraft(input: {
+  makeup: LegacyMakeup;
+  teacher: ReturnType<typeof responsibleTeacher>;
+  source: SeedAbsence | null;
+}): AppointmentDraft {
+  const { makeup, teacher, source } = input;
+  const session = makeup.targetClassSession;
+  return {
+    id: makeup.id,
+    legacyMakeupId: makeup.id,
+    rescheduledFromId: null,
+    studentId: makeup.originEnrollment.studentId,
+    enrollmentId: makeup.originEnrollmentId,
+    teacherId: teacher?.id ?? makeup.attendedById,
+    targetClassSessionId: makeup.targetClassSessionId,
+    purpose: "MAKEUP",
+    format: session.class.format,
+    date: session.date,
+    startTime: session.startTime,
+    endTime: session.endTime,
+    plannedContent: source ? sourcePlan([source]) : null,
+    notes: makeup.reason,
+    scheduledAt: makeup.scheduledAt,
+    scheduledById: makeup.scheduledById,
+  };
+}
+
 async function seedPartialCoverage(context: AppointmentSeedContext): Promise<number> {
-  const enrollment = await scenarioEnrollment(context, 104);
+  const enrollment = await scenarioEnrollment(context, seedStudentIndex("school-student-105"));
   if (!enrollment) return 0;
-  const absences = await scenarioAbsences(context, enrollment);
-  const source = absences.find((row) => row.minutes === 90);
+  const absences = await scenarioAbsences(context, { enrollment });
+  const source = absences.find((row) => row.minutes === MAKEUP_MINUTES.full);
   if (!source) return 0;
+  const slots = await partialCoverageSlots(context, { enrollment, source });
+  if (!slots) return 0;
+  const { attended, pending } = slots;
+  const first = independentDraft(context, {
+    enrollment,
+    slot: attended,
+    key: "partial-attended",
+    purpose: "MAKEUP",
+    plannedContent: sourcePlan([source]),
+  });
+  await createScheduledAppointment(context, {
+    draft: first,
+    coverages: [{ attendanceId: source.id, minutes: MAKEUP_MINUTES.half }],
+  });
+  await completeIndependent(context, {
+    id: first.id,
+    slot: attended,
+    attended: true,
+    minutes: MAKEUP_MINUTES.half,
+    content:
+      "Realizados 45 minutos de escuta e prática de respostas, com orientação individual. A continuidade será retomada em outro atendimento.",
+  });
+  const second = independentDraft(context, {
+    enrollment,
+    slot: pending,
+    key: "partial-remaining",
+    purpose: "MAKEUP",
+    plannedContent: sourcePlan([source]),
+  });
+  await createScheduledAppointment(context, {
+    draft: second,
+    coverages: [{ attendanceId: source.id, minutes: MAKEUP_MINUTES.half }],
+  });
+  return 2;
+}
+
+async function partialCoverageSlots(
+  context: AppointmentSeedContext,
+  origin: { enrollment: AppointmentEnrollment; source: SeedAbsence },
+): Promise<{ attended: AppointmentSeedSlot; pending: AppointmentSeedSlot } | null> {
+  const { enrollment, source } = origin;
   const attended = await findAppointmentSlot(context, {
     enrollment,
-    minutes: 45,
+    minutes: MAKEUP_MINUTES.half,
     future: false,
     afterSource: source.confirmedAt,
   });
   const pending = await findAppointmentSlot(context, {
     enrollment,
-    minutes: 45,
+    minutes: MAKEUP_MINUTES.half,
     future: true,
     afterSource: source.confirmedAt,
   });
-  if (!attended || !pending) return 0;
+  if (!attended || !pending) return null;
   pending.scheduledAt = new Date(
     Math.max(
       pending.scheduledAt.getTime(),
-      minutesAfter(appointmentEndedAt(attended), 11).getTime(),
+      minutesAfter(appointmentEndedAt(attended), FOLLOWUP_SCHEDULING_DELAY_MINUTES).getTime(),
     ),
   );
-  const first = independentDraft(
-    context,
-    enrollment,
-    attended,
-    "partial-attended",
-    "MAKEUP",
-    sourcePlan([source]),
-  );
-  await createScheduledAppointment(context, first, [{ attendanceId: source.id, minutes: 45 }]);
-  await completeIndependent(
-    context,
-    first.id,
-    attended,
-    true,
-    45,
-    "Realizados 45 minutos de escuta e prática de respostas, com orientação individual. A continuidade será retomada em outro atendimento.",
-  );
-  const second = independentDraft(
-    context,
-    enrollment,
-    pending,
-    "partial-remaining",
-    "MAKEUP",
-    sourcePlan([source]),
-  );
-  await createScheduledAppointment(context, second, [{ attendanceId: source.id, minutes: 45 }]);
-  return 2;
+  return { attended, pending };
 }
 
 async function seedRescheduledCoverage(context: AppointmentSeedContext): Promise<number> {
-  const enrollment = await scenarioEnrollment(context, 73);
+  const enrollment = await scenarioEnrollment(context, seedStudentIndex("school-student-74"));
   if (!enrollment) return 0;
-  const absences = await scenarioAbsences(context, enrollment, 14);
-  const source = absences.find((row) => row.minutes === 90);
+  const absences = await scenarioAbsences(context, { enrollment, daysBeforeToday: 14 });
+  const source = absences.find((row) => row.minutes === MAKEUP_MINUTES.full);
   if (!source) return 0;
+  const slots = await rescheduledCoverageSlots(context, { enrollment, source });
+  if (!slots) return 0;
+  const { previous, successor, cancelledAt } = slots;
+  const first = independentDraft(context, {
+    enrollment,
+    slot: previous,
+    key: "rescheduled-original",
+    purpose: "MAKEUP",
+    plannedContent: sourcePlan([source]),
+  });
+  await createScheduledAppointment(context, {
+    draft: first,
+    coverages: [{ attendanceId: source.id, minutes: MAKEUP_MINUTES.full }],
+  });
+  await cancelForRescheduling(context, { id: first.id, at: cancelledAt });
+  const next = independentDraft(context, {
+    enrollment,
+    slot: successor,
+    key: "rescheduled-successor",
+    purpose: "MAKEUP",
+    plannedContent: sourcePlan([source]),
+  });
+  next.rescheduledFromId = first.id;
+  await createScheduledAppointment(context, {
+    draft: next,
+    coverages: [{ attendanceId: source.id, minutes: MAKEUP_MINUTES.full }],
+  });
+  await completeIndependent(context, {
+    id: next.id,
+    slot: successor,
+    attended: true,
+    minutes: MAKEUP_MINUTES.full,
+    content:
+      "Retomadas perguntas e respostas com apoio visual, leitura curta e prática oral. As dúvidas foram revistas ao final do encontro remarcado.",
+  });
+  return 2;
+}
+
+async function rescheduledCoverageSlots(
+  context: AppointmentSeedContext,
+  origin: { enrollment: AppointmentEnrollment; source: SeedAbsence },
+): Promise<{
+  previous: AppointmentSeedSlot;
+  successor: AppointmentSeedSlot;
+  cancelledAt: Date;
+} | null> {
+  const { enrollment, source } = origin;
   const previous = await findAppointmentSlot(context, {
     enrollment,
-    minutes: 90,
+    minutes: MAKEUP_MINUTES.full,
     future: false,
     afterSource: source.confirmedAt,
   });
-  if (!previous) return 0;
+  if (!previous) return null;
   const cancelledAt = cancellationInstant(previous);
   const successor = await findAppointmentSlot(context, {
     enrollment,
-    minutes: 90,
+    minutes: MAKEUP_MINUTES.full,
     future: false,
     afterSource: source.confirmedAt,
     afterDate: previous.date,
     scheduledAt: minutesAfter(cancelledAt, 1),
   });
-  if (!successor) return 0;
-  const first = independentDraft(
-    context,
-    enrollment,
-    previous,
-    "rescheduled-original",
-    "MAKEUP",
-    sourcePlan([source]),
-  );
-  await createScheduledAppointment(context, first, [{ attendanceId: source.id, minutes: 90 }]);
-  await cancelForRescheduling(context, first.id, cancelledAt);
-  const next = independentDraft(
-    context,
-    enrollment,
-    successor,
-    "rescheduled-successor",
-    "MAKEUP",
-    sourcePlan([source]),
-  );
-  next.rescheduledFromId = first.id;
-  await createScheduledAppointment(context, next, [{ attendanceId: source.id, minutes: 90 }]);
-  await completeIndependent(
-    context,
-    next.id,
-    successor,
-    true,
-    90,
-    "Retomadas perguntas e respostas com apoio visual, leitura curta e prática oral. As dúvidas foram revistas ao final do encontro remarcado.",
-  );
-  return 2;
+  if (!successor) return null;
+  return { previous, successor, cancelledAt };
 }
 
 async function seedNoShowCoverage(context: AppointmentSeedContext): Promise<number> {
-  const enrollment = await scenarioEnrollment(context, 121);
+  const enrollment = await scenarioEnrollment(context, seedStudentIndex("school-student-122"));
   if (!enrollment) return 0;
-  const absences = await scenarioAbsences(context, enrollment);
-  const source = absences.find((row) => row.minutes === 90);
+  const absences = await scenarioAbsences(context, { enrollment });
+  const source = absences.find((row) => row.minutes === MAKEUP_MINUTES.full);
   if (!source) return 0;
   const slot = await findAppointmentSlot(context, {
     enrollment,
-    minutes: 90,
+    minutes: MAKEUP_MINUTES.full,
     future: false,
     afterSource: source.confirmedAt,
   });
   if (!slot) return 0;
-  const draft = independentDraft(
-    context,
+  const draft = independentDraft(context, {
     enrollment,
     slot,
-    "makeup-no-show",
-    "MAKEUP",
-    sourcePlan([source]),
-  );
-  await createScheduledAppointment(context, draft, [{ attendanceId: source.id, minutes: 90 }]);
-  await completeIndependent(context, draft.id, slot, false, 90, "");
+    key: "makeup-no-show",
+    purpose: "MAKEUP",
+    plannedContent: sourcePlan([source]),
+  });
+  await createScheduledAppointment(context, {
+    draft,
+    coverages: [{ attendanceId: source.id, minutes: MAKEUP_MINUTES.full }],
+  });
+  await completeIndependent(context, {
+    id: draft.id,
+    slot,
+    attended: false,
+    minutes: MAKEUP_MINUTES.full,
+    content: "",
+  });
   return 1;
 }
 
 async function seedMultipleCoverage(context: AppointmentSeedContext): Promise<number> {
-  const enrollment = await scenarioEnrollment(context, 102);
+  const enrollment = await scenarioEnrollment(context, seedStudentIndex("school-student-103"));
   if (!enrollment) return 0;
-  const absences = await scenarioAbsences(context, enrollment);
-  const sources = absences.filter((row) => row.minutes === 90).slice(0, 2);
+  const absences = await scenarioAbsences(context, { enrollment });
+  const sources = absences.filter((row) => row.minutes === MAKEUP_MINUTES.full).slice(0, 2);
   if (sources.length !== 2) return 0;
   const slot = await findAppointmentSlot(context, {
     enrollment,
-    minutes: 120,
+    minutes: MAKEUP_MINUTES.multiple,
     future: false,
     afterSource: new Date(Math.max(...sources.map((row) => row.confirmedAt.getTime()))),
   });
   if (!slot) return 0;
-  const draft = independentDraft(
-    context,
+  const draft = independentDraft(context, {
     enrollment,
     slot,
-    "multiple-absences",
-    "MAKEUP",
-    sourcePlan(sources),
-  );
+    key: "multiple-absences",
+    purpose: "MAKEUP",
+    plannedContent: sourcePlan(sources),
+  });
   const coverages: SeedCoverage[] = sources.map((source, index) => ({
     attendanceId: source.id,
-    minutes: index === 0 ? 90 : 30,
+    minutes: index === 0 ? MAKEUP_MINUTES.full : MAKEUP_MINUTES.remainder,
   }));
-  await createScheduledAppointment(context, draft, coverages);
-  await completeIndependent(
-    context,
-    draft.id,
+  await createScheduledAppointment(context, { draft, coverages });
+  await completeIndependent(context, {
+    id: draft.id,
     slot,
-    true,
-    120,
-    "Realizadas duas horas de prática orientada, com escuta, leitura breve e diálogo. O tempo foi distribuído entre as duas faltas de origem, com continuidade ainda necessária para a segunda.",
-  );
+    attended: true,
+    minutes: MAKEUP_MINUTES.multiple,
+    content:
+      "Realizadas duas horas de prática orientada, com escuta, leitura breve e diálogo. O tempo foi distribuído entre as duas faltas de origem, com continuidade ainda necessária para a segunda.",
+  });
   return 1;
 }
 
@@ -310,33 +393,34 @@ async function seedSupportAppointment(
     afterSource: enrollment.entryDate,
   });
   if (!slot) return 0;
-  const draft = independentDraft(
-    context,
+  const draft = independentDraft(context, {
     enrollment,
     slot,
-    scenario.key,
-    scenario.purpose,
-    scenario.plannedContent,
-  );
-  await createScheduledAppointment(context, draft, []);
+    key: scenario.key,
+    purpose: scenario.purpose,
+    plannedContent: scenario.plannedContent,
+  });
+  await createScheduledAppointment(context, { draft, coverages: [] });
   if (scenario.status !== "SCHEDULED") {
-    await completeIndependent(
-      context,
-      draft.id,
+    await completeIndependent(context, {
+      id: draft.id,
       slot,
-      scenario.status === "ATTENDED",
-      scenario.minutes,
-      scenario.performedContent,
-    );
+      attended: scenario.status === "ATTENDED",
+      minutes: scenario.minutes,
+      content: scenario.performedContent,
+    });
     if (scenario.key === "reinforcement-attended") {
       const actor = context.teachers.find((person) => person.id === slot.teacherId)!;
-      await recordSeedAppointment(context, draft.id, {
-        actor,
-        at: minutesAfter(appointmentEndedAt(slot), 30),
-        attended: true,
-        minutes: scenario.minutes,
-        correction: true,
-        content: `${scenario.performedContent} Complemento do relato: a devolutiva incluiu nova tentativa sem apoio visual.`,
+      await recordSeedAppointment(context, {
+        id: draft.id,
+        outcome: {
+          actor,
+          at: minutesAfter(appointmentEndedAt(slot), CORRECTION_DELAY_MINUTES),
+          attended: true,
+          minutes: scenario.minutes,
+          correction: true,
+          content: `${scenario.performedContent} Complemento do relato: a devolutiva incluiu nova tentativa sem apoio visual.`,
+        },
       });
     }
   }
@@ -345,12 +429,9 @@ async function seedSupportAppointment(
 
 function independentDraft(
   context: AppointmentSeedContext,
-  enrollment: AppointmentEnrollment,
-  slot: AppointmentSeedSlot,
-  key: string,
-  purpose: AppointmentDraft["purpose"],
-  plannedContent: string | null,
+  input: IndependentDraftInput,
 ): AppointmentDraft {
+  const { enrollment, slot, key, purpose, plannedContent } = input;
   return {
     id: stableUuid(["pedagogical-appointment", key]),
     studentId: enrollment.studentId,
@@ -373,19 +454,19 @@ function independentDraft(
 
 async function completeIndependent(
   context: AppointmentSeedContext,
-  id: string,
-  slot: AppointmentSeedSlot,
-  attended: boolean,
-  minutes: number,
-  content: string,
+  input: IndependentOutcome,
 ): Promise<void> {
+  const { id, slot, attended, minutes, content } = input;
   const actor = context.teachers.find((person) => person.id === slot.teacherId);
   if (!actor) throw new Error("Appointment fixture teacher must have a known staff identity.");
-  await recordSeedAppointment(context, id, {
-    actor,
-    at: minutesAfter(appointmentEndedAt(slot), 10),
-    attended,
-    minutes,
-    content,
+  await recordSeedAppointment(context, {
+    id,
+    outcome: {
+      actor,
+      at: minutesAfter(appointmentEndedAt(slot), OUTCOME_DELAY_MINUTES),
+      attended,
+      minutes,
+      content,
+    },
   });
 }

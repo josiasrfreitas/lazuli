@@ -35,10 +35,20 @@ const DUE_DAYS = Array.from(
   (_unused, index) => FIRST_DUE_DAY + index * DUE_DAY_INTERVAL,
 );
 const CONTRACT_COHORT_SIZE = 20;
-const UNPAID_INSTALLMENT_DEPTHS = [2, 3, 4, 5] as const;
+const MIN_UNPAID_INSTALLMENTS = 2;
+const MAX_UNPAID_INSTALLMENTS = 5;
+const UNPAID_INSTALLMENT_DEPTHS = Array.from(
+  { length: MAX_UNPAID_INSTALLMENTS - MIN_UNPAID_INSTALLMENTS + 1 },
+  (_unused, index) => MIN_UNPAID_INSTALLMENTS + index,
+);
 const CONTRACT_MONTHS = 12;
 // Older cohorts retain the evidence needed for partial payments and aging buckets.
-const HISTORICAL_CLOSING_MONTHS_AGO = [8, 7, 6, 5] as const;
+const OLDEST_CLOSING_MONTHS_AGO = 8;
+const HISTORICAL_COHORT_COUNT = 4;
+const HISTORICAL_CLOSING_MONTHS_AGO = Array.from(
+  { length: HISTORICAL_COHORT_COUNT },
+  (_unused, index) => OLDEST_CLOSING_MONTHS_AGO - index,
+);
 const PUNCTUAL_CLOSING_COHORTS = [
   { monthsAgo: 8, contracts: 35 },
   { monthsAgo: 7, contracts: 24 },
@@ -53,8 +63,15 @@ const PUNCTUAL_CLOSING_COHORTS = [
 const AGREEMENT_DAY_VARIATIONS = 28;
 const AGREEMENT_LEAD_DAYS = 7;
 const CONTRACT_TRANSACTION_TIMEOUT_MS = 30_000;
-const LATE_PAYMENT_DAYS = [3, 5, 7, 10] as const;
-const PAYMENT_ADVANCE_DAYS = [1, 2, 3, 5, 7] as const;
+const PAYMENT_DAY_OFFSETS = { short: 3, standard: 5, week: 7, extended: 10 };
+const LATE_PAYMENT_DAYS = Object.values(PAYMENT_DAY_OFFSETS);
+const PAYMENT_ADVANCE_DAYS = [
+  1,
+  2,
+  PAYMENT_DAY_OFFSETS.short,
+  PAYMENT_DAY_OFFSETS.standard,
+  PAYMENT_DAY_OFFSETS.week,
+] as const;
 const YEAR_END_MONTH = 11;
 const MID_YEAR_MONTH = 6;
 const YEAR_END_ADVANCE_DAYS = 7;
@@ -197,7 +214,7 @@ async function seedPayments(
     orderBy: { sequenceNumber: "asc" },
   });
   const isLate = student.financeProfile === "overdue";
-  const lastOverdue = installments.filter((row) => isoOf(row.dueDate) < todayIso).at(-1);
+  const lastOverdue = installments.findLast((row) => isoOf(row.dueDate) < todayIso);
   const unpaidCount =
     UNPAID_INSTALLMENT_DEPTHS[
       Math.floor(index / CONTRACT_COHORT_SIZE) % UNPAID_INSTALLMENT_DEPTHS.length
@@ -264,7 +281,8 @@ function fixturePaymentDate(input: ContractInput & { installment: SeedInstallmen
     LATE_PAYMENT_DAYS[Math.floor(input.index / CONTRACT_COHORT_SIZE) % LATE_PAYMENT_DAYS.length]!;
   const delayedIso = isoOf(addDays(input.installment.dueDate, delay));
   if (input.student.financeProfile === "late-settled" && dueIso < input.todayIso) {
-    return delayedIso < input.todayIso ? delayedIso : input.todayIso;
+    if (delayedIso < input.todayIso) return delayedIso;
+    return input.todayIso;
   }
   return isoOf(addDays(input.installment.dueDate, -paymentAdvanceDays(input)));
 }

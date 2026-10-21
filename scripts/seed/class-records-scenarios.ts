@@ -9,15 +9,16 @@ import { recordActivity } from "../../packages/api/src/activity/record.js";
 import { addDays, isoOf, stableUuid } from "../../packages/db/src/seed-dev-support.js";
 import { sessionEndInstant } from "../../packages/domain/src/session-time.js";
 
+const DAY_START_UTC_HOUR = 3;
 const ISO_TIME_START_INDEX = 11;
 const ISO_MINUTE_END_INDEX = 16;
 
 /** Existing grades, observations, visits and makeups remain independent evidence. */
 export async function safeAttendanceScenario(
   database: TransactionClient,
-  session: RecordSession,
-  wholeRoster: boolean,
+  input: { session: RecordSession; wholeRoster: boolean },
 ): Promise<boolean> {
+  const { session, wholeRoster } = input;
   const rows = await database.attendance.findMany({
     where: { classSessionId: session.id, deletedAt: null },
     select: { enrollmentId: true, enrollment: { select: { studentId: true } } },
@@ -25,7 +26,7 @@ export async function safeAttendanceScenario(
   if (rows.length === 0) return false;
   const studentIds = rows.map((row) => row.enrollment.studentId);
   const dayStart = new Date(session.date);
-  dayStart.setUTCHours(3);
+  dayStart.setUTCHours(DAY_START_UTC_HOUR);
   const references = await Promise.all([
     database.pedagogicalOccurrence.count({
       where: wholeRoster ? { studentId: { in: studentIds } } : { classSessionId: session.id },
@@ -54,9 +55,9 @@ export async function safeAttendanceScenario(
 
 export async function cancelSeedSession(
   database: TransactionClient,
-  session: RecordSession,
-  admin: StaffUser,
+  input: { session: RecordSession; admin: StaffUser },
 ): Promise<void> {
+  const { session, admin } = input;
   const cancelledAt = sessionEndInstant({ date: addDays(session.date, -1), endTime: "15:00" });
   // Preserve deterministic attendance identities, but cancelled sessions have no active call.
   await database.attendance.updateMany({
@@ -95,67 +96,84 @@ export async function cancelSeedSession(
 }
 
 /** A past fixture is scheduled beforehand; production still rejects retroactive substitution. */
+type SubstituteInput = { session: RecordSession; admin: StaffUser; teachers: readonly StaffUser[] };
+type SubstituteCandidate = { session: RecordSession; teacher: StaffUser; date: string };
+
 export async function seedSessionSubstitute(
   database: TransactionClient,
-  session: RecordSession,
-  admin: StaffUser,
-  teachers: readonly StaffUser[],
+  input: SubstituteInput,
 ): Promise<StaffUser | null> {
+  const { session, admin, teachers } = input;
   const date = isoOf(session.date);
   for (const teacher of teachers) {
     if (teacher.id === session.usualTeacherId || teacher.id === session.class.teacherId) continue;
-    try {
-      await assertTeacherEligible({ database, teacherId: teacher.id, date });
-      await assertNoTeacherConflict({
-        database,
-        teacherId: teacher.id,
-        from: date,
-        through: date,
-        slots: [],
-        candidateMeetings: [
-          {
-            date,
-            startTime: session.startTime
-              .toISOString()
-              .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
-            endTime: session.endTime
-              .toISOString()
-              .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
-          },
-        ],
-        excludeMeeting: {
-          classId: session.classId,
-          slotId: session.scheduleSlotId,
-          sessionId: session.id,
-          date,
-        },
-      });
-    } catch (error) {
-      if (error instanceof Error && "code" in error && error.code === "BAD_REQUEST") continue;
-      throw error;
-    }
-    const recordedAt = sessionEndInstant({ date: addDays(session.date, -1), endTime: "15:00" });
-    const id = stableUuid(["class-record-substitution", session.id]);
-    await database.classSubstitution.create({
-      data: {
-        id,
-        classId: session.classId,
-        scheduleSlotId: session.scheduleSlotId,
-        classSessionId: session.scheduleSlotId ? null : session.id,
-        date: session.date,
-        teacherId: teacher.id,
-        recordedById: admin.id,
-        recordedAt,
-        createdAt: recordedAt,
-        updatedAt: recordedAt,
-      },
-    });
-    await recordActivity(database, { staffUser: admin, now: recordedAt }, "teachers.substitute", {
-      subject: { type: "class", id: session.classId, name: session.class.portalClassName },
-      description: `${teacher.name} ficou responsável pelo encontro de ${date.split("-").toReversed().join("/")}.`,
-      deduplicationKey: `seed-class-record-substitution/${id}`,
-    });
+    if (!(await teacherCanSubstitute(database, { session, teacher, date }))) continue;
+    await storeSubstitution(database, { session, teacher, date, admin });
     return teacher;
   }
   return null;
+}
+
+async function teacherCanSubstitute(
+  database: TransactionClient,
+  input: SubstituteCandidate,
+): Promise<boolean> {
+  const { session, teacher, date } = input;
+  try {
+    await assertTeacherEligible({ database, teacherId: teacher.id, date });
+    await assertNoTeacherConflict({
+      database,
+      teacherId: teacher.id,
+      from: date,
+      through: date,
+      slots: [],
+      candidateMeetings: [
+        {
+          date,
+          startTime: session.startTime
+            .toISOString()
+            .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+          endTime: session.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+        },
+      ],
+      excludeMeeting: {
+        classId: session.classId,
+        slotId: session.scheduleSlotId,
+        sessionId: session.id,
+        date,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "BAD_REQUEST") return false;
+    throw error;
+  }
+  return true;
+}
+
+async function storeSubstitution(
+  database: TransactionClient,
+  input: SubstituteCandidate & { admin: StaffUser },
+): Promise<void> {
+  const { session, teacher, date, admin } = input;
+  const recordedAt = sessionEndInstant({ date: addDays(session.date, -1), endTime: "15:00" });
+  const id = stableUuid(["class-record-substitution", session.id]);
+  await database.classSubstitution.create({
+    data: {
+      id,
+      classId: session.classId,
+      scheduleSlotId: session.scheduleSlotId,
+      classSessionId: session.scheduleSlotId ? null : session.id,
+      date: session.date,
+      teacherId: teacher.id,
+      recordedById: admin.id,
+      recordedAt,
+      createdAt: recordedAt,
+      updatedAt: recordedAt,
+    },
+  });
+  await recordActivity(database, { staffUser: admin, now: recordedAt }, "teachers.substitute", {
+    subject: { type: "class", id: session.classId, name: session.class.portalClassName },
+    description: `${teacher.name} ficou responsável pelo encontro de ${date.split("-").toReversed().join("/")}.`,
+    deduplicationKey: `seed-class-record-substitution/${id}`,
+  });
 }

@@ -11,7 +11,7 @@ priorizar a extração do calendário para o Design System; essa extração é a
 - **Não trabalhar no checkout `/Users/josiasribeiro/orca/lazuli` por engano.**
 - Há muitas alterações locais de outros agentes/fluxos. Não resetar, limpar ou commitar tudo.
 - Dev: `http://operacao-pedagogica.lazuli.localhost:3004`.
-- O usuário dispensou `ship-with-tests`, novos testes e suites pesadas para este fluxo. Ele fará a
+- O usuário dispensou novos testes e suites pesadas para este fluxo. Ele fará a
   validação visual. Fazer verificações leves e proporcionais; não reiniciar build/typecheck global.
   O Mac já ficou praticamente inutilizável com processos de desenvolvimento consumindo RAM.
 - Usar o padrão visual existente e `$impeccable layout`, respeitando o limite de 650 linhas por

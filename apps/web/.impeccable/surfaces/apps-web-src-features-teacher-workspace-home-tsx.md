@@ -16,7 +16,7 @@ Mode: Operate.
 An extension of Lazuli's existing teacher workspace. Scope is the home and its navigation.
 The owner requests compact mobile-first presentation, modest typography, real pending work and
 delight. They confirmed both missing grades and assessment appointments, then added upcoming
-appointments. Proposed window: seven days. User explicitly waived ship-with-tests in favor of
+appointments. Proposed window: seven days. User explicitly prioritized
 feature work and browser validation. Visual acceptance remains with the owner.
 
 ## Direction contract

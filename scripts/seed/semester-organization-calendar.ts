@@ -20,21 +20,22 @@ import {
 } from "../../packages/api/src/teachers/availability.js";
 import { organizationId, type OrganizationGroup } from "./semester-organization-data.js";
 
+const SECOND_HALF_START_MONTH = 6;
 const ISO_TIME_START_INDEX = 11;
 const ISO_MINUTE_END_INDEX = 16;
 
 export async function organizationSemester(
   database: TransactionClient,
-  authoredAt: Date,
-  adminId: string,
+  input: { authoredAt: Date; adminId: string },
 ): Promise<Semester> {
+  const { authoredAt, adminId } = input;
   const current = await database.class.findUniqueOrThrow({
     where: { id: stableUuid(["class", "MWYA"]) },
     include: { semester: true },
   });
   const startDate = addDays(current.semester.endDate, 1);
   const year = startDate.getUTCFullYear();
-  const half = startDate.getUTCMonth() < 6 ? 1 : 2;
+  const half = startDate.getUTCMonth() < SECOND_HALF_START_MONTH ? 1 : 2;
   const name = `${year}.${half}`;
   const semester = await database.semester.create({
     data: {
@@ -66,7 +67,7 @@ export async function organizationSemester(
 }
 
 /** A published group is operational; a draft never reserves a teacher or creates sessions. */
-export async function publishedOrganizationClass(input: {
+type PublishedClassInput = {
   database: TransactionClient;
   semester: Semester;
   group: OrganizationGroup;
@@ -75,8 +76,12 @@ export async function publishedOrganizationClass(input: {
   previousClassId: string | null;
   adminId: string;
   publishedAt: Date;
-}): Promise<{ id: string; portalClassName: string }> {
-  const { database, semester, group, teacherId, publishedAt } = input;
+};
+
+export async function publishedOrganizationClass(
+  input: PublishedClassInput,
+): Promise<{ id: string; portalClassName: string }> {
+  const { database, semester, group, teacherId } = input;
   await assertTeacherEligible({ database, teacherId, date: isoOf(semester.startDate) });
   await assertNoTeacherConflict({
     database,
@@ -96,6 +101,18 @@ export async function publishedOrganizationClass(input: {
       ? await resolvePersonalizedPortalClassName(naming)
       : await resolveRegularPortalClassName({ ...naming, stageInternalCode: group.stageCode! });
   const id = organizationId("class", { semesterName: semester.name, key: group.key });
+  await createPublishedClass(input, { id, portalClassName });
+  await assignPublishedTeacher(input, id);
+  await materializePublishedSessions(input, id);
+  return { id, portalClassName };
+}
+
+async function createPublishedClass(
+  input: PublishedClassInput,
+  classroom: { id: string; portalClassName: string },
+): Promise<void> {
+  const { database, semester, group, teacherId, publishedAt } = input;
+  const { id, portalClassName } = classroom;
   await database.class.create({
     data: {
       id,
@@ -127,6 +144,10 @@ export async function publishedOrganizationClass(input: {
       },
     },
   });
+}
+
+async function assignPublishedTeacher(input: PublishedClassInput, id: string): Promise<void> {
+  const { database, semester, group, teacherId, publishedAt } = input;
   await database.classTeacherAssignment.create({
     data: {
       id: organizationId("teacher-assignment", { semesterName: semester.name, key: group.key }),
@@ -139,6 +160,10 @@ export async function publishedOrganizationClass(input: {
       updatedAt: publishedAt,
     },
   });
+}
+
+async function materializePublishedSessions(input: PublishedClassInput, id: string): Promise<void> {
+  const { database, publishedAt } = input;
   const classroom = await database.class.findUniqueOrThrow({
     where: { id },
     include: { semester: true, scheduleSlots: true },
@@ -169,5 +194,4 @@ export async function publishedOrganizationClass(input: {
       updatedAt: publishedAt,
     })),
   });
-  return { id, portalClassName };
 }

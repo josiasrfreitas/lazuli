@@ -1,3 +1,4 @@
+import type { Prisma } from "../../packages/db/src/index.js";
 import type { DatabaseClient, TransactionClient } from "../../packages/db/src/client.js";
 import { DEV_ADMIN, DEV_CLASSES, DEV_STUDENTS } from "../../packages/db/src/seed-dev-data.js";
 import {
@@ -16,7 +17,43 @@ import {
   type PlanningSnapshot,
 } from "./stage-planning-data.js";
 
-const REGULAR_REVISIONS = [1, 5, 9, 13];
+const REGULAR_REVISIONS = Object.values({
+  oralReview: 1,
+  redistribution: 5,
+  removal: 9,
+  repetition: 13,
+});
+const INDIVIDUAL_SCENARIOS = {
+  detailedBefore: 18,
+  intermediateBefore: 28,
+  revisionBefore: 8,
+  historicalDays: 52,
+  historicalItems: 8,
+  detailedItems: 18,
+  intermediateItems: 8,
+  minimumItems: 3,
+};
+const REGULAR_SCENARIOS = {
+  detailedBefore: 12,
+  intermediateBefore: 17,
+  detailedItems: 32,
+  intermediateItems: 12,
+  minimumItems: 4,
+};
+const ITEM_COUNT_VARIATIONS = 3;
+const DEADLINE_SCENARIOS = {
+  crossYearBefore: 6,
+  nextSemesterBefore: 8,
+  pastBefore: 12,
+  crossYearSpacingDays: 4,
+  lateDurationDays: 45,
+  byStartDays: 120,
+  startVariations: 4,
+  byTodayDays: 28,
+  todayVariations: 6,
+};
+const DAYS_PER_WEEK = 7;
+const TWO_WEEKS = 14;
 const REVISION_AFTER_DAYS = 21;
 const SECOND_REVISION_AFTER_DAYS = 35;
 const REVISION_UTC_HOUR = 18;
@@ -29,6 +66,9 @@ const REASONS = [
 ];
 
 type Staff = { id: string; name: string };
+type ProgressRecord = Prisma.PedagogicalProgressGetPayload<{
+  include: { stage: true; enrollment: { include: { student: true } } };
+}>;
 type Classroom = {
   id: string;
   internalCode: string;
@@ -86,52 +126,88 @@ export async function seedStagePlanning(database: DatabaseClient, todayIso: stri
     },
     include: { stage: true, enrollment: { include: { student: true } } },
   });
+  contexts.push(...individualContexts({ classrooms: personalized, progress, todayIso }));
+  for (const context of contexts) {
+    await database.$transaction((transaction) =>
+      createPlan(transaction, { context, admin, todayIso, closedDates }),
+    );
+  }
+}
+
+function individualContexts(input: {
+  classrooms: readonly Classroom[];
+  progress: readonly ProgressRecord[];
+  todayIso: string;
+}): PlanContext[] {
+  const contexts: PlanContext[] = [];
   let currentIndex = 0;
   for (const student of DEV_STUDENTS) {
     const studentId = stableUuid(["student", student.key]);
-    const records = progress
+    const records = input.progress
       .filter((row) => row.enrollment.studentId === studentId)
       .toSorted((left, right) => left.startDate.getTime() - right.startDate.getTime());
     for (const row of records) {
       const historical = row.endDate !== null;
       const index = historical ? DEV_STUDENTS.indexOf(student) : currentIndex++;
       const classroom = requireValue(
-        personalized.find((entry) => entry.id === row.enrollment.classId),
+        input.classrooms.find((entry) => entry.id === row.enrollment.classId),
         "PPT planning class",
       );
-      const startOn = isoOf(row.startDate);
-      const detailed = historical || index < 18;
-      contexts.push({
-        id: stableUuid([
-          "stage-plan",
-          "individual",
-          row.enrollment.studentId,
-          row.stageId,
-          startOn,
-        ]),
-        classroom,
-        student: { id: row.enrollment.studentId, fullName: row.enrollment.student.fullName },
-        progressId: row.id,
-        stageId: row.stageId,
-        stageCode: row.stage.internalCode,
-        startOn,
-        endOn: historical
-          ? isoOf(addDays(row.startDate, 52))
-          : individualDeadline({ classroom, startOn, todayIso, index }),
-        historical,
-        detailed,
-        count: historical ? 8 : detailed ? 18 + (index % 3) * 2 : index < 28 ? 8 + (index % 3) : 3,
-        variation: index,
-        revisionMode: !historical && index < 8 ? index % REASONS.length : null,
-        revisionCount: historical || index >= 8 ? 0 : index < 2 ? 2 : 1,
-      });
+      contexts.push(
+        individualContext({ row, classroom, historical, index, todayIso: input.todayIso }),
+      );
     }
   }
-  for (const context of contexts) {
-    await database.$transaction((transaction) =>
-      createPlan(transaction, { context, admin, todayIso, closedDates }),
-    );
-  }
+  return contexts;
+}
+
+function individualContext(input: {
+  row: ProgressRecord;
+  classroom: Classroom;
+  historical: boolean;
+  index: number;
+  todayIso: string;
+}): PlanContext {
+  const { row, classroom, historical, index, todayIso } = input;
+  const startOn = isoOf(row.startDate);
+  const detailed = historical || index < INDIVIDUAL_SCENARIOS.detailedBefore;
+  return {
+    id: stableUuid(["stage-plan", "individual", row.enrollment.studentId, row.stageId, startOn]),
+    classroom,
+    student: { id: row.enrollment.studentId, fullName: row.enrollment.student.fullName },
+    progressId: row.id,
+    stageId: row.stageId,
+    stageCode: row.stage.internalCode,
+    startOn,
+    endOn: historical
+      ? isoOf(addDays(row.startDate, INDIVIDUAL_SCENARIOS.historicalDays))
+      : individualDeadline({ classroom, startOn, todayIso, index }),
+    historical,
+    detailed,
+    count: individualItemCount({ historical, detailed, index }),
+    variation: index,
+    revisionMode:
+      !historical && index < INDIVIDUAL_SCENARIOS.revisionBefore ? index % REASONS.length : null,
+    revisionCount: individualRevisionCount({ historical, index }),
+  };
+}
+
+function individualItemCount(input: {
+  historical: boolean;
+  detailed: boolean;
+  index: number;
+}): number {
+  if (input.historical) return INDIVIDUAL_SCENARIOS.historicalItems;
+  if (input.detailed)
+    return INDIVIDUAL_SCENARIOS.detailedItems + (input.index % ITEM_COUNT_VARIATIONS) * 2;
+  if (input.index < INDIVIDUAL_SCENARIOS.intermediateBefore)
+    return INDIVIDUAL_SCENARIOS.intermediateItems + (input.index % ITEM_COUNT_VARIATIONS);
+  return INDIVIDUAL_SCENARIOS.minimumItems;
+}
+
+function individualRevisionCount(input: { historical: boolean; index: number }): number {
+  if (input.historical || input.index >= INDIVIDUAL_SCENARIOS.revisionBefore) return 0;
+  return input.index < 2 ? 2 : 1;
 }
 
 function regularContexts(classrooms: readonly Classroom[]): PlanContext[] {
@@ -152,13 +228,21 @@ function regularContexts(classrooms: readonly Classroom[]): PlanContext[] {
       startOn: isoOf(classroom.semester.startDate),
       endOn: isoOf(classroom.semester.endDate),
       historical: false,
-      detailed: index < 12,
-      count: index < 12 ? 32 + (index % 3) * 2 : index < 17 ? 12 + (index % 3) : 4,
+      detailed: index < REGULAR_SCENARIOS.detailedBefore,
+      count: regularItemCount(index),
       variation: index,
-      revisionMode: revisionMode < 0 ? null : revisionMode,
-      revisionCount: revisionMode < 0 ? 0 : 1,
+      revisionMode: revisionMode === -1 ? null : revisionMode,
+      revisionCount: revisionMode === -1 ? 0 : 1,
     };
   });
+}
+
+function regularItemCount(index: number): number {
+  if (index < REGULAR_SCENARIOS.detailedBefore)
+    return REGULAR_SCENARIOS.detailedItems + (index % ITEM_COUNT_VARIATIONS) * 2;
+  if (index < REGULAR_SCENARIOS.intermediateBefore)
+    return REGULAR_SCENARIOS.intermediateItems + (index % ITEM_COUNT_VARIATIONS);
+  return REGULAR_SCENARIOS.minimumItems;
 }
 
 function individualDeadline(input: {
@@ -168,105 +252,63 @@ function individualDeadline(input: {
   index: number;
 }): string {
   const start = utcDate(input.startOn);
-  if (input.index < 6) {
+  if (input.index < DEADLINE_SCENARIOS.crossYearBefore) {
     // Long manual plans cross both semester and year, without creating future enrollments.
     const nextYear = utcDate(input.todayIso).getUTCFullYear() + 1;
-    return isoOf(addDays(utcDate(`${nextYear}-02-01`), input.index * 4));
+    return isoOf(
+      addDays(utcDate(`${nextYear}-02-01`), input.index * DEADLINE_SCENARIOS.crossYearSpacingDays),
+    );
   }
-  if (input.index < 8)
-    return isoOf(addDays(input.classroom.semester.endDate, 14 + (input.index - 6) * 7));
-  if (input.index < 12 && addDays(start, 14) < utcDate(input.todayIso)) {
-    const byDuration = addDays(start, 45);
-    const alreadyPassed = addDays(utcDate(input.todayIso), -7);
-    return isoOf(byDuration < alreadyPassed ? byDuration : alreadyPassed);
+  if (input.index < DEADLINE_SCENARIOS.nextSemesterBefore)
+    return isoOf(
+      addDays(
+        input.classroom.semester.endDate,
+        TWO_WEEKS + (input.index - DEADLINE_SCENARIOS.crossYearBefore) * DAYS_PER_WEEK,
+      ),
+    );
+  if (
+    input.index < DEADLINE_SCENARIOS.pastBefore &&
+    addDays(start, TWO_WEEKS) < utcDate(input.todayIso)
+  ) {
+    const byDuration = addDays(start, DEADLINE_SCENARIOS.lateDurationDays);
+    const alreadyPassed = addDays(utcDate(input.todayIso), -DAYS_PER_WEEK);
+    return isoOf(new Date(Math.min(byDuration.getTime(), alreadyPassed.getTime())));
   }
-  const byStart = addDays(start, 120 + (input.index % 4) * 14);
-  const byToday = addDays(utcDate(input.todayIso), 28 + (input.index % 6) * 7);
-  const proposed = byStart > byToday ? byStart : byToday;
+  const byStart = addDays(
+    start,
+    DEADLINE_SCENARIOS.byStartDays + (input.index % DEADLINE_SCENARIOS.startVariations) * TWO_WEEKS,
+  );
+  const byToday = addDays(
+    utcDate(input.todayIso),
+    DEADLINE_SCENARIOS.byTodayDays +
+      (input.index % DEADLINE_SCENARIOS.todayVariations) * DAYS_PER_WEEK,
+  );
+  const proposed = new Date(Math.max(byStart.getTime(), byToday.getTime()));
   const semesterEnd = input.classroom.semester.endDate;
   return isoOf(
-    semesterEnd > addDays(utcDate(input.todayIso), 14) && proposed > semesterEnd
+    semesterEnd > addDays(utcDate(input.todayIso), TWO_WEEKS) && proposed > semesterEnd
       ? semesterEnd
       : proposed,
   );
 }
 
-async function createPlan(
-  transaction: TransactionClient,
-  input: {
-    context: PlanContext;
-    admin: Staff;
-    todayIso: string;
-    closedDates: ReadonlySet<string>;
-  },
-): Promise<void> {
+type PlanInput = {
+  context: PlanContext;
+  admin: Staff;
+  todayIso: string;
+  closedDates: ReadonlySet<string>;
+};
+type PlanHistory = {
+  createdAt: Date;
+  records: Map<string, ItemRecord>;
+  creationTimes: Map<string, Date>;
+  snapshot: PlanningSnapshot;
+  versions: VersionRecord[];
+};
+
+async function createPlan(transaction: TransactionClient, input: PlanInput): Promise<void> {
   const { context, admin } = input;
-  const dates = planningDates({
-    startOn: context.startOn,
-    endOn: context.endOn,
-    weekdays: context.classroom.scheduleSlots.map((row) => row.weekday),
-    closedDates: input.closedDates,
-  });
-  const createdAt = schoolTimestamp(context.startOn, CREATION_UTC_HOUR);
-  const items = plannedItems({
-    planId: context.id,
-    dates,
-    count: context.count,
-    detailed: context.detailed,
-    stageCode: context.stageCode,
-    variation: context.variation,
-  });
-  const records = new Map<string, ItemRecord>(
-    items.map((item) => [item.id, { ...item, createdAt, updatedAt: createdAt, deletedAt: null }]),
-  );
-  const creationTimes = new Map(items.map((item) => [item.id, createdAt]));
-  let snapshot: PlanningSnapshot = orderedSnapshot(
-    {
-      plannedStartOn: context.startOn,
-      plannedEndOn: context.endOn,
-      objective: planningObjective(context),
-      items,
-    },
-    creationTimes,
-  );
-  const versions: VersionRecord[] = [
-    {
-      version: 1,
-      reason: "Planejamento inicial do estágio.",
-      snapshot,
-      createdAt,
-      author: admin,
-    },
-  ];
-  for (let change = 0; change < context.revisionCount; change++) {
-    const revisedOn = isoOf(
-      addDays(
-        utcDate(context.startOn),
-        change === 0 ? REVISION_AFTER_DAYS : SECOND_REVISION_AFTER_DAYS,
-      ),
-    );
-    if (revisedOn >= input.todayIso) break;
-    const revisedAt = schoolTimestamp(revisedOn, REVISION_UTC_HOUR);
-    const revision = reviseSnapshot({ snapshot, context, change, revisedOn });
-    if (!revision) break;
-    snapshot = orderedSnapshot(revision.snapshot, creationTimes);
-    const remaining = new Set(snapshot.items.map((item) => item.id));
-    for (const [id, row] of records) {
-      const updated = snapshot.items.find((item) => item.id === id);
-      if (updated && JSON.stringify(updated) !== JSON.stringify(itemSnapshot(row))) {
-        records.set(id, { ...row, ...updated, updatedAt: revisedAt });
-      } else if (!remaining.has(id) && row.deletedAt === null) {
-        records.set(id, { ...row, deletedAt: revisedAt, updatedAt: revisedAt });
-      }
-    }
-    versions.push({
-      version: versions.length + 1,
-      reason: revision.reason,
-      snapshot,
-      createdAt: revisedAt,
-      author: change === 0 ? context.classroom.teacher : admin,
-    });
-  }
+  const { snapshot, versions, records, createdAt } = buildPlanHistory(input);
   const latest = versions.at(-1)!;
   await transaction.stagePlan.create({
     data: {
@@ -290,7 +332,115 @@ async function createPlan(
       plannedOn: utcDate(row.plannedOn),
     })),
   });
-  for (const version of versions) {
+  await persistPlanRevisions(transaction, { context, versions });
+  if (context.progressId) {
+    await transaction.pedagogicalProgress.update({
+      where: { id: context.progressId },
+      data: { stagePlanId: context.id },
+    });
+  }
+}
+
+function initialPlanItems(context: PlanContext, closedDates: ReadonlySet<string>): PlanningItem[] {
+  const dates = planningDates({
+    startOn: context.startOn,
+    endOn: context.endOn,
+    weekdays: context.classroom.scheduleSlots.map((row) => row.weekday),
+    closedDates,
+  });
+  return plannedItems({
+    planId: context.id,
+    dates,
+    count: context.count,
+    detailed: context.detailed,
+    stageCode: context.stageCode,
+    variation: context.variation,
+  });
+}
+
+function buildPlanHistory(input: PlanInput): PlanHistory {
+  const { context, admin } = input;
+  const createdAt = schoolTimestamp(context.startOn, CREATION_UTC_HOUR);
+  const items = initialPlanItems(context, input.closedDates);
+  const records = new Map<string, ItemRecord>(
+    items.map((item) => [item.id, { ...item, createdAt, updatedAt: createdAt, deletedAt: null }]),
+  );
+  const creationTimes = new Map(items.map((item) => [item.id, createdAt]));
+  const snapshot = orderedSnapshot(
+    {
+      plannedStartOn: context.startOn,
+      plannedEndOn: context.endOn,
+      objective: planningObjective(context),
+      items,
+    },
+    creationTimes,
+  );
+  const history: PlanHistory = {
+    createdAt,
+    records,
+    creationTimes,
+    snapshot,
+    versions: [
+      {
+        version: 1,
+        reason: "Planejamento inicial do estágio.",
+        snapshot,
+        createdAt,
+        author: admin,
+      },
+    ],
+  };
+  for (let change = 0; change < context.revisionCount; change++) {
+    if (!applyPlanRevision(history, { context, admin, todayIso: input.todayIso, change })) break;
+  }
+  return history;
+}
+
+function applyPlanRevision(
+  history: PlanHistory,
+  input: { context: PlanContext; admin: Staff; todayIso: string; change: number },
+): boolean {
+  const { context, admin, change } = input;
+  const revisedOn = isoOf(
+    addDays(
+      utcDate(context.startOn),
+      change === 0 ? REVISION_AFTER_DAYS : SECOND_REVISION_AFTER_DAYS,
+    ),
+  );
+  if (revisedOn >= input.todayIso) return false;
+  const revisedAt = schoolTimestamp(revisedOn, REVISION_UTC_HOUR);
+  const revision = reviseSnapshot({ snapshot: history.snapshot, context, change, revisedOn });
+  if (!revision) return false;
+  history.snapshot = orderedSnapshot(revision.snapshot, history.creationTimes);
+  reconcileItemRecords(history, revisedAt);
+  history.versions.push({
+    version: history.versions.length + 1,
+    reason: revision.reason,
+    snapshot: history.snapshot,
+    createdAt: revisedAt,
+    author: change === 0 ? context.classroom.teacher : admin,
+  });
+  return true;
+}
+
+function reconcileItemRecords(history: PlanHistory, revisedAt: Date): void {
+  const remaining = new Set(history.snapshot.items.map((item) => item.id));
+  for (const [id, row] of history.records) {
+    const updated = history.snapshot.items.find((item) => item.id === id);
+    if (updated && JSON.stringify(updated) !== JSON.stringify(itemSnapshot(row))) {
+      history.records.set(id, { ...row, ...updated, updatedAt: revisedAt });
+    } else if (!remaining.has(id) && row.deletedAt === null) {
+      history.records.set(id, { ...row, deletedAt: revisedAt, updatedAt: revisedAt });
+    }
+  }
+}
+
+async function persistPlanRevisions(
+  transaction: TransactionClient,
+  input: { context: PlanContext; versions: readonly VersionRecord[] },
+): Promise<void> {
+  const { context } = input;
+  for (const version of input.versions) {
     await transaction.stagePlanRevision.create({
       data: {
         id: stableUuid(["stage-plan-revision", context.id, String(version.version)]),
@@ -303,13 +453,7 @@ async function createPlan(
         updatedAt: version.createdAt,
       },
     });
-    await planningActivity(transaction, context, version);
-  }
-  if (context.progressId) {
-    await transaction.pedagogicalProgress.update({
-      where: { id: context.progressId },
-      data: { stagePlanId: context.id },
-    });
+    await planningActivity(transaction, { context, version });
   }
 }
 
@@ -323,36 +467,27 @@ function reviseSnapshot(input: {
   const index = items.findIndex(
     (row) => row.plannedOn >= input.revisedOn && row.kind === "CONTENT",
   );
-  if (index < 0) return null;
+  if (index === -1) return null;
   const mode = input.change > 0 ? 0 : input.context.revisionMode;
   let plannedEndOn = input.snapshot.plannedEndOn;
   let objective = input.snapshot.objective;
-  if (mode === 0) {
-    items[index] = {
-      ...items[index]!,
-      kind: "REVIEW",
-      title: "Revisão de perguntas e respostas com prática oral",
-      pageFrom: null,
-      pageTo: null,
-    };
-  } else if (mode === 1) {
-    if (input.context.student) plannedEndOn = isoOf(addDays(utcDate(plannedEndOn), 14));
-    objective = `${objective} Reservar mais tempo para prática e retomada das dificuldades.`;
-  } else if (mode === 2) {
-    items.splice(index, 1);
-  } else {
-    const previous = items
-      .slice(0, index)
-      .toReversed()
-      .find((row) => row.kind === "CONTENT");
-    if (!previous) return null;
-    items[index] = {
-      ...items[index]!,
-      title: "Prática adicional da unidade anterior",
-      reference: previous.reference,
-      pageFrom: previous.pageFrom,
-      pageTo: previous.pageTo,
-    };
+  switch (mode) {
+    case 0: {
+      replaceWithReview(items, index);
+      break;
+    }
+    case 1: {
+      if (input.context.student) plannedEndOn = isoOf(addDays(utcDate(plannedEndOn), TWO_WEEKS));
+      objective = `${objective} Reservar mais tempo para prática e retomada das dificuldades.`;
+      break;
+    }
+    case 2: {
+      items.splice(index, 1);
+      break;
+    }
+    default: {
+      if (!repeatPreviousContent(items, index)) return null;
+    }
   }
   return {
     snapshot: { ...input.snapshot, plannedEndOn, objective, items },
@@ -361,6 +496,32 @@ function reviseSnapshot(input: {
         ? "Após nova organização, incluir outra revisão oral antes de avançar no livro."
         : REASONS[mode ?? 0]!,
   };
+}
+
+function replaceWithReview(items: PlanningItem[], index: number): void {
+  items[index] = {
+    ...items[index]!,
+    kind: "REVIEW",
+    title: "Revisão de perguntas e respostas com prática oral",
+    pageFrom: null,
+    pageTo: null,
+  };
+}
+
+function repeatPreviousContent(items: PlanningItem[], index: number): boolean {
+  const previous = items
+    .slice(0, index)
+    .toReversed()
+    .find((row) => row.kind === "CONTENT");
+  if (!previous) return false;
+  items[index] = {
+    ...items[index]!,
+    title: "Prática adicional da unidade anterior",
+    reference: previous.reference,
+    pageFrom: previous.pageFrom,
+    pageTo: previous.pageTo,
+  };
+  return true;
 }
 
 function planningObjective(context: PlanContext): string {
@@ -384,9 +545,9 @@ function schoolTimestamp(iso: string, hour: number): Date {
 
 async function planningActivity(
   transaction: TransactionClient,
-  context: PlanContext,
-  version: VersionRecord,
+  input: { context: PlanContext; version: VersionRecord },
 ): Promise<void> {
+  const { context, version } = input;
   const action = version.version === 1 ? "planning.create" : "planning.revise";
   const [area, title] = ACTIVITY_ACTIONS[action];
   const key = `stage-plan/${context.id}/${version.version}`;

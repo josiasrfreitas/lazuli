@@ -129,7 +129,6 @@ test("updates main, opens one interactive Codex terminal, then sends the prompt"
   assert.match(sent, /--terminal term-test/);
   assert.match(sent, /--enter --wait-submit 10/);
   assert.match(sent, /THIS SAME SESSION/);
-  assert.match(sent, /\$ship-with-tests/);
   assert.match(sent, /\$pr/);
   assert.match(sent, /\$babysit-pr/);
 });

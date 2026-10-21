@@ -20,6 +20,12 @@ import {
   type AttendanceScenario,
 } from "./student-attendance-data.js";
 
+const ROTATION_AFTER_MINUTES = 8;
+const SELECTED_NAME_INTERVAL = 3;
+const FAMILY_NAME_WORD_COUNT = 2;
+const MAX_EARLY_OPEN_MINUTES = 30;
+const WINDOW_VALIDATION_MESSAGE =
+  "Student-attendance window must fit its encounter and precede the final call.";
 const STAFF_SELECT = { id: true, name: true, email: true, role: true, isEnabled: true } as const;
 const FAMILY_STUDENT_IDS = ["school-student-161", "school-student-162"].map((key) =>
   stableUuid(["student", key]),
@@ -54,38 +60,7 @@ export async function seedStudentAttendance(
   let declarations = 0;
   for (const scenario of ATTENDANCE_SCENARIOS) {
     const count = await database.$transaction(
-      async (transaction) => {
-        const sessions = await transaction.classSession.findMany({
-          where: {
-            classId: stableUuid(["class", scenario.classKey]),
-            deletedAt: null,
-            status: "SCHEDULED",
-            date: { lt: utcDate(todayIso) },
-            attendanceConfirmedAt: { not: null },
-            classRecord: { is: { deletedAt: null } },
-          },
-          include: recordSessionInclude,
-          orderBy: [{ date: "desc" }, { startTime: "desc" }],
-        });
-        if (scenario.kind === "SUBSTITUTE")
-          sessions.sort((left, right) => Number(isSubstitute(right)) - Number(isSubstitute(left)));
-        for (const session of sessions) {
-          const members = await declarationMembers(transaction, session, scenario);
-          if (!members) continue;
-          const teacher = staff.find((row) => row.id === responsibleTeacher(session)?.id);
-          const confirmer = staff.find((row) => row.id === session.attendanceConfirmedById);
-          if (!teacher || !confirmer)
-            throw new Error(
-              "Student-attendance fixtures require the dated teacher and call author.",
-            );
-          await seedEncounter(
-            { database: transaction, session, scenario, teacher, confirmer },
-            members,
-          );
-          return members.length;
-        }
-        return 0;
-      },
+      (transaction) => seedScenario(transaction, { scenario, staff, todayIso }),
       { timeout: 30_000 },
     );
     if (count > 0) encounters++;
@@ -94,6 +69,39 @@ export async function seedStudentAttendance(
   process.stdout.write(
     `Student attendance loaded: ${encounters} encounters, ${declarations} declarations.\n`,
   );
+}
+
+async function seedScenario(
+  database: TransactionClient,
+  input: { scenario: AttendanceScenario; staff: StaffUser[]; todayIso: string },
+): Promise<number> {
+  const { scenario, staff, todayIso } = input;
+
+  const sessions = await database.classSession.findMany({
+    where: {
+      classId: stableUuid(["class", scenario.classKey]),
+      deletedAt: null,
+      status: "SCHEDULED",
+      date: { lt: utcDate(todayIso) },
+      attendanceConfirmedAt: { not: null },
+      classRecord: { is: { deletedAt: null } },
+    },
+    include: recordSessionInclude,
+    orderBy: [{ date: "desc" }, { startTime: "desc" }],
+  });
+  if (scenario.kind === "SUBSTITUTE")
+    sessions.sort((left, right) => Number(isSubstitute(right)) - Number(isSubstitute(left)));
+  for (const session of sessions) {
+    const members = await declarationMembers(database, { session, scenario });
+    if (!members) continue;
+    const teacher = staff.find((row) => row.id === responsibleTeacher(session)?.id);
+    const confirmer = staff.find((row) => row.id === session.attendanceConfirmedById);
+    if (!teacher || !confirmer)
+      throw new Error("Student-attendance fixtures require the dated teacher and call author.");
+    await seedEncounter({ database, session, scenario, teacher, confirmer }, members);
+    return members.length;
+  }
+  return 0;
 }
 
 function isSubstitute(session: Session): boolean {
@@ -105,9 +113,9 @@ function isSubstitute(session: Session): boolean {
 
 async function declarationMembers(
   database: TransactionClient,
-  session: Session,
-  scenario: AttendanceScenario,
+  input: { session: Session; scenario: AttendanceScenario },
 ): Promise<Member[] | null> {
+  const { session, scenario } = input;
   const rows = await database.attendance.findMany({
     where: {
       classSessionId: session.id,
@@ -163,82 +171,86 @@ async function seedEncounter(context: SeedContext, members: Member[]): Promise<v
     { ...session, attendanceConfirmedAt: session.attendanceConfirmedAt },
     scenario,
   );
+  const windows = await encounterWindows(context, times);
+  for (const [index, member] of members.entries()) {
+    await persistDeclaration(context, { windows, member, index });
+  }
+}
+
+async function encounterWindows(
+  context: SeedContext,
+  times: WindowTimes,
+): Promise<Array<WindowTimes & { id: string }>> {
+  const { session, scenario } = context;
   const windows: Array<WindowTimes & { id: string }> = [];
   if (scenario.kind === "ROTATED") {
-    const rotatedAt = minutesAfter(times.openedAt, 8);
-    windows.push(await persistWindow(context, { ...times, closedAt: rotatedAt }, 1));
+    const rotatedAt = minutesAfter(times.openedAt, ROTATION_AFTER_MINUTES);
+    windows.push(
+      await persistWindow(context, { times: { ...times, closedAt: rotatedAt }, version: 1 }),
+    );
     const end = sessionEndInstant(session);
     windows.push(
-      await persistWindow(
-        context,
-        {
+      await persistWindow(context, {
+        times: {
           openedAt: rotatedAt,
           expiresAt: new Date(
             Math.min(minutesAfter(rotatedAt, scenario.ttl).getTime(), end.getTime()),
           ),
           closedAt: times.closedAt,
         },
-        2,
-      ),
+        version: 2,
+      }),
     );
-  } else windows.push(await persistWindow(context, times, 1));
-  for (const [index, member] of members.entries()) {
-    const rotated = scenario.kind === "ROTATED" && index >= 2;
-    const window = windows[rotated ? 1 : 0]!;
-    const submittedAt = minutesAfter(window.openedAt, 1 + (rotated ? index - 2 : index));
-    if (submittedAt >= window.expiresAt || submittedAt >= window.closedAt)
-      throw new Error("Student declaration must precede expiry and closing.");
-    const family = scenario.kind === "FAMILY_NAME" && FAMILY_STUDENT_IDS.includes(member.studentId);
-    const selected = family || index % 3 === 0;
-    const declaredName = family
-      ? member.name.split(" ").slice(-2).join(" ")
-      : selected
-        ? member.name.split(" ").slice(0, -1).join(" ")
-        : member.name;
-    await context.database.attendanceDeclaration.create({
-      data: {
-        id: stableUuid(["attendance-declaration", session.id, member.enrollmentId]),
-        classSessionId: session.id,
-        windowId: window.id,
-        enrollmentId: member.enrollmentId,
-        declaredName,
-        browserHash: tokenHash(
-          `${session.id}:${stableUuid(["seed-attendance-browser", session.id, member.enrollmentId])}`,
-        ),
-        matchKind: selected ? "SELECTED" : "EXACT",
+  } else windows.push(await persistWindow(context, { times, version: 1 }));
+  return windows;
+}
+
+async function persistDeclaration(
+  context: SeedContext,
+  input: { windows: Array<WindowTimes & { id: string }>; member: Member; index: number },
+): Promise<void> {
+  const { session, scenario } = context;
+  const { windows, member, index } = input;
+
+  const rotated = scenario.kind === "ROTATED" && index >= 2;
+  const window = windows[rotated ? 1 : 0]!;
+  const submittedAt = minutesAfter(window.openedAt, 1 + (rotated ? index - 2 : index));
+  if (submittedAt >= window.expiresAt || submittedAt >= window.closedAt)
+    throw new Error("Student declaration must precede expiry and closing.");
+  const family = scenario.kind === "FAMILY_NAME" && FAMILY_STUDENT_IDS.includes(member.studentId);
+  const selected = family || index % SELECTED_NAME_INTERVAL === 0;
+  const declaredName = declarationName(member, { family, selected });
+  await context.database.attendanceDeclaration.create({
+    data: {
+      id: stableUuid(["attendance-declaration", session.id, member.enrollmentId]),
+      classSessionId: session.id,
+      windowId: window.id,
+      enrollmentId: member.enrollmentId,
+      declaredName,
+      browserHash: tokenHash(
+        `${session.id}:${stableUuid(["seed-attendance-browser", session.id, member.enrollmentId])}`,
+      ),
+      matchKind: selected ? "SELECTED" : "EXACT",
+      submittedAt,
+      ...declarationLocation({
+        online: session.class.format === "ONLINE",
         submittedAt,
-        ...declarationLocation({
-          online: session.class.format === "ONLINE",
-          submittedAt,
-          variation: index,
-        }),
-        createdAt: submittedAt,
-        updatedAt: submittedAt,
-      },
-    });
-  }
+        variation: index,
+      }),
+      createdAt: submittedAt,
+      updatedAt: submittedAt,
+    },
+  });
 }
 
 async function persistWindow(
   context: SeedContext,
-  times: WindowTimes,
-  version: number,
+  input: { times: WindowTimes; version: number },
 ): Promise<WindowTimes & { id: string }> {
+  const { times, version } = input;
   const { database, session, scenario, teacher, confirmer } = context;
-  const start = sessionEndInstant({ date: session.date, endTime: session.startTime });
-  const end = sessionEndInstant(session);
-  if (
-    times.openedAt < minutesAfter(start, -30) ||
-    times.openedAt >= end ||
-    saoPauloDateOnly(times.openedAt) !== isoOf(session.date) ||
-    times.expiresAt > end ||
-    times.expiresAt <= times.openedAt ||
-    times.closedAt < times.openedAt ||
-    !session.attendanceConfirmedAt ||
-    times.closedAt > session.attendanceConfirmedAt ||
-    (session.classRecord && times.closedAt > session.classRecord.createdAt)
-  )
-    throw new Error("Student-attendance window must fit its encounter and precede the final call.");
+  assertWindowEncounterBounds(session, times);
+  assertWindowBeforeFinalCall(session, times);
   const manualClose =
     scenario.kind === "MANUAL_CLOSE" || (scenario.kind === "ROTATED" && version === 1);
   const closer = manualClose ? teacher : confirmer;
@@ -259,6 +271,51 @@ async function persistWindow(
       updatedAt: times.closedAt,
     },
   });
+  await recordWindowActivity(context, { times, version, id, closer, manualClose });
+  return { ...times, id };
+}
+
+function declarationName(member: Member, input: { family: boolean; selected: boolean }): string {
+  if (input.family) return member.name.split(" ").slice(-FAMILY_NAME_WORD_COUNT).join(" ");
+  if (input.selected) return member.name.split(" ").slice(0, -1).join(" ");
+  return member.name;
+}
+
+function assertWindowEncounterBounds(session: Session, times: WindowTimes): void {
+  const start = sessionEndInstant({ date: session.date, endTime: session.startTime });
+  const end = sessionEndInstant(session);
+  if (
+    times.openedAt < minutesAfter(start, -MAX_EARLY_OPEN_MINUTES) ||
+    times.openedAt >= end ||
+    saoPauloDateOnly(times.openedAt) !== isoOf(session.date) ||
+    times.expiresAt > end ||
+    times.expiresAt <= times.openedAt ||
+    times.closedAt < times.openedAt
+  )
+    throw new Error(WINDOW_VALIDATION_MESSAGE);
+}
+
+function assertWindowBeforeFinalCall(session: Session, times: WindowTimes): void {
+  if (
+    !session.attendanceConfirmedAt ||
+    times.closedAt > session.attendanceConfirmedAt ||
+    (session.classRecord && times.closedAt > session.classRecord.createdAt)
+  )
+    throw new Error(WINDOW_VALIDATION_MESSAGE);
+}
+
+async function recordWindowActivity(
+  context: SeedContext,
+  input: {
+    times: WindowTimes;
+    version: number;
+    id: string;
+    closer: StaffUser;
+    manualClose: boolean;
+  },
+): Promise<void> {
+  const { database, session, teacher } = context;
+  const { times, version, id, closer, manualClose } = input;
   const subject = {
     type: "class" as const,
     id: session.classId,
@@ -285,5 +342,4 @@ async function persistWindow(
       deduplicationKey: `seed-student-attendance/close/${id}`,
     },
   );
-  return { ...times, id };
 }

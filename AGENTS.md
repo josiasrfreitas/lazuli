@@ -30,8 +30,7 @@ state unresolved limitations plainly.
 
 Run commands from the root. The usual checks are `pnpm format:check`, `pnpm lint`,
 `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:transport`, and
-`pnpm build`. For any code change, load and follow `ship-with-tests`;
-`docs/testing/README.md` owns test tiers, placement, guidance, and executable gates. Before
+`pnpm build`. `docs/testing/README.md` owns test tiers, placement, guidance, and executable gates. Before
 finishing, inspect the complete diff, run `git diff --check`, run proportionate checks, and report
 anything left to CI with a concrete reason.
 

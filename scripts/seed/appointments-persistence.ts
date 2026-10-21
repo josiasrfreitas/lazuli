@@ -3,7 +3,10 @@ import { recordActivity } from "../../packages/api/src/activity/record.js";
 import { appointmentInclude } from "../../packages/api/src/appointments/data.js";
 import { validateCoverages } from "../../packages/api/src/appointments/coverage.js";
 import { appointmentSnapshot } from "../../packages/api/src/appointments/snapshot.js";
-import { appointmentSnapshotSchema } from "../../packages/validators/src/appointments.js";
+import {
+  appointmentSnapshotSchema,
+  type AppointmentSnapshot,
+} from "../../packages/validators/src/appointments.js";
 import { isoOf, stableUuid } from "../../packages/db/src/seed-dev-support.js";
 import { saoPauloDateOnly, sessionEndInstant } from "../../packages/domain/src/session-time.js";
 import {
@@ -32,6 +35,33 @@ export type AppointmentDraft = {
   scheduledAt: Date;
   scheduledById: string | null;
 };
+type SeedAppointmentFacts = Pick<
+  AppointmentDraft,
+  "studentId" | "purpose" | "date" | "startTime" | "endTime" | "scheduledAt"
+> & { status: AppointmentSnapshot["status"] };
+type SeedOutcome = {
+  actor: StaffUser;
+  at: Date;
+  attended: boolean;
+  minutes: number;
+  content: string;
+  correction?: boolean;
+};
+type LegacyFacts = {
+  attendedAt: Date | null;
+  attendedById: string | null;
+  cancelledAt: Date | null;
+  cancelledById: string | null;
+  cancellationReason: string | null;
+};
+type RevisionInput = {
+  id: string;
+  kind: RevisionKind;
+  actor: StaffUser | null;
+  at: Date;
+  reason: string | null;
+};
+
 type RevisionKind =
   | "SCHEDULED"
   | "RECORDED"
@@ -42,9 +72,9 @@ type RevisionKind =
 
 export async function createScheduledAppointment(
   context: AppointmentSeedContext,
-  draft: AppointmentDraft,
-  coverages: SeedCoverage[],
+  input: { draft: AppointmentDraft; coverages: SeedCoverage[] },
 ): Promise<void> {
+  const { draft, coverages } = input;
   if (
     draft.scheduledAt >= sessionEndInstant({ date: draft.date, endTime: draft.startTime }) ||
     saoPauloDateOnly(draft.scheduledAt) >= context.todayIso
@@ -52,7 +82,7 @@ export async function createScheduledAppointment(
     throw new Error(
       "Appointment fixtures require a past scheduling fact before the encounter starts.",
     );
-  await assertSeedCoverages(context, draft, coverages);
+  await assertSeedCoverages(context, { draft, coverages });
   await context.database.pedagogicalAppointment.create({
     data: {
       ...draft,
@@ -62,35 +92,76 @@ export async function createScheduledAppointment(
       updatedAt: draft.scheduledAt,
     },
   });
-  await storeCoverages(context, draft.id, coverages, draft.scheduledAt);
+  await storeCoverages(context, { appointmentId: draft.id, coverages, at: draft.scheduledAt });
   const actor = [context.admin, ...context.teachers].find(
     (person) => person.id === draft.scheduledById,
   );
-  await appendRevision(context, draft.id, "SCHEDULED", actor ?? null, draft.scheduledAt, null);
+  await appendRevision(context, {
+    id: draft.id,
+    kind: "SCHEDULED",
+    actor: actor ?? null,
+    at: draft.scheduledAt,
+    reason: null,
+  });
 }
 
 export async function recordSeedAppointment(
   context: AppointmentSeedContext,
-  id: string,
-  input: {
-    actor: StaffUser;
-    at: Date;
-    attended: boolean;
-    minutes: number;
-    content: string;
-    correction?: boolean;
-  },
+  command: { id: string; outcome: SeedOutcome },
 ): Promise<void> {
+  const { id, outcome: input } = command;
   const row = await context.database.pedagogicalAppointment.findUniqueOrThrow({ where: { id } });
+  assertRecordedOutcome(row, { outcome: input, todayIso: context.todayIso });
+  await assertOutcomeCoverages(context, { row, id, outcome: input });
+  if (!input.attended)
+    await context.database.makeupCoverage.updateMany({
+      where: { appointmentId: id, deletedAt: null },
+      data: { deletedAt: input.at, updatedAt: input.at },
+    });
+  await context.database.pedagogicalAppointment.update({
+    where: { id },
+    data: {
+      status: input.attended ? "ATTENDED" : "NO_SHOW",
+      performedMinutes: input.attended ? input.minutes : null,
+      performedContent: input.attended ? input.content : null,
+      recordedAt: input.at,
+      recordedById: input.actor.id,
+      version: row.version + 1,
+      updatedAt: input.at,
+    },
+  });
+  await appendRevision(context, {
+    id,
+    kind: input.correction ? "CORRECTED" : "RECORDED",
+    actor: input.actor,
+    at: input.at,
+    reason: input.correction
+      ? "Complementar a devolutiva realizada no atendimento, preservando o registro anterior."
+      : null,
+  });
+}
+
+function assertRecordedOutcome(
+  row: SeedAppointmentFacts,
+  command: { outcome: SeedOutcome; todayIso: string },
+): void {
+  const { outcome: input } = command;
   if (
     input.at < sessionEndInstant(row) ||
     input.at < row.scheduledAt ||
-    saoPauloDateOnly(input.at) >= context.todayIso ||
+    saoPauloDateOnly(input.at) >= command.todayIso ||
     (input.actor.role === "TEACHER" && saoPauloDateOnly(input.at) !== isoOf(row.date)) ||
     (input.attended &&
       (!input.content.trim() || !Number.isInteger(input.minutes) || input.minutes < 1))
   )
     throw new Error("Appointment outcomes require a past completed encounter and actual delivery.");
+}
+
+async function assertOutcomeCoverages(
+  context: AppointmentSeedContext,
+  command: { row: SeedAppointmentFacts; id: string; outcome: SeedOutcome },
+): Promise<void> {
+  const { row, id, outcome: input } = command;
   const coverages = input.attended
     ? await context.database.makeupCoverage.findMany({
         where: { appointmentId: id, deletedAt: null },
@@ -109,40 +180,13 @@ export async function recordSeedAppointment(
       coverages,
     },
   );
-  if (!input.attended)
-    await context.database.makeupCoverage.updateMany({
-      where: { appointmentId: id, deletedAt: null },
-      data: { deletedAt: input.at, updatedAt: input.at },
-    });
-  await context.database.pedagogicalAppointment.update({
-    where: { id },
-    data: {
-      status: input.attended ? "ATTENDED" : "NO_SHOW",
-      performedMinutes: input.attended ? input.minutes : null,
-      performedContent: input.attended ? input.content : null,
-      recordedAt: input.at,
-      recordedById: input.actor.id,
-      version: row.version + 1,
-      updatedAt: input.at,
-    },
-  });
-  await appendRevision(
-    context,
-    id,
-    input.correction ? "CORRECTED" : "RECORDED",
-    input.actor,
-    input.at,
-    input.correction
-      ? "Complementar a devolutiva realizada no atendimento, preservando o registro anterior."
-      : null,
-  );
 }
 
 export async function cancelForRescheduling(
   context: AppointmentSeedContext,
-  id: string,
-  at: Date,
+  input: { id: string; at: Date },
 ): Promise<void> {
+  const { id, at } = input;
   const row = await context.database.pedagogicalAppointment.findUniqueOrThrow({ where: { id } });
   const reason =
     "Família solicitou outro horário; atendimento remarcado mantendo a falta de origem.";
@@ -157,27 +201,21 @@ export async function cancelForRescheduling(
       updatedAt: at,
     },
   });
-  await appendRevision(context, id, "RESCHEDULED", context.admin, at, reason);
+  await appendRevision(context, { id, kind: "RESCHEDULED", actor: context.admin, at, reason });
 }
 
 /** Unknown legacy facts remain an explicit version-zero import, without compensation or made-up delivery. */
 export async function importUnknownLegacyAppointment(
   context: AppointmentSeedContext,
-  draft: AppointmentDraft,
-  legacy: {
-    attendedAt: Date | null;
-    attendedById: string | null;
-    cancelledAt: Date | null;
-    cancelledById: string | null;
-    cancellationReason: string | null;
-  },
+  input: { draft: AppointmentDraft; legacy: LegacyFacts },
 ): Promise<void> {
+  const { draft, legacy } = input;
   const latest = legacy.cancelledAt ?? legacy.attendedAt ?? draft.scheduledAt;
   await context.database.pedagogicalAppointment.create({
     data: {
       ...draft,
       version: 0,
-      status: legacy.cancelledAt ? "CANCELLED" : legacy.attendedAt ? "ATTENDED" : "SCHEDULED",
+      status: legacyAppointmentStatus(legacy),
       performedMinutes: null,
       performedContent: null,
       recordedAt: legacy.attendedAt,
@@ -192,21 +230,20 @@ export async function importUnknownLegacyAppointment(
   const actor = [context.admin, ...context.teachers].find(
     (person) => person.id === (legacy.cancelledById ?? legacy.attendedById ?? draft.scheduledById),
   );
-  await appendRevision(
-    context,
-    draft.id,
-    "IMPORTED",
-    actor ?? null,
-    latest,
-    "Origem verificada não disponível; preservar somente as evidências legadas.",
-  );
+  await appendRevision(context, {
+    id: draft.id,
+    kind: "IMPORTED",
+    actor: actor ?? null,
+    at: latest,
+    reason: "Origem verificada não disponível; preservar somente as evidências legadas.",
+  });
 }
 
 async function assertSeedCoverages(
   context: AppointmentSeedContext,
-  draft: AppointmentDraft,
-  coverages: SeedCoverage[],
+  input: { draft: AppointmentDraft; coverages: SeedCoverage[] },
 ): Promise<void> {
+  const { draft, coverages } = input;
   const duration = (draft.endTime.getTime() - draft.startTime.getTime()) / MILLISECONDS_PER_MINUTE;
   if (
     (draft.purpose === "MAKEUP") !== coverages.length > 0 ||
@@ -231,11 +268,10 @@ async function assertSeedCoverages(
 
 async function storeCoverages(
   context: AppointmentSeedContext,
-  appointmentId: string,
-  coverages: SeedCoverage[],
-  at: Date,
-) {
-  if (!coverages.length) return;
+  input: { appointmentId: string; coverages: SeedCoverage[]; at: Date },
+): Promise<void> {
+  const { appointmentId, coverages, at } = input;
+  if (coverages.length === 0) return;
   await context.database.makeupCoverage.createMany({
     data: coverages.map((coverage) => ({
       ...coverage,
@@ -249,12 +285,9 @@ async function storeCoverages(
 
 async function appendRevision(
   context: AppointmentSeedContext,
-  id: string,
-  kind: RevisionKind,
-  actor: StaffUser | null,
-  at: Date,
-  reason: string | null,
+  input: RevisionInput,
 ): Promise<void> {
+  const { id, kind, actor, at, reason } = input;
   const row = await context.database.pedagogicalAppointment.findUniqueOrThrow({
     where: { id },
     include: appointmentInclude,
@@ -284,13 +317,22 @@ async function appendRevision(
   } as const;
   await recordActivity(context.database, { staffUser: actor, now: at }, action[kind], {
     subject: { type: "student", id: row.studentId, name: row.student.fullName },
-    description:
-      reason ??
-      (kind === "SCHEDULED"
-        ? "Horário reservado para atendimento pedagógico."
-        : row.status === "NO_SHOW"
-          ? "Não comparecimento registrado; sem compensação de falta."
-          : "Comparecimento e conteúdo realizado registrados no atendimento."),
+    description: reason ?? defaultRevisionDescription(kind, row),
     deduplicationKey: `seed-appointment/${id}/${row.version}`,
   });
+}
+
+function legacyAppointmentStatus(legacy: LegacyFacts): "CANCELLED" | "ATTENDED" | "SCHEDULED" {
+  if (legacy.cancelledAt) return "CANCELLED";
+  if (legacy.attendedAt) return "ATTENDED";
+  return "SCHEDULED";
+}
+
+function defaultRevisionDescription(
+  kind: RevisionKind,
+  row: Pick<SeedAppointmentFacts, "status">,
+): string {
+  if (kind === "SCHEDULED") return "Horário reservado para atendimento pedagógico.";
+  if (row.status === "NO_SHOW") return "Não comparecimento registrado; sem compensação de falta.";
+  return "Comparecimento e conteúdo realizado registrados no atendimento.";
 }

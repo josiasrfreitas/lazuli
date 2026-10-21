@@ -93,7 +93,7 @@ fi
 prompt="Read GitHub issue $repo_name#$issue and the repository instructions. Work through the following sequence in THIS SAME SESSION, without starting or delegating to another Codex session:
 
 1. Write a structured plan at .design/issues/$issue/PLAN.md with scope, decisions/dependencies, files, test contract, validation, and visual evidence approach.
-2. Recheck the plan against the issue and repository instructions. Invoke and follow \$ship-with-tests. Implement the complete issue, run proportional checks, inspect the complete diff, and run git diff --check. Include the plan file in the PR.
+2. Recheck the plan against the issue and repository instructions. Follow docs/testing/README.md to select few, high-value tests; existing evidence may suffice. Implement the complete issue, run proportional checks, inspect the complete diff, and run git diff --check. Include the plan file in the PR.
 3. Commit and push the work. Invoke and follow \$pr to open the PR using its template. Include before/after evidence. For a UI change, capture real desktop and narrow-viewport screenshots and link committed evidence in the PR. Do not claim visual evidence from placeholders.
 4. In this same session, invoke and follow \$babysit-pr to monitor and fix the PR until checks are stably green and delivered review feedback is handled. Never merge. Report the PR URL, final SHA, CI outcome, and any unresolved review item."
 receipt=$(orca terminal send --terminal "$terminal_handle" --text "$prompt" --enter --wait-submit 10 --json)

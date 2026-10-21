@@ -14,6 +14,8 @@ import {
   type FollowUpScenario,
 } from "./pedagogical-follow-up-data.js";
 
+const INITIAL_RESPONSE_INTERVAL = 3;
+
 const ADMIN_UTC_HOUR = 18;
 const OBSERVATION_INTERVAL_DAYS = 7;
 
@@ -108,9 +110,9 @@ async function scenarioContext(
   const subject = await scenarioSubject(database, input);
   if (!subject) return null;
   const sessions = input.scenario.daysAgo.map((days) =>
-    subject.presentSessions
-      .filter((session) => session.date <= addDays(utcDate(input.todayIso), -days))
-      .at(-1),
+    subject.presentSessions.findLast(
+      (session) => session.date <= addDays(utcDate(input.todayIso), -days),
+    ),
   );
   if (sessions.some((session) => !session?.usualTeacher)) return null;
   const available = sessions.filter((session): session is Session => session !== undefined);
@@ -214,7 +216,9 @@ function occurrenceSeed(input: {
         ? example.account
         : `${example.account} O registro retoma a observação anterior para acompanhar o apoio oferecido.`,
     initialResponse:
-      scenario.studentIndex % 3 === 0 && index === 0 ? null : example.initialResponse,
+      scenario.studentIndex % INITIAL_RESPONSE_INTERVAL === 0 && index === 0
+        ? null
+        : example.initialResponse,
     recordedById: session.usualTeacher!.id,
     createdAt: endOfDayUtc(isoOf(session.date)),
   };
@@ -325,31 +329,7 @@ async function createIntervention(
       followUps: { create: context.followUps },
     },
   });
-  await activityEvent(transaction, {
-    context,
-    action: "interventions.create",
-    key: context.interventionId,
-    occurredAt: createdAt,
-    actor: context.admin,
-    description: intervention.title,
-  });
-  await activityEvent(transaction, {
-    context,
-    action: "interventions.link",
-    key: context.interventionId,
-    occurredAt: createdAt,
-    actor: context.admin,
-    description: "Três ocorrências motivadoras vinculadas ao acompanhamento.",
-  });
-  for (const row of context.followUps)
-    await activityEvent(transaction, {
-      context,
-      action: "interventions.followUp",
-      key: row.id,
-      occurredAt: row.createdAt,
-      actor: context.subject.teacher,
-      description: row.body,
-    });
+  await recordInterventionActivities(transaction, { context, createdAt });
 }
 
 async function activityEvent(
@@ -390,4 +370,37 @@ function adminTimestamp(date: Date): Date {
 
 function schoolDate(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(date);
+}
+
+async function recordInterventionActivities(
+  transaction: TransactionClient,
+  input: { context: ScenarioContext; createdAt: Date },
+): Promise<void> {
+  const { context, createdAt } = input;
+  const intervention = context.scenario.intervention!;
+  await activityEvent(transaction, {
+    context,
+    action: "interventions.create",
+    key: context.interventionId,
+    occurredAt: createdAt,
+    actor: context.admin,
+    description: intervention.title,
+  });
+  await activityEvent(transaction, {
+    context,
+    action: "interventions.link",
+    key: context.interventionId,
+    occurredAt: createdAt,
+    actor: context.admin,
+    description: "Três ocorrências motivadoras vinculadas ao acompanhamento.",
+  });
+  for (const row of context.followUps)
+    await activityEvent(transaction, {
+      context,
+      action: "interventions.followUp",
+      key: row.id,
+      occurredAt: row.createdAt,
+      actor: context.subject.teacher,
+      description: row.body,
+    });
 }

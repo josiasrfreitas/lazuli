@@ -58,17 +58,7 @@ export async function seedClassRecords(database: DatabaseClient, todayIso: strin
     select: STAFF_SELECT,
     orderBy: { name: "asc" },
   });
-  const state: ScenarioState = {
-    cancelled: false,
-    noPresent: false,
-    regularSubstitute: false,
-    pptSubstitute: false,
-    regularCorrection: false,
-    pptContentCorrection: false,
-    pptPresenceCorrection: false,
-    regularDeviations: 0,
-    pptDeviations: 0,
-  };
+  const state = initialScenarioState();
   for (const [classIndex, seed] of DEV_CLASSES.entries()) {
     const sessions = await database.classSession.findMany({
       where: {
@@ -101,90 +91,35 @@ export async function seedClassRecords(database: DatabaseClient, todayIso: strin
   }
 }
 
+function initialScenarioState(): ScenarioState {
+  return {
+    cancelled: false,
+    noPresent: false,
+    regularSubstitute: false,
+    pptSubstitute: false,
+    regularCorrection: false,
+    pptContentCorrection: false,
+    pptPresenceCorrection: false,
+    regularDeviations: 0,
+    pptDeviations: 0,
+  };
+}
+
 async function seedRecordedSession(input: SeedInput, sessionId: string): Promise<void> {
   let session = await input.database.classSession.findUniqueOrThrow({
     where: { id: sessionId },
     include: recordSessionInclude,
   });
   const regular = session.class.scheduleType === "REGULAR";
-  if (
-    input.classKey === "C2B" &&
-    !input.state.cancelled &&
-    (await safeAttendanceScenario(input.database, session, true))
-  ) {
-    await cancelSeedSession(input.database, session, input.admin);
-    input.state.cancelled = true;
-    return;
-  }
-  const noPresent =
-    input.classKey === "C1B" &&
-    !input.state.noPresent &&
-    (await safeAttendanceScenario(input.database, session, true));
-  if (noPresent) input.state.noPresent = true;
-  const needsSubstitute = regular ? !input.state.regularSubstitute : !input.state.pptSubstitute;
-  if (
-    !noPresent &&
-    needsSubstitute &&
-    (await safeAttendanceScenario(input.database, session, false))
-  ) {
-    const substitute = await seedSessionSubstitute(
-      input.database,
-      session,
-      input.admin,
-      input.teachers,
-    );
-    if (substitute) {
-      if (regular) input.state.regularSubstitute = true;
-      else input.state.pptSubstitute = true;
-      session = await input.database.classSession.findUniqueOrThrow({
-        where: { id: sessionId },
-        include: recordSessionInclude,
-      });
-    }
-  }
+  if (await cancelScenario(input, session)) return;
+  const noPresent = await noPresentScenario(input, session);
+  session = await substituteScenario(input, { session, regular, noPresent });
   const teachingTeacher = responsibleTeacher(session);
   const teacher = input.teachers.find((row) => row.id === teachingTeacher?.id);
   if (!teacher)
     throw new Error("Class-record fixtures require the teacher responsible for the dated session.");
-  const endedAt = sessionEndInstant(session);
-  const calledAt = afterMinutes(endedAt, CALL_AFTER_END_MINUTES);
-  const closedAt = afterMinutes(endedAt, CLOSE_AFTER_END_MINUTES);
-  if (saoPauloDateOnly(closedAt) >= input.todayIso)
-    throw new Error("Class-record fixtures cannot close a future school day.");
-  await prepareManualCall(input.database, session, { teacher, calledAt, noPresent });
-  const snapshot = await initialSnapshot(
-    { database: input.database, staffUser: input.admin, now: closedAt },
-    session,
-  );
-  const present = snapshot.entries.filter((row) => row.status === "PRESENT");
-  if (present.length === 0)
-    snapshot.note =
-      "Nenhum aluno compareceu ao encontro. Próximo passo: verificar com as famílias a continuidade da rotina.";
-  if (regular && present.length > 0) {
-    const deviation =
-      input.state.regularDeviations < 2 &&
-      Boolean(snapshot.sharedPlanned?.items.some((item) => item.kind === "CONTENT"));
-    snapshot.sharedContent = performedContent({
-      stage: session.class.sharedStage?.name ?? null,
-      variation: input.variation,
-      review: deviation,
-    });
-    if (deviation) input.state.regularDeviations++;
-  }
-  if (!regular) {
-    for (const [index, entry] of snapshot.entries.entries()) {
-      if (entry.status !== "PRESENT") continue;
-      const deviation =
-        input.state.pptDeviations < 2 &&
-        Boolean(entry.planned?.items.some((item) => item.kind === "CONTENT"));
-      entry.content = performedContent({
-        stage: entry.stage,
-        variation: input.variation + index,
-        review: deviation,
-      });
-      if (deviation) input.state.pptDeviations++;
-    }
-  }
+  const { snapshot, closedAt } = await initialRecord(input, { session, teacher, noPresent });
+  fillPerformedContent(input, { session, snapshot, regular });
   const versions: RecordVersion[] = [
     {
       snapshot,
@@ -193,20 +128,130 @@ async function seedRecordedSession(input: SeedInput, sessionId: string): Promise
       at: closedAt,
     },
   ];
-  const correction = await correctedRecord(input, session, snapshot, teacher);
+  const correction = await correctedRecord(input, { session, initial: snapshot, teacher });
   if (correction) versions.push(correction);
-  await persistRecord(input.database, session, teacher, versions);
+  await persistRecord(input.database, { session, teacher, versions });
+}
+
+async function cancelScenario(input: SeedInput, session: RecordSession): Promise<boolean> {
+  if (
+    input.classKey !== "C2B" ||
+    input.state.cancelled ||
+    !(await safeAttendanceScenario(input.database, { session, wholeRoster: true }))
+  )
+    return false;
+  await cancelSeedSession(input.database, { session, admin: input.admin });
+  input.state.cancelled = true;
+  return true;
+}
+
+async function noPresentScenario(input: SeedInput, session: RecordSession): Promise<boolean> {
+  const noPresent =
+    input.classKey === "C1B" &&
+    !input.state.noPresent &&
+    (await safeAttendanceScenario(input.database, { session, wholeRoster: true }));
+  if (noPresent) input.state.noPresent = true;
+  return noPresent;
+}
+
+async function substituteScenario(
+  input: SeedInput,
+  details: { session: RecordSession; regular: boolean; noPresent: boolean },
+): Promise<RecordSession> {
+  const { session, regular, noPresent } = details;
+  const needsSubstitute = regular ? !input.state.regularSubstitute : !input.state.pptSubstitute;
+  if (
+    !noPresent &&
+    needsSubstitute &&
+    (await safeAttendanceScenario(input.database, { session, wholeRoster: false }))
+  ) {
+    const substitute = await seedSessionSubstitute(input.database, {
+      session,
+      admin: input.admin,
+      teachers: input.teachers,
+    });
+    if (substitute) {
+      if (regular) input.state.regularSubstitute = true;
+      else input.state.pptSubstitute = true;
+      return input.database.classSession.findUniqueOrThrow({
+        where: { id: session.id },
+        include: recordSessionInclude,
+      });
+    }
+  }
+  return session;
+}
+
+async function initialRecord(
+  input: SeedInput,
+  details: { session: RecordSession; teacher: StaffUser; noPresent: boolean },
+): Promise<{ snapshot: ClassRecordSnapshot; closedAt: Date }> {
+  const { session, teacher, noPresent } = details;
+  const endedAt = sessionEndInstant(session);
+  const calledAt = afterMinutes(endedAt, CALL_AFTER_END_MINUTES);
+  const closedAt = afterMinutes(endedAt, CLOSE_AFTER_END_MINUTES);
+  if (saoPauloDateOnly(closedAt) >= input.todayIso)
+    throw new Error("Class-record fixtures cannot close a future school day.");
+  await prepareManualCall(input.database, { session, call: { teacher, calledAt, noPresent } });
+  const snapshot = await initialSnapshot(
+    { database: input.database, staffUser: input.admin, now: closedAt },
+    session,
+  );
+  return { snapshot, closedAt };
+}
+
+function fillPerformedContent(
+  input: SeedInput,
+  details: { session: RecordSession; snapshot: ClassRecordSnapshot; regular: boolean },
+): void {
+  const { session, snapshot, regular } = details;
+  const present = snapshot.entries.filter((row) => row.status === "PRESENT");
+  if (present.length === 0)
+    snapshot.note =
+      "Nenhum aluno compareceu ao encontro. Próximo passo: verificar com as famílias a continuidade da rotina.";
+  if (regular && present.length > 0) fillRegularContent(input, { session, snapshot });
+  if (!regular) fillIndividualContent(input, snapshot);
+}
+
+function fillRegularContent(
+  input: SeedInput,
+  details: { session: RecordSession; snapshot: ClassRecordSnapshot },
+): void {
+  const { session, snapshot } = details;
+  const deviation =
+    input.state.regularDeviations < 2 &&
+    Boolean(snapshot.sharedPlanned?.items.some((item) => item.kind === "CONTENT"));
+  snapshot.sharedContent = performedContent({
+    stage: session.class.sharedStage?.name ?? null,
+    variation: input.variation,
+    review: deviation,
+  });
+  if (deviation) input.state.regularDeviations++;
+}
+
+function fillIndividualContent(input: SeedInput, snapshot: ClassRecordSnapshot): void {
+  for (const [index, entry] of snapshot.entries.entries()) {
+    if (entry.status !== "PRESENT") continue;
+    const deviation =
+      input.state.pptDeviations < 2 &&
+      Boolean(entry.planned?.items.some((item) => item.kind === "CONTENT"));
+    entry.content = performedContent({
+      stage: entry.stage,
+      variation: input.variation + index,
+      review: deviation,
+    });
+    if (deviation) input.state.pptDeviations++;
+  }
 }
 
 async function prepareManualCall(
   database: TransactionClient,
-  session: RecordSession,
-  input: {
-    teacher: StaffUser;
-    calledAt: Date;
-    noPresent: boolean;
+  command: {
+    session: RecordSession;
+    call: { teacher: StaffUser; calledAt: Date; noPresent: boolean };
   },
 ): Promise<void> {
+  const { session, call: input } = command;
   await database.attendance.updateMany({
     where: { classSessionId: session.id, deletedAt: null },
     data: {
@@ -230,10 +275,9 @@ async function prepareManualCall(
 
 async function correctedRecord(
   input: SeedInput,
-  session: RecordSession,
-  initial: ClassRecordSnapshot,
-  teacher: StaffUser,
+  details: { session: RecordSession; initial: ClassRecordSnapshot; teacher: StaffUser },
 ): Promise<RecordVersion | null> {
+  const { session, initial, teacher } = details;
   const snapshot = copyClassSnapshot(initial);
   const end = sessionEndInstant(session);
   if (input.classKey === "MWBA" && !input.state.regularCorrection && snapshot.sharedContent) {
@@ -257,13 +301,25 @@ async function correctedRecord(
       reason: "Detalhar a devolutiva e a prática individual que ficaram resumidas na baixa.",
     };
   }
+  return correctPresence(input, { session, snapshot, present });
+}
+
+async function correctPresence(
+  input: SeedInput,
+  details: {
+    session: RecordSession;
+    snapshot: ClassRecordSnapshot;
+    present: ClassRecordSnapshot["entries"][number] | undefined;
+  },
+): Promise<RecordVersion | null> {
+  const { session, snapshot, present } = details;
   const correctionDay = addDays(session.date, 1);
   if (
     input.classKey !== "PPT-T1" ||
     input.state.pptPresenceCorrection ||
     !present ||
     isoOf(correctionDay) >= input.todayIso ||
-    !(await safeAttendanceScenario(input.database, session, false))
+    !(await safeAttendanceScenario(input.database, { session, wholeRoster: false }))
   )
     return null;
   const at = sessionEndInstant({ date: correctionDay, endTime: "15:00" });
@@ -285,10 +341,9 @@ async function correctedRecord(
 
 async function persistRecord(
   database: TransactionClient,
-  session: RecordSession,
-  teacher: StaffUser,
-  versions: RecordVersion[],
+  details: { session: RecordSession; teacher: StaffUser; versions: RecordVersion[] },
 ): Promise<void> {
+  const { session, teacher, versions } = details;
   const id = stableUuid(["class-session-record", session.id]);
   const latest = versions.at(-1)!;
   await database.classSessionRecord.create({

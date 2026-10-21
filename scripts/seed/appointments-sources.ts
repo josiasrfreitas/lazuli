@@ -1,3 +1,4 @@
+import type { Prisma } from "../../packages/db/src/index.js";
 import { classRecordSnapshotSchema } from "../../packages/validators/src/class-records.js";
 import { stableUuid, utcDate, endOfDayUtc } from "../../packages/db/src/seed-dev-support.js";
 import { saoPauloDateOnly } from "../../packages/domain/src/session-time.js";
@@ -10,6 +11,7 @@ import {
 } from "./appointments-data.js";
 
 const MILLISECONDS_PER_MINUTE = 60_000;
+const MINIMUM_SOURCE_AGE_DAYS = 8;
 
 const ABSENCE_SELECT = {
   id: true,
@@ -53,9 +55,9 @@ export async function scenarioEnrollment(
 /** Select only current ABSENT facts; no declaration, plan or free-form reason creates an origin. */
 export async function scenarioAbsences(
   context: AppointmentSeedContext,
-  enrollment: AppointmentEnrollment,
-  daysBeforeToday = 8,
+  input: { enrollment: AppointmentEnrollment; daysBeforeToday?: number },
 ): Promise<SeedAbsence[]> {
+  const { enrollment, daysBeforeToday = MINIMUM_SOURCE_AGE_DAYS } = input;
   const rows = await context.database.attendance.findMany({
     where: {
       enrollmentId: enrollment.id,
@@ -88,22 +90,8 @@ export async function scenarioAbsences(
       },
       _sum: { minutes: true },
     });
-    const minutes =
-      (row.classSession.endTime.getTime() - row.classSession.startTime.getTime()) /
-      MILLISECONDS_PER_MINUTE;
     if ((allocated._sum.minutes ?? 0) !== 0) continue;
-    const parsed = row.classSession.classRecord
-      ? classRecordSnapshotSchema.safeParse(row.classSession.classRecord.snapshot)
-      : null;
-    sources.push({
-      id: row.id,
-      enrollmentId: row.enrollmentId,
-      studentId: row.enrollment.studentId,
-      date: row.classSession.date,
-      confirmedAt: row.classSession.attendanceConfirmedAt!,
-      minutes,
-      sourceContent: parsed?.success ? (parsed.data.sharedContent?.account ?? null) : null,
-    });
+    sources.push(attendanceSource(row));
   }
   return sources;
 }
@@ -154,7 +142,15 @@ export async function knownLegacySource(
     makeup.id !== stableUuid(["makeup", makeup.originEnrollmentId, makeup.targetClassSessionId])
   )
     return null;
-  const row = rows[0]!;
+  return attendanceSource(rows[0]!);
+}
+
+type SeedAttendance = Prisma.AttendanceGetPayload<{ select: typeof ABSENCE_SELECT }>;
+
+function attendanceSource(row: SeedAttendance): SeedAbsence {
+  const minutes =
+    (row.classSession.endTime.getTime() - row.classSession.startTime.getTime()) /
+    MILLISECONDS_PER_MINUTE;
   const parsed = row.classSession.classRecord
     ? classRecordSnapshotSchema.safeParse(row.classSession.classRecord.snapshot)
     : null;
@@ -164,9 +160,7 @@ export async function knownLegacySource(
     studentId: row.enrollment.studentId,
     date: row.classSession.date,
     confirmedAt: row.classSession.attendanceConfirmedAt!,
-    minutes:
-      (row.classSession.endTime.getTime() - row.classSession.startTime.getTime()) /
-      MILLISECONDS_PER_MINUTE,
+    minutes,
     sourceContent: parsed?.success ? (parsed.data.sharedContent?.account ?? null) : null,
   };
 }
