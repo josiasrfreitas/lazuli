@@ -1,3 +1,4 @@
+import { AssessmentUploadProvider } from "~/features/assessment-files/queue-provider";
 import type { ReactNode } from "react";
 
 import type { StaffIdentity } from "@lazuli/auth/server";
@@ -27,8 +28,10 @@ export function AppShell({
       <SessionSync renderedEmail={identity.email} />
       <Sidebar identity={identity} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar identity={identity} />
-        <main className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto">{children}</main>
+        <AssessmentUploadProvider key={identity.id} userId={identity.id}>
+          <TopBar identity={identity} />
+          <main className="scrollbar-subtle min-h-0 flex-1 overflow-y-auto">{children}</main>
+        </AssessmentUploadProvider>
       </div>
     </div>
   );

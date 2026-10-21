@@ -17,7 +17,15 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["primary", "secondary", "ghost", "text", "destructive", "link"],
+      options: [
+        "primary",
+        "secondary",
+        "ghost",
+        "text",
+        "destructive",
+        "destructive-outline",
+        "link",
+      ],
     },
     size: {
       control: "select",
@@ -147,4 +155,8 @@ export const States: Story = {
     await expect(savingButton).toBeDisabled();
     await expect(savingButton).toHaveAttribute("aria-busy", "true");
   },
+};
+
+export const DestructiveOutline: Story = {
+  args: { variant: "destructive-outline", children: "Remove attachment" },
 };

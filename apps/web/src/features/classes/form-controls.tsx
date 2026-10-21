@@ -65,6 +65,7 @@ export function TextControl({
   error,
   inputMode,
   invalid,
+  disabled,
 }: {
   name: string;
   label: string;
@@ -74,6 +75,7 @@ export function TextControl({
   error?: string | undefined;
   inputMode?: "numeric" | undefined;
   invalid?: boolean | undefined;
+  disabled?: boolean | undefined;
 }): ReactElement {
   return (
     <Field>
@@ -86,6 +88,7 @@ export function TextControl({
         size="sm"
         inputMode={inputMode}
         invalid={invalid ?? Boolean(error)}
+        disabled={disabled}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />

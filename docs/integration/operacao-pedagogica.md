@@ -161,3 +161,76 @@ Legacy historical teacher attribution remains a reconciliation lead before the P
 SQL backfill uses usual-teacher/class fallback, while current main can use substitutions and
 frozen class-record responsibility. Verify this against real historical cases before claiming
 legacy parity; any correction must use a new migration, never rewrite an applied one.
+
+## Assessment interface and persistent upload checkpoint
+
+The assessment route, sixteen source feature modules, proof lists and authenticated upload queue
+are implemented over the prior backend checkpoint. Main's existing class-record and permission
+behavior remains in place. Source functions were split into meaningful controllers, fields and
+rendering components to satisfy existing lint rules without suppressions. The picker and pencil
+loader are shared UI exports with Storybook examples; the generic placement attachment dialog and
+base64 adapter remain explicitly assigned to block2.
+
+A controlled comparison of actual source/current component rendering and file-selection callbacks
+passed 473 cases. It checks text, props, conditional layouts, status/permission branches, chart
+ranges and batch acceptance. Framework providers, network and effects are controlled dependencies;
+this comparison is not browser or end-to-end evidence. Its expected source tree has an explicit
+form-policy overlay for the following independently required main standards:
+
+- Grade/recovery/correction/removal fields use the existing `sm` control size, `name`,
+  `autoComplete="off"` and meaningful placeholders. Correction now has a placeholder.
+- Confirmation choices and reason are disabled during submission. The existing TextControl forwards
+  that disabled state; previous callers retain their behavior.
+- The first grade field receives initial focus. The existing trigger remains the final focus target.
+
+Other intentional adaptations: saving grades invalidates the current tRPC query cache, including
+the teacher workspace once it lands, instead of referencing an absent router. The upload provider
+is keyed by authenticated identity, so account changes discard React queue state and abort the old
+transfer while IndexedDB remains partitioned by user. Camera, additive selection, file limits,
+queue persistence, retry/resume, progress and receipt/processing distinctions remain source behavior.
+Pencil colors use semantic tokens with identical values; attribution is retained in LOADERS-LICENSE.
+
+Two selected form tests protect required names, autofill controls, placeholders, masked dates,
+recovery/correction fields and a real coordinator decision form, using real components/controllers.
+CSS is replaced at its module-loading seam only for static form markup; browser checks own layout.
+The full web unit tier passed 216 cases. UI/Storybook typechecks, focused lints and component/style
+checks passed; existing contextual lint warnings remain nonblocking and are not suppressed.
+The prospective test-quality gate reports zero errors and nine contextual warnings from the
+parameterized form assertions. Every variant asserts its exact nonzero field count before
+checking all controls; the placeholder assertions also reject emptiness. These paths were reviewed
+for execution and are not weakened or suppressed.
+
+Browser implementation checks used only Orca, the isolated integration database and synthetic
+teacher/admin users signed in through real local Mailpit magic links. The teacher sees its assigned
+class, empty grades and comparison selector. Enter rejects 101; saving 59,9 updates the table.
+Recovery requires its narrative. Dirty close opens discard; continuing retains the draft, and
+confirmed discard closes and returns focus to the original edit button. At 390x844, the 358px
+recovery dialog and app have no horizontal page overflow; camera is available. Screenshots were
+inspected, not merely generated. These are implementation checks, not a functional QA round.
+
+Two synthetic proofs survived a server restart/reload in the IndexedDB queue and were explicitly
+resumed. Actual HTTP upload, S3Mock storage and Hatchet worker processing produced READY for a
+PDF-signature fixture and REJECTED/INVALID_FILE for non-PNG bytes declared as PNG. The authenticated
+PDF download returned HTTP200 and an attachment disposition, with the exact 51 sent bytes and
+SHA256 `eadef7418e14af08d4dab416d408d94121199f49e60eed1caa7a6bec3b16ebe0`.
+This verifies the implemented signature/size/checksum inspection, not full document parsing.
+The local worktree initially lacked a Hatchet token; its existing local source credential was
+configured only in ignored .env. No credential, real student data or file bytes were logged by jobs.
+
+The route is not complete merely because this checkpoint exists. Historical student entry points,
+progression and continuity, teacher workspace and broader role variants still need integration.
+Removal/identification, network/permission errors and final-head checks must retain their own evidence; an imported renderer is not counted as every variant tested.
+
+An administrator also signed in through a real local magic link and opened the completed synthetic
+assessment. The confirmation form focused its reason, rejected an empty reason, disabled choices,
+reason and footer while submitting, then displayed `Aprovação confirmada` in the actual interface. At 1280x800 the observed page has no horizontal overflow. The confirmed-grade
+editor exposes a correction reason and rejects a changed grade without it; justified correction
+then saves with the reason, withdraws confirmation and retains sufficient scores. Remaining grades for this fixture were
+prepared through the real assessment API, not claimed as eight manually exercised UI submissions.
+
+Final checkpoint verification also passed eight shared-UI unit cases, the duplication gate
+(0.39% duplicated lines), full format check and an uncached production build of all three build
+tasks. Targeted web lint reports zero errors with 75 contextual warnings; shared UI and changed
+Storybook examples lint cleanly. Development browser tab and owned web/worker processes were
+closed after verification; the user's main2 server and shared infrastructure remain running.
+Full first-block acceptance, CI, security and PullFrog remain required before delivery.

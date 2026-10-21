@@ -16,6 +16,7 @@ const CLASSES_PATH = "/turmas";
 const STAGES_PATH = "/estagios";
 const LESSONS_PATH = "/aulas";
 const PLANNING_PATH = "/planejamento";
+const ASSESSMENTS_PATH = "/avaliacoes";
 const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
 const ANALYTICS_PATH = "/financeiro";
@@ -50,7 +51,7 @@ void describe("role-aware navigation", () => {
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
-      ["/", LESSONS_PATH, PLANNING_PATH],
+      ["/", LESSONS_PATH, PLANNING_PATH, ASSESSMENTS_PATH],
     );
   });
 
@@ -132,7 +133,7 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
   );
   assert.deepEqual(
     navItemsFor("TEACHER").map((item) => item.href),
-    ["/", LESSONS_PATH, PLANNING_PATH],
+    ["/", LESSONS_PATH, PLANNING_PATH, ASSESSMENTS_PATH],
   );
 });
 

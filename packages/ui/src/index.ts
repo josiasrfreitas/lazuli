@@ -227,3 +227,8 @@ export { FormRow, FormSection } from "./components/form-layout";
 export type { FormRowColumns, FormRowProps, FormSectionProps } from "./components/form-layout";
 export { SearchSelect } from "./components/search-select";
 export type { SearchSelectOption, SearchSelectProps } from "./components/search-select";
+
+export { FileUpload, formatFileSize } from "./components/file-upload";
+export type { FileUploadProps } from "./components/file-upload";
+
+export { PencilLoader, type PencilLoaderProps } from "./components/pencil-loader";

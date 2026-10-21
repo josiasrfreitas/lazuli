@@ -102,6 +102,12 @@
   --scrollbar-track: transparent;
   --scrollbar-thumb: var(--lz-ref-neutral-300);
   --scrollbar-thumb-hover: var(--lz-ref-neutral-500);
+  --loading-pencil-body: hsl(223 90% 50%);
+  --loading-pencil-highlight: hsl(223 90% 60%);
+  --loading-pencil-shadow: hsl(223 90% 40%);
+  --loading-pencil-eraser: hsl(223 90% 70%);
+  --loading-pencil-wood: hsl(33 90% 70%);
+  --loading-pencil-wood-shadow: hsl(33 90% 50%);
   --loading-book-cover-start: var(--lz-ref-blue-600);
   --loading-book-cover-end: var(--lz-ref-blue-800);
   --loading-book-paper: var(--lz-ref-white);

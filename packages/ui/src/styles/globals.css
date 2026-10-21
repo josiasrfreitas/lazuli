@@ -7,6 +7,8 @@
 @import "./tokens/tailwind-bridge.css";
 @import "./components/book-loader.css";
 @import "./components/typewriter-loader.css";
+@import "./components/file-upload.css";
+@import "./components/pencil-loader.css";
 
 @custom-variant dark (&:is(.dark *));
 

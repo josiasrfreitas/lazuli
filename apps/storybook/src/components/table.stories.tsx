@@ -330,3 +330,5 @@ export const States: Story = {
     </div>
   ),
 };
+
+export const Dense: Story = { render: () => <InstallmentRows density="dense" /> };
