@@ -283,11 +283,12 @@ const EXISTING_KEYS = [
 const SURNAME_STRIDE = 7;
 const SECOND_SURNAME_STRIDE = 11;
 const SECOND_SURNAME_OFFSET = 5;
+const FAMILY_SURNAME_START = -2;
 const PHONE_PREFIX = 8100;
 const PHONE_SUFFIX = 1200;
 const PHONE_STRIDE = 37;
 const PHONE_SUFFIX_LENGTH = 4;
-const PHONE_SUFFIX_VARIATIONS = 8_800;
+const PHONE_SUFFIX_VARIATIONS = 8800;
 const BIRTHDAY_STRIDE = 47;
 const BIRTHDAY_VARIATIONS = 330;
 const LOW_ATTENDANCE_CYCLE = 17;
@@ -308,21 +309,27 @@ function buildStudents(): DevStudentSeed[] {
   for (let position = 0; position < UNALLOCATED_STUDENTS; position += 1) {
     const student = studentProfile(unallocatedClass, { position, index: students.length });
     student.enrollments = [];
-    student.status =
-      position < WAITING_STUDENTS
-        ? "ACTIVE"
-        : position < PAUSED_STUDENT_LIMIT
-          ? "SUSPENDED"
-          : "INACTIVE";
-    student.notes =
-      position < WAITING_STUDENTS
-        ? "Cadastro concluído; aguardando definição de horário e alocação."
-        : position < PAUSED_STUDENT_LIMIT
-          ? "Estudos pausados a pedido da família; sem alocação vigente."
-          : "Ex-aluno sem vínculo vigente; contato autorizado para futura retomada.";
+    Object.assign(student, unallocatedProfile(position));
     students.push(student);
   }
   return students;
+}
+
+function unallocatedProfile(position: number): Pick<DevStudentSeed, "status" | "notes"> {
+  if (position < WAITING_STUDENTS)
+    return {
+      status: "ACTIVE",
+      notes: "Cadastro concluído; aguardando definição de horário e alocação.",
+    };
+  if (position < PAUSED_STUDENT_LIMIT)
+    return {
+      status: "SUSPENDED",
+      notes: "Estudos pausados a pedido da família; sem alocação vigente.",
+    };
+  return {
+    status: "INACTIVE",
+    notes: "Ex-aluno sem vínculo vigente; contato autorizado para futura retomada.",
+  };
 }
 
 /** New sibling pairs share one guardian and payer; existing guardian identifiers stay stable. */
@@ -333,7 +340,7 @@ function shareFamily(students: DevStudentSeed[]): void {
     const guardian = { ...older.guardian!, key: older.key };
     older.guardian = guardian;
     younger.guardian = guardian;
-    younger.fullName = `${FIRST_NAMES[(index + 1) % FIRST_NAMES.length]} ${older.fullName.split(" ").slice(-2).join(" ")}`;
+    younger.fullName = `${FIRST_NAMES[(index + 1) % FIRST_NAMES.length]} ${older.fullName.split(" ").slice(FAMILY_SURNAME_START).join(" ")}`;
     younger.email = `${emailSlug(younger.fullName)}@example.com`;
     younger.ageYears = older.ageYears! + 1;
   }
@@ -381,12 +388,7 @@ function studentEnrollment(
   input: { position: number; index: number },
 ): DevEnrollmentSeed {
   const { position, index } = input;
-  const entryOffsetDays =
-    index % LATE_ENTRY_CYCLE === 0
-      ? LATE_ENTRY_OFFSET_DAYS
-      : index % MID_ENTRY_CYCLE === 0
-        ? MID_ENTRY_OFFSET_DAYS
-        : 0;
+  const entryOffsetDays = studentEntryOffsetDays(index);
   const enrollment: DevEnrollmentSeed = { classKey: classroom.key, entryOffsetDays };
   if (classroom.scheduleType !== "PERSONALIZED") return enrollment;
   const child = classroom.stageInternalCode.startsWith("C");
@@ -394,6 +396,11 @@ function studentEnrollment(
   enrollment.stageInternalCode = stages[position % stages.length]!;
   if (position % PPT_STAGE_CYCLE === 1) enrollment.previousStageInternalCode = child ? "C1" : "E1";
   return enrollment;
+}
+
+function studentEntryOffsetDays(index: number): number {
+  if (index % LATE_ENTRY_CYCLE === 0) return LATE_ENTRY_OFFSET_DAYS;
+  return index % MID_ENTRY_CYCLE === 0 ? MID_ENTRY_OFFSET_DAYS : 0;
 }
 
 function emailSlug(name: string): string {

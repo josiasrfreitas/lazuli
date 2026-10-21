@@ -2,6 +2,9 @@ import { z } from "zod";
 import { placementScheduleSchema } from "./placement.js";
 import { civilDateSchema } from "./civil-date.js";
 import { classFormatSchema, classScheduleTypeSchema } from "./class.js";
+
+const MAX_NOTES_LENGTH = 2000;
+
 const MAX_NAME = 160;
 const optionalText = z.string().trim().max(MAX_NAME).nullable();
 export const leadInterestSchema = z.enum(["UNKNOWN", "LOW", "MEDIUM", "HIGH"]);
@@ -17,7 +20,7 @@ export const leadCaptureSchema = z
     notes: z
       .string()
       .trim()
-      .max(2000, "Use até 2.000 caracteres nas observações.")
+      .max(MAX_NOTES_LENGTH, "Use até 2.000 caracteres nas observações.")
       .nullable()
       .optional(),
     interest: leadInterestSchema.default("UNKNOWN"),

@@ -5,6 +5,9 @@ import { classFormatSchema, classScheduleTypeSchema } from "./class.js";
 import { studentCreateInputSchema, studentUpdateContactInputSchema } from "./student.js";
 import { leadRegistrationSchema } from "./leads.js";
 
+const MILLISECONDS_PER_DAY = 86_400_000;
+const MAX_CALENDAR_DAYS = 7;
+
 export const studentIntakeOptionsSchema = z
   .object({
     stageId: z.string().uuid().nullable(),
@@ -16,8 +19,9 @@ export const studentIntakeOptionsSchema = z
   .strict()
   .refine(
     (value) => {
-      const days = (new Date(value.through).getTime() - new Date(value.from).getTime()) / 86400000;
-      return days >= 0 && days <= 7;
+      const days =
+        (new Date(value.through).getTime() - new Date(value.from).getTime()) / MILLISECONDS_PER_DAY;
+      return days >= 0 && days <= MAX_CALENDAR_DAYS;
     },
     { path: ["through"], message: "Consulte até uma semana por vez." },
   );
@@ -47,13 +51,7 @@ export const studentIntakeEnrollSchema = z
         path: ["allowPending"],
         message: "Confirme o cadastro com pendências.",
       });
-    if (
-      value.contract &&
-      (!value.contract.newStudent ||
-        value.contract.studentId ||
-        value.contract.renewedFromId ||
-        value.contract.commandId === value.commandId)
-    )
+    if (value.contract && invalidNewStudentContract(value.contract, value.commandId))
       context.addIssue({
         code: "custom",
         path: ["contract"],
@@ -92,3 +90,15 @@ export const studentIntakeResumeSchema = z
         message: "O contrato deve pertencer a este aluno.",
       });
   });
+
+function invalidNewStudentContract(
+  contract: z.infer<typeof createMonthlyContractInputSchema>,
+  commandId: string,
+): boolean {
+  return (
+    !contract.newStudent ||
+    Boolean(contract.studentId) ||
+    Boolean(contract.renewedFromId) ||
+    contract.commandId === commandId
+  );
+}

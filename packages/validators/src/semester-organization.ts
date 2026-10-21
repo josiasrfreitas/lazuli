@@ -7,23 +7,30 @@ import {
   classScheduleTypeSchema,
 } from "./class.js";
 
+const MAX_PLAN_NAME_LENGTH = 80;
+const MAX_SLOTS = 21;
+const MAX_PLACEMENTS = 100;
+const MAX_LEADS = 100;
+const MAX_NOTES_LENGTH = 1200;
+const MIN_REASON_LENGTH = 8;
+
 const id = z.string().uuid();
 export const semesterScopeSchema = z.object({ semesterId: id }).strict();
 export const semesterPlanSchema = semesterScopeSchema
   .extend({
     id: id.optional(),
     version: z.number().int().nonnegative().default(0),
-    name: z.string().trim().min(2).max(80),
+    name: z.string().trim().min(2).max(MAX_PLAN_NAME_LENGTH),
     scheduleType: classScheduleTypeSchema,
     format: classFormatSchema,
     sharedStageId: id.nullable(),
     teacherId: id.nullable(),
-    slots: z.array(classScheduleSlotInputSchema).min(1).max(21),
+    slots: z.array(classScheduleSlotInputSchema).min(1).max(MAX_SLOTS),
     placements: z
       .array(z.object({ id, version: z.number().int().positive() }))
-      .max(100)
+      .max(MAX_PLACEMENTS)
       .optional(),
-    leadIds: z.array(id).max(100).optional(),
+    leadIds: z.array(id).max(MAX_LEADS).optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -67,7 +74,7 @@ export const semesterPlacementSchema = semesterScopeSchema
     sourceProgressId: id.nullable(),
     effectiveDate: calendarDateSchema.optional(),
     mode: z.enum(["ENTRY", "CONTINUE", "ADVANCE", "REPEAT"]),
-    notes: z.string().trim().max(1200).default(""),
+    notes: z.string().trim().max(MAX_NOTES_LENGTH).default(""),
   })
   .strict();
 export const studentAvailabilitySchema = semesterScopeSchema
@@ -76,15 +83,15 @@ export const studentAvailabilitySchema = semesterScopeSchema
     previousId: id.nullable(),
     validUntil: calendarDateSchema,
     formats: z.array(classFormatSchema).min(1).max(2),
-    slots: z.array(classScheduleSlotInputSchema).min(1).max(21),
-    notes: z.string().trim().max(1200).default(""),
+    slots: z.array(classScheduleSlotInputSchema).min(1).max(MAX_SLOTS),
+    notes: z.string().trim().max(MAX_NOTES_LENGTH).default(""),
   })
   .strict();
 export const invalidateAvailabilitySchema = semesterScopeSchema
   .extend({
     studentId: id,
     previousId: id,
-    reason: z.string().trim().min(8).max(1200),
+    reason: z.string().trim().min(MIN_REASON_LENGTH).max(MAX_NOTES_LENGTH),
   })
   .strict();
 export const publishSemesterSchema = z
@@ -94,7 +101,7 @@ export const publishSemesterSchema = z
     placements: z
       .array(z.object({ id, version: z.number().int().positive() }).strict())
       .min(1)
-      .max(100),
+      .max(MAX_PLACEMENTS),
   })
   .strict()
   .refine(
@@ -105,7 +112,7 @@ export const withdrawSemesterSchema = z
   .object({
     id,
     version: z.number().int().positive(),
-    reason: z.string().trim().min(8).max(1200),
+    reason: z.string().trim().min(MIN_REASON_LENGTH).max(MAX_NOTES_LENGTH),
   })
   .strict();
 export type SemesterPlanInput = z.infer<typeof semesterPlanSchema>;

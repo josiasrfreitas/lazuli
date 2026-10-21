@@ -92,5 +92,6 @@ export function enrollmentEntryIso(input: {
   entryOffsetDays?: number | undefined;
 }): string {
   const proposed = isoOf(addDays(utcDate(input.semesterStartIso), input.entryOffsetDays ?? 0));
-  return proposed < input.todayIso ? proposed : input.todayIso;
+  if (proposed < input.todayIso) return proposed;
+  return input.todayIso;
 }

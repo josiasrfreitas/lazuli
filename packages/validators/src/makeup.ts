@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { makeupCoverageSchema } from "./appointments.js";
 
+const MAX_COVERAGES = 20;
+const MAX_NOTES_LENGTH = 4000;
+const MAX_PERFORMED_MINUTES = 1440;
+
 const INVALID_ENROLLMENT_ID_MESSAGE = "Identificador de matricula invalido.";
 const INVALID_SESSION_ID_MESSAGE = "Identificador de sessao invalido.";
 const INVALID_MAKEUP_ID_MESSAGE = "Identificador de reposicao invalido.";
@@ -15,8 +19,8 @@ export const makeupScheduleInputSchema = z
     originEnrollmentId: z.string().uuid(INVALID_ENROLLMENT_ID_MESSAGE),
     targetClassSessionId: z.string().uuid(INVALID_SESSION_ID_MESSAGE),
     reason: optionalReasonSchema,
-    coverages: z.array(makeupCoverageSchema).min(1).max(20),
-    plannedContent: z.string().trim().max(4000).default(""),
+    coverages: z.array(makeupCoverageSchema).min(1).max(MAX_COVERAGES),
+    plannedContent: z.string().trim().max(MAX_NOTES_LENGTH).default(""),
   })
   .strict();
 
@@ -35,10 +39,10 @@ export const makeupOutcomeInputSchema = z
     makeupId: makeupIdSchema,
     attended: z.boolean(),
     expectedVersion: z.number().int().min(0),
-    performedContent: z.string().trim().max(4000),
-    performedMinutes: z.number().int().min(1).max(1440).nullable(),
-    coverages: z.array(makeupCoverageSchema).max(20),
-    notes: z.string().trim().max(4000).default(""),
-    reason: z.string().trim().max(4000).default(""),
+    performedContent: z.string().trim().max(MAX_NOTES_LENGTH),
+    performedMinutes: z.number().int().min(1).max(MAX_PERFORMED_MINUTES).nullable(),
+    coverages: z.array(makeupCoverageSchema).max(MAX_COVERAGES),
+    notes: z.string().trim().max(MAX_NOTES_LENGTH).default(""),
+    reason: z.string().trim().max(MAX_NOTES_LENGTH).default(""),
   })
   .strict();

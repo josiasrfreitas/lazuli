@@ -1,8 +1,23 @@
 import { z } from "zod";
 import { civilDateSchema } from "./civil-date.js";
+
+const MIN_DESCRIPTION_LENGTH = 3;
+const MAX_ACCOUNT_LENGTH = 5000;
+const MAX_TITLE_LENGTH = 160;
+const MAX_SEARCH_LENGTH = 160;
+const MAX_LINKED_OCCURRENCES = 50;
+
 const id = z.string().uuid("Selecione uma opção válida.");
-const body = z.string().trim().min(3, "Descreva o contexto com mais detalhes.").max(5000);
-const title = z.string().trim().min(3, "Informe um título.").max(160);
+const body = z
+  .string()
+  .trim()
+  .min(MIN_DESCRIPTION_LENGTH, "Descreva o contexto com mais detalhes.")
+  .max(MAX_ACCOUNT_LENGTH);
+const title = z
+  .string()
+  .trim()
+  .min(MIN_DESCRIPTION_LENGTH, "Informe um título.")
+  .max(MAX_TITLE_LENGTH);
 export const occurrenceCategorySchema = z.enum([
   "MATERIAL",
   "HOMEWORK",
@@ -13,7 +28,7 @@ export const occurrenceCategorySchema = z.enum([
 ]);
 export const pedagogicalListSchema = z
   .object({
-    search: z.string().trim().max(160).default(""),
+    search: z.string().trim().max(MAX_SEARCH_LENGTH).default(""),
     studentId: id.optional(),
     page: z.number().int().min(1).default(1),
   })
@@ -25,7 +40,7 @@ export const occurrenceCreateSchema = z
     category: occurrenceCategorySchema,
     title,
     account: body,
-    initialResponse: z.string().trim().max(5000).default(""),
+    initialResponse: z.string().trim().max(MAX_ACCOUNT_LENGTH).default(""),
   })
   .strict();
 export const occurrenceLinkSchema = z.object({ occurrenceId: id, relatedId: id }).strict();
@@ -34,7 +49,7 @@ export const occurrenceUpdateSchema = z
   .strict();
 const occurrenceIds = z
   .array(id)
-  .max(50)
+  .max(MAX_LINKED_OCCURRENCES)
   .refine((ids) => new Set(ids).size === ids.length, "Selecione ocorrências distintas.");
 export const interventionCreateSchema = z
   .object({

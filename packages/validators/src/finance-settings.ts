@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const MAX_DATABASE_INTEGER = 2_147_483_647;
+
 const PERCENT_SCALE = 100;
 const PERCENT_DECIMAL_PLACES = 4;
 const ROUNDING_EPSILON = 1e-9;
@@ -22,10 +24,20 @@ export const financeSettingsInputSchema = z
     cancellationFeePct: percentage,
     // Legacy clients may still submit the previous single-price field.
     materialPriceCents: z.number().int().nonnegative().optional(),
-    childMaterialInstallments: z.number().int().positive().max(2_147_483_647).optional(),
-    childMaterialInstallmentCents: z.number().int().nonnegative().max(2_147_483_647).optional(),
-    adultMaterialInstallments: z.number().int().positive().max(2_147_483_647).optional(),
-    adultMaterialInstallmentCents: z.number().int().nonnegative().max(2_147_483_647).optional(),
+    childMaterialInstallments: z.number().int().positive().max(MAX_DATABASE_INTEGER).optional(),
+    childMaterialInstallmentCents: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(MAX_DATABASE_INTEGER)
+      .optional(),
+    adultMaterialInstallments: z.number().int().positive().max(MAX_DATABASE_INTEGER).optional(),
+    adultMaterialInstallmentCents: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(MAX_DATABASE_INTEGER)
+      .optional(),
     materialCardFeePct: percentage.optional(),
   })
   .strict()
@@ -42,7 +54,11 @@ export const financeSettingsInputSchema = z
           path: [count === undefined ? countKey : amountKey],
           message: "Informe a quantidade e o valor das parcelas.",
         });
-      } else if (count !== undefined && amount !== undefined && count * amount > 2_147_483_647) {
+      } else if (
+        count !== undefined &&
+        amount !== undefined &&
+        count * amount > MAX_DATABASE_INTEGER
+      ) {
         ctx.addIssue({
           code: "custom",
           path: [amountKey],

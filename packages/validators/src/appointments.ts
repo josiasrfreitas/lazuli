@@ -2,8 +2,16 @@ import { z } from "zod";
 import { civilDateSchema } from "./civil-date.js";
 import { classFormatSchema, timeOfDaySchema } from "./class.js";
 
+const MAX_NOTES_LENGTH = 4000;
+const MAX_PERFORMED_MINUTES = 1440;
+const MAX_COVERAGES = 20;
+const MAX_LIST_SPAN_MS = 8_035_200_000;
+const MAX_SEARCH_LENGTH = 160;
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 25;
+
 const id = z.string().uuid("Selecione um registro válido.");
-const note = z.string().trim().max(4000);
+const note = z.string().trim().max(MAX_NOTES_LENGTH);
 export const appointmentPurposeSchema = z.enum([
   "MAKEUP",
   "PPT_COMPLEMENT",
@@ -18,7 +26,7 @@ export const makeupCoverageSchema = z
       .number()
       .int("Informe minutos inteiros.")
       .min(1, "Informe pelo menos 1 minuto.")
-      .max(1440, "Informe até 1.440 minutos."),
+      .max(MAX_PERFORMED_MINUTES, "Informe até 1.440 minutos."),
   })
   .strict();
 export const appointmentMeetingSchema = z.discriminatedUnion("kind", [
@@ -43,17 +51,17 @@ export const appointmentScheduleSchema = z
     meeting: appointmentMeetingSchema,
     plannedContent: note,
     notes: note,
-    coverages: z.array(makeupCoverageSchema).max(20),
+    coverages: z.array(makeupCoverageSchema).max(MAX_COVERAGES),
   })
   .strict()
   .superRefine((value, context) => {
-    if (value.purpose === "MAKEUP" && !value.coverages.length)
+    if (value.purpose === "MAKEUP" && value.coverages.length === 0)
       context.addIssue({
         code: "custom",
         path: ["coverages"],
         message: "Selecione pelo menos uma falta de origem.",
       });
-    if (value.purpose !== "MAKEUP" && value.coverages.length)
+    if (value.purpose !== "MAKEUP" && value.coverages.length > 0)
       context.addIssue({
         code: "custom",
         path: ["coverages"],
@@ -90,11 +98,11 @@ export const appointmentRecordSchema = appointmentVersionSchema
       .number()
       .int("Informe minutos inteiros.")
       .min(1, "Informe pelo menos 1 minuto.")
-      .max(1440, "Informe até 1.440 minutos.")
+      .max(MAX_PERFORMED_MINUTES, "Informe até 1.440 minutos.")
       .nullable(),
     notes: note,
     reason: note,
-    coverages: z.array(makeupCoverageSchema).max(20),
+    coverages: z.array(makeupCoverageSchema).max(MAX_COVERAGES),
   })
   .superRefine((value, context) => {
     if (value.attended && !value.performedContent)
@@ -109,7 +117,7 @@ export const appointmentRecordSchema = appointmentVersionSchema
         path: ["performedMinutes"],
         message: "Informe os minutos realizados.",
       });
-    if (!value.attended && value.coverages.length)
+    if (!value.attended && value.coverages.length > 0)
       context.addIssue({
         code: "custom",
         path: ["coverages"],
@@ -127,7 +135,7 @@ export const appointmentListSchema = z
   .refine(
     (value) =>
       value.through >= value.from &&
-      new Date(value.through).getTime() - new Date(value.from).getTime() <= 93 * 86_400_000,
+      new Date(value.through).getTime() - new Date(value.from).getTime() <= MAX_LIST_SPAN_MS,
     { message: "Consulte um período de até 93 dias." },
   );
 export const appointmentStudentSchema = z
@@ -137,10 +145,10 @@ export const absenceListSchema = z
   .object({
     from: civilDateSchema,
     through: civilDateSchema,
-    search: z.string().trim().max(160).default(""),
+    search: z.string().trim().max(MAX_SEARCH_LENGTH).default(""),
     onlyOpen: z.boolean().default(true),
     page: z.number().int().min(1).default(1),
-    pageSize: z.number().int().min(1).max(100).default(25),
+    pageSize: z.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
   })
   .strict()
   .refine((value) => value.through >= value.from, { message: "Informe um período válido." });

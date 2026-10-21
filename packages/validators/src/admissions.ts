@@ -9,6 +9,10 @@ import {
 } from "./class.js";
 import { studentCreateInputSchema } from "./student.js";
 
+const MAX_STATUSES = 3;
+const MAX_INTERESTS = 4;
+const MAX_CALENDAR_SPAN_MS = 518_400_000;
+
 const MAX_NAME = 160;
 const MAX_NOTES = 2000;
 const MAX_WINDOWS = 28;
@@ -53,9 +57,9 @@ export const admissionListSchema = z
     search: z.string().trim().max(MAX_NAME).default(""),
     statuses: z
       .array(z.enum(["WAITING", "ENROLLED", "ARCHIVED"]))
-      .max(3)
+      .max(MAX_STATUSES)
       .default(["WAITING"]),
-    interests: z.array(leadInterestSchema).max(4).default([]),
+    interests: z.array(leadInterestSchema).max(MAX_INTERESTS).default([]),
     unlinkedOnly: z.boolean().default(false),
     expiredOnly: z.boolean().default(false),
     page: z.number().int().min(1).default(1),
@@ -157,7 +161,7 @@ export const entryVisitCalendarSchema = z
   .refine(
     (value) =>
       value.from <= value.through &&
-      Date.parse(value.through) - Date.parse(value.from) <= 6 * 86400000,
+      Date.parse(value.through) - Date.parse(value.from) <= MAX_CALENDAR_SPAN_MS,
     {
       path: ["through"],
       message: "Consulte até sete dias por vez.",

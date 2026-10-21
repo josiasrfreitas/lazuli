@@ -1,4 +1,8 @@
 import { z } from "zod";
+
+const MAX_AREAS = 4;
+const MAX_ACTORS = 100;
+
 const MAX_SEARCH_LENGTH = 120;
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 25;
@@ -12,9 +16,9 @@ export const activityListSchema = z
     // Plural filters take precedence when supplied; singular fields support existing callers.
     areas: z
       .array(z.enum(["PEDAGOGICAL", "COMMERCIAL", "FINANCIAL", "SCHOOL"]))
-      .max(4)
+      .max(MAX_AREAS)
       .optional(),
-    actorIds: z.array(z.string().uuid()).max(100).optional(),
+    actorIds: z.array(z.string().uuid()).max(MAX_ACTORS).optional(),
     cursor: z
       .object({ id: z.string().uuid(), occurredAt: z.coerce.date(), snapshotAt: z.coerce.date() })
       .strict()

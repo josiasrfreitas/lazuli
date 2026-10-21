@@ -101,16 +101,7 @@ async function seedStudent(context: SeedContext, student: DevStudentSeed): Promi
       update: {},
     });
   }
-  const birthday =
-    student.ageYears === undefined
-      ? null
-      : addDays(
-          monthlyDueDate(context.todayIso, {
-            monthOffset: -student.ageYears * MONTHS_PER_YEAR,
-            dueDay: utcDate(context.todayIso).getUTCDate(),
-          }),
-          -(student.birthdayOffsetDays ?? 0),
-        );
+  const birthday = studentBirthday(context.todayIso, student);
   await context.database.student.create({
     data: {
       id,
@@ -126,6 +117,18 @@ async function seedStudent(context: SeedContext, student: DevStudentSeed): Promi
   for (const enrollment of student.enrollments) {
     await seedEnrollment(context, { student, enrollment });
   }
+}
+
+function studentBirthday(todayIso: string, student: DevStudentSeed): Date | null {
+  return student.ageYears === undefined
+    ? null
+    : addDays(
+        monthlyDueDate(todayIso, {
+          monthOffset: -student.ageYears * MONTHS_PER_YEAR,
+          dueDay: utcDate(todayIso).getUTCDate(),
+        }),
+        -(student.birthdayOffsetDays ?? 0),
+      );
 }
 
 type EnrollmentInput = {

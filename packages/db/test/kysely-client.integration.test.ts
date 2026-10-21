@@ -87,7 +87,12 @@ function registerConcurrentTransactionTest(): void {
     const ready = new Promise<void>((resolve) => {
       release = resolve;
     });
+    let releaseReads!: () => void;
+    const readsCompleted = new Promise<void>((resolve) => {
+      releaseReads = resolve;
+    });
     let arrivals = 0;
+    let completedReads = 0;
     const names = [`${PREFIX}concurrent-first`, `${PREFIX}concurrent-second`];
     const results = await Promise.all(
       names.map((name) =>
@@ -96,11 +101,18 @@ function registerConcurrentTransactionTest(): void {
           arrivals += 1;
           if (arrivals === names.length) release();
           await ready;
-          return transaction.$kysely
-            .selectFrom("Payer")
-            .select("name")
-            .where("name", "in", names)
-            .execute();
+          try {
+            return await transaction.$kysely
+              .selectFrom("Payer")
+              .select("name")
+              .where("name", "in", names)
+              .execute();
+          } finally {
+            completedReads += 1;
+            if (completedReads === names.length) releaseReads();
+            // READ COMMITTED may see a peer as soon as it commits: hold both open.
+            await readsCompleted;
+          }
         }),
       ),
     );

@@ -1,40 +1,67 @@
 import { z } from "zod";
-const key = z.string().trim().min(1).max(120);
-const title = z.string().trim().min(1).max(200);
+
+const MAX_KEY_LENGTH = 120;
+const MAX_TITLE_LENGTH = 200;
+const MAX_DAILY_MINUTES = 1440;
+const MAX_LESSONS = 500;
+const MAX_SOURCE_REFERENCE_LENGTH = 500;
+const MAX_SOURCE_CODE_LENGTH = 100;
+const TEACHING_HOUR_MINUTES = 60;
+const DEFAULT_WEEKLY_MINUTES = 120;
+const MAX_UNITS = 100;
+const MAX_TEACHING_HOURS = 1000;
+const MAX_ASSESSMENTS = 200;
+const MAX_ACTIVITY_TITLE_LENGTH = 160;
+const MAX_PART_LENGTH = 80;
+const MAX_ACTIVITY_LESSONS = 20;
+const MAX_ACTIVITIES = 4000;
+
+const key = z.string().trim().min(1).max(MAX_KEY_LENGTH);
+const title = z.string().trim().min(1).max(MAX_TITLE_LENGTH);
 const sequence = z.number().int().positive();
-const minutes = z.number().int().min(1).max(1440);
+const minutes = z.number().int().min(1).max(MAX_DAILY_MINUTES);
 const ordered = { key, sequence };
 export const trackAgeGroupSchema = z.enum(["ADULT", "CHILD"]);
 export const teachingProgramImportSchema = z
   .object({
     stageId: z.string().uuid(),
     source: z
-      .object({ provider: key, reference: z.string().trim().min(1).max(500), revision: key })
+      .object({
+        provider: key,
+        reference: z.string().trim().min(1).max(MAX_SOURCE_REFERENCE_LENGTH),
+        revision: key,
+      })
       .strict(),
     scheduleType: z.enum(["REGULAR", "PERSONALIZED"]),
     modality: z
       .object({
         code: key,
         name: title,
-        weeklyMinutes: z.number().int().min(60).max(1440).multipleOf(60).default(120),
+        weeklyMinutes: z
+          .number()
+          .int()
+          .min(TEACHING_HOUR_MINUTES)
+          .max(MAX_DAILY_MINUTES)
+          .multipleOf(TEACHING_HOUR_MINUTES)
+          .default(DEFAULT_WEEKLY_MINUTES),
       })
       .strict(),
     lessons: z
       .array(z.object({ ...ordered, title }).strict())
       .min(1)
-      .max(500),
+      .max(MAX_LESSONS),
     units: z
       .array(z.object({ ...ordered, title }).strict())
       .min(1)
-      .max(100),
+      .max(MAX_UNITS),
     teachingHours: z
-      .array(z.object({ ...ordered, durationMinutes: z.literal(60) }).strict())
+      .array(z.object({ ...ordered, durationMinutes: z.literal(TEACHING_HOUR_MINUTES) }).strict())
       .min(1)
-      .max(1000),
+      .max(MAX_TEACHING_HOURS),
     assessments: z
       .array(z.object({ ...ordered, unitKey: key, title }).strict())
       .min(1)
-      .max(200),
+      .max(MAX_ASSESSMENTS),
     activities: z
       .array(
         z
@@ -44,17 +71,21 @@ export const teachingProgramImportSchema = z
             teachingHourKey: key,
             durationMinutes: minutes,
             kind: z.enum(["LESSON", "INTRODUCTION", "REVIEW", "ASSESSMENT", "VIDEO", "ACTIVITY"]),
-            title: title.max(160),
-            sourceCode: z.string().trim().max(100).nullable(),
+            title: title.max(MAX_ACTIVITY_TITLE_LENGTH),
+            sourceCode: z.string().trim().max(MAX_SOURCE_CODE_LENGTH).nullable(),
             descriptionPending: z.boolean().default(false),
             assessmentKey: key.nullable(),
             lessons: z
-              .array(z.object({ key, part: z.string().trim().min(1).max(80).nullable() }).strict())
-              .max(20),
+              .array(
+                z
+                  .object({ key, part: z.string().trim().min(1).max(MAX_PART_LENGTH).nullable() })
+                  .strict(),
+              )
+              .max(MAX_ACTIVITY_LESSONS),
           })
           .strict(),
       )
       .min(1)
-      .max(4000),
+      .max(MAX_ACTIVITIES),
   })
   .strict();
