@@ -8,13 +8,7 @@ import {
   type DevStudentSeed,
   type DevWeekday,
 } from "../../packages/db/src/seed-dev-data.js";
-import {
-  addDays,
-  endOfDayUtc,
-  stableUuid,
-  timeOfDay,
-  utcDate,
-} from "../../packages/db/src/seed-dev-support.js";
+import { addDays, stableUuid, timeOfDay, utcDate } from "../../packages/db/src/seed-dev-support.js";
 
 const PROSPECTS = [
   "Amanda Queiroz Barros",
@@ -339,8 +333,8 @@ async function createConvertedCandidate(
     data: {
       id: stableUuid(["admission", student.key]),
       fullName: student.fullName,
-      phone: student.phone,
-      email: student.email,
+      phone: student.phone ?? null,
+      email: student.email ?? null,
       status: "ENROLLED",
       scheduleType: classroom.scheduleType,
       format: classroom.format,

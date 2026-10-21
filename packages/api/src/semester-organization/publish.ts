@@ -125,12 +125,11 @@ export async function publishPlacements(context: OrganizationContext, input: Pub
       data: { classId: classRow.id, version: { increment: 1 } },
     });
     generationRequestId = (
-      await requestSessionGeneration(
-        context.database,
-        { classId: classRow.id },
-        context.staffUser.id,
-        context.now,
-      )
+      await requestSessionGeneration(context.database, {
+        scope: { classId: classRow.id },
+        requestedById: context.staffUser.id,
+        now: context.now,
+      })
     ).id;
   }
   for (const row of selected) {

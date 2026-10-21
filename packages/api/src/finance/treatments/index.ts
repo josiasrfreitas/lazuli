@@ -125,7 +125,7 @@ export function financialTreatments(
     async available(scope: FinancialTreatmentInstallments) {
       const items = await scopedInstallments({
         ...studentScope("studentId" in scope ? scope.studentId : undefined),
-        ...("installmentIds" in scope ? { id: { in: scope.installmentIds } } : {}),
+        ...(scope.installmentIds ? { id: { in: scope.installmentIds } } : {}),
         waivedAt: null,
       });
       const loaded = await loadSettlementItems(

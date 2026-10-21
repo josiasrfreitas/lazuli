@@ -35,13 +35,15 @@ export function MotivatingOccurrenceFields({
   }, [loading, rows]);
   const query = normalize(search.trim());
   const filtered = rows.filter((row) =>
-    normalize([
-      row.title,
-      row.account,
-      row.classSession.class.portalClassName,
-      row.recordedBy.name,
-      CATEGORY[row.category],
-    ].join(" ")).includes(query),
+    normalize(
+      [
+        row.title,
+        row.account,
+        row.classSession.class.portalClassName,
+        row.recordedBy.name,
+        CATEGORY[row.category],
+      ].join(" "),
+    ).includes(query),
   );
 
   return (
@@ -50,7 +52,8 @@ export function MotivatingOccurrenceFields({
         <span id={`${prefix}-search-label`} className="inline-flex items-center gap-2">
           <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
           <span>
-            Buscar ocorrências motivadoras <span className="font-normal text-muted-foreground">(opcional)</span>
+            Buscar ocorrências motivadoras{" "}
+            <span className="font-normal text-muted-foreground">(opcional)</span>
           </span>
         </span>
       }
@@ -88,38 +91,51 @@ export function MotivatingOccurrenceFields({
           aria-busy={loading}
           tabIndex={0}
         >
-          {loading ? <DeskRowsLoading /> : filtered.map((row) => (
-            <article key={row.id} className={styles.occurrence} data-selected={ids.includes(row.id)}>
-              <label className={styles.choice} htmlFor={`${prefix}-${row.id}`}>
-                <Checkbox
-                  id={`${prefix}-${row.id}`}
-                  name="occurrenceIds"
-                  value={row.id}
-                  checked={ids.includes(row.id)}
-                  onCheckedChange={(checked) => onChange(
-                    checked ? [...ids, row.id] : ids.filter((id) => id !== row.id),
-                  )}
-                />
-                <span className={styles.choiceText}>
-                  <strong>{row.title}</strong>
-                  <span className={styles.metadata}>
-                    <span>{dateLabel(row.classSession.date)} · {row.classSession.class.portalClassName}</span>
-                    <span>{CATEGORY[row.category]} · {row.recordedBy.name}</span>
+          {loading ? (
+            <DeskRowsLoading />
+          ) : (
+            filtered.map((row) => (
+              <article
+                key={row.id}
+                className={styles.occurrence}
+                data-selected={ids.includes(row.id)}
+              >
+                <label className={styles.choice} htmlFor={`${prefix}-${row.id}`}>
+                  <Checkbox
+                    id={`${prefix}-${row.id}`}
+                    name="occurrenceIds"
+                    value={row.id}
+                    checked={ids.includes(row.id)}
+                    onCheckedChange={(checked) =>
+                      onChange(checked ? [...ids, row.id] : ids.filter((id) => id !== row.id))
+                    }
+                  />
+                  <span className={styles.choiceText}>
+                    <strong>{row.title}</strong>
+                    <span className={styles.metadata}>
+                      <span>
+                        {dateLabel(row.classSession.date)} ·{" "}
+                        {row.classSession.class.portalClassName}
+                      </span>
+                      <span>
+                        {CATEGORY[row.category]} · {row.recordedBy.name}
+                      </span>
+                    </span>
                   </span>
-                </span>
-              </label>
-              <details className={styles.account}>
-                <summary>Ler relato</summary>
-                <p>{row.account}</p>
-                {row.initialResponse && (
-                  <div>
-                    <strong>Ação imediata</strong>
-                    <p>{row.initialResponse}</p>
-                  </div>
-                )}
-              </details>
-            </article>
-          ))}
+                </label>
+                <details className={styles.account}>
+                  <summary>Ler relato</summary>
+                  <p>{row.account}</p>
+                  {row.initialResponse && (
+                    <div>
+                      <strong>Ação imediata</strong>
+                      <p>{row.initialResponse}</p>
+                    </div>
+                  )}
+                </details>
+              </article>
+            ))
+          )}
           {!loading && filtered.length === 0 && (
             <p className={styles.empty}>
               {rows.length === 0
@@ -128,12 +144,17 @@ export function MotivatingOccurrenceFields({
             </p>
           )}
         </div>
-        <FieldError id={`${prefix}-error`} match={Boolean(error)}>{error}</FieldError>
+        <FieldError id={`${prefix}-error`} match={Boolean(error)}>
+          {error}
+        </FieldError>
       </Field>
     </FormSection>
   );
 }
 
 function normalize(value: string): string {
-  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("pt-BR");
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("pt-BR");
 }

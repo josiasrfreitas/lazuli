@@ -60,10 +60,11 @@ export async function saveSettings(input: {
 }): Promise<FinanceSettingsView | null> {
   const { database, staffUserId, values } = input;
   const { punctualityDiscountPct, ...otherValues } = values;
-  const data = {
-    ...otherValues,
-    ...(punctualityDiscountPct === undefined ? {} : { punctualityDiscountPct }),
-  };
+  const data = Object.fromEntries(
+    Object.entries({ ...otherValues, punctualityDiscountPct }).filter(
+      ([, value]) => value !== undefined,
+    ),
+  ) as { [Key in keyof FinanceSettingsInput]: Exclude<FinanceSettingsInput[Key], undefined> };
   await database.financeSettings.upsert({
     where: { id: "singleton" },
     create: { id: "singleton", ...data, updatedById: staffUserId },

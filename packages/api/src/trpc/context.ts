@@ -1,4 +1,9 @@
-import { resolveStaffIdentity, staffRoleFromHeaders, type StaffIdentity, type StaffSession } from "@lazuli/auth";
+import {
+  resolveStaffIdentity,
+  staffRoleFromHeaders,
+  type StaffIdentity,
+  type StaffSession,
+} from "@lazuli/auth";
 import {
   createLocalReportGenerateQueue,
   type ReportGenerateQueue,
@@ -16,18 +21,18 @@ export type StaffUser = StaffIdentity;
 
 export type Context = {
   db: DbClient;
-  now?: Date;
-  reportGenerateQueue?: ReportGenerateQueue;
-  sessionGenerationQueue?: SessionsGenerateQueue;
+  now?: Date | undefined;
+  reportGenerateQueue?: ReportGenerateQueue | undefined;
+  sessionGenerationQueue?: SessionsGenerateQueue | undefined;
   staffUser: StaffUser | null;
 };
 
 type CreateTRPCContextInput = {
   headers?: Headers;
   db?: DbClient;
-  now?: Date;
-  reportGenerateQueue?: ReportGenerateQueue;
-  sessionGenerationQueue?: SessionsGenerateQueue;
+  now?: Date | undefined;
+  reportGenerateQueue?: ReportGenerateQueue | undefined;
+  sessionGenerationQueue?: SessionsGenerateQueue | undefined;
   session: StaffSession | null;
 };
 
@@ -46,7 +51,12 @@ export async function createTRPCContext(input: CreateTRPCContextInput): Promise<
   const staffUser =
     session === null
       ? null
-      : await resolveStaffUser({ db, email: session.user.email, now: input.now ?? new Date(), role: staffRoleFromHeaders(input.headers) });
+      : await resolveStaffUser({
+          db,
+          email: session.user.email,
+          now: input.now ?? new Date(),
+          role: staffRoleFromHeaders(input.headers),
+        });
 
   return {
     db,
@@ -63,7 +73,7 @@ async function resolveDefaultDb(): Promise<DbClient> {
 }
 
 async function resolveStaffUser(input: {
-  role?: string;
+  role?: string | undefined;
   db: DbClient;
   email: string;
   now: Date;

@@ -145,13 +145,21 @@ export const entryVisitGuestsSchema = z
     "Informe um único encontro.",
   );
 
-export const entryVisitCalendarSchema = z.object({
-  candidateId: z.string().uuid(),
-  from: civilDateSchema,
-  through: civilDateSchema,
-  teacherId: z.string().uuid().optional(),
-  previousVisitId: z.string().uuid().optional(),
-}).strict().refine(value => value.from <= value.through &&
-  Date.parse(value.through) - Date.parse(value.from) <= 6 * 86400000, {
-  path: ["through"], message: "Consulte até sete dias por vez.",
-});
+export const entryVisitCalendarSchema = z
+  .object({
+    candidateId: z.string().uuid(),
+    from: civilDateSchema,
+    through: civilDateSchema,
+    teacherId: z.string().uuid().optional(),
+    previousVisitId: z.string().uuid().optional(),
+  })
+  .strict()
+  .refine(
+    (value) =>
+      value.from <= value.through &&
+      Date.parse(value.through) - Date.parse(value.from) <= 6 * 86400000,
+    {
+      path: ["through"],
+      message: "Consulte até sete dias por vez.",
+    },
+  );

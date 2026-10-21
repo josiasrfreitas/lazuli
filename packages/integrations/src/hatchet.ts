@@ -2,7 +2,9 @@ import { readHatchetEnvironment } from "./hatchet/env.js";
 import { createHash } from "node:crypto";
 import type { HatchetClient } from "@hatchet-dev/typescript-sdk";
 import {
-  ASSESSMENT_FILE_WORKFLOW, assessmentFilePayloadSchema, type AssessmentFilePayload,
+  ASSESSMENT_FILE_WORKFLOW,
+  assessmentFilePayloadSchema,
+  type AssessmentFilePayload,
   SESSIONS_GENERATE_WORKFLOW,
   sessionsGeneratePayloadSchema,
   type SessionsGenerateQueue,
@@ -12,7 +14,10 @@ const DISPATCH_TIMEOUT_MS = 5000;
 const NAMESPACE_HASH_LENGTH = 16;
 export async function enqueueAssessmentFile(input: AssessmentFilePayload): Promise<void> {
   const payload = assessmentFilePayloadSchema.parse(input);
-  await boundedDispatch(async () => { const hatchet = await getHatchetClient(); await hatchet.runNoWait(ASSESSMENT_FILE_WORKFLOW, payload); });
+  await boundedDispatch(async () => {
+    const hatchet = await getHatchetClient();
+    await hatchet.runNoWait(ASSESSMENT_FILE_WORKFLOW, payload);
+  });
 }
 let client: Promise<HatchetClient> | undefined;
 

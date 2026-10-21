@@ -103,9 +103,7 @@ async function enrollmentChoice(
   const choices = await matchingClasses(database, { id: values.id, date: values.date });
   const choice = choices.find((row) => row.id === values.classId);
   if (!choice)
-    throw badRequest(
-      "Turma incompatível com o estágio ou a modalidade. Atualize a seleção.",
-    );
+    throw badRequest("Turma incompatível com o estágio ou a modalidade. Atualize a seleção.");
   if (
     candidate.studentId &&
     (values.student.mode !== "existing" || values.student.id !== candidate.studentId)

@@ -109,9 +109,7 @@ export function PedagogyStep({
       }}
     >
       {(error || periods.error || options.error) && (
-        <Alert variant="warning">
-          {error || periods.error?.message || options.error?.message}
-        </Alert>
+        <Alert variant="warning">{error || periods.error?.message || options.error?.message}</Alert>
       )}
       <FormSection title="Entrada e percurso">
         <FormRow columns={2}>

@@ -70,11 +70,13 @@ export const appointmentsRouter = router({
         })
         .strict()
         .refine(
-          ({ week, through }) => !through || (
-            through >= week &&
-            Date.parse(through) - Date.parse(week) <= 6 * 24 * 60 * 60 * 1000
-          ),
-          { path: ["through"], message: "Escolha um período de até sete dias a partir da data inicial." },
+          ({ week, through }) =>
+            !through ||
+            (through >= week && Date.parse(through) - Date.parse(week) <= 6 * 24 * 60 * 60 * 1000),
+          {
+            path: ["through"],
+            message: "Escolha um período de até sete dias a partir da data inicial.",
+          },
         ),
     )
     .query(({ ctx, input }) =>

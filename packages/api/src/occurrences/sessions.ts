@@ -41,7 +41,10 @@ function reportTeacher(session: Session) {
   return { teacher: substitute?.teacher ?? usual, substitute: Boolean(substitute) };
 }
 function canReport(context: FollowUpContext, session: Session): boolean {
-  return context.staffUser.role !== "TEACHER" || reportTeacher(session).teacher?.id === context.staffUser.id;
+  return (
+    context.staffUser.role !== "TEACHER" ||
+    reportTeacher(session).teacher?.id === context.staffUser.id
+  );
 }
 const schoolTime = new Intl.DateTimeFormat("en-GB", {
   timeZone: "America/Sao_Paulo",
@@ -124,8 +127,7 @@ export async function loadReportSession(context: FollowUpContext, id: string): P
     include: sessionInclude,
   });
   if (!row || !canReport(context, row)) invalid("Aula indisponível para este professor.");
-  if (!hasStarted(row, context.now))
-    invalid("Escolha uma aula em andamento ou que já aconteceu.");
+  if (!hasStarted(row, context.now)) invalid("Escolha uma aula em andamento ou que já aconteceu.");
   return row;
 }
 export async function occurrenceRoster(context: FollowUpContext, sessionId: string) {

@@ -1,6 +1,8 @@
+import { confirmAttendanceReview } from "./review.js";
 import {
   z,
   attendanceSettingsSchema,
+  attendanceReviewSchema,
   attendanceTokenSchema,
   attendanceNameSearchSchema,
   attendanceDeclarationSchema,
@@ -16,6 +18,16 @@ import {
   submitAttendanceDeclaration,
 } from "./public.js";
 export const studentAttendanceRouter = router({
+  review: staffProcedure
+    .input(attendanceReviewSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) =>
+        confirmAttendanceReview(
+          { database, staffUser: ctx.staffUser, now: ctx.now ?? new Date() },
+          input,
+        ),
+      ),
+    ),
   settings: adminProcedure.query(({ ctx }) =>
     ctx.db.attendanceSettings.findUnique({ where: { key: "school" } }),
   ),

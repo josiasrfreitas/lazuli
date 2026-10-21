@@ -20,8 +20,7 @@ export function getScheduleCalendarRange(window: CalendarDateWindow): CalendarDa
   assertDate(window.date);
   if (minDate) assertDate(minDate);
   if (maxDate) assertDate(maxDate);
-  if (minDate && maxDate && minDate > maxDate)
-    throw new RangeError("minDate must precede maxDate");
+  if (minDate && maxDate && minDate > maxDate) throw new RangeError("minDate must precede maxDate");
   if (dayCount !== undefined && (!Number.isSafeInteger(dayCount) || dayCount < 1))
     throw new RangeError("dayCount must be a positive integer");
   const date = clampCalendarDate(window.date, window);
@@ -41,7 +40,10 @@ export function calendarRangeDates({ from, through }: CalendarDateRange): string
 }
 
 /** Navigation shared by the built-in toolbar and consumer-owned toolbars. */
-export function getScheduleCalendarNavigation(window: CalendarDateWindow, today: string): {
+export function getScheduleCalendarNavigation(
+  window: CalendarDateWindow,
+  today: string,
+): {
   previousDate: string | null;
   nextDate: string | null;
   todayDate: string | null;
@@ -49,10 +51,14 @@ export function getScheduleCalendarNavigation(window: CalendarDateWindow, today:
   const range = getScheduleCalendarRange(window);
   const step = window.view === "day" ? 1 : (window.dayCount ?? 7);
   return {
-    previousDate: window.minDate && range.from <= window.minDate
-      ? null : clampCalendarDate(shiftDate(range.from, -step), window),
-    nextDate: window.maxDate && range.through >= window.maxDate
-      ? null : clampCalendarDate(shiftDate(range.through, 1), window),
+    previousDate:
+      window.minDate && range.from <= window.minDate
+        ? null
+        : clampCalendarDate(shiftDate(range.from, -step), window),
+    nextDate:
+      window.maxDate && range.through >= window.maxDate
+        ? null
+        : clampCalendarDate(shiftDate(range.through, 1), window),
     todayDate: calendarDateError(today, window) ? null : today,
   };
 }

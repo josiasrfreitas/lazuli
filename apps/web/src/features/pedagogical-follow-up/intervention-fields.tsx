@@ -54,7 +54,9 @@ export function InterventionFields({
             <SelectControl
               name="responsibleId"
               label="Responsável"
-              labelIcon={<UserRound aria-hidden="true" className="size-3.5 text-muted-foreground" />}
+              labelIcon={
+                <UserRound aria-hidden="true" className="size-3.5 text-muted-foreground" />
+              }
               value={values.responsibleId}
               onChange={(value) => change("responsibleId", value)}
               choices={staff.map((row) => ({ value: row.id, label: row.name }))}
@@ -79,4 +81,3 @@ export function InterventionFields({
     </FormSection>
   );
 }
-

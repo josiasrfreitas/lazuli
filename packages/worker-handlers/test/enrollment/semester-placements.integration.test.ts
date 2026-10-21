@@ -259,7 +259,7 @@ void it("returns a publication with invalidated availability to review and prese
 void it("keeps a published exit and entry atomic when the movement straddles the due-action batch boundary", async () => {
   const data = await fixture();
   const students = await db.student.createManyAndReturn({
-    data: Array.from({ length: 99 }, (unused, index) => ({ fullName: `${PREFIX}Batch ${index}` })),
+    data: Array.from({ length: 99 }, (_unused, index) => ({ fullName: `${PREFIX}Batch ${index}` })),
   });
   const enrollments = await db.enrollment.createManyAndReturn({
     data: students.map((student) => ({

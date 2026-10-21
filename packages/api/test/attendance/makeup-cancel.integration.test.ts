@@ -18,13 +18,11 @@ void it("preserves a legacy import and stamps cancellation with the versioned ap
     targetClassSessionId: f.targetId,
     scheduledById: harness.ns.admin.id,
   });
-  await harness
-    .caller(undefined, f.before)
-    .attendance.cancelMakeup({
-      makeupId,
-      expectedVersion: 0,
-      reason: "Família cancelou o horário.",
-    });
+  await harness.caller(undefined, f.before).attendance.cancelMakeup({
+    makeupId,
+    expectedVersion: 0,
+    reason: "Família cancelou o horário.",
+  });
   const row = await db.makeup.findUniqueOrThrow({
     where: { id: makeupId },
     include: { appointment: true },

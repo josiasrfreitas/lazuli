@@ -24,10 +24,14 @@ export async function individualExperimentalSessions(
       endTime: true,
       status: true,
       format: true,
-      candidate: { select: {
-        id: true, fullName: true, scheduleType: true,
-        stage: { select: { name: true } },
-      } },
+      candidate: {
+        select: {
+          id: true,
+          fullName: true,
+          scheduleType: true,
+          stage: { select: { name: true } },
+        },
+      },
       teacher: { select: { id: true, name: true } },
     },
     orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],

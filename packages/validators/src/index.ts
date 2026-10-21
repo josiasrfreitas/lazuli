@@ -256,20 +256,8 @@ export {
   type StagePlanItemInput,
   type StagePlanRemove,
 } from "./stage-planning.js";
-export * from "./class-records.js";
-export * from "./student-attendance.js";
 export * from "./appointments.js";
 export * from "./semester-organization.js";
-export {
-  financialTreatmentInstallmentsSchema,
-  financialTreatmentPreviewSchema,
-  financialTreatmentConfirmSchema,
-} from "./financial-treatments.js";
-export type {
-  FinancialTreatmentInstallments,
-  FinancialTreatmentPreview,
-  FinancialTreatmentConfirm,
-} from "./financial-treatments.js";
 
 export * from "./contract-termination.js";
 export { teachingProgramImportSchema, trackAgeGroupSchema } from "./teaching-program.js";

@@ -25,11 +25,15 @@ export function createStorage(options: {
   let bucketReady: Promise<void> | undefined;
   function prepareBucket(): Promise<void> {
     if (!options.createLocalBucket) return Promise.resolve();
-    bucketReady ??= client.send(new CreateBucketCommand({ Bucket: options.bucket }))
+    bucketReady ??= client
+      .send(new CreateBucketCommand({ Bucket: options.bucket }))
       .then(() => undefined)
       .catch((error: unknown) => {
-        if (error instanceof Error &&
-          (error.name === "BucketAlreadyOwnedByYou" || error.name === "BucketAlreadyExists")) return;
+        if (
+          error instanceof Error &&
+          (error.name === "BucketAlreadyOwnedByYou" || error.name === "BucketAlreadyExists")
+        )
+          return;
         bucketReady = undefined;
         throw error;
       });
@@ -44,11 +48,13 @@ export function createStorage(options: {
       const reference = { bucket: options.bucket, key: file.key };
       const input = objectInput(reference);
       await prepareBucket();
-      await client.send(new PutObjectCommand({
-        ...input,
-        Body: file.bytes,
-        ContentType: file.contentType,
-      }));
+      await client.send(
+        new PutObjectCommand({
+          ...input,
+          Body: file.bytes,
+          ContentType: file.contentType,
+        }),
+      );
       return reference;
     },
     async read(file) {

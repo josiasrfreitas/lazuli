@@ -48,15 +48,19 @@ export async function saveClassRecord(
       description: "Encerrou o recebimento de declarações ao confirmar o registro da aula.",
     });
   const result = await persistRecord(context, { input, state });
-  await recordActivity(context, {
-    action: input.version ? "classRecords.correct" : "classRecords.confirm",
-    subject: {
-      type: "class",
-      id: state.session.classId,
-      name: state.session.class.portalClassName,
+  await recordActivity(
+    context.database,
+    context,
+    input.version ? "classRecords.correct" : "classRecords.confirm",
+    {
+      subject: {
+        type: "class",
+        id: state.session.classId,
+        name: state.session.class.portalClassName,
+      },
+      description: recordDescription(input, state),
     },
-    description: recordDescription(input, state),
-  });
+  );
   return result;
 }
 async function prepareRecord(context: RecordContext, input: ClassRecordSave): Promise<RecordState> {

@@ -11,8 +11,15 @@ import type {
   ScheduleCalendarProps,
 } from "./schedule-calendar/types";
 import { selectionError } from "./schedule-calendar/model";
-export { getScheduleCalendarRange, getScheduleCalendarNavigation } from "./schedule-calendar/date-window";
-import { calendarDateError, clampCalendarDate, getScheduleCalendarRange } from "./schedule-calendar/date-window";
+export {
+  getScheduleCalendarRange,
+  getScheduleCalendarNavigation,
+} from "./schedule-calendar/date-window";
+import {
+  calendarDateError,
+  clampCalendarDate,
+  getScheduleCalendarRange,
+} from "./schedule-calendar/date-window";
 export type {
   CalendarDateRange,
   CalendarDateWindow,
@@ -51,9 +58,10 @@ export function ScheduleCalendar<Event extends CalendarEvent>(
 ): ReactElement {
   const [message, setMessage] = useState<string>();
   const selected = props.rangeSelection?.value;
-  useEffect(() => setMessage(undefined), [
-    props.date, props.view, selected?.date, selected?.startTime, selected?.endTime,
-  ]);
+  useEffect(
+    () => setMessage(undefined),
+    [props.date, props.view, selected?.date, selected?.startTime, selected?.endTime],
+  );
   const status = props.status ?? "ready";
   const range = getScheduleCalendarRange(props);
   const selection = props.rangeSelection && {
@@ -73,9 +81,11 @@ export function ScheduleCalendar<Event extends CalendarEvent>(
     setMessage(error);
     if (!error) selection.onSelect(range);
   }
-  const feedback = message ?? (selected
-    ? `Selecionado: ${selected.date.split("-").toReversed().join("/")}, ${selected.startTime}–${selected.endTime}.`
-    : undefined);
+  const feedback =
+    message ??
+    (selected
+      ? `Selecionado: ${selected.date.split("-").toReversed().join("/")}, ${selected.startTime}–${selected.endTime}.`
+      : undefined);
   return (
     <div
       className={cn("lz-schedule-calendar", props.className)}

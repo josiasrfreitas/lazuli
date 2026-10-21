@@ -1,7 +1,12 @@
 import { ACADEMIC_COMPETENCES, saoPauloDateOnly } from "@lazuli/domain";
 import type { AssessmentSave } from "@lazuli/validators";
 import { badRequest } from "../trpc/errors.js";
-import { assertAssessmentDateAccess, dateOnly, type AssessmentContext, type Progress } from "./data.js";
+import {
+  assertAssessmentDateAccess,
+  dateOnly,
+  type AssessmentContext,
+  type Progress,
+} from "./data.js";
 
 type GradeInput = AssessmentSave["grades"][number];
 export function gradeChanges(progress: Progress, values: AssessmentSave): GradeInput[] {

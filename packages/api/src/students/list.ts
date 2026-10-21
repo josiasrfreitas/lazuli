@@ -128,7 +128,11 @@ export async function buildRows(input: BuildRowsInput): Promise<StudentListRow[]
   const [attendanceByStudent, financeByStudent, pendingRegistration] = await Promise.all([
     readAttendanceByStudent(input),
     readFinanceByStudent(input),
-    studentsWithPendingRegistration(input.database, input.students.map(row => row.id), input.values.now),
+    studentsWithPendingRegistration(
+      input.database,
+      input.students.map((row) => row.id),
+      input.values.now,
+    ),
   ]);
 
   return input.students.map((student) => ({

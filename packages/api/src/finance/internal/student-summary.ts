@@ -11,7 +11,14 @@ type LedgerInput = Parameters<typeof ledgerQuery>[0];
 export async function readStudentSummary(
   database: FinanceDatabase,
   input: { studentId: string; now: Date },
-): Promise<StudentFinanceSummary & { asOf: string }> {
+): Promise<
+  StudentFinanceSummary & {
+    asOf: string;
+    materialNeeds: Awaited<ReturnType<typeof readMaterialNeeds>>;
+    contracts: Awaited<ReturnType<typeof readStudentContractTerms>>;
+    latestTermination: Awaited<ReturnType<typeof readLatestTermination>>;
+  }
+> {
   const student = await database.student.findUnique({
     where: { id: input.studentId },
     select: { id: true },

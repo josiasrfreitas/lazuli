@@ -23,9 +23,16 @@ export async function createTeacher(input: CreateTeacherInput): Promise<{ id: st
     select: { id: true, role: true, teacherProfile: { select: { userId: true, deletedAt: true } } },
   });
   if (existing && !existing.teacherProfile && ["ADMIN", "SYSTEM_ADMIN"].includes(existing.role)) {
-    if (existing.role === "SYSTEM_ADMIN" && input.actorRole !== "SYSTEM_ADMIN") throw badRequest("Somente um administrador do sistema pode alterar este cadastro.");
-    await assertUniqueIdentity({ database: input.database, values: input.values, exceptId: existing.id });
-    await input.database.teacherProfile.create({ data: { userId: existing.id, cpf: input.values.cpf } });
+    if (existing.role === "SYSTEM_ADMIN" && input.actorRole !== "SYSTEM_ADMIN")
+      throw badRequest("Somente um administrador do sistema pode alterar este cadastro.");
+    await assertUniqueIdentity({
+      database: input.database,
+      values: input.values,
+      exceptId: existing.id,
+    });
+    await input.database.teacherProfile.create({
+      data: { userId: existing.id, cpf: input.values.cpf },
+    });
     return { id: existing.id };
   }
   await assertUniqueIdentity({ database: input.database, values: input.values });
@@ -45,11 +52,16 @@ export async function createTeacher(input: CreateTeacherInput): Promise<{ id: st
 export async function updateTeacher(input: UpdateTeacherInput): Promise<{ id: string }> {
   const current = await input.database.user.findUnique({
     where: { id: input.values.id },
-    select: { role: true, deletedAt: true, teacherProfile: { select: { userId: true, deletedAt: true } } },
+    select: {
+      role: true,
+      deletedAt: true,
+      teacherProfile: { select: { userId: true, deletedAt: true } },
+    },
   });
   if (!current || !hasTeacherIdentity(current) || current.deletedAt)
     throw notFound("Professor não encontrado.");
-  if (current.role === "SYSTEM_ADMIN" && input.actorRole !== "SYSTEM_ADMIN") throw badRequest("Somente um administrador do sistema pode alterar este cadastro.");
+  if (current.role === "SYSTEM_ADMIN" && input.actorRole !== "SYSTEM_ADMIN")
+    throw badRequest("Somente um administrador do sistema pode alterar este cadastro.");
   await assertUniqueIdentity({
     database: input.database,
     values: input.values,

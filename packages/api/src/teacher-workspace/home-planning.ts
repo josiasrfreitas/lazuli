@@ -82,7 +82,10 @@ function pacingNotice(data: Planning, today: string): PacingNotice[] {
   const cutoff = shiftHomeDate(today, -HOME_WINDOW_DAYS);
   const latest = data.records[0];
   if (latest?.content.planItemId) {
-    const band = planningBand(data.plan?.items ?? [], today, latest.content.planItemId);
+    const band = planningBand(data.plan?.items ?? [], {
+      date: today,
+      actualItemId: latest.content.planItemId,
+    });
     if (band.actual >= 0) {
       if (band.position !== "BEHIND") return [];
       const expected = band.items.findLastIndex((item) => item.plannedOn <= cutoff);

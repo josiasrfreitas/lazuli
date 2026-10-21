@@ -1,3 +1,4 @@
+import { tokenHash } from "../../packages/api/src/student-attendance/data.js";
 import type { DatabaseClient, TransactionClient } from "../../packages/db/src/client.js";
 import type { StaffUser } from "../../packages/api/src/trpc/context.js";
 import {
@@ -201,6 +202,9 @@ async function seedEncounter(context: SeedContext, members: Member[]): Promise<v
         windowId: window.id,
         enrollmentId: member.enrollmentId,
         declaredName,
+        browserHash: tokenHash(
+          `${session.id}:${stableUuid(["seed-attendance-browser", session.id, member.enrollmentId])}`,
+        ),
         matchKind: selected ? "SELECTED" : "EXACT",
         submittedAt,
         ...declarationLocation(session.class.format === "ONLINE", submittedAt, index),

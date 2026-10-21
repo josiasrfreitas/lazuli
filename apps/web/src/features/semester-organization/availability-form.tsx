@@ -41,7 +41,8 @@ export function AvailabilityForm({
     />
   ) : (
     <TaskDialog
-      compactHeader actionSize="sm"
+      compactHeader
+      actionSize="sm"
       title="Disponibilidade do aluno"
       description="Carregando confirmações anteriores…"
       submitDisabled
@@ -101,7 +102,8 @@ function AvailabilityFields({
   });
   return (
     <TaskDialog
-      compactHeader actionSize="sm"
+      compactHeader
+      actionSize="sm"
       title="Confirmar disponibilidade"
       description={`${data.student.fullName} · semestre ${board.semester.name}`}
       formId="semester-availability"

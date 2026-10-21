@@ -57,7 +57,8 @@ export async function persistStudentCompletion(input: {
   } else {
     student = await createStudent({ database: input.database, values: input.values.student });
   }
-  if (input.values.pedagogy) await recordStudentIntake(input.database, student.id, input.staffUserId, input.values.pedagogy);
+  if (input.values.pedagogy)
+    await recordStudentIntake(input.database, student.id, input.staffUserId, input.values.pedagogy);
   return input.database.student.update({
     where: { id: student.id },
     data: { commandId: command.id, commandFingerprint: command.fingerprint },

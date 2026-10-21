@@ -27,7 +27,11 @@ export async function lockTeacher(
 export async function assertTeacherEligible(input: AssertTeacherEligibleInput): Promise<void> {
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
-    select: { role: true, deletedAt: true, teacherProfile: { select: { departureDate: true, deletedAt: true } } },
+    select: {
+      role: true,
+      deletedAt: true,
+      teacherProfile: { select: { departureDate: true, deletedAt: true } },
+    },
   });
   if (
     !teacher ||

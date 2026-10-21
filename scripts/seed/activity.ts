@@ -35,7 +35,7 @@ type ActivityInput = {
   occurredAt: Date;
   actorId: string;
   subject: ActivitySubject;
-  description?: string;
+  description?: string | undefined;
 };
 type ActivityRow = {
   id: string;

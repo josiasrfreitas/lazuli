@@ -286,11 +286,18 @@ export function StudentsPage(): ReactElement {
       <NewStudentDialog
         onCreated={(id) => {
           setCreating(false);
-          if (resuming) { setResuming(null); void students.refetch(); }
-          else openStudent(id);
+          if (resuming) {
+            setResuming(null);
+            void students.refetch();
+          } else openStudent(id);
         }}
         existingStudentId={resuming ?? undefined}
-        onOpenChange={open => { if (!open) { setCreating(false); setResuming(null); } }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreating(false);
+            setResuming(null);
+          }
+        }}
         open={creating || Boolean(resuming)}
       />
     </>

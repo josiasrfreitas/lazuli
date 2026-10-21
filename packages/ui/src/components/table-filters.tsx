@@ -178,24 +178,24 @@ export function TableFilters({ fields, onClearAll }: TableFiltersProps): ReactEl
           ))}
         {secondary.length > 0 && (
           <div className="inline-flex max-w-full items-center">
-          <MoreFilters fields={secondary} activeCount={activeSecondaryCount} />
-          <Tooltip>
-            <TooltipTrigger
-              aria-label="Limpar todos os filtros"
-              render={
-                <Button
-                  variant="secondary"
-                  size="icon-sm"
-                  className="rounded-l-none text-muted-foreground hover:bg-accent-hover hover:text-destructive"
-                  disabled={active.length === 0}
-                  onClick={onClearAll}
-                >
-                  <X aria-hidden="true" />
-                </Button>
-              }
-            />
-            <TooltipContent>Limpar todos os filtros</TooltipContent>
-          </Tooltip>
+            <MoreFilters fields={secondary} activeCount={activeSecondaryCount} />
+            <Tooltip>
+              <TooltipTrigger
+                aria-label="Limpar todos os filtros"
+                render={
+                  <Button
+                    variant="secondary"
+                    size="icon-sm"
+                    className="rounded-l-none text-muted-foreground hover:bg-accent-hover hover:text-destructive"
+                    disabled={active.length === 0}
+                    onClick={onClearAll}
+                  >
+                    <X aria-hidden="true" />
+                  </Button>
+                }
+              />
+              <TooltipContent>Limpar todos os filtros</TooltipContent>
+            </Tooltip>
           </div>
         )}
       </div>

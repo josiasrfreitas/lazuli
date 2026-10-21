@@ -93,7 +93,11 @@ function SelectionField({
         id={`${id}-${name}`}
         type={name === "date" ? "date" : "time"}
         size="sm"
-        min={name === "date" ? [minDate, selection.minimum?.date].filter(Boolean).sort().at(-1) : undefined}
+        min={
+          name === "date"
+            ? [minDate, selection.minimum?.date].filter(Boolean).sort().at(-1)
+            : undefined
+        }
         max={name === "date" ? maxDate : undefined}
         value={field.value}
         disabled={disabled}

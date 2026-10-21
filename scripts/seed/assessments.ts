@@ -6,7 +6,6 @@ import {
   isoOf,
   requireValue,
   stableUuid,
-  utcDate,
 } from "../../packages/db/src/seed-dev-support.js";
 import {
   ACADEMIC_COMPETENCES,

@@ -38,7 +38,10 @@ export type AppointmentRow = Prisma.PedagogicalAppointmentGetPayload<{
   include: typeof appointmentInclude;
 }>;
 export type AbsenceSource = Prisma.AttendanceGetPayload<{ include: typeof sourceInclude }>;
-export type AppointmentAssignment = Pick<AppointmentRow, "targetClassSession" | "recordedAt" | "teacher">;
+export type AppointmentAssignment = Pick<
+  AppointmentRow,
+  "targetClassSession" | "recordedAt" | "teacher"
+>;
 export function appointmentTeacher(row: AppointmentAssignment) {
   return row.targetClassSession && !row.recordedAt
     ? responsibleTeacher(row.targetClassSession)

@@ -371,7 +371,6 @@ Final browser confirmation: ADMIN received HTTP 403 on `finance.saveSettings`, a
 its material form exposed name, track and lesson count, with no price control. Desktop capture:
 `tmp/materials-workshop/catalog-global-price.png`. No stored price was changed for validation.
 
-
 ## Final owner corrections: stages, pricing bands and external review
 
 The owner renamed the catalog to **Estágios**. Navigation, metadata, search, empty states and
@@ -405,6 +404,7 @@ projection. Test suites, lint, typecheck and build remain unexecuted per the own
 instruction. Formatting and `git diff --check` completed.
 
 Review examples:
+
 - Regular: `/turmas/1bf6c4d1-8eaa-a69d-6761-1afaa0402e18?secao=planejamento` (REG 14:00).
 - PPT: `/alunos/ed109528-32f1-1f06-fb75-381bb3ad838f?secao=planejamento&percurso=fcdfb1ca-42c2-1197-d68c-7b1575cb3a4f`
   (João Pedro, Essentials 2). These are existing fixture plans, not imported 40h/50h programs.
@@ -416,7 +416,6 @@ At 1280×800 the stage header displayed 6 × R$136.00 and R$734.40 cash; its onl
 HTTP 403 on full settings reads. The stage dialog had name, track and lesson count, with no review
 checkbox. Capture: `tmp/materials-workshop/stages-final-prices.png`. Settings submission with a
 SYSTEM_ADMIN session remains unverified in the browser; no account role was changed for validation.
-
 
 ## Planning correction: preserve owner headers and support complete reading flows
 
@@ -440,6 +439,7 @@ carrying the same plan through transfer. Teacher access also respects responsibi
 recorded session. No peer/student attendance snapshots are returned with the projection.
 
 Review flows:
+
 1. Open Turma → Planejamento, with the original presentation card intact. Scan expected and last
    recorded pages and the date of that evidence. The initial list prioritizes today/future work when
    available. Switch to all or prior dates when reviewing history.

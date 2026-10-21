@@ -7,7 +7,8 @@ function isEmpty(props: ScheduleCalendarProps): boolean {
   return !props.events.some((event) => event.date >= from && event.date <= through);
 }
 function EmptyMessage(props: ScheduleCalendarProps): ReactElement | null {
-  if ((props.status && props.status !== "ready") || !isEmpty(props) || props.rangeSelection?.value) return null;
+  if ((props.status && props.status !== "ready") || !isEmpty(props) || props.rangeSelection?.value)
+    return null;
   const fallback = props.rangeSelection
     ? "Sem compromissos visíveis neste período. Escolha um horário livre."
     : "Nenhum compromisso neste período.";

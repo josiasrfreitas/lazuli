@@ -81,7 +81,7 @@ export const NarrowContainer: Story = {
   ),
 };
 export const Loading: Story = {
-  render: (args) => <TimelineSkeleton layout={args.layout} />,
+  render: (args) => <TimelineSkeleton layout={args.layout ?? "single"} />,
 };
 export const Empty: Story = {
   args: { groups: [], emptyState: <p>Nenhuma atividade neste período.</p> },

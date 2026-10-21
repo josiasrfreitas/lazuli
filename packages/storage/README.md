@@ -16,12 +16,12 @@ The first upload creates the workspace bucket automatically. Workspace setup wri
 older worktrees fall back to a stable bucket derived from the isolated database identity.
 Run `docker compose up -d s3` once from a checkout containing this service; it is shared per machine.
 
-| Variable | Development | Production |
-| --- | --- | --- |
-| `S3_BUCKET` | Workspace bucket, or derived from `DATABASE_URL` | Required, pre-provisioned private bucket |
-| `S3_ENDPOINT` | Defaults to `http://localhost:9090` | Omit for AWS S3 |
-| `AWS_REGION` | Defaults to `us-east-1` | Region containing the bucket |
-| AWS credentials | Fixed dummy credentials | SDK credential chain, preferably IAM role |
+| Variable        | Development                                      | Production                                |
+| --------------- | ------------------------------------------------ | ----------------------------------------- |
+| `S3_BUCKET`     | Workspace bucket, or derived from `DATABASE_URL` | Required, pre-provisioned private bucket  |
+| `S3_ENDPOINT`   | Defaults to `http://localhost:9090`              | Omit for AWS S3                           |
+| `AWS_REGION`    | Defaults to `us-east-1`                          | Region containing the bucket              |
+| AWS credentials | Fixed dummy credentials                          | SDK credential chain, preferably IAM role |
 
 Production requires `s3:PutObject`, `s3:GetObject`, and `s3:DeleteObject` on the application prefix.
 Bucket provisioning, public-access blocking, encryption and retention belong to infrastructure;

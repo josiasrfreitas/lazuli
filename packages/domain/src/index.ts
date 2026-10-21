@@ -139,11 +139,7 @@ export {
 } from "./student-attendance.js";
 export * from "./compensated-attendance.js";
 export * from "./semester-organization.js";
-export {
-  studentFinanceSummary,
-  type StudentFinanceSummary,
-  type StudentSettlement,
-} from "./student-finance.js";
+export { type StudentSettlement } from "./student-finance.js";
 
 export { normalizeSearch } from "./search.js";
 
@@ -159,4 +155,3 @@ export {
   type TeachingProgramImport,
 } from "./teaching-program.js";
 export { studentPendingActions, type PendingAction } from "./pending-actions.js";
-export { planningBand } from "./planning-band.js";

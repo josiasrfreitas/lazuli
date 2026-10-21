@@ -177,15 +177,17 @@ function IdentitySection(props: FieldsProps & { nameField?: ReactNode }): ReactE
 
   return (
     <FormSection title="Identificação">
-      {props.nameField ?? <TextField
-        error={errors.fullName}
-        label="Nome completo"
-        name="fullName"
-        onChange={onFieldChange}
-        placeholder="Como está no documento"
-        required
-        value={fields.fullName}
-      />}
+      {props.nameField ?? (
+        <TextField
+          error={errors.fullName}
+          label="Nome completo"
+          name="fullName"
+          onChange={onFieldChange}
+          placeholder="Como está no documento"
+          required
+          value={fields.fullName}
+        />
+      )}
       <FormRow columns={2}>
         <BirthDateField {...props} />
         <DocumentFields {...props} />
@@ -248,10 +250,19 @@ export function DadosStep(props: DadosStepProps): ReactElement {
   );
 }
 
-export function IntakeStudentFields(props: Omit<DadosStepProps, "onSubmit"> & { nameField: ReactNode }) {
-  return <div className="grid gap-5">
-    <IdentitySection {...props} />
-    <ContactSection {...props} />
-    <GuardianSection {...props} minor={props.minor} open={props.guardianOpen} onToggle={props.onGuardianToggle} />
-  </div>;
+export function IntakeStudentFields(
+  props: Omit<DadosStepProps, "onSubmit"> & { nameField: ReactNode },
+) {
+  return (
+    <div className="grid gap-5">
+      <IdentitySection {...props} />
+      <ContactSection {...props} />
+      <GuardianSection
+        {...props}
+        minor={props.minor}
+        open={props.guardianOpen}
+        onToggle={props.onGuardianToggle}
+      />
+    </div>
+  );
 }

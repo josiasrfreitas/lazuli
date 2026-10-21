@@ -168,12 +168,11 @@ export async function changePlanStatus(
     });
     if (!preparing)
       generationRequestId = (
-        await requestSessionGeneration(
-          context.database,
-          { classId },
-          context.staffUser.id,
-          context.now,
-        )
+        await requestSessionGeneration(context.database, {
+          scope: { classId },
+          requestedById: context.staffUser.id,
+          now: context.now,
+        })
       ).id;
   } else if (classId) {
     const active = await context.database.enrollment.count({

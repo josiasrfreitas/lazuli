@@ -19,6 +19,8 @@ type Database = Pick<
   | "classSession"
   | "attendance"
   | "makeup"
+  | "classSessionRecord"
+  | "attendanceWindow"
 >;
 type ListInput = z.infer<typeof classListInputSchema>;
 

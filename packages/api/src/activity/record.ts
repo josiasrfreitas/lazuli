@@ -1,18 +1,18 @@
-import type { Prisma } from "@lazuli/db";
+import type { Prisma, TransactionClient } from "@lazuli/db";
 import type { Context, StaffUser } from "../trpc/context.js";
 import { ACTIVITY_ACTIONS, type ActivityAction } from "./catalog.js";
 
 export type ActivitySubject = {
   type: "student" | "class" | "teacher" | "lead" | "contract" | "receivable" | "payer" | "school";
-  id?: string;
+  id?: string | undefined;
   name: string;
 };
 export type ActivityDetails = {
   subject: ActivitySubject;
-  description?: string;
-  deduplicationKey?: string;
+  description?: string | undefined;
+  deduplicationKey?: string | undefined;
 };
-type ActorContext = { staffUser: StaffUser; now?: Date };
+type ActorContext = { staffUser: StaffUser; now?: Date | undefined };
 
 /** The caller owns the transaction; failed business operations cannot leave a success event. */
 export async function recordActivity(
@@ -47,10 +47,10 @@ export async function recordActivity(
 export async function activityTransaction<T>(
   context: ActorContext & { db: Context["db"] },
   action: ActivityAction,
-  work: (database: Prisma.TransactionClient) => Promise<T>,
+  work: (database: TransactionClient) => Promise<T>,
   describe: (
     result: T,
-    database: Prisma.TransactionClient,
+    database: TransactionClient,
   ) => ActivityDetails | null | Promise<ActivityDetails | null>,
   options?: { timeout?: number; isolationLevel?: Prisma.TransactionIsolationLevel },
 ): Promise<T> {

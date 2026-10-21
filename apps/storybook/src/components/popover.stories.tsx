@@ -136,7 +136,9 @@ export const CompactNavigation: Story = {
   },
   render: (args) => (
     <Popover>
-      <PopoverTrigger render={<Button variant="ghost" size="icon" aria-label="Open navigation" />}>
+      <PopoverTrigger
+        render={<Button variant="ghost" size="icon-md" aria-label="Open navigation" />}
+      >
         <Menu aria-hidden="true" />
       </PopoverTrigger>
       <PopoverContent {...args} align="start" aria-label="Navigation">

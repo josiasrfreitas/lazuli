@@ -40,7 +40,7 @@ const ISO_DATE_LENGTH = 10;
 const DEFAULT_PAGE_SIZE = 25;
 
 async function command<T>(
-  context: { db: Context["db"]; staffUser: StaffUser; now?: Date },
+  context: { db: Context["db"]; staffUser: StaffUser; now?: Date | undefined },
   action: ActivityAction,
   work: (tx: Prisma.TransactionClient) => Promise<T>,
   describe: (result: T, database: Prisma.TransactionClient) => Promise<ActivityDetails>,

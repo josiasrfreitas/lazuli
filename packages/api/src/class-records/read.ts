@@ -44,7 +44,9 @@ export async function listClassRecords(
     summarizeSession(session, {
       now: context.now,
       leadGuests: guests.get(session.id)?.leads ?? [],
-      guestCount: (guests.get(session.id)?.appointments.length ?? 0) + (guests.get(session.id)?.leads.length ?? 0),
+      guestCount:
+        (guests.get(session.id)?.appointments.length ?? 0) +
+        (guests.get(session.id)?.leads.length ?? 0),
     }),
   );
 }
@@ -55,7 +57,11 @@ function recordState(session: RecordSession, now: Date): SessionSummary["state"]
 }
 function summarizeSession(
   session: RecordSession,
-  { now, guestCount, leadGuests = [] }: { now: Date; guestCount: number; leadGuests?: SessionLeadGuest[] },
+  {
+    now,
+    guestCount,
+    leadGuests = [],
+  }: { now: Date; guestCount: number; leadGuests?: SessionLeadGuest[] },
 ): SessionSummary {
   const teacher = responsibleTeacher(session);
   return {
@@ -106,7 +112,11 @@ export async function readClassRecord(
   );
   const guestContext = (await sessionGuests(context, [session])).get(session.id);
   const guests = guestContext?.appointments ?? [];
-  const summary = summarizeSession(session, { now: context.now, guestCount: guests.length + (guestContext?.leads.length ?? 0), leadGuests: guestContext?.leads ?? [] });
+  const summary = summarizeSession(session, {
+    now: context.now,
+    guestCount: guests.length + (guestContext?.leads.length ?? 0),
+    leadGuests: guestContext?.leads ?? [],
+  });
   return {
     guests,
     leadGuests: guestContext?.leads ?? [],
@@ -193,7 +203,9 @@ export async function pendingClassRecords(
       summarizeSession(session, {
         now: context.now,
         leadGuests: guests.get(session.id)?.leads ?? [],
-      guestCount: (guests.get(session.id)?.appointments.length ?? 0) + (guests.get(session.id)?.leads.length ?? 0),
+        guestCount:
+          (guests.get(session.id)?.appointments.length ?? 0) +
+          (guests.get(session.id)?.leads.length ?? 0),
       }),
     ),
     total: visible.length,

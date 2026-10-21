@@ -4,7 +4,7 @@ import { after, before, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
 
-import { generateClassSessions, processSessionGeneration } from "../src/index.js";
+import { generateClassSessions } from "../src/index.js";
 
 const TEST_PREFIX = "GRE-65 Sessions ";
 const TEACHER_ID = "00000000-0000-0000-0000-000000006501";

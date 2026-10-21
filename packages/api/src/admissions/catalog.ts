@@ -8,15 +8,18 @@ export async function admissionStages(database: Prisma.TransactionClient) {
     orderBy: [{ track: { name: "asc" } }, { sequence: "asc" }],
   });
   const tracks = new Set<string>();
-  return stages.map(stage => {
+  return stages.map((stage) => {
     const initial = !tracks.has(stage.trackId);
     tracks.add(stage.trackId);
     return { id: stage.id, name: stage.name, track: stage.track.name, initial };
   });
 }
 
-export async function assertInitialStage(database: Prisma.TransactionClient, stageId: string | null) {
+export async function assertInitialStage(
+  database: Prisma.TransactionClient,
+  stageId: string | null,
+) {
   const stages = await admissionStages(database);
-  if (!stages.some(stage => stage.id === stageId && stage.initial))
+  if (!stages.some((stage) => stage.id === stageId && stage.initial))
     throw badRequest("Escolha o primeiro estágio de uma track para quem está começando.");
 }

@@ -202,13 +202,11 @@ model User {
   assessmentsCreated StageAssessment[] @relation("AssessmentCreator")
   assessmentsConfirmed StageAssessment[] @relation("AssessmentConfirmer")
   gradesRecorded AssessmentGrade[] @relation("GradeRecorder")
-  activities ActivityEvent[]
   pedagogicalOccurrences PedagogicalOccurrence[] @relation("OccurrenceAuthor")
   assignedInterventions PedagogicalIntervention[] @relation("InterventionOwner")
   createdInterventions PedagogicalIntervention[] @relation("InterventionAuthor")
   pedagogicalFollowUps PedagogicalFollowUp[]
   occurrenceRelations OccurrenceRelation[]
-  recordedClassRevisions ClassSessionRecordRevision[] @relation("ClassRecordAuthor")
   assignedAppointments PedagogicalAppointment[] @relation("AppointmentTeacher")
   scheduledAppointments PedagogicalAppointment[] @relation("AppointmentScheduler")
   recordedAppointments PedagogicalAppointment[] @relation("AppointmentRecorder")
@@ -391,6 +389,7 @@ model ProductLine {
 }
 
 model Class {
+  nextClasses   Class[]             @relation("ClassLineage")
   id                      String            @id @default(uuid()) @db.Uuid
   createdAt               DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt               DateTime          @updatedAt @map("updated_at") @db.Timestamptz
@@ -411,7 +410,6 @@ model Class {
   sharedStage   Stage?              @relation(fields: [sharedStageId], references: [id])
   semester      Semester            @relation(fields: [semesterId], references: [id])
   previousClass Class?              @relation("ClassLineage", fields: [previousClassId], references: [id])
-  nextClasses   Class[]             @relation("ClassLineage")
   scheduleSlots ClassScheduleSlot[]
   sessions           ClassSession[]
   teacherAssignments ClassTeacherAssignment[]
@@ -484,7 +482,6 @@ model Stage {
   stagePlans StagePlan[]
   admissionCandidates AdmissionCandidate[]
   assessments StageAssessment[]
-  plans StagePlan[]
   semesterClassPlans SemesterClassPlan[]
   semesterPlacements SemesterPlacement[]
   placementResults EntryVisitAssessment[]
@@ -523,6 +520,7 @@ model Enrollment {
 }
 
 model EnrollmentAction {
+  corrections      EnrollmentAction[] @relation("EnrollmentActionCorrections")
   semesterEntries SemesterPlacement[] @relation("SemesterPlacementEntry")
   semesterExits SemesterPlacement[] @relation("SemesterPlacementExit")
   exitReason EnrollmentExitReason? @map("exit_reason")
@@ -547,7 +545,6 @@ model EnrollmentAction {
   recordedBy       User              @relation("EnrollmentActionRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
   cancelledBy      User?             @relation("EnrollmentActionCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)
   correctionOf     EnrollmentAction? @relation("EnrollmentActionCorrections", fields: [correctionOfId], references: [id], onDelete: Restrict)
-  corrections      EnrollmentAction[] @relation("EnrollmentActionCorrections")
 
   @@index([enrollmentId, effectiveDate])
   @@index([status, effectiveDate])
@@ -788,10 +785,10 @@ model Payer {
 }
 
 model Contract {
+  renewals Contract[] @relation("ContractRenewal")
   nextMaterialPurchaseOn DateTime? @map("next_material_purchase_on") @db.Date
   renewedFromId String? @map("renewed_from_id") @db.Uuid
   renewedFrom Contract? @relation("ContractRenewal", fields: [renewedFromId], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  renewals Contract[] @relation("ContractRenewal")
   @@index([renewedFromId])
   terminatedAt DateTime? @map("terminated_at") @db.Timestamptz
   terminationCommandId String? @unique @map("termination_command_id") @db.Uuid
@@ -1346,6 +1343,7 @@ model AdmissionAvailability {
 }
 
 model EntryVisit {
+  nextVisit EntryVisit? @relation("EntryVisitReschedule")
   id String @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
@@ -1373,7 +1371,6 @@ model EntryVisit {
   scheduleSlot ClassScheduleSlot? @relation(fields: [scheduleSlotId], references: [id], onDelete: Restrict)
   classSession ClassSession? @relation(fields: [classSessionId], references: [id], onDelete: Restrict)
   previousVisit EntryVisit? @relation("EntryVisitReschedule", fields: [previousVisitId], references: [id], onDelete: Restrict)
-  nextVisit EntryVisit? @relation("EntryVisitReschedule")
   assessment EntryVisitAssessment?
 
   @@index([candidateId, date])
@@ -1577,6 +1574,7 @@ enum AppointmentStatus {
 }
 
 model PedagogicalAppointment {
+  rescheduledTo PedagogicalAppointment? @relation("AppointmentRescheduling")
   assessmentFiles AssessmentFile[]
   id String @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
@@ -1612,7 +1610,6 @@ model PedagogicalAppointment {
   targetClassSession ClassSession? @relation(fields: [targetClassSessionId], references: [id], onDelete: Restrict)
   legacyMakeup Makeup? @relation(fields: [legacyMakeupId], references: [id], onDelete: Restrict)
   rescheduledFrom PedagogicalAppointment? @relation("AppointmentRescheduling", fields: [rescheduledFromId], references: [id], onDelete: Restrict)
-  rescheduledTo PedagogicalAppointment? @relation("AppointmentRescheduling")
   scheduledBy User? @relation("AppointmentScheduler", fields: [scheduledById], references: [id], onDelete: Restrict)
   recordedBy User? @relation("AppointmentRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
   cancelledBy User? @relation("AppointmentCanceller", fields: [cancelledById], references: [id], onDelete: Restrict)

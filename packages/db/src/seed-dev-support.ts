@@ -89,7 +89,7 @@ export function requireValue<T>(value: T | undefined, label: string): T {
 export function enrollmentEntryIso(input: {
   semesterStartIso: string;
   todayIso: string;
-  entryOffsetDays?: number;
+  entryOffsetDays?: number | undefined;
 }): string {
   const proposed = isoOf(addDays(utcDate(input.semesterStartIso), input.entryOffsetDays ?? 0));
   return proposed < input.todayIso ? proposed : input.todayIso;

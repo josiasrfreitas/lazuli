@@ -12,14 +12,12 @@ after(async () => {
 
 void it("schedules the compatibility makeup with verified origins, same-day notice and attributed appointment evidence", async () => {
   const f = await appointmentFixture(harness);
-  const result = await harness
-    .caller(undefined, f.before)
-    .attendance.scheduleMakeup({
-      originEnrollmentId: f.enrollmentId,
-      targetClassSessionId: f.targetId,
-      coverages: f.input.coverages,
-      plannedContent: "Revisão orientada.",
-    });
+  const result = await harness.caller(undefined, f.before).attendance.scheduleMakeup({
+    originEnrollmentId: f.enrollmentId,
+    targetClassSessionId: f.targetId,
+    coverages: f.input.coverages,
+    plannedContent: "Revisão orientada.",
+  });
   const row = await db.makeup.findUniqueOrThrow({
     where: { id: result.makeupId },
     include: { appointment: true },
@@ -35,13 +33,11 @@ void it("schedules the compatibility makeup with verified origins, same-day noti
     1,
   );
   await assert.rejects(
-    harness
-      .caller(undefined, f.before)
-      .attendance.scheduleMakeup({
-        originEnrollmentId: f.enrollmentId,
-        targetClassSessionId: f.targetId,
-        coverages: f.input.coverages,
-      }),
+    harness.caller(undefined, f.before).attendance.scheduleMakeup({
+      originEnrollmentId: f.enrollmentId,
+      targetClassSessionId: f.targetId,
+      coverages: f.input.coverages,
+    }),
     { code: "BAD_REQUEST", message: /Já existe/ },
   );
 });
@@ -84,12 +80,10 @@ void it("rejects unknown and foreign origins and an overlap with the student's o
     { code: "NOT_FOUND" },
   );
   await assert.rejects(
-    harness
-      .caller(undefined, f.before)
-      .attendance.scheduleMakeup({
-        ...input,
-        coverages: [{ attendanceId: randomUUID(), minutes: 120 }],
-      }),
+    harness.caller(undefined, f.before).attendance.scheduleMakeup({
+      ...input,
+      coverages: [{ attendanceId: randomUUID(), minutes: 120 }],
+    }),
     { code: "BAD_REQUEST", message: /matrícula de origem/ },
   );
   const ownSession = await harness.createSession({
@@ -97,13 +91,11 @@ void it("rejects unknown and foreign origins and an overlap with the student's o
     date: harness.ns.afterSessionDate,
   });
   await assert.rejects(
-    harness
-      .caller(undefined, f.before)
-      .attendance.scheduleMakeup({
-        ...input,
-        targetClassSessionId: ownSession,
-        reason: "Aula extra",
-      }),
+    harness.caller(undefined, f.before).attendance.scheduleMakeup({
+      ...input,
+      targetClassSessionId: ownSession,
+      reason: "Aula extra",
+    }),
     { code: "BAD_REQUEST", message: /aluno já tem aula/ },
   );
   assert.equal(await db.makeup.count({ where: { originEnrollmentId: f.enrollmentId } }), 0);
@@ -111,13 +103,11 @@ void it("rejects unknown and foreign origins and an overlap with the student's o
 void it("keeps scheduling administrative", async () => {
   const f = await appointmentFixture(harness);
   await assert.rejects(
-    harness
-      .caller(harness.ns.teacher, f.before)
-      .attendance.scheduleMakeup({
-        originEnrollmentId: f.enrollmentId,
-        targetClassSessionId: f.targetId,
-        coverages: f.input.coverages,
-      }),
+    harness.caller(harness.ns.teacher, f.before).attendance.scheduleMakeup({
+      originEnrollmentId: f.enrollmentId,
+      targetClassSessionId: f.targetId,
+      coverages: f.input.coverages,
+    }),
     { code: "FORBIDDEN" },
   );
   assert.equal(await db.makeup.count({ where: { originEnrollmentId: f.enrollmentId } }), 0);

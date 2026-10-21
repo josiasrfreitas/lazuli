@@ -9,8 +9,7 @@ export function calendarCardNeedsExpansion(element: HTMLElement): boolean {
   const nodes = [content, ...content.querySelectorAll<HTMLElement>("*")];
   return nodes.some((node) => {
     if (!(node instanceof HTMLElement) || !node.textContent?.trim()) return false;
-    if (!node.getClientRects().length)
-      return node.hasAttribute("data-calendar-detail");
+    if (!node.getClientRects().length) return node.hasAttribute("data-calendar-detail");
     return node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1;
   });
 }

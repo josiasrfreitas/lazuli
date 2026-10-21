@@ -44,12 +44,11 @@ export const attendanceRouter = router({
         "attendance.confirmSession",
         async (database) => {
           await assertAttendanceOnlyWrite(database, input.sessionId);
-          const closedWindows = await closeAttendanceWindows(
-            database,
-            input.sessionId,
-            ctx.staffUser.id,
-            ctx.now ?? new Date(),
-          );
+          const closedWindows = await closeAttendanceWindows(database, {
+            sessionId: input.sessionId,
+            userId: ctx.staffUser.id,
+            now: ctx.now ?? new Date(),
+          });
           if (closedWindows > 0)
             await recordActivity(database, ctx, "studentAttendance.close", {
               subject: await sessionSubject(database, input.sessionId),
@@ -82,40 +81,34 @@ export const attendanceRouter = router({
       async (_result, database) => ({ subject: await sessionSubject(database, input.sessionId) }),
     ),
   ),
-  scheduleMakeup: adminProcedure
-    .input(makeupScheduleInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        scheduleMakeup({
-          database,
-          staffUser: ctx.staffUser,
-          values: input,
-          now: ctx.now ?? new Date(),
-        }),
-      ),
+  scheduleMakeup: adminProcedure.input(makeupScheduleInputSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) =>
+      scheduleMakeup({
+        database,
+        staffUser: ctx.staffUser,
+        values: input,
+        now: ctx.now ?? new Date(),
+      }),
     ),
-  cancelMakeup: adminProcedure
-    .input(makeupCancelInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        cancelMakeup({
-          database,
-          staffUser: ctx.staffUser,
-          values: input,
-          now: ctx.now ?? new Date(),
-        }),
-      ),
+  ),
+  cancelMakeup: adminProcedure.input(makeupCancelInputSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) =>
+      cancelMakeup({
+        database,
+        staffUser: ctx.staffUser,
+        values: input,
+        now: ctx.now ?? new Date(),
+      }),
     ),
-  markMakeupOutcome: staffProcedure
-    .input(makeupOutcomeInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        markMakeupOutcome({
-          database,
-          staffUser: ctx.staffUser,
-          values: input,
-          now: ctx.now ?? new Date(),
-        }),
-      ),
+  ),
+  markMakeupOutcome: staffProcedure.input(makeupOutcomeInputSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) =>
+      markMakeupOutcome({
+        database,
+        staffUser: ctx.staffUser,
+        values: input,
+        now: ctx.now ?? new Date(),
+      }),
     ),
+  ),
 });

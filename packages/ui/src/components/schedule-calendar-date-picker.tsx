@@ -21,7 +21,7 @@ function moveMonth(date: string, delta: number): string {
   return value.toISOString().slice(0, DATE_LENGTH);
 }
 type PickerProps = {
-  trigger?: ReactElement;
+  trigger?: ReactElement | undefined;
   minDate?: string | undefined;
   maxDate?: string | undefined;
   date: string;
@@ -133,7 +133,12 @@ export function ScheduleCalendarDatePicker(props: PickerProps): ReactElement {
       )}
       <PopoverContent size="md" showArrow={false} align="start">
         <div className="grid gap-3">
-          <MonthHeader month={month} minDate={props.minDate} maxDate={props.maxDate} onChange={setMonth} />
+          <MonthHeader
+            month={month}
+            minDate={props.minDate}
+            maxDate={props.maxDate}
+            onChange={setMonth}
+          />
           <MonthGrid month={month} props={props} onSelect={select} />
           <Button
             type="button"

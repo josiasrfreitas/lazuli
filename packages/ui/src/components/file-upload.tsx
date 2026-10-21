@@ -9,22 +9,22 @@ import { Button } from "./button";
 export type FileUploadProps = {
   value: File[];
   onValueChange: (files: File[]) => void;
-  accept?: string;
-  acceptLabel?: string;
+  accept?: string | undefined;
+  acceptLabel?: string | undefined;
   maxSize: number;
-  multiple?: boolean;
-  maxFiles?: number;
-  disabled?: boolean;
+  multiple?: boolean | undefined;
+  maxFiles?: number | undefined;
+  disabled?: boolean | undefined;
   /** Upload progress must come from the transport; omit for an indeterminate transfer. */
-  progress?: number;
-  status?: "idle" | "uploading" | "success";
-  statusLabel?: string;
-  error?: string;
-  onValidationError?: (message: string) => void;
-  camera?: boolean;
-  className?: string;
+  progress?: number | undefined;
+  status?: ("idle" | "uploading" | "success") | undefined;
+  statusLabel?: string | undefined;
+  error?: string | undefined;
+  onValidationError?: ((message: string) => void) | undefined;
+  camera?: boolean | undefined;
+  className?: string | undefined;
   /** An inline picker for files attached to an existing form row. */
-  compact?: boolean;
+  compact?: boolean | undefined;
 };
 
 export function formatFileSize(bytes: number): string {

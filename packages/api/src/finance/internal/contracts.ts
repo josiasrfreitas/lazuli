@@ -83,7 +83,7 @@ async function readyTerms(input: {
         where: {
           id: values.renewedFromId,
           deletedAt: null,
-          studentId: values.studentId,
+          ...(values.studentId === undefined ? {} : { studentId: values.studentId }),
           terminatedAt: null,
         },
       })
@@ -295,7 +295,8 @@ export async function listContracts(
       searchIds(database, "Student", options.query),
       searchIds(database, "Payer", options.query),
     ]);
-    where.OR = students ? [{ student: { id: students } }, { payer: { id: payers } }] : undefined;
+    if (students !== undefined && payers !== undefined)
+      where.OR = [{ student: { id: students } }, { payer: { id: payers } }];
   }
   if (options.status) {
     const match = await contractStatusPage(database, { ...options, status: options.status, now });

@@ -1,9 +1,5 @@
 import type { Prisma } from "@lazuli/db";
-import {
-  intervalsOverlap,
-  responsibleTeacherId,
-  sessionEndInstant,
-} from "@lazuli/domain";
+import { intervalsOverlap, responsibleTeacherId, sessionEndInstant } from "@lazuli/domain";
 import type { entryVisitScheduleSchema, entryVisitOutcomeSchema, z } from "@lazuli/validators";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
@@ -13,12 +9,7 @@ import {
 } from "../teachers/availability.js";
 import { meetingKey, meetingsBetween } from "../teachers/schedule.js";
 import { dateToTimeString, timeStringToDate } from "../classes/time.js";
-import {
-  dateOnly,
-  lockCandidate,
-  readCandidate,
-  type AdmissionCandidate,
-} from "./candidates.js";
+import { dateOnly, lockCandidate, readCandidate, type AdmissionCandidate } from "./candidates.js";
 
 type ScheduleInput = {
   database: Prisma.TransactionClient;
@@ -41,10 +32,18 @@ async function resolveVisit(input: ScheduleInput): Promise<ResolvedVisit> {
   const meeting = values.meeting;
   if (meeting.kind === "INTRODUCTION")
     return resolveIntroduction({ database, values: { ...values, meeting } });
-  const target = await database.class.findFirst({ where: {
-    id: meeting.classId, deletedAt: null, status: "ACTIVE",
-    semester: { deletedAt: null, startDate: { lte: new Date(values.date) }, endDate: { gte: new Date(values.date) } },
-  } });
+  const target = await database.class.findFirst({
+    where: {
+      id: meeting.classId,
+      deletedAt: null,
+      status: "ACTIVE",
+      semester: {
+        deletedAt: null,
+        startDate: { lte: new Date(values.date) },
+        endDate: { gte: new Date(values.date) },
+      },
+    },
+  });
   if (!target) throw badRequest("Escolha uma turma ativa nesta data.");
   const rows = await meetingsBetween({ database, from: values.date, through: values.date, now });
   const match = rows.find(

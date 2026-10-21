@@ -1,3 +1,4 @@
+import { attendanceReviewRestriction } from "./review.js";
 import { PRESENTIAL_WINDOW_MINUTES, ONLINE_WINDOW_MINUTES } from "@lazuli/validators";
 import type { AttendanceStatus, OpenedWindow, SchoolLocation } from "./types.js";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -27,6 +28,7 @@ export async function attendanceStatus(
     sessionId,
     format: session.class.format,
     restriction: openingRestriction(session, context.now),
+    reviewRestriction: attendanceReviewRestriction(context, session),
     windows,
     declarations,
   };

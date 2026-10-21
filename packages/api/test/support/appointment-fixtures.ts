@@ -11,12 +11,10 @@ export async function appointmentFixture(harness: Harness) {
     suffix: "Bento",
   });
   const sourceEnd = new Date(`${harness.ns.sessionDate.toISOString().slice(0, 10)}T19:10:00Z`);
-  await harness
-    .caller(harness.ns.admin, sourceEnd)
-    .attendance.confirmSession({
-      sessionId: scenario.sessionId,
-      rows: [{ enrollmentId: student.enrollmentId, status: "ABSENT" }],
-    });
+  await harness.caller(harness.ns.admin, sourceEnd).attendance.confirmSession({
+    sessionId: scenario.sessionId,
+    rows: [{ enrollmentId: student.enrollmentId, status: "ABSENT" }],
+  });
   const absence = await db.attendance.findFirstOrThrow({
     where: { classSessionId: scenario.sessionId, enrollmentId: student.enrollmentId },
   });

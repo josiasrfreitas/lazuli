@@ -1,4 +1,8 @@
-import { studentCreateInputSchema, type studentUpdateContactInputSchema, type z } from "@lazuli/validators";
+import {
+  studentCreateInputSchema,
+  type studentUpdateContactInputSchema,
+  type z,
+} from "@lazuli/validators";
 
 import { parseDateBR } from "~/lib/masks";
 
@@ -92,17 +96,29 @@ export function completionErrorMessage(error: {
   return "Não foi possível concluir o cadastro. Seus dados foram mantidos; tente novamente.";
 }
 
-
-export function toContactUpdate(fields: NewStudentFields, hasGuardian: boolean): z.input<typeof studentUpdateContactInputSchema> {
+export function toContactUpdate(
+  fields: NewStudentFields,
+  hasGuardian: boolean,
+): z.input<typeof studentUpdateContactInputSchema> {
   const birthDate = parseDateBR(fields.birthDate);
   return {
-    fullName: fields.fullName.trim(), phone: fields.phone.trim() || null, email: fields.email.trim() || null,
-    documentType: fields.documentType ? fields.documentType as "CPF" | "RG" : null,
+    fullName: fields.fullName.trim(),
+    phone: fields.phone.trim() || null,
+    email: fields.email.trim() || null,
+    documentType: fields.documentType ? (fields.documentType as "CPF" | "RG") : null,
     documentNumber: fields.documentNumber.trim() || null,
     birthDate: birthDate ? new Date(`${birthDate}T00:00:00.000Z`) : null,
-    guardian: fields.guardianName.trim() ? {
-      mode: hasGuardian ? "update" : "create",
-      input: { fullName: fields.guardianName.trim(), phone: fields.guardianPhone.trim() || null, email: fields.guardianEmail.trim() || null },
-    } : hasGuardian ? { mode: "disconnect" } : undefined,
+    guardian: fields.guardianName.trim()
+      ? {
+          mode: hasGuardian ? "update" : "create",
+          input: {
+            fullName: fields.guardianName.trim(),
+            phone: fields.guardianPhone.trim() || null,
+            email: fields.guardianEmail.trim() || null,
+          },
+        }
+      : hasGuardian
+        ? { mode: "disconnect" }
+        : undefined,
   };
 }

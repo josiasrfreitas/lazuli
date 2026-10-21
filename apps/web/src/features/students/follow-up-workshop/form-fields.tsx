@@ -123,9 +123,7 @@ export function NarrativeFields({ values }: { values: FormValues }): ReactElemen
 export function OccurrenceFields({ values }: { values: FormValues }): ReactElement {
   return (
     <FormSection title="Contexto da aula">
-      <p className="text-sm text-muted-foreground">
-        Aula de exemplo · 12/10/2026 · Connect 1
-      </p>
+      <p className="text-sm text-muted-foreground">Aula de exemplo · 12/10/2026 · Connect 1</p>
       <SegmentedControl
         aria-label="Categoria"
         value={values.draft.category}

@@ -43,12 +43,10 @@ void it("records actual delivery through the legacy entry point without rewritin
     (await db.attendance.findUniqueOrThrow({ where: { id: f.absence.id } })).status,
     "ABSENT",
   );
-  const percent = await harness
-    .caller()
-    .attendance.enrollmentSemesterPercent({
-      enrollmentId: f.enrollmentId,
-      semesterId: f.semesterId,
-    });
+  const percent = await harness.caller().attendance.enrollmentSemesterPercent({
+    enrollmentId: f.enrollmentId,
+    semesterId: f.semesterId,
+  });
   assert.equal(percent.percent, 1);
   assert.equal(percent.presentCount, 0);
 });

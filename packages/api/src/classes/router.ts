@@ -93,13 +93,14 @@ export const classesRouter = router({
     });
     return result;
   }),
-  archive: adminProcedure
-    .input(classArchiveInputSchema)
-    .mutation(({ ctx, input }) =>
-      activityTransaction(ctx, "classes.archive",
-        (database) => archiveClass({ database, id: input.id }),
-        async (_result, database) => ({ subject: await classSubject(database, input.id) })),
+  archive: adminProcedure.input(classArchiveInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(
+      ctx,
+      "classes.archive",
+      (database) => archiveClass({ database, id: input.id }),
+      async (_result, database) => ({ subject: await classSubject(database, input.id) }),
     ),
+  ),
   cloneForNextPeriod: adminProcedure
     .input(classCloneForNextPeriodInputSchema)
     .mutation(async ({ ctx, input }) => {

@@ -6,7 +6,13 @@ import { requireAppointmentAdmin, type AppointmentContext } from "./data.js";
 /** Up to seven consecutive days; omitted through retains the legacy Monday–Sunday range. */
 export async function appointmentAvailability(
   context: AppointmentContext,
-  input: { teacherId: string; studentId: string; week: string; through?: string; excludeAppointmentId?: string },
+  input: {
+    teacherId: string;
+    studentId: string;
+    week: string;
+    through?: string;
+    excludeAppointmentId?: string;
+  },
 ) {
   requireAppointmentAdmin(context);
   const { database } = context;

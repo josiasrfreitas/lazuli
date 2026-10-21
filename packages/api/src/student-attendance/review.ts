@@ -41,7 +41,10 @@ export async function confirmAttendanceReview(
       message: "A chamada foi alterada em outra tela. Atualize a lista antes de confirmar.",
     });
 
-  const roster = await declarationRoster(context.database, session.classId, session.date);
+  const roster = await declarationRoster(context.database, {
+    classId: session.classId,
+    date: session.date,
+  });
   const requested = new Set(input.rows.map((row) => row.enrollmentId));
   if (
     requested.size !== input.rows.length ||
@@ -63,8 +66,12 @@ export async function confirmAttendanceReview(
       message: "Chegou uma nova presença. Confira a lista atualizada e confirme novamente.",
     });
 
-  await commitAttendance(context, session, input.rows);
-  await closeAttendanceWindows(context.database, session.id, context.staffUser.id, context.now);
+  await commitAttendance(context, { session, entries: input.rows });
+  await closeAttendanceWindows(context.database, {
+    sessionId: session.id,
+    userId: context.staffUser.id,
+    now: context.now,
+  });
   const present = input.rows.filter((row) => row.status === "PRESENT").length;
   await recordActivity(
     context.database,

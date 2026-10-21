@@ -67,9 +67,11 @@ export async function saveCandidate(input: {
     throw badRequest("Reabra o lead antes de alterar os dados.");
   if (existing?.englishExperience === "SOME" && values.stageId !== existing.stageId)
     throw badRequest("Registre o estágio no resultado do atendimento de nivelamento.");
-  const { availability, ...fields } = values;
+  const { availability, contactName, source, ...fields } = values;
   const data = {
     ...fields,
+    ...(contactName === undefined ? {} : { contactName }),
+    ...(source === undefined ? {} : { source }),
     phone: values.phone || null,
     email: values.email || null,
     availableUntil: new Date(values.availableUntil),
@@ -105,13 +107,14 @@ export async function listCandidates(
   pageCount: number;
 }> {
   const today = saoPauloDateOnly(now);
+  const matchingIds = await searchIds(database, "AdmissionCandidate", input.search);
   const where: Prisma.AdmissionCandidateWhereInput = {
     deletedAt: null,
     ...(input.unlinkedOnly ? { studentId: null, enrollmentId: null } : {}),
     ...(input.statuses.length ? { status: { in: input.statuses } } : {}),
     ...(input.interests.length ? { interest: { in: input.interests } } : {}),
     ...(input.expiredOnly ? { availableUntil: { lt: new Date(today) } } : {}),
-    id: await searchIds(database, "AdmissionCandidate", input.search),
+    ...(matchingIds === undefined ? {} : { id: matchingIds }),
   };
   const [rows, total] = await Promise.all([
     database.admissionCandidate.findMany({

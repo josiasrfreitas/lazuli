@@ -9,9 +9,6 @@ import { semesterOrganizationRouter } from "./semester-organization/router.js";
 import { createCallerFactory, protectedProcedure, publicProcedure, router } from "./trpc/init.js";
 import { appointmentsRouter } from "./appointments/router.js";
 import { sessionGenerationRouter } from "./session-generation/router.js";
-import { classRecordsRouter } from "./class-records/router.js";
-import { studentAttendanceRouter } from "./student-attendance/router.js";
-import { planningRouter } from "./stage-planning/router.js";
 import { assessmentsRouter } from "./assessments/router.js";
 import { activityRouter } from "./activity/router.js";
 import { attendanceRouter } from "./attendance/router.js";
@@ -48,9 +45,6 @@ export const appRouter = router({
   appointments: appointmentsRouter,
   sessionGeneration: sessionGenerationRouter,
   assessments: assessmentsRouter,
-  planning: planningRouter,
-  classRecords: classRecordsRouter,
-  studentAttendance: studentAttendanceRouter,
   occurrences: occurrencesRouter,
   interventions: interventionsRouter,
   activity: activityRouter,
