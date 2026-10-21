@@ -7,6 +7,10 @@ import { normalizedKysely, searchMatchKysely } from "../search.js";
 const MAX_STUDENT_CLASSES = 3;
 
 const RESULT_LIMIT = 6;
+const STUDENT_ID = "student.id";
+const STUDENT_FULL_NAME = "student.full_name";
+const CLASS_ID = "class.id";
+const CLASS_PORTAL_NAME = "class.portal_class_name";
 
 function relevance(field: RawBuilder<unknown>, query: string): RawBuilder<number> {
   const text = normalizedKysely(field);
@@ -35,14 +39,14 @@ export async function lookupCommands(
   const [students, teachers, classes, leads] = await Promise.all([
     db
       .selectFrom("Student as student")
-      .select(["student.id", "student.full_name as name", "student.status"])
+      .select([STUDENT_ID, "student.full_name as name", "student.status"])
       .select((eb) =>
         jsonArrayFrom(
           eb
             .selectFrom("Enrollment as enrollment")
-            .innerJoin("Class as class", "class.id", "enrollment.class_id")
-            .select(["class.id", "class.portal_class_name as name"])
-            .whereRef("enrollment.student_id", "=", "student.id")
+            .innerJoin("Class as class", CLASS_ID, "enrollment.class_id")
+            .select([CLASS_ID, "class.portal_class_name as name"])
+            .whereRef("enrollment.student_id", "=", STUDENT_ID)
             .where("enrollment.deleted_at", "is", null)
             .where("class.deleted_at", "is", null)
             .where("enrollment.entry_date", "<=", today)
@@ -72,10 +76,10 @@ export async function lookupCommands(
         ).as("classes"),
       )
       .where("student.deleted_at", "is", null)
-      .where(searchMatchKysely(sql.ref("student.full_name"), query))
-      .orderBy(relevance(sql.ref("student.full_name"), query), "desc")
-      .orderBy("student.full_name")
-      .orderBy("student.id")
+      .where(searchMatchKysely(sql.ref(STUDENT_FULL_NAME), query))
+      .orderBy(relevance(sql.ref(STUDENT_FULL_NAME), query), "desc")
+      .orderBy(STUDENT_FULL_NAME)
+      .orderBy(STUDENT_ID)
       .limit(RESULT_LIMIT)
       .execute(),
     db
@@ -93,7 +97,7 @@ export async function lookupCommands(
       .selectFrom("Class as class")
       .innerJoin("Semester as semester", "semester.id", "class.semester_id")
       .select([
-        "class.id",
+        CLASS_ID,
         "class.portal_class_name as name",
         "class.internal_code as code",
         "semester.name as semester",
@@ -103,13 +107,13 @@ export async function lookupCommands(
       .where("semester.deleted_at", "is", null)
       .where((eb) =>
         eb.or([
-          searchMatchKysely(sql.ref("class.portal_class_name"), query),
+          searchMatchKysely(sql.ref(CLASS_PORTAL_NAME), query),
           searchMatchKysely(sql.ref("class.internal_code"), query),
         ]),
       )
-      .orderBy(relevance(sql.ref("class.portal_class_name"), query), "desc")
-      .orderBy("class.portal_class_name")
-      .orderBy("class.id")
+      .orderBy(relevance(sql.ref(CLASS_PORTAL_NAME), query), "desc")
+      .orderBy(CLASS_PORTAL_NAME)
+      .orderBy(CLASS_ID)
       .limit(RESULT_LIMIT)
       .execute(),
     db

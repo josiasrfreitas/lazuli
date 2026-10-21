@@ -89,7 +89,7 @@ export async function studentIntakeOptions(
     today,
     semester,
     classes: classes.map((row) => {
-      const slots = row.scheduleSlots.map(databaseSlotToCandidate);
+      const slots = row.scheduleSlots.map((slot) => databaseSlotToCandidate(slot));
       return {
         id: row.id,
         name: row.portalClassName,

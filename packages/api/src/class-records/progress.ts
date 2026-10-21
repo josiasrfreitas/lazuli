@@ -45,7 +45,7 @@ export async function classStageProgress(context: RecordContext, classId: string
         content,
       };
     });
-  const latest = rows.find((row) => row.content?.pageFrom != null);
+  const latest = rows.find((row) => (row.content?.pageFrom ?? null) !== null);
   return {
     rows,
     today,

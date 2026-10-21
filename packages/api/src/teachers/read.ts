@@ -185,7 +185,7 @@ export async function uncoveredMeetings({
         id: `${row.classId}:${row.slotId ?? row.sessionId}:${row.date}`,
       })),
     ...appointments
-      .filter(appointmentNeedsTeacher)
+      .filter((appointment) => appointmentNeedsTeacher(appointment))
       .map((row) => ({ ...row, kind: "APPOINTMENT" as const })),
   ];
   rows.sort(

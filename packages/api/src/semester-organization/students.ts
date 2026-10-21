@@ -6,6 +6,7 @@ import type { OrganizationContext } from "./data.js";
 import { notFound } from "../trpc/errors.js";
 
 const PAGE_SIZE = 25;
+const STUDENT_ID = "student.id";
 
 export async function organizationStudents(
   context: OrganizationContext,
@@ -23,7 +24,7 @@ export async function organizationStudents(
           eb
             .selectFrom("SemesterPlacement as placement")
             .select("placement.id")
-            .whereRef("placement.student_id", "=", "student.id")
+            .whereRef("placement.student_id", "=", STUDENT_ID)
             .where("placement.semester_id", "=", input.semesterId)
             .where("placement.deleted_at", "is", null),
         ),
@@ -32,7 +33,7 @@ export async function organizationStudents(
   const [total, rows] = await Promise.all([
     base.select(sql<number>`count(*)::int`.as("count")).executeTakeFirstOrThrow(),
     base
-      .select(["student.id", "student.full_name as name", "student.status"])
+      .select([STUDENT_ID, "student.full_name as name", "student.status"])
       .select((eb) =>
         jsonArrayFrom(
           eb
@@ -46,7 +47,7 @@ export async function organizationStudents(
               "class.portal_class_name as className",
               "class.schedule_type as scheduleType",
             ])
-            .whereRef("enrollment.student_id", "=", "student.id")
+            .whereRef("enrollment.student_id", "=", STUDENT_ID)
             .where("enrollment.deleted_at", "is", null)
             .where("progress.deleted_at", "is", null)
             .where("enrollment.entry_date", "<=", today)
@@ -63,7 +64,7 @@ export async function organizationStudents(
         ).as("current"),
       )
       .orderBy("student.full_name")
-      .orderBy("student.id")
+      .orderBy(STUDENT_ID)
       .offset((input.page - 1) * PAGE_SIZE)
       .limit(PAGE_SIZE)
       .execute(),

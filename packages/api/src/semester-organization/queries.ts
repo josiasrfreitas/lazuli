@@ -12,13 +12,16 @@ import { dateOnly, readSlots, type OrganizationContext } from "./data.js";
 
 const ISO_TIME_START_INDEX = 11;
 const ISO_MINUTE_END_INDEX = 16;
+const PLAN_CLASS_ID = "plan.class_id";
+const ASSIGNED_TEACHER_ID = "assignedTeacher.id";
+const AVAILABILITY_STUDENT_ID = "availability.student_id";
 
 export async function readClassPlans(context: OrganizationContext, semesterId: string) {
   const rows = await context.database.$kysely
     .selectFrom("SemesterClassPlan as plan")
     .innerJoin("Semester as semester", "semester.id", "plan.semester_id")
     .leftJoin("Stage as stage", "stage.id", "plan.shared_stage_id")
-    .leftJoin("Class as class", "class.id", "plan.class_id")
+    .leftJoin("Class as class", "class.id", PLAN_CLASS_ID)
     .leftJoin("User as teacher", "teacher.id", "plan.teacher_id")
     .leftJoin("TeacherProfile as profile", "profile.user_id", "plan.teacher_id")
     .select([
@@ -49,7 +52,7 @@ export async function readClassPlans(context: OrganizationContext, semesterId: s
         .selectFrom("Enrollment as occupied")
         .innerJoin("Student as occupant", "occupant.id", "occupied.student_id")
         .select(sql<number>`count(distinct occupied.student_id)::int`.as("count"))
-        .whereRef("occupied.class_id", "=", "plan.class_id")
+        .whereRef("occupied.class_id", "=", PLAN_CLASS_ID)
         .where("occupied.deleted_at", "is", null)
         .where("occupant.deleted_at", "is", null)
         .where("occupant.status", "=", "ACTIVE")
@@ -74,19 +77,19 @@ export async function readClassPlans(context: OrganizationContext, semesterId: s
       jsonObjectFrom(
         eb
           .selectFrom("ClassTeacherAssignment as assignment")
-          .innerJoin("User as assignedTeacher", "assignedTeacher.id", "assignment.teacher_id")
+          .innerJoin("User as assignedTeacher", ASSIGNED_TEACHER_ID, "assignment.teacher_id")
           .leftJoin(
             "TeacherProfile as assignedProfile",
             "assignedProfile.user_id",
-            "assignedTeacher.id",
+            ASSIGNED_TEACHER_ID,
           )
           .select([
-            "assignedTeacher.id",
+            ASSIGNED_TEACHER_ID,
             "assignedTeacher.name",
             "assignedTeacher.deleted_at as deletedAt",
             "assignedProfile.departure_date as departureDate",
           ])
-          .whereRef("assignment.class_id", "=", "plan.class_id")
+          .whereRef("assignment.class_id", "=", PLAN_CLASS_ID)
           .where("assignment.deleted_at", "is", null)
           .where("assignment.superseded_at", "is", null)
           .where(
@@ -218,11 +221,7 @@ export async function currentAvailability(context: OrganizationContext, semester
   const rows = await context.database.$kysely
     .selectFrom("StudentAvailability as availability")
     .innerJoin("User as actor", "actor.id", "availability.recorded_by_id")
-    .innerJoin(
-      "Student as availabilityStudent",
-      "availabilityStudent.id",
-      "availability.student_id",
-    )
+    .innerJoin("Student as availabilityStudent", "availabilityStudent.id", AVAILABILITY_STUDENT_ID)
     .select([
       "availability.id",
       "availability.student_id as studentId",
@@ -238,8 +237,8 @@ export async function currentAvailability(context: OrganizationContext, semester
     .where("availability.semester_id", "=", semesterId)
     .where("availability.deleted_at", "is", null)
     .where("availabilityStudent.deleted_at", "is", null)
-    .distinctOn("availability.student_id")
-    .orderBy("availability.student_id")
+    .distinctOn(AVAILABILITY_STUDENT_ID)
+    .orderBy(AVAILABILITY_STUDENT_ID)
     .orderBy("availability.created_at", "desc")
     .orderBy("availability.id", "desc")
     .execute();

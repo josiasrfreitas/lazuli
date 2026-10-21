@@ -76,7 +76,9 @@ export async function studentAbsences(
     include: absenceInclude,
     orderBy: [{ classSession: { date: "desc" } }, { id: "desc" }],
   });
-  return rows.filter(sourceApplicable).map((row) => absenceView(row, excludeAppointmentId));
+  return rows
+    .filter((row) => sourceApplicable(row))
+    .map((row) => absenceView(row, excludeAppointmentId));
 }
 
 /** Derived coverage is filtered before pagination, so a page cannot lose rows after hydration. */
