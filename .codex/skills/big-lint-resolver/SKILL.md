@@ -13,3 +13,5 @@ Use this workflow when the owner asks to reduce a large lint backlog incremental
 4. Record the full result, resolved batch, new errors and their cause in the progress document. Choose the next roughly 100 errors from **that same full result**, prioritizing any regressions, and lock the next batch before editing it. Repeat locally until the requested backlog is cleared or the owner changes scope.
 
 The progress document is the durable handoff source. A temporary JSON path is supporting evidence, not the only record: preserve the active file list, counts, command and gate in the document so a reboot or context compaction cannot silently change the batch.
+
+When the owner explicitly authorizes separate agents to work on different blocks in parallel, record the shared baseline, disjoint paths, and independent status/gates for each block before editing. Each agent closes its own block; after both are ready, compare the combined full lint result before selecting further work. Use [shared-lint-worktree](../shared-lint-worktree/SKILL.md) when they share one worktree.

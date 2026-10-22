@@ -1,8 +1,8 @@
 # PR #207 — handoff do lint (2026-10-22)
 
-> **RETOMAR PELO BLOCO 5.** O dono pediu uma pausa após medir o lint, reservar o
-> próximo bloco e fazer um commit único do estado atual. Não iniciar o bloco 6
-> antes de fechar o bloco 5. O inventário durável está em
+> **DOIS BLOCOS ATIVOS:** este agente assume o bloco 5 Web (31 erros); o
+> segundo assume o bloco 6 API (100 erros selecionados). Cada um lê sua ficha
+> e cuida do próprio bloco na mesma worktree. O inventário durável está em
 > [pr207-lint-progress.md](pr207-lint-progress.md), e o procedimento está em
 > [big-lint-resolver](../../.codex/skills/big-lint-resolver/SKILL.md).
 > Trabalhar na **mesma worktree**; nos próximos trabalhos, usar commits
@@ -43,11 +43,12 @@ Comando direcionado do bloco 5:
 pnpm -F @lazuli/web exec eslint src/app src/components/app-shell src/features/admissions src/features/command-palette src/features/installments src/features/settings src/features/shared src/lib/use-search-draft.ts src/proxy.ts test/features/lead-form-contract.unit.test.ts -f json > /tmp/lazuli-pr207-block5-current.json
 ```
 
-Ao retomar: zerar **todo** o lint direcionado do bloco 5; rodar typecheck e
-testes pertinentes; executar `pnpm lint` da raiz e o lint Web completo; comparar
-fingerprints contra `/tmp/lazuli-pr207-web-full-pause-final.json`. Só então
-fechar o bloco 5 e ativar o bloco 6. O inventário de **100 erros** da API para
-o bloco 6 e seu comando direcionado estão no final do relatório de progresso.
+Ao retomar o bloco 5: zerar **todo** o lint direcionado, rodar typecheck e
+testes pertinentes, lint Web completo e comparar fingerprints contra
+`/tmp/lazuli-pr207-web-full-pause-final.json`. O segundo agente pode trabalhar
+no bloco 6 em paralelo; seu inventário de **100 erros** da API e comando
+direcionado estão no final do relatório de progresso. O último a terminar
+confere `pnpm lint` da raiz e o saldo combinado.
 
 ## Atenção à formatação
 
@@ -67,5 +68,5 @@ futuros, resolver a incompatibilidade antes de depender do hook como gate.
 O estado local acumulado foi salvo em `c631cf3`. Ele inclui blocos concluídos
 e o trabalho parcial do bloco 5; não significa que o lint global esteja verde.
 Os próximos commits seguem o padrão atômico `lint (bloco X): descrição`;
-cada agente commita somente a sua metade, com caminhos explícitos na mesma
+cada agente commita somente o seu bloco, com caminhos explícitos na mesma
 worktree.

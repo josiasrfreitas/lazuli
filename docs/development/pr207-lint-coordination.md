@@ -1,22 +1,23 @@
-# PR #207 — duas metades na mesma worktree
+# PR #207 — um bloco por agente na mesma worktree
 
-> **BLOCO ATIVO: 5.** Restam **31 erros Web** em cinco arquivos. O bloco 6 da
-> API (100 erros) está apenas reservado em [pr207-lint-progress.md](pr207-lint-progress.md).
-> Antes de editar, inclusive após compactação, cada agente lê este arquivo,
-> o [handoff](pr207-lint-handoff.md), o progresso e **as duas fichas**. O gate
-> do bloco 5 é lint direcionado zero, tipos/testes pertinentes, lint completo
-> e comparação de fingerprints. Nenhuma metade inicia o bloco 6 antes do gate.
+> **BLOCOS ATIVOS EM PARALELO:** bloco 5, Web, **31 erros**; bloco 6, API,
+> **100 erros selecionados** dos 230 da API. O dono autorizou esta exceção à
+> sequência normal dos lotes. Antes de editar, inclusive após compactação,
+> cada agente lê este arquivo, o [handoff](pr207-lint-handoff.md), o
+> [progresso](pr207-lint-progress.md) e **as duas fichas**. Cada agente fecha
+> seu próprio bloco; o último a terminar confere o lint global combinado.
 
 - Worktree única: `/Users/josiasribeiro/orca/workspaces/lazuli/operacao-pedagogica`.
 - Baseline de código: `c631cf3`; Web 31 + API 230 = **261 erros**.
 - Protocolo: [shared-lint-worktree](../../.codex/skills/shared-lint-worktree/SKILL.md).
 
-| Metade      | Arquivos próprios                                                                                                                                                           | Erros no baseline | Ficha                                      |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------: | ------------------------------------------ |
-| `leads`     | `apps/web/src/features/admissions/lead-capture-dialog.tsx`; `apps/web/src/features/shared/task-form.tsx`                                                                    |                 7 | [leads](pr207-lint-agent-leads.md)         |
-| `placement` | `apps/web/src/features/admissions/placement-assessment.tsx`; `apps/web/src/features/admissions/placement-schedule.tsx`; `apps/web/src/features/admissions/visit-dialog.tsx` |                24 | [placement](pr207-lint-agent-placement.md) |
+| Agente                        | Bloco e arquivos próprios                                                                      | Erros do bloco | Ficha                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------------- | -------------: | --------------------------------------- |
+| `web-block5` (este agente)    | Os cinco arquivos Web ainda com erro, listados no [handoff](pr207-lint-handoff.md)             |             31 | [Web 5](pr207-lint-agent-web-block5.md) |
+| `api-block6` (segundo agente) | Os 24 arquivos da API listados em “Bloco 6 — reservado” no [progresso](pr207-lint-progress.md) |            100 | [API 6](pr207-lint-agent-api-block6.md) |
 
-Cada agente cuida e commita apenas a sua metade, com caminhos explícitos. Para
-alterar testes/dependências fora da tabela, os dois acertam a posse e atualizam
-este arquivo primeiro. O último a terminar executa o gate do bloco completo;
-se houver regressão, cada agente corrige seus próprios arquivos.
+Cada agente edita e commita somente os arquivos do próprio bloco, com caminhos
+explícitos. Para alterar testes/dependências fora desses inventários, os dois
+acertam a posse e atualizam este arquivo antes da edição. O bloco 6 pode
+começar agora; não precisa esperar o gate do bloco 5. Após ambos os gates, o
+último a terminar roda o lint da raiz e registra o saldo combinado.

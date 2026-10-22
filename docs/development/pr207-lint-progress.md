@@ -1,20 +1,22 @@
 # PR #207 — inventário de lint
 
-> **FOCO OBRIGATÓRIO — BLOCO 5:** resolver os **83 erros restantes do Web**
-> congelados em `/tmp/lazuli-pr207-web-full-after-block4.json`. Restam **31**
+> **BLOCOS ATIVOS EM PARALELO:** `web-block5` tem **31 erros restantes**;
+> `api-block6` tem **100 erros selecionados**. Cada agente retoma pela própria
+> ficha em [pr207-lint-coordination.md](pr207-lint-coordination.md).
+> O bloco 5 começou com **83 erros Web** congelados em
+> `/tmp/lazuli-pr207-web-full-after-block4.json`. Restam **31**
 > após as correções de entrada, navegação, busca, conta, ajustes, pagamentos e admissão; medição direcionada em
 > `/tmp/lazuli-pr207-block5-current.json`.
 > Área e inventário de arquivos: seção “Bloco 5 — escopo congelado” abaixo.
 > Comando direcionado: `pnpm -F @lazuli/web exec eslint src/app src/components/app-shell src/features/admissions src/features/command-palette src/features/installments src/features/settings src/features/shared src/lib/use-search-draft.ts src/proxy.ts test/features/lead-form-contract.unit.test.ts -f json > /tmp/lazuli-pr207-block5-current.json`.
-> Snapshot de origem: Web 83, API 230, total 313. Gate: lint direcionado zero,
-> typecheck/testes relevantes, `pnpm lint` da raiz e comparação global por
-> arquivo/regra/mensagem. Não editar fora do lote nem selecionar outro antes desse
-> gate. **Em todo handoff ou compactação de contexto, repetir este foco no topo do
+> Snapshot de origem: Web 83, API 230, total 313. Gate próprio: lint Web
+> direcionado zero, typecheck/testes relevantes e comparação Web completa por
+> arquivo/regra/mensagem. **Exceção autorizada:** o segundo agente trabalha no
+> bloco 6 da API em paralelo, com arquivos e gate próprios. Após os dois
+> gates, conferir `pnpm lint` da raiz e o saldo combinado.
+> **Em todo handoff ou compactação de contexto, repetir este foco no topo do
 > resumo e retomar por este arquivo antes de qualquer ação.**
-> **Pausa solicitada pelo dono em 2026-10-22:** não corrigir mais o bloco 5
-> nesta sessão. O bloco 6 está apenas separado abaixo; ainda não pode começar
-> até a retomada e o fechamento do gate do bloco 5.
-> **Trabalho paralelo:** as duas metades e fichas de retomada estão em
+> **Trabalho paralelo:** os blocos e fichas de retomada estão em
 > [pr207-lint-coordination.md](pr207-lint-coordination.md).
 
 O bloco 1 foi fechado com 0 erros em `features/students`. `pnpm lint` da raiz concluiu:
@@ -98,6 +100,7 @@ O lote local de preparação/calendário eliminou 22 erros. Os sete arquivos toc
 | 3     | Web: organização de turmas, turmas, semestre e planejamento de estágios        |                              98 | Fechado: 0 direcionados, 98 removidos globalmente, 0 regressões  |
 | 4     | Web: registros, área do professor, acompanhamento, presença e catálogo         |                              93 | Fechado: 0 direcionados, 93 removidos globalmente, 0 regressões  |
 | 5     | Web: admissão, entrada, navegação e erros residuais                            |                              83 | Em curso: 31 restantes                                           |
+| 6     | API: semestre, alunos, turmas e área do professor                              |                             100 | Ativo em paralelo: 100 restantes                                 |
 
 No bloco 3, `classes/form-controls.tsx`, `class-overview.tsx` e
 `class-stage-progress.tsx` passaram no lint direcionado. O lint dos quatro diretórios
@@ -863,12 +866,14 @@ O hook de pré-commit executou Prettier e reintroduziu 21 erros de ternários;
 os parênteses exigidos pelo ESLint foram restaurados na emenda do mesmo
 commit. Ver o conflito e a instrução de retomada no handoff.
 
-## Bloco 6 — reservado, não iniciado
+## Bloco 6 — ativo em paralelo, ainda sem correções
 
-O dono pediu para separar o próximo bloco antes de pausar. Estes **100 erros da
-API** foram selecionados do snapshot `/tmp/lazuli-pr207-api-full-after-students.json`;
+O dono autorizou o segundo agente a trabalhar neste bloco em paralelo ao
+bloco 5. Estes **100 erros da API** foram selecionados do snapshot
+`/tmp/lazuli-pr207-api-full-after-students.json`;
 nenhum arquivo da API foi alterado desde esse snapshot, e o lint da raiz
-confirmou os mesmos 230 erros. O bloco 5 continua ativo até seu gate.
+confirmou os mesmos 230 erros. Cada agente fecha seu próprio bloco; o último
+a terminar confere o lint global combinado.
 
 | Arquivo relativo a `packages/api`                             | Erros no snapshot |
 | ------------------------------------------------------------- | ----------------: |
@@ -897,4 +902,4 @@ confirmou os mesmos 230 erros. O bloco 5 continua ativo até seu gate.
 | `src/teacher-workspace/visits.ts`                             |                 3 |
 | `test/semester-organization/organization.integration.test.ts` |                 6 |
 
-Comando direcionado reservado: `pnpm -F @lazuli/api exec eslint src/classes src/enrollment src/semester-organization src/session-generation src/stage-planning src/student-attendance src/students src/teacher-workspace test/semester-organization/organization.integration.test.ts -f json > /tmp/lazuli-pr207-block6-current.json`.
+Comando direcionado: `pnpm -F @lazuli/api exec eslint src/classes src/enrollment src/semester-organization src/session-generation src/stage-planning src/student-attendance src/students src/teacher-workspace test/semester-organization/organization.integration.test.ts -f json > /tmp/lazuli-pr207-block6-current.json`.
