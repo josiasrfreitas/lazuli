@@ -3,8 +3,11 @@
 > **FOCO:** 100 erros iniciais em 30 arquivos próprios de
 > `packages/api/src/admissions`, `appointments`, `class-records`, `finance` e
 > `teaching-programs`, congelados no [progresso](pr207-lint-progress.md).
-> Medição atual: **37 erros no bloco**, todos em `finance`; outros 30 da API
-> ficam fora dele. Próxima ação: `finance` (37). Gate: zero
+> **BLOCO FECHADO:** 0 erros no bloco; lint completo da API mediu 30 erros fora
+> dele, sem novos fingerprints frente ao baseline de 130. `pnpm
+test:affected --staged` passou com banco temporário: API unitária 88/88,
+> Web unitária 295/295, API integração 314/314 e transporte 63/63. Próxima
+> ação: lint da raiz e congelar o bloco 8 a partir dos 30 erros restantes.
 > erros direcionados, typecheck e testes pertinentes, lint API completo sem
 > novos fingerprints e lint da raiz. Baseline:
 > `/tmp/lazuli-pr207-api-full-block6.json`.
@@ -63,3 +66,15 @@ pnpm -F @lazuli/api exec eslint src/admissions src/appointments src/class-record
   `contract-materials.ts` passaram no lint direcionado e no typecheck API.
   Restam 18 erros do baseline financeiro em rescisão, necessidades de
   material e tratamentos.
+- `finance/internal/contract-termination.ts`, `material-needs.ts` e
+  `finance/treatments/index.ts` passaram no lint direcionado e no typecheck API.
+  Lint conjunto do bloco: **0 erros, 1 aviso**. Lint completo da API:
+  **30 erros**, todos fora do bloco, **0 novos fingerprints** contra
+  `/tmp/lazuli-pr207-api-full-block6.json`; snapshot em
+  `/tmp/lazuli-pr207-api-full-block7.json`. Uma tentativa sem `--staged` do
+  seletor de testes encontrou arquivos executáveis preexistentes sem
+  classificação; a seleção restrita ao stage funcionou.
+- `pnpm test:affected --staged` passou após stage explícito dos três arquivos
+  financeiros e das fichas: API unitária 88/88, Web unitária 295/295, API
+  integração 314/314 e transporte 63/63, com banco temporário removido.
+  Registro: `/tmp/lazuli-pr207-api-block7-affected.log`.

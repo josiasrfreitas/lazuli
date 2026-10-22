@@ -2,8 +2,8 @@
 
 > **BLOCO 7 CONGELADO:** 100 erros em 30 arquivos de `packages/api/src` nas
 > áreas `admissions`, `appointments`, `class-records`, `finance` e
-> `teaching-programs`. Medição atual: **37 erros no bloco**, todos em `finance`,
-> após zerar os demais 63. Outros 30 erros da API ficam fora do bloco;
+> `teaching-programs`. Medição atual: **0 erros no bloco**. Lint completo da API:
+> **30 erros fora do bloco**, sem novos fingerprints frente aos 130 anteriores;
 > o lint Web completo tem 0 erros. Baseline:
 > `/tmp/lazuli-pr207-api-full-block6.json`. Gate: zero erros no bloco,
 > typecheck e testes pertinentes, lint API completo sem novos fingerprints por
@@ -55,6 +55,12 @@ O lint da raiz após os blocos 5 e 6 reportou 130 erros na API e nenhum em
 outros pacotes concluídos. O Turbo interrompeu o Web, que passou no lint
 completo separado com 0 erros. O bloco 7 abrange exatamente 100 dos 130
 erros restantes; os demais 30 serão selecionados após seu gate global.
+
+O lint completo da API após o bloco 7 mediu 30 erros, todos fora do bloco;
+nenhum fingerprint novo por arquivo/regra/mensagem. Snapshot:
+`/tmp/lazuli-pr207-api-full-block7.json`. O lint direcionado das cinco áreas
+passou com 0 erros e 1 aviso. `pnpm test:affected --staged` passou: API unitária
+88/88, Web unitária 295/295, API integração 314/314 e transporte 63/63.
 
 O bloco 1 foi fechado com 0 erros em `features/students`. `pnpm lint` da raiz concluiu:
 somente Web e API falharam; os demais checks de lint passaram. Web e API totalizam 604 erros,
