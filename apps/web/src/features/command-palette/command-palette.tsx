@@ -133,6 +133,7 @@ function usePaletteItems(input: {
     () =>
       commands.map((command, index) => {
         const Icon = ICONS[command.icon];
+        const hint = command.kind === "student" ? studentCommandHint(command) : undefined;
         return {
           id: command.id,
           label: command.title,
@@ -140,16 +141,15 @@ function usePaletteItems(input: {
           group: commandGroup({ scoped: Boolean(scope), first: index === 0, query }),
           icon: <Icon />,
           expandable: Boolean(command.actions?.length),
-          hint:
-            command.kind === "student"
-              ? (command.href.includes("financeiro")
-                ? "Financeiro"
-                : "Pedagógico")
-              : undefined,
+          hint,
         };
       }),
     [commands, scope, query],
   );
+}
+
+function studentCommandHint(command: Command): string {
+  return command.href.includes("financeiro") ? "Financeiro" : "Pedagógico";
 }
 
 export function CommandPalette({ role }: { role: StaffRole }): ReactJSX.Element {

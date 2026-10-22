@@ -92,8 +92,9 @@ export function MeetingDateField({
   onChange: (value: string) => void;
   error?: string | undefined;
 }): ReactJSX.Element {
+  const widthClassName = compact ? "w-40" : "w-44";
   return (
-    <div className={fluid ? "min-w-0 w-full" : (compact ? "w-40" : "w-44")}>
+    <div className={fluid ? "min-w-0 w-full" : widthClassName}>
       <Field>
         <Label htmlFor="appointment-date">Data</Label>
         <div className="relative">

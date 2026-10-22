@@ -1,11 +1,34 @@
 # PR #207 — inventário de lint
 
-> **BLOCO 9 FECHADO LOCALMENTE — GATE DE PUSH:**
+> **BLOCO 10 FECHADO LOCALMENTE — CI ESTÁTICO:** os dez arquivos Web que
+> falharam no `format:check` foram corrigidos. A formatação dos 1.586 arquivos
+> versionados/novos passou; lint global 16/16 com 0 erros e os mesmos 932
+> avisos Web, typecheck Web, testes Web 295/295 e limite de componentes
+> passaram. Próxima ação: commitar, subir e acompanhar o novo head no PR. Log
+> original do job:
+> `/tmp/lazuli-pr207-static-job.log`.
+
+### Bloco 10 — formatação Web, 10 arquivos congelados
+
+| Arquivo relativo à raiz                                               |
+| --------------------------------------------------------------------- |
+| `apps/web/src/features/activity/activity-format.ts`                   |
+| `apps/web/src/features/appointments/form-fields.tsx`                  |
+| `apps/web/src/features/classes/class-grade-average.tsx`               |
+| `apps/web/src/features/command-palette/command-palette.tsx`           |
+| `apps/web/src/features/students/follow-up-workshop/layouts.tsx`       |
+| `apps/web/src/features/students/follow-up-workshop/record-views.tsx`  |
+| `apps/web/src/features/students/new-student/intake-dialog-chrome.tsx` |
+| `apps/web/src/features/students/profile/enrollment-grade-average.tsx` |
+| `apps/web/src/features/students/profile/student-finance.tsx`          |
+| `apps/web/src/features/students/profile/student-pedagogy.tsx`         |
+
+> **BLOCO 9 FECHADO E PUBLICADO — GATE DE PUSH:**
 > `apps/web/src/features/installments/installments-page.tsx` caiu de 655 para
 > 642 linhas (limite 650) com o predicado movido para
 > `apps/web/src/features/installments/filters.ts`. Lint global 16/16, 0 erros;
-> typecheck Web, 295/295 testes Web e checagem de tamanho passaram. Falta
-> commitar, verificar o hook sobre HEAD e subir a branch. Ficha:
+> typecheck Web, 295/295 testes Web e checagem de tamanho passaram. O hook de
+> pre-push passou e o commit `54c7613` entrou no PR #207. Ficha:
 > [Web 9](pr207-lint-agent-web-block9.md).
 
 > **BLOCO 8 FECHADO:** 31 erros iniciais em 21 arquivos; medição final:

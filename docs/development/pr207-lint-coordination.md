@@ -1,13 +1,20 @@
 # PR #207 — um bloco por agente na mesma worktree
 
-> **BLOCO 9 FECHADO LOCALMENTE — GATE DE PUSH:** o hook rejeitou
+> **BLOCO 10 FECHADO LOCALMENTE — CI ESTÁTICO:** `format:check` do PR #207
+> falhou em dez arquivos Web congelados no
+> [progresso](pr207-lint-progress.md). A formatação dos arquivos versionados,
+> lint global 16/16 com 0 erros, typecheck Web, 295/295 testes Web e limite de
+> componentes passaram. A [ficha Web 10](pr207-lint-agent-web-block10.md)
+> registra o ajuste. Próxima ação: commitar, subir e acompanhar o novo CI.
+
+> **BLOCO 9 FECHADO E PUBLICADO — GATE DE PUSH:** o hook rejeitou
 > `apps/web/src/features/installments/installments-page.tsx` com 655 linhas
 > (limite 650); o predicado dos filtros foi movido para
 > `apps/web/src/features/installments/filters.ts` e a página agora tem 642
 > linhas. Esses dois arquivos e as fichas de coordenação/progresso/API 6/Web 9
-> são os caminhos reservados. Lint global 16/16 e 0 erros, typecheck Web,
-> testes Web 295/295 e checagem de tamanho passaram. Próxima ação: commitar,
-> verificar o hook sobre HEAD e repetir o push. Nenhum outro agente está ativo.
+> foram os caminhos reservados. Lint global 16/16 e 0 erros, typecheck Web,
+> testes Web 295/295 e checagem de tamanho passaram. O hook de pre-push passou
+> e o commit `54c7613` entrou no PR #207. Nenhum outro agente está ativo.
 
 > **BLOCO 8 FECHADO:** `api-block8`, 31 erros iniciais em 21 arquivos próprios,
 > **0 restantes na API completa**; testes afetados passaram (88 API unitários,

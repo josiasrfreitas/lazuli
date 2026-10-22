@@ -16,6 +16,12 @@ import styles from "./intake-schedule.module.css";
 
 export const studentDialogClassName = `w-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:max-w-2xl ${styles.studentDialog}`;
 
+function stepIndex(step: "student" | "pedagogy" | "contract"): number {
+  if (step === "contract") return 2;
+  if (step === "pedagogy") return 1;
+  return 0;
+}
+
 export function IntakeDialogHeading({
   continuing,
   step,
@@ -42,7 +48,7 @@ export function IntakeDialogHeading({
           { label: "Pedagógico", completed: hasClass },
           { label: "Contrato" },
         ]}
-        activeIndex={step === "contract" ? 2 : (step === "pedagogy" ? 1 : 0)}
+        activeIndex={stepIndex(step)}
         label="Entrada do aluno"
       />
     </div>

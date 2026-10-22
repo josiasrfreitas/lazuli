@@ -1,13 +1,13 @@
 # PR #207 — ficha `web-block9`
 
-> **FECHADO LOCALMENTE:** gate de push, violação de tamanho resolvida e 0
+> **FECHADO E PUBLICADO:** gate de push, violação de tamanho resolvida e 0
 > erros de lint. Inventário congelado:
 > `apps/web/src/features/installments/installments-page.tsx` (655 → **642**
 > linhas; máximo 650) e `apps/web/src/features/installments/filters.ts`.
 > Lint direcionado: 0 erros, 8 avisos; typecheck Web e 295/295 testes Web
 > passaram; `pnpm test:component-lines` passou. Lint da raiz: 16/16 tarefas,
-> 0 erros, Web com os mesmos 932 avisos do baseline. Próxima ação: commit,
-> gate de pre-push e push.
+> 0 erros, Web com os mesmos 932 avisos do baseline. O hook de pre-push passou
+> e o commit `54c7613` entrou no PR #207.
 
 - O bloco 8 e o lint global estão fechados em `7981b9d` com 0 erros. A branch
   está 19 commits à frente do remoto; a tentativa de push foi barrada apenas
@@ -24,6 +24,9 @@
   (`/tmp/lazuli-pr207-block9-targeted.json`). Typecheck Web passou; teste Web
   passou com 295/295 (`/tmp/lazuli-pr207-block9-web-test.log`).
   `pnpm test:component-lines` passou.
+- `pnpm check:pre-push --base origin/main` e o hook `pre-push` passaram sobre
+  882 arquivos alterados. Push de `54c7613` concluído; a worktree ficou
+  sincronizada com o remoto.
 - `pnpm lint` da raiz passou com 16/16 tarefas e 0 erros. O Web manteve 932
   avisos não bloqueantes, sem novos erros. Log:
   `/tmp/lazuli-pr207-root-after-block9.log`.

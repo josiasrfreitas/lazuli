@@ -137,23 +137,27 @@ export function FocusView({ vm }: { vm: WorkshopView }): ReactElement {
 }
 export function SelectedRecord({ vm }: { vm: WorkshopView }): ReactElement {
   const { selectedCase, selectedOccurrence, state, open, setSelection, direction } = vm;
-  return selectedCase ? (
-    <CaseDetail
-      row={selectedCase}
-      state={state}
-      open={open}
-      select={setSelection}
-      focus={direction === "focus"}
-    />
-  ) : (selectedOccurrence ? (
-    <OccurrenceDetail row={selectedOccurrence} state={state} open={open} select={setSelection} />
-  ) : (
+  if (selectedCase)
+    return (
+      <CaseDetail
+        row={selectedCase}
+        state={state}
+        open={open}
+        select={setSelection}
+        focus={direction === "focus"}
+      />
+    );
+  if (selectedOccurrence)
+    return (
+      <OccurrenceDetail row={selectedOccurrence} state={state} open={open} select={setSelection} />
+    );
+  return (
     <div className={styles.empty}>
       <MessageSquareText aria-hidden="true" />
       <h3>Escolha um registro</h3>
       <p>O relato e as ações aparecem aqui, dentro do perfil.</p>
     </div>
-  ));
+  );
 }
 
 function TimelineContext(): ReactElement {

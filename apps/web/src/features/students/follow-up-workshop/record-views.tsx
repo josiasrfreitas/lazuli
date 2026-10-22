@@ -21,13 +21,10 @@ export function EmptyResults(): ReactElement {
   );
 }
 export function Status({ row }: { row: Case }): ReactElement {
-  return (
-    <Badge
-      variant={row.status === "CONCLUDED" ? "success" : (row.status === "OPEN" ? "neutral" : "info")}
-    >
-      {STATUS_LABELS[row.status]}
-    </Badge>
-  );
+  let variant: "success" | "neutral" | "info" = "info";
+  if (row.status === "CONCLUDED") variant = "success";
+  else if (row.status === "OPEN") variant = "neutral";
+  return <Badge variant={variant}>{STATUS_LABELS[row.status]}</Badge>;
 }
 export function CaseChoice({
   row,
@@ -231,17 +228,19 @@ function CasePlan({ row }: { row: Case }): ReactElement {
 }
 function CaseActions({ row, open }: { row: Case; open: OpenAction }): ReactElement {
   const closed = row.status === "CONCLUDED";
+  let action: ActionKind = "note";
+  let actionLabel = "Registrar evolução";
+  if (closed) {
+    action = "reopen";
+    actionLabel = "Reabrir intervenção";
+  } else if (row.status === "OPEN") {
+    action = "start";
+    actionLabel = "Iniciar atuação";
+  }
   return (
     <div className={styles.actions}>
-      <Button
-        size="sm"
-        onClick={() => open(closed ? "reopen" : (row.status === "OPEN" ? "start" : "note"), row.id)}
-      >
-        {closed
-          ? "Reabrir intervenção"
-          : (row.status === "OPEN"
-            ? "Iniciar atuação"
-            : "Registrar evolução")}
+      <Button size="sm" onClick={() => open(action, row.id)}>
+        {actionLabel}
       </Button>
       {!closed && (
         <Button variant="secondary" size="sm" onClick={() => open("conclude", row.id)}>

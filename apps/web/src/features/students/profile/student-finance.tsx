@@ -114,18 +114,17 @@ function FinanceHeading({
 }
 
 function FinanceHeadingCopy({ filter }: { filter: StudentFinanceState["filter"] }): ReactElement {
+  let description = "Todas as cobranças vinculadas a este aluno, com seus saldos atuais.";
+  if (filter === "overdue")
+    description =
+      "Vencimentos mais antigos primeiro. Registre o recebimento para quitar a pendência.";
+  else if (filter === "paid") description = "Cobranças quitadas deste aluno.";
   return (
     <div>
       <h2 id="student-charges-heading" className="font-display text-xl font-semibold text-heading">
         {filter === "overdue" ? "Fila de pendências" : "Histórico de cobranças"}
       </h2>
-      <p className="mt-1 text-caption text-muted-foreground">
-        {filter === "overdue"
-          ? "Vencimentos mais antigos primeiro. Registre o recebimento para quitar a pendência."
-          : (filter === "paid"
-            ? "Cobranças quitadas deste aluno."
-            : "Todas as cobranças vinculadas a este aluno, com seus saldos atuais.")}
-      </p>
+      <p className="mt-1 text-caption text-muted-foreground">{description}</p>
     </div>
   );
 }

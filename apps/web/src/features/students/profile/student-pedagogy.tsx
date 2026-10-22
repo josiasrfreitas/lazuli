@@ -121,6 +121,17 @@ function NoCurrentEnrollment({
   hasHistory: boolean;
 }): ReactElement {
   const Icon = upcoming ? CalendarDays : GraduationCap;
+  let title = "O acompanhamento começa com a matrícula";
+  let description =
+    "Este aluno ainda não tem matrícula em uma turma. Quando ela estiver vigente, as aulas, as avaliações e os registros pedagógicos terão seu lugar aqui.";
+  if (upcoming) {
+    title = "O próximo período já tem data";
+    description = `A matrícula na turma ${upcoming.class.name} começa em ${formatDateOnlyBR(upcoming.entryDate)}. A partir dessa data, você poderá acompanhar as aulas e registrar os atendimentos do aluno.`;
+  } else if (hasHistory) {
+    title = "Nenhuma matrícula em andamento";
+    description =
+      "Este aluno está sem matrícula vigente. O histórico continua disponível abaixo; novos registros ficam disponíveis quando uma nova matrícula começar.";
+  }
   return (
     <section
       aria-labelledby="enrollment-empty-title"
@@ -128,19 +139,9 @@ function NoCurrentEnrollment({
     >
       <Icon aria-hidden="true" className="mb-2 size-12 text-icon" strokeWidth={1.5} />
       <h2 id="enrollment-empty-title" className="font-display text-2xl font-semibold text-heading">
-        {upcoming
-          ? "O próximo período já tem data"
-          : (hasHistory
-            ? "Nenhuma matrícula em andamento"
-            : "O acompanhamento começa com a matrícula")}
+        {title}
       </h2>
-      <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-        {upcoming
-          ? `A matrícula na turma ${upcoming.class.name} começa em ${formatDateOnlyBR(upcoming.entryDate)}. A partir dessa data, você poderá acompanhar as aulas e registrar os atendimentos do aluno.`
-          : (hasHistory
-            ? "Este aluno está sem matrícula vigente. O histórico continua disponível abaixo; novos registros ficam disponíveis quando uma nova matrícula começar."
-            : "Este aluno ainda não tem matrícula em uma turma. Quando ela estiver vigente, as aulas, as avaliações e os registros pedagógicos terão seu lugar aqui.")}
-      </p>
+      <p className="max-w-md text-sm leading-relaxed text-muted-foreground">{description}</p>
     </section>
   );
 }
