@@ -14,6 +14,8 @@
 > **Pausa solicitada pelo dono em 2026-10-22:** não corrigir mais o bloco 5
 > nesta sessão. O bloco 6 está apenas separado abaixo; ainda não pode começar
 > até a retomada e o fechamento do gate do bloco 5.
+> **Trabalho paralelo:** as duas metades e fichas de retomada estão em
+> [pr207-lint-coordination.md](pr207-lint-coordination.md).
 
 O bloco 1 foi fechado com 0 erros em `features/students`. `pnpm lint` da raiz concluiu:
 somente Web e API falharam; os demais checks de lint passaram. Web e API totalizam 604 erros,

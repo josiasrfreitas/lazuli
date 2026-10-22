@@ -35,6 +35,8 @@ finishing, inspect the complete diff, run `git diff --check`, run proportionate 
 anything left to CI with a concrete reason.
 For large ESLint backlogs, use [`big-lint-resolver`](.codex/skills/big-lint-resolver/SKILL.md)
 and resume the locked batch from its progress document before choosing new work.
+For parallel lint agents in one worktree or a context-compaction handoff, load
+[`shared-lint-worktree`](.codex/skills/shared-lint-worktree/SKILL.md) and the active coordination file.
 
 ## Hard boundaries
 

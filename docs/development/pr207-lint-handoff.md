@@ -8,6 +8,8 @@
 > Trabalhar na **mesma worktree**; nos próximos trabalhos, usar commits
 > atômicos com assunto `lint (bloco X): descrição`. Rodar um check por vez e
 > não usar `eslint --fix`.
+> Dois agentes usam o protocolo e as reservas de arquivos em
+> [pr207-lint-coordination.md](pr207-lint-coordination.md).
 
 ## Estado medido
 
@@ -60,10 +62,10 @@ O hook de pré-commit executa Prettier e reproduziu os 21 erros; foi preciso
 restaurar os parênteses e emendar o mesmo commit sem esse hook. Em commits
 futuros, resolver a incompatibilidade antes de depender do hook como gate.
 
-## Escopo do commit desta pausa
+## Commit da pausa
 
-O dono autorizou um **único commit** com o estado local acumulado, apesar da
-regra de commits atômicos para os próximos lotes. Esse estado inclui blocos
-concluídos e o trabalho parcial do bloco 5; o commit não significa que o lint
-global esteja verde. Os arquivos de progresso e este handoff devem acompanhar
-o commit. Conferir `git status` e `git diff --check` antes de registrar o commit.
+O estado local acumulado foi salvo em `c631cf3`. Ele inclui blocos concluídos
+e o trabalho parcial do bloco 5; não significa que o lint global esteja verde.
+Os próximos commits seguem o padrão atômico `lint (bloco X): descrição`;
+cada agente commita somente a sua metade, com caminhos explícitos na mesma
+worktree.
