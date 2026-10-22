@@ -13,6 +13,7 @@ import { PlanningState, dateLabel } from "./shared";
 import styles from "./planning.module.css";
 
 type Contexts = RouterOutputs["planning"]["contexts"];
+type PlanningOption = ReturnType<typeof studentPlanningOptions>[number];
 export function studentPlanningOptions(
   contexts: Contexts,
   studentId: string,
@@ -55,18 +56,11 @@ export function StudentPlanning({ studentId }: { studentId: string }): ReactElem
         retry={() => void query.refetch()}
       />
       {query.data && options.length > 1 && (
-        <div className={styles.selector}>
-          <SelectControl
-            name="planning-progress"
-            label="Estágio do aluno"
-            value={selected?.progressId ?? ""}
-            choices={options.map((row) => ({
-              value: row.progressId,
-              label: `${row.stage} · ${row.className} · ${dateLabel(row.startOn)}${row.historical ? " · histórico" : ""}`,
-            }))}
-            onChange={(value) => void setProgressId(value)}
-          />
-        </div>
+        <PlanningSelector
+          options={options}
+          selected={selected}
+          onChange={(value) => void setProgressId(value)}
+        />
       )}
       {selected && (
         <PlanningWorkspace
@@ -76,23 +70,66 @@ export function StudentPlanning({ studentId }: { studentId: string }): ReactElem
         />
       )}
       {query.data && !selected && (
-        <EmptyState
-          action={
-            options.length > 0 ? (
-              <Button variant="secondary" onClick={() => void setProgressId(null)}>
-                <ArrowLeft aria-hidden="true" />
-                Ver percurso atual
-              </Button>
-            ) : undefined
-          }
-          title={progressId ? "Percurso não disponível" : "Nenhum estágio PPT disponível"}
-          description={
-            progressId
-              ? "Este percurso não pertence ao aluno ou não está disponível para seu acesso."
-              : "O planejamento individual fica disponível quando o aluno possui um estágio em uma turma PPT."
-          }
+        <MissingPlanning
+          progressId={progressId}
+          optionsCount={options.length}
+          onReset={() => void setProgressId(null)}
         />
       )}
     </div>
+  );
+}
+
+function PlanningSelector({
+  options,
+  selected,
+  onChange,
+}: {
+  options: PlanningOption[];
+  selected: PlanningOption | undefined;
+  onChange: (value: string) => void;
+}): ReactElement {
+  return (
+    <div className={styles.selector}>
+      <SelectControl
+        name="planning-progress"
+        label="Estágio do aluno"
+        value={selected?.progressId ?? ""}
+        choices={options.map((row) => ({
+          value: row.progressId,
+          label: `${row.stage} · ${row.className} · ${dateLabel(row.startOn)}${row.historical ? " · histórico" : ""}`,
+        }))}
+        onChange={onChange}
+      />
+    </div>
+  );
+}
+
+function MissingPlanning({
+  progressId,
+  optionsCount,
+  onReset,
+}: {
+  progressId: string | null;
+  optionsCount: number;
+  onReset: () => void;
+}): ReactElement {
+  return (
+    <EmptyState
+      action={
+        optionsCount > 0 ? (
+          <Button variant="secondary" onClick={onReset}>
+            <ArrowLeft aria-hidden="true" />
+            Ver percurso atual
+          </Button>
+        ) : undefined
+      }
+      title={progressId ? "Percurso não disponível" : "Nenhum estágio PPT disponível"}
+      description={
+        progressId
+          ? "Este percurso não pertence ao aluno ou não está disponível para seu acesso."
+          : "O planejamento individual fica disponível quando o aluno possui um estágio em uma turma PPT."
+      }
+    />
   );
 }

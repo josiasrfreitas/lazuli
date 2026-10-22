@@ -187,7 +187,7 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
               ...(reason ? { disabledReason: reason } : {}),
             };
           })
-      : teacher
+      : (teacher
         ? [
             ...meetings.map((row) => ({
               ...row,
@@ -207,7 +207,7 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
               disabled: true,
             })),
           ]
-        : [];
+        : []);
   const times = [
     ...(kind === "TRIAL" && events.length > 0 ? [] : ["08:00", "22:00"]),
     ...events.flatMap((row) => [row.startTime, row.endTime]),
@@ -366,9 +366,9 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
                   status={
                     calendar.isFetching || calendar.isPending
                       ? "loading"
-                      : calendar.isError
+                      : (calendar.isError
                         ? "error"
-                        : "ready"
+                        : "ready")
                   }
                   onRetry={() => void calendar.refetch()}
                   onDateChange={navigate}
@@ -388,9 +388,9 @@ export function VisitDialog({ candidate, previousVisitId, onClose }: VisitInput)
                   emptyMessage={
                     kind === "TRIAL"
                       ? "Nenhuma aula futura neste período. Escolha outra data ou turma."
-                      : teacher
+                      : (teacher
                         ? "Escolha um horário livre para a experimental."
-                        : "Selecione o professor para consultar a agenda."
+                        : "Selecione o professor para consultar a agenda.")
                   }
                   rangeSelection={
                     kind === "INTRODUCTION" && teacher

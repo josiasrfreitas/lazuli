@@ -92,53 +92,7 @@ function RecurringSchedule({
     <>
       <div className={styles.weeklySchedule}>
         {times.length > 0 && (
-          <table className={styles.weeklyTable}>
-            <caption className="sr-only">Turmas por dia da semana e horário de início</caption>
-            <thead>
-              <tr>
-                <th scope="col">Início</th>
-                {days.map((day) => (
-                  <th key={day} scope="col">
-                    {dayLabel(day)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {times.map((time) => (
-                <tr key={time}>
-                  <th scope="row">{time}</th>
-                  {days.map((day) => {
-                    const entries = choices.flatMap((choice) =>
-                      choice.slots
-                        .filter((slot) => slot.weekday === day && slot.startTime === time)
-                        .map((slot) => ({ choice, slot })),
-                    );
-                    return (
-                      <td key={day}>
-                        <div className={styles.timeOptions}>
-                          {entries.length > 0 ? (
-                            entries.map(({ choice, slot }) => (
-                              <ClassOption
-                                key={choice.id}
-                                choice={choice}
-                                slot={slot}
-                                {...selection}
-                              />
-                            ))
-                          ) : (
-                            <span className={styles.emptyCell} aria-label="Sem turma">
-                              —
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ScheduleTable choices={choices} days={days} times={times} {...selection} />
         )}
         {unscheduled.length > 0 && (
           <section className={styles.unscheduled} aria-label="Turmas sem horário recorrente">
@@ -157,6 +111,91 @@ function RecurringSchedule({
         ))}
       </div>
     </>
+  );
+}
+
+function ScheduleTable({
+  choices,
+  days,
+  times,
+  ...selection
+}: SelectionProps & {
+  choices: ClassChoice[];
+  days: Slot["weekday"][];
+  times: string[];
+}): ReactJSX.Element {
+  return (
+    <table className={styles.weeklyTable}>
+      <caption className="sr-only">Turmas por dia da semana e horário de início</caption>
+      <thead>
+        <tr>
+          <th scope="col">Início</th>
+          {days.map((day) => (
+            <th key={day} scope="col">
+              {dayLabel(day)}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {times.map((time) => (
+          <ScheduleTimeRow key={time} choices={choices} days={days} time={time} {...selection} />
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function ScheduleTimeRow({
+  choices,
+  days,
+  time,
+  ...selection
+}: SelectionProps & {
+  choices: ClassChoice[];
+  days: Slot["weekday"][];
+  time: string;
+}): ReactJSX.Element {
+  return (
+    <tr>
+      <th scope="row">{time}</th>
+      {days.map((day) => (
+        <ScheduleDayCell key={day} choices={choices} day={day} time={time} {...selection} />
+      ))}
+    </tr>
+  );
+}
+
+function ScheduleDayCell({
+  choices,
+  day,
+  time,
+  ...selection
+}: SelectionProps & {
+  choices: ClassChoice[];
+  day: Slot["weekday"];
+  time: string;
+}): ReactJSX.Element {
+  const entries: { choice: ClassChoice; slot: Slot }[] = [];
+  for (const choice of choices) {
+    for (const slot of choice.slots) {
+      if (slot.weekday === day && slot.startTime === time) entries.push({ choice, slot });
+    }
+  }
+  return (
+    <td>
+      <div className={styles.timeOptions}>
+        {entries.length > 0 ? (
+          entries.map(({ choice, slot }) => (
+            <ClassOption key={choice.id} choice={choice} slot={slot} {...selection} />
+          ))
+        ) : (
+          <span className={styles.emptyCell} aria-label="Sem turma">
+            —
+          </span>
+        )}
+      </div>
+    </td>
   );
 }
 
@@ -187,32 +226,59 @@ export function IntakeClasses({
         </span>
       </div>
       <div className={`${styles.classesContent} scrollbar-subtle`}>
-        {pending ? (
-          <div className={styles.centeredState}>
-            <PencilLoader label="Carregando turmas" />
-          </div>
-        ) : error ? (
-          <div className={styles.centeredState}>
-            <Alert variant="destructive">
-              {error}
-              <Button variant="secondary" size="sm" onClick={onRetry}>
-                Tentar novamente
-              </Button>
-            </Alert>
-          </div>
-        ) : choices.length > 0 ? (
-          <RecurringSchedule choices={choices} {...selection} />
-        ) : (
-          <div className={styles.centeredState}>
-            <CalendarDays className="size-6 text-muted-foreground" aria-hidden="true" />
-            <p>
-              {data?.semester
-                ? "Nenhuma turma nesta combinação. Altere os filtros ou deixe a turma para depois."
-                : "Não há semestre vigente cadastrado."}
-            </p>
-          </div>
-        )}
+        <ClassesContent
+          data={data}
+          choices={choices}
+          pending={pending}
+          error={error}
+          onRetry={onRetry}
+          {...selection}
+        />
       </div>
     </section>
+  );
+}
+
+function ClassesContent({
+  data,
+  choices,
+  pending,
+  error,
+  onRetry,
+  ...selection
+}: SelectionProps & {
+  data: Options | undefined;
+  choices: ClassChoice[];
+  pending: boolean;
+  error: string | undefined;
+  onRetry: () => void;
+}): ReactJSX.Element {
+  if (pending)
+    return (
+      <div className={styles.centeredState}>
+        <PencilLoader label="Carregando turmas" />
+      </div>
+    );
+  if (error)
+    return (
+      <div className={styles.centeredState}>
+        <Alert variant="destructive">
+          {error}
+          <Button variant="secondary" size="sm" onClick={onRetry}>
+            Tentar novamente
+          </Button>
+        </Alert>
+      </div>
+    );
+  if (choices.length > 0) return <RecurringSchedule choices={choices} {...selection} />;
+  return (
+    <div className={styles.centeredState}>
+      <CalendarDays className="size-6 text-muted-foreground" aria-hidden="true" />
+      <p>
+        {data?.semester
+          ? "Nenhuma turma nesta combinação. Altere os filtros ou deixe a turma para depois."
+          : "Não há semestre vigente cadastrado."}
+      </p>
+    </div>
   );
 }

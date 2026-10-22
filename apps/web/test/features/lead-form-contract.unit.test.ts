@@ -25,37 +25,40 @@ const draft: Draft = {
   scheduleType: null,
 };
 void it("labels contact ownership and masked birth date while exposing invalid lead contacts", () => {
-  for (const contactRole of ["STUDENT", "GUARDIAN"] as const) {
-    const markup = renderToStaticMarkup(
-      React.createElement(LeadCaptureContactFields, {
-        draft: { ...draft, contactRole, contactOwner: contactRole },
-        errors: { phone: "Informe telefone ou e-mail para contato." },
-        change: () => {},
-      }),
-    );
-    for (const name of [
-      "lead-name",
-      "phone",
-      "email",
-      "birthDate",
-      "source",
-      ...(contactRole === "GUARDIAN" ? ["contactName"] : []),
-    ]) {
-      const input = markup.match(new RegExp(`<input[^>]*name="${name}"[^>]*>`))?.[0] ?? "";
-      assert.match(input, /placeholder="[^"]+"/u);
-      assert.match(input, /autoComplete="off"/iu);
-    }
-    assert.match(markup.match(/<input[^>]*name="phone"[^>]*>/u)?.[0] ?? "", /aria-invalid="true"/u);
-    assert.match(markup, /Informe telefone ou e-mail para contato\./u);
-    assert.match(
-      markup.match(/<input[^>]*name="birthDate"[^>]*>/u)?.[0] ?? "",
-      /inputMode="numeric"/u,
-    );
-    assert.match(markup, /placeholder="dd\/mm\/aaaa"/u);
-    assert.doesNotMatch(markup, /type="date"|Documento|Contrato/u);
-    if (contactRole === "GUARDIAN") assert.match(markup, /De quem é o contato abaixo/u);
-  }
+  verifyContactFields("STUDENT");
+  verifyContactFields("GUARDIAN");
 });
+
+function verifyContactFields(contactRole: "STUDENT" | "GUARDIAN"): void {
+  const markup = renderToStaticMarkup(
+    React.createElement(LeadCaptureContactFields, {
+      draft: { ...draft, contactRole, contactOwner: contactRole },
+      errors: { phone: "Informe telefone ou e-mail para contato." },
+      change: () => {},
+    }),
+  );
+  for (const name of [
+    "lead-name",
+    "phone",
+    "email",
+    "birthDate",
+    "source",
+    ...(contactRole === "GUARDIAN" ? ["contactName"] : []),
+  ]) {
+    const input = markup.match(new RegExp(`<input[^>]*name="${name}"[^>]*>`))?.[0] ?? "";
+    assert.match(input, /placeholder="[^"]+"/u);
+    assert.match(input, /autoComplete="off"/iu);
+  }
+  assert.match(markup.match(/<input[^>]*name="phone"[^>]*>/u)?.[0] ?? "", /aria-invalid="true"/u);
+  assert.match(markup, /Informe telefone ou e-mail para contato\./u);
+  assert.match(
+    markup.match(/<input[^>]*name="birthDate"[^>]*>/u)?.[0] ?? "",
+    /inputMode="numeric"/u,
+  );
+  assert.match(markup, /placeholder="dd\/mm\/aaaa"/u);
+  assert.doesNotMatch(markup, /type="date"|Documento|Contrato/u);
+  if (contactRole === "GUARDIAN") assert.match(markup, /De quem é o contato abaixo/u);
+}
 void it("keeps current lead notes multiline with accessible localized errors", () => {
   const markup = renderToStaticMarkup(
     React.createElement(LeadCaptureNotesField, {

@@ -1,13 +1,20 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 
 const TIMELINE_VIEWPORT_RESERVE = 60;
 const CARD_VISIBILITY_INSET = 52;
 const CARD_SCROLL_INSET = 56;
 
+type TimelineExpansion = {
+  timelineRef: RefObject<HTMLDivElement | null>;
+  expandedId: string | null;
+  expand: (id: string | null, pointer?: boolean) => void;
+  availableShare: number;
+};
+
 /** CSS interpolates the real lane sizes; this hook owns selection and viewport access. */
-export function useTimelineExpansion() {
+export function useTimelineExpansion(): TimelineExpansion {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const [availableShare, setAvailableShare] = useState(1);

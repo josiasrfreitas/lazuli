@@ -14,6 +14,7 @@ import { sortStudentAppointments } from "./student-agenda-model";
 import { AppointmentsLoading } from "~/features/students/profile/student-loading";
 import styles from "./student-carousel.module.css";
 type Row = RouterOutputs["appointments"]["forStudent"][number];
+type CarouselControls = ReturnType<typeof useHorizontalCarousel>;
 export function StudentAppointmentCarousel({
   studentId,
   admin,
@@ -73,66 +74,17 @@ function Carousel({
           <CalendarDays aria-hidden="true" />
           Atendimentos <span>{rows.length}</span>
         </h2>
-        <div className={styles.actions}>
-          <Button
-            size="sm"
-            variant="link"
-            nativeButton={false}
-            render={<Link href={`/aulas?aluno=${studentId}`} />}
-          >
-            <CalendarDays aria-hidden="true" />
-            Ver agenda
-          </Button>
-          {admin && (
-            <Button size="sm" variant="secondary" onClick={onSchedule}>
-              <CalendarDays aria-hidden="true" />
-              Agendar atendimento
-            </Button>
-          )}
-          {!(controls.start && controls.end) && (
-            <>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label="Atendimentos anteriores"
-                disabled={controls.start}
-                onClick={() => controls.scroll(-1)}
-              >
-                <ArrowLeft />
-              </Button>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label="Próximos atendimentos"
-                disabled={controls.end}
-                onClick={() => controls.scroll(1)}
-              >
-                <ArrowRight />
-              </Button>
-            </>
-          )}
-        </div>
+        <CarouselActions
+          controls={controls}
+          studentId={studentId}
+          admin={admin}
+          onSchedule={onSchedule}
+        />
       </header>
       {rows.length === 0 && (
         <p className="py-3 text-caption text-muted-foreground">Nenhum atendimento registrado.</p>
       )}
-      <ul
-        ref={controls.rail}
-        className={styles.rail}
-        data-count={rows.length}
-        onScroll={controls.measure}
-        aria-label="Datas e motivos dos atendimentos"
-      >
-        {rows.map((row) => (
-          <li key={row.id}>
-            <AppointmentCell
-              row={row}
-              selected={selected === row.id}
-              onSelect={() => setSelected(row.id)}
-            />
-          </li>
-        ))}
-      </ul>
+      <CarouselRail rows={rows} controls={controls} selected={selected} onSelect={setSelected} />
       {selected && (
         <StudentAppointmentDialog
           readOnly={readOnly}
@@ -144,6 +96,94 @@ function Carousel({
         />
       )}
     </section>
+  );
+}
+function CarouselRail({
+  rows,
+  controls,
+  selected,
+  onSelect,
+}: {
+  rows: Row[];
+  controls: CarouselControls;
+  selected: string | null;
+  onSelect: (id: string) => void;
+}): ReactElement {
+  return (
+    <ul
+      ref={controls.rail}
+      className={styles.rail}
+      data-count={rows.length}
+      onScroll={controls.measure}
+      aria-label="Datas e motivos dos atendimentos"
+    >
+      {rows.map((row) => (
+        <li key={row.id}>
+          <AppointmentCell
+            row={row}
+            selected={selected === row.id}
+            onSelect={() => onSelect(row.id)}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+}
+function CarouselActions({
+  controls,
+  studentId,
+  admin,
+  onSchedule,
+}: {
+  controls: CarouselControls;
+  studentId: string;
+  admin: boolean;
+  onSchedule: () => void;
+}): ReactElement {
+  return (
+    <div className={styles.actions}>
+      <Button
+        size="sm"
+        variant="link"
+        nativeButton={false}
+        render={<Link href={`/aulas?aluno=${studentId}`} />}
+      >
+        <CalendarDays aria-hidden="true" />
+        Ver agenda
+      </Button>
+      {admin && (
+        <Button size="sm" variant="secondary" onClick={onSchedule}>
+          <CalendarDays aria-hidden="true" />
+          Agendar atendimento
+        </Button>
+      )}
+      <CarouselArrows controls={controls} />
+    </div>
+  );
+}
+function CarouselArrows({ controls }: { controls: CarouselControls }): ReactElement | null {
+  if (controls.start && controls.end) return null;
+  return (
+    <>
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        aria-label="Atendimentos anteriores"
+        disabled={controls.start}
+        onClick={() => controls.scroll(-1)}
+      >
+        <ArrowLeft />
+      </Button>
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        aria-label="Próximos atendimentos"
+        disabled={controls.end}
+        onClick={() => controls.scroll(1)}
+      >
+        <ArrowRight />
+      </Button>
+    </>
   );
 }
 function AppointmentCell({

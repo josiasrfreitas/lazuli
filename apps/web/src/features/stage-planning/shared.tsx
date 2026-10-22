@@ -54,6 +54,28 @@ export function PlanTable({
   filtered?: boolean;
   onEdit?: ((item: PlannedItem) => void) | undefined;
 }): ReactElement {
+  return (
+    <DataTable
+      label="Roteiro de atividades planejadas"
+      {...(pagination ? { pagination } : {})}
+      columns={planColumns(onEdit)}
+      state={
+        items.length > 0
+          ? { kind: "data", rows: items }
+          : { kind: filtered ? "noResults" : "empty" }
+      }
+      empty={{
+        title: "O roteiro começa aqui",
+        description:
+          "Inclua as atividades e suas datas previstas. Revisões e avaliações também fazem parte do plano.",
+      }}
+      errorTitle="Não foi possível carregar o roteiro"
+      onRetry={() => {}}
+    />
+  );
+}
+
+function planColumns(onEdit?: (item: PlannedItem) => void): DataTableColumn<PlannedItem>[] {
   const columns: DataTableColumn<PlannedItem>[] = [
     {
       id: "date",
@@ -78,17 +100,7 @@ export function PlanTable({
       id: "reference",
       header: "Referência",
       width: "standard",
-      cell: (item) => (
-        <div className="grid gap-1">
-          <span>{item.reference ?? "—"}</span>
-          {item.pageFrom !== null && (
-            <span className="text-caption text-muted-foreground">
-              Pág. {item.pageFrom}
-              {item.pageTo !== null && item.pageTo !== item.pageFrom ? `–${item.pageTo}` : ""}
-            </span>
-          )}
-        </div>
-      ),
+      cell: planReference,
     },
   ];
   if (onEdit)
@@ -96,35 +108,35 @@ export function PlanTable({
       id: "actions",
       header: <span className="sr-only">Ações</span>,
       width: "narrow",
-      cell: (item) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          aria-label={`Editar ${item.title} de ${dateLabel(item.plannedOn)}`}
-          onClick={() => onEdit(item)}
-        >
-          <Pencil aria-hidden="true" />
-          Editar
-        </Button>
-      ),
+      cell: (item) => editPlanAction(item, onEdit),
     });
+  return columns;
+}
+
+function planReference(item: PlannedItem): ReactElement {
   return (
-    <DataTable
-      label="Roteiro de atividades planejadas"
-      {...(pagination ? { pagination } : {})}
-      columns={columns}
-      state={
-        items.length > 0
-          ? { kind: "data", rows: items }
-          : { kind: filtered ? "noResults" : "empty" }
-      }
-      empty={{
-        title: "O roteiro começa aqui",
-        description:
-          "Inclua as atividades e suas datas previstas. Revisões e avaliações também fazem parte do plano.",
-      }}
-      errorTitle="Não foi possível carregar o roteiro"
-      onRetry={() => {}}
-    />
+    <div className="grid gap-1">
+      <span>{item.reference ?? "—"}</span>
+      {item.pageFrom !== null && (
+        <span className="text-caption text-muted-foreground">
+          Pág. {item.pageFrom}
+          {item.pageTo !== null && item.pageTo !== item.pageFrom ? `–${item.pageTo}` : ""}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function editPlanAction(item: PlannedItem, onEdit: (item: PlannedItem) => void): ReactElement {
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      aria-label={`Editar ${item.title} de ${dateLabel(item.plannedOn)}`}
+      onClick={() => onEdit(item)}
+    >
+      <Pencil aria-hidden="true" />
+      Editar
+    </Button>
   );
 }

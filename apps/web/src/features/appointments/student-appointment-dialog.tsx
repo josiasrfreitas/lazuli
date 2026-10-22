@@ -61,72 +61,144 @@ export function StudentAppointmentDialog({
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent
-          className="md:max-w-4xl md:w-[calc(100%-2rem)]"
-          showCloseButton={!pending}
-          finalFocus={() => document.getElementById(`appointment-cell-${id}`)}
-        >
-          {query.data ? (
-            <AppointmentDialogHeader data={query.data} admin={admin} />
-          ) : (
-            <DialogHeader>
-              <DialogTitle>Atendimento</DialogTitle>
-            </DialogHeader>
-          )}
-          <DialogBody>
-            <div className={styles.body}>
-              {query.isPending ? (
-                <PencilLoader size="sm" label="Carregando atendimento" />
-              ) : (
-                <RecordState
-                  pending={false}
-                  error={query.error}
-                  retry={() => void query.refetch()}
-                />
-              )}
-              {query.data && (
-                <AppointmentDialogBody
-                  data={query.data}
-                  editing={editing}
-                  footerTarget={footerTarget}
-                  onPendingChange={setPending}
-                  onFinish={() => {
-                    setPending(false);
-                    setEditing(false);
-                    requestAnimationFrame(() =>
-                      document.getElementById(`appointment-edit-${id}`)?.focus(),
-                    );
-                  }}
-                />
-              )}
-            </div>
-          </DialogBody>
-          {query.data && (
-            <DialogFooter className="border-t border-border pt-4" ref={setFooterTarget}>
-              {!editing && !readOnly && (
-                <AppointmentDialogActions
-                  data={query.data}
-                  admin={admin}
-                  setEditing={setEditing}
-                  setAction={setAction}
-                  onSelect={onSelect}
-                />
-              )}
-            </DialogFooter>
-          )}
-          {query.data && action === "cancel" && (
-            <CancelAppointmentDialog row={query.data.snapshot} onClose={() => setAction(null)} />
-          )}
-          {query.data && action === "reschedule" && (
-            <ScheduleAppointmentDialog
-              previous={query.data.snapshot}
-              onClose={() => setAction(null)}
-            />
-          )}
-        </DialogContent>
+        <AppointmentDialogView
+          id={id}
+          admin={admin}
+          readOnly={readOnly}
+          onSelect={onSelect}
+          query={query}
+          editing={editing}
+          setEditing={setEditing}
+          pending={pending}
+          setPending={setPending}
+          footerTarget={footerTarget}
+          setFooterTarget={setFooterTarget}
+          action={action}
+          setAction={setAction}
+        />
       </DialogPortal>
     </Dialog>
   );
+}
+
+type AppointmentDialogViewProps = {
+  id: string;
+  admin: boolean;
+  readOnly: boolean;
+  onSelect: (id: string) => void;
+  query: {
+    data: Appointment | undefined;
+    isPending: boolean;
+    error: { message: string } | null;
+    refetch: () => void;
+  };
+  editing: boolean;
+  setEditing: (editing: boolean) => void;
+  pending: boolean;
+  setPending: (pending: boolean) => void;
+  footerTarget: HTMLDivElement | null;
+  setFooterTarget: (target: HTMLDivElement | null) => void;
+  action: "cancel" | "reschedule" | null;
+  setAction: (action: "cancel" | "reschedule" | null) => void;
+};
+
+function AppointmentDialogView(props: AppointmentDialogViewProps): ReactJSX.Element {
+  const { id, admin, query, pending } = props;
+  return (
+    <DialogContent
+      className="md:max-w-4xl md:w-[calc(100%-2rem)]"
+      showCloseButton={!pending}
+      finalFocus={() => document.querySelector<HTMLElement>(`#appointment-cell-${id}`)}
+    >
+      {query.data ? (
+        <AppointmentDialogHeader data={query.data} admin={admin} />
+      ) : (
+        <DialogHeader>
+          <DialogTitle>Atendimento</DialogTitle>
+        </DialogHeader>
+      )}
+      <AppointmentDialogMain {...props} />
+      <AppointmentDialogFooter {...props} />
+      <AppointmentActionDialogs {...props} />
+    </DialogContent>
+  );
+}
+
+function AppointmentDialogMain({
+  id,
+  query,
+  editing,
+  footerTarget,
+  setPending,
+  setEditing,
+}: AppointmentDialogViewProps): ReactJSX.Element {
+  return (
+    <DialogBody>
+      <div className={styles.body}>
+        {query.isPending ? (
+          <PencilLoader size="sm" label="Carregando atendimento" />
+        ) : (
+          <RecordState pending={false} error={query.error} retry={() => void query.refetch()} />
+        )}
+        {query.data && (
+          <AppointmentDialogBody
+            data={query.data}
+            editing={editing}
+            footerTarget={footerTarget}
+            onPendingChange={setPending}
+            onFinish={() => {
+              setPending(false);
+              setEditing(false);
+              requestAnimationFrame(() =>
+                document.querySelector<HTMLElement>(`#appointment-edit-${id}`)?.focus(),
+              );
+            }}
+          />
+        )}
+      </div>
+    </DialogBody>
+  );
+}
+
+function AppointmentDialogFooter({
+  query,
+  editing,
+  readOnly,
+  admin,
+  setEditing,
+  setAction,
+  onSelect,
+  setFooterTarget,
+}: AppointmentDialogViewProps): ReactJSX.Element | null {
+  if (!query.data) return null;
+  return (
+    <DialogFooter className="border-t border-border pt-4" ref={setFooterTarget}>
+      {!editing && !readOnly && (
+        <AppointmentDialogActions
+          data={query.data}
+          admin={admin}
+          setEditing={setEditing}
+          setAction={setAction}
+          onSelect={onSelect}
+        />
+      )}
+    </DialogFooter>
+  );
+}
+
+function AppointmentActionDialogs({
+  query,
+  action,
+  setAction,
+}: AppointmentDialogViewProps): ReactJSX.Element | null {
+  if (!query.data) return null;
+  if (action === "cancel")
+    return <CancelAppointmentDialog row={query.data.snapshot} onClose={() => setAction(null)} />;
+  if (action === "reschedule")
+    return (
+      <ScheduleAppointmentDialog previous={query.data.snapshot} onClose={() => setAction(null)} />
+    );
+  return null;
 }
 
 function AppointmentDialogActions({
@@ -147,30 +219,14 @@ function AppointmentDialogActions({
   const nextId = data.rescheduledToId;
   return (
     <div className={styles.toolbar}>
-      <div className={styles.secondaryActions}>
-        {row.status === "SCHEDULED" && admin && (
-          <>
-            <Button size="sm" variant="secondary" onClick={() => setAction("reschedule")}>
-              <CalendarClock />
-              Reagendar
-            </Button>
-            <Button size="sm" variant="destructive-outline" onClick={() => setAction("cancel")}>
-              <CalendarX2 />
-              Cancelar
-            </Button>
-          </>
-        )}
-        {previousId && (
-          <Button variant="link" size="sm" onClick={() => onSelect(previousId)}>
-            Agendamento anterior
-          </Button>
-        )}
-        {nextId && (
-          <Button variant="link" size="sm" onClick={() => onSelect(nextId)}>
-            Novo agendamento
-          </Button>
-        )}
-      </div>
+      <AppointmentSecondaryActions
+        scheduled={row.status === "SCHEDULED"}
+        admin={admin}
+        previousId={previousId}
+        nextId={nextId}
+        setAction={setAction}
+        onSelect={onSelect}
+      />
       {!data.restriction && (
         <Button
           id={`appointment-edit-${row.id}`}
@@ -180,6 +236,49 @@ function AppointmentDialogActions({
         >
           {row.status === "SCHEDULED" ? <Check /> : <Pencil />}
           {row.status === "SCHEDULED" ? "Registrar atendimento" : "Corrigir registro"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function AppointmentSecondaryActions({
+  scheduled,
+  admin,
+  previousId,
+  nextId,
+  setAction,
+  onSelect,
+}: {
+  scheduled: boolean;
+  admin: boolean;
+  previousId: string | null;
+  nextId: string | null;
+  setAction: (value: "cancel" | "reschedule") => void;
+  onSelect: (id: string) => void;
+}): ReactJSX.Element {
+  return (
+    <div className={styles.secondaryActions}>
+      {scheduled && admin && (
+        <>
+          <Button size="sm" variant="secondary" onClick={() => setAction("reschedule")}>
+            <CalendarClock />
+            Reagendar
+          </Button>
+          <Button size="sm" variant="destructive-outline" onClick={() => setAction("cancel")}>
+            <CalendarX2 />
+            Cancelar
+          </Button>
+        </>
+      )}
+      {previousId && (
+        <Button variant="link" size="sm" onClick={() => onSelect(previousId)}>
+          Agendamento anterior
+        </Button>
+      )}
+      {nextId && (
+        <Button variant="link" size="sm" onClick={() => onSelect(nextId)}>
+          Novo agendamento
         </Button>
       )}
     </div>
@@ -216,6 +315,36 @@ function AppointmentDialogBody({
   ) : undefined;
   return (
     <>
+      <AppointmentNotices data={data} restriction={restriction} />
+      {editing ? (
+        <AppointmentRecordForm
+          data={data}
+          onClose={onFinish}
+          context={context}
+          footerTarget={footerTarget}
+          onPendingChange={onPendingChange}
+        />
+      ) : (
+        <AppointmentOverview data={data} planning={planning} />
+      )}
+      <AppointmentDialogHistory data={data} />
+      {row.purpose === "ASSESSMENT" && (
+        <AppointmentAssessmentFiles id={row.id} studentId={row.student.id} />
+      )}
+    </>
+  );
+}
+
+function AppointmentNotices({
+  data,
+  restriction,
+}: {
+  data: Appointment;
+  restriction: string | null;
+}): ReactJSX.Element {
+  const row = data.snapshot;
+  return (
+    <>
       {row.version === 0 && (
         <Alert>
           Registro anterior aos atendimentos. Informações não registradas permanecem em aberto;
@@ -229,38 +358,35 @@ function AppointmentDialogBody({
           {row.cancellationReason}
         </p>
       )}
-      {editing ? (
-        <AppointmentRecordForm
-          data={data}
-          onClose={onFinish}
-          context={context}
-          footerTarget={footerTarget}
-          onPendingChange={onPendingChange}
-        />
-      ) : (
-        <div className={styles.overview}>
-          {planning && (
-            <section className={styles.planning}>
-              <h3>
-                <ClipboardList aria-hidden="true" />
-                Previsto para o encontro
-              </h3>
-              <p>{planning}</p>
-            </section>
-          )}
-          <section className={styles.account}>
-            <h3>
-              <MessageSquareText aria-hidden="true" />
-              Registro do atendimento
-            </h3>
-            <AppointmentAccount row={row} rescheduled={Boolean(data.rescheduledToId)} />
-          </section>
-        </div>
-      )}
-      <AppointmentDialogHistory data={data} />
-      {row.purpose === "ASSESSMENT" && (
-        <AppointmentAssessmentFiles id={row.id} studentId={row.student.id} />
-      )}
     </>
+  );
+}
+
+function AppointmentOverview({
+  data,
+  planning,
+}: {
+  data: Appointment;
+  planning: string | undefined;
+}): ReactJSX.Element {
+  return (
+    <div className={styles.overview}>
+      {planning && (
+        <section className={styles.planning}>
+          <h3>
+            <ClipboardList aria-hidden="true" />
+            Previsto para o encontro
+          </h3>
+          <p>{planning}</p>
+        </section>
+      )}
+      <section className={styles.account}>
+        <h3>
+          <MessageSquareText aria-hidden="true" />
+          Registro do atendimento
+        </h3>
+        <AppointmentAccount row={data.snapshot} rescheduled={Boolean(data.rescheduledToId)} />
+      </section>
+    </div>
   );
 }

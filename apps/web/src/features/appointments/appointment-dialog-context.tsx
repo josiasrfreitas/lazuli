@@ -41,49 +41,55 @@ export function AppointmentDialogHeader({
         </div>
         <DialogDescription>{purposes[row.purpose]}</DialogDescription>
       </div>
-      <dl className={styles.facts}>
-        <div>
-          <dt>
-            <CalendarDays aria-hidden="true" />
-            <span className="sr-only">Data e horário</span>
-          </dt>
-          <dd>
-            {formatDateOnlyBR(row.date)}
-            <span className={styles.factDetail}>
-              {" "}
-              · {row.startTime}–{row.endTime}
-            </span>
-          </dd>
-        </div>
-        <div>
-          <dt>
-            <UserRound aria-hidden="true" />
-            Professor
-          </dt>
-          <dd>{row.teacher?.name ?? "A definir"}</dd>
-        </div>
-        <div>
-          <dt>
-            <MapPin aria-hidden="true" />
-            Encontro
-          </dt>
-          <dd>
-            {row.format === "IN_PERSON" ? "Presencial" : "Online"}
-            <span className={styles.factDetail}>
-              {" "}
-              ·{" "}
-              {row.targetClassSessionId ? (
-                <ClassRecordTrigger sessionId={row.targetClassSessionId}>
-                  {row.targetClassName} · Abrir aula
-                </ClassRecordTrigger>
-              ) : (
-                "Individual"
-              )}
-            </span>
-          </dd>
-        </div>
-      </dl>
+      <AppointmentFacts row={row} />
     </DialogHeader>
+  );
+}
+
+function AppointmentFacts({ row }: { row: Appointment["snapshot"] }): ReactJSX.Element {
+  return (
+    <dl className={styles.facts}>
+      <div>
+        <dt>
+          <CalendarDays aria-hidden="true" />
+          <span className="sr-only">Data e horário</span>
+        </dt>
+        <dd>
+          {formatDateOnlyBR(row.date)}
+          <span className={styles.factDetail}>
+            {" "}
+            · {row.startTime}–{row.endTime}
+          </span>
+        </dd>
+      </div>
+      <div>
+        <dt>
+          <UserRound aria-hidden="true" />
+          Professor
+        </dt>
+        <dd>{row.teacher?.name ?? "A definir"}</dd>
+      </div>
+      <div>
+        <dt>
+          <MapPin aria-hidden="true" />
+          Encontro
+        </dt>
+        <dd>
+          {row.format === "IN_PERSON" ? "Presencial" : "Online"}
+          <span className={styles.factDetail}>
+            {" "}
+            ·{" "}
+            {row.targetClassSessionId ? (
+              <ClassRecordTrigger sessionId={row.targetClassSessionId}>
+                {row.targetClassName} · Abrir aula
+              </ClassRecordTrigger>
+            ) : (
+              "Individual"
+            )}
+          </span>
+        </dd>
+      </div>
+    </dl>
   );
 }
 
@@ -110,40 +116,50 @@ export function AppointmentDialogHistory({ data }: { data: Appointment }): React
       </p>
       <ol className={styles.history}>
         {revisions.length === 0 && <li>Não há alterações registradas para este atendimento.</li>}
-        {revisions.map((revision, index) => {
-          const previous = revisions[index + 1];
-          const changes = previous ? appointmentChanges(previous.snapshot, revision.snapshot) : [];
-          return (
-            <li key={revision.id}>
-              <strong>{events[revision.kind] ?? revision.kind}</strong>
-              <p className={styles.attribution}>
-                {stamp(revision.at)} · {revision.author?.name ?? "Autoria não registrada"}
-              </p>
-              {revision.reason && <p className="whitespace-pre-wrap text-sm">{revision.reason}</p>}
-              <p className={styles.attribution}>
-                {formatDateOnlyBR(revision.snapshot.date)} · {revision.snapshot.startTime}–
-                {revision.snapshot.endTime}
-              </p>
-              <AppointmentAccount
-                row={revision.snapshot}
-                rescheduled={revision.kind === "RESCHEDULED"}
-              />
-              {changes.length > 0 && (
-                <dl className={styles.changes}>
-                  {changes.map((change) => (
-                    <div key={change.label}>
-                      <dt>{change.label}</dt>
-                      <dd>
-                        {change.before} → {change.after}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
-            </li>
-          );
-        })}
+        {revisions.map((revision, index) => (
+          <AppointmentHistoryItem
+            key={revision.id}
+            revision={revision}
+            previous={revisions[index + 1]}
+          />
+        ))}
       </ol>
     </details>
+  );
+}
+
+function AppointmentHistoryItem({
+  revision,
+  previous,
+}: {
+  revision: Appointment["history"][number];
+  previous: Appointment["history"][number] | undefined;
+}): ReactJSX.Element {
+  const changes = previous ? appointmentChanges(previous.snapshot, revision.snapshot) : [];
+  return (
+    <li>
+      <strong>{events[revision.kind] ?? revision.kind}</strong>
+      <p className={styles.attribution}>
+        {stamp(revision.at)} · {revision.author?.name ?? "Autoria não registrada"}
+      </p>
+      {revision.reason && <p className="whitespace-pre-wrap text-sm">{revision.reason}</p>}
+      <p className={styles.attribution}>
+        {formatDateOnlyBR(revision.snapshot.date)} · {revision.snapshot.startTime}–
+        {revision.snapshot.endTime}
+      </p>
+      <AppointmentAccount row={revision.snapshot} rescheduled={revision.kind === "RESCHEDULED"} />
+      {changes.length > 0 && (
+        <dl className={styles.changes}>
+          {changes.map((change) => (
+            <div key={change.label}>
+              <dt>{change.label}</dt>
+              <dd>
+                {change.before} → {change.after}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </li>
   );
 }

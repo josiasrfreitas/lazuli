@@ -35,31 +35,14 @@ function PerformanceWorkspace({ rows }: { rows: Assessment[] }): ReactElement {
       className="grid min-w-0 shrink-0 gap-3 rounded-lg border border-border bg-card p-3 sm:p-4"
       aria-label="Desempenho da turma"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold">Desempenho da turma</h2>
-          <p className="mt-1 text-caption text-muted-foreground">
-            Aprendizagem por competência · Alunos com vínculo vigente
-          </p>
-        </div>
-        {stages.length > 1 && (
-          <div className="w-full sm:w-56">
-            <SelectControl
-              name="performance-stage"
-              label="Estágio"
-              value={stageId}
-              onChange={(value) => {
-                setStageId(value);
-                setStudentId("none");
-              }}
-              choices={[
-                { value: "all", label: "Todos os estágios" },
-                ...stages.map(([value, label]) => ({ value, label })),
-              ]}
-            />
-          </div>
-        )}
-      </div>
+      <PerformanceHeader
+        stages={stages}
+        stageId={stageId}
+        onStageChange={(value) => {
+          setStageId(value);
+          setStudentId("none");
+        }}
+      />
       {rows.length === 0 ? (
         <p className="text-caption text-muted-foreground">
           O desempenho aparece quando houver alunos com percurso vigente nesta turma.
@@ -68,12 +51,7 @@ function PerformanceWorkspace({ rows }: { rows: Assessment[] }): ReactElement {
         <>
           <PerformanceCounts rows={visible} />
           <ClassPerformanceChart rows={visible} selected={selected} />
-          {stages.length > 1 && stageId === "all" && (
-            <p className="text-caption text-muted-foreground">
-              Esta turma reúne estágios diferentes. Filtre um estágio para comparar alunos no mesmo
-              momento do curso.
-            </p>
-          )}
+          <MixedStagesNotice show={stages.length > 1 && stageId === "all"} />
           <div className="w-full sm:max-w-sm">
             <SelectControl
               name="performance-student"
@@ -94,6 +72,49 @@ function PerformanceWorkspace({ rows }: { rows: Assessment[] }): ReactElement {
         </>
       )}
     </section>
+  );
+}
+function MixedStagesNotice({ show }: { show: boolean }): ReactElement | null {
+  if (!show) return null;
+  return (
+    <p className="text-caption text-muted-foreground">
+      Esta turma reúne estágios diferentes. Filtre um estágio para comparar alunos no mesmo momento
+      do curso.
+    </p>
+  );
+}
+function PerformanceHeader({
+  stages,
+  stageId,
+  onStageChange,
+}: {
+  stages: [string, string][];
+  stageId: string;
+  onStageChange: (value: string) => void;
+}): ReactElement {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 className="text-sm font-semibold">Desempenho da turma</h2>
+        <p className="mt-1 text-caption text-muted-foreground">
+          Aprendizagem por competência · Alunos com vínculo vigente
+        </p>
+      </div>
+      {stages.length > 1 && (
+        <div className="w-full sm:w-56">
+          <SelectControl
+            name="performance-stage"
+            label="Estágio"
+            value={stageId}
+            onChange={onStageChange}
+            choices={[
+              { value: "all", label: "Todos os estágios" },
+              ...stages.map(([value, label]) => ({ value, label })),
+            ]}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 function PerformanceCounts({ rows }: { rows: Assessment[] }): ReactElement {

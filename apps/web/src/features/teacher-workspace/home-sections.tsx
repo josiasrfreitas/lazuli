@@ -183,37 +183,7 @@ export function PacingSection({ data }: { data: HomeData }): ReactElement {
       <HomeList
         items={data.pacing}
         label="os pontos de atenção"
-        render={(row) => (
-          <HomeRow
-            href={row.href}
-            title={row.studentName ? `${row.className} · ${row.studentName}` : row.className}
-            description={
-              row.basis === "STEP"
-                ? `Etapa prevista: ${row.reference}`
-                : (row.reference ?? "Avanço no material")
-            }
-          >
-            <span className={styles.pageComparison}>
-              <span>
-                Registrado{" "}
-                <strong>
-                  {row.basis === "STEP" ? "etapa" : "p."} {row.actual}
-                </strong>
-              </span>
-              <ArrowRight aria-hidden="true" />
-              <span>
-                Previsto{" "}
-                <strong>
-                  {row.basis === "STEP" ? "etapa" : "p."} {row.expected}
-                </strong>
-              </span>
-            </span>
-            <span className={styles.rowDetail}>
-              Previsto até {homeDate(row.plannedOn)} · Último registro em{" "}
-              {homeDate(row.lastRecordedOn)}
-            </span>
-          </HomeRow>
-        )}
+        render={(row) => <PacingRow row={row} />}
       />
       {data.pacing.length > 0 ? (
         <p className={styles.footnote}>
@@ -226,6 +196,39 @@ export function PacingSection({ data }: { data: HomeData }): ReactElement {
         </HomeEmpty>
       )}
     </HomeSection>
+  );
+}
+
+function PacingRow({ row }: { row: HomeData["pacing"][number] }): ReactElement {
+  return (
+    <HomeRow
+      href={row.href}
+      title={row.studentName ? `${row.className} · ${row.studentName}` : row.className}
+      description={
+        row.basis === "STEP"
+          ? `Etapa prevista: ${row.reference}`
+          : (row.reference ?? "Avanço no material")
+      }
+    >
+      <span className={styles.pageComparison}>
+        <span>
+          Registrado{" "}
+          <strong>
+            {row.basis === "STEP" ? "etapa" : "p."} {row.actual}
+          </strong>
+        </span>
+        <ArrowRight aria-hidden="true" />
+        <span>
+          Previsto{" "}
+          <strong>
+            {row.basis === "STEP" ? "etapa" : "p."} {row.expected}
+          </strong>
+        </span>
+      </span>
+      <span className={styles.rowDetail}>
+        Previsto até {homeDate(row.plannedOn)} · Último registro em {homeDate(row.lastRecordedOn)}
+      </span>
+    </HomeRow>
   );
 }
 

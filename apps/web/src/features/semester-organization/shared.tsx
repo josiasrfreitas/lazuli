@@ -52,27 +52,16 @@ export function useOrganizationRefresh() {
   };
 }
 export function PlacementBadge({ row }: { row: Placement }): ReactJSX.Element {
+  const blocked = row.blockers.length > 0;
+  if (row.publishedAt) {
+    let label = "Publicada";
+    if (row.entryStatus === "APPLIED") label = "Efetivada";
+    else if (blocked) label = "Revisar publicação";
+    return <Badge variant={blocked ? "warning" : "success"}>{label}</Badge>;
+  }
   return (
-    <Badge
-      variant={
-        row.publishedAt
-          ? row.blockers.length > 0
-            ? "warning"
-            : "success"
-          : row.blockers.length > 0
-            ? "neutral"
-            : "info"
-      }
-    >
-      {row.publishedAt
-        ? row.entryStatus === "APPLIED"
-          ? "Efetivada"
-          : row.blockers.length > 0
-            ? "Revisar publicação"
-            : "Publicada"
-        : row.blockers.length > 0
-          ? "Pendente"
-          : "Pronta para publicar"}
+    <Badge variant={blocked ? "neutral" : "info"}>
+      {blocked ? "Pendente" : "Pronta para publicar"}
     </Badge>
   );
 }

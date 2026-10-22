@@ -45,13 +45,11 @@ export function AdmissionsPage(): ReactElement {
   });
   return (
     <>
-      <DataTablePage
-        title="Leads"
-        summary={
-          query.data
-            ? `${query.data.total} ${query.data.total === 1 ? "pessoa" : "pessoas"}`
-            : undefined
-        }
+      <AdmissionsView
+        fields={fields}
+        query={query}
+        pagination={pagination}
+        filtered={Boolean(params.busca) || params.interesse !== "ALL" || params.situacao !== "ALL"}
         controls={
           <AdmissionControls
             search={params.busca}
@@ -67,20 +65,54 @@ export function AdmissionsPage(): ReactElement {
             }}
           />
         }
-      >
-        <div className="flex h-full min-h-0 flex-col gap-2">
-          <TableFilterChips fields={fields} />
-          <AdmissionsTable
-            query={query}
-            pagination={pagination}
-            filtered={
-              Boolean(params.busca) || params.interesse !== "ALL" || params.situacao !== "ALL"
-            }
-          />
-        </div>
-      </DataTablePage>
+      />
       {creating && <LeadCaptureDialog onClose={() => setCreating(false)} />}
     </>
+  );
+}
+function AdmissionsView({
+  fields,
+  query,
+  pagination,
+  filtered,
+  controls,
+}: {
+  fields: TableFilterField[];
+  query: CandidateQuery;
+  pagination: ReturnType<typeof useUrlPagination>;
+  filtered: boolean;
+  controls: ReactElement;
+}): ReactElement {
+  return (
+    <DataTablePage
+      title="Leads"
+      summary={
+        query.data
+          ? `${query.data.total} ${query.data.total === 1 ? "pessoa" : "pessoas"}`
+          : undefined
+      }
+      controls={controls}
+    >
+      <AdmissionsTableContent {...{ fields, query, pagination, filtered }} />
+    </DataTablePage>
+  );
+}
+function AdmissionsTableContent({
+  fields,
+  query,
+  pagination,
+  filtered,
+}: {
+  fields: TableFilterField[];
+  query: CandidateQuery;
+  pagination: ReturnType<typeof useUrlPagination>;
+  filtered: boolean;
+}): ReactElement {
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <TableFilterChips fields={fields} />
+      <AdmissionsTable query={query} pagination={pagination} filtered={filtered} />
+    </div>
   );
 }
 function AdmissionControls({

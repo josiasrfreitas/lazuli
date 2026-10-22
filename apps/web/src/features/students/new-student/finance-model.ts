@@ -108,17 +108,21 @@ export function toContactUpdate(
     documentType: fields.documentType ? (fields.documentType as "CPF" | "RG") : null,
     documentNumber: fields.documentNumber.trim() || null,
     birthDate: birthDate ? new Date(`${birthDate}T00:00:00.000Z`) : null,
-    guardian: fields.guardianName.trim()
-      ? {
-          mode: hasGuardian ? "update" : "create",
-          input: {
-            fullName: fields.guardianName.trim(),
-            phone: fields.guardianPhone.trim() || null,
-            email: fields.guardianEmail.trim() || null,
-          },
-        }
-      : hasGuardian
-        ? { mode: "disconnect" }
-        : undefined,
+    guardian: contactGuardianUpdate(fields, hasGuardian),
+  };
+}
+
+function contactGuardianUpdate(
+  fields: NewStudentFields,
+  hasGuardian: boolean,
+): z.input<typeof studentUpdateContactInputSchema>["guardian"] {
+  if (!fields.guardianName.trim()) return hasGuardian ? { mode: "disconnect" } : undefined;
+  return {
+    mode: hasGuardian ? "update" : "create",
+    input: {
+      fullName: fields.guardianName.trim(),
+      phone: fields.guardianPhone.trim() || null,
+      email: fields.guardianEmail.trim() || null,
+    },
   };
 }

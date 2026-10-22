@@ -70,9 +70,9 @@ export function LeadCaptureDialog({
     englishExperience:
       candidate?.englishExperience === "SOME"
         ? "SOME"
-        : candidate?.englishExperience === "UNKNOWN"
+        : (candidate?.englishExperience === "UNKNOWN"
           ? "UNKNOWN"
-          : initialEnglishExperience,
+          : initialEnglishExperience),
     stageId: candidate?.stageId ?? null,
     interest: candidate?.interest ?? "UNKNOWN",
     format: candidate?.format ?? null,
@@ -210,18 +210,18 @@ export function LeadCaptureDialog({
         submitIcon={
           candidate ? (
             <Save aria-hidden="true" />
-          ) : draft.englishExperience === "SOME" ? (
+          ) : (draft.englishExperience === "SOME" ? (
             <ArrowRight aria-hidden="true" />
           ) : (
             <UserRoundPlus aria-hidden="true" />
-          )
+          ))
         }
         submitLabel={
           candidate
             ? "Salvar lead"
-            : draft.englishExperience === "SOME"
+            : (draft.englishExperience === "SOME"
               ? "Continuar para agendamento"
-              : "Cadastrar lead"
+              : "Cadastrar lead")
         }
         onSubmit={submit}
         onClose={requestClose}

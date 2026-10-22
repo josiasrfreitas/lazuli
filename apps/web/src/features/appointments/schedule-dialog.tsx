@@ -1,13 +1,6 @@
 "use client";
-import type { JSX as ReactJSX } from "react";
+import type { JSX as ReactJSX, ReactNode } from "react";
 import { ArrowRight, CalendarCheck, CalendarClock, CheckCircle2, X } from "lucide-react";
-import { useState } from "react";
-import {
-  appointmentScheduleSchema,
-  appointmentRescheduleSchema,
-  type AppointmentSnapshot,
-  type MakeupCoverageInput,
-} from "@lazuli/validators";
 import {
   Field,
   FieldError,
@@ -19,498 +12,453 @@ import {
   type SearchSelectOption,
 } from "@lazuli/ui";
 import styles from "./schedule-dialog.module.css";
-import { trpc } from "~/lib/trpc";
-import { parseDateBR } from "~/lib/masks";
 import { formatDateOnlyBR } from "~/lib/format";
-import { TaskDialog, NarrativeField, useValidation } from "~/features/shared/task-form";
+import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import { RecordState } from "~/features/class-records/shared";
 import { PurposeField } from "./form-fields";
 import { ClassMeetingStep, type ScheduleSelection } from "./class-meeting-step";
 import { CoverageFields } from "./coverage-fields";
-import { purposes, today, useAppointmentRefresh, type Absence } from "./shared";
+import { purposes, today } from "./shared";
+import {
+  useScheduleModel,
+  type ScheduleDialogProps,
+  type ScheduleModel,
+} from "./schedule-dialog-model";
 
 const DEFAULT_APPOINTMENT_MINUTES = 60;
 
-export function ScheduleAppointmentDialog({
-  student: initialStudent,
-  source,
-  previous,
-  onClose,
-}: {
-  student?: { id: string; name: string };
-  source?: Absence;
-  previous?: AppointmentSnapshot;
-  onClose: () => void;
-}): ReactJSX.Element {
-  const [id] = useState(() => crypto.randomUUID());
-  const [student, setStudent] = useState<SearchSelectOption | null>(
-    initialStudent
-      ? { id: initialStudent.id, label: initialStudent.name }
-      : previous
-        ? { id: previous.student.id, label: previous.student.name }
-        : null,
+function StudentSelector({ input, draft, data }: ScheduleModel): ReactJSX.Element | null {
+  if (input.student || input.previous) return null;
+  const { values, change, validation, update } = draft;
+  return (
+    <Field>
+      <Label>Aluno</Label>
+      <SearchSelect
+        showSearchIcon
+        name="appointment-student"
+        placeholder="Buscar pelo nome"
+        query={values.search}
+        value={values.student}
+        options={(data.results ?? []).map((row) => ({ id: row.id, label: row.fullName }))}
+        onQueryChange={(search) => change("search", search)}
+        onSelect={(student) => {
+          update((current) => ({
+            ...current,
+            student,
+            teacherSelection: undefined,
+            coverages: [],
+          }));
+          validation.clear("studentId");
+        }}
+        onClear={() =>
+          update((current) => ({
+            ...current,
+            student: null,
+            teacherSelection: undefined,
+            coverages: [],
+          }))
+        }
+        loading={data.resultsFetching}
+        invalid={Boolean(validation.errors.studentId)}
+      />
+      <FieldError match={Boolean(validation.errors.studentId)}>
+        {validation.errors.studentId}
+      </FieldError>
+    </Field>
   );
-  const [search, setSearch] = useState("");
-  const [step, setStep] = useState<"details" | "schedule">("details");
-  const [purpose, setPurpose] = useState<AppointmentSnapshot["purpose"]>(
-    previous?.purpose ?? "MAKEUP",
+}
+
+function PurposeChoice({ input, draft }: Pick<ScheduleModel, "input" | "draft">): ReactJSX.Element {
+  if (input.previous)
+    return (
+      <p className="text-sm text-muted-foreground">
+        {purposes[draft.values.purpose]} · O agendamento anterior será preservado como reagendado.
+      </p>
+    );
+  return (
+    <PurposeField
+      value={draft.values.purpose}
+      onChange={(purpose) => {
+        draft.change("purpose", purpose);
+        draft.validation.clear("purpose");
+        draft.validation.clear("coverages");
+      }}
+    />
   );
-  const [kind, setKind] = useState<"CLASS" | "INDEPENDENT">(
-    previous?.targetClassSessionId ? "CLASS" : "INDEPENDENT",
+}
+
+function KindChoice({ draft }: Pick<ScheduleModel, "draft">): ReactJSX.Element {
+  return (
+    <div className={styles.choiceGroup}>
+      <Field>
+        <Label id="appointment-kind-label">
+          <span className="inline-flex items-center gap-2">
+            <CalendarClock className="size-4" aria-hidden="true" />
+            Tipo de encontro
+          </span>
+        </Label>
+        <SegmentedControl
+          size="sm"
+          wrap
+          aria-labelledby="appointment-kind-label"
+          value={draft.values.kind}
+          onValueChange={(value) => {
+            if (value !== "CLASS" && value !== "INDEPENDENT") return;
+            draft.update((current) => ({
+              ...current,
+              kind: value,
+              sessionId: "",
+              startTime: "",
+              endTime: "",
+              selectionReady: false,
+            }));
+            draft.validation.clear("meeting");
+          }}
+        >
+          <SegmentedControlItem id="appointment-kind" value="INDEPENDENT">
+            Horário individual
+          </SegmentedControlItem>
+          <SegmentedControlItem value="CLASS">Participação em turma</SegmentedControlItem>
+        </SegmentedControl>
+      </Field>
+    </div>
   );
-  const [date, setDate] = useState(formatDateOnlyBR(previous?.date ?? today()));
-  const [sessionId, setSessionId] = useState(previous?.targetClassSessionId ?? "");
-  const [teacherSelection, setTeacher] = useState<SearchSelectOption | null | undefined>(
-    previous
-      ? previous.teacher
-        ? { id: previous.teacher.id, label: previous.teacher.name }
-        : null
-      : undefined,
+}
+
+function DetailsContext(model: ScheduleModel): ReactJSX.Element {
+  return (
+    <div className={styles.context}>
+      <StudentSelector {...model} />
+      <div className={styles.choices}>
+        <PurposeChoice input={model.input} draft={model.draft} />
+        <KindChoice draft={model.draft} />
+      </div>
+      {model.draft.values.student && (
+        <RecordState
+          pending={false}
+          error={model.data.optionsError}
+          retry={model.data.retryOptions}
+        />
+      )}
+    </div>
   );
-  const [startTime, setStart] = useState(previous?.startTime ?? "");
-  const [endTime, setEnd] = useState(previous?.endTime ?? "");
-  const [format, setFormat] = useState<"IN_PERSON" | "ONLINE">(previous?.format ?? "IN_PERSON");
-  const [selectionReady, setSelectionReady] = useState(false);
-  const [planned, setPlanned] = useState(previous?.plannedContent ?? "");
-  const [notes, setNotes] = useState(previous?.notes ?? "");
-  const [reason, setReason] = useState("");
-  const [coverages, setCoverages] = useState<MakeupCoverageInput[]>(
-    source
-      ? [{ attendanceId: source.id, minutes: source.available }]
-      : (previous?.coverages.map((row) => ({
-          attendanceId: row.attendanceId,
-          minutes: row.minutes,
-        })) ?? []),
+}
+
+function MakeupContent(model: ScheduleModel): ReactJSX.Element {
+  const { draft, data } = model;
+  const student = draft.values.student;
+  if (data.noMakeupSources)
+    return (
+      <div className="flex items-start gap-3 text-sm" role="status">
+        <CheckCircle2 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <div className="grid gap-1">
+          <p className="font-medium">Nenhuma falta com saldo para repor</p>
+          <p className="text-muted-foreground">Escolha outra finalidade para este atendimento.</p>
+        </div>
+      </div>
+    );
+  if (!student)
+    return (
+      <p className="text-sm text-muted-foreground">
+        Selecione o aluno para consultar as faltas disponíveis.
+      </p>
+    );
+  return (
+    <CoverageFields
+      key={student.id}
+      compact
+      sources={data.options?.absences ?? []}
+      loading={data.optionsPending}
+      value={draft.values.coverages}
+      onChange={(coverages) => {
+        draft.change("coverages", coverages);
+        draft.validation.clear("coverages");
+      }}
+      error={draft.validation.errors.coverages}
+    />
   );
-  const validation = useValidation();
-  const results = trpc.students.search.useQuery(
-    { query: search },
-    { enabled: !initialStudent && !previous && search.length >= 2 },
+}
+
+function DetailsNotices(model: ScheduleModel): ReactJSX.Element {
+  const { draft, data } = model;
+  return (
+    <>
+      {draft.values.purpose === "MAKEUP" && (
+        <div className={styles.coverage}>
+          <MakeupContent {...model} />
+        </div>
+      )}
+      {draft.values.purpose === "PPT_COMPLEMENT" && draft.values.student && data.optionsPending && (
+        <div
+          role="status"
+          aria-label="Carregando matrícula PPT"
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+        >
+          <InlineSkeleton className="h-4 w-24" />
+          Consultando matrícula ativa…
+        </div>
+      )}
+      {data.noCurrentEnrollment && (
+        <p role="status" className="text-sm text-muted-foreground">
+          Este aluno está sem matrícula vigente. Organize a matrícula antes de agendar um
+          atendimento.
+        </p>
+      )}
+      {!data.noCurrentEnrollment && data.noPptEnrollment && (
+        <p role="status" className="text-sm text-muted-foreground">
+          O aluno não possui matrícula PPT ativa. Escolha outra finalidade.
+        </p>
+      )}
+      {data.enrollmentDateError && (
+        <p role="alert" className="text-sm text-destructive">
+          {data.enrollmentDateError}
+        </p>
+      )}
+    </>
   );
-  const options = trpc.appointments.student.useQuery(
-    { studentId: student?.id ?? "", ...(previous ? { excludeAppointmentId: previous.id } : {}) },
-    { enabled: Boolean(student), retry: false },
+}
+
+function ReasonField({ draft }: Pick<ScheduleModel, "draft">): ReactJSX.Element {
+  return (
+    <NarrativeField
+      rows={2}
+      name="reschedule-reason"
+      label="Motivo do reagendamento"
+      value={draft.values.reason}
+      onChange={(reason) => {
+        draft.change("reason", reason);
+        draft.validation.clear("reason");
+      }}
+      placeholder="O que mudou no combinado"
+      error={draft.validation.errors.reason}
+    />
   );
-  const defaultTeacher = options.data?.defaultTeacher;
-  const teacher =
-    teacherSelection === undefined
-      ? defaultTeacher
-        ? { id: defaultTeacher.id, label: defaultTeacher.name }
-        : null
-      : teacherSelection;
-  const parsedDate = parseDateBR(date);
-  const refresh = useAppointmentRefresh();
-  const saved = async (): Promise<void> => {
-    await refresh();
-    onClose();
+}
+
+function DetailsNotes({ input, draft }: Pick<ScheduleModel, "input" | "draft">): ReactJSX.Element {
+  return (
+    <div className={styles.notes}>
+      <div className={styles.noteFields} data-reschedule={Boolean(input.previous) || undefined}>
+        <NarrativeField
+          rows={2}
+          name="plannedContent"
+          label="O que trabalhar · opcional"
+          value={draft.values.planned}
+          onChange={(planned) => {
+            draft.change("planned", planned);
+            draft.validation.clear("plannedContent");
+          }}
+          placeholder="Conteúdo, objetivo ou referência para o professor"
+          error={draft.validation.errors.plannedContent}
+        />
+        <NarrativeField
+          rows={2}
+          name="appointment-notes"
+          label="Observação · opcional"
+          value={draft.values.notes}
+          onChange={(notes) => {
+            draft.change("notes", notes);
+            draft.validation.clear("notes");
+          }}
+          placeholder="Combinados com o aluno ou responsável"
+          error={draft.validation.errors.notes}
+        />
+        {input.previous && <ReasonField draft={draft} />}
+      </div>
+    </div>
+  );
+}
+
+function DetailsStep(model: ScheduleModel): ReactJSX.Element {
+  return (
+    <>
+      <DetailsContext {...model} />
+      <div className={styles.details}>
+        <DetailsNotices {...model} />
+        <DetailsNotes input={model.input} draft={model.draft} />
+      </div>
+    </>
+  );
+}
+
+type MeetingHandlers = {
+  onTeacherChange: (value: SearchSelectOption | null) => void;
+  onDateChange: (value: string) => void;
+  onSelect: (value: ScheduleSelection) => void;
+  onStartChange: (value: string) => void;
+  onEndChange: (value: string) => void;
+};
+
+function meetingHandlers({ draft }: ScheduleModel): MeetingHandlers {
+  const { update, validation } = draft;
+  return {
+    onTeacherChange: (teacherSelection) => {
+      update((current) => ({
+        ...current,
+        teacherSelection,
+        sessionId: "",
+        startTime: "",
+        endTime: "",
+      }));
+      validation.clear("meeting");
+    },
+    onDateChange: (date) => {
+      update((current) => ({
+        ...current,
+        selectionReady: false,
+        date: formatDateOnlyBR(date),
+        sessionId: "",
+      }));
+      validation.clear("meeting");
+    },
+    onSelect: (value) => {
+      update((current) => ({
+        ...current,
+        date: formatDateOnlyBR(value.date),
+        startTime: value.startTime,
+        endTime: value.endTime,
+        sessionId: value.sessionId ?? "",
+        format: value.format ?? current.format,
+      }));
+      validation.clear("meeting");
+    },
+    onStartChange: (startTime) => {
+      update((current) => ({ ...current, selectionReady: false, startTime }));
+    },
+    onEndChange: (endTime) => {
+      update((current) => ({ ...current, selectionReady: false, endTime }));
+    },
   };
-  const schedule = trpc.appointments.schedule.useMutation({ onSuccess: saved });
-  const reschedule = trpc.appointments.reschedule.useMutation({ onSuccess: saved });
-  const pending = schedule.isPending || reschedule.isPending;
-  function submit(): void {
-    if (pending || unavailable) return;
-    const draft = {
-      id,
-      studentId: student?.id ?? "",
-      purpose,
-      enrollmentId:
-        purpose === "PPT_COMPLEMENT"
-          ? (activePptEnrollment?.id ?? null)
-          : (previous?.enrollmentId ?? null),
-      plannedContent: planned,
-      notes,
-      coverages: purpose === "MAKEUP" ? coverages : [],
-      meeting:
-        kind === "CLASS"
-          ? { kind, sessionId }
-          : {
-              kind,
-              teacherId: teacher?.id ?? "",
-              date: parsedDate ?? "",
-              startTime,
-              endTime,
-              format,
-            },
-    };
-    if (step === "details") {
-      if (
-        !validation.validateFields(appointmentScheduleSchema, {
-          values: draft,
-          fields: ["studentId", "purpose", "enrollmentId", "plannedContent", "notes", "coverages"],
-        })
-      )
-        return;
-      if (
-        previous &&
-        !validation.validate(appointmentRescheduleSchema.pick({ reason: true }), { reason })
-      )
-        return;
-      setSelectionReady(false);
-      setStep("schedule");
-      return;
-    }
-    if (enrollmentDateError || !selectionReady) return;
-    const values = validation.validate(appointmentScheduleSchema, draft);
-    if (!values) return;
-    if (previous) {
-      const replacement = validation.validate(appointmentRescheduleSchema, {
-        id: previous.id,
-        expectedVersion: previous.version,
-        reason,
-        replacement: values,
-      });
-      if (replacement) reschedule.mutate(replacement);
-    } else schedule.mutate(values);
-  }
-  const currentDate = today();
-  const activePptEnrollment = options.data?.enrollments.find(
-    (row) =>
-      row.scheduleType === "PERSONALIZED" &&
-      row.entryDate <= currentDate &&
-      (!row.exitDate || row.exitDate > currentDate),
+}
+
+function MeetingStep({
+  model,
+  actions,
+}: {
+  model: ScheduleModel;
+  actions: ReactNode;
+}): ReactJSX.Element {
+  const { input, draft, data } = model;
+  const values = draft.values;
+  const handlers = meetingHandlers(model);
+  const durationMinutes =
+    values.purpose === "MAKEUP"
+      ? values.coverages.reduce((sum, row) => sum + row.minutes, 0)
+      : DEFAULT_APPOINTMENT_MINUTES;
+  return (
+    <ClassMeetingStep
+      actions={actions}
+      durationMinutes={durationMinutes}
+      kind={values.kind}
+      studentId={values.student?.id ?? ""}
+      previousId={input.previous?.id}
+      teacher={data.teacher}
+      onTeacherChange={handlers.onTeacherChange}
+      date={data.parsedDate ?? today()}
+      startTime={values.startTime}
+      endTime={values.endTime}
+      format={values.format}
+      sessionId={values.sessionId}
+      onDateChange={handlers.onDateChange}
+      onSelect={handlers.onSelect}
+      onStartChange={handlers.onStartChange}
+      onEndChange={handlers.onEndChange}
+      onFormatChange={(format) => draft.change("format", format)}
+      onReadyChange={(selectionReady) => draft.change("selectionReady", selectionReady)}
+      error={data.enrollmentDateError ?? draft.validation.errors.meeting}
+    />
   );
-  const hasMakeupSources = Boolean(
-    options.data?.absences.some(
-      (row) => row.available > 0 || coverages.some((coverage) => coverage.attendanceId === row.id),
-    ),
+}
+
+function ScheduleForm({
+  model,
+  actions,
+}: {
+  model: ScheduleModel;
+  actions: ReactNode;
+}): ReactJSX.Element {
+  const classStep = model.draft.values.step === "schedule";
+  return (
+    <form
+      id="appointment-schedule"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        model.submission.submit();
+      }}
+      className={classStep ? styles.scheduleLayout : styles.layout}
+    >
+      {classStep ? <MeetingStep model={model} actions={actions} /> : <DetailsStep {...model} />}
+      {!classStep && <div className="flex flex-wrap justify-end gap-3">{actions}</div>}
+    </form>
   );
-  const noMakeupSources =
-    purpose === "MAKEUP" && Boolean(student) && options.isSuccess && !hasMakeupSources;
-  const noPptEnrollment =
-    purpose === "PPT_COMPLEMENT" && Boolean(student) && options.isSuccess && !activePptEnrollment;
-  const noCurrentEnrollment = options.isSuccess && !options.data.hasCurrentEnrollment;
-  const unavailable =
-    Boolean(student) &&
-    (options.isPending ||
-      options.isError ||
-      noCurrentEnrollment ||
-      noMakeupSources ||
-      noPptEnrollment);
-  const classStep = step === "schedule";
-  const enrollmentDateError =
-    classStep &&
-    purpose === "PPT_COMPLEMENT" &&
-    activePptEnrollment &&
-    parsedDate &&
-    (activePptEnrollment.entryDate > parsedDate ||
-      (activePptEnrollment.exitDate && activePptEnrollment.exitDate <= parsedDate))
-      ? "A matrícula PPT atual não está vigente neste dia. Escolha outra data."
-      : undefined;
+}
+
+function firstField({ input }: ScheduleModel): string {
+  if (input.previous) return "appointment-kind";
+  if (input.student) return "appointment-purpose";
+  return "appointment-student";
+}
+
+function submitLabel(model: ScheduleModel): string {
+  if (model.draft.values.step === "details") return "Selecionar horário";
+  return model.input.previous ? "Confirmar reagendamento" : "Agendar atendimento";
+}
+
+function dialogDescription(model: ScheduleModel): string {
+  const student = model.draft.values.student?.label;
+  if (model.draft.values.step === "schedule") return student ?? "Selecione um horário";
+  return (student ?? "Selecione o aluno para agendar.") + " · Etapa 1 de 2: atendimento";
+}
+
+function dialogBack(model: ScheduleModel): (() => void) | undefined {
+  if (model.draft.values.step !== "schedule") return undefined;
+  return () => {
+    model.draft.change("step", "details");
+    requestAnimationFrame(() => document.querySelector<HTMLElement>("#appointment-kind")?.focus());
+  };
+}
+
+function dialogSubmitDisabled(model: ScheduleModel): boolean {
+  if (model.data.unavailable) return true;
+  if (model.draft.values.step !== "schedule") return false;
+  return !model.draft.values.selectionReady || Boolean(model.data.enrollmentDateError);
+}
+
+function dialogSubmitIcon(classStep: boolean): ReactJSX.Element {
+  if (classStep) return <CalendarCheck aria-hidden="true" />;
+  return <ArrowRight aria-hidden="true" />;
+}
+
+function ScheduleDialogFrame(model: ScheduleModel): ReactJSX.Element {
+  const { input, draft, submission } = model;
+  const classStep = draft.values.step === "schedule";
   return (
     <TaskDialog
       size={classStep ? "extra-wide" : "wide"}
-      contentClassName={classStep ? `${styles.dialog} ${styles.calendarDialog}` : styles.dialog}
+      contentClassName={classStep ? styles.dialog + " " + styles.calendarDialog : styles.dialog}
       compactHeader={classStep}
       bodyClassName={classStep ? styles.calendarBody : undefined}
-      title={previous ? "Reagendar atendimento" : "Agendar atendimento"}
-      description={
-        classStep
-          ? (student?.label ?? "Selecione um horário")
-          : `${student?.label ?? "Selecione o aluno para agendar."} · Etapa 1 de 2: atendimento`
-      }
+      title={input.previous ? "Reagendar atendimento" : "Agendar atendimento"}
+      description={dialogDescription(model)}
       formId="appointment-schedule"
-      firstField={
-        previous
-          ? "appointment-kind"
-          : initialStudent
-            ? "appointment-purpose"
-            : "appointment-student"
-      }
-      pending={pending}
-      onClose={onClose}
-      onBack={
-        classStep
-          ? () => {
-              setStep("details");
-              requestAnimationFrame(() => document.getElementById("appointment-kind")?.focus());
-            }
-          : undefined
-      }
+      firstField={firstField(model)}
+      pending={submission.pending}
+      onClose={input.onClose}
+      onBack={dialogBack(model)}
       actionSize="sm"
       cancelIcon={<X aria-hidden="true" />}
-      submitIcon={
-        classStep ? <CalendarCheck aria-hidden="true" /> : <ArrowRight aria-hidden="true" />
-      }
-      submitDisabled={
-        unavailable || (classStep && (!selectionReady || Boolean(enrollmentDateError)))
-      }
-      submitLabel={
-        classStep
-          ? previous
-            ? "Confirmar reagendamento"
-            : "Agendar atendimento"
-          : "Selecionar horário"
-      }
-      error={schedule.error?.message ?? reschedule.error?.message}
-      bodyRef={validation.body}
+      submitIcon={dialogSubmitIcon(classStep)}
+      submitDisabled={dialogSubmitDisabled(model)}
+      submitLabel={submitLabel(model)}
+      error={submission.error}
+      bodyRef={draft.validation.body}
     >
-      {(actions) => (
-        <form
-          id="appointment-schedule"
-          noValidate
-          onSubmit={(event) => {
-            event.preventDefault();
-            submit();
-          }}
-          className={classStep ? styles.scheduleLayout : styles.layout}
-        >
-          {classStep ? (
-            <ClassMeetingStep
-              actions={actions}
-              durationMinutes={
-                purpose === "MAKEUP"
-                  ? coverages.reduce((sum, row) => sum + row.minutes, 0)
-                  : DEFAULT_APPOINTMENT_MINUTES
-              }
-              kind={kind}
-              studentId={student?.id ?? ""}
-              previousId={previous?.id}
-              teacher={teacher}
-              onTeacherChange={(value) => {
-                setTeacher(value);
-                setSessionId("");
-                setStart("");
-                setEnd("");
-                validation.clear("meeting");
-              }}
-              date={parsedDate ?? today()}
-              startTime={startTime}
-              endTime={endTime}
-              format={format}
-              sessionId={sessionId}
-              onDateChange={(value) => {
-                setSelectionReady(false);
-                setDate(formatDateOnlyBR(value));
-                setSessionId("");
-                validation.clear("meeting");
-              }}
-              onSelect={(value: ScheduleSelection) => {
-                setDate(formatDateOnlyBR(value.date));
-                setStart(value.startTime);
-                setEnd(value.endTime);
-                setSessionId(value.sessionId ?? "");
-                if (value.format) setFormat(value.format);
-                validation.clear("meeting");
-              }}
-              onStartChange={(value) => {
-                setSelectionReady(false);
-                setStart(value);
-              }}
-              onEndChange={(value) => {
-                setSelectionReady(false);
-                setEnd(value);
-              }}
-              onFormatChange={setFormat}
-              onReadyChange={setSelectionReady}
-              error={enrollmentDateError ?? validation.errors.meeting}
-            />
-          ) : (
-            <>
-              <div className={styles.context}>
-                {!initialStudent && !previous && (
-                  <Field>
-                    <Label>Aluno</Label>
-                    <SearchSelect
-                      showSearchIcon
-                      name="appointment-student"
-                      placeholder="Buscar pelo nome"
-                      query={search}
-                      value={student}
-                      options={(results.data ?? []).map((row) => ({
-                        id: row.id,
-                        label: row.fullName,
-                      }))}
-                      onQueryChange={setSearch}
-                      onSelect={(next) => {
-                        setStudent(next);
-                        setTeacher(undefined);
-                        validation.clear("studentId");
-                        setCoverages([]);
-                      }}
-                      onClear={() => {
-                        setStudent(null);
-                        setTeacher(undefined);
-                        setCoverages([]);
-                      }}
-                      loading={results.isFetching}
-                      invalid={Boolean(validation.errors.studentId)}
-                    />
-                    <FieldError match={Boolean(validation.errors.studentId)}>
-                      {validation.errors.studentId}
-                    </FieldError>
-                  </Field>
-                )}
-                <div className={styles.choices}>
-                  {previous ? (
-                    <p className="text-caption text-muted-foreground">
-                      {purposes[purpose]} · O agendamento anterior será preservado como reagendado.
-                    </p>
-                  ) : (
-                    <PurposeField
-                      value={purpose}
-                      onChange={(value) => {
-                        setPurpose(value);
-                        validation.clear("purpose");
-                        validation.clear("coverages");
-                      }}
-                    />
-                  )}
-                  <div className={styles.choiceGroup}>
-                    <Field>
-                      <Label id="appointment-kind-label">
-                        <span className="inline-flex items-center gap-2">
-                          <CalendarClock className="size-4" aria-hidden="true" />
-                          Tipo de encontro
-                        </span>
-                      </Label>
-                      <SegmentedControl
-                        size="sm"
-                        wrap
-                        aria-labelledby="appointment-kind-label"
-                        value={kind}
-                        onValueChange={(value) => {
-                          if (value === "CLASS" || value === "INDEPENDENT") {
-                            setKind(value);
-                            setSessionId("");
-                            setStart("");
-                            setEnd("");
-                            setSelectionReady(false);
-                            validation.clear("meeting");
-                          }
-                        }}
-                      >
-                        <SegmentedControlItem id="appointment-kind" value="INDEPENDENT">
-                          Horário individual
-                        </SegmentedControlItem>
-                        <SegmentedControlItem value="CLASS">
-                          Participação em turma
-                        </SegmentedControlItem>
-                      </SegmentedControl>
-                    </Field>
-                  </div>
-                </div>
-                {student && (
-                  <RecordState
-                    pending={false}
-                    error={options.error}
-                    retry={() => void options.refetch()}
-                  />
-                )}
-              </div>
-              <div className={styles.details}>
-                {purpose === "MAKEUP" && (
-                  <div className={styles.coverage}>
-                    {noMakeupSources ? (
-                      <div className="flex items-start gap-3 text-caption" role="status">
-                        <CheckCircle2
-                          className="size-4 shrink-0 text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                        <div className="grid gap-1">
-                          <p className="font-medium">Nenhuma falta com saldo para repor</p>
-                          <p className="text-muted-foreground">
-                            Escolha outra finalidade para este atendimento.
-                          </p>
-                        </div>
-                      </div>
-                    ) : student ? (
-                      <CoverageFields
-                        key={student.id}
-                        compact
-                        sources={options.data?.absences ?? []}
-                        loading={options.isPending}
-                        value={coverages}
-                        onChange={(value) => {
-                          setCoverages(value);
-                          validation.clear("coverages");
-                        }}
-                        error={validation.errors.coverages}
-                      />
-                    ) : (
-                      <p className="text-caption text-muted-foreground">
-                        Selecione o aluno para consultar as faltas disponíveis.
-                      </p>
-                    )}
-                  </div>
-                )}
-                {purpose === "PPT_COMPLEMENT" && student && options.isPending && (
-                  <div
-                    role="status"
-                    aria-label="Carregando matrícula PPT"
-                    className="flex items-center gap-2 text-caption text-muted-foreground"
-                  >
-                    <InlineSkeleton className="h-4 w-24" />
-                    Consultando matrícula ativa…
-                  </div>
-                )}
-                {noCurrentEnrollment && (
-                  <p role="status" className="text-sm text-muted-foreground">
-                    Este aluno está sem matrícula vigente. Organize a matrícula antes de agendar um
-                    atendimento.
-                  </p>
-                )}
-                {!noCurrentEnrollment && noPptEnrollment && (
-                  <p role="status" className="text-caption text-muted-foreground">
-                    O aluno não possui matrícula PPT ativa. Escolha outra finalidade.
-                  </p>
-                )}
-                {enrollmentDateError && (
-                  <p role="alert" className="text-caption text-destructive">
-                    {enrollmentDateError}
-                  </p>
-                )}
-
-                <div className={styles.notes}>
-                  <div
-                    className={styles.noteFields}
-                    data-reschedule={Boolean(previous) || undefined}
-                  >
-                    <NarrativeField
-                      rows={2}
-                      name="plannedContent"
-                      label="O que trabalhar · opcional"
-                      value={planned}
-                      onChange={(value) => {
-                        setPlanned(value);
-                        validation.clear("plannedContent");
-                      }}
-                      placeholder="Conteúdo, objetivo ou referência para o professor"
-                      error={validation.errors.plannedContent}
-                    />
-                    <NarrativeField
-                      rows={2}
-                      name="appointment-notes"
-                      label="Observação · opcional"
-                      value={notes}
-                      onChange={(value) => {
-                        setNotes(value);
-                        validation.clear("notes");
-                      }}
-                      placeholder="Combinados com o aluno ou responsável"
-                      error={validation.errors.notes}
-                    />
-                    {previous && (
-                      <NarrativeField
-                        rows={2}
-                        name="reschedule-reason"
-                        label="Motivo do reagendamento"
-                        value={reason}
-                        onChange={(value) => {
-                          setReason(value);
-                          validation.clear("reason");
-                        }}
-                        placeholder="O que mudou no combinado"
-                        error={validation.errors.reason}
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-          {!classStep && <div className="flex flex-wrap justify-end gap-3">{actions}</div>}
-        </form>
-      )}
+      {(actions) => <ScheduleForm model={model} actions={actions} />}
     </TaskDialog>
   );
+}
+
+export function ScheduleAppointmentDialog(input: ScheduleDialogProps): ReactJSX.Element {
+  return <ScheduleDialogFrame {...useScheduleModel(input)} />;
 }

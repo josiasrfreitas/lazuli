@@ -1,5 +1,12 @@
 import type { JSX as ReactJSX } from "react";
-import { Ban, CircleCheck, CircleDashed, UsersRound, UserRoundX } from "lucide-react";
+import {
+  Ban,
+  CircleCheck,
+  CircleDashed,
+  UsersRound,
+  UserRoundX,
+  type LucideIcon,
+} from "lucide-react";
 import { purposes } from "~/features/appointments/shared";
 import { stageIdentity, type CalendarLesson } from "./calendar-model";
 import { LessonFormat, lessonFormatLabel } from "./lesson-format";
@@ -13,14 +20,16 @@ function cardIdentity(lesson: CalendarLesson): { title: string; context: string 
       lesson.experimental?.candidate.fullName ??
       lesson.appointment?.student.name ??
       stageIdentity(lesson).stage,
-    context: lesson.experimental
-      ? lesson.experimental.kind === "PLACEMENT"
-        ? "Nivelamento"
-        : "Experimental individual"
-      : lesson.appointment
-        ? purposes[lesson.appointment.purpose]
-        : lesson.className,
+    context: lessonContext(lesson),
   };
+}
+
+function lessonContext(lesson: CalendarLesson): string {
+  if (lesson.experimental) {
+    return lesson.experimental.kind === "PLACEMENT" ? "Nivelamento" : "Experimental individual";
+  }
+  if (lesson.appointment) return purposes[lesson.appointment.purpose];
+  return lesson.className;
 }
 
 export function weeklyLessonLabel(lesson: CalendarLesson): string {
@@ -78,23 +87,13 @@ export function WeeklyLessonContent({ lesson }: { lesson: CalendarLesson }): Rea
 }
 
 function WeeklyLessonStatus({ lesson }: { lesson: CalendarLesson }): ReactJSX.Element {
-  const absent =
-    lesson.appointment?.status === "NO_SHOW" || lesson.experimental?.status === "ABSENT";
-  const recorded = lesson.state === "RECORDED" || lesson.attendanceOnly;
-  const cancelled = lesson.state === "CANCELLED";
-  const Icon = cancelled ? Ban : absent ? UserRoundX : recorded ? CircleCheck : CircleDashed;
+  const Icon = weeklyStatusIcon(lesson);
   const status = lessonStatus(lesson);
   const label =
     !lesson.appointment && !lesson.experimental
       ? `${status} · ${lessonPresenceLabel(lesson)}`
       : status;
-  const tone = cancelled
-    ? "cancelled"
-    : absent || lesson.state === "PENDING"
-      ? "pending"
-      : recorded
-        ? "recorded"
-        : "upcoming";
+  const tone = weeklyStatusTone(lesson);
   return (
     <span className={styles.status} data-tone={tone} title={label} role="img" aria-label={label}>
       <Icon aria-hidden="true" />
@@ -103,4 +102,26 @@ function WeeklyLessonStatus({ lesson }: { lesson: CalendarLesson }): ReactJSX.El
       </span>
     </span>
   );
+}
+
+function weeklyStatusIcon(lesson: CalendarLesson): LucideIcon {
+  if (lesson.state === "CANCELLED") return Ban;
+  if (lesson.appointment?.status === "NO_SHOW" || lesson.experimental?.status === "ABSENT")
+    return UserRoundX;
+  if (lesson.state === "RECORDED" || lesson.attendanceOnly) return CircleCheck;
+  return CircleDashed;
+}
+
+function weeklyStatusTone(
+  lesson: CalendarLesson,
+): "cancelled" | "pending" | "recorded" | "upcoming" {
+  if (lesson.state === "CANCELLED") return "cancelled";
+  if (
+    lesson.appointment?.status === "NO_SHOW" ||
+    lesson.experimental?.status === "ABSENT" ||
+    lesson.state === "PENDING"
+  )
+    return "pending";
+  if (lesson.state === "RECORDED" || lesson.attendanceOnly) return "recorded";
+  return "upcoming";
 }

@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { RouterOutputs } from "@lazuli/api";
 import { normalizeSearch } from "@lazuli/domain";
 import { trpc } from "~/lib/trpc";
 
 const SEARCH_DEBOUNCE_MS = 180;
 
-export function useCommandSearch(query: string, enabled: boolean) {
+export function useCommandSearch(
+  query: string,
+  enabled: boolean,
+): {
+  data: RouterOutputs["commandSearch"]["lookup"] | undefined;
+  pending: boolean;
+  error: boolean;
+  retry: () => void;
+} {
   const [debounced, setDebounced] = useState(query);
   useEffect(() => {
     const timeout = setTimeout(() => setDebounced(query), SEARCH_DEBOUNCE_MS);

@@ -1,11 +1,29 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
+import type { RouterInputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { useScrollToError } from "~/lib/scroll-to-error";
-import { initialCandidateDraft, parseCandidateDraft, type CandidateDraft } from "./candidate-model";
+import {
+  initialCandidateDraft,
+  parseCandidateDraft,
+  type CandidateDraft,
+  type CandidateFieldsProps,
+} from "./candidate-model";
 import type { Candidate } from "./labels";
-export function useCandidateForm(candidate: Candidate | undefined, startAtAvailability: boolean) {
+type CandidateFormState = {
+  draft: CandidateDraft;
+  step: number;
+  setStep: Dispatch<SetStateAction<number>>;
+  errors: Record<string, string>;
+  body: RefObject<HTMLDivElement | null>;
+  change: CandidateFieldsProps["change"];
+  validate: () => RouterInputs["admissions"]["save"]["values"] | null;
+};
+export function useCandidateForm(
+  candidate: Candidate | undefined,
+  startAtAvailability: boolean,
+): CandidateFormState {
   const [draft, setDraft] = useState(() => initialCandidateDraft(candidate));
   const [step, setStep] = useState(startAtAvailability ? 1 : 0);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -22,7 +40,7 @@ export function useCandidateForm(candidate: Candidate | undefined, startAtAvaila
       ),
     );
   };
-  const validate = () => {
+  const validate = (): RouterInputs["admissions"]["save"]["values"] | null => {
     const parsed = parseCandidateDraft(draft);
     let next = parsed.success
       ? {}
@@ -46,7 +64,15 @@ export function useCandidateForm(candidate: Candidate | undefined, startAtAvaila
   };
   return { draft, step, setStep, errors, body, change, validate };
 }
-export function useCandidateSave(id: string, editing: boolean, onClose: () => void) {
+export function useCandidateSave({
+  id,
+  editing,
+  onClose,
+}: {
+  id: string;
+  editing: boolean;
+  onClose: () => void;
+}): ReturnType<typeof trpc.admissions.save.useMutation> {
   const utils = trpc.useUtils();
   const router = useRouter();
   return trpc.admissions.save.useMutation({

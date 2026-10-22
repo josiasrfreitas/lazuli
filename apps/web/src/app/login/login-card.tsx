@@ -72,37 +72,8 @@ export function LoginCard({
   googleOAuthEnabled: boolean;
   initialError: LoginInitialError | null;
 }): ReactNode {
-  const [email, setEmail] = useState("");
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [pending, setPending] = useState<LoginPending>("none");
-  const [error, setError] = useState<string | null>(initialErrorMessage(initialError));
-
-  async function handleMagicLink(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-    setError(null);
-    setPending("magic-link");
-
-    const failure = await sendMagicLink(email);
-
-    setPending("none");
-    setError(failure);
-
-    if (failure === null) {
-      setSentTo(email);
-    }
-  }
-
-  async function handleGoogle(): Promise<void> {
-    setError(null);
-    setPending("google");
-
-    const failure = await startGoogleSignIn();
-
-    if (failure !== null) {
-      setPending("none");
-      setError(failure);
-    }
-  }
+  const { email, error, pending, sentTo, setEmail, setSentTo, handleMagicLink, handleGoogle } =
+    useLoginCard(initialError);
 
   if (sentTo !== null) {
     return <MagicLinkSent email={sentTo} onUseAnotherEmail={() => setSentTo(null)} />;
@@ -135,6 +106,51 @@ export function LoginCard({
       </div>
     </div>
   );
+}
+
+function useLoginCard(initialError: LoginInitialError | null): {
+  email: string;
+  error: string | null;
+  pending: LoginPending;
+  sentTo: string | null;
+  setEmail: (email: string) => void;
+  setSentTo: (email: string | null) => void;
+  handleMagicLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  handleGoogle: () => Promise<void>;
+} {
+  const [email, setEmail] = useState("");
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [pending, setPending] = useState<LoginPending>("none");
+  const [error, setError] = useState<string | null>(initialErrorMessage(initialError));
+
+  async function handleMagicLink(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    setError(null);
+    setPending("magic-link");
+
+    const failure = await sendMagicLink(email);
+
+    setPending("none");
+    setError(failure);
+
+    if (failure === null) {
+      setSentTo(email);
+    }
+  }
+
+  async function handleGoogle(): Promise<void> {
+    setError(null);
+    setPending("google");
+
+    const failure = await startGoogleSignIn();
+
+    if (failure !== null) {
+      setPending("none");
+      setError(failure);
+    }
+  }
+
+  return { email, error, pending, sentTo, setEmail, setSentTo, handleMagicLink, handleGoogle };
 }
 
 function initialErrorMessage(initialError: LoginInitialError | null): string | null {
@@ -201,34 +217,49 @@ function LoginMethods({
           disabled={pending !== "none"}
         />
       )}
-      <form className={styles.emailForm} onSubmit={(event) => void handleMagicLink(event)}>
-        <Field>
-          <Label className="text-body text-marquee-foreground">Email institucional</Label>
-          <Input
-            autoComplete="email"
-            size="lg"
-            className="text-body"
-            disabled={pending !== "none"}
-            name="email"
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="voce@escola.com.br"
-            required
-            type="email"
-            value={email}
-          />
-        </Field>
-
-        <Button
-          disabled={pending !== "none"}
-          loading={pending === "magic-link"}
-          size="lg"
-          type="submit"
-        >
-          Receber link de acesso
-          <ArrowUpRight aria-hidden="true" />
-        </Button>
-      </form>
+      <EmailSignInForm {...{ email, handleMagicLink, pending, setEmail }} />
     </div>
+  );
+}
+
+function EmailSignInForm({
+  email,
+  handleMagicLink,
+  pending,
+  setEmail,
+}: {
+  email: string;
+  handleMagicLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  pending: LoginPending;
+  setEmail: (email: string) => void;
+}): ReactNode {
+  return (
+    <form className={styles.emailForm} onSubmit={(event) => void handleMagicLink(event)}>
+      <Field>
+        <Label className="text-body text-marquee-foreground">Email institucional</Label>
+        <Input
+          autoComplete="email"
+          size="lg"
+          className="text-body"
+          disabled={pending !== "none"}
+          name="email"
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="voce@escola.com.br"
+          required
+          type="email"
+          value={email}
+        />
+      </Field>
+      <Button
+        disabled={pending !== "none"}
+        loading={pending === "magic-link"}
+        size="lg"
+        type="submit"
+      >
+        Receber link de acesso
+        <ArrowUpRight aria-hidden="true" />
+      </Button>
+    </form>
   );
 }
 

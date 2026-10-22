@@ -1,7 +1,15 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { BookOpenCheck, CalendarClock, ClipboardCheck, Route, UsersRound, X } from "lucide-react";
+import {
+  BookOpenCheck,
+  CalendarClock,
+  ClipboardCheck,
+  Route,
+  UsersRound,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { InlineSkeleton } from "@lazuli/ui";
 import { ClassRecordDialog } from "~/features/class-records/class-record-dialog";
 import { StudentAppointmentDialog } from "~/features/appointments/student-appointment-dialog";
@@ -91,68 +99,74 @@ function HomeFeedback({ home, pending, celebration, dismissCelebration }: HomeSt
   );
 }
 
-function HomeColumns({
-  home,
-  pending,
-  setLesson,
-  setAssessment,
-  setAppointment,
-  setVisit,
-  celebration,
-}: HomeState): ReactElement {
+function HomeColumns(state: HomeState): ReactElement {
   return (
     <div className={styles.columns}>
-      <div className={styles.column}>
-        {pending.isPending ? (
-          <HomeLoading kind="lessons" />
-        ) : pending.error ? (
-          <HomeError retry={() => void pending.refetch()}>
-            Não foi possível atualizar as aulas por registrar.
-          </HomeError>
-        ) : (
-          pending.data && (
-            <LessonSection
-              lessons={pending.data}
-              open={setLesson}
-              celebrate={Boolean(celebration)}
-            />
-          )
-        )}
-        {home.isPending ? (
-          <HomeLoading kind="assessments" />
-        ) : (
-          home.data && (
-            <AssessmentSection
-              data={home.data}
-              openGrades={setAssessment}
-              openAppointment={setAppointment}
-            />
-          )
-        )}
-        {home.isPending ? (
-          <HomeLoading kind="appointments" />
-        ) : (
-          home.data && (
-            <AppointmentsSection data={home.data} open={setAppointment} openVisit={setVisit} />
-          )
-        )}
-      </div>
-      {(home.data || home.isPending) && (
-        <div className={styles.column}>
-          {home.isPending ? (
-            <>
-              <HomeLoading kind="exams" />
-              <HomeLoading kind="planning" />
-            </>
-          ) : (
-            home.data && (
-              <>
-                <ExamsSection data={home.data} />
-                <PacingSection data={home.data} />
-              </>
-            )
-          )}
-        </div>
+      <HomePrimaryColumn {...state} />
+      <HomeSecondaryColumn {...state} />
+    </div>
+  );
+}
+
+function HomePrimaryColumn(state: HomeState): ReactElement {
+  return (
+    <div className={styles.column}>
+      <PendingLessons {...state} />
+      {state.home.isPending ? (
+        <HomeLoading kind="assessments" />
+      ) : (
+        state.home.data && (
+          <AssessmentSection
+            data={state.home.data}
+            openGrades={state.setAssessment}
+            openAppointment={state.setAppointment}
+          />
+        )
+      )}
+      {state.home.isPending ? (
+        <HomeLoading kind="appointments" />
+      ) : (
+        state.home.data && (
+          <AppointmentsSection
+            data={state.home.data}
+            open={state.setAppointment}
+            openVisit={state.setVisit}
+          />
+        )
+      )}
+    </div>
+  );
+}
+
+function PendingLessons({ pending, setLesson, celebration }: HomeState): ReactElement | null {
+  if (pending.isPending) return <HomeLoading kind="lessons" />;
+  if (pending.error) {
+    return (
+      <HomeError retry={() => void pending.refetch()}>
+        Não foi possível atualizar as aulas por registrar.
+      </HomeError>
+    );
+  }
+  if (!pending.data) return null;
+  return <LessonSection lessons={pending.data} open={setLesson} celebrate={Boolean(celebration)} />;
+}
+
+function HomeSecondaryColumn({ home }: HomeState): ReactElement | null {
+  if (!home.data && !home.isPending) return null;
+  return (
+    <div className={styles.column}>
+      {home.isPending ? (
+        <>
+          <HomeLoading kind="exams" />
+          <HomeLoading kind="planning" />
+        </>
+      ) : (
+        home.data && (
+          <>
+            <ExamsSection data={home.data} />
+            <PacingSection data={home.data} />
+          </>
+        )
       )}
     </div>
   );
@@ -197,23 +211,7 @@ function HomeOverview({
   lessons: number | undefined;
   lessonsPending: boolean;
 }): ReactElement {
-  const items = [
-    { id: "registros", count: lessons, label: "Aulas por registrar", icon: BookOpenCheck },
-    {
-      id: "avaliacoes",
-      count: data ? data.assessments.length + data.assessmentAppointments.length : undefined,
-      label: "Avaliações por fazer",
-      icon: ClipboardCheck,
-    },
-    { id: "provas", count: data?.exams.length, label: "Provas chegando", icon: CalendarClock },
-    { id: "planejamento", count: data?.pacing.length, label: "Planejamentos a rever", icon: Route },
-    {
-      id: "atendimentos",
-      count: data ? data.appointments.length + data.visits.length : undefined,
-      label: "Seus atendimentos",
-      icon: UsersRound,
-    },
-  ];
+  const items = homeOverviewItems(data, lessons);
   return (
     <nav className={styles.overview} aria-label="Resumo das suas pendências">
       {items.map(({ id, count, label, icon: Icon }) => (
@@ -242,4 +240,32 @@ function HomeOverview({
       ))}
     </nav>
   );
+}
+
+function homeOverviewItems(
+  data: HomeData | undefined,
+  lessons: number | undefined,
+): Array<{
+  id: string;
+  count: number | undefined;
+  label: string;
+  icon: LucideIcon;
+}> {
+  return [
+    { id: "registros", count: lessons, label: "Aulas por registrar", icon: BookOpenCheck },
+    {
+      id: "avaliacoes",
+      count: data ? data.assessments.length + data.assessmentAppointments.length : undefined,
+      label: "Avaliações por fazer",
+      icon: ClipboardCheck,
+    },
+    { id: "provas", count: data?.exams.length, label: "Provas chegando", icon: CalendarClock },
+    { id: "planejamento", count: data?.pacing.length, label: "Planejamentos a rever", icon: Route },
+    {
+      id: "atendimentos",
+      count: data ? data.appointments.length + data.visits.length : undefined,
+      label: "Seus atendimentos",
+      icon: UsersRound,
+    },
+  ];
 }

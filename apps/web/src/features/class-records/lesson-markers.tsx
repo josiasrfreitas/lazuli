@@ -15,7 +15,9 @@ export function LessonMarkers({ lesson }: { lesson: CalendarLesson }): ReactJSX.
   if (lesson.appointment || lesson.experimental) return null;
   const recorded = lesson.state === "RECORDED" || lesson.attendanceOnly;
   const cancelled = lesson.state === "CANCELLED";
-  const Icon = cancelled ? Ban : recorded ? CircleCheck : CircleDashed;
+  let Icon = CircleDashed;
+  if (cancelled) Icon = Ban;
+  else if (recorded) Icon = CircleCheck;
   const label = lessonPresenceLabel(lesson);
   const guests = lesson.guestCount;
   return (

@@ -18,7 +18,7 @@ export function CandidateDialog({
 }: CandidateDialogProps): ReactElement {
   const [id] = useState(() => candidate?.id ?? crypto.randomUUID());
   const form = useCandidateForm(candidate, startAtAvailability);
-  const save = useCandidateSave(id, Boolean(candidate), onClose);
+  const save = useCandidateSave({ id, editing: Boolean(candidate), onClose });
   const change: typeof form.change = (key, value) => {
     form.change(key, value);
     if (!save.isPending) save.reset();

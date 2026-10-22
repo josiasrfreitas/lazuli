@@ -55,21 +55,29 @@ const PAYER_KEYS: Record<string, keyof ContractFields> = {
   phone: "payerPhone",
   email: "payerEmail",
 };
+const MATERIAL_KEYS: Record<string, keyof ContractFields> = {
+  stageIds: "materialStageIds",
+  category: "materialCategory",
+  payment: "materialPayment",
+};
+
+function assignMaterialIssue(errors: Errors, property: string): void {
+  const key = MATERIAL_KEYS[property] ?? "materialTotal";
+  errors[key] =
+    property === "expectedTotalCents" ? "Aguarde o preço do material." : "Selecione uma opção.";
+}
+
+function assignPayerIssue(errors: Errors, issue: ContractIssue): void {
+  const property = String(issue.path[1]);
+  errors[PAYER_KEYS[property] ?? "payerName"] =
+    property === "documentType" ? "Confira o CPF ou RG informado." : issue.message;
+}
 
 function assignIssue(errors: Errors, issue: ContractIssue): void {
   const section = issue.path[0];
   const property = String(issue.path[1]);
   if (section === "material") {
-    const key =
-      property === "stageIds"
-        ? "materialStageIds"
-        : property === "category"
-          ? "materialCategory"
-          : property === "payment"
-            ? "materialPayment"
-            : "materialTotal";
-    errors[key] =
-      property === "expectedTotalCents" ? "Aguarde o preço do material." : "Selecione uma opção.";
+    assignMaterialIssue(errors, property);
     return;
   }
   if (section === "newStudent") {
@@ -77,8 +85,7 @@ function assignIssue(errors: Errors, issue: ContractIssue): void {
     return;
   }
   if (section === "newPayer") {
-    errors[PAYER_KEYS[property] ?? "payerName"] =
-      property === "documentType" ? "Confira o CPF ou RG informado." : issue.message;
+    assignPayerIssue(errors, issue);
     return;
   }
   if (section === "durationMonths") {
@@ -274,12 +281,14 @@ export function useContractOffer(
   return offer;
 }
 
-export function useContractOperation(input: {
+type ContractOperationInput = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
   state: ContractFormState;
-}): ContractOperation {
+};
+
+export function useContractOperation(input: ContractOperationInput): ContractOperation {
   const { state } = input;
   const offer = useContractOffer(input.open, state.setSuggestedMonthlyAmount);
   const create = trpc.finance.createMonthlyContract.useMutation();

@@ -9,7 +9,7 @@ import { ClassRecordDialog } from "~/features/class-records/class-record-dialog"
 import type { ClassRecord } from "~/features/class-records/shared";
 import { AttendanceSharePanel } from "./share-panel";
 import type { AttendanceStatus } from "./staff-section";
-import { AttendanceReview } from "./attendance-review";
+import { AttendanceReview, type AttendanceReviewInput } from "./attendance-review";
 
 export function TeacherAttendancePage({ sessionId }: { sessionId: string }): ReactJSX.Element {
   const detail = trpc.classRecords.detail.useQuery({ sessionId }, { retry: false });
@@ -58,8 +58,27 @@ function LiveAttendanceReview({
   status: AttendanceStatus;
   statusFailed: boolean;
 }): ReactJSX.Element {
-  const sessionId = data.session.id;
   const [record, setRecord] = useState(false);
+  const state = useLiveAttendanceState(data.session.id);
+  return (
+    <LiveAttendanceView
+      data={data}
+      status={status}
+      statusFailed={statusFailed}
+      {...state}
+      onRecord={() => setRecord(true)}
+      record={record}
+      onCloseRecord={() => setRecord(false)}
+    />
+  );
+}
+
+function useLiveAttendanceState(
+  sessionId: string,
+): Pick<
+  LiveAttendanceViewProps,
+  "saving" | "saved" | "refreshing" | "error" | "onConfirm" | "onChange" | "onRefresh"
+> {
   const [refreshing, setRefreshing] = useState(false);
   const utils = trpc.useUtils();
   const save = trpc.studentAttendance.confirm.useMutation({
@@ -90,35 +109,74 @@ function LiveAttendanceReview({
       setRefreshing(false);
     }
   }
+  return {
+    saving: save.isPending,
+    saved: save.isSuccess,
+    refreshing,
+    error: save.error
+      ? { message: save.error.message, conflict: save.error.data?.code === "CONFLICT" }
+      : null,
+    onConfirm: (input) => save.mutate(input),
+    onChange: () => save.reset(),
+    onRefresh: () => void refresh(),
+  };
+}
+
+type LiveAttendanceViewProps = {
+  data: ClassRecord;
+  status: AttendanceStatus;
+  statusFailed: boolean;
+  saving: boolean;
+  saved: boolean;
+  refreshing: boolean;
+  error: { message: string; conflict: boolean } | null;
+  onConfirm: (input: AttendanceReviewInput) => void;
+  onChange: () => void;
+  onRefresh: () => void;
+  onRecord: () => void;
+  record: boolean;
+  onCloseRecord: () => void;
+};
+
+function LiveAttendanceView({
+  data,
+  status,
+  statusFailed,
+  saving,
+  saved,
+  refreshing,
+  error,
+  onConfirm,
+  onChange,
+  onRefresh,
+  onRecord,
+  record,
+  onCloseRecord,
+}: LiveAttendanceViewProps): ReactJSX.Element {
+  const sessionId = data.session.id;
   return (
     <>
       <AttendanceReview
         data={data}
         status={status}
         statusFailed={statusFailed}
-        saving={save.isPending}
-        saved={save.isSuccess}
+        saving={saving}
+        saved={saved}
         refreshing={refreshing}
-        error={
-          save.error
-            ? { message: save.error.message, conflict: save.error.data?.code === "CONFLICT" }
-            : null
-        }
-        onConfirm={(input) => save.mutate(input)}
-        onChange={() => save.reset()}
-        onRefresh={() => void refresh()}
-        onRecord={() => setRecord(true)}
+        error={error}
+        onConfirm={onConfirm}
+        onChange={onChange}
+        onRefresh={onRefresh}
+        onRecord={onRecord}
         sharing={
           <AttendanceSharePanel
             sessionId={sessionId}
             status={status}
-            disabled={save.isPending || statusFailed}
+            disabled={saving || statusFailed}
           />
         }
       />
-      {record && (
-        <ClassRecordDialog id={sessionId} initialEditing onClose={() => setRecord(false)} />
-      )}
+      {record && <ClassRecordDialog id={sessionId} initialEditing onClose={onCloseRecord} />}
     </>
   );
 }

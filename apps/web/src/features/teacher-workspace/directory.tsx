@@ -46,12 +46,14 @@ export function DirectoryTools({
 }
 
 export function directoryMatches(value: string, search: string): boolean {
-  const normalize = (text: string): string =>
-    text
-      .normalize("NFD")
-      .replaceAll(/\p{Diacritic}/gu, "")
-      .toLocaleLowerCase("pt-BR");
-  return normalize(value).includes(normalize(search.trim()));
+  return normalizeDirectoryText(value).includes(normalizeDirectoryText(search.trim()));
+}
+
+function normalizeDirectoryText(text: string): string {
+  return text
+    .normalize("NFD")
+    .replaceAll(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("pt-BR");
 }
 
 export function groupStudents(

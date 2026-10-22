@@ -42,42 +42,65 @@ function PreviewDeclaration(): ReactJSX.Element {
     name,
   );
   const selection = selected || matches.exactId || "";
+  const canSubmit = matches.options.some(
+    (person) => person.id === selection && !person.manualRequired,
+  );
   if (receipt)
     return (
-      <div className="grid gap-4">
-        <StudentReceipt receipt={{ name: "Ana Beatriz Martins", submittedAt: receipt }} />
-        <Button
-          variant="secondary"
-          onClick={() => {
-            setReceipt(null);
-            setName("");
-            setSelected("");
-          }}
-        >
-          Ver novamente
-        </Button>
-      </div>
+      <PreviewReceipt
+        receipt={receipt}
+        onReset={() => {
+          setReceipt(null);
+          setName("");
+          setSelected("");
+        }}
+      />
     );
   return (
     <form
       className="grid gap-5"
       onSubmit={(event) => {
         event.preventDefault();
-        if (!matches.options.some((person) => person.id === selection && !person.manualRequired))
-          return;
-        setReceipt(new Date());
-        if (typeof BroadcastChannel !== "undefined") {
-          const channel = new BroadcastChannel("lazuli-attendance-preview");
-          channel.postMessage("ana-present");
-          channel.close();
-        }
+        if (canSubmit) submitPreview(setReceipt);
       }}
     >
+      <PreviewNameFields
+        name={name}
+        matches={matches}
+        selection={selection}
+        onName={setName}
+        onSelection={setSelected}
+      />
+      <Button type="submit" disabled={!canSubmit}>
+        Enviar minha presença
+      </Button>
+      <p className="text-caption text-muted-foreground">
+        Prévia: nenhum registro real será enviado.
+      </p>
+    </form>
+  );
+}
+
+function PreviewNameFields({
+  name,
+  matches,
+  selection,
+  onName,
+  onSelection,
+}: {
+  name: string;
+  matches: ReturnType<typeof matchAttendanceNames>;
+  selection: string;
+  onName: (value: string) => void;
+  onSelection: (value: string) => void;
+}): ReactJSX.Element {
+  return (
+    <>
       <StudentNameField
         name={name}
         change={(value) => {
-          setName(value);
-          setSelected("");
+          onName(value);
+          onSelection("");
         }}
         error={null}
         disabled={false}
@@ -87,21 +110,35 @@ function PreviewDeclaration(): ReactJSX.Element {
         <StudentNameChoices
           matches={matches}
           selected={selection}
-          select={setSelected}
+          select={onSelection}
           disabled={false}
         />
       )}
-      <Button
-        type="submit"
-        disabled={
-          !matches.options.some((person) => person.id === selection && !person.manualRequired)
-        }
-      >
-        Enviar minha presença
+    </>
+  );
+}
+
+function submitPreview(setReceipt: (date: Date) => void): void {
+  setReceipt(new Date());
+  if (typeof BroadcastChannel === "undefined") return;
+  const channel = new BroadcastChannel("lazuli-attendance-preview");
+  channel.postMessage("ana-present");
+  channel.close();
+}
+
+function PreviewReceipt({
+  receipt,
+  onReset,
+}: {
+  receipt: Date;
+  onReset: () => void;
+}): ReactJSX.Element {
+  return (
+    <div className="grid gap-4">
+      <StudentReceipt receipt={{ name: "Ana Beatriz Martins", submittedAt: receipt }} />
+      <Button variant="secondary" onClick={onReset}>
+        Ver novamente
       </Button>
-      <p className="text-caption text-muted-foreground">
-        Prévia: nenhum registro real será enviado.
-      </p>
-    </form>
+    </div>
   );
 }

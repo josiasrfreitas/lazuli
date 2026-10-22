@@ -62,19 +62,52 @@ export function AppointmentAssessmentFiles({
   );
 }
 
+type FileListProps = {
+  rows: FileRow[];
+  refresh: () => void;
+  allowRemove?: boolean;
+  showPhase?: boolean;
+  identify?: boolean;
+};
+
+type FileItemProps = {
+  row: FileRow;
+  showPhase: boolean;
+  canRemove: boolean;
+  canIdentify: boolean;
+  removing: boolean;
+  reason: string;
+  removePending: boolean;
+  identifyPending: boolean;
+  onBeginRemove: () => void;
+  onCancelRemove: () => void;
+  onReasonChange: (reason: string) => void;
+  onRemove: () => void;
+  onIdentify: (competence: "WRITTEN" | "LISTENING") => void;
+};
+type FileRowsController = {
+  showPhase: boolean;
+  allowRemove: boolean;
+  identify: boolean;
+  removing: string | null;
+  reason: string;
+  removePending: boolean;
+  identifyPending: boolean;
+  canManage: (row: FileRow) => boolean;
+  beginRemove: (id: string) => void;
+  cancelRemove: () => void;
+  setReason: (reason: string) => void;
+  remove: (id: string) => void;
+  identifyFile: (id: string, competence: "WRITTEN" | "LISTENING") => void;
+};
+
 export function FileList({
   rows,
   refresh,
   allowRemove = true,
   showPhase = true,
   identify = false,
-}: {
-  rows: FileRow[];
-  refresh: () => void;
-  allowRemove?: boolean;
-  showPhase?: boolean;
-  identify?: boolean;
-}): ReactJSX.Element {
+}: FileListProps): ReactJSX.Element {
   const me = trpc.me.useQuery();
   const [removing, setRemoving] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -86,126 +119,237 @@ export function FileList({
     },
   });
   const identifyFile = trpc.assessmentFiles.identify.useMutation({ onSuccess: refresh });
+  const controller: FileRowsController = {
+    showPhase,
+    allowRemove,
+    identify,
+    removing,
+    reason,
+    removePending: remove.isPending,
+    identifyPending: identifyFile.isPending,
+    canManage: (row) =>
+      Boolean(me.data && (me.data.role !== "TEACHER" || row.uploadedById === me.data.id)),
+    beginRemove: (id) => {
+      setReason("");
+      remove.reset();
+      setRemoving(id);
+    },
+    cancelRemove: () => setRemoving(null),
+    setReason,
+    remove: (id) => remove.mutate({ id, reason: reason.trim() }),
+    identifyFile: (id, competence) => identifyFile.mutate({ id, competence }),
+  };
   return (
     <div className={styles.list}>
       {rows.length === 0 && (
         <p className="text-caption text-muted-foreground">Nenhuma prova anexada.</p>
       )}
-      {rows.map((row) => (
-        <div key={row.id}>
-          <div className={styles.file}>
-            <FileText aria-hidden="true" />
-            <div className={styles.identity}>
-              {row.status === "READY" ? (
-                <a
-                  className={styles.filename}
-                  href={`/api/assessment-files/${row.id}`}
-                  aria-label={`Baixar ${row.fileName}`}
-                >
-                  {row.fileName}
-                </a>
-              ) : (
-                <p className={styles.filename}>{row.fileName}</p>
-              )}
-              <div className={styles.metadata}>
-                {showPhase && <span>{PHASE_LABELS[row.phase]}</span>}
-                <Badge
-                  variant={
-                    row.status === "READY"
-                      ? "success"
-                      : row.status === "FAILED" || row.status === "REJECTED"
-                        ? "warning"
-                        : "neutral"
-                  }
-                >
-                  {status[row.status]}
-                </Badge>
-              </div>
-            </div>
-            {allowRemove &&
-              removing !== row.id &&
-              me.data &&
-              (me.data.role !== "TEACHER" || row.uploadedById === me.data.id) && (
-                <Button
-                  size="icon-compact-responsive"
-                  variant="ghost"
-                  aria-label={`Retirar ${row.fileName}`}
-                  title="Retirar anexo"
-                  disabled={remove.isPending}
-                  onClick={() => {
-                    setReason("");
-                    remove.reset();
-                    setRemoving(row.id);
-                  }}
-                >
-                  <Trash2 aria-hidden="true" />
-                </Button>
-              )}
-          </div>
-          {identify &&
-            !row.competence &&
-            me.data &&
-            (me.data.role !== "TEACHER" || row.uploadedById === me.data.id) && (
-              <div className="flex flex-wrap items-center gap-2 py-1">
-                <span className="text-caption text-muted-foreground">Tipo de prova:</span>
-                {(["WRITTEN", "LISTENING"] as const).map((competence) => (
-                  <Button
-                    key={competence}
-                    size="sm"
-                    variant="secondary"
-                    disabled={identifyFile.isPending}
-                    onClick={() => identifyFile.mutate({ id: row.id, competence })}
-                  >
-                    <Check aria-hidden="true" />
-                    {competence === "WRITTEN" ? "Written" : "Listening"}
-                  </Button>
-                ))}
-              </div>
-            )}
-          {allowRemove && removing === row.id && (
-            <div className={styles.removal}>
-              <Input
-                aria-label="Motivo da retirada"
-                size="dense"
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") return;
-                  event.preventDefault();
-                  if (!remove.isPending && reason.trim().length >= MIN_REMOVAL_REASON_LENGTH)
-                    remove.mutate({ id: row.id, reason: reason.trim() });
-                }}
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                placeholder="Motivo da retirada"
-                required
-                minLength={3}
-                disabled={remove.isPending}
-              />
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="destructive-outline"
-                  disabled={remove.isPending || reason.trim().length < MIN_REMOVAL_REASON_LENGTH}
-                  onClick={() => remove.mutate({ id: row.id, reason: reason.trim() })}
-                >
-                  <Trash2 aria-hidden="true" />
-                  Retirar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={remove.isPending}
-                  onClick={() => setRemoving(null)}
-                >
-                  <ArrowLeft aria-hidden="true" />
-                  Voltar
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
+      <FileRows rows={rows} controller={controller} />
       {identifyFile.error && <Alert variant="destructive">{identifyFile.error.message}</Alert>}
       {remove.error && <Alert variant="destructive">{remove.error.message}</Alert>}
+    </div>
+  );
+}
+
+function FileRows({
+  rows,
+  controller,
+}: {
+  rows: FileRow[];
+  controller: FileRowsController;
+}): ReactJSX.Element {
+  return (
+    <>
+      {rows.map((row) => {
+        const canManage = controller.canManage(row);
+        return (
+          <FileItem
+            key={row.id}
+            row={row}
+            showPhase={controller.showPhase}
+            canRemove={controller.allowRemove && canManage}
+            canIdentify={controller.identify && !row.competence && canManage}
+            removing={controller.allowRemove && controller.removing === row.id}
+            reason={controller.reason}
+            removePending={controller.removePending}
+            identifyPending={controller.identifyPending}
+            onBeginRemove={() => controller.beginRemove(row.id)}
+            onCancelRemove={controller.cancelRemove}
+            onReasonChange={controller.setReason}
+            onRemove={() => controller.remove(row.id)}
+            onIdentify={(competence) => controller.identifyFile(row.id, competence)}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function FileItem(props: FileItemProps): ReactJSX.Element {
+  const {
+    row,
+    showPhase,
+    canRemove,
+    canIdentify,
+    removing,
+    reason,
+    removePending,
+    identifyPending,
+    onBeginRemove,
+    onCancelRemove,
+    onReasonChange,
+    onRemove,
+    onIdentify,
+  } = props;
+  return (
+    <div>
+      <FileIdentity
+        row={row}
+        showPhase={showPhase}
+        canRemove={canRemove && !removing}
+        removePending={removePending}
+        onBeginRemove={onBeginRemove}
+      />
+      {canIdentify && <FileIdentify pending={identifyPending} onIdentify={onIdentify} />}
+      {removing && (
+        <FileRemoval
+          reason={reason}
+          pending={removePending}
+          onReasonChange={onReasonChange}
+          onRemove={onRemove}
+          onCancel={onCancelRemove}
+        />
+      )}
+    </div>
+  );
+}
+
+function fileBadgeVariant(value: FileRow["status"]): "success" | "warning" | "neutral" {
+  if (value === "READY") return "success";
+  if (value === "FAILED" || value === "REJECTED") return "warning";
+  return "neutral";
+}
+
+function FileIdentity({
+  row,
+  showPhase,
+  canRemove,
+  removePending,
+  onBeginRemove,
+}: {
+  row: FileRow;
+  showPhase: boolean;
+  canRemove: boolean;
+  removePending: boolean;
+  onBeginRemove: () => void;
+}): ReactJSX.Element {
+  return (
+    <div className={styles.file}>
+      <FileText aria-hidden="true" />
+      <div className={styles.identity}>
+        {row.status === "READY" ? (
+          <a
+            className={styles.filename}
+            href={`/api/assessment-files/${row.id}`}
+            aria-label={`Baixar ${row.fileName}`}
+          >
+            {row.fileName}
+          </a>
+        ) : (
+          <p className={styles.filename}>{row.fileName}</p>
+        )}
+        <div className={styles.metadata}>
+          {showPhase && <span>{PHASE_LABELS[row.phase]}</span>}
+          <Badge variant={fileBadgeVariant(row.status)}>{status[row.status]}</Badge>
+        </div>
+      </div>
+      {canRemove && (
+        <Button
+          size="icon-compact-responsive"
+          variant="ghost"
+          aria-label={`Retirar ${row.fileName}`}
+          title="Retirar anexo"
+          disabled={removePending}
+          onClick={onBeginRemove}
+        >
+          <Trash2 aria-hidden="true" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function FileIdentify({
+  pending,
+  onIdentify,
+}: {
+  pending: boolean;
+  onIdentify: (competence: "WRITTEN" | "LISTENING") => void;
+}): ReactJSX.Element {
+  return (
+    <div className="flex flex-wrap items-center gap-2 py-1">
+      <span className="text-caption text-muted-foreground">Tipo de prova:</span>
+      {(["WRITTEN", "LISTENING"] as const).map((competence) => (
+        <Button
+          key={competence}
+          size="sm"
+          variant="secondary"
+          disabled={pending}
+          onClick={() => onIdentify(competence)}
+        >
+          <Check aria-hidden="true" />
+          {competence === "WRITTEN" ? "Written" : "Listening"}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+function FileRemoval({
+  reason,
+  pending,
+  onReasonChange,
+  onRemove,
+  onCancel,
+}: {
+  reason: string;
+  pending: boolean;
+  onReasonChange: (reason: string) => void;
+  onRemove: () => void;
+  onCancel: () => void;
+}): ReactJSX.Element {
+  return (
+    <div className={styles.removal}>
+      <Input
+        aria-label="Motivo da retirada"
+        size="dense"
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          if (!pending && reason.trim().length >= MIN_REMOVAL_REASON_LENGTH) onRemove();
+        }}
+        value={reason}
+        onChange={(event) => onReasonChange(event.target.value)}
+        placeholder="Motivo da retirada"
+        required
+        minLength={3}
+        disabled={pending}
+      />
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="destructive-outline"
+          disabled={pending || reason.trim().length < MIN_REMOVAL_REASON_LENGTH}
+          onClick={onRemove}
+        >
+          <Trash2 aria-hidden="true" />
+          Retirar
+        </Button>
+        <Button size="sm" variant="ghost" disabled={pending} onClick={onCancel}>
+          <ArrowLeft aria-hidden="true" />
+          Voltar
+        </Button>
+      </div>
     </div>
   );
 }

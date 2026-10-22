@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
-import { Checkbox, Field, FieldError, FormSection, Input } from "@lazuli/ui";
+import { Field, FormSection, Input } from "@lazuli/ui";
 import { Search } from "lucide-react";
-import { CATEGORY, dateLabel, type OccurrenceRow } from "./shared";
-import { DeskRowsLoading } from "./student-desk-loading";
-import styles from "./intervention-form.module.css";
+import { CATEGORY, type OccurrenceRow } from "./shared";
+import { OccurrenceResults } from "./intervention-occurrence-results";
+
+type Props = {
+  rows: OccurrenceRow[];
+  loading?: boolean;
+  ids: string[];
+  error?: string | undefined;
+  onChange: (ids: string[]) => void;
+};
 
 export function MotivatingOccurrenceFields({
   rows,
@@ -13,13 +20,7 @@ export function MotivatingOccurrenceFields({
   error,
   onChange,
   loading = false,
-}: {
-  rows: OccurrenceRow[];
-  loading?: boolean;
-  ids: string[];
-  error?: string | undefined;
-  onChange: (ids: string[]) => void;
-}): ReactElement {
+}: Props): ReactElement {
   const prefix = useId();
   const list = useRef<HTMLDivElement>(null);
   const revealInitialSelection = useRef(ids.length > 0);
@@ -33,8 +34,72 @@ export function MotivatingOccurrenceFields({
     }
     revealInitialSelection.current = false;
   }, [loading, rows]);
+  const filtered = filterOccurrences(rows, search);
+  return (
+    <FormSection title={<SearchLabel prefix={prefix} />}>
+      {rows.length > 0 && <OccurrenceSearch prefix={prefix} search={search} onChange={setSearch} />}
+      <p className="sr-only" role="status">
+        {ids.length > 0
+          ? `${ids.length} ${ids.length === 1 ? "ocorrência selecionada" : "ocorrências selecionadas"}`
+          : "Sem vínculo com ocorrências"}
+      </p>
+      <OccurrenceResults
+        rows={rows}
+        filtered={filtered}
+        ids={ids}
+        error={error}
+        loading={loading}
+        prefix={prefix}
+        listRef={list}
+        onChange={onChange}
+      />
+    </FormSection>
+  );
+}
+
+function SearchLabel({ prefix }: { prefix: string }): ReactElement {
+  return (
+    <span id={`${prefix}-search-label`} className="inline-flex items-center gap-2">
+      <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+      <span>
+        Buscar ocorrências motivadoras{" "}
+        <span className="font-normal text-muted-foreground">(opcional)</span>
+      </span>
+    </span>
+  );
+}
+
+function OccurrenceSearch({
+  prefix,
+  search,
+  onChange,
+}: {
+  prefix: string;
+  search: string;
+  onChange: (value: string) => void;
+}): ReactElement {
+  return (
+    <Field>
+      <Input
+        id={`${prefix}-search`}
+        aria-labelledby={`${prefix}-search-label`}
+        name="occurrence-search"
+        size="sm"
+        autoComplete="off"
+        placeholder="Busque por assunto, turma ou professor"
+        value={search}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.preventDefault();
+        }}
+      />
+    </Field>
+  );
+}
+
+function filterOccurrences(rows: OccurrenceRow[], search: string): OccurrenceRow[] {
   const query = normalize(search.trim());
-  const filtered = rows.filter((row) =>
+  return rows.filter((row) =>
     normalize(
       [
         row.title,
@@ -44,111 +109,6 @@ export function MotivatingOccurrenceFields({
         CATEGORY[row.category],
       ].join(" "),
     ).includes(query),
-  );
-
-  return (
-    <FormSection
-      title={
-        <span id={`${prefix}-search-label`} className="inline-flex items-center gap-2">
-          <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-          <span>
-            Buscar ocorrências motivadoras{" "}
-            <span className="font-normal text-muted-foreground">(opcional)</span>
-          </span>
-        </span>
-      }
-    >
-      {rows.length > 0 && (
-        <Field>
-          <Input
-            id={`${prefix}-search`}
-            aria-labelledby={`${prefix}-search-label`}
-            name="occurrence-search"
-            size="sm"
-            autoComplete="off"
-            placeholder="Busque por assunto, turma ou professor"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") event.preventDefault();
-            }}
-          />
-        </Field>
-      )}
-      <p className="sr-only" role="status">
-        {ids.length > 0
-          ? `${ids.length} ${ids.length === 1 ? "ocorrência selecionada" : "ocorrências selecionadas"}`
-          : "Sem vínculo com ocorrências"}
-      </p>
-      <Field name="occurrenceIds">
-        <div
-          ref={list}
-          className={styles.occurrences}
-          role="group"
-          aria-label="Ocorrências motivadoras"
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? `${prefix}-error` : undefined}
-          aria-busy={loading}
-          tabIndex={0}
-        >
-          {loading ? (
-            <DeskRowsLoading />
-          ) : (
-            filtered.map((row) => (
-              <article
-                key={row.id}
-                className={styles.occurrence}
-                data-selected={ids.includes(row.id)}
-              >
-                <label className={styles.choice} htmlFor={`${prefix}-${row.id}`}>
-                  <Checkbox
-                    id={`${prefix}-${row.id}`}
-                    name="occurrenceIds"
-                    value={row.id}
-                    checked={ids.includes(row.id)}
-                    onCheckedChange={(checked) =>
-                      onChange(checked ? [...ids, row.id] : ids.filter((id) => id !== row.id))
-                    }
-                  />
-                  <span className={styles.choiceText}>
-                    <strong>{row.title}</strong>
-                    <span className={styles.metadata}>
-                      <span>
-                        {dateLabel(row.classSession.date)} ·{" "}
-                        {row.classSession.class.portalClassName}
-                      </span>
-                      <span>
-                        {CATEGORY[row.category]} · {row.recordedBy.name}
-                      </span>
-                    </span>
-                  </span>
-                </label>
-                <details className={styles.account}>
-                  <summary>Ler relato</summary>
-                  <p>{row.account}</p>
-                  {row.initialResponse && (
-                    <div>
-                      <strong>Ação imediata</strong>
-                      <p>{row.initialResponse}</p>
-                    </div>
-                  )}
-                </details>
-              </article>
-            ))
-          )}
-          {!loading && filtered.length === 0 && (
-            <p className={styles.empty}>
-              {rows.length === 0
-                ? "Nenhuma ocorrência registrada. Você pode registrar a intervenção sem vínculo."
-                : "Nenhuma ocorrência corresponde à busca. As seleções foram mantidas."}
-            </p>
-          )}
-        </div>
-        <FieldError id={`${prefix}-error`} match={Boolean(error)}>
-          {error}
-        </FieldError>
-      </Field>
-    </FormSection>
   );
 }
 

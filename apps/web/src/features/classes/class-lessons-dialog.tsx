@@ -72,18 +72,7 @@ function ClassLessonsContent({ classId, personalized }: Props): ReactElement {
         <DataTable
           label="Aulas e progresso da turma"
           columns={lessonColumns(personalized)}
-          state={
-            query.isError
-              ? { kind: "error" }
-              : data
-                ? total === 0
-                  ? { kind: "empty" }
-                  : {
-                      kind: "data",
-                      rows: data.rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-                    }
-                : { kind: "loading" }
-          }
+          state={lessonTableState({ error: query.isError, rows: data?.rows, page })}
           onRetry={() => void query.refetch()}
           errorTitle="Não foi possível carregar as aulas"
           empty={{
@@ -102,6 +91,21 @@ function ClassLessonsContent({ classId, personalized }: Props): ReactElement {
       </div>
     </DialogBody>
   );
+}
+
+function lessonTableState({
+  error,
+  rows,
+  page,
+}: {
+  error: boolean;
+  rows: Lesson[] | undefined;
+  page: number;
+}): { kind: "error" } | { kind: "empty" } | { kind: "loading" } | { kind: "data"; rows: Lesson[] } {
+  if (error) return { kind: "error" };
+  if (!rows) return { kind: "loading" };
+  if (rows.length === 0) return { kind: "empty" };
+  return { kind: "data", rows: rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) };
 }
 
 function lessonColumns(personalized: boolean): DataTableColumn<Lesson>[] {
@@ -128,41 +132,13 @@ function lessonColumns(personalized: boolean): DataTableColumn<Lesson>[] {
       id: "pages",
       header: "Páginas trabalhadas",
       width: "medium",
-      cell: (row) => {
-        const content = row.content;
-        return content?.pageFrom == null ? (
-          <span className="text-caption text-muted-foreground">
-            {row.state === "CANCELLED" || row.state === "UPCOMING"
-              ? "—"
-              : personalized
-                ? "Por aluno"
-                : "Não informadas"}
-          </span>
-        ) : (
-          <span className="font-medium text-heading">
-            Pág. {content.pageFrom}
-            {content.pageTo != null && content.pageTo !== content.pageFrom
-              ? `–${content.pageTo}`
-              : ""}
-          </span>
-        );
-      },
+      cell: (row) => lessonPages(row, personalized),
     },
     {
       id: "content",
       header: "Conteúdo da aula",
       width: "wide",
-      cell: (row) => (
-        <div className="grid gap-1">
-          {row.content?.reference && <span className="font-medium">{row.content.reference}</span>}
-          <p className="whitespace-pre-line break-words text-caption text-muted-foreground">
-            {row.content?.account ??
-              (personalized && row.state === "RECORDED"
-                ? "Consulte os registros individuais na aula."
-                : "—")}
-          </p>
-        </div>
-      ),
+      cell: (row) => lessonContent(row, personalized),
     },
     {
       id: "status",
@@ -175,4 +151,36 @@ function lessonColumns(personalized: boolean): DataTableColumn<Lesson>[] {
       ),
     },
   ];
+}
+
+function lessonPages(row: Lesson, personalized: boolean): ReactElement {
+  const content = row.content;
+  const pageFrom = content?.pageFrom;
+  if (!content || typeof pageFrom !== "number") {
+    let label = "Não informadas";
+    if (row.state === "CANCELLED" || row.state === "UPCOMING") label = "—";
+    else if (personalized) label = "Por aluno";
+    return <span className="text-caption text-muted-foreground">{label}</span>;
+  }
+  const pageTo = content.pageTo;
+  const pageRange = typeof pageTo === "number" && pageTo !== pageFrom ? `–${pageTo}` : "";
+  return (
+    <span className="font-medium text-heading">
+      Pág. {content.pageFrom}
+      {pageRange}
+    </span>
+  );
+}
+
+function lessonContent(row: Lesson, personalized: boolean): ReactElement {
+  const fallback =
+    personalized && row.state === "RECORDED" ? "Consulte os registros individuais na aula." : "—";
+  return (
+    <div className="grid gap-1">
+      {row.content?.reference && <span className="font-medium">{row.content.reference}</span>}
+      <p className="whitespace-pre-line break-words text-caption text-muted-foreground">
+        {row.content?.account ?? fallback}
+      </p>
+    </div>
+  );
 }

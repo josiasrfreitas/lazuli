@@ -13,6 +13,8 @@ import { FinanceHistoryDialog } from "./finance-history-dialog";
 import { ContractTerminationNotice } from "./contract-termination-notice";
 
 const PERCENT_SCALE = 100;
+const DEBT_TEXT = "text-destructive";
+const STANDARD_TEXT = "text-heading";
 
 export function FinanceOverview({
   state,
@@ -30,15 +32,7 @@ export function FinanceOverview({
         isRetrying={summary.isFetching}
       />
     );
-  if (!summary.data || !profile)
-    return (
-      <section
-        aria-label="Resumo financeiro"
-        className="flex min-h-72 items-center justify-center border border-border bg-accent px-5 py-4"
-      >
-        <PencilLoader label="Carregando resumo financeiro" />
-      </section>
-    );
+  if (!summary.data || !profile) return <FinanceOverviewLoading />;
   return (
     <section
       aria-label="Resumo financeiro"
@@ -72,6 +66,17 @@ export function FinanceOverview({
   );
 }
 
+function FinanceOverviewLoading(): ReactElement {
+  return (
+    <section
+      aria-label="Resumo financeiro"
+      className="flex min-h-72 items-center justify-center border border-border bg-accent px-5 py-4"
+    >
+      <PencilLoader label="Carregando resumo financeiro" />
+    </section>
+  );
+}
+
 function FinanceBalance({
   summary,
   contractTerminated,
@@ -80,45 +85,20 @@ function FinanceBalance({
   contractTerminated: boolean;
 }): ReactElement {
   const hasDebt = summary.debtState !== "NO_OVERDUE";
-  const severe = summary.debtState === "SEVERE_OVERDUE";
   return (
     <div className="grid content-start gap-4 lg:col-span-3">
-      <div>
-        <h2
-          className={`flex items-center gap-3 font-display text-2xl font-medium ${hasDebt ? "text-destructive" : "text-heading"}`}
-        >
-          {summary.installmentCount === 0
-            ? "Sem cobranças vinculadas"
-            : hasDebt
-              ? severe
-                ? "Pendência grave · ação prioritária"
-                : "Pagamento em atraso"
-              : summary.outstandingCents === 0
-                ? "Sem saldo a receber"
-                : contractTerminated
-                  ? "Saldo pendente após rescisão"
-                  : "Em dia"}
-          {hasDebt ? (
-            <AlertCircle className="size-5 shrink-0 text-destructive" aria-hidden />
-          ) : summary.installmentCount > 0 ? (
-            <CheckCircle2 className="size-5 shrink-0 text-success" aria-hidden />
-          ) : null}
-        </h2>
-        <p className="mt-1 text-caption text-muted-foreground">
-          {hasDebt
-            ? `${summary.overdueCount} ${summary.overdueCount === 1 ? "parcela vencida" : "parcelas vencidas"} · maior atraso de ${summary.oldestOverdueDays} dias`
-            : summary.nextDueDate
-              ? `Próximo vencimento em ${formatDateOnlyBR(summary.nextDueDate)} · ${money(summary.nextDueCents)}`
-              : "Novas cobranças e recebimentos aparecerão aqui."}
-        </p>
-      </div>
+      <FinanceBalanceHeading
+        summary={summary}
+        contractTerminated={contractTerminated}
+        hasDebt={hasDebt}
+      />
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div>
-          <dt className={`text-caption ${hasDebt ? "text-destructive" : "text-muted-foreground"}`}>
+          <dt className={`text-caption ${hasDebt ? DEBT_TEXT : "text-muted-foreground"}`}>
             Total vencido
           </dt>
           <dd
-            className={`mt-1 font-numeric text-3xl font-semibold tracking-tight tabular-nums ${hasDebt ? "text-destructive" : "text-heading"}`}
+            className={`mt-1 font-numeric text-3xl font-semibold tracking-tight tabular-nums ${hasDebt ? DEBT_TEXT : STANDARD_TEXT}`}
           >
             {money(summary.overdueCents)}
           </dd>
@@ -139,6 +119,59 @@ function FinanceBalance({
       <FinanceDistribution summary={summary} />
     </div>
   );
+}
+
+function FinanceBalanceHeading({
+  summary,
+  contractTerminated,
+  hasDebt,
+}: {
+  summary: StudentFinanceSummary;
+  contractTerminated: boolean;
+  hasDebt: boolean;
+}): ReactElement {
+  return (
+    <div>
+      <h2
+        className={`flex items-center gap-3 font-display text-2xl font-medium ${hasDebt ? DEBT_TEXT : STANDARD_TEXT}`}
+      >
+        {financeBalanceLabel(summary, contractTerminated)}
+        <FinanceBalanceIcon hasDebt={hasDebt} installmentCount={summary.installmentCount} />
+      </h2>
+      <p className="mt-1 text-caption text-muted-foreground">
+        {financeBalanceDescription(summary, hasDebt)}
+      </p>
+    </div>
+  );
+}
+
+function FinanceBalanceIcon({
+  hasDebt,
+  installmentCount,
+}: {
+  hasDebt: boolean;
+  installmentCount: number;
+}): ReactElement | null {
+  if (hasDebt) return <AlertCircle className="size-5 shrink-0 text-destructive" aria-hidden />;
+  if (installmentCount > 0)
+    return <CheckCircle2 className="size-5 shrink-0 text-success" aria-hidden />;
+  return null;
+}
+
+function financeBalanceDescription(summary: StudentFinanceSummary, hasDebt: boolean): string {
+  if (hasDebt)
+    return `${summary.overdueCount} ${summary.overdueCount === 1 ? "parcela vencida" : "parcelas vencidas"} · maior atraso de ${summary.oldestOverdueDays} dias`;
+  if (summary.nextDueDate)
+    return `Próximo vencimento em ${formatDateOnlyBR(summary.nextDueDate)} · ${money(summary.nextDueCents)}`;
+  return "Novas cobranças e recebimentos aparecerão aqui.";
+}
+
+function financeBalanceLabel(summary: StudentFinanceSummary, contractTerminated: boolean): string {
+  if (summary.installmentCount === 0) return "Sem cobranças vinculadas";
+  if (summary.debtState === "SEVERE_OVERDUE") return "Pendência grave · ação prioritária";
+  if (summary.debtState !== "NO_OVERDUE") return "Pagamento em atraso";
+  if (summary.outstandingCents === 0) return "Sem saldo a receber";
+  return contractTerminated ? "Saldo pendente após rescisão" : "Em dia";
 }
 
 function FinanceDistribution({ summary }: { summary: StudentFinanceSummary }): ReactElement {
@@ -209,13 +242,7 @@ function PaymentBehavior({
           <FinanceHistoryDialog studentId={studentId} studentName={studentName} />
         </div>
         <p className="mt-1 text-caption text-muted-foreground">
-          {history.paymentState === "RECURRING_DELAY"
-            ? `Pagamentos quitados com atraso em ${history.settledLateMonths} meses. Acompanhe os próximos vencimentos.`
-            : history.paymentState === "OCCASIONAL_DELAY"
-              ? "Há pagamento quitado com atraso em um mês de vencimento."
-              : history.settledCount > 0
-                ? "Todas as quitações registradas ocorreram até o vencimento."
-                : "A pontualidade aparecerá após as primeiras quitações."}
+          {paymentBehaviorDescription(summary)}
         </p>
       </div>
       <dl className="grid grid-cols-3 gap-3">
@@ -238,6 +265,15 @@ function PaymentBehavior({
       </div>
     </div>
   );
+}
+
+function paymentBehaviorDescription({ history }: StudentFinanceSummary): string {
+  if (history.paymentState === "RECURRING_DELAY")
+    return `Pagamentos quitados com atraso em ${history.settledLateMonths} meses. Acompanhe os próximos vencimentos.`;
+  if (history.paymentState === "OCCASIONAL_DELAY")
+    return "Há pagamento quitado com atraso em um mês de vencimento.";
+  if (history.settledCount > 0) return "Todas as quitações registradas ocorreram até o vencimento.";
+  return "A pontualidade aparecerá após as primeiras quitações.";
 }
 
 function BehaviorFact({ label, value }: { label: string; value: string }): ReactElement {

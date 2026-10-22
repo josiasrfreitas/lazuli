@@ -33,7 +33,7 @@ export function CurrentEnrollment({
               variant="link"
               size="inline"
               nativeButton={false}
-              render={<Link href={planningHref(enrollment, today, profile.id)} />}
+              render={<Link href={planningHref({ enrollment, today, studentId: profile.id })} />}
             >
               Ver plano de ensino <ArrowUpRight aria-hidden="true" />
             </Button>
@@ -167,22 +167,13 @@ function ProgressJourney({
       </summary>
       <ol className="mt-3 grid gap-3 sm:grid-cols-2">
         {enrollment.progress.toReversed().map((item) => (
-          <li key={item.id} className="grid gap-1 border-l border-border-strong pl-3">
-            <span className="text-sm font-medium">{item.stage}</span>
-            <span className="text-caption text-muted-foreground">
-              {formatDateOnlyBR(item.startDate)}
-              {progressEndLabel(item, today)}
-            </span>
-            {enrollment.class.scheduleType === "PERSONALIZED" && (
-              <Link
-                className="inline-flex min-h-11 items-center text-caption text-interactive hover:underline sm:min-h-0"
-                href={`/alunos/${studentId}?secao=planejamento&percurso=${item.id}`}
-                aria-label={`Ver plano de ensino de ${item.stage}`}
-              >
-                Ver plano de ensino
-              </Link>
-            )}
-          </li>
+          <ProgressJourneyItem
+            key={item.id}
+            item={item}
+            today={today}
+            studentId={studentId}
+            personalized={enrollment.class.scheduleType === "PERSONALIZED"}
+          />
         ))}
       </ol>
       {enrollment.progress.length === 0 && (
@@ -193,11 +184,51 @@ function ProgressJourney({
     </details>
   );
 }
+
+function ProgressJourneyItem({
+  item,
+  today,
+  studentId,
+  personalized,
+}: {
+  item: StudentEnrollment["progress"][number];
+  today: string;
+  studentId: string;
+  personalized: boolean;
+}): ReactElement {
+  return (
+    <li className="grid gap-1 border-l border-border-strong pl-3">
+      <span className="text-sm font-medium">{item.stage}</span>
+      <span className="text-caption text-muted-foreground">
+        {formatDateOnlyBR(item.startDate)}
+        {progressEndLabel(item, today)}
+      </span>
+      {personalized && (
+        <Link
+          className="inline-flex min-h-11 items-center text-caption text-interactive hover:underline sm:min-h-0"
+          href={`/alunos/${studentId}?secao=planejamento&percurso=${item.id}`}
+          aria-label={`Ver plano de ensino de ${item.stage}`}
+        >
+          Ver plano de ensino
+        </Link>
+      )}
+    </li>
+  );
+}
+
 function progressEndLabel(item: StudentEnrollment["progress"][number], today: string): string {
   if (item.endDate) return ` — ${formatDateOnlyBR(item.endDate)}`;
   return item.startDate > today ? " · agendado" : " · em andamento";
 }
-function planningHref(enrollment: StudentEnrollment, today: string, studentId: string): string {
+function planningHref({
+  enrollment,
+  today,
+  studentId,
+}: {
+  enrollment: StudentEnrollment;
+  today: string;
+  studentId: string;
+}): string {
   if (enrollment.class.scheduleType === "REGULAR")
     return `/turmas/${enrollment.class.id}?secao=planejamento`;
   const progress = enrollment.progress.find(

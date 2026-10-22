@@ -4,6 +4,7 @@ import { useState, type ReactElement } from "react";
 import { Button } from "@lazuli/ui";
 import {
   CartesianGrid,
+  Dot,
   Legend,
   Line,
   LineChart,
@@ -32,11 +33,10 @@ const MEDIUM_SCORE_RANGE = 30;
 const MEDIUM_SCORE_TICK_STEP = 10;
 const MIN_SCORE_TICK_SPACING = 5;
 
-export function AcademicProgressChart({ data }: { data: Assessment }): ReactElement {
-  const [fullScale, setFullScale] = useState(false);
-  const cropped = gradeRange(data.grades.map((grade) => grade.score));
-  const domain = fullScale ? [0, MAX] : cropped;
-  const points = [
+function progressPoints(
+  data: Assessment,
+): { phase: string; [key: string]: string | number | null }[] {
+  return [
     "BLOCK_ONE",
     "BLOCK_TWO",
     ...(data.grades.some((grade) => grade.phase === "RECOVERY") ? ["RECOVERY"] : []),
@@ -50,6 +50,13 @@ export function AcademicProgressChart({ data }: { data: Assessment }): ReactElem
       ]),
     ),
   }));
+}
+
+export function AcademicProgressChart({ data }: { data: Assessment }): ReactElement {
+  const [fullScale, setFullScale] = useState(false);
+  const cropped = gradeRange(data.grades.map((grade) => grade.score));
+  const domain: [number, number] = fullScale ? [0, MAX] : cropped;
+  const points = progressPoints(data);
   if (data.grades.length === 0)
     return (
       <div className="flex h-60 items-center justify-center rounded-md bg-muted/30 p-5 text-center text-caption text-muted-foreground">
@@ -76,50 +83,66 @@ export function AcademicProgressChart({ data }: { data: Assessment }): ReactElem
           </Button>
         )}
       </div>
-      <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={0}>
-        <LineChart
-          data={points}
-          margin={{ top: 18, right: 20, bottom: 6, left: -16 }}
-          accessibilityLayer
-        >
-          <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
-          <XAxis
-            dataKey="phase"
-            tick={AXIS}
-            axisLine={false}
-            tickLine={false}
-            padding={{ left: 12, right: 12 }}
-          />
-          <YAxis
-            domain={domain}
-            ticks={scaleTicks(domain[0]!, domain[1]!)}
-            interval={0}
-            tick={AXIS}
-            axisLine={false}
-            tickLine={false}
-          />
-          {domain[0]! <= PASS && domain[1]! >= PASS && (
-            <ReferenceLine y={PASS} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
-          )}
-          <Tooltip contentStyle={TOOLTIP} />
-          <Legend iconType="plainline" iconSize={12} wrapperStyle={{ fontSize: 12 }} />
-          {COMPETENCES.map((competence) => (
-            <Line
-              key={competence}
-              type="linear"
-              name={COMPETENCE_LABELS[competence]}
-              dataKey={competence}
-              stroke={COMPETENCE_VISUALS[competence].color}
-              strokeWidth={2}
-              dot={{ r: 3, fill: "var(--accent)", strokeWidth: 2 }}
-              activeDot={{ r: 5, fill: "var(--accent)" }}
-              connectNulls={false}
-              isAnimationActive={false}
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+      <ProgressPlot domain={domain} points={points} />
     </div>
+  );
+}
+
+function ProgressPlot({
+  domain,
+  points,
+}: {
+  domain: [number, number];
+  points: ReturnType<typeof progressPoints>;
+}): ReactElement {
+  return (
+    <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={0}>
+      <LineChart
+        data={points}
+        margin={{ top: 18, right: 20, bottom: 6, left: -16 }}
+        accessibilityLayer
+      >
+        <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+        <XAxis
+          dataKey="phase"
+          tick={AXIS}
+          axisLine={false}
+          tickLine={false}
+          padding={{ left: 12, right: 12 }}
+        />
+        <YAxis
+          domain={domain}
+          ticks={scaleTicks(domain[0], domain[1])}
+          interval={0}
+          tick={AXIS}
+          axisLine={false}
+          tickLine={false}
+        />
+        {domain[0] <= PASS && domain[1] >= PASS && (
+          <ReferenceLine y={PASS} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
+        )}
+        <Tooltip contentStyle={TOOLTIP} />
+        <Legend iconType="plainline" iconSize={12} wrapperStyle={{ fontSize: 12 }} />
+        {COMPETENCES.map((competence) => progressLine(competence))}
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+function progressLine(competence: (typeof COMPETENCES)[number]): ReactElement {
+  return (
+    <Line
+      key={competence}
+      type="linear"
+      name={COMPETENCE_LABELS[competence]}
+      dataKey={competence}
+      stroke={COMPETENCE_VISUALS[competence].color}
+      strokeWidth={2}
+      dot={<Dot r={3} fill="var(--accent)" strokeWidth={2} />}
+      activeDot={<Dot r={5} fill="var(--accent)" />}
+      connectNulls={false}
+      isAnimationActive={false}
+    />
   );
 }
 
@@ -139,12 +162,9 @@ function gradeRange(scores: number[]): [number, number] {
   return [min, max];
 }
 function scaleTicks(min: number, max: number): number[] {
-  const step =
-    max - min > WIDE_SCORE_RANGE
-      ? WIDE_SCORE_TICK_STEP
-      : max - min > MEDIUM_SCORE_RANGE
-        ? MEDIUM_SCORE_TICK_STEP
-        : MIN_SCORE_TICK_SPACING;
+  let step = MIN_SCORE_TICK_SPACING;
+  if (max - min > WIDE_SCORE_RANGE) step = WIDE_SCORE_TICK_STEP;
+  else if (max - min > MEDIUM_SCORE_RANGE) step = MEDIUM_SCORE_TICK_STEP;
   const ticks = [min, max];
   if (min <= PASS && max >= PASS) ticks.push(PASS);
   for (let value = Math.ceil(min / step) * step; value < max; value += step) {

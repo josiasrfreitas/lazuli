@@ -48,6 +48,14 @@ export function IntakeContract({
           <PaymentSection {...props} />
         </div>
       </fieldset>
+      <ContractOfferFeedback offer={offer} />
+    </div>
+  );
+}
+
+function ContractOfferFeedback({ offer }: { offer: ContractOperation["offer"] }): ReactJSX.Element {
+  return (
+    <>
       {offer.isPending && (
         <p role="status" className="text-caption">
           Carregando condições…
@@ -67,6 +75,6 @@ export function IntakeContract({
           pendente.
         </Alert>
       )}
-    </div>
+    </>
   );
 }

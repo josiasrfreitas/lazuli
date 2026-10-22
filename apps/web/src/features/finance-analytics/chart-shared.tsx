@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import type { CSSProperties, ReactElement, ReactNode } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 export type Analytics = RouterOutputs["finance"]["analytics"];
 export const CHART_COLORS = [
@@ -47,7 +47,11 @@ export function ChartPanel({
 export function ChartLegend({ label, color }: { label: string; color: string }): ReactElement {
   return (
     <span className="inline-flex items-center gap-2 text-caption text-muted-foreground">
-      <span aria-hidden="true" className="size-2.5 rounded-full" style={{ background: color }} />
+      <span
+        aria-hidden="true"
+        className="size-2.5 rounded-full bg-(--legend-color)"
+        style={{ "--legend-color": color } as CSSProperties}
+      />
       {label}
     </span>
   );

@@ -7,12 +7,7 @@ const SHORT_TIME_DIGIT_COUNT = 3;
 const MAX_HOUR = 23;
 
 function maskTime(raw: string, deleting = false): string {
-  if (raw.includes(":")) {
-    const [hour = "", minute = ""] = raw.split(":");
-    const digits = hour.replaceAll(/\D/g, "").slice(0, 2);
-    if (!digits) return "";
-    return `${digits.padStart(2, "0")}:${minute.replaceAll(/\D/g, "").slice(0, 2)}`;
-  }
+  if (raw.includes(":")) return maskSeparatedTime(raw);
   const digits = raw.replaceAll(/\D/g, "").slice(0, TIME_DIGIT_COUNT);
   if (!deleting && digits.length === 1 && Number(digits) > 2) {
     return `0${digits}:`;
@@ -22,6 +17,13 @@ function maskTime(raw: string, deleting = false): string {
     return `0${digits[0]}:${digits.slice(1)}`;
   }
   return maskTime24(digits);
+}
+
+function maskSeparatedTime(raw: string): string {
+  const [hour = "", minute = ""] = raw.split(":");
+  const digits = hour.replaceAll(/\D/g, "").slice(0, 2);
+  if (!digits) return "";
+  return `${digits.padStart(2, "0")}:${minute.replaceAll(/\D/g, "").slice(0, 2)}`;
 }
 
 function completeTime(value: string): string {

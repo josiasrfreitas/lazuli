@@ -86,50 +86,67 @@ export function ProgramMap({
   return (
     <div className={styles.map}>
       {units.map((unit) => (
-        <section className={styles.unit} key={unit.id} aria-label={unit.title}>
-          <header className={styles.unitHeader}>
-            <h3>{unit.title}</h3>
-            <span>{unit.teachingHours.length} horas-aula</span>
-          </header>
-          <ol className={styles.blocks}>
-            {unit.blocks.map((block) => (
-              <li
-                key={block.first}
-                className={styles.block}
-                data-kind={
-                  block.activities.some((activity) => activity.kind === "ASSESSMENT")
-                    ? "ASSESSMENT"
-                    : block.activities[0]?.kind
-                }
-              >
-                <div className={styles.blockMeta}>
-                  <span>
-                    {block.first === block.last
-                      ? `Hora-aula ${number(block.first)}`
-                      : `Horas-aula ${number(block.first)}–${number(block.last)}`}
-                  </span>
-                  <span>{block.last - block.first + 1}h</span>
-                </div>
-                {block.activities.map((activity) => {
-                  const Icon = icons[activity.kind];
-                  return (
-                    <div key={activity.id} className={styles.activity}>
-                      <h4>{activity.title}</h4>
-                      <p>
-                        <Icon size={14} aria-hidden="true" />
-                        {labels[activity.kind]}
-                      </p>
-                      {activity.descriptionPending && (
-                        <small>Descrição pendente · código {activity.sourceCode}</small>
-                      )}
-                    </div>
-                  );
-                })}
-              </li>
-            ))}
-          </ol>
-        </section>
+        <ProgramUnit key={unit.id} unit={unit} />
       ))}
+    </div>
+  );
+}
+
+type ProgramUnitData = TeachingProgram["units"][number] & { blocks: ReturnType<typeof blocksFor> };
+
+function ProgramUnit({ unit }: { unit: ProgramUnitData }): ReactJSX.Element {
+  return (
+    <section className={styles.unit} aria-label={unit.title}>
+      <header className={styles.unitHeader}>
+        <h3>{unit.title}</h3>
+        <span>{unit.teachingHours.length} horas-aula</span>
+      </header>
+      <ol className={styles.blocks}>
+        {unit.blocks.map((block) => (
+          <ProgramBlock key={block.first} block={block} />
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function ProgramBlock({
+  block,
+}: {
+  block: ReturnType<typeof blocksFor>[number];
+}): ReactJSX.Element {
+  const kind = block.activities.some((activity) => activity.kind === "ASSESSMENT")
+    ? "ASSESSMENT"
+    : block.activities[0]?.kind;
+  return (
+    <li className={styles.block} data-kind={kind}>
+      <div className={styles.blockMeta}>
+        <span>
+          {block.first === block.last
+            ? `Hora-aula ${number(block.first)}`
+            : `Horas-aula ${number(block.first)}–${number(block.last)}`}
+        </span>
+        <span>{block.last - block.first + 1}h</span>
+      </div>
+      {block.activities.map((activity) => (
+        <ProgramActivityRow key={activity.id} activity={activity} />
+      ))}
+    </li>
+  );
+}
+
+function ProgramActivityRow({ activity }: { activity: ProgramActivity }): ReactJSX.Element {
+  const Icon = icons[activity.kind];
+  return (
+    <div className={styles.activity}>
+      <h4>{activity.title}</h4>
+      <p>
+        <Icon size={14} aria-hidden="true" />
+        {labels[activity.kind]}
+      </p>
+      {activity.descriptionPending && (
+        <small>Descrição pendente · código {activity.sourceCode}</small>
+      )}
     </div>
   );
 }

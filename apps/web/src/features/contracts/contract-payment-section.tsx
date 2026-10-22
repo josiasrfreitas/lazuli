@@ -74,16 +74,16 @@ function PaymentPreview({ preview }: { preview: NonNullable<FormProps["preview"]
   );
 }
 
-export function PaymentSection({ fields, errors, change, preview }: FormProps): ReactElement {
+function useMaterialPayment(fields: FormProps["fields"]): {
+  count: number;
+  amountCents: number;
+} | null {
   const prices = trpc.finance.readMaterialPrice.useQuery(undefined, {
     enabled: fields.materialPayment !== "NONE",
   });
-  const unitQuote =
-    fields.materialCategory === "CHILD"
-      ? prices.data?.child
-      : fields.materialCategory === "ADULT"
-        ? prices.data?.adult
-        : undefined;
+  let unitQuote = undefined;
+  if (fields.materialCategory === "CHILD") unitQuote = prices.data?.child;
+  else if (fields.materialCategory === "ADULT") unitQuote = prices.data?.adult;
   const quote =
     unitQuote && prices.data
       ? {
@@ -95,19 +95,60 @@ export function PaymentSection({ fields, errors, change, preview }: FormProps): 
           version: unitQuote.version,
         }
       : undefined;
-  const material =
-    fields.materialPayment !== "NONE" && quote
-      ? {
-          count: 1,
-          amountCents: quote.cashCents,
-        }
-      : null;
+  return fields.materialPayment !== "NONE" && quote
+    ? { count: 1, amountCents: quote.cashCents }
+    : null;
+}
+
+export function PaymentSection({ fields, errors, change, preview }: FormProps): ReactElement {
+  const material = useMaterialPayment(fields);
   const rows = preview ? previewCalendar(preview.installments, material) : [];
   const id = useId();
   const special = fields.paymentPlan === "special";
-  const arrowClass = special ? "rotate-180 transition-transform" : "transition-transform";
   return (
     <div className="grid min-w-0 gap-3">
+      <AdvancedPaymentControls
+        id={id}
+        special={special}
+        fields={fields}
+        errors={errors}
+        change={change}
+      />
+      {preview ? (
+        <>
+          <PaymentPreview preview={preview} />
+          {material && (
+            <p className="text-caption font-medium">
+              Total a receber pela escola{" "}
+              {formatBRLFromCents(
+                preview.principalAmountCents + material.count * material.amountCents,
+              )}
+            </p>
+          )}
+          {(special || material) && <PaymentCalendar rows={rows} />}
+        </>
+      ) : (
+        <p className="text-caption text-muted-foreground">
+          Informe as datas, a mensalidade e uma quantidade válida para conferir as cobranças.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function AdvancedPaymentControls({
+  id,
+  special,
+  fields,
+  errors,
+  change,
+}: Pick<FormProps, "fields" | "errors" | "change"> & {
+  id: string;
+  special: boolean;
+}): ReactElement {
+  const arrowClass = special ? "rotate-180 transition-transform" : "transition-transform";
+  return (
+    <>
       <Button
         type="button"
         variant="text"
@@ -142,25 +183,7 @@ export function PaymentSection({ fields, errors, change, preview }: FormProps): 
           </Field>
         )}
       </div>
-      {preview ? (
-        <>
-          <PaymentPreview preview={preview} />
-          {material && (
-            <p className="text-caption font-medium">
-              Total a receber pela escola{" "}
-              {formatBRLFromCents(
-                preview.principalAmountCents + material.count * material.amountCents,
-              )}
-            </p>
-          )}
-          {(special || material) && <PaymentCalendar rows={rows} />}
-        </>
-      ) : (
-        <p className="text-caption text-muted-foreground">
-          Informe as datas, a mensalidade e uma quantidade válida para conferir as cobranças.
-        </p>
-      )}
-    </div>
+    </>
   );
 }
 

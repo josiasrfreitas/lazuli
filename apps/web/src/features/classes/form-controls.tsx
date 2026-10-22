@@ -12,6 +12,16 @@ import {
   SelectValue,
 } from "@lazuli/ui";
 
+function ControlLabel({ label, icon }: { label: string; icon?: ReactNode }): ReactNode {
+  if (!icon) return label;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {icon}
+      {label}
+    </span>
+  );
+}
+
 export function SelectControl({
   name,
   label,
@@ -34,14 +44,7 @@ export function SelectControl({
   return (
     <Field name={name} className={hideLabel ? "self-end" : undefined}>
       <Label htmlFor={name} className={hideLabel ? "sr-only" : undefined}>
-        {labelIcon ? (
-          <span className="inline-flex items-center gap-1.5">
-            {labelIcon}
-            {label}
-          </span>
-        ) : (
-          label
-        )}
+        <ControlLabel label={label} icon={labelIcon} />
       </Label>
       <Select
         name={name}
@@ -91,14 +94,7 @@ export function TextControl({
   return (
     <Field>
       <Label htmlFor={name}>
-        {labelIcon ? (
-          <span className="inline-flex items-center gap-1.5">
-            {labelIcon}
-            {label}
-          </span>
-        ) : (
-          label
-        )}
+        <ControlLabel label={label} icon={labelIcon} />
       </Label>
       <Input
         id={name}

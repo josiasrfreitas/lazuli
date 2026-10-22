@@ -88,6 +88,10 @@ function ClassSections({
     "secao",
     parseAsStringLiteral(SECTIONS).withDefault("alunos"),
   );
+  const changeSection = (value: string): void => {
+    const selected = SECTIONS.find((candidate) => candidate === value) ?? "alunos";
+    void setSection(selected);
+  };
   return (
     <div
       className={styles.sections}
@@ -97,17 +101,7 @@ function ClassSections({
         value={section === "planejamento" && detail.scheduleType !== "REGULAR" ? "alunos" : section}
         variant="underline"
         size="md"
-        onValueChange={(value) =>
-          void setSection(
-            value === "planejamento"
-              ? "planejamento"
-              : value === "aulas"
-                ? "aulas"
-                : value === "desempenho"
-                  ? "desempenho"
-                  : "alunos",
-          )
-        }
+        onValueChange={changeSection}
       >
         <ClassNavigation
           regular={detail.scheduleType === "REGULAR"}
@@ -123,16 +117,20 @@ function ClassSections({
         <TabsPanel value="aulas">
           <ClassLessons classId={detail.id} />
         </TabsPanel>
-        {detail.scheduleType === "REGULAR" && (
-          <TabsPanel value="planejamento">
-            <div className={planningStyles.classPanel}>
-              <PlanningWorkspace classId={detail.id} />
-            </div>
-          </TabsPanel>
-        )}
+        {detail.scheduleType === "REGULAR" && <ClassPlanningPanel classId={detail.id} />}
         <GenerationNotice classId={detail.id} />
       </Tabs>
     </div>
+  );
+}
+
+function ClassPlanningPanel({ classId }: { classId: string }): ReactElement {
+  return (
+    <TabsPanel value="planejamento">
+      <div className={planningStyles.classPanel}>
+        <PlanningWorkspace classId={classId} />
+      </div>
+    </TabsPanel>
   );
 }
 

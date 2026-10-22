@@ -33,6 +33,8 @@ Run commands from the root. The usual checks are `pnpm format:check`, `pnpm lint
 `pnpm build`. `docs/testing/README.md` owns test tiers, placement, guidance, and executable gates. Before
 finishing, inspect the complete diff, run `git diff --check`, run proportionate checks, and report
 anything left to CI with a concrete reason.
+For large ESLint backlogs, use [`big-lint-resolver`](.codex/skills/big-lint-resolver/SKILL.md)
+and resume the locked batch from its progress document before choosing new work.
 
 ## Hard boundaries
 

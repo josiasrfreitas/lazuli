@@ -1,6 +1,7 @@
 "use client";
 
 import type { JSX as ReactJSX } from "react";
+import type { RouterOutputs } from "@lazuli/api";
 import { FileAttachmentDialog } from "@lazuli/ui";
 import { MAX_PLACEMENT_FILE_BYTES } from "@lazuli/validators";
 import { dateLabel, formatLabel } from "~/features/admissions/labels";
@@ -13,6 +14,46 @@ type PlacementFile = {
   contentType: "application/pdf" | "image/jpeg" | "image/png";
   base64: string;
 };
+type PlacementUpload = (
+  file: PlacementFile,
+) => Promise<RouterOutputs["admissions"]["placementUpload"]>;
+const attachmentCopy = {
+  ORIGINAL: {
+    title: "Anexar prova de nivelamento",
+    description: "Envie a prova aplicada para registrar a correção neste atendimento.",
+    successTitle: "Prova anexada",
+    successDescription:
+      "A prova está disponível. O próximo passo é registrar o estágio indicado na correção.",
+  },
+  CORRECTED: {
+    title: "Anexar prova corrigida",
+    description: "Envie a versão com as correções do professor. Este anexo é opcional.",
+    successTitle: "Prova corrigida anexada",
+    successDescription:
+      "A versão corrigida está disponível junto à prova aplicada neste atendimento.",
+  },
+} as const;
+
+async function attachPlacementFile({
+  file,
+  visitId,
+  kind,
+  onUpload,
+}: {
+  file: File | undefined;
+  visitId: string;
+  kind: keyof typeof attachmentCopy;
+  onUpload: PlacementUpload;
+}): Promise<void> {
+  if (!file) return;
+  await onUpload({
+    id: visitId,
+    kind,
+    fileName: file.name,
+    contentType: file.type as PlacementFile["contentType"],
+    base64: await readFileBase64(file),
+  });
+}
 
 export function PlacementAttachmentDialog({
   visit,
@@ -30,12 +71,12 @@ export function PlacementAttachmentDialog({
     format: "ONLINE" | "IN_PERSON";
   };
   person: string;
-  onUpload: (file: PlacementFile) => Promise<unknown>;
+  onUpload: PlacementUpload;
   onClose: () => void;
   onComplete?: () => void;
   kind?: "ORIGINAL" | "CORRECTED";
 }): ReactJSX.Element {
-  const corrected = kind === "CORRECTED";
+  const copy = attachmentCopy[kind];
   return (
     <FileAttachmentDialog
       open
@@ -43,12 +84,8 @@ export function PlacementAttachmentDialog({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      title={corrected ? "Anexar prova corrigida" : "Anexar prova de nivelamento"}
-      description={
-        corrected
-          ? "Envie a versão com as correções do professor. Este anexo é opcional."
-          : "Envie a prova aplicada para registrar a correção neste atendimento."
-      }
+      title={copy.title}
+      description={copy.description}
       target={{
         name: person,
         description: "Atendimento de nivelamento",
@@ -59,24 +96,11 @@ export function PlacementAttachmentDialog({
       maxSize={MAX_PLACEMENT_FILE_BYTES}
       camera
       submitLabel="Anexar prova"
-      successTitle={corrected ? "Prova corrigida anexada" : "Prova anexada"}
-      successDescription={
-        corrected
-          ? "A versão corrigida está disponível junto à prova aplicada neste atendimento."
-          : "A prova está disponível. O próximo passo é registrar o estágio indicado na correção."
-      }
+      successTitle={copy.successTitle}
+      successDescription={copy.successDescription}
       doneLabel="Voltar ao atendimento"
       onComplete={onComplete ?? onClose}
-      onAttach={async ([file]) => {
-        if (!file) return;
-        await onUpload({
-          id: visit.id,
-          kind,
-          fileName: file.name,
-          contentType: file.type as PlacementFile["contentType"],
-          base64: await readFileBase64(file),
-        });
-      }}
+      onAttach={([file]) => attachPlacementFile({ file, visitId: visit.id, kind, onUpload })}
     />
   );
 }

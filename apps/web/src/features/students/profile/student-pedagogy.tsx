@@ -22,12 +22,7 @@ export function StudentPedagogySection(props: PedagogyProps): ReactElement {
   const { profile, pedagogyWorkspacePreview } = props;
   const id = profile.id;
   const query = useStudentPedagogy(id);
-  if (query.isPending)
-    return (
-      <div className="grid min-w-0 gap-6">
-        <EnrollmentLoading />
-      </div>
-    );
+  if (query.isPending) return <PedagogyLoadingState />;
   if (query.isError)
     return (
       <ProfileError
@@ -37,30 +32,15 @@ export function StudentPedagogySection(props: PedagogyProps): ReactElement {
     );
   const current = query.data.enrollments.filter((enrollment) => enrollment.current);
   const history = query.data.enrollments.filter((enrollment) => !enrollment.current);
-  if (current.length === 0) {
-    const upcoming = history
-      .filter((row) => row.entryDate > query.data.today)
-      .toSorted((left, right) => left.entryDate.localeCompare(right.entryDate))[0];
+  if (current.length === 0)
     return (
-      <div className="flex min-h-full min-w-0 flex-col">
-        <ContractTerminationNotice termination={props.latestTermination} studentId={id} />
-        <section aria-label="Dados do aluno" className="border-b border-border py-4">
-          <StudentContactSummary profile={profile} />
-        </section>
-        <NoCurrentEnrollment
-          upcoming={upcoming}
-          hasHistory={history.some((row) => row.entryDate <= query.data.today)}
-        />
-        <StudentFollowUp studentId={id} studentName={profile.contact.fullName} canRecord={false} />
-        <EnrollmentHistory
-          rows={history}
-          today={query.data.today}
-          studentId={id}
-          studentName={profile.contact.fullName}
-        />
-      </div>
+      <NoCurrentPedagogy
+        profile={profile}
+        history={history}
+        today={query.data.today}
+        latestTermination={props.latestTermination}
+      />
     );
-  }
   return (
     <div className="grid min-w-0 gap-6">
       <ContractTerminationNotice termination={props.latestTermination} studentId={id} />
@@ -86,6 +66,53 @@ export function StudentPedagogySection(props: PedagogyProps): ReactElement {
   );
 }
 
+function PedagogyLoadingState(): ReactElement {
+  return (
+    <div className="grid min-w-0 gap-6">
+      <EnrollmentLoading />
+    </div>
+  );
+}
+
+function NoCurrentPedagogy({
+  profile,
+  history,
+  today,
+  latestTermination,
+}: {
+  profile: StudentProfile;
+  history: StudentEnrollment[];
+  today: string;
+  latestTermination: PedagogyProps["latestTermination"];
+}): ReactElement {
+  const upcoming = history
+    .filter((row) => row.entryDate > today)
+    .toSorted((left, right) => left.entryDate.localeCompare(right.entryDate))[0];
+  return (
+    <div className="flex min-h-full min-w-0 flex-col">
+      <ContractTerminationNotice termination={latestTermination} studentId={profile.id} />
+      <section aria-label="Dados do aluno" className="border-b border-border py-4">
+        <StudentContactSummary profile={profile} />
+      </section>
+      <NoCurrentEnrollment
+        upcoming={upcoming}
+        hasHistory={history.some((row) => row.entryDate <= today)}
+      />
+      <StudentFollowUp
+        studentId={profile.id}
+        studentName={profile.contact.fullName}
+        canRecord={false}
+      />
+      <EnrollmentHistory
+        rows={history}
+        today={today}
+        studentId={profile.id}
+        studentName={profile.contact.fullName}
+      />
+    </div>
+  );
+}
+
 function NoCurrentEnrollment({
   upcoming,
   hasHistory,
@@ -103,16 +130,16 @@ function NoCurrentEnrollment({
       <h2 id="enrollment-empty-title" className="font-display text-2xl font-semibold text-heading">
         {upcoming
           ? "O próximo período já tem data"
-          : hasHistory
+          : (hasHistory
             ? "Nenhuma matrícula em andamento"
-            : "O acompanhamento começa com a matrícula"}
+            : "O acompanhamento começa com a matrícula")}
       </h2>
       <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
         {upcoming
           ? `A matrícula na turma ${upcoming.class.name} começa em ${formatDateOnlyBR(upcoming.entryDate)}. A partir dessa data, você poderá acompanhar as aulas e registrar os atendimentos do aluno.`
-          : hasHistory
+          : (hasHistory
             ? "Este aluno está sem matrícula vigente. O histórico continua disponível abaixo; novos registros ficam disponíveis quando uma nova matrícula começar."
-            : "Este aluno ainda não tem matrícula em uma turma. Quando ela estiver vigente, as aulas, as avaliações e os registros pedagógicos terão seu lugar aqui."}
+            : "Este aluno ainda não tem matrícula em uma turma. Quando ela estiver vigente, as aulas, as avaliações e os registros pedagógicos terão seu lugar aqui.")}
       </p>
     </section>
   );

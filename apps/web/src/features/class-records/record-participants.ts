@@ -12,6 +12,25 @@ export type LessonParticipant = {
   colorKey: string;
 };
 
+const participantRank: Record<ParticipantStatus, number> = {
+  absent: 0,
+  present: 1,
+  pending: 2,
+  cancelled: 3,
+};
+
+function studentStatus(status: string, attendanceRecorded: boolean): ParticipantStatus {
+  if (!attendanceRecorded) return "pending";
+  return status === "PRESENT" ? "present" : "absent";
+}
+
+function guestStatus(status: string): ParticipantStatus {
+  if (status === "ATTENDED") return "present";
+  if (status === "NO_SHOW" || status === "ABSENT") return "absent";
+  if (status === "CANCELLED") return "cancelled";
+  return "pending";
+}
+
 export function lessonParticipants(data: ClassRecord): LessonParticipant[] {
   const recordedIds = new Set(data.recordedAttendanceIds);
   const recorded = data.version > 0 || data.attendanceOnly;
@@ -25,12 +44,7 @@ export function lessonParticipants(data: ClassRecord): LessonParticipant[] {
           ? `Aluno da turma · ${row.stage}`
           : "Aluno da turma",
       kind: "student",
-      status:
-        recorded || recordedIds.has(row.enrollmentId)
-          ? row.status === "PRESENT"
-            ? "present"
-            : "absent"
-          : "pending",
+      status: studentStatus(row.status, recorded || recordedIds.has(row.enrollmentId)),
       colorKey: row.studentId,
     }),
   );
@@ -41,14 +55,7 @@ export function lessonParticipants(data: ClassRecord): LessonParticipant[] {
       name: guest.student.fullName,
       description: `Convidado · ${purposes[guest.purpose]}`,
       kind: "appointment",
-      status:
-        guest.status === "ATTENDED"
-          ? "present"
-          : guest.status === "NO_SHOW"
-            ? "absent"
-            : guest.status === "CANCELLED"
-              ? "cancelled"
-              : "pending",
+      status: guestStatus(guest.status),
       colorKey: guest.student.id,
     }),
   );
@@ -59,25 +66,13 @@ export function lessonParticipants(data: ClassRecord): LessonParticipant[] {
       name: visit.candidate.fullName,
       description: "Convidado · Aula experimental",
       kind: "experimental",
-      status:
-        visit.status === "ATTENDED"
-          ? "present"
-          : visit.status === "ABSENT"
-            ? "absent"
-            : visit.status === "CANCELLED"
-              ? "cancelled"
-              : "pending",
+      status: guestStatus(visit.status),
       colorKey: visit.candidate.studentId ?? visit.candidate.id,
     }),
   );
-  const rank: Record<ParticipantStatus, number> = {
-    absent: 0,
-    present: 1,
-    pending: 2,
-    cancelled: 3,
-  };
   return [...students, ...appointments, ...experiments].toSorted(
     (left, right) =>
-      rank[left.status] - rank[right.status] || left.name.localeCompare(right.name, "pt-BR"),
+      participantRank[left.status] - participantRank[right.status] ||
+      left.name.localeCompare(right.name, "pt-BR"),
   );
 }

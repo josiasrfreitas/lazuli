@@ -7,6 +7,16 @@ import { formatDateOnlyBR } from "~/lib/format";
 import { dateOnly } from "~/features/semester-organization/shared";
 import { OrganizationDialogs } from "~/features/class-organization/dialogs";
 import type { OrganizationAction } from "~/features/class-organization/model";
+import type { RouterOutputs } from "@lazuli/api";
+
+type StudentIntent = RouterOutputs["semesterOrganization"]["studentIntent"][number];
+
+function intentionStatus(intent: StudentIntent): string {
+  if (intent.placement?.declinedAt) return "Não continuará";
+  if (intent.placement?.publishedAt) return "Alocação confirmada";
+  if (intent.placement?.plan) return "Alocação em preparação";
+  return "Aguardando acomodação";
+}
 
 export function OrganizationIntention({
   studentId,
@@ -20,7 +30,10 @@ export function OrganizationIntention({
     { semesterId },
     { enabled: Boolean(semesterId) },
   );
-  const utils = trpc.useUtils();
+  const openAvailability = (id: string): void => {
+    setSemesterId(id);
+    setAction({ kind: "availability", studentId });
+  };
   if (query.isPending) return <InlineSkeleton className="h-16 w-full" />;
   if (query.error)
     return (
@@ -38,55 +51,46 @@ export function OrganizationIntention({
       aria-label="Organização de matrícula"
     >
       {query.data.map((intent) => (
-        <div
+        <OrganizationIntentRow
           key={intent.semester.id}
-          className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-        >
-          <div className="grid gap-1">
-            <h3 className="text-caption font-semibold">
-              {intent.semester.name} ·{" "}
-              {intent.placement?.declinedAt
-                ? "Não continuará"
-                : intent.placement?.publishedAt
-                  ? "Alocação confirmada"
-                  : intent.placement?.plan
-                    ? "Alocação em preparação"
-                    : "Aguardando acomodação"}
-            </h3>
-            <p className="text-caption text-muted-foreground">
-              {intent.placement?.plan?.name ?? "Sem turma definida"} ·{" "}
-              {intent.placement?.stage?.internalCode ?? "Estágio a definir"}
-              {intent.placement?.effectiveDate
-                ? ` · a partir de ${formatDateOnlyBR(dateOnly(intent.placement.effectiveDate))}`
-                : ""}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                setSemesterId(intent.semester.id);
-                setAction({ kind: "availability", studentId });
-              }}
-            >
-              Disponibilidade
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              nativeButton={false}
-              render={<Link href={`/organizacao?semestre=${intent.semester.id}`} />}
-            >
-              Ver organização
-            </Button>
-          </div>
-        </div>
+          intent={intent}
+          onAvailability={openAvailability}
+        />
       ))}
+      <OrganizationIntentDialogs
+        action={action}
+        board={board}
+        studentId={studentId}
+        onAction={setAction}
+        onSemester={setSemesterId}
+      />
+    </section>
+  );
+}
+
+function OrganizationIntentDialogs({
+  action,
+  board,
+  studentId,
+  onAction,
+  onSemester,
+}: {
+  action: OrganizationAction | null;
+  board: {
+    data: RouterOutputs["semesterOrganization"]["detail"] | undefined;
+    error: { message: string } | null;
+  };
+  studentId: string;
+  onAction: (action: OrganizationAction | null) => void;
+  onSemester: (semesterId: string) => void;
+}): ReactJSX.Element {
+  const utils = trpc.useUtils();
+  return (
+    <>
       {action && !board.data && (
         <p className="p-3 text-caption" role="status">
           {board.error ? board.error.message : "Carregando disponibilidade…"}
-          <Button size="sm" variant="ghost" onClick={() => setAction(null)}>
+          <Button size="sm" variant="ghost" onClick={() => onAction(null)}>
             Fechar
           </Button>
         </p>
@@ -95,16 +99,54 @@ export function OrganizationIntention({
         <OrganizationDialogs
           action={action}
           board={board.data}
-          onAction={setAction}
+          onAction={onAction}
           onClose={() => {
-            setAction(null);
+            onAction(null);
             void utils.semesterOrganization.studentIntent.invalidate({ studentId });
           }}
-          onSemester={setSemesterId}
+          onSemester={onSemester}
           onPlan={() => {}}
           onFeedback={() => {}}
         />
       )}
-    </section>
+    </>
+  );
+}
+
+function OrganizationIntentRow({
+  intent,
+  onAvailability,
+}: {
+  intent: StudentIntent;
+  onAvailability: (semesterId: string) => void;
+}): ReactJSX.Element {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div className="grid gap-1">
+        <h3 className="text-caption font-semibold">
+          {intent.semester.name} · {intentionStatus(intent)}
+        </h3>
+        <p className="text-caption text-muted-foreground">
+          {intent.placement?.plan?.name ?? "Sem turma definida"} ·{" "}
+          {intent.placement?.stage?.internalCode ?? "Estágio a definir"}
+          {intent.placement?.effectiveDate
+            ? ` · a partir de ${formatDateOnlyBR(dateOnly(intent.placement.effectiveDate))}`
+            : ""}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" variant="secondary" onClick={() => onAvailability(intent.semester.id)}>
+          Disponibilidade
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          nativeButton={false}
+          render={<Link href={`/organizacao?semestre=${intent.semester.id}`} />}
+        >
+          Ver organização
+        </Button>
+      </div>
+    </div>
   );
 }

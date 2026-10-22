@@ -26,26 +26,41 @@ export function WeeklyBlockEvent({ event }: EventProps<WeeklyBlock>): ReactEleme
       aria-label={overflow ? `${event.title} · ${event.startTime}–${event.endTime}` : event.title}
       onClick={() => (overflow ? onShowOverflow(event) : onOpen(lesson))}
     >
-      {overflow ? (
-        <>
-          <strong>+{event.lessons.length}</strong>
-          <span>Mais</span>
-          {expanded && (
-            <span className={styles.overflowNames}>
-              {event.lessons.map((item) => item.teacher ?? "A definir").join(", ")}
-            </span>
-          )}
-        </>
-      ) : selection ? (
-        <>
-          <strong className={styles.selectionTitle}>{lesson.className}</strong>
-          <span>
-            {lesson.startTime}–{lesson.endTime}
-          </span>
-        </>
-      ) : (
-        <WeeklyLessonContent lesson={lesson} />
-      )}
+      {weeklyEventContent({ event, expanded, selecting: Boolean(selection) })}
     </button>
   );
+}
+
+function weeklyEventContent({
+  event,
+  expanded,
+  selecting,
+}: {
+  event: WeeklyBlock;
+  expanded: boolean;
+  selecting: boolean;
+}): ReactElement {
+  if (event.kind === "overflow")
+    return (
+      <>
+        <strong>+{event.lessons.length}</strong>
+        <span>Mais</span>
+        {expanded && (
+          <span className={styles.overflowNames}>
+            {event.lessons.map((item) => item.teacher ?? "A definir").join(", ")}
+          </span>
+        )}
+      </>
+    );
+  const lesson = event.lessons[0]!;
+  if (selecting)
+    return (
+      <>
+        <strong className={styles.selectionTitle}>{lesson.className}</strong>
+        <span>
+          {lesson.startTime}–{lesson.endTime}
+        </span>
+      </>
+    );
+  return <WeeklyLessonContent lesson={lesson} />;
 }

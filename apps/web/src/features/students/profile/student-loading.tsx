@@ -101,44 +101,50 @@ export function AppointmentsLoading({
           </Button>
         </div>
       </header>
-      <ul className={agenda.rail} aria-hidden="true">
-        {[0, 1].map((item) => (
-          <li key={item}>
-            <div className={agenda.cell}>
-              <div className={agenda.date}>
-                <strong>
-                  <InlineSkeleton className="h-8 w-8 rounded-sm" />
-                </strong>
-                <span>
-                  <InlineSkeleton className="h-3 w-16" />
-                </span>
-              </div>
-              <div className={agenda.body}>
-                <strong>
-                  <InlineSkeleton className="h-3.5 w-28 max-w-full rounded-sm" />
-                </strong>
-                <span className={agenda.reason}>
-                  {[0, 1].map((line) => (
-                    <span key={line} className="flex h-5 items-center">
-                      <InlineSkeleton
-                        className={
-                          line === 1
-                            ? "h-3 w-24 max-w-full rounded-sm"
-                            : "h-3 w-40 max-w-full rounded-sm"
-                        }
-                      />
-                    </span>
-                  ))}
-                </span>
-                <div className={agenda.meta}>
-                  <InlineSkeleton className="h-3 w-16" />
-                  <InlineSkeleton className="h-5 w-16" />
-                </div>
+      <AppointmentsRailLoading />
+    </section>
+  );
+}
+
+function AppointmentsRailLoading(): ReactElement {
+  return (
+    <ul className={agenda.rail} aria-hidden="true">
+      {[0, 1].map((item) => (
+        <li key={item}>
+          <div className={agenda.cell}>
+            <div className={agenda.date}>
+              <strong>
+                <InlineSkeleton className="h-8 w-8 rounded-sm" />
+              </strong>
+              <span>
+                <InlineSkeleton className="h-3 w-16" />
+              </span>
+            </div>
+            <div className={agenda.body}>
+              <strong>
+                <InlineSkeleton className="h-3.5 w-28 max-w-full rounded-sm" />
+              </strong>
+              <span className={agenda.reason}>
+                {[0, 1].map((line) => (
+                  <span key={line} className="flex h-5 items-center">
+                    <InlineSkeleton
+                      className={
+                        line === 1
+                          ? "h-3 w-24 max-w-full rounded-sm"
+                          : "h-3 w-40 max-w-full rounded-sm"
+                      }
+                    />
+                  </span>
+                ))}
+              </span>
+              <div className={agenda.meta}>
+                <InlineSkeleton className="h-3 w-16" />
+                <InlineSkeleton className="h-5 w-16" />
               </div>
             </div>
-          </li>
-        ))}
-      </ul>
-    </section>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

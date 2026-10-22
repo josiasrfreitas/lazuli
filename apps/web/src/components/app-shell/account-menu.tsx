@@ -43,82 +43,154 @@ export function AccountMenu({ identity }: { identity: StaffIdentity }): ReactJSX
       }}
       onOpenChangeComplete={finishClose}
     >
-      <PopoverTrigger
-        aria-label={`Conta de ${identity.name} · ${identity.role === "TEACHER" ? "Professor" : "Administração"}`}
-        title="Conta e perfis"
-        data-keyboard={keyboard}
-        className={styles.trigger}
-        onPointerDown={() => setKeyboard(false)}
-        onKeyDown={() => setKeyboard(true)}
-        render={<Button variant="ghost" size="icon-compact-responsive" />}
-      >
-        <span className={styles.avatar}>
-          <Avatar colorKey={identity.id} name={identity.name} />
-          <span className={styles.chevron} aria-hidden="true">
-            <ChevronDown className="size-3" />
-          </span>
-        </span>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        positionMethod="fixed"
-        size="menu"
-        motion={keyboard ? "instant" : "unfold"}
-        className={styles.menu}
-        data-keyboard={keyboard}
-        aria-label="Conta e perfis"
-        onKeyDown={() => setKeyboard(true)}
-      >
-        <div className={styles.identity} data-menu-item>
-          <PopoverTitle>{identity.name}</PopoverTitle>
-          <p className={styles.email}>{identity.email}</p>
-        </div>
-        <div className={styles.roles} aria-label="Escolher perfil" aria-busy={switching}>
-          <span
-            className={styles.selection}
-            data-two={roles.length > 1}
-            data-second={roles.indexOf(selectedRole) === 1}
-            aria-hidden="true"
-          />
-          {roles.map((role) => (
-            <Button
-              key={role}
-              variant="ghost"
-              size="md"
-              className={styles.choice}
-              data-menu-item
-              aria-pressed={role === selectedRole}
-              disabled={switching}
-              onClick={() => selectRole(role)}
-            >
-              {role === "TEACHER" ? (
-                <GraduationCap aria-hidden="true" />
-              ) : (
-                <Shield aria-hidden="true" />
-              )}
-              {role === "TEACHER" ? "Professor" : "Administração"}
-              <Check className={styles.check} aria-hidden="true" />
-            </Button>
-          ))}
-        </div>
-        <div className={styles.footer} data-menu-item>
-          <Button
-            variant="ghost"
-            className={styles.choice}
-            loading={pending}
-            disabled={switching}
-            onClick={() => void signOut()}
-          >
-            <LogOut aria-hidden="true" />
-            Sair da conta
-          </Button>
-          {failed && (
-            <p role="alert" className="text-caption text-destructive">
-              Não foi possível sair. Tente novamente.
-            </p>
-          )}
-        </div>
-      </PopoverContent>
+      <AccountTrigger identity={identity} keyboard={keyboard} setKeyboard={setKeyboard} />
+      <AccountMenuPanel
+        {...{
+          identity,
+          keyboard,
+          setKeyboard,
+          roles,
+          selectedRole,
+          switching,
+          selectRole,
+          pending,
+          failed,
+          signOut,
+        }}
+      />
     </Popover>
+  );
+}
+
+function AccountTrigger({
+  identity,
+  keyboard,
+  setKeyboard,
+}: {
+  identity: StaffIdentity;
+  keyboard: boolean;
+  setKeyboard: (keyboard: boolean) => void;
+}): ReactJSX.Element {
+  return (
+    <PopoverTrigger
+      aria-label={`Conta de ${identity.name} · ${identity.role === "TEACHER" ? "Professor" : "Administração"}`}
+      title="Conta e perfis"
+      data-keyboard={keyboard}
+      data-account-trigger
+      className="cursor-pointer"
+      onPointerDown={() => setKeyboard(false)}
+      onKeyDown={() => setKeyboard(true)}
+      render={<Button variant="ghost" size="icon-compact-responsive" />}
+    >
+      <span className={styles.avatar}>
+        <Avatar colorKey={identity.id} name={identity.name} />
+        <span className={styles.chevron} aria-hidden="true">
+          <ChevronDown className="size-3" />
+        </span>
+      </span>
+    </PopoverTrigger>
+  );
+}
+
+type AccountMenuPanelProps = {
+  identity: StaffIdentity;
+  keyboard: boolean;
+  setKeyboard: (keyboard: boolean) => void;
+  roles: StaffRole[];
+  selectedRole: StaffRole;
+  switching: boolean;
+  selectRole: (role: StaffRole) => void;
+  pending: boolean;
+  failed: boolean;
+  signOut: () => Promise<void>;
+};
+
+function AccountMenuPanel(props: AccountMenuPanelProps): ReactJSX.Element {
+  const { identity, keyboard, setKeyboard } = props;
+  return (
+    <PopoverContent
+      align="end"
+      positionMethod="fixed"
+      size="menu"
+      motion={keyboard ? "instant" : "unfold"}
+      className="w-62"
+      data-account-menu
+      data-keyboard={keyboard}
+      aria-label="Conta e perfis"
+      onKeyDown={() => setKeyboard(true)}
+    >
+      <div className={styles.identity} data-menu-item>
+        <PopoverTitle>{identity.name}</PopoverTitle>
+        <p className={styles.email}>{identity.email}</p>
+      </div>
+      <AccountRoles {...props} />
+      <AccountFooter {...props} />
+    </PopoverContent>
+  );
+}
+
+function AccountRoles({
+  roles,
+  selectedRole,
+  switching,
+  selectRole,
+}: AccountMenuPanelProps): ReactJSX.Element {
+  return (
+    <div className={styles.roles} aria-label="Escolher perfil" aria-busy={switching}>
+      <span
+        className={styles.selection}
+        data-two={roles.length > 1}
+        data-second={roles.indexOf(selectedRole) === 1}
+        aria-hidden="true"
+      />
+      {roles.map((role) => (
+        <Button
+          key={role}
+          variant="ghost"
+          size="md"
+          className="w-full cursor-pointer justify-start"
+          data-account-choice
+          data-menu-item
+          aria-pressed={role === selectedRole}
+          disabled={switching}
+          onClick={() => selectRole(role)}
+        >
+          {role === "TEACHER" ? (
+            <GraduationCap aria-hidden="true" />
+          ) : (
+            <Shield aria-hidden="true" />
+          )}
+          {role === "TEACHER" ? "Professor" : "Administração"}
+          <Check className={styles.check} aria-hidden="true" />
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+function AccountFooter({
+  pending,
+  failed,
+  switching,
+  signOut,
+}: AccountMenuPanelProps): ReactJSX.Element {
+  return (
+    <div className={styles.footer} data-menu-item>
+      <Button
+        variant="ghost"
+        className="w-full cursor-pointer justify-start"
+        loading={pending}
+        disabled={switching}
+        onClick={() => void signOut()}
+      >
+        <LogOut aria-hidden="true" />
+        Sair da conta
+      </Button>
+      {failed && (
+        <p role="alert" className="text-caption text-destructive">
+          Não foi possível sair. Tente novamente.
+        </p>
+      )}
+    </div>
   );
 }

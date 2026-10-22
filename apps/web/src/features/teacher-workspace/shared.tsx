@@ -53,7 +53,7 @@ export function TeacherQueryState({
   retry: () => void;
   loading?: ReactNode;
   label?: string;
-}) {
+}): ReactNode {
   if (pending) return loading ?? <QueryLoading label={label} />;
   return error ? (
     <Alert variant="destructive">

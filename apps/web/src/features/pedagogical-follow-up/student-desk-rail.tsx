@@ -41,23 +41,13 @@ export function StudentDeskRail(props: Props): ReactElement {
           props.clear();
         }}
       >
-        <div className={styles.railToolbar}>
-          <TabsList aria-label="Tipo de registro">
-            <TabsTab value="occurrence">
-              Ocorrências
-              {occurrences.data && (
-                <span className={styles.tabCount}>{occurrences.data.total}</span>
-              )}
-            </TabsTab>
-            <TabsTab value="intervention">
-              Intervenções
-              {interventions.data && (
-                <span className={styles.tabCount}>{interventions.data.total}</span>
-              )}
-            </TabsTab>
-          </TabsList>
-          <DeskFilters activeTab={activeTab} search={search} setSearch={setSearch} />
-        </div>
+        <DeskRailToolbar
+          activeTab={activeTab}
+          search={search}
+          setSearch={setSearch}
+          occurrenceCount={occurrences.data?.total}
+          interventionCount={interventions.data?.total}
+        />
         <TabsPanel value="intervention" className="min-h-0 flex-1 overflow-hidden">
           <InterventionList key={`interventions:${querySearch}`} {...props} search={querySearch} />
         </TabsPanel>
@@ -66,6 +56,40 @@ export function StudentDeskRail(props: Props): ReactElement {
         </TabsPanel>
       </Tabs>
     </aside>
+  );
+}
+
+function DeskRailToolbar({
+  activeTab,
+  search,
+  setSearch,
+  occurrenceCount,
+  interventionCount,
+}: {
+  activeTab: FollowUpSelection["kind"];
+  search: string;
+  setSearch: (value: string) => void;
+  occurrenceCount?: number | undefined;
+  interventionCount?: number | undefined;
+}): ReactElement {
+  return (
+    <div className={styles.railToolbar}>
+      <TabsList aria-label="Tipo de registro">
+        <TabsTab value="occurrence">
+          Ocorrências
+          {occurrenceCount !== undefined && (
+            <span className={styles.tabCount}>{occurrenceCount}</span>
+          )}
+        </TabsTab>
+        <TabsTab value="intervention">
+          Intervenções
+          {interventionCount !== undefined && (
+            <span className={styles.tabCount}>{interventionCount}</span>
+          )}
+        </TabsTab>
+      </TabsList>
+      <DeskFilters activeTab={activeTab} search={search} setSearch={setSearch} />
+    </div>
   );
 }
 

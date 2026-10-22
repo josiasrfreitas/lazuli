@@ -93,7 +93,7 @@ export function MeetingDateField({
   error?: string | undefined;
 }): ReactJSX.Element {
   return (
-    <div className={fluid ? "min-w-0 w-full" : compact ? "w-40" : "w-44"}>
+    <div className={fluid ? "min-w-0 w-full" : (compact ? "w-40" : "w-44")}>
       <Field>
         <Label htmlFor="appointment-date">Data</Label>
         <div className="relative">
@@ -110,29 +110,41 @@ export function MeetingDateField({
             onChange={(event) => onChange(maskDateBR(event.target.value))}
             invalid={Boolean(error)}
           />
-          <div className="absolute inset-y-0 right-0 flex items-center">
-            <CalendarDatePicker
-              date={parseDateBR(value) ?? today()}
-              today={today()}
-              minDate={minDate}
-              onChange={(date) => {
-                onChange(formatDateOnlyBR(date));
-              }}
-              trigger={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Abrir calendário da data do atendimento"
-                >
-                  <CalendarDays aria-hidden="true" />
-                </Button>
-              }
-            />
-          </div>
+          <MeetingDatePicker value={value} minDate={minDate} onChange={onChange} />
         </div>
         <FieldError match={Boolean(error)}>{error}</FieldError>
       </Field>
+    </div>
+  );
+}
+
+function MeetingDatePicker({
+  value,
+  minDate,
+  onChange,
+}: {
+  value: string;
+  minDate?: string | undefined;
+  onChange: (value: string) => void;
+}): ReactJSX.Element {
+  return (
+    <div className="absolute inset-y-0 right-0 flex items-center">
+      <CalendarDatePicker
+        date={parseDateBR(value) ?? today()}
+        today={today()}
+        minDate={minDate}
+        onChange={(date) => onChange(formatDateOnlyBR(date))}
+        trigger={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Abrir calendário da data do atendimento"
+          >
+            <CalendarDays aria-hidden="true" />
+          </Button>
+        }
+      />
     </div>
   );
 }

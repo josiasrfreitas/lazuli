@@ -57,7 +57,6 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: PedagogyProp
     (row) => row.class.scheduleType === "PERSONALIZED",
   );
   const finance = trpc.finance.studentSummary.useQuery({ studentId: id });
-  const severeOverdue = finance.data?.debtState === "SEVERE_OVERDUE";
   const [pointerNavigation, setPointerNavigation] = useState(false);
   const [section, setSection] = useQueryState(
     "secao",
@@ -69,64 +68,18 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: PedagogyProp
         value={section === "planejamento" && pedagogy.data && !hasPpt ? "pedagogico" : section}
         variant="underline"
         size="md"
-        onValueChange={(value) =>
-          void setSection(
-            value === "planejamento"
-              ? "planejamento"
-              : value === "financeiro"
-                ? "financeiro"
-                : "pedagogico",
-          )
-        }
+        onValueChange={(value) => {
+          if (typeof value === "string") void setSection(studentSectionFromTab(value));
+        }}
       >
-        <div className={styles.stickyHeader}>
-          <DetailHeader
-            title={profile ? profile.contact.fullName : <InlineSkeleton className="h-8 w-64" />}
-            metadata={
-              profile ? (
-                <StudentStatus profile={profile} />
-              ) : (
-                <InlineSkeleton className="h-5 w-12" />
-              )
-            }
-            actions={
-              <div className="flex max-w-full min-w-0 items-center gap-3 overflow-x-auto">
-                <TabsList
-                  aria-label="Seções do aluno"
-                  onPointerDownCapture={() => setPointerNavigation(true)}
-                  onKeyDownCapture={() => setPointerNavigation(false)}
-                >
-                  <TabsTab value="pedagogico">
-                    <BookOpen aria-hidden="true" />
-                    Pedagógico
-                  </TabsTab>
-                  {(hasPpt || (pedagogy.isPending && section === "planejamento")) && (
-                    <TabsTab value="planejamento">
-                      <CalendarDays aria-hidden="true" />
-                      Planejamento
-                    </TabsTab>
-                  )}
-                  <TabsTab value="financeiro">
-                    <Wallet aria-hidden="true" />
-                    Financeiro
-                    {severeOverdue && (
-                      <span
-                        className="text-destructive"
-                        title="Pendência grave: pagamento vencido há mais de 30 dias"
-                      >
-                        <AlertCircle className={styles.financeAlert} aria-hidden="true" />
-                        <span className="sr-only">
-                          Pendência grave: pagamento vencido há mais de 30 dias
-                        </span>
-                      </span>
-                    )}
-                  </TabsTab>
-                </TabsList>
-              </div>
-            }
-          />
-          {profile && <StudentPendingActions studentId={id} name={profile.contact.fullName} />}
-        </div>
+        <StudentTabsHeader
+          id={id}
+          profile={profile}
+          hasPpt={Boolean(hasPpt)}
+          showPendingPlanning={pedagogy.isPending && section === "planejamento"}
+          severeOverdue={finance.data?.debtState === "SEVERE_OVERDUE"}
+          onPointerNavigationChange={setPointerNavigation}
+        />
         <TabsPanel value="pedagogico">
           {profile ? (
             <StudentPedagogySection
@@ -139,31 +92,7 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: PedagogyProp
           )}
         </TabsPanel>
         <TabsPanel value="planejamento">
-          <div className="grid min-w-0 gap-4 pt-4">
-            {pedagogy.isError ? (
-              <ProfileError
-                message="Não foi possível carregar a matrícula."
-                onRetry={() => void pedagogy.refetch()}
-              />
-            ) : profile && pedagogy.data ? (
-              pedagogy.data.enrollments
-                .filter(
-                  (enrollment) =>
-                    enrollment.current && enrollment.class.scheduleType === "PERSONALIZED",
-                )
-                .map((enrollment) => (
-                  <CurrentEnrollment
-                    key={enrollment.id}
-                    enrollment={enrollment}
-                    today={pedagogy.data?.today ?? ""}
-                    profile={profile}
-                  />
-                ))
-            ) : (
-              <EnrollmentLoading />
-            )}
-            <StudentPlanning studentId={id} />
-          </div>
+          <StudentPlanningPanel id={id} profile={profile} pedagogy={pedagogy} />
         </TabsPanel>
         <TabsPanel value="financeiro">
           <StudentFinanceSection id={id} profile={profile} />
@@ -171,4 +100,136 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: PedagogyProp
       </Tabs>
     </div>
   );
+}
+
+function studentSectionFromTab(value: string): (typeof SECTIONS)[number] {
+  if (value === "planejamento") return "planejamento";
+  if (value === "financeiro") return "financeiro";
+  return "pedagogico";
+}
+
+function StudentTabsHeader({
+  id,
+  profile,
+  hasPpt,
+  showPendingPlanning,
+  severeOverdue,
+  onPointerNavigationChange,
+}: {
+  id: string;
+  profile: StudentProfile | undefined;
+  hasPpt: boolean;
+  showPendingPlanning: boolean;
+  severeOverdue: boolean;
+  onPointerNavigationChange: (value: boolean) => void;
+}): ReactElement {
+  return (
+    <div className={styles.stickyHeader}>
+      <DetailHeader
+        title={profile ? profile.contact.fullName : <InlineSkeleton className="h-8 w-64" />}
+        metadata={
+          profile ? <StudentStatus profile={profile} /> : <InlineSkeleton className="h-5 w-12" />
+        }
+        actions={
+          <StudentTabsNavigation
+            hasPpt={hasPpt}
+            showPendingPlanning={showPendingPlanning}
+            severeOverdue={severeOverdue}
+            onPointerNavigationChange={onPointerNavigationChange}
+          />
+        }
+      />
+      {profile && <StudentPendingActions studentId={id} name={profile.contact.fullName} />}
+    </div>
+  );
+}
+
+function StudentTabsNavigation({
+  hasPpt,
+  showPendingPlanning,
+  severeOverdue,
+  onPointerNavigationChange,
+}: {
+  hasPpt: boolean;
+  showPendingPlanning: boolean;
+  severeOverdue: boolean;
+  onPointerNavigationChange: (value: boolean) => void;
+}): ReactElement {
+  return (
+    <div className="flex max-w-full min-w-0 items-center gap-3 overflow-x-auto">
+      <TabsList
+        aria-label="Seções do aluno"
+        onPointerDownCapture={() => onPointerNavigationChange(true)}
+        onKeyDownCapture={() => onPointerNavigationChange(false)}
+      >
+        <TabsTab value="pedagogico">
+          <BookOpen aria-hidden="true" />
+          Pedagógico
+        </TabsTab>
+        {(hasPpt || showPendingPlanning) && (
+          <TabsTab value="planejamento">
+            <CalendarDays aria-hidden="true" />
+            Planejamento
+          </TabsTab>
+        )}
+        <TabsTab value="financeiro">
+          <Wallet aria-hidden="true" />
+          Financeiro
+          {severeOverdue && (
+            <span
+              className="text-destructive"
+              title="Pendência grave: pagamento vencido há mais de 30 dias"
+            >
+              <AlertCircle className={styles.financeAlert} aria-hidden="true" />
+              <span className="sr-only">Pendência grave: pagamento vencido há mais de 30 dias</span>
+            </span>
+          )}
+        </TabsTab>
+      </TabsList>
+    </div>
+  );
+}
+
+function StudentPlanningPanel({
+  id,
+  profile,
+  pedagogy,
+}: {
+  id: string;
+  profile: StudentProfile | undefined;
+  pedagogy: ReturnType<typeof useStudentPedagogy>;
+}): ReactElement {
+  return (
+    <div className="grid min-w-0 gap-4 pt-4">
+      <StudentPlanningEnrollments profile={profile} pedagogy={pedagogy} />
+      <StudentPlanning studentId={id} />
+    </div>
+  );
+}
+
+function StudentPlanningEnrollments({
+  profile,
+  pedagogy,
+}: {
+  profile: StudentProfile | undefined;
+  pedagogy: ReturnType<typeof useStudentPedagogy>;
+}): ReactNode {
+  if (pedagogy.isError)
+    return (
+      <ProfileError
+        message="Não foi possível carregar a matrícula."
+        onRetry={() => void pedagogy.refetch()}
+      />
+    );
+  if (!profile || !pedagogy.data) return <EnrollmentLoading />;
+  return pedagogy.data.enrollments
+    .filter((enrollment) => enrollment.current && enrollment.class.scheduleType === "PERSONALIZED")
+    .map((enrollment) => (
+      <CurrentEnrollment
+        key={enrollment.id}
+        enrollment={enrollment}
+        today={pedagogy.data?.today ?? ""}
+        profile={profile}
+      />
+    ));
 }

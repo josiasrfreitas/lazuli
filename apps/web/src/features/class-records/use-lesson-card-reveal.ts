@@ -1,11 +1,15 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, type RefObject } from "react";
 
 const MILLISECONDS_PER_SECOND = 1000;
+const CONTENT_WIDTH_PROPERTY = "--agenda-content-width";
 
 /** Measure once at the destination width, then let CSS move both axes together. */
-export function useLessonCardReveal(dayWidth?: number, widthShare?: number) {
+export function useLessonCardReveal(
+  dayWidth?: number,
+  widthShare?: number,
+): RefObject<HTMLButtonElement | null> {
   const ref = useRef<HTMLButtonElement>(null);
 
   useLayoutEffect(() => {
@@ -14,51 +18,71 @@ export function useLessonCardReveal(dayWidth?: number, widthShare?: number) {
     const day = event?.closest<HTMLElement>(".rbc-day-slot");
     const lanes = event?.parentElement;
     if (!card || !event || !day || !lanes) return;
-
-    const reset = (): void => {
-      delete card.dataset.reveal;
-      card.style.removeProperty("height");
-      card.style.removeProperty("--agenda-content-width");
-    };
-
     if (dayWidth && widthShare) {
-      const currentHeight = card.getBoundingClientRect().height;
-      const laneStyle = getComputedStyle(lanes);
-      const dayInset =
-        day.getBoundingClientRect().width -
-        lanes.getBoundingClientRect().width +
-        Number.parseFloat(laneStyle.borderLeftWidth) +
-        Number.parseFloat(laneStyle.borderRightWidth);
-      const eventInset = event.getBoundingClientRect().width - card.getBoundingClientRect().width;
-      // weeklyDayLayout reserves two pixels between lanes; retain the event's borders too.
-      const width = (dayWidth - dayInset) * widthShare - 2 - eventInset;
-      const size = measureContent(card, width);
-      card.style.height = `${currentHeight}px`;
-      card.dataset.reveal = "true";
-      card.style.setProperty("--agenda-content-width", `${size.width}px`);
-      // Commit the current height before the destination. Reversals start at the visible size.
-      card.getBoundingClientRect();
-      card.style.height = `${Math.max(card.parentElement!.clientHeight, size.height)}px`;
+      openReveal({ card, event, day, lanes, dayWidth, widthShare });
       return;
     }
-
-    if (!card.dataset.reveal) return;
-    card.style.height = `${card.parentElement!.clientHeight}px`;
-    const duration = Math.max(
-      ...getComputedStyle(card)
-        .transitionDuration.split(",")
-        .map((value) => Number.parseFloat(value) * MILLISECONDS_PER_SECOND),
-    );
-    if (!duration || event.dataset.weekRevealed === "true") {
-      reset();
-      return;
-    }
-    // Keep the destination text layout during closing; never re-wrap on every frame.
-    const closing = globalThis.setTimeout(reset, duration);
-    return () => globalThis.clearTimeout(closing);
+    return closeReveal(card, event);
   }, [dayWidth, widthShare]);
 
   return ref;
+}
+
+function resetReveal(card: HTMLButtonElement): void {
+  delete card.dataset.reveal;
+  card.style.removeProperty("height");
+  card.style.removeProperty(CONTENT_WIDTH_PROPERTY);
+}
+
+function openReveal({
+  card,
+  event,
+  day,
+  lanes,
+  dayWidth,
+  widthShare,
+}: {
+  card: HTMLButtonElement;
+  event: HTMLElement;
+  day: HTMLElement;
+  lanes: HTMLElement;
+  dayWidth: number;
+  widthShare: number;
+}): void {
+  const currentHeight = card.getBoundingClientRect().height;
+  const laneStyle = getComputedStyle(lanes);
+  const dayInset =
+    day.getBoundingClientRect().width -
+    lanes.getBoundingClientRect().width +
+    Number.parseFloat(laneStyle.borderLeftWidth) +
+    Number.parseFloat(laneStyle.borderRightWidth);
+  const eventInset = event.getBoundingClientRect().width - card.getBoundingClientRect().width;
+  // weeklyDayLayout reserves two pixels between lanes; retain the event's borders too.
+  const width = (dayWidth - dayInset) * widthShare - 2 - eventInset;
+  const size = measureContent(card, width);
+  card.style.height = `${currentHeight}px`;
+  card.dataset.reveal = "true";
+  card.style.setProperty(CONTENT_WIDTH_PROPERTY, `${size.width}px`);
+  // Commit the current height before the destination. Reversals start at the visible size.
+  card.getBoundingClientRect();
+  card.style.height = `${Math.max(card.parentElement!.clientHeight, size.height)}px`;
+}
+
+function closeReveal(card: HTMLButtonElement, event: HTMLElement): (() => void) | undefined {
+  if (!card.dataset.reveal) return;
+  card.style.height = `${card.parentElement!.clientHeight}px`;
+  const duration = Math.max(
+    ...getComputedStyle(card)
+      .transitionDuration.split(",")
+      .map((value) => Number.parseFloat(value) * MILLISECONDS_PER_SECOND),
+  );
+  if (!duration || event.dataset.weekRevealed === "true") {
+    resetReveal(card);
+    return;
+  }
+  // Keep the destination text layout during closing; never re-wrap on every frame.
+  const closing = globalThis.setTimeout(() => resetReveal(card), duration);
+  return () => globalThis.clearTimeout(closing);
 }
 
 function measureContent(card: HTMLButtonElement, width: number): { height: number; width: number } {
@@ -75,7 +99,7 @@ function measureContent(card: HTMLButtonElement, width: number): { height: numbe
     height: "max-content",
     minHeight: "0",
   });
-  probe.style.setProperty("--agenda-content-width", "100%");
+  probe.style.setProperty(CONTENT_WIDTH_PROPERTY, "100%");
   card.parentElement!.append(probe);
   const size = {
     height: probe.getBoundingClientRect().height,

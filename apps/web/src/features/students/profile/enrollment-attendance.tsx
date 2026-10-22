@@ -22,25 +22,7 @@ export function EnrollmentAttendance({
 }): ReactElement {
   return (
     <section aria-label="Frequência no semestre" className="flex min-w-0 flex-col gap-2">
-      <div className="grid gap-2">
-        <MetricHeading label="Frequência">
-          {attendance.presentMinutes} min de presença + {attendance.compensatedMinutes} min de
-          reposição, em {attendance.heldMinutes} min de aula confirmados.
-        </MetricHeading>
-        <p
-          className={cn(
-            "font-numeric text-4xl font-semibold leading-none tracking-tight tabular-nums",
-            attendance.flagged ? "text-warning" : "text-heading",
-          )}
-        >
-          {formatAttendancePercent(attendance.percent)}
-        </p>
-        <p className="text-caption text-muted-foreground">
-          {attendance.heldSessions
-            ? `${attendance.presentCount} presenças em ${attendance.heldSessions} aulas`
-            : "Sem chamadas confirmadas"}
-        </p>
-      </div>
+      <AttendanceSummary attendance={attendance} />
       {attendance.percent !== null && (
         <meter
           className={styles.attendanceMeter}
@@ -67,6 +49,30 @@ export function EnrollmentAttendance({
         />
       </div>
     </section>
+  );
+}
+
+function AttendanceSummary({ attendance }: { attendance: Attendance }): ReactElement {
+  return (
+    <div className="grid gap-2">
+      <MetricHeading label="Frequência">
+        {attendance.presentMinutes} min de presença + {attendance.compensatedMinutes} min de
+        reposição, em {attendance.heldMinutes} min de aula confirmados.
+      </MetricHeading>
+      <p
+        className={cn(
+          "font-numeric text-4xl font-semibold leading-none tracking-tight tabular-nums",
+          attendance.flagged ? "text-warning" : "text-heading",
+        )}
+      >
+        {formatAttendancePercent(attendance.percent)}
+      </p>
+      <p className="text-caption text-muted-foreground">
+        {attendance.heldSessions
+          ? `${attendance.presentCount} presenças em ${attendance.heldSessions} aulas`
+          : "Sem chamadas confirmadas"}
+      </p>
+    </div>
   );
 }
 

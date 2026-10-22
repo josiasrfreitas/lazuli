@@ -68,18 +68,12 @@ export function AppointmentBadge({
   overdue?: boolean;
 }): ReactJSX.Element {
   if (status === "CANCELLED" && rescheduled) return <Badge variant="info">Reagendado</Badge>;
+  let variant: "success" | "destructive" | "warning" | "info" = "info";
+  if (status === "ATTENDED") variant = "success";
+  else if (status === "CANCELLED") variant = "destructive";
+  else if (status === "NO_SHOW" || overdue) variant = "warning";
   return (
-    <Badge
-      variant={
-        status === "ATTENDED"
-          ? "success"
-          : status === "CANCELLED"
-            ? "destructive"
-            : status === "NO_SHOW" || overdue
-              ? "warning"
-              : "info"
-      }
-    >
+    <Badge variant={variant}>
       {overdue ? "A registrar" : appointmentStatus(status, rescheduled)}
     </Badge>
   );

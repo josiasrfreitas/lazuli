@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type ReactElement } from "react";
+import { useRef, useState, type ReactElement, type RefObject } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
   Button,
@@ -36,42 +36,43 @@ export function FinanceContractTerms({ summary }: { summary: Summary }): ReactEl
   if (visible.length === 0 && summary.materialNeeds.length === 0) return null;
   return (
     <div className="grid min-w-0 gap-3">
-      {visible.map((contract) => {
-        const tuition = contract.schedules.find((row) => row.kind === "TUITION");
-        const materials = contract.schedules.filter((row) => row.kind === "MATERIAL");
-        const bookCount = materials.reduce(
-          (sum, row) => sum + (row.material?.items.length || 1),
-          0,
-        );
-        return (
-          <div key={contract.id} className={styles.summary}>
-            <div className={styles.summaryFact}>
-              <p className="text-sm font-semibold text-heading">{contractLabel(contract)}</p>
-              <p className="text-caption text-muted-foreground">
-                <ContractDates contract={contract} />
-              </p>
-            </div>
-            <div className={styles.summaryFact}>
-              <span className="text-caption text-muted-foreground">Mensalidade</span>
-              <span className="font-numeric text-base font-semibold tabular-nums">
-                {tuition ? paymentTerms(tuition) : "—"}
-              </span>
-            </div>
-            <div className={styles.summaryFact}>
-              <span className="text-caption text-muted-foreground">
-                {bookCount} {bookCount === 1 ? "material" : "materiais"}
-              </span>
-              <div className="grid justify-items-start gap-1">
-                {materials.length > 0
-                  ? materials.map((row) => <MaterialTerms key={row.id} item={row} />)
-                  : "—"}
-              </div>
-            </div>
-            <ContractItemsDialog contract={contract} />
-          </div>
-        );
-      })}
+      {visible.map((contract) => (
+        <ContractSummaryCard key={contract.id} contract={contract} />
+      ))}
       <MaterialPurchaseNotice needs={summary.materialNeeds} />
+    </div>
+  );
+}
+
+function ContractSummaryCard({ contract }: { contract: Contract }): ReactElement {
+  const tuition = contract.schedules.find((row) => row.kind === "TUITION");
+  const materials = contract.schedules.filter((row) => row.kind === "MATERIAL");
+  const bookCount = materials.reduce((sum, row) => sum + (row.material?.items.length || 1), 0);
+  return (
+    <div className={styles.summary}>
+      <div className={styles.summaryFact}>
+        <p className="text-sm font-semibold text-heading">{contractLabel(contract)}</p>
+        <p className="text-caption text-muted-foreground">
+          <ContractDates contract={contract} />
+        </p>
+      </div>
+      <div className={styles.summaryFact}>
+        <span className="text-caption text-muted-foreground">Mensalidade</span>
+        <span className="font-numeric text-base font-semibold tabular-nums">
+          {tuition ? paymentTerms(tuition) : "—"}
+        </span>
+      </div>
+      <div className={styles.summaryFact}>
+        <span className="text-caption text-muted-foreground">
+          {bookCount} {bookCount === 1 ? "material" : "materiais"}
+        </span>
+        <div className="grid justify-items-start gap-1">
+          {materials.length > 0
+            ? materials.map((row) => <MaterialTerms key={row.id} item={row} />)
+            : "—"}
+        </div>
+      </div>
+      <ContractItemsDialog contract={contract} />
     </div>
   );
 }
@@ -79,10 +80,11 @@ export function FinanceContractTerms({ summary }: { summary: Summary }): ReactEl
 function MaterialTerms({ item }: { item: FinanceSchedule }): ReactElement {
   const material = item.material;
   const card = material?.payment === "INSTALLMENTS";
+  const chargedAmountCents = material?.chargedAmountCents;
   const terms =
-    material?.chargedAmountCents == null
+    chargedAmountCents === undefined || chargedAmountCents === null
       ? paymentTerms(item)
-      : `${card ? material.quotedInstallments : 1}× de ${money(card ? material.quotedInstallmentCents : material.chargedAmountCents)}`;
+      : `${card ? material.quotedInstallments : 1}× de ${money(card ? material.quotedInstallmentCents : chargedAmountCents)}`;
   return (
     <Tooltip>
       <TooltipTrigger
@@ -108,7 +110,6 @@ function ContractItemsDialog({ contract }: { contract: Contract }): ReactElement
   const [adding, setAdding] = useState(false);
   const [pending, setPending] = useState(false);
   const addButton = useRef<HTMLButtonElement>(null);
-  const utils = trpc.useUtils();
   const firstDueDate = contract.schedules.find((row) => row.kind === "TUITION")?.firstDueDate;
   function returnToItems(): void {
     setAdding(false);
@@ -136,52 +137,123 @@ function ContractItemsDialog({ contract }: { contract: Contract }): ReactElement
       </DialogTrigger>
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent
-          className="md:w-[calc(100vw-3rem)] md:max-w-[47.6rem]"
-          showCloseButton={!pending}
-        >
-          <DialogHeader>
-            <DialogTitle>{adding ? "Adicionar material" : contractLabel(contract)}</DialogTitle>
-            <DialogDescription>
-              {contract.studentName}
-              {adding ? " · Escolha os livros e confira o recebimento" : " · Itens e recebimentos"}
-            </DialogDescription>
-          </DialogHeader>
-          {adding && firstDueDate ? (
-            <AddContractMaterial
-              contractId={contract.id}
-              firstDueDate={firstDueDate}
-              onClose={returnToItems}
-              onPendingChange={setPending}
-              onSaved={() => {
-                void utils.finance.studentSummary.invalidate();
-                void utils.finance.installments.invalidate();
-                void utils.finance.listContracts.invalidate();
-              }}
-            />
-          ) : (
-            <>
-              <DialogBody>
-                <ContractInvoice contract={contract} />
-              </DialogBody>
-              <DialogFooter>
-                <DialogClose render={<Button variant="ghost" size="sm" />}>Fechar</DialogClose>
-                {contract.hasDetail && firstDueDate && (
-                  <Button
-                    ref={addButton}
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setAdding(true)}
-                  >
-                    <Plus aria-hidden="true" /> Adicionar material
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
+        <ContractDialogContent
+          contract={contract}
+          adding={adding}
+          pending={pending}
+          firstDueDate={firstDueDate}
+          onCloseMaterial={returnToItems}
+          onPendingChange={setPending}
+          addButton={addButton}
+          onAdd={() => setAdding(true)}
+        />
       </DialogPortal>
     </Dialog>
+  );
+}
+
+function ContractDialogContent({
+  contract,
+  adding,
+  pending,
+  firstDueDate,
+  onCloseMaterial,
+  onPendingChange,
+  addButton,
+  onAdd,
+}: {
+  contract: Contract;
+  adding: boolean;
+  pending: boolean;
+  firstDueDate: string | null | undefined;
+  onCloseMaterial: () => void;
+  onPendingChange: (pending: boolean) => void;
+  addButton: RefObject<HTMLButtonElement | null>;
+  onAdd: () => void;
+}): ReactElement {
+  return (
+    <DialogContent
+      className="md:w-[calc(100vw-3rem)] md:max-w-[47.6rem]"
+      showCloseButton={!pending}
+    >
+      <DialogHeader>
+        <DialogTitle>{adding ? "Adicionar material" : contractLabel(contract)}</DialogTitle>
+        <DialogDescription>
+          {contract.studentName}
+          {adding ? " · Escolha os livros e confira o recebimento" : " · Itens e recebimentos"}
+        </DialogDescription>
+      </DialogHeader>
+      {adding && firstDueDate ? (
+        <ContractMaterialEditor
+          contract={contract}
+          firstDueDate={firstDueDate}
+          onClose={onCloseMaterial}
+          onPendingChange={onPendingChange}
+        />
+      ) : (
+        <ContractInvoicePanel
+          contract={contract}
+          firstDueDate={firstDueDate}
+          addButton={addButton}
+          onAdd={onAdd}
+        />
+      )}
+    </DialogContent>
+  );
+}
+
+function ContractMaterialEditor({
+  contract,
+  firstDueDate,
+  onClose,
+  onPendingChange,
+}: {
+  contract: Contract;
+  firstDueDate: string;
+  onClose: () => void;
+  onPendingChange: (pending: boolean) => void;
+}): ReactElement {
+  const utils = trpc.useUtils();
+  return (
+    <AddContractMaterial
+      contractId={contract.id}
+      firstDueDate={firstDueDate}
+      onClose={onClose}
+      onPendingChange={onPendingChange}
+      onSaved={() => {
+        void utils.finance.studentSummary.invalidate();
+        void utils.finance.installments.invalidate();
+        void utils.finance.listContracts.invalidate();
+      }}
+    />
+  );
+}
+
+function ContractInvoicePanel({
+  contract,
+  firstDueDate,
+  addButton,
+  onAdd,
+}: {
+  contract: Contract;
+  firstDueDate: string | null | undefined;
+  addButton: RefObject<HTMLButtonElement | null>;
+  onAdd: () => void;
+}): ReactElement {
+  return (
+    <>
+      <DialogBody>
+        <ContractInvoice contract={contract} />
+      </DialogBody>
+      <DialogFooter>
+        <DialogClose render={<Button variant="ghost" size="sm" />}>Fechar</DialogClose>
+        {contract.hasDetail && firstDueDate && (
+          <Button ref={addButton} variant="secondary" size="sm" onClick={onAdd}>
+            <Plus aria-hidden="true" /> Adicionar material
+          </Button>
+        )}
+      </DialogFooter>
+    </>
   );
 }
 

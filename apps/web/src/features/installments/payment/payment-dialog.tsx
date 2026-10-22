@@ -123,6 +123,14 @@ export function PaymentForm({
           </div>
         </fieldset>
       </form>
+      <PaymentFormNotice state={state} />
+    </DialogBody>
+  );
+}
+
+function PaymentFormNotice({ state }: { state: PaymentFormState }): ReactElement {
+  return (
+    <>
       {state.error && (
         <div
           role="alert"
@@ -142,7 +150,7 @@ export function PaymentForm({
           operação, sem duplicar o pagamento.
         </p>
       )}
-    </DialogBody>
+    </>
   );
 }
 

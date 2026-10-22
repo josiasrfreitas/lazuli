@@ -35,21 +35,41 @@ export function DeskEmptyDetail({
         }}
       />
     );
-  const firstOccurrence = occurrences.data.rows[0];
-  const firstIntervention = interventions.data.rows[0];
-  if (firstOccurrence)
+  return (
+    <DeskFirstRecord
+      occurrenceId={occurrences.data.rows[0]?.id}
+      interventionId={interventions.data.rows[0]?.id}
+      studentId={studentId}
+      select={select}
+      readOnly={readOnly}
+      create={create}
+    />
+  );
+}
+
+function DeskFirstRecord({
+  occurrenceId,
+  interventionId,
+  studentId,
+  select,
+  readOnly,
+  create,
+}: {
+  occurrenceId?: string | undefined;
+  interventionId?: string | undefined;
+  studentId: string;
+  select: SelectFollowUp;
+  readOnly: boolean;
+  create: () => void;
+}): ReactElement {
+  if (occurrenceId)
     return (
-      <DeskOccurrence
-        id={firstOccurrence.id}
-        studentId={studentId}
-        select={select}
-        readOnly={readOnly}
-      />
+      <DeskOccurrence id={occurrenceId} studentId={studentId} select={select} readOnly={readOnly} />
     );
-  if (firstIntervention)
+  if (interventionId)
     return (
       <DeskIntervention
-        id={firstIntervention.id}
+        id={interventionId}
         studentId={studentId}
         select={select}
         readOnly={readOnly}
@@ -59,6 +79,10 @@ export function DeskEmptyDetail({
     return (
       <p className="p-5 text-sm text-muted-foreground">Nenhum registro pedagógico anterior.</p>
     );
+  return <DeskEmptyContent create={create} />;
+}
+
+function DeskEmptyContent({ create }: { create: () => void }): ReactElement {
   return (
     <div className={styles.emptyDetail}>
       <BookOpenText aria-hidden="true" />

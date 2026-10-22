@@ -1,32 +1,17 @@
 "use client";
-import type { JSX as ReactJSX } from "react";
-import { useState } from "react";
-import { Button, Input } from "@lazuli/ui";
-import { z, calendarDateSchema } from "@lazuli/validators";
-import { trpc } from "~/lib/trpc";
-import { formatDateOnlyBR, toDateOnlySaoPaulo } from "~/lib/format";
-import { maskDateBR, parseDateBR } from "~/lib/masks";
-import { TaskDialog, NarrativeField, useValidation } from "~/features/shared/task-form";
-import { TextControl, SelectControl } from "~/features/classes/form-controls";
+import { useState, type JSX as ReactJSX } from "react";
 import { ClassPlanForm, SemesterForm } from "~/features/semester-organization/plan-form";
 import { PlacementForm } from "~/features/semester-organization/placement-form";
 import { AvailabilityForm } from "~/features/semester-organization/availability-form";
 import { ReasonDialog, PlacementHistory } from "~/features/semester-organization/action-dialogs";
-import {
-  dateOnly,
-  scheduleLabel,
-  useOrganizationRefresh,
-} from "~/features/semester-organization/shared";
+import { dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
 import { NewStudentDialog } from "~/features/students/new-student/new-student-dialog";
 import type { OrganizationAction, Placement, SemesterBoard } from "./model";
-import styles from "./organization.module.css";
 import { ClosureForm, PeriodForm, HolidayForm } from "./calendar-forms";
 import { RenewalDialog } from "./renewal";
 import { ContinuityDialog, PlanStatusDialog } from "./continuity";
-
-const MIN_REASON_LENGTH = 3;
-const MAX_REASON_LENGTH = 1200;
-const STUDENT_PAGE_SIZE = 25;
+import { FindStudent } from "./find-student-dialog";
+import { MovementForm } from "./movement-dialog";
 
 export type OrganizationDialogProps = {
   action: OrganizationAction;
@@ -38,24 +23,24 @@ export type OrganizationDialogProps = {
   onFeedback: (message: string) => void;
 };
 type Props = OrganizationDialogProps;
+
 export function OrganizationDialogs(props: Props): ReactJSX.Element {
-  const { action, board, onClose, onAction } = props;
   const [invalidate, setInvalidate] = useState<string | null>(null);
   const refresh = useOrganizationRefresh();
+  return (
+    renderStudentDialogs(props, refresh) ??
+    renderPlanDialogs(props) ??
+    renderPlacementDialogs(props, { invalidate, setInvalidate }) ??
+    renderCalendarDialogs(props) ?? <></>
+  );
+}
+
+function renderStudentDialogs(props: Props, refresh: () => Promise<void>): ReactJSX.Element | null {
+  const { action, board, onClose, onAction } = props;
   switch (action.kind) {
     case "continuity": {
       return (
         <ContinuityDialog row={action.row} board={board} onClose={onClose} onAction={onAction} />
-      );
-    }
-    case "planStatus": {
-      return (
-        <PlanStatusDialog
-          plan={action.plan}
-          open={action.open}
-          onClose={onClose}
-          onFeedback={props.onFeedback}
-        />
       );
     }
     case "renew": {
@@ -70,71 +55,6 @@ export function OrganizationDialogs(props: Props): ReactJSX.Element {
           }
         />
       );
-    }
-    case "plan": {
-      return (
-        <ClassPlanForm
-          semesterId={board.semester.id}
-          {...(action.plan ? { plan: action.plan } : {})}
-          {...(action.group ? { group: action.group } : {})}
-          onClose={onClose}
-          onSaved={props.onPlan}
-        />
-      );
-    }
-    case "newSemester": {
-      return <SemesterForm onClose={onClose} onSaved={props.onSemester} />;
-    }
-    case "placement": {
-      return (
-        <PlacementForm
-          studentId={action.studentId}
-          board={board}
-          {...(action.row ? { row: action.row } : {})}
-          {...(action.planId ? { initialPlanId: action.planId } : {})}
-          onClose={onClose}
-        />
-      );
-    }
-    case "withdraw": {
-      return <ReasonDialog action="withdraw" row={action.row} board={board} onClose={onClose} />;
-    }
-    case "history": {
-      return <PlacementHistory row={action.row} onClose={onClose} />;
-    }
-    case "availability": {
-      const row = availabilitySubject(board, action.studentId);
-      return invalidate && row ? (
-        <ReasonDialog
-          action="invalidate"
-          row={row}
-          previousId={invalidate}
-          board={board}
-          onClose={onClose}
-        />
-      ) : (
-        <AvailabilityForm
-          studentId={action.studentId}
-          board={board}
-          onClose={onClose}
-          onInvalidate={setInvalidate}
-        />
-      );
-    }
-    case "move":
-    case "decline": {
-      return <MovementForm {...props} rows={action.rows} decline={action.kind === "decline"} />;
-    }
-    case "closure": {
-      return (
-        <ClosureForm {...props} initialDate={action.date ?? dateOnly(board.semester.startDate)} />
-      );
-    }
-    case "period": {
-      return <PeriodForm {...props} />;
-    }
-    case "holidays": {
-      return <HolidayForm {...props} />;
     }
     case "findStudent": {
       return <FindStudent board={board} onClose={onClose} onAction={onAction} />;
@@ -155,6 +75,135 @@ export function OrganizationDialogs(props: Props): ReactJSX.Element {
         />
       );
     }
+    default: {
+      return null;
+    }
+  }
+}
+
+function renderPlanDialogs(props: Props): ReactJSX.Element | null {
+  const { action, board, onClose } = props;
+  switch (action.kind) {
+    case "planStatus": {
+      return (
+        <PlanStatusDialog
+          plan={action.plan}
+          open={action.open}
+          onClose={onClose}
+          onFeedback={props.onFeedback}
+        />
+      );
+    }
+    case "plan": {
+      return (
+        <ClassPlanForm
+          semesterId={board.semester.id}
+          {...(action.plan ? { plan: action.plan } : {})}
+          {...(action.group ? { group: action.group } : {})}
+          onClose={onClose}
+          onSaved={props.onPlan}
+        />
+      );
+    }
+    case "newSemester": {
+      return <SemesterForm onClose={onClose} onSaved={props.onSemester} />;
+    }
+    default: {
+      return null;
+    }
+  }
+}
+
+function renderPlacementDialogs(
+  props: Props,
+  state: { invalidate: string | null; setInvalidate: (id: string) => void },
+): ReactJSX.Element | null {
+  const { action, board, onClose } = props;
+  switch (action.kind) {
+    case "placement": {
+      return (
+        <PlacementForm
+          studentId={action.studentId}
+          board={board}
+          {...(action.row ? { row: action.row } : {})}
+          {...(action.planId ? { initialPlanId: action.planId } : {})}
+          onClose={onClose}
+        />
+      );
+    }
+    case "withdraw": {
+      return <ReasonDialog action="withdraw" row={action.row} board={board} onClose={onClose} />;
+    }
+    case "history": {
+      return <PlacementHistory row={action.row} onClose={onClose} />;
+    }
+    case "availability": {
+      return (
+        <AvailabilityDialog
+          studentId={action.studentId}
+          board={board}
+          onClose={onClose}
+          state={state}
+        />
+      );
+    }
+    case "move":
+    case "decline": {
+      return <MovementForm {...props} rows={action.rows} decline={action.kind === "decline"} />;
+    }
+    default: {
+      return null;
+    }
+  }
+}
+
+function AvailabilityDialog({
+  studentId,
+  board,
+  onClose,
+  state,
+}: {
+  studentId: string;
+  board: SemesterBoard;
+  onClose: () => void;
+  state: { invalidate: string | null; setInvalidate: (id: string) => void };
+}): ReactJSX.Element {
+  const row = availabilitySubject(board, studentId);
+  return state.invalidate && row ? (
+    <ReasonDialog
+      action="invalidate"
+      row={row}
+      previousId={state.invalidate}
+      board={board}
+      onClose={onClose}
+    />
+  ) : (
+    <AvailabilityForm
+      studentId={studentId}
+      board={board}
+      onClose={onClose}
+      onInvalidate={state.setInvalidate}
+    />
+  );
+}
+
+function renderCalendarDialogs(props: Props): ReactJSX.Element | null {
+  const { action, board } = props;
+  switch (action.kind) {
+    case "closure": {
+      return (
+        <ClosureForm {...props} initialDate={action.date ?? dateOnly(board.semester.startDate)} />
+      );
+    }
+    case "period": {
+      return <PeriodForm {...props} />;
+    }
+    case "holidays": {
+      return <HolidayForm {...props} />;
+    }
+    default: {
+      return null;
+    }
   }
 }
 
@@ -166,288 +215,7 @@ function availabilitySubject(
   return (
     board.placements.find((item) => item.studentId === studentId) ??
     (intent
-      ? {
-          id: intent.id,
-          version: 0,
-          studentId: intent.studentId,
-          studentName: intent.studentName,
-        }
+      ? { id: intent.id, version: 0, studentId: intent.studentId, studentName: intent.studentName }
       : undefined)
-  );
-}
-
-function MovementForm({
-  action,
-  rows,
-  decline,
-  board,
-  onClose,
-}: Props & { rows: Placement[]; decline: boolean }): ReactJSX.Element {
-  const [targetSemesterId, setTargetSemesterId] = useState(board.semester.id);
-  const periods = trpc.semesterOrganization.semesters.useQuery();
-  const targetQuery = trpc.semesterOrganization.detail.useQuery(
-    { semesterId: targetSemesterId },
-    { enabled: !decline && targetSemesterId !== board.semester.id },
-  );
-  const targetBoard = targetSemesterId === board.semester.id ? board : targetQuery.data;
-  const [planId, setPlanId] = useState("planId" in action ? (action.planId ?? "") : "");
-  const [date, setDate] = useState(
-    formatDateOnlyBR(
-      [dateOnly(board.semester.startDate), toDateOnlySaoPaulo(new Date())].toSorted().at(-1),
-    ),
-  );
-  const [reason, setReason] = useState("");
-  const validation = useValidation(),
-    refresh = useOrganizationRefresh();
-  const options = {
-    onSuccess: async () => {
-      await refresh();
-      onClose();
-    },
-  };
-  const move = trpc.semesterOrganization.move.useMutation(options),
-    stop = trpc.semesterOrganization.decline.useMutation(options);
-  const mutation = decline ? stop : move;
-  return (
-    <TaskDialog
-      compactHeader
-      actionSize="sm"
-      title={decline ? "Registrar não continuidade" : "Transferir alunos"}
-      description={`${rows.length} ${rows.length === 1 ? "aluno" : "alunos"} · ${board.semester.name}`}
-      formId="organization-movement"
-      firstField={decline ? "movement-reason" : "movement-plan"}
-      submitLabel={decline ? "Registrar não continuidade" : "Salvar transferência para revisão"}
-      pending={mutation.isPending}
-      error={mutation.error?.message}
-      onClose={onClose}
-      bodyRef={validation.body}
-    >
-      <form
-        className={styles.form}
-        id="organization-movement"
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (mutation.isPending) return;
-          const base = {
-            semesterId: board.semester.id,
-            selections: rows.map(({ id, version }) => ({ id, version })),
-          };
-          if (decline) {
-            const values = validation.validate(
-              z.object({
-                reason: z
-                  .string()
-                  .trim()
-                  .min(MIN_REASON_LENGTH, "Informe o motivo.")
-                  .max(MAX_REASON_LENGTH),
-              }),
-              { reason },
-            );
-            if (values) stop.mutate({ ...base, ...values });
-          } else {
-            const values = validation.validate(
-              z.object({
-                planId: z.string().uuid("Escolha uma turma."),
-                effectiveDate: calendarDateSchema,
-                reason: z.string().trim().max(MAX_REASON_LENGTH),
-              }),
-              { planId, effectiveDate: parseDateBR(date) ?? "", reason },
-            );
-            if (values)
-              move.mutate({
-                ...base,
-                ...values,
-                targetSemesterId,
-                targetVersions: Object.fromEntries(
-                  (targetBoard?.placements ?? []).map((row) => [row.id, row.version]),
-                ),
-              });
-          }
-        }}
-      >
-        <div className={styles.summary}>
-          {rows.map((row) => (
-            <div className={styles.row} key={row.id}>
-              <strong>{row.studentName}</strong>
-              <span className={styles.small}>
-                {row.stageCode} ·{" "}
-                {board.plans.find((plan) => plan.id === row.planId)?.name ?? "Sem turma"}
-              </span>
-            </div>
-          ))}
-        </div>
-        {decline ? (
-          <p className={styles.small}>
-            Retira a continuidade deste semestre. O vínculo atual e os contratos permanecem sujeitos
-            às suas próprias datas e condições.
-          </p>
-        ) : (
-          <>
-            <SelectControl
-              name="movement-semester"
-              label="Semestre de destino"
-              value={targetSemesterId}
-              onChange={(id) => {
-                setTargetSemesterId(id);
-                setPlanId("");
-                const period = periods.data?.find((item) => item.id === id);
-                if (period)
-                  setDate(
-                    formatDateOnlyBR(
-                      [dateOnly(period.startDate), toDateOnlySaoPaulo(new Date())]
-                        .toSorted()
-                        .at(-1),
-                    ),
-                  );
-              }}
-              choices={(periods.data ?? [])
-                .filter((period) => dateOnly(period.endDate) >= toDateOnlySaoPaulo(new Date()))
-                .map((period) => ({ value: period.id, label: period.name }))}
-            />
-            {targetQuery.error && (
-              <p role="alert" className={styles.attention}>
-                {targetQuery.error.message}
-              </p>
-            )}
-            <SelectControl
-              name="movement-plan"
-              label="Turma de destino"
-              value={planId}
-              onChange={setPlanId}
-              choices={(targetBoard?.plans ?? [])
-                .filter((plan) => plan.active)
-                .map((plan) => ({
-                  value: plan.id,
-                  label: `${plan.name} · ${scheduleLabel(plan.slots)}`,
-                }))}
-              error={validation.errors.planId}
-            />
-            <div className="w-40">
-              <TextControl
-                name="movement-date"
-                label="Válida a partir de"
-                value={date}
-                onChange={(value) => setDate(maskDateBR(value))}
-                inputMode="numeric"
-                placeholder="dd/mm/aaaa"
-                error={validation.errors.effectiveDate}
-              />
-            </div>
-            <p className={styles.small}>
-              O aluno permanece na turma atual até a vigência. A revisão mostra incompatibilidades
-              antes da confirmação.
-            </p>
-          </>
-        )}
-        <NarrativeField
-          name="movement-reason"
-          label={decline ? "Motivo" : "Motivo · opcional"}
-          value={reason}
-          onChange={setReason}
-          placeholder="Horário, adaptação ou outro combinado"
-          rows={2}
-          error={validation.errors.reason}
-        />
-      </form>
-    </TaskDialog>
-  );
-}
-
-function FindStudent({
-  board,
-  onClose,
-  onAction,
-}: Pick<Props, "board" | "onClose" | "onAction">): ReactJSX.Element {
-  const [search, setSearch] = useState(""),
-    [page, setPage] = useState(1);
-  const query = trpc.semesterOrganization.students.useQuery({
-    semesterId: board.semester.id,
-    search,
-    page,
-    unassigned: true,
-  });
-  return (
-    <TaskDialog
-      compactHeader
-      actionSize="sm"
-      title="Incluir aluno na organização"
-      description={`Alunos cadastrados sem proposta em ${board.semester.name}.`}
-      formId="organization-find"
-      firstField="organization-student-search"
-      submitLabel="Cadastrar novo aluno"
-      pending={false}
-      onClose={onClose}
-      error={query.error?.message}
-    >
-      <form
-        id="organization-find"
-        className={styles.form}
-        onSubmit={(event) => {
-          event.preventDefault();
-          onAction({ kind: "student" });
-        }}
-      >
-        <Input
-          id="organization-student-search"
-          size="sm"
-          placeholder="Buscar por nome"
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-          aria-label="Buscar aluno"
-        />
-        <div className="min-h-48 max-h-80 overflow-auto" aria-busy={query.isFetching}>
-          {query.isPending ? (
-            <p className={styles.small}>Carregando alunos…</p>
-          ) : (
-            query.data?.rows.map((student) => (
-              <button
-                type="button"
-                className={styles.queueItem}
-                key={student.id}
-                onClick={() => onAction({ kind: "placement", studentId: student.id })}
-              >
-                <span className={styles.person}>
-                  <strong>{student.name}</strong>
-                  <span className={styles.small}>
-                    {student.current
-                      .map((current) => `${current.stageCode} · ${current.className}`)
-                      .join(" / ") || "Sem turma atual"}
-                  </span>
-                </span>
-                <span className="text-caption text-interactive">Incluir</span>
-              </button>
-            ))
-          )}
-          {query.data?.rows.length === 0 && (
-            <p className={styles.small}>Nenhum aluno encontrado. Você pode cadastrar um novo.</p>
-          )}
-        </div>
-        {query.data && query.data.total > STUDENT_PAGE_SIZE && (
-          <div className={styles.row}>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={page === 1}
-              onClick={() => setPage(page - 1)}
-            >
-              Anterior
-            </Button>
-            <span className={styles.small}>Página {page}</span>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={page * STUDENT_PAGE_SIZE >= query.data.total}
-              onClick={() => setPage(page + 1)}
-            >
-              Próxima
-            </Button>
-          </div>
-        )}
-      </form>
-    </TaskDialog>
   );
 }

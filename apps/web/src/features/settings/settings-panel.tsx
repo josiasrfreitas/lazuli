@@ -177,44 +177,9 @@ function SettingsSections(props: SettingsSectionProps): ReactElement {
 function BookPricingSection(props: SettingsSectionProps): ReactElement {
   return (
     <FormSection title="Livros" className="gap-3">
-      {(["child", "adult"] as const).map((category) => {
-        const quote = bookQuote(props.fields, category);
-        const label = category === "child" ? "Infantil" : "Adulto";
-        return (
-          <div key={category} className="grid gap-2">
-            <h3 className="text-sm font-semibold">{label}</h3>
-            <FormRow columns={2}>
-              <SettingsField
-                {...props}
-                name={
-                  category === "child" ? "childMaterialInstallments" : "adultMaterialInstallments"
-                }
-                label={`Parcelas no cartão · ${label}`}
-                unit="quantidade"
-                placeholder="6"
-              />
-              <SettingsField
-                {...props}
-                name={
-                  category === "child"
-                    ? "childMaterialInstallmentCents"
-                    : "adultMaterialInstallmentCents"
-                }
-                label={`Valor da parcela · ${label}`}
-                unit="R$"
-                placeholder={category === "child" ? "123,00" : "136,00"}
-              />
-            </FormRow>
-            <p className="text-caption text-muted-foreground" aria-live="polite">
-              Preço no cartão: <output>{quote ? formatBRLFromCents(quote.totalCents) : "—"}</output>
-              {" · À vista: "}
-              <output className="font-semibold text-foreground">
-                {quote ? formatBRLFromCents(quote.cashCents) : "—"}
-              </output>
-            </p>
-          </div>
-        );
-      })}
+      {(["child", "adult"] as const).map((category) => (
+        <BookCategory key={category} category={category} {...props} />
+      ))}
       <div className="w-56 max-w-full">
         <SettingsField
           {...props}
@@ -229,6 +194,44 @@ function BookPricingSection(props: SettingsSectionProps): ReactElement {
         total menos essa taxa. Alterações valem para novas vendas.
       </p>
     </FormSection>
+  );
+}
+
+function BookCategory({
+  category,
+  ...props
+}: SettingsSectionProps & { category: "child" | "adult" }): ReactElement {
+  const quote = bookQuote(props.fields, category);
+  const label = category === "child" ? "Infantil" : "Adulto";
+  return (
+    <div className="grid gap-2">
+      <h3 className="text-sm font-semibold">{label}</h3>
+      <FormRow columns={2}>
+        <SettingsField
+          {...props}
+          name={category === "child" ? "childMaterialInstallments" : "adultMaterialInstallments"}
+          label={`Parcelas no cartão · ${label}`}
+          unit="quantidade"
+          placeholder="6"
+        />
+        <SettingsField
+          {...props}
+          name={
+            category === "child" ? "childMaterialInstallmentCents" : "adultMaterialInstallmentCents"
+          }
+          label={`Valor da parcela · ${label}`}
+          unit="R$"
+          placeholder={category === "child" ? "123,00" : "136,00"}
+        />
+      </FormRow>
+      <p className="text-caption text-muted-foreground" aria-live="polite">
+        Preço no cartão: <output>{quote ? formatBRLFromCents(quote.totalCents) : "—"}</output>
+        {" · À vista: "}
+        <output className="font-semibold text-foreground">
+          {quote ? formatBRLFromCents(quote.cashCents) : "—"}
+        </output>
+      </p>
+    </div>
   );
 }
 

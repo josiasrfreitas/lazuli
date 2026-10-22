@@ -236,7 +236,7 @@ export function PlacementSchedule({
         <DialogBackdrop />
         <DialogContent
           className={styles.dialog}
-          initialFocus={() => document.getElementById("appointment-date")}
+          initialFocus={() => document.querySelector("#appointment-date")}
         >
           <DialogHeader className="flex-row flex-wrap items-baseline gap-x-3 gap-y-1">
             <DialogTitle>Agendar nivelamento</DialogTitle>
@@ -267,9 +267,9 @@ export function PlacementSchedule({
                   status={
                     calendar.isFetching || calendar.isPending
                       ? "loading"
-                      : calendar.isError
+                      : (calendar.isError
                         ? "error"
-                        : "ready"
+                        : "ready")
                   }
                   errorMessage="Não foi possível carregar a agenda do nivelamento."
                   onRetry={() => void calendar.refetch()}

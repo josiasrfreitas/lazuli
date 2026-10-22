@@ -1,9 +1,7 @@
 "use client";
 import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
-import { Check, ChevronRight, Download, FileCheck2, FileUp, UserCheck, X } from "lucide-react";
-import { PlacementAttachmentDialog } from "~/features/assessment-files/placement-attachment-dialog";
-import { downloadFileBase64 } from "~/features/assessment-files/file-transfer";
+import { ChevronRight, UserCheck, X } from "lucide-react";
 import {
   Alert,
   Badge,
@@ -24,12 +22,12 @@ import {
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
-import { SelectControl } from "~/features/classes/form-controls";
 import { TeacherPage, TeacherQueryState } from "./shared";
 import { TeacherListLoading } from "./list-loading";
+import { TeacherPlacement } from "./visit-placement";
 
-const DOWNLOAD_URL_REVOKE_DELAY_MS = 1000;
 type Visit = RouterOutputs["teacherWorkspace"]["visit"];
+type VisitListRow = RouterOutputs["teacherWorkspace"]["visits"][number];
 const titles = {
   PLACEMENT: "Nivelamento",
   INTRODUCTION: "Aula experimental",
@@ -54,34 +52,7 @@ export function TeacherVisits(): ReactJSX.Element {
       {query.data && (
         <div className="divide-y divide-border rounded-lg border border-border bg-card">
           {query.data.map((row) => (
-            <button
-              key={row.id}
-              type="button"
-              className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-muted"
-              onClick={() => setSelected(row.id)}
-            >
-              <span className="min-w-0 flex-1 text-sm font-semibold">
-                {row.candidate.fullName}
-                <span className="mt-1 block text-caption font-normal text-muted-foreground">
-                  {titles[row.kind]} · {formatDateOnlyBR(row.date)} · {row.startTime}
-                </span>
-              </span>
-              <Badge
-                className="shrink-0"
-                variant={row.assessment && !row.assessment.stageId ? "warning" : "neutral"}
-              >
-                {row.assessment?.stageId
-                  ? "Corrigido"
-                  : row.assessment
-                    ? "Por corrigir"
-                    : row.status === "SCHEDULED"
-                      ? "Agendado"
-                      : row.status === "CANCELLED"
-                        ? "Cancelado"
-                        : "Registrado"}
-              </Badge>
-              <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            </button>
+            <VisitListItem key={row.id} row={row} onSelect={setSelected} />
           ))}
           {query.data.length === 0 && (
             <p className="p-6 text-sm text-muted-foreground">Nenhum encontro atribuído.</p>
@@ -91,6 +62,44 @@ export function TeacherVisits(): ReactJSX.Element {
       {selected && <TeacherVisitDialog id={selected} onClose={() => setSelected(null)} />}
     </TeacherPage>
   );
+}
+
+function VisitListItem({
+  row,
+  onSelect,
+}: {
+  row: VisitListRow;
+  onSelect: (id: string) => void;
+}): ReactJSX.Element {
+  return (
+    <button
+      type="button"
+      className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-muted"
+      onClick={() => onSelect(row.id)}
+    >
+      <span className="min-w-0 flex-1 text-sm font-semibold">
+        {row.candidate.fullName}
+        <span className="mt-1 block text-caption font-normal text-muted-foreground">
+          {titles[row.kind]} · {formatDateOnlyBR(row.date)} · {row.startTime}
+        </span>
+      </span>
+      <Badge
+        className="shrink-0"
+        variant={row.assessment && !row.assessment.stageId ? "warning" : "neutral"}
+      >
+        {visitStatus(row)}
+      </Badge>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    </button>
+  );
+}
+
+function visitStatus(row: VisitListRow): string {
+  if (row.assessment?.stageId) return "Corrigido";
+  if (row.assessment) return "Por corrigir";
+  if (row.status === "SCHEDULED") return "Agendado";
+  if (row.status === "CANCELLED") return "Cancelado";
+  return "Registrado";
 }
 
 export function TeacherVisitDialog({
@@ -138,14 +147,7 @@ export function TeacherVisitDialog({
   );
 }
 function TeacherVisitBody({ visit }: { visit: Visit }): ReactJSX.Element {
-  const [outcome, setOutcome] = useState<"ATTENDED" | "ABSENT">(
-    visit.status === "ABSENT" ? "ABSENT" : "ATTENDED",
-  );
-  const [notes, setNotes] = useState(visit.notes ?? "");
-  const utils = trpc.useUtils();
-  const refresh = (): Promise<[void, void]> =>
-    Promise.all([utils.teacherWorkspace.invalidate(), utils.classRecords.invalidate()]);
-  const save = trpc.teacherWorkspace.visitOutcome.useMutation({ onSuccess: refresh });
+  const canSaveOutcome = visit.canRecord && (visit.kind !== "PLACEMENT" || !visit.assessment);
   return (
     <div className="grid min-w-0 grid-cols-1 gap-3 py-3">
       <p className="text-caption text-muted-foreground">
@@ -153,48 +155,8 @@ function TeacherVisitBody({ visit }: { visit: Visit }): ReactJSX.Element {
         {visit.format === "ONLINE" ? "Online" : "Presencial"}
       </p>
       {visit.kind === "PLACEMENT" && <TeacherPlacement visit={visit} />}
-      {visit.canRecord && (visit.kind !== "PLACEMENT" || !visit.assessment) ? (
-        <form
-          className="grid min-w-0 gap-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            save.mutate({ id: visit.id, status: outcome, notes });
-          }}
-        >
-          <SegmentedControl
-            size="sm"
-            wrap
-            aria-label="Comparecimento"
-            value={outcome}
-            onValueChange={(value) => {
-              if (value === "ATTENDED" || value === "ABSENT") setOutcome(value);
-            }}
-          >
-            <SegmentedControlItem value="ATTENDED">Compareceu</SegmentedControlItem>
-            <SegmentedControlItem value="ABSENT">Não compareceu</SegmentedControlItem>
-          </SegmentedControl>
-          <label className="grid gap-1 text-caption">
-            Registro do encontro
-            <Textarea
-              size="sm"
-              rows={2}
-              value={notes}
-              maxLength={2000}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Como foi a participação e o que precisa ser retomado?"
-            />
-          </label>
-          {save.error && <Alert variant="destructive">{save.error.message}</Alert>}
-          {save.isSuccess && (
-            <p role="status" className="text-sm text-success">
-              Comparecimento registrado.
-            </p>
-          )}
-          <Button type="submit" size="sm" className="w-fit" disabled={save.isPending}>
-            <UserCheck aria-hidden="true" />
-            {save.isPending ? "Salvando…" : "Salvar comparecimento"}
-          </Button>
-        </form>
+      {canSaveOutcome ? (
+        <VisitOutcomeForm visit={visit} />
       ) : (
         visit.notes && <p className="whitespace-pre-wrap text-sm">{visit.notes}</p>
       )}
@@ -206,160 +168,76 @@ function TeacherVisitBody({ visit }: { visit: Visit }): ReactJSX.Element {
     </div>
   );
 }
-function TeacherPlacement({ visit }: { visit: Visit }): ReactJSX.Element {
+
+type Outcome = "ATTENDED" | "ABSENT";
+function VisitOutcomeForm({ visit }: { visit: Visit }): ReactJSX.Element {
+  const [outcome, setOutcome] = useState<Outcome>(
+    visit.status === "ABSENT" ? "ABSENT" : "ATTENDED",
+  );
+  const [notes, setNotes] = useState(visit.notes ?? "");
   const utils = trpc.useUtils();
   const refresh = (): Promise<[void, void]> =>
     Promise.all([utils.teacherWorkspace.invalidate(), utils.classRecords.invalidate()]);
-  const stages = trpc.teacherWorkspace.stages.useQuery();
-  const result = trpc.teacherWorkspace.placementResult.useMutation({ onSuccess: refresh });
-  const download = trpc.teacherWorkspace.placementDownload.useMutation();
-  const upload = trpc.teacherWorkspace.placementUpload.useMutation({ onSuccess: refresh });
-  const [stageId, setStageId] = useState(visit.assessment?.stageId ?? "");
-  const [notes, setNotes] = useState(visit.assessment?.notes ?? "");
-  const [attaching, setAttaching] = useState<"ORIGINAL" | "CORRECTED" | null>(null);
-  const canEdit = visit.canRecord && visit.status !== "ABSENT";
+  const save = trpc.teacherWorkspace.visitOutcome.useMutation({ onSuccess: refresh });
   return (
-    <section className="grid min-w-0 grid-cols-1 gap-3">
-      <h3 className="text-sm font-semibold">Prova de nivelamento</h3>
-      {visit.assessment ? (
-        <>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="max-w-full justify-start"
-            disabled={download.isPending}
-            onClick={async () => {
-              try {
-                const file = await download.mutateAsync({ id: visit.id });
-                const bytes = Uint8Array.from(atob(file.base64), (char) => char.codePointAt(0)!);
-                const url = URL.createObjectURL(new Blob([bytes], { type: file.contentType }));
-                const anchor = document.createElement("a");
-                anchor.href = url;
-                anchor.download = file.fileName;
-                anchor.click();
-                setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_REVOKE_DELAY_MS);
-              } catch {
-                /* Mutation error is shown below. */
-              }
-            }}
-            title={visit.assessment.fileName}
-          >
-            <Download aria-hidden="true" />
-            <span className="min-w-0 truncate">Baixar {visit.assessment.fileName}</span>
-          </Button>
-          {visit.assessment.stage && (
-            <p className="text-sm">Estágio registrado: {visit.assessment.stage.name}</p>
-          )}
-          {canEdit && (
-            <form
-              className="grid min-w-0 gap-3"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (stageId) result.mutate({ id: visit.id, stageId, notes });
-              }}
-            >
-              <TeacherQueryState
-                label="Carregando estágios"
-                pending={stages.isPending}
-                error={stages.error}
-                retry={() => void stages.refetch()}
-              />
-              {stages.data && (
-                <SelectControl
-                  name={`placement-stage-${visit.id}`}
-                  label="Estágio indicado"
-                  value={stageId}
-                  onChange={setStageId}
-                  choices={(stages.data ?? []).map((row) => ({ value: row.id, label: row.name }))}
-                />
-              )}
-              <label className="grid gap-1 text-caption">
-                Observações da correção
-                <Textarea
-                  size="sm"
-                  rows={2}
-                  value={notes}
-                  maxLength={2000}
-                  onChange={(event) => setNotes(event.target.value)}
-                />
-              </label>
-              <Button
-                type="submit"
-                size="sm"
-                className="w-fit"
-                disabled={!stageId || result.isPending}
-              >
-                <Check aria-hidden="true" />
-                {result.isPending ? "Salvando…" : "Registrar resultado"}
-              </Button>
-              {result.isSuccess && (
-                <p role="status" className="text-sm text-success">
-                  Resultado salvo.
-                </p>
-              )}
-            </form>
-          )}
-          <div className="grid min-w-0 justify-items-start gap-2 border-t border-border pt-3">
-            <h4 className="flex items-center gap-1.5 text-caption font-medium">
-              <FileCheck2 aria-hidden="true" className="size-4" />
-              Prova corrigida · opcional
-            </h4>
-            {visit.assessment.correctedFile ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={download.isPending}
-                onClick={async () => {
-                  try {
-                    downloadFileBase64(
-                      await download.mutateAsync({ id: visit.id, kind: "CORRECTED" }),
-                    );
-                  } catch {
-                    /* Shown below. */
-                  }
-                }}
-                title={visit.assessment.correctedFile.fileName}
-              >
-                <Download />
-                Baixar prova corrigida
-              </Button>
-            ) : canEdit ? (
-              <Button variant="secondary" size="sm" onClick={() => setAttaching("CORRECTED")}>
-                <FileUp />
-                Anexar prova corrigida
-              </Button>
-            ) : (
-              <p className="text-caption text-muted-foreground">
-                Nenhuma versão corrigida anexada.
-              </p>
-            )}
-          </div>
-        </>
-      ) : (
-        canEdit && (
-          <div className="grid justify-items-start gap-3">
-            <p className="text-caption text-muted-foreground">
-              Envie uma foto ou PDF da prova aplicada. Depois, registre o estágio indicado.
-            </p>
-            <Button size="sm" onClick={() => setAttaching("ORIGINAL")}>
-              <FileUp />
-              Anexar prova
-            </Button>
-          </div>
-        )
+    <form
+      className="grid min-w-0 gap-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        save.mutate({ id: visit.id, status: outcome, notes });
+      }}
+    >
+      <OutcomeFields outcome={outcome} onOutcome={setOutcome} notes={notes} onNotes={setNotes} />
+      {save.error && <Alert variant="destructive">{save.error.message}</Alert>}
+      {save.isSuccess && (
+        <p role="status" className="text-sm text-success">
+          Comparecimento registrado.
+        </p>
       )}
-      {(result.error || download.error) && (
-        <Alert variant="destructive">{result.error?.message || download.error?.message}</Alert>
-      )}
-      {attaching && (
-        <PlacementAttachmentDialog
-          visit={visit}
-          person={visit.candidate.fullName}
-          kind={attaching}
-          onUpload={(file) => upload.mutateAsync(file)}
-          onClose={() => setAttaching(null)}
+      <Button type="submit" size="sm" className="w-fit" disabled={save.isPending}>
+        <UserCheck aria-hidden="true" />
+        {save.isPending ? "Salvando…" : "Salvar comparecimento"}
+      </Button>
+    </form>
+  );
+}
+
+function OutcomeFields({
+  outcome,
+  onOutcome,
+  notes,
+  onNotes,
+}: {
+  outcome: Outcome;
+  onOutcome: (value: Outcome) => void;
+  notes: string;
+  onNotes: (value: string) => void;
+}): ReactJSX.Element {
+  return (
+    <>
+      <SegmentedControl
+        size="sm"
+        wrap
+        aria-label="Comparecimento"
+        value={outcome}
+        onValueChange={(value) => {
+          if (value === "ATTENDED" || value === "ABSENT") onOutcome(value);
+        }}
+      >
+        <SegmentedControlItem value="ATTENDED">Compareceu</SegmentedControlItem>
+        <SegmentedControlItem value="ABSENT">Não compareceu</SegmentedControlItem>
+      </SegmentedControl>
+      <label className="grid gap-1 text-caption">
+        Registro do encontro
+        <Textarea
+          size="sm"
+          rows={2}
+          value={notes}
+          maxLength={2000}
+          onChange={(event) => onNotes(event.target.value)}
+          placeholder="Como foi a participação e o que precisa ser retomado?"
         />
-      )}
-    </section>
+      </label>
+    </>
   );
 }

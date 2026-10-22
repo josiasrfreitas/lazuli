@@ -35,6 +35,25 @@ export function useLeadErrors(): {
     },
   };
 }
+type LeadFormDialogProps = {
+  id: string;
+  title: string;
+  description: string;
+  firstField: string;
+  children: ReactNode;
+  pending: boolean;
+  error?: string | undefined;
+  submitLabel: string;
+  onSubmit: (event: FormEvent) => void;
+  onClose: () => void;
+  body: ReturnType<typeof useScrollToError>;
+  wide?: boolean;
+  steps?: ReactNode;
+  cancelLabel?: string;
+  cancelIcon?: ReactNode;
+  submitIcon?: ReactNode;
+};
+
 export function LeadFormDialog({
   id,
   title,
@@ -52,24 +71,7 @@ export function LeadFormDialog({
   cancelLabel = "Cancelar",
   cancelIcon = <X aria-hidden="true" />,
   submitIcon = <Check aria-hidden="true" />,
-}: {
-  id: string;
-  title: string;
-  description: string;
-  firstField: string;
-  children: ReactNode;
-  pending: boolean;
-  error?: string | undefined;
-  submitLabel: string;
-  onSubmit: (event: FormEvent) => void;
-  onClose: () => void;
-  body: ReturnType<typeof useScrollToError>;
-  wide?: boolean;
-  steps?: ReactNode;
-  cancelLabel?: string;
-  cancelIcon?: ReactNode;
-  submitIcon?: ReactNode;
-}): ReactElement {
+}: LeadFormDialogProps): ReactElement {
   return (
     <Dialog
       open
@@ -81,7 +83,7 @@ export function LeadFormDialog({
         <DialogBackdrop />
         <DialogContent
           className={wide ? "md:max-w-3xl" : undefined}
-          initialFocus={() => document.getElementById(firstField)}
+          initialFocus={() => document.querySelector<HTMLElement>(`#${CSS.escape(firstField)}`)}
         >
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
@@ -94,18 +96,39 @@ export function LeadFormDialog({
               {error && <Alert variant="destructive">{error}</Alert>}
             </form>
           </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" disabled={pending} onClick={onClose}>
-              {cancelIcon}
-              {cancelLabel}
-            </Button>
-            <Button type="submit" form={id} loading={pending}>
-              {submitIcon}
-              {submitLabel}
-            </Button>
-          </DialogFooter>
+          <LeadFormFooter
+            {...{ id, pending, onClose, cancelIcon, cancelLabel, submitIcon, submitLabel }}
+          />
         </DialogContent>
       </DialogPortal>
     </Dialog>
+  );
+}
+
+function LeadFormFooter({
+  id,
+  pending,
+  onClose,
+  cancelIcon,
+  cancelLabel,
+  submitIcon,
+  submitLabel,
+}: Required<
+  Pick<
+    LeadFormDialogProps,
+    "id" | "pending" | "onClose" | "cancelIcon" | "cancelLabel" | "submitIcon" | "submitLabel"
+  >
+>): ReactElement {
+  return (
+    <DialogFooter>
+      <Button variant="secondary" disabled={pending} onClick={onClose}>
+        {cancelIcon}
+        {cancelLabel}
+      </Button>
+      <Button type="submit" form={id} loading={pending}>
+        {submitIcon}
+        {submitLabel}
+      </Button>
+    </DialogFooter>
   );
 }

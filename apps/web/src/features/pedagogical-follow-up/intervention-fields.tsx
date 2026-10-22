@@ -10,6 +10,14 @@ import { FormFieldLoading } from "./form-field-loading";
 export { MotivatingOccurrenceFields } from "./intervention-occurrences";
 
 type Fields = { title: string; responsibleId: string; performedOn: string; treatment: string };
+type FieldProps = {
+  values: Fields;
+  change: (name: keyof Fields, value: string) => void;
+  errors: Record<string, string>;
+  staff: { id: string; name: string }[];
+  staffLoading?: boolean;
+  responsibleHint?: string | undefined;
+};
 export function InterventionFields({
   values,
   change,
@@ -17,14 +25,7 @@ export function InterventionFields({
   staff,
   staffLoading = false,
   responsibleHint,
-}: {
-  values: Fields;
-  change: (name: keyof Fields, value: string) => void;
-  errors: Record<string, string>;
-  staff: { id: string; name: string }[];
-  staffLoading?: boolean;
-  responsibleHint?: string | undefined;
-}): ReactElement {
+}: FieldProps): ReactElement {
   return (
     <FormSection title="Tratativa realizada">
       <TextControl
@@ -46,38 +47,54 @@ export function InterventionFields({
         error={errors.treatment}
         rows={6}
       />
-      <FormRow columns={2}>
-        <div className="grid min-w-0 gap-1.5">
-          {staffLoading ? (
-            <FormFieldLoading label="Responsável" />
-          ) : (
-            <SelectControl
-              name="responsibleId"
-              label="Responsável"
-              labelIcon={
-                <UserRound aria-hidden="true" className="size-3.5 text-muted-foreground" />
-              }
-              value={values.responsibleId}
-              onChange={(value) => change("responsibleId", value)}
-              choices={staff.map((row) => ({ value: row.id, label: row.name }))}
-              error={errors.responsibleId}
-            />
-          )}
-          {responsibleHint && (
-            <p className="text-caption text-muted-foreground">{responsibleHint}</p>
-          )}
-        </div>
-        <TextControl
-          name="performedOn"
-          label="Data da tratativa"
-          labelIcon={<CalendarDays aria-hidden="true" className="size-3.5 text-muted-foreground" />}
-          value={values.performedOn}
-          onChange={(value) => change("performedOn", maskDateBR(value))}
-          placeholder="dd/mm/aaaa"
-          inputMode="numeric"
-          error={errors.performedOn}
-        />
-      </FormRow>
+      <InterventionResponsibilityFields
+        values={values}
+        change={change}
+        errors={errors}
+        staff={staff}
+        staffLoading={staffLoading}
+        responsibleHint={responsibleHint}
+      />
     </FormSection>
+  );
+}
+
+function InterventionResponsibilityFields({
+  values,
+  change,
+  errors,
+  staff,
+  staffLoading,
+  responsibleHint,
+}: FieldProps): ReactElement {
+  return (
+    <FormRow columns={2}>
+      <div className="grid min-w-0 gap-1.5">
+        {staffLoading ? (
+          <FormFieldLoading label="Responsável" />
+        ) : (
+          <SelectControl
+            name="responsibleId"
+            label="Responsável"
+            labelIcon={<UserRound aria-hidden="true" className="size-3.5 text-muted-foreground" />}
+            value={values.responsibleId}
+            onChange={(value) => change("responsibleId", value)}
+            choices={staff.map((row) => ({ value: row.id, label: row.name }))}
+            error={errors.responsibleId}
+          />
+        )}
+        {responsibleHint && <p className="text-caption text-muted-foreground">{responsibleHint}</p>}
+      </div>
+      <TextControl
+        name="performedOn"
+        label="Data da tratativa"
+        labelIcon={<CalendarDays aria-hidden="true" className="size-3.5 text-muted-foreground" />}
+        value={values.performedOn}
+        onChange={(value) => change("performedOn", maskDateBR(value))}
+        placeholder="dd/mm/aaaa"
+        inputMode="numeric"
+        error={errors.performedOn}
+      />
+    </FormRow>
   );
 }

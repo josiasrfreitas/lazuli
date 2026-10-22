@@ -73,11 +73,6 @@ function AnalyticsHeader({
   year: number;
   setYear: (year: number) => void;
 }): ReactElement {
-  const utils = trpc.useUtils();
-  const prefetch = (targetYear: number): void => {
-    if (targetYear >= MIN_YEAR && targetYear <= MAX_YEAR)
-      void utils.finance.analytics.prefetch({ year: targetYear });
-  };
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div>
@@ -86,40 +81,56 @@ function AnalyticsHeader({
           Contratos, recebimentos e valores em atraso.
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-1">
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            aria-label="Ano anterior"
-            disabled={year <= MIN_YEAR}
-            onClick={() => setYear(year - 1)}
-            onMouseEnter={() => prefetch(year - 1)}
-            onFocus={() => prefetch(year - 1)}
-          >
-            <ChevronLeft />
-          </Button>
-          <span aria-live="polite" className="font-numeric text-sm font-semibold tabular-nums">
-            {year}
-          </span>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            aria-label="Próximo ano"
-            disabled={year >= MAX_YEAR}
-            onClick={() => setYear(year + 1)}
-            onMouseEnter={() => prefetch(year + 1)}
-            onFocus={() => prefetch(year + 1)}
-          >
-            <ChevronRight />
-          </Button>
-        </div>
-        <Button variant="secondary" nativeButton={false} render={<Link href="/recebiveis" />}>
-          Recebíveis
-          <ArrowUpRight aria-hidden="true" />
+      <YearSelector year={year} setYear={setYear} />
+    </header>
+  );
+}
+function YearSelector({
+  year,
+  setYear,
+}: {
+  year: number;
+  setYear: (year: number) => void;
+}): ReactElement {
+  const utils = trpc.useUtils();
+  const prefetch = (targetYear: number): void => {
+    if (targetYear >= MIN_YEAR && targetYear <= MAX_YEAR)
+      void utils.finance.analytics.prefetch({ year: targetYear });
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-1">
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          aria-label="Ano anterior"
+          disabled={year <= MIN_YEAR}
+          onClick={() => setYear(year - 1)}
+          onMouseEnter={() => prefetch(year - 1)}
+          onFocus={() => prefetch(year - 1)}
+        >
+          <ChevronLeft />
+        </Button>
+        <span aria-live="polite" className="font-numeric text-sm font-semibold tabular-nums">
+          {year}
+        </span>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          aria-label="Próximo ano"
+          disabled={year >= MAX_YEAR}
+          onClick={() => setYear(year + 1)}
+          onMouseEnter={() => prefetch(year + 1)}
+          onFocus={() => prefetch(year + 1)}
+        >
+          <ChevronRight />
         </Button>
       </div>
-    </header>
+      <Button variant="secondary" nativeButton={false} render={<Link href="/recebiveis" />}>
+        Recebíveis
+        <ArrowUpRight aria-hidden="true" />
+      </Button>
+    </div>
   );
 }
 function AnalyticsContent({ data }: { data: Analytics }): ReactElement {

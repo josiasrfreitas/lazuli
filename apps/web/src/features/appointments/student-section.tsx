@@ -15,6 +15,16 @@ const ISO_DAY_START_INDEX = 8;
 
 type AppointmentRow = RouterOutputs["appointments"]["list"][number];
 
+function sortedAppointments(rows: readonly AppointmentRow[]): AppointmentRow[] {
+  return [...rows].toSorted(
+    (left, right) =>
+      Number(right.status === "SCHEDULED") - Number(left.status === "SCHEDULED") ||
+      (left.status === "SCHEDULED"
+        ? left.date.localeCompare(right.date)
+        : right.date.localeCompare(left.date)),
+  );
+}
+
 export function StudentAppointments({ studentId }: { studentId: string }): ReactElement {
   const month = today().slice(0, ISO_MONTH_LENGTH);
   const range = {
@@ -22,36 +32,13 @@ export function StudentAppointments({ studentId }: { studentId: string }): React
     through: monthBounds(shiftMonth(month, 1)).through,
   };
   const agenda = trpc.appointments.list.useQuery({ ...range, studentId });
-  const rows = [...(agenda.data ?? [])].toSorted(
-    (left, right) =>
-      Number(right.status === "SCHEDULED") - Number(left.status === "SCHEDULED") ||
-      (left.status === "SCHEDULED"
-        ? left.date.localeCompare(right.date)
-        : right.date.localeCompare(left.date)),
-  );
+  const rows = sortedAppointments(agenda.data ?? []);
   return (
     <section
       aria-label="Atendimentos do aluno"
       className="grid min-w-0 gap-4 border border-border bg-accent p-5 xl:col-span-2 xl:row-span-3 xl:grid-rows-subgrid"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-2xl font-medium tracking-tight text-heading">
-            Atendimentos
-          </h2>
-          <p className="mt-1 text-caption text-muted-foreground">
-            Reposições, reforço e apoio ao aluno
-          </p>
-        </div>
-        <Button
-          variant="link"
-          size="inline"
-          nativeButton={false}
-          render={<Link href={`/aulas?aluno=${studentId}`} />}
-        >
-          Ver agenda <ArrowUpRight aria-hidden="true" />
-        </Button>
-      </div>
+      <AppointmentsSectionHeader studentId={studentId} />
       <p className="flex min-h-8 items-center border-b border-border text-caption text-muted-foreground">
         {formatDateOnlyBR(range.from)} a {formatDateOnlyBR(range.through)}
       </p>
@@ -84,6 +71,29 @@ export function StudentAppointments({ studentId }: { studentId: string }): React
         )}
       </div>
     </section>
+  );
+}
+
+function AppointmentsSectionHeader({ studentId }: { studentId: string }): ReactElement {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <h2 className="font-display text-2xl font-medium tracking-tight text-heading">
+          Atendimentos
+        </h2>
+        <p className="mt-1 text-caption text-muted-foreground">
+          Reposições, reforço e apoio ao aluno
+        </p>
+      </div>
+      <Button
+        variant="link"
+        size="inline"
+        nativeButton={false}
+        render={<Link href={`/aulas?aluno=${studentId}`} />}
+      >
+        Ver agenda <ArrowUpRight aria-hidden="true" />
+      </Button>
+    </div>
   );
 }
 

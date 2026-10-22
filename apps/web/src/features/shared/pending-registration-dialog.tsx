@@ -45,24 +45,7 @@ export function PendingRegistrationDialog({
               O cadastro será salvo, mas ainda será necessário resolver:
             </DialogDescription>
           </DialogHeader>
-          <DialogBody>
-            <ul className="grid gap-3 py-3">
-              {pendingItems.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm">
-                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <p className="text-caption text-muted-foreground">
-              Essas pendências continuarão indicadas no cadastro.
-            </p>
-            {error && (
-              <p className="mt-3 text-caption text-destructive" role="alert">
-                {error}
-              </p>
-            )}
-          </DialogBody>
+          <PendingRegistrationBody pendingItems={pendingItems} error={error} />
           <DialogFooter>
             <Button variant="secondary" disabled={pending} onClick={onBack}>
               <ArrowLeft />
@@ -76,5 +59,34 @@ export function PendingRegistrationDialog({
         </DialogContent>
       </DialogPortal>
     </Dialog>
+  );
+}
+
+function PendingRegistrationBody({
+  pendingItems,
+  error,
+}: {
+  pendingItems: string[];
+  error: string | undefined;
+}): ReactJSX.Element {
+  return (
+    <DialogBody>
+      <ul className="grid gap-3 py-3">
+        {pendingItems.map((item) => (
+          <li key={item} className="flex items-start gap-2 text-sm">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
+            {item}
+          </li>
+        ))}
+      </ul>
+      <p className="text-caption text-muted-foreground">
+        Essas pendências continuarão indicadas no cadastro.
+      </p>
+      {error && (
+        <p className="mt-3 text-caption text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+    </DialogBody>
   );
 }

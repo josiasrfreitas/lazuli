@@ -145,7 +145,7 @@ export function SelectedRecord({ vm }: { vm: WorkshopView }): ReactElement {
       select={setSelection}
       focus={direction === "focus"}
     />
-  ) : selectedOccurrence ? (
+  ) : (selectedOccurrence ? (
     <OccurrenceDetail row={selectedOccurrence} state={state} open={open} select={setSelection} />
   ) : (
     <div className={styles.empty}>
@@ -153,7 +153,7 @@ export function SelectedRecord({ vm }: { vm: WorkshopView }): ReactElement {
       <h3>Escolha um registro</h3>
       <p>O relato e as ações aparecem aqui, dentro do perfil.</p>
     </div>
-  );
+  ));
 }
 
 function TimelineContext(): ReactElement {

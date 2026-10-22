@@ -65,27 +65,7 @@ export function ProfileProposal({
   }
   return (
     <div className={`${styles.proposal} ${embedded ? styles.embedded : ""}`} data-proposal={mode}>
-      <aside className={styles.proposalNote} aria-label="Proposta em avaliação">
-        <div>
-          <strong>{proposal.name}</strong>
-          <p>
-            {proposal.benefit} <span>{proposal.cost}</span>
-          </p>
-        </div>
-        <div className={styles.inlineActions}>
-          <Button size="sm" variant="ghost" onClick={() => reset(!empty)}>
-            {empty ? "Carregar exemplo" : "Testar sem registros"}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label="Reiniciar simulação"
-            onClick={() => reset(false)}
-          >
-            <RotateCcw aria-hidden="true" />
-          </Button>
-        </div>
-      </aside>
+      <ProposalNote proposal={proposal} empty={empty} reset={reset} />
       {embedded ? (
         <EmbeddedRecords mode={mode} vm={vm} />
       ) : (
@@ -100,6 +80,40 @@ export function ProfileProposal({
       </p>
       <ActionDialog vm={vm} />
     </div>
+  );
+}
+
+function ProposalNote({
+  proposal,
+  empty,
+  reset,
+}: {
+  proposal: (typeof PROPOSALS)[Mode];
+  empty: boolean;
+  reset: (blank: boolean) => void;
+}): ReactElement {
+  return (
+    <aside className={styles.proposalNote} aria-label="Proposta em avaliação">
+      <div>
+        <strong>{proposal.name}</strong>
+        <p>
+          {proposal.benefit} <span>{proposal.cost}</span>
+        </p>
+      </div>
+      <div className={styles.inlineActions}>
+        <Button size="sm" variant="ghost" onClick={() => reset(!empty)}>
+          {empty ? "Carregar exemplo" : "Testar sem registros"}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-label="Reiniciar simulação"
+          onClick={() => reset(false)}
+        >
+          <RotateCcw aria-hidden="true" />
+        </Button>
+      </div>
+    </aside>
   );
 }
 

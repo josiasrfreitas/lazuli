@@ -33,7 +33,7 @@ export function EnrollmentGradeAverage({
           <InlineSkeleton className="h-10 w-24" />
           <span className="sr-only">Carregando média</span>
         </div>
-      ) : query.isError ? (
+      ) : (query.isError ? (
         <div className="grid gap-1">
           <p className="text-sm text-muted-foreground">Média indisponível</p>
           <Button variant="link" size="compact-responsive" onClick={() => void query.refetch()}>
@@ -42,7 +42,7 @@ export function EnrollmentGradeAverage({
         </div>
       ) : (
         <GradeAverageReading grades={query.data?.grades ?? []} />
-      )}
+      ))}
       <div className="mt-auto pt-1">
         <StudentAssessmentsDialog
           studentId={studentId}

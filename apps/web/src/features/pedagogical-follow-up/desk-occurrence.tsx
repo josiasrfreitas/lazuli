@@ -42,25 +42,7 @@ function OccurrenceRecord({
   const [action, setAction] = useState<OccurrenceAction>(null);
   return (
     <article className={styles.record}>
-      <header className={styles.recordHeading}>
-        <h3>{row.title}</h3>
-        <div className={styles.recordToolbar}>
-          <div className={styles.recordMeta}>
-            <p>
-              Aula de {dateLabel(row.classSession.date)} · {row.classSession.class.portalClassName}
-            </p>
-            <span aria-hidden="true">·</span>
-            <span className={styles.recordType}>Ocorrência</span>
-            <Badge variant="neutral">{CATEGORY[row.category]}</Badge>
-          </div>
-          {!readOnly && (
-            <Button size="sm" variant="text" onClick={() => setAction("link")}>
-              <Link2 aria-hidden="true" />
-              Relacionar ocorrência
-            </Button>
-          )}
-        </div>
-      </header>
+      <OccurrenceHeading row={row} readOnly={readOnly} onLink={() => setAction("link")} />
       <div
         className={styles.recordBody}
         tabIndex={0}
@@ -85,6 +67,37 @@ function OccurrenceRecord({
         />
       )}
     </article>
+  );
+}
+function OccurrenceHeading({
+  row,
+  readOnly,
+  onLink,
+}: {
+  row: Occurrence;
+  readOnly: boolean;
+  onLink: () => void;
+}): ReactElement {
+  return (
+    <header className={styles.recordHeading}>
+      <h3>{row.title}</h3>
+      <div className={styles.recordToolbar}>
+        <div className={styles.recordMeta}>
+          <p>
+            Aula de {dateLabel(row.classSession.date)} · {row.classSession.class.portalClassName}
+          </p>
+          <span aria-hidden="true">·</span>
+          <span className={styles.recordType}>Ocorrência</span>
+          <Badge variant="neutral">{CATEGORY[row.category]}</Badge>
+        </div>
+        {!readOnly && (
+          <Button size="sm" variant="text" onClick={onLink}>
+            <Link2 aria-hidden="true" />
+            Relacionar ocorrência
+          </Button>
+        )}
+      </div>
+    </header>
   );
 }
 function OccurrenceBody({

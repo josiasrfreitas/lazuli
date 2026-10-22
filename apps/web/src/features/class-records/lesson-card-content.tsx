@@ -13,19 +13,8 @@ export function LessonCardContent({
   lesson: CalendarLesson;
   personal?: boolean;
 }): ReactJSX.Element {
-  const title =
-    lesson.experimental?.candidate.fullName ??
-    (personal
-      ? lesson.appointment?.student.name
-      : lesson.appointment?.student.name.trim().split(/\s+/u).slice(0, 2).join(" ")) ??
-    stageIdentity(lesson).stage;
-  const context = lesson.experimental
-    ? lesson.experimental.kind === "PLACEMENT"
-      ? "Nivelamento"
-      : "Experimental individual"
-    : lesson.appointment
-      ? purposes[lesson.appointment.purpose]
-      : lesson.className;
+  const title = lessonCardTitle(lesson, personal);
+  const context = lessonCardContext(lesson);
   return (
     <span
       className={styles.content}
@@ -60,4 +49,21 @@ export function LessonCardContent({
       </span>
     </span>
   );
+}
+
+function lessonCardTitle(lesson: CalendarLesson, personal: boolean): string {
+  if (lesson.experimental) return lesson.experimental.candidate.fullName;
+  if (lesson.appointment) {
+    const name = lesson.appointment.student.name;
+    return personal ? name : name.trim().split(/\s+/u).slice(0, 2).join(" ");
+  }
+  return stageIdentity(lesson).stage;
+}
+
+function lessonCardContext(lesson: CalendarLesson): string {
+  if (lesson.experimental) {
+    return lesson.experimental.kind === "PLACEMENT" ? "Nivelamento" : "Experimental individual";
+  }
+  if (lesson.appointment) return purposes[lesson.appointment.purpose];
+  return lesson.className;
 }

@@ -22,7 +22,7 @@ export function ClassGradeAverage({ classId }: { classId: string }): ReactElemen
           <InlineSkeleton className="h-8 w-24" />
           <span className="sr-only">Carregando média da turma</span>
         </div>
-      ) : query.isError ? (
+      ) : (query.isError ? (
         <>
           <p className="text-caption text-muted-foreground">Média indisponível</p>
           <Button variant="link" size="inline" onClick={() => void query.refetch()}>
@@ -43,7 +43,7 @@ export function ClassGradeAverage({ classId }: { classId: string }): ReactElemen
               : "Sem notas lançadas"}
           </p>
         </>
-      )}
+      ))}
     </section>
   );
 }

@@ -34,21 +34,11 @@ export function AssessmentSummary({
       )}
       <AssessmentWorkspace data={data} onStateChange={setEditorState} />
       <AssessmentDecision data={data} />
-      {data.canConfirm && !data.decision && data.status !== "INCOMPLETE" && (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="w-fit"
-          disabled={editorState.dirty || editorState.pending}
-          title={
-            editorState.dirty ? "Salve as alterações antes de concluir a avaliação." : undefined
-          }
-          onClick={() => setConfirming(true)}
-        >
-          <Check aria-hidden="true" />
-          Concluir avaliação
-        </Button>
-      )}
+      <AssessmentConfirmButton
+        data={data}
+        editorState={editorState}
+        onClick={() => setConfirming(true)}
+      />
       {chart && (
         <details className="min-w-0 text-caption">
           <summary className="w-fit cursor-pointer py-1 text-interactive">
@@ -61,6 +51,31 @@ export function AssessmentSummary({
       )}
       {confirming && <ConfirmationDialog data={data} onClose={() => setConfirming(false)} />}
     </div>
+  );
+}
+
+function AssessmentConfirmButton({
+  data,
+  editorState,
+  onClick,
+}: {
+  data: Assessment;
+  editorState: { dirty: boolean; pending: boolean };
+  onClick: () => void;
+}): ReactElement | null {
+  if (!data.canConfirm || data.decision || data.status === "INCOMPLETE") return null;
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      className="w-fit"
+      disabled={editorState.dirty || editorState.pending}
+      title={editorState.dirty ? "Salve as alterações antes de concluir a avaliação." : undefined}
+      onClick={onClick}
+    >
+      <Check aria-hidden="true" />
+      Concluir avaliação
+    </Button>
   );
 }
 
@@ -86,21 +101,11 @@ function AssessmentHeading({ data, layout }: Pick<SummaryProps, "data" | "layout
 }
 
 export function AssessmentStatusBadge({ data }: { data: Assessment }): ReactElement {
+  if (data.decision === "APPROVED") return <Badge variant="success">Aprovação confirmada</Badge>;
+  if (data.decision === "REPEAT") return <Badge variant="neutral">Repetência confirmada</Badge>;
   return (
-    <Badge
-      variant={
-        data.decision === "APPROVED"
-          ? "success"
-          : data.status === "NEEDS_SUPPORT"
-            ? "warning"
-            : "neutral"
-      }
-    >
-      {data.decision === "APPROVED"
-        ? "Aprovação confirmada"
-        : data.decision === "REPEAT"
-          ? "Repetência confirmada"
-          : STATUS_LABELS[data.status]}
+    <Badge variant={data.status === "NEEDS_SUPPORT" ? "warning" : "neutral"}>
+      {STATUS_LABELS[data.status]}
     </Badge>
   );
 }

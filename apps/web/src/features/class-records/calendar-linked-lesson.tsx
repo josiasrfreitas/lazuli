@@ -1,5 +1,4 @@
 "use client";
-
 import type { JSX as ReactJSX } from "react";
 import { UserRoundPlus } from "lucide-react";
 import { abbreviatedPersonName } from "~/lib/format";
@@ -15,6 +14,16 @@ const shortPurposes = {
   REINFORCEMENT: "Reforço",
   ASSESSMENT: "Avaliação",
 } as const;
+type LinkedProps = {
+  lesson: CalendarLesson;
+  expanded: boolean;
+  appointmentId: string | null;
+  onToggle: () => void;
+  onOpen: (lesson: CalendarLesson) => void;
+  onOpenAppointment: (id: string) => void;
+  onOpenExperimental: (id: string) => void;
+  personal?: boolean;
+};
 
 export function CalendarLinkedLesson({
   lesson,
@@ -25,19 +34,8 @@ export function CalendarLinkedLesson({
   onOpenAppointment,
   onOpenExperimental,
   personal = false,
-}: {
-  lesson: CalendarLesson;
-  expanded: boolean;
-  appointmentId: string | null;
-  onToggle: () => void;
-  onOpen: (lesson: CalendarLesson) => void;
-  onOpenAppointment: (id: string) => void;
-  onOpenExperimental: (id: string) => void;
-  personal?: boolean;
-}): ReactJSX.Element {
-  const appointments = lesson.appointments ?? [];
-  const leads = lesson.leadGuests ?? [];
-  const guestCount = appointments.length + leads.length;
+}: LinkedProps): ReactJSX.Element {
+  const guestCount = (lesson.appointments?.length ?? 0) + (lesson.leadGuests?.length ?? 0);
   const panelId = `lesson-appointments-${lesson.id}`;
   return (
     <div className={styles.frame} data-expanded={expanded} data-modality={lesson.scheduleType}>
@@ -64,50 +62,110 @@ export function CalendarLinkedLesson({
           {guestCount === 1 ? "convidado" : "convidados"}
         </span>
       </button>
-      <div id={panelId} className={styles.panel} inert={!expanded} aria-hidden={!expanded}>
-        <div className={styles.panelContent}>
-          <span className={styles.heading}>Convidados</span>
-          <div className={styles.names}>
-            {appointments.map((item) => (
-              <button
-                key={item.id}
-                id={`appointment-cell-${item.id}`}
-                type="button"
-                className={styles.person}
-                data-status={item.status}
-                aria-haspopup="dialog"
-                aria-expanded={appointmentId === item.id}
-                aria-label={`${item.student.name} · ${purposes[item.purpose]} · ${appointmentStatus(item.status, Boolean(item.rescheduledToId))}`}
-                title={`${item.student.name} · ${purposes[item.purpose]} · ${appointmentStatus(item.status, Boolean(item.rescheduledToId))}`}
-                onClick={() => onOpenAppointment(item.id)}
-              >
-                <span>{abbreviatedPersonName(item.student.name)}</span>
-                <span className={styles.purpose}>
-                  {item.status === "CANCELLED"
-                    ? appointmentStatus(item.status, Boolean(item.rescheduledToId))
-                    : item.status === "NO_SHOW"
-                      ? "Não veio"
-                      : shortPurposes[item.purpose]}
-                </span>
-              </button>
-            ))}
-            {leads.map((visit) => (
-              <button
-                key={`experimental-${visit.id}`}
-                type="button"
-                className={styles.person}
-                aria-label={`${visit.candidate.fullName} · Experimental em uma turma · ${visitLabels[visit.status]}`}
-                title={`${visit.candidate.fullName} · Experimental em uma turma · ${visitLabels[visit.status]}`}
-                aria-haspopup="dialog"
-                onClick={() => onOpenExperimental(visit.id)}
-              >
-                <span>{abbreviatedPersonName(visit.candidate.fullName)}</span>
-                <span className={styles.purpose}>Experimental</span>
-              </button>
-            ))}
-          </div>
+      <CalendarGuestsPanel
+        lesson={lesson}
+        panelId={panelId}
+        expanded={expanded}
+        appointmentId={appointmentId}
+        onOpenAppointment={onOpenAppointment}
+        onOpenExperimental={onOpenExperimental}
+      />
+    </div>
+  );
+}
+
+function CalendarGuestsPanel({
+  lesson,
+  panelId,
+  expanded,
+  appointmentId,
+  onOpenAppointment,
+  onOpenExperimental,
+}: {
+  lesson: CalendarLesson;
+  panelId: string;
+  expanded: boolean;
+  appointmentId: string | null;
+  onOpenAppointment: (id: string) => void;
+  onOpenExperimental: (id: string) => void;
+}): ReactJSX.Element {
+  return (
+    <div id={panelId} className={styles.panel} inert={!expanded} aria-hidden={!expanded}>
+      <div className={styles.panelContent}>
+        <span className={styles.heading}>Convidados</span>
+        <div className={styles.names}>
+          {(lesson.appointments ?? []).map((item) => (
+            <AppointmentGuest
+              key={item.id}
+              item={item}
+              expanded={appointmentId === item.id}
+              onOpen={() => onOpenAppointment(item.id)}
+            />
+          ))}
+          {(lesson.leadGuests ?? []).map((visit) => (
+            <ExperimentalGuest
+              key={`experimental-${visit.id}`}
+              visit={visit}
+              onOpen={() => onOpenExperimental(visit.id)}
+            />
+          ))}
         </div>
       </div>
     </div>
+  );
+}
+
+function AppointmentGuest({
+  item,
+  expanded,
+  onOpen,
+}: {
+  item: NonNullable<CalendarLesson["appointments"]>[number];
+  expanded: boolean;
+  onOpen: () => void;
+}): ReactJSX.Element {
+  const label = `${item.student.name} · ${purposes[item.purpose]} · ${appointmentStatus(item.status, Boolean(item.rescheduledToId))}`;
+  let purpose: string = shortPurposes[item.purpose];
+  if (item.status === "CANCELLED")
+    purpose = appointmentStatus(item.status, Boolean(item.rescheduledToId));
+  else if (item.status === "NO_SHOW") purpose = "Não veio";
+  return (
+    <button
+      id={`appointment-cell-${item.id}`}
+      type="button"
+      className={styles.person}
+      data-status={item.status}
+      aria-haspopup="dialog"
+      aria-expanded={expanded}
+      aria-label={label}
+      title={label}
+      onClick={onOpen}
+    >
+      <span>{abbreviatedPersonName(item.student.name)}</span>
+      <span className={styles.purpose}>{purpose}</span>
+    </button>
+  );
+}
+
+function ExperimentalGuest({
+  visit,
+  onOpen,
+}: {
+  visit: NonNullable<CalendarLesson["leadGuests"]>[number];
+  onOpen: () => void;
+}): ReactJSX.Element {
+  const label = `${visit.candidate.fullName} · Experimental em uma turma · ${visitLabels[visit.status]}`;
+  return (
+    <button
+      type="button"
+      className={styles.person}
+      aria-label={label}
+      title={label}
+      aria-haspopup="dialog"
+      onClick={onOpen}
+    >
+      <span>{abbreviatedPersonName(visit.candidate.fullName)}</span>
+      <span className={styles.purpose}>Experimental</span>
+    </button>
   );
 }

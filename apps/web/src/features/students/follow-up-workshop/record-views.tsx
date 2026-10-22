@@ -23,7 +23,7 @@ export function EmptyResults(): ReactElement {
 export function Status({ row }: { row: Case }): ReactElement {
   return (
     <Badge
-      variant={row.status === "CONCLUDED" ? "success" : row.status === "OPEN" ? "neutral" : "info"}
+      variant={row.status === "CONCLUDED" ? "success" : (row.status === "OPEN" ? "neutral" : "info")}
     >
       {STATUS_LABELS[row.status]}
     </Badge>
@@ -124,22 +124,36 @@ export function CaseDetail({
       <CasePlan row={row} />
       <CaseActions row={row} open={open} />
       <History rows={row.history} />
-      <section className={styles.linked}>
-        <h4>Ocorrências motivadoras · {row.occurrenceIds.length}</h4>
-        {state.occurrences
-          .filter((item) => row.occurrenceIds.includes(item.id))
-          .map((item) => (
-            <OccurrenceChoice
-              key={item.id}
-              row={item}
-              onSelect={() => select({ type: "occurrence", id: item.id })}
-            />
-          ))}
-        {row.occurrenceIds.length === 0 && (
-          <p>Aberta diretamente para a aluna. Relatos podem ser vinculados durante a atuação.</p>
-        )}
-      </section>
+      <LinkedOccurrences row={row} state={state} select={select} />
     </article>
+  );
+}
+
+function LinkedOccurrences({
+  row,
+  state,
+  select,
+}: {
+  row: Case;
+  state: WorkshopState;
+  select: (value: Selection) => void;
+}): ReactElement {
+  return (
+    <section className={styles.linked}>
+      <h4>Ocorrências motivadoras · {row.occurrenceIds.length}</h4>
+      {state.occurrences
+        .filter((item) => row.occurrenceIds.includes(item.id))
+        .map((item) => (
+          <OccurrenceChoice
+            key={item.id}
+            row={item}
+            onSelect={() => select({ type: "occurrence", id: item.id })}
+          />
+        ))}
+      {row.occurrenceIds.length === 0 && (
+        <p>Aberta diretamente para a aluna. Relatos podem ser vinculados durante a atuação.</p>
+      )}
+    </section>
   );
 }
 export function OccurrenceDetail({
@@ -221,13 +235,13 @@ function CaseActions({ row, open }: { row: Case; open: OpenAction }): ReactEleme
     <div className={styles.actions}>
       <Button
         size="sm"
-        onClick={() => open(closed ? "reopen" : row.status === "OPEN" ? "start" : "note", row.id)}
+        onClick={() => open(closed ? "reopen" : (row.status === "OPEN" ? "start" : "note"), row.id)}
       >
         {closed
           ? "Reabrir intervenção"
-          : row.status === "OPEN"
+          : (row.status === "OPEN"
             ? "Iniciar atuação"
-            : "Registrar evolução"}
+            : "Registrar evolução")}
       </Button>
       {!closed && (
         <Button variant="secondary" size="sm" onClick={() => open("conclude", row.id)}>

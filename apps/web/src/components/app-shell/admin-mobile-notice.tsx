@@ -60,23 +60,29 @@ export function AdminMobileNotice({
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className="top-[50dvh] max-w-[calc(100dvw-2rem)] md:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Administração no celular</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="mt-3">
-            <DialogDescription>
-              O suporte à Administração no celular ainda não é garantido. Algumas telas e funções
-              podem não funcionar como esperado. Para uma experiência completa, use um computador.
-            </DialogDescription>
-          </DialogBody>
-          <DialogFooter>
-            <DialogClose render={<Button size="lg" className="w-full" />}>
-              Entendi, continuar
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
+        <AdminNoticeContent />
       </DialogPortal>
     </Dialog>
+  );
+}
+
+function AdminNoticeContent(): ReactJSX.Element {
+  return (
+    <DialogContent className="top-[50dvh] max-w-[calc(100dvw-2rem)] md:max-w-sm">
+      <DialogHeader>
+        <DialogTitle>Administração no celular</DialogTitle>
+      </DialogHeader>
+      <DialogBody className="mt-3">
+        <DialogDescription>
+          O suporte à Administração no celular ainda não é garantido. Algumas telas e funções podem
+          não funcionar como esperado. Para uma experiência completa, use um computador.
+        </DialogDescription>
+      </DialogBody>
+      <DialogFooter>
+        <DialogClose render={<Button size="lg" className="w-full" />}>
+          Entendi, continuar
+        </DialogClose>
+      </DialogFooter>
+    </DialogContent>
   );
 }

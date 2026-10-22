@@ -15,11 +15,15 @@ const directions: Record<string, number> = {
   ArrowUp: -1,
   ArrowLeft: -1,
 };
-function moveSelection(
-  event: KeyboardEvent<HTMLButtonElement>,
-  rows: ClassMatch[],
-  onSelect: (id: string) => void,
-): void {
+function moveSelection({
+  event,
+  rows,
+  onSelect,
+}: {
+  event: KeyboardEvent<HTMLButtonElement>;
+  rows: ClassMatch[];
+  onSelect: (id: string) => void;
+}): void {
   const direction = directions[event.key];
   if (!direction || rows.length === 0) return;
   event.preventDefault();
@@ -41,7 +45,7 @@ export function MatchingClasses({ rows, selected, onSelect }: MatchingClassesPro
           selected={selected === row.id}
           tabIndex={selected === row.id || (!selected && row.id === rows[0]?.id) ? 0 : -1}
           onSelect={() => onSelect(row.id)}
-          onKeyDown={(event) => moveSelection(event, rows, onSelect)}
+          onKeyDown={(event) => moveSelection({ event, rows, onSelect })}
         />
       ))}
     </div>

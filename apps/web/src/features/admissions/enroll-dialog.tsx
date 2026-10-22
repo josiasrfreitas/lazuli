@@ -1,5 +1,5 @@
 "use client";
-import { useState, type FormEvent, type ReactElement } from "react";
+import { useState, type FormEvent, type ReactElement, type RefObject } from "react";
 import { Alert } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { useScrollToError } from "~/lib/scroll-to-error";
@@ -14,6 +14,7 @@ import {
   enrollmentErrors,
   enrollmentStudent,
   type EnrollmentDraft,
+  type EnrollmentFieldsProps,
 } from "./enrollment-model";
 import { dateLabel, type Candidate } from "./labels";
 import type { ClassMatch } from "./matching-classes";
@@ -23,7 +24,16 @@ type EnrollmentInput = {
   date: string;
   onClose: () => void;
 };
-function useEnrollMutation(onClose: () => void) {
+type EnrollMutation = ReturnType<typeof trpc.admissions.enroll.useMutation>;
+type EnrollmentFormState = {
+  draft: EnrollmentDraft;
+  errors: Record<string, string>;
+  body: RefObject<HTMLDivElement | null>;
+  mutation: EnrollMutation;
+  change: EnrollmentFieldsProps["change"];
+  submit: (event: FormEvent) => void;
+};
+function useEnrollMutation(onClose: () => void): EnrollMutation {
   const utils = trpc.useUtils();
   return trpc.admissions.enroll.useMutation({
     onSuccess: async () => {
@@ -36,7 +46,12 @@ function useEnrollMutation(onClose: () => void) {
     },
   });
 }
-function useEnrollmentForm({ candidate, choice, date, onClose }: EnrollmentInput) {
+function useEnrollmentForm({
+  candidate,
+  choice,
+  date,
+  onClose,
+}: EnrollmentInput): EnrollmentFormState {
   const [draft, setDraft] = useState(() => initialEnrollmentDraft(candidate));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [revision, setRevision] = useState(0);
@@ -87,7 +102,7 @@ export function EnrollDialog(input: EnrollmentInput): ReactElement {
       body={form.body}
       initialFocus={() =>
         form.body.current?.querySelector<HTMLInputElement>("input:not(:disabled)") ??
-        document.getElementById("admission-enroll-submit")
+        document.querySelector("#admission-enroll-submit")
       }
       submitLabel={form.mutation.isPending ? "Matriculando…" : "Confirmar matrícula"}
     >

@@ -101,6 +101,15 @@ function DeskHeading({
     </header>
   );
 }
+type DeskProps = {
+  studentId: string;
+  canRecord: boolean;
+  heading: ReactElement;
+  selection: FollowUpSelection | null;
+  select: SelectFollowUp;
+  clear: () => void;
+  create: () => void;
+};
 function StudentDesk({
   studentId,
   canRecord,
@@ -109,15 +118,7 @@ function StudentDesk({
   select,
   clear,
   create,
-}: {
-  studentId: string;
-  canRecord: boolean;
-  heading: ReactElement;
-  selection: FollowUpSelection | null;
-  select: SelectFollowUp;
-  clear: () => void;
-  create: () => void;
-}): ReactElement | null {
+}: DeskProps): ReactElement | null {
   const input = { studentId, search: "", page: 1 };
   const occurrences = trpc.occurrences.list.useQuery(input);
   const interventions = trpc.interventions.list.useQuery(input);
@@ -146,56 +147,77 @@ function StudentDesk({
   return (
     <>
       {heading}
-      <div className={styles.deskContainer}>
-        <div className={styles.desk} data-selected={Boolean(selection)}>
-          <StudentDeskRail
-            studentId={studentId}
-            selected={selection}
-            select={select}
-            clear={clear}
-          />
-          <section
-            key={selection ? `${selection.kind}:${selection.id}` : "empty"}
-            className={styles.detail}
-            aria-label="Detalhe do registro"
-            tabIndex={0}
-          >
-            {selection && (
-              <div className={styles.mobileBack}>
-                <Button size="sm" variant="ghost" onClick={clear}>
-                  <ArrowLeft aria-hidden="true" />
-                  Todos os registros
-                </Button>
-              </div>
-            )}
-            {selection?.kind === "intervention" && (
-              <DeskIntervention
-                id={selection.id}
-                studentId={studentId}
-                select={select}
-                readOnly={!canRecord}
-              />
-            )}
-            {selection?.kind === "occurrence" && (
-              <DeskOccurrence
-                id={selection.id}
-                studentId={studentId}
-                select={select}
-                readOnly={!canRecord}
-              />
-            )}
-            {!selection && (
-              <DeskEmptyDetail
-                studentId={studentId}
-                create={create}
-                select={select}
-                readOnly={!canRecord}
-              />
-            )}
-          </section>
-        </div>
-      </div>
+      <DeskWorkspace {...{ studentId, canRecord, selection, select, clear, create }} />
     </>
+  );
+}
+
+function DeskWorkspace({
+  studentId,
+  canRecord,
+  selection,
+  select,
+  clear,
+  create,
+}: Omit<DeskProps, "heading">): ReactElement {
+  return (
+    <div className={styles.deskContainer}>
+      <div className={styles.desk} data-selected={Boolean(selection)}>
+        <StudentDeskRail studentId={studentId} selected={selection} select={select} clear={clear} />
+        <DeskDetail {...{ studentId, canRecord, selection, select, clear, create }} />
+      </div>
+    </div>
+  );
+}
+
+function DeskDetail({
+  studentId,
+  canRecord,
+  selection,
+  select,
+  clear,
+  create,
+}: Omit<DeskProps, "heading">): ReactElement {
+  return (
+    <section
+      key={selection ? `${selection.kind}:${selection.id}` : "empty"}
+      className={styles.detail}
+      aria-label="Detalhe do registro"
+      tabIndex={0}
+    >
+      {selection && (
+        <div className={styles.mobileBack}>
+          <Button size="sm" variant="ghost" onClick={clear}>
+            <ArrowLeft aria-hidden="true" />
+            Todos os registros
+          </Button>
+        </div>
+      )}
+      {selection?.kind === "intervention" && (
+        <DeskIntervention
+          id={selection.id}
+          studentId={studentId}
+          select={select}
+          readOnly={!canRecord}
+        />
+      )}
+      {selection?.kind === "occurrence" && (
+        <DeskOccurrence
+          id={selection.id}
+          studentId={studentId}
+          select={select}
+          readOnly={!canRecord}
+        />
+      )}
+      {!selection && (
+        <DeskEmptyDetail
+          studentId={studentId}
+          create={create}
+          select={select}
+          readOnly={!canRecord}
+        />
+      )}
+    </section>
   );
 }
 function CreationDialog({

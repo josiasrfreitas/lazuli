@@ -25,14 +25,7 @@ export function ProgressSummary({
       />
       <div className={styles.progressFooter}>
         <div>
-          {latestStep && (
-            <p>
-              {latestStep.content.planItemStatus === "COMPLETED"
-                ? "Etapa concluída"
-                : "Etapa em andamento"}{" "}
-              · Registro de {dateLabel(latestStep.date)}
-            </p>
-          )}
+          <LatestStepStatus record={latestStep} />
           {position.actual !== null && (
             <p>
               Última página registrada: {position.actual}
@@ -50,5 +43,20 @@ export function ProgressSummary({
         </Button>
       </div>
     </section>
+  );
+}
+
+function LatestStepStatus({
+  record,
+}: {
+  record: Planning["records"][number] | undefined;
+}): ReactJSX.Element | null {
+  if (!record) return null;
+  const label =
+    record.content.planItemStatus === "COMPLETED" ? "Etapa concluída" : "Etapa em andamento";
+  return (
+    <p>
+      {label} · Registro de {dateLabel(record.date)}
+    </p>
   );
 }

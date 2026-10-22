@@ -260,9 +260,9 @@ function PlacementVisit({
                     <p>
                       {inactive
                         ? "Este atendimento está encerrado para alterações."
-                        : started
+                        : (started
                           ? "Envie uma foto ou PDF. Depois, registre o estágio indicado pelo professor."
-                          : "O envio fica disponível a partir do início do atendimento. Você pode definir o professor agora."}
+                          : "O envio fica disponível a partir do início do atendimento. Você pode definir o professor agora.")}
                     </p>
                     {canEdit && (
                       <Button

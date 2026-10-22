@@ -2,14 +2,12 @@
 import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { parseAsString, useQueryState } from "nuqs";
-import { Badge, Tabs, TabsList, TabsTab, TabsPanel } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { ClassRecordDialog } from "~/features/class-records/class-record-dialog";
-import { PlanningWorkspace } from "~/features/stage-planning/workspace";
-import { formatDateOnlyBR } from "~/lib/format";
 import { TeacherPage, TeacherQueryState } from "./shared";
-import { DirectoryTools, directoryMatches, TeacherStudentRow } from "./directory";
+import { DirectoryTools, directoryMatches } from "./directory";
 import { TeacherClassList } from "./class-list";
+import { TeacherClassTabs } from "./class-detail";
 import { TeacherListLoading } from "./list-loading";
 import styles from "./workspace.module.css";
 
@@ -68,77 +66,13 @@ export function TeacherClass({ id }: { id: string }): ReactJSX.Element {
         retry={() => void query.refetch()}
       />
       {query.data && (
-        <Tabs
-          value={tab}
-          onValueChange={(value: string) => {
-            void setTab(value);
-          }}
-          variant="underline"
-        >
-          <TabsList aria-label="Seções da turma">
-            <TabsTab value="aulas">Aulas</TabsTab>
-            <TabsTab value="alunos">Alunos</TabsTab>
-            {query.data.current && query.data.scheduleType === "REGULAR" && (
-              <TabsTab value="planejamento">Planejamento</TabsTab>
-            )}
-          </TabsList>
-          <TabsPanel value="aulas">
-            <div className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">
-              {[...query.data.lessons].toReversed().map((row) => (
-                <button
-                  type="button"
-                  key={row.id}
-                  className="flex w-full items-center justify-between gap-3 p-4 text-left hover:bg-muted"
-                  onClick={() => setSelected(row.id)}
-                >
-                  <span className="text-sm">
-                    {formatDateOnlyBR(row.date)}
-                    <span className="mt-1 block text-caption text-muted-foreground">
-                      {row.startTime}–{row.endTime} · {row.teacher}
-                    </span>
-                  </span>
-                  <Badge variant={row.state === "PENDING" ? "warning" : "neutral"}>
-                    {row.state === "PENDING"
-                      ? "Por registrar"
-                      : row.state === "RECORDED"
-                        ? "Registrada"
-                        : row.state === "CANCELLED"
-                          ? "Cancelada"
-                          : "Agendada"}
-                  </Badge>
-                </button>
-              ))}
-              {query.data.lessons.length === 0 && (
-                <p className="p-6 text-sm text-muted-foreground">
-                  Sem aulas atribuídas neste período.
-                </p>
-              )}
-            </div>
-          </TabsPanel>
-          <TabsPanel value="alunos">
-            <ul className={styles.list}>
-              {query.data.students.map((row) => (
-                <li key={row.id}>
-                  <TeacherStudentRow student={row} classId={id} />
-                </li>
-              ))}
-            </ul>
-            {query.data.students.length === 0 && (
-              <p className={styles.empty}>
-                {query.data.current
-                  ? "Nenhum aluno vinculado."
-                  : "A turma está no histórico. Consulte os alunos nos registros das suas aulas."}
-              </p>
-            )}
-          </TabsPanel>
-          {query.data.current && query.data.scheduleType === "REGULAR" && (
-            <TabsPanel value="planejamento">
-              <div className="min-w-0 pt-4">
-                <PlanningWorkspace classId={id} />
-              </div>
-            </TabsPanel>
-          )}
-        </Tabs>
+        <TeacherClassTabs
+          detail={query.data}
+          id={id}
+          tab={tab}
+          onTab={(value) => void setTab(value)}
+          onSelect={setSelected}
+        />
       )}
       {selected && <ClassRecordDialog id={selected} onClose={() => setSelected(null)} />}
     </TeacherPage>

@@ -17,24 +17,7 @@ export function PlanningLoading(): ReactJSX.Element {
         </div>
         <InlineSkeleton className="h-3 w-36 max-w-full rounded-sm" />
       </div>
-      <div className={styles.progress}>
-        <div className="grid gap-2">
-          <InlineSkeleton className="h-4 w-32 max-w-full rounded-sm" />
-          <InlineSkeleton className="h-3 w-40 max-w-full rounded-sm" />
-        </div>
-        <div className={styles.meters}>
-          {[0, 1].map((item) => (
-            <div key={item} className="grid gap-2">
-              <div className="flex justify-between gap-3">
-                <InlineSkeleton className="h-3 w-24 min-w-0 shrink rounded-sm" />
-                <InlineSkeleton className="h-3 w-12 rounded-sm" />
-              </div>
-              <InlineSkeleton className="h-1.5 w-full" />
-            </div>
-          ))}
-        </div>
-        <InlineSkeleton className="h-3 w-32 max-w-full rounded-sm" />
-      </div>
+      <LoadingProgress />
       <div className={styles.toolbar}>
         <InlineSkeleton className="h-4 w-56 max-w-full rounded-sm" />
         <InlineSkeleton className="h-8 w-36 max-w-full rounded-md" />
@@ -60,5 +43,28 @@ export function PlanningLoading(): ReactJSX.Element {
         ))}
       </div>
     </section>
+  );
+}
+
+function LoadingProgress(): ReactJSX.Element {
+  return (
+    <div className={styles.progress}>
+      <div className="grid gap-2">
+        <InlineSkeleton className="h-4 w-32 max-w-full rounded-sm" />
+        <InlineSkeleton className="h-3 w-40 max-w-full rounded-sm" />
+      </div>
+      <div className={styles.meters}>
+        {[0, 1].map((item) => (
+          <div key={item} className="grid gap-2">
+            <div className="flex justify-between gap-3">
+              <InlineSkeleton className="h-3 w-24 min-w-0 shrink rounded-sm" />
+              <InlineSkeleton className="h-3 w-12 rounded-sm" />
+            </div>
+            <InlineSkeleton className="h-1.5 w-full" />
+          </div>
+        ))}
+      </div>
+      <InlineSkeleton className="h-3 w-32 max-w-full rounded-sm" />
+    </div>
   );
 }

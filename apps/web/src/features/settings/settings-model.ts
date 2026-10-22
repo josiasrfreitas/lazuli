@@ -28,7 +28,9 @@ export function displaySetting(name: keyof SettingsFields, text: string): string
     minimumFractionDigits: monetary && !Number.isInteger(numeric) ? MONEY_DECIMAL_PLACES : 0,
     maximumFractionDigits: monetary ? MONEY_DECIMAL_PLACES : PERCENT_DECIMAL_PLACES,
   }).format(numeric);
-  return monetary ? `R$${value}` : name.endsWith("Installments") ? value : `${value}%`;
+  if (monetary) return `R$${value}`;
+  if (name.endsWith("Installments")) return value;
+  return `${value}%`;
 }
 
 function number(value: number | null | undefined): string {
@@ -43,26 +45,73 @@ function amount(value: number | null | undefined): string {
 
 export function loadedFields(row: SettingsRow | null): SettingsFields {
   return {
+    ...loadedFinanceFields(row),
+    ...loadedMaterialFields(row),
+  };
+}
+
+function loadedFinanceFields(
+  row: SettingsRow | null,
+): Pick<
+  SettingsFields,
+  | "tuitionCeilingCents"
+  | "maximumDiscountPct"
+  | "punctualityDiscountPct"
+  | "interestRatePctDaily"
+  | "interestRatePctMonthly"
+  | "cancellationFeePct"
+> {
+  return {
     tuitionCeilingCents: amount(row?.tuitionCeilingCents),
     maximumDiscountPct: number(row?.maximumDiscountPct),
     punctualityDiscountPct: number(row?.punctualityDiscountPct ?? 0),
     interestRatePctDaily: number(row?.interestRatePctDaily),
     interestRatePctMonthly: number(row?.interestRatePctMonthly),
     cancellationFeePct: number(row?.cancellationFeePct),
+  };
+}
+
+function loadedMaterialFields(
+  row: SettingsRow | null,
+): Pick<
+  SettingsFields,
+  | "childMaterialInstallments"
+  | "childMaterialInstallmentCents"
+  | "adultMaterialInstallments"
+  | "adultMaterialInstallmentCents"
+  | "materialCardFeePct"
+> {
+  return {
+    ...loadedChildMaterialFields(row),
+    ...loadedAdultMaterialFields(row),
+    materialCardFeePct: number(
+      row?.materialCardFeePct ?? INITIAL_MATERIAL_PRICING.materialCardFeePct,
+    ),
+  };
+}
+
+function loadedChildMaterialFields(
+  row: SettingsRow | null,
+): Pick<SettingsFields, "childMaterialInstallments" | "childMaterialInstallmentCents"> {
+  return {
     childMaterialInstallments: number(
       row?.childMaterialInstallments ?? INITIAL_MATERIAL_PRICING.childMaterialInstallments,
     ),
     childMaterialInstallmentCents: amount(
       row?.childMaterialInstallmentCents ?? INITIAL_MATERIAL_PRICING.childMaterialInstallmentCents,
     ),
+  };
+}
+
+function loadedAdultMaterialFields(
+  row: SettingsRow | null,
+): Pick<SettingsFields, "adultMaterialInstallments" | "adultMaterialInstallmentCents"> {
+  return {
     adultMaterialInstallments: number(
       row?.adultMaterialInstallments ?? INITIAL_MATERIAL_PRICING.adultMaterialInstallments,
     ),
     adultMaterialInstallmentCents: amount(
       row?.adultMaterialInstallmentCents ?? INITIAL_MATERIAL_PRICING.adultMaterialInstallmentCents,
-    ),
-    materialCardFeePct: number(
-      row?.materialCardFeePct ?? INITIAL_MATERIAL_PRICING.materialCardFeePct,
     ),
   };
 }
@@ -76,16 +125,32 @@ function fieldError(name: keyof SettingsFields, text: string): string | undefine
   if (text.trim() === "") return "Informe um valor.";
   const value = decimal(text);
   if (!Number.isFinite(value)) return "Use um número, como 10 ou 0,5.";
-  if (name.endsWith("Installments")) {
-    return /^\d+$/u.test(text.trim()) && value >= 1 && value <= MAX_DATABASE_INTEGER
-      ? undefined
-      : "Informe uma quantidade inteira maior que zero.";
-  }
-  if (!name.endsWith("Cents")) {
-    if (value > MAX_PERCENT) return "Use um percentual entre 0 e 100.";
-    if (!/^\d+(?:[.,]\d{1,4})?$/u.test(text.trim())) return "Use no máximo quatro casas decimais.";
-    return undefined;
-  }
+  if (name.endsWith("Installments")) return installmentError(text, value);
+  if (!name.endsWith("Cents")) return percentError(text, value);
+  return amountError({ name, text, value });
+}
+
+function installmentError(text: string, value: number): string | undefined {
+  return /^\d+$/u.test(text.trim()) && value >= 1 && value <= MAX_DATABASE_INTEGER
+    ? undefined
+    : "Informe uma quantidade inteira maior que zero.";
+}
+
+function percentError(text: string, value: number): string | undefined {
+  if (value > MAX_PERCENT) return "Use um percentual entre 0 e 100.";
+  if (!/^\d+(?:[.,]\d{1,4})?$/u.test(text.trim())) return "Use no máximo quatro casas decimais.";
+  return undefined;
+}
+
+function amountError({
+  name,
+  text,
+  value,
+}: {
+  name: keyof SettingsFields;
+  text: string;
+  value: number;
+}): string | undefined {
   if (!/^\d+(?:[.,]\d{1,2})?$/u.test(text.trim())) return "Use no máximo duas casas decimais.";
   if (name === "tuitionCeilingCents" && value === 0)
     return "A mensalidade deve ser maior que zero.";

@@ -2,6 +2,7 @@
 import { useEffect, type ReactElement } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@lazuli/ui";
+import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { PlanningState } from "./shared";
 
@@ -12,15 +13,7 @@ export function PlanningPage(): ReactElement {
   const query = trpc.planning.contexts.useQuery();
   const classId = params.get("turma");
   const progressId = params.get("percurso");
-  const group = query.data?.find((row) => row.id === classId);
-  const student = group?.students.find((row) => row.progressId === progressId);
-  const destination = classId
-    ? student
-      ? `/alunos/${student.studentId}?secao=planejamento&percurso=${student.progressId}`
-      : group && !progressId
-        ? `/turmas/${group.id}?secao=${group.scheduleType === "REGULAR" ? "planejamento" : "alunos"}`
-        : null
-    : "/aulas";
+  const destination = planningDestination({ classId, progressId, contexts: query.data });
   useEffect(() => {
     if (destination) router.replace(destination);
   }, [destination, router]);
@@ -39,4 +32,24 @@ export function PlanningPage(): ReactElement {
       )}
     </>
   );
+}
+
+function planningDestination({
+  classId,
+  progressId,
+  contexts,
+}: {
+  classId: string | null;
+  progressId: string | null;
+  contexts: RouterOutputs["planning"]["contexts"] | undefined;
+}): string | null {
+  if (!classId) return "/aulas";
+  const group = contexts?.find((row) => row.id === classId);
+  const student = group?.students.find((row) => row.progressId === progressId);
+  if (student) {
+    return `/alunos/${student.studentId}?secao=planejamento&percurso=${student.progressId}`;
+  }
+  if (!group || progressId) return null;
+  const section = group.scheduleType === "REGULAR" ? "planejamento" : "alunos";
+  return `/turmas/${group.id}?secao=${section}`;
 }

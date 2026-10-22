@@ -2,14 +2,28 @@
 import { useState, type ReactElement } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import { Alert, Button, InlineSkeleton } from "@lazuli/ui";
-import { trpc } from "~/lib/trpc";
+import type { RouterOutputs } from "@lazuli/api";
+import { trpc, type QueryResult } from "~/lib/trpc";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { TextControl } from "~/features/classes/form-controls";
 import { dateLabel, type Candidate } from "./labels";
 import { EnrollDialog } from "./enroll-dialog";
-import { MatchingClasses } from "./matching-classes";
+import { MatchingClasses, type ClassMatch } from "./matching-classes";
 
-function useAllocation(candidate: Candidate) {
+type Allocation = {
+  date: string;
+  parsed: string | null;
+  selected: string;
+  setSelected: (selected: string) => void;
+  enrolling: boolean;
+  setEnrolling: (enrolling: boolean) => void;
+  enabled: boolean;
+  query: QueryResult<RouterOutputs["admissions"]["matches"]>;
+  changeDate: (value: string) => void;
+  choice: ClassMatch | undefined;
+};
+
+function useAllocation(candidate: Candidate): Allocation {
   const [date, setDate] = useState(dateLabel(candidate.today));
   const [selected, setSelected] = useState("");
   const [enrolling, setEnrolling] = useState(false);
@@ -36,7 +50,6 @@ function useAllocation(candidate: Candidate) {
     choice: query.data?.find((row) => row.id === selected),
   };
 }
-type Allocation = ReturnType<typeof useAllocation>;
 export function CandidateAllocation({
   candidate,
   onEdit,

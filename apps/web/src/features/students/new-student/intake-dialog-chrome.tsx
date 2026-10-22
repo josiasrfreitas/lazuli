@@ -29,16 +29,7 @@ export function IntakeDialogHeading({
   hasEnrollment: boolean;
   hasClass: boolean;
 }): ReactJSX.Element {
-  const description =
-    step === "student"
-      ? continuing
-        ? "Confira os dados do aluno e continue pelas etapas pendentes."
-        : "Busque um lead ou preencha os dados do aluno."
-      : step === "pedagogy"
-        ? hasEnrollment
-          ? "Confira a turma definida para este aluno e continue para o contrato."
-          : `Escolha a turma para ${name} ou deixe essa definição pendente.`
-        : "Defina o contrato e confirme o cadastro. As alterações serão salvas ao confirmar.";
+  const description = intakeDialogDescription({ continuing, step, name, hasEnrollment });
   return (
     <div className={styles.dialogHeading} data-wide={step !== "student"}>
       <DialogHeader>
@@ -51,11 +42,33 @@ export function IntakeDialogHeading({
           { label: "Pedagógico", completed: hasClass },
           { label: "Contrato" },
         ]}
-        activeIndex={step === "contract" ? 2 : step === "pedagogy" ? 1 : 0}
+        activeIndex={step === "contract" ? 2 : (step === "pedagogy" ? 1 : 0)}
         label="Entrada do aluno"
       />
     </div>
   );
+}
+
+function intakeDialogDescription({
+  continuing,
+  step,
+  name,
+  hasEnrollment,
+}: {
+  continuing: boolean;
+  step: "student" | "pedagogy" | "contract";
+  name: string;
+  hasEnrollment: boolean;
+}): string {
+  if (step === "student")
+    return continuing
+      ? "Confira os dados do aluno e continue pelas etapas pendentes."
+      : "Busque um lead ou preencha os dados do aluno.";
+  if (step === "pedagogy")
+    return hasEnrollment
+      ? "Confira a turma definida para este aluno e continue para o contrato."
+      : `Escolha a turma para ${name} ou deixe essa definição pendente.`;
+  return "Defina o contrato e confirme o cadastro. As alterações serão salvas ao confirmar.";
 }
 
 export function IntakeDialogLoading({
@@ -76,7 +89,7 @@ export function IntakeDialogLoading({
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className={studentDialogClassName}>
+        <DialogContent className="h-[min(44rem,calc(100dvh-4rem))] w-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Continuar cadastro</DialogTitle>
             <DialogDescription>

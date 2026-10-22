@@ -8,7 +8,6 @@ const DEFAULT_SEARCH_DEBOUNCE_MS = 300;
 export function useSearchDraft(
   search: string,
   onCommit: (value: string) => void,
-  delay = DEFAULT_SEARCH_DEBOUNCE_MS,
 ): readonly [string, (next: string) => void] {
   const [value, setValue] = useState(search);
   const commit = useRef(onCommit);
@@ -49,7 +48,7 @@ export function useSearchDraft(
       if (next === search) return;
       acknowledgements.current.push(next);
       commit.current(next);
-    }, delay);
+    }, DEFAULT_SEARCH_DEBOUNCE_MS);
   }
 
   return [value, change] as const;

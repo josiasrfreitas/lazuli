@@ -2,18 +2,12 @@
 import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { parseAsString, useQueryState } from "nuqs";
-import { Badge, Tabs, TabsList, TabsTab, TabsPanel } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { StudentFollowUp } from "~/features/pedagogical-follow-up/student-follow-up";
-import { StudentPlanning } from "~/features/stage-planning/student-planning";
-import { PlanningWorkspace } from "~/features/stage-planning/workspace";
-import { AssessmentSummary } from "~/features/assessments/assessment-summary";
-import { AssessmentLoading } from "~/features/assessments/assessment-loading";
 import { ClassRecordDialog } from "~/features/class-records/class-record-dialog";
-import { formatDateOnlyBR } from "~/lib/format";
 import { TeacherPage, TeacherQueryState } from "./shared";
 import { DirectoryTools, directoryMatches, GroupedStudents } from "./directory";
 import { TeacherListLoading } from "./list-loading";
+import { TeacherStudentTabs } from "./student-detail";
 import styles from "./workspace.module.css";
 
 export function TeacherStudents(): ReactJSX.Element {
@@ -74,104 +68,15 @@ export function TeacherStudent({ id }: { id: string }): ReactJSX.Element {
         retry={() => void query.refetch()}
       />
       {query.data && (
-        <Tabs
-          value={tab}
-          onValueChange={(value: string) => {
-            void setTab(value);
-          }}
-          variant="underline"
-        >
-          <TabsList aria-label="Seções do aluno">
-            <TabsTab value="acompanhamento">Acompanhar</TabsTab>
-            <TabsTab value="aulas">Aulas</TabsTab>
-            {query.data.current && (
-              <>
-                <TabsTab value="planejamento">Planejar</TabsTab>
-                <TabsTab value="notas">Notas</TabsTab>
-              </>
-            )}
-          </TabsList>
-          <TabsPanel value="acompanhamento">
-            <div className="pt-4">
-              <StudentFollowUp
-                studentId={id}
-                studentName={query.data.name}
-                canRecord={query.data.current}
-              />
-            </div>
-          </TabsPanel>
-          <TabsPanel value="aulas">
-            <div className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">
-              {query.data.attendance.map((row) => (
-                <button
-                  type="button"
-                  key={row.id}
-                  className="flex w-full items-center justify-between gap-4 p-4 text-left hover:bg-muted"
-                  onClick={() => setLesson(row.sessionId)}
-                >
-                  <span className="text-sm">
-                    {formatDateOnlyBR(row.date)} · {row.className}
-                  </span>
-                  <Badge variant={row.status === "PRESENT" ? "success" : "neutral"}>
-                    {row.status === "PRESENT" ? "Presente" : "Falta"}
-                  </Badge>
-                </button>
-              ))}
-              {query.data.attendance.length === 0 && (
-                <p className="p-6 text-sm text-muted-foreground">
-                  Você ainda não registrou aulas deste aluno.
-                </p>
-              )}
-            </div>
-          </TabsPanel>
-          {query.data.current && (
-            <>
-              <TabsPanel value="planejamento">
-                <div className="grid min-w-0 gap-6 pt-4">
-                  {query.data.classes
-                    .filter((group) => group.scheduleType === "REGULAR")
-                    .map((group) => (
-                      <PlanningWorkspace key={group.id} classId={group.id} />
-                    ))}
-                  {query.data.classes.some((group) => group.scheduleType === "PERSONALIZED") && (
-                    <StudentPlanning studentId={id} />
-                  )}
-                  {query.data.classes.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      Consulte o planejamento nos seus encontros atribuídos.
-                    </p>
-                  )}
-                </div>
-              </TabsPanel>
-              <TabsPanel value="notas">
-                <TeacherStudentGrades studentId={id} />
-              </TabsPanel>
-            </>
-          )}
-        </Tabs>
+        <TeacherStudentTabs
+          detail={query.data}
+          id={id}
+          tab={tab}
+          onTab={(value) => void setTab(value)}
+          onLesson={setLesson}
+        />
       )}
       {lesson && <ClassRecordDialog id={lesson} onClose={() => setLesson(null)} />}
     </TeacherPage>
-  );
-}
-
-function TeacherStudentGrades({ studentId }: { studentId: string }): ReactJSX.Element {
-  const query = trpc.assessments.student.useQuery({ studentId });
-  return (
-    <div className="grid min-w-0 gap-6 pt-4">
-      <TeacherQueryState
-        label="Carregando avaliações"
-        loading={<AssessmentLoading heading />}
-        pending={query.isPending}
-        error={query.error}
-        retry={() => void query.refetch()}
-      />
-      {query.data?.map((row) => (
-        <AssessmentSummary key={row.progressId} data={row} />
-      ))}
-      {query.data?.length === 0 && (
-        <p className="text-sm text-muted-foreground">Nenhuma avaliação sob sua responsabilidade.</p>
-      )}
-    </div>
   );
 }

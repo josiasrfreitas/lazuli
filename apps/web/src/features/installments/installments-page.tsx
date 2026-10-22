@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useState, type Dispatch, type ReactElement, type SetStateAction } from "react";
 import { CircleCheck, DollarSign, Handshake, Search, Tags, X } from "lucide-react";
 import {
   Button,
@@ -187,25 +187,7 @@ function InstallmentsControls({
     { enabled: Boolean(filters.studentId) },
   );
   const filterFields = [
-    ...(filters.studentId
-      ? [
-          {
-            id: "student",
-            label: "Aluno",
-            kind: "options" as const,
-            promoted: true,
-            options: [
-              {
-                id: filters.studentId,
-                label: student.data?.contact.fullName ?? "Aluno selecionado",
-              },
-            ],
-            selected: [filters.studentId],
-            onChange: (values: string[]) => onFilters({ studentId: values[0] ?? null }),
-            onClear: () => onFilters({ studentId: null }),
-          },
-        ]
-      : []),
+    ...studentFilterFields({ filters, onFilters, studentName: student.data?.contact.fullName }),
     situationField({ filters, onFilters }),
     originField({ filters, onFilters }),
     dueField({ filters, onFilters }),
@@ -231,6 +213,30 @@ function InstallmentsControls({
       />
     </div>
   );
+}
+
+function studentFilterFields({
+  filters,
+  onFilters,
+  studentName,
+}: {
+  filters: InstallmentFilters;
+  onFilters: (patch: InstallmentFilterPatch) => void;
+  studentName: string | undefined;
+}): TableFilterField[] {
+  if (!filters.studentId) return [];
+  return [
+    {
+      id: "student",
+      label: "Aluno",
+      kind: "options",
+      promoted: true,
+      options: [{ id: filters.studentId, label: studentName ?? "Aluno selecionado" }],
+      selected: [filters.studentId],
+      onChange: (values) => onFilters({ studentId: values[0] ?? null }),
+      onClear: () => onFilters({ studentId: null }),
+    },
+  ];
 }
 
 type EntrySession = {
@@ -457,22 +463,61 @@ export function InstallmentsPage(): ReactElement {
     state.data?.view === "overdue"
       ? state.data.groups.flatMap((group) => group.rows)
       : (state.data?.rows ?? []);
-  const outside = rows.filter(
-    (row) => !visible.some((item) => item.installmentId === row.installmentId),
-  ).length;
-  const toolbar =
-    rows.length > 0 && !entry.open && !paymentRow && !treatmentIds ? (
-      <SelectionToolbar
-        count={rows.length}
-        outside={outside}
-        clear={() => setRows([])}
-        begin={() => entry.begin(rows)}
-        negotiate={() => {
-          setTreatmentRegistered(false);
-          setTreatmentIds(rows.map((row) => row.installmentId));
-        }}
-      />
-    ) : null;
+  const toolbar = selectionToolbar({
+    rows,
+    visible,
+    entry,
+    paymentRow,
+    treatmentIds,
+    setRows,
+    setTreatmentIds,
+    setTreatmentRegistered,
+  });
+  return (
+    <InstallmentsPageView
+      {...{
+        state,
+        rows,
+        visible,
+        toolbar,
+        entry,
+        paymentRow,
+        setPaymentRow,
+        setRows,
+        rowPaymentRegistered,
+        setRowPaymentRegistered,
+        treatmentIds,
+        setTreatmentIds,
+        treatmentRegistered,
+        setTreatmentRegistered,
+      }}
+    />
+  );
+}
+
+type InstallmentsPageViewProps = InstallmentDialogsProps & {
+  state: InstallmentsPageState;
+  rows: FinanceInstallmentRow[];
+  visible: FinanceInstallmentRow[];
+  toolbar: ReactElement | null;
+  entry: EntrySession;
+  rowPaymentRegistered: boolean;
+};
+
+function InstallmentsPageView(props: InstallmentsPageViewProps): ReactElement {
+  const {
+    state,
+    rows,
+    visible,
+    toolbar,
+    entry,
+    setRows,
+    setPaymentRow,
+    setRowPaymentRegistered,
+    setTreatmentIds,
+    setTreatmentRegistered,
+    rowPaymentRegistered,
+  } = props;
   return (
     <InstallmentActionsContext.Provider
       value={{
@@ -497,41 +542,114 @@ export function InstallmentsPage(): ReactElement {
         <PaymentRegisteredStatus registered={entry.registered || rowPaymentRegistered} />
         <InstallmentsTableFrame state={state} beginPayment={entry.begin} toolbar={toolbar} />
         <PaymentEntryDialog entry={entry} />
-        {paymentRow && (
-          <PaymentDialog
-            key={paymentRow.installmentId}
-            rows={[paymentRow]}
-            open
-            onOpenChange={(open) => {
-              if (!open) setPaymentRow(null);
-            }}
-            onRegistered={() => {
-              setRows((current) =>
-                current.filter((row) => row.installmentId !== paymentRow.installmentId),
-              );
-              setPaymentRow(null);
-              setRowPaymentRegistered(true);
-            }}
-          />
-        )}
-        {treatmentRegistered && (
-          <p role="status" className="px-6 pt-2 text-caption text-success">
-            Tratativa registrada.
-          </p>
-        )}
-        {treatmentIds && (
-          <TreatmentDialog
-            initialIds={treatmentIds}
-            onClose={() => setTreatmentIds(null)}
-            onConfirmed={() => {
-              setRows((current) =>
-                current.filter((row) => !treatmentIds.includes(row.installmentId)),
-              );
-              setTreatmentRegistered(true);
-            }}
-          />
-        )}
+        <InstallmentDialogs {...props} />
       </PaymentSelectionContext.Provider>
     </InstallmentActionsContext.Provider>
+  );
+}
+
+function selectionToolbar({
+  rows,
+  visible,
+  entry,
+  paymentRow,
+  treatmentIds,
+  setRows,
+  setTreatmentIds,
+  setTreatmentRegistered,
+}: {
+  rows: FinanceInstallmentRow[];
+  visible: FinanceInstallmentRow[];
+  entry: EntrySession;
+  paymentRow: FinanceInstallmentRow | null;
+  treatmentIds: string[] | null;
+  setRows: Dispatch<SetStateAction<FinanceInstallmentRow[]>>;
+  setTreatmentIds: Dispatch<SetStateAction<string[] | null>>;
+  setTreatmentRegistered: Dispatch<SetStateAction<boolean>>;
+}): ReactElement | null {
+  if (rows.length === 0 || entry.open || paymentRow || treatmentIds) return null;
+  const outside = rows.filter(
+    (row) => !visible.some((item) => item.installmentId === row.installmentId),
+  ).length;
+  return (
+    <SelectionToolbar
+      count={rows.length}
+      outside={outside}
+      clear={() => setRows([])}
+      begin={() => entry.begin(rows)}
+      negotiate={() => {
+        setTreatmentRegistered(false);
+        setTreatmentIds(rows.map((row) => row.installmentId));
+      }}
+    />
+  );
+}
+
+type InstallmentDialogsProps = {
+  paymentRow: FinanceInstallmentRow | null;
+  setPaymentRow: Dispatch<SetStateAction<FinanceInstallmentRow | null>>;
+  setRows: Dispatch<SetStateAction<FinanceInstallmentRow[]>>;
+  setRowPaymentRegistered: Dispatch<SetStateAction<boolean>>;
+  treatmentIds: string[] | null;
+  setTreatmentIds: Dispatch<SetStateAction<string[] | null>>;
+  treatmentRegistered: boolean;
+  setTreatmentRegistered: Dispatch<SetStateAction<boolean>>;
+};
+
+function InstallmentDialogs(props: InstallmentDialogsProps): ReactElement {
+  const { paymentRow, treatmentIds, treatmentRegistered } = props;
+  return (
+    <>
+      {paymentRow && <InstallmentRowPaymentDialog {...props} paymentRow={paymentRow} />}
+      {treatmentRegistered && (
+        <p role="status" className="px-6 pt-2 text-caption text-success">
+          Tratativa registrada.
+        </p>
+      )}
+      {treatmentIds && <InstallmentTreatmentDialog {...props} treatmentIds={treatmentIds} />}
+    </>
+  );
+}
+
+function InstallmentRowPaymentDialog({
+  paymentRow,
+  setPaymentRow,
+  setRows,
+  setRowPaymentRegistered,
+}: InstallmentDialogsProps & { paymentRow: FinanceInstallmentRow }): ReactElement {
+  return (
+    <PaymentDialog
+      key={paymentRow.installmentId}
+      rows={[paymentRow]}
+      open
+      onOpenChange={(open) => {
+        if (!open) setPaymentRow(null);
+      }}
+      onRegistered={() => {
+        setRows((current) =>
+          current.filter((row) => row.installmentId !== paymentRow.installmentId),
+        );
+        setPaymentRow(null);
+        setRowPaymentRegistered(true);
+      }}
+    />
+  );
+}
+
+function InstallmentTreatmentDialog({
+  treatmentIds,
+  setTreatmentIds,
+  setRows,
+  setTreatmentRegistered,
+}: InstallmentDialogsProps & { treatmentIds: string[] }): ReactElement {
+  return (
+    <TreatmentDialog
+      initialIds={treatmentIds}
+      onClose={() => setTreatmentIds(null)}
+      onConfirmed={() => {
+        setRows((current) => current.filter((row) => !treatmentIds.includes(row.installmentId)));
+        setTreatmentRegistered(true);
+      }}
+    />
   );
 }

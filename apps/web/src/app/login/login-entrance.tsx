@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 
 import styles from "./login-entrance.module.css";
 import { animateEntrance } from "./login-entrance-motion";
@@ -16,6 +16,44 @@ export function LoginEntrance({
   children: ReactNode;
   skip: boolean;
 }): ReactNode {
+  const { root, flight } = useEntranceAnimation(skip);
+
+  return (
+    <main ref={root} className={`dark ${styles.entrance}`}>
+      <header className={styles.masthead}>
+        <p className={styles.signature} role="img" aria-label="Lazuli">
+          <img
+            className={styles.seal}
+            data-login-reveal="seal"
+            src="/brand/lazuli-symbol-dark.svg"
+            alt=""
+            width="100"
+            height="100"
+          />
+          <svg className={styles.wordmark} aria-hidden="true" viewBox="0 0 330 100">
+            <image
+              data-login-reveal="wordmark"
+              height="100"
+              href="/brand/lazuli-wordmark-dark.svg"
+              width="320"
+            />
+            <circle data-brand-dot cx="317" cy="69" fill="currentColor" r="5" />
+          </svg>
+        </p>
+      </header>
+      {children}
+      <svg ref={flight} className={styles.flight} aria-hidden="true" focusable="false">
+        <path fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle r="1" fill="currentColor" />
+      </svg>
+    </main>
+  );
+}
+
+function useEntranceAnimation(skip: boolean): {
+  root: RefObject<HTMLElement | null>;
+  flight: RefObject<SVGSVGElement | null>;
+} {
   const root = useRef<HTMLElement>(null);
   const flight = useRef<SVGSVGElement>(null);
   const eligible = useRef<boolean | null>(null);
@@ -52,36 +90,7 @@ export function LoginEntrance({
     };
   }, [skip]);
 
-  return (
-    <main ref={root} className={`dark ${styles.entrance}`}>
-      <header className={styles.masthead}>
-        <p className={styles.signature} role="img" aria-label="Lazuli">
-          <img
-            className={styles.seal}
-            data-login-reveal="seal"
-            src="/brand/lazuli-symbol-dark.svg"
-            alt=""
-            width="100"
-            height="100"
-          />
-          <svg className={styles.wordmark} aria-hidden="true" viewBox="0 0 330 100">
-            <image
-              data-login-reveal="wordmark"
-              height="100"
-              href="/brand/lazuli-wordmark-dark.svg"
-              width="320"
-            />
-            <circle data-brand-dot cx="317" cy="69" fill="currentColor" r="5" />
-          </svg>
-        </p>
-      </header>
-      {children}
-      <svg ref={flight} className={styles.flight} aria-hidden="true" focusable="false">
-        <path fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <circle r="1" fill="currentColor" />
-      </svg>
-    </main>
-  );
+  return { root, flight };
 }
 
 function claimEntrance(motionAllowed: boolean, skip: boolean): boolean {

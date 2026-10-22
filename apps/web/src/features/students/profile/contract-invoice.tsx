@@ -11,10 +11,6 @@ export function ContractInvoice({ contract }: { contract: FinanceContract }): Re
     (left, right) => Number(right.kind === "TUITION") - Number(left.kind === "TUITION"),
   );
   const tuition = rows.find((row) => row.kind === "TUITION");
-  const gross = rows.reduce((sum, row) => sum + itemAmount(row), 0);
-  const fee = rows.reduce((sum, row) => sum + (row.material?.cardFeeCents ?? 0), 0);
-  const received = rows.reduce((sum, row) => sum + row.collection.receivedCents, 0);
-  const balance = rows.reduce((sum, row) => sum + row.collection.balanceCents, 0);
   return (
     <>
       <dl className={styles.meta}>
@@ -36,118 +32,158 @@ export function ContractInvoice({ contract }: { contract: FinanceContract }): Re
           <InvoiceItem key={row.id} item={row} />
         ))}
       </ol>
-      <div className={styles.bottom}>
-        <div className="grid content-start gap-2 text-caption text-muted-foreground">
-          {rows.some((row) => row.material?.payment === "INSTALLMENTS") ? (
-            <p>
-              Material no cartão: o parcelamento é do banco. A escola recebe o líquido em até 24h
-              após a venda.
-            </p>
-          ) : (
-            <p>Os pagamentos são registrados conforme o recebimento.</p>
-          )}
-        </div>
-        <dl className={styles.totals}>
-          <Total label="Valor dos itens" cents={gross} />
-          {fee > 0 && <Total label="Taxa do cartão" cents={-fee} />}
-          <Total label="Líquido para a escola" cents={gross - fee} />
-          <Total label="Já recebido" cents={received} />
-          <div className={styles.balance}>
-            <dt className="text-sm font-medium">Saldo a receber</dt>
-            <dd className="font-numeric text-2xl font-semibold tracking-tight tabular-nums text-heading">
-              {money(balance)}
-            </dd>
-          </div>
-        </dl>
-      </div>
+      <InvoiceBottom rows={rows} />
     </>
   );
 }
+
+function InvoiceBottom({ rows }: { rows: FinanceSchedule[] }): ReactElement {
+  const gross = rows.reduce((sum, row) => sum + itemAmount(row), 0);
+  const fee = rows.reduce((sum, row) => sum + (row.material?.cardFeeCents ?? 0), 0);
+  const received = rows.reduce((sum, row) => sum + row.collection.receivedCents, 0);
+  const balance = rows.reduce((sum, row) => sum + row.collection.balanceCents, 0);
+  return (
+    <div className={styles.bottom}>
+      <div className="grid content-start gap-2 text-caption text-muted-foreground">
+        {rows.some((row) => row.material?.payment === "INSTALLMENTS") ? (
+          <p>
+            Material no cartão: o parcelamento é do banco. A escola recebe o líquido em até 24h após
+            a venda.
+          </p>
+        ) : (
+          <p>Os pagamentos são registrados conforme o recebimento.</p>
+        )}
+      </div>
+      <dl className={styles.totals}>
+        <Total label="Valor dos itens" cents={gross} />
+        {fee > 0 && <Total label="Taxa do cartão" cents={-fee} />}
+        <Total label="Líquido para a escola" cents={gross - fee} />
+        <Total label="Já recebido" cents={received} />
+        <div className={styles.balance}>
+          <dt className="text-sm font-medium">Saldo a receber</dt>
+          <dd className="font-numeric text-2xl font-semibold tracking-tight tabular-nums text-heading">
+            {money(balance)}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
 function InvoiceItem({ item }: { item: FinanceSchedule }): ReactElement {
-  const collectionValue = item.collection;
-  const status =
-    collectionValue.overdueCount > 0
-      ? { label: "Em atraso", variant: "destructive" as const }
-      : collectionValue.balanceCents === 0 &&
-          collectionValue.paidCount > 0 &&
-          collectionValue.waivedCount > 0
-        ? { label: "Sem saldo", variant: "neutral" as const }
-        : collectionValue.balanceCents === 0 && collectionValue.paidCount > 0
-          ? { label: "Quitado", variant: "success" as const }
-          : collectionValue.balanceCents === 0 && collectionValue.waivedCount > 0
-            ? { label: "Dispensado", variant: "neutral" as const }
-            : collectionValue.receivedCents > 0
-              ? { label: "Parcial", variant: "warning" as const }
-              : { label: "A receber", variant: "neutral" as const };
   const card =
-    item.material?.payment === "INSTALLMENTS" && item.material.chargedAmountCents != null;
+    item.material?.payment === "INSTALLMENTS" &&
+    typeof item.material.chargedAmountCents === "number";
   return (
     <li className={styles.item}>
-      <div className="min-w-0">
-        <h3 className={styles.itemName}>
-          {item.kind === "MATERIAL"
-            ? item.material && item.material.items.length > 1
-              ? "Materiais didáticos"
-              : (item.materialName ?? "Material didático")
-            : "Mensalidade do curso"}
-        </h3>
-        <div className={styles.itemDetail}>
-          {item.material && item.material.items.length > 1 && (
-            <ul
-              aria-label="Livros desta venda"
-              className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground"
-            >
-              {item.material.items.map((book) => (
-                <li key={book.stageId}>{book.name}</li>
-              ))}
-            </ul>
-          )}
-          <p className="font-numeric text-sm tabular-nums">
-            {paymentTerms(item)}
-            {card && " no cartão"}
-          </p>
-          {item.kind === "MATERIAL" && item.firstDueDate && (
-            <p className="text-muted-foreground">
-              Recebimento único
-              {collectionValue.balanceCents > 0 &&
-                ` · previsto para ${formatDateOnlyBR(item.firstDueDate)}`}
-            </p>
-          )}
-        </div>
-      </div>
-      <div className={styles.value}>
-        <p className={styles.itemAmount}>
-          <span className="sr-only">Valor do aluno: </span>
-          {money(itemAmount(item))}
+      <InvoiceItemDescription item={item} card={card} />
+      <InvoiceItemValue item={item} card={card} />
+      <InvoiceItemSettlement item={item} />
+    </li>
+  );
+}
+
+function InvoiceItemDescription({
+  item,
+  card,
+}: {
+  item: FinanceSchedule;
+  card: boolean;
+}): ReactElement {
+  return (
+    <div className="min-w-0">
+      <h3 className={styles.itemName}>{invoiceItemName(item)}</h3>
+      <div className={styles.itemDetail}>
+        {item.material && item.material.items.length > 1 && (
+          <ul
+            aria-label="Livros desta venda"
+            className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground"
+          >
+            {item.material.items.map((book) => (
+              <li key={book.stageId}>{book.name}</li>
+            ))}
+          </ul>
+        )}
+        <p className="font-numeric text-sm tabular-nums">
+          {paymentTerms(item)}
+          {card && " no cartão"}
         </p>
-        {card && (
-          <p className="text-caption text-muted-foreground">
-            Taxa {item.material?.cardFeePct?.toLocaleString("pt-BR")}% ·{" "}
-            {money(item.material?.cardFeeCents ?? 0)}
-            <br />
-            Líquido {money(item.totalCents)}
+        {item.kind === "MATERIAL" && item.firstDueDate && (
+          <p className="text-muted-foreground">
+            Recebimento único
+            {item.collection.balanceCents > 0 &&
+              ` · previsto para ${formatDateOnlyBR(item.firstDueDate)}`}
           </p>
         )}
       </div>
-      <div className={styles.settlement}>
-        <Badge variant={status.variant}>{status.label}</Badge>
-        <div className="grid gap-1 text-caption text-muted-foreground">
-          <p>
-            {item.kind === "TUITION"
-              ? collectionValue.waivedCount > 0
-                ? `${collectionValue.paidCount} pagas · ${collectionValue.waivedCount} dispensadas`
-                : `${collectionValue.paidCount} de ${collectionValue.count} mensalidades pagas`
-              : `${money(collectionValue.receivedCents)} recebido`}
-          </p>
-          {collectionValue.balanceCents > 0 && (
-            <p className="font-numeric text-sm tabular-nums">
-              Saldo {money(collectionValue.balanceCents)}
-            </p>
-          )}
-        </div>
-      </div>
-    </li>
+    </div>
   );
+}
+
+function invoiceItemName(item: FinanceSchedule): string {
+  if (item.kind !== "MATERIAL") return "Mensalidade do curso";
+  if (item.material && item.material.items.length > 1) return "Materiais didáticos";
+  return item.materialName ?? "Material didático";
+}
+
+function InvoiceItemValue({ item, card }: { item: FinanceSchedule; card: boolean }): ReactElement {
+  return (
+    <div className={styles.value}>
+      <p className={styles.itemAmount}>
+        <span className="sr-only">Valor do aluno: </span>
+        {money(itemAmount(item))}
+      </p>
+      {card && (
+        <p className="text-caption text-muted-foreground">
+          Taxa {item.material?.cardFeePct?.toLocaleString("pt-BR")}% ·{" "}
+          {money(item.material?.cardFeeCents ?? 0)}
+          <br />
+          Líquido {money(item.totalCents)}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function InvoiceItemSettlement({ item }: { item: FinanceSchedule }): ReactElement {
+  const collection = item.collection;
+  const status = invoiceItemStatus(collection);
+  return (
+    <div className={styles.settlement}>
+      <Badge variant={status.variant}>{status.label}</Badge>
+      <div className="grid gap-1 text-caption text-muted-foreground">
+        <p>{invoiceSettlementLabel(item)}</p>
+        {collection.balanceCents > 0 && (
+          <p className="font-numeric text-sm tabular-nums">
+            Saldo {money(collection.balanceCents)}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function invoiceSettlementLabel(item: FinanceSchedule): string {
+  const collection = item.collection;
+  if (item.kind !== "TUITION") return `${money(collection.receivedCents)} recebido`;
+  if (collection.waivedCount > 0)
+    return `${collection.paidCount} pagas · ${collection.waivedCount} dispensadas`;
+  return `${collection.paidCount} de ${collection.count} mensalidades pagas`;
+}
+
+function invoiceItemStatus(collection: FinanceSchedule["collection"]): {
+  label: string;
+  variant: "destructive" | "neutral" | "success" | "warning";
+} {
+  if (collection.overdueCount > 0) return { label: "Em atraso", variant: "destructive" };
+  if (collection.balanceCents === 0 && collection.paidCount > 0 && collection.waivedCount > 0)
+    return { label: "Sem saldo", variant: "neutral" };
+  if (collection.balanceCents === 0 && collection.paidCount > 0)
+    return { label: "Quitado", variant: "success" };
+  if (collection.balanceCents === 0 && collection.waivedCount > 0)
+    return { label: "Dispensado", variant: "neutral" };
+  if (collection.receivedCents > 0) return { label: "Parcial", variant: "warning" };
+  return { label: "A receber", variant: "neutral" };
 }
 function Meta({ label, children }: { label: string; children: ReactNode }): ReactElement {
   return (
@@ -170,7 +206,7 @@ export function itemAmount(schedule: FinanceSchedule): number {
 }
 export function paymentTerms(schedule: FinanceSchedule): string {
   const materialValue = schedule.material;
-  if (materialValue?.chargedAmountCents != null)
+  if (typeof materialValue?.chargedAmountCents === "number")
     return materialValue.payment === "INSTALLMENTS"
       ? `${materialValue.quotedInstallments} × ${money(materialValue.quotedInstallmentCents)}`
       : `${money(materialValue.chargedAmountCents)} à vista`;

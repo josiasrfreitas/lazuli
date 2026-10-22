@@ -81,21 +81,7 @@ function FinanceHeading({
   const contracts = state.summary.data ? visibleFinanceContracts(state.summary.data) : [];
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2
-          id="student-charges-heading"
-          className="font-display text-xl font-semibold text-heading"
-        >
-          {state.filter === "overdue" ? "Fila de pendências" : "Histórico de cobranças"}
-        </h2>
-        <p className="mt-1 text-caption text-muted-foreground">
-          {state.filter === "overdue"
-            ? "Vencimentos mais antigos primeiro. Registre o recebimento para quitar a pendência."
-            : state.filter === "paid"
-              ? "Cobranças quitadas deste aluno."
-              : "Todas as cobranças vinculadas a este aluno, com seus saldos atuais."}
-        </p>
-      </div>
+      <FinanceHeadingCopy filter={state.filter} />
       <div className="flex flex-wrap items-center gap-3">
         {contracts.map((contract) => (
           <Button
@@ -123,6 +109,23 @@ function FinanceHeading({
           </TabsList>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+function FinanceHeadingCopy({ filter }: { filter: StudentFinanceState["filter"] }): ReactElement {
+  return (
+    <div>
+      <h2 id="student-charges-heading" className="font-display text-xl font-semibold text-heading">
+        {filter === "overdue" ? "Fila de pendências" : "Histórico de cobranças"}
+      </h2>
+      <p className="mt-1 text-caption text-muted-foreground">
+        {filter === "overdue"
+          ? "Vencimentos mais antigos primeiro. Registre o recebimento para quitar a pendência."
+          : (filter === "paid"
+            ? "Cobranças quitadas deste aluno."
+            : "Todas as cobranças vinculadas a este aluno, com seus saldos atuais.")}
+      </p>
     </div>
   );
 }
@@ -158,11 +161,11 @@ function FinanceTable({
   return (
     <DataTable
       label={state.filter === "overdue" ? "Cobranças que precisam de ação" : "Parcelas do aluno"}
-      columns={financeColumns(
-        state.setPayment,
-        state.filter === "overdue" ? state.data?.rows[0]?.installmentId : undefined,
+      columns={financeColumns({
+        onReceive: state.setPayment,
+        priorityId: state.filter === "overdue" ? state.data?.rows[0]?.installmentId : undefined,
         onTreat,
-      )}
+      })}
       state={financeTableState(state)}
       onRetry={() => void state.query.refetch()}
       errorTitle="Não foi possível carregar as parcelas"

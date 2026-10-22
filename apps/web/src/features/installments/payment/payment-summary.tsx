@@ -6,6 +6,33 @@ import { draftReceipts, paymentDraftError } from "./draft";
 import type { PaymentFormState } from "./logic";
 
 export function PaymentSummary({ state }: { state: PaymentFormState }): ReactJSX.Element {
+  const totals = paymentTotals(state);
+  return (
+    <FormSection
+      title={
+        <span className="flex items-center gap-2">
+          <ReceiptText className="size-4" aria-hidden /> Resumo do pagamento
+        </span>
+      }
+    >
+      {state.draft.items.length === 0 ? (
+        <p className="text-caption text-muted-foreground">
+          Adicione parcelas para conferir os valores do recebimento.
+        </p>
+      ) : (
+        <PaymentSummaryDetails state={state} totals={totals} />
+      )}
+    </FormSection>
+  );
+}
+
+function paymentTotals(state: PaymentFormState): {
+  receiptCount: number;
+  ready: boolean;
+  interest: number;
+  discount: number;
+  remaining: number;
+} {
   const receipts = draftReceipts(state.draft, state.preview);
   const ready =
     !state.loading &&
@@ -24,54 +51,65 @@ export function PaymentSummary({ state }: { state: PaymentFormState }): ReactJSX
     (sum, row) => sum + (row.line?.quote.remainingCents ?? 0),
     0,
   );
+  return { receiptCount: receipts.length, ready, interest, discount, remaining };
+}
+
+function PaymentSummaryDetails({
+  state,
+  totals,
+}: {
+  state: PaymentFormState;
+  totals: ReturnType<typeof paymentTotals>;
+}): ReactJSX.Element {
+  const { receiptCount, ready, interest, discount, remaining } = totals;
   return (
-    <FormSection
-      title={
-        <span className="flex items-center gap-2">
-          <ReceiptText className="size-4" aria-hidden /> Resumo do pagamento
-        </span>
-      }
-    >
-      {state.draft.items.length === 0 ? (
-        <p className="text-caption text-muted-foreground">
-          Adicione parcelas para conferir os valores do recebimento.
-        </p>
-      ) : (
-        <>
-          <dl className="grid gap-2 text-caption" aria-live="polite">
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">Parcelas selecionadas</dt>
-              <dd className="font-numeric font-medium">{state.draft.items.length}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">Recebimentos</dt>
-              <dd className="font-numeric font-medium">{receipts.length}</dd>
-            </div>
-            {ready && interest > 0 && (
-              <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Novos juros</dt>
-                <dd className="shrink-0 font-numeric">{money(interest)}</dd>
-              </div>
-            )}
-            {ready && discount > 0 && (
-              <div className="flex justify-between gap-3">
-                <dt className="text-muted-foreground">Desconto por pontualidade</dt>
-                <dd className="shrink-0 font-numeric text-success">{money(discount)}</dd>
-              </div>
-            )}
-            <div className="flex flex-wrap justify-between gap-2 border-t border-border pt-3">
-              <dt className="text-muted-foreground">Saldo após pagamento</dt>
-              <dd className="font-numeric font-semibold">
-                {state.loading ? "Calculando…" : ready ? money(remaining) : "Prévia indisponível"}
-              </dd>
-            </div>
-          </dl>
-          <p className="text-caption text-muted-foreground">
-            As parcelas estão agrupadas por recebimento. Data e forma de pagamento se aplicam a todo
-            o lote.
-          </p>
-        </>
-      )}
-    </FormSection>
+    <>
+      <dl className="grid gap-2 text-caption" aria-live="polite">
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted-foreground">Parcelas selecionadas</dt>
+          <dd className="font-numeric font-medium">{state.draft.items.length}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted-foreground">Recebimentos</dt>
+          <dd className="font-numeric font-medium">{receiptCount}</dd>
+        </div>
+        {ready && interest > 0 && (
+          <div className="flex justify-between gap-3">
+            <dt className="text-muted-foreground">Novos juros</dt>
+            <dd className="shrink-0 font-numeric">{money(interest)}</dd>
+          </div>
+        )}
+        {ready && discount > 0 && (
+          <div className="flex justify-between gap-3">
+            <dt className="text-muted-foreground">Desconto por pontualidade</dt>
+            <dd className="shrink-0 font-numeric text-success">{money(discount)}</dd>
+          </div>
+        )}
+        <div className="flex flex-wrap justify-between gap-2 border-t border-border pt-3">
+          <dt className="text-muted-foreground">Saldo após pagamento</dt>
+          <dd className="font-numeric font-semibold">
+            {balanceLabel({ loading: state.loading, ready, remaining })}
+          </dd>
+        </div>
+      </dl>
+      <p className="text-caption text-muted-foreground">
+        As parcelas estão agrupadas por recebimento. Data e forma de pagamento se aplicam a todo o
+        lote.
+      </p>
+    </>
   );
+}
+
+function balanceLabel({
+  loading,
+  ready,
+  remaining,
+}: {
+  loading: boolean;
+  ready: boolean;
+  remaining: number;
+}): string {
+  if (loading) return "Calculando…";
+  if (ready) return money(remaining);
+  return "Prévia indisponível";
 }

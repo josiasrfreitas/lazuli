@@ -16,6 +16,8 @@ import { formatDateOnlyBR, toWhatsAppUrl } from "~/lib/format";
 import type { StudentProfile } from "./logic";
 import { ProfileFact } from "./profile-shared";
 
+const NOT_INFORMED = "Não informado";
+
 export function StudentContactButton({ profile }: { profile: StudentProfile }): ReactElement {
   return (
     <Sheet>
@@ -58,16 +60,16 @@ function StudentContactFacts({ profile }: { profile: StudentProfile }): ReactEle
   return (
     <dl className="grid gap-4">
       <ProfileFact label="Nascimento">
-        {profile.contact.birthDate ? formatDateOnlyBR(profile.contact.birthDate) : "Não informado"}
+        {profile.contact.birthDate ? formatDateOnlyBR(profile.contact.birthDate) : NOT_INFORMED}
       </ProfileFact>
-      <ProfileFact label="Telefone">{profile.contact.phone ?? "Não informado"}</ProfileFact>
+      <ProfileFact label="Telefone">{profile.contact.phone ?? NOT_INFORMED}</ProfileFact>
       <ProfileFact label="E-mail">
         {profile.contact.email ? (
           <a className="text-interactive hover:underline" href={`mailto:${profile.contact.email}`}>
             {profile.contact.email}
           </a>
         ) : (
-          "Não informado"
+          NOT_INFORMED
         )}
       </ProfileFact>
       {profile.address && (
@@ -82,7 +84,7 @@ function StudentContactFacts({ profile }: { profile: StudentProfile }): ReactEle
             profile.address.postalCode,
           ]
             .filter(Boolean)
-            .join(", ") || "Não informado"}
+            .join(", ") || NOT_INFORMED}
         </ProfileFact>
       )}
     </dl>

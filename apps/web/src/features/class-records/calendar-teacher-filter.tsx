@@ -19,21 +19,7 @@ export function CalendarTeacherFilter({
   onQueryChange: (query: string) => void;
   onChange: (teachers: SearchSelectOption[]) => void;
 }): ReactJSX.Element {
-  const search = normalizeSearch(query);
-  const options = [
-    ...new Map(
-      lessons.map((lesson) => {
-        const id = lesson.teacherId ?? "unassigned";
-        return [id, { id, label: lesson.teacher ?? "Professor a definir" }] as const;
-      }),
-    ).values(),
-  ]
-    .filter(
-      (teacher) =>
-        !selected.some((item) => item.id === teacher.id) &&
-        normalizeSearch(teacher.label).includes(search),
-    )
-    .toSorted((left, right) => left.label.localeCompare(right.label, "pt-BR"));
+  const options = availableTeachers({ lessons, selected, query });
 
   return (
     <div className="flex max-w-full min-w-0 flex-wrap items-center gap-2">
@@ -60,26 +46,63 @@ export function CalendarTeacherFilter({
           />
         </Field>
       </div>
-      {selected.length > 0 && (
-        <div
-          className="flex min-w-0 flex-wrap gap-1"
-          role="group"
-          aria-label="Professores selecionados"
+      <SelectedTeachers selected={selected} onChange={onChange} />
+    </div>
+  );
+}
+
+function availableTeachers({
+  lessons,
+  selected,
+  query,
+}: {
+  lessons: CalendarLesson[];
+  selected: SearchSelectOption[];
+  query: string;
+}): SearchSelectOption[] {
+  const search = normalizeSearch(query);
+  return [
+    ...new Map(
+      lessons.map((lesson) => {
+        const id = lesson.teacherId ?? "unassigned";
+        return [id, { id, label: lesson.teacher ?? "Professor a definir" }] as const;
+      }),
+    ).values(),
+  ]
+    .filter(
+      (teacher) =>
+        !selected.some((item) => item.id === teacher.id) &&
+        normalizeSearch(teacher.label).includes(search),
+    )
+    .toSorted((left, right) => left.label.localeCompare(right.label, "pt-BR"));
+}
+
+function SelectedTeachers({
+  selected,
+  onChange,
+}: {
+  selected: SearchSelectOption[];
+  onChange: (teachers: SearchSelectOption[]) => void;
+}): ReactJSX.Element | null {
+  if (selected.length === 0) return null;
+  return (
+    <div
+      className="flex min-w-0 flex-wrap gap-1"
+      role="group"
+      aria-label="Professores selecionados"
+    >
+      {selected.map((teacher) => (
+        <Button
+          key={teacher.id}
+          variant="secondary"
+          size="sm"
+          aria-label={`Remover filtro de ${teacher.label}`}
+          onClick={() => onChange(selected.filter((item) => item.id !== teacher.id))}
         >
-          {selected.map((teacher) => (
-            <Button
-              key={teacher.id}
-              variant="secondary"
-              size="sm"
-              aria-label={`Remover filtro de ${teacher.label}`}
-              onClick={() => onChange(selected.filter((item) => item.id !== teacher.id))}
-            >
-              {teacher.label}
-              <X aria-hidden="true" />
-            </Button>
-          ))}
-        </div>
-      )}
+          {teacher.label}
+          <X aria-hidden="true" />
+        </Button>
+      ))}
     </div>
   );
 }

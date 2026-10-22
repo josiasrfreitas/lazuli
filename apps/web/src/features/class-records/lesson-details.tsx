@@ -1,7 +1,7 @@
 "use client";
 
 import type { JSX as ReactJSX } from "react";
-import { useState, type ReactElement } from "react";
+import { useState, type Dispatch, type ReactElement, type SetStateAction } from "react";
 import { History } from "lucide-react";
 import { Alert, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
@@ -34,39 +34,91 @@ export function LessonDetails({ data }: { data: ClassRecord }): ReactElement {
         onAppointment={setAppointment}
         onExperimental={setExperimental}
       />
-      {!admin && data.version > 0 && (
-        <section className="grid gap-4" aria-label="Conteúdo realizado">
-          {data.snapshot.sharedContent && (
-            <PerformedContent title="Realizado pela turma" content={data.snapshot.sharedContent} />
-          )}
-          {data.session.scheduleType === "PERSONALIZED" &&
-            data.snapshot.entries
-              .filter((row) => row.content)
-              .map((row) => (
-                <PerformedContent key={row.enrollmentId} title={row.name} content={row.content!} />
-              ))}
-        </section>
-      )}
+      <LessonPerformedContent data={data} admin={admin} />
       {data.session.scheduleType === "REGULAR" && data.snapshot.note && (
         <section className={styles.note}>
           <h3>Observação da aula</h3>
           <p>{data.snapshot.note}</p>
         </section>
       )}
-      {(data.session.scheduleType === "REGULAR" || !admin) && data.version > 0 && (
-        <section className={styles.history}>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-expanded={history}
-            onClick={() => setHistory(!history)}
-          >
-            <History aria-hidden="true" />
-            {history ? "Fechar histórico" : "Histórico do registro"}
-          </Button>
-          {history && <ClassRecordHistory sessionId={data.session.id} />}
-        </section>
+      <LessonHistory
+        data={data}
+        admin={admin}
+        open={history}
+        onToggle={() => setHistory(!history)}
+      />
+      <LessonDialogs
+        appointment={appointment}
+        visit={visit}
+        admin={admin}
+        setAppointment={setAppointment}
+        setExperimental={setExperimental}
+      />
+    </div>
+  );
+}
+
+function LessonPerformedContent({
+  data,
+  admin,
+}: {
+  data: ClassRecord;
+  admin: boolean;
+}): ReactJSX.Element | null {
+  if (admin || data.version === 0) return null;
+  return (
+    <section className="grid gap-4" aria-label="Conteúdo realizado">
+      {data.snapshot.sharedContent && (
+        <PerformedContent title="Realizado pela turma" content={data.snapshot.sharedContent} />
       )}
+      {data.session.scheduleType === "PERSONALIZED" &&
+        data.snapshot.entries
+          .filter((row) => row.content)
+          .map((row) => (
+            <PerformedContent key={row.enrollmentId} title={row.name} content={row.content!} />
+          ))}
+    </section>
+  );
+}
+
+function LessonHistory({
+  data,
+  admin,
+  open,
+  onToggle,
+}: {
+  data: ClassRecord;
+  admin: boolean;
+  open: boolean;
+  onToggle: () => void;
+}): ReactJSX.Element | null {
+  if ((data.session.scheduleType !== "REGULAR" && admin) || data.version === 0) return null;
+  return (
+    <section className={styles.history}>
+      <Button variant="ghost" size="sm" aria-expanded={open} onClick={onToggle}>
+        <History aria-hidden="true" />
+        {open ? "Fechar histórico" : "Histórico do registro"}
+      </Button>
+      {open && <ClassRecordHistory sessionId={data.session.id} />}
+    </section>
+  );
+}
+
+function LessonDialogs({
+  appointment,
+  visit,
+  admin,
+  setAppointment,
+  setExperimental,
+}: {
+  appointment: string | null;
+  visit: ClassRecord["leadGuests"][number] | undefined;
+  admin: boolean;
+  setAppointment: Dispatch<SetStateAction<string | null>>;
+  setExperimental: Dispatch<SetStateAction<string | null>>;
+}): ReactJSX.Element {
+  return (
+    <>
       {appointment && (
         <StudentAppointmentDialog
           key={appointment}
@@ -83,7 +135,7 @@ export function LessonDetails({ data }: { data: ClassRecord }): ReactElement {
           onClose={() => setExperimental(null)}
         />
       )}
-    </div>
+    </>
   );
 }
 

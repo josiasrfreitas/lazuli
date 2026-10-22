@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * Carry the requested destination into page guards. Authorization stays in the
  * route and API boundaries; prefetching never changes the active experience.
  */
-export function proxy(request: NextRequest) {
+export function proxy(request: NextRequest): NextResponse {
   const requestHeaders = new Headers(request.headers);
   const destination = request.nextUrl.clone();
   destination.searchParams.delete("_rsc");

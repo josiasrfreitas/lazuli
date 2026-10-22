@@ -4,8 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ClipboardList } from "lucide-react";
 import { Alert, Button } from "@lazuli/ui";
+import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { NewStudentDialog } from "../new-student/new-student-dialog";
+
+type PendingAction = RouterOutputs["students"]["pendingActions"]["items"][number];
 
 export function StudentPendingActions({
   studentId,
@@ -19,15 +22,8 @@ export function StudentPendingActions({
   const refresh = (): void => {
     void Promise.all([utils.students.invalidate(), utils.finance.invalidate()]);
   };
-  if (query.isError)
-    return (
-      <Alert variant="warning">
-        Não foi possível carregar as pendências.{" "}
-        <Button variant="ghost" onClick={() => void query.refetch()}>
-          Tentar novamente
-        </Button>
-      </Alert>
-    );
+  const continueRegistration = (): void => setContinuing(true);
+  if (query.isError) return <PendingActionsError onRetry={() => void query.refetch()} />;
   if (!query.data?.items.length) return null;
   return (
     <section className="mt-4 rounded-md border border-border" aria-label="Pendências do aluno">
@@ -37,41 +33,14 @@ export function StudentPendingActions({
         <span className="mr-auto text-caption text-muted-foreground">
           {query.data.items.length}
         </span>
-        <Button size="sm" onClick={() => setContinuing(true)}>
+        <Button size="sm" onClick={continueRegistration}>
           <ArrowRight />
           Continuar cadastro
         </Button>
       </div>
       <div className="divide-y divide-border">
         {query.data.items.map((item) => (
-          <div
-            key={item.id}
-            className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-          >
-            <div className="grid gap-1">
-              <h3 className="text-control font-medium">{item.title}</h3>
-              <p className="text-caption text-muted-foreground">{item.description}</p>
-            </div>
-            {item.action.type === "OPEN_LEAD" ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                nativeButton={false}
-                render={<Link href={`/interessados/${item.action.resourceId}`} />}
-              >
-                {item.action.label}
-              </Button>
-            ) : (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={item.blockedBy.length > 0}
-                onClick={() => setContinuing(true)}
-              >
-                {item.action.label}
-              </Button>
-            )}
-          </div>
+          <PendingActionRow key={item.id} item={item} onContinue={continueRegistration} />
         ))}
       </div>
       <NewStudentDialog
@@ -84,5 +53,52 @@ export function StudentPendingActions({
         }}
       />
     </section>
+  );
+}
+
+function PendingActionsError({ onRetry }: { onRetry: () => void }): ReactJSX.Element {
+  return (
+    <Alert variant="warning">
+      Não foi possível carregar as pendências.{" "}
+      <Button variant="ghost" onClick={onRetry}>
+        Tentar novamente
+      </Button>
+    </Alert>
+  );
+}
+
+function PendingActionRow({
+  item,
+  onContinue,
+}: {
+  item: PendingAction;
+  onContinue: () => void;
+}): ReactJSX.Element {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div className="grid gap-1">
+        <h3 className="text-control font-medium">{item.title}</h3>
+        <p className="text-caption text-muted-foreground">{item.description}</p>
+      </div>
+      {item.action.type === "OPEN_LEAD" ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          nativeButton={false}
+          render={<Link href={`/interessados/${item.action.resourceId}`} />}
+        >
+          {item.action.label}
+        </Button>
+      ) : (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={item.blockedBy.length > 0}
+          onClick={onContinue}
+        >
+          {item.action.label}
+        </Button>
+      )}
+    </div>
   );
 }

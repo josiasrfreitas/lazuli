@@ -23,6 +23,49 @@ export type WeeklyCalendarSelection = {
   onSelectSlot?: (slot: CalendarSlot) => void;
 };
 export type LessonCalendarEvent = CalendarEvent & { lesson: CalendarLesson };
+function calendarSlot(range: CalendarInterval): CalendarSlot {
+  return {
+    start: calendarWallDate(range.date, range.startTime),
+    end: calendarWallDate(range.date, range.endTime),
+  };
+}
+
+function blockedDays(
+  selection: WeeklyCalendarSelection | undefined,
+  date: string,
+): {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  label: string;
+}[] {
+  if (!selection) return [];
+  return Array.from({ length: 7 }, (_unused, day) => shiftDate(monday(date), day))
+    .filter((day) => selection.isDateDisabled(day))
+    .map((day) => ({
+      id: day,
+      date: day,
+      startTime: "00:00",
+      endTime: "24:00",
+      label: "Dia indisponível",
+    }));
+}
+
+function renderWeeklyEvent(
+  event: LessonCalendarEvent,
+  context: CalendarEventRenderContext,
+): ReactJSX.Element {
+  return (
+    <WeeklyLessonCard
+      lesson={event.lesson}
+      expanded={context.expanded}
+      expandedDayWidth={context.expandedDayWidth}
+      expandedWidthShare={context.expandedWidthShare}
+      onOpen={context.activate}
+    />
+  );
+}
 export function lessonCalendarEvents(lessons: CalendarLesson[]): LessonCalendarEvent[] {
   return lessons.map((lesson) => ({
     id: lesson.id,
@@ -32,6 +75,15 @@ export function lessonCalendarEvents(lessons: CalendarLesson[]): LessonCalendarE
     title: lesson.className,
     subtitle: lesson.teacher ?? "Professor a definir",
     lesson,
+  }));
+}
+function selectableEvents(
+  lessons: CalendarLesson[],
+  selection: WeeklyCalendarSelection | undefined,
+): (LessonCalendarEvent & { disabled: boolean })[] {
+  return lessonCalendarEvents(lessons).map((event) => ({
+    ...event,
+    disabled: selection ? !selection.isLessonSelectable(event.lesson) : false,
   }));
 }
 export function WeeklyLessonCard({
@@ -84,25 +136,7 @@ export function WeeklyCalendar({
   keepExpanded: boolean;
   selection?: WeeklyCalendarSelection;
 }): ReactJSX.Element {
-  const events = lessonCalendarEvents(lessons).map((event) => ({
-    ...event,
-    disabled: selection ? !selection.isLessonSelectable(event.lesson) : false,
-  }));
-  const slot = (range: CalendarInterval): { start: Date; end: Date } => ({
-    start: calendarWallDate(range.date, range.startTime),
-    end: calendarWallDate(range.date, range.endTime),
-  });
-  const blocked = selection
-    ? Array.from({ length: 7 }, (_unused, day) => shiftDate(monday(date), day))
-        .filter((date) => selection.isDateDisabled(date))
-        .map((day) => ({
-          id: day,
-          date: day,
-          startTime: "00:00",
-          endTime: "24:00",
-          label: "Dia indisponível",
-        }))
-    : [];
+  const events = selectableEvents(lessons, selection);
   return (
     <ScheduleCalendar
       date={date}
@@ -119,24 +153,18 @@ export function WeeklyCalendar({
       {...(selection
         ? {}
         : {
-            renderEvent: (event: LessonCalendarEvent, context: CalendarEventRenderContext) => (
-              <WeeklyLessonCard
-                lesson={event.lesson}
-                expanded={context.expanded}
-                expandedDayWidth={context.expandedDayWidth}
-                expandedWidthShare={context.expandedWidthShare}
-                onOpen={context.activate}
-              />
-            ),
+            renderEvent: renderWeeklyEvent,
           })}
       rangeSelection={
         selection?.onSelectSlot
           ? {
               controls: <></>,
-              blocked,
+              blocked: blockedDays(selection, date),
               getError: (range) =>
-                selection.canSelectSlot?.(slot(range)) ? undefined : "Horário indisponível.",
-              onSelect: (range) => selection.onSelectSlot?.(slot(range)),
+                selection.canSelectSlot?.(calendarSlot(range))
+                  ? undefined
+                  : "Horário indisponível.",
+              onSelect: (range) => selection.onSelectSlot?.(calendarSlot(range)),
             }
           : undefined
       }

@@ -43,30 +43,48 @@ export function MobileNavigation({ identity }: { identity: StaffIdentity }): Rea
             if (event.key === "Escape") setKeyboard(true);
           }}
         >
-          <nav aria-label="Navegação principal" className={styles.navigation}>
-            {navSectionsFor(identity.role).map((section) => (
-              <div key={section.id} className={styles.section}>
-                {section.label && <p className={styles.sectionTitle}>{section.label}</p>}
-                <div>
-                  {section.items.map(({ href, label, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className={styles.link}
-                      data-menu-item
-                      aria-current={matchesNavHref({ href, pathname }) ? "page" : undefined}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Icon aria-hidden="true" />
-                      <span>{label}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </nav>
+          <NavigationItems
+            role={identity.role}
+            pathname={pathname}
+            onNavigate={() => setOpen(false)}
+          />
         </PopoverContent>
       </Popover>
     </div>
+  );
+}
+
+function NavigationItems({
+  role,
+  pathname,
+  onNavigate,
+}: {
+  role: StaffIdentity["role"];
+  pathname: string;
+  onNavigate: () => void;
+}): ReactElement {
+  return (
+    <nav aria-label="Navegação principal" className={styles.navigation}>
+      {navSectionsFor(role).map((section) => (
+        <div key={section.id} className={styles.section}>
+          {section.label && <p className={styles.sectionTitle}>{section.label}</p>}
+          <div>
+            {section.items.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={styles.link}
+                data-menu-item
+                aria-current={matchesNavHref({ href, pathname }) ? "page" : undefined}
+                onClick={onNavigate}
+              >
+                <Icon aria-hidden="true" />
+                <span>{label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
+    </nav>
   );
 }

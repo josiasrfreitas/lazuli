@@ -14,13 +14,16 @@ export type PreviewAppointment = {
   note: string;
   status: "SCHEDULED" | "ATTENDED" | "CANCELLED";
 };
+const SUPPORT_TIME = "14h–14h45";
+const SUPPORT_TEACHER = "Beatriz Albuquerque";
+const SUPPORT_PURPOSE = "Reforço";
 const EXAMPLES: PreviewAppointment[] = [
   {
     id: "support",
     day: "15 out",
-    time: "14h–14h45",
-    purpose: "Reforço",
-    teacher: "Beatriz Albuquerque",
+    time: SUPPORT_TIME,
+    purpose: SUPPORT_PURPOSE,
+    teacher: SUPPORT_TEACHER,
     note: "Praticar a organização de frases a partir da última produção escrita.",
     status: "SCHEDULED",
   },
@@ -36,9 +39,9 @@ const EXAMPLES: PreviewAppointment[] = [
   {
     id: "support-past",
     day: "08 out",
-    time: "14h–14h45",
-    purpose: "Reforço",
-    teacher: "Beatriz Albuquerque",
+    time: SUPPORT_TIME,
+    purpose: SUPPORT_PURPOSE,
+    teacher: SUPPORT_TEACHER,
     note: "Conseguiu iniciar o exercício após a retomada das instruções.",
     status: "ATTENDED",
   },
@@ -54,9 +57,9 @@ const EXAMPLES: PreviewAppointment[] = [
   {
     id: "cancelled-example",
     day: "24 set",
-    time: "14h–14h45",
-    purpose: "Reforço",
-    teacher: "Beatriz Albuquerque",
+    time: SUPPORT_TIME,
+    purpose: SUPPORT_PURPOSE,
+    teacher: SUPPORT_TEACHER,
     note: "Encontro cancelado a pedido da família.",
     status: "CANCELLED",
   },

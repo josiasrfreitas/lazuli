@@ -37,7 +37,7 @@ export function activityDays(rows: Activity[], now: Date): ActivityDay[] {
       const date = dayName.format(row.occurredAt);
       group = {
         key,
-        label: key === today ? "Hoje" : key === previousDay ? "Ontem" : date,
+        label: key === today ? "Hoje" : (key === previousDay ? "Ontem" : date),
         date,
         rows: [],
       };

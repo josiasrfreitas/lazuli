@@ -184,14 +184,7 @@ function ClosingPanel({ data }: { data: Closings }): ReactElement {
       aria-labelledby="contract-closings-title"
     >
       <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 id="contract-closings-title" className="text-lg font-semibold text-heading">
-            Volume contratado
-          </h2>
-          <p className="mt-1 text-caption text-muted-foreground">
-            Pelo mês de fechamento · prazo completo de cada contrato.
-          </p>
-        </div>
+        <ClosingPanelTitle />
         <SegmentedControl
           aria-label="Visualização dos contratos"
           size="sm"
@@ -225,5 +218,18 @@ function ClosingPanel({ data }: { data: Closings }): ReactElement {
       <ClosingVisualization data={data} view={view} measure={measure} />
       <ClosingBasis incompleteCount={data.incompleteCount} />
     </section>
+  );
+}
+
+function ClosingPanelTitle(): ReactElement {
+  return (
+    <div>
+      <h2 id="contract-closings-title" className="text-lg font-semibold text-heading">
+        Volume contratado
+      </h2>
+      <p className="mt-1 text-caption text-muted-foreground">
+        Pelo mês de fechamento · prazo completo de cada contrato.
+      </p>
+    </div>
   );
 }

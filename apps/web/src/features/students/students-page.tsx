@@ -240,48 +240,30 @@ function studentTableState(
 
 export function StudentsPage(): ReactElement {
   const filters = useStudentsFilters();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const openStudent = useOpenStudent();
   const students = useStudentsList(filters);
   const fields = useStudentFilterFields(filters);
   const [creating, setCreating] = useState(false);
   const [resuming, setResuming] = useState<string | null>(null);
   const pagination = paginationFor(filters);
-  const openStudent = (id: string): void => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("aluno");
-    const back = params.size > 0 ? `/alunos?${params.toString()}` : "/alunos";
-    router.push(`/alunos/${id}?voltar=${encodeURIComponent(back)}`);
-  };
+  const startCreating = (): void => setCreating(true);
 
   return (
     <>
       <DataTablePage
         controls={
-          <StudentsControls
-            filters={filters}
-            fields={fields}
-            onNewStudent={() => {
-              setCreating(true);
-            }}
-          />
+          <StudentsControls filters={filters} fields={fields} onNewStudent={startCreating} />
         }
         title="Alunos"
       >
-        <div className="flex h-full min-h-0 flex-col gap-2">
-          <TableFilterChips fields={fields} />
-          <div className="min-h-0 flex-1">
-            <StudentsTable
-              onRetry={() => {
-                void students.refetch();
-              }}
-              onOpenRow={openStudent}
-              onContinue={setResuming}
-              state={studentTableState(filters, students)}
-              pagination={tablePaginationPropsFor(pagination, students.data)}
-            />
-          </div>
-        </div>
+        <StudentsTableSection
+          fields={fields}
+          filters={filters}
+          students={students}
+          pagination={pagination}
+          onOpenStudent={openStudent}
+          onContinue={setResuming}
+        />
       </DataTablePage>
       <NewStudentDialog
         onCreated={(id) => {
@@ -301,5 +283,47 @@ export function StudentsPage(): ReactElement {
         open={creating || Boolean(resuming)}
       />
     </>
+  );
+}
+
+function useOpenStudent(): (id: string) => void {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  return (id: string): void => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("aluno");
+    const back = params.size > 0 ? `/alunos?${params.toString()}` : "/alunos";
+    router.push(`/alunos/${id}?voltar=${encodeURIComponent(back)}`);
+  };
+}
+
+function StudentsTableSection({
+  fields,
+  filters,
+  students,
+  pagination,
+  onOpenStudent,
+  onContinue,
+}: {
+  fields: ReturnType<typeof useStudentFilterFields>;
+  filters: ReturnType<typeof useStudentsFilters>;
+  students: ReturnType<typeof useStudentsList>;
+  pagination: ReturnType<typeof paginationFor>;
+  onOpenStudent: (id: string) => void;
+  onContinue: (id: string) => void;
+}): ReactElement {
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <TableFilterChips fields={fields} />
+      <div className="min-h-0 flex-1">
+        <StudentsTable
+          onRetry={() => void students.refetch()}
+          onOpenRow={onOpenStudent}
+          onContinue={onContinue}
+          state={studentTableState(filters, students)}
+          pagination={tablePaginationPropsFor(pagination, students.data)}
+        />
+      </div>
+    </div>
   );
 }

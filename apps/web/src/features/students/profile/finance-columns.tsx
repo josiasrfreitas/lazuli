@@ -32,11 +32,15 @@ const COLUMNS: DataTableColumn<FinanceRow>[] = [
     cell: (row) => <InstallmentStatus row={row} />,
   },
 ];
-export function financeColumns(
-  onReceive: (row: FinanceRow) => void,
-  priorityId?: string,
-  onTreat?: (row: FinanceRow) => void,
-): DataTableColumn<FinanceRow>[] {
+export function financeColumns({
+  onReceive,
+  priorityId,
+  onTreat,
+}: {
+  onReceive: (row: FinanceRow) => void;
+  priorityId?: string | undefined;
+  onTreat?: (row: FinanceRow) => void;
+}): DataTableColumn<FinanceRow>[] {
   return [
     ...(priorityId ? queueColumns() : COLUMNS),
     {

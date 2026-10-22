@@ -1,5 +1,5 @@
 "use client";
-import type { JSX as ReactJSX } from "react";
+import type { ComponentProps, JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { History } from "lucide-react";
 import {
@@ -88,35 +88,60 @@ function FinanceHistoryContent({ studentId }: { studentId: string }): ReactJSX.E
         {tab === "treatments" ? (
           <StudentTreatments studentId={studentId} />
         ) : (
-          <div className="grid gap-5 pb-2">
-            {history.isPending && <InlineSkeleton className="h-48 w-full" />}
-            {history.isError && (
-              <div role="alert" className="grid gap-2">
-                Não foi possível carregar o histórico financeiro.
-                <Button variant="secondary" size="sm" onClick={() => void history.refetch()}>
-                  Tentar novamente
-                </Button>
-              </div>
-            )}
-            {!history.isPending && !history.isError && rows.length === 0 && (
-              <p className="py-6 text-caption text-muted-foreground">
-                Nenhuma atividade financeira registrada para este aluno.
-              </p>
-            )}
-            {rows.length > 0 && <ActivityTimeline rows={rows} />}
-            {history.hasNextPage && (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={history.isFetchingNextPage}
-                onClick={() => void history.fetchNextPage()}
-              >
-                {history.isFetchingNextPage ? "Carregando…" : "Carregar mais atividades"}
-              </Button>
-            )}
-          </div>
+          <FinanceActivityList
+            rows={rows}
+            isPending={history.isPending}
+            isError={history.isError}
+            hasNextPage={history.hasNextPage}
+            isFetchingNextPage={history.isFetchingNextPage}
+            onRetry={() => void history.refetch()}
+            onLoadMore={() => void history.fetchNextPage()}
+          />
         )}
       </DialogBody>
     </>
+  );
+}
+
+function FinanceActivityList({
+  rows,
+  isPending,
+  isError,
+  hasNextPage,
+  isFetchingNextPage,
+  onRetry,
+  onLoadMore,
+}: {
+  rows: ComponentProps<typeof ActivityTimeline>["rows"];
+  isPending: boolean;
+  isError: boolean;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  onRetry: () => void;
+  onLoadMore: () => void;
+}): ReactJSX.Element {
+  return (
+    <div className="grid gap-5 pb-2">
+      {isPending && <InlineSkeleton className="h-48 w-full" />}
+      {isError && (
+        <div role="alert" className="grid gap-2">
+          Não foi possível carregar o histórico financeiro.
+          <Button variant="secondary" size="sm" onClick={onRetry}>
+            Tentar novamente
+          </Button>
+        </div>
+      )}
+      {!isPending && !isError && rows.length === 0 && (
+        <p className="py-6 text-caption text-muted-foreground">
+          Nenhuma atividade financeira registrada para este aluno.
+        </p>
+      )}
+      {rows.length > 0 && <ActivityTimeline rows={rows} />}
+      {hasNextPage && (
+        <Button variant="secondary" size="sm" disabled={isFetchingNextPage} onClick={onLoadMore}>
+          {isFetchingNextPage ? "Carregando…" : "Carregar mais atividades"}
+        </Button>
+      )}
+    </div>
   );
 }
