@@ -1,5 +1,14 @@
 # PR #207 — um bloco por agente na mesma worktree
 
+> **BLOCO 9 FECHADO LOCALMENTE — GATE DE PUSH:** o hook rejeitou
+> `apps/web/src/features/installments/installments-page.tsx` com 655 linhas
+> (limite 650); o predicado dos filtros foi movido para
+> `apps/web/src/features/installments/filters.ts` e a página agora tem 642
+> linhas. Esses dois arquivos e as fichas de coordenação/progresso/API 6/Web 9
+> são os caminhos reservados. Lint global 16/16 e 0 erros, typecheck Web,
+> testes Web 295/295 e checagem de tamanho passaram. Próxima ação: commitar,
+> verificar o hook sobre HEAD e repetir o push. Nenhum outro agente está ativo.
+
 > **BLOCO 8 FECHADO:** `api-block8`, 31 erros iniciais em 21 arquivos próprios,
 > **0 restantes na API completa**; testes afetados passaram (88 API unitários,
 > 295 Web, 314 integração, 63 transporte). Typecheck da raiz passou (13/13

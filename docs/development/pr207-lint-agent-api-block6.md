@@ -1,5 +1,9 @@
 # PR #207 — ficha `api-block6`
 
+> **ENTREGA:** o bloco 6 segue fechado. Após os blocos 7 e 8 zerarem o lint
+> global, o push encontrou um gate de 650 linhas no Web. O ajuste e as
+> verificações ficam na [ficha Web 9](pr207-lint-agent-web-block9.md).
+
 > **FECHADO:** bloco 6 API, 24 arquivos próprios, 100 erros removidos.
 > Commit `a3d2d17` (`lint (bloco 6): resolver consultas e fluxos da API`).
 > O lint direcionado terminou com **0 erros e 2 avisos**. O lint completo da

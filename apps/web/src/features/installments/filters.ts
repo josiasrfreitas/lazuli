@@ -57,6 +57,20 @@ export type InstallmentFilters = {
   pageSize: FinanceInstallmentsInput["pageSize"];
 };
 
+export function hasInstallmentFilters(filters: InstallmentFilters): boolean {
+  return Boolean(
+    filters.studentId ||
+    filters.search ||
+    filters.status ||
+    filters.situations.length > 0 ||
+    filters.origins.length > 0 ||
+    filters.dueFrom ||
+    filters.dueTo ||
+    filters.amountFrom ||
+    filters.amountTo,
+  );
+}
+
 function validStatuses(value: string | null): InstallmentStatus[] {
   if (!value) return [];
   return [

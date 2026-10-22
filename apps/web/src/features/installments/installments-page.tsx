@@ -21,6 +21,7 @@ import { useSearchDraft } from "~/lib/use-search-draft";
 import { trpc } from "~/lib/trpc";
 import { tablePaginationPropsFor } from "~/lib/pagination";
 import {
+  hasInstallmentFilters,
   INSTALLMENT_STATUSES,
   SEARCH_MAX_LENGTH,
   situationPatch,
@@ -40,20 +41,6 @@ import {
 import { originLabel } from "./view-model";
 
 const MAX_NEGOTIATION_INSTALLMENTS = 100;
-
-function hasInstallmentFilters(filters: InstallmentFilters): boolean {
-  return Boolean(
-    filters.studentId ||
-    filters.search ||
-    filters.status ||
-    filters.situations.length > 0 ||
-    filters.origins.length > 0 ||
-    filters.dueFrom ||
-    filters.dueTo ||
-    filters.amountFrom ||
-    filters.amountTo,
-  );
-}
 
 function SearchField({
   search,

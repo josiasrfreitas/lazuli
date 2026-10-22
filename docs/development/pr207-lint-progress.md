@@ -1,5 +1,13 @@
 # PR #207 — inventário de lint
 
+> **BLOCO 9 FECHADO LOCALMENTE — GATE DE PUSH:**
+> `apps/web/src/features/installments/installments-page.tsx` caiu de 655 para
+> 642 linhas (limite 650) com o predicado movido para
+> `apps/web/src/features/installments/filters.ts`. Lint global 16/16, 0 erros;
+> typecheck Web, 295/295 testes Web e checagem de tamanho passaram. Falta
+> commitar, verificar o hook sobre HEAD e subir a branch. Ficha:
+> [Web 9](pr207-lint-agent-web-block9.md).
+
 > **BLOCO 8 FECHADO:** 31 erros iniciais em 21 arquivos; medição final:
 > **0 erros na API completa** e 0 no script direcionado. A API tem 15 avisos
 > não bloqueantes e nenhum novo fingerprint de erro frente ao baseline. Os
