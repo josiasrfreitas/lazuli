@@ -1,5 +1,5 @@
 "use client";
-import type { ReactElement } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 import {
   Field,
   FieldError,
@@ -12,6 +12,16 @@ import {
   SelectValue,
 } from "@lazuli/ui";
 
+function ControlLabel({ label, icon }: { label: string; icon?: ReactNode }): ReactNode {
+  if (!icon) return label;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {icon}
+      {label}
+    </span>
+  );
+}
+
 export function SelectControl({
   name,
   label,
@@ -20,6 +30,7 @@ export function SelectControl({
   choices,
   error,
   hideLabel = false,
+  labelIcon,
 }: {
   name: string;
   label: string;
@@ -28,11 +39,12 @@ export function SelectControl({
   choices: { value: string; label: string }[];
   error?: string | undefined;
   hideLabel?: boolean;
+  labelIcon?: ReactNode;
 }): ReactElement {
   return (
     <Field name={name} className={hideLabel ? "self-end" : undefined}>
       <Label htmlFor={name} className={hideLabel ? "sr-only" : undefined}>
-        {label}
+        <ControlLabel label={label} icon={labelIcon} />
       </Label>
       <Select
         name={name}
@@ -64,22 +76,29 @@ export function TextControl({
   onChange,
   error,
   inputMode,
+  type,
   invalid,
+  labelIcon,
 }: {
   name: string;
   label: string;
-  placeholder: string;
+  placeholder?: string;
   value: string;
   onChange: (value: string) => void;
   error?: string | undefined;
-  inputMode?: "numeric" | undefined;
+  inputMode?: ComponentProps<"input">["inputMode"];
+  type?: ComponentProps<"input">["type"];
   invalid?: boolean | undefined;
+  labelIcon?: ReactNode;
 }): ReactElement {
   return (
     <Field>
-      <Label htmlFor={name}>{label}</Label>
+      <Label htmlFor={name}>
+        <ControlLabel label={label} icon={labelIcon} />
+      </Label>
       <Input
         id={name}
+        type={type}
         name={name}
         autoComplete="off"
         placeholder={placeholder}

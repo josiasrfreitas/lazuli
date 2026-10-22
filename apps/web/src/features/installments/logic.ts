@@ -11,6 +11,7 @@ import { pageWithinRange, useUrlPagination } from "~/lib/pagination";
 import { normalizeFilters, queryInput, searchPatch, type InstallmentFilterPatch } from "./filters";
 
 const parsers = {
+  aluno: parseAsString,
   status: parseAsString,
   busca: parseAsString,
   situacoes: parseAsString,
@@ -28,6 +29,7 @@ function filtersFromUrl(
 ): ReturnType<typeof normalizeFilters> {
   return normalizeFilters(
     {
+      studentId: params.aluno,
       status: params.status,
       search: params.busca,
       situations: params.situacoes,
@@ -53,6 +55,7 @@ type InstallmentsState = {
 type InstallmentsQueryScope = Pick<
   ReturnType<typeof queryInput>,
   | "search"
+  | "studentId"
   | "view"
   | "statuses"
   | "origins"
@@ -63,6 +66,7 @@ type InstallmentsQueryScope = Pick<
 >;
 
 export function urlParamsForFilterPatch(patch: InstallmentFilterPatch): Partial<{
+  aluno: string | null;
   status: string | null;
   situacoes: string | null;
   origens: string | null;
@@ -72,6 +76,7 @@ export function urlParamsForFilterPatch(patch: InstallmentFilterPatch): Partial<
   valorAte: string | null;
 }> {
   const params: ReturnType<typeof urlParamsForFilterPatch> = {};
+  if (patch.studentId !== undefined) params.aluno = patch.studentId;
   if (patch.status !== undefined) params.status = patch.status;
   if (patch.situations !== undefined) params.situacoes = patch.situations;
   if (patch.origins !== undefined) params.origens = patch.origins;
@@ -88,6 +93,7 @@ export function sameInstallmentsQueryScope(
 ): boolean {
   return (
     previous !== undefined &&
+    previous.studentId === current.studentId &&
     previous.search === current.search &&
     previous.view === current.view &&
     sameInstallmentsQueryFilters(previous, current)

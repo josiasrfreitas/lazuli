@@ -90,7 +90,7 @@ const activeEnrollmentSelect = {
   class: { select: { scheduleType: true } },
   progressRecords: {
     where: { endDate: null, deletedAt: null },
-    select: { stageId: true, stagePlanId: true },
+    select: { stageId: true, stagePlanId: true, assessmentId: true },
   },
 } satisfies Prisma.EnrollmentSelect;
 
@@ -307,6 +307,7 @@ export async function openEnrollmentAtStage(input: {
   stageId: string;
   capacityOverrideReason: string | undefined;
   stagePlanId?: string | null;
+  assessmentId?: string | null;
 }): Promise<{ enrollment: EnrollmentSummary; progress: ProgressSummary }> {
   await lockStudentEnrollment(input.database, input.studentId);
   await assertTrackAvailable(input);
@@ -327,6 +328,7 @@ export async function openEnrollmentAtStage(input: {
       stageId: input.stageId,
       startDate: input.entryDate,
       stagePlanId: input.stagePlanId ?? null,
+      assessmentId: input.assessmentId ?? null,
     },
     select: progressSummarySelect,
   });

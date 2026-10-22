@@ -39,7 +39,9 @@
     "lucide-react": "catalog:",
     "tailwind-merge": "catalog:",
     "tailwindcss": "catalog:",
-    "tw-animate-css": "catalog:"
+    "tw-animate-css": "catalog:",
+    "date-fns": "^4.4.0",
+    "react-big-calendar": "^1.20.0"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
@@ -52,6 +54,7 @@
     "react-dom": "catalog:",
     "shadcn": "catalog:",
     "tsx": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "@types/react-big-calendar": "^1.16.3"
   }
 }

@@ -1,134 +1,90 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { after, before, beforeEach, describe, it } from "node:test";
-
+import { after, beforeEach, it } from "node:test";
 import { db } from "@lazuli/db";
-
-import {
-  MAKEUP_ALREADY_ATTENDED_MESSAGE,
-  MAKEUP_ALREADY_CANCELLED_MESSAGE,
-  MAKEUP_NOT_FOUND_MESSAGE,
-} from "../../src/attendance/errors.js";
-import { rejectionMessage } from "../support/attendance-test-support.js";
 import { cancelHarness as harness } from "../support/makeup-namespaces.js";
-import { FAR_FUTURE_DATE, insertMakeup } from "../support/makeup-test-support.js";
-
-const CANCEL_REASON = "aluno desistiu";
-
-type CancelSetup = { originEnrollmentId: string; targetClassSessionId: string };
-
-async function setup(): Promise<CancelSetup> {
-  const scenario = await harness.seedBaseScenario();
-  const targetClassId = await harness.createClass({
-    code: "target",
-    teacherId: harness.ns.otherTeacher.id,
-    stageId: scenario.stageId,
-    semesterId: scenario.semesterId,
-  });
-  const student = await harness.enrollStudent({
-    classId: scenario.classId,
-    stageId: scenario.stageId,
-    suffix: "Bento",
-  });
-  const targetClassSessionId = await harness.createSession({
-    classId: targetClassId,
-    date: FAR_FUTURE_DATE,
-  });
-
-  return { originEnrollmentId: student.enrollmentId, targetClassSessionId };
-}
-
-void describe("attendance.cancelMakeup", () => {
-  void before(async () => {
-    await db.$connect();
-  });
-  void beforeEach(async () => {
-    await harness.clean();
-  });
-  void after(async () => {
-    await harness.clean();
-    await db.$disconnect();
-  });
-
-  registerCancelTest();
-  registerDoubleCancelTest();
-  registerCancelAfterAttendedTest();
-  registerNotFoundTest();
-  registerScopeTest();
+import { appointmentFixture } from "../support/appointment-fixtures.js";
+import { insertMakeup } from "../support/makeup-test-support.js";
+beforeEach(() => harness.clean());
+after(async () => {
+  await harness.clean();
+  await db.$disconnect();
 });
 
-function registerCancelTest(): void {
-  void it("stamps cancellation fields on the makeup", async () => {
-    const context = await setup();
-    const makeupId = await insertMakeup(context);
-
-    const result = await harness.caller().attendance.cancelMakeup({
-      makeupId,
-      reason: CANCEL_REASON,
-    });
-
-    assert.equal(result.makeupId, makeupId);
-    const row = await db.makeup.findUnique({
-      where: { id: makeupId },
-      select: { cancelledAt: true, cancelledById: true, cancellationReason: true },
-    });
-    assert.notEqual(row?.cancelledAt, null);
-    assert.equal(row?.cancelledById, harness.ns.admin.id);
-    assert.equal(row?.cancellationReason, CANCEL_REASON);
+void it("preserves a legacy import and stamps cancellation with the versioned appointment", async () => {
+  const fixtureData = await appointmentFixture(harness);
+  const makeupId = await insertMakeup({
+    originEnrollmentId: fixtureData.enrollmentId,
+    targetClassSessionId: fixtureData.targetId,
+    scheduledById: harness.ns.admin.id,
   });
-}
-
-function registerDoubleCancelTest(): void {
-  void it("rejects cancelling an already-cancelled makeup", async () => {
-    const context = await setup();
-    const makeupId = await insertMakeup({ ...context, cancelledAt: new Date() });
-
-    assert.equal(
-      await rejectionMessage(
-        harness.caller().attendance.cancelMakeup({ makeupId, reason: CANCEL_REASON }),
-      ),
-      MAKEUP_ALREADY_CANCELLED_MESSAGE,
-    );
+  await harness.caller(undefined, fixtureData.before).attendance.cancelMakeup({
+    makeupId,
+    expectedVersion: 0,
+    reason: "Família cancelou o horário.",
   });
-}
-
-function registerCancelAfterAttendedTest(): void {
-  void it("rejects cancelling a makeup that was already attended", async () => {
-    const context = await setup();
-    const makeupId = await insertMakeup({ ...context, attendedAt: new Date() });
-
-    assert.equal(
-      await rejectionMessage(
-        harness.caller().attendance.cancelMakeup({ makeupId, reason: CANCEL_REASON }),
-      ),
-      MAKEUP_ALREADY_ATTENDED_MESSAGE,
-    );
+  const row = await db.makeup.findUniqueOrThrow({
+    where: { id: makeupId },
+    include: { appointment: true },
   });
-}
-
-function registerNotFoundTest(): void {
-  void it("rejects an unknown makeup", async () => {
-    await setup();
-
-    assert.equal(
-      await rejectionMessage(
-        harness.caller().attendance.cancelMakeup({ makeupId: randomUUID(), reason: CANCEL_REASON }),
-      ),
-      MAKEUP_NOT_FOUND_MESSAGE,
-    );
+  assert.equal(row.cancelledAt?.toISOString(), fixtureData.before.toISOString());
+  assert.equal(row.cancelledById, harness.ns.admin.id);
+  assert.equal(row.cancellationReason, "Família cancelou o horário.");
+  const detail = await harness.caller().appointments.detail({ id: row.appointment!.id });
+  assert.deepEqual(
+    detail.history.map((item) => item.kind),
+    ["CANCELLED", "IMPORTED"],
+  );
+  assert.equal(detail.history[1]?.snapshot.status, "SCHEDULED");
+  await assert.rejects(
+    harness
+      .caller(undefined, fixtureData.before)
+      .attendance.cancelMakeup({ makeupId, expectedVersion: 0, reason: "Repetição" }),
+    { code: "CONFLICT" },
+  );
+  await assert.rejects(
+    harness
+      .caller(undefined, fixtureData.before)
+      .attendance.cancelMakeup({ makeupId, expectedVersion: 1, reason: "Repetição" }),
+    { code: "BAD_REQUEST", message: /pendentes/ },
+  );
+});
+void it("does not cancel completed work and preserves the legacy attendance evidence", async () => {
+  const fixtureData = await appointmentFixture(harness);
+  const makeupId = await insertMakeup({
+    originEnrollmentId: fixtureData.enrollmentId,
+    targetClassSessionId: fixtureData.targetId,
+    attendedAt: fixtureData.after,
+    attendedById: harness.ns.otherTeacher.id,
   });
-}
-
-function registerScopeTest(): void {
-  void it("forbids a teacher (cancel is admin-only)", async () => {
-    const context = await setup();
-    const makeupId = await insertMakeup(context);
-
-    await assert.rejects(
-      harness
-        .caller(harness.ns.teacher)
-        .attendance.cancelMakeup({ makeupId, reason: CANCEL_REASON }),
-      /FORBIDDEN/,
-    );
+  await assert.rejects(
+    harness
+      .caller(undefined, fixtureData.after)
+      .attendance.cancelMakeup({ makeupId, expectedVersion: 0, reason: "Remover" }),
+    { code: "BAD_REQUEST", message: /correção/ },
+  );
+  const row = await db.makeup.findUniqueOrThrow({ where: { id: makeupId } });
+  assert.equal(row.attendedAt?.toISOString(), fixtureData.after.toISOString());
+  assert.equal(row.cancelledAt, null);
+});
+void it("rejects unknown records and denies teachers the cancellation operation", async () => {
+  const fixtureData = await appointmentFixture(harness);
+  await assert.rejects(
+    harness
+      .caller()
+      .attendance.cancelMakeup({ makeupId: randomUUID(), expectedVersion: 0, reason: "Cancelar" }),
+    { code: "NOT_FOUND" },
+  );
+  const makeupId = await insertMakeup({
+    originEnrollmentId: fixtureData.enrollmentId,
+    targetClassSessionId: fixtureData.targetId,
   });
-}
+  await assert.rejects(
+    harness
+      .caller(harness.ns.teacher)
+      .attendance.cancelMakeup({ makeupId, expectedVersion: 0, reason: "Cancelar" }),
+    { code: "FORBIDDEN" },
+  );
+  const unchanged = await db.makeup.findUniqueOrThrow({ where: { id: makeupId } });
+  assert.equal(unchanged.cancelledAt, null);
+});

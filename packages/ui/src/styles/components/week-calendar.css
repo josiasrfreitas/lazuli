@@ -1,0 +1,99 @@
+.lz-week-calendar {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: var(--lz-text-caption);
+}
+.lz-week-calendar-grid {
+  height: 100%;
+  min-height: 0;
+}
+.lz-week-calendar .rbc-time-view {
+  border: 0;
+}
+.lz-week-calendar .rbc-time-content,
+.lz-week-calendar .rbc-time-header-content,
+.lz-week-calendar .rbc-header,
+.lz-week-calendar .rbc-header + .rbc-header,
+.lz-week-calendar .rbc-time-content > * + * > *,
+.lz-week-calendar .rbc-timeslot-group {
+  border-color: var(--border);
+}
+.lz-week-calendar .rbc-time-header.rbc-overflowing {
+  border-right-color: var(--border);
+}
+.lz-week-calendar .rbc-time-header-cell {
+  min-height: 2.5rem;
+}
+.lz-week-calendar .rbc-header {
+  display: grid;
+  padding-inline: 0;
+  align-items: center;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.lz-week-calendar .rbc-time-header-content,
+.lz-week-calendar .rbc-header + .rbc-header {
+  border-left: 0;
+}
+.lz-week-calendar .rbc-header + .rbc-header {
+  box-shadow: inset 1px 0 var(--border);
+}
+.lz-week-calendar .rbc-header .rbc-button-link {
+  padding: 0.5rem;
+  width: 100%;
+  cursor: pointer;
+}
+.lz-week-calendar .rbc-allday-cell {
+  display: none;
+}
+.lz-week-calendar .rbc-time-content {
+  border-top: 0;
+  scrollbar-color: var(--border-strong) var(--card);
+}
+.lz-week-calendar .rbc-timeslot-group {
+  min-height: 5rem;
+}
+.lz-week-calendar .rbc-day-slot .rbc-time-slot {
+  border-top-color: var(--border-subtle);
+}
+.lz-week-calendar .rbc-time-gutter {
+  color: var(--muted-foreground);
+  font-family: var(--lz-font-numeric);
+  font-size: var(--lz-text-micro);
+}
+.lz-week-calendar .rbc-today {
+  background: transparent;
+}
+.lz-week-calendar .rbc-header.rbc-today {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.35em;
+}
+.lz-week-calendar .rbc-current-time-indicator {
+  background: var(--selection-indicator);
+}
+
+.lz-week-calendar .rbc-event {
+  background: var(--muted);
+  color: var(--foreground);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.lz-week-calendar .rbc-event.rbc-selected {
+  border-color: var(--interactive);
+}
+.lz-week-calendar .rbc-slot-selection {
+  background: var(--muted);
+  color: var(--foreground);
+  border: 1px solid var(--interactive);
+}
+.lz-week-calendar[data-density="compact"] .rbc-timeslot-group {
+  min-height: 3rem;
+}
+.lz-week-calendar[aria-busy="true"] .rbc-calendar {
+  pointer-events: none;
+}

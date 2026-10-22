@@ -26,7 +26,15 @@ export const buttonVariants = cva(
         text: "bg-transparent text-muted-foreground underline-offset-4 hover:text-foreground hover:underline",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive-hover active:bg-destructive-active",
-        link: "bg-transparent text-interactive underline-offset-4 hover:text-interactive-hover hover:underline active:text-interactive-active",
+        "destructive-ghost":
+          "bg-transparent text-destructive hover:bg-destructive-muted active:bg-destructive-muted",
+        "destructive-outline":
+          "border border-destructive/40 bg-transparent text-destructive hover:bg-destructive-muted active:bg-destructive-muted",
+        success: "bg-success text-success-muted shadow-sm hover:bg-success/90 active:bg-success/80",
+        warning:
+          "border border-warning/40 bg-transparent text-warning hover:bg-warning-muted active:bg-warning-muted",
+        info: "border border-info/40 bg-transparent text-info hover:bg-info-muted active:bg-info-muted",
+        link: "bg-transparent text-interactive underline-offset-4 hover:text-brand-link-hover hover:underline focus-visible:text-brand-link-hover active:text-interactive-active",
       },
       size: {
         inline: "min-h-control-sm gap-1.5 rounded-sm",
@@ -81,7 +89,7 @@ export function Button({
       ) : null}
       <span
         className={cn(
-          "inline-flex items-center justify-center gap-[inherit]",
+          "inline-flex min-w-0 max-w-full items-center justify-center gap-[inherit]",
           loading && "opacity-0",
         )}
       >

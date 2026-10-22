@@ -300,7 +300,12 @@ function useDepartureSave({
   const utils = trpc.useUtils();
   return trpc.teachers.depart.useMutation({
     onSuccess: async () => {
-      await Promise.all([utils.teachers.invalidate(), utils.classes.invalidate()]);
+      await Promise.all([
+        utils.teachers.invalidate(),
+        utils.classes.invalidate(),
+        utils.appointments.invalidate(),
+        utils.teacherWorkspace.invalidate(),
+      ]);
       onClose();
     },
     onError: (cause) => {

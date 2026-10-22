@@ -93,6 +93,28 @@ void describe("staff access denial codes", () => {
 });
 
 void describe("staff identity resolution", () => {
+  void it("selects only a provisioned role and removes teaching access on the departure date", () => {
+    const user = {
+      id: "admin-with-teaching-profile",
+      name: "Coordenação docente",
+      email: "teaching-admin@example.com",
+      role: "ADMIN" as const,
+      isEnabled: true,
+      teacherProfile: { departureDate: new Date("2091-04-02") },
+    };
+    const now = new Date("2091-04-01T12:00:00Z");
+    const teacher = resolveStaffIdentity(user, { now, requestedRole: "TEACHER" });
+    assert.equal(teacher?.role, "TEACHER");
+    assert.deepEqual(teacher?.roles, ["ADMIN", "TEACHER"]);
+    const elevated = resolveStaffIdentity(user, { now, requestedRole: "SYSTEM_ADMIN" });
+    assert.equal(elevated?.role, "ADMIN");
+    const departed = resolveStaffIdentity(user, {
+      now: new Date("2091-04-02T12:00:00Z"),
+      requestedRole: "TEACHER",
+    });
+    assert.equal(departed?.role, "ADMIN");
+    assert.deepEqual(departed?.roles, ["ADMIN"]);
+  });
   void it("returns the domain identity for enabled staff", () => {
     const result = resolveStaffIdentity({
       id: "user-admin-1",
@@ -108,6 +130,7 @@ void describe("staff identity resolution", () => {
       email: "admin.identity@example.com",
       role: "ADMIN",
       isEnabled: true,
+      roles: ["ADMIN"],
     });
   });
 

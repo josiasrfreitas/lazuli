@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactElement } from "react";
+import { useRouter } from "next/navigation";
 import type { RouterOutputs } from "@lazuli/api";
 import {
   Avatar,
@@ -15,7 +16,7 @@ import { abbreviatedPersonName } from "~/lib/format";
 import { paymentPlanLabel } from "./contract-form-model";
 import type { ContractFilters } from "./contract-filters";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 25;
 export type ContractRow = RouterOutputs["finance"]["listContracts"]["rows"][number];
 
 const STATUS_LABELS: Record<ContractRow["status"], string> = {
@@ -162,7 +163,7 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
     width: COLUMN_WIDTHS.amount,
     numeric: true,
     cell: (row) => (
-      <span className="block font-numeric whitespace-normal">
+      <span className="font-numeric whitespace-nowrap">
         {paymentPlanLabel(row.installmentCount, row.uniformInstallmentAmountCents)}
       </span>
     ),
@@ -197,6 +198,7 @@ function tableState({
 }
 
 export function ContractsTable({ filters }: { filters: ContractFilters }): ReactElement {
+  const router = useRouter();
   const { page, search, payerId, studentId, startsFrom, endsTo, status } = filters;
   const list = trpc.finance.listContracts.useQuery({
     page,
@@ -212,6 +214,9 @@ export function ContractsTable({ filters }: { filters: ContractFilters }): React
     <DataTable
       label="Contratos mensais"
       columns={contractColumns}
+      onRowClick={(row) =>
+        router.push(`/alunos/${encodeURIComponent(row.student.id)}?secao=financeiro`)
+      }
       state={tableState({ rows: list.data?.rows, failed: list.isError, filtered })}
       errorTitle="Não foi possível carregar os contratos"
       empty={{

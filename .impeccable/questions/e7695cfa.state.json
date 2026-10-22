@@ -1,0 +1,11 @@
+{
+  "pid": 45825,
+  "port": 49441,
+  "url": "http://127.0.0.1:49441/",
+  "comps": [
+    ".impeccable/mocks/decision/agenda.png",
+    ".impeccable/mocks/decision/faixas.png",
+    ".impeccable/mocks/decision/professores.png"
+  ],
+  "lastBeat": 1791897419842
+}

@@ -1,3 +1,4 @@
+import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
 import type { Weekday } from "@lazuli/domain";
 import { saoPauloDateOnly, saoPauloMidnightToInstant } from "@lazuli/domain";
@@ -113,7 +114,10 @@ function enrollmentFilter(input: StudentListWhereInput): Prisma.StudentWhereInpu
   };
 }
 
-export function buildStudentListWhere(input: StudentListWhereInput): Prisma.StudentWhereInput {
+export function buildStudentListWhere(
+  input: StudentListWhereInput,
+  searchWhere: Prisma.StudentWhereInput,
+): Prisma.StudentWhereInput {
   const situations = input.situations?.length
     ? input.situations.flatMap((situation) =>
         situation === "active" ? [...ACTIVE_STATUSES] : [...INACTIVE_STATUSES],
@@ -123,7 +127,7 @@ export function buildStudentListWhere(input: StudentListWhereInput): Prisma.Stud
     deletedAt: null,
     AND: [
       situations ? { status: { in: situations } } : statusFilter(input.status),
-      searchFilter(input.search, input.now ?? new Date()),
+      searchWhere,
       enrollmentFilter(input),
       input.registeredFrom ? { createdAt: { gte: dayStart(input.registeredFrom) } } : {},
       input.registeredTo ? { createdAt: { lt: dayStart(nextDay(input.registeredTo)) } } : {},
@@ -172,16 +176,54 @@ export function findStudentPage(input: {
   });
 }
 
+export async function normalizedStudentSearch(
+  database: StudentListDatabase,
+  options: {
+    search: string | undefined;
+    now: Date;
+  },
+): Promise<Prisma.StudentWhereInput> {
+  const { search, now } = options;
+
+  if (!search) return {};
+  const [students, classes, teachers] = await Promise.all([
+    searchIds(database, { table: "Student", query: search }),
+    searchIds(database, { table: "Class", query: search }),
+    searchIds(database, { table: "User", query: search }),
+  ]);
+  if (!students || !classes || !teachers) return {};
+  return {
+    OR: [
+      { id: students },
+      {
+        enrollments: {
+          some: {
+            ...currentEnrollmentFilter(now),
+            class: { OR: [{ id: classes }, { teacher: { id: teachers } }] },
+          },
+        },
+      },
+    ],
+  };
+}
+
 /** Tab counters share the current search so the tabs describe the same result set. */
 export async function countStudentsByTab(input: {
   database: StudentListDatabase;
   search: string | undefined;
   now?: Date;
+  searchWhere?: Prisma.StudentWhereInput;
 }): Promise<{ all: number; active: number; inactive: number }> {
+  const searchWhere =
+    input.searchWhere ??
+    (await normalizedStudentSearch(input.database, {
+      search: input.search,
+      now: input.now ?? new Date(),
+    }));
   const [all, active, inactive] = await Promise.all(
     TAB_FILTERS.map((status) =>
       input.database.student.count({
-        where: buildStudentListWhere({ status, search: input.search, now: input.now }),
+        where: buildStudentListWhere({ status, search: input.search, now: input.now }, searchWhere),
       }),
     ),
   );
@@ -260,23 +302,4 @@ function statusFilter(status: StudentListStatusFilter): Prisma.StudentWhereInput
   }
 
   return { status: { in: [...(status === "active" ? ACTIVE_STATUSES : INACTIVE_STATUSES)] } };
-}
-
-/** Matches the student name, or the code/teacher of any open enrollment. */
-function searchFilter(search: string | undefined, now: Date): Prisma.StudentWhereInput {
-  if (search === undefined || search.length === 0) {
-    return {};
-  }
-
-  const contains = { contains: search, mode: "insensitive" } as const;
-  const openEnrollment = currentEnrollmentFilter(now);
-
-  return {
-    OR: [
-      { fullName: contains },
-      { enrollments: { some: { ...openEnrollment, class: { internalCode: contains } } } },
-      { enrollments: { some: { ...openEnrollment, class: { portalClassName: contains } } } },
-      { enrollments: { some: { ...openEnrollment, class: { teacher: { name: contains } } } } },
-    ],
-  };
 }

@@ -1,0 +1,23 @@
+# V5 — Browser validation
+
+Validated on 11 October 2026 through the public Orca browser CLI, with the single integrated web server at `http://operacao-pedagogica.lazuli.localhost` (port 3004). Separate browser profiles represented administration (Clara), the responsible teacher (Camila) and an anonymous student. The user's tab was not navigated.
+
+## Observed product behavior
+
+- **Anonymous online submission:** in REG 05:00, searching “Alice” returned two explicit choices. Alice Barbosa Costa submitted successfully without login or location. An exact uppercase full name selected the same person for review; repeating submission preserved the original 05:51 receipt. Alice Ferreira Menezes submitted at 05:53.
+- **Window lifecycle:** administration opened a 10-minute window, reloaded and generated a replacement with 20 minutes, then closed it manually. The old link was rejected; both received declarations remained. Camila opened another window with her teacher account, selecting 30 minutes; its deadline was capped at 06:00, the encounter end. Its natural expiry prevented anonymous entry, and the staff view showed Expirado.
+- **Teacher review and actual closure:** after the real 06:00 end, the open staff page automatically changed from Prevista to A registrar. Camila marked Alice Ferreira absent despite her declaration, entered the actual shared review account, and confirmed the explicit one-present/one-absent summary. The completed record retained both declarations and their original times. The remaining window was closed with Camila's name and the 06:02 closure time. Read-only persistence inspection confirmed two immutable declarations with no location, one PRESENT row, one ABSENT row and attributed window closure.
+- **In-person failure:** REG 06:00 opened a window without a teacher location after the browser could not obtain one. Its student page requested actual location. The unavailable-location branch offered retry/manual teacher recording; no declaration was created. The QA window was manually closed afterward.
+- **Identification and errors:** short names produced adjacent validation, unknown names offered teacher assistance, malformed links displayed a human-readable error, and revoked/expired links offered recovery. Full-name identification still required an explicit send action.
+- **Keyboard and layout:** verified first-field focus, Enter submission from the name field, desktop 1280 × 800, mobile 390 × 844, light and dark themes. No horizontal mobile page overflow. Public inputs and buttons use responsive touch sizes. The QR dialog has one generation action; received declarations appear beside the manual call. Native hash navigation changes the encounter correctly; Orca's same-document goto needed a reload in one automation sequence.
+- **Activity log:** opening, manual closing and closing with the class record appeared with date/time and Clara or Camila as actor. Individual declarations did not create noisy per-student global events.
+
+## Preparation and limits
+
+The official full seed was rebuilt before QA: 250 students, 22 classes, 7 teachers, 220 annual contracts, 61 stage plans, 74 snapshots, 87 class records, 89 record revisions and 31 declarations across six historical encounters. Those historical windows are closed, use hashes rather than reusable links, include regular/PPT/online/substitute cases and mix declarations with manual attendance. This rebuild removed prior disposable V4 browser mutations; their screenshots remain historical evidence.
+
+Browser QA added two disposable Sunday classes and three enrollments using existing students, keeping the student count at 250. Encounter generation was prepared with the existing worker handler because the runtime queue still returns a provisional receipt without dispatch. This is tracked in #183 and must be resolved before the integrated delivery is complete; this document does not claim an end-to-end automatic class-creation flow.
+
+Successful live GPS acquisition was not available on this browser host. Historical seed evidence and authored integration coverage exercise stored precision/distance, but do not prove a live device GPS success. Literal indistinguishable homonyms, forged/off-roster input and concurrent submission/closure remain covered by authored automated cases awaiting CI. No camera scan on a physical phone was exercised; the generated QR and its associated URL were inspected in the browser.
+
+No local suites, lint, typecheck or build were run, per the user. Commit hooks formatted staged files and checked whitespace; `git diff --check` passed. The user will review product direction after the remaining integrated verticals; no new PR was opened.

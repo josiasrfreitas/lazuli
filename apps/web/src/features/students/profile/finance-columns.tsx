@@ -4,9 +4,7 @@ import { Badge, Button, type DataTableColumn } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import { installmentVm, businessDate, originLabel } from "~/features/installments/view-model";
-
 export type FinanceRow = FinanceInstallmentRow & { id: string };
-
 const COLUMNS: DataTableColumn<FinanceRow>[] = [
   {
     id: "origin",
@@ -17,8 +15,8 @@ const COLUMNS: DataTableColumn<FinanceRow>[] = [
   {
     id: "due",
     header: "Vencimento",
-    width: "standard",
-    cell: (row) => <InstallmentDue row={row} />,
+    width: "narrow",
+    cell: (row) => formatDateOnlyBR(row.dueDate),
   },
   {
     id: "amount",
@@ -34,20 +32,24 @@ const COLUMNS: DataTableColumn<FinanceRow>[] = [
     cell: (row) => <InstallmentStatus row={row} />,
   },
 ];
-
-export function financeColumns(
-  onReceive: (row: FinanceRow) => void,
-  { onTreat, priorityId }: { onTreat: (row: FinanceRow) => void; priorityId: string | undefined },
-): DataTableColumn<FinanceRow>[] {
+export function financeColumns({
+  onReceive,
+  priorityId,
+  onTreat,
+}: {
+  onReceive: (row: FinanceRow) => void;
+  priorityId?: string | undefined;
+  onTreat?: (row: FinanceRow) => void;
+}): DataTableColumn<FinanceRow>[] {
   return [
-    ...COLUMNS,
+    ...(priorityId ? queueColumns() : COLUMNS),
     {
       id: "action",
       header: <span className="sr-only">Ações</span>,
-      width: "standard",
+      width: "wide",
       cell: (row) =>
         row.collectibleBalanceCents > 0 ? (
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
               size="sm"
               variant={row.installmentId === priorityId ? "primary" : "secondary"}
@@ -56,25 +58,68 @@ export function financeColumns(
             >
               <DollarSign aria-hidden="true" /> Receber
             </Button>
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              onClick={() => onTreat(row)}
-              aria-label={`Negociar parcela ${row.sequenceNumber} com vencimento em ${formatDateOnlyBR(row.dueDate)}`}
-            >
-              <Handshake aria-hidden />
-            </Button>
+            {onTreat && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onTreat(row)}
+                aria-label={`Negociar ou suspender parcela ${row.sequenceNumber}`}
+              >
+                <Handshake aria-hidden="true" /> Negociar
+              </Button>
+            )}
           </div>
         ) : null,
     },
   ];
 }
-
+function queueColumns(): DataTableColumn<FinanceRow>[] {
+  return [
+    {
+      id: "due",
+      header: "Tempo em atraso",
+      width: "standard",
+      cell: (row) => (
+        <div className="grid gap-1">
+          <span className="font-medium text-destructive">{row.overdueDays} dias em atraso</span>
+          <span className="text-caption text-muted-foreground">
+            Venceu em {formatDateOnlyBR(row.dueDate)}
+          </span>
+        </div>
+      ),
+    },
+    COLUMNS[0]!,
+    {
+      id: "balance",
+      header: "Saldo a receber",
+      width: "standard",
+      numeric: true,
+      cell: (row) => (
+        <div className="grid gap-1">
+          <span className="font-numeric text-lg font-semibold">
+            {money(row.collectibleBalanceCents)}
+          </span>
+          <span className="text-caption text-muted-foreground">
+            {row.paidAmountCents > 0
+              ? `${money(row.paidAmountCents)} já pagos`
+              : "Nenhum pagamento"}
+          </span>
+        </div>
+      ),
+    },
+  ];
+}
 function InstallmentIdentity({ row }: { row: FinanceRow }): ReactElement {
   return (
     <div className="grid gap-1">
       <span className="font-medium">
-        {originLabel(row.origin)} · {row.sequenceNumber}/{row.scheduleTotal}
+        {originLabel(row.origin)}
+        {row.origin !== "MATERIAL" && (
+          <>
+            {" "}
+            · {row.sequenceNumber}/{row.scheduleTotal}
+          </>
+        )}
       </span>
       <span className="text-caption text-muted-foreground">{row.payer.name}</span>
       {row.beneficiaries.length > 1 && (
@@ -85,27 +130,10 @@ function InstallmentIdentity({ row }: { row: FinanceRow }): ReactElement {
     </div>
   );
 }
-
-function InstallmentDue({ row }: { row: FinanceRow }): ReactElement {
-  return (
-    <div className="grid gap-1">
-      <span>{formatDateOnlyBR(row.dueDate)}</span>
-      {row.status === "OVERDUE" && (
-        <span className="text-caption text-destructive">{row.overdueDays} dias em atraso</span>
-      )}
-    </div>
-  );
-}
-
 function InstallmentAmounts({ row }: { row: FinanceRow }): ReactElement {
   return (
     <div className="grid gap-1">
-      <span>{money(row.expectedAmountCents)}</span>
-      {row.originalAmountCents !== row.expectedAmountCents && (
-        <span className="text-caption text-muted-foreground">
-          Original {money(row.originalAmountCents)}
-        </span>
-      )}
+      <span>{money(row.originalAmountCents)}</span>
       {row.paidAmountCents > 0 && (
         <span className="text-caption text-muted-foreground">
           Pago {money(row.paidAmountCents)}
@@ -119,7 +147,6 @@ function InstallmentAmounts({ row }: { row: FinanceRow }): ReactElement {
     </div>
   );
 }
-
 function InstallmentStatus({ row }: { row: FinanceRow }): ReactElement {
   const badge = installmentVm(row, businessDate(new Date())).badge;
   return <Badge variant={badge.variant}>{badge.label}</Badge>;

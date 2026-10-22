@@ -1,4 +1,5 @@
-import type { ComponentProps, FormEvent, ReactElement } from "react";
+import type { JSX as ReactJSX } from "react";
+import type { ComponentProps, FormEvent, ReactElement, ReactNode } from "react";
 import { UserMinus, UserPlus } from "lucide-react";
 
 import { Button, Field, FieldError, FormRow, FormSection, Input, Label } from "@lazuli/ui";
@@ -82,7 +83,6 @@ function BirthDateField({ errors, fields, onFieldChange }: FieldsProps): ReactEl
           const [year, month, day] = event.target.value.split("-");
           onFieldChange("birthDate", year && month && day ? `${day}/${month}/${year}` : "");
         }}
-        onClick={(event) => event.currentTarget.showPicker?.()}
         placeholder="dd/mm/aaaa"
         size="sm"
         type="date"
@@ -173,20 +173,22 @@ export type DadosStepProps = FieldsProps & {
 };
 
 /** Name and birth date first: the date decides whether a guardian is required. */
-function IdentitySection(props: FieldsProps): ReactElement {
+function IdentitySection(props: FieldsProps & { nameField?: ReactNode }): ReactElement {
   const { errors, fields, onFieldChange } = props;
 
   return (
     <FormSection title="Identificação">
-      <TextField
-        error={errors.fullName}
-        label="Nome completo"
-        name="fullName"
-        onChange={onFieldChange}
-        placeholder="Como está no documento"
-        required
-        value={fields.fullName}
-      />
+      {props.nameField ?? (
+        <TextField
+          error={errors.fullName}
+          label="Nome completo"
+          name="fullName"
+          onChange={onFieldChange}
+          placeholder="Como está no documento"
+          required
+          value={fields.fullName}
+        />
+      )}
       <FormRow columns={2}>
         <BirthDateField {...props} />
         <DocumentFields {...props} />
@@ -246,5 +248,22 @@ export function DadosStep(props: DadosStepProps): ReactElement {
         open={guardianOpen}
       />
     </form>
+  );
+}
+
+export function IntakeStudentFields(
+  props: Omit<DadosStepProps, "onSubmit"> & { nameField: ReactNode },
+): ReactJSX.Element {
+  return (
+    <div className="grid gap-5">
+      <IdentitySection {...props} />
+      <ContactSection {...props} />
+      <GuardianSection
+        {...props}
+        minor={props.minor}
+        open={props.guardianOpen}
+        onToggle={props.onGuardianToggle}
+      />
+    </div>
   );
 }

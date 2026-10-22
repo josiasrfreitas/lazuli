@@ -18,7 +18,7 @@ export function ReturnDestination({
     { id: value.classId },
     { enabled: Boolean(value.classId) },
   );
-  const query = trpc.classes.list.useQuery({ search, statuses: ["ACTIVE"], pageSize: 20 });
+  const query = trpc.classes.list.useQuery({ search, statuses: ["ACTIVE"], pageSize: 25 });
   return (
     <Field name="targetClassId">
       <Label>Turma de destino</Label>

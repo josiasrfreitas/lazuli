@@ -33,9 +33,11 @@ const infrastructure = tier === "integration" || tier === "transport";
 const needsTypeScriptLoader = testFiles.some(
   (file) => file.endsWith(".ts") || file.endsWith(".tsx"),
 );
+const setupPath = path.join(testRoot, "setup.mjs");
 const commonArguments = [
   ...(infrastructure ? ["--env-file-if-exists=../../.env"] : []),
   ...(needsTypeScriptLoader ? ["--import", "tsx"] : []),
+  ...(existsSync(setupPath) ? ["--import", setupPath] : []),
   "--test",
   ...(infrastructure ? ["--test-concurrency=1"] : []),
 ];
@@ -43,7 +45,12 @@ const reportArguments =
   process.env.CI === "true" ? ciReportArguments(tier) : ["--test-reporter=spec"];
 
 const result = spawnSync(process.execPath, [...commonArguments, ...reportArguments, ...testFiles], {
-  env: { ...process.env, NODE_ENV: "test" },
+  env: {
+    ...process.env,
+    NODE_ENV: "test",
+    // Unit imports may initialize database clients, but must never reach a real database.
+    ...(infrastructure ? {} : { DATABASE_URL: "postgresql://unit:unit@127.0.0.1:1/lazuli_unit" }),
+  },
   stdio: "inherit",
 });
 if (result.error) throw result.error;

@@ -42,6 +42,10 @@ void it("reads the student's real learning context and classifies membership at 
     assert.deepEqual(enrollment.attendance, {
       heldSessions: 4,
       presentCount: 3,
+      heldMinutes: 360,
+      presentMinutes: 270,
+      compensatedMinutes: 0,
+      missingMinutes: 90,
       percent: 0.75,
       flagged: false,
     });

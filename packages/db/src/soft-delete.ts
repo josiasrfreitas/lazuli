@@ -17,6 +17,8 @@ const UUID_ENTITY_EXCEPTIONS = new Set([
   "Session",
   "Verification",
   "InstallmentAgreement",
+  "MaterialOrder",
+  "EntryVisitAssessment",
 ]);
 
 function isInputObject(value: JsInputValue): value is Record<string, JsInputValue> {

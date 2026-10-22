@@ -44,7 +44,7 @@ export async function seedClass(context: SeedContext, classSeed: DevClassSeed): 
       internalCode: `${context.semester.name}-${classSeed.key}`,
       teacherId,
       scheduleType: classSeed.scheduleType ?? "REGULAR",
-      format: "IN_PERSON",
+      format: classSeed.format ?? "IN_PERSON",
       sharedStageId: classSeed.scheduleType === "PERSONALIZED" ? null : stage.id,
       semesterId: context.semester.id,
       year: context.semester.year,
@@ -111,7 +111,8 @@ function slotOccurrences(context: SeedContext, weekday: DevWeekday): string[] {
     cursor <= end;
     cursor = addDays(cursor, DAYS_PER_WEEK)
   ) {
-    occurrences.push(isoOf(cursor));
+    const dateIso = isoOf(cursor);
+    if (!context.closedDates.has(dateIso)) occurrences.push(dateIso);
   }
   return occurrences;
 }
@@ -134,6 +135,8 @@ async function createSession(context: SeedContext, input: SessionInput): Promise
       date: utcDate(input.dateIso),
       startTime: timeOfDay(input.slot.startTime),
       endTime: timeOfDay(input.slot.endTime),
+      usualTeacherId: confirmedAt ? input.teacherId : null,
+      responsibilityFrozenAt: confirmedAt,
       attendanceConfirmedAt: confirmedAt,
       attendanceConfirmedById: confirmedAt ? input.teacherId : null,
       attendanceLastCommittedAt: confirmedAt,

@@ -30,10 +30,13 @@ state unresolved limitations plainly.
 
 Run commands from the root. The usual checks are `pnpm format:check`, `pnpm lint`,
 `pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:transport`, and
-`pnpm build`. For any code change, load and follow `ship-with-tests`;
-`docs/testing/README.md` owns test tiers, placement, guidance, and executable gates. Before
+`pnpm build`. `docs/testing/README.md` owns test tiers, placement, guidance, and executable gates. Before
 finishing, inspect the complete diff, run `git diff --check`, run proportionate checks, and report
 anything left to CI with a concrete reason.
+For large ESLint backlogs, use [`big-lint-resolver`](.codex/skills/big-lint-resolver/SKILL.md)
+and resume the locked batch from its progress document before choosing new work.
+For parallel lint agents in one worktree or a context-compaction handoff, load
+[`shared-lint-worktree`](.codex/skills/shared-lint-worktree/SKILL.md) and the active coordination file.
 
 ## Hard boundaries
 
@@ -42,15 +45,16 @@ anything left to CI with a concrete reason.
 - `apps/web` does not import Prisma or `worker-handlers`; `job-contracts` does not import
   `worker-handlers`; `domain` imports no `ui`, `api`, or `db` package.
 - Heavy or scheduled work crosses the worker boundary instead of running inline.
-- Student PII stays in Cloud SQL. Hatchet payloads contain minimal identifiers/status, and worker
-  logs contain no student PII.
+- Student records and file metadata stay in PostgreSQL; files remain private. For storage and
+  managed infrastructure, follow [ADR 0025](docs/decisions/0025-use-aws-for-managed-infrastructure.md).
+  Hatchet payloads contain minimal identifiers/status, and worker logs contain no student PII.
 - UI labels are Portuguese-BR; business time is `America/Sao_Paulo`.
 - Do not edit applied migrations, generated files, fixture/test identifiers, or historical
   identifiers merely to tidy them.
 
 ## Local safety and authority
 
-Linked worktrees receive isolated Postgres databases and fake-GCS buckets; Mailpit and Hatchet are
+Linked worktrees receive isolated Postgres databases and S3-compatible buckets; Mailpit and Hatchet are
 shared per machine. Use `LAZULI_BOOTSTRAP_NO_FIXTURES=1` with `git worktree add` only when the task
 does not need DB, email, or Hatchet fixtures. `docker compose down -v` deletes local data.
 

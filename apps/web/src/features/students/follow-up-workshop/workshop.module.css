@@ -1,0 +1,674 @@
+.workshop {
+  height: 100%;
+  overflow-y: auto;
+  color: var(--foreground);
+}
+.workshopBar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--border);
+}
+.workshopBar strong {
+  color: var(--heading);
+  font-size: 15px;
+}
+.workshopBar p {
+  margin-top: 3px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.switcher,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.directionNote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--accent);
+  font-size: 13px;
+}
+.directionNote p {
+  max-width: 85ch;
+}
+.directionNote span {
+  color: var(--muted-foreground);
+}
+.directionNote button {
+  flex-shrink: 0;
+}
+.profile {
+  max-width: 1440px;
+  margin: auto;
+  padding: 24px 32px;
+}
+.profileHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+.breadcrumb {
+  display: flex;
+  gap: 12px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.profileHeading h1 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1.2;
+  color: var(--heading);
+}
+.profileSection {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 8px;
+  color: var(--heading);
+  border-bottom: 2px solid var(--brand-rule);
+  font-size: 14px;
+}
+.profileSection svg {
+  width: 16px;
+}
+.context {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.4fr;
+  gap: 20px;
+  align-items: center;
+  background: var(--accent);
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 28px;
+}
+.context h2 {
+  color: var(--heading);
+  font-family: var(--font-display);
+  font-size: 24px;
+}
+.context h2 span {
+  font-size: 15px;
+  color: var(--muted-foreground);
+  margin-left: 8px;
+}
+.context p,
+.context small,
+.context div > span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.context strong {
+  display: block;
+  color: var(--heading);
+  font-family: var(--font-numeric);
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.context .contactName {
+  font-family: inherit;
+  font-size: 15px;
+  margin: 4px 0;
+}
+.context > div + div {
+  padding-left: 20px;
+  border-left: 1px solid var(--border);
+}
+.workspace {
+  border-top: 1px solid var(--border-strong);
+}
+.sectionHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 22px 0 18px;
+}
+.sectionHeading h2 {
+  font-family: var(--font-display);
+  color: var(--heading);
+  font-size: 28px;
+}
+.sectionHeading p {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.search {
+  width: 280px;
+}
+.timelineLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 40px;
+  padding-top: 24px;
+}
+.stream > h3,
+.recordRail > h3,
+.focusQueue > h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--heading);
+  margin-bottom: 16px;
+}
+.stream > h3:not(:first-child) {
+  margin-top: 32px;
+}
+.timelineItem {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 14px;
+}
+.timelineMarker {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  color: var(--icon);
+  padding-top: 16px;
+}
+.timelineMarker::after {
+  content: "";
+  position: absolute;
+  top: 44px;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+.timelineMarker svg {
+  width: 18px;
+  height: 18px;
+}
+.timelineBody {
+  min-width: 0;
+  padding-bottom: 14px;
+}
+.contextAside {
+  color: var(--muted-foreground);
+  font-size: 14px;
+  padding-top: 4px;
+}
+.contextAside h3,
+.contextAside h4 {
+  color: var(--heading);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.contextAside h4 {
+  margin-top: 24px;
+}
+.contextAside p {
+  line-height: 1.6;
+}
+.reviewDate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  font-size: 13px;
+}
+.reviewDate svg {
+  width: 18px;
+}
+.reviewDate strong {
+  font-weight: 500;
+  color: var(--heading);
+}
+.caseChoice {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding: 16px 38px 16px 16px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-bottom-color: var(--border);
+  background: transparent;
+  cursor: pointer;
+}
+.caseChoice:hover,
+.occurrenceChoice:hover {
+  background: var(--accent-hover);
+}
+.caseChoice[aria-pressed="true"] {
+  border-color: var(--border-strong);
+  background: var(--accent);
+}
+.caseChoice strong {
+  font-size: 17px;
+  color: var(--heading);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.caseChoice > span:last-of-type {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.choiceMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.choiceArrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  color: var(--interactive);
+}
+.overdue {
+  color: var(--warning);
+  font-size: 12px;
+}
+.caseChoice:focus-visible,
+.occurrenceChoice:focus-visible,
+.moreActions summary:focus-visible,
+.occurrenceShelf summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.occurrenceChoice {
+  position: relative;
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 36px 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.occurrenceChoice > span {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.occurrenceChoice strong {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--heading);
+}
+.occurrenceChoice > svg {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+}
+.caseDetail {
+  display: grid;
+  min-width: 0;
+  gap: 24px;
+  background: var(--card);
+  padding: 24px;
+}
+.caseDetail h4 {
+  color: var(--heading);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.caseDetail p {
+  max-width: 72ch;
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.caseHeading {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+.caseHeading h3 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.25;
+  color: var(--heading);
+}
+.caseHeading p {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.caseHeading svg,
+.nextStep svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.casePlan {
+  display: grid;
+  gap: 20px;
+}
+.nextStep {
+  background: var(--accent);
+  padding: 18px;
+}
+.nextStep > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  margin-top: 12px;
+}
+.moreActions {
+  position: relative;
+}
+.moreActions summary,
+.occurrenceShelf summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-size: 13px;
+  color: var(--interactive);
+}
+.moreActions summary::-webkit-details-marker,
+.occurrenceShelf summary::-webkit-details-marker {
+  display: none;
+}
+.moreActions summary svg,
+.occurrenceShelf summary svg {
+  width: 14px;
+}
+.moreActions > div {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  top: 100%;
+  right: 0;
+  padding: 8px;
+  min-width: 200px;
+  background: var(--popover);
+  border: 1px solid var(--border);
+}
+.history {
+  border-top: 1px solid var(--border);
+  padding-top: 22px;
+}
+.history h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--heading);
+  margin-bottom: 16px;
+}
+.history ol {
+  display: grid;
+  gap: 20px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+.history li > span {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.history li h4 {
+  margin: 4px 0;
+}
+.linked {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+.linked p {
+  color: var(--muted-foreground);
+}
+.dossier {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  align-items: start;
+  background: var(--card);
+  margin-top: 20px;
+  border: 1px solid var(--border);
+}
+.recordRail {
+  padding: 20px 12px;
+}
+.recordRail > h3 {
+  padding-left: 12px;
+}
+.recordRail > h3:not(:first-child) {
+  margin-top: 28px;
+}
+.recordRail .caseChoice strong {
+  font-size: 15px;
+}
+.detailPane {
+  min-width: 0;
+  border-left: 1px solid var(--border);
+  min-height: 640px;
+}
+.mobileBack {
+  display: none;
+}
+.focusLayout {
+  padding-top: 24px;
+}
+.focusQueue > p {
+  margin-top: -8px;
+  margin-bottom: 18px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.focusChoices {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 24px;
+}
+.focusChoices .caseChoice {
+  flex: 1;
+  max-width: 440px;
+  border-color: var(--border);
+}
+.focusDetail {
+  border: 1px solid var(--border);
+}
+.focusDetail .casePlan {
+  grid-template-columns: 1fr 1.3fr;
+  gap: 32px;
+}
+.focusDetail .caseHeading h3 {
+  font-size: 30px;
+}
+.stageTrack {
+  display: flex;
+  gap: 20px;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.stageTrack li {
+  padding-bottom: 12px;
+}
+.stageTrack li[data-current="true"] {
+  color: var(--heading);
+  border-bottom: 2px solid var(--primary);
+  font-weight: 600;
+}
+.occurrenceShelf {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.occurrenceShelf summary {
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 500;
+}
+.empty {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: 10px;
+  padding: 28px 18px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.empty svg {
+  width: 24px;
+}
+.workshopFooter {
+  margin-top: 32px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.workshopFooter p {
+  max-width: 90ch;
+  margin-bottom: 12px;
+}
+.notice {
+  min-height: 24px;
+  color: var(--interactive);
+  font-size: 13px;
+  margin-top: 12px;
+}
+@media (max-width: 1000px) {
+  .context {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+  .context > div:last-child {
+    display: none;
+  }
+  .timelineLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .contextAside {
+    display: none;
+  }
+  .dossier {
+    grid-template-columns: 250px minmax(0, 1fr);
+  }
+  .directionNote {
+    align-items: flex-start;
+  }
+}
+@media (max-width: 640px) {
+  .profile {
+    padding: 20px 16px;
+  }
+  .workshopBar,
+  .directionNote {
+    padding: 14px 16px;
+  }
+  .directionNote {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .switcher {
+    gap: 6px;
+  }
+  .switcher button {
+    min-height: 44px;
+  }
+  .profileHeading h1 {
+    font-size: 27px;
+  }
+  .profileSection {
+    display: none;
+  }
+  .context {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+  .context > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .context > div:nth-child(2) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .sectionHeading {
+    align-items: flex-start;
+  }
+  .sectionHeading h2 {
+    font-size: 25px;
+  }
+  .search {
+    width: 100%;
+  }
+  .timelineItem {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .timelineMarker {
+    display: none;
+  }
+  .caseDetail {
+    padding: 20px 14px;
+  }
+  .caseHeading h3,
+  .focusDetail .caseHeading h3 {
+    font-size: 24px;
+  }
+  .dossier {
+    display: block;
+  }
+  .dossier[data-detail="true"] .recordRail {
+    display: none;
+  }
+  .dossier[data-detail="false"] .detailPane {
+    display: none;
+  }
+  .detailPane {
+    min-height: 0;
+    border-left: 0;
+  }
+  .mobileBack {
+    display: block;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .focusChoices {
+    flex-direction: column;
+  }
+  .focusChoices .caseChoice {
+    max-width: none;
+  }
+  .focusDetail .casePlan {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .stageTrack {
+    gap: 12px;
+    font-size: 12px;
+  }
+  .actions button,
+  .moreActions summary {
+    min-height: 44px;
+  }
+}

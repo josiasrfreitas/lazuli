@@ -27,6 +27,7 @@ const BASE_ROW = {
   id: STUDENT_ID,
   fullName: "Ana Souza",
   isMinor: false,
+  registrationPending: false,
   status: "ACTIVE",
   phone: null,
   enrollment: ENROLLMENT,
@@ -100,6 +101,7 @@ void describe("student list paginated output", () => {
           id: "44444444-4444-4444-8444-444444444444",
           fullName: "Bruno Silva",
           status: "SUSPENDED",
+          registrationPending: true,
           finance: { kind: "upToDate" },
         },
       ],
@@ -113,29 +115,42 @@ void describe("student list paginated output", () => {
     });
 
     assert.equal(parsed.rows.length, 2);
+    assert.deepEqual(
+      parsed.rows.map((row) => row.registrationPending),
+      [false, true],
+    );
     assert.equal(parsed.counts.inactive, 1);
   });
 
   void it("rejects invalid output rows instead of hiding malformed read models", () => {
-    assert.equal(
-      studentListRowSchema.safeParse({
-        ...BASE_ROW,
-        finance: { kind: "overdue" },
-      }).success,
-      false,
+    const finance = studentListRowSchema.safeParse({ ...BASE_ROW, finance: { kind: "overdue" } });
+    assert.equal(finance.success, false);
+    assert.deepEqual(
+      finance.error.issues.map((issue) => issue.path),
+      [["finance", "overdueCents"]],
     );
-    assert.equal(
-      studentListOutputSchema.safeParse({
-        rows: [BASE_ROW],
-        page: 1,
-        pageSize: 25,
-        pageCount: 1,
-        total: 1,
-        counts: { all: 1, active: 0.5, inactive: 0 },
-        totalStudents: 1,
-        activeClasses: 1,
-      }).success,
-      false,
+    const counts = studentListOutputSchema.safeParse({
+      rows: [BASE_ROW],
+      page: 1,
+      pageSize: 25,
+      pageCount: 1,
+      total: 1,
+      counts: { all: 1, active: 0.5, inactive: 0 },
+      totalStudents: 1,
+      activeClasses: 1,
+    });
+    assert.equal(counts.success, false);
+    assert.deepEqual(
+      counts.error.issues.map((issue) => issue.path),
+      [["counts", "active"]],
     );
+    for (const registrationPending of [undefined, "pending"]) {
+      const parsed = studentListRowSchema.safeParse({ ...BASE_ROW, registrationPending });
+      assert.equal(parsed.success, false);
+      assert.deepEqual(
+        parsed.error.issues.map((issue) => issue.path),
+        [["registrationPending"]],
+      );
+    }
   });
 });

@@ -1,3 +1,4 @@
+import { attendanceReviewRestriction } from "./review.js";
 import { PRESENTIAL_WINDOW_MINUTES, ONLINE_WINDOW_MINUTES } from "@lazuli/validators";
 import type { AttendanceStatus, OpenedWindow, SchoolLocation } from "./types.js";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -27,6 +28,10 @@ export async function attendanceStatus(
     sessionId,
     format: session.class.format,
     restriction: openingRestriction(session, context.now),
+    confirmationRestriction:
+      windows.length > 0
+        ? "Confira as declarações e confirme presença e conteúdo pelo registro da aula."
+        : attendanceReviewRestriction(context, session),
     windows,
     declarations,
   };
@@ -154,10 +159,13 @@ async function createWindow(
     },
     select: { id: true, expiresAt: true },
   });
-  await recordActivity(context, {
+  await recordActivity(context.database, {
+    context,
     action: "studentAttendance.open",
-    subject: { type: "class", id: session.classId, name: session.class.portalClassName },
-    description: "Abriu um novo link de presença para a aula; links anteriores foram encerrados.",
+    details: {
+      subject: { type: "class", id: session.classId, name: session.class.portalClassName },
+      description: "Abriu um novo link de presença para a aula; links anteriores foram encerrados.",
+    },
   });
   const projectionData = {
     tokenHash: tokenHash(projectionToken),
@@ -200,11 +208,14 @@ export async function closeAttendanceWindow(
     userId: current.staffUser.id,
     now: current.now,
   });
-  await recordActivity(current, {
+  await recordActivity(current.database, {
+    context: current,
     action: "studentAttendance.close",
-    subject: { type: "class", id: session.classId, name: session.class.portalClassName },
-    description:
-      "Encerrou o link de presença. Os envios recebidos continuam disponíveis para revisão.",
+    details: {
+      subject: { type: "class", id: session.classId, name: session.class.portalClassName },
+      description:
+        "Encerrou o link de presença. Os envios recebidos continuam disponíveis para revisão.",
+    },
   });
   return { closed: true };
 }

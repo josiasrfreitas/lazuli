@@ -320,17 +320,33 @@ export async function rejectionMessage(promise: Promise<unknown>): Promise<strin
 /** Prefix/key/user-scoped cleanup in FK-safe order. */
 async function cleanNamespace(ns: Namespace): Promise<void> {
   const byStudent = { enrollment: { student: { fullName: { startsWith: ns.prefix } } } };
+  const classScope = { semester: { name: { startsWith: ns.prefix } } };
+  const appointmentScope = { student: { fullName: { startsWith: ns.prefix } } };
+  await db.makeupCoverage.deleteMany({ where: { appointment: appointmentScope } });
+  await db.appointmentRevision.deleteMany({ where: { appointment: appointmentScope } });
+  await db.absenceContact.deleteMany({ where: appointmentScope });
+  await db.pedagogicalAppointment.updateMany({
+    where: appointmentScope,
+    data: { rescheduledFromId: null },
+  });
+  await db.pedagogicalAppointment.deleteMany({ where: appointmentScope });
+  await db.activityEvent.deleteMany({
+    where: { actorId: { in: [ns.admin.id, ns.teacher.id, ns.otherTeacher.id] } },
+  });
   await db.attendance.deleteMany({ where: byStudent });
   await db.makeup.deleteMany({
     where: { originEnrollment: { student: { fullName: { startsWith: ns.prefix } } } },
   });
   await db.pedagogicalProgress.deleteMany({ where: byStudent });
+  await db.enrollmentAction.deleteMany({ where: byStudent });
   await db.enrollment.deleteMany({ where: { student: { fullName: { startsWith: ns.prefix } } } });
   await db.classSession.deleteMany({
-    where: { class: { internalCode: { startsWith: ns.prefix } } },
+    where: { class: classScope },
   });
+  await db.classTeacherAssignment.deleteMany({ where: { class: classScope } });
+  await db.classScheduleSlot.deleteMany({ where: { class: classScope } });
   await db.student.deleteMany({ where: { fullName: { startsWith: ns.prefix } } });
-  await db.class.deleteMany({ where: { internalCode: { startsWith: ns.prefix } } });
+  await db.class.deleteMany({ where: classScope });
   await db.semester.deleteMany({ where: { name: { startsWith: ns.prefix } } });
   await db.stage.deleteMany({
     where: { track: { productLine: { key: { startsWith: ns.catalogKeyPrefix } } } },

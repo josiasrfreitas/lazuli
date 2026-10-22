@@ -14,6 +14,7 @@
     "clean": "rm -rf .turbo .next"
   },
   "dependencies": {
+    "@fullcalendar/react": "7.1.2",
     "@lazuli/api": "workspace:*",
     "@lazuli/auth": "workspace:*",
     "@lazuli/domain": "workspace:*",
@@ -24,14 +25,17 @@
     "@trpc/react-query": "catalog:",
     "@trpc/server": "catalog:",
     "better-auth": "catalog:",
+    "date-fns": "^4.4.0",
     "lucide-react": "catalog:",
     "next": "catalog:",
     "nuqs": "catalog:",
     "qrcode.react": "4.2.0",
     "react": "catalog:",
+    "react-big-calendar": "^1.20.0",
     "react-dom": "catalog:",
     "recharts": "3.10.1",
-    "superjson": "catalog:"
+    "superjson": "catalog:",
+    "temporal-polyfill": "^1.0.5"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
@@ -40,6 +44,7 @@
     "@tailwindcss/postcss": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
+    "@types/react-big-calendar": "^1.16.3",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
     "postcss": "catalog:",

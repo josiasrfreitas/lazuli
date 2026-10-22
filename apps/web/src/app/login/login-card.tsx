@@ -1,11 +1,13 @@
 "use client";
 
-import { Link2 } from "lucide-react";
+import { ArrowUpRight, MailCheck } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 
 import { Alert, AlertDescription, AlertIcon, Button, Field, Input, Label } from "@lazuli/ui";
 
 import { authClient } from "~/lib/auth-client";
+
+import styles from "./login-entrance.module.css";
 
 type LoginPending = "none" | "magic-link" | "google";
 
@@ -18,18 +20,25 @@ function MagicLinkSent({
   onUseAnotherEmail: () => void;
 }): ReactNode {
   return (
-    <div className="flex flex-col" role="status">
-      <p className="text-caption font-semibold text-marquee-accent">Link enviado</p>
-      <p className="mt-3 text-body leading-relaxed">
-        Enviamos um link de acesso para <span className="font-semibold">{email}</span>.
-      </p>
-      <p className="mt-5 text-caption leading-relaxed text-marquee-muted">
-        Abra o email e clique no link para entrar. Se ele não chegar em alguns minutos, confira a
-        caixa de spam.
-      </p>
-      <Button className="mt-8 self-start" onClick={onUseAnotherEmail} size="lg" variant="secondary">
-        Usar outro email
-      </Button>
+    <div className={styles.accessContent}>
+      <h2 className={styles.accessTitle} id="login-title">
+        Confira seu email.
+      </h2>
+      <div className={styles.sent} role="status">
+        <div className={styles.sentMark} aria-hidden="true">
+          <MailCheck />
+        </div>
+        <p className="text-body leading-relaxed">
+          Link de acesso enviado para <span className="font-semibold">{email}</span>.
+        </p>
+        <p className="mt-4 text-body leading-relaxed text-marquee-muted">
+          Abra o link no email para entrar. Se não chegar em alguns minutos, confira a caixa de
+          spam.
+        </p>
+        <Button className="mt-5" onClick={onUseAnotherEmail} size="lg" variant="secondary">
+          Usar outro email
+        </Button>
+      </div>
     </div>
   );
 }
@@ -63,6 +72,52 @@ export function LoginCard({
   googleOAuthEnabled: boolean;
   initialError: LoginInitialError | null;
 }): ReactNode {
+  const { email, error, pending, sentTo, setEmail, setSentTo, handleMagicLink, handleGoogle } =
+    useLoginCard(initialError);
+
+  if (sentTo !== null) {
+    return <MagicLinkSent email={sentTo} onUseAnotherEmail={() => setSentTo(null)} />;
+  }
+
+  return (
+    <div
+      className={styles.accessContent}
+      data-login-reveal="form"
+      data-error={error !== null || undefined}
+    >
+      <div>
+        <h2 className={styles.accessTitle} id="login-title">
+          Boas-vindas <span>de volta.</span>
+        </h2>
+        <p className={styles.accessDescription}>Entre com o email da escola.</p>
+      </div>
+      <div className={styles.methods}>
+        <LoginMethods
+          {...{
+            email,
+            error,
+            googleOAuthEnabled,
+            handleGoogle,
+            handleMagicLink,
+            pending,
+            setEmail,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function useLoginCard(initialError: LoginInitialError | null): {
+  email: string;
+  error: string | null;
+  pending: LoginPending;
+  sentTo: string | null;
+  setEmail: (email: string) => void;
+  setSentTo: (email: string | null) => void;
+  handleMagicLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  handleGoogle: () => Promise<void>;
+} {
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [pending, setPending] = useState<LoginPending>("none");
@@ -95,15 +150,7 @@ export function LoginCard({
     }
   }
 
-  if (sentTo !== null) {
-    return <MagicLinkSent email={sentTo} onUseAnotherEmail={() => setSentTo(null)} />;
-  }
-
-  return (
-    <LoginMethods
-      {...{ email, error, googleOAuthEnabled, handleGoogle, handleMagicLink, pending, setEmail }}
-    />
-  );
+  return { email, error, pending, sentTo, setEmail, setSentTo, handleMagicLink, handleGoogle };
 }
 
 function initialErrorMessage(initialError: LoginInitialError | null): string | null {
@@ -161,56 +208,83 @@ function LoginMethods({
   setEmail: (email: string) => void;
 }): ReactNode {
   return (
-    <div className="flex flex-col gap-6">
+    <div className={styles.controlStack}>
       <LoginAlert message={error} />
       {googleOAuthEnabled && (
-        <OAuthSection onGoogle={() => void handleGoogle()} pending={pending === "google"} />
+        <OAuthSection
+          onGoogle={() => void handleGoogle()}
+          pending={pending === "google"}
+          disabled={pending !== "none"}
+        />
       )}
-      <form className="flex flex-col gap-5" onSubmit={(event) => void handleMagicLink(event)}>
-        <Field>
-          <Label className="text-caption text-marquee-muted">Email institucional</Label>
-          <Input
-            autoComplete="email"
-            /* text-body (16px): anything smaller makes iOS Safari zoom into the
-               field on focus, and this is the product's front door. */
-            className="h-control-lg rounded-none border-marquee-border bg-marquee-foreground/[0.03] text-body text-marquee-foreground placeholder:text-marquee-muted focus-visible:border-marquee-accent"
-            disabled={pending !== "none"}
-            name="email"
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="voce@escola.com.br"
-            required
-            type="email"
-            value={email}
-          />
-        </Field>
-
-        <Button loading={pending === "magic-link"} size="lg" type="submit">
-          <Link2 aria-hidden="true" />
-          Receber link de acesso
-        </Button>
-      </form>
+      <EmailSignInForm {...{ email, handleMagicLink, pending, setEmail }} />
     </div>
+  );
+}
+
+function EmailSignInForm({
+  email,
+  handleMagicLink,
+  pending,
+  setEmail,
+}: {
+  email: string;
+  handleMagicLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  pending: LoginPending;
+  setEmail: (email: string) => void;
+}): ReactNode {
+  return (
+    <form className={styles.emailForm} onSubmit={(event) => void handleMagicLink(event)}>
+      <Field>
+        <Label className="text-body text-marquee-foreground">Email institucional</Label>
+        <Input
+          autoComplete="email"
+          size="lg"
+          className="text-body"
+          disabled={pending !== "none"}
+          name="email"
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="voce@escola.com.br"
+          required
+          type="email"
+          value={email}
+        />
+      </Field>
+      <Button
+        disabled={pending !== "none"}
+        loading={pending === "magic-link"}
+        size="lg"
+        type="submit"
+      >
+        Receber link de acesso
+        <ArrowUpRight aria-hidden="true" />
+      </Button>
+    </form>
   );
 }
 
 function OAuthSection({
   onGoogle,
   pending,
+  disabled,
 }: {
   onGoogle: () => void;
   pending: boolean;
+  disabled: boolean;
 }): ReactNode {
   return (
     <>
-      <Button loading={pending} onClick={onGoogle} size="lg" variant="secondary">
+      <Button
+        disabled={disabled}
+        loading={pending}
+        onClick={onGoogle}
+        size="lg"
+        variant="secondary"
+      >
         <GoogleMark />
         Entrar com Google
       </Button>
-      <p className="flex items-center gap-4 text-caption text-marquee-muted">
-        <span aria-hidden="true" className="h-px flex-1 bg-marquee-border" />
-        ou
-        <span aria-hidden="true" className="h-px flex-1 bg-marquee-border" />
-      </p>
+      <p className={styles.methodSeparator}>ou</p>
     </>
   );
 }

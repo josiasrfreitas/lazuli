@@ -55,7 +55,7 @@ export function ClassListTable({
       }}
       pagination={{
         page: params.pagina,
-        pageSize: 20,
+        pageSize: 25,
         ...(data ? { pageCount: data.pageCount, totalItems: data.total } : { loading: true }),
         onPageChange: setPage,
         itemLabel: { singular: "turma", plural: "turmas" },

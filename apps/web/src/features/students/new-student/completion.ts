@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import type { CreateMonthlyContractInput } from "@lazuli/validators";
+import type { CreateMonthlyContractInput, StudentPedagogyIntake } from "@lazuli/validators";
 import { trpc, type ClientError, type QueryResult } from "~/lib/trpc";
 import { serverRejectionFor, type ServerRejection } from "../logic";
 import { emptyContractFields } from "../../contracts/contract-form-model";
@@ -23,6 +23,7 @@ type OfferQuery = QueryResult<RouterOutputs["finance"]["readContractOffer"]>;
 type CompletionInput = {
   open: boolean;
   financeActive: boolean;
+  pedagogy: () => StudentPedagogyIntake | undefined;
   student: NewStudentFields;
   onCreated: (id: string) => void;
   onRejected: (rejection: ServerRejection) => void;
@@ -59,16 +60,21 @@ type CompletionHandlers = {
 };
 
 function useCompletionMutations(
-  input: CompletionHandlers & { commandId: string },
+  input: CompletionHandlers & { commandId: string; pedagogy: CompletionInput["pedagogy"] },
 ): CompletionMutations {
+  const utils = trpc.useUtils();
   const mutation = trpc.students.completeCreation.useMutation({
     onSuccess: (result) => input.created(result.id),
-    onError: (error, values) => input.rejected(error, "contract" in values),
+    onError: (error, values) => {
+      void utils.finance.readMaterialPrice.invalidate();
+      input.rejected(error, "contract" in values);
+    },
   });
   return {
     pending: mutation.isPending,
-    createStudent: (student) => mutation.mutate({ commandId: input.commandId, student }),
-    createContract: (contract) => mutation.mutate({ contract }),
+    createStudent: (student) =>
+      mutation.mutate({ commandId: input.commandId, student, pedagogy: input.pedagogy() }),
+    createContract: (contract) => mutation.mutate({ contract, pedagogy: input.pedagogy() }),
   };
 }
 
@@ -120,6 +126,7 @@ function useCompletionHandlers(
   const utils = trpc.useUtils();
   const created = (id: string): void => {
     void utils.students.list.invalidate();
+    void utils.semesterOrganization.invalidate();
     void utils.finance.listContracts.invalidate();
     void utils.finance.searchContractParties.invalidate();
     input.submitting.current = false;
@@ -156,7 +163,11 @@ export function useStudentCompletion(input: CompletionInput): StudentCompletion 
     onCreated: input.onCreated,
     onRejected: input.onRejected,
   });
-  const mutations = useCompletionMutations({ ...handlers, commandId: state.commandId.current });
+  const mutations = useCompletionMutations({
+    ...handlers,
+    commandId: state.commandId.current,
+    pedagogy: input.pedagogy,
+  });
   const finish = submitCompletion({
     state,
     student: input.student,

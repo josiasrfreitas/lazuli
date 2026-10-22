@@ -13,8 +13,20 @@ import { PlanningState, dateLabel } from "./shared";
 import styles from "./planning.module.css";
 
 type Contexts = RouterOutputs["planning"]["contexts"];
-type StudentOption = Contexts[number]["students"][number] & { classId: string; className: string };
-export function studentPlanningOptions(contexts: Contexts, studentId: string): StudentOption[] {
+type PlanningOption = ReturnType<typeof studentPlanningOptions>[number];
+export function studentPlanningOptions(
+  contexts: Contexts,
+  studentId: string,
+): {
+  classId: string;
+  className: string;
+  progressId: string;
+  studentId: string;
+  name: string;
+  stage: string;
+  startOn: string;
+  historical: boolean;
+}[] {
   const today = saoPauloDateOnly(new Date());
   return contexts
     .flatMap((group) =>
@@ -43,13 +55,11 @@ export function StudentPlanning({ studentId }: { studentId: string }): ReactElem
         error={query.error}
         retry={() => void query.refetch()}
       />
-      {query.data && (
-        <StudentSelector
+      {query.data && options.length > 1 && (
+        <PlanningSelector
           options={options}
           selected={selected}
-          select={(value) => {
-            void setProgressId(value);
-          }}
+          onChange={(value) => void setProgressId(value)}
         />
       )}
       {selected && (
@@ -60,28 +70,25 @@ export function StudentPlanning({ studentId }: { studentId: string }): ReactElem
         />
       )}
       {query.data && !selected && (
-        <StudentPlanEmpty
+        <MissingPlanning
           progressId={progressId}
-          hasOptions={options.length > 0}
-          reset={() => {
-            void setProgressId(null);
-          }}
+          optionsCount={options.length}
+          onReset={() => void setProgressId(null)}
         />
       )}
     </div>
   );
 }
 
-function StudentSelector({
+function PlanningSelector({
   options,
   selected,
-  select,
+  onChange,
 }: {
-  options: StudentOption[];
-  selected: StudentOption | undefined;
-  select: (id: string) => void;
-}): ReactElement | null {
-  if (options.length <= 1) return null;
+  options: PlanningOption[];
+  selected: PlanningOption | undefined;
+  onChange: (value: string) => void;
+}): ReactElement {
   return (
     <div className={styles.selector}>
       <SelectControl
@@ -92,26 +99,26 @@ function StudentSelector({
           value: row.progressId,
           label: `${row.stage} · ${row.className} · ${dateLabel(row.startOn)}${row.historical ? " · histórico" : ""}`,
         }))}
-        onChange={(value) => select(value)}
+        onChange={onChange}
       />
     </div>
   );
 }
 
-function StudentPlanEmpty({
+function MissingPlanning({
   progressId,
-  hasOptions,
-  reset,
+  optionsCount,
+  onReset,
 }: {
   progressId: string | null;
-  hasOptions: boolean;
-  reset: () => void;
+  optionsCount: number;
+  onReset: () => void;
 }): ReactElement {
   return (
     <EmptyState
       action={
-        hasOptions ? (
-          <Button variant="secondary" onClick={reset}>
+        optionsCount > 0 ? (
+          <Button variant="secondary" onClick={onReset}>
             <ArrowLeft aria-hidden="true" />
             Ver percurso atual
           </Button>

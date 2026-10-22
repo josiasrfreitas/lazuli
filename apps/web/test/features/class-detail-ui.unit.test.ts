@@ -20,7 +20,16 @@ const row: RosterRow = {
   entryDate: new Date("2026-08-01T00:00:00Z"),
   exitDate: null,
   exitReason: null,
-  progressRecords: [{ stage: { name: "A2", track: { name: "Adultos / English Main" } } }],
+  gradeAverage: null,
+  attendancePercent: null,
+  progressRecords: [
+    {
+      startDate: new Date("2026-08-01T00:00:00Z"),
+      endDate: null,
+      assessment: null,
+      stage: { name: "A2", track: { name: "Adultos / English Main" } },
+    },
+  ],
   actions: [],
   returnActions: [],
 };

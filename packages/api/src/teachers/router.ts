@@ -14,7 +14,10 @@ import {
   classSubstituteInputSchema,
 } from "@lazuli/validators";
 import { adminProcedure, router } from "../trpc/init.js";
-import type { Context } from "../trpc/context.js";
+import type { Context, StaffUser } from "../trpc/context.js";
+import { activityTransaction, type ActivityDetails } from "../activity/record.js";
+import { teacherSubject, classSubject } from "../activity/subjects.js";
+import type { ActivityAction } from "../activity/catalog.js";
 import { assignClassTeacher, createTeacher, updateTeacher, substituteMeeting } from "./commands.js";
 import { departurePreview, scheduleDeparture } from "./departure.js";
 import {
@@ -25,28 +28,37 @@ import {
   teacherClasses,
   teacherStudentCount,
 } from "./read.js";
+import { teacherAgenda } from "./agenda.js";
 import { teacherWeek } from "./schedule.js";
 import { lockTeacher } from "./availability.js";
 const MAX_PAGE_SIZE = 100;
-const DEFAULT_CLASS_PAGE_SIZE = 10;
+const DEFAULT_CLASS_PAGE_SIZE = 25;
 const MAX_SEARCH_LENGTH = 80;
 const DAYS_AFTER_MONDAY = 6;
 const DAYS_PER_WEEK = 7;
 const ISO_DATE_LENGTH = 10;
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 25;
 
 async function command<T>(
-  database: Context["db"],
-  work: (tx: Prisma.TransactionClient) => Promise<T>,
+  context: { db: Context["db"]; staffUser: StaffUser; now?: Date | undefined },
+  options: {
+    action: ActivityAction;
+    work: (tx: Prisma.TransactionClient) => Promise<T>;
+    describe: (result: T, database: Prisma.TransactionClient) => Promise<ActivityDetails>;
+  },
 ): Promise<T> {
+  const { action, work, describe } = options;
+
   try {
-    return await database.$transaction(
-      async (tx) => {
+    return await activityTransaction(context, {
+      action,
+      work: async (tx) => {
         await lockTeacher(tx, "");
         return work(tx);
       },
-      { timeout: 15_000 },
-    );
+      describe,
+      options: { timeout: 15_000 },
+    });
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
       throw new TRPCError({
@@ -91,16 +103,32 @@ export const teachersRouter = router({
     .query(({ ctx, input }) =>
       teacherOptions({ database: ctx.db, date: input.date, search: input.search }),
     ),
-  create: adminProcedure
-    .input(teacherCreateInputSchema)
-    .mutation(({ ctx, input }) =>
-      command(ctx.db, (database) => createTeacher({ database, values: input })),
-    ),
-  update: adminProcedure
-    .input(teacherUpdateInputSchema)
-    .mutation(({ ctx, input }) =>
-      command(ctx.db, (database) => updateTeacher({ database, values: input })),
-    ),
+  create: adminProcedure.input(teacherCreateInputSchema).mutation(({ ctx, input }) =>
+    command(ctx, {
+      action: "teachers.create",
+      work: (database) => createTeacher({ database, values: input, actorRole: ctx.staffUser.role }),
+      describe: async (result, database) => ({
+        subject: await teacherSubject(database, result.id),
+        deduplicationKey: `teachers.create:${result.id}`,
+      }),
+    }),
+  ),
+  update: adminProcedure.input(teacherUpdateInputSchema).mutation(({ ctx, input }) =>
+    command(ctx, {
+      action: "teachers.update",
+      work: (database) => updateTeacher({ database, values: input, actorRole: ctx.staffUser.role }),
+      describe: async (_result, database) => ({
+        subject: await teacherSubject(database, input.id),
+        description: input.isEnabled
+          ? "Acesso ao sistema habilitado."
+          : "Acesso ao sistema desabilitado.",
+      }),
+    }),
+  ),
+  agenda: adminProcedure.input(teacherIdInputSchema).query(async ({ ctx, input }) => {
+    await readTeacher(ctx.db, input.id);
+    return teacherAgenda({ database: ctx.db, teacherId: input.id, now: ctx.now ?? new Date() });
+  }),
   week: adminProcedure.input(teacherWeekInputSchema).query(async ({ ctx, input }) => {
     await readTeacher(ctx.db, input.id);
     const anchor = new Date(input.week);
@@ -135,39 +163,58 @@ export const teachersRouter = router({
   depart: adminProcedure
     .input(teacherDepartureInputSchema.extend({ token: z.string().min(1) }))
     .mutation(({ ctx, input }) =>
-      command(ctx.db, (database) =>
-        scheduleDeparture({
+      command(ctx, {
+        action: "teachers.depart",
+        work: (database) =>
+          scheduleDeparture({
+            database,
+            teacherId: input.id,
+            effectiveDate: input.effectiveDate,
+            token: input.token,
+            recordedById: ctx.staffUser.id,
+            now: ctx.now ?? new Date(),
+          }),
+        describe: async (_result, database) => ({
+          subject: await teacherSubject(database, input.id),
+          description: `Saída em ${input.effectiveDate.split("-").toReversed().join("/")}.`,
+        }),
+      }),
+    ),
+  substitute: adminProcedure.input(classSubstituteInputSchema).mutation(({ ctx, input }) =>
+    command(ctx, {
+      action: "teachers.substitute",
+      work: (database) =>
+        substituteMeeting({
           database,
-          teacherId: input.id,
-          effectiveDate: input.effectiveDate,
-          token: input.token,
+          classId: input.classId,
+          slotId: input.scheduleSlotId ?? null,
+          sessionId: input.classSessionId ?? null,
+          date: input.date,
+          teacherId: input.teacherId,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
         }),
-      ),
-    ),
-  substitute: adminProcedure.input(classSubstituteInputSchema).mutation(({ ctx, input }) =>
-    command(ctx.db, (database) =>
-      substituteMeeting({
-        database,
-        classId: input.classId,
-        slotId: input.scheduleSlotId ?? null,
-        sessionId: input.classSessionId ?? null,
-        date: input.date,
-        teacherId: input.teacherId,
-        recordedById: ctx.staffUser.id,
-        now: ctx.now ?? new Date(),
+      describe: async (_result, database) => ({
+        subject: await classSubject(database, input.classId),
+        description: `Substituição em ${input.date.split("-").toReversed().join("/")}.`,
       }),
-    ),
+    }),
   ),
   assignClass: adminProcedure.input(classTeacherAssignInputSchema).mutation(({ ctx, input }) =>
-    command(ctx.db, (database) =>
-      assignClassTeacher({
-        database,
-        ...input,
-        recordedById: ctx.staffUser.id,
-        now: ctx.now ?? new Date(),
-      }),
-    ),
+    command(ctx, {
+      action: "teachers.assignClass",
+      work: (database) =>
+        assignClassTeacher({
+          database,
+          ...input,
+          recordedById: ctx.staffUser.id,
+          now: ctx.now ?? new Date(),
+        }),
+      describe: async (_result, database) => {
+        const subject = await classSubject(database, input.classId);
+        const teacher = await teacherSubject(database, input.teacherId);
+        return { subject, description: `Docente: ${teacher.name}.` };
+      },
+    }),
   ),
 });

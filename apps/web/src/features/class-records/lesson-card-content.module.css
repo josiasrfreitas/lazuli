@@ -1,0 +1,232 @@
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 0.125rem;
+  min-width: 0;
+  width: 100%;
+  text-align: left;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: var(--lz-text-micro);
+  line-height: 1.35;
+}
+.time,
+.titleText,
+.teacher,
+.context,
+.status {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.time {
+  font-variant-numeric: tabular-nums;
+}
+.status {
+  flex-shrink: 0;
+  max-width: 50%;
+  padding-inline: 0.25rem;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--foreground);
+  font-family: var(--lz-font-numeric);
+}
+.status[data-state="PENDING"] {
+  color: var(--warning);
+}
+.status[data-state="RECORDED"] {
+  color: var(--success);
+}
+.status[data-state="CANCELLED"] {
+  color: var(--destructive);
+}
+.title {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  font-family: var(--lz-font-display);
+  font-size: var(--lz-text-body);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.teacher {
+  font-size: var(--lz-text-caption);
+  line-height: 1.3;
+}
+.context {
+  font-family: var(--lz-font-numeric);
+  font-size: var(--lz-text-micro);
+  line-height: 1.35;
+}
+.content[data-cancelled="true"] .titleText {
+  text-decoration: line-through;
+}
+/* Only short time slots need a shared final line; width never changes the hierarchy. */
+@container lesson-card (height < 5rem) {
+  .content {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .header,
+  .title {
+    grid-column: 1 / -1;
+  }
+}
+@container weekly-lesson (height < 5rem) {
+  .content {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .header,
+  .title {
+    grid-column: 1 / -1;
+  }
+}
+
+.content[data-markers="true"] .header {
+  padding-inline-end: 1.25rem;
+}
+.content[data-markers="true"][data-guests="true"] .header {
+  padding-inline-end: 2.625rem;
+}
+@container lesson-card (width < 10rem) {
+  .status {
+    display: none;
+  }
+}
+@container weekly-lesson (width < 10rem) {
+  .status {
+    display: none;
+  }
+}
+
+:global([data-reveal="true"]) > .content {
+  width: var(--agenda-content-width);
+  flex-shrink: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+:global([data-reveal="true"]) > .content [data-calendar-detail] {
+  display: block;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+:global([data-reveal="true"]) > .content .time,
+:global([data-reveal="true"]) > .content .status {
+  flex-shrink: 0;
+  max-width: none;
+  white-space: nowrap;
+}
+
+/* Personal day cards spend their space on the encounter, not the teacher's own name. */
+.content[data-personal="true"] .teacher {
+  display: none;
+}
+.content[data-personal="true"] .title {
+  font-family: inherit;
+  font-size: var(--lz-text-caption);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: normal;
+}
+.content[data-personal="true"] .header {
+  line-height: 1.1;
+}
+.content[data-personal="true"] {
+  gap: 0.125rem;
+}
+@container lesson-card (width >= 14rem) {
+  .content[data-personal="true"] {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .content[data-personal="true"] .header {
+    display: contents;
+  }
+  .content[data-personal="true"] .title {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .content[data-personal="true"] .time {
+    grid-column: 2;
+    grid-row: 1;
+    padding-right: 1.25rem;
+    font-size: var(--lz-text-micro);
+  }
+  .content[data-personal="true"] .context {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .content[data-personal="true"] .status {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+    max-width: 100%;
+    font-size: var(--lz-text-micro);
+  }
+  .content[data-personal="true"][data-guests="true"] .time {
+    padding-right: 2.625rem;
+  }
+}
+@container lesson-card (width < 14rem) and (height < 5rem) {
+  .content[data-personal="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .content[data-personal="true"] .context {
+    display: none;
+  }
+}
+@container lesson-card (width < 14rem) and (height >= 5rem) {
+  .content[data-personal="true"] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .content[data-personal="true"] .header {
+    display: contents;
+  }
+  .content[data-personal="true"] .title {
+    display: block;
+    order: 0;
+  }
+  .content[data-personal="true"] .title [role="img"] {
+    display: flex;
+    margin-bottom: 0.25rem;
+  }
+  .content[data-personal="true"] .titleText,
+  .content[data-personal="true"] .context {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .content[data-personal="true"] .time {
+    order: 1;
+    font-size: var(--lz-text-micro);
+  }
+  .content[data-personal="true"] .context {
+    order: 2;
+  }
+  .content[data-personal="true"] .status {
+    display: block;
+    order: 3;
+    align-self: flex-start;
+    max-width: 100%;
+    font-size: var(--lz-text-micro);
+  }
+}
+@container lesson-card (height < 1.5rem) {
+  .content[data-personal="true"] .header,
+  .content[data-personal="true"] .context,
+  .content[data-personal="true"] .status {
+    display: none;
+  }
+  .content[data-personal="true"] .title {
+    grid-column: 1 / -1;
+    font-size: var(--lz-text-micro);
+  }
+}

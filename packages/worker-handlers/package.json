@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./sessions": "./src/sessions/process-generation.ts"
+    "./sessions": "./src/sessions/process-generation.ts",
+    "./enrollment": "./src/enrollment/process-due-actions.ts",
+    "./assessment-files": "./src/assessments/process-file.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -15,10 +17,12 @@
     "clean": "rm -rf .turbo dist"
   },
   "dependencies": {
+    "@lazuli/storage": "workspace:*",
     "@lazuli/db": "workspace:*",
     "@lazuli/domain": "workspace:*",
     "@lazuli/integrations": "workspace:*",
-    "@lazuli/job-contracts": "workspace:*"
+    "@lazuli/job-contracts": "workspace:*",
+    "@lazuli/validators": "workspace:*"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

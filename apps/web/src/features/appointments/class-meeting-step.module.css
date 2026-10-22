@@ -1,0 +1,149 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  gap: 16px;
+  outline: none;
+}
+
+.toolbar {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 16px;
+}
+
+.teacher {
+  width: min(100%, 256px);
+  min-width: 0;
+}
+
+.navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.views {
+  justify-self: end;
+}
+
+.calendar {
+  min-width: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.selection {
+  display: grid;
+  grid-template-columns: 160px 88px 88px max-content;
+  justify-content: center;
+  align-items: start;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.format {
+  min-width: 0;
+  margin-left: 12px;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-width: 0;
+  font-size: var(--lz-text-caption);
+}
+
+.error {
+  margin: 0;
+  color: var(--destructive);
+  font-size: var(--lz-text-caption);
+  text-align: center;
+}
+
+@media (max-width: 800px) {
+  .toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .navigation {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .views {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .selection {
+    grid-template-columns: minmax(128px, 1.6fr) repeat(2, minmax(64px, 1fr));
+    gap: 12px 8px;
+  }
+
+  .format {
+    grid-column: 1 / -1;
+    justify-self: center;
+    margin-left: 0;
+  }
+}
+
+.calendarWindows {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.calendarWindow {
+  display: flex;
+  flex: 1 0 256px;
+  min-height: 256px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.emptyCalendar {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  padding: 24px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.calendar :global(.lz-schedule-calendar),
+.calendar :global(.lz-calendar-viewport) {
+  min-height: 0;
+}

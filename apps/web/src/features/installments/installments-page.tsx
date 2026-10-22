@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactElement } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState, type Dispatch, type ReactElement, type SetStateAction } from "react";
 import { CircleCheck, DollarSign, Handshake, Search, Tags, X } from "lucide-react";
 import {
   Button,
@@ -18,15 +17,18 @@ import {
   orderKindSchema,
   type FinanceInstallmentRow,
 } from "@lazuli/validators";
-import { debounce } from "~/lib/debounce";
+import { useSearchDraft } from "~/lib/use-search-draft";
+import { trpc } from "~/lib/trpc";
 import { tablePaginationPropsFor } from "~/lib/pagination";
 import {
+  hasInstallmentFilters,
   INSTALLMENT_STATUSES,
   SEARCH_MAX_LENGTH,
   situationPatch,
   type InstallmentFilters,
   type InstallmentFilterPatch,
 } from "./filters";
+import { InstallmentActionsContext } from "./installment-actions";
 import { InstallmentsTable } from "./installments-table";
 import { useInstallments } from "./logic";
 import { TreatmentDialog } from "~/features/financial-treatments/treatment-dialog";
@@ -38,20 +40,7 @@ import {
 } from "./payment/selection";
 import { originLabel } from "./view-model";
 
-const SEARCH_DEBOUNCE_MS = 300;
-
-function hasInstallmentFilters(filters: InstallmentFilters): boolean {
-  return Boolean(
-    filters.search ||
-    filters.status ||
-    filters.situations.length > 0 ||
-    filters.origins.length > 0 ||
-    filters.dueFrom ||
-    filters.dueTo ||
-    filters.amountFrom ||
-    filters.amountTo,
-  );
-}
+const MAX_NEGOTIATION_INSTALLMENTS = 100;
 
 function SearchField({
   search,
@@ -60,19 +49,7 @@ function SearchField({
   search: string;
   onSearch: (value: string) => void;
 }): ReactElement {
-  const [value, setValue] = useState(search);
-  const location = useSearchParams().toString();
-  const commit = useMemo(() => debounce(onSearch, SEARCH_DEBOUNCE_MS), [onSearch]);
-  useEffect(() => {
-    setValue(search);
-    commit.cancel();
-  }, [search, location, commit]);
-  useEffect(
-    () => () => {
-      commit.cancel();
-    },
-    [commit],
-  );
+  const [value, setValue] = useSearchDraft(search, onSearch);
   return (
     <div className="relative w-full sm:w-44 lg:w-64 2xl:w-80">
       <Search
@@ -89,7 +66,6 @@ function SearchField({
         value={value}
         onChange={(event) => {
           setValue(event.target.value);
-          commit(event.target.value);
         }}
       />
     </div>
@@ -193,7 +169,12 @@ function InstallmentsControls({
   onSearch: (value: string) => void;
   onFilters: (patch: InstallmentFilterPatch) => void;
 }): ReactElement {
+  const student = trpc.students.byId.useQuery(
+    { id: filters.studentId ?? "" },
+    { enabled: Boolean(filters.studentId) },
+  );
   const filterFields = [
+    ...studentFilterFields({ filters, onFilters, studentName: student.data?.contact.fullName }),
     situationField({ filters, onFilters }),
     originField({ filters, onFilters }),
     dueField({ filters, onFilters }),
@@ -206,6 +187,7 @@ function InstallmentsControls({
         fields={filterFields}
         onClearAll={() =>
           onFilters({
+            studentId: null,
             status: null,
             situations: null,
             origins: null,
@@ -218,6 +200,30 @@ function InstallmentsControls({
       />
     </div>
   );
+}
+
+function studentFilterFields({
+  filters,
+  onFilters,
+  studentName,
+}: {
+  filters: InstallmentFilters;
+  onFilters: (patch: InstallmentFilterPatch) => void;
+  studentName: string | undefined;
+}): TableFilterField[] {
+  if (!filters.studentId) return [];
+  return [
+    {
+      id: "student",
+      label: "Aluno",
+      kind: "options",
+      promoted: true,
+      options: [{ id: filters.studentId, label: studentName ?? "Aluno selecionado" }],
+      selected: [filters.studentId],
+      onChange: (values) => onFilters({ studentId: values[0] ?? null }),
+      onClear: () => onFilters({ studentId: null }),
+    },
+  ];
 }
 
 type EntrySession = {
@@ -278,9 +284,18 @@ function SelectionToolbar({
       <span role="status" className="text-caption">
         {count} selecionados{outside > 0 ? ` · ${outside} fora da vista` : ""}
       </span>
-      <Button size="sm" variant="secondary" onClick={negotiate}>
-        <Handshake aria-hidden /> Negociar
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={negotiate}
+        disabled={count > MAX_NEGOTIATION_INSTALLMENTS}
+      >
+        <Handshake aria-hidden="true" />
+        Negociar
       </Button>
+      {count > MAX_NEGOTIATION_INSTALLMENTS && (
+        <span className="text-caption">Negocie até 100 parcelas por lote.</span>
+      )}
       <Button size="sm" onClick={begin}>
         <DollarSign aria-hidden="true" />
         Registrar pagamento
@@ -425,44 +440,203 @@ function PaymentEntryDialog({ entry }: { entry: EntrySession }): ReactElement | 
 export function InstallmentsPage(): ReactElement {
   const state = useInstallments();
   const [rows, setRows] = useState<FinanceInstallmentRow[]>([]);
+  const [paymentRow, setPaymentRow] = useState<FinanceInstallmentRow | null>(null);
+  const [rowPaymentRegistered, setRowPaymentRegistered] = useState(false);
+  const [treatmentIds, setTreatmentIds] = useState<string[] | null>(null);
+  const [treatmentRegistered, setTreatmentRegistered] = useState(false);
+  useEffect(() => setRows([]), [state.filters.studentId]);
   const entry = useEntrySession(() => setRows([]));
-  const [treatment, setTreatment] = useState<string[] | null>(null);
   const visible =
     state.data?.view === "overdue"
       ? state.data.groups.flatMap((group) => group.rows)
       : (state.data?.rows ?? []);
+  const toolbar = selectionToolbar({
+    rows,
+    visible,
+    entry,
+    paymentRow,
+    treatmentIds,
+    setRows,
+    setTreatmentIds,
+    setTreatmentRegistered,
+  });
+  return (
+    <InstallmentsPageView
+      {...{
+        state,
+        rows,
+        visible,
+        toolbar,
+        entry,
+        paymentRow,
+        setPaymentRow,
+        setRows,
+        rowPaymentRegistered,
+        setRowPaymentRegistered,
+        treatmentIds,
+        setTreatmentIds,
+        treatmentRegistered,
+        setTreatmentRegistered,
+      }}
+    />
+  );
+}
+
+type InstallmentsPageViewProps = InstallmentDialogsProps & {
+  state: InstallmentsPageState;
+  rows: FinanceInstallmentRow[];
+  visible: FinanceInstallmentRow[];
+  toolbar: ReactElement | null;
+  entry: EntrySession;
+  rowPaymentRegistered: boolean;
+};
+
+function InstallmentsPageView(props: InstallmentsPageViewProps): ReactElement {
+  const {
+    state,
+    rows,
+    visible,
+    toolbar,
+    entry,
+    setRows,
+    setPaymentRow,
+    setRowPaymentRegistered,
+    setTreatmentIds,
+    setTreatmentRegistered,
+    rowPaymentRegistered,
+  } = props;
+  return (
+    <InstallmentActionsContext.Provider
+      value={{
+        receive: (row) => {
+          setRowPaymentRegistered(false);
+          setPaymentRow(row);
+        },
+        negotiate: (row) => {
+          setTreatmentRegistered(false);
+          setTreatmentIds([row.installmentId]);
+        },
+      }}
+    >
+      <PaymentSelectionContext.Provider
+        value={{
+          rows,
+          visible,
+          toggle: (row) => setRows((current) => toggleSelected(current, row)),
+          toggleVisible: () => setRows((current) => toggleVisibleSelection(current, visible)),
+        }}
+      >
+        <PaymentRegisteredStatus registered={entry.registered || rowPaymentRegistered} />
+        <InstallmentsTableFrame state={state} beginPayment={entry.begin} toolbar={toolbar} />
+        <PaymentEntryDialog entry={entry} />
+        <InstallmentDialogs {...props} />
+      </PaymentSelectionContext.Provider>
+    </InstallmentActionsContext.Provider>
+  );
+}
+
+function selectionToolbar({
+  rows,
+  visible,
+  entry,
+  paymentRow,
+  treatmentIds,
+  setRows,
+  setTreatmentIds,
+  setTreatmentRegistered,
+}: {
+  rows: FinanceInstallmentRow[];
+  visible: FinanceInstallmentRow[];
+  entry: EntrySession;
+  paymentRow: FinanceInstallmentRow | null;
+  treatmentIds: string[] | null;
+  setRows: Dispatch<SetStateAction<FinanceInstallmentRow[]>>;
+  setTreatmentIds: Dispatch<SetStateAction<string[] | null>>;
+  setTreatmentRegistered: Dispatch<SetStateAction<boolean>>;
+}): ReactElement | null {
+  if (rows.length === 0 || entry.open || paymentRow || treatmentIds) return null;
   const outside = rows.filter(
     (row) => !visible.some((item) => item.installmentId === row.installmentId),
   ).length;
-  const toolbar =
-    rows.length > 0 && !entry.open ? (
-      <SelectionToolbar
-        count={rows.length}
-        outside={outside}
-        clear={() => setRows([])}
-        begin={() => entry.begin(rows)}
-        negotiate={() => setTreatment(rows.map((row) => row.installmentId))}
-      />
-    ) : null;
   return (
-    <PaymentSelectionContext.Provider
-      value={{
-        rows,
-        visible,
-        toggle: (row) => setRows((current) => toggleSelected(current, row)),
-        toggleVisible: () => setRows((current) => toggleVisibleSelection(current, visible)),
+    <SelectionToolbar
+      count={rows.length}
+      outside={outside}
+      clear={() => setRows([])}
+      begin={() => entry.begin(rows)}
+      negotiate={() => {
+        setTreatmentRegistered(false);
+        setTreatmentIds(rows.map((row) => row.installmentId));
       }}
-    >
-      <PaymentRegisteredStatus registered={entry.registered} />
-      <InstallmentsTableFrame state={state} beginPayment={entry.begin} toolbar={toolbar} />
-      <PaymentEntryDialog entry={entry} />
-      {treatment !== null && (
-        <TreatmentDialog
-          initialIds={treatment}
-          onClose={() => setTreatment(null)}
-          onConfirmed={() => setRows([])}
-        />
+    />
+  );
+}
+
+type InstallmentDialogsProps = {
+  paymentRow: FinanceInstallmentRow | null;
+  setPaymentRow: Dispatch<SetStateAction<FinanceInstallmentRow | null>>;
+  setRows: Dispatch<SetStateAction<FinanceInstallmentRow[]>>;
+  setRowPaymentRegistered: Dispatch<SetStateAction<boolean>>;
+  treatmentIds: string[] | null;
+  setTreatmentIds: Dispatch<SetStateAction<string[] | null>>;
+  treatmentRegistered: boolean;
+  setTreatmentRegistered: Dispatch<SetStateAction<boolean>>;
+};
+
+function InstallmentDialogs(props: InstallmentDialogsProps): ReactElement {
+  const { paymentRow, treatmentIds, treatmentRegistered } = props;
+  return (
+    <>
+      {paymentRow && <InstallmentRowPaymentDialog {...props} paymentRow={paymentRow} />}
+      {treatmentRegistered && (
+        <p role="status" className="px-6 pt-2 text-caption text-success">
+          Tratativa registrada.
+        </p>
       )}
-    </PaymentSelectionContext.Provider>
+      {treatmentIds && <InstallmentTreatmentDialog {...props} treatmentIds={treatmentIds} />}
+    </>
+  );
+}
+
+function InstallmentRowPaymentDialog({
+  paymentRow,
+  setPaymentRow,
+  setRows,
+  setRowPaymentRegistered,
+}: InstallmentDialogsProps & { paymentRow: FinanceInstallmentRow }): ReactElement {
+  return (
+    <PaymentDialog
+      key={paymentRow.installmentId}
+      rows={[paymentRow]}
+      open
+      onOpenChange={(open) => {
+        if (!open) setPaymentRow(null);
+      }}
+      onRegistered={() => {
+        setRows((current) =>
+          current.filter((row) => row.installmentId !== paymentRow.installmentId),
+        );
+        setPaymentRow(null);
+        setRowPaymentRegistered(true);
+      }}
+    />
+  );
+}
+
+function InstallmentTreatmentDialog({
+  treatmentIds,
+  setTreatmentIds,
+  setRows,
+  setTreatmentRegistered,
+}: InstallmentDialogsProps & { treatmentIds: string[] }): ReactElement {
+  return (
+    <TreatmentDialog
+      initialIds={treatmentIds}
+      onClose={() => setTreatmentIds(null)}
+      onConfirmed={() => {
+        setRows((current) => current.filter((row) => !treatmentIds.includes(row.installmentId)));
+        setTreatmentRegistered(true);
+      }}
+    />
   );
 }

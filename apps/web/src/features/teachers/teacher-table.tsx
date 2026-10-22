@@ -21,6 +21,7 @@ export function TeacherTable({
   return (
     <DataTable
       label="Professores"
+      loadingRows={pagination.pageSize}
       columns={teacherColumns({ href, today: data?.today ?? "" })}
       state={teacherTableState({ data, isError, filtered })}
       onRowClick={(row) => onOpen(row.id)}

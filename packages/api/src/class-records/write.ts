@@ -39,24 +39,30 @@ export async function saveClassRecord(
     now: context.now,
   });
   if (closed)
-    await recordActivity(context, {
+    await recordActivity(context.database, {
+      context,
       action: "studentAttendance.close",
+      details: {
+        subject: {
+          type: "class",
+          id: state.session.classId,
+          name: state.session.class.portalClassName,
+        },
+        description: "Encerrou o recebimento de declarações ao confirmar o registro da aula.",
+      },
+    });
+  const result = await persistRecord(context, { input, state });
+  await recordActivity(context.database, {
+    context,
+    action: input.version ? "classRecords.correct" : "classRecords.confirm",
+    details: {
       subject: {
         type: "class",
         id: state.session.classId,
         name: state.session.class.portalClassName,
       },
-      description: "Encerrou o recebimento de declarações ao confirmar o registro da aula.",
-    });
-  const result = await persistRecord(context, { input, state });
-  await recordActivity(context, {
-    action: input.version ? "classRecords.correct" : "classRecords.confirm",
-    subject: {
-      type: "class",
-      id: state.session.classId,
-      name: state.session.class.portalClassName,
+      description: recordDescription(input, state),
     },
-    description: recordDescription(input, state),
   });
   return result;
 }

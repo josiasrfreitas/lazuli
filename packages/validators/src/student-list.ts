@@ -72,6 +72,7 @@ export const studentListRowSchema = z
   .object({
     id: z.string().uuid(),
     fullName: z.string(),
+    registrationPending: z.boolean(),
     /** Derived from `birthDate` at read time; never persisted. */
     isMinor: z.boolean(),
     status: studentStatusSchema,

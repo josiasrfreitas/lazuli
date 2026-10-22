@@ -1,0 +1,92 @@
+# Integrated pedagogical delivery
+
+Current review handoff (13/10/2026): [HANDOFF.md](HANDOFF.md). The user will review each screen and
+request changes on the integrated branch before the final PR stack.
+
+## Current user direction (2026-10-11)
+
+Implement the complete requested feature set in one working branch, `josiasrfreitas/operacao-pedagogica`, with incremental commits and real browser validation. This supersedes opening one PR as each vertical is implemented.
+
+After the user reviews the complete product experience, split the work into a simple dependency-ordered stack using the installed `gh stack` extension (`github/gh-stack`, v0.1.1). Each PR should target the preceding branch, starting from main. Choose reviewable feature slices without adding unnecessary layers. Do not submit new PRs before that product review.
+
+Previously opened PRs #169 (entry/allocation) and #172 (student profile) remain drafts and are not the final stack. Their work is consolidated here. Refinement of Turmas (#170) continues here too.
+
+The user specifically requests a modern, premium UI; Professores is the current visual reference for Turmas. The individual student page has distinct Pedagógico and Financeiro sections. Occurrences can relate to each other; an intervention groups motivating occurrences that require a teacher's action.
+
+## Delivery constraints
+
+- No local lint, tests, typecheck or build: the user's “sem checks” explicitly means these commands, not browser inspection.
+- Preserve commit/push hooks, inspect diffs and validate actual workflows in the browser on desktop and narrow screens.
+- Do not mistake placeholders or historical documents for completed product behavior.
+- Work items #156, #168, #170 and #171 describe the accepted scope; remaining vertical issues will record concrete implementation choices.
+
+## Consolidated progress
+
+- V1/V2 baseline is on main.
+- V3 entry/allocation: draft implementation consolidated from 2033bf0; contact, availability, visit and enrollment forms now separate controllers, fields and pure input models. Known findings from the old draft CI were addressed, with automated execution still pending. Browser validation on 11 October covers required contact, compatible classes, real trial meetings, introductory scheduling/rescheduling/cancellation, guardian validation, existing-student conversion, future entry and attributed activity; see `v3-entrada-alocacao/VALIDATION.md`. Entry/return uses the shared masked Brazilian date control. Issue #157 explicitly excludes transfers from V1; the older transfer API does not authorize an additional movement UI.
+- Student profile: pedagogical/financial data, payment flow, contact/guardian, list/roster navigation and responsive light/dark UI implemented and browser-validated. Consolidated from aluno-perfil through c215183.
+- Turmas (#170): visual refinement implemented using Professores as reference; class information, teacher, schedule, roster and enrollment actions retained. Responsive light/dark evidence is in `turmas-ui/VALIDATION.md`.
+- V7 academic assessment (#175): two blocks and competency-specific recovery, pedagogical confirmation, justified corrections, student progression and class comparison implemented. Browser evidence includes the confirmed-grade correction flow; the complete seed supplies incomplete, sufficient, below-threshold and recovery cases. Student/class chart evidence is recorded in `assessments/VALIDATION.md`. Local automated checks remain deferred.
+- V10 occurrences/interventions (#179): related reports, teacher responsibility, attributed follow-up, conclusion/reopening, student context and activity log implemented. Browser validation covers admin/teacher permissions and desktop/mobile; see `occurrences/VALIDATION.md`. Commits `530e1af`, `5e27995` and `dbf6293`.
+- V9 manual stage planning (#180): shared regular plans, individual PPT plans, immutable versions, attributed revisions and continuity through same-stage pause/return implemented and browser-validated; see `stage-planning/VALIDATION.md`. V8 is recorded below. This checkpoint does not mark the pedagogical epic complete or treat the open hypotheses in the module brief as implemented behavior.
+- V5 student declarations (#182): public QR/link, bounded name identification, optional teacher location reference, required in-person student location, immutable repeat receipts, revoked/expired links and attributed teacher review implemented. Anonymous online, manual close/rotation, natural expiry, same-day teacher closure overriding a declaration, GPS failure recovery and responsive light/dark UI were exercised in the browser; see `student-attendance/VALIDATION.md`. Live GPS success and concurrency await automated execution.
+- V6 appointments (#184): scheduling, partial/multiple absence coverage, actual teaching records, justified correction, rescheduling, contacts, weighted frequency and teacher/student/class context implemented and browser-validated; see `appointments/VALIDATION.md`. The 250-student seed now includes 17 appointments and 14 contacts. Concurrency and other automated contracts await CI.
+- V8 next-semester organization (#185): future class plans, dated student availability, manual proposals, academic/timetable blockers and selected publication implemented. Paired future entry/exit preserves current membership and same-stage PPT assessment/planning; attributed withdrawal and due-date review retain history. Browser validation covers create/edit, reconfirmation, partial publication, withdrawal/republication, real Hatchet generation, teacher denial and responsive light/dark layouts; see `semester-organization/VALIDATION.md`. Future-date worker execution and concurrency await CI.
+- Runtime encounter generation (#183): real namespaced Hatchet dispatch, atomic attributed requests, visible failure/retry, pending agenda and idempotent worker implemented and browser-validated. A regular class recovered from dispatch failure and generated 23 encounters; a new PPT class automatically generated 26. A repeated request added zero encounters and preserved IDs. See `session-generation/VALIDATION.md`. One worker with one slot runs alongside the sole web server.
+- V4 class records (#181): weekly agenda, regular/shared and PPT/individual actual content, manual attendance, explicit closure, attributed corrections and immutable history implemented. Browser validation covers required fields, prior-call preservation, presence/content correction, no-present/cancelled/future encounters, teacher/substitute reads and scope, Log, desktop/mobile and dark mode; see `class-records/VALIDATION.md`. Current-day teacher writing was subsequently exercised during V5 QA; concurrent V4 submissions and later-plan edits remain covered by authored tests awaiting CI, not browser execution.
+
+## Additional direction
+
+- Recharts financial analytics (#173) and the complete 250-student baseline seed (#174) are implemented. V7 now supplies real academic records for the student and class charts.
+- Monthly contract closings (#178) answer the user's commercial question with projected nominal value of contracts closed in the month, equivalent monthly amount and count. The complete bar includes the monthly segment; labels are selectable and the monthly table lists recent months first. Cash receipts remain separate. See `analytics/CONTRACT-CLOSINGS.md`.
+- Important actions (#177) are saved in the same business transaction with time and actor. Sistema → Log de atividades presents an infinite-scroll timeline, search, area/period/author filters and expandable context. No Hatchet queue is introduced. See `activity/VALIDATION.md`.
+- Leads follow-up (#176) includes owner, dated next step, contact history, overdue/today views and the shared design-system filter component. Return conditions can be combined. See `leads/VALIDATION.md`.
+- Shared radius tokens now make the design squarer. Operational tables retain their blue palette with improved cell inset and row density.
+- Keep only one development server active: the integrated workspace, port 3004. Old root/V3/student servers were stopped and process exit verified on 2026-10-11.
+- Product vocabulary is now Leads. The user asks for simple commercial follow-up before a future discussion with sales: fast capture, owner, dated next step and contact history; avoid speculative sales stages, scoring, targets or automated messages.
+
+## Checkpoint on 2026-10-11
+
+Recent integrated commits:
+
+- `53f9b5d`: academic assessments and progression.
+- `a67e3d9`: atomic activity recording across the important action catalog.
+- `afcb07e`: shared Leads filters and combined follow-up queries.
+- `9c4d719`: complete academic/activity seed and nine monthly closing cohorts.
+- `c26a2db`: activity timeline and browser evidence.
+- `0a3aca4`: monthly contract-closing analytics and browser evidence.
+
+The latest official full seed was applied to the isolated workspace database and bucket on 11/10/2026.
+It retains 250 students, 22 current classes, seven teachers and 220 annual contracts. October's ten
+agreements produce R$ 28,200 nominal projected tuition and R$ 2,350 equivalent monthly amount;
+these are synthetic commercial values, separate from receipts. Existing pedagogical records include
+61 stage plans, 74 snapshots, 87 completed class records, 89 revisions, 31 declarations across six
+historical encounters, 17 appointments and 14 contacts.
+
+V8 adds eight future class plans, 32 proposals, 30 availability confirmations, 46 placement revisions
+and 12 published future enrollments across four future classes. Browser QA subsequently left 27
+actual classes, nine plans, 33 proposals, 13 publications and 34 availability confirmations, while
+retaining exactly 250 students. Earlier vertical QA records were replaced by the official rebuild;
+their screenshots remain historical evidence. One real Hatchet worker with one slot remains active.
+
+Final V3 browser validation created one synthetic lead, linked Manuela Carvalho Barbosa's existing
+student record and scheduled her entry into REG 14:00 · 6 on 13 October. The class retains ten
+current students and shows one scheduled entry. A real trial meeting remains scheduled; introductory
+rescheduling and justified cancellation retain both historical visits. The activity timeline names
+Clara Ribeiro and records the conversion time. Direct database reads still show 250 students and
+220 contracts; the conversion did not create a financial contract.
+
+The integrated implementation is ready for the user's product review. Recent finishing commits
+include the V8 paired-action batch correction (`8c0c038`), semester form refinements (`d40c466`),
+administrative route protection and evidence (`c27d356`), admissions form decomposition (`521572a`)
+and explicit semester test promises/concurrent error typing (`673cb68`). This checkpoint is a
+review handoff, not the final PR stack or a claim that automated gates passed.
+
+Preview: http://operacao-pedagogica.lazuli.localhost (port 3004). One web server remains active.
+The original checkout's unrelated edits are untouched. Work remains in the integrated branch;
+no new PRs or final stacked branches have been created.
+
+Commit hooks formatted files and checked whitespace. No local lint, tests, typecheck or build were
+run per the user's instruction. Authored automated coverage still needs CI execution. Contract
+cancellation and guaranteed-revenue calculations are outside the current financial implementation;
+its projection is explicitly subject to discounts and cancellation.

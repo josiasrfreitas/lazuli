@@ -43,3 +43,7 @@ provides a pointer cursor, subtle whole-row hover/focus feedback, and Enter acti
 the focused row. Links, buttons, form fields, and selection controls inside a row keep their
 own interaction. Informational tooltip triggers may render as spans so clicking their text
 also activates the row. Header, loading, empty, and error rows remain noninteractive.
+
+For a list beside its detail, pass `selectedRowId` with the ID of the open row. The shared table
+owns the whole-row background, inset outline and `aria-selected`; changing selection remains
+controlled through `onRowClick`. Focus feedback stays distinct from the persistent selection.

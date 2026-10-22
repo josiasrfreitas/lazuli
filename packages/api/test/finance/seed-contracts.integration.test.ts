@@ -7,10 +7,16 @@ import { stableUuid } from "../../../db/src/seed-dev-support.js";
 import { seedContracts } from "../../../../scripts/seed/contracts.js";
 import { seedSettings } from "../../../../scripts/seed/settings.js";
 
-void it("funds every student for a year and derives 95% current contracts at a year boundary", async () => {
+void it("funds allocated students for a year with shared payers, partial payments and settled late payments", async () => {
   const database = createDbClient();
   const studentIds = DEV_STUDENTS.map((student) => stableUuid(["student", student.key]));
-  const payerIds = DEV_STUDENTS.map((student) => stableUuid(["dev-contract-payer", student.key]));
+  const payerIds = [
+    ...new Set(
+      DEV_STUDENTS.map((student) =>
+        stableUuid(["dev-contract-payer", student.guardian?.key ?? student.key]),
+      ),
+    ),
+  ];
   const today = "2026-01-01";
   try {
     const admin = await database.user.create({ data: { ...DEV_ADMIN, role: "ADMIN" } });
@@ -30,8 +36,9 @@ void it("funds every student for a year and derives 95% current contracts at a y
         orders: { include: { installments: { include: { allocations: true } } } },
       },
     });
-    assert.equal(contracts.length, 160);
-    assert.equal(new Set(contracts.map((contract) => contract.studentId)).size, 160);
+    assert.equal(contracts.length, 220);
+    assert.equal(new Set(contracts.map((contract) => contract.studentId)).size, 220);
+    assert.equal(new Set(contracts.map((contract) => contract.payerId)).size, 205);
     for (const contract of contracts) {
       assert.equal(contract.durationMonths, 12);
       assert.equal(
@@ -53,8 +60,25 @@ void it("funds every student for a year and derives 95% current contracts at a y
     const now = new Date(`${today}T12:00:00Z`);
     const currentContracts = await service.listContracts({ page: 1, status: "EM_DIA", now });
     const overdueContracts = await service.listContracts({ page: 1, status: "INADIMPLENTE", now });
-    assert.equal(currentContracts.total, 152);
-    assert.equal(overdueContracts.total, 8);
+    assert.equal(currentContracts.total, 198);
+    assert.equal(overdueContracts.total, 22);
+    const partial = contracts.find((contract) => contract.studentId === studentIds[1])!;
+    const lastDue = partial.orders[0]!.installments.filter(
+      (item) => item.dueDate < new Date(today),
+    ).toSorted((left, right) => right.sequenceNumber - left.sequenceNumber)[0]!;
+    assert.equal(
+      lastDue.allocations.reduce((sum, row) => sum + row.amountCents, 0),
+      lastDue.amountCents / 2,
+    );
+    const lateSettled = contracts.find((contract) => contract.studentId === studentIds[2])!;
+    const interest = await database.installmentAdjustment.findMany({
+      where: { type: "INTEREST", installment: { order: { contractId: lateSettled.id } } },
+    });
+    assert.equal(interest.length > 0, true);
+    assert.equal(
+      interest.every((row) => row.amountCents > 0),
+      true,
+    );
     const first = contracts.find((contract) => contract.studentId === studentIds[0])!;
     assert.equal(first.payer.name, "Patrícia Rocha Andrade");
     const payments = await database.paymentEntry.findMany({ where: { payerId: { in: payerIds } } });

@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactElement } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, type ReactElement } from "react";
 import { Plus, Search } from "lucide-react";
 import {
   Button,
@@ -11,11 +10,10 @@ import {
   type TableFilterField,
   type TableFilterOption,
 } from "@lazuli/ui";
-import { debounce } from "~/lib/debounce";
+import { useSearchDraft } from "~/lib/use-search-draft";
 import { CONTRACT_SEARCH_MAX_LENGTH, type ContractFilters } from "./contract-filters";
 import { trpc } from "~/lib/trpc";
 
-const SEARCH_DEBOUNCE_MS = 300;
 const PARTY_RESULT_LIMIT = 20;
 const STATUS_OPTIONS = [
   { id: "INADIMPLENTE", label: "Inadimplente" },
@@ -195,21 +193,9 @@ function useContractFilterFields(filters: ContractFilters): TableFilterField[] {
 }
 
 function ContractSearch({ filters }: { filters: ContractFilters }): ReactElement {
-  const [value, setValue] = useState(filters.search);
-  const location = useSearchParams().toString();
-  const commit = useMemo(
-    () =>
-      debounce(
-        (search: string) => filters.setFilters({ busca: search || null }),
-        SEARCH_DEBOUNCE_MS,
-      ),
-    [filters.setFilters],
+  const [value, setValue] = useSearchDraft(filters.search, (search) =>
+    filters.setFilters({ busca: search || null }),
   );
-  useEffect(() => {
-    setValue(filters.search);
-    commit.cancel();
-  }, [filters.search, location, commit]);
-  useEffect(() => () => commit.cancel(), [commit]);
   return (
     <div className="relative min-w-48 flex-1 sm:w-64 sm:flex-none">
       <Search
@@ -226,7 +212,6 @@ function ContractSearch({ filters }: { filters: ContractFilters }): ReactElement
         value={value}
         onChange={(event) => {
           setValue(event.target.value);
-          commit(event.target.value);
         }}
       />
     </div>

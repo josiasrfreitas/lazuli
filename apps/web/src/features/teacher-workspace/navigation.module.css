@@ -1,0 +1,6 @@
+/* The hamburger keeps every destination available when vertical space is scarce. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .navigation {
+    display: none;
+  }
+}

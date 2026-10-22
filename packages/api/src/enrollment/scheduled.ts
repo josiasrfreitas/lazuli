@@ -7,7 +7,7 @@ import { badRequest, notFound } from "../trpc/errors.js";
 
 type Database = Pick<
   Prisma.TransactionClient,
-  "enrollmentAction" | "enrollment" | "pedagogicalProgress" | "$queryRaw"
+  "enrollmentAction" | "enrollment" | "pedagogicalProgress" | "semesterPlacement" | "$queryRaw"
 >;
 
 /** Cancellation is a recorded status change; a future entry's rows are soft-deleted. */
@@ -16,6 +16,7 @@ export async function cancelScheduledAction(input: {
   actionId: string;
   staffUserId: string;
   now: Date;
+  semesterPlacementId?: string;
 }): Promise<{ id: string; status: "CANCELLED" }> {
   const action = await input.database.enrollmentAction.findUnique({
     where: { id: input.actionId },
@@ -36,20 +37,38 @@ export async function cancelScheduledAction(input: {
     throw badRequest("A programação só pode ser cancelada antes da data efetiva.");
   }
   await lockStudentEnrollment(input.database, action.enrollment.studentId);
+  const linked = await input.database.semesterPlacement.findFirst({
+    where: {
+      publishedAt: { not: null },
+      OR: [{ entryActionId: action.id }, { sourceExitActionId: action.id }],
+    },
+    select: { id: true },
+  });
+  if (linked && linked.id !== input.semesterPlacementId)
+    throw badRequest(
+      "Desfaça esta publicação na organização do próximo semestre para cancelar entrada e saída juntas.",
+    );
   const result = await input.database.enrollmentAction.updateMany({
     where: { id: action.id, status: "SCHEDULED" },
     data: { status: "CANCELLED", cancelledAt: input.now, cancelledById: input.staffUserId },
   });
   if (result.count !== 1) throw badRequest("A programação já foi alterada.");
   if (action.kind === "ENTRY" || action.kind === "RETURN") {
-    await input.database.pedagogicalProgress.updateMany({
-      where: { enrollmentId: action.enrollmentId, deletedAt: null },
-      data: { deletedAt: input.now },
-    });
-    await input.database.enrollment.update({
-      where: { id: action.enrollmentId },
-      data: { deletedAt: input.now },
+    await deleteFutureEnrollment(input.database, {
+      enrollmentId: action.enrollmentId,
+      now: input.now,
     });
   }
   return { id: action.id, status: "CANCELLED" as const };
+}
+
+async function deleteFutureEnrollment(
+  database: Database,
+  { enrollmentId, now }: { enrollmentId: string; now: Date },
+): Promise<void> {
+  await database.pedagogicalProgress.updateMany({
+    where: { enrollmentId, deletedAt: null },
+    data: { deletedAt: now },
+  });
+  await database.enrollment.update({ where: { id: enrollmentId }, data: { deletedAt: now } });
 }

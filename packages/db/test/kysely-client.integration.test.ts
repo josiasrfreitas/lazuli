@@ -18,6 +18,7 @@ void describe("Prisma-backed Kysely client", { concurrency: 1 }, () => {
 
   registerSharedTransactionReadTest();
   registerRollbackTest();
+  registerConcurrentTransactionTest();
   registerSoftDeleteTest();
 });
 
@@ -78,4 +79,43 @@ function registerSoftDeleteTest(): void {
 
 async function clean(): Promise<void> {
   await db.$executeRaw`delete from "Payer" where name like ${`${PREFIX}%`}`;
+}
+
+function registerConcurrentTransactionTest(): void {
+  void it("keeps concurrent Kysely reads on their own uncommitted transaction", async () => {
+    let release!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let releaseReads!: () => void;
+    const readsCompleted = new Promise<void>((resolve) => {
+      releaseReads = resolve;
+    });
+    let arrivals = 0;
+    let completedReads = 0;
+    const names = [`${PREFIX}concurrent-first`, `${PREFIX}concurrent-second`];
+    const results = await Promise.all(
+      names.map((name) =>
+        db.$transaction(async (transaction) => {
+          await transaction.payer.create({ data: { name } });
+          arrivals += 1;
+          if (arrivals === names.length) release();
+          await ready;
+          try {
+            return await transaction.$kysely
+              .selectFrom("Payer")
+              .select("name")
+              .where("name", "in", names)
+              .execute();
+          } finally {
+            completedReads += 1;
+            if (completedReads === names.length) releaseReads();
+            // READ COMMITTED may see a peer as soon as it commits: hold both open.
+            await readsCompleted;
+          }
+        }),
+      ),
+    );
+    assert.deepEqual(results, [[{ name: names[0] }], [{ name: names[1] }]]);
+  });
 }

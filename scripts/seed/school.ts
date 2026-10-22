@@ -1,3 +1,4 @@
+import { seedTeachingPrograms } from "./teaching-programs.js";
 import type { DatabaseClient } from "../../packages/db/src/client.js";
 import { seedCourseCatalog } from "../../packages/db/src/seed-course-catalog.js";
 import { seedDevData } from "../../packages/db/src/seed-dev.js";
@@ -8,10 +9,21 @@ import {
 } from "../../packages/api/src/classes/portal-name.js";
 import { seedSettings } from "./settings.js";
 import { seedContracts } from "./contracts.js";
+import { seedAdmissions } from "./admissions.js";
+import { seedAssessments } from "./assessments.js";
+import { seedActivity } from "./activity.js";
+import { seedPedagogicalFollowUp } from "./pedagogical-follow-up.js";
+import { seedStagePlanning } from "./stage-planning.js";
+import { seedClassRecords } from "./class-records.js";
+import { seedStudentAttendance } from "./student-attendance.js";
+import { seedAppointments } from "./appointments.js";
+import { seedClassOrganization } from "./class-organization.js";
+import { seedSemesterOrganization } from "./semester-organization.js";
 
 /** Shared by initial provisioning and the destructive pnpm seed entry point. */
 export async function seedSchool(database: DatabaseClient, todayIso: string): Promise<void> {
   await seedCourseCatalog(database);
+  await seedTeachingPrograms(database);
   await seedDevData(database, {
     todayIso,
     resolveClassName: (classSeed, semester) => {
@@ -31,7 +43,17 @@ export async function seedSchool(database: DatabaseClient, todayIso: string): Pr
   });
   await seedSettings(database);
   await seedContracts(database, todayIso);
+  await seedAdmissions(database, todayIso);
+  await seedAssessments(database, todayIso);
+  await seedPedagogicalFollowUp(database, todayIso);
+  await seedStagePlanning(database, todayIso);
+  await seedClassRecords(database, todayIso);
+  await seedStudentAttendance(database, todayIso);
+  await seedAppointments(database, todayIso);
+  await seedSemesterOrganization(database, todayIso);
+  await seedClassOrganization(database, todayIso);
+  await seedActivity(database, todayIso);
   process.stdout.write(
-    `School loaded for ${todayIso}: ${DEV_STUDENTS.length} students, ${DEV_CLASSES.length} classes and ${DEV_TEACHERS.length} teachers.\n`,
+    `School loaded for ${todayIso}: ${DEV_STUDENTS.length + 2} students, ${DEV_CLASSES.length + 1} current-semester classes and ${DEV_TEACHERS.length} teachers.\n`,
   );
 }

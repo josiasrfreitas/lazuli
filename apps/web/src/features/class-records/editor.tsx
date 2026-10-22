@@ -1,5 +1,5 @@
 "use client";
-import type { ReactElement } from "react";
+import { useEffect, type ReactElement } from "react";
 import { ClipboardCheck, X } from "lucide-react";
 import { Alert, Button } from "@lazuli/ui";
 import { NarrativeField } from "~/features/shared/task-form";
@@ -10,11 +10,20 @@ import { RecordReview } from "./editor-review";
 export function ClassRecordEditor({
   data,
   onClose,
+  declarations,
+  externalSubmit = false,
+  onStateChange,
 }: {
   data: ClassRecord;
   onClose: () => void;
+  declarations?: ClassRecord["declarations"];
+  externalSubmit?: boolean;
+  onStateChange?: (state: { dirty: boolean; pending: boolean }) => void;
 }): ReactElement {
-  const editor = useRecordEditor(data, onClose);
+  const editor = useRecordEditor(declarations ? { ...data, declarations } : data, onClose);
+  useEffect(() => {
+    onStateChange?.({ dirty: editor.dirty, pending: editor.save.isPending });
+  }, [editor.dirty, editor.save.isPending, onStateChange]);
   return (
     <>
       <form
@@ -37,11 +46,11 @@ export function ClassRecordEditor({
           </Alert>
         )}
         <div className="grid min-w-0 items-start gap-4 lg:grid-cols-5">
-          <RecordRoster editor={editor} />
+          <RecordRoster editor={editor} declarations={declarations} />
           <RecordContent editor={editor} />
         </div>
         <EditorNotes editor={editor} />
-        <EditorActions editor={editor} onClose={onClose} />
+        <EditorActions editor={editor} onClose={onClose} externalSubmit={externalSubmit} />
       </form>
       <RecordReview editor={editor} />
     </>
@@ -108,9 +117,11 @@ function EditorNotes({ editor }: { editor: RecordEditor }): ReactElement {
 function EditorActions({
   editor: { opened },
   onClose,
+  externalSubmit,
 }: {
   editor: RecordEditor;
   onClose: () => void;
+  externalSubmit: boolean;
 }): ReactElement {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
@@ -119,18 +130,20 @@ function EditorActions({
           ? "A versão anterior ficará preservada no histórico."
           : "Confira a chamada e o conteúdo antes de confirmar a baixa."}
       </p>
-      <div className="flex flex-wrap items-center gap-2">
-        {opened.version > 0 && (
-          <Button variant="secondary" type="button" onClick={onClose}>
-            <X aria-hidden />
-            Cancelar correção
+      {!externalSubmit && (
+        <div className="flex flex-wrap items-center gap-2">
+          {opened.version > 0 && (
+            <Button variant="secondary" type="button" onClick={onClose}>
+              <X aria-hidden />
+              Cancelar correção
+            </Button>
+          )}
+          <Button type="submit">
+            <ClipboardCheck aria-hidden />
+            {opened.version ? "Conferir correção" : "Conferir e dar baixa"}
           </Button>
-        )}
-        <Button type="submit">
-          <ClipboardCheck aria-hidden />
-          {opened.version ? "Conferir correção" : "Conferir e dar baixa"}
-        </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

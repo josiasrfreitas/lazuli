@@ -9,10 +9,13 @@ import {
   type TablePaginationConfig,
 } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
-import { toWhatsAppUrl } from "~/lib/format";
+import { formatAttendancePercent, toWhatsAppUrl } from "~/lib/format";
+import { gradeLabel } from "~/features/assessments/shared";
 import { rosterStatus, type RosterRow } from "./roster-status";
 import { studentAgeLabel } from "./student-age";
 import { formatTrackName } from "./labels";
+import { StudentAssessmentsDialog } from "~/features/students/profile/student-assessments-dialog";
+import { AttendanceHistoryDialog } from "~/features/students/profile/attendance-history-dialog";
 import { StudentActions } from "./roster-actions";
 
 type List = RouterOutputs["classes"]["roster"];
@@ -91,6 +94,7 @@ function rosterColumns(props: Props): DataTableColumn<RosterRow>[] {
       width: "medium",
       cell: (row) => <StudentLearningContext row={row} />,
     });
+  columns.push(...rosterMetricColumns());
   return [
     ...columns,
     {
@@ -120,6 +124,39 @@ function rosterActionsColumn(props: Props, today: string): DataTableColumn<Roste
       />
     ),
   };
+}
+function rosterMetricColumns(): DataTableColumn<RosterRow>[] {
+  return [
+    {
+      id: "gradeAverage",
+      header: "Média",
+      numeric: true,
+      width: "narrow",
+      cell: (row) => (
+        <StudentAssessmentsDialog
+          studentId={row.studentId}
+          studentName={row.student.fullName}
+          triggerLabel="Ver notas"
+          triggerValue={gradeLabel(row.gradeAverage)}
+        />
+      ),
+    },
+    {
+      id: "attendance",
+      header: "Frequência",
+      numeric: true,
+      width: "narrow",
+      cell: (row) => (
+        <AttendanceHistoryDialog
+          studentId={row.studentId}
+          studentName={row.student.fullName}
+          enrollmentId={row.id}
+          triggerLabel="Ver frequência"
+          triggerValue={formatAttendancePercent(row.attendancePercent)}
+        />
+      ),
+    },
+  ];
 }
 function StudentIdentity({ row, today }: { row: RosterRow; today: string }): ReactElement {
   return (

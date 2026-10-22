@@ -3,12 +3,17 @@ import type { ReactElement } from "react";
 import { BookOpen, Wallet } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@lazuli/ui";
-import { StudentPedagogy } from "./student-pedagogy";
+import { StudentPedagogySection } from "./student-pedagogy";
 import { StudentFinanceSection } from "./student-finance";
+
+import { useStudentProfile } from "./logic";
+import { ProfileError } from "./profile-shared";
+import { PedagogyLoading } from "./student-loading";
 
 const SECTIONS = ["pedagogico", "financeiro", "planejamento"] as const;
 
 export function StudentSections({ id }: { id: string }): ReactElement {
+  const profile = useStudentProfile(id);
   const [section, setSection] = useQueryState(
     "secao",
     parseAsStringLiteral(SECTIONS).withDefault("pedagogico"),
@@ -34,7 +39,11 @@ export function StudentSections({ id }: { id: string }): ReactElement {
       </TabsPanel>
       <TabsPanel value="pedagogico">
         <div className="pt-5">
-          <StudentPedagogy id={id} />
+          {profile.isPending && <PedagogyLoading />}
+          {profile.isError && (
+            <ProfileError message={profile.error.message} onRetry={() => void profile.refetch()} />
+          )}
+          {profile.data && <StudentPedagogySection profile={profile.data} />}
         </div>
       </TabsPanel>
       <TabsPanel value="financeiro">

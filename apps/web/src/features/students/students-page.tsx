@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactElement } from "react";
-import { useRouter } from "next/navigation";
+import { useState, type ReactElement } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CircleCheck, GraduationCap, Plus, Search, UsersRound } from "lucide-react";
 
 import {
@@ -18,7 +18,7 @@ import {
   studentPaginationPolicy,
 } from "@lazuli/validators";
 import { tablePaginationPropsFor, type UrlPagination } from "~/lib/pagination";
-import { debounce } from "~/lib/debounce";
+import { useSearchDraft } from "~/lib/use-search-draft";
 
 import {
   useStudentFilterOptions,
@@ -31,8 +31,6 @@ import { studentFilterOptionResult } from "./filter-options";
 import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentsTable } from "./students-table";
 import { tableStateVm } from "./view-model";
-
-const SEARCH_DEBOUNCE_MS = 300;
 
 export type StudentsFilterFieldsProps = {
   filters: StudentsFilters;
@@ -127,16 +125,7 @@ export function studentFilterFields(props: StudentsFilterFieldsProps): TableFilt
 }
 
 function SearchField({ filters }: { filters: StudentsFilters }): ReactElement {
-  const [value, setValue] = useState(filters.search);
-  const commitSearch = useMemo(
-    () => debounce((nextValue: string) => filters.setSearch(nextValue), SEARCH_DEBOUNCE_MS),
-    [filters.setSearch],
-  );
-  useEffect(() => {
-    setValue(filters.search);
-    commitSearch.cancel();
-  }, [commitSearch, filters.search]);
-  useEffect(() => () => commitSearch.cancel(), [commitSearch]);
+  const [value, setValue] = useSearchDraft(filters.search, filters.setSearch);
   return (
     <div className="relative w-full sm:w-80">
       <Search
@@ -149,7 +138,6 @@ function SearchField({ filters }: { filters: StudentsFilters }): ReactElement {
         onChange={(event) => {
           const nextValue = event.target.value;
           setValue(nextValue);
-          commitSearch(nextValue);
         }}
         placeholder="Buscar por nome, turma ou professor"
         size="sm"
@@ -251,50 +239,91 @@ function studentTableState(
 }
 
 export function StudentsPage(): ReactElement {
-  const router = useRouter();
   const filters = useStudentsFilters();
+  const openStudent = useOpenStudent();
   const students = useStudentsList(filters);
   const fields = useStudentFilterFields(filters);
   const [creating, setCreating] = useState(false);
+  const [resuming, setResuming] = useState<string | null>(null);
   const pagination = paginationFor(filters);
+  const startCreating = (): void => setCreating(true);
 
   return (
     <>
       <DataTablePage
         controls={
-          <StudentsControls
-            filters={filters}
-            fields={fields}
-            onNewStudent={() => {
-              setCreating(true);
-            }}
-          />
+          <StudentsControls filters={filters} fields={fields} onNewStudent={startCreating} />
         }
         title="Alunos"
       >
-        <div className="flex h-full min-h-0 flex-col gap-2">
-          <TableFilterChips fields={fields} />
-          <div className="min-h-0 flex-1">
-            <StudentsTable
-              onRetry={() => {
-                void students.refetch();
-              }}
-              onSelectRow={(id) => router.push(`/alunos/${id}`)}
-              selectedId={null}
-              state={studentTableState(filters, students)}
-              pagination={tablePaginationPropsFor(pagination, students.data)}
-            />
-          </div>
-        </div>
+        <StudentsTableSection
+          fields={fields}
+          filters={filters}
+          students={students}
+          pagination={pagination}
+          onOpenStudent={openStudent}
+          onContinue={setResuming}
+        />
       </DataTablePage>
       <NewStudentDialog
         onCreated={(id) => {
           setCreating(false);
-          router.push(`/alunos/${id}`);
+          if (resuming) {
+            setResuming(null);
+            void students.refetch();
+          } else openStudent(id);
         }}
-        onOpenChange={setCreating}
-        open={creating}
+        existingStudentId={resuming ?? undefined}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreating(false);
+            setResuming(null);
+          }
+        }}
+        open={creating || Boolean(resuming)}
       />
     </>
+  );
+}
+
+function useOpenStudent(): (id: string) => void {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  return (id: string): void => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("aluno");
+    const back = params.size > 0 ? `/alunos?${params.toString()}` : "/alunos";
+    router.push(`/alunos/${id}?voltar=${encodeURIComponent(back)}`);
+  };
+}
+
+function StudentsTableSection({
+  fields,
+  filters,
+  students,
+  pagination,
+  onOpenStudent,
+  onContinue,
+}: {
+  fields: ReturnType<typeof useStudentFilterFields>;
+  filters: ReturnType<typeof useStudentsFilters>;
+  students: ReturnType<typeof useStudentsList>;
+  pagination: ReturnType<typeof paginationFor>;
+  onOpenStudent: (id: string) => void;
+  onContinue: (id: string) => void;
+}): ReactElement {
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <TableFilterChips fields={fields} />
+      <div className="min-h-0 flex-1">
+        <StudentsTable
+          onRetry={() => void students.refetch()}
+          onOpenRow={onOpenStudent}
+          onContinue={onContinue}
+          state={studentTableState(filters, students)}
+          pagination={tablePaginationPropsFor(pagination, students.data)}
+        />
+      </div>
+    </div>
   );
 }

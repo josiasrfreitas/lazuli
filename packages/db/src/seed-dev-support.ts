@@ -9,6 +9,8 @@ import type { DatabaseClient } from "./client.js";
  */
 
 const DATE_ONLY_LENGTH = 10;
+const SAO_PAULO_END_DAY_UTC_HOUR = 2;
+const END_DAY_MINUTE = 59;
 const UUID_TIME_LOW_END = 8;
 const UUID_TIME_MID_END = 12;
 const UUID_VERSION_END = 16;
@@ -31,6 +33,8 @@ export type SeedContext = {
   semester: SeededSemester;
   teacherIds: Map<string, string>;
   classes: Map<string, SeededClass>;
+  adminId: string;
+  closedDates: Set<string>;
   resolveClassName: (classSeed: DevClassSeed, semester: SeededSemester) => Promise<string>;
 };
 
@@ -54,7 +58,10 @@ export function timeOfDay(wallTime: string): Date {
 }
 
 export function endOfDayUtc(dateIso: string): Date {
-  return new Date(`${dateIso}T23:00:00.000Z`);
+  // 23:59 in São Paulo is 02:59 UTC on the following civil day.
+  const date = addDays(utcDate(dateIso), 1);
+  date.setUTCHours(SAO_PAULO_END_DAY_UTC_HOUR, END_DAY_MINUTE, 0, 0);
+  return date;
 }
 
 export function isoOf(date: Date): string {
@@ -76,4 +83,15 @@ export function requireValue<T>(value: T | undefined, label: string): T {
     throw new Error(`Dev seed misconfiguration: missing ${label}.`);
   }
   return value;
+}
+
+/** Enrollment cannot start in the future merely because the fixture has a late-entry profile. */
+export function enrollmentEntryIso(input: {
+  semesterStartIso: string;
+  todayIso: string;
+  entryOffsetDays?: number | undefined;
+}): string {
+  const proposed = isoOf(addDays(utcDate(input.semesterStartIso), input.entryOffsetDays ?? 0));
+  if (proposed < input.todayIso) return proposed;
+  return input.todayIso;
 }

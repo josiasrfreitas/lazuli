@@ -14,7 +14,9 @@ import {
 } from "@lazuli/ui";
 import { formatDateOnlyBR, toWhatsAppUrl } from "~/lib/format";
 import type { StudentProfile } from "./logic";
-import { MISSING_DETAIL, ProfileFact } from "./profile-shared";
+import { ProfileFact } from "./profile-shared";
+
+const NOT_INFORMED = "Não informado";
 
 export function StudentContactButton({ profile }: { profile: StudentProfile }): ReactElement {
   return (
@@ -58,16 +60,16 @@ function StudentContactFacts({ profile }: { profile: StudentProfile }): ReactEle
   return (
     <dl className="grid gap-4">
       <ProfileFact label="Nascimento">
-        {profile.contact.birthDate ? formatDateOnlyBR(profile.contact.birthDate) : MISSING_DETAIL}
+        {profile.contact.birthDate ? formatDateOnlyBR(profile.contact.birthDate) : NOT_INFORMED}
       </ProfileFact>
-      <ProfileFact label="Telefone">{profile.contact.phone ?? MISSING_DETAIL}</ProfileFact>
+      <ProfileFact label="Telefone">{profile.contact.phone ?? NOT_INFORMED}</ProfileFact>
       <ProfileFact label="E-mail">
         {profile.contact.email ? (
           <a className="text-interactive hover:underline" href={`mailto:${profile.contact.email}`}>
             {profile.contact.email}
           </a>
         ) : (
-          MISSING_DETAIL
+          NOT_INFORMED
         )}
       </ProfileFact>
       {profile.address && (
@@ -82,7 +84,7 @@ function StudentContactFacts({ profile }: { profile: StudentProfile }): ReactEle
             profile.address.postalCode,
           ]
             .filter(Boolean)
-            .join(", ") || MISSING_DETAIL}
+            .join(", ") || NOT_INFORMED}
         </ProfileFact>
       )}
     </dl>

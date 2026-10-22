@@ -9,6 +9,8 @@ import { cn } from "../lib/utils";
 
 export type StepperItem = {
   label: string;
+  /** Keeps an earlier step pending when the flow allows it to be deferred. */
+  completed?: boolean;
   /** Marks a step the flow cannot reach yet (e.g. an "em breve" stage). */
   disabled?: boolean;
 };
@@ -52,7 +54,7 @@ function deriveState({
   if (step.disabled) {
     return "disabled";
   }
-  if (index < activeIndex) {
+  if (index < activeIndex && step.completed !== false) {
     return "complete";
   }
 

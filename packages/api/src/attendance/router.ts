@@ -1,3 +1,7 @@
+import { assertAttendanceOnlyWrite } from "../class-records/data.js";
+import { closeAttendanceWindows } from "../student-attendance/data.js";
+import { sessionSubject } from "../activity/subjects.js";
+import { activityTransaction, recordActivity } from "../activity/record.js";
 import {
   attendanceConfirmSessionInputSchema,
   attendanceEditSessionInputSchema,
@@ -35,18 +39,57 @@ export const attendanceRouter = router({
   confirmSession: staffProcedure
     .input(attendanceConfirmSessionInputSchema)
     .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        confirmSession({
+      activityTransaction(ctx, {
+        action: "attendance.confirmSession",
+        work: async (database) => {
+          await assertAttendanceOnlyWrite(database, input.sessionId);
+          const closedWindows = await closeAttendanceWindows(database, {
+            sessionId: input.sessionId,
+            userId: ctx.staffUser.id,
+            now: ctx.now ?? new Date(),
+          });
+          if (closedWindows > 0)
+            await recordActivity(database, {
+              context: ctx,
+              action: "studentAttendance.close",
+              details: {
+                subject: await sessionSubject(database, input.sessionId),
+                description:
+                  "Recebimento de presença encerrado na confirmação da chamada. Envios recebidos preservados.",
+              },
+            });
+          return confirmSession({
+            database,
+            staffUser: ctx.staffUser,
+            values: input,
+            now: ctx.now ?? new Date(),
+          });
+        },
+        describe: async (_result, database) => ({
+          subject: await sessionSubject(database, input.sessionId),
+        }),
+      }),
+    ),
+  editSession: staffProcedure.input(attendanceEditSessionInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, {
+      action: "attendance.editSession",
+      work: async (database) => {
+        await assertAttendanceOnlyWrite(database, input.sessionId);
+        return editSession({
           database,
           staffUser: ctx.staffUser,
           values: input,
           now: ctx.now ?? new Date(),
-        }),
-      ),
-    ),
-  editSession: staffProcedure.input(attendanceEditSessionInputSchema).mutation(({ ctx, input }) =>
+        });
+      },
+      describe: async (_result, database) => ({
+        subject: await sessionSubject(database, input.sessionId),
+      }),
+    }),
+  ),
+  scheduleMakeup: adminProcedure.input(makeupScheduleInputSchema).mutation(({ ctx, input }) =>
     ctx.db.$transaction((database) =>
-      editSession({
+      scheduleMakeup({
         database,
         staffUser: ctx.staffUser,
         values: input,
@@ -54,27 +97,24 @@ export const attendanceRouter = router({
       }),
     ),
   ),
-  // Coordination (logged in as ADMIN) schedules/cancels makeups (S-ATT-3, D-0010).
-  scheduleMakeup: adminProcedure
-    .input(makeupScheduleInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        scheduleMakeup({ database, staffUser: ctx.staffUser, values: input }),
-      ),
+  cancelMakeup: adminProcedure.input(makeupCancelInputSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) =>
+      cancelMakeup({
+        database,
+        staffUser: ctx.staffUser,
+        values: input,
+        now: ctx.now ?? new Date(),
+      }),
     ),
-  cancelMakeup: adminProcedure
-    .input(makeupCancelInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        cancelMakeup({ database, staffUser: ctx.staffUser, values: input }),
-      ),
+  ),
+  markMakeupOutcome: staffProcedure.input(makeupOutcomeInputSchema).mutation(({ ctx, input }) =>
+    ctx.db.$transaction((database) =>
+      markMakeupOutcome({
+        database,
+        staffUser: ctx.staffUser,
+        values: input,
+        now: ctx.now ?? new Date(),
+      }),
     ),
-  // The owning teacher (or ADMIN) records whether the visitor showed up (S-ATT-2).
-  markMakeupOutcome: staffProcedure
-    .input(makeupOutcomeInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        markMakeupOutcome({ database, staffUser: ctx.staffUser, values: input }),
-      ),
-    ),
+  ),
 });

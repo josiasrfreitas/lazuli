@@ -1,46 +1,90 @@
 "use client";
 
-import type { ReactElement } from "react";
-
-import { Menu } from "lucide-react";
-
+import { useEffect, useState, type ReactElement } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import type { StaffIdentity } from "@lazuli/auth/server";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@lazuli/ui";
+import { matchesNavHref, navSectionsFor } from "./nav-items";
+import styles from "./mobile-navigation.module.css";
 
-import { AccountFooter } from "./account-footer";
-import { BrandSignature } from "./brand-signature";
-import { SidebarNav } from "./sidebar-nav";
-
-/** Native disclosure keeps navigation available when the desktop sidebar is hidden. */
 export function MobileNavigation({ identity }: { identity: StaffIdentity }): ReactElement {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const [keyboard, setKeyboard] = useState(false);
+  useEffect(() => setOpen(false), [pathname]);
   return (
-    <details
-      className="relative sm:hidden"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") {
-          event.currentTarget.open = false;
-          event.currentTarget.querySelector("summary")?.focus();
-        }
-      }}
-      onClick={(event) => {
-        if (event.target instanceof Element && event.target.closest("a") !== null) {
-          event.currentTarget.open = false;
-          event.currentTarget.querySelector("summary")?.focus();
-        }
-      }}
-    >
-      <summary className="flex size-11 cursor-pointer list-none items-center justify-center rounded-md focus-visible:outline-2 focus-visible:outline-ring">
-        <Menu aria-hidden="true" className="size-5 text-icon" />
-        <span className="sr-only">Abrir navegação</span>
-      </summary>
-      <div className="absolute left-0 top-full z-50 w-54 rounded-lg border border-navigation-border bg-navigation p-3 text-navigation-foreground shadow-lg">
-        <div className="mb-3 px-2 pb-3">
-          <BrandSignature expanded />
+    <div className="sm:hidden">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon-compact-responsive"
+              aria-label={open ? "Fechar navegação" : "Abrir navegação"}
+              onPointerDown={() => setKeyboard(false)}
+              onKeyDown={() => setKeyboard(true)}
+            />
+          }
+        >
+          <span className={styles.triggerIcon} data-open={open} data-keyboard={keyboard}>
+            <Menu aria-hidden="true" />
+            <X aria-hidden="true" />
+          </span>
+        </PopoverTrigger>
+        <PopoverContent
+          size="menu"
+          motion={keyboard ? "instant" : "unfold"}
+          align="start"
+          sideOffset={8}
+          aria-label="Menu de navegação"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setKeyboard(true);
+          }}
+        >
+          <NavigationItems
+            role={identity.role}
+            pathname={pathname}
+            onNavigate={() => setOpen(false)}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+function NavigationItems({
+  role,
+  pathname,
+  onNavigate,
+}: {
+  role: StaffIdentity["role"];
+  pathname: string;
+  onNavigate: () => void;
+}): ReactElement {
+  return (
+    <nav aria-label="Navegação principal" className={styles.navigation}>
+      {navSectionsFor(role).map((section) => (
+        <div key={section.id} className={styles.section}>
+          {section.label && <p className={styles.sectionTitle}>{section.label}</p>}
+          <div>
+            {section.items.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={styles.link}
+                data-menu-item
+                aria-current={matchesNavHref({ href, pathname }) ? "page" : undefined}
+                onClick={onNavigate}
+              >
+                <Icon aria-hidden="true" />
+                <span>{label}</span>
+              </Link>
+            ))}
+          </div>
         </div>
-        <SidebarNav role={identity.role} />
-        <div className="mt-3">
-          <AccountFooter identity={identity} />
-        </div>
-      </div>
-    </details>
+      ))}
+    </nav>
   );
 }

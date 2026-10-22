@@ -18,14 +18,14 @@ const omitted: { value?: number } = {};
 
 void describe("pagination policies", () => {
   void it("uses each route default and accepts only configured sizes", () => {
-    assert.equal(studentPaginationPolicy.pageSizeSchema.parse(omitted.value), SMALL_PAGE_SIZE);
+    assert.equal(studentPaginationPolicy.pageSizeSchema.parse(omitted.value), MEDIUM_PAGE_SIZE);
     assert.equal(
       financeInstallmentsPaginationPolicy.pageSizeSchema.parse(omitted.value),
       MEDIUM_PAGE_SIZE,
     );
     assert.equal(
       financeOverduePaginationPolicy.pageSizeSchema.parse(omitted.value),
-      SMALL_PAGE_SIZE,
+      MEDIUM_PAGE_SIZE,
     );
     assert.equal(
       financeInstallmentsPaginationPolicy.pageSizeSchema.parse(LARGE_PAGE_SIZE),
@@ -36,7 +36,15 @@ void describe("pagination policies", () => {
       false,
     );
     assert.equal(
-      financeOverduePaginationPolicy.pageSizeSchema.safeParse(MEDIUM_PAGE_SIZE).success,
+      financeOverduePaginationPolicy.pageSizeSchema.safeParse(SMALL_PAGE_SIZE).success,
+      false,
+    );
+    assert.equal(
+      financeOverduePaginationPolicy.pageSizeSchema.parse(MEDIUM_PAGE_SIZE),
+      MEDIUM_PAGE_SIZE,
+    );
+    assert.equal(
+      financeOverduePaginationPolicy.pageSizeSchema.safeParse(LARGE_PAGE_SIZE).success,
       false,
     );
   });

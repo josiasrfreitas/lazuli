@@ -2,7 +2,12 @@ import type { Prisma } from "@lazuli/db";
 import { findNextStageInTrack, saoPauloDateOnly } from "@lazuli/domain";
 
 import { dateOnlyUtc } from "./effective-date.js";
-import { progressSummarySelect, type EnrollmentDatabase, type ProgressSummary } from "./data.js";
+import {
+  lockEnrollmentOwner,
+  progressSummarySelect,
+  type EnrollmentDatabase,
+  type ProgressSummary,
+} from "./data.js";
 import { badRequest, notFound } from "../trpc/errors.js";
 import {
   ACTIVE_PROGRESS_NOT_FOUND_MESSAGE,
@@ -25,6 +30,7 @@ const advanceableEnrollmentSelect = {
     select: {
       id: true,
       stageId: true,
+      assessment: { select: { decision: true, confirmedAt: true, deletedAt: true } },
       stage: {
         select: {
           track: {
@@ -68,6 +74,12 @@ export async function advanceStage(input: {
   const enrollment = await loadAdvanceableEnrollment(input);
   const activeProgress = requireActiveProgress(enrollment);
   const nextStageId = requireNextStageId(activeProgress);
+  if (
+    activeProgress.assessment?.decision !== "APPROVED" ||
+    !activeProgress.assessment.confirmedAt ||
+    activeProgress.assessment.deletedAt
+  )
+    throw badRequest("Confirme a aprovação pedagógica do estágio antes de avançar.");
 
   return closeAndOpenProgress({
     database: input.database,
@@ -83,6 +95,7 @@ async function loadAdvanceableEnrollment(input: {
   enrollmentId: string;
   now: Date;
 }): Promise<AdvanceableEnrollment> {
+  await lockEnrollmentOwner(input.database, input.enrollmentId);
   const enrollment = await input.database.enrollment.findUnique({
     where: { id: input.enrollmentId },
     select: advanceableEnrollmentSelect,

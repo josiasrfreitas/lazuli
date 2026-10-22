@@ -1,0 +1,105 @@
+.dialog {
+  width: calc(100vw - 48px);
+  max-width: 1280px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+  align-items: stretch;
+  gap: 24px;
+  min-inline-size: 0;
+  padding-block: 8px;
+  border: 0;
+}
+
+.schedule {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 440px;
+  gap: 12px;
+  contain: size;
+}
+
+.calendar {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.calendar:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.calendar[aria-invalid="true"] {
+  outline: 1px solid var(--destructive);
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding-inline-start: 24px;
+  border-inline-start: 1px solid var(--border);
+}
+
+.selection {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 48px;
+  padding-block-end: 12px;
+  border-block-end: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.selection > svg {
+  flex-shrink: 0;
+  margin-block-start: 2px;
+  color: var(--interactive);
+}
+
+.selection strong {
+  display: block;
+  color: var(--heading);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.selection p {
+  line-height: 1.5;
+}
+
+@media (max-width: 959px) {
+  .dialog {
+    width: calc(100vw - 24px);
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .schedule {
+    contain: none;
+    height: min(65dvh, 440px);
+    min-height: 320px;
+  }
+
+  .fields {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+}
+
+.calendar :global(.rbc-time-header) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--card);
+}

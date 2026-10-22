@@ -1,227 +1,139 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { after, before, beforeEach, describe, it } from "node:test";
-
+import { after, beforeEach, it } from "node:test";
 import { db } from "@lazuli/db";
-
-import { SESSION_NOT_FOUND_MESSAGE } from "../../src/attendance/errors.js";
-import {
-  MAKEUP_DUPLICATE_MESSAGE,
-  MAKEUP_SAME_CLASS_MESSAGE,
-  MAKEUP_TARGET_CANCELLED_MESSAGE,
-  MAKEUP_TARGET_IN_PAST_MESSAGE,
-  ORIGIN_ENROLLMENT_NOT_FOUND_MESSAGE,
-} from "../../src/attendance/errors.js";
-import { rejectionMessage } from "../support/attendance-test-support.js";
 import { scheduleHarness as harness } from "../support/makeup-namespaces.js";
-import { FAR_FUTURE_DATE } from "../support/makeup-test-support.js";
-
-type Setup = {
-  scenarioClassId: string;
-  semesterId: string;
-  stageId: string;
-  originEnrollmentId: string;
-  targetClassId: string;
-};
-
-async function setup(): Promise<Setup> {
-  const scenario = await harness.seedBaseScenario();
-  const student = await harness.enrollStudent({
-    classId: scenario.classId,
-    stageId: scenario.stageId,
-    suffix: "Bento",
-  });
-  const targetClassId = await harness.createClass({
-    code: "target",
-    teacherId: harness.ns.otherTeacher.id,
-    stageId: scenario.stageId,
-    semesterId: scenario.semesterId,
-  });
-
-  return {
-    scenarioClassId: scenario.classId,
-    semesterId: scenario.semesterId,
-    stageId: scenario.stageId,
-    originEnrollmentId: student.enrollmentId,
-    targetClassId,
-  };
-}
-
-void describe("attendance.scheduleMakeup", () => {
-  void before(async () => {
-    await db.$connect();
-  });
-  void beforeEach(async () => {
-    await harness.clean();
-  });
-  void after(async () => {
-    await harness.clean();
-    await db.$disconnect();
-  });
-
-  registerAcceptTest();
-  registerAdvanceDateTest();
-  registerSameClassTests();
-  registerDuplicateTest();
-  registerCancelledTargetTest();
-  registerNotFoundTests();
-  registerScopeTest();
+import { appointmentFixture } from "../support/appointment-fixtures.js";
+beforeEach(() => harness.clean());
+after(async () => {
+  await harness.clean();
+  await db.$disconnect();
 });
 
-function registerAcceptTest(): void {
-  void it("creates a makeup into a future session in another class, stamped by the admin", async () => {
-    const context = await setup();
-    const targetSessionId = await harness.createSession({
-      classId: context.targetClassId,
-      date: FAR_FUTURE_DATE,
-    });
-
-    const result = await harness.caller().attendance.scheduleMakeup({
-      originEnrollmentId: context.originEnrollmentId,
-      targetClassSessionId: targetSessionId,
-    });
-
-    assert.equal(result.targetClassSessionId, targetSessionId);
-    const row = await db.makeup.findUnique({
-      where: { id: result.makeupId },
-      select: { scheduledById: true, reason: true },
-    });
-    assert.equal(row?.scheduledById, harness.ns.admin.id);
-    assert.equal(row?.reason, null);
+void it("schedules the compatibility makeup with verified origins, same-day notice and attributed appointment evidence", async () => {
+  const fixtureData = await appointmentFixture(harness);
+  const result = await harness.caller(undefined, fixtureData.before).attendance.scheduleMakeup({
+    originEnrollmentId: fixtureData.enrollmentId,
+    targetClassSessionId: fixtureData.targetId,
+    coverages: fixtureData.input.coverages,
+    plannedContent: "Revisão orientada.",
   });
-}
-
-function registerAdvanceDateTest(): void {
-  void it("rejects a target session that is not at least tomorrow", async () => {
-    const context = await setup();
-    const pastSessionId = await harness.createSession({
-      classId: context.targetClassId,
-      date: harness.ns.sessionDate,
-    });
-
-    assert.equal(
-      await rejectionMessage(
-        harness.caller().attendance.scheduleMakeup({
-          originEnrollmentId: context.originEnrollmentId,
-          targetClassSessionId: pastSessionId,
-        }),
-      ),
-      MAKEUP_TARGET_IN_PAST_MESSAGE,
-    );
+  const row = await db.makeup.findUniqueOrThrow({
+    where: { id: result.makeupId },
+    include: { appointment: true },
   });
-}
-
-function registerSameClassTests(): void {
-  void it("rejects a same-class target with no override reason, allows it with one", async () => {
-    const context = await setup();
-    const rejectedId = await harness.createSession({
-      classId: context.scenarioClassId,
-      date: FAR_FUTURE_DATE,
-    });
-
-    assert.equal(
-      await rejectionMessage(
-        harness.caller().attendance.scheduleMakeup({
-          originEnrollmentId: context.originEnrollmentId,
-          targetClassSessionId: rejectedId,
-        }),
-      ),
-      MAKEUP_SAME_CLASS_MESSAGE,
-    );
-
-    const result = await harness.caller().attendance.scheduleMakeup({
-      originEnrollmentId: context.originEnrollmentId,
-      targetClassSessionId: rejectedId,
-      reason: "aula extra",
-    });
-    assert.ok(result.makeupId);
-  });
-}
-
-function registerDuplicateTest(): void {
-  void it("rejects a duplicate makeup for the same origin and target", async () => {
-    const context = await setup();
-    const targetSessionId = await harness.createSession({
-      classId: context.targetClassId,
-      date: FAR_FUTURE_DATE,
-    });
-    const input = {
-      originEnrollmentId: context.originEnrollmentId,
-      targetClassSessionId: targetSessionId,
-    };
-
-    await harness.caller().attendance.scheduleMakeup(input);
-    assert.equal(
-      await rejectionMessage(harness.caller().attendance.scheduleMakeup(input)),
-      MAKEUP_DUPLICATE_MESSAGE,
-    );
-  });
-}
-
-function registerCancelledTargetTest(): void {
-  void it("rejects a cancelled target session", async () => {
-    const context = await setup();
-    const cancelledId = await harness.createSession({
-      classId: context.targetClassId,
-      date: FAR_FUTURE_DATE,
+  assert.equal(row.scheduledById, harness.ns.admin.id);
+  assert.equal(row.targetClassSessionId, fixtureData.targetId);
+  assert.equal(row.appointment?.studentId, fixtureData.studentId);
+  assert.equal(row.appointment?.plannedContent, "Revisão orientada.");
+  assert.equal(
+    await db.makeupCoverage.count({
+      where: { appointmentId: row.appointment.id, attendanceId: fixtureData.absence.id },
+    }),
+    1,
+  );
+  await assert.rejects(
+    harness.caller(undefined, fixtureData.before).attendance.scheduleMakeup({
+      originEnrollmentId: fixtureData.enrollmentId,
+      targetClassSessionId: fixtureData.targetId,
+      coverages: fixtureData.input.coverages,
+    }),
+    { code: "BAD_REQUEST", message: /Já existe/ },
+  );
+});
+void it("rejects elapsed or cancelled targets without leaving either kind of booking", async () => {
+  const fixtureData = await appointmentFixture(harness);
+  const input = {
+    originEnrollmentId: fixtureData.enrollmentId,
+    targetClassSessionId: fixtureData.targetId,
+    coverages: fixtureData.input.coverages,
+  };
+  await assert.rejects(
+    harness.caller(undefined, fixtureData.after).attendance.scheduleMakeup(input),
+    {
+      code: "BAD_REQUEST",
+      message: /ainda não começou/,
+    },
+  );
+  await db.classSession.update({
+    where: { id: fixtureData.targetId },
+    data: {
       status: "CANCELLED",
-    });
-
-    assert.equal(
-      await rejectionMessage(
-        harness.caller().attendance.scheduleMakeup({
-          originEnrollmentId: context.originEnrollmentId,
-          targetClassSessionId: cancelledId,
-        }),
-      ),
-      MAKEUP_TARGET_CANCELLED_MESSAGE,
-    );
+      cancelledAt: fixtureData.before,
+      cancelReason: "Cancelada no cenário",
+    },
   });
-}
-
-function registerNotFoundTests(): void {
-  void it("rejects an unknown origin enrollment or target session", async () => {
-    const context = await setup();
-    const targetSessionId = await harness.createSession({
-      classId: context.targetClassId,
-      date: FAR_FUTURE_DATE,
-    });
-
-    assert.equal(
-      await rejectionMessage(
-        harness.caller().attendance.scheduleMakeup({
-          originEnrollmentId: randomUUID(),
-          targetClassSessionId: targetSessionId,
-        }),
-      ),
-      ORIGIN_ENROLLMENT_NOT_FOUND_MESSAGE,
-    );
-    assert.equal(
-      await rejectionMessage(
-        harness.caller().attendance.scheduleMakeup({
-          originEnrollmentId: context.originEnrollmentId,
-          targetClassSessionId: randomUUID(),
-        }),
-      ),
-      SESSION_NOT_FOUND_MESSAGE,
-    );
+  await assert.rejects(
+    harness.caller(undefined, fixtureData.before).attendance.scheduleMakeup(input),
+    {
+      code: "BAD_REQUEST",
+      message: /não está disponível/,
+    },
+  );
+  assert.equal(
+    await db.makeup.count({ where: { originEnrollmentId: fixtureData.enrollmentId } }),
+    0,
+  );
+  assert.equal(
+    await db.pedagogicalAppointment.count({ where: { studentId: fixtureData.studentId } }),
+    0,
+  );
+});
+void it("rejects unknown and foreign origins and an overlap with the student's own class", async () => {
+  const fixtureData = await appointmentFixture(harness);
+  const input = {
+    originEnrollmentId: fixtureData.enrollmentId,
+    targetClassSessionId: fixtureData.targetId,
+    coverages: fixtureData.input.coverages,
+  };
+  await assert.rejects(
+    harness
+      .caller(undefined, fixtureData.before)
+      .attendance.scheduleMakeup({ ...input, originEnrollmentId: randomUUID() }),
+    { code: "NOT_FOUND" },
+  );
+  await assert.rejects(
+    harness
+      .caller(undefined, fixtureData.before)
+      .attendance.scheduleMakeup({ ...input, targetClassSessionId: randomUUID() }),
+    { code: "NOT_FOUND" },
+  );
+  await assert.rejects(
+    harness.caller(undefined, fixtureData.before).attendance.scheduleMakeup({
+      ...input,
+      coverages: [{ attendanceId: randomUUID(), minutes: 120 }],
+    }),
+    { code: "BAD_REQUEST", message: /matrícula de origem/ },
+  );
+  const ownSession = await harness.createSession({
+    classId: fixtureData.classId,
+    date: harness.ns.afterSessionDate,
   });
-}
-
-function registerScopeTest(): void {
-  void it("forbids a teacher (schedule is admin-only)", async () => {
-    const context = await setup();
-    const targetSessionId = await harness.createSession({
-      classId: context.targetClassId,
-      date: FAR_FUTURE_DATE,
-    });
-
-    await assert.rejects(
-      harness.caller(harness.ns.teacher).attendance.scheduleMakeup({
-        originEnrollmentId: context.originEnrollmentId,
-        targetClassSessionId: targetSessionId,
-      }),
-      /FORBIDDEN/,
-    );
-  });
-}
+  await assert.rejects(
+    harness.caller(undefined, fixtureData.before).attendance.scheduleMakeup({
+      ...input,
+      targetClassSessionId: ownSession,
+      reason: "Aula extra",
+    }),
+    { code: "BAD_REQUEST", message: /aluno já tem aula/ },
+  );
+  assert.equal(
+    await db.makeup.count({ where: { originEnrollmentId: fixtureData.enrollmentId } }),
+    0,
+  );
+});
+void it("keeps scheduling administrative", async () => {
+  const fixtureData = await appointmentFixture(harness);
+  await assert.rejects(
+    harness.caller(harness.ns.teacher, fixtureData.before).attendance.scheduleMakeup({
+      originEnrollmentId: fixtureData.enrollmentId,
+      targetClassSessionId: fixtureData.targetId,
+      coverages: fixtureData.input.coverages,
+    }),
+    { code: "FORBIDDEN" },
+  );
+  assert.equal(
+    await db.makeup.count({ where: { originEnrollmentId: fixtureData.enrollmentId } }),
+    0,
+  );
+});

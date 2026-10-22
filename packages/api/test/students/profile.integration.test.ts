@@ -8,6 +8,7 @@ import {
   caller,
   cleanDatabase,
   createAdultFixture,
+  ensureStudentAdmin,
   MINOR_BIRTH_DATE_OBJECT,
   TEST_PREFIX,
 } from "../support/student-test-support.js";
@@ -15,6 +16,7 @@ import {
 void describe("students profile aggregate API", () => {
   void before(async () => {
     await db.$connect();
+    await ensureStudentAdmin();
   });
 
   void after(async () => {

@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { db } from "@lazuli/db";
+import { approveProgress } from "../support/assessments.js";
 import { gre31AdvanceEnrollment } from "../support/enrollment.js";
 
 const {
   ADMIN,
+  caller,
   callHttpMutation,
   createPersonalizedClass,
   createStudent,
@@ -31,6 +34,14 @@ void describe("enrollment.advanceStage over the tRPC HTTP boundary", () => {
       studentId: student.id,
       classId: classRow.id,
       stageId: catalog.firstStageId,
+    });
+
+    const progress = await db.pedagogicalProgress.findFirstOrThrow({
+      where: { enrollmentId, endDate: null },
+    });
+    await approveProgress(caller(), {
+      progressId: progress.id,
+      assessedOn: progress.startDate.toISOString().slice(0, 10),
     });
 
     const response = await callHttpMutation({

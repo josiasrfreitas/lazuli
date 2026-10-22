@@ -1,5 +1,11 @@
+import { activityMoney } from "../activity/format.js";
+import { payerSubject, orderSubject, installmentSubject } from "../activity/subjects.js";
+import { activityTransaction } from "../activity/record.js";
 import {
   contractClosingsInputSchema,
+  z,
+  contractTerminationPreviewSchema,
+  contractTerminationConfirmSchema,
   paymentPreviewSchema,
   paymentOperationSchema,
   financeAddInstallmentAdjustmentInputSchema,
@@ -17,16 +23,55 @@ import {
   financeWaiveInstallmentInputSchema,
   payerCreateProcedureInputSchema,
   createMonthlyContractInputSchema,
+  addContractMaterialInputSchema,
   listContractsInputSchema,
   contractPartySearchInputSchema,
 } from "@lazuli/validators";
 
 import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
 import { finance } from "./index.js";
+import { renewalTerms } from "./internal/renewal.js";
 
 const AGREEMENT_TRANSACTION_TIMEOUT_MS = 30_000;
 
 export const financeRouter = router({
+  renewalTerms: adminProcedure
+    .input(z.object({ contractId: z.string().uuid() }))
+    .query(({ ctx, input }) => renewalTerms(ctx.db, input.contractId)),
+  previewTermination: adminProcedure
+    .input(contractTerminationPreviewSchema)
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (tx) =>
+          finance(tx, ctx.staffUser.id).previewTermination(input.contractId, ctx.now ?? new Date()),
+        { isolationLevel: "RepeatableRead" },
+      ),
+    ),
+  confirmTermination: adminProcedure
+    .input(contractTerminationConfirmSchema)
+    .mutation(({ ctx, input }) =>
+      activityTransaction(ctx, {
+        action: "finance.terminateContract",
+        work: (tx) =>
+          finance(tx, ctx.staffUser.id).confirmTermination(input, ctx.now ?? new Date()),
+        describe: async (result, db) => {
+          const student = await db.student.findUniqueOrThrow({
+            where: { id: result.studentId },
+            select: { fullName: true },
+          });
+          return {
+            subject: {
+              type: "contract",
+              id: result.contractId,
+              name: student.fullName,
+            },
+            description: `Multa negociada: ${input.feePct}%. Encargos mantidos: ${activityMoney(input.retainedChargesCents)}. ${input.enrollmentIds.length} matrícula(s) encerrada(s). ${input.reason}`,
+            deduplicationKey: `finance.terminateContract:${input.commandId}`,
+          };
+        },
+        options: { timeout: 30_000 },
+      }),
+    ),
   treatmentInstallments: adminProcedure
     .input(financialTreatmentInstallmentsSchema)
     .query(({ ctx, input }) =>
@@ -96,33 +141,55 @@ export const financeRouter = router({
         { isolationLevel: "RepeatableRead" },
       ),
     ),
-  confirmPayments: adminProcedure
-    .input(paymentOperationSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((tx) =>
-        finance(tx, ctx.staffUser.id).confirmPayments(input, ctx.now ?? new Date()),
-      ),
-    ),
+  confirmPayments: adminProcedure.input(paymentOperationSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, {
+      action: "finance.confirmPayments",
+      work: (tx) => finance(tx, ctx.staffUser.id).confirmPayments(input, ctx.now ?? new Date()),
+      describe: async (result, database) => ({
+        subject:
+          result.length === 1
+            ? await payerSubject(database, result[0]!.payerId)
+            : { type: "receivable", name: `${result.length} recebimentos` },
+        description: `Total recebido: ${activityMoney(result.reduce((sum, row) => sum + row.amountCents, 0))}.`,
+        deduplicationKey: `finance.confirmPayments:${input.operationId}`,
+      }),
+    }),
+  ),
+  readMaterialPrice: adminProcedure.query(({ ctx }) =>
+    finance(ctx.db, ctx.staffUser.id).readMaterialPrice(),
+  ),
   readSettings: systemAdminProcedure.query(({ ctx }) =>
     finance(ctx.db, ctx.staffUser.id).readSettings(),
   ),
-  saveSettings: systemAdminProcedure
-    .input(financeSettingsInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((tx) => finance(tx, ctx.staffUser.id).saveSettings(input)),
-    ),
-  createPayer: adminProcedure
-    .input(payerCreateProcedureInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((tx) => finance(tx, ctx.staffUser.id).createPayer(input)),
-    ),
+  saveSettings: systemAdminProcedure.input(financeSettingsInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, {
+      action: "finance.saveSettings",
+      work: (tx) => finance(tx, ctx.staffUser.id).saveSettings(input),
+      describe: () => ({ subject: { type: "school", name: "Condições financeiras da escola" } }),
+    }),
+  ),
+  createPayer: adminProcedure.input(payerCreateProcedureInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, {
+      action: "finance.createPayer",
+      work: (tx) => finance(tx, ctx.staffUser.id).createPayer(input),
+      describe: (result) => ({
+        subject: { type: "payer", id: result.id, name: result.name },
+        deduplicationKey: `finance.createPayer:${result.id}`,
+      }),
+    }),
+  ),
   createMonthlyContract: adminProcedure
     .input(createMonthlyContractInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        return await ctx.db.$transaction((tx) =>
-          finance(tx, ctx.staffUser.id).createMonthlyContract(input),
-        );
+        return await activityTransaction(ctx, {
+          action: "finance.createMonthlyContract",
+          work: (tx) => finance(tx, ctx.staffUser.id).createMonthlyContract(input),
+          describe: (result) => ({
+            subject: { type: "contract", id: result.id, name: result.student.fullName },
+            deduplicationKey: `finance.contract:${result.id}`,
+          }),
+        });
       } catch (error) {
         // A concurrent retry can lose the unique-key race after the first command commits.
         const original = await finance(ctx.db, ctx.staffUser.id).findCommandResult(input);
@@ -130,6 +197,27 @@ export const financeRouter = router({
         throw error;
       }
     }),
+  readContract: adminProcedure
+    .input(z.object({ contractId: z.string().uuid() }))
+    .query(({ ctx, input }) =>
+      finance(ctx.db, ctx.staffUser.id).readContract(input.contractId, ctx.now ?? new Date()),
+    ),
+  contractMaterialOptions: adminProcedure.query(({ ctx }) =>
+    finance(ctx.db, ctx.staffUser.id).contractMaterialOptions(),
+  ),
+  addContractMaterial: adminProcedure
+    .input(addContractMaterialInputSchema)
+    .mutation(({ ctx, input }) =>
+      activityTransaction(ctx, {
+        action: "finance.createOrder",
+        work: (tx) => finance(tx, ctx.staffUser.id).addContractMaterial(input),
+        describe: async (result, database) => ({
+          subject: await orderSubject(database, result.orderId),
+          description: "Aquisição de material vinculada ao contrato.",
+          deduplicationKey: `finance.createOrder:${result.orderId}`,
+        }),
+      }),
+    ),
   listContracts: adminProcedure
     .input(listContractsInputSchema)
     .query(({ ctx, input }) =>
@@ -143,23 +231,40 @@ export const financeRouter = router({
   readContractOffer: adminProcedure.query(({ ctx }) =>
     finance(ctx.db, ctx.staffUser.id).readContractOffer(),
   ),
-  createOrder: adminProcedure
-    .input(financeCreateOrderInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((tx) => finance(tx, ctx.staffUser.id).createOrder(input)),
-    ),
-  updateOrder: adminProcedure
-    .input(financeUpdateOrderInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((tx) => finance(tx, ctx.staffUser.id).updateOrder(input)),
-    ),
+  createOrder: adminProcedure.input(financeCreateOrderInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, {
+      action: "finance.createOrder",
+      work: (tx) => finance(tx, ctx.staffUser.id).createOrder(input),
+      describe: async (result, database) => ({
+        subject: await orderSubject(database, result.order.id),
+        description: `Valor: ${activityMoney(result.order.principalAmountCents)}.`,
+        deduplicationKey: `finance.createOrder:${result.order.id}`,
+      }),
+    }),
+  ),
+  updateOrder: adminProcedure.input(financeUpdateOrderInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, {
+      action: "finance.updateOrder",
+      work: (tx) => finance(tx, ctx.staffUser.id).updateOrder(input),
+      describe: async (result, database) => ({
+        subject: await orderSubject(database, result.order.id),
+        description: `Valor: ${activityMoney(result.order.principalAmountCents)}.`,
+      }),
+    }),
+  ),
   registerPayment: adminProcedure
     .input(financeRegisterPaymentInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        return await ctx.db.$transaction((tx) =>
-          finance(tx, ctx.staffUser.id).registerPayment(input),
-        );
+        return await activityTransaction(ctx, {
+          action: "finance.registerPayment",
+          work: (tx) => finance(tx, ctx.staffUser.id).registerPayment(input),
+          describe: async (result, database) => ({
+            subject: await payerSubject(database, result.paymentEntry.payerId),
+            description: `Valor recebido: ${activityMoney(result.paymentEntry.amountCents)}.`,
+            deduplicationKey: `finance.registerPayment:${result.paymentEntry.id}`,
+          }),
+        });
       } catch (error) {
         // A concurrent submission may commit the same command first.
         const original = await finance(ctx.db, ctx.staffUser.id).findPaymentCommand(input);
@@ -170,17 +275,45 @@ export const financeRouter = router({
   batchReconcile: adminProcedure
     .input(financeBatchReconcileInputSchema)
     .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((tx) => finance(tx, ctx.staffUser.id).batchReconcile(input)),
+      activityTransaction(ctx, {
+        action: "finance.batchReconcile",
+        work: (tx) => finance(tx, ctx.staffUser.id).batchReconcile(input),
+        describe: (result) =>
+          result.paymentEntries.length === 0
+            ? null
+            : {
+                subject: { type: "receivable", name: "Conciliação de pagamentos" },
+                description: `${result.paymentEntries.length} recebimentos registrados.`,
+                deduplicationKey: `finance.batchReconcile:${result.paymentEntries
+                  .map((row) => row.id)
+                  .toSorted()
+                  .join(",")}`,
+              },
+      }),
     ),
   waiveInstallment: adminProcedure
     .input(financeWaiveInstallmentInputSchema)
     .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((tx) => finance(tx, ctx.staffUser.id).waiveInstallment(input)),
+      activityTransaction(ctx, {
+        action: "finance.waiveInstallment",
+        work: (tx) => finance(tx, ctx.staffUser.id).waiveInstallment(input),
+        describe: async (_result, database) => ({
+          subject: await installmentSubject(database, input.installmentId),
+          description: input.reason,
+        }),
+      }),
     ),
   addInstallmentAdjustment: adminProcedure
     .input(financeAddInstallmentAdjustmentInputSchema)
     .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((tx) => finance(tx, ctx.staffUser.id).addInstallmentAdjustment(input)),
+      activityTransaction(ctx, {
+        action: "finance.addInstallmentAdjustment",
+        work: (tx) => finance(tx, ctx.staffUser.id).addInstallmentAdjustment(input),
+        describe: async (_result, database) => ({
+          subject: await installmentSubject(database, input.installmentId),
+          description: `Ajuste: ${activityMoney(input.amountCents)}. ${input.reason ?? ""}`,
+        }),
+      }),
     ),
   receivablesSnapshot: adminProcedure.query(({ ctx }) =>
     finance(ctx.db, ctx.staffUser.id).receivablesSnapshot(),

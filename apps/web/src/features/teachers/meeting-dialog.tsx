@@ -30,6 +30,7 @@ import {
   SearchSelect,
   type SearchSelectOption,
 } from "@lazuli/ui";
+import { MeetingGuests } from "./meeting-guests";
 import { dateLabel, hoursLabel, todayInSchool } from "./format";
 
 export type Meeting = RouterOutputs["teachers"]["week"]["rows"][number];
@@ -308,6 +309,7 @@ function MeetingForm(props: MeetingFormProps): ReactElement {
   return (
     <form id="substitute-form" onSubmit={props.submit} noValidate className="grid gap-5">
       <MeetingResponsibility meeting={props.meeting} />
+      <MeetingGuests meeting={props.meeting} />
       {props.meeting.requiresCoverage && !props.meeting.substituteTeacherId && (
         <Alert variant="warning">
           A cobertura anterior foi desfeita por uma saída. Este encontro precisa de uma nova

@@ -4,7 +4,8 @@ import { LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { StaffIdentity, StaffRole } from "@lazuli/auth/server";
-import { Avatar, Button } from "@lazuli/ui";
+import { Button } from "@lazuli/ui";
+import { AccountMenu } from "./account-menu";
 
 import { useSignOut } from "~/lib/use-sign-out";
 
@@ -20,10 +21,10 @@ export function AccountFooter({ identity }: { identity: StaffIdentity }): ReactN
   const { pending, failed, signOut } = useSignOut();
 
   return (
-    <footer className="dark border-t border-navigation-border px-1.75 py-4">
+    <footer className="border-t border-navigation-border px-1.75 py-4">
       <div className="flex items-center gap-2">
-        <Avatar colorKey={identity.id} name={identity.name} />
-        <div className="flex min-w-0 flex-1 items-center gap-1 sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 motion-reduce:transition-none">
+        <AccountMenu identity={identity} />
+        <div className="flex min-w-0 flex-1 items-center gap-1 sm:opacity-0 sm:transition-opacity sm:duration-200 sm:group-hover/sidebar:opacity-100 sm:group-has-[:focus-visible]/sidebar:opacity-100 sm:group-has-[[data-popup-open]]/sidebar:opacity-100 motion-reduce:transition-none">
           <div className="min-w-0 flex-1">
             <p
               className="truncate text-caption font-semibold text-navigation-foreground"

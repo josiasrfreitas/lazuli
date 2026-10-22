@@ -18,6 +18,7 @@ type InstallmentStatus = (typeof INSTALLMENT_STATUSES)[number];
 type InstallmentOrigin = (typeof orderKindSchema.options)[number];
 
 export type InstallmentParams = {
+  studentId?: string | null;
   status: string | null;
   search: string | null;
   situations: string | null;
@@ -31,11 +32,19 @@ export type InstallmentParams = {
 export type InstallmentFilterPatch = Partial<
   Pick<
     InstallmentParams,
-    "status" | "situations" | "origins" | "dueFrom" | "dueTo" | "amountFrom" | "amountTo"
+    | "status"
+    | "situations"
+    | "origins"
+    | "dueFrom"
+    | "dueTo"
+    | "amountFrom"
+    | "amountTo"
+    | "studentId"
   >
 >;
 
 export type InstallmentFilters = {
+  studentId?: string;
   status: "vencidas" | null;
   search: string;
   situations: InstallmentStatus[];
@@ -47,6 +56,20 @@ export type InstallmentFilters = {
   page: number;
   pageSize: FinanceInstallmentsInput["pageSize"];
 };
+
+export function hasInstallmentFilters(filters: InstallmentFilters): boolean {
+  return Boolean(
+    filters.studentId ||
+    filters.search ||
+    filters.status ||
+    filters.situations.length > 0 ||
+    filters.origins.length > 0 ||
+    filters.dueFrom ||
+    filters.dueTo ||
+    filters.amountFrom ||
+    filters.amountTo,
+  );
+}
 
 function validStatuses(value: string | null): InstallmentStatus[] {
   if (!value) return [];
@@ -86,6 +109,7 @@ export function normalizeFilters(
   const dueRange = orderedRange({ from: dueFrom, to: dueTo });
   const amountRange = orderedRange({ from: amountFrom, to: amountTo, compareValue: Number });
   return {
+    ...(params.studentId ? { studentId: params.studentId } : {}),
     status: params.status === "vencidas" ? "vencidas" : null,
     search: (params.search ?? "").slice(0, SEARCH_MAX_LENGTH),
     situations: normalizedSituations(params.status, situations),
@@ -173,6 +197,7 @@ function amountRangeInput(
 
 export function queryInput(filters: InstallmentFilters): FinanceInstallmentsInput {
   return {
+    ...(filters.studentId ? { studentId: filters.studentId } : {}),
     view: filters.status === "vencidas" ? "overdue" : "all",
     page: filters.page,
     pageSize: filters.status === "vencidas" ? FINANCE_OVERDUE_PAYERS_PAGE_SIZE : filters.pageSize,

@@ -70,7 +70,10 @@ void it("aggregates the student's adjusted balances and completing payment dates
         date: row.paymentEntry.date.toISOString().slice(0, 10),
       })),
     );
-    const { asOf: _asOf, ...summary } = result;
+    const { asOf: _asOf, contracts, materialNeeds, latestTermination, ...summary } = result;
+    assert.deepEqual(contracts, []);
+    assert.deepEqual(materialNeeds, []);
+    assert.equal(latestTermination, null);
     assert.deepEqual(summary, expected);
   } finally {
     await cleanInstallmentsTestData();

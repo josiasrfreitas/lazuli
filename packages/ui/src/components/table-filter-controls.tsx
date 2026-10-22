@@ -127,6 +127,7 @@ function OptionsEditor({
   field: Extract<TableFilterField, { kind: "options" }>;
 }): ReactElement {
   const [search, setSearch] = useState("");
+  if (field.selectionMode === "single") return <SingleOptionDropdown field={field} />;
   if (field.presentation === "dropdown") return <OptionsDropdown field={field} />;
   return (
     <div className="space-y-2">
@@ -168,6 +169,32 @@ function OptionsEditor({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function SingleOptionDropdown({
+  field,
+}: {
+  field: Extract<TableFilterField, { kind: "options" }>;
+}): ReactElement {
+  const items = field.options.map((option) => ({ value: option.id, label: option.label }));
+  return (
+    <Select
+      items={items}
+      value={field.selected[0] ?? null}
+      onValueChange={(value) => field.onChange(value === null ? [] : [value])}
+    >
+      <SelectTrigger size="sm" aria-label={field.label} disabled={items.length === 0}>
+        <SelectValue placeholder="Selecione" />
+      </SelectTrigger>
+      <SelectContent>
+        {items.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 

@@ -9,6 +9,7 @@ export function TeacherPicker({
   onChange,
   error,
   disabled = false,
+  showSearchIcon = false,
 }: TeacherPickerInput): ReactElement {
   const [search, setSearch] = useState("");
   const query = trpc.teachers.options.useQuery({ date, search });
@@ -16,6 +17,7 @@ export function TeacherPicker({
     <Field>
       <Label>Professor</Label>
       <SearchSelect
+        showSearchIcon={showSearchIcon}
         size="compact-responsive"
         name="teacherId"
         placeholder="Buscar professor por nome"
@@ -41,4 +43,5 @@ type TeacherPickerInput = {
   onChange: (value: SearchSelectOption | null) => void;
   error?: string | null;
   disabled?: boolean;
+  showSearchIcon?: boolean;
 };

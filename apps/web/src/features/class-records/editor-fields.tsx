@@ -7,7 +7,10 @@ import { PlannedReference } from "./shared";
 import type { RecordEditor } from "./editor-model";
 type Props = { editor: RecordEditor };
 type Row = RecordEditor["rows"][number];
-export function RecordRoster({ editor }: Props): ReactElement {
+export function RecordRoster({
+  editor,
+  declarations = editor.opened.declarations,
+}: Props & { declarations?: RecordEditor["opened"]["declarations"] | undefined }): ReactElement {
   return (
     <FormSection
       className="min-w-0 lg:col-span-2"
@@ -31,9 +34,7 @@ export function RecordRoster({ editor }: Props): ReactElement {
             {!row.reviewed && (
               <p className="text-caption text-warning">Presença pendente de revisão</p>
             )}
-            {editor.opened.declarations.some(
-              (entry) => entry.enrollmentId === row.enrollmentId,
-            ) && (
+            {declarations.some((entry) => entry.enrollmentId === row.enrollmentId) && (
               <p className="text-caption text-muted-foreground">
                 Declaração recebida · confira a presença
               </p>

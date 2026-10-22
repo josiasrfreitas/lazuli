@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { beforeEach, after, it } from "node:test";
 import { createCaller, type StaffUser } from "@lazuli/api";
 import { db } from "@lazuli/db";
+import { approveProgress } from "../support/assessments.js";
 import {
   cleanEnrollmentFixtures,
   ensureTeacherFor,
@@ -297,6 +298,10 @@ void it("restricts the plan to its class owner and rejects financial access and 
 void it("closes the old plan for editing on the actual advance day and starts the next stage without borrowing it", async () => {
   const fixtureData = await fixture();
   await caller().planning.saveWindow({ ...fixtureData.target, ...dates, version: 0 });
+  await approveProgress(caller(), {
+    progressId: fixtureData.enrollment.progress.id,
+    assessedOn: "2075-02-15",
+  });
   const advanced = await caller().enrollment.advanceStage({
     enrollmentId: fixtureData.enrollment.enrollment.id,
   });

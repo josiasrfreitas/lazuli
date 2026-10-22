@@ -1,3 +1,4 @@
+import { attendanceConfirmSessionInputSchema } from "./attendance.js";
 import { z } from "zod";
 const MAX_LATITUDE = 90;
 const MAX_LONGITUDE = 180;
@@ -65,3 +66,8 @@ export const attendanceDeclarationSchema = attendanceNameSearchSchema.extend({
   location: attendanceLocationSchema.nullable(),
 });
 export type AttendanceLocation = z.infer<typeof attendanceLocationSchema>;
+
+export const attendanceReviewSchema = attendanceConfirmSessionInputSchema.extend({
+  attendanceStamp: z.string().datetime().nullable(),
+  declarationIds: z.array(z.string().uuid()),
+});

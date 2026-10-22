@@ -1,9 +1,90 @@
-import type { ReactElement } from "react";
+"use client";
+
+import { useState, type ReactElement } from "react";
 import Link from "next/link";
-import { CalendarDays, GraduationCap } from "lucide-react";
-import { cn } from "@lazuli/ui";
-import { formatAttendancePercent, formatDateOnlyBR } from "~/lib/format";
-import type { StudentEnrollment } from "./logic";
+import { ArrowUpRight, CalendarDays, ChevronDown, GraduationCap } from "lucide-react";
+import { Button } from "@lazuli/ui";
+import { formatDateOnlyBR } from "~/lib/format";
+import type { StudentEnrollment, StudentProfile } from "./logic";
+import { StudentContactSummary } from "./student-identity";
+import { EnrollmentAttendance } from "./enrollment-attendance";
+import { EnrollmentGradeAverage } from "./enrollment-grade-average";
+
+import styles from "./student-profile.module.css";
+
+type EnrollmentProps = { enrollment: StudentEnrollment; today: string };
+
+export function CurrentEnrollment({
+  enrollment,
+  today,
+  profile,
+}: EnrollmentProps & { profile: StudentProfile }): ReactElement {
+  const stage = enrollment.progress.find(
+    (item) => item.startDate <= today && (!item.endDate || item.endDate >= today),
+  );
+  return (
+    <article aria-label="Matrícula vigente" className="min-w-0 border border-border bg-accent">
+      <div className="grid gap-5 px-5 py-4 lg:grid-cols-2 lg:gap-8">
+        <div className="grid content-start gap-3">
+          <EnrollmentHeading enrollment={enrollment} today={today} />
+          <EnrollmentSchedule enrollment={enrollment} />
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-border/60 pt-2">
+            <Button
+              variant="link"
+              size="inline"
+              nativeButton={false}
+              render={<Link href={planningHref({ enrollment, today, studentId: profile.id })} />}
+            >
+              Ver plano de ensino <ArrowUpRight aria-hidden="true" />
+            </Button>
+            {enrollment.progress.length > 1 && (
+              <ProgressJourney enrollment={enrollment} today={today} studentId={profile.id} />
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 border-t sm:grid-cols-2 border-border/60 pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+          <EnrollmentAttendance
+            attendance={enrollment.attendance}
+            studentId={profile.id}
+            studentName={profile.contact.fullName}
+            enrollmentId={enrollment.id}
+          />
+          <EnrollmentGradeAverage
+            progressId={stage?.id}
+            studentId={profile.id}
+            studentName={profile.contact.fullName}
+          />
+        </div>
+      </div>
+      <div className="border-t border-border/60 bg-background/15 px-5 py-3">
+        <StudentContactSummary profile={profile} />
+      </div>
+    </article>
+  );
+}
+
+function EnrollmentHeading({ enrollment, today }: EnrollmentProps): ReactElement {
+  const stage = enrollment.progress.find(
+    (item) => item.startDate <= today && (!item.endDate || item.endDate >= today),
+  );
+  return (
+    <div className="grid gap-1">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="font-display text-3xl font-medium tracking-tight text-heading">
+          {stage?.stage ?? "Estágio não informado"}
+        </h2>
+        <p className="text-base text-muted-foreground">{stage?.track ?? "Trilha não informada"}</p>
+      </div>
+      <p className="text-caption text-muted-foreground">
+        Matrícula {enrollment.class.semester} ·{" "}
+        {enrollment.class.scheduleType === "REGULAR" ? "Regular" : "PPT"} ·{" "}
+        {enrollment.class.format === "IN_PERSON" ? "Presencial" : "Online"} · Desde{" "}
+        {formatDateOnlyBR(enrollment.entryDate)}
+        {enrollment.exitDate && ` · Saída em ${formatDateOnlyBR(enrollment.exitDate)}`}
+      </p>
+    </div>
+  );
+}
 
 const WEEKDAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
 const DAYS: Record<string, string> = {
@@ -15,135 +96,143 @@ const DAYS: Record<string, string> = {
   SATURDAY: "Sáb",
   SUNDAY: "Dom",
 };
-type EnrollmentProps = { enrollment: StudentEnrollment; today: string };
-
-export function CurrentEnrollment({ enrollment, today }: EnrollmentProps): ReactElement {
-  const stage = enrollment.progress.find(
-    (row) => row.startDate <= today && (!row.endDate || row.endDate >= today),
-  );
+function EnrollmentSchedule({ enrollment }: { enrollment: StudentEnrollment }): ReactElement {
   return (
-    <article
-      className="grid min-w-0 gap-4 border-b border-border pb-5 lg:grid-cols-3"
-      aria-label="Matrícula vigente"
-    >
-      <div className="grid content-start gap-2 lg:col-span-2">
-        <h3 className="font-display text-2xl font-medium text-heading">
-          {stage?.stage ?? "Estágio não informado"}
-        </h3>
-        <p className="text-sm text-muted-foreground">{stage?.track ?? "Trilha não informada"}</p>
-        <EnrollmentSchedule enrollment={enrollment} />
-        <EnrollmentMeta enrollment={enrollment} />
-        {enrollment.progress.length > 0 && <ProgressJourney enrollment={enrollment} />}
-      </div>
-      <div className="grid content-start gap-1 border-t border-border pt-4 lg:border-t-0 lg:pt-0">
-        <h3 className="text-sm font-medium">Frequência no semestre</h3>
-        <p
-          className={cn(
-            "font-numeric text-2xl tabular-nums",
-            enrollment.attendance.flagged && "text-destructive",
-          )}
-        >
-          {formatAttendancePercent(enrollment.attendance.percent)}
-        </p>
-        <p className="text-caption text-muted-foreground">
-          {enrollment.attendance.heldSessions === 0
-            ? "Nenhuma aula confirmada na janela da matrícula."
-            : `${enrollment.attendance.presentCount} presenças em ${enrollment.attendance.heldSessions} aulas confirmadas.`}
-        </p>
-      </div>
-    </article>
-  );
-}
-
-export function EnrollmentSchedule({
-  enrollment,
-}: {
-  enrollment: StudentEnrollment;
-}): ReactElement {
-  return (
-    <div className="grid min-w-0 gap-2 text-sm">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+    <div className="grid gap-2">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
         <Link
-          className="inline-flex min-h-11 items-center font-medium text-interactive hover:underline sm:min-h-0"
+          className="inline-flex min-h-11 items-center gap-2 text-base font-semibold text-interactive hover:underline sm:min-h-0 sm:text-sm"
           href={`/turmas/${enrollment.class.id}`}
         >
-          {enrollment.class.name}
+          {enrollment.class.name} <ArrowUpRight aria-hidden="true" className="size-3.5" />
         </Link>
-        {enrollment.class.teacher ? (
+        {enrollment.class.teacher && (
           <Link
-            className="inline-flex min-h-11 items-center gap-2 text-interactive hover:underline sm:min-h-0"
+            className="inline-flex min-h-11 items-center gap-2 text-base text-muted-foreground hover:text-foreground sm:min-h-0 sm:text-sm"
             href={`/professores/${enrollment.class.teacher.id}`}
           >
-            <GraduationCap className="size-4" aria-hidden="true" />
+            <GraduationCap aria-hidden="true" className="size-4 shrink-0 text-icon" />
             {enrollment.class.teacher.name}
           </Link>
-        ) : (
-          <span className="text-muted-foreground">Professor não definido</span>
         )}
       </div>
-      <ScheduleSlots enrollment={enrollment} />
+      <div className="flex items-start gap-2 text-base sm:text-sm">
+        <CalendarDays aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-icon" />
+        <ul className="flex flex-wrap gap-x-4 gap-y-1">
+          {enrollment.class.schedule
+            .toSorted(
+              (left, right) =>
+                WEEKDAYS.indexOf(left.weekday) - WEEKDAYS.indexOf(right.weekday) ||
+                left.startTime.localeCompare(right.startTime),
+            )
+            .map((slot) => (
+              <li key={slot.id} className="inline-flex items-baseline gap-2">
+                <span>{DAYS[slot.weekday]}</span>
+                <span className="font-numeric tabular-nums text-muted-foreground">
+                  {slot.startTime}–{slot.endTime}
+                </span>
+              </li>
+            ))}
+        </ul>
+      </div>
     </div>
   );
 }
 
-export function ProgressJourney({ enrollment }: { enrollment: StudentEnrollment }): ReactElement {
+function ProgressJourney({
+  enrollment,
+  today,
+  studentId,
+}: EnrollmentProps & { studentId: string }): ReactElement {
+  const [pointerNavigation, setPointerNavigation] = useState(false);
   return (
-    <details className="mt-2">
-      <summary className="w-fit cursor-pointer text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring">
-        Percurso por estágio
+    <details
+      className={`group open:basis-full ${styles.journey}`}
+      data-pointer-navigation={pointerNavigation || undefined}
+    >
+      <summary
+        onClick={(event) => setPointerNavigation(event.detail > 0)}
+        onKeyDown={() => setPointerNavigation(false)}
+        className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-2 text-caption text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
+      >
+        <ChevronDown
+          aria-hidden="true"
+          className="size-3.5 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+        />
+        <span className="font-medium text-foreground">Percurso</span>
+        <span>
+          · {enrollment.progress.length}{" "}
+          {enrollment.progress.length === 1 ? "estágio registrado" : "estágios registrados"}
+        </span>
       </summary>
       <ol className="mt-3 grid gap-3 sm:grid-cols-2">
-        {enrollment.progress.map((row) => (
-          <li key={row.id} className="grid gap-1 border-l border-border pl-3">
-            <span className="text-sm font-medium">
-              {row.stage} · {row.track}
-            </span>
-            <span className="text-caption text-muted-foreground">
-              {formatDateOnlyBR(row.startDate)} ·{" "}
-              {row.endDate ? `até ${formatDateOnlyBR(row.endDate)}` : "Sem término definido"}
-            </span>
-          </li>
+        {enrollment.progress.toReversed().map((item) => (
+          <ProgressJourneyItem
+            key={item.id}
+            item={item}
+            today={today}
+            studentId={studentId}
+            personalized={enrollment.class.scheduleType === "PERSONALIZED"}
+          />
         ))}
       </ol>
+      {enrollment.progress.length === 0 && (
+        <p className="px-5 pb-4 text-sm text-muted-foreground">
+          Nenhum estágio registrado nesta matrícula.
+        </p>
+      )}
     </details>
   );
 }
 
-function EnrollmentMeta({ enrollment }: { enrollment: StudentEnrollment }): ReactElement {
+function ProgressJourneyItem({
+  item,
+  today,
+  studentId,
+  personalized,
+}: {
+  item: StudentEnrollment["progress"][number];
+  today: string;
+  studentId: string;
+  personalized: boolean;
+}): ReactElement {
   return (
-    <p className="text-caption text-muted-foreground">
-      {enrollment.class.semester} ·{" "}
-      {enrollment.class.scheduleType === "REGULAR" ? "Regular" : "PPT"} ·{" "}
-      {enrollment.class.format === "IN_PERSON" ? "Presencial" : "Online"} · Desde{" "}
-      {formatDateOnlyBR(enrollment.entryDate)}
-      {enrollment.exitDate && ` · Saída em ${formatDateOnlyBR(enrollment.exitDate)}`}
-    </p>
+    <li className="grid gap-1 border-l border-border-strong pl-3">
+      <span className="text-sm font-medium">{item.stage}</span>
+      <span className="text-caption text-muted-foreground">
+        {formatDateOnlyBR(item.startDate)}
+        {progressEndLabel(item, today)}
+      </span>
+      {personalized && (
+        <Link
+          className="inline-flex min-h-11 items-center text-caption text-interactive hover:underline sm:min-h-0"
+          href={`/alunos/${studentId}?secao=planejamento&percurso=${item.id}`}
+          aria-label={`Ver plano de ensino de ${item.stage}`}
+        >
+          Ver plano de ensino
+        </Link>
+      )}
+    </li>
   );
 }
 
-function ScheduleSlots({ enrollment }: { enrollment: StudentEnrollment }): ReactElement {
-  const schedule = enrollment.class.schedule.toSorted(
-    (left, right) =>
-      WEEKDAYS.indexOf(left.weekday) - WEEKDAYS.indexOf(right.weekday) ||
-      left.startTime.localeCompare(right.startTime),
+function progressEndLabel(item: StudentEnrollment["progress"][number], today: string): string {
+  if (item.endDate) return ` — ${formatDateOnlyBR(item.endDate)}`;
+  return item.startDate > today ? " · agendado" : " · em andamento";
+}
+function planningHref({
+  enrollment,
+  today,
+  studentId,
+}: {
+  enrollment: StudentEnrollment;
+  today: string;
+  studentId: string;
+}): string {
+  if (enrollment.class.scheduleType === "REGULAR")
+    return `/turmas/${enrollment.class.id}?secao=planejamento`;
+  const progress = enrollment.progress.find(
+    (item) => item.startDate <= today && (!item.endDate || item.endDate >= today),
   );
-  return (
-    <div className="flex items-start gap-2">
-      <CalendarDays className="mt-0.5 size-4 shrink-0 text-icon" aria-hidden="true" />
-      {schedule.length > 0 ? (
-        <ul className="flex flex-wrap gap-x-4 gap-y-1">
-          {schedule.map((slot) => (
-            <li key={slot.id}>
-              {DAYS[slot.weekday]} ·{" "}
-              <span className="font-numeric tabular-nums">
-                {slot.startTime}–{slot.endTime}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <span className="text-muted-foreground">Horário não definido</span>
-      )}
-    </div>
-  );
+  return `/alunos/${studentId}?secao=planejamento${progress ? `&percurso=${progress.id}` : ""}`;
 }

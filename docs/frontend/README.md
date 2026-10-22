@@ -56,6 +56,9 @@ data and actions; the shared component owns the frame, density, states and pagin
 
 See [semantic colors](semantic-colors.md) for status meanings, attention hierarchy, and badge usage.
 
+Use the shared [file attachment components](file-attachments.md) for file selection and
+event-bound uploads, including placement and academic assessment proofs.
+
 ### Design-system lint
 
 `apps/web/eslint.config.js` owns the `@shadcn/lint` policy for frontend product source. Run it with
@@ -90,3 +93,8 @@ handful of options, and a per-form contract test. The reference is the `Patterns
 
 Run `pnpm storybook` for visual review. Before finishing frontend changes, run proportionate lint,
 typecheck, tests, `git diff --check`, and inspect the final diff.
+
+## Calendar
+
+Use the shared [ScheduleCalendar contract](schedule-calendar.md) for daily and weekly agendas,
+including event rendering, interval selection, availability boundaries, and Storybook examples.

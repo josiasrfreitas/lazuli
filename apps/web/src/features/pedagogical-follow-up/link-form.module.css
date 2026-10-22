@@ -1,0 +1,110 @@
+.form {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  padding-top: 16px;
+}
+.search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.results {
+  display: grid;
+  min-inline-size: 0;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+}
+.count,
+.selection {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.list {
+  max-height: min(44dvh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--border-strong) transparent;
+  border-block: 1px solid var(--border);
+}
+.list > li + li {
+  border-top: 1px solid var(--border);
+}
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  padding: 14px 12px;
+  cursor: pointer;
+  transition: background-color var(--lz-duration-fast) var(--lz-ease-standard);
+}
+.row:hover {
+  background: var(--muted);
+}
+.row[data-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.row:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.row > input {
+  margin-top: 3px;
+  accent-color: var(--interactive);
+}
+.results:disabled .row {
+  cursor: wait;
+}
+.content {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.title,
+.account,
+.selection {
+  overflow-wrap: anywhere;
+}
+.title {
+  font-size: var(--lz-text-body);
+  font-weight: 600;
+}
+.account {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: pre-wrap;
+  font-size: var(--lz-text-caption);
+  line-height: 1.5;
+}
+.row[data-selected="true"] .account {
+  display: block;
+}
+.empty {
+  display: grid;
+  gap: 8px;
+  padding: 24px 12px;
+  font-size: var(--lz-text-caption);
+  color: var(--muted-foreground);
+}
+.empty strong,
+.selection strong {
+  color: var(--foreground);
+}
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    transition: none;
+  }
+}

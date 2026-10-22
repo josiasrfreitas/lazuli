@@ -1,11 +1,13 @@
 export { civilDateSchema } from "./civil-date.js";
-export { studentCompletionInputSchema } from "./student-completion.js";
-export type { StudentCompletionInput } from "./student-completion.js";
+export { studentCompletionInputSchema, studentPedagogyIntakeSchema } from "./student-completion.js";
+export type { StudentCompletionInput, StudentPedagogyIntake } from "./student-completion.js";
 export {
   createMonthlyContractInputSchema,
   listContractsInputSchema,
   contractPartySearchInputSchema,
 } from "./contracts.js";
+export { contractMaterialInputSchema, addContractMaterialInputSchema } from "./contracts.js";
+export type { ContractMaterialInput, AddContractMaterialInput } from "./contracts.js";
 export type { CreateMonthlyContractInput } from "./contracts.js";
 export { financeSettingsInputSchema, tuitionFloorCents } from "./finance-settings.js";
 export type { FinanceSettingsInput } from "./finance-settings.js";
@@ -191,3 +193,71 @@ export * from "./stage-planning.js";
 export * from "./class-records.js";
 
 export * from "./student-attendance.js";
+export {
+  admissionIdSchema,
+  admissionValuesSchema,
+  admissionSaveSchema,
+  admissionListSchema,
+  admissionMatchesSchema,
+  entryVisitScheduleSchema,
+  entryVisitCalendarSchema,
+  entryVisitGuestsSchema,
+  entryVisitOutcomeSchema,
+  admissionEnrollSchema,
+} from "./admissions.js";
+export {
+  assessmentProgressSchema,
+  assessmentSaveSchema,
+  assessmentObservationsSchema,
+  assessmentConfirmSchema,
+  type AssessmentSave,
+  type AssessmentConfirm,
+} from "./assessment.js";
+export { leadCaptureSchema, leadInterestSchema, leadRegistrationSchema } from "./leads.js";
+export { MAX_UPLOAD_FILE_MB, MAX_UPLOAD_FILE_BYTES } from "./file-upload.js";
+export {
+  placementCalendarSchema,
+  placementScheduleSchema,
+  placementFileSchema,
+  placementDownloadSchema,
+  placementResultSchema,
+  MAX_PLACEMENT_FILE_BYTES,
+} from "./placement.js";
+export {
+  studentIntakeOptionsSchema,
+  studentIntakeEnrollSchema,
+  studentIntakeAllocateSchema,
+  studentIntakeResumeSchema,
+} from "./student-intake.js";
+export { activityListSchema, type ActivityListInput } from "./activity.js";
+export {
+  occurrenceCategorySchema,
+  pedagogicalListSchema,
+  occurrenceCreateSchema,
+  occurrenceLinkSchema,
+  occurrenceUpdateSchema,
+  interventionCreateSchema,
+  interventionFollowUpSchema,
+  interventionLinkSchema,
+  type PedagogicalList,
+  type OccurrenceCreate,
+  type InterventionCreate,
+  type InterventionFollowUp,
+} from "./occurrences.js";
+export {
+  stagePlanTargetSchema,
+  stagePlanKindSchema,
+  stagePlanWindowSchema,
+  stagePlanItemSchema,
+  stagePlanRemoveSchema,
+  stagePlanSnapshotSchema,
+  type StagePlanTarget,
+  type StagePlanWindow,
+  type StagePlanItemInput,
+  type StagePlanRemove,
+} from "./stage-planning.js";
+export * from "./appointments.js";
+export * from "./semester-organization.js";
+
+export * from "./contract-termination.js";
+export { teachingProgramImportSchema, trackAgeGroupSchema } from "./teaching-program.js";

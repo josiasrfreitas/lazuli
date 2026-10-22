@@ -1,9 +1,16 @@
+import { searchIds } from "../search.js";
+import { teacherIdentityWhere } from "./identity.js";
 import type { Prisma } from "@lazuli/db";
 import { responsibleTeacherId, saoPauloDateOnly } from "@lazuli/domain";
 import type { teacherListInputSchema, z } from "@lazuli/validators";
 import { notFound } from "../trpc/errors.js";
 import { responsibilitySelect, usualTeacherOn } from "./responsibility.js";
 import { meetingsBetween, type TeacherMeeting } from "./schedule.js";
+import {
+  independentAppointments,
+  appointmentNeedsTeacher,
+  type IndependentAppointment,
+} from "./independent-appointments.js";
 const ISO_DATE_LENGTH = 10;
 type ReadTeacherResult = Prisma.UserGetPayload<{ select: typeof teacherSelect }>;
 type ListTeachersResult = {
@@ -16,7 +23,10 @@ type ListTeachersResult = {
 };
 type TeacherOptionsResult = { id: string; name: string }[];
 type UncoveredMeetingsResult = {
-  rows: Array<TeacherMeeting & { id: string }>;
+  rows: Array<
+    | (TeacherMeeting & { id: string; kind: "CLASS" })
+    | (IndependentAppointment & { kind: "APPOINTMENT" })
+  >;
   total: number;
   page: number;
   pageSize: number;
@@ -56,7 +66,7 @@ export const teacherSelect = {
 
 export async function readTeacher(database: Database, id: string): Promise<ReadTeacherResult> {
   const teacher = await database.user.findFirst({
-    where: { id, role: "TEACHER", deletedAt: null },
+    where: { id, AND: [teacherIdentityWhere], deletedAt: null },
     select: teacherSelect,
   });
   if (!teacher) throw notFound("Professor não encontrado.");
@@ -70,6 +80,7 @@ export async function listTeachers({
 }: ListTeachersInput): Promise<ListTeachersResult> {
   const today = new Date(saoPauloDateOnly(now));
   const where = teacherListWhere(input, today);
+  where.id = (await searchIds(database, { table: "User", query: input.search })) ?? {};
   const total = await database.user.count({ where });
   const pageCount = Math.max(1, Math.ceil(total / input.pageSize));
   const page = Math.min(input.page, pageCount);
@@ -130,9 +141,9 @@ export async function teacherOptions({
 }: TeacherOptionsInput): Promise<TeacherOptionsResult> {
   return database.user.findMany({
     where: {
-      role: "TEACHER",
+      AND: [teacherIdentityWhere],
       deletedAt: null,
-      name: { contains: search, mode: "insensitive" },
+      id: (await searchIds(database, { table: "User", query: search })) ?? {},
       OR: [
         { teacherProfile: null },
         { teacherProfile: { departureDate: null } },
@@ -164,14 +175,30 @@ export async function uncoveredMeetings({
         now,
       })
     : [];
-  const rows = meetings.filter((row) => responsibleTeacherId(row) === null);
+  const appointments = await independentAppointments(database, { from });
+  const rows: UncoveredMeetingsResult["rows"] = [
+    ...meetings
+      .filter((row) => responsibleTeacherId(row) === null)
+      .map((row) => ({
+        ...row,
+        kind: "CLASS" as const,
+        id: `${row.classId}:${row.slotId ?? row.sessionId}:${row.date}`,
+      })),
+    ...appointments
+      .filter((appointment) => appointmentNeedsTeacher(appointment))
+      .map((row) => ({ ...row, kind: "APPOINTMENT" as const })),
+  ];
+  rows.sort(
+    (left, right) =>
+      left.date.localeCompare(right.date) ||
+      left.startTime.localeCompare(right.startTime) ||
+      left.id.localeCompare(right.id),
+  );
   const total = rows.length;
   const pageCount = Math.max(1, Math.ceil(total / input.pageSize));
   const page = Math.min(input.page, pageCount);
   return {
-    rows: rows
-      .slice((page - 1) * input.pageSize, page * input.pageSize)
-      .map((row) => ({ ...row, id: `${row.classId}:${row.slotId ?? row.sessionId}:${row.date}` })),
+    rows: rows.slice((page - 1) * input.pageSize, page * input.pageSize),
     total,
     page,
     pageSize: input.pageSize,
@@ -252,10 +279,9 @@ function teacherListWhere(
     ],
   };
   const where: Prisma.UserWhereInput = {
-    role: "TEACHER",
     deletedAt: null,
-    name: { contains: input.search, mode: "insensitive" },
     AND: [
+      teacherIdentityWhere,
       ...(input.active === "active" ? [eligible] : []),
       ...(input.active === "departed"
         ? [{ teacherProfile: { departureDate: { lte: today } } }]

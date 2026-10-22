@@ -3,3 +3,15 @@
 
 @source "../";
 @source "../../../../packages/ui/src";
+
+a[href]:not([data-slot="button"]):is(:hover, :focus-visible) {
+  color: var(--brand-link-hover);
+}
+
+[data-slot="app-sidebar"] a[href]:is(:hover, :focus-visible) {
+  color: var(--icon-active);
+}
+
+main:has(> [data-page-scroll="internal"]) {
+  overflow-y: hidden;
+}

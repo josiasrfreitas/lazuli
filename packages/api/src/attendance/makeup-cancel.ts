@@ -1,52 +1,28 @@
+import type { Prisma } from "@lazuli/db";
 import type { makeupCancelInputSchema, z } from "@lazuli/validators";
-
 import type { StaffUser } from "../trpc/context.js";
-import { badRequest } from "../trpc/errors.js";
-import { loadMakeupWithTarget, type MakeupDatabase, type MakeupWithTarget } from "./makeup-data.js";
-import { MAKEUP_ALREADY_ATTENDED_MESSAGE, MAKEUP_ALREADY_CANCELLED_MESSAGE } from "./errors.js";
+import { lockTeacher } from "../teachers/availability.js";
+import { ensureLegacyAppointment } from "../appointments/legacy.js";
+import { cancelAppointment } from "../appointments/actions.js";
 
-type CancelInput = z.infer<typeof makeupCancelInputSchema>;
-
-export type CancelMakeupResult = {
-  makeupId: string;
-  cancelledAt: Date;
-};
-
-/**
- * Cancels a scheduled makeup (S-ATT-3 support). Rejects a makeup that is already cancelled or already
- * marked attended (cancel-after-attended needs an explicit correction flow, §4.6). ADMIN-only at the
- * router; the visitor simply stops rendering on the target roster once cancelled.
- */
 export async function cancelMakeup(input: {
-  database: MakeupDatabase;
+  database: Prisma.TransactionClient;
   staffUser: StaffUser;
-  values: CancelInput;
-}): Promise<CancelMakeupResult> {
-  const makeup = await loadMakeupWithTarget({
-    database: input.database,
-    makeupId: input.values.makeupId,
-  });
-  assertCancellable(makeup);
-
-  const cancelledAt = new Date();
-  await input.database.makeup.update({
-    where: { id: makeup.id },
-    data: {
-      cancelledAt,
-      cancelledById: input.staffUser.id,
-      cancellationReason: input.values.reason,
+  values: z.infer<typeof makeupCancelInputSchema>;
+  now?: Date;
+}): Promise<{ makeupId: string; cancelledAt: Date }> {
+  const now = input.now ?? new Date();
+  await lockTeacher(input.database, "");
+  const row = await ensureLegacyAppointment(input.database, input.values.makeupId);
+  await cancelAppointment(
+    { database: input.database, staffUser: input.staffUser, now },
+    {
+      input: {
+        id: row.id,
+        expectedVersion: input.values.expectedVersion,
+        reason: input.values.reason,
+      },
     },
-    select: { id: true },
-  });
-
-  return { makeupId: makeup.id, cancelledAt };
-}
-
-function assertCancellable(makeup: MakeupWithTarget): void {
-  if (makeup.cancelledAt !== null) {
-    throw badRequest(MAKEUP_ALREADY_CANCELLED_MESSAGE);
-  }
-  if (makeup.attendedAt !== null) {
-    throw badRequest(MAKEUP_ALREADY_ATTENDED_MESSAGE);
-  }
+  );
+  return { makeupId: input.values.makeupId, cancelledAt: now };
 }

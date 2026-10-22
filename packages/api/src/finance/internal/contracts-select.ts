@@ -1,3 +1,4 @@
+import type { Prisma } from "@lazuli/db";
 import {
   deriveContractFinancialSummary,
   deriveContractServiceStatus,
@@ -22,6 +23,14 @@ export type ContractListRow = {
   endsOn: string;
   monthlyAmountCents: number;
   principalAmountCents: number;
+  materialAmountCents: number;
+  materials: Array<{
+    id: string;
+    name: string;
+    totalCents: number;
+    count: number;
+    installmentCents: number | null;
+  }>;
   installmentCount: number;
   paymentProgress: { paid: number; total: number; waived: number; cancelled: number };
   uniformInstallmentAmountCents: number | null;
@@ -34,6 +43,7 @@ export type ContractListRow = {
 export const contractSelect = {
   id: true,
   commandFingerprint: true,
+  terminatedAt: true,
   agreedOn: true,
   startsOn: true,
   endsOn: true,
@@ -58,58 +68,36 @@ export const contractSelect = {
     },
   },
   orders: {
-    where: { kind: "TUITION" as const },
+    where: { deletedAt: null },
     select: {
+      id: true,
+      kind: true,
+      material: { include: { items: { orderBy: { position: "asc" } } } },
       principalAmountCents: true,
       installmentCount: true,
       firstDueDate: true,
       cancelledAt: true,
       installments: {
         where: { deletedAt: null },
+        orderBy: { sequenceNumber: "asc" },
         select: {
+          id: true,
+          sequenceNumber: true,
           amountCents: true,
           dueDate: true,
           waivedAt: true,
           adjustments: { where: { deletedAt: null }, select: { amountCents: true } },
-          allocations: { where: { deletedAt: null }, select: { amountCents: true } },
+          allocations: {
+            where: { deletedAt: null, paymentEntry: { deletedAt: null } },
+            select: { amountCents: true },
+          },
         },
       },
     },
-    take: 1,
   },
 } as const;
 
-type SelectedContract = {
-  id: string;
-  payer: { id: string; name: string };
-  student: {
-    id: string;
-    fullName: string;
-    enrollments: Array<{
-      entryDate: Date;
-      exitDate: Date | null;
-      class: { portalClassName: string };
-      progressRecords: Array<{ stage: { internalCode: string } }>;
-    }>;
-  };
-  agreedOn: Date | null;
-  startsOn: Date | null;
-  endsOn: Date | null;
-  monthlyAmountCents: number | null;
-  orders: Array<{
-    principalAmountCents: number;
-    installmentCount: number | null;
-    firstDueDate: Date | null;
-    cancelledAt: Date | null;
-    installments: Array<{
-      amountCents: number;
-      dueDate: Date;
-      waivedAt: Date | null;
-      adjustments: Array<{ amountCents: number }>;
-      allocations: Array<{ amountCents: number }>;
-    }>;
-  }>;
-};
+export type SelectedContract = Prisma.ContractGetPayload<{ select: typeof contractSelect }>;
 
 function academicPlacements(
   student: SelectedContract["student"],
@@ -139,7 +127,48 @@ function uniformInstallmentAmount(order: SelectedContract["orders"][number]): nu
 }
 
 export function toRow(row: SelectedContract, now = new Date()): ContractListRow {
-  const order = row.orders[0];
+  const order = requiredTuitionOrder(row);
+  const materialOrders = row.orders.filter(
+    (entry) => entry.kind === "MATERIAL" && !entry.cancelledAt,
+  );
+  return {
+    id: row.id,
+    payer: row.payer,
+    student: {
+      id: row.student.id,
+      fullName: row.student.fullName,
+      placements: academicPlacements(row.student, now),
+    },
+    agreedOn: toDateOnlyString(row.agreedOn!),
+    startsOn: toDateOnlyString(row.startsOn!),
+    endsOn: toDateOnlyString(row.endsOn!),
+    monthlyAmountCents: row.monthlyAmountCents!,
+    principalAmountCents: order.principalAmountCents,
+    materialAmountCents: materialOrders.reduce((sum, entry) => sum + entry.principalAmountCents, 0),
+    materials: materialOrders.map((entry) => ({
+      id: entry.id,
+      name: entry.material?.name ?? "Material",
+      totalCents: entry.principalAmountCents,
+      count: entry.installmentCount ?? entry.installments.length,
+      installmentCents: uniformInstallmentAmount(entry),
+    })),
+    installmentCount: order.installmentCount!,
+    uniformInstallmentAmountCents: uniformInstallmentAmount(order),
+    firstDueDate: toDateOnlyString(order.firstDueDate!),
+    ...deriveContractFinancialSummary({ ...order, now, installmentCount: order.installmentCount! }),
+    ...(row.terminatedAt ? { status: "CANCELADO" as const } : {}),
+    serviceStatus: row.terminatedAt
+      ? "ENDED"
+      : deriveContractServiceStatus({
+          startsOn: toDateOnlyString(row.startsOn!),
+          endsOn: toDateOnlyString(row.endsOn!),
+          now,
+        }),
+  };
+}
+
+function requiredTuitionOrder(row: SelectedContract): SelectedContract["orders"][number] {
+  const order = row.orders.find((entry) => entry.kind === "TUITION");
   if (
     !order ||
     !row.agreedOn ||
@@ -151,27 +180,5 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
   ) {
     throw new Error("Contrato mensal incompleto.");
   }
-  return {
-    id: row.id,
-    payer: row.payer,
-    student: {
-      id: row.student.id,
-      fullName: row.student.fullName,
-      placements: academicPlacements(row.student, now),
-    },
-    agreedOn: toDateOnlyString(row.agreedOn),
-    startsOn: toDateOnlyString(row.startsOn),
-    endsOn: toDateOnlyString(row.endsOn),
-    monthlyAmountCents: row.monthlyAmountCents,
-    principalAmountCents: order.principalAmountCents,
-    installmentCount: order.installmentCount,
-    uniformInstallmentAmountCents: uniformInstallmentAmount(order),
-    firstDueDate: toDateOnlyString(order.firstDueDate),
-    ...deriveContractFinancialSummary({ ...order, now, installmentCount: order.installmentCount }),
-    serviceStatus: deriveContractServiceStatus({
-      startsOn: toDateOnlyString(row.startsOn),
-      endsOn: toDateOnlyString(row.endsOn),
-      now,
-    }),
-  };
+  return order;
 }

@@ -1,3 +1,4 @@
+import { studentsWithPendingRegistration } from "./pending-actions.js";
 import type { Prisma } from "@lazuli/db";
 import {
   resolveSemesterForDate,
@@ -14,6 +15,7 @@ import { isMinorInSaoPaulo } from "./date-rules.js";
 import { STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
 import {
   buildStudentListWhere,
+  normalizedStudentSearch,
   countHeaderFacts,
   countStudentsByTab,
   findStudentRow,
@@ -43,7 +45,11 @@ type AttendanceFacts = StudentListRow["attendance"];
 const NO_ATTENDANCE_DATA: AttendanceFacts = { percent: null, flagged: false };
 
 export async function listStudents(input: ListStudentsInput): Promise<StudentListOutput> {
-  const where = buildStudentListWhere({ ...input.values, teacherIds: [] });
+  const searchWhere = await normalizedStudentSearch(input.database, {
+    search: input.values.search,
+    now: input.values.now,
+  });
+  const where = buildStudentListWhere({ ...input.values, teacherIds: [] }, searchWhere);
   await applyTeacherFilter(input, where);
   const semester = await resolveCurrentSemester(input.database, input.values.now);
   const { page, pageSize } = input.values;
@@ -55,6 +61,7 @@ export async function listStudents(input: ListStudentsInput): Promise<StudentLis
     countStudentsByTab({
       database: input.database,
       search: input.values.search,
+      searchWhere,
       now: input.values.now,
     }),
     countHeaderFacts({ database: input.database, semesterId: semester?.id ?? null }),
@@ -117,14 +124,19 @@ type BuildRowsInput = {
 
 /** Also drives `students.preview`, which renders a single row by student id. */
 export async function buildRows(input: BuildRowsInput): Promise<StudentListRow[]> {
-  const [attendanceByStudent, financeByStudent] = await Promise.all([
+  const [attendanceByStudent, financeByStudent, pendingRegistration] = await Promise.all([
     readAttendanceByStudent(input),
     readFinanceByStudent(input),
+    studentsWithPendingRegistration(input.database, {
+      ids: input.students.map((row) => row.id),
+      now: input.values.now,
+    }),
   ]);
 
   return input.students.map((student) => ({
     id: student.id,
     fullName: student.fullName,
+    registrationPending: pendingRegistration.has(student.id),
     isMinor: isMinorInSaoPaulo({ birthDate: student.birthDate, now: input.values.now }),
     status: student.status,
     phone: student.phone,

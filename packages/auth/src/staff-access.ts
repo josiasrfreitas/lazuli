@@ -33,7 +33,8 @@ export type StaffAccessUser = {
   email: string;
   role: StaffRole;
   isEnabled: boolean;
-  teacherProfile?: { departureDate: Date | null } | null;
+  deletedAt?: Date | null;
+  teacherProfile?: { departureDate: Date | null; deletedAt?: Date | null } | null;
 };
 
 export type StaffAccessDeniedReason = "UNKNOWN_EMAIL" | "DISABLED_USER" | "ROLE_NOT_ENABLED";
@@ -54,6 +55,7 @@ export type StaffIdentity = {
   name: string;
   email: string;
   role: StaffRole;
+  roles?: StaffRole[];
   isEnabled: boolean;
 };
 
@@ -64,17 +66,21 @@ export type StaffIdentity = {
  */
 export function resolveStaffIdentity(
   user: (StaffAccessUser & { id: string; name: string }) | null,
-  now = new Date(),
+  options: { now?: Date; requestedRole?: string | null | undefined } = {},
 ): StaffIdentity | null {
+  const { now = new Date(), requestedRole } = options;
   if (user === null || !evaluateStaffAccess(user, now).allowed) {
     return null;
   }
 
+  const roles = availableStaffRoles(user, now);
+  const role = roles.find((candidate) => candidate === requestedRole) ?? roles[0]!;
   return {
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role,
+    role,
+    roles,
     isEnabled: user.isEnabled,
   };
 }
@@ -87,28 +93,51 @@ export function evaluateStaffAccess(
     return denied("UNKNOWN_EMAIL");
   }
 
-  if (!user.isEnabled) {
+  if (!user.isEnabled || user.deletedAt) {
     return denied("DISABLED_USER");
   }
 
-  if (user.role === "TEACHER" && user.teacherProfile?.departureDate) {
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Sao_Paulo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(now);
-    const part = (name: string): string => parts.find((item) => item.type === name)?.value ?? "";
-    const today = `${part("year")}-${part("month")}-${part("day")}`;
-    if (user.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) <= today)
-      return denied("DISABLED_USER");
-  }
-
-  if (!ENABLED_ROLES.has(user.role)) {
+  const roles = availableStaffRoles(user, now);
+  if (user.role === "TEACHER" && roles.length === 0) return denied("DISABLED_USER");
+  if (!roles.some((role) => ENABLED_ROLES.has(role))) {
     return denied("ROLE_NOT_ENABLED");
   }
 
   return { allowed: true };
+}
+
+export const STAFF_ROLE_COOKIE = "lazuli.staff-role";
+
+/** The administrative role and teaching profile coexist on the same staff identity. */
+export function availableStaffRoles(user: StaffAccessUser, now = new Date()): StaffRole[] {
+  const roles: StaffRole[] = user.role === "TEACHER" ? [] : [user.role];
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const part = (name: string): string => parts.find((item) => item.type === name)?.value ?? "";
+  const today = `${part("year")}-${part("month")}-${part("day")}`;
+  const departed = user.teacherProfile?.departureDate
+    ? user.teacherProfile.departureDate.toISOString().slice(0, ISO_DATE_LENGTH) <= today
+    : false;
+  if (
+    (user.role === "TEACHER" || user.teacherProfile) &&
+    !departed &&
+    !user.teacherProfile?.deletedAt
+  )
+    roles.push("TEACHER");
+  return roles.filter((role) => ENABLED_ROLES.has(role));
+}
+
+export function staffRoleFromHeaders(headers?: Headers): string | undefined {
+  return headers
+    ?.get("cookie")
+    ?.split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith(`${STAFF_ROLE_COOKIE}=`))
+    ?.slice(STAFF_ROLE_COOKIE.length + 1);
 }
 
 function denied(reason: StaffAccessDeniedReason): StaffAccessResult {

@@ -1,8 +1,9 @@
 import {
-  computeAttendancePercent,
+  computeCompensatedAttendance,
+  teachingMinutes,
   saoPauloDateOnly,
   intersectEnrollmentSemesterWindows,
-  type AttendancePercent,
+  type AttendanceProgress,
 } from "@lazuli/domain";
 import type { attendanceEnrollmentSemesterPercentInputSchema, z } from "@lazuli/validators";
 
@@ -12,6 +13,9 @@ import { notFound } from "../trpc/errors.js";
 import { assertResourceScope } from "../trpc/rbac.js";
 import type { AttendanceDatabase } from "./data.js";
 import { ENROLLMENT_NOT_FOUND_MESSAGE, SEMESTER_NOT_FOUND_MESSAGE } from "./errors.js";
+
+const ISO_TIME_START_INDEX = 11;
+const ISO_MINUTE_END_INDEX = 16;
 
 type PercentInput = z.infer<typeof attendanceEnrollmentSemesterPercentInputSchema>;
 
@@ -36,7 +40,7 @@ type SemesterForPercent = SemesterWindowDates & {
   id: string;
 };
 
-export type EnrollmentSemesterPercentResult = AttendancePercent & {
+export type EnrollmentSemesterPercentResult = AttendanceProgress & {
   enrollmentId: string;
   semesterId: string;
 };
@@ -67,38 +71,57 @@ export async function readEnrollmentSemesterPercent(input: {
   };
 }
 
-/**
- * Attendance percent for one enrollment inside one semester window (§4.6, D-0029).
- * Shared by the per-enrollment procedure above and the students listing, so both
- * count the same facts: confirmed, non-cancelled home sessions in Semester ∩ Enrollment.
- */
+/** Confirmed home lessons define the denominator; completed source-linked compensation adds minutes. */
 export async function computeEnrollmentPercentInWindow(input: {
   database: AttendanceDatabase;
   values: { enrollment: EnrollmentWindow; semester: SemesterWindowDates };
-}): Promise<AttendancePercent> {
+}): Promise<AttendanceProgress> {
   const window = intersectEnrollmentSemesterWindows(input.values);
-
-  if (window === null) {
-    return computeAttendancePercent({ heldSessions: 0, presentCount: 0 });
-  }
-
-  const [heldSessions, presentCount] = await Promise.all([
-    countHeldSessions({
-      database: input.database,
+  if (window === null) return computeCompensatedAttendance([]);
+  const sessions = await input.database.classSession.findMany({
+    where: {
       classId: input.values.enrollment.classId,
-      startDate: window.startDate,
-      endDate: window.endDate,
+      deletedAt: null,
+      status: "SCHEDULED",
+      attendanceConfirmedAt: { not: null },
+      // The exit date is the first day outside the roster; semester end remains inclusive.
+      date: {
+        gte: window.startDate,
+        lte: window.endDate,
+        ...(input.values.enrollment.exitDate ? { lt: input.values.enrollment.exitDate } : {}),
+      },
+    },
+    select: {
+      startTime: true,
+      endTime: true,
+      attendanceRows: {
+        where: { enrollmentId: input.values.enrollment.id, deletedAt: null },
+        select: {
+          status: true,
+          makeupCoverages: {
+            where: { deletedAt: null, appointment: { deletedAt: null, status: "ATTENDED" } },
+            select: { minutes: true },
+          },
+        },
+      },
+    },
+  });
+  return computeCompensatedAttendance(
+    sessions.map((session) => {
+      const attendance = session.attendanceRows[0];
+      return {
+        minutes: teachingMinutes({
+          startTime: session.startTime
+            .toISOString()
+            .slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+          endTime: session.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
+        }),
+        status: attendance?.status ?? null,
+        compensatedMinutes:
+          attendance?.makeupCoverages.reduce((sum, row) => sum + row.minutes, 0) ?? 0,
+      };
     }),
-    countPresentRows({
-      database: input.database,
-      enrollmentId: input.values.enrollment.id,
-      classId: input.values.enrollment.classId,
-      startDate: window.startDate,
-      endDate: window.endDate,
-    }),
-  ]);
-
-  return computeAttendancePercent({ heldSessions, presentCount });
+  );
 }
 
 async function loadEnrollment(input: {
@@ -143,44 +166,4 @@ async function loadSemester(input: {
   }
 
   return semester;
-}
-
-async function countHeldSessions(input: {
-  database: AttendanceDatabase;
-  classId: string;
-  startDate: Date;
-  endDate: Date;
-}): Promise<number> {
-  return input.database.classSession.count({
-    where: {
-      classId: input.classId,
-      deletedAt: null,
-      status: "SCHEDULED",
-      attendanceConfirmedAt: { not: null },
-      date: { gte: input.startDate, lte: input.endDate },
-    },
-  });
-}
-
-async function countPresentRows(input: {
-  database: AttendanceDatabase;
-  enrollmentId: string;
-  classId: string;
-  startDate: Date;
-  endDate: Date;
-}): Promise<number> {
-  return input.database.attendance.count({
-    where: {
-      enrollmentId: input.enrollmentId,
-      deletedAt: null,
-      status: "PRESENT",
-      classSession: {
-        classId: input.classId,
-        deletedAt: null,
-        status: "SCHEDULED",
-        attendanceConfirmedAt: { not: null },
-        date: { gte: input.startDate, lte: input.endDate },
-      },
-    },
-  });
 }

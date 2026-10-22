@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createTRPCClient, trpc } from "../../src/lib/trpc.js";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
@@ -13,6 +15,20 @@ import { PaymentSection } from "../../src/features/contracts/contract-payment-se
 import { paymentPlanLabel } from "../../src/features/contracts/contract-form-model.js";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
+function renderPayment(element: React.ReactElement): string {
+  const queryClient = new QueryClient();
+  try {
+    return renderToStaticMarkup(
+      React.createElement(trpc.Provider, {
+        client: createTRPCClient(),
+        queryClient,
+        children: React.createElement(QueryClientProvider, { client: queryClient }, element),
+      }),
+    );
+  } finally {
+    queryClient.clear();
+  }
+}
 const commandId = "00000000-0000-4000-8000-000000000001";
 const fields = {
   ...emptyContractFields,
@@ -94,7 +110,7 @@ for (const installmentCount of ["", "0", "1.5", "5", "invalid"]) {
 }
 
 void it("shows nominal calendar entries and a truthful variable summary", () => {
-  const markup = renderToStaticMarkup(
+  const markup = renderPayment(
     React.createElement(PaymentSection, {
       fields,
       errors: {},
@@ -116,9 +132,9 @@ void it("shows nominal calendar entries and a truthful variable summary", () => 
   assert.match(paymentPlanLabel(3, 100_000), /^3 × R\$\s1\.000,00$/);
 });
 
-void it("keeps the calendar inside the advanced plan", () => {
+void it("keeps the tuition-only calendar inside the advanced plan", () => {
   const common = { ...fields, paymentPlan: "common" };
-  const markup = renderToStaticMarkup(
+  const markup = renderPayment(
     React.createElement(PaymentSection, {
       fields: common,
       errors: {},

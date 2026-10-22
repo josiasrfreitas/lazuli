@@ -19,6 +19,7 @@ export type LinkInfo = {
 };
 export type OpenedWindow = { id: string; expiresAt: Date; token: string; projectionToken: string };
 export type AttendanceStatus = {
+  confirmationRestriction: string | null;
   sessionId: string;
   format: AttendanceFormat;
   restriction: string | null;

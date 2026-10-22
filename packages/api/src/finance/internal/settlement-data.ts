@@ -6,7 +6,7 @@ import { type FinanceDatabase, toDateOnlyString } from "./shared.js";
 
 const settlementInclude = {
   agreements: { orderBy: [{ effectiveDate: "asc" }, { createdAt: "asc" }, { id: "asc" }] },
-  order: { include: { contract: true } },
+  order: { include: { contract: true, material: true } },
   adjustments: { where: { deletedAt: null }, orderBy: { id: "asc" } },
   allocations: {
     where: { deletedAt: null, paymentEntry: { deletedAt: null } },
@@ -29,6 +29,7 @@ export type SettlementLine = {
   payerId: string;
   version: string;
   quote: SettlementQuote;
+  materialReceipt?: { name: string; chargedCents: number; feeCents: number; netCents: number };
 };
 
 export function settlementLine(input: {
@@ -39,7 +40,7 @@ export function settlementLine(input: {
 }): SettlementLine {
   const { item, date } = input;
   validateSettlementItem(input);
-  const contract = item.order.contract;
+  const contract = item.order.kind === "TUITION" ? item.order.contract : null;
   const quote = quoteSettlement({
     nominalCents: item.amountCents,
     terms: settlementTerms(item),
@@ -57,9 +58,10 @@ export function settlementLine(input: {
   });
   return {
     installmentId: item.id,
-    payerId: contract?.payerId ?? item.order.payerId ?? "",
+    payerId: item.order.contract?.payerId ?? item.order.payerId ?? "",
     version: createHash("sha256").update(JSON.stringify({ item, date })).digest("hex"),
     quote,
+    ...materialReceipt(item),
   };
 }
 
@@ -69,7 +71,7 @@ function settlementFacts(
   import("@lazuli/domain").SettlementInput,
   "principalAdjustments" | "suspensions" | "chargeAdjustments"
 > {
-  const contract = item.order.contract;
+  const contract = item.order.kind === "TUITION" ? item.order.contract : null;
   return {
     principalAdjustments: item.adjustments
       .filter((row) => row.type !== "INTEREST" && row.type !== "LATE_FEE" && !row.chargeOnly)
@@ -143,7 +145,7 @@ function settlementTerms(item: SettlementItem): {
   monthlyPct: number;
   discountPct: number;
 } {
-  const contract = item.order.contract;
+  const contract = item.order.kind === "TUITION" ? item.order.contract : null;
   if (!contract)
     return {
       dueDate: toDateOnlyString(item.agreements[0]?.previousDueDate ?? item.dueDate),
@@ -161,4 +163,17 @@ function settlementTerms(item: SettlementItem): {
 
 function decimalRate(value: Prisma.Decimal | null): number {
   return value?.toNumber() ?? 0;
+}
+
+function materialReceipt(item: SettlementItem): Pick<SettlementLine, "materialReceipt"> {
+  const material = item.order.material;
+  if (material === null || material.chargedAmountCents === null) return {};
+  return {
+    materialReceipt: {
+      name: material.name,
+      chargedCents: material.chargedAmountCents,
+      feeCents: material.cardFeeCents ?? 0,
+      netCents: item.order.principalAmountCents,
+    },
+  };
 }

@@ -12,13 +12,26 @@ import {
 
 const STUDENTS_PATH = "/alunos";
 const TEACHERS_PATH = "/professores";
+const LEADS_PATH = "/interessados";
+const ANALYTICS_PATH = "/financeiro";
 const CLASSES_PATH = "/turmas";
-const LESSONS_PATH = "/aulas";
-const PLANNING_PATH = "/planejamento";
+const ASSESSMENTS_PATH = "/avaliacoes";
+const CLASS_RECORDS_PATH = "/aulas";
+const ORGANIZATION_PATH = "/organizacao";
+const MATERIALS_PATH = "/estagios";
 const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
-const ANALYTICS_PATH = "/financeiro";
 const SETTINGS_PATH = "/ajustes";
+const ACTIVITY_PATH = "/atividades";
+const SCHOOL_LOCATION_PATH = "/configuracoes/presenca";
+const TEACHER_PATHS = [
+  "/professor",
+  "/professor/agenda",
+  "/professor/turmas",
+  "/professor/alunos",
+  "/professor/acompanhamento",
+  ASSESSMENTS_PATH,
+];
 const STUDENTS_LABEL = "Alunos";
 const PEDAGOGICAL_LABEL = "Pedagógico";
 
@@ -31,7 +44,7 @@ function sectionsSummary(sections: NavSection[]): ReturnType<typeof sectionSumma
 }
 
 void describe("role-aware navigation", () => {
-  void it("shows Alunos, Professores and Turmas only to roles their procedures accept", () => {
+  void it("shows administrative organization only to administrators and teaching work to teachers", () => {
     assert.deepEqual(
       navItemsFor("ADMIN").map((item) => item.href),
       [
@@ -39,16 +52,20 @@ void describe("role-aware navigation", () => {
         STUDENTS_PATH,
         TEACHERS_PATH,
         CLASSES_PATH,
-        LESSONS_PATH,
-        PLANNING_PATH,
+        CLASS_RECORDS_PATH,
+        MATERIALS_PATH,
+        ORGANIZATION_PATH,
+        LEADS_PATH,
         ANALYTICS_PATH,
         CONTRACTS_PATH,
         RECEIVABLES_PATH,
+        ACTIVITY_PATH,
+        SCHOOL_LOCATION_PATH,
       ],
     );
     assert.deepEqual(
       navItemsFor("TEACHER").map((item) => item.href),
-      ["/", LESSONS_PATH, PLANNING_PATH],
+      TEACHER_PATHS,
     );
   });
 
@@ -57,13 +74,22 @@ void describe("role-aware navigation", () => {
       { label: null, items: ["Início"] },
       {
         label: PEDAGOGICAL_LABEL,
-        items: [STUDENTS_LABEL, "Professores", "Turmas", "Aulas", "Planejamento"],
+        items: [
+          STUDENTS_LABEL,
+          "Professores",
+          "Turmas",
+          "Agenda",
+          "Estágios",
+          "Organização de turmas",
+        ],
       },
+      { label: "Comercial", items: ["Leads"] },
       { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
+      { label: "Sistema", items: ["Log de atividades", "Localização da escola"] },
     ]);
     assert.deepEqual(
       navSectionsFor("TEACHER").map((section) => section.label),
-      [null, PEDAGOGICAL_LABEL],
+      [null],
     );
   });
 
@@ -87,17 +113,13 @@ void describe("role-aware navigation", () => {
 
   void it("sends Início to the role's first vertical, or nowhere", () => {
     assert.equal(homeHrefFor("ADMIN"), STUDENTS_PATH);
-    assert.equal(homeHrefFor("TEACHER"), LESSONS_PATH);
+    assert.equal(homeHrefFor("TEACHER"), "/professor");
     assert.equal(homeHrefFor("SECRETARY"), null);
     assert.equal(homeHrefFor("FINANCE"), null);
   });
 });
 
 void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
-  assert.deepEqual(navBreadcrumbFor(ANALYTICS_PATH, "ADMIN"), {
-    section: "Financeiro",
-    page: "Visão financeira",
-  });
   assert.deepEqual(navBreadcrumbFor(CONTRACTS_PATH, "ADMIN"), {
     section: "Financeiro",
     page: "Contratos",
@@ -106,26 +128,13 @@ void it("limits Financeiro to ADMIN and supplies its breadcrumb", () => {
     section: "Financeiro",
     page: "Recebíveis",
   });
-  assert.deepEqual(
-    (["SECRETARY", "FINANCE", "TEACHER"] as const).map((role) =>
-      navBreadcrumbFor(RECEIVABLES_PATH, role),
-    ),
-    [null, null, null],
-  );
-  assert.deepEqual(
-    (["SECRETARY", "FINANCE", "TEACHER"] as const).map((role) =>
-      navBreadcrumbFor(ANALYTICS_PATH, role),
-    ),
-    [null, null, null],
-  );
-  assert.deepEqual(
-    (["SECRETARY", "FINANCE"] as const).map((role) => navItemsFor(role).map((item) => item.href)),
-    [["/"], ["/"]],
-  );
-  assert.deepEqual(
-    navItemsFor("TEACHER").map((item) => item.href),
-    ["/", LESSONS_PATH, PLANNING_PATH],
-  );
+  for (const role of ["SECRETARY", "FINANCE", "TEACHER"] as const) {
+    assert.equal(navBreadcrumbFor(RECEIVABLES_PATH, role), null);
+    assert.deepEqual(
+      navItemsFor(role).map((item) => item.href),
+      role === "TEACHER" ? TEACHER_PATHS : ["/"],
+    );
+  }
 });
 
 void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigation", () => {
@@ -136,12 +145,16 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       STUDENTS_PATH,
       TEACHERS_PATH,
       CLASSES_PATH,
-      LESSONS_PATH,
-      PLANNING_PATH,
+      CLASS_RECORDS_PATH,
+      MATERIALS_PATH,
+      ORGANIZATION_PATH,
+      LEADS_PATH,
       ANALYTICS_PATH,
       CONTRACTS_PATH,
       RECEIVABLES_PATH,
+      ACTIVITY_PATH,
       SETTINGS_PATH,
+      SCHOOL_LOCATION_PATH,
     ],
   );
   assert.equal(

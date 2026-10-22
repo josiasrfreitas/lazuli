@@ -1,9 +1,16 @@
 import type { ReactElement, ReactNode } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
-import { Alert, Button } from "@lazuli/ui";
+import { Alert, Button, InlineSkeleton } from "@lazuli/ui";
 
-export const MISSING_DETAIL = "Não informado";
-
+export function ProfileLoading(): ReactElement {
+  return (
+    <div role="status" className="grid gap-4 py-6">
+      <InlineSkeleton className="h-8 w-48" />
+      <InlineSkeleton className="h-4 w-64" />
+      <span className="sr-only">Carregando informações do aluno</span>
+    </div>
+  );
+}
 export function ProfileError({
   message,
   onRetry,

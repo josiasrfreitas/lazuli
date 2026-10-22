@@ -36,6 +36,7 @@ function TableSortIcon({ direction }: { direction: TableSortDirection | undefine
 /** Column-label typography, shared by the header cell and its sort button. */
 const tableHeadLabel = "text-micro font-semibold tracking-label uppercase";
 const tableHeadSpacing = {
+  dense: "h-8 px-1.5",
   compact: "h-8 px-3",
   default: "h-9 px-5",
 } as const;

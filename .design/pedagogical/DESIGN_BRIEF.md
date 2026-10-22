@@ -234,15 +234,17 @@ analisa e acompanha tratativas que podem continuar além da aula. Um registro ú
 não distingue relato, ação inicial, decisão de intervir e acompanhamento.
 
 **Solução confirmada.** Distinguir ocorrência e intervenção. Preservar o relato do professor
-e a ação inicial; o departamento analisa se haverá intervenção. Nem toda ocorrência exige
-intervenção. O acompanhamento precisa permitir responsabilidade e continuidade das tratativas.
+e a ação inicial. Conforme definição de 10/10/2026, uma intervenção nasce de uma série de
+ocorrências que exige a atuação de um professor. Ocorrências podem se relacionar entre si sem
+intervenção automática. A intervenção reúne os relatos motivadores, identifica o professor
+responsável e acompanha suas tratativas. Nem toda ocorrência exige intervenção.
 
 **Cenário.** O professor registra uma dificuldade recorrente. O departamento analisa e pode
 encerrar a ocorrência ou acompanhar uma intervenção. Escrever “encaminhar para reforço” não
 agenda o atendimento; a ação operacional usa V6.
 
-**Em aberto.** Intervenção direta, agrupamento de ocorrências, acesso, conclusão e reabertura
-são decisões de V10. Contato por falta em V6 pode motivar intervenção, sem criar uma obrigatória.
+**Em aberto.** Acesso, conclusão e reabertura são decisões de V10. Relação entre ocorrências e
+intervenção motivada por uma série de relatos estão confirmadas. Contato por falta em V6 pode motivar intervenção, sem criar uma obrigatória.
 
 ## 12. Alocação de professores precisa distinguir turma e encontro
 

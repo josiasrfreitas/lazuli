@@ -5,11 +5,18 @@ import {
   type FinanceSettingsInput,
 } from "@lazuli/validators";
 
+import { INITIAL_MATERIAL_PRICING, materialPriceQuote } from "@lazuli/domain";
+
+const MAX_DATABASE_INTEGER = 2_147_483_647;
+
 const CENTS_PER_REAL = 100;
 const MAX_PERCENT = 100;
 const MONEY_DECIMAL_PLACES = 2;
 const PERCENT_DECIMAL_PLACES = 4;
-export type SettingsFields = Record<keyof FinanceSettingsInput, string>;
+export type SettingsFields = Record<
+  Exclude<keyof FinanceSettingsInput, "materialPriceCents">,
+  string
+>;
 export type SettingsErrors = Partial<SettingsFields>;
 export type SettingsRow = NonNullable<RouterOutputs["finance"]["readSettings"]>;
 
@@ -21,7 +28,9 @@ export function displaySetting(name: keyof SettingsFields, text: string): string
     minimumFractionDigits: monetary && !Number.isInteger(numeric) ? MONEY_DECIMAL_PLACES : 0,
     maximumFractionDigits: monetary ? MONEY_DECIMAL_PLACES : PERCENT_DECIMAL_PLACES,
   }).format(numeric);
-  return monetary ? `R$${value}` : `${value}%`;
+  if (monetary) return `R$${value}`;
+  if (name.endsWith("Installments")) return value;
+  return `${value}%`;
 }
 
 function number(value: number | null | undefined): string {
@@ -36,13 +45,74 @@ function amount(value: number | null | undefined): string {
 
 export function loadedFields(row: SettingsRow | null): SettingsFields {
   return {
+    ...loadedFinanceFields(row),
+    ...loadedMaterialFields(row),
+  };
+}
+
+function loadedFinanceFields(
+  row: SettingsRow | null,
+): Pick<
+  SettingsFields,
+  | "tuitionCeilingCents"
+  | "maximumDiscountPct"
+  | "punctualityDiscountPct"
+  | "interestRatePctDaily"
+  | "interestRatePctMonthly"
+  | "cancellationFeePct"
+> {
+  return {
     tuitionCeilingCents: amount(row?.tuitionCeilingCents),
     maximumDiscountPct: number(row?.maximumDiscountPct),
     punctualityDiscountPct: number(row?.punctualityDiscountPct ?? 0),
     interestRatePctDaily: number(row?.interestRatePctDaily),
     interestRatePctMonthly: number(row?.interestRatePctMonthly),
     cancellationFeePct: number(row?.cancellationFeePct),
-    materialPriceCents: amount(row?.materialPriceCents),
+  };
+}
+
+function loadedMaterialFields(
+  row: SettingsRow | null,
+): Pick<
+  SettingsFields,
+  | "childMaterialInstallments"
+  | "childMaterialInstallmentCents"
+  | "adultMaterialInstallments"
+  | "adultMaterialInstallmentCents"
+  | "materialCardFeePct"
+> {
+  return {
+    ...loadedChildMaterialFields(row),
+    ...loadedAdultMaterialFields(row),
+    materialCardFeePct: number(
+      row?.materialCardFeePct ?? INITIAL_MATERIAL_PRICING.materialCardFeePct,
+    ),
+  };
+}
+
+function loadedChildMaterialFields(
+  row: SettingsRow | null,
+): Pick<SettingsFields, "childMaterialInstallments" | "childMaterialInstallmentCents"> {
+  return {
+    childMaterialInstallments: number(
+      row?.childMaterialInstallments ?? INITIAL_MATERIAL_PRICING.childMaterialInstallments,
+    ),
+    childMaterialInstallmentCents: amount(
+      row?.childMaterialInstallmentCents ?? INITIAL_MATERIAL_PRICING.childMaterialInstallmentCents,
+    ),
+  };
+}
+
+function loadedAdultMaterialFields(
+  row: SettingsRow | null,
+): Pick<SettingsFields, "adultMaterialInstallments" | "adultMaterialInstallmentCents"> {
+  return {
+    adultMaterialInstallments: number(
+      row?.adultMaterialInstallments ?? INITIAL_MATERIAL_PRICING.adultMaterialInstallments,
+    ),
+    adultMaterialInstallmentCents: amount(
+      row?.adultMaterialInstallmentCents ?? INITIAL_MATERIAL_PRICING.adultMaterialInstallmentCents,
+    ),
   };
 }
 
@@ -55,11 +125,32 @@ function fieldError(name: keyof SettingsFields, text: string): string | undefine
   if (text.trim() === "") return "Informe um valor.";
   const value = decimal(text);
   if (!Number.isFinite(value)) return "Use um número, como 10 ou 0,5.";
-  if (!name.endsWith("Cents")) {
-    if (value > MAX_PERCENT) return "Use um percentual entre 0 e 100.";
-    if (!/^\d+(?:[.,]\d{1,4})?$/u.test(text.trim())) return "Use no máximo quatro casas decimais.";
-    return undefined;
-  }
+  if (name.endsWith("Installments")) return installmentError(text, value);
+  if (!name.endsWith("Cents")) return percentError(text, value);
+  return amountError({ name, text, value });
+}
+
+function installmentError(text: string, value: number): string | undefined {
+  return /^\d+$/u.test(text.trim()) && value >= 1 && value <= MAX_DATABASE_INTEGER
+    ? undefined
+    : "Informe uma quantidade inteira maior que zero.";
+}
+
+function percentError(text: string, value: number): string | undefined {
+  if (value > MAX_PERCENT) return "Use um percentual entre 0 e 100.";
+  if (!/^\d+(?:[.,]\d{1,4})?$/u.test(text.trim())) return "Use no máximo quatro casas decimais.";
+  return undefined;
+}
+
+function amountError({
+  name,
+  text,
+  value,
+}: {
+  name: keyof SettingsFields;
+  text: string;
+  value: number;
+}): string | undefined {
   if (!/^\d+(?:[.,]\d{1,2})?$/u.test(text.trim())) return "Use no máximo duas casas decimais.";
   if (name === "tuitionCeilingCents" && value === 0)
     return "A mensalidade deve ser maior que zero.";
@@ -82,7 +173,15 @@ export function validateSettings(
     interestRatePctDaily: decimal(fields.interestRatePctDaily),
     interestRatePctMonthly: decimal(fields.interestRatePctMonthly),
     cancellationFeePct: decimal(fields.cancellationFeePct),
-    materialPriceCents: Math.round(decimal(fields.materialPriceCents) * CENTS_PER_REAL),
+    childMaterialInstallments: decimal(fields.childMaterialInstallments),
+    childMaterialInstallmentCents: Math.round(
+      decimal(fields.childMaterialInstallmentCents) * CENTS_PER_REAL,
+    ),
+    adultMaterialInstallments: decimal(fields.adultMaterialInstallments),
+    adultMaterialInstallmentCents: Math.round(
+      decimal(fields.adultMaterialInstallmentCents) * CENTS_PER_REAL,
+    ),
+    materialCardFeePct: decimal(fields.materialCardFeePct),
   });
   if (result.success) return { success: true, values: result.data };
   for (const issue of result.error.issues) {
@@ -103,4 +202,33 @@ export function floorLabel(fields: SettingsFields): string {
     "tuitionCeilingCents",
     String(tuitionFloorCents(Math.round(ceiling * CENTS_PER_REAL), discount) / CENTS_PER_REAL),
   );
+}
+
+export function bookQuote(
+  fields: SettingsFields,
+  category: "child" | "adult",
+): {
+  installments: number;
+  installmentCents: number;
+  totalCents: number;
+  cashCents: number;
+} | null {
+  const count = category === "child" ? "childMaterialInstallments" : "adultMaterialInstallments";
+  const amountKey =
+    category === "child" ? "childMaterialInstallmentCents" : "adultMaterialInstallmentCents";
+  if (
+    [count, amountKey, "materialCardFeePct"].some((key) =>
+      fieldError(key as keyof SettingsFields, fields[key as keyof SettingsFields]),
+    )
+  )
+    return null;
+  try {
+    return materialPriceQuote({
+      installments: decimal(fields[count]),
+      installmentCents: Math.round(decimal(fields[amountKey]) * CENTS_PER_REAL),
+      cardFeePct: decimal(fields.materialCardFeePct),
+    });
+  } catch {
+    return null;
+  }
 }

@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { JSX as ReactJSX } from "react";
 import { BookOpen } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { dateLabel, type Planning } from "./shared";
@@ -12,7 +12,7 @@ export function ProgressSummary({
 }: {
   data: Planning;
   onRecords: () => void;
-}): ReactElement {
+}): ReactJSX.Element {
   const items = data.plan?.items ?? [];
   const position = planningPosition(items, { records: data.records, today: data.scope.today });
   const latestStep = data.records.find((row) => row.content.planItemId);
@@ -25,15 +25,14 @@ export function ProgressSummary({
       />
       <div className={styles.progressFooter}>
         <div>
-          {latestStep && (
+          <LatestStepStatus record={latestStep} />
+          {position.actual !== null && (
             <p>
-              {latestStep.content.planItemStatus === "COMPLETED"
-                ? "Etapa concluída"
-                : "Etapa em andamento"}{" "}
-              · Registro de {dateLabel(latestStep.date)}
+              Última página registrada: {position.actual}
+              {position.expected !== null && ` · prevista: ${position.expected}`}
+              {position.lastDate && ` · ${dateLabel(position.lastDate)}`}
             </p>
           )}
-          <PagePosition position={position} />
           {!latestStep && position.actual === null && (
             <p>Aguardando um registro de etapa ou páginas trabalhadas.</p>
           )}
@@ -47,17 +46,17 @@ export function ProgressSummary({
   );
 }
 
-function PagePosition({
-  position,
+function LatestStepStatus({
+  record,
 }: {
-  position: ReturnType<typeof planningPosition>;
-}): ReactElement | null {
-  if (position.actual === null) return null;
+  record: Planning["records"][number] | undefined;
+}): ReactJSX.Element | null {
+  if (!record) return null;
+  const label =
+    record.content.planItemStatus === "COMPLETED" ? "Etapa concluída" : "Etapa em andamento";
   return (
     <p>
-      Última página registrada: {position.actual}
-      {position.expected !== null && ` · prevista: ${position.expected}`}
-      {position.lastDate && ` · ${dateLabel(position.lastDate)}`}
+      {label} · Registro de {dateLabel(record.date)}
     </p>
   );
 }

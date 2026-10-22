@@ -1,0 +1,337 @@
+.workspace {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  container-type: inline-size;
+}
+.directionNote {
+  padding-block: 12px;
+  border-block: 1px dashed var(--border-strong);
+}
+.directionNote strong {
+  font-size: 14px;
+  color: var(--heading);
+}
+.directionNote p {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.directionNote span {
+  color: var(--muted-foreground);
+}
+.appointments {
+  min-width: 0;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  background: var(--accent);
+}
+.appointmentHeading,
+.nextAppointment,
+.deskHeading,
+.panelToolbar,
+.tabReminder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.appointmentHeading h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--heading);
+}
+.appointmentHeading h3 span {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 400;
+}
+.appointmentHeading p,
+.deskHeading p,
+.panelToolbar p,
+.tabReminder p,
+.emptyAgenda {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.appointmentHeading p {
+  margin-top: 4px;
+}
+.workspace svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.nextAppointment {
+  padding-top: 12px;
+}
+.nextAppointment p {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.nextAppointment strong {
+  font-weight: 500;
+}
+.nextAppointment p span {
+  color: var(--muted-foreground);
+}
+.emptyAgenda {
+  padding-top: 8px;
+}
+.appointmentList {
+  margin-top: 12px;
+}
+.appointment {
+  border-top: 1px solid var(--border);
+}
+.appointment summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 16px;
+  cursor: pointer;
+  list-style: none;
+}
+.appointment summary::-webkit-details-marker {
+  display: none;
+}
+.appointment summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.appointmentDate,
+.appointmentPurpose {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+.appointmentDate {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.appointmentPurpose {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.appointment small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.appointment > p {
+  font-size: 14px;
+  line-height: 1.5;
+  padding-bottom: 16px;
+  max-width: 70ch;
+}
+.deskHeading {
+  padding-bottom: 16px;
+}
+.deskHeading h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--heading);
+}
+.deskHeading p {
+  margin-top: 4px;
+}
+.panelLayout {
+  display: grid;
+  gap: 20px;
+  align-items: start;
+  min-width: 0;
+}
+.panelLayout[data-open="true"] {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+.panelLayout > aside {
+  min-width: 0;
+}
+.panelLayout .appointment summary {
+  flex-wrap: wrap;
+}
+.panelLayout .appointmentPurpose {
+  flex-basis: 140px;
+}
+.tabReminder {
+  padding-block: 12px;
+}
+.notice:empty {
+  display: none;
+}
+.notice {
+  font-size: 13px;
+  color: var(--interactive);
+}
+@container (max-width: 1000px) {
+  .panelLayout[data-open="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .appointments {
+    padding: 12px;
+  }
+  .appointment summary {
+    flex-wrap: wrap;
+  }
+  .appointmentPurpose {
+    flex-basis: 140px;
+  }
+  .deskHeading {
+    align-items: flex-start;
+  }
+}
+
+.appointments[data-compact="true"] {
+  background: transparent;
+  border: 0;
+  padding-inline: 0;
+}
+.carousel {
+  min-width: 0;
+}
+.carouselNavigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.carouselNavigation > span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.carouselNavigation > div {
+  display: flex;
+  gap: 4px;
+}
+.carouselRail {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding-block: 8px;
+}
+.carouselRail::-webkit-scrollbar {
+  display: none;
+}
+.carouselRail > li {
+  flex: 0 0 300px;
+  max-width: 90%;
+  scroll-snap-align: start;
+}
+.carouselCell {
+  display: flex;
+  border: 1px solid var(--warning);
+  background: transparent;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 16px;
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+.carouselCell:hover,
+.carouselCell[aria-pressed="true"] {
+  background: transparent;
+  border-color: var(--foreground);
+}
+.carouselCell:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.cellDate {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  flex-shrink: 0;
+  color: var(--heading);
+  font-variant-numeric: tabular-nums;
+}
+.cellDate > strong {
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 500;
+}
+.cellDate > span {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.cellBody {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.cellBody > strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--heading);
+}
+.cellBody > span {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.cellBody > small {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.carouselDetail {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.carouselDetail p {
+  max-width: 65ch;
+}
+.carouselDetail p:first-child {
+  display: grid;
+  gap: 4px;
+}
+.carouselDetail p span {
+  color: var(--muted-foreground);
+}
+@media (prefers-reduced-motion: reduce) {
+  .carouselRail {
+    scroll-behavior: auto;
+  }
+}
+.deskActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.carouselRail[data-count="1"] > li {
+  flex: 0 1 auto;
+  max-width: min(100%, 560px);
+}
+
+.cellMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.cellMeta > small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}

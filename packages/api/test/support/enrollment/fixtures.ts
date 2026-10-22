@@ -184,6 +184,12 @@ export async function cleanEnrollmentFixtures(config: EnrollmentFixtureConfig): 
   await db.pedagogicalProgress.deleteMany({
     where: { enrollment: { student: { fullName: { startsWith: config.prefix } } } },
   });
+  await db.assessmentGrade.deleteMany({
+    where: { assessment: { student: { fullName: { startsWith: config.prefix } } } },
+  });
+  await db.stageAssessment.deleteMany({
+    where: { student: { fullName: { startsWith: config.prefix } } },
+  });
   await db.enrollment.deleteMany({
     where: { student: { fullName: { startsWith: config.prefix } } },
   });

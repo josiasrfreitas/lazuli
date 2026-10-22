@@ -9,29 +9,28 @@ import { RosterList } from "./roster-list";
 
 export function RosterSection({
   classId,
-  search,
   showStage,
 }: {
   classId: string;
-  search: string;
   showStage: boolean;
 }): ReactElement {
-  const state = useRoster(classId, search);
+  const state = useRoster(classId);
   const [returning, setReturning] = useState<RosterRow | null>(null);
   return (
     <section aria-label="Alunos da turma" className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-      <RosterList
-        key={state.page}
-        data={state.query.data}
-        failed={state.query.isError}
-        refetch={() => void state.query.refetch()}
-        page={state.page}
-        setPage={state.setPage}
-        showStage={showStage}
-        filtered={Boolean(search)}
-        resume={setReturning}
-        close={(row) => state.setClosing({ id: row.id, studentName: row.student.fullName })}
-      />
+      <div className="min-w-0">
+        <RosterList
+          key={state.page}
+          data={state.query.data}
+          failed={state.query.isError}
+          refetch={() => void state.query.refetch()}
+          page={state.page}
+          setPage={state.setPage}
+          showStage={showStage}
+          resume={setReturning}
+          close={(row) => state.setClosing({ id: row.id, studentName: row.student.fullName })}
+        />
+      </div>
       <RosterReturnDialog
         returning={returning}
         classId={classId}
@@ -75,12 +74,11 @@ function RosterReturnDialog({
   );
 }
 
-function useRoster(classId: string, search: string): RosterState {
+function useRoster(classId: string): RosterState {
   const [page, setPage] = useState(1);
   const [closing, setClosing] = useState<{ id: string; studentName: string } | null>(null);
   const query = trpc.classes.roster.useQuery({
     id: classId,
-    search,
     page,
     pageSize: 25,
   });

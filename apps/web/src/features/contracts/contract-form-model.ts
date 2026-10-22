@@ -12,6 +12,12 @@ const CENTS_PER_REAL = 100;
 const MONTHS_PER_YEAR = 12;
 
 export type ContractFields = {
+  // Comma-separated UUID draft keeps the shared string-field form interface; commas preserve empty book slots.
+  materialStageIds: string;
+  materialCategory: string;
+  materialPayment: string;
+  materialTotal: string;
+  materialQuoteVersion: string;
   paymentPlan: string;
   installmentCount: string;
   payerMode: string;
@@ -41,6 +47,11 @@ export type ContractFields = {
 };
 
 export const emptyContractFields: ContractFields = {
+  materialStageIds: ",",
+  materialCategory: "",
+  materialPayment: "NONE",
+  materialTotal: "",
+  materialQuoteVersion: "",
   paymentPlan: "common",
   installmentCount: "",
   payerMode: "existing",
@@ -141,6 +152,18 @@ export function contractInputFromFields(
     typeof command === "string" ? studentInput(fields) : { newStudent: command.newStudent };
   const parsed = createMonthlyContractInputSchema.safeParse({
     commandId,
+    ...(fields.materialPayment === "NONE"
+      ? {}
+      : {
+          material: {
+            stageIds: fields.materialStageIds.split(","),
+            quoteVersion: fields.materialQuoteVersion,
+            category: fields.materialCategory,
+            payment: fields.materialPayment,
+            expectedTotalCents:
+              fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
+          },
+        }),
     ...(fields.paymentPlan === "special"
       ? { installmentCount: Number(fields.installmentCount) }
       : {}),

@@ -1,228 +1,200 @@
 "use client";
-import { useState, useEffect, type ReactElement } from "react";
-import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
-import { saoPauloDateOnly, weekDates } from "@lazuli/domain";
-import {
-  Badge,
-  Button,
-  DataTable,
-  Input,
-  type DataTableColumn,
-  type DataTableState,
-} from "@lazuli/ui";
-import type { RouterOutputs } from "@lazuli/api";
+
+import { useState, type ReactElement } from "react";
+import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
+import { X } from "lucide-react";
+import { ScheduleAppointmentDialog } from "~/features/appointments/schedule-dialog";
+import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { maskDateBR, parseDateBR } from "~/lib/masks";
-import { formatDateOnlyBR } from "~/lib/format";
+import { GenerationState, useSessionGeneration } from "./generation-notice";
+import { LessonCalendar } from "./calendar";
+import { agendaEvents, monday, schoolToday, shiftDate } from "./calendar-model";
+import { AgendaHeader } from "./agenda-header";
+import { AgendaStudentChip } from "./agenda-student-chip";
+import { agendaDate } from "./weekly-calendar-model";
+import styles from "./calendar.module.css";
 
-type Lesson = RouterOutputs["classRecords"]["list"][number];
 const LAST_WEEKDAY = 6;
-const WEEK_LENGTH = 7;
-const DATE_LENGTH = 10;
-const LABELS = {
-  CANCELLED: "Cancelada",
-  RECORDED: "Registrada",
-  UPCOMING: "Prevista",
-  PENDING: "Pendente de registro",
-} as const;
-const columns: DataTableColumn<Lesson>[] = [
-  {
-    id: "date",
-    header: "Aula",
-    width: "medium",
-    cell: (row) => (
-      <div className="grid gap-1">
-        <span>{formatDateOnlyBR(row.date)}</span>
-        <span className="font-numeric text-caption">
-          {row.startTime}–{row.endTime}
-        </span>
-      </div>
-    ),
-  },
-  {
-    id: "class",
-    header: "Turma",
-    width: "wide",
-    cell: (row) => (
-      <Link className="text-interactive hover:underline" href={`/aulas/${row.id}`}>
-        {row.className}
-        {row.stageName ? ` · ${row.stageName}` : ""}
-      </Link>
-    ),
-  },
-  { id: "teacher", header: "Professor", cell: (row) => row.teacher ?? "Sem professor" },
-  {
-    id: "state",
-    header: "Situação",
-    cell: (row) => (
-      <div className="grid justify-items-start gap-1">
-        <Badge variant={row.state === "PENDING" ? "warning" : "neutral"}>{LABELS[row.state]}</Badge>
-        {row.attendanceOnly && (
-          <span className="text-caption">Frequência confirmada · falta o relato</span>
-        )}
-      </div>
-    ),
-  },
-];
-export function ClassAgenda(): ReactElement {
-  const [date, setDate] = useState(() => saoPauloDateOnly(new Date()));
-  const [pendingMode, setPendingMode] = useState(false);
-  const [page, setPage] = useState(1);
-  const [monday, sunday] = weekBounds(date);
-  const query = trpc.classRecords.list.useQuery({ from: monday, to: sunday });
-  const pending = trpc.classRecords.pending.useQuery({ page });
-  const rows = pendingMode ? pending.data?.rows : query.data;
-  const failed = pendingMode ? pending.isError : query.isError;
+type AgendaView = "dia" | "semana";
+type AgendaDataProps = {
+  teacherView: boolean;
+  date: string;
+  view: AgendaView;
+  classId: string | null;
+  studentId: string | null;
+  admin: boolean;
+  selectDate: (date: string) => void;
+  selectDay: (date: string) => void;
+  changeView: (view: AgendaView) => void;
+  clearClass: () => void;
+  clearStudent: () => void;
+  schedule: () => void;
+};
+
+export function ClassAgenda({ teacherView = false }: { teacherView?: boolean }): ReactElement {
+  const today = schoolToday();
+  const [creating, setCreating] = useState(false);
+  const me = trpc.me.useQuery();
+  const admin = me.data?.role === "ADMIN" || me.data?.role === "SYSTEM_ADMIN";
+  const [params, setParams] = useQueryStates({
+    semana: parseAsString.withDefault(monday(today)),
+    turma: parseAsString,
+    aluno: parseAsString,
+    dia: parseAsString,
+    visao: parseAsStringLiteral(["dia", "semana"]).withDefault("dia"),
+  });
+  const date = agendaDate(today, { day: params.dia, week: params.semana });
+  function selectDate(next: string): void {
+    void setParams({ semana: monday(next), dia: next });
+  }
   return (
-    <div className="grid min-w-0 content-start gap-5 p-4 sm:p-6">
-      <AgendaHeader date={date} onChange={setDate} />
-      <AgendaMode
-        pendingMode={pendingMode}
-        total={pending.data?.total}
-        from={monday}
-        to={sunday}
-        toggle={() => {
-          setPendingMode(!pendingMode);
-          setPage(1);
-        }}
-      />
-      <DataTable
-        label={pendingMode ? "Aulas pendentes de registro" : "Aulas da semana"}
-        columns={columns}
-        state={tableState(failed, rows)}
-        empty={{
-          title: "Nenhuma aula nesta seleção",
-          description: "Consulte outra semana ou as turmas atribuídas.",
-        }}
-        errorTitle="Não foi possível consultar as aulas"
-        onRetry={() => void Promise.all([query.refetch(), pending.refetch()])}
-        {...(pendingMode && pending.data
-          ? {
-              pagination: {
-                page: pending.data.page,
-                pageSize: PAGE_SIZE,
-                pageCount: pending.data.pageCount,
-                totalItems: pending.data.total,
-                onPageChange: setPage,
-                itemLabel: { singular: "aula", plural: "aulas" },
-              },
-            }
-          : {})}
+    <div className={styles.page} data-teacher={teacherView}>
+      {!teacherView && (
+        <AgendaHeader date={date} view={params.visao} today={today} onSelectDate={selectDate} />
+      )}
+      {creating && <ScheduleAppointmentDialog onClose={() => setCreating(false)} />}
+      <AgendaData
+        teacherView={teacherView}
+        date={date}
+        view={params.visao}
+        classId={params.turma}
+        studentId={params.aluno}
+        admin={admin}
+        selectDate={selectDate}
+        selectDay={(next) => void setParams({ semana: monday(next), dia: next, visao: "dia" })}
+        changeView={(visao) => void setParams({ visao })}
+        clearClass={() => void setParams({ turma: null })}
+        clearStudent={() => void setParams({ aluno: null })}
+        schedule={() => setCreating(true)}
       />
     </div>
   );
 }
-const PAGE_SIZE = 25;
-function tableState(failed: boolean, rows: Lesson[] | undefined): DataTableState<Lesson> {
-  if (failed) return { kind: "error" };
-  if (!rows) return { kind: "loading" };
-  return rows.length > 0 ? { kind: "data", rows } : { kind: "empty" };
-}
-function WeekControls({
-  date,
-  onChange,
-}: {
-  date: string;
-  onChange: (date: string) => void;
-}): ReactElement {
-  const [draft, setDraft] = useState(() => formatDateOnlyBR(date));
-  useEffect(() => setDraft(formatDateOnlyBR(date)), [date]);
-  const select = (value: string): void => {
-    setDraft(maskDateBR(value));
-    const parsed = parseDateBR(value);
-    if (parsed) onChange(parsed);
+
+function AgendaData(props: AgendaDataProps): ReactElement {
+  const selectedWeek = monday(props.date);
+  const range = {
+    from: selectedWeek,
+    to: shiftDate(selectedWeek, LAST_WEEKDAY),
+    ...(props.classId ? { classId: props.classId } : {}),
   };
+  const query = trpc.classRecords.list.useQuery(range);
+  const appointments = trpc.appointments.list.useQuery({
+    from: range.from,
+    through: range.to,
+    ...(props.studentId ? { studentId: props.studentId } : {}),
+  });
+  const experiments = trpc.classRecords.experimentalSessions.useQuery({
+    from: range.from,
+    to: range.to,
+  });
+  const generation = useSessionGeneration(range);
+  const pending = [query.isPending, appointments.isPending, experiments.isPending].some(Boolean);
+  const error = firstAgendaError(query.error, appointments.error, experiments.error);
+  const lessons = query.data ?? [];
+  const events = agendaEvents(lessons, {
+    appointments: appointments.data ?? [],
+    experiments: experiments.data ?? [],
+  });
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button
-        variant="secondary"
-        size="icon-sm"
-        aria-label="Semana anterior"
-        onClick={() => onChange(shift(weekStart(date), -WEEK_LENGTH))}
-      >
-        <ArrowLeft aria-hidden />
-      </Button>
-      <Input
-        aria-label="Data da semana"
-        placeholder="dd/mm/aaaa"
-        inputMode="numeric"
-        size="sm"
-        className="w-40"
-        value={draft}
-        onChange={(event) => select(event.target.value)}
+    <>
+      <AgendaCalendarView
+        {...props}
+        lessons={events}
+        className={agendaClassName(lessons, generation.data)}
+        studentName={agendaStudentName(appointments.data)}
+        status={agendaStatus(pending, Boolean(error))}
+        errorMessage={error?.message ?? "Não foi possível carregar a agenda."}
+        retry={() => {
+          void query.refetch();
+          void appointments.refetch();
+          void experiments.refetch();
+        }}
       />
-      <Button
-        variant="secondary"
-        size="icon-sm"
-        aria-label="Próxima semana"
-        onClick={() => onChange(shift(weekStart(date), WEEK_LENGTH))}
-      >
-        <ArrowRight aria-hidden />
-      </Button>
-      <Button variant="ghost" size="sm" onClick={() => onChange(saoPauloDateOnly(new Date()))}>
-        Hoje
+      <GenerationState query={generation} showReady={Boolean(props.classId)} />
+    </>
+  );
+}
+
+function firstAgendaError(
+  ...errors: ({ message: string } | null)[]
+): { message: string } | undefined {
+  return errors.find(Boolean) ?? undefined;
+}
+
+function agendaClassName(
+  lessons: { className: string }[],
+  generation: { className: string }[] | undefined,
+): string {
+  return lessons[0]?.className ?? generation?.[0]?.className ?? "selecionada";
+}
+
+function agendaStudentName(
+  appointments: { student: { name: string } }[] | undefined,
+): string | undefined {
+  return appointments?.[0]?.student.name;
+}
+
+function agendaStatus(pending: boolean, error: boolean): "loading" | "error" | "ready" {
+  if (pending) return "loading";
+  if (error) return "error";
+  return "ready";
+}
+
+type CalendarViewProps = AgendaDataProps & {
+  lessons: ReturnType<typeof agendaEvents>;
+  className: string;
+  studentName: string | undefined;
+  status: "loading" | "error" | "ready";
+  errorMessage: string;
+  retry: () => void;
+};
+function AgendaCalendarView(props: CalendarViewProps): ReactElement {
+  return (
+    <section className={styles.calendar} aria-label="Agenda de aulas e atendimentos">
+      {props.classId && <ActiveClassFilter className={props.className} clear={props.clearClass} />}
+      <LessonCalendar
+        teacherView={props.teacherView}
+        status={props.status}
+        errorMessage={props.errorMessage}
+        onRetry={props.retry}
+        date={props.date}
+        view={props.view}
+        onViewChange={props.changeView}
+        onNavigateDate={props.selectDate}
+        onSelectDay={props.selectDay}
+        studentFilter={
+          props.studentId ? (
+            <AgendaStudentChip
+              id={props.studentId}
+              name={props.studentName}
+              admin={props.admin}
+              onClear={props.clearStudent}
+            />
+          ) : null
+        }
+        lessons={props.lessons}
+        onSchedule={props.admin ? props.schedule : undefined}
+      />
+    </section>
+  );
+}
+
+function ActiveClassFilter({
+  className,
+  clear,
+}: {
+  className: string;
+  clear: () => void;
+}): ReactElement {
+  return (
+    <div className={styles.activeFilters}>
+      <span>
+        Aulas da turma: {className}. Outras aulas estão ocultas; atendimentos continuam visíveis.
+      </span>
+      <Button variant="text" size="sm" onClick={clear}>
+        <X /> Ver todas as turmas
       </Button>
     </div>
   );
-}
-function weekStart(value: string): string {
-  const date = new Date(`${value}T00:00:00Z`);
-  const offset = (date.getUTCDay() + LAST_WEEKDAY) % WEEK_LENGTH;
-  return shift(value, -offset);
-}
-function shift(value: string, offset: number): string {
-  const date = new Date(`${value}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + offset);
-  return date.toISOString().slice(0, DATE_LENGTH);
-}
-
-function AgendaHeader({
-  date,
-  onChange,
-}: {
-  date: string;
-  onChange: (date: string) => void;
-}): ReactElement {
-  return (
-    <header className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="font-display text-h1 text-heading">Aulas</h1>
-        <p className="text-caption text-muted-foreground">Agenda semanal · horários de São Paulo</p>
-      </div>
-      <WeekControls date={date} onChange={onChange} />
-    </header>
-  );
-}
-
-function AgendaMode({
-  pendingMode,
-  total,
-  from,
-  to,
-  toggle,
-}: {
-  pendingMode: boolean;
-  total: number | undefined;
-  from: string;
-  to: string;
-  toggle: () => void;
-}): ReactElement {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <p className="text-caption">
-        {pendingMode
-          ? "Pendências de todas as semanas"
-          : `${formatDateOnlyBR(from)} a ${formatDateOnlyBR(to)}`}
-      </p>
-      <Button variant="secondary" size="sm" onClick={toggle}>
-        {pendingMode ? "Ver semana" : `Ver pendências${total === undefined ? "" : ` (${total})`}`}
-      </Button>
-    </div>
-  );
-}
-
-function weekBounds(date: string): [string, string] {
-  const monday = weekStart(date);
-  return [monday, weekDates(monday)[LAST_WEEKDAY]!];
 }

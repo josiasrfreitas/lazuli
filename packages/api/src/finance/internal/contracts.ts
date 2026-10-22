@@ -1,3 +1,5 @@
+import { materialOrderData } from "./contract-materials.js";
+import { searchIds } from "../../search.js";
 import { createHash } from "node:crypto";
 
 import { previewMonthlyContract, type ContractFinancialStatus } from "@lazuli/domain";
@@ -11,6 +13,8 @@ import { createStudent } from "../../students/data.js";
 import { createContractPayer } from "./payers.js";
 import { toDateOnly, type FinanceDatabase } from "./shared.js";
 import { assertCreationCommandOwner, lockCreationCommand } from "../../creation-command.js";
+
+const ISO_DATE_LENGTH = 10;
 
 const DUE_DAY_START = 8;
 const DUE_DAY_END = 10;
@@ -42,6 +46,14 @@ type ReadyTerms = {
   settings: FinanceSettings;
   preview: ReturnType<typeof previewMonthlyContract>;
 };
+type PriorContract = Prisma.ContractGetPayload<Record<string, never>>;
+type ReadySettings = FinanceSettings & {
+  tuitionCeilingCents: number;
+  maximumDiscountPct: NonNullable<FinanceSettings["maximumDiscountPct"]>;
+  interestRatePctDaily: NonNullable<FinanceSettings["interestRatePctDaily"]>;
+  interestRatePctMonthly: NonNullable<FinanceSettings["interestRatePctMonthly"]>;
+  cancellationFeePct: NonNullable<FinanceSettings["cancellationFeePct"]>;
+};
 
 async function assertContractParties(
   database: FinanceDatabase,
@@ -70,23 +82,13 @@ async function readyTerms(input: {
   values: CreateMonthlyContractInput;
 }): Promise<ReadyTerms> {
   const { database, values } = input;
-  const [settings] = await Promise.all([
+  const [schoolSettings] = await Promise.all([
     database.financeSettings.findUnique({ where: { id: "singleton" } }),
     assertContractParties(database, values),
   ]);
-  if (
-    !settings ||
-    settings.tuitionCeilingCents === null ||
-    settings.maximumDiscountPct === null ||
-    settings.interestRatePctDaily === null ||
-    settings.interestRatePctMonthly === null ||
-    settings.cancellationFeePct === null
-  ) {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: "Configure os ajustes financeiros antes de criar um contrato.",
-    });
-  }
+  const prior = await renewalPrior(database, values);
+  const settings = priorSettings(schoolSettings, prior);
+  assertReadySettings(settings);
   if (
     values.punctualityDiscountPct !== undefined &&
     values.punctualityDiscountPct !== Number(settings.punctualityDiscountPct)
@@ -96,6 +98,95 @@ async function readyTerms(input: {
       message: "O desconto por pontualidade é definido nos ajustes financeiros.",
     });
   }
+  return { settings, preview: monthlyPreview(values, settings) };
+}
+
+async function renewalPrior(
+  database: FinanceDatabase,
+  values: CreateMonthlyContractInput,
+): Promise<PriorContract | null> {
+  if (values.renewedFromId)
+    await database.$queryRaw`SELECT id FROM "Contract" WHERE id = ${values.renewedFromId}::uuid FOR UPDATE`;
+  const prior = values.renewedFromId
+    ? await database.contract.findFirst({
+        where: {
+          id: values.renewedFromId,
+          deletedAt: null,
+          ...(values.studentId === undefined ? {} : { studentId: values.studentId }),
+          terminatedAt: null,
+        },
+      })
+    : null;
+  assertPriorCanRenew(prior, values);
+  if (prior) {
+    await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`contract-renewal:${prior.id}`}, 0))`;
+    const existing = await database.contract.findFirst({
+      where: { renewedFromId: prior.id, deletedAt: null, terminatedAt: null },
+    });
+    if (existing)
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Este contrato já possui uma renovação. Consulte o financeiro do aluno.",
+      });
+  }
+  return prior;
+}
+
+function assertPriorCanRenew(
+  prior: PriorContract | null,
+  values: CreateMonthlyContractInput,
+): void {
+  if (
+    values.renewedFromId &&
+    (!prior ||
+      !values.studentId ||
+      !prior.endsOn ||
+      values.startsOn <= prior.endsOn.toISOString().slice(0, ISO_DATE_LENGTH))
+  )
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "A renovação deve ser do mesmo aluno e começar após o contrato anterior.",
+    });
+}
+
+function priorSettings(
+  schoolSettings: FinanceSettings | null,
+  prior: PriorContract | null,
+): FinanceSettings | null {
+  return prior && schoolSettings
+    ? {
+        ...schoolSettings,
+        tuitionCeilingCents: prior.tuitionCeilingCents,
+        maximumDiscountPct: prior.maximumDiscountPct,
+        punctualityDiscountPct: prior.punctualityDiscountPct!,
+        interestRatePctDaily: prior.interestRatePctDaily,
+        interestRatePctMonthly: prior.interestRatePctMonthly,
+        cancellationFeePct: prior.cancellationFeePct,
+      }
+    : schoolSettings;
+}
+
+function assertReadySettings(settings: FinanceSettings | null): asserts settings is ReadySettings {
+  if (
+    !settings ||
+    settings.tuitionCeilingCents === null ||
+    settings.maximumDiscountPct === null ||
+    settings.punctualityDiscountPct === null ||
+    settings.interestRatePctDaily === null ||
+    settings.interestRatePctMonthly === null ||
+    settings.cancellationFeePct === null
+  ) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Configure os ajustes financeiros antes de criar um contrato.",
+    });
+  }
+}
+
+function monthlyPreview(
+  values: CreateMonthlyContractInput,
+  settings: ReadySettings,
+): ReturnType<typeof previewMonthlyContract> {
   let preview: ReturnType<typeof previewMonthlyContract>;
   try {
     preview = previewMonthlyContract({
@@ -110,7 +201,7 @@ async function readyTerms(input: {
       message: "Confira a mensalidade e a quantidade de parcelas autorizadas.",
     });
   }
-  return { settings, preview };
+  return preview;
 }
 
 type PersistContractInput = {
@@ -125,10 +216,20 @@ type PersistContractInput = {
 async function persistContract(input: PersistContractInput): Promise<ContractListRow> {
   const { database, values, staffUserId, terms } = input;
   const { settings, preview } = terms;
+  const material = values.material
+    ? await materialOrderData({
+        database,
+        material: values.material,
+        settings,
+        firstDueDate: values.firstDueDate,
+        staffUserId,
+      })
+    : null;
   const contract = await database.contract.create({
     data: {
       commandId: values.commandId,
       commandFingerprint: contractFingerprint(values),
+      renewedFromId: values.renewedFromId ?? null,
       payerId: input.payerId,
       studentId: input.studentId,
       agreedOn: toDateOnly(values.agreedOn),
@@ -143,30 +244,42 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
       interestRatePctMonthly: settings.interestRatePctMonthly,
       cancellationFeePct: settings.cancellationFeePct,
       orders: {
-        create: {
-          kind: "TUITION",
-          principalAmountCents: preview.principalAmountCents,
-          startDate: toDateOnly(values.startsOn),
-          dueDay: Number(values.firstDueDate.slice(DUE_DAY_START, DUE_DAY_END)),
-          firstDueDate: toDateOnly(values.firstDueDate),
-          installmentCount: preview.installments.length,
-          createdById: staffUserId,
-          updatedById: staffUserId,
-          installments: {
-            create: preview.installments.map((row) => ({
-              sequenceNumber: row.sequenceNumber,
-              amountCents: row.amountCents,
-              dueDate: toDateOnly(row.dueDate),
-              createdById: staffUserId,
-              updatedById: staffUserId,
-            })),
-          },
-        },
+        create: [
+          tuitionOrderData({ values, preview, staffUserId }),
+          ...(material ? [material] : []),
+        ],
       },
     },
     select: contractSelect,
   });
   return toRow(contract);
+}
+
+function tuitionOrderData(input: {
+  values: CreateMonthlyContractInput;
+  preview: ReturnType<typeof previewMonthlyContract>;
+  staffUserId: string;
+}): Prisma.OrderCreateWithoutContractInput {
+  const { values, preview, staffUserId } = input;
+  return {
+    kind: "TUITION",
+    principalAmountCents: preview.principalAmountCents,
+    startDate: toDateOnly(values.startsOn),
+    dueDay: Number(values.firstDueDate.slice(DUE_DAY_START, DUE_DAY_END)),
+    firstDueDate: toDateOnly(values.firstDueDate),
+    installmentCount: preview.installments.length,
+    createdBy: { connect: { id: staffUserId } },
+    updatedBy: { connect: { id: staffUserId } },
+    installments: {
+      create: preview.installments.map((row) => ({
+        sequenceNumber: row.sequenceNumber,
+        amountCents: row.amountCents,
+        dueDate: toDateOnly(row.dueDate),
+        createdById: staffUserId,
+        updatedById: staffUserId,
+      })),
+    },
+  };
 }
 
 export async function createMonthlyContract(input: {
@@ -213,18 +326,6 @@ function contractListWhere(options: ContractListOptions): Prisma.ContractWhereIn
     ...(options.studentId ? { studentId: options.studentId } : {}),
     ...(options.startsFrom ? { endsOn: { gte: toDateOnly(options.startsFrom) } } : {}),
     ...(options.endsTo ? { startsOn: { lte: toDateOnly(options.endsTo) } } : {}),
-    ...(options.query?.trim() === "" || !options.query
-      ? {}
-      : {
-          OR: [
-            {
-              student: {
-                fullName: { contains: options.query.trim(), mode: "insensitive" as const },
-              },
-            },
-            { payer: { name: { contains: options.query.trim(), mode: "insensitive" as const } } },
-          ],
-        }),
   };
 }
 
@@ -238,8 +339,16 @@ export async function listContracts(
   total: number;
 }> {
   const { page, now = new Date() } = options;
-  const pageSize = 20;
+  const pageSize = 25;
   const where = contractListWhere(options);
+  if (options.query) {
+    const [students, payers] = await Promise.all([
+      searchIds(database, { table: "Student", query: options.query }),
+      searchIds(database, { table: "Payer", query: options.query }),
+    ]);
+    if (students !== undefined && payers !== undefined)
+      where.OR = [{ student: { id: students } }, { payer: { id: payers } }];
+  }
   if (options.status) {
     const match = await contractStatusPage(database, { ...options, status: options.status, now });
     const selected = await database.contract.findMany({

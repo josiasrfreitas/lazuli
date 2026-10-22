@@ -27,7 +27,7 @@ void test("class filter URLs preserve multiple selections and reject invalid val
   assert.deepEqual(classListQueryInput(params), {
     search: "Turma de terça",
     page: 3,
-    pageSize: 20,
+    pageSize: 25,
     scheduleTypes: ["REGULAR", "PERSONALIZED"],
     formats: ["ONLINE"],
     teacherIds: [teacherId],
@@ -72,7 +72,7 @@ void test("changing and clearing class filters resets pagination without losing 
   assert.deepEqual(classListQueryInput({ ...current, ...CLEAR_CLASS_FILTERS }), {
     search: "Turma de terça",
     page: 1,
-    pageSize: 20,
+    pageSize: 25,
     scheduleTypes: [],
     formats: [],
     teacherIds: [],

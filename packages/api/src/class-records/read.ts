@@ -21,6 +21,7 @@ import type {
   ClassRecordRevision,
   RevisionPage,
 } from "./types.js";
+import { sessionGuests, type SessionLeadGuest } from "./guests.js";
 const HISTORY_PAGE_SIZE = 20;
 
 export async function listClassRecords(
@@ -37,19 +38,36 @@ export async function listClassRecords(
     include: recordSessionInclude,
     orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
   });
-  return sessions
-    .filter((session) => canRead(context, session))
-    .map((session) => summarizeSession(session, context.now));
+  const visible = sessions.filter((session) => canRead(context, session));
+  const guests = await sessionGuests(context, visible);
+  return visible.map((session) =>
+    summarizeSession(session, {
+      now: context.now,
+      leadGuests: guests.get(session.id)?.leads ?? [],
+      guestCount:
+        (guests.get(session.id)?.appointments.length ?? 0) +
+        (guests.get(session.id)?.leads.length ?? 0),
+    }),
+  );
 }
 function recordState(session: RecordSession, now: Date): SessionSummary["state"] {
   if (session.status === "CANCELLED") return "CANCELLED";
   if (session.classRecord) return "RECORDED";
   return sessionEndInstant(session) > now ? "UPCOMING" : "PENDING";
 }
-function summarizeSession(session: RecordSession, now: Date): SessionSummary {
+function summarizeSession(
+  session: RecordSession,
+  {
+    now,
+    guestCount,
+    leadGuests = [],
+  }: { now: Date; guestCount: number; leadGuests?: SessionLeadGuest[] },
+): SessionSummary {
   const teacher = responsibleTeacher(session);
   return {
     id: session.id,
+    guestCount,
+    leadGuests,
     classId: session.classId,
     className: session.class.portalClassName,
     scheduleType: session.class.scheduleType,
@@ -78,22 +96,21 @@ export async function readClassRecord(
   sessionId: string,
 ): Promise<ClassRecordDetail> {
   const session = await loadRecordSession(context, sessionId);
-  const attendance = await context.database.attendance.findMany({
-    where: { classSessionId: session.id, deletedAt: null },
-    select: { enrollmentId: true },
-  });
-  const declarations = await context.database.attendanceDeclaration.findMany({
-    where: { classSessionId: session.id, deletedAt: null },
-    select: { id: true, enrollmentId: true, submittedAt: true },
-    orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
-  });
-  const hasAttendanceWindows = Boolean(
-    await context.database.attendanceWindow.count({
-      where: { classSessionId: session.id, deletedAt: null },
-    }),
+  const { attendance, declarations, hasAttendanceWindows } = await recordAttendanceDetails(
+    context,
+    session.id,
   );
-  const summary = summarizeSession(session, context.now);
+  const sessionGuestMap = await sessionGuests(context, [session]);
+  const guestContext = sessionGuestMap.get(session.id);
+  const guests = guestContext?.appointments ?? [];
+  const summary = summarizeSession(session, {
+    now: context.now,
+    guestCount: guests.length + (guestContext?.leads.length ?? 0),
+    leadGuests: guestContext?.leads ?? [],
+  });
   return {
+    guests,
+    leadGuests: guestContext?.leads ?? [],
     declarations,
     hasAttendanceWindows,
     recordedAttendanceIds: attendance.map((row) => row.enrollmentId),
@@ -104,6 +121,29 @@ export async function readClassRecord(
       cancelReason: session.cancelReason,
       usualTeacher: usualTeacherName(session),
     },
+    ...recordMetadata({ context, session, summary }),
+    snapshot: storedSnapshot(session) ?? (await initialSnapshot(context, session)),
+  };
+}
+
+function recordMetadata({
+  context,
+  session,
+  summary,
+}: {
+  context: RecordContext;
+  session: RecordSession;
+  summary: SessionSummary;
+}): Pick<
+  ClassRecordDetail,
+  | "version"
+  | "recordedAt"
+  | "attendanceStamp"
+  | "attendanceOnly"
+  | "attendanceReadOnly"
+  | "restriction"
+> {
+  return {
     version: session.classRecord?.version ?? 0,
     recordedAt: session.classRecord?.createdAt ?? null,
     attendanceStamp: session.attendanceLastCommittedAt?.toISOString() ?? null,
@@ -113,8 +153,32 @@ export async function readClassRecord(
       summary.attendanceOnly &&
       dateOnly(session.date) !== saoPauloDateOnly(context.now),
     restriction: writeRestriction(context, session),
-    snapshot: storedSnapshot(session) ?? (await initialSnapshot(context, session)),
   };
+}
+
+async function recordAttendanceDetails(
+  context: RecordContext,
+  sessionId: string,
+): Promise<{
+  attendance: { enrollmentId: string }[];
+  declarations: { id: string; enrollmentId: string; submittedAt: Date }[];
+  hasAttendanceWindows: boolean;
+}> {
+  const attendance = await context.database.attendance.findMany({
+    where: { classSessionId: sessionId, deletedAt: null },
+    select: { enrollmentId: true },
+  });
+  const declarations = await context.database.attendanceDeclaration.findMany({
+    where: { classSessionId: sessionId, deletedAt: null },
+    select: { id: true, enrollmentId: true, submittedAt: true },
+    orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
+  });
+  const hasAttendanceWindows = Boolean(
+    await context.database.attendanceWindow.count({
+      where: { classSessionId: sessionId, deletedAt: null },
+    }),
+  );
+  return { attendance, declarations, hasAttendanceWindows };
 }
 export async function classRecordHistory(
   context: RecordContext,
@@ -170,10 +234,18 @@ export async function pendingClassRecords(
   const pageCount = Math.max(1, Math.ceil(visible.length / PENDING_PAGE_SIZE));
   const page = Math.min(input.page, pageCount);
   const start = (page - 1) * PENDING_PAGE_SIZE;
+  const pageRows = visible.slice(start, start + PENDING_PAGE_SIZE);
+  const guests = await sessionGuests(context, pageRows);
   return {
-    rows: visible
-      .slice(start, start + PENDING_PAGE_SIZE)
-      .map((session) => summarizeSession(session, context.now)),
+    rows: pageRows.map((session) =>
+      summarizeSession(session, {
+        now: context.now,
+        leadGuests: guests.get(session.id)?.leads ?? [],
+        guestCount:
+          (guests.get(session.id)?.appointments.length ?? 0) +
+          (guests.get(session.id)?.leads.length ?? 0),
+      }),
+    ),
     total: visible.length,
     page,
     pageCount,

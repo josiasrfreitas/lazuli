@@ -1,13 +1,16 @@
 import {
   type LucideIcon,
+  ChartNoAxesCombined,
+  CalendarRange,
   BookOpen,
-  CalendarDays,
   DollarSign,
   FileText,
   GraduationCap,
   Home,
+  History,
   Settings,
   Users,
+  UserRoundPlus,
 } from "lucide-react";
 import type { StaffRole } from "@lazuli/auth/server";
 
@@ -66,15 +69,34 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       { href: "/turmas", label: "Turmas", icon: BookOpen, roles: ["ADMIN", "SYSTEM_ADMIN"] },
       {
         href: "/aulas",
-        label: "Aulas",
-        icon: CalendarDays,
+        label: "Agenda",
+        icon: CalendarRange,
         roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
       },
       {
-        href: "/planejamento",
-        label: "Planejamento",
+        href: "/estagios",
+        label: "Estágios",
         icon: BookOpen,
-        roles: ["ADMIN", "SYSTEM_ADMIN", "TEACHER"],
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
+      {
+        href: "/organizacao",
+        label: "Organização de turmas",
+        icon: CalendarRange,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
+      { href: "/avaliacoes", label: "Avaliações", icon: GraduationCap, roles: ["TEACHER"] },
+    ],
+  },
+  {
+    id: "comercial",
+    label: "Comercial",
+    items: [
+      {
+        href: "/interessados",
+        label: "Leads",
+        icon: UserRoundPlus,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
     ],
   },
@@ -85,7 +107,7 @@ export const NAV_SECTIONS: readonly NavSection[] = [
       {
         href: "/financeiro",
         label: "Visão financeira",
-        icon: DollarSign,
+        icon: ChartNoAxesCombined,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
       { href: "/contratos", label: "Contratos", icon: FileText, roles: ["ADMIN", "SYSTEM_ADMIN"] },
@@ -100,7 +122,21 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: "sistema",
     label: "Sistema",
-    items: [{ href: "/ajustes", label: "Ajustes", icon: Settings, roles: ["SYSTEM_ADMIN"] }],
+    items: [
+      {
+        href: "/atividades",
+        label: "Log de atividades",
+        icon: History,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
+      { href: "/ajustes", label: "Ajustes", icon: Settings, roles: ["SYSTEM_ADMIN"] },
+      {
+        href: "/configuracoes/presenca",
+        label: "Localização da escola",
+        icon: Settings,
+        roles: ["ADMIN", "SYSTEM_ADMIN"],
+      },
+    ],
   },
 ];
 
@@ -110,6 +146,36 @@ export function navItemsFor(role: StaffRole): NavItem[] {
 
 /** Empty sections disappear when none of their items are available to a role. */
 export function navSectionsFor(role: StaffRole): NavSection[] {
+  if (role === "TEACHER")
+    return [
+      {
+        id: "professor",
+        label: null,
+        items: [
+          { href: "/professor", label: "Meu início", icon: Home, roles: ["TEACHER"] },
+          {
+            href: "/professor/agenda",
+            label: "Minha agenda",
+            icon: CalendarRange,
+            roles: ["TEACHER"],
+          },
+          { href: "/professor/turmas", label: "Minhas turmas", icon: BookOpen, roles: ["TEACHER"] },
+          { href: "/professor/alunos", label: "Meus alunos", icon: Users, roles: ["TEACHER"] },
+          {
+            href: "/professor/acompanhamento",
+            label: "Acompanhamento",
+            icon: History,
+            roles: ["TEACHER"],
+          },
+          {
+            href: "/avaliacoes",
+            label: "Notas e avaliações",
+            icon: GraduationCap,
+            roles: ["TEACHER"],
+          },
+        ],
+      },
+    ];
   return NAV_SECTIONS.flatMap((section) => {
     const items = section.items.filter((item) => item.roles.includes(role));
 
@@ -118,6 +184,7 @@ export function navSectionsFor(role: StaffRole): NavSection[] {
 }
 
 export function matchesNavHref(input: MatchesNavHrefInput): boolean {
+  if (input.href === "/professor") return input.pathname === input.href;
   return input.href === "/"
     ? input.pathname === input.href
     : input.pathname === input.href || input.pathname.startsWith(`${input.href}/`);

@@ -114,3 +114,44 @@ export {
 export { planningBand } from "./planning-band.js";
 
 export * from "./student-attendance.js";
+export {
+  availabilityCovers,
+  availabilityIsCurrent,
+  type AvailabilityWindow,
+} from "./admission-availability.js";
+export {
+  ACADEMIC_COMPETENCES,
+  ACADEMIC_PASS_SCORE,
+  ACADEMIC_MAX_SCORE,
+  assessmentResults,
+  assessmentStatus,
+  type AcademicCompetence,
+  type AssessmentPhase,
+  type AcademicGrade,
+  type CompetenceResult,
+} from "./assessment.js";
+export {
+  normalizeAttendanceName,
+  matchAttendanceNames,
+  attendanceDistance,
+  type AttendanceNameCandidate,
+  type AttendancePoint,
+} from "./student-attendance.js";
+export * from "./compensated-attendance.js";
+export * from "./semester-organization.js";
+export { type StudentSettlement } from "./student-finance.js";
+
+export { normalizeSearch } from "./search.js";
+
+export * from "./contract-termination.js";
+export { INITIAL_MATERIAL_PRICING, materialPriceQuote } from "./material-pricing.js";
+export { materialReminderState, stageMaterialAttention } from "./material-reminder.js";
+export {
+  TEACHING_HOUR_MINUTES,
+  DEFAULT_TEACHING_MODALITY,
+  assertTeachingProgram,
+  type TrackAgeGroup,
+  type ProgramActivityKind,
+  type TeachingProgramImport,
+} from "./teaching-program.js";
+export { studentPendingActions, type PendingAction } from "./pending-actions.js";

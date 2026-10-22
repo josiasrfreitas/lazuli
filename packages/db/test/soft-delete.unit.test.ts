@@ -41,3 +41,27 @@ void describe("soft-delete read filter", () => {
     assert.equal(result, arguments_);
   });
 });
+
+void it("does not inject soft deletion into immutable financial treatment history", async () => {
+  for (const operation of ["findMany", "findFirst", "count"] as const) {
+    const args = { where: { installmentId: "installment-id" } };
+    const result = await softDeleteExtension.query.$allModels.$allOperations({
+      model: "InstallmentAgreement",
+      operation,
+      args,
+      query: (queryArgs) => Promise.resolve(queryArgs),
+    });
+    assert.deepEqual(result, args);
+  }
+});
+
+void it("keeps immutable material snapshots readable without a deletedAt column", async () => {
+  const args = { where: { commandId: "material-command" } };
+  const result = await softDeleteExtension.query.$allModels.$allOperations({
+    model: "MaterialOrder",
+    operation: "findUnique",
+    args,
+    query: (queryArgs) => Promise.resolve(queryArgs),
+  });
+  assert.deepEqual(result, args);
+});

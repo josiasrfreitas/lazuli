@@ -254,7 +254,7 @@ async function listFiltersBeforePagination(): Promise<void> {
 async function statusFilterPagesWithoutLoadingEveryRow(): Promise<void> {
   const { payer, values } = await fixture();
   const created: string[] = [];
-  for (let index = 0; index < 21; index += 1) {
+  for (let index = 0; index < 26; index += 1) {
     const contract = await db.$transaction((tx) =>
       finance(tx, ADMIN.id).createMonthlyContract({
         ...values,
@@ -270,9 +270,9 @@ async function statusFilterPagesWithoutLoadingEveryRow(): Promise<void> {
   const filter = { payerId: payer.id, status: "EM_DIA" as const, now: OVERDUE_INSTANT };
   const first = await service.listContracts({ ...filter, page: 1 });
   const second = await service.listContracts({ ...filter, page: 2 });
-  assert.equal(first.total, 21);
-  assert.equal(second.total, 21);
-  assert.equal(first.rows.length, 20);
+  assert.equal(first.total, 26);
+  assert.equal(second.total, 26);
+  assert.equal(first.rows.length, 25);
   assert.equal(second.rows.length, 1);
   const pageIds = [...first.rows, ...second.rows].map((row) => row.id);
   assert.deepEqual(new Set(pageIds), new Set(created));

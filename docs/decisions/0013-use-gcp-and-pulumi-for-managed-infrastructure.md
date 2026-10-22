@@ -4,7 +4,7 @@ Status: Accepted
 Decision date: Unknown
 Extraction date: 2026-07-27
 Supersedes: None
-Superseded by: None
+Superseded by: [0025](0025-use-aws-for-managed-infrastructure.md) for the provider choice; Pulumi remains accepted
 Legacy sources: [D-0003](../legacy/2026-07-27/MVP/decisions.md#d-0003-gcp-and-pulumi) (Accepted)
 Implementation evidence: [`infra/pulumi/`](../../infra/pulumi/), [`infra/pulumi/README.md`](../../infra/pulumi/README.md)
 

@@ -88,3 +88,6 @@ minimumReleaseAgeExclude:
   - "@tanstack/query-core@5.102.3"
   - "@tanstack/react-query@5.102.3"
   - "@shadcn/lint@0.1.0"
+  - "@full-ui/headless-calendar@7.1.2"
+  - "@fullcalendar/core@7.1.2"
+  - "@fullcalendar/react@7.1.2"

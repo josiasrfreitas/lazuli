@@ -12,12 +12,16 @@ import {
   PopoverTrigger,
   type PopoverSize,
 } from "@lazuli/ui";
-import { SlidersHorizontal } from "lucide-react";
+import { BookOpen, CalendarDays, Menu, SlidersHorizontal, Users } from "lucide-react";
 
 const meta = {
   title: "Components/Popover",
   component: PopoverContent,
   tags: ["autodocs"],
+  argTypes: {
+    size: { control: "select", options: ["sm", "md", "lg", "xl", "menu"] },
+    motion: { control: "select", options: ["default", "instant", "unfold"] },
+  },
   parameters: {
     docs: {
       description: {
@@ -115,7 +119,46 @@ export const Sizes: Story = {
       <FilterPopover size="sm" triggerLabel="Pequeno" />
       <FilterPopover size="md" triggerLabel="Médio" />
       <FilterPopover size="lg" triggerLabel="Grande" />
+      <FilterPopover size="xl" triggerLabel="Comparação" />
     </div>
+  ),
+};
+
+export const CompactNavigation: Story = {
+  args: { size: "menu", motion: "unfold" },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Intrinsic-width navigation with an anchored reveal and staggered items. Mark each row with data-menu-item. Use instant motion for keyboard activation; reduced motion removes spatial movement and staggering.",
+      },
+    },
+  },
+  render: (args) => (
+    <Popover>
+      <PopoverTrigger
+        render={<Button variant="ghost" size="icon-md" aria-label="Open navigation" />}
+      >
+        <Menu aria-hidden="true" />
+      </PopoverTrigger>
+      <PopoverContent {...args} align="start" aria-label="Navigation">
+        <div className="flex flex-col">
+          {[
+            { label: "Schedule", icon: CalendarDays },
+            { label: "Classes", icon: BookOpen },
+            { label: "Students", icon: Users },
+          ].map(({ label, icon: Icon }) => (
+            <PopoverClose
+              key={label}
+              render={<Button variant="ghost" className="justify-start" data-menu-item />}
+            >
+              <Icon aria-hidden="true" />
+              {label}
+            </PopoverClose>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   ),
 };
 

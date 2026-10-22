@@ -1,3 +1,5 @@
+import { recordActivity, activityTransaction } from "../activity/record.js";
+import { classSubject } from "../activity/subjects.js";
 import {
   classArchiveInputSchema,
   classCloneForNextPeriodInputSchema,
@@ -78,6 +80,14 @@ export const classesRouter = router({
         requestedById: ctx.staffUser.id,
         now: ctx.now ?? new Date(),
       });
+      await recordActivity(database, {
+        context: ctx,
+        action: "classes.create",
+        details: {
+          subject: await classSubject(database, created.id),
+          deduplicationKey: `classes.create:${created.id}`,
+        },
+      });
       return { ...created, generationRequestId: request.id };
     });
     await dispatchSessionGeneration({
@@ -87,11 +97,15 @@ export const classesRouter = router({
     });
     return result;
   }),
-  archive: adminProcedure
-    .input(classArchiveInputSchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => archiveClass({ database, id: input.id })),
-    ),
+  archive: adminProcedure.input(classArchiveInputSchema).mutation(({ ctx, input }) =>
+    activityTransaction(ctx, {
+      action: "classes.archive",
+      work: (database) => archiveClass({ database, id: input.id }),
+      describe: async (_result, database) => ({
+        subject: await classSubject(database, input.id),
+      }),
+    }),
+  ),
   cloneForNextPeriod: adminProcedure
     .input(classCloneForNextPeriodInputSchema)
     .mutation(async ({ ctx, input }) => {
@@ -104,6 +118,15 @@ export const classesRouter = router({
           scope: { classId: cloned.successor.id },
           requestedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
+        });
+        await recordActivity(database, {
+          context: ctx,
+          action: "classes.cloneForNextPeriod",
+          details: {
+            subject: await classSubject(database, cloned.successor.id),
+            description: `Continuação de ${cloned.source.portalClassName}.`,
+            deduplicationKey: `classes.clone:${cloned.successor.id}`,
+          },
         });
         return { ...cloned, generationRequestId: request.id };
       });

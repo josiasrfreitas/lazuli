@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./roles": "./src/staff-access.ts",
     "./server": "./src/server.ts"
   },
   "scripts": {

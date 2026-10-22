@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 
-import { MessageCircle, SearchX, UserRoundPlus } from "lucide-react";
+import { ClipboardList, MessageCircle, SearchX, UserRoundPlus } from "lucide-react";
 
 import type { StudentListRow } from "@lazuli/validators";
 import {
@@ -43,7 +43,6 @@ const COLUMNS = [
 ] as const satisfies readonly { label: string; numeric: boolean }[];
 const COLUMN_COUNT = COLUMNS.length + 1;
 const NUMERIC_COLUMNS = COLUMNS.flatMap((column, index) => (column.numeric ? [index] : []));
-const SKELETON_ROWS = 10;
 
 function FactCell({ vm }: { vm: FactCellVm }): ReactElement {
   const content = <span className={cn(vm.numeric && "font-numeric")}>{vm.label}</span>;
@@ -90,51 +89,62 @@ function EnrollmentCell({ enrollment }: { enrollment: StudentListRow["enrollment
   );
 }
 
-function WhatsAppCell({ row }: { row: StudentListRow }): ReactElement {
-  const whatsApp = whatsAppVm(row);
-
-  if (whatsApp === null) {
-    return <TableCell className="text-center text-muted-foreground">{EM_DASH}</TableCell>;
-  }
-
+function StudentActions({
+  row,
+  onContinue,
+}: {
+  row: StudentListRow;
+  onContinue?: ((id: string) => void) | undefined;
+}): ReactElement {
+  const whatsapp = whatsAppVm(row);
   return (
-    <TableCell
-      className="text-center"
-      onClick={(event) => {
-        event.stopPropagation();
-      }}
-    >
-      <Button
-        nativeButton={false}
-        render={
-          <a aria-label={whatsApp.label} href={whatsApp.url} rel="noreferrer" target="_blank" />
-        }
-        size="icon-sm"
-        variant="ghost"
-      >
-        <MessageCircle aria-hidden="true" className="size-4" />
-      </Button>
+    <TableCell onClick={(event) => event.stopPropagation()}>
+      <div className="flex items-center justify-end gap-1">
+        {row.registrationPending && onContinue && (
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="cursor-pointer"
+            title="Continuar cadastro"
+            aria-label={`Continuar cadastro de ${row.fullName}`}
+            onClick={() => onContinue(row.id)}
+          >
+            <ClipboardList aria-hidden="true" />
+          </Button>
+        )}
+        {whatsapp && (
+          <Button
+            nativeButton={false}
+            render={
+              <a aria-label={whatsapp.label} href={whatsapp.url} rel="noreferrer" target="_blank" />
+            }
+            size="icon-sm"
+            variant="ghost"
+          >
+            <MessageCircle aria-hidden="true" />
+          </Button>
+        )}
+      </div>
     </TableCell>
   );
 }
 
 export function StudentsTableRow({
   row,
-  selected,
-  onSelect,
+  onOpen,
+  onContinue,
 }: {
   row: StudentListRow;
-  selected: boolean;
-  onSelect: (id: string) => void;
+  onOpen: (id: string) => void;
+  onContinue?: ((id: string) => void) | undefined;
 }): ReactElement {
   return (
     <TableRow
       className="cursor-pointer focus-visible:outline-none focus-visible:shadow-focus"
-      onClick={() => onSelect(row.id)}
+      onClick={() => onOpen(row.id)}
       onKeyDown={(event) => {
-        if (event.key === "Enter" && event.target === event.currentTarget) onSelect(row.id);
+        if (event.key === "Enter" && event.target === event.currentTarget) onOpen(row.id);
       }}
-      selected={selected}
       tabIndex={0}
     >
       <TableCell>
@@ -148,7 +158,7 @@ export function StudentsTableRow({
       <TableCell>{row.enrollment?.teacherName ?? EM_DASH}</TableCell>
       <FactCell vm={attendanceCellVm(row.attendance)} />
       <FactCell vm={financeCellVm(row.finance)} />
-      <WhatsAppCell row={row} />
+      <StudentActions row={row} onContinue={onContinue} />
     </TableRow>
   );
 }
@@ -156,13 +166,15 @@ export function StudentsTableRow({
 function StatesRow({
   state,
   onRetry,
+  pageSize,
 }: {
   state: StudentsTableState;
   onRetry: () => void;
+  pageSize: number;
 }): ReactNode {
   if (state.kind === "loading") {
     return (
-      <TableSkeleton columns={COLUMN_COUNT} numericColumns={NUMERIC_COLUMNS} rows={SKELETON_ROWS} />
+      <TableSkeleton columns={COLUMN_COUNT} numericColumns={NUMERIC_COLUMNS} rows={pageSize} />
     );
   }
 
@@ -242,14 +254,14 @@ function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): Re
 export function StudentsTable({
   state,
   onRetry,
-  selectedId,
-  onSelectRow,
+  onOpenRow,
+  onContinue,
   pagination,
 }: {
   state: StudentsTableState;
   onRetry: () => void;
-  selectedId: string | null;
-  onSelectRow: (id: string) => void;
+  onOpenRow: (id: string) => void;
+  onContinue?: ((id: string) => void) | undefined;
   pagination: StudentsTablePagination;
 }): ReactElement {
   return (
@@ -260,23 +272,18 @@ export function StudentsTable({
             {COLUMNS.map((column) => (
               <StudentsTableHead column={column} key={column.label} />
             ))}
-            <TableHead className="w-16 text-center">
-              <span className="sr-only">Contato</span>
+            <TableHead className="w-24 text-center">
+              <span className="sr-only">Ações</span>
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {state.kind === "data" ? (
             state.rows.map((row) => (
-              <StudentsTableRow
-                key={row.id}
-                onSelect={onSelectRow}
-                row={row}
-                selected={row.id === selectedId}
-              />
+              <StudentsTableRow key={row.id} onOpen={onOpenRow} onContinue={onContinue} row={row} />
             ))
           ) : (
-            <StatesRow onRetry={onRetry} state={state} />
+            <StatesRow onRetry={onRetry} state={state} pageSize={pagination.pageSize} />
           )}
         </TableBody>
       </Table>

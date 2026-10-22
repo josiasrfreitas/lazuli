@@ -3,7 +3,12 @@ import { after, before, beforeEach, describe, it } from "node:test";
 
 import { db } from "@lazuli/db";
 
-import { ADULT_BIRTH_DATE_OBJECT, caller, cleanDatabase } from "../support/student-test-support.js";
+import {
+  ADULT_BIRTH_DATE_OBJECT,
+  caller,
+  cleanDatabase,
+  ensureStudentAdmin,
+} from "../support/student-test-support.js";
 
 // `students.search` is intentionally global (single-school app, no tenant scope) and returns the top 10
 // across every student. So parallel-safe assertions must query on unique nonce tokens that no other test
@@ -18,6 +23,7 @@ const PHONE_TOKEN = "6688-11";
 void describe("students search API", () => {
   void before(async () => {
     await db.$connect();
+    await ensureStudentAdmin();
   });
 
   void beforeEach(async () => {

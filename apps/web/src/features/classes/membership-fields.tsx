@@ -3,7 +3,6 @@ import type { ReactElement } from "react";
 import { CalendarDays, Search } from "lucide-react";
 import { Field, FormRow, Input, Label, SearchSelect } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
-import { parseDateBR } from "~/lib/masks";
 import { SelectControl } from "./form-controls";
 import type { MembershipMode, useMembershipState } from "./membership-state";
 
@@ -55,7 +54,7 @@ function PlacementFields({ mode, state, options, scheduleType }: Props): ReactEl
         <Field>
           <Label htmlFor="entryDate" className="flex items-center gap-1.5">
             <CalendarDays aria-hidden="true" className="size-3.5" />
-            Data de entrada
+            {mode === "RETURN" ? "Data de retorno" : "Data de entrada"}
           </Label>
           <Input
             id="entryDate"
@@ -63,14 +62,10 @@ function PlacementFields({ mode, state, options, scheduleType }: Props): ReactEl
             autoComplete="off"
             placeholder="dd/mm/aaaa"
             size="sm"
-            type="date"
-            value={parseDateBR(state.date) ?? ""}
+            inputMode="numeric"
+            value={state.date}
             disabled={state.pending}
-            onChange={(event) => {
-              const [year, month, day] = event.target.value.split("-");
-              state.setDate(year && month && day ? `${day}/${month}/${year}` : "");
-            }}
-            onClick={(event) => event.currentTarget.showPicker?.()}
+            onChange={(event) => state.setDate(event.target.value)}
           />
         </Field>
         {scheduleType === "PERSONALIZED" && (

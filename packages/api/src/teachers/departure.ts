@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { hasTeacherIdentity } from "./identity.js";
 import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
 import { badRequest, notFound } from "../trpc/errors.js";
@@ -6,17 +7,23 @@ import { freezeStartedMeetings } from "./freeze-today.js";
 import { lockTeacher } from "./availability.js";
 import { meetingsBetween, type TeacherMeeting } from "./schedule.js";
 import { responsibilitySelect, usualTeacherOn } from "./responsibility.js";
+import {
+  independentAppointments,
+  type IndependentAppointment,
+} from "./independent-appointments.js";
 const ISO_DATE_LENGTH = 10;
 type DepartureCommitment = Pick<
   TeacherMeeting,
   "classId" | "slotId" | "sessionId" | "classCode" | "date" | "startTime" | "endTime"
 >;
 type DepartureImpactResult = {
+  appointments: IndependentAppointment[];
   token: string;
   commitments: DepartureCommitment[];
   revocations: { id: string; recordedAt: Date }[];
 };
 type DeparturePreviewResult = {
+  appointments: IndependentAppointment[];
   token: string;
   commitments: DepartureCommitment[];
   revokedSubstitutions: number;
@@ -33,12 +40,17 @@ async function departureImpact(input: Departure): Promise<DepartureImpactResult>
     throw badRequest("A saída não pode ser retroativa.");
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
-    select: { role: true, deletedAt: true, teacherProfile: { select: { departureDate: true } } },
+    select: {
+      role: true,
+      deletedAt: true,
+      teacherProfile: { select: { departureDate: true, deletedAt: true } },
+    },
   });
-  if (!teacher || teacher.role !== "TEACHER" || teacher.deletedAt)
+  if (!teacher || !hasTeacherIdentity(teacher) || teacher.deletedAt)
     throw notFound("Professor não encontrado.");
   if (teacher.teacherProfile?.departureDate)
     throw badRequest("Saída já programada para este professor.");
+  await assertNoPendingIntroduction(input);
   const semester = await input.database.semester.findFirst({
     where: { deletedAt: null, endDate: { gte: new Date(input.effectiveDate) } },
     orderBy: { endDate: "desc" },
@@ -51,23 +63,44 @@ async function departureImpact(input: Departure): Promise<DepartureImpactResult>
     now: input.now,
   });
   const commitments = departureCommitments(meetings, input.teacherId);
+  const appointments = await independentAppointments(input.database, {
+    from: input.effectiveDate,
+    teacherId: input.teacherId,
+  });
   const revocations = await departureRevocations(input);
   const token = createHash("sha256")
     .update(
       JSON.stringify({
+        appointments,
         commitments,
         revocations: revocations.map((row) => [row.id, row.recordedAt]),
         effectiveDate: input.effectiveDate,
       }),
     )
     .digest("hex");
-  return { token, commitments, revocations };
+  return { token, commitments, appointments, revocations };
+}
+async function assertNoPendingIntroduction(input: Departure): Promise<void> {
+  const introduction = await input.database.entryVisit.findFirst({
+    where: {
+      teacherId: input.teacherId,
+      kind: "INTRODUCTION",
+      status: "SCHEDULED",
+      date: { gte: new Date(input.effectiveDate) },
+      deletedAt: null,
+    },
+  });
+  if (introduction)
+    throw badRequest(
+      "Remarque ou cancele as aulas experimentais individuais pendentes a partir da saída antes de encerrar a atuação.",
+    );
 }
 export async function departurePreview(input: Departure): Promise<DeparturePreviewResult> {
   const impact = await departureImpact(input);
   return {
     token: impact.token,
     commitments: impact.commitments,
+    appointments: impact.appointments,
     revokedSubstitutions: impact.revocations.length,
   };
 }

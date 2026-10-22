@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { describe, it } from "node:test";
 
 import { createCaller, type Context, type StaffUser } from "@lazuli/api";
@@ -17,6 +18,30 @@ function contextFor(staffUser: StaffUser | null): Context {
 }
 
 void describe("appRouter procedure seam", () => {
+  void it("loads the API and serves public health without initializing database configuration", () => {
+    const result = spawnSync(
+      "env",
+      [
+        "-u",
+        "DATABASE_URL",
+        "-u",
+        "NODE_TEST_CONTEXT",
+        process.execPath,
+        "--import",
+        "tsx",
+        "--input-type=module",
+        "-e",
+        `
+      const { createCaller } = await import("@lazuli/api");
+      const result = await createCaller({ db: {}, staffUser: null }).health();
+      process.stdout.write(JSON.stringify(result));
+    `,
+      ],
+      { encoding: "utf8", timeout: 10_000 },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), { status: "ok" });
+  });
   void it("health is public and returns ok", async () => {
     const result = await createCaller(contextFor(null)).health();
     assert.deepEqual(result, { status: "ok" });

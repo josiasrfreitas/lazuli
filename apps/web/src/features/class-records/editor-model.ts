@@ -213,12 +213,7 @@ function useRecordSave(onSuccess: () => void): RecordEditor["save"] {
   const utils = trpc.useUtils();
   return trpc.classRecords.save.useMutation({
     onSuccess: async () => {
-      await Promise.all([
-        utils.classRecords.invalidate(),
-        utils.students.invalidate(),
-        utils.classes.invalidate(),
-        utils.planning.invalidate(),
-      ]);
+      await utils.invalidate();
       onSuccess();
     },
   });

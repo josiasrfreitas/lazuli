@@ -1,3 +1,6 @@
+import { assertNoIntroductionConflict } from "../admissions/teacher-commitments.js";
+import { hasTeacherIdentity } from "./identity.js";
+import { assertNoAppointmentConflict } from "../appointments/commitments.js";
 import type { Prisma } from "@lazuli/db";
 import {
   intervalsOverlap,
@@ -24,11 +27,15 @@ export async function lockTeacher(
 export async function assertTeacherEligible(input: AssertTeacherEligibleInput): Promise<void> {
   const teacher = await input.database.user.findUnique({
     where: { id: input.teacherId },
-    select: { role: true, deletedAt: true, teacherProfile: { select: { departureDate: true } } },
+    select: {
+      role: true,
+      deletedAt: true,
+      teacherProfile: { select: { departureDate: true, deletedAt: true } },
+    },
   });
   if (
     !teacher ||
-    teacher.role !== "TEACHER" ||
+    !hasTeacherIdentity(teacher) ||
     teacher.deletedAt ||
     (teacher.teacherProfile?.departureDate &&
       dateOnly(teacher.teacherProfile.departureDate) <= input.date)
@@ -38,6 +45,8 @@ export async function assertTeacherEligible(input: AssertTeacherEligibleInput): 
 }
 
 export async function assertNoTeacherConflict(input: AssertNoTeacherConflictInput): Promise<void> {
+  await assertNoIntroductionConflict(input);
+  await assertNoAppointmentConflict(input);
   const meetings = await meetingsBetween({
     database: input.database,
     from: input.from,
@@ -119,6 +128,7 @@ type AssertNoTeacherConflictInput = {
   slots: readonly CandidateSlot[];
   candidateMeetings?: readonly { date: string; startTime: string; endTime: string }[];
   excludeClassId?: string;
+  excludeAppointmentId?: string;
   excludeMeeting?: {
     classId: string;
     slotId: string | null;

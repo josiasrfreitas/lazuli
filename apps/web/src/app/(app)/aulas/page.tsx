@@ -1,9 +1,9 @@
+import type { JSX as ReactJSX } from "react";
 import type { Metadata } from "next";
-import type { ReactElement } from "react";
 import { ClassAgenda } from "~/features/class-records/agenda";
 import { requireRole } from "~/lib/require-role";
-export const metadata: Metadata = { title: "Aulas" };
-export default async function AulasRoute(): Promise<ReactElement> {
-  await requireRole(["SYSTEM_ADMIN", "ADMIN", "TEACHER"]);
-  return <ClassAgenda />;
+export const metadata: Metadata = { title: "Agenda" };
+export default async function Page(): Promise<ReactJSX.Element> {
+  const identity = await requireRole(["ADMIN", "SYSTEM_ADMIN", "TEACHER"]);
+  return <ClassAgenda teacherView={identity.role === "TEACHER"} />;
 }

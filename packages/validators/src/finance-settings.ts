@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const MAX_DATABASE_INTEGER = 2_147_483_647;
+
 const PERCENT_SCALE = 100;
 const PERCENT_DECIMAL_PLACES = 4;
 const ROUNDING_EPSILON = 1e-9;
@@ -20,9 +22,51 @@ export const financeSettingsInputSchema = z
     interestRatePctDaily: percentage,
     interestRatePctMonthly: percentage,
     cancellationFeePct: percentage,
-    materialPriceCents: z.number().int().nonnegative(),
+    // Legacy clients may still submit the previous single-price field.
+    materialPriceCents: z.number().int().nonnegative().optional(),
+    childMaterialInstallments: z.number().int().positive().max(MAX_DATABASE_INTEGER).optional(),
+    childMaterialInstallmentCents: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(MAX_DATABASE_INTEGER)
+      .optional(),
+    adultMaterialInstallments: z.number().int().positive().max(MAX_DATABASE_INTEGER).optional(),
+    adultMaterialInstallmentCents: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(MAX_DATABASE_INTEGER)
+      .optional(),
+    materialCardFeePct: percentage.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((values, ctx) => {
+    for (const [countKey, amountKey] of [
+      ["childMaterialInstallments", "childMaterialInstallmentCents"],
+      ["adultMaterialInstallments", "adultMaterialInstallmentCents"],
+    ] as const) {
+      const count = values[countKey];
+      const amount = values[amountKey];
+      if ((count === undefined) !== (amount === undefined)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [count === undefined ? countKey : amountKey],
+          message: "Informe a quantidade e o valor das parcelas.",
+        });
+      } else if (
+        count !== undefined &&
+        amount !== undefined &&
+        count * amount > MAX_DATABASE_INTEGER
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: [amountKey],
+          message: "O total excede o valor permitido.",
+        });
+      }
+    }
+  });
 
 export type FinanceSettingsInput = z.infer<typeof financeSettingsInputSchema>;
 

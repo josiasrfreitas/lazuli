@@ -13,8 +13,10 @@ import { ChevronDown } from "lucide-react";
 import type { FinanceSettingsInput } from "@lazuli/validators";
 import { Button, Field, FieldError, FormRow, FormSection, Input, Label } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+import { formatBRLFromCents } from "~/lib/format";
 
 import {
+  bookQuote,
   displaySetting,
   floorLabel,
   loadedFields,
@@ -64,7 +66,7 @@ function SettingsField(props: SettingsFieldProps): ReactElement {
         autoComplete="off"
         autoFocus={props.autoFocus}
         disabled={props.disabled}
-        inputMode="decimal"
+        inputMode={name.endsWith("Installments") ? "numeric" : "decimal"}
         invalid={props.errors[name] !== undefined}
         name={name}
         placeholder={`Ex.: ${props.placeholder}`}
@@ -166,18 +168,69 @@ function SettingsSections(props: SettingsSectionProps): ReactElement {
         <ChargesSection {...props} />
       </div>
       <div className="border-t border-border pt-3">
-        <FormSection title="Material didático" className="gap-2">
-          <FormRow className="grid-cols-2 lg:grid-cols-3">
-            <SettingsField
-              {...props}
-              name="materialPriceCents"
-              label="Preço de venda"
-              unit="R$"
-              placeholder="120,00"
-            />
-          </FormRow>
-        </FormSection>
+        <BookPricingSection {...props} />
       </div>
+    </div>
+  );
+}
+
+function BookPricingSection(props: SettingsSectionProps): ReactElement {
+  return (
+    <FormSection title="Livros" className="gap-3">
+      {(["child", "adult"] as const).map((category) => (
+        <BookCategory key={category} category={category} {...props} />
+      ))}
+      <div className="w-56 max-w-full">
+        <SettingsField
+          {...props}
+          name="materialCardFeePct"
+          label="Taxa global do cartão"
+          unit="%"
+          placeholder="10"
+        />
+      </div>
+      <p className="text-caption text-muted-foreground">
+        A taxa está incluída no preço a prazo. O preço à vista e o líquido da escola correspondem ao
+        total menos essa taxa. Alterações valem para novas vendas.
+      </p>
+    </FormSection>
+  );
+}
+
+function BookCategory({
+  category,
+  ...props
+}: SettingsSectionProps & { category: "child" | "adult" }): ReactElement {
+  const quote = bookQuote(props.fields, category);
+  const label = category === "child" ? "Infantil" : "Adulto";
+  return (
+    <div className="grid gap-2">
+      <h3 className="text-sm font-semibold">{label}</h3>
+      <FormRow columns={2}>
+        <SettingsField
+          {...props}
+          name={category === "child" ? "childMaterialInstallments" : "adultMaterialInstallments"}
+          label={`Parcelas no cartão · ${label}`}
+          unit="quantidade"
+          placeholder="6"
+        />
+        <SettingsField
+          {...props}
+          name={
+            category === "child" ? "childMaterialInstallmentCents" : "adultMaterialInstallmentCents"
+          }
+          label={`Valor da parcela · ${label}`}
+          unit="R$"
+          placeholder={category === "child" ? "123,00" : "136,00"}
+        />
+      </FormRow>
+      <p className="text-caption text-muted-foreground" aria-live="polite">
+        Preço no cartão: <output>{quote ? formatBRLFromCents(quote.totalCents) : "—"}</output>
+        {" · À vista: "}
+        <output className="font-semibold text-foreground">
+          {quote ? formatBRLFromCents(quote.cashCents) : "—"}
+        </output>
+      </p>
     </div>
   );
 }
@@ -360,14 +413,19 @@ export function SettingsPage(): ReactElement {
   const query = trpc.finance.readSettings.useQuery();
   const mutation = trpc.finance.saveSettings.useMutation({
     onSuccess: (row) => {
-      if (row !== null) utils.finance.readSettings.setData(undefined, row);
+      if (row !== null) {
+        utils.finance.readSettings.setData(undefined, row);
+        void utils.finance.readMaterialPrice.invalidate();
+      }
     },
   });
   return (
-    <div className="mx-auto w-full max-w-xl space-y-3 p-4 sm:p-6">
+    <div className="mx-auto w-full h-full overflow-y-auto max-w-xl space-y-3 p-4 sm:p-6">
       <header className="space-y-1">
         <h1 className="font-display text-h2 font-semibold">Ajustes financeiros</h1>
-        <p className="text-control text-muted-foreground">Válidos para novos contratos.</p>
+        <p className="text-control text-muted-foreground">
+          Condições para novos contratos e preços dos livros por faixa.
+        </p>
       </header>
       {query.isPending && <p role="status">Carregando ajustes…</p>}
       {query.isError && (

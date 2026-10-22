@@ -1,4 +1,8 @@
 @import "tw-animate-css";
+@import "react-big-calendar/lib/css/react-big-calendar.css";
+@import "./components/week-calendar.css";
+@import "./components/timeline.css";
+@import "./components/schedule-calendar.css";
 
 @import "./tokens/color.css";
 @import "./tokens/typography.css";
@@ -6,7 +10,11 @@
 @import "./tokens/effects.css";
 @import "./tokens/tailwind-bridge.css";
 @import "./components/book-loader.css";
+@import "./components/pencil-loader.css";
+@import "./components/command-menu.css";
+@import "./components/popover.css";
 @import "./components/typewriter-loader.css";
+@import "./components/file-upload.css";
 
 @custom-variant dark (&:is(.dark *));
 

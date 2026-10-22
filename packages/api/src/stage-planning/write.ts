@@ -1,3 +1,4 @@
+import { resolvePlannedProgramActivity } from "./program-activity.js";
 import type { VersionedResult } from "../class-records/types.js";
 import type {
   StagePlanWindow,
@@ -71,12 +72,12 @@ export async function savePlanItem(
   const { scope, plan } = await editablePlan(context, { target: input, version: input.version });
   if (!plan) throw notFound("Crie o planejamento antes de incluir atividades.");
   const previous = assertPlannedItem({ plan, input });
+  const program = await plannedProgramContent(context, { scope, input, previous });
   await bumpVersion(context, plan);
   const data = {
+    programActivityId: program.id,
     plannedOn: new Date(input.plannedOn),
-    kind: input.kind,
-    title: input.title,
-    reference: input.reference || null,
+    ...plannedText(program.content, input),
     pageFrom: input.pageFrom,
     pageTo: input.pageTo,
   };
@@ -139,12 +140,15 @@ async function recordRevision(
       createdAt: context.now,
     },
   });
-  await recordActivity(context, {
+  await recordActivity(context.database, {
+    context,
     action: plan.version === 1 ? "planning.create" : "planning.revise",
-    subject: scope.student
-      ? { type: "student", id: scope.student.id, name: scope.student.fullName }
-      : { type: "class", id: scope.class.id, name: scope.class.name },
-    description: `${scope.stage.name} · versão ${plan.version}. ${reason}`,
+    details: {
+      subject: scope.student
+        ? { type: "student", id: scope.student.id, name: scope.student.fullName }
+        : { type: "class", id: scope.class.id, name: scope.class.name },
+      description: `${scope.stage.name} · versão ${plan.version}. ${reason}`,
+    },
   });
   return { id: plan.id, version: plan.version };
 }
@@ -186,4 +190,37 @@ function assertPlannedItem(values: {
   if (!input.itemId && plan.items.length >= MAX_PLAN_ITEMS)
     throw badRequest("Este plano já possui 500 atividades.");
   return previous ?? null;
+}
+
+async function plannedProgramContent(
+  context: PlanningContext,
+  {
+    scope,
+    input,
+    previous,
+  }: { scope: PlanningScope; input: StagePlanItemInput; previous: Plan["items"][number] | null },
+): Promise<{
+  id: string | null;
+  content: Awaited<ReturnType<typeof resolvePlannedProgramActivity>> | null;
+}> {
+  const id =
+    input.programActivityId === undefined
+      ? (previous?.programActivityId ?? null)
+      : input.programActivityId;
+  const content = id
+    ? await resolvePlannedProgramActivity(context, {
+        scope,
+        id,
+        previousId: previous?.programActivityId ?? null,
+      })
+    : null;
+  return { id, content };
+}
+
+function plannedText(
+  content: Awaited<ReturnType<typeof resolvePlannedProgramActivity>> | null,
+  input: StagePlanItemInput,
+): { kind: StagePlanItemInput["kind"]; title: string; reference: string | null } {
+  if (content) return content;
+  return { kind: input.kind, title: input.title, reference: input.reference || null };
 }

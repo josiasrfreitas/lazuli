@@ -1,13 +1,7 @@
 import { Pencil, RefreshCw } from "lucide-react";
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import {
-  Alert,
-  Button,
-  DataTable,
-  type TablePaginationConfig,
-  type DataTableColumn,
-} from "@lazuli/ui";
+import { Alert, Button, DataTable, type DataTableColumn } from "@lazuli/ui";
 import { QueryLoading } from "~/components/query-loading";
 import { formatDateOnlyBR } from "~/lib/format";
 export type Planning = RouterOutputs["planning"]["detail"];
@@ -19,7 +13,7 @@ export const KIND_LABELS = {
   ACTIVITY: "Atividade",
 } as const;
 export const dateLabel = formatDateOnlyBR;
-export function targetFor(data: Planning): { classId: string; progressId?: string } {
+export function targetFor(data: Planning): { progressId?: string; classId: string } {
   return {
     classId: data.scope.class.id,
     ...(data.scope.progressId ? { progressId: data.scope.progressId } : {}),
@@ -56,33 +50,15 @@ export function PlanTable({
   pagination,
 }: {
   items: PlannedItem[];
+  pagination?: import("@lazuli/ui").TablePaginationConfig | undefined;
   filtered?: boolean;
-  pagination?: TablePaginationConfig | undefined;
   onEdit?: ((item: PlannedItem) => void) | undefined;
 }): ReactElement {
-  const columns = [...planColumns];
-  if (onEdit)
-    columns.push({
-      id: "actions",
-      header: <span className="sr-only">Ações</span>,
-      width: "narrow",
-      cell: (item) => (
-        <Button
-          size="sm"
-          variant="ghost"
-          aria-label={`Editar ${item.title} de ${dateLabel(item.plannedOn)}`}
-          onClick={() => onEdit(item)}
-        >
-          <Pencil aria-hidden="true" />
-          Editar
-        </Button>
-      ),
-    });
   return (
     <DataTable
-      {...(pagination ? { pagination } : {})}
       label="Roteiro de atividades planejadas"
-      columns={columns}
+      {...(pagination ? { pagination } : {})}
+      columns={planColumns(onEdit)}
       state={
         items.length > 0
           ? { kind: "data", rows: items }
@@ -99,38 +75,68 @@ export function PlanTable({
   );
 }
 
-const planColumns: DataTableColumn<PlannedItem>[] = [
-  {
-    id: "date",
-    header: "Data prevista",
-    width: "narrow",
-    cell: (item) => <span className="font-numeric tabular-nums">{dateLabel(item.plannedOn)}</span>,
-  },
-  {
-    id: "activity",
-    header: "Atividade planejada",
-    width: "wide",
-    cell: (item) => (
-      <div className="grid gap-1">
-        <span className="font-semibold">{item.title}</span>
-        <span className="text-caption text-muted-foreground">{KIND_LABELS[item.kind]}</span>
-      </div>
-    ),
-  },
-  {
-    id: "reference",
-    header: "Referência",
-    width: "standard",
-    cell: (item) => (
-      <div className="grid gap-1">
-        <span>{item.reference ?? "—"}</span>
-        {item.pageFrom !== null && (
-          <span className="text-caption text-muted-foreground">
-            Pág. {item.pageFrom}
-            {item.pageTo !== null && item.pageTo !== item.pageFrom ? `–${item.pageTo}` : ""}
-          </span>
-        )}
-      </div>
-    ),
-  },
-];
+function planColumns(onEdit?: (item: PlannedItem) => void): DataTableColumn<PlannedItem>[] {
+  const columns: DataTableColumn<PlannedItem>[] = [
+    {
+      id: "date",
+      header: "Data prevista",
+      width: "narrow",
+      cell: (item) => (
+        <span className="font-numeric tabular-nums">{dateLabel(item.plannedOn)}</span>
+      ),
+    },
+    {
+      id: "activity",
+      header: "Atividade planejada",
+      width: "wide",
+      cell: (item) => (
+        <div className="grid gap-1">
+          <span className="font-semibold">{item.title}</span>
+          <span className="text-caption text-muted-foreground">{KIND_LABELS[item.kind]}</span>
+        </div>
+      ),
+    },
+    {
+      id: "reference",
+      header: "Referência",
+      width: "standard",
+      cell: planReference,
+    },
+  ];
+  if (onEdit)
+    columns.push({
+      id: "actions",
+      header: <span className="sr-only">Ações</span>,
+      width: "narrow",
+      cell: (item) => editPlanAction(item, onEdit),
+    });
+  return columns;
+}
+
+function planReference(item: PlannedItem): ReactElement {
+  return (
+    <div className="grid gap-1">
+      <span>{item.reference ?? "—"}</span>
+      {item.pageFrom !== null && (
+        <span className="text-caption text-muted-foreground">
+          Pág. {item.pageFrom}
+          {item.pageTo !== null && item.pageTo !== item.pageFrom ? `–${item.pageTo}` : ""}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function editPlanAction(item: PlannedItem, onEdit: (item: PlannedItem) => void): ReactElement {
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      aria-label={`Editar ${item.title} de ${dateLabel(item.plannedOn)}`}
+      onClick={() => onEdit(item)}
+    >
+      <Pencil aria-hidden="true" />
+      Editar
+    </Button>
+  );
+}

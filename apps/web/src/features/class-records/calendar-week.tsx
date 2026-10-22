@@ -1,0 +1,155 @@
+"use client";
+
+import { useEffect, useLayoutEffect, useRef, type ReactElement, type RefObject } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@lazuli/ui";
+import { calendarDate, shiftDate } from "./calendar-model";
+import styles from "./calendar.module.css";
+
+const DAYS_PER_WEEK = 7;
+const WEEK_SETTLE_DELAY_MS = 140;
+const ISO_DAY_SUFFIX_START = -2;
+
+type CalendarWeekInput = {
+  compact?: boolean;
+  from: string;
+  today: string;
+  date: string;
+  onSelectDay: (date: string) => void;
+  onChangeWeek: (from: string) => void;
+};
+type WeekRailModel = {
+  rail: RefObject<HTMLDivElement | null>;
+  onScroll: () => void;
+  move: (direction: number, pointer: boolean) => void;
+};
+
+/** Three adjacent weeks form one continuous rail, including touch momentum. */
+export function CalendarWeek({
+  from,
+  today,
+  date,
+  onSelectDay,
+  onChangeWeek,
+  compact = false,
+}: CalendarWeekInput): ReactElement {
+  const { rail, onScroll, move } = useWeekRail({ from, onChangeWeek });
+  return (
+    <div className={styles.week} data-compact={compact} role="group" aria-label="Dias da semana">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Semana anterior"
+        onClick={(event) => move(-1, event.detail > 0)}
+      >
+        <ChevronLeft />
+      </Button>
+      <div ref={rail} className={styles.weekCarousel} onScroll={onScroll}>
+        {[-1, 0, 1].map((offset) => (
+          <WeekSlide
+            key={offset}
+            offset={offset}
+            from={from}
+            today={today}
+            date={date}
+            onSelectDay={onSelectDay}
+          />
+        ))}
+      </div>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Próxima semana"
+        onClick={(event) => move(1, event.detail > 0)}
+      >
+        <ChevronRight />
+      </Button>
+    </div>
+  );
+}
+
+function useWeekRail({
+  from,
+  onChangeWeek,
+}: Pick<CalendarWeekInput, "from" | "onChangeWeek">): WeekRailModel {
+  const rail = useRef<HTMLDivElement>(null);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const changing = useRef(false);
+
+  useLayoutEffect(() => {
+    const node = rail.current;
+    if (!node) return;
+    changing.current = false;
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    node.scrollTo({ left: node.clientWidth, behavior: "instant" });
+  }, [from]);
+
+  useEffect(() => {
+    const node = rail.current;
+    if (!node) return;
+    const observer = new ResizeObserver(() => {
+      node.scrollTo({ left: node.clientWidth, behavior: "instant" });
+    });
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      if (settleTimer.current) clearTimeout(settleTimer.current);
+    };
+  }, []);
+
+  function settle(): void {
+    const node = rail.current;
+    if (!node || !node.clientWidth || changing.current) return;
+    const offset = Math.round(node.scrollLeft / node.clientWidth) - 1;
+    if (offset === 0) return;
+    changing.current = true;
+    onChangeWeek(shiftDate(from, offset * DAYS_PER_WEEK));
+  }
+
+  function move(direction: number, pointer: boolean): void {
+    const node = rail.current;
+    if (!node || changing.current) return;
+    if (!pointer || globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      onChangeWeek(shiftDate(from, direction * DAYS_PER_WEEK));
+      return;
+    }
+    node.scrollTo({ left: node.clientWidth * (1 + direction), behavior: "smooth" });
+  }
+
+  const onScroll = (): void => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(settle, WEEK_SETTLE_DELAY_MS);
+  };
+  return { rail, onScroll, move };
+}
+
+function WeekSlide({
+  offset,
+  from,
+  today,
+  date,
+  onSelectDay,
+}: Pick<CalendarWeekInput, "from" | "today" | "date" | "onSelectDay"> & {
+  offset: number;
+}): ReactElement {
+  return (
+    <div className={styles.weekSlide} aria-hidden={offset !== 0} inert={offset !== 0}>
+      {Array.from({ length: DAYS_PER_WEEK }, (_unused, index) =>
+        shiftDate(from, offset * DAYS_PER_WEEK + index),
+      ).map((day) => (
+        <button
+          key={day}
+          type="button"
+          className={styles.day}
+          aria-pressed={day === date}
+          aria-current={day === today ? "date" : undefined}
+          onClick={() => onSelectDay(day)}
+          aria-label={calendarDate(day, { weekday: "long", day: "numeric", month: "long" })}
+        >
+          <span>{calendarDate(day, { weekday: "short" }).replace(".", "")}</span>{" "}
+          <span>{day.slice(ISO_DAY_SUFFIX_START)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}

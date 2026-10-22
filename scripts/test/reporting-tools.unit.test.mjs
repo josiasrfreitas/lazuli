@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const durationsScript = path.join(root, "scripts/test-durations.mjs");
@@ -91,4 +91,39 @@ it("keeps a failing case visible in CI stdout, JUnit and LCOV", async (context) 
   const coverage = await readFile(path.join(directory, "coverage/unit/lcov.info"), "utf8");
   assert.match(coverage, /SF:src\/answer\.mjs/u);
   assert.match(coverage, /end_of_record/u);
+});
+
+it("loads a package's declared unit setup before tests import CSS modules", async (context) => {
+  const directory = await fixture();
+  context.after(() => rm(directory, { force: true, recursive: true }));
+  const loader = new URL("../../apps/web/test/support/css-loader.mjs", import.meta.url).href;
+  await write(
+    directory,
+    "test/setup.mjs",
+    `import { register } from "node:module"; register(${JSON.stringify(loader)});`,
+  );
+  await write(
+    directory,
+    "test/style.module.css",
+    ".panel { display: grid; } .empty-state { padding: 0; }",
+  );
+  await write(
+    directory,
+    "test/style.unit.test.mjs",
+    [
+      'import assert from "node:assert/strict";',
+      'import { it } from "node:test";',
+      'import styles from "./style.module.css";',
+      'it("keeps the CSS class names available to rendered components", () => assert.deepEqual(styles, { panel: "panel", "empty-state": "empty-state" }));',
+    ].join("\n"),
+  );
+  const environment = { ...process.env };
+  delete environment.NODE_TEST_CONTEXT;
+  const result = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts/run-test-tier.mjs"), "unit"],
+    { cwd: directory, encoding: "utf8", env: environment },
+  );
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /keeps the CSS class names available/u);
 });

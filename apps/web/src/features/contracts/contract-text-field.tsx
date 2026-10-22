@@ -59,9 +59,6 @@ export function TextField({
         name={name}
         onBlur={onBlur}
         onChange={(event) => onChange(typedValue(event.target.value, { date, maskedDate }))}
-        onClick={(event) => {
-          if (date && !maskedDate) event.currentTarget.showPicker?.();
-        }}
         placeholder={placeholder}
         size="sm"
         type={date && !maskedDate ? "date" : "text"}

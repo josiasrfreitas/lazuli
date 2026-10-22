@@ -1,10 +1,46 @@
-import type { Prisma } from "@lazuli/db";
+import type { Prisma, TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 
-type Database = Pick<
-  Prisma.TransactionClient,
-  "enrollmentAction" | "enrollment" | "pedagogicalProgress"
->;
+import { reconcileDueSemesterPlacements } from "./semester-placements.js";
+
+type Database = TransactionClient;
+type DueAction = Prisma.EnrollmentActionGetPayload<{ select: typeof actionSelection }>;
+
+const actionSelection = {
+  id: true,
+  enrollmentId: true,
+  kind: true,
+  effectiveDate: true,
+  exitReason: true,
+} satisfies Prisma.EnrollmentActionSelect;
+
+/** A bounded batch must carry both halves of a published semester movement. */
+async function dueActions(database: Database, today: Date): Promise<DueAction[]> {
+  const batch = await database.enrollmentAction.findMany({
+    where: { status: "SCHEDULED", effectiveDate: { lte: today } },
+    select: actionSelection,
+    orderBy: [{ effectiveDate: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+    take: 100,
+  });
+  const ids = batch.map((action) => action.id);
+  if (ids.length === 0) return batch;
+  const pairs = await database.semesterPlacement.findMany({
+    where: {
+      publishedAt: { not: null },
+      OR: [{ entryActionId: { in: ids } }, { sourceExitActionId: { in: ids } }],
+    },
+    select: { entryActionId: true, sourceExitActionId: true },
+  });
+  const pairedIds = pairs
+    .flatMap((pair) => [pair.entryActionId, pair.sourceExitActionId])
+    .filter((id): id is string => id !== null && !ids.includes(id));
+  if (pairedIds.length === 0) return batch;
+  const remaining = await database.enrollmentAction.findMany({
+    where: { id: { in: pairedIds }, status: "SCHEDULED", effectiveDate: { lte: today } },
+    select: actionSelection,
+  });
+  return [...batch, ...remaining];
+}
 
 /** Applies due actions once; the action status is the concurrency guard across workers. */
 export async function processDueEnrollmentActions(input: {
@@ -12,12 +48,8 @@ export async function processDueEnrollmentActions(input: {
   now: Date;
 }): Promise<number> {
   const today = new Date(saoPauloDateOnly(input.now));
-  const due = await input.database.enrollmentAction.findMany({
-    where: { status: "SCHEDULED", effectiveDate: { lte: today } },
-    select: { id: true, enrollmentId: true, kind: true, effectiveDate: true },
-    orderBy: [{ effectiveDate: "asc" }, { createdAt: "asc" }],
-    take: 100,
-  });
+  await reconcileDueSemesterPlacements(input.database, { today, now: input.now });
+  const due = await dueActions(input.database, today);
   let applied = 0;
   for (const action of due) {
     const claimed = await input.database.enrollmentAction.updateMany({
@@ -26,7 +58,7 @@ export async function processDueEnrollmentActions(input: {
     });
     if (claimed.count === 0) continue;
     if (action.kind === "PAUSE" || action.kind === "EXIT") {
-      const reason = action.kind === "PAUSE" ? "SUSPENDED" : "DROPPED";
+      const reason = exitReason(action);
       const enrollment = await input.database.enrollment.findUnique({
         where: { id: action.enrollmentId },
         select: { exitDate: true, deletedAt: true },
@@ -50,4 +82,9 @@ export async function processDueEnrollmentActions(input: {
     applied += 1;
   }
   return applied;
+}
+
+function exitReason(action: DueAction): "SUSPENDED" | "TRANSFERRED" | "DROPPED" {
+  if (action.kind === "PAUSE") return "SUSPENDED";
+  return action.exitReason === "TRANSFERRED" ? "TRANSFERRED" : "DROPPED";
 }

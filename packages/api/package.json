@@ -15,6 +15,8 @@
     "clean": "rm -rf .turbo dist"
   },
   "dependencies": {
+    "@lazuli/storage": "workspace:*",
+    "@lazuli/integrations": "workspace:*",
     "@lazuli/auth": "workspace:*",
     "@lazuli/db": "workspace:*",
     "@lazuli/domain": "workspace:*",
@@ -22,8 +24,7 @@
     "@lazuli/validators": "workspace:*",
     "@trpc/server": "catalog:",
     "kysely": "catalog:",
-    "superjson": "catalog:",
-    "@lazuli/integrations": "workspace:*"
+    "superjson": "catalog:"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

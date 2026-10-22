@@ -123,7 +123,7 @@ const sessionMakeupSelect = {
 /**
  * Active (non-cancelled) makeups whose target is this session — the roster "visitors" (S-ATT-2),
  * ordered by student name and carrying the origin class code shown as "turma origem". Sourced from
- * `Makeup` rows, never `Attendance`, so visitors never affect the attendance %.
+ * `Makeup` rows, never destination attendance. Source-linked compensation is owned by appointments.
  */
 export async function loadSessionMakeups(input: {
   database: AttendanceDatabase;

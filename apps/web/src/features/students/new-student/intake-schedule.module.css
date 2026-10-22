@@ -1,0 +1,291 @@
+.studentDialog {
+  height: min(44rem, calc(100dvh - 4rem));
+}
+
+.wideDialog {
+  height: min(52rem, calc(100dvh - 4rem));
+}
+
+.dialogHeading {
+  display: grid;
+  flex-shrink: 0;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dialogHeading[data-wide="true"] {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 2rem;
+  padding-right: 2rem;
+}
+
+.dialogHeading[data-wide="true"] > ol {
+  justify-self: end;
+}
+
+.centeredState {
+  display: flex;
+  min-height: 12rem;
+  height: 100%;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.centeredState > p {
+  max-width: 28rem;
+  font-size: var(--lz-text-caption);
+}
+
+.classes {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.classesHeading {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.classesHeading h3 {
+  font-size: var(--lz-text-control);
+  font-weight: 600;
+}
+
+.classesHeading > span {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+
+.classesContent {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+}
+
+.weeklyTable {
+  width: 100%;
+  min-width: 52rem;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.weeklyTable th,
+.weeklyTable td {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.weeklyTable tr > :last-child {
+  border-right: 0;
+}
+
+.weeklyTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.75rem;
+  background: var(--table-heading);
+  color: var(--table-heading-foreground);
+  font-size: var(--lz-text-caption);
+  font-weight: 600;
+}
+
+.weeklyTable tr > :first-child {
+  width: 4.5rem;
+}
+
+.weeklyTable tbody th {
+  padding: 1rem 0.75rem;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-family: var(--lz-font-numeric);
+  font-size: var(--lz-text-caption);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.weeklyTable td {
+  padding: 0.375rem;
+}
+
+.timeOptions {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.emptyCell {
+  padding: 0.625rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+
+.classOption {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--popover);
+  padding: 0.625rem;
+  color: var(--foreground);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--lz-duration-fast) var(--lz-ease-standard);
+}
+
+.classOption:hover {
+  background: var(--accent);
+}
+
+.classOption:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.classOption[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.classHeading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--lz-text-control);
+  line-height: var(--lz-leading-control);
+  overflow-wrap: anywhere;
+}
+
+.classHeading strong {
+  font-weight: 600;
+}
+
+.classTime {
+  font-family: var(--lz-font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+.classTime,
+.classSchedule,
+.classCount {
+  font-size: var(--lz-text-caption);
+}
+
+.classSchedule {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.classCount {
+  color: var(--muted-foreground);
+}
+
+.classOption[aria-pressed="true"] .classCount {
+  color: inherit;
+}
+
+.unscheduled {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.unscheduled h4 {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  font-weight: 500;
+}
+
+.unscheduledOptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.5rem;
+}
+
+.mobileClasses {
+  display: none;
+}
+
+@media (max-width: 64rem) {
+  .dialogHeading[data-wide="true"] {
+    grid-template-columns: minmax(0, 1fr);
+    padding-right: 0;
+  }
+
+  .dialogHeading[data-wide="true"] > ol {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 40rem) {
+  .dialogHeading :global([data-slot="stepper"]),
+  .dialogHeading :global([data-slot="stepper-step"]) {
+    gap: 0.5rem;
+  }
+
+  .dialogHeading :global([data-slot="stepper-step"] > [aria-hidden]) {
+    display: none;
+  }
+
+  .pedagogyFooter {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.5rem 1rem;
+  }
+
+  .pedagogyFooter > p {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .pedagogyFooter > button {
+    grid-row: 2;
+  }
+
+  .pedagogyFooter > button:last-child {
+    justify-self: end;
+  }
+
+  .weeklySchedule {
+    display: none;
+  }
+
+  .mobileClasses {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .classOption {
+    transition: none;
+  }
+}

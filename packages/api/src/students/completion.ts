@@ -3,9 +3,12 @@ import type { TransactionClient } from "@lazuli/db";
 import type { StudentCompletionInput } from "@lazuli/validators";
 import { TRPCError } from "@trpc/server";
 import { finance } from "../finance/index.js";
-import type { Context } from "../trpc/context.js";
+import type { Context, StaffUser } from "../trpc/context.js";
+import { activityTransaction, recordActivity } from "../activity/record.js";
+import { studentSubject } from "../activity/subjects.js";
 import { createStudent } from "./data.js";
 import { assertCreationCommandOwner, lockCreationCommand } from "../creation-command.js";
+import { recordStudentIntake } from "../semester-organization/intake.js";
 
 type Command = { id: string; fingerprint: string };
 type CompletedStudent = { id: string };
@@ -54,6 +57,12 @@ export async function persistStudentCompletion(input: {
   } else {
     student = await createStudent({ database: input.database, values: input.values.student });
   }
+  if (input.values.pedagogy)
+    await recordStudentIntake(input.database, {
+      studentId: student.id,
+      recordedById: input.staffUserId,
+      input: input.values.pedagogy,
+    });
   return input.database.student.update({
     where: { id: student.id },
     data: { commandId: command.id, commandFingerprint: command.fingerprint },
@@ -64,11 +73,42 @@ export async function persistStudentCompletion(input: {
 export async function completeStudent(input: {
   database: Context["db"];
   values: StudentCompletionInput;
-  staffUserId: string;
+  staffUser: StaffUser;
+  now?: Date;
 }): Promise<CompletedStudent> {
   try {
-    return await input.database.$transaction((database) =>
-      persistStudentCompletion({ ...input, database }),
+    return await activityTransaction(
+      { ...input, db: input.database },
+      {
+        action: "students.completeCreation",
+        work: async (database) => {
+          const student = await persistStudentCompletion({
+            database,
+            values: input.values,
+            staffUserId: input.staffUser.id,
+          });
+          if ("contract" in input.values) {
+            const contract = await database.contract.findUniqueOrThrow({
+              where: { commandId: input.values.contract.commandId },
+              select: { id: true },
+            });
+            const subject = await studentSubject(database, student.id);
+            await recordActivity(database, {
+              context: input,
+              action: "finance.createMonthlyContract",
+              details: {
+                subject: { ...subject, type: "contract", id: contract.id },
+                deduplicationKey: `finance.contract:${contract.id}`,
+              },
+            });
+          }
+          return student;
+        },
+        describe: async (student, database) => ({
+          subject: await studentSubject(database, student.id),
+          deduplicationKey: `students.completeCreation:${student.id}`,
+        }),
+      },
     );
   } catch (error) {
     // The losing concurrent transaction rolls back; recover only the same committed command.
