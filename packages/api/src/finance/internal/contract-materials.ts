@@ -23,6 +23,13 @@ const ENGLISH_TRACKS = [
   "Teens Legacy",
   "Teenstation Legacy",
 ];
+type MaterialStage = { id: string; name: string; internalCode: string };
+type MaterialPrice = {
+  quote: ReturnType<typeof materialPriceQuote>;
+  cash: boolean;
+  total: number;
+  cardFeePct: number;
+};
 
 export async function materialOrderData(input: {
   database: FinanceDatabase;
@@ -33,7 +40,39 @@ export async function materialOrderData(input: {
   staffUserId: string;
 }): Promise<Prisma.OrderCreateWithoutContractInput> {
   const { database, material, settings, firstDueDate, staffUserId } = input;
-  const stageIds = material.stageIds;
+  const orderedStages = await materialStages(database, material.stageIds);
+  const { quote, cash, total, cardFeePct } = quotedMaterial(material, settings);
+  const receivableCents = quote.cashCents;
+  return {
+    kind: "MATERIAL",
+    principalAmountCents: receivableCents,
+    startDate: toDateOnly(firstDueDate),
+    firstDueDate: toDateOnly(firstDueDate),
+    dueDay: Number(
+      (input.scheduleAnchor?.date ?? firstDueDate).slice(ISO_DAY_START_INDEX, ISO_DATE_LENGTH),
+    ),
+    installmentCount: 1,
+    createdBy: { connect: { id: staffUserId } },
+    updatedBy: { connect: { id: staffUserId } },
+    material: {
+      create: materialCreateData({ orderedStages, material, quote, cash, total, cardFeePct }),
+    },
+    installments: {
+      create: {
+        sequenceNumber: 1,
+        amountCents: receivableCents,
+        dueDate: toDateOnly(firstDueDate),
+        createdById: staffUserId,
+        updatedById: staffUserId,
+      },
+    },
+  };
+}
+
+async function materialStages(
+  database: FinanceDatabase,
+  stageIds: string[],
+): Promise<MaterialStage[]> {
   if (new Set(stageIds).size !== stageIds.length)
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -53,8 +92,11 @@ export async function materialOrderData(input: {
   });
   if (stages.length !== stageIds.length)
     throw new TRPCError({ code: "NOT_FOUND", message: "Estágio indisponível." });
-  const orderedStages = stageIds.map((id) => stages.find((stage) => stage.id === id)!);
-  const stage = orderedStages[0]!;
+  return stageIds.map((id) => stages.find((stage) => stage.id === id)!);
+}
+
+function quotedMaterial(material: ContractMaterialInput, settings: FinanceSettings): MaterialPrice {
+  const stageIds = material.stageIds;
   const child = material.category === "CHILD";
   const cardFeePct = Number(settings.materialCardFeePct);
   const perBookInstallments = child
@@ -86,51 +128,41 @@ export async function materialOrderData(input: {
       code: "PRECONDITION_FAILED",
       message: "O material está sem valor de cobrança. Revise o preço em Ajustes.",
     });
+  return { quote, cash, total, cardFeePct };
+}
+
+function materialCreateData(input: {
+  orderedStages: MaterialStage[];
+  material: ContractMaterialInput;
+  quote: ReturnType<typeof materialPriceQuote>;
+  cash: boolean;
+  total: number;
+  cardFeePct: number;
+}): Prisma.MaterialOrderCreateWithoutOrderInput {
+  const { orderedStages, material, quote, cash, total, cardFeePct } = input;
+  const stage = orderedStages[0]!;
   const receivableCents = quote.cashCents;
   return {
-    kind: "MATERIAL",
-    principalAmountCents: receivableCents,
-    startDate: toDateOnly(firstDueDate),
-    firstDueDate: toDateOnly(firstDueDate),
-    dueDay: Number(
-      (input.scheduleAnchor?.date ?? firstDueDate).slice(ISO_DAY_START_INDEX, ISO_DATE_LENGTH),
-    ),
-    installmentCount: 1,
-    createdBy: { connect: { id: staffUserId } },
-    updatedBy: { connect: { id: staffUserId } },
-    material: {
-      create: {
-        stage: { connect: { id: stage.id } },
-        name: orderedStages.map((item) => item.name).join(" + "),
-        items: {
-          create: orderedStages.map((item, index) => ({
-            position: index + 1,
-            stage: { connect: { id: item.id } },
-            name: item.name,
-            stageCode: item.internalCode,
-          })),
-        },
-        stageCode: stage.internalCode,
-        category: material.category,
-        payment: material.payment,
-        listPriceCents: quote.totalCents,
-        cashDiscountPct: 0,
-        chargedAmountCents: total,
-        cardFeePct: cash ? 0 : cardFeePct,
-        cardFeeCents: cash ? 0 : quote.totalCents - receivableCents,
-        quotedInstallments: quote.installments,
-        quotedInstallmentCents: quote.installmentCents,
-      },
+    stage: { connect: { id: stage.id } },
+    name: orderedStages.map((item) => item.name).join(" + "),
+    items: {
+      create: orderedStages.map((item, index) => ({
+        position: index + 1,
+        stage: { connect: { id: item.id } },
+        name: item.name,
+        stageCode: item.internalCode,
+      })),
     },
-    installments: {
-      create: {
-        sequenceNumber: 1,
-        amountCents: receivableCents,
-        dueDate: toDateOnly(firstDueDate),
-        createdById: staffUserId,
-        updatedById: staffUserId,
-      },
-    },
+    stageCode: stage.internalCode,
+    category: material.category,
+    payment: material.payment,
+    listPriceCents: quote.totalCents,
+    cashDiscountPct: 0,
+    chargedAmountCents: total,
+    cardFeePct: cash ? 0 : cardFeePct,
+    cardFeeCents: cash ? 0 : quote.totalCents - receivableCents,
+    quotedInstallments: quote.installments,
+    quotedInstallmentCents: quote.installmentCents,
   };
 }
 
@@ -155,6 +187,35 @@ export async function addContractMaterial(input: {
       });
     return { orderId: existing.orderId, contractId: existing.order.contractId! };
   }
+  const { contractId, anchor, monthDistance } = await materialContract(database, values);
+  const settings = await database.financeSettings.findUnique({ where: { id: "singleton" } });
+  if (!settings)
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Configure os preços dos materiais em Ajustes.",
+    });
+  const data = await materialOrderData({
+    database,
+    settings,
+    material: values.material,
+    firstDueDate: values.firstDueDate,
+    scheduleAnchor: { date: anchor, offset: monthDistance },
+    staffUserId,
+  });
+  const order = await database.order.create({
+    data: { ...data, contract: { connect: { id: contractId } } },
+  });
+  await database.materialOrder.update({
+    where: { orderId: order.id },
+    data: { commandId: values.commandId, commandFingerprint: fingerprint },
+  });
+  return { orderId: order.id, contractId };
+}
+
+async function materialContract(
+  database: FinanceDatabase,
+  values: AddContractMaterialInput,
+): Promise<{ contractId: string; anchor: string; monthDistance: number }> {
   await database.$queryRaw`SELECT id FROM "Contract" WHERE id = ${values.contractId}::uuid FOR UPDATE`;
   const contract = await database.contract.findFirst({
     where: { id: values.contractId, deletedAt: null, terminatedAt: null },
@@ -180,31 +241,19 @@ export async function addContractMaterial(input: {
       code: "BAD_REQUEST",
       message: "O material deve seguir o dia de vencimento do contrato.",
     });
-  const settings = await database.financeSettings.findUnique({ where: { id: "singleton" } });
-  if (!settings)
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: "Configure os preços dos materiais em Ajustes.",
-    });
-  const data = await materialOrderData({
-    database,
-    settings,
-    material: values.material,
-    firstDueDate: values.firstDueDate,
-    scheduleAnchor: { date: anchor, offset: monthDistance },
-    staffUserId,
-  });
-  const order = await database.order.create({
-    data: { ...data, contract: { connect: { id: contract.id } } },
-  });
-  await database.materialOrder.update({
-    where: { orderId: order.id },
-    data: { commandId: values.commandId, commandFingerprint: fingerprint },
-  });
-  return { orderId: order.id, contractId: contract.id };
+  return { contractId: contract.id, anchor, monthDistance };
 }
 
-export async function contractMaterialOptions(database: FinanceDatabase) {
+const materialOptionsSelect = {
+  id: true,
+  name: true,
+  internalCode: true,
+  track: { select: { name: true, ageGroup: true, productLine: { select: { name: true } } } },
+} satisfies Prisma.StageSelect;
+
+export async function contractMaterialOptions(
+  database: FinanceDatabase,
+): Promise<Prisma.StageGetPayload<{ select: typeof materialOptionsSelect }>[]> {
   return database.stage.findMany({
     where: {
       deletedAt: null,
@@ -214,12 +263,7 @@ export async function contractMaterialOptions(database: FinanceDatabase) {
         productLine: { deletedAt: null, status: "ACTIVE" },
       },
     },
-    select: {
-      id: true,
-      name: true,
-      internalCode: true,
-      track: { select: { name: true, ageGroup: true, productLine: { select: { name: true } } } },
-    },
+    select: materialOptionsSelect,
     orderBy: [{ track: { name: "asc" } }, { sequence: "asc" }],
   });
 }

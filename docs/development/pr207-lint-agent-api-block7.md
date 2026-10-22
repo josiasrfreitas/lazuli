@@ -59,3 +59,7 @@ pnpm -F @lazuli/api exec eslint src/admissions src/appointments src/class-record
   `student-summary.ts` passaram no lint direcionado e no typecheck API. Oito
   erros do baseline financeiro foram removidos; a medição conjunta será
   repetida após os demais arquivos de financeiro.
+- `finance/internal/contract-detail.ts`, `contracts.ts` e
+  `contract-materials.ts` passaram no lint direcionado e no typecheck API.
+  Restam 18 erros do baseline financeiro em rescisão, necessidades de
+  material e tratamentos.
