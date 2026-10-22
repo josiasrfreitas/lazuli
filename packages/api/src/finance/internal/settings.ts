@@ -74,7 +74,11 @@ export async function saveSettings(input: {
 }
 
 /** Acquisition forms receive book pricing without exposing other financial settings. */
-export async function readMaterialPrice(database: FinanceDatabase) {
+export async function readMaterialPrice(database: FinanceDatabase): Promise<{
+  child: ReturnType<typeof materialPriceQuote> & { version: string };
+  adult: ReturnType<typeof materialPriceQuote> & { version: string };
+  cardFeePct: number;
+} | null> {
   const row = await database.financeSettings.findUnique({
     where: { id: "singleton" },
     select: {

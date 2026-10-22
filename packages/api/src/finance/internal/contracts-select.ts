@@ -127,6 +127,47 @@ function uniformInstallmentAmount(order: SelectedContract["orders"][number]): nu
 }
 
 export function toRow(row: SelectedContract, now = new Date()): ContractListRow {
+  const order = requiredTuitionOrder(row);
+  const materialOrders = row.orders.filter(
+    (entry) => entry.kind === "MATERIAL" && !entry.cancelledAt,
+  );
+  return {
+    id: row.id,
+    payer: row.payer,
+    student: {
+      id: row.student.id,
+      fullName: row.student.fullName,
+      placements: academicPlacements(row.student, now),
+    },
+    agreedOn: toDateOnlyString(row.agreedOn!),
+    startsOn: toDateOnlyString(row.startsOn!),
+    endsOn: toDateOnlyString(row.endsOn!),
+    monthlyAmountCents: row.monthlyAmountCents!,
+    principalAmountCents: order.principalAmountCents,
+    materialAmountCents: materialOrders.reduce((sum, entry) => sum + entry.principalAmountCents, 0),
+    materials: materialOrders.map((entry) => ({
+      id: entry.id,
+      name: entry.material?.name ?? "Material",
+      totalCents: entry.principalAmountCents,
+      count: entry.installmentCount ?? entry.installments.length,
+      installmentCents: uniformInstallmentAmount(entry),
+    })),
+    installmentCount: order.installmentCount!,
+    uniformInstallmentAmountCents: uniformInstallmentAmount(order),
+    firstDueDate: toDateOnlyString(order.firstDueDate!),
+    ...deriveContractFinancialSummary({ ...order, now, installmentCount: order.installmentCount! }),
+    ...(row.terminatedAt ? { status: "CANCELADO" as const } : {}),
+    serviceStatus: row.terminatedAt
+      ? "ENDED"
+      : deriveContractServiceStatus({
+          startsOn: toDateOnlyString(row.startsOn!),
+          endsOn: toDateOnlyString(row.endsOn!),
+          now,
+        }),
+  };
+}
+
+function requiredTuitionOrder(row: SelectedContract): SelectedContract["orders"][number] {
   const order = row.orders.find((entry) => entry.kind === "TUITION");
   if (
     !order ||
@@ -139,42 +180,5 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
   ) {
     throw new Error("Contrato mensal incompleto.");
   }
-  return {
-    id: row.id,
-    payer: row.payer,
-    student: {
-      id: row.student.id,
-      fullName: row.student.fullName,
-      placements: academicPlacements(row.student, now),
-    },
-    agreedOn: toDateOnlyString(row.agreedOn),
-    startsOn: toDateOnlyString(row.startsOn),
-    endsOn: toDateOnlyString(row.endsOn),
-    monthlyAmountCents: row.monthlyAmountCents,
-    principalAmountCents: order.principalAmountCents,
-    materialAmountCents: row.orders
-      .filter((entry) => entry.kind === "MATERIAL" && !entry.cancelledAt)
-      .reduce((sum, entry) => sum + entry.principalAmountCents, 0),
-    materials: row.orders
-      .filter((entry) => entry.kind === "MATERIAL" && !entry.cancelledAt)
-      .map((entry) => ({
-        id: entry.id,
-        name: entry.material?.name ?? "Material",
-        totalCents: entry.principalAmountCents,
-        count: entry.installmentCount ?? entry.installments.length,
-        installmentCents: uniformInstallmentAmount(entry),
-      })),
-    installmentCount: order.installmentCount,
-    uniformInstallmentAmountCents: uniformInstallmentAmount(order),
-    firstDueDate: toDateOnlyString(order.firstDueDate),
-    ...deriveContractFinancialSummary({ ...order, now, installmentCount: order.installmentCount }),
-    ...(row.terminatedAt ? { status: "CANCELADO" as const } : {}),
-    serviceStatus: row.terminatedAt
-      ? "ENDED"
-      : deriveContractServiceStatus({
-          startsOn: toDateOnlyString(row.startsOn),
-          endsOn: toDateOnlyString(row.endsOn),
-          now,
-        }),
-  };
+  return order;
 }

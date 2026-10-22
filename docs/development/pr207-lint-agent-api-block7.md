@@ -55,3 +55,7 @@ pnpm -F @lazuli/api exec eslint src/admissions src/appointments src/class-record
 - `teaching-programs/import.ts` e `read.ts` foram separados em persistência e
   projeção com tipos explícitos. Lint direcionado e typecheck API passaram.
   A medição do bloco inteiro confirmou 37 erros restantes, todos em `finance`.
+- `finance/internal/contracts-select.ts`, `renewal.ts`, `settings.ts` e
+  `student-summary.ts` passaram no lint direcionado e no typecheck API. Oito
+  erros do baseline financeiro foram removidos; a medição conjunta será
+  repetida após os demais arquivos de financeiro.

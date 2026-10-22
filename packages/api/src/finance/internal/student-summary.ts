@@ -1,5 +1,6 @@
 import { readMaterialNeeds } from "./material-needs.js";
 import { saoPauloDateOnly, type StudentFinanceSummary } from "@lazuli/domain";
+import type { Prisma } from "@lazuli/db";
 import { sql } from "kysely";
 import { notFound } from "../../trpc/errors.js";
 import { ledgerQuery } from "./installments-query.js";
@@ -120,13 +121,77 @@ type ItemBalance = {
   collectibleBalanceCents: number;
   status: string;
 };
+const studentContractSelect = {
+  id: true,
+  commandId: true,
+  student: { select: { fullName: true } },
+  payer: { select: { name: true } },
+  startsOn: true,
+  endsOn: true,
+  durationMonths: true,
+  punctualityDiscountPct: true,
+  orders: {
+    where: { deletedAt: null, cancelledAt: null },
+    select: {
+      id: true,
+      dueDay: true,
+      firstDueDate: true,
+      principalAmountCents: true,
+      kind: true,
+      material: {
+        select: {
+          name: true,
+          items: {
+            orderBy: { position: "asc" },
+            select: { stageId: true, name: true, stageCode: true },
+          },
+          payment: true,
+          quotedInstallments: true,
+          quotedInstallmentCents: true,
+          chargedAmountCents: true,
+          cardFeePct: true,
+          cardFeeCents: true,
+        },
+      },
+      installments: { where: { deletedAt: null }, select: { amountCents: true } },
+    },
+  },
+} satisfies Prisma.ContractSelect;
+type StudentContract = Prisma.ContractGetPayload<{ select: typeof studentContractSelect }>;
+type StudentContractView = {
+  id: string;
+  hasDetail: boolean;
+  studentName: string;
+  payerName: string;
+  startsOn: string | null;
+  endsOn: string | null;
+  durationMonths: number | null;
+  punctualityDiscountPct: number;
+  schedules: {
+    id: string;
+    dueDay: number | null;
+    firstDueDate: string | null;
+    totalCents: number;
+    collection: ReturnType<typeof itemCollection>;
+    kind: StudentContract["orders"][number]["kind"];
+    materialName: string | null;
+    material:
+      | (Omit<NonNullable<StudentContract["orders"][number]["material"]>, "cardFeePct"> & {
+          cardFeePct: number | null;
+        })
+      | null;
+    installmentCount: number;
+    uniformAmountCents: number | null;
+  }[];
+};
+
 async function readStudentContractTerms(
   database: FinanceDatabase,
   options: {
     studentId: string;
     balances: ItemBalance[];
   },
-) {
+): Promise<StudentContractView[]> {
   const { studentId, balances } = options;
 
   const contracts = await database.contract.findMany({
@@ -136,77 +201,46 @@ async function readStudentContractTerms(
       deletedAt: null,
       orders: { some: { deletedAt: null, cancelledAt: null, kind: "TUITION" } },
     },
-    select: {
-      id: true,
-      commandId: true,
-      student: { select: { fullName: true } },
-      payer: { select: { name: true } },
-      startsOn: true,
-      endsOn: true,
-      durationMonths: true,
-      punctualityDiscountPct: true,
-      orders: {
-        where: { deletedAt: null, cancelledAt: null },
-        select: {
-          id: true,
-          dueDay: true,
-          firstDueDate: true,
-          principalAmountCents: true,
-          kind: true,
-          material: {
-            select: {
-              name: true,
-              items: {
-                orderBy: { position: "asc" },
-                select: { stageId: true, name: true, stageCode: true },
-              },
-              payment: true,
-              quotedInstallments: true,
-              quotedInstallmentCents: true,
-              chargedAmountCents: true,
-              cardFeePct: true,
-              cardFeeCents: true,
-            },
-          },
-          installments: { where: { deletedAt: null }, select: { amountCents: true } },
-        },
-      },
-    },
+    select: studentContractSelect,
     orderBy: { startsOn: "desc" },
   });
-  return contracts.map((contract) => ({
-    id: contract.id,
-    hasDetail: Boolean(contract.commandId),
-    studentName: contract.student.fullName,
-    payerName: contract.payer.name,
-    startsOn: contract.startsOn ? toDateOnlyString(contract.startsOn) : null,
-    endsOn: contract.endsOn ? toDateOnlyString(contract.endsOn) : null,
-    durationMonths: contract.durationMonths,
-    punctualityDiscountPct: Number(contract.punctualityDiscountPct ?? 0),
-    schedules: contract.orders.map((order) => ({
-      id: order.id,
-      dueDay: order.dueDay,
-      firstDueDate: order.firstDueDate ? toDateOnlyString(order.firstDueDate) : null,
-      totalCents: order.principalAmountCents,
-      collection: itemCollection(balances.filter((row) => row.orderId === order.id)),
-      kind: order.kind,
-      materialName: order.material?.name ?? null,
-      material: order.material
-        ? {
-            ...order.material,
-            cardFeePct:
-              order.material.cardFeePct === null ? null : Number(order.material.cardFeePct),
-          }
-        : null,
-      installmentCount: order.installments.length,
-      uniformAmountCents:
-        order.installments.length > 0 &&
-        order.installments.every((row) => row.amountCents === order.installments[0]!.amountCents)
-          ? order.installments[0]!.amountCents
-          : null,
-    })),
-  }));
+  return contracts.map((contract) => projectStudentContract(contract, balances));
 }
+
+const projectStudentContract = (
+  contract: StudentContract,
+  balances: ItemBalance[],
+): StudentContractView => ({
+  id: contract.id,
+  hasDetail: Boolean(contract.commandId),
+  studentName: contract.student.fullName,
+  payerName: contract.payer.name,
+  startsOn: contract.startsOn ? toDateOnlyString(contract.startsOn) : null,
+  endsOn: contract.endsOn ? toDateOnlyString(contract.endsOn) : null,
+  durationMonths: contract.durationMonths,
+  punctualityDiscountPct: Number(contract.punctualityDiscountPct ?? 0),
+  schedules: contract.orders.map((order) => ({
+    id: order.id,
+    dueDay: order.dueDay,
+    firstDueDate: order.firstDueDate ? toDateOnlyString(order.firstDueDate) : null,
+    totalCents: order.principalAmountCents,
+    collection: itemCollection(balances.filter((row) => row.orderId === order.id)),
+    kind: order.kind,
+    materialName: order.material?.name ?? null,
+    material: order.material
+      ? {
+          ...order.material,
+          cardFeePct: order.material.cardFeePct === null ? null : Number(order.material.cardFeePct),
+        }
+      : null,
+    installmentCount: order.installments.length,
+    uniformAmountCents:
+      order.installments.length > 0 &&
+      order.installments.every((row) => row.amountCents === order.installments[0]!.amountCents)
+        ? order.installments[0]!.amountCents
+        : null,
+  })),
+});
 
 function itemCollection(rows: ItemBalance[]): {
   receivedCents: number;
