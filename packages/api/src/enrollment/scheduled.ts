@@ -54,14 +54,21 @@ export async function cancelScheduledAction(input: {
   });
   if (result.count !== 1) throw badRequest("A programação já foi alterada.");
   if (action.kind === "ENTRY" || action.kind === "RETURN") {
-    await input.database.pedagogicalProgress.updateMany({
-      where: { enrollmentId: action.enrollmentId, deletedAt: null },
-      data: { deletedAt: input.now },
-    });
-    await input.database.enrollment.update({
-      where: { id: action.enrollmentId },
-      data: { deletedAt: input.now },
+    await deleteFutureEnrollment(input.database, {
+      enrollmentId: action.enrollmentId,
+      now: input.now,
     });
   }
   return { id: action.id, status: "CANCELLED" as const };
+}
+
+async function deleteFutureEnrollment(
+  database: Database,
+  { enrollmentId, now }: { enrollmentId: string; now: Date },
+): Promise<void> {
+  await database.pedagogicalProgress.updateMany({
+    where: { enrollmentId, deletedAt: null },
+    data: { deletedAt: now },
+  });
+  await database.enrollment.update({ where: { id: enrollmentId }, data: { deletedAt: now } });
 }

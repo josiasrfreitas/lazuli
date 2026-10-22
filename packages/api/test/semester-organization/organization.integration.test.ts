@@ -32,17 +32,18 @@ const admin: StaffUser = {
   isEnabled: true,
 };
 const slots = [{ weekday: "MONDAY" as const, startTime: "14:00", endTime: "15:00" }];
-const caller = (role: StaffUser["role"] = "ADMIN") =>
+const caller = (role: StaffUser["role"] = "ADMIN"): ReturnType<typeof createCaller> =>
   createCaller({
     db,
     staffUser: { ...admin, role },
     now: new Date("2085-05-15T15:00:00Z"),
     sessionGenerationQueue: {
-      enqueueSessionsGenerate: async (payload) => ({
-        workflowName: SESSIONS_GENERATE_WORKFLOW,
-        jobId: "semester185-job",
-        payload,
-      }),
+      enqueueSessionsGenerate: (payload) =>
+        Promise.resolve({
+          workflowName: SESSIONS_GENERATE_WORKFLOW,
+          jobId: "semester185-job",
+          payload,
+        }),
     },
   });
 async function clean(): Promise<void> {
@@ -89,7 +90,21 @@ after(async () => {
   await clean();
   await db.$disconnect();
 });
-async function fixture() {
+type FixtureStudent = {
+  id: string;
+  source: { progress: { id: string }; enrollment: { id: string } };
+  proposal: { id: string };
+  availability: { id: string } | null;
+};
+type Fixture = {
+  catalog: { semesterId: string; firstStageId: string };
+  semester: { id: string };
+  plan: { id: string };
+  sourceClass: { id: string };
+  student: (suffix: string, confirmed?: boolean) => Promise<FixtureStudent>;
+};
+
+async function fixture(): Promise<Fixture> {
   await ensureTeacherFor(config);
   const catalog = await seedTwoStageCatalogFor(config);
   const sourceClass = await createPersonalizedClassFor(config, {
@@ -112,7 +127,7 @@ async function fixture() {
     teacherId: config.teacherId,
     slots,
   });
-  async function student(suffix: string, confirmed = true) {
+  async function student(suffix: string, confirmed = true): Promise<FixtureStudent> {
     const row = await createStudentFor(config, { suffix });
     const source = await caller().enrollment.create({
       studentId: row.id,
@@ -207,7 +222,7 @@ void it("publishes only selected eligible students, preserving the current PPT a
   });
   assert.equal(unselected.publishedAt, null);
   await assert.rejects(
-    caller().enrollment.cancelScheduled({ actionId: future.actions[0]!.id }),
+    caller().enrollment.cancelScheduled({ actionId: future.actions[0].id }),
     /organização do próximo semestre/u,
   );
   await caller().semesterOrganization.withdraw({
@@ -329,7 +344,7 @@ void it("serializes duplicate publication and rejects a stale proposal version w
       .join("\n"),
   );
   const rejection = results.find((result) => result.status === "rejected");
-  const reason: unknown = rejection?.reason;
+  const reason = rejection?.reason as Error;
   assert.ok(reason instanceof TRPCError);
   assert.equal(reason.code, "CONFLICT");
   assert.equal(

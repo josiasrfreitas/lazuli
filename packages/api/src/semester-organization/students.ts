@@ -1,35 +1,62 @@
 import { searchMatchKysely } from "../search.js";
-import { sql } from "kysely";
+import { sql, type RawBuilder } from "kysely";
 import { jsonArrayFrom } from "kysely/helpers/postgres";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { OrganizationContext } from "./data.js";
 import { notFound } from "../trpc/errors.js";
+import type { Prisma } from "@lazuli/db";
 
 const PAGE_SIZE = 25;
 const STUDENT_ID = "student.id";
+type StudentModel = Prisma.StudentGetPayload<Prisma.StudentDefaultArgs>;
+type ClassModel = Prisma.ClassGetPayload<Prisma.ClassDefaultArgs>;
+type StudentListRow = {
+  id: string;
+  name: string;
+  status: StudentModel["status"];
+  current: Array<{
+    id: string;
+    stageCode: string;
+    className: string;
+    scheduleType: ClassModel["scheduleType"];
+  }>;
+};
+type StudentList = { rows: StudentListRow[]; total: number; page: number; pageSize: number };
+const progressInclude = {
+  stage: {
+    include: {
+      track: { include: { stages: { where: { deletedAt: null }, orderBy: { sequence: "asc" } } } },
+    },
+  },
+  enrollment: { include: { class: true } },
+  assessment: { select: { decision: true, confirmedAt: true } },
+  stagePlan: { select: { plannedEndOn: true } },
+} satisfies Prisma.PedagogicalProgressInclude;
+type Progress = Prisma.PedagogicalProgressGetPayload<{ include: typeof progressInclude }>;
+type Availability = Prisma.StudentAvailabilityGetPayload<{
+  include: { recordedBy: { select: { name: true } } };
+}>;
+type PreviousAvailability =
+  Prisma.StudentAvailabilityGetPayload<Prisma.StudentAvailabilityDefaultArgs>;
+type Lead = Prisma.AdmissionCandidateGetPayload<{ include: { availability: true } }>;
+type StudentDetail = {
+  student: Pick<StudentModel, "id" | "fullName" | "status">;
+  progress: Progress[];
+  availability: Availability[];
+  previousAvailability: PreviousAvailability | null;
+  lead: Lead | null;
+};
 
 export async function organizationStudents(
   context: OrganizationContext,
   input: { semesterId: string; search: string; page: number; unassigned: boolean },
-) {
+): Promise<StudentList> {
   const today = new Date(saoPauloDateOnly(context.now));
   let base = context.database.$kysely
     .selectFrom("Student as student")
     .where("student.deleted_at", "is", null)
     .where(searchMatchKysely(sql.ref("student.full_name"), input.search));
-  if (input.unassigned)
-    base = base.where((eb) =>
-      eb.not(
-        eb.exists(
-          eb
-            .selectFrom("SemesterPlacement as placement")
-            .select("placement.id")
-            .whereRef("placement.student_id", "=", STUDENT_ID)
-            .where("placement.semester_id", "=", input.semesterId)
-            .where("placement.deleted_at", "is", null),
-        ),
-      ),
-    );
+  if (input.unassigned) base = base.where(unassignedStudent(input.semesterId));
   const [total, rows] = await Promise.all([
     base.select(sql<number>`count(*)::int`.as("count")).executeTakeFirstOrThrow(),
     base
@@ -52,15 +79,8 @@ export async function organizationStudents(
             .where("progress.deleted_at", "is", null)
             .where("enrollment.entry_date", "<=", today)
             .where("progress.start_date", "<=", today)
-            .where((eb) =>
-              eb.or([
-                eb("enrollment.exit_date", "is", null),
-                eb("enrollment.exit_date", ">", today),
-              ]),
-            )
-            .where((eb) =>
-              eb.or([eb("progress.end_date", "is", null), eb("progress.end_date", ">=", today)]),
-            ),
+            .where(sql<boolean>`(enrollment.exit_date IS NULL OR enrollment.exit_date > ${today})`)
+            .where(sql<boolean>`(progress.end_date IS NULL OR progress.end_date >= ${today})`),
         ).as("current"),
       )
       .orderBy("student.full_name")
@@ -71,12 +91,23 @@ export async function organizationStudents(
   ]);
   return { rows, total: total.count, page: input.page, pageSize: 25 };
 }
+
+function unassignedStudent(semesterId: string): RawBuilder<boolean> {
+  return sql<boolean>`
+    NOT EXISTS (
+        SELECT 1 FROM "SemesterPlacement" AS placement
+        WHERE placement.student_id = student.id
+          AND placement.semester_id = ${semesterId}::uuid
+          AND placement.deleted_at IS NULL
+      )
+  `;
+}
 type OrganizationStudentOptions = { studentId: string; semesterId: string };
 
 export async function organizationStudent(
   context: OrganizationContext,
   options: OrganizationStudentOptions,
-) {
+): Promise<StudentDetail> {
   const { studentId, semesterId } = options;
 
   const today = new Date(saoPauloDateOnly(context.now));
@@ -93,18 +124,7 @@ export async function organizationStudent(
         startDate: { lte: today },
         enrollment: { studentId, deletedAt: null, exitDate: null, entryDate: { lte: today } },
       },
-      include: {
-        stage: {
-          include: {
-            track: {
-              include: { stages: { where: { deletedAt: null }, orderBy: { sequence: "asc" } } },
-            },
-          },
-        },
-        enrollment: { include: { class: true } },
-        assessment: { select: { decision: true, confirmedAt: true } },
-        stagePlan: { select: { plannedEndOn: true } },
-      },
+      include: progressInclude,
     }),
     context.database.studentAvailability.findMany({
       where: { studentId, semesterId },

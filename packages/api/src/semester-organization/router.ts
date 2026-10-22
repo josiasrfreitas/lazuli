@@ -32,6 +32,7 @@ import {
 import { publishPlacements, withdrawPlacement } from "./publish.js";
 import { dispatchSessionGeneration } from "../session-generation/requests.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
+import type { OrganizationContext } from "./data.js";
 import {
   continuitySchema,
   saveContinuity,
@@ -48,7 +49,11 @@ const MAX_STUDENT_SEARCH_LENGTH = 100;
 
 const ISO_DATE_LENGTH = 10;
 
-const context = (ctx: { db: Context["db"]; staffUser: StaffUser; now?: Date | undefined }) => ({
+const context = (ctx: {
+  db: Context["db"];
+  staffUser: StaffUser;
+  now?: Date | undefined;
+}): OrganizationContext => ({
   database: ctx.db,
   staffUser: ctx.staffUser,
   now: ctx.now ?? new Date(),

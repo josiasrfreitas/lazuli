@@ -31,17 +31,27 @@ export async function resolvePlannedProgramActivity(
   });
   if (!activity)
     throw badRequest("Atividade indisponível para o estágio e a programação deste plano.");
-  const kind =
-    activity.kind === "LESSON"
-      ? ("CONTENT" as const)
-      : activity.kind === "ASSESSMENT"
-        ? ("ASSESSMENT" as const)
-        : activity.kind === "REVIEW"
-          ? ("REVIEW" as const)
-          : ("ACTIVITY" as const);
+  const kind = programActivityKind(activity.kind);
   return {
     kind,
     title: activity.title,
     reference: `Unidade ${activity.unit.sequence} · hora-aula ${activity.teachingHour.sequence}`,
   };
+}
+
+function programActivityKind(kind: string): "CONTENT" | "ASSESSMENT" | "REVIEW" | "ACTIVITY" {
+  switch (kind) {
+    case "LESSON": {
+      return "CONTENT";
+    }
+    case "ASSESSMENT": {
+      return "ASSESSMENT";
+    }
+    case "REVIEW": {
+      return "REVIEW";
+    }
+    default: {
+      return "ACTIVITY";
+    }
+  }
 }

@@ -69,18 +69,7 @@ export async function listClasses(
   const today = new Date(saoPauloDateOnly(input.now));
   const { page, pageSize } = input.values;
   const where = classWhere(input.values);
-  if (input.values.search) {
-    const [classes, teachers] = await Promise.all([
-      searchIds(input.database, { table: "Class", query: input.values.search }),
-      searchIds(input.database, { table: "User", query: input.values.search }),
-    ]);
-    if (classes && teachers)
-      where.OR = [
-        { id: classes },
-        { teacher: { id: teachers } },
-        { teacherAssignments: { some: { teacher: { id: teachers } } } },
-      ];
-  }
+  await applyClassSearch(input, where);
   await applyClassTeacherFilter({ ...input, today, where });
   const [rows, total] = await Promise.all([
     input.database.class.findMany({
@@ -177,6 +166,7 @@ const rosterSelect = {
     take: 1,
   },
 } satisfies Prisma.EnrollmentSelect;
+type RosterRow = Prisma.EnrollmentGetPayload<{ select: typeof rosterSelect }>;
 type RosterInput = {
   database: Database;
   id: string;
@@ -234,25 +224,7 @@ export async function listClassRoster(input: RosterInput): Promise<
   ]);
   return {
     rows: await Promise.all(
-      rows.map(async (row) => {
-        const currentProgress = row.progressRecords.find(
-          (progress) =>
-            progress.startDate <= today && (!progress.endDate || progress.endDate >= today),
-        );
-        const grades = currentProgress?.assessment?.grades ?? [];
-        const attendance = await computeEnrollmentPercentInWindow({
-          database: input.database,
-          values: { enrollment: { ...row, classId: input.id }, semester: classRow.semester },
-        });
-        return {
-          ...row,
-          gradeAverage:
-            grades.length > 0
-              ? grades.reduce((sum, grade) => sum + Number(grade.score), 0) / grades.length
-              : null,
-          attendancePercent: attendance.percent,
-        };
-      }),
+      rows.map((row) => enrichRosterRow(input, { row, semester: classRow.semester, today })),
     ),
     page: input.page,
     pageSize: input.pageSize,
@@ -260,6 +232,53 @@ export async function listClassRoster(input: RosterInput): Promise<
     total,
     today: saoPauloDateOnly(input.now),
   };
+}
+
+async function enrichRosterRow(
+  input: RosterInput,
+  {
+    row,
+    semester,
+    today,
+  }: {
+    row: RosterRow;
+    semester: { startDate: Date; endDate: Date };
+    today: Date;
+  },
+): Promise<RosterRow & { gradeAverage: number | null; attendancePercent: number | null }> {
+  const currentProgress = row.progressRecords.find(
+    (progress) => progress.startDate <= today && (!progress.endDate || progress.endDate >= today),
+  );
+  const grades = currentProgress?.assessment?.grades ?? [];
+  const attendance = await computeEnrollmentPercentInWindow({
+    database: input.database,
+    values: { enrollment: { ...row, classId: input.id }, semester },
+  });
+  return {
+    ...row,
+    gradeAverage:
+      grades.length > 0
+        ? grades.reduce((sum, grade) => sum + Number(grade.score), 0) / grades.length
+        : null,
+    attendancePercent: attendance.percent,
+  };
+}
+
+async function applyClassSearch(
+  input: ListClassesInput,
+  where: Prisma.ClassWhereInput,
+): Promise<void> {
+  if (!input.values.search) return;
+  const [classes, teachers] = await Promise.all([
+    searchIds(input.database, { table: "Class", query: input.values.search }),
+    searchIds(input.database, { table: "User", query: input.values.search }),
+  ]);
+  if (classes && teachers)
+    where.OR = [
+      { id: classes },
+      { teacher: { id: teachers } },
+      { teacherAssignments: { some: { teacher: { id: teachers } } } },
+    ];
 }
 
 const actionSelect = {

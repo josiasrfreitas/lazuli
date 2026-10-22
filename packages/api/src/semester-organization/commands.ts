@@ -13,6 +13,7 @@ import { withdrawPlacement } from "./publish.js";
 import { badRequest, notFound } from "../trpc/errors.js";
 import { recordActivity } from "../activity/record.js";
 import { lockStudentEnrollment } from "../enrollment/data.js";
+import type { Prisma } from "@lazuli/db";
 
 const MAX_SELECTIONS = 100;
 const MAX_REASON_LENGTH = 1200;
@@ -51,61 +52,80 @@ export async function movePlacements(
     await lockSemester(context, id);
   if (input.targetSemesterId && input.targetSemesterId !== input.semesterId)
     return moveToSemester(context, input);
-  for (const selected of input.selections) {
-    let row = await context.database.semesterPlacement.findFirst({
-      where: { id: selected.id, semesterId: input.semesterId, deletedAt: null },
+  for (const selected of input.selections) await moveWithinSemester(context, { input, selected });
+  return { count: input.selections.length };
+}
+
+type Placement = Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;
+type Selection = { id: string; version: number };
+
+async function moveWithinSemester(
+  context: OrganizationContext,
+  { input, selected }: { input: z.infer<typeof moveSchema>; selected: Selection },
+): Promise<void> {
+  const row = await context.database.semesterPlacement.findFirst({
+    where: { id: selected.id, semesterId: input.semesterId, deletedAt: null },
+  });
+  if (!row) throw notFound("Proposta não encontrada.");
+  await lockStudentEnrollment(context.database, row.studentId);
+  assertVersion(row.version, selected.version);
+  const { current, sourceProgressId, stageId } = await sourceForMove(context, { row, input });
+  await savePlacement(context, {
+    id: current.id,
+    version: current.version,
+    semesterId: input.semesterId,
+    studentId: current.studentId,
+    planId: input.planId,
+    stageId,
+    sourceProgressId,
+    mode: sourceProgressId ? "CONTINUE" : "ENTRY",
+    effectiveDate: input.effectiveDate,
+    notes: input.reason || current.notes || "",
+  });
+}
+
+async function sourceForMove(
+  context: OrganizationContext,
+  { row, input }: { row: Placement; input: z.infer<typeof moveSchema> },
+): Promise<{ current: Placement; sourceProgressId: string | null; stageId: string | null }> {
+  let current = row;
+  let sourceProgressId = row.sourceProgressId;
+  let stageId = row.stageId;
+  if (current.publishedAt && current.entryActionId) {
+    const action = await context.database.enrollmentAction.findUniqueOrThrow({
+      where: { id: current.entryActionId },
     });
-    if (!row) throw notFound("Proposta não encontrada.");
-    await lockStudentEnrollment(context.database, row.studentId);
-    assertVersion(row.version, selected.version);
-    let sourceProgressId = row.sourceProgressId;
-    let stageId = row.stageId;
-    if (row.publishedAt && row.entryActionId) {
-      const action = await context.database.enrollmentAction.findUniqueOrThrow({
-        where: { id: row.entryActionId },
+    if (action.status === "SCHEDULED") {
+      await withdrawPlacement(context, {
+        id: current.id,
+        version: current.version,
+        reason: input.reason || "Revisão de destino pela coordenação",
       });
-      if (action.status === "SCHEDULED") {
-        await withdrawPlacement(context, {
-          id: row.id,
-          version: row.version,
-          reason: input.reason || "Revisão de destino pela coordenação",
-        });
-        row = await context.database.semesterPlacement.findUniqueOrThrow({ where: { id: row.id } });
-      }
-    }
-    if (row.publishedAt) {
-      const progress = await context.database.pedagogicalProgress.findFirst({
-        where: { enrollmentId: row.enrollmentId ?? "", endDate: null, deletedAt: null },
-      });
-      if (!progress) throw badRequest("O vínculo mudou. Atualize a organização.");
-      sourceProgressId = progress.id;
-      stageId = progress.stageId;
-      await context.database.semesterPlacement.update({
-        where: { id: row.id },
-        data: {
-          publishedAt: null,
-          publishedById: null,
-          entryActionId: null,
-          sourceExitActionId: null,
-          enrollmentId: null,
-          availabilityId: null,
-        },
+      current = await context.database.semesterPlacement.findUniqueOrThrow({
+        where: { id: current.id },
       });
     }
-    await savePlacement(context, {
-      id: row.id,
-      version: row.version,
-      semesterId: input.semesterId,
-      studentId: row.studentId,
-      planId: input.planId,
-      stageId,
-      sourceProgressId,
-      mode: sourceProgressId ? "CONTINUE" : "ENTRY",
-      effectiveDate: input.effectiveDate,
-      notes: input.reason || row.notes || "",
+  }
+  if (current.publishedAt) {
+    const progress = await context.database.pedagogicalProgress.findFirst({
+      where: { enrollmentId: current.enrollmentId ?? "", endDate: null, deletedAt: null },
+    });
+    if (!progress) throw badRequest("O vínculo mudou. Atualize a organização.");
+    sourceProgressId = progress.id;
+    stageId = progress.stageId;
+    await context.database.semesterPlacement.update({
+      where: { id: current.id },
+      data: {
+        publishedAt: null,
+        publishedById: null,
+        entryActionId: null,
+        sourceExitActionId: null,
+        enrollmentId: null,
+        availabilityId: null,
+      },
     });
   }
-  return { count: input.selections.length };
+  return { current, sourceProgressId, stageId };
 }
 
 async function moveToSemester(
@@ -116,67 +136,111 @@ async function moveToSemester(
   const targetSemester = await context.database.semester.findUniqueOrThrow({
     where: { id: semesterId },
   });
-  for (const selected of input.selections) {
-    const source = await context.database.semesterPlacement.findFirst({
-      where: { id: selected.id, semesterId: input.semesterId, deletedAt: null },
-    });
-    if (!source) throw notFound("Aluno não encontrado na organização de origem.");
-    await lockStudentEnrollment(context.database, source.studentId);
-    assertVersion(source.version, selected.version);
-    const target = await context.database.semesterPlacement.findFirst({
-      where: { semesterId, studentId: source.studentId, trackId: source.trackId, deletedAt: null },
-    });
-    if (target) {
-      assertVersion(target.version, input.targetVersions?.[target.id] ?? 0);
-      await movePlacements(context, {
-        ...input,
-        semesterId,
-        targetSemesterId: semesterId,
-        selections: [{ id: target.id, version: target.version }],
-      });
-      continue;
-    }
-    const current = source.enrollmentId
-      ? await context.database.pedagogicalProgress.findFirst({
-          where: { enrollmentId: source.enrollmentId, deletedAt: null, endDate: null },
-        })
-      : null;
-    const availability = await context.database.studentAvailability.findFirst({
-      where: { semesterId, studentId: source.studentId, deletedAt: null },
-    });
-    if (!availability) {
-      const previous = await context.database.studentAvailability.findFirst({
-        where: { semesterId: input.semesterId, studentId: source.studentId, deletedAt: null },
-        orderBy: { createdAt: "desc" },
-      });
-      if (previous)
-        await context.database.studentAvailability.create({
-          data: {
-            semesterId,
-            studentId: source.studentId,
-            confirmed: false,
-            formats: previous.formats,
-            slots: readSlots(previous.slots),
-            validUntil: targetSemester.endDate,
-            notes: previous.notes,
-            recordedById: context.staffUser.id,
-          },
-        });
-    }
-    const sourceProgressId = current?.id ?? source.sourceProgressId;
-    await savePlacement(context, {
+  for (const selected of input.selections)
+    await moveAcrossSemester(context, {
+      input,
+      selected,
       semesterId,
-      studentId: source.studentId,
-      version: 0,
-      planId: input.planId,
-      stageId: current?.stageId ?? source.stageId,
-      sourceProgressId,
-      mode: sourceProgressId ? "CONTINUE" : "ENTRY",
-      effectiveDate: input.effectiveDate,
-      notes: input.reason,
+      targetSemesterEnd: targetSemester.endDate,
     });
-  }
   return { count: input.selections.length };
+}
+
+async function moveAcrossSemester(
+  context: OrganizationContext,
+  {
+    input,
+    selected,
+    semesterId,
+    targetSemesterEnd,
+  }: {
+    input: z.infer<typeof moveSchema>;
+    selected: Selection;
+    semesterId: string;
+    targetSemesterEnd: Date;
+  },
+): Promise<void> {
+  const source = await context.database.semesterPlacement.findFirst({
+    where: { id: selected.id, semesterId: input.semesterId, deletedAt: null },
+  });
+  if (!source) throw notFound("Aluno não encontrado na organização de origem.");
+  await lockStudentEnrollment(context.database, source.studentId);
+  assertVersion(source.version, selected.version);
+  const target = await context.database.semesterPlacement.findFirst({
+    where: { semesterId, studentId: source.studentId, trackId: source.trackId, deletedAt: null },
+  });
+  if (target) {
+    assertVersion(target.version, input.targetVersions?.[target.id] ?? 0);
+    await movePlacements(context, {
+      ...input,
+      semesterId,
+      targetSemesterId: semesterId,
+      selections: [{ id: target.id, version: target.version }],
+    });
+    return;
+  }
+  const current = await currentSourceProgress(context, source);
+  await copyAvailability(context, { source, input, semesterId, targetSemesterEnd });
+  const sourceProgressId = current?.id ?? source.sourceProgressId;
+  await savePlacement(context, {
+    semesterId,
+    studentId: source.studentId,
+    version: 0,
+    planId: input.planId,
+    stageId: current?.stageId ?? source.stageId,
+    sourceProgressId,
+    mode: sourceProgressId ? "CONTINUE" : "ENTRY",
+    effectiveDate: input.effectiveDate,
+    notes: input.reason,
+  });
+}
+
+async function currentSourceProgress(
+  context: OrganizationContext,
+  source: Placement,
+): Promise<Prisma.PedagogicalProgressGetPayload<Prisma.PedagogicalProgressDefaultArgs> | null> {
+  if (!source.enrollmentId) return null;
+  return context.database.pedagogicalProgress.findFirst({
+    where: { enrollmentId: source.enrollmentId, deletedAt: null, endDate: null },
+  });
+}
+
+async function copyAvailability(
+  context: OrganizationContext,
+  {
+    source,
+    input,
+    semesterId,
+    targetSemesterEnd,
+  }: {
+    source: Placement;
+    input: z.infer<typeof moveSchema>;
+    semesterId: string;
+    targetSemesterEnd: Date;
+  },
+): Promise<void> {
+  const availability = await context.database.studentAvailability.findFirst({
+    where: { semesterId, studentId: source.studentId, deletedAt: null },
+  });
+  if (!availability) {
+    const previous = await context.database.studentAvailability.findFirst({
+      where: { semesterId: input.semesterId, studentId: source.studentId, deletedAt: null },
+      orderBy: { createdAt: "desc" },
+    });
+    if (previous)
+      await context.database.studentAvailability.create({
+        data: {
+          semesterId,
+          studentId: source.studentId,
+          confirmed: false,
+          formats: previous.formats,
+          slots: readSlots(previous.slots),
+          validUntil: targetSemesterEnd,
+          notes: previous.notes,
+          recordedById: context.staffUser.id,
+        },
+      });
+  }
 }
 
 export async function declinePlacements(
@@ -262,14 +326,49 @@ export async function updatePeriod(
   context: OrganizationContext,
   input: z.infer<typeof periodSchema>,
 ): Promise<{ affected: number }> {
+  const startDate = new Date(input.startDate),
+    endDate = new Date(input.endDate);
+  await assertPeriodChange(context, { input, startDate, endDate });
+  await context.database.semester.update({
+    where: { id: input.semesterId },
+    data: { name: input.name, startDate, endDate },
+  });
+  const affected = await context.database.classSession.count({
+    where: {
+      class: { semesterId: input.semesterId },
+      deletedAt: null,
+      OR: [{ date: { lt: startDate } }, { date: { gt: endDate } }],
+    },
+  });
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.updatePeriod",
+    details: {
+      subject: { type: "school", name: input.name },
+      description: `Período revisado: ${input.startDate} a ${input.endDate}.`,
+    },
+  });
+  return { affected };
+}
+
+async function assertPeriodChange(
+  context: OrganizationContext,
+  {
+    input,
+    startDate,
+    endDate,
+  }: {
+    input: z.infer<typeof periodSchema>;
+    startDate: Date;
+    endDate: Date;
+  },
+): Promise<void> {
   const previous = await lockSemester(context, input.semesterId);
   if (
     dateOnly(previous.startDate) !== input.previousStart ||
     dateOnly(previous.endDate) !== input.previousEnd
   )
     throw badRequest("O período mudou. Atualize a página antes de salvar.");
-  const startDate = new Date(input.startDate),
-    endDate = new Date(input.endDate);
   const overlap = await context.database.semester.findFirst({
     where: {
       id: { not: input.semesterId },
@@ -292,24 +391,4 @@ export async function updatePeriod(
     throw badRequest(
       `${outside} alocações confirmadas ficariam fora do período. Revise suas vigências antes de mudar estas datas.`,
     );
-  await context.database.semester.update({
-    where: { id: input.semesterId },
-    data: { name: input.name, startDate, endDate },
-  });
-  const affected = await context.database.classSession.count({
-    where: {
-      class: { semesterId: input.semesterId },
-      deletedAt: null,
-      OR: [{ date: { lt: startDate } }, { date: { gt: endDate } }],
-    },
-  });
-  await recordActivity(context.database, {
-    context,
-    action: "semesterOrganization.updatePeriod",
-    details: {
-      subject: { type: "school", name: input.name },
-      description: `Período revisado: ${input.startDate} a ${input.endDate}.`,
-    },
-  });
-  return { affected };
 }

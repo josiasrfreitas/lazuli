@@ -9,6 +9,7 @@ import {
   assertTeacherEligible,
 } from "../teachers/availability.js";
 import { GENERATION_STALE_MS, requestSessionGeneration } from "../session-generation/requests.js";
+import type { Prisma } from "@lazuli/db";
 import { lockCandidate } from "../admissions/candidates.js";
 import { lockStudentEnrollment } from "../enrollment/data.js";
 import {
@@ -139,69 +140,9 @@ export async function changePlanStatus(
   });
   assertVersion(plan.version, input.version);
   await lockTeacher(context.database, plan.teacherId ?? "");
-  let classId = plan.classId;
-  let generationRequestId: string | null = null;
-  if (input.open) {
-    if (!plan.teacherId) throw badRequest("Defina o professor antes de abrir a turma.");
-    const from = [saoPauloDateOnly(context.now), dateOnly(semester.startDate)].toSorted().at(-1)!;
-    await assertTeacherEligible({
-      database: context.database,
-      teacherId: plan.teacherId,
-      date: from,
-    });
-    if (classId) {
-      await assertNoTeacherConflict({
-        database: context.database,
-        teacherId: plan.teacherId,
-        from,
-        through: dateOnly(semester.endDate),
-        slots: readSlots(plan.slots),
-        excludeClassId: classId,
-      });
-      await context.database.class.update({ where: { id: classId }, data: { status: "ACTIVE" } });
-    } else {
-      const created = await createClass({
-        database: context.database,
-        recordedById: context.staffUser.id,
-        values: {
-          semesterId: semester.id,
-          teacherId: plan.teacherId,
-          scheduleType: plan.scheduleType,
-          format: plan.format,
-          sharedStageId: plan.sharedStageId,
-          slots: readSlots(plan.slots),
-        },
-      });
-      classId = created.id;
-    }
-    const preparing = await context.database.sessionGenerationRequest.findFirst({
-      where: {
-        classId,
-        deletedAt: null,
-        status: { in: ["PENDING", "QUEUED", "RUNNING"] },
-        createdAt: { gt: new Date(context.now.getTime() - GENERATION_STALE_MS) },
-      },
-    });
-    if (!preparing) {
-      const generation = await requestSessionGeneration(context.database, {
-        scope: { classId },
-        requestedById: context.staffUser.id,
-        now: context.now,
-      });
-      generationRequestId = generation.id;
-    }
-  } else if (classId) {
-    const active = await context.database.enrollment.count({
-      where: {
-        classId,
-        deletedAt: null,
-        OR: [{ exitDate: null }, { exitDate: { gt: new Date(saoPauloDateOnly(context.now)) } }],
-      },
-    });
-    if (active)
-      throw badRequest("Transfira ou encerre os vínculos dos alunos antes de encerrar a turma.");
-    await context.database.class.update({ where: { id: classId }, data: { status: "ARCHIVED" } });
-  }
+  const { classId, generationRequestId } = input.open
+    ? await openClassPlan(context, { plan, semester })
+    : await closeClassPlan(context, plan);
   await context.database.semesterClassPlan.update({
     where: { id: plan.id },
     data: { classId, closedAt: input.open ? null : context.now, version: { increment: 1 } },
@@ -215,4 +156,112 @@ export async function changePlanStatus(
     },
   });
   return { classId, generationRequestId };
+}
+
+type ClassPlan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
+type Semester = Prisma.SemesterGetPayload<Prisma.SemesterDefaultArgs>;
+type PlanStatus = { classId: string | null; generationRequestId: string | null };
+
+async function openClassPlan(
+  context: OrganizationContext,
+  { plan, semester }: { plan: ClassPlan; semester: Semester },
+): Promise<PlanStatus> {
+  if (!plan.teacherId) throw badRequest("Defina o professor antes de abrir a turma.");
+  const from = [saoPauloDateOnly(context.now), dateOnly(semester.startDate)].toSorted().at(-1)!;
+  await assertTeacherEligible({
+    database: context.database,
+    teacherId: plan.teacherId,
+    date: from,
+  });
+  const classId = plan.classId
+    ? await reopenClassPlan(context, {
+        plan,
+        semester,
+        from,
+        classId: plan.classId,
+        teacherId: plan.teacherId,
+      })
+    : await createClassPlan(context, { plan, semester, teacherId: plan.teacherId });
+  const preparing = await context.database.sessionGenerationRequest.findFirst({
+    where: {
+      classId,
+      deletedAt: null,
+      status: { in: ["PENDING", "QUEUED", "RUNNING"] },
+      createdAt: { gt: new Date(context.now.getTime() - GENERATION_STALE_MS) },
+    },
+  });
+  const generation = preparing
+    ? null
+    : await requestSessionGeneration(context.database, {
+        scope: { classId },
+        requestedById: context.staffUser.id,
+        now: context.now,
+      });
+  return { classId, generationRequestId: generation?.id ?? null };
+}
+
+async function reopenClassPlan(
+  context: OrganizationContext,
+  {
+    plan,
+    semester,
+    from,
+    classId,
+    teacherId,
+  }: {
+    plan: ClassPlan;
+    semester: Semester;
+    from: string;
+    classId: string;
+    teacherId: string;
+  },
+): Promise<string> {
+  await assertNoTeacherConflict({
+    database: context.database,
+    teacherId,
+    from,
+    through: dateOnly(semester.endDate),
+    slots: readSlots(plan.slots),
+    excludeClassId: classId,
+  });
+  await context.database.class.update({ where: { id: classId }, data: { status: "ACTIVE" } });
+  return classId;
+}
+
+async function createClassPlan(
+  context: OrganizationContext,
+  { plan, semester, teacherId }: { plan: ClassPlan; semester: Semester; teacherId: string },
+): Promise<string> {
+  const created = await createClass({
+    database: context.database,
+    recordedById: context.staffUser.id,
+    values: {
+      semesterId: semester.id,
+      teacherId,
+      scheduleType: plan.scheduleType,
+      format: plan.format,
+      sharedStageId: plan.sharedStageId,
+      slots: readSlots(plan.slots),
+    },
+  });
+  return created.id;
+}
+
+async function closeClassPlan(context: OrganizationContext, plan: ClassPlan): Promise<PlanStatus> {
+  if (plan.classId) {
+    const active = await context.database.enrollment.count({
+      where: {
+        classId: plan.classId,
+        deletedAt: null,
+        OR: [{ exitDate: null }, { exitDate: { gt: new Date(saoPauloDateOnly(context.now)) } }],
+      },
+    });
+    if (active)
+      throw badRequest("Transfira ou encerre os vínculos dos alunos antes de encerrar a turma.");
+    await context.database.class.update({
+      where: { id: plan.classId },
+      data: { status: "ARCHIVED" },
+    });
+  }
+  return { classId: plan.classId, generationRequestId: null };
 }

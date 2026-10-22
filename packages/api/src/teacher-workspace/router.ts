@@ -29,6 +29,7 @@ import { visitSubject } from "../activity/subjects.js";
 import { lockTeacher } from "../teachers/availability.js";
 import { badRequest } from "../trpc/errors.js";
 import { teacherHomeOverview } from "./home.js";
+import type { RecordContext } from "../class-records/data.js";
 
 const MAX_VISIT_NOTES_LENGTH = 2000;
 
@@ -36,7 +37,7 @@ const context = (ctx: {
   db: Context["db"];
   staffUser: NonNullable<Context["staffUser"]>;
   now?: Date | undefined;
-}) => ({ database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() });
+}): RecordContext => ({ database: ctx.db, staffUser: ctx.staffUser, now: ctx.now ?? new Date() });
 const target = z.object({ id: z.string().uuid() }).strict();
 export const teacherWorkspaceRouter = router({
   home: teacherProcedure.query(({ ctx }) => teacherHomeOverview(context(ctx))),

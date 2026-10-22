@@ -80,6 +80,15 @@ function planningHref(data: Planning): string {
 
 function pacingNotice(data: Planning, today: string): PacingNotice[] {
   const cutoff = shiftHomeDate(today, -HOME_WINDOW_DAYS);
+  const step = stepPacingNotice(data, { today, cutoff });
+  if (step !== null) return step;
+  return pagePacingNotices(data, cutoff);
+}
+
+function stepPacingNotice(
+  data: Planning,
+  { today, cutoff }: { today: string; cutoff: string },
+): PacingNotice[] | null {
   const latest = data.records[0];
   if (latest?.content.planItemId) {
     const band = planningBand(data.plan?.items ?? [], {
@@ -88,25 +97,38 @@ function pacingNotice(data: Planning, today: string): PacingNotice[] {
     });
     if (band.actual >= 0) {
       if (band.position !== "BEHIND") return [];
-      const expected = band.items.findLastIndex((item) => item.plannedOn <= cutoff);
-      const target = band.items[expected];
-      if (!target || expected <= band.actual) return [];
+      const target = stepTarget(band.items, { cutoff, actual: band.actual });
+      if (!target) return [];
       return [
         {
           id: `${data.plan!.id}:steps`,
           basis: "STEP",
           className: data.scope.class.name,
           studentName: data.scope.student?.fullName ?? null,
-          reference: target.title,
+          reference: target.item.title,
           actual: band.actual + 1,
-          expected: expected + 1,
-          plannedOn: target.plannedOn,
+          expected: target.index + 1,
+          plannedOn: target.item.plannedOn,
           lastRecordedOn: latest.date,
           href: planningHref(data),
         },
       ];
     }
   }
+  return null;
+}
+
+type BandItem = NonNullable<Planning["plan"]>["items"][number];
+function stepTarget(
+  items: BandItem[],
+  { cutoff, actual }: { cutoff: string; actual: number },
+): { item: BandItem; index: number } | null {
+  const index = items.findLastIndex((item) => item.plannedOn <= cutoff);
+  const item = items[index];
+  return item && index > actual ? { item, index } : null;
+}
+
+function pagePacingNotices(data: Planning, cutoff: string): PacingNotice[] {
   const due = (data.plan?.items ?? []).filter(
     (item) =>
       item.kind !== "ASSESSMENT" &&

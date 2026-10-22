@@ -12,6 +12,7 @@ import { lockStudentEnrollment } from "../enrollment/data.js";
 import { loadActiveStage, assertTeacherIsActive } from "../classes/guards.js";
 import { badRequest, notFound } from "../trpc/errors.js";
 import { lockCandidate } from "../admissions/candidates.js";
+import type { Prisma } from "@lazuli/db";
 import {
   readSlots,
   lockSemester,
@@ -27,30 +28,7 @@ export async function saveClassPlan(
   input: SemesterPlanInput,
 ): Promise<{ id: string }> {
   await lockSemester(context, input.semesterId);
-  if (input.teacherId)
-    await assertTeacherIsActive({ database: context.database, teacherId: input.teacherId });
-  if (input.sharedStageId)
-    await loadActiveStage({ database: context.database, stageId: input.sharedStageId });
-  const previous = input.id
-    ? await context.database.semesterClassPlan.findFirst({
-        where: { id: input.id, semesterId: input.semesterId },
-      })
-    : null;
-  if (input.id && !previous) throw notFound("Turma planejada não encontrada.");
-  assertVersion(previous?.version ?? 0, input.version);
-  if (previous?.classId)
-    throw badRequest(
-      "Esta turma já foi publicada. Use a operação da turma para alterar o professor.",
-    );
-  const scheduleKey = (slots: typeof input.slots): string =>
-    slots
-      .map((slot) => `${slot.weekday}:${slot.startTime}:${slot.endTime}`)
-      .toSorted()
-      .join("|");
-  if (!previous || scheduleKey(readSlots(previous.slots)) !== scheduleKey(input.slots)) {
-    const schedule = classScheduleSlotsInputSchema.safeParse(input.slots);
-    if (!schedule.success) throw badRequest(schedule.error.issues[0]!.message);
-  }
+  const previous = await validatePlanInput(context, input);
   const data = {
     name: input.name,
     scheduleType: input.scheduleType,
@@ -68,6 +46,61 @@ export async function saveClassPlan(
     : await context.database.semesterClassPlan.create({
         data: { ...data, semesterId: input.semesterId },
       });
+  await linkPlanLeads(context, { input, planId: plan.id });
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.savePlan",
+    details: {
+      subject: { type: "school", name: plan.name },
+      description: previous
+        ? "Organização da turma revisada."
+        : "Turma incluída na organização do semestre.",
+    },
+  });
+  return { id: plan.id };
+}
+
+type ClassPlan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
+
+async function validatePlanInput(
+  context: OrganizationContext,
+  input: SemesterPlanInput,
+): Promise<ClassPlan | null> {
+  if (input.teacherId)
+    await assertTeacherIsActive({ database: context.database, teacherId: input.teacherId });
+  if (input.sharedStageId)
+    await loadActiveStage({ database: context.database, stageId: input.sharedStageId });
+  const previous = input.id
+    ? await context.database.semesterClassPlan.findFirst({
+        where: { id: input.id, semesterId: input.semesterId },
+      })
+    : null;
+  if (input.id && !previous) throw notFound("Turma planejada não encontrada.");
+  assertVersion(previous?.version ?? 0, input.version);
+  if (previous?.classId)
+    throw badRequest(
+      "Esta turma já foi publicada. Use a operação da turma para alterar o professor.",
+    );
+  assertPlanSchedule(input, previous);
+  return previous;
+}
+
+function assertPlanSchedule(input: SemesterPlanInput, previous: ClassPlan | null): void {
+  const scheduleKey = (slots: typeof input.slots): string =>
+    slots
+      .map((slot) => `${slot.weekday}:${slot.startTime}:${slot.endTime}`)
+      .toSorted()
+      .join("|");
+  if (!previous || scheduleKey(readSlots(previous.slots)) !== scheduleKey(input.slots)) {
+    const schedule = classScheduleSlotsInputSchema.safeParse(input.slots);
+    if (!schedule.success) throw badRequest(schedule.error.issues[0]!.message);
+  }
+}
+
+async function linkPlanLeads(
+  context: OrganizationContext,
+  { input, planId }: { input: SemesterPlanInput; planId: string },
+): Promise<void> {
   for (const id of [...new Set(input.leadIds ?? [])].toSorted()) {
     await lockCandidate(context.database, id);
     const lead = await context.database.admissionCandidate.findFirst({
@@ -85,20 +118,9 @@ export async function saveClassPlan(
       );
     await context.database.admissionCandidate.update({
       where: { id },
-      data: { allocationPlanId: plan.id },
+      data: { allocationPlanId: planId },
     });
   }
-  await recordActivity(context.database, {
-    context,
-    action: "semesterOrganization.savePlan",
-    details: {
-      subject: { type: "school", name: plan.name },
-      description: previous
-        ? "Organização da turma revisada."
-        : "Turma incluída na organização do semestre.",
-    },
-  });
-  return { id: plan.id };
 }
 
 export async function savePlacement(
@@ -106,66 +128,9 @@ export async function savePlacement(
   input: SemesterPlacementInput,
 ): Promise<{ id: string }> {
   const semester = await lockSemester(context, input.semesterId);
-  const effectiveDate =
-    input.effectiveDate ??
-    [semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH), saoPauloDateOnly(context.now)]
-      .toSorted()
-      .at(-1)!;
-  if (
-    effectiveDate < semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH) ||
-    effectiveDate > semester.endDate.toISOString().slice(0, ISO_DATE_LENGTH) ||
-    effectiveDate < saoPauloDateOnly(context.now)
-  )
-    throw badRequest("Escolha uma vigência de hoje em diante, dentro do semestre.");
+  const effectiveDate = placementEffectiveDate(context, { input, semester });
   await lockStudentEnrollment(context.database, input.studentId);
-  const student = await context.database.student.findUnique({ where: { id: input.studentId } });
-  if (!student) throw notFound("Aluno não encontrado.");
-  const previous = input.id
-    ? await context.database.semesterPlacement.findFirst({
-        where: { id: input.id, semesterId: input.semesterId, studentId: input.studentId },
-      })
-    : null;
-  if (input.id && !previous) throw notFound("Proposta não encontrada.");
-  assertVersion(previous?.version ?? 0, input.version);
-  if (previous?.publishedAt) throw badRequest("Desfaça a publicação antes de revisar a proposta.");
-  if (
-    input.planId &&
-    !(await context.database.semesterClassPlan.findFirst({
-      where: { id: input.planId, semesterId: input.semesterId },
-    }))
-  )
-    throw badRequest("Escolha uma turma deste semestre.");
-  const source = input.sourceProgressId
-    ? await context.database.pedagogicalProgress.findFirst({
-        where: {
-          id: input.sourceProgressId,
-          enrollment: { studentId: input.studentId, deletedAt: null },
-        },
-        include: { stage: true },
-      })
-    : null;
-  if (input.sourceProgressId && !source)
-    throw badRequest("Percurso de origem não encontrado para este aluno.");
-  if (input.mode !== "ENTRY" && !source) throw badRequest("Selecione o percurso de origem.");
-  if (input.mode === "ENTRY" && source)
-    throw badRequest("Entrada nova não deve ter um percurso de origem.");
-  const stage = input.stageId
-    ? await loadActiveStage({ database: context.database, stageId: input.stageId })
-    : null;
-  const trackId = stage?.trackId ?? source?.stage.trackId;
-  if (!trackId) throw badRequest("Defina o estágio indicado para este aluno.");
-  const duplicate = await context.database.semesterPlacement.findFirst({
-    where: {
-      semesterId: input.semesterId,
-      studentId: input.studentId,
-      trackId,
-      ...(previous ? { id: { not: previous.id } } : {}),
-    },
-  });
-  if (duplicate)
-    throw badRequest(
-      "Este aluno já tem uma proposta nesta trilha e semestre. Revise a proposta existente.",
-    );
+  const { student, previous, source, trackId } = await placementRelations(context, input);
   const data = {
     semesterId: input.semesterId,
     studentId: input.studentId,
@@ -199,10 +164,130 @@ export async function savePlacement(
   return { id: row.id };
 }
 
+type Placement = Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;
+type Student = Prisma.StudentGetPayload<Prisma.StudentDefaultArgs>;
+type SourceProgress = Prisma.PedagogicalProgressGetPayload<{ include: { stage: true } }>;
+type Semester = Prisma.SemesterGetPayload<Prisma.SemesterDefaultArgs>;
+
+function placementEffectiveDate(
+  context: OrganizationContext,
+  { input, semester }: { input: SemesterPlacementInput; semester: Semester },
+): string {
+  const effectiveDate =
+    input.effectiveDate ??
+    [semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH), saoPauloDateOnly(context.now)]
+      .toSorted()
+      .at(-1)!;
+  if (
+    effectiveDate < semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH) ||
+    effectiveDate > semester.endDate.toISOString().slice(0, ISO_DATE_LENGTH) ||
+    effectiveDate < saoPauloDateOnly(context.now)
+  )
+    throw badRequest("Escolha uma vigência de hoje em diante, dentro do semestre.");
+  return effectiveDate;
+}
+
+async function placementRelations(
+  context: OrganizationContext,
+  input: SemesterPlacementInput,
+): Promise<{
+  student: Student;
+  previous: Placement | null;
+  source: SourceProgress | null;
+  trackId: string;
+}> {
+  const student = await context.database.student.findUnique({ where: { id: input.studentId } });
+  if (!student) throw notFound("Aluno não encontrado.");
+  const previous = input.id
+    ? await context.database.semesterPlacement.findFirst({
+        where: { id: input.id, semesterId: input.semesterId, studentId: input.studentId },
+      })
+    : null;
+  if (input.id && !previous) throw notFound("Proposta não encontrada.");
+  assertVersion(previous?.version ?? 0, input.version);
+  if (previous?.publishedAt) throw badRequest("Desfaça a publicação antes de revisar a proposta.");
+  await assertPlacementPlan(context, input);
+  const { source, trackId } = await placementSource(context, input);
+  await assertNoDuplicatePlacement(context, { input, previous, trackId });
+  return { student, previous, source, trackId };
+}
+
+async function assertPlacementPlan(
+  context: OrganizationContext,
+  input: SemesterPlacementInput,
+): Promise<void> {
+  if (
+    input.planId &&
+    !(await context.database.semesterClassPlan.findFirst({
+      where: { id: input.planId, semesterId: input.semesterId },
+    }))
+  )
+    throw badRequest("Escolha uma turma deste semestre.");
+}
+
+async function assertNoDuplicatePlacement(
+  context: OrganizationContext,
+  {
+    input,
+    previous,
+    trackId,
+  }: {
+    input: SemesterPlacementInput;
+    previous: Placement | null;
+    trackId: string;
+  },
+): Promise<void> {
+  const duplicate = await context.database.semesterPlacement.findFirst({
+    where: {
+      semesterId: input.semesterId,
+      studentId: input.studentId,
+      trackId,
+      ...(previous ? { id: { not: previous.id } } : {}),
+    },
+  });
+  if (duplicate)
+    throw badRequest(
+      "Este aluno já tem uma proposta nesta trilha e semestre. Revise a proposta existente.",
+    );
+}
+
+async function placementSource(
+  context: OrganizationContext,
+  input: SemesterPlacementInput,
+): Promise<{ source: SourceProgress | null; trackId: string }> {
+  const source = input.sourceProgressId
+    ? await context.database.pedagogicalProgress.findFirst({
+        where: {
+          id: input.sourceProgressId,
+          enrollment: { studentId: input.studentId, deletedAt: null },
+        },
+        include: { stage: true },
+      })
+    : null;
+  assertPlacementSource(input, source);
+  const stage = input.stageId
+    ? await loadActiveStage({ database: context.database, stageId: input.stageId })
+    : null;
+  const trackId = stage?.trackId ?? source?.stage.trackId;
+  if (!trackId) throw badRequest("Defina o estágio indicado para este aluno.");
+  return { source, trackId };
+}
+
+function assertPlacementSource(input: SemesterPlacementInput, source: SourceProgress | null): void {
+  if (input.sourceProgressId && !source)
+    throw badRequest("Percurso de origem não encontrado para este aluno.");
+  if (input.mode !== "ENTRY" && !source) throw badRequest("Selecione o percurso de origem.");
+  if (input.mode === "ENTRY" && source)
+    throw badRequest("Entrada nova não deve ter um percurso de origem.");
+}
+
 async function availabilityOwner(
   context: OrganizationContext,
   input: { semesterId: string; studentId: string; previousId: string | null },
-) {
+): Promise<{
+  student: Student;
+  previous: Prisma.StudentAvailabilityGetPayload<Prisma.StudentAvailabilityDefaultArgs> | null;
+}> {
   await lockSemester(context, input.semesterId);
   await lockStudentEnrollment(context.database, input.studentId);
   const student = await context.database.student.findUnique({ where: { id: input.studentId } });

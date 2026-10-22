@@ -12,47 +12,88 @@ import { listClassRecords } from "../class-records/read.js";
 import { notFound } from "../trpc/errors.js";
 import { canReadAppointment } from "../appointments/data.js";
 
-export async function workspaceClasses(context: RecordContext) {
-  const today = new Date(saoPauloDateOnly(context.now));
-  const rows = await context.database.class.findMany({
-    where: {
-      deletedAt: null,
-      OR: [
-        { teacherId: context.staffUser.id },
-        { teacherAssignments: { some: { teacherId: context.staffUser.id, supersededAt: null } } },
-        {
-          substitutions: {
-            some: { teacherId: context.staffUser.id, revokedAt: null, deletedAt: null },
-          },
-        },
-        { sessions: { some: { classRecord: { teachingTeacherId: context.staffUser.id } } } },
-      ],
-    },
+type ClassModel = Prisma.ClassGetPayload<Prisma.ClassDefaultArgs>;
+type AttendanceModel = Prisma.AttendanceGetPayload<Prisma.AttendanceDefaultArgs>;
+type ScheduleSlot = Prisma.ClassScheduleSlotGetPayload<Prisma.ClassScheduleSlotDefaultArgs>;
+type WorkspaceClass = {
+  id: string;
+  name: string;
+  format: ClassModel["format"];
+  scheduleType: ClassModel["scheduleType"];
+  stage: string;
+  semester: { name: string; startDate: Date; endDate: Date };
+  current: boolean;
+  schedule: Array<{ weekday: ScheduleSlot["weekday"]; startTime: string; endTime: string }>;
+};
+type WorkspaceStudent = {
+  id: string;
+  name: string;
+  current: boolean;
+  classes: Array<{
+    id: string;
+    name: string;
+    scheduleType: ClassModel["scheduleType"];
+    enrollmentId: string;
+    progress: Array<{ id: string; stage: string }>;
+  }>;
+};
+type WorkspaceStudentDetail = WorkspaceStudent & {
+  attendance: Array<{
+    id: string;
+    sessionId: string;
+    status: AttendanceModel["status"];
+    date: string;
+    className: string;
+  }>;
+};
+
+const workspaceClassSelect = {
+  id: true,
+  portalClassName: true,
+  format: true,
+  scheduleType: true,
+  status: true,
+  semester: { select: { name: true, startDate: true, endDate: true } },
+  sharedStage: { select: { name: true } },
+  ...responsibilitySelect,
+  substitutions: { select: { id: true } },
+  scheduleSlots: {
+    where: { deletedAt: null },
+    select: { weekday: true, startTime: true, endTime: true },
+  },
+} satisfies Prisma.ClassSelect;
+type WorkspaceClassRow = Prisma.ClassGetPayload<{ select: typeof workspaceClassSelect }>;
+const workspaceAppointmentSelect = {
+  studentId: true,
+  status: true,
+  purpose: true,
+  recordedAt: true,
+  teacher: { select: { id: true, name: true } },
+  targetClassSession: { include: recordSessionInclude },
+} satisfies Prisma.PedagogicalAppointmentSelect;
+type WorkspaceAppointment = Prisma.PedagogicalAppointmentGetPayload<{
+  select: typeof workspaceAppointmentSelect;
+}>;
+const workspaceStudentSelect = {
+  id: true,
+  fullName: true,
+  enrollments: {
     select: {
       id: true,
-      portalClassName: true,
-      format: true,
-      scheduleType: true,
-      status: true,
-      semester: { select: { name: true, startDate: true, endDate: true } },
-      sharedStage: { select: { name: true } },
-      ...responsibilitySelect,
-      substitutions: {
-        where: {
-          teacherId: context.staffUser.id,
-          revokedAt: null,
-          deletedAt: null,
-          date: { gte: today },
-        },
-        select: { id: true },
-      },
-      scheduleSlots: {
-        where: { deletedAt: null },
-        select: { weekday: true, startTime: true, endTime: true },
+      classId: true,
+      class: { select: { portalClassName: true, scheduleType: true } },
+      progressRecords: {
+        select: { id: true, stage: { select: { name: true } } },
       },
     },
-    orderBy: [{ semester: { startDate: "desc" } }, { portalClassName: "asc" }],
-  });
+  },
+  pedagogicalInterventions: { select: { id: true }, take: 1 },
+} satisfies Prisma.StudentSelect;
+type WorkspaceStudentRow = Prisma.StudentGetPayload<{ select: typeof workspaceStudentSelect }>;
+
+export async function workspaceClasses(context: RecordContext): Promise<WorkspaceClass[]> {
+  const today = new Date(saoPauloDateOnly(context.now));
+  const rows = await loadWorkspaceClassRows(context, today);
   return rows.map((row) => ({
     id: row.id,
     name: row.portalClassName,
@@ -72,6 +113,40 @@ export async function workspaceClasses(context: RecordContext) {
   }));
 }
 
+async function loadWorkspaceClassRows(
+  context: RecordContext,
+  today: Date,
+): Promise<WorkspaceClassRow[]> {
+  return context.database.class.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        { teacherId: context.staffUser.id },
+        { teacherAssignments: { some: { teacherId: context.staffUser.id, supersededAt: null } } },
+        {
+          substitutions: {
+            some: { teacherId: context.staffUser.id, revokedAt: null, deletedAt: null },
+          },
+        },
+        { sessions: { some: { classRecord: { teachingTeacherId: context.staffUser.id } } } },
+      ],
+    },
+    select: {
+      ...workspaceClassSelect,
+      substitutions: {
+        where: {
+          teacherId: context.staffUser.id,
+          revokedAt: null,
+          deletedAt: null,
+          date: { gte: today },
+        },
+        select: workspaceClassSelect.substitutions.select,
+      },
+    },
+    orderBy: [{ semester: { startDate: "desc" } }, { portalClassName: "asc" }],
+  });
+}
+
 export function currentEnrollment(today: Date): Prisma.EnrollmentWhereInput {
   return {
     deletedAt: null,
@@ -83,10 +158,42 @@ export function currentEnrollment(today: Date): Prisma.EnrollmentWhereInput {
   };
 }
 
-export async function workspaceStudents(context: RecordContext) {
+export async function workspaceStudents(context: RecordContext): Promise<WorkspaceStudent[]> {
   const today = new Date(saoPauloDateOnly(context.now));
   const assignedClasses = await workspaceClasses(context);
   const classes = assignedClasses.filter((row) => row.current);
+  const appointments = await loadWorkspaceAppointments(context);
+  const activeAppointments = new Set(
+    appointments
+      .filter(
+        (row) =>
+          row.status === "SCHEDULED" ||
+          (row.purpose === "ASSESSMENT" && row.status !== "CANCELLED"),
+      )
+      .map((row) => row.studentId),
+  );
+  const rows = await loadWorkspaceStudentRows(context, { today, classes, appointments });
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.fullName,
+    current:
+      row.enrollments.length > 0 ||
+      activeAppointments.has(row.id) ||
+      row.pedagogicalInterventions.length > 0,
+    classes: row.enrollments.map((item) => ({
+      id: item.classId,
+      name: item.class.portalClassName,
+      scheduleType: item.class.scheduleType,
+      enrollmentId: item.id,
+      progress: item.progressRecords.map((progress) => ({
+        id: progress.id,
+        stage: progress.stage.name,
+      })),
+    })),
+  }));
+}
+
+async function loadWorkspaceAppointments(context: RecordContext): Promise<WorkspaceAppointment[]> {
   const candidates = await context.database.pedagogicalAppointment.findMany({
     where: {
       deletedAt: null,
@@ -113,102 +220,91 @@ export async function workspaceStudents(context: RecordContext) {
         },
       ],
     },
-    select: {
-      studentId: true,
-      status: true,
-      purpose: true,
-      recordedAt: true,
-      teacher: { select: { id: true, name: true } },
-      targetClassSession: { include: recordSessionInclude },
-    },
+    select: workspaceAppointmentSelect,
   });
-  const appointments = candidates.filter((row) => canReadAppointment(context, row));
-  const activeAppointments = new Set(
-    appointments
-      .filter(
-        (row) =>
-          row.status === "SCHEDULED" ||
-          (row.purpose === "ASSESSMENT" && row.status !== "CANCELLED"),
-      )
-      .map((row) => row.studentId),
-  );
+  return candidates.filter((row) => canReadAppointment(context, row));
+}
+
+async function loadWorkspaceStudentRows(
+  context: RecordContext,
+  {
+    today,
+    classes,
+    appointments,
+  }: { today: Date; classes: WorkspaceClass[]; appointments: WorkspaceAppointment[] },
+): Promise<WorkspaceStudentRow[]> {
   const enrollment = { ...currentEnrollment(today), classId: { in: classes.map((row) => row.id) } };
-  const rows = await context.database.student.findMany({
-    where: {
-      deletedAt: null,
-      OR: [
-        { enrollments: { some: enrollment } },
-        { id: { in: appointments.map((row) => row.studentId) } },
-        {
-          pedagogicalInterventions: {
-            some: { responsibleId: context.staffUser.id, deletedAt: null },
-          },
-        },
-        {
-          pedagogicalOccurrences: { some: { recordedById: context.staffUser.id, deletedAt: null } },
-        },
-        {
-          enrollments: {
-            some: {
-              attendanceRows: {
-                some: {
-                  deletedAt: null,
-                  classSession: { classRecord: { teachingTeacherId: context.staffUser.id } },
-                },
-              },
-            },
-          },
-        },
-      ],
-    },
+  return context.database.student.findMany({
+    where: workspaceStudentWhere(context, { enrollment, appointments }),
     select: {
-      id: true,
-      fullName: true,
+      ...workspaceStudentSelect,
       enrollments: {
+        ...workspaceStudentSelect.enrollments,
         where: enrollment,
         select: {
-          id: true,
-          classId: true,
-          class: { select: { portalClassName: true, scheduleType: true } },
+          ...workspaceStudentSelect.enrollments.select,
           progressRecords: {
+            ...workspaceStudentSelect.enrollments.select.progressRecords,
             where: {
               deletedAt: null,
               startDate: { lte: today },
               OR: [{ endDate: null }, { endDate: { gte: today } }],
             },
-            select: { id: true, stage: { select: { name: true } } },
           },
         },
       },
       pedagogicalInterventions: {
+        ...workspaceStudentSelect.pedagogicalInterventions,
         where: { responsibleId: context.staffUser.id, deletedAt: null },
-        select: { id: true },
-        take: 1,
       },
     },
     orderBy: [{ fullName: "asc" }, { id: "asc" }],
   });
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.fullName,
-    current:
-      row.enrollments.length > 0 ||
-      activeAppointments.has(row.id) ||
-      row.pedagogicalInterventions.length > 0,
-    classes: row.enrollments.map((item) => ({
-      id: item.classId,
-      name: item.class.portalClassName,
-      scheduleType: item.class.scheduleType,
-      enrollmentId: item.id,
-      progress: item.progressRecords.map((progress) => ({
-        id: progress.id,
-        stage: progress.stage.name,
-      })),
-    })),
-  }));
 }
 
-export async function workspaceClass(context: RecordContext, id: string) {
+function workspaceStudentWhere(
+  context: RecordContext,
+  {
+    enrollment,
+    appointments,
+  }: { enrollment: Prisma.EnrollmentWhereInput; appointments: WorkspaceAppointment[] },
+): Prisma.StudentWhereInput {
+  return {
+    deletedAt: null,
+    OR: [
+      { enrollments: { some: enrollment } },
+      { id: { in: appointments.map((row) => row.studentId) } },
+      {
+        pedagogicalInterventions: {
+          some: { responsibleId: context.staffUser.id, deletedAt: null },
+        },
+      },
+      { pedagogicalOccurrences: { some: { recordedById: context.staffUser.id, deletedAt: null } } },
+      {
+        enrollments: {
+          some: {
+            attendanceRows: {
+              some: {
+                deletedAt: null,
+                classSession: { classRecord: { teachingTeacherId: context.staffUser.id } },
+              },
+            },
+          },
+        },
+      },
+    ],
+  };
+}
+
+export async function workspaceClass(
+  context: RecordContext,
+  id: string,
+): Promise<
+  WorkspaceClass & {
+    students: WorkspaceStudent[];
+    lessons: Awaited<ReturnType<typeof listClassRecords>>;
+  }
+> {
   const assignedClasses = await workspaceClasses(context);
   const group = assignedClasses.find((row) => row.id === id);
   if (!group) throw notFound("Turma não encontrada entre suas atribuições.");
@@ -229,7 +325,10 @@ export async function workspaceClass(context: RecordContext, id: string) {
   };
 }
 
-export async function workspaceStudent(context: RecordContext, id: string) {
+export async function workspaceStudent(
+  context: RecordContext,
+  id: string,
+): Promise<WorkspaceStudentDetail> {
   const accessibleStudents = await workspaceStudents(context);
   const student = accessibleStudents.find((row) => row.id === id);
   if (!student) throw notFound("Aluno não encontrado entre suas atribuições.");

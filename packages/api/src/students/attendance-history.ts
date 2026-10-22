@@ -37,9 +37,59 @@ const enrollmentSelect = {
   },
 } satisfies Prisma.EnrollmentSelect;
 type Enrollment = Prisma.EnrollmentGetPayload<{ select: typeof enrollmentSelect }>;
+type HistoryWindow = { enrollment: Enrollment; startDate: Date; endDate: Date };
+const historySessionSelect = {
+  id: true,
+  classId: true,
+  date: true,
+  startTime: true,
+  endTime: true,
+  status: true,
+  cancelReason: true,
+  attendanceConfirmedAt: true,
+  attendanceRows: {
+    select: {
+      enrollmentId: true,
+      status: true,
+      notes: true,
+      makeupCoverages: {
+        where: { deletedAt: null, appointment: { deletedAt: null, status: "ATTENDED" } },
+        select: { minutes: true },
+      },
+    },
+  },
+} satisfies Prisma.ClassSessionSelect;
+type HistorySession = Prisma.ClassSessionGetPayload<{ select: typeof historySessionSelect }>;
+type HistoryAttendance = HistorySession["attendanceRows"][number];
+type HistoryStatus = Exclude<AttendanceFilter, "ALL">;
+type HistoryRow = {
+  id: string;
+  sessionId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  className: string;
+  semester: string;
+  status: HistoryStatus;
+  confirmed: boolean;
+  minutes: number;
+  compensatedMinutes: number;
+  notes: string | null;
+};
+type HistoryResult = {
+  today: string;
+  enrollments: Array<{ id: string; className: string; semester: string; entryDate: string }>;
+  attendance: ReturnType<typeof computeCompensatedAttendance>;
+  counts: Record<AttendanceFilter, number>;
+  rows: HistoryRow[];
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  totalItems: number;
+};
 
 /** Past lessons stay attached to the student's roster window, including cancelled and unconfirmed calls. */
-export async function readStudentAttendanceHistory(input: Input) {
+export async function readStudentAttendanceHistory(input: Input): Promise<HistoryResult> {
   const student = await input.database.student.findUnique({
     where: { id: input.id },
     select: { id: true },
@@ -60,49 +110,43 @@ export async function readStudentAttendanceHistory(input: Input) {
       const window = historyWindow(enrollment, today);
       return window ? [{ enrollment, ...window }] : [];
     });
-  const sessions =
-    windows.length > 0
-      ? await input.database.classSession.findMany({
-          where: {
-            deletedAt: null,
-            OR: windows.map(({ enrollment, startDate, endDate }) => ({
-              classId: enrollment.classId,
-              date: {
-                gte: startDate,
-                lte: endDate,
-                ...(enrollment.exitDate ? { lt: enrollment.exitDate } : {}),
-              },
-            })),
-          },
-          orderBy: [{ date: "desc" }, { startTime: "desc" }, { id: "asc" }],
-          select: {
-            id: true,
-            classId: true,
-            date: true,
-            startTime: true,
-            endTime: true,
-            status: true,
-            cancelReason: true,
-            attendanceConfirmedAt: true,
-            attendanceRows: {
-              where: {
-                enrollmentId: { in: windows.map((row) => row.enrollment.id) },
-                deletedAt: null,
-              },
-              select: {
-                enrollmentId: true,
-                status: true,
-                notes: true,
-                makeupCoverages: {
-                  where: { deletedAt: null, appointment: { deletedAt: null, status: "ATTENDED" } },
-                  select: { minutes: true },
-                },
-              },
-            },
-          },
-        })
-      : [];
-  const rows = sessions.flatMap((session) =>
+  const sessions = await loadHistorySessions(input, windows);
+  return summarizeHistory(input, { enrollments, today, rows: historyRows(sessions, windows) });
+}
+
+async function loadHistorySessions(
+  input: Input,
+  windows: HistoryWindow[],
+): Promise<HistorySession[]> {
+  if (windows.length === 0) return [];
+  return input.database.classSession.findMany({
+    where: {
+      deletedAt: null,
+      OR: windows.map(({ enrollment, startDate, endDate }) => ({
+        classId: enrollment.classId,
+        date: {
+          gte: startDate,
+          lte: endDate,
+          ...(enrollment.exitDate ? { lt: enrollment.exitDate } : {}),
+        },
+      })),
+    },
+    orderBy: [{ date: "desc" }, { startTime: "desc" }, { id: "asc" }],
+    select: {
+      ...historySessionSelect,
+      attendanceRows: {
+        ...historySessionSelect.attendanceRows,
+        where: {
+          enrollmentId: { in: windows.map((row) => row.enrollment.id) },
+          deletedAt: null,
+        },
+      },
+    },
+  });
+}
+
+function historyRows(sessions: HistorySession[], windows: HistoryWindow[]): HistoryRow[] {
+  return sessions.flatMap((session) =>
     windows
       .filter(
         ({ enrollment, startDate, endDate }) =>
@@ -111,45 +155,60 @@ export async function readStudentAttendanceHistory(input: Input) {
           session.date <= endDate &&
           (!enrollment.exitDate || session.date < enrollment.exitDate),
       )
-      .map(({ enrollment }) => {
-        const attendance = session.attendanceRows.find((row) => row.enrollmentId === enrollment.id);
-        const confirmed = session.status === "SCHEDULED" && session.attendanceConfirmedAt !== null;
-        const status =
-          session.status === "CANCELLED"
-            ? ("CANCELLED" as const)
-            : confirmed && attendance
-              ? attendance.status
-              : ("PENDING" as const);
-        const startTime = sessionTime(session.startTime);
-        const endTime = sessionTime(session.endTime);
-        const minutes = teachingMinutes({ startTime, endTime });
-        return {
-          id: `${enrollment.id}:${session.id}`,
-          sessionId: session.id,
-          date: toDateOnlyString(session.date),
-          startTime,
-          endTime,
-          className: enrollment.class.portalClassName,
-          semester: enrollment.class.semester.name,
-          status,
-          confirmed,
-          minutes,
-          compensatedMinutes:
-            status === "ABSENT"
-              ? Math.min(
-                  minutes,
-                  attendance?.makeupCoverages.reduce((sum, row) => sum + row.minutes, 0) ?? 0,
-                )
-              : 0,
-          notes:
-            session.status === "CANCELLED"
-              ? session.cancelReason
-              : confirmed
-                ? (attendance?.notes ?? null)
-                : null,
-        };
-      }),
+      .map(({ enrollment }) => historyRow(session, enrollment)),
   );
+}
+
+function historyRow(session: HistorySession, enrollment: Enrollment): HistoryRow {
+  const attendance = session.attendanceRows.find((row) => row.enrollmentId === enrollment.id);
+  const confirmed = session.status === "SCHEDULED" && session.attendanceConfirmedAt !== null;
+  const status = historyStatus(session, { attendance, confirmed });
+  const startTime = sessionTime(session.startTime);
+  const endTime = sessionTime(session.endTime);
+  const minutes = teachingMinutes({ startTime, endTime });
+  return {
+    id: `${enrollment.id}:${session.id}`,
+    sessionId: session.id,
+    date: toDateOnlyString(session.date),
+    startTime,
+    endTime,
+    className: enrollment.class.portalClassName,
+    semester: enrollment.class.semester.name,
+    status,
+    confirmed,
+    minutes,
+    compensatedMinutes:
+      status === "ABSENT"
+        ? Math.min(
+            minutes,
+            attendance?.makeupCoverages.reduce((sum, row) => sum + row.minutes, 0) ?? 0,
+          )
+        : 0,
+    notes: historyNotes(session, { attendance, confirmed }),
+  };
+}
+
+function historyStatus(
+  session: HistorySession,
+  { attendance, confirmed }: { attendance: HistoryAttendance | undefined; confirmed: boolean },
+): HistoryStatus {
+  if (session.status === "CANCELLED") return "CANCELLED";
+  if (confirmed && attendance) return attendance.status;
+  return "PENDING";
+}
+
+function historyNotes(
+  session: HistorySession,
+  { attendance, confirmed }: { attendance: HistoryAttendance | undefined; confirmed: boolean },
+): string | null {
+  if (session.status === "CANCELLED") return session.cancelReason;
+  return confirmed ? (attendance?.notes ?? null) : null;
+}
+
+function summarizeHistory(
+  input: Input,
+  { enrollments, today, rows }: { enrollments: Enrollment[]; today: string; rows: HistoryRow[] },
+): HistoryResult {
   const attendance = computeCompensatedAttendance(
     rows
       .filter((row) => row.confirmed)

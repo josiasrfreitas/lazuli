@@ -14,7 +14,10 @@ import {
 import { badRequest } from "../trpc/errors.js";
 import { closeAttendanceWindows, declarationRoster } from "./data.js";
 
-export function attendanceReviewRestriction(context: RecordContext, session: RecordSession) {
+export function attendanceReviewRestriction(
+  context: RecordContext,
+  session: RecordSession,
+): string | null {
   if (session.status === "CANCELLED") return "Esta aula foi cancelada.";
   if (session.classRecord)
     return "A aula já tem um registro completo. Use Corrigir registro para alterar a presença.";
@@ -47,26 +50,15 @@ export async function confirmAttendanceReview(
     classId: session.classId,
     date: session.date,
   });
-  const requested = new Set(input.rows.map((row) => row.enrollmentId));
-  if (
-    requested.size !== input.rows.length ||
-    requested.size !== roster.length ||
-    roster.some((row) => !requested.has(row.id))
-  )
-    throw badRequest("A lista de alunos mudou. Atualize a chamada antes de confirmar.");
+  assertRosterMatches(
+    input.rows.map((row) => row.enrollmentId),
+    roster.map((row) => row.id),
+  );
 
-  const unseen = await context.database.attendanceDeclaration.count({
-    where: {
-      classSessionId: session.id,
-      deletedAt: null,
-      id: { notIn: input.declarationIds },
-    },
+  await assertNoUnseenDeclarations(context, {
+    sessionId: session.id,
+    declarationIds: input.declarationIds,
   });
-  if (unseen)
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: "Chegou uma nova presença. Confira a lista atualizada e confirme novamente.",
-    });
 
   await commitAttendance(context, { session, entries: input.rows });
   await closeAttendanceWindows(context.database, {
@@ -84,4 +76,32 @@ export async function confirmAttendanceReview(
     },
   });
   return { attendanceStamp: context.now.toISOString(), present, absent: roster.length - present };
+}
+
+async function assertNoUnseenDeclarations(
+  context: RecordContext,
+  { sessionId, declarationIds }: { sessionId: string; declarationIds: string[] },
+): Promise<void> {
+  const unseen = await context.database.attendanceDeclaration.count({
+    where: {
+      classSessionId: sessionId,
+      deletedAt: null,
+      id: { notIn: declarationIds },
+    },
+  });
+  if (unseen)
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Chegou uma nova presença. Confira a lista atualizada e confirme novamente.",
+    });
+}
+
+function assertRosterMatches(requestedIds: string[], rosterIds: string[]): void {
+  const requested = new Set(requestedIds);
+  if (
+    requested.size !== requestedIds.length ||
+    requested.size !== rosterIds.length ||
+    rosterIds.some((id) => !requested.has(id))
+  )
+    throw badRequest("A lista de alunos mudou. Atualize a chamada antes de confirmar.");
 }
