@@ -13,7 +13,7 @@
 
 | Agente                        | Bloco e arquivos próprios                                                                      | Erros do bloco | Ficha                                   |
 | ----------------------------- | ---------------------------------------------------------------------------------------------- | -------------: | --------------------------------------- |
-| `web-block5` (este agente)    | Os cinco arquivos Web ainda com erro, listados no [handoff](pr207-lint-handoff.md)             |             31 | [Web 5](pr207-lint-agent-web-block5.md) |
+| `web-block5` (este agente)    | Os cinco arquivos Web ainda com erro, listados no [handoff](pr207-lint-handoff.md), mais a extração própria `admissions/placement-visit-details.tsx` |             31 | [Web 5](pr207-lint-agent-web-block5.md) |
 | `api-block6` (segundo agente) | Os 24 arquivos da API listados em “Bloco 6 — reservado” no [progresso](pr207-lint-progress.md) |            100 | [API 6](pr207-lint-agent-api-block6.md) |
 
 Cada agente edita e commita somente os arquivos do próprio bloco, com caminhos
