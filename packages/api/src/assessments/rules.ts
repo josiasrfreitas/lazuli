@@ -32,30 +32,48 @@ export async function assertGradeChanges(
 ): Promise<void> {
   const { progress, values, changes } = options;
 
-  if ((progress.assessment?.version ?? 0) !== values.version)
-    throw badRequest(
-      "As notas foram alteradas por outra pessoa. Atualize a página antes de salvar.",
-    );
-  if (changes.length > 0 && progress.assessment?.confirmedAt && !values.correctionReason?.trim())
-    throw badRequest("Justifique a correção das notas já confirmadas.");
+  assertGradeVersion({ progress, values, changes });
   const start = dateOnly(progress.assessment?.startedOn ?? progress.startDate);
   const today = saoPauloDateOnly(context.now);
   if (dateOnly(progress.startDate) > today) throw badRequest("Este estágio ainda não começou.");
   for (const grade of changes) {
     await assertCorrectionAccess(context, { progress, grade });
     if (grade.score === null) continue;
-    if (
-      !grade.assessedOn ||
-      grade.assessedOn < start ||
-      grade.assessedOn > today ||
-      (progress.endDate && grade.assessedOn > dateOnly(progress.endDate))
-    )
-      throw badRequest(
-        "A data da avaliação deve estar no percurso do estágio e não pode estar no futuro.",
-      );
-    await assertAssessmentDateAccess(context, { progress, date: new Date(grade.assessedOn) });
+    const assessedOn = validGradeDate({ grade, progress, start, today });
+    await assertAssessmentDateAccess(context, { progress, date: assessedOn });
   }
   assertGradeSequence(mergedGrades(progress, changes));
+}
+function assertGradeVersion(input: {
+  progress: Progress;
+  values: AssessmentSave;
+  changes: GradeInput[];
+}): void {
+  const { progress, values, changes } = input;
+  if ((progress.assessment?.version ?? 0) !== values.version)
+    throw badRequest(
+      "As notas foram alteradas por outra pessoa. Atualize a página antes de salvar.",
+    );
+  if (changes.length > 0 && progress.assessment?.confirmedAt && !values.correctionReason?.trim())
+    throw badRequest("Justifique a correção das notas já confirmadas.");
+}
+function validGradeDate(input: {
+  grade: GradeInput;
+  progress: Progress;
+  start: string;
+  today: string;
+}): Date {
+  const { grade, progress, start, today } = input;
+  if (
+    !grade.assessedOn ||
+    grade.assessedOn < start ||
+    grade.assessedOn > today ||
+    (progress.endDate && grade.assessedOn > dateOnly(progress.endDate))
+  )
+    throw badRequest(
+      "A data da avaliação deve estar no percurso do estágio e não pode estar no futuro.",
+    );
+  return new Date(grade.assessedOn);
 }
 async function assertCorrectionAccess(
   context: AssessmentContext,
@@ -94,14 +112,28 @@ function mergedGrades(progress: Progress, changes: GradeInput[]): GradeInput[] {
 function assertGradeSequence(grades: GradeInput[]): void {
   for (const competence of ACADEMIC_COMPETENCES) {
     const own = grades.filter((grade) => grade.competence === competence);
-    const first = own.find((grade) => grade.phase === "BLOCK_ONE");
-    const second = own.find((grade) => grade.phase === "BLOCK_TWO");
-    const recovery = own.find((grade) => grade.phase === "RECOVERY");
-    if (first?.assessedOn && second?.assessedOn && second.assessedOn < first.assessedOn)
-      throw badRequest("A segunda unidade não pode ter data anterior à primeira.");
-    if (recovery && (!first || !second))
-      throw badRequest("Registre as duas unidades da competência antes da recuperação.");
-    if (recovery?.assessedOn && second?.assessedOn && recovery.assessedOn < second.assessedOn)
-      throw badRequest("A recuperação não pode ter data anterior às duas unidades.");
+    assertCompetenceSequence(own);
   }
+}
+function assertCompetenceSequence(own: GradeInput[]): void {
+  const first = own.find((grade) => grade.phase === "BLOCK_ONE");
+  const second = own.find((grade) => grade.phase === "BLOCK_TWO");
+  const recovery = own.find((grade) => grade.phase === "RECOVERY");
+  assertUnitDates(first, second);
+  assertRecoverySequence({ first, second, recovery });
+}
+function assertUnitDates(first: GradeInput | undefined, second: GradeInput | undefined): void {
+  if (first?.assessedOn && second?.assessedOn && second.assessedOn < first.assessedOn)
+    throw badRequest("A segunda unidade não pode ter data anterior à primeira.");
+}
+function assertRecoverySequence(input: {
+  first: GradeInput | undefined;
+  second: GradeInput | undefined;
+  recovery: GradeInput | undefined;
+}): void {
+  const { first, second, recovery } = input;
+  if (recovery && (!first || !second))
+    throw badRequest("Registre as duas unidades da competência antes da recuperação.");
+  if (recovery?.assessedOn && second?.assessedOn && recovery.assessedOn < second.assessedOn)
+    throw badRequest("A recuperação não pode ter data anterior às duas unidades.");
 }

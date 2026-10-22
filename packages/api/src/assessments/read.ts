@@ -47,9 +47,33 @@ export type AssessmentView = {
   today: string;
 };
 export function assessmentView(progress: Progress, context: AssessmentContext): AssessmentView {
-  const assessment = progress.assessment;
-  const grades =
-    assessment?.grades.map((grade) => ({
+  const grades = assessmentGrades(progress);
+  const results = assessmentResults(grades);
+  const today = saoPauloDateOnly(context.now);
+  return {
+    ...assessmentIdentity(progress, today),
+    ...assessmentDecision(progress),
+    progressId: progress.id,
+    fileScope: {
+      enrollmentId: progress.enrollmentId,
+      from: dateOnly(progress.startDate),
+      through: progress.endDate ? dateOnly(progress.endDate) : null,
+    },
+    observations: assessmentObservations(progress),
+    student: progress.enrollment.student,
+    class: { id: progress.enrollment.classId, name: progress.enrollment.class.portalClassName },
+    stage: progress.stage,
+    grades,
+    results,
+    status: assessmentStatus(results),
+    canConfirm: context.staffUser.role !== "TEACHER",
+    today,
+  };
+}
+
+function assessmentGrades(progress: Progress): AssessmentView["grades"] {
+  return (
+    progress.assessment?.grades.map((grade) => ({
       phase: grade.phase,
       competence: grade.competence,
       score: Number(grade.score),
@@ -57,38 +81,42 @@ export function assessmentView(progress: Progress, context: AssessmentContext): 
       reason: grade.reason,
       recordedBy: grade.recordedBy.name,
       updatedAt: grade.updatedAt,
-    })) ?? [];
-  const results = assessmentResults(grades);
-  const today = saoPauloDateOnly(context.now);
+    })) ?? []
+  );
+}
+
+function assessmentIdentity(
+  progress: Progress,
+  today: string,
+): Pick<AssessmentView, "assessmentId" | "version" | "startedOn" | "endedOn" | "current"> {
+  const assessment = progress.assessment;
   return {
-    progressId: progress.id,
-    fileScope: {
-      enrollmentId: progress.enrollmentId,
-      from: dateOnly(progress.startDate),
-      through: progress.endDate ? dateOnly(progress.endDate) : null,
-    },
     assessmentId: assessment?.id ?? null,
     version: assessment?.version ?? 0,
-    observations: assessmentObservations(progress),
-    student: progress.enrollment.student,
-    class: { id: progress.enrollment.classId, name: progress.enrollment.class.portalClassName },
-    stage: progress.stage,
     startedOn: dateOnly(assessment?.startedOn ?? progress.startDate),
     endedOn: progress.endDate ? dateOnly(progress.endDate) : null,
-    current:
-      dateOnly(progress.startDate) <= today &&
-      (!progress.endDate || dateOnly(progress.endDate) >= today) &&
-      (!progress.enrollment.exitDate || dateOnly(progress.enrollment.exitDate) > today),
-    grades,
-    results,
-    status: assessmentStatus(results),
+    current: assessmentCurrent(progress, today),
+  };
+}
+
+function assessmentDecision(
+  progress: Progress,
+): Pick<AssessmentView, "decision" | "decisionReason" | "confirmedAt" | "confirmedBy"> {
+  const assessment = progress.assessment;
+  return {
     decision: assessment?.decision ?? null,
     decisionReason: assessment?.decisionReason ?? null,
     confirmedAt: assessment?.confirmedAt ?? null,
     confirmedBy: assessment?.confirmedBy?.name ?? null,
-    canConfirm: context.staffUser.role !== "TEACHER",
-    today,
   };
+}
+
+function assessmentCurrent(progress: Progress, today: string): boolean {
+  return (
+    dateOnly(progress.startDate) <= today &&
+    (!progress.endDate || dateOnly(progress.endDate) >= today) &&
+    (!progress.enrollment.exitDate || dateOnly(progress.enrollment.exitDate) > today)
+  );
 }
 export async function readAssessment(
   context: AssessmentContext,

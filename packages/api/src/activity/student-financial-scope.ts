@@ -23,13 +23,7 @@ export async function studentFinancialActivityScope(
       select: { commandId: true },
     }),
   ]);
-  const keys = [
-    ...payments.map((row) => `finance.registerPayment:${row.id}`),
-    ...payments.flatMap((row) =>
-      row.operationId ? [`finance.confirmPayments:${row.operationId}`] : [],
-    ),
-    ...agreements.map((row) => `finance.treatment:${row.commandId}`),
-  ];
+  const keys = financialKeys(payments, agreements);
   return {
     area: "FINANCIAL",
     OR: [
@@ -54,4 +48,17 @@ export async function studentFinancialActivityScope(
       })),
     ],
   };
+}
+
+function financialKeys(
+  payments: { id: string; operationId: string | null }[],
+  agreements: { commandId: string }[],
+): string[] {
+  return [
+    ...payments.map((row) => `finance.registerPayment:${row.id}`),
+    ...payments.flatMap((row) =>
+      row.operationId ? [`finance.confirmPayments:${row.operationId}`] : [],
+    ),
+    ...agreements.map((row) => `finance.treatment:${row.commandId}`),
+  ];
 }

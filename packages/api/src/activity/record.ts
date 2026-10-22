@@ -39,13 +39,13 @@ export async function recordActivity(
     description: details.description ?? null,
     deduplicationKey: details.deduplicationKey ?? null,
   };
-  if (data.deduplicationKey) {
-    await database.activityEvent.upsert({
-      where: { deduplicationKey: data.deduplicationKey },
-      create: data,
-      update: {},
-    });
-  } else await database.activityEvent.create({ data });
+  await (data.deduplicationKey
+    ? database.activityEvent.upsert({
+        where: { deduplicationKey: data.deduplicationKey },
+        create: data,
+        update: {},
+      })
+    : database.activityEvent.create({ data }));
 }
 
 export async function activityTransaction<T>(

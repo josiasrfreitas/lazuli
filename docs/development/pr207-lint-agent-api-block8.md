@@ -3,9 +3,10 @@
 > **FOCO:** 31 erros em 21 arquivos próprios, congelados em
 > [progresso](pr207-lint-progress.md): 30 erros em 20 arquivos da API e 1 em
 > `scripts/imports/teaching-program.ts`. Worktree limpa no início, HEAD
-> `eb9cb61`. Medição atual: **20 erros projetados**, em 12 arquivos de
-> produção da API; script e 8 arquivos de testes/suporte passaram no lint
-> direcionado. Próxima ação: zerar os 12 arquivos de produção. Gate: lint
+> `eb9cb61`. Medição atual: **10 erros projetados**, em 5 arquivos de
+> produção da API; script, testes, atividade, busca e avaliações passaram no
+> lint direcionado. Próxima ação: zerar reposição, busca de comandos,
+> ocorrências e professores. Gate: lint
 > direcionado 0, typecheck e
 > testes pertinentes, lint API completo sem novos fingerprints e lint da raiz
 > verde. Baselines: `/tmp/lazuli-pr207-api-full-block7.json` e
@@ -27,3 +28,7 @@
   preservam asserções. Lint direcionado dos oito: 0 erros; typecheck API e
   suíte unitária 88/88 passaram. Dez erros do baseline removidos. A medição
   completa será repetida após o restante do bloco.
+- `src/activity/read.ts`, `record.ts`, `student-financial-scope.ts`, os três
+  arquivos de `src/assessments` e `src/search.ts` passaram no lint direcionado
+  e no typecheck API. Dez erros do baseline removidos; restam 10 projetados
+  nos cinco arquivos de reposição, busca de comandos, ocorrências e professores.

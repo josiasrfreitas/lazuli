@@ -72,9 +72,8 @@ export async function assertProgressAccess(
   });
   if (assignedAssessment) return;
   if (
-    context.staffUser.role === "TEACHER" &&
-    (dateOnly(progress.enrollment.entryDate) > today ||
-      (progress.enrollment.exitDate && dateOnly(progress.enrollment.exitDate) <= today))
+    dateOnly(progress.enrollment.entryDate) > today ||
+    (progress.enrollment.exitDate && dateOnly(progress.enrollment.exitDate) <= today)
   )
     throw new TRPCError({
       code: "FORBIDDEN",

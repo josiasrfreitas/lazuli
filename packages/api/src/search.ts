@@ -19,7 +19,7 @@ const searchColumns = {
 export function normalizedSql(value: Prisma.Sql): Prisma.Sql {
   return Prisma.sql`regexp_replace(lower(regexp_replace(normalize(coalesce(${value}, ''), NFD), '[̀-ͯ]', '', 'g')), '[^[:alnum:]]', '', 'g')`;
 }
-export function normalizedKysely(value: RawBuilder<unknown>): RawBuilder<string> {
+export function normalizedKysely<T>(value: RawBuilder<T>): RawBuilder<string> {
   return sql<string>`regexp_replace(lower(regexp_replace(normalize(coalesce(${value}, ''), NFD), '[̀-ͯ]', '', 'g')), '[^[:alnum:]]', '', 'g')`;
 }
 
@@ -39,7 +39,7 @@ export function searchMatchSql(value: Prisma.Sql, query: string): Prisma.Sql {
     : exact;
 }
 
-export function searchMatchKysely(value: RawBuilder<unknown>, query: string): RawBuilder<boolean> {
+export function searchMatchKysely<T>(value: RawBuilder<T>, query: string): RawBuilder<boolean> {
   const needle = normalizeSearch(query);
   const normalized = normalizedKysely(value);
   const exact = sql<boolean>`strpos(${normalized}, ${needle}) > 0`;

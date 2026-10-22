@@ -45,40 +45,11 @@ export async function listActivity(
   },
 ): Promise<ActivityPage> {
   const { input, now } = options;
-
   const snapshotAt = input.cursor && input.cursor.snapshotAt < now ? input.cursor.snapshotAt : now;
-  const start = activityPeriodStart(input.period, snapshotAt);
-  const studentScope = input.financialStudentId
-    ? await studentFinancialActivityScope(database, input.financialStudentId)
-    : undefined;
-  const areas = input.areas ?? (input.area === "ALL" ? [] : [input.area]);
-  const actorIds = input.actorIds ?? (input.actorId ? [input.actorId] : []);
-  const where: Prisma.ActivityEventWhereInput = {
-    ...(studentScope ? { AND: [studentScope] } : {}),
-    deletedAt: null,
-    occurredAt: { ...(start ? { gte: start } : {}), lte: snapshotAt },
-    ...(areas.length > 0 ? { area: { in: areas } } : {}),
-    ...(actorIds.length > 0 ? { actorId: { in: actorIds } } : {}),
-    id: (await searchIds(database, { table: "ActivityEvent", query: input.search })) ?? {},
-  };
+  const { where, studentScope } = await activityFilters(database, { input, snapshotAt });
   const [rows, total] = await Promise.all([
     database.activityEvent.findMany({
-      where: {
-        ...where,
-        ...(input.cursor
-          ? {
-              AND: [
-                ...(studentScope ? [studentScope] : []),
-                {
-                  OR: [
-                    { occurredAt: { lt: input.cursor.occurredAt } },
-                    { occurredAt: input.cursor.occurredAt, id: { lt: input.cursor.id } },
-                  ],
-                },
-              ],
-            }
-          : {}),
-      },
+      where: activityPageWhere({ where, studentScope, cursor: input.cursor }),
       select,
       orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
       take: input.pageSize + 1,
@@ -99,6 +70,59 @@ export async function listActivity(
     })),
     total,
     nextCursor,
+  };
+}
+
+async function activityFilters(
+  database: Prisma.TransactionClient,
+  options: { input: ActivityListInput; snapshotAt: Date },
+): Promise<{
+  where: Prisma.ActivityEventWhereInput;
+  studentScope: Prisma.ActivityEventWhereInput | undefined;
+}> {
+  const { input, snapshotAt } = options;
+  const start = activityPeriodStart(input.period, snapshotAt);
+  const studentScope = input.financialStudentId
+    ? await studentFinancialActivityScope(database, input.financialStudentId)
+    : undefined;
+  const areas = activityAreas(input);
+  const actorIds = input.actorIds ?? (input.actorId ? [input.actorId] : []);
+  return {
+    studentScope,
+    where: {
+      ...(studentScope ? { AND: [studentScope] } : {}),
+      deletedAt: null,
+      occurredAt: { ...(start ? { gte: start } : {}), lte: snapshotAt },
+      ...(areas.length > 0 ? { area: { in: areas } } : {}),
+      ...(actorIds.length > 0 ? { actorId: { in: actorIds } } : {}),
+      id: (await searchIds(database, { table: "ActivityEvent", query: input.search })) ?? {},
+    },
+  };
+}
+
+function activityAreas(input: ActivityListInput): ActivityArea[] {
+  if (input.areas) return input.areas;
+  return input.area === "ALL" ? [] : [input.area];
+}
+
+function activityPageWhere(options: {
+  where: Prisma.ActivityEventWhereInput;
+  studentScope: Prisma.ActivityEventWhereInput | undefined;
+  cursor: ActivityListInput["cursor"];
+}): Prisma.ActivityEventWhereInput {
+  const { where, studentScope, cursor } = options;
+  if (!cursor) return where;
+  return {
+    ...where,
+    AND: [
+      ...(studentScope ? [studentScope] : []),
+      {
+        OR: [
+          { occurredAt: { lt: cursor.occurredAt } },
+          { occurredAt: cursor.occurredAt, id: { lt: cursor.id } },
+        ],
+      },
+    ],
   };
 }
 function activityHref(row: Event): string | null {
