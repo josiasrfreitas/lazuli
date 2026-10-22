@@ -6,6 +6,19 @@ import { lockCandidate, readCandidate } from "./candidates.js";
 import { assertInitialStage } from "./catalog.js";
 type Database = Prisma.TransactionClient;
 type Context = { database: Database; recordedById: string; now: Date };
+type LeadValues = z.infer<typeof leadCaptureSchema>;
+type CaptureFields = Omit<
+  LeadValues,
+  "id" | "birthDate" | "notes" | "stageId" | "phone" | "email" | "contactName" | "source"
+> & {
+  birthDate: Date | null;
+  notes?: string | null;
+  stageId: string | null;
+  phone: string | null;
+  email: string | null;
+  contactName: string | null;
+  source: string | null;
+};
 export async function captureLead(
   input: Context & { values: z.infer<typeof leadCaptureSchema> },
 ): Promise<{ id: string }> {
@@ -45,20 +58,22 @@ export async function updateLeadDetails(
 async function captureFields(
   input: Context & { values: z.infer<typeof leadCaptureSchema> },
   previous?: { englishExperience: string; stageId: string | null },
-) {
-  const { id: _id, birthDate, notes, ...fields } = input.values;
+): Promise<CaptureFields> {
+  const { birthDate, englishExperience, stageId } = input.values;
   const today = saoPauloDateOnly(input.now);
   if (birthDate && birthDate > today) throw badRequest("O nascimento não pode estar no futuro.");
-  if (fields.englishExperience === "NONE") await assertInitialStage(input.database, fields.stageId);
-  const stageId =
-    fields.englishExperience === "SOME"
-      ? previous?.englishExperience === "SOME"
-        ? previous.stageId
-        : null
-      : fields.stageId;
+  if (englishExperience === "NONE") await assertInitialStage(input.database, stageId);
+  return normalizedLeadFields(input.values, previous);
+}
+
+function normalizedLeadFields(
+  values: LeadValues,
+  previous?: { englishExperience: string; stageId: string | null },
+): CaptureFields {
+  const { id: _id, birthDate, notes, ...fields } = values;
   return {
     ...fields,
-    stageId,
+    stageId: captureStageId(values, previous),
     phone: fields.phone || null,
     email: fields.email || null,
     contactName: fields.contactName || null,
@@ -66,4 +81,12 @@ async function captureFields(
     ...(notes === undefined ? {} : { notes: notes || null }),
     birthDate: birthDate ? new Date(birthDate) : null,
   };
+}
+
+function captureStageId(
+  fields: LeadValues,
+  previous?: { englishExperience: string; stageId: string | null },
+): string | null {
+  if (fields.englishExperience !== "SOME") return fields.stageId;
+  return previous?.englishExperience === "SOME" ? previous.stageId : null;
 }

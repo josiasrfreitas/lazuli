@@ -54,19 +54,7 @@ export async function saveCandidate(input: {
   const { database, recordedById, now } = input;
   const { id, values } = input.input;
   await lockCandidate(database, id);
-  if (values.availableUntil < saoPauloDateOnly(now))
-    throw badRequest("A validade deve ser hoje ou futura.");
-  if (values.stageId) await loadActiveStage({ database, stageId: values.stageId });
-  if (
-    values.studentId &&
-    !(await database.student.findFirst({ where: { id: values.studentId, deletedAt: null } }))
-  )
-    throw notFound("Aluno não encontrado.");
-  const existing = await database.admissionCandidate.findUnique({ where: { id } });
-  if (existing && existing.status !== "WAITING")
-    throw badRequest("Reabra o lead antes de alterar os dados.");
-  if (existing?.englishExperience === "SOME" && values.stageId !== existing.stageId)
-    throw badRequest("Registre o estágio no resultado do atendimento de nivelamento.");
+  await validateCandidateChanges({ database, id, values, now });
   const { availability, contactName, source, ...fields } = values;
   const data = {
     ...fields,
@@ -94,6 +82,32 @@ export async function saveCandidate(input: {
     skipDuplicates: true,
   });
   return { id };
+}
+
+async function validateCandidateChanges({
+  database,
+  id,
+  values,
+  now,
+}: {
+  database: Prisma.TransactionClient;
+  id: string;
+  values: z.infer<typeof admissionSaveSchema>["values"];
+  now: Date;
+}): Promise<void> {
+  if (values.availableUntil < saoPauloDateOnly(now))
+    throw badRequest("A validade deve ser hoje ou futura.");
+  if (values.stageId) await loadActiveStage({ database, stageId: values.stageId });
+  if (
+    values.studentId &&
+    !(await database.student.findFirst({ where: { id: values.studentId, deletedAt: null } }))
+  )
+    throw notFound("Aluno não encontrado.");
+  const existing = await database.admissionCandidate.findUnique({ where: { id } });
+  if (existing && existing.status !== "WAITING")
+    throw badRequest("Reabra o lead antes de alterar os dados.");
+  if (existing?.englishExperience === "SOME" && values.stageId !== existing.stageId)
+    throw badRequest("Registre o estágio no resultado do atendimento de nivelamento.");
 }
 export async function listCandidates(
   database: Prisma.TransactionClient,

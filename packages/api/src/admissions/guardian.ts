@@ -15,21 +15,36 @@ export async function requireLeadGuardian(
   const { candidate, student } = options;
 
   if (candidate.contactRole !== "GUARDIAN") return;
-  const reference = student.mode === "create" ? student.values.guardian : null;
-  const existing =
-    student.mode === "existing"
-      ? await database.student.findFirst({
-          where: { id: student.id, deletedAt: null },
-          include: { guardian: true },
-        })
-      : null;
+  if (student.mode === "existing") {
+    const existing = await database.student.findFirst({
+      where: { id: student.id, deletedAt: null },
+      include: { guardian: true },
+    });
+    assertGuardianContact(existing?.guardian);
+    return;
+  }
+  const reference = student.values.guardian;
+  if (reference?.mode === "create") {
+    assertGuardianContact(reference.input);
+    return;
+  }
   const guardian =
-    existing?.guardian ??
-    (reference?.mode === "create"
-      ? reference.input
-      : reference?.mode === "connect"
-        ? await database.guardian.findFirst({ where: { id: reference.id, deletedAt: null } })
-        : null);
+    reference?.mode === "connect"
+      ? await database.guardian.findFirst({ where: { id: reference.id, deletedAt: null } })
+      : null;
+  assertGuardianContact(guardian);
+}
+
+function assertGuardianContact(
+  guardian:
+    | {
+        fullName?: string | null;
+        phone?: string | null | undefined;
+        email?: string | null | undefined;
+      }
+    | null
+    | undefined,
+): void {
   if (!guardian?.fullName || (!guardian.phone && !guardian.email))
     throw badRequest("Informe nome e telefone ou e-mail do responsável para matricular o menor.");
 }

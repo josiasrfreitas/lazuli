@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@lazuli/db";
 import { intervalsOverlap, sessionEndInstant } from "@lazuli/domain";
-import { getStorage } from "@lazuli/storage";
+import { getStorage, type StoredFileReference } from "@lazuli/storage";
 import {
   type placementCalendarSchema,
   type placementFileSchema,
@@ -25,15 +25,20 @@ type Operation<T> = {
   now: Date;
   recordedById: string;
 };
+type PlacementCalendarResult = {
+  pendingPlacement: string | null;
+  visits: { id: string; date: string; startTime: string; endTime: string; label: string }[];
+  closedDays: { date: string; reason: string }[];
+};
+type PlacementCalendarVisit = Pick<
+  Awaited<ReturnType<typeof placementVisit>>,
+  "id" | "kind" | "date" | "startTime" | "endTime"
+>;
 
 export async function placementCalendar(
   database: Prisma.TransactionClient,
   input: z.infer<typeof placementCalendarSchema>,
-): Promise<{
-  pendingPlacement: string | null;
-  visits: { id: string; date: string; startTime: string; endTime: string; label: string }[];
-  closedDays: { date: string; reason: string }[];
-}> {
+): Promise<PlacementCalendarResult> {
   const candidate = input.candidateId ? await readCandidate(database, input.candidateId) : null;
   if (candidate && candidate.status !== "WAITING")
     throw badRequest("Reabra o lead para agendar o nivelamento.");
@@ -72,19 +77,21 @@ export async function placementCalendar(
       .filter(
         (visit) => dateOnly(visit.date) >= input.from && dateOnly(visit.date) <= input.through,
       )
-      .map((visit) => ({
-        id: visit.id,
-        date: dateOnly(visit.date),
-        startTime: dateToTimeString(visit.startTime),
-        endTime: dateToTimeString(visit.endTime),
-        label:
-          visit.kind === "PLACEMENT"
-            ? "Nivelamento já agendado"
-            : visit.kind === "TRIAL"
-              ? "Aula experimental"
-              : "Atendimento do lead",
-      })),
+      .map((visit) => calendarVisit(visit)),
     closedDays: closedDays.map((day) => ({ date: dateOnly(day.date), reason: day.reason })),
+  };
+}
+
+function calendarVisit(visit: PlacementCalendarVisit): PlacementCalendarResult["visits"][number] {
+  let label = "Atendimento do lead";
+  if (visit.kind === "PLACEMENT") label = "Nivelamento já agendado";
+  if (visit.kind === "TRIAL") label = "Aula experimental";
+  return {
+    id: visit.id,
+    date: dateOnly(visit.date),
+    startTime: dateToTimeString(visit.startTime),
+    endTime: dateToTimeString(visit.endTime),
+    label,
   };
 }
 
@@ -104,31 +111,7 @@ export async function schedulePlacement({
       throw badRequest("Identificador de agendamento já utilizado.");
     return { id: existing.id };
   }
-  if (sessionEndInstant({ date: values.date, endTime: values.startTime }) <= now)
-    throw badRequest("Escolha um horário que ainda não começou.");
-  const closed = await database.schoolClosedDay.findFirst({
-    where: { date: new Date(values.date), deletedAt: null },
-  });
-  if (closed) throw badRequest("A escola está fechada nesta data.");
-  const other = await database.entryVisit.findMany({
-    where: {
-      candidateId: candidate.id,
-      deletedAt: null,
-      status: { not: "CANCELLED" },
-      OR: [{ date: new Date(values.date) }, { kind: "PLACEMENT", status: "SCHEDULED" }],
-    },
-  });
-  if (other.some((row) => row.kind === "PLACEMENT" && row.status === "SCHEDULED"))
-    throw badRequest("Conclua ou cancele o nivelamento já agendado.");
-  if (
-    other.some((row) =>
-      intervalsOverlap(values, {
-        startTime: dateToTimeString(row.startTime),
-        endTime: dateToTimeString(row.endTime),
-      }),
-    )
-  )
-    throw badRequest("O lead já tem um atendimento neste horário.");
+  await assertPlacementScheduleAvailable({ database, values, now, candidateId: candidate.id });
   await database.admissionCandidate.update({
     where: { id: candidate.id },
     data: {
@@ -152,7 +135,52 @@ export async function schedulePlacement({
   });
 }
 
-async function placementVisit(database: Prisma.TransactionClient, id: string) {
+async function assertPlacementScheduleAvailable({
+  database,
+  values,
+  now,
+  candidateId,
+}: {
+  database: Prisma.TransactionClient;
+  values: z.infer<typeof placementScheduleSchema>;
+  now: Date;
+  candidateId: string;
+}): Promise<void> {
+  if (sessionEndInstant({ date: values.date, endTime: values.startTime }) <= now)
+    throw badRequest("Escolha um horário que ainda não começou.");
+  const closed = await database.schoolClosedDay.findFirst({
+    where: { date: new Date(values.date), deletedAt: null },
+  });
+  if (closed) throw badRequest("A escola está fechada nesta data.");
+  const other = await database.entryVisit.findMany({
+    where: {
+      candidateId,
+      deletedAt: null,
+      status: { not: "CANCELLED" },
+      OR: [{ date: new Date(values.date) }, { kind: "PLACEMENT", status: "SCHEDULED" }],
+    },
+  });
+  if (other.some((row) => row.kind === "PLACEMENT" && row.status === "SCHEDULED"))
+    throw badRequest("Conclua ou cancele o nivelamento já agendado.");
+  if (
+    other.some((row) =>
+      intervalsOverlap(values, {
+        startTime: dateToTimeString(row.startTime),
+        endTime: dateToTimeString(row.endTime),
+      }),
+    )
+  )
+    throw badRequest("O lead já tem um atendimento neste horário.");
+}
+
+async function placementVisit(
+  database: Prisma.TransactionClient,
+  id: string,
+): Promise<
+  Prisma.EntryVisitGetPayload<{
+    include: { assessment: { include: { correctedFile: true } }; candidate: true };
+  }>
+> {
   const visit = await database.entryVisit.findFirst({
     where: { id, kind: "PLACEMENT", deletedAt: null, candidate: { deletedAt: null } },
     include: { assessment: { include: { correctedFile: true } }, candidate: true },
@@ -198,41 +226,24 @@ export async function uploadPlacementFile(
   assertEditable(visit, now);
   assertFileCanBeAttached(visit, kind);
   const storage = getStorage();
-  const reference = await storage.put({
-    key: `placement-assessments/${visit.id}/${randomUUID()}`,
+  const reference = await putPlacementFile(storage, {
+    visitId: visit.id,
     bytes,
     contentType: values.contentType,
   });
   try {
     return await activityTransaction(ctx, {
       action: "admissions.placementFile",
-      work: async (database) => {
-        await lockCandidate(database, visit.candidateId);
-        const current = await placementVisit(database, values.id);
-        if (ctx.staffUser.role === "TEACHER" && current.teacherId !== ctx.staffUser.id)
-          throw notFound("Nivelamento não atribuído a você.");
-        assertEditable(current, now);
-        assertFileCanBeAttached(current, kind);
-        const data = {
-          visitId: visit.id,
-          ...reference,
-          fileName: values.fileName,
-          contentType: values.contentType,
+      work: async (database) =>
+        persistPlacementUpload(database, {
+          visit,
+          values,
+          now,
+          kind,
+          reference,
           byteLength: bytes.length,
-          uploadedAt: now,
-          uploadedById: ctx.staffUser.id,
-        };
-        if (kind === "CORRECTED") {
-          await database.entryVisitCorrectedFile.create({ data });
-        } else {
-          await database.entryVisitAssessment.create({ data });
-          await database.entryVisit.update({
-            where: { id: visit.id },
-            data: { status: "ATTENDED" },
-          });
-        }
-        return { id: visit.id };
-      },
+          staffUser: ctx.staffUser,
+        }),
       describe: async (_result, database) => ({
         subject: await leadSubject(database, visit.candidateId),
         description:
@@ -246,6 +257,77 @@ export async function uploadPlacementFile(
     await storage.remove(reference).catch((): undefined => {});
     throw error;
   }
+}
+
+async function persistPlacementUpload(
+  database: Prisma.TransactionClient,
+  {
+    visit,
+    values,
+    now,
+    kind,
+    reference,
+    byteLength,
+    staffUser,
+  }: {
+    visit: Awaited<ReturnType<typeof placementVisit>>;
+    values: z.input<typeof placementFileSchema>;
+    now: Date;
+    kind: "ORIGINAL" | "CORRECTED";
+    reference: StoredFileReference;
+    byteLength: number;
+    staffUser: NonNullable<Context["staffUser"]>;
+  },
+): Promise<{ id: string }> {
+  await lockCandidate(database, visit.candidateId);
+  const current = await placementVisit(database, values.id);
+  if (staffUser.role === "TEACHER" && current.teacherId !== staffUser.id)
+    throw notFound("Nivelamento não atribuído a você.");
+  assertEditable(current, now);
+  assertFileCanBeAttached(current, kind);
+  const data = {
+    visitId: visit.id,
+    ...reference,
+    fileName: values.fileName,
+    contentType: values.contentType,
+    byteLength,
+    uploadedAt: now,
+    uploadedById: staffUser.id,
+  };
+  await storePlacementAttachment(database, { data, kind });
+  return { id: visit.id };
+}
+
+async function putPlacementFile(
+  storage: ReturnType<typeof getStorage>,
+  file: { visitId: string; bytes: Uint8Array; contentType: string },
+): Promise<StoredFileReference> {
+  return storage.put({
+    key: `placement-assessments/${file.visitId}/${randomUUID()}`,
+    bytes: file.bytes,
+    contentType: file.contentType,
+  });
+}
+
+async function storePlacementAttachment(
+  database: Prisma.TransactionClient,
+  {
+    data,
+    kind,
+  }: {
+    data: Prisma.EntryVisitAssessmentUncheckedCreateInput;
+    kind: "ORIGINAL" | "CORRECTED";
+  },
+): Promise<void> {
+  if (kind === "CORRECTED") {
+    await database.entryVisitCorrectedFile.create({ data });
+    return;
+  }
+  await database.entryVisitAssessment.create({ data });
+  await database.entryVisit.update({
+    where: { id: data.visitId },
+    data: { status: "ATTENDED" },
+  });
 }
 
 export async function downloadPlacementFile(
@@ -308,7 +390,10 @@ export async function recordPlacementResult({
   return { id: visit.id };
 }
 
-function latestPlacement(database: Prisma.TransactionClient, candidateId: string) {
+async function latestPlacement(
+  database: Prisma.TransactionClient,
+  candidateId: string,
+): Promise<Prisma.EntryVisitGetPayload<{ include: { assessment: true } }> | null> {
   return database.entryVisit.findFirst({
     where: { candidateId, kind: "PLACEMENT", deletedAt: null, status: { not: "CANCELLED" } },
     include: { assessment: true },
