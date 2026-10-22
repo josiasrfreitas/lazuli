@@ -3,9 +3,8 @@
 > **FOCO:** 100 erros iniciais em 30 arquivos próprios de
 > `packages/api/src/admissions`, `appointments`, `class-records`, `finance` e
 > `teaching-programs`, congelados no [progresso](pr207-lint-progress.md).
-> Medição atual: **50 erros no bloco**, após zerar `admissions` e
-> `class-records`; outros 30 da API ficam fora dele. Próxima ação:
-> `teaching-programs` (13) e `finance` (37). Gate: zero
+> Medição atual: **37 erros no bloco**, todos em `finance`; outros 30 da API
+> ficam fora dele. Próxima ação: `finance` (37). Gate: zero
 > erros direcionados, typecheck e testes pertinentes, lint API completo sem
 > novos fingerprints e lint da raiz. Baseline:
 > `/tmp/lazuli-pr207-api-full-block6.json`.
@@ -53,3 +52,6 @@ pnpm -F @lazuli/api exec eslint src/admissions src/appointments src/class-record
 - A suíte unitária API passou novamente com 88/88 após `appointments`
   (`/tmp/lazuli-pr207-api-block7-unit-appointments.log`). Prettier dos
   arquivos alterados e `git diff --check` passaram.
+- `teaching-programs/import.ts` e `read.ts` foram separados em persistência e
+  projeção com tipos explícitos. Lint direcionado e typecheck API passaram.
+  A medição do bloco inteiro confirmou 37 erros restantes, todos em `finance`.

@@ -2,8 +2,8 @@
 
 > **BLOCO 7 CONGELADO:** 100 erros em 30 arquivos de `packages/api/src` nas
 > áreas `admissions`, `appointments`, `class-records`, `finance` e
-> `teaching-programs`. Medição atual: **50 erros no bloco**, após zerar os 50
-> de `admissions`, `class-records` e `appointments`. Outros 30 erros da API ficam fora do bloco;
+> `teaching-programs`. Medição atual: **37 erros no bloco**, todos em `finance`,
+> após zerar os demais 63. Outros 30 erros da API ficam fora do bloco;
 > o lint Web completo tem 0 erros. Baseline:
 > `/tmp/lazuli-pr207-api-full-block6.json`. Gate: zero erros no bloco,
 > typecheck e testes pertinentes, lint API completo sem novos fingerprints por
