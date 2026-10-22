@@ -31,7 +31,7 @@ function OccurrenceDialog({
         model.student ? model.student.name : "Escolha a aula e registre o que aconteceu."
       }
       size="extra-wide"
-      contentClassName={styles.dialog}
+      layout="occurrence"
       compactHeader
       onClose={onClose}
       pending={model.save.isPending}

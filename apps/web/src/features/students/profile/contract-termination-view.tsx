@@ -41,8 +41,8 @@ export function TerminationView(props: TerminationViewProps): ReactJSX.Element {
       size="wide"
       compactHeader
       actionSize="sm"
-      contentClassName="md:w-[calc(100vw-3rem)] md:max-w-[1120px] [&>[data-slot=dialog-footer]]:mt-4"
-      bodyClassName="pt-3"
+      layout="termination"
+      bodyLayout="termination"
       submitLabel={state.review ? "Rescindir e encerrar" : "Revisar rescisão"}
       submitIcon={
         state.review ? <TriangleAlert aria-hidden="true" /> : <ArrowRight aria-hidden="true" />

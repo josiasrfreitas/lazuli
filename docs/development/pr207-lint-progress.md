@@ -1,23 +1,12 @@
 # PR #207 — inventário de lint
 
-> **BLOCOS ATIVOS EM PARALELO:** `web-block5` tem **31 erros restantes**;
-> `api-block6` tem **100 erros selecionados**. Cada agente retoma pela própria
-> ficha em [pr207-lint-coordination.md](pr207-lint-coordination.md).
-> O bloco 5 começou com **83 erros Web** congelados em
-> `/tmp/lazuli-pr207-web-full-after-block4.json`. Restam **31**
-> após as correções de entrada, navegação, busca, conta, ajustes, pagamentos e admissão; medição direcionada em
-> `/tmp/lazuli-pr207-block5-current.json`.
-> Área e inventário de arquivos: seção “Bloco 5 — escopo congelado” abaixo.
-> Comando direcionado: `pnpm -F @lazuli/web exec eslint src/app src/components/app-shell src/features/admissions src/features/command-palette src/features/installments src/features/settings src/features/shared src/lib/use-search-draft.ts src/proxy.ts test/features/lead-form-contract.unit.test.ts -f json > /tmp/lazuli-pr207-block5-current.json`.
-> Snapshot de origem: Web 83, API 230, total 313. Gate próprio: lint Web
-> direcionado zero, typecheck/testes relevantes e comparação Web completa por
-> arquivo/regra/mensagem. **Exceção autorizada:** o segundo agente trabalha no
-> bloco 6 da API em paralelo, com arquivos e gate próprios. Após os dois
-> gates, conferir `pnpm lint` da raiz e o saldo combinado.
-> **Em todo handoff ou compactação de contexto, repetir este foco no topo do
-> resumo e retomar por este arquivo antes de qualquer ação.**
-> **Trabalho paralelo:** os blocos e fichas de retomada estão em
-> [pr207-lint-coordination.md](pr207-lint-coordination.md).
+> **ESTADO ATUAL:** blocos 5 Web e 6 API zerados nos seus inventários.
+> O lint Web completo tem **0 erros**; o lint API completo tem **130 erros**
+> fora do bloco 6. O saldo combinado é 130, contra 745 no inventário inicial.
+> O agente do bloco 6 assumiu o bloco 5 após o rate-limit do outro agente.
+> Gates e arquivos próprios estão nas [fichas e coordenação](pr207-lint-coordination.md).
+> O lint da raiz confirmou os 130 erros da API; o Turbo interrompeu a etapa
+> Web, cujo lint completo separado já havia passado com 0 erros.
 
 O bloco 1 foi fechado com 0 erros em `features/students`. `pnpm lint` da raiz concluiu:
 somente Web e API falharam; os demais checks de lint passaram. Web e API totalizam 604 erros,
@@ -99,8 +88,8 @@ O lote local de preparação/calendário eliminou 22 erros. Os sete arquivos toc
 | 2     | Web: appointments, assessment-files, assessments, contracts, finance-analytics |                             100 | Fechado: 0 direcionados, 100 removidos globalmente, 0 regressões |
 | 3     | Web: organização de turmas, turmas, semestre e planejamento de estágios        |                              98 | Fechado: 0 direcionados, 98 removidos globalmente, 0 regressões  |
 | 4     | Web: registros, área do professor, acompanhamento, presença e catálogo         |                              93 | Fechado: 0 direcionados, 93 removidos globalmente, 0 regressões  |
-| 5     | Web: admissão, entrada, navegação e erros residuais                            |                              83 | Em curso: 31 restantes                                           |
-| 6     | API: semestre, alunos, turmas e área do professor                              |                             100 | Ativo em paralelo: 100 restantes                                 |
+| 5     | Web: admissão, entrada, navegação e erros residuais                            |                              83 | Fechado: 0 erros Web completos e 0 novos fingerprints            |
+| 6     | API: semestre, alunos, turmas e área do professor                              |                             100 | Fechado em `a3d2d17`; 0 no bloco, 130 na API fora dele           |
 
 No bloco 3, `classes/form-controls.tsx`, `class-overview.tsx` e
 `class-stage-progress.tsx` passaram no lint direcionado. O lint dos quatro diretórios

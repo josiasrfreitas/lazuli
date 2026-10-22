@@ -70,7 +70,7 @@ function PlacementLoading({
       actionSize="sm"
       title={row ? "Revisar proposta" : "Organizar aluno"}
       description={`${row?.studentName ?? "Aluno"} · semestre ${board.semester.name}`}
-      bodyClassName="min-h-80"
+      bodyLayout="placement"
       submitDisabled
       formId="placement-loading"
       firstField=""

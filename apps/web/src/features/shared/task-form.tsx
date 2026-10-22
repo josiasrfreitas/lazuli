@@ -4,7 +4,6 @@ import { ArrowLeft, Check, X } from "lucide-react";
 import type { z } from "@lazuli/validators";
 import {
   Alert,
-  cn,
   Button,
   type ButtonVariant,
   Dialog,
@@ -139,8 +138,8 @@ type TaskDialogProps = {
   submitIcon?: ReactNode;
   cancelIcon?: ReactNode;
   backIcon?: ReactNode;
-  contentClassName?: string | undefined;
-  bodyClassName?: string | undefined;
+  layout?: "appointment" | "appointment-calendar" | "occurrence" | "termination";
+  bodyLayout?: "calendar" | "termination" | "placement";
   compactHeader?: boolean;
   error?: string | undefined;
   bodyRef?: React.RefObject<HTMLDivElement | null> | undefined;
@@ -161,17 +160,13 @@ export function TaskDialog(props: TaskDialogProps): ReactElement {
     </Dialog>
   );
 }
-const dialogWidths = {
-  default: undefined,
-  medium: "md:max-w-3xl",
-  wide: "md:max-w-5xl",
-  "extra-wide": "md:max-w-6xl",
-} as const;
 function TaskContent(props: TaskDialogProps): ReactElement {
   const actions = <TaskActions {...props} />;
   return (
     <DialogContent
-      className={cn(dialogWidths[props.size ?? "default"], props.contentClassName)}
+      className="data-[size=medium]:md:max-w-3xl data-[size=wide]:md:max-w-5xl data-[size=extra-wide]:md:max-w-6xl data-[layout=appointment]:max-h-[min(calc(110dvh-4.4rem),calc(100dvh-1rem))] data-[layout=appointment-calendar]:h-[85dvh] data-[layout=appointment-calendar]:max-h-[calc(100dvh-2rem)] data-[layout=appointment-calendar]:w-[calc(100vw-2rem)] data-[layout=appointment-calendar]:max-w-[1224px] data-[layout=occurrence]:w-[calc(100vw-48px)] data-[layout=occurrence]:max-w-[1280px] max-[959px]:data-[layout=occurrence]:w-[calc(100vw-24px)] data-[layout=termination]:md:w-[calc(100vw-3rem)] data-[layout=termination]:md:max-w-[1120px] data-[layout=termination]:[&>[data-slot=dialog-footer]]:mt-4"
+      data-size={props.size ?? "default"}
+      data-layout={props.layout}
       showCloseButton={!props.pending}
       initialFocus={() =>
         document.querySelector<HTMLElement>(
@@ -187,7 +182,11 @@ function TaskContent(props: TaskDialogProps): ReactElement {
         <DialogTitle>{props.title}</DialogTitle>
         <DialogDescription>{props.description}</DialogDescription>
       </DialogHeader>
-      <DialogBody ref={props.bodyRef} className={props.bodyClassName}>
+      <DialogBody
+        ref={props.bodyRef}
+        data-body-layout={props.bodyLayout}
+        className="data-[body-layout=calendar]:flex data-[body-layout=calendar]:min-h-0 data-[body-layout=calendar]:flex-col data-[body-layout=calendar]:overflow-hidden data-[body-layout=termination]:pt-3 data-[body-layout=placement]:min-h-80"
+      >
         {typeof props.children === "function" ? props.children(actions) : props.children}
         {props.error && <Alert variant="destructive">{props.error}</Alert>}
       </DialogBody>
