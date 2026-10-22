@@ -1,4 +1,5 @@
 import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
+import type { ClassRecordSnapshot } from "@lazuli/validators";
 import { notFound } from "../trpc/errors.js";
 import {
   canRead,
@@ -7,10 +8,35 @@ import {
   storedSnapshot,
   timeOnly,
   type RecordContext,
+  type RecordSession,
 } from "./data.js";
 
+type ProgressState = "CANCELLED" | "UPCOMING" | "RECORDED" | "PENDING";
+type StageProgressResult = {
+  rows: {
+    id: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    state: ProgressState;
+    attendanceRecorded: boolean;
+    content: ClassRecordSnapshot["sharedContent"];
+  }[];
+  today: string;
+  latest: { date: string; page: number | null; reference: string | null } | null;
+};
+
+function progressState(session: RecordSession, now: Date): ProgressState {
+  if (session.status === "CANCELLED") return "CANCELLED";
+  if (sessionEndInstant(session) > now) return "UPCOMING";
+  return session.classRecord ? "RECORDED" : "PENDING";
+}
+
 /** Recorded coverage only: planned content must never appear as completed pages. */
-export async function classStageProgress(context: RecordContext, classId: string) {
+export async function classStageProgress(
+  context: RecordContext,
+  classId: string,
+): Promise<StageProgressResult> {
   const exists = await context.database.class.findFirst({
     where: { id: classId, deletedAt: null },
     select: { id: true },
@@ -25,14 +51,7 @@ export async function classStageProgress(context: RecordContext, classId: string
   const rows = sessions
     .filter((session) => canRead(context, session))
     .map((session) => {
-      const state =
-        session.status === "CANCELLED"
-          ? ("CANCELLED" as const)
-          : sessionEndInstant(session) > context.now
-            ? ("UPCOMING" as const)
-            : session.classRecord
-              ? ("RECORDED" as const)
-              : ("PENDING" as const);
+      const state = progressState(session, context.now);
       const content =
         state === "RECORDED" ? (storedSnapshot(session)?.sharedContent ?? null) : null;
       return {

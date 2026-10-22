@@ -96,19 +96,9 @@ export async function readClassRecord(
   sessionId: string,
 ): Promise<ClassRecordDetail> {
   const session = await loadRecordSession(context, sessionId);
-  const attendance = await context.database.attendance.findMany({
-    where: { classSessionId: session.id, deletedAt: null },
-    select: { enrollmentId: true },
-  });
-  const declarations = await context.database.attendanceDeclaration.findMany({
-    where: { classSessionId: session.id, deletedAt: null },
-    select: { id: true, enrollmentId: true, submittedAt: true },
-    orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
-  });
-  const hasAttendanceWindows = Boolean(
-    await context.database.attendanceWindow.count({
-      where: { classSessionId: session.id, deletedAt: null },
-    }),
+  const { attendance, declarations, hasAttendanceWindows } = await recordAttendanceDetails(
+    context,
+    session.id,
   );
   const sessionGuestMap = await sessionGuests(context, [session]);
   const guestContext = sessionGuestMap.get(session.id);
@@ -131,6 +121,29 @@ export async function readClassRecord(
       cancelReason: session.cancelReason,
       usualTeacher: usualTeacherName(session),
     },
+    ...recordMetadata({ context, session, summary }),
+    snapshot: storedSnapshot(session) ?? (await initialSnapshot(context, session)),
+  };
+}
+
+function recordMetadata({
+  context,
+  session,
+  summary,
+}: {
+  context: RecordContext;
+  session: RecordSession;
+  summary: SessionSummary;
+}): Pick<
+  ClassRecordDetail,
+  | "version"
+  | "recordedAt"
+  | "attendanceStamp"
+  | "attendanceOnly"
+  | "attendanceReadOnly"
+  | "restriction"
+> {
+  return {
     version: session.classRecord?.version ?? 0,
     recordedAt: session.classRecord?.createdAt ?? null,
     attendanceStamp: session.attendanceLastCommittedAt?.toISOString() ?? null,
@@ -140,8 +153,32 @@ export async function readClassRecord(
       summary.attendanceOnly &&
       dateOnly(session.date) !== saoPauloDateOnly(context.now),
     restriction: writeRestriction(context, session),
-    snapshot: storedSnapshot(session) ?? (await initialSnapshot(context, session)),
   };
+}
+
+async function recordAttendanceDetails(
+  context: RecordContext,
+  sessionId: string,
+): Promise<{
+  attendance: { enrollmentId: string }[];
+  declarations: { id: string; enrollmentId: string; submittedAt: Date }[];
+  hasAttendanceWindows: boolean;
+}> {
+  const attendance = await context.database.attendance.findMany({
+    where: { classSessionId: sessionId, deletedAt: null },
+    select: { enrollmentId: true },
+  });
+  const declarations = await context.database.attendanceDeclaration.findMany({
+    where: { classSessionId: sessionId, deletedAt: null },
+    select: { id: true, enrollmentId: true, submittedAt: true },
+    orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
+  });
+  const hasAttendanceWindows = Boolean(
+    await context.database.attendanceWindow.count({
+      where: { classSessionId: sessionId, deletedAt: null },
+    }),
+  );
+  return { attendance, declarations, hasAttendanceWindows };
 }
 export async function classRecordHistory(
   context: RecordContext,

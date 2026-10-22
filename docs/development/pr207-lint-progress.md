@@ -1,18 +1,20 @@
 # PR #207 — inventário de lint
 
-> **BLOCO 7 CONGELADO:** 100 erros em 30 arquivos de `packages/api/src`
-> nas áreas `admissions`, `appointments`, `class-records`, `finance` e
-> `teaching-programs`. Medição atual: **86 erros no bloco**, após zerar os 14
-> de `admissions`. Restam outros 30 erros da API fora do bloco; o Web
-> completo está em 0. Baseline: `/tmp/lazuli-pr207-api-full-block6.json`.
-> Comando direcionado: `pnpm -F @lazuli/api exec eslint src/admissions
-> src/appointments src/class-records src/finance src/teaching-programs -f json
->
-> > /tmp/lazuli-pr207-api-block7-current.json`.
-Gate: zero erros em toda essa área, typecheck/testes pertinentes, lint API
-completo comparado por arquivo/regra/mensagem com o baseline e `pnpm lint`
-> > da raiz; depois congelar e zerar os 30 restantes até a worktree ficar verde.
-> > Inventário e ficha: [bloco 7](pr207-lint-agent-api-block7.md).
+> **BLOCO 7 CONGELADO:** 100 erros em 30 arquivos de `packages/api/src` nas
+> áreas `admissions`, `appointments`, `class-records`, `finance` e
+> `teaching-programs`. Medição atual: **79 erros no bloco**, após zerar os 21
+> de `admissions` e `class-records`. Outros 30 erros da API ficam fora do bloco;
+> o lint Web completo tem 0 erros. Baseline:
+> `/tmp/lazuli-pr207-api-full-block6.json`. Gate: zero erros no bloco,
+> typecheck e testes pertinentes, lint API completo sem novos fingerprints por
+> arquivo/regra/mensagem e `pnpm lint` da raiz. Depois, congelar e zerar os
+> erros restantes até a worktree ficar verde.
+
+Comando direcionado:
+
+```sh
+pnpm -F @lazuli/api exec eslint src/admissions src/appointments src/class-records src/finance src/teaching-programs -f json > /tmp/lazuli-pr207-api-block7-current.json
+```
 
 ### Bloco 7 — API, 100 erros congelados
 
@@ -136,7 +138,7 @@ O lote local de preparação/calendário eliminou 22 erros. Os sete arquivos toc
 | 4     | Web: registros, área do professor, acompanhamento, presença e catálogo         |                              93 | Fechado: 0 direcionados, 93 removidos globalmente, 0 regressões  |
 | 5     | Web: admissão, entrada, navegação e erros residuais                            |                              83 | Fechado: 0 erros Web completos e 0 novos fingerprints            |
 | 6     | API: semestre, alunos, turmas e área do professor                              |                             100 | Fechado em `a3d2d17`; 0 no bloco, 130 na API fora dele           |
-| 7     | API: admissão, agendamentos, registros, financeiro e programas                 |                             100 | Em curso: 86 no bloco, 30 fora dele                              |
+| 7     | API: admissão, agendamentos, registros, financeiro e programas                 |                             100 | Em curso: 79 no bloco, 30 fora dele                              |
 
 No bloco 3, `classes/form-controls.tsx`, `class-overview.tsx` e
 `class-stage-progress.tsx` passaram no lint direcionado. O lint dos quatro diretórios

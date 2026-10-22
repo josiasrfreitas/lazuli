@@ -1,18 +1,20 @@
 # PR #207 — ficha `api-block7`
 
-> **FOCO:** 100 erros em 30 arquivos próprios de `packages/api/src/admissions`,
-> `appointments`, `class-records`, `finance` e `teaching-programs`, congelados
-> no [progresso](pr207-lint-progress.md). Restam 30 erros fora deste bloco.
-> Baseline: `/tmp/lazuli-pr207-api-full-block6.json`.
-> Comando direcionado: `pnpm -F @lazuli/api exec eslint src/admissions
-> src/appointments src/class-records src/finance src/teaching-programs -f json
->
-> > /tmp/lazuli-pr207-api-block7-current.json`.
-Medição da área completa: **86 erros restantes** em
-`/tmp/lazuli-pr207-api-block7-current.json`; `admissions`zerou seus 14
-erros. Próxima ação: corrigir`class-records`(7), depois`appointments`(29),`teaching-programs`(13) e`finance` (37). Gate: zero erros direcionados,
-> > typecheck e testes pertinentes, lint API completo sem novos fingerprints e
-> > lint da raiz.
+> **FOCO:** 100 erros iniciais em 30 arquivos próprios de
+> `packages/api/src/admissions`, `appointments`, `class-records`, `finance` e
+> `teaching-programs`, congelados no [progresso](pr207-lint-progress.md).
+> Medição atual: **79 erros no bloco**, após zerar `admissions` e
+> `class-records`; outros 30 da API ficam fora dele. Próxima ação:
+> `appointments` (29), `teaching-programs` (13) e `finance` (37). Gate: zero
+> erros direcionados, typecheck e testes pertinentes, lint API completo sem
+> novos fingerprints e lint da raiz. Baseline:
+> `/tmp/lazuli-pr207-api-full-block6.json`.
+
+Comando direcionado:
+
+```sh
+pnpm -F @lazuli/api exec eslint src/admissions src/appointments src/class-records src/finance src/teaching-programs -f json > /tmp/lazuli-pr207-api-block7-current.json
+```
 
 - Worktree limpa no início, HEAD `0fa72c3`. Coordenação, handoff, progresso,
   fichas dos blocos 5 e 6, `AGENTS.md` e skills de lint lidos antes da edição.
@@ -33,3 +35,8 @@ erros. Próxima ação: corrigir`class-records`(7), depois`appointments`(29),`te
   (`/tmp/lazuli-pr207-api-block7-unit-admissions.log`). `git diff --check`
   passou. A integração específica de admissão fica para o gate do bloco, com
   banco temporário isolado.
+- Alterados `class-records/experimental-sessions.ts`, `guests.ts`,
+  `progress.ts` e `read.ts`: retornos explícitos, consultas de convidados e
+  montagem do detalhe separados sem alterar critérios de visibilidade.
+  Lint do diretório passou com 0 erros e typecheck API passou. O bloco caiu
+  de 86 para 79 erros, sem novos erros nesses arquivos.
