@@ -3,9 +3,10 @@
 > **FOCO:** 31 erros em 21 arquivos próprios, congelados em
 > [progresso](pr207-lint-progress.md): 30 erros em 20 arquivos da API e 1 em
 > `scripts/imports/teaching-program.ts`. Worktree limpa no início, HEAD
-> `eb9cb61`. Medição atual: **30 erros**, todos na API; o script passou no
-> lint direcionado com 0 erros e 1 aviso. Próxima ação: zerar as áreas da API
-> e seus testes. Gate: lint direcionado 0, typecheck e
+> `eb9cb61`. Medição atual: **20 erros projetados**, em 12 arquivos de
+> produção da API; script e 8 arquivos de testes/suporte passaram no lint
+> direcionado. Próxima ação: zerar os 12 arquivos de produção. Gate: lint
+> direcionado 0, typecheck e
 > testes pertinentes, lint API completo sem novos fingerprints e lint da raiz
 > verde. Baselines: `/tmp/lazuli-pr207-api-full-block7.json` e
 > `/tmp/lazuli-pr207-root-after-block7.log`.
@@ -20,3 +21,9 @@
 - `scripts/imports/teaching-program.ts` agora valida o JSON com
   `teachingProgramImportSchema` antes de chamar a importação tipada. Lint
   direcionado: 0 erros, 1 aviso de caminho de arquivo dinâmico preexistente.
+- Oito arquivos de testes/suporte no inventário foram ajustados. O teste de
+  materiais usa `finance.previewPayments` para verificar recibo e versão sem
+  importar implementação interna; os demais ajustes explicitam tipos e
+  preservam asserções. Lint direcionado dos oito: 0 erros; typecheck API e
+  suíte unitária 88/88 passaram. Dez erros do baseline removidos. A medição
+  completa será repetida após o restante do bloco.

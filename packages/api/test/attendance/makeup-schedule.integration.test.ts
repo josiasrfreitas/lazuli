@@ -28,7 +28,7 @@ void it("schedules the compatibility makeup with verified origins, same-day noti
   assert.equal(row.appointment?.plannedContent, "Revisão orientada.");
   assert.equal(
     await db.makeupCoverage.count({
-      where: { appointmentId: row.appointment!.id, attendanceId: fixtureData.absence.id },
+      where: { appointmentId: row.appointment.id, attendanceId: fixtureData.absence.id },
     }),
     1,
   );

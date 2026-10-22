@@ -1,7 +1,8 @@
 # PR #207 — inventário de lint
 
 > **BLOCO 8 CONGELADO:** 31 erros iniciais em 21 arquivos; medição atual:
-> **30 erros**, todos na API. O script de importação passou no lint direcionado.
+> **20 erros projetados**, em 12 arquivos de produção da API. O script e os
+> 8 arquivos de testes/suporte passaram no lint direcionado.
 > Os 30 erros da API foram medidos em
 > `/tmp/lazuli-pr207-api-full-block7.json` e 1 erro em
 > `scripts/imports/teaching-program.ts` registrado no lint da raiz após o

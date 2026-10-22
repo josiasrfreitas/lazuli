@@ -3,7 +3,6 @@ import { createHash, randomUUID } from "node:crypto";
 import { after, before, it } from "node:test";
 import { db, type TransactionClient } from "@lazuli/db";
 import { finance } from "../../src/finance/index.js";
-import { loadSettlementItems, settlementLine } from "../../src/finance/internal/settlement-data.js";
 import { ADMIN, ensureAdminUser } from "../support/finance-test-support.js";
 
 const ADULT_VERSION = createHash("sha256").update('["single-receipt-v1",6,13600,10]').digest("hex");
@@ -32,7 +31,19 @@ async function scenario(
     if (error !== ROLLBACK) throw error;
   }
 }
-async function fixture(tx: TransactionClient) {
+async function fixture(tx: TransactionClient): Promise<{
+  stageId: string;
+  values: {
+    commandId: string;
+    studentId: string;
+    payerId: string;
+    agreedOn: string;
+    startsOn: string;
+    firstDueDate: string;
+    durationMonths: number;
+    monthlyAmountCents: number;
+  };
+}> {
   const suffix = randomUUID();
   const product = await tx.productLine.create({
     data: {
@@ -102,8 +113,11 @@ void it("keeps card installments as terms and creates one net receivable with st
     const book = detail.orders.find((order) => order.kind === "MATERIAL")!;
     assert.equal(book.installments.length, 1);
     assert.deepEqual(detail.paymentProgress, { paid: 0, total: 12, waived: 0, cancelled: 0 });
-    const [item] = await loadSettlementItems(tx, [book.installments[0]!.id]);
-    const late = settlementLine({ item: item!, date: "2026-02-02", now: NOW });
+    const [preview] = await service.previewPayments(
+      { date: "2026-02-02", items: [{ installmentId: book.installments[0]!.id }] },
+      NOW,
+    );
+    const late = preview!.line!;
     assert.equal(late.quote.newInterestCents, 0);
     assert.equal(late.quote.discountCents, 0);
     assert.deepEqual(late.materialReceipt, {
@@ -177,16 +191,24 @@ void it("keeps card installments as terms and creates one net receivable with st
           commandId: randomUUID(),
           payerId: values.payerId,
           amountCents: 73440,
-          allocations: [{ installmentId: item!.id, amountCents: 73440, version: late.version }],
+          allocations: [
+            { installmentId: book.installments[0]!.id, amountCents: 73440, version: late.version },
+          ],
         },
       ],
     };
     // Agreeing the sale did not record money. The full net is collected only now.
-    assert.equal(await tx.paymentAllocation.count({ where: { installmentId: item!.id } }), 0);
+    assert.equal(
+      await tx.paymentAllocation.count({ where: { installmentId: book.installments[0]!.id } }),
+      0,
+    );
     const received = await service.confirmPayments(receipt, NOW);
     assert.equal(received[0]!.amountCents, 73440);
     assert.deepEqual(await service.confirmPayments(receipt, NOW), received);
-    assert.equal(await tx.paymentAllocation.count({ where: { installmentId: item!.id } }), 1);
+    assert.equal(
+      await tx.paymentAllocation.count({ where: { installmentId: book.installments[0]!.id } }),
+      1,
+    );
     const paid = await service.readContract(contract.id, NOW);
     const paidBook = paid.orders.find((order) => order.kind === "MATERIAL")!;
     assert.equal(paidBook.installments[0]!.balanceCents, 0);
@@ -227,8 +249,12 @@ void it("charges the cash price once and never grants tuition punctuality discou
     assert.equal(material.totalCents, 66420);
     assert.equal(material.installments.length, 1);
     assert.equal(material.installments[0]!.dueDate, "2026-01-31");
-    const [item] = await loadSettlementItems(tx, [material.installments[0]!.id]);
-    const line = settlementLine({ item: item!, date: "2026-01-31", now: NOW });
+    const installmentId = material.installments[0]!.id;
+    const [preview] = await service.previewPayments(
+      { date: "2026-01-31", items: [{ installmentId }] },
+      NOW,
+    );
+    const line = preview!.line!;
     assert.equal(line.quote.balanceCents, 66420);
     assert.equal(line.quote.discountCents, 0);
     assert.equal(line.materialReceipt?.feeCents, 0);
@@ -239,7 +265,7 @@ void it("charges the cash price once and never grants tuition punctuality discou
     assert.equal(ledger.view, "all");
     assert.ok("rows" in ledger);
     assert.equal(
-      ledger.rows.find((row) => row.installmentId === item!.id)!.onTimeAmountCents,
+      ledger.rows.find((row) => row.installmentId === installmentId)!.onTimeAmountCents,
       null,
     );
     await tx.installment.updateMany({
@@ -275,11 +301,11 @@ void it("charges the cash price once and never grants tuition punctuality discou
       },
       NOW,
     );
-    const [afterTermination] = await loadSettlementItems(tx, [item!.id]);
-    assert.equal(
-      settlementLine({ item: afterTermination!, date: "2026-02-02", now: NOW }).quote.balanceCents,
-      66420,
+    const [afterTermination] = await service.previewPayments(
+      { date: "2026-02-02", items: [{ installmentId }] },
+      NOW,
     );
+    assert.equal(afterTermination!.line!.quote.balanceCents, 66420);
   });
 });
 
@@ -379,8 +405,12 @@ void it("sells two books together with one net repasse and twelve card payments 
       assert.equal(books[0]!.material!.cardFeeCents, price.fee);
       assert.equal(books[0]!.installments.length, 1);
       assert.equal(books[0]!.installments[0]!.amountCents, price.net);
-      const [item] = await loadSettlementItems(tx, [books[0]!.installments[0]!.id]);
-      const line = settlementLine({ item: item!, date: "2026-02-02", now: NOW });
+      const installmentId = books[0]!.installments[0]!.id;
+      const [preview] = await service.previewPayments(
+        { date: "2026-02-02", items: [{ installmentId }] },
+        NOW,
+      );
+      const line = preview!.line!;
       await service.confirmPayments(
         {
           operationId: randomUUID(),
@@ -391,9 +421,7 @@ void it("sells two books together with one net repasse and twelve card payments 
               commandId: randomUUID(),
               payerId: values.payerId,
               amountCents: price.net,
-              allocations: [
-                { installmentId: item!.id, amountCents: price.net, version: line.version },
-              ],
+              allocations: [{ installmentId, amountCents: price.net, version: line.version }],
             },
           ],
         },

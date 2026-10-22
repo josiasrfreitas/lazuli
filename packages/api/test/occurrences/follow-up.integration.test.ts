@@ -37,7 +37,8 @@ const teacher: StaffUser = {
   name: config.teacherName,
   email: config.teacherEmail,
 };
-const caller = (staffUser = admin) => createCaller({ db, staffUser, now });
+const caller = (staffUser = admin): ReturnType<typeof createCaller> =>
+  createCaller({ db, staffUser, now });
 async function clean(): Promise<void> {
   const where = { student: { fullName: { startsWith: config.prefix } } };
   await db.pedagogicalFollowUp.deleteMany({
@@ -69,7 +70,14 @@ after(async () => {
   await clean();
   await db.$disconnect();
 });
-async function fixture() {
+async function fixture(): Promise<{
+  ana: { id: string };
+  bruno: { id: string };
+  session: { id: string; classId: string; date: Date; startTime: Date; endTime: Date };
+  first: { id: string };
+  second: { id: string };
+  third: { id: string };
+}> {
   await ensureTeacherFor(config);
   await db.teacherProfile.create({ data: { userId: config.teacherId } });
   const catalog = await seedTwoStageCatalogFor(config);

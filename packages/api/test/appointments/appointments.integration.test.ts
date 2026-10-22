@@ -36,7 +36,9 @@ void it("reserves source time without changing frequency, then compensates actua
   const scheduled = await harness
     .caller(undefined, fixtureData.before)
     .appointments.schedule(fixtureData.input);
-  const percent = () =>
+  const percent = (): ReturnType<
+    ReturnType<typeof harness.caller>["attendance"]["enrollmentSemesterPercent"]
+  > =>
     harness.caller().attendance.enrollmentSemesterPercent({
       enrollmentId: fixtureData.enrollmentId,
       semesterId: fixtureData.semesterId,

@@ -3,7 +3,17 @@ import { db } from "@lazuli/db";
 import type { Harness } from "./attendance-test-support.js";
 import type { AppointmentScheduleInput } from "@lazuli/validators";
 
-export async function appointmentFixture(harness: Harness) {
+export async function appointmentFixture(harness: Harness): Promise<
+  Awaited<ReturnType<Harness["seedBaseScenario"]>> &
+    Awaited<ReturnType<Harness["enrollStudent"]>> & {
+      absence: { id: string };
+      targetId: string;
+      targetClassId: string;
+      input: AppointmentScheduleInput;
+      before: Date;
+      after: Date;
+    }
+> {
   const scenario = await harness.seedBaseScenario();
   const student = await harness.enrollStudent({
     classId: scenario.classId,

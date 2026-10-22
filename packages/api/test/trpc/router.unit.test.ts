@@ -19,12 +19,14 @@ function contextFor(staffUser: StaffUser | null): Context {
 
 void describe("appRouter procedure seam", () => {
   void it("loads the API and serves public health without initializing database configuration", () => {
-    const environment = { ...process.env };
-    delete environment.DATABASE_URL;
-    delete environment.NODE_TEST_CONTEXT;
     const result = spawnSync(
-      process.execPath,
+      "env",
       [
+        "-u",
+        "DATABASE_URL",
+        "-u",
+        "NODE_TEST_CONTEXT",
+        process.execPath,
         "--import",
         "tsx",
         "--input-type=module",
@@ -35,7 +37,7 @@ void describe("appRouter procedure seam", () => {
       process.stdout.write(JSON.stringify(result));
     `,
       ],
-      { env: environment, encoding: "utf8", timeout: 10_000 },
+      { encoding: "utf8", timeout: 10_000 },
     );
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(JSON.parse(result.stdout), { status: "ok" });

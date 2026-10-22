@@ -85,7 +85,7 @@ void describe("settings over HTTP", { concurrency: 1 }, () => {
     for (const staffUser of [ADMIN, SYSTEM_ADMIN]) {
       const read = await callHttpQuery({ path: "finance.readMaterialPrice", staffUser });
       assert.equal(read.status, HTTP_OK);
-      const payload = (await read.json()) as { result: { data: { json: unknown } } };
+      const payload = (await read.json()) as { result: { data: { json: object } } };
       assert.deepEqual(payload.result.data.json, {
         child: {
           installments: 6,

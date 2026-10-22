@@ -204,7 +204,7 @@ void it("does not replace the original author or invalidate a confirmed assessme
   );
   assert.deepEqual(
     unchanged.grades.map((grade) => grade.recordedBy),
-    Array(8).fill("Assessment Teacher"),
+    Array.from({ length: 8 }, () => "Assessment Teacher"),
   );
 });
 
