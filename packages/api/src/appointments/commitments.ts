@@ -3,13 +3,24 @@ import { intervalsOverlap, weekdayOf } from "@lazuli/domain";
 import { dateOnly, timeOnly } from "../class-records/data.js";
 import { badRequest } from "../trpc/errors.js";
 
+type IndependentAppointment = Pick<
+  Prisma.PedagogicalAppointmentGetPayload<true>,
+  "id" | "studentId" | "purpose" | "status" | "format"
+> & {
+  studentName: string;
+  rescheduledToId: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+};
+
 /** Independent appointments occupy teaching time; class guests already occupy their class slot. */
 export async function independentAppointments(input: {
   database: Prisma.TransactionClient;
   teacherId: string;
   from: string;
   through: string;
-}) {
+}): Promise<IndependentAppointment[]> {
   const rows = await input.database.pedagogicalAppointment.findMany({
     where: {
       teacherId: input.teacherId,

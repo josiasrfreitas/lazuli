@@ -21,15 +21,7 @@ export async function scheduleAppointment(
 
   requireAppointmentAdmin(context);
   await lockTeacher(context.database, "");
-  if (await context.database.pedagogicalAppointment.findUnique({ where: { id: input.id } }))
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: "Este agendamento já foi salvo. Atualize a agenda.",
-    });
-  if (input.purpose === "MAKEUP" && input.coverages.length === 0)
-    throw badRequest("Selecione pelo menos uma falta de origem.");
-  if (input.purpose === "PPT_COMPLEMENT" && !input.enrollmentId)
-    throw badRequest("Selecione a matrícula PPT.");
+  await assertScheduleRequest(context, input);
   const { student: _student, ...meeting } = await resolveAppointmentMeeting(context, input);
   await validateCoverages(context, {
     ...meeting,
@@ -63,10 +55,38 @@ export async function scheduleAppointment(
     kind: "SCHEDULED",
     reason: null,
   });
+  await recordScheduleActivity(context, { row, input });
+  return { id: row.id, version: row.version };
+}
+
+async function recordScheduleActivity(
+  context: AppointmentContext,
+  {
+    row,
+    input,
+  }: {
+    row: Awaited<ReturnType<typeof recordAppointmentRevision>>;
+    input: AppointmentScheduleInput;
+  },
+): Promise<void> {
   await appointmentActivity(context, {
     row,
     action: "appointments.schedule",
     description: `${row.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })} · ${timeOnly(row.startTime)}–${timeOnly(row.endTime)}. ${input.coverages.length > 0 ? `${input.coverages.reduce((sum, item) => sum + item.minutes, 0)} minutos reservados para reposição.` : "Acompanhamento pedagógico agendado."}`,
   });
-  return { id: row.id, version: row.version };
+}
+
+async function assertScheduleRequest(
+  context: AppointmentContext,
+  input: AppointmentScheduleInput,
+): Promise<void> {
+  if (await context.database.pedagogicalAppointment.findUnique({ where: { id: input.id } }))
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "Este agendamento já foi salvo. Atualize a agenda.",
+    });
+  if (input.purpose === "MAKEUP" && input.coverages.length === 0)
+    throw badRequest("Selecione pelo menos uma falta de origem.");
+  if (input.purpose === "PPT_COMPLEMENT" && !input.enrollmentId)
+    throw badRequest("Selecione a matrícula PPT.");
 }

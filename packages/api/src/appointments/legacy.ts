@@ -2,6 +2,14 @@ import type { Prisma } from "@lazuli/db";
 import { recordSessionInclude, responsibleTeacher } from "../class-records/data.js";
 import { notFound } from "../trpc/errors.js";
 
+function legacyStatus(legacy: {
+  cancelledAt: Date | null;
+  attendedAt: Date | null;
+}): "CANCELLED" | "ATTENDED" | "SCHEDULED" {
+  if (legacy.cancelledAt) return "CANCELLED";
+  return legacy.attendedAt ? "ATTENDED" : "SCHEDULED";
+}
+
 /** Bridges records created by older imports as well as the one-time migration; missing facts stay null. */
 export async function ensureLegacyAppointment(
   database: Prisma.TransactionClient,
@@ -30,7 +38,7 @@ export async function ensureLegacyAppointment(
       endTime: target.endTime,
       format: target.class.format,
       purpose: "MAKEUP",
-      status: legacy.cancelledAt ? "CANCELLED" : legacy.attendedAt ? "ATTENDED" : "SCHEDULED",
+      status: legacyStatus(legacy),
       version: 0,
       scheduledAt: legacy.scheduledAt,
       scheduledById: legacy.scheduledById,

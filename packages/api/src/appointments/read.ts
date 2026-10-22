@@ -1,11 +1,17 @@
 import type { Prisma } from "@lazuli/db";
 import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
-import { appointmentSnapshotSchema, type appointmentListSchema, type z } from "@lazuli/validators";
+import {
+  appointmentSnapshotSchema,
+  type AppointmentSnapshot,
+  type appointmentListSchema,
+  type z,
+} from "@lazuli/validators";
 import {
   dateOnly,
   recordSessionInclude,
   responsibleTeacher,
   timeOnly,
+  type RecordSession,
 } from "../class-records/data.js";
 import { notFound } from "../trpc/errors.js";
 import {
@@ -21,10 +27,68 @@ import { appointmentSnapshot } from "./snapshot.js";
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { studentAbsences } from "./absences.js";
 
+type AppointmentListItem = AppointmentSnapshot & {
+  restriction: string | null;
+  destinationCancelled: boolean;
+  overdue: boolean;
+  rescheduledToId: string | null;
+};
+type AppointmentDetail = {
+  snapshot: AppointmentSnapshot;
+  restriction: string | null;
+  rescheduledToId: string | null;
+  absences: Awaited<ReturnType<typeof studentAbsences>>;
+  history: {
+    id: string;
+    version: number;
+    author: { id: string; name: string } | null;
+    at: Date;
+    kind: Prisma.AppointmentRevisionGetPayload<true>["kind"];
+    reason: string | null;
+    snapshot: AppointmentSnapshot;
+  }[];
+};
+const enrollmentInclude = {
+  class: {
+    select: {
+      portalClassName: true,
+      scheduleType: true,
+      status: true,
+      deletedAt: true,
+      ...responsibilitySelect,
+    },
+  },
+} satisfies Prisma.EnrollmentInclude;
+type StudentEnrollment = Prisma.EnrollmentGetPayload<{ include: typeof enrollmentInclude }>;
+type StudentOptions = {
+  student: { id: string; fullName: string };
+  hasCurrentEnrollment: boolean;
+  defaultTeacher: ReturnType<typeof usualTeacherOn>;
+  absences: Awaited<ReturnType<typeof studentAbsences>>;
+  enrollments: {
+    id: string;
+    className: string;
+    scheduleType: RecordSession["class"]["scheduleType"];
+    entryDate: string;
+    exitDate: string | null;
+  }[];
+};
+type AppointmentDestination = {
+  id: string;
+  date: string;
+  classId: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  teacher: ReturnType<typeof responsibleTeacher>;
+  format: RecordSession["class"]["format"];
+  scheduleType: RecordSession["class"]["scheduleType"];
+};
+
 export async function listAppointments(
   context: AppointmentContext,
   input: z.infer<typeof appointmentListSchema>,
-) {
+): Promise<AppointmentListItem[]> {
   return readAppointments(context, {
     where: {
       deletedAt: null,
@@ -34,7 +98,10 @@ export async function listAppointments(
     teacherId: input.teacherId,
   });
 }
-export async function studentAppointments(context: AppointmentContext, studentId: string) {
+export async function studentAppointments(
+  context: AppointmentContext,
+  studentId: string,
+): Promise<AppointmentListItem[]> {
   return readAppointments(context, { where: { deletedAt: null, studentId } });
 }
 async function readAppointments(
@@ -43,7 +110,7 @@ async function readAppointments(
     where: Prisma.PedagogicalAppointmentWhereInput;
     teacherId?: string | undefined;
   },
-) {
+): Promise<AppointmentListItem[]> {
   const rows = await context.database.pedagogicalAppointment.findMany({
     where: options.where,
     include: appointmentInclude,
@@ -63,7 +130,10 @@ async function readAppointments(
       rescheduledToId: row.rescheduledTo?.id ?? null,
     }));
 }
-export async function appointmentDetail(context: AppointmentContext, id: string) {
+export async function appointmentDetail(
+  context: AppointmentContext,
+  id: string,
+): Promise<AppointmentDetail> {
   const row = await loadAppointment(context, id);
   const [absences, revisions] = await Promise.all([
     studentAbsences(context.database, { studentId: row.studentId, excludeAppointmentId: row.id }),
@@ -95,7 +165,7 @@ export async function appointmentStudentOptions(
     studentId: string;
     excludeAppointmentId?: string | undefined;
   },
-) {
+): Promise<StudentOptions> {
   const { studentId, excludeAppointmentId } = options;
 
   requireAppointmentAdmin(context);
@@ -106,21 +176,7 @@ export async function appointmentStudentOptions(
   if (!student) throw notFound("Aluno não encontrado.");
   const [absences, enrollments] = await Promise.all([
     studentAbsences(context.database, { studentId, excludeAppointmentId }),
-    context.database.enrollment.findMany({
-      where: { studentId, deletedAt: null },
-      include: {
-        class: {
-          select: {
-            portalClassName: true,
-            scheduleType: true,
-            status: true,
-            deletedAt: true,
-            ...responsibilitySelect,
-          },
-        },
-      },
-      orderBy: { entryDate: "desc" },
-    }),
+    studentEnrollments(context, studentId),
   ]);
   const currentDate = saoPauloDateOnly(context.now);
   const currentEnrollment = enrollments.find(
@@ -151,13 +207,23 @@ export async function appointmentStudentOptions(
     })),
   };
 }
+async function studentEnrollments(
+  context: AppointmentContext,
+  studentId: string,
+): Promise<StudentEnrollment[]> {
+  return context.database.enrollment.findMany({
+    where: { studentId, deletedAt: null },
+    include: enrollmentInclude,
+    orderBy: { entryDate: "desc" },
+  });
+}
 export async function appointmentDestinations(
   context: AppointmentContext,
   options: {
     date: string;
     through?: string | undefined;
   },
-) {
+): Promise<AppointmentDestination[]> {
   const { date, through = date } = options;
 
   requireAppointmentAdmin(context);

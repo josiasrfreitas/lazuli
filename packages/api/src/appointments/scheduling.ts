@@ -1,4 +1,5 @@
 import { requireCurrentEnrollment } from "../enrollment/require-current.js";
+import type { Prisma } from "@lazuli/db";
 import { intervalsOverlap, sessionEndInstant } from "@lazuli/domain";
 import type { AppointmentScheduleInput } from "@lazuli/validators";
 import {
@@ -6,6 +7,7 @@ import {
   recordSessionInclude,
   responsibleTeacher,
   timeOnly,
+  type RecordSession,
 } from "../class-records/data.js";
 import { timeStringToDate } from "../classes/time.js";
 import { assertNoTeacherConflict, assertTeacherEligible } from "../teachers/availability.js";
@@ -13,58 +15,108 @@ import { meetingsBetween } from "../teachers/schedule.js";
 import { badRequest, notFound } from "../trpc/errors.js";
 import type { AppointmentContext } from "./data.js";
 
+type MeetingValues = {
+  teacherId: string | null;
+  date: Date;
+  startTime: Date;
+  endTime: Date;
+  format: "IN_PERSON" | "ONLINE";
+  targetClassSessionId: string | null;
+};
+type ResolvedMeeting = Omit<MeetingValues, "teacherId"> & {
+  teacherId: string;
+  student: Prisma.StudentGetPayload<true>;
+};
+type MeetingCandidate = { date: string; startTime: string; endTime: string };
+
 export async function resolveAppointmentMeeting(
   context: AppointmentContext,
   input: AppointmentScheduleInput,
-) {
+): Promise<ResolvedMeeting> {
   const { database, now } = context;
   const student = await database.student.findFirst({
     where: { id: input.studentId, deletedAt: null },
   });
   if (!student) throw notFound("Aluno não encontrado.");
   await requireCurrentEnrollment(context, input.studentId);
-  const meeting = input.meeting;
-  const session =
-    meeting.kind === "CLASS"
-      ? await database.classSession.findFirst({
-          where: {
-            id: meeting.sessionId,
-            deletedAt: null,
-            class: { deletedAt: null, status: "ACTIVE" },
-          },
-          include: recordSessionInclude,
-        })
-      : null;
-  if (meeting.kind === "CLASS" && (!session || session.status === "CANCELLED"))
+  const session = await destinationSession(context, input.meeting);
+  if (input.meeting.kind === "CLASS" && (!session || session.status === "CANCELLED"))
     throw badRequest("A aula de destino não está disponível.");
-  const values = session
-    ? {
-        teacherId: responsibleTeacher(session)?.id ?? null,
-        date: session.date,
-        startTime: session.startTime,
-        endTime: session.endTime,
-        format: session.class.format,
-        targetClassSessionId: session.id,
-      }
-    : meeting.kind === "INDEPENDENT"
-      ? {
-          teacherId: meeting.teacherId,
-          date: new Date(meeting.date),
-          startTime: timeStringToDate(meeting.startTime),
-          endTime: timeStringToDate(meeting.endTime),
-          format: meeting.format,
-          targetClassSessionId: null,
-        }
-      : null;
+  const values = appointmentValues(session, input.meeting);
   if (!values?.teacherId) throw badRequest("Defina um professor responsável pelo atendimento.");
   if (sessionEndInstant({ date: values.date, endTime: values.startTime }) <= now)
     throw badRequest("Escolha um horário que ainda não começou.");
   const date = dateOnly(values.date);
-  const candidate = {
+  const candidate: MeetingCandidate = {
     date,
     startTime: timeOnly(values.startTime),
     endTime: timeOnly(values.endTime),
   };
+  await assertAppointmentSlot(context, {
+    values: { ...values, teacherId: values.teacherId },
+    session,
+    date,
+    candidate,
+  });
+  await assertEnrollmentForAppointment(context, { input, date: values.date });
+  await assertStudentAvailable(context, { studentId: input.studentId, candidate });
+  return { ...values, teacherId: values.teacherId, student };
+}
+
+async function destinationSession(
+  context: AppointmentContext,
+  meeting: AppointmentScheduleInput["meeting"],
+): Promise<RecordSession | null> {
+  if (meeting.kind !== "CLASS") return null;
+  return context.database.classSession.findFirst({
+    where: {
+      id: meeting.sessionId,
+      deletedAt: null,
+      class: { deletedAt: null, status: "ACTIVE" },
+    },
+    include: recordSessionInclude,
+  });
+}
+
+function appointmentValues(
+  session: RecordSession | null,
+  meeting: AppointmentScheduleInput["meeting"],
+): MeetingValues | null {
+  if (session)
+    return {
+      teacherId: responsibleTeacher(session)?.id ?? null,
+      date: session.date,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      format: session.class.format,
+      targetClassSessionId: session.id,
+    };
+  if (meeting.kind !== "INDEPENDENT") return null;
+  return {
+    teacherId: meeting.teacherId,
+    date: new Date(meeting.date),
+    startTime: timeStringToDate(meeting.startTime),
+    endTime: timeStringToDate(meeting.endTime),
+    format: meeting.format,
+    targetClassSessionId: null,
+  };
+}
+
+async function assertAppointmentSlot(
+  context: AppointmentContext,
+  {
+    values,
+    session,
+    date,
+    candidate,
+  }: {
+    values: MeetingValues & { teacherId: string };
+    session: RecordSession | null;
+    date: string;
+    candidate: MeetingCandidate;
+  },
+): Promise<void> {
+  const { database } = context;
   const closed = await database.schoolClosedDay.findFirst({
     where: { date: values.date, deletedAt: null },
   });
@@ -88,22 +140,25 @@ export async function resolveAppointmentMeeting(
         }
       : {}),
   });
-  if (input.enrollmentId) {
-    const enrollment = await database.enrollment.findFirst({
-      where: { id: input.enrollmentId, studentId: input.studentId, deletedAt: null },
-      include: { class: true },
-    });
-    if (!enrollment) throw badRequest("A matrícula não pertence ao aluno.");
-    if (
-      input.purpose === "PPT_COMPLEMENT" &&
-      (enrollment.class.scheduleType !== "PERSONALIZED" ||
-        enrollment.entryDate > values.date ||
-        (enrollment.exitDate && enrollment.exitDate <= values.date))
-    )
-      throw badRequest("Complemento PPT exige uma matrícula PPT vigente na data.");
-  }
-  await assertStudentAvailable(context, { studentId: input.studentId, candidate });
-  return { ...values, teacherId: values.teacherId, student };
+}
+
+async function assertEnrollmentForAppointment(
+  context: AppointmentContext,
+  { input, date }: { input: AppointmentScheduleInput; date: Date },
+): Promise<void> {
+  if (!input.enrollmentId) return;
+  const enrollment = await context.database.enrollment.findFirst({
+    where: { id: input.enrollmentId, studentId: input.studentId, deletedAt: null },
+    include: { class: true },
+  });
+  if (!enrollment) throw badRequest("A matrícula não pertence ao aluno.");
+  if (
+    input.purpose === "PPT_COMPLEMENT" &&
+    (enrollment.class.scheduleType !== "PERSONALIZED" ||
+      enrollment.entryDate > date ||
+      (enrollment.exitDate && enrollment.exitDate <= date))
+  )
+    throw badRequest("Complemento PPT exige uma matrícula PPT vigente na data.");
 }
 
 async function assertStudentAvailable(

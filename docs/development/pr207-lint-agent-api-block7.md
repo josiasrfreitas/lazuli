@@ -3,9 +3,9 @@
 > **FOCO:** 100 erros iniciais em 30 arquivos próprios de
 > `packages/api/src/admissions`, `appointments`, `class-records`, `finance` e
 > `teaching-programs`, congelados no [progresso](pr207-lint-progress.md).
-> Medição atual: **79 erros no bloco**, após zerar `admissions` e
+> Medição atual: **50 erros no bloco**, após zerar `admissions` e
 > `class-records`; outros 30 da API ficam fora dele. Próxima ação:
-> `appointments` (29), `teaching-programs` (13) e `finance` (37). Gate: zero
+> `teaching-programs` (13) e `finance` (37). Gate: zero
 > erros direcionados, typecheck e testes pertinentes, lint API completo sem
 > novos fingerprints e lint da raiz. Baseline:
 > `/tmp/lazuli-pr207-api-full-block6.json`.
@@ -40,3 +40,16 @@ pnpm -F @lazuli/api exec eslint src/admissions src/appointments src/class-record
   montagem do detalhe separados sem alterar critérios de visibilidade.
   Lint do diretório passou com 0 erros e typecheck API passou. O bloco caiu
   de 86 para 79 erros, sem novos erros nesses arquivos.
+- Em `appointments`, `absences.ts`, `commitments.ts`, `legacy.ts`,
+  `schedule.ts` e `coverage.ts` passaram no lint e no typecheck. O lint do
+  diretório mediu 19 erros restantes em `availability.ts` (2), `read.ts` (7),
+  `record.ts` (4) e `scheduling.ts` (6). O bloco inteiro tem 69 erros
+  projetados, ainda sujeito à nova medição completa.
+- `appointments/availability.ts`, `read.ts`, `record.ts` e `scheduling.ts`
+  foram divididos em consultas, validações, persistência e projeções. O lint
+  completo de `src/appointments` passou com 0 erros, o typecheck API passou
+  e a medição do bloco inteiro caiu para 50 erros: 13 em `teaching-programs`
+  e 37 em `finance`.
+- A suíte unitária API passou novamente com 88/88 após `appointments`
+  (`/tmp/lazuli-pr207-api-block7-unit-appointments.log`). Prettier dos
+  arquivos alterados e `git diff --check` passaram.

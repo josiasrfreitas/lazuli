@@ -1,8 +1,20 @@
 import { sessionEndInstant, teachingMinutes } from "@lazuli/domain";
+import type { Prisma } from "@lazuli/db";
 import type { MakeupCoverageInput } from "@lazuli/validators";
 import { lockClassRecord, timeOnly } from "../class-records/data.js";
 import { badRequest } from "../trpc/errors.js";
 import { sourceApplicable, sourceInclude, type AppointmentContext } from "./data.js";
+
+const coverageInclude = {
+  ...sourceInclude,
+  makeupCoverages: {
+    where: {
+      deletedAt: null,
+      appointment: { deletedAt: null, status: { in: ["SCHEDULED", "ATTENDED"] } },
+    },
+  },
+} satisfies Prisma.AttendanceInclude;
+type CoverageSource = Prisma.AttendanceGetPayload<{ include: typeof coverageInclude }>;
 
 /** Source locks serialize allocation with class-record correction. Caller holds teaching-schedule lock. */
 export async function validateCoverages(
@@ -30,12 +42,12 @@ export async function validateCoverages(
   const sources = await context.database.attendance.findMany({
     where: { id: { in: ids } },
     include: {
-      ...sourceInclude,
+      ...coverageInclude,
       makeupCoverages: {
+        ...coverageInclude.makeupCoverages,
         where: {
-          deletedAt: null,
+          ...coverageInclude.makeupCoverages.where,
           appointmentId: { not: input.appointmentId },
-          appointment: { deletedAt: null, status: { in: ["SCHEDULED", "ATTENDED"] } },
         },
       },
     },
@@ -44,25 +56,30 @@ export async function validateCoverages(
   let total = 0;
   for (const coverage of input.coverages) {
     const source = sources.find((row) => row.id === coverage.attendanceId);
-    if (!source || source.enrollment.studentId !== input.studentId || !sourceApplicable(source))
-      throw badRequest(
-        "Uma falta de origem mudou ou não pertence a este aluno. Atualize a seleção.",
-      );
-    if (sessionEndInstant(source.classSession) > start)
-      throw badRequest("A falta de origem deve ser anterior ao atendimento.");
-    const duration = teachingMinutes({
-      startTime: timeOnly(source.classSession.startTime),
-      endTime: timeOnly(source.classSession.endTime),
-    });
-    const allocated = source.makeupCoverages.reduce((sum, row) => sum + row.minutes, 0);
-    if (allocated + coverage.minutes > duration)
-      throw badRequest(
-        `A falta de ${source.classSession.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })} tem ${Math.max(0, duration - allocated)} minutos disponíveis. Outra reposição pode ter sido registrada.`,
-      );
+    assertCoverageSource(source, { coverage, studentId: input.studentId, start });
     total += coverage.minutes;
   }
   if (total > input.maximumMinutes)
     throw badRequest(
       `A compensação de ${total} minutos supera os ${input.maximumMinutes} minutos do atendimento.`,
+    );
+}
+
+function assertCoverageSource(
+  source: CoverageSource | undefined,
+  { coverage, studentId, start }: { coverage: MakeupCoverageInput; studentId: string; start: Date },
+): void {
+  if (!source || source.enrollment.studentId !== studentId || !sourceApplicable(source))
+    throw badRequest("Uma falta de origem mudou ou não pertence a este aluno. Atualize a seleção.");
+  if (sessionEndInstant(source.classSession) > start)
+    throw badRequest("A falta de origem deve ser anterior ao atendimento.");
+  const duration = teachingMinutes({
+    startTime: timeOnly(source.classSession.startTime),
+    endTime: timeOnly(source.classSession.endTime),
+  });
+  const allocated = source.makeupCoverages.reduce((sum, row) => sum + row.minutes, 0);
+  if (allocated + coverage.minutes > duration)
+    throw badRequest(
+      `A falta de ${source.classSession.date.toLocaleDateString("pt-BR", { timeZone: "UTC" })} tem ${Math.max(0, duration - allocated)} minutos disponíveis. Outra reposição pode ter sido registrada.`,
     );
 }

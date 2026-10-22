@@ -1,7 +1,12 @@
 import { searchMatchKysely } from "../search.js";
 import type { Prisma, TransactionClient } from "@lazuli/db";
 import { teachingMinutes } from "@lazuli/domain";
-import { classRecordSnapshotSchema, type absenceListSchema, type z } from "@lazuli/validators";
+import {
+  classRecordSnapshotSchema,
+  type ClassRecordSnapshot,
+  type absenceListSchema,
+  type z,
+} from "@lazuli/validators";
 import { sql } from "kysely";
 import { dateOnly, timeOnly } from "../class-records/data.js";
 import { sourceApplicable, sourceInclude } from "./data.js";
@@ -17,8 +22,31 @@ const absenceInclude = {
   },
 } satisfies Prisma.AttendanceInclude;
 type Absence = Prisma.AttendanceGetPayload<{ include: typeof absenceInclude }>;
+type AbsenceView = {
+  id: string;
+  studentId: string;
+  studentName: string;
+  enrollmentId: string;
+  classId: string;
+  className: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  compensated: number;
+  reserved: number;
+  available: number;
+  content: ClassRecordSnapshot["sharedContent"];
+};
+type AbsencePage = {
+  rows: AbsenceView[];
+  total: number;
+  page: number;
+  pageCount: number;
+  pageSize: number;
+};
 
-function absenceView(row: Absence, excludeAppointmentId?: string) {
+function absenceView(row: Absence, excludeAppointmentId?: string): AbsenceView {
   const duration = teachingMinutes({
     startTime: timeOnly(row.classSession.startTime),
     endTime: timeOnly(row.classSession.endTime),
@@ -63,7 +91,7 @@ export async function studentAbsences(
     studentId: string;
     excludeAppointmentId?: string | undefined;
   },
-) {
+): Promise<AbsenceView[]> {
   const { studentId, excludeAppointmentId } = options;
 
   const rows = await database.attendance.findMany({
@@ -82,16 +110,17 @@ export async function studentAbsences(
 }
 
 /** Derived coverage is filtered before pagination, so a page cannot lose rows after hydration. */
+const availableMinutes = sql<number>`
+  greatest(0, extract(epoch from (s.end_time - s.start_time)) / 60 - coalesce((
+      select sum(c.minutes) from "MakeupCoverage" c join "PedagogicalAppointment" p on p.id = c.appointment_id
+      where c.attendance_id = a.id and c.deleted_at is null and p.deleted_at is null and p.status in ('SCHEDULED', 'ATTENDED')
+    ), 0))
+`;
+
 export async function listAbsences(
   database: TransactionClient,
   input: z.infer<typeof absenceListSchema>,
-) {
-  const available = sql<number>`
-    greatest(0, extract(epoch from (s.end_time - s.start_time)) / 60 - coalesce((
-        select sum(c.minutes) from "MakeupCoverage" c join "PedagogicalAppointment" p on p.id = c.appointment_id
-        where c.attendance_id = a.id and c.deleted_at is null and p.deleted_at is null and p.status in ('SCHEDULED', 'ATTENDED')
-      ), 0))
-  `;
+): Promise<AbsencePage> {
   let query = database.$kysely
     .selectFrom("Attendance as a")
     .innerJoin("ClassSession as s", "s.id", "a.class_session_id")
@@ -111,7 +140,7 @@ export async function listAbsences(
     .where("s.date", "<=", new Date(input.through));
   if (input.search)
     query = query.where(searchMatchKysely(sql.ref("student.full_name"), input.search));
-  if (input.onlyOpen) query = query.where(available, ">", 0);
+  if (input.onlyOpen) query = query.where(availableMinutes, ">", 0);
   const count = await query
     .select((eb) => eb.fn.countAll<string>().as("total"))
     .executeTakeFirstOrThrow();
@@ -126,16 +155,29 @@ export async function listAbsences(
     .offset((page - 1) * input.pageSize)
     .limit(input.pageSize)
     .execute();
-  const rows = await database.attendance.findMany({
-    where: { id: { in: ids.map((row) => row.id) } },
-    include: absenceInclude,
-  });
-  const byId = new Map(rows.map((row) => [row.id, absenceView(row)]));
-  return {
-    rows: ids.map((row) => byId.get(row.id)!),
+  return absencePage(database, {
+    ids: ids.map((row) => row.id),
     total,
     page,
     pageCount,
     pageSize: input.pageSize,
+  });
+}
+
+async function absencePage(
+  database: TransactionClient,
+  options: Omit<AbsencePage, "rows"> & { ids: string[] },
+): Promise<AbsencePage> {
+  const rows = await database.attendance.findMany({
+    where: { id: { in: options.ids } },
+    include: absenceInclude,
+  });
+  const byId = new Map(rows.map((row) => [row.id, absenceView(row)]));
+  return {
+    rows: options.ids.map((id) => byId.get(id)!),
+    total: options.total,
+    page: options.page,
+    pageCount: options.pageCount,
+    pageSize: options.pageSize,
   };
 }

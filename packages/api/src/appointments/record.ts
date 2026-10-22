@@ -8,6 +8,7 @@ import {
   appointmentTeacher,
   loadAppointment,
   type AppointmentContext,
+  type AppointmentRow,
 } from "./data.js";
 import { validateCoverages } from "./coverage.js";
 import {
@@ -18,11 +19,38 @@ import {
   synchronizeLegacyMakeup,
 } from "./evidence.js";
 
+type RecordTarget = { row: AppointmentRow; correcting: boolean; teacherId: string };
+
 export async function recordAppointment(
   context: AppointmentContext,
   input: AppointmentRecordInput,
 ): Promise<{ id: string; version: number }> {
   await lockTeacher(context.database, "");
+  const { row, correcting, teacherId } = await recordTarget(context, input);
+  await validateCoverages(context, {
+    studentId: row.studentId,
+    appointmentId: row.id,
+    purpose: row.purpose,
+    date: row.date,
+    startTime: row.startTime,
+    maximumMinutes: input.attended ? input.performedMinutes! : 0,
+    coverages: input.coverages,
+  });
+  await persistRecording(context, { row, input, teacherId });
+  const saved = await recordAppointmentRevision(context, {
+    id: row.id,
+    kind: correcting ? "CORRECTED" : "RECORDED",
+    reason: input.reason || null,
+  });
+  await synchronizeLegacyMakeup(context, saved);
+  await recordActivity(context, { saved, input, correcting });
+  return { id: saved.id, version: saved.version };
+}
+
+async function recordTarget(
+  context: AppointmentContext,
+  input: AppointmentRecordInput,
+): Promise<RecordTarget> {
   const initial = await loadAppointment(context, input.id);
   // Serialize the destination with cancellation and the dated class-record responsibility freeze.
   if (initial.targetClassSessionId)
@@ -33,11 +61,28 @@ export async function recordAppointment(
   if (restriction) throw badRequest(restriction);
   const correcting = row.status !== "SCHEDULED";
   if (!correcting) await requireCurrentEnrollment(context, row.studentId);
+  assertRecordingDetails(row, { input, correcting });
+  const teacher = appointmentTeacher(row);
+  if (!teacher) throw badRequest("O atendimento está sem professor responsável.");
+  return { row, correcting, teacherId: teacher.id };
+}
+
+function assertRecordingDetails(
+  row: AppointmentRow,
+  { input, correcting }: { input: AppointmentRecordInput; correcting: boolean },
+): void {
   if (correcting && !input.reason) throw badRequest("Explique o motivo da correção.");
   if (input.attended && (!input.performedContent.trim() || !input.performedMinutes))
     throw badRequest("Informe o conteúdo e os minutos realizados.");
   if (!input.attended && input.coverages.length > 0)
     throw badRequest("Sem comparecimento não há compensação.");
+  assertMakeupCoverage(row, { input, correcting });
+}
+
+function assertMakeupCoverage(
+  row: AppointmentRow,
+  { input, correcting }: { input: AppointmentRecordInput; correcting: boolean },
+): void {
   if (
     input.attended &&
     row.purpose === "MAKEUP" &&
@@ -45,17 +90,16 @@ export async function recordAppointment(
     input.coverages.length === 0
   )
     throw badRequest("Associe a falta de origem antes de confirmar a reposição.");
-  const teacher = appointmentTeacher(row);
-  if (!teacher) throw badRequest("O atendimento está sem professor responsável.");
-  await validateCoverages(context, {
-    studentId: row.studentId,
-    appointmentId: row.id,
-    purpose: row.purpose,
-    date: row.date,
-    startTime: row.startTime,
-    maximumMinutes: input.attended ? input.performedMinutes! : 0,
-    coverages: input.coverages,
-  });
+}
+
+async function persistRecording(
+  context: AppointmentContext,
+  {
+    row,
+    input,
+    teacherId,
+  }: { row: AppointmentRow; input: AppointmentRecordInput; teacherId: string },
+): Promise<void> {
   await preserveImportedAppointment(context, row);
   await context.database.makeupCoverage.updateMany({
     where: {
@@ -78,7 +122,7 @@ export async function recordAppointment(
     data: {
       version: { increment: 1 },
       status: input.attended ? "ATTENDED" : "NO_SHOW",
-      teacherId: teacher.id,
+      teacherId,
       performedContent: input.attended ? input.performedContent : null,
       performedMinutes: input.attended ? input.performedMinutes : null,
       notes: input.notes || null,
@@ -86,17 +130,24 @@ export async function recordAppointment(
       recordedById: context.staffUser.id,
     },
   });
-  const saved = await recordAppointmentRevision(context, {
-    id: row.id,
-    kind: correcting ? "CORRECTED" : "RECORDED",
-    reason: input.reason || null,
-  });
-  await synchronizeLegacyMakeup(context, saved);
+}
+
+async function recordActivity(
+  context: AppointmentContext,
+  {
+    saved,
+    input,
+    correcting,
+  }: {
+    saved: Awaited<ReturnType<typeof recordAppointmentRevision>>;
+    input: AppointmentRecordInput;
+    correcting: boolean;
+  },
+): Promise<void> {
   const compensated = input.coverages.reduce((sum, item) => sum + item.minutes, 0);
   await appointmentActivity(context, {
     row: saved,
     action: correcting ? "appointments.correct" : "appointments.record",
     description: `${input.attended ? `Compareceu · ${input.performedMinutes} minutos realizados${compensated ? ` · ${compensated} minutos compensados` : ""}.` : "Não compareceu. Reservas de compensação liberadas."}${input.reason ? ` ${input.reason}` : ""}`,
   });
-  return { id: saved.id, version: saved.version };
 }

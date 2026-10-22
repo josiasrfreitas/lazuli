@@ -2,8 +2,8 @@
 
 > **BLOCO 7 CONGELADO:** 100 erros em 30 arquivos de `packages/api/src` nas
 > áreas `admissions`, `appointments`, `class-records`, `finance` e
-> `teaching-programs`. Medição atual: **79 erros no bloco**, após zerar os 21
-> de `admissions` e `class-records`. Outros 30 erros da API ficam fora do bloco;
+> `teaching-programs`. Medição atual: **50 erros no bloco**, após zerar os 50
+> de `admissions`, `class-records` e `appointments`. Outros 30 erros da API ficam fora do bloco;
 > o lint Web completo tem 0 erros. Baseline:
 > `/tmp/lazuli-pr207-api-full-block6.json`. Gate: zero erros no bloco,
 > typecheck e testes pertinentes, lint API completo sem novos fingerprints por
@@ -138,7 +138,7 @@ O lote local de preparação/calendário eliminou 22 erros. Os sete arquivos toc
 | 4     | Web: registros, área do professor, acompanhamento, presença e catálogo         |                              93 | Fechado: 0 direcionados, 93 removidos globalmente, 0 regressões  |
 | 5     | Web: admissão, entrada, navegação e erros residuais                            |                              83 | Fechado: 0 erros Web completos e 0 novos fingerprints            |
 | 6     | API: semestre, alunos, turmas e área do professor                              |                             100 | Fechado em `a3d2d17`; 0 no bloco, 130 na API fora dele           |
-| 7     | API: admissão, agendamentos, registros, financeiro e programas                 |                             100 | Em curso: 79 no bloco, 30 fora dele                              |
+| 7     | API: admissão, agendamentos, registros, financeiro e programas                 |                             100 | Em curso: 50 no bloco, 30 fora dele                              |
 
 No bloco 3, `classes/form-controls.tsx`, `class-overview.tsx` e
 `class-stage-progress.tsx` passaram no lint direcionado. O lint dos quatro diretórios
