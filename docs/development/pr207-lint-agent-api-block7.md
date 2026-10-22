@@ -4,12 +4,11 @@
 > `packages/api/src/admissions`, `appointments`, `class-records`, `finance` e
 > `teaching-programs`, congelados no [progresso](pr207-lint-progress.md).
 > **BLOCO FECHADO:** 0 erros no bloco; lint completo da API mediu 30 erros fora
-> dele, sem novos fingerprints frente ao baseline de 130. `pnpm
-test:affected --staged` passou com banco temporário: API unitária 88/88,
+> dele, sem novos fingerprints frente ao baseline de 130.
+> `pnpm test:affected --staged` passou com banco temporário: API unitária 88/88,
 > Web unitária 295/295, API integração 314/314 e transporte 63/63. Próxima
-> ação: lint da raiz e congelar o bloco 8 a partir dos 30 erros restantes.
-> erros direcionados, typecheck e testes pertinentes, lint API completo sem
-> novos fingerprints e lint da raiz. Baseline:
+> ação: bloco 8 com os 30 erros da API e 1 erro no script de importação
+> detectado pelo lint da raiz. Baseline:
 > `/tmp/lazuli-pr207-api-full-block6.json`.
 
 Comando direcionado:

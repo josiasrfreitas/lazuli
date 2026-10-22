@@ -1,5 +1,47 @@
 # PR #207 — inventário de lint
 
+> **BLOCO 8 CONGELADO:** 31 erros iniciais em 21 arquivos; medição atual:
+> **30 erros**, todos na API. O script de importação passou no lint direcionado.
+> Os 30 erros da API foram medidos em
+> `/tmp/lazuli-pr207-api-full-block7.json` e 1 erro em
+> `scripts/imports/teaching-program.ts` registrado no lint da raiz após o
+> bloco 7. O Web completo passou anteriormente com 0 erros. Próxima ação:
+> corrigir os 20 arquivos da API listados abaixo,
+> medir API e raiz até 0 erros. Log global:
+> `/tmp/lazuli-pr207-root-after-block7.log`.
+
+### Bloco 8 — API e script de importação, 31 erros congelados
+
+| Arquivo relativo à raiz                                            | Erros no baseline |
+| ------------------------------------------------------------------ | ----------------: |
+| `packages/api/src/activity/read.ts`                                |                 2 |
+| `packages/api/src/activity/record.ts`                              |                 1 |
+| `packages/api/src/activity/student-financial-scope.ts`             |                 1 |
+| `packages/api/src/assessments/data.ts`                             |                 1 |
+| `packages/api/src/assessments/read.ts`                             |                 1 |
+| `packages/api/src/assessments/rules.ts`                            |                 2 |
+| `packages/api/src/attendance/makeup-schedule.ts`                   |                 1 |
+| `packages/api/src/command-search/read.ts`                          |                 3 |
+| `packages/api/src/occurrences/sessions.ts`                         |                 3 |
+| `packages/api/src/search.ts`                                       |                 2 |
+| `packages/api/src/teachers/agenda.ts`                              |                 2 |
+| `packages/api/src/teachers/departure.ts`                           |                 1 |
+| `packages/api/test/appointments/appointments.integration.test.ts`  |                 1 |
+| `packages/api/test/assessments/assessment.integration.test.ts`     |                 1 |
+| `packages/api/test/attendance/makeup-schedule.integration.test.ts` |                 1 |
+| `packages/api/test/finance/contract-materials.integration.test.ts` |                 2 |
+| `packages/api/test/finance/settings.transport.test.ts`             |                 1 |
+| `packages/api/test/occurrences/follow-up.integration.test.ts`      |                 2 |
+| `packages/api/test/support/appointment-fixtures.ts`                |                 1 |
+| `packages/api/test/trpc/router.unit.test.ts`                       |                 1 |
+| `scripts/imports/teaching-program.ts`                              |                 1 |
+
+O lint da raiz após o bloco 7 parou no script de importação de programas de
+ensino. O argumento de `JSON.parse` deixou de satisfazer a assinatura tipada
+de `importTeachingProgram` após a refatoração do bloco 7. Esse caminho está
+reservado no bloco 8 como dependência direta; a API completa foi medida
+separadamente com 30 erros e nenhum novo fingerprint.
+
 > **BLOCO 7 CONGELADO:** 100 erros em 30 arquivos de `packages/api/src` nas
 > áreas `admissions`, `appointments`, `class-records`, `finance` e
 > `teaching-programs`. Medição atual: **0 erros no bloco**. Lint completo da API:
