@@ -1,15 +1,17 @@
 # PR #207 — inventário de lint
 
-> **BLOCO 8 CONGELADO:** 31 erros iniciais em 21 arquivos; medição atual:
-> **10 erros projetados**, em 5 arquivos de produção da API. O script, os
-> testes/suporte, atividade, busca e avaliações passaram no lint direcionado.
+> **BLOCO 8 FECHADO:** 31 erros iniciais em 21 arquivos; medição final:
+> **0 erros na API completa** e 0 no script direcionado. A API tem 15 avisos
+> não bloqueantes e nenhum novo fingerprint de erro frente ao baseline. Os
+> testes afetados passaram (88 API unitários, 295 Web, 314 integração, 63
+> transporte). `pnpm typecheck` passou (13/13 tarefas) e `pnpm lint` da raiz
+> passou (16/16 tarefas, 0 erros).
 > Os 30 erros da API foram medidos em
 > `/tmp/lazuli-pr207-api-full-block7.json` e 1 erro em
 > `scripts/imports/teaching-program.ts` registrado no lint da raiz após o
-> bloco 7. O Web completo passou anteriormente com 0 erros. Próxima ação:
-> corrigir os 20 arquivos da API listados abaixo,
-> medir API e raiz até 0 erros. Log global:
-> `/tmp/lazuli-pr207-root-after-block7.log`.
+> bloco 7. O Web completo passou com 0 erros. Logs globais:
+> `/tmp/lazuli-pr207-root-after-block7.log` e
+> `/tmp/lazuli-pr207-root-final.log`.
 
 ### Bloco 8 — API e script de importação, 31 erros congelados
 

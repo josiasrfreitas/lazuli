@@ -32,6 +32,22 @@ const sessionInclude = {
   },
 } satisfies Prisma.ClassSessionInclude;
 type Session = Prisma.ClassSessionGetPayload<{ include: typeof sessionInclude }>;
+type SessionRange = { from: string; to: string };
+type SessionOptions = { studentId?: string | undefined; range?: SessionRange | undefined };
+type EnrollmentWindow = { classId: string; entryDate: Date; exitDate: Date | null };
+type OccurrenceSessionView = {
+  id: string;
+  date: Date;
+  startTime: Date;
+  endTime: Date;
+  className: string;
+  classId: string;
+  teacherName: string | null;
+  substitute: boolean;
+  stageName: string | null;
+  scheduleType: Session["class"]["scheduleType"];
+  format: Session["class"]["format"];
+};
 function reportTeacher(session: Session): {
   teacher: { id: string; name: string } | null;
   substitute: boolean;
@@ -75,72 +91,79 @@ function hasStarted(session: { date: Date; startTime: Date }, now: Date): boolea
 
 export async function occurrenceSessions(
   context: FollowUpContext,
-  options: {
-    studentId?: string | undefined;
-    range?:
-      | {
-          from: string;
-          to: string;
-        }
-      | undefined;
-  },
-) {
+  options: SessionOptions,
+): Promise<OccurrenceSessionView[]> {
   const { studentId, range } = options;
-
   const today = new Date(saoPauloDateOnly(context.now));
   const through = range && new Date(range.to) < today ? new Date(range.to) : today;
   if (range && new Date(range.from) > through) return [];
-  const enrollments = studentId
-    ? await context.database.enrollment.findMany({
-        where: {
-          studentId,
-          deletedAt: null,
-          entryDate: { lte: through },
-          ...(range
-            ? { OR: [{ exitDate: null }, { exitDate: { gt: new Date(range.from) } }] }
-            : {}),
-        },
-        select: { classId: true, entryDate: true, exitDate: true },
-      })
-    : null;
+  const enrollments = await enrollmentWindows(context, { studentId, range, through });
   if (enrollments?.length === 0) return [];
   const rows = await context.database.classSession.findMany({
-    where: {
-      deletedAt: null,
-      status: "SCHEDULED",
-      date: { lte: through, ...(range ? { gte: new Date(range.from) } : {}) },
-      class: { deletedAt: null },
-      ...(enrollments
-        ? {
-            OR: enrollments.map((row) => ({
-              classId: row.classId,
-              date: { gte: row.entryDate, ...(row.exitDate ? { lt: row.exitDate } : {}) },
-            })),
-          }
-        : {}),
-    },
+    where: sessionWhere({ enrollments, range, through }),
     include: sessionInclude,
     orderBy: [{ date: "desc" }, { startTime: "desc" }],
     ...(range ? {} : { take: 600 }),
   });
   return rows
     .filter((row) => hasStarted(row, context.now) && canReport(context, row))
-    .map((row) => {
-      const { teacher, substitute } = reportTeacher(row);
-      return {
-        id: row.id,
-        date: row.date,
-        startTime: row.startTime,
-        endTime: row.endTime,
-        className: row.class.portalClassName,
-        classId: row.classId,
-        teacherName: teacher?.name ?? null,
-        substitute,
-        stageName: row.class.sharedStage?.name ?? null,
-        scheduleType: row.class.scheduleType,
-        format: row.class.format,
-      };
-    });
+    .map((row) => projectSession(row));
+}
+
+async function enrollmentWindows(
+  context: FollowUpContext,
+  options: { studentId: string | undefined; range: SessionRange | undefined; through: Date },
+): Promise<EnrollmentWindow[] | null> {
+  const { studentId, range, through } = options;
+  if (!studentId) return null;
+  return context.database.enrollment.findMany({
+    where: {
+      studentId,
+      deletedAt: null,
+      entryDate: { lte: through },
+      ...(range ? { OR: [{ exitDate: null }, { exitDate: { gt: new Date(range.from) } }] } : {}),
+    },
+    select: { classId: true, entryDate: true, exitDate: true },
+  });
+}
+
+function sessionWhere(input: {
+  enrollments: EnrollmentWindow[] | null;
+  range: SessionRange | undefined;
+  through: Date;
+}): Prisma.ClassSessionWhereInput {
+  const { enrollments, range, through } = input;
+  return {
+    deletedAt: null,
+    status: "SCHEDULED",
+    date: { lte: through, ...(range ? { gte: new Date(range.from) } : {}) },
+    class: { deletedAt: null },
+    ...(enrollments
+      ? {
+          OR: enrollments.map((row) => ({
+            classId: row.classId,
+            date: { gte: row.entryDate, ...(row.exitDate ? { lt: row.exitDate } : {}) },
+          })),
+        }
+      : {}),
+  };
+}
+
+function projectSession(row: Session): OccurrenceSessionView {
+  const { teacher, substitute } = reportTeacher(row);
+  return {
+    id: row.id,
+    date: row.date,
+    startTime: row.startTime,
+    endTime: row.endTime,
+    className: row.class.portalClassName,
+    classId: row.classId,
+    teacherName: teacher?.name ?? null,
+    substitute,
+    stageName: row.class.sharedStage?.name ?? null,
+    scheduleType: row.class.scheduleType,
+    format: row.class.format,
+  };
 }
 export async function loadReportSession(context: FollowUpContext, id: string): Promise<Session> {
   const row = await context.database.classSession.findFirst({

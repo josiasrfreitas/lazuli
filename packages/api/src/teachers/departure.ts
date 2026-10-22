@@ -50,19 +50,7 @@ async function departureImpact(input: Departure): Promise<DepartureImpactResult>
     throw notFound("Professor não encontrado.");
   if (teacher.teacherProfile?.departureDate)
     throw badRequest("Saída já programada para este professor.");
-  const introduction = await input.database.entryVisit.findFirst({
-    where: {
-      teacherId: input.teacherId,
-      kind: "INTRODUCTION",
-      status: "SCHEDULED",
-      date: { gte: new Date(input.effectiveDate) },
-      deletedAt: null,
-    },
-  });
-  if (introduction)
-    throw badRequest(
-      "Remarque ou cancele as aulas experimentais individuais pendentes a partir da saída antes de encerrar a atuação.",
-    );
+  await assertNoPendingIntroduction(input);
   const semester = await input.database.semester.findFirst({
     where: { deletedAt: null, endDate: { gte: new Date(input.effectiveDate) } },
     orderBy: { endDate: "desc" },
@@ -91,6 +79,21 @@ async function departureImpact(input: Departure): Promise<DepartureImpactResult>
     )
     .digest("hex");
   return { token, commitments, appointments, revocations };
+}
+async function assertNoPendingIntroduction(input: Departure): Promise<void> {
+  const introduction = await input.database.entryVisit.findFirst({
+    where: {
+      teacherId: input.teacherId,
+      kind: "INTRODUCTION",
+      status: "SCHEDULED",
+      date: { gte: new Date(input.effectiveDate) },
+      deletedAt: null,
+    },
+  });
+  if (introduction)
+    throw badRequest(
+      "Remarque ou cancele as aulas experimentais individuais pendentes a partir da saída antes de encerrar a atuação.",
+    );
 }
 export async function departurePreview(input: Departure): Promise<DeparturePreviewResult> {
   const impact = await departureImpact(input);

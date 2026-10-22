@@ -3,13 +3,11 @@
 > **FOCO:** 31 erros em 21 arquivos próprios, congelados em
 > [progresso](pr207-lint-progress.md): 30 erros em 20 arquivos da API e 1 em
 > `scripts/imports/teaching-program.ts`. Worktree limpa no início, HEAD
-> `eb9cb61`. Medição atual: **10 erros projetados**, em 5 arquivos de
-> produção da API; script, testes, atividade, busca e avaliações passaram no
-> lint direcionado. Próxima ação: zerar reposição, busca de comandos,
-> ocorrências e professores. Gate: lint
-> direcionado 0, typecheck e
-> testes pertinentes, lint API completo sem novos fingerprints e lint da raiz
-> verde. Baselines: `/tmp/lazuli-pr207-api-full-block7.json` e
+> `eb9cb61`. **FECHADO:** 0 erros na API completa, 15 avisos, 0 novos
+> fingerprints frente aos 30 erros anteriores; script com 0 erros direcionados.
+> Testes afetados passaram (API unitária 88/88, Web 295/295, integração
+> 314/314, transporte 63/63). Typecheck da raiz: 13/13 tarefas. Lint da raiz:
+> 16/16 tarefas, 0 erros. Baselines: `/tmp/lazuli-pr207-api-full-block7.json` e
 > `/tmp/lazuli-pr207-root-after-block7.log`.
 
 - Coordenação, handoff, progresso, fichas dos blocos 6 e 7, skill de lint,
@@ -32,3 +30,16 @@
   arquivos de `src/assessments` e `src/search.ts` passaram no lint direcionado
   e no typecheck API. Dez erros do baseline removidos; restam 10 projetados
   nos cinco arquivos de reposição, busca de comandos, ocorrências e professores.
+- `src/attendance/makeup-schedule.ts`, `command-search/read.ts`,
+  `occurrences/sessions.ts`, `teachers/agenda.ts` e `teachers/departure.ts`
+  passaram no lint direcionado e no typecheck API. O lint completo da API
+  confirmou **0 erros**, 15 avisos e **0 novos fingerprints** frente a
+  `/tmp/lazuli-pr207-api-full-block7.json`. Snapshot:
+  `/tmp/lazuli-pr207-api-full-block8.json`.
+- `pnpm test:affected --staged` passou: API unitária 88/88, Web unitário
+  295/295, API integração 314/314 e API transporte 63/63. Log:
+  `/tmp/lazuli-pr207-api-block8-affected.log`.
+- `pnpm typecheck` passou com 13/13 tarefas; log:
+  `/tmp/lazuli-pr207-root-typecheck-final.log`. `pnpm lint` passou com 16/16
+  tarefas e 0 erros. Avisos não bloqueantes: API 15, Web 932, scripts 98; log:
+  `/tmp/lazuli-pr207-root-final.log`.
