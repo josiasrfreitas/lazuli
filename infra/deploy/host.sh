@@ -22,8 +22,7 @@ if [[ "$mode" == prepare ]]; then
   aws ecr get-login-password | docker login --username AWS --password-stdin "${repository%%/*}" >/dev/null 2>&1
   docker pull "$image" >/dev/null
   prefix="/lazuli/$environment/runtime"
-  names=("$prefix/CONFIG" "$prefix/DATABASE_URL" "$prefix/BETTER_AUTH_SECRET" "$prefix/HATCHET_CLIENT_TOKEN")
-  if [[ "$environment" == prod ]]; then names+=("$prefix/RESEND_API_KEY"); fi
+  names=("$prefix/CONFIG" "$prefix/DATABASE_URL" "$prefix/BETTER_AUTH_SECRET" "$prefix/HATCHET_CLIENT_TOKEN" "$prefix/RESEND_API_KEY")
   response=$(mktemp "$release/parameters.XXXXXX")
   trap 'rm -f "$response"' EXIT
   aws ssm get-parameters --names "${names[@]}" --with-decryption > "$response"

@@ -60,14 +60,14 @@ void describe("parseEmailEnvironment", () => {
     assert.throws(() => parseEmailEnvironment(environmentSource({ SMTP_PORT: "smtp" })));
   });
 
-  void it("keeps staging mail inside Mailpit", () => {
-    assert.throws(
-      () =>
-        parseEmailEnvironment(
-          environmentSource({ LAZULI_ENV: "staging", RESEND_API_KEY: "re_test_key" }),
-        ),
-      /Staging email must use Mailpit/,
+  void it("uses Resend in staging when a key is configured", () => {
+    const selection = selectEmailTransport(
+      parseEmailEnvironment(
+        environmentSource({ LAZULI_ENV: "staging", RESEND_API_KEY: "re_test_key" }),
+      ),
     );
+
+    assert.deepEqual(selection, { kind: "resend", apiKey: "re_test_key", from: FROM_ADDRESS });
   });
 
   void it("requires Resend in production", () => {

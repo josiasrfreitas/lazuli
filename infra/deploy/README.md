@@ -91,13 +91,17 @@ Antes do primeiro deploy, configurar por stack:
 ```sh
 pulumi config set appUrl https://SEU-DOMINIO --stack staging
 pulumi config set emailFrom 'Lazuli <noreply@SEU-DOMINIO>' --stack staging
-# Em prod, também configurar emailFrom verificado e a chave Resend.
+# Para entregar mensagens reais em staging, verificar o domínio do remetente
+# e configurar uma chave Resend própria, limitada a esse domínio.
+pulumi config set --secret resendApiKey --stack staging
+# Em prod, configurar outro remetente verificado e outra chave Resend.
 pulumi config set --secret resendApiKey --stack prod
 ```
 
 Aplicar a stack após configurar. `appUrl` habilita entrada 80/443, e o DNS deve apontar
 para o Elastic IP correto. Caddy obtém/renova TLS; banco e SSH continuam privados.
-Staging usa exclusivamente Mailpit. Tokens Hatchet já estão no SSM por ambiente.
+Staging usa Resend quando sua chave está configurada; sem ela, usa o Mailpit privado.
+Produção exige Resend. Tokens Hatchet já estão no SSM por ambiente.
 
 Ordem do deploy:
 

@@ -105,7 +105,7 @@ docker run -d --name mailpit --network lazuli --restart unless-stopped \\
     },
     { protect: true },
   );
-  const resendApiKey = environment === "prod" ? config.getSecret("resendApiKey") : undefined;
+  const resendApiKey = config.getSecret("resendApiKey");
   const optionalSecrets = resendApiKey
     ? [
         new aws.ssm.Parameter(

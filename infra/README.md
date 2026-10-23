@@ -16,8 +16,8 @@ Os processos remotos recebem `LAZULI_ENV=staging` ou `LAZULI_ENV=prod` e são in
 por `pnpm start:remote` (web) e `pnpm start:worker:remote` (worker). Esses comandos validam
 as variáveis antes de iniciar. O banco deve chamar `lazuli_staging` ou `lazuli_prod`, o
 bucket deve ser o output da stack correspondente e o namespace Hatchet deve ser
-`lazuli-staging` ou `lazuli-prod`. O aplicativo também recusa Resend no staging, exige
-Resend em produção e rejeita endpoint S3 local em ambos. Essas verificações evitam erros
+`lazuli-staging` ou `lazuli-prod`. Staging usa Resend quando há uma chave própria,
+ou Mailpit na ausência dela. Produção exige Resend; ambos rejeitam endpoint S3 local. Essas verificações evitam erros
 de configuração conhecidos; o isolamento de rede e IAM foi validado nas EC2.
 
 A [lista de integrações](INTEGRATIONS.md) separa o que depende de contas e cadastros externos
@@ -66,10 +66,11 @@ não mede apenas Lazuli; contas AWS separadas seriam o limite mais claro.
    `app.<domínio>`, necessários para cookies, links de login e envio Resend. O dono
    confirmou que ainda não escolheu um domínio; nenhum DNS foi criado.
 
-Mailpit captura e-mails em staging, mas deve ficar acessível só a operadores; uma caixa de
-teste pode conter nomes e links de login. `SMTP_HOST` aponta ao Mailpit desse ambiente,
-`SMTP_PORT=1025`, e `RESEND_API_KEY` fica ausente. Em produção, uma chave Resend seleciona
-o provedor; sem ela, o preflight remoto e a criação do transportador falham.
+Mailpit captura e-mails em staging quando não há `RESEND_API_KEY`, mas deve ficar acessível
+só a operadores; uma caixa de teste pode conter nomes e links de login. `SMTP_HOST` aponta
+ao Mailpit desse ambiente e `SMTP_PORT=1025`. Uma chave Resend específica de staging envia
+e-mails reais e deve usar remetente de domínio verificado. Em produção, a chave Resend é
+obrigatória; sem ela, o preflight remoto e a criação do transportador falham.
 `S3_ENDPOINT` também deve estar ausente nos dois ambientes
 AWS, e ambos precisam de `S3_BUCKET` explícito. As variáveis locais em `.env.example` não
 são uma configuração pronta para hospedagem.

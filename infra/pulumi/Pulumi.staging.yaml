@@ -15,4 +15,6 @@ config:
     secure: v1:fd3LXWW2CNL+rfLc:vjWG/k7AP8h7EFQ4UiiZSiEdTf4b4DZZ9/aX7en1ytAbdbrXF2mFcmZKgY4RgAp2u/wBV2AHZ7A4cSn2bBEHxkogKFNff75q3ABlQcjXKHpmo6tVkQPb1O0gvUmeode0eqvR5EvsS+ayK/6LoWU3yuV1joHnmKLQw1nWyT3zBuRaclJCmefGmbU3dQJfCtRaaKRZtQKUonKrTFniFRZWsufxDgNAU+LxEALL0rQcMXikfa+fUYf5F5E21KSR+LQ1h+tWDTHHQ70/BfBX+dTPfc+/1+fHUBm6DwpapTZ7n2jAvRklxPJxfeYZFK9kUpq0gih2OmwboUh2tJM0HS27fz14DuT8UuYeiI/o/udD131a8KqVmrHtiQv4Qp/gqlk3PDGfEeU56mVuAce0mSIy3/7TGE4rF26/utCfLJfp1JIcR/muDPm1ubT+yJefcpl9D+EqBVL+f85/LEc23Wl0NI7zY1QewQK65BlDwnOKCUPjbc8qhlyrZvW3U1l7DFTrewqm0+GxPB2cj+USe0EuPafBfZl3d4biftVQepzrL8lLWhf6NYYl+QKaoPqFC4mqywqY7o9wWYmMvOOW7u+kHpUSEJ2+mBhItPxYCcHefJbXytER8X4emOrR4RgyO70TU22qesZ1XQVegI+Q04/sUHmYVSODiTYTmqgH/xySjeZOfbiSrKDizeshQ4SqcQlvi8oTvA8KNPurrvDR9ptOnnQhfxKqWg3/Ek3R5atwFM2/h41D7C1jext8+yopbxtUllp8/5HeDYW3ZHiCaZef60W1Z5tNmNjEjzti+G5Lg2GpfCgGgGtcsa0epnTJXZ8EasZ0pXOnxBMNzjoGl+1scNYz9w==
   lazuli:appUrl: https://staging.lazuli.fisklagarto.com.br
   lazuli:emailFrom: Lazuli <noreply@staging.lazuli.fisklagarto.com.br>
+  lazuli:resendApiKey:
+    secure: v1:vCB1Cw94VDG4l+GA:yNUZww3lkBc0oH9axnZCKRQF6tfKWYyjYD9oksZlxELDyzI+SrUE6kl+a46OUH/mbEReUw==
 encryptionsalt: v1:XS9wzHXWIx0=:v1:k40QVHLyjE6YPIoJ:86xMf+Wgr3LL7UETtytewPJbTs3YjA==
