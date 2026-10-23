@@ -94,7 +94,8 @@ pulumi config set emailFrom 'Lazuli <noreply@SEU-DOMINIO>' --stack staging
 # Para entregar mensagens reais em staging, verificar o domínio do remetente
 # e configurar uma chave Resend própria, limitada a esse domínio.
 pulumi config set --secret resendApiKey --stack staging
-# Em prod, configurar outro remetente verificado e outra chave Resend.
+# Em prod, verificar send.fisklagarto.com.br e usar outro remetente/chave Resend.
+# O remetente previsto é Lazuli <noreply@send.fisklagarto.com.br>.
 pulumi config set --secret resendApiKey --stack prod
 ```
 

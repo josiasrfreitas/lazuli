@@ -192,17 +192,17 @@ function validateRemoteCredentials() {
 }
 
 function validateRemoteEmail() {
-  if (deploymentEnvironment === "staging") {
-    if (hasValue("RESEND_API_KEY")) invalid.push("Staging must not have RESEND_API_KEY.");
+  if (deploymentEnvironment === "staging" && !hasValue("RESEND_API_KEY")) {
     requireValue("SMTP_HOST");
     requireValue("SMTP_PORT");
     if (getEnvironmentValue("SMTP_PORT") !== "1025") {
       invalid.push("Staging SMTP_PORT must be 1025 for Mailpit.");
     }
-  } else {
+  }
+  if (deploymentEnvironment === "prod") {
     requireValue("RESEND_API_KEY");
-    if (getEnvironmentValue("EMAIL_FROM")?.includes("example.com")) {
-      invalid.push("Production EMAIL_FROM must use a verified real domain.");
-    }
+  }
+  if (hasValue("RESEND_API_KEY") && getEnvironmentValue("EMAIL_FROM")?.includes("example.com")) {
+    invalid.push("Resend EMAIL_FROM must use a verified real domain.");
   }
 }

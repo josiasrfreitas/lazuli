@@ -34,6 +34,29 @@ void describe("remote runtime isolation", () => {
     assert.equal(check().status, 0);
   });
 
+  void it("accepts a staging Resend key without Mailpit settings", () => {
+    const result = check({
+      EMAIL_FROM: "Lazuli <noreply@staging.lazuli.fisklagarto.com.br>",
+      RESEND_API_KEY: "re_test_key",
+      SMTP_HOST: undefined,
+      SMTP_PORT: undefined,
+    });
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  void it("requires Mailpit settings when staging has no Resend key", () => {
+    const result = check({ SMTP_HOST: undefined, SMTP_PORT: undefined });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /SMTP_HOST/);
+    assert.match(result.stderr, /SMTP_PORT/);
+  });
+
+  void it("rejects a placeholder sender when staging uses Resend", () => {
+    const result = check({ RESEND_API_KEY: "re_test_key" });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Resend EMAIL_FROM must use a verified real domain/);
+  });
+
   void it("rejects the region blocked by the AWS project policy", () => {
     const result = check({ AWS_REGION: "us-east-1" });
     assert.equal(result.status, 1);
@@ -61,15 +84,9 @@ void describe("remote runtime isolation", () => {
       DATABASE_URL: "postgresql://lazuli:secret@db.test/lazuli_prod",
       S3_BUCKET: "lazuli-prod-private-files-123",
       HATCHET_CLIENT_NAMESPACE: "lazuli-prod",
-      RESEND_API_KEY: "re_test_key",
     });
     assert.equal(result.status, 1);
-    for (const name of [
-      "DATABASE_URL",
-      "S3_BUCKET",
-      "HATCHET_CLIENT_NAMESPACE",
-      "RESEND_API_KEY",
-    ]) {
+    for (const name of ["DATABASE_URL", "S3_BUCKET", "HATCHET_CLIENT_NAMESPACE"]) {
       assert.match(result.stderr, new RegExp(name));
     }
   });
