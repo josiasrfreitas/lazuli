@@ -35,9 +35,13 @@ export function HomeError({
 }
 export function HomeWelcome({ name, children }: { name: string; data: HomeData | undefined; children?: ReactNode }): ReactElement {
   const firstName = name.trim().split(/\s+/u)[0];
-  return <header className={styles.welcome}><div><h1>Olá, {firstName}.</h1><p>A escola em perspectiva. O próximo passo, à mão.</p></div>{children}</header>;
+  return <header className={styles.welcome}><div><h1>Olá, {firstName}.</h1><p>Os alunos, as aulas e o que precisa avançar.</p></div>{children}</header>;
 }
-export function TodayAgenda({ data, open, loading = false }: { data: HomeData | undefined; open: OpenAction; loading?: boolean }): ReactElement {
+export function TodayAgenda({ data, open, loading = false, compact = false }: { data: HomeData | undefined; open: OpenAction; loading?: boolean; compact?: boolean }): ReactElement {
+  if (compact && data?.agenda.total === 0) return <div className={styles.agendaQuiet}>
+    <span>Sem compromissos restantes hoje.</span>
+    <Link className={styles.textLink} href={`/aulas?dia=${data.today}&visao=dia`}>Abrir agenda<ArrowUpRight aria-hidden="true" /></Link>
+  </div>;
   return (
     <aside className={styles.agenda} aria-labelledby="home-agenda-title">
       <div className={styles.sectionHeading}>

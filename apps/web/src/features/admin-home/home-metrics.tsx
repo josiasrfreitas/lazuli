@@ -1,9 +1,8 @@
 import type { ReactElement, ReactNode } from "react";
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, Minus, Wallet, FileCheck2, CircleAlert, Users, GraduationCap, CalendarCheck2 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus, Users, GraduationCap, CalendarCheck2 } from "lucide-react";
 import { Badge } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
-import { formatBRLFromCents } from "~/lib/format";
 import { monthLabel } from "~/features/finance-analytics/contract-closings-model";
 import type { HomeData } from "./home-parts";
 import styles from "./home.module.css";
@@ -43,26 +42,11 @@ function Metric({ label, value, context, href, icon, variant, children }: {
     {children}
   </article>;
 }
-export function BusinessMetrics({ data }: { data: BusinessData }): ReactElement {
-  return <div className={styles.metrics} aria-label="Indicadores financeiros">
-    <Metric label="Recebido no mês" value={formatBRLFromCents(data.receivedCents)} context={`Até ${data.through.slice(8)}/${data.through.slice(5, 7)} · pagamentos registrados`} href="/financeiro" icon={<Wallet aria-hidden="true" />} variant="lead">
-      <div className={styles.metricBottom}><Trend current={data.receivedCents} previous={data.previousReceivedCents} partial={data.partial} /><Sparkline series={data.receivedSeries} label="Recebimentos nos últimos seis meses, em centavos" /></div>
-    </Metric>
-    <Metric label="Contratos celebrados" value={(data.newContracts + data.renewals).toLocaleString("pt-BR")} context={`${data.newContracts} novos · ${data.renewals} renovações`} href="/financeiro" icon={<FileCheck2 aria-hidden="true" />}>
-      <div className={styles.metricBottom}><Trend current={data.agreements.value} previous={data.agreements.previous} partial={data.partial} /><Sparkline series={data.agreements.series} label="Contratos nos últimos seis meses" /></div>
-    </Metric>
-    <Metric label="Em atraso hoje" value={formatBRLFromCents(data.overdueCents)} context={`${data.overduePayers} pagadores · saldo atual de todos os períodos`} href="/recebiveis" icon={<CircleAlert aria-hidden="true" />} {...(data.overdueCents > 0 ? { variant: "attention" as const } : {})}>
-      <div className={styles.overdueBottom}>
-        {data.overdueCents > 0 ? <><Badge variant="destructive">Requer acompanhamento</Badge><Link className={styles.textLink} href="/recebiveis">Ver recebíveis <ArrowUpRight aria-hidden="true" /></Link></> : <span className={styles.metricContext}>Nenhum saldo vencido em aberto.</span>}
-      </div>
-    </Metric>
-  </div>;
-}
 export function SchoolMetrics({ data }: { data: HomeData }): ReactElement {
   const school = data.school;
   const metrics = [
+    { label: "Matrículas iniciadas", metric: school.enrollments, context: "Entradas em turmas, incluindo transferências", href: "/organizacao", icon: <GraduationCap aria-hidden="true" /> },
     { label: "Novos alunos", metric: school.students, context: "Cadastros de alunos no período", href: "/alunos", icon: <Users aria-hidden="true" /> },
-    { label: "Matrículas iniciadas", metric: school.enrollments, context: "Entradas em turmas no período", href: "/organizacao", icon: <GraduationCap aria-hidden="true" /> },
     { label: "Experimentais realizadas", metric: school.trials, context: "Aulas experimentais com presença registrada", href: "/interessados", icon: <CalendarCheck2 aria-hidden="true" /> },
   ];
   return <div className={styles.metrics} aria-label="Indicadores da escola">{metrics.map((item, index) => <Metric key={item.label} label={item.label} value={item.metric.value.toLocaleString("pt-BR")} context={item.context} href={item.href} icon={item.icon} {...(index === 0 ? { variant: "lead" as const } : {})}>

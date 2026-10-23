@@ -19,12 +19,13 @@ These pieces are deliberately local; they are not a generic KPI registry or shar
 - Overdue is the existing ledger's **current** collectible overdue balance and distinct payer count.
   It is a stock, not revenue or profit, and does not follow the analytical month filter. There is no
   historical overdue series available here, so the UI does not invent a trend or sparkline for it.
-- School-only indicators count student creation in São Paulo civil time, enrollment entry dates
+- School indicators, shown to every administrator, count student creation in São Paulo civil time, enrollment entry dates
   (including transfers), and attended trial visits. These are not interchangeable with sales.
 - Current-month comparisons stop at the same day in the previous month, clamped to its last day.
   Completed months compare with the whole previous month. A zero baseline has no percentage.
 - Sparklines show six calendar-month totals, with the selected current month partial. Comparisons
-  use equivalent elapsed periods. The larger cash chart uses available months in the selected year.
+  use equivalent elapsed periods. The main chart shows school entry activity. Financial figures
+  remain in a secondary summary with a link to the existing financial reports.
 - Permission checks remain on the API. Both currently enabled administrative roles have financial
   access; the no-finance layout is a defensive branch validated with a controlled UI scenario.
 

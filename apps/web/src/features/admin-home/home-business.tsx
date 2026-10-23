@@ -1,125 +1,38 @@
-import { useState, type ReactElement } from "react";
-import type { RouterOutputs } from "@lazuli/api";
+import type { ReactElement } from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Button } from "@lazuli/ui";
 import { formatBRLFromCents } from "~/lib/format";
-import { compactMoney, monthLabel } from "~/features/finance-analytics/contract-closings-model";
+import { Trend, type BusinessData } from "./home-metrics";
+import { HomeError, type HomeGroup } from "./home-parts";
+import { LoadingLine } from "./home-loading";
+import { WORK_COPY } from "./home-work-model";
+import type { SelectGroup } from "./home-queue";
 import styles from "./home.module.css";
 
-type Business = RouterOutputs["dashboard"]["business"];
-const CHART_HEIGHT = 220;
-const RECENT_MONTHS = -6;
-const BAR_RADIUS = 3;
-const TICK = { fill: "var(--muted-foreground)", fontSize: 12 };
-export function BusinessChart({ data }: { data: Business }): ReactElement {
-  const [table, setTable] = useState(false);
-  return (
-    <section className={styles.chartPanel} aria-label="Evolução financeira">
-      <div className={styles.chartHeading}>
-        <div><h2>Como o caixa está evoluindo</h2><p className={styles.description}>Previsão e recebimentos · {data.months.length} meses</p></div>
-        <Button variant="ghost" size="sm" aria-pressed={table} onClick={() => setTable(!table)}>
-          {table ? "Ver gráfico" : "Ver valores"}
-        </Button>
+export function BusinessSummary({ data, groups, pending, error, retry, select }: {
+  data: BusinessData | undefined;
+  groups: HomeGroup[];
+  pending: boolean;
+  error: boolean;
+  retry: () => void;
+  select: SelectGroup;
+}): ReactElement {
+  const work = groups.filter(group => group.area === "finance" && group.total > 0);
+  return <section className={styles.businessPanel} aria-labelledby="home-business-title">
+    <div className={styles.sectionHeading}><h2 id="home-business-title">Gestão e financeiro</h2><Link className={styles.textLink} href="/financeiro" aria-label="Abrir visão financeira"><ArrowUpRight aria-hidden="true" /></Link></div>
+    {error && <HomeError retry={retry}>Não foi possível atualizar o financeiro.</HomeError>}
+    {pending ? <div className={styles.businessLoading} role="status" aria-label="Carregando resumo financeiro"><LoadingLine size="short" /><LoadingLine size="number" /><LoadingLine /> <div><LoadingLine size="title" /><LoadingLine size="title" /></div></div> : data && <>
+      <div className={styles.businessReceived}>
+        <span>Recebido no mês · até {data.through.slice(8)}/{data.through.slice(5, 7)}</span>
+        <strong>{formatBRLFromCents(data.receivedCents)}</strong>
+        <Trend current={data.receivedCents} previous={data.previousReceivedCents} partial={data.partial} />
       </div>
-      <p className={styles.chartLegend}>
-        <span>Parcelas por vencimento</span>
-        <span>Pagamentos recebidos</span>
-      </p>
-      {table ? <CashTable data={data} /> : <CashChart data={data} />}
-      <div className={styles.chartFooter}><p className={styles.chartNote}>Previsto por vencimento · recebido por pagamento.<br />{data.partial ? "Mês atual em andamento. " : ""}Estes valores não representam lucro.</p><Link className={styles.textLink} href="/financeiro">Explorar financeiro <ArrowUpRight aria-hidden="true" /></Link></div>
-    </section>
-  );
-}
-function CashTable({ data }: { data: Business }): ReactElement {
-  return (
-    <table className={styles.values}>
-      <caption className="sr-only">Valores mensais em reais</caption>
-      <thead>
-        <tr>
-          <th>Mês</th>
-          <th>Previsto</th>
-          <th>Recebido</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.months.slice(RECENT_MONTHS).map((month) => (
-          <tr key={month.month}>
-            <th scope="row">{monthLabel(month.month)}</th>
-            <td>{formatBRLFromCents(month.expectedCents)}</td>
-            <td>{formatBRLFromCents(month.receivedCents)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-function CashChart({ data }: { data: Business }): ReactElement {
-  return (
-    <div
-      role="img"
-      aria-label="Comparação mensal de parcelas previstas e pagamentos recebidos. Valores disponíveis em Ver valores."
-    >
-      <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={0}>
-        <BarChart
-          data={data.months.slice(RECENT_MONTHS)}
-          accessibilityLayer
-          margin={{ top: 12, right: 0, left: 0, bottom: 0 }}
-        >
-          <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 5" />
-          <XAxis
-            dataKey="month"
-            tickFormatter={monthLabel}
-            tick={TICK}
-            tickLine={false}
-            axisLine={false}
-          />
-          <YAxis
-            tickFormatter={compactMoney}
-            tick={TICK}
-            tickLine={false}
-            axisLine={false}
-            width={48}
-          />
-          <Tooltip content={<CashTooltip />} cursor={false} />
-          <Bar
-            dataKey="expectedCents"
-            name="Previsto"
-            fill="var(--border-strong)"
-            radius={[BAR_RADIUS, BAR_RADIUS, 0, 0]}
-            maxBarSize={22}
-            isAnimationActive={false}
-          />
-          <Bar
-            dataKey="receivedCents"
-            name="Recebido"
-            fill="var(--interactive)"
-            radius={[BAR_RADIUS, BAR_RADIUS, 0, 0]}
-            maxBarSize={22}
-            isAnimationActive={false}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-function CashTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean | undefined;
-  payload?:
-    | readonly { payload?: { month: string; expectedCents: number; receivedCents: number } }[]
-    | undefined;
-}): ReactElement | null {
-  const row = payload?.[0]?.payload;
-  if (!active || !row) return null;
-  return (
-    <div className={styles.tooltip}>
-      <strong>{monthLabel(row.month)}</strong>
-      <p>Previsto: {formatBRLFromCents(row.expectedCents)}</p>
-      <p>Recebido: {formatBRLFromCents(row.receivedCents)}</p>
-    </div>
-  );
+      <div className={styles.businessFacts}>
+        <Link href="/financeiro"><span>Contratos celebrados</span><strong>{data.agreements.value.toLocaleString("pt-BR")}</strong><small>{data.newContracts} novos · {data.renewals} renovações</small></Link>
+        <Link href="/recebiveis" data-attention={data.overdueCents > 0}><span>Em atraso hoje</span><strong>{formatBRLFromCents(data.overdueCents)}</strong><small>{data.overduePayers.toLocaleString("pt-BR")} pagadores · saldo atual</small></Link>
+      </div>
+    </>}
+    {work.length > 0 && <div className={styles.businessWork}>{work.map(group => <button type="button" key={group.kind} onClick={() => select(group)}><strong>{group.total.toLocaleString("pt-BR")}</strong><span>{WORK_COPY[group.kind].action}</span><ArrowUpRight aria-hidden="true" /></button>)}</div>}
+    <Link className={styles.textLink} href="/financeiro">Explorar financeiro<ArrowUpRight aria-hidden="true" /></Link>
+  </section>;
 }

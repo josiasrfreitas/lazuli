@@ -3,7 +3,8 @@ import { it } from "node:test";
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HomeWelcome, TodayAgenda, type HomeData } from "../../src/features/admin-home/home-parts.js";
-import { HomeQueue, HomeAttention } from "../../src/features/admin-home/home-queue.js";
+import { HomeQueue } from "../../src/features/admin-home/home-queue.js";
+import { BusinessSummary } from "../../src/features/admin-home/home-business.js";
 import { Trend } from "../../src/features/admin-home/home-metrics.js";
 import { isSchoolStarting } from "../../src/features/admin-home/home-start.js";
 
@@ -18,24 +19,45 @@ const data: HomeData = {
     { kind: "students", title: "Alunos sem turma", description: "Definir turma.", area: "school", attention: false, total: 7, items: [] },
   ],
 };
-void it("separates urgent records from ordinary next steps and older history", () => {
-  const html = renderToStaticMarkup(<HomeAttention data={data} select={() => {}} />);
-  assert.match(html, /Há registros para concluir/);
-  assert.match(html, /<strong>2<\/strong>/);
-  assert.doesNotMatch(html, /618|Alunos sem turma|<strong>9/);
-  assert.equal(renderToStaticMarkup(<HomeAttention data={{ ...data, groups: [] }} select={() => {}} />), "");
+void it("prioritizes upcoming teaching coverage before intake volume and finance", () => {
+  const groups: HomeData["groups"] = [
+    { kind: "contracts", title: "Primeiros contratos", description: "Contratos.", area: "finance", attention: false, total: 300, items: [] },
+    { kind: "students", title: "Alunos sem turma", description: "Turmas.", area: "school", attention: false, total: 200, items: [] },
+    ...data.groups.filter(group => group.kind === "lessons"),
+    { kind: "coverage", title: "Aulas sem professor", description: "Cobertura.", area: "school", attention: true, total: 1, items: [] },
+  ];
+  const html = renderToStaticMarkup(<HomeQueue data={{ ...data, canViewFinance: true, groups }} selected={null} select={() => {}} open={() => {}} />);
+  assert.match(html, /Aulas sem professor/);
+  assert.match(html, /Definir professor/);
+  assert.ok(html.indexOf("Definir professor") < html.indexOf("Alunos sem turma"));
+  assert.match(html, /Conduzir as aulas/);
+  assert.match(html, /Preparar a entrada em turma/);
+  assert.doesNotMatch(html, /Primeiros contratos|>300</);
 });
-void it("renders operational next steps without finance or zero-queue tiles", () => {
+void it("keeps recent pedagogical work actionable and historical volume separate", () => {
   const html = renderToStaticMarkup(<HomeQueue data={{ ...data, groups: [...data.groups, { kind: "placement", title: "Nivelamentos", description: "Correções", area: "admissions", attention: false, total: 0, items: [] }] }} selected={null} select={() => {}} open={() => {}} />);
+  assert.match(html, /Conferir registros de aula/);
+  assert.match(html, /professores responsáveis/);
   assert.match(html, /Alunos sem turma/);
   assert.match(html, /Definir turmas/);
-  assert.match(html, /Registros anteriores/);
+  assert.match(html, /Registros anteriores aos últimos 7 dias/);
   assert.match(html, /618 aulas/);
-  assert.doesNotMatch(html, /Nivelamentos para corrigir|Contratos|Recebido|bloqueado|R\$/);
+  assert.doesNotMatch(html, /Nivelamentos|Contratos|Recebido|bloqueado|R\$/);
+});
+void it("collapses pedagogical triage when only contractual work remains", () => {
+  const contract: HomeData["groups"][number] = { kind: "contracts", title: "Primeiros contratos", description: "Contratos.", area: "finance", attention: false, total: 10, items: [] };
+  const quiet = renderToStaticMarkup(<HomeQueue data={{ ...data, groups: [contract] }} selected={null} select={() => {}} open={() => {}} />);
+  assert.match(quiet, /Nenhuma pendência pedagógica atual/);
+  assert.doesNotMatch(quiet, /<h[23]|>10</);
+  const failure = renderToStaticMarkup(<BusinessSummary data={undefined} groups={[contract]} pending={false} error retry={() => {}} select={() => {}} />);
+  assert.match(failure, /Não foi possível atualizar o financeiro/);
+  assert.match(failure, /Preparar contratos/);
+  assert.doesNotMatch(failure, /R\$|Carregando resumo financeiro/);
 });
 void it("keeps the agenda useful after the day's last appointment and distinguishes failure from loading", () => {
-  const html = renderToStaticMarkup(<TodayAgenda data={data} open={() => {}} />);
+  const html = renderToStaticMarkup(<TodayAgenda data={data} compact open={() => {}} />);
   assert.match(html, /Sem compromissos restantes hoje/);
+  assert.doesNotMatch(html, /<aside|<h2/);
   assert.match(html, /href="\/aulas\?dia=2026-10-23&amp;visao=dia"/);
   const error = renderToStaticMarkup(<TodayAgenda data={undefined} loading={false} open={() => {}} />);
   assert.match(error, /Agenda indisponível/);

@@ -1,44 +1,46 @@
 import type { ReactElement } from "react";
-import Link from "next/link";
-import { ArrowRight, ArrowUpRight, History, CalendarClock, Users, GraduationCap, FileText, UserRoundPlus } from "lucide-react";
+import { ArrowRight, ArrowUpRight, History } from "lucide-react";
 import { Badge, Button } from "@lazuli/ui";
 import { GroupDetail } from "./group-detail";
+import { pedagogicalGroups, WORK_COPY, WORKSTREAMS } from "./home-work-model";
 import type { HomeData, HomeGroup, OpenAction } from "./home-parts";
 import styles from "./home.module.css";
 
-type SelectGroup = (group: HomeGroup | null) => void;
-const LABELS: Record<string, string> = { placement: "Nivelamentos para corrigir", allocation: "Leads aguardando turma", students: "Alunos sem turma", semester: "Alocações para publicar", contracts: "Primeiros contratos", renewals: "Renovações a conversar" };
-const ACTIONS: Record<string, string> = { coverage: "Definir professor", lessons: "Registrar aulas", appointments: "Registrar atendimentos", placement: "Corrigir nivelamentos", allocation: "Encontrar uma turma", students: "Definir turmas", semester: "Revisar alocações", contracts: "Preparar contratos", renewals: "Revisar renovações" };
-export function HomeAttention({ data, select }: { data: HomeData; select: SelectGroup }): ReactElement | null {
-  const groups = data.groups.filter(group => group.attention && group.total > 0);
-  const first = groups[0];
-  if (!first) return null;
-  return <section className={styles.attention} aria-label="Precisa de atenção">
-    <div className={styles.attentionTitle}><CalendarClock aria-hidden="true" /><div><h2>{first.kind === "coverage" ? "Há aulas sem professor" : "Há registros para concluir"}</h2><p>{first.kind === "coverage" ? "Cobertura dos próximos 7 dias" : "Encontros encerrados nos últimos 7 dias"}</p></div></div>
-    <div className={styles.attentionCounts}>{groups.map(group => <button type="button" key={group.kind} onClick={() => select(group)}><strong>{group.total.toLocaleString("pt-BR")}</strong><span>{group.kind === "coverage" ? "sem professor" : group.kind === "lessons" ? "aulas por registrar" : "atendimentos por registrar"}</span><ArrowUpRight aria-hidden="true" /></button>)}</div>
-    <Button size="sm" onClick={() => select(first)}>{ACTIONS[first.kind]}<ArrowRight aria-hidden="true" /></Button>
-  </section>;
-}
+export type SelectGroup = (group: HomeGroup | null) => void;
+
 export function HomeQueue({ data, selected, select, open }: { data: HomeData; selected: HomeGroup | null; select: SelectGroup; open: OpenAction }): ReactElement {
-  const pending = data.groups.filter(group => !group.attention && group.total > 0);
+  if (selected) return <section id="home-work" tabIndex={-1} className={styles.detailSurface} aria-labelledby="home-work-title">
+    <GroupDetail key={`${selected.kind}-${selected.period}`} group={selected} close={() => select(null)} open={open} />
+  </section>;
+
+  const [first, ...remaining] = pedagogicalGroups(data.groups);
   const history = data.groups.filter(group => (group.historyTotal ?? 0) > 0);
-  return <section id="home-work" tabIndex={-1} className={selected ? styles.detailSurface : styles.queuePanel} aria-label="Próximos passos">
-    {selected ? <GroupDetail key={`${selected.kind}-${selected.period}`} group={selected} close={() => select(null)} open={open} /> : <>
-      <div className={styles.sectionHeading}><h2>Próximos passos</h2>{pending.length > 0 && <Badge variant="neutral">{pending.length} {pending.length === 1 ? "frente" : "frentes"}</Badge>}</div>
-      {pending.length > 0 ? <>
-        <p className={styles.description}>Continue de onde a escola precisa.</p>
-        <div className={styles.queueGrid}>{pending.map(group => {
-          const Icon = group.area === "finance" ? FileText : group.area === "admissions" ? UserRoundPlus : group.kind === "semester" ? GraduationCap : Users;
-          return <button className={styles.queueTile} type="button" key={group.kind} onClick={() => select(group)}>
-            <div className={styles.queueTileTop}><Icon aria-hidden="true" /><strong>{group.total.toLocaleString("pt-BR")}</strong><ArrowUpRight aria-hidden="true" /></div>
-            <h3>{LABELS[group.kind]}</h3><span>{ACTIONS[group.kind]} <ArrowRight aria-hidden="true" /></span>
-          </button>;
-        })}</div>
-      </> : <div className={styles.queueQuiet}>
-        <p>{data.school.totalStudents === 0 ? "A escola começa com o primeiro aluno." : "Nenhum próximo passo pendente."}</p>
-        <Link className={styles.textLink} href={data.school.totalStudents === 0 ? "/alunos" : "/organizacao"}>{data.school.totalStudents === 0 ? "Cadastrar alunos" : "Explorar turmas"}<ArrowUpRight aria-hidden="true" /></Link>
-      </div>}
-      {history.length > 0 && <div className={styles.historyLinks}><History aria-hidden="true" /><span>Registros anteriores</span>{history.map(group => <button type="button" key={group.kind} onClick={() => select({ ...group, period: "history" })}>{group.historyTotal?.toLocaleString("pt-BR")} {group.kind === "lessons" ? "aulas" : "atendimentos"}<ArrowUpRight aria-hidden="true" /></button>)}</div>}
-    </>}
+  const streams = WORKSTREAMS.map(stream => ({
+    title: stream.title,
+    groups: remaining.filter(group => (stream.kinds as readonly string[]).includes(group.kind)),
+  })).filter(stream => stream.groups.length > 0);
+
+  return <section id="home-work" tabIndex={-1} className={styles.pedagogicalWork} aria-label="Prioridades pedagógicas" data-quiet={!first}>
+    {first ? <>
+      <div className={styles.sectionHeading}><h2>Prioridades pedagógicas</h2><span className={styles.workScope}>Situação atual da escola</span></div>
+      <div className={styles.priorityTask} data-attention={first.attention}>
+        <strong className={styles.priorityCount}>{first.total.toLocaleString("pt-BR")}</strong>
+        <div className={styles.priorityBody}>
+          <h3>{first.title}</h3>
+          <p>{WORK_COPY[first.kind].outcome}</p>
+          <div className={styles.priorityScope}>{first.attention && <Badge variant="warning">Prioridade</Badge>}<span>{WORK_COPY[first.kind].scope}</span></div>
+        </div>
+        <Button size="sm" onClick={() => select(first)}>{WORK_COPY[first.kind].action}<ArrowRight aria-hidden="true" /></Button>
+      </div>
+      {streams.length > 0 && <div className={styles.workstreams}>{streams.map(stream => <div className={styles.workstream} key={stream.title}>
+        <h3>{stream.title}</h3>
+        <div>{stream.groups.map(group => <button type="button" className={styles.workTask} key={group.kind} onClick={() => select(group)}>
+          <strong data-attention={group.attention}>{group.total.toLocaleString("pt-BR")}</strong>
+          <span><span>{group.title}</span><small>{WORK_COPY[group.kind].action}</small></span>
+          <ArrowUpRight aria-hidden="true" />
+        </button>)}</div>
+      </div>)}</div>}
+    </> : <p className={styles.workQuiet}>Nenhuma pendência pedagógica atual.</p>}
+    {history.length > 0 && <div className={styles.historyLinks}><History aria-hidden="true" /><span>Registros anteriores aos últimos 7 dias</span>{history.map(group => <button type="button" key={group.kind} onClick={() => select({ ...group, period: "history" })}>{group.historyTotal?.toLocaleString("pt-BR")} {group.kind === "lessons" ? "aulas" : "atendimentos"}<ArrowUpRight aria-hidden="true" /></button>)}</div>}
   </section>;
 }
