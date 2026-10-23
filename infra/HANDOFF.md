@@ -103,8 +103,8 @@ gerenciada pelo próprio RDS no Secrets Manager; apenas o ARN é exportado.
   Perfis CLI `lazuli-staging` e `lazuli-prod` configurados. Token em config Pulumi
   `hatchetToken` criptografada e SSM `/lazuli/{ambiente}/runtime/HATCHET_CLIENT_TOKEN`.
   Aplicado e conferido nas duas stacks. Na EC2 prod, leitura do token próprio aprovada
-  e leitura do token staging negada. Staging permaneceu desligado; nova leitura pela
-  instância será conferida ao ligá-la para deploy. Nenhum workflow disparado; teste do worker pendente.
+  e leitura do token staging negada. O smoke em staging não acessou o Hatchet; leitura do
+  token na instância staging e teste real do worker continuam pendentes.
 - Resend: chave privada em `.env.resend.local`; falta domínio verificado e remetente real.
   Desenvolvimento local continua com Mailpit. Não reutilizar chave em staging.
 - Domínio e decisão final de autenticação continuam pendentes.
@@ -116,8 +116,9 @@ gerenciada pelo próprio RDS no Secrets Manager; apenas o ARN é exportado.
 - Previews reais passaram; buckets foram aplicados e seus checks reais passaram.
   RDS criado e `check-shared.mjs` aprovado; SQL/TLS e isolamento de ambos os bancos
   aprovados. Teste de restauração ainda pendente.
-- Lint/typecheck completos, build e suítes amplas não foram executados; ficam para CI
-  conforme pedido. Não relatar como aprovados.
+- O [PR #208](https://github.com/josiasrfreitas/lazuli/pull/208) passou nos checks de
+  lint, typecheck, build ARM, build de produção, testes unitários, integração e transporte.
+  Os cinco previews Pulumi também passaram. O CI do commit publicado em `main` passou.
 
 ## Histórico do diagnóstico regional
 
@@ -136,9 +137,9 @@ SCP para os recursos já criados em Ohio. Nenhuma política da organização foi
   criptografado confirmados pela API. Typecheck de infra e `git diff --check` passaram.
 - Túnel SSM de inicialização SQL encerrado.
 
-## CI de infraestrutura e deploy — implementação em andamento
+## CI de infraestrutura e deploy — smoke validado
 
-- Workflows locais: `infra-preview.yml` (PR interno, cinco stacks), `infra-apply.yml`
+- Workflows publicados: `infra-preview.yml` (PR interno, cinco stacks), `infra-apply.yml`
   (`workflow_dispatch`, main, plano novo seguido de up do mesmo plano), `image-check.yml`
   (build ARM sem credenciais) e `deploy.yml` (manual, staging/prod, smoke/application).
 - Deploy exige SHA em main com CI aprovada. Infra apply e deploy compartilham a fila
@@ -147,7 +148,13 @@ SCP para os recursos já criados em Ohio. Nenhuma política da organização foi
   passou. A stack `automation` foi inicializada e aplicada: provedor GitHub OIDC,
   quatro roles e respectivas políticas. Nenhuma access key foi criada.
 - `configure-github.mjs` configurou environments limitados a `main`, variáveis de
-  roles e secrets por stdin. Workflows ainda precisam ser publicados e executados.
+  roles e secrets por stdin. OIDC foi usado nos previews, no apply e no smoke reais.
+- [Infrastructure apply em staging](https://github.com/josiasrfreitas/lazuli/actions/runs/39996370443)
+  passou no GitHub: preview e up do mesmo plano, 24 recursos sem mudanças.
+- [Deploy application em staging, modo smoke](https://github.com/josiasrfreitas/lazuli/actions/runs/39997327526)
+  passou no GitHub: role assumida via OIDC, imagem ARM publicada no ECR, respostas HTTP
+  `first` e `second` confirmadas via SSM e container removido. Nenhuma migração ou
+  execução de web/worker completo foi realizada.
 - ECR `lazuli/staging` e `lazuli/prod`, permissões de pull e SSM runtime/CONFIG aplicados.
   Configuração runtime ainda não contém appUrl/OAuth/Resend. Deploy completo para no
   preflight antes de migrar o banco quando essas configurações faltam.
@@ -167,7 +174,7 @@ SCP para os recursos já criados em Ohio. Nenhuma política da organização foi
   Plano temporário removido ao encerrar.
 - Passaram actionlint 1.7.12, typechecks focados infra/worker, lint dos arquivos alterados
   do worker, sintaxe shell/Node, allowlist de runtime, formatação e diff --check.
-  Build completo da aplicação fica na CI; não foi validado por este smoke mínimo.
+  A imagem ARM completa passou no build do PR; o smoke mínimo não a executou.
 - Staging foi ligado só para testar, desligado pelo Pulumi e confirmado `stopped` pela API.
   Produção permaneceu ligada; apenas recursos de suporte ao deploy foram aplicados.
 - Operação e próximos passos: `infra/deploy/README.md`.
