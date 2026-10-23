@@ -120,6 +120,10 @@ export function createAutomation() {
   const applyRoleArn = role("infra-apply", "environment:infra-apply", [
     ...stateRead,
     ...reads,
+    // The provider calls DescribeParameters after PutParameter; this list action has no resource ARN.
+    allow(["ssm:DescribeParameters"], "*", {
+      StringEquals: { "aws:RequestedRegion": region },
+    }),
     allow(
       ["s3:PutObject", "s3:DeleteObject"],
       [
