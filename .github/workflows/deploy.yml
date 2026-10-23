@@ -1,5 +1,8 @@
 name: Deploy application
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
   workflow_dispatch:
     inputs:
       environment:
@@ -18,13 +21,20 @@ on:
         required: false
 permissions:
   contents: read
-concurrency:
-  group: aws-operations
-  cancel-in-progress: false
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main'
-    environment: app-${{ inputs.environment }}
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       (vars.CD_TARGET_ENVIRONMENT == 'staging' || vars.CD_TARGET_ENVIRONMENT == 'prod'))
+    concurrency:
+      group: aws-operations
+      cancel-in-progress: false
+    environment: app-${{ inputs.environment || vars.CD_TARGET_ENVIRONMENT }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 45
     permissions:
@@ -33,51 +43,65 @@ jobs:
       id-token: write
     env:
       AWS_REGION: us-east-2
-      DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
-      DEPLOY_MODE: ${{ inputs.mode }}
+      DEPLOY_ENVIRONMENT: ${{ inputs.environment || vars.CD_TARGET_ENVIRONMENT }}
+      DEPLOY_MODE: ${{ inputs.mode || 'application' }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Require a main revision approved by CI
+        id: revision
         env:
           GH_TOKEN: ${{ github.token }}
-          REVISION: ${{ inputs.revision || github.sha }}
+          AUTO_TRIGGER: ${{ github.event_name == 'workflow_run' }}
+          REVISION: ${{ inputs.revision || github.event.workflow_run.head_sha || github.sha }}
         run: |
           set -euo pipefail
           [[ "$REVISION" =~ ^[a-f0-9]{40}$ ]]
           git merge-base --is-ancestor "$REVISION" origin/main
+          if [[ "$AUTO_TRIGGER" == true && "$REVISION" != "$(git rev-parse origin/main)" ]]; then
+            echo "Skipped superseded main revision $REVISION" >> "$GITHUB_STEP_SUMMARY"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           successes=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$REVISION&event=push&status=success" --jq '[.workflow_runs[] | select(.head_branch == "main")] | length')
           test "$successes" -gt 0
           git checkout --detach "$REVISION"
           echo "DEPLOY_SHA=$REVISION" >> "$GITHUB_ENV"
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
       - uses: aws-actions/configure-aws-credentials@v5
+        if: steps.revision.outputs.deploy == 'true'
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-2
           allowed-account-ids: "413781344359"
       - uses: aws-actions/amazon-ecr-login@v2
+        if: steps.revision.outputs.deploy == 'true'
       - uses: docker/setup-buildx-action@v3
+        if: steps.revision.outputs.deploy == 'true'
       - name: Build and publish immutable ARM image
+        if: steps.revision.outputs.deploy == 'true'
         id: image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ inputs.mode == 'smoke' && 'infra/deploy/Smoke.Dockerfile' || 'infra/deploy/Dockerfile' }}
+          file: ${{ env.DEPLOY_MODE == 'smoke' && 'infra/deploy/Smoke.Dockerfile' || 'infra/deploy/Dockerfile' }}
           platforms: linux/arm64
           push: true
-          tags: 413781344359.dkr.ecr.us-east-2.amazonaws.com/lazuli/${{ inputs.environment }}:${{ env.DEPLOY_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
-          cache-from: type=gha,scope=${{ inputs.mode }}-arm64
-          cache-to: type=gha,scope=${{ inputs.mode }}-arm64,mode=max
+          tags: 413781344359.dkr.ecr.us-east-2.amazonaws.com/lazuli/${{ env.DEPLOY_ENVIRONMENT }}:${{ env.DEPLOY_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          cache-from: type=gha,scope=${{ env.DEPLOY_MODE }}-arm64
+          cache-to: type=gha,scope=${{ env.DEPLOY_MODE }}-arm64,mode=max
       - uses: actions/setup-node@v4
+        if: steps.revision.outputs.deploy == 'true'
         with:
           node-version-file: .nvmrc
       - name: Install AWS Session Manager plugin
-        if: inputs.mode == 'application'
+        if: steps.revision.outputs.deploy == 'true' && env.DEPLOY_MODE == 'application'
         run: |
           curl --fail --silent --show-error --location https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_arm64/session-manager-plugin.deb -o "$RUNNER_TEMP/session-manager-plugin.deb"
           sudo dpkg -i "$RUNNER_TEMP/session-manager-plugin.deb"
       - name: Deploy and verify
+        if: steps.revision.outputs.deploy == 'true'
         env:
           IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
         run: |

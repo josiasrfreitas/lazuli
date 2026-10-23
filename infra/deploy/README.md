@@ -8,12 +8,27 @@
 - `Infrastructure apply`: acionamento manual em `main`, escolha de stack. Gera um plano
   novo e aplica esse mesmo plano/revisão. Não aplica automaticamente ao fazer merge.
 - `Deployment image`: PR compila a imagem ARM completa sem credenciais AWS.
-- `Deploy application`: manual em `main`, escolhe `staging`/`prod`, `smoke`/`application`
-  e opcionalmente um SHA completo. O SHA precisa pertencer a `main` e ter a CI aprovada.
-  Nenhuma branch arbitrária pode acessar os environments de aplicação.
+- `Deploy application`: automático após a CI aprovar um push em `main`, somente quando
+  `CD_TARGET_ENVIRONMENT` no repositório for `prod` (ou `staging` durante o teste do CD).
+  Sem essa variável, não há deploy automático. O modo automático implanta a aplicação
+  completa da revisão aprovada pela CI. O acionamento manual em `main` continua disponível:
+  escolhe `staging`/`prod`, `smoke`/`application` e opcionalmente um SHA completo. O SHA
+  precisa pertencer a `main` e ter a CI aprovada. Nenhuma branch arbitrária pode acessar
+  os environments de aplicação. Uma revisão automática já substituída em `main` é
+  ignorada antes de assumir a role AWS.
 
-As operações de escrita compartilham `concurrency: aws-operations`, sem cancelamento
-automático. Não iniciar uma operação local enquanto houver uma aplicação pela CI.
+Para validar o CD sem afetar produção, definir temporariamente
+`gh variable set CD_TARGET_ENVIRONMENT --body staging`, integrar uma mudança pequena em
+`main` e conferir o deploy completo. Remover a variável após o teste com
+`gh variable delete CD_TARGET_ENVIRONMENT`. Quando domínio/remetente Resend, stack e
+primeiro deploy manual de produção estiverem validados, definir a variável como `prod`.
+O deploy automático não executa `pulumi up`; alterações de infraestrutura devem ser
+aplicadas antes de reativar o CD para produção.
+
+Os jobs elegíveis de escrita compartilham `concurrency: aws-operations`, sem interromper o
+job em execução. O GitHub mantém só um job pendente por grupo; um novo pendente pode
+substituir o anterior. Conferir o histórico e reexecutar uma operação manual substituída.
+Não iniciar uma operação local enquanto houver uma aplicação pela CI.
 O plano de um PR é informativo: não é reaproveitado após merge porque código e estado
 podem mudar. Planos podem conter informações sensíveis e não são publicados como artifact.
 
