@@ -6,5 +6,13 @@ const hatchetEnvironmentSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
 });
 export function readHatchetEnvironment(): z.infer<typeof hatchetEnvironmentSchema> {
-  return hatchetEnvironmentSchema.parse(process.env);
+  const parsed = hatchetEnvironmentSchema.parse(process.env);
+  const deploymentEnvironment = process.env.LAZULI_ENV;
+  if (
+    (deploymentEnvironment === "staging" || deploymentEnvironment === "prod") &&
+    parsed.HATCHET_CLIENT_NAMESPACE !== `lazuli-${deploymentEnvironment}`
+  ) {
+    throw new Error(`HATCHET_CLIENT_NAMESPACE must be lazuli-${deploymentEnvironment}.`);
+  }
+  return parsed;
 }

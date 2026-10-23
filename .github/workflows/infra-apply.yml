@@ -1,0 +1,57 @@
+name: Infrastructure apply
+on:
+  workflow_dispatch:
+    inputs:
+      stack:
+        description: Stack a aplicar (automation é administrada localmente)
+        type: choice
+        required: true
+        options: [staging, prod, shared, billing]
+permissions:
+  contents: read
+concurrency:
+  group: aws-operations
+  cancel-in-progress: false
+jobs:
+  apply:
+    if: github.ref == 'refs/heads/main'
+    environment: infra-apply
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-2
+      PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+      PULUMI_SKIP_UPDATE_CHECK: "true"
+      PULUMI_BACKEND_URL: s3://lazuli-pulumi-state-413781344359-us-east-2
+      STACK: ${{ inputs.stack }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-infra
+      - run: pnpm --filter @lazuli/infra typecheck
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_INFRA_APPLY_ROLE_ARN }}
+          aws-region: us-east-2
+          allowed-account-ids: "413781344359"
+      - name: Restore private billing configuration
+        if: inputs.stack == 'billing'
+        env:
+          BILLING_CONFIG: ${{ secrets.PULUMI_BILLING_CONFIG }}
+        run: |
+          test -n "$BILLING_CONFIG"
+          umask 077
+          printf '%s\n' "$BILLING_CONFIG" > infra/pulumi/Pulumi.billing.yaml
+      - name: Plan and apply the exact checked-out revision
+        working-directory: infra/pulumi
+        run: |
+          set -euo pipefail
+          case "$STACK" in staging|prod|shared|billing) ;; *) exit 1 ;; esac
+          test -n "$PULUMI_CONFIG_PASSPHRASE"
+          plan="$RUNNER_TEMP/pulumi-plan.json"
+          trap 'rm -f "$plan"' EXIT
+          pulumi preview --stack "$STACK" --save-plan "$plan" --non-interactive --suppress-outputs
+          pulumi up --stack "$STACK" --plan "$plan" --yes --non-interactive --suppress-outputs
+          echo "Applied stack $STACK at $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

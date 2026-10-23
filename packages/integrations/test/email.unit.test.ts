@@ -59,6 +59,23 @@ void describe("parseEmailEnvironment", () => {
   void it("rejects a non-numeric SMTP_PORT", () => {
     assert.throws(() => parseEmailEnvironment(environmentSource({ SMTP_PORT: "smtp" })));
   });
+
+  void it("keeps staging mail inside Mailpit", () => {
+    assert.throws(
+      () =>
+        parseEmailEnvironment(
+          environmentSource({ LAZULI_ENV: "staging", RESEND_API_KEY: "re_test_key" }),
+        ),
+      /Staging email must use Mailpit/,
+    );
+  });
+
+  void it("requires Resend in production", () => {
+    assert.throws(
+      () => parseEmailEnvironment(environmentSource({ LAZULI_ENV: "prod" })),
+      /Production email requires RESEND_API_KEY/,
+    );
+  });
 });
 
 void describe("selectEmailTransport", () => {

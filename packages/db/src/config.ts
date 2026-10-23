@@ -6,6 +6,17 @@ export function getDatabaseUrl(): string {
     throw new Error("DATABASE_URL is required");
   }
 
+  const deploymentEnvironment = process.env.LAZULI_ENV;
+  if (deploymentEnvironment === "staging" || deploymentEnvironment === "prod") {
+    const database = new URL(databaseUrl);
+    if (
+      !["postgres:", "postgresql:"].includes(database.protocol) ||
+      database.pathname !== `/lazuli_${deploymentEnvironment}`
+    ) {
+      throw new Error(`DATABASE_URL must point to lazuli_${deploymentEnvironment}.`);
+    }
+  }
+
   return databaseUrl;
 }
 

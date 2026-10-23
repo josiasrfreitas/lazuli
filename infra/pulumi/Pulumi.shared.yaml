@@ -1,0 +1,8 @@
+config:
+  aws:region: us-east-2
+  aws:allowedAccountIds:
+    - "413781344359"
+  lazuli:availabilityZones:
+    - us-east-2a
+    - us-east-2b
+encryptionsalt: v1:eAN/Tv587P4=:v1:NnwaeXgG2xb78DxW:mK6IGjv3aIFQ+8Xse258AkkOJOXhxw==
