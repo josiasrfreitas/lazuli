@@ -206,8 +206,9 @@ export function navBreadcrumbFor(pathname: string, role: StaffRole): NavBreadcru
   return null;
 }
 
-/** Where Início lands for this role; null when no vertical is open to it yet. */
+/** Administrative home or the role workspace; null when no workspace is enabled. */
 export function homeHrefFor(role: StaffRole): string | null {
+  if (role === "ADMIN" || role === "SYSTEM_ADMIN") return "/";
   const vertical = navItemsFor(role).find((item) => item.href !== "/");
 
   return vertical?.href ?? null;

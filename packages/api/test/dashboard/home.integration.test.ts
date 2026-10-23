@@ -15,13 +15,20 @@ import {
 } from "../support/dashboard-test-support.js";
 
 const NOW = new Date("2084-03-10T18:00:00Z"); // 15:00 school time; fixtures end at 16:00.
+async function cleanHomeEnrollments(): Promise<void> {
+  const where = { student: { fullName: { startsWith: TEST_PREFIX } } };
+  await db.$transaction(async (transaction) => {
+    await transaction.pedagogicalProgress.deleteMany({ where: { enrollment: where } });
+    await transaction.enrollment.deleteMany({ where });
+  });
+}
 void beforeEach(async () => {
-  await db.enrollment.deleteMany({ where: { student: { fullName: { startsWith: TEST_PREFIX } } } });
+  await cleanHomeEnrollments();
   await cleanDashboardDatabase();
   await ensureDashboardUsers();
 });
 void after(async () => {
-  await db.enrollment.deleteMany({ where: { student: { fullName: { startsWith: TEST_PREFIX } } } });
+  await cleanHomeEnrollments();
   await cleanDashboardDatabase();
   await db.$disconnect();
 });
@@ -59,16 +66,39 @@ void it("treats upcoming membership as allocated, and ended membership as needin
   const classId = await seedClass({ code: "Home Enrollment", teacherId: TEACHER.id, ...catalog });
   const studentId = await seedStudent({ suffix: "Home enrollment", createdAt: NOW });
   const enrollment = await db.enrollment.create({
-    data: { studentId, classId, entryDate: new Date("2084-04-01") },
+    data: {
+      studentId,
+      classId,
+      entryDate: new Date("2084-04-01"),
+      progressRecords: { create: { stageId: catalog.stageId, startDate: new Date("2084-04-01") } },
+    },
   });
   const future = await caller(ADMIN, NOW).dashboard.pending({ kind: "students", page: 1 });
   assert.equal(
     future.items.some((item) => item.id === studentId),
     false,
   );
-  await db.enrollment.update({
-    where: { id: enrollment.id },
-    data: { entryDate: new Date("2084-02-01"), exitDate: new Date("2084-03-10") },
+  await db.$transaction(async (transaction) => {
+    await transaction.enrollment.update({
+      where: { id: enrollment.id },
+      data: { entryDate: new Date("2084-02-01") },
+    });
+    await transaction.pedagogicalProgress.updateMany({
+      where: { enrollmentId: enrollment.id },
+      data: {
+        startDate: new Date("2084-02-01"),
+        endDate: new Date("2084-03-10"),
+        endReason: "DROPPED",
+      },
+    });
+    await transaction.enrollment.update({
+      where: { id: enrollment.id },
+      data: {
+        entryDate: new Date("2084-02-01"),
+        exitDate: new Date("2084-03-10"),
+        exitReason: "DROPPED",
+      },
+    });
   });
   const ended = await caller(ADMIN, NOW).dashboard.pending({ kind: "students", page: 1 });
   assert.equal(ended.total, future.total + 1);
@@ -76,7 +106,7 @@ void it("treats upcoming membership as allocated, and ended membership as needin
     ended.items.some((item) => item.id === studentId),
     true,
   );
-  await db.enrollment.delete({ where: { id: enrollment.id } });
+  await cleanHomeEnrollments();
 });
 void it("does not confuse confirmed attendance with the completed class record or flag unfinished lessons", async () => {
   const catalog = await seedDashboardCatalog();
@@ -105,4 +135,56 @@ void it("does not confuse confirmed attendance with the completed class record o
     afterEnd.items.some((item) => item.id === cancelled || item.id === removed),
     false,
   );
+});
+
+void it("composes the school overview and keeps unallocated cash distinct from agreements", async () => {
+  const baseline = await caller(ADMIN, NOW).dashboard.business();
+  const studentId = await seedStudent({ suffix: "Home business", createdAt: NOW });
+  const payer = await db.payer.create({ data: { name: `${TEST_PREFIX}Home payer` } });
+  try {
+    const original = await db.contract.create({
+      data: { studentId, payerId: payer.id, agreedOn: new Date("2084-03-01") },
+    });
+    await db.contract.create({
+      data: {
+        studentId,
+        payerId: payer.id,
+        agreedOn: new Date("2084-03-02"),
+        renewedFromId: original.id,
+      },
+    });
+    await db.paymentEntry.createMany({
+      data: [
+        { payerId: payer.id, date: new Date("2084-03-10"), amountCents: 12500, method: "PIX" },
+        { payerId: payer.id, date: new Date("2084-03-11"), amountCents: 99900, method: "PIX" },
+        {
+          payerId: payer.id,
+          date: new Date("2084-03-10"),
+          amountCents: 88800,
+          method: "PIX",
+          deletedAt: NOW,
+        },
+      ],
+    });
+    const business = await caller(ADMIN, NOW).dashboard.business();
+    assert.equal(business.receivedCents, baseline.receivedCents + 12500);
+    assert.equal(business.newContracts, baseline.newContracts + 1);
+    assert.equal(business.renewals, baseline.renewals + 1);
+    const home = await caller(ADMIN, NOW).dashboard.home();
+    assert.equal(home.today, "2084-03-10");
+    assert.equal(home.canViewFinance, true);
+    assert.equal(home.groups.length, 9);
+    assert.equal(
+      home.groups
+        .find((group) => group.kind === "contracts")
+        ?.items.some((item) => item.id === studentId),
+      false,
+    );
+    assert.equal(home.agenda.total, 0);
+  } finally {
+    await db.paymentEntry.deleteMany({ where: { payerId: payer.id } });
+    await db.contract.deleteMany({ where: { payerId: payer.id, renewedFromId: { not: null } } });
+    await db.contract.deleteMany({ where: { payerId: payer.id } });
+    await db.payer.delete({ where: { id: payer.id } });
+  }
 });
