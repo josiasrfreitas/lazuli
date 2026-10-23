@@ -117,11 +117,18 @@ function validateRemoteEnvironment() {
     invalid.push("Remote runtime requires LAZULI_ENV=staging or LAZULI_ENV=prod.");
     return;
   }
-
   if (getEnvironmentValue("NODE_ENV") !== "production") {
     invalid.push("Remote runtime requires NODE_ENV=production.");
   }
 
+  validateRemoteUrls();
+  validateRemoteStorage();
+  validateRemoteHatchetAndDatabase();
+  validateRemoteCredentials();
+  validateRemoteEmail();
+}
+
+function validateRemoteUrls() {
   for (const name of ["APP_URL", "BETTER_AUTH_URL"]) {
     requireValue(name);
     if (hasValue(name)) {
@@ -141,7 +148,9 @@ function validateRemoteEnvironment() {
   ) {
     invalid.push("APP_URL and BETTER_AUTH_URL must match.");
   }
+}
 
+function validateRemoteStorage() {
   requireValue("S3_BUCKET");
   if (
     hasValue("S3_BUCKET") &&
@@ -153,7 +162,9 @@ function validateRemoteEnvironment() {
   if (getEnvironmentValue("AWS_REGION") !== "us-east-2") {
     invalid.push("AWS_REGION must be us-east-2 for these stacks.");
   }
+}
 
+function validateRemoteHatchetAndDatabase() {
   requireValue("HATCHET_CLIENT_TOKEN");
   if (getEnvironmentValue("HATCHET_CLIENT_NAMESPACE") !== `lazuli-${deploymentEnvironment}`) {
     invalid.push(`HATCHET_CLIENT_NAMESPACE must be lazuli-${deploymentEnvironment}.`);
@@ -174,7 +185,9 @@ function validateRemoteEnvironment() {
       invalid.push("DATABASE_URL must be a valid PostgreSQL URL.");
     }
   }
+}
 
+function validateRemoteCredentials() {
   for (const name of [
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY",
@@ -184,7 +197,9 @@ function validateRemoteEnvironment() {
   ]) {
     if (hasValue(name)) invalid.push(`${name} must be unset in the remote runtime.`);
   }
+}
 
+function validateRemoteEmail() {
   if (deploymentEnvironment === "staging") {
     if (hasValue("RESEND_API_KEY")) invalid.push("Staging must not have RESEND_API_KEY.");
     requireValue("SMTP_HOST");

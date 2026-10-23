@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { describe, it } from "node:test";
+import { URL } from "node:url";
 
 const script = new URL("../runtime-check.mjs", import.meta.url);
 
