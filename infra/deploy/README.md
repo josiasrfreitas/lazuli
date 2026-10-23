@@ -25,8 +25,10 @@ primeiro deploy manual de produção estiverem validados, definir a variável co
 O deploy automático não executa `pulumi up`; alterações de infraestrutura devem ser
 aplicadas antes de reativar o CD para produção.
 
-As operações de escrita compartilham `concurrency: aws-operations`, sem cancelamento
-automático. Não iniciar uma operação local enquanto houver uma aplicação pela CI.
+Os jobs elegíveis de escrita compartilham `concurrency: aws-operations`, sem interromper o
+job em execução. O GitHub mantém só um job pendente por grupo; um novo pendente pode
+substituir o anterior. Conferir o histórico e reexecutar uma operação manual substituída.
+Não iniciar uma operação local enquanto houver uma aplicação pela CI.
 O plano de um PR é informativo: não é reaproveitado após merge porque código e estado
 podem mudar. Planos podem conter informações sensíveis e não são publicados como artifact.
 

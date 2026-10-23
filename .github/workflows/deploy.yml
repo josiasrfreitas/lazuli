@@ -21,9 +21,6 @@ on:
         required: false
 permissions:
   contents: read
-concurrency:
-  group: aws-operations
-  cancel-in-progress: false
 jobs:
   deploy:
     if: >-
@@ -34,6 +31,9 @@ jobs:
        github.event.workflow_run.head_branch == 'main' &&
        github.event.workflow_run.head_repository.full_name == github.repository &&
        (vars.CD_TARGET_ENVIRONMENT == 'staging' || vars.CD_TARGET_ENVIRONMENT == 'prod'))
+    concurrency:
+      group: aws-operations
+      cancel-in-progress: false
     environment: app-${{ inputs.environment || vars.CD_TARGET_ENVIRONMENT }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 45
