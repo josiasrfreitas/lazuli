@@ -16,6 +16,7 @@ out/
 .env
 .env.*
 !.env.example
+infra/pulumi/Pulumi.billing.yaml
 
 # Logs
 *.log

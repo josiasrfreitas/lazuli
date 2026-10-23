@@ -7,6 +7,8 @@ const MINIMUM_AUTH_SECRET_LENGTH = 32;
 const missing = [];
 const invalid = [];
 const environment = new Map(Object.entries(process.env));
+const remote = process.argv.includes("--remote");
+const deploymentEnvironment = getEnvironmentValue("LAZULI_ENV");
 
 for (const name of REQUIRED_RUNTIME_ENVIRONMENT) {
   requireValue(name);
@@ -14,6 +16,12 @@ for (const name of REQUIRED_RUNTIME_ENVIRONMENT) {
 
 requireUrl("APP_URL");
 requireMinimumLength("BETTER_AUTH_SECRET", MINIMUM_AUTH_SECRET_LENGTH);
+
+if (remote) {
+  validateRemoteEnvironment();
+} else if (deploymentEnvironment && !["local", "staging", "prod"].includes(deploymentEnvironment)) {
+  invalid.push("LAZULI_ENV must be local, staging or prod.");
+}
 
 const googleClientIdConfigured = hasValue("GOOGLE_CLIENT_ID");
 const googleClientSecretConfigured = hasValue("GOOGLE_CLIENT_SECRET");
@@ -23,7 +31,7 @@ if (googleClientIdConfigured !== googleClientSecretConfigured) {
   invalid.push("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required in production.");
 }
 
-if (!hasValue("RESEND_API_KEY")) {
+if (deploymentEnvironment !== "prod" && !hasValue("RESEND_API_KEY")) {
   requireValue("SMTP_HOST");
   requireValue("SMTP_PORT");
   requirePositiveInteger("SMTP_PORT");
@@ -38,7 +46,11 @@ if (missing.length > 0 || invalid.length > 0) {
     process.stderr.write(`${message}\n`);
   }
 
-  process.stderr.write("\nRuntime preflight failed. Check the root .env file.\n");
+  process.stderr.write(
+    remote
+      ? "\nRemote runtime preflight failed. Check the deployment environment.\n"
+      : "\nRuntime preflight failed. Check the root .env file.\n",
+  );
   process.exitCode = 1;
 } else {
   process.stdout.write("Runtime preflight passed.\n");
@@ -98,4 +110,92 @@ function hasValue(name) {
 
 function getEnvironmentValue(name) {
   return environment.get(name);
+}
+
+function validateRemoteEnvironment() {
+  if (deploymentEnvironment !== "staging" && deploymentEnvironment !== "prod") {
+    invalid.push("Remote runtime requires LAZULI_ENV=staging or LAZULI_ENV=prod.");
+    return;
+  }
+
+  if (getEnvironmentValue("NODE_ENV") !== "production") {
+    invalid.push("Remote runtime requires NODE_ENV=production.");
+  }
+
+  for (const name of ["APP_URL", "BETTER_AUTH_URL"]) {
+    requireValue(name);
+    if (hasValue(name)) {
+      try {
+        if (new URL(getEnvironmentValue(name)).protocol !== "https:") {
+          invalid.push(`${name} must use HTTPS in a remote environment.`);
+        }
+      } catch {
+        invalid.push(`${name} must be a valid HTTPS URL.`);
+      }
+    }
+  }
+  if (
+    hasValue("APP_URL") &&
+    hasValue("BETTER_AUTH_URL") &&
+    getEnvironmentValue("APP_URL") !== getEnvironmentValue("BETTER_AUTH_URL")
+  ) {
+    invalid.push("APP_URL and BETTER_AUTH_URL must match.");
+  }
+
+  requireValue("S3_BUCKET");
+  if (
+    hasValue("S3_BUCKET") &&
+    !getEnvironmentValue("S3_BUCKET").startsWith(`lazuli-${deploymentEnvironment}-`)
+  ) {
+    invalid.push(`S3_BUCKET must be the lazuli-${deploymentEnvironment} bucket.`);
+  }
+  if (hasValue("S3_ENDPOINT")) invalid.push("S3_ENDPOINT must be unset in AWS.");
+  if (getEnvironmentValue("AWS_REGION") !== "us-east-2") {
+    invalid.push("AWS_REGION must be us-east-2 for these stacks.");
+  }
+
+  requireValue("HATCHET_CLIENT_TOKEN");
+  if (getEnvironmentValue("HATCHET_CLIENT_NAMESPACE") !== `lazuli-${deploymentEnvironment}`) {
+    invalid.push(`HATCHET_CLIENT_NAMESPACE must be lazuli-${deploymentEnvironment}.`);
+  }
+
+  if (hasValue("DATABASE_URL")) {
+    try {
+      const database = new URL(getEnvironmentValue("DATABASE_URL"));
+      if (
+        !["postgres:", "postgresql:"].includes(database.protocol) ||
+        database.pathname !== `/lazuli_${deploymentEnvironment}`
+      ) {
+        invalid.push(
+          `DATABASE_URL must point to the PostgreSQL database lazuli_${deploymentEnvironment}.`,
+        );
+      }
+    } catch {
+      invalid.push("DATABASE_URL must be a valid PostgreSQL URL.");
+    }
+  }
+
+  for (const name of [
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+    "STORAGE_EMULATOR_HOST",
+    "GOOGLE_APPLICATION_CREDENTIALS",
+  ]) {
+    if (hasValue(name)) invalid.push(`${name} must be unset in the remote runtime.`);
+  }
+
+  if (deploymentEnvironment === "staging") {
+    if (hasValue("RESEND_API_KEY")) invalid.push("Staging must not have RESEND_API_KEY.");
+    requireValue("SMTP_HOST");
+    requireValue("SMTP_PORT");
+    if (getEnvironmentValue("SMTP_PORT") !== "1025") {
+      invalid.push("Staging SMTP_PORT must be 1025 for Mailpit.");
+    }
+  } else {
+    requireValue("RESEND_API_KEY");
+    if (getEnvironmentValue("EMAIL_FROM")?.includes("example.com")) {
+      invalid.push("Production EMAIL_FROM must use a verified real domain.");
+    }
+  }
 }

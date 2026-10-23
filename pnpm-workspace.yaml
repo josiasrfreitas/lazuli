@@ -2,6 +2,7 @@ packages:
   - "apps/*"
   - "packages/*"
   - "tooling/*"
+  - "infra/pulumi"
 
 allowBuilds:
   "@hatchet-dev/typescript-sdk": false

@@ -15,10 +15,16 @@ function localBucket(environment: NodeJS.ProcessEnv): string {
 
 export function storageConfig(): StorageOptions {
   const environment = process.env;
+  const deploymentEnvironment = environment.LAZULI_ENV;
   const local = environment.NODE_ENV !== "production";
   const bucket = environment.S3_BUCKET || (local ? localBucket(environment) : "");
   if (!bucket) throw new Error("S3_BUCKET is required in production.");
   const endpoint = environment.S3_ENDPOINT || (local ? "http://localhost:9090" : undefined);
+  if (deploymentEnvironment === "staging" || deploymentEnvironment === "prod") {
+    if (local || !bucket.startsWith(`lazuli-${deploymentEnvironment}-`) || endpoint) {
+      throw new Error(`Invalid S3 configuration for ${deploymentEnvironment}.`);
+    }
+  }
   return {
     bucket,
     createLocalBucket: local,

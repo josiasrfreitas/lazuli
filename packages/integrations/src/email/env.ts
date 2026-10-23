@@ -13,6 +13,7 @@ const optionalTrimmedString = z
   });
 
 const emailEnvironmentSchema = z.object({
+  LAZULI_ENV: z.enum(["local", "staging", "prod"]).optional(),
   RESEND_API_KEY: optionalTrimmedString,
   EMAIL_FROM: z.string().trim().min(1, "EMAIL_FROM is required"),
   SMTP_HOST: optionalTrimmedString,
@@ -32,6 +33,13 @@ export function parseEmailEnvironment(
   source?: Record<string, string | undefined>,
 ): EmailEnvironment {
   const parsed = emailEnvironmentSchema.parse(source ?? process.env);
+
+  if (parsed.LAZULI_ENV === "staging" && parsed.RESEND_API_KEY) {
+    throw new Error("Staging email must use Mailpit, not Resend.");
+  }
+  if (parsed.LAZULI_ENV === "prod" && !parsed.RESEND_API_KEY) {
+    throw new Error("Production email requires RESEND_API_KEY.");
+  }
 
   return {
     resendApiKey: parsed.RESEND_API_KEY,

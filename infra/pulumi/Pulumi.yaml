@@ -1,0 +1,11 @@
+name: lazuli
+runtime:
+  name: nodejs
+  options:
+    packagemanager: pnpm
+description: Lazuli AWS private storage, shared PostgreSQL and account-wide cost alerts.
+backend:
+  url: s3://lazuli-pulumi-state-413781344359-us-east-2
+config:
+  aws:region:
+    value: us-east-2

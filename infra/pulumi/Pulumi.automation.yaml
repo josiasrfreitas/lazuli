@@ -1,0 +1,5 @@
+config:
+  aws:region: us-east-2
+  aws:allowedAccountIds:
+    - "413781344359"
+encryptionsalt: v1:UU3liDqW6Rk=:v1:lU4B6n5o4l62xgSn:Qm4iulTKcWbtCumyr4c14NNbo98C9A==

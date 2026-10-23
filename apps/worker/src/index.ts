@@ -10,6 +10,7 @@ import {
 } from "@lazuli/job-contracts";
 import { getHatchetClient } from "@lazuli/integrations/hatchet";
 import { db } from "@lazuli/db";
+import { runWithReadiness } from "./readiness.js";
 
 type GenerationResult = Awaited<ReturnType<typeof processSessionGeneration>>;
 const ENROLLMENT_POLL_MS = 60_000;
@@ -70,7 +71,7 @@ async function start(): Promise<void> {
   void processEnrollmentActions();
   log("starting sessions-generate worker (1 slot)");
   try {
-    await worker.start();
+    await runWithReadiness(worker);
   } finally {
     clearInterval(timer);
     stopRecovery();

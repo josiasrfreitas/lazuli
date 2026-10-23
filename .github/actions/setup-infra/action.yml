@@ -1,0 +1,15 @@
+name: Setup infrastructure
+description: Install only the Pulumi workspace, without application lifecycle scripts.
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+    - shell: bash
+      run: pnpm install --filter @lazuli/infra --frozen-lockfile --ignore-scripts
+    - uses: pulumi/actions@v6
+      with:
+        pulumi-version: 3.246.0

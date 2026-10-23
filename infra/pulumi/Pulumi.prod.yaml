@@ -1,0 +1,15 @@
+config:
+  lazuli:amiId: ami-0f8aca463a279d950
+  aws:region: us-east-2
+  aws:allowedAccountIds:
+    - "413781344359"
+  lazuli:databaseOwnerPassword:
+    secure: v1:9JbG96QzWdRkjIpG:N251dCkRRBLTPzvwiAFs11h4MqQIszMDGEDkKbUciWoS2mpqHQfhkbZ2gf4rFjcLlKFgB8nvuZ/0ovcMHuQWBTu6BehwpHDHrfnYWs9iOPo=
+  lazuli:databaseRuntimePassword:
+    secure: v1:+v296nZeQ3m+uSsd:tTd5UrJB102irp6KocC6d6gihRTN0ACNsuolsQ4/pvOnX4Wvqh6XPil6NBtjEcDb5C4lgPsVi00tV2J2nYcBVPP4uWxQphomA1c2zBIX28w=
+  lazuli:authSecret:
+    secure: v1:5ebr3mWeqH5TdtRL:g6jAnbJR6As8o9PK6g/zV2zmq3ybrWKVj9SVSMyq0F/X3RstmcnwjTB7dwedNC7BAl2Ord9tln/8HB4F4Cpyr97bRlAqSzSMvzGX+MuowQA=
+  lazuli:enableCompute: "true"
+  lazuli:hatchetToken:
+    secure: v1:mmuw1QcMVoor6g8i:BTYqme4VYUhSqGw+vWR0j9If7d8EtSJCTRSsEdm/eUoKGw3SCsj6HJAEnXaT85Mr8rpoVhBMKwqw82qVOhssDKgJ+nhgMlkUHsj47+MYZ7WfhuFv3PaT8u2SNv9pu8fHy7YlIbnZSXkhtg2ZkeKbUbHwGozQxwHRRyeNpiqDLOVqAS5kQlsqP7AlgGlFQFuZdp8bQlyQcTWGu79DyGkGuV4tRLK+v50DvZuU94D6s/4ZpH2KFozanuqiXtO+MPhICu4y2xN+ehmyKd6KTuVUylI9MJPfG/oy1tGf1I5wShmDM6fgepDJzxq2gDzIvbwW6qYinclyFxs9K8CVYyEn4+Fpow48pdC5Y8BLc1t6qd94g3A6Neugr4/TQ1fdEtb3jS/2iFFVlWE36QLmhy5ny59/g6EtAkjqI5Hsby07is8S5EvoxJIQOGuwecHwlL+cp7CzhRkJWuiCN0LfqVj2QmTPUSEWMGqwcfpNF4tCdKFyWAVTWcqgG+eGdt47Wnlq0IPvb82OeyxeXCv82xjfDpWaes7U3ERQua+c6LVmypyAFPB/XIMCBQvAet8V9KKaMI1dIItL8Ia/AkjH4tPedTe+FDrFG0O0+9PIhLowDowdrckW0/5AaAnynoxAa45VUS8CVL6zMr5FQ9rZJXc0aO/0HUV3j9QRFh6vnIsf0OeyOrKXLOEpTM7SBGq1N2UMrB7v1YEUDruRb+7kXvIKibr5mO3eZCruXusIrftqXSepVnRVR8kQZIS0RxxkzYXrnh5OS7Q2pTUfXFhdOiaAM2V+2nJzN56tp/yArDkNG9DgiLIUMSEON0DE/NavLAr5enWIJkLXk0cqazooIOU/6ziDsA==
+encryptionsalt: v1:SSa6Qvf46TA=:v1:KjEjQr+5AWzq5C7F:JGO6ZAxcA6Tvbqg+425uNatJnBTYAw==

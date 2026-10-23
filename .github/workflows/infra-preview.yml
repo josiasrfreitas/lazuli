@@ -1,0 +1,68 @@
+name: Infrastructure preview
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra-*.yml"
+      - ".github/actions/setup-infra/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".nvmrc"
+permissions:
+  contents: read
+concurrency:
+  group: infra-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        stack: [shared, staging, prod, billing, automation]
+    env:
+      AWS_REGION: us-east-2
+      PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+      PULUMI_SKIP_UPDATE_CHECK: "true"
+      PULUMI_BACKEND_URL: s3://lazuli-pulumi-state-413781344359-us-east-2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-infra
+      - name: Check infrastructure types
+        run: pnpm --filter @lazuli/infra typecheck
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_INFRA_PREVIEW_ROLE_ARN }}
+          aws-region: us-east-2
+          allowed-account-ids: "413781344359"
+      - name: Restore private billing configuration
+        if: matrix.stack == 'billing'
+        env:
+          BILLING_CONFIG: ${{ secrets.PULUMI_BILLING_CONFIG }}
+        run: |
+          test -n "$BILLING_CONFIG"
+          umask 077
+          printf '%s\n' "$BILLING_CONFIG" > infra/pulumi/Pulumi.billing.yaml
+      - name: Preview ${{ matrix.stack }}
+        uses: pulumi/actions@v6
+        with:
+          command: preview
+          stack-name: ${{ matrix.stack }}
+          work-dir: infra/pulumi
+          pulumi-version: 3.246.0
+          cloud-url: s3://lazuli-pulumi-state-413781344359-us-east-2
+          comment-on-summary: true
+          suppress-outputs: true
+  untrusted:
+    if: github.event.pull_request.head.repo.full_name != github.repository || github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Preview AWS não executado para forks/Dependabot. Um mantenedor deve revisar e trazer a alteração para uma branch interna.' >> "$GITHUB_STEP_SUMMARY"
