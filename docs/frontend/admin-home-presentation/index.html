@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Lazuli · Estados da página inicial</title>
+    <link rel="stylesheet" href="presentation.css" />
+    <script src="slides.js" defer></script>
+    <script src="presentation.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#stage">Ir para a apresentação</a>
+    <header class="toolbar">
+      <div class="identity"><strong>Lazuli<span> / </span>Página inicial</strong><span>Revisão dos estados · 23 out. 2026</span></div>
+      <div class="toolbar-actions">
+        <div class="mode" role="group" aria-label="Percurso da apresentação">
+          <button id="essential" aria-pressed="true">Roteiro essencial <span>13</span></button>
+          <button id="all" aria-pressed="false">Todos os estados <span>45</span></button>
+        </div>
+        <button class="text-button" id="index-toggle" aria-expanded="true" aria-controls="index">Índice</button>
+        <button class="text-button" id="print">Imprimir / PDF</button>
+      </div>
+    </header>
+    <div class="workspace">
+      <aside id="index">
+        <label class="search-label" for="search">Encontrar um estado</label>
+        <input id="search" type="search" placeholder="Ex.: sem turma, erro, mês" autocomplete="off" />
+        <nav id="chapters" aria-label="Estados da página inicial"></nav>
+        <p id="no-results" hidden>Nenhum estado encontrado.</p>
+        <p class="index-note">Capturas da implementação.<br />Dados ilustrativos · desktop.<br />Versão de 23 out. 2026.</p>
+      </aside>
+      <main id="stage" tabindex="-1">
+        <div id="slides"></div>
+        <footer class="controls">
+          <span id="position" aria-live="polite"></span>
+          <span class="keyboard-hint">← → navegar <span>·</span> F ampliar</span>
+          <div><button id="previous" aria-label="Estado anterior">← Anterior</button><button id="next" class="primary">Próximo →</button></div>
+        </footer>
+      </main>
+    </div>
+    <dialog id="zoom" aria-labelledby="zoom-title">
+      <header><h2 id="zoom-title"></h2><div><button id="original" aria-pressed="false">Tamanho original</button><button id="close-zoom" aria-label="Fechar captura ampliada">Fechar ×</button></div></header>
+      <div class="zoom-body"><img id="zoom-image" src="screens/few_pending.webp" alt="Poucas pendências" /></div>
+    </dialog>
+    <noscript>Esta apresentação usa JavaScript local para navegar pelos estados. As capturas também estão disponíveis na pasta screens.</noscript>
+  </body>
+</html>
