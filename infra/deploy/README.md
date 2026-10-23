@@ -36,8 +36,8 @@ configuração criptografada. Não trazer código externo para uma branch intern
 O proprietário ativou “Advanced features” em 23/10/2026. A leitura de provedores
 OIDC passou, e a stack `automation` criou o provedor GitHub e as quatro roles.
 Os environments `infra-apply`, `app-staging` e `app-prod` foram configurados no GitHub
-com acesso restrito à branch `main`. Ainda é preciso validar as execuções dos
-workflows publicados. A [AWS descreve os efeitos da ativação](https://docs.aws.amazon.com/accounts/latest/reference/activate-advanced-features.html),
+com acesso restrito à branch `main`. Os previews do PR, o apply sem mudanças e o
+smoke em staging passaram no GitHub. A [AWS descreve os efeitos da ativação](https://docs.aws.amazon.com/accounts/latest/reference/activate-advanced-features.html),
 inclusive a remoção de spend limits; o budget de alertas continua ativo.
 
 Para retomar ou atualizar o bootstrap OIDC:
@@ -72,10 +72,12 @@ sem imprimir seus valores. Pode ser repetido quando os ambientes existentes mant
    Não lê segredos da aplicação, não migra o banco e não altera web/worker.
 5. Somente após esses checks, configurar runtime/domínio e executar **application**.
 
-O smoke pode ser executado com credenciais locais enquanto OIDC estiver bloqueado:
+O smoke também pode ser executado com credenciais locais:
 construir `Smoke.Dockerfile`, publicar em `lazuli/staging`, obter seu digest e executar
 `AWS_PROFILE=lazuli node infra/deploy/run.mjs smoke staging <imagem@sha256:...>`.
-Isso valida ECR, SSM, Docker e HTTP; não comprova a autenticação GitHub/OIDC.
+Essa execução local valida ECR, SSM, Docker e HTTP. O
+[smoke executado pelo GitHub](https://github.com/josiasrfreitas/lazuli/actions/runs/39997327526)
+também comprovou a autenticação OIDC.
 
 ## Deploy da aplicação
 
@@ -125,6 +127,6 @@ ocupam armazenamento; não há expiração automática que possa apagar uma imag
 
 ## Evidência desta implementação
 
-Ver `../HANDOFF.md` para resultados reais e bloqueios. Não considerar um arquivo de workflow
-como prova de execução: a validação GitHub exige publicar a alteração, liberar OIDC e executar
-os workflows. O deploy completo depende também de domínio, OAuth/decisão de autenticação e Resend.
+Ver `../HANDOFF.md` para resultados reais e pendências. O apply sem mudanças e o smoke
+em staging passaram no GitHub. O deploy completo ainda depende de domínio,
+OAuth/decisão de autenticação e Resend, além de validar migração e execução real de web/worker.
