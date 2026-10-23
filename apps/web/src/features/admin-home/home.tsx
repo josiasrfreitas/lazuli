@@ -49,7 +49,15 @@ function useAdminHome(month: string): AdminHomeState {
     void utils.dashboard.pending.invalidate();
   };
   const select = (group: HomeGroup | null): void => {
-    const update = (): void => { flushSync(() => setSelected(group)); };
+    const update = (): void => {
+      flushSync(() => setSelected(group));
+      // View-transition callbacks run asynchronously; focus the newly committed section.
+      requestAnimationFrame(() => {
+        const work = document.querySelector<HTMLElement>("#home-work");
+        work?.scrollIntoView({ block: "nearest" });
+        work?.focus({ preventScroll: true });
+      });
+    };
     if (document.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const transition = document.startViewTransition(update);
       // A second navigation may cancel the visual transition after the state has already changed.
@@ -57,11 +65,6 @@ function useAdminHome(month: string): AdminHomeState {
         if (!(error instanceof DOMException && error.name === "AbortError")) throw error;
       });
     } else update();
-    requestAnimationFrame(() => {
-      const work = document.querySelector<HTMLElement>("#home-work");
-      work?.scrollIntoView({ block: "nearest" });
-      work?.focus({ preventScroll: true });
-    });
   };
   return { query, selected, dialog, open, close, select };
 }
@@ -94,10 +97,9 @@ export function AdminHome({ name, finance }: { name: string; finance: boolean })
     </HomeWelcome>}
     {query.isError && <HomeError retry={() => void query.refetch()}>{query.data ? "Não foi possível atualizar a escola. A última visão carregada continua disponível." : "Não foi possível carregar os próximos passos e a agenda. Tente novamente."}</HomeError>}
     {selected && query.data ? <HomeQueue data={query.data} selected={selected} select={select} open={open} /> : starting ? <HomeStart /> : <>
-      <div className={styles.workGrid} data-agenda={agendaBesideWork}>
-        {query.isPending ? <HomeLoading /> : query.data && <HomeQueue data={query.data} selected={null} select={select} open={open} />}
-        {agendaBesideWork && <TodayAgenda data={query.data} loading={query.isPending} open={open} />}
-      </div>
+      {query.isPending
+        ? <HomeLoading agenda={<TodayAgenda data={undefined} loading open={open} />} />
+        : query.data && <HomeQueue data={query.data} selected={null} select={select} open={open} agenda={agendaBesideWork ? <TodayAgenda data={query.data} open={open} /> : undefined} />}
       <section className={styles.schoolOverview} aria-labelledby="home-overview-title">
         <div className={styles.overviewHeading}>
           <h2 id="home-overview-title">Movimento da escola</h2>

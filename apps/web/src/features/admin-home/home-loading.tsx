@@ -27,14 +27,18 @@ export function ChartLoading(): ReactElement {
     <div className={styles.chartFooter} aria-hidden="true"><LoadingLine /></div>
   </section>;
 }
-export function HomeLoading(): ReactElement {
+export function HomeLoading({ agenda }: { agenda?: ReactElement }): ReactElement {
   return <section className={styles.pedagogicalWork} role="status" aria-label="Carregando prioridades pedagógicas">
-    <div className={styles.sectionHeading}><h2>Prioridades pedagógicas</h2><span className={styles.workScope}>Situação atual da escola</span></div>
+    <div className={styles.workGrid} data-agenda={Boolean(agenda)}><div className={styles.priorityColumn}>
+    <div className={styles.sectionHeading}><h2>Prioridades pedagógicas</h2><span className={styles.workScope}>Situação atual · por proximidade e acompanhamento</span></div>
     <div className={styles.priorityTask} aria-hidden="true">
-      <div className={styles.priorityCount}><LoadingLine size="number" /></div>
-      <div className={styles.priorityBody}><LoadingLine size="title" /><LoadingLine /><LoadingLine size="short" /></div>
-      <LoadingLine size="short" />
+      <div className={styles.priorityMain}>
+        <div className={styles.priorityFigure}><LoadingLine size="number" /><LoadingLine size="short" /></div>
+        <div className={styles.priorityBody}><LoadingLine size="title" /><LoadingLine size="short" /><LoadingLine /><LoadingLine /><div className={styles.priorityActions}><LoadingLine size="short" /></div></div>
+      </div>
+      <div className={styles.priorityCases}><LoadingLine /><div className={styles.caseGrid}>{[0,1,2].map(index => <div className={styles.priorityCase} key={index}><LoadingLine size="title" /><LoadingLine /><LoadingLine size="short" /></div>)}</div><LoadingLine size="short" /></div>
     </div>
-    <div className={styles.workSkeleton} aria-hidden="true"><LoadingLine /><LoadingLine /></div>
+    </div>{agenda}</div>
+    <div className={styles.workSkeleton} aria-hidden="true">{[0,1].map(index => <div key={index}><LoadingLine size="title" /><LoadingLine /><LoadingLine size="short" /></div>)}</div>
   </section>;
 }

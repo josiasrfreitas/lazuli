@@ -77,11 +77,12 @@ function tableState(query: PendingQuery): DataTableState<HomeItem> {
   return rows.length > 0 ? { kind: "data", rows } : { kind: "empty" };
 }
 function groupColumns(group: HomeGroup, open: OpenAction): DataTableColumn<HomeItem>[] {
-  const dates: DataTableColumn<HomeItem>[] = ["students", "contracts", "allocation"].includes(
+  const dateLabel = group.kind === "allocation" ? "Em espera desde" : group.kind === "placement" ? "Prova recebida" : group.kind === "semester" ? "Entrada prevista" : "Data";
+  const dates: DataTableColumn<HomeItem>[] = ["students", "contracts"].includes(
     group.kind,
   )
     ? []
-    : [{ id: "date", header: "Data", width: "narrow", cell: (item) => <ItemDate item={item} /> }];
+    : [{ id: "date", header: dateLabel, width: "narrow", cell: (item) => <ItemDate item={item} /> }];
   return [
     {
       id: "subject",
