@@ -1,7 +1,7 @@
 # The same immutable image runs web, worker and migrations.
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git openssl \
     && rm -rf /var/lib/apt/lists/* \
     && npm install --global pnpm@11.6.0
 COPY . .
