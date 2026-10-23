@@ -23,7 +23,6 @@
 **/.next
 **/.turbo
 **/coverage
-**/reports
 **/src/generated
 **/*.pem
 **/*.key
