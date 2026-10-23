@@ -7,10 +7,11 @@ import { trpc, type QueryResult } from "~/lib/trpc";
 import { ClassRecordDialog } from "~/features/class-records/class-record-dialog";
 import { StudentAppointmentDialog } from "~/features/appointments/student-appointment-dialog";
 import { HomeBusiness } from "./home-business";
+import { HomeLoading } from "./home-loading";
+import { flushSync } from "react-dom";
 import { HomeQueue } from "./home-queue";
 import {
   HomeError,
-  HomeLoading,
   HomeWelcome,
   TodayAgenda,
   type HomeData,
@@ -43,7 +44,10 @@ function useAdminHome(): AdminHomeState {
     void utils.dashboard.pending.invalidate();
   };
   const select = (group: HomeGroup | null): void => {
-    setSelected(group);
+    const update = (): void => { flushSync(() => setSelected(group)); };
+    if (document.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.startViewTransition(update);
+    } else update();
     requestAnimationFrame(() => {
       const work = document.querySelector<HTMLElement>("#home-work");
       work?.scrollIntoView({ block: "nearest" });
@@ -52,11 +56,12 @@ function useAdminHome(): AdminHomeState {
   };
   return { query, selected, dialog, open, close, select };
 }
-export function AdminHome(): ReactElement {
+export function AdminHome({ name, finance }: { name: string; finance: boolean }): ReactElement {
   const { query, selected, dialog, open, close, select } = useAdminHome();
   return (
     <div className={styles.page}>
-      {query.isPending && <HomeLoading />}
+      <HomeWelcome name={name} data={query.data} />
+      {query.isPending && <HomeLoading finance={finance} />}
       {query.isError && (
         <HomeError retry={() => void query.refetch()}>
           Não foi possível atualizar seu início. Os dados anteriores, quando disponíveis, continuam
@@ -65,12 +70,15 @@ export function AdminHome(): ReactElement {
       )}
       {query.data && (
         <>
-          <HomeWelcome data={query.data} openGroup={select} />
           <div className={styles.columns}>
             <HomeQueue data={query.data} selected={selected} select={select} open={open} />
             <TodayAgenda data={query.data} open={open} />
           </div>
-          {query.data.canViewFinance && <HomeBusiness />}
+        </>
+      )}
+      {finance && <HomeBusiness />}
+      {query.data && (
+        <>
           <footer className={styles.footer}>
             <span>Lazuli · Um passo de cada vez, a escola segue em frente.</span>
             <nav aria-label="Explorar a escola">

@@ -2,15 +2,13 @@ import type { ReactElement } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
-  BookOpenCheck,
   CalendarDays,
-  CheckCheck,
-  ChevronRight,
   RefreshCw,
 } from "lucide-react";
-import { Button, InlineSkeleton } from "@lazuli/ui";
+import { Button } from "@lazuli/ui";
 import type { RouterOutputs } from "@lazuli/api";
 import { formatDateOnlyBR } from "~/lib/format";
+import { LoadingLine } from "./home-loading";
 import styles from "./home.module.css";
 
 export type HomeData = RouterOutputs["dashboard"]["home"];
@@ -35,65 +33,17 @@ export function HomeError({
     </div>
   );
 }
-const LOADING_ROWS = ["first", "second", "third", "fourth"];
-export function HomeLoading(): ReactElement {
-  return (
-    <div role="status" aria-label="Carregando o início" className={styles.loading}>
-      <InlineSkeleton className="h-10 w-64" />
-      <InlineSkeleton className="h-5 w-80" />
-      <div className={styles.loadingRows}>
-        {LOADING_ROWS.map((key) => (
-          <InlineSkeleton key={key} className="h-20 w-full" />
-        ))}
-      </div>
-    </div>
-  );
-}
-export function HomeWelcome({
-  data,
-  openGroup,
-}: {
-  data: HomeData;
-  openGroup: (group: HomeGroup) => void;
-}): ReactElement {
-  const firstName = data.name.trim().split(/\s+/u)[0];
-  const attention = data.groups.filter((group) => group.attention && group.total > 0);
-  const count = attention.reduce((sum, group) => sum + group.total, 0);
-  const first = attention[0] ?? data.groups.find((group) => group.total > 0);
+export function HomeWelcome({ name, data }: { name: string; data: HomeData | undefined }): ReactElement {
+  const firstName = name.trim().split(/\s+/u)[0];
   return (
     <header className={styles.welcome}>
       <div className={styles.welcomeCopy}>
         <h1>Olá, {firstName}.</h1>
-        <p>Bom ter você por aqui. Vamos cuidar dos próximos passos?</p>
-        <div className={styles.daySummary}>
-          <span>
-            <strong>{data.activeStudents.toLocaleString("pt-BR")}</strong> alunos ativos
-          </span>
-          <span>
-            <strong>{data.agenda.total}</strong> compromissos ainda hoje
-          </span>
-        </div>
+        <p>O essencial para acompanhar a escola hoje.</p>
       </div>
-      <div className={styles.focus}>
-        {count > 0 ? <BookOpenCheck aria-hidden="true" /> : <CheckCheck aria-hidden="true" />}
-        <div>
-          <h2>
-            {count > 0
-              ? `${count} ${count === 1 ? "ação pede" : "ações pedem"} atenção`
-              : "Espaço para o próximo passo"}
-          </h2>
-          <p>
-            {count > 0
-              ? "Cobertura de aulas e registros que precisam de cuidado."
-              : "Nenhum alerta de cobertura ou registro neste momento."}
-          </p>
-          {first && (
-            <Button size="sm" onClick={() => openGroup(first)}>
-              {count > 0 ? "Revisar prioridades" : "Ver próximos passos"}
-              <ChevronRight aria-hidden="true" />
-            </Button>
-          )}
-        </div>
+      <div className={styles.daySummary}>
+        <div><strong>{data ? data.activeStudents.toLocaleString("pt-BR") : <LoadingLine size="number" />}</strong><span>alunos ativos</span></div>
+        <div><strong>{data ? data.agenda.total : <LoadingLine size="number" />}</strong><span>compromissos ainda hoje</span></div>
       </div>
     </header>
   );
@@ -108,9 +58,8 @@ export function TodayAgenda({ data, open }: { data: HomeData; open: OpenAction }
       <p className={styles.description}>Aulas, experimentais e atendimentos.</p>
       {data.agenda.items.length === 0 ? (
         <div className={styles.quiet}>
-          <CalendarDays aria-hidden="true" />
-          <p>Sem novos compromissos hoje.</p>
-          <span>A agenda completa continua à mão para preparar os próximos dias.</span>
+          <p>Sem compromissos restantes hoje.</p>
+          <span>Consulte a agenda para os próximos dias.</span>
         </div>
       ) : (
         <ol className={styles.agendaList}>

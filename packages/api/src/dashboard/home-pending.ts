@@ -16,14 +16,21 @@ import {
 } from "./home-model.js";
 
 type Database = Prisma.TransactionClient;
-type Scope = { kind: HomeGroupKind; now: Date; page: number; pageSize?: number };
+type Scope = { kind: HomeGroupKind; now: Date; page: number; pageSize?: number; period?: "all" | "recent" | "history" };
 type Page = { skip: number; take: number };
 type Result = { total: number; items: HomeItem[] };
 export async function readHomePending(database: Database, input: Scope): Promise<HomeGroup> {
   const take = input.pageSize ?? HOME_PAGE_SIZE;
   const page = { skip: (input.page - 1) * take, take };
   const result = await readGroup(database, { ...input, pagination: page });
-  return { kind: input.kind, ...HOME_GROUP_INFO[input.kind], ...result };
+  return { kind: input.kind, period: input.period ?? "all", ...HOME_GROUP_INFO[input.kind], ...result };
+}
+/** Recent records cover today and the preceding six school dates. */
+function recordPeriod(now: Date, period: Scope["period"]): { date?: { gte: Date } | { lt: Date } } {
+  const start = new Date(plusDays(saoPauloDateOnly(now), -6));
+  if (period === "recent") return { date: { gte: start } };
+  if (period === "history") return { date: { lt: start } };
+  return {};
 }
 function readGroup(database: Database, input: Scope & { pagination: Page }): Promise<Result> {
   const page = input.pagination;
@@ -42,10 +49,10 @@ function readGroup(database: Database, input: Scope & { pagination: Page }): Pro
       return placementPage(database, page);
     }
     case "lessons": {
-      return lessonPage(database, { now: input.now, page });
+      return lessonPage(database, { now: input.now, page, period: input.period });
     }
     case "appointments": {
-      return appointmentPage(database, { now: input.now, page });
+      return appointmentPage(database, { now: input.now, page, period: input.period });
     }
     case "renewals": {
       return renewalPage(database, { now: input.now, page });
@@ -162,7 +169,7 @@ async function placementPage(database: Database, page: Page): Promise<Result> {
 }
 async function lessonPage(
   database: Database,
-  { now, page }: { now: Date; page: Page },
+  { now, page, period }: { now: Date; page: Page; period: Scope["period"] },
 ): Promise<Result> {
   const where: Prisma.ClassSessionWhereInput = {
     deletedAt: null,
@@ -170,6 +177,7 @@ async function lessonPage(
     classRecord: null,
     class: { deletedAt: null },
     ...endedWhere(now),
+    ...recordPeriod(now, period),
   };
   const [total, rows] = await Promise.all([
     database.classSession.count({ where }),
@@ -193,13 +201,14 @@ async function lessonPage(
 }
 async function appointmentPage(
   database: Database,
-  { now, page }: { now: Date; page: Page },
+  { now, page, period }: { now: Date; page: Page; period: Scope["period"] },
 ): Promise<Result> {
   const where: Prisma.PedagogicalAppointmentWhereInput = {
     deletedAt: null,
     status: "SCHEDULED",
     student: { deletedAt: null },
     ...endedWhere(now),
+    ...recordPeriod(now, period),
   };
   const [total, rows] = await Promise.all([
     database.pedagogicalAppointment.count({ where }),

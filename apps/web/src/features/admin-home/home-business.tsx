@@ -3,10 +3,11 @@ import type { RouterOutputs } from "@lazuli/api";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Button, InlineSkeleton } from "@lazuli/ui";
+import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents } from "~/lib/format";
 import { compactMoney, monthLabel } from "~/features/finance-analytics/contract-closings-model";
+import { BusinessLoading } from "./home-loading";
 import { HomeError } from "./home-parts";
 import styles from "./home.module.css";
 
@@ -29,7 +30,7 @@ export function HomeBusiness(): ReactElement {
       </div>
       {query.isPending && (
         <div role="status" aria-label="Carregando indicadores financeiros">
-          <InlineSkeleton className="h-40 w-full" />
+          <BusinessLoading />
         </div>
       )}
       {query.isError && (

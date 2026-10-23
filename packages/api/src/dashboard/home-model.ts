@@ -30,6 +30,8 @@ export type HomeGroup = {
   attention: boolean;
   total: number;
   items: HomeItem[];
+  period?: "all" | "recent" | "history";
+  historyTotal?: number;
 };
 export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "total" | "items">> = {
   coverage: {

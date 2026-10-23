@@ -18,6 +18,7 @@ export const dashboardRouter = router({
       z.object({
         kind: z.enum(HOME_GROUPS),
         page: z.number().int().min(1).max(MAX_HOME_PAGE).default(1),
+        period: z.enum(["all", "recent", "history"]).default("all"),
       }),
     )
     .query(({ ctx, input }) => {

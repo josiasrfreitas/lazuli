@@ -40,9 +40,17 @@ export async function readAdminHome({
     : HOME_GROUPS.filter((kind) => kind !== "contracts" && kind !== "renewals");
   const [groups, agenda, activeStudents] = await Promise.all([
     Promise.all(
-      kinds.map((kind) =>
-        readHomePending(database, { kind, now, page: 1, pageSize: HOME_PREVIEW_SIZE }),
-      ),
+      kinds.map(async (kind) => {
+        const records = kind === "lessons" || kind === "appointments";
+        const group = await readHomePending(database, {
+          kind, now, page: 1, pageSize: HOME_PREVIEW_SIZE, period: records ? "recent" : "all",
+        });
+        if (!records) return group;
+        const history = await readHomePending(database, {
+          kind, now, page: 1, pageSize: 0, period: "history",
+        });
+        return { ...group, historyTotal: history.total };
+      }),
     ),
     readHomeAgenda(database, now),
     database.student.count({ where: { deletedAt: null, status: "ACTIVE" } }),

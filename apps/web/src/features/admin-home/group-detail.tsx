@@ -16,50 +16,75 @@ export function GroupDetail({
   open: OpenAction;
 }): ReactElement {
   const [page, setPage] = useState(1);
+  const [period, setPeriod] = useState(group.period ?? "all");
   const query = trpc.dashboard.pending.useQuery(
-    { kind: group.kind, page },
+    { kind: group.kind, page, period },
     { refetchInterval: 60_000 },
   );
   return (
     <>
       <Button variant="ghost" size="sm" onClick={close}>
         <ArrowLeft aria-hidden="true" />
-        Todas as pendências
+        Voltar à visão da escola
       </Button>
       <div className={styles.detailHeading}>
         <h2 id="home-work-title">{group.title}</h2>
         <p>{group.description}</p>
       </div>
+      {(group.kind === "lessons" || group.kind === "appointments") && (
+        <div className={styles.periodSwitch} role="group" aria-label="Período dos registros">
+          <Button variant={period === "recent" ? "secondary" : "ghost"} size="sm" aria-pressed={period === "recent"} onClick={() => { setPeriod("recent"); setPage(1); }}>Últimos 7 dias</Button>
+          <Button variant={period === "history" ? "secondary" : "ghost"} size="sm" aria-pressed={period === "history"} onClick={() => { setPeriod("history"); setPage(1); }}>Histórico anterior</Button>
+        </div>
+      )}
       <div className={styles.table}>
         <DataTable
           label={group.title}
-          columns={groupColumns(open)}
+          columns={groupColumns(group, open)}
           state={tableState(query)}
+          pagination={{
+            page,
+            pageSize: PAGE_SIZE,
+            onPageChange: setPage,
+            itemLabel: { singular: "ação", plural: "ações" },
+            ...(query.isPending
+              ? { loading: true }
+              : {
+                  pageCount: Math.max(1, Math.ceil((query.data?.total ?? 0) / PAGE_SIZE)),
+                  totalItems: query.data?.total ?? 0,
+                }),
+          }}
           onRetry={() => void query.refetch()}
           errorTitle="Não foi possível carregar as pendências"
           empty={{
             title: "Nenhuma pendência nesta página",
             description:
               page > 1
-                ? "Os registros mudaram. Volte à primeira página para conferir."
+                ? "Os registros mudaram. Volte uma página para conferir."
                 : "Este grupo está em dia. Continue pelos próximos passos.",
           }}
         />
       </div>
-      <GroupPagination query={query} page={page} setPage={setPage} />
     </>
   );
 }
 function tableState(query: PendingQuery): DataTableState<HomeItem> {
   if (query.isPending) return { kind: "loading" };
   if (query.isError) return { kind: "error" };
-  return { kind: "data", rows: query.data?.items ?? [] };
+  const rows = query.data?.items ?? [];
+  return rows.length > 0 ? { kind: "data", rows } : { kind: "empty" };
 }
-function groupColumns(open: OpenAction): DataTableColumn<HomeItem>[] {
+function groupColumns(group: HomeGroup, open: OpenAction): DataTableColumn<HomeItem>[] {
+  const dates: DataTableColumn<HomeItem>[] = ["students", "contracts", "allocation"].includes(
+    group.kind,
+  )
+    ? []
+    : [{ id: "date", header: "Data", width: "narrow", cell: (item) => <ItemDate item={item} /> }];
   return [
     {
       id: "subject",
       header: "Acompanhar",
+      width: "wide",
       cell: (item) => (
         <div className={styles.itemText}>
           <strong>{item.title}</strong>
@@ -67,10 +92,11 @@ function groupColumns(open: OpenAction): DataTableColumn<HomeItem>[] {
         </div>
       ),
     },
-    { id: "date", header: "Data", cell: (item) => <ItemDate item={item} /> },
+    ...dates,
     {
       id: "action",
       header: "",
+      width: "selection",
       cell: (item) => (
         <Button
           variant="ghost"
@@ -83,45 +109,4 @@ function groupColumns(open: OpenAction): DataTableColumn<HomeItem>[] {
       ),
     },
   ];
-}
-function GroupPagination({
-  query,
-  page,
-  setPage,
-}: {
-  query: PendingQuery;
-  page: number;
-  setPage: (page: number) => void;
-}): ReactElement {
-  const pages = Math.max(1, Math.ceil((query.data?.total ?? 0) / PAGE_SIZE));
-  return (
-    <div className={styles.pagination}>
-      <span>
-        {query.data
-          ? `${query.data.total} ações · página ${page} de ${pages}`
-          : "Carregando ações…"}
-      </span>
-      <div>
-        <Button size="sm" variant="ghost" disabled={page === 1} onClick={() => setPage(1)}>
-          Primeira
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={page === 1}
-          onClick={() => setPage(page - 1)}
-        >
-          Anterior
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={query.isPending || page >= pages}
-          onClick={() => setPage(page + 1)}
-        >
-          Próxima
-        </Button>
-      </div>
-    </div>
-  );
 }

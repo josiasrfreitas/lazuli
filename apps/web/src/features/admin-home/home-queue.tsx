@@ -1,129 +1,109 @@
-import { useState, type ReactElement } from "react";
-import { CheckCheck, ChevronRight } from "lucide-react";
+import type { ReactElement } from "react";
+import { ArrowRight, ArrowUpRight, Check, History, CalendarCheck2 } from "lucide-react";
 import { Button } from "@lazuli/ui";
+import { JOURNEY } from "./home-model";
 import { GroupDetail } from "./group-detail";
 import type { HomeData, HomeGroup, OpenAction } from "./home-parts";
 import styles from "./home.module.css";
 
-type Area = "all" | HomeGroup["area"];
-const AREA_LABELS = {
-  all: "Tudo",
-  school: "Escola",
-  admissions: "Comercial",
-  finance: "Contratos",
-};
-export function HomeQueue({
-  data,
-  selected,
-  select,
-  open,
-}: {
-  data: HomeData;
-  selected: HomeGroup | null;
-  select: (group: HomeGroup | null) => void;
-  open: OpenAction;
+type SelectGroup = (group: HomeGroup | null) => void;
+export function HomeQueue({ data, selected, select, open }: {
+  data: HomeData; selected: HomeGroup | null; select: SelectGroup; open: OpenAction;
 }): ReactElement {
-  const [area, setArea] = useState<Area>("all");
-  const groups = data.groups.filter((group) => area === "all" || group.area === area);
   return (
-    <section id="home-work" tabIndex={-1} className={styles.work} aria-labelledby="home-work-title">
+    <section id="home-work" tabIndex={-1} className={styles.work} aria-label="Frentes de trabalho">
       {selected ? (
-        <GroupDetail key={selected.kind} group={selected} close={() => select(null)} open={open} />
+        <div className={styles.detailSurface} key={`${selected.kind}-${selected.period}`}>
+          <GroupDetail group={selected} close={() => select(null)} open={open} />
+        </div>
       ) : (
-        <>
-          <div className={styles.sectionHeading}>
-            <h2 id="home-work-title">O que vamos cuidar?</h2>
-            <span>{data.groups.reduce((sum, group) => sum + group.total, 0)} ações</span>
-          </div>
-          <p className={styles.description}>
-            Cada passo no seu lugar. Uma pessoa pode ter mais de uma ação.
-          </p>
-          <AreaFilters area={area} setArea={setArea} finance={data.canViewFinance} />
-          <QueueSection
-            title="Precisa de atenção"
-            groups={groups.filter((group) => group.attention)}
-            select={select}
-            attention
-          />
-          <QueueSection
-            title="Próximos passos"
-            groups={groups.filter((group) => !group.attention)}
-            select={select}
-          />
-        </>
+        <div className={styles.workOverview}>
+          <SchoolJourney groups={data.groups} select={select} />
+          <TeachingBoard groups={data.groups} select={select} />
+        </div>
       )}
     </section>
   );
 }
-function QueueSection({
-  title,
-  groups,
-  select,
-  attention = false,
-}: {
-  title: string;
-  groups: HomeGroup[];
-  select: (group: HomeGroup) => void;
-  attention?: boolean;
-}): ReactElement | null {
-  if (groups.length === 0) return null;
-  const pending = groups.filter((group) => group.total > 0);
+function TeachingBoard({ groups, select }: { groups: HomeGroup[]; select: SelectGroup }): ReactElement {
+  const coverage = groups.find(group => group.kind === "coverage");
+  const records = groups.filter(group => group.kind === "lessons" || group.kind === "appointments");
+  const pending = records.filter(group => group.total > 0);
+  const needsCoverage = Boolean(coverage?.total);
   return (
-    <div className={styles.queueSection}>
-      <h3 data-attention={attention || undefined}>{title}</h3>
-      {pending.length > 0 ? (
-        <ul className={styles.groupList}>
-          {pending.map((group) => (
-            <li key={group.kind}>
-              <button type="button" className={styles.group} onClick={() => select(group)}>
-                <span className={styles.groupCount}>{group.total.toLocaleString("pt-BR")}</span>
-                <span className={styles.groupCopy}>
-                  <strong>{group.title}</strong>
-                  <span>{group.description}</span>
-                </span>
-                <ChevronRight aria-hidden="true" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className={styles.clear}>
-          <CheckCheck aria-hidden="true" />
-          <p>
-            {attention
-              ? "Tudo certo por aqui. Nenhuma ação deste grupo precisa de atenção."
-              : "Nenhum próximo passo pendente nesta área."}
-          </p>
+    <section className={styles.teaching} aria-labelledby="teaching-title">
+      <div className={styles.sectionHeading}>
+        <h2 id="teaching-title">Acompanhamento das aulas</h2>
+        {!needsCoverage && <span>Professores definidos · próximos 7 dias</span>}
+      </div>
+      {needsCoverage && coverage && (
+        <div className={styles.coverageAlert}>
+          <CalendarCheck2 aria-hidden="true" />
+          <div><h3>{coverage.total} {coverage.total === 1 ? "aula precisa" : "aulas precisam"} de professor</h3><p>Organizar a cobertura dos próximos 7 dias.</p></div>
+          <Button size="sm" onClick={() => select(coverage)}>Definir cobertura <ArrowRight aria-hidden="true" /></Button>
         </div>
       )}
-    </div>
+      {pending.length > 0 ? (
+        <div className={styles.recentRecords}>
+          <div><h3>Registros para concluir</h3><p>Encontros encerrados nos últimos 7 dias.</p></div>
+          <div className={styles.recordCounters}>
+            {pending.map(group => (
+              <button type="button" key={group.kind} onClick={() => select(group)} className={styles.recordCounter}>
+                <strong>{group.total.toLocaleString("pt-BR")}</strong>
+                <span>{group.kind === "lessons" ? "aulas por registrar" : "atendimentos por registrar"}</span>
+                <ArrowUpRight aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : <p className={styles.recordQuiet}>Sem registros pendentes nos últimos 7 dias.</p>}
+      <div className={styles.historyLinks}>
+        <History aria-hidden="true" />
+        <span>Histórico anterior</span>
+        {records.filter(group => (group.historyTotal ?? 0) > 0).map(group => (
+          <button type="button" key={group.kind} onClick={() => select({ ...group, period: "history" })}>
+            {group.historyTotal?.toLocaleString("pt-BR")} {group.kind === "lessons" ? "aulas" : "atendimentos"} por registrar <ArrowUpRight aria-hidden="true" />
+          </button>
+        ))}
+        {records.every(group => !group.historyTotal) && <span>nenhum registro pendente</span>}
+      </div>
+    </section>
   );
 }
-
-function AreaFilters({
-  area,
-  setArea,
-  finance,
-}: {
-  area: Area;
-  setArea: (area: Area) => void;
-  finance: boolean;
-}): ReactElement {
+function SchoolJourney({ groups, select }: { groups: HomeGroup[]; select: SelectGroup }): ReactElement {
+  const stages = JOURNEY.filter(stage => groups.some(group => stage.groups.includes(group.kind)));
+  const hasAttention = groups.some(group => group.attention && group.total > 0);
+  const next = hasAttention ? undefined : groups.find(group => !group.attention && group.total > 0);
+  const actionLabels: Record<string, string> = { placement: "Corrigir nivelamentos", allocation: "Encontrar uma turma", students: "Definir turmas", semester: "Revisar alocações", contracts: "Preparar contratos", renewals: "Conversar sobre renovação" };
   return (
-    <div className={styles.filters} role="group" aria-label="Filtrar pendências por área">
-      {(Object.entries(AREA_LABELS) as [Area, string][])
-        .filter(([key]) => key !== "finance" || finance)
-        .map(([key, label]) => (
-          <Button
-            key={key}
-            size="sm"
-            variant={area === key ? "secondary" : "ghost"}
-            aria-pressed={area === key}
-            onClick={() => setArea(key)}
-          >
-            {label}
-          </Button>
+    <section className={styles.journey} aria-labelledby="journey-title">
+      <div className={styles.sectionHeading}>
+        <h2 id="journey-title">A jornada dos alunos</h2>
+      </div>
+      <p className={styles.description}>Acompanhe os próximos passos em cada etapa.</p>
+      <div className={styles.journeyTrack}>
+        {stages.map(stage => (
+          <section className={styles.journeyStage} key={stage.key}>
+            <div className={styles.journeyNode} aria-hidden="true"><span /></div>
+            <h3>{stage.title}</h3>
+            <p>{stage.description}</p>
+            <div className={styles.journeyActions}>
+              {stage.groups.map((kind, index) => {
+                const group = groups.find(item => item.kind === kind);
+                if (!group) return null;
+                return (
+                  <button type="button" key={kind} onClick={() => select(group)} className={styles.journeyAction} data-pending={group.total > 0}>
+                    <strong>{group.total === 0 ? <Check aria-label="Em dia" /> : group.total.toLocaleString("pt-BR")}</strong>
+                    <span>{stage.labels[index]}</span>
+                    <ArrowUpRight aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </div>
+            {next && stage.groups.includes(next.kind) && <div className={styles.journeyNext}><Button size="sm" onClick={() => select(next)}>{actionLabels[next.kind]}<ArrowRight aria-hidden="true" /></Button></div>}
+          </section>
         ))}
-    </div>
+      </div>
+    </section>
   );
 }
