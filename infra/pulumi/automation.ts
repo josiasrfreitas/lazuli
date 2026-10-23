@@ -203,7 +203,10 @@ export function createAutomation() {
           ["ssm:StartSession"],
           `arn:aws:ssm:${region}::document/AWS-StartPortForwardingSessionToRemoteHost`,
         ),
-        allow(["ssm:TerminateSession"], `arn:aws:ssm:${region}:${account}:session/*`),
+        allow(
+          ["ssmmessages:OpenDataChannel", "ssm:TerminateSession"],
+          `arn:aws:ssm:${region}:${account}:session/\${aws:userid}-*`,
+        ),
         allow(
           ["ssm:GetParameter"],
           `arn:aws:ssm:${region}:${account}:parameter/lazuli/${environment}/migration/DATABASE_URL`,
