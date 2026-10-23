@@ -80,7 +80,7 @@ export function LoginCard({ initialError }: { initialError: LoginInitialError | 
         <h2 className={styles.accessTitle} id="login-title">
           Boas-vindas <span>de volta.</span>
         </h2>
-        <p className={styles.accessDescription}>Entre com o email da escola.</p>
+        <p className={styles.accessDescription}>Receba seu link de acesso por email.</p>
       </div>
       <div className={styles.methods}>
         <LoginMethods {...{ email, error, handleMagicLink, pending, setEmail }} />
