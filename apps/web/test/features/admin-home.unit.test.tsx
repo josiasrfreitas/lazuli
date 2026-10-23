@@ -66,7 +66,7 @@ void it("treats a past entry date as a publication issue, without alarming futur
   const passed = workPriority(queue("semester", { kind: "entry", date: "2026-10-22" }), data);
   assert.equal(passed.state, "date-passed");
   assert.equal(passed.tone, "destructive");
-  assert.equal(passed.action, "Revisar datas e alocações");
+  assert.equal(passed.action, "Revisar datas de entrada");
   const planned = workPriority(queue("semester", { kind: "entry", date: "2027-02-01" }), data);
   assert.equal(planned.state, "plan");
   assert.equal(planned.tone, "neutral");

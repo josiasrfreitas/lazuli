@@ -19,7 +19,7 @@ export function HomeStart(): ReactElement {
     <div className={styles.startPaths}>
       <Link href="/alunos"><Users aria-hidden="true" /><div><h3>Alunos</h3><p>Cadastros, matrículas e acompanhamento dos estudos.</p></div><ArrowRight aria-hidden="true" /></Link>
       <Link href="/interessados"><UserRoundPlus aria-hidden="true" /><div><h3>Quem quer estudar aqui</h3><p>Leads, nivelamentos e aulas experimentais.</p></div><ArrowRight aria-hidden="true" /></Link>
-      <Link href="/organizacao"><GraduationCap aria-hidden="true" /><div><h3>Organização das turmas</h3><p>Prepare os horários e as alocações do semestre.</p></div><ArrowRight aria-hidden="true" /></Link>
+      <Link href="/organizacao"><GraduationCap aria-hidden="true" /><div><h3>Organização das turmas</h3><p>Prepare os horários e a entrada dos alunos nas turmas.</p></div><ArrowRight aria-hidden="true" /></Link>
     </div>
   </section>;
 }

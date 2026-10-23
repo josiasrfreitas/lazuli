@@ -66,13 +66,13 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
     attention: false,
   },
   allocation: {
-    title: "Leads aguardando turma",
-    description: "Pedidos de alocação marcados como pendentes.",
+    title: "Interessados aguardando turma",
+    description: "Pessoas que pediram uma turma e ainda aguardam uma opção compatível.",
     area: "admissions",
     attention: false,
   },
   students: {
-    title: "Alunos sem turma",
+    title: "Alunos aguardando turma",
     description: "Alunos ativos sem matrícula atual ou futura.",
     area: "school",
     attention: false,
@@ -90,8 +90,8 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
     attention: false,
   },
   semester: {
-    title: "Alocações a publicar",
-    description: "Propostas do semestre atual ou futuro ainda em preparação.",
+    title: "Entradas em turma por confirmar",
+    description: "Alunos com turma proposta para o semestre, mas cuja entrada ainda não foi confirmada.",
     area: "school",
     attention: false,
   },

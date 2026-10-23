@@ -15,8 +15,8 @@ export const WORK_COPY: Record<HomeGroup["kind"], { action: string; outcome: str
   appointments: { action: "Registrar atendimentos", outcome: "Registre o resultado dos encontros para atualizar o acompanhamento individual.", scope: "Atendimentos encerrados nos últimos 7 dias" },
   placement: { action: "Corrigir nivelamentos", outcome: "A correção define o estágio para encontrar uma turma compatível.", scope: "Provas recebidas sem estágio definido" },
   students: { action: "Definir turmas", outcome: "Confira o estágio e a disponibilidade para cada aluno seguir os estudos.", scope: "Alunos ativos sem matrícula atual ou futura" },
-  allocation: { action: "Encontrar uma turma", outcome: "Cruze estágio e disponibilidade para avançar nos pedidos de alocação.", scope: "Leads com pedido de alocação pendente" },
-  semester: { action: "Revisar alocações", outcome: "Confira as propostas e publique a entrada dos alunos nas turmas.", scope: "Propostas ainda não publicadas" },
+  allocation: { action: "Encontrar uma turma", outcome: "Confira o estágio e a disponibilidade de quem aguarda uma turma.", scope: "Interessados com pedido de turma pendente" },
+  semester: { action: "Confirmar entradas em turma", outcome: "Confira as turmas propostas e confirme a entrada dos alunos.", scope: "Entradas em turma ainda não confirmadas" },
   contracts: { action: "Preparar contratos", outcome: "Alunos sem primeiro contrato.", scope: "Primeiros contratos" },
   renewals: { action: "Revisar renovações", outcome: "Conversar sobre a continuidade do contrato.", scope: "Terminam nos próximos 30 dias" },
 };
@@ -83,8 +83,8 @@ export function workPriority(group: HomeGroup, snapshot: Snapshot): WorkPriority
       tone: days < 0 ? "destructive" : days <= 2 ? "warning" : "neutral",
       label: days < 0 ? "Data de entrada passou" : days === 0 ? "Entrada prevista hoje" : days === 1 ? "Entrada prevista amanhã" : "Preparar continuidade",
       evidence: `Primeira entrada prevista ${days < 0 ? `para ${formatWorkDate(timing.date)}` : relativeDay(days, timing.date)}`,
-      headline: days < 0 ? "Revise as datas antes de publicar" : base.headline,
-      action: days < 0 ? "Revisar datas e alocações" : base.action,
+      headline: days < 0 ? "Revise as datas de entrada" : base.headline,
+      action: days < 0 ? "Revisar datas de entrada" : base.action,
     };
   }
   if ((group.kind === "placement" || group.kind === "allocation") && timing?.kind === "waiting") {

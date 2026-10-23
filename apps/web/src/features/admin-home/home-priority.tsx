@@ -19,9 +19,9 @@ export function PriorityWork({ work, today, select, open }: {
   const figureLabel = isMeeting ? `Aula de ${formatWorkDate(timing.date)}` : isEntry ? "Primeira entrada prevista" : group.title;
   const countLabel = isMeeting
     ? group.total === 1 ? "aula sem professor" : "aulas sem professor"
-    : group.total === 1 ? "alocação a publicar" : "alocações a publicar";
+    : group.total === 1 ? "entrada em turma por confirmar" : "entradas em turma por confirmar";
   const outcome = work.state === "date-passed"
-    ? "A publicação exige uma data de entrada atual ou futura. Revise as datas e os destinos propostos."
+    ? "A entrada precisa de uma data atual ou futura. Confira as datas e as turmas propostas."
     : WORK_COPY[group.kind].outcome;
   return <article className={styles.priorityTask} data-tone={work.tone} data-state={work.state} data-cases={group.items.length > 0} aria-labelledby="home-priority-title">
     <div className={styles.priorityMain}>
