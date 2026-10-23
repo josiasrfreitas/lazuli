@@ -1,6 +1,6 @@
 # Handoff — infraestrutura Lazuli
 
-Estado em 23/10/2026. Alterações **sem commit**; preservar o trabalho existente.
+Estado em 23/10/2026. Preservar o trabalho existente.
 Ver [operação Pulumi](pulumi/README.md), [ambientes](README.md),
 [integrações](INTEGRATIONS.md) e [ADR 0025](../docs/decisions/0025-use-aws-for-managed-infrastructure.md).
 
@@ -15,8 +15,8 @@ Ver [operação Pulumi](pulumi/README.md), [ambientes](README.md),
   Os preços consultados de EC2/RDS/disco RDS são iguais em Ohio e Virgínia.
 - Provisionar e verificar **uma etapa por vez**. Checks completos de lint/typecheck
   e outros checks pesados ficam para o CI; não iniciar processos Turbo em paralelo.
-- O proprietário considera remover Google OAuth da v0, mas o código ainda o exige.
-  Não remover implicitamente como parte do provisionamento. Domínio ainda não informado.
+- O proprietário decidiu usar somente magic link na v0; Google OAuth foi adiado.
+  Domínio ainda não informado.
 
 ## Recursos existentes
 
@@ -90,7 +90,7 @@ gerenciada pelo próprio RDS no Secrets Manager; apenas o ARN é exportado.
   estão em SSM SecureString; demais integrações e injeção no deploy ainda pendentes.
 - Próximo: concluir deploy, migrações e teste de restauração. Staging deve ficar parado
   fora dos testes (`running=false`); disco/IP persistem e continuam sendo cobrados.
-- Preflight remoto usa Ohio, exige HTTPS, Google OAuth, namespaces Hatchet distintos,
+- Preflight remoto usa Ohio, exige HTTPS, namespaces Hatchet distintos,
   bancos e buckets corretos; rejeita credenciais AWS estáticas e recursos locais.
 
 ## Integrações externas
@@ -107,7 +107,7 @@ gerenciada pelo próprio RDS no Secrets Manager; apenas o ARN é exportado.
   token na instância staging e teste real do worker continuam pendentes.
 - Resend: chave privada em `.env.resend.local`; falta domínio verificado e remetente real.
   Desenvolvimento local continua com Mailpit. Não reutilizar chave em staging.
-- Domínio e decisão final de autenticação continuam pendentes.
+- Domínio continua pendente. A v0 usa magic link; o retorno de Google OAuth exige decisão futura.
 
 ## Validação
 
@@ -156,7 +156,7 @@ SCP para os recursos já criados em Ohio. Nenhuma política da organização foi
   `first` e `second` confirmadas via SSM e container removido. Nenhuma migração ou
   execução de web/worker completo foi realizada.
 - ECR `lazuli/staging` e `lazuli/prod`, permissões de pull e SSM runtime/CONFIG aplicados.
-  Configuração runtime ainda não contém appUrl/OAuth/Resend. Deploy completo para no
+  Configuração runtime ainda não contém appUrl/Resend. Deploy completo para no
   preflight antes de migrar o banco quando essas configurações faltam.
 - Dockerfile único web/worker/migrações, deploy via SSM, migrações pelo túnel privado com
   usuário owner, TLS validado. Containers anteriores preservados para rollback de processo;
@@ -178,3 +178,23 @@ SCP para os recursos já criados em Ohio. Nenhuma política da organização foi
 - Staging foi ligado só para testar, desligado pelo Pulumi e confirmado `stopped` pela API.
   Produção permaneceu ligada; apenas recursos de suporte ao deploy foram aplicados.
 - Operação e próximos passos: `infra/deploy/README.md`.
+
+## Autenticação da v0 — 23/10/2026
+
+- Por decisão explícita do proprietário, a v0 aceita somente magic link para equipe
+  pré-cadastrada. A decisão [0004](../docs/decisions/0004-staff-authentication.md)
+  conserva Google OAuth como possibilidade futura, sem exigência no deploy atual.
+- Login, Better Auth, preflight, imagem e host de deploy deixaram de usar credenciais Google.
+  Staging usa Mailpit; produção ainda exige Resend com remetente/domínio verificado.
+- Passaram testes unitários de auth, preflight remoto, typechecks de auth/web/infra, build web,
+  lint focado, formatação, sintaxe e `git diff --check`. Login inspecionado no Orca em desktop
+  e viewport de 390 × 844, com um único método de entrada e sem overflow horizontal.
+- Transporte local passou em banco PostgreSQL temporário migrado: emissão, recusa de contas
+  desconhecidas/desativadas, verificação em sessão de 30 dias, negação após desativação e logout
+  (seis testes). A entrega SMTP ao Mailpit passou no teste de integração. O banco temporário
+  foi removido e Colima voltou ao estado desligado.
+- O clique em um link entregue por SMTP no navegador ainda não foi testado como fluxo único.
+  Deploy completo continua pendente de URLs HTTPS, DNS e Resend em produção.
+- Preview Pulumi staging: 24 recursos sem mudanças. Preview prod: uma atualização de saída
+  calculada na EC2 (`publicDns`/`publicIp` removidos do estado), sem relação aparente com
+  autenticação. Nenhum `pulumi up` foi executado neste recorte; revisar antes do próximo apply.

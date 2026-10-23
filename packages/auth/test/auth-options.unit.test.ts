@@ -8,14 +8,11 @@ import type { AuthOptionsInput, MagicLinkDelivery, MagicLinkSender } from "../sr
 
 const TEST_BASE_URL = "http://localhost:3000";
 const TEST_SECRET = "test-secret";
-const GOOGLE_CLIENT_ID = "google-client-id";
-const GOOGLE_CLIENT_SECRET = "google-client-secret";
 
 function createTestOptions(overrides: Partial<AuthOptionsInput> = {}): BetterAuthOptions {
   return createAuthOptions({
     baseUrl: TEST_BASE_URL,
     secret: TEST_SECRET,
-    googleOAuth: { clientId: GOOGLE_CLIENT_ID, clientSecret: GOOGLE_CLIENT_SECRET },
     database: {},
     sendMagicLink: () => Promise.resolve(),
     ...overrides,
@@ -29,30 +26,16 @@ void describe("Better Auth options", () => {
     assert.equal(options.session?.expiresIn, THIRTY_DAY_SESSION_SECONDS);
   });
 
-  void it("configures Google OAuth credentials", () => {
+  void it("offers only magic links for staff sign-in", () => {
     const options = createTestOptions();
-
-    assert.deepEqual(options.socialProviders?.google, {
-      clientId: GOOGLE_CLIENT_ID,
-      clientSecret: GOOGLE_CLIENT_SECRET,
-      disableSignUp: true,
-    });
-  });
-
-  void it("omits Google OAuth when local credentials are absent", () => {
-    const options = createTestOptions({ googleOAuth: undefined });
 
     assert.equal(options.socialProviders, undefined);
-  });
-
-  void it("links a trusted Google sign-in to a pre-provisioned, unverified email", () => {
-    const options = createTestOptions();
-
-    assert.deepEqual(options.account?.accountLinking, {
-      enabled: true,
-      requireLocalEmailVerified: false,
-      trustedProviders: ["google"],
-    });
+    assert.equal(options.emailAndPassword?.enabled, false);
+    assert.equal(options.account?.accountLinking, undefined);
+    assert.deepEqual(
+      options.plugins?.map((plugin) => plugin.id),
+      ["magic-link"],
+    );
   });
 
   void it("routes magic-link delivery through the injected sender", async () => {

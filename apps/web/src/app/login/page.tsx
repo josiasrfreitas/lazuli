@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { getAuthEnvironment, isStaffAccessDeniedCode } from "@lazuli/auth";
+import { isStaffAccessDeniedCode } from "@lazuli/auth";
 import { auth } from "@lazuli/auth/server";
 
 import { LoginCard, type LoginInitialError } from "./login-card";
@@ -51,10 +51,7 @@ export default async function LoginPage({
       </div>
       <LoginHero />
       <section className={styles.access} aria-labelledby="login-title" data-login-reveal="panel">
-        <LoginCard
-          googleOAuthEnabled={getAuthEnvironment().googleOAuth !== undefined}
-          initialError={resolveInitialError(params.error)}
-        />
+        <LoginCard initialError={resolveInitialError(params.error)} />
       </section>
     </LoginEntrance>
   );

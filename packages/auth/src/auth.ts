@@ -40,7 +40,6 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
     ...createAuthOptions({
       baseUrl: environment.appUrl,
       secret: environment.betterAuthSecret,
-      googleOAuth: environment.googleOAuth,
       database,
       sendMagicLink: async (delivery) => {
         await assertStaffCanAuthenticate(database, delivery.email);
@@ -86,12 +85,7 @@ function assertStaffAccess(user: StaffAccessUser | null): void {
   const result = evaluateStaffAccess(user);
 
   if (!result.allowed) {
-    /*
-     * The `code` matters as much as the message: the social-login callback
-     * only turns an APIError into a redirect back to the login screen when
-     * the error carries one, and the login screen uses it to tell access
-     * denial apart from an expired link.
-     */
+    /* The code lets the login screen distinguish denied access from an expired link. */
     throw new APIError("UNAUTHORIZED", {
       code: STAFF_ACCESS_DENIED_CODE,
       message: result.message,
@@ -104,8 +98,7 @@ function assertStaffAccess(user: StaffAccessUser | null): void {
  * denial raised while creating the session surfaces as a JSON `APIError` —
  * Better Auth only turns its own failures (invalid token, signup disabled)
  * into redirects there. This hook gives our denial the same treatment, so the
- * person lands back on the login screen instead of on raw JSON. The social
- * callback needs no such help: it redirects any `APIError` carrying a code.
+ * person lands back on the login screen instead of on raw JSON.
  */
 const HTTP_FOUND = 302;
 

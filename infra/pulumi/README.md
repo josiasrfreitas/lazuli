@@ -207,4 +207,5 @@ cartão, o limite é um tenant e 2.000 execuções/eventos por dia. Com cartão,
 e franquia mensal de 1 milhão de execuções e eventos, com cobrança de excedentes e outros
 consumos conforme [a tabela](https://hatchet.run/pricing). Tokens devem ficar em arquivos
 privados ignorados pelo Git; informar seus caminhos ao agente, sem colar valores no chat.
-O proprietário considera retirar Google OAuth da v0; ainda não houve mudança no código.
+A v0 usa somente magic link; Google OAuth foi adiado. Não configurar credenciais Google
+nas stacks para o primeiro deploy.

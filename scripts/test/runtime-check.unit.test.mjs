@@ -17,8 +17,6 @@ function check(overrides = {}) {
     EMAIL_FROM: "Lazuli <no-reply@example.com>",
     SMTP_HOST: "mailpit.internal",
     SMTP_PORT: "1025",
-    GOOGLE_CLIENT_ID: "staging-google-id",
-    GOOGLE_CLIENT_SECRET: "staging-google-secret",
     AWS_REGION: "us-east-2",
     S3_BUCKET: "lazuli-staging-private-files-123",
     HATCHET_CLIENT_TOKEN: "staging-token",

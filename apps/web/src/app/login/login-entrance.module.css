@@ -166,13 +166,6 @@
   gap: 16px;
 }
 
-.methodSeparator {
-  color: var(--marquee-muted);
-  font-size: 14px;
-  line-height: 18px;
-  text-align: center;
-}
-
 .flight {
   display: none;
   position: absolute;
@@ -490,8 +483,7 @@
     padding: 12px;
   }
 
-  .accessContent[data-error] .accessTitle,
-  .methodSeparator {
+  .accessContent[data-error] .accessTitle {
     display: none;
   }
 }
@@ -508,11 +500,7 @@
     grid-column: 1 / -1;
   }
 
-  .methodSeparator {
-    display: none;
-  }
-
-  .emailForm:only-child {
+  .emailForm {
     grid-column: 1 / -1;
   }
 }
