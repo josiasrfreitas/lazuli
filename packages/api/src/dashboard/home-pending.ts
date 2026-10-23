@@ -1,7 +1,9 @@
-import type { Prisma } from "@lazuli/db";
+import type { Prisma, TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { intakeEnrollmentWhere } from "../students/pending-actions.js";
 import { readCoverage } from "./home-schedule.js";
+import { readSemesterPending } from "./home-semester.js";
+import { recordSessionInclude, responsibleTeacher, timeOnly } from "../class-records/data.js";
 import {
   dateOnly,
   endedWhere,
@@ -15,7 +17,7 @@ import {
   type HomeItem,
 } from "./home-model.js";
 
-type Database = Prisma.TransactionClient;
+type Database = TransactionClient;
 type Scope = { kind: HomeGroupKind; now: Date; page: number; pageSize?: number; period?: "all" | "recent" | "history" };
 type Page = { skip: number; take: number };
 type Result = { total: number; items: HomeItem[] };
@@ -58,7 +60,7 @@ function readGroup(database: Database, input: Scope & { pagination: Page }): Pro
       return renewalPage(database, { now: input.now, page });
     }
     case "semester": {
-      return semesterPage(database, { now: input.now, page });
+      return readSemesterPending(database, { now: input.now, ...page });
     }
   }
 }
@@ -117,7 +119,7 @@ async function allocationPage(database: Database, page: Page): Promise<Result> {
       where,
       ...page,
       orderBy: [{ allocationPendingAt: "asc" }, { id: "asc" }],
-      select: { id: true, fullName: true, allocationPendingReason: true },
+      select: { id: true, fullName: true, allocationPendingReason: true, allocationPendingAt: true },
     }),
   ]);
   return {
@@ -128,6 +130,8 @@ async function allocationPage(database: Database, page: Page): Promise<Result> {
         title: row.fullName,
         detail: row.allocationPendingReason ?? "Buscar uma turma compatível",
         href: `/interessados/${row.id}`,
+        date: row.allocationPendingAt ? saoPauloDateOnly(row.allocationPendingAt) : null,
+        ...(row.allocationPendingAt && { timing: { kind: "waiting", since: row.allocationPendingAt.toISOString() } as const }),
       }),
     ),
   };
@@ -145,12 +149,12 @@ async function placementPage(database: Database, page: Page): Promise<Result> {
     database.entryVisit.findMany({
       where,
       ...page,
-      orderBy: [{ date: "asc" }, { id: "asc" }],
+      orderBy: [{ assessment: { uploadedAt: "asc" } }, { id: "asc" }],
       select: {
         id: true,
         candidateId: true,
         candidate: { select: { fullName: true } },
-        date: true,
+        assessment: { select: { uploadedAt: true } },
       },
     }),
   ]);
@@ -162,7 +166,8 @@ async function placementPage(database: Database, page: Page): Promise<Result> {
         title: row.candidate.fullName,
         detail: "Corrigir a prova e definir o estágio",
         href: `/interessados/${row.candidateId}`,
-        date: dateOnly(row.date),
+        date: row.assessment ? saoPauloDateOnly(row.assessment.uploadedAt) : null,
+        ...(row.assessment && { timing: { kind: "waiting", since: row.assessment.uploadedAt.toISOString() } as const }),
       }),
     ),
   };
@@ -185,7 +190,7 @@ async function lessonPage(
       where,
       ...page,
       orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
-      select: { id: true, date: true, class: { select: { portalClassName: true } } },
+      include: recordSessionInclude,
     }),
   ]);
   return {
@@ -193,8 +198,9 @@ async function lessonPage(
     items: rows.map((row) => ({
       id: row.id,
       title: row.class.portalClassName,
-      detail: "Conferir presença e conteúdo realizado",
+      detail: `${timeOnly(row.startTime)} · ${responsibleTeacher(row)?.name ?? "Professor não atribuído"}`,
       date: dateOnly(row.date),
+      timing: { kind: "record", date: dateOnly(row.date), endTime: timeOnly(row.endTime) },
       action: { kind: "lesson", id: row.id },
     })),
   };
@@ -216,7 +222,7 @@ async function appointmentPage(
       where,
       ...page,
       orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
-      select: { id: true, date: true, student: { select: { fullName: true } } },
+      select: { id: true, date: true, startTime: true, endTime: true, student: { select: { fullName: true } } },
     }),
   ]);
   return {
@@ -224,8 +230,9 @@ async function appointmentPage(
     items: rows.map((row) => ({
       id: row.id,
       title: row.student.fullName,
-      detail: "Registrar o resultado do atendimento",
+      detail: `${timeOnly(row.startTime)} · Registrar o resultado do atendimento`,
       date: dateOnly(row.date),
+      timing: { kind: "record", date: dateOnly(row.date), endTime: timeOnly(row.endTime) },
       action: { kind: "appointment", id: row.id },
     })),
   };
@@ -261,44 +268,6 @@ async function renewalPage(
         detail: "Conversar sobre a continuidade do contrato",
         href: `/alunos/${row.studentId}?secao=financeiro`,
         date: row.endsOn ? dateOnly(row.endsOn) : null,
-      }),
-    ),
-  };
-}
-async function semesterPage(
-  database: Database,
-  { now, page }: { now: Date; page: Page },
-): Promise<Result> {
-  const where: Prisma.SemesterPlacementWhereInput = {
-    deletedAt: null,
-    declinedAt: null,
-    publishedAt: null,
-    student: { deletedAt: null, status: "ACTIVE" },
-    semester: { deletedAt: null, endDate: { gte: new Date(saoPauloDateOnly(now)) } },
-  };
-  const [total, rows] = await Promise.all([
-    database.semesterPlacement.count({ where }),
-    database.semesterPlacement.findMany({
-      where,
-      ...page,
-      orderBy: [{ semester: { startDate: "asc" } }, { createdAt: "asc" }, { id: "asc" }],
-      select: {
-        id: true,
-        semesterId: true,
-        planId: true,
-        student: { select: { fullName: true } },
-        semester: { select: { name: true } },
-      },
-    }),
-  ]);
-  return {
-    total,
-    items: rows.map((row) =>
-      linkItem({
-        id: row.id,
-        title: row.student.fullName,
-        detail: `Revisar proposta · ${row.semester.name}`,
-        href: `/organizacao?semestre=${row.semesterId}${row.planId ? `&turma=${row.planId}` : "&visao=alunos"}`,
       }),
     ),
   };

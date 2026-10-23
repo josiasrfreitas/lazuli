@@ -15,12 +15,19 @@ export type HomeGroupKind = (typeof HOME_GROUPS)[number];
 export type HomeAction =
   | { kind: "link"; href: string }
   | { kind: "lesson" | "appointment"; id: string };
+/** Facts for triage; a waiting timestamp is not a promised deadline. */
+export type HomeTiming =
+  | { kind: "meeting"; date: string; startTime: string; endTime: string }
+  | { kind: "record"; date: string; endTime: string }
+  | { kind: "waiting"; since: string }
+  | { kind: "entry"; date: string };
 export type HomeItem = {
   id: string;
   title: string;
   detail: string;
   date: string | null;
   action: HomeAction;
+  timing?: HomeTiming;
 };
 export type HomeGroup = {
   kind: HomeGroupKind;
@@ -123,12 +130,14 @@ export function linkItem({
   detail,
   href,
   date = null,
+  timing,
 }: {
   id: string;
   title: string;
   detail: string;
   href: string;
   date?: string | null;
+  timing?: HomeTiming;
 }): HomeItem {
-  return { id, title, detail, date, action: { kind: "link", href } };
+  return { id, title, detail, date, action: { kind: "link", href }, ...(timing && { timing }) };
 }

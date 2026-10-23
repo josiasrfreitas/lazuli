@@ -50,6 +50,7 @@ export async function readCoverage(
     .filter(
       (row) => !row.cancelled && responsibleTeacherId(row) === null && sessionEndInstant(row) > now,
     )
+    .toSorted((left, right) => left.date.localeCompare(right.date) || left.startTime.localeCompare(right.startTime) || meetingKey(left).localeCompare(meetingKey(right)))
     .map((row) =>
       linkItem({
         id: meetingKey(row),
@@ -57,6 +58,7 @@ export async function readCoverage(
         detail: `${row.startTime} · Definir professor ou substituição`,
         href: `/turmas/${row.classId}`,
         date: row.date,
+        timing: { kind: "meeting", date: row.date, startTime: row.startTime, endTime: row.endTime },
       }),
     );
 }
