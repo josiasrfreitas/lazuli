@@ -28,7 +28,7 @@ export function GroupDetail({
         Voltar à visão da escola
       </Button>
       <div className={styles.detailHeading}>
-        <h2 id="home-work-title">{group.title}</h2>
+        <h1 id="home-work-title">{group.title}</h1>
         <p>{group.description}</p>
       </div>
       {(group.kind === "lessons" || group.kind === "appointments") && (
@@ -42,6 +42,8 @@ export function GroupDetail({
           label={group.title}
           columns={groupColumns(group, open)}
           state={tableState(query)}
+          loadingRows={Math.min(PAGE_SIZE, (period === "history" ? group.historyTotal : group.total) || 4)}
+          onRowClick={item => open(item.action)}
           pagination={{
             page,
             pageSize: PAGE_SIZE,

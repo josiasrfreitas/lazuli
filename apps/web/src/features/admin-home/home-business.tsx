@@ -4,119 +4,21 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@lazuli/ui";
-import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents } from "~/lib/format";
 import { compactMoney, monthLabel } from "~/features/finance-analytics/contract-closings-model";
-import { BusinessLoading } from "./home-loading";
-import { HomeError } from "./home-parts";
 import styles from "./home.module.css";
 
 type Business = RouterOutputs["dashboard"]["business"];
-const CHART_HEIGHT = 210;
+const CHART_HEIGHT = 220;
 const RECENT_MONTHS = -6;
-const YEAR_LENGTH = 4;
 const BAR_RADIUS = 3;
 const TICK = { fill: "var(--muted-foreground)", fontSize: 12 };
-export function HomeBusiness(): ReactElement {
-  const query = trpc.dashboard.business.useQuery(undefined, { refetchInterval: 60_000 });
-  return (
-    <section className={styles.business} aria-labelledby="home-business-title">
-      <div className={styles.sectionHeading}>
-        <h2 id="home-business-title">O mês da escola</h2>
-        <Link className={styles.textLink} href="/financeiro">
-          Visão financeira
-          <ArrowUpRight aria-hidden="true" />
-        </Link>
-      </div>
-      {query.isPending && (
-        <div role="status" aria-label="Carregando indicadores financeiros">
-          <BusinessLoading />
-        </div>
-      )}
-      {query.isError && (
-        <HomeError retry={() => void query.refetch()}>
-          Não foi possível atualizar os indicadores financeiros.
-        </HomeError>
-      )}
-      {query.data && <BusinessContent data={query.data} />}
-    </section>
-  );
-}
-function BusinessContent({ data }: { data: Business }): ReactElement {
-  return (
-    <>
-      <p className={styles.description}>
-        Movimentação de {monthLabel(data.month)} de {data.month.slice(0, YEAR_LENGTH)} · mês em
-        andamento
-      </p>
-      <div className={styles.businessGrid}>
-        <BusinessNumbers data={data} />
-        <BusinessChart data={data} />
-      </div>
-    </>
-  );
-}
-function BusinessNumbers({ data }: { data: Business }): ReactElement {
-  return (
-    <dl className={styles.businessNumbers}>
-      <BusinessNumber
-        label="Recebido neste mês"
-        value={formatBRLFromCents(data.receivedCents)}
-        detail="Pagamentos registrados, inclusive valores ainda não alocados."
-      />
-      <BusinessNumber
-        label="Contratos celebrados"
-        value={String(data.newContracts + data.renewals)}
-        secondary={`${data.newContracts} novos · ${data.renewals} renovações`}
-        detail="Pela data do acordo; cancelamentos posteriores não apagam a contratação."
-      />
-      <BusinessNumber
-        label="Saldo em atraso hoje"
-        value={formatBRLFromCents(data.overdueCents)}
-        detail={`${data.overduePayers} pagadores · todos os períodos`}
-        href="/recebiveis"
-      />
-    </dl>
-  );
-}
-function BusinessNumber({
-  label,
-  value,
-  secondary,
-  detail,
-  href,
-}: {
-  label: string;
-  value: string;
-  secondary?: string;
-  detail: string;
-  href?: string;
-}): ReactElement {
-  return (
-    <div>
-      <dt>{label}</dt>
-      <dd>
-        {value}
-        {secondary && <span>{secondary}</span>}
-      </dd>
-      <dd className={styles.metricDetail}>{detail}</dd>
-      {href && (
-        <dd>
-          <Link className={styles.textLink} href={href}>
-            Acompanhar recebíveis
-            <ArrowUpRight aria-hidden="true" />
-          </Link>
-        </dd>
-      )}
-    </div>
-  );
-}
-function BusinessChart({ data }: { data: Business }): ReactElement {
+export function BusinessChart({ data }: { data: Business }): ReactElement {
   const [table, setTable] = useState(false);
   return (
-    <div className={styles.cash}>
+    <section className={styles.chartPanel} aria-label="Evolução financeira">
       <div className={styles.chartHeading}>
-        <h3>Previsão e recebimentos</h3>
+        <div><h2>Como o caixa está evoluindo</h2><p className={styles.description}>Previsão e recebimentos · {data.months.length} meses</p></div>
         <Button variant="ghost" size="sm" aria-pressed={table} onClick={() => setTable(!table)}>
           {table ? "Ver gráfico" : "Ver valores"}
         </Button>
@@ -126,11 +28,8 @@ function BusinessChart({ data }: { data: Business }): ReactElement {
         <span>Pagamentos recebidos</span>
       </p>
       {table ? <CashTable data={data} /> : <CashChart data={data} />}
-      <p className={styles.chartNote}>
-        Previsto considera o vencimento das parcelas; recebido considera a data do pagamento. Não
-        são medidas de lucro.
-      </p>
-    </div>
+      <div className={styles.chartFooter}><p className={styles.chartNote}>Previsto por vencimento · recebido por pagamento.<br />{data.partial ? "Mês atual em andamento. " : ""}Estes valores não representam lucro.</p><Link className={styles.textLink} href="/financeiro">Explorar financeiro <ArrowUpRight aria-hidden="true" /></Link></div>
+    </section>
   );
 }
 function CashTable({ data }: { data: Business }): ReactElement {
@@ -168,7 +67,7 @@ function CashChart({ data }: { data: Business }): ReactElement {
           accessibilityLayer
           margin={{ top: 12, right: 0, left: 0, bottom: 0 }}
         >
-          <CartesianGrid vertical={false} stroke="var(--border-subtle)" />
+          <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 5" />
           <XAxis
             dataKey="month"
             tickFormatter={monthLabel}

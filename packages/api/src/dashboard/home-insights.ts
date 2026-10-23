@@ -32,13 +32,14 @@ export async function readHomeSchool(database: Context["db"], now: Date, request
   const from = new Date(`${period.months[0]}-01T00:00:00-03:00`);
   const through = new Date(`${period.through}T23:59:59.999-03:00`);
   const dateRange = { gte: new Date(`${period.months[0]}-01`), lte: new Date(period.through) };
-  const [students, enrollments, visits] = await Promise.all([
+  const [students, enrollments, visits, totalStudents] = await Promise.all([
     database.student.findMany({ where: { deletedAt: null, createdAt: { gte: from, lte: through } }, select: { createdAt: true } }),
     database.enrollment.findMany({ where: { deletedAt: null, student: { deletedAt: null }, class: { deletedAt: null }, entryDate: dateRange }, select: { entryDate: true } }),
     database.entryVisit.findMany({ where: { deletedAt: null, status: "ATTENDED", kind: "TRIAL", date: dateRange }, select: { date: true } }),
+    database.student.count({ where: { deletedAt: null } }),
   ]);
   return {
-    month: period.month, through: period.through, previousThrough: period.previousThrough, partial: period.partial,
+    month: period.month, through: period.through, previousThrough: period.previousThrough, partial: period.partial, totalStudents,
     students: monthlyCounts(students.map(row => saoPauloDateOnly(row.createdAt)), period),
     enrollments: monthlyCounts(enrollments.map(row => row.entryDate.toISOString().slice(0, 10)), period),
     trials: monthlyCounts(visits.map(row => row.date.toISOString().slice(0, 10)), period),
