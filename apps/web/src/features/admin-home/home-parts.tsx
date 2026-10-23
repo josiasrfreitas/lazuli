@@ -43,23 +43,22 @@ export function HomeWelcome({ name, data }: { name: string; data: HomeData | und
       </div>
       <div className={styles.daySummary}>
         <div><strong>{data ? data.activeStudents.toLocaleString("pt-BR") : <LoadingLine size="number" />}</strong><span>alunos ativos</span></div>
-        <div><strong>{data ? data.agenda.total : <LoadingLine size="number" />}</strong><span>compromissos ainda hoje</span></div>
+        <div><strong>{data ? data.agenda.total.toLocaleString("pt-BR") : <LoadingLine size="number" />}</strong><span>compromissos ainda hoje</span></div>
       </div>
     </header>
   );
 }
-export function TodayAgenda({ data, open }: { data: HomeData; open: OpenAction }): ReactElement {
+export function TodayAgenda({ data, open }: { data: HomeData | undefined; open: OpenAction }): ReactElement {
   return (
     <aside className={styles.agenda} aria-labelledby="home-agenda-title">
       <div className={styles.sectionHeading}>
         <h2 id="home-agenda-title">Ainda hoje</h2>
         <CalendarDays aria-hidden="true" />
       </div>
-      <p className={styles.description}>Aulas, experimentais e atendimentos.</p>
-      {data.agenda.items.length === 0 ? (
+      {(!data || data.agenda.total > 0) && <p className={styles.description}>Aulas, experimentais e atendimentos.</p>}
+      {!data ? <div className={styles.agendaSkeleton} aria-label="Carregando agenda">{["a", "b", "c"].map(key => <div key={key}><LoadingLine size="short" /><div><LoadingLine /><LoadingLine size="short" /></div></div>)}</div> : data.agenda.items.length === 0 ? (
         <div className={styles.quiet}>
           <p>Sem compromissos restantes hoje.</p>
-          <span>Consulte a agenda para os próximos dias.</span>
         </div>
       ) : (
         <ol className={styles.agendaList}>
@@ -75,8 +74,8 @@ export function TodayAgenda({ data, open }: { data: HomeData; open: OpenAction }
           ))}
         </ol>
       )}
-      <Link className={styles.textLink} href={`/aulas?dia=${data.today}&visao=dia`}>
-        {data.agenda.total > data.agenda.items.length
+      <Link className={styles.textLink} href={data ? `/aulas?dia=${data.today}&visao=dia` : "/aulas"}>
+        {data && data.agenda.total > data.agenda.items.length
           ? `Ver os ${data.agenda.total} compromissos`
           : "Abrir agenda"}
         <ArrowUpRight aria-hidden="true" />

@@ -58,29 +58,32 @@ function useAdminHome(): AdminHomeState {
 }
 export function AdminHome({ name, finance }: { name: string; finance: boolean }): ReactElement {
   const { query, selected, dialog, open, close, select } = useAdminHome();
+  const pendingGroups = query.data?.groups.filter(group => group.total > 0) ?? [];
+  const insightsFirst = !selected && pendingGroups.length <= 2 && !pendingGroups.some(group => group.attention);
   return (
     <div className={styles.page}>
       <HomeWelcome name={name} data={query.data} />
-      {query.isPending && <HomeLoading finance={finance} />}
-      {query.isError && (
-        <HomeError retry={() => void query.refetch()}>
-          Não foi possível atualizar seu início. Os dados anteriores, quando disponíveis, continuam
-          abaixo.
-        </HomeError>
-      )}
-      {query.data && (
-        <>
-          <div className={styles.columns}>
-            <HomeQueue data={query.data} selected={selected} select={select} open={open} />
-            <TodayAgenda data={query.data} open={open} />
-          </div>
-        </>
-      )}
-      {finance && <HomeBusiness />}
+      <div className={styles.columns} data-insights-first={finance && insightsFirst}>
+        <div className={styles.mainColumn}>
+          {finance && insightsFirst && <HomeBusiness key="business" />}
+          {query.isPending && <HomeLoading finance={finance} />}
+          {query.isError && (
+            <HomeError retry={() => void query.refetch()}>
+              {query.data ? "Não foi possível atualizar seu início. A última visão carregada continua abaixo." : "Não foi possível carregar a visão da escola. Tente novamente."}
+            </HomeError>
+          )}
+          {query.data && !(finance && insightsFirst) && <HomeQueue data={query.data} selected={selected} select={select} open={open} />}
+          {finance && !insightsFirst && <HomeBusiness key="business" />}
+        </div>
+        <div className={styles.sideColumn}>
+          {query.data && finance && insightsFirst && <HomeQueue data={query.data} selected={selected} select={select} open={open} />}
+          <TodayAgenda data={query.data} open={open} />
+        </div>
+      </div>
       {query.data && (
         <>
           <footer className={styles.footer}>
-            <span>Lazuli · Um passo de cada vez, a escola segue em frente.</span>
+            <span>Lazuli · Visão da escola</span>
             <nav aria-label="Explorar a escola">
               <Link href="/alunos">
                 Alunos

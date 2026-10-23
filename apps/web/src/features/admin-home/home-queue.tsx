@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
-import { ArrowRight, ArrowUpRight, Check, History, CalendarCheck2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, ArrowUpRight, History, CalendarCheck2 } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { JOURNEY } from "./home-model";
 import { GroupDetail } from "./group-detail";
@@ -18,8 +19,9 @@ export function HomeQueue({ data, selected, select, open }: {
         </div>
       ) : (
         <div className={styles.workOverview}>
-          <SchoolJourney groups={data.groups} select={select} />
-          <TeachingBoard groups={data.groups} select={select} />
+          {data.groups.some(group => group.attention && group.total > 0) && <TeachingBoard groups={data.groups} select={select} />}
+          <SchoolJourney groups={data.groups} select={select} open={open} newSchool={data.activeStudents === 0} />
+          {!data.groups.some(group => group.attention && group.total > 0) && <TeachingBoard groups={data.groups} select={select} />}
         </div>
       )}
     </section>
@@ -31,7 +33,7 @@ function TeachingBoard({ groups, select }: { groups: HomeGroup[]; select: Select
   const pending = records.filter(group => group.total > 0);
   const needsCoverage = Boolean(coverage?.total);
   return (
-    <section className={styles.teaching} aria-labelledby="teaching-title">
+    <section className={styles.teaching} data-quiet={!needsCoverage && pending.length === 0} aria-labelledby="teaching-title">
       <div className={styles.sectionHeading}>
         <h2 id="teaching-title">Acompanhamento das aulas</h2>
         {!needsCoverage && <span>Professores definidos · próximos 7 dias</span>}
@@ -70,37 +72,44 @@ function TeachingBoard({ groups, select }: { groups: HomeGroup[]; select: Select
     </section>
   );
 }
-function SchoolJourney({ groups, select }: { groups: HomeGroup[]; select: SelectGroup }): ReactElement {
-  const stages = JOURNEY.filter(stage => groups.some(group => stage.groups.includes(group.kind)));
-  const hasAttention = groups.some(group => group.attention && group.total > 0);
-  const next = hasAttention ? undefined : groups.find(group => !group.attention && group.total > 0);
+function SchoolJourney({ groups, select, open, newSchool }: { groups: HomeGroup[]; select: SelectGroup; open: OpenAction; newSchool: boolean }): ReactElement {
+  const stages = JOURNEY.filter(stage => groups.some(group => stage.groups.includes(group.kind) && group.total > 0));
+  const next = groups.some(group => group.attention && group.total > 0) ? undefined : groups.find(group => !group.attention && group.total > 0);
   const actionLabels: Record<string, string> = { placement: "Corrigir nivelamentos", allocation: "Encontrar uma turma", students: "Definir turmas", semester: "Revisar alocações", contracts: "Preparar contratos", renewals: "Conversar sobre renovação" };
   return (
     <section className={styles.journey} aria-labelledby="journey-title">
       <div className={styles.sectionHeading}>
-        <h2 id="journey-title">A jornada dos alunos</h2>
+        <h2 id="journey-title">Próximos passos</h2>
+        {next ? <Button size="sm" onClick={() => select(next)}>{actionLabels[next.kind]}<ArrowRight aria-hidden="true" /></Button> : <span>Da chegada à renovação</span>}
       </div>
-      <p className={styles.description}>Acompanhe os próximos passos em cada etapa.</p>
+      {newSchool && <p className={styles.firstSteps}>Comece pelo cadastro de um aluno ou acompanhe quem já demonstrou interesse. <Link className={styles.textLink} href="/alunos">Abrir alunos <ArrowUpRight aria-hidden="true" /></Link></p>}
+      {stages.length === 0 && <p className={styles.recordQuiet}>Nenhum próximo passo pendente na jornada dos alunos.</p>}
       <div className={styles.journeyTrack}>
         {stages.map(stage => (
           <section className={styles.journeyStage} key={stage.key}>
-            <div className={styles.journeyNode} aria-hidden="true"><span /></div>
-            <h3>{stage.title}</h3>
-            <p>{stage.description}</p>
+            <h3>{stage.title}<ArrowRight aria-hidden="true" /></h3>
             <div className={styles.journeyActions}>
               {stage.groups.map((kind, index) => {
                 const group = groups.find(item => item.kind === kind);
-                if (!group) return null;
+                if (!group || group.total === 0) return null;
                 return (
-                  <button type="button" key={kind} onClick={() => select(group)} className={styles.journeyAction} data-pending={group.total > 0}>
-                    <strong>{group.total === 0 ? <Check aria-label="Em dia" /> : group.total.toLocaleString("pt-BR")}</strong>
-                    <span>{stage.labels[index]}</span>
-                    <ArrowUpRight aria-hidden="true" />
-                  </button>
+                  <div className={styles.journeyCell} key={kind} data-pending={group.total > 0}>
+                    <button type="button" onClick={() => select(group)} className={styles.journeyAction}>
+                      <span>{stage.labels[index]}</span>
+                      <strong>{group.total.toLocaleString("pt-BR")}</strong>
+                      <ArrowUpRight aria-hidden="true" />
+                    </button>
+                    {group.total > 0 && group.items[0] && (
+                      <button type="button" className={styles.personPreview} onClick={() => open(group.items[0]!.action)} title={group.items[0].detail}>
+                        <span>{group.items[0].title}</span>
+                        <span>{group.items[0].detail}</span>
+                        <ArrowUpRight aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
-            {next && stage.groups.includes(next.kind) && <div className={styles.journeyNext}><Button size="sm" onClick={() => select(next)}>{actionLabels[next.kind]}<ArrowRight aria-hidden="true" /></Button></div>}
           </section>
         ))}
       </div>
