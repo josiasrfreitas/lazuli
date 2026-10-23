@@ -13,18 +13,31 @@ function localBucket(environment: NodeJS.ProcessEnv): string {
   return `lazuli-local-${createHash("sha256").update(identity).digest("hex").slice(0, BUCKET_IDENTITY_LENGTH)}`;
 }
 
+function assertRemoteStorageConfiguration(options: {
+  deploymentEnvironment: string | undefined;
+  bucket: string;
+  endpoint: string | undefined;
+  local: boolean;
+}): void {
+  const { deploymentEnvironment, bucket, endpoint, local } = options;
+  if (deploymentEnvironment !== "staging" && deploymentEnvironment !== "prod") return;
+  if (local || !bucket.startsWith(`lazuli-${deploymentEnvironment}-`) || endpoint) {
+    throw new Error(`Invalid S3 configuration for ${deploymentEnvironment}.`);
+  }
+}
+
 export function storageConfig(): StorageOptions {
   const environment = process.env;
-  const deploymentEnvironment = environment.LAZULI_ENV;
   const local = environment.NODE_ENV !== "production";
   const bucket = environment.S3_BUCKET || (local ? localBucket(environment) : "");
   if (!bucket) throw new Error("S3_BUCKET is required in production.");
   const endpoint = environment.S3_ENDPOINT || (local ? "http://localhost:9090" : undefined);
-  if (deploymentEnvironment === "staging" || deploymentEnvironment === "prod") {
-    if (local || !bucket.startsWith(`lazuli-${deploymentEnvironment}-`) || endpoint) {
-      throw new Error(`Invalid S3 configuration for ${deploymentEnvironment}.`);
-    }
-  }
+  assertRemoteStorageConfiguration({
+    deploymentEnvironment: environment.LAZULI_ENV,
+    bucket,
+    endpoint,
+    local,
+  });
   return {
     bucket,
     createLocalBucket: local,
