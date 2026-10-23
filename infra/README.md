@@ -9,8 +9,8 @@ compartilhado, com bancos e usuários distintos. Rede e RDS estão definidos na 
 O Lazuli terá dois ambientes remotos: `staging` e `prod`. Ambos executam o build com
 `NODE_ENV=production`; `NODE_ENV` não distingue ambientes. O desenvolvimento local continua
 usando Docker Compose e buckets separados por worktree. A [stack Pulumi](pulumi/README.md)
-já define buckets S3 privados separados e um orçamento de conta; **não há aplicação, banco
-ou worker remoto provisionado ainda**.
+já define buckets S3 privados separados e um orçamento de conta; o RDS e as EC2 estão
+provisionados, mas a aplicação ainda não foi implantada.
 
 Os processos remotos recebem `LAZULI_ENV=staging` ou `LAZULI_ENV=prod` e são iniciados
 por `pnpm start:remote` (web) e `pnpm start:worker:remote` (worker). Esses comandos validam
@@ -18,8 +18,7 @@ as variáveis antes de iniciar. O banco deve chamar `lazuli_staging` ou `lazuli_
 bucket deve ser o output da stack correspondente e o namespace Hatchet deve ser
 `lazuli-staging` ou `lazuli-prod`. O aplicativo também recusa Resend no staging, exige
 Resend em produção e rejeita endpoint S3 local em ambos. Essas verificações evitam erros
-de configuração conhecidos; o isolamento efetivo de rede e IAM ainda depende dos recursos
-de hospedagem e papéis de execução não criados.
+de configuração conhecidos; o isolamento de rede e IAM foi validado nas EC2.
 
 A [lista de integrações](INTEGRATIONS.md) separa o que depende de contas e cadastros externos
 do que ainda será implementado na AWS.
@@ -31,7 +30,7 @@ do que ainda será implementado na AWS.
 | PostgreSQL         | Banco `lazuli_staging` no RDS compartilhado, usuário próprio | Banco `lazuli_prod` no RDS compartilhado, usuário próprio | RDS e isolamento SQL validados; migrações e restore pendentes                           |
 | Web e worker       | Capacidade sob demanda, desligada fora dos testes            | Disponível continuamente                                  | EC2/IAM validados; deploy pendente; staging desligado                                   |
 | E-mail             | Mailpit próprio, interno, sem `RESEND_API_KEY`               | Resend com domínio verificado, `RESEND_API_KEY` própria   | Mailpit staging saudável; Resend/DNS pendentes                                          |
-| Autenticação       | URL e cliente Google OAuth de teste próprios                 | URL e cliente Google OAuth de produção próprios           | Credenciais e domínios pendentes                                                        |
+| Autenticação       | Magic link para equipe pré-cadastrada, via Mailpit           | Magic link para equipe pré-cadastrada, via Resend         | URLs HTTPS pendentes; Google OAuth adiado para depois da v0                             |
 | Hatchet            | Projeto/token e namespace próprios                           | Projeto/token e namespace próprios                        | Tokens validados e no SSM; teste do worker pendente                                     |
 | Segredos           | `BETTER_AUTH_SECRET`, URL do banco e tokens próprios         | Outros segredos, sem reutilização                         | SSM SecureString criado; injeção no deploy pendente                                     |
 
@@ -57,16 +56,14 @@ não mede apenas Lazuli; contas AWS separadas seriam o limite mais claro.
    e-mails de login por magic link; outros handlers de e-mail permanecem incompletos. O plano
    [Free](https://resend.com/pricing) informa 3.000 e-mails/mês e 100/dia; esse limite precisa
    cobrir os logins reais. [Resend exige domínio verificado](https://resend.com/docs/dashboard/domains/introduction).
-3. **Google OAuth:** configurar clientes separados e URLs de callback HTTPS exatas para cada
-   ambiente. O código exige `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` quando
-   `NODE_ENV=production`, inclusive em staging. O Google [recomenda projetos separados para
-   teste e produção](https://developers.google.com/identity/protocols/oauth2/production-readiness/policy-compliance).
+3. **Autenticação da v0:** somente magic link para funcionários pré-cadastrados. Google OAuth
+   fica para uma versão posterior; não há credenciais Google a configurar agora.
 4. **Hatchet Cloud:** tenants/tokens distintos já validados; web e worker do mesmo ambiente usam
    o mesmo token e `HATCHET_CLIENT_NAMESPACE`, nunca o do outro ambiente. O plano
    [pay-as-you-go](https://hatchet.run/pricing) começa grátis, sujeito aos limites atuais.
    Hatchet Lite do Compose é apenas local.
 5. **Domínio e DNS:** dois endereços HTTPS distintos, por exemplo `staging.<domínio>` e
-   `app.<domínio>`, necessários para cookies, links de login, OAuth e envio Resend. O dono
+   `app.<domínio>`, necessários para cookies, links de login e envio Resend. O dono
    confirmou que ainda não escolheu um domínio; nenhum DNS foi criado.
 
 Mailpit captura e-mails em staging, mas deve ficar acessível só a operadores; uma caixa de

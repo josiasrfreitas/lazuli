@@ -23,14 +23,6 @@ if (remote) {
   invalid.push("LAZULI_ENV must be local, staging or prod.");
 }
 
-const googleClientIdConfigured = hasValue("GOOGLE_CLIENT_ID");
-const googleClientSecretConfigured = hasValue("GOOGLE_CLIENT_SECRET");
-if (googleClientIdConfigured !== googleClientSecretConfigured) {
-  invalid.push("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be configured together.");
-} else if (process.env.NODE_ENV === "production" && !googleClientIdConfigured) {
-  invalid.push("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required in production.");
-}
-
 if (deploymentEnvironment !== "prod" && !hasValue("RESEND_API_KEY")) {
   requireValue("SMTP_HOST");
   requireValue("SMTP_PORT");

@@ -165,7 +165,7 @@ setup_env() {
     else
       cp .env.example .env
       echo "Created .env from .env.example."
-      echo "Fill BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET before pnpm dev."
+      echo "Fill BETTER_AUTH_SECRET before pnpm dev. Magic links are captured by Mailpit."
     fi
   else
     echo ".env already present; keeping existing secrets."

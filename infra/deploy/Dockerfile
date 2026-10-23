@@ -11,7 +11,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts \
 RUN APP_URL=https://build.invalid BETTER_AUTH_URL=https://build.invalid \
     BETTER_AUTH_SECRET=build-only-not-a-runtime-secret-000000000000 \
     DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
-    EMAIL_FROM=build@build.invalid GOOGLE_CLIENT_ID=build GOOGLE_CLIENT_SECRET=build \
+    EMAIL_FROM=build@build.invalid \
     pnpm --filter @lazuli/web build
 RUN pnpm --filter @lazuli/worker typecheck
 

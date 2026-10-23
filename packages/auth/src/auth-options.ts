@@ -21,7 +21,6 @@ export type MagicLinkSender = (delivery: MagicLinkDelivery) => Promise<void>;
 export type AuthOptionsInput = {
   baseUrl: string;
   secret: string;
-  googleOAuth?: { clientId: string; clientSecret: string } | undefined;
   database: Parameters<typeof prismaAdapter>[0];
   sendMagicLink: MagicLinkSender;
 };
@@ -44,34 +43,7 @@ export function createAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
     session: {
       expiresIn: THIRTY_DAY_SESSION_SECONDS,
     },
-    account: {
-      accountLinking: {
-        enabled: true,
-        /*
-         * Staff users are pre-provisioned by email before they ever sign in,
-         * so their first Google login must attach to the existing row instead
-         * of failing with account_not_linked. Google only reports verified
-         * emails, which is what makes linking by email safe here.
-         *
-         * requireLocalEmailVerified must be off for the same reason: a
-         * pre-provisioned row starts with emailVerified false, and with no
-         * self-signup there is no unverified local account an attacker could
-         * have planted to hijack through the link.
-         */
-        requireLocalEmailVerified: false,
-        trustedProviders: ["google"],
-      },
-    },
-    socialProviders:
-      input.googleOAuth === undefined
-        ? undefined
-        : {
-            google: {
-              clientId: input.googleOAuth.clientId,
-              clientSecret: input.googleOAuth.clientSecret,
-              disableSignUp: true,
-            },
-          },
+    emailAndPassword: { enabled: false },
     plugins: [
       magicLink({
         disableSignUp: true,

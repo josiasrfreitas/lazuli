@@ -9,7 +9,7 @@ import { authClient } from "~/lib/auth-client";
 
 import styles from "./login-entrance.module.css";
 
-type LoginPending = "none" | "magic-link" | "google";
+type LoginPending = "none" | "magic-link";
 
 /** Replaces the form after sending, so another send cannot invalidate the first link. */
 function MagicLinkSent({
@@ -61,18 +61,9 @@ const UNAUTHORIZED_STATUS = 401;
  */
 export type LoginInitialError = "denied" | "verification";
 
-/**
- * The two ways in. Neither creates an account — sign-up is disabled on both
- * providers — so the card only ever recognises someone the school already knows.
- */
-export function LoginCard({
-  googleOAuthEnabled,
-  initialError,
-}: {
-  googleOAuthEnabled: boolean;
-  initialError: LoginInitialError | null;
-}): ReactNode {
-  const { email, error, pending, sentTo, setEmail, setSentTo, handleMagicLink, handleGoogle } =
+/** Magic links only recognise staff members already registered by the school. */
+export function LoginCard({ initialError }: { initialError: LoginInitialError | null }): ReactNode {
+  const { email, error, pending, sentTo, setEmail, setSentTo, handleMagicLink } =
     useLoginCard(initialError);
 
   if (sentTo !== null) {
@@ -92,17 +83,7 @@ export function LoginCard({
         <p className={styles.accessDescription}>Entre com o email da escola.</p>
       </div>
       <div className={styles.methods}>
-        <LoginMethods
-          {...{
-            email,
-            error,
-            googleOAuthEnabled,
-            handleGoogle,
-            handleMagicLink,
-            pending,
-            setEmail,
-          }}
-        />
+        <LoginMethods {...{ email, error, handleMagicLink, pending, setEmail }} />
       </div>
     </div>
   );
@@ -116,7 +97,6 @@ function useLoginCard(initialError: LoginInitialError | null): {
   setEmail: (email: string) => void;
   setSentTo: (email: string | null) => void;
   handleMagicLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  handleGoogle: () => Promise<void>;
 } {
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -138,19 +118,7 @@ function useLoginCard(initialError: LoginInitialError | null): {
     }
   }
 
-  async function handleGoogle(): Promise<void> {
-    setError(null);
-    setPending("google");
-
-    const failure = await startGoogleSignIn();
-
-    if (failure !== null) {
-      setPending("none");
-      setError(failure);
-    }
-  }
-
-  return { email, error, pending, sentTo, setEmail, setSentTo, handleMagicLink, handleGoogle };
+  return { email, error, pending, sentTo, setEmail, setSentTo, handleMagicLink };
 }
 
 function initialErrorMessage(initialError: LoginInitialError | null): string | null {
@@ -176,33 +144,15 @@ async function sendMagicLink(email: string): Promise<string | null> {
   return result.error.status === UNAUTHORIZED_STATUS ? DENIED_MESSAGE : SEND_FAILURE_MESSAGE;
 }
 
-/**
- * Returns the message to show, or `null` when the browser is already on its way
- * to Google — in which case nothing here gets to render again.
- */
-async function startGoogleSignIn(): Promise<string | null> {
-  const result = await authClient.signIn.social({
-    callbackURL: "/",
-    errorCallbackURL: "/login",
-    provider: "google",
-  });
-
-  return result.error === null ? null : DENIED_MESSAGE;
-}
-
 function LoginMethods({
   email,
   error,
-  googleOAuthEnabled,
-  handleGoogle,
   handleMagicLink,
   pending,
   setEmail,
 }: {
   email: string;
   error: string | null;
-  googleOAuthEnabled: boolean;
-  handleGoogle: () => Promise<void>;
   handleMagicLink: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   pending: LoginPending;
   setEmail: (email: string) => void;
@@ -210,13 +160,6 @@ function LoginMethods({
   return (
     <div className={styles.controlStack}>
       <LoginAlert message={error} />
-      {googleOAuthEnabled && (
-        <OAuthSection
-          onGoogle={() => void handleGoogle()}
-          pending={pending === "google"}
-          disabled={pending !== "none"}
-        />
-      )}
       <EmailSignInForm {...{ email, handleMagicLink, pending, setEmail }} />
     </div>
   );
@@ -260,60 +203,6 @@ function EmailSignInForm({
         <ArrowUpRight aria-hidden="true" />
       </Button>
     </form>
-  );
-}
-
-function OAuthSection({
-  onGoogle,
-  pending,
-  disabled,
-}: {
-  onGoogle: () => void;
-  pending: boolean;
-  disabled: boolean;
-}): ReactNode {
-  return (
-    <>
-      <Button
-        disabled={disabled}
-        loading={pending}
-        onClick={onGoogle}
-        size="lg"
-        variant="secondary"
-      >
-        <GoogleMark />
-        Entrar com Google
-      </Button>
-      <p className={styles.methodSeparator}>ou</p>
-    </>
-  );
-}
-
-function GoogleMark(): ReactNode {
-  return (
-    <svg
-      aria-hidden="true"
-      className="size-4"
-      viewBox="0 0 48 48"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"
-        fill="#4285f4"
-      />
-      <path
-        d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"
-        fill="#34a853"
-      />
-      <path
-        d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"
-        fill="#fbbc05"
-      />
-      <path
-        d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"
-        fill="#ea4335"
-      />
-    </svg>
   );
 }
 

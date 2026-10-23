@@ -105,27 +105,21 @@ docker run -d --name mailpit --network lazuli --restart unless-stopped \\
     },
     { protect: true },
   );
-  const optionalSecrets = [
-    ["googleClientId", "GOOGLE_CLIENT_ID"],
-    ["googleClientSecret", "GOOGLE_CLIENT_SECRET"],
-    ...(environment === "prod" ? [["resendApiKey", "RESEND_API_KEY"]] : []),
-  ].flatMap(([key, name]) => {
-    const value = config.getSecret(key!);
-    return value
-      ? [
-          new aws.ssm.Parameter(
-            `runtime-${key}`,
-            {
-              name: `/lazuli/${environment}/runtime/${name}`,
-              type: "SecureString",
-              value,
-              tags,
-            },
-            { protect: true },
-          ),
-        ]
-      : [];
-  });
+  const resendApiKey = environment === "prod" ? config.getSecret("resendApiKey") : undefined;
+  const optionalSecrets = resendApiKey
+    ? [
+        new aws.ssm.Parameter(
+          "runtime-resendApiKey",
+          {
+            name: `/lazuli/${environment}/runtime/RESEND_API_KEY`,
+            type: "SecureString",
+            value: resendApiKey,
+            tags,
+          },
+          { protect: true },
+        ),
+      ]
+    : [];
   new aws.ssm.Parameter(
     "migration-database-url",
     {

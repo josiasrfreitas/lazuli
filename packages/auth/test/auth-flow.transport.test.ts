@@ -24,7 +24,6 @@ const SIGN_OUT_PATH = "/api/auth/sign-out";
 const TEST_AUTH_ENVIRONMENT: AuthEnvironment = {
   appUrl: "http://localhost:3000",
   betterAuthSecret: "test-secret-with-at-least-thirty-two-characters",
-  googleOAuth: { clientId: "google-client-id", clientSecret: "google-client-secret" },
   resendApiKey: undefined,
   emailFrom: "Lazuli <no-reply@example.com>",
   smtpHost: "localhost",

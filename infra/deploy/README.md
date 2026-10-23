@@ -91,9 +91,6 @@ Antes do primeiro deploy, configurar por stack:
 ```sh
 pulumi config set appUrl https://SEU-DOMINIO --stack staging
 pulumi config set emailFrom 'Lazuli <noreply@SEU-DOMINIO>' --stack staging
-# O código atual ainda exige OAuth. Não usar placeholders em runtime.
-pulumi config set --secret googleClientId --stack staging
-pulumi config set --secret googleClientSecret --stack staging
 # Em prod, também configurar emailFrom verificado e a chave Resend.
 pulumi config set --secret resendApiKey --stack prod
 ```
@@ -105,7 +102,7 @@ Staging usa exclusivamente Mailpit. Tokens Hatchet já estão no SSM por ambient
 Ordem do deploy:
 
 1. EC2 ligada e acessível via SSM; baixar imagem e gerar arquivo de ambiente privado.
-2. Preflight remoto: recusa domínio/segredos ausentes antes de qualquer migração.
+2. Preflight remoto: recusa URL HTTPS e segredos necessários ausentes antes de qualquer migração.
 3. Runner abre túnel SSM para RDS e executa Prisma usando a role SQL **owner**. O hostname
    do certificado é preservado; a resolução para localhost ocorre só no container de migração.
    Credencial temporária fica em arquivo 0600 no runner, removido ao encerrar. A EC2 não
