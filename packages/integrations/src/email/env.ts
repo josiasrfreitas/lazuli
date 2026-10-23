@@ -34,9 +34,6 @@ export function parseEmailEnvironment(
 ): EmailEnvironment {
   const parsed = emailEnvironmentSchema.parse(source ?? process.env);
 
-  if (parsed.LAZULI_ENV === "staging" && parsed.RESEND_API_KEY) {
-    throw new Error("Staging email must use Mailpit, not Resend.");
-  }
   if (parsed.LAZULI_ENV === "prod" && !parsed.RESEND_API_KEY) {
     throw new Error("Production email requires RESEND_API_KEY.");
   }
