@@ -105,6 +105,9 @@ export async function readBusinessComparison(database: Context["db"], period: Ho
     }),
   ]);
   const received = period.months.map((month) => ({ month, value: 0 }));
+  const datedContracts = contracts.filter(
+    (row): row is typeof row & { agreedOn: Date } => row.agreedOn !== null,
+  );
   let previousReceivedCents = 0;
   for (const payment of payments) {
     const date = payment.date.toISOString().slice(0, 10);
@@ -117,13 +120,13 @@ export async function readBusinessComparison(database: Context["db"], period: Ho
     received,
     previousReceivedCents,
     agreements: monthlyCounts(
-      contracts.map((row) => row.agreedOn.toISOString().slice(0, 10)),
+      datedContracts.map((row) => row.agreedOn.toISOString().slice(0, 10)),
       period,
     ),
-    newContracts: contracts.filter(
+    newContracts: datedContracts.filter(
       (row) => row.agreedOn.toISOString().startsWith(period.month) && !row.renewedFromId,
     ).length,
-    renewals: contracts.filter(
+    renewals: datedContracts.filter(
       (row) => row.agreedOn.toISOString().startsWith(period.month) && row.renewedFromId,
     ).length,
   };

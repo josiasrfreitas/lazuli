@@ -78,7 +78,7 @@ export function SchoolChart({ data }: { data: HomeData }): ReactElement {
                   active && payload?.length ? (
                     <div className={styles.tooltip}>
                       {payload.map((item) => (
-                        <p key={item.dataKey}>
+                        <p key={String(item.dataKey)}>
                           {item.name}: {item.value}
                         </p>
                       ))}

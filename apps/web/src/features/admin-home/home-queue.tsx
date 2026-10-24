@@ -19,7 +19,7 @@ export function HomeQueue({
   selected: HomeGroup | null;
   select: SelectGroup;
   open: OpenAction;
-  agenda?: ReactElement;
+  agenda?: ReactElement | undefined;
 }): ReactElement {
   if (selected)
     return (
