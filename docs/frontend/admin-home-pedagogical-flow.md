@@ -9,16 +9,16 @@ indicators. This is the implemented direction, pending the owner's visual accept
 The priority model is local to the home. It uses the server's `today` and `updatedAt` snapshot in
 `America/Sao_Paulo`, refreshed with the home query. Queue volume never increases urgency.
 
-| Order | Evidence | Presentation and next step |
-| --- | --- | --- |
-| 1 | An uncovered meeting has started and has not ended | Destructive state, start time and class in focus; assign the responsible teacher |
-| 2 | An uncovered meeting or planned student entry is today; or an unpublished entry date has passed | Today's work gets warning emphasis. A past entry is destructive because publication rejects past dates; review the dates before publishing. Today's coverage wins a tie. |
-| 3 | A meeting or student entry is tomorrow or the following day | Warning, with the nearer date first, regardless of queue type or count |
-| 4 | An assessment or explicit allocation request has waited at least seven school dates; or a recent meeting ended on an earlier school date without its record | Follow-up. Long wait gets warning emphasis; records stay neutral. Seven days is an explicit home attention threshold, **not** a contractual SLA or a claim that work is overdue. |
-| 5 | An uncovered meeting or student entry is three to six days away | Neutral preparation, nearer date first |
-| 6 | A received placement assessment has waited less than seven school dates; or today's ended meeting lacks its record | Neutral follow-up |
-| 7 | A student needs a class, a recent explicit allocation request needs routing, or timing is unknown | Neutral organization, no invented deadline or elapsed wait |
-| 8 | An unpublished entry is at least seven days away | Neutral planning |
+| Order | Evidence                                                                                                                                                    | Presentation and next step                                                                                                                                                       |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | An uncovered meeting has started and has not ended                                                                                                          | Destructive state, start time and class in focus; assign the responsible teacher                                                                                                 |
+| 2     | An uncovered meeting or planned student entry is today; or an unpublished entry date has passed                                                             | Today's work gets warning emphasis. A past entry is destructive because publication rejects past dates; review the dates before publishing. Today's coverage wins a tie.         |
+| 3     | A meeting or student entry is tomorrow or the following day                                                                                                 | Warning, with the nearer date first, regardless of queue type or count                                                                                                           |
+| 4     | An assessment or explicit allocation request has waited at least seven school dates; or a recent meeting ended on an earlier school date without its record | Follow-up. Long wait gets warning emphasis; records stay neutral. Seven days is an explicit home attention threshold, **not** a contractual SLA or a claim that work is overdue. |
+| 5     | An uncovered meeting or student entry is three to six days away                                                                                             | Neutral preparation, nearer date first                                                                                                                                           |
+| 6     | A received placement assessment has waited less than seven school dates; or today's ended meeting lacks its record                                          | Neutral follow-up                                                                                                                                                                |
+| 7     | A student needs a class, a recent explicit allocation request needs routing, or timing is unknown                                                           | Neutral organization, no invented deadline or elapsed wait                                                                                                                       |
+| 8     | An unpublished entry is at least seven days away                                                                                                            | Neutral planning                                                                                                                                                                 |
 
 Ties between different natures use coverage, semester entry, class records, appointment records,
 placement correction, students without classes, and allocation requests. Within an upcoming-date
@@ -32,15 +32,15 @@ queue, not an inferred count of cases with the first preview's urgency.
 
 ## Evidence and destinations
 
-| Queue | Timing fact | Resolution path |
-| --- | --- | --- |
-| Uncovered classes | Projected meeting date/start/end; ordered before previewing | Class teacher assignments and substitutions |
-| Class records | Ended session date/time, with the responsible teacher resolved by the existing record model | Class-record consultation; follow up with the teacher |
-| Appointment records | Ended appointment date/time | Appointment dialog and record action |
-| Placement corrections | Assessment `uploadedAt`, not the visit date | Lead workspace, assessment correction and entry stage |
-| Students without classes | No reliable start of waiting; student creation is not used as a deadline | Student profile and continued registration |
-| Explicit allocation requests | Candidate `allocationPendingAt` | Lead allocation workspace |
-| Unpublished semester entries | `effectiveDate`, falling back to semester `startDate`, matching publication | Semester organization with semester/class context |
+| Queue                        | Timing fact                                                                                 | Resolution path                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Uncovered classes            | Projected meeting date/start/end; ordered before previewing                                 | Class teacher assignments and substitutions           |
+| Class records                | Ended session date/time, with the responsible teacher resolved by the existing record model | Class-record consultation; follow up with the teacher |
+| Appointment records          | Ended appointment date/time                                                                 | Appointment dialog and record action                  |
+| Placement corrections        | Assessment `uploadedAt`, not the visit date                                                 | Lead workspace, assessment correction and entry stage |
+| Students without classes     | No reliable start of waiting; student creation is not used as a deadline                    | Student profile and continued registration            |
+| Explicit allocation requests | Candidate `allocationPendingAt`                                                             | Lead allocation workspace                             |
+| Unpublished semester entries | `effectiveDate`, falling back to semester `startDate`, matching publication                 | Semester organization with semester/class context     |
 
 The semester query orders by the effective date **before** pagination or the three-case preview.
 A late-created proposal with an earlier entry must not disappear behind older drafts. Placement

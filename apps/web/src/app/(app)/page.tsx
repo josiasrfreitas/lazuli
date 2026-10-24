@@ -32,7 +32,8 @@ export default async function HomePage(): Promise<ReactNode> {
     redirect(experienceActivationHref("TEACHER", "/professor"));
   }
 
-  if (identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN") return <AdminHome name={identity.name} finance={canAccess(identity.role, "finance")} />;
+  if (identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN")
+    return <AdminHome name={identity.name} finance={canAccess(identity.role, "finance")} />;
 
   const home = homeHrefFor(identity.role);
 

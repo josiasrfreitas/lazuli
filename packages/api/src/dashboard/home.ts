@@ -34,11 +34,19 @@ export async function readAdminHome({
       kinds.map(async (kind) => {
         const records = kind === "lessons" || kind === "appointments";
         const group = await readHomePending(database, {
-          kind, now, page: 1, pageSize: HOME_PREVIEW_SIZE, period: records ? "recent" : "all",
+          kind,
+          now,
+          page: 1,
+          pageSize: HOME_PREVIEW_SIZE,
+          period: records ? "recent" : "all",
         });
         if (!records) return group;
         const history = await readHomePending(database, {
-          kind, now, page: 1, pageSize: 0, period: "history",
+          kind,
+          now,
+          page: 1,
+          pageSize: 0,
+          period: "history",
         });
         return { ...group, historyTotal: history.total };
       }),
@@ -59,21 +67,32 @@ export async function readAdminHome({
   };
 }
 /** Cash and commercial agreements stay separate; no accounting revenue is inferred. */
-export async function readHomeBusiness(database: Context["db"], now: Date, requestedMonth?: string) {
+export async function readHomeBusiness(
+  database: Context["db"],
+  now: Date,
+  requestedMonth?: string,
+) {
   const period = homePeriod(now, requestedMonth);
   const [analytics, comparison] = await Promise.all([
     readAnalytics(database, { year: Number(period.month.slice(0, 4)), now }),
     readBusinessComparison(database, period),
   ]);
-  const current = analytics.months.find(row => row.month === period.month)!;
+  const current = analytics.months.find((row) => row.month === period.month)!;
   return {
-    month: period.month, through: period.through, previousThrough: period.previousThrough, partial: period.partial,
-    newContracts: comparison.newContracts, renewals: comparison.renewals,
-    receivedCents: current.receivedCents, expectedCents: current.expectedCents,
-    overdueCents: analytics.overdueCents, overduePayers: analytics.overduePayers,
-    aging: analytics.aging, receivedSeries: comparison.received,
+    month: period.month,
+    through: period.through,
+    previousThrough: period.previousThrough,
+    partial: period.partial,
+    newContracts: comparison.newContracts,
+    renewals: comparison.renewals,
+    receivedCents: current.receivedCents,
+    expectedCents: current.expectedCents,
+    overdueCents: analytics.overdueCents,
+    overduePayers: analytics.overduePayers,
+    aging: analytics.aging,
+    receivedSeries: comparison.received,
     previousReceivedCents: comparison.previousReceivedCents,
     agreements: comparison.agreements,
-    months: analytics.months.filter(row => row.month <= period.month).slice(-6),
+    months: analytics.months.filter((row) => row.month <= period.month).slice(-6),
   };
 }

@@ -33,8 +33,28 @@ export function GroupDetail({
       </div>
       {(group.kind === "lessons" || group.kind === "appointments") && (
         <div className={styles.periodSwitch} role="group" aria-label="Período dos registros">
-          <Button variant={period === "recent" ? "secondary" : "ghost"} size="sm" aria-pressed={period === "recent"} onClick={() => { setPeriod("recent"); setPage(1); }}>Últimos 7 dias</Button>
-          <Button variant={period === "history" ? "secondary" : "ghost"} size="sm" aria-pressed={period === "history"} onClick={() => { setPeriod("history"); setPage(1); }}>Histórico anterior</Button>
+          <Button
+            variant={period === "recent" ? "secondary" : "ghost"}
+            size="sm"
+            aria-pressed={period === "recent"}
+            onClick={() => {
+              setPeriod("recent");
+              setPage(1);
+            }}
+          >
+            Últimos 7 dias
+          </Button>
+          <Button
+            variant={period === "history" ? "secondary" : "ghost"}
+            size="sm"
+            aria-pressed={period === "history"}
+            onClick={() => {
+              setPeriod("history");
+              setPage(1);
+            }}
+          >
+            Histórico anterior
+          </Button>
         </div>
       )}
       <div className={styles.table}>
@@ -42,8 +62,11 @@ export function GroupDetail({
           label={group.title}
           columns={groupColumns(group, open)}
           state={tableState(query)}
-          loadingRows={Math.min(PAGE_SIZE, (period === "history" ? group.historyTotal : group.total) || 4)}
-          onRowClick={item => open(item.action)}
+          loadingRows={Math.min(
+            PAGE_SIZE,
+            (period === "history" ? group.historyTotal : group.total) || 4,
+          )}
+          onRowClick={(item) => open(item.action)}
           pagination={{
             page,
             pageSize: PAGE_SIZE,
@@ -77,12 +100,24 @@ function tableState(query: PendingQuery): DataTableState<HomeItem> {
   return rows.length > 0 ? { kind: "data", rows } : { kind: "empty" };
 }
 function groupColumns(group: HomeGroup, open: OpenAction): DataTableColumn<HomeItem>[] {
-  const dateLabel = group.kind === "allocation" ? "Em espera desde" : group.kind === "placement" ? "Prova recebida" : group.kind === "semester" ? "Entrada prevista" : "Data";
-  const dates: DataTableColumn<HomeItem>[] = ["students", "contracts"].includes(
-    group.kind,
-  )
+  const dateLabel =
+    group.kind === "allocation"
+      ? "Em espera desde"
+      : group.kind === "placement"
+        ? "Prova recebida"
+        : group.kind === "semester"
+          ? "Entrada prevista"
+          : "Data";
+  const dates: DataTableColumn<HomeItem>[] = ["students", "contracts"].includes(group.kind)
     ? []
-    : [{ id: "date", header: dateLabel, width: "narrow", cell: (item) => <ItemDate item={item} /> }];
+    : [
+        {
+          id: "date",
+          header: dateLabel,
+          width: "narrow",
+          cell: (item) => <ItemDate item={item} />,
+        },
+      ];
   return [
     {
       id: "subject",

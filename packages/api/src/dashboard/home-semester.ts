@@ -22,21 +22,33 @@ export async function readSemesterPending(
     .where("semester.end_date", ">=", new Date(saoPauloDateOnly(now)));
   const [count, rows] = await Promise.all([
     base.select(sql<number>`count(*)::int`.as("total")).executeTakeFirstOrThrow(),
-    base.select([
-      "placement.id", "placement.semester_id as semesterId", "placement.plan_id as planId",
-      "student.full_name as studentName", "semester.name as semesterName", entryDate.as("entryDate"),
-    ]).orderBy(entryDate).orderBy("placement.created_at").orderBy("placement.id")
-      .offset(skip).limit(take).execute(),
+    base
+      .select([
+        "placement.id",
+        "placement.semester_id as semesterId",
+        "placement.plan_id as planId",
+        "student.full_name as studentName",
+        "semester.name as semesterName",
+        entryDate.as("entryDate"),
+      ])
+      .orderBy(entryDate)
+      .orderBy("placement.created_at")
+      .orderBy("placement.id")
+      .offset(skip)
+      .limit(take)
+      .execute(),
   ]);
   return {
     total: count.total,
-    items: rows.map(row => linkItem({
-      id: row.id,
-      title: row.studentName,
-      detail: `Revisar proposta · ${row.semesterName}`,
-      href: `/organizacao?semestre=${row.semesterId}${row.planId ? `&turma=${row.planId}` : "&visao=alunos"}`,
-      date: dateOnly(row.entryDate),
-      timing: { kind: "entry", date: dateOnly(row.entryDate) },
-    })),
+    items: rows.map((row) =>
+      linkItem({
+        id: row.id,
+        title: row.studentName,
+        detail: `Revisar proposta · ${row.semesterName}`,
+        href: `/organizacao?semestre=${row.semesterId}${row.planId ? `&turma=${row.planId}` : "&visao=alunos"}`,
+        date: dateOnly(row.entryDate),
+        timing: { kind: "entry", date: dateOnly(row.entryDate) },
+      }),
+    ),
   };
 }

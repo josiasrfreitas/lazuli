@@ -18,14 +18,25 @@ import {
 } from "./home-model.js";
 
 type Database = TransactionClient;
-type Scope = { kind: HomeGroupKind; now: Date; page: number; pageSize?: number; period?: "all" | "recent" | "history" };
+type Scope = {
+  kind: HomeGroupKind;
+  now: Date;
+  page: number;
+  pageSize?: number;
+  period?: "all" | "recent" | "history";
+};
 type Page = { skip: number; take: number };
 type Result = { total: number; items: HomeItem[] };
 export async function readHomePending(database: Database, input: Scope): Promise<HomeGroup> {
   const take = input.pageSize ?? HOME_PAGE_SIZE;
   const page = { skip: (input.page - 1) * take, take };
   const result = await readGroup(database, { ...input, pagination: page });
-  return { kind: input.kind, period: input.period ?? "all", ...HOME_GROUP_INFO[input.kind], ...result };
+  return {
+    kind: input.kind,
+    period: input.period ?? "all",
+    ...HOME_GROUP_INFO[input.kind],
+    ...result,
+  };
 }
 /** Recent records cover today and the preceding six school dates. */
 function recordPeriod(now: Date, period: Scope["period"]): { date?: { gte: Date } | { lt: Date } } {
@@ -119,7 +130,12 @@ async function allocationPage(database: Database, page: Page): Promise<Result> {
       where,
       ...page,
       orderBy: [{ allocationPendingAt: "asc" }, { id: "asc" }],
-      select: { id: true, fullName: true, allocationPendingReason: true, allocationPendingAt: true },
+      select: {
+        id: true,
+        fullName: true,
+        allocationPendingReason: true,
+        allocationPendingAt: true,
+      },
     }),
   ]);
   return {
@@ -131,7 +147,9 @@ async function allocationPage(database: Database, page: Page): Promise<Result> {
         detail: row.allocationPendingReason ?? "Buscar uma turma compatível",
         href: `/interessados/${row.id}`,
         date: row.allocationPendingAt ? saoPauloDateOnly(row.allocationPendingAt) : null,
-        ...(row.allocationPendingAt && { timing: { kind: "waiting", since: row.allocationPendingAt.toISOString() } as const }),
+        ...(row.allocationPendingAt && {
+          timing: { kind: "waiting", since: row.allocationPendingAt.toISOString() } as const,
+        }),
       }),
     ),
   };
@@ -167,7 +185,9 @@ async function placementPage(database: Database, page: Page): Promise<Result> {
         detail: "Corrigir a prova e definir o estágio",
         href: `/interessados/${row.candidateId}`,
         date: row.assessment ? saoPauloDateOnly(row.assessment.uploadedAt) : null,
-        ...(row.assessment && { timing: { kind: "waiting", since: row.assessment.uploadedAt.toISOString() } as const }),
+        ...(row.assessment && {
+          timing: { kind: "waiting", since: row.assessment.uploadedAt.toISOString() } as const,
+        }),
       }),
     ),
   };
@@ -222,7 +242,13 @@ async function appointmentPage(
       where,
       ...page,
       orderBy: [{ date: "asc" }, { startTime: "asc" }, { id: "asc" }],
-      select: { id: true, date: true, startTime: true, endTime: true, student: { select: { fullName: true } } },
+      select: {
+        id: true,
+        date: true,
+        startTime: true,
+        endTime: true,
+        student: { select: { fullName: true } },
+      },
     }),
   ]);
   return {

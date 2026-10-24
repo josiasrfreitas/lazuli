@@ -50,7 +50,12 @@ export async function readCoverage(
     .filter(
       (row) => !row.cancelled && responsibleTeacherId(row) === null && sessionEndInstant(row) > now,
     )
-    .toSorted((left, right) => left.date.localeCompare(right.date) || left.startTime.localeCompare(right.startTime) || meetingKey(left).localeCompare(meetingKey(right)))
+    .toSorted(
+      (left, right) =>
+        left.date.localeCompare(right.date) ||
+        left.startTime.localeCompare(right.startTime) ||
+        meetingKey(left).localeCompare(meetingKey(right)),
+    )
     .map((row) =>
       linkItem({
         id: meetingKey(row),

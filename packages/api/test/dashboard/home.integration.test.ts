@@ -197,35 +197,59 @@ void it("orders unpublished placements by effective entry before pagination, inc
     // Older draft rows with later entry dates must not hide the earlier effective entries.
     for (let index = 0; index < 13; index++) {
       const studentId = await seedStudent({ suffix: `Home late entry ${index}`, createdAt: NOW });
-      const row = await db.semesterPlacement.create({ data: {
-        semesterId: catalog.semesterId, studentId, trackId: stage.trackId, stageId: stage.id,
-        mode: "ENTRY", effectiveDate: new Date("2084-04-01"), recordedById: ADMIN.id,
-      } });
+      const row = await db.semesterPlacement.create({
+        data: {
+          semesterId: catalog.semesterId,
+          studentId,
+          trackId: stage.trackId,
+          stageId: stage.id,
+          mode: "ENTRY",
+          effectiveDate: new Date("2084-04-01"),
+          recordedById: ADMIN.id,
+        },
+      });
       placements.push(row.id);
     }
     const tomorrowStudent = await seedStudent({ suffix: "Home tomorrow entry", createdAt: NOW });
-    const tomorrow = await db.semesterPlacement.create({ data: {
-      semesterId: catalog.semesterId, studentId: tomorrowStudent, trackId: stage.trackId,
-      mode: "ENTRY", effectiveDate: new Date("2084-03-11"), recordedById: ADMIN.id,
-    } });
+    const tomorrow = await db.semesterPlacement.create({
+      data: {
+        semesterId: catalog.semesterId,
+        studentId: tomorrowStudent,
+        trackId: stage.trackId,
+        mode: "ENTRY",
+        effectiveDate: new Date("2084-03-11"),
+        recordedById: ADMIN.id,
+      },
+    });
     placements.push(tomorrow.id);
     const pastStudent = await seedStudent({ suffix: "Home past entry", createdAt: NOW });
-    const past = await db.semesterPlacement.create({ data: {
-      semesterId: catalog.semesterId, studentId: pastStudent, trackId: stage.trackId,
-      mode: "ENTRY", recordedById: ADMIN.id,
-    } });
+    const past = await db.semesterPlacement.create({
+      data: {
+        semesterId: catalog.semesterId,
+        studentId: pastStudent,
+        trackId: stage.trackId,
+        mode: "ENTRY",
+        recordedById: ADMIN.id,
+      },
+    });
     placements.push(past.id);
     const home = await caller(ADMIN, NOW).dashboard.home();
-    const preview = home.groups.find(group => group.kind === "semester");
+    const preview = home.groups.find((group) => group.kind === "semester");
     assert.equal(preview?.total, 15);
     assert.equal(preview?.items.length, 3);
-    assert.deepEqual(preview?.items.slice(0, 2).map(item => [item.id, item.timing]), [
-      [past.id, { kind: "entry", date: "2084-02-01" }],
-      [tomorrow.id, { kind: "entry", date: "2084-03-11" }],
-    ]);
+    assert.deepEqual(
+      preview?.items.slice(0, 2).map((item) => [item.id, item.timing]),
+      [
+        [past.id, { kind: "entry", date: "2084-02-01" }],
+        [tomorrow.id, { kind: "entry", date: "2084-03-11" }],
+      ],
+    );
     const last = await caller(ADMIN, NOW).dashboard.pending({ kind: "semester", page: 2 });
     assert.equal(last.total, 15);
-    assert.deepEqual(last.items.map(item => item.date), ["2084-04-01", "2084-04-01", "2084-04-01"]);
+    assert.deepEqual(
+      last.items.map((item) => item.date),
+      ["2084-04-01", "2084-04-01", "2084-04-01"],
+    );
   } finally {
     await db.semesterPlacement.deleteMany({ where: { id: { in: placements } } });
   }
@@ -239,30 +263,60 @@ void it("dates correction and allocation waits from received work rather than th
       ["Earlier visit, newer upload", "2084-03-01", "2084-03-10T12:00:00Z", "2084-03-09T12:00:00Z"],
       ["Later visit, oldest upload", "2084-03-05", "2084-03-07T02:30:00Z", "2084-03-08T02:30:00Z"],
     ]) {
-      const candidate = await db.admissionCandidate.create({ data: {
-        fullName: `${TEST_PREFIX}${suffix}`, email: "home-wait@example.com", recordedById: ADMIN.id,
-        allocationPendingAt: new Date(waitingAt!), allocationPendingReason: "Aguardando horário compatível",
-      } });
+      const candidate = await db.admissionCandidate.create({
+        data: {
+          fullName: `${TEST_PREFIX}${suffix}`,
+          email: "home-wait@example.com",
+          recordedById: ADMIN.id,
+          allocationPendingAt: new Date(waitingAt!),
+          allocationPendingReason: "Aguardando horário compatível",
+        },
+      });
       candidateIds.push(candidate.id);
-      const visit = await db.entryVisit.create({ data: {
-        candidateId: candidate.id, kind: "PLACEMENT", date: new Date(visitDate!),
-        startTime: new Date("1970-01-01T10:00:00Z"), endTime: new Date("1970-01-01T11:00:00Z"),
-        format: "IN_PERSON", recordedById: ADMIN.id,
-        assessment: { create: {
-          bucket: "test-private", key: `home/${candidate.id}`, fileName: "placement.pdf", contentType: "application/pdf",
-          byteLength: 10, uploadedById: ADMIN.id, uploadedAt: new Date(uploadedAt!),
-        } },
-      } });
+      const visit = await db.entryVisit.create({
+        data: {
+          candidateId: candidate.id,
+          kind: "PLACEMENT",
+          date: new Date(visitDate!),
+          startTime: new Date("1970-01-01T10:00:00Z"),
+          endTime: new Date("1970-01-01T11:00:00Z"),
+          format: "IN_PERSON",
+          recordedById: ADMIN.id,
+          assessment: {
+            create: {
+              bucket: "test-private",
+              key: `home/${candidate.id}`,
+              fileName: "placement.pdf",
+              contentType: "application/pdf",
+              byteLength: 10,
+              uploadedById: ADMIN.id,
+              uploadedAt: new Date(uploadedAt!),
+            },
+          },
+        },
+      });
       visits.push(visit.id);
     }
     const placement = await caller(ADMIN, NOW).dashboard.pending({ kind: "placement", page: 1 });
-    assert.deepEqual(placement.items.map(item => item.id), [visits[1], visits[0]]);
+    assert.deepEqual(
+      placement.items.map((item) => item.id),
+      [visits[1], visits[0]],
+    );
     assert.equal(placement.items[0]?.date, "2084-03-06");
-    assert.deepEqual(placement.items[0]?.timing, { kind: "waiting", since: "2084-03-07T02:30:00.000Z" });
+    assert.deepEqual(placement.items[0]?.timing, {
+      kind: "waiting",
+      since: "2084-03-07T02:30:00.000Z",
+    });
     const allocation = await caller(ADMIN, NOW).dashboard.pending({ kind: "allocation", page: 1 });
-    assert.deepEqual(allocation.items.map(item => item.id), [candidateIds[1], candidateIds[0]]);
+    assert.deepEqual(
+      allocation.items.map((item) => item.id),
+      [candidateIds[1], candidateIds[0]],
+    );
     assert.equal(allocation.items[0]?.date, "2084-03-07");
-    assert.deepEqual(allocation.items[0]?.timing, { kind: "waiting", since: "2084-03-08T02:30:00.000Z" });
+    assert.deepEqual(allocation.items[0]?.timing, {
+      kind: "waiting",
+      since: "2084-03-08T02:30:00.000Z",
+    });
   } finally {
     await db.entryVisitAssessment.deleteMany({ where: { visitId: { in: visits } } });
     await db.entryVisit.deleteMany({ where: { id: { in: visits } } });

@@ -91,7 +91,8 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
   },
   semester: {
     title: "Entradas em turma por confirmar",
-    description: "Alunos com turma proposta para o semestre, mas cuja entrada ainda não foi confirmada.",
+    description:
+      "Alunos com turma proposta para o semestre, mas cuja entrada ainda não foi confirmada.",
     area: "school",
     attention: false,
   },
