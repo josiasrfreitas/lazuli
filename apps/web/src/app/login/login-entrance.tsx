@@ -58,6 +58,10 @@ function useLoginEntrance(skip: boolean): RefObject<HTMLDivElement | null> {
 function startEntrance(container: HTMLElement, eligible: boolean): () => void {
   const controller = new AbortController();
   const media = globalThis.matchMedia(ENTRANCE_MOTION);
+  const images = [...container.querySelectorAll("img")];
+  const assetsLoaded =
+    images.every((image) => image.complete && image.naturalWidth > 0) &&
+    document.fonts.status === "loaded";
   let animations: Animation[] = [];
   const finish = (): void => {
     if (container.dataset.phase === "ready") return;
@@ -67,6 +71,10 @@ function startEntrance(container: HTMLElement, eligible: boolean): () => void {
   };
   const reveal = (): void => {
     if (controller.signal.aborted || container.dataset.phase === "ready") return;
+    if (assetsLoaded || !eligible) {
+      finish();
+      return;
+    }
     container.dataset.phase = "opening";
     animations = eligible && media.matches ? animateEntrance(container) : dissolveLoader(container);
     void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
@@ -75,10 +83,7 @@ function startEntrance(container: HTMLElement, eligible: boolean): () => void {
   };
   container.dataset.phase = "loading";
   bindInterruptions(container, { signal: controller.signal, media, finish });
-  void waitForLoginAssets(container.querySelectorAll("img"), controller.signal).then(
-    reveal,
-    reveal,
-  );
+  void waitForLoginAssets(images, controller.signal).then(reveal, reveal);
   return () => {
     controller.abort();
     for (const animation of animations) animation.cancel();
