@@ -5,18 +5,16 @@ import { userAgent } from "next/server";
 import type { ReactNode } from "react";
 
 import { getStaffIdentity } from "@lazuli/auth/server";
+import { canAccess } from "@lazuli/api";
 import { EmptyState } from "@lazuli/ui";
+
+import { AdminHome } from "~/features/admin-home/home";
 
 import { homeHrefFor } from "~/components/app-shell/nav-items";
 import { experienceActivationHref } from "~/lib/staff-experience";
 
 export const metadata: Metadata = { title: "Início" };
 
-/**
- * There is no dashboard yet, so Início forwards to the role's first vertical.
- * A role with no open vertical gets a quiet placeholder instead of landing on
- * a screen whose procedures would deny it.
- */
 export default async function HomePage(): Promise<ReactNode> {
   const requestHeaders = await headers();
   const identity = await getStaffIdentity({ headers: requestHeaders });
@@ -33,6 +31,9 @@ export default async function HomePage(): Promise<ReactNode> {
   ) {
     redirect(experienceActivationHref("TEACHER", "/professor"));
   }
+
+  if (identity.role === "ADMIN" || identity.role === "SYSTEM_ADMIN")
+    return <AdminHome name={identity.name} finance={canAccess(identity.role, "finance")} />;
 
   const home = homeHrefFor(identity.role);
 

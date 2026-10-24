@@ -111,8 +111,9 @@ void describe("role-aware navigation", () => {
     assert.equal(matchesNavHref({ href: STUDENTS_PATH, pathname: "/alunos-inativos" }), false);
   });
 
-  void it("sends Início to the role's first vertical, or nowhere", () => {
-    assert.equal(homeHrefFor("ADMIN"), STUDENTS_PATH);
+  void it("sends administrators to home and preserves the teacher workspace", () => {
+    assert.equal(homeHrefFor("ADMIN"), "/");
+    assert.equal(homeHrefFor("SYSTEM_ADMIN"), "/");
     assert.equal(homeHrefFor("TEACHER"), "/professor");
     assert.equal(homeHrefFor("SECRETARY"), null);
     assert.equal(homeHrefFor("FINANCE"), null);
