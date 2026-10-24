@@ -1,7 +1,9 @@
 import { createEmailSender } from "@lazuli/integrations";
 
 import type { AuthEnvironment } from "./env.js";
-import type { MagicLinkDelivery, MagicLinkSender } from "./auth-options.js";
+import type { MagicLinkSender } from "./auth-options.js";
+
+import { createMagicLinkEmail } from "./magic-link-email.js";
 
 export function createMagicLinkSender(environment: AuthEnvironment): MagicLinkSender {
   const sender = createEmailSender(environment);
@@ -10,11 +12,7 @@ export function createMagicLinkSender(environment: AuthEnvironment): MagicLinkSe
     await sender.send({
       to: delivery.email,
       subject: "Seu link de acesso ao Lazuli",
-      text: createMagicLinkEmailText(delivery),
+      ...createMagicLinkEmail(delivery.url),
     });
   };
-}
-
-function createMagicLinkEmailText(delivery: MagicLinkDelivery): string {
-  return `Use este link para acessar o Lazuli:\n\n${delivery.url}`;
 }
