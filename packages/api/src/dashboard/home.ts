@@ -18,6 +18,27 @@ type HomeSummary = {
   agenda: Awaited<ReturnType<typeof readHomeAgenda>>;
 };
 type HomeContext = { database: Context["db"]; now: Date; staffUser: StaffUser; month?: string };
+type Analytics = Awaited<ReturnType<typeof readAnalytics>>;
+type Comparison = Awaited<ReturnType<typeof readBusinessComparison>>;
+type HomeBusiness = {
+  month: string;
+  through: string;
+  previousThrough: string;
+  partial: boolean;
+  newContracts: number;
+  renewals: number;
+  receivedCents: number;
+  expectedCents: number;
+  overdueCents: number;
+  overduePayers: number;
+  aging: Analytics["aging"];
+  receivedSeries: Comparison["received"];
+  previousReceivedCents: number;
+  agreements: Comparison["agreements"];
+  months: Analytics["months"];
+};
+const YEAR_LENGTH = 4;
+const REPORT_MONTHS = 6;
 export async function readAdminHome({
   database,
   now,
@@ -53,7 +74,7 @@ export async function readAdminHome({
     ),
     readHomeAgenda(database, now),
     database.student.count({ where: { deletedAt: null, status: "ACTIVE" } }),
-    readHomeSchool(database, now, month),
+    readHomeSchool({ database, now, requestedMonth: month }),
   ]);
   return {
     today,
@@ -67,14 +88,18 @@ export async function readAdminHome({
   };
 }
 /** Cash and commercial agreements stay separate; no accounting revenue is inferred. */
-export async function readHomeBusiness(
-  database: Context["db"],
-  now: Date,
-  requestedMonth?: string,
-) {
+export async function readHomeBusiness({
+  database,
+  now,
+  requestedMonth,
+}: {
+  database: Context["db"];
+  now: Date;
+  requestedMonth?: string | undefined;
+}): Promise<HomeBusiness> {
   const period = homePeriod(now, requestedMonth);
   const [analytics, comparison] = await Promise.all([
-    readAnalytics(database, { year: Number(period.month.slice(0, 4)), now }),
+    readAnalytics(database, { year: Number(period.month.slice(0, YEAR_LENGTH)), now }),
     readBusinessComparison(database, period),
   ]);
   const current = analytics.months.find((row) => row.month === period.month)!;
@@ -93,6 +118,6 @@ export async function readHomeBusiness(
     receivedSeries: comparison.received,
     previousReceivedCents: comparison.previousReceivedCents,
     agreements: comparison.agreements,
-    months: analytics.months.filter((row) => row.month <= period.month).slice(-6),
+    months: analytics.months.filter((row) => row.month <= period.month).slice(-REPORT_MONTHS),
   };
 }

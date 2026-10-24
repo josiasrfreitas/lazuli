@@ -8,7 +8,7 @@ import { trpc, type QueryResult } from "~/lib/trpc";
 import { ClassRecordDialog } from "~/features/class-records/class-record-dialog";
 import { StudentAppointmentDialog } from "~/features/appointments/student-appointment-dialog";
 import { BusinessSummary } from "./home-business";
-import { SchoolMetrics } from "./home-metrics";
+import { SchoolMetrics, type BusinessData } from "./home-metrics";
 import { SchoolChart } from "./home-school";
 import { HomeStart, isSchoolStarting } from "./home-start";
 import { HomeLoading, MetricsLoading, ChartLoading } from "./home-loading";
@@ -63,17 +63,32 @@ function useAdminHome(month: string): AdminHomeState {
     };
     if (
       document.startViewTransition &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      !globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
       const transition = document.startViewTransition(update);
       // A second navigation may cancel the visual transition after the state has already changed.
-      void transition.ready.catch((error: unknown) => {
+      void transition.ready.catch((error: DOMException) => {
         if (!(error instanceof DOMException && error.name === "AbortError")) throw error;
       });
     } else update();
   };
   return { query, selected, dialog, open, close, select };
 }
+type BusinessState = {
+  data: BusinessData | undefined;
+  pending: boolean;
+  error: boolean;
+  retry: () => void;
+};
+type HomeViewProps = {
+  state: AdminHomeState;
+  business: BusinessState;
+  finance: boolean;
+  month: string;
+  currentMonth: string;
+  changeMonth: (value: string | null) => void;
+};
+const YEAR_MONTH_LENGTH = 7;
 export function AdminHome({ name, finance }: { name: string; finance: boolean }): ReactElement {
   const params = useSearchParams();
   const currentMonth = new Intl.DateTimeFormat("en-CA", {
@@ -82,14 +97,14 @@ export function AdminHome({ name, finance }: { name: string; finance: boolean })
     month: "2-digit",
   })
     .format(new Date())
-    .slice(0, 7);
+    .slice(0, YEAR_MONTH_LENGTH);
   const monthParam = params.get("mes");
   const month =
     monthParam && /^20\d{2}-(0[1-9]|1[0-2])$/u.test(monthParam) && monthParam <= currentMonth
       ? monthParam
       : currentMonth;
-  const { query, selected, dialog, open, close, select } = useAdminHome(month);
-  const business = trpc.dashboard.business.useQuery(
+  const state = useAdminHome(month);
+  const businessQuery = trpc.dashboard.business.useQuery(
     { month },
     { enabled: finance, refetchInterval: 60_000 },
   );
@@ -100,15 +115,33 @@ export function AdminHome({ name, finance }: { name: string; finance: boolean })
     next.set("mes", value);
     router.replace(`/?${next.toString()}`, { scroll: false });
   };
-  const starting = isSchoolStarting(query.data, business.data, finance);
-  const showAgenda = query.isPending || Boolean(query.data?.agenda.total);
-  const hasPedagogy = Boolean(query.data && pedagogicalGroups(query.data.groups).length > 0);
-  const agendaBesideWork = showAgenda && (query.isPending || hasPedagogy);
-  const agendaBesideInsights = showAgenda && !agendaBesideWork;
-  const schoolPending =
-    query.isPending || Boolean(query.data && query.data.school.month !== month && !query.isError);
+  const business: BusinessState = {
+    data: businessQuery.data,
+    pending: businessQuery.isPending,
+    error: businessQuery.isError,
+    retry: () => void businessQuery.refetch(),
+  };
   return (
     <div className={styles.page}>
+      <WelcomeArea name={name} state={state} />
+      <HomeBody
+        state={state}
+        business={business}
+        finance={finance}
+        month={month}
+        currentMonth={currentMonth}
+        changeMonth={changeMonth}
+      />
+      <HomeFooter />
+      <HomeDialogs state={state} />
+    </div>
+  );
+}
+function WelcomeArea({ name, state }: { name: string; state: AdminHomeState }): ReactElement {
+  const { query, selected, open } = state;
+  const showAgenda = query.isPending || Boolean(query.data?.agenda.total);
+  return (
+    <>
       {!selected && (
         <HomeWelcome name={name} data={query.data}>
           <div className={styles.welcomeContext}>
@@ -129,75 +162,139 @@ export function AdminHome({ name, finance }: { name: string; finance: boolean })
             : "Não foi possível carregar os próximos passos e a agenda. Tente novamente."}
         </HomeError>
       )}
-      {selected && query.data ? (
-        <HomeQueue data={query.data} selected={selected} select={select} open={open} />
-      ) : starting ? (
-        <HomeStart />
-      ) : (
-        <>
-          {query.isPending ? (
-            <HomeLoading agenda={<TodayAgenda data={undefined} loading open={open} />} />
-          ) : (
-            query.data && (
-              <HomeQueue
-                data={query.data}
-                selected={null}
-                select={select}
-                open={open}
-                agenda={
-                  agendaBesideWork ? <TodayAgenda data={query.data} open={open} /> : undefined
-                }
-              />
-            )
-          )}
-          <section className={styles.schoolOverview} aria-labelledby="home-overview-title">
-            <div className={styles.overviewHeading}>
-              <h2 id="home-overview-title">Movimento da escola</h2>
-              <MonthPicker value={month} current={currentMonth} change={changeMonth} />
-            </div>
-            {schoolPending ? <MetricsLoading /> : query.data && <SchoolMetrics data={query.data} />}
-            <div
-              className={styles.insightsGrid}
-              data-sidebar={finance || agendaBesideInsights}
-              data-school={Boolean(query.data || query.isPending)}
-            >
-              {schoolPending ? <ChartLoading /> : query.data && <SchoolChart data={query.data} />}
-              {(finance || agendaBesideInsights) && (
-                <div className={styles.insightsSide}>
-                  {agendaBesideInsights && <TodayAgenda data={query.data} open={open} />}
-                  {finance && (
-                    <BusinessSummary
-                      data={business.data}
-                      groups={query.data?.groups ?? []}
-                      pending={business.isPending}
-                      error={business.isError}
-                      retry={() => void business.refetch()}
-                      select={select}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
-        </>
+    </>
+  );
+}
+function HomeBody(props: HomeViewProps): ReactElement {
+  const { state, business, finance } = props;
+  const { query, selected, select, open } = state;
+  if (selected && query.data)
+    return <HomeQueue data={query.data} selected={selected} select={select} open={open} />;
+  if (isSchoolStarting({ data: query.data, business: business.data, finance }))
+    return <HomeStart />;
+  return (
+    <>
+      <WorkPanel state={state} />
+      <SchoolOverview {...props} />
+    </>
+  );
+}
+function WorkPanel({ state }: { state: AdminHomeState }): ReactElement | null {
+  const { query, select, open } = state;
+  if (query.isPending)
+    return <HomeLoading agenda={<TodayAgenda data={undefined} loading open={open} />} />;
+  if (!query.data) return null;
+  const hasPedagogy = pedagogicalGroups(query.data.groups).length > 0;
+  const agendaBesideWork = Boolean(query.data.agenda.total) && hasPedagogy;
+  return (
+    <HomeQueue
+      data={query.data}
+      selected={null}
+      select={select}
+      open={open}
+      agenda={agendaBesideWork ? <TodayAgenda data={query.data} open={open} /> : undefined}
+    />
+  );
+}
+function SchoolOverview(props: HomeViewProps): ReactElement {
+  const { state, month, currentMonth, changeMonth } = props;
+  const { query } = state;
+  const schoolPending =
+    query.isPending || Boolean(query.data && query.data.school.month !== month && !query.isError);
+  return (
+    <section className={styles.schoolOverview} aria-labelledby="home-overview-title">
+      <div className={styles.overviewHeading}>
+        <h2 id="home-overview-title">Movimento da escola</h2>
+        <MonthPicker value={month} current={currentMonth} change={changeMonth} />
+      </div>
+      {schoolPending ? <MetricsLoading /> : query.data && <SchoolMetrics data={query.data} />}
+      <InsightsPanel {...props} schoolPending={schoolPending} />
+    </section>
+  );
+}
+function InsightsPanel({
+  state,
+  business,
+  finance,
+  schoolPending,
+}: HomeViewProps & { schoolPending: boolean }): ReactElement {
+  const { query } = state;
+  const agendaBesideInsights = placeAgendaByInsights(query);
+  return (
+    <div
+      className={styles.insightsGrid}
+      data-sidebar={finance || agendaBesideInsights}
+      data-school={Boolean(query.data || query.isPending)}
+    >
+      {schoolPending ? <ChartLoading /> : query.data && <SchoolChart data={query.data} />}
+      {(finance || agendaBesideInsights) && (
+        <InsightSidebar
+          state={state}
+          business={business}
+          finance={finance}
+          agendaBesideInsights={agendaBesideInsights}
+        />
       )}
-      <footer className={styles.footer}>
-        <span>Lazuli · Visão da escola</span>
-        <nav aria-label="Explorar a escola">
-          <Link href="/alunos">
-            Alunos
-            <ArrowUpRight aria-hidden="true" />
-          </Link>
-          <Link href="/interessados">
-            Leads
-            <ArrowUpRight aria-hidden="true" />
-          </Link>
-          <Link href="/organizacao">
-            Organização de turmas
-            <ArrowUpRight aria-hidden="true" />
-          </Link>
-        </nav>
-      </footer>
+    </div>
+  );
+}
+function placeAgendaByInsights(query: QueryResult<HomeData>): boolean {
+  if (!query.data || query.isPending) return false;
+  return query.data.agenda.total > 0 && pedagogicalGroups(query.data.groups).length === 0;
+}
+function InsightSidebar({
+  state,
+  business,
+  finance,
+  agendaBesideInsights,
+}: {
+  state: AdminHomeState;
+  business: BusinessState;
+  finance: boolean;
+  agendaBesideInsights: boolean;
+}): ReactElement {
+  const { query, open, select } = state;
+  return (
+    <div className={styles.insightsSide}>
+      {agendaBesideInsights && <TodayAgenda data={query.data} open={open} />}
+      {finance && (
+        <BusinessSummary
+          data={business.data}
+          groups={query.data?.groups ?? []}
+          pending={business.pending}
+          error={business.error}
+          retry={business.retry}
+          select={select}
+        />
+      )}
+    </div>
+  );
+}
+function HomeFooter(): ReactElement {
+  return (
+    <footer className={styles.footer}>
+      <span>Lazuli · Visão da escola</span>
+      <nav aria-label="Explorar a escola">
+        <Link href="/alunos">
+          Alunos
+          <ArrowUpRight aria-hidden="true" />
+        </Link>
+        <Link href="/interessados">
+          Leads
+          <ArrowUpRight aria-hidden="true" />
+        </Link>
+        <Link href="/organizacao">
+          Organização de turmas
+          <ArrowUpRight aria-hidden="true" />
+        </Link>
+      </nav>
+    </footer>
+  );
+}
+function HomeDialogs({ state }: { state: AdminHomeState }): ReactElement {
+  const { dialog, close, open } = state;
+  return (
+    <>
       {dialog?.kind === "lesson" && <ClassRecordDialog id={dialog.id} onClose={close} />}
       {dialog?.kind === "appointment" && (
         <StudentAppointmentDialog
@@ -207,7 +304,7 @@ export function AdminHome({ name, finance }: { name: string; finance: boolean })
           onSelect={(id) => open({ kind: "appointment", id })}
         />
       )}
-    </div>
+    </>
   );
 }
 
@@ -221,10 +318,10 @@ function MonthPicker({
   change: (month: string | null) => void;
 }): ReactElement {
   const [year, month] = current.split("-").map(Number) as [number, number];
-  const options = Array.from({ length: 12 }, (_, index) => {
+  const options = Array.from({ length: 12 }, (_unused, index) => {
     const date = new Date(Date.UTC(year, month - 1 - index, 1));
     return {
-      value: date.toISOString().slice(0, 7),
+      value: date.toISOString().slice(0, YEAR_MONTH_LENGTH),
       label: new Intl.DateTimeFormat("pt-BR", {
         month: "long",
         year: "numeric",

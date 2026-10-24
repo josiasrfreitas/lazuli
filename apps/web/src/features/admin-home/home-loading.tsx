@@ -1,6 +1,8 @@
 import type { ReactElement } from "react";
 import { Users, GraduationCap, CalendarCheck2 } from "lucide-react";
 import styles from "./home.module.css";
+const MONTH_PLACEHOLDERS = ["jan", "fev", "mar", "abr", "mai", "jun"];
+const CASE_PLACEHOLDERS = ["first", "second", "third"];
 
 export function LoadingLine({
   size = "body",
@@ -10,12 +12,14 @@ export function LoadingLine({
   return <span aria-hidden="true" className={styles.placeholder} data-size={size} />;
 }
 export function MetricsLoading(): ReactElement {
-  const labels = ["Matrículas iniciadas", "Novos alunos", "Experimentais realizadas"];
-  const icons = [GraduationCap, Users, CalendarCheck2];
+  const metrics = [
+    { label: "Matrículas iniciadas", icon: GraduationCap },
+    { label: "Novos alunos", icon: Users },
+    { label: "Experimentais realizadas", icon: CalendarCheck2 },
+  ];
   return (
     <div className={styles.metrics} role="status" aria-label="Carregando indicadores da escola">
-      {labels.map((label, index) => {
-        const Icon = icons[index]!;
+      {metrics.map(({ label, icon: Icon }, index) => {
         return (
           <div
             className={styles.metric}
@@ -68,8 +72,8 @@ export function ChartLoading(): ReactElement {
         <div />
       </div>
       <div className={styles.chartSkeletonMonths} aria-hidden="true">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <LoadingLine key={i} size="short" />
+        {MONTH_PLACEHOLDERS.map((month) => (
+          <LoadingLine key={month} size="short" />
         ))}
       </div>
       <div className={styles.chartFooter} aria-hidden="true">
@@ -93,36 +97,7 @@ export function HomeLoading({ agenda }: { agenda?: ReactElement }): ReactElement
               Situação atual · por proximidade e acompanhamento
             </span>
           </div>
-          <div className={styles.priorityTask} aria-hidden="true">
-            <div className={styles.priorityMain}>
-              <div className={styles.priorityFigure}>
-                <LoadingLine size="number" />
-                <LoadingLine size="short" />
-              </div>
-              <div className={styles.priorityBody}>
-                <LoadingLine size="title" />
-                <LoadingLine size="short" />
-                <LoadingLine />
-                <LoadingLine />
-                <div className={styles.priorityActions}>
-                  <LoadingLine size="short" />
-                </div>
-              </div>
-            </div>
-            <div className={styles.priorityCases}>
-              <LoadingLine />
-              <div className={styles.caseGrid}>
-                {[0, 1, 2].map((index) => (
-                  <div className={styles.priorityCase} key={index}>
-                    <LoadingLine size="title" />
-                    <LoadingLine />
-                    <LoadingLine size="short" />
-                  </div>
-                ))}
-              </div>
-              <LoadingLine size="short" />
-            </div>
-          </div>
+          <PriorityLoading />
         </div>
         {agenda}
       </div>
@@ -136,5 +111,39 @@ export function HomeLoading({ agenda }: { agenda?: ReactElement }): ReactElement
         ))}
       </div>
     </section>
+  );
+}
+function PriorityLoading(): ReactElement {
+  return (
+    <div className={styles.priorityTask} aria-hidden="true">
+      <div className={styles.priorityMain}>
+        <div className={styles.priorityFigure}>
+          <LoadingLine size="number" />
+          <LoadingLine size="short" />
+        </div>
+        <div className={styles.priorityBody}>
+          <LoadingLine size="title" />
+          <LoadingLine size="short" />
+          <LoadingLine />
+          <LoadingLine />
+          <div className={styles.priorityActions}>
+            <LoadingLine size="short" />
+          </div>
+        </div>
+      </div>
+      <div className={styles.priorityCases}>
+        <LoadingLine />
+        <div className={styles.caseGrid}>
+          {CASE_PLACEHOLDERS.map((key) => (
+            <div className={styles.priorityCase} key={key}>
+              <LoadingLine size="title" />
+              <LoadingLine />
+              <LoadingLine size="short" />
+            </div>
+          ))}
+        </div>
+        <LoadingLine size="short" />
+      </div>
+    </div>
   );
 }

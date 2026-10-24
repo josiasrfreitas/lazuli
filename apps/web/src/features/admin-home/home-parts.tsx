@@ -71,6 +71,21 @@ export function TodayAgenda({
     );
   return (
     <aside className={styles.agenda} aria-labelledby="home-agenda-title">
+      <AgendaHeader data={data} loading={loading} />
+      <AgendaContent data={data} loading={loading} open={open} />
+      <AgendaLink data={data} />
+    </aside>
+  );
+}
+function AgendaHeader({
+  data,
+  loading,
+}: {
+  data: HomeData | undefined;
+  loading: boolean;
+}): ReactElement {
+  return (
+    <>
       <div className={styles.sectionHeading}>
         <h2 id="home-agenda-title">
           Ainda hoje
@@ -83,48 +98,64 @@ export function TodayAgenda({
       {(loading || (data && data.agenda.total > 0)) && (
         <p className={styles.description}>Aulas, experimentais e atendimentos.</p>
       )}
-      {loading ? (
-        <div className={styles.agendaSkeleton} aria-label="Carregando agenda">
-          {["a", "b", "c"].map((key) => (
-            <div key={key}>
+    </>
+  );
+}
+function AgendaLink({ data }: { data: HomeData | undefined }): ReactElement {
+  const label =
+    data && data.agenda.total > data.agenda.items.length
+      ? `Ver os ${data.agenda.total.toLocaleString("pt-BR")} compromissos`
+      : "Abrir agenda";
+  return (
+    <Link className={styles.textLink} href={data ? `/aulas?dia=${data.today}&visao=dia` : "/aulas"}>
+      {label}
+      <ArrowUpRight aria-hidden="true" />
+    </Link>
+  );
+}
+function AgendaContent({
+  data,
+  loading,
+  open,
+}: {
+  data: HomeData | undefined;
+  loading: boolean;
+  open: OpenAction;
+}): ReactElement {
+  if (loading)
+    return (
+      <div className={styles.agendaSkeleton} aria-label="Carregando agenda">
+        {["a", "b", "c"].map((key) => (
+          <div key={key}>
+            <LoadingLine size="short" />
+            <div>
+              <LoadingLine />
               <LoadingLine size="short" />
-              <div>
-                <LoadingLine />
-                <LoadingLine size="short" />
-              </div>
             </div>
-          ))}
-        </div>
-      ) : !data ? (
-        <p className={styles.recordQuiet}>Agenda indisponível no momento.</p>
-      ) : data.agenda.items.length === 0 ? (
-        <div className={styles.quiet}>
-          <p>Sem compromissos restantes hoje.</p>
-        </div>
-      ) : (
-        <ol className={styles.agendaList}>
-          {data.agenda.items.map((event) => (
-            <li key={event.id}>
-              <time dateTime={`${data.today}T${event.time}:00-03:00`}>{event.time}</time>
-              <button type="button" onClick={() => open(event.action)}>
-                <span className={styles.eventKind}>{event.kind}</span>
-                <strong>{event.title}</strong>
-                <span>{event.detail}</span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      )}
-      <Link
-        className={styles.textLink}
-        href={data ? `/aulas?dia=${data.today}&visao=dia` : "/aulas"}
-      >
-        {data && data.agenda.total > data.agenda.items.length
-          ? `Ver os ${data.agenda.total.toLocaleString("pt-BR")} compromissos`
-          : "Abrir agenda"}
-        <ArrowUpRight aria-hidden="true" />
-      </Link>
-    </aside>
+          </div>
+        ))}
+      </div>
+    );
+  if (!data) return <p className={styles.recordQuiet}>Agenda indisponível no momento.</p>;
+  if (data.agenda.items.length === 0)
+    return (
+      <div className={styles.quiet}>
+        <p>Sem compromissos restantes hoje.</p>
+      </div>
+    );
+  return (
+    <ol className={styles.agendaList}>
+      {data.agenda.items.map((event) => (
+        <li key={event.id}>
+          <time dateTime={`${data.today}T${event.time}:00-03:00`}>{event.time}</time>
+          <button type="button" onClick={() => open(event.action)}>
+            <span className={styles.eventKind}>{event.kind}</span>
+            <strong>{event.title}</strong>
+            <span>{event.detail}</span>
+          </button>
+        </li>
+      ))}
+    </ol>
   );
 }
 export function ItemDate({ item }: { item: HomeItem }): ReactElement | null {

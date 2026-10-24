@@ -313,15 +313,24 @@ void it("does not fabricate percentage growth when the comparison baseline is ze
 });
 void it("does not replace a school with history by the first-use screen", () => {
   assert.equal(
-    isSchoolStarting(
-      { ...data, activeStudents: 0, school: { ...data.school, totalStudents: 0 }, groups: [] },
-      undefined,
-      false,
-    ),
+    isSchoolStarting({
+      data: {
+        ...data,
+        activeStudents: 0,
+        school: { ...data.school, totalStudents: 0 },
+        groups: [],
+      },
+      business: undefined,
+      finance: false,
+    }),
     true,
   );
   assert.equal(
-    isSchoolStarting({ ...data, activeStudents: 0, groups: [] }, undefined, false),
+    isSchoolStarting({
+      data: { ...data, activeStudents: 0, groups: [] },
+      business: undefined,
+      finance: false,
+    }),
     false,
   );
   const html = renderToStaticMarkup(<HomeWelcome name="Maria Silva" data={data} />);

@@ -44,7 +44,11 @@ export const dashboardRouter = router({
     }),
   business: adminProcedure.input(homePeriodInput).query(({ ctx, input }) => {
     if (!canAccess(ctx.staffUser.role, "finance")) throw new TRPCError({ code: "FORBIDDEN" });
-    return readHomeBusiness(ctx.db, ctx.now ?? new Date(), input?.month);
+    return readHomeBusiness({
+      database: ctx.db,
+      now: ctx.now ?? new Date(),
+      requestedMonth: input?.month,
+    });
   }),
   adminMetrics: adminProcedure.query(({ ctx }) =>
     readAdminDashboardMetrics({ database: ctx.db, now: ctx.now ?? new Date() }),

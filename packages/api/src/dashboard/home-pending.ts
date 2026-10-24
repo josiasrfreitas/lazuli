@@ -27,6 +27,7 @@ type Scope = {
 };
 type Page = { skip: number; take: number };
 type Result = { total: number; items: HomeItem[] };
+const RECENT_PREVIOUS_DAYS = -6;
 export async function readHomePending(database: Database, input: Scope): Promise<HomeGroup> {
   const take = input.pageSize ?? HOME_PAGE_SIZE;
   const page = { skip: (input.page - 1) * take, take };
@@ -40,7 +41,7 @@ export async function readHomePending(database: Database, input: Scope): Promise
 }
 /** Recent records cover today and the preceding six school dates. */
 function recordPeriod(now: Date, period: Scope["period"]): { date?: { gte: Date } | { lt: Date } } {
-  const start = new Date(plusDays(saoPauloDateOnly(now), -6));
+  const start = new Date(plusDays(saoPauloDateOnly(now), RECENT_PREVIOUS_DAYS));
   if (period === "recent") return { date: { gte: start } };
   if (period === "history") return { date: { lt: start } };
   return {};

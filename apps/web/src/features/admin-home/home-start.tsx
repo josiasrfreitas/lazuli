@@ -6,25 +6,34 @@ import type { HomeData } from "./home-parts";
 import type { BusinessData } from "./home-metrics";
 import styles from "./home.module.css";
 
-export function isSchoolStarting(
-  data: HomeData | undefined,
-  business: BusinessData | undefined,
-  finance: boolean,
-): boolean {
-  return Boolean(
-    data &&
-    data.school.totalStudents === 0 &&
-    data.groups.every((group) => group.total === 0 && !group.historyTotal) &&
-    data.agenda.total === 0 &&
-    data.school.students.series.every((row) => row.value === 0) &&
-    data.school.enrollments.series.every((row) => row.value === 0) &&
-    data.school.trials.series.every((row) => row.value === 0) &&
-    (!finance ||
-      (business &&
-        business.overdueCents === 0 &&
-        business.agreements.series.every((row) => row.value === 0) &&
-        business.months.every((row) => row.receivedCents === 0 && row.expectedCents === 0))),
+function hasSchoolActivity(data: HomeData): boolean {
+  return (
+    data.school.totalStudents !== 0 ||
+    data.groups.some((group) => group.total !== 0 || Boolean(group.historyTotal)) ||
+    data.agenda.total !== 0 ||
+    data.school.students.series.some((row) => row.value !== 0) ||
+    data.school.enrollments.series.some((row) => row.value !== 0) ||
+    data.school.trials.series.some((row) => row.value !== 0)
   );
+}
+function hasBusinessActivity(business: BusinessData): boolean {
+  return (
+    business.overdueCents !== 0 ||
+    business.agreements.series.some((row) => row.value !== 0) ||
+    business.months.some((row) => row.receivedCents !== 0 || row.expectedCents !== 0)
+  );
+}
+export function isSchoolStarting({
+  data,
+  business,
+  finance,
+}: {
+  data: HomeData | undefined;
+  business: BusinessData | undefined;
+  finance: boolean;
+}): boolean {
+  if (!data || hasSchoolActivity(data)) return false;
+  return !finance || Boolean(business && !hasBusinessActivity(business));
 }
 export function HomeStart(): ReactElement {
   return (

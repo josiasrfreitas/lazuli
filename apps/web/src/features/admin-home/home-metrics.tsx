@@ -16,6 +16,28 @@ import styles from "./home.module.css";
 
 export type BusinessData = RouterOutputs["dashboard"]["business"];
 type Series = { month: string; value: number }[];
+type Direction = "flat" | "up" | "down";
+const PERCENT = 100;
+const PLOT = { left: 4, right: 156, baseline: 42, height: 34 } as const;
+function trendDirection(current: number, previous: number): Direction {
+  if (current === previous) return "flat";
+  return current > previous ? "up" : "down";
+}
+function trendLabel(current: number, previous: number): string {
+  if (previous === 0) return current === previous ? "Sem variação" : "Sem base anterior";
+  const change = ((current - previous) / previous) * PERCENT;
+  return `${change > 0 ? "+" : ""}${change.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+}
+function trendVariant(direction: Direction, previous: number): "success" | "warning" | "neutral" {
+  if (direction === "up" && previous > 0) return "success";
+  if (direction === "down") return "warning";
+  return "neutral";
+}
+function trendIcon(direction: Direction): typeof Minus {
+  if (direction === "up") return ArrowUpRight;
+  if (direction === "down") return ArrowDownRight;
+  return Minus;
+}
 export function Trend({
   current,
   previous,
@@ -25,40 +47,33 @@ export function Trend({
   previous: number;
   partial: boolean;
 }): ReactElement {
-  const change = previous === 0 ? null : ((current - previous) / previous) * 100;
-  const direction = current === previous ? "flat" : current > previous ? "up" : "down";
-  const Icon = direction === "flat" ? Minus : direction === "up" ? ArrowUpRight : ArrowDownRight;
+  const direction = trendDirection(current, previous);
+  const Icon = trendIcon(direction);
   return (
     <div className={styles.trend}>
-      <Badge
-        variant={
-          direction === "up" && previous > 0
-            ? "success"
-            : direction === "down"
-              ? "warning"
-              : "neutral"
-        }
-      >
+      <Badge variant={trendVariant(direction, previous)}>
         <Icon aria-hidden="true" />
-        {change === null
-          ? previous === current
-            ? "Sem variação"
-            : "Sem base anterior"
-          : `${change > 0 ? "+" : ""}${change.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}
+        {trendLabel(current, previous)}
       </Badge>
       <span>{partial ? "vs. mesmos dias do mês anterior" : "vs. mês anterior"}</span>
     </div>
   );
 }
+type SparkRange = { min: number; max: number };
+function sparkY(value: number, { min, max }: SparkRange): number {
+  return PLOT.baseline - ((value - min) / (max - min)) * PLOT.height;
+}
+function sparkX(index: number, length: number): number {
+  return PLOT.left + (index / Math.max(1, length - 1)) * (PLOT.right - PLOT.left);
+}
 export function Sparkline({ series, label }: { series: Series; label: string }): ReactElement {
   const max = Math.max(1, ...series.map((point) => point.value));
   const min = Math.min(0, ...series.map((point) => point.value));
+  const range = { min, max };
   const points = series
-    .map(
-      (point, index) =>
-        `${4 + (index / Math.max(1, series.length - 1)) * 152},${42 - ((point.value - min) / (max - min)) * 34}`,
-    )
+    .map((point, index) => `${sparkX(index, series.length)},${sparkY(point.value, range)}`)
     .join(" ");
+  const last = series.at(-1);
   return (
     <svg viewBox="0 0 160 48" className={styles.sparkline} role="img" aria-label={label}>
       <title>
@@ -75,14 +90,7 @@ export function Sparkline({ series, label }: { series: Series; label: string }):
         strokeLinejoin="round"
         strokeLinecap="round"
       />
-      {series.length > 0 && (
-        <circle
-          cx="156"
-          cy={42 - ((series[series.length - 1]!.value - min) / (max - min)) * 34}
-          r="3"
-          fill="currentColor"
-        />
-      )}
+      {last && <circle cx="156" cy={sparkY(last.value, range)} r="3" fill="currentColor" />}
     </svg>
   );
 }
