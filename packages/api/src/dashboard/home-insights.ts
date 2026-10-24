@@ -110,7 +110,12 @@ async function readSchoolRows(database: Context["db"], period: HomePeriod): Prom
       select: { entryDate: true },
     }),
     database.entryVisit.findMany({
-      where: { deletedAt: null, status: "ATTENDED", kind: "TRIAL", date: dateRange },
+      where: {
+        deletedAt: null,
+        status: "ATTENDED",
+        kind: { in: ["TRIAL", "INTRODUCTION"] },
+        date: dateRange,
+      },
       select: { date: true },
     }),
     database.student.count({ where: { deletedAt: null } }),

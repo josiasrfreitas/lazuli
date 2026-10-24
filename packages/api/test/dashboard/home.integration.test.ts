@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, beforeEach, it } from "node:test";
-import { db } from "@lazuli/db";
+import { db, Prisma } from "@lazuli/db";
 import {
   caller,
   ADMIN,
@@ -186,6 +186,76 @@ void it("composes the school overview and keeps unallocated cash distinct from a
     await db.contract.deleteMany({ where: { payerId: payer.id, renewedFromId: { not: null } } });
     await db.contract.deleteMany({ where: { payerId: payer.id } });
     await db.payer.delete({ where: { id: payer.id } });
+  }
+});
+
+void it("counts attended class and individual experimental lessons in the value, comparison, and series", async () => {
+  const before = await caller(ADMIN, NOW).dashboard.home();
+  const baseline = before.school.trials;
+  const catalog = await seedDashboardCatalog();
+  const classId = await seedClass({ code: "Home experiments", teacherId: TEACHER.id, ...catalog });
+  const trialSessions = new Map<string, string>();
+  for (const date of ["2084-03-01", "2084-02-01", "2084-03-05"])
+    trialSessions.set(date, await seedSession({ classId, date }));
+  const candidate = await db.admissionCandidate.create({
+    data: {
+      fullName: `${TEST_PREFIX}Home experiments`,
+      email: "home-experiments@example.com",
+      recordedById: ADMIN.id,
+    },
+  });
+  const visit = (
+    kind: "TRIAL" | "INTRODUCTION" | "PLACEMENT",
+    date: string,
+  ): Prisma.EntryVisitCreateManyInput => {
+    const classReference =
+      kind === "TRIAL" ? { classId, classSessionId: trialSessions.get(date)! } : {};
+    const teacherReference = kind === "INTRODUCTION" ? { teacherId: TEACHER.id } : {};
+    return {
+      candidateId: candidate.id,
+      kind,
+      date: new Date(date),
+      startTime: new Date("1970-01-01T10:00:00Z"),
+      endTime: new Date("1970-01-01T11:00:00Z"),
+      format: "IN_PERSON",
+      recordedById: ADMIN.id,
+      ...classReference,
+      ...teacherReference,
+    };
+  };
+  try {
+    await db.entryVisit.createMany({
+      data: [
+        { ...visit("TRIAL", "2084-03-01"), status: "ATTENDED" },
+        { ...visit("INTRODUCTION", "2084-03-02"), status: "ATTENDED" },
+        { ...visit("TRIAL", "2084-02-01"), status: "ATTENDED" },
+        { ...visit("INTRODUCTION", "2084-02-02"), status: "ATTENDED" },
+        { ...visit("INTRODUCTION", "2084-02-11"), status: "ATTENDED" },
+        { ...visit("PLACEMENT", "2084-03-03"), status: "ATTENDED" },
+        {
+          ...visit("INTRODUCTION", "2084-03-04"),
+          status: "CANCELLED",
+          cancellationReason: "Compromisso cancelado",
+        },
+        { ...visit("TRIAL", "2084-03-05"), status: "ABSENT" },
+        { ...visit("INTRODUCTION", "2084-03-06"), status: "ATTENDED", deletedAt: NOW },
+      ],
+    });
+    const after = await caller(ADMIN, NOW).dashboard.home();
+    const result = after.school.trials;
+    assert.equal(result.value, baseline.value + 2);
+    assert.equal(result.previous, baseline.previous + 2);
+    assert.equal(
+      result.series.find((row) => row.month === "2084-02")?.value,
+      (baseline.series.find((row) => row.month === "2084-02")?.value ?? 0) + 3,
+    );
+    assert.equal(
+      result.series.find((row) => row.month === "2084-03")?.value,
+      (baseline.series.find((row) => row.month === "2084-03")?.value ?? 0) + 2,
+    );
+  } finally {
+    await db.entryVisit.deleteMany({ where: { candidateId: candidate.id } });
+    await db.admissionCandidate.delete({ where: { id: candidate.id } });
   }
 });
 
