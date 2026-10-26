@@ -29,10 +29,8 @@ function render(overrides: Partial<DadosStepProps> = {}): string {
     createElement(DadosStep, {
       errors: {},
       fields: initialNewStudentState.fields,
-      guardianOpen: true,
       minor: false,
       onFieldChange: () => {},
-      onGuardianToggle: () => {},
       onSubmit: () => {},
       ...overrides,
     }),
@@ -90,10 +88,15 @@ void describe("new-student form contract", () => {
     assert.match(markup, /CPF ou RG \(opcional\)/u);
   });
 
-  void it("hides the guardian fields for adults until asked", () => {
-    const collapsed = render({ guardianOpen: false });
+  void it("keeps guardian fields visible with an optional badge for adults", () => {
+    assert.match(markup, /name="guardianName"/u);
+    assert.match(markup, /data-slot="badge"[^>]*>Opcional<\/span>/u);
+    assert.doesNotMatch(markup, /Adicionar responsável|Remover responsável/u);
+  });
 
-    assert.equal(collapsed.includes('name="guardianName"'), false);
-    assert.ok(collapsed.includes("Adicionar responsável"));
+  void it("marks the guardian as required for minors", () => {
+    const minor = render({ minor: true });
+    assert.match(minor, /data-slot="badge"[^>]*>Obrigatório<\/span>/u);
+    assert.match(minor, /aria-required="true"[^>]*name="guardianName"/u);
   });
 });

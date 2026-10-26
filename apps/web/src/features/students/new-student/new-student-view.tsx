@@ -14,7 +14,6 @@ import {
 import { DiscardRegistrationDialog } from "~/features/shared/discard-registration-dialog";
 import { PendingRegistrationDialog } from "~/features/shared/pending-registration-dialog";
 import { LeadCaptureDialog } from "~/features/admissions/lead-capture-dialog";
-import { isGuardianSectionOpen } from "./reducer";
 import { IntakeNameField } from "./intake-name-field";
 import { IntakeStudentFields } from "./dados-step";
 import { IntakePedagogy } from "./intake-pedagogy";
@@ -158,7 +157,6 @@ function EnrollmentStudentFields({ model }: { model: EnrollmentModel }): ReactJS
   const {
     state,
     minor,
-    today,
     setDirty,
     dispatch,
     setError,
@@ -173,16 +171,11 @@ function EnrollmentStudentFields({ model }: { model: EnrollmentModel }): ReactJS
         fields={state.fields}
         errors={state.errors}
         minor={minor}
-        guardianOpen={minor || isGuardianSectionOpen(state, today)}
         nameField={<EnrollmentNameField model={model} />}
         onFieldChange={(field, value) => {
           setDirty(true);
           dispatch({ type: "fieldChanged", field, value });
           setError("");
-        }}
-        onGuardianToggle={(open) => {
-          setDirty(true);
-          dispatch({ type: "guardianToggled", open });
         }}
       />
       {lead?.studentId && !existingStudentId && (
@@ -433,6 +426,7 @@ function EnrollmentConfirmation({ model }: { model: EnrollmentModel }): ReactJSX
         model.setError("");
       }}
       onConfirm={() => void model.persist(confirmation.input)}
+      onDiscard={() => model.onOpenChange(false)}
     />
   );
 }

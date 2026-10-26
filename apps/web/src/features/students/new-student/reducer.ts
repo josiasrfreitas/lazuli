@@ -41,8 +41,6 @@ export type NewStudentState = {
   errors: NewStudentErrors;
   /** A rejection that does not belong to any single field. */
   formError: string | null;
-  /** The secretary chose to add a guardian for an adult (progressive disclosure). */
-  guardianOpen: boolean;
   /**
    * Bumped only when a submit fails (client validation or server rejection),
    * never while typing — the dialog scrolls the first invalid field into view
@@ -53,7 +51,6 @@ export type NewStudentState = {
 
 export type NewStudentAction =
   | { type: "fieldChanged"; field: NewStudentFieldName; value: string }
-  | { type: "guardianToggled"; open: boolean }
   | { type: "nextRequested"; today: string }
   | { type: "backRequested" }
   | { type: "serverRejected"; errors: NewStudentErrors; formError: string | null }
@@ -71,14 +68,11 @@ const EMPTY_FIELDS: NewStudentFields = {
   guardianEmail: "",
 };
 
-const GUARDIAN_FIELDS = ["guardianName", "guardianPhone", "guardianEmail"] as const;
-
 export const initialNewStudentState: NewStudentState = {
   step: FIRST_STEP,
   fields: EMPTY_FIELDS,
   errors: {},
   formError: null,
-  guardianOpen: false,
   errorsRevision: 0,
 };
 
@@ -97,15 +91,6 @@ export function isMinorOn(input: { birthDate: string; today: string }): boolean 
 /** Whether the typed `dd/mm/aaaa` birth date makes the student a minor today. */
 export function isMinorFromFields(fields: NewStudentFields, today: string): boolean {
   return isMinorOn({ birthDate: parseDateBR(fields.birthDate) ?? "", today });
-}
-
-/** The guardian section shows for minors, on request, or once it has content. */
-export function isGuardianSectionOpen(state: NewStudentState, today: string): boolean {
-  return (
-    state.guardianOpen ||
-    isMinorFromFields(state.fields, today) ||
-    GUARDIAN_FIELDS.some((field) => state.fields[field] !== "")
-  );
 }
 
 const REQUIRED_MESSAGE = "Campo obrigatório.";
@@ -169,23 +154,6 @@ function normalizeField(field: NewStudentFieldName, value: string): string {
   }
 }
 
-function guardianToggled(state: NewStudentState, open: boolean): NewStudentState {
-  if (open) {
-    return { ...state, guardianOpen: true };
-  }
-
-  // Closing discards the guardian so the hidden fields cannot fail validation.
-  const fields = { ...state.fields };
-  const errors = { ...state.errors };
-
-  for (const field of GUARDIAN_FIELDS) {
-    fields[field] = "";
-    delete errors[field];
-  }
-
-  return { ...state, errors, fields, guardianOpen: false };
-}
-
 export function newStudentReducer(
   state: NewStudentState,
   action: NewStudentAction,
@@ -201,9 +169,6 @@ export function newStudentReducer(
         fields: { ...state.fields, [action.field]: normalizeField(action.field, action.value) },
         formError: null,
       };
-    }
-    case "guardianToggled": {
-      return guardianToggled(state, action.open);
     }
     case "nextRequested": {
       return nextFrom(state, action.today);

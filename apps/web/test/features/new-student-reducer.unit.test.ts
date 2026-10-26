@@ -3,7 +3,6 @@ import { describe, it } from "node:test";
 
 import {
   initialNewStudentState,
-  isGuardianSectionOpen,
   isMinorOn,
   newStudentReducer,
   type NewStudentState,
@@ -49,7 +48,6 @@ const BLANK_STATE: NewStudentState = {
   fields: BLANK_FIELDS,
   errors: {},
   formError: null,
-  guardianOpen: false,
   errorsRevision: 0,
 };
 
@@ -219,39 +217,12 @@ function typed(field: "birthDate" | "phone" | "guardianPhone", value: string): s
   }
 }
 
-void describe("new-student wizard: masks and guardian disclosure", () => {
+void describe("new-student wizard: masks", () => {
   void it("masks the birth date and phones as the secretary types", () => {
     assert.equal(typed("birthDate", "01052010"), MINOR_BIRTH_TYPED);
     assert.equal(typed("birthDate", "0105"), "01/05");
     assert.equal(typed("phone", PHONE_DIGITS), GUARDIAN_PHONE);
     assert.equal(typed("guardianPhone", PHONE_DIGITS), GUARDIAN_PHONE);
-  });
-
-  void it("shows the guardian section for minors, on request, or once it has content", () => {
-    assert.equal(isGuardianSectionOpen(initialNewStudentState, TODAY), false);
-    assert.equal(isGuardianSectionOpen(stateWith({ birthDate: MINOR_BIRTH_TYPED }), TODAY), true);
-    assert.equal(isGuardianSectionOpen(stateWith({ guardianName: GUARDIAN_NAME }), TODAY), true);
-
-    const opened = newStudentReducer(initialNewStudentState, {
-      type: "guardianToggled",
-      open: true,
-    });
-    assert.equal(isGuardianSectionOpen(opened, TODAY), true);
-  });
-
-  void it("closing the guardian section discards its fields and errors", () => {
-    const withGuardian = newStudentReducer(
-      {
-        ...stateWith({ guardianName: GUARDIAN_NAME }),
-        errors: { fullName: REQUIRED_MESSAGE, guardianPhone: "x" },
-      },
-      { type: "guardianToggled", open: false },
-    );
-
-    assert.equal(withGuardian.fields.guardianName, "");
-    assert.equal(withGuardian.errors.fullName, REQUIRED_MESSAGE);
-    assert.equal(withGuardian.errors.guardianPhone, undefined);
-    assert.equal(isGuardianSectionOpen(withGuardian, TODAY), false);
   });
 });
 

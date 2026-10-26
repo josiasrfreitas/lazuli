@@ -1,8 +1,7 @@
 import type { JSX as ReactJSX } from "react";
 import type { ComponentProps, FormEvent, ReactElement, ReactNode } from "react";
-import { UserMinus, UserPlus } from "lucide-react";
 
-import { Button, Field, FieldError, FormRow, FormSection, Input, Label } from "@lazuli/ui";
+import { Badge, Field, FieldError, FormRow, FormSection, Input, Label } from "@lazuli/ui";
 import { PersonDocumentField } from "~/components/person-document-field";
 import { parseDateBR } from "~/lib/masks";
 
@@ -95,8 +94,6 @@ function BirthDateField({ errors, fields, onFieldChange }: FieldsProps): ReactEl
 
 type GuardianSectionProps = FieldsProps & {
   minor: boolean;
-  open: boolean;
-  onToggle: (open: boolean) => void;
 };
 
 const MINOR_DESCRIPTION = "Obrigatório para menores de idade: nome e telefone ou email.";
@@ -145,29 +142,25 @@ function GuardianFields({
 }
 
 function GuardianSection(props: GuardianSectionProps): ReactElement {
-  const { minor, onToggle, open } = props;
-  const action = minor ? undefined : (
-    <Button onClick={() => onToggle(!open)} size="sm" type="button" variant="ghost">
-      {open ? <UserMinus aria-hidden="true" /> : <UserPlus aria-hidden="true" />}
-      {open ? "Remover responsável" : "Adicionar responsável"}
-    </Button>
-  );
+  const { minor } = props;
 
   return (
     <FormSection
-      action={action}
       description={minor ? MINOR_DESCRIPTION : ADULT_DESCRIPTION}
-      title="Responsável"
+      title={
+        <span className="inline-flex flex-wrap items-center gap-2">
+          Responsável
+          <Badge variant={minor ? "info" : "neutral"}>{minor ? "Obrigatório" : "Opcional"}</Badge>
+        </span>
+      }
     >
-      {open ? <GuardianFields {...props} /> : null}
+      <GuardianFields {...props} />
     </FormSection>
   );
 }
 
 export type DadosStepProps = FieldsProps & {
   minor: boolean;
-  guardianOpen: boolean;
-  onGuardianToggle: (open: boolean) => void;
   /** Enter in any field and the footer's "Avançar" both land here. */
   onSubmit: () => void;
 };
@@ -230,7 +223,7 @@ function ContactSection({ errors, fields, onFieldChange }: FieldsProps): ReactEl
  * advances; the footer submits it by `id` from outside the scrolling body.
  */
 export function DadosStep(props: DadosStepProps): ReactElement {
-  const { guardianOpen, minor, onGuardianToggle, onSubmit, ...fieldsProps } = props;
+  const { minor, onSubmit, ...fieldsProps } = props;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
@@ -241,12 +234,7 @@ export function DadosStep(props: DadosStepProps): ReactElement {
     <form className="grid gap-5" id={DADOS_FORM_ID} noValidate onSubmit={handleSubmit}>
       <IdentitySection {...fieldsProps} />
       <ContactSection {...fieldsProps} />
-      <GuardianSection
-        {...fieldsProps}
-        minor={minor}
-        onToggle={onGuardianToggle}
-        open={guardianOpen}
-      />
+      <GuardianSection {...fieldsProps} minor={minor} />
     </form>
   );
 }
@@ -258,12 +246,7 @@ export function IntakeStudentFields(
     <div className="grid gap-5">
       <IdentitySection {...props} />
       <ContactSection {...props} />
-      <GuardianSection
-        {...props}
-        minor={props.minor}
-        open={props.guardianOpen}
-        onToggle={props.onGuardianToggle}
-      />
+      <GuardianSection {...props} />
     </div>
   );
 }
