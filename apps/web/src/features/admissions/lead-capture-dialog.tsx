@@ -233,6 +233,16 @@ function registrationCompletion(input: {
   };
 }
 
+function canSavePendingLead(props: CaptureProps, state: CaptureState): boolean {
+  const birthDate = state.draft.birthDate ? parseDateBR(state.draft.birthDate) : null;
+  return (
+    !props.candidate &&
+    state.draft.englishExperience === "SOME" &&
+    (!state.draft.birthDate || birthDate !== null) &&
+    leadCaptureSchema.safeParse({ id: state.id, ...state.draft, birthDate }).success
+  );
+}
+
 function useCaptureActions(input: {
   props: CaptureProps;
   state: CaptureState;
@@ -243,8 +253,10 @@ function useCaptureActions(input: {
   const complete = registrationCompletion({ props, state, capture: saveModel.capture });
   function requestClose(): void {
     if (saveModel.save.isPending || state.confirmPending || state.discarding) return;
-    if (state.dirty) state.setDiscarding(true);
-    else props.onClose();
+    if (state.dirty || state.scheduling) {
+      if (canSavePendingLead(props, state)) state.setConfirmPending(true);
+      else state.setDiscarding(true);
+    } else props.onClose();
   }
   function change<K extends keyof Draft>(key: K, value: Draft[K]): void {
     state.setDirty(true);
@@ -311,16 +323,17 @@ function CaptureScheduleStep({ props, state, actions }: CaptureViewProps): React
           error: actions.capture.error?.message,
         }}
       />
-      <PendingPlacementDialog state={state} actions={actions} />
+      <PendingPlacementDialog props={props} state={state} actions={actions} />
       <CaptureDiscard state={state} onClose={props.onClose} />
     </>
   );
 }
 
 function PendingPlacementDialog({
+  props,
   state,
   actions,
-}: Pick<CaptureViewProps, "state" | "actions">): ReactJSX.Element | null {
+}: CaptureViewProps): ReactJSX.Element | null {
   if (!state.confirmPending) return null;
   return (
     <PendingRegistrationDialog
@@ -330,6 +343,7 @@ function PendingPlacementDialog({
       error={actions.capture.error?.message}
       onBack={() => state.setConfirmPending(false)}
       onConfirm={() => actions.complete(null)}
+      onDiscard={props.onClose}
     />
   );
 }
@@ -400,6 +414,7 @@ function CaptureDetailsStep({ props, state, actions }: CaptureViewProps): ReactJ
       >
         <CaptureFields props={props} state={state} actions={actions} />
       </LeadFormDialog>
+      <PendingPlacementDialog props={props} state={state} actions={actions} />
       <CaptureDiscard state={state} onClose={props.onClose} />
     </>
   );

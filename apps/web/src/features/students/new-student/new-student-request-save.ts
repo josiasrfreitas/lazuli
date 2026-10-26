@@ -23,9 +23,9 @@ type SaveContext = {
 };
 type ParsedContract = ReturnType<typeof intakeContract>;
 
-function canBeginSave(context: SaveContext): boolean {
+function canBeginSave(context: SaveContext, closing: boolean): boolean {
   const { flow, navigation, classes, identity } = context;
-  if (flow.busy.current || flow.step !== "contract") return false;
+  if (flow.busy.current || (!closing && flow.step !== "contract")) return false;
   if (!navigation.validateStudent()) {
     flow.setStep("student");
     return false;
@@ -93,9 +93,11 @@ function prepareIntakeSave(
   return { items, parsed };
 }
 
-export function createRequestSave(context: SaveContext): (withContract: boolean) => void {
-  return (withContract) => {
-    if (!canBeginSave(context)) return;
+export function createRequestSave(
+  context: SaveContext,
+): (withContract: boolean, closing?: boolean) => boolean {
+  return (withContract, closing = false) => {
+    if (!canBeginSave(context, closing)) return false;
     const { identity, flow, contractData, existingStudentId, existing, persistence } = context;
     const parsedContract = intakeContract({
       withContract,
@@ -105,11 +107,15 @@ export function createRequestSave(context: SaveContext): (withContract: boolean)
       student: identity.state.fields,
       commandId: contractData.contract.commandId.current,
     });
-    if (!contractReady(context, parsedContract)) return;
+    if (!contractReady(context, parsedContract)) return false;
     const { items, parsed } = prepareIntakeSave(context, { withContract, parsedContract });
-    if (!parsed.input) return flow.setError(parsed.error);
+    if (!parsed.input) {
+      flow.setError(parsed.error);
+      return false;
+    }
     flow.setError("");
-    if (items.length > 0) flow.setConfirmation({ input: parsed.input, items });
+    if (closing || items.length > 0) flow.setConfirmation({ input: parsed.input, items });
     else void persistence.persist(parsed.input);
+    return true;
   };
 }

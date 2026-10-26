@@ -16,6 +16,7 @@ type NavigationContext = {
   classes: ClassSources;
   today: string;
   onOpenChange: (open: boolean) => void;
+  saveBeforeClose: () => boolean;
 };
 
 export function createEnrollmentNavigation(context: NavigationContext): EnrollmentNavigation {
@@ -32,8 +33,9 @@ export function createEnrollmentNavigation(context: NavigationContext): Enrollme
   };
   const close: EnrollmentNavigation["close"] = () => {
     if (flow.busy.current || flow.confirmation || flow.discarding || flow.capturingLead) return;
-    if (flow.dirty) flow.setDiscarding(true);
-    else onOpenChange(false);
+    if (flow.dirty) {
+      if (!context.saveBeforeClose()) flow.setDiscarding(true);
+    } else onOpenChange(false);
   };
   const validateStudent: EnrollmentNavigation["validateStudent"] = () => {
     const errors = validateDados(identity.state.fields, today);

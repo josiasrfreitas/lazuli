@@ -70,6 +70,7 @@ function useEnrollmentController(props: NewStudentDialogProps): EnrollmentModel 
     flow,
     classes: classSources,
     today,
+    saveBeforeClose: () => requestSave(false, true),
     onOpenChange: props.onOpenChange,
   });
   const persistence = useEnrollmentPersistence({

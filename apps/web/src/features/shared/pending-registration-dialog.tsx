@@ -1,6 +1,6 @@
 "use client";
 import type { JSX as ReactJSX } from "react";
-import { AlertTriangle, ArrowLeft, Check } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, Trash2 } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -14,6 +14,16 @@ import {
   DialogTitle,
 } from "@lazuli/ui";
 
+type PendingRegistrationProps = {
+  entity: "lead" | "aluno";
+  pendingItems: string[];
+  pending: boolean;
+  error?: string | undefined;
+  onBack: () => void;
+  onConfirm: () => void;
+  onDiscard?: (() => void) | undefined;
+};
+
 export function PendingRegistrationDialog({
   entity,
   pendingItems,
@@ -21,14 +31,8 @@ export function PendingRegistrationDialog({
   error,
   onBack,
   onConfirm,
-}: {
-  entity: "lead" | "aluno";
-  pendingItems: string[];
-  pending: boolean;
-  error?: string | undefined;
-  onBack: () => void;
-  onConfirm: () => void;
-}): ReactJSX.Element {
+  onDiscard,
+}: PendingRegistrationProps): ReactJSX.Element {
   return (
     <Dialog
       open
@@ -38,24 +42,27 @@ export function PendingRegistrationDialog({
     >
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className="md:max-w-lg">
+        <DialogContent className="md:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Salvar {entity} com pendências?</DialogTitle>
+            <DialogTitle>
+              {pendingItems.length > 0
+                ? `Salvar ${entity} com pendências?`
+                : `Salvar ${entity} antes de fechar?`}
+            </DialogTitle>
             <DialogDescription>
-              O cadastro será salvo, mas ainda será necessário resolver:
+              {pendingItems.length > 0
+                ? "O cadastro será salvo, mas ainda será necessário resolver:"
+                : "As alterações ainda não foram salvas."}
             </DialogDescription>
           </DialogHeader>
           <PendingRegistrationBody pendingItems={pendingItems} error={error} />
-          <DialogFooter>
-            <Button variant="secondary" disabled={pending} onClick={onBack}>
-              <ArrowLeft />
-              Voltar e revisar
-            </Button>
-            <Button loading={pending} onClick={onConfirm}>
-              <Check />
-              Salvar com pendências
-            </Button>
-          </DialogFooter>
+          <PendingRegistrationActions
+            pending={pending}
+            hasPendingItems={pendingItems.length > 0}
+            onBack={onBack}
+            onConfirm={onConfirm}
+            onDiscard={onDiscard}
+          />
         </DialogContent>
       </DialogPortal>
     </Dialog>
@@ -79,14 +86,46 @@ function PendingRegistrationBody({
           </li>
         ))}
       </ul>
-      <p className="text-caption text-muted-foreground">
-        Essas pendências continuarão indicadas no cadastro.
-      </p>
+      {pendingItems.length > 0 && (
+        <p className="text-caption text-muted-foreground">
+          Essas pendências continuarão indicadas no cadastro.
+        </p>
+      )}
       {error && (
         <p className="mt-3 text-caption text-destructive" role="alert">
           {error}
         </p>
       )}
     </DialogBody>
+  );
+}
+
+function PendingRegistrationActions({
+  pending,
+  hasPendingItems,
+  onBack,
+  onConfirm,
+  onDiscard,
+}: {
+  pending: boolean;
+  hasPendingItems: boolean;
+  onBack: () => void;
+  onConfirm: () => void;
+  onDiscard: (() => void) | undefined;
+}): ReactJSX.Element {
+  return (
+    <DialogFooter className="sm:flex-wrap">
+      {onDiscard && (
+        <Button variant="ghost" disabled={pending} onClick={onDiscard}>
+          <Trash2 /> Descartar e fechar
+        </Button>
+      )}
+      <Button variant="secondary" disabled={pending} onClick={onBack}>
+        <ArrowLeft /> Voltar e revisar
+      </Button>
+      <Button loading={pending} onClick={onConfirm}>
+        <Check /> {hasPendingItems ? "Salvar com pendências" : "Salvar e fechar"}
+      </Button>
+    </DialogFooter>
   );
 }
