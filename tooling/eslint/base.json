@@ -24,7 +24,7 @@
     },
     {
       "name": "import-x-compat",
-      "specifier": "eslint-plugin-import-x"
+      "specifier": "./import-compat.js"
     }
   ],
   "categories": {
@@ -37,13 +37,6 @@
   "env": {
     "builtin": true,
     "es2026": true
-  },
-  "settings": {
-    "import-x/resolver": {
-      "typescript": {
-        "project": "./tsconfig.json"
-      }
-    }
   },
   "ignorePatterns": [
     "**/dist/**",

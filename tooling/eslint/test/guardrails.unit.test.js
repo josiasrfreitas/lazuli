@@ -236,3 +236,35 @@ it("retains promise, type and import guardrails in dedicated tests", async () =>
   assert.ok(rules.includes("@typescript-eslint/no-floating-promises"));
   assert.ok(rules.includes("@typescript-eslint/no-explicit-any"));
 });
+
+it("enforces physical package and finance boundaries through production configs", async () => {
+  const probes = [
+    {
+      directory: "apps/web",
+      file: "src/app/production-boundary-probe.ts",
+      source: 'import "../../../../packages/worker-handlers/src/index.js";',
+    },
+    {
+      directory: "packages/api",
+      file: "src/students/production-boundary-probe.ts",
+      source:
+        'import { ORDER_NOT_FOUND_MESSAGE } from "../finance/internal/shared.js"; export const probe = ORDER_NOT_FOUND_MESSAGE;',
+    },
+  ];
+  for (const probe of probes) {
+    const directory = path.join(repositoryRoot, probe.directory);
+    const file = path.join(directory, probe.file);
+    await writeFile(file, probe.source);
+    try {
+      const results = await lintFiles({ cwd: directory, files: [file] });
+      assert.ok(
+        results
+          .flatMap((result) => result.messages)
+          .some((message) => message.ruleId === "import-x/no-restricted-paths"),
+        probe.directory,
+      );
+    } finally {
+      await rm(file, { force: true });
+    }
+  }
+});
