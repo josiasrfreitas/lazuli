@@ -361,14 +361,28 @@ function footerInfo(model: EnrollmentModel): ReactJSX.Element {
     return (
       <div className={documentStyles.documentHelp}>
         <span role={model.documents.query.isError ? "status" : undefined}>
-          {model.documents.query.isError
-            ? "Não foi possível atualizar os anexos. Tentando novamente…"
-            : "RG/CIN preenche os dados. Revise antes de salvar."}
+          {documentHelpText(model)}
         </span>
       </div>
     );
   if (model.step === "address") return <span className="mr-auto max-sm:hidden" />;
   return <p className="mr-auto text-caption text-muted-foreground">{classSummary(model)}</p>;
+}
+
+function documentHelpText(model: EnrollmentModel): string {
+  if (model.documents.selection?.file)
+    return "Envie ou descarte o anexo selecionado antes de continuar.";
+  if (model.documents.query.isError)
+    return "Não foi possível atualizar os anexos. Tentando novamente…";
+  return "RG/CIN preenche os dados. Revise antes de salvar.";
+}
+
+function submitDisabled(model: EnrollmentModel): boolean {
+  return (
+    model.blockedLead ||
+    Boolean(model.documents.selection?.file) ||
+    (model.step === "contract" && !model.existingContract && !model.offer.data)
+  );
 }
 
 function EnrollmentBackButton({ model }: { model: EnrollmentModel }): ReactJSX.Element {
@@ -393,20 +407,19 @@ function EnrollmentSubmitButtons({ model }: { model: EnrollmentModel }): ReactJS
     step,
     visitedContract,
     validateStudent,
-    blockedLead,
     setStep,
     existingContract,
     pending,
     requestSave,
-    offer,
   } = model;
   return (
     <>
       {step === "student" && visitedContract && (
         <Button
           variant="secondary"
+          disabled={pending || Boolean(model.documents.selection?.file)}
           onClick={() => {
-            if (validateStudent() && !blockedLead) setStep("contract");
+            if (validateStudent() && !model.blockedLead) setStep("contract");
           }}
         >
           Ir para contrato <ArrowRight />
@@ -417,12 +430,7 @@ function EnrollmentSubmitButtons({ model }: { model: EnrollmentModel }): ReactJS
           Salvar sem contrato
         </Button>
       )}
-      <Button
-        type="submit"
-        form="intake-enroll"
-        loading={pending}
-        disabled={blockedLead || (step === "contract" && !existingContract && !offer.data)}
-      >
+      <Button type="submit" form="intake-enroll" loading={pending} disabled={submitDisabled(model)}>
         {step === "contract" ? <Check /> : <ArrowRight />}
         {submitLabel(step)}
       </Button>

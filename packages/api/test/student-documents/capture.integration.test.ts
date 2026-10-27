@@ -184,3 +184,34 @@ void it("hides deleted attachments from capture and staff views", async () => {
     404,
   );
 });
+for (const pendingStatus of ["RECEIVED", "PROCESSING"] as const) {
+  void it(`allows reupload after deleting a ${pendingStatus} identity`, async () => {
+    const session = await caller.studentDocuments.create({});
+    const upload = (): Promise<Response> =>
+      studentDocumentCapture(
+        { db, staffUser: null },
+        { request: request(session.token, true), kind: "student" },
+      );
+    assert.equal(await statusOf(upload()), 201);
+    if (pendingStatus === "PROCESSING") {
+      await db.studentDocumentFile.update({
+        where: { sessionId_kind: { sessionId: session.id, kind: "student" } },
+        data: { status: "PROCESSING" },
+      });
+    }
+    const deletion = new Request("http://localhost/api/student-documents/student", {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${session.token}` },
+    });
+    assert.equal(
+      await statusOf(
+        studentDocumentCapture({ db, staffUser: null }, { request: deletion, kind: "student" }),
+      ),
+      200,
+    );
+    assert.equal(await statusOf(upload()), 201);
+    const files = await caller.studentDocuments.status({ id: session.id });
+    assert.equal(files.files.length, 1);
+    assert.equal(files.files[0]?.status, "RECEIVED");
+  });
+}

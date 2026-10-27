@@ -60,7 +60,8 @@ export async function storeDocument(
       if (!locked.count) throw new Error("CLOSED");
       const where = { sessionId_kind: { sessionId: input.sessionId, kind: input.kind } };
       const previous = await transaction.studentDocumentFile.findUnique({ where });
-      if (previous && ["RECEIVED", "PROCESSING"].includes(previous.status)) throw new Error("BUSY");
+      if (previous && !previous.deletedAt && ["RECEIVED", "PROCESSING"].includes(previous.status))
+        throw new Error("BUSY");
       const data = documentData(reference, { ...input, contentType });
       const file = await transaction.studentDocumentFile.upsert({
         where,

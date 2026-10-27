@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import { validateDados } from "./reducer";
 import type { ClassSources } from "./new-student-sources";
 import type { EnrollmentIdentity, EnrollmentFlow } from "./new-student-state";
+import type { EnrollmentDocuments } from "~/features/student-documents/use-enrollment-documents";
 
 export type EnrollmentNavigation = {
   clearLead: () => void;
@@ -13,6 +14,7 @@ export type EnrollmentNavigation = {
 type NavigationContext = {
   identity: EnrollmentIdentity;
   flow: EnrollmentFlow;
+  documents: Pick<EnrollmentDocuments, "captureBusy" | "selection">;
   classes: ClassSources;
   today: string;
   onOpenChange: (open: boolean) => void;
@@ -30,10 +32,31 @@ function clearEnrollmentLead(identity: EnrollmentIdentity, flow: EnrollmentFlow)
   flow.setError("");
 }
 
+function captureBlocksClose(
+  documents: NavigationContext["documents"],
+  flow: EnrollmentFlow,
+): boolean {
+  if (documents.captureBusy) return true;
+  if (!documents.selection?.file) return false;
+  flow.setError("Envie ou descarte o anexo selecionado antes de fechar.");
+  return true;
+}
+
+function captureBlocksAdvance(
+  documents: NavigationContext["documents"],
+  flow: EnrollmentFlow,
+): boolean {
+  if (documents.captureBusy) return true;
+  if (!documents.selection?.file) return false;
+  flow.setError("Envie ou descarte o anexo selecionado antes de continuar.");
+  return true;
+}
+
 export function createEnrollmentNavigation(context: NavigationContext): EnrollmentNavigation {
-  const { identity, flow, classes, today, onOpenChange } = context;
+  const { identity, flow, documents, classes, today, onOpenChange } = context;
   const clearLead: EnrollmentNavigation["clearLead"] = () => clearEnrollmentLead(identity, flow);
   const close: EnrollmentNavigation["close"] = () => {
+    if (captureBlocksClose(documents, flow)) return;
     if (
       identity.addressPending ||
       flow.busy.current ||
@@ -67,6 +90,7 @@ export function createEnrollmentNavigation(context: NavigationContext): Enrollme
   };
   const advance: EnrollmentNavigation["advance"] = (event) => {
     event.preventDefault();
+    if (captureBlocksAdvance(documents, flow)) return;
     if (identity.addressPending || !validateStudent() || classes.blockedLead) return;
     flow.setError("");
     if (flow.step === "student") flow.setStep("address");

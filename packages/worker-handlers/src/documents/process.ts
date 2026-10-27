@@ -46,6 +46,7 @@ export async function processStudentDocument(
 export async function recoverStudentDocuments(database: DatabaseClient): Promise<void> {
   const files = await database.studentDocumentFile.findMany({
     where: {
+      deletedAt: null,
       OR: [
         { status: "RECEIVED" },
         { status: "PROCESSING", updatedAt: { lt: new Date(Date.now() - LEASE_MS) } },

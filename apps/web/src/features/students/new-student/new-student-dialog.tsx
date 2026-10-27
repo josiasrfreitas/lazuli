@@ -78,6 +78,7 @@ function useEnrollmentController(props: NewStudentDialogProps): EnrollmentModel 
   const navigation = createEnrollmentNavigation({
     identity,
     flow,
+    documents,
     classes: classSources,
     today,
     saveBeforeClose: () => requestSave(false, true),
@@ -107,7 +108,7 @@ function useEnrollmentController(props: NewStudentDialogProps): EnrollmentModel 
     ...classSources,
     ...navigation,
     ...persistence,
-    pending: persistence.pending || identity.addressPending,
+    pending: persistence.pending || identity.addressPending || documents.captureBusy,
   };
 }
 

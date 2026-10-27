@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { after, it } from "node:test";
 import { db } from "@lazuli/db";
 import type { Storage } from "@lazuli/storage";
-import { processStudentDocument } from "../../src/documents/process.js";
+import { processStudentDocument, recoverStudentDocuments } from "../../src/documents/process.js";
 const owner = randomUUID();
 const storage: Storage = {
   put: () => Promise.reject(new Error("unused")),
@@ -61,4 +61,18 @@ void it("failed OCR preserves the attachment and does not invent extracted value
   assert.equal(row.status, "FAILED");
   assert.equal(row.key, "test");
   assert.equal(row.extraction, null);
+});
+void it("skips deleted pending rows when selecting a recovery batch", async () => {
+  const old = new Date("2020-01-01T00:00:00.000Z");
+  for (let index = 0; index < 5; index++) {
+    const id = await file();
+    await db.studentDocumentFile.update({
+      where: { id },
+      data: { deletedAt: old, createdAt: old },
+    });
+  }
+  const live = await file();
+  await recoverStudentDocuments(db);
+  const row = await db.studentDocumentFile.findUniqueOrThrow({ where: { id: live } });
+  assert.equal(row.status, "FAILED");
 });

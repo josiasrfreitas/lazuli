@@ -5,7 +5,7 @@ import { ENROLLMENT_DOCUMENTS, statusLabel, type DocumentDefinition } from "./mo
 import { SessionLink } from "./qr-dialog";
 import { DocumentCapture } from "./capture";
 import { DocumentReviewNotice } from "./review-notice";
-import type { EnrollmentDocuments } from "./use-enrollment-documents";
+import type { DocumentSelection, EnrollmentDocuments } from "./use-enrollment-documents";
 import { DocumentProcessing, ExtractedDocumentData } from "./result";
 import styles from "./documents.module.css";
 import {
@@ -18,7 +18,7 @@ import { PdfPreview } from "./pdf-preview";
 import { StudentDocumentDeleteButton } from "./delete-document-button";
 
 type DocumentFileRow = NonNullable<EnrollmentDocuments["query"]["data"]>["files"][number];
-type Selection = { document: DocumentDefinition; file?: File };
+type Selection = DocumentSelection;
 type PanelProps = {
   documents: EnrollmentDocuments;
   selection: Selection | null;
@@ -65,9 +65,8 @@ export function StudentDocumentPanel({
 }: {
   documents: EnrollmentDocuments;
 }): ReactElement {
-  const [selection, setSelection] = useState<Selection | null>(null);
+  const { selection, setSelection, captureBusy: busy, setCaptureBusy: setBusy } = documents;
   const [qr, setQr] = useState(false);
-  const [busy, setBusy] = useState(false);
   const selectedFile = documents.query.data?.files.findLast(
     (file) => file.kind === selection?.document.id,
   );
@@ -226,6 +225,8 @@ function PanelContent({
         onBusyChange={setBusy}
         onSent={() => {
           void documents.query.refetch();
+          documents.setCaptureBusy(false);
+          setSelection({ document: selection.document });
         }}
       />
     ) : (

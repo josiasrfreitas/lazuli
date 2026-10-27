@@ -5,11 +5,17 @@ import type { Dispatch, SetStateAction } from "react";
 import { trpc } from "~/lib/trpc";
 import type { EnrollmentIdentity, EnrollmentFlow } from "../students/new-student/new-student-state";
 import type { NewStudentFieldName } from "../students/new-student/reducer";
+import type { DocumentDefinition } from "./model";
 const POLL_MS = 2000;
 type Session = { id: string; token: string };
+export type DocumentSelection = { document: DocumentDefinition; file?: File };
 export type EnrollmentDocuments = {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
+  selection: DocumentSelection | null;
+  setSelection: Dispatch<SetStateAction<DocumentSelection | null>>;
+  captureBusy: boolean;
+  setCaptureBusy: Dispatch<SetStateAction<boolean>>;
   session: Session | null;
   create: ReturnType<typeof trpc.studentDocuments.create.useMutation>;
   query: {
@@ -30,9 +36,9 @@ export function useEnrollmentDocuments({
   studentId: string | undefined;
 }): EnrollmentDocuments {
   const [open, setOpen] = useState(false);
-  const creating = useRef<Promise<Session> | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const create = trpc.studentDocuments.create.useMutation();
+  const [selection, setSelection] = useState<DocumentSelection | null>(null);
+  const [captureBusy, setCaptureBusy] = useState(false);
+  const { session, create, ensureSession } = useDocumentSession(studentId);
   const query = trpc.studentDocuments.status.useQuery(
     { id: session?.id ?? "00000000-0000-0000-0000-000000000000" },
     { enabled: Boolean(session), refetchInterval: POLL_MS },
@@ -44,6 +50,27 @@ export function useEnrollmentDocuments({
   });
   const { touched, dispatch } = useDocumentDraftDispatch(identity);
   useDocumentPrefill({ identity, flow, files: query.data?.files, touched });
+  return {
+    open,
+    setOpen,
+    selection,
+    setSelection,
+    captureBusy,
+    setCaptureBusy,
+    session,
+    create,
+    query,
+    ensureSession,
+    dispatch,
+  };
+}
+
+function useDocumentSession(
+  studentId: string | undefined,
+): Pick<EnrollmentDocuments, "session" | "create" | "ensureSession"> {
+  const creating = useRef<Promise<Session> | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const create = trpc.studentDocuments.create.useMutation();
   async function ensureSession(): Promise<Session> {
     if (session) return session;
     if (creating.current) return creating.current;
@@ -66,7 +93,7 @@ export function useEnrollmentDocuments({
         /* Upload and QR actions allow retry. */
       });
   }, [studentId]);
-  return { open, setOpen, session, create, query, ensureSession, dispatch };
+  return { session, create, ensureSession };
 }
 
 function useDocumentDraftDispatch(identity: EnrollmentIdentity): {
