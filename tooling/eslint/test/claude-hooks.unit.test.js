@@ -25,6 +25,7 @@ it("Claude Code blocks direct edits to guardrail configuration", () => {
   for (const file of [
     "apps/web/tsconfig.json",
     "apps/web/.oxlintrc.json",
+    ".oxfmtrc.json",
     "tooling/eslint/compat.js",
   ]) {
     const result = runHook({

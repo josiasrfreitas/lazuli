@@ -71,7 +71,7 @@ catalog:
 
   # Tooling
   turbo: ^2.3.3
-  prettier: ^3.4.2
+  oxfmt: 0.75.0
   oxlint: 1.90.0
   oxlint-tsgolint: 7.0.2005
   eslint: ^10.10.0
@@ -113,3 +113,23 @@ minimumReleaseAgeExclude:
   - "@oxlint/binding-win32-ia32-msvc@1.90.0"
   - "@oxlint/binding-win32-x64-msvc@1.90.0"
   - oxlint@1.90.0
+  - "@oxfmt/binding-android-arm-eabi@0.75.0"
+  - "@oxfmt/binding-android-arm64@0.75.0"
+  - "@oxfmt/binding-darwin-arm64@0.75.0"
+  - "@oxfmt/binding-darwin-x64@0.75.0"
+  - "@oxfmt/binding-freebsd-x64@0.75.0"
+  - "@oxfmt/binding-linux-arm-gnueabihf@0.75.0"
+  - "@oxfmt/binding-linux-arm-musleabihf@0.75.0"
+  - "@oxfmt/binding-linux-arm64-gnu@0.75.0"
+  - "@oxfmt/binding-linux-arm64-musl@0.75.0"
+  - "@oxfmt/binding-linux-ppc64-gnu@0.75.0"
+  - "@oxfmt/binding-linux-riscv64-gnu@0.75.0"
+  - "@oxfmt/binding-linux-riscv64-musl@0.75.0"
+  - "@oxfmt/binding-linux-s390x-gnu@0.75.0"
+  - "@oxfmt/binding-linux-x64-gnu@0.75.0"
+  - "@oxfmt/binding-linux-x64-musl@0.75.0"
+  - "@oxfmt/binding-openharmony-arm64@0.75.0"
+  - "@oxfmt/binding-win32-arm64-msvc@0.75.0"
+  - "@oxfmt/binding-win32-ia32-msvc@0.75.0"
+  - "@oxfmt/binding-win32-x64-msvc@0.75.0"
+  - oxfmt@0.75.0

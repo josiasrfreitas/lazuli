@@ -387,14 +387,12 @@ function meetingEvents(
         ...(reason ? { disabledReason: reason } : {}),
       };
     }),
-    ...(data?.teacherBusy ?? []).map(
-      (row): MeetingEvent => ({
-        ...row,
-        id: "busy-" + row.id,
-        title: row.label,
-        disabled: true,
-      }),
-    ),
+    ...(data?.teacherBusy ?? []).map((row): MeetingEvent => ({
+      ...row,
+      id: "busy-" + row.id,
+      title: row.label,
+      disabled: true,
+    })),
   ];
 }
 

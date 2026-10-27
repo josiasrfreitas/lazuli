@@ -1,4 +1,4 @@
-# Lint
+# Lint and formatting
 
 `pnpm lint` runs Oxlint through `lazuli-lint`, plus the existing duplication gate.
 Each workspace has an `.oxlintrc.json` extending `base.json`. The directory name
@@ -36,3 +36,10 @@ let Oxlint check that exact content without modifying the working tree.
 
 Run `pnpm -F @lazuli/eslint-config test` to exercise architectural boundaries,
 type-aware checks, test-quality rules, hooks, staged content, and suppression limits.
+
+`pnpm format` and `pnpm format:check` use Oxfmt with `.oxfmtrc.json`.
+The global commands retain the existing TS/TSX, Markdown, JSON and YAML scope;
+Lefthook also formats staged JS and CSS files. The previous Prettier options are
+preserved: semicolons, double quotes, trailing commas, width 100 and two-space
+indentation. Import and package-key sorting are disabled. Generated files,
+`pnpm-lock.yaml` and local Impeccable artifacts remain outside formatting.

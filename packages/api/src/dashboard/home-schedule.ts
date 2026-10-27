@@ -76,32 +76,28 @@ export async function readHomeAgenda(
   const { meetings, appointments, visits } = await agendaRows(database, { today, date, now });
   const events: HomeEvent[] = [
     ...meetings.filter((row) => !row.cancelled).map((row) => meetingEvent(row)),
-    ...appointments.map(
-      (row): HomeEvent => ({
+    ...appointments.map((row): HomeEvent => ({
+      id: row.id,
+      title: row.student.fullName,
+      detail: "Atendimento pedagógico",
+      date: dateOnly(row.date),
+      time: timeOnly(row.startTime),
+      endTime: timeOnly(row.endTime),
+      kind: "Atendimento",
+      action: { kind: "appointment", id: row.id },
+    })),
+    ...visits.map((row): HomeEvent => ({
+      ...linkItem({
         id: row.id,
-        title: row.student.fullName,
-        detail: "Atendimento pedagógico",
+        title: row.candidate.fullName,
+        detail: row.kind === "PLACEMENT" ? "Nivelamento" : "Aula experimental",
+        href: `/interessados/${row.candidateId}`,
         date: dateOnly(row.date),
-        time: timeOnly(row.startTime),
-        endTime: timeOnly(row.endTime),
-        kind: "Atendimento",
-        action: { kind: "appointment", id: row.id },
       }),
-    ),
-    ...visits.map(
-      (row): HomeEvent => ({
-        ...linkItem({
-          id: row.id,
-          title: row.candidate.fullName,
-          detail: row.kind === "PLACEMENT" ? "Nivelamento" : "Aula experimental",
-          href: `/interessados/${row.candidateId}`,
-          date: dateOnly(row.date),
-        }),
-        time: timeOnly(row.startTime),
-        endTime: timeOnly(row.endTime),
-        kind: row.kind === "PLACEMENT" ? "Nivelamento" : "Experimental",
-      }),
-    ),
+      time: timeOnly(row.startTime),
+      endTime: timeOnly(row.endTime),
+      kind: row.kind === "PLACEMENT" ? "Nivelamento" : "Experimental",
+    })),
   ];
   const currentTime = new Intl.DateTimeFormat("en-GB", {
     timeZone: "America/Sao_Paulo",

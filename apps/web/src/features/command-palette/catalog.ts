@@ -101,75 +101,65 @@ export function entityCommands(data: Lookup | undefined): Command[] {
   if (!data) return [];
   return [
     ...studentEntityCommands(data.students),
-    ...data.teachers.map(
-      (row): Command => ({
-        id: `teacher:${row.id}`,
-        kind: "teacher",
-        title: row.name,
-        description: "Agenda e turmas do professor",
-        section: "Professores",
-        href: `/professores/${row.id}`,
-        icon: "teacher",
-        keywords: [],
-        matchedEntity: true,
-      }),
-    ),
-    ...data.classes.map(
-      (row): Command => ({
-        id: `class:${row.id}`,
-        kind: "class",
-        title: row.name,
-        description: `${row.code} · ${row.semester}${row.status === "ACTIVE" ? "" : " · Arquivada"}`,
-        section: "Turmas",
-        href: `/turmas/${row.id}`,
-        icon: "class",
-        keywords: [row.code],
-        matchedEntity: true,
-      }),
-    ),
-    ...data.leads.map(
-      (row): Command => ({
-        id: `lead:${row.id}`,
-        kind: "lead",
-        title: row.name,
-        description: "Cadastro e próximos passos",
-        section: "Interessados",
-        href: `/interessados/${row.id}`,
-        icon: "lead",
-        keywords: [],
-        matchedEntity: true,
-      }),
-    ),
+    ...data.teachers.map((row): Command => ({
+      id: `teacher:${row.id}`,
+      kind: "teacher",
+      title: row.name,
+      description: "Agenda e turmas do professor",
+      section: "Professores",
+      href: `/professores/${row.id}`,
+      icon: "teacher",
+      keywords: [],
+      matchedEntity: true,
+    })),
+    ...data.classes.map((row): Command => ({
+      id: `class:${row.id}`,
+      kind: "class",
+      title: row.name,
+      description: `${row.code} · ${row.semester}${row.status === "ACTIVE" ? "" : " · Arquivada"}`,
+      section: "Turmas",
+      href: `/turmas/${row.id}`,
+      icon: "class",
+      keywords: [row.code],
+      matchedEntity: true,
+    })),
+    ...data.leads.map((row): Command => ({
+      id: `lead:${row.id}`,
+      kind: "lead",
+      title: row.name,
+      description: "Cadastro e próximos passos",
+      section: "Interessados",
+      href: `/interessados/${row.id}`,
+      icon: "lead",
+      keywords: [],
+      matchedEntity: true,
+    })),
   ];
 }
 
 function studentEntityCommands(rows: Lookup["students"]): Command[] {
-  return rows.map(
-    (row): Command => ({
-      id: `student:${row.id}`,
-      kind: "student",
-      title: row.name,
-      description:
-        row.classes.length > 0
-          ? row.classes.map((group) => group.name).join(" · ")
-          : "Sem matrícula vigente",
-      section: "Alunos",
-      href: `/alunos/${row.id}?secao=pedagogico`,
-      icon: "student",
-      keywords: [],
-      matchedEntity: true,
-      actions: [
-        ...studentActions(row.id),
-        ...row.classes.map(
-          (group): CommandAction => ({
-            id: `class:${group.id}`,
-            title: `Abrir turma ${group.name}`,
-            description: "Turma atual do aluno",
-            href: `/turmas/${group.id}`,
-            icon: "class",
-          }),
-        ),
-      ],
-    }),
-  );
+  return rows.map((row): Command => ({
+    id: `student:${row.id}`,
+    kind: "student",
+    title: row.name,
+    description:
+      row.classes.length > 0
+        ? row.classes.map((group) => group.name).join(" · ")
+        : "Sem matrícula vigente",
+    section: "Alunos",
+    href: `/alunos/${row.id}?secao=pedagogico`,
+    icon: "student",
+    keywords: [],
+    matchedEntity: true,
+    actions: [
+      ...studentActions(row.id),
+      ...row.classes.map((group): CommandAction => ({
+        id: `class:${group.id}`,
+        title: `Abrir turma ${group.name}`,
+        description: "Turma atual do aluno",
+        href: `/turmas/${group.id}`,
+        icon: "class",
+      })),
+    ],
+  }));
 }

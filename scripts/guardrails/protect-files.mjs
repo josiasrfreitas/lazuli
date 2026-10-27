@@ -9,6 +9,7 @@ const protectedFiles = new Set([".claude/settings.json", "jscpd.json"]);
 function isProtectedConfigurationName(fileName) {
   return (
     fileName === ".oxlintrc.json" ||
+    fileName === ".oxfmtrc.json" ||
     fileName === ".oxlintrc.jsonc" ||
     fileName === "oxlint.config.ts" ||
     fileName === "oxlint.config.mts" ||
