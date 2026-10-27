@@ -1,0 +1,20 @@
+@import "tailwindcss" source(none);
+@import "@lazuli/ui/styles.css";
+@source "./client.jsx";
+@source "../../../packages/ui/src/components/button.tsx";
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, sans-serif;
+}
+.editor-host {
+  width: 100%;
+  min-height: 280px;
+}
+.preview {
+  width: 100%;
+  max-height: 45vh;
+  object-fit: contain;
+}

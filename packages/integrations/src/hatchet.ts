@@ -5,6 +5,9 @@ import {
   ASSESSMENT_FILE_WORKFLOW,
   assessmentFilePayloadSchema,
   type AssessmentFilePayload,
+  STUDENT_DOCUMENT_WORKFLOW,
+  studentDocumentPayloadSchema,
+  type StudentDocumentPayload,
   SESSIONS_GENERATE_WORKFLOW,
   sessionsGeneratePayloadSchema,
   type SessionsGenerateQueue,
@@ -12,6 +15,13 @@ import {
 
 const DISPATCH_TIMEOUT_MS = 5000;
 const NAMESPACE_HASH_LENGTH = 16;
+export async function enqueueStudentDocument(input: StudentDocumentPayload): Promise<void> {
+  const payload = studentDocumentPayloadSchema.parse(input);
+  await boundedDispatch(async () => {
+    const hatchet = await getHatchetClient();
+    await hatchet.runNoWait(STUDENT_DOCUMENT_WORKFLOW, payload);
+  });
+}
 export async function enqueueAssessmentFile(input: AssessmentFilePayload): Promise<void> {
   const payload = assessmentFilePayloadSchema.parse(input);
   await boundedDispatch(async () => {

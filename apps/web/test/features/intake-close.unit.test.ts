@@ -96,3 +96,43 @@ void it("cannot prepare a pending save while a mutation is running", () => {
   assert.deepEqual(state.confirmations, []);
   assert.deepEqual(state.persisted, []);
 });
+
+void it("closing an invalid draft does not publish validation errors or change steps", () => {
+  const state = scenario("pedagogy");
+  const reported: (boolean | undefined)[] = [];
+  state.context.navigation.validateStudent = (reportErrors) => {
+    reported.push(reportErrors);
+    return false;
+  };
+  state.context.flow.setStep = () => {
+    throw new Error("Closing must preserve the current step");
+  };
+  assert.equal(state.request(false, true), false);
+  assert.deepEqual(reported, [false]);
+  assert.deepEqual(state.errors, []);
+  assert.deepEqual(state.confirmations, []);
+});
+
+void it("closing a partial address permits optional empty fields", () => {
+  const state = scenario("student");
+  state.context.identity.state.fields.address = {
+    street: "Rua das Flores",
+    number: "",
+    complement: "",
+    neighborhood: "",
+    city: "Maceió",
+    state: "AL",
+    postalCode: "",
+  };
+  assert.equal(state.request(false, true), true);
+  assert.equal(state.confirmations.length, 1);
+  assert.deepEqual(state.errors, [""]);
+});
+
+void it("closing does not surface schema errors as a global required-field alert", () => {
+  const state = scenario("student");
+  state.context.identity.state.fields.fullName = "";
+  assert.equal(state.request(false, true), false);
+  assert.deepEqual(state.errors, []);
+  assert.deepEqual(state.confirmations, []);
+});

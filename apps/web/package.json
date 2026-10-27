@@ -29,11 +29,13 @@
     "lucide-react": "catalog:",
     "next": "catalog:",
     "nuqs": "catalog:",
+    "pdfjs-dist": "^6.4.299",
     "qrcode.react": "4.2.0",
     "react": "catalog:",
     "react-big-calendar": "^1.20.0",
     "react-dom": "catalog:",
     "recharts": "3.10.1",
+    "scanic": "1.7.1",
     "superjson": "catalog:",
     "temporal-polyfill": "^1.0.5"
   },

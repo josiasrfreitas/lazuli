@@ -1,92 +1,305 @@
-import type { ReactElement } from "react";
-import { Mail, MessageCircle, UserRound } from "lucide-react";
+"use client";
+
 import {
+  useId,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactElement,
+  type ReactNode,
+  type RefObject,
+  type SetStateAction,
+} from "react";
+import { MapPin, NotebookPen, Pencil, UserRound, UsersRound, type LucideIcon } from "lucide-react";
+import {
+  Avatar,
+  Badge,
   Button,
-  Sheet,
-  SheetBackdrop,
-  SheetBody,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetPortal,
-  SheetTitle,
-  SheetTrigger,
+  Dialog,
+  DialogBackdrop,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+  SegmentedControl,
+  SegmentedControlItem,
 } from "@lazuli/ui";
+import { DiscardRegistrationDialog } from "~/features/shared/discard-registration-dialog";
 import { formatDateOnlyBR, toWhatsAppUrl } from "~/lib/format";
+import { statusBadgeVm } from "../view-model";
 import type { StudentProfile } from "./logic";
-import { ProfileFact } from "./profile-shared";
+import { RegistrationDocuments } from "./registration-documents";
+import { RegistrationEditor, type RegistrationEditTarget } from "./registration-editor";
+import styles from "./student-registration.module.css";
 
 const NOT_INFORMED = "Não informado";
 
+type RegistrationViewModel = {
+  profile: StudentProfile;
+  editTarget: RegistrationEditTarget | null;
+  setEditTarget: Dispatch<SetStateAction<RegistrationEditTarget | null>>;
+  setEditBusy: Dispatch<SetStateAction<boolean>>;
+  dirty: boolean;
+  setDirty: Dispatch<SetStateAction<boolean>>;
+  discard: "close" | "edit" | null;
+  setDiscard: Dispatch<SetStateAction<"close" | "edit" | null>>;
+  setUploadBusy: Dispatch<SetStateAction<boolean>>;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+  mobileSection: string;
+  setMobileSection: Dispatch<SetStateAction<string>>;
+  detailsId: string;
+  documentsId: string;
+  title: RefObject<HTMLHeadingElement | null>;
+  details: RefObject<HTMLDivElement | null>;
+  finishEdit: () => void;
+};
+type RegistrationDialogModel = RegistrationViewModel & {
+  open: boolean;
+  editBusy: boolean;
+  uploadBusy: boolean;
+};
+
+function finishRegistrationEdit({
+  editTarget,
+  setEditTarget,
+  setDirty,
+  details,
+}: Pick<RegistrationViewModel, "editTarget" | "setEditTarget" | "setDirty" | "details">): void {
+  setEditTarget(null);
+  setDirty(false);
+  requestAnimationFrame(() => {
+    details.current
+      ?.querySelector<HTMLButtonElement>(`[data-edit-section="${editTarget}"]`)
+      ?.focus();
+  });
+}
+
+function useRegistrationDialogModel(profile: StudentProfile): RegistrationDialogModel {
+  const [editTarget, setEditTarget] = useState<RegistrationEditTarget | null>(null);
+  const [editBusy, setEditBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [discard, setDiscard] = useState<"close" | "edit" | null>(null);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [mobileSection, setMobileSection] = useState("details");
+  const detailsId = useId();
+  const documentsId = useId();
+  const title = useRef<HTMLHeadingElement>(null);
+  const details = useRef<HTMLDivElement>(null);
+  const finishEdit = (): void =>
+    finishRegistrationEdit({ editTarget, setEditTarget, setDirty, details });
+  return {
+    profile,
+    open,
+    editBusy,
+    uploadBusy,
+    editTarget,
+    setEditTarget,
+    setEditBusy,
+    dirty,
+    setDirty,
+    discard,
+    setDiscard,
+    setUploadBusy,
+    setOpen,
+    mobileSection,
+    setMobileSection,
+    detailsId,
+    documentsId,
+    title,
+    details,
+    finishEdit,
+  };
+}
+
 export function StudentContactButton({ profile }: { profile: StudentProfile }): ReactElement {
+  const model = useRegistrationDialogModel(profile);
   return (
-    <Sheet>
-      <SheetTrigger
-        aria-label="Cadastro completo"
-        title="Cadastro completo"
+    <Dialog
+      open={model.open}
+      onOpenChange={(value) => {
+        if (model.uploadBusy || model.editBusy) return;
+        if (!value && model.dirty) {
+          model.setDiscard("close");
+          return;
+        }
+        if (value) model.setMobileSection("details");
+        model.setOpen(value);
+      }}
+      onOpenChangeComplete={(value) => {
+        if (!value) model.setEditTarget(null);
+      }}
+    >
+      <DialogTrigger
+        aria-label="Informações cadastrais"
+        title="Informações cadastrais"
         render={<Button variant="link" size="inline" />}
       >
         <UserRound aria-hidden="true" />
-        <span>Cadastro completo</span>
-      </SheetTrigger>
-      <SheetPortal>
-        <SheetBackdrop />
-        <SheetContent closeLabel="Fechar cadastro">
-          <SheetHeader>
-            <SheetTitle>Cadastro e contato</SheetTitle>
-            <SheetDescription>{profile.contact.fullName}</SheetDescription>
-          </SheetHeader>
-          <SheetBody>
-            <div className="grid gap-6 py-5">
-              <StudentContactFacts profile={profile} />
-              {profile.guardian && <GuardianContact guardian={profile.guardian} />}
-              {profile.notes && (
-                <section className="grid gap-2 border-t border-border pt-4">
-                  <h3 className="text-base font-semibold">Observações do cadastro</h3>
-                  <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                    {profile.notes}
-                  </p>
-                </section>
-              )}
-            </div>
-          </SheetBody>
-        </SheetContent>
-      </SheetPortal>
-    </Sheet>
+        <span>Informações cadastrais</span>
+      </DialogTrigger>
+      <DialogPortal>
+        <DialogBackdrop className="student-registration-backdrop" />
+        <RegistrationContent model={model} />
+      </DialogPortal>
+    </Dialog>
+  );
+}
+
+function RegistrationContent({ model }: { model: RegistrationViewModel }): ReactElement {
+  return (
+    <DialogContent
+      closeLabel="Fechar cadastro"
+      initialFocus={model.title}
+      className="student-registration-dialog"
+    >
+      <RegistrationHeader model={model} />
+      <RegistrationMobileNavigation model={model} />
+      <div className={styles.layout} data-mobile-section={model.mobileSection}>
+        <RegistrationDetails model={model} />
+        <div id={model.documentsId} className={styles.documentsPane}>
+          <RegistrationDocuments studentId={model.profile.id} onBusyChange={model.setUploadBusy} />
+        </div>
+      </div>
+      <RegistrationDiscard model={model} />
+    </DialogContent>
+  );
+}
+
+function RegistrationHeader({ model }: { model: RegistrationViewModel }): ReactElement {
+  const { profile } = model;
+  const status = statusBadgeVm(profile.contact.status);
+  return (
+    <div className={styles.header}>
+      <Avatar name={profile.contact.fullName} colorKey={profile.id} size="lg" />
+      <DialogHeader className="min-w-0 flex-1">
+        <DialogTitle
+          ref={model.title}
+          tabIndex={-1}
+          size="lg"
+          className="outline-none [overflow-wrap:anywhere] [text-wrap:balance]"
+        >
+          {profile.contact.fullName}
+        </DialogTitle>
+        <div className={styles.headerMetadata}>
+          <DialogDescription>Informações cadastrais</DialogDescription>
+          <Badge variant={status.variant}>{status.label}</Badge>
+        </div>
+      </DialogHeader>
+    </div>
+  );
+}
+
+function RegistrationMobileNavigation({ model }: { model: RegistrationViewModel }): ReactElement {
+  return (
+    <div className={styles.mobileNavigation}>
+      <SegmentedControl
+        aria-label="Seção do cadastro"
+        value={model.mobileSection}
+        onValueChange={(value) => {
+          if (value) model.setMobileSection(value);
+        }}
+      >
+        <SegmentedControlItem value="details" aria-controls={model.detailsId}>
+          Dados cadastrais
+        </SegmentedControlItem>
+        <SegmentedControlItem value="documents" aria-controls={model.documentsId}>
+          Documentos
+        </SegmentedControlItem>
+      </SegmentedControl>
+    </div>
+  );
+}
+
+function RegistrationDetails({ model }: { model: RegistrationViewModel }): ReactElement {
+  return (
+    <div id={model.detailsId} ref={model.details} className={styles.details}>
+      {model.editTarget ? (
+        <RegistrationEditor
+          key={model.editTarget}
+          profile={model.profile}
+          target={model.editTarget}
+          onCancel={() => {
+            if (model.dirty) model.setDiscard("edit");
+            else model.finishEdit();
+          }}
+          onSaved={model.finishEdit}
+          onDirtyChange={model.setDirty}
+          onBusyChange={model.setEditBusy}
+        />
+      ) : (
+        <RegistrationFactsSections profile={model.profile} onEdit={model.setEditTarget} />
+      )}
+    </div>
+  );
+}
+
+function RegistrationFactsSections({
+  profile,
+  onEdit,
+}: {
+  profile: StudentProfile;
+  onEdit: (target: RegistrationEditTarget) => void;
+}): ReactElement {
+  return (
+    <>
+      <section className={styles.section}>
+        <SectionHeading title="Dados do aluno" icon={UserRound} target="student" onEdit={onEdit} />
+        <StudentContactFacts profile={profile} />
+      </section>
+      <section className={styles.section}>
+        <SectionHeading title="Responsável" icon={UsersRound} target="guardian" onEdit={onEdit} />
+        {profile.guardian ? (
+          <GuardianContact guardian={profile.guardian} />
+        ) : (
+          <p className={styles.supporting}>Nenhum responsável informado.</p>
+        )}
+      </section>
+      <section className={styles.section}>
+        <SectionHeading title="Endereço" icon={MapPin} target="address" onEdit={onEdit} />
+        <StudentAddress address={profile.address} />
+      </section>
+      <section className={styles.section}>
+        <SectionHeading title="Observações" icon={NotebookPen} target="notes" onEdit={onEdit} />
+        <p className={styles.notes}>{profile.notes ?? "Nenhuma observação."}</p>
+      </section>
+    </>
+  );
+}
+
+function RegistrationDiscard({ model }: { model: RegistrationViewModel }): ReactElement | null {
+  if (!model.discard) return null;
+  return (
+    <DiscardRegistrationDialog
+      onKeep={() => model.setDiscard(null)}
+      onDiscard={() => {
+        if (model.discard === "close") {
+          model.setDirty(false);
+          model.setOpen(false);
+        } else model.finishEdit();
+        model.setDiscard(null);
+      }}
+    />
   );
 }
 
 function StudentContactFacts({ profile }: { profile: StudentProfile }): ReactElement {
   return (
-    <dl className="grid gap-4">
+    <dl className={styles.facts}>
+      <ProfileFact label={profile.contact.documentType ?? "Documento"}>
+        {profile.contact.documentNumber ?? NOT_INFORMED}
+      </ProfileFact>
       <ProfileFact label="Nascimento">
         {profile.contact.birthDate ? formatDateOnlyBR(profile.contact.birthDate) : NOT_INFORMED}
       </ProfileFact>
-      <ProfileFact label="Telefone">{profile.contact.phone ?? NOT_INFORMED}</ProfileFact>
-      <ProfileFact label="E-mail">
-        {profile.contact.email ? (
-          <a className="text-interactive hover:underline" href={`mailto:${profile.contact.email}`}>
-            {profile.contact.email}
-          </a>
-        ) : (
-          NOT_INFORMED
-        )}
+      <ProfileFact label="Telefone">
+        <PhoneLink phone={profile.contact.phone} />
       </ProfileFact>
-      {profile.address && (
-        <ProfileFact label="Endereço">
-          {[
-            profile.address.street,
-            profile.address.number,
-            profile.address.complement,
-            profile.address.neighborhood,
-            profile.address.city,
-            profile.address.state,
-            profile.address.postalCode,
-          ]
-            .filter(Boolean)
-            .join(", ") || NOT_INFORMED}
-        </ProfileFact>
-      )}
+      <ProfileFact label="E-mail" wide>
+        <EmailLink email={profile.contact.email} />
+      </ProfileFact>
     </dl>
   );
 }
@@ -96,42 +309,128 @@ function GuardianContact({
 }: {
   guardian: NonNullable<StudentProfile["guardian"]>;
 }): ReactElement {
-  const whatsapp = toWhatsAppUrl(guardian.phone);
   return (
-    <section className="grid gap-3 border-t border-border pt-4">
-      <h3 className="text-base font-semibold">Responsável</h3>
-      <div>
-        <p className="font-medium">{guardian.fullName}</p>
-        {guardian.relationship && (
-          <p className="text-caption text-muted-foreground">{guardian.relationship}</p>
-        )}
+    <>
+      <div className={styles.guardianName}>
+        <p>{guardian.fullName}</p>
+        {guardian.relationship && <span>{guardian.relationship}</span>}
       </div>
-      {guardian.phone && <p className="text-sm">{guardian.phone}</p>}
-      {guardian.email && (
-        <p className="break-all text-sm text-muted-foreground">{guardian.email}</p>
+      <dl className={styles.facts}>
+        <ProfileFact label={guardian.documentType ?? "Documento"}>
+          {guardian.documentNumber ?? NOT_INFORMED}
+        </ProfileFact>
+        <ProfileFact label="Telefone">
+          <PhoneLink phone={guardian.phone} />
+        </ProfileFact>
+        <ProfileFact label="E-mail" wide>
+          <EmailLink email={guardian.email} />
+        </ProfileFact>
+      </dl>
+    </>
+  );
+}
+
+function StudentAddress({ address }: { address: StudentProfile["address"] }): ReactElement {
+  const street = addressStreetLine(address);
+  const city = addressCityLine(address);
+  return (
+    <div className={styles.addressText}>
+      <p>{street || NOT_INFORMED}</p>
+      {city && <p className={styles.supporting}>{city}</p>}
+      {address?.postalCode && <p className={styles.supporting}>CEP {address.postalCode}</p>}
+    </div>
+  );
+}
+
+function addressStreetLine(address: StudentProfile["address"]): string {
+  return [address?.street, address?.number, address?.complement].filter(Boolean).join(", ");
+}
+
+function addressCityLine(address: StudentProfile["address"]): string {
+  return [address?.neighborhood, [address?.city, address?.state].filter(Boolean).join(" / ")]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function ProfileFact({
+  label,
+  children,
+  wide = false,
+}: {
+  label: string;
+  children: ReactNode;
+  wide?: boolean;
+}): ReactElement {
+  return (
+    <div className={styles.fact} data-wide={wide || undefined}>
+      <dt>{label}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
+function SectionHeading({
+  title,
+  icon: Icon,
+  target,
+  onEdit,
+}: {
+  title: string;
+  icon: LucideIcon;
+  target: RegistrationEditTarget;
+  onEdit: (target: RegistrationEditTarget) => void;
+}): ReactElement {
+  return (
+    <div className={styles.sectionHeading}>
+      <h3 className={styles.sectionTitle}>
+        <Icon aria-hidden="true" />
+        {title}
+      </h3>
+      <Button
+        size="icon-compact-responsive"
+        variant="ghost"
+        data-edit-section={target}
+        aria-label={`Editar ${title.toLocaleLowerCase("pt-BR")}`}
+        title={`Editar ${title.toLocaleLowerCase("pt-BR")}`}
+        onClick={() => onEdit(target)}
+      >
+        <Pencil aria-hidden="true" />
+      </Button>
+    </div>
+  );
+}
+
+function EmailLink({ email }: { email: string | null }): ReactElement {
+  return (
+    <>
+      {email ? (
+        <a className={styles.contactLink} href={`mailto:${email}`}>
+          {email}
+        </a>
+      ) : (
+        NOT_INFORMED
       )}
-      <div className="flex flex-wrap gap-2">
-        {whatsapp && (
-          <Button
-            nativeButton={false}
-            size="compact-responsive"
-            variant="secondary"
-            render={<a href={whatsapp} target="_blank" rel="noreferrer" />}
-          >
-            <MessageCircle aria-hidden="true" /> WhatsApp do responsável
-          </Button>
-        )}
-        {guardian.email && (
-          <Button
-            nativeButton={false}
-            size="compact-responsive"
-            variant="ghost"
-            render={<a href={`mailto:${guardian.email}`} />}
-          >
-            <Mail aria-hidden="true" /> E-mail
-          </Button>
-        )}
-      </div>
-    </section>
+    </>
+  );
+}
+
+function PhoneLink({ phone }: { phone: string | null }): ReactElement {
+  const url = toWhatsAppUrl(phone);
+  return (
+    <>
+      {url ? (
+        <a
+          className={styles.contactLink}
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          title="Abrir conversa no WhatsApp"
+        >
+          {phone}
+        </a>
+      ) : (
+        (phone ?? NOT_INFORMED)
+      )}
+    </>
   );
 }

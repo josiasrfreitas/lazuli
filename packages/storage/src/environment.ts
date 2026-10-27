@@ -1,4 +1,5 @@
-import { createStorage, type Storage } from "./storage.js";
+import { createStorage } from "./storage.js";
+import type { Storage } from "./contracts.js";
 import { storageConfig } from "./config.js";
 
 let instance: Storage | undefined;

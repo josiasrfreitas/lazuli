@@ -5,8 +5,36 @@ It uses Amazon S3 in production and Adobe S3Mock locally through the same SDK.
 
 Applications authorize access before calling storage. Keep filenames, owners and other metadata
 in PostgreSQL; use opaque UUIDs in object keys. Persist the returned `{ bucket, key }` with the
-attachment so changing the default bucket does not break existing files. The package does not
+attachment. When migrating buckets, explicitly configure `additionalBuckets` in `createStorage`
+for reads/removals of historical references; uploads always use the configured primary bucket.
+References outside these configured buckets are rejected before contacting S3. The package does not
 create public URLs or set public ACLs. Downloads go through an authenticated application endpoint.
+
+## Canonical integration
+
+The provider-independent `Storage`, `StoredFile`, and `StoredFileReference` contracts live in
+`src/contracts.ts`. Consumers import them from `@lazuli/storage`; the S3 implementation and
+configuration remain inside this package. Use `getStorage()` for the environment-configured
+singleton or `createStorage(options)` for an explicitly configured server integration.
+
+For each feature:
+
+1. Authorize the actor and validate the actual bytes, allowed types and size before `put`.
+2. Generate an opaque key on the server (for example `student-attachments/${randomUUID()}`).
+   Never use a person's name, document number or the uploaded filename in the key.
+3. Persist the returned reference with filename, MIME type, byte length, owner and uploader in
+   PostgreSQL. If persistence fails, remove the uploaded object; arrange retry/reconciliation if
+   cleanup fails. S3 and PostgreSQL do not share a transaction.
+4. For reads and removal, authorize against the database record and use its stored reference.
+   A bucket allowlist is an environment boundary, not per-user authorization.
+5. Process heavy work through the worker with identifiers only; keep bytes and personal data out
+   of job payloads and logs.
+
+Existing integrations: `packages/api/src/assessment-files/transport.ts` and
+`packages/api/src/admissions/placement.ts`; worker reads use this same package.
+Student documents, profile photos, QR capture and OCR remain future feature work tracked in
+[issue #219](https://github.com/josiasrfreitas/lazuli/issues/219). Storage does not implement their
+schemas, permissions, upload routes or OCR engine.
 
 ## Local development
 

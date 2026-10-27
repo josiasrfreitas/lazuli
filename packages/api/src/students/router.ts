@@ -1,3 +1,4 @@
+import { attachDocumentSession } from "../student-documents/router.js";
 import {
   studentIntakeOptions,
   enrollNewStudent,
@@ -41,13 +42,20 @@ export const studentsRouter = router({
   resumeIntake: adminProcedure.input(studentIntakeResumeSchema).mutation(({ ctx, input }) =>
     activityTransaction(ctx, {
       action: "students.resumeIntake",
-      work: (database) =>
-        resumeStudentIntake({
+      work: async (database) => {
+        const result = await resumeStudentIntake({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
-        }),
+        });
+        await attachDocumentSession(database, {
+          sessionId: input.documentSessionId,
+          studentId: result.studentId,
+          ownerId: ctx.staffUser.id,
+        });
+        return result;
+      },
       describe: async (result, database) => {
         const subject = await studentSubject(database, result.studentId);
         if (result.contractId)
@@ -90,13 +98,20 @@ export const studentsRouter = router({
   enrollNew: adminProcedure.input(studentIntakeEnrollSchema).mutation(({ ctx, input }) =>
     activityTransaction(ctx, {
       action: "students.enrollNew",
-      work: (database) =>
-        enrollNewStudent({
+      work: async (database) => {
+        const result = await enrollNewStudent({
           database,
           values: input,
           recordedById: ctx.staffUser.id,
           now: ctx.now ?? new Date(),
-        }),
+        });
+        await attachDocumentSession(database, {
+          sessionId: input.documentSessionId,
+          studentId: result.studentId,
+          ownerId: ctx.staffUser.id,
+        });
+        return result;
+      },
       describe: async (result, database) => {
         const subject = await studentSubject(database, result.studentId);
         if (result.contractId)

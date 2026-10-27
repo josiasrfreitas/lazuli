@@ -11,6 +11,9 @@ export const JOB_CONTRACTS_PACKAGE = "@lazuli/job-contracts" as const;
 export const ASSESSMENT_FILE_WORKFLOW = "assessment-file-process" as const;
 export const assessmentFilePayloadSchema = z.object({ fileId: z.string().uuid() }).strict();
 export type AssessmentFilePayload = z.infer<typeof assessmentFilePayloadSchema>;
+export const STUDENT_DOCUMENT_WORKFLOW = "student-document-process" as const;
+export const studentDocumentPayloadSchema = z.object({ fileId: z.string().uuid() }).strict();
+export type StudentDocumentPayload = z.infer<typeof studentDocumentPayloadSchema>;
 
 const SCOPE_MESSAGE = "Informe classId ou semesterId, nunca ambos.";
 

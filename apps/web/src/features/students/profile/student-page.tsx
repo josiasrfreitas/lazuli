@@ -1,4 +1,5 @@
 "use client";
+import { StudentPhoto } from "~/features/student-documents/student-photo";
 import { useState, type ReactElement, type ReactNode } from "react";
 import { AlertCircle, BookOpen, CalendarDays, Wallet } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
@@ -127,6 +128,9 @@ function StudentTabsHeader({
     <div className={styles.stickyHeader}>
       <DetailHeader
         title={profile ? profile.contact.fullName : <InlineSkeleton className="h-8 w-64" />}
+        leading={
+          profile ? <StudentPhoto studentId={id} name={profile.contact.fullName} /> : undefined
+        }
         metadata={
           profile ? <StudentStatus profile={profile} /> : <InlineSkeleton className="h-5 w-12" />
         }

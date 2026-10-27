@@ -53,16 +53,17 @@ void it("retries local bucket preparation and transfers private file bytes throu
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   assert.ok(address && typeof address !== "string");
+  const client = {
+    endpoint: `http://127.0.0.1:${address.port}`,
+    region: "us-east-1",
+    credentials: { accessKeyId: "local", secretAccessKey: "local" },
+    forcePathStyle: true,
+    maxAttempts: 1,
+  };
   const storage = createStorage({
     bucket: "isolated-test",
     createLocalBucket: true,
-    client: {
-      endpoint: `http://127.0.0.1:${address.port}`,
-      region: "us-east-1",
-      credentials: { accessKeyId: "local", secretAccessKey: "local" },
-      forcePathStyle: true,
-      maxAttempts: 1,
-    },
+    client,
   });
   const file = {
     key: "private/original.bin",
@@ -87,6 +88,28 @@ void it("retries local bucket preparation and transfers private file bytes throu
       contentType: "application/pdf",
     });
     await assert.rejects(storage.put({ ...file, key: "" }), /bucket and object key/u);
+    const historical = createStorage({ bucket: "historical-test", client });
+    const oldReference = await historical.put(file);
+    await assert.rejects(storage.read(oldReference), /outside configured buckets/u);
+    await assert.rejects(storage.remove(oldReference), /outside configured buckets/u);
+    assert.deepEqual(await historical.read(oldReference), {
+      bytes: Uint8Array.of(0, 255, 65),
+      contentType: "application/pdf",
+    });
+    const migration = createStorage({
+      bucket: "isolated-test",
+      additionalBuckets: ["historical-test"],
+      client,
+    });
+    assert.deepEqual(await migration.read(oldReference), {
+      bytes: Uint8Array.of(0, 255, 65),
+      contentType: "application/pdf",
+    });
+    const migrated = await migration.put({ ...file, key: "private/migrated.bin" });
+    assert.equal(migrated.bucket, "isolated-test");
+    await migration.remove(oldReference);
+    await assert.rejects(historical.read(oldReference), { name: "NoSuchKey" });
+    assert.throws(() => createStorage({ bucket: " ", client }), /configured bucket/u);
   } finally {
     await new Promise<void>((resolve, reject) =>
       server.close((error) => (error ? reject(error) : resolve())),

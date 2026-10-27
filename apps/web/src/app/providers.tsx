@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { useState, type ReactNode } from "react";
 
+import { ToastProvider } from "@lazuli/ui";
+
 import { createTRPCClient, trpc } from "~/lib/trpc";
 
 /**
@@ -28,7 +30,9 @@ export function Providers({ children }: { children: ReactNode }): ReactNode {
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <NuqsAdapter>{children}</NuqsAdapter>
+        <ToastProvider>
+          <NuqsAdapter>{children}</NuqsAdapter>
+        </ToastProvider>
       </QueryClientProvider>
     </trpc.Provider>
   );

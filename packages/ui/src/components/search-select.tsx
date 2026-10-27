@@ -28,13 +28,21 @@ export type SearchSelectProps = {
   onCreate?: (query: string) => void;
   emptyMessage?: string;
   openOnFocus?: boolean;
+  /** Keep suggestions hidden until the query has this many non-whitespace characters. */
+  minQueryLength?: number;
   loading?: boolean;
   failed?: boolean;
   invalid?: boolean;
   disabled?: boolean;
 };
 
-function SearchResults({ items, loading, failed, emptyMessage }: SearchResultsInput): ReactElement {
+function SearchResults({
+  items,
+  loading,
+  failed,
+  emptyMessage,
+}: SearchResultsInput): ReactElement | null {
+  if (!loading && !failed && items.length === 0 && emptyMessage === "") return null;
   return (
     <Combobox.Portal>
       <Combobox.Positioner sideOffset={POPUP_OFFSET} className="z-50">
@@ -150,7 +158,7 @@ export function SearchSelect(props: SearchSelectProps): ReactElement {
   return (
     <Combobox.Root<SearchItem>
       autoHighlight
-      open={open}
+      open={open && query.trim().length >= (props.minQueryLength ?? 0)}
       onOpenChange={(next) => {
         highlighted.current = undefined;
         setOpen(next);

@@ -1,3 +1,4 @@
+import { recoverStudentDocuments } from "@lazuli/worker-handlers/student-documents";
 import { recoverAssessmentFiles } from "@lazuli/worker-handlers/assessment-files";
 import { db } from "@lazuli/db";
 
@@ -11,6 +12,7 @@ export function startAssessmentRecovery(): () => void {
     recovering = true;
     try {
       await recoverAssessmentFiles(db);
+      await recoverStudentDocuments(db);
     } catch {
       process.stdout.write("[worker] assessment file recovery failed\n");
     } finally {

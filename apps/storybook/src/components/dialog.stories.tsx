@@ -49,9 +49,11 @@ function DialogActions(): ReactElement {
 function ContractDialog({
   defaultOpen = false,
   longContent = false,
+  titleSize = "md",
 }: {
   defaultOpen?: boolean;
   longContent?: boolean;
+  titleSize?: "md" | "lg";
 }): ReactElement {
   return (
     <Dialog defaultOpen={defaultOpen}>
@@ -60,7 +62,7 @@ function ContractDialog({
         <DialogBackdrop />
         <DialogContent closeLabel="Fechar diálogo">
           <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
+            <DialogTitle size={titleSize}>{dialogTitle}</DialogTitle>
             <DialogDescription>
               As parcelas serão geradas a partir da data de início escolhida.
             </DialogDescription>
@@ -118,4 +120,15 @@ export const States: Story = {
 
 export const LongContent: Story = {
   render: () => <ContractDialog defaultOpen longContent />,
+};
+
+export const LargeTitle: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: "The larger title size gives identity headings more emphasis in detail dialogs.",
+      },
+    },
+  },
+  render: () => <ContractDialog defaultOpen titleSize="lg" />,
 };

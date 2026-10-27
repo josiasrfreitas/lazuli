@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { getScheduleCalendarRange } from "@lazuli/ui";
 import { trpc, type QueryResult } from "~/lib/trpc";
-import { isMinorFromFields, type NewStudentFieldName } from "./reducer";
+import { isMinorFromFields, type AddressFields, type NewStudentFieldName } from "./reducer";
 import type { EnrollmentIdentity, EnrollmentFlow } from "./new-student-state";
 import {
   existingStudentFields,
@@ -36,6 +36,41 @@ export type ExistingSources = {
   existingContract: NonNullable<PendingActions>["contract"] | undefined;
 };
 
+function existingAddress(
+  address: NonNullable<NonNullable<ExistingStudent>["address"]>,
+): AddressFields {
+  return {
+    street: address.street ?? "",
+    number: address.number ?? "",
+    complement: address.complement ?? "",
+    neighborhood: address.neighborhood ?? "",
+    city: address.city ?? "",
+    state: address.state ?? "",
+    postalCode: address.postalCode ?? "",
+  };
+}
+
+function prefillExistingStudent({
+  identity,
+  student,
+  pending,
+}: {
+  identity: EnrollmentIdentity;
+  student: NonNullable<ExistingStudent>;
+  pending: NonNullable<PendingActions>;
+}): void {
+  for (const [field, value] of Object.entries(existingStudentFields(student)))
+    if (typeof value === "string")
+      identity.dispatch({ type: "fieldChanged", field: field as NewStudentFieldName, value });
+  const address = student.address;
+  if (address) identity.dispatch({ type: "addressChanged", address: existingAddress(address) });
+  const selection = existingStudentSelections(pending);
+  identity.setCandidateId(selection.candidateId);
+  identity.setStageId(selection.stageId);
+  identity.setFormat(selection.format);
+  identity.setScheduleType(selection.scheduleType);
+}
+
 export function useExistingSources({
   existingStudentId,
   identity,
@@ -43,7 +78,7 @@ export function useExistingSources({
   existingStudentId: string | undefined;
   identity: EnrollmentIdentity;
 }): ExistingSources {
-  const { dispatch, prefilled, setCandidateId, setStageId, setFormat, setScheduleType } = identity;
+  const { prefilled } = identity;
   const existing = trpc.students.byId.useQuery(
     { id: existingStudentId ?? "" },
     { enabled: Boolean(existingStudentId), retry: false },
@@ -61,13 +96,7 @@ export function useExistingSources({
     )
       return;
     prefilled.current = existingStudentId;
-    for (const [field, value] of Object.entries(existingStudentFields(existing.data)))
-      dispatch({ type: "fieldChanged", field: field as NewStudentFieldName, value });
-    const selection = existingStudentSelections(existingPending.data);
-    setCandidateId(selection.candidateId);
-    setStageId(selection.stageId);
-    setFormat(selection.format);
-    setScheduleType(selection.scheduleType);
+    prefillExistingStudent({ identity, student: existing.data, pending: existingPending.data });
   }, [existingStudentId, existing.data, existingPending.data]);
   return {
     existing,
@@ -119,7 +148,8 @@ export function useLeadSources({
     prefilled.current = lead.id;
     dispatch({ type: "reset" });
     for (const [field, value] of Object.entries(leadStudentFields(lead)))
-      dispatch({ type: "fieldChanged", field: field as NewStudentFieldName, value });
+      if (typeof value === "string")
+        dispatch({ type: "fieldChanged", field: field as NewStudentFieldName, value });
     const selection = leadStudentSelections(lead);
     setStageId(selection.stageId);
     setFormat(selection.format);

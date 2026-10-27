@@ -4,6 +4,7 @@
   "globalEnv": [
     "APP_URL",
     "AWS_REGION",
+    "AWS_LOCATION_REGION",
     "AWS_ACCESS_KEY_ID",
     "AWS_SECRET_ACCESS_KEY",
     "AWS_SESSION_TOKEN",

@@ -41,7 +41,7 @@ export function DiscardRegistrationDialog({
             <p className="py-3 text-sm">Se fechar agora, essas alterações serão perdidas.</p>
           </DialogBody>
           <DialogFooter>
-            <Button variant="secondary" onClick={onDiscard}>
+            <Button variant="destructive" onClick={onDiscard}>
               <Trash2 />
               Descartar e fechar
             </Button>

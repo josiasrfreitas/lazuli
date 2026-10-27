@@ -268,3 +268,5 @@ export type {
   TimelineLayout,
   TimelineSkeletonProps,
 } from "./components/timeline";
+
+export { ToastProvider, toastManager } from "./components/toast";

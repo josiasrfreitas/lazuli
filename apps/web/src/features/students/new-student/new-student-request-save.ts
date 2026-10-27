@@ -26,8 +26,8 @@ type ParsedContract = ReturnType<typeof intakeContract>;
 function canBeginSave(context: SaveContext, closing: boolean): boolean {
   const { flow, navigation, classes, identity } = context;
   if (flow.busy.current || (!closing && flow.step !== "contract")) return false;
-  if (!navigation.validateStudent()) {
-    flow.setStep("student");
+  if (!navigation.validateStudent(!closing)) {
+    if (!closing) flow.setStep("student");
     return false;
   }
   const issue = intakeSaveIssue({
@@ -39,7 +39,7 @@ function canBeginSave(context: SaveContext, closing: boolean): boolean {
     waitingPlacement: classes.waitingPlacement,
   });
   if (!issue) return true;
-  flow.setError(issue);
+  if (!closing) flow.setError(issue);
   return false;
 }
 
@@ -110,7 +110,7 @@ export function createRequestSave(
     if (!contractReady(context, parsedContract)) return false;
     const { items, parsed } = prepareIntakeSave(context, { withContract, parsedContract });
     if (!parsed.input) {
-      flow.setError(parsed.error);
+      if (!closing) flow.setError(parsed.error);
       return false;
     }
     flow.setError("");

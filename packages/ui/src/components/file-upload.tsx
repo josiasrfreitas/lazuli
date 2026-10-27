@@ -7,6 +7,7 @@ import {
   useState,
   type DragEventHandler,
   type ReactElement,
+  type ReactNode,
   type RefObject,
 } from "react";
 import { Camera, Check, FileText, ImageIcon, Paperclip, UploadCloud, X } from "lucide-react";
@@ -25,6 +26,10 @@ export type FileUploadProps = {
   accept?: string | undefined;
   acceptLabel?: string | undefined;
   maxSize: number;
+  /** Optional stricter limits for specific MIME types. */
+  maxSizeByType?: Readonly<Record<string, number>> | undefined;
+  /** Human-readable limits when accepted formats have different size limits. */
+  sizeLabel?: string | undefined;
   multiple?: boolean | undefined;
   maxFiles?: number | undefined;
   disabled?: boolean | undefined;
@@ -38,6 +43,8 @@ export type FileUploadProps = {
   className?: string | undefined;
   /** An inline picker for files attached to an existing form row. */
   compact?: boolean | undefined;
+  /** Reuse selection/validation with a contextual picker such as a profile avatar. */
+  renderTrigger?: ((picker: { open: () => void; disabled: boolean }) => ReactNode) | undefined;
 };
 
 export function formatFileSize(bytes: number): string {
@@ -167,8 +174,9 @@ function fileError(file: File, options: UploadOptions): string | null {
   if (file.size === 0) return `“${file.name}” está vazio. Escolha outro arquivo.`;
   if (!acceptsFile(file, options.accept))
     return `“${file.name}” não está em um formato aceito. Use ${options.acceptLabel}.`;
-  if (file.size > options.maxSize)
-    return `“${file.name}” ultrapassa ${formatFileSize(options.maxSize)}. Escolha um arquivo menor.`;
+  const maxSize = Math.min(options.maxSize, options.maxSizeByType?.[file.type] ?? options.maxSize);
+  if (file.size > maxSize)
+    return `“${file.name}” ultrapassa ${formatFileSize(maxSize)}. Escolha um arquivo menor.`;
   return null;
 }
 function uniqueFiles(files: File[]): File[] {
@@ -233,7 +241,12 @@ function UploadSurface({ view }: UploadViewProps): ReactElement {
       onDrop={view.onDrop}
     >
       <UploadInputs view={view} />
-      {status === "idle" && <UploadDropzone view={view} />}
+      {status === "idle" &&
+        (view.renderTrigger ? (
+          view.renderTrigger({ open: () => view.picker.current?.click(), disabled: view.locked })
+        ) : (
+          <UploadDropzone view={view} />
+        ))}
       {value.length > 0 && <UploadFiles view={view} />}
       {status !== "idle" && <UploadTransfer view={view} />}
       {message && (
@@ -291,7 +304,7 @@ function UploadDropzone({ view }: UploadViewProps): ReactElement {
       <UploadInstructions view={view} />
       <UploadPickers view={view} />
       <p id={`${id}-help`} className="file-upload__hint">
-        {acceptLabel} · até {formatFileSize(maxSize)}
+        {acceptLabel} · {view.sizeLabel ?? `até ${formatFileSize(maxSize)}`}
         {multiple ? " por arquivo" : ""}
       </p>
     </div>

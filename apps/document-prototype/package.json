@@ -1,0 +1,27 @@
+{
+  "name": "@lazuli/document-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node dist/server.mjs",
+    "test": "node --import tsx --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-textract": "3.1152.0",
+    "@lazuli/domain": "workspace:*",
+    "@lazuli/ui": "workspace:*",
+    "lucide-react": "catalog:",
+    "qrcode.react": "4.2.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "scanic": "1.7.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "esbuild": "0.25.12",
+    "postcss": "catalog:",
+    "tailwindcss": "catalog:",
+    "tsx": "catalog:"
+  }
+}

@@ -126,6 +126,9 @@ jobs:
       mailpit:
         image: axllent/mailpit:v1.21
         ports: ["1025:1025", "8025:8025"]
+      s3:
+        image: adobe/s3mock:5.2.3
+        ports: ["9090:9090"]
     env:
       DATABASE_URL: postgresql://lazuli:lazuli@localhost:5432/lazuli?schema=public
     steps:
@@ -152,13 +155,23 @@ jobs:
           done
           echo "Mailpit did not become ready in time"
           exit 1
+      - name: Aguardar storage local (S3 mock)
+        id: s3
+        if: ${{ !cancelled() && steps.migrations.outcome == 'success' }}
+        run: |
+          for i in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/9090) >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          echo "S3 mock did not become ready in time"
+          exit 1
       - name: Executar testes de integração
         id: integration
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' && steps.migrations.outcome == 'success' && steps.drift.outcome == 'success' && steps.mailpit.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' && steps.migrations.outcome == 'success' && steps.drift.outcome == 'success' && steps.mailpit.outcome == 'success' && steps.s3.outcome == 'success' }}
         run: pnpm exec turbo run test:integration --force --concurrency=1 --continue=dependencies-successful
       - name: Executar testes de transporte
         id: transport
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' && steps.migrations.outcome == 'success' && steps.drift.outcome == 'success' && steps.mailpit.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' && steps.migrations.outcome == 'success' && steps.drift.outcome == 'success' && steps.mailpit.outcome == 'success' && steps.s3.outcome == 'success' }}
         run: pnpm exec turbo run test:transport --force --concurrency=1 --continue=dependencies-successful
       - name: Resumir preparação e execução dos testes
         if: always()
@@ -167,10 +180,11 @@ jobs:
           MIGRATIONS: ${{ steps.migrations.outcome }}
           DRIFT: ${{ steps.drift.outcome }}
           MAILPIT: ${{ steps.mailpit.outcome }}
+          S3: ${{ steps.s3.outcome }}
           INTEGRATION: ${{ steps.integration.outcome }}
           TRANSPORT: ${{ steps.transport.outcome }}
         run: |
-          echo "Preparação: instalação=$SETUP, migrations=$MIGRATIONS, schema=$DRIFT, Mailpit=$MAILPIT" >> "$GITHUB_STEP_SUMMARY"
+          echo "Preparação: instalação=$SETUP, migrations=$MIGRATIONS, schema=$DRIFT, Mailpit=$MAILPIT, S3=$S3" >> "$GITHUB_STEP_SUMMARY"
           echo "Integração: $INTEGRATION; transporte: $TRANSPORT" >> "$GITHUB_STEP_SUMMARY"
           if [ "$INTEGRATION" != success ] || [ "$TRANSPORT" != success ]; then
             echo "Validação incompleta: preparação ou tarefa falhou/foi impedida. Consulte os logs das etapas; os relatórios podem estar parciais." >> "$GITHUB_STEP_SUMMARY"

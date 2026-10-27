@@ -118,6 +118,9 @@
   min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
+  /* Overlay scrollbars need physical clearance inside the page's outer gutter. */
+  margin-inline-end: -1rem;
+  padding-inline-end: 1rem;
 }
 
 .stickyHeader {

@@ -28,6 +28,7 @@ export const studentIntakeOptionsSchema = z
 
 export const studentIntakeEnrollSchema = z
   .object({
+    documentSessionId: z.string().uuid().optional(),
     commandId: z.string().uuid(),
     candidateId: z.string().uuid().nullable(),
     leadRegistration: leadRegistrationSchema.nullable().default(null),
@@ -69,6 +70,7 @@ export const studentIntakeAllocateSchema = z
 
 export const studentIntakeResumeSchema = z
   .object({
+    documentSessionId: z.string().uuid().optional(),
     studentId: z.string().uuid(),
     contact: studentUpdateContactInputSchema,
     classId: z.string().uuid().nullable(),

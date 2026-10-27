@@ -1,4 +1,5 @@
 config:
+  lazuli:documentPrototype: "true"
   lazuli:amiId: ami-0f8aca463a279d950
   aws:region: us-east-2
   aws:allowedAccountIds:

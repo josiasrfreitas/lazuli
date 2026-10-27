@@ -114,13 +114,20 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
 
 DialogContent.displayName = "DialogContent";
 
-export type DialogTitleProps = DialogPrimitive.Title.Props;
+export type DialogTitleProps = DialogPrimitive.Title.Props & {
+  /** Larger identity heading for spacious detail dialogs. */
+  size?: "md" | "lg";
+};
 
 export const DialogTitle = forwardRef<HTMLHeadingElement, DialogTitleProps>(
-  ({ className, ...props }, ref) => (
+  ({ className, size = "md", ...props }, ref) => (
     <DialogPrimitive.Title
       {...props}
-      className={cn("text-h3 font-display font-semibold text-heading", className)}
+      className={cn(
+        "font-display font-semibold text-heading",
+        size === "lg" ? "text-h2 sm:text-h1" : "text-h3",
+        className,
+      )}
       data-slot="dialog-title"
       ref={ref}
     />

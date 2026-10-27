@@ -14,7 +14,7 @@
 
 import { maskDateBR, maskPhoneBR, parseDateBR } from "~/lib/masks";
 
-export const NEW_STUDENT_STEPS = ["Dados", "Pedagógico", "Financeiro"] as const;
+export const NEW_STUDENT_STEPS = ["Dados", "Endereço", "Pedagógico", "Financeiro"] as const;
 
 const FIRST_STEP = 0;
 const LAST_STEP = NEW_STUDENT_STEPS.length - 1;
@@ -31,7 +31,11 @@ export type NewStudentFieldName =
   | "guardianPhone"
   | "guardianEmail";
 
-export type NewStudentFields = Record<NewStudentFieldName, string>;
+export type AddressFields = Record<
+  "street" | "number" | "complement" | "neighborhood" | "city" | "state" | "postalCode",
+  string
+>;
+export type NewStudentFields = Record<NewStudentFieldName, string> & { address?: AddressFields };
 
 export type NewStudentErrors = Partial<Record<NewStudentFieldName, string>>;
 
@@ -50,6 +54,7 @@ export type NewStudentState = {
 };
 
 export type NewStudentAction =
+  | { type: "addressChanged"; address: AddressFields }
   | { type: "fieldChanged"; field: NewStudentFieldName; value: string }
   | { type: "nextRequested"; today: string }
   | { type: "backRequested" }
@@ -159,6 +164,9 @@ export function newStudentReducer(
   action: NewStudentAction,
 ): NewStudentState {
   switch (action.type) {
+    case "addressChanged": {
+      return { ...state, fields: { ...state.fields, address: action.address } };
+    }
     case "fieldChanged": {
       const errors = { ...state.errors };
       delete errors[action.field];

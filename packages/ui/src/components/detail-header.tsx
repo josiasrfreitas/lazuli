@@ -3,6 +3,7 @@ import { cn } from "../lib/utils";
 
 type DetailHeaderProps = {
   title: ReactNode;
+  leading?: ReactNode;
   metadata?: ReactNode;
   actions?: ReactNode;
   children?: ReactNode;
@@ -14,6 +15,7 @@ type DetailHeaderProps = {
 /** Page identity and optional facts. Put navigation or actions in the trailing slot. */
 export function DetailHeader({
   title,
+  leading,
   metadata,
   actions,
   children,
@@ -36,6 +38,7 @@ export function DetailHeader({
             metadataPlacement === "below" ? "grid gap-1" : "flex flex-wrap items-center gap-3",
           )}
         >
+          {leading}
           <h1
             className={cn(
               "break-words font-display text-2xl font-medium tracking-tight text-heading",

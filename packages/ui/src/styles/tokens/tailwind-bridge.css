@@ -39,6 +39,7 @@
   --shadow-md: var(--lz-shadow-md);
   --shadow-lg: var(--lz-shadow-lg);
   --shadow-focus: var(--lz-shadow-focus);
+  --shadow-focus-invalid: var(--lz-shadow-focus-invalid);
   --ease-standard: var(--lz-ease-standard);
   --opacity-disabled: var(--lz-opacity-disabled);
 
