@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./base": "./base.js"
+    "./base": "./oxlint-base.js",
+    "./runner": "./run-oxlint.mjs"
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "node cli.mjs .",
     "test": "node ../../scripts/run-test-tier.mjs unit"
   },
   "dependencies": {
-    "@eslint/js": "catalog:",
     "eslint": "catalog:",
     "eslint-import-resolver-typescript": "catalog:",
     "eslint-node-test": "catalog:",
@@ -21,6 +21,11 @@
     "eslint-plugin-unicorn": "catalog:",
     "eslint-plugin-unused-imports": "catalog:",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "catalog:"
+    "typescript-eslint": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:"
+  },
+  "bin": {
+    "lazuli-lint": "./cli.mjs"
   }
 }

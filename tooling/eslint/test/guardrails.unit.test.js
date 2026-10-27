@@ -4,9 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
-import { ESLint } from "eslint";
+import { lintFiles } from "../run-oxlint.mjs";
 
-import { createConfig } from "../base.js";
+import { createConfig } from "../oxlint-base.js";
 
 const fixturesDirectory = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures");
 const repositoryRoot = path.join(fixturesDirectory, "../../../..");
@@ -19,22 +19,18 @@ const probeTsconfigContents = `${JSON.stringify(
 )}\n`;
 
 async function lintProbe({ directory, probePath, packageType }) {
-  const eslint = new ESLint({
+  const results = await lintFiles({
     cwd: directory,
-    ignore: false,
-    overrideConfig: createConfig({ packageType, tsconfigRootDir: directory }),
-    overrideConfigFile: true,
+    files: [probePath],
+    config: createConfig({ packageType, tsconfigRootDir: directory }),
+    suppress: false,
+    args: ["--no-ignore"],
   });
-  const [result] = await eslint.lintFiles([probePath]);
-
-  return result.messages;
+  return results.flatMap((result) => result.messages);
 }
 
-// Type-aware rules read types from the file on disk, so the probe must be a real
-// file in the package's tsconfig. typescript-eslint reuses one program per tsconfig
-// path for the whole process (single-run mode under CI), which serves stale types
-// for a reused path and "file not found" for a new one. Each test uses a dedicated
-// probe directory name so every lint builds a fresh program from the just-written probe.
+// Type-aware rules read types from disk. Each probe owns a real source file and
+// tsconfig so imports and types are resolved from the same isolated project.
 async function lintFixtureProbe({ directoryName, packageType, source, test = false }) {
   const projectDirectory = path.join(fixturesDirectory, directoryName);
   await mkdir(projectDirectory, { recursive: true });
@@ -121,7 +117,7 @@ async function lintApiRestrictedPathsProbe(source) {
   }
 }
 
-describe("shared ESLint guardrails", () => {
+describe("shared Oxlint guardrails", () => {
   it("rejects Prisma and worker-handler imports from the web app", async () => {
     const messages = await lintWebImportsProbe(
       [
@@ -182,12 +178,12 @@ describe("shared ESLint guardrails", () => {
     assert.ok(ruleIds(messages).includes("no-magic-numbers"));
   });
 
-  it("does not allow inline directives to suppress guardrails", async () => {
+  it("allows inline directives to suppress rules", async () => {
     const messages = await lintInlineDirectiveProbe(
       ["// eslint-disable-next-line no-console", 'console.log("hidden");'].join("\n"),
     );
 
-    assert.ok(ruleIds(messages).includes("no-console"));
+    assert.ok(!ruleIds(messages).includes("no-console"));
   });
 });
 

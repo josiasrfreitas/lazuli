@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "build": "echo \"[later] worker bundle/image build\" && exit 0",
-    "lint": "eslint .",
+    "lint": "lazuli-lint .",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .turbo dist"
   },
@@ -22,7 +22,6 @@
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
     "@types/node": "catalog:",
-    "eslint": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:"
   }

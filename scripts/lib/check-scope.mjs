@@ -6,6 +6,8 @@ const GLOBAL_CONFIGURATION = new Set([
   ".nvmrc",
   ".env.example",
   "docker-compose.yml",
+  ".oxlintrc.json",
+  // Deleting the previous root config also changes global check scope.
   "eslint.config.js",
   "jscpd.json",
   "lefthook.yml",

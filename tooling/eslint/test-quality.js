@@ -1,5 +1,7 @@
-import nodeTest from "eslint-node-test";
-import tseslint from "typescript-eslint";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+
+const require = createRequire(import.meta.url);
 
 const strictAssertRule = {
   meta: {
@@ -38,7 +40,9 @@ const nonNullOnlyRule = {
           return;
         }
 
-        if (node.arguments.some((argument) => argument.type === "Literal" && argument.value === null)) {
+        if (
+          node.arguments.some((argument) => argument.type === "Literal" && argument.value === null)
+        ) {
           context.report({ node, messageId: "weak" });
         }
       },
@@ -76,22 +80,19 @@ const warningRules = [
   "no-sleep-in-test",
 ];
 
-export const testQualityConfig = [
-  {
-    files: ["**/*.{js,mjs,cjs,ts,tsx,mts,cts}"],
-    languageOptions: {
-      parser: tseslint.parser,
-      parserOptions: { ecmaVersion: "latest", sourceType: "module" },
-    },
-    plugins: {
-      "lazuli-test": { rules: repositoryRules },
-      "node-test": nodeTest,
-    },
-    rules: {
-      ...Object.fromEntries(blockingRules.map((name) => [`node-test/${name}`, "error"])),
-      ...Object.fromEntries(warningRules.map((name) => [`node-test/${name}`, "warn"])),
-      "lazuli-test/non-null-only": "warn",
-      "lazuli-test/strict-assert-import": "error",
-    },
+export default { rules: repositoryRules };
+
+export const testQualityConfig = {
+  plugins: [],
+  categories: { correctness: "off" },
+  jsPlugins: [
+    { name: "lazuli-test", specifier: fileURLToPath(import.meta.url) },
+    { name: "node-test", specifier: require.resolve("eslint-node-test") },
+  ],
+  rules: {
+    ...Object.fromEntries(blockingRules.map((name) => [`node-test/${name}`, "error"])),
+    ...Object.fromEntries(warningRules.map((name) => [`node-test/${name}`, "warn"])),
+    "lazuli-test/non-null-only": "warn",
+    "lazuli-test/strict-assert-import": "error",
   },
-];
+};

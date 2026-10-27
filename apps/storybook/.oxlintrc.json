@@ -1,0 +1,28 @@
+{
+  "$schema": "../../tooling/eslint/node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../tooling/eslint/base.json"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "@prisma/client",
+              "@prisma/client/*",
+              "prisma",
+              "prisma/*",
+              "@lazuli/db",
+              "@lazuli/db/*"
+            ],
+            "message": "Web code accesses persistence through the @lazuli/api BFF."
+          },
+          {
+            "group": ["@lazuli/worker-handlers", "@lazuli/worker-handlers/*"],
+            "message": "Web code enqueues work through @lazuli/job-contracts; handlers stay worker-only."
+          }
+        ]
+      }
+    ]
+  }
+}

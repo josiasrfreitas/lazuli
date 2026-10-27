@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { ESLint } from "eslint";
+import { lintText } from "../run-oxlint.mjs";
 
 import { testQualityConfig } from "../test-quality.js";
 
@@ -11,13 +11,12 @@ const imports = [
 ].join("\n");
 
 async function ruleIds(source) {
-  const eslint = new ESLint({
-    ignore: false,
-    overrideConfig: testQualityConfig,
-    overrideConfigFile: true,
+  const results = await lintText({
+    source,
+    filePath: "probe.unit.test.ts",
+    config: testQualityConfig,
   });
-  const [result] = await eslint.lintText(source, { filePath: "probe.unit.test.ts" });
-  return result.messages.map((message) => message.ruleId);
+  return results.flatMap((result) => result.messages.map((message) => message.ruleId));
 }
 
 void describe("prospective test-quality rules", () => {
@@ -63,16 +62,18 @@ void describe("prospective test-quality rules", () => {
         "node-test/no-duplicate-assertions",
         `it("duplicate", () => { assert.equal(1, 2); assert.equal(1, 2); });`,
       ],
-      [
-        "node-test/no-async-fn-without-await",
-        `it("async", async () => { assert.equal(1, 2); });`,
-      ],
+      ["node-test/no-async-fn-without-await", `it("async", async () => { assert.equal(1, 2); });`],
       ["lazuli-test/strict-assert-import", 'import assert from "node:assert";'],
     ];
 
     assert.equal(probes.length, 15);
     for (const [rule, source] of probes) {
-      assert.ok((await ruleIds(`${imports}\n${source}`)).includes(rule), rule);
+      assert.ok(
+        (await ruleIds(`${source.startsWith("import assert") ? "" : imports}\n${source}`)).includes(
+          rule,
+        ),
+        rule,
+      );
     }
   });
 
@@ -103,7 +104,12 @@ void describe("prospective test-quality rules", () => {
 
     assert.equal(probes.length, 6);
     for (const [rule, source] of probes) {
-      assert.ok((await ruleIds(`${imports}\n${source}`)).includes(rule), rule);
+      assert.ok(
+        (await ruleIds(`${source.startsWith("import assert") ? "" : imports}\n${source}`)).includes(
+          rule,
+        ),
+        rule,
+      );
     }
   });
 

@@ -52,7 +52,7 @@
     "seed:settings": "pnpm seed",
     "seed:contracts": "pnpm seed",
     "prepare": "lefthook install",
-    "lint:root": "eslint eslint.config.js scripts",
+    "lint:root": "lazuli-lint scripts",
     "seed": "node scripts/seed.mjs"
   },
   "devDependencies": {
@@ -62,7 +62,6 @@
     "chalk": "^6.0.0",
     "cli-table3": "^0.6.5",
     "dotenv-cli": "catalog:",
-    "eslint": "catalog:",
     "jscpd": "catalog:",
     "lefthook": "catalog:",
     "postcss": "catalog:",

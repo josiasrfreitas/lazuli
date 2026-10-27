@@ -1,0 +1,17 @@
+{
+  "$schema": "../../tooling/eslint/node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../tooling/eslint/base.json"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["@lazuli/worker-handlers", "@lazuli/worker-handlers/*"],
+            "message": "API code must enqueue work through @lazuli/job-contracts."
+          }
+        ]
+      }
+    ]
+  }
+}

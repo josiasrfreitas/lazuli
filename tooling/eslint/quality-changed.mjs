@@ -2,10 +2,10 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { ESLint } from "eslint";
 import tseslint from "typescript-eslint";
 
 import { testQualityConfig } from "./test-quality.js";
+import { lintText } from "./run-oxlint.mjs";
 
 const TEST_FILE_PATTERN = /(?:^|\/)test\/.*\.test\.[cm]?[jt]sx?$/u;
 const GUIDE = "docs/testing/README.md";
@@ -120,12 +120,6 @@ if (files.length === 0) {
   process.exit(0);
 }
 
-const eslint = new ESLint({
-  cwd: process.cwd(),
-  ignore: false,
-  overrideConfig: testQualityConfig,
-  overrideConfigFile: true,
-});
 let errors = 0;
 let warnings = 0;
 
@@ -134,7 +128,12 @@ for (const file of files) {
     ? git(["show", `:${file}`])
     : readFileSync(file, "utf8");
   const relevant = relevantLines(file, source);
-  const [result] = await eslint.lintText(source, { filePath: path.resolve(file) });
+  const results = await lintText({
+    source,
+    filePath: path.resolve(file),
+    config: testQualityConfig,
+  });
+  const result = results[0] ?? { messages: [] };
   for (const message of result.messages) {
     if (relevant && !relevant.has(message.line)) continue;
     const level = message.severity === 2 ? "error" : "warning";

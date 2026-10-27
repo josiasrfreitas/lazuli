@@ -1,0 +1,24 @@
+{
+  "$schema": "../../tooling/eslint/node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../tooling/eslint/base.json"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "@lazuli/api",
+              "@lazuli/api/*",
+              "@lazuli/db",
+              "@lazuli/db/*",
+              "@lazuli/ui",
+              "@lazuli/ui/*"
+            ],
+            "message": "Domain code must remain pure and independent of API, database, and UI packages."
+          }
+        ]
+      }
+    ]
+  }
+}

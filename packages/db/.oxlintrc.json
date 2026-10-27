@@ -1,0 +1,12 @@
+{
+  "$schema": "../../tooling/eslint/node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../tooling/eslint/base.json"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": []
+      }
+    ]
+  }
+}

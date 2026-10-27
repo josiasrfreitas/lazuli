@@ -1,0 +1,28 @@
+{
+  "$schema": "../../tooling/eslint/node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../tooling/eslint/base.json"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": [
+              "@lazuli/api",
+              "@lazuli/api/*",
+              "@lazuli/db",
+              "@lazuli/db/*",
+              "@lazuli/integrations",
+              "@lazuli/integrations/*",
+              "@lazuli/job-contracts",
+              "@lazuli/job-contracts/*",
+              "@lazuli/worker-handlers",
+              "@lazuli/worker-handlers/*"
+            ],
+            "message": "Shared UI components cannot depend on services, persistence, or workers."
+          }
+        ]
+      }
+    ]
+  }
+}

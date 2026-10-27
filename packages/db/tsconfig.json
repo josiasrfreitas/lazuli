@@ -1,12 +1,5 @@
 {
   "extends": "@lazuli/tsconfig/internal-package.json",
-  "include": [
-    "src",
-    "prisma/**/*.ts",
-    "test",
-    "../../scripts/seed.ts",
-    "prisma.config.ts",
-    "eslint.config.js"
-  ],
+  "include": ["src", "prisma/**/*.ts", "test", "../../scripts/seed.ts", "prisma.config.ts"],
   "exclude": ["node_modules", "dist"]
 }
