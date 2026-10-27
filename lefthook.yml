@@ -5,7 +5,7 @@ pre-commit:
   jobs:
     - name: format
       glob: "*.{js,cjs,mjs,ts,tsx,css,md,json,yaml,yml}"
-      run: pnpm exec prettier --write --ignore-path .gitignore --ignore-path .prettierignore {staged_files}
+      run: pnpm exec oxfmt --write {staged_files}
       stage_fixed: true
     - name: staged-checks
       run: pnpm check:pre-commit

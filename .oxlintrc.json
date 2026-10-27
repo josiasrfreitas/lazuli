@@ -1,0 +1,200 @@
+{
+  "$schema": "./tooling/eslint/node_modules/oxlint/configuration_schema.json",
+  "extends": ["./tooling/eslint/base.json"],
+  "rules": {
+    "import-x-compat/no-restricted-paths": [
+      "error",
+      {
+        "basePath": ".",
+        "zones": [
+          {
+            "from": "./packages/db",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./apps/web"
+          },
+          {
+            "from": "./packages/worker-handlers",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./apps/web"
+          },
+          {
+            "from": "./packages/worker-handlers",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/api"
+          },
+          {
+            "from": "./packages/worker-handlers",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/job-contracts"
+          },
+          {
+            "from": "./packages/api",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/domain"
+          },
+          {
+            "from": "./packages/db",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/domain"
+          },
+          {
+            "from": "./packages/ui",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/domain"
+          },
+          {
+            "from": "./packages/api",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/ui"
+          },
+          {
+            "from": "./packages/db",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/ui"
+          },
+          {
+            "from": "./packages/integrations",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/ui"
+          },
+          {
+            "from": "./packages/job-contracts",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/ui"
+          },
+          {
+            "from": "./packages/worker-handlers",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/ui"
+          },
+          {
+            "from": "./packages/ui",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./apps/worker"
+          },
+          {
+            "from": "./packages/ui",
+            "message": "Import crosses a Lazuli package boundary. Use the package graph documented in AGENTS.md.",
+            "target": "./packages/worker-handlers"
+          },
+          {
+            "from": "./packages/api/src/finance/internal",
+            "message": "Finance internals are private. Call packages/api/src/finance/index.ts instead.",
+            "target": [
+              "./apps/**",
+              "./packages/api/src/*.ts",
+              "./packages/api/src/{attendance,calendar,classes,enrollment,reports,students,trpc}/**",
+              "./packages/api/test/**",
+              "./packages/{auth,db,domain,integrations,job-contracts,ui,worker-handlers}/**"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["scripts/guardrails/*.mjs"],
+      "rules": {
+        "eslint-compat/no-restricted-syntax": "off",
+        "security/detect-non-literal-fs-filename": "off"
+      }
+    },
+    {
+      "files": ["scripts/runtime-check.mjs"],
+      "rules": {
+        "eslint-compat/no-restricted-syntax": "off"
+      }
+    },
+    {
+      "files": [
+        "scripts/changed-source-files.mjs",
+        "scripts/check-pre-commit.mjs",
+        "scripts/check-pre-push.mjs",
+        "scripts/changed-source-covered.mjs",
+        "scripts/run-test-tier.mjs",
+        "scripts/test-affected.mjs",
+        "scripts/lib/affected-checks.mjs",
+        "scripts/lib/check-scope.mjs",
+        "scripts/lib/ephemeral-test-database.mjs",
+        "scripts/test-durations.mjs",
+        "scripts/test-surface-inventory.mjs"
+      ],
+      "rules": {
+        "eslint-compat/no-restricted-syntax": "off",
+        "complexity": "off",
+        "max-depth": "off",
+        "max-lines-per-function": "off",
+        "max-params": "off",
+        "max-statements": "off",
+        "sonarjs/no-duplicate-string": "off",
+        "sonarjs/cognitive-complexity": "off",
+        "security/detect-child-process": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-non-literal-regexp": "off",
+        "unicorn/no-array-callback-reference": "off",
+        "unicorn/no-process-exit": "off",
+        "eslint-compat/no-magic-numbers": "off"
+      }
+    },
+    {
+      "files": ["scripts/test/**/*.mjs"],
+      "rules": {
+        "eslint-compat/no-restricted-syntax": "off",
+        "max-lines-per-function": "off",
+        "max-lines": "off",
+        "max-params": "off",
+        "max-statements": "off",
+        "sonarjs/no-duplicate-string": "off",
+        "security/detect-child-process": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "eslint-compat/no-magic-numbers": "off"
+      }
+    },
+    {
+      "files": ["scripts/test/support/fake-workspace-command.mjs"],
+      "rules": {
+        "complexity": "off"
+      }
+    },
+    {
+      "files": [
+        "scripts/development.mjs",
+        "scripts/lib/workspace-proxy.mjs",
+        "scripts/storybook.mjs"
+      ],
+      "globals": {
+        "AbortSignal": "readonly",
+        "fetch": "readonly",
+        "URL": "readonly"
+      },
+      "rules": {
+        "eslint-compat/no-restricted-syntax": "off",
+        "max-lines": "off",
+        "max-params": "off"
+      }
+    },
+    {
+      "files": [
+        "scripts/lib/workspace-full.mjs",
+        "scripts/lib/workspace-proxy.mjs",
+        "scripts/lib/workspace-teardown.mjs"
+      ],
+      "rules": {
+        "complexity": "off",
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "max-params": "off",
+        "max-statements": "off",
+        "sonarjs/cognitive-complexity": "off"
+      }
+    },
+    {
+      "files": ["scripts/test-styles.mjs"],
+      "rules": {
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-non-literal-regexp": "off"
+      }
+    }
+  ]
+}

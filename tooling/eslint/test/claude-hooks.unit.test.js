@@ -22,16 +22,23 @@ function runHook({ extraEnvironment = {}, input, scriptPath }) {
 }
 
 it("Claude Code blocks direct edits to guardrail configuration", () => {
-  const result = runHook({
-    input: {
-      tool_input: { file_path: path.join(repositoryRoot, "apps/web/tsconfig.json") },
-      tool_name: "Edit",
-    },
-    scriptPath: protectHook,
-  });
+  for (const file of [
+    "apps/web/tsconfig.json",
+    "apps/web/.oxlintrc.json",
+    ".oxfmtrc.json",
+    "tooling/eslint/compat.js",
+  ]) {
+    const result = runHook({
+      input: {
+        tool_input: { file_path: path.join(repositoryRoot, file) },
+        tool_name: "Edit",
+      },
+      scriptPath: protectHook,
+    });
 
-  assert.equal(result.status, 2);
-  assert.match(result.stderr, /guardrail configuration/u);
+    assert.equal(result.status, 2, file);
+    assert.match(result.stderr, /guardrail configuration/u);
+  }
 });
 
 it("Claude Code allows edits to ordinary source files", () => {

@@ -1,0 +1,45 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./base.json"],
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/.next/**",
+    "**/.turbo/**",
+    "**/storybook-static/**",
+    "**/node_modules/**",
+    "**/next-env.d.ts",
+    "**/src/generated/**",
+    "test/fixtures/**"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "test/guardrails.unit.test.js",
+        "test/quality-changed-cli.unit.test.js",
+        "test/test-quality.unit.test.js"
+      ],
+      "rules": {
+        "max-lines-per-function": "off",
+        "max-params": "off",
+        "eslint-compat/no-restricted-syntax": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "sonarjs/no-duplicate-string": "off",
+        "unicorn/no-await-expression-member": "off",
+        "eslint-compat/no-magic-numbers": "off"
+      }
+    },
+    {
+      "files": ["quality-changed.mjs"],
+      "rules": {
+        "complexity": "off",
+        "eslint-compat/no-restricted-syntax": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-unsafe-regex": "off",
+        "sonarjs/no-duplicate-string": "off",
+        "unicorn/no-array-callback-reference": "off",
+        "unicorn/no-array-for-each": "off",
+        "unicorn/no-process-exit": "off"
+      }
+    }
+  ]
+}

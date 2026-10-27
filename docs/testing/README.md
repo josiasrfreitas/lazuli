@@ -70,6 +70,10 @@ architectural boundaries, and prospective assertion quality checks still apply t
 
 ## Prospective static gate
 
+Oxlint runs the repository lint and prospective test-quality rules. See
+[`tooling/eslint/README.md`](../../tooling/eslint/README.md) for compatibility plugins
+and the existing per-file suppression limits.
+
 `pnpm test:quality:changed --base <ref>` analyzes new test files in full. In existing files, it
 analyzes every touched `it`/`test` function as a unit; module-level diagnostics apply only when their
 own line changed. Use `--staged` for an optional local review; CI runs the gate automatically.

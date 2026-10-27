@@ -6,7 +6,14 @@ const GLOBAL_CONFIGURATION = new Set([
   ".nvmrc",
   ".env.example",
   "docker-compose.yml",
+  ".oxlintrc.json",
+  ".oxfmtrc.json",
+  // Deleting the previous root config also changes global check scope.
   "eslint.config.js",
+  // The formatter migration removes this shared configuration workspace.
+  ".prettierignore",
+  "tooling/prettier/index.js",
+  "tooling/prettier/package.json",
   "jscpd.json",
   "lefthook.yml",
   "package.json",

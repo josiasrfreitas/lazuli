@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { ESLint } from "eslint";
+import { formatResults, lintFiles } from "@lazuli/eslint-config/runner";
 
 import { readHookInput } from "./hook-input.mjs";
 
@@ -14,11 +14,11 @@ const defaultStatePath = path.join(
 );
 const statePath = process.env.LAZULI_GUARDRAIL_STATE_PATH ?? defaultStatePath;
 
-function findEslintDirectory(filePath) {
+function findLintDirectory(filePath) {
   let currentDirectory = path.dirname(filePath);
 
   while (currentDirectory.startsWith(projectDirectory)) {
-    if (existsSync(path.join(currentDirectory, "eslint.config.js"))) {
+    if (existsSync(path.join(currentDirectory, ".oxlintrc.json"))) {
       return currentDirectory;
     }
 
@@ -46,11 +46,9 @@ function writeAttempts(attempts) {
 
 async function lintFile(directory, file) {
   try {
-    const eslint = new ESLint({ cwd: directory });
-    const results = await eslint.lintFiles([file]);
-    const formatter = await eslint.loadFormatter("stylish");
-    process.stderr.write(formatter.format(results));
-    return results.some((result) => result.errorCount > 0);
+    const results = await lintFiles({ cwd: directory, files: [file] });
+    process.stderr.write(formatResults(results));
+    return results.some((result) => result.messages.some((message) => message.severity === 2));
   } catch (error) {
     process.stderr.write(`${error}\n`);
     return true;
@@ -63,9 +61,9 @@ const sessionId = typeof input.session_id === "string" ? input.session_id : "unk
 
 if (typeof filePath === "string" && LINTABLE_EXTENSION_PATTERN.test(filePath)) {
   const absoluteFilePath = path.resolve(filePath);
-  const eslintDirectory = findEslintDirectory(absoluteFilePath);
+  const lintDirectory = findLintDirectory(absoluteFilePath);
 
-  if (eslintDirectory !== null) {
+  if (lintDirectory !== null) {
     const attempts = readAttempts();
     const relativeFilePath = path.relative(projectDirectory, absoluteFilePath);
     const attemptKey = `${sessionId}:${relativeFilePath}`;
@@ -77,7 +75,7 @@ if (typeof filePath === "string" && LINTABLE_EXTENSION_PATTERN.test(filePath)) {
       );
       process.exitCode = 2;
     } else {
-      const failed = await lintFile(eslintDirectory, absoluteFilePath);
+      const failed = await lintFile(lintDirectory, absoluteFilePath);
 
       if (failed) {
         attempts.set(attemptKey, attemptCount + 1);

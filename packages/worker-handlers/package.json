@@ -10,7 +10,7 @@
     "./assessment-files": "./src/assessments/process-file.ts"
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "lazuli-lint .",
     "typecheck": "tsc --noEmit",
     "test": "node ../../scripts/run-test-tier.mjs unit",
     "test:integration": "node ../../scripts/run-test-tier.mjs integration",
@@ -30,7 +30,6 @@
     "@types/node": "catalog:",
     "dotenv": "catalog:",
     "dotenv-cli": "catalog:",
-    "eslint": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:"
   }

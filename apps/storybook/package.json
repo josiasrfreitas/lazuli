@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "storybook dev --port ${LAZULI_STORYBOOK_PORT:-6006}",
     "build": "storybook build",
-    "lint": "eslint .",
+    "lint": "lazuli-lint .",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .turbo storybook-static"
   },
@@ -26,7 +26,6 @@
     "@tailwindcss/postcss": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "eslint": "catalog:",
     "postcss": "catalog:",
     "storybook": "catalog:",
     "tailwindcss": "catalog:",

@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "lazuli-lint .",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .turbo dist",
     "test:integration": "node ../../scripts/run-test-tier.mjs integration"
@@ -19,7 +19,6 @@
     "@lazuli/eslint-config": "workspace:*",
     "@lazuli/tsconfig": "workspace:*",
     "@types/node": "catalog:",
-    "eslint": "catalog:",
     "typescript": "catalog:",
     "tsx": "catalog:"
   }

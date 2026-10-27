@@ -10,7 +10,7 @@
   "scripts": {
     "postinstall": "prisma generate",
     "generate": "prisma generate",
-    "lint": "eslint .",
+    "lint": "lazuli-lint .",
     "typecheck": "tsc --noEmit",
     "test": "node ../../scripts/run-test-tier.mjs unit",
     "test:integration": "node ../../scripts/run-test-tier.mjs integration",
@@ -35,7 +35,6 @@
     "@types/pg": "catalog:",
     "dotenv": "catalog:",
     "dotenv-cli": "catalog:",
-    "eslint": "catalog:",
     "prisma": "catalog:",
     "prisma-kysely": "catalog:",
     "tsx": "catalog:",

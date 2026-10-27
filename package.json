@@ -35,8 +35,8 @@
     "test:affected": "node scripts/test-affected.mjs",
     "test:durations": "node scripts/test-durations.mjs",
     "test:surface-inventory": "node --import tsx scripts/test-surface-inventory.mjs",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore --ignore-path .prettierignore",
-    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\" --ignore-path .gitignore --ignore-path .prettierignore",
+    "format": "oxfmt --write \"**/*.{ts,tsx,md,json,yaml,yml}\"",
+    "format:check": "oxfmt --check \"**/*.{ts,tsx,md,json,yaml,yml}\"",
     "prisma:migrate": "pnpm -F @lazuli/db prisma:migrate",
     "prisma:deploy": "pnpm -F @lazuli/db prisma:deploy",
     "prisma:drift": "pnpm -F @lazuli/db prisma:drift",
@@ -52,24 +52,21 @@
     "seed:settings": "pnpm seed",
     "seed:contracts": "pnpm seed",
     "prepare": "lefthook install",
-    "lint:root": "eslint eslint.config.js scripts",
+    "lint:root": "lazuli-lint scripts",
     "seed": "node scripts/seed.mjs"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",
-    "@lazuli/prettier-config": "workspace:*",
     "@tailwindcss/postcss": "catalog:",
     "chalk": "^6.0.0",
     "cli-table3": "^0.6.5",
     "dotenv-cli": "catalog:",
-    "eslint": "catalog:",
     "jscpd": "catalog:",
     "lefthook": "catalog:",
     "postcss": "catalog:",
-    "prettier": "catalog:",
     "tsx": "catalog:",
     "turbo": "catalog:",
-    "typescript": "catalog:"
-  },
-  "prettier": "@lazuli/prettier-config"
+    "typescript": "catalog:",
+    "oxfmt": "catalog:"
+  }
 }
