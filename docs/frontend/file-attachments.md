@@ -11,6 +11,10 @@ selection; duplicate selections are ignored. Empty, unsupported and oversized fi
 rejected with an announced message. `onValidationError` lets a containing form prevent
 submission until the selection is valid again.
 
+`maxSizeByType` optionally applies stricter MIME-specific limits within `maxSize`.
+Use `sizeLabel` to describe mixed limits accurately, such as 25 MB source images and 5 MB PDFs.
+The upload API remains responsible for validating the final bytes and their size.
+
 Placement and academic assessment uploads allow **50 MB per file**. Product consumers and
 APIs share `MAX_UPLOAD_FILE_BYTES` from `@lazuli/validators`; the generic picker remains
 configurable through `maxSize`.
@@ -19,6 +23,10 @@ The picker button supports keyboard input. Drag and drop is an additional deskto
 it is never required. `camera` exposes a camera action on narrow or touch screens using
 the device's native file capture support. Image previews use temporary object URLs that
 are released when the selected file changes or the component unmounts.
+
+`renderTrigger({ open, disabled })` replaces the default picker surface for contextual controls
+such as an avatar or a section-header attachment button. File type/size validation, selection,
+and error announcements remain owned by `FileUpload`.
 
 The states are idle, selected, dragging, invalid, disabled, uploading and success.
 `progress` is optional: only pass a percentage measured by the upload transport.

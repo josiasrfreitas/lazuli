@@ -155,3 +155,12 @@ export {
   type TeachingProgramImport,
 } from "./teaching-program.js";
 export { studentPendingActions, type PendingAction } from "./pending-actions.js";
+
+export { extractIdentityDocument } from "./identity-extraction/extract.js";
+export type {
+  IdentityOcrLine,
+  IdentityExtraction,
+  ExtractedIdentityField,
+  FieldCandidate,
+  DocumentFamily,
+} from "./identity-extraction/types.js";

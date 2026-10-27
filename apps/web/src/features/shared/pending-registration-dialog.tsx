@@ -116,7 +116,7 @@ function PendingRegistrationActions({
   return (
     <DialogFooter className="sm:flex-wrap">
       {onDiscard && (
-        <Button variant="ghost" disabled={pending} onClick={onDiscard}>
+        <Button variant="destructive" disabled={pending} onClick={onDiscard}>
           <Trash2 /> Descartar e fechar
         </Button>
       )}

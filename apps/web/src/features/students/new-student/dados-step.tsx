@@ -4,6 +4,8 @@ import type { ComponentProps, FormEvent, ReactElement, ReactNode } from "react";
 import { Badge, Field, FieldError, FormRow, FormSection, Input, Label } from "@lazuli/ui";
 import { PersonDocumentField } from "~/components/person-document-field";
 import { parseDateBR } from "~/lib/masks";
+import type { EnrollmentDocuments } from "~/features/student-documents/use-enrollment-documents";
+import styles from "./enrollment-documents.module.css";
 
 import type { NewStudentErrors, NewStudentFieldName, NewStudentFields } from "./reducer";
 
@@ -94,19 +96,21 @@ function BirthDateField({ errors, fields, onFieldChange }: FieldsProps): ReactEl
 
 type GuardianSectionProps = FieldsProps & {
   minor: boolean;
+  compact?: boolean;
+  action?: ReactNode;
 };
 
 const MINOR_DESCRIPTION = "Obrigatório para menores de idade: nome e telefone ou email.";
-const ADULT_DESCRIPTION = "Opcional para adultos.";
 
 function GuardianFields({
   errors,
   fields,
   minor,
   onFieldChange,
-}: FieldsProps & { minor: boolean }): ReactElement {
+  compact = false,
+}: FieldsProps & { minor: boolean; compact?: boolean }): ReactElement {
   return (
-    <>
+    <div className={compact ? styles.guardianFields : "grid gap-3"}>
       <TextField
         error={errors.guardianName}
         label="Nome do responsável"
@@ -116,7 +120,7 @@ function GuardianFields({
         required={minor}
         value={fields.guardianName}
       />
-      <FormRow columns={2}>
+      <div className={compact ? styles.guardianContacts : "grid gap-3 sm:grid-cols-2"}>
         <TextField
           error={errors.guardianPhone}
           inputMode="tel"
@@ -136,17 +140,21 @@ function GuardianFields({
           type="email"
           value={fields.guardianEmail}
         />
-      </FormRow>
-    </>
+      </div>
+    </div>
   );
 }
 
 function GuardianSection(props: GuardianSectionProps): ReactElement {
   const { minor } = props;
+  const description = props.compact || !minor ? undefined : MINOR_DESCRIPTION;
 
   return (
     <FormSection
-      description={minor ? MINOR_DESCRIPTION : ADULT_DESCRIPTION}
+      description={description}
+      action={props.action}
+      className="data-[compact=true]:col-span-full"
+      data-compact={props.compact}
       title={
         <span className="inline-flex flex-wrap items-center gap-2">
           Responsável
@@ -166,11 +174,13 @@ export type DadosStepProps = FieldsProps & {
 };
 
 /** Name and birth date first: the date decides whether a guardian is required. */
-function IdentitySection(props: FieldsProps & { nameField?: ReactNode }): ReactElement {
+function IdentitySection(
+  props: FieldsProps & { nameField?: ReactNode; action?: ReactNode },
+): ReactElement {
   const { errors, fields, onFieldChange } = props;
 
   return (
-    <FormSection title="Identificação">
+    <FormSection title="Identificação" action={props.action}>
       {props.nameField ?? (
         <TextField
           error={errors.fullName}
@@ -190,10 +200,16 @@ function IdentitySection(props: FieldsProps & { nameField?: ReactNode }): ReactE
   );
 }
 
-function ContactSection({ errors, fields, onFieldChange }: FieldsProps): ReactElement {
+function ContactSection({
+  errors,
+  fields,
+  onFieldChange,
+  stacked = false,
+  action,
+}: FieldsProps & { stacked?: boolean; action?: ReactNode }): ReactElement {
   return (
-    <FormSection title="Contato">
-      <FormRow columns={2}>
+    <FormSection title="Contato" action={action}>
+      <FormRow columns={stacked ? 1 : 2}>
         <TextField
           error={errors.phone}
           inputMode="tel"
@@ -240,7 +256,11 @@ export function DadosStep(props: DadosStepProps): ReactElement {
 }
 
 export function IntakeStudentFields(
-  props: Omit<DadosStepProps, "onSubmit"> & { nameField: ReactNode },
+  props: Omit<DadosStepProps, "onSubmit"> & {
+    nameField: ReactNode;
+    documents: EnrollmentDocuments;
+    studentId?: string | undefined;
+  },
 ): ReactJSX.Element {
   return (
     <div className="grid gap-5">

@@ -8,10 +8,12 @@ export type EnrollmentPersistence = {
 
 export function useEnrollmentPersistence({
   flow,
+  documentSessionId,
   onCreated,
   onOpenChange,
 }: {
   flow: EnrollmentFlow;
+  documentSessionId: string | undefined;
   onCreated: (id: string) => void;
   onOpenChange: (open: boolean) => void;
 }): EnrollmentPersistence {
@@ -24,7 +26,9 @@ export function useEnrollmentPersistence({
     flow.setError("");
     try {
       const result =
-        "studentId" in input ? await resume.mutateAsync(input) : await enroll.mutateAsync(input);
+        "studentId" in input
+          ? await resume.mutateAsync({ ...input, documentSessionId })
+          : await enroll.mutateAsync({ ...input, documentSessionId });
       void Promise.all([
         utils.students.invalidate(),
         utils.admissions.invalidate(),

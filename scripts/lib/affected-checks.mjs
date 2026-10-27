@@ -137,7 +137,7 @@ function resolvePackages(filters) {
       ...filters,
       "--dry=json",
     ],
-    { encoding: "utf8", env: getGitIndependentProcessEnvironment() },
+    { encoding: "utf8", env: getGitIndependentProcessEnvironment(), maxBuffer: 8 * 1024 * 1024 },
   );
   if (result.status !== 0)
     throw new Error(`Turbo could not resolve affected workspaces.\n${result.stderr}`);

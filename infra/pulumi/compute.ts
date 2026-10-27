@@ -147,6 +147,29 @@ docker run -d --name mailpit --network lazuli --restart unless-stopped \\
     },
     { protect: true },
   );
+  if (environment === "staging" && config.getBoolean("documentPrototype")) {
+    new aws.iam.RolePolicy("document-prototype-ocr", {
+      role: role.name,
+      policy: JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{ Effect: "Allow", Action: "textract:DetectDocumentText", Resource: "*" }],
+      }),
+    });
+  }
+  new aws.iam.RolePolicy("runtime-address-search", {
+    name: "runtime-address-search",
+    role: role.name,
+    policy: JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Effect: "Allow",
+          Action: ["geo-places:Autocomplete", "geo-places:GetPlace"],
+          Resource: "arn:aws:geo-places:us-east-2::provider/default",
+        },
+      ],
+    }),
+  });
   // AmazonSSMManagedInstanceCore also grants GetParameter(s) on every parameter.
   // Keep agent communications here and grant runtime parameter reads separately.
   const ssm = new aws.iam.RolePolicy(

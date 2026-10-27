@@ -1,10 +1,14 @@
 import { processAssessmentFile } from "@lazuli/worker-handlers/assessment-files";
+import { processStudentDocument } from "@lazuli/worker-handlers/student-documents";
 import { startAssessmentRecovery } from "./assessment-recovery.js";
 import { processDueEnrollmentActions } from "@lazuli/worker-handlers";
 import { processSessionGeneration } from "@lazuli/worker-handlers/sessions";
 import {
   ASSESSMENT_FILE_WORKFLOW,
   type AssessmentFilePayload,
+  STUDENT_DOCUMENT_WORKFLOW,
+  studentDocumentPayloadSchema,
+  type StudentDocumentPayload,
   SESSIONS_GENERATE_WORKFLOW,
   type SessionsGeneratePayload,
 } from "@lazuli/job-contracts";
@@ -50,10 +54,17 @@ async function start(): Promise<void> {
     scheduleTimeout: "5m",
     fn: (payload) => processAssessmentFile({ database: db, payload }),
   });
+  const documents = hatchet.task<StudentDocumentPayload, { status: string }>({
+    name: STUDENT_DOCUMENT_WORKFLOW,
+    retries: 0,
+    executionTimeout: "2m",
+    scheduleTimeout: "5m",
+    fn: processStudentDocumentPayload,
+  });
   const worker = await hatchet.worker("school", {
     slots: 1,
     durableSlots: 1,
-    workflows: [sessions, files],
+    workflows: [sessions, files, documents],
     handleKill: false,
   });
   const timer = setInterval(() => void processEnrollmentActions(), ENROLLMENT_POLL_MS);
@@ -66,8 +77,7 @@ async function start(): Promise<void> {
     stopRecovery();
     void worker.stop();
   };
-  process.once("SIGINT", shutdown);
-  process.once("SIGTERM", shutdown);
+  for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, shutdown);
   void processEnrollmentActions();
   log("starting sessions-generate worker (1 slot)");
   try {
@@ -77,6 +87,18 @@ async function start(): Promise<void> {
     stopRecovery();
     await db.$disconnect();
   }
+}
+async function processStudentDocumentPayload(
+  input: StudentDocumentPayload,
+): Promise<{ status: string }> {
+  const payload = studentDocumentPayloadSchema.parse(input);
+  await processStudentDocument(db, { id: payload.fileId });
+  const file = await db.studentDocumentFile.findFirst({
+    where: { id: payload.fileId },
+    select: { status: true },
+  });
+  if (file?.status === "FAILED") throw new Error("DOCUMENT_EXTRACTION_FAILED");
+  return { status: file?.status ?? "SKIPPED" };
 }
 try {
   await start();

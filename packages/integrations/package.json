@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./hatchet": "./src/hatchet.ts"
+    "./hatchet": "./src/hatchet.ts",
+    "./identity-ocr": "./src/identity-ocr.ts",
+    "./address-search": "./src/address-search.ts"
   },
   "scripts": {
     "lint": "lazuli-lint .",
@@ -15,7 +17,10 @@
     "clean": "rm -rf .turbo dist"
   },
   "dependencies": {
+    "@aws-sdk/client-geo-places": "3.1152.0",
+    "@aws-sdk/client-textract": "3.1152.0",
     "@hatchet-dev/typescript-sdk": "1.37.0",
+    "@lazuli/domain": "workspace:*",
     "@lazuli/job-contracts": "workspace:*",
     "nodemailer": "catalog:",
     "resend": "catalog:",

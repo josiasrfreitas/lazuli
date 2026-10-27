@@ -46,6 +46,14 @@ export const Multiple: Story = {
   render: (args) => <PlaygroundUpload {...args} />,
 };
 export const Disabled: Story = { args: { disabled: true } };
+export const FormatSizeLimits: Story = {
+  args: {
+    maxSize: 26_214_400,
+    maxSizeByType: { "application/pdf": 5_242_880 },
+    sizeLabel: "imagens até 25 MB; PDF até 5 MB",
+  },
+  render: (args) => <PlaygroundUpload {...args} />,
+};
 export const ValidationError: Story = {
   args: { error: "O arquivo ultrapassa 50 MB. Escolha um arquivo menor." },
 };

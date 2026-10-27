@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./sessions": "./src/sessions/process-generation.ts",
     "./enrollment": "./src/enrollment/process-due-actions.ts",
-    "./assessment-files": "./src/assessments/process-file.ts"
+    "./assessment-files": "./src/assessments/process-file.ts",
+    "./student-documents": "./src/documents/process.ts"
   },
   "scripts": {
     "lint": "lazuli-lint .",

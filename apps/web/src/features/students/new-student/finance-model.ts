@@ -17,11 +17,27 @@ function orUndefined(value: string): string | undefined {
   return trimmed === "" ? undefined : trimmed;
 }
 
+function addressInput(address: NewStudentFields["address"]): StudentCreateInput["address"] {
+  if (!address) return undefined;
+  if (!Object.values(address).some((value) => value.trim())) return null;
+  return {
+    street: orUndefined(address.street) ?? null,
+    number: orUndefined(address.number) ?? null,
+    complement: orUndefined(address.complement) ?? null,
+    neighborhood: orUndefined(address.neighborhood) ?? null,
+    city: orUndefined(address.city) ?? null,
+    state: orUndefined(address.state) ?? null,
+    postalCode: orUndefined(address.postalCode) ?? null,
+  };
+}
+
 /** Converts typed wizard values to the student command, preserving the birth calendar date. */
 export function toCreateInput(fields: NewStudentFields): StudentCreateInput {
   const guardianName = orUndefined(fields.guardianName);
   const birthDate = parseDateBR(fields.birthDate);
+  const address = addressInput(fields.address);
   return {
+    ...(address === undefined ? {} : { address }),
     fullName: fields.fullName.trim(),
     phone: orUndefined(fields.phone),
     email: orUndefined(fields.email),
@@ -102,6 +118,7 @@ export function toContactUpdate(
 ): z.input<typeof studentUpdateContactInputSchema> {
   const birthDate = parseDateBR(fields.birthDate);
   return {
+    address: addressInput(fields.address),
     fullName: fields.fullName.trim(),
     phone: fields.phone.trim() || null,
     email: fields.email.trim() || null,

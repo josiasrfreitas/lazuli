@@ -1,4 +1,7 @@
-import type { JSX as ReactJSX } from "react";
+import { EnrollmentPhoto } from "~/features/student-documents/enrollment-photo";
+import { StudentDocumentPanel, StudentDocumentButton } from "~/features/student-documents/panel";
+import documentStyles from "./enrollment-documents.module.css";
+import { useEffect, useState, type JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
 import {
@@ -15,14 +18,24 @@ import { DiscardRegistrationDialog } from "~/features/shared/discard-registratio
 import { PendingRegistrationDialog } from "~/features/shared/pending-registration-dialog";
 import { LeadCaptureDialog } from "~/features/admissions/lead-capture-dialog";
 import { IntakeNameField } from "./intake-name-field";
+import { AddressStep } from "./address-step";
 import { IntakeStudentFields } from "./dados-step";
 import { IntakePedagogy } from "./intake-pedagogy";
 import { IntakeContract } from "./intake-contract";
 import { IntakeDialogHeading, IntakeDialogLoading } from "./intake-dialog-chrome";
 import type { EnrollmentModel, IntakeStep } from "./new-student-dialog";
 
+const DOCUMENT_PANEL_EXIT_MS = 160;
+
+function previousStep(step: IntakeStep): IntakeStep {
+  if (step === "contract") return "pedagogy";
+  if (step === "pedagogy") return "address";
+  return "student";
+}
+
 function submitLabel(step: IntakeStep): string {
-  if (step === "student") return "Ir para pedagógico";
+  if (step === "student") return "Ir para endereço";
+  if (step === "address") return "Ir para pedagógico";
   if (step === "pedagogy") return "Ir para contrato";
   return "Concluir cadastro";
 }
@@ -30,7 +43,7 @@ function submitLabel(step: IntakeStep): string {
 function classSummary(model: EnrollmentModel): string {
   if (model.selected) return `Turma: ${model.selected.name}`;
   if (model.existingEnrollment) return `Turma: ${model.existingEnrollment.class.portalClassName}`;
-  return model.step === "student" ? "" : "Turma pendente";
+  return model.step === "student" || model.step === "address" ? "" : "Turma pendente";
 }
 
 export function EnrollmentDialogView({ model }: { model: EnrollmentModel }): ReactJSX.Element {
@@ -64,23 +77,50 @@ export function EnrollmentDialogView({ model }: { model: EnrollmentModel }): Rea
 
 function EnrollmentMainContent({ model }: { model: EnrollmentModel }): ReactJSX.Element {
   const { step, popup, existingStudentId, state, existingEnrollment, selected } = model;
+  const panelOpen = step === "student" && model.documents.open;
+  const [panelPresent, setPanelPresent] = useState(panelOpen);
+  useEffect(() => {
+    if (panelOpen) {
+      setPanelPresent(true);
+      return;
+    }
+    const timer = globalThis.setTimeout(() => setPanelPresent(false), DOCUMENT_PANEL_EXIT_MS);
+    return () => globalThis.clearTimeout(timer);
+  }, [panelOpen]);
+  const panelVisible = step === "student" && (panelOpen || panelPresent);
   return (
     <DialogContent
-      className="w-[calc(100%-2rem)] md:w-[calc(100%-2rem)] max-w-7xl md:max-w-7xl data-[step=student]:h-[min(44rem,calc(100dvh-4rem))] data-[step=student]:md:max-w-2xl data-[step=pedagogy]:h-[min(52rem,calc(100dvh-4rem))]"
+      className="enrollment-dialog-motion w-[calc(100%-2rem)] md:w-[calc(100%-2rem)] max-w-7xl md:max-w-7xl data-[step=address]:md:max-w-4xl data-[step=student]:data-[documents=false]:md:max-w-4xl data-[documents=true]:md:max-w-7xl data-[step=pedagogy]:h-[min(52rem,calc(100dvh-4rem))]"
       data-step={step}
+      data-documents={panelVisible}
       ref={popup}
       initialFocus={() =>
         popup.current?.querySelector<HTMLInputElement>('input[name="fullName"]') ?? true
       }
     >
-      <IntakeDialogHeading
-        continuing={Boolean(existingStudentId)}
-        step={step}
-        name={state.fields.fullName}
-        hasEnrollment={Boolean(existingEnrollment)}
-        hasClass={Boolean(selected || existingEnrollment)}
-      />
-      <EnrollmentForm model={model} />
+      <div className={documentStyles.header}>
+        <IntakeDialogHeading
+          compact={step === "student"}
+          avatar={
+            step === "student" ? (
+              <EnrollmentPhoto
+                documents={model.documents}
+                studentId={existingStudentId}
+                disabled={model.pending}
+              />
+            ) : undefined
+          }
+          continuing={Boolean(existingStudentId)}
+          step={step}
+          name={state.fields.fullName}
+          hasEnrollment={Boolean(existingEnrollment)}
+          hasClass={Boolean(selected || existingEnrollment)}
+        />
+      </div>
+      <div className={documentStyles.documentLayout} data-open={panelVisible}>
+        <EnrollmentForm model={model} />
+        {panelVisible && <StudentDocumentPanel documents={model.documents} />}
+      </div>
       <EnrollmentFooter model={model} />
     </DialogContent>
   );
@@ -90,9 +130,8 @@ function EnrollmentForm({ model }: { model: EnrollmentModel }): ReactJSX.Element
   const { step, requestSave, advance, error } = model;
   return (
     <DialogBody
-      className={
-        step === "pedagogy" ? "flex flex-col overflow-y-auto sm:overflow-hidden" : undefined
-      }
+      data-step={step}
+      className="data-[step=pedagogy]:flex data-[step=pedagogy]:flex-col data-[step=pedagogy]:overflow-y-auto sm:data-[step=pedagogy]:overflow-hidden"
     >
       <form
         id="intake-enroll"
@@ -144,12 +183,23 @@ function EnrollmentProgressFields({ model }: { model: EnrollmentModel }): ReactJ
       disabled={model.pending}
       className={`min-w-0 ${model.step === "pedagogy" ? "flex min-h-0 flex-1 flex-col gap-4" : "grid gap-6"}`}
     >
-      {model.step === "student" ? (
-        <EnrollmentStudentFields model={model} />
-      ) : (
-        <EnrollmentPedagogyFields model={model} />
-      )}
+      {progressStepFields(model)}
     </fieldset>
+  );
+}
+
+function progressStepFields(model: EnrollmentModel): ReactJSX.Element {
+  if (model.step === "student") return <EnrollmentStudentFields model={model} />;
+  if (model.step === "pedagogy") return <EnrollmentPedagogyFields model={model} />;
+  return (
+    <AddressStep
+      onBusyChange={model.setAddressPending}
+      value={model.state.fields.address}
+      onChange={(address) => {
+        model.setDirty(true);
+        model.dispatch({ type: "addressChanged", address });
+      }}
+    />
   );
 }
 
@@ -168,6 +218,8 @@ function EnrollmentStudentFields({ model }: { model: EnrollmentModel }): ReactJS
   return (
     <div className="grid min-w-0 content-start gap-5">
       <IntakeStudentFields
+        documents={model.documents}
+        studentId={existingStudentId}
         fields={state.fields}
         errors={state.errors}
         minor={minor}
@@ -221,6 +273,7 @@ function EnrollmentNameField({ model }: { model: EnrollmentModel }): ReactJSX.El
   const lookup = leadLookupStatus(model);
   return (
     <IntakeNameField
+      action={<StudentDocumentButton documents={model.documents} />}
       name={state.fields.fullName}
       error={state.errors.fullName}
       linked={Boolean(lead || existingStudentId || draftLead)}
@@ -228,11 +281,7 @@ function EnrollmentNameField({ model }: { model: EnrollmentModel }): ReactJSX.El
       options={leadNameOptions(model)}
       loading={lookup.loading}
       failed={lookup.failed}
-      emptyMessage={
-        search.length < 2
-          ? "Digite o nome do aluno."
-          : "Nenhum lead encontrado. Continue com este nome."
-      }
+      emptyMessage={search.length < 2 ? "Digite o nome do aluno." : ""}
       onChange={(value) => {
         model.setDirty(true);
         model.dispatch({ type: "fieldChanged", field: "fullName", value });
@@ -297,14 +346,29 @@ function EnrollmentPedagogyFields({ model }: { model: EnrollmentModel }): ReactJ
 function EnrollmentFooter({ model }: { model: EnrollmentModel }): ReactJSX.Element {
   return (
     <DialogFooter
-      className="mt-4 items-center border-t border-border pt-4 max-sm:data-[step=pedagogy]:grid max-sm:data-[step=pedagogy]:grid-cols-[auto_minmax(0,1fr)] max-sm:data-[step=pedagogy]:gap-x-2 max-sm:data-[step=pedagogy]:gap-y-2 max-sm:data-[step=pedagogy]:[&>p]:col-span-2 max-sm:data-[step=pedagogy]:[&>p]:row-start-1 max-sm:data-[step=pedagogy]:[&>button]:row-start-2 max-sm:data-[step=pedagogy]:[&>button:last-child]:justify-self-end"
+      className="max-sm:data-[step=address]:grid max-sm:data-[step=address]:grid-cols-[auto_1fr] max-sm:data-[step=address]:[&>button:last-child]:justify-self-end mt-4 items-center border-t border-border pt-4 max-sm:data-[step=pedagogy]:grid max-sm:data-[step=pedagogy]:grid-cols-[auto_minmax(0,1fr)] max-sm:data-[step=pedagogy]:gap-x-2 max-sm:data-[step=pedagogy]:gap-y-2 max-sm:data-[step=pedagogy]:[&>p]:col-span-2 max-sm:data-[step=pedagogy]:[&>p]:row-start-1 max-sm:data-[step=pedagogy]:[&>button]:row-start-2 max-sm:data-[step=pedagogy]:[&>button:last-child]:justify-self-end"
       data-step={model.step}
     >
       <EnrollmentBackButton model={model} />
-      <p className="mr-auto text-caption text-muted-foreground">{classSummary(model)}</p>
+      {footerInfo(model)}
       <EnrollmentSubmitButtons model={model} />
     </DialogFooter>
   );
+}
+
+function footerInfo(model: EnrollmentModel): ReactJSX.Element {
+  if (model.step === "student")
+    return (
+      <div className={documentStyles.documentHelp}>
+        <span role={model.documents.query.isError ? "status" : undefined}>
+          {model.documents.query.isError
+            ? "Não foi possível atualizar os anexos. Tentando novamente…"
+            : "RG/CIN preenche os dados. Revise antes de salvar."}
+        </span>
+      </div>
+    );
+  if (model.step === "address") return <span className="mr-auto max-sm:hidden" />;
+  return <p className="mr-auto text-caption text-muted-foreground">{classSummary(model)}</p>;
 }
 
 function EnrollmentBackButton({ model }: { model: EnrollmentModel }): ReactJSX.Element {
@@ -313,9 +377,10 @@ function EnrollmentBackButton({ model }: { model: EnrollmentModel }): ReactJSX.E
     <Button
       variant="ghost"
       disabled={pending}
-      onClick={() =>
-        step === "student" ? close() : setStep(step === "contract" ? "pedagogy" : "student")
-      }
+      onClick={() => {
+        if (step === "student") close();
+        else setStep(previousStep(step));
+      }}
     >
       {step === "student" ? <X /> : <ArrowLeft />}
       {step === "student" ? "Cancelar" : "Voltar"}

@@ -271,6 +271,7 @@ model Verification {
 }
 
 model Student {
+  documentSessions StudentDocumentSession[]
   id             String        @id @default(uuid()) @db.Uuid
   commandId      String?       @unique @map("command_id") @db.Uuid
   commandFingerprint String?   @map("command_fingerprint")
@@ -2083,4 +2084,37 @@ model EntryVisitCorrectedFile {
   uploadedById String @map("uploaded_by_id") @db.Uuid
   assessment EntryVisitAssessment @relation(fields: [visitId], references: [visitId], onDelete: Restrict)
   uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+}
+
+
+model StudentDocumentSession {
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  deletedAt DateTime? @db.Timestamptz
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  createdById String @db.Uuid
+  tokenHash String @unique
+  studentId String? @db.Uuid
+  closedAt DateTime? @db.Timestamptz
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  files StudentDocumentFile[]
+  @@index([studentId])
+  @@index([createdById])
+}
+
+model StudentDocumentFile {
+  deletedAt DateTime? @db.Timestamptz
+  id String @id @default(uuid()) @db.Uuid
+  sessionId String @db.Uuid
+  kind String
+  bucket String
+  key String
+  byteLength Int
+  status String @default("RECEIVED")
+  extraction Json?
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  session StudentDocumentSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  @@unique([sessionId, kind])
+  @@index([status, updatedAt])
 }

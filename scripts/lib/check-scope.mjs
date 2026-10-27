@@ -82,12 +82,14 @@ const SCRIPT_CATEGORIES = new Set([
   "workspace-light",
   "workspace-full",
   "ci-workflow",
+  "infrastructure",
 ]);
 const DOC_PATTERN = /^(docs\/|[^/]+\.md$|\.design\/)/u;
 const WORKSPACE_PATTERN = /^(apps|packages|tooling)\/[^/]+(?:\/|$)/u;
 const DB_SCHEMA_PATTERN =
   /^packages\/db\/(prisma\/|src\/seed)|^scripts\/(?:seed(?:-(?:settings|contracts))?\.ts|seed\/.+\.ts)$/u;
 const CI_PATTERN = /^\.github\/(workflows|pullfrog)\//u;
+const INFRASTRUCTURE_PATTERN = /^infra\/pulumi\//u;
 
 export function classifyChanges(files, { root = process.cwd() } = {}) {
   const categories = new Set();
@@ -112,6 +114,8 @@ export function classifyChanges(files, { root = process.cwd() } = {}) {
     else if (FULL_WORKSPACE_SCRIPTS.has(file)) categories.add("workspace-full");
     else if (CI_PATTERN.test(file) || file === ".github/workflows/pullfrog.yml") {
       categories.add("ci-workflow");
+    } else if (INFRASTRUCTURE_PATTERN.test(file)) {
+      categories.add("infrastructure");
     } else if (file.startsWith("scripts/") || file.startsWith(".github/")) unknown.push(file);
     else if (/\.(json|ya?ml|mjs|cjs|js|ts|tsx|sh)$/u.test(file)) unknown.push(file);
     else categories.add("documentation");

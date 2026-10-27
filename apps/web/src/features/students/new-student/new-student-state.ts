@@ -20,6 +20,8 @@ export type IntakeInput =
 type Confirmation = { input: IntakeInput; items: string[] } | null;
 
 export type EnrollmentIdentity = {
+  addressPending: boolean;
+  setAddressPending: Dispatch<SetStateAction<boolean>>;
   state: ReturnType<typeof newStudentReducer>;
   dispatch: Dispatch<Parameters<typeof newStudentReducer>[1]>;
   candidateId: string | null;
@@ -41,6 +43,7 @@ export type EnrollmentIdentity = {
 };
 
 export function useEnrollmentIdentity(initialCandidateId: string | undefined): EnrollmentIdentity {
+  const [addressPending, setAddressPending] = useState(false);
   const [state, dispatch] = useReducer(newStudentReducer, initialNewStudentState);
   const [candidateId, setCandidateId] = useState<string | null>(initialCandidateId ?? null);
   const [stageId, setStageId] = useState<string | null>(null);
@@ -52,6 +55,8 @@ export function useEnrollmentIdentity(initialCandidateId: string | undefined): E
   const prefilled = useRef<string | null>(null);
   const popup = useRef<HTMLDivElement>(null);
   return {
+    addressPending,
+    setAddressPending,
     state,
     dispatch,
     candidateId,

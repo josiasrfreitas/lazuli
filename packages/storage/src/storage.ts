@@ -7,28 +7,27 @@ import {
   type S3ClientConfig,
 } from "@aws-sdk/client-s3";
 
-export type StoredFileReference = { bucket: string; key: string };
-export type StoredFile = { bytes: Uint8Array; contentType: string };
-export type Storage = {
-  put(file: StoredFile & { key: string }): Promise<StoredFileReference>;
-  read(file: StoredFileReference): Promise<StoredFile>;
-  remove(file: StoredFileReference): Promise<void>;
-};
+import type { Storage, StoredFileReference } from "./contracts.js";
+export type { Storage, StoredFile, StoredFileReference } from "./contracts.js";
 
 export type StorageOptions = {
   bucket: string;
   client: S3ClientConfig;
   createLocalBucket?: boolean;
+  /** Explicit migration access to previously used buckets; never supplied by request input. */
+  additionalBuckets?: readonly string[];
 };
 
 /** Server-only. Callers own authorization, size limits and database metadata. */
 export function createStorage(options: StorageOptions): Storage {
+  if (!options.bucket.trim()) throw new Error("Storage requires a configured bucket.");
+  const buckets = new Set([options.bucket, ...(options.additionalBuckets ?? [])]);
   const client = new S3Client(options.client);
   const prepareBucket = bucketInitializer(client, options);
   return {
     async put(file) {
       const reference = { bucket: options.bucket, key: file.key };
-      const input = objectInput(reference);
+      const input = objectInput(reference, buckets);
       await prepareBucket();
       await client.send(
         new PutObjectCommand({
@@ -40,7 +39,7 @@ export function createStorage(options: StorageOptions): Storage {
       return reference;
     },
     async read(file) {
-      const result = await client.send(new GetObjectCommand(objectInput(file)));
+      const result = await client.send(new GetObjectCommand(objectInput(file, buckets)));
       if (!result.Body) throw new Error("Storage returned an empty response body.");
       return {
         bytes: await result.Body.transformToByteArray(),
@@ -48,13 +47,18 @@ export function createStorage(options: StorageOptions): Storage {
       };
     },
     async remove(file) {
-      await client.send(new DeleteObjectCommand(objectInput(file)));
+      await client.send(new DeleteObjectCommand(objectInput(file, buckets)));
     },
   };
 }
 
-function objectInput(file: StoredFileReference): { Bucket: string; Key: string } {
+function objectInput(
+  file: StoredFileReference,
+  buckets: ReadonlySet<string>,
+): { Bucket: string; Key: string } {
   if (!file.key || !file.bucket) throw new Error("Storage requires a bucket and object key.");
+  if (!buckets.has(file.bucket))
+    throw new Error("Storage reference is outside configured buckets.");
   return { Bucket: file.bucket, Key: file.key };
 }
 
