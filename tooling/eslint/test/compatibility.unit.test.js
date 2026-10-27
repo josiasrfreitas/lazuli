@@ -19,7 +19,8 @@ it("retains the six Unicorn rules omitted by the automatic migration", async () 
     const source = [
       'import "array-includes";',
       'import { default as readFile } from "node:fs";',
-      "// TODO [2000-01-01]: remove this workaround",
+      // Multiple expiry dates are invalid even when CI ignores expired dates on PRs.
+      "// TODO [2000-01-01, 2000-01-02]: remove this workaround",
       "function visit(items) { for (let index = 0; index < items.length; index++) { String(items[index]); } }",
       'function classify(value) { if (value === "one") return 1; else if (value === "two") return 2; else if (value === "three") return 3; }',
       "const template = html`first\nsecond`;",
