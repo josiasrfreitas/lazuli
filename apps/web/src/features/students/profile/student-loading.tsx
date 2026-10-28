@@ -114,7 +114,7 @@ export function AppointmentsLoading({
 function AppointmentsRailLoading(): ReactElement {
   return (
     <ul className={`${agenda.rail} ${styles.loadingRail}`} aria-hidden="true">
-      {Array.from({ length: 16 }, (_, item) => (
+      {Array.from({ length: 16 }, (_value, item) => (
         <li key={item}>
           <div className={agenda.cell}>
             <div className={agenda.date}>

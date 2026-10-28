@@ -15,6 +15,8 @@ import {
 } from "~/features/appointments/schedule-dialog";
 import styles from "./student-agenda.module.css";
 
+const EXIT_ANIMATION_MS = 200;
+
 export function StudentAgendaScheduling({
   calendar,
   onPendingChange,
@@ -33,9 +35,11 @@ export function StudentAgendaScheduling({
   }, [model.submission.pending, onPendingChange]);
   useEffect(() => {
     if (!closing) return;
-    const delay = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 200;
-    const timer = window.setTimeout(input.onClose, delay);
-    return () => window.clearTimeout(timer);
+    const delay = globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? 0
+      : EXIT_ANIMATION_MS;
+    const timer = globalThis.setTimeout(input.onClose, delay);
+    return () => globalThis.clearTimeout(timer);
   }, [closing, input.onClose]);
   const sidebar = (fields?: ReactNode): ReactElement => (
     <ScheduleSidebar model={model} fields={fields} onClose={finish} />
@@ -73,7 +77,7 @@ function ScheduleSidebar({
   fields?: ReactNode;
   onClose: () => void;
 }): ReactElement {
-  const { draft, submission, data, input } = model;
+  const { draft, submission } = model;
   const meeting = draft.values.step === "schedule";
   const panel = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -88,17 +92,7 @@ function ScheduleSidebar({
   }, [meeting]);
   return (
     <aside ref={panel} className={styles.sidebar} aria-labelledby="agenda-schedule-heading">
-      <header className={styles.sidebarHeader}>
-        <Button variant="ghost" size="sm" disabled={submission.pending} onClick={onClose}>
-          <ArrowLeft aria-hidden="true" /> Voltar à agenda
-        </Button>
-        <h2 id="agenda-schedule-heading">
-          {input.previous ? "Reagendar atendimento" : "Novo atendimento"}
-        </h2>
-        <p>
-          {meeting ? "Horário e detalhes" : "Natureza do atendimento"} · {meeting ? "2" : "1"} de 2
-        </p>
-      </header>
+      <ScheduleSidebarHeader model={model} meeting={meeting} onClose={onClose} />
       <div ref={draft.validation.body} className={styles.sidebarBody} key={draft.values.step}>
         <fieldset disabled={submission.pending} className={styles.sidebarFields}>
           {meeting ? (
@@ -112,34 +106,72 @@ function ScheduleSidebar({
         </fieldset>
         {submission.error && <Alert variant="destructive">{submission.error}</Alert>}
       </div>
-      <footer className={styles.sidebarActions}>
-        {meeting && (
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={submission.pending}
-            onClick={() => draft.change("step", "details")}
-          >
-            <ArrowLeft aria-hidden="true" /> Natureza
-          </Button>
-        )}
-        <Button
-          type="submit"
-          size="sm"
-          disabled={
-            submission.pending ||
-            data.unavailable ||
-            (meeting && (!draft.values.selectionReady || Boolean(data.enrollmentDateError)))
-          }
-        >
-          {meeting ? <CalendarCheck aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
-          {submission.pending
-            ? "Salvando…"
-            : meeting
-              ? "Confirmar atendimento"
-              : "Escolher horário"}
-        </Button>
-      </footer>
+      <ScheduleSidebarFooter model={model} meeting={meeting} />
     </aside>
   );
+}
+
+function ScheduleSidebarHeader({
+  model,
+  meeting,
+  onClose,
+}: {
+  model: ScheduleModel;
+  meeting: boolean;
+  onClose: () => void;
+}): ReactElement {
+  return (
+    <header className={styles.sidebarHeader}>
+      <Button variant="ghost" size="sm" disabled={model.submission.pending} onClick={onClose}>
+        <ArrowLeft aria-hidden="true" /> Voltar à agenda
+      </Button>
+      <h2 id="agenda-schedule-heading">
+        {model.input.previous ? "Reagendar atendimento" : "Novo atendimento"}
+      </h2>
+      <p>
+        {meeting ? "Horário e detalhes" : "Natureza do atendimento"} · {meeting ? "2" : "1"} de 2
+      </p>
+    </header>
+  );
+}
+
+function ScheduleSidebarFooter({
+  model,
+  meeting,
+}: {
+  model: ScheduleModel;
+  meeting: boolean;
+}): ReactElement {
+  const { draft, submission, data } = model;
+  return (
+    <footer className={styles.sidebarActions}>
+      {meeting && (
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={submission.pending}
+          onClick={() => draft.change("step", "details")}
+        >
+          <ArrowLeft aria-hidden="true" /> Natureza
+        </Button>
+      )}
+      <Button
+        type="submit"
+        size="sm"
+        disabled={
+          submission.pending ||
+          data.unavailable ||
+          (meeting && (!draft.values.selectionReady || Boolean(data.enrollmentDateError)))
+        }
+      >
+        {meeting ? <CalendarCheck aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
+        {submissionLabel(submission.pending, meeting)}
+      </Button>
+    </footer>
+  );
+}
+
+function submissionLabel(pending: boolean, meeting: boolean): string {
+  if (pending) return "Salvando…";
+  return meeting ? "Confirmar atendimento" : "Escolher horário";
 }

@@ -156,7 +156,7 @@ function useStudentSectionNavigation({
   const activeTab = activeSection === PLANNING_SECTION ? PEDAGOGY_SECTION : activeSection;
   const navigate = (next: StudentSection): void => {
     if (registrationBusy) return;
-    switchSection(activeSection, next, () => void setSection(next));
+    switchSection(activeSection, { next, update: () => void setSection(next) });
   };
   return { activeSection, activeTab, navigate };
 }

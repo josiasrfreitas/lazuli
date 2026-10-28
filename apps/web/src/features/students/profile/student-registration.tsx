@@ -10,6 +10,8 @@ import { RegistrationDocuments } from "./registration-documents";
 import styles from "./student-overview.module.css";
 import loading from "./student-loading.module.css";
 
+const REGISTRATION_SKELETON_FIELDS = 4;
+
 export function StudentRegistrationSection({
   profile,
   onBusyChange,
@@ -52,7 +54,7 @@ export function StudentRegistrationLoading(): ReactElement {
           <section key={title} className="grid gap-4 border-b border-border py-4">
             <h3 className="text-sm font-semibold text-heading">{title}</h3>
             <div className="grid grid-cols-2 gap-4" aria-hidden="true">
-              {[0, 1, 2, 3].map((field) => (
+              {Array.from({ length: REGISTRATION_SKELETON_FIELDS }, (_value, field) => (
                 <div key={field} className="grid gap-2">
                   <InlineSkeleton className="h-3 w-16" />
                   <InlineSkeleton className="h-4 w-32 max-w-full" />
@@ -65,7 +67,7 @@ export function StudentRegistrationLoading(): ReactElement {
       <div className={`${styles.registrationDocuments} ${loading.surface}`}>
         <h3 className="text-h3 font-semibold text-heading">Documentos</h3>
         <div className="mt-4 grid grid-cols-4 gap-2" aria-hidden="true">
-          {[0, 1, 2, 3].map((item) => (
+          {Array.from({ length: REGISTRATION_SKELETON_FIELDS }, (_value, item) => (
             <InlineSkeleton key={item} className="h-24 w-full" />
           ))}
         </div>

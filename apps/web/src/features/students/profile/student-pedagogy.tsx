@@ -22,13 +22,7 @@ export function StudentPedagogySection(props: PedagogyProps): ReactElement {
   const id = profile.id;
   const query = useStudentPedagogy(id);
   if (query.isPending) return <PedagogyLoadingState />;
-  if (query.isError)
-    return (
-      <ProfileError
-        message="Não foi possível carregar o acompanhamento pedagógico."
-        onRetry={() => void query.refetch()}
-      />
-    );
+  if (query.isError) return <PedagogyError onRetry={() => void query.refetch()} />;
   const current = query.data.enrollments.filter((enrollment) => enrollment.current);
   const history = query.data.enrollments.filter((enrollment) => !enrollment.current);
   if (current.length === 0)
@@ -67,6 +61,15 @@ export function StudentPedagogySection(props: PedagogyProps): ReactElement {
         studentName={profile.contact.fullName}
       />
     </div>
+  );
+}
+
+function PedagogyError({ onRetry }: { onRetry: () => void }): ReactElement {
+  return (
+    <ProfileError
+      message="Não foi possível carregar o acompanhamento pedagógico."
+      onRetry={onRetry}
+    />
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement, type RefObject } from "react";
 import {
   Dialog,
   DialogBackdrop,
@@ -29,6 +29,51 @@ export function RegistrationEditDialog({
   target: RegistrationEditTarget;
   onClose: () => void;
 }): ReactElement {
+  const state = useRegistrationEditState();
+  return (
+    <Dialog
+      open={state.open}
+      onOpenChange={(value) => {
+        if (!value) state.close();
+      }}
+      onOpenChangeComplete={(value) => {
+        if (!value) onClose();
+      }}
+    >
+      <DialogPortal>
+        <DialogBackdrop />
+        <RegistrationEditPanel
+          content={state.content}
+          profile={profile}
+          target={target}
+          busy={state.busy}
+          discard={state.discard}
+          onBusyChange={state.setBusy}
+          onDirtyChange={state.setDirty}
+          onCancel={state.close}
+          onSaved={state.saved}
+          onKeep={() => state.setDiscard(false)}
+          onDiscard={state.discardChanges}
+        />
+      </DialogPortal>
+    </Dialog>
+  );
+}
+
+type RegistrationEditState = {
+  open: boolean;
+  busy: boolean;
+  discard: boolean;
+  content: RefObject<HTMLDivElement | null>;
+  close: () => void;
+  saved: () => void;
+  discardChanges: () => void;
+  setBusy: (busy: boolean) => void;
+  setDirty: (dirty: boolean) => void;
+  setDiscard: (discard: boolean) => void;
+};
+
+function useRegistrationEditState(): RegistrationEditState {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -40,56 +85,108 @@ export function RegistrationEditDialog({
     if (dirty) setDiscard(true);
     else setOpen(false);
   };
+  const saved = (): void => {
+    setDirty(false);
+    setOpen(false);
+  };
+  const discardChanges = (): void => {
+    setDiscard(false);
+    setDirty(false);
+    setOpen(false);
+  };
+  return {
+    open,
+    busy,
+    discard,
+    content,
+    close,
+    saved,
+    discardChanges,
+    setBusy,
+    setDirty,
+    setDiscard,
+  };
+}
+
+function RegistrationEditPanel({
+  content,
+  profile,
+  target,
+  busy,
+  discard,
+  onBusyChange,
+  onDirtyChange,
+  onCancel,
+  onSaved,
+  onKeep,
+  onDiscard,
+}: {
+  content: RefObject<HTMLDivElement | null>;
+  profile: StudentProfile;
+  target: RegistrationEditTarget;
+  busy: boolean;
+  discard: boolean;
+  onBusyChange: (busy: boolean) => void;
+  onDirtyChange: (dirty: boolean) => void;
+  onCancel: () => void;
+  onSaved: () => void;
+  onKeep: () => void;
+  onDiscard: () => void;
+}): ReactElement {
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(value) => {
-        if (!value) close();
-      }}
-      onOpenChangeComplete={(value) => {
-        if (!value) onClose();
-      }}
+    <DialogContent
+      ref={content}
+      className="md:max-w-2xl"
+      showCloseButton={!busy}
+      initialFocus={() => content.current?.querySelector<HTMLElement>("input, textarea")}
+      data-student-dialog-motion
     >
-      <DialogPortal>
-        <DialogBackdrop />
-        <DialogContent
-          ref={content}
-          className="md:max-w-2xl"
-          showCloseButton={!busy}
-          initialFocus={() => content.current?.querySelector<HTMLElement>("input, textarea")}
-          data-student-dialog-motion
-        >
-          <DialogHeader>
-            <DialogTitle>{REGISTRATION_EDIT_TITLES[target]}</DialogTitle>
-            <DialogDescription>{profile.contact.fullName}</DialogDescription>
-          </DialogHeader>
-          <DialogBody>
-            <div className={styles.editorBody}>
-              <RegistrationEditor
-                profile={profile}
-                target={target}
-                onDirtyChange={setDirty}
-                onBusyChange={setBusy}
-                onCancel={close}
-                onSaved={() => {
-                  setDirty(false);
-                  setOpen(false);
-                }}
-              />
-            </div>
-          </DialogBody>
-          {discard && (
-            <DiscardRegistrationDialog
-              onKeep={() => setDiscard(false)}
-              onDiscard={() => {
-                setDiscard(false);
-                setDirty(false);
-                setOpen(false);
-              }}
-            />
-          )}
-        </DialogContent>
-      </DialogPortal>
-    </Dialog>
+      <RegistrationEditContent
+        profile={profile}
+        target={target}
+        onDirtyChange={onDirtyChange}
+        onBusyChange={onBusyChange}
+        onCancel={onCancel}
+        onSaved={onSaved}
+      />
+      {discard && <DiscardRegistrationDialog onKeep={onKeep} onDiscard={onDiscard} />}
+    </DialogContent>
+  );
+}
+
+function RegistrationEditContent({
+  profile,
+  target,
+  onDirtyChange,
+  onBusyChange,
+  onCancel,
+  onSaved,
+}: {
+  profile: StudentProfile;
+  target: RegistrationEditTarget;
+  onDirtyChange: (dirty: boolean) => void;
+  onBusyChange: (busy: boolean) => void;
+  onCancel: () => void;
+  onSaved: () => void;
+}): ReactElement {
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{REGISTRATION_EDIT_TITLES[target]}</DialogTitle>
+        <DialogDescription>{profile.contact.fullName}</DialogDescription>
+      </DialogHeader>
+      <DialogBody>
+        <div className={styles.editorBody}>
+          <RegistrationEditor
+            profile={profile}
+            target={target}
+            onDirtyChange={onDirtyChange}
+            onBusyChange={onBusyChange}
+            onCancel={onCancel}
+            onSaved={onSaved}
+          />
+        </div>
+      </DialogBody>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 # PR #225 — lint progress
 
-> **LOCKED BATCH 3: Student operations.** Original and latest remaining: 50 errors across the 23 files below. Exact targeted command: `pnpm -F @lazuli/web exec lazuli-lint src/features/students/profile src/features/students/filter-options.ts src/features/students/students-page.tsx src/features/students/students-table.tsx src/features/assessments/progress-chart.tsx src/features/assessments/student-progress-loading.tsx src/features/appointments/appointment-dialog-context.tsx src/features/appointments/student-appointment-dialog.tsx`. Source snapshot: `/tmp/lazuli-pr225-web-after-profile.json`. **Next completion gate:** zero errors across the 23 files, relevant typecheck/tests, full `pnpm lint`, machine-readable comparison, then lock another batch of about 50.
+> **BATCH 3: Student operations.** Original: 50 errors across the 23 files below; latest remaining: 0. Exact targeted command: `pnpm -F @lazuli/web exec lazuli-lint src/features/students/profile src/features/students/filter-options.ts src/features/students/students-page.tsx src/features/students/students-table.tsx src/features/assessments/progress-chart.tsx src/features/assessments/student-progress-loading.tsx src/features/appointments/appointment-dialog-context.tsx src/features/appointments/student-appointment-dialog.tsx`. Source snapshot: `/tmp/lazuli-pr225-web-after-profile.json`.
 
 This PR is already published. Lint fixes are in scope for the PR and will be pushed after checks. The full root run after batch 1 stopped at `packages/ui`; separate machine-readable inventories captured all remaining failing workspaces. Logs are supporting snapshots; this document is the durable lock.
 
@@ -74,3 +74,30 @@ Batch 2 is closed: the four profile files report zero errors. Web typecheck, web
 | `apps/web/src/features/students/profile/use-section-carousel.ts`           |      3 |
 | `apps/web/src/features/students/students-page.tsx`                         |      2 |
 | `apps/web/src/features/students/students-table.tsx`                        |      3 |
+
+Batch 3 is closed: the 23-file targeted lint reports zero errors, web typecheck, 328 web unit tests, web build, styles, and the changed-file quality gate pass. The full root lint still stops at the pre-existing UI table-filter error. Machine-readable inventories in `/tmp/lazuli-pr225-{web,ui,root}-after-batch3.json` contain 46 web, 1 UI, and 3 root errors. Compared by file, rule, and message with the post-batch-2 inventory, exactly 50 errors were removed and zero were added. The changed tracked files pass formatting; the repository-wide format command also sees seven pre-existing untracked `.scratch/` files with formatting issues, which are not part of this PR.
+
+## Batch 4 files and original errors
+
+> **LOCKED BATCH 4: remaining lint backlog.** Exactly 50 errors across the 18 files below. Source snapshots: `/tmp/lazuli-pr225-{web,ui,root}-after-batch3.json`. Close only after targeted and full lint, proportionate tests, and a machine-readable comparison with zero new errors.
+
+| File                                                                        | Errors |
+| --------------------------------------------------------------------------- | -----: |
+| `apps/web/src/app/api/payment-proofs/[id]/route.ts`                         |      1 |
+| `apps/web/src/app/login/login-entrance.tsx`                                 |      4 |
+| `apps/web/src/features/admin-home/home-default.tsx`                         |      6 |
+| `apps/web/src/features/admin-home/home-pending-coverage.tsx`                |      1 |
+| `apps/web/src/features/admin-home/home-pending.tsx`                         |      2 |
+| `apps/web/src/features/admin-home/home-summary-charts.tsx`                  |     11 |
+| `apps/web/src/features/appointments/class-meeting-step.tsx`                 |      1 |
+| `apps/web/src/features/class-records/class-record-dialog.tsx`               |      1 |
+| `apps/web/src/features/classes/class-teacher.tsx`                           |      1 |
+| `apps/web/src/features/financial-treatments/financial-dialog-loading.tsx`   |      1 |
+| `apps/web/src/features/installments/payment/logic.ts`                       |      2 |
+| `apps/web/src/features/installments/payment/use-payment-confirmation.ts`    |      2 |
+| `apps/web/src/features/shared/task-form.tsx`                                |      2 |
+| `apps/web/src/lib/animation-preview.ts`                                     |      7 |
+| `apps/web/test/features/contract-renegotiation-form-contract.unit.test.tsx` |      4 |
+| `packages/ui/src/components/table-filters.tsx`                              |      1 |
+| `scripts/lib/workspace-full.mjs`                                            |      2 |
+| `scripts/seed/student-attendance.ts`                                        |      1 |

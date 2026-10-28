@@ -14,13 +14,13 @@ export function useSectionCarousel() {
     [],
   );
 
-  return (current: string, next: string, update: () => void) => {
+  return (current: string, { next, update }: { next: string; update: () => void }) => {
     if (current === next) return;
     transitionRef.current?.skipTransition();
 
     if (
       !document.startViewTransition ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
       update();
       return;
@@ -33,7 +33,7 @@ export function useSectionCarousel() {
     });
     transitionRef.current = transition;
     void transition.finished
-      .catch(() => undefined)
+      .catch(() => {})
       .finally(() => {
         if (transitionRef.current !== transition) return;
         transitionRef.current = null;

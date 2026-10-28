@@ -47,7 +47,7 @@ export function AttendanceHistoryList({
   if (!data) return <AttendanceHistoryLoading />;
   return (
     <section aria-label="Aulas e presenças do aluno" aria-busy={fetching} className="min-w-0">
-      {data.rows.length ? (
+      {data.rows.length > 0 ? (
         <ol className={styles.list}>
           {data.rows.map((row) => (
             <AttendanceLesson key={row.sessionId} row={row} />

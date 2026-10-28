@@ -118,22 +118,6 @@ function TerminationForm({
     },
   });
   const amounts = terminationAmounts(preview, state);
-  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
-    event.preventDefault();
-    state.setError(undefined);
-    state.setEnrollmentError(undefined);
-    const validation = validateTermination(preview, { state, amounts });
-    if (!validation.input) {
-      if (validation.field === "enrollment") state.setEnrollmentError(validation.error);
-      else state.setError(validation.error);
-      return;
-    }
-    if (!state.review) {
-      state.setReview(true);
-      return;
-    }
-    mutation.mutate(validation.input);
-  };
   return (
     <TerminationView
       preview={preview}
@@ -142,10 +126,42 @@ function TerminationForm({
       onClose={onClose}
       onReduce={onReduce}
       onRefresh={onRefresh}
-      onSubmit={handleSubmit}
+      onSubmit={(event) =>
+        submitTermination(event, { preview, state, amounts, confirm: mutation.mutate })
+      }
       onReset={mutation.reset}
       pending={mutation.isPending}
       mutationError={mutation.error?.message}
     />
   );
+}
+
+function submitTermination(
+  event: FormEvent<HTMLFormElement>,
+  {
+    preview,
+    state,
+    amounts,
+    confirm,
+  }: {
+    preview: TerminationPreview;
+    state: ReturnType<typeof useTerminationState>;
+    amounts: ReturnType<typeof terminationAmounts>;
+    confirm: (input: NonNullable<ReturnType<typeof validateTermination>["input"]>) => void;
+  },
+): void {
+  event.preventDefault();
+  state.setError(undefined);
+  state.setEnrollmentError(undefined);
+  const validation = validateTermination(preview, { state, amounts });
+  if (!validation.input) {
+    if (validation.field === "enrollment") state.setEnrollmentError(validation.error);
+    else state.setError(validation.error);
+    return;
+  }
+  if (!state.review) {
+    state.setReview(true);
+    return;
+  }
+  confirm(validation.input);
 }

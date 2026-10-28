@@ -32,6 +32,8 @@ import { NewStudentDialog } from "./new-student/new-student-dialog";
 import { StudentsTable } from "./students-table";
 import { tableStateVm } from "./view-model";
 
+const STUDENT_PREVIEW_DELAY_MS = 1600;
+
 export type StudentsFilterFieldsProps = {
   filters: StudentsFilters;
   classOptions: { id: string; label: string }[];
@@ -209,7 +211,7 @@ function useStudentFilterFields(
     ),
     classSearch,
     teacherSearch,
-    classResult: studentFilterOptionResult(classSearch, classes, true),
+    classResult: studentFilterOptionResult(classSearch, { ...classes, preload: true }),
     teacherResult: studentFilterOptionResult(teacherSearch, teachers),
     onClassSearchChange: setClassSearch,
     onTeacherSearchChange: setTeacherSearch,
@@ -227,11 +229,15 @@ function hasStudentFilters(filters: ReturnType<typeof useStudentsFilters>): bool
   );
 }
 
-function studentTableState(
-  filters: ReturnType<typeof useStudentsFilters>,
-  students: ReturnType<typeof useStudentsList>,
-  previewReady: boolean,
-): ReturnType<typeof tableStateVm> {
+function studentTableState({
+  filters,
+  students,
+  previewReady,
+}: {
+  filters: ReturnType<typeof useStudentsFilters>;
+  students: ReturnType<typeof useStudentsList>;
+  previewReady: boolean;
+}): ReturnType<typeof tableStateVm> {
   return tableStateVm({
     rows: previewReady ? students.data?.rows : undefined,
     isError: students.error !== null,
@@ -240,7 +246,7 @@ function studentTableState(
 }
 
 export function StudentsPage(): ReactElement {
-  const previewReady = useAnimationPreviewDelay(1600);
+  const previewReady = useAnimationPreviewDelay(STUDENT_PREVIEW_DELAY_MS);
   const filters = useStudentsFilters();
   const openStudent = useOpenStudent();
   const students = useStudentsList(filters);
@@ -321,7 +327,7 @@ function StudentsTableSection({
           onRetry={() => void students.refetch()}
           onOpenRow={onOpenStudent}
           onContinue={onContinue}
-          state={studentTableState(filters, students, previewReady)}
+          state={studentTableState({ filters, students, previewReady })}
           pagination={tablePaginationPropsFor(pagination, previewReady ? students.data : undefined)}
         />
       </div>

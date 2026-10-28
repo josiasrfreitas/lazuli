@@ -115,39 +115,60 @@ function FinanceManagementActions({
   const contracts = state.summary.data ? visibleFinanceContracts(state.summary.data) : [];
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {contracts.length === 1 ? (
-        <Button variant="secondary" size="sm" onClick={() => onManageContract(contracts[0]!.id)}>
-          <FilePenLine aria-hidden="true" /> Renegociar / rescindir
-        </Button>
-      ) : contracts.length > 1 ? (
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger render={<Button variant="secondary" size="sm" />}>
-            <FilePenLine aria-hidden="true" /> Renegociar / rescindir{" "}
-            <ChevronDown aria-hidden="true" />
-          </PopoverTrigger>
-          <PopoverContent align="end" size="menu" showArrow={false}>
-            <div className={styles.management}>
-              {contracts.map((contract) => (
-                <Button
-                  key={contract.id}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setOpen(false);
-                    onManageContract(contract.id);
-                  }}
-                >
-                  Contrato{contract.startsOn ? ` · ${formatDateOnlyBR(contract.startsOn)}` : ""}
-                </Button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-      ) : null}
+      <ContractManagementActions
+        contracts={contracts}
+        open={open}
+        setOpen={setOpen}
+        onManageContract={onManageContract}
+      />
       <Button variant="ghost" size="sm" onClick={onTreat}>
         <Handshake aria-hidden="true" /> Negociar parcelas
       </Button>
     </div>
+  );
+}
+
+function ContractManagementActions({
+  contracts,
+  open,
+  setOpen,
+  onManageContract,
+}: {
+  contracts: ReturnType<typeof visibleFinanceContracts>;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  onManageContract: (id: string) => void;
+}): ReactElement | null {
+  if (contracts.length === 0) return null;
+  if (contracts.length === 1)
+    return (
+      <Button variant="secondary" size="sm" onClick={() => onManageContract(contracts[0]!.id)}>
+        <FilePenLine aria-hidden="true" /> Renegociar / rescindir
+      </Button>
+    );
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger render={<Button variant="secondary" size="sm" />}>
+        <FilePenLine aria-hidden="true" /> Renegociar / rescindir <ChevronDown aria-hidden="true" />
+      </PopoverTrigger>
+      <PopoverContent align="end" size="menu" showArrow={false}>
+        <div className={styles.management}>
+          {contracts.map((contract) => (
+            <Button
+              key={contract.id}
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setOpen(false);
+                onManageContract(contract.id);
+              }}
+            >
+              Contrato{contract.startsOn ? ` · ${formatDateOnlyBR(contract.startsOn)}` : ""}
+            </Button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

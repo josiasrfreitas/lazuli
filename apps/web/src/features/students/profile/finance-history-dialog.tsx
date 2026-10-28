@@ -25,6 +25,9 @@ import { ActivityTimeline } from "~/features/activity/activity-timeline";
 import { StudentTreatments } from "~/features/financial-treatments/student-treatments";
 import { StudentPayments } from "./student-payments";
 
+const PAYMENTS_LABEL = "Pagamentos e comprovantes";
+const HISTORY_LABEL = "Histórico financeiro";
+
 export function FinanceHistoryDialog({
   studentId,
   studentName,
@@ -44,32 +47,7 @@ export function FinanceHistoryDialog({
         else setOpen(next);
       }}
     >
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <DialogTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size={payments ? "sm" : "icon-sm"}
-                  aria-label={payments ? "Pagamentos e comprovantes" : "Histórico financeiro"}
-                />
-              }
-            />
-          }
-        >
-          {payments ? (
-            <>
-              <Paperclip aria-hidden="true" /> Comprovantes
-            </>
-          ) : (
-            <History aria-hidden="true" />
-          )}
-        </TooltipTrigger>
-        <TooltipContent>
-          {payments ? "Pagamentos e comprovantes" : "Histórico financeiro"}
-        </TooltipContent>
-      </Tooltip>
+      <FinanceHistoryTrigger payments={payments} />
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
@@ -78,9 +56,7 @@ export function FinanceHistoryDialog({
           showCloseButton={!pending}
         >
           <DialogHeader>
-            <DialogTitle>
-              {payments ? "Pagamentos e comprovantes" : "Histórico financeiro"}
-            </DialogTitle>
+            <DialogTitle>{payments ? PAYMENTS_LABEL : HISTORY_LABEL}</DialogTitle>
             <DialogDescription>
               {studentName ?? "Aluno"} · Contratos, cobranças, pagamentos e tratativas
             </DialogDescription>
@@ -96,6 +72,35 @@ export function FinanceHistoryDialog({
         </DialogContent>
       </DialogPortal>
     </Dialog>
+  );
+}
+
+function FinanceHistoryTrigger({ payments }: { payments: boolean }): ReactJSX.Element {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <DialogTrigger
+            render={
+              <Button
+                variant="ghost"
+                size={payments ? "sm" : "icon-sm"}
+                aria-label={payments ? PAYMENTS_LABEL : HISTORY_LABEL}
+              />
+            }
+          />
+        }
+      >
+        {payments ? (
+          <>
+            <Paperclip aria-hidden="true" /> Comprovantes
+          </>
+        ) : (
+          <History aria-hidden="true" />
+        )}
+      </TooltipTrigger>
+      <TooltipContent>{payments ? PAYMENTS_LABEL : HISTORY_LABEL}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -118,40 +123,72 @@ function FinanceHistoryContent({
   const rows = history.data?.pages.flatMap((page) => page.rows) ?? [];
   return (
     <>
-      <div className="py-4">
-        <SegmentedControl
-          aria-label="Tipo de histórico financeiro"
-          size="sm"
-          disabled={pending}
-          value={tab}
-          onValueChange={(value) => {
-            if (value) setTab(value);
-          }}
-        >
-          <SegmentedControlItem value="activity">Todas as atividades</SegmentedControlItem>
-          <SegmentedControlItem value="payments">Pagamentos e comprovantes</SegmentedControlItem>
-          <SegmentedControlItem value="treatments">Detalhes das tratativas</SegmentedControlItem>
-        </SegmentedControl>
-      </div>
+      <FinanceHistoryTabs tab={tab} pending={pending} onChange={setTab} />
       <DialogBody>
-        {tab === "payments" ? (
-          <StudentPayments studentId={studentId} onPendingChange={onPendingChange} />
-        ) : tab === "treatments" ? (
-          <StudentTreatments studentId={studentId} />
-        ) : (
-          <FinanceActivityList
-            rows={rows}
-            isPending={history.isPending}
-            isError={history.isError}
-            hasNextPage={history.hasNextPage}
-            isFetchingNextPage={history.isFetchingNextPage}
-            onRetry={() => void history.refetch()}
-            onLoadMore={() => void history.fetchNextPage()}
-          />
-        )}
+        <FinanceHistoryBody
+          tab={tab}
+          studentId={studentId}
+          onPendingChange={onPendingChange}
+          activity={
+            <FinanceActivityList
+              rows={rows}
+              isPending={history.isPending}
+              isError={history.isError}
+              hasNextPage={history.hasNextPage}
+              isFetchingNextPage={history.isFetchingNextPage}
+              onRetry={() => void history.refetch()}
+              onLoadMore={() => void history.fetchNextPage()}
+            />
+          }
+        />
       </DialogBody>
     </>
   );
+}
+
+function FinanceHistoryTabs({
+  tab,
+  pending,
+  onChange,
+}: {
+  tab: string;
+  pending: boolean;
+  onChange: (tab: string) => void;
+}): ReactJSX.Element {
+  return (
+    <div className="py-4">
+      <SegmentedControl
+        aria-label="Tipo de histórico financeiro"
+        size="sm"
+        disabled={pending}
+        value={tab}
+        onValueChange={(value) => {
+          if (value) onChange(value);
+        }}
+      >
+        <SegmentedControlItem value="activity">Todas as atividades</SegmentedControlItem>
+        <SegmentedControlItem value="payments">{PAYMENTS_LABEL}</SegmentedControlItem>
+        <SegmentedControlItem value="treatments">Detalhes das tratativas</SegmentedControlItem>
+      </SegmentedControl>
+    </div>
+  );
+}
+
+function FinanceHistoryBody({
+  tab,
+  studentId,
+  onPendingChange,
+  activity,
+}: {
+  tab: string;
+  studentId: string;
+  onPendingChange: (pending: boolean) => void;
+  activity: ReactJSX.Element;
+}): ReactJSX.Element {
+  if (tab === "payments")
+    return <StudentPayments studentId={studentId} onPendingChange={onPendingChange} />;
+  if (tab === "treatments") return <StudentTreatments studentId={studentId} />;
+  return activity;
 }
 
 function FinanceActivityList({

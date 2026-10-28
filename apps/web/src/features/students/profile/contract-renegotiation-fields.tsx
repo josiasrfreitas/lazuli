@@ -54,68 +54,39 @@ export function RenegotiationFields({
             </FieldError>
           </Field>
         </FormRow>
-        <NarrativeField
-          name="reason"
-          label="Motivo e condições negociadas"
-          value={reason}
-          onChange={onReason}
-          placeholder="Explique a situação e o acordo com o responsável"
-          rows={2}
-          error={errors.reason}
-        />
-        <p className="text-caption text-muted-foreground">
-          O novo valor vale apenas para as parcelas selecionadas. Pagamentos recebidos e vencimentos
-          são preservados. Encargos já apurados continuam devidos; esta redução não acumula desconto
-          por pontualidade.
-        </p>
+        <RenegotiationReason reason={reason} error={errors.reason} onReason={onReason} />
       </FormSection>
-      <FormSection
-        title={`Parcelas do contrato · ${ids.length} selecionadas`}
-        description="Escolha quais mensalidades terão o valor reduzido."
-      >
-        <Field>
-          <div
-            className="max-h-64 overflow-y-auto"
-            tabIndex={0}
-            role="group"
-            aria-label="Parcelas para renegociar"
-            aria-invalid={Boolean(errors.installmentIds)}
-          >
-            {options.lines.length === 0 && (
-              <p className="py-3 text-sm text-muted-foreground">
-                Nenhuma parcela com principal em aberto para reduzir.
-              </p>
-            )}
-            {options.lines.map((line) => (
-              <label key={line.id} className="flex items-start gap-2 border-b py-2 text-caption">
-                <Checkbox
-                  aria-labelledby={`renegotiation-line-${line.id}`}
-                  checked={ids.includes(line.id)}
-                  onCheckedChange={(checked) =>
-                    onIds(checked ? [...ids, line.id] : ids.filter((id) => id !== line.id))
-                  }
-                />
-                <span id={`renegotiation-line-${line.id}`} className="grid min-w-0 flex-1 gap-0.5">
-                  <span className="flex flex-wrap justify-between gap-x-3 font-medium">
-                    <span>
-                      Parcela {line.sequence} · {formatDateOnlyBR(line.dueDate)}
-                    </span>
-                    <span className="font-numeric tabular-nums">{money(line.principalCents)}</span>
-                  </span>
-                  <span className="text-muted-foreground">
-                    {line.dueDate < options.today ? "Vencida" : "A vencer"}
-                    {line.paidCents > 0 &&
-                      ` · Pago ${money(line.paidCents)} · mínimo ${money(line.minimumCents)}`}
-                    {line.chargesCents > 0 && ` · encargos ${money(line.chargesCents)}`}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
-          <FieldError match={Boolean(errors.installmentIds)}>{errors.installmentIds}</FieldError>
-        </Field>
-      </FormSection>
+      <RenegotiationInstallments options={options} ids={ids} errors={errors} onIds={onIds} />
     </div>
+  );
+}
+
+function RenegotiationReason({
+  reason,
+  error,
+  onReason,
+}: {
+  reason: string;
+  error: string | undefined;
+  onReason: (reason: string) => void;
+}): ReactElement {
+  return (
+    <>
+      <NarrativeField
+        name="reason"
+        label="Motivo e condições negociadas"
+        value={reason}
+        onChange={onReason}
+        placeholder="Explique a situação e o acordo com o responsável"
+        rows={2}
+        error={error}
+      />
+      <p className="text-caption text-muted-foreground">
+        O novo valor vale apenas para as parcelas selecionadas. Pagamentos recebidos e vencimentos
+        são preservados. Encargos já apurados continuam devidos; esta redução não acumula desconto
+        por pontualidade.
+      </p>
+    </>
   );
 }
 
@@ -144,30 +115,119 @@ export function RenegotiationReview({
           <strong>Motivo:</strong> {reason}
         </p>
       </section>
-      <section className="grid gap-2" aria-label="Parcelas selecionadas">
-        <h3 className="text-sm font-semibold">
-          Novo valor: {money(preview.newAmountCents)} por parcela
-        </h3>
-        <ul className="max-h-64 overflow-y-auto text-caption">
-          {preview.lines.map((line) => (
-            <li key={line.id} className="grid gap-0.5 border-b py-2">
-              <span className="flex flex-wrap justify-between gap-x-3">
-                <span>
-                  Parcela {line.sequence} · {formatDateOnlyBR(line.dueDate)}
-                </span>
-                <span>
-                  {money(line.principalCents)} → {money(preview.newAmountCents)}
-                </span>
-              </span>
-              <span className="text-muted-foreground">
-                Saldo a receber: {money(line.resultingBalanceCents)}
-                {line.chargesCents > 0 && ` · inclui ${money(line.chargesCents)} em encargos`}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <RenegotiationReviewLines preview={preview} />
     </div>
+  );
+}
+
+function RenegotiationInstallments({
+  options,
+  ids,
+  errors,
+  onIds,
+}: {
+  options: RenegotiationOptions;
+  ids: string[];
+  errors: Record<string, string>;
+  onIds: (ids: string[]) => void;
+}): ReactElement {
+  return (
+    <FormSection
+      title={`Parcelas do contrato · ${ids.length} selecionadas`}
+      description="Escolha quais mensalidades terão o valor reduzido."
+    >
+      <Field>
+        <div
+          className="max-h-64 overflow-y-auto"
+          tabIndex={0}
+          role="group"
+          aria-label="Parcelas para renegociar"
+          aria-invalid={Boolean(errors.installmentIds)}
+        >
+          {options.lines.length === 0 && (
+            <p className="py-3 text-sm text-muted-foreground">
+              Nenhuma parcela com principal em aberto para reduzir.
+            </p>
+          )}
+          {options.lines.map((line) => (
+            <RenegotiationInstallment
+              key={line.id}
+              line={line}
+              today={options.today}
+              checked={ids.includes(line.id)}
+              onCheck={(checked) =>
+                onIds(checked ? [...ids, line.id] : ids.filter((id) => id !== line.id))
+              }
+            />
+          ))}
+        </div>
+        <FieldError match={Boolean(errors.installmentIds)}>{errors.installmentIds}</FieldError>
+      </Field>
+    </FormSection>
+  );
+}
+
+function RenegotiationInstallment({
+  line,
+  today,
+  checked,
+  onCheck,
+}: {
+  line: RenegotiationOptions["lines"][number];
+  today: string;
+  checked: boolean;
+  onCheck: (checked: boolean) => void;
+}): ReactElement {
+  return (
+    <label className="flex items-start gap-2 border-b py-2 text-caption">
+      <Checkbox
+        aria-labelledby={`renegotiation-line-${line.id}`}
+        checked={checked}
+        onCheckedChange={onCheck}
+      />
+      <span id={`renegotiation-line-${line.id}`} className="grid min-w-0 flex-1 gap-0.5">
+        <span className="flex flex-wrap justify-between gap-x-3 font-medium">
+          <span>
+            Parcela {line.sequence} · {formatDateOnlyBR(line.dueDate)}
+          </span>
+          <span className="font-numeric tabular-nums">{money(line.principalCents)}</span>
+        </span>
+        <span className="text-muted-foreground">
+          {line.dueDate < today ? "Vencida" : "A vencer"}
+          {line.paidCents > 0 &&
+            ` · Pago ${money(line.paidCents)} · mínimo ${money(line.minimumCents)}`}
+          {line.chargesCents > 0 && ` · encargos ${money(line.chargesCents)}`}
+        </span>
+      </span>
+    </label>
+  );
+}
+
+function RenegotiationReviewLines({ preview }: { preview: RenegotiationPreview }): ReactElement {
+  return (
+    <section className="grid gap-2" aria-label="Parcelas selecionadas">
+      <h3 className="text-sm font-semibold">
+        Novo valor: {money(preview.newAmountCents)} por parcela
+      </h3>
+      <ul className="max-h-64 overflow-y-auto text-caption">
+        {preview.lines.map((line) => (
+          <li key={line.id} className="grid gap-0.5 border-b py-2">
+            <span className="flex flex-wrap justify-between gap-x-3">
+              <span>
+                Parcela {line.sequence} · {formatDateOnlyBR(line.dueDate)}
+              </span>
+              <span>
+                {money(line.principalCents)} → {money(preview.newAmountCents)}
+              </span>
+            </span>
+            <span className="text-muted-foreground">
+              Saldo a receber: {money(line.resultingBalanceCents)}
+              {line.chargesCents > 0 && ` · inclui ${money(line.chargesCents)} em encargos`}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

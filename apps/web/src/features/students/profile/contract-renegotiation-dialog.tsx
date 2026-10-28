@@ -7,6 +7,8 @@ import { Alert, Button, Checkbox } from "@lazuli/ui";
 import {
   contractRenegotiationConfirmSchema,
   contractRenegotiationPreviewSchema,
+  type ContractRenegotiationConfirm,
+  type ContractRenegotiationPreview,
 } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents as money } from "~/lib/format";
@@ -105,6 +107,91 @@ function ReductionForm({
   onTerminate: () => void;
 }): ReactElement {
   const utils = trpc.useUtils();
+  const draft = useReductionDraft();
+  const save = trpc.finance.confirmRenegotiation.useMutation({
+    onSuccess: async () => {
+      await utils.invalidate();
+      onClose();
+    },
+  });
+  const pending = draft.loading || save.isPending;
+  const submit = createReductionSubmit({
+    ...draft,
+    options,
+    pending,
+    confirm: (input) => save.mutate(input),
+    preview: (input) => utils.finance.previewRenegotiation.fetch(input),
+  });
+  function back(): void {
+    draft.setReview(null);
+    draft.setAcknowledged(false);
+    draft.setError(undefined);
+    save.reset();
+    draft.setCommandId(crypto.randomUUID());
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>("#renegotiation-amount")?.focus(),
+    );
+  }
+  return (
+    <ReductionFormView
+      {...draft}
+      options={options}
+      onClose={onClose}
+      onTerminate={onTerminate}
+      pending={pending}
+      back={back}
+      submit={submit}
+      saveError={save.error?.message}
+      saveFailed={Boolean(save.error)}
+    />
+  );
+}
+
+type ReductionFormViewProps = {
+  options: RenegotiationOptions;
+  onClose: () => void;
+  onTerminate: () => void;
+  pending: boolean;
+  validation: ReturnType<typeof useValidation>;
+  review: RenegotiationPreview | null;
+  back: () => void;
+  acknowledged: boolean;
+  submit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  reason: string;
+  ids: string[];
+  amount: number | null;
+  setIds: (ids: string[]) => void;
+  setAmount: (amount: number | null) => void;
+  setReason: (reason: string) => void;
+  setAcknowledged: (acknowledged: boolean) => void;
+  error: string | undefined;
+  saveError: string | undefined;
+  saveFailed: boolean;
+};
+
+type ReductionDraft = Pick<
+  ReductionFormViewProps,
+  | "validation"
+  | "ids"
+  | "amount"
+  | "reason"
+  | "review"
+  | "acknowledged"
+  | "error"
+  | "setIds"
+  | "setAmount"
+  | "setReason"
+  | "setAcknowledged"
+> & {
+  loading: boolean;
+  commandId: string;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | undefined) => void;
+  setReview: (review: RenegotiationPreview | null) => void;
+  setCommandId: (commandId: string) => void;
+};
+
+function useReductionDraft(): ReductionDraft {
   const validation = useValidation();
   const [ids, setIds] = useState<string[]>([]);
   const [amount, setAmount] = useState<number | null>(null);
@@ -114,54 +201,29 @@ function ReductionForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [commandId, setCommandId] = useState(() => crypto.randomUUID());
-  const save = trpc.finance.confirmRenegotiation.useMutation({
-    onSuccess: async () => {
-      await utils.invalidate();
-      onClose();
-    },
-  });
-  const pending = loading || save.isPending;
-  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-    if (pending) return;
-    setError(undefined);
-    const values = validation.validate(editSchema, {
-      contractId: options.contractId,
-      installmentIds: ids,
-      newAmountCents: amount,
-      reason,
-    });
-    if (!values) return;
-    if (review) {
-      const confirmed = validation.validate(contractRenegotiationConfirmSchema, {
-        ...values,
-        commandId,
-        version: review.version,
-        acknowledged,
-      });
-      if (confirmed) save.mutate(confirmed);
-      return;
-    }
-    setLoading(true);
-    try {
-      const { reason: _reason, ...request } = values;
-      setReview(await utils.finance.previewRenegotiation.fetch(request));
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : "Não foi possível preparar a renegociação.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-  function back(): void {
-    setReview(null);
-    setAcknowledged(false);
-    setError(undefined);
-    save.reset();
-    setCommandId(crypto.randomUUID());
-    requestAnimationFrame(() => document.getElementById("renegotiation-amount")?.focus());
-  }
+  return {
+    validation,
+    ids,
+    setIds,
+    amount,
+    setAmount,
+    reason,
+    setReason,
+    review,
+    setReview,
+    acknowledged,
+    setAcknowledged,
+    loading,
+    setLoading,
+    error,
+    setError,
+    commandId,
+    setCommandId,
+  };
+}
+
+function ReductionFormView(props: ReductionFormViewProps): ReactElement {
+  const { options, onClose, onTerminate, pending, validation, review, back, acknowledged } = props;
   return (
     <TaskDialog
       title="Renegociar contrato"
@@ -186,63 +248,173 @@ function ReductionForm({
         disabled={pending || Boolean(review)}
         onChange={onTerminate}
       />
-      <form
-        id="contract-renegotiation"
-        noValidate
-        onSubmit={(event) => void submit(event)}
-        className="grid gap-3"
-      >
-        <Alert className="py-2 text-caption">
-          <strong>Medida excepcional, de último recurso.</strong>
-          <p>
-            Use quando as condições habituais não forem suficientes para manter o contrato. A
-            redução pode ficar abaixo da faixa de descontos autorizada.
-          </p>
-        </Alert>
-        <fieldset disabled={pending} className="grid gap-3">
-          {review ? (
-            <>
-              <RenegotiationReview preview={review} reason={reason} />
-              <label className="flex items-start gap-2 rounded-sm border p-2.5 text-caption">
-                <Checkbox checked={acknowledged} onCheckedChange={setAcknowledged} />
-                <span>
-                  Conferi as {review.lines.length} parcelas e autorizo a redução total de{" "}
-                  {money(review.reductionCents)}.
-                </span>
-              </label>
-            </>
-          ) : (
-            <RenegotiationFields
-              options={options}
-              ids={ids}
-              amount={amount}
-              reason={reason}
-              errors={validation.errors}
-              onIds={(next) => {
-                setIds(next);
-                validation.clear("installmentIds");
-              }}
-              onAmount={(next) => {
-                setAmount(next);
-                validation.clear("newAmountCents");
-              }}
-              onReason={(next) => {
-                setReason(next);
-                validation.clear("reason");
-              }}
-            />
-          )}
-        </fieldset>
-        {(error ?? save.error?.message) && (
-          <Alert variant="destructive">{error ?? save.error?.message}</Alert>
-        )}
-        {save.error && (
-          <Button size="sm" type="button" variant="secondary" onClick={back}>
-            <RefreshCw aria-hidden /> Atualizar prévia
-          </Button>
-        )}
-        <RenegotiationHistory history={options.history} />
-      </form>
+      <ReductionFormBody {...props} />
     </TaskDialog>
   );
+}
+
+function ReductionFormBody(props: ReductionFormViewProps): ReactElement {
+  const { options, error, saveError, saveFailed, back, submit } = props;
+  return (
+    <form
+      id="contract-renegotiation"
+      noValidate
+      onSubmit={(event) => void submit(event)}
+      className="grid gap-3"
+    >
+      <Alert className="py-2 text-caption">
+        <strong>Medida excepcional, de último recurso.</strong>
+        <p>
+          Use quando as condições habituais não forem suficientes para manter o contrato. A redução
+          pode ficar abaixo da faixa de descontos autorizada.
+        </p>
+      </Alert>
+      <ReductionFormFields {...props} />
+      {(error ?? saveError) && <Alert variant="destructive">{error ?? saveError}</Alert>}
+      {saveFailed && (
+        <Button size="sm" type="button" variant="secondary" onClick={back}>
+          <RefreshCw aria-hidden /> Atualizar prévia
+        </Button>
+      )}
+      <RenegotiationHistory history={options.history} />
+    </form>
+  );
+}
+
+function ReductionFormFields({
+  options,
+  pending,
+  review,
+  reason,
+  acknowledged,
+  setAcknowledged,
+  ids,
+  amount,
+  validation,
+  setIds,
+  setAmount,
+  setReason,
+}: ReductionFormViewProps): ReactElement {
+  return (
+    <fieldset disabled={pending} className="grid gap-3">
+      {review ? (
+        <>
+          <RenegotiationReview preview={review} reason={reason} />
+          <ReductionAcknowledgment
+            review={review}
+            acknowledged={acknowledged}
+            onChange={setAcknowledged}
+          />
+        </>
+      ) : (
+        <RenegotiationFields
+          options={options}
+          ids={ids}
+          amount={amount}
+          reason={reason}
+          errors={validation.errors}
+          onIds={(next) => {
+            setIds(next);
+            validation.clear("installmentIds");
+          }}
+          onAmount={(next) => {
+            setAmount(next);
+            validation.clear("newAmountCents");
+          }}
+          onReason={(next) => {
+            setReason(next);
+            validation.clear("reason");
+          }}
+        />
+      )}
+    </fieldset>
+  );
+}
+
+function ReductionAcknowledgment({
+  review,
+  acknowledged,
+  onChange,
+}: {
+  review: RenegotiationPreview;
+  acknowledged: boolean;
+  onChange: (acknowledged: boolean) => void;
+}): ReactElement {
+  return (
+    <label className="flex items-start gap-2 rounded-sm border p-2.5 text-caption">
+      <Checkbox checked={acknowledged} onCheckedChange={onChange} />
+      <span>
+        Conferi as {review.lines.length} parcelas e autorizo a redução total de{" "}
+        {money(review.reductionCents)}.
+      </span>
+    </label>
+  );
+}
+
+type ReductionSubmitParams = {
+  options: RenegotiationOptions;
+  ids: string[];
+  amount: number | null;
+  reason: string;
+  review: RenegotiationPreview | null;
+  acknowledged: boolean;
+  commandId: string;
+  pending: boolean;
+  validation: ReturnType<typeof useValidation>;
+  confirm: (input: ContractRenegotiationConfirm) => void;
+  preview: (input: ContractRenegotiationPreview) => Promise<RenegotiationPreview>;
+  setError: (error: string | undefined) => void;
+  setLoading: (loading: boolean) => void;
+  setReview: (review: RenegotiationPreview | null) => void;
+};
+
+function createReductionSubmit({
+  options,
+  ids,
+  amount,
+  reason,
+  review,
+  acknowledged,
+  commandId,
+  pending,
+  validation,
+  confirm,
+  preview,
+  setError,
+  setLoading,
+  setReview,
+}: ReductionSubmitParams): (event: FormEvent<HTMLFormElement>) => Promise<void> {
+  return async (event) => {
+    event.preventDefault();
+    if (pending) return;
+    setError(undefined);
+    const values = validation.validate(editSchema, {
+      contractId: options.contractId,
+      installmentIds: ids,
+      newAmountCents: amount,
+      reason,
+    });
+    if (!values) return;
+    if (review) {
+      const confirmed = validation.validate(contractRenegotiationConfirmSchema, {
+        ...values,
+        commandId,
+        version: review.version,
+        acknowledged,
+      });
+      if (confirmed) confirm(confirmed);
+      return;
+    }
+    setLoading(true);
+    try {
+      const { reason: _reason, ...request } = values;
+      setReview(await preview(request));
+    } catch (error_) {
+      setError(
+        error_ instanceof Error ? error_.message : "Não foi possível preparar a renegociação.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 }

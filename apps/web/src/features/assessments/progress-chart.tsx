@@ -32,6 +32,7 @@ const WIDE_SCORE_TICK_STEP = 20;
 const MEDIUM_SCORE_RANGE = 30;
 const MEDIUM_SCORE_TICK_STEP = 10;
 const MIN_SCORE_TICK_SPACING = 5;
+const PROMINENT_CHART_HEIGHT = 320;
 
 function progressPoints(
   data: Assessment,
@@ -63,19 +64,7 @@ export function AcademicProgressChart({
   const cropped = gradeRange(data.grades.map((grade) => grade.score));
   const domain: [number, number] = fullScale ? [0, MAX] : cropped;
   const points = progressPoints(data);
-  if (data.grades.length === 0)
-    return (
-      <div className="flex min-h-60 flex-col items-center justify-center gap-4 py-8 text-center">
-        <ChartNoAxesCombined
-          aria-hidden="true"
-          className="size-10 text-muted-foreground"
-          strokeWidth={1.5}
-        />
-        <p className="max-w-sm text-base text-heading">
-          Cada nota revela um pouco do caminho. Registre a primeira para acompanhar a evolução.
-        </p>
-      </div>
-    );
+  if (data.grades.length === 0) return <EmptyProgressChart />;
   return (
     <div
       className="min-w-0"
@@ -96,7 +85,26 @@ export function AcademicProgressChart({
           </Button>
         )}
       </div>
-      <ProgressPlot domain={domain} points={points} height={prominent ? 320 : CHART_HEIGHT} />
+      <ProgressPlot
+        domain={domain}
+        points={points}
+        height={prominent ? PROMINENT_CHART_HEIGHT : CHART_HEIGHT}
+      />
+    </div>
+  );
+}
+
+function EmptyProgressChart(): ReactElement {
+  return (
+    <div className="flex min-h-60 flex-col items-center justify-center gap-4 py-8 text-center">
+      <ChartNoAxesCombined
+        aria-hidden="true"
+        className="size-10 text-muted-foreground"
+        strokeWidth={1.5}
+      />
+      <p className="max-w-sm text-base text-heading">
+        Cada nota revela um pouco do caminho. Registre a primeira para acompanhar a evolução.
+      </p>
     </div>
   );
 }

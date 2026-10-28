@@ -77,35 +77,40 @@ function AppointmentFacts({
         </dt>
         <dd>{row.teacher?.name ?? "A definir"}</dd>
       </div>
-      <div>
-        <dt>
-          <MapPin aria-hidden="true" />
-          Encontro
-        </dt>
-        <dd>
-          {row.format === "IN_PERSON" ? "Presencial" : "Online"}
-          <span className={styles.factDetail}>
-            {" "}
-            ·{" "}
-            {row.targetClassSessionId && onOpenLesson ? (
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => onOpenLesson(row.targetClassSessionId!)}
-              >
-                {row.targetClassName} · Abrir aula
-              </Button>
-            ) : row.targetClassSessionId ? (
-              <ClassRecordTrigger sessionId={row.targetClassSessionId}>
-                {row.targetClassName} · Abrir aula
-              </ClassRecordTrigger>
-            ) : (
-              "Individual"
-            )}
-          </span>
-        </dd>
-      </div>
+      <AppointmentMeetingFact row={row} onOpenLesson={onOpenLesson} />
     </dl>
+  );
+}
+
+function AppointmentMeetingFact({
+  row,
+  onOpenLesson,
+}: {
+  row: Appointment["snapshot"];
+  onOpenLesson: ((id: string) => void) | undefined;
+}): ReactJSX.Element {
+  let lesson: ReactJSX.Element | string = "Individual";
+  if (row.targetClassSessionId) {
+    lesson = onOpenLesson ? (
+      <Button variant="link" size="sm" onClick={() => onOpenLesson(row.targetClassSessionId!)}>
+        {row.targetClassName} · Abrir aula
+      </Button>
+    ) : (
+      <ClassRecordTrigger sessionId={row.targetClassSessionId}>
+        {row.targetClassName} · Abrir aula
+      </ClassRecordTrigger>
+    );
+  }
+  return (
+    <div>
+      <dt>
+        <MapPin aria-hidden="true" /> Encontro
+      </dt>
+      <dd>
+        {row.format === "IN_PERSON" ? "Presencial" : "Online"}
+        <span className={styles.factDetail}> · {lesson}</span>
+      </dd>
+    </div>
   );
 }
 

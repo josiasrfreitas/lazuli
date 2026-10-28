@@ -68,32 +68,40 @@ export function FinanceOverview({
           <FinanceDetails summary={summary.data} profile={profile} />
         </div>
       </div>
-      <dl className={styles.essentials}>
-        <div data-overdue={summary.data.overdueCount > 0 || undefined}>
-          <dt>Total vencido</dt>
-          <dd>{money(summary.data.overdueCents)}</dd>
-          <span>
-            {summary.data.overdueCount > 0
-              ? `${summary.data.overdueCount} ${summary.data.overdueCount === 1 ? "parcela em atraso" : "parcelas em atraso"}`
-              : "Nenhuma parcela em atraso"}
-          </span>
-        </div>
-        <div>
-          <dt>Próximo vencimento</dt>
-          <dd>{summary.data.nextDueDate ? money(summary.data.nextDueCents) : "—"}</dd>
-          <span>
-            {summary.data.nextDueDate
-              ? formatDateOnlyBR(summary.data.nextDueDate)
-              : "Nenhuma cobrança futura"}
-          </span>
-        </div>
-        <div>
-          <dt>Saldo a receber</dt>
-          <dd>{money(summary.data.outstandingCents)}</dd>
-          <span>Inclui parcelas vencidas e a vencer</span>
-        </div>
-      </dl>
+      <FinanceEssentials summary={summary.data} />
     </section>
+  );
+}
+
+function FinanceEssentials({
+  summary,
+}: {
+  summary: NonNullable<StudentFinanceState["summary"]["data"]>;
+}): ReactElement {
+  return (
+    <dl className={styles.essentials}>
+      <div data-overdue={summary.overdueCount > 0 || undefined}>
+        <dt>Total vencido</dt>
+        <dd>{money(summary.overdueCents)}</dd>
+        <span>
+          {summary.overdueCount > 0
+            ? `${summary.overdueCount} ${summary.overdueCount === 1 ? "parcela em atraso" : "parcelas em atraso"}`
+            : "Nenhuma parcela em atraso"}
+        </span>
+      </div>
+      <div>
+        <dt>Próximo vencimento</dt>
+        <dd>{summary.nextDueDate ? money(summary.nextDueCents) : "—"}</dd>
+        <span>
+          {summary.nextDueDate ? formatDateOnlyBR(summary.nextDueDate) : "Nenhuma cobrança futura"}
+        </span>
+      </div>
+      <div>
+        <dt>Saldo a receber</dt>
+        <dd>{money(summary.outstandingCents)}</dd>
+        <span>Inclui parcelas vencidas e a vencer</span>
+      </div>
+    </dl>
   );
 }
 

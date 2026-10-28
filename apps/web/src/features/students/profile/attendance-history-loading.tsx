@@ -8,7 +8,7 @@ export function AttendanceHistoryLoading(): ReactElement {
     <div role="status" aria-busy="true">
       <span className="sr-only">Carregando aulas e presenças</span>
       <ol className={styles.list} aria-hidden="true">
-        {Array.from({ length: 8 }, (_, row) => (
+        {Array.from({ length: 8 }, (_value, row) => (
           <li key={row} className={styles.lesson}>
             <div className={styles.date}>
               <InlineSkeleton className="size-4 shrink-0 rounded-full" />

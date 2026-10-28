@@ -114,12 +114,7 @@ function AttendanceHistoryContent({ studentId, enrollmentId }: Props): ReactElem
   const [status, setStatus] = useState<AttendanceFilter>("ALL");
   const [page, setPage] = useState(1);
   const query = trpc.students.attendanceHistory.useQuery(
-    {
-      id: studentId,
-      ...(selectedEnrollment === "all" ? {} : { enrollmentId: selectedEnrollment }),
-      status,
-      page,
-    },
+    attendanceHistoryInput({ studentId, selectedEnrollment, status, page }),
     { retry: false, placeholderData: (previous) => previous },
   );
   const data = query.data;
@@ -159,6 +154,25 @@ function AttendanceHistoryContent({ studentId, enrollmentId }: Props): ReactElem
       </div>
     </DialogBody>
   );
+}
+
+function attendanceHistoryInput({
+  studentId,
+  selectedEnrollment,
+  status,
+  page,
+}: {
+  studentId: string;
+  selectedEnrollment: string;
+  status: AttendanceFilter;
+  page: number;
+}): { id: string; enrollmentId?: string; status: AttendanceFilter; page: number } {
+  return {
+    id: studentId,
+    ...(selectedEnrollment === "all" ? {} : { enrollmentId: selectedEnrollment }),
+    status,
+    page,
+  };
 }
 
 function AttendanceHistoryNote({ data }: { data: AttendanceHistory | undefined }): ReactElement {

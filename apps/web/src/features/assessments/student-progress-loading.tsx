@@ -1,6 +1,9 @@
 import type { ReactElement } from "react";
 import { InlineSkeleton } from "@lazuli/ui";
 
+const CHART_GUIDES = 5;
+const AXIS_LABELS = 4;
+
 /** Mirrors the chart-first modal rather than the grade editor. */
 export function StudentProgressLoading(): ReactElement {
   return (
@@ -12,7 +15,7 @@ export function StudentProgressLoading(): ReactElement {
       <div aria-hidden="true" className="grid gap-4">
         <InlineSkeleton className="h-4 w-36" />
         <div className="flex h-72 flex-col justify-between border-b border-l border-border px-4 py-3">
-          {[0, 1, 2, 3, 4].map((line) => (
+          {Array.from({ length: CHART_GUIDES }, (_value, line) => (
             <InlineSkeleton key={line} className="h-px w-full rounded-none" />
           ))}
         </div>
@@ -21,7 +24,7 @@ export function StudentProgressLoading(): ReactElement {
           <InlineSkeleton className="h-3 w-16" />
         </div>
         <div className="flex flex-wrap justify-center gap-4">
-          {[0, 1, 2, 3].map((item) => (
+          {Array.from({ length: AXIS_LABELS }, (_value, item) => (
             <InlineSkeleton key={item} className="h-3 w-16" />
           ))}
         </div>

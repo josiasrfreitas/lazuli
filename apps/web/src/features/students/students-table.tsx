@@ -42,6 +42,7 @@ const COLUMNS = [
   { label: "Financeiro", numeric: true },
 ] as const satisfies readonly { label: string; numeric: boolean }[];
 const COLUMN_COUNT = COLUMNS.length + 1;
+const NUMERIC_COLUMNS = COLUMNS.flatMap((column, index) => (column.numeric ? [index] : []));
 
 function FactCell({ vm }: { vm: FactCellVm }): ReactElement {
   const content = <span className={cn(vm.numeric && "font-numeric")}>{vm.label}</span>;
@@ -167,14 +168,7 @@ function StatesRow({
   onRetry: () => void;
 }): ReactNode {
   if (state.kind === "loading") {
-    return (
-      <TableSkeleton
-        columns={COLUMN_COUNT}
-        rows={10}
-        numericColumns={[3, 4]}
-        label="Carregando alunos…"
-      />
-    );
+    return <LoadingRow />;
   }
 
   if (state.kind === "error") {
@@ -213,6 +207,17 @@ function StatesRow({
         title="Nenhum aluno cadastrado"
       />
     </TableEmpty>
+  );
+}
+
+function LoadingRow(): ReactElement {
+  return (
+    <TableSkeleton
+      columns={COLUMN_COUNT}
+      rows={10}
+      numericColumns={NUMERIC_COLUMNS}
+      label="Carregando alunos…"
+    />
   );
 }
 
