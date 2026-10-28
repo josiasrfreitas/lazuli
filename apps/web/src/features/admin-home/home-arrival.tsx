@@ -63,26 +63,32 @@ export function HomeArrival({
         />
         <div className={styles.scrim} />
       </div>
-      <div className={styles.signature}>
-        <Image
-          alt=""
-          className={styles.symbol}
-          data-arrival-symbol
-          height={100}
-          width={100}
-          src="/brand/lazuli-symbol-dark.svg"
-          priority
-        />
-        <Image
-          alt=""
-          className={styles.wordmark}
-          data-arrival-wordmark
-          height={100}
-          width={320}
-          src="/brand/lazuli-wordmark-dark.svg"
-          priority
-        />
-      </div>
+      <ArrivalSignature />
+    </div>
+  );
+}
+
+function ArrivalSignature(): ReactElement {
+  return (
+    <div className={styles.signature}>
+      <Image
+        alt=""
+        className={styles.symbol}
+        data-arrival-symbol
+        height={100}
+        width={100}
+        src="/brand/lazuli-symbol-dark.svg"
+        priority
+      />
+      <Image
+        alt=""
+        className={styles.wordmark}
+        data-arrival-wordmark
+        height={100}
+        width={320}
+        src="/brand/lazuli-wordmark-dark.svg"
+        priority
+      />
     </div>
   );
 }

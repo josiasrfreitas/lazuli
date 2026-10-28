@@ -37,6 +37,7 @@ const LEVELS = {
   INSUFFICIENT_DATA: { label: "Em formação", variant: "neutral" },
 } as const;
 const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+const INDICATOR_SKELETON_COUNT = 4;
 
 export function StudentHealth({ studentId }: { studentId: string }): ReactElement {
   const query = trpc.students.health.useQuery({ id: studentId }, { staleTime: 0 });
@@ -48,13 +49,11 @@ export function StudentHealth({ studentId }: { studentId: string }): ReactElemen
         </h2>
         {query.data && <HealthExplanation health={query.data} />}
       </header>
-      {query.isError ? (
+      {query.isError && (
         <ProfileError message="Score indisponível." onRetry={() => void query.refetch()} />
-      ) : query.data ? (
-        <HealthReading health={query.data} />
-      ) : (
-        <HealthLoading />
       )}
+      {!query.isError && query.data && <HealthReading health={query.data} />}
+      {!query.isError && !query.data && <HealthLoading />}
     </section>
   );
 }
@@ -137,23 +136,7 @@ function HealthExplanation({ health }: { health: Health }): ReactElement {
                   ? `Acompanhamento de ${formatDateOnlyBR(health.from)} a ${formatDateOnlyBR(health.through)}, nas matrículas do período letivo atual.`
                   : "O cálculo começa quando houver matrícula e registros no período letivo atual."}
               </p>
-              <dl className={styles.scoreRules}>
-                {health.indicators.map((indicator) => (
-                  <div key={indicator.key}>
-                    <dt>
-                      <strong>{LABELS[indicator.key]}</strong>
-                      <span>Peso {indicator.weight}%</span>
-                    </dt>
-                    <dd>{indicatorDescription(indicator.key)}</dd>
-                    <dd className={styles.scoreRuleValue}>
-                      {indicator.score === null
-                        ? "Fora do cálculo: sem dados aplicáveis."
-                        : `${number.format(indicator.score)} de 100 pontos`}
-                    </dd>
-                    <dd>{indicatorEvidence(health, indicator.key)}</dd>
-                  </div>
-                ))}
-              </dl>
+              <HealthRules health={health} />
               <p>
                 Os pesos dos indicadores disponíveis são redistribuídos proporcionalmente. Dados
                 ausentes não contam como zero.
@@ -174,29 +157,59 @@ function HealthExplanation({ health }: { health: Health }): ReactElement {
   );
 }
 
+function HealthRules({ health }: { health: Health }): ReactElement {
+  return (
+    <dl className={styles.scoreRules}>
+      {health.indicators.map((indicator) => (
+        <div key={indicator.key}>
+          <dt>
+            <strong>{LABELS[indicator.key]}</strong>
+            <span>Peso {indicator.weight}%</span>
+          </dt>
+          <dd>{indicatorDescription(indicator.key)}</dd>
+          <dd className={styles.scoreRuleValue}>
+            {indicator.score === null
+              ? "Fora do cálculo: sem dados aplicáveis."
+              : `${number.format(indicator.score)} de 100 pontos`}
+          </dd>
+          <dd>{indicatorEvidence(health, indicator.key)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function indicatorDescription(key: Health["indicators"][number]["key"]): string {
   switch (key) {
-    case "attendance":
+    case "attendance": {
       return "Percentual de presença nas aulas com chamada confirmada, por minutos, incluindo reposições concluídas vinculadas às faltas.";
-    case "grades":
+    }
+    case "grades": {
       return "Média das notas lançadas no período letivo atual, incluindo etapas concluídas e recuperação. Notas não lançadas ficam de fora.";
-    case "occurrences":
+    }
+    case "occurrences": {
       return "Parte de 100 pontos e desconta 10 por ocorrência no período, até o mínimo de zero. Sem aulas ou ocorrências registradas, fica fora do cálculo.";
-    case "interventions":
+    }
+    case "interventions": {
       return "Percentual de ocorrências do período vinculadas a pelo menos uma intervenção. Cada ocorrência conta uma vez; o acompanhamento aumenta este indicador.";
+    }
   }
 }
 
 function indicatorEvidence(health: Health, key: Health["indicators"][number]["key"]): string {
   switch (key) {
-    case "attendance":
+    case "attendance": {
       return `${health.heldSessions} aulas com chamada confirmada.`;
-    case "grades":
+    }
+    case "grades": {
       return `${health.gradeCount} notas lançadas.`;
-    case "occurrences":
+    }
+    case "occurrences": {
       return `${health.occurrenceCount} ocorrências registradas.`;
-    case "interventions":
+    }
+    case "interventions": {
       return `${health.interventionCount} intervenções vinculadas, acompanhando ${health.accompaniedOccurrences} de ${health.occurrenceCount} ocorrências.`;
+    }
   }
 }
 
@@ -211,7 +224,7 @@ function HealthLoading(): ReactElement {
         <InlineSkeleton className="h-12 w-20" />
         <InlineSkeleton className="h-5 w-36" />
       </div>
-      {[0, 1, 2, 3].map((item) => (
+      {Array.from({ length: INDICATOR_SKELETON_COUNT }, (_value, item) => (
         <div key={item} className="flex justify-between gap-4">
           <InlineSkeleton className="h-3 w-24" />
           <InlineSkeleton className="h-3 w-28" />

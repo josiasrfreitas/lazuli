@@ -8,6 +8,8 @@ import { useAnimationPreviewDelay } from "~/lib/animation-preview";
 import { HomeArrival } from "./home-arrival";
 import { HomeDefault } from "./home-default";
 
+const PREVIEW_DELAY_MS = 1800;
+
 export function AdminHome({
   name,
   arriving = false,
@@ -20,7 +22,7 @@ export function AdminHome({
     enabled: query.data?.canViewFinance === true,
     refetchInterval: 60_000,
   });
-  const previewReady = useAnimationPreviewDelay(1800);
+  const previewReady = useAnimationPreviewDelay(PREVIEW_DELAY_MS);
   const entranceReady =
     previewReady && !query.isPending && (!query.data?.canViewFinance || !business.isPending);
 

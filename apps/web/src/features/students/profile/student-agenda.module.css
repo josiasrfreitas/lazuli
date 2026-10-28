@@ -1,14 +1,14 @@
-.dialog {
+:global([data-student-agenda]):has(.panel) {
   width: calc(100% - 2rem);
   max-width: 76rem;
   height: min(52rem, calc(100dvh - 3rem));
 }
-.detailsDialog {
+:global([data-student-agenda][data-details="true"]):has(.panel) {
   width: calc(100% - 2rem);
   max-width: 64rem;
+  height: auto;
 }
-.dialog > :global([data-slot="dialog-close-button"]),
-.detailsDialog > :global([data-slot="dialog-close-button"]) {
+:global([data-student-agenda]):has(.panel) > :global([data-slot="dialog-close-button"]) {
   z-index: 1;
 }
 .panel {
@@ -242,7 +242,7 @@
   }
 }
 @media (max-width: 640px) {
-  .dialog {
+  :global([data-student-agenda]:not([data-details="true"])):has(.panel) {
     height: calc(100dvh - 2rem);
     padding: 1rem;
   }

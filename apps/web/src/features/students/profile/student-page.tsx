@@ -11,6 +11,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
+import type { RouterOutputs } from "@lazuli/api";
 import {
   Button,
   DetailHeader,
@@ -40,14 +41,26 @@ import { StudentPendingActions } from "./student-pending-actions";
 import { useSectionCarousel } from "./use-section-carousel";
 import styles from "./student-profile.module.css";
 
-const SECTIONS = ["visao-geral", "cadastro", "pedagogico", "planejamento", "financeiro"] as const;
+const OVERVIEW_SECTION = "visao-geral";
+const PEDAGOGY_SECTION = "pedagogico";
+const PLANNING_SECTION = "planejamento";
+const SECTIONS = [
+  OVERVIEW_SECTION,
+  "cadastro",
+  PEDAGOGY_SECTION,
+  PLANNING_SECTION,
+  "financeiro",
+] as const;
+const PREVIEW_DELAY_MS = 1800;
+const ENTRANCE_DURATION_MS = 720;
+const SECTION_QUERY = "secao";
 type StudentSection = (typeof SECTIONS)[number];
 type PageProps = { id: string; pedagogyWorkspacePreview?: ReactNode };
 type SectionsProps = PageProps & { profile: StudentProfile | undefined };
 
 export function StudentPage({ id, pedagogyWorkspacePreview }: PageProps): ReactElement {
   const profile = useStudentProfile(id);
-  const previewReady = useAnimationPreviewDelay(1800);
+  const previewReady = useAnimationPreviewDelay(PREVIEW_DELAY_MS);
   return (
     <div data-page-scroll="internal" className="flex h-full min-h-0 flex-col">
       <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
@@ -67,38 +80,21 @@ export function StudentPage({ id, pedagogyWorkspacePreview }: PageProps): ReactE
 }
 
 function StudentSections({ id, profile, pedagogyWorkspacePreview }: SectionsProps): ReactElement {
-  const switchSection = useSectionCarousel();
   const pedagogy = useStudentPedagogy(id);
   const finance = trpc.finance.studentSummary.useQuery({ studentId: id });
-  const ready = Boolean(profile);
-  const [entranceComplete, setEntranceComplete] = useState(false);
+  const entranceComplete = useEntranceComplete(Boolean(profile));
   const [registrationBusy, setRegistrationBusy] = useState(false);
-  useEffect(() => {
-    if (!ready || entranceComplete) return;
-    const timeout = window.setTimeout(() => setEntranceComplete(true), 720);
-    return () => window.clearTimeout(timeout);
-  }, [ready, entranceComplete]);
-  const hasPpt = Boolean(
-    pedagogy.data?.enrollments.some((row) => row.class.scheduleType === "PERSONALIZED"),
-  );
-  const [section, setSection] = useQueryState(
-    "secao",
-    parseAsStringLiteral(SECTIONS).withDefault("visao-geral"),
-  );
-  const activeSection =
-    section === "planejamento" && pedagogy.data && !hasPpt ? "pedagogico" : section;
-  const activeTab = activeSection === "planejamento" ? "pedagogico" : activeSection;
-  const navigate = (next: StudentSection): void => {
-    if (registrationBusy) return;
-    switchSection(activeSection, next, () => {
-      void setSection(next);
-    });
-  };
+  const hasPpt = hasPersonalizedEnrollment(pedagogy.data);
+  const { activeSection, activeTab, navigate } = useStudentSectionNavigation({
+    pedagogyReady: Boolean(pedagogy.data),
+    hasPpt,
+    registrationBusy,
+  });
   return (
     <div
       className={styles.sections}
-      data-ready={ready || undefined}
-      data-entering={ready && !entranceComplete ? true : undefined}
+      data-ready={Boolean(profile) || undefined}
+      data-entering={profile && !entranceComplete ? true : undefined}
     >
       <Tabs
         value={activeTab}
@@ -109,68 +105,198 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: SectionsProp
           if (next) navigate(next);
         }}
       >
-        <div className={styles.stickyHeader} data-ready={profile ? true : undefined}>
-          <StudentIdentityHeader
+        <SectionsHeader
+          id={id}
+          profile={profile}
+          canSchedule={Boolean(pedagogy.data?.enrollments.some((row) => row.current))}
+          registrationBusy={registrationBusy}
+          severeOverdue={finance.data?.debtState === "SEVERE_OVERDUE"}
+        />
+        <TabsPanel key={activeSection} value={activeTab}>
+          <SectionContent
+            section={activeSection}
             id={id}
             profile={profile}
-            canSchedule={Boolean(pedagogy.data?.enrollments.some((row) => row.current))}
+            pedagogy={pedagogy}
+            hasPpt={hasPpt}
+            latestTermination={finance.data?.latestTermination}
+            pedagogyWorkspacePreview={pedagogyWorkspacePreview}
+            navigate={navigate}
+            onBusyChange={setRegistrationBusy}
           />
-          {profile && <StudentPendingActions studentId={id} name={profile.contact.fullName} />}
-          <StudentTabsNavigation
-            disabled={registrationBusy}
-            severeOverdue={finance.data?.debtState === "SEVERE_OVERDUE"}
-          />
-        </div>
-        <TabsPanel key={activeSection} value={activeTab}>
-          <div className={styles.tabContent}>
-            {activeSection === "visao-geral" &&
-              (profile ? (
-                <StudentOverview profile={profile} navigate={navigate} />
-              ) : (
-                <StudentOverviewLoading />
-              ))}
-            {activeSection === "cadastro" &&
-              (profile ? (
-                <StudentRegistrationSection profile={profile} onBusyChange={setRegistrationBusy} />
-              ) : (
-                <StudentRegistrationLoading />
-              ))}
-            {(activeSection === "pedagogico" || activeSection === "planejamento") && (
-              <div className={styles.pedagogyContent}>
-                {(hasPpt || activeSection === "planejamento") && (
-                  <SegmentedControl
-                    size="sm"
-                    aria-label="Área pedagógica"
-                    value={activeSection}
-                    onValueChange={(value) => {
-                      if (value === "pedagogico" || value === "planejamento") navigate(value);
-                    }}
-                  >
-                    <SegmentedControlItem value="pedagogico">Acompanhamento</SegmentedControlItem>
-                    <SegmentedControlItem value="planejamento">
-                      Plano de ensino PPT
-                    </SegmentedControlItem>
-                  </SegmentedControl>
-                )}
-                {activeSection === "planejamento" ? (
-                  <StudentPlanningPanel id={id} profile={profile} pedagogy={pedagogy} />
-                ) : profile ? (
-                  <StudentPedagogySection
-                    profile={profile}
-                    latestTermination={finance.data?.latestTermination}
-                    pedagogyWorkspacePreview={pedagogyWorkspacePreview}
-                  />
-                ) : (
-                  <PedagogyLoading />
-                )}
-              </div>
-            )}
-            {activeSection === "financeiro" && <StudentFinanceSection id={id} profile={profile} />}
-          </div>
         </TabsPanel>
       </Tabs>
     </div>
   );
+}
+
+function hasPersonalizedEnrollment(data: ReturnType<typeof useStudentPedagogy>["data"]): boolean {
+  return Boolean(data?.enrollments.some((row) => row.class.scheduleType === "PERSONALIZED"));
+}
+
+function useStudentSectionNavigation({
+  pedagogyReady,
+  hasPpt,
+  registrationBusy,
+}: {
+  pedagogyReady: boolean;
+  hasPpt: boolean;
+  registrationBusy: boolean;
+}): {
+  activeSection: StudentSection;
+  activeTab: StudentSection;
+  navigate: (next: StudentSection) => void;
+} {
+  const switchSection = useSectionCarousel();
+  const [section, setSection] = useQueryState(
+    SECTION_QUERY,
+    parseAsStringLiteral(SECTIONS).withDefault(OVERVIEW_SECTION),
+  );
+  const activeSection = resolveSection(section, { pedagogyReady, hasPpt });
+  const activeTab = activeSection === PLANNING_SECTION ? PEDAGOGY_SECTION : activeSection;
+  const navigate = (next: StudentSection): void => {
+    if (registrationBusy) return;
+    switchSection(activeSection, next, () => void setSection(next));
+  };
+  return { activeSection, activeTab, navigate };
+}
+
+function useEntranceComplete(ready: boolean): boolean {
+  const [complete, setComplete] = useState(false);
+  useEffect(() => {
+    if (!ready || complete) return;
+    const timeout = globalThis.setTimeout(() => setComplete(true), ENTRANCE_DURATION_MS);
+    return () => globalThis.clearTimeout(timeout);
+  }, [ready, complete]);
+  return complete;
+}
+
+function resolveSection(
+  section: StudentSection,
+  { pedagogyReady, hasPpt }: { pedagogyReady: boolean; hasPpt: boolean },
+): StudentSection {
+  if (section === PLANNING_SECTION && pedagogyReady && !hasPpt) return PEDAGOGY_SECTION;
+  return section;
+}
+
+function SectionsHeader({
+  id,
+  profile,
+  canSchedule,
+  registrationBusy,
+  severeOverdue,
+}: {
+  id: string;
+  profile: StudentProfile | undefined;
+  canSchedule: boolean;
+  registrationBusy: boolean;
+  severeOverdue: boolean;
+}): ReactElement {
+  return (
+    <div className={styles.stickyHeader} data-ready={profile ? true : undefined}>
+      <StudentIdentityHeader id={id} profile={profile} canSchedule={canSchedule} />
+      {profile && <StudentPendingActions studentId={id} name={profile.contact.fullName} />}
+      <StudentTabsNavigation disabled={registrationBusy} severeOverdue={severeOverdue} />
+    </div>
+  );
+}
+
+type SectionContentProps = {
+  section: StudentSection;
+  id: string;
+  profile: StudentProfile | undefined;
+  pedagogy: ReturnType<typeof useStudentPedagogy>;
+  hasPpt: boolean;
+  latestTermination: RouterOutputs["finance"]["studentSummary"]["latestTermination"] | undefined;
+  pedagogyWorkspacePreview: ReactNode;
+  navigate: (section: StudentSection) => void;
+  onBusyChange: (busy: boolean) => void;
+};
+type PedagogySectionProps = Pick<
+  SectionContentProps,
+  "section" | "id" | "profile" | "pedagogy" | "latestTermination" | "pedagogyWorkspacePreview"
+>;
+
+function SectionContent(props: SectionContentProps): ReactElement {
+  const { section, id, profile, navigate, onBusyChange } = props;
+  return (
+    <div className={styles.tabContent}>
+      {section === OVERVIEW_SECTION &&
+        (profile ? (
+          <StudentOverview profile={profile} navigate={navigate} />
+        ) : (
+          <StudentOverviewLoading />
+        ))}
+      {section === "cadastro" &&
+        (profile ? (
+          <StudentRegistrationSection profile={profile} onBusyChange={onBusyChange} />
+        ) : (
+          <StudentRegistrationLoading />
+        ))}
+      {(section === PEDAGOGY_SECTION || section === PLANNING_SECTION) && (
+        <PedagogyContent {...props} />
+      )}
+      {section === "financeiro" && <StudentFinanceSection id={id} profile={profile} />}
+    </div>
+  );
+}
+
+function PedagogyContent({
+  section,
+  id,
+  profile,
+  pedagogy,
+  hasPpt,
+  latestTermination,
+  pedagogyWorkspacePreview,
+  navigate,
+}: SectionContentProps): ReactElement {
+  return (
+    <div className={styles.pedagogyContent}>
+      {(hasPpt || section === PLANNING_SECTION) && (
+        <SegmentedControl
+          size="sm"
+          aria-label="Área pedagógica"
+          value={section}
+          onValueChange={(value) => {
+            if (value === PEDAGOGY_SECTION || value === PLANNING_SECTION) navigate(value);
+          }}
+        >
+          <SegmentedControlItem value={PEDAGOGY_SECTION}>Acompanhamento</SegmentedControlItem>
+          <SegmentedControlItem value={PLANNING_SECTION}>Plano de ensino PPT</SegmentedControlItem>
+        </SegmentedControl>
+      )}
+      <PedagogySection
+        section={section}
+        id={id}
+        profile={profile}
+        pedagogy={pedagogy}
+        latestTermination={latestTermination}
+        pedagogyWorkspacePreview={pedagogyWorkspacePreview}
+      />
+    </div>
+  );
+}
+
+function PedagogySection({
+  section,
+  id,
+  profile,
+  pedagogy,
+  latestTermination,
+  pedagogyWorkspacePreview,
+}: PedagogySectionProps): ReactElement {
+  if (section === PLANNING_SECTION)
+    return <StudentPlanningPanel id={id} profile={profile} pedagogy={pedagogy} />;
+  if (profile)
+    return (
+      <StudentPedagogySection
+        profile={profile}
+        latestTermination={latestTermination}
+        pedagogyWorkspacePreview={pedagogyWorkspacePreview}
+      />
+    );
+  return <PedagogyLoading />;
 }
 
 function StudentIdentityHeader({
@@ -228,13 +354,13 @@ function StudentTabsNavigation({
   return (
     <div className={styles.tabNavigation}>
       <TabsList aria-label="Seções do aluno" className="min-w-full">
-        <TabsTab value="visao-geral" disabled={disabled}>
+        <TabsTab value={OVERVIEW_SECTION} disabled={disabled}>
           <LayoutDashboard aria-hidden="true" /> Visão geral
         </TabsTab>
         <TabsTab value="cadastro">
           <UserRound aria-hidden="true" /> Cadastro
         </TabsTab>
-        <TabsTab value="pedagogico" disabled={disabled}>
+        <TabsTab value={PEDAGOGY_SECTION} disabled={disabled}>
           <BookOpen aria-hidden="true" /> Pedagógico
         </TabsTab>
         <TabsTab value="financeiro" disabled={disabled}>

@@ -12,6 +12,7 @@ const COLORS: Record<string, string> = {
   adults: "var(--interactive)",
   unknown: "var(--muted-foreground)",
 };
+const PERCENT = 100;
 
 export function StudentAgeChart({
   groups,
@@ -58,24 +59,27 @@ export function StudentAgeChart({
           <span>ativos</span>
         </div>
       </div>
-      {total === 0 ? (
-        <p className={styles.empty}>Nenhum aluno ativo.</p>
-      ) : (
-        <dl className={styles.ageLegend} aria-label="Alunos ativos por faixa etária">
-          {knownGroups.map((group) => (
-            <div key={group.id}>
-              <dt>
-                <svg width="7" height="7" aria-hidden="true">
-                  <circle cx="3.5" cy="3.5" r="3.5" fill={COLORS[group.id]} />
-                </svg>
-                {group.label}
-              </dt>
-              <dd>{group.count.toLocaleString("pt-BR")}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
+      <AgeLegend groups={knownGroups} total={total} />
     </div>
+  );
+}
+
+function AgeLegend({ groups, total }: { groups: AgeGroups; total: number }): ReactElement {
+  if (total === 0) return <p className={styles.empty}>Nenhum aluno ativo.</p>;
+  return (
+    <dl className={styles.ageLegend} aria-label="Alunos ativos por faixa etária">
+      {groups.map((group) => (
+        <div key={group.id}>
+          <dt>
+            <svg width="7" height="7" aria-hidden="true">
+              <circle cx="3.5" cy="3.5" r="3.5" fill={COLORS[group.id]} />
+            </svg>
+            {group.label}
+          </dt>
+          <dd>{group.count.toLocaleString("pt-BR")}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -103,7 +107,7 @@ export function LeadConversion({ data }: { data: HomeData["leadConversion"] }): 
         aria-hidden="true"
       >
         <rect width="100" height="8" rx="2" fill="currentColor" opacity="0.12" />
-        <rect width={rate * 100} height="8" rx="2" fill="currentColor" />
+        <rect width={rate * PERCENT} height="8" rx="2" fill="currentColor" />
       </svg>
       <div
         className={styles.conversionFlow}

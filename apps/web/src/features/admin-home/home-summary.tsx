@@ -17,6 +17,7 @@ const money = new Intl.NumberFormat("pt-BR", {
 });
 const number = (value: number): string => value.toLocaleString("pt-BR");
 const date = (value: string): Date => new Date(`${value}T12:00:00Z`);
+const CENTS_PER_REAL = 100;
 
 export function HomeSummary({
   data,
@@ -103,11 +104,11 @@ function ReceiptsStory({
           <dl className={styles.cashFigures}>
             <div>
               <dt>Recebido até {through}</dt>
-              <dd>{money.format(data.receivedCents / 100)}</dd>
+              <dd>{money.format(data.receivedCents / CENTS_PER_REAL)}</dd>
             </div>
             <div>
               <dt>Previsto para o mês</dt>
-              <dd>{money.format(data.expectedCents / 100)}</dd>
+              <dd>{money.format(data.expectedCents / CENTS_PER_REAL)}</dd>
             </div>
             <div>
               <dt>
@@ -121,17 +122,26 @@ function ReceiptsStory({
           </dl>
           <ReceiptsChart months={data.months} contracts={data.agreements.series} />
         </>
-      ) : error ? (
-        <p className={styles.unavailable}>
-          Não foi possível carregar a receita. <Link href="/financeiro">Abrir financeiro</Link>
-        </p>
       ) : (
-        <div className={styles.loading} role="status" aria-label="Carregando receita">
-          <InlineSkeleton className="h-10 w-48" />
-          <InlineSkeleton className="h-28 w-full" />
-        </div>
+        <ReceiptsFeedback error={error} />
       )}
     </article>
+  );
+}
+
+function ReceiptsFeedback({ error }: { error: boolean }): ReactElement {
+  if (error) {
+    return (
+      <p className={styles.unavailable}>
+        Não foi possível carregar a receita. <Link href="/financeiro">Abrir financeiro</Link>
+      </p>
+    );
+  }
+  return (
+    <div className={styles.loading} role="status" aria-label="Carregando receita">
+      <InlineSkeleton className="h-10 w-48" />
+      <InlineSkeleton className="h-28 w-full" />
+    </div>
   );
 }
 

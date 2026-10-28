@@ -2,6 +2,8 @@ const ARRIVAL_DURATION = 760;
 const DISSOLVE_DURATION = 160;
 const WORDMARK_DURATION = 240;
 const COVER_DURATION = 600;
+const REDUCED_MOTION_DEADLINE = 200;
+const ARRIVAL_DEADLINE = 1400;
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
 
 type Animate = (
@@ -65,11 +67,11 @@ export function playHomeArrival(root: HTMLElement): () => void {
   const events = new AbortController();
   const preference = globalThis.matchMedia("(prefers-reduced-motion: reduce)");
   let finished = false;
-  let deadline: ReturnType<typeof setTimeout> | undefined;
+  const deadline: { id: ReturnType<typeof setTimeout> | undefined } = { id: undefined };
   const finish = (): void => {
     if (finished) return;
     finished = true;
-    if (deadline !== undefined) globalThis.clearTimeout(deadline);
+    if (deadline.id !== undefined) globalThis.clearTimeout(deadline.id);
     root.hidden = true;
     for (const animation of animations) animation.cancel();
     events.abort();
@@ -94,7 +96,10 @@ export function playHomeArrival(root: HTMLElement): () => void {
     globalThis.addEventListener(name, finish, { once: true, signal: events.signal });
   }
   preference.addEventListener("change", finish, { once: true, signal: events.signal });
-  deadline = globalThis.setTimeout(finish, preference.matches ? 200 : 1400);
+  deadline.id = globalThis.setTimeout(
+    finish,
+    preference.matches ? REDUCED_MOTION_DEADLINE : ARRIVAL_DEADLINE,
+  );
   if (completion) void completion.finished.then(finish, finish);
   else finish();
   return finish;

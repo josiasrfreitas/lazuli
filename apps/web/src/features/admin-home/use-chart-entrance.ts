@@ -1,12 +1,13 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 const query = "(prefers-reduced-motion: reduce)";
+const ENTRANCE_DURATION = 1400;
 function subscribe(callback: () => void): () => void {
-  const media = window.matchMedia(query);
+  const media = globalThis.matchMedia(query);
   media.addEventListener("change", callback);
   return () => media.removeEventListener("change", callback);
 }
-const reducedMotion = (): boolean => window.matchMedia(query).matches;
+const reducedMotion = (): boolean => globalThis.matchMedia(query).matches;
 const serverSnapshot = (): boolean => true;
 
 /** Animate the initial reveal, never the dashboard's background refresh. */
@@ -14,8 +15,8 @@ export function useChartEntrance(): boolean {
   const reduced = useSyncExternalStore(subscribe, reducedMotion, serverSnapshot);
   const [entering, setEntering] = useState(true);
   useEffect(() => {
-    const timeout = window.setTimeout(() => setEntering(false), 1400);
-    return () => window.clearTimeout(timeout);
+    const timeout = globalThis.setTimeout(() => setEntering(false), ENTRANCE_DURATION);
+    return () => globalThis.clearTimeout(timeout);
   }, []);
   return entering && !reduced;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement, type RefObject } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import type { RouterOutputs } from "@lazuli/api";
 import Link from "next/link";
@@ -19,10 +19,12 @@ import {
   ScheduleCalendar,
   getScheduleCalendarRange,
   type CalendarEvent,
+  type CalendarEventRenderContext,
   type CalendarInterval,
+  type CalendarRangeSelection,
   type CalendarView,
 } from "@lazuli/ui";
-import { trpc } from "~/lib/trpc";
+import { trpc, type QueryResult } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { schoolToday } from "~/features/class-records/calendar-model";
 import { ClassRecordDialog } from "~/features/class-records/class-record-dialog";
@@ -42,6 +44,31 @@ type StudentEvent = CalendarEvent & {
   cancelled: boolean;
   lesson?: Agenda["lessons"][number];
 };
+const TEACHER_UNASSIGNED = "Professor a definir";
+
+type AgendaController = {
+  appointmentId: string | null;
+  setAppointmentId: (value: string | null) => Promise<URLSearchParams>;
+  open: boolean;
+  setOpen: (value: boolean) => void;
+  pending: boolean;
+  setPending: (value: boolean) => void;
+  date: string;
+  setDate: (value: string) => void;
+  view: CalendarView;
+  setView: (value: CalendarView) => void;
+  scheduling: Scheduling | null;
+  setScheduling: (value: Scheduling | null) => void;
+  lessonId: string | null;
+  setLessonId: (value: string | null) => void;
+  projectedLesson: Agenda["lessons"][number] | null;
+  setProjectedLesson: (value: Agenda["lessons"][number] | null) => void;
+  query: QueryResult<Agenda>;
+  wrongStudent: boolean;
+  detailId: string | null;
+  panel: RefObject<HTMLDivElement | null>;
+  returnToAgenda: () => void;
+};
 
 export function StudentAgendaDialog({
   profile,
@@ -50,6 +77,11 @@ export function StudentAgendaDialog({
   profile: StudentProfile;
   canSchedule: boolean;
 }): ReactElement {
+  const controller = useAgendaController(profile);
+  return <AgendaDialogView profile={profile} canSchedule={canSchedule} controller={controller} />;
+}
+
+function useAgendaController(profile: StudentProfile): AgendaController {
   const [appointmentId, setAppointmentId] = useQueryState("atendimento", parseAsString);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -58,76 +90,137 @@ export function StudentAgendaDialog({
   const [scheduling, setScheduling] = useState<Scheduling | null>(null);
   const [lessonId, setLessonId] = useState<string | null>(null);
   const [projectedLesson, setProjectedLesson] = useState<Agenda["lessons"][number] | null>(null);
-  const utils = trpc.useUtils();
+  const { query, snapshot } = useAgendaQueries(profile.id, { date, view, open, appointmentId });
+  const wrongStudent = Boolean(snapshot && snapshot.student.id !== profile.id);
+  const detailId = projectedLesson?.id ?? lessonId ?? (wrongStudent ? null : appointmentId);
+  const panel = useRef<HTMLDivElement>(null);
+  useAgendaEffects(
+    { detailId, open, panel, appointmentId, snapshot, wrongStudent },
+    { setOpen, setDate, setView },
+  );
+  const returnToAgenda = useReturnToAgenda(profile.id, {
+    setScheduling,
+    setLessonId,
+    setProjectedLesson,
+    setAppointmentId,
+  });
+  return {
+    appointmentId,
+    setAppointmentId,
+    open,
+    setOpen,
+    pending,
+    setPending,
+    date,
+    setDate,
+    view,
+    setView,
+    scheduling,
+    setScheduling,
+    lessonId,
+    setLessonId,
+    projectedLesson,
+    setProjectedLesson,
+    query,
+    wrongStudent,
+    detailId,
+    panel,
+    returnToAgenda,
+  };
+}
+
+function useAgendaQueries(
+  studentId: string,
+  {
+    date,
+    view,
+    open,
+    appointmentId,
+  }: Pick<AgendaController, "date" | "view" | "open" | "appointmentId">,
+): { query: QueryResult<Agenda>; snapshot: Appointment | undefined } {
   const range = getScheduleCalendarRange({ date, view });
   const query = trpc.students.agenda.useQuery(
-    { id: profile.id, from: range.from, to: range.through },
+    { id: studentId, from: range.from, to: range.through },
     { enabled: open },
   );
   const appointment = trpc.appointments.detail.useQuery(
     { id: appointmentId ?? "" },
     { enabled: open && Boolean(appointmentId), retry: false },
   );
-  const snapshot = appointment.data?.snapshot;
-  const wrongStudent = Boolean(snapshot && snapshot.student.id !== profile.id);
-  const detailId = projectedLesson?.id ?? lessonId ?? (!wrongStudent ? appointmentId : null);
-  const panel = useRef<HTMLDivElement>(null);
+  return { query, snapshot: appointment.data?.snapshot };
+}
+
+function useReturnToAgenda(
+  studentId: string,
+  {
+    setScheduling,
+    setLessonId,
+    setProjectedLesson,
+    setAppointmentId,
+  }: Pick<
+    AgendaController,
+    "setScheduling" | "setLessonId" | "setProjectedLesson" | "setAppointmentId"
+  >,
+): () => void {
+  const utils = trpc.useUtils();
+  return useCallback(() => {
+    setScheduling(null);
+    setLessonId(null);
+    setProjectedLesson(null);
+    void setAppointmentId(null);
+    void utils.students.agenda.invalidate({ id: studentId });
+    void utils.students.health.invalidate({ id: studentId });
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>("#student-agenda-new")?.focus(),
+    );
+  }, [studentId, setAppointmentId, setLessonId, setProjectedLesson, setScheduling, utils]);
+}
+
+type AgendaEffects = Pick<
+  AgendaController,
+  "detailId" | "open" | "panel" | "appointmentId" | "wrongStudent"
+> & {
+  snapshot: Appointment | undefined;
+};
+
+function useAgendaEffects(
+  { detailId, open, panel, appointmentId, snapshot, wrongStudent }: AgendaEffects,
+  { setOpen, setDate, setView }: Pick<AgendaController, "setOpen" | "setDate" | "setView">,
+): void {
   useEffect(() => {
     if (!detailId || !open) return;
     const frame = requestAnimationFrame(() =>
       panel.current?.querySelector<HTMLButtonElement>("button")?.focus(),
     );
     return () => cancelAnimationFrame(frame);
-  }, [detailId, open]);
+  }, [detailId, open, panel]);
   useEffect(() => {
     if (appointmentId) setOpen(true);
-  }, [appointmentId]);
+  }, [appointmentId, setOpen]);
   useEffect(() => {
     if (snapshot && !wrongStudent) setDate(snapshot.date);
-  }, [snapshot?.id, snapshot?.date, wrongStudent]);
+  }, [snapshot?.id, snapshot?.date, wrongStudent, setDate]);
   useEffect(() => {
-    const mobile = window.matchMedia("(max-width: 640px)");
+    const mobile = globalThis.matchMedia("(max-width: 640px)");
     const adaptView = (): void => {
       if (mobile.matches) setView("day");
     };
     adaptView();
     mobile.addEventListener("change", adaptView);
     return () => mobile.removeEventListener("change", adaptView);
-  }, []);
-  const returnToAgenda = useCallback(() => {
-    setScheduling(null);
-    setLessonId(null);
-    setProjectedLesson(null);
-    void setAppointmentId(null);
-    void utils.students.agenda.invalidate({ id: profile.id });
-    void utils.students.health.invalidate({ id: profile.id });
-    requestAnimationFrame(() => document.getElementById("student-agenda-new")?.focus());
-  }, [profile.id, setAppointmentId, utils]);
-  const calendar = (
-    <StudentAgendaCalendar
-      date={date}
-      view={view}
-      onDateChange={setDate}
-      onViewChange={setView}
-      data={query.data}
-      status={query.isError ? "error" : query.isPending ? "loading" : "ready"}
-      onRetry={() => void query.refetch()}
-      onCreate={
-        canSchedule && !scheduling
-          ? (selection) => setScheduling(selection ? { initialSelection: selection } : {})
-          : undefined
-      }
-      onEvent={
-        scheduling
-          ? undefined
-          : (event) => {
-              if (event.kind === "appointment") void setAppointmentId(event.recordId);
-              else if (event.lesson?.sessionId) setLessonId(event.lesson.sessionId);
-              else if (event.lesson) setProjectedLesson(event.lesson);
-            }
-      }
-    />
-  );
+  }, [setView]);
+}
+
+function AgendaDialogView({
+  profile,
+  canSchedule,
+  controller,
+}: {
+  profile: StudentProfile;
+  canSchedule: boolean;
+  controller: AgendaController;
+}): ReactElement {
+  const { open, setOpen, pending, detailId, panel, returnToAgenda } = controller;
   return (
     <Dialog
       open={open}
@@ -148,76 +241,177 @@ export function StudentAgendaDialog({
       <DialogPortal>
         <DialogBackdrop />
         <DialogContent
-          className={detailId ? styles.detailsDialog : styles.dialog}
+          data-student-agenda
+          data-details={detailId ? "true" : undefined}
           data-student-dialog-motion
           showCloseButton={!pending}
         >
           <div ref={panel} key={detailId ?? "agenda"} className={styles.panel}>
-            {projectedLesson ? (
-              <ProjectedLessonDetails lesson={projectedLesson} onBack={returnToAgenda} />
-            ) : lessonId ? (
-              <ClassRecordDialog embedded id={lessonId} onClose={returnToAgenda} />
-            ) : appointmentId && !wrongStudent ? (
-              <StudentAppointmentDialog
-                embedded
-                key={appointmentId}
-                id={appointmentId}
-                admin
-                readOnly={!canSchedule}
-                onClose={returnToAgenda}
-                onSelect={(id) => {
-                  void setAppointmentId(id);
-                }}
-                onPendingChange={setPending}
-                onOpenLesson={(id) => {
-                  void setAppointmentId(null);
-                  setLessonId(id);
-                }}
-                onReschedule={(previous) => {
-                  void setAppointmentId(null);
-                  setScheduling({ previous });
-                }}
-              />
-            ) : (
-              <>
-                <DialogHeader>
-                  <DialogTitle>Agenda do aluno</DialogTitle>
-                  <DialogDescription>
-                    {profile.contact.fullName} · Aulas e atendimentos
-                  </DialogDescription>
-                </DialogHeader>
-                {wrongStudent && (
-                  <Alert variant="warning">Este atendimento pertence a outro aluno.</Alert>
-                )}
-                {scheduling ? (
-                  <StudentAgendaScheduling
-                    calendar={calendar}
-                    student={{ id: profile.id, name: profile.contact.fullName }}
-                    initialDate={date < schoolToday() ? schoolToday() : date}
-                    initialSelection={scheduling.initialSelection}
-                    {...(scheduling.previous ? { previous: scheduling.previous } : {})}
-                    onPendingChange={setPending}
-                    onClose={returnToAgenda}
-                  />
-                ) : (
-                  <>
-                    <div className={styles.calendar}>{calendar}</div>
-                    <div className={styles.legend} aria-label="Tipos de compromisso">
-                      <span data-kind="regular">Aula regular</span>
-                      <span data-kind="personalized">Aula PPT</span>
-                      <span data-kind="appointment">Atendimento</span>
-                      {!canSchedule && (
-                        <p>Novos atendimentos ficam disponíveis com uma matrícula vigente.</p>
-                      )}
-                    </div>
-                  </>
-                )}
-              </>
-            )}
+            <AgendaPanel profile={profile} canSchedule={canSchedule} controller={controller} />
           </div>
         </DialogContent>
       </DialogPortal>
     </Dialog>
+  );
+}
+
+function AgendaPanel({
+  profile,
+  canSchedule,
+  controller,
+}: {
+  profile: StudentProfile;
+  canSchedule: boolean;
+  controller: AgendaController;
+}): ReactElement {
+  const { projectedLesson, lessonId, appointmentId, wrongStudent, returnToAgenda } = controller;
+  if (projectedLesson)
+    return <ProjectedLessonDetails lesson={projectedLesson} onBack={returnToAgenda} />;
+  if (lessonId) return <ClassRecordDialog embedded id={lessonId} onClose={returnToAgenda} />;
+  if (appointmentId && !wrongStudent) {
+    return (
+      <AppointmentDetails
+        appointmentId={appointmentId}
+        canSchedule={canSchedule}
+        controller={controller}
+      />
+    );
+  }
+  return <AgendaLanding profile={profile} canSchedule={canSchedule} controller={controller} />;
+}
+
+function AppointmentDetails({
+  appointmentId,
+  canSchedule,
+  controller,
+}: {
+  appointmentId: string;
+  canSchedule: boolean;
+  controller: AgendaController;
+}): ReactElement {
+  const { setAppointmentId, setLessonId, setScheduling, setPending, returnToAgenda } = controller;
+  return (
+    <StudentAppointmentDialog
+      embedded
+      key={appointmentId}
+      id={appointmentId}
+      admin
+      readOnly={!canSchedule}
+      onClose={returnToAgenda}
+      onSelect={(id) => {
+        void setAppointmentId(id);
+      }}
+      onPendingChange={setPending}
+      onOpenLesson={(id) => {
+        void setAppointmentId(null);
+        setLessonId(id);
+      }}
+      onReschedule={(previous) => {
+        void setAppointmentId(null);
+        setScheduling({ previous });
+      }}
+    />
+  );
+}
+
+function AgendaLanding({
+  profile,
+  canSchedule,
+  controller,
+}: {
+  profile: StudentProfile;
+  canSchedule: boolean;
+  controller: AgendaController;
+}): ReactElement {
+  const { wrongStudent, scheduling, date, setPending, returnToAgenda } = controller;
+  const calendar = <AgendaCalendarView canSchedule={canSchedule} controller={controller} />;
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Agenda do aluno</DialogTitle>
+        <DialogDescription>{profile.contact.fullName} · Aulas e atendimentos</DialogDescription>
+      </DialogHeader>
+      {wrongStudent && <Alert variant="warning">Este atendimento pertence a outro aluno.</Alert>}
+      {scheduling ? (
+        <StudentAgendaScheduling
+          calendar={calendar}
+          student={{ id: profile.id, name: profile.contact.fullName }}
+          initialDate={date < schoolToday() ? schoolToday() : date}
+          initialSelection={scheduling.initialSelection}
+          {...(scheduling.previous ? { previous: scheduling.previous } : {})}
+          onPendingChange={setPending}
+          onClose={returnToAgenda}
+        />
+      ) : (
+        <AgendaCalendarDefault calendar={calendar} canSchedule={canSchedule} />
+      )}
+    </>
+  );
+}
+
+function AgendaCalendarDefault({
+  calendar,
+  canSchedule,
+}: {
+  calendar: ReactElement;
+  canSchedule: boolean;
+}): ReactElement {
+  return (
+    <>
+      <div className={styles.calendar}>{calendar}</div>
+      <div className={styles.legend} aria-label="Tipos de compromisso">
+        <span data-kind="regular">Aula regular</span>
+        <span data-kind="personalized">Aula PPT</span>
+        <span data-kind="appointment">Atendimento</span>
+        {!canSchedule && <p>Novos atendimentos ficam disponíveis com uma matrícula vigente.</p>}
+      </div>
+    </>
+  );
+}
+
+function AgendaCalendarView({
+  canSchedule,
+  controller,
+}: {
+  canSchedule: boolean;
+  controller: AgendaController;
+}): ReactElement {
+  const {
+    date,
+    view,
+    setDate,
+    setView,
+    query,
+    scheduling,
+    setScheduling,
+    setAppointmentId,
+    setLessonId,
+    setProjectedLesson,
+  } = controller;
+  const onCreate =
+    canSchedule && !scheduling
+      ? (selection?: CalendarInterval): void =>
+          setScheduling(selection ? { initialSelection: selection } : {})
+      : undefined;
+  const onEvent = scheduling
+    ? undefined
+    : (event: StudentEvent): void => {
+        if (event.kind === "appointment") void setAppointmentId(event.recordId);
+        else if (event.lesson?.sessionId) setLessonId(event.lesson.sessionId);
+        else if (event.lesson) setProjectedLesson(event.lesson);
+      };
+  return (
+    <StudentAgendaCalendar
+      date={date}
+      view={view}
+      onDateChange={setDate}
+      onViewChange={setView}
+      data={query.data}
+      status={agendaStatus(query.isError, query.isPending)}
+      onRetry={() => void query.refetch()}
+      onCreate={onCreate}
+      onEvent={onEvent}
+    />
   );
 }
 
@@ -259,67 +453,81 @@ function StudentAgendaCalendar({
       errorMessage="Não foi possível carregar a agenda do aluno."
       onRetry={onRetry}
       {...(onEvent ? { onEventActivate: onEvent } : {})}
-      rangeSelection={
-        onCreate
-          ? {
-              clickDurationMinutes: 60,
-              minimum: {
-                date: schoolToday(),
-                time: new Intl.DateTimeFormat("pt-BR", {
-                  timeZone: "America/Sao_Paulo",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hourCycle: "h23",
-                }).format(new Date()),
-              },
-              blocked: events
-                .filter((event) => !event.cancelled)
-                .map((event) => ({ ...event, label: event.title })),
-              onSelect: onCreate,
-              controls: <></>,
-            }
-          : undefined
-      }
-      actions={
-        onCreate ? (
-          <Button id="student-agenda-new" size="sm" onClick={() => onCreate()}>
-            <Plus aria-hidden="true" /> Novo atendimento
-          </Button>
-        ) : undefined
-      }
+      rangeSelection={calendarSelection(onCreate, events)}
+      actions={onCreate ? <CalendarCreateAction onCreate={onCreate} /> : undefined}
       renderEvent={(event, context) => (
-        <button
-          type="button"
-          id={event.kind === "appointment" ? "appointment-cell-" + event.recordId : undefined}
-          className={styles.event}
-          data-kind={event.kind}
-          data-cancelled={event.cancelled || undefined}
-          data-expanded={context.expanded || undefined}
-          disabled={context.disabled || !onEvent}
-          onClick={context.activate}
-          aria-label={
-            event.title +
-            ", " +
-            event.date +
-            ", " +
-            event.startTime +
-            " às " +
-            event.endTime +
-            ". " +
-            event.subtitle +
-            ". " +
-            event.statusLabel
-          }
-        >
-          <strong>{event.title}</strong>
-          <span className={styles.eventTime}>
-            {event.startTime}–{event.endTime}
-          </span>
-          <span>{event.subtitle}</span>
-          <span className={styles.eventStatus}>{event.statusLabel}</span>
-        </button>
+        <AgendaEventButton event={event} context={context} interactive={Boolean(onEvent)} />
       )}
     />
+  );
+}
+
+function agendaStatus(error: boolean, pending: boolean): "error" | "loading" | "ready" {
+  if (error) return "error";
+  if (pending) return "loading";
+  return "ready";
+}
+
+function CalendarCreateAction({ onCreate }: { onCreate: () => void }): ReactElement {
+  return (
+    <Button id="student-agenda-new" size="sm" onClick={onCreate}>
+      <Plus aria-hidden="true" /> Novo atendimento
+    </Button>
+  );
+}
+
+function calendarSelection(
+  onCreate: ((selection?: CalendarInterval) => void) | undefined,
+  events: StudentEvent[],
+): CalendarRangeSelection | undefined {
+  if (!onCreate) return undefined;
+  return {
+    clickDurationMinutes: 60,
+    minimum: {
+      date: schoolToday(),
+      time: new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }).format(new Date()),
+    },
+    blocked: events
+      .filter((event) => !event.cancelled)
+      .map((event) => ({ ...event, label: event.title })),
+    onSelect: onCreate,
+    controls: <></>,
+  };
+}
+
+function AgendaEventButton({
+  event,
+  context,
+  interactive,
+}: {
+  event: StudentEvent;
+  context: CalendarEventRenderContext;
+  interactive: boolean;
+}): ReactElement {
+  return (
+    <button
+      type="button"
+      id={event.kind === "appointment" ? "appointment-cell-" + event.recordId : undefined}
+      className={styles.event}
+      data-kind={event.kind}
+      data-cancelled={event.cancelled || undefined}
+      data-expanded={context.expanded || undefined}
+      disabled={context.disabled || !interactive}
+      onClick={context.activate}
+      aria-label={`${event.title}, ${event.date}, ${event.startTime} às ${event.endTime}. ${event.subtitle}. ${event.statusLabel}`}
+    >
+      <strong>{event.title}</strong>
+      <span className={styles.eventTime}>
+        {event.startTime}–{event.endTime}
+      </span>
+      <span>{event.subtitle}</span>
+      <span className={styles.eventStatus}>{event.statusLabel}</span>
+    </button>
   );
 }
 
@@ -345,7 +553,7 @@ function ProjectedLessonDetails({
       </DialogHeader>
       <div className="grid gap-3 py-5 text-sm">
         <p>
-          {lesson.teacher ?? "Professor a definir"} ·{" "}
+          {lesson.teacher ?? TEACHER_UNASSIGNED} ·{" "}
           {lesson.format === "ONLINE" ? "Online" : "Presencial"}
         </p>
         <p className="text-muted-foreground">
@@ -375,17 +583,8 @@ function studentAgendaEvents(data: Agenda | undefined): StudentEvent[] {
     startTime: lesson.startTime,
     endTime: lesson.endTime,
     title: lesson.scheduleType === "PERSONALIZED" ? `PPT · ${lesson.className}` : lesson.className,
-    subtitle: lesson.teacher ?? "Professor a definir",
-    statusLabel:
-      lesson.state === "CANCELLED"
-        ? "Cancelada"
-        : lesson.state === "UPCOMING"
-          ? "Agendada"
-          : !lesson.sessionId
-            ? "Prevista no horário da turma"
-            : lesson.state === "PENDING"
-              ? "Aguardando registro"
-              : "Aula realizada",
+    subtitle: lesson.teacher ?? TEACHER_UNASSIGNED,
+    statusLabel: lessonStatus(lesson),
     cancelled: lesson.state === "CANCELLED",
   }));
   const appointments: StudentEvent[] = data.appointments.map((appointment) => ({
@@ -396,20 +595,26 @@ function studentAgendaEvents(data: Agenda | undefined): StudentEvent[] {
     startTime: appointment.startTime,
     endTime: appointment.endTime,
     title: purposes[appointment.purpose],
-    subtitle: appointment.teacher?.name ?? "Professor a definir",
-    statusLabel:
-      appointment.status === "CANCELLED"
-        ? appointment.rescheduledToId
-          ? "Reagendado"
-          : "Cancelado"
-        : appointment.status === "ATTENDED"
-          ? "Realizado"
-          : appointment.status === "NO_SHOW"
-            ? "Não compareceu"
-            : appointment.overdue
-              ? "Aguardando registro"
-              : "Agendado",
+    subtitle: appointment.teacher?.name ?? TEACHER_UNASSIGNED,
+    statusLabel: appointmentStatus(appointment),
     cancelled: appointment.status === "CANCELLED",
   }));
   return [...lessons, ...appointments];
+}
+
+function lessonStatus(lesson: Agenda["lessons"][number]): string {
+  if (lesson.state === "CANCELLED") return "Cancelada";
+  if (lesson.state === "UPCOMING") return "Agendada";
+  if (!lesson.sessionId) return "Prevista no horário da turma";
+  if (lesson.state === "PENDING") return "Aguardando registro";
+  return "Aula realizada";
+}
+
+function appointmentStatus(appointment: Agenda["appointments"][number]): string {
+  if (appointment.status === "CANCELLED") {
+    return appointment.rescheduledToId ? "Reagendado" : "Cancelado";
+  }
+  if (appointment.status === "ATTENDED") return "Realizado";
+  if (appointment.status === "NO_SHOW") return "Não compareceu";
+  return appointment.overdue ? "Aguardando registro" : "Agendado";
 }

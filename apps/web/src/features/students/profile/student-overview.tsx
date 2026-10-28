@@ -27,6 +27,7 @@ const DAYS: Record<string, string> = {
   SUNDAY: "Dom",
 };
 const WEEKDAYS = Object.keys(DAYS);
+const LOADING_ROWS = 4;
 
 export function StudentOverview({
   profile,
@@ -39,69 +40,131 @@ export function StudentOverview({
   const finance = trpc.finance.studentSummary.useQuery({ studentId: profile.id });
   return (
     <div className={styles.overview}>
-      <div className={styles.mainColumn}>
-        <section className={styles.enrollment} aria-labelledby="overview-enrollment-title">
-          <header className={styles.sectionHeading}>
-            <h2 id="overview-enrollment-title">Matrícula atual</h2>
-            <Button variant="link" size="sm" onClick={() => navigate("pedagogico")}>
-              Pedagógico <ArrowRight aria-hidden="true" />
-            </Button>
-          </header>
-          {pedagogy.isError ? (
-            <ProfileError
-              message="Não foi possível carregar a matrícula."
-              onRetry={() => void pedagogy.refetch()}
-            />
-          ) : pedagogy.data ? (
-            <EnrollmentSummary
-              rows={pedagogy.data.enrollments}
-              today={pedagogy.data.today}
-              studentId={profile.id}
-            />
-          ) : (
-            <EnrollmentSummaryLoading />
-          )}
-          <ContractTerminationNotice
-            termination={finance.data?.latestTermination}
-            studentId={profile.id}
-          />
-        </section>
-        <div className={styles.overviewNotes}>
-          <StudentNotes profile={profile} />
-        </div>
-        <div className={styles.overviewIntention}>
-          <OrganizationIntention studentId={profile.id} />
-        </div>
+      <OverviewMain
+        profile={profile}
+        navigate={navigate}
+        pedagogy={pedagogy}
+        termination={finance.data?.latestTermination}
+      />
+      <OverviewSide
+        studentId={profile.id}
+        navigate={navigate}
+        summary={finance.data}
+        financeError={finance.isError}
+        retry={() => void finance.refetch()}
+      />
+    </div>
+  );
+}
+
+function OverviewMain({
+  profile,
+  navigate,
+  pedagogy,
+  termination,
+}: {
+  profile: StudentProfile;
+  navigate: Navigate;
+  pedagogy: ReturnType<typeof useStudentPedagogy>;
+  termination: RouterOutputs["finance"]["studentSummary"]["latestTermination"] | undefined;
+}): ReactElement {
+  return (
+    <div className={styles.mainColumn}>
+      <section className={styles.enrollment} aria-labelledby="overview-enrollment-title">
+        <header className={styles.sectionHeading}>
+          <h2 id="overview-enrollment-title">Matrícula atual</h2>
+          <Button variant="link" size="sm" onClick={() => navigate("pedagogico")}>
+            Pedagógico <ArrowRight aria-hidden="true" />
+          </Button>
+        </header>
+        <EnrollmentState pedagogy={pedagogy} studentId={profile.id} />
+        <ContractTerminationNotice termination={termination} studentId={profile.id} />
+      </section>
+      <div className={styles.overviewNotes}>
+        <StudentNotes profile={profile} />
       </div>
-      <div className={styles.sideColumn}>
-        <div className={styles.overviewHealth}>
-          <StudentHealth studentId={profile.id} />
-        </div>
-        <section className={styles.financeSnapshot} aria-labelledby="overview-finance-title">
-          <header className={styles.sectionHeading}>
-            <h2 id="overview-finance-title">
-              <Wallet aria-hidden="true" /> Financeiro
-            </h2>
-            <Button variant="link" size="sm" onClick={() => navigate("financeiro")}>
-              Ver financeiro <ArrowRight aria-hidden="true" />
-            </Button>
-          </header>
-          {finance.isError ? (
-            <ProfileError message="Resumo indisponível." onRetry={() => void finance.refetch()} />
-          ) : finance.data ? (
-            <FinanceSnapshot summary={finance.data} />
-          ) : (
-            <div
-              className="grid gap-3 py-3"
-              aria-label="Carregando resumo financeiro"
-              aria-busy="true"
-            >
-              <InlineSkeleton className="h-5 w-24" />
-              <InlineSkeleton className="h-4 w-56 max-w-full" />
-            </div>
-          )}
-        </section>
+      <div className={styles.overviewIntention}>
+        <OrganizationIntention studentId={profile.id} />
       </div>
+    </div>
+  );
+}
+
+function EnrollmentState({
+  pedagogy,
+  studentId,
+}: {
+  pedagogy: ReturnType<typeof useStudentPedagogy>;
+  studentId: string;
+}): ReactElement {
+  if (pedagogy.isError) {
+    return (
+      <ProfileError
+        message="Não foi possível carregar a matrícula."
+        onRetry={() => void pedagogy.refetch()}
+      />
+    );
+  }
+  if (pedagogy.data) {
+    return (
+      <EnrollmentSummary
+        rows={pedagogy.data.enrollments}
+        today={pedagogy.data.today}
+        studentId={studentId}
+      />
+    );
+  }
+  return <EnrollmentSummaryLoading />;
+}
+
+function OverviewSide({
+  studentId,
+  navigate,
+  summary,
+  financeError,
+  retry,
+}: {
+  studentId: string;
+  navigate: Navigate;
+  summary: RouterOutputs["finance"]["studentSummary"] | undefined;
+  financeError: boolean;
+  retry: () => void;
+}): ReactElement {
+  return (
+    <div className={styles.sideColumn}>
+      <div className={styles.overviewHealth}>
+        <StudentHealth studentId={studentId} />
+      </div>
+      <section className={styles.financeSnapshot} aria-labelledby="overview-finance-title">
+        <header className={styles.sectionHeading}>
+          <h2 id="overview-finance-title">
+            <Wallet aria-hidden="true" /> Financeiro
+          </h2>
+          <Button variant="link" size="sm" onClick={() => navigate("financeiro")}>
+            Ver financeiro <ArrowRight aria-hidden="true" />
+          </Button>
+        </header>
+        <FinanceState summary={summary} error={financeError} retry={retry} />
+      </section>
+    </div>
+  );
+}
+
+function FinanceState({
+  summary,
+  error,
+  retry,
+}: {
+  summary: RouterOutputs["finance"]["studentSummary"] | undefined;
+  error: boolean;
+  retry: () => void;
+}): ReactElement {
+  if (error) return <ProfileError message="Resumo indisponível." onRetry={retry} />;
+  if (summary) return <FinanceSnapshot summary={summary} />;
+  return (
+    <div className="grid gap-3 py-3" aria-label="Carregando resumo financeiro" aria-busy="true">
+      <InlineSkeleton className="h-5 w-24" />
+      <InlineSkeleton className="h-4 w-56 max-w-full" />
     </div>
   );
 }
@@ -119,7 +182,7 @@ function EnrollmentSummary({
   if (current.length === 0) {
     const next = rows
       .filter((row) => row.entryDate > today)
-      .toSorted((a, b) => a.entryDate.localeCompare(b.entryDate))[0];
+      .toSorted((first, second) => first.entryDate.localeCompare(second.entryDate))[0];
     return (
       <div className={styles.enrollmentEmpty}>
         <GraduationCap aria-hidden="true" />
@@ -170,55 +233,61 @@ function CurrentSummary({
           {row.class.scheduleType === "PERSONALIZED" ? "PPT" : "Regular"}
         </Badge>
       </div>
-      <dl className={styles.enrollmentFacts}>
-        <div>
-          <dt>
-            <GraduationCap aria-hidden="true" /> Professor
-          </dt>
-          <dd>
-            {row.class.teacher ? (
-              <Link href={`/professores/${row.class.teacher.id}?voltar=${back}`}>
-                {row.class.teacher.name}
-              </Link>
-            ) : (
-              "A definir"
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>
-            <CalendarDays aria-hidden="true" /> Aulas
-          </dt>
-          <dd>
-            {row.class.schedule.length ? (
-              <ul>
-                {row.class.schedule
-                  .toSorted(
-                    (a, b) =>
-                      WEEKDAYS.indexOf(a.weekday) - WEEKDAYS.indexOf(b.weekday) ||
-                      a.startTime.localeCompare(b.startTime),
-                  )
-                  .map((slot) => (
-                    <li key={slot.id}>
-                      {DAYS[slot.weekday]}{" "}
-                      <span>
-                        {slot.startTime}–{slot.endTime}
-                      </span>
-                    </li>
-                  ))}
-              </ul>
-            ) : (
-              "Consulte os encontros na agenda"
-            )}
-          </dd>
-        </div>
-      </dl>
+      <EnrollmentFacts row={row} back={back} />
       <p className={styles.enrollmentPeriod}>
         {row.class.semester} · {row.class.format === "IN_PERSON" ? "Presencial" : "Online"} · Desde{" "}
         {formatDateOnlyBR(row.entryDate)}
         {row.exitDate && ` · Saída em ${formatDateOnlyBR(row.exitDate)}`}
       </p>
     </article>
+  );
+}
+
+function EnrollmentFacts({ row, back }: { row: StudentEnrollment; back: string }): ReactElement {
+  return (
+    <dl className={styles.enrollmentFacts}>
+      <div>
+        <dt>
+          <GraduationCap aria-hidden="true" /> Professor
+        </dt>
+        <dd>
+          {row.class.teacher ? (
+            <Link href={`/professores/${row.class.teacher.id}?voltar=${back}`}>
+              {row.class.teacher.name}
+            </Link>
+          ) : (
+            "A definir"
+          )}
+        </dd>
+      </div>
+      <div>
+        <dt>
+          <CalendarDays aria-hidden="true" /> Aulas
+        </dt>
+        <dd>
+          {row.class.schedule.length > 0 ? (
+            <ul>
+              {row.class.schedule
+                .toSorted(
+                  (first, second) =>
+                    WEEKDAYS.indexOf(first.weekday) - WEEKDAYS.indexOf(second.weekday) ||
+                    first.startTime.localeCompare(second.startTime),
+                )
+                .map((slot) => (
+                  <li key={slot.id}>
+                    {DAYS[slot.weekday]}{" "}
+                    <span>
+                      {slot.startTime}–{slot.endTime}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            "Consulte os encontros na agenda"
+          )}
+        </dd>
+      </div>
+    </dl>
   );
 }
 
@@ -230,19 +299,7 @@ function FinanceSnapshot({
   const overdue = summary.overdueCount > 0;
   return (
     <div className={styles.snapshotContent}>
-      <Badge
-        variant={
-          summary.debtState === "SEVERE_OVERDUE"
-            ? "destructive"
-            : overdue
-              ? "warning"
-              : summary.installmentCount
-                ? "success"
-                : "neutral"
-        }
-      >
-        {overdue ? "Pagamento em atraso" : summary.installmentCount ? "Em dia" : "Sem cobranças"}
-      </Badge>
+      <Badge variant={debtVariant(summary)}>{debtLabel(summary)}</Badge>
       {overdue && (
         <p className={styles.snapshotAmount}>
           {formatBRLFromCents(summary.overdueCents)}
@@ -266,6 +323,21 @@ function FinanceSnapshot({
       )}
     </div>
   );
+}
+
+function debtVariant(
+  summary: RouterOutputs["finance"]["studentSummary"],
+): "destructive" | "warning" | "success" | "neutral" {
+  if (summary.debtState === "SEVERE_OVERDUE") return "destructive";
+  if (summary.overdueCount > 0) return "warning";
+  if (summary.installmentCount > 0) return "success";
+  return "neutral";
+}
+
+function debtLabel(summary: RouterOutputs["finance"]["studentSummary"]): string {
+  if (summary.overdueCount > 0) return "Pagamento em atraso";
+  if (summary.installmentCount > 0) return "Em dia";
+  return "Sem cobranças";
 }
 
 function EnrollmentSummaryLoading(): ReactElement {
@@ -308,7 +380,7 @@ export function StudentOverviewLoading(): ReactElement {
           </header>
           <div className={styles.healthLoading}>
             <InlineSkeleton className="h-12 w-24" />
-            {[0, 1, 2, 3].map((row) => (
+            {Array.from({ length: LOADING_ROWS }, (_value, row) => (
               <InlineSkeleton key={row} className="h-4 w-full" />
             ))}
           </div>
