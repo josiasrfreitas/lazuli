@@ -28,11 +28,15 @@ state unresolved limitations plainly.
 - `packages/ui` and `packages/validators` are shared libraries; `tooling/` owns shared
   configuration. See `CONTEXT.md` for domain vocabulary.
 
-Run commands from the root. The usual checks are `pnpm format:check`, `pnpm lint`,
-`pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:transport`, and
-`pnpm build`. `docs/testing/README.md` owns test tiers, placement, guidance, and executable gates. Before
-finishing, inspect the complete diff, run `git diff --check`, run proportionate checks, and report
-anything left to CI with a concrete reason.
+Run commands from the root. During feature work, focus on the requested behavior and use only
+checks needed to answer a specific implementation question. Reserve the full lint and static-check
+pass for opening a PR or integrating into `main`; do not run lint after each small edit. At that
+delivery gate, run checks one at a time, including across agents sharing this machine: wait for one
+command to finish before starting the next. The usual checks are `pnpm format:check`, `pnpm lint`,
+`pnpm typecheck`, `pnpm test`, `pnpm test:integration`, `pnpm test:transport`, and `pnpm build`.
+`docs/testing/README.md` owns test tiers, placement, guidance, and executable gates. Before
+finishing, inspect the complete diff and run `git diff --check`; report checks deferred to the
+delivery gate or CI.
 For large ESLint backlogs, use [`big-lint-resolver`](.codex/skills/big-lint-resolver/SKILL.md)
 and resume the locked batch from its progress document before choosing new work.
 For parallel lint agents in one worktree or a context-compaction handoff, load
