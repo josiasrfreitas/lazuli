@@ -79,9 +79,11 @@ export async function readCoverage(
       byClass.set(key, {
         ...existing,
         detail: item.detail,
-        departedTeacherName: item.departedTeacherName,
-        stageName: item.stageName,
-        studentCount: item.studentCount,
+        ...(item.departedTeacherName !== undefined && {
+          departedTeacherName: item.departedTeacherName,
+        }),
+        ...(item.stageName !== undefined && { stageName: item.stageName }),
+        ...(item.studentCount !== undefined && { studentCount: item.studentCount }),
       });
   }
   return [...byClass.values()];
