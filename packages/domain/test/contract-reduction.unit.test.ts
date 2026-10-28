@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { contractReduction } from "../src/contract-reduction.js";
 
-test("an exceptional reduction preserves paid principal and outstanding charges", () => {
+void test("an exceptional reduction preserves paid principal and outstanding charges", () => {
   const result = contractReduction(
     [
       {
@@ -29,7 +29,7 @@ test("an exceptional reduction preserves paid principal and outstanding charges"
   );
 });
 
-test("unpaid principal may be reduced to zero without forgiving accrued charges", () => {
+void test("unpaid principal may be reduced to zero without forgiving accrued charges", () => {
   const result = contractReduction(
     [
       {
@@ -46,7 +46,7 @@ test("unpaid principal may be reduced to zero without forgiving accrued charges"
   assert.equal(result.reductionCents, 25_000);
 });
 
-test("a new value below already paid principal is rejected", () => {
+void test("a new value below already paid principal is rejected", () => {
   assert.throws(
     () =>
       contractReduction(
@@ -65,7 +65,7 @@ test("a new value below already paid principal is rejected", () => {
   );
 });
 
-test("renegotiation requires an actual reduction on every selected installment", () => {
+void test("renegotiation requires an actual reduction on every selected installment", () => {
   const line = {
     id: "future",
     sequence: 2,

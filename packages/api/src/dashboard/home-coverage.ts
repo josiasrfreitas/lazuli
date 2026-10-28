@@ -3,6 +3,10 @@ import { saoPauloDateOnly } from "@lazuli/domain";
 import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
 import { dateOnly, linkItem, type HomeItem } from "./home-model.js";
 
+const COVERAGE_HORIZON_DAYS = 15;
+const TIME_START = 11;
+const TIME_END = 16;
+
 /** Current classes need coverage; future semesters enter the queue 15 days before starting. */
 export async function readUnassignedClasses(
   database: Prisma.TransactionClient,
@@ -10,7 +14,7 @@ export async function readUnassignedClasses(
 ): Promise<HomeItem[]> {
   const today = saoPauloDateOnly(now);
   const horizon = new Date(today);
-  horizon.setUTCDate(horizon.getUTCDate() + 15);
+  horizon.setUTCDate(horizon.getUTCDate() + COVERAGE_HORIZON_DAYS);
   const [classes, plans] = await Promise.all([
     database.class.findMany({
       where: {
@@ -84,7 +88,7 @@ export async function readUnassignedClasses(
         detail: row.scheduleSlots
           .map(
             (slot) =>
-              `${WEEKDAYS[slot.weekday]} ${slot.startTime.toISOString().slice(11, 16)}–${slot.endTime.toISOString().slice(11, 16)}`,
+              `${WEEKDAYS[slot.weekday]} ${slot.startTime.toISOString().slice(TIME_START, TIME_END)}–${slot.endTime.toISOString().slice(TIME_START, TIME_END)}`,
           )
           .join(" · "),
         stageName:

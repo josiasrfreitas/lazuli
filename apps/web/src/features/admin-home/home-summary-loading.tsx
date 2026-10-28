@@ -31,7 +31,7 @@ export function HomeSummaryLoading({ audience = false }: { audience?: boolean })
       <div className={layout.composition} aria-hidden="true">
         {!audience && (
           <>
-            <Card title="Receita e contratos" className={layout.receipts}>
+            <Card title="Receita e contratos" className={layout.receipts ?? ""}>
               <div className={styles.cash}>
                 <div>
                   <span className={styles.number} />
@@ -61,7 +61,7 @@ export function HomeSummaryLoading({ audience = false }: { audience?: boolean })
         )}
         {audience && (
           <>
-            <Card title="Alunos por faixa etária" className={layout.students}>
+            <Card title="Alunos por faixa etária" className={layout.students ?? ""}>
               <div className={styles.audience}>
                 <div className={styles.ring}>
                   <span className={styles.number} />
@@ -77,7 +77,7 @@ export function HomeSummaryLoading({ audience = false }: { audience?: boolean })
                 </div>
               </div>
             </Card>
-            <Card title="Conversão" className={layout.conversion}>
+            <Card title="Conversão" className={layout.conversion ?? ""}>
               <div className={styles.figures}>
                 <span className={styles.number} />
                 <span className={styles.caption} />

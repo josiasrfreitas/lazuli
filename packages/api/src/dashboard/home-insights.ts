@@ -39,8 +39,10 @@ type BusinessComparison = {
 /** Local home reporting rules. See docs/frontend/admin-home-kpi-debt.md before reuse. */
 export function homePeriod(
   now: Date,
-  requestedMonth?: string,
-  seriesMonths = SERIES_MONTHS,
+  {
+    requestedMonth,
+    seriesMonths = SERIES_MONTHS,
+  }: { requestedMonth?: string | undefined; seriesMonths?: number } = {},
 ): HomePeriod {
   const today = saoPauloDateOnly(now);
   const month =
@@ -136,7 +138,7 @@ export async function readHomeSchool({
   now: Date;
   requestedMonth?: string | undefined;
 }): Promise<HomeSchool> {
-  const period = homePeriod(now, requestedMonth, SCHOOL_SERIES_MONTHS);
+  const period = homePeriod(now, { requestedMonth, seriesMonths: SCHOOL_SERIES_MONTHS });
   const { students, enrollments, visits, totalStudents } = await readSchoolRows(database, period);
   return {
     month: period.month,
@@ -160,8 +162,7 @@ export async function readHomeSchool({
 }
 export async function readBusinessComparison(
   database: Context["db"],
-  period: HomePeriod,
-  contractPeriod: HomePeriod = period,
+  { period, contractPeriod = period }: { period: HomePeriod; contractPeriod?: HomePeriod },
 ): Promise<BusinessComparison> {
   const [payments, contracts] = await Promise.all([
     database.paymentEntry.findMany({

@@ -185,7 +185,7 @@ void it("keeps card installments as terms and creates one net receivable with st
     const receipt = {
       operationId: randomUUID(),
       date: "2026-02-02",
-      method: "CARD" as const,
+      method: "RECURRING_CREDIT" as const,
       receipts: [
         {
           commandId: randomUUID(),
@@ -414,7 +414,7 @@ void it("sells two books together with one net repasse and twelve card payments 
       await service.confirmPayments(
         {
           operationId: randomUUID(),
-          method: "CARD",
+          method: "RECURRING_CREDIT",
           date: "2026-02-02",
           receipts: [
             {

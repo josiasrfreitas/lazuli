@@ -475,7 +475,6 @@ function MeetingCalendar(model: MeetingModel): ReactElement {
         view={clock.view}
         dayCount={7}
         minDate={clock.now.date}
-        density="compact"
         expandEvents={false}
         label="Disponibilidade para atendimento"
         events={events}

@@ -1,11 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { getStorage } from "@lazuli/storage";
+import type { TransactionClient } from "@lazuli/db";
 import type { PaymentProofUpload } from "@lazuli/validators";
 import type { Context, StaffUser } from "../trpc/context.js";
 import { recordActivity } from "../activity/record.js";
 import { payerSubject } from "../activity/subjects.js";
 import { toDateOnlyString } from "./internal/shared.js";
+
+const PAYMENT_PAGE_SIZE = 20;
 
 export function paymentProofStaff(ctx: Context): StaffUser {
   if (!ctx.staffUser)
@@ -20,8 +23,7 @@ export function paymentProofStaff(ctx: Context): StaffUser {
 
 export async function savePaymentProof(
   ctx: Context,
-  input: PaymentProofUpload,
-  bytes: Buffer,
+  { input, bytes }: { input: PaymentProofUpload; bytes: Buffer },
 ): Promise<{ id: string }> {
   const staffUser = paymentProofStaff(ctx);
   const payment = await ctx.db.paymentEntry.findFirst({
@@ -32,7 +34,7 @@ export async function savePaymentProof(
   const sha256 = createHash("sha256").update(bytes).digest("hex");
   const existing = await ctx.db.paymentProof.findUnique({ where: { id: input.id } });
   if (existing) {
-    assertSameProof(existing, input, sha256);
+    assertSameProof(existing, { input, sha256 });
     return { id: existing.id };
   }
   const storage = getStorage();
@@ -46,21 +48,13 @@ export async function savePaymentProof(
       await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${input.id}, 0))`;
       const previous = await database.paymentProof.findUnique({ where: { id: input.id } });
       if (previous) {
-        assertSameProof(previous, input, sha256);
+        assertSameProof(previous, { input, sha256 });
         return false;
       }
       await database.paymentProof.create({
         data: { ...input, ...reference, sha256, uploadedById: staffUser.id },
       });
-      await recordActivity(database, {
-        context: { staffUser, now: ctx.now },
-        action: "finance.attachPaymentProof",
-        details: {
-          subject: await payerSubject(database, payment.payerId),
-          description: `Comprovante: ${input.fileName}.`,
-          deduplicationKey: `finance.attachPaymentProof:${input.id}`,
-        },
-      });
+      await recordProofActivity(database, { ctx, staffUser, payerId: payment.payerId, input });
       return true;
     });
     if (!saved) await storage.remove(reference);
@@ -71,10 +65,29 @@ export async function savePaymentProof(
   }
 }
 
+async function recordProofActivity(
+  database: TransactionClient,
+  {
+    ctx,
+    staffUser,
+    payerId,
+    input,
+  }: { ctx: Context; staffUser: StaffUser; payerId: string; input: PaymentProofUpload },
+): Promise<void> {
+  await recordActivity(database, {
+    context: { staffUser, now: ctx.now },
+    action: "finance.attachPaymentProof",
+    details: {
+      subject: await payerSubject(database, payerId),
+      description: `Comprovante: ${input.fileName}.`,
+      deduplicationKey: `finance.attachPaymentProof:${input.id}`,
+    },
+  });
+}
+
 function assertSameProof(
   stored: { paymentEntryId: string; sha256: string; fileName: string; contentType: string },
-  input: PaymentProofUpload,
-  sha256: string,
+  { input, sha256 }: { input: PaymentProofUpload; sha256: string },
 ): void {
   if (
     stored.paymentEntryId !== input.paymentEntryId ||
@@ -91,7 +104,17 @@ function assertSameProof(
 export async function studentPayments(
   ctx: Context,
   input: { studentId: string; cursor?: string | undefined },
-) {
+): Promise<{
+  rows: Array<{
+    id: string;
+    date: string;
+    amountCents: number;
+    payer: { name: string };
+    paymentMethod: { name: string };
+    proofs: Array<{ id: string; fileName: string; byteLength: number }>;
+  }>;
+  nextCursor: string | undefined;
+}> {
   paymentProofStaff(ctx);
   const rows = await ctx.db.paymentEntry.findMany({
     where: {
@@ -123,10 +146,10 @@ export async function studentPayments(
       },
     },
     orderBy: [{ date: "desc" }, { id: "desc" }],
-    take: 21,
+    take: PAYMENT_PAGE_SIZE + 1,
     ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
   });
-  const more = rows.length > 20;
+  const more = rows.length > PAYMENT_PAGE_SIZE;
   if (more) rows.pop();
   return {
     rows: rows.map((row) => ({ ...row, date: toDateOnlyString(row.date) })),

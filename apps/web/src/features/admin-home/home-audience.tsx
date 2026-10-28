@@ -47,7 +47,7 @@ export function StudentAgeChart({
                 animationEasing="ease-out"
               >
                 {slices.map((group) => (
-                  <Cell key={group.id} fill={COLORS[group.id]} />
+                  <Cell key={group.id} fill={COLORS[group.id] ?? "var(--muted-foreground)"} />
                 ))}
               </Pie>
             </PieChart>

@@ -5,13 +5,14 @@ import type { Context } from "../trpc/context.js";
 import { paymentProofStaff, savePaymentProof } from "./payment-proofs.js";
 
 const PRIVATE_HEADERS = { "Cache-Control": "private, no-store" };
+const INTERNAL_ERROR_STATUS = 500;
 const SIGNATURES = {
   "application/pdf": Buffer.from("%PDF-"),
   "image/jpeg": Buffer.from("ffd8ff", "hex"),
   "image/png": Buffer.from("89504e470d0a1a0a", "hex"),
 };
 
-function uploadInput(request: Request): PaymentProofUpload {
+function requireSameOrigin(request: Request): void {
   const url = new URL(request.url);
   const protocol =
     request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || url.protocol.slice(0, -1);
@@ -20,9 +21,15 @@ function uploadInput(request: Request): PaymentProofUpload {
       code: "FORBIDDEN",
       message: "Abra o sistema novamente para anexar o comprovante.",
     });
-  let metadata: unknown;
+}
+
+function uploadInput(request: Request): PaymentProofUpload {
+  requireSameOrigin(request);
+  let metadata: Record<string, string | number>;
   try {
-    metadata = JSON.parse(decodeURIComponent(request.headers.get("x-upload-metadata") ?? ""));
+    metadata = JSON.parse(
+      decodeURIComponent(request.headers.get("x-upload-metadata") ?? ""),
+    ) as Record<string, string | number>;
   } catch {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Dados do comprovante inválidos." });
   }
@@ -36,7 +43,7 @@ function uploadInput(request: Request): PaymentProofUpload {
 }
 
 async function proofBytes(request: Request, input: PaymentProofUpload): Promise<Buffer> {
-  const reader = request.body?.getReader();
+  const reader = request.body?.getReader() as ReadableStreamDefaultReader<Uint8Array> | undefined;
   if (!reader) throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo vazio." });
   const chunks: Uint8Array[] = [];
   let length = 0;
@@ -65,7 +72,7 @@ async function proofBytes(request: Request, input: PaymentProofUpload): Promise<
   return bytes;
 }
 
-function failure(error: unknown): Response {
+function failure(error: Error | null): Response {
   const known = error instanceof TRPCError ? error : null;
   const statuses: Record<string, number> = {
     UNAUTHORIZED: 401,
@@ -76,7 +83,10 @@ function failure(error: unknown): Response {
   };
   return Response.json(
     { message: known?.message ?? "Não foi possível acessar o comprovante. Tente novamente." },
-    { status: known ? (statuses[known.code] ?? 500) : 500, headers: PRIVATE_HEADERS },
+    {
+      status: known ? (statuses[known.code] ?? INTERNAL_ERROR_STATUS) : INTERNAL_ERROR_STATUS,
+      headers: PRIVATE_HEADERS,
+    },
   );
 }
 
@@ -85,9 +95,11 @@ export async function receivePaymentProof(ctx: Context, request: Request): Promi
     paymentProofStaff(ctx);
     const input = uploadInput(request);
     const bytes = await proofBytes(request, input);
-    return Response.json(await savePaymentProof(ctx, input, bytes), { headers: PRIVATE_HEADERS });
+    return Response.json(await savePaymentProof(ctx, { input, bytes }), {
+      headers: PRIVATE_HEADERS,
+    });
   } catch (error) {
-    return failure(error);
+    return failure(error instanceof Error ? error : null);
   }
 }
 
@@ -111,6 +123,6 @@ export async function downloadPaymentProof(ctx: Context, id: string): Promise<Re
       },
     });
   } catch (error) {
-    return failure(error);
+    return failure(error instanceof Error ? error : null);
   }
 }

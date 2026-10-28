@@ -42,6 +42,7 @@ type HomeBusiness = {
 };
 const YEAR_LENGTH = 4;
 const REPORT_MONTHS = 6;
+const CONTRACT_REPORT_MONTHS = 8;
 export async function readAdminHome({
   database,
   now,
@@ -82,7 +83,7 @@ export async function readAdminHome({
     readHomeAgenda(database, now),
     readStudentAges(database, now),
     readHomeSchool({ database, now, requestedMonth: month }),
-    readLeadConversion(database, homePeriod(now, month)),
+    readLeadConversion(database, homePeriod(now, { requestedMonth: month })),
   ]);
   return {
     today,
@@ -107,10 +108,13 @@ export async function readHomeBusiness({
   now: Date;
   requestedMonth?: string | undefined;
 }): Promise<HomeBusiness> {
-  const period = homePeriod(now, requestedMonth);
+  const period = homePeriod(now, { requestedMonth });
   const [analytics, comparison] = await Promise.all([
     readAnalytics(database, { year: Number(period.month.slice(0, YEAR_LENGTH)), now }),
-    readBusinessComparison(database, period, homePeriod(now, requestedMonth, 8)),
+    readBusinessComparison(database, {
+      period,
+      contractPeriod: homePeriod(now, { requestedMonth, seriesMonths: CONTRACT_REPORT_MONTHS }),
+    }),
   ]);
   const current = analytics.months.find((row) => row.month === period.month)!;
   return {

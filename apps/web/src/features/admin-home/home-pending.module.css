@@ -401,28 +401,15 @@
   font-size: 0.875rem;
   line-height: 1.5;
 }
-.summary .identity,
-.teacherSummary .identity {
-  flex-wrap: nowrap;
-}
 .summary .identity > strong {
   flex-shrink: 0;
 }
 .summary .identity > span {
   min-width: 0;
-  white-space: nowrap;
+  white-space: normal;
 }
 .summary > .amount {
   font-size: 0.875rem;
-}
-@media (max-width: 640px) {
-  .summary .identity,
-  .teacherSummary .identity {
-    flex-wrap: wrap;
-  }
-  .summary .identity > span {
-    white-space: normal;
-  }
 }
 
 .placementCase,

@@ -55,9 +55,9 @@ export async function readStudentAgenda(
       : [];
   });
   const [recordedLessons, appointments, meetings] = await Promise.all([
-    windows.length ? listClassRecords(context, input, { OR: windows }) : [],
+    windows.length > 0 ? listClassRecords(context, { ...input, scope: { OR: windows } }) : [],
     listAppointments(context, { from: input.from, through: input.to, studentId: input.id }),
-    windows.length
+    windows.length > 0
       ? meetingsBetween({
           database: context.database,
           from: input.from,
@@ -94,6 +94,9 @@ export async function readStudentAgenda(
       state:
         sessionEndInstant(meeting) > context.now ? ("UPCOMING" as const) : ("PENDING" as const),
     })),
-  ].sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+  ].toSorted(
+    (left, right) =>
+      left.date.localeCompare(right.date) || left.startTime.localeCompare(right.startTime),
+  );
   return { lessons, appointments };
 }

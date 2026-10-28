@@ -4,7 +4,8 @@ import { useRef, useState, type ReactElement } from "react";
 import { Check, Download, Paperclip } from "lucide-react";
 import { Alert, Button, FileUpload, InlineSkeleton, formatFileSize } from "@lazuli/ui";
 import { MAX_PAYMENT_PROOF_BYTES, PAYMENT_PROOF_ACCEPT } from "@lazuli/validators";
-import { trpc, type RouterOutputs } from "~/lib/trpc";
+import type { RouterOutputs } from "@lazuli/api";
+import { trpc } from "~/lib/trpc";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import { uploadPaymentProof } from "~/features/installments/payment/payment-proof";
 

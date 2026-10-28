@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useReducer, useRef, useState, type Dispatch } from "react";
 import type { FinanceInstallmentRow, PaymentOperationInput } from "@lazuli/validators";
-import { trpc, type QueryResult, type RouterOutputs } from "~/lib/trpc";
+import type { RouterOutputs } from "@lazuli/api";
+import { trpc, type QueryResult } from "~/lib/trpc";
 import { parseDateBR } from "~/lib/masks";
 import { businessDate } from "../view-model";
 import { usePaymentConfirmation } from "./use-payment-confirmation";

@@ -477,7 +477,7 @@ function ScheduleDialogFrame(model: ScheduleModel): ReactJSX.Element {
     <TaskDialog
       size={classStep ? "extra-wide" : "wide"}
       layout={classStep ? "appointment-calendar" : "appointment"}
-      contentClassName={styles.dialog}
+      contentClassName={styles.dialog ?? ""}
       compactHeader={classStep}
       {...(classStep ? { bodyLayout: "calendar" as const } : {})}
       title={input.previous ? "Reagendar atendimento" : "Agendar atendimento"}

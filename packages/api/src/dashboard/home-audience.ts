@@ -2,6 +2,9 @@ import { saoPauloDateOnly } from "@lazuli/domain";
 import type { Context } from "../trpc/context.js";
 
 type AgeGroup = { id: string; label: string; count: number };
+const DATE_ONLY_LENGTH = 10;
+const YEAR_LENGTH = 4;
+const MONTH_DAY_START = 5;
 const AGE_BANDS = [
   { id: "children", label: "Crianças", maximum: 11 },
   { id: "teens", label: "Adolescentes", maximum: 17 },
@@ -24,12 +27,12 @@ export async function readStudentAges(
   ];
   let total = 0;
   for (const row of rows) {
-    const birth = row.birthDate?.toISOString().slice(0, 10);
+    const birth = row.birthDate?.toISOString().slice(0, DATE_ONLY_LENGTH);
     const age =
       birth && birth <= today
-        ? Number(today.slice(0, 4)) -
-          Number(birth.slice(0, 4)) -
-          Number(today.slice(5) < birth.slice(5))
+        ? Number(today.slice(0, YEAR_LENGTH)) -
+          Number(birth.slice(0, YEAR_LENGTH)) -
+          Number(today.slice(MONTH_DAY_START) < birth.slice(MONTH_DAY_START))
         : null;
     const id = age === null ? "unknown" : AGE_BANDS.find((band) => age <= band.maximum)!.id;
     groups.find((group) => group.id === id)!.count += row._count._all;

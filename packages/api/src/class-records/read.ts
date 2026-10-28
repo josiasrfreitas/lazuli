@@ -27,9 +27,9 @@ const HISTORY_PAGE_SIZE = 20;
 
 export async function listClassRecords(
   context: RecordContext,
-  input: z.infer<typeof classRecordListSchema>,
-  scope?: Prisma.ClassSessionWhereInput,
+  input: z.infer<typeof classRecordListSchema> & { scope?: Prisma.ClassSessionWhereInput },
 ): Promise<SessionSummary[]> {
+  const { scope } = input;
   const sessions = await context.database.classSession.findMany({
     where: {
       deletedAt: null,

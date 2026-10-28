@@ -212,7 +212,7 @@ function AttendanceHistoryFilters({
 }): ReactElement {
   return (
     <div className="flex shrink-0 flex-wrap items-end gap-3">
-      {(data?.enrollments.filter((row) => row.current).length ?? 0) > 1 && (
+      {(data?.enrollments.length ?? 0) > 1 && (
         <div className="w-96 max-w-full">
           <SelectControl
             name={`${fieldId}-enrollment`}

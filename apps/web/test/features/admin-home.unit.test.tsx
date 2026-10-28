@@ -4,6 +4,7 @@ import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   HomeWelcome,
+  HomeError,
   TodayAgenda,
   type HomeData,
 } from "../../src/features/admin-home/home-parts.js";
@@ -12,7 +13,10 @@ import { BusinessSummary } from "../../src/features/admin-home/home-business.js"
 import { Trend } from "../../src/features/admin-home/home-metrics.js";
 import { isSchoolStarting } from "../../src/features/admin-home/home-start.js";
 import { prioritizedWork, workPriority } from "../../src/features/admin-home/home-work-model.js";
-import { HomeDefault } from "../../src/features/admin-home/home-default.js";
+import { LeadConversion } from "../../src/features/admin-home/home-audience.js";
+import { pendingWork } from "../../src/features/admin-home/home-pending-model.js";
+import { CoveragePagination } from "../../src/features/admin-home/home-pending-coverage.js";
+import { HomeSummaryLoading } from "../../src/features/admin-home/home-summary-loading.js";
 
 Object.assign(globalThis, { React });
 const emptyMetric = { value: 0, previous: 0, series: [{ month: "2026-10", value: 0 }] };
@@ -21,6 +25,13 @@ const data: HomeData = {
   updatedAt: "2026-10-23T15:00:00Z",
   name: "Maria Silva",
   activeStudents: 120,
+  studentAges: [
+    { id: "children", label: "Crianças", count: 0 },
+    { id: "teens", label: "Adolescentes", count: 120 },
+    { id: "adults", label: "Adultos", count: 0 },
+    { id: "unknown", label: "Não informada", count: 0 },
+  ],
+  leadConversion: { month: "2026-10", leads: 0, converted: 0 },
   canViewFinance: false,
   agenda: { total: 0, items: [] },
   school: {
@@ -55,75 +66,68 @@ const data: HomeData = {
     },
   ],
 };
-void it("takes each home appointment to its detail page without offering home mutations", () => {
-  const eventRows: Omit<HomeData["agenda"]["items"][number], "date" | "time" | "endTime">[] = [
-    {
-      id: "home-lesson",
-      title: "Teens A2",
-      detail: "Camila",
-      kind: "Aula",
-      action: { kind: "lesson", id: "home-lesson" },
-    },
-    {
-      id: "home-appointment",
-      title: "Ana",
-      detail: "Atendimento pedagógico",
-      kind: "Atendimento",
-      action: { kind: "appointment", id: "home-appointment" },
-    },
-    {
-      id: "home-trial",
-      title: "Lucas",
-      detail: "Aula experimental",
-      kind: "Experimental",
-      action: { kind: "link", href: "/interessados/home-trial" },
-    },
-  ];
-  const events = eventRows.map((event) => ({
-    ...event,
-    date: data.today,
-    time: "14:00",
-    endTime: "15:00",
-  }));
-  const html = renderToStaticMarkup(
-    <HomeDefault
-      name="Maria Silva"
-      data={{ ...data, agenda: { total: 12, items: events } }}
-      loading={false}
-      error={false}
-      retry={() => {}}
-    />,
+void it("shows no conversion rate when the month has no leads", () => {
+  const empty = renderToStaticMarkup(<LeadConversion data={data.leadConversion} />);
+  assert.match(empty, /Sem leads cadastrados no mês/);
+  assert.doesNotMatch(empty, />0%<|NaN|Infinity/);
+
+  const converted = renderToStaticMarkup(
+    <LeadConversion data={{ month: "2026-10", leads: 4, converted: 1 }} />,
   );
-  assert.match(html, /href="\/aulas\/home-lesson"/);
-  assert.match(html, /href="\/atendimentos\/home-appointment"/);
-  assert.match(html, /href="\/interessados\/home-trial"/);
-  assert.match(html, /Ver os 12 compromissos de hoje/);
-  assert.doesNotMatch(html, /Registrar aula|Registrar atendimento/);
+  assert.match(converted, /25%/);
+  assert.match(converted, /1<\/strong> com aluno vinculado/);
 });
 
-void it("does not confuse a quiet agenda, unavailable data and resolved pending work", () => {
-  const quiet = renderToStaticMarkup(
-    <HomeDefault name="Maria" data={data} loading={false} error={false} retry={() => {}} />,
+void it("orders home pending work by urgency instead of queue volume", () => {
+  const ranked = pendingWork({
+    ...data,
+    groups: [
+      { ...queue("students"), total: 200 },
+      queue("coverage", {
+        kind: "meeting",
+        date: "2026-10-23",
+        startTime: "14:00",
+        endTime: "15:00",
+      }),
+    ],
+  });
+  assert.deepEqual(
+    ranked.map((work) => work.id),
+    ["coverage", "students"],
   );
-  assert.match(quiet, /Sem compromissos restantes hoje/);
-  assert.doesNotMatch(quiet, /Nenhuma pendência|Tudo em dia/);
-  const loading = renderToStaticMarkup(
-    <HomeDefault name="Maria" data={undefined} loading error={false} retry={() => {}} />,
+  assert.equal(ranked[0]?.score, 10);
+  assert.equal(ranked[1]?.score, 4);
+});
+
+void it("offers the next coverage page when more than three classes need a teacher", () => {
+  const html = renderToStaticMarkup(
+    <CoveragePagination total={4} page={1} busy={false} onPageChange={() => {}} />,
   );
-  assert.match(loading, /Carregando agenda/);
-  assert.doesNotMatch(loading, /Sem compromissos|Em outubro/);
+  assert.match(html, /4 turmas sem professor/);
+  assert.match(html, /Página 1 de 2/);
+  const nextButton = html.match(/<button[^>]*><span[^>]*>Próxima<\/span><\/button>/u)?.[0];
+  assert.ok(nextButton);
+  assert.doesNotMatch(nextButton, /\sdisabled=""/u);
+});
+
+void it("keeps loading and failed dashboard data distinct", () => {
+  const loading = renderToStaticMarkup(<HomeSummaryLoading />);
+  assert.match(loading, /Carregando indicadores da escola/);
+  assert.doesNotMatch(loading, /Nenhuma pendência/);
   const failed = renderToStaticMarkup(
-    <HomeDefault name="Maria" data={undefined} loading={false} error retry={() => {}} />,
+    <HomeError retry={() => {}}>Não foi possível carregar o Início.</HomeError>,
   );
+  assert.match(failed, /role="alert"/);
   assert.match(failed, /Não foi possível carregar o Início/);
   assert.match(failed, /Tentar novamente/);
-  assert.doesNotMatch(failed, /Sem compromissos|Em outubro/);
   const stale = renderToStaticMarkup(
-    <HomeDefault name="Maria" data={data} loading={false} error retry={() => {}} />,
+    <HomeError retry={() => {}}>
+      Não foi possível atualizar o Início. Os dados exibidos podem estar desatualizados.
+    </HomeError>,
   );
   assert.match(stale, /podem estar desatualizados/);
-  assert.match(stale, /Em outubro/);
 });
+
 void it("prioritizes upcoming teaching coverage before intake volume and finance", () => {
   const groups: HomeData["groups"] = [
     {
