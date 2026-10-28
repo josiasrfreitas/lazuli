@@ -8,6 +8,72 @@
   outline: none;
 }
 
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  gap: 1.25rem;
+  outline: none;
+}
+.workspaceCalendar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: 1rem;
+}
+.workspaceCalendar :global(.lz-calendar-selected-range .lz-calendar-background-label) {
+  overflow: hidden;
+  padding: 0.25rem;
+  font-size: var(--lz-text-micro);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace .toolbar {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+.workspace .navigation {
+  grid-row: 2;
+  grid-column: 1 / -1;
+}
+.workspace .views {
+  grid-column: 2;
+  grid-row: 1;
+}
+.sidebarSelection {
+  display: grid;
+  gap: 0.75rem;
+}
+.sidebarSelection .selection {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.sidebarSelection .selection > :first-child {
+  grid-column: 1 / -1;
+}
+.sidebarSelection .format {
+  grid-column: 1 / -1;
+  margin-left: 0;
+  justify-self: start;
+}
+.sidebarSelection .error {
+  text-align: left;
+}
+@media (max-width: 800px) {
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .workspaceCalendar {
+    min-height: 24rem;
+    flex-shrink: 0;
+  }
+}
+
 .toolbar {
   flex-shrink: 0;
   display: grid;

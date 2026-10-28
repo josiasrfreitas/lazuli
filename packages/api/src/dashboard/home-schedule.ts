@@ -1,5 +1,6 @@
 import type { Prisma } from "@lazuli/db";
 import { responsibleTeacherId, saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
+import { readUnassignedClasses } from "./home-coverage.js";
 import { meetingsBetween, meetingKey, type TeacherMeeting } from "../teachers/schedule.js";
 import { COVERAGE_DAYS, dateOnly, linkItem, plusDays, type HomeItem } from "./home-model.js";
 
@@ -46,7 +47,7 @@ export async function readCoverage(
     through: plusDays(today, COVERAGE_DAYS),
     now,
   });
-  return meetings
+  const uncovered = meetings
     .filter(
       (row) => !row.cancelled && responsibleTeacherId(row) === null && sessionEndInstant(row) > now,
     )
@@ -60,12 +61,30 @@ export async function readCoverage(
       linkItem({
         id: meetingKey(row),
         title: row.className,
+        stageName: row.scheduleType === "PERSONALIZED" ? "PPT" : (row.stageName ?? "Sem estágio"),
         detail: `${row.startTime} · Definir professor ou substituição`,
-        href: `/turmas/${row.classId}`,
+        href: `/turmas/${row.classId}?acao=professor`,
         date: row.date,
         timing: { kind: "meeting", date: row.date, startTime: row.startTime, endTime: row.endTime },
       }),
     );
+  const classes = await readUnassignedClasses(database, now);
+  // One contextual item per class, keeping its earliest uncovered meeting when available.
+  const byClass = new Map<string, HomeItem>();
+  for (const item of [...uncovered, ...classes]) {
+    const key = item.action.kind === "link" ? item.action.href : item.id;
+    const existing = byClass.get(key);
+    if (!existing) byClass.set(key, item);
+    else
+      byClass.set(key, {
+        ...existing,
+        detail: item.detail,
+        departedTeacherName: item.departedTeacherName,
+        stageName: item.stageName,
+        studentCount: item.studentCount,
+      });
+  }
+  return [...byClass.values()];
 }
 export async function readHomeAgenda(
   database: Prisma.TransactionClient,

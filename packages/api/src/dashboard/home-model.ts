@@ -14,7 +14,8 @@ export const HOME_GROUPS = [
 export type HomeGroupKind = (typeof HOME_GROUPS)[number];
 export type HomeAction =
   | { kind: "link"; href: string }
-  | { kind: "lesson" | "appointment"; id: string };
+  | { kind: "lesson"; id: string }
+  | { kind: "appointment"; id: string; studentId?: string };
 /** Facts for triage; a waiting timestamp is not a promised deadline. */
 export type HomeTiming =
   | { kind: "meeting"; date: string; startTime: string; endTime: string }
@@ -28,6 +29,9 @@ export type HomeItem = {
   date: string | null;
   action: HomeAction;
   timing?: HomeTiming;
+  departedTeacherName?: string;
+  stageName?: string;
+  studentCount?: number;
 };
 export type HomeGroup = {
   kind: HomeGroupKind;
@@ -39,11 +43,12 @@ export type HomeGroup = {
   items: HomeItem[];
   period?: "all" | "recent" | "history";
   historyTotal?: number;
+  historyItem?: HomeItem;
 };
 export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "total" | "items">> = {
   coverage: {
-    title: "Aulas sem professor",
-    description: "Definir a cobertura dos próximos 7 dias.",
+    title: "Turmas sem professor",
+    description: "Definir professor para turmas atuais e futuras ou cobertura de encontros.",
     area: "school",
     attention: true,
   },
@@ -132,6 +137,9 @@ export function linkItem({
   href,
   date = null,
   timing,
+  departedTeacherName,
+  stageName,
+  studentCount,
 }: {
   id: string;
   title: string;
@@ -139,6 +147,19 @@ export function linkItem({
   href: string;
   date?: string | null;
   timing?: HomeTiming;
+  departedTeacherName?: string;
+  stageName?: string;
+  studentCount?: number;
 }): HomeItem {
-  return { id, title, detail, date, action: { kind: "link", href }, ...(timing && { timing }) };
+  return {
+    id,
+    title,
+    detail,
+    date,
+    action: { kind: "link", href },
+    ...(timing && { timing }),
+    ...(departedTeacherName && { departedTeacherName }),
+    ...(stageName && { stageName }),
+    ...(studentCount !== undefined && { studentCount }),
+  };
 }

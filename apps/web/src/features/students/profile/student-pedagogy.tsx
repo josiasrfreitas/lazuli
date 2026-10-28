@@ -7,7 +7,6 @@ import { StudentFollowUp } from "~/features/pedagogical-follow-up/student-follow
 import { EnrollmentLoading } from "./student-loading";
 import { EnrollmentHistory } from "./student-history";
 import { CurrentEnrollment } from "./current-enrollment";
-import { StudentContactSummary } from "./student-identity";
 import { ContractTerminationNotice } from "./contract-termination-notice";
 import { OrganizationIntention } from "./organization-intention";
 import type { RouterOutputs } from "@lazuli/api";
@@ -54,7 +53,12 @@ export function StudentPedagogySection(props: PedagogyProps): ReactElement {
         />
       ))}
       {pedagogyWorkspacePreview ?? (
-        <StudentFollowUp studentId={id} studentName={profile.contact.fullName} canRecord />
+        <StudentFollowUp
+          studentId={id}
+          studentName={profile.contact.fullName}
+          canRecord
+          showAppointments={false}
+        />
       )}
       <EnrollmentHistory
         rows={history}
@@ -91,9 +95,6 @@ function NoCurrentPedagogy({
   return (
     <div className="flex min-h-full min-w-0 flex-col">
       <ContractTerminationNotice termination={latestTermination} studentId={profile.id} />
-      <section aria-label="Dados do aluno" className="border-b border-border py-4">
-        <StudentContactSummary profile={profile} />
-      </section>
       <NoCurrentEnrollment
         upcoming={upcoming}
         hasHistory={history.some((row) => row.entryDate <= today)}
@@ -102,6 +103,7 @@ function NoCurrentPedagogy({
         studentId={profile.id}
         studentName={profile.contact.fullName}
         canRecord={false}
+        showAppointments={false}
       />
       <EnrollmentHistory
         rows={history}

@@ -11,6 +11,9 @@ import type { PaymentFormState } from "../../src/features/installments/payment/l
 import { PAYMENT_DRAFT, PAYMENT_PREVIEW } from "../support/payment-draft.js";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 const state: PaymentFormState = {
+  methods: [],
+  methodsLoading: false,
+  methodsError: false,
   draft: PAYMENT_DRAFT,
   preview: PAYMENT_PREVIEW,
   dispatch: () => {},
@@ -18,6 +21,12 @@ const state: PaymentFormState = {
   error: null,
   submitting: false,
   uncertain: false,
+  registered: false,
+  uploading: false,
+  proofs: {},
+  setProof: () => {},
+  setProofError: () => {},
+  finish: () => {},
   revision: 0,
   submit: () => {},
   refresh: () => {},

@@ -69,7 +69,7 @@ function AttendanceSummary({ attendance }: { attendance: Attendance }): ReactEle
       </p>
       <p className="text-caption text-muted-foreground">
         {attendance.heldSessions
-          ? `${attendance.presentCount} presenças em ${attendance.heldSessions} aulas`
+          ? `${attendance.presentCount} ${attendance.presentCount === 1 ? "presença" : "presenças"} em ${attendance.heldSessions} ${attendance.heldSessions === 1 ? "aula" : "aulas"}`
           : "Sem chamadas confirmadas"}
       </p>
     </div>

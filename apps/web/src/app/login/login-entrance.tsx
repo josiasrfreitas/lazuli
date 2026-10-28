@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 
 import { BookLoader } from "@lazuli/ui";
+import { waitForAnimationPreview } from "~/lib/animation-preview";
 
 import { waitForLoginAssets } from "./login-assets";
 import { animateEntrance, dissolveLoader } from "./login-entrance-motion";
@@ -59,33 +60,37 @@ function startEntrance(container: HTMLElement, eligible: boolean): () => void {
   const controller = new AbortController();
   const media = globalThis.matchMedia(ENTRANCE_MOTION);
   const images = [...container.querySelectorAll("img")];
-  const assetsLoaded =
-    images.every((image) => image.complete && image.naturalWidth > 0) &&
-    document.fonts.status === "loaded";
   let animations: Animation[] = [];
+  let deadline: ReturnType<typeof setTimeout> | undefined;
   const finish = (): void => {
     if (container.dataset.phase === "ready") return;
     container.dataset.phase = "ready";
+    if (deadline !== undefined) globalThis.clearTimeout(deadline);
     for (const animation of animations) animation.cancel();
     focusLoginField(container);
   };
   const reveal = (): void => {
     if (controller.signal.aborted || container.dataset.phase === "ready") return;
-    if (assetsLoaded || !eligible) {
+    if (!eligible) {
       finish();
       return;
     }
     container.dataset.phase = "opening";
-    animations = eligible && media.matches ? animateEntrance(container) : dissolveLoader(container);
+    animations = media.matches ? animateEntrance(container) : dissolveLoader(container);
+    deadline = globalThis.setTimeout(finish, media.matches ? 2800 : 300);
     void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
       if (!controller.signal.aborted) finish();
     });
   };
   container.dataset.phase = "loading";
   bindInterruptions(container, { signal: controller.signal, media, finish });
-  void waitForLoginAssets(images, controller.signal).then(reveal, reveal);
+  void Promise.all([
+    waitForLoginAssets(images, controller.signal),
+    eligible ? waitForAnimationPreview(1200, controller.signal) : Promise.resolve(),
+  ]).then(reveal, reveal);
   return () => {
     controller.abort();
+    if (deadline !== undefined) globalThis.clearTimeout(deadline);
     for (const animation of animations) animation.cancel();
   };
 }
@@ -116,6 +121,7 @@ function bindInterruptions(
 }
 
 function claimEntrance(skip: boolean): boolean {
+  if (process.env.NODE_ENV === "development") return !skip;
   try {
     const seen = sessionStorage.getItem(SESSION_KEY) !== null;
     sessionStorage.setItem(SESSION_KEY, "1");

@@ -6,12 +6,15 @@ import { HOME_GROUPS, HOME_PREVIEW_SIZE } from "./home-model.js";
 import { readHomePending } from "./home-pending.js";
 import { readHomeAgenda } from "./home-schedule.js";
 import { homePeriod, readHomeSchool, readBusinessComparison } from "./home-insights.js";
+import { readStudentAges, readLeadConversion } from "./home-audience.js";
 
 type HomeSummary = {
   today: string;
   updatedAt: string;
   name: string;
   activeStudents: number;
+  studentAges: Awaited<ReturnType<typeof readStudentAges>>["groups"];
+  leadConversion: Awaited<ReturnType<typeof readLeadConversion>>;
   school: Awaited<ReturnType<typeof readHomeSchool>>;
   canViewFinance: boolean;
   groups: Awaited<ReturnType<typeof readHomePending>>[];
@@ -50,7 +53,7 @@ export async function readAdminHome({
   const kinds = finance
     ? HOME_GROUPS
     : HOME_GROUPS.filter((kind) => kind !== "contracts" && kind !== "renewals");
-  const [groups, agenda, activeStudents, school] = await Promise.all([
+  const [groups, agenda, audience, school, leadConversion] = await Promise.all([
     Promise.all(
       kinds.map(async (kind) => {
         const records = kind === "lessons" || kind === "appointments";
@@ -66,21 +69,28 @@ export async function readAdminHome({
           kind,
           now,
           page: 1,
-          pageSize: 0,
+          pageSize: 1,
           period: "history",
         });
-        return { ...group, historyTotal: history.total };
+        return {
+          ...group,
+          historyTotal: history.total,
+          ...(history.items[0] ? { historyItem: history.items[0] } : {}),
+        };
       }),
     ),
     readHomeAgenda(database, now),
-    database.student.count({ where: { deletedAt: null, status: "ACTIVE" } }),
+    readStudentAges(database, now),
     readHomeSchool({ database, now, requestedMonth: month }),
+    readLeadConversion(database, homePeriod(now, month)),
   ]);
   return {
     today,
     updatedAt: now.toISOString(),
     name: staffUser.name,
-    activeStudents,
+    activeStudents: audience.total,
+    studentAges: audience.groups,
+    leadConversion,
     school,
     canViewFinance: finance,
     groups,
@@ -100,7 +110,7 @@ export async function readHomeBusiness({
   const period = homePeriod(now, requestedMonth);
   const [analytics, comparison] = await Promise.all([
     readAnalytics(database, { year: Number(period.month.slice(0, YEAR_LENGTH)), now }),
-    readBusinessComparison(database, period),
+    readBusinessComparison(database, period, homePeriod(now, requestedMonth, 8)),
   ]);
   const current = analytics.months.find((row) => row.month === period.month)!;
   return {

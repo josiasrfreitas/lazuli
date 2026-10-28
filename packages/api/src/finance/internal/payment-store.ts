@@ -1,5 +1,6 @@
 import type { PaymentAllocation, PaymentEntry } from "@lazuli/db";
 
+import { badRequest } from "../../trpc/errors.js";
 import type { FinanceDatabase } from "./shared.js";
 
 export type PaymentAllocationInput = {
@@ -63,6 +64,11 @@ export async function persistPayment(input: {
   allocationRows: PaymentAllocationInput[];
   staffUserId: string;
 }): Promise<{ paymentEntry: PaymentEntrySummary; allocations: PaymentAllocationSummary[] }> {
+  const method = await input.database.paymentMethod.findFirst({
+    where: { code: input.values.method, active: true, deletedAt: null },
+    select: { id: true },
+  });
+  if (!method) throw badRequest("Selecione uma forma de pagamento disponível.");
   const paymentEntry = await input.database.paymentEntry.create({
     data: {
       payerId: input.values.payerId,

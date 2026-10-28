@@ -305,14 +305,42 @@ async function completeDatabaseInitialization({ root, workspace, journalPath, ou
   ) {
     output("Finalizing completed database initialization...");
   } else {
+    const hasFixtures =
+      runWorkspaceCommand({
+        command: "docker",
+        arguments_: psqlArguments(workspace.resources.database, [
+          "-v",
+          "ON_ERROR_STOP=1",
+          "-tAc",
+          'SELECT EXISTS (SELECT 1 FROM "Semester")',
+        ]),
+        root,
+        capture: true,
+        capability: "partial database initialization inspection",
+      }).trim() === "t";
+    if (hasFixtures) {
+      const error = new Error(
+        "database initialization is incomplete, but school data already exists; fixtures were not replayed",
+      );
+      error.code = "PARTIAL_DATABASE_INITIALIZATION";
+      throw error;
+    }
     output("Loading database fixtures...");
-    runWorkspaceCommand({
-      command: "pnpm",
-      arguments_: ["-F", "@lazuli/db", "exec", "prisma", "db", "seed"],
-      root,
-      capability: "database initialization",
-      environment: { LAZULI_WORKSPACE_INITIALIZATION_KEY: WORKSPACE_FULL_INITIALIZATION_KEY },
-    });
+    try {
+      runWorkspaceCommand({
+        command: "pnpm",
+        arguments_: ["-F", "@lazuli/db", "exec", "prisma", "db", "seed"],
+        root,
+        capability: "database initialization",
+        environment: { LAZULI_WORKSPACE_INITIALIZATION_KEY: WORKSPACE_FULL_INITIALIZATION_KEY },
+      });
+    } catch (cause) {
+      const error = new Error("database fixture loading failed and may have left partial data", {
+        cause,
+      });
+      error.code = "PARTIAL_DATABASE_INITIALIZATION";
+      throw error;
+    }
   }
   await atomicJson(journalPath, {
     database: workspace.resources.database,
@@ -359,5 +387,7 @@ export function observeBucket(root, bucket) {
 export async function databaseInitializationStatus(root) {
   const journal = await readJournal(root);
   if (journal === null) return "not pending";
-  return journal.status === "pending" ? "incomplete (retry setup full)" : "complete";
+  return journal.status === "pending"
+    ? "incomplete (setup can resume only before fixture loading; a failed seed requires pnpm seed)"
+    : "complete";
 }

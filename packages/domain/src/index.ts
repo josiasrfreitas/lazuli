@@ -4,6 +4,12 @@
  */
 
 export const DOMAIN_PACKAGE = "@lazuli/domain" as const;
+export {
+  calculateStudentHealth,
+  STUDENT_HEALTH_WEIGHTS,
+  type StudentHealthIndicator,
+  type StudentHealthInput,
+} from "./student-health.js";
 
 export { resolveSemesterForDate, SemesterBucketError } from "./semester.js";
 export type { SemesterBucketErrorCode, SemesterWindow } from "./semester.js";
@@ -155,6 +161,7 @@ export {
   type TeachingProgramImport,
 } from "./teaching-program.js";
 export { studentPendingActions, type PendingAction } from "./pending-actions.js";
+export { contractReduction, type ContractReductionLine } from "./contract-reduction.js";
 
 export { extractIdentityDocument } from "./identity-extraction/extract.js";
 export type {

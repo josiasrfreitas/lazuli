@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { type ReactElement } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { Button } from "./button";
+import { TableFilterLabel } from "./table-filter-label";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 import { InlineField, MoreFilters } from "./table-filter-controls";
@@ -57,15 +58,13 @@ function SelectedChipMenu({ field, label }: { field: SelectedField; label: strin
           <Button
             variant="ghost"
             size="sm"
-            className="min-w-0 flex-1 rounded-r-none px-2 font-normal"
-            aria-label={`Gerenciar ${field.label}: ${field.selected.length} selecionados`}
+            className="min-w-0 flex-1 justify-start rounded-r-none px-2 font-normal text-foreground [&>span]:w-full"
+            aria-label={`Gerenciar ${label}`}
           />
         }
       >
-        <span className="truncate" title={label}>
-          {label}
-        </span>
-        <ChevronDown aria-hidden="true" className="size-3" />
+        <TableFilterLabel label={label} />
+        <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
       </PopoverTrigger>
       <PopoverContent
         aria-label={`Opções selecionadas de ${field.label}`}
@@ -88,20 +87,20 @@ function ActiveChip({ field }: { field: TableFilterField }): ReactElement {
   const label = chipLabel(field);
   return (
     <div
-      className="flex h-control-sm max-w-[min(16rem,calc(100vw-8rem))] shrink-0 items-center overflow-hidden rounded-sm border border-border bg-muted/60 text-foreground"
+      className="flex min-h-control-sm w-full min-w-0 items-center overflow-hidden rounded-sm border border-border bg-background text-foreground"
       data-slot="table-filter-chip"
     >
       {field.kind === "options" || field.kind === "remote-options" ? (
         <SelectedChipMenu field={field} label={label} />
       ) : (
-        <span className="min-w-0 truncate px-2 text-control" title={label}>
-          {label}
+        <span className="flex min-w-0 flex-1 px-2 text-control">
+          <TableFilterLabel label={label} />
         </span>
       )}
       <Button
         variant="ghost"
         size="icon-sm"
-        className="rounded-l-none border-l border-border text-muted-foreground hover:text-foreground"
+        className="shrink-0 rounded-l-none border-l border-border text-foreground hover:bg-accent"
         onClick={field.onClear}
         aria-label={`Remover filtro ${field.label}`}
       >
@@ -111,49 +110,62 @@ function ActiveChip({ field }: { field: TableFilterField }): ReactElement {
   );
 }
 
-/** Render directly above results; selections remain in one horizontally scrollable row. */
-export function TableFilterChips({ fields }: { fields: TableFilterField[] }): ReactElement | null {
+/** Compact disclosure; its panel never takes space away from the results. */
+export function TableFilterChips({
+  fields,
+  onClearAll,
+}: {
+  fields: TableFilterField[];
+  onClearAll?: () => void;
+}): ReactElement | null {
   const active = fields.filter((field) => summary(field));
-  const scroller = useRef<HTMLDivElement>(null);
-  const [edges, setEdges] = useState({ left: false, right: false });
-
-  useEffect(() => {
-    const node = scroller.current;
-    if (!node) return;
-    const measure = (): void => {
-      const left = node.scrollLeft > 1;
-      const right = node.scrollWidth - node.clientWidth - node.scrollLeft > 1;
-      setEdges((previous) =>
-        previous.left === left && previous.right === right ? previous : { left, right },
-      );
-    };
-    measure();
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
-    observer?.observe(node);
-    if (node.firstElementChild) observer?.observe(node.firstElementChild);
-    node.addEventListener("scroll", measure, { passive: true });
-    return () => {
-      observer?.disconnect();
-      node.removeEventListener("scroll", measure);
-    };
-  }, [fields]);
-
   if (active.length === 0) return null;
-  const fadeLeft = edges.left ? "transparent 0, black 16px" : "black 0";
-  const fadeRight = edges.right ? "black calc(100% - 16px), transparent 100%" : "black 100%";
   return (
-    <div
-      ref={scroller}
-      role="group"
-      aria-label="Filtros ativos"
-      className="scrollbar-subtle min-w-0 max-w-full overflow-x-auto overscroll-x-contain"
-      style={{ maskImage: `linear-gradient(to right, ${fadeLeft}, ${fadeRight})` }}
-    >
-      <div className="flex w-max min-w-full items-center gap-1.5 pb-1">
-        {active.map((field) => (
-          <ActiveChip key={field.id} field={field} />
-        ))}
-      </div>
+    <div className="inline-flex max-w-full items-center" data-slot="table-active-filters">
+      <Popover>
+        <PopoverTrigger
+          openOnHover
+          delay={150}
+          closeDelay={200}
+          render={<Button variant="secondary" size="sm" className="rounded-r-none" />}
+        >
+          Filtros ativos · {active.length}
+          <ChevronDown aria-hidden="true" className="size-3" />
+        </PopoverTrigger>
+        <PopoverContent
+          aria-label="Filtros ativos"
+          align="end"
+          motion="unfold"
+          className="w-[min(18rem,calc(100vw-2rem))] p-2"
+        >
+          <div className="scrollbar-subtle flex max-h-[min(60vh,var(--available-height))] flex-col gap-1.5 overflow-y-auto">
+            {active.map((field) => (
+              <ActiveChip key={field.id} field={field} />
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="secondary"
+              size="icon-sm"
+              className="rounded-l-none border-l-0 text-muted-foreground hover:text-destructive"
+              aria-label="Limpar todos os filtros"
+              onClick={
+                onClearAll ??
+                (() => {
+                  for (const field of active) field.onClear();
+                })
+              }
+            >
+              <X aria-hidden="true" />
+            </Button>
+          }
+        />
+        <TooltipContent>Limpar todos os filtros</TooltipContent>
+      </Tooltip>
     </div>
   );
 }
@@ -165,7 +177,6 @@ type TableFiltersProps = {
 
 /** Controlled composition: each listing owns URL state and supplies its field configuration. */
 export function TableFilters({ fields, onClearAll }: TableFiltersProps): ReactElement {
-  const active = fields.filter((field) => summary(field));
   const secondary = fields.filter((field) => !field.promoted);
   const activeSecondaryCount = secondary.filter((field) => summary(field)).length;
   return (
@@ -177,27 +188,9 @@ export function TableFilters({ fields, onClearAll }: TableFiltersProps): ReactEl
             <InlineField key={field.id} field={field} />
           ))}
         {secondary.length > 0 && (
-          <div className="inline-flex max-w-full items-center">
-            <MoreFilters fields={secondary} activeCount={activeSecondaryCount} />
-            <Tooltip>
-              <TooltipTrigger
-                aria-label="Limpar todos os filtros"
-                render={
-                  <Button
-                    variant="secondary"
-                    size="icon-sm"
-                    className="rounded-l-none text-muted-foreground hover:bg-accent-hover hover:text-destructive"
-                    disabled={active.length === 0}
-                    onClick={onClearAll}
-                  >
-                    <X aria-hidden="true" />
-                  </Button>
-                }
-              />
-              <TooltipContent>Limpar todos os filtros</TooltipContent>
-            </Tooltip>
-          </div>
+          <MoreFilters fields={secondary} activeCount={activeSecondaryCount} />
         )}
+        <TableFilterChips fields={fields} onClearAll={onClearAll} />
       </div>
     </div>
   );

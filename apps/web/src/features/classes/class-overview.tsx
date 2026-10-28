@@ -71,7 +71,9 @@ function ClassIdentity({
         <li>{detail.semester.name}</li>
       </ul>
       <div className={styles.teacher}>
-        <GraduationCap aria-hidden="true" className="size-4 shrink-0 text-icon" />
+        {detail.currentTeacher && (
+          <GraduationCap aria-hidden="true" className="size-4 shrink-0 text-icon" />
+        )}
         <span className="sr-only">Professor responsável:</span>
         <div className="min-w-0">
           <ClassTeacher detail={detail} onAssign={onAssign} />

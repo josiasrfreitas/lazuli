@@ -1,7 +1,7 @@
 "use client";
 import type { ComponentProps, JSX as ReactJSX } from "react";
 import { useState } from "react";
-import { History } from "lucide-react";
+import { History, Paperclip } from "lucide-react";
 import {
   Button,
   Dialog,
@@ -23,47 +23,94 @@ import {
 import { trpc } from "~/lib/trpc";
 import { ActivityTimeline } from "~/features/activity/activity-timeline";
 import { StudentTreatments } from "~/features/financial-treatments/student-treatments";
+import { StudentPayments } from "./student-payments";
 
 export function FinanceHistoryDialog({
   studentId,
   studentName,
+  payments = false,
 }: {
   studentId: string;
   studentName?: string | undefined;
+  payments?: boolean;
 }): ReactJSX.Element {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next, event) => {
+        if (pending) event.cancel();
+        else setOpen(next);
+      }}
+    >
       <Tooltip>
         <TooltipTrigger
           render={
             <DialogTrigger
-              render={<Button variant="ghost" size="icon-sm" aria-label="Histórico financeiro" />}
+              render={
+                <Button
+                  variant="ghost"
+                  size={payments ? "sm" : "icon-sm"}
+                  aria-label={payments ? "Pagamentos e comprovantes" : "Histórico financeiro"}
+                />
+              }
             />
           }
         >
-          <History aria-hidden="true" />
+          {payments ? (
+            <>
+              <Paperclip aria-hidden="true" /> Comprovantes
+            </>
+          ) : (
+            <History aria-hidden="true" />
+          )}
         </TooltipTrigger>
-        <TooltipContent>Histórico financeiro</TooltipContent>
+        <TooltipContent>
+          {payments ? "Pagamentos e comprovantes" : "Histórico financeiro"}
+        </TooltipContent>
       </Tooltip>
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className="h-160 md:max-w-3xl">
+        <DialogContent
+          className="h-160 md:max-w-3xl"
+          data-student-dialog-motion
+          showCloseButton={!pending}
+        >
           <DialogHeader>
-            <DialogTitle>Histórico financeiro</DialogTitle>
+            <DialogTitle>
+              {payments ? "Pagamentos e comprovantes" : "Histórico financeiro"}
+            </DialogTitle>
             <DialogDescription>
               {studentName ?? "Aluno"} · Contratos, cobranças, pagamentos e tratativas
             </DialogDescription>
           </DialogHeader>
-          {open && <FinanceHistoryContent studentId={studentId} />}
+          {open && (
+            <FinanceHistoryContent
+              studentId={studentId}
+              payments={payments}
+              pending={pending}
+              onPendingChange={setPending}
+            />
+          )}
         </DialogContent>
       </DialogPortal>
     </Dialog>
   );
 }
 
-function FinanceHistoryContent({ studentId }: { studentId: string }): ReactJSX.Element {
-  const [tab, setTab] = useState("activity");
+function FinanceHistoryContent({
+  studentId,
+  payments,
+  pending,
+  onPendingChange,
+}: {
+  studentId: string;
+  payments: boolean;
+  pending: boolean;
+  onPendingChange: (pending: boolean) => void;
+}): ReactJSX.Element {
+  const [tab, setTab] = useState(payments ? "payments" : "activity");
   const history = trpc.activity.list.useInfiniteQuery(
     { financialStudentId: studentId, area: "FINANCIAL", period: "ALL", pageSize: 25 },
     { getNextPageParam: (page) => page.nextCursor },
@@ -75,17 +122,21 @@ function FinanceHistoryContent({ studentId }: { studentId: string }): ReactJSX.E
         <SegmentedControl
           aria-label="Tipo de histórico financeiro"
           size="sm"
+          disabled={pending}
           value={tab}
           onValueChange={(value) => {
             if (value) setTab(value);
           }}
         >
           <SegmentedControlItem value="activity">Todas as atividades</SegmentedControlItem>
+          <SegmentedControlItem value="payments">Pagamentos e comprovantes</SegmentedControlItem>
           <SegmentedControlItem value="treatments">Detalhes das tratativas</SegmentedControlItem>
         </SegmentedControl>
       </div>
       <DialogBody>
-        {tab === "treatments" ? (
+        {tab === "payments" ? (
+          <StudentPayments studentId={studentId} onPendingChange={onPendingChange} />
+        ) : tab === "treatments" ? (
           <StudentTreatments studentId={studentId} />
         ) : (
           <FinanceActivityList

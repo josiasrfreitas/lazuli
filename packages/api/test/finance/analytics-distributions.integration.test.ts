@@ -79,8 +79,8 @@ void it("groups receipts without allocation joins and classifies exact aging bou
     });
     assert.equal(result.asOf, "2094-04-01");
     assert.deepEqual(result.methods, [
-      { method: "PIX", receivedCents: 5000, count: 1 },
-      { method: "CASH", receivedCents: 2000, count: 1 },
+      { method: "PIX", label: "Pix", receivedCents: 5000, count: 1 },
+      { method: "CASH", label: "Dinheiro", receivedCents: 2000, count: 1 },
     ]);
     assert.equal(result.receivedCents, 7000);
     assert.deepEqual(result.aging, [

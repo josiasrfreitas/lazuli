@@ -61,6 +61,12 @@ function ContractSummaryCard({ contract }: { contract: Contract }): ReactElement
         <span className="font-numeric text-base font-semibold tabular-nums">
           {tuition ? paymentTerms(tuition) : "—"}
         </span>
+        {contract.renegotiations?.[0] && (
+          <span className="text-caption text-muted-foreground">
+            Último acordo: {contract.renegotiations[0].installmentCount} parcela(s) a{" "}
+            {money(contract.renegotiations[0].newAmountCents)}
+          </span>
+        )}
       </div>
       <div className={styles.summaryFact}>
         <span className="text-caption text-muted-foreground">
@@ -174,6 +180,7 @@ function ContractDialogContent({
   return (
     <DialogContent
       className="md:w-[calc(100vw-3rem)] md:max-w-[47.6rem]"
+      data-student-dialog-motion
       showCloseButton={!pending}
     >
       <DialogHeader>

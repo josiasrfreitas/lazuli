@@ -45,7 +45,7 @@ export async function readSemesterPending(
         id: row.id,
         title: row.studentName,
         detail: `Revisar proposta · ${row.semesterName}`,
-        href: `/organizacao?semestre=${row.semesterId}${row.planId ? `&turma=${row.planId}` : "&visao=alunos"}`,
+        href: `/organizacao?semestre=${row.semesterId}${row.planId ? `&turma=${row.planId}` : "&visao=review"}`,
         date: dateOnly(row.entryDate),
         timing: { kind: "entry", date: dateOnly(row.entryDate) },
       }),

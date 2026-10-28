@@ -6,14 +6,7 @@ import { type UrlPagination, useUrlPagination } from "~/lib/pagination";
 import { type Dispatch, type SetStateAction, type ReactElement, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
-import {
-  Button,
-  DataTablePage,
-  Input,
-  TableFilters,
-  TableFilterChips,
-  type TableFilterField,
-} from "@lazuli/ui";
+import { Button, DataTablePage, Input, TableFilters, type TableFilterField } from "@lazuli/ui";
 import { studentPaginationPolicy } from "@lazuli/validators";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { TeacherDialog } from "./teacher-dialog";
@@ -48,7 +41,6 @@ export function TeachersPage(): ReactElement {
         }
       >
         <TeacherListResults
-          fields={fields}
           queryData={query.data}
           queryIsError={query.isError}
           queryIsFetching={query.isFetching}
@@ -170,7 +162,6 @@ function accessField({ params, setParams, pagination }: TeacherFilterContext): T
 }
 
 type TeacherListResultsProps = {
-  fields: TableFilterField[];
   queryData: RouterOutputs["teachers"]["list"] | undefined;
   queryIsError: boolean;
   queryIsFetching: boolean;
@@ -183,7 +174,6 @@ type TeacherListResultsProps = {
 function TeacherListResults(props: TeacherListResultsProps): ReactElement {
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <TableFilterChips fields={props.fields} />
       <div className="min-h-0 flex-1">
         <TeacherTable
           data={props.queryData}

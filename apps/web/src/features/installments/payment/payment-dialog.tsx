@@ -25,7 +25,6 @@ import {
   SelectValue,
 } from "@lazuli/ui";
 import type { FinanceInstallmentRow } from "@lazuli/validators";
-import { paymentMethodSchema } from "@lazuli/validators";
 import { formatBRLFromCents as money } from "~/lib/format";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { useScrollToError } from "~/lib/scroll-to-error";
@@ -35,15 +34,7 @@ import { PaymentGrid } from "./payment-grid";
 import { PaymentPicker } from "./payment-picker";
 import { draftReceipts } from "./draft";
 const FORM_ID = "register-payments";
-const METHOD_LABELS = {
-  PIX: "PIX",
-  CASH: "Dinheiro",
-  TRANSFER: "Transferência",
-  CARD: "Cartão",
-  CHEQUE: "Cheque",
-  BOLETO: "Boleto",
-  OTHER: "Outro",
-};
+
 type Props = {
   open: boolean;
   rows: FinanceInstallmentRow[];
@@ -54,7 +45,9 @@ export function PaymentDialog(props: Props): ReactElement {
   const state = usePaymentForm({ rows: props.rows, onRegistered: props.onRegistered });
   const popup = useRef<HTMLDivElement>(null);
   const close = (open: boolean): void => {
-    if (!state.isSubmitting()) props.onOpenChange(open);
+    if (state.isSubmitting()) return;
+    if (!open && state.registered) state.finish();
+    else props.onOpenChange(open);
   };
   return (
     <Dialog open={props.open} onOpenChange={close}>
@@ -62,6 +55,7 @@ export function PaymentDialog(props: Props): ReactElement {
         <DialogBackdrop />
         <DialogContent
           className="md:max-w-[min(72rem,calc(100vw-2rem))]"
+          data-student-dialog-motion
           ref={popup}
           initialFocus={() =>
             popup.current?.querySelector<HTMLInputElement>(
@@ -109,7 +103,10 @@ export function PaymentForm({
           state.submit();
         }}
       >
-        <fieldset disabled={state.submitting || state.uncertain} className="min-w-0">
+        <fieldset
+          disabled={state.submitting || state.uncertain || state.registered}
+          className="min-w-0"
+        >
           <legend className="sr-only">Dados do recebimento</legend>
           <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:gap-6">
             <div className="grid min-w-0 grid-cols-1 content-start gap-3">
@@ -137,7 +134,7 @@ function PaymentFormNotice({ state }: { state: PaymentFormState }): ReactElement
           className="mt-3 rounded-md border border-destructive p-3 text-caption text-destructive"
         >
           <p>{state.error}</p>
-          {!state.uncertain && (
+          {!state.uncertain && !state.registered && (
             <Button type="button" size="sm" variant="secondary" onClick={state.refresh}>
               Atualizar prévia e conferir
             </Button>
@@ -198,21 +195,36 @@ function PaymentMethod({ state }: { state: PaymentFormState }): ReactElement {
       <Select
         value={state.draft.method}
         onValueChange={(value) => {
-          const parsed = paymentMethodSchema.safeParse(value);
-          if (parsed.success) state.dispatch({ type: "method", value: parsed.data });
+          if (value && state.methods.some((method) => method.code === value))
+            state.dispatch({ type: "method", value });
         }}
       >
-        <SelectTrigger size="sm" aria-labelledby="payment-method-label">
-          <SelectValue>{METHOD_LABELS[state.draft.method]}</SelectValue>
+        <SelectTrigger
+          size="sm"
+          disabled={state.methodsLoading || state.methodsError}
+          aria-labelledby="payment-method-label"
+        >
+          <SelectValue>
+            {state.methods.find((method) => method.code === state.draft.method)?.name ??
+              (state.methodsLoading ? "Carregando…" : "Selecione")}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {paymentMethodSchema.options.map((method) => (
-            <SelectItem key={method} value={method}>
-              {METHOD_LABELS[method]}
+          {state.methods.map((method) => (
+            <SelectItem key={method.id} value={method.code}>
+              {method.name}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
+      {state.methodsError && (
+        <FieldError>
+          Não foi possível carregar as formas de pagamento.{" "}
+          <Button variant="link" size="inline" onClick={state.refresh}>
+            Tentar novamente
+          </Button>
+        </FieldError>
+      )}
     </Field>
   );
 }
@@ -228,7 +240,8 @@ function PaymentFooter({
     0,
   );
   const disabled =
-    state.submitting || (!state.uncertain && (state.loading || state.draft.items.length === 0));
+    state.submitting ||
+    (!state.uncertain && !state.registered && (state.loading || state.draft.items.length === 0));
   return (
     <DialogFooter className="mt-5 border-t border-border pt-4">
       <div className="mr-auto self-center text-caption" aria-live="polite">
@@ -243,9 +256,9 @@ function PaymentFooter({
           size="sm"
           variant="ghost"
           disabled={state.submitting}
-          onClick={onClose}
+          onClick={state.registered ? state.finish : onClose}
         >
-          Cancelar
+          {state.registered ? "Concluir sem reenviar" : "Cancelar"}
         </Button>
         <Button type="submit" form={FORM_ID} size="sm" disabled={disabled}>
           {submissionLabel(state, total)}
@@ -257,6 +270,8 @@ function PaymentFooter({
 }
 
 function submissionLabel(state: PaymentFormState, total: number): string {
+  if (state.uploading) return "Enviando comprovante…";
+  if (state.registered && !state.submitting) return "Reenviar comprovante";
   if (state.submitting) return "Registrando…";
   return state.uncertain ? "Verificar registro" : `Registrar ${money(total)}`;
 }

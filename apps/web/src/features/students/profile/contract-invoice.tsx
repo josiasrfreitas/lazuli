@@ -11,6 +11,8 @@ export function ContractInvoice({ contract }: { contract: FinanceContract }): Re
     (left, right) => Number(right.kind === "TUITION") - Number(left.kind === "TUITION"),
   );
   const tuition = rows.find((row) => row.kind === "TUITION");
+  const reductionCents =
+    contract.renegotiations?.reduce((sum, row) => sum + row.reductionCents, 0) ?? 0;
   return (
     <>
       <dl className={styles.meta}>
@@ -33,6 +35,11 @@ export function ContractInvoice({ contract }: { contract: FinanceContract }): Re
         ))}
       </ol>
       <InvoiceBottom rows={rows} />
+      {reductionCents > 0 && (
+        <p className="mt-3 text-caption text-muted-foreground">
+          Os valores incluem {money(reductionCents)} em reduções por renegociação contratual.
+        </p>
+      )}
     </>
   );
 }

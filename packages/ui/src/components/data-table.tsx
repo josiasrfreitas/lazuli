@@ -175,7 +175,7 @@ export function DataTable<Row extends { id: string }>(props: DataTableProps<Row>
       {props.beforeTable}
       <Table
         aria-label={label}
-        aria-busy={props.updating}
+        aria-busy={state.kind === "loading" || props.updating}
         className="table-fixed"
         style={{ minWidth: minimumWidth }}
       >

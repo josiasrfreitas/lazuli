@@ -1,0 +1,232 @@
+.card {
+  position: relative;
+  overflow: hidden;
+}
+.card h2 {
+  opacity: 0.65;
+}
+.number,
+.caption,
+.count,
+.arrow,
+.track,
+.miniTrack,
+.months i,
+.bars i,
+.rows i {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+.number {
+  width: 3.5rem;
+  height: 1.75rem;
+}
+.caption {
+  width: 5rem;
+  height: 0.625rem;
+}
+.count {
+  width: 1.25rem;
+  height: 0.625rem;
+}
+.arrow {
+  width: 0.75rem;
+  height: 0.75rem;
+  margin: 0.375rem;
+}
+.figures {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+.figures .caption:last-child {
+  flex-shrink: 1;
+}
+.bars {
+  display: flex;
+  justify-content: space-around;
+  height: 9.5rem;
+  padding-top: 1.5rem;
+  margin-top: 0.5rem;
+}
+.bars > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem;
+}
+.bars span {
+  width: 0.5rem;
+  height: 75%;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.1;
+  animation: bar-wave 1.6s ease-in-out infinite;
+}
+.bars > div:nth-child(2n) span {
+  animation-delay: 150ms;
+}
+.bars > div:nth-child(3n) span {
+  animation-delay: 300ms;
+}
+.bars > div:nth-child(4n) span {
+  animation-delay: 450ms;
+}
+.bars i,
+.months i {
+  width: 1.25rem;
+  height: 0.5rem;
+}
+.cash {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+}
+.cash > div {
+  display: grid;
+  gap: 0.5rem;
+}
+.cash .number {
+  width: 7.5rem;
+}
+.cash > div:last-child .number {
+  width: 6rem;
+}
+.legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.plot {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 6.5rem;
+  padding: 0.75rem 0.5rem 0 3rem;
+}
+.plot > span {
+  height: 1px;
+  background: currentColor;
+  opacity: 0.1;
+}
+.months {
+  display: flex;
+  justify-content: space-between;
+}
+.audience {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.25rem;
+}
+.ring {
+  display: grid;
+  place-items: center;
+  width: 6.75rem;
+  height: 6.75rem;
+  flex-shrink: 0;
+  border: 0.8125rem solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 50%;
+}
+.ring .number {
+  width: 2.5rem;
+  height: 1.25rem;
+}
+.rows {
+  display: grid;
+  gap: 0.875rem;
+  flex: 1;
+  min-width: 0;
+  margin-top: 0.75rem;
+}
+.rows > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.rows .caption {
+  flex: 1;
+  width: auto;
+  max-width: 6rem;
+}
+.rows .count {
+  margin-left: auto;
+}
+.rows i {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 50%;
+}
+.track {
+  height: 0.5rem;
+  margin-block: 0.875rem;
+}
+.miniTrack {
+  height: 0.375rem;
+  width: 3rem;
+}
+.flow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.flow .caption:last-child {
+  width: 8rem;
+  max-width: 50%;
+}
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    color-mix(in srgb, currentColor 8%, transparent) 50%,
+    transparent 75%
+  );
+  transform: translateX(-100%);
+  animation: sweep 1.8s ease-in-out infinite;
+}
+@keyframes sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes bar-wave {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card::after {
+    display: none;
+  }
+  .bars span {
+    animation: none;
+  }
+}
+.bars {
+  height: clamp(6rem, 15dvh, 9rem);
+}
+.plot {
+  height: clamp(5rem, 12dvh, 6.5rem);
+}
+@media (max-height: 850px) {
+  .bars {
+    height: 5.5rem;
+    padding-top: 0.5rem;
+  }
+  .plot {
+    height: 5rem;
+  }
+}

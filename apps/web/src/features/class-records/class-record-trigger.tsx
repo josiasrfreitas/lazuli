@@ -11,24 +11,27 @@ export function ClassRecordTrigger({
   sessionId,
   children,
   label,
+  iconOnly = false,
 }: {
   sessionId: string;
   children: ReactNode;
   label?: string;
+  iconOnly?: boolean;
 }): ReactJSX.Element {
   const [open, setOpen] = useState(false);
   return (
     <>
       <Button
-        variant="link"
-        size="inline"
+        variant={iconOnly ? "ghost" : "link"}
+        size={iconOnly ? "icon-sm" : "inline"}
         className="max-w-full"
         aria-haspopup="dialog"
         aria-label={label}
+        title={iconOnly ? label : undefined}
         onClick={() => setOpen(true)}
       >
         <BookOpen aria-hidden="true" />
-        <span className="min-w-0 truncate">{children}</span>
+        {!iconOnly && <span className="min-w-0 truncate">{children}</span>}
       </Button>
       {open && <ClassRecordDialog id={sessionId} onClose={() => setOpen(false)} />}
     </>

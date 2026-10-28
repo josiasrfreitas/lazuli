@@ -214,7 +214,7 @@ export function homeHrefFor(role: StaffRole): string | null {
   return vertical?.href ?? null;
 }
 
-/** Child pages return to their listing, preserving only a same-list query string. */
+/** Child pages return to their source when it is an accessible app route. */
 export function navReturnFor({
   pathname,
   role,
@@ -224,8 +224,49 @@ export function navReturnFor({
     (item) => item.href !== "/" && pathname.startsWith(`${item.href}/`),
   );
   if (!parent) return null;
-  const href = back === parent.href || back?.startsWith(`${parent.href}?`) ? back : parent.href;
-  return { href, label: parent.label };
+  return (
+    returnDestination({ back, parent, items: navItemsFor(role) }) ?? {
+      href: parent.href,
+      label: parent.label,
+    }
+  );
+}
+
+function returnDestination({
+  back,
+  parent,
+  items,
+}: {
+  back: string | null;
+  parent: NavItem;
+  items: NavItem[];
+}): { href: string; label: string } | null {
+  if (!back?.startsWith("/") || back.startsWith("//")) return null;
+  let url: URL;
+  try {
+    url = new URL(back, "https://lazuli.local");
+  } catch {
+    return null;
+  }
+  if (url.origin !== "https://lazuli.local") return null;
+  const item = items.find(
+    (candidate) =>
+      candidate.href === url.pathname ||
+      (candidate.href !== parent.href &&
+        ["/alunos", "/professores", "/turmas"].includes(candidate.href) &&
+        url.pathname.startsWith(`${candidate.href}/`) &&
+        url.pathname.slice(candidate.href.length + 1).split("/").length === 1),
+  );
+  if (!item) return null;
+  const detailLabel: Record<string, string> = {
+    "/alunos": "Aluno",
+    "/professores": "Professor",
+    "/turmas": "Turma",
+  };
+  return {
+    href: `${url.pathname}${url.search}`,
+    label: item.href === url.pathname ? item.label : (detailLabel[item.href] ?? item.label),
+  };
 }
 
 type MatchesNavHrefInput = { href: string; pathname: string };

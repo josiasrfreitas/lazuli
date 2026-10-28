@@ -86,7 +86,10 @@ export const contractSelect = {
           amountCents: true,
           dueDate: true,
           waivedAt: true,
-          adjustments: { where: { deletedAt: null }, select: { amountCents: true } },
+          adjustments: {
+            where: { deletedAt: null },
+            select: { amountCents: true, renegotiationId: true },
+          },
           allocations: {
             where: { deletedAt: null, paymentEntry: { deletedAt: null } },
             select: { amountCents: true },
@@ -119,11 +122,26 @@ function academicPlacements(
 }
 
 function uniformInstallmentAmount(order: SelectedContract["orders"][number]): number | null {
-  const firstAmount = order.installments[0]?.amountCents ?? null;
+  const firstAmount = order.installments[0]
+    ? renegotiatedInstallmentAmount(order.installments[0])
+    : null;
   return order.installments.length === order.installmentCount &&
-    order.installments.every((row) => row.amountCents === firstAmount)
+    order.installments.every((row) => renegotiatedInstallmentAmount(row) === firstAmount)
     ? firstAmount
     : null;
+}
+
+export function renegotiatedInstallmentAmount(row: {
+  amountCents: number;
+  adjustments: { amountCents: number; renegotiationId?: string | null }[];
+}): number {
+  return (
+    row.amountCents +
+    row.adjustments.reduce(
+      (sum, adjustment) => sum + (adjustment.renegotiationId ? adjustment.amountCents : 0),
+      0,
+    )
+  );
 }
 
 export function toRow(row: SelectedContract, now = new Date()): ContractListRow {
@@ -143,7 +161,12 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
     startsOn: toDateOnlyString(row.startsOn!),
     endsOn: toDateOnlyString(row.endsOn!),
     monthlyAmountCents: row.monthlyAmountCents!,
-    principalAmountCents: order.principalAmountCents,
+    principalAmountCents:
+      order.principalAmountCents +
+      order.installments.reduce(
+        (sum, row) => sum + renegotiatedInstallmentAmount(row) - row.amountCents,
+        0,
+      ),
     materialAmountCents: materialOrders.reduce((sum, entry) => sum + entry.principalAmountCents, 0),
     materials: materialOrders.map((entry) => ({
       id: entry.id,

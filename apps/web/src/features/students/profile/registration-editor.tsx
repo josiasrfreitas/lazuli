@@ -26,6 +26,12 @@ import type { StudentProfile } from "./logic";
 import styles from "./student-registration.module.css";
 
 export type RegistrationEditTarget = "student" | "guardian" | "address" | "notes";
+export const REGISTRATION_EDIT_TITLES: Record<RegistrationEditTarget, string> = {
+  student: "Dados do aluno",
+  guardian: "Responsável pelo aluno",
+  address: "Endereço do aluno",
+  notes: "Anotações sobre o aluno",
+};
 type EditorProps = {
   profile: StudentProfile;
   target: RegistrationEditTarget;
@@ -42,12 +48,6 @@ type EditorModel = {
   saving: boolean;
   change: (key: string, value: string) => void;
   save: () => Promise<void>;
-};
-const TITLES = {
-  student: "Dados do aluno",
-  guardian: "Responsável",
-  address: "Endereço",
-  notes: "Observações",
 };
 const ADDRESS_FIELDS = [
   "street",
@@ -267,7 +267,6 @@ export function RegistrationEditor(props: EditorProps): ReactElement {
         void save();
       }}
     >
-      <h3 className={styles.sectionTitle}>Editar {TITLES[target].toLocaleLowerCase("pt-BR")}</h3>
       <EditorFields
         target={target}
         saving={saving}
@@ -312,7 +311,7 @@ function editorFieldNames(target: RegistrationEditTarget): string[] {
 function EditorFields(props: EditorFieldsProps): ReactElement {
   return (
     <fieldset disabled={props.saving} className={styles.editFields}>
-      <legend className="sr-only">{TITLES[props.target]}</legend>
+      <legend className="sr-only">{REGISTRATION_EDIT_TITLES[props.target]}</legend>
       {editorFieldNames(props.target).map((key) =>
         key === "documentType" ? (
           <DocumentTypeField key={key} {...props} />
@@ -398,12 +397,13 @@ function EditorTextField({
 function EditorNotesField({ values, onChange }: EditorFieldsProps): ReactElement {
   return (
     <Field className="registration-edit-field" data-wide="true">
-      <Label htmlFor="registration-notes">Observações</Label>
+      <Label htmlFor="registration-notes">Anotações</Label>
       <Textarea
         id="registration-notes"
         name="notes"
         autoComplete="off"
-        placeholder="Informações relevantes para o cadastro"
+        placeholder="Preferências, combinados com o aluno ou responsável e informações para o próximo contato"
+        rows={7}
         value={values.notes ?? ""}
         onChange={(event) => onChange("notes", event.target.value)}
       />

@@ -10,8 +10,7 @@ import {
 } from "../support/finance-schema-support.js";
 loadEnvironment({ path: new URL("../../../../.env", import.meta.url), quiet: true });
 const { createDbClient } = await import("../../src/client.js");
-const { InstallmentAdjustmentType, OrderKind, PaymentMethod, Prisma } =
-  await import("../../src/index.js");
+const { InstallmentAdjustmentType, OrderKind, Prisma } = await import("../../src/index.js");
 const SIGNED_ORDER_ARTIFACT_ID = "11111111-1111-4111-8111-111111111111";
 type DatabaseClient = ReturnType<typeof createDbClient>;
 void describe("finance schema", () => {
@@ -147,7 +146,7 @@ function registerSchemaTest3(database: DatabaseClient): void {
         data: {
           amountCents: -1,
           date: EVENT_DATE,
-          method: PaymentMethod.CASH,
+          method: "CASH",
           payerId: fixture.payerId,
         },
       }),

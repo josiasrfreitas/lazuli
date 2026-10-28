@@ -132,7 +132,7 @@ function initialErrorMessage(initialError: LoginInitialError | null): string | n
 /** Returns the message to show, or `null` when the link is on its way. */
 async function sendMagicLink(email: string): Promise<string | null> {
   const result = await authClient.signIn.magicLink({
-    callbackURL: "/",
+    callbackURL: "/?entrada=1",
     email,
     errorCallbackURL: "/login",
   });

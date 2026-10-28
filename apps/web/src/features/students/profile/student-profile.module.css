@@ -29,11 +29,56 @@
   background: var(--meter-fill);
 }
 
-/* Only direct pointer interactions opt in; initial render and keyboard stay immediate. */
-.sections[data-pointer-navigation]
-  > :global([data-slot="tabs"])
-  > :global([data-slot="tabs-panel"]) {
-  transition: opacity var(--lz-duration-fast) var(--lz-ease-standard);
+/* Keep the student's identity present while the tab content changes beneath it. */
+.stickyHeader[data-ready] :global([data-slot="detail-header"]) {
+  animation: student-header-reveal 380ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.stickyHeader[data-ready] > :not(:first-child) {
+  animation: student-context-arrive 320ms cubic-bezier(0.16, 1, 0.3, 1) 110ms backwards;
+}
+
+.tabContent {
+  min-width: 0;
+  padding-block: 1.5rem;
+  animation: student-context-arrive 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+:global(html[data-student-carousel]) .tabContent {
+  animation: none;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.tabNavigation {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-top: 0.75rem;
+}
+.pedagogyContent {
+  display: grid;
+  min-width: 0;
+  gap: 1.25rem;
+}
+.pedagogyContent > :first-child {
+  justify-self: start;
+}
+.pedagogyContent > :only-child {
+  justify-self: stretch;
+}
+
+.sections[data-entering] > :global([data-slot="tabs"]) > :global([data-slot="tabs-panel"]) > * {
+  animation: student-data-arrive 560ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
+.lateData {
+  animation: student-context-arrive 320ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .journey:not([open]) > ol {
@@ -45,29 +90,79 @@
 }
 
 @starting-style {
-  .sections[data-pointer-navigation]
-    > :global([data-slot="tabs"])
-    > :global([data-slot="tabs-panel"]) {
-    opacity: 0.85;
-  }
-
   .journey[data-pointer-navigation][open] > ol {
     opacity: 0;
   }
 }
 
+@keyframes student-header-reveal {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes student-context-arrive {
+  from {
+    opacity: 0.35;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes student-data-arrive {
+  from {
+    opacity: 0.2;
+    clip-path: inset(0 0 8% 0);
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0);
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .stickyHeader[data-ready] :global([data-slot="detail-header"]),
+  .stickyHeader[data-ready] > :not(:first-child) {
+    animation: student-context-dissolve 100ms ease-out;
+  }
+
+  .sections[data-entering] > :global([data-slot="tabs"]) > :global([data-slot="tabs-panel"]) > * {
+    animation: student-context-dissolve 120ms ease-out both;
+  }
+
+  .lateData {
+    animation: student-context-dissolve 120ms ease-out;
+  }
+
+  .tabContent {
+    animation: student-context-dissolve 100ms ease-out;
+  }
+
   .journey[data-pointer-navigation][open] > ol {
     transition-duration: var(--lz-duration-fast);
   }
 
   @starting-style {
-    .sections[data-pointer-navigation]
-      > :global([data-slot="tabs"])
-      > :global([data-slot="tabs-panel"]),
     .journey[data-pointer-navigation][open] > ol {
       opacity: 0.95;
     }
+  }
+}
+
+@keyframes student-context-dissolve {
+  from {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -125,4 +220,66 @@
 
 .stickyHeader {
   flex-shrink: 0;
+}
+
+/* The browser animates snapshots, never a second live financial panel. */
+.sections > :global([data-slot="tabs"]) > :global([data-slot="tabs-panel"]) {
+  --student-section-transition: student-section;
+  view-transition-name: var(--student-section-transition);
+}
+
+:global(html[data-student-carousel]::view-transition-group(student-section)) {
+  overflow: clip;
+  animation-duration: 420ms;
+}
+
+:global(html[data-student-carousel]::view-transition-old(root)),
+:global(html[data-student-carousel]::view-transition-new(root)) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:global(html[data-student-carousel]::view-transition-old(student-section)),
+:global(html[data-student-carousel]::view-transition-new(student-section)) {
+  height: 100%;
+  object-fit: none;
+  object-position: top left;
+  mix-blend-mode: normal;
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.22, 0.68, 0, 1);
+  animation-fill-mode: both;
+}
+
+:global(html[data-student-carousel="forward"]::view-transition-old(student-section)) {
+  animation-name: carousel-exit-left;
+}
+:global(html[data-student-carousel="forward"]::view-transition-new(student-section)) {
+  animation-name: carousel-enter-right;
+}
+:global(html[data-student-carousel="backward"]::view-transition-old(student-section)) {
+  animation-name: carousel-exit-right;
+}
+:global(html[data-student-carousel="backward"]::view-transition-new(student-section)) {
+  animation-name: carousel-enter-left;
+}
+
+@keyframes carousel-exit-left {
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes carousel-enter-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes carousel-exit-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes carousel-enter-left {
+  from {
+    transform: translateX(-100%);
+  }
 }

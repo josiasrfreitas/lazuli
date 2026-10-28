@@ -5,6 +5,7 @@ const YEAR_MONTH_LENGTH = 7;
 const DAY_START = 8;
 const DATE_ONLY_LENGTH = 10;
 const SERIES_MONTHS = 6;
+const SCHOOL_SERIES_MONTHS = 8;
 type MonthlyCounts = {
   value: number;
   previous: number;
@@ -36,7 +37,11 @@ type BusinessComparison = {
   renewals: number;
 };
 /** Local home reporting rules. See docs/frontend/admin-home-kpi-debt.md before reuse. */
-export function homePeriod(now: Date, requestedMonth?: string): HomePeriod {
+export function homePeriod(
+  now: Date,
+  requestedMonth?: string,
+  seriesMonths = SERIES_MONTHS,
+): HomePeriod {
   const today = saoPauloDateOnly(now);
   const month =
     requestedMonth && requestedMonth <= today.slice(0, YEAR_MONTH_LENGTH)
@@ -54,8 +59,8 @@ export function homePeriod(now: Date, requestedMonth?: string): HomePeriod {
     month === today.slice(0, YEAR_MONTH_LENGTH) ? Math.min(day, previousLastDay) : previousLastDay;
   const through = `${month}-${String(day).padStart(2, "0")}`;
   const previousThrough = `${previousMonth}-${String(previousDay).padStart(2, "0")}`;
-  const months = Array.from({ length: SERIES_MONTHS }, (_unused, index) =>
-    new Date(Date.UTC(year, monthNumber - SERIES_MONTHS + index, 1))
+  const months = Array.from({ length: seriesMonths }, (_unused, index) =>
+    new Date(Date.UTC(year, monthNumber - seriesMonths + index, 1))
       .toISOString()
       .slice(0, YEAR_MONTH_LENGTH),
   );
@@ -131,7 +136,7 @@ export async function readHomeSchool({
   now: Date;
   requestedMonth?: string | undefined;
 }): Promise<HomeSchool> {
-  const period = homePeriod(now, requestedMonth);
+  const period = homePeriod(now, requestedMonth, SCHOOL_SERIES_MONTHS);
   const { students, enrollments, visits, totalStudents } = await readSchoolRows(database, period);
   return {
     month: period.month,
@@ -156,6 +161,7 @@ export async function readHomeSchool({
 export async function readBusinessComparison(
   database: Context["db"],
   period: HomePeriod,
+  contractPeriod: HomePeriod = period,
 ): Promise<BusinessComparison> {
   const [payments, contracts] = await Promise.all([
     database.paymentEntry.findMany({
@@ -168,7 +174,10 @@ export async function readBusinessComparison(
     database.contract.findMany({
       where: {
         deletedAt: null,
-        agreedOn: { gte: new Date(`${period.months[0]}-01`), lte: new Date(period.through) },
+        agreedOn: {
+          gte: new Date(`${contractPeriod.months[0]}-01`),
+          lte: new Date(contractPeriod.through),
+        },
       },
       select: { agreedOn: true, renewedFromId: true },
     }),
@@ -190,7 +199,7 @@ export async function readBusinessComparison(
     previousReceivedCents,
     agreements: monthlyCounts(
       datedContracts.map((row) => row.agreedOn.toISOString().slice(0, DATE_ONLY_LENGTH)),
-      period,
+      contractPeriod,
     ),
     newContracts: datedContracts.filter(
       (row) => row.agreedOn.toISOString().startsWith(period.month) && !row.renewedFromId,

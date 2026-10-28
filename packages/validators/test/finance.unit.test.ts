@@ -93,7 +93,10 @@ void describe("finance enum input", () => {
     assert.equal(paymentMethodSchema.safeParse("CHEQUE").success, true);
     assert.equal(paymentMethodSchema.safeParse("BOLETO").success, true);
     assert.equal(paymentMethodSchema.safeParse("OTHER").success, true);
-    assert.equal(paymentMethodSchema.safeParse("CRYPTO").success, false);
+    assert.equal(paymentMethodSchema.safeParse("DEBIT").success, true);
+    assert.equal(paymentMethodSchema.safeParse("RECURRING_CREDIT").success, true);
+    assert.equal(paymentMethodSchema.safeParse("").success, false);
+    assert.equal(paymentMethodSchema.safeParse("invalid code").success, false);
     assert.equal(installmentAdjustmentTypeSchema.safeParse("INTEREST").success, true);
     assert.equal(installmentAdjustmentTypeSchema.safeParse("LATE_FEE").success, true);
     assert.equal(installmentAdjustmentTypeSchema.safeParse("DISCOUNT").success, true);

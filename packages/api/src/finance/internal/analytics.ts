@@ -15,7 +15,7 @@ export type FinanceAnalytics = {
   year: number;
   asOf: string;
   months: MonthlyAmounts[];
-  methods: { method: string; receivedCents: number; count: number }[];
+  methods: { method: string; label: string; receivedCents: number; count: number }[];
   aging: { label: string; balanceCents: number; count: number }[];
   receivedCents: number;
   expectedCents: number;
@@ -107,7 +107,15 @@ async function readPaymentAnalytics(
     .orderBy("receivedCents", "desc")
     .orderBy("method", "asc")
     .execute();
-  return { months, methods };
+  const catalog = await database.paymentMethod.findMany({
+    where: { code: { in: methods.map((row) => row.method) } },
+    select: { code: true, name: true },
+  });
+  const labels = new Map(catalog.map((row) => [row.code, row.name]));
+  return {
+    months,
+    methods: methods.map((row) => ({ ...row, label: labels.get(row.method) ?? row.method })),
+  };
 }
 async function readAging(ledger: Ledger): Promise<FinanceAnalytics["aging"]> {
   const bucket = sql<number>`case when "overdueDays" <= 30 then 0 when "overdueDays" <= 60 then 1 when "overdueDays" <= 90 then 2 else 3 end`;

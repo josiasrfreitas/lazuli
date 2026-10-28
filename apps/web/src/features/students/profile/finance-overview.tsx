@@ -1,16 +1,31 @@
 import type { ReactElement } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowUpRight, CheckCircle2 } from "lucide-react";
-import { Button, PencilLoader, Tooltip, TooltipTrigger, TooltipContent } from "@lazuli/ui";
+import { AlertCircle, ArrowUpRight, CheckCircle2, FileText } from "lucide-react";
+import {
+  Button,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  Dialog,
+  DialogBackdrop,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from "@lazuli/ui";
 import type { StudentFinanceSummary } from "@lazuli/domain";
 import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import { ProfileError } from "./profile-shared";
 import type { StudentFinanceState } from "./finance-logic";
 import type { StudentProfile } from "./logic";
-import { StudentContactSummary } from "./student-identity";
 import { FinanceContractTerms } from "./finance-contract-terms";
 import { FinanceHistoryDialog } from "./finance-history-dialog";
 import { ContractTerminationNotice } from "./contract-termination-notice";
+import { FinanceOverviewLoading } from "./finance-overview-loading";
+import styles from "./finance-overview.module.css";
 
 const PERCENT_SCALE = 100;
 const DEBT_TEXT = "text-destructive";
@@ -34,46 +49,96 @@ export function FinanceOverview({
     );
   if (!summary.data || !profile) return <FinanceOverviewLoading />;
   return (
-    <section
-      aria-label="Resumo financeiro"
-      className={`grid gap-x-8 gap-y-4 border px-5 py-4 lg:grid-cols-5 ${
-        summary.data.debtState === "SEVERE_OVERDUE"
-          ? "border-destructive/50 bg-destructive/5"
-          : "border-border bg-accent"
-      }`}
-    >
-      {summary.data.latestTermination && (
-        <div className="lg:col-span-5">
-          <ContractTerminationNotice termination={summary.data.latestTermination} />
+    <section aria-label="Resumo financeiro" className={styles.overview}>
+      <ContractTerminationNotice termination={summary.data.latestTermination} />
+      <div className={styles.heading}>
+        <FinanceBalanceHeading
+          summary={summary.data}
+          contractTerminated={Boolean(
+            summary.data.latestTermination && summary.data.contracts.length === 0,
+          )}
+          hasDebt={summary.data.overdueCount > 0}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <FinanceHistoryDialog
+            studentId={profile.id}
+            studentName={profile.contact.fullName}
+            payments
+          />
+          <FinanceDetails summary={summary.data} profile={profile} />
         </div>
-      )}
-      <FinanceBalance
-        summary={summary.data}
-        contractTerminated={Boolean(
-          summary.data.latestTermination && summary.data.contracts.length === 0,
-        )}
-      />
-      <PaymentBehavior
-        summary={summary.data}
-        studentId={profile.id}
-        studentName={profile.contact.fullName}
-      />
-      <div className="grid gap-3 border-t border-border/60 pt-3 lg:col-span-5">
-        <FinanceContractTerms summary={summary.data} />
-        <StudentContactSummary profile={profile} highlightWhatsApp />
       </div>
+      <dl className={styles.essentials}>
+        <div data-overdue={summary.data.overdueCount > 0 || undefined}>
+          <dt>Total vencido</dt>
+          <dd>{money(summary.data.overdueCents)}</dd>
+          <span>
+            {summary.data.overdueCount > 0
+              ? `${summary.data.overdueCount} ${summary.data.overdueCount === 1 ? "parcela em atraso" : "parcelas em atraso"}`
+              : "Nenhuma parcela em atraso"}
+          </span>
+        </div>
+        <div>
+          <dt>Próximo vencimento</dt>
+          <dd>{summary.data.nextDueDate ? money(summary.data.nextDueCents) : "—"}</dd>
+          <span>
+            {summary.data.nextDueDate
+              ? formatDateOnlyBR(summary.data.nextDueDate)
+              : "Nenhuma cobrança futura"}
+          </span>
+        </div>
+        <div>
+          <dt>Saldo a receber</dt>
+          <dd>{money(summary.data.outstandingCents)}</dd>
+          <span>Inclui parcelas vencidas e a vencer</span>
+        </div>
+      </dl>
     </section>
   );
 }
 
-function FinanceOverviewLoading(): ReactElement {
+function FinanceDetails({
+  summary,
+  profile,
+}: {
+  summary: NonNullable<StudentFinanceState["summary"]["data"]>;
+  profile: StudentProfile;
+}): ReactElement {
   return (
-    <section
-      aria-label="Resumo financeiro"
-      className="flex min-h-72 items-center justify-center border border-border bg-accent px-5 py-4"
-    >
-      <PencilLoader label="Carregando resumo financeiro" />
-    </section>
+    <Dialog>
+      <DialogTrigger render={<Button variant="secondary" size="sm" />}>
+        <FileText aria-hidden="true" /> Contrato e detalhes
+      </DialogTrigger>
+      <DialogPortal>
+        <DialogBackdrop />
+        <DialogContent className="md:max-w-4xl" data-student-dialog-motion>
+          <DialogHeader>
+            <DialogTitle>Detalhes financeiros</DialogTitle>
+            <DialogDescription>
+              {profile.contact.fullName} · Contrato e pagamentos
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className={styles.details}>
+              <FinanceContractTerms summary={summary} />
+              <div className="grid gap-6 lg:grid-cols-5">
+                <FinanceBalance
+                  summary={summary}
+                  contractTerminated={Boolean(
+                    summary.latestTermination && summary.contracts.length === 0,
+                  )}
+                />
+                <PaymentBehavior
+                  summary={summary}
+                  studentId={profile.id}
+                  studentName={profile.contact.fullName}
+                />
+              </div>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   );
 }
 

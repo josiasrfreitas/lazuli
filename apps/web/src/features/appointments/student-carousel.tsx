@@ -1,5 +1,6 @@
 "use client";
-import { useState, type ReactElement } from "react";
+import { type ReactElement } from "react";
+import { parseAsString, useQueryState } from "nuqs";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CalendarDays } from "lucide-react";
 import { Button } from "@lazuli/ui";
@@ -66,7 +67,11 @@ function Carousel({
   onSchedule: () => void;
 }): ReactElement {
   const controls = useHorizontalCarousel(rows.length);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelectedAppointment] = useQueryState("atendimento", parseAsString);
+  const selectedAppointment = rows.some((row) => row.id === selected) ? selected : null;
+  const setSelected = (id: string | null): void => {
+    void setSelectedAppointment(id);
+  };
   return (
     <section className={styles.agenda} aria-label="Atendimentos do aluno">
       <header className={styles.heading}>
@@ -85,11 +90,11 @@ function Carousel({
         <p className="py-3 text-caption text-muted-foreground">Nenhum atendimento registrado.</p>
       )}
       <CarouselRail rows={rows} controls={controls} selected={selected} onSelect={setSelected} />
-      {selected && (
+      {selectedAppointment && (
         <StudentAppointmentDialog
           readOnly={readOnly}
-          key={selected}
-          id={selected}
+          key={selectedAppointment}
+          id={selectedAppointment}
           admin={admin}
           onSelect={setSelected}
           onClose={() => setSelected(null)}

@@ -86,7 +86,10 @@ function usePageControls(): PageControls {
   const [search, setSearch] = useState("");
   const [classSearch, setClassSearch] = useState("");
   const [showClosed, setShowClosed] = useState(false);
-  const [planId, setPlanId] = useState<string | null>(null);
+  const [planId, setPlanQuery] = useQueryState("turma", parseAsString);
+  const setPlanId: Setter<string | null> = (value) => {
+    void setPlanQuery(value);
+  };
   const [action, setAction] = useState<OrganizationAction | null>(null);
   const [feedback, setFeedback] = useState("");
   const [setupOpen, setSetupOpen] = useState(false);

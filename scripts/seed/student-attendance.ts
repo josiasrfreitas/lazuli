@@ -20,7 +20,9 @@ import {
   type AttendanceScenario,
 } from "./student-attendance-data.js";
 
-const ROTATION_AFTER_MINUTES = 8;
+const ROTATION_AFTER_MINUTES = 2;
+const DECLARATION_INTERVAL_MINUTES = 1 / 3;
+const IN_PERSON_WINDOW_MINUTES = 5;
 const SELECTED_NAME_INTERVAL = 3;
 const FAMILY_NAME_WORD_COUNT = 2;
 const MAX_EARLY_OPEN_MINUTES = 30;
@@ -194,7 +196,13 @@ async function encounterWindows(
         times: {
           openedAt: rotatedAt,
           expiresAt: new Date(
-            Math.min(minutesAfter(rotatedAt, scenario.ttl).getTime(), end.getTime()),
+            Math.min(
+              minutesAfter(
+                rotatedAt,
+                session.class.format === "IN_PERSON" ? IN_PERSON_WINDOW_MINUTES : scenario.ttl,
+              ).getTime(),
+              end.getTime(),
+            ),
           ),
           closedAt: times.closedAt,
         },
@@ -214,7 +222,10 @@ async function persistDeclaration(
 
   const rotated = scenario.kind === "ROTATED" && index >= 2;
   const window = windows[rotated ? 1 : 0]!;
-  const submittedAt = minutesAfter(window.openedAt, 1 + (rotated ? index - 2 : index));
+  const submittedAt = minutesAfter(
+    window.openedAt,
+    DECLARATION_INTERVAL_MINUTES * (1 + (rotated ? index - 2 : index)),
+  );
   if (submittedAt >= window.expiresAt || submittedAt >= window.closedAt)
     throw new Error("Student declaration must precede expiry and closing.");
   const family = scenario.kind === "FAMILY_NAME" && FAMILY_STUDENT_IDS.includes(member.studentId);
@@ -266,7 +277,7 @@ async function persistWindow(
       openedById: teacher.id,
       closedAt: times.closedAt,
       closedById: closer.id,
-      ...referenceLocation(session.class.format === "ONLINE", scenario.kind !== "EXPIRED"),
+      ...referenceLocation(session.class.format === "ONLINE"),
       createdAt: times.openedAt,
       updatedAt: times.closedAt,
     },

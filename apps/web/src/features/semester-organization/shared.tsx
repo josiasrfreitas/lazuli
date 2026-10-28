@@ -48,6 +48,7 @@ export function useOrganizationRefresh() {
       utils.students.invalidate(),
       utils.admissions.invalidate(),
       utils.activity.invalidate(),
+      utils.dashboard.invalidate(),
     ]);
   };
 }

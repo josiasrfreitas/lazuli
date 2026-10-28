@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from "react";
-import { Handshake, TriangleAlert } from "lucide-react";
+import { Handshake, FilePenLine, ChevronDown } from "lucide-react";
 import { TreatmentDialog } from "~/features/financial-treatments/treatment-dialog";
 import { CheckCircle2 } from "lucide-react";
 import {
@@ -8,6 +8,9 @@ import {
   Tabs,
   TabsList,
   TabsTab,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   type DataTableState,
   type TablePaginationConfig,
 } from "@lazuli/ui";
@@ -17,9 +20,10 @@ import { useStudentFinance, type StudentFinanceState } from "./finance-logic";
 import { financeColumns, type FinanceRow } from "./finance-columns";
 import { FinanceOverview } from "./finance-overview";
 import { visibleFinanceContracts } from "./finance-contract-terms";
-import { ContractTerminationDialog } from "./contract-termination-dialog";
+import { ContractRenegotiationDialog } from "./contract-renegotiation-dialog";
 import { formatDateOnlyBR } from "~/lib/format";
 import type { StudentProfile } from "./logic";
+import styles from "./finance-overview.module.css";
 
 export function StudentFinanceSection({
   id,
@@ -29,7 +33,7 @@ export function StudentFinanceSection({
   profile?: StudentProfile | undefined;
 }): ReactElement {
   const state = useStudentFinance(id);
-  const [terminationId, setTerminationId] = useState<string | null>(null);
+  const [contractId, setContractId] = useState<string | null>(null);
   const [treatmentIds, setTreatmentIds] = useState<string[] | null>(null);
   return (
     <div className="grid min-w-0 gap-6">
@@ -38,15 +42,12 @@ export function StudentFinanceSection({
         <FinanceHeading
           state={state}
           onTreat={() => setTreatmentIds([])}
-          onTerminate={setTerminationId}
+          onManageContract={setContractId}
         />
         <FinanceTable state={state} onTreat={(row) => setTreatmentIds([row.installmentId])} />
       </section>
-      {terminationId && (
-        <ContractTerminationDialog
-          contractId={terminationId}
-          onClose={() => setTerminationId(null)}
-        />
+      {contractId && (
+        <ContractRenegotiationDialog contractId={contractId} onClose={() => setContractId(null)} />
       )}
       {treatmentIds && (
         <TreatmentDialog
@@ -72,33 +73,16 @@ export function StudentFinanceSection({
 function FinanceHeading({
   state,
   onTreat,
-  onTerminate,
+  onManageContract,
 }: {
   state: StudentFinanceState;
   onTreat: () => void;
-  onTerminate: (contractId: string) => void;
+  onManageContract: (contractId: string) => void;
 }): ReactElement {
-  const contracts = state.summary.data ? visibleFinanceContracts(state.summary.data) : [];
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <FinanceHeadingCopy filter={state.filter} />
       <div className="flex flex-wrap items-center gap-3">
-        {contracts.map((contract) => (
-          <Button
-            key={contract.id}
-            variant="destructive-ghost"
-            size="sm"
-            onClick={() => onTerminate(contract.id)}
-          >
-            <TriangleAlert aria-hidden="true" /> Rescindir contrato
-            {contracts.length > 1 && contract.startsOn
-              ? ` · ${formatDateOnlyBR(contract.startsOn)}`
-              : ""}
-          </Button>
-        ))}
-        <Button variant="ghost" size="sm" onClick={onTreat}>
-          <Handshake aria-hidden="true" /> Negociar parcelas
-        </Button>
         <Tabs value={state.filter} onValueChange={state.setFilter}>
           <TabsList aria-label="Filtrar parcelas">
             <TabsTab value="overdue">
@@ -108,21 +92,73 @@ function FinanceHeading({
             <TabsTab value="paid">Pagas</TabsTab>
           </TabsList>
         </Tabs>
+        <FinanceManagementActions
+          state={state}
+          onTreat={onTreat}
+          onManageContract={onManageContract}
+        />
       </div>
     </div>
   );
 }
 
+function FinanceManagementActions({
+  state,
+  onTreat,
+  onManageContract,
+}: {
+  state: StudentFinanceState;
+  onTreat: () => void;
+  onManageContract: (id: string) => void;
+}): ReactElement {
+  const [open, setOpen] = useState(false);
+  const contracts = state.summary.data ? visibleFinanceContracts(state.summary.data) : [];
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {contracts.length === 1 ? (
+        <Button variant="secondary" size="sm" onClick={() => onManageContract(contracts[0]!.id)}>
+          <FilePenLine aria-hidden="true" /> Renegociar / rescindir
+        </Button>
+      ) : contracts.length > 1 ? (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger render={<Button variant="secondary" size="sm" />}>
+            <FilePenLine aria-hidden="true" /> Renegociar / rescindir{" "}
+            <ChevronDown aria-hidden="true" />
+          </PopoverTrigger>
+          <PopoverContent align="end" size="menu" showArrow={false}>
+            <div className={styles.management}>
+              {contracts.map((contract) => (
+                <Button
+                  key={contract.id}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setOpen(false);
+                    onManageContract(contract.id);
+                  }}
+                >
+                  Contrato{contract.startsOn ? ` · ${formatDateOnlyBR(contract.startsOn)}` : ""}
+                </Button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      ) : null}
+      <Button variant="ghost" size="sm" onClick={onTreat}>
+        <Handshake aria-hidden="true" /> Negociar parcelas
+      </Button>
+    </div>
+  );
+}
+
 function FinanceHeadingCopy({ filter }: { filter: StudentFinanceState["filter"] }): ReactElement {
-  let description = "Todas as cobranças vinculadas a este aluno, com seus saldos atuais.";
-  if (filter === "overdue")
-    description =
-      "Vencimentos mais antigos primeiro. Registre o recebimento para quitar a pendência.";
+  let description = "Parcelas e pagamentos do aluno.";
+  if (filter === "overdue") description = "Vencimentos mais antigos primeiro.";
   else if (filter === "paid") description = "Cobranças quitadas deste aluno.";
   return (
     <div>
       <h2 id="student-charges-heading" className="font-display text-xl font-semibold text-heading">
-        {filter === "overdue" ? "Fila de pendências" : "Histórico de cobranças"}
+        {filter === "overdue" ? "Parcelas em atraso" : "Cobranças"}
       </h2>
       <p className="mt-1 text-caption text-muted-foreground">{description}</p>
     </div>

@@ -54,7 +54,11 @@ export function BrandSignature({
 }): ReactNode {
   return (
     <p aria-label="Lazuli" className="flex items-center" role="img">
-      <span aria-hidden="true" className={entry ? "size-16 shrink-0" : "size-8 shrink-0"}>
+      <span
+        aria-hidden="true"
+        data-brand-symbol
+        className={entry ? "size-16 shrink-0" : "size-8 shrink-0"}
+      >
         <BrandArtwork kind={entry ? "symbol" : "symbol-small"} />
       </span>
       <span

@@ -1,10 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState, type ReactElement } from "react";
 import { ArrowUpRight, ListChecks } from "lucide-react";
 import {
   Button,
-  DataTable,
   Dialog,
   DialogBackdrop,
   DialogBody,
@@ -15,12 +15,12 @@ import {
   DialogTitle,
   DialogTrigger,
   InlineSkeleton,
-  type TablePaginationConfig,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatAttendancePercent, formatDateOnlyBR } from "~/lib/format";
 import { SelectControl } from "~/features/classes/form-controls";
-import { attendanceHistoryColumns, type AttendanceHistory } from "./attendance-history-columns";
+import type { AttendanceHistory } from "./attendance-history-columns";
+import { AttendanceHistoryList } from "./attendance-history-list";
 
 type Props = {
   studentId: string;
@@ -54,7 +54,7 @@ export function AttendanceHistoryDialog({
       />
       <DialogPortal>
         <DialogBackdrop />
-        <DialogContent className="h-160 md:max-w-7xl">
+        <DialogContent className="min-h-128 md:max-w-3xl" data-student-dialog-motion>
           <DialogHeader>
             <DialogTitle>Histórico de frequência</DialogTitle>
             <DialogDescription>
@@ -124,8 +124,8 @@ function AttendanceHistoryContent({ studentId, enrollmentId }: Props): ReactElem
   );
   const data = query.data;
   return (
-    <DialogBody className="flex flex-col">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 pt-5">
+    <DialogBody className="flex flex-auto flex-col">
+      <div className="flex min-w-0 flex-col gap-3 pt-3">
         <AttendanceSummary data={query.isError ? undefined : data} loading={query.isPending} />
         <AttendanceHistoryFilters
           fieldId={fieldId}
@@ -142,12 +142,16 @@ function AttendanceHistoryContent({ studentId, enrollmentId }: Props): ReactElem
             setPage(1);
           }}
         />
-        <AttendanceHistoryTable
+        <AttendanceClassButton
+          data={data}
+          selectedEnrollment={selectedEnrollment}
+          studentId={studentId}
+        />
+        <AttendanceHistoryList
           data={data}
           error={query.isError}
           fetching={query.isFetching}
           status={status}
-          page={page}
           onPageChange={setPage}
           onRetry={() => void query.refetch()}
         />
@@ -208,16 +212,18 @@ function AttendanceHistoryFilters({
 }): ReactElement {
   return (
     <div className="flex shrink-0 flex-wrap items-end gap-3">
-      <div className="w-96 max-w-full">
-        <SelectControl
-          name={`${fieldId}-enrollment`}
-          label="Matrícula · turma · entrada"
-          value={selectedEnrollment}
-          choices={enrollmentChoices(data, enrollmentId)}
-          onChange={onEnrollmentChange}
-        />
-      </div>
-      <div className="w-64">
+      {(data?.enrollments.filter((row) => row.current).length ?? 0) > 1 && (
+        <div className="w-96 max-w-full">
+          <SelectControl
+            name={`${fieldId}-enrollment`}
+            label="Matrícula · turma · entrada"
+            value={selectedEnrollment}
+            choices={enrollmentChoices(data, enrollmentId)}
+            onChange={onEnrollmentChange}
+          />
+        </div>
+      )}
+      <div className="w-64 max-w-full">
         <SelectControl
           name={`${fieldId}-status`}
           label="Presença"
@@ -234,87 +240,6 @@ function AttendanceHistoryFilters({
       </p>
     </div>
   );
-}
-
-type AttendanceTableState =
-  | { kind: "error" }
-  | { kind: "data"; rows: AttendanceHistory["rows"] }
-  | { kind: "empty" }
-  | { kind: "noResults" }
-  | { kind: "loading" };
-
-function attendanceTableState({
-  data,
-  error,
-  status,
-}: {
-  data: AttendanceHistory | undefined;
-  error: boolean;
-  status: AttendanceFilter;
-}): AttendanceTableState {
-  if (error) return { kind: "error" };
-  if (!data) return { kind: "loading" };
-  if (data.rows.length > 0) return { kind: "data", rows: data.rows };
-  return status === "ALL" ? { kind: "empty" } : { kind: "noResults" };
-}
-
-function AttendanceHistoryTable({
-  data,
-  error,
-  fetching,
-  status,
-  page,
-  onPageChange,
-  onRetry,
-}: {
-  data: AttendanceHistory | undefined;
-  error: boolean;
-  fetching: boolean;
-  status: AttendanceFilter;
-  page: number;
-  onPageChange: (page: number) => void;
-  onRetry: () => void;
-}): ReactElement {
-  return (
-    <div className="grid min-h-0 flex-1 grid-rows-1">
-      <DataTable
-        label="Aulas e presenças do aluno"
-        loadingRows={6}
-        columns={attendanceHistoryColumns}
-        state={attendanceTableState({ data, error, status })}
-        updating={fetching}
-        onRetry={onRetry}
-        empty={{
-          title: "Nenhuma aula neste período",
-          description: "O histórico mostra as aulas até hoje, durante a matrícula do aluno.",
-        }}
-        errorTitle="Não foi possível carregar a frequência"
-        pagination={attendancePagination({ data, page, onPageChange })}
-      />
-    </div>
-  );
-}
-
-function attendancePagination({
-  data,
-  page,
-  onPageChange,
-}: {
-  data: AttendanceHistory | undefined;
-  page: number;
-  onPageChange: (page: number) => void;
-}): TablePaginationConfig {
-  const itemLabel = { singular: "aula", plural: "aulas" };
-  if (data)
-    return {
-      page: data.page,
-      pageSize: data.pageSize,
-      pageCount: data.pageCount,
-      totalItems: data.totalItems,
-      onPageChange,
-      itemLabel,
-    };
-  return { loading: true, page, pageSize: 25, itemLabel };
 }
 
 function AttendanceSummary({
@@ -334,15 +259,46 @@ function AttendanceSummary({
     { label: "Minutos repostos", value: data?.attendance.compensatedMinutes },
   ];
   return (
-    <dl className="flex shrink-0 flex-wrap items-center gap-x-8 gap-y-3 border-y border-border bg-accent px-4 py-3">
+    <dl className="grid shrink-0 grid-cols-2 gap-x-5 gap-y-2 border-y border-border py-3 sm:grid-cols-4">
       {stats.map((stat) => (
-        <div key={stat.label} className="flex items-baseline gap-2">
-          <dt className="order-2 text-caption text-muted-foreground">{stat.label}</dt>
-          <dd className="order-1 font-numeric text-xl font-semibold tabular-nums text-heading">
+        <div key={stat.label} className="flex flex-wrap items-baseline gap-x-2">
+          <dt className="text-caption text-muted-foreground">{stat.label}</dt>
+          <dd className="font-numeric text-xl font-semibold tabular-nums text-heading">
             {loading ? <InlineSkeleton className="w-8" /> : (stat.value ?? "—")}
           </dd>
         </div>
       ))}
     </dl>
+  );
+}
+
+function AttendanceClassButton({
+  data,
+  selectedEnrollment,
+  studentId,
+}: {
+  data: AttendanceHistory | undefined;
+  selectedEnrollment: string;
+  studentId: string;
+}): ReactElement | null {
+  const enrollment =
+    data?.enrollments.find((row) => row.id === selectedEnrollment) ??
+    (data?.enrollments.length === 1 ? data.enrollments[0] : undefined);
+  if (!enrollment) return null;
+  return (
+    <div className="flex justify-start">
+      <Button
+        variant="secondary"
+        size="sm"
+        nativeButton={false}
+        render={
+          <Link
+            href={`/turmas/${enrollment.classId}?voltar=${encodeURIComponent(`/alunos/${studentId}`)}`}
+          />
+        }
+      >
+        Ver turma <ArrowUpRight aria-hidden="true" />
+      </Button>
+    </div>
   );
 }

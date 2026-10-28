@@ -1,0 +1,93 @@
+.arrival {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  isolation: isolate;
+  /* If hydration stalls, the cover still releases the rendered content. */
+  animation: release-cover-ready 1200ms step-end forwards;
+}
+
+.arrival[data-ready="false"] {
+  animation: release-cover 10000ms step-end forwards;
+}
+
+.arrival[hidden] {
+  display: none;
+}
+
+.cover,
+.scrim {
+  position: absolute;
+  inset: 0;
+}
+
+.cover {
+  background: var(--marquee);
+}
+
+.photo {
+  object-fit: cover;
+  object-position: center 42%;
+}
+
+.scrim {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--marquee) 65%, transparent) 0%,
+    color-mix(in srgb, var(--marquee) 12%, transparent) 36%,
+    color-mix(in srgb, var(--marquee) 48%, transparent) 60%,
+    color-mix(in srgb, var(--marquee) 96%, transparent) 100%
+  );
+}
+
+.signature {
+  position: absolute;
+  top: clamp(16px, 3dvh, 40px);
+  left: 48px;
+  display: flex;
+  align-items: center;
+  width: clamp(280px, 32vw, 440px);
+}
+
+.symbol {
+  width: 20%;
+  height: auto;
+  transform-origin: top left;
+}
+
+.wordmark {
+  width: 80%;
+  height: auto;
+}
+
+@keyframes release-cover {
+  to {
+    visibility: hidden;
+    opacity: 0;
+  }
+}
+
+@keyframes release-cover-ready {
+  to {
+    visibility: hidden;
+    opacity: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .signature {
+    left: 20px;
+    width: 280px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrival {
+    animation: release-cover-ready 160ms ease-out forwards;
+  }
+
+  .arrival[data-ready="false"] {
+    animation: release-cover 10000ms step-end forwards;
+  }
+}

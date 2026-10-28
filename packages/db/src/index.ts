@@ -22,6 +22,7 @@ export type {
   Payer,
   PaymentAllocation,
   PaymentEntry,
+  PaymentMethod,
   PedagogicalProgress,
   ProductLine,
   SchoolClosedDay,
@@ -30,12 +31,7 @@ export type {
   Student,
   Track,
 } from "./generated/prisma/client.js";
-export {
-  ArtifactKind,
-  InstallmentAdjustmentType,
-  OrderKind,
-  PaymentMethod,
-} from "./generated/prisma/enums.js";
+export { ArtifactKind, InstallmentAdjustmentType, OrderKind } from "./generated/prisma/enums.js";
 export { getDatabaseUrl, getWorkspaceInitializationKey } from "./config.js";
 
 /** Shared shape for domain entities under decision 0011. */

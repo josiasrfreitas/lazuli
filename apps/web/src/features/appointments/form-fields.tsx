@@ -57,7 +57,9 @@ function Choices({
 export function PurposeField({
   value,
   onChange,
+  allowPptComplement = true,
 }: {
+  allowPptComplement?: boolean;
   value: AppointmentSnapshot["purpose"];
   onChange: (value: AppointmentSnapshot["purpose"]) => void;
 }): ReactJSX.Element {
@@ -71,7 +73,11 @@ export function PurposeField({
         </span>
       }
       value={value}
-      options={purposes}
+      options={
+        allowPptComplement
+          ? purposes
+          : Object.fromEntries(Object.entries(purposes).filter(([key]) => key !== "PPT_COMPLEMENT"))
+      }
       onChange={(next) => onChange(next as AppointmentSnapshot["purpose"])}
     />
   );

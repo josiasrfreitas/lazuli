@@ -42,7 +42,6 @@ const COLUMNS = [
   { label: "Financeiro", numeric: true },
 ] as const satisfies readonly { label: string; numeric: boolean }[];
 const COLUMN_COUNT = COLUMNS.length + 1;
-const NUMERIC_COLUMNS = COLUMNS.flatMap((column, index) => (column.numeric ? [index] : []));
 
 function FactCell({ vm }: { vm: FactCellVm }): ReactElement {
   const content = <span className={cn(vm.numeric && "font-numeric")}>{vm.label}</span>;
@@ -81,10 +80,7 @@ function EnrollmentCell({ enrollment }: { enrollment: StudentListRow["enrollment
 
   return (
     <TableCell>
-      <div className="flex flex-col gap-0.5">
-        <span className="font-numeric tabular-nums">{enrollment.classCode}</span>
-        <span className="text-micro text-muted-foreground">{enrollment.scheduleLabel}</span>
-      </div>
+      <span className="font-numeric tabular-nums">{enrollment.classCode}</span>
     </TableCell>
   );
 }
@@ -166,15 +162,18 @@ export function StudentsTableRow({
 function StatesRow({
   state,
   onRetry,
-  pageSize,
 }: {
   state: StudentsTableState;
   onRetry: () => void;
-  pageSize: number;
 }): ReactNode {
   if (state.kind === "loading") {
     return (
-      <TableSkeleton columns={COLUMN_COUNT} numericColumns={NUMERIC_COLUMNS} rows={pageSize} />
+      <TableSkeleton
+        columns={COLUMN_COUNT}
+        rows={10}
+        numericColumns={[3, 4]}
+        label="Carregando alunos…"
+      />
     );
   }
 
@@ -226,24 +225,24 @@ function StudentsPagination({ pagination }: { pagination: StudentsTablePaginatio
 function StudentsTableHead({ column }: { column: (typeof COLUMNS)[number] }): ReactElement {
   switch (column.label) {
     case "Aluno": {
-      return <TableHead className="w-[30%]">{column.label}</TableHead>;
+      return <TableHead className="w-[25%]">{column.label}</TableHead>;
     }
     case "Turma": {
-      return <TableHead className="w-[15%]">{column.label}</TableHead>;
+      return <TableHead className="w-[30%]">{column.label}</TableHead>;
     }
     case "Professor": {
       return <TableHead className="w-[17%]">{column.label}</TableHead>;
     }
     case "Frequência": {
       return (
-        <TableHead className="w-[15%]" numeric>
+        <TableHead className="w-[10%]" numeric>
           {column.label}
         </TableHead>
       );
     }
     case "Financeiro": {
       return (
-        <TableHead className="w-[15%]" numeric>
+        <TableHead className="w-[10%]" numeric>
           {column.label}
         </TableHead>
       );
@@ -266,13 +265,17 @@ export function StudentsTable({
 }): ReactElement {
   return (
     <TableContainer footer={<StudentsPagination pagination={pagination} />} viewportBound>
-      <Table aria-label="Lista de alunos" className="min-w-2xl table-fixed">
+      <Table
+        aria-busy={state.kind === "loading"}
+        aria-label="Lista de alunos"
+        className="min-w-2xl table-fixed"
+      >
         <TableHeader sticky>
           <TableRow className="hover:bg-transparent">
             {COLUMNS.map((column) => (
               <StudentsTableHead column={column} key={column.label} />
             ))}
-            <TableHead className="w-24 text-center">
+            <TableHead className="w-16 text-center">
               <span className="sr-only">Ações</span>
             </TableHead>
           </TableRow>
@@ -283,7 +286,7 @@ export function StudentsTable({
               <StudentsTableRow key={row.id} onOpen={onOpenRow} onContinue={onContinue} row={row} />
             ))
           ) : (
-            <StatesRow onRetry={onRetry} state={state} pageSize={pagination.pageSize} />
+            <StatesRow onRetry={onRetry} state={state} />
           )}
         </TableBody>
       </Table>

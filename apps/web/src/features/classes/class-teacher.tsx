@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, UserRoundX, ArrowRight } from "lucide-react";
 import {
   Button,
   Popover,
@@ -12,6 +12,8 @@ import {
 import type { RouterOutputs } from "@lazuli/api";
 import { dateLabel } from "../teachers/format";
 
+import styles from "./class-page.module.css";
+
 type Detail = RouterOutputs["classes"]["byId"];
 
 export function ClassTeacher({
@@ -21,6 +23,18 @@ export function ClassTeacher({
   detail: Detail;
   onAssign: () => void;
 }): ReactElement {
+  if (!detail.currentTeacher)
+    return (
+      <div className={styles.missingTeacher}>
+        <div>
+          <UserRoundX aria-hidden="true" />
+          <strong>Sem professor</strong>
+        </div>
+        <Button size="inline" variant="link" onClick={onAssign}>
+          Definir professor <ArrowRight aria-hidden="true" />
+        </Button>
+      </div>
+    );
   return (
     <Popover>
       <PopoverTrigger render={<Button variant="link" size="inline" />}>

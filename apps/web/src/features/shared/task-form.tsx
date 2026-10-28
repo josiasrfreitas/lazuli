@@ -1,5 +1,5 @@
 "use client";
-import { useState, type ReactElement, type ReactNode } from "react";
+import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { ArrowLeft, Check, X } from "lucide-react";
 import type { z } from "@lazuli/validators";
 import {
@@ -141,11 +141,15 @@ type TaskDialogProps = {
   layout?: "appointment" | "appointment-calendar" | "occurrence" | "termination";
   bodyLayout?: "calendar" | "termination" | "placement";
   compactHeader?: boolean;
+  contentClassName?: string;
+  embedded?: boolean;
+  returnAction?: { label: string; onClick: () => void } | undefined;
   error?: string | undefined;
   bodyRef?: React.RefObject<HTMLDivElement | null> | undefined;
   submitVariant?: ButtonVariant;
 };
 export function TaskDialog(props: TaskDialogProps): ReactElement {
+  if (props.embedded) return <TaskContent {...props} />;
   return (
     <Dialog
       open
@@ -162,18 +166,31 @@ export function TaskDialog(props: TaskDialogProps): ReactElement {
 }
 function TaskContent(props: TaskDialogProps): ReactElement {
   const actions = <TaskActions {...props} />;
-  return (
-    <DialogContent
-      className="data-[size=medium]:md:max-w-3xl data-[size=wide]:md:max-w-5xl data-[size=extra-wide]:md:max-w-6xl data-[layout=appointment]:max-h-[min(calc(110dvh-4.4rem),calc(100dvh-1rem))] data-[layout=appointment-calendar]:h-[85dvh] data-[layout=appointment-calendar]:max-h-[calc(100dvh-2rem)] data-[layout=appointment-calendar]:w-[calc(100vw-2rem)] data-[layout=appointment-calendar]:max-w-[1224px] data-[layout=occurrence]:w-[calc(100vw-48px)] data-[layout=occurrence]:max-w-[1280px] max-[959px]:data-[layout=occurrence]:w-[calc(100vw-24px)] data-[layout=termination]:md:w-[calc(100vw-3rem)] data-[layout=termination]:md:max-w-[1120px] data-[layout=termination]:[&>[data-slot=dialog-footer]]:mt-4"
-      data-size={props.size ?? "default"}
-      data-layout={props.layout}
-      showCloseButton={!props.pending}
-      initialFocus={() =>
-        document.querySelector<HTMLElement>(
+  useEffect(() => {
+    if (!props.embedded) return;
+    const frame = requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>(
           `#${CSS.escape(props.firstField)}, [name="${CSS.escape(props.firstField)}"]`,
         )
-      }
-    >
+        ?.focus(),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [props.embedded, props.firstField]);
+  const body = (
+    <>
+      {props.returnAction && (
+        <div className="mb-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={props.pending}
+            onClick={props.returnAction.onClick}
+          >
+            <ArrowLeft aria-hidden="true" /> {props.returnAction.label}
+          </Button>
+        </div>
+      )}
       <DialogHeader
         className={
           props.compactHeader ? "flex-row flex-wrap items-baseline gap-x-3 gap-y-1" : undefined
@@ -191,6 +208,27 @@ function TaskContent(props: TaskDialogProps): ReactElement {
         {props.error && <Alert variant="destructive">{props.error}</Alert>}
       </DialogBody>
       {typeof props.children !== "function" && <DialogFooter>{actions}</DialogFooter>}
+    </>
+  );
+  if (props.embedded) return body;
+  return (
+    <DialogContent
+      className={[
+        "data-[size=medium]:md:max-w-3xl data-[size=wide]:md:max-w-5xl data-[size=extra-wide]:md:max-w-6xl data-[layout=appointment]:max-h-[min(calc(110dvh-4.4rem),calc(100dvh-1rem))] data-[layout=appointment-calendar]:h-[85dvh] data-[layout=appointment-calendar]:max-h-[calc(100dvh-2rem)] data-[layout=appointment-calendar]:w-[calc(100vw-2rem)] data-[layout=appointment-calendar]:max-w-[1224px] data-[layout=occurrence]:w-[calc(100vw-48px)] data-[layout=occurrence]:max-w-[1280px] max-[959px]:data-[layout=occurrence]:w-[calc(100vw-24px)] data-[layout=termination]:md:w-[calc(100vw-3rem)] data-[layout=termination]:md:max-w-[1120px] data-[layout=termination]:[&>[data-slot=dialog-footer]]:mt-4",
+        props.contentClassName,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      data-size={props.size ?? "default"}
+      data-layout={props.layout}
+      showCloseButton={!props.pending}
+      initialFocus={() =>
+        document.querySelector<HTMLElement>(
+          `#${CSS.escape(props.firstField)}, [name="${CSS.escape(props.firstField)}"]`,
+        )
+      }
+    >
+      {body}
     </DialogContent>
   );
 }

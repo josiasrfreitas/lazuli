@@ -4,16 +4,17 @@ import agenda from "~/features/appointments/student-carousel.module.css";
 import { Button, InlineSkeleton } from "@lazuli/ui";
 import { StudentDeskLoading } from "~/features/pedagogical-follow-up/student-desk-loading";
 import desk from "~/features/pedagogical-follow-up/student-desk.module.css";
+import styles from "./student-loading.module.css";
 
 export function EnrollmentLoading(): ReactElement {
   return (
     <article
       aria-label="Carregando matrícula"
       aria-busy="true"
-      className="min-w-0 border border-border bg-accent"
+      className={`min-w-0 border border-border bg-accent ${styles.surface}`}
     >
       <div className="grid gap-5 px-5 py-4 lg:grid-cols-2 lg:gap-8">
-        <div className="grid content-start gap-3">
+        <div className={`grid content-start gap-3 ${styles.intro}`}>
           <InlineSkeleton className="h-7 w-48" />
           <InlineSkeleton className="h-3 w-64 max-w-full" />
           <div className="flex gap-5">
@@ -26,20 +27,25 @@ export function EnrollmentLoading(): ReactElement {
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 border-t sm:grid-cols-2 border-border/60 pt-4 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-          {[0, 1].map((item) => (
-            <div key={item} className="grid content-start gap-3">
-              <InlineSkeleton className="h-3 w-24" />
-              <InlineSkeleton className="h-7 w-20" />
-              <InlineSkeleton className="h-3 w-28" />
-              <InlineSkeleton className="h-3 w-20" />
+          <div className={`flex min-w-0 flex-col gap-3 ${styles.metric}`}>
+            <InlineSkeleton className="h-4 w-24" />
+            <InlineSkeleton className="h-10 w-20" />
+            <InlineSkeleton className="h-3 w-28" />
+            <InlineSkeleton className="h-1.5 w-full" />
+            <div className="flex gap-4">
+              <InlineSkeleton className="h-5 w-20" />
+              <InlineSkeleton className="h-5 w-20" />
             </div>
-          ))}
+            <InlineSkeleton className="mt-auto h-8 w-36" />
+          </div>
+          <div className={`flex min-w-0 flex-col gap-3 ${styles.metric}`}>
+            <InlineSkeleton className="h-4 w-24" />
+            <InlineSkeleton className="h-10 w-20" />
+            <InlineSkeleton className="h-3 w-28" />
+            <InlineSkeleton className="h-3 w-24" />
+            <InlineSkeleton className="mt-auto h-8 w-36" />
+          </div>
         </div>
-      </div>
-      <div className="flex flex-wrap gap-5 border-t border-border/60 px-5 py-3">
-        <InlineSkeleton className="h-3 w-40" />
-        <InlineSkeleton className="h-3 w-32" />
-        <InlineSkeleton className="h-3 w-48" />
       </div>
     </article>
   );
@@ -48,7 +54,6 @@ export function EnrollmentLoading(): ReactElement {
 export function FollowUpLoading(): ReactElement {
   return (
     <section className={desk.workspace} aria-busy="true" aria-label="Carregando acompanhamento">
-      <AppointmentsLoading />
       <header className={desk.heading}>
         <div>
           <h2>Acompanhamento pedagógico</h2>
@@ -108,8 +113,8 @@ export function AppointmentsLoading({
 
 function AppointmentsRailLoading(): ReactElement {
   return (
-    <ul className={agenda.rail} aria-hidden="true">
-      {[0, 1].map((item) => (
+    <ul className={`${agenda.rail} ${styles.loadingRail}`} aria-hidden="true">
+      {Array.from({ length: 16 }, (_, item) => (
         <li key={item}>
           <div className={agenda.cell}>
             <div className={agenda.date}>

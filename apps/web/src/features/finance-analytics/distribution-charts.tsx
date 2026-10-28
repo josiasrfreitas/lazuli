@@ -23,25 +23,12 @@ import {
 } from "./chart-shared";
 
 const BAR_CORNER_RADIUS = 4;
-const METHOD_LABELS: Record<string, string> = {
-  PIX: "Pix",
-  CARD: "Cartão",
-  TRANSFER: "Transferência",
-  CASH: "Dinheiro",
-  CREDIT_CARD: "Cartão de crédito",
-  DEBIT_CARD: "Cartão de débito",
-  BANK_TRANSFER: "Transferência",
-  BOLETO: "Boleto",
-  OTHER: "Outros",
-};
+
 const PIE_HEIGHT = 184;
 const AGING_HEIGHT = 210;
 type PaymentMethod = Analytics["methods"][number] & { label: string };
 export function PaymentMethodsChart({ data }: { data: Analytics }): ReactElement {
-  const methods = data.methods.map((row) => ({
-    ...row,
-    label: METHOD_LABELS[row.method] ?? row.method,
-  }));
+  const methods = data.methods;
   return (
     <ChartPanel title="Meios de pagamento" description={`Recebimentos de ${data.year}`}>
       {methods.length === 0 ? (

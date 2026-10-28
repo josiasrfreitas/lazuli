@@ -44,6 +44,7 @@ type MeetingEvent = CalendarEvent & {
 };
 type Props = {
   actions?: ReactNode;
+  renderSidebar?: ((fields: ReactNode) => ReactNode) | undefined;
   durationMinutes?: number;
   kind: "CLASS" | "INDEPENDENT";
   studentId: string;
@@ -296,10 +297,14 @@ function useMeetingClock(props: Props): ClockModel {
   const step = useRef<HTMLDivElement>(null);
   const [calendarDate, setCalendarDate] = useState(props.date);
   const [view, setView] = useState<CalendarView>("week");
+  const inSidebar = Boolean(props.renderSidebar);
   const [dateDraft, setDateDraft] = useState(formatDateOnlyBR(props.date));
   const [now, setNow] = useState(schoolClock);
   useEffect(() => setDateDraft(formatDateOnlyBR(props.date)), [props.date]);
   useEffect(() => step.current?.focus(), []);
+  useEffect(() => {
+    if (inSidebar && window.matchMedia("(max-width: 640px)").matches) setView("day");
+  }, [inSidebar]);
   useEffect(() => {
     const timer = globalThis.setInterval(() => setNow(schoolClock()), CLOCK_REFRESH_INTERVAL_MS);
     return () => globalThis.clearInterval(timer);
@@ -463,6 +468,7 @@ function MeetingCalendar(model: MeetingModel): ReactElement {
   return (
     <div className={styles.calendar}>
       <AppointmentCalendar<MeetingEvent>
+        density={props.renderSidebar ? "compact" : "comfortable"}
         collapseEmptyShifts={props.kind === "CLASS"}
         toolbar={false}
         date={clock.visibleDate}
@@ -497,6 +503,8 @@ function MeetingCalendar(model: MeetingModel): ReactElement {
 
 function MeetingContent(model: MeetingModel): ReactElement {
   const { props, clock, selection } = model;
+  if (props.renderSidebar)
+    return <MeetingWithSidebar model={model} renderSidebar={props.renderSidebar} />;
   return (
     <div
       ref={clock.step}
@@ -533,6 +541,55 @@ function MeetingContent(model: MeetingModel): ReactElement {
         <p role="alert" className={styles.error}>
           {selection.manualError ?? props.error}
         </p>
+      )}
+    </div>
+  );
+}
+
+function MeetingWithSidebar({
+  model,
+  renderSidebar,
+}: {
+  model: MeetingModel;
+  renderSidebar: (fields: ReactNode) => ReactNode;
+}): ReactElement {
+  const { props, clock, selection } = model;
+  return (
+    <div className={styles.workspace} ref={clock.step} tabIndex={-1}>
+      <div className={styles.workspaceCalendar}>
+        <ScheduleCalendarToolbar
+          date={clock.visibleDate}
+          today={clock.now.date}
+          view={clock.view}
+          teacher={props.teacher}
+          onTeacherChange={props.onTeacherChange}
+          onDateChange={clock.navigate}
+          onViewChange={clock.setView}
+        />
+        {!props.teacher && <p role="status">Selecione um professor para consultar a agenda.</p>}
+        <MeetingCalendar {...model} />
+      </div>
+      {renderSidebar(
+        <div className={styles.sidebarSelection}>
+          {props.kind === "INDEPENDENT" ? (
+            <IndependentSelection
+              props={props}
+              now={clock.now}
+              dateDraft={clock.dateDraft}
+              setDateDraft={clock.setDateDraft}
+              visibleRange={clock.visibleRange}
+              setCalendarDate={clock.setCalendarDate}
+              selectedClass={selection.selectedClass}
+            />
+          ) : (
+            <ClassSelection selectedClass={selection.selectedClass} />
+          )}
+          {(selection.manualError || props.error) && (
+            <p role="alert" className={styles.error}>
+              {selection.manualError ?? props.error}
+            </p>
+          )}
+        </div>,
       )}
     </div>
   );

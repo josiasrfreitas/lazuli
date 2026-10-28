@@ -47,6 +47,11 @@ export function CompositionHeader({
         {plan.teacherName ?? "Professor a definir"} ·{" "}
         {plan.format === "ONLINE" ? "Online" : "Presencial"} · {planActivity(plan, health.count)}
       </p>
+      {!plan.teacherName && !plan.classId && !ended && (
+        <Button size="sm" onClick={() => onAction({ kind: "plan", plan })}>
+          Definir professor
+        </Button>
+      )}
       {plan.active && (
         <Badge variant={health.tone}>
           {health.count} alunos · {health.label}

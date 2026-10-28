@@ -1,6 +1,6 @@
 "use client";
 import type { JSX as ReactJSX } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CalendarClock, Pencil, X } from "lucide-react";
 import { Alert, Button, Tabs, TabsList, TabsTab } from "@lazuli/ui";
@@ -377,9 +377,13 @@ function AppointmentHistory({ data }: { data: Appointment }): ReactJSX.Element {
 export function CancelAppointmentDialog({
   row,
   onClose,
+  embedded = false,
+  onPendingChange,
 }: {
   row: AppointmentSnapshot;
   onClose: () => void;
+  embedded?: boolean;
+  onPendingChange?: ((pending: boolean) => void) | undefined;
 }): ReactJSX.Element {
   const [reason, setReason] = useState("");
   const validation = useValidation();
@@ -390,8 +394,14 @@ export function CancelAppointmentDialog({
       onClose();
     },
   });
+  useEffect(() => {
+    onPendingChange?.(mutation.isPending);
+    return () => onPendingChange?.(false);
+  }, [mutation.isPending, onPendingChange]);
   return (
     <TaskDialog
+      embedded={embedded}
+      returnAction={embedded ? { label: "Voltar ao atendimento", onClick: onClose } : undefined}
       title="Cancelar atendimento"
       description={`${row.student.name} · ${formatDateOnlyBR(row.date)} às ${row.startTime}`}
       firstField="cancel-reason"

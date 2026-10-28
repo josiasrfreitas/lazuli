@@ -1,7 +1,7 @@
 "use client";
 
 import type { JSX as ReactJSX } from "react";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   ArrowLeft,
   Ban,
@@ -37,9 +37,16 @@ export function ClassLessons({ classId }: { classId: string }): ReactJSX.Element
   const query = trpc.classRecords.progress.useQuery({ classId }, { retry: false });
   const [selected, setSelected] = useQueryState("aula", parseAsString.withDefault(""));
   const [showList, setShowList] = useState(false);
+  const deepLinkScrolled = useRef(false);
   const detailId = useId();
   const rows = query.data?.rows ?? [];
   const active = rows.find((row) => row.id === selected) ?? rows[0];
+  useEffect(() => {
+    if (!query.isSuccess || !selected || active?.id !== selected || deepLinkScrolled.current)
+      return;
+    deepLinkScrolled.current = true;
+    document.querySelector("#aulas-da-turma")?.scrollIntoView({ block: "start" });
+  }, [query.isSuccess, selected, active?.id]);
   if (query.isPending)
     return (
       <div className={styles.loading}>

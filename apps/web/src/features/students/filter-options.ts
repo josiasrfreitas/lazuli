@@ -11,9 +11,10 @@ export function studentFilterOptionResult(
     isFetching: boolean;
     refetch: () => void;
   },
+  preload = false,
 ): RemoteOptionsResult {
   const trimmed = search.trim();
-  if (trimmed === "") return { status: "idle", query: "" };
+  if (trimmed === "" && !preload) return { status: "idle", query: "" };
   if (query.isError) {
     return {
       status: "error",

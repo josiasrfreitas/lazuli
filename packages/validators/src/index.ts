@@ -260,4 +260,6 @@ export * from "./appointments.js";
 export * from "./semester-organization.js";
 
 export * from "./contract-termination.js";
+export * from "./contract-renegotiation.js";
+export * from "./payment-proof.js";
 export { teachingProgramImportSchema, trackAgeGroupSchema } from "./teaching-program.js";

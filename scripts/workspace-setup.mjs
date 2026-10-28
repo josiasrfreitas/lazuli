@@ -216,7 +216,12 @@ try {
   await main();
 } catch (error) {
   errorOutput(`workspace:setup failed: ${error.message}`);
-  if (process.argv[2] === "full") {
+  if (error.code === "PARTIAL_DATABASE_INITIALIZATION") {
+    errorOutput("Back up local data before recovery. Rebuild this workspace with: pnpm seed");
+    errorOutput(
+      "This deletes this workspace's database and bucket contents. Setup will not reset them automatically.",
+    );
+  } else if (process.argv[2] === "full") {
     errorOutput("Inspect shared services with: docker compose ps");
     errorOutput("Inspect a service with: docker compose logs <service>");
     errorOutput("Resume safely with: pnpm workspace:setup full");

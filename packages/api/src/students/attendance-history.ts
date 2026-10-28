@@ -78,7 +78,14 @@ type HistoryRow = {
 };
 type HistoryResult = {
   today: string;
-  enrollments: Array<{ id: string; className: string; semester: string; entryDate: string }>;
+  enrollments: Array<{
+    id: string;
+    classId: string;
+    className: string;
+    semester: string;
+    entryDate: string;
+    current: boolean;
+  }>;
   attendance: ReturnType<typeof computeCompensatedAttendance>;
   counts: Record<AttendanceFilter, number>;
   rows: HistoryRow[];
@@ -232,9 +239,13 @@ function summarizeHistory(
     today,
     enrollments: enrollments.map((row) => ({
       id: row.id,
+      classId: row.classId,
       className: row.class.portalClassName,
       semester: row.class.semester.name,
       entryDate: toDateOnlyString(row.entryDate),
+      current:
+        toDateOnlyString(row.entryDate) <= today &&
+        (row.exitDate === null || toDateOnlyString(row.exitDate) > today),
     })),
     attendance,
     counts,

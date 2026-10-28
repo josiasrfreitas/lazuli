@@ -18,20 +18,18 @@ const FINANCE_DUE_DAY_TENTH = 10;
 const FINANCE_DUE_DAY_FIFTEENTH = 15;
 const FINANCE_DUE_DAY_TWENTIETH = 20;
 const FINANCE_DUE_DAY_TWENTY_FIFTH = 25;
+const MAX_PAYMENT_METHOD_CODE_LENGTH = 64;
 
 const requiredText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE);
 const optionalText = z.string().trim().min(1, REQUIRED_TEXT_MESSAGE).nullish();
 
 export const orderKindSchema = z.enum(["TUITION", "ENROLLMENT_FEE", "MATERIAL", "OTHER"]);
-export const paymentMethodSchema = z.enum([
-  "PIX",
-  "CASH",
-  "TRANSFER",
-  "CARD",
-  "CHEQUE",
-  "BOLETO",
-  "OTHER",
-]);
+/** Stable catalog code; existence and availability are checked by the API. */
+export const paymentMethodSchema = z
+  .string()
+  .min(1)
+  .max(MAX_PAYMENT_METHOD_CODE_LENGTH)
+  .regex(/^[A-Z][A-Z0-9_]*$/u);
 
 export const financeInstallmentViewSchema = z.enum(["all", "paid", "overdue"]);
 export const financeInstallmentStatusSchema = z.enum([

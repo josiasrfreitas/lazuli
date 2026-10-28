@@ -9,7 +9,6 @@ import { tableCellSpacing, useTableDensity } from "./table";
 // of real data instead of a grid. The cycles are indexed, never random, so the
 // server and client render the same markup.
 const barWidths = ["w-40", "w-24", "w-20", "w-28", "w-16"];
-const rowDelays = ["", "[animation-delay:120ms]", "[animation-delay:240ms]"];
 
 /** Placeholder rows drawn when the caller does not choose a count. */
 const defaultSkeletonRows = 3;
@@ -74,11 +73,9 @@ export function TableSkeleton({
               >
                 <span
                   className={cn(
-                    "block h-3 max-w-full rounded-full bg-muted-foreground/20",
-                    "animate-pulse motion-reduce:animate-none",
-                    rowDelays[row % rowDelays.length],
+                    "block h-3 max-w-full origin-left rounded-full bg-muted-foreground/20",
                     skeletonBarWidth(column, numeric),
-                    numeric && "ml-auto",
+                    numeric && "ml-auto origin-right",
                   )}
                   data-slot="table-skeleton-bar"
                 />

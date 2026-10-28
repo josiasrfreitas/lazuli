@@ -1,7 +1,12 @@
 import { deriveInstallmentLedger } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
 import { TRPCError } from "@trpc/server";
-import { contractSelect, toRow, type ContractListRow } from "./contracts-select.js";
+import {
+  contractSelect,
+  toRow,
+  renegotiatedInstallmentAmount,
+  type ContractListRow,
+} from "./contracts-select.js";
 import { toDateOnlyString, type FinanceDatabase } from "./shared.js";
 
 const detailSelect = { ...contractSelect, punctualityDiscountPct: true } as const;
@@ -87,7 +92,12 @@ function projectOrder(input: {
     id: order.id,
     kind: order.kind,
     cancelled: Boolean(order.cancelledAt),
-    totalCents: order.principalAmountCents,
+    totalCents:
+      order.principalAmountCents +
+      order.installments.reduce(
+        (sum, row) => sum + renegotiatedInstallmentAmount(row) - row.amountCents,
+        0,
+      ),
     material: order.material ? projectMaterial(order.material) : null,
     installments: order.installments.map((entry) =>
       projectInstallment({ entry, order, now, calendar }),
@@ -128,12 +138,18 @@ function projectInstallment(input: {
   });
   const dueDate = toDateOnlyString(entry.dueDate);
   if (!order.cancelledAt)
-    addToCalendar({ calendar, dueDate, kind: order.kind, amountCents: entry.amountCents, ledger });
+    addToCalendar({
+      calendar,
+      dueDate,
+      kind: order.kind,
+      amountCents: renegotiatedInstallmentAmount(entry),
+      ledger,
+    });
   return {
     id: entry.id,
     sequence: entry.sequenceNumber,
     dueDate,
-    amountCents: entry.amountCents,
+    amountCents: renegotiatedInstallmentAmount(entry),
     balanceCents: ledger.collectibleRemainingCents,
     paidCents: ledger.paidAmountCents,
     status: ledger.status,

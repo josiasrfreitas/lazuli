@@ -1,0 +1,158 @@
+.ages {
+  display: grid;
+  grid-template-columns: clamp(5rem, 28cqi, 6.75rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.donut {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.total {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.125rem;
+  pointer-events: none;
+}
+
+.total strong {
+  font-family: var(--lz-font-numeric);
+  font-size: clamp(1.125rem, 7cqi, 1.625rem);
+  line-height: 1;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.total span {
+  font-size: var(--lz-text-micro);
+  line-height: 1.1;
+}
+
+.ageLegend {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+  font-size: var(--lz-text-caption);
+}
+
+.ageLegend > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ageLegend dt {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.375rem;
+}
+.ageLegend dt svg {
+  flex-shrink: 0;
+}
+
+.ageLegend dd {
+  white-space: nowrap;
+  font-family: var(--lz-font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+.conversion {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.375rem;
+}
+
+.conversionTop {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+}
+
+.conversionTop > strong {
+  font-family: var(--lz-font-numeric);
+  font-size: 1.875rem;
+  line-height: 1.2;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.conversionTop > span {
+  font-size: var(--lz-text-caption);
+}
+
+.conversionTrack {
+  width: 100%;
+  height: 0.5rem;
+  margin-block: 0.75rem;
+}
+
+.conversionFlow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--lz-text-caption);
+}
+
+.conversionFlow strong {
+  font-family: var(--lz-font-numeric);
+  font-size: var(--lz-text-body);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.conversionFlow svg {
+  align-self: center;
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.empty {
+  font-size: var(--lz-text-caption);
+}
+
+.conversion .empty {
+  margin-top: 0.375rem;
+}
+
+.conversionTrack rect:last-child {
+  transform-origin: left center;
+  animation: conversion-fill 650ms cubic-bezier(0.16, 1, 0.3, 1) 180ms both;
+}
+@keyframes conversion-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .conversionTrack rect:last-child {
+    animation: none;
+  }
+}
+.donutPlot {
+  width: 100%;
+  height: 100%;
+}
+@container (max-width: 14rem) {
+  .ages {
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+  .total strong {
+    font-size: 1rem;
+  }
+}

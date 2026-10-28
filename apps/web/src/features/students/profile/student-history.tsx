@@ -101,7 +101,7 @@ function HistoryClass({
     <div className="grid gap-1">
       <Link
         className="font-medium text-interactive hover:underline"
-        href={`/turmas/${row.class.id}`}
+        href={`/turmas/${row.class.id}?voltar=${encodeURIComponent(`/alunos/${studentId}`)}`}
       >
         {row.class.name}
       </Link>
@@ -119,7 +119,7 @@ function HistoryClass({
       ) : (
         <Link
           className="text-caption text-interactive hover:underline"
-          href={`/turmas/${row.class.id}?secao=planejamento`}
+          href={`/turmas/${row.class.id}?secao=planejamento&voltar=${encodeURIComponent(`/alunos/${studentId}`)}`}
         >
           Planejamento da turma
         </Link>

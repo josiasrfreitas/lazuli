@@ -62,7 +62,7 @@ function RemoteOptionsResults({
   query: string;
 }): ReactElement {
   const result = field.result.query === query ? field.result : null;
-  if (query === "")
+  if (query === "" && result?.status === "idle")
     return <p className="px-2 py-2 text-muted-foreground">Digite para buscar opções.</p>;
   if (!result || result.status === "loading" || result.status === "idle") {
     return (
@@ -112,7 +112,7 @@ function RemoteOptionsEditor({ field }: { field: RemoteField }): ReactElement {
       <div className="scrollbar-subtle max-h-52 overflow-y-auto pr-2">
         <RemoteOptionsResults field={field} query={query} />
       </div>
-      {query && hasMore ? (
+      {hasMore ? (
         <p className="px-2 text-micro text-muted-foreground">
           Exibindo os primeiros 20. Refine a busca para encontrar outros.
         </p>
@@ -404,7 +404,7 @@ export function MoreFilters({
           <Button
             variant="secondary"
             size="sm"
-            className="max-w-full rounded-r-none border-r-0 px-1.5"
+            className="max-w-full px-1.5"
             aria-label={`Mais filtros${activeCount > 0 ? `, ${activeCount} ativos` : ""}`}
           />
         }

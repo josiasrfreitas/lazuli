@@ -6,6 +6,9 @@ const LOCATION_ACCURACY = { PRECISE: 12, NEAR: 25, BROAD: 65, DISTANT: 180 } as 
 const MANUAL_OPEN_MINUTES_BEFORE_END = 7;
 const EARLY_OPEN_MINUTES = 5;
 const REFERENCE_ACCURACY = 15;
+const IN_PERSON_WINDOW_MINUTES = 5;
+const SYNTHETIC_RADIUS_METERS = 100;
+const SYNTHETIC_MAX_ACCURACY_METERS = 100;
 const DISTANT_VARIATION_INDEX = 3;
 const DISTANT_LOCATION_OFFSET = 0.004;
 const NEAR_LOCATION_OFFSET_INCREMENT = 0.000_03;
@@ -49,7 +52,13 @@ export function historicalTokenHash(): string {
 }
 
 export function encounterWindow(
-  session: { date: Date; startTime: Date; endTime: Date; attendanceConfirmedAt: Date },
+  session: {
+    date: Date;
+    startTime: Date;
+    endTime: Date;
+    attendanceConfirmedAt: Date;
+    class: { format: string };
+  },
   scenario: AttendanceScenario,
 ): { openedAt: Date; expiresAt: Date; closedAt: Date } {
   const start = sessionEndInstant({ date: session.date, endTime: session.startTime });
@@ -60,24 +69,33 @@ export function encounterWindow(
       : minutesAfter(start, scenario.kind === "EXPIRED" ? 0 : -EARLY_OPEN_MINUTES);
   return {
     openedAt,
-    expiresAt: new Date(Math.min(minutesAfter(openedAt, scenario.ttl).getTime(), end.getTime())),
+    expiresAt: new Date(
+      Math.min(
+        minutesAfter(
+          openedAt,
+          session.class.format === "IN_PERSON" ? IN_PERSON_WINDOW_MINUTES : scenario.ttl,
+        ).getTime(),
+        end.getTime(),
+      ),
+    ),
     closedAt:
       scenario.kind === "MANUAL_CLOSE" ? minutesAfter(end, -1) : session.attendanceConfirmedAt,
   };
 }
 
-export function referenceLocation(
-  online: boolean,
-  includeReference: boolean,
-): {
+export function referenceLocation(online: boolean): {
   referenceLatitude: number | null;
   referenceLongitude: number | null;
   referenceAccuracy: number | null;
+  radiusMeters: number | null;
+  maxAccuracyMeters: number | null;
 } {
   return {
-    referenceLatitude: online || !includeReference ? null : SYNTHETIC_LATITUDE,
-    referenceLongitude: online || !includeReference ? null : SYNTHETIC_LONGITUDE,
-    referenceAccuracy: online || !includeReference ? null : REFERENCE_ACCURACY,
+    referenceLatitude: online ? null : SYNTHETIC_LATITUDE,
+    referenceLongitude: online ? null : SYNTHETIC_LONGITUDE,
+    referenceAccuracy: online ? null : REFERENCE_ACCURACY,
+    radiusMeters: online ? null : SYNTHETIC_RADIUS_METERS,
+    maxAccuracyMeters: online ? null : SYNTHETIC_MAX_ACCURACY_METERS,
   };
 }
 

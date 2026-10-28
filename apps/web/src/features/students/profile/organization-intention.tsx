@@ -1,13 +1,14 @@
 import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import Link from "next/link";
-import { Button, InlineSkeleton } from "@lazuli/ui";
+import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { dateOnly } from "~/features/semester-organization/shared";
 import { OrganizationDialogs } from "~/features/class-organization/dialogs";
 import type { OrganizationAction } from "~/features/class-organization/model";
 import type { RouterOutputs } from "@lazuli/api";
+import styles from "./student-profile.module.css";
 
 type StudentIntent = RouterOutputs["semesterOrganization"]["studentIntent"][number];
 
@@ -34,7 +35,7 @@ export function OrganizationIntention({
     setSemesterId(id);
     setAction({ kind: "availability", studentId });
   };
-  if (query.isPending) return <InlineSkeleton className="h-16 w-full" />;
+  if (query.isPending) return null;
   if (query.error)
     return (
       <div className="text-caption text-destructive">
@@ -47,7 +48,7 @@ export function OrganizationIntention({
   if (!query.data?.length) return null;
   return (
     <section
-      className="border border-border divide-y divide-border"
+      className={`${styles.lateData} border border-border divide-y divide-border`}
       aria-label="Organização de matrícula"
     >
       {query.data.map((intent) => (

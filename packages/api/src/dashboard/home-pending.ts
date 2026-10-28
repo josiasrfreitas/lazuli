@@ -112,7 +112,7 @@ async function studentPage(
         title: row.fullName,
         detail:
           input.kind === "students"
-            ? "Conferir nivelamento e definir turma"
+            ? "Definir uma turma para o aluno"
             : "Preparar o primeiro contrato",
         href: `/alunos/${row.id}`,
       }),
@@ -248,6 +248,7 @@ async function appointmentPage(
         date: true,
         startTime: true,
         endTime: true,
+        studentId: true,
         student: { select: { fullName: true } },
       },
     }),
@@ -260,7 +261,7 @@ async function appointmentPage(
       detail: `${timeOnly(row.startTime)} · Registrar o resultado do atendimento`,
       date: dateOnly(row.date),
       timing: { kind: "record", date: dateOnly(row.date), endTime: timeOnly(row.endTime) },
-      action: { kind: "appointment", id: row.id },
+      action: { kind: "appointment", id: row.id, studentId: row.studentId },
     })),
   };
 }

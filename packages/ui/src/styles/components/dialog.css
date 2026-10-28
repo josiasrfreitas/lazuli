@@ -1,0 +1,71 @@
+/* One entrance language for every shared modal, independent of page layout. */
+.lz-dialog-popup {
+  opacity: 1;
+  scale: 1;
+  transition-property: opacity, scale, translate;
+  transition-duration: 280ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lz-dialog-popup[data-starting-style] {
+  opacity: 0;
+  scale: 0.975;
+}
+.lz-dialog-popup[data-ending-style] {
+  opacity: 0;
+  scale: 0.99;
+  transition-duration: 140ms;
+}
+.lz-dialog-backdrop {
+  opacity: 1;
+  transition: opacity 220ms ease-out;
+}
+.lz-dialog-backdrop[data-starting-style],
+.lz-dialog-backdrop[data-ending-style] {
+  opacity: 0;
+}
+.lz-dialog-backdrop[data-ending-style] {
+  transition-duration: 140ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lz-dialog-popup,
+  .lz-dialog-backdrop {
+    transition-property: opacity;
+    transition-duration: 100ms;
+  }
+  .lz-dialog-popup[data-starting-style],
+  .lz-dialog-popup[data-ending-style] {
+    scale: 1;
+  }
+}
+
+/* Also animate dialogs mounted directly in their open state. */
+.lz-dialog-popup {
+  animation: lz-dialog-arrive 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lz-dialog-backdrop {
+  animation: lz-dialog-backdrop-arrive 220ms ease-out;
+}
+@keyframes lz-dialog-arrive {
+  from {
+    opacity: 0;
+    scale: 0.975;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes lz-dialog-backdrop-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lz-dialog-popup,
+  .lz-dialog-backdrop {
+    animation: lz-dialog-backdrop-arrive 100ms ease-out;
+  }
+}

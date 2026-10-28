@@ -130,6 +130,11 @@ const studentContractSelect = {
   endsOn: true,
   durationMonths: true,
   punctualityDiscountPct: true,
+  renegotiations: {
+    where: { deletedAt: null },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: { newAmountCents: true, installmentCount: true, reductionCents: true },
+  },
   orders: {
     where: { deletedAt: null, cancelledAt: null },
     select: {
@@ -153,7 +158,16 @@ const studentContractSelect = {
           cardFeeCents: true,
         },
       },
-      installments: { where: { deletedAt: null }, select: { amountCents: true } },
+      installments: {
+        where: { deletedAt: null },
+        select: {
+          amountCents: true,
+          adjustments: {
+            where: { deletedAt: null, renegotiationId: { not: null } },
+            select: { amountCents: true },
+          },
+        },
+      },
     },
   },
 } satisfies Prisma.ContractSelect;
@@ -167,6 +181,7 @@ type StudentContractView = {
   endsOn: string | null;
   durationMonths: number | null;
   punctualityDiscountPct: number;
+  renegotiations?: { newAmountCents: number; installmentCount: number; reductionCents: number }[];
   schedules: {
     id: string;
     dueDay: number | null;
@@ -219,11 +234,14 @@ const projectStudentContract = (
   endsOn: contract.endsOn ? toDateOnlyString(contract.endsOn) : null,
   durationMonths: contract.durationMonths,
   punctualityDiscountPct: Number(contract.punctualityDiscountPct ?? 0),
+  renegotiations: contract.renegotiations,
   schedules: contract.orders.map((order) => ({
     id: order.id,
     dueDay: order.dueDay,
     firstDueDate: order.firstDueDate ? toDateOnlyString(order.firstDueDate) : null,
-    totalCents: order.principalAmountCents,
+    totalCents:
+      order.principalAmountCents +
+      order.installments.reduce((sum, row) => sum + renegotiatedAdjustment(row), 0),
     collection: itemCollection(balances.filter((row) => row.orderId === order.id)),
     kind: order.kind,
     materialName: order.material?.name ?? null,
@@ -236,11 +254,19 @@ const projectStudentContract = (
     installmentCount: order.installments.length,
     uniformAmountCents:
       order.installments.length > 0 &&
-      order.installments.every((row) => row.amountCents === order.installments[0]!.amountCents)
-        ? order.installments[0]!.amountCents
+      order.installments.every(
+        (row) =>
+          row.amountCents + renegotiatedAdjustment(row) ===
+          order.installments[0]!.amountCents + renegotiatedAdjustment(order.installments[0]!),
+      )
+        ? order.installments[0]!.amountCents + renegotiatedAdjustment(order.installments[0]!)
         : null,
   })),
 });
+
+function renegotiatedAdjustment(row: { adjustments: { amountCents: number }[] }): number {
+  return row.adjustments.reduce((sum, adjustment) => sum + adjustment.amountCents, 0);
+}
 
 function itemCollection(rows: ItemBalance[]): {
   receivedCents: number;

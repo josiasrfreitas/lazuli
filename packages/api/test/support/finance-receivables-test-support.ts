@@ -3,7 +3,7 @@ import {
   deriveInstallmentLedger,
   saoPauloDateOnly,
 } from "@lazuli/domain";
-import { db, PaymentMethod } from "@lazuli/db";
+import { db } from "@lazuli/db";
 
 import { caller, createPayer, createStudent, DEFAULT_ORDER_INPUT } from "./finance-test-support.js";
 
@@ -312,7 +312,7 @@ async function registerPaymentThisMonth(input: {
     payerId: input.payerId,
     date: dateOnlyToUtcDate(saoPauloDateOnly(new Date())),
     amountCents: input.amountCents,
-    method: PaymentMethod.PIX,
+    method: "PIX",
     allocations: [{ installmentId: input.installmentId, amountCents: input.amountCents }],
   });
 }

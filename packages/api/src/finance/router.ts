@@ -6,6 +6,8 @@ import {
   z,
   contractTerminationPreviewSchema,
   contractTerminationConfirmSchema,
+  contractRenegotiationPreviewSchema,
+  contractRenegotiationConfirmSchema,
   paymentPreviewSchema,
   paymentOperationSchema,
   financeAddInstallmentAdjustmentInputSchema,
@@ -30,11 +32,68 @@ import {
 
 import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
 import { finance } from "./index.js";
+import { studentPayments } from "./payment-proofs.js";
 import { renewalTerms } from "./internal/renewal.js";
+import {
+  contractRenegotiationOptions,
+  previewContractRenegotiation,
+  confirmContractRenegotiation,
+} from "./internal/contract-renegotiation.js";
 
 const AGREEMENT_TRANSACTION_TIMEOUT_MS = 30_000;
 
 export const financeRouter = router({
+  studentPayments: adminProcedure
+    .input(z.object({ studentId: z.string().uuid(), cursor: z.string().uuid().optional() }))
+    .query(({ ctx, input }) => studentPayments(ctx, input)),
+  paymentMethods: adminProcedure.query(({ ctx }) =>
+    ctx.db.paymentMethod.findMany({
+      where: { active: true, deletedAt: null },
+      select: { id: true, code: true, name: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+  ),
+  renegotiationOptions: adminProcedure
+    .input(contractTerminationPreviewSchema)
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction(
+        (tx) => contractRenegotiationOptions(tx, input.contractId, ctx.now ?? new Date()),
+        { isolationLevel: "RepeatableRead" },
+      ),
+    ),
+  previewRenegotiation: adminProcedure
+    .input(contractRenegotiationPreviewSchema)
+    .query(({ ctx, input }) =>
+      ctx.db.$transaction((tx) => previewContractRenegotiation(tx, input, ctx.now ?? new Date()), {
+        isolationLevel: "RepeatableRead",
+      }),
+    ),
+  confirmRenegotiation: adminProcedure
+    .input(contractRenegotiationConfirmSchema)
+    .mutation(({ ctx, input }) =>
+      activityTransaction(ctx, {
+        action: "finance.renegotiateContract",
+        work: (tx) =>
+          confirmContractRenegotiation({
+            database: tx,
+            values: input,
+            actor: ctx.staffUser,
+            now: ctx.now ?? new Date(),
+          }),
+        describe: async (result, db) => {
+          const contract = await db.contract.findUniqueOrThrow({
+            where: { id: result.contractId },
+            include: { student: true },
+          });
+          return {
+            subject: { type: "contract", id: result.contractId, name: contract.student.fullName },
+            description: `${result.count} parcela(s) renegociada(s). Redução: ${activityMoney(result.reductionCents)}. ${input.reason}`,
+            deduplicationKey: `finance.renegotiateContract:${input.commandId}`,
+          };
+        },
+        options: { timeout: AGREEMENT_TRANSACTION_TIMEOUT_MS },
+      }),
+    ),
   renewalTerms: adminProcedure
     .input(z.object({ contractId: z.string().uuid() }))
     .query(({ ctx, input }) => renewalTerms(ctx.db, input.contractId)),

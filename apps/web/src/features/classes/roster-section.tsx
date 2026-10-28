@@ -6,6 +6,7 @@ import { CloseMembershipDialog } from "./close-dialog";
 import { MembershipDialog } from "./membership-dialog";
 import type { RosterRow } from "./roster-status";
 import { RosterList } from "./roster-list";
+import styles from "./class-page.module.css";
 
 export function RosterSection({
   classId,
@@ -18,7 +19,7 @@ export function RosterSection({
   const [returning, setReturning] = useState<RosterRow | null>(null);
   return (
     <section aria-label="Alunos da turma" className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-      <div className="min-w-0">
+      <div className={styles.rosterContent} data-ready={Boolean(state.query.data) || undefined}>
         <RosterList
           key={state.page}
           data={state.query.data}

@@ -46,6 +46,7 @@ export const Default: Story = {
 export const Loading: Story = {
   args: { state: { kind: "loading" }, pagination: { loading: true, page: 1, pageSize: 10 } },
 };
+export const Updating: Story = { args: { updating: true } };
 export const Empty: Story = { args: { state: { kind: "empty" } } };
 export const NoResults: Story = { args: { state: { kind: "noResults" } } };
 export const Error: Story = {

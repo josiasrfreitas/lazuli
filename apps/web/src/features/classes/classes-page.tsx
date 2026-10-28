@@ -1,7 +1,7 @@
 "use client";
 import { useState, type ReactElement } from "react";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
-import { DataTablePage, TableFilterChips } from "@lazuli/ui";
+import { DataTablePage } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { classListQueryInput } from "./class-list-model";
 import { classFilterFields } from "./class-filter-fields";
@@ -42,7 +42,6 @@ export function ClassesPage(): ReactElement {
         }
       >
         <div className="flex h-full min-h-0 flex-col gap-2">
-          <TableFilterChips fields={fields} />
           <div className="min-h-0 flex-1">
             <ClassListTable
               data={query.data}

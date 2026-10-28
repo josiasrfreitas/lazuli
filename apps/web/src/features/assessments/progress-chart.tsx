@@ -1,5 +1,5 @@
 "use client";
-import { ZoomIn, ZoomOut } from "lucide-react";
+import { ChartNoAxesCombined, ZoomIn, ZoomOut } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { Button } from "@lazuli/ui";
 import {
@@ -52,22 +52,35 @@ function progressPoints(
   }));
 }
 
-export function AcademicProgressChart({ data }: { data: Assessment }): ReactElement {
+export function AcademicProgressChart({
+  data,
+  prominent = false,
+}: {
+  data: Assessment;
+  prominent?: boolean;
+}): ReactElement {
   const [fullScale, setFullScale] = useState(false);
   const cropped = gradeRange(data.grades.map((grade) => grade.score));
   const domain: [number, number] = fullScale ? [0, MAX] : cropped;
   const points = progressPoints(data);
   if (data.grades.length === 0)
     return (
-      <div className="flex h-60 items-center justify-center rounded-md bg-muted/30 p-5 text-center text-caption text-muted-foreground">
-        O gráfico aparece quando as primeiras notas forem registradas.
+      <div className="flex min-h-60 flex-col items-center justify-center gap-4 py-8 text-center">
+        <ChartNoAxesCombined
+          aria-hidden="true"
+          className="size-10 text-muted-foreground"
+          strokeWidth={1.5}
+        />
+        <p className="max-w-sm text-base text-heading">
+          Cada nota revela um pouco do caminho. Registre a primeira para acompanhar a evolução.
+        </p>
       </div>
     );
   return (
     <div
       className="min-w-0"
       role="group"
-      aria-label={`Evolução das quatro competências entre as unidades. Escala de ${domain[0]} a ${domain[1]}. Notas detalhadas na tabela.`}
+      aria-label={`Evolução das quatro competências entre as unidades. Escala de ${domain[0]} a ${domain[1]}. Use as setas para explorar as notas.`}
     >
       <div className="mb-2 flex items-baseline justify-between gap-3">
         <h3 className="text-sm font-medium text-heading">Evolução das notas</h3>
@@ -83,7 +96,7 @@ export function AcademicProgressChart({ data }: { data: Assessment }): ReactElem
           </Button>
         )}
       </div>
-      <ProgressPlot domain={domain} points={points} />
+      <ProgressPlot domain={domain} points={points} height={prominent ? 320 : CHART_HEIGHT} />
     </div>
   );
 }
@@ -91,12 +104,14 @@ export function AcademicProgressChart({ data }: { data: Assessment }): ReactElem
 function ProgressPlot({
   domain,
   points,
+  height,
 }: {
   domain: [number, number];
   points: ReturnType<typeof progressPoints>;
+  height: number;
 }): ReactElement {
   return (
-    <ResponsiveContainer width="100%" height={CHART_HEIGHT} minWidth={0}>
+    <ResponsiveContainer width="100%" height={height} minWidth={0}>
       <LineChart
         data={points}
         margin={{ top: 18, right: 20, bottom: 6, left: -16 }}

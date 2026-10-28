@@ -1,14 +1,17 @@
 .container {
   container: class-lessons / inline-size;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   min-width: 0;
   scroll-margin-top: 4rem;
 }
 .desk {
   display: grid;
+  flex: 1;
   grid-template-columns: 16rem minmax(0, 1fr);
-  height: clamp(26rem, 70dvh, 48rem);
+  min-height: 26rem;
   min-width: 0;
-  overflow: hidden;
   border: 1px solid var(--border);
   background: var(--card);
 }
@@ -43,10 +46,6 @@
   font-size: var(--lz-text-caption);
 }
 .list {
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior-y: auto;
-  scrollbar-gutter: stable;
   padding-inline: 0.5rem;
 }
 .lesson {
@@ -128,10 +127,6 @@
   overflow-wrap: anywhere;
 }
 .detailBody {
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior-y: auto;
-  scrollbar-gutter: stable;
   padding: 0 1.25rem 1.25rem;
 }
 .loading {

@@ -16,6 +16,7 @@ import { formatBRLFromCents as money } from "~/lib/format";
 import { originLabel } from "../view-model";
 import { draftReceipts, paymentDateLabel, type DraftItem, type PreviewRow } from "./draft";
 import type { PaymentFormState } from "./logic";
+import { PaymentProofPicker } from "./payment-proof";
 type RowProps = { item: DraftItem; preview: PreviewRow | undefined; state: PaymentFormState };
 export function PaymentGrid({ state }: { state: PaymentFormState }): ReactElement {
   return (
@@ -26,7 +27,19 @@ export function PaymentGrid({ state }: { state: PaymentFormState }): ReactElemen
       {draftReceipts(state.draft, state.preview).map((receipt) => {
         const items = state.draft.items.filter((item) => item.receiptId === receipt.commandId);
         return (
-          <PaymentReceiptGroup key={receipt.commandId} items={items} total={receipt.amountCents}>
+          <PaymentReceiptGroup
+            key={receipt.commandId}
+            items={items}
+            total={receipt.amountCents}
+            attachment={
+              <PaymentProofPicker
+                value={state.proofs[receipt.commandId]}
+                disabled={state.submitting || state.uncertain || state.registered}
+                onChange={(file) => state.setProof(receipt.commandId, file)}
+                onError={(message) => state.setProofError(receipt.commandId, message)}
+              />
+            }
+          >
             {items.map((item) => (
               <PaymentGridRow
                 key={item.row.installmentId}
@@ -228,10 +241,12 @@ export function PaymentReceiptGroup({
   items,
   total,
   children,
+  attachment,
 }: {
   items: DraftItem[];
   total: number;
   children: ReactNode;
+  attachment?: ReactNode;
 }): ReactElement {
   const id = useId();
   return (
@@ -257,6 +272,7 @@ export function PaymentReceiptGroup({
         </div>
       </div>
       <div className="divide-y divide-border">{children}</div>
+      {attachment}
     </section>
   );
 }

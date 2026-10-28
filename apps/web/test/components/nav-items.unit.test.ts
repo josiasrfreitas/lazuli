@@ -168,7 +168,7 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
   });
 });
 
-void it("returns child pages to the authorized list with its filters and ignores foreign destinations", () => {
+void it("returns child pages to their authorized source and ignores foreign destinations", () => {
   assert.deepEqual(
     navReturnFor({ pathname: "/turmas/a-class", role: "ADMIN", back: "/turmas?search=C2&page=2" }),
     {
@@ -176,12 +176,37 @@ void it("returns child pages to the authorized list with its filters and ignores
       label: "Turmas",
     },
   );
+  assert.deepEqual(navReturnFor({ pathname: "/turmas/a-class", role: "ADMIN", back: "/" }), {
+    href: "/",
+    label: "Início",
+  });
+  assert.deepEqual(
+    navReturnFor({
+      pathname: "/turmas/a-class",
+      role: "ADMIN",
+      back: "/professores/a-teacher?secao=turmas",
+    }),
+    { href: "/professores/a-teacher?secao=turmas", label: "Professor" },
+  );
+  assert.deepEqual(
+    navReturnFor({
+      pathname: "/turmas/a-class",
+      role: "ADMIN",
+      back: "/alunos/a-student?secao=historico",
+    }),
+    { href: "/alunos/a-student?secao=historico", label: "Aluno" },
+  );
+  assert.deepEqual(
+    navReturnFor({ pathname: "/professores/a-teacher", role: "ADMIN", back: "/turmas/a-class" }),
+    { href: "/turmas/a-class", label: "Turma" },
+  );
   for (const back of [
     null,
     "//elsewhere.test",
     "/turmas-other",
     "/turmas/another-class",
     "https://elsewhere.test",
+    "/ajustes",
   ]) {
     assert.deepEqual(navReturnFor({ pathname: "/turmas/a-class", role: "ADMIN", back }), {
       href: "/turmas",
