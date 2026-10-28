@@ -470,7 +470,7 @@ function agendaStatus(error: boolean, pending: boolean): "error" | "loading" | "
 
 function CalendarCreateAction({ onCreate }: { onCreate: () => void }): ReactElement {
   return (
-    <Button id="student-agenda-new" size="sm" onClick={onCreate}>
+    <Button id="student-agenda-new" size="sm" onClick={() => onCreate()}>
       <Plus aria-hidden="true" /> Novo atendimento
     </Button>
   );
