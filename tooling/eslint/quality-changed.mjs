@@ -69,9 +69,10 @@ function changedLines(file) {
   return changed;
 }
 
-function testRanges(source) {
+function testRanges(file, source) {
   const { ast } = tseslint.parser.parseForESLint(source, {
     ecmaVersion: "latest",
+    filePath: file,
     loc: true,
     range: true,
     sourceType: "module",
@@ -106,7 +107,7 @@ function relevantLines(file, source) {
   if (isNewFile(file)) return null;
   const changed = changedLines(file);
   const relevant = new Set(changed);
-  for (const [start, end] of testRanges(source)) {
+  for (const [start, end] of testRanges(file, source)) {
     if ([...changed].some((line) => line >= start && line <= end)) {
       for (let line = start; line <= end; line += 1) relevant.add(line);
     }
