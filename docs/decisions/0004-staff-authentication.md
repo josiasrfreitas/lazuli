@@ -1,10 +1,10 @@
 # Staff authentication
 
-Status: Accepted
+Status: Superseded
 Decision date: Unknown
 Extraction date: 2026-07-27
 Supersedes: None
-Superseded by: None
+Superseded by: [0026](0026-email-password-staff-authentication.md)
 Legacy sources: [D-0005](../legacy/2026-07-27/MVP/decisions.md#d-0005-better-auth) (Accepted)
 Implementation evidence: [`packages/auth/`](../../packages/auth/), [`packages/api/src/trpc/rbac.ts`](../../packages/api/src/trpc/rbac.ts)
 

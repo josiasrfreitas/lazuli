@@ -15,6 +15,7 @@ function createTestOptions(overrides: Partial<AuthOptionsInput> = {}): BetterAut
     secret: TEST_SECRET,
     database: {},
     sendMagicLink: () => Promise.resolve(),
+    sendResetPassword: () => Promise.resolve(),
     ...overrides,
   });
 }
@@ -26,11 +27,14 @@ void describe("Better Auth options", () => {
     assert.equal(options.session?.expiresIn, THIRTY_DAY_SESSION_SECONDS);
   });
 
-  void it("offers only magic links for staff sign-in", () => {
+  void it("offers password and magic-link sign-in without public registration", () => {
     const options = createTestOptions();
 
     assert.equal(options.socialProviders, undefined);
-    assert.equal(options.emailAndPassword?.enabled, false);
+    assert.equal(options.emailAndPassword?.enabled, true);
+    assert.equal(options.emailAndPassword?.disableSignUp, true);
+    assert.equal(options.emailAndPassword?.revokeSessionsOnPasswordReset, true);
+    assert.equal(options.rateLimit?.storage, "database");
     assert.equal(options.account?.accountLinking, undefined);
     assert.deepEqual(
       options.plugins?.map((plugin) => plugin.id),

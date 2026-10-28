@@ -201,6 +201,45 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .accessContent[data-mode-change="forward"] {
+    --mode-offset: 10px;
+  }
+
+  .accessContent[data-mode-change="back"] {
+    --mode-offset: -10px;
+  }
+
+  .accessContent[data-mode-change] .accessTitle {
+    animation: mode-title 180ms var(--login-ease-out) both;
+  }
+
+  .accessContent[data-mode-change] .accessDescription,
+  .accessContent[data-mode-change] .methods {
+    animation: mode-content 240ms var(--login-ease-out) both;
+  }
+
+  .accessContent[data-mode-change] .methods {
+    animation-delay: 35ms;
+  }
+
+  @keyframes mode-title {
+    from { opacity: 0.45; }
+    to { opacity: 1; }
+  }
+
+  @keyframes mode-content {
+    from {
+      opacity: 0.4;
+      clip-path: inset(0 0 0 8px);
+      transform: translateX(var(--mode-offset));
+    }
+    to {
+      opacity: 1;
+      clip-path: inset(0);
+      transform: translateX(0);
+    }
+  }
+
   .sent {
     animation: sent-enter 250ms var(--login-ease-out) both;
   }
@@ -253,6 +292,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .accessContent[data-mode-change] .accessTitle,
+  .accessContent[data-mode-change] .accessDescription,
+  .accessContent[data-mode-change] .methods {
+    animation: mode-title-reduced 100ms ease-out both;
+  }
+
+  @keyframes mode-title-reduced {
+    from { opacity: 0.65; }
+    to { opacity: 1; }
+  }
   .methods button[aria-busy="true"] > svg {
     animation: none;
   }

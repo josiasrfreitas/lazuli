@@ -23,19 +23,22 @@ export const viewport: Viewport = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; mode?: string; token?: string }>;
 }): Promise<ReactNode> {
   const [session, params] = await Promise.all([
     auth.getSession({ headers: await headers() }),
     searchParams,
   ]);
 
-  if (session !== null) {
+  const registering = params.mode === "set-password";
+  const resetting = params.mode === "reset" || registering;
+
+  if (session !== null && !resetting && params.mode !== "register") {
     redirect("/");
   }
 
   return (
-    <LoginEntrance skip={params.error !== undefined}>
+    <LoginEntrance skip={params.error !== undefined || resetting || params.mode === "register"}>
       <div className={styles.photograph} aria-hidden="true">
         <Image
           alt=""
@@ -51,7 +54,11 @@ export default async function LoginPage({
       </div>
       <LoginHero />
       <section className={styles.access} aria-labelledby="login-title" data-login-reveal="panel">
-        <LoginCard initialError={resolveInitialError(params.error)} />
+        <LoginCard
+          initialError={resetting ? null : resolveInitialError(params.error)}
+          initialMode={registering ? "set-password" : resetting ? "reset" : params.mode === "register" ? "register" : "password"}
+          token={params.error ? null : (params.token ?? null)}
+        />
       </section>
     </LoginEntrance>
   );

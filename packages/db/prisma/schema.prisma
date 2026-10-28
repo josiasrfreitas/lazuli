@@ -263,6 +263,13 @@ model Verification {
   @@index([identifier])
 }
 
+model RateLimit {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String @unique
+  count       Int
+  lastRequest BigInt @map("last_request")
+}
+
 model Student {
   documentSessions StudentDocumentSession[]
   id             String        @id @default(uuid()) @db.Uuid

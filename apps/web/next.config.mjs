@@ -8,6 +8,22 @@ const config = {
   devIndicators: false,
   serverExternalPackages: ["@hatchet-dev/typescript-sdk"],
   allowedDevOrigins: ["*.lazuli.localhost"],
+  async headers() {
+    return [
+      {
+        source: "/login",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+      {
+        source: "/cadastrar-senha",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+      {
+        source: "/api/auth/reset-password/:token",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+    ];
+  },
   images: {
     qualities: [DEFAULT_IMAGE_QUALITY, LOGIN_IMAGE_QUALITY],
   },

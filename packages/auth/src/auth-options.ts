@@ -17,12 +17,14 @@ export type MagicLinkDelivery = {
 };
 
 export type MagicLinkSender = (delivery: MagicLinkDelivery) => Promise<void>;
+export type PasswordResetSender = (delivery: { email: string; url: string }) => Promise<void>;
 
 export type AuthOptionsInput = {
   baseUrl: string;
   secret: string;
   database: Parameters<typeof prismaAdapter>[0];
   sendMagicLink: MagicLinkSender;
+  sendResetPassword: PasswordResetSender;
 };
 
 export function createAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
@@ -31,6 +33,7 @@ export function createAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
     baseURL: input.baseUrl,
     secret: input.secret,
     database: prismaAdapter(input.database, { provider: "postgresql" }),
+    rateLimit: { storage: "database" },
     advanced: {
       defaultCookieAttributes: {
         path: "/",
@@ -43,7 +46,16 @@ export function createAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
     session: {
       expiresIn: THIRTY_DAY_SESSION_SECONDS,
     },
-    emailAndPassword: { enabled: false },
+    emailAndPassword: {
+      enabled: true,
+      disableSignUp: true,
+      minPasswordLength: 12,
+      maxPasswordLength: 128,
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: async ({ user, url }) => {
+        await input.sendResetPassword({ email: user.email, url });
+      },
+    },
     plugins: [
       magicLink({
         disableSignUp: true,
