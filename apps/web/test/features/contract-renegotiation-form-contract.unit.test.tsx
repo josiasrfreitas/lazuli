@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { RenegotiationFields } from "../../src/features/students/profile/contract-renegotiation-fields";
 
-test("the renegotiation form identifies its currency field, reason, and user-selected installments", () => {
+void test("the renegotiation form identifies its currency field, reason, and user-selected installments", () => {
   const html = renderToStaticMarkup(
     <RenegotiationFields
       options={{
@@ -18,9 +18,9 @@ test("the renegotiation form identifies its currency field, reason, and user-sel
       amount={null}
       reason=""
       errors={{}}
-      onIds={() => undefined}
-      onAmount={() => undefined}
-      onReason={() => undefined}
+      onIds={() => {}}
+      onAmount={() => {}}
+      onReason={() => {}}
     />,
   );
   assert.match(html, /name="newAmountCents"/);

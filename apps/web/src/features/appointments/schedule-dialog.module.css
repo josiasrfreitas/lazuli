@@ -1,8 +1,3 @@
-/* Keep the dialog's frame continuous as the second step reveals the calendar. */
-.dialog {
-  transition-property: opacity, scale, translate, width, max-width;
-}
-
 .layout {
   display: grid;
   min-width: 0;
@@ -47,9 +42,6 @@
   .layout,
   .scheduleLayout {
     animation: none;
-  }
-  .dialog {
-    transition-property: opacity;
   }
 }
 .choices {

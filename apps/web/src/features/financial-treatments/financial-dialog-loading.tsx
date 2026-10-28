@@ -1,6 +1,8 @@
 import type { ReactElement } from "react";
 import { InlineSkeleton } from "@lazuli/ui";
 
+const PAYMENT_LOADING_ROWS = 4;
+
 export function FinancialDialogLoading({
   termination = false,
 }: {
@@ -15,7 +17,7 @@ export function FinancialDialogLoading({
       <div aria-hidden="true" className="grid min-w-0 gap-6 md:grid-cols-2">
         <div className="grid content-start gap-3">
           <InlineSkeleton className="h-4 w-36" />
-          {[0, 1, 2, 3].map((row) => (
+          {Array.from({ length: PAYMENT_LOADING_ROWS }, (_value, row) => (
             <div
               key={row}
               className="flex items-center justify-between gap-4 border-b border-border py-3"

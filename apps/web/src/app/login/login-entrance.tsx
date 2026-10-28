@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 
 import { BookLoader } from "@lazuli/ui";
 import { waitForAnimationPreview } from "~/lib/animation-preview";
+import { isDevelopment } from "~/lib/env";
 
 import { waitForLoginAssets } from "./login-assets";
 import { animateEntrance, dissolveLoader } from "./login-entrance-motion";
@@ -13,6 +14,9 @@ import transition from "./login-transition.module.css";
 
 const SESSION_KEY = "lazuli:cinematic-entrance-seen";
 const ENTRANCE_MOTION = "(prefers-reduced-motion: no-preference)";
+const FULL_ENTRANCE_TIMEOUT_MS = 2800;
+const REDUCED_ENTRANCE_TIMEOUT_MS = 300;
+const LOGIN_PREVIEW_WAIT_MS = 1200;
 
 export function LoginEntrance({
   children,
@@ -77,7 +81,10 @@ function startEntrance(container: HTMLElement, eligible: boolean): () => void {
     }
     container.dataset.phase = "opening";
     animations = media.matches ? animateEntrance(container) : dissolveLoader(container);
-    deadline = globalThis.setTimeout(finish, media.matches ? 2800 : 300);
+    deadline = globalThis.setTimeout(
+      finish,
+      media.matches ? FULL_ENTRANCE_TIMEOUT_MS : REDUCED_ENTRANCE_TIMEOUT_MS,
+    );
     void Promise.allSettled(animations.map((animation) => animation.finished)).then(() => {
       if (!controller.signal.aborted) finish();
     });
@@ -86,7 +93,9 @@ function startEntrance(container: HTMLElement, eligible: boolean): () => void {
   bindInterruptions(container, { signal: controller.signal, media, finish });
   void Promise.all([
     waitForLoginAssets(images, controller.signal),
-    eligible ? waitForAnimationPreview(1200, controller.signal) : Promise.resolve(),
+    eligible
+      ? waitForAnimationPreview(LOGIN_PREVIEW_WAIT_MS, controller.signal)
+      : Promise.resolve(),
   ]).then(reveal, reveal);
   return () => {
     controller.abort();
@@ -121,7 +130,7 @@ function bindInterruptions(
 }
 
 function claimEntrance(skip: boolean): boolean {
-  if (process.env.NODE_ENV === "development") return !skip;
+  if (isDevelopment) return !skip;
   try {
     const seen = sessionStorage.getItem(SESSION_KEY) !== null;
     sessionStorage.setItem(SESSION_KEY, "1");

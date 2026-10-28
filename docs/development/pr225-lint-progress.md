@@ -1,6 +1,6 @@
 # PR #225 — lint progress
 
-> **BATCH 3: Student operations.** Original: 50 errors across the 23 files below; latest remaining: 0. Exact targeted command: `pnpm -F @lazuli/web exec lazuli-lint src/features/students/profile src/features/students/filter-options.ts src/features/students/students-page.tsx src/features/students/students-table.tsx src/features/assessments/progress-chart.tsx src/features/assessments/student-progress-loading.tsx src/features/appointments/appointment-dialog-context.tsx src/features/appointments/student-appointment-dialog.tsx`. Source snapshot: `/tmp/lazuli-pr225-web-after-profile.json`.
+> **BATCH 4: remaining lint backlog.** Original: 50 errors across the 18 files below; latest remaining: 0. Source snapshots: `/tmp/lazuli-pr225-{web,ui,root}-after-batch3.json`; final snapshots: `/tmp/lazuli-pr225-{web,ui,root}-after-batch4.json`.
 
 This PR is already published. Lint fixes are in scope for the PR and will be pushed after checks. The full root run after batch 1 stopped at `packages/ui`; separate machine-readable inventories captured all remaining failing workspaces. Logs are supporting snapshots; this document is the durable lock.
 
@@ -101,3 +101,5 @@ Batch 3 is closed: the 23-file targeted lint reports zero errors, web typecheck,
 | `packages/ui/src/components/table-filters.tsx`                              |      1 |
 | `scripts/lib/workspace-full.mjs`                                            |      2 |
 | `scripts/seed/student-attendance.ts`                                        |      1 |
+
+Batch 4 is closed: targeted lint and full `pnpm lint` report zero errors. Machine-readable inventories show web 46→0, UI 1→0, and root scripts 3→0, with zero added errors. Web typecheck, all 328 web unit tests, web build, styles, and changed-file quality gate pass. All changed tracked files pass formatting and `git diff --check`. The repository-wide `pnpm format:check` still finds seven pre-existing untracked `.scratch/` files; it also observed a transient lint probe because that command ran concurrently with lint. Browser validation remains blocked by the worktree hostname's 404 and the fixture login's 403, as recorded under Batch 2.

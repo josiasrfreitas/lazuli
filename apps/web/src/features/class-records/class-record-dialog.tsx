@@ -64,6 +64,16 @@ export function ClassRecordDialog({
     />
   );
   if (embedded) return panel;
+  return <ClassRecordDialogShell editor={editor} panel={panel} />;
+}
+
+function ClassRecordDialogShell({
+  editor,
+  panel,
+}: {
+  editor: EditorControls;
+  panel: ReactElement;
+}): ReactElement {
   return (
     <Dialog
       open

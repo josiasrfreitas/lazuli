@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, UsersRound } from "lucide-react";
 import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+import type { RouterOutputs } from "@lazuli/api";
 import type { HomeGroup, HomeItem } from "./home-parts";
 import styles from "./home-pending.module.css";
 
@@ -14,31 +15,19 @@ export function PendingCoverage({ group }: { group: HomeGroup | undefined }): Re
     { kind: "coverage", page, pageSize: PAGE_SIZE },
     { enabled: page > 1 },
   );
-  const total = query.data?.total ?? group?.total ?? 0;
-  const items = page === 1 ? (group?.items ?? []) : (query.data?.items ?? []);
+  const { total, items } = coveragePageState(page, { group, data: query.data });
   if (total === 0) return null;
   return (
     <>
       {items.map((item) => (
         <CoverageRow key={item.id} item={item} />
       ))}
-      {page > 1 && query.isPending && (
-        <tr>
-          <td className={styles.feedback} role="status">
-            Carregando turmas sem professor…
-          </td>
-        </tr>
-      )}
-      {page > 1 && query.isError && (
-        <tr>
-          <td className={styles.feedback}>
-            Não foi possível carregar as turmas.{" "}
-            <button type="button" onClick={() => void query.refetch()}>
-              Tentar novamente
-            </button>
-          </td>
-        </tr>
-      )}
+      <CoverageFeedback
+        page={page}
+        pending={query.isPending}
+        error={query.isError}
+        onRetry={() => void query.refetch()}
+      />
       {total > PAGE_SIZE && (
         <tr>
           <td className={styles.cell}>
@@ -53,6 +42,56 @@ export function PendingCoverage({ group }: { group: HomeGroup | undefined }): Re
       )}
     </>
   );
+}
+
+function coveragePageState(
+  page: number,
+  {
+    group,
+    data,
+  }: {
+    group: HomeGroup | undefined;
+    data: RouterOutputs["dashboard"]["pending"] | undefined;
+  },
+): { total: number; items: HomeItem[] } {
+  return {
+    total: data?.total ?? group?.total ?? 0,
+    items: page === 1 ? (group?.items ?? []) : (data?.items ?? []),
+  };
+}
+
+function CoverageFeedback({
+  page,
+  pending,
+  error,
+  onRetry,
+}: {
+  page: number;
+  pending: boolean;
+  error: boolean;
+  onRetry: () => void;
+}): ReactElement | null {
+  if (page === 1) return null;
+  if (pending)
+    return (
+      <tr>
+        <td className={styles.feedback} role="status">
+          Carregando turmas sem professor…
+        </td>
+      </tr>
+    );
+  if (error)
+    return (
+      <tr>
+        <td className={styles.feedback}>
+          Não foi possível carregar as turmas.{" "}
+          <button type="button" onClick={onRetry}>
+            Tentar novamente
+          </button>
+        </td>
+      </tr>
+    );
+  return null;
 }
 
 function CoverageRow({ item }: { item: HomeItem }): ReactElement | null {

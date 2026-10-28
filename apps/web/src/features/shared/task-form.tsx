@@ -141,7 +141,7 @@ type TaskDialogProps = {
   layout?: "appointment" | "appointment-calendar" | "occurrence" | "termination";
   bodyLayout?: "calendar" | "termination" | "placement";
   compactHeader?: boolean;
-  contentClassName?: string;
+  scheduleFrame?: boolean;
   embedded?: boolean;
   returnAction?: { label: string; onClick: () => void } | undefined;
   error?: string | undefined;
@@ -177,7 +177,34 @@ function TaskContent(props: TaskDialogProps): ReactElement {
     );
     return () => cancelAnimationFrame(frame);
   }, [props.embedded, props.firstField]);
-  const body = (
+  const body = <TaskBody props={props} actions={actions} />;
+  if (props.embedded) return body;
+  return (
+    <DialogContent
+      className="data-[size=medium]:md:max-w-3xl data-[size=wide]:md:max-w-5xl data-[size=extra-wide]:md:max-w-6xl data-[layout=appointment]:max-h-[min(calc(110dvh-4.4rem),calc(100dvh-1rem))] data-[layout=appointment-calendar]:h-[85dvh] data-[layout=appointment-calendar]:max-h-[calc(100dvh-2rem)] data-[layout=appointment-calendar]:w-[calc(100vw-2rem)] data-[layout=appointment-calendar]:max-w-[1224px] data-[layout=occurrence]:w-[calc(100vw-48px)] data-[layout=occurrence]:max-w-[1280px] max-[959px]:data-[layout=occurrence]:w-[calc(100vw-24px)] data-[layout=termination]:md:w-[calc(100vw-3rem)] data-[layout=termination]:md:max-w-[1120px] data-[layout=termination]:[&>[data-slot=dialog-footer]]:mt-4 data-[schedule-frame=true]:transition-[opacity,scale,translate,width,max-width] motion-reduce:data-[schedule-frame=true]:transition-[opacity]"
+      data-size={props.size ?? "default"}
+      data-layout={props.layout}
+      data-schedule-frame={props.scheduleFrame || undefined}
+      showCloseButton={!props.pending}
+      initialFocus={() =>
+        document.querySelector<HTMLElement>(
+          `#${CSS.escape(props.firstField)}, [name="${CSS.escape(props.firstField)}"]`,
+        )
+      }
+    >
+      {body}
+    </DialogContent>
+  );
+}
+
+function TaskBody({
+  props,
+  actions,
+}: {
+  props: TaskDialogProps;
+  actions: ReactElement;
+}): ReactElement {
+  return (
     <>
       {props.returnAction && (
         <div className="mb-3">
@@ -209,27 +236,6 @@ function TaskContent(props: TaskDialogProps): ReactElement {
       </DialogBody>
       {typeof props.children !== "function" && <DialogFooter>{actions}</DialogFooter>}
     </>
-  );
-  if (props.embedded) return body;
-  return (
-    <DialogContent
-      className={[
-        "data-[size=medium]:md:max-w-3xl data-[size=wide]:md:max-w-5xl data-[size=extra-wide]:md:max-w-6xl data-[layout=appointment]:max-h-[min(calc(110dvh-4.4rem),calc(100dvh-1rem))] data-[layout=appointment-calendar]:h-[85dvh] data-[layout=appointment-calendar]:max-h-[calc(100dvh-2rem)] data-[layout=appointment-calendar]:w-[calc(100vw-2rem)] data-[layout=appointment-calendar]:max-w-[1224px] data-[layout=occurrence]:w-[calc(100vw-48px)] data-[layout=occurrence]:max-w-[1280px] max-[959px]:data-[layout=occurrence]:w-[calc(100vw-24px)] data-[layout=termination]:md:w-[calc(100vw-3rem)] data-[layout=termination]:md:max-w-[1120px] data-[layout=termination]:[&>[data-slot=dialog-footer]]:mt-4",
-        props.contentClassName,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      data-size={props.size ?? "default"}
-      data-layout={props.layout}
-      showCloseButton={!props.pending}
-      initialFocus={() =>
-        document.querySelector<HTMLElement>(
-          `#${CSS.escape(props.firstField)}, [name="${CSS.escape(props.firstField)}"]`,
-        )
-      }
-    >
-      {body}
-    </DialogContent>
   );
 }
 function TaskActions(props: TaskDialogProps): ReactElement {

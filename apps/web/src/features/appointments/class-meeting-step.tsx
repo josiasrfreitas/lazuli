@@ -303,7 +303,7 @@ function useMeetingClock(props: Props): ClockModel {
   useEffect(() => setDateDraft(formatDateOnlyBR(props.date)), [props.date]);
   useEffect(() => step.current?.focus(), []);
   useEffect(() => {
-    if (inSidebar && window.matchMedia("(max-width: 640px)").matches) setView("day");
+    if (inSidebar && globalThis.matchMedia("(max-width: 640px)").matches) setView("day");
   }, [inSidebar]);
   useEffect(() => {
     const timer = globalThis.setInterval(() => setNow(schoolClock()), CLOCK_REFRESH_INTERVAL_MS);

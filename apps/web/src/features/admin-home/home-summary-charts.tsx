@@ -16,6 +16,9 @@ import { useChartEntrance } from "./use-chart-entrance";
 import styles from "./home-summary.module.css";
 
 type Series = { month: string; value: number }[];
+const COMPACT_MONEY_UNIT = 100_000;
+const CENTS_PER_REAL = 100;
+const COMPARISON_WIDTH = 100;
 const monthLabel = (month: string): string =>
   new Intl.DateTimeFormat("pt-BR", {
     month: "short",
@@ -31,7 +34,20 @@ const money = new Intl.NumberFormat("pt-BR", {
 const compactMoney = (value: number): string =>
   value === 0
     ? "0"
-    : `${(value / 100_000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}\u00a0mil`;
+    : `${(value / COMPACT_MONEY_UNIT).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}\u00A0mil`;
+
+function monthAxis(): ReactElement {
+  return (
+    <XAxis
+      dataKey="month"
+      tickFormatter={monthLabel}
+      tick={{ fill: "currentColor", fontSize: 12 }}
+      axisLine={false}
+      tickLine={false}
+      interval={0}
+    />
+  );
+}
 
 export function EnrollmentChart({
   series,
@@ -49,20 +65,13 @@ export function EnrollmentChart({
           accessibilityLayer
           margin={{ top: 24, right: 0, bottom: 0, left: 0 }}
         >
-          <XAxis
-            dataKey="month"
-            tickFormatter={monthLabel}
-            tick={{ fill: "currentColor", fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-            interval={0}
-          />
+          {monthAxis()}
           <Tooltip
             cursor={false}
-            content={({ active, payload }) =>
+            content={({ active, payload, label: month }) =>
               active && payload?.[0] ? (
                 <div className={styles.tooltip}>
-                  {monthLabel(String(payload[0].payload.month))}: {payload[0].value} {label}
+                  {monthLabel(String(month))}: {payload[0].value} {label}
                 </div>
               ) : null
             }
@@ -100,122 +109,152 @@ export function ReceiptsChart({
   }));
   return (
     <div className={styles.receiptsChart}>
-      <div className={styles.chartLegend}>
-        <span>
-          <i />
-          Recebido
-        </span>
-        <span>
-          <i />
-          Previsto
-        </span>
-        <span className={styles.contractLegend}>
-          <b />
-          Contratos
-        </span>
-      </div>
-      <div className={styles.linePlot}>
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-          <ComposedChart
-            data={series}
-            accessibilityLayer
-            margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
-          >
-            <CartesianGrid vertical={false} stroke="currentColor" strokeOpacity={0.12} />
-            <XAxis
-              dataKey="month"
-              tickFormatter={monthLabel}
-              tick={{ fill: "currentColor", fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-              interval={0}
-            />
-            <YAxis
-              yAxisId="revenue"
-              tickFormatter={compactMoney}
-              tick={{ fill: "currentColor", fontSize: 11, width: 50 }}
-              axisLine={false}
-              tickLine={false}
-              width={50}
-              tickCount={3}
-              domain={[0, "auto"]}
-            />
-            <YAxis
-              yAxisId="contracts"
-              orientation="right"
-              allowDecimals={false}
-              width={30}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "var(--brand)", fontSize: 11 }}
-              tickCount={4}
-              domain={[0, "auto"]}
-            />
-            <Tooltip
-              position={{ y: 0 }}
-              cursor={false}
-              content={({ active, payload, label }) =>
-                active && payload?.length ? (
-                  <div className={styles.tooltip}>
-                    <strong>{monthLabel(String(label))}</strong>
-                    {payload.map((item) => (
-                      <p key={String(item.dataKey)}>
-                        {item.name}:{" "}
-                        {item.dataKey === "contracts"
-                          ? Number(item.value).toLocaleString("pt-BR")
-                          : money.format(Number(item.value) / 100)}
-                      </p>
-                    ))}
-                    <p>
-                      Em aberto hoje:{" "}
-                      {money.format(
-                        (months.find((month) => month.month === String(label))?.balanceCents ?? 0) /
-                          100,
-                      )}
-                    </p>
-                  </div>
-                ) : null
-              }
-            />
-            <Bar
-              yAxisId="contracts"
-              dataKey="contracts"
-              name="Contratos"
-              fill="var(--brand)"
-              fillOpacity={0.6}
-              maxBarSize={8}
-              radius={[2, 2, 0, 0]}
-              isAnimationActive={animate}
-              animationDuration={650}
-            />
-            <Line
-              yAxisId="revenue"
-              dataKey="expectedCents"
-              name="Previsto"
-              type="linear"
-              stroke="currentColor"
-              strokeOpacity={0.45}
-              strokeDasharray="4 5"
-              strokeWidth={1.5}
-              dot={false}
-              isAnimationActive={false}
-            />
-            <Line
-              yAxisId="revenue"
-              dataKey="receivedCents"
-              name="Recebido"
-              type="monotone"
-              stroke="currentColor"
-              strokeWidth={2.5}
-              dot={{ r: 3, fill: "currentColor", strokeWidth: 0 }}
-              activeDot={{ r: 5 }}
-              isAnimationActive={false}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+      <ReceiptsLegend />
+      <ReceiptsPlot series={series} months={months} animate={animate} />
     </div>
   );
+}
+
+function ReceiptsLegend(): ReactElement {
+  return (
+    <div className={styles.chartLegend}>
+      <span>
+        <i />
+        Recebido
+      </span>
+      <span>
+        <i />
+        Previsto
+      </span>
+      <span className={styles.contractLegend}>
+        <b />
+        Contratos
+      </span>
+    </div>
+  );
+}
+
+type ReceiptPoint = BusinessData["months"][number] & { contracts: number | null };
+
+function ReceiptsPlot({
+  series,
+  months,
+  animate,
+}: {
+  series: ReceiptPoint[];
+  months: BusinessData["months"];
+  animate: boolean;
+}): ReactElement {
+  return (
+    <div className={styles.linePlot}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <ComposedChart
+          data={series}
+          accessibilityLayer
+          margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
+        >
+          <CartesianGrid vertical={false} stroke="currentColor" strokeOpacity={0.12} />
+          {monthAxis()}
+          <YAxis
+            yAxisId="revenue"
+            tickFormatter={compactMoney}
+            tick={{ fill: "currentColor", fontSize: 11, width: 50 }}
+            axisLine={false}
+            tickLine={false}
+            width={50}
+            tickCount={3}
+            domain={[0, "auto"]}
+          />
+          <YAxis
+            yAxisId="contracts"
+            orientation="right"
+            allowDecimals={false}
+            width={30}
+            axisLine={false}
+            tickLine={false}
+            tick={{ fill: "var(--brand)", fontSize: 11 }}
+            tickCount={4}
+            domain={[0, "auto"]}
+          />
+          {receiptTooltip(months)}
+          {receiptMarks(animate)}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function receiptTooltip(months: BusinessData["months"]): ReactElement {
+  return (
+    <Tooltip
+      position={{ ["y"]: 0 }}
+      cursor={false}
+      content={({ active, payload, label }) =>
+        active && payload?.length ? (
+          <div className={styles.tooltip}>
+            <strong>{monthLabel(String(label))}</strong>
+            {payload.map((item) => (
+              <p key={String(item.dataKey)}>
+                {item.name}:{" "}
+                {item.dataKey === "contracts"
+                  ? Number(item.value).toLocaleString("pt-BR")
+                  : money.format(Number(item.value) / CENTS_PER_REAL)}
+              </p>
+            ))}
+            <p>
+              Em aberto hoje:{" "}
+              {money.format(
+                (months.find((month) => month.month === String(label))?.balanceCents ?? 0) /
+                  CENTS_PER_REAL,
+              )}
+            </p>
+          </div>
+        ) : null
+      }
+    />
+  );
+}
+
+function receiptMarks(animate: boolean): ReactElement[] {
+  return [
+    <Bar
+      key="contracts"
+      yAxisId="contracts"
+      dataKey="contracts"
+      name="Contratos"
+      fill="var(--brand)"
+      fillOpacity={0.6}
+      maxBarSize={8}
+      radius={[2, 2, 0, 0]}
+      isAnimationActive={animate}
+      animationDuration={650}
+    />,
+    <Line
+      key="expected"
+      yAxisId="revenue"
+      dataKey="expectedCents"
+      name="Previsto"
+      type="linear"
+      stroke="currentColor"
+      strokeOpacity={0.45}
+      strokeDasharray="4 5"
+      strokeWidth={1.5}
+      dot={false}
+      isAnimationActive={false}
+    />,
+    <Line
+      key="received"
+      yAxisId="revenue"
+      dataKey="receivedCents"
+      name="Recebido"
+      type="monotone"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      dot={{ ["r"]: 3, fill: "currentColor", strokeWidth: 0 }}
+      activeDot={{ ["r"]: 5 }}
+      isAnimationActive={false}
+    />,
+  ];
 }
 
 export function TrialComparison({
@@ -240,7 +279,12 @@ export function TrialComparison({
           <span>{item.label}</span>
           <svg viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
             <rect width="100" height="8" rx="4" fill="currentColor" opacity="0.1" />
-            <rect width={(item.value / max) * 100} height="8" rx="4" fill="currentColor" />
+            <rect
+              width={(item.value / max) * COMPARISON_WIDTH}
+              height="8"
+              rx="4"
+              fill="currentColor"
+            />
           </svg>
           <strong>{item.value.toLocaleString("pt-BR")}</strong>
         </div>

@@ -57,23 +57,32 @@ export function ClassTeacher({
           <PopoverClose render={<Button size="sm" variant="secondary" onClick={onAssign} />}>
             {detail.currentTeacher ? "Trocar professor" : "Atribuir professor"}
           </PopoverClose>
-          {detail.teacherAssignments.length > 0 && (
-            <details className="text-caption text-muted-foreground">
-              <summary className="cursor-pointer rounded-sm focus-visible:outline-none focus-visible:shadow-focus">
-                Histórico docente
-              </summary>
-              <ol className="grid gap-2 pt-3">
-                {detail.teacherAssignments.map((assignment) => (
-                  <li key={assignment.id}>
-                    {assignment.teacher.name}
-                    <span className="block">Desde {dateLabel(assignment.effectiveDate)}</span>
-                  </li>
-                ))}
-              </ol>
-            </details>
-          )}
+          <TeacherAssignmentHistory assignments={detail.teacherAssignments} />
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function TeacherAssignmentHistory({
+  assignments,
+}: {
+  assignments: Detail["teacherAssignments"];
+}): ReactElement | null {
+  if (assignments.length === 0) return null;
+  return (
+    <details className="text-caption text-muted-foreground">
+      <summary className="cursor-pointer rounded-sm focus-visible:outline-none focus-visible:shadow-focus">
+        Histórico docente
+      </summary>
+      <ol className="grid gap-2 pt-3">
+        {assignments.map((assignment) => (
+          <li key={assignment.id}>
+            {assignment.teacher.name}
+            <span className="block">Desde {dateLabel(assignment.effectiveDate)}</span>
+          </li>
+        ))}
+      </ol>
+    </details>
   );
 }

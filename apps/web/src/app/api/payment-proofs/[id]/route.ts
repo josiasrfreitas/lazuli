@@ -11,5 +11,6 @@ export async function GET(
     session: await auth.getSession({ headers: request.headers }),
     headers: request.headers,
   });
-  return downloadPaymentProof(ctx, (await params).id);
+  const { id } = await params;
+  return downloadPaymentProof(ctx, id);
 }

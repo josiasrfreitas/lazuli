@@ -145,28 +145,40 @@ export function TableFilterChips({
           </div>
         </PopoverContent>
       </Popover>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              variant="secondary"
-              size="icon-sm"
-              className="rounded-l-none border-l-0 text-muted-foreground hover:text-destructive"
-              aria-label="Limpar todos os filtros"
-              onClick={
-                onClearAll ??
-                (() => {
-                  for (const field of active) field.onClear();
-                })
-              }
-            >
-              <X aria-hidden="true" />
-            </Button>
-          }
-        />
-        <TooltipContent>Limpar todos os filtros</TooltipContent>
-      </Tooltip>
+      <ClearAllFilters active={active} onClearAll={onClearAll} />
     </div>
+  );
+}
+
+function ClearAllFilters({
+  active,
+  onClearAll,
+}: {
+  active: TableFilterField[];
+  onClearAll: (() => void) | undefined;
+}): ReactElement {
+  const clear =
+    onClearAll ??
+    (() => {
+      for (const field of active) field.onClear();
+    });
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="secondary"
+            size="icon-sm"
+            className="rounded-l-none border-l-0 text-muted-foreground hover:text-destructive"
+            aria-label="Limpar todos os filtros"
+            onClick={clear}
+          >
+            <X aria-hidden="true" />
+          </Button>
+        }
+      />
+      <TooltipContent>Limpar todos os filtros</TooltipContent>
+    </Tooltip>
   );
 }
 
