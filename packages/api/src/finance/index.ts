@@ -17,10 +17,19 @@ import {
 import type { ContractTerminationConfirm } from "@lazuli/validators";
 import { readAnalytics } from "./internal/analytics.js";
 import { readStudentSummary } from "./internal/student-summary.js";
+import {
+  contractRenegotiationOptions,
+  previewContractRenegotiation,
+  confirmContractRenegotiation,
+} from "./internal/contract-renegotiation.js";
 import { readContractClosings } from "./internal/contract-closings.js";
 import { previewPayments } from "./internal/payment-preview.js";
 import { confirmPayments } from "./internal/payment-operation.js";
 import type { PaymentPreviewInput, PaymentOperationInput } from "@lazuli/validators";
+import type {
+  ContractRenegotiationPreview,
+  ContractRenegotiationConfirm,
+} from "@lazuli/validators";
 import { searchContractParties } from "./internal/contract-parties.js";
 import { batchReconcile, type BatchReconcileResult } from "./internal/batch-reconcile.js";
 import {
@@ -90,6 +99,7 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
       confirmContractTermination({ database: db, values, now, staffUserId }),
     analytics: (values) => readAnalytics(db, values),
     studentSummary: (values) => readStudentSummary(db, values),
+    ...renegotiationFinance(db, staffUserId),
     contractClosings: async (year, now) => {
       const asOf = saoPauloDateOnly(now);
       return { ...(await readContractClosings(db, { year, asOf })), year, asOf };
@@ -123,6 +133,24 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
   };
 }
 
+function renegotiationFinance(
+  db: FinanceDatabase,
+  staffUserId: string,
+): Pick<FinanceModule, "renegotiationOptions" | "previewRenegotiation" | "confirmRenegotiation"> {
+  return {
+    renegotiationOptions: (contractId, now) =>
+      contractRenegotiationOptions(db, { contractId, now }),
+    previewRenegotiation: (values, now) => previewContractRenegotiation(db, { values, now }),
+    confirmRenegotiation: (values, { actorName, now }) =>
+      confirmContractRenegotiation({
+        database: db,
+        values,
+        actor: { id: staffUserId, name: actorName },
+        now,
+      }),
+  };
+}
+
 export type FinanceModule = {
   treatmentInstallments: (
     values: FinancialTreatmentInstallments,
@@ -149,6 +177,18 @@ export type FinanceModule = {
     studentId: string;
     now: Date;
   }) => ReturnType<typeof readStudentSummary>;
+  renegotiationOptions: (
+    contractId: string,
+    now: Date,
+  ) => ReturnType<typeof contractRenegotiationOptions>;
+  previewRenegotiation: (
+    values: ContractRenegotiationPreview,
+    now: Date,
+  ) => ReturnType<typeof previewContractRenegotiation>;
+  confirmRenegotiation: (
+    values: ContractRenegotiationConfirm,
+    context: { actorName: string; now: Date },
+  ) => ReturnType<typeof confirmContractRenegotiation>;
   analytics: (values: { year: number; now: Date }) => ReturnType<typeof readAnalytics>;
   contractClosings: (
     year: number,

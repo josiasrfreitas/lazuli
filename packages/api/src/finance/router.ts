@@ -34,11 +34,6 @@ import { adminProcedure, router, systemAdminProcedure } from "../trpc/init.js";
 import { finance } from "./index.js";
 import { studentPayments } from "./payment-proofs.js";
 import { renewalTerms } from "./internal/renewal.js";
-import {
-  contractRenegotiationOptions,
-  previewContractRenegotiation,
-  confirmContractRenegotiation,
-} from "./internal/contract-renegotiation.js";
 
 const AGREEMENT_TRANSACTION_TIMEOUT_MS = 30_000;
 
@@ -57,16 +52,23 @@ export const financeRouter = router({
     .input(contractTerminationPreviewSchema)
     .query(({ ctx, input }) =>
       ctx.db.$transaction(
-        (tx) => contractRenegotiationOptions(tx, input.contractId, ctx.now ?? new Date()),
+        (tx) =>
+          finance(tx, ctx.staffUser.id).renegotiationOptions(
+            input.contractId,
+            ctx.now ?? new Date(),
+          ),
         { isolationLevel: "RepeatableRead" },
       ),
     ),
   previewRenegotiation: adminProcedure
     .input(contractRenegotiationPreviewSchema)
     .query(({ ctx, input }) =>
-      ctx.db.$transaction((tx) => previewContractRenegotiation(tx, input, ctx.now ?? new Date()), {
-        isolationLevel: "RepeatableRead",
-      }),
+      ctx.db.$transaction(
+        (tx) => finance(tx, ctx.staffUser.id).previewRenegotiation(input, ctx.now ?? new Date()),
+        {
+          isolationLevel: "RepeatableRead",
+        },
+      ),
     ),
   confirmRenegotiation: adminProcedure
     .input(contractRenegotiationConfirmSchema)
@@ -74,10 +76,8 @@ export const financeRouter = router({
       activityTransaction(ctx, {
         action: "finance.renegotiateContract",
         work: (tx) =>
-          confirmContractRenegotiation({
-            database: tx,
-            values: input,
-            actor: ctx.staffUser,
+          finance(tx, ctx.staffUser.id).confirmRenegotiation(input, {
+            actorName: ctx.staffUser.name,
             now: ctx.now ?? new Date(),
           }),
         describe: async (result, db) => {

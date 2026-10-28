@@ -85,12 +85,20 @@ export async function persistPayment(input: {
     select: paymentEntrySelect,
   });
 
+  const allocations = await persistAllocations(input, paymentEntry.id);
+  return { paymentEntry, allocations };
+}
+
+async function persistAllocations(
+  input: Pick<Parameters<typeof persistPayment>[0], "database" | "allocationRows" | "staffUserId">,
+  paymentEntryId: string,
+): Promise<PaymentAllocationSummary[]> {
   const allocations: PaymentAllocationSummary[] = [];
   for (const allocation of input.allocationRows) {
     allocations.push(
       await input.database.paymentAllocation.create({
         data: {
-          paymentEntryId: paymentEntry.id,
+          paymentEntryId,
           installmentId: allocation.installmentId,
           amountCents: allocation.amountCents,
           createdById: input.staffUserId,
@@ -100,8 +108,7 @@ export async function persistPayment(input: {
       }),
     );
   }
-
-  return { paymentEntry, allocations };
+  return allocations;
 }
 
 export async function lockInstallments(

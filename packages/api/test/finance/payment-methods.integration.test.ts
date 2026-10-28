@@ -30,7 +30,7 @@ void it("accepts catalog entries without enum changes and preserves replay after
   const first = await confirmPaymentCommand(command);
   assert.equal(first[0]?.method, method);
   const stored = await db.paymentEntry.findUniqueOrThrow({
-    where: { id: first[0]!.id },
+    where: { id: first[0].id },
     include: { paymentMethod: true },
   });
   assert.equal(stored.paymentMethod.name, "Método de teste");

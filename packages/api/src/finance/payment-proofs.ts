@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { getStorage } from "@lazuli/storage";
-import type { TransactionClient } from "@lazuli/db";
+import type { Prisma, TransactionClient } from "@lazuli/db";
 import type { PaymentProofUpload } from "@lazuli/validators";
 import type { Context, StaffUser } from "../trpc/context.js";
 import { recordActivity } from "../activity/record.js";
@@ -117,22 +117,7 @@ export async function studentPayments(
 }> {
   paymentProofStaff(ctx);
   const rows = await ctx.db.paymentEntry.findMany({
-    where: {
-      deletedAt: null,
-      allocations: {
-        some: {
-          deletedAt: null,
-          installment: {
-            order: {
-              OR: [
-                { contract: { studentId: input.studentId } },
-                { beneficiaries: { some: { studentId: input.studentId, deletedAt: null } } },
-              ],
-            },
-          },
-        },
-      },
-    },
+    where: studentPaymentWhere(input.studentId),
     select: {
       id: true,
       date: true,
@@ -154,5 +139,24 @@ export async function studentPayments(
   return {
     rows: rows.map((row) => ({ ...row, date: toDateOnlyString(row.date) })),
     nextCursor: more ? rows.at(-1)?.id : undefined,
+  };
+}
+
+function studentPaymentWhere(studentId: string): Prisma.PaymentEntryWhereInput {
+  return {
+    deletedAt: null,
+    allocations: {
+      some: {
+        deletedAt: null,
+        installment: {
+          order: {
+            OR: [
+              { contract: { studentId } },
+              { beneficiaries: { some: { studentId, deletedAt: null } } },
+            ],
+          },
+        },
+      },
+    },
   };
 }

@@ -6,16 +6,59 @@ import { notFound } from "../trpc/errors.js";
 import { STUDENT_NOT_FOUND_MESSAGE } from "./errors.js";
 import { meetingKey, meetingsBetween } from "../teachers/schedule.js";
 import { dateOnly } from "../class-records/data.js";
+import type { SessionSummary } from "../class-records/types.js";
+import type { TeacherMeeting } from "../teachers/schedule.js";
+
+type AgendaInput = { id: string; from: string; to: string };
+type AgendaWindow = { classId: string; date: { gte: Date; lte: Date; lt?: Date } };
+type ProjectedLesson = Pick<
+  TeacherMeeting,
+  | "classId"
+  | "className"
+  | "scheduleType"
+  | "format"
+  | "stageName"
+  | "date"
+  | "startTime"
+  | "endTime"
+> & { id: string; sessionId: null; teacher: string | null; state: "UPCOMING" | "PENDING" };
+type StudentAgendaResult = {
+  lessons: Array<(SessionSummary & { sessionId: string }) | ProjectedLesson>;
+  appointments: Awaited<ReturnType<typeof listAppointments>>;
+};
 
 /** Membership windows keep other classes and lessons outside the student's enrollment out. */
 export async function readStudentAgenda(
   context: RecordContext,
-  input: {
-    id: string;
-    from: string;
-    to: string;
-  },
-) {
+  input: AgendaInput,
+): Promise<StudentAgendaResult> {
+  const windows = await studentAgendaWindows(context, input);
+  const [recordedLessons, appointments, meetings] = await Promise.all([
+    windows.length > 0 ? listClassRecords(context, { ...input, scope: { OR: windows } }) : [],
+    listAppointments(context, { from: input.from, through: input.to, studentId: input.id }),
+    windows.length > 0
+      ? meetingsBetween({
+          database: context.database,
+          from: input.from,
+          through: input.to,
+          now: context.now,
+        })
+      : [],
+  ]);
+  const lessons = [
+    ...recordedLessons.map((lesson) => ({ ...lesson, sessionId: lesson.id })),
+    ...projectedAgendaLessons(meetings, { windows, now: context.now }),
+  ].toSorted(
+    (left, right) =>
+      left.date.localeCompare(right.date) || left.startTime.localeCompare(right.startTime),
+  );
+  return { lessons, appointments };
+}
+
+async function studentAgendaWindows(
+  context: RecordContext,
+  input: AgendaInput,
+): Promise<AgendaWindow[]> {
   const student = await context.database.student.findFirst({
     where: { id: input.id, deletedAt: null },
     select: { id: true },
@@ -36,7 +79,7 @@ export async function readStudentAgenda(
       class: { select: { semester: { select: { startDate: true, endDate: true } } } },
     },
   });
-  const windows = enrollments.flatMap((enrollment) => {
+  return enrollments.flatMap((enrollment) => {
     const window = intersectEnrollmentSemesterWindows({
       enrollment,
       semester: enrollment.class.semester,
@@ -54,32 +97,25 @@ export async function readStudentAgenda(
         ]
       : [];
   });
-  const [recordedLessons, appointments, meetings] = await Promise.all([
-    windows.length > 0 ? listClassRecords(context, { ...input, scope: { OR: windows } }) : [],
-    listAppointments(context, { from: input.from, through: input.to, studentId: input.id }),
-    windows.length > 0
-      ? meetingsBetween({
-          database: context.database,
-          from: input.from,
-          through: input.to,
-          now: context.now,
-        })
-      : [],
-  ]);
-  const projected = meetings.filter(
-    (meeting) =>
-      !meeting.sessionId &&
-      windows.some(
-        (window) =>
-          window.classId === meeting.classId &&
-          meeting.date >= dateOnly(window.date.gte) &&
-          meeting.date <= dateOnly(window.date.lte) &&
-          (!window.date.lt || meeting.date < dateOnly(window.date.lt)),
-      ),
-  );
-  const lessons = [
-    ...recordedLessons.map((lesson) => ({ ...lesson, sessionId: lesson.id })),
-    ...projected.map((meeting) => ({
+}
+
+function projectedAgendaLessons(
+  meetings: TeacherMeeting[],
+  { windows, now }: { windows: AgendaWindow[]; now: Date },
+): ProjectedLesson[] {
+  return meetings
+    .filter(
+      (meeting) =>
+        !meeting.sessionId &&
+        windows.some(
+          (window) =>
+            window.classId === meeting.classId &&
+            meeting.date >= dateOnly(window.date.gte) &&
+            meeting.date <= dateOnly(window.date.lte) &&
+            (!window.date.lt || meeting.date < dateOnly(window.date.lt)),
+        ),
+    )
+    .map((meeting) => ({
       id: meetingKey(meeting),
       sessionId: null,
       classId: meeting.classId,
@@ -91,12 +127,6 @@ export async function readStudentAgenda(
       startTime: meeting.startTime,
       endTime: meeting.endTime,
       teacher: meeting.substituteTeacherName ?? meeting.usualTeacherName,
-      state:
-        sessionEndInstant(meeting) > context.now ? ("UPCOMING" as const) : ("PENDING" as const),
-    })),
-  ].toSorted(
-    (left, right) =>
-      left.date.localeCompare(right.date) || left.startTime.localeCompare(right.startTime),
-  );
-  return { lessons, appointments };
+      state: sessionEndInstant(meeting) > now ? ("UPCOMING" as const) : ("PENDING" as const),
+    }));
 }

@@ -69,13 +69,16 @@ export async function readCoverage(
       }),
     );
   const classes = await readUnassignedClasses(database, now);
+  return mergeCoverageItems(uncovered, classes);
+}
+
+function mergeCoverageItems(uncovered: HomeItem[], classes: HomeItem[]): HomeItem[] {
   // One contextual item per class, keeping its earliest uncovered meeting when available.
   const byClass = new Map<string, HomeItem>();
   for (const item of [...uncovered, ...classes]) {
     const key = item.action.kind === "link" ? item.action.href : item.id;
     const existing = byClass.get(key);
-    if (!existing) byClass.set(key, item);
-    else
+    if (existing)
       byClass.set(key, {
         ...existing,
         detail: item.detail,
@@ -85,6 +88,7 @@ export async function readCoverage(
         ...(item.stageName !== undefined && { stageName: item.stageName }),
         ...(item.studentCount !== undefined && { studentCount: item.studentCount }),
       });
+    else byClass.set(key, item);
   }
   return [...byClass.values()];
 }

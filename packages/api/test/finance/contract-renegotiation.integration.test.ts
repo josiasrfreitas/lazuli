@@ -3,17 +3,17 @@ import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 import { db, type TransactionClient } from "@lazuli/db";
 import { finance } from "../../src/finance/index.js";
-import {
-  confirmContractRenegotiation,
-  previewContractRenegotiation,
-  contractRenegotiationOptions,
-} from "../../src/finance/internal/contract-renegotiation.js";
-import { readStudentSummary } from "../../src/finance/internal/student-summary.js";
 
 const now = new Date("2026-02-15T15:00:00Z");
-after(() => db.$disconnect());
+void after(() => db.$disconnect());
 
-async function fixture(tx: TransactionClient) {
+async function fixture(tx: TransactionClient): Promise<{
+  actor: { id: string; name: string };
+  student: { id: string };
+  payer: { id: string };
+  contract: { id: string };
+  installments: Array<{ id: string }>;
+}> {
   const actor = await tx.user.create({
     data: {
       id: randomUUID(),
@@ -72,7 +72,7 @@ async function rollback(work: (tx: TransactionClient) => Promise<void>): Promise
   );
 }
 
-test("selected installments change atomically, preserving receipts and replaying the same confirmation once", async () => {
+void test("selected installments change atomically, preserving receipts and replaying the same confirmation once", async () => {
   await rollback(async (tx) => {
     const { actor, student, payer, contract, installments } = await fixture(tx);
     await tx.paymentEntry.create({
@@ -98,7 +98,8 @@ test("selected installments change atomically, preserving receipts and replaying
       installmentIds: [installments[0]!.id, installments[2]!.id],
       newAmountCents: 10_000,
     };
-    const preview = await previewContractRenegotiation(tx, request, now);
+    const service = finance(tx, actor.id);
+    const preview = await service.previewRenegotiation(request, now);
     assert.equal(preview.reductionCents, 40_000);
     const values = {
       ...request,
@@ -107,38 +108,37 @@ test("selected installments change atomically, preserving receipts and replaying
       reason: "Exceção acordada com o responsável",
       acknowledged: true as const,
     };
-    await confirmContractRenegotiation({ database: tx, values, actor, now });
-    await confirmContractRenegotiation({ database: tx, values, actor, now });
-    assert.equal(await tx.contractRenegotiation.count({ where: { contractId: contract.id } }), 1);
-    const after = await contractRenegotiationOptions(tx, contract.id, now);
+    await service.confirmRenegotiation(values, { actorName: actor.name, now });
+    await service.confirmRenegotiation(values, { actorName: actor.name, now });
+    const agreementCount = await tx.contractRenegotiation.count({
+      where: { contractId: contract.id },
+    });
+    assert.equal(agreementCount, 1);
+    const after = await service.renegotiationOptions(contract.id, now);
     assert.deepEqual(
       after.lines.map((line) => line.balanceCents),
       [5_000, 30_000, 10_000, 30_000],
     );
-    const summary = await readStudentSummary(tx, { studentId: student.id, now });
+    const summary = await service.studentSummary({ studentId: student.id, now });
     assert.equal(summary.receivedCents, 5_000);
     assert.equal(summary.outstandingCents, 75_000);
     assert.equal(summary.contracts[0]!.schedules[0]!.totalCents, 80_000);
     assert.equal(summary.contracts[0]!.schedules[0]!.uniformAmountCents, null);
     const original = await tx.installment.findUniqueOrThrow({ where: { id: installments[0]!.id } });
     assert.equal(original.amountCents, 30_000);
-    assert.equal(
-      (await tx.contract.findUniqueOrThrow({ where: { id: contract.id } })).terminatedAt,
-      null,
-    );
+    const storedContract = await tx.contract.findUniqueOrThrow({ where: { id: contract.id } });
+    assert.equal(storedContract.terminatedAt, null);
     await assert.rejects(
-      confirmContractRenegotiation({
-        database: tx,
-        values: { ...values, newAmountCents: 1 },
-        actor,
-        now,
-      }),
+      service.confirmRenegotiation(
+        { ...values, newAmountCents: 1 },
+        { actorName: actor.name, now },
+      ),
       /outra renegociação/,
     );
   });
 });
 
-test("stale previews and cross-contract selections cannot create an agreement", async () => {
+void test("stale previews and cross-contract selections cannot create an agreement", async () => {
   await rollback(async (tx) => {
     const { actor, contract, installments } = await fixture(tx);
     const request = {
@@ -146,28 +146,27 @@ test("stale previews and cross-contract selections cannot create an agreement", 
       installmentIds: [installments[0]!.id],
       newAmountCents: 0,
     };
-    const preview = await previewContractRenegotiation(tx, request, now);
+    const service = finance(tx, actor.id);
+    const preview = await service.previewRenegotiation(request, now);
     await tx.installment.update({
       where: { id: installments[0]!.id },
       data: { dueDate: new Date("2026-01-11T00:00:00Z") },
     });
     await assert.rejects(
-      confirmContractRenegotiation({
-        database: tx,
-        actor,
-        now,
-        values: {
+      service.confirmRenegotiation(
+        {
           ...request,
           commandId: randomUUID(),
           version: preview.version,
           reason: "Redução de último recurso",
           acknowledged: true,
         },
-      }),
+        { actorName: actor.name, now },
+      ),
       /parcelas mudaram/,
     );
     await assert.rejects(
-      previewContractRenegotiation(tx, { ...request, installmentIds: [randomUUID()] }, now),
+      service.previewRenegotiation({ ...request, installmentIds: [randomUUID()] }, now),
       /deste contrato/,
     );
     assert.equal(await tx.contractRenegotiation.count({ where: { contractId: contract.id } }), 0);

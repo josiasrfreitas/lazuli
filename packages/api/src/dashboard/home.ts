@@ -55,31 +55,7 @@ export async function readAdminHome({
     ? HOME_GROUPS
     : HOME_GROUPS.filter((kind) => kind !== "contracts" && kind !== "renewals");
   const [groups, agenda, audience, school, leadConversion] = await Promise.all([
-    Promise.all(
-      kinds.map(async (kind) => {
-        const records = kind === "lessons" || kind === "appointments";
-        const group = await readHomePending(database, {
-          kind,
-          now,
-          page: 1,
-          pageSize: HOME_PREVIEW_SIZE,
-          period: records ? "recent" : "all",
-        });
-        if (!records) return group;
-        const history = await readHomePending(database, {
-          kind,
-          now,
-          page: 1,
-          pageSize: 1,
-          period: "history",
-        });
-        return {
-          ...group,
-          historyTotal: history.total,
-          ...(history.items[0] ? { historyItem: history.items[0] } : {}),
-        };
-      }),
-    ),
+    readHomeGroups(database, { now, kinds }),
     readHomeAgenda(database, now),
     readStudentAges(database, now),
     readHomeSchool({ database, now, requestedMonth: month }),
@@ -97,6 +73,37 @@ export async function readAdminHome({
     groups,
     agenda,
   };
+}
+
+function readHomeGroups(
+  database: Context["db"],
+  { now, kinds }: { now: Date; kinds: readonly (typeof HOME_GROUPS)[number][] },
+): Promise<Awaited<ReturnType<typeof readHomePending>>[]> {
+  return Promise.all(
+    kinds.map(async (kind) => {
+      const records = kind === "lessons" || kind === "appointments";
+      const group = await readHomePending(database, {
+        kind,
+        now,
+        page: 1,
+        pageSize: HOME_PREVIEW_SIZE,
+        period: records ? "recent" : "all",
+      });
+      if (!records) return group;
+      const history = await readHomePending(database, {
+        kind,
+        now,
+        page: 1,
+        pageSize: 1,
+        period: "history",
+      });
+      return {
+        ...group,
+        historyTotal: history.total,
+        ...(history.items[0] ? { historyItem: history.items[0] } : {}),
+      };
+    }),
+  );
 }
 /** Cash and commercial agreements stay separate; no accounting revenue is inferred. */
 export async function readHomeBusiness({

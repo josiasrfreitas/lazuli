@@ -6,6 +6,28 @@ import { dateOnly, linkItem, type HomeItem } from "./home-model.js";
 const COVERAGE_HORIZON_DAYS = 15;
 const TIME_START = 11;
 const TIME_END = 16;
+const coverageClassSelect = {
+  ...responsibilitySelect,
+  sharedStage: { select: { name: true } },
+  enrollments: { select: { studentId: true } },
+  id: true,
+  portalClassName: true,
+  scheduleType: true,
+  semester: { select: { name: true, startDate: true } },
+  scheduleSlots: {
+    where: { deletedAt: null },
+    select: { weekday: true, startTime: true, endTime: true },
+    orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+  },
+} satisfies Prisma.ClassSelect;
+type CoverageClass = Prisma.ClassGetPayload<{ select: typeof coverageClassSelect }>;
+const coveragePlanSelect = {
+  id: true,
+  name: true,
+  semesterId: true,
+  semester: { select: { name: true, startDate: true } },
+} as const;
+type CoveragePlan = Prisma.SemesterClassPlanGetPayload<{ select: typeof coveragePlanSelect }>;
 
 /** Current classes need coverage; future semesters enter the queue 15 days before starting. */
 export async function readUnassignedClasses(
@@ -16,70 +38,10 @@ export async function readUnassignedClasses(
   const horizon = new Date(today);
   horizon.setUTCDate(horizon.getUTCDate() + COVERAGE_HORIZON_DAYS);
   const [classes, plans] = await Promise.all([
-    database.class.findMany({
-      where: {
-        deletedAt: null,
-        status: "ACTIVE",
-        semester: {
-          deletedAt: null,
-          startDate: { lte: horizon },
-          endDate: { gte: new Date(today) },
-        },
-      },
-      select: {
-        ...responsibilitySelect,
-        sharedStage: { select: { name: true } },
-        enrollments: {
-          where: {
-            deletedAt: null,
-            entryDate: { lte: new Date(today) },
-            OR: [{ exitDate: null }, { exitDate: { gt: new Date(today) } }],
-            student: { deletedAt: null },
-          },
-          select: { studentId: true },
-        },
-        id: true,
-        portalClassName: true,
-        scheduleType: true,
-        semester: { select: { name: true, startDate: true } },
-        scheduleSlots: {
-          where: { deletedAt: null },
-          select: { weekday: true, startTime: true, endTime: true },
-          orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
-        },
-      },
-      orderBy: { portalClassName: "asc" },
-    }),
-    database.semesterClassPlan.findMany({
-      where: {
-        deletedAt: null,
-        closedAt: null,
-        classId: null,
-        teacherId: null,
-        semester: {
-          deletedAt: null,
-          startDate: { lte: horizon },
-          endDate: { gte: new Date(today) },
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        semesterId: true,
-        semester: { select: { name: true, startDate: true } },
-      },
-      orderBy: [{ semester: { startDate: "asc" } }, { name: "asc" }],
-    }),
+    findCoverageClasses(database, { today: new Date(today), horizon }),
+    findCoveragePlans(database, { today: new Date(today), horizon }),
   ]);
-  const missing = classes.filter(
-    (row) =>
-      usualTeacherOn(
-        row,
-        new Date(
-          dateOnly(row.semester.startDate) > today ? dateOnly(row.semester.startDate) : today,
-        ),
-      ) === null,
-  );
+  const missing = unassignedCoverageClasses(classes, today);
   return [
     ...missing.map((row) =>
       linkItem({
@@ -112,6 +74,61 @@ export async function readUnassignedClasses(
       }),
     ),
   ];
+}
+
+function unassignedCoverageClasses(classes: CoverageClass[], today: string): CoverageClass[] {
+  return classes.filter(
+    (row) =>
+      usualTeacherOn(
+        row,
+        new Date(
+          dateOnly(row.semester.startDate) > today ? dateOnly(row.semester.startDate) : today,
+        ),
+      ) === null,
+  );
+}
+
+async function findCoverageClasses(
+  database: Prisma.TransactionClient,
+  { today, horizon }: { today: Date; horizon: Date },
+): Promise<CoverageClass[]> {
+  return database.class.findMany({
+    where: {
+      deletedAt: null,
+      status: "ACTIVE",
+      semester: { deletedAt: null, startDate: { lte: horizon }, endDate: { gte: today } },
+    },
+    select: {
+      ...coverageClassSelect,
+      enrollments: {
+        ...coverageClassSelect.enrollments,
+        where: {
+          deletedAt: null,
+          entryDate: { lte: today },
+          OR: [{ exitDate: null }, { exitDate: { gt: today } }],
+          student: { deletedAt: null },
+        },
+      },
+    },
+    orderBy: { portalClassName: "asc" },
+  });
+}
+
+async function findCoveragePlans(
+  database: Prisma.TransactionClient,
+  { today, horizon }: { today: Date; horizon: Date },
+): Promise<CoveragePlan[]> {
+  return database.semesterClassPlan.findMany({
+    where: {
+      deletedAt: null,
+      closedAt: null,
+      classId: null,
+      teacherId: null,
+      semester: { deletedAt: null, startDate: { lte: horizon }, endDate: { gte: today } },
+    },
+    select: coveragePlanSelect,
+    orderBy: [{ semester: { startDate: "asc" } }, { name: "asc" }],
+  });
 }
 
 const WEEKDAYS: Record<string, string> = {
