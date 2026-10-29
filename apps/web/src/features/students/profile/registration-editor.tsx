@@ -152,7 +152,21 @@ function validateFieldValues(
     if (birthDate) person.birthDate = birthDate;
     else errors.birthDate = "Informe uma data válida.";
   }
+  Object.assign(errors, requiredEditorErrors(values));
   if (values.documentNumber && !values.documentType) errors.documentType = "Escolha CPF ou RG.";
+  return errors;
+}
+
+function requiredEditorErrors(values: Record<string, string>): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const [field, message] of [
+    ["documentNumber", "Informe o CPF ou RG."],
+    ["birthDate", "Informe o nascimento."],
+  ] as const) {
+    if (field in values && !values[field]?.trim()) errors[field] = message;
+  }
+  if ("phone" in values && !values.phone?.trim() && !values.email?.trim())
+    errors.phone = "Informe telefone ou e-mail.";
   return errors;
 }
 
@@ -374,6 +388,7 @@ function EditorTextField({
     >
       <Label htmlFor={`registration-${name}`}>{FIELDS[name]![0]}</Label>
       <Input
+        aria-required={["fullName", "birthDate", "documentNumber"].includes(name) || undefined}
         id={`registration-${name}`}
         name={name}
         autoComplete="off"

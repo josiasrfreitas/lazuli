@@ -1,7 +1,7 @@
 import type { JSX as ReactJSX } from "react";
 import { formatDateOnlyBR } from "~/lib/format";
-import { dateOnly } from "~/features/semester-organization/shared";
-import type { OrganizationAction, SemesterBoard } from "./model";
+import { dateOnly } from "~/features/class-organization/shared";
+import type { OrganizationAction, OrganizationBoard } from "./model";
 import styles from "./organization.module.css";
 
 const ISO_MONTH_LENGTH = 7;
@@ -14,7 +14,7 @@ export function CalendarMonths({
   end,
   onAction,
 }: {
-  board: SemesterBoard;
+  board: OrganizationBoard;
   start: string;
   end: string;
   onAction: (action: OrganizationAction) => void;
@@ -62,7 +62,7 @@ function CalendarMonth({
   onAction,
 }: {
   month: Date;
-  board: SemesterBoard;
+  board: OrganizationBoard;
   start: string;
   end: string;
   onAction: (action: OrganizationAction) => void;
@@ -110,7 +110,7 @@ function CalendarDay({
 }: {
   date: string;
   day: number;
-  board: SemesterBoard;
+  board: OrganizationBoard;
   start: string;
   end: string;
   onAction: (action: OrganizationAction) => void;

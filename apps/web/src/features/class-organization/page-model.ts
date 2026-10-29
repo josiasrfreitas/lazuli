@@ -4,18 +4,18 @@ import { useQueryState, parseAsString } from "nuqs";
 import type { RouterOutputs } from "@lazuli/api";
 import { trpc, type QueryResult } from "~/lib/trpc";
 import { toDateOnlySaoPaulo } from "~/lib/format";
-import { dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
-import type { OrganizationAction, SemesterBoard } from "./model";
+import { dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
+import type { OrganizationAction, OrganizationBoard } from "./model";
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
 type SemesterData = {
   periods: QueryResult<RouterOutputs["semesterOrganization"]["semesters"]>;
-  query: QueryResult<SemesterBoard>;
+  query: QueryResult<OrganizationBoard>;
   semesterId: string;
   today: string;
 };
 export type OrganizationPageModel = SemesterData & {
-  board: SemesterBoard | undefined;
+  board: OrganizationBoard | undefined;
   ended: boolean;
   tab: string;
   setTab: (value: string) => void;

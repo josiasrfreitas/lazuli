@@ -75,7 +75,12 @@ export function PlacementVisitDialog({
         key={visit.id}
         visit={visit}
         person={query.data.fullName}
-        editable={query.data.status === "WAITING"}
+        editable={
+          query.data.status === "WAITING" ||
+          (query.data.status === "ENROLLED" &&
+            Boolean(query.data.studentId) &&
+            !visit.assessment?.stageId)
+        }
         initialUpload={initialUpload}
         onClose={onClose}
       />

@@ -171,7 +171,8 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.financeIcon {
+.financeIcon,
+.coverageIcon {
   background: color-mix(in srgb, var(--destructive) 18%, var(--pending-row));
   color: var(--destructive);
 }
@@ -547,6 +548,66 @@
   cursor: pointer;
 }
 
+.documentList {
+  container-type: inline-size;
+}
+.documentCase {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) max-content auto;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--pending-ink);
+}
+.documentCase > .caseName {
+  overflow: visible;
+  white-space: normal;
+}
+.documentCase:hover .documentAction {
+  color: var(--interactive);
+}
+.documentCase:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.documentAction {
+  display: flex;
+  align-items: center;
+  grid-column: 3;
+  grid-row: 1;
+}
+.documentAction svg {
+  width: 1rem;
+  height: 1rem;
+}
+.documentBadges {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  grid-column: 2;
+  grid-row: 1;
+}
+.documentBadges svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+@container (max-width: 530px) {
+  .documentCase {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.25rem 0.75rem;
+  }
+  .documentAction {
+    grid-column: 2;
+  }
+  .documentBadges {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    flex-wrap: wrap;
+  }
+}
+
 .recordIcon {
   color: var(--warning);
   background: var(--warning-muted);
@@ -554,4 +615,8 @@
 .placementIcon {
   color: var(--info);
   background: var(--info-muted);
+}
+
+.pending[data-sticky="false"] {
+  position: static;
 }

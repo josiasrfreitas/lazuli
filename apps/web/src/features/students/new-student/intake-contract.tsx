@@ -1,80 +1,63 @@
 "use client";
 import type { JSX as ReactJSX } from "react";
-import { Alert, Button, FormSection } from "@lazuli/ui";
-import { ConditionsSection } from "~/features/contracts/contract-form-fields";
-import { ContractPayerFields } from "~/features/contracts/contract-payer-fields";
-import { ContractMaterialSection } from "~/features/contracts/contract-material-section";
-import { PaymentSection } from "~/features/contracts/contract-payment-section";
+import { ContractSetup } from "~/features/contracts/contract-setup";
 import {
-  validatePrice,
   type ContractFormState,
   type ContractOperation,
 } from "~/features/contracts/new-contract-state";
-import { contractFieldsWithStudent, studentContractPreview } from "./finance-model";
+import { contractInputFromFields } from "~/features/contracts/contract-form-model";
+import { contractFieldsWithStudent, studentContractInput } from "./finance-model";
 import type { NewStudentFields } from "./reducer";
 
 export function IntakeContract({
   state,
   student,
+  existingStudentId,
   offer,
   pending,
+  error,
+  suggestedStageId,
+  onComplete,
+  onBack,
+  onSaveWithout,
 }: {
   state: ContractFormState;
   student: NewStudentFields;
+  existingStudentId?: string | undefined;
   offer: ContractOperation["offer"];
   pending: boolean;
+  error: string;
+  suggestedStageId: string | null;
+  onComplete: () => void;
+  onBack: () => void;
+  onSaveWithout: () => void;
 }): ReactJSX.Element {
-  const props = {
-    fields: contractFieldsWithStudent(state.fields, student),
-    errors: state.errors,
-    change: state.change,
-    offer: offer.data,
-    preview: studentContractPreview({ fields: state.fields, student, offer: offer.data }),
-    onMonthlyAmountBlur: () => validatePrice(state, offer.data),
-  };
   return (
-    <div ref={state.popup} className="grid gap-4">
-      <fieldset disabled={pending} className="grid gap-6 lg:grid-cols-2">
-        <div className="grid content-start gap-4">
-          <FormSection title="Responsável financeiro">
-            <ContractPayerFields {...props} />
-          </FormSection>
-          <ContractMaterialSection {...props} />
-        </div>
-        <div className="grid content-start gap-4 lg:border-l lg:border-border lg:pl-6">
-          <FormSection title="Condições do contrato">
-            <ConditionsSection {...props} />
-          </FormSection>
-          <PaymentSection {...props} />
-        </div>
-      </fieldset>
-      <ContractOfferFeedback offer={offer} />
-    </div>
-  );
-}
-
-function ContractOfferFeedback({ offer }: { offer: ContractOperation["offer"] }): ReactJSX.Element {
-  return (
-    <>
-      {offer.isPending && (
-        <p role="status" className="text-caption">
-          Carregando condições…
-        </p>
-      )}
-      {offer.isError && (
-        <Alert variant="destructive">
-          Não foi possível carregar as condições.{" "}
-          <Button variant="ghost" onClick={() => offer.refetch()}>
-            Tentar novamente
-          </Button>
-        </Alert>
-      )}
-      {!offer.isPending && !offer.isError && !offer.data && (
-        <Alert variant="warning">
-          Configure as condições financeiras para criar o contrato ou salve o aluno com contrato
-          pendente.
-        </Alert>
-      )}
-    </>
+    <ContractSetup
+      state={state}
+      fields={contractFieldsWithStudent(state.fields, student)}
+      parseInput={() =>
+        existingStudentId
+          ? contractInputFromFields(
+              { ...state.fields, studentMode: "existing", studentId: existingStudentId },
+              state.commandId.current,
+            )
+          : studentContractInput({
+              fields: state.fields,
+              student,
+              commandId: state.commandId.current,
+            })
+      }
+      offer={offer}
+      pending={pending}
+      studentKnown
+      deferStudentValidation
+      suggestedStageId={suggestedStageId}
+      error={error}
+      completeLabel="Concluir cadastro"
+      onComplete={onComplete}
+      onBack={onBack}
+      onSaveWithout={onSaveWithout}
+    />
   );
 }

@@ -196,7 +196,7 @@ function registerFinancialRulesTest(): void {
       adjustments: [{ amountCents: -400 }, { amountCents: -600 }],
       allocations: [{ amountCents: PARTIAL_FIRST_CENTS }, { amountCents: PARTIAL_SECOND_CENTS }],
       now: NOW,
-      interestRatePctMonthly: 1,
+      interestRatePctMonthly: 2,
     });
 
     assert.deepEqual(

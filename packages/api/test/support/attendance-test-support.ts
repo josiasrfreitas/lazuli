@@ -189,7 +189,7 @@ async function seedCatalog(ns: Namespace): Promise<string> {
 }
 
 async function seedSemester(ns: Namespace): Promise<string> {
-  const semester = await db.semester.create({
+  const semester = await db.period.create({
     data: { name: ns.semesterName, startDate: ns.semesterStart, endDate: ns.semesterEnd },
     select: { id: true },
   });
@@ -347,7 +347,7 @@ async function cleanNamespace(ns: Namespace): Promise<void> {
   await db.classScheduleSlot.deleteMany({ where: { class: classScope } });
   await db.student.deleteMany({ where: { fullName: { startsWith: ns.prefix } } });
   await db.class.deleteMany({ where: classScope });
-  await db.semester.deleteMany({ where: { name: { startsWith: ns.prefix } } });
+  await db.period.deleteMany({ where: { name: { startsWith: ns.prefix } } });
   await db.stage.deleteMany({
     where: { track: { productLine: { key: { startsWith: ns.catalogKeyPrefix } } } },
   });

@@ -12,7 +12,11 @@ import { HomeQueue } from "../../src/features/admin-home/home-queue.js";
 import { BusinessSummary } from "../../src/features/admin-home/home-business.js";
 import { Trend } from "../../src/features/admin-home/home-metrics.js";
 import { isSchoolStarting } from "../../src/features/admin-home/home-start.js";
-import { prioritizedWork, workPriority } from "../../src/features/admin-home/home-work-model.js";
+import {
+  departureDayLabel,
+  prioritizedWork,
+  workPriority,
+} from "../../src/features/admin-home/home-work-model.js";
 import { LeadConversion } from "../../src/features/admin-home/home-audience.js";
 import { pendingWork } from "../../src/features/admin-home/home-pending-model.js";
 import { CoveragePagination } from "../../src/features/admin-home/home-pending-coverage.js";
@@ -83,31 +87,32 @@ void it("orders home pending work by urgency instead of queue volume", () => {
     ...data,
     groups: [
       { ...queue("students"), total: 200 },
-      queue("coverage", {
-        kind: "meeting",
-        date: "2026-10-23",
-        startTime: "14:00",
-        endTime: "15:00",
-      }),
+      queue("coverage", { kind: "departure", date: "2026-10-23" }),
     ],
   });
   assert.deepEqual(
     ranked.map((work) => work.id),
     ["coverage", "students"],
   );
-  assert.equal(ranked[0]?.score, 10);
+  assert.equal(ranked[0]?.score, 7);
   assert.equal(ranked[1]?.score, 4);
 });
 
-void it("offers the next coverage page when more than three classes need a teacher", () => {
+void it("offers another coverage page when five teachers have affected classes", () => {
   const html = renderToStaticMarkup(
-    <CoveragePagination total={4} page={1} busy={false} onPageChange={() => {}} />,
+    <CoveragePagination total={5} page={1} busy={false} onPageChange={() => {}} />,
   );
-  assert.match(html, /4 turmas sem professor/);
+  assert.match(html, /5 professores com turmas sem professor/);
   assert.match(html, /Página 1 de 2/);
   const nextButton = html.match(/<button[^>]*><span[^>]*>Próxima<\/span><\/button>/u)?.[0];
   assert.ok(nextButton);
   assert.doesNotMatch(nextButton, /\sdisabled=""/u);
+});
+
+void it("shows departure distance across future, current and past school dates", () => {
+  assert.equal(departureDayLabel("2026-10-20", "2026-10-25"), "Daqui a 5 dias");
+  assert.equal(departureDayLabel("2026-10-20", "2026-10-20"), "Hoje");
+  assert.equal(departureDayLabel("2026-10-20", "2026-10-15"), "Há 5 dias");
 });
 
 void it("keeps loading and failed dashboard data distinct", () => {
@@ -128,7 +133,7 @@ void it("keeps loading and failed dashboard data distinct", () => {
   assert.match(stale, /podem estar desatualizados/);
 });
 
-void it("prioritizes upcoming teaching coverage before intake volume and finance", () => {
+void it("prioritizes a teacher departure before intake volume and finance", () => {
   const groups: HomeData["groups"] = [
     {
       kind: "contracts",
@@ -151,19 +156,19 @@ void it("prioritizes upcoming teaching coverage before intake volume and finance
     ...data.groups.filter((group) => group.kind === "lessons"),
     {
       kind: "coverage",
-      title: "Aulas sem professor",
+      title: "Turmas sem professor",
       description: "Cobertura.",
       area: "school",
       attention: true,
       total: 1,
       items: [
         {
-          id: "class-today",
-          title: "Turma de hoje",
+          id: "teacher-today",
+          title: "Professora de hoje",
           date: data.today,
-          detail: "Sem professor",
-          action: { kind: "link", href: "/turmas" },
-          timing: { kind: "meeting", date: data.today, startTime: "14:00", endTime: "15:00" },
+          detail: "2 turmas precisam de professor",
+          action: { kind: "link", href: "/turmas?professor=teacher-today" },
+          timing: { kind: "departure", date: data.today },
         },
       ],
     },
@@ -176,13 +181,13 @@ void it("prioritizes upcoming teaching coverage before intake volume and finance
       open={() => {}}
     />,
   );
-  assert.match(html, /1 aula sem professor/);
-  assert.match(html, /Definir professor/);
-  assert.ok(html.indexOf("Definir professor") < html.indexOf("Alunos sem turma"));
+  assert.match(html, /Professores com turmas a reatribuir/);
+  assert.match(html, /Ver turmas/);
+  assert.ok(html.indexOf("Ver turmas") < html.indexOf("Alunos sem turma"));
   assert.match(html, /Conduzir as aulas/);
   assert.match(html, /Preparar a entrada em turma/);
   assert.doesNotMatch(html, /Primeiros contratos|>300</);
-  assert.match(html, /id="home-priority-title">Defina quem conduz a próxima aula/);
+  assert.match(html, /id="home-priority-title">Turma sem professor/);
 });
 
 function queue(
@@ -208,14 +213,9 @@ function queue(
     ],
   };
 }
-void it("prioritizes the nearest entry over larger teaching queues later in the week", () => {
+void it("prioritizes the nearest entry over a later teacher departure", () => {
   const coverage = {
-    ...queue("coverage", {
-      kind: "meeting",
-      date: "2026-10-29",
-      startTime: "09:00",
-      endTime: "10:00",
-    }),
+    ...queue("coverage", { kind: "departure", date: "2026-10-29" }),
     total: 200,
   };
   const semester = queue("semester", { kind: "entry", date: "2026-10-24" });
@@ -233,12 +233,7 @@ void it("prioritizes the nearest entry over larger teaching queues later in the 
     items: [
       {
         ...coverage.items[0]!,
-        timing: {
-          kind: "meeting" as const,
-          date: "2026-10-25",
-          startTime: "09:00",
-          endTime: "10:00",
-        },
+        timing: { kind: "departure" as const, date: "2026-10-25" },
       },
     ],
   };
@@ -247,32 +242,27 @@ void it("prioritizes the nearest entry over larger teaching queues later in the 
     "semester",
   );
 });
-void it("changes the same uncovered meeting from preparation to today to in-progress", () => {
-  const coverage = queue("coverage", {
-    kind: "meeting",
-    date: "2026-10-23",
-    startTime: "14:00",
-    endTime: "15:00",
-  });
+void it("changes a teacher departure from upcoming to today to elapsed", () => {
+  const coverage = queue("coverage", { kind: "departure", date: "2026-10-23" });
   assert.equal(
     workPriority(coverage, { today: "2026-10-20", updatedAt: "2026-10-20T15:00:00Z" }).tone,
-    "neutral",
+    "warning",
   );
   assert.equal(workPriority(coverage, data).state, "today");
-  const started = workPriority(coverage, { ...data, updatedAt: "2026-10-23T17:00:00Z" });
-  assert.equal(started.state, "ongoing");
-  assert.equal(started.tone, "destructive");
-  assert.equal(started.headline, "A aula começou sem professor definido");
+  const elapsed = workPriority(coverage, { ...data, today: "2026-10-28" });
+  assert.equal(elapsed.state, "date-passed");
+  assert.equal(elapsed.tone, "destructive");
+  assert.equal(elapsed.label, "Há 5 dias");
   const html = renderToStaticMarkup(
     <HomeQueue
-      data={{ ...data, updatedAt: "2026-10-23T17:00:00Z", groups: [coverage] }}
+      data={{ ...data, today: "2026-10-28", groups: [coverage] }}
       selected={null}
       select={() => {}}
       open={() => {}}
     />,
   );
-  assert.match(html, /14:00/);
-  assert.match(html, /Aula em andamento/);
+  assert.match(html, /Há 5 dias/);
+  assert.match(html, /Defina outro professor para cada turma afetada pela saída/);
 });
 void it("treats a past entry date as a publication issue, without alarming future planning", () => {
   const passed = workPriority(queue("semester", { kind: "entry", date: "2026-10-22" }), data);

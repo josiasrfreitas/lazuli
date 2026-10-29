@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState, type ReactElement } from "react";
 import { Badge, Button, Input, Tabs, TabsList, TabsTab, TabsPanel } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
-import { dateLabel, QueryState } from "./shared";
+import { OCCURRENCE_STATUS, dateLabel, QueryState } from "./shared";
 import type { FollowUpSelection, SelectFollowUp } from "./student-navigation";
 import { DeskEmptyList } from "./student-desk-empty";
 import { DeskRowsLoading } from "./student-desk-loading";
@@ -140,6 +140,7 @@ function InterventionList({
             onClick={() => select({ kind: "intervention", id: row.id })}
           >
             <strong title={row.title}>{row.title}</strong>
+            <Badge variant="neutral">{OCCURRENCE_STATUS[row.status]}</Badge>
             <small>
               {row.responsible.name}
               {` · ${dateLabel(row.performedOn)}`}

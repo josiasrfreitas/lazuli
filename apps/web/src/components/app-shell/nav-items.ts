@@ -79,12 +79,6 @@ export const NAV_SECTIONS: readonly NavSection[] = [
         icon: BookOpen,
         roles: ["ADMIN", "SYSTEM_ADMIN"],
       },
-      {
-        href: "/organizacao",
-        label: "Organização de turmas",
-        icon: CalendarRange,
-        roles: ["ADMIN", "SYSTEM_ADMIN"],
-      },
       { href: "/avaliacoes", label: "Avaliações", icon: GraduationCap, roles: ["TEACHER"] },
     ],
   },

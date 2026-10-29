@@ -4,6 +4,7 @@ import { Link2, Pencil } from "lucide-react";
 import { Badge, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { CATEGORY, dateLabel, recordedLabel, QueryState, type Occurrence } from "./shared";
+import { OccurrenceStatus } from "./occurrence-status";
 import { OccurrenceEditForm } from "./action-forms";
 import { LinkOccurrenceForm } from "./link-form";
 import type { SelectFollowUp } from "./student-navigation";
@@ -49,6 +50,7 @@ function OccurrenceRecord({
         role="region"
         aria-label="Conteúdo do registro"
       >
+        <OccurrenceStatus row={row} />
         <OccurrenceBody
           row={row}
           select={select}

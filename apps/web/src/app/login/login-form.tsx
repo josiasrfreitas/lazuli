@@ -5,7 +5,13 @@ import { useState, type FormEvent, type ReactNode } from "react";
 
 import { Button, Field, FieldError, Input, Label } from "@lazuli/ui";
 
-export type LoginMode = "password" | "magic-link" | "register" | "recover" | "reset" | "set-password";
+export type LoginMode =
+  | "password"
+  | "magic-link"
+  | "register"
+  | "recover"
+  | "reset"
+  | "set-password";
 
 type FormErrors = { email?: string | undefined; password?: string | undefined };
 
@@ -54,7 +60,9 @@ export function LoginForm({
     <form className={className} noValidate onSubmit={submit} aria-busy={pending}>
       {mode !== "reset" && mode !== "set-password" && (
         <Field>
-          <Label htmlFor="login-email" className="text-body text-marquee-foreground">Email institucional</Label>
+          <Label htmlFor="login-email" className="text-body text-marquee-foreground">
+            Email institucional
+          </Label>
           <Input
             id="login-email"
             name="email"
@@ -75,7 +83,11 @@ export function LoginForm({
               setErrors((current) => ({ ...current, email: undefined }));
             }}
           />
-          {errors.email && <FieldError id="login-email-error">{errors.email}</FieldError>}
+          {errors.email && (
+            <FieldError id="login-email-error" match>
+              {errors.email}
+            </FieldError>
+          )}
         </Field>
       )}
       {(mode === "password" || mode === "reset" || mode === "set-password") && (
@@ -93,18 +105,37 @@ export function LoginForm({
       </Button>
       {mode === "password" ? (
         <div className="mt-2 flex flex-col gap-2">
-          <p className="text-caption leading-relaxed text-marquee-muted">Ainda não tem senha? Use seu email cadastrado na escola.</p>
-          <Button type="button" variant="secondary" size="lg" disabled={pending} onClick={() => onModeChange("magic-link")}>
+          <p className="text-caption leading-relaxed text-marquee-muted">
+            Ainda não tem senha? Use seu email cadastrado na escola.
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            disabled={pending}
+            onClick={() => onModeChange("magic-link")}
+          >
             <Mail aria-hidden="true" />
             Entrar por link no email
           </Button>
-          <Button type="button" variant="ghost" size="lg" disabled={pending} onClick={() => onModeChange("register")}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            disabled={pending}
+            onClick={() => onModeChange("register")}
+          >
             <KeyRound aria-hidden="true" />
             Cadastrar senha
           </Button>
         </div>
       ) : (
-        <Button type="button" variant="text" disabled={pending} onClick={() => onModeChange("password")}>
+        <Button
+          type="button"
+          variant="text"
+          disabled={pending}
+          onClick={() => onModeChange("password")}
+        >
           Voltar para o login
         </Button>
       )}
@@ -112,7 +143,13 @@ export function LoginForm({
   );
 }
 
-function PasswordField({ creating, disabled, error, onChange, onRecover }: {
+function PasswordField({
+  creating,
+  disabled,
+  error,
+  onChange,
+  onRecover,
+}: {
   creating: boolean;
   disabled: boolean;
   error: string | undefined;
@@ -123,9 +160,17 @@ function PasswordField({ creating, disabled, error, onChange, onRecover }: {
   return (
     <Field>
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor="login-password" className="text-body text-marquee-foreground">{creating ? "Nova senha" : "Senha"}</Label>
+        <Label htmlFor="login-password" className="text-body text-marquee-foreground">
+          {creating ? "Nova senha" : "Senha"}
+        </Label>
         {!creating && (
-          <Button type="button" variant="text" size="inline" disabled={disabled} onClick={onRecover}>
+          <Button
+            type="button"
+            variant="text"
+            size="inline"
+            disabled={disabled}
+            onClick={onRecover}
+          >
             Esqueci minha senha
           </Button>
         )}
@@ -136,8 +181,8 @@ function PasswordField({ creating, disabled, error, onChange, onRecover }: {
           name="password"
           type={visible ? "text" : "password"}
           autoComplete={creating ? "new-password" : "current-password"}
-          placeholder={creating ? "Pelo menos 12 caracteres" : "Sua senha"}
-          minLength={creating ? 12 : undefined}
+          placeholder={creating ? "Mínimo de 8 caracteres" : "Sua senha"}
+          minLength={creating ? 8 : undefined}
           maxLength={128}
           required
           disabled={disabled}
@@ -161,10 +206,14 @@ function PasswordField({ creating, disabled, error, onChange, onRecover }: {
           {visible ? <EyeOff /> : <Eye />}
         </Button>
       </div>
-      {error && <FieldError id="login-password-error">{error}</FieldError>}
-      {creating && (
+      {error && (
+        <FieldError id="login-password-error" match>
+          {error}
+        </FieldError>
+      )}
+      {creating && !error && (
         <p id="password-help" className="text-caption text-muted-foreground">
-          Use de 12 a 128 caracteres. Pode usar espaços.
+          Mínimo de 8 caracteres.
         </p>
       )}
     </Field>
@@ -175,8 +224,11 @@ function validateFields(form: HTMLFormElement, mode: LoginMode): FormErrors {
   const errors: FormErrors = {};
   const email = form.querySelector<HTMLInputElement>('input[name="email"]');
   const password = form.querySelector<HTMLInputElement>('input[name="password"]');
-  if (email && (!email.value.trim() || !email.validity.valid)) errors.email = "Informe um email válido, como voce@escola.com.br.";
+  if (email && (!email.value.trim() || !email.validity.valid))
+    errors.email = "Informe um email válido, como voce@escola.com.br.";
   if (password && !password.value) errors.password = "Informe sua senha.";
-  else if (password && (mode === "reset" || mode === "set-password") && (password.value.length < 12 || password.value.length > 128)) errors.password = "Use de 12 a 128 caracteres para sua nova senha.";
+  else if (password && (mode === "reset" || mode === "set-password") && password.value.length < 8)
+    errors.password = "Mínimo de 8 caracteres.";
+  else if (password && password.value.length > 128) errors.password = "A senha é muito longa.";
   return errors;
 }

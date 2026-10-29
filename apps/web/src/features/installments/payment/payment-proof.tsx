@@ -12,11 +12,15 @@ export type PaymentProofDraft = { id: string; file: File | undefined; error: str
 export type PaymentProofDrafts = Record<string, PaymentProofDraft | undefined>;
 
 export function PaymentProofPicker({
+  label = "Comprovante de pagamento",
+  description,
   value,
   disabled,
   onChange,
   onError,
 }: {
+  label?: string;
+  description?: string | undefined;
   value: PaymentProofDraft | undefined;
   disabled: boolean;
   onChange: (file: File | undefined) => void;
@@ -25,11 +29,12 @@ export function PaymentProofPicker({
   return (
     <div className="grid gap-2 border-t border-border px-3 py-3">
       <p className="text-caption font-medium">
-        Comprovante de pagamento{" "}
-        <span className="font-normal text-muted-foreground">· opcional</span>
+        {label} <span className="font-normal text-muted-foreground">· opcional</span>
       </p>
+      {description && <p className="text-caption text-muted-foreground">{description}</p>}
       <FileUpload
         compact
+        layout="inline"
         value={value?.file ? [value.file] : []}
         onValueChange={(files) => onChange(files[0])}
         onValidationError={onError}

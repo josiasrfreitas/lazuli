@@ -40,14 +40,16 @@ type LedgerTables =
   | "Order"
   | "Contract"
   | "Payer"
+  | "MaterialOrder"
   | "adjustment_totals"
   | "allocation_totals"
   | "schedule_totals";
 
 export type InstallmentQueryRow = Omit<
   FinanceInstallmentRow,
-  "payer" | "beneficiaries" | "suspendedUntil"
+  "payer" | "beneficiaries" | "suspendedUntil" | "material"
 > & {
+  material: NonNullable<FinanceInstallmentRow["material"]> | null;
   suspendedUntil: string | null;
   payerId: string;
   payerName: string;
@@ -115,6 +117,7 @@ export function ledgerQuery(input: QueryInput): QueryCreator<LedgerDatabase> {
       .selectFrom("Installment")
       .innerJoin("Order", "Order.id", "Installment.order_id")
       .leftJoin("Contract", "Contract.id", "Order.contract_id")
+      .leftJoin("MaterialOrder", "MaterialOrder.order_id", "Order.id")
       .innerJoin("Payer", (join) =>
         join.on(sql<boolean>`"Payer".id = coalesce("Contract".payer_id, "Order".payer_id)`),
       )
@@ -200,6 +203,13 @@ function ledgerSelection(input: {
     "Installment.id as installmentId",
     "Order.id as orderId",
     "Order.kind as origin",
+    sql<
+      InstallmentQueryRow["material"]
+    >`case when "MaterialOrder".order_id is not null then json_build_object(
+      'name', "MaterialOrder".name,
+      'payment', "MaterialOrder".payment,
+      'installmentCount', "MaterialOrder".quoted_installments
+    ) end`.as("material"),
     "Installment.sequence_number as sequenceNumber",
     "schedule_totals.installment_count as scheduleTotal",
     "Payer.id as payerId",

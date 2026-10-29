@@ -117,7 +117,15 @@ export function PartyPicker({
   return (
     <Field name={`${kind}Search`}>
       <Label>{createMode ? `Nome do ${label.toLowerCase()}` : label}</Label>
-      <div className={showAdornment && endAdornment ? "relative [&_input]:pr-11" : "relative"}>
+      <div
+        className={
+          showAdornment && endAdornment
+            ? value || draftValue
+              ? "relative pr-11"
+              : "relative [&_input]:pr-11"
+            : "relative"
+        }
+      >
         <PickerInput
           {...{
             kind,

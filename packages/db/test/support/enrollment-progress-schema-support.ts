@@ -49,7 +49,7 @@ export async function cleanDatabase(database: DatabaseClient): Promise<void> {
   await database.class.deleteMany({
     where: { internalCode: { startsWith: TEST_PREFIX } },
   });
-  await database.semester.deleteMany({
+  await database.period.deleteMany({
     where: { name: { startsWith: TEST_PREFIX } },
   });
   await database.stage.deleteMany({
@@ -121,7 +121,7 @@ export async function createRegularClass(
   database: DatabaseClient,
   input: { code: string; sharedStageId: string },
 ): Promise<{ id: string }> {
-  const semester = await database.semester.findFirstOrThrow({
+  const semester = await database.period.findFirstOrThrow({
     where: { name: REGULAR_SEMESTER_NAME },
     select: { id: true },
   });
@@ -329,7 +329,7 @@ async function createStage(
 }
 
 async function ensureRegularSemester(database: DatabaseClient): Promise<{ id: string }> {
-  const existing = await database.semester.findFirst({
+  const existing = await database.period.findFirst({
     where: { name: REGULAR_SEMESTER_NAME },
     select: { id: true },
   });
@@ -337,7 +337,7 @@ async function ensureRegularSemester(database: DatabaseClient): Promise<{ id: st
     return existing;
   }
 
-  return database.semester.create({
+  return database.period.create({
     data: {
       endDate: new Date("2076-06-30T00:00:00.000Z"),
       name: REGULAR_SEMESTER_NAME,

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import {
-  AlertCircle,
   BookOpen,
   CalendarDays,
   LayoutDashboard,
@@ -24,6 +23,7 @@ import {
   TabsTab,
 } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
+import { firstTwoNames } from "~/lib/format";
 import { useAnimationPreviewDelay } from "~/lib/animation-preview";
 import { StudentPhoto } from "~/features/student-documents/student-photo";
 import { StudentPlanning } from "~/features/stage-planning/student-planning";
@@ -33,11 +33,11 @@ import { ProfileError } from "./profile-shared";
 import { StudentPedagogySection } from "./student-pedagogy";
 import { StudentFinanceSection } from "./student-finance";
 import { StudentRegistrationLoading, StudentRegistrationSection } from "./student-registration";
+import { StudentContractRenewal } from "./student-contract-renewal";
 import { StudentOverview, StudentOverviewLoading } from "./student-overview";
 import { StudentAgendaDialog } from "./student-agenda-dialog";
 import { CurrentEnrollment } from "./current-enrollment";
 import { PedagogyLoading, EnrollmentLoading } from "./student-loading";
-import { StudentPendingActions } from "./student-pending-actions";
 import { useSectionCarousel } from "./use-section-carousel";
 import styles from "./student-profile.module.css";
 
@@ -93,6 +93,7 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: SectionsProp
   return (
     <div
       className={styles.sections}
+      data-overview={activeSection === OVERVIEW_SECTION || undefined}
       data-ready={Boolean(profile) || undefined}
       data-entering={profile && !entranceComplete ? true : undefined}
     >
@@ -110,7 +111,9 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: SectionsProp
           profile={profile}
           canSchedule={Boolean(pedagogy.data?.enrollments.some((row) => row.current))}
           registrationBusy={registrationBusy}
-          severeOverdue={finance.data?.debtState === "SEVERE_OVERDUE"}
+          financeActive={activeSection === "financeiro"}
+          renewalReady={entranceComplete && Boolean(profile) && !finance.isPending}
+          pendingRenewals={finance.data?.pendingRenewals ?? []}
         />
         <TabsPanel key={activeSection} value={activeTab}>
           <SectionContent
@@ -184,19 +187,31 @@ function SectionsHeader({
   profile,
   canSchedule,
   registrationBusy,
-  severeOverdue,
+  financeActive,
+  renewalReady,
+  pendingRenewals,
 }: {
   id: string;
   profile: StudentProfile | undefined;
   canSchedule: boolean;
   registrationBusy: boolean;
-  severeOverdue: boolean;
+  financeActive: boolean;
+  renewalReady: boolean;
+  pendingRenewals: RouterOutputs["finance"]["studentSummary"]["pendingRenewals"];
 }): ReactElement {
   return (
     <div className={styles.stickyHeader} data-ready={profile ? true : undefined}>
-      <StudentIdentityHeader id={id} profile={profile} canSchedule={canSchedule} />
-      {profile && <StudentPendingActions studentId={id} name={profile.contact.fullName} />}
-      <StudentTabsNavigation disabled={registrationBusy} severeOverdue={severeOverdue} />
+      <StudentIdentityHeader
+        id={id}
+        profile={profile}
+        canSchedule={canSchedule}
+        renewalAction={
+          financeActive && pendingRenewals.length > 0 ? (
+            <StudentContractRenewal contracts={pendingRenewals} ready={renewalReady} />
+          ) : undefined
+        }
+        navigation={<StudentTabsNavigation disabled={registrationBusy} />}
+      />
     </div>
   );
 }
@@ -303,54 +318,89 @@ function StudentIdentityHeader({
   id,
   profile,
   canSchedule,
+  renewalAction,
+  navigation,
 }: {
   id: string;
   profile: StudentProfile | undefined;
   canSchedule: boolean;
+  renewalAction: ReactNode;
+  navigation: ReactNode;
 }): ReactElement {
   return (
     <DetailHeader
+      size="sm"
       title={
-        profile ? profile.contact.fullName : <InlineSkeleton className="h-8 w-64 max-w-full" />
+        profile ? (
+          firstTwoNames(profile.contact.fullName)
+        ) : (
+          <InlineSkeleton shape="block" className="h-7 w-48 max-w-full sm:w-64" />
+        )
       }
       leading={
-        profile ? <StudentPhoto studentId={id} name={profile.contact.fullName} /> : undefined
+        profile ? (
+          <StudentPhoto studentId={id} name={profile.contact.fullName} />
+        ) : (
+          <InlineSkeleton className="size-10" />
+        )
       }
       metadata={
-        profile ? <StudentStatus profile={profile} /> : <InlineSkeleton className="h-5 w-12" />
-      }
-      actions={
-        <div className={styles.headerActions}>
-          {profile?.whatsAppUrl && (
-            <Button
-              variant="ghost"
-              size="sm"
-              nativeButton={false}
-              render={<a href={profile.whatsAppUrl} target="_blank" rel="noreferrer" />}
-            >
-              <MessageCircle aria-hidden="true" /> WhatsApp
-            </Button>
-          )}
+        <>
           {profile ? (
-            <StudentAgendaDialog profile={profile} canSchedule={canSchedule} />
+            <StudentStatus profile={profile} />
           ) : (
-            <Button size="sm" disabled>
-              <CalendarDays aria-hidden="true" /> Agenda do aluno
-            </Button>
+            <InlineSkeleton shape="block" className="h-5 w-12" />
           )}
-        </div>
+          <StudentHeaderActions
+            profile={profile}
+            canSchedule={canSchedule}
+            renewalAction={renewalAction}
+          />
+        </>
       }
+      actions={navigation}
     />
   );
 }
 
-function StudentTabsNavigation({
-  severeOverdue,
-  disabled,
+function StudentHeaderActions({
+  profile,
+  canSchedule,
+  renewalAction,
 }: {
-  severeOverdue: boolean;
-  disabled: boolean;
+  profile: StudentProfile | undefined;
+  canSchedule: boolean;
+  renewalAction: ReactNode;
 }): ReactElement {
+  return (
+    <div className={styles.headerActions}>
+      {profile?.whatsAppUrl && (
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={<a href={profile.whatsAppUrl} target="_blank" rel="noreferrer" />}
+        >
+          <MessageCircle aria-hidden="true" /> WhatsApp
+        </Button>
+      )}
+      {profile ? (
+        <StudentAgendaDialog
+          profile={profile}
+          canSchedule={canSchedule}
+          secondary={Boolean(renewalAction)}
+        />
+      ) : (
+        <Button size="sm" disabled>
+          <CalendarDays aria-hidden="true" /> Agenda do aluno
+        </Button>
+      )}
+      {renewalAction}
+    </div>
+  );
+}
+
+function StudentTabsNavigation({ disabled }: { disabled: boolean }): ReactElement {
   return (
     <div className={styles.tabNavigation}>
       <TabsList aria-label="Seções do aluno" className="min-w-full">
@@ -365,12 +415,6 @@ function StudentTabsNavigation({
         </TabsTab>
         <TabsTab value="financeiro" disabled={disabled}>
           <Wallet aria-hidden="true" /> Financeiro
-          {severeOverdue && (
-            <span className="text-destructive" title="Pagamento vencido há mais de 30 dias">
-              <AlertCircle className={styles.financeAlert} aria-hidden="true" />
-              <span className="sr-only">Pagamento vencido há mais de 30 dias</span>
-            </span>
-          )}
         </TabsTab>
       </TabsList>
     </div>

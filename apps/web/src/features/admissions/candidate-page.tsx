@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
+import { useQueryState } from "nuqs";
+import { PlacementVisitDialog } from "./placement-assessment";
 import { Archive, CalendarPlus, MoreHorizontal, Pencil, RotateCcw } from "lucide-react";
 import {
   Alert,
@@ -46,6 +48,25 @@ export function CandidatePage({ id }: { id: string }): ReactElement {
 
 function CandidateWorkspace({ candidate }: { candidate: Candidate }): ReactElement {
   const [dialog, setDialog] = useState<"edit" | "trial" | "placement" | null>(null);
+  const [requestedPlacement, setRequestedPlacement] = useQueryState("nivelamento");
+  const [placementId, setPlacementId] = useState<string | null>(null);
+  useEffect(() => {
+    if (requestedPlacement !== "pendente" || candidate.status === "ARCHIVED") return;
+    // This workspace mounts only after the lead has loaded. Let it paint first.
+    const timer = setTimeout(() => {
+      const latest = candidate.visits
+        .filter((visit) => visit.kind === "PLACEMENT" && visit.status !== "CANCELLED")
+        .toSorted(
+          (left, right) =>
+            right.date.getTime() - left.date.getTime() ||
+            right.startTime.localeCompare(left.startTime),
+        )[0];
+      if (latest && latest.status !== "ABSENT") setPlacementId(latest.id);
+      else if (candidate.status === "WAITING") setDialog("placement");
+      void setRequestedPlacement(null);
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [candidate, requestedPlacement, setRequestedPlacement]);
   const utils = trpc.useUtils();
   const status = trpc.admissions.setStatus.useMutation({
     onSuccess: () => utils.admissions.invalidate(),
@@ -73,6 +94,13 @@ function CandidateWorkspace({ candidate }: { candidate: Candidate }): ReactEleme
         <LeadContext candidate={candidate} onEdit={() => setDialog("edit")} />
         <CandidateAgenda candidate={candidate} active={active} onSchedule={setDialog} />
       </div>
+      {placementId && (
+        <PlacementVisitDialog
+          candidateId={candidate.id}
+          visitId={placementId}
+          onClose={() => setPlacementId(null)}
+        />
+      )}
       {dialog === "edit" && (
         <LeadCaptureDialog candidate={candidate} onClose={() => setDialog(null)} />
       )}

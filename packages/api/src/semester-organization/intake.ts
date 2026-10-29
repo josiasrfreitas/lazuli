@@ -17,18 +17,6 @@ export async function recordStudentIntake(
 ): Promise<void> {
   const { studentId, recordedById, input, now = new Date() } = options;
   const { semester, stage, plan, today } = await intakeSelection(database, { input, now });
-  await database.studentAvailability.create({
-    data: {
-      semesterId: semester.id,
-      studentId,
-      validUntil: semester.endDate,
-      formats: input.formats,
-      slots: input.slots,
-      confirmed: input.slots.length > 0,
-      notes: input.notes || null,
-      recordedById,
-    },
-  });
   if (stage)
     await createIntakePlacement(database, {
       semester,
@@ -41,21 +29,27 @@ export async function recordStudentIntake(
     });
 }
 
-type Semester = Prisma.SemesterGetPayload<Prisma.SemesterDefaultArgs>;
+type Period = Prisma.PeriodGetPayload<Prisma.PeriodDefaultArgs>;
 type Stage = Prisma.StageGetPayload<Prisma.StageDefaultArgs>;
 type ClassPlan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
 
 async function intakeSelection(
   database: TransactionClient,
   { input, now }: { input: StudentPedagogyIntake; now: Date },
-): Promise<{ semester: Semester; stage: Stage | null; plan: ClassPlan | null; today: string }> {
+): Promise<{ semester: Period; stage: Stage | null; plan: ClassPlan | null; today: string }> {
   await database.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`semester-organization:${input.semesterId}`}, 0))`;
-  const semester = await database.semester.findUnique({
+  const semester = await database.period.findUnique({
     where: { id: input.semesterId, deletedAt: null },
   });
   const today = saoPauloDateOnly(now);
-  if (!semester || semester.endDate.toISOString().slice(0, ISO_DATE_LENGTH) < today)
-    throw badRequest("Escolha um semestre atual ou futuro para o aluno.");
+  if (
+    !semester ||
+    semester.startDate.toISOString().slice(0, ISO_DATE_LENGTH) > today ||
+    semester.endDate.toISOString().slice(0, ISO_DATE_LENGTH) < today
+  )
+    throw badRequest(
+      "Cadastre como lead quem aguarda um período futuro. A entrada de aluno exige um período vigente.",
+    );
   const stage = await intakeStage(database, input.stageId);
   const plan = await intakePlan(database, input);
   if (plan && !stage)
@@ -100,7 +94,7 @@ async function createIntakePlacement(
     recordedById,
     input,
   }: {
-    semester: Semester;
+    semester: Period;
     stage: Stage;
     plan: ClassPlan | null;
     today: string;

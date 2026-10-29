@@ -47,7 +47,7 @@ const caller = (role: StaffUser["role"] = "ADMIN"): ReturnType<typeof createCall
     },
   });
 async function clean(): Promise<void> {
-  const semesters = await db.semester.findMany({
+  const semesters = await db.period.findMany({
     where: { name: { startsWith: config.prefix } },
     select: { id: true },
   });
@@ -57,7 +57,7 @@ async function clean(): Promise<void> {
     where: { placement: { semesterId: { in: ids } } },
   });
   await db.semesterPlacement.deleteMany({ where: { semesterId: { in: ids } } });
-  await db.studentAvailability.deleteMany({ where: { semesterId: { in: ids } } });
+
   await db.semesterClassPlan.deleteMany({ where: { semesterId: { in: ids } } });
   await db.sessionGenerationRequest.deleteMany({
     where: { OR: [{ semesterId: { in: ids } }, { class: { semesterId: { in: ids } } }] },
@@ -82,7 +82,7 @@ async function clean(): Promise<void> {
   await db.classTeacherAssignment.deleteMany({ where: { classId: { in: classIds } } });
   await db.classScheduleSlot.deleteMany({ where: { classId: { in: classIds } } });
   await db.class.deleteMany({ where: { id: { in: classIds } } });
-  await db.semester.deleteMany({ where: { id: { in: ids } } });
+  await db.period.deleteMany({ where: { id: { in: ids } } });
   await cleanEnrollmentFixtures(config);
 }
 beforeEach(clean);
@@ -94,14 +94,13 @@ type FixtureStudent = {
   id: string;
   source: { progress: { id: string }; enrollment: { id: string } };
   proposal: { id: string };
-  availability: { id: string } | null;
 };
 type Fixture = {
   catalog: { semesterId: string; firstStageId: string };
   semester: { id: string };
   plan: { id: string };
   sourceClass: { id: string };
-  student: (suffix: string, confirmed?: boolean) => Promise<FixtureStudent>;
+  student: (suffix: string) => Promise<FixtureStudent>;
 };
 
 async function fixture(): Promise<Fixture> {
@@ -111,7 +110,7 @@ async function fixture(): Promise<Fixture> {
     code: "source",
     semesterId: catalog.semesterId,
   });
-  const semester = await db.semester.create({
+  const semester = await db.period.create({
     data: {
       name: `${config.prefix}2085.2`,
       startDate: new Date("2085-07-01"),
@@ -127,7 +126,7 @@ async function fixture(): Promise<Fixture> {
     teacherId: config.teacherId,
     slots,
   });
-  async function student(suffix: string, confirmed = true): Promise<FixtureStudent> {
+  async function student(suffix: string): Promise<FixtureStudent> {
     const row = await createStudentFor(config, { suffix });
     const source = await caller().enrollment.create({
       studentId: row.id,
@@ -142,25 +141,116 @@ async function fixture(): Promise<Fixture> {
       sourceProgressId: source.progress.id,
       mode: "CONTINUE",
     });
-    const availability = confirmed
-      ? await caller().semesterOrganization.confirmAvailability({
-          semesterId: semester.id,
-          studentId: row.id,
-          previousId: null,
-          validUntil: "2085-07-01",
-          formats: ["IN_PERSON"],
-          slots,
-        })
-      : null;
-    return { ...row, source, proposal, availability };
+    return { ...row, source, proposal };
   }
   return { catalog, semester, plan, student, sourceClass };
 }
 
+void it("loads period organization and confirms intention without creating a contract or enrollment", async () => {
+  const scope = await fixture();
+  const student = await scope.student("Continuity");
+  const initial = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
+  assert.equal(initial.semester.id, scope.semester.id);
+  assert.deepEqual(
+    initial.plans.map((plan) => plan.id),
+    [scope.plan.id],
+  );
+  assert.equal(initial.plans[0].startDate.toISOString().slice(0, 10), "2085-07-01");
+  assert.equal(initial.placements[0].confirmation, "PENDING");
+
+  await caller().semesterOrganization.continuity({
+    semesterId: scope.semester.id,
+    id: student.proposal.id,
+    version: initial.placements[0].version,
+    continuity: "STAY",
+  });
+  const confirmed = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
+  assert.equal(confirmed.placements[0].confirmation, "CONFIRMED");
+  assert.equal(confirmed.placements[0].publishedAt, null);
+  assert.equal(await db.contract.count({ where: { studentId: student.id } }), 0);
+  assert.equal(await db.enrollment.count({ where: { studentId: student.id } }), 1);
+});
+
+void it("preconfirms only contracts covering the first three months of the selected period", async () => {
+  const scope = await fixture();
+  const covered = await scope.student("Covered");
+  const short = await scope.student("Short");
+  const payer = await db.payer.create({ data: { name: `${config.prefix}Coverage payer` } });
+  try {
+    await db.contract.createMany({
+      data: [
+        {
+          studentId: covered.id,
+          payerId: payer.id,
+          startsOn: new Date("2085-01-01"),
+          endsOn: new Date("2085-09-30"),
+        },
+        {
+          studentId: short.id,
+          payerId: payer.id,
+          startsOn: new Date("2085-01-01"),
+          endsOn: new Date("2085-09-29"),
+        },
+      ],
+    });
+    const board = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
+    assert.equal(
+      board.placements.find((row) => row.studentId === covered.id)?.confirmation,
+      "PRECONFIRMED",
+    );
+    assert.equal(
+      board.placements.find((row) => row.studentId === short.id)?.confirmation,
+      "PENDING",
+    );
+  } finally {
+    await db.contract.deleteMany({ where: { payerId: payer.id } });
+    await db.payer.delete({ where: { id: payer.id } });
+  }
+});
+
+void it("keeps future class interest as a lead and scopes it to the chosen period", async () => {
+  const scope = await fixture();
+  const lead = await db.admissionCandidate.create({
+    data: {
+      fullName: `${config.prefix}Future lead`,
+      phone: "11999990001",
+      englishExperience: "NONE",
+      stageId: scope.catalog.firstStageId,
+      scheduleType: "PERSONALIZED",
+      format: "IN_PERSON",
+      status: "WAITING",
+      allocationPendingAt: new Date("2085-05-15"),
+      allocationPendingReason: "Aguarda o próximo período",
+      recordedById: admin.id,
+    },
+  });
+  await caller().semesterOrganization.assignLeadInterest({
+    leadId: lead.id,
+    planId: scope.plan.id,
+  });
+  const board = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
+  assert.equal(
+    board.waitingLeads.find((row) => row.id === lead.id)?.allocationPlanId,
+    scope.plan.id,
+  );
+  assert.equal(board.placements.length, 0);
+  const current = await caller().semesterOrganization.detail({
+    semesterId: scope.catalog.semesterId,
+  });
+  assert.equal(
+    current.waitingLeads.some((row) => row.id === lead.id),
+    false,
+  );
+  const retained = await db.admissionCandidate.findUniqueOrThrow({ where: { id: lead.id } });
+  assert.equal(retained.status, "WAITING");
+  assert.equal(retained.studentId, null);
+  assert.equal(retained.enrollmentId, null);
+});
+
 void it("publishes only selected eligible students, preserving the current PPT attempt and both temporal memberships", async () => {
   const scope = await fixture();
   const first = await scope.student("Ana");
-  const second = await scope.student("Bia", false);
+  const second = await scope.student("Bia");
   const lead = await db.admissionCandidate.create({
     data: {
       fullName: `${config.prefix}Ana`,
@@ -254,10 +344,11 @@ void it("publishes only selected eligible students, preserving the current PPT a
   );
 });
 
-void it("rechecks latest availability and refuses an invalid subset atomically", async () => {
+void it("rejects an inactive student atomically", async () => {
   const scope = await fixture();
   const first = await scope.student("Cris");
-  const second = await scope.student("Dani", false);
+  const second = await scope.student("Dani");
+  await db.student.update({ where: { id: second.id }, data: { status: "INACTIVE" } });
   await assert.rejects(
     caller().semesterOrganization.publish({
       planId: scope.plan.id,
@@ -267,7 +358,7 @@ void it("rechecks latest availability and refuses an invalid subset atomically",
         { id: second.proposal.id, version: 1 },
       ],
     }),
-    /Confirme a disponibilidade/u,
+    /Cadastro do aluno não está ativo/u,
   );
   assert.equal(await db.class.count({ where: { semesterId: scope.semester.id } }), 0);
   assert.equal(
@@ -275,20 +366,6 @@ void it("rechecks latest availability and refuses an invalid subset atomically",
       where: { enrollmentId: first.source.enrollment.id, kind: "EXIT" },
     }),
     0,
-  );
-  await caller().semesterOrganization.invalidateAvailability({
-    semesterId: scope.semester.id,
-    studentId: first.id,
-    previousId: first.availability!.id,
-    reason: "Aluno informou mudança de horário de trabalho.",
-  });
-  await assert.rejects(
-    caller().semesterOrganization.publish({
-      planId: scope.plan.id,
-      version: 1,
-      placements: [{ id: first.proposal.id, version: 1 }],
-    }),
-    /Confirme a disponibilidade/u,
   );
   const current = await db.enrollment.findUniqueOrThrow({
     where: { id: first.source.enrollment.id },
@@ -356,124 +433,6 @@ void it("serializes duplicate publication and rejects a stale proposal version w
   assert.equal(
     await db.enrollmentAction.count({
       where: { enrollmentId: student.source.enrollment.id, status: "SCHEDULED", kind: "EXIT" },
-    }),
-    1,
-  );
-});
-
-void it("requires explicit confirmation for availability inherited by preparation or movement between semesters", async () => {
-  const scope = await fixture();
-  const student = await createStudentFor(config, { suffix: "Inherited availability" });
-  await db.classScheduleSlot.create({
-    data: {
-      classId: scope.sourceClass.id,
-      weekday: "MONDAY",
-      startTime: new Date("1970-01-01T14:00:00Z"),
-      endTime: new Date("1970-01-01T15:00:00Z"),
-    },
-  });
-  await caller().enrollment.create({
-    studentId: student.id,
-    classId: scope.sourceClass.id,
-    stageId: scope.catalog.firstStageId,
-  });
-  await db.studentAvailability.create({
-    data: {
-      semesterId: scope.catalog.semesterId,
-      studentId: student.id,
-      confirmed: true,
-      validUntil: new Date("2085-04-30"),
-      formats: ["IN_PERSON"],
-      slots,
-      recordedById: admin.id,
-    },
-  });
-  await caller().semesterOrganization.prepare({ semesterId: scope.semester.id });
-  const prepared = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
-  const proposal = prepared.placements.find((row) => row.studentId === student.id)!;
-  const plan = prepared.plans.find((row) => row.id === proposal.planId)!;
-  const inherited = await db.studentAvailability.findFirstOrThrow({
-    where: { semesterId: scope.semester.id, studentId: student.id },
-  });
-  assert.equal(inherited.confirmed, false);
-  assert.ok(proposal.blockers.some((reason) => reason.includes("Confirme a disponibilidade")));
-  await assert.rejects(
-    caller().semesterOrganization.publish({
-      planId: plan.id,
-      version: plan.version,
-      placements: [{ id: proposal.id, version: proposal.version }],
-    }),
-    /Confirme a disponibilidade/u,
-  );
-  await caller().semesterOrganization.confirmAvailability({
-    semesterId: scope.semester.id,
-    studentId: student.id,
-    previousId: inherited.id,
-    validUntil: "2085-12-31",
-    formats: ["IN_PERSON"],
-    slots,
-  });
-  const later = await db.semester.create({
-    data: {
-      name: `${config.prefix}2086.1`,
-      startDate: new Date("2086-02-01"),
-      endDate: new Date("2086-06-30"),
-    },
-  });
-  const laterPlan = await caller().semesterOrganization.savePlan({
-    semesterId: later.id,
-    name: `${config.prefix}PPT later`,
-    scheduleType: "PERSONALIZED",
-    format: "IN_PERSON",
-    sharedStageId: null,
-    teacherId: config.teacherId,
-    slots,
-  });
-  await caller().semesterOrganization.move({
-    semesterId: scope.semester.id,
-    targetSemesterId: later.id,
-    selections: [{ id: proposal.id, version: proposal.version }],
-    planId: laterPlan.id,
-    effectiveDate: "2086-02-01",
-    reason: "Revisar disponibilidade no novo período",
-  });
-  const moved = await caller().semesterOrganization.detail({ semesterId: later.id });
-  const movedProposal = moved.placements.find((row) => row.studentId === student.id)!;
-  const copied = await db.studentAvailability.findFirstOrThrow({
-    where: { semesterId: later.id, studentId: student.id },
-  });
-  assert.equal(copied.confirmed, false);
-  await assert.rejects(
-    caller().semesterOrganization.publish({
-      planId: laterPlan.id,
-      version: moved.plans.find((row) => row.id === laterPlan.id)!.version,
-      placements: [{ id: movedProposal.id, version: movedProposal.version }],
-    }),
-    /Confirme a disponibilidade/u,
-  );
-  assert.equal(
-    await db.enrollment.count({
-      where: { studentId: student.id, class: { semesterId: later.id } },
-    }),
-    0,
-  );
-  await caller().semesterOrganization.confirmAvailability({
-    semesterId: later.id,
-    studentId: student.id,
-    previousId: copied.id,
-    validUntil: "2086-06-30",
-    formats: ["IN_PERSON"],
-    slots,
-  });
-  const published = await caller().semesterOrganization.publish({
-    planId: laterPlan.id,
-    version: moved.plans.find((row) => row.id === laterPlan.id)!.version,
-    placements: [{ id: movedProposal.id, version: movedProposal.version }],
-  });
-  assert.equal(published.count, 1);
-  assert.equal(
-    await db.enrollment.count({
-      where: { studentId: student.id, class: { semesterId: later.id } },
     }),
     1,
   );

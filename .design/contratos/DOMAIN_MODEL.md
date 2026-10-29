@@ -1,5 +1,9 @@
 # Contratos — investigação do modelo de domínio
 
+> Interest rules in this historical design are superseded by
+> [ADR 0027](../../docs/decisions/0027-use-one-prorated-monthly-interest-calculator.md):
+> one monthly rate, prorated daily on a 30-day basis, with no separate daily rate or legacy preview.
+
 Refinamento: [decisões financeiras confirmadas](./FINANCIAL_DECISIONS.md). Pendências e
 entregas futuras: [issue #115](https://github.com/josiasrfreitas/lazuli/issues/115).
 

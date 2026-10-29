@@ -21,7 +21,7 @@ import {
   TableSkeleton,
 } from "@lazuli/ui";
 
-import { EM_DASH } from "~/lib/format";
+import { EM_DASH, firstTwoNames } from "~/lib/format";
 import type { TablePaginationAdapterProps } from "~/lib/pagination";
 import {
   attendanceCellVm,
@@ -145,9 +145,10 @@ export function StudentsTableRow({
       tabIndex={0}
     >
       <TableCell>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Avatar colorKey={row.id} name={row.fullName} size="sm" />
-          <span className="font-medium text-foreground">{row.fullName}</span>
+          <span className="font-medium text-foreground">{firstTwoNames(row.fullName)}</span>
+          {row.isScholarshipStudent && <Badge variant="info">Bolsista</Badge>}
           {row.isMinor ? <Badge variant="neutral">menor</Badge> : null}
         </div>
       </TableCell>

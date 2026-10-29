@@ -14,7 +14,7 @@ export function createPasswordResetEmail(url: string, registering = false): Emai
     .replaceAll(">", "&gt;")
     .replaceAll("'", "&#39;");
   return {
-    text: `${title} da Lazuli\n\n${description}\n${url}\n\nO link vale por 1 hora e pode ser usado uma vez. Após salvar, entre com seu email e a nova senha. Suas sessões anteriores serão encerradas.\n\nSe você não pediu esta alteração, ignore este email. Sua senha continuará a mesma.`,
+    text: `${title} da Lazuli\n\n${description}\n${url}\n\nO link vale por 15 minutos e pode ser usado uma vez. Após salvar, entre com seu email e a nova senha. Suas sessões anteriores serão encerradas.\n\nSe você não pediu esta alteração, ignore este email. Sua senha continuará a mesma.`,
     html: `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -36,7 +36,7 @@ export function createPasswordResetEmail(url: string, registering = false): Emai
               <a href="${link}" style="display:inline-block;padding:16px 28px;border:1px solid #0f1e3d;border-radius:8px;color:#ffffff;font-size:16px;line-height:20px;font-weight:600;text-decoration:none;mso-padding-alt:0">${action}</a>
             </td></tr>
           </table>
-          <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#475569">O link vale por <strong>1 hora</strong> e pode ser usado uma vez. Após salvar, entre com seu email e a nova senha. Suas sessões anteriores serão encerradas.</p>
+          <p style="margin:24px 0 0;font-size:14px;line-height:1.6;color:#475569">O link vale por <strong>15 minutos</strong> e pode ser usado uma vez. Após salvar, entre com seu email e a nova senha. Suas sessões anteriores serão encerradas.</p>
         </td></tr>
         <tr><td style="padding-top:24px;font-size:13px;line-height:1.6;color:#475569">Se você não pediu esta alteração, ignore este email. Sua senha continuará a mesma.</td></tr>
       </table>

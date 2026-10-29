@@ -14,7 +14,7 @@ The academic catalog (product line, track, stage) and the groups that meet on a 
 _Avoid_: Course, group, turma
 
 **Calendar**:
-Semesters and closed days that bound when classes meet. Academic windows and commercial
+Periods and closed days that bound when classes meet. Academic windows and commercial
 installment schedules are separate concepts (decision 0005).
 
 **Enrollment**:
@@ -73,7 +73,7 @@ _Avoid_: Profit margin, markup
 
 **Commercial Term**:
 The agreed start and end of an individual educational commitment. It is distinct from academic
-semesters, class membership dates and payment due dates.
+periods, class membership dates and payment due dates.
 
 **Payment Schedule**:
 The agreed amounts and due dates of a financial commitment. Its timing is independent of the
@@ -97,9 +97,9 @@ An irreversible closure of a contract and its selected active enrollments, prese
 replacing open installments with an agreed settlement of overdue principal, negotiated late charges and cancellation fee; future principal is released.
 
 **Late Payment Interest**:
-Simple interest accrued on an overdue installment for each day and each completed month of
-delay, counted at monthly anniversaries of the due date, under the agreed rates. After partial
-payment, interest applies to the remaining amount; accrued interest is not capitalized.
+Simple interest on overdue tuition at one agreed monthly rate (initially 2%), prorated by
+actual days of delay using a 30-day month. Partial payments cover charges before reducing
+the principal on which further interest accrues; interest is never capitalized.
 _Avoid_: Late fee, cancellation fee
 
 ## Attendance terms
@@ -139,6 +139,25 @@ A planned allocation reserves that portion; confirmed delivery compensates it.
 An attributed record of contact with a student or responsible adult about attendance, including
 its outcome and any planned follow-up.
 
+## Class organization terms
+
+**Period**:
+An academic window with a start and end date, normally six months long. Every class belongs to one Period.
+_Avoid_: Semester (as the entity name)
+
+**Continuity Confirmation**:
+A student's intention to continue in a class for a specific Period. It is independent of contract renewal and of applying the student's class membership.
+
+**Contract Preconfirmation**:
+The default continuity indication when an unterminated contract covers the first three calendar months of the target Period. An explicit intention to change classes or leave takes precedence.
+
+**Contract Renewal**:
+A new contractual agreement extending the student's commercial commitment. Confirming continuity for class planning does not renew the contract.
+_Avoid_: Rematrícula (as a synonym for continuity confirmation)
+
+**Lead Class Interest**:
+A lead's proposed class while awaiting entry. Future entrants remain leads until entry in a current Period.
+
 ## Pedagogical terms
 
 **Pedagogical Appointment**:
@@ -156,18 +175,14 @@ The weekdays and start/end times on which a class normally meets. A class may me
 **Pedagogical Progress**:
 A student's stage placement over time, separate from operational class membership.
 
-**Semester Class Plan**:
-A proposed class for a future semester, with its schedule, format and intended teacher.
+**Class Plan**:
+A proposed class within a Period, with its schedule, format and intended teacher.
 Its students can be published in separate groups as their placements become ready.
 
-**Semester Placement**:
-A student's proposed destination and academic step for the next semester: a new entry,
+**Period Placement**:
+A student's proposed destination and academic step for a target Period: a new entry,
 PPT continuation, stage advancement or repetition. Publication schedules the future membership
 and any related departure without ending the current membership early.
-
-**Student Availability**:
-The student's confirmed weekly time intervals and permitted formats for a particular semester,
-with an explicit validity date. Earlier preferences remain a reference until confirmed again.
 
 **Learning Material**:
 A book or supporting resource associated with a stage. The main book provides lesson references;
@@ -202,7 +217,7 @@ A structured portion of a Teaching Hour belonging to a Program Unit, with a dura
 
 **Stage Plan**:
 The planned dates and learning activities for completing a stage. Regular classes share a
-semester plan; personalized students each have an individual plan and duration limit. The individual
+period plan; personalized students each have an individual plan and duration limit. The individual
 plan follows the same stage attempt across class transfers and pause/return. A new stage starts a
 new plan. Planned activities and the target end date are intentions, separate from actual class
 records, grades and stage completion. Attributed revisions preserve earlier versions.

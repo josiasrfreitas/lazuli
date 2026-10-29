@@ -24,6 +24,7 @@ type CalendarRow = {
 type Material = NonNullable<Order["material"]>;
 type MaterialView = Pick<
   Material,
+  | "scholarshipAgreement"
   | "name"
   | "items"
   | "stageId"
@@ -35,7 +36,7 @@ type MaterialView = Pick<
   | "cardFeeCents"
   | "quotedInstallments"
   | "quotedInstallmentCents"
-> & { cashDiscountPct: number; cardFeePct: number | null };
+> & { scholarshipPct: number; cashDiscountPct: number; cardFeePct: number | null };
 type OrderView = {
   id: string;
   kind: Order["kind"];
@@ -108,6 +109,8 @@ function projectOrder(input: {
 function projectMaterial(material: Material): MaterialView {
   return {
     name: material.name,
+    scholarshipPct: Number(material.scholarshipPct),
+    scholarshipAgreement: material.scholarshipAgreement,
     items: material.items,
     stageId: material.stageId,
     stageCode: material.stageCode,
@@ -134,7 +137,6 @@ function projectInstallment(input: {
     ...entry,
     orderCancelledAt: order.cancelledAt,
     now,
-    interestRatePctMonthly: 0,
   });
   const dueDate = toDateOnlyString(entry.dueDate);
   if (!order.cancelledAt)

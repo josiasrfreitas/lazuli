@@ -22,6 +22,9 @@ export type ContractListRow = {
   startsOn: string;
   endsOn: string;
   monthlyAmountCents: number;
+  baseMonthlyAmountCents: number;
+  scholarshipPct: number;
+  scholarshipAgreement: string | null;
   principalAmountCents: number;
   materialAmountCents: number;
   materials: Array<{
@@ -48,6 +51,9 @@ export const contractSelect = {
   startsOn: true,
   endsOn: true,
   monthlyAmountCents: true,
+  baseMonthlyAmountCents: true,
+  scholarshipPct: true,
+  scholarshipAgreement: true,
   payer: { select: { id: true, name: true } },
   student: {
     select: {
@@ -161,9 +167,12 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
     startsOn: toDateOnlyString(row.startsOn!),
     endsOn: toDateOnlyString(row.endsOn!),
     monthlyAmountCents: row.monthlyAmountCents!,
+    baseMonthlyAmountCents: row.baseMonthlyAmountCents ?? row.monthlyAmountCents!,
+    scholarshipPct: Number(row.scholarshipPct),
+    scholarshipAgreement: row.scholarshipAgreement,
     principalAmountCents:
-      order.principalAmountCents +
-      order.installments.reduce(
+      (order?.principalAmountCents ?? 0) +
+      (order?.installments ?? []).reduce(
         (sum, row) => sum + renegotiatedInstallmentAmount(row) - row.amountCents,
         0,
       ),
@@ -175,10 +184,15 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
       count: entry.installmentCount ?? entry.installments.length,
       installmentCents: uniformInstallmentAmount(entry),
     })),
-    installmentCount: order.installmentCount!,
-    uniformInstallmentAmountCents: uniformInstallmentAmount(order),
-    firstDueDate: toDateOnlyString(order.firstDueDate!),
-    ...deriveContractFinancialSummary({ ...order, now, installmentCount: order.installmentCount! }),
+    installmentCount: order?.installmentCount ?? 0,
+    uniformInstallmentAmountCents: order ? uniformInstallmentAmount(order) : null,
+    firstDueDate: toDateOnlyString(order?.firstDueDate ?? row.startsOn!),
+    ...deriveContractFinancialSummary({
+      cancelledAt: order?.cancelledAt ?? null,
+      installments: order?.installments ?? [],
+      now,
+      installmentCount: order?.installmentCount ?? 0,
+    }),
     ...(row.terminatedAt ? { status: "CANCELADO" as const } : {}),
     serviceStatus: row.terminatedAt
       ? "ENDED"
@@ -190,8 +204,19 @@ export function toRow(row: SelectedContract, now = new Date()): ContractListRow 
   };
 }
 
-function requiredTuitionOrder(row: SelectedContract): SelectedContract["orders"][number] {
+function requiredTuitionOrder(
+  row: SelectedContract,
+): SelectedContract["orders"][number] | undefined {
   const order = row.orders.find((entry) => entry.kind === "TUITION");
+  if (
+    !order &&
+    Number(row.scholarshipPct) === 100 &&
+    row.monthlyAmountCents === 0 &&
+    row.agreedOn &&
+    row.startsOn &&
+    row.endsOn
+  )
+    return undefined;
   if (
     !order ||
     !row.agreedOn ||

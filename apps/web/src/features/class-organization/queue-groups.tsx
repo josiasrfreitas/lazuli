@@ -79,7 +79,7 @@ function QueueGroupHeader({
   );
 }
 
-function QueueStudent({
+export function QueueStudent({
   row,
   board,
   ended,
@@ -151,7 +151,7 @@ function LeavingStudent({
   );
 }
 
-function QueueLead({
+export function QueueLead({
   lead,
   board,
   onSelect,

@@ -6,7 +6,7 @@ import { formatDateOnlyBR } from "~/lib/format";
 import { maskDateBR, parseDateBR } from "~/lib/masks";
 import { TaskDialog, useValidation } from "~/features/shared/task-form";
 import { TextControl } from "~/features/classes/form-controls";
-import { dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
+import { dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
 import type { OrganizationDialogProps as Props } from "./dialogs";
 import styles from "./organization.module.css";
 
@@ -39,7 +39,7 @@ export function PeriodForm(props: Props): ReactJSX.Element {
       compactHeader
       actionSize="sm"
       title="Período letivo"
-      description="As datas delimitam a vigência das alocações deste semestre."
+      description="As datas delimitam a vigência das alocações deste período."
       formId="organization-period"
       firstField="period-name"
       submitLabel="Salvar período"

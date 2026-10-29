@@ -31,7 +31,6 @@ async function fixture(tx: TransactionClient): Promise<{
     tuitionCeilingCents: 30_000,
     maximumDiscountPct: 20,
     punctualityDiscountPct: 0,
-    interestRatePctDaily: 0,
     interestRatePctMonthly: 0,
     cancellationFeePct: 20,
     materialPriceCents: 0,

@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { useQueryState } from "nuqs";
 import { ArrowLeft, ArrowRight, CalendarDays } from "lucide-react";
 import agenda from "~/features/appointments/student-carousel.module.css";
 import { Button, InlineSkeleton } from "@lazuli/ui";
@@ -69,6 +70,8 @@ export function FollowUpLoading(): ReactElement {
 }
 
 export function PedagogyLoading(): ReactElement {
+  const [requested] = useQueryState("definirTurma");
+  if (requested === "1") return <FirstClassLoading />;
   return (
     <div className="grid min-w-0 gap-6">
       <EnrollmentLoading />
@@ -151,5 +154,32 @@ function AppointmentsRailLoading(): ReactElement {
         </li>
       ))}
     </ul>
+  );
+}
+
+function FirstClassLoading(): ReactElement {
+  return (
+    <div
+      className="flex min-h-full min-w-0 flex-col"
+      role="status"
+      aria-busy="true"
+      aria-label="Carregando dados pedagógicos"
+    >
+      <span className="sr-only">Carregando dados pedagógicos do aluno…</span>
+      <div
+        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16"
+        aria-hidden="true"
+      >
+        <InlineSkeleton className="mb-2 size-12" />
+        <InlineSkeleton className="h-7 w-80 max-w-full" />
+        <InlineSkeleton className="h-4 w-96 max-w-full" />
+        <InlineSkeleton className="h-4 w-72 max-w-full" />
+        <InlineSkeleton className="h-10 w-48" />
+      </div>
+      <div className="flex items-center justify-center gap-3 py-6" aria-hidden="true">
+        <InlineSkeleton className="size-5" />
+        <InlineSkeleton className="h-4 w-56 max-w-full" />
+      </div>
+    </div>
   );
 }

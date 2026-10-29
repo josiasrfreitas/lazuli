@@ -1,5 +1,5 @@
 import type { PublishSemesterInput, z, withdrawSemesterSchema } from "@lazuli/validators";
-import type { Prisma, Semester } from "@lazuli/db";
+import type { Prisma, Period } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { createClass } from "../classes/data.js";
 import {
@@ -26,7 +26,7 @@ import {
   dateOnly,
   type OrganizationContext,
 } from "./data.js";
-import { readSemester, type PlacementRow, type CurrentAvailability } from "./queries.js";
+import { readSemester, type PlacementRow } from "./queries.js";
 
 type Plan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
 type Lead = Prisma.AdmissionCandidateGetPayload<Prisma.AdmissionCandidateDefaultArgs>;
@@ -55,11 +55,9 @@ export async function publishPlacements(
     semester,
   });
   for (const row of selected) {
-    if (!row.stageId || !row.availability)
-      throw badRequest("Confirme o estágio e a disponibilidade.");
+    if (!row.stageId) throw badRequest("Confirme o estágio.");
     await publishOne(context, {
       row,
-      availability: row.availability,
       classId,
       entryDate: row.effectiveDate ? new Date(row.effectiveDate) : semester.startDate,
     });
@@ -77,7 +75,7 @@ export async function publishPlacements(
 
 async function lockPublicationTargets(
   context: OrganizationContext,
-  { plan, semester, input }: { plan: Plan; semester: Semester; input: PublishSemesterInput },
+  { plan, semester, input }: { plan: Plan; semester: Period; input: PublishSemesterInput },
 ): Promise<Lead[]> {
   const targets = await context.database.semesterPlacement.findMany({
     where: {
@@ -113,7 +111,7 @@ function selectPublication(
   }: {
     board: Awaited<ReturnType<typeof readSemester>>;
     plan: Plan;
-    semester: Semester;
+    semester: Period;
     input: PublishSemesterInput;
   },
 ): { current: CurrentPlan; selected: BoardPlacement[] } {
@@ -137,7 +135,7 @@ function selectedPlacement(
   }: {
     board: Awaited<ReturnType<typeof readSemester>>;
     plan: Plan;
-    semester: Semester;
+    semester: Period;
     item: PublishSemesterInput["placements"][number];
   },
 ): BoardPlacement {
@@ -187,7 +185,7 @@ async function assertPublicationTeacher(
     current,
     selected,
     semester,
-  }: { current: CurrentPlan; selected: BoardPlacement[]; semester: Semester },
+  }: { current: CurrentPlan; selected: BoardPlacement[]; semester: Period },
 ): Promise<void> {
   if (!current.teacherId) throw badRequest(TEACHER_REQUIRED);
   for (const row of selected)
@@ -208,7 +206,7 @@ async function assertPublicationTeacher(
 
 async function publicationClass(
   context: OrganizationContext,
-  { current, plan, semester }: { current: CurrentPlan; plan: Plan; semester: Semester },
+  { current, plan, semester }: { current: CurrentPlan; plan: Plan; semester: Period },
 ): Promise<{ classId: string; generationRequestId: string | null }> {
   if (!current.teacherId) throw badRequest(TEACHER_REQUIRED);
   const classRow = current.classId
@@ -244,12 +242,11 @@ async function publishOne(
   context: OrganizationContext,
   options: {
     row: PlacementRow;
-    availability: CurrentAvailability;
     classId: string;
     entryDate: Date;
   },
 ): Promise<void> {
-  const { row, availability, classId, entryDate } = options;
+  const { row, classId, entryDate } = options;
 
   const immediate = dateOnly(entryDate) <= saoPauloDateOnly(context.now);
   if (row.sourceClassId === classId && row.mode === "CONTINUE") {
@@ -265,7 +262,6 @@ async function publishOne(
   });
   await markPlacementPublished(context, {
     row,
-    availability,
     enrollmentId,
     entryActionId,
     sourceExitActionId,
@@ -286,13 +282,11 @@ async function markPlacementPublished(
   context: OrganizationContext,
   {
     row,
-    availability,
     enrollmentId,
     entryActionId,
     sourceExitActionId,
   }: {
     row: PlacementRow;
-    availability: CurrentAvailability;
     enrollmentId: string | null;
     entryActionId: string | null;
     sourceExitActionId: string | null;
@@ -308,7 +302,6 @@ async function markPlacementPublished(
       continuityReason: null,
       entryActionId,
       sourceExitActionId,
-      availabilityId: availability.id,
       version: { increment: 1 },
       publishedEvidence: {
         sourceProgressId: row.sourceProgressId,
@@ -444,7 +437,6 @@ export async function withdrawPlacement(
       enrollmentId: null,
       entryActionId: null,
       sourceExitActionId: null,
-      availabilityId: null,
     },
   });
   await recordWithdrawalActivity(context, { studentId: current.studentId, reason: input.reason });

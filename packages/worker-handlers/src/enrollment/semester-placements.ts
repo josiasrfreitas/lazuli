@@ -33,11 +33,7 @@ export async function reconcileDueSemesterPlacements(
 }
 
 async function placementBlockers(database: TransactionClient, row: Placement): Promise<string[]> {
-  const availability = await database.studentAvailability.findFirst({
-    where: { studentId: row.studentId, semesterId: row.semesterId },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-  });
-  const blockers = semesterPlacementBlockers(eligibility(row, availability));
+  const blockers = semesterPlacementBlockers(eligibility(row));
   if (row.sourceEnrollmentId && row.sourceExitAction?.status !== "SCHEDULED")
     blockers.push("A saída de origem foi alterada");
   if (continuationEvidenceChanged(row))

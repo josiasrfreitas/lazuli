@@ -1,11 +1,8 @@
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { AlertCircle, ArrowUpRight, CheckCircle2, FileText } from "lucide-react";
 import {
   Button,
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
   Dialog,
   DialogBackdrop,
   DialogBody,
@@ -21,13 +18,15 @@ import { formatBRLFromCents as money, formatDateOnlyBR } from "~/lib/format";
 import { ProfileError } from "./profile-shared";
 import type { StudentFinanceState } from "./finance-logic";
 import type { StudentProfile } from "./logic";
+import { StudentPayments } from "./student-payments";
 import { FinanceContractTerms } from "./finance-contract-terms";
 import { FinanceHistoryDialog } from "./finance-history-dialog";
 import { ContractTerminationNotice } from "./contract-termination-notice";
 import { FinanceOverviewLoading } from "./finance-overview-loading";
+import { FinanceContractDates } from "./finance-contract-dates";
+import { StudentMaterials } from "./student-materials";
 import styles from "./finance-overview.module.css";
 
-const PERCENT_SCALE = 100;
 const DEBT_TEXT = "text-destructive";
 const STANDARD_TEXT = "text-heading";
 
@@ -60,15 +59,18 @@ export function FinanceOverview({
           hasDebt={summary.data.overdueCount > 0}
         />
         <div className="flex flex-wrap items-center gap-2">
-          <FinanceHistoryDialog
+          <StudentMaterials
             studentId={profile.id}
             studentName={profile.contact.fullName}
-            payments
+            summary={summary.data}
           />
           <FinanceDetails summary={summary.data} profile={profile} />
         </div>
       </div>
-      <FinanceEssentials summary={summary.data} />
+      <div className={styles.overviewFacts}>
+        <FinanceEssentials summary={summary.data} />
+        <FinanceContractDates summary={summary.data} />
+      </div>
     </section>
   );
 }
@@ -85,8 +87,8 @@ function FinanceEssentials({
         <dd>{money(summary.overdueCents)}</dd>
         <span>
           {summary.overdueCount > 0
-            ? `${summary.overdueCount} ${summary.overdueCount === 1 ? "parcela em atraso" : "parcelas em atraso"}`
-            : "Nenhuma parcela em atraso"}
+            ? `${summary.overdueCount} ${summary.overdueCount === 1 ? "cobrança em atraso" : "cobranças em atraso"}`
+            : "Nenhuma cobrança em atraso"}
         </span>
       </div>
       <div>
@@ -99,7 +101,7 @@ function FinanceEssentials({
       <div>
         <dt>Saldo a receber</dt>
         <dd>{money(summary.outstandingCents)}</dd>
-        <span>Inclui parcelas vencidas e a vencer</span>
+        <span>Inclui cobranças vencidas e a vencer</span>
       </div>
     </dl>
   );
@@ -112,85 +114,72 @@ function FinanceDetails({
   summary: NonNullable<StudentFinanceState["summary"]["data"]>;
   profile: StudentProfile;
 }): ReactElement {
+  const [open, setOpen] = useState(false);
+  const [materialPending, setMaterialPending] = useState(false);
+  const [proofPending, setProofPending] = useState(false);
+  const pending = materialPending || proofPending;
+  const hasProofs = summary.hasPaymentProofs;
   return (
-    <Dialog>
+    <Dialog
+      open={open}
+      onOpenChange={(next, event) => {
+        if (!next && pending) {
+          event.cancel();
+          return;
+        }
+        setOpen(next);
+      }}
+    >
       <DialogTrigger render={<Button variant="secondary" size="sm" />}>
         <FileText aria-hidden="true" /> Contrato e detalhes
       </DialogTrigger>
       <DialogPortal>
-        <DialogBackdrop />
-        <DialogContent className="md:max-w-4xl" data-student-dialog-motion>
+        <DialogBackdrop className={styles.detailsBackdrop} />
+        <DialogContent
+          className={`${styles.detailsDialog} ${hasProofs ? "md:w-[calc(100vw-3rem)] md:max-w-6xl" : "md:w-[calc(100vw-3rem)] md:max-w-3xl"}`}
+          showCloseButton={!pending}
+        >
           <DialogHeader>
-            <DialogTitle>Detalhes financeiros</DialogTitle>
-            <DialogDescription>
-              {profile.contact.fullName} · Contrato e pagamentos
-            </DialogDescription>
+            <DialogTitle>Contrato e detalhes</DialogTitle>
+            <DialogDescription>{profile.contact.fullName}</DialogDescription>
           </DialogHeader>
           <DialogBody>
-            <div className={styles.details}>
-              <FinanceContractTerms summary={summary} />
-              <div className="grid gap-6 lg:grid-cols-5">
-                <FinanceBalance
-                  summary={summary}
-                  contractTerminated={Boolean(
-                    summary.latestTermination && summary.contracts.length === 0,
-                  )}
-                />
-                <PaymentBehavior
-                  summary={summary}
+            <div className={styles.detailsLayout} data-with-proofs={hasProofs || undefined}>
+              <div className={styles.details}>
+                <FinanceContractTerms
                   studentId={profile.id}
-                  studentName={profile.contact.fullName}
+                  summary={summary}
+                  onPendingChange={setMaterialPending}
                 />
+                <details className={styles.paymentHistory}>
+                  <summary>Histórico de pagamentos</summary>
+                  <PaymentBehavior
+                    summary={summary}
+                    studentId={profile.id}
+                    studentName={profile.contact.fullName}
+                  />
+                </details>
               </div>
+              {hasProofs && (
+                <aside className={styles.proofs} aria-label="Comprovantes">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-heading">Comprovantes</h3>
+                    <span className="text-caption text-muted-foreground">
+                      Mais recentes primeiro
+                    </span>
+                  </div>
+                  <StudentPayments
+                    studentId={profile.id}
+                    withProofs
+                    onPendingChange={setProofPending}
+                  />
+                </aside>
+              )}
             </div>
           </DialogBody>
         </DialogContent>
       </DialogPortal>
     </Dialog>
-  );
-}
-
-function FinanceBalance({
-  summary,
-  contractTerminated,
-}: {
-  summary: StudentFinanceSummary;
-  contractTerminated: boolean;
-}): ReactElement {
-  const hasDebt = summary.debtState !== "NO_OVERDUE";
-  return (
-    <div className="grid content-start gap-4 lg:col-span-3">
-      <FinanceBalanceHeading
-        summary={summary}
-        contractTerminated={contractTerminated}
-        hasDebt={hasDebt}
-      />
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div>
-          <dt className={`text-caption ${hasDebt ? DEBT_TEXT : "text-muted-foreground"}`}>
-            Total vencido
-          </dt>
-          <dd
-            className={`mt-1 font-numeric text-3xl font-semibold tracking-tight tabular-nums ${hasDebt ? DEBT_TEXT : STANDARD_TEXT}`}
-          >
-            {money(summary.overdueCents)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-caption text-info">Já recebido</dt>
-          <dd className="mt-1 font-numeric text-3xl font-semibold tracking-tight tabular-nums text-info">
-            {money(summary.receivedCents)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-caption text-muted-foreground">A vencer</dt>
-          <dd className="mt-1 font-numeric text-3xl font-semibold tracking-tight tabular-nums text-heading">
-            {money(summary.outstandingCents - summary.overdueCents)}
-          </dd>
-        </div>
-      </dl>
-      <FinanceDistribution summary={summary} />
-    </div>
   );
 }
 
@@ -233,7 +222,7 @@ function FinanceBalanceIcon({
 
 function financeBalanceDescription(summary: StudentFinanceSummary, hasDebt: boolean): string {
   if (hasDebt)
-    return `${summary.overdueCount} ${summary.overdueCount === 1 ? "parcela vencida" : "parcelas vencidas"} · maior atraso de ${summary.oldestOverdueDays} dias`;
+    return `${summary.overdueCount} ${summary.overdueCount === 1 ? "cobrança vencida" : "cobranças vencidas"} · maior atraso de ${summary.oldestOverdueDays} dias`;
   if (summary.nextDueDate)
     return `Próximo vencimento em ${formatDateOnlyBR(summary.nextDueDate)} · ${money(summary.nextDueCents)}`;
   return "Novas cobranças e recebimentos aparecerão aqui.";
@@ -247,52 +236,6 @@ function financeBalanceLabel(summary: StudentFinanceSummary, contractTerminated:
   return contractTerminated ? "Saldo pendente após rescisão" : "Em dia";
 }
 
-function FinanceDistribution({ summary }: { summary: StudentFinanceSummary }): ReactElement {
-  const total = summary.totalCents || 1;
-  const paid = (summary.receivedCents / total) * PERCENT_SCALE;
-  const overdue = (summary.overdueCents / total) * PERCENT_SCALE;
-  const upcoming = summary.outstandingCents - summary.overdueCents;
-  const description = `Pago: ${money(summary.receivedCents)}. Em atraso: ${money(summary.overdueCents)}. A vencer: ${money(upcoming)}.`;
-  return (
-    <div className="grid gap-2">
-      <Tooltip>
-        <TooltipTrigger
-          render={<div />}
-          tabIndex={0}
-          aria-label={description}
-          className="flex min-h-6 items-center rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          <svg
-            className="h-3 w-full overflow-hidden rounded-sm"
-            viewBox="0 0 100 12"
-            preserveAspectRatio="none"
-            aria-hidden="true"
-          >
-            <rect width="100" height="12" className="fill-border" />
-            <rect width={paid} height="12" className="fill-info" />
-            <rect x={paid} width={overdue} height="12" className="fill-destructive" />
-          </svg>
-        </TooltipTrigger>
-        <TooltipContent>
-          <ul className="grid gap-1">
-            <li>Pago: {money(summary.receivedCents)}</li>
-            <li>Em atraso: {money(summary.overdueCents)}</li>
-            <li>A vencer: {money(upcoming)}</li>
-          </ul>
-        </TooltipContent>
-      </Tooltip>
-      <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-caption text-muted-foreground">
-        <span>
-          {summary.totalCents > 0
-            ? `Total de ${money(summary.totalCents)}`
-            : "Sem valores a acompanhar"}
-        </span>
-        <span>Inclui pagamentos parciais</span>
-      </div>
-    </div>
-  );
-}
-
 function PaymentBehavior({
   summary,
   studentId,
@@ -304,11 +247,11 @@ function PaymentBehavior({
 }): ReactElement {
   const history = summary.history;
   return (
-    <div className="grid content-start gap-3 border-t border-border pt-4 lg:col-span-2 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+    <div className="grid content-start gap-3 border-t border-border pt-4">
       <div>
         <div className="flex items-start justify-between gap-3">
           <h3
-            className={`font-display text-2xl font-medium ${history.paymentState === "RECURRING_DELAY" ? "text-warning" : "text-heading"}`}
+            className={`text-sm font-semibold ${history.paymentState === "RECURRING_DELAY" ? "text-warning" : "text-heading"}`}
           >
             {behaviorLabel(summary)}
           </h3>

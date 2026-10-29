@@ -4,7 +4,6 @@ import {
   assertVersion,
   dateOnly,
   lockSemester,
-  readSlots,
   recordPlacementRevision,
   type OrganizationContext,
 } from "./data.js";
@@ -121,7 +120,6 @@ async function sourceForMove(
         entryActionId: null,
         sourceExitActionId: null,
         enrollmentId: null,
-        availabilityId: null,
       },
     });
   }
@@ -133,7 +131,7 @@ async function moveToSemester(
   input: z.infer<typeof moveSchema>,
 ): Promise<{ count: number }> {
   const semesterId = input.targetSemesterId!;
-  const targetSemester = await context.database.semester.findUniqueOrThrow({
+  const targetSemester = await context.database.period.findUniqueOrThrow({
     where: { id: semesterId },
   });
   for (const selected of input.selections)
@@ -180,7 +178,6 @@ async function moveAcrossSemester(
     return;
   }
   const current = await currentSourceProgress(context, source);
-  await copyAvailability(context, { source, input, semesterId, targetSemesterEnd });
   const sourceProgressId = current?.id ?? source.sourceProgressId;
   await savePlacement(context, {
     semesterId,
@@ -203,44 +200,6 @@ async function currentSourceProgress(
   return context.database.pedagogicalProgress.findFirst({
     where: { enrollmentId: source.enrollmentId, deletedAt: null, endDate: null },
   });
-}
-
-async function copyAvailability(
-  context: OrganizationContext,
-  {
-    source,
-    input,
-    semesterId,
-    targetSemesterEnd,
-  }: {
-    source: Placement;
-    input: z.infer<typeof moveSchema>;
-    semesterId: string;
-    targetSemesterEnd: Date;
-  },
-): Promise<void> {
-  const availability = await context.database.studentAvailability.findFirst({
-    where: { semesterId, studentId: source.studentId, deletedAt: null },
-  });
-  if (!availability) {
-    const previous = await context.database.studentAvailability.findFirst({
-      where: { semesterId: input.semesterId, studentId: source.studentId, deletedAt: null },
-      orderBy: { createdAt: "desc" },
-    });
-    if (previous)
-      await context.database.studentAvailability.create({
-        data: {
-          semesterId,
-          studentId: source.studentId,
-          confirmed: false,
-          formats: previous.formats,
-          slots: readSlots(previous.slots),
-          validUntil: targetSemesterEnd,
-          notes: previous.notes,
-          recordedById: context.staffUser.id,
-        },
-      });
-  }
 }
 
 export async function declinePlacements(
@@ -329,7 +288,7 @@ export async function updatePeriod(
   const startDate = new Date(input.startDate),
     endDate = new Date(input.endDate);
   await assertPeriodChange(context, { input, startDate, endDate });
-  await context.database.semester.update({
+  await context.database.period.update({
     where: { id: input.semesterId },
     data: { name: input.name, startDate, endDate },
   });
@@ -369,7 +328,7 @@ async function assertPeriodChange(
     dateOnly(previous.endDate) !== input.previousEnd
   )
     throw badRequest("O período mudou. Atualize a página antes de salvar.");
-  const overlap = await context.database.semester.findFirst({
+  const overlap = await context.database.period.findFirst({
     where: {
       id: { not: input.semesterId },
       deletedAt: null,

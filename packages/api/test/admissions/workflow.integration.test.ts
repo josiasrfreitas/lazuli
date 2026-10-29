@@ -86,8 +86,6 @@ async function scenario(): Promise<{
       stageId: catalog.activeStageId,
       scheduleType: "REGULAR",
       format: "IN_PERSON",
-      availableUntil: "2071-06-30",
-      availability: [{ weekday: "MONDAY", startTime: "08:00", endTime: "20:00" }],
     },
   });
   return { id, classId: group.id, slotId: slot.id, stageId: catalog.activeStageId };

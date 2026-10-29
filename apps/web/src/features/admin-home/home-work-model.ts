@@ -2,6 +2,8 @@ import type { HomeData, HomeGroup, HomeItem } from "./home-parts";
 
 // Independent queues. The same student may need a class and a contract.
 const PEDAGOGICAL_KINDS: HomeGroup["kind"][] = [
+  "health",
+  "occurrences",
   "coverage",
   "semester",
   "lessons",
@@ -11,7 +13,7 @@ const PEDAGOGICAL_KINDS: HomeGroup["kind"][] = [
   "allocation",
 ];
 export const WORKSTREAMS = [
-  { title: "Conduzir as aulas", kinds: ["coverage", "lessons", "appointments"] },
+  { title: "Conduzir as aulas", kinds: ["coverage", "lessons", "appointments", "occurrences"] },
   { title: "Preparar a entrada em turma", kinds: ["placement", "students", "allocation"] },
   { title: "Organizar a continuidade", kinds: ["semester"] },
 ] as const;
@@ -19,10 +21,20 @@ export const WORK_COPY: Record<
   HomeGroup["kind"],
   { action: string; outcome: string; scope: string }
 > = {
+  health: {
+    action: "Ver alunos",
+    outcome: "Acompanhe o score e a recuperação do aluno.",
+    scope: "Score abaixo de 70 ou em observação por sete dias",
+  },
+  occurrences: {
+    action: "Acompanhar ocorrências",
+    outcome: "Dê andamento às ocorrências e registre a conclusão.",
+    scope: "Ocorrências abertas ou em acompanhamento",
+  },
   coverage: {
-    action: "Definir professor",
-    outcome: "Defina quem vai conduzir o encontro ou organize uma substituição.",
-    scope: "Aulas nos próximos 7 dias",
+    action: "Ver turmas",
+    outcome: "Defina outro professor para cada turma afetada pela saída.",
+    scope: "Saídas de professores com turmas a reatribuir",
   },
   lessons: {
     action: "Conferir registros de aula",
@@ -41,12 +53,12 @@ export const WORK_COPY: Record<
   },
   students: {
     action: "Definir turmas",
-    outcome: "Confira o estágio e a disponibilidade para cada aluno seguir os estudos.",
-    scope: "Alunos ativos sem matrícula atual ou futura",
+    outcome: "Confira o estágio e a turma para cada aluno seguir os estudos.",
+    scope: "Alunos novos sem primeira turma definida",
   },
   allocation: {
     action: "Encontrar uma turma",
-    outcome: "Confira o estágio e a disponibilidade de quem aguarda uma turma.",
+    outcome: "Confira o estágio e a turma de quem aguarda uma turma.",
     scope: "Interessados com pedido de turma pendente",
   },
   semester: {
@@ -106,12 +118,6 @@ const schoolDate = new Intl.DateTimeFormat("en-CA", {
   month: "2-digit",
   day: "2-digit",
 });
-const schoolTime = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "America/Sao_Paulo",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-});
 const shortDate = new Intl.DateTimeFormat("pt-BR", {
   day: "numeric",
   month: "short",
@@ -123,6 +129,13 @@ export function formatWorkDate(date: string): string {
 function daysBetween(from: string, through: string): number {
   return Math.round((Date.parse(through) - Date.parse(from)) / DAY_MS);
 }
+export function departureDayLabel(today: string, departure: string): string {
+  const days = daysBetween(today, departure);
+  if (days === 0) return "Hoje";
+  if (days === 1) return "Daqui a 1 dia";
+  if (days > 1) return `Daqui a ${days} dias`;
+  return `Há ${-days} ${days === -1 ? "dia" : "dias"}`;
+}
 function relativeDay(offset: number, date: string): string {
   if (offset === 0) return "hoje";
   if (offset === 1) return "amanhã";
@@ -130,7 +143,7 @@ function relativeDay(offset: number, date: string): string {
   return formatWorkDate(date);
 }
 const HEADLINES: Partial<Record<HomeGroup["kind"], string>> = {
-  coverage: "Defina quem conduz a próxima aula",
+  coverage: "Turma sem professor",
   lessons: "Acompanhe os registros de aula",
   appointments: "Conclua os atendimentos realizados",
   placement: "Defina o estágio de entrada",
@@ -140,51 +153,19 @@ const HEADLINES: Partial<Record<HomeGroup["kind"], string>> = {
 };
 
 type PriorityContext = { base: WorkPriority; snapshot: Snapshot };
-type PriorityStatus = Pick<WorkPriority, "rank" | "state" | "tone" | "label">;
-function currentOrPastCoverageStatus(days: number, label: string): PriorityStatus {
-  return {
-    rank: PRIORITY.today,
-    state: days === 0 ? "today" : "soon",
-    tone: "warning",
-    label: days === 0 ? "Antes da aula de hoje" : label,
-  };
-}
-function coveragePriority(
-  timing: Extract<NonNullable<HomeItem["timing"]>, { kind: "meeting" }>,
+function departurePriority(
+  timing: Extract<NonNullable<HomeItem["timing"]>, { kind: "departure" }>,
   { base, snapshot }: PriorityContext,
 ): WorkPriority {
   const days = daysBetween(snapshot.today, timing.date);
-  const time = schoolTime.format(new Date(snapshot.updatedAt));
-  const ongoing = days === 0 && timing.startTime <= time && time < timing.endTime;
-  let status: PriorityStatus = {
-    rank: PRIORITY.scheduled,
-    state: "scheduled",
-    tone: "neutral",
-    label: `Aula ${relativeDay(days, timing.date)}`,
-  };
-  if (ongoing) {
-    status = {
-      rank: PRIORITY.ongoing,
-      state: "ongoing",
-      tone: "destructive",
-      label: "Aula em andamento",
-    };
-  } else if (days <= 0) {
-    status = currentOrPastCoverageStatus(days, status.label);
-  } else if (days <= SOON_DAYS) {
-    status = {
-      rank: PRIORITY.soon,
-      state: "soon",
-      tone: "warning",
-      label: days === 1 ? "Aula amanhã" : status.label,
-    };
-  }
   return {
     ...base,
     scheduledFor: timing.date,
-    ...status,
-    headline: ongoing ? "A aula começou sem professor definido" : base.headline,
-    evidence: `${ongoing ? "Início" : "Próxima aula"} ${relativeDay(days, timing.date)}, às ${timing.startTime}`,
+    rank: days <= 0 ? PRIORITY.today : days <= SOON_DAYS ? PRIORITY.soon : PRIORITY.scheduled,
+    state: days < 0 ? "date-passed" : days === 0 ? "today" : "scheduled",
+    tone: days < 0 ? "destructive" : "warning",
+    label: departureDayLabel(snapshot.today, timing.date),
+    evidence: `Saída de professor: ${departureDayLabel(snapshot.today, timing.date).toLowerCase()}`,
   };
 }
 function semesterPriority(
@@ -272,8 +253,8 @@ function isRecordGroup(kind: HomeGroup["kind"]): boolean {
 }
 function timedPriority(timing: HomeItem["timing"], context: PriorityContext): WorkPriority | null {
   switch (timing?.kind) {
-    case "meeting": {
-      return context.base.group.kind === "coverage" ? coveragePriority(timing, context) : null;
+    case "departure": {
+      return context.base.group.kind === "coverage" ? departurePriority(timing, context) : null;
     }
     case "entry": {
       return context.base.group.kind === "semester" ? semesterPriority(timing, context) : null;
@@ -337,7 +318,7 @@ export function caseTiming(item: HomeItem, today: string): string | null {
   if (!timing) return null;
   if (timing.kind === "waiting")
     return `Desde ${formatWorkDate(schoolDate.format(new Date(timing.since)))}`;
+  if (timing.kind === "departure") return departureDayLabel(today, timing.date);
   const day = relativeDay(daysBetween(today, timing.date), timing.date);
-  if (timing.kind === "meeting") return `${day} · ${timing.startTime}–${timing.endTime}`;
   return timing.kind === "entry" ? `Entrada ${day}` : `Encontro em ${formatWorkDate(timing.date)}`;
 }

@@ -2,8 +2,8 @@ import type { JSX as ReactJSX } from "react";
 import { ArrowLeft, CalendarRange, Copy, Plus, X, MoreHorizontal, Search } from "lucide-react";
 import { Button, Input, InlineSkeleton, Popover, PopoverTrigger, PopoverContent } from "@lazuli/ui";
 import { SelectControl } from "~/features/classes/form-controls";
-import { dateOnly } from "~/features/semester-organization/shared";
-import { SemesterForm } from "~/features/semester-organization/plan-form";
+import { dateOnly } from "~/features/class-organization/shared";
+import { SemesterForm } from "~/features/class-organization/plan-form";
 import { OrganizationAgenda } from "./agenda";
 import { OrganizationReview } from "./review";
 import { OrganizationCalendar } from "./calendar";
@@ -32,7 +32,7 @@ export function OrganizationPageView({
 function PageHeader({ model }: { model: OrganizationPageModel }): ReactJSX.Element {
   return (
     <header className={styles.header}>
-      <h1>Organização de turmas</h1>
+      <h1>Organização</h1>
       <HeaderPeriod model={model} />
       <HeaderAgendaSearch model={model} />
       <HeaderActions model={model} />
@@ -250,21 +250,17 @@ function PageBody({ model }: { model: OrganizationPageModel }): ReactJSX.Element
       <div className={styles.empty}>
         <h2>Comece pelo período letivo</h2>
         <p>
-          Defina as datas reais do semestre. A estrutura de turmas poderá ser reaproveitada e
+          Defina as datas reais do período. A estrutura de turmas poderá ser reaproveitada e
           ajustada ao longo do tempo.
         </p>
         <Button size="sm" onClick={() => setAction({ kind: "newSemester" })}>
-          Criar semestre
+          Criar período
         </Button>
       </div>
     );
   if (!board) return null;
-  return (
-    <>
-      <EmptyBoard model={model} />
-      <BoardTab model={model} />
-    </>
-  );
+  if (board.plans.length === 0 && model.tab === "agenda") return <EmptyBoard model={model} />;
+  return <BoardTab model={model} />;
 }
 
 function EmptyBoard({ model }: { model: OrganizationPageModel }): ReactJSX.Element | null {
@@ -283,9 +279,7 @@ function EmptyBoard({ model }: { model: OrganizationPageModel }): ReactJSX.Eleme
           disabled={prepare.isPending || ended}
           onClick={() => prepare.mutate({ semesterId })}
         >
-          {prepare.isPending
-            ? "Preparando turmas e alunos…"
-            : "Usar turmas deste semestre como base"}
+          {prepare.isPending ? "Preparando turmas e alunos…" : "Usar turmas existentes como base"}
         </Button>
         <Button
           size="sm"

@@ -1,3 +1,4 @@
+import { PENDING_PAGE_SIZE as PAGE_SIZE } from "./home-pending-pagination";
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { ChevronDown, CalendarCheck, ArrowRight } from "lucide-react";
@@ -7,9 +8,9 @@ import type { HomeGroup } from "./home-parts";
 import { PendingDisclosure } from "./home-pending-disclosure";
 import styles from "./home-pending.module.css";
 
-const PAGE_SIZE = 2;
 const REFRESH_MS = 60_000;
 const DAY_MS = 86_400_000;
+const HIGH_PRIORITY_DAYS = 7;
 
 export function PendingAppointments({
   group,
@@ -69,9 +70,12 @@ function AppointmentCase({
   today: string;
 }): ReactElement | null {
   if (item.action.kind !== "appointment" || !item.action.studentId) return null;
-  const days = item.date
-    ? Math.max(0, Math.round((Date.parse(today) - Date.parse(item.date)) / DAY_MS))
-    : null;
+  const days =
+    item.ageDays ??
+    (item.date
+      ? Math.max(0, Math.round((Date.parse(today) - Date.parse(item.date)) / DAY_MS))
+      : null);
+  const high = days !== null && days >= HIGH_PRIORITY_DAYS;
   return (
     <li>
       <Link
@@ -86,7 +90,8 @@ function AppointmentCase({
           </span>
         )}
         {days !== null && (
-          <span className={styles.preview}>
+          <span className={high ? styles.highPriority : styles.preview}>
+            {high ? "Muito atrasado · " : ""}
             {days === 0 ? "Hoje" : `Há ${days} ${days === 1 ? "dia" : "dias"}`}
           </span>
         )}

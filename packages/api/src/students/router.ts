@@ -230,7 +230,9 @@ export const studentsRouter = router({
     ),
   byId: adminProcedure
     .input(studentIdInputSchema)
-    .query(({ ctx, input }) => readStudentProfile({ database: ctx.db, id: input.id })),
+    .query(({ ctx, input }) =>
+      readStudentProfile({ database: ctx.db, id: input.id, now: ctx.now ?? new Date() }),
+    ),
   search: adminProcedure
     .input(studentSearchInputSchema)
     .query(({ ctx, input }) => searchStudents({ database: ctx.db, values: input })),

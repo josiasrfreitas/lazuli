@@ -139,6 +139,7 @@ export async function buildRows(input: BuildRowsInput): Promise<StudentListRow[]
     registrationPending: pendingRegistration.has(student.id),
     isMinor: isMinorInSaoPaulo({ birthDate: student.birthDate, now: input.values.now }),
     status: student.status,
+    isScholarshipStudent: student.contracts.length > 0,
     phone: student.phone,
     enrollment: toEnrollmentFacts(student.enrollments[0], input.values.now),
     attendance: attendanceByStudent.get(student.id) ?? NO_ATTENDANCE_DATA,
@@ -225,7 +226,7 @@ export async function resolveCurrentSemester(
   database: StudentListDatabase,
   now: Date,
 ): Promise<SemesterWindow | null> {
-  const semesters = await database.semester.findMany({
+  const semesters = await database.period.findMany({
     where: { deletedAt: null },
     select: { id: true, name: true, startDate: true, endDate: true },
   });

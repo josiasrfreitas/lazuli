@@ -51,7 +51,7 @@ export async function requireFutureSemester(
   startDate: Date;
   endDate: Date;
 }> {
-  const semester = await context.database.semester.findUnique({ where: { id: semesterId } });
+  const semester = await context.database.period.findUnique({ where: { id: semesterId } });
   if (!semester) throw notFound("Semestre não encontrado.");
   if (dateOnly(semester.endDate) < saoPauloDateOnly(context.now))
     throw badRequest("Este período já terminou. Escolha um semestre atual ou futuro.");
@@ -95,7 +95,6 @@ export async function recordPlacementRevision(
         enrollmentId: row.enrollmentId,
         entryActionId: row.entryActionId,
         sourceExitActionId: row.sourceExitActionId,
-        availabilityId: row.availabilityId,
         publishedAt: row.publishedAt?.toISOString() ?? null,
         notes: row.notes,
         continuity: row.continuity,
@@ -170,6 +169,7 @@ export async function readClassPlans(
 ): Promise<ClassPlan[]> {
   const rows = await context.database.$kysely
     .selectFrom("SemesterClassPlan as plan")
+    // Kysely uses the physical table name; Prisma's Period maps to Semester.
     .innerJoin("Semester as semester", "semester.id", "plan.semester_id")
     .leftJoin("Stage as stage", "stage.id", "plan.shared_stage_id")
     .leftJoin("Class as class", "class.id", PLAN_CLASS_ID)

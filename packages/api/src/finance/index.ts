@@ -9,6 +9,7 @@ import type {
 import { saoPauloDateOnly } from "@lazuli/domain";
 import { readContract } from "./internal/contract-detail.js";
 import { addContractMaterial, contractMaterialOptions } from "./internal/contract-materials.js";
+import { readStudentMaterials } from "./internal/student-materials.js";
 import type { AddContractMaterialInput } from "@lazuli/validators";
 import {
   previewContractTermination,
@@ -99,6 +100,7 @@ export function finance(db: FinanceDatabase, staffUserId: string): FinanceModule
       confirmContractTermination({ database: db, values, now, staffUserId }),
     analytics: (values) => readAnalytics(db, values),
     studentSummary: (values) => readStudentSummary(db, values),
+    studentMaterials: (values) => readStudentMaterials(db, values),
     ...renegotiationFinance(db, staffUserId),
     contractClosings: async (year, now) => {
       const asOf = saoPauloDateOnly(now);
@@ -168,6 +170,10 @@ export type FinanceModule = {
   readContract: (id: string, now: Date) => ReturnType<typeof readContract>;
   addContractMaterial: (values: AddContractMaterialInput) => ReturnType<typeof addContractMaterial>;
   contractMaterialOptions: () => ReturnType<typeof contractMaterialOptions>;
+  studentMaterials: (values: {
+    studentId: string;
+    now: Date;
+  }) => ReturnType<typeof readStudentMaterials>;
   previewTermination: (id: string, now: Date) => ReturnType<typeof previewContractTermination>;
   confirmTermination: (
     values: ContractTerminationConfirm,

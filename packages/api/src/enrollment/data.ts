@@ -30,7 +30,7 @@ export type EnrollmentDatabase = Pick<
   | "class"
   | "student"
   | "stage"
-  | "semester"
+  | "period"
   | "track"
   | "user"
   | "enrollmentAction"

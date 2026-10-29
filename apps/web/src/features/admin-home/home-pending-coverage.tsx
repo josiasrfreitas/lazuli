@@ -1,15 +1,21 @@
+import { PENDING_PAGE_SIZE as PAGE_SIZE } from "./home-pending-pagination";
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { ArrowRight, UsersRound } from "lucide-react";
-import { Button } from "@lazuli/ui";
+import { Badge, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { RouterOutputs } from "@lazuli/api";
 import type { HomeGroup, HomeItem } from "./home-parts";
+import { departureDayLabel } from "./home-work-model";
 import styles from "./home-pending.module.css";
 
-const PAGE_SIZE = 3;
-
-export function PendingCoverage({ group }: { group: HomeGroup | undefined }): ReactElement | null {
+export function PendingCoverage({
+  group,
+  today,
+}: {
+  group: HomeGroup | undefined;
+  today: string;
+}): ReactElement | null {
   const [page, setPage] = useState(1);
   const query = trpc.dashboard.pending.useQuery(
     { kind: "coverage", page, pageSize: PAGE_SIZE },
@@ -20,7 +26,7 @@ export function PendingCoverage({ group }: { group: HomeGroup | undefined }): Re
   return (
     <>
       {items.map((item) => (
-        <CoverageRow key={item.id} item={item} />
+        <CoverageRow key={item.id} item={item} today={today} />
       ))}
       <CoverageFeedback
         page={page}
@@ -94,37 +100,29 @@ function CoverageFeedback({
   return null;
 }
 
-function CoverageRow({ item }: { item: HomeItem }): ReactElement | null {
+function CoverageRow({ item, today }: { item: HomeItem; today: string }): ReactElement | null {
   if (item.action.kind !== "link") return null;
   return (
     <tr>
       <td className={styles.cell}>
         <Link className={styles.item} href={item.action.href}>
-          <span className={styles.icon}>
+          <span className={`${styles.icon} ${styles.coverageIcon}`}>
             <UsersRound aria-hidden="true" />
           </span>
           <span className={styles.identity}>
-            <strong className={styles.title}>
-              Turma sem professor <span>· {item.stageName ?? item.title}</span>
-              {item.studentCount !== undefined && (
-                <span className={styles.fact}>
-                  {item.studentCount} {item.studentCount === 1 ? "aluno" : "alunos"}
-                </span>
-              )}
-            </strong>
+            <strong className={styles.title}>Turma sem professor</strong>
             <span className={styles.context}>
+              <span>{item.title}</span>
               <span>{item.detail}</span>
-              {item.departedTeacherName && <span>{item.departedTeacherName} saiu</span>}
             </span>
           </span>
-          {item.timing?.kind === "meeting" && (
-            <span className={styles.when}>
-              Próxima aula · {item.timing.date.split("-").toReversed().slice(0, 2).join("/")} às{" "}
-              {item.timing.startTime}
-            </span>
+          {item.timing?.kind === "departure" && (
+            <Badge variant={item.timing.date < today ? "destructive" : "warning"}>
+              {departureDayLabel(today, item.timing.date)}
+            </Badge>
           )}
           <span className={styles.action}>
-            Definir professor <ArrowRight aria-hidden="true" />
+            Ver turmas <ArrowRight aria-hidden="true" />
           </span>
         </Link>
       </td>
@@ -147,7 +145,11 @@ export function CoveragePagination({
   return (
     <nav className={styles.placementPagination} aria-label="Paginação de turmas sem professor">
       <span>
-        {total} turmas sem professor · Página {page} de {Math.ceil(total / PAGE_SIZE)}
+        {total}{" "}
+        {total === 1
+          ? "professor com turmas sem professor"
+          : "professores com turmas sem professor"}{" "}
+        · Página {page} de {Math.ceil(total / PAGE_SIZE)}
       </span>
       <Button
         variant="ghost"

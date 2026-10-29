@@ -19,3 +19,5 @@ export type { SendOverdueD30Result } from "./email/send-overdue-d30.js";
 export { sendOverdueDigest } from "./email/send-overdue-digest.js";
 export { sendPortalFailureEmail } from "./email/send-portal-failure-email.js";
 export type { SendPortalFailureEmailResult } from "./email/send-portal-failure-email.js";
+
+export { refreshStudentHealthPending } from "./students/health-pending.js";

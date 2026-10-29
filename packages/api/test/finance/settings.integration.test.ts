@@ -9,7 +9,6 @@ import { ADMIN, ensureAdminUser } from "../support/finance-test-support.js";
 const values = {
   tuitionCeilingCents: 25_000,
   maximumDiscountPct: 20,
-  interestRatePctDaily: 0.1,
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,
   materialPriceCents: 12_000,
@@ -27,14 +26,14 @@ void describe("global finance settings persistence", { concurrency: 1 }, () => {
     await db.$disconnect();
   });
 
-  void it("reads empty and incomplete settings without invented values", async () => {
+  void it("reads missing settings and applies the monthly interest default to incomplete settings", async () => {
     await db.financeSettings.deleteMany({ where: { id: "singleton" } });
     assert.equal(await finance(db, ADMIN.id).readSettings(), null);
-    await db.financeSettings.create({ data: { id: "singleton", interestRatePctMonthly: 1 } });
+    await db.financeSettings.create({ data: { id: "singleton" } });
     const row = await finance(db, ADMIN.id).readSettings();
     assert.equal(row?.tuitionCeilingCents, null);
     assert.equal(row?.tuitionFloorCents, null);
-    assert.equal(row?.interestRatePctMonthly, 1);
+    assert.equal(row?.interestRatePctMonthly, 2);
   });
 
   void it("persists independent book bands and preserves them on older general settings saves", async () => {

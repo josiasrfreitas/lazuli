@@ -135,7 +135,7 @@ export async function computeExpectedSnapshotTotals(
       adjustments: installment.adjustments,
       allocations: installment.allocations,
       now,
-      interestRatePctMonthly: 1,
+      interestRatePctMonthly: 2,
     });
 
     return {

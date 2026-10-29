@@ -26,10 +26,7 @@ const DUE_JULY_TWENTY_FIFTH = "2026-07-25";
 const DUE_AUGUST_FIFTH = "2026-08-05";
 const DUE_JULY_THIRD = "2026-07-03";
 
-const MONTHLY_INTEREST_RATE_PCT = 1;
-const TWO_PERCENT_MONTHLY_INTEREST_RATE = 2;
 const TEN_THOUSAND_CENTS = 10_000;
-const TWO_HUNDRED_CENTS = 200;
 const SEVEN_OVERDUE_DAYS = 7;
 const THIRTY_OVERDUE_DAYS = 30;
 const LEDGER_DATE_BRANCH_YEAR = 2026;
@@ -46,7 +43,6 @@ const THIRTY_DAYS_FROM_JUNE_TENTH_TO_JULY_TENTH =
   (Date.UTC(LEDGER_DATE_BRANCH_YEAR, JULY_UTC_MONTH_INDEX, TENTH_DAY_OF_MONTH) -
     Date.UTC(LEDGER_DATE_BRANCH_YEAR, JUNE_UTC_MONTH_INDEX, TENTH_DAY_OF_MONTH)) /
   MILLISECONDS_PER_DAY;
-const INTEREST_PREVIEW_CENTS = 650;
 const FIVE_THOUSAND_CENTS = 5000;
 const TWENTY_THOUSAND_CENTS = 20_000;
 const THIRTY_THOUSAND_CENTS = 30_000;
@@ -69,7 +65,6 @@ function installmentInput(
     adjustments: [],
     allocations: [],
     now: JULY_TENTH_MIDDAY_UTC,
-    interestRatePctMonthly: MONTHLY_INTEREST_RATE_PCT,
     ...overrides,
   };
 }
@@ -88,7 +83,7 @@ function orderInstallment(
 }
 
 void describe("deriveInstallmentLedger balances", () => {
-  void it("derives balances, overdue status, age bucket, and interest preview", () => {
+  void it("derives balances, overdue status, and age bucket", () => {
     const ledger = deriveInstallmentLedger(
       installmentInput({
         amountCents: ONE_HUNDRED_THOUSAND_CENTS,
@@ -105,7 +100,6 @@ void describe("deriveInstallmentLedger balances", () => {
       collectibleRemainingCents: SIXTY_FIVE_THOUSAND_CENTS,
       status: "OVERDUE",
       overdueDays: THIRTY_OVERDUE_DAYS,
-      interestPreviewCents: INTEREST_PREVIEW_CENTS,
       ageBucket: "DAYS_30_PLUS",
     });
   });
@@ -116,7 +110,6 @@ void describe("deriveInstallmentLedger balances", () => {
     assert.equal(ledger.status, "OVERDUE");
     assert.equal(ledger.rawRemainingCents, FIFTY_THOUSAND_CENTS);
     assert.equal(ledger.collectibleRemainingCents, 0);
-    assert.equal(ledger.interestPreviewCents, 0);
   });
 });
 
@@ -131,7 +124,6 @@ void describe("deriveInstallmentLedger status precedence", () => {
 
     assert.equal(ledger.status, "WAIVED");
     assert.equal(ledger.collectibleRemainingCents, 0);
-    assert.equal(ledger.interestPreviewCents, 0);
   });
 
   void it("marks fully allocated installments as paid before overdue", () => {
@@ -148,18 +140,17 @@ void describe("deriveInstallmentLedger status precedence", () => {
   });
 });
 
-void describe("deriveInstallmentLedger interest preview", () => {
-  void it("calculates two percent monthly interest over thirty overdue days", () => {
+void describe("deriveInstallmentLedger recorded balance", () => {
+  void it("does not add unposted interest to the recorded balance after thirty overdue days", () => {
     const ledger = deriveInstallmentLedger(
       installmentInput({
         amountCents: TEN_THOUSAND_CENTS,
         dueDate: DUE_JUNE_TENTH,
         now: JULY_TENTH_MIDDAY_UTC,
-        interestRatePctMonthly: TWO_PERCENT_MONTHLY_INTEREST_RATE,
       }),
     );
 
-    assert.equal(ledger.interestPreviewCents, TWO_HUNDRED_CENTS);
+    assert.equal(ledger.collectibleRemainingCents, TEN_THOUSAND_CENTS);
   });
 });
 
@@ -243,7 +234,6 @@ void describe("deriveOrderLedger", () => {
         }),
       ],
       now: JULY_TENTH_MIDDAY_UTC,
-      interestRatePctMonthly: MONTHLY_INTEREST_RATE_PCT,
     });
 
     assert.deepEqual(ledger, { openBalanceCents: FORTY_FIVE_THOUSAND_CENTS, status: "ACTIVE" });
@@ -261,7 +251,6 @@ void describe("deriveOrderLedger", () => {
         orderInstallment({ waivedAt: WAIVED_AT, amountCents: FORTY_THOUSAND_CENTS }),
       ],
       now: JULY_TENTH_MIDDAY_UTC,
-      interestRatePctMonthly: MONTHLY_INTEREST_RATE_PCT,
     });
 
     assert.deepEqual(ledger, { openBalanceCents: 0, status: "COMPLETED" });
@@ -274,7 +263,6 @@ void describe("deriveOrderLedger cancellation", () => {
       cancelledAt: CANCELLED_AT,
       installments: [orderInstallment({ amountCents: SIXTY_THOUSAND_CENTS })],
       now: JULY_TENTH_MIDDAY_UTC,
-      interestRatePctMonthly: MONTHLY_INTEREST_RATE_PCT,
     });
 
     assert.deepEqual(ledger, { openBalanceCents: 0, status: "CANCELLED" });

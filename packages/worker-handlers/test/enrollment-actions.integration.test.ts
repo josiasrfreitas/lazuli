@@ -77,7 +77,7 @@ async function seed(): Promise<{ enrollmentId: string; progressId: string; actio
   const stage = await db.stage.create({
     data: { trackId: track.id, name: `${PREFIX}Stage`, internalCode: "ISSUE157WS1", sequence: 1 },
   });
-  const semester = await db.semester.create({
+  const semester = await db.period.create({
     data: {
       name: `${PREFIX}2026.2`,
       startDate: new Date("2026-07-01"),
@@ -128,7 +128,7 @@ async function clean(): Promise<void> {
   await db.enrollment.deleteMany({ where: { student: { fullName: { startsWith: PREFIX } } } });
   await db.student.deleteMany({ where: { fullName: { startsWith: PREFIX } } });
   await db.class.deleteMany({ where: { internalCode: { startsWith: PREFIX } } });
-  await db.semester.deleteMany({ where: { name: { startsWith: PREFIX } } });
+  await db.period.deleteMany({ where: { name: { startsWith: PREFIX } } });
   await db.stage.deleteMany({ where: { internalCode: "ISSUE157WS1" } });
   await db.track.deleteMany({ where: { name: { startsWith: PREFIX } } });
   await db.productLine.deleteMany({ where: { key: "issue157_worker_line" } });

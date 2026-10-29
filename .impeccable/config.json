@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "createdAt": "2026-10-28T16:36:18.272Z",
+        "reason": "Agent decision: password-reset email follows the existing magic-link email's Arial/Helvetica/sans-serif stack for email-client compatibility; this is transactional email typography."
+      }
+    ]
+  }
+}

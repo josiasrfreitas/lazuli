@@ -5,7 +5,16 @@ import { badRequest, notFound } from "../../trpc/errors.js";
 const ISO_DATE_LENGTH = 10;
 const renewalInclude = {
   student: { select: { id: true, fullName: true } },
-  payer: { select: { id: true, name: true } },
+  payer: {
+    select: {
+      id: true,
+      name: true,
+      documentType: true,
+      documentNumber: true,
+      phone: true,
+      email: true,
+    },
+  },
   orders: {
     where: { kind: "TUITION", deletedAt: null, cancelledAt: null },
     take: 1,
@@ -21,13 +30,15 @@ type RenewalTerms = {
   endsOn: string;
   durationMonths: number;
   monthlyAmountCents: number;
+  baseMonthlyAmountCents: number;
+  scholarshipPct: number;
+  scholarshipAgreement: string | null;
   installmentCount: number;
   dueDay: number;
   offer: {
     tuitionCeilingCents: number;
     maximumDiscountPct: number;
     punctualityDiscountPct: number;
-    interestRatePctDaily: number;
     interestRatePctMonthly: number;
     cancellationFeePct: number;
   };
@@ -55,11 +66,10 @@ function assertRenewalReady(row: RenewalRow): void {
   if (
     !row.endsOn ||
     !row.durationMonths ||
-    !row.monthlyAmountCents ||
+    row.monthlyAmountCents === null ||
     row.tuitionCeilingCents === null ||
     row.maximumDiscountPct === null ||
     row.punctualityDiscountPct === null ||
-    row.interestRatePctDaily === null ||
     row.interestRatePctMonthly === null ||
     row.cancellationFeePct === null
   )
@@ -77,13 +87,17 @@ function projectRenewal(row: RenewalRow): RenewalTerms {
     endsOn: row.endsOn!.toISOString().slice(0, ISO_DATE_LENGTH),
     durationMonths: row.durationMonths!,
     monthlyAmountCents: row.monthlyAmountCents!,
+    baseMonthlyAmountCents: row.baseMonthlyAmountCents ?? row.monthlyAmountCents!,
+    scholarshipPct: Number(row.scholarshipPct),
+    scholarshipAgreement: row.scholarshipAgreement,
     installmentCount: row.orders[0]?.installmentCount ?? row.durationMonths!,
     dueDay: row.orders[0]?.dueDay ?? row.endsOn!.getUTCDate(),
     offer: {
       tuitionCeilingCents: row.tuitionCeilingCents!,
       maximumDiscountPct: Number(row.maximumDiscountPct),
-      punctualityDiscountPct: Number(row.punctualityDiscountPct),
-      interestRatePctDaily: Number(row.interestRatePctDaily),
+      punctualityDiscountPct: Number(
+        row.standardPunctualityDiscountPct ?? row.punctualityDiscountPct,
+      ),
       interestRatePctMonthly: Number(row.interestRatePctMonthly),
       cancellationFeePct: Number(row.cancellationFeePct),
     },

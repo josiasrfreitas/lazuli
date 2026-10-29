@@ -23,6 +23,9 @@ export const PAYMENT_DRAFT: PaymentDraft = {
   date: "29/09/2026",
   method: "PIX",
   totals: {},
+  thirdPartyNames: {},
+  externalFinancing: false,
+  externalInstallments: {},
   items: [{ row: PAYMENT_ROW, receiptId: "receipt-one", amount: undefined }],
 };
 export const PAYMENT_PREVIEW: PreviewRow[] = [

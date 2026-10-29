@@ -39,12 +39,18 @@ const AGREEMENT_TRANSACTION_TIMEOUT_MS = 30_000;
 
 export const financeRouter = router({
   studentPayments: adminProcedure
-    .input(z.object({ studentId: z.string().uuid(), cursor: z.string().uuid().optional() }))
+    .input(
+      z.object({
+        studentId: z.string().uuid(),
+        cursor: z.string().uuid().optional(),
+        withProofs: z.boolean().optional(),
+      }),
+    )
     .query(({ ctx, input }) => studentPayments(ctx, input)),
   paymentMethods: adminProcedure.query(({ ctx }) =>
     ctx.db.paymentMethod.findMany({
       where: { active: true, deletedAt: null },
-      select: { id: true, code: true, name: true },
+      select: { id: true, code: true, name: true, allowsExternalInstallments: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
   ),
@@ -167,6 +173,12 @@ export const financeRouter = router({
         { timeout: AGREEMENT_TRANSACTION_TIMEOUT_MS },
       ),
     ),
+  studentMaterials: adminProcedure.input(financeStudentSummaryInputSchema).query(({ ctx, input }) =>
+    finance(ctx.db, ctx.staffUser.id).studentMaterials({
+      studentId: input.studentId,
+      now: ctx.now ?? new Date(),
+    }),
+  ),
   studentSummary: adminProcedure.input(financeStudentSummaryInputSchema).query(({ ctx, input }) =>
     ctx.db.$transaction(
       (transaction) =>

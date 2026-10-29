@@ -1,5 +1,3 @@
-import { availabilityCovers, type AvailabilityWindow } from "./admission-availability.js";
-
 export type SemesterEligibility = {
   semesterId: string;
   entryOn: string;
@@ -19,16 +17,8 @@ export type SemesterEligibility = {
   plan: {
     scheduleType: "REGULAR" | "PERSONALIZED";
     sharedStageId: string | null;
-    format: string;
-    slots: readonly AvailabilityWindow[];
     teacherReady: boolean;
     active: boolean;
-  } | null;
-  availability: {
-    confirmed: boolean;
-    validUntil: string;
-    formats: readonly string[];
-    slots: readonly AvailabilityWindow[];
   } | null;
 };
 
@@ -38,7 +28,6 @@ export function semesterPlacementBlockers(input: SemesterEligibility): string[] 
     ...(input.studentActive ? [] : ["Cadastro do aluno não está ativo"]),
     ...planBlockers(input),
     ...(input.stage ? [] : ["Defina o estágio de destino"]),
-    ...availabilityBlockers(input),
     ...progressionBlockers(input),
   ];
 }
@@ -51,19 +40,6 @@ function planBlockers(input: SemesterEligibility): string[] {
   if (!plan.active) blockers.push("Turma de destino indisponível");
   if (plan.scheduleType === "REGULAR" && plan.sharedStageId !== input.stage?.id)
     blockers.push("Estágio diferente do estágio da turma regular");
-  return blockers;
-}
-
-function availabilityBlockers(input: SemesterEligibility): string[] {
-  const availability = input.availability;
-  if (!availability?.confirmed) return ["Confirme a disponibilidade para este semestre"];
-  const blockers: string[] = [];
-  if (availability.validUntil < input.entryOn)
-    blockers.push("Disponibilidade vence antes da entrada");
-  if (input.plan && !availability.formats.includes(input.plan.format))
-    blockers.push("Formato incompatível com a disponibilidade");
-  if (input.plan && !availabilityCovers(availability.slots, input.plan.slots))
-    blockers.push("Horários incompatíveis com a disponibilidade");
   return blockers;
 }
 

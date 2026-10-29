@@ -1,14 +1,18 @@
-import type { JSX as ReactJSX } from "react";
-import type { Metadata } from "next";
-import { Suspense } from "react";
-import { ClassOrganizationPage, OrganizationLoading } from "~/features/class-organization/page";
+import { redirect } from "next/navigation";
 import { requireRole } from "~/lib/require-role";
-export const metadata: Metadata = { title: "Organização de turmas" };
-export default async function Page(): Promise<ReactJSX.Element> {
+import { classOrganizationEnabled } from "~/lib/feature-flags";
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<never> {
   await requireRole(["ADMIN", "SYSTEM_ADMIN"]);
-  return (
-    <Suspense fallback={<OrganizationLoading />}>
-      <ClassOrganizationPage />
-    </Suspense>
-  );
+  if (!classOrganizationEnabled) redirect("/turmas");
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams)) {
+    if (typeof value === "string") params.set(key, value);
+  }
+  params.set("secao", "organizacao");
+  redirect(`/turmas?${params.toString()}`);
 }

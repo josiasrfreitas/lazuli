@@ -26,7 +26,7 @@ export type {
   PedagogicalProgress,
   ProductLine,
   SchoolClosedDay,
-  Semester,
+  Period,
   Stage,
   Student,
   Track,
@@ -41,3 +41,6 @@ export type UUIDEntity = {
   updatedAt: Date;
   deletedAt: Date | null;
 };
+
+export { readStudentHealth } from "./student-health.js";
+export { computeEnrollmentPercentInWindow } from "./attendance-percent.js";

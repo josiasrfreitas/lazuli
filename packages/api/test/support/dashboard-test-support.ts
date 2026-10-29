@@ -103,7 +103,7 @@ export async function seedDashboardCatalog(): Promise<{ stageId: string; semeste
     },
     select: { id: true },
   });
-  const semester = await db.semester.create({
+  const semester = await db.period.create({
     data: {
       name: `${TEST_PREFIX}2084.1`,
       startDate: new Date("2084-02-01T00:00:00.000Z"),
@@ -184,6 +184,9 @@ export async function callHttpQuery(input: {
 }
 
 export async function cleanDashboardDatabase(): Promise<void> {
+  await db.teacherProfile.deleteMany({
+    where: { userId: { in: [ADMIN.id, TEACHER.id, OTHER_TEACHER.id] } },
+  });
   await db.classTeacherAssignment.deleteMany({
     where: { class: { internalCode: { startsWith: TEST_PREFIX } } },
   });
@@ -192,7 +195,7 @@ export async function cleanDashboardDatabase(): Promise<void> {
   });
   await db.student.deleteMany({ where: { fullName: { startsWith: TEST_PREFIX } } });
   await db.class.deleteMany({ where: { internalCode: { startsWith: TEST_PREFIX } } });
-  await db.semester.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
+  await db.period.deleteMany({ where: { name: { startsWith: TEST_PREFIX } } });
   await db.stage.deleteMany({
     where: { track: { productLine: { key: { startsWith: "gre64_dashboard_" } } } },
   });

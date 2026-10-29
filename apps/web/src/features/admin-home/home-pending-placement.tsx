@@ -1,15 +1,14 @@
+import { PENDING_PAGE_SIZE as PAGE_SIZE } from "./home-pending-pagination";
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { ChevronDown, FilePenLine, ArrowRight } from "lucide-react";
-import { Button } from "@lazuli/ui";
+import { Badge, Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { HomeGroup } from "./home-parts";
 import { PendingDisclosure } from "./home-pending-disclosure";
 import styles from "./home-pending.module.css";
 
-const PAGE_SIZE = 2;
 const REFRESH_MS = 60_000;
-const DAY_MS = 86_400_000;
 
 export function PendingPlacement({
   group,
@@ -55,31 +54,26 @@ function PlacementCases({ group, today }: { group: HomeGroup; today: string }): 
     <ul className={styles.lessonList}>
       {group.items.map((item) => {
         if (item.action.kind !== "link") return null;
-        const days = item.date
-          ? Math.max(0, Math.round((Date.parse(today) - Date.parse(item.date)) / DAY_MS))
-          : null;
+        const correction = item.placementPhase === "CORRECTION";
         return (
           <li key={item.id}>
             <Link href={item.action.href} className={styles.placementCase}>
               <strong className={styles.caseName}>{item.title}</strong>
-              {item.date && (
-                <span className={styles.preview}>
-                  Recebida em {item.date.split("-").toReversed().slice(0, 2).join("/")}
-                </span>
-              )}
-              {days !== null && (
-                <span className={styles.preview}>
-                  {days === 0 ? "Hoje" : `Há ${days} ${days === 1 ? "dia" : "dias"}`}
-                </span>
-              )}
+              <Badge variant="neutral">Lead</Badge>
+              <Badge variant="neutral">{correction ? "Correção" : "Aplicação"}</Badge>
+              <span className={styles.preview}>
+                {item.date
+                  ? `${correction ? "Recebida" : "Agendada"} ${item.date === today ? "hoje" : `em ${item.date.split("-").toReversed().slice(0, 2).join("/")}`}`
+                  : "A agendar"}
+              </span>
               <span className={styles.action}>
-                Corrigir <ArrowRight aria-hidden="true" />
+                {correction ? "Corrigir" : "Ver nivelamento"} <ArrowRight aria-hidden="true" />
               </span>
             </Link>
           </li>
         );
       })}
-      {group.total === 0 && <li className={styles.feedback}>Nenhuma prova aguardando correção.</li>}
+      {group.total === 0 && <li className={styles.feedback}>Nenhum nivelamento pendente.</li>}
     </ul>
   );
 }
@@ -91,9 +85,9 @@ function PlacementSummary({ total }: { total: number }): ReactElement {
         <FilePenLine aria-hidden="true" />
       </span>
       <span className={styles.identity}>
-        <strong>Nivelamentos para corrigir</strong>
+        <strong>Nivelamentos pendentes</strong>
         <span>
-          {total} {total === 1 ? "prova" : "provas"}
+          {total} {total === 1 ? "nivelamento" : "nivelamentos"}
         </span>
       </span>
       <span className={styles.action}>
@@ -152,13 +146,13 @@ function PlacementFeedback({
   if (pending)
     return (
       <p className={styles.feedback} role="status">
-        Carregando provas…
+        Carregando nivelamentos…
       </p>
     );
   if (error)
     return (
       <p className={styles.feedback}>
-        Não foi possível carregar as provas.{" "}
+        Não foi possível carregar os nivelamentos.{" "}
         <button type="button" onClick={retry}>
           Tentar novamente
         </button>

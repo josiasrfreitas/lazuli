@@ -13,15 +13,22 @@ import { classListReturnUrl, type ClassListParams } from "./class-list-model";
 
 export type ClassRow = RouterOutputs["classes"]["list"]["rows"][number];
 const COLUMN_WIDTHS = {
-  code: "standard",
+  code: "wide",
   teacher: "standard",
-  stage: "wide",
-  schedule: "medium",
+  schedule: "standard",
   occupancy: "narrow",
 } as const satisfies Record<string, NonNullable<DataTableColumn<ClassRow>["width"]>>;
 
-export function classColumns(params: ClassListParams): readonly DataTableColumn<ClassRow>[] {
+export function classColumns(
+  params: ClassListParams,
+  rows: readonly ClassRow[] = [],
+): readonly DataTableColumn<ClassRow>[] {
   const back = classListReturnUrl(params);
+  const longestStage = Math.max(
+    0,
+    ...rows.map((row) => (row.sharedStage?.name ?? "Individual").length),
+  );
+  const stageWidth = longestStage > 24 ? "wide" : longestStage > 16 ? "medium" : "standard";
   return [
     {
       id: "code",
@@ -29,7 +36,7 @@ export function classColumns(params: ClassListParams): readonly DataTableColumn<
       width: COLUMN_WIDTHS.code,
       cell: (row: ClassRow) => (
         <Link
-          className="font-medium text-primary underline-offset-2 hover:underline focus-visible:shadow-focus"
+          className="whitespace-nowrap font-medium text-primary underline-offset-2 hover:underline focus-visible:shadow-focus"
           href={`/turmas/${row.id}?voltar=${encodeURIComponent(back)}`}
         >
           {row.portalClassName}
@@ -51,7 +58,7 @@ export function classColumns(params: ClassListParams): readonly DataTableColumn<
     {
       id: "stage",
       header: "Estágio",
-      width: COLUMN_WIDTHS.stage,
+      width: stageWidth,
       cell: (row: ClassRow) => row.sharedStage?.name ?? "Individual",
     },
     {

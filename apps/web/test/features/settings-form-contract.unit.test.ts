@@ -10,7 +10,7 @@ import { SettingsPanel } from "../../src/features/settings/settings-panel.js";
 import type { SettingsRow } from "../../src/features/settings/settings-model.js";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-const FIELD_COUNT = 11;
+const FIELD_COUNT = 10;
 
 function render(isPending = false): string {
   return renderToStaticMarkup(
@@ -28,7 +28,6 @@ const current: SettingsRow = {
   maximumDiscountPct: 20,
   punctualityDiscountPct: 0,
   tuitionFloorCents: 20_000,
-  interestRatePctDaily: 0.1,
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,
   materialPriceCents: 12_050,
@@ -70,19 +69,7 @@ void it("starts editing with the actual stored amounts and percentages", () => {
   const values = (markup.match(/<input\b[^>]*>/gu) ?? []).map(
     (tag) => /value="([^"]*)"/u.exec(tag)?.[1],
   );
-  assert.deepEqual(values, [
-    "250,00",
-    "20",
-    "0",
-    "0,1",
-    "2",
-    "10",
-    "6",
-    "123,00",
-    "6",
-    "136,00",
-    "10",
-  ]);
+  assert.deepEqual(values, ["250,00", "20", "0", "2", "10", "6", "123,00", "6", "136,00", "10"]);
   assert.match(markup, />Cancelar</u);
   assert.match(markup, />Salvar</u);
 });
@@ -96,7 +83,6 @@ void it("offers named amount, percentage and installment controls with format hi
       "tuitionCeilingCents",
       "maximumDiscountPct",
       "punctualityDiscountPct",
-      "interestRatePctDaily",
       "interestRatePctMonthly",
       "cancellationFeePct",
       "childMaterialInstallments",
@@ -109,7 +95,6 @@ void it("offers named amount, percentage and installment controls with format hi
   assert.deepEqual(
     inputs.map((tag) => /inputMode="([^"]+)"/u.exec(tag)?.[1]),
     [
-      "decimal",
       "decimal",
       "decimal",
       "decimal",

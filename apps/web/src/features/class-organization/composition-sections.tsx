@@ -1,67 +1,14 @@
 "use client";
 import { useState, type JSX as ReactJSX } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, MoreHorizontal } from "lucide-react";
-import { Badge, Button, Popover, PopoverContent, PopoverTrigger } from "@lazuli/ui";
-import { scheduleLabel } from "~/features/semester-organization/shared";
-import {
-  continuityLabel,
-  occupancy,
-  stageLabel,
-  type ClassPlan,
-  type OrganizationAction,
-  type Placement,
-  type SemesterBoard,
-} from "./model";
+import { MoreHorizontal } from "lucide-react";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@lazuli/ui";
+import { type ClassPlan, type OrganizationAction, type Placement } from "./model";
 import styles from "./organization.module.css";
 
 type ActionHandler = (action: OrganizationAction) => void;
-type Lead = SemesterBoard["waitingLeads"][number];
 
-export function CompositionHeader({
-  plan,
-  ended,
-  onBack,
-  onAction,
-}: {
-  plan: ClassPlan;
-  ended: boolean;
-  onBack: () => void;
-  onAction: ActionHandler;
-}): ReactJSX.Element {
-  const health = occupancy(plan);
-  return (
-    <header className={styles.panelHeader}>
-      <div className={styles.row}>
-        <Button size="sm" variant="ghost" onClick={onBack}>
-          <ArrowLeft size={14} /> Pendências
-        </Button>
-        <CompositionMenu plan={plan} ended={ended} onAction={onAction} />
-      </div>
-      <h2>{plan.name}</h2>
-      <p className={styles.small}>
-        {plan.scheduleType === "PERSONALIZED" ? "Estágios individuais" : stageLabel(plan.stageCode)}{" "}
-        · {scheduleLabel(plan.slots)}
-      </p>
-      <p className={styles.small}>
-        {plan.teacherName ?? "Professor a definir"} ·{" "}
-        {plan.format === "ONLINE" ? "Online" : "Presencial"} · {planActivity(plan, health.count)}
-      </p>
-      {!plan.teacherName && !plan.classId && !ended && (
-        <Button size="sm" onClick={() => onAction({ kind: "plan", plan })}>
-          Definir professor
-        </Button>
-      )}
-      {plan.active && (
-        <Badge variant={health.tone}>
-          {health.count} alunos · {health.label}
-        </Badge>
-      )}
-    </header>
-  );
-}
-
-function CompositionMenu({
+export function CompositionMenu({
   plan,
   ended,
   onAction,
@@ -132,11 +79,6 @@ function CompositionMenuItems({
   );
 }
 
-function planActivity(plan: ClassPlan, count: number): string {
-  if (!plan.active) return "Encerrada";
-  return plan.classId ? `${count} alunos` : "Em formação";
-}
-
 export function LeavingNote({
   leaving,
   total,
@@ -159,91 +101,6 @@ export function LeavingNote({
   );
 }
 
-export function CompositionList({
-  rows,
-  leads,
-  board,
-  ended,
-  onBack,
-  onAction,
-}: {
-  rows: Placement[];
-  leads: Lead[];
-  board: SemesterBoard;
-  ended: boolean;
-  onBack: () => void;
-  onAction: ActionHandler;
-}): ReactJSX.Element {
-  return (
-    <div className={styles.scroll}>
-      {rows.map((row) => (
-        <StudentRow key={row.id} row={row} board={board} ended={ended} onAction={onAction} />
-      ))}
-      {leads.map((lead) => (
-        <Link key={lead.id} href={`/interessados/${lead.id}`} className={styles.queueItem}>
-          <span className={styles.person}>
-            <strong>{lead.fullName}</strong>
-            <span className={styles.queueMeta}>
-              <Badge variant="info">Lead</Badge>
-              <span className={styles.small}>Finalizar matrícula</span>
-            </span>
-          </span>
-          <ChevronRight size={14} />
-        </Link>
-      ))}
-      {rows.length === 0 && leads.length === 0 && (
-        <div className={styles.empty}>
-          <h3>A turma está pronta para receber alunos</h3>
-          <p>Escolha uma pessoa nas pendências ou adicione um aluno.</p>
-          <Button size="sm" variant="secondary" onClick={onBack}>
-            Ver pendências
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StudentRow({
-  row,
-  board,
-  ended,
-  onAction,
-}: {
-  row: Placement;
-  board: SemesterBoard;
-  ended: boolean;
-  onAction: ActionHandler;
-}): ReactJSX.Element {
-  const action: OrganizationAction =
-    row.publishedAt || row.sourceClassId
-      ? { kind: "continuity", row }
-      : { kind: "placement", studentId: row.studentId, row };
-  return (
-    <button
-      type="button"
-      className={styles.queueItem}
-      disabled={ended}
-      onClick={() => onAction(action)}
-    >
-      <span className={styles.person}>
-        <strong>{row.studentName}</strong>
-        <Badge variant="neutral">Aluno da escola</Badge>
-        <span className={`${styles.small} ${row.continuity === "LEAVING" ? styles.attention : ""}`}>
-          {stageLabel(row.stageCode)} ·{" "}
-          {row.publishedAt || row.sourceClassId ? continuityLabel(row, board) : "Nova entrada"}
-        </span>
-        {!row.publishedAt && (
-          <span className={styles.small}>
-            {row.blockers.length > 0 ? "Alocação a revisar" : "Pronto para confirmar"}
-          </span>
-        )}
-      </span>
-      <ChevronRight size={14} />
-    </button>
-  );
-}
-
 export function CompositionFooter({
   plan,
   ready,
@@ -259,7 +116,7 @@ export function CompositionFooter({
   onPublish: () => void;
   onAction: ActionHandler;
 }): ReactJSX.Element | null {
-  if (ended || !plan.active) return null;
+  if (ended || !plan.active || (plan.classId && ready.length === 0)) return null;
   return (
     <footer className={styles.selection}>
       <CompositionFooterContent
@@ -290,8 +147,8 @@ function CompositionFooterContent({
     return (
       <Button size="sm" disabled={pending} onClick={onPublish}>
         {pending
-          ? "Confirmando…"
-          : `Confirmar ${ready.length} ${ready.length === 1 ? "alocação" : "alocações"}`}
+          ? "Aplicando…"
+          : `Aplicar ${ready.length} ${ready.length === 1 ? "alocação" : "alocações"}`}
       </Button>
     );
   }

@@ -114,6 +114,7 @@ function ClassSections({
     <div
       className={styles.sections}
       data-planning={(section === "planejamento" && detail.scheduleType === "REGULAR") || undefined}
+      data-lessons={section === "aulas" || undefined}
     >
       <Tabs
         value={section === "planejamento" && detail.scheduleType !== "REGULAR" ? "alunos" : section}

@@ -73,12 +73,21 @@ type AgendaController = {
 export function StudentAgendaDialog({
   profile,
   canSchedule,
+  secondary = false,
 }: {
   profile: StudentProfile;
   canSchedule: boolean;
+  secondary?: boolean;
 }): ReactElement {
   const controller = useAgendaController(profile);
-  return <AgendaDialogView profile={profile} canSchedule={canSchedule} controller={controller} />;
+  return (
+    <AgendaDialogView
+      profile={profile}
+      canSchedule={canSchedule}
+      controller={controller}
+      secondary={secondary}
+    />
+  );
 }
 
 function useAgendaController(profile: StudentProfile): AgendaController {
@@ -215,10 +224,12 @@ function AgendaDialogView({
   profile,
   canSchedule,
   controller,
+  secondary,
 }: {
   profile: StudentProfile;
   canSchedule: boolean;
   controller: AgendaController;
+  secondary: boolean;
 }): ReactElement {
   const { open, setOpen, pending, detailId, panel, returnToAgenda } = controller;
   return (
@@ -235,7 +246,7 @@ function AgendaDialogView({
         if (!next) returnToAgenda();
       }}
     >
-      <DialogTrigger render={<Button size="sm" />}>
+      <DialogTrigger render={<Button size="sm" variant={secondary ? "secondary" : "primary"} />}>
         <CalendarDays aria-hidden="true" /> Agenda do aluno
       </DialogTrigger>
       <DialogPortal>
@@ -446,6 +457,7 @@ function StudentAgendaCalendar({
       events={events}
       density="compact"
       widthBehavior="scroll"
+      expandedEventWidth={320}
       timeZone="America/Sao_Paulo"
       label="Compromissos do aluno"
       emptyMessage="Nenhuma aula ou atendimento neste período."
@@ -521,12 +533,16 @@ function AgendaEventButton({
       onClick={context.activate}
       aria-label={`${event.title}, ${event.date}, ${event.startTime} às ${event.endTime}. ${event.subtitle}. ${event.statusLabel}`}
     >
-      <strong>{event.title}</strong>
-      <span className={styles.eventTime}>
+      <strong data-calendar-detail>{event.title}</strong>
+      <span className={styles.eventTime} data-calendar-detail>
         {event.startTime}–{event.endTime}
       </span>
-      <span>{event.subtitle}</span>
-      <span className={styles.eventStatus}>{event.statusLabel}</span>
+      <span className={styles.eventTeacher} data-calendar-detail>
+        {event.subtitle}
+      </span>
+      <span className={styles.eventStatus} data-calendar-detail>
+        {event.statusLabel}
+      </span>
     </button>
   );
 }

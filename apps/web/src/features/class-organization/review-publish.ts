@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { trpc } from "~/lib/trpc";
-import { useOrganizationRefresh } from "~/features/semester-organization/shared";
-import type { Placement, SemesterBoard } from "./model";
+import { useOrganizationRefresh } from "~/features/class-organization/shared";
+import type { Placement, OrganizationBoard } from "./model";
 
 type PublishState = { working: boolean; error: string | null; confirm: () => Promise<void> };
 
@@ -11,7 +11,7 @@ export function useReviewPublish({
   onFeedback,
   clearSelection,
 }: {
-  board: SemesterBoard;
+  board: OrganizationBoard;
   selected: Placement[];
   onFeedback: (text: string) => void;
   clearSelection: () => void;
@@ -40,11 +40,11 @@ export function useReviewPublish({
       }
       clearSelection();
       onFeedback(
-        `${count} ${count === 1 ? "alocação confirmada" : "alocações confirmadas"}. Cada vínculo respeita sua data de vigência.`,
+        `${count} ${count === 1 ? "alocação aplicada" : "alocações aplicadas"}. Cada vínculo respeita sua data de vigência.`,
       );
     } catch (error_) {
       setError(
-        `${count ? `${count} alocações foram confirmadas. ` : ""}${error_ instanceof Error ? error_.message : "Não foi possível concluir. Atualize e tente novamente."}`,
+        `${count ? `${count} alocações foram aplicadas. ` : ""}${error_ instanceof Error ? error_.message : "Não foi possível concluir. Atualize e tente novamente."}`,
       );
     } finally {
       await refresh();

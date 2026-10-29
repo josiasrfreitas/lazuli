@@ -1,13 +1,15 @@
 import { useState, type ReactElement } from "react";
-import { Handshake, FilePenLine, ChevronDown } from "lucide-react";
+import { Handshake, FilePenLine, Ellipsis } from "lucide-react";
 import { TreatmentDialog } from "~/features/financial-treatments/treatment-dialog";
 import { CheckCircle2 } from "lucide-react";
 import {
   Button,
   DataTable,
-  Tabs,
-  TabsList,
-  TabsTab,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -82,24 +84,40 @@ function FinanceHeading({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <FinanceHeadingCopy filter={state.filter} />
-      <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={state.filter} onValueChange={state.setFilter}>
-          <TabsList aria-label="Filtrar parcelas">
-            <TabsTab value="overdue">
-              Pendências{state.summary.data ? ` · ${state.summary.data.overdueCount}` : ""}
-            </TabsTab>
-            <TabsTab value="all">Todas</TabsTab>
-            <TabsTab value="paid">Pagas</TabsTab>
-          </TabsList>
-        </Tabs>
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <FinanceManagementActions
           state={state}
           onTreat={onTreat}
           onManageContract={onManageContract}
         />
+        <div className="w-40">
+          <Select
+            value={state.filter}
+            onValueChange={(value) => {
+              if (value) state.setFilter(value);
+            }}
+          >
+            <SelectTrigger size="sm" aria-label="Filtrar cobranças">
+              <SelectValue>{financeFilterLabel(state)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="overdue">
+                Pendências{state.summary.data ? ` · ${state.summary.data.overdueCount}` : ""}
+              </SelectItem>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="paid">Pagas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );
+}
+
+function financeFilterLabel(state: StudentFinanceState): string {
+  if (state.filter === "overdue")
+    return `Pendências${state.summary.data ? ` · ${state.summary.data.overdueCount}` : ""}`;
+  return state.filter === "paid" ? "Pagas" : "Todas";
 }
 
 function FinanceManagementActions({
@@ -114,45 +132,22 @@ function FinanceManagementActions({
   const [open, setOpen] = useState(false);
   const contracts = state.summary.data ? visibleFinanceContracts(state.summary.data) : [];
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <ContractManagementActions
-        contracts={contracts}
-        open={open}
-        setOpen={setOpen}
-        onManageContract={onManageContract}
-      />
-      <Button variant="ghost" size="sm" onClick={onTreat}>
-        <Handshake aria-hidden="true" /> Negociar parcelas
-      </Button>
-    </div>
-  );
-}
-
-function ContractManagementActions({
-  contracts,
-  open,
-  setOpen,
-  onManageContract,
-}: {
-  contracts: ReturnType<typeof visibleFinanceContracts>;
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  onManageContract: (id: string) => void;
-}): ReactElement | null {
-  if (contracts.length === 0) return null;
-  if (contracts.length === 1)
-    return (
-      <Button variant="secondary" size="sm" onClick={() => onManageContract(contracts[0]!.id)}>
-        <FilePenLine aria-hidden="true" /> Renegociar / rescindir
-      </Button>
-    );
-  return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger render={<Button variant="secondary" size="sm" />}>
-        <FilePenLine aria-hidden="true" /> Renegociar / rescindir <ChevronDown aria-hidden="true" />
+        <Ellipsis aria-hidden="true" /> Outras ações
       </PopoverTrigger>
       <PopoverContent align="end" size="menu" showArrow={false}>
         <div className={styles.management}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setOpen(false);
+              onTreat();
+            }}
+          >
+            <Handshake aria-hidden="true" /> Negociar parcelas
+          </Button>
           {contracts.map((contract) => (
             <Button
               key={contract.id}
@@ -163,7 +158,10 @@ function ContractManagementActions({
                 onManageContract(contract.id);
               }}
             >
-              Contrato{contract.startsOn ? ` · ${formatDateOnlyBR(contract.startsOn)}` : ""}
+              <FilePenLine aria-hidden="true" /> Renegociar / rescindir
+              {contracts.length > 1 && contract.startsOn
+                ? ` · ${formatDateOnlyBR(contract.startsOn)}`
+                : ""}
             </Button>
           ))}
         </div>
@@ -173,13 +171,13 @@ function ContractManagementActions({
 }
 
 function FinanceHeadingCopy({ filter }: { filter: StudentFinanceState["filter"] }): ReactElement {
-  let description = "Parcelas e pagamentos do aluno.";
+  let description = "Mensalidades, material e demais cobranças do aluno.";
   if (filter === "overdue") description = "Vencimentos mais antigos primeiro.";
   else if (filter === "paid") description = "Cobranças quitadas deste aluno.";
   return (
     <div>
       <h2 id="student-charges-heading" className="font-display text-xl font-semibold text-heading">
-        {filter === "overdue" ? "Parcelas em atraso" : "Cobranças"}
+        {filter === "overdue" ? "Cobranças em atraso" : "Cobranças"}
       </h2>
       <p className="mt-1 text-caption text-muted-foreground">{description}</p>
     </div>
@@ -216,7 +214,7 @@ function FinanceTable({
     );
   return (
     <DataTable
-      label={state.filter === "overdue" ? "Cobranças que precisam de ação" : "Parcelas do aluno"}
+      label={state.filter === "overdue" ? "Cobranças que precisam de ação" : "Cobranças do aluno"}
       columns={financeColumns({
         onReceive: state.setPayment,
         priorityId: state.filter === "overdue" ? state.data?.rows[0]?.installmentId : undefined,
@@ -224,10 +222,10 @@ function FinanceTable({
       })}
       state={financeTableState(state)}
       onRetry={() => void state.query.refetch()}
-      errorTitle="Não foi possível carregar as parcelas"
+      errorTitle="Não foi possível carregar as cobranças"
       empty={{
         title: "Nenhuma cobrança vinculada",
-        description: "As parcelas de contratos e pedidos deste aluno aparecerão aqui.",
+        description: "As mensalidades, materiais e demais cobranças deste aluno aparecerão aqui.",
       }}
       updating={state.query.isFetching && !state.query.isPending}
       pagination={financePagination(state)}
@@ -247,7 +245,7 @@ function financePagination(state: StudentFinanceState): TablePaginationConfig {
     page: state.page,
     pageSize: FINANCE_INSTALLMENTS_PAGE_SIZE,
     onPageChange: state.setPage,
-    itemLabel: { singular: "parcela", plural: "parcelas" },
+    itemLabel: { singular: "cobrança", plural: "cobranças" },
   };
   return state.data
     ? { ...common, pageCount: Math.max(1, state.data.pageCount), totalItems: state.data.total }

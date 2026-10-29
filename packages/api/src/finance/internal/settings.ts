@@ -10,7 +10,6 @@ export type FinanceSettingsView = {
   maximumDiscountPct: number | null;
   punctualityDiscountPct: number;
   tuitionFloorCents: number | null;
-  interestRatePctDaily: number | null;
   interestRatePctMonthly: number | null;
   cancellationFeePct: number | null;
   materialPriceCents: number | null;
@@ -37,8 +36,6 @@ export async function readSettings(database: FinanceDatabase): Promise<FinanceSe
       row.tuitionCeilingCents === null || row.maximumDiscountPct === null
         ? null
         : tuitionFloorCents(row.tuitionCeilingCents, Number(row.maximumDiscountPct)),
-    interestRatePctDaily:
-      row.interestRatePctDaily === null ? null : Number(row.interestRatePctDaily),
     interestRatePctMonthly:
       row.interestRatePctMonthly === null ? null : Number(row.interestRatePctMonthly),
     cancellationFeePct: row.cancellationFeePct === null ? null : Number(row.cancellationFeePct),

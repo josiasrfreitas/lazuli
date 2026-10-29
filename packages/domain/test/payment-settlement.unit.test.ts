@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { quoteSettlement, type SettlementInput } from "../src/payment-settlement.js";
+import {
+  quoteSettlement,
+  settlementInterestDetails,
+  type SettlementInput,
+} from "../src/payment-settlement.js";
 
 const overdue: SettlementInput = {
   nominalCents: 100_000,
-  terms: { dueDate: "2026-01-31", dailyPct: 0.1, monthlyPct: 2, discountPct: 0 },
+  terms: { dueDate: "2026-01-31", monthlyPct: 2, discountPct: 0 },
   payments: [],
   principalAdjustments: [],
   postedInterestCents: 0,
@@ -12,31 +16,31 @@ const overdue: SettlementInput = {
 };
 void describe("payment settlement", () => {
   void it("allocates partial receipts to interest first and charges only incremental simple interest", () => {
-    assert.deepEqual(quoteSettlement({ ...overdue, receivedCents: 21_000 }), {
-      outstandingChargesCents: 1000,
+    assert.deepEqual(quoteSettlement({ ...overdue, receivedCents: 20_667 }), {
+      outstandingChargesCents: 667,
       balanceCents: 100_000,
-      newInterestCents: 1000,
+      newInterestCents: 667,
       discountCents: 0,
-      settlementCents: 101_000,
-      receivedCents: 21_000,
+      settlementCents: 100_667,
+      receivedCents: 20_667,
       remainingCents: 80_000,
     });
     const second = {
       ...overdue,
       effectiveDate: "2026-02-28",
-      postedInterestCents: 1000,
-      payments: [{ date: "2026-02-10", amountCents: 21_000 }],
+      postedInterestCents: 667,
+      payments: [{ date: "2026-02-10", amountCents: 20_667 }],
     };
-    assert.equal(quoteSettlement(second).newInterestCents, 3040);
-    assert.equal(quoteSettlement({ ...second, receivedCents: 13_040 }).remainingCents, 70_000);
+    assert.equal(quoteSettlement(second).newInterestCents, 960);
+    assert.equal(quoteSettlement({ ...second, receivedCents: 10_960 }).remainingCents, 70_000);
     const third = quoteSettlement({
       ...second,
       effectiveDate: "2026-03-31",
-      postedInterestCents: 4040,
-      payments: [...second.payments, { date: "2026-02-28", amountCents: 13_040 }],
+      postedInterestCents: 1627,
+      payments: [...second.payments, { date: "2026-02-28", amountCents: 10_960 }],
     });
-    assert.equal(third.newInterestCents, 3570);
-    assert.equal(third.settlementCents, 73_570);
+    assert.equal(third.newInterestCents, 1446);
+    assert.equal(third.settlementCents, 71_446);
   });
   void it("awards punctuality only when cumulative effective receipts complete the discounted price", () => {
     const timely = {
@@ -56,12 +60,12 @@ void describe("payment settlement", () => {
     assert.equal(completed.discountCents, 2000);
     assert.equal(completed.remainingCents, 0);
   });
-  void it("keeps February clamping from moving March anniversaries, including leap years", () => {
-    for (const [date, days, months] of [
-      ["2028-02-28", 28, 0],
-      ["2028-02-29", 29, 1],
-      ["2028-03-30", 59, 1],
-      ["2028-03-31", 60, 2],
+  void it("prorates actual elapsed days on a 30-day basis across leap February", () => {
+    for (const [date, expectedCents] of [
+      ["2028-02-28", 1867],
+      ["2028-02-29", 1933],
+      ["2028-03-30", 3933],
+      ["2028-03-31", 4000],
     ] as const) {
       assert.equal(
         quoteSettlement({
@@ -69,15 +73,14 @@ void describe("payment settlement", () => {
           terms: { ...overdue.terms, dueDate: "2028-01-31" },
           effectiveDate: date,
         }).newInterestCents,
-        days * 100 + months * 2000,
+        expectedCents,
       );
     }
   });
   void it("carries fractional cents across receipts instead of rounding each interval", () => {
     const tiny = {
       ...overdue,
-      nominalCents: 100,
-      terms: { ...overdue.terms, dailyPct: 0.5, monthlyPct: 0 },
+      nominalCents: 1000,
       effectiveDate: "2026-02-02",
     };
     assert.equal(quoteSettlement(tiny).newInterestCents, 1);
@@ -98,33 +101,33 @@ void describe("payment settlement", () => {
     const result = quoteSettlement({
       ...overdue,
       effectiveDate: "2026-02-20",
-      postedInterestCents: 1000,
+      postedInterestCents: 667,
       payments: [{ date: "2026-02-10", amountCents: 500 }],
     });
-    assert.equal(result.newInterestCents, 1000);
-    assert.equal(result.settlementCents, 101_500);
+    assert.equal(result.newInterestCents, 666);
+    assert.equal(result.settlementCents, 100_833);
   });
 });
 
 void it("uses dated principal adjustments before and between partial payments", () => {
-  // Jan 31: 1000 - 200 = 800; Feb 10: interest 8, receipt 108 leaves 700.
-  // Feb 15: interest 3.50, correction +100 leaves 800; Feb 20: interest 4,
-  // receipt 107.50 leaves 700. Feb 28 adds 5.60 daily +14 monthly.
+  // Each interval is 15 days (1%): 800 + 700 + 800 + 700 cents.
+  // Receipts cover accrued charges first, leaving 70,000 cents of principal.
   const result = quoteSettlement({
     ...overdue,
-    effectiveDate: "2026-02-28",
-    postedInterestCents: 1550,
+    terms: { ...overdue.terms, dueDate: "2026-01-01" },
+    effectiveDate: "2026-03-02",
+    postedInterestCents: 2300,
     principalAdjustments: [
-      { date: "2026-01-31", amountCents: -20_000 },
-      { date: "2026-02-15", amountCents: 10_000 },
+      { date: "2026-01-01", amountCents: -20_000 },
+      { date: "2026-01-31", amountCents: 10_000 },
     ],
     payments: [
-      { date: "2026-02-10", amountCents: 10_800 },
-      { date: "2026-02-20", amountCents: 10_750 },
+      { date: "2026-01-16", amountCents: 10_800 },
+      { date: "2026-02-15", amountCents: 11_500 },
     ],
   });
-  assert.equal(result.newInterestCents, 1960);
-  assert.equal(result.settlementCents, 71_960);
+  assert.equal(result.newInterestCents, 700);
+  assert.equal(result.settlementCents, 70_700);
 });
 
 void it("keeps a settled ledger closed when an older punctuality discount has only its recording date", () => {
@@ -144,16 +147,16 @@ void it("forgives only accrued charges and pauses simple interest without changi
   const input: SettlementInput = {
     ...overdue,
     effectiveDate: "2026-02-25",
-    postedInterestCents: 1000,
+    postedInterestCents: 667,
     chargeAdjustments: [{ date: "2026-02-10", amountCents: -500 }],
     suspensions: [{ date: "2026-02-10", newDueDate: "2026-02-20" }],
-    payments: [{ date: "2026-02-15", amountCents: 20_500 }],
+    payments: [{ date: "2026-02-15", amountCents: 20_167 }],
   };
-  // Only the remaining 80,000 principal accrues five days at 0.1%, independently of unpaid interest.
+  // Five days on 80,000 cents at 2%/30, carrying the earlier fraction: 266 new cents.
   const result = quoteSettlement(input);
-  assert.equal(result.newInterestCents, 400);
-  assert.equal(result.outstandingChargesCents, 400);
-  assert.equal(result.settlementCents, 80_400);
+  assert.equal(result.newInterestCents, 266);
+  assert.equal(result.outstandingChargesCents, 266);
+  assert.equal(result.settlementCents, 80_266);
   const suspended = quoteSettlement({ ...input, effectiveDate: "2026-02-20" });
   assert.equal(suspended.newInterestCents, 0);
   assert.equal(suspended.settlementCents, 80_000);
@@ -168,4 +171,73 @@ void it("does not restore the punctuality discount when an agreement moves the d
   assert.equal(result.discountCents, 0);
   assert.equal(result.newInterestCents, 0);
   assert.equal(result.settlementCents, 100_000);
+});
+
+void it("charges a single 2% monthly rate proportionally without a monthly anniversary surcharge", () => {
+  for (const [date, expectedCents] of [
+    ["2026-01-30", 0],
+    ["2026-01-31", 0],
+    ["2026-02-01", 67],
+    ["2026-02-15", 1000],
+    ["2026-03-02", 2000],
+    ["2026-03-03", 2067],
+    ["2026-03-17", 3000],
+    ["2026-04-01", 4000],
+  ] as const) {
+    assert.equal(
+      quoteSettlement({ ...overdue, effectiveDate: date }).newInterestCents,
+      expectedCents,
+      date,
+    );
+  }
+});
+
+void it("explains the exact days, principal and daily interest behind a simple quote", () => {
+  const details = settlementInterestDetails({ ...overdue, effectiveDate: "2026-02-15" });
+  assert.deepEqual(details, {
+    monthlyPct: 2,
+    dailyPct: 2 / 30,
+    overdueDays: 15,
+    postedInterestCents: 0,
+    accruedInterestCents: 1000,
+    periods: [
+      {
+        from: "2026-01-31",
+        through: "2026-02-15",
+        days: 15,
+        principalCents: 100_000,
+        dailyInterestCents: 200 / 3,
+      },
+    ],
+  });
+});
+
+void it("explains changed principal and excludes suspended days from charged periods", () => {
+  const details = settlementInterestDetails({
+    ...overdue,
+    effectiveDate: "2026-02-25",
+    postedInterestCents: 667,
+    chargeAdjustments: [{ date: "2026-02-10", amountCents: -500 }],
+    suspensions: [{ date: "2026-02-10", newDueDate: "2026-02-20" }],
+    payments: [{ date: "2026-02-15", amountCents: 20_167 }],
+  });
+  assert.equal(details.overdueDays, 25);
+  assert.equal(details.accruedInterestCents, 933);
+  assert.equal(details.postedInterestCents, 667);
+  assert.deepEqual(details.periods, [
+    {
+      from: "2026-01-31",
+      through: "2026-02-10",
+      days: 10,
+      principalCents: 100_000,
+      dailyInterestCents: 200 / 3,
+    },
+    {
+      from: "2026-02-20",
+      through: "2026-02-25",
+      days: 5,
+      principalCents: 80_000,
+      dailyInterestCents: 160 / 3,
+    },
+  ]);
 });

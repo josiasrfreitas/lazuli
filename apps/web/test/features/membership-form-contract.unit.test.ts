@@ -32,7 +32,7 @@ function render(overrides: Partial<Props> = {}): string {
       mode: "ENTRY",
       scheduleType: "REGULAR",
       state,
-      options: { teachers: [], semesters: [], stages: [] },
+      options: { teachers: [], filterTeachers: [], semesters: [], stages: [] },
       ...overrides,
     }),
   );
@@ -63,6 +63,7 @@ void it("keeps the individual stage choice available for personalized classes", 
     state: { ...state, stageId: "stage" },
     options: {
       teachers: [],
+      filterTeachers: [],
       semesters: [],
       stages: [{ id: "stage", name: "Essentials 1", internalCode: "E1" }],
     },

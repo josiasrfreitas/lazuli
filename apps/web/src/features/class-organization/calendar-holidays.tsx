@@ -6,7 +6,7 @@ import { trpc, type QueryResult } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { TaskDialog } from "~/features/shared/task-form";
 import { SelectControl } from "~/features/classes/form-controls";
-import { dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
+import { dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
 import type { OrganizationDialogProps as Props } from "./dialogs";
 import styles from "./organization.module.css";
 
@@ -192,7 +192,7 @@ function HolidayFields({
       )}
       <HolidayRows board={board} model={model} />
       {model.query.data && model.available.length === 0 && (
-        <p className={styles.small}>Nenhuma data sugerida dentro deste semestre.</p>
+        <p className={styles.small}>Nenhuma data sugerida dentro deste período.</p>
       )}
       <p className={styles.small}>
         Confira o calendário da escola. Feriados de Lagarto e datas próprias podem ser incluídos

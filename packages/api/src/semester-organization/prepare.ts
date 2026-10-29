@@ -1,4 +1,4 @@
-import type { Prisma, Semester } from "@lazuli/db";
+import type { Prisma, Period } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import {
   lockSemester,
@@ -24,7 +24,7 @@ type PreparationProgress = PreparationEnrollment["progressRecords"][number];
 type ClassPlan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
 type Placement = Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;
 type Slots = ReturnType<typeof readSlots>;
-type PreparationScope = { semester: Semester; source: Semester; current: boolean };
+type PreparationScope = { semester: Period; source: Period; current: boolean };
 
 /** Copy only missing records. Repeating this command never overwrites the coordinator's edits. */
 export async function prepareSemester(
@@ -36,7 +36,7 @@ export async function prepareSemester(
   const current = dateOnly(semester.startDate) <= today;
   const source = current
     ? semester
-    : await context.database.semester.findFirst({
+    : await context.database.period.findFirst({
         where: { deletedAt: null, startDate: { lt: semester.startDate } },
         orderBy: { startDate: "desc" },
       });
@@ -52,7 +52,6 @@ export async function prepareSemester(
   }
   if (!current) {
     students += await carryWaitingPlacements(context, scope);
-    await carryAvailability(context, scope);
   }
   if (plans || students)
     await recordActivity(context.database, {
@@ -182,12 +181,6 @@ async function prepareProgress(
   });
   if (exists) return false;
   const previous = await previousProgressPlacement(context, { scope, enrollment, progress });
-  await ensureInheritedAvailability(context, {
-    scope,
-    group,
-    slots,
-    studentId: enrollment.studentId,
-  });
   await persistPreparedProgress(context, { scope, plan, enrollment, progress, previous });
   return true;
 }
@@ -212,8 +205,10 @@ async function persistPreparedProgress(
     data: {
       semesterId: scope.semester.id,
       planId: previous?.continuity === "CHANGE" ? null : plan.id,
-      continuity: previous?.continuity ?? "UNDECIDED",
-      continuityReason: previous?.continuityReason ?? null,
+      continuity:
+        previous?.continuity === "STAY" ? "UNDECIDED" : (previous?.continuity ?? "UNDECIDED"),
+      continuityReason:
+        previous?.continuity === "STAY" ? null : (previous?.continuityReason ?? null),
       studentId: enrollment.studentId,
       trackId: progress.stage.trackId,
       stageId: progress.stageId,
@@ -257,49 +252,18 @@ async function previousProgressPlacement(
   });
 }
 
-async function ensureInheritedAvailability(
-  context: OrganizationContext,
-  {
-    scope,
-    group,
-    slots,
-    studentId,
-  }: {
-    scope: PreparationScope;
-    group: PreparationClass;
-    slots: Slots;
-    studentId: string;
-  },
-): Promise<void> {
-  const availability = await context.database.studentAvailability.findFirst({
-    where: { semesterId: scope.semester.id, studentId, deletedAt: null },
-    orderBy: { createdAt: "desc" },
-  });
-  if (availability) return;
-  const previous = await context.database.studentAvailability.findFirst({
-    where: { studentId, confirmed: true, deletedAt: null },
-    orderBy: { createdAt: "desc" },
-  });
-  await context.database.studentAvailability.create({
-    data: {
-      semesterId: scope.semester.id,
-      studentId,
-      confirmed: false,
-      validUntil: scope.semester.endDate,
-      formats: previous?.formats ?? [group.format],
-      slots: previous ? readSlots(previous.slots) : slots,
-      notes: previous?.notes ?? "Horário herdado da turma de origem; revise se o combinado mudou.",
-      recordedById: context.staffUser.id,
-    },
-  });
-}
-
 async function carryWaitingPlacements(
   context: OrganizationContext,
   scope: PreparationScope,
 ): Promise<number> {
   const waiting = await context.database.semesterPlacement.findMany({
-    where: { semesterId: scope.source.id, deletedAt: null, declinedAt: null, publishedAt: null },
+    where: {
+      semesterId: scope.source.id,
+      deletedAt: null,
+      declinedAt: null,
+      publishedAt: null,
+      sourceEnrollmentId: { not: null },
+    },
   });
   let students = 0;
   for (const previous of waiting)
@@ -331,72 +295,11 @@ async function carryWaitingPlacement(
       mode: previous.mode,
       notes: previous.notes,
       effectiveDate: scope.semester.startDate,
-      continuity: previous.continuity,
-      continuityReason: previous.continuityReason,
+      continuity: previous.continuity === "STAY" ? "UNDECIDED" : previous.continuity,
+      continuityReason: previous.continuity === "STAY" ? null : previous.continuityReason,
       recordedById: context.staffUser.id,
     },
   });
   await recordPlacementRevision(context, { id: row.id, action: "CARRIED_FORWARD" });
   return true;
-}
-
-async function carryAvailability(
-  context: OrganizationContext,
-  scope: PreparationScope,
-): Promise<void> {
-  const previousAvailability = await context.database.studentAvailability.findMany({
-    where: {
-      semesterId: scope.source.id,
-      deletedAt: null,
-      student: {
-        deletedAt: null,
-        status: "ACTIVE",
-        OR: [
-          { semesterPlacements: { none: { semesterId: scope.source.id, deletedAt: null } } },
-          {
-            semesterPlacements: {
-              some: {
-                semesterId: scope.source.id,
-                deletedAt: null,
-                publishedAt: null,
-                declinedAt: null,
-              },
-            },
-          },
-        ],
-      },
-    },
-    distinct: ["studentId"],
-    orderBy: { createdAt: "desc" },
-  });
-  for (const previous of previousAvailability)
-    await carryAvailabilityRecord(context, { scope, previous });
-}
-
-async function carryAvailabilityRecord(
-  context: OrganizationContext,
-  {
-    scope,
-    previous,
-  }: {
-    scope: PreparationScope;
-    previous: Prisma.StudentAvailabilityGetPayload<Prisma.StudentAvailabilityDefaultArgs>;
-  },
-): Promise<void> {
-  const exists = await context.database.studentAvailability.findFirst({
-    where: { semesterId: scope.semester.id, studentId: previous.studentId, deletedAt: null },
-  });
-  if (exists) return;
-  await context.database.studentAvailability.create({
-    data: {
-      semesterId: scope.semester.id,
-      studentId: previous.studentId,
-      validUntil: scope.semester.endDate,
-      formats: previous.formats,
-      slots: readSlots(previous.slots),
-      confirmed: false,
-      notes: previous.notes,
-      recordedById: context.staffUser.id,
-    },
-  });
 }

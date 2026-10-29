@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { toDateOnlySaoPaulo } from "~/lib/format";
 import { trpc, type QueryResult } from "~/lib/trpc";
-import { dateOnly } from "~/features/semester-organization/shared";
+import { dateOnly } from "~/features/class-organization/shared";
 import type { PedagogyDraft } from "./pedagogy-step";
 
 type SemesterList = RouterOutputs["semesterOrganization"]["semesters"];
@@ -33,8 +33,8 @@ export function usePedagogySemester(
   const currentId = current?.id;
   const nextId = next?.id;
   useEffect(() => {
-    if (!periods.data || draft.semesterId === currentId || draft.semesterId === nextId) return;
-    const semesterId = currentId ?? nextId ?? "";
+    if (!periods.data || draft.semesterId === currentId) return;
+    const semesterId = currentId ?? "";
     if (draft.semesterId !== semesterId) onChange({ ...draft, semesterId });
   }, [periods.data, currentId, nextId, draft, onChange]);
   return { periods, current, next, currentId, nextId };

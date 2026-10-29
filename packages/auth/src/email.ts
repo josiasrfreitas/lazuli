@@ -11,10 +11,14 @@ export function createPasswordResetSender(environment: AuthEnvironment): Passwor
   return async ({ email, url }) => {
     const resetUrl = new URL(url);
     const callback = resetUrl.searchParams.get("callbackURL");
-    const registering = callback !== null && new URL(callback, environment.appUrl).pathname === "/cadastrar-senha";
+    const registering =
+      callback !== null && new URL(callback, environment.appUrl).pathname === "/cadastrar-senha";
     const token = resetUrl.pathname.split("/").at(-1);
     if (!token) throw new Error("Password reset URL has no token");
-    const destination = new URL(registering ? "/cadastrar-senha" : "/login?mode=reset", environment.appUrl);
+    const destination = new URL(
+      registering ? "/cadastrar-senha" : "/login?mode=reset",
+      environment.appUrl,
+    );
     destination.hash = new URLSearchParams({ token }).toString();
     await sender.send({
       to: email,

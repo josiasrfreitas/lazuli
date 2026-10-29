@@ -2,22 +2,17 @@ import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
 import { studentPedagogyIntakeSchema, type StudentPedagogyIntake } from "@lazuli/validators";
 import { trpc } from "~/lib/trpc";
-import type { SlotDraft } from "~/features/semester-organization/slot-fields";
 import { PedagogyStepForm } from "./pedagogy-step-form";
 import { usePedagogySemester } from "./use-pedagogy-semester";
 
 export type PedagogyDraft = {
   semesterId: string;
   stageId: string;
-  format: "IN_PERSON" | "ONLINE";
-  slots: SlotDraft[];
   notes: string;
 };
 export const emptyPedagogyDraft = (semesterId = ""): PedagogyDraft => ({
   semesterId,
   stageId: "",
-  format: "IN_PERSON",
-  slots: [],
   notes: "",
 });
 export function pedagogyIntake(draft: PedagogyDraft): StudentPedagogyIntake {
@@ -26,8 +21,6 @@ export function pedagogyIntake(draft: PedagogyDraft): StudentPedagogyIntake {
     semesterId: draft.semesterId,
     stageId: draft.stageId || null,
     planId: null,
-    formats: [draft.format],
-    slots: draft.slots,
     notes: draft.notes,
   });
 }

@@ -1,8 +1,9 @@
 import type { JSX as ReactJSX } from "react";
 import type { ComponentProps } from "react";
 import Link from "next/link";
+import { CalendarDays, ClipboardCheck, ArrowUpRight } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Alert, Button } from "@lazuli/ui";
+import { Button, EmptyState } from "@lazuli/ui";
 import { InterestChoice } from "~/features/admissions/candidate-fields";
 import { IntakeStageSelect } from "~/features/admissions/intake-fields";
 import { IntakeClasses } from "./intake-classes";
@@ -49,7 +50,14 @@ export function IntakePedagogy({
         onCaptureLead={onCaptureLead}
         waitingPlacement={waitingPlacement}
       />
-      <IntakeClassChoices filters={filters} classes={classes} waitingPlacement={waitingPlacement} />
+      <IntakeClassChoices
+        filters={filters}
+        classes={classes}
+        waitingPlacement={waitingPlacement}
+        lead={lead}
+        draftRegistration={draftRegistration}
+        onCaptureLead={onCaptureLead}
+      />
     </>
   );
 }
@@ -101,7 +109,6 @@ function IntakeFilterPanel({
           </Button>
         )}
       </div>
-      {waitingPlacement && <PlacementWarning lead={lead} draftRegistration={draftRegistration} />}
     </div>
   );
 }
@@ -141,30 +148,43 @@ function IntakeFilterFields({
   );
 }
 
-function PlacementWarning({
+function PlacementPending({
   lead,
   draftRegistration,
-}: Pick<Props, "lead" | "draftRegistration">): ReactJSX.Element {
+  onCaptureLead,
+}: Pick<Props, "lead" | "draftRegistration" | "onCaptureLead">): ReactJSX.Element {
   return (
-    <Alert variant="warning">
-      O estágio depende da prova. Você pode seguir para o contrato e resolver o nivelamento depois.{" "}
-      {lead ? (
-        <Link
-          className="underline"
-          href={`/interessados/${lead.id}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Abrir nivelamento em outra aba
-        </Link>
-      ) : (
-        <span>
-          {draftRegistration?.placement
-            ? `A prova será agendada em ${draftRegistration.placement.date.split("-").toReversed().join("/")} às ${draftRegistration.placement.startTime} ao concluir o cadastro.`
-            : "O nivelamento ficará pendente ao concluir o cadastro."}
-        </span>
-      )}
-    </Alert>
+    <EmptyState
+      icon={<ClipboardCheck />}
+      title="Vamos concluir o nivelamento"
+      description="Aluno registrado já com certa experiência em inglês. Conclua o nivelamento para seguir com o cadastro pedagógico."
+      action={
+        lead ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={`/interessados/${lead.id}`} target="_blank" rel="noreferrer" />}
+          >
+            Ir para o nivelamento <ArrowUpRight aria-hidden="true" />
+            <span className="sr-only"> (abre em outra aba)</span>
+          </Button>
+        ) : (
+          <div className="grid justify-items-center gap-3">
+            <p className="max-w-sm text-caption text-muted-foreground">
+              {draftRegistration?.placement
+                ? `A prova será agendada em ${draftRegistration.placement.date.split("-").toReversed().join("/")} às ${draftRegistration.placement.startTime} ao concluir o cadastro.`
+                : "Salve o cadastro para concluir o nivelamento."}
+            </p>
+            {onCaptureLead && (
+              <Button variant="secondary" size="sm" onClick={onCaptureLead}>
+                Revisar nivelamento
+              </Button>
+            )}
+          </div>
+        )
+      }
+    />
   );
 }
 
@@ -172,20 +192,35 @@ function IntakeClassChoices({
   filters,
   classes,
   waitingPlacement,
-}: Pick<Props, "filters" | "classes"> & { waitingPlacement: boolean }): ReactJSX.Element {
-  let content: ReactJSX.Element;
-  if (waitingPlacement)
-    content = (
-      <p className="rounded-lg border border-dashed border-border p-6 text-caption text-muted-foreground">
-        As turmas ficam disponíveis após a definição do estágio no nivelamento.
-      </p>
+  lead,
+  draftRegistration,
+  onCaptureLead,
+}: Pick<Props, "filters" | "classes" | "lead" | "draftRegistration" | "onCaptureLead"> & {
+  waitingPlacement: boolean;
+}): ReactJSX.Element {
+  if (!waitingPlacement && filters.stageId)
+    return (
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <IntakeClasses {...classes} />
+      </div>
     );
-  else if (filters.stageId) content = <IntakeClasses {...classes} />;
-  else
-    content = (
-      <p className="rounded-lg border border-dashed border-border p-6 text-caption text-muted-foreground">
-        Escolha o estágio para ver as turmas e os horários.
-      </p>
-    );
-  return <div className="flex min-h-0 min-w-0 flex-1 flex-col">{content}</div>;
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-muted/30">
+        {waitingPlacement ? (
+          <PlacementPending
+            lead={lead}
+            draftRegistration={draftRegistration}
+            onCaptureLead={onCaptureLead}
+          />
+        ) : (
+          <EmptyState
+            icon={<CalendarDays />}
+            title="Vamos encontrar a turma"
+            description="Escolha o estágio acima para explorar as turmas e os horários disponíveis."
+          />
+        )}
+      </div>
+    </div>
+  );
 }

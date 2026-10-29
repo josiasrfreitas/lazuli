@@ -1,12 +1,15 @@
 import { saoPauloDateOnly } from "@lazuli/domain";
 
 export const HOME_GROUPS = [
+  "health",
+  "occurrences",
   "coverage",
   "lessons",
   "appointments",
   "placement",
   "allocation",
   "students",
+  "documents",
   "contracts",
   "renewals",
   "semester",
@@ -18,7 +21,7 @@ export type HomeAction =
   | { kind: "appointment"; id: string; studentId?: string };
 /** Facts for triage; a waiting timestamp is not a promised deadline. */
 export type HomeTiming =
-  | { kind: "meeting"; date: string; startTime: string; endTime: string }
+  | { kind: "departure"; date: string }
   | { kind: "record"; date: string; endTime: string }
   | { kind: "waiting"; since: string }
   | { kind: "entry"; date: string };
@@ -32,6 +35,9 @@ export type HomeItem = {
   departedTeacherName?: string;
   stageName?: string;
   studentCount?: number;
+  ageDays?: number;
+  placementPhase?: "APPLICATION" | "CORRECTION";
+  missingDocuments?: ("student" | "guardian" | "residence" | "photo")[];
 };
 export type HomeGroup = {
   kind: HomeGroupKind;
@@ -46,9 +52,21 @@ export type HomeGroup = {
   historyItem?: HomeItem;
 };
 export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "total" | "items">> = {
+  health: {
+    title: "Score baixo",
+    description: "Alunos com score abaixo de 70 ou em observação após recuperação.",
+    area: "school",
+    attention: true,
+  },
+  occurrences: {
+    title: "Ocorrências pendentes",
+    description: "Ocorrências abertas ou em acompanhamento.",
+    area: "school",
+    attention: true,
+  },
   coverage: {
     title: "Turmas sem professor",
-    description: "Definir professor para turmas atuais e futuras ou cobertura de encontros.",
+    description: "Professores com saída marcada e turmas que precisam de sucessor.",
     area: "school",
     attention: true,
   },
@@ -65,8 +83,8 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
     attention: true,
   },
   placement: {
-    title: "Nivelamentos por corrigir",
-    description: "Provas recebidas que aguardam a definição do estágio.",
+    title: "Nivelamentos pendentes",
+    description: "Nivelamentos que aguardam aplicação ou correção da prova.",
     area: "admissions",
     attention: false,
   },
@@ -77,8 +95,14 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
     attention: false,
   },
   students: {
-    title: "Alunos aguardando turma",
-    description: "Alunos ativos sem matrícula atual ou futura.",
+    title: "Novos alunos aguardando turma",
+    description: "Alunos novos sem primeira turma definida.",
+    area: "school",
+    attention: false,
+  },
+  documents: {
+    title: "Aluno com anexos cadastrais ausentes ou incompletos",
+    description: "Alunos ativos sem todos os anexos do cadastro.",
     area: "school",
     attention: false,
   },
@@ -105,9 +129,7 @@ export const HOME_GROUP_INFO: Record<HomeGroupKind, Omit<HomeGroup, "kind" | "to
 const DATE_LENGTH = 10;
 const DAY_MS = 86_400_000;
 export const HOME_PAGE_SIZE = 12;
-export const HOME_PREVIEW_SIZE = 3;
-export const COVERAGE_DAYS = 6;
-export const RENEWAL_DAYS = 30;
+export const HOME_PREVIEW_SIZE = 4;
 export function dateOnly(date: Date): string {
   return date.toISOString().slice(0, DATE_LENGTH);
 }

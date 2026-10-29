@@ -37,7 +37,7 @@ export async function organizationSemester(
   const year = startDate.getUTCFullYear();
   const half = startDate.getUTCMonth() < SECOND_HALF_START_MONTH ? 1 : 2;
   const name = `${year}.${half}`;
-  const semester = await database.semester.create({
+  const semester = await database.period.create({
     data: {
       id: organizationId("window", { semesterName: name, key: "semester" }),
       name,
@@ -170,7 +170,7 @@ async function materializePublishedSessions(input: PublishedClassInput, id: stri
   });
   const [closures, semesters] = await Promise.all([
     database.schoolClosedDay.findMany({ where: { deletedAt: null }, select: { date: true } }),
-    database.semester.findMany({
+    database.period.findMany({
       where: { deletedAt: null },
       select: { id: true, name: true, startDate: true, endDate: true },
     }),

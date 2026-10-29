@@ -13,7 +13,8 @@ export type LoginInitialError = "denied" | "verification";
 const DESCRIPTION: Record<LoginMode, string> = {
   password: "Entre com seu email e sua senha.",
   "magic-link": "Receba um link no email para entrar sem senha.",
-  register: "Receba um link no email cadastrado na escola. Ao abrir, você volta aqui para escolher sua senha.",
+  register:
+    "Receba um link no email cadastrado na escola. Ao abrir, você volta aqui para escolher sua senha.",
   recover: "Enviaremos um link no seu email para você escolher uma nova senha.",
   reset: "Escolha sua senha para entrar na Lazuli.",
   "set-password": "Escolha uma senha para os próximos acessos à Lazuli.",
@@ -28,7 +29,9 @@ export function LoginCard({
   initialMode?: LoginMode;
   token?: string | null;
 }): ReactNode {
-  const [mode, setMode] = useState<LoginMode>(initialError === "verification" ? "magic-link" : initialMode);
+  const [mode, setMode] = useState<LoginMode>(
+    initialError === "verification" ? "magic-link" : initialMode,
+  );
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [complete, setComplete] = useState(false);
@@ -60,7 +63,12 @@ export function LoginCard({
   }, [token]);
 
   useEffect(() => {
-    if (lastFocusState.current.mode === mode && lastFocusState.current.complete === complete && lastFocusState.current.invalidReset === invalidReset) return;
+    if (
+      lastFocusState.current.mode === mode &&
+      lastFocusState.current.complete === complete &&
+      lastFocusState.current.invalidReset === invalidReset
+    )
+      return;
     lastFocusState.current = { mode, complete, invalidReset };
     container.current
       ?.querySelector<HTMLElement>(complete ? '[role="status"]' : "input, button")
@@ -74,7 +82,8 @@ export function LoginCard({
     setError(null);
     setExpired(false);
     setLinkToken(null);
-    if (linkToken || window.location.pathname !== "/login") window.history.replaceState(window.history.state, "", "/login");
+    if (linkToken || window.location.pathname !== "/login")
+      window.history.replaceState(window.history.state, "", "/login");
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -86,7 +95,10 @@ export function LoginCard({
     setError(null);
     const failure = await submitLogin(mode, email.trim(), password, linkToken);
     setError(failure?.message ?? null);
-    if (failure?.expired) { setExpired(true); setError(null); }
+    if (failure?.expired) {
+      setExpired(true);
+      setError(null);
+    }
     if (failure === null && mode !== "password") setComplete(true);
     if (failure !== null || mode !== "password") {
       setPending(false);
@@ -102,14 +114,20 @@ export function LoginCard({
       data-error={error !== null || undefined}
       data-mode-change={modeDirection ?? undefined}
     >
-      <h2 key={`title-${complete ? "complete" : mode}`} className={styles.accessTitle} id="login-title">
+      <h2
+        key={`title-${complete ? "complete" : mode}`}
+        className={styles.accessTitle}
+        id="login-title"
+      >
         {complete ? (definingPassword ? "Senha salva." : "Confira seu email.") : title(mode)}
       </h2>
       {complete ? (
         <LoginComplete mode={mode} email={email} onBack={() => changeMode("password")} />
       ) : (
         <>
-          <p key={`description-${mode}`} className={styles.accessDescription}>{DESCRIPTION[mode]}</p>
+          <p key={`description-${mode}`} className={styles.accessDescription}>
+            {DESCRIPTION[mode]}
+          </p>
           <div key={`methods-${mode}`} className={styles.methods}>
             <div className={styles.controlStack}>
               {error && (
@@ -184,7 +202,8 @@ function LoginComplete({
           "Tudo pronto. Entre com seu email e sua nova senha."
         ) : passwordEmail ? (
           <>
-            Se <strong>{email}</strong> tiver acesso à Lazuli, você receberá um link para {mode === "register" ? "cadastrar" : "recuperar"} sua senha.
+            Se <strong>{email}</strong> tiver acesso à Lazuli, você receberá um link para{" "}
+            {mode === "register" ? "cadastrar" : "recuperar"} sua senha.
           </>
         ) : (
           <>
@@ -195,15 +214,11 @@ function LoginComplete({
       {!saved && (
         <p className="mt-4 text-body leading-relaxed text-marquee-muted">
           Se não encontrar o email, confira a caixa de spam.
-          {passwordEmail && " Abra o link para escolher sua senha no site. Ele vale por 1 hora."}
+          {passwordEmail &&
+            " Abra o link para escolher sua senha no site. Ele vale por 15 minutos."}
         </p>
       )}
-      <Button
-        className="mt-5"
-        size="lg"
-        variant={saved ? "primary" : "secondary"}
-        onClick={onBack}
-      >
+      <Button className="mt-5" size="lg" variant={saved ? "primary" : "secondary"} onClick={onBack}>
         {saved ? "Entrar com minha senha" : "Voltar para o login"}
       </Button>
     </div>

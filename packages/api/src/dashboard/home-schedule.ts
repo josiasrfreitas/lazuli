@@ -1,8 +1,8 @@
 import type { Prisma } from "@lazuli/db";
-import { responsibleTeacherId, saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
-import { readUnassignedClasses } from "./home-coverage.js";
+import { saoPauloDateOnly } from "@lazuli/domain";
+import { readCoverage as readDepartureCoverage } from "./home-coverage.js";
 import { meetingsBetween, meetingKey, type TeacherMeeting } from "../teachers/schedule.js";
-import { COVERAGE_DAYS, dateOnly, linkItem, plusDays, type HomeItem } from "./home-model.js";
+import { dateOnly, linkItem, type HomeItem } from "./home-model.js";
 
 const TIME_START = 11;
 const TIME_END = 16;
@@ -40,57 +40,7 @@ export async function readCoverage(
   database: Prisma.TransactionClient,
   now: Date,
 ): Promise<HomeItem[]> {
-  const today = saoPauloDateOnly(now);
-  const meetings = await meetingsBetween({
-    database,
-    from: today,
-    through: plusDays(today, COVERAGE_DAYS),
-    now,
-  });
-  const uncovered = meetings
-    .filter(
-      (row) => !row.cancelled && responsibleTeacherId(row) === null && sessionEndInstant(row) > now,
-    )
-    .toSorted(
-      (left, right) =>
-        left.date.localeCompare(right.date) ||
-        left.startTime.localeCompare(right.startTime) ||
-        meetingKey(left).localeCompare(meetingKey(right)),
-    )
-    .map((row) =>
-      linkItem({
-        id: meetingKey(row),
-        title: row.className,
-        stageName: row.scheduleType === "PERSONALIZED" ? "PPT" : (row.stageName ?? "Sem estágio"),
-        detail: `${row.startTime} · Definir professor ou substituição`,
-        href: `/turmas/${row.classId}?acao=professor`,
-        date: row.date,
-        timing: { kind: "meeting", date: row.date, startTime: row.startTime, endTime: row.endTime },
-      }),
-    );
-  const classes = await readUnassignedClasses(database, now);
-  return mergeCoverageItems(uncovered, classes);
-}
-
-function mergeCoverageItems(uncovered: HomeItem[], classes: HomeItem[]): HomeItem[] {
-  // One contextual item per class, keeping its earliest uncovered meeting when available.
-  const byClass = new Map<string, HomeItem>();
-  for (const item of [...uncovered, ...classes]) {
-    const key = item.action.kind === "link" ? item.action.href : item.id;
-    const existing = byClass.get(key);
-    if (existing)
-      byClass.set(key, {
-        ...existing,
-        detail: item.detail,
-        ...(item.departedTeacherName !== undefined && {
-          departedTeacherName: item.departedTeacherName,
-        }),
-        ...(item.stageName !== undefined && { stageName: item.stageName }),
-        ...(item.studentCount !== undefined && { studentCount: item.studentCount }),
-      });
-    else byClass.set(key, item);
-  }
-  return [...byClass.values()];
+  return readDepartureCoverage(database, now);
 }
 export async function readHomeAgenda(
   database: Prisma.TransactionClient,

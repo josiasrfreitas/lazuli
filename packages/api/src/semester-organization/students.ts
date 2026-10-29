@@ -33,17 +33,10 @@ const progressInclude = {
   stagePlan: { select: { plannedEndOn: true } },
 } satisfies Prisma.PedagogicalProgressInclude;
 type Progress = Prisma.PedagogicalProgressGetPayload<{ include: typeof progressInclude }>;
-type Availability = Prisma.StudentAvailabilityGetPayload<{
-  include: { recordedBy: { select: { name: true } } };
-}>;
-type PreviousAvailability =
-  Prisma.StudentAvailabilityGetPayload<Prisma.StudentAvailabilityDefaultArgs>;
-type Lead = Prisma.AdmissionCandidateGetPayload<{ include: { availability: true } }>;
+type Lead = Prisma.AdmissionCandidateGetPayload<Prisma.AdmissionCandidateDefaultArgs>;
 type StudentDetail = {
   student: Pick<StudentModel, "id" | "fullName" | "status">;
   progress: Progress[];
-  availability: Availability[];
-  previousAvailability: PreviousAvailability | null;
   lead: Lead | null;
 };
 
@@ -116,7 +109,7 @@ export async function organizationStudent(
     select: { id: true, fullName: true, status: true },
   });
   if (!student) throw notFound("Aluno não encontrado.");
-  const [progress, availability, previousAvailability, lead] = await Promise.all([
+  const [progress, lead] = await Promise.all([
     context.database.pedagogicalProgress.findMany({
       where: {
         deletedAt: null,
@@ -126,21 +119,10 @@ export async function organizationStudent(
       },
       include: progressInclude,
     }),
-    context.database.studentAvailability.findMany({
-      where: { studentId, semesterId },
-      include: { recordedBy: { select: { name: true } } },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: 20,
-    }),
-    context.database.studentAvailability.findFirst({
-      where: { studentId, semesterId: { not: semesterId }, confirmed: true },
-      orderBy: { createdAt: "desc" },
-    }),
     context.database.admissionCandidate.findFirst({
       where: { studentId, deletedAt: null },
-      include: { availability: true },
       orderBy: { updatedAt: "desc" },
     }),
   ]);
-  return { student, progress, availability, previousAvailability, lead };
+  return { student, progress, lead };
 }

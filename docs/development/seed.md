@@ -95,7 +95,9 @@ acordos se distribuem por nove meses, de oito meses antes da referência até o 
 44, 32, 28, 24, 26, 22, 18, 16 e dez contratos. A vigência começa no primeiro vencimento, pelo
 menos sete dias após o acordo, e dura 12 meses; a janela comercial não é a janela de matrícula. Mensalidades nominais variam de R$ 200 a R$ 250,
 com dias de vencimento entre 5 e 25 e desconto por pontualidade definido nos ajustes financeiros.
-Nenhuma parcela futura recebe pagamento.
+Nenhuma parcela futura recebe pagamento. Os juros usam uma única taxa de 2% ao mês,
+proporcional aos dias de atraso sobre base de 30 dias, sem capitalização. Recebimentos e
+ajustes são gerados pela API com essa regra, inclusive nos pagamentos parciais.
 
 | Perfil            | Contratos | Recebimentos                                                             |
 | ----------------- | --------: | ------------------------------------------------------------------------ |

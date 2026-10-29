@@ -304,7 +304,7 @@ function placementActionLabel({
 }): string {
   if (canUpload) return "Anexar prova";
   if (visit.assessment?.stageId) return "Ver resultado";
-  if (visit.assessment && status === "WAITING") return "Corrigir prova";
+  if (visit.assessment && status !== "ARCHIVED") return "Corrigir prova";
   return "Abrir atendimento";
 }
 

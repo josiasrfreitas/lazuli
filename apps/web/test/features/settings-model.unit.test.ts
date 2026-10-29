@@ -14,7 +14,6 @@ const fields: SettingsFields = {
   tuitionCeilingCents: "250,00",
   maximumDiscountPct: "20",
   punctualityDiscountPct: "0",
-  interestRatePctDaily: "0,1",
   interestRatePctMonthly: "2",
   cancellationFeePct: "10",
   childMaterialInstallments: "6",
@@ -24,14 +23,13 @@ const fields: SettingsFields = {
   materialCardFeePct: "10",
 };
 
-void it("converts decimal entries to cents and percentage points without losing the daily fraction", () => {
+void it("converts decimal entries to cents and percentage points with monthly percentage precision", () => {
   assert.deepEqual(validateSettings(fields), {
     success: true,
     values: {
       tuitionCeilingCents: 25_000,
       maximumDiscountPct: 20,
       punctualityDiscountPct: 0,
-      interestRatePctDaily: 0.1,
       interestRatePctMonthly: 2,
       cancellationFeePct: 10,
       childMaterialInstallments: 6,
@@ -48,16 +46,16 @@ void it("shows units with current values and omits unnecessary decimal places", 
   assert.equal(displaySetting("tuitionCeilingCents", "250,00"), "R$250");
   assert.equal(displaySetting("childMaterialInstallmentCents", "120,50"), "R$120,50");
   assert.equal(displaySetting("maximumDiscountPct", "20"), "20%");
-  assert.equal(displaySetting("interestRatePctDaily", "0,1"), "0,1%");
+  assert.equal(displaySetting("interestRatePctMonthly", "0,1"), "0,1%");
   assert.equal(displaySetting("interestRatePctMonthly", "0"), "0%");
   assert.equal(displaySetting("childMaterialInstallmentCents", ""), "—");
 });
 
-void it("accepts four decimal places for daily interest and validates its percentage bounds", () => {
-  assert.equal(validateSettings({ ...fields, interestRatePctDaily: "0,1234" }).success, true);
-  assert.deepEqual(validateSettings({ ...fields, interestRatePctDaily: "0,12345" }), {
+void it("accepts four decimal places for monthly interest and validates its percentage bounds", () => {
+  assert.equal(validateSettings({ ...fields, interestRatePctMonthly: "0,1234" }).success, true);
+  assert.deepEqual(validateSettings({ ...fields, interestRatePctMonthly: "0,12345" }), {
     success: false,
-    errors: { interestRatePctDaily: "Use no máximo quatro casas decimais." },
+    errors: { interestRatePctMonthly: "Use no máximo quatro casas decimais." },
   });
   assert.deepEqual(validateSettings({ ...fields, interestRatePctMonthly: "101" }), {
     success: false,
@@ -70,8 +68,7 @@ void it("keeps missing general settings blank and starts book terms with the own
     tuitionCeilingCents: "",
     maximumDiscountPct: "",
     punctualityDiscountPct: "0",
-    interestRatePctDaily: "",
-    interestRatePctMonthly: "",
+    interestRatePctMonthly: "2",
     cancellationFeePct: "",
     childMaterialInstallments: "6",
     childMaterialInstallmentCents: "123,00",
@@ -79,9 +76,9 @@ void it("keeps missing general settings blank and starts book terms with the own
     adultMaterialInstallmentCents: "136,00",
     materialCardFeePct: "10",
   });
-  assert.deepEqual(validateSettings({ ...fields, interestRatePctDaily: " " }), {
+  assert.deepEqual(validateSettings({ ...fields, interestRatePctMonthly: " " }), {
     success: false,
-    errors: { interestRatePctDaily: "Informe um valor." },
+    errors: { interestRatePctMonthly: "Informe um valor." },
   });
 });
 
@@ -89,7 +86,6 @@ void it("allows explicit zero rates and material price while rejecting a zero tu
   const zero = {
     ...fields,
     maximumDiscountPct: "0",
-    interestRatePctDaily: "0",
     interestRatePctMonthly: "0",
     cancellationFeePct: "0",
     childMaterialInstallmentCents: "0",
@@ -100,7 +96,6 @@ void it("allows explicit zero rates and material price while rejecting a zero tu
       tuitionCeilingCents: 25_000,
       maximumDiscountPct: 0,
       punctualityDiscountPct: 0,
-      interestRatePctDaily: 0,
       interestRatePctMonthly: 0,
       cancellationFeePct: 0,
       childMaterialInstallments: 6,

@@ -39,7 +39,6 @@ export async function placementRevision(
         enrollmentId: row.enrollmentId,
         entryActionId: row.entryActionId,
         sourceExitActionId: row.sourceExitActionId,
-        availabilityId: row.availabilityId,
         publishedAt: row.publishedAt?.toISOString() ?? null,
         notes: row.notes,
       },
@@ -54,7 +53,6 @@ type StudentPublication = {
   entryDate: Date;
   subject: PlacementSubject;
   classId: string;
-  availabilityId: string;
 };
 
 type VerifiedPublication = StudentPublication & {
@@ -182,7 +180,7 @@ async function publishPlacement(
     sourceExitActionId: string;
   },
 ): Promise<void> {
-  const { context, semesterName, subject, availabilityId } = input;
+  const { context, semesterName, subject } = input;
   const database = context.database;
   const { placementId, enrollmentId, entryActionId, sourceExitActionId } = ids;
   await database.semesterPlacement.update({
@@ -194,7 +192,6 @@ async function publishPlacement(
       enrollmentId,
       entryActionId,
       sourceExitActionId,
-      availabilityId,
       updatedAt: context.now,
       publishedEvidence: {
         sourceProgressId: subject.progress.id,

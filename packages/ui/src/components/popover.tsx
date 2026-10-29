@@ -6,6 +6,7 @@ import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "../lib/utils";
+import { anchoredMotion } from "../lib/anchored-motion";
 
 const DEFAULT_SIDE_OFFSET = 8;
 
@@ -30,16 +31,7 @@ export const popoverContentVariants = cva(
         menu: "w-max max-w-[calc(100vw-1rem)] p-1.5",
       },
       motion: {
-        default: [
-          "will-change-[opacity,transform] transition-[opacity,transform] duration-base ease-standard data-[ending-style]:duration-fast",
-          "data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
-          "data-[ending-style]:scale-98 data-[ending-style]:opacity-0",
-          "data-[side=top]:data-[starting-style]:translate-y-1.5 data-[side=top]:data-[ending-style]:translate-y-0.5",
-          "data-[side=bottom]:data-[starting-style]:-translate-y-1.5 data-[side=bottom]:data-[ending-style]:-translate-y-0.5",
-          "data-[side=left]:data-[starting-style]:translate-x-1.5 data-[side=left]:data-[ending-style]:translate-x-0.5",
-          "data-[side=right]:data-[starting-style]:-translate-x-1.5 data-[side=right]:data-[ending-style]:-translate-x-0.5",
-          "motion-reduce:transition-none motion-reduce:data-[starting-style]:translate-x-0 motion-reduce:data-[starting-style]:translate-y-0 motion-reduce:data-[starting-style]:scale-100",
-        ],
+        default: anchoredMotion,
         instant: "transition-none",
         unfold: "lz-popover-unfold",
       },

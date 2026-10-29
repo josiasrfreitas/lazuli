@@ -2,11 +2,9 @@
   display: grid;
   min-width: 0;
   gap: 1.25rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border);
-}
-.overview:not([aria-busy]) {
-  animation: details-arrive 300ms var(--lz-ease-standard);
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  background: var(--accent);
 }
 .heading {
   display: flex;
@@ -14,6 +12,15 @@
   align-items: start;
   justify-content: space-between;
   gap: 1rem;
+}
+.overviewFacts {
+  display: grid;
+  gap: 1rem 2rem;
+}
+@media (min-width: 1024px) {
+  .overviewFacts {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  }
 }
 .essentials {
   display: grid;
@@ -45,8 +52,36 @@
 .details {
   display: grid;
   gap: 1.75rem;
-  padding-top: 1rem;
-  animation: details-arrive 300ms var(--lz-ease-standard);
+  min-width: 0;
+  align-content: start;
+}
+.contractDates {
+  display: grid;
+  gap: 1rem;
+}
+.contractDatesRow {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+}
+.contractDatesRow > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.125rem 0.75rem;
+}
+.contractDatesRow dt {
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+}
+.contractDatesRow dd {
+  color: var(--heading);
+  font-size: var(--lz-text-control);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.contractDatesRow dd.dueValue {
+  font-weight: 700;
 }
 .management {
   display: grid;
@@ -55,16 +90,6 @@
 }
 .management > button {
   justify-content: flex-start;
-}
-@keyframes details-arrive {
-  from {
-    opacity: 0.4;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 @media (max-width: 640px) {
   .essentials {
@@ -79,9 +104,62 @@
     font-size: 1.5rem;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .details,
-  .overview {
-    animation: none;
+.detailsLayout {
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 1rem;
+}
+.proofs {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+@media (min-width: 768px) {
+  .detailsLayout[data-with-proofs] {
+    grid-template-columns: minmax(0, 1fr) 19rem;
   }
+  .proofs {
+    border-top: 0;
+    border-left: 1px solid var(--border);
+    padding-top: 0;
+    padding-left: 1.25rem;
+  }
+}
+
+.paymentHistory {
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+.paymentHistory > summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
+  font-weight: 500;
+}
+.paymentHistory > summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.paymentHistory > div {
+  margin-top: 0.75rem;
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* This reading dialog opens at its final size; no zoom or layout transition. */
+.detailsDialog.detailsDialog,
+.detailsDialog.detailsDialog[data-starting-style],
+.detailsDialog.detailsDialog[data-ending-style] {
+  animation: none;
+  transition: none;
+  scale: 1;
+  opacity: 1;
+}
+.detailsBackdrop.detailsBackdrop {
+  animation: none;
+  transition: none;
+  opacity: 1;
 }

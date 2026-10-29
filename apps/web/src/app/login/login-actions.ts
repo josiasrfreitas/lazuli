@@ -15,11 +15,14 @@ export async function submitLogin(
     if (mode === "password") {
       const result = await authClient.signIn.email({ email, password });
       if (result.error)
-        return { message: result.error.status === 429
-          ? "Muitas tentativas. Aguarde um pouco e tente novamente."
-          : result.error.code === "STAFF_ACCESS_DENIED"
-            ? DENIED_MESSAGE
-            : "Não foi possível entrar. Confira email e senha ou recupere sua senha." };
+        return {
+          message:
+            result.error.status === 429
+              ? "Muitas tentativas. Aguarde um pouco e tente novamente."
+              : result.error.code === "STAFF_ACCESS_DENIED"
+                ? DENIED_MESSAGE
+                : "Não foi possível entrar. Confira email e senha ou recupere sua senha.",
+        };
       window.location.assign("/?entrada=1");
       return null;
     }
@@ -44,9 +47,15 @@ export async function submitLogin(
     }
     const result = await authClient.resetPassword({ newPassword: password, token: token ?? "" });
     if (result.error)
-      return { expired: result.error.code === "INVALID_TOKEN", message: result.error.code === "INVALID_TOKEN"
-        ? "Link inválido ou expirado. Solicite um novo link para definir sua senha."
-        : "Não foi possível salvar a senha. Use de 12 a 128 caracteres e tente novamente." };
+      return {
+        expired: result.error.code === "INVALID_TOKEN",
+        message:
+          result.error.code === "INVALID_TOKEN"
+            ? "Link inválido ou expirado. Solicite um novo link para definir sua senha."
+            : result.error.code === "PASSWORD_TOO_SHORT"
+              ? "Mínimo de 8 caracteres."
+              : "Não foi possível salvar a senha. Tente novamente.",
+      };
     window.history.replaceState(window.history.state, "", "/login");
     return null;
   } catch {

@@ -69,8 +69,12 @@ export function appointmentRestriction(
     return "A aula de destino foi cancelada. Reagende o atendimento.";
   if (sessionEndInstant(row) > context.now)
     return "O registro fica disponível após o término do atendimento.";
-  if (context.staffUser.role === "TEACHER" && dateOnly(row.date) !== saoPauloDateOnly(context.now))
-    return "A administração pode registrar ou corrigir atendimentos de dias anteriores.";
+  if (
+    context.staffUser.role === "TEACHER" &&
+    row.recordedAt !== null &&
+    dateOnly(row.date) !== saoPauloDateOnly(context.now)
+  )
+    return "A administração pode corrigir registros de atendimentos de dias anteriores.";
   return null;
 }
 export function sourceApplicable(row: AbsenceSource): boolean {

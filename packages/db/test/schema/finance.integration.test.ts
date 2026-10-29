@@ -87,7 +87,7 @@ function registerSchemaTest1(database: DatabaseClient): void {
       where: { id: "singleton" },
     });
     assert.equal(settings.id, "singleton");
-    assert.equal(foundSettings.interestRatePctMonthly, null);
+    assert.equal(Number(foundSettings.interestRatePctMonthly), 2);
     const observedConstraint2 = await expectConstraintRejection(
       database.financeSettings.create({ data: { id: "not-singleton" } }),
       "FinanceSettings_singleton_id_check",

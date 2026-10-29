@@ -32,6 +32,7 @@ type HomeAppointment = {
   startTime: string;
   endTime: string;
   overdue: boolean;
+  ageDays: number;
 };
 type TeacherHomeOverview = HomePlanning & {
   today: string;
@@ -40,6 +41,7 @@ type TeacherHomeOverview = HomePlanning & {
   assessments: HomeAssessment[];
   assessmentAppointments: HomeAppointment[];
   appointments: HomeAppointment[];
+  pendingAppointments: HomeAppointment[];
   visits: Array<{
     id: string;
     studentName: string;
@@ -71,8 +73,11 @@ export async function teacherHomeOverview(context: RecordContext): Promise<Teach
     teacherName: context.staffUser.name,
     windowDays: HOME_WINDOW_DAYS,
     assessments,
-    assessmentAppointments: appointments.filter((row) => row.purpose === "ASSESSMENT"),
-    appointments: appointments.filter((row) => row.purpose !== "ASSESSMENT"),
+    assessmentAppointments: appointments.filter(
+      (row) => row.purpose === "ASSESSMENT" && row.ageDays < 3,
+    ),
+    appointments: appointments.filter((row) => row.purpose !== "ASSESSMENT" && row.ageDays < 3),
+    pendingAppointments: appointments.filter((row) => row.ageDays >= 3),
     visits: visits
       .filter(
         (row) =>
@@ -130,6 +135,7 @@ async function homeAppointments(context: RecordContext, today: string): Promise<
       startTime: timeOnly(row.startTime),
       endTime: timeOnly(row.endTime),
       overdue: sessionEndInstant(row) <= context.now,
+      ageDays: Math.floor((context.now.getTime() - sessionEndInstant(row).getTime()) / 86_400_000),
     }));
 }
 

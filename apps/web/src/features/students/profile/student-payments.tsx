@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactElement, type RefObject } from "react";
-import { Check, Download, Paperclip } from "lucide-react";
+import { Check, ChevronRight, Download, Paperclip } from "lucide-react";
 import { Alert, Button, FileUpload, InlineSkeleton, formatFileSize } from "@lazuli/ui";
 import { MAX_PAYMENT_PROOF_BYTES, PAYMENT_PROOF_ACCEPT } from "@lazuli/validators";
 import type { RouterOutputs } from "@lazuli/api";
@@ -13,14 +13,16 @@ type Payment = RouterOutputs["finance"]["studentPayments"]["rows"][number];
 
 export function StudentPayments({
   studentId,
+  withProofs,
   onPendingChange,
 }: {
   studentId: string;
+  withProofs?: boolean;
   onPendingChange: (pending: boolean) => void;
 }): ReactElement {
   const [busyId, setBusyId] = useState<string | null>(null);
   const query = trpc.finance.studentPayments.useInfiniteQuery(
-    { studentId },
+    { studentId, withProofs },
     { getNextPageParam: (page) => page.nextCursor },
   );
   const utils = trpc.useUtils();
@@ -43,7 +45,8 @@ export function StudentPayments({
             onPendingChange(pending);
           }}
           onSaved={() => {
-            void query.refetch();
+            void utils.finance.studentPayments.invalidate();
+            void utils.finance.studentSummary.invalidate();
             void utils.activity.invalidate();
           }}
         />
@@ -73,7 +76,20 @@ function PaymentListStatus({
   empty: boolean;
   onRetry: () => void;
 }): ReactElement | null {
-  if (pending) return <InlineSkeleton className="h-36 w-full" />;
+  if (pending)
+    return (
+      <div className="grid gap-3" role="status" aria-label="Carregando comprovantes">
+        {[0, 1, 2].map((item) => (
+          <div key={item} className="grid gap-2 rounded-md border border-border p-3">
+            <div className="flex justify-between gap-3">
+              <InlineSkeleton className="h-4 w-20" />
+              <InlineSkeleton className="h-4 w-16" />
+            </div>
+            <InlineSkeleton className="h-3 w-32" />
+          </div>
+        ))}
+      </div>
+    );
   if (error)
     return (
       <Alert variant="destructive">
@@ -105,18 +121,39 @@ function PaymentRow({
 }): ReactElement {
   const upload = usePaymentProofUpload({ payment, disabled, onPendingChange, onSaved });
   return (
-    <section
-      className="grid min-w-0 gap-3 rounded-md border border-border p-4"
-      aria-label={`Pagamento de ${formatDateOnlyBR(payment.date)}`}
-    >
-      <header className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h3 className="text-control font-semibold">{formatBRLFromCents(payment.amountCents)}</h3>
-          <p className="text-caption text-muted-foreground">
-            {formatDateOnlyBR(payment.date)} · {payment.paymentMethod.name}
-          </p>
-          <p className="text-caption text-muted-foreground">Pagador: {payment.payer.name}</p>
+    <details className="group min-w-0 rounded-md border border-border">
+      <summary className="flex cursor-pointer list-none items-center gap-2 p-3 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          className="size-4 shrink-0 transition-transform group-open:rotate-90"
+          aria-hidden="true"
+        />
+        <div className="grid min-w-0 flex-1 gap-1">
+          <div className="flex flex-wrap justify-between gap-x-2 gap-y-1 text-caption font-semibold">
+            <span>{formatDateOnlyBR(payment.date)}</span>
+            <span className="font-numeric tabular-nums">
+              {formatBRLFromCents(payment.amountCents)}
+            </span>
+          </div>
+          <span className="text-caption text-muted-foreground">
+            {payment.paymentMethod.name} ·{" "}
+            {payment.proofs.length === 0
+              ? "Sem comprovante"
+              : `${payment.proofs.length} ${payment.proofs.length === 1 ? "comprovante" : "comprovantes"}`}
+          </span>
         </div>
+      </summary>
+      <div className="grid min-w-0 gap-3 border-t border-border p-3">
+        <div className="text-caption text-muted-foreground">
+          <p>Pagador: {payment.payer.name}</p>
+          {payment.thirdPartyName && <p>Pix feito por: {payment.thirdPartyName}</p>}
+          {payment.externalInstallments > 1 && (
+            <p>
+              {payment.externalInstallments} parcelas por terceiros · recebido de uma vez pela
+              escola
+            </p>
+          )}
+        </div>
+        <PaymentProofLinks proofs={payment.proofs} />
         <PaymentProofPicker
           file={upload.file}
           disabled={disabled}
@@ -124,18 +161,17 @@ function PaymentRow({
           onFile={upload.setFile}
           onValidationError={upload.setValidationError}
         />
-      </header>
-      <PaymentProofLinks proofs={payment.proofs} />
-      <PaymentRowFeedback
-        file={upload.file}
-        disabled={disabled}
-        validationError={upload.validationError}
-        uploading={upload.uploading}
-        error={upload.error}
-        saved={upload.saved}
-        onAttach={() => void upload.attach()}
-      />
-    </section>
+        <PaymentRowFeedback
+          file={upload.file}
+          disabled={disabled}
+          validationError={upload.validationError}
+          uploading={upload.uploading}
+          error={upload.error}
+          saved={upload.saved}
+          onAttach={() => void upload.attach()}
+        />
+      </div>
+    </details>
   );
 }
 

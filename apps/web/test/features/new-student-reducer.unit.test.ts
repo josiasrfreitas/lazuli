@@ -24,7 +24,7 @@ const PHONE_DIGITS = "11999998888";
 const DOCUMENT_TYPE = "CPF";
 const DOCUMENT_NUMBER = "12345678900";
 const BLANK_TEXT = "   ";
-const REQUIRED_MESSAGE = "Campo obrigatório.";
+const REQUIRED_MESSAGE = "Informe o nome do aluno.";
 const INVALID_DATE_MESSAGE = "Data inválida. Use dd/mm/aaaa.";
 const DOCUMENT_TYPE_MESSAGE = "Informe o tipo do documento.";
 const GUARDIAN_REQUIRED_MESSAGE = "Responsável obrigatório para alunos menores de idade.";
@@ -38,6 +38,8 @@ const BLANK_FIELDS: NewStudentState["fields"] = {
   birthDate: "",
   documentType: "",
   documentNumber: "",
+  guardianDocumentType: "",
+  guardianDocumentNumber: "",
   guardianName: "",
   guardianPhone: "",
   guardianEmail: "",
@@ -52,7 +54,16 @@ const BLANK_STATE: NewStudentState = {
 };
 
 function stateWith(fields: Partial<NewStudentState["fields"]>): NewStudentState {
-  return { ...initialNewStudentState, fields: { ...initialNewStudentState.fields, ...fields } };
+  return {
+    ...initialNewStudentState,
+    fields: {
+      ...initialNewStudentState.fields,
+      birthDate: ADULT_BIRTH_TYPED,
+      documentNumber: DOCUMENT_NUMBER,
+      phone: GUARDIAN_PHONE,
+      ...fields,
+    },
+  };
 }
 
 function advanced(state: NewStudentState): NewStudentState {
@@ -79,7 +90,7 @@ void describe("new-student wizard: initial state", () => {
 });
 
 void describe("new-student wizard: required identity fields", () => {
-  void it("requires only the name for an adult", () => {
+  void it("requires identity, birth date and a contact for an adult", () => {
     const blocked = advanced(initialNewStudentState);
     assert.equal(blocked.step, 0);
     assert.equal(blocked.errors.fullName, REQUIRED_MESSAGE);
@@ -88,7 +99,7 @@ void describe("new-student wizard: required identity fields", () => {
     assert.equal(blankName.step, 0);
     assert.equal(blankName.errors.fullName, REQUIRED_MESSAGE);
 
-    const passed = advanced(stateWith({ fullName: ADULT_NAME }));
+    const passed = advanced(stateWith({ fullName: ADULT_NAME, documentType: DOCUMENT_TYPE }));
     assert.equal(passed.step, 1);
     assert.deepEqual(passed.errors, {});
   });
@@ -97,8 +108,8 @@ void describe("new-student wizard: required identity fields", () => {
 void describe("new-student wizard: document validation", () => {
   void it("requires the document type once a number is typed", () => {
     const blankNumber = advanced(stateWith({ fullName: ADULT_NAME, documentNumber: BLANK_TEXT }));
-    assert.equal(blankNumber.step, 1);
-    assert.deepEqual(blankNumber.errors, {});
+    assert.equal(blankNumber.step, 0);
+    assert.equal(blankNumber.errors.documentNumber, "Informe o CPF ou RG do aluno.");
 
     const blocked = advanced(stateWith({ fullName: ADULT_NAME, documentNumber: DOCUMENT_NUMBER }));
     assert.equal(blocked.step, 0);
@@ -118,16 +129,25 @@ void describe("new-student wizard: document validation", () => {
 
 void describe("new-student wizard: guardian validation", () => {
   void it("requires guardian name and contact for minors, mirroring the backend", () => {
-    const missingAll = advanced(stateWith({ fullName: MINOR_NAME, birthDate: MINOR_BIRTH_TYPED }));
+    const missingAll = advanced(
+      stateWith({
+        documentType: DOCUMENT_TYPE,
+        fullName: MINOR_NAME,
+        birthDate: MINOR_BIRTH_TYPED,
+      }),
+    );
     assert.equal(missingAll.step, 0);
     assert.equal(missingAll.errors.guardianName, GUARDIAN_REQUIRED_MESSAGE);
     assert.equal(missingAll.errors.guardianPhone, GUARDIAN_CONTACT_MESSAGE);
 
     const missingContact = advanced(
       stateWith({
+        documentType: DOCUMENT_TYPE,
         fullName: MINOR_NAME,
         birthDate: MINOR_BIRTH_TYPED,
         guardianName: GUARDIAN_NAME,
+        guardianDocumentType: "RG",
+        guardianDocumentNumber: "1234567",
       }),
     );
     assert.equal(missingContact.errors.guardianPhone, GUARDIAN_CONTACT_MESSAGE);
@@ -136,6 +156,7 @@ void describe("new-student wizard: guardian validation", () => {
   void it("treats whitespace guardian names and emails as blank", () => {
     const blankGuardianName = advanced(
       stateWith({
+        documentType: DOCUMENT_TYPE,
         fullName: MINOR_NAME,
         birthDate: MINOR_BIRTH_TYPED,
         guardianName: BLANK_TEXT,
@@ -147,9 +168,12 @@ void describe("new-student wizard: guardian validation", () => {
 
     const blankEmail = advanced(
       stateWith({
+        documentType: DOCUMENT_TYPE,
         fullName: MINOR_NAME,
         birthDate: MINOR_BIRTH_TYPED,
         guardianName: GUARDIAN_NAME,
+        guardianDocumentType: "RG",
+        guardianDocumentNumber: "1234567",
         guardianEmail: BLANK_TEXT,
       }),
     );
@@ -162,9 +186,12 @@ void describe("new-student wizard: guardian contact alternatives", () => {
   void it("accepts a minor guardian contact by phone or email", () => {
     const passedWithPhone = advanced(
       stateWith({
+        documentType: DOCUMENT_TYPE,
         fullName: MINOR_NAME,
         birthDate: "01/01/2015",
         guardianName: GUARDIAN_NAME,
+        guardianDocumentType: "RG",
+        guardianDocumentNumber: "1234567",
         guardianPhone: GUARDIAN_PHONE,
       }),
     );
@@ -173,9 +200,12 @@ void describe("new-student wizard: guardian contact alternatives", () => {
 
     const passed = advanced(
       stateWith({
+        documentType: DOCUMENT_TYPE,
         fullName: MINOR_NAME,
         birthDate: MINOR_BIRTH_TYPED,
         guardianName: GUARDIAN_NAME,
+        guardianDocumentType: "RG",
+        guardianDocumentNumber: "1234567",
         guardianEmail: GUARDIAN_EMAIL,
       }),
     );
@@ -195,7 +225,13 @@ void describe("new-student wizard: birth date validation", () => {
     assert.equal(impossible.errors.birthDate, INVALID_DATE_MESSAGE);
 
     assert.equal(
-      advanced(stateWith({ fullName: ADULT_NAME, birthDate: ADULT_BIRTH_TYPED })).step,
+      advanced(
+        stateWith({
+          fullName: ADULT_NAME,
+          documentType: DOCUMENT_TYPE,
+          birthDate: ADULT_BIRTH_TYPED,
+        }),
+      ).step,
       1,
     );
   });
@@ -253,12 +289,12 @@ void describe("new-student wizard: error transitions", () => {
     });
     assert.equal(edited.errorsRevision, blocked.errorsRevision);
 
-    const passed = advanced(stateWith({ fullName: ADULT_NAME }));
+    const passed = advanced(stateWith({ fullName: ADULT_NAME, documentType: DOCUMENT_TYPE }));
     assert.equal(passed.errorsRevision, 0);
   });
 
   void it("returns to Dados with the server's field errors on rejection", () => {
-    const onPedagogico = advanced(stateWith({ fullName: ADULT_NAME }));
+    const onPedagogico = advanced(stateWith({ fullName: ADULT_NAME, documentType: DOCUMENT_TYPE }));
     const rejected = newStudentReducer(onPedagogico, {
       type: "serverRejected",
       errors: { guardianName: SERVER_GUARDIAN_REQUIRED_MESSAGE },
@@ -273,7 +309,7 @@ void describe("new-student wizard: error transitions", () => {
 
 void describe("new-student wizard: step transitions", () => {
   void it("walks through Financeiro and back without losing student fields", () => {
-    const onAddress = advanced(stateWith({ fullName: ADULT_NAME }));
+    const onAddress = advanced(stateWith({ fullName: ADULT_NAME, documentType: DOCUMENT_TYPE }));
     assert.equal(onAddress.step, 1);
     const onPedagogico = advanced(onAddress);
     assert.equal(onPedagogico.step, 2);
@@ -290,7 +326,11 @@ void describe("new-student wizard: step transitions", () => {
 
   void it("preserves the active Financeiro step and draft on a general server failure", () => {
     const onFinance = advanced(
-      advanced(advanced(stateWith({ fullName: ADULT_NAME, phone: GUARDIAN_PHONE }))),
+      advanced(
+        advanced(
+          stateWith({ fullName: ADULT_NAME, phone: GUARDIAN_PHONE, documentType: DOCUMENT_TYPE }),
+        ),
+      ),
     );
     const rejected = newStudentReducer(onFinance, {
       type: "serverRejected",
@@ -304,7 +344,7 @@ void describe("new-student wizard: step transitions", () => {
   });
 
   void it("resets to the initial state", () => {
-    const dirty = advanced(stateWith({ fullName: ADULT_NAME }));
+    const dirty = advanced(stateWith({ fullName: ADULT_NAME, documentType: DOCUMENT_TYPE }));
     assert.deepEqual(newStudentReducer(dirty, { type: "reset" }), BLANK_STATE);
   });
 });
@@ -316,6 +356,8 @@ void describe("toCreateInput", () => {
       fullName: "  Maria Silva  ",
       birthDate: MINOR_BIRTH_TYPED,
       guardianName: GUARDIAN_NAME,
+      guardianDocumentType: "RG",
+      guardianDocumentNumber: "1234567",
       guardianEmail: GUARDIAN_EMAIL,
     });
 
@@ -324,7 +366,13 @@ void describe("toCreateInput", () => {
     assert.equal(input.birthDate?.toISOString(), "2010-05-01T00:00:00.000Z");
     assert.deepEqual(input.guardian, {
       mode: "create",
-      input: { fullName: GUARDIAN_NAME, phone: undefined, email: GUARDIAN_EMAIL },
+      input: {
+        fullName: GUARDIAN_NAME,
+        phone: undefined,
+        email: GUARDIAN_EMAIL,
+        documentType: "RG",
+        documentNumber: "1234567",
+      },
     });
     assert.equal(input.documentType, undefined);
   });

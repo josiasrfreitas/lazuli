@@ -10,19 +10,19 @@ import {
   PopoverTitle,
 } from "@lazuli/ui";
 import { formatDateOnlyBR } from "~/lib/format";
-import { dateOnly, scheduleLabel } from "~/features/semester-organization/shared";
+import { dateOnly, scheduleLabel } from "~/features/class-organization/shared";
 import {
   changeLabel,
   contractLabel,
   type OrganizationAction,
   type Placement,
-  type SemesterBoard,
+  type OrganizationBoard,
 } from "./model";
 import styles from "./organization.module.css";
 
 type RowProps = {
   row: Placement;
-  board: SemesterBoard;
+  board: OrganizationBoard;
   selected: boolean;
   eligible: boolean;
   working: boolean;
@@ -95,8 +95,8 @@ function ReviewDestination({
   board,
 }: {
   row: Placement;
-  plan: SemesterBoard["plans"][number] | undefined;
-  board: SemesterBoard;
+  plan: OrganizationBoard["plans"][number] | undefined;
+  board: OrganizationBoard;
 }): ReactJSX.Element {
   return (
     <div className={styles.destination}>
@@ -112,7 +112,13 @@ function ReviewDestination({
   );
 }
 
-function ReviewTiming({ row, board }: { row: Placement; board: SemesterBoard }): ReactJSX.Element {
+function ReviewTiming({
+  row,
+  board,
+}: {
+  row: Placement;
+  board: OrganizationBoard;
+}): ReactJSX.Element {
   let status = "A confirmar";
   if (row.declinedAt) status = "Registrada";
   else if (row.publishedAt) status = "Confirmada";
@@ -149,13 +155,12 @@ function ReviewBlockers({
         </span>
       )}
       {contract.warning && row.lastContract ? (
-        <button
-          type="button"
+        <Link
           className={`${styles.small} ${styles.attention} text-left underline underline-offset-4`}
-          onClick={() => onAction({ kind: "renew", contractId: row.lastContract!.id })}
+          href={`/alunos/${row.studentId}?secao=financeiro&renovarContrato=${row.lastContract.id}`}
         >
           {contract.label} · renovar
-        </button>
+        </Link>
       ) : (
         <Link
           href={`/alunos/${row.studentId}?secao=financeiro`}
@@ -215,7 +220,7 @@ function ReviewActions({
   );
 }
 
-function diffFields(row: Placement, board: SemesterBoard): [string, string, string][] {
+function diffFields(row: Placement, board: OrganizationBoard): [string, string, string][] {
   const plan = board.plans.find((item) => item.id === row.planId);
   return [
     ["Turma", row.sourceClassName ?? "Sem turma", plan?.name ?? "A definir"],
@@ -226,7 +231,7 @@ function diffFields(row: Placement, board: SemesterBoard): [string, string, stri
 
 function staffFields(
   row: Placement,
-  plan: SemesterBoard["plans"][number] | undefined,
+  plan: OrganizationBoard["plans"][number] | undefined,
 ): [string, string, string][] {
   return [
     [
@@ -238,7 +243,13 @@ function staffFields(
   ];
 }
 
-function DiffDetails({ row, board }: { row: Placement; board: SemesterBoard }): ReactJSX.Element {
+function DiffDetails({
+  row,
+  board,
+}: {
+  row: Placement;
+  board: OrganizationBoard;
+}): ReactJSX.Element {
   return (
     <Popover>
       <PopoverTrigger

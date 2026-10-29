@@ -196,6 +196,7 @@ model User {
   assessmentsConfirmed StageAssessment[] @relation("AssessmentConfirmer")
   gradesRecorded AssessmentGrade[] @relation("GradeRecorder")
   pedagogicalOccurrences PedagogicalOccurrence[] @relation("OccurrenceAuthor")
+  occurrenceStatusChanges OccurrenceStatusChange[]
   assignedInterventions PedagogicalIntervention[] @relation("InterventionOwner")
   createdInterventions PedagogicalIntervention[] @relation("InterventionAuthor")
   pedagogicalFollowUps PedagogicalFollowUp[]
@@ -210,7 +211,6 @@ model User {
   semesterPlacementsCreated SemesterPlacement[] @relation("SemesterPlacementAuthor")
   semesterPlacementsPublished SemesterPlacement[] @relation("SemesterPlacementPublisher")
   semesterPlacementRevisions SemesterPlacementRevision[]
-  studentAvailabilityConfirmations StudentAvailability[]
   plannedSemesterTeaching SemesterClassPlan[] @relation("SemesterPlanTeacher")
   placementFiles EntryVisitAssessment[] @relation("PlacementFileAuthor")
   placementResults EntryVisitAssessment[] @relation("PlacementResultAuthor")
@@ -271,6 +271,7 @@ model RateLimit {
 }
 
 model Student {
+  healthPending StudentHealthPending?
   documentSessions StudentDocumentSession[]
   id             String        @id @default(uuid()) @db.Uuid
   commandId      String?       @unique @map("command_id") @db.Uuid
@@ -308,7 +309,6 @@ model Student {
   appointments PedagogicalAppointment[]
   absenceContacts AbsenceContact[]
   semesterPlacements SemesterPlacement[]
-  availabilityConfirmations StudentAvailability[]
 }
 
 model Guardian {
@@ -347,7 +347,7 @@ model Address {
   guardians Guardian[]
 }
 
-model Semester {
+model Period {
   id        String    @id @default(uuid()) @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
@@ -359,7 +359,8 @@ model Semester {
   sessionGenerationRequests SessionGenerationRequest[]
   classPlans SemesterClassPlan[]
   placements SemesterPlacement[]
-  studentAvailability StudentAvailability[]
+
+  @@map("Semester")
 }
 
 model SchoolClosedDay {
@@ -409,7 +410,7 @@ model Class {
   originalPortalClassName String?           @map("original_portal_class_name")
   teacher       User                @relation("ClassTeacher", fields: [teacherId], references: [id])
   sharedStage   Stage?              @relation(fields: [sharedStageId], references: [id])
-  semester      Semester            @relation(fields: [semesterId], references: [id])
+  semester      Period            @relation(fields: [semesterId], references: [id])
   previousClass Class?              @relation("ClassLineage", fields: [previousClassId], references: [id])
   scheduleSlots ClassScheduleSlot[]
   sessions           ClassSession[]
@@ -743,7 +744,6 @@ model FinanceSettings {
   tuitionCeilingCents     Int?     @map("tuition_ceiling_cents")
   maximumDiscountPct     Decimal? @map("maximum_discount_pct") @db.Decimal(7, 4)
   punctualityDiscountPct Decimal @default(0) @map("punctuality_discount_pct") @db.Decimal(7, 4)
-  interestRatePctDaily   Decimal? @map("interest_rate_pct_daily") @db.Decimal(7, 4)
   cancellationFeePct     Decimal? @map("cancellation_fee_pct") @db.Decimal(7, 4)
   materialPriceCents     Int?     @map("material_price_cents")
   childMaterialInstallments Int @default(6) @map("child_material_installments")
@@ -752,7 +752,7 @@ model FinanceSettings {
   adultMaterialInstallmentCents Int @default(13600) @map("adult_material_installment_cents")
   materialCardFeePct Decimal @default(10) @map("material_card_fee_pct") @db.Decimal(7, 4)
   materialCashDiscountPct Decimal @default(10) @map("material_cash_discount_pct") @db.Decimal(7, 4)
-  interestRatePctMonthly Decimal? @map("interest_rate_pct_monthly") @db.Decimal(7, 4)
+  interestRatePctMonthly Decimal? @default(2) @map("interest_rate_pct_monthly") @db.Decimal(7, 4)
   updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz
   updatedById            String?  @map("updated_by_id") @db.Uuid
 
@@ -809,11 +809,14 @@ model Contract {
   durationMonths Int? @map("duration_months")
   endsOn DateTime? @map("ends_on") @db.Date
   monthlyAmountCents Int? @map("monthly_amount_cents")
+  baseMonthlyAmountCents Int? @map("base_monthly_amount_cents")
+  standardPunctualityDiscountPct Decimal? @map("standard_punctuality_discount_pct") @db.Decimal(7, 4)
+  scholarshipPct Decimal @default(0) @map("scholarship_pct") @db.Decimal(7, 4)
+  scholarshipAgreement String? @map("scholarship_agreement")
   tuitionCeilingCents Int? @map("tuition_ceiling_cents")
   maximumDiscountPct Decimal? @map("maximum_discount_pct") @db.Decimal(7, 4)
   punctualityDiscountPct Decimal? @map("punctuality_discount_pct") @db.Decimal(7, 4)
-  interestRatePctDaily Decimal? @map("interest_rate_pct_daily") @db.Decimal(7, 4)
-  interestRatePctMonthly Decimal? @map("interest_rate_pct_monthly") @db.Decimal(7, 4)
+  interestRatePctMonthly Decimal? @default(2) @map("interest_rate_pct_monthly") @db.Decimal(7, 4)
   cancellationFeePct Decimal? @map("cancellation_fee_pct") @db.Decimal(7, 4)
 
   payer   Payer   @relation(fields: [payerId], references: [id], onDelete: Restrict)
@@ -963,6 +966,7 @@ model PaymentMethod {
   name      String
   active    Boolean   @default(true)
   sortOrder Int       @default(0) @map("sort_order")
+  allowsExternalInstallments Boolean @default(false) @map("allows_external_installments")
   payments  PaymentEntry[]
 
   @@map("payment_methods")
@@ -981,9 +985,11 @@ model PaymentEntry {
   date              DateTime      @db.Date
   amountCents       Int           @map("amount_cents")
   method            String
+  externalInstallments Int @default(1) @map("external_installments")
   paymentMethod     PaymentMethod @relation(fields: [method], references: [code], onDelete: Restrict, onUpdate: Restrict)
   note              String?
   externalReference String?       @map("external_reference")
+  thirdPartyName    String?        @map("third_party_name")
   createdById       String?       @map("created_by_id") @db.Uuid
   updatedById       String?       @map("updated_by_id") @db.Uuid
 
@@ -1126,7 +1132,7 @@ model SessionGenerationRequest {
   sessionsPlanned Int? @map("sessions_planned")
 
   class Class? @relation(fields: [classId], references: [id], onDelete: Cascade)
-  semester Semester? @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  semester Period? @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   requestedBy User? @relation(fields: [requestedById], references: [id], onDelete: SetNull)
 
   @@index([classId, createdAt])
@@ -1382,30 +1388,17 @@ model AdmissionCandidate {
   stageId String? @map("stage_id") @db.Uuid
   studentId String? @map("student_id") @db.Uuid
   enrollmentId String? @unique @map("enrollment_id") @db.Uuid
-  availableUntil DateTime? @map("available_until") @db.Date
-  availabilityConfirmedAt DateTime? @default(now()) @map("availability_confirmed_at") @db.Timestamptz
   recordedById String @map("recorded_by_id") @db.Uuid
 
   stage Stage? @relation(fields: [stageId], references: [id], onDelete: Restrict)
   student Student? @relation(fields: [studentId], references: [id], onDelete: Restrict)
   enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
   recordedBy User @relation("AdmissionRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
-  availability AdmissionAvailability[]
   visits EntryVisit[]
 
   @@index([status, createdAt])
   @@index([stageId])
   @@index([studentId])
-}
-
-model AdmissionAvailability {
-  id String @id @default(uuid()) @db.Uuid
-  candidateId String @map("candidate_id") @db.Uuid
-  weekday Weekday
-  startTime DateTime @map("start_time") @db.Time
-  endTime DateTime @map("end_time") @db.Time
-  candidate AdmissionCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  @@unique([candidateId, weekday, startTime, endTime])
 }
 
 model EntryVisit {
@@ -1540,6 +1533,12 @@ enum InterventionStatus {
   CONCLUDED
 }
 
+enum OccurrenceStatus {
+  OPEN
+  FOLLOWING_UP
+  CLOSED
+}
+
 model PedagogicalOccurrence {
   id String @id @default(uuid()) @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
@@ -1547,6 +1546,9 @@ model PedagogicalOccurrence {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
   studentId String @map("student_id") @db.Uuid
   classSessionId String @map("class_session_id") @db.Uuid
+  status OccurrenceStatus @default(OPEN)
+  statusVersion Int @default(0) @map("status_version")
+  statusChanges OccurrenceStatusChange[]
   category OccurrenceCategory
   title String
   account String
@@ -1558,9 +1560,25 @@ model PedagogicalOccurrence {
   relationsFrom OccurrenceRelation[] @relation("OccurrenceFrom")
   relationsTo OccurrenceRelation[] @relation("OccurrenceTo")
   interventions InterventionOccurrence[]
+  @@index([status, createdAt])
   @@index([studentId, createdAt])
   @@index([recordedById, createdAt])
   @@index([classSessionId])
+}
+
+model OccurrenceStatusChange {
+  id String @id @default(uuid()) @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  occurrenceId String @map("occurrence_id") @db.Uuid
+  authorId String @map("author_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  fromStatus OccurrenceStatus @map("from_status")
+  toStatus OccurrenceStatus @map("to_status")
+  conclusion String?
+  occurrence PedagogicalOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Restrict)
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  @@index([occurrenceId, createdAt])
 }
 
 model OccurrenceRelation {
@@ -1768,7 +1786,7 @@ model SemesterClassPlan {
   classId String? @unique @map("class_id") @db.Uuid
   recordedById String @map("recorded_by_id") @db.Uuid
 
-  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  semester Period @relation(fields: [semesterId], references: [id], onDelete: Restrict)
   sharedStage Stage? @relation(fields: [sharedStageId], references: [id], onDelete: Restrict)
   teacher User? @relation("SemesterPlanTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
   class Class? @relation(fields: [classId], references: [id], onDelete: Restrict)
@@ -1776,28 +1794,6 @@ model SemesterClassPlan {
   placements SemesterPlacement[]
 
   @@index([semesterId])
-}
-
-model StudentAvailability {
-  id String @id @default(uuid()) @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
-  studentId String @map("student_id") @db.Uuid
-  semesterId String @map("semester_id") @db.Uuid
-  confirmed Boolean @default(true)
-  validUntil DateTime @map("valid_until") @db.Date
-  formats ClassFormat[]
-  slots Json
-  notes String?
-  recordedById String @map("recorded_by_id") @db.Uuid
-
-  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
-  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Restrict)
-  recordedBy User @relation(fields: [recordedById], references: [id], onDelete: Restrict)
-  placements SemesterPlacement[]
-
-  @@index([studentId, semesterId, createdAt])
 }
 
 model SemesterPlacement {
@@ -1826,10 +1822,9 @@ model SemesterPlacement {
   enrollmentId String? @map("enrollment_id") @db.Uuid
   entryActionId String? @map("entry_action_id") @db.Uuid
   sourceExitActionId String? @map("source_exit_action_id") @db.Uuid
-  availabilityId String? @map("availability_id") @db.Uuid
   publishedEvidence Json? @map("published_evidence")
 
-  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  semester Period @relation(fields: [semesterId], references: [id], onDelete: Restrict)
   plan SemesterClassPlan? @relation(fields: [planId], references: [id], onDelete: Restrict)
   student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
   track Track @relation(fields: [trackId], references: [id], onDelete: Restrict)
@@ -1841,7 +1836,6 @@ model SemesterPlacement {
   enrollment Enrollment? @relation("SemesterPlacementTarget", fields: [enrollmentId], references: [id], onDelete: Restrict)
   entryAction EnrollmentAction? @relation("SemesterPlacementEntry", fields: [entryActionId], references: [id], onDelete: Restrict)
   sourceExitAction EnrollmentAction? @relation("SemesterPlacementExit", fields: [sourceExitActionId], references: [id], onDelete: Restrict)
-  availability StudentAvailability? @relation(fields: [availabilityId], references: [id], onDelete: Restrict)
   revisions SemesterPlacementRevision[]
 
   @@index([semesterId, planId])
@@ -1951,7 +1945,10 @@ model MaterialOrder {
   category MaterialPriceCategory
   payment MaterialPayment
   listPriceCents Int @map("list_price_cents")
+  priceOverrideCents Int? @map("price_override_cents")
   cashDiscountPct Decimal @map("cash_discount_pct") @db.Decimal(7, 4)
+  scholarshipPct Decimal @default(0) @map("scholarship_pct") @db.Decimal(7, 4)
+  scholarshipAgreement String? @map("scholarship_agreement")
   chargedAmountCents Int? @map("charged_amount_cents")
   cardFeePct Decimal? @map("card_fee_pct") @db.Decimal(7, 4)
   cardFeeCents Int? @map("card_fee_cents")
@@ -2182,4 +2179,18 @@ model StudentDocumentFile {
   session StudentDocumentSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
   @@unique([sessionId, kind])
   @@index([status, updatedAt])
+}
+
+model StudentHealthPending {
+  id String @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  studentId String @unique @map("student_id") @db.Uuid
+  score Int?
+  openedAt DateTime? @map("opened_at") @db.Timestamptz
+  recoveredAt DateTime? @map("recovered_at") @db.Timestamptz
+  evaluatedAt DateTime @map("evaluated_at") @db.Timestamptz
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  @@index([openedAt, recoveredAt])
 }

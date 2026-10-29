@@ -1,12 +1,7 @@
 import { z } from "zod";
 import { leadInterestSchema } from "./leads.js";
 import { civilDateSchema } from "./civil-date.js";
-import {
-  classFormatSchema,
-  classScheduleTypeSchema,
-  classScheduleSlotInputSchema,
-  timeOfDaySchema,
-} from "./class.js";
+import { classFormatSchema, classScheduleTypeSchema, timeOfDaySchema } from "./class.js";
 import { studentCreateInputSchema } from "./student.js";
 
 const MAX_STATUSES = 3;
@@ -15,7 +10,6 @@ const MAX_CALENDAR_SPAN_MS = 518_400_000;
 
 const MAX_NAME = 160;
 const MAX_NOTES = 2000;
-const MAX_WINDOWS = 28;
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 25;
 const contact = z.string().trim().max(MAX_NAME).nullable();
@@ -34,11 +28,6 @@ export const admissionValuesSchema = z
     stageId: z.string().uuid().nullable(),
     scheduleType: classScheduleTypeSchema,
     format: classFormatSchema,
-    availableUntil: civilDateSchema,
-    availability: z
-      .array(classScheduleSlotInputSchema)
-      .min(1, "Informe a disponibilidade.")
-      .max(MAX_WINDOWS),
   })
   .strict()
   .superRefine((value, context) => {
@@ -61,7 +50,6 @@ export const admissionListSchema = z
       .default(["WAITING"]),
     interests: z.array(leadInterestSchema).max(MAX_INTERESTS).default([]),
     unlinkedOnly: z.boolean().default(false),
-    expiredOnly: z.boolean().default(false),
     page: z.number().int().min(1).default(1),
     pageSize: z.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
   })

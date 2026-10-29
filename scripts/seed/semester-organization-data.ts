@@ -146,55 +146,6 @@ export const ORGANIZATION_GROUPS: OrganizationGroup[] = [
   },
 ];
 
-export type AvailabilityProfile =
-  | "CURRENT"
-  | "EXPIRED"
-  | "EXPIRES_BEFORE_ENTRY"
-  | "INCOMPATIBLE"
-  | "UNKNOWN";
-const EXPIRED = new Set([
-  seedStudentIndex("davi"),
-  seedStudentIndex("school-student-217"),
-  seedStudentIndex("school-student-141"),
-]);
-const EXPIRES_BEFORE_ENTRY = new Set([
-  seedStudentIndex("school-student-135"),
-  seedStudentIndex("school-student-223"),
-  seedStudentIndex("school-student-232"),
-]);
-const INCOMPATIBLE = new Set([
-  SCHEDULE_CONFLICT_STUDENTS.pptSecondSlot,
-  SCHEDULE_CONFLICT_STUDENTS.regularC2,
-  seedStudentIndex("school-student-224"),
-  SCHEDULE_CONFLICT_STUDENTS.pptWithoutTeacher,
-]);
-const UNKNOWN = new Set([
-  seedStudentIndex("school-student-225"),
-  seedStudentIndex("school-student-226"),
-]);
-
-export function availabilityProfile(index: number): AvailabilityProfile {
-  if (EXPIRED.has(index)) return "EXPIRED";
-  if (EXPIRES_BEFORE_ENTRY.has(index)) return "EXPIRES_BEFORE_ENTRY";
-  if (INCOMPATIBLE.has(index)) return "INCOMPATIBLE";
-  return UNKNOWN.has(index) ? "UNKNOWN" : "CURRENT";
-}
-
-export function availabilitySlots(
-  index: number,
-  group: OrganizationGroup | null,
-): OrganizationSlot[] {
-  if (index === SCHEDULE_CONFLICT_STUDENTS.pptSecondSlot)
-    return slots(TT, { startTime: "15:00", endTime: "17:00" });
-  if (index === SCHEDULE_CONFLICT_STUDENTS.regularC2)
-    return slots(TT, { startTime: "14:00", endTime: "16:00" });
-  if (index === SCHEDULE_CONFLICT_STUDENTS.pptWithoutTeacher)
-    return slots(MW, { startTime: "14:00", endTime: "15:00" });
-  return (
-    group?.slots.map((slot) => ({ ...slot })) ?? slots(MW, { startTime: "14:00", endTime: "17:00" })
-  );
-}
-
 export function organizationId(kind: string, input: { semesterName: string; key: string }): string {
   return stableUuid([`semester-${kind}`, input.semesterName, input.key]);
 }

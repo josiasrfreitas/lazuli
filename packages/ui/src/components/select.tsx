@@ -6,6 +6,7 @@ import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "../lib/utils";
+import { anchoredMotion } from "../lib/anchored-motion";
 
 /**
  * A listbox for choosing a known value. It preserves native form submission
@@ -176,10 +177,7 @@ export function SelectContent({
             [
               "scrollbar-subtle z-50 max-h-(--available-height) min-w-(--anchor-width) overflow-x-hidden overflow-y-auto",
               "rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md",
-              "origin-(--transform-origin) duration-fast ease-standard",
-              "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
-              "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-              "data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1",
+              anchoredMotion,
             ],
             className,
           )}

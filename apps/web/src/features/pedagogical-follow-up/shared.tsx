@@ -9,6 +9,12 @@ import { ArrowLeft, ArrowUpRight, MessagesSquare, RefreshCw } from "lucide-react
 export type Occurrence = RouterOutputs["occurrences"]["byId"];
 export type Intervention = RouterOutputs["interventions"]["byId"];
 export type OccurrenceRow = RouterOutputs["occurrences"]["list"]["rows"][number];
+export const OCCURRENCE_STATUS = {
+  OPEN: "Aberta",
+  FOLLOWING_UP: "Em acompanhamento",
+  CLOSED: "Encerrada",
+} as const;
+
 export const CATEGORY = {
   MATERIAL: "Material",
   HOMEWORK: "Atividade de casa",

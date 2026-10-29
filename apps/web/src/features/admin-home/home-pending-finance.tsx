@@ -1,4 +1,5 @@
-import type { ReactElement } from "react";
+import { PendingPagination, PENDING_PAGE_SIZE } from "./home-pending-pagination";
+import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { ChevronDown, CalendarClock, SquareArrowOutUpRight, ArrowUpRight } from "lucide-react";
 import { Button } from "@lazuli/ui";
@@ -73,11 +74,22 @@ function FinanceCases({
   isError: boolean;
   onRetry: () => void;
 }): ReactElement {
+  const [requestedPage, setPage] = useState(1);
+  const page = Math.min(
+    requestedPage,
+    Math.max(1, Math.ceil(contracts.length / PENDING_PAGE_SIZE)),
+  );
   return (
     <div className={styles.financeCases}>
-      {contracts.map((contract) => (
+      {contracts.slice((page - 1) * PENDING_PAGE_SIZE, page * PENDING_PAGE_SIZE).map((contract) => (
         <ContractCase key={contract.contractId} contract={contract} />
       ))}
+      <PendingPagination
+        total={contracts.length}
+        page={page}
+        onPageChange={setPage}
+        label="Paginação de contratos em atraso"
+      />
       {isPending && (
         <p className={styles.feedback} role="status">
           Carregando casos…

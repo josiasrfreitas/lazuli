@@ -1,14 +1,16 @@
 import type { ReactElement, ReactNode } from "react";
-import { GraduationCap, CalendarDays } from "lucide-react";
+import { GraduationCap, CalendarDays, FilePenLine } from "lucide-react";
+import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { useStudentPedagogy, type StudentProfile, type StudentEnrollment } from "./logic";
 import { ProfileError } from "./profile-shared";
 import { StudentFollowUp } from "~/features/pedagogical-follow-up/student-follow-up";
-import { EnrollmentLoading } from "./student-loading";
+import { PedagogyLoading } from "./student-loading";
 import { EnrollmentHistory } from "./student-history";
 import { CurrentEnrollment } from "./current-enrollment";
 import { ContractTerminationNotice } from "./contract-termination-notice";
 import { OrganizationIntention } from "./organization-intention";
+import { StudentChooseClass } from "./student-choose-class";
 import type { RouterOutputs } from "@lazuli/api";
 
 type PedagogyProps = {
@@ -74,11 +76,7 @@ function PedagogyError({ onRetry }: { onRetry: () => void }): ReactElement {
 }
 
 function PedagogyLoadingState(): ReactElement {
-  return (
-    <div className="grid min-w-0 gap-6">
-      <EnrollmentLoading />
-    </div>
-  );
+  return <PedagogyLoading />;
 }
 
 function NoCurrentPedagogy({
@@ -101,6 +99,7 @@ function NoCurrentPedagogy({
       <NoCurrentEnrollment
         upcoming={upcoming}
         hasHistory={history.some((row) => row.entryDate <= today)}
+        studentId={profile.id}
       />
       <StudentFollowUp
         studentId={profile.id}
@@ -121,15 +120,26 @@ function NoCurrentPedagogy({
 function NoCurrentEnrollment({
   upcoming,
   hasHistory,
+  studentId,
 }: {
   upcoming?: StudentEnrollment | undefined;
   hasHistory: boolean;
+  studentId: string;
 }): ReactElement {
-  const Icon = upcoming ? CalendarDays : GraduationCap;
+  const pending = trpc.students.pendingActions.useQuery(
+    { id: studentId },
+    { enabled: !upcoming && !hasHistory },
+  );
+  const placementPending =
+    !upcoming && !hasHistory && pending.data?.items.find((item) => item.type === "PLACEMENT");
+  const Icon = placementPending ? FilePenLine : upcoming ? CalendarDays : GraduationCap;
   let title = "O acompanhamento começa com a matrícula";
   let description =
     "Este aluno ainda não tem matrícula em uma turma. Quando ela estiver vigente, as aulas, as avaliações e os registros pedagógicos terão seu lugar aqui.";
-  if (upcoming) {
+  if (placementPending) {
+    title = placementPending.title;
+    description = placementPending.description;
+  } else if (upcoming) {
     title = "O próximo período já tem data";
     description = `A matrícula na turma ${upcoming.class.name} começa em ${formatDateOnlyBR(upcoming.entryDate)}. A partir dessa data, você poderá acompanhar as aulas e registrar os atendimentos do aluno.`;
   } else if (hasHistory) {
@@ -137,6 +147,7 @@ function NoCurrentEnrollment({
     description =
       "Este aluno está sem matrícula vigente. O histórico continua disponível abaixo; novos registros ficam disponíveis quando uma nova matrícula começar.";
   }
+  if (!upcoming && !hasHistory && pending.isPending) return <PedagogyLoading />;
   return (
     <section
       aria-labelledby="enrollment-empty-title"
@@ -147,6 +158,7 @@ function NoCurrentEnrollment({
         {title}
       </h2>
       <p className="max-w-md text-sm leading-relaxed text-muted-foreground">{description}</p>
+      {!upcoming && !hasHistory && <StudentChooseClass studentId={studentId} />}
     </section>
   );
 }

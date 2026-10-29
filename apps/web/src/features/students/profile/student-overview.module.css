@@ -1,19 +1,31 @@
 .overview {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(19rem, 1fr);
-  align-items: start;
-  gap: 1.5rem 2rem;
+  gap: 1.5rem;
+  min-width: 0;
   padding-block: 0.25rem 1rem;
 }
-.mainColumn,
-.sideColumn {
+.summaryGrid {
   display: grid;
-  min-width: 0;
-  align-content: start;
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  align-items: start;
 }
-.overviewIntention:empty {
-  display: none;
+.workGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 1.5rem;
+}
+.workGrid > section {
+  min-height: 14rem;
+}
+.mainColumn,
+.healthColumn {
+  min-width: 0;
+}
+.healthColumn {
+  grid-column: 2;
+  grid-row: 1;
 }
 .sectionHeading {
   display: flex;
@@ -38,13 +50,11 @@
 }
 .enrollment,
 .notes,
-.health,
-.financeSnapshot {
+.health {
   min-width: 0;
 }
 .enrollment {
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 1.25rem;
+  padding: 0.25rem 0;
 }
 .enrollment > :global([data-slot="alert"]) {
   margin-top: 1rem;
@@ -54,12 +64,10 @@
   gap: 0.75rem;
   padding-top: 0.75rem;
 }
-.enrollmentSummary:not([aria-busy]),
-.snapshotContent {
+.enrollmentSummary:not([aria-busy]) {
   animation: overview-reveal 360ms var(--lz-ease-standard) both;
 }
 .enrollmentSummary[aria-busy] {
-  min-height: 14rem;
   align-content: start;
 }
 .enrollmentSummary + .enrollmentSummary {
@@ -168,9 +176,13 @@
 }
 .notes {
   min-height: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
 }
 .notesText {
-  max-height: 8rem;
+  max-height: 20rem;
   overflow-y: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -182,19 +194,33 @@
 }
 .notesEmpty {
   display: grid;
-  gap: 0.375rem;
-  padding-top: 1rem;
-  font-size: var(--lz-text-body);
+  align-content: center;
+  justify-items: center;
+  gap: 0.5rem;
+  min-height: 8rem;
+  padding: 1.5rem 1rem;
+  text-align: center;
+}
+.notesEmpty > svg {
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.375rem;
+  stroke-width: 1.5;
+  color: var(--icon);
 }
 .notesEmpty p {
-  color: var(--foreground);
+  color: var(--heading);
+  font-size: var(--lz-text-body);
+  font-weight: 500;
 }
 .notesEmpty span {
-  max-width: 46ch;
+  max-width: 35ch;
   color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
   line-height: 1.6;
 }
 .health {
+  container-type: inline-size;
   padding: 1rem 1.25rem;
   background: var(--accent);
   border-radius: var(--radius-lg);
@@ -278,42 +304,17 @@
   padding-block: 0.5rem;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
 }
+@container (min-width: 24rem) {
+  .healthIndicators {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
 .healthIndicators dt {
   color: var(--muted-foreground);
 }
 .healthIndicators dd {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-}
-.healthLoading {
-  display: grid;
-  gap: 0.75rem;
-  padding-block: 0.75rem 0.5rem;
-  min-height: 14rem;
-}
-.financeSnapshot {
-  padding-inline: 0.25rem;
-}
-.snapshotContent {
-  display: grid;
-  justify-items: start;
-  gap: 0.5rem;
-  padding-top: 0.5rem;
-}
-.snapshotAmount {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.375rem 0.625rem;
-  color: var(--destructive);
-  font-size: 1.5rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-}
-.snapshotAmount span {
-  font-size: var(--lz-text-caption);
-  color: var(--muted-foreground);
-  font-weight: 400;
 }
 .supporting {
   color: var(--muted-foreground);
@@ -331,28 +332,94 @@
   font-size: var(--lz-text-body);
   line-height: 1.6;
 }
+.scoreBands {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  padding-block: 0.75rem;
+  border-block: 1px solid var(--border);
+}
+.scoreBands li {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  font-size: var(--lz-text-caption);
+}
+.scoreBands strong {
+  font-variant-numeric: tabular-nums;
+}
+.scoreBands span {
+  color: var(--muted-foreground);
+}
+.scoreBands li:first-child strong {
+  color: var(--success);
+}
+.scoreBands li:nth-child(2) strong {
+  color: var(--warning);
+}
+.scoreBands li:last-child strong {
+  color: var(--destructive);
+}
 .scoreRules {
   display: grid;
 }
 .scoreRules > div {
   display: grid;
-  gap: 0.375rem;
-  padding-block: 1rem;
-  border-top: 1px solid var(--border);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+  padding-block: 0.875rem;
+  border-bottom: 1px solid var(--border);
 }
 .scoreRules dt {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
 }
 .scoreRules dt span,
-.scoreRules dd {
+.scoreRuleResult span {
   color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
 }
-.scoreRules .scoreRuleValue {
-  color: var(--heading);
-  font-variant-numeric: tabular-nums;
+.scoreRuleResult {
+  text-align: right;
+}
+.scoreRuleResult strong {
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.scoreRuleDetails {
+  grid-column: 1 / -1;
+}
+.scoreRuleDetails summary {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: fit-content;
+  padding-block: 0.25rem;
+  color: var(--interactive);
+  font-size: var(--lz-text-caption);
+  cursor: pointer;
+  list-style: none;
+}
+.scoreRuleDetails summary::-webkit-details-marker {
+  display: none;
+}
+.scoreRuleDetails summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.scoreRuleDetails svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.scoreRuleDetails details[open] svg {
+  transform: rotate(180deg);
+}
+.scoreRuleDetails p {
+  padding-top: 0.375rem;
+  color: var(--muted-foreground);
+  font-size: var(--lz-text-caption);
 }
 .registration {
   display: grid;
@@ -402,28 +469,13 @@
   }
 }
 @media (max-width: 900px) {
-  .overview {
+  .summaryGrid,
+  .workGrid {
     grid-template-columns: minmax(0, 1fr);
-    gap: 1.5rem;
   }
-  .mainColumn,
-  .sideColumn {
-    display: contents;
-  }
-  .enrollment {
-    order: 0;
-  }
-  .overviewHealth {
-    order: 1;
-  }
-  .overviewNotes {
-    order: 2;
-  }
-  .financeSnapshot {
-    order: 3;
-  }
-  .overviewIntention {
-    order: 4;
+  .healthColumn {
+    grid-column: 1;
+    grid-row: 1;
   }
   .registration {
     grid-template-columns: minmax(0, 1fr);
@@ -460,11 +512,45 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal,
-  .enrollmentSummary:not([aria-busy]),
-  .snapshotContent {
+  .enrollmentSummary:not([aria-busy]) {
     animation: none;
   }
   .healthMeter::-webkit-meter-optimum-value {
     transition: none;
+  }
+}
+
+@media (min-width: 901px) and (min-height: 640px) {
+  .overview {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding-bottom: 0;
+  }
+
+  .workGrid,
+  .workGrid > section {
+    min-height: 0;
+  }
+
+  .notes {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .notes > header {
+    flex-shrink: 0;
+  }
+
+  .notesText {
+    min-height: 0;
+    max-height: none;
+    flex: 1;
+  }
+
+  .notesEmpty {
+    min-height: 0;
+    flex: 1;
   }
 }

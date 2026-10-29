@@ -56,7 +56,15 @@ export default async function LoginPage({
       <section className={styles.access} aria-labelledby="login-title" data-login-reveal="panel">
         <LoginCard
           initialError={resetting ? null : resolveInitialError(params.error)}
-          initialMode={registering ? "set-password" : resetting ? "reset" : params.mode === "register" ? "register" : "password"}
+          initialMode={
+            registering
+              ? "set-password"
+              : resetting
+                ? "reset"
+                : params.mode === "register"
+                  ? "register"
+                  : "password"
+          }
           token={params.error ? null : (params.token ?? null)}
         />
       </section>

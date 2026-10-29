@@ -142,6 +142,12 @@
   border: 1px solid transparent;
   border-radius: var(--radius-md);
 }
+.choiceSkeleton {
+  color: var(--muted-foreground);
+}
+.choiceSkeleton .choiceStatus {
+  min-height: 1lh;
+}
 .documentChoice {
   position: relative;
   color: var(--muted-foreground);
@@ -262,7 +268,8 @@
   min-height: 14rem;
   overflow: hidden;
 }
-.preview[data-empty="true"] {
+.preview[data-empty="true"],
+.preview[data-loading="true"] {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
 }

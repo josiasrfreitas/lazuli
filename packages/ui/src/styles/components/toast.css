@@ -1,0 +1,25 @@
+[data-type="onboarding"] {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--lz-duration-base) var(--lz-ease-standard),
+    transform var(--lz-duration-slow) var(--lz-ease-standard);
+}
+[data-type="onboarding"][data-starting-style] {
+  opacity: 0;
+  transform: translateY(0.75rem);
+}
+[data-type="onboarding"][data-ending-style] {
+  opacity: 0;
+  transform: translateY(0.375rem);
+  transition-duration: var(--lz-duration-fast);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-type="onboarding"],
+  [data-type="onboarding"][data-starting-style],
+  [data-type="onboarding"][data-ending-style] {
+    transform: none;
+    transition-property: opacity;
+    transition-duration: var(--lz-duration-fast);
+  }
+}

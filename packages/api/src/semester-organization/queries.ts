@@ -2,11 +2,13 @@ import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility
 import { sql } from "kysely";
 import {
   saoPauloDateOnly,
+  periodConfirmation,
+  type PeriodConfirmation,
   semesterPlacementBlockers,
   type SemesterEligibility,
 } from "@lazuli/domain";
 import { z } from "@lazuli/validators";
-import type { Prisma, SchoolClosedDay, Semester } from "@lazuli/db";
+import type { Prisma, SchoolClosedDay, Period } from "@lazuli/db";
 import {
   dateOnly,
   readSlots,
@@ -17,7 +19,6 @@ import {
 
 const ISO_TIME_START_INDEX = 11;
 const ISO_MINUTE_END_INDEX = 16;
-const AVAILABILITY_STUDENT_ID = "availability.student_id";
 
 const PLACEMENT_COLUMNS = [
   "placement.id",
@@ -157,52 +158,6 @@ export async function readPlacementRows(
     publishedEvidence: row.publishedEvidence as Prisma.JsonValue,
   }));
 }
-export type CurrentAvailability = {
-  id: string;
-  studentId: string;
-  studentName: string;
-  confirmed: boolean;
-  validUntil: Date;
-  slots: Prisma.JsonValue;
-  notes: string | null;
-  confirmedAt: Date;
-  recordedBy: string;
-  formats: ClassModel["format"][];
-};
-export async function currentAvailability(
-  context: OrganizationContext,
-  semesterId: string,
-): Promise<CurrentAvailability[]> {
-  const rows = await context.database.$kysely
-    .selectFrom("StudentAvailability as availability")
-    .innerJoin("User as actor", "actor.id", "availability.recorded_by_id")
-    .innerJoin("Student as availabilityStudent", "availabilityStudent.id", AVAILABILITY_STUDENT_ID)
-    .select([
-      "availability.id",
-      "availability.student_id as studentId",
-      "availabilityStudent.full_name as studentName",
-      "availability.confirmed",
-      "availability.valid_until as validUntil",
-      "availability.slots",
-      "availability.notes",
-      "availability.created_at as confirmedAt",
-      "actor.name as recordedBy",
-    ])
-    .select(sql<string[]>`availability.formats::text[]`.as("formats"))
-    .where("availability.semester_id", "=", semesterId)
-    .where("availability.deleted_at", "is", null)
-    .where("availabilityStudent.deleted_at", "is", null)
-    .distinctOn(AVAILABILITY_STUDENT_ID)
-    .orderBy(AVAILABILITY_STUDENT_ID)
-    .orderBy("availability.created_at", "desc")
-    .orderBy("availability.id", "desc")
-    .execute();
-  return rows.map((row) => ({
-    ...row,
-    slots: row.slots as Prisma.JsonValue,
-    formats: z.array(z.enum(["IN_PERSON", "ONLINE"])).parse(row.formats),
-  }));
-}
 const evidenceSchema = z.object({
   assessmentId: z.string().nullable(),
   stagePlanId: z.string().nullable(),
@@ -211,11 +166,10 @@ export function placementEligibility(
   row: PlacementRow,
   options: {
     plan: ClassPlan | null;
-    availability: CurrentAvailability | null;
     entryOn: string;
   },
 ): SemesterEligibility {
-  const { plan, availability, entryOn } = options;
+  const { plan, entryOn } = options;
 
   return {
     entryOn,
@@ -225,7 +179,6 @@ export function placementEligibility(
     stage: eligibilityStage(row),
     plan: eligibilityPlan(plan),
     source: eligibilitySource(row, entryOn),
-    availability: eligibilityAvailability(availability),
   };
 }
 
@@ -246,8 +199,6 @@ function eligibilityPlan(plan: ClassPlan | null): SemesterEligibility["plan"] {
   return {
     scheduleType: plan.scheduleType,
     sharedStageId: plan.sharedStageId,
-    format: plan.format,
-    slots: plan.slots,
     teacherReady: plan.teacherReady,
     active: plan.active,
   };
@@ -285,31 +236,17 @@ function sourceActive(row: PlacementRow, entryOn: string): boolean {
   );
 }
 
-function eligibilityAvailability(
-  availability: CurrentAvailability | null,
-): SemesterEligibility["availability"] {
-  if (!availability) return null;
-  return {
-    confirmed: availability.confirmed,
-    validUntil: dateOnly(availability.validUntil),
-    formats: availability.formats,
-    slots: readSlots(availability.slots),
-  };
-}
 export function placementBlockers(
   row: PlacementRow,
   options: {
     plan: ClassPlan | null;
-    availability: CurrentAvailability | null;
     entryOn: string;
   },
 ): string[] {
-  const { plan, availability, entryOn } = options;
+  const { plan, entryOn } = options;
 
   if (placementAlreadySettled(row)) return [];
-  const blockers = semesterPlacementBlockers(
-    placementEligibility(row, { plan, availability, entryOn }),
-  );
+  const blockers = semesterPlacementBlockers(placementEligibility(row, { plan, entryOn }));
   if (publishedEvidenceChanged(row))
     blockers.push("O plano ou a avaliação PPT mudou após a publicação");
   if (row.publishedAt && row.entryStatus !== "SCHEDULED")
@@ -363,12 +300,12 @@ const waitingLeadSelect = {
   allocationPlanId: true,
   stage: { select: { internalCode: true } },
   allocationPlan: { select: { id: true, name: true, classId: true, semesterId: true } },
-  availability: { select: { weekday: true, startTime: true, endTime: true } },
 } satisfies Prisma.AdmissionCandidateSelect;
 type WaitingLead = Prisma.AdmissionCandidateGetPayload<{ select: typeof waitingLeadSelect }>;
-type NextSemester = Pick<Semester, "id" | "name" | "startDate" | "endDate">;
+type NextSemester = Pick<Period, "id" | "name" | "startDate" | "endDate">;
 type Slots = ReturnType<typeof readSlots>;
 type PlacementView = PlacementRow & {
+  confirmation: PeriodConfirmation;
   upcomingContract: SemesterContract | null;
   contract: SemesterContract | null;
   periodCovered: boolean;
@@ -376,14 +313,12 @@ type PlacementView = PlacementRow & {
   lastContract: SemesterContract | null;
   sourceSchedule: Slots;
   sourceTeacher: string | null;
-  availability: (CurrentAvailability & { slots: Slots }) | null;
   blockers: string[];
 };
 type SemesterView = {
-  semester: Semester;
+  semester: Period;
   nextSemester: NextSemester | null;
-  waitingLeads: Array<WaitingLead & { slots: Slots }>;
-  intents: Array<CurrentAvailability & { slots: Slots }>;
+  waitingLeads: Array<WaitingLead>;
   closedDays: SchoolClosedDay[];
   plans: ClassPlan[];
   placements: PlacementView[];
@@ -395,15 +330,13 @@ export async function readSemester(
   context: OrganizationContext,
   semesterId: string,
 ): Promise<SemesterView> {
-  const [semester, plans, rows, availability] = await Promise.all([
-    context.database.semester.findUniqueOrThrow({ where: { id: semesterId } }),
+  const [semester, plans, rows] = await Promise.all([
+    context.database.period.findUniqueOrThrow({ where: { id: semesterId } }),
     readClassPlans(context, semesterId),
     readPlacementRows(context, semesterId),
-    currentAvailability(context, semesterId),
   ]);
   const { contracts, sourceClasses, closedDays, nextSemester, waitingLeads } =
     await semesterRelations(context, { semester, rows });
-  const byStudent = new Map(availability.map((item) => [item.studentId, item]));
   const byPlan = new Map(plans.map((item) => [item.id, item]));
   const placements = rows.map((row) =>
     placementView(context, {
@@ -412,7 +345,6 @@ export async function readSemester(
       contracts,
       nextSemester,
       sourceClass: sourceClasses.find((group) => group.id === row.sourceClassId) ?? null,
-      available: byStudent.get(row.studentId) ?? null,
       plan: byPlan.get(row.planId ?? "") ?? null,
     }),
   );
@@ -424,10 +356,7 @@ export async function readSemester(
   return {
     semester,
     nextSemester,
-    waitingLeads: waitingLeads.map((lead) => waitingLeadView(lead)),
-    intents: availability
-      .filter((item) => !rows.some((row) => row.studentId === item.studentId))
-      .map((item) => ({ ...item, slots: readSlots(item.slots) })),
+    waitingLeads: waitingLeads,
     closedDays,
     plans,
     placements,
@@ -436,43 +365,45 @@ export async function readSemester(
   };
 }
 
-function waitingLeadView(lead: WaitingLead): WaitingLead & { slots: Slots } {
-  return {
-    ...lead,
-    slots: lead.availability.map((slot) => ({
-      weekday: slot.weekday,
-      startTime: slot.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
-      endTime: slot.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
-    })),
-  };
-}
-
 type PlacementViewOptions = {
   row: PlacementRow;
-  semester: Semester;
+  semester: Period;
   contracts: SemesterContract[];
   nextSemester: NextSemester | null;
   sourceClass: SourceClass | null;
-  available: CurrentAvailability | null;
   plan: ClassPlan | null;
 };
 
 function placementView(context: OrganizationContext, options: PlacementViewOptions): PlacementView {
-  const { row, semester, contracts, nextSemester, sourceClass, available, plan } = options;
+  const { row, semester, contracts, nextSemester, sourceClass, plan } = options;
   const coverageDate = placementCoverageDate(row, { semester, now: context.now });
   return {
     ...row,
+    confirmation: periodConfirmation({
+      continuity: row.continuity,
+      declined: Boolean(row.declinedAt),
+      enrolled: Boolean(
+        row.publishedAt &&
+        (row.entryStatus === "APPLIED" || (!row.entryActionId && row.enrollmentId)),
+      ),
+      periodStart: dateOnly(semester.startDate),
+      contracts: contracts
+        .filter((contract) => contract.studentId === row.studentId)
+        .map((contract) => ({
+          startsOn: contract.startsOn ? dateOnly(contract.startsOn) : null,
+          endsOn: contract.endsOn ? dateOnly(contract.endsOn) : null,
+        })),
+    }),
     ...contractCoverage(contracts, { row, semester, nextSemester, coverageDate }),
     sourceSchedule: sourceSchedule(sourceClass),
     sourceTeacher: sourceClass ? (usualTeacherOn(sourceClass, context.now)?.name ?? null) : null,
-    availability: available ? { ...available, slots: readSlots(available.slots) } : null,
-    blockers: placementViewBlockers(context, { row, semester, plan, available }),
+    blockers: placementViewBlockers(context, { row, semester, plan }),
   };
 }
 
 function placementCoverageDate(
   row: PlacementRow,
-  { semester, now }: { semester: Semester; now: Date },
+  { semester, now }: { semester: Period; now: Date },
 ): string {
   const entryDate = dateOnly(row.effectiveDate ?? semester.startDate);
   return row.publishedAt && row.entryStatus !== "SCHEDULED"
@@ -493,7 +424,7 @@ function contractCoverage(
     coverageDate,
   }: {
     row: PlacementRow;
-    semester: Semester;
+    semester: Period;
     nextSemester: NextSemester | null;
     coverageDate: string;
   },
@@ -570,12 +501,10 @@ function placementViewBlockers(
     row,
     semester,
     plan,
-    available,
   }: {
     row: PlacementRow;
-    semester: Semester;
+    semester: Period;
     plan: ClassPlan | null;
-    available: CurrentAvailability | null;
   },
 ): string[] {
   const entryOn = dateOnly(row.effectiveDate ?? semester.startDate);
@@ -586,10 +515,10 @@ function placementViewBlockers(
     blockers.push("Revise a vigência: a data proposta já passou");
   if (!row.declinedAt && outsideSemester(entryOn, semester) && !row.publishedAt)
     blockers.push("Vigência fora do período letivo");
-  return [...blockers, ...placementBlockers(row, { plan, availability: available, entryOn })];
+  return [...blockers, ...placementBlockers(row, { plan, entryOn })];
 }
 
-function outsideSemester(entryOn: string, semester: Semester): boolean {
+function outsideSemester(entryOn: string, semester: Period): boolean {
   return entryOn < dateOnly(semester.startDate) || entryOn > dateOnly(semester.endDate);
 }
 
@@ -603,7 +532,7 @@ type SemesterRelations = {
 
 async function semesterRelations(
   context: OrganizationContext,
-  { semester, rows }: { semester: Semester; rows: PlacementRow[] },
+  { semester, rows }: { semester: Period; rows: PlacementRow[] },
 ): Promise<SemesterRelations> {
   const [contracts, sourceClasses, closedDays, nextSemester, waitingLeads] = await Promise.all([
     context.database.contract.findMany({
@@ -627,13 +556,18 @@ async function semesterRelations(
       where: { deletedAt: null, date: { gte: semester.startDate, lte: semester.endDate } },
       orderBy: { date: "asc" },
     }),
-    context.database.semester.findFirst({
+    context.database.period.findFirst({
       where: { deletedAt: null, startDate: { gt: semester.endDate } },
       orderBy: { startDate: "asc" },
       select: { id: true, name: true, startDate: true, endDate: true },
     }),
     context.database.admissionCandidate.findMany({
-      where: { deletedAt: null, status: "WAITING", allocationPendingAt: { not: null } },
+      where: {
+        deletedAt: null,
+        status: "WAITING",
+        allocationPendingAt: { not: null },
+        OR: [{ allocationPlanId: null }, { allocationPlan: { semesterId: semester.id } }],
+      },
       select: waitingLeadSelect,
       orderBy: { allocationPendingAt: "asc" },
     }),

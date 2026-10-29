@@ -16,7 +16,6 @@ export async function contractPayerFixture(
     tuitionCeilingCents: 25_000,
     maximumDiscountPct: 20,
     punctualityDiscountPct: 20,
-    interestRatePctDaily: 0.1,
     interestRatePctMonthly: 2,
     cancellationFeePct: 10,
     materialPriceCents: 0,

@@ -1,5 +1,39 @@
 # Mapa de estados operacionais e entrevista de refatoração
 
+## Low score queue — accepted on 2026-10-29
+
+**Score baixo** replaces the proposed low-attendance queue. Use the existing overall
+student health score without changing its formula or its descriptive bands.
+
+- Active students enter below 70. A score of 70 already meets the minimum.
+- After an existing low score recovers to at least 70, keep it **Em observação**
+  for seven full days. A new low evaluation clears the recovery timestamp.
+- Healthy students with no prior low episode do not enter observation.
+- Missing score data does not create a low score or prove a recovery.
+- The worker recalculates and persists observations every minute, including on startup.
+  Recovery begins when the worker first observes it, not when someone visits the home page.
+- Expired observation rows are excluded at read time. Active low scores never expire by age.
+- The destination is the student's **Visão geral**, with return to **Início**.
+
+## Unrecorded appointments — accepted on 2026-10-29
+
+Administrative pending appointments use the same timing as unrecorded lessons:
+include after three full days from the scheduled end; highlight as **Muito atrasado**
+after seven full days. Cancelled or completed appointments are excluded. Old pending
+appointments remain visible until their result is recorded.
+
+## Occurrence lifecycle — accepted on 2026-10-29
+
+This decision supersedes the earlier novelty-only scope recorded below.
+
+- New occurrences start **Aberta** and appear in **Ocorrências pendentes** on the administrative home.
+- **Aberta** and **Em acompanhamento** remain pending regardless of category, content, age, or current enrollment.
+- **Encerrada** leaves the queue but remains in the student's history.
+- Administrators change status; teachers can consult status and history within their existing access scope.
+- Each transition records its authenticated author, timestamp, previous status, and next status.
+- Closing requires a short conclusion. Either open state can be closed; reopening returns to **Em acompanhamento**.
+- Existing records start open because no historical closure was recorded.
+
 Data do levantamento: 24/10/2026.
 
 Status: entrevista encerrada por solicitação expressa do usuário após a sexta rodada (“ja chegam de perguntas”). Depois, o usuário autorizou começar pelo estado padrão do Início, adicionando os módulos aos poucos para validação individual. A primeira composição está implementada; sua aceitação visual continua pendente. Nenhuma nova rodada de perguntas prevista.

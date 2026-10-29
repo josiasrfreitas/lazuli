@@ -2,7 +2,7 @@
 
 import type { ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
-import { Activity, Info } from "lucide-react";
+import { Activity, ChevronDown, Info } from "lucide-react";
 import {
   Badge,
   Button,
@@ -37,24 +37,49 @@ const LEVELS = {
   INSUFFICIENT_DATA: { label: "Em formação", variant: "neutral" },
 } as const;
 const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
-const INDICATOR_SKELETON_COUNT = 4;
 
 export function StudentHealth({ studentId }: { studentId: string }): ReactElement {
   const query = trpc.students.health.useQuery({ id: studentId }, { staleTime: 0 });
   return (
     <section className={styles.health} aria-labelledby="student-health-title">
-      <header className={styles.sectionHeading}>
-        <h2 id="student-health-title">
-          <Activity aria-hidden="true" /> Saúde do vínculo
-        </h2>
-        {query.data && <HealthExplanation health={query.data} />}
-      </header>
+      <HealthHeader health={query.data} />
       {query.isError && (
         <ProfileError message="Score indisponível." onRetry={() => void query.refetch()} />
       )}
       {!query.isError && query.data && <HealthReading health={query.data} />}
       {!query.isError && !query.data && <HealthLoading />}
     </section>
+  );
+}
+
+export function StudentHealthLoading(): ReactElement {
+  return (
+    <section className={styles.health} aria-labelledby="student-health-title">
+      <HealthHeader />
+      <HealthLoading />
+    </section>
+  );
+}
+
+function HealthHeader({ health }: { health?: Health | undefined }): ReactElement {
+  return (
+    <header className={styles.sectionHeading}>
+      <h2 id="student-health-title">
+        <Activity aria-hidden="true" /> Saúde do vínculo
+      </h2>
+      {health ? (
+        <HealthExplanation health={health} />
+      ) : (
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          disabled
+          aria-label="Como o health score é calculado"
+        >
+          <Info aria-hidden="true" />
+        </Button>
+      )}
+    </header>
   );
 }
 
@@ -136,14 +161,23 @@ function HealthExplanation({ health }: { health: Health }): ReactElement {
                   ? `Acompanhamento de ${formatDateOnlyBR(health.from)} a ${formatDateOnlyBR(health.through)}, nas matrículas do período letivo atual.`
                   : "O cálculo começa quando houver matrícula e registros no período letivo atual."}
               </p>
+              <ul className={styles.scoreBands} aria-label="Faixas do score">
+                <li>
+                  <strong>80–100</strong>
+                  <span>Vínculo saudável</span>
+                </li>
+                <li>
+                  <strong>60–79</strong>
+                  <span>Requer atenção</span>
+                </li>
+                <li>
+                  <strong>Abaixo de 60</strong>
+                  <span>Acompanhamento prioritário</span>
+                </li>
+              </ul>
               <HealthRules health={health} />
-              <p>
-                Os pesos dos indicadores disponíveis são redistribuídos proporcionalmente. Dados
-                ausentes não contam como zero.
-              </p>
-              <p>
-                80–100: vínculo saudável. 60–79: requer atenção. Abaixo de 60: acompanhamento
-                prioritário.
+              <p className={styles.supporting}>
+                Indicadores sem dados ficam fora da média; seus pesos são redistribuídos.
               </p>
               <p className={styles.supporting}>
                 Critério inicial de acompanhamento. O score ajuda a orientar o contato; os registros
@@ -166,13 +200,20 @@ function HealthRules({ health }: { health: Health }): ReactElement {
             <strong>{LABELS[indicator.key]}</strong>
             <span>Peso {indicator.weight}%</span>
           </dt>
-          <dd>{indicatorDescription(indicator.key)}</dd>
-          <dd className={styles.scoreRuleValue}>
-            {indicator.score === null
-              ? "Fora do cálculo: sem dados aplicáveis."
-              : `${number.format(indicator.score)} de 100 pontos`}
+          <dd className={styles.scoreRuleResult}>
+            <strong>
+              {indicator.score === null ? "Sem dados" : `${number.format(indicator.score)} / 100`}
+            </strong>
           </dd>
-          <dd>{indicatorEvidence(health, indicator.key)}</dd>
+          <dd className={styles.scoreRuleDetails}>
+            <details>
+              <summary>
+                Como é calculado <ChevronDown aria-hidden="true" />
+              </summary>
+              <p>{indicatorDescription(indicator.key)}</p>
+              <p>{indicatorEvidence(health, indicator.key)}</p>
+            </details>
+          </dd>
         </div>
       ))}
     </dl>
@@ -215,21 +256,31 @@ function indicatorEvidence(health: Health, key: Health["indicators"][number]["ke
 
 function HealthLoading(): ReactElement {
   return (
-    <div
-      className={`${styles.healthLoading} ${loading.surface}`}
-      aria-label="Calculando saúde do vínculo"
-      aria-busy="true"
-    >
-      <div className="flex items-center gap-4">
-        <InlineSkeleton className="h-12 w-20" />
-        <InlineSkeleton className="h-5 w-36" />
-      </div>
-      {Array.from({ length: INDICATOR_SKELETON_COUNT }, (_value, item) => (
-        <div key={item} className="flex justify-between gap-4">
-          <InlineSkeleton className="h-3 w-24" />
-          <InlineSkeleton className="h-3 w-28" />
+    <div className={loading.surface} aria-label="Calculando saúde do vínculo" aria-busy="true">
+      <div className={styles.healthReading}>
+        <p className={styles.healthNumber}>
+          <InlineSkeleton shape="block" className="h-12 w-14" />
+          <span>/100</span>
+        </p>
+        <div className={styles.healthStatus}>
+          <InlineSkeleton shape="block" className="h-5 w-28" />
+          <InlineSkeleton className="w-32" />
         </div>
-      ))}
+      </div>
+      <InlineSkeleton shape="block" className="block h-1.5 w-full" />
+      <dl className={styles.healthIndicators}>
+        {Object.values(LABELS).map((label) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>
+              <InlineSkeleton className="w-20 max-w-full" />
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className={styles.supporting}>
+        <InlineSkeleton className="w-56 max-w-full" />
+      </p>
     </div>
   );
 }

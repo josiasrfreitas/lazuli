@@ -128,12 +128,25 @@ export async function occurrenceDetail(
   OccurrenceRow & {
     related: OccurrenceRow[];
     interventions: InterventionRow[];
+    statusChanges: Array<{
+      id: string;
+      createdAt: Date;
+      fromStatus: OccurrenceRow["status"];
+      toStatus: OccurrenceRow["status"];
+      conclusion: string | null;
+      author: { id: string; name: string };
+    }>;
     canEdit: boolean;
     canOrganize: boolean;
   }
 > {
   const row = await loadOccurrence(context, id);
-  const [relations, interventions] = await Promise.all([
+  const [statusChanges, relations, interventions] = await Promise.all([
+    context.database.occurrenceStatusChange.findMany({
+      where: { occurrenceId: id },
+      include: { author: { select: { id: true, name: true } } },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    }),
     context.database.occurrenceRelation.findMany({
       where: {
         deletedAt: null,
@@ -155,6 +168,7 @@ export async function occurrenceDetail(
   ]);
   return {
     ...row,
+    statusChanges,
     related: relations.map((link) => (link.fromId === id ? link.to : link.from)),
     interventions,
     canEdit: context.staffUser.role !== "TEACHER" || row.recordedById === context.staffUser.id,

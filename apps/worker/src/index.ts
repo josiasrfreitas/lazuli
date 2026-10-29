@@ -1,3 +1,4 @@
+import { startStudentHealthRefresh } from "./student-health.js";
 import { processAssessmentFile } from "@lazuli/worker-handlers/assessment-files";
 import { processStudentDocument } from "@lazuli/worker-handlers/student-documents";
 import { startAssessmentRecovery } from "./assessment-recovery.js";
@@ -69,12 +70,14 @@ async function start(): Promise<void> {
   });
   const timer = setInterval(() => void processEnrollmentActions(), ENROLLMENT_POLL_MS);
   const stopRecovery = startAssessmentRecovery();
+  const stopHealth = startStudentHealthRefresh();
   let stopping = false;
   const shutdown = (): void => {
     if (stopping) return;
     stopping = true;
     clearInterval(timer);
     stopRecovery();
+    stopHealth();
     void worker.stop();
   };
   for (const signal of ["SIGINT", "SIGTERM"] as const) process.once(signal, shutdown);
@@ -85,6 +88,7 @@ async function start(): Promise<void> {
   } finally {
     clearInterval(timer);
     stopRecovery();
+    stopHealth();
     await db.$disconnect();
   }
 }

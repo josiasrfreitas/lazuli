@@ -22,6 +22,7 @@ const CLOCK_REFRESH_INTERVAL_MS = 30_000;
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
 export type PlacementScheduleDraft = {
+  teacherId: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -94,6 +95,7 @@ function useScheduleState({ candidate, registration }: ScheduleProps): ScheduleS
     () =>
       registration?.draft ?? {
         date: formatDateOnlyBR(candidate.today),
+        teacherId: "",
         startTime: "",
         endTime: "",
         format: candidate.format ?? "IN_PERSON",
@@ -223,7 +225,13 @@ function scheduleValidation(
   const checkInterval = (range: CalendarInterval): string | undefined =>
     intervalError(range, { now: state.now, calendar });
   const selectionError = selection ? checkInterval(selection) : undefined;
-  const ready = Boolean(calendar.isSuccess && !calendar.isFetching && selection && !selectionError);
+  const ready = Boolean(
+    calendar.isSuccess &&
+    !calendar.isFetching &&
+    selection &&
+    !selectionError &&
+    state.draft.teacherId,
+  );
   const times = [
     "08:00",
     "22:00",

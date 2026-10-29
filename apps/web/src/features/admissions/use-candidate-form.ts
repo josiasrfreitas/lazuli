@@ -22,10 +22,10 @@ type CandidateFormState = {
 };
 export function useCandidateForm(
   candidate: Candidate | undefined,
-  startAtAvailability: boolean,
+  startAtCourse: boolean,
 ): CandidateFormState {
   const [draft, setDraft] = useState(() => initialCandidateDraft(candidate));
-  const [step, setStep] = useState(startAtAvailability ? 1 : 0);
+  const [step, setStep] = useState(startAtCourse ? 1 : 0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [revision, setRevision] = useState(0);
   const body = useScrollToError(revision);

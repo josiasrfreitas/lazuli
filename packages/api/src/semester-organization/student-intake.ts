@@ -1,4 +1,4 @@
-import type { Prisma, Semester, TransactionClient } from "@lazuli/db";
+import type { Prisma, Period, TransactionClient } from "@lazuli/db";
 import { saoPauloDateOnly } from "@lazuli/domain";
 import type { AdmissionCandidate } from "../admissions/candidates.js";
 import { readSlots } from "./data.js";
@@ -20,7 +20,7 @@ export async function lockIntakeSemester(
   endDate: Date;
 } | null> {
   const today = new Date(saoPauloDateOnly(now));
-  const semester = await database.semester.findFirst({
+  const semester = await database.period.findFirst({
     where: { deletedAt: null, startDate: { lte: today }, endDate: { gte: today } },
     orderBy: { startDate: "desc" },
   });
@@ -30,7 +30,7 @@ export async function lockIntakeSemester(
 }
 
 type SyncInput = {
-  semester: Semester | null;
+  semester: Period | null;
   studentId: string;
   stageId: string | null;
   enrollmentId: string | null;
@@ -48,7 +48,7 @@ type Stage = Prisma.StageGetPayload<Prisma.StageDefaultArgs>;
 type ClassPlan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
 type Placement = Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;
 type PlacementOptions = {
-  semester: Semester;
+  semester: Period;
   studentId: string;
   candidate: AdmissionCandidate | null;
   enrollment: IntakeEnrollment | null;
@@ -68,15 +68,7 @@ export async function syncStudentIntake(
   const enrollment = await loadIntakeEnrollment(database, input.enrollmentId);
   const stageId = input.stageId ?? candidate?.stageId;
   const stage = stageId ? await database.stage.findUnique({ where: { id: stageId } }) : null;
-  const slots = intakeSlots(enrollment, candidate);
-  await ensureIntakeAvailability(database, {
-    semester,
-    studentId,
-    candidate,
-    enrollment,
-    slots,
-    recordedById,
-  });
+  const slots = intakeSlots(enrollment);
   if (!stage) return;
   await syncIntakePlacement(database, {
     semester,
@@ -101,53 +93,12 @@ async function loadIntakeEnrollment(
   });
 }
 
-function intakeSlots(
-  enrollment: IntakeEnrollment | null,
-  candidate: AdmissionCandidate | null,
-): IntakeSlots {
-  return (enrollment?.class.scheduleSlots ?? candidate?.availability ?? []).map((slot) => ({
+function intakeSlots(enrollment: IntakeEnrollment | null): IntakeSlots {
+  return (enrollment?.class.scheduleSlots ?? []).map((slot) => ({
     weekday: slot.weekday,
     startTime: slot.startTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
     endTime: slot.endTime.toISOString().slice(ISO_TIME_START_INDEX, ISO_MINUTE_END_INDEX),
   }));
-}
-
-async function ensureIntakeAvailability(
-  database: TransactionClient,
-  {
-    semester,
-    studentId,
-    candidate,
-    enrollment,
-    slots,
-    recordedById,
-  }: Omit<PlacementOptions, "stage" | "now">,
-): Promise<void> {
-  const available = await database.studentAvailability.findFirst({
-    where: { semesterId: semester.id, studentId, deletedAt: null },
-  });
-  if (available) return;
-  await database.studentAvailability.create({
-    data: {
-      semesterId: semester.id,
-      studentId,
-      validUntil: semester.endDate,
-      formats: intakeFormats(enrollment, candidate),
-      slots: readSlots(slots),
-      confirmed: slots.length > 0,
-      notes: candidate?.allocationPendingReason ?? candidate?.notes ?? null,
-      recordedById,
-    },
-  });
-}
-
-function intakeFormats(
-  enrollment: IntakeEnrollment | null,
-  candidate: AdmissionCandidate | null,
-): Array<Prisma.ClassGetPayload<Prisma.ClassDefaultArgs>["format"]> {
-  if (enrollment) return [enrollment.class.format];
-  if (candidate?.format) return [candidate.format];
-  return ["IN_PERSON", "ONLINE"];
 }
 
 async function syncIntakePlacement(
@@ -255,7 +206,7 @@ function intakePlacementPlanId({
 }: {
   plan: ClassPlan | null;
   candidate: AdmissionCandidate | null;
-  semester: Semester;
+  semester: Period;
 }): string | null {
   if (plan) return plan.id;
   return candidate?.allocationPlan?.semesterId === semester.id ? candidate.allocationPlan.id : null;

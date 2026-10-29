@@ -1,18 +1,23 @@
 "use client";
 
 import type { ReactElement } from "react";
-import type { RouterOutputs } from "@lazuli/api";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CalendarDays, GraduationCap, Wallet } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  CalendarDays,
+  GraduationCap,
+  NotebookPen,
+  Pencil,
+  CircleCheck,
+} from "lucide-react";
 import { Badge, Button, InlineSkeleton } from "@lazuli/ui";
-import { trpc } from "~/lib/trpc";
-import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
+import { formatDateOnlyBR } from "~/lib/format";
 import { useStudentPedagogy, type StudentEnrollment, type StudentProfile } from "./logic";
+import { StudentPendingActions } from "./student-pending-actions";
 import { StudentNotes } from "./student-notes";
-import { StudentHealth } from "./student-health";
+import { StudentHealth, StudentHealthLoading } from "./student-health";
 import { ProfileError } from "./profile-shared";
-import { OrganizationIntention } from "./organization-intention";
-import { ContractTerminationNotice } from "./contract-termination-notice";
 import styles from "./student-overview.module.css";
 import loading from "./student-loading.module.css";
 
@@ -27,7 +32,6 @@ const DAYS: Record<string, string> = {
   SUNDAY: "Dom",
 };
 const WEEKDAYS = Object.keys(DAYS);
-const LOADING_ROWS = 4;
 
 export function StudentOverview({
   profile,
@@ -37,22 +41,18 @@ export function StudentOverview({
   navigate: Navigate;
 }): ReactElement {
   const pedagogy = useStudentPedagogy(profile.id);
-  const finance = trpc.finance.studentSummary.useQuery({ studentId: profile.id });
   return (
     <div className={styles.overview}>
-      <OverviewMain
-        profile={profile}
-        navigate={navigate}
-        pedagogy={pedagogy}
-        termination={finance.data?.latestTermination}
-      />
-      <OverviewSide
-        studentId={profile.id}
-        navigate={navigate}
-        summary={finance.data}
-        financeError={finance.isError}
-        retry={() => void finance.refetch()}
-      />
+      <div className={styles.summaryGrid}>
+        <OverviewMain profile={profile} navigate={navigate} pedagogy={pedagogy} />
+        <div className={styles.healthColumn}>
+          <StudentHealth studentId={profile.id} />
+        </div>
+      </div>
+      <div className={styles.workGrid}>
+        <StudentNotes profile={profile} />
+        <StudentPendingActions studentId={profile.id} pedagogy={pedagogy} />
+      </div>
     </div>
   );
 }
@@ -61,12 +61,10 @@ function OverviewMain({
   profile,
   navigate,
   pedagogy,
-  termination,
 }: {
   profile: StudentProfile;
   navigate: Navigate;
   pedagogy: ReturnType<typeof useStudentPedagogy>;
-  termination: RouterOutputs["finance"]["studentSummary"]["latestTermination"] | undefined;
 }): ReactElement {
   return (
     <div className={styles.mainColumn}>
@@ -78,14 +76,7 @@ function OverviewMain({
           </Button>
         </header>
         <EnrollmentState pedagogy={pedagogy} studentId={profile.id} />
-        <ContractTerminationNotice termination={termination} studentId={profile.id} />
       </section>
-      <div className={styles.overviewNotes}>
-        <StudentNotes profile={profile} />
-      </div>
-      <div className={styles.overviewIntention}>
-        <OrganizationIntention studentId={profile.id} />
-      </div>
     </div>
   );
 }
@@ -117,58 +108,6 @@ function EnrollmentState({
   return <EnrollmentSummaryLoading />;
 }
 
-function OverviewSide({
-  studentId,
-  navigate,
-  summary,
-  financeError,
-  retry,
-}: {
-  studentId: string;
-  navigate: Navigate;
-  summary: RouterOutputs["finance"]["studentSummary"] | undefined;
-  financeError: boolean;
-  retry: () => void;
-}): ReactElement {
-  return (
-    <div className={styles.sideColumn}>
-      <div className={styles.overviewHealth}>
-        <StudentHealth studentId={studentId} />
-      </div>
-      <section className={styles.financeSnapshot} aria-labelledby="overview-finance-title">
-        <header className={styles.sectionHeading}>
-          <h2 id="overview-finance-title">
-            <Wallet aria-hidden="true" /> Financeiro
-          </h2>
-          <Button variant="link" size="sm" onClick={() => navigate("financeiro")}>
-            Ver financeiro <ArrowRight aria-hidden="true" />
-          </Button>
-        </header>
-        <FinanceState summary={summary} error={financeError} retry={retry} />
-      </section>
-    </div>
-  );
-}
-
-function FinanceState({
-  summary,
-  error,
-  retry,
-}: {
-  summary: RouterOutputs["finance"]["studentSummary"] | undefined;
-  error: boolean;
-  retry: () => void;
-}): ReactElement {
-  if (error) return <ProfileError message="Resumo indisponível." onRetry={retry} />;
-  if (summary) return <FinanceSnapshot summary={summary} />;
-  return (
-    <div className="grid gap-3 py-3" aria-label="Carregando resumo financeiro" aria-busy="true">
-      <InlineSkeleton className="h-5 w-24" />
-      <InlineSkeleton className="h-4 w-56 max-w-full" />
-    </div>
-  );
-}
-
 function EnrollmentSummary({
   rows,
   today,
@@ -186,11 +125,19 @@ function EnrollmentSummary({
     return (
       <div className={styles.enrollmentEmpty}>
         <GraduationCap aria-hidden="true" />
-        <h3>{next ? "A próxima etapa já tem data" : "Sem matrícula em andamento"}</h3>
+        <h3>
+          {next
+            ? "A próxima etapa já tem data"
+            : rows.length === 0
+              ? "A primeira turma vem a seguir"
+              : "Sem matrícula em andamento"}
+        </h3>
         <p>
           {next
             ? `${next.class.name} · Início em ${formatDateOnlyBR(next.entryDate)}`
-            : "Matrículas e registros anteriores estão disponíveis no Pedagógico."}
+            : rows.length === 0
+              ? "Defina a turma em Pendências para preparar a entrada do aluno."
+              : "Consulte o histórico e a continuidade no Pedagógico."}
         </p>
       </div>
     );
@@ -291,55 +238,6 @@ function EnrollmentFacts({ row, back }: { row: StudentEnrollment; back: string }
   );
 }
 
-function FinanceSnapshot({
-  summary,
-}: {
-  summary: RouterOutputs["finance"]["studentSummary"];
-}): ReactElement {
-  const overdue = summary.overdueCount > 0;
-  return (
-    <div className={styles.snapshotContent}>
-      <Badge variant={debtVariant(summary)}>{debtLabel(summary)}</Badge>
-      {overdue && (
-        <p className={styles.snapshotAmount}>
-          {formatBRLFromCents(summary.overdueCents)}
-          <span>
-            em {summary.overdueCount}{" "}
-            {summary.overdueCount === 1 ? "parcela vencida" : "parcelas vencidas"}
-          </span>
-        </p>
-      )}
-      {summary.nextDueDate ? (
-        <p className={styles.supporting}>
-          Próximo vencimento: <strong>{formatDateOnlyBR(summary.nextDueDate)}</strong> ·{" "}
-          {formatBRLFromCents(summary.nextDueCents)}
-        </p>
-      ) : (
-        <p className={styles.supporting}>
-          {overdue
-            ? "Consulte as parcelas para registrar o pagamento ou negociar."
-            : "Nenhum vencimento futuro registrado."}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function debtVariant(
-  summary: RouterOutputs["finance"]["studentSummary"],
-): "destructive" | "warning" | "success" | "neutral" {
-  if (summary.debtState === "SEVERE_OVERDUE") return "destructive";
-  if (summary.overdueCount > 0) return "warning";
-  if (summary.installmentCount > 0) return "success";
-  return "neutral";
-}
-
-function debtLabel(summary: RouterOutputs["finance"]["studentSummary"]): string {
-  if (summary.overdueCount > 0) return "Pagamento em atraso";
-  if (summary.installmentCount > 0) return "Em dia";
-  return "Sem cobranças";
-}
-
 function EnrollmentSummaryLoading(): ReactElement {
   return (
     <div
@@ -347,10 +245,31 @@ function EnrollmentSummaryLoading(): ReactElement {
       aria-busy="true"
       aria-label="Carregando matrícula"
     >
-      <InlineSkeleton className="h-8 w-40" />
-      <InlineSkeleton className="h-4 w-56 max-w-full" />
-      <InlineSkeleton className="h-4 w-48 max-w-full" />
-      <InlineSkeleton className="h-4 w-64 max-w-full" />
+      <div className={styles.stageHeading}>
+        <InlineSkeleton shape="block" className="h-7 w-48 max-w-full" />
+        <InlineSkeleton shape="block" className="h-5 w-16" />
+      </div>
+      <dl className={styles.enrollmentFacts}>
+        <div>
+          <dt>
+            <GraduationCap aria-hidden="true" /> Professor
+          </dt>
+          <dd>
+            <InlineSkeleton className="h-3 w-32 max-w-full" />
+          </dd>
+        </div>
+        <div>
+          <dt>
+            <CalendarDays aria-hidden="true" /> Aulas
+          </dt>
+          <dd>
+            <InlineSkeleton className="h-3 w-36 max-w-full" />
+          </dd>
+        </div>
+      </dl>
+      <p className={styles.enrollmentPeriod}>
+        <InlineSkeleton className="w-72 max-w-full" />
+      </p>
     </div>
   );
 }
@@ -358,36 +277,36 @@ function EnrollmentSummaryLoading(): ReactElement {
 export function StudentOverviewLoading(): ReactElement {
   return (
     <div className={styles.overview} aria-busy="true" aria-label="Carregando visão geral do aluno">
-      <div className={styles.mainColumn}>
+      <div className={styles.summaryGrid}>
         <section className={styles.enrollment}>
           <header className={styles.sectionHeading}>
             <h2>Matrícula atual</h2>
           </header>
           <EnrollmentSummaryLoading />
         </section>
-        <section className={`${styles.overviewNotes} ${styles.notes} ${loading.surface}`}>
-          <header className={styles.sectionHeading}>
-            <h2>Anotações</h2>
-          </header>
-          <InlineSkeleton className="mt-4 h-4 w-full" />
-          <InlineSkeleton className="mt-3 h-4 w-2/3" />
-        </section>
+        <div className={styles.healthColumn}>
+          <StudentHealthLoading />
+        </div>
       </div>
-      <div className={styles.sideColumn}>
-        <section className={`${styles.overviewHealth} ${styles.health} ${loading.surface}`}>
+      <div className={styles.workGrid}>
+        <section className={styles.notes}>
           <header className={styles.sectionHeading}>
-            <h2>Saúde do vínculo</h2>
+            <h2>
+              <NotebookPen aria-hidden="true" /> Anotações
+            </h2>
+            <Button size="sm" variant="ghost" disabled>
+              <Pencil aria-hidden="true" /> Editar
+            </Button>
           </header>
-          <div className={styles.healthLoading}>
-            <InlineSkeleton className="h-12 w-24" />
-            {Array.from({ length: LOADING_ROWS }, (_value, row) => (
-              <InlineSkeleton key={row} className="h-4 w-full" />
-            ))}
-          </div>
+          <InlineSkeleton className="mt-6 w-5/6" />
         </section>
-        <section className={styles.financeSnapshot}>
-          <InlineSkeleton className="h-5 w-24" />
-          <InlineSkeleton className="mt-4 h-4 w-56 max-w-full" />
+        <section className={styles.notes}>
+          <header className={styles.sectionHeading}>
+            <h2>
+              <CircleCheck aria-hidden="true" /> Pendências
+            </h2>
+          </header>
+          <InlineSkeleton className="mt-6 w-5/6" />
         </section>
       </div>
     </div>

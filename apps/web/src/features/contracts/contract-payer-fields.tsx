@@ -1,15 +1,82 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import { Copy } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
-import { FormRow, type SearchSelectOption } from "@lazuli/ui";
+import {
+  Button,
+  Field,
+  Input,
+  Label,
+  FormRow,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  type SearchSelectOption,
+} from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import type { FormProps } from "./contract-form-fields";
 import { PartyPicker } from "./party-picker";
 import { InlinePersonFields, PersonDocument } from "./contract-person-fields";
 
-type PayerProps = Pick<FormProps, "fields" | "errors" | "change">;
+type PayerProps = Pick<FormProps, "fields" | "errors" | "change"> & {
+  showCopyHint?: boolean;
+  keepCopyVisible?: boolean;
+  expanded?: boolean;
+};
+const COPY_HINT_INTERVAL_MS = 30 * 60 * 1000;
+const COPY_HINT_DELAY_MS = 650;
+const COPY_HINT_DURATION_MS = 4500;
+const hintShownAt = new Map<string, number>();
+
+function useCopyHint(
+  enabled: boolean,
+  source: "guardian" | "student",
+): {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+} {
+  const [automaticOpen, setAutomaticOpen] = useState(false);
+  const [interactiveOpen, setInteractiveOpen] = useState(false);
+  const interacted = useRef(false);
+  useEffect(() => {
+    if (!enabled) return;
+    const key = `lazuli.contract.copy-payer-hint.${source}`;
+    let lastShown = hintShownAt.get(key) ?? 0;
+    try {
+      lastShown = Number(sessionStorage.getItem(key)) || lastShown;
+    } catch {
+      /* Use the in-memory interval when storage is unavailable. */
+    }
+    if (Date.now() - lastShown < COPY_HINT_INTERVAL_MS) return;
+    let closeTimer: number | undefined;
+    const showTimer = window.setTimeout(() => {
+      if (interacted.current) return;
+      const shownAt = Date.now();
+      hintShownAt.set(key, shownAt);
+      try {
+        sessionStorage.setItem(key, String(shownAt));
+      } catch {
+        /* The hint remains usable without storage. */
+      }
+      setAutomaticOpen(true);
+      closeTimer = window.setTimeout(() => setAutomaticOpen(false), COPY_HINT_DURATION_MS);
+    }, COPY_HINT_DELAY_MS);
+    return () => {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(closeTimer);
+      setAutomaticOpen(false);
+    };
+  }, [enabled, source]);
+  return {
+    open: interactiveOpen || (enabled && automaticOpen),
+    onOpenChange: (open) => {
+      interacted.current = true;
+      setInteractiveOpen(open);
+      if (!open) setAutomaticOpen(false);
+    },
+  };
+}
 type Source = {
   name: string;
   documentType?: string | null;
@@ -37,6 +104,8 @@ function guardianSource(fields: PayerProps["fields"], profile?: Profile): Source
     if (fields.studentGuardianMode !== "create") return null;
     return {
       name: fields.studentGuardianName,
+      documentType: fields.studentGuardianDocumentType,
+      documentNumber: fields.studentGuardianDocumentNumber,
       phone: fields.studentGuardianPhone,
       email: fields.studentGuardianEmail,
     };
@@ -50,8 +119,7 @@ function hasCompleteContact(source: Source): boolean {
     source.name.trim() &&
     source.documentType?.trim() &&
     source.documentNumber?.trim() &&
-    source.phone?.trim() &&
-    source.email?.trim(),
+    (source.phone?.trim() || source.email?.trim()),
   );
 }
 
@@ -59,7 +127,10 @@ function PayerCopyButton({
   fields,
   change,
   onCopyComplete,
-}: Pick<PayerProps, "fields" | "change"> & { onCopyComplete: () => void }): ReactElement {
+  showCopyHint = false,
+}: Pick<PayerProps, "fields" | "change" | "showCopyHint"> & {
+  onCopyComplete: (complete: boolean) => void;
+}): ReactElement {
   const profile = trpc.students.byId.useQuery(
     { id: fields.studentId },
     { enabled: fields.studentMode === "existing" && Boolean(fields.studentId) },
@@ -69,8 +140,14 @@ function PayerCopyButton({
   const source = guardian?.name.trim() ? guardian : student;
   const copySource = source?.name.trim() ? source : null;
   const fromGuardian = Boolean(guardian?.name.trim());
+  const triggerId = useId();
+  const hint = useCopyHint(
+    showCopyHint && Boolean(copySource),
+    fromGuardian ? "guardian" : "student",
+  );
   const copy = (): void => {
     if (!copySource) return;
+    hint.onOpenChange(false);
     change("payerMode", "create");
     change("payerId", "");
     change("payerLabel", "");
@@ -79,19 +156,33 @@ function PayerCopyButton({
     change("payerDocumentNumber", copySource.documentNumber ?? "");
     change("payerPhone", copySource.phone ?? "");
     change("payerEmail", copySource.email ?? "");
-    if (hasCompleteContact(copySource)) onCopyComplete();
+    onCopyComplete(hasCompleteContact(copySource));
   };
   return (
-    <button
-      aria-label={fromGuardian ? "Copiar responsável para pagador" : "Copiar aluno para pagador"}
-      title={fromGuardian ? "Copiar responsável" : "Copiar aluno"}
-      type="button"
-      disabled={!copySource}
-      onClick={copy}
-      className="inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-disabled"
-    >
-      <Copy aria-hidden="true" className="size-4" />
-    </button>
+    <Tooltip open={hint.open} onOpenChange={hint.onOpenChange} triggerId={triggerId}>
+      <TooltipTrigger
+        id={triggerId}
+        render={
+          <Button
+            aria-label={
+              fromGuardian ? "Copiar responsável para pagador" : "Copiar aluno para pagador"
+            }
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            disabled={!copySource}
+            onClick={copy}
+          >
+            <Copy aria-hidden="true" />
+          </Button>
+        }
+      />
+      <TooltipContent side="top" align="end">
+        {fromGuardian
+          ? "Copiar dados do responsável para o pagador"
+          : "Copiar dados do aluno para o pagador"}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -126,6 +217,8 @@ function PayerControl({
   change,
   tag,
   showCopy,
+  showCopyHint,
+  expanded,
   setCopiedComplete,
 }: PickerProps): ReactElement {
   const select = (option: SearchSelectOption | null): void => {
@@ -137,7 +230,7 @@ function PayerControl({
   return (
     <PartyPicker
       kind="payer"
-      createMode={fields.payerMode === "create"}
+      createMode={fields.payerMode === "create" || Boolean(expanded && !fields.payerId)}
       draftName={fields.payerName}
       draftValue={tag}
       showAdornment={showCopy}
@@ -145,7 +238,8 @@ function PayerControl({
         <PayerCopyButton
           fields={fields}
           change={change}
-          onCopyComplete={() => setCopiedComplete(true)}
+          showCopyHint={Boolean(showCopyHint && showCopy)}
+          onCopyComplete={setCopiedComplete}
         />
       }
       value={
@@ -158,7 +252,10 @@ function PayerControl({
         setCopiedComplete(false);
         clearPayer(change);
       }}
-      onSearchChange={(query) => change("payerName", query)}
+      onSearchChange={(query) => {
+        if (expanded) change("payerMode", "create");
+        change("payerName", query);
+      }}
       onCreate={(query) => {
         setCopiedComplete(false);
         change("payerMode", "create");
@@ -169,25 +266,82 @@ function PayerControl({
   );
 }
 
-export function ContractPayerFields({ fields, errors, change }: PayerProps): ReactElement {
+export function ContractPayerFields({
+  fields,
+  errors,
+  change,
+  showCopyHint = false,
+  keepCopyVisible = false,
+  expanded = false,
+}: PayerProps): ReactElement {
   const [copiedComplete, setCopiedComplete] = useState(false);
-  const tag = payerTag(fields, copiedComplete);
+  const hasPayerError = Object.entries(errors).some(
+    ([name, error]) => name.startsWith("payer") && Boolean(error),
+  );
+  const tag = expanded || hasPayerError ? null : payerTag(fields, copiedComplete);
+  const edit: PayerProps["change"] = (name, value) => {
+    setCopiedComplete(false);
+    change(name, value);
+  };
+  const editDetails: PayerProps["change"] = (name, value) => {
+    if (expanded && fields.payerMode !== "create") change("payerMode", "create");
+    edit(name, value);
+  };
   const studentSelected =
     fields.studentMode === "create"
       ? Boolean(fields.studentDraftName.trim())
       : Boolean(fields.studentId);
-  const showCopy = !tag && studentSelected && (fields.payerMode === "create" || !fields.payerId);
-  const showDraftFields = fields.payerMode === "create" && !tag;
+  const showCopy =
+    studentSelected &&
+    (keepCopyVisible || (!tag && (fields.payerMode === "create" || !fields.payerId)));
+  const showDraftFields = (expanded && !fields.payerId) || (fields.payerMode === "create" && !tag);
+  if (expanded && fields.payerMode === "existing" && fields.payerId && fields.payerName) {
+    return (
+      <div className="space-y-3">
+        <FormRow columns={2}>
+          <Field name="selectedPayerName">
+            <Label>Nome do pagador</Label>
+            <Input size="sm" readOnly value={fields.payerName} />
+          </Field>
+          <Field name="selectedPayerDocument">
+            <Label>Documento</Label>
+            <Input
+              size="sm"
+              readOnly
+              value={fields.payerDocumentNumber}
+              placeholder="Não informado"
+            />
+          </Field>
+        </FormRow>
+        <FormRow columns={2}>
+          <Field name="selectedPayerPhone">
+            <Label>Telefone</Label>
+            <Input size="sm" readOnly value={fields.payerPhone} placeholder="Não informado" />
+          </Field>
+          <Field name="selectedPayerEmail">
+            <Label>E-mail</Label>
+            <Input size="sm" readOnly value={fields.payerEmail} placeholder="Não informado" />
+          </Field>
+        </FormRow>
+        <Button type="button" size="sm" variant="ghost" onClick={() => clearPayer(change)}>
+          Trocar pagador
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className="space-y-3">
       <FormRow columns={showDraftFields ? 2 : 1}>
-        <PayerControl {...{ fields, errors, change, tag, showCopy, setCopiedComplete }} />
+        <PayerControl
+          {...{ fields, errors, tag, showCopy, showCopyHint, expanded, setCopiedComplete }}
+          change={edit}
+        />
         {showDraftFields && (
-          <PersonDocument fields={fields} errors={errors} change={change} kind="payer" />
+          <PersonDocument fields={fields} errors={errors} change={editDetails} kind="payer" />
         )}
       </FormRow>
       {showDraftFields && (
-        <InlinePersonFields fields={fields} errors={errors} change={change} kind="payer" />
+        <InlinePersonFields fields={fields} errors={errors} change={editDetails} kind="payer" />
       )}
     </div>
   );

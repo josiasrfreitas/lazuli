@@ -25,8 +25,9 @@ export function StudentNotes({ profile }: { profile: StudentProfile }): ReactEle
         <p className={styles.notesText}>{profile.notes}</p>
       ) : (
         <div className={styles.notesEmpty}>
-          <p>Nenhuma anotação por enquanto.</p>
-          <span>Guarde preferências, combinados e informações úteis para o próximo contato.</span>
+          <NotebookPen aria-hidden="true" />
+          <p>Uma página para os combinados</p>
+          <span>Registre preferências e informações úteis para o próximo contato.</span>
         </div>
       )}
       {editing && (

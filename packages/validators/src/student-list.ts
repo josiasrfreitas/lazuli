@@ -76,6 +76,7 @@ export const studentListRowSchema = z
     /** Derived from `birthDate` at read time; never persisted. */
     isMinor: z.boolean(),
     status: studentStatusSchema,
+    isScholarshipStudent: z.boolean().optional(),
     phone: z.string().nullable(),
     enrollment: studentListEnrollmentSchema.nullable(),
     attendance: studentListAttendanceSchema,

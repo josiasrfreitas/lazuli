@@ -159,12 +159,12 @@ export async function changePlanStatus(
 }
 
 type ClassPlan = Prisma.SemesterClassPlanGetPayload<Prisma.SemesterClassPlanDefaultArgs>;
-type Semester = Prisma.SemesterGetPayload<Prisma.SemesterDefaultArgs>;
+type Period = Prisma.PeriodGetPayload<Prisma.PeriodDefaultArgs>;
 type PlanStatus = { classId: string | null; generationRequestId: string | null };
 
 async function openClassPlan(
   context: OrganizationContext,
-  { plan, semester }: { plan: ClassPlan; semester: Semester },
+  { plan, semester }: { plan: ClassPlan; semester: Period },
 ): Promise<PlanStatus> {
   if (!plan.teacherId) throw badRequest("Defina o professor antes de abrir a turma.");
   const from = [saoPauloDateOnly(context.now), dateOnly(semester.startDate)].toSorted().at(-1)!;
@@ -210,7 +210,7 @@ async function reopenClassPlan(
     teacherId,
   }: {
     plan: ClassPlan;
-    semester: Semester;
+    semester: Period;
     from: string;
     classId: string;
     teacherId: string;
@@ -230,7 +230,7 @@ async function reopenClassPlan(
 
 async function createClassPlan(
   context: OrganizationContext,
-  { plan, semester, teacherId }: { plan: ClassPlan; semester: Semester; teacherId: string },
+  { plan, semester, teacherId }: { plan: ClassPlan; semester: Period; teacherId: string },
 ): Promise<string> {
   const created = await createClass({
     database: context.database,

@@ -1,12 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { getStorage } from "@lazuli/storage";
-import type { Prisma, TransactionClient } from "@lazuli/db";
+import type { TransactionClient } from "@lazuli/db";
 import type { PaymentProofUpload } from "@lazuli/validators";
 import type { Context, StaffUser } from "../trpc/context.js";
 import { recordActivity } from "../activity/record.js";
 import { payerSubject } from "../activity/subjects.js";
 import { toDateOnlyString } from "./internal/shared.js";
+import { studentPaymentWhere } from "./internal/student-payments-query.js";
 
 const PAYMENT_PAGE_SIZE = 20;
 
@@ -103,27 +104,34 @@ function assertSameProof(
 
 export async function studentPayments(
   ctx: Context,
-  input: { studentId: string; cursor?: string | undefined },
+  input: { studentId: string; cursor?: string | undefined; withProofs?: boolean | undefined },
 ): Promise<{
   rows: Array<{
     id: string;
     date: string;
     amountCents: number;
+    externalInstallments: number;
     payer: { name: string };
     paymentMethod: { name: string };
+    thirdPartyName: string | null;
     proofs: Array<{ id: string; fileName: string; byteLength: number }>;
   }>;
   nextCursor: string | undefined;
 }> {
   paymentProofStaff(ctx);
   const rows = await ctx.db.paymentEntry.findMany({
-    where: studentPaymentWhere(input.studentId),
+    where: {
+      ...studentPaymentWhere(input.studentId),
+      ...(input.withProofs ? { proofs: { some: { deletedAt: null } } } : {}),
+    },
     select: {
       id: true,
       date: true,
       amountCents: true,
+      externalInstallments: true,
       payer: { select: { name: true } },
       paymentMethod: { select: { name: true } },
+      thirdPartyName: true,
       proofs: {
         where: { deletedAt: null },
         select: { id: true, fileName: true, byteLength: true },
@@ -139,24 +147,5 @@ export async function studentPayments(
   return {
     rows: rows.map((row) => ({ ...row, date: toDateOnlyString(row.date) })),
     nextCursor: more ? rows.at(-1)?.id : undefined,
-  };
-}
-
-function studentPaymentWhere(studentId: string): Prisma.PaymentEntryWhereInput {
-  return {
-    deletedAt: null,
-    allocations: {
-      some: {
-        deletedAt: null,
-        installment: {
-          order: {
-            OR: [
-              { contract: { studentId } },
-              { beneficiaries: { some: { studentId, deletedAt: null } } },
-            ],
-          },
-        },
-      },
-    },
   };
 }

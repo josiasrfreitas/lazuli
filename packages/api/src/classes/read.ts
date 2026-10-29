@@ -2,7 +2,12 @@ import { searchIds } from "../search.js";
 import type { Prisma } from "@lazuli/db";
 import { CLASS_REFERENCE_CAPACITY, saoPauloDateOnly } from "@lazuli/domain";
 import type { classListInputSchema, z } from "@lazuli/validators";
-import { responsibilitySelect, usualTeacherOn } from "../teachers/responsibility.js";
+import {
+  assignedTeacherIdOn,
+  responsibilitySelect,
+  usualTeacherOn,
+} from "../teachers/responsibility.js";
+import { teacherIdentityWhere } from "../teachers/identity.js";
 import { CLASS_NOT_FOUND_MESSAGE } from "./errors.js";
 import { notFound } from "../trpc/errors.js";
 import { computeEnrollmentPercentInWindow } from "../attendance/percent.js";
@@ -12,7 +17,7 @@ type Database = Pick<
   | "$queryRaw"
   | "class"
   | "user"
-  | "semester"
+  | "period"
   | "stage"
   | "enrollment"
   | "enrollmentAction"
@@ -322,10 +327,11 @@ export async function listClassActions(
 
 export async function classFormOptions(database: Database): Promise<{
   teachers: Array<{ id: string; name: string }>;
+  filterTeachers: Array<{ id: string; name: string }>;
   semesters: Array<{ id: string; name: string }>;
   stages: Array<{ id: string; name: string; internalCode: string }>;
 }> {
-  const [teachers, semesters, stages] = await Promise.all([
+  const [teachers, filterTeachers, semesters, stages] = await Promise.all([
     database.user.findMany({
       where: {
         AND: [teacherIdentityWhere],
@@ -339,7 +345,12 @@ export async function classFormOptions(database: Database): Promise<{
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-    database.semester.findMany({
+    database.user.findMany({
+      where: { AND: [teacherIdentityWhere], deletedAt: null },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    database.period.findMany({
       where: { deletedAt: null },
       select: { id: true, name: true },
       orderBy: { startDate: "desc" },
@@ -351,7 +362,7 @@ export async function classFormOptions(database: Database): Promise<{
       orderBy: { internalCode: "asc" },
     }),
   ]);
-  return { teachers, semesters, stages };
+  return { teachers, filterTeachers, semesters, stages };
 }
 
 async function applyClassTeacherFilter(input: ApplyClassTeacherFilterInput): Promise<void> {
@@ -364,8 +375,8 @@ async function applyClassTeacherFilter(input: ApplyClassTeacherFilterInput): Pro
     where.id = {
       in: candidates
         .filter((row) => {
-          const teacher = usualTeacherOn(row, today);
-          return teacher && input.values.teacherIds.includes(teacher.id);
+          const teacherId = assignedTeacherIdOn(row, today);
+          return teacherId !== null && input.values.teacherIds.includes(teacherId);
         })
         .map((row) => row.id),
     };
@@ -390,4 +401,3 @@ type ApplyClassTeacherFilterInput = {
   today: Date;
   where: Prisma.ClassWhereInput;
 };
-import { teacherIdentityWhere } from "../teachers/identity.js";

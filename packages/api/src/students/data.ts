@@ -1,13 +1,11 @@
+import { currentScholarshipContractWhere } from "./scholarship.js";
 import type { Prisma } from "@lazuli/db";
 import {
   MINOR_GUARDIAN_REQUIRES_CONTACT_MESSAGE,
   MINOR_REQUIRES_GUARDIAN_MESSAGE,
-} from "@lazuli/validators";
-import type {
   studentCreateInputSchema,
-  studentUpdateContactInputSchema,
-  z,
 } from "@lazuli/validators";
+import type { studentUpdateContactInputSchema, z } from "@lazuli/validators";
 
 import { badRequest, notFound } from "../trpc/errors.js";
 import { isMinorTodayInSaoPaulo } from "./date-rules.js";
@@ -36,10 +34,18 @@ const studentProfileInclude = {
 export async function readStudentProfile(input: {
   database: StudentDatabase;
   id: string;
+  now?: Date;
 }): Promise<StudentProfile> {
   const student = await input.database.student.findUnique({
     where: { id: input.id },
-    include: studentProfileInclude,
+    include: {
+      ...studentProfileInclude,
+      contracts: {
+        where: currentScholarshipContractWhere(input.now ?? new Date()),
+        select: { id: true },
+        take: 1,
+      },
+    },
   });
 
   if (student === null) {
@@ -53,6 +59,14 @@ export async function createStudent(input: {
   database: StudentDatabase;
   values: StudentCreateInput;
 }): Promise<{ id: string }> {
+  assertStudentIdentity({
+    fullName: input.values.fullName,
+    documentNumber: input.values.documentNumber,
+    documentType: input.values.documentType,
+    birthDate: input.values.birthDate,
+    phone: input.values.phone,
+    email: input.values.email,
+  });
   assertCreateGuardianRequirement(input.values);
 
   const addressId = await createOptionalAddress(input.database, input.values.address);
@@ -81,6 +95,18 @@ export async function updateStudentContact(input: {
   values: StudentUpdateContactInput;
 }): Promise<{ id: string }> {
   const student = await loadStudentForUpdate(input.database, input.id);
+  assertStudentIdentity({
+    fullName: input.values.fullName ?? student.fullName,
+    documentNumber:
+      input.values.documentNumber === undefined
+        ? student.documentNumber
+        : input.values.documentNumber,
+    documentType:
+      input.values.documentType === undefined ? student.documentType : input.values.documentType,
+    birthDate: input.values.birthDate === undefined ? student.birthDate : input.values.birthDate,
+    phone: input.values.phone === undefined ? student.phone : input.values.phone,
+    email: input.values.email === undefined ? student.email : input.values.email,
+  });
   const addressId = await resolveStudentAddress({
     address: input.values.address,
     database: input.database,
@@ -150,14 +176,31 @@ function toStudentUpdateData(input: {
 async function loadStudentForUpdate(
   database: StudentDatabase,
   id: string,
-): Promise<{
-  addressId: string | null;
-  birthDate: Date | null;
-  guardianId: string | null;
-}> {
+): Promise<
+  Pick<
+    Prisma.StudentGetPayload<Prisma.StudentDefaultArgs>,
+    | "addressId"
+    | "birthDate"
+    | "guardianId"
+    | "fullName"
+    | "documentType"
+    | "documentNumber"
+    | "phone"
+    | "email"
+  >
+> {
   const student = await database.student.findUnique({
     where: { id },
-    select: { addressId: true, birthDate: true, guardianId: true },
+    select: {
+      addressId: true,
+      birthDate: true,
+      guardianId: true,
+      fullName: true,
+      documentNumber: true,
+      documentType: true,
+      phone: true,
+      email: true,
+    },
   });
 
   if (student === null) {
@@ -192,16 +235,37 @@ async function assertMinorGuardianContactRequirement(input: {
   database: StudentDatabase;
   guardianId: string | null;
 }): Promise<void> {
-  if (!isMinorTodayInSaoPaulo(input.birthDate) || input.guardianId === null) {
+  if (input.guardianId === null) {
     return;
   }
 
   const guardian = await input.database.guardian.findUnique({
     where: { id: input.guardianId },
-    select: { email: true, phone: true },
+    select: { email: true, phone: true, documentType: true, documentNumber: true },
   });
 
-  if (guardian === null || (guardian.email === null && guardian.phone === null)) {
+  if (guardian && !hasGuardianDocument(guardian)) {
+    throw badRequest("Informe o CPF ou RG do responsável.");
+  }
+  if (guardian === null || (!guardian.email?.trim() && !guardian.phone?.trim())) {
     throw badRequest(MINOR_GUARDIAN_REQUIRES_CONTACT_MESSAGE);
   }
+}
+
+function assertStudentIdentity(
+  values: Pick<
+    StudentCreateInput,
+    "fullName" | "documentNumber" | "documentType" | "birthDate" | "phone" | "email"
+  >,
+): void {
+  const parsed = studentCreateInputSchema.safeParse(values);
+  if (!parsed.success)
+    throw badRequest(parsed.error.issues[0]?.message ?? "Complete os dados obrigatórios do aluno.");
+}
+
+function hasGuardianDocument(guardian: {
+  documentType: string | null;
+  documentNumber: string | null;
+}): boolean {
+  return Boolean(guardian.documentType && guardian.documentNumber?.trim());
 }

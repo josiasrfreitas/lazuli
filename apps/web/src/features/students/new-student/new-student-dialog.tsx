@@ -30,7 +30,7 @@ const MOBILE_HINT_DELAY_MS = 2500;
 
 export type NewStudentDialogProps = {
   open: boolean;
-  initialSemesterId?: string;
+  initialStep?: IntakeStep;
   initialCandidateId?: string;
   existingStudentId?: string | undefined;
   onOpenChange: (open: boolean) => void;
@@ -58,10 +58,22 @@ export function NewStudentDialog(props: NewStudentDialogProps): ReactJSX.Element
 
 function EnrollmentDialog(props: NewStudentDialogProps): ReactJSX.Element {
   const model = useEnrollmentController(props);
+  const showUploadHint =
+    model.step === "student" &&
+    !model.confirmation &&
+    !model.discarding &&
+    (!props.existingStudentId || Boolean(model.existing.data && model.existingPending.data));
   useEffect(() => {
-    const timer = globalThis.setTimeout(showMobileUploadHint, MOBILE_HINT_DELAY_MS);
-    return () => globalThis.clearTimeout(timer);
-  }, []);
+    if (!showUploadHint) return;
+    let dismissHint: (() => void) | undefined;
+    const timer = globalThis.setTimeout(() => {
+      dismissHint = showMobileUploadHint();
+    }, MOBILE_HINT_DELAY_MS);
+    return () => {
+      globalThis.clearTimeout(timer);
+      dismissHint?.();
+    };
+  }, [showUploadHint]);
   return <EnrollmentDialogView model={model} />;
 }
 
@@ -75,6 +87,9 @@ function useEnrollmentController(props: NewStudentDialogProps): EnrollmentModel 
     flow,
     today,
   });
+  useEffect(() => {
+    if (existingSources.existingContract && flow.step === "contract") flow.setStep("pedagogy");
+  }, [existingSources.existingContract, flow.step, flow.setStep]);
   const navigation = createEnrollmentNavigation({
     identity,
     flow,
@@ -146,6 +161,7 @@ function useEnrollmentSave({
     navigation,
     persistence,
     existingStudentId: props.existingStudentId,
+    today: toDateOnlySaoPaulo(new Date()),
   });
   return { persistence, requestSave };
 }
@@ -156,7 +172,7 @@ function useEnrollmentDraft(props: NewStudentDialogProps): {
   documents: EnrollmentDocuments;
 } {
   const baseIdentity = useEnrollmentIdentity(props.initialCandidateId);
-  const flow = useEnrollmentFlow();
+  const flow = useEnrollmentFlow(props.initialStep);
   const documents = useEnrollmentDocuments({
     identity: baseIdentity,
     flow,

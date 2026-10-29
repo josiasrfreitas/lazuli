@@ -2,7 +2,7 @@
 import type { JSX as ReactJSX } from "react";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
 import { TextControl, SelectControl } from "~/features/classes/form-controls";
-import { dateOnly, scheduleLabel } from "~/features/semester-organization/shared";
+import { dateOnly, scheduleLabel } from "~/features/class-organization/shared";
 import { toDateOnlySaoPaulo } from "~/lib/format";
 import { useMovementModel, type MovementModel, type MovementProps } from "./movement-model";
 import styles from "./organization.module.css";
@@ -41,8 +41,8 @@ function MovementFields({
       <MovementSummary {...props} />
       {props.decline ? (
         <p className={styles.small}>
-          Retira a continuidade deste semestre. O vínculo atual e os contratos permanecem sujeitos
-          às suas próprias datas e condições.
+          Retira a continuidade deste período. O vínculo atual e os contratos permanecem sujeitos às
+          suas próprias datas e condições.
         </p>
       ) : (
         <MovementDestination model={model} />
@@ -81,7 +81,7 @@ function MovementDestination({ model }: { model: MovementModel }): ReactJSX.Elem
     <>
       <SelectControl
         name="movement-semester"
-        label="Semestre de destino"
+        label="Período de destino"
         value={model.targetSemesterId}
         onChange={model.changeSemester}
         choices={(model.periods.data ?? [])

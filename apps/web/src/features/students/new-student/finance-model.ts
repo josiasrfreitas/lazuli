@@ -51,6 +51,10 @@ export function toCreateInput(fields: NewStudentFields): StudentCreateInput {
             mode: "create",
             input: {
               fullName: guardianName,
+              documentType: fields.guardianDocumentType
+                ? (fields.guardianDocumentType as "CPF" | "RG")
+                : undefined,
+              documentNumber: orUndefined(fields.guardianDocumentNumber),
               phone: orUndefined(fields.guardianPhone),
               email: orUndefined(fields.guardianEmail),
             },
@@ -91,12 +95,15 @@ export function contractFieldsWithStudent(
     studentMode: "create",
     studentId: "",
     studentDraftName: student.fullName,
+    studentBirthDate: student.birthDate,
     studentDocumentType: student.documentType,
     studentDocumentNumber: student.documentNumber,
     studentPhone: student.phone,
     studentEmail: student.email,
     studentGuardianMode: student.guardianName.trim() ? "create" : "",
     studentGuardianName: student.guardianName,
+    studentGuardianDocumentType: student.guardianDocumentType,
+    studentGuardianDocumentNumber: student.guardianDocumentNumber,
     studentGuardianPhone: student.guardianPhone,
     studentGuardianEmail: student.guardianEmail,
   };
@@ -138,6 +145,10 @@ function contactGuardianUpdate(
     mode: hasGuardian ? "update" : "create",
     input: {
       fullName: fields.guardianName.trim(),
+      documentType: fields.guardianDocumentType
+        ? (fields.guardianDocumentType as "CPF" | "RG")
+        : null,
+      documentNumber: fields.guardianDocumentNumber.trim() || null,
       phone: fields.guardianPhone.trim() || null,
       email: fields.guardianEmail.trim() || null,
     },

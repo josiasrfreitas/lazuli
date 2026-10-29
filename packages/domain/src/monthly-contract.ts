@@ -9,6 +9,7 @@ export type MonthlyContractTerms = {
   tuitionCeilingCents: number;
   maximumDiscountPct: number;
   punctualityDiscountPct: number;
+  scholarshipPct?: number | undefined;
 };
 
 const PERCENT_UNITS = 1_000_000;
@@ -69,6 +70,7 @@ function persistiblePrincipalCents(durationMonths: number, monthlyAmountCents: n
 
 export function previewMonthlyContract(terms: MonthlyContractTerms): {
   endsOn: string;
+  chargedMonthlyCents: number;
   principalAmountCents: number;
   onTimeMonthlyCents: number;
   floorCents: number;
@@ -82,17 +84,24 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
   ) {
     throw new Error("Informe uma quantidade inteira entre 1 e a duração do contrato em meses.");
   }
-  const principalAmountCents = persistiblePrincipalCents(
-    terms.durationMonths,
-    terms.monthlyAmountCents,
-  );
+  // Validate the reference price before applying the separately agreed scholarship.
+  persistiblePrincipalCents(terms.durationMonths, terms.monthlyAmountCents);
+  const scholarshipPct = terms.scholarshipPct ?? 0;
+  if (!Number.isFinite(scholarshipPct) || scholarshipPct < 0 || scholarshipPct > 100) {
+    throw new Error("Informe um percentual de bolsa entre 0 e 100.");
+  }
+  const chargedMonthlyCents = priceAfterDiscountCents(terms.monthlyAmountCents, scholarshipPct);
+  if (scholarshipPct < 100 && chargedMonthlyCents < 1) {
+    throw new Error("A bolsa parcial deve manter uma mensalidade de pelo menos um centavo.");
+  }
+  const principalAmountCents = terms.durationMonths * chargedMonthlyCents;
   const numerator =
     BigInt(terms.tuitionCeilingCents) *
     BigInt(PERCENT_UNITS - Math.round(terms.maximumDiscountPct * PERCENT_TO_UNITS));
   const floorCents = Number((numerator + BigInt(PERCENT_UNITS - 1)) / BigInt(PERCENT_UNITS));
   const onTimeMonthlyCents = priceAfterDiscountCents(
-    terms.monthlyAmountCents,
-    terms.punctualityDiscountPct,
+    chargedMonthlyCents,
+    scholarshipPct > 0 ? 0 : terms.punctualityDiscountPct,
   );
   if (
     terms.monthlyAmountCents > terms.tuitionCeilingCents ||
@@ -102,15 +111,17 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
   }
   return {
     endsOn: addCalendarMonths(terms.startsOn, terms.durationMonths),
+    chargedMonthlyCents,
     principalAmountCents,
     onTimeMonthlyCents,
     floorCents,
-    installments: splitPrincipal(principalAmountCents, installmentCount).map(
-      (amountCents, index) => ({
-        sequenceNumber: index + 1,
-        amountCents,
-        dueDate: addCalendarMonths(terms.firstDueDate, index),
-      }),
-    ),
+    installments: (principalAmountCents === 0
+      ? []
+      : splitPrincipal(principalAmountCents, installmentCount)
+    ).map((amountCents, index) => ({
+      sequenceNumber: index + 1,
+      amountCents,
+      dueDate: addCalendarMonths(terms.firstDueDate, index),
+    })),
   };
 }

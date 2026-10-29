@@ -4,6 +4,8 @@ import { Combobox } from "@base-ui/react/combobox";
 import { Plus, Search } from "lucide-react";
 import { Input, type InputSize } from "./input";
 import { SelectedTags } from "./search-select-value";
+import { anchoredMotion } from "../lib/anchored-motion";
+import { cn } from "../lib/utils";
 
 export type SearchSelectOption = {
   id: string;
@@ -46,7 +48,12 @@ function SearchResults({
   return (
     <Combobox.Portal>
       <Combobox.Positioner sideOffset={POPUP_OFFSET} className="z-50">
-        <Combobox.Popup className="w-(--anchor-width) rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md">
+        <Combobox.Popup
+          className={cn(
+            "w-(--anchor-width) rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md",
+            anchoredMotion,
+          )}
+        >
           {loading && (
             <p role="status" className="p-2 text-caption">
               Buscando…

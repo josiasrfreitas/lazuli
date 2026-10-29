@@ -1,3 +1,5 @@
+import { studentPaymentWhere } from "./student-payments-query.js";
+import { pendingRenewalWhere } from "./renewal-pending.js";
 import { readMaterialNeeds } from "./material-needs.js";
 import { saoPauloDateOnly, type StudentFinanceSummary } from "@lazuli/domain";
 import type { Prisma } from "@lazuli/db";
@@ -15,6 +17,8 @@ export async function readStudentSummary(
 ): Promise<
   StudentFinanceSummary & {
     asOf: string;
+    hasPaymentProofs: boolean;
+    pendingRenewals: { id: string; startsOn: string | null }[];
     materialNeeds: Awaited<ReturnType<typeof readMaterialNeeds>>;
     contracts: Awaited<ReturnType<typeof readStudentContractTerms>>;
     latestTermination: Awaited<ReturnType<typeof readLatestTermination>>;
@@ -44,7 +48,24 @@ export async function readStudentSummary(
     .limit(1)
     .executeTakeFirst();
   const balances = await ledgerQuery(query).selectFrom("ledger").selectAll().execute();
+  const pendingRenewals = await database.contract.findMany({
+    where: { ...pendingRenewalWhere(asOf), studentId: input.studentId },
+    select: { id: true, startsOn: true },
+    orderBy: [{ endsOn: "asc" }, { id: "asc" }],
+  });
+  const paymentWithProof = await database.paymentEntry.findFirst({
+    where: {
+      ...studentPaymentWhere(input.studentId),
+      proofs: { some: { deletedAt: null } },
+    },
+    select: { id: true },
+  });
   return {
+    hasPaymentProofs: paymentWithProof !== null,
+    pendingRenewals: pendingRenewals.map((contract) => ({
+      id: contract.id,
+      startsOn: contract.startsOn ? toDateOnlyString(contract.startsOn) : null,
+    })),
     materialNeeds: await readMaterialNeeds(database, { studentId: input.studentId, asOf }),
     contracts: await readStudentContractTerms(database, { studentId: input.studentId, balances }),
     latestTermination: await readLatestTermination(database, input.studentId),
@@ -124,6 +145,10 @@ type ItemBalance = {
 const studentContractSelect = {
   id: true,
   commandId: true,
+  scholarshipPct: true,
+  scholarshipAgreement: true,
+  baseMonthlyAmountCents: true,
+  monthlyAmountCents: true,
   student: { select: { fullName: true } },
   payer: { select: { name: true } },
   startsOn: true,
@@ -146,6 +171,8 @@ const studentContractSelect = {
       material: {
         select: {
           name: true,
+          scholarshipPct: true,
+          scholarshipAgreement: true,
           items: {
             orderBy: { position: "asc" },
             select: { stageId: true, name: true, stageCode: true },
@@ -175,6 +202,10 @@ type StudentContract = Prisma.ContractGetPayload<{ select: typeof studentContrac
 type StudentContractView = {
   id: string;
   hasDetail: boolean;
+  scholarshipPct: number;
+  scholarshipAgreement: string | null;
+  baseMonthlyAmountCents: number | null;
+  monthlyAmountCents: number | null;
   studentName: string;
   payerName: string;
   startsOn: string | null;
@@ -191,7 +222,11 @@ type StudentContractView = {
     kind: StudentContract["orders"][number]["kind"];
     materialName: string | null;
     material:
-      | (Omit<NonNullable<StudentContract["orders"][number]["material"]>, "cardFeePct"> & {
+      | (Omit<
+          NonNullable<StudentContract["orders"][number]["material"]>,
+          "cardFeePct" | "scholarshipPct"
+        > & {
+          scholarshipPct: number;
           cardFeePct: number | null;
         })
       | null;
@@ -214,7 +249,10 @@ async function readStudentContractTerms(
       studentId,
       terminatedAt: null,
       deletedAt: null,
-      orders: { some: { deletedAt: null, cancelledAt: null, kind: "TUITION" } },
+      OR: [
+        { orders: { some: { deletedAt: null, cancelledAt: null, kind: "TUITION" } } },
+        { scholarshipPct: 100 },
+      ],
     },
     select: studentContractSelect,
     orderBy: { startsOn: "desc" },
@@ -228,6 +266,10 @@ const projectStudentContract = (
 ): StudentContractView => ({
   id: contract.id,
   hasDetail: Boolean(contract.commandId),
+  scholarshipPct: Number(contract.scholarshipPct),
+  scholarshipAgreement: contract.scholarshipAgreement,
+  baseMonthlyAmountCents: contract.baseMonthlyAmountCents,
+  monthlyAmountCents: contract.monthlyAmountCents,
   studentName: contract.student.fullName,
   payerName: contract.payer.name,
   startsOn: contract.startsOn ? toDateOnlyString(contract.startsOn) : null,
@@ -248,6 +290,7 @@ const projectStudentContract = (
     material: order.material
       ? {
           ...order.material,
+          scholarshipPct: Number(order.material.scholarshipPct),
           cardFeePct: order.material.cardFeePct === null ? null : Number(order.material.cardFeePct),
         }
       : null,

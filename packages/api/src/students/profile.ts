@@ -27,11 +27,13 @@ type GuardianProfile = {
 };
 
 type StudentRecord = Student & {
+  contracts?: { id: string }[];
   address: Address | null;
   guardian: (Guardian & { address: Address | null }) | null;
 };
 
 export type StudentProfile = {
+  isScholarshipStudent?: boolean;
   address: AddressProfile | null;
   attendanceSummary: { semesters: [] };
   classes: [];
@@ -54,6 +56,7 @@ export type StudentProfile = {
 export function toStudentProfile(student: StudentRecord): StudentProfile {
   return {
     id: student.id,
+    isScholarshipStudent: Boolean(student.contracts?.length),
     contact: {
       birthDate: toDateOnlyString(student.birthDate),
       documentNumber: student.documentNumber,

@@ -15,7 +15,6 @@ const TEACHER = { ...ADMIN, role: "TEACHER" as const };
 const settings = {
   tuitionCeilingCents: 25_000,
   maximumDiscountPct: 20,
-  interestRatePctDaily: 0.1,
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,
   materialPriceCents: 12_000,
@@ -128,13 +127,17 @@ function registerInvalidSettingsTest(): void {
     assert.equal(baseline.status, HTTP_OK);
     const invalid = await callHttpMutation({
       path: SAVE_SETTINGS_PATH,
-      body: { ...settings, interestRatePctDaily: INVALID_RATE, materialPriceCents: 1 },
+      body: { ...settings, interestRatePctMonthly: INVALID_RATE, materialPriceCents: 1 },
       staffUser: SYSTEM_ADMIN,
     });
     assert.equal(invalid.status, HTTP_BAD_REQUEST);
     const excessivePrecision = await callHttpMutation({
       path: SAVE_SETTINGS_PATH,
-      body: { ...settings, interestRatePctDaily: EXCESSIVE_PRECISION_RATE, materialPriceCents: 1 },
+      body: {
+        ...settings,
+        interestRatePctMonthly: EXCESSIVE_PRECISION_RATE,
+        materialPriceCents: 1,
+      },
       staffUser: SYSTEM_ADMIN,
     });
     assert.equal(excessivePrecision.status, HTTP_BAD_REQUEST);

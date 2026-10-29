@@ -42,6 +42,7 @@ not rewrite history.
 | [0025 AWS for managed infrastructure](0025-use-aws-for-managed-infrastructure.md)                                   | Accepted   | None                   |
 
 | [0026 Email and password staff authentication](0026-email-password-staff-authentication.md) | Accepted | None |
+| [0027 One prorated monthly interest calculator](0027-use-one-prorated-monthly-interest-calculator.md) | Accepted | None |
 
 The archived register's complete disposition is: extracted — D-0001, D-0002, D-0003, D-0004,
 D-0005, D-0008, D-0021, D-0025, D-0028, D-0030 through D-0034, and D-0037; universal AGENTS rule

@@ -22,11 +22,28 @@ export function existingStudentFields(student: ExistingStudent): NewStudentField
 
 function existingGuardianFields(
   guardian: ExistingStudent["guardian"],
-): Pick<NewStudentFields, "guardianName" | "guardianPhone" | "guardianEmail"> {
+): Pick<
+  NewStudentFields,
+  | "guardianName"
+  | "guardianPhone"
+  | "guardianEmail"
+  | "guardianDocumentType"
+  | "guardianDocumentNumber"
+> {
+  if (!guardian)
+    return {
+      guardianDocumentType: "",
+      guardianDocumentNumber: "",
+      guardianName: "",
+      guardianPhone: "",
+      guardianEmail: "",
+    };
   return {
-    guardianName: guardian?.fullName ?? "",
-    guardianPhone: guardian?.phone ?? "",
-    guardianEmail: guardian?.email ?? "",
+    guardianDocumentType: guardian.documentType ?? "",
+    guardianDocumentNumber: guardian.documentNumber ?? "",
+    guardianName: guardian.fullName ?? "",
+    guardianPhone: guardian.phone ?? "",
+    guardianEmail: guardian.email ?? "",
   };
 }
 

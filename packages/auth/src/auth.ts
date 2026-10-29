@@ -95,7 +95,9 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
           include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
         });
         if (!evaluateStaffAccess(user).allowed) {
-          await database.verification.deleteMany({ where: { identifier: `reset-password:${token}` } });
+          await database.verification.deleteMany({
+            where: { identifier: `reset-password:${token}` },
+          });
           throw new APIError("BAD_REQUEST", { code: "INVALID_TOKEN", message: "Invalid token" });
         }
       }),

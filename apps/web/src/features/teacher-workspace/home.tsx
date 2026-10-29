@@ -27,12 +27,12 @@ import {
   AssessmentSection,
   ExamsSection,
   HomeSignoff,
-  LessonSection,
   PacingSection,
 } from "./home-sections";
 import { useTeacherHome, type HomeState } from "./home-state";
 import { TeacherVisitDialog } from "./visits";
 import styles from "./home.module.css";
+import { TeacherHomePending } from "./home-pending";
 
 export function TeacherHome(): ReactElement {
   const state = useTeacherHome();
@@ -111,7 +111,13 @@ function HomeColumns(state: HomeState): ReactElement {
 function HomePrimaryColumn(state: HomeState): ReactElement {
   return (
     <div className={styles.column}>
-      <PendingLessons {...state} />
+      <TeacherHomePending
+        home={state.home}
+        pending={state.pending}
+        onOpen={state.setVisit}
+        onLesson={state.setLesson}
+        onAppointment={state.setAppointment}
+      />
       {state.home.isPending ? (
         <HomeLoading kind="assessments" />
       ) : (
@@ -136,19 +142,6 @@ function HomePrimaryColumn(state: HomeState): ReactElement {
       )}
     </div>
   );
-}
-
-function PendingLessons({ pending, setLesson, celebration }: HomeState): ReactElement | null {
-  if (pending.isPending) return <HomeLoading kind="lessons" />;
-  if (pending.error) {
-    return (
-      <HomeError retry={() => void pending.refetch()}>
-        Não foi possível atualizar as aulas por registrar.
-      </HomeError>
-    );
-  }
-  if (!pending.data) return null;
-  return <LessonSection lessons={pending.data} open={setLesson} celebrate={Boolean(celebration)} />;
 }
 
 function HomeSecondaryColumn({ home }: HomeState): ReactElement | null {
@@ -252,7 +245,7 @@ function homeOverviewItems(
   icon: LucideIcon;
 }> {
   return [
-    { id: "registros", count: lessons, label: "Aulas por registrar", icon: BookOpenCheck },
+    { id: "registros", count: lessons, label: "Aulas sem registro", icon: BookOpenCheck },
     {
       id: "avaliacoes",
       count: data ? data.assessments.length + data.assessmentAppointments.length : undefined,

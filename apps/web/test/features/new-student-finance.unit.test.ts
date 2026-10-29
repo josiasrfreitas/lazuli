@@ -18,6 +18,8 @@ const student = {
   documentNumber: "12.345.678-X",
   phone: "(11) 91234-5678",
   email: "ana@example.com",
+  guardianDocumentType: "RG",
+  guardianDocumentNumber: "1234567",
   guardianName: "Maria Souza",
   guardianPhone: "(11) 99999-8888",
   guardianEmail: "maria@example.com",
@@ -26,10 +28,17 @@ const fields = {
   ...emptyContractFields,
   payerMode: "create",
   payerName: "Maria Souza",
+  payerDocumentType: "RG",
+  payerDocumentNumber: "1234567",
+  payerPhone: "11999998888",
   agreedOn: "15/03/2026",
   firstDueDate: "31/03/2026",
   endsOn: "31/03/2027",
   monthlyAmount: "250,00",
+  materialStageIds: "00000000-0000-4000-8000-000000000004",
+  materialCategory: "ADULT",
+  materialTotal: "73440",
+  materialQuoteVersion: "a".repeat(64),
 };
 const offer = { tuitionCeilingCents: 25_000, maximumDiscountPct: 20, punctualityDiscountPct: 0 };
 
@@ -47,7 +56,13 @@ void it("submits the full student draft without requiring a persisted beneficiar
     email: "ana@example.com",
     guardian: {
       mode: "create",
-      input: { fullName: "Maria Souza", phone: "(11) 99999-8888", email: "maria@example.com" },
+      input: {
+        documentType: "RG",
+        documentNumber: "1234567",
+        fullName: "Maria Souza",
+        phone: "(11) 99999-8888",
+        email: "maria@example.com",
+      },
     },
   });
 });

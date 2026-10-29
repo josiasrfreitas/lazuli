@@ -109,6 +109,7 @@ function replayReceipts(
       date: row.date,
       amountCents: row.amountCents,
       method: row.method,
+      externalInstallments: row.externalInstallments,
       note: row.note,
       externalReference: row.externalReference,
     };

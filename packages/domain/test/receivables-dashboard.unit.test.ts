@@ -18,7 +18,6 @@ const FORTY_THOUSAND_CENTS = 40_000;
 const THIRTY_THOUSAND_CENTS = 30_000;
 const TWENTY_THOUSAND_CENTS = 20_000;
 const TEN_THOUSAND_CENTS = 10_000;
-const MONTHLY_INTEREST_RATE_PCT = 1;
 
 function ledgerFor(input: {
   dueDate: string;
@@ -33,7 +32,6 @@ function ledgerFor(input: {
     adjustments: [],
     allocations: input.allocations ?? [],
     now: JULY_TENTH_MIDDAY_UTC,
-    interestRatePctMonthly: MONTHLY_INTEREST_RATE_PCT,
   });
 }
 

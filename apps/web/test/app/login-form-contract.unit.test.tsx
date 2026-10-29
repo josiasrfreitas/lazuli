@@ -46,7 +46,7 @@ void test("new passwords carry creation hints, limits and disable all controls w
   const html = render("reset", true);
   assert.doesNotMatch(html, /name="email"/);
   assert.match(html, /autoComplete="new-password"/i);
-  assert.match(html, /minLength="12"/i);
+  assert.match(html, /minLength="8"/i);
   assert.match(html, /maxLength="128"/i);
   assert.match(html, /aria-describedby="password-help"/);
   assert.match(html, /Salvar nova senha/);

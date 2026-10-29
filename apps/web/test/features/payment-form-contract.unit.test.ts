@@ -26,6 +26,7 @@ const state: PaymentFormState = {
   proofs: {},
   setProof: () => {},
   setProofError: () => {},
+  attachItemProof: () => {},
   finish: () => {},
   revision: 0,
   submit: () => {},
@@ -41,18 +42,31 @@ void it("renders one real form with masked date and compact named payment contro
   const inputs = (html.match(/<input\b[^>]*>/g) ?? []).filter(
     (tag) => !tag.includes('type="hidden"') && !tag.includes('aria-hidden="true"'),
   );
-  assert.equal(inputs.length, 2);
-  for (const input of inputs) {
+  assert.equal(inputs.length, 3);
+  for (const input of inputs.filter((tag) => !tag.includes('name="third-party-'))) {
     assert.match(input, /name="[^"]+"/);
     assert.match(input, /placeholder="[^"]+"/);
     assert.match(input, /autoComplete="off"/i);
     assert.match(input, /data-size="sm"/);
   }
+  assert.match(html, /Pix feito por terceiro/);
+  assert.match(html, /name="third-party-receipt-one"/);
   assert.match(html, /Saldo/);
   assert.doesNotMatch(html, /Recebimentos · confira os totais|name="total-/);
   assert.match(html, /desconto por pontualidade/u);
   assert.doesNotMatch(html, /\+ R\$[^<]*juros/);
   assert.doesNotMatch(html, /Continuar|Stepper|Pagamento registrado/);
+});
+void it("shows the third-party name only for Pix and per receipt", () => {
+  const pix = renderToStaticMarkup(createElement(PaymentForm, { state, children: null }));
+  assert.match(pix, /name="third-party-receipt-one"/);
+  const cash = renderToStaticMarkup(
+    createElement(PaymentForm, {
+      state: { ...state, draft: { ...PAYMENT_DRAFT, method: "CASH" } },
+      children: null,
+    }),
+  );
+  assert.doesNotMatch(cash, /third-party-|Pix feito por terceiro/);
 });
 void it("shows preview failure without claiming settlement or successful registration", () => {
   const preview = [
@@ -71,6 +85,17 @@ void it("shows preview failure without claiming settlement or successful registr
   assert.match(html, /Prévia indisponível/);
   assert.match(html, /Parcela alterada/);
   assert.doesNotMatch(html, /Quitação integral|Pagamento registrado/);
+});
+
+void it("shows a recovery action when payment methods cannot load", () => {
+  const html = renderToStaticMarkup(
+    createElement(PaymentForm, {
+      state: { ...state, methodsError: true },
+      children: null,
+    }),
+  );
+  assert.match(html, /Não foi possível carregar as formas de pagamento/);
+  assert.match(html, /Tentar novamente/);
 });
 
 void it("opens the main entry with an accessible search field inside the payment form", () => {
@@ -125,7 +150,7 @@ void it("names each receipt by payer and keeps its allocated installments togeth
   const sections = html.match(/<section\b[\s\S]*?<\/section>/g) ?? [];
   assert.equal(sections.length, 2);
   assert.match(sections[0], /Pagador homônimo/);
-  assert.match(sections[0], /2 parcelas · 1 recebimento/);
+  assert.match(sections[0], /2 cobranças · 1 recebimento/);
   assert.match(sections[0], /R\$\u00A0150,00/);
   assert.match(sections[0], /name="received-second-installment"/);
   assert.doesNotMatch(sections[0], /Outro pagador|received-third-installment/);

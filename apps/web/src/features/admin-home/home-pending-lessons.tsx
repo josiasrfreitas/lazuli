@@ -1,4 +1,5 @@
-import type { ReactElement } from "react";
+import { PendingPagination, PENDING_PAGE_SIZE } from "./home-pending-pagination";
+import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { ChevronDown, ClipboardList, X, BookOpen } from "lucide-react";
 import type { RouterOutputs } from "@lazuli/api";
@@ -61,12 +62,27 @@ function TeacherGroup({ teacher }: { teacher: Teacher }): ReactElement {
 }
 
 function LessonList({ teacher }: { teacher: Teacher }): ReactElement {
+  const [requestedPage, setPage] = useState(1);
+  const page = Math.min(
+    requestedPage,
+    Math.max(1, Math.ceil(teacher.lessons.length / PENDING_PAGE_SIZE)),
+  );
   return (
-    <ul className={styles.lessonList}>
-      {teacher.lessons.map((lesson) => (
-        <LessonCase key={lesson.id} lesson={lesson} />
-      ))}
-    </ul>
+    <>
+      <ul className={styles.lessonList}>
+        {teacher.lessons
+          .slice((page - 1) * PENDING_PAGE_SIZE, page * PENDING_PAGE_SIZE)
+          .map((lesson) => (
+            <LessonCase key={lesson.id} lesson={lesson} />
+          ))}
+      </ul>
+      <PendingPagination
+        total={teacher.lessons.length}
+        page={page}
+        onPageChange={setPage}
+        label="Paginação de aulas sem registro"
+      />
+    </>
   );
 }
 

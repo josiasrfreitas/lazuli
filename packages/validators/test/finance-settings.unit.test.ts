@@ -6,7 +6,6 @@ import { financeSettingsInputSchema, tuitionFloorCents } from "../src/finance-se
 const valid = {
   tuitionCeilingCents: 25_000,
   maximumDiscountPct: 20,
-  interestRatePctDaily: 0.1,
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,
   materialPriceCents: 12_000,
@@ -38,12 +37,7 @@ void describe("global finance settings", () => {
   });
 
   void it("rejects percentages the database would round at four decimal places", () => {
-    const keys = [
-      "maximumDiscountPct",
-      "interestRatePctDaily",
-      "interestRatePctMonthly",
-      "cancellationFeePct",
-    ] as const;
+    const keys = ["maximumDiscountPct", "interestRatePctMonthly", "cancellationFeePct"] as const;
     const accepted = keys.map(
       (key) => financeSettingsInputSchema.safeParse({ ...valid, [key]: 0.1234 }).success,
     );
@@ -51,8 +45,8 @@ void describe("global finance settings", () => {
       (key) =>
         financeSettingsInputSchema.safeParse({ ...valid, [key]: EXCESSIVE_PRECISION }).success,
     );
-    assert.deepEqual(accepted, [true, true, true, true]);
-    assert.deepEqual(rounded, [false, false, false, false]);
+    assert.deepEqual(accepted, [true, true, true]);
+    assert.deepEqual(rounded, [false, false, false]);
   });
 });
 

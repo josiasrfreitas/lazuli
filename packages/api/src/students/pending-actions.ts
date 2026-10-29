@@ -110,6 +110,16 @@ export async function readStudentPendingActions(
     hasContract: student.contracts.length > 0,
     placement: pendingPlacement(lead),
   });
+  const placementItem = items.find((item) => item.type === "PLACEMENT");
+  if (placementItem) {
+    const assessment = lead?.visits[0]?.assessment;
+    const correctionPending = Boolean(assessment && !assessment.stageId);
+    placementItem.title = correctionPending ? "Nivelamento a corrigir" : "Nivelamento pendente";
+    placementItem.description = correctionPending
+      ? "Corrija a prova e defina o estágio de entrada. Depois, você poderá escolher uma turma para este aluno."
+      : "Conclua o nivelamento para definir o estágio de entrada. Depois, você poderá escolher uma turma para este aluno.";
+    placementItem.action.label = correctionPending ? "Corrigir nivelamento" : "Abrir nivelamento";
+  }
   return {
     items,
     enrollment: student.enrollments[0] ?? null,
@@ -154,4 +164,27 @@ async function loadPendingStudent(
   });
   if (!student) throw notFound("Aluno não encontrado.");
   return student;
+}
+
+/** Reuse the intake rule so an unresolved placement never becomes a class-choice task. */
+export async function studentsAwaitingPlacement(
+  database: Prisma.TransactionClient,
+): Promise<string[]> {
+  const students = await database.student.findMany({
+    where: {
+      deletedAt: null,
+      status: "ACTIVE",
+      enrollments: { none: { deletedAt: null } },
+      admissionCandidates: {
+        some: { deletedAt: null, status: { not: "ARCHIVED" }, englishExperience: "SOME" },
+      },
+    },
+    select: { id: true, admissionCandidates: pendingStudentSelect.admissionCandidates },
+  });
+  return students
+    .filter((student) => {
+      const placement = pendingPlacement(student.admissionCandidates[0] ?? null);
+      return placement && !placement.completed;
+    })
+    .map((student) => student.id);
 }

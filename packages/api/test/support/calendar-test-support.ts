@@ -58,7 +58,7 @@ export async function ensureCalendarUsers(): Promise<void> {
 }
 
 export async function cleanCalendarDatabase(): Promise<void> {
-  await db.semester.deleteMany({
+  await db.period.deleteMany({
     where: { name: { startsWith: TEST_PREFIX } },
   });
   await db.schoolClosedDay.deleteMany({

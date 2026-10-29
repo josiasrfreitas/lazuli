@@ -50,7 +50,19 @@ void describe("new contract form contract", () => {
   void it("names the visible controls, opens native calendars, and uses the shared currency input", () => {
     assert.deepEqual(
       inputs.map((tag) => /name="([^"]+)"/u.exec(tag)?.[1]),
-      ["studentSearch", "payerSearch", "agreedOn", "firstDueDate", "endsOn", "monthlyAmount"],
+      [
+        "studentSearch",
+        "payerSearch",
+        "agreedOn",
+        "firstDueDate",
+        "endsOn",
+        "monthlyAmount",
+        "enrollmentFee",
+        "scholarshipPct",
+        "material-stage-0",
+        "materialInstallments",
+        "materialScholarshipPct",
+      ],
     );
     for (const tag of inputs) {
       assert.match(tag, /placeholder="[^"]+"/u);

@@ -123,14 +123,7 @@ function TuitionSection(props: SettingsSectionProps): ReactElement {
 function ChargesSection(props: SettingsSectionProps): ReactElement {
   return (
     <FormSection title="Atrasos e desistência" className="gap-2">
-      <FormRow className="grid-cols-2 lg:grid-cols-3">
-        <SettingsField
-          {...props}
-          name="interestRatePctDaily"
-          label="Juros ao dia"
-          unit="%"
-          placeholder="0,1"
-        />
+      <FormRow className="grid-cols-2">
         <SettingsField
           {...props}
           name="interestRatePctMonthly"
@@ -152,8 +145,8 @@ function ChargesSection(props: SettingsSectionProps): ReactElement {
           Como são calculados
         </summary>
         <p className="pt-2">
-          Juros diários e por mês completo se somam sobre o saldo em atraso, sem juros sobre juros.
-          A multa usa o valor das parcelas a vencer, sem desconto de pontualidade.
+          Juros mensais proporcionais aos dias de atraso, com mês de 30 dias e sem juros sobre
+          juros. A multa usa o valor das parcelas a vencer, sem desconto de pontualidade.
         </p>
       </details>
     </FormSection>

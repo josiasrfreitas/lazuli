@@ -195,7 +195,7 @@ export async function cleanEnrollmentFixtures(config: EnrollmentFixtureConfig): 
   });
   await db.student.deleteMany({ where: { fullName: { startsWith: config.prefix } } });
   await db.class.deleteMany({ where: { internalCode: { startsWith: config.prefix } } });
-  await db.semester.deleteMany({ where: { name: { startsWith: config.prefix } } });
+  await db.period.deleteMany({ where: { name: { startsWith: config.prefix } } });
   await db.stage.deleteMany({
     where: { track: { productLine: { key: { startsWith: config.catalogKeyPrefix } } } },
   });
@@ -277,7 +277,7 @@ async function createCatalogBase(config: EnrollmentSuiteConfig): Promise<{ track
 }
 
 function createSemester(config: EnrollmentSuiteConfig): Promise<{ id: string }> {
-  return db.semester.create({
+  return db.period.create({
     data: {
       name: config.semesterName,
       startDate: new Date(config.semesterStart),

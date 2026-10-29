@@ -65,7 +65,7 @@ function backgroundEvents(props: SurfaceProps): WeeklyBlock[] {
       backgroundBlock({
         ...selected,
         id: "calendar-selected-range",
-        label: `Horário selecionado · ${selected.startTime}–${selected.endTime}`,
+        label: `${selected.startTime}–${selected.endTime}`,
       }),
     );
   return events;

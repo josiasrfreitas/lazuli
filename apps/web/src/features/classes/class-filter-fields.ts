@@ -17,7 +17,7 @@ const FILTER_CONFIG = {
   formato: { label: "Formato", icon: Monitor, promoted: true },
   professor: { label: "Professor", icon: GraduationCap, promoted: true },
   estagio: { label: "Estágio", icon: BookOpen, presentation: "dropdown" },
-  semestre: { label: "Semestre", icon: CalendarDays },
+  semestre: { label: "Período", icon: CalendarDays },
   estado: { label: "Estado", icon: CircleCheck },
 } as const;
 
@@ -31,7 +31,7 @@ function filterOptions(data: FormOptions | undefined): Record<FilterKey, TableFi
       { id: "IN_PERSON", label: "Presencial" },
       { id: "ONLINE", label: "Online" },
     ],
-    professor: data?.teachers.map(({ id, name }) => ({ id, label: name })) ?? [],
+    professor: data?.filterTeachers.map(({ id, name }) => ({ id, label: name })) ?? [],
     estagio: data?.stages.map(({ id, name }) => ({ id, label: name })) ?? [],
     semestre: data?.semesters.map(({ id, name }) => ({ id, label: name })) ?? [],
     estado: [

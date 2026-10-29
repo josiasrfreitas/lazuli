@@ -49,8 +49,9 @@ export function createAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
-      minPasswordLength: 12,
+      minPasswordLength: 8,
       maxPasswordLength: 128,
+      resetPasswordTokenExpiresIn: 15 * SECONDS_PER_MINUTE,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
         await input.sendResetPassword({ email: user.email, url });

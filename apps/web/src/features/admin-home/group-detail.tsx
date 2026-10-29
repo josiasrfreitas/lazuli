@@ -136,7 +136,9 @@ function tableState(query: PendingQuery): DataTableState<HomeItem> {
 }
 function groupColumns(group: HomeGroup, open: OpenAction): DataTableColumn<HomeItem>[] {
   const dateLabel = dateColumnLabel(group.kind);
-  const dates: DataTableColumn<HomeItem>[] = ["students", "contracts"].includes(group.kind)
+  const dates: DataTableColumn<HomeItem>[] = ["students", "contracts", "documents"].includes(
+    group.kind,
+  )
     ? []
     : [
         {

@@ -1,3 +1,4 @@
+import { assignLeadInterest, leadInterestSchema } from "./lead-interest.js";
 import { prepareSemester } from "./prepare.js";
 import {
   moveSchema,
@@ -14,8 +15,6 @@ import {
   semesterScopeSchema,
   semesterPlanSchema,
   semesterPlacementSchema,
-  studentAvailabilitySchema,
-  invalidateAvailabilitySchema,
   publishSemesterSchema,
   withdrawSemesterSchema,
 } from "@lazuli/validators";
@@ -23,12 +22,7 @@ import { adminProcedure, router } from "../trpc/init.js";
 import type { Context, StaffUser } from "../trpc/context.js";
 import { readSemester } from "./queries.js";
 import { organizationStudent, organizationStudents } from "./students.js";
-import {
-  saveClassPlan,
-  savePlacement,
-  confirmAvailability,
-  invalidateAvailability,
-} from "./write.js";
+import { saveClassPlan, savePlacement } from "./write.js";
 import { publishPlacements, withdrawPlacement } from "./publish.js";
 import { dispatchSessionGeneration } from "../session-generation/requests.js";
 import { saoPauloDateOnly } from "@lazuli/domain";
@@ -59,6 +53,11 @@ const context = (ctx: {
   now: ctx.now ?? new Date(),
 });
 export const semesterOrganizationRouter = router({
+  assignLeadInterest: adminProcedure
+    .input(leadInterestSchema)
+    .mutation(({ ctx, input }) =>
+      ctx.db.$transaction((database) => assignLeadInterest({ ...context(ctx), database }, input)),
+    ),
   continuity: adminProcedure
     .input(continuitySchema)
     .mutation(({ ctx, input }) =>
@@ -84,7 +83,7 @@ export const semesterOrganizationRouter = router({
   studentIntent: adminProcedure
     .input(z.object({ studentId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const records = await ctx.db.studentAvailability.findMany({
+      const placements = await ctx.db.semesterPlacement.findMany({
         where: {
           studentId: input.studentId,
           deletedAt: null,
@@ -93,29 +92,14 @@ export const semesterOrganizationRouter = router({
             deletedAt: null,
           },
         },
-        orderBy: { createdAt: "desc" },
-        include: { semester: { select: { id: true, name: true, startDate: true, endDate: true } } },
-      });
-      const placements = await ctx.db.semesterPlacement.findMany({
-        where: {
-          studentId: input.studentId,
-          deletedAt: null,
-          semesterId: { in: records.map((record) => record.semesterId) },
+        include: {
+          semester: { select: { id: true, name: true, startDate: true, endDate: true } },
+          plan: { select: { name: true } },
+          stage: { select: { internalCode: true } },
         },
-        include: { plan: { select: { name: true } }, stage: { select: { internalCode: true } } },
+        orderBy: { createdAt: "desc" },
       });
-      return records
-        .filter(
-          (record, index) =>
-            records.findIndex((candidate) => candidate.semesterId === record.semesterId) === index,
-        )
-        .map((record) => ({
-          semester: record.semester,
-          confirmed: record.confirmed,
-          notes: record.notes,
-          placement:
-            placements.find((placement) => placement.semesterId === record.semesterId) ?? null,
-        }));
+      return placements.map((placement) => ({ semester: placement.semester, placement }));
     }),
   updatePeriod: adminProcedure
     .input(periodSchema)
@@ -160,7 +144,7 @@ export const semesterOrganizationRouter = router({
         .parse(await response.json());
     }),
   semesters: adminProcedure.query(({ ctx }) =>
-    ctx.db.semester.findMany({ orderBy: { startDate: "desc" } }),
+    ctx.db.period.findMany({ orderBy: { startDate: "desc" } }),
   ),
   detail: adminProcedure
     .input(semesterScopeSchema)
@@ -196,7 +180,7 @@ export const semesterOrganizationRouter = router({
         const scoped = { ...context(ctx), database };
         const result = await saveClassPlan(scoped, input);
         if (input.placements?.length) {
-          const semester = await database.semester.findUniqueOrThrow({
+          const semester = await database.period.findUniqueOrThrow({
             where: { id: input.semesterId },
           });
           await movePlacements(scoped, {
@@ -221,18 +205,6 @@ export const semesterOrganizationRouter = router({
     .input(semesterPlacementSchema)
     .mutation(({ ctx, input }) =>
       ctx.db.$transaction((database) => savePlacement({ ...context(ctx), database }, input)),
-    ),
-  confirmAvailability: adminProcedure
-    .input(studentAvailabilitySchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) => confirmAvailability({ ...context(ctx), database }, input)),
-    ),
-  invalidateAvailability: adminProcedure
-    .input(invalidateAvailabilitySchema)
-    .mutation(({ ctx, input }) =>
-      ctx.db.$transaction((database) =>
-        invalidateAvailability({ ...context(ctx), database }, input),
-      ),
     ),
   publish: adminProcedure.input(publishSemesterSchema).mutation(async ({ ctx, input }) => {
     const result = await ctx.db.$transaction(

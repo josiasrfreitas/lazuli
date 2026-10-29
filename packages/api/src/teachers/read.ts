@@ -162,7 +162,7 @@ export async function uncoveredMeetings({
   now,
 }: UncoveredMeetingsInput): Promise<UncoveredMeetingsResult> {
   const from = saoPauloDateOnly(now);
-  const end = await database.semester.findFirst({
+  const end = await database.period.findFirst({
     where: { deletedAt: null, endDate: { gte: new Date(from) } },
     orderBy: { endDate: "desc" },
     select: { endDate: true },

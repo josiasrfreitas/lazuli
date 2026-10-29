@@ -1,3 +1,4 @@
+import { PENDING_PAGE_SIZE as PAGE_SIZE } from "./home-pending-pagination";
 import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { ChevronDown, FileClock, ArrowRight } from "lucide-react";
@@ -7,7 +8,6 @@ import type { HomeGroup } from "./home-parts";
 import { PendingDisclosure } from "./home-pending-disclosure";
 import styles from "./home-pending.module.css";
 
-const PAGE_SIZE = 2;
 const REFRESH_MS = 60_000;
 const DAY_MS = 86_400_000;
 
@@ -69,7 +69,7 @@ function RenewalsCases({ group, today }: { group: HomeGroup; today: string }): R
               )}
               <span className={styles.action}>
                 <ArrowRight aria-hidden="true" />
-                <span className="sr-only">Abrir financeiro</span>
+                <span className="sr-only">Renovar contrato</span>
               </span>
             </Link>
           </li>

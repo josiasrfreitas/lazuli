@@ -14,6 +14,9 @@ export type PaymentDraft = {
   method: PaymentOperationInput["method"];
   items: DraftItem[];
   totals: Record<string, number | null>;
+  thirdPartyNames: Record<string, string>;
+  externalFinancing: boolean;
+  externalInstallments: Record<string, string>;
 };
 export type DraftAction =
   | { type: "add"; row: FinanceInstallmentRow; receiptId: string }
@@ -21,8 +24,10 @@ export type DraftAction =
   | { type: "amount"; id: string; value: number | null }
   | { type: "split"; id: string; receiptId: string }
   | { type: "total"; id: string; value: number | null }
+  | { type: "thirdPartyName"; id: string; value: string }
+  | { type: "externalInstallments"; id: string; value: string }
   | { type: "date"; value: string }
-  | { type: "method"; value: PaymentDraft["method"] };
+  | { type: "method"; value: PaymentDraft["method"]; externalFinancing?: boolean };
 
 export function paymentDraftReducer(state: PaymentDraft, action: DraftAction): PaymentDraft {
   switch (action.type) {
@@ -30,10 +35,26 @@ export function paymentDraftReducer(state: PaymentDraft, action: DraftAction): P
       return { ...state, date: action.value };
     }
     case "method": {
-      return { ...state, method: action.value };
+      return {
+        ...state,
+        method: action.value,
+        externalFinancing: action.externalFinancing ?? false,
+      };
     }
     case "total": {
       return { ...state, totals: { ...state.totals, [action.id]: action.value } };
+    }
+    case "thirdPartyName": {
+      return {
+        ...state,
+        thirdPartyNames: { ...state.thirdPartyNames, [action.id]: action.value },
+      };
+    }
+    case "externalInstallments": {
+      return {
+        ...state,
+        externalInstallments: { ...state.externalInstallments, [action.id]: action.value },
+      };
     }
     case "remove": {
       return {
@@ -77,7 +98,15 @@ function addDraftItem(
   };
 }
 export function initialPaymentDraft(rows: FinanceInstallmentRow[], date: string): PaymentDraft {
-  let state: PaymentDraft = { date, method: "PIX", items: [], totals: {} };
+  let state: PaymentDraft = {
+    date,
+    method: "PIX",
+    items: [],
+    totals: {},
+    thirdPartyNames: {},
+    externalFinancing: false,
+    externalInstallments: {},
+  };
   for (const row of rows)
     state = paymentDraftReducer(state, { type: "add", row, receiptId: crypto.randomUUID() });
   return state;
@@ -105,13 +134,20 @@ export function draftReceipts(
     receipt.amountCents += amountCents;
     receipts.set(item.receiptId, receipt);
   }
-  return [...receipts.values()].map((receipt) => ({
-    ...receipt,
-    amountCents:
-      draft.totals[receipt.commandId] === undefined
-        ? receipt.amountCents
-        : (draft.totals[receipt.commandId] ?? 0),
-  }));
+  return [...receipts.values()].map((receipt) => {
+    const thirdPartyName = draft.thirdPartyNames[receipt.commandId]?.trim();
+    return {
+      ...receipt,
+      ...(draft.externalFinancing
+        ? { externalInstallments: Number(receiptInstallmentCount(draft, receipt.commandId)) }
+        : {}),
+      ...(draft.method === "PIX" && thirdPartyName ? { thirdPartyName } : {}),
+      amountCents:
+        draft.totals[receipt.commandId] === undefined
+          ? receipt.amountCents
+          : (draft.totals[receipt.commandId] ?? 0),
+    };
+  });
 }
 export function paymentDraftError(draft: PaymentDraft, preview: PreviewRow[]): string | null {
   if (!parseDateBR(draft.date)) return "Informe uma data válida.";
@@ -121,10 +157,25 @@ export function paymentDraftError(draft: PaymentDraft, preview: PreviewRow[]): s
     if (error) return error;
   }
   for (const receipt of draftReceipts(draft, preview)) {
+    if (
+      receipt.externalInstallments !== undefined &&
+      (!Number.isInteger(receipt.externalInstallments) ||
+        receipt.externalInstallments < 1 ||
+        receipt.externalInstallments > 2147483647)
+    )
+      return "Informe uma quantidade válida de parcelas no banco.";
     if (receipt.amountCents !== receipt.allocations.reduce((sum, row) => sum + row.amountCents, 0))
       return "Confira o total recebido: deve coincidir com a soma das parcelas.";
   }
   return null;
+}
+
+export function receiptInstallmentCount(draft: PaymentDraft, receiptId: string): string {
+  const edited = draft.externalInstallments[receiptId];
+  if (edited !== undefined) return edited;
+  const items = draft.items.filter((item) => item.receiptId === receiptId);
+  const material = items.length === 1 ? items[0]?.row.material : undefined;
+  return String(material?.payment === "INSTALLMENTS" ? material.installmentCount : 1);
 }
 
 function itemError(item: DraftItem, preview: PreviewRow[]): string | null {

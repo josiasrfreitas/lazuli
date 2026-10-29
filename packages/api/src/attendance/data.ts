@@ -11,7 +11,7 @@ export type AttendanceDatabase = Pick<
   | "enrollment"
   | "attendance"
   | "makeup"
-  | "semester"
+  | "period"
   | "classSessionRecord"
   | "attendanceWindow"
   | "$queryRaw"

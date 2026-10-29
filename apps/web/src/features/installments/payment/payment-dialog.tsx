@@ -73,7 +73,7 @@ export function PaymentDialog(props: Props): ReactElement {
               </span>
             </DialogTitle>
             <DialogDescription>
-              Informe quando e como recebeu. Confira os valores de cada parcela.
+              Informe quando e como recebeu. Confira os valores de cada cobrança.
             </DialogDescription>
           </DialogHeader>
           <PaymentForm state={state}>
@@ -94,7 +94,7 @@ export function PaymentForm({
 }): ReactElement {
   const body = useScrollToError(state.revision);
   return (
-    <DialogBody className="mt-5" ref={body}>
+    <DialogBody className="mt-3" ref={body}>
       <form
         id={FORM_ID}
         noValidate
@@ -108,12 +108,12 @@ export function PaymentForm({
           className="min-w-0"
         >
           <legend className="sr-only">Dados do recebimento</legend>
-          <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:gap-6">
+          <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] md:gap-5">
             <div className="grid min-w-0 grid-cols-1 content-start gap-3">
               {children}
               <PaymentGrid state={state} />
             </div>
-            <div className="grid min-w-0 content-start gap-5 border-t border-border pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+            <div className="grid min-w-0 content-start gap-4 border-t border-border pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-5">
               <PaymentFields state={state} />
               <PaymentSummary state={state} />
             </div>
@@ -161,7 +161,7 @@ function PaymentFields({ state }: { state: PaymentFormState }): ReactElement {
         </span>
       }
     >
-      <FormRow className="sm:grid-cols-2 lg:grid-cols-1">
+      <FormRow className="grid-cols-2">
         <Field className="max-w-36">
           <Label>Data do recebimento</Label>
           <Input
@@ -195,8 +195,13 @@ function PaymentMethod({ state }: { state: PaymentFormState }): ReactElement {
       <Select
         value={state.draft.method}
         onValueChange={(value) => {
-          if (value && state.methods.some((method) => method.code === value))
-            state.dispatch({ type: "method", value });
+          const method = state.methods.find((item) => item.code === value);
+          if (method)
+            state.dispatch({
+              type: "method",
+              value: method.code,
+              externalFinancing: method.allowsExternalInstallments,
+            });
         }}
       >
         <SelectTrigger
@@ -218,7 +223,7 @@ function PaymentMethod({ state }: { state: PaymentFormState }): ReactElement {
         </SelectContent>
       </Select>
       {state.methodsError && (
-        <FieldError>
+        <FieldError match>
           Não foi possível carregar as formas de pagamento.{" "}
           <Button variant="link" size="inline" onClick={state.refresh}>
             Tentar novamente
@@ -243,7 +248,7 @@ function PaymentFooter({
     state.submitting ||
     (!state.uncertain && !state.registered && (state.loading || state.draft.items.length === 0));
   return (
-    <DialogFooter className="mt-5 border-t border-border pt-4">
+    <DialogFooter className="mt-3 border-t border-border pt-3">
       <div className="mr-auto self-center text-caption" aria-live="polite">
         <p className="flex items-baseline gap-3">
           <span className="text-muted-foreground">Total recebido</span>

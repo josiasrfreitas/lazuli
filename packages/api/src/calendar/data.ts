@@ -4,7 +4,7 @@ import { brazilFederalHolidaysForYear } from "@lazuli/domain";
 const TIMEZONE = "America/Sao_Paulo";
 const DATE_ONLY_LENGTH = 10;
 
-export type CalendarDatabase = Pick<Prisma.TransactionClient, "schoolClosedDay" | "semester">;
+export type CalendarDatabase = Pick<Prisma.TransactionClient, "schoolClosedDay" | "period">;
 
 export type SemesterSummary = {
   id: string;
@@ -54,7 +54,7 @@ export async function createSemester(input: {
   startDate: string;
   endDate: string;
 }): Promise<SemesterSummary> {
-  const semester = await input.database.semester.create({
+  const semester = await input.database.period.create({
     data: {
       name: input.name,
       startDate: dateOnlyToDate(input.startDate),

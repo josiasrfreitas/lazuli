@@ -2,7 +2,7 @@
 
 import type { ReactElement, ReactNode } from "react";
 import { MapPin, Pencil, UserRound, UsersRound, type LucideIcon } from "lucide-react";
-import { Button } from "@lazuli/ui";
+import { Button, InlineSkeleton } from "@lazuli/ui";
 import { formatDateOnlyBR, toWhatsAppUrl } from "~/lib/format";
 import type { StudentProfile } from "./logic";
 import type { RegistrationEditTarget } from "./registration-editor";
@@ -39,9 +39,83 @@ export function RegistrationFactsSections({
   );
 }
 
+export function RegistrationFactsLoading(): ReactElement {
+  return (
+    <>
+      <section className={styles.section}>
+        <SectionHeading title="Dados do aluno" icon={UserRound} target="student" />
+        <dl className={styles.facts}>
+          <ProfileFact label="Nome completo" wide>
+            <InlineSkeleton className="w-48 max-w-full" />
+          </ProfileFact>
+          <ProfileFact label="Documento">
+            <InlineSkeleton className="w-24 max-w-full" />
+          </ProfileFact>
+          <ProfileFact label="Nascimento">
+            <InlineSkeleton className="w-20 max-w-full" />
+          </ProfileFact>
+          <ProfileFact label="Telefone">
+            <InlineSkeleton className="w-24 max-w-full" />
+          </ProfileFact>
+          <ProfileFact label="E-mail" wide>
+            <InlineSkeleton className="w-48 max-w-full" />
+          </ProfileFact>
+        </dl>
+      </section>
+      <section className={styles.section}>
+        <SectionHeading title="Responsável" icon={UsersRound} target="guardian" />
+        <GuardianContactLoading />
+      </section>
+      <section className={styles.section}>
+        <SectionHeading title="Endereço" icon={MapPin} target="address" />
+        <div className={styles.addressText}>
+          <p>
+            <InlineSkeleton className="w-56 max-w-full" />
+          </p>
+          <p className={styles.supporting}>
+            <InlineSkeleton className="w-40 max-w-full" />
+          </p>
+          <p className={styles.supporting}>
+            <InlineSkeleton className="w-24 max-w-full" />
+          </p>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function GuardianContactLoading(): ReactElement {
+  return (
+    <>
+      <div className={styles.guardianName}>
+        <p>
+          <InlineSkeleton className="w-40 max-w-full" />
+        </p>
+        <span>
+          <InlineSkeleton className="w-12" />
+        </span>
+      </div>
+      <dl className={styles.facts}>
+        <ProfileFact label="Documento">
+          <InlineSkeleton className="w-24 max-w-full" />
+        </ProfileFact>
+        <ProfileFact label="Telefone">
+          <InlineSkeleton className="w-24 max-w-full" />
+        </ProfileFact>
+        <ProfileFact label="E-mail" wide>
+          <InlineSkeleton className="w-48 max-w-full" />
+        </ProfileFact>
+      </dl>
+    </>
+  );
+}
+
 function StudentContactFacts({ profile }: { profile: StudentProfile }): ReactElement {
   return (
     <dl className={styles.facts}>
+      <ProfileFact label="Nome completo" wide>
+        {profile.contact.fullName}
+      </ProfileFact>
       <ProfileFact label={profile.contact.documentType ?? "Documento"}>
         {profile.contact.documentNumber ?? NOT_INFORMED}
       </ProfileFact>
@@ -132,7 +206,7 @@ function SectionHeading({
   title: string;
   icon: LucideIcon;
   target: RegistrationEditTarget;
-  onEdit: (target: RegistrationEditTarget) => void;
+  onEdit?: (target: RegistrationEditTarget) => void;
 }): ReactElement {
   return (
     <div className={styles.sectionHeading}>
@@ -146,7 +220,8 @@ function SectionHeading({
         data-edit-section={target}
         aria-label={`Editar ${title.toLocaleLowerCase("pt-BR")}`}
         title={`Editar ${title.toLocaleLowerCase("pt-BR")}`}
-        onClick={() => onEdit(target)}
+        disabled={!onEdit}
+        onClick={() => onEdit?.(target)}
       >
         <Pencil aria-hidden="true" />
       </Button>

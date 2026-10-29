@@ -25,6 +25,7 @@ export function toPublicRow(
     installmentId: row.installmentId,
     orderId: row.orderId,
     origin: row.origin,
+    ...(row.material ? { material: row.material } : {}),
     sequenceNumber: row.sequenceNumber,
     scheduleTotal: row.scheduleTotal,
     payer: { id: row.payerId, name: row.payerName },

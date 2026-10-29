@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lazuli — Contrato com resumo lateral</title>
+<style>
+:root {
+  color-scheme: dark;
+  --background: #12151d;
+  --surface: #1b2029;
+  --summary: #0f1e3d;
+  --field: #171c24;
+  --foreground: #e9edf6;
+  --muted-foreground: #a9b3c1;
+  --summary-muted-foreground: #b3c3dd;
+  --border: #404956;
+  --primary: #305985;
+  --primary-foreground: #ffffff;
+  --brand: #d8ad4a;
+  --dialog-elevation: 0 24px 72px #00000066;
+  --font: Cambria, Georgia, serif;
+  --numbers: Calibri, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { width: 1440px; height: 900px; margin: 0; overflow: hidden; }
+body { display: grid; place-items: center; background: var(--background); color: var(--foreground); font: 17px/1.4 var(--font); }
+button, input, select { font: inherit; }
+button, select, input[type="checkbox"], input[type="radio"], summary { cursor: pointer; }
+button { color: var(--foreground); border: 0; background: transparent; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; }
+input { caret-color: var(--brand); }
+::selection { background: var(--primary); color: var(--primary-foreground); }
+.dialog { width: 1120px; height: 768px; display: flex; flex-direction: column; background: var(--surface); border-radius: 14px; box-shadow: var(--dialog-elevation); overflow: hidden; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 23px 30px 15px; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 24px; line-height: 1.2; font-weight: 600; }
+.student { margin-top: 4px; color: var(--muted-foreground); font-size: 16px; }
+.header-tools { display: flex; align-items: center; gap: 22px; }
+.illustrative { font-size: 14px; color: var(--muted-foreground); }
+.close { display: grid; place-items: center; width: 32px; height: 32px; padding: 6px; border-radius: 6px; }
+.close svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.5; fill: none; }
+.steps { padding: 0 30px; border-bottom: 1px solid var(--border); }
+.steps ol { display: flex; align-items: center; gap: 24px; margin: 0; padding: 0; list-style: none; }
+.steps li { padding: 10px 0 12px; color: var(--muted-foreground); font-size: 14px; }
+.steps li + li::before { content: "/"; margin-right: 24px; color: var(--muted-foreground); }
+.steps .current { color: var(--foreground); }
+.steps .current span { padding-bottom: 12px; border-bottom: 2px solid var(--brand); }
+.body { display: grid; grid-template-columns: 290px 1fr; flex: 1; min-height: 0; overflow: hidden; }
+.agreement { --muted-foreground: var(--summary-muted-foreground); background: var(--summary); padding: 24px 26px; }
+.agreement h2 { font-size: 20px; font-weight: 600; }
+.agreement dl { margin: 19px 0 0; }
+.agreement dt { color: var(--muted-foreground); font-size: 14px; margin-top: 17px; }
+.agreement dt:first-child { margin-top: 0; }
+.agreement dd { margin: 3px 0 0; font-size: 17px; line-height: 1.35; }
+.numeric { font-family: var(--numbers); font-variant-numeric: tabular-nums; }
+.agreement .numeric { font-size: 17px; }
+.agreement .tuition { font-size: 20px; }
+.scholarship { margin-top: 19px; padding-top: 14px; border-top: 1px solid var(--border); }
+.scholarship summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; list-style: none; }
+.scholarship summary::-webkit-details-marker { display: none; }
+.scholarship .optional { color: var(--muted-foreground); }
+.scholarship p { margin-top: 12px; font-size: 16px; }
+.caret { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; margin-left: 7px; }
+.pending { margin-top: 21px; padding-top: 15px; border-top: 1px solid var(--border); }
+.pending h3 { font-size: 16px; font-weight: 400; }
+.pending p { margin-top: 4px; font-size: 14px; color: var(--muted-foreground); }
+.text-button { padding: 0; font-size: 14px; text-decoration: underline; text-underline-offset: 4px; }
+.edit { margin-top: 22px; }
+.material { padding: 20px 30px 16px; overflow-y: auto; }
+.material .scholarship { margin-top: 12px; padding-top: 0; border-top: 0; }
+.material-heading { display: flex; align-items: baseline; justify-content: space-between; }
+.material h2 { font-size: 24px; line-height: 1.2; font-weight: 600; }
+.substep { color: var(--muted-foreground); font-size: 14px; }
+.intro { margin-top: 4px; color: var(--muted-foreground); font-size: 16px; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 18px 0 10px; }
+h3 { font-size: 20px; font-weight: 600; }
+.no-purchase { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted-foreground); }
+.no-purchase input { margin: 0; width: 16px; height: 16px; accent-color: var(--primary); }
+.book-row { display: grid; grid-template-columns: 1fr 114px auto; align-items: end; gap: 14px; }
+.control-label { display: block; color: var(--muted-foreground); font-size: 14px; margin-bottom: 6px; }
+select, input[type="text"] { width: 100%; height: 40px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--field); color: var(--foreground); font-size: 16px; }
+.remove { height: 40px; padding: 0 0 0 7px; color: var(--muted-foreground); font-size: 14px; }
+.include { margin-top: 11px; }
+.payment { border: 0; padding: 0; margin: 18px 0 0; }
+.payment legend { font-size: 20px; font-weight: 600; padding: 0; margin-bottom: 12px; }
+.payment-options { display: inline-flex; padding: 3px; gap: 3px; background: var(--field); border: 1px solid var(--border); border-radius: 7px; }
+.payment-options label { display: flex; align-items: center; gap: 8px; min-width: 118px; padding: 6px 13px; border-radius: 4px; font-size: 16px; }
+.payment-options .selected { background: var(--primary); color: var(--primary-foreground); }
+.payment-options input { margin: 0; accent-color: var(--primary-foreground); width: 14px; height: 14px; }
+.installments { display: flex; gap: 14px; margin-top: 12px; }
+.installments .count { width: 136px; }
+.installments .amount { width: 170px; }
+.totals { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.total-row { display: flex; align-items: baseline; justify-content: space-between; }
+.total-row strong { font-size: 24px; font-weight: 600; }
+.repasse { margin-top: 6px; font-size: 16px; color: var(--muted-foreground); }
+.repasse .numeric { font-size: 17px; }
+.footer { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; padding: 18px 30px; border-top: 1px solid var(--border); }
+.footer-actions { display: flex; align-items: center; gap: 12px; }
+.button { min-height: 42px; padding: 9px 19px; border-radius: 6px; font-size: 16px; }
+.primary { background: var(--primary); color: var(--primary-foreground); }
+.secondary { border: 1px solid var(--border); }
+.quiet { padding-left: 0; color: var(--muted-foreground); font-size: 14px; }
+button:hover { color: var(--primary-foreground); }
+.primary:hover { filter: brightness(1.12); }
+</style>
+</head>
+<body>
+<section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+  <header><div class="header">
+    <div><h1 id="dialog-title">Cadastrar aluno</h1><p class="student">Aluno de exemplo</p></div>
+    <div class="header-tools"><span class="illustrative">Dados ilustrativos</span><button class="close" type="button" aria-label="Fechar cadastro"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4l12 12M16 4L4 16"/></svg></button></div>
+  </div>
+  <nav class="steps" aria-label="Etapas do cadastro"><ol><li>Aluno</li><li>Endereço</li><li>Pedagógico</li><li class="current" aria-current="step"><span>Contrato</span></li></ol></nav>
+  </header>
+  <div class="body">
+    <aside class="agreement" aria-labelledby="agreement-title">
+      <h2 id="agreement-title">Condições definidas</h2>
+      <dl>
+        <dt>Responsável financeiro</dt><dd>Responsável de exemplo</dd>
+        <dt>Vigência do contrato</dt><dd class="numeric">29/10/2026 a 29/10/2027</dd>
+        <dt>Mensalidades</dt><dd class="numeric tuition">12 x R$ 250,00</dd>
+        <dt>Taxa de matrícula</dt><dd>Sem taxa</dd>
+      </dl>
+      <details class="scholarship"><summary><span>Bolsa de mensalidade</span><svg class="caret" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></summary><p>Nenhuma bolsa aplicada às mensalidades.</p></details>
+      <div class="pending"><h3>Material didático</h3><p>Aguardando conferência nesta etapa.</p></div>
+      <button class="text-button edit" type="button">Editar condições</button>
+    </aside>
+    <form class="material" aria-labelledby="material-title" autocomplete="off">
+      <div class="material-heading"><h2 id="material-title">Material didático</h2><span class="substep">Etapa 3 de 4 do contrato</span></div>
+      <p class="intro">Escolha os livros e depois a forma de pagamento.</p>
+      <div class="section-heading"><h3>Livros desta contratação</h3><label class="no-purchase"><input type="checkbox" role="switch" name="no-purchase">Sem nova aquisição</label></div>
+      <div class="book-row">
+        <label><span class="control-label">Livro</span><select name="book" aria-label="Livro adquirido"><option selected>TEENSTATION-1</option></select></label>
+        <label><span class="control-label">Faixa de preço</span><input type="text" name="price-band" value="Adulto" placeholder="Adulto" autocomplete="off" readonly></label>
+        <button class="remove" type="button" aria-label="Remover TEENSTATION-1">Remover</button>
+      </div>
+      <button class="text-button include" type="button">Incluir livro</button>
+      <fieldset class="payment">
+        <legend>Pagamento do material</legend>
+        <div class="payment-options"><label><input type="radio" name="payment" value="cash">À vista</label><label class="selected"><input type="radio" name="payment" value="card" checked>Cartão</label></div>
+        <div class="installments">
+          <label class="count"><span class="control-label">Parcelas da tabela</span><input class="numeric" type="text" name="installments" value="6 parcelas" placeholder="6 parcelas" autocomplete="off" readonly></label>
+          <label class="amount"><span class="control-label">Valor da tabela</span><input class="numeric" type="text" name="installment-value" value="R$ 136,00" placeholder="R$ 0,00" autocomplete="off" readonly></label>
+        </div>
+      </fieldset>
+      <details class="scholarship"><summary><span>Bolsa do material <span class="optional">· opcional</span></span><svg class="caret" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></summary><p>Nenhuma bolsa aplicada ao material.</p></details>
+      <div class="totals" aria-label="Resumo do material"><div class="total-row"><span>Total do material para o aluno</span><strong class="numeric">R$ 816,00</strong></div><div class="total-row repasse"><span>Repasse líquido à escola</span><span class="numeric">R$ 734,40</span></div></div>
+    </form>
+  </div>
+  <footer class="footer"><button class="button quiet" type="button">Salvar sem contrato</button><div class="footer-actions"><button class="button secondary" type="button">Voltar</button><button class="button primary" type="button">Conferir contrato</button></div></footer>
+</section>
+</body>
+</html>

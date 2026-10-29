@@ -6,15 +6,16 @@ import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { TaskDialog, NarrativeField } from "~/features/shared/task-form";
-import { Choices, dateOnly, useOrganizationRefresh } from "~/features/semester-organization/shared";
-import type { OrganizationAction, Placement, SemesterBoard } from "./model";
+import { Choices, dateOnly, useOrganizationRefresh } from "~/features/class-organization/shared";
+import type { OrganizationAction, Placement, OrganizationBoard } from "./model";
+import { confirmationExplanation } from "./confirmation";
 import styles from "./organization.module.css";
 
 const MIN_CONTINUITY_REASON_LENGTH = 3;
 type Continuity = "UNDECIDED" | "STAY" | "CHANGE" | "LEAVING";
 type Props = {
   row: Placement;
-  board: SemesterBoard;
+  board: OrganizationBoard;
   onClose: () => void;
   onAction: (action: OrganizationAction) => void;
 };
@@ -36,7 +37,7 @@ export function ContinuityDialog(props: Props): ReactJSX.Element {
       compactHeader
       actionSize="sm"
       title="Continuidade do aluno"
-      description={props.row.studentName}
+      description={`${props.row.studentName} · ${props.board.semester.name}`}
       formId="student-continuity"
       firstField="continuity-choice"
       submitLabel="Salvar continuidade"
@@ -142,7 +143,7 @@ function continuityDescription(value: Continuity): string {
     return "O aluno entra nas pendências de alocação e mantém a matrícula atual até a transferência.";
   if (value === "LEAVING")
     return "A intenção fica sinalizada para acompanhamento. A matrícula e o contrato continuam ativos.";
-  return "Registre o combinado para a equipe acompanhar a continuidade.";
+  return confirmationExplanation;
 }
 
 function ContinuityContract({
@@ -150,21 +151,14 @@ function ContinuityContract({
   board,
 }: {
   row: Placement;
-  board: SemesterBoard;
+  board: OrganizationBoard;
 }): ReactJSX.Element {
   return (
     <>
-      {(row.nextPeriodCovered || row.periodCovered) && (
+      {row.confirmation === "PRECONFIRMED" && (
         <div className={styles.summary}>
-          <strong>
-            {row.nextPeriodCovered
-              ? `Contrato cobre o próximo período (${board.nextSemester?.name})`
-              : `Contrato cobre ${board.semester.name}`}
-          </strong>
-          <p>
-            A continuidade está prevista pelo contrato. Mudanças de turma e intenção de saída
-            precisam ser conversadas.
-          </p>
+          <strong>Pré-confirmado em {board.semester.name}</strong>
+          <p>O contrato cobre pelo menos os três primeiros meses deste período.</p>
         </div>
       )}
       {row.contract?.endsOn && (

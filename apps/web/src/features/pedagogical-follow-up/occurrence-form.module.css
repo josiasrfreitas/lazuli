@@ -37,6 +37,118 @@
   outline: 1px solid var(--destructive);
 }
 
+.lessonList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.lessonListHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.lessonListHeading strong {
+  color: var(--heading);
+  font-size: 15px;
+}
+
+.lessonListHeading p,
+.lessonListHeading > span {
+  color: var(--muted-foreground);
+}
+
+.lessonListHeading > span {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.lessonListScroll {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-height: min(42dvh, 360px);
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.lessonChoices {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.lessonChoice {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lessonChoice:hover {
+  background: var(--accent);
+}
+
+.lessonChoice[aria-pressed="true"] {
+  border-color: var(--interactive);
+  background: var(--info-muted);
+}
+
+.lessonChoice:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.lessonChoiceDate,
+.lessonChoiceMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lessonChoiceDate {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lessonChoiceMain strong {
+  font-size: 14px;
+}
+
+.lessonChoiceMain svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--interactive);
+}
+
+.lessonChoiceMeta {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.lessonListState {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 16px 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
 .fields {
   display: flex;
   flex-direction: column;
@@ -89,6 +201,11 @@
     contain: none;
     height: min(65dvh, 440px);
     min-height: 320px;
+  }
+
+  .schedule[data-mobile-list="true"] {
+    height: auto;
+    min-height: 0;
   }
 
   .fields {

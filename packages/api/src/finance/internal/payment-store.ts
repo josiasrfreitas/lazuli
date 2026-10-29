@@ -24,7 +24,14 @@ export type LoadedInstallment = {
 
 export type PaymentEntrySummary = Pick<
   PaymentEntry,
-  "id" | "payerId" | "date" | "amountCents" | "method" | "note" | "externalReference"
+  | "id"
+  | "payerId"
+  | "date"
+  | "amountCents"
+  | "method"
+  | "externalInstallments"
+  | "note"
+  | "externalReference"
 >;
 
 export type PaymentAllocationSummary = Pick<
@@ -38,6 +45,7 @@ const paymentEntrySelect = {
   date: true,
   amountCents: true,
   method: true,
+  externalInstallments: true,
   note: true,
   externalReference: true,
 } as const;
@@ -58,17 +66,24 @@ export async function persistPayment(input: {
     date: Date;
     amountCents: number;
     method: PaymentEntry["method"];
+    externalInstallments?: number | undefined;
     note?: string | null | undefined;
     externalReference?: string | null | undefined;
+    thirdPartyName?: string | null | undefined;
   };
   allocationRows: PaymentAllocationInput[];
   staffUserId: string;
 }): Promise<{ paymentEntry: PaymentEntrySummary; allocations: PaymentAllocationSummary[] }> {
   const method = await input.database.paymentMethod.findFirst({
     where: { code: input.values.method, active: true, deletedAt: null },
-    select: { id: true },
+    select: { id: true, allowsExternalInstallments: true },
   });
   if (!method) throw badRequest("Selecione uma forma de pagamento disponível.");
+  const externalInstallments = input.values.externalInstallments ?? 1;
+  if (!Number.isInteger(externalInstallments) || externalInstallments < 1)
+    throw badRequest("Informe uma quantidade válida de parcelas no banco.");
+  if (externalInstallments > 1 && !method.allowsExternalInstallments)
+    throw badRequest("Esta forma de pagamento não permite parcelamento por terceiros.");
   const paymentEntry = await input.database.paymentEntry.create({
     data: {
       payerId: input.values.payerId,
@@ -77,8 +92,10 @@ export async function persistPayment(input: {
       date: input.values.date,
       amountCents: input.values.amountCents,
       method: input.values.method,
+      externalInstallments,
       note: input.values.note ?? null,
       externalReference: input.values.externalReference ?? null,
+      thirdPartyName: input.values.thirdPartyName?.trim() || null,
       createdById: input.staffUserId,
       updatedById: input.staffUserId,
     },

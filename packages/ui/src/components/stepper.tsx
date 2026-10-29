@@ -11,11 +11,16 @@ export type StepperItem = {
   label: string;
   /** Keeps an earlier step pending when the flow allows it to be deferred. */
   completed?: boolean;
-  /** Marks a step the flow cannot reach yet (e.g. an "em breve" stage). */
+  /** Prevents navigation, including completed steps that are no longer editable. */
   disabled?: boolean;
 };
 
-export type StepperStepState = "complete" | "current" | "pending" | "disabled";
+export type StepperStepState =
+  | "complete"
+  | "complete-disabled"
+  | "current"
+  | "pending"
+  | "disabled";
 
 const stepIndicatorVariants = cva(
   "flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-fast ease-standard",
@@ -23,6 +28,7 @@ const stepIndicatorVariants = cva(
     variants: {
       state: {
         complete: "border-primary bg-primary text-primary-foreground",
+        "complete-disabled": "border-success bg-transparent text-success",
         current: "border-selection-indicator bg-accent text-accent-foreground",
         pending: "border-border-strong bg-transparent text-muted-foreground",
         disabled: "border-border bg-transparent text-muted-foreground",
@@ -35,6 +41,7 @@ const stepLabelVariants = cva("text-caption transition-colors duration-fast ease
   variants: {
     state: {
       complete: "text-foreground",
+      "complete-disabled": "text-muted-foreground",
       current: "font-semibold text-foreground",
       pending: "text-muted-foreground",
       disabled: "text-muted-foreground",
@@ -51,6 +58,7 @@ function deriveState({
   index: number;
   step: StepperItem;
 }): StepperStepState {
+  if (step.disabled && step.completed) return "complete-disabled";
   if (step.disabled) {
     return "disabled";
   }
@@ -64,7 +72,7 @@ function deriveState({
 function StepIndicator({ index, state }: { index: number; state: StepperStepState }): ReactElement {
   return (
     <span className={stepIndicatorVariants({ state })} data-slot="stepper-indicator">
-      {state === "complete" ? (
+      {state === "complete" || state === "complete-disabled" ? (
         <Check aria-hidden="true" className="size-3.5" />
       ) : (
         <span className="font-numeric text-micro font-semibold tabular-nums">{index + 1}</span>
@@ -79,14 +87,14 @@ export type StepperProps = ComponentPropsWithoutRef<"ol"> & {
   activeIndex: number;
   /** Accessible name of the step list. */
   label?: string;
+  onStepChange?: (index: number) => void;
 };
 
 /**
- * Horizontal step indicator for wizards. Purely presentational: it renders
- * the position the caller reports and never owns navigation.
+ * Horizontal step indicator for wizards. An optional callback enables navigation.
  */
 export const Stepper = forwardRef<HTMLOListElement, StepperProps>(
-  ({ activeIndex, className, label = "Etapas", steps, ...props }, ref) => (
+  ({ activeIndex, className, label = "Etapas", steps, onStepChange, ...props }, ref) => (
     <ol
       {...props}
       aria-label={label}
@@ -100,19 +108,38 @@ export const Stepper = forwardRef<HTMLOListElement, StepperProps>(
         return (
           <li
             aria-current={state === "current" ? "step" : undefined}
-            aria-disabled={state === "disabled" || undefined}
-            className={cn("flex items-center gap-3", state === "disabled" && "opacity-disabled")}
+            aria-disabled={step.disabled || undefined}
+            className={cn("flex items-center gap-3", step.disabled && "opacity-disabled")}
             data-slot="stepper-step"
             data-state={state}
             key={step.label}
           >
             {index > 0 ? <span aria-hidden="true" className="h-px w-6 bg-border" /> : null}
             <span className="flex items-center gap-2">
-              <StepIndicator index={index} state={state} />
-              <span className={stepLabelVariants({ state })}>
-                {step.label}
-                {state === "complete" ? <span className="sr-only"> (concluída)</span> : null}
-              </span>
+              {onStepChange ? (
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
+                  disabled={step.disabled}
+                  onClick={() => onStepChange(index)}
+                >
+                  <StepIndicator index={index} state={state} />
+                  <span className={stepLabelVariants({ state })}>
+                    {step.label}
+                    {state === "complete-disabled" && <span className="sr-only"> (concluída)</span>}
+                  </span>
+                </button>
+              ) : (
+                <>
+                  <StepIndicator index={index} state={state} />
+                  <span className={stepLabelVariants({ state })}>
+                    {step.label}
+                    {state === "complete" || state === "complete-disabled" ? (
+                      <span className="sr-only"> (concluída)</span>
+                    ) : null}
+                  </span>
+                </>
+              )}
             </span>
           </li>
         );

@@ -18,7 +18,6 @@ export async function seedSettings(database: DatabaseClient): Promise<void> {
     tuitionCeilingCents: 25_000,
     maximumDiscountPct: "20",
     punctualityDiscountPct: "10",
-    interestRatePctDaily: "0.1",
     interestRatePctMonthly: "2",
     cancellationFeePct: "10",
     materialPriceCents: 12_000,
@@ -27,6 +26,11 @@ export async function seedSettings(database: DatabaseClient): Promise<void> {
     where: { id: "singleton" },
     create: { id: "singleton", ...defaults, updatedById: author.id },
     update: { ...defaults, updatedById: author.id },
+  });
+  await database.paymentMethod.upsert({
+    where: { code: "CREDIT" },
+    create: { code: "CREDIT", name: "Crédito", sortOrder: 4, allowsExternalInstallments: true },
+    update: { name: "Crédito", active: true, deletedAt: null, allowsExternalInstallments: true },
   });
   process.stdout.write("Development finance settings loaded.\n");
 }

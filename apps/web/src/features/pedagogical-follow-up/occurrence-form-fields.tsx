@@ -50,7 +50,9 @@ function SelectedLesson({ model }: { model: OccurrenceFormModel }): ReactElement
       ) : (
         <>
           <CalendarDays aria-hidden="true" className="size-4" />
-          <p>Selecione no calendário a aula em que aconteceu.</p>
+          <p>
+            Selecione {model.mobileList ? "na lista" : "no calendário"} a aula em que aconteceu.
+          </p>
         </>
       )}
     </div>

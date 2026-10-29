@@ -4,15 +4,22 @@ import { CLASS_REFERENCE_CAPACITY, saoPauloDateOnly } from "@lazuli/domain";
 import type { admissionSaveSchema, admissionListSchema, z } from "@lazuli/validators";
 import { badRequest, notFound } from "../trpc/errors.js";
 import { databaseSlotToCandidate } from "../teachers/availability.js";
-import { timeStringToDate } from "../classes/time.js";
+
 import { loadActiveStage } from "../classes/guards.js";
 
 const ISO_DATE_LENGTH = 10;
 const ADMISSION_LOCK_NAMESPACE = 168;
 export const dateOnly = (date: Date): string => date.toISOString().slice(0, ISO_DATE_LENGTH);
 const candidateInclude = {
-  allocationPlan: { select: { id: true, name: true, classId: true, semesterId: true } },
-  availability: true,
+  allocationPlan: {
+    select: {
+      id: true,
+      name: true,
+      classId: true,
+      semesterId: true,
+      semester: { select: { startDate: true, endDate: true } },
+    },
+  },
   stage: { include: { track: { select: { name: true } } } },
   student: { select: { id: true, fullName: true } },
   enrollment: { select: { id: true, classId: true } },
@@ -55,31 +62,19 @@ export async function saveCandidate(input: {
   const { id, values } = input.input;
   await lockCandidate(database, id);
   await validateCandidateChanges({ database, id, values, now });
-  const { availability, contactName, source, ...fields } = values;
+  const { contactName, source, ...fields } = values;
   const data = {
     ...fields,
     ...(contactName === undefined ? {} : { contactName }),
     ...(source === undefined ? {} : { source }),
     phone: values.phone || null,
     email: values.email || null,
-    availableUntil: new Date(values.availableUntil),
-    availabilityConfirmedAt: now,
     recordedById,
   };
   await database.admissionCandidate.upsert({
     where: { id },
     create: { id, ...data },
     update: data,
-  });
-  await database.admissionAvailability.deleteMany({ where: { candidateId: id } });
-  await database.admissionAvailability.createMany({
-    data: availability.map((slot) => ({
-      candidateId: id,
-      weekday: slot.weekday,
-      startTime: timeStringToDate(slot.startTime),
-      endTime: timeStringToDate(slot.endTime),
-    })),
-    skipDuplicates: true,
   });
   return { id };
 }
@@ -95,8 +90,6 @@ async function validateCandidateChanges({
   values: z.infer<typeof admissionSaveSchema>["values"];
   now: Date;
 }): Promise<void> {
-  if (values.availableUntil < saoPauloDateOnly(now))
-    throw badRequest("A validade deve ser hoje ou futura.");
   if (values.stageId) await loadActiveStage({ database, stageId: values.stageId });
   if (
     values.studentId &&
@@ -130,7 +123,6 @@ export async function listCandidates(
     ...(input.unlinkedOnly ? { studentId: null, enrollmentId: null } : {}),
     ...(input.statuses.length > 0 ? { status: { in: input.statuses } } : {}),
     ...(input.interests.length > 0 ? { interest: { in: input.interests } } : {}),
-    ...(input.expiredOnly ? { availableUntil: { lt: new Date(today) } } : {}),
     ...(matchingIds === undefined ? {} : { id: matchingIds }),
   };
   const [rows, total] = await Promise.all([

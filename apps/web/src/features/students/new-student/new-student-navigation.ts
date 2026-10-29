@@ -91,7 +91,7 @@ export function createEnrollmentNavigation(context: NavigationContext): Enrollme
   const advance: EnrollmentNavigation["advance"] = (event) => {
     event.preventDefault();
     if (captureBlocksAdvance(documents, flow)) return;
-    if (identity.addressPending || !validateStudent() || classes.blockedLead) return;
+    if (identity.addressPending) return;
     flow.setError("");
     if (flow.step === "student") flow.setStep("address");
     else if (flow.step === "address") flow.setStep("pedagogy");

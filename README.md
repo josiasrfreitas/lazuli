@@ -161,7 +161,7 @@ The former `prisma:seed`, `seed:settings`, `seed:contracts`, `seed:gcs`, and
 Mailpit, Hatchet, and other worktrees are preserved. Repeat `pnpm seed` after a failed run.
 
 Finance settings include a R$ 250 tuition ceiling, 20% maximum discount, 10% punctuality discount,
-0.1% daily interest, 2% monthly interest, 10% cancellation fee, and R$ 120 material price.
+2% monthly simple interest prorated daily on a 30-day basis, 10% cancellation fee, and R$ 120 material price.
 The system administrator remains the distinct `sistema@lazuli.local` account.
 
 See [decision 0024](docs/decisions/0024-rebuild-development-data-through-one-seed.md).

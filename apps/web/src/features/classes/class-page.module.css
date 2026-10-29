@@ -15,6 +15,16 @@
   padding-bottom: 1.25rem;
 }
 
+.sections[data-lessons] > :global([data-slot="tabs"]) {
+  height: calc(100cqh - 1.25rem);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sections[data-lessons] :global([data-slot="tabs-panel"]) {
+  min-height: 0;
+}
+
 .sections :global([data-slot="tabs-panel"]) {
   animation: class-tab-reveal 190ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }

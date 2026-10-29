@@ -30,6 +30,17 @@ export function abbreviatedPersonName(fullName: string): string {
   return secondName === undefined ? (firstName ?? "") : `${firstName} ${secondName.charAt(0)}.`;
 }
 
+const NAME_PARTICLES = new Set(["da", "de", "do", "das", "dos", "e"]);
+
+/** First two names for compact student headings; keep particles with the second name. */
+export function firstTwoNames(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/u).filter(Boolean);
+  const second = parts.findIndex(
+    (part, index) => index > 0 && !NAME_PARTICLES.has(part.toLocaleLowerCase("pt-BR")),
+  );
+  return parts.slice(0, second < 0 ? parts.length : second + 1).join(" ");
+}
+
 /** e.g. "segunda-feira, 24 de agosto de 2026" — the topbar date. */
 export function formatLongDateSaoPaulo(date: Date): string {
   return longDateFormatter.format(date);

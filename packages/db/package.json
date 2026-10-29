@@ -26,7 +26,8 @@
     "@prisma/client": "catalog:",
     "kysely": "catalog:",
     "pg": "catalog:",
-    "prisma-extension-kysely": "catalog:"
+    "prisma-extension-kysely": "catalog:",
+    "@lazuli/domain": "workspace:*"
   },
   "devDependencies": {
     "@lazuli/eslint-config": "workspace:*",

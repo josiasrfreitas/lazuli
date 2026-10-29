@@ -68,7 +68,6 @@ async function fixture(tx: TransactionClient): Promise<{
     tuitionCeilingCents: 25000,
     maximumDiscountPct: 20,
     punctualityDiscountPct: 8,
-    interestRatePctDaily: 0.1,
     interestRatePctMonthly: 2,
     cancellationFeePct: 20,
   };
@@ -103,6 +102,7 @@ void it("keeps card installments as terms and creates one net receivable with st
         stageIds: [stageId],
         category: "ADULT" as const,
         payment: "INSTALLMENTS" as const,
+        installmentCount: 6,
         quoteVersion: ADULT_VERSION,
         expectedTotalCents: 81600,
       },
@@ -240,6 +240,7 @@ void it("charges the cash price once and never grants tuition punctuality discou
         stageIds: [stageId],
         category: "CHILD",
         payment: "CASH",
+        installmentCount: 1,
         quoteVersion: CHILD_VERSION,
         expectedTotalCents: 66420,
       },
@@ -312,7 +313,17 @@ void it("charges the cash price once and never grants tuition punctuality discou
 void it("adds only one receivable on the contract day for a later card acquisition", async () => {
   await scenario(async (tx, { stageId, values }) => {
     const service = finance(tx, ADMIN.id);
-    const contract = await service.createMonthlyContract(values);
+    const contract = await service.createMonthlyContract({
+      ...values,
+      material: {
+        stageIds: [stageId],
+        category: "ADULT",
+        payment: "CASH",
+        installmentCount: 1,
+        quoteVersion: ADULT_VERSION,
+        expectedTotalCents: 73440,
+      },
+    });
     const acquisition = {
       commandId: randomUUID(),
       contractId: contract.id,
@@ -321,6 +332,7 @@ void it("adds only one receivable on the contract day for a later card acquisiti
         stageIds: [stageId],
         category: "ADULT" as const,
         payment: "INSTALLMENTS" as const,
+        installmentCount: 6,
         quoteVersion: ADULT_VERSION,
         expectedTotalCents: 81600,
       },
@@ -352,12 +364,12 @@ void it("adds only one receivable on the contract day for a later card acquisiti
     );
     assert.equal(
       await tx.materialOrder.count({ where: { order: { contractId: contract.id } } }),
-      1,
+      2,
     );
   });
 });
 
-void it("sells two books together with one net repasse and twelve card payments in the agreed terms", async () => {
+void it("sells two books together over six agreed card installments with one net repasse", async () => {
   await scenario(async (tx, { stageId, values }) => {
     const stage = await tx.stage.findUniqueOrThrow({ where: { id: stageId } });
     const second = await tx.stage.create({
@@ -389,6 +401,7 @@ void it("sells two books together with one net repasse and twelve card payments 
           stageIds: [stageId, second.id],
           category: price.category,
           payment: "INSTALLMENTS",
+          installmentCount: 6,
           quoteVersion: price.version,
           expectedTotalCents: price.gross,
         },
@@ -400,8 +413,8 @@ void it("sells two books together with one net repasse and twelve card payments 
         books[0]!.material!.items.map((item) => item.name),
         ["Essentials 1", "Essentials 2"],
       );
-      assert.equal(books[0]!.material!.quotedInstallments, 12);
-      assert.equal(books[0]!.material!.quotedInstallmentCents, price.unit);
+      assert.equal(books[0]!.material!.quotedInstallments, 6);
+      assert.equal(books[0]!.material!.quotedInstallmentCents, price.unit * 2);
       assert.equal(books[0]!.material!.cardFeeCents, price.fee);
       assert.equal(books[0]!.installments.length, 1);
       assert.equal(books[0]!.installments[0]!.amountCents, price.net);
@@ -460,6 +473,7 @@ void it("allows three books in one sale without generating three school receivab
         stageIds: [stageId, ...other.map((row) => row.id)],
         category: "ADULT",
         payment: "INSTALLMENTS",
+        installmentCount: 6,
         quoteVersion: ADULT_VERSION,
         expectedTotalCents: 244800,
       },
@@ -468,7 +482,7 @@ void it("allows three books in one sale without generating three school receivab
     const sale = detail.orders.filter((row) => row.kind === "MATERIAL");
     assert.equal(sale.length, 1);
     assert.equal(sale[0]!.material!.items.length, 3);
-    assert.equal(sale[0]!.material!.quotedInstallments, 18);
+    assert.equal(sale[0]!.material!.quotedInstallments, 6);
     assert.equal(sale[0]!.installments.length, 1);
     assert.equal(sale[0]!.totalCents, 220320);
   });
@@ -481,7 +495,7 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
       const next = await tx.stage.create({
         data: { trackId: stage.trackId, name: "Essentials 2", internalCode: "E2", sequence: 2 },
       });
-      const semester = await tx.semester.create({
+      const semester = await tx.period.create({
         data: {
           name: randomUUID(),
           startDate: new Date("2026-01-01"),
@@ -546,7 +560,7 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
         assert.equal(withoutDestination.materialNeeds.length, 1);
         assert.equal(withoutDestination.materialNeeds[0]!.nextStage, null);
         assert.equal(withoutDestination.materialNeeds[0]!.stagePending, true);
-        const nextSemester = await tx.semester.create({
+        const nextSemester = await tx.period.create({
           data: {
             name: randomUUID(),
             startDate: new Date("2026-07-01"),
@@ -567,7 +581,17 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
         });
       }
       const service = finance(tx, ADMIN.id);
-      const contract = await service.createMonthlyContract(values);
+      const contract = await service.createMonthlyContract({
+        ...values,
+        material: {
+          stageIds: [stageId],
+          category: "ADULT",
+          payment: "CASH",
+          installmentCount: 1,
+          quoteVersion: ADULT_VERSION,
+          expectedTotalCents: 73440,
+        },
+      });
       const summary = await service.studentSummary({ studentId: values.studentId, now: NOW });
       assert.equal(summary.materialNeeds.length, 1);
       assert.equal(summary.materialNeeds[0]!.plannedEndOn, "2026-02-28");
@@ -595,6 +619,7 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
           stageIds: [next.id],
           category: "ADULT",
           payment: "INSTALLMENTS",
+          installmentCount: 6,
           quoteVersion: ADULT_VERSION,
           expectedTotalCents: 81600,
         },
@@ -609,3 +634,183 @@ for (const scheduleType of ["REGULAR", "PERSONALIZED"] as const) {
     });
   });
 }
+
+void it("persists a negotiated total and tracks material across renewal, including a stage without a class", async () => {
+  await scenario(async (tx, { stageId, values }) => {
+    const first = await tx.stage.findUniqueOrThrow({ where: { id: stageId } });
+    const second = await tx.stage.create({
+      data: { trackId: first.trackId, name: "Essentials 2", internalCode: "E2", sequence: 2 },
+    });
+    const third = await tx.stage.create({
+      data: { trackId: first.trackId, name: "Transitions 1", internalCode: "T1", sequence: 3 },
+    });
+    const semester = await tx.period.create({
+      data: {
+        name: randomUUID(),
+        startDate: new Date("2026-01-01"),
+        endDate: new Date("2026-06-30"),
+      },
+    });
+    await tx.semesterPlacement.create({
+      data: {
+        semesterId: semester.id,
+        studentId: values.studentId,
+        trackId: first.trackId,
+        stageId,
+        mode: "ENTRY",
+        recordedById: ADMIN.id,
+      },
+    });
+    const service = finance(tx, ADMIN.id);
+    const empty = await service.studentMaterials({ studentId: values.studentId, now: NOW });
+    assert.equal(empty.current[0]!.id, stageId);
+    assert.equal(empty.current[0]!.acquired, false);
+    assert.equal(empty.suggestedStageId, stageId);
+    const initial = await service.createMonthlyContract({
+      ...values,
+      material: {
+        stageIds: [stageId, second.id],
+        category: "ADULT",
+        payment: "INSTALLMENTS",
+        installmentCount: 6,
+        quoteVersion: ADULT_VERSION,
+        expectedTotalCents: 163200,
+        priceOverrideCents: 150001,
+      },
+    });
+    const detail = await service.readContract(initial.id, NOW);
+    const order = detail.orders.find((row) => row.kind === "MATERIAL")!;
+    assert.equal(order.material!.chargedAmountCents, 150001);
+    assert.equal(order.material!.quotedInstallments, 6);
+    assert.equal(order.material!.quotedInstallmentCents, 25000);
+    assert.equal(order.installments.length, 1);
+    assert.equal(order.totalCents, 135001);
+    assert.equal(
+      (await tx.materialOrder.findUniqueOrThrow({ where: { orderId: order.id } }))
+        .priceOverrideCents,
+      150001,
+    );
+    assert.equal((await service.readMaterialPrice())!.adult.totalCents, 81600);
+    const renewed = await service.createMonthlyContract({
+      ...values,
+      commandId: randomUUID(),
+      renewedFromId: initial.id,
+      startsOn: "2027-02-01",
+      firstDueDate: "2027-02-28",
+    });
+    assert.equal(renewed.materialAmountCents, 0);
+    const status = await service.studentMaterials({ studentId: values.studentId, now: NOW });
+    assert.equal(status.acquiredCount, 2);
+    assert.equal(status.current[0]!.acquired, true);
+    assert.equal(status.next[0]!.id, second.id);
+    assert.equal(status.next[0]!.acquired, true);
+    assert.equal(status.nextAcquisitions[0]!.id, third.id);
+    assert.equal(status.nextAcquisitions[0]!.source, "SEQUENCE");
+    assert.equal(status.acquisitions[0]!.installmentCount, 6);
+    await service.addContractMaterial({
+      commandId: randomUUID(),
+      contractId: renewed.id,
+      firstDueDate: "2027-02-28",
+      material: {
+        stageIds: [third.id],
+        category: "ADULT",
+        payment: "CASH",
+        installmentCount: 1,
+        quoteVersion: ADULT_VERSION,
+        expectedTotalCents: 73440,
+        priceOverrideCents: 70000,
+      },
+    });
+    const covered = await service.studentMaterials({ studentId: values.studentId, now: NOW });
+    assert.equal(covered.acquiredCount, 3);
+    assert.deepEqual(covered.nextAcquisitions, []);
+  });
+});
+
+void it("rejects an initial contract without material before persisting it", async () => {
+  await scenario(async (tx, { values }) => {
+    await assert.rejects(finance(tx, ADMIN.id).createMonthlyContract(values), /Inclua o material/);
+    assert.equal(await tx.contract.count({ where: { studentId: values.studentId } }), 0);
+  });
+});
+
+void it("records bank installments on one receipt and keeps one material charge", async () => {
+  await scenario(async (tx, { stageId, values }) => {
+    await tx.paymentMethod.upsert({
+      where: { code: "CREDIT" },
+      create: { code: "CREDIT", name: "Crédito", allowsExternalInstallments: true },
+      update: { active: true, allowsExternalInstallments: true },
+    });
+    const service = finance(tx, ADMIN.id);
+    const contract = await service.createMonthlyContract({
+      ...values,
+      material: {
+        stageIds: [stageId],
+        category: "ADULT",
+        payment: "INSTALLMENTS",
+        installmentCount: 6,
+        quoteVersion: ADULT_VERSION,
+        expectedTotalCents: 81600,
+        priceOverrideCents: 150000,
+      },
+    });
+    const charge = await tx.installment.findFirstOrThrow({
+      where: { order: { contractId: contract.id, kind: "MATERIAL" } },
+    });
+    const listed = await service.installments(
+      { view: "all", page: 1, pageSize: 25, studentId: values.studentId },
+      NOW,
+    );
+    if (listed.view !== "all") throw new Error("Expected individual charges");
+    assert.deepEqual(listed.rows.find((row) => row.installmentId === charge.id)?.material, {
+      name: "Essentials 1",
+      payment: "INSTALLMENTS",
+      installmentCount: 6,
+    });
+    const [preview] = await service.previewPayments(
+      { date: "2026-02-02", items: [{ installmentId: charge.id }] },
+      NOW,
+    );
+    assert.ok(preview?.line);
+    assert.equal(preview.line.quote.receivedCents, 135000);
+    const command = {
+      operationId: randomUUID(),
+      date: "2026-02-02",
+      method: "CREDIT",
+      receipts: [
+        {
+          commandId: randomUUID(),
+          payerId: values.payerId,
+          amountCents: 135000,
+          externalInstallments: 6,
+          allocations: [
+            { installmentId: charge.id, amountCents: 135000, version: preview.line.version },
+          ],
+        },
+      ],
+    };
+    await assert.rejects(
+      service.confirmPayments({ ...command, method: "PIX" }, NOW),
+      /não permite parcelamento por terceiros/,
+    );
+    assert.equal(await tx.paymentEntry.count({ where: { payerId: values.payerId } }), 0);
+    const [receipt] = await service.confirmPayments(command, NOW);
+    assert.ok(receipt);
+    assert.equal(receipt.externalInstallments, 6);
+    assert.equal(receipt.amountCents, 135000);
+    const replay = await service.confirmPayments(command, NOW);
+    assert.equal(replay[0]?.id, receipt.id);
+    assert.equal(replay[0]?.externalInstallments, 6);
+    assert.equal(await tx.paymentEntry.count({ where: { payerId: values.payerId } }), 1);
+    assert.equal(await tx.installment.count({ where: { orderId: charge.orderId } }), 1);
+    const allocation = await tx.paymentAllocation.findFirstOrThrow({
+      where: { paymentEntryId: receipt.id },
+    });
+    assert.equal(allocation.amountCents, 135000);
+    assert.equal(
+      (await tx.materialOrder.findUniqueOrThrow({ where: { orderId: charge.orderId } }))
+        .chargedAmountCents,
+      150000,
+    );
+  });
+});

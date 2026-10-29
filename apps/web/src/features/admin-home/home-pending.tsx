@@ -7,6 +7,8 @@ import { PendingRenewals } from "./home-pending-renewals";
 import { PendingFinance } from "./home-pending-finance";
 import { trpc } from "~/lib/trpc";
 import { PendingAppointments } from "./home-pending-appointments";
+import { PendingOccurrences } from "./home-pending-occurrences";
+import { PendingStudents } from "./home-pending-students";
 import { PendingPlacement } from "./home-pending-placement";
 import { PendingLessons } from "./home-pending-lessons";
 import { PendingCoverage } from "./home-pending-coverage";
@@ -102,16 +104,28 @@ type PendingGroups = {
   appointments: HomeGroup | undefined;
   renewals: HomeGroup | undefined;
   placement: HomeGroup | undefined;
+  students: HomeGroup | undefined;
+  documents: HomeGroup | undefined;
+  contracts: HomeGroup | undefined;
+  occurrences: HomeGroup | undefined;
+  health: HomeGroup | undefined;
 };
 
 function pendingGroups(data: HomeData | undefined): PendingGroups {
   return {
+    health: data?.groups.find((item) => item.kind === "health"),
+    occurrences: data?.groups.find((item) => item.kind === "occurrences"),
     group: data?.groups.find((item) => item.kind === "coverage"),
     appointments: data?.groups.find((item) => item.kind === "appointments"),
     renewals: data?.canViewFinance
       ? data.groups.find((item) => item.kind === "renewals")
       : undefined,
     placement: data?.groups.find((item) => item.kind === "placement"),
+    contracts: data?.canViewFinance
+      ? data.groups.find((item) => item.kind === "contracts")
+      : undefined,
+    students: data?.groups.find((item) => item.kind === "students"),
+    documents: data?.groups.find((item) => item.kind === "documents"),
   };
 }
 
@@ -131,10 +145,15 @@ function PendingActionRows({
   return (
     <>
       {hasFinance && business && <PendingFinance business={business} />}
-      <PendingCoverage group={groups.group} />
+      <PendingOccurrences group={groups.occurrences} />
+      <PendingOccurrences group={groups.health} kind="health" />
+      <PendingCoverage group={groups.group} today={data?.today ?? ""} />
       {data?.canViewFinance && <PendingRenewals group={groups.renewals} today={data.today} />}
       <PendingAppointments group={groups.appointments} today={data?.today ?? ""} />
       <PendingPlacement group={groups.placement} today={data?.today ?? ""} />
+      {data?.canViewFinance && <PendingStudents group={groups.contracts} kind="contracts" />}
+      <PendingStudents group={groups.students} />
+      <PendingStudents group={groups.documents} kind="documents" />
       <PendingLessons teachers={teachers} />
     </>
   );
@@ -151,13 +170,30 @@ function PendingFeedback({
   group,
   hasFinance,
   placement,
+  students,
+  documents,
+  contracts,
   renewals,
   appointments,
+  occurrences,
+  health,
   lessons,
   loading,
   financeUnavailable,
 }: PendingFeedbackProps): ReactElement {
-  const empty = pendingIsEmpty({ group, hasFinance, placement, renewals, appointments, lessons });
+  const empty = pendingIsEmpty({
+    group,
+    hasFinance,
+    placement,
+    students,
+    documents,
+    contracts,
+    renewals,
+    appointments,
+    occurrences,
+    health,
+    lessons,
+  });
   return (
     <>
       <PendingLessonFeedback lessons={lessons} />
@@ -182,18 +218,38 @@ function pendingIsEmpty({
   group,
   hasFinance,
   placement,
+  students,
+  documents,
+  contracts,
   renewals,
   appointments,
+  occurrences,
+  health,
   lessons,
 }: Pick<
   PendingFeedbackProps,
-  "group" | "hasFinance" | "placement" | "renewals" | "appointments" | "lessons"
+  | "group"
+  | "hasFinance"
+  | "placement"
+  | "students"
+  | "documents"
+  | "contracts"
+  | "renewals"
+  | "health"
+  | "occurrences"
+  | "appointments"
+  | "lessons"
 >): boolean {
   const totals = [
     group?.total,
     hasFinance,
     placement?.total,
+    students?.total,
+    documents?.total,
+    contracts?.total,
     renewals?.total,
+    health?.total,
+    occurrences?.total,
     appointments?.total,
     appointments?.historyTotal,
   ];

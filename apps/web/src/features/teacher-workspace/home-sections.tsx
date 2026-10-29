@@ -1,8 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
-import { ArrowRight, BookOpenCheck, CalendarClock, CheckCheck } from "lucide-react";
-import { Button } from "@lazuli/ui";
+import { ArrowRight, CalendarClock, CheckCheck } from "lucide-react";
 import { purposes } from "~/features/appointments/shared";
 import {
   HomeEmpty,
@@ -12,82 +11,8 @@ import {
   homeDate,
   relativeHomeDate,
   type HomeData,
-  type PendingLesson,
 } from "./home-parts";
 import styles from "./home.module.css";
-
-export function LessonSection({
-  lessons,
-  open,
-  celebrate,
-}: {
-  lessons: PendingLesson[];
-  open: (id: string) => void;
-  celebrate: boolean;
-}): ReactElement {
-  const first = lessons[0];
-  return (
-    <HomeSection id="registros" title="Aulas por registrar" count={lessons.length}>
-      {first ? (
-        <>
-          <NextLesson lesson={first} open={open} />
-          <HomeList
-            items={lessons.slice(1)}
-            label="as outras aulas"
-            limit={1}
-            render={(row) => (
-              <HomeRow
-                title={row.className}
-                description={`${homeDate(row.date)} · ${row.startTime}–${row.endTime}`}
-                onClick={() => open(row.id)}
-              />
-            )}
-          />
-        </>
-      ) : (
-        <div className={styles.caughtUp}>
-          <BookOpenCheck
-            aria-hidden="true"
-            className={celebrate ? styles.settledBook : undefined}
-          />
-          <div>
-            <strong>Diário em dia. Pode respirar.</strong>
-            <p>O que aconteceu em aula já tem seu lugar aqui.</p>
-          </div>
-        </div>
-      )}
-    </HomeSection>
-  );
-}
-
-function NextLesson({
-  lesson,
-  open,
-}: {
-  lesson: PendingLesson;
-  open: (id: string) => void;
-}): ReactElement {
-  return (
-    <div className={styles.nextTask}>
-      <div className={styles.taskHeading}>
-        <BookOpenCheck aria-hidden="true" />
-        <div>
-          <strong>{lesson.className}</strong>
-          <p>
-            {homeDate(lesson.date)} · {lesson.startTime}–{lesson.endTime}
-          </p>
-        </div>
-      </div>
-      <div className={styles.taskAction}>
-        <span>A presença e a história desta aula.</span>
-        <Button size="compact-responsive" onClick={() => open(lesson.id)}>
-          Registrar aula
-          <ArrowRight aria-hidden="true" />
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 export function AssessmentSection({
   data,

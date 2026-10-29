@@ -123,7 +123,10 @@ void describe("staff password access", () => {
     const denied = await post("/reset-password", { token, newPassword: PASSWORD });
     assert.equal(denied.status, 400);
     assert.equal((await responseBody(denied)).code, "INVALID_TOKEN");
-    assert.equal(await db.account.count({ where: { userId: user.id, providerId: "credential" } }), 0);
+    assert.equal(
+      await db.account.count({ where: { userId: user.id, providerId: "credential" } }),
+      0,
+    );
     await db.user.update({ where: { id: user.id }, data: { isEnabled: true } });
     const replay = await post("/reset-password", { token, newPassword: PASSWORD });
     assert.equal(replay.status, 400);

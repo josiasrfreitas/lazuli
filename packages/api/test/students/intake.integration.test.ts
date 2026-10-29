@@ -25,9 +25,7 @@ async function clean(): Promise<void> {
   await db.admissionCandidate.deleteMany({
     where: { fullName: { startsWith: harness.ns.prefix } },
   });
-  await db.studentAvailability.deleteMany({
-    where: { student: { fullName: { startsWith: harness.ns.prefix } } },
-  });
+
   await harness.clean();
 }
 beforeEach(clean);

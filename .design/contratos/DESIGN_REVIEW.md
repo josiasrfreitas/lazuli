@@ -1,5 +1,9 @@
 # Design review: Financial settings
 
+> Interest rules in this historical design are superseded by
+> [ADR 0027](../../docs/decisions/0027-use-one-prorated-monthly-interest-calculator.md):
+> one monthly rate, prorated daily on a 30-day basis, with no separate daily rate or legacy preview.
+
 Reviewed against: DESIGN_BRIEF.md, repository form guidance, and the user's updated direction.
 Date: 2026-09-24
 Direction: dense ERP form, centered content, concise Portuguese labels, current values first.

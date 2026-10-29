@@ -4,7 +4,7 @@
  * action, so every transition is unit-testable.
  *
  * Client validation mirrors the backend rules (packages/validators/student.ts
- * and students/data.ts): name required, a document number needs its type, and
+ * and students/data.ts): name, document, birth date and contact required, and
  * a minor needs a guardian with phone or email. The server stays the
  * authority — its rejections come back through `serverRejected`.
  *
@@ -29,7 +29,9 @@ export type NewStudentFieldName =
   | "documentNumber"
   | "guardianName"
   | "guardianPhone"
-  | "guardianEmail";
+  | "guardianEmail"
+  | "guardianDocumentType"
+  | "guardianDocumentNumber";
 
 export type AddressFields = Record<
   "street" | "number" | "complement" | "neighborhood" | "city" | "state" | "postalCode",
@@ -68,6 +70,8 @@ const EMPTY_FIELDS: NewStudentFields = {
   birthDate: "",
   documentType: "",
   documentNumber: "",
+  guardianDocumentType: "",
+  guardianDocumentNumber: "",
   guardianName: "",
   guardianPhone: "",
   guardianEmail: "",
@@ -98,7 +102,6 @@ export function isMinorFromFields(fields: NewStudentFields, today: string): bool
   return isMinorOn({ birthDate: parseDateBR(fields.birthDate) ?? "", today });
 }
 
-const REQUIRED_MESSAGE = "Campo obrigatório.";
 const INVALID_DATE_MESSAGE = "Data inválida. Use dd/mm/aaaa.";
 const DOCUMENT_TYPE_MESSAGE = "Informe o tipo do documento.";
 const GUARDIAN_REQUIRED_MESSAGE = "Responsável obrigatório para alunos menores de idade.";
@@ -108,27 +111,46 @@ export function validateDados(fields: NewStudentFields, today: string): NewStude
   const errors: NewStudentErrors = {};
 
   if (fields.fullName.trim() === "") {
-    errors.fullName = REQUIRED_MESSAGE;
+    errors.fullName = "Informe o nome do aluno.";
   }
+
+  if (!fields.birthDate.trim()) errors.birthDate = "Informe a data de nascimento do aluno.";
+  if (!fields.documentNumber.trim()) errors.documentNumber = "Informe o CPF ou RG do aluno.";
+  if (!fields.phone.trim() && !fields.email.trim())
+    errors.phone = "Informe telefone ou e-mail do aluno.";
 
   if (fields.birthDate !== "" && parseDateBR(fields.birthDate) === null) {
     errors.birthDate = INVALID_DATE_MESSAGE;
   }
 
-  if (fields.documentNumber.trim() !== "" && fields.documentType === "") {
+  if (fields.documentNumber.trim() && !fields.documentType)
     errors.documentType = DOCUMENT_TYPE_MESSAGE;
-  }
+  Object.assign(errors, validateGuardian(fields, today));
+  return errors;
+}
 
-  if (isMinorFromFields(fields, today)) {
+function validateGuardian(fields: NewStudentFields, today: string): NewStudentErrors {
+  const errors: NewStudentErrors = {};
+  const minor = isMinorFromFields(fields, today);
+  const hasGuardian = [
+    fields.guardianName,
+    fields.guardianDocumentNumber,
+    fields.guardianPhone,
+    fields.guardianEmail,
+  ].some((value) => value.trim());
+  if (minor || hasGuardian) {
+    if (!fields.guardianDocumentNumber.trim())
+      errors.guardianDocumentNumber = "Informe o CPF ou RG do responsável.";
+    if (fields.guardianDocumentNumber.trim() && !fields.guardianDocumentType)
+      errors.guardianDocumentType = DOCUMENT_TYPE_MESSAGE;
     if (fields.guardianName.trim() === "") {
-      errors.guardianName = GUARDIAN_REQUIRED_MESSAGE;
+      errors.guardianName = minor ? GUARDIAN_REQUIRED_MESSAGE : "Informe o nome do responsável.";
     }
 
     if (fields.guardianPhone.trim() === "" && fields.guardianEmail.trim() === "") {
       errors.guardianPhone = GUARDIAN_CONTACT_MESSAGE;
     }
   }
-
   return errors;
 }
 

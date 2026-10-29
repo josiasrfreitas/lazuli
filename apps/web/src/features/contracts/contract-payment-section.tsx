@@ -1,13 +1,16 @@
 "use client";
 
-import { materialPriceQuote, addCalendarMonths } from "@lazuli/domain";
+import { materialPriceQuote, materialScholarshipQuote, addCalendarMonths } from "@lazuli/domain";
 import { trpc } from "~/lib/trpc";
 import { useId, type ReactElement } from "react";
 import { ChevronDown } from "lucide-react";
 import { Button, Field, FieldError, Input, Label } from "@lazuli/ui";
+import { parseDateBR } from "~/lib/masks";
 import { formatBRLFromCents, formatDateOnlyBR } from "~/lib/format";
 import type { FormProps } from "./contract-form-fields";
-import { paymentPlanLabel } from "./contract-form-model";
+import { materialPriceInput, scholarshipInput, paymentPlanLabel } from "./contract-form-model";
+
+const CENTS_PER_REAL = 100;
 
 function PaymentCalendar({
   rows,
@@ -46,6 +49,13 @@ function PaymentCalendar({
 }
 
 function PaymentPreview({ preview }: { preview: NonNullable<FormProps["preview"]> }): ReactElement {
+  if (preview.installments.length === 0)
+    return (
+      <p role="status" className="text-caption">
+        Bolsa integral até {formatDateOnlyBR(preview.endsOn)}. Não serão geradas parcelas de
+        mensalidade.
+      </p>
+    );
   const firstAmount = preview.installments[0]?.amountCents ?? null;
   const uniformAmount = preview.installments.every((row) => row.amountCents === firstAmount)
     ? firstAmount
@@ -95,33 +105,58 @@ function useMaterialPayment(fields: FormProps["fields"]): {
           version: unitQuote.version,
         }
       : undefined;
-  return fields.materialPayment !== "NONE" && quote
-    ? { count: 1, amountCents: quote.cashCents }
-    : null;
+  if (fields.materialPayment === "NONE" || !quote) return null;
+  try {
+    const net = materialScholarshipQuote({
+      ...materialPriceInput(fields),
+      quote,
+      payment: fields.materialPayment === "CASH" ? "CASH" : "INSTALLMENTS",
+      scholarshipPct: scholarshipInput(fields, true).scholarshipPct ?? 0,
+      cardFeePct: prices.data?.cardFeePct ?? 0,
+    });
+    return net.receivableCents > 0 ? { count: 1, amountCents: net.receivableCents } : null;
+  } catch {
+    return null;
+  }
 }
 
 export function PaymentSection({ fields, errors, change, preview }: FormProps): ReactElement {
   const material = useMaterialPayment(fields);
-  const rows = preview ? previewCalendar(preview.installments, material) : [];
+  const enrollmentFeeCents = fields.enrollmentFee
+    ? Math.round(Number(fields.enrollmentFee.replace(",", ".")) * CENTS_PER_REAL)
+    : 0;
+  const rows = preview
+    ? previewCalendar(preview.installments, material, parseDateBR(fields.firstDueDate) ?? undefined)
+    : [];
   const id = useId();
-  const special = fields.paymentPlan === "special";
+  const special = fields.paymentPlan === "special" && fields.scholarshipMode !== "FULL";
   return (
     <div className="grid min-w-0 gap-3">
-      <AdvancedPaymentControls
-        id={id}
-        special={special}
-        fields={fields}
-        errors={errors}
-        change={change}
-      />
+      {fields.scholarshipMode !== "FULL" && (
+        <AdvancedPaymentControls
+          id={id}
+          special={special}
+          fields={fields}
+          errors={errors}
+          change={change}
+        />
+      )}
       {preview ? (
         <>
           <PaymentPreview preview={preview} />
-          {material && (
+          {enrollmentFeeCents > 0 && (
+            <p className="text-caption">
+              Taxa de matrícula {formatBRLFromCents(enrollmentFeeCents)} · vence na data do acordo,{" "}
+              {fields.agreedOn}
+            </p>
+          )}
+          {(material || enrollmentFeeCents > 0) && (
             <p className="text-caption font-medium">
               Total a receber pela escola{" "}
               {formatBRLFromCents(
-                preview.principalAmountCents + material.count * material.amountCents,
+                preview.principalAmountCents +
+                  (material?.count ?? 0) * (material?.amountCents ?? 0) +
+                  enrollmentFeeCents,
               )}
             </p>
           )}
@@ -190,8 +225,9 @@ function AdvancedPaymentControls({
 export function previewCalendar(
   tuition: Array<{ dueDate: string; amountCents: number }>,
   material: { count: number; amountCents: number } | null,
+  materialDueDate?: string,
 ): { dueDate: string; tuitionCents: number; materialCents: number }[] {
-  const first = tuition[0]?.dueDate;
+  const first = tuition[0]?.dueDate ?? materialDueDate;
   if (!first) return [];
   return Array.from(
     { length: Math.max(tuition.length, material?.count ?? 0) },

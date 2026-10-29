@@ -101,8 +101,11 @@ function SearchResults({
               {row.payer.name} · {row.beneficiaries.map((person) => person.fullName).join(", ")}
             </p>
             <p className="text-muted-foreground">
-              {originLabel(row.origin)} · {row.sequenceNumber}/{row.scheduleTotal} ·{" "}
-              {paymentDateLabel(row.dueDate)} · {money(row.collectibleBalanceCents)}
+              {originLabel(row.origin)} ·{" "}
+              {row.origin === "MATERIAL"
+                ? "Cobrança única"
+                : `${row.sequenceNumber}/${row.scheduleTotal}`}{" "}
+              · {paymentDateLabel(row.dueDate)} · {money(row.collectibleBalanceCents)}
             </p>
           </div>
           <Button
@@ -202,7 +205,7 @@ function PickerHeader({
     <>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-control font-semibold">
-          <ListChecks className="size-4" aria-hidden /> Parcelas{count > 0 ? ` (${count})` : ""}
+          <ListChecks className="size-4" aria-hidden /> Cobranças{count > 0 ? ` (${count})` : ""}
         </h3>
         <Button
           type="button"
@@ -214,7 +217,7 @@ function PickerHeader({
           onClick={onToggle}
         >
           {open ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}
-          {open ? "Fechar busca" : "Adicionar parcela"}
+          {open ? "Fechar busca" : "Adicionar cobrança"}
         </Button>
       </div>
       {count === 0 && (

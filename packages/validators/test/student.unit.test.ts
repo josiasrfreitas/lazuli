@@ -13,6 +13,13 @@ import {
   studentUpdateNotesInputSchema,
 } from "../src/student.js";
 
+const REQUIRED_STUDENT = {
+  documentType: "RG",
+  documentNumber: "1234567",
+  birthDate: "1990-05-01",
+  phone: "82999990000",
+} as const;
+
 const STUDENT_ID = "11111111-1111-4111-8111-111111111111";
 const GUARDIAN_ID = "22222222-2222-4222-8222-222222222222";
 const SEARCH_TOO_LONG_LENGTH = 81;
@@ -23,11 +30,13 @@ const DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE =
 void describe("student document pair input", () => {
   void it("requires a document type when a document number is filled", () => {
     const result = studentCreateInputSchema.safeParse({
+      ...REQUIRED_STUDENT,
       fullName: "Ana Souza",
       documentNumber: "12345678900",
+      documentType: undefined,
     });
 
-    assert.deepEqual(result.error?.issues, [
+    assert.deepEqual(result.error?.issues.slice(0, 1), [
       {
         code: "custom",
         message: DOCUMENT_NUMBER_REQUIRES_TYPE_MESSAGE,
@@ -38,6 +47,7 @@ void describe("student document pair input", () => {
 
   void it("accepts a document number with its document type", () => {
     const result = studentCreateInputSchema.safeParse({
+      ...REQUIRED_STUDENT,
       fullName: "Ana Souza",
       documentType: "CPF",
       documentNumber: "12345678900",
@@ -48,6 +58,7 @@ void describe("student document pair input", () => {
 
   void it("rejects a filled document number with a null document type", () => {
     const result = studentCreateInputSchema.safeParse({
+      ...REQUIRED_STUDENT,
       fullName: "Ana Souza",
       documentType: null,
       documentNumber: "12345678900",
@@ -58,25 +69,32 @@ void describe("student document pair input", () => {
 });
 
 void describe("student optional document input", () => {
-  void it("accepts omitted document fields", () => {
-    const result = studentCreateInputSchema.safeParse({ fullName: "Ana Souza" });
+  void it("rejects omitted document fields", () => {
+    const result = studentCreateInputSchema.safeParse({
+      ...REQUIRED_STUDENT,
+      fullName: "Ana Souza",
+      documentType: undefined,
+      documentNumber: undefined,
+    });
 
-    assert.equal(result.success, true);
+    assert.equal(result.success, false);
   });
 
-  void it("accepts a null document number without a document type", () => {
+  void it("rejects a null document number without a document type", () => {
     const result = studentCreateInputSchema.safeParse({
+      ...REQUIRED_STUDENT,
       fullName: "Ana Souza",
       documentNumber: null,
     });
 
-    assert.equal(result.success, true);
+    assert.equal(result.success, false);
   });
 });
 
 void describe("student contact input", () => {
   void it("trims required and optional student contact text", () => {
     const parsed = studentCreateInputSchema.parse({
+      ...REQUIRED_STUDENT,
       fullName: " Ana Souza ",
       phone: " 82999990000 ",
       email: null,
@@ -95,7 +113,7 @@ void describe("student contact input", () => {
   });
 
   void it("rejects blank required names after trimming", () => {
-    const result = studentCreateInputSchema.safeParse({ fullName: "   " });
+    const result = studentCreateInputSchema.safeParse({ ...REQUIRED_STUDENT, fullName: "   " });
 
     assert.equal(result.error?.issues[0]?.message, "Campo obrigatorio.");
     assert.deepEqual(result.error?.issues[0]?.path, ["fullName"]);
@@ -124,14 +142,21 @@ void describe("student contact input", () => {
 void describe("student guardian input", () => {
   void it("validates create and update guardian reference modes", () => {
     const created = studentCreateInputSchema.parse({
+      ...REQUIRED_STUDENT,
       fullName: "Ana Souza",
       guardian: { mode: "connect", id: GUARDIAN_ID },
     });
     const createdGuardian = studentCreateInputSchema.parse({
+      ...REQUIRED_STUDENT,
       fullName: "Bruno Souza",
       guardian: {
         mode: "create",
-        input: { fullName: " Maria Souza ", phone: "82999990000" },
+        input: {
+          documentType: "RG",
+          documentNumber: "1234567",
+          fullName: " Maria Souza ",
+          phone: "82999990000",
+        },
         useStudentAddress: true,
       },
     });
@@ -145,7 +170,12 @@ void describe("student guardian input", () => {
     const replaced = studentUpdateContactInputSchema.parse({
       guardian: {
         mode: "create",
-        input: { fullName: " Joana Souza ", email: "joana@example.com" },
+        input: {
+          documentType: "RG",
+          documentNumber: "1234567",
+          fullName: " Joana Souza ",
+          email: "joana@example.com",
+        },
       },
     });
     const updated = studentUpdateContactInputSchema.parse({
@@ -179,6 +209,56 @@ void describe("student mutation input", () => {
     assert.equal(
       studentSetStatusInputSchema.safeParse({ id: STUDENT_ID, status: "TRANSFERRED" }).success,
       false,
+    );
+  });
+});
+
+void describe("required student identity and contact", () => {
+  void it("requires birth date and a document even when a contact is present", () => {
+    const result = studentCreateInputSchema.safeParse({
+      fullName: "Ana Souza",
+      phone: "82999990000",
+    });
+    assert.equal(result.success, false);
+    assert.deepEqual(result.error?.issues.map((issue) => issue.path[0]).toSorted(), [
+      "birthDate",
+      "documentNumber",
+      "documentType",
+    ]);
+  });
+  void it("accepts either student contact and rejects removing both", () => {
+    assert.equal(
+      studentCreateInputSchema.safeParse({
+        ...REQUIRED_STUDENT,
+        fullName: "Ana Souza",
+        phone: undefined,
+        email: "ana@example.com",
+      }).success,
+      true,
+    );
+    const result = studentCreateInputSchema.safeParse({
+      ...REQUIRED_STUDENT,
+      fullName: "Ana Souza",
+      phone: null,
+      email: null,
+    });
+    assert.deepEqual(
+      result.error?.issues.map((issue) => issue.path),
+      [["phone"]],
+    );
+  });
+  void it("requires a guardian document and one reachable contact", () => {
+    const result = studentCreateInputSchema.safeParse({
+      ...REQUIRED_STUDENT,
+      fullName: "Ana Souza",
+      guardian: { mode: "create", input: { fullName: "Maria Souza" } },
+    });
+    assert.deepEqual(
+      result.error?.issues.map((issue) => issue.path),
+      [
+        ["guardian", "input", "documentNumber"],
+        ["guardian", "input", "phone"],
+      ],
     );
   });
 });

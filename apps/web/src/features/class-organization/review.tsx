@@ -1,7 +1,7 @@
 "use client";
 import type { JSX as ReactJSX } from "react";
 import { useState } from "react";
-import { type OrganizationAction, type SemesterBoard } from "./model";
+import { type OrganizationAction, type OrganizationBoard } from "./model";
 import { useReviewPublish } from "./review-publish";
 import { ReviewView } from "./review-view";
 
@@ -11,7 +11,7 @@ export function OrganizationReview({
   onAction,
   onFeedback,
 }: {
-  board: SemesterBoard;
+  board: OrganizationBoard;
   query: string;
   onAction: (action: OrganizationAction) => void;
   onFeedback: (text: string) => void;

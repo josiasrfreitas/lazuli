@@ -27,6 +27,7 @@ export function PersonDocument({ kind, fields, errors, change }: PersonProps): R
   const names = PERSON_FIELDS[kind];
   return (
     <PersonDocumentField
+      required
       name={names.documentNumber}
       value={fields[names.documentNumber]}
       error={errors[names.documentNumber] ?? errors[names.documentType]}
@@ -47,7 +48,7 @@ export function InlinePersonFields(props: PersonProps): ReactElement {
       <FormRow columns={2}>
         <TextField
           name={names.phone}
-          label="Telefone (opcional)"
+          label={kind === "payer" ? "Telefone" : "Telefone (opcional)"}
           placeholder="(00) 00000-0000"
           value={fields[names.phone]}
           error={errors[names.phone]}
@@ -55,13 +56,18 @@ export function InlinePersonFields(props: PersonProps): ReactElement {
         />
         <TextField
           name={names.email}
-          label="Email (opcional)"
+          label={kind === "payer" ? "E-mail" : "Email (opcional)"}
           placeholder="nome@exemplo.com"
           value={fields[names.email]}
           error={errors[names.email]}
           onChange={(value) => change(names.email, value)}
         />
       </FormRow>
+      {kind === "payer" && (
+        <p className="text-caption text-muted-foreground">
+          Informe pelo menos um contato: telefone ou e-mail.
+        </p>
+      )}
       <p className="text-caption text-muted-foreground">
         O {entity} será cadastrado ao criar o contrato.
       </p>

@@ -60,7 +60,7 @@ export async function studentIntakeOptions(
   const { input, now } = options;
 
   const today = saoPauloDateOnly(now);
-  const semester = await database.semester.findFirst({
+  const semester = await database.period.findFirst({
     where: {
       deletedAt: null,
       startDate: { lte: new Date(today) },
@@ -200,6 +200,12 @@ export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult
         today,
       })
     : null;
+  if (!semester)
+    throw badRequest("Não há período vigente. Mantenha a pessoa como lead até a entrada.");
+  if (!target && candidate?.allocationPlan && candidate.allocationPlan.semesterId !== semester.id)
+    throw badRequest(
+      "Este lead aguarda outro período. Mantenha o interesse na turma até a entrada ou escolha uma turma vigente.",
+    );
   const created = await createIntakeMembership(input, { enrollmentDatabase, target, today });
   await finalizeIntake(input, { ...created, semester, candidate, target, fingerprint });
   return { ...created, classId: target?.id ?? null };

@@ -1,6 +1,11 @@
+import { readHealthPending } from "./home-health.js";
+import { readOccurrencePending } from "./home-occurrences.js";
+import { studentsAwaitingPlacement } from "../students/pending-actions.js";
+import { adultCutoffDateOnly } from "../students/date-rules.js";
+import { pendingRenewalWhere } from "../finance/internal/renewal-pending.js";
 import type { Prisma, TransactionClient } from "@lazuli/db";
-import { saoPauloDateOnly } from "@lazuli/domain";
-import { intakeEnrollmentWhere } from "../students/pending-actions.js";
+import { pendingClassRecordCutoff as pendingRecordCutoff } from "../class-records/pending-policy.js";
+import { saoPauloDateOnly, sessionEndInstant } from "@lazuli/domain";
 import { readCoverage } from "./home-schedule.js";
 import { readSemesterPending } from "./home-semester.js";
 import { recordSessionInclude, responsibleTeacher, timeOnly } from "../class-records/data.js";
@@ -11,7 +16,6 @@ import {
   HOME_PAGE_SIZE,
   linkItem,
   plusDays,
-  RENEWAL_DAYS,
   type HomeGroup,
   type HomeGroupKind,
   type HomeItem,
@@ -49,12 +53,19 @@ function recordPeriod(now: Date, period: Scope["period"]): { date?: { gte: Date 
 function readGroup(database: Database, input: Scope & { pagination: Page }): Promise<Result> {
   const page = input.pagination;
   switch (input.kind) {
+    case "health":
+      return readHealthPending(database, { now: input.now, ...page });
+    case "occurrences":
+      return readOccurrencePending(database, page);
     case "coverage": {
       return coveragePage(database, { now: input.now, page });
     }
     case "students":
     case "contracts": {
       return studentPage(database, { ...input, pagination: page });
+    }
+    case "documents": {
+      return documentsPage(database, { now: input.now, page });
     }
     case "allocation": {
       return allocationPage(database, page);
@@ -76,6 +87,69 @@ function readGroup(database: Database, input: Scope & { pagination: Page }): Pro
     }
   }
 }
+const REGISTRATION_KINDS = ["student", "residence", "photo"] as const;
+const DOCUMENT_LABELS: Record<(typeof REGISTRATION_KINDS)[number] | "guardian", string> = {
+  student: "identidade do aluno",
+  guardian: "identidade do responsável",
+  residence: "comprovante de residência",
+  photo: "foto do aluno",
+};
+type RegistrationKind = keyof typeof DOCUMENT_LABELS;
+async function documentsPage(
+  database: Database,
+  { now, page }: { now: Date; page: Page },
+): Promise<Result> {
+  const adultCutoff = new Date(`${adultCutoffDateOnly(now)}T00:00:00Z`);
+  const missing = (kind: string): Prisma.StudentWhereInput => ({
+    documentSessions: {
+      none: { files: { some: { kind, deletedAt: null } } },
+    },
+  });
+  const where: Prisma.StudentWhereInput = {
+    deletedAt: null,
+    status: "ACTIVE",
+    OR: [
+      ...REGISTRATION_KINDS.map(missing),
+      { birthDate: { gt: adultCutoff }, ...missing("guardian") },
+    ],
+  };
+  const [total, rows] = await Promise.all([
+    database.student.count({ where }),
+    database.student.findMany({
+      where,
+      ...page,
+      orderBy: [{ fullName: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        fullName: true,
+        birthDate: true,
+        documentSessions: {
+          select: { files: { where: { deletedAt: null }, select: { kind: true } } },
+        },
+      },
+    }),
+  ]);
+  return {
+    total,
+    items: rows.map((row) => {
+      const present = new Set(
+        row.documentSessions.flatMap((session) => session.files.map((file) => file.kind)),
+      );
+      const required: RegistrationKind[] = [...REGISTRATION_KINDS];
+      if (row.birthDate && row.birthDate > adultCutoff) required.splice(1, 0, "guardian");
+      const absent = required.filter((kind) => !present.has(kind));
+      return {
+        ...linkItem({
+          id: row.id,
+          title: row.fullName,
+          detail: `Faltando: ${absent.map((kind) => DOCUMENT_LABELS[kind]).join(", ")}`,
+          href: `/alunos/${row.id}?secao=cadastro`,
+        }),
+        missingDocuments: absent,
+      };
+    }),
+  };
+}
 async function coveragePage(
   database: Database,
   { now, page }: { now: Date; page: Page },
@@ -92,7 +166,15 @@ async function studentPage(
     deletedAt: null,
     status: "ACTIVE",
     ...(input.kind === "students"
-      ? { enrollments: { none: intakeEnrollmentWhere(input.now) } }
+      ? {
+          id: { notIn: await studentsAwaitingPlacement(database) },
+          // First allocation is independent of semester dates: past and future
+          // enrollments both prove that a destination has already been defined.
+          enrollments: { none: { deletedAt: null } },
+          semesterPlacements: {
+            none: { deletedAt: null, declinedAt: null, plan: { deletedAt: null } },
+          },
+        }
       : { contracts: { none: { deletedAt: null } } }),
   };
   const [total, rows] = await Promise.all([
@@ -101,7 +183,7 @@ async function studentPage(
       where,
       ...page,
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      select: { id: true, fullName: true },
+      select: { id: true, fullName: true, createdAt: true },
     }),
   ]);
   return {
@@ -111,10 +193,9 @@ async function studentPage(
         id: row.id,
         title: row.fullName,
         detail:
-          input.kind === "students"
-            ? "Definir uma turma para o aluno"
-            : "Preparar o primeiro contrato",
+          input.kind === "students" ? "Definir a primeira turma" : "Preparar o primeiro contrato",
         href: `/alunos/${row.id}`,
+        ...(input.kind === "students" ? { date: saoPauloDateOnly(row.createdAt) } : {}),
       }),
     ),
   };
@@ -156,42 +237,79 @@ async function allocationPage(database: Database, page: Page): Promise<Result> {
   };
 }
 async function placementPage(database: Database, page: Page): Promise<Result> {
-  const where: Prisma.EntryVisitWhereInput = {
-    deletedAt: null,
-    kind: "PLACEMENT",
-    status: { in: ["SCHEDULED", "ATTENDED"] },
-    assessment: { is: { stageId: null } },
-    candidate: { deletedAt: null, status: "WAITING" },
-  };
-  const [total, rows] = await Promise.all([
-    database.entryVisit.count({ where }),
-    database.entryVisit.findMany({
-      where,
-      ...page,
-      orderBy: [{ assessment: { uploadedAt: "asc" } }, { id: "asc" }],
-      select: {
-        id: true,
-        candidateId: true,
-        candidate: { select: { fullName: true } },
-        assessment: { select: { uploadedAt: true } },
+  // One task per person, based on the latest non-cancelled placement visit.
+  const candidates = await database.admissionCandidate.findMany({
+    where: {
+      deletedAt: null,
+      status: { not: "ARCHIVED" },
+      OR: [
+        { englishExperience: "SOME" },
+        {
+          visits: {
+            some: {
+              kind: "PLACEMENT",
+              deletedAt: null,
+              status: { not: "CANCELLED" },
+              assessment: { is: { stageId: null } },
+            },
+          },
+        },
+      ],
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      fullName: true,
+      stageId: true,
+      createdAt: true,
+      visits: {
+        where: { kind: "PLACEMENT", deletedAt: null, status: { not: "CANCELLED" } },
+        orderBy: [{ date: "desc" }, { startTime: "desc" }, { createdAt: "desc" }],
+        take: 1,
+        select: {
+          status: true,
+          date: true,
+          assessment: { select: { stageId: true, uploadedAt: true } },
+        },
       },
-    }),
-  ]);
-  return {
-    total,
-    items: rows.map((row) =>
-      linkItem({
-        id: row.id,
-        title: row.candidate.fullName,
-        detail: "Corrigir a prova e definir o estágio",
-        href: `/interessados/${row.candidateId}`,
-        date: row.assessment ? saoPauloDateOnly(row.assessment.uploadedAt) : null,
-        ...(row.assessment && {
-          timing: { kind: "waiting", since: row.assessment.uploadedAt.toISOString() } as const,
+    },
+  });
+  const items: HomeItem[] = candidates.flatMap((candidate) => {
+    const visit = candidate.visits[0];
+    if (
+      visit?.status === "ATTENDED" &&
+      visit.assessment?.stageId &&
+      visit.assessment.stageId === candidate.stageId
+    )
+      return [];
+    const correction = Boolean(visit?.assessment && visit.status !== "ABSENT");
+    const scheduled = visit?.status === "SCHEDULED";
+    const received = correction ? visit?.assessment?.uploadedAt : undefined;
+    return [
+      {
+        ...linkItem({
+          id: candidate.id,
+          title: candidate.fullName,
+          detail: correction
+            ? "Corrigir a prova e definir o estágio"
+            : scheduled
+              ? "Aplicação agendada"
+              : "Agendar aplicação",
+          href: `/interessados/${candidate.id}?nivelamento=pendente`,
+          date: received
+            ? saoPauloDateOnly(received)
+            : scheduled
+              ? saoPauloDateOnly(visit.date)
+              : null,
+          ...(received
+            ? { timing: { kind: "waiting" as const, since: received.toISOString() } }
+            : {}),
         }),
-      }),
-    ),
-  };
+        placementPhase: correction ? ("CORRECTION" as const) : ("APPLICATION" as const),
+      },
+    ];
+  });
+  return { total: items.length, items: items.slice(page.skip, page.skip + page.take) };
 }
 async function lessonPage(
   database: Database,
@@ -234,7 +352,7 @@ async function appointmentPage(
     deletedAt: null,
     status: "SCHEDULED",
     student: { deletedAt: null },
-    ...endedWhere(now),
+    ...endedWhere(pendingRecordCutoff(now)),
     ...recordPeriod(now, period),
   };
   const [total, rows] = await Promise.all([
@@ -256,6 +374,7 @@ async function appointmentPage(
   return {
     total,
     items: rows.map((row) => ({
+      ageDays: Math.floor((now.getTime() - sessionEndInstant(row).getTime()) / 86_400_000),
       id: row.id,
       title: row.student.fullName,
       detail: `${timeOnly(row.startTime)} · Registrar o resultado do atendimento`,
@@ -270,14 +389,7 @@ async function renewalPage(
   { now, page }: { now: Date; page: Page },
 ): Promise<Result> {
   const today = saoPauloDateOnly(now);
-  const where: Prisma.ContractWhereInput = {
-    deletedAt: null,
-    terminatedAt: null,
-    commandId: { not: null },
-    endsOn: { gte: new Date(today), lte: new Date(plusDays(today, RENEWAL_DAYS)) },
-    student: { deletedAt: null, status: "ACTIVE" },
-    renewals: { none: { deletedAt: null, terminatedAt: null } },
-  };
+  const where = pendingRenewalWhere(today);
   const [total, rows] = await Promise.all([
     database.contract.count({ where }),
     database.contract.findMany({
@@ -294,7 +406,7 @@ async function renewalPage(
         id: row.id,
         title: row.student.fullName,
         detail: "Conversar sobre a continuidade do contrato",
-        href: `/alunos/${row.studentId}?secao=financeiro`,
+        href: `/alunos/${row.studentId}?secao=financeiro&renovarContrato=${row.id}&voltar=%2F`,
         date: row.endsOn ? dateOnly(row.endsOn) : null,
       }),
     ),

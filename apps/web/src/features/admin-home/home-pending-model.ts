@@ -12,15 +12,9 @@ export type PendingWork = {
 };
 
 const DAY_MS = 86_400_000;
-const MINUTES_PER_HOUR = 60;
-const SECONDS_PER_MINUTE = 60;
-const MILLISECONDS_PER_SECOND = 1000;
-const HOUR_MS = MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
-const IMMINENT_MS = 2 * HOUR_MS;
 const AGED_DAYS = 7;
 const RECENT_SCORE = 4;
 const URGENT_SCORE = 7;
-const IMMINENT_SCORE = 10;
 const PROLONGED_SCORE = 8;
 const ORDINARY_OVERDUE_SCORE = 6;
 const shortDate = new Intl.DateTimeFormat("pt-BR", {
@@ -37,6 +31,13 @@ const GROUPS: Record<
   HomeGroup["kind"],
   Pick<PendingWork, "title" | "score" | "href" | "destination">
 > = {
+  health: { title: "Score baixo", score: 7, href: "/alunos", destination: "Visão geral do aluno" },
+  occurrences: {
+    title: "Ocorrências pendentes",
+    score: 7,
+    href: "/alunos",
+    destination: "Acompanhamento",
+  },
   coverage: { title: "Turmas sem professor", score: 7, href: "/turmas", destination: "Turmas" },
   lessons: { title: "Aulas sem registro", score: 4, href: "/aulas", destination: "Agenda" },
   appointments: {
@@ -46,7 +47,7 @@ const GROUPS: Record<
     destination: "Atendimentos",
   },
   placement: {
-    title: "Nivelamentos para corrigir",
+    title: "Nivelamentos pendentes",
     score: 5,
     href: "/interessados",
     destination: "Interessados",
@@ -58,7 +59,13 @@ const GROUPS: Record<
     destination: "Interessados",
   },
   students: {
-    title: "Alunos sem turma",
+    title: "Novos alunos aguardando turma",
+    score: 4,
+    href: "/alunos?status=ativos",
+    destination: "Alunos",
+  },
+  documents: {
+    title: "Aluno com anexos cadastrais ausentes ou incompletos",
     score: 4,
     href: "/alunos?status=ativos",
     destination: "Alunos",
@@ -94,11 +101,17 @@ function groupWork(group: HomeGroup, data: HomeData): PendingWork {
     context: initialContext(group, item),
   };
   if (recordGroup) return recordWork(work, { kind: group.kind, item, history, today: data.today });
-  if (group.kind === "coverage" && item?.timing?.kind === "meeting") {
-    return coverageWork(work, { item, data });
+  if (group.kind === "coverage" && item?.timing?.kind === "departure") {
+    work.context = `${item.title} · ${item.detail}`;
+    if (item.action.kind === "link") work.href = item.action.href;
+    return work;
   }
   work.context = groupContext(group.kind, item);
-  if (group.kind === "semester" && item?.action.kind === "link") work.href = item.action.href;
+  if (
+    (group.kind === "semester" || group.kind === "occurrences" || group.kind === "health") &&
+    item?.action.kind === "link"
+  )
+    work.href = item.action.href;
   return work;
 }
 
@@ -143,35 +156,18 @@ function recordContext(history: number, item: HomeItem | undefined): string {
   return "Encontros encerrados";
 }
 
-function coverageWork(
-  work: PendingWork,
-  { item, data }: { item: HomeItem; data: HomeData },
-): PendingWork {
-  if (item.timing?.kind !== "meeting") return work;
-  const timing = item.timing;
-  const startsIn =
-    Date.parse(`${timing.date}T${timing.startTime}:00-03:00`) - Date.parse(data.updatedAt);
-  work.score = startsIn <= IMMINENT_MS ? IMMINENT_SCORE : URGENT_SCORE;
-  const when = timing.date === data.today ? "Hoje" : dateLabel(timing.date);
-  work.context = `${when}, ${timing.startTime} · ${item.title}`;
-  if (item.action.kind === "link") {
-    work.href = item.action.href;
-    work.destination = "Ver turma";
-  }
-  return work;
-}
-
 function groupContext(kind: HomeGroup["kind"], item: HomeItem | undefined): string {
   const staticContext: Partial<Record<HomeGroup["kind"], string>> = {
     contracts: "Primeiro contrato ainda não criado",
-    students: "Sem matrícula atual ou futura",
+    students: "Primeira turma ainda não definida",
+    documents: "Anexos do cadastro a completar",
     allocation: "Aguardando uma turma compatível",
   };
   if (staticContext[kind]) return staticContext[kind];
   if (kind === "placement")
     return datedContext(item, {
       prefix: "Prova mais antiga",
-      fallback: "Provas com estágio a definir",
+      fallback: "Aplicação ou correção pendente",
     });
   if (kind === "renewals")
     return datedContext(item, {

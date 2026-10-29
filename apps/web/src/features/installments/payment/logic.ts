@@ -34,6 +34,7 @@ export type PaymentFormState = {
   proofs: PaymentProofDrafts;
   setProof: (receiptId: string, file: File | undefined) => void;
   setProofError: (receiptId: string, message: string) => void;
+  attachItemProof: (item: PaymentDraft["items"][number], file: File) => void;
   finish: () => void;
   revision: number;
   submit: () => void;
@@ -83,6 +84,13 @@ export function usePaymentForm(input: {
     proofs: proofEditor.proofs,
     setProof: proofEditor.setProof,
     setProofError: proofEditor.setProofError,
+    attachItemProof: (item, file) => {
+      if (confirmation.locked) return;
+      const receiptId = crypto.randomUUID();
+      proofEditor.setProofError(item.receiptId, "");
+      change({ type: "split", id: item.row.installmentId, receiptId });
+      proofEditor.setProof(receiptId, file);
+    },
     finish: confirmation.finish,
     revision,
     submit,

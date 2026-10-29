@@ -55,11 +55,12 @@
   gap: 0.5rem;
 }
 .tabNavigation {
+  margin-inline-start: auto;
   display: flex;
   min-width: 0;
   max-width: 100%;
   overflow-x: auto;
-  padding-top: 0.75rem;
+  align-items: center;
 }
 .pedagogyContent {
   display: grid;
@@ -172,26 +173,6 @@
   --interactive-active: var(--brand-link-active);
 }
 
-.financeAlert {
-  width: 1rem;
-  height: 1rem;
-  animation: finance-alert-pulse 2s ease-in-out infinite;
-}
-@keyframes finance-alert-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .financeAlert {
-    animation: none;
-  }
-}
-
 .sections {
   display: flex;
   flex: 1;
@@ -281,5 +262,20 @@
 @keyframes carousel-enter-left {
   from {
     transform: translateX(-100%);
+  }
+}
+
+@media (min-width: 901px) and (min-height: 640px) {
+  .sections[data-overview] > :global([data-slot="tabs"]) > :global([data-slot="tabs-panel"]) {
+    overflow: hidden;
+    scrollbar-gutter: auto;
+    margin-inline-end: 0;
+    padding-inline-end: 0;
+  }
+
+  .sections[data-overview] .tabContent {
+    height: 100%;
+    min-height: 0;
+    padding-bottom: 0;
   }
 }
