@@ -62,14 +62,14 @@ void describe("staff password access", () => {
     const login = await post("/sign-in/email", { email: user.email, password: PASSWORD });
     assert.equal(login.status, 200);
     assert.match(login.headers.get("set-cookie") ?? "", /session_token=/);
-    assert.equal((await responseBody(login)).user?.email, user.email);
+    assert.equal(await responseUserEmail(login), user.email);
     const session = await auth.getSession({
       headers: new Headers({ cookie: login.headers.get("set-cookie") ?? "" }),
     });
     assert.equal(session?.user.email, user.email);
     const replay = await post("/reset-password", { token, newPassword: "Another long password" });
     assert.equal(replay.status, 400);
-    assert.equal((await responseBody(replay)).code, "INVALID_TOKEN");
+    assert.equal(await responseCode(replay), "INVALID_TOKEN");
   });
 
   void it("revokes existing sessions and replaces the password while retaining magic-link access", async () => {
@@ -84,13 +84,13 @@ void describe("staff password access", () => {
     assert.equal(await db.session.count({ where: { userId: user.id } }), 0);
     const oldLogin = await post("/sign-in/email", { email: user.email, password: PASSWORD });
     assert.equal(oldLogin.status, 401);
-    assert.equal((await responseBody(oldLogin)).code, "INVALID_EMAIL_OR_PASSWORD");
+    assert.equal(await responseCode(oldLogin), "INVALID_EMAIL_OR_PASSWORD");
     const newLogin = await post("/sign-in/email", {
       email: user.email,
       password: "The replacement password",
     });
     assert.equal(newLogin.status, 200);
-    assert.equal((await responseBody(newLogin)).user?.email, user.email);
+    assert.equal(await responseUserEmail(newLogin), user.email);
     await post("/sign-in/magic-link", { email: user.email, callbackURL: "/" });
     const link = magicLinks.find((delivery) => delivery.email === user.email);
     assert.ok(link);
@@ -122,7 +122,7 @@ void describe("staff password access", () => {
     await db.user.update({ where: { id: user.id }, data: { isEnabled: false } });
     const denied = await post("/reset-password", { token, newPassword: PASSWORD });
     assert.equal(denied.status, 400);
-    assert.equal((await responseBody(denied)).code, "INVALID_TOKEN");
+    assert.equal(await responseCode(denied), "INVALID_TOKEN");
     assert.equal(
       await db.account.count({ where: { userId: user.id, providerId: "credential" } }),
       0,
@@ -135,15 +135,18 @@ void describe("staff password access", () => {
   void it("rechecks staff eligibility when the password is correct", async () => {
     const user = await staff();
     await setPassword(user.email);
-    for (const data of [
-      { isEnabled: false },
-      { isEnabled: true, role: "FINANCE" as const },
-      { role: "ADMIN" as const, deletedAt: new Date() },
+    for (const { data, code } of [
+      { data: { isEnabled: false }, code: STAFF_ACCESS_DENIED_CODE },
+      { data: { isEnabled: true, role: "FINANCE" as const }, code: STAFF_ACCESS_DENIED_CODE },
+      {
+        data: { role: "ADMIN" as const, deletedAt: new Date() },
+        code: "INVALID_EMAIL_OR_PASSWORD",
+      },
     ]) {
       await db.user.update({ where: { id: user.id }, data });
       const response = await post("/sign-in/email", { email: user.email, password: PASSWORD });
       assert.equal(response.status, 401);
-      assert.equal((await responseBody(response)).code, STAFF_ACCESS_DENIED_CODE);
+      assert.equal(await responseCode(response), code, JSON.stringify(data));
       assert.equal(await db.session.count({ where: { userId: user.id } }), 0);
     }
   });
@@ -154,7 +157,7 @@ void describe("staff password access", () => {
     const token = await deliveredToken(user.email);
     const short = await post("/reset-password", { token, newPassword: "short" });
     assert.equal(short.status, 400);
-    assert.equal((await responseBody(short)).code, "PASSWORD_TOO_SHORT");
+    assert.equal(await responseCode(short), "PASSWORD_TOO_SHORT");
     assert.equal(await db.account.count({ where: { userId: user.id } }), 0);
     await db.verification.updateMany({
       where: { value: user.id },
@@ -162,7 +165,7 @@ void describe("staff password access", () => {
     });
     const expired = await post("/reset-password", { token, newPassword: PASSWORD });
     assert.equal(expired.status, 400);
-    assert.equal((await responseBody(expired)).code, "INVALID_TOKEN");
+    assert.equal(await responseCode(expired), "INVALID_TOKEN");
     assert.equal(await db.account.count({ where: { userId: user.id } }), 0);
   });
 
@@ -170,7 +173,7 @@ void describe("staff password access", () => {
     const email = `signup-${randomUUID()}@example.com`;
     const response = await post("/sign-up/email", { name: "Uninvited", email, password: PASSWORD });
     assert.equal(response.status, 400);
-    assert.equal((await responseBody(response)).code, "EMAIL_PASSWORD_SIGN_UP_DISABLED");
+    assert.equal(await responseCode(response), "EMAIL_PASSWORD_SIGN_UP_DISABLED");
     assert.equal(await db.user.findUnique({ where: { email } }), null);
   });
 });
@@ -188,7 +191,7 @@ async function staff(): Promise<{ id: string; email: string }> {
   return user;
 }
 
-function post(path: string, body: unknown): Promise<Response> {
+function post(path: string, body: Record<string, string>): Promise<Response> {
   return auth.handler(
     new Request(`${BASE_URL}/api/auth${path}`, {
       method: "POST",
@@ -222,4 +225,14 @@ async function setPassword(email: string): Promise<void> {
 
 function responseBody(response: Response): Promise<{ code?: string; user?: { email: string } }> {
   return response.json() as Promise<{ code?: string; user?: { email: string } }>;
+}
+
+async function responseCode(response: Response): Promise<string | undefined> {
+  const body = await responseBody(response);
+  return body.code;
+}
+
+async function responseUserEmail(response: Response): Promise<string | undefined> {
+  const body = await responseBody(response);
+  return body.user?.email;
 }

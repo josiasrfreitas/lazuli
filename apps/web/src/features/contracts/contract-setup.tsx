@@ -1,17 +1,23 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent, type ReactElement } from "react";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactElement,
+  type RefObject,
+} from "react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown } from "lucide-react";
 import { Alert, Button } from "@lazuli/ui";
 import { parseDateBR } from "~/lib/masks";
-import { formatBRLFromCents as money } from "~/lib/format";
 import type { FormProps } from "./contract-form-fields";
 import { contractInputFromFields } from "./contract-form-model";
 import type { ContractFormState, ContractOperation } from "./new-contract-state";
 import { validatePrice } from "./new-contract-state";
 import {
   firstInvalidStep,
-  setupPlanLabel,
   setupSteps,
   setupTitles,
   setupTuitionPreview,
@@ -25,6 +31,7 @@ import {
   type SetupMaterial,
 } from "./contract-setup-material";
 import { SetupParties, SetupReview, SetupTuition } from "./contract-setup-sections";
+import { SetupSummary } from "./contract-setup-summary";
 import styles from "./contract-setup.module.css";
 
 type Props = {
@@ -56,49 +63,137 @@ const introductions: Record<SetupStep, string> = {
 
 function focusPanel(panel: HTMLDivElement | null, invalidOnly = false): void {
   requestAnimationFrame(() => {
-    const invalid = panel?.querySelector<HTMLElement>('[aria-invalid="true"]');
-    const bookIndex = invalid?.dataset.invalidBook;
-    const emptyBook =
-      bookIndex === undefined
-        ? null
-        : invalid?.querySelector<HTMLElement>(`[name="material-stage-${bookIndex}"]`);
-    const target =
-      emptyBook ??
-      invalid?.querySelector<HTMLElement>('input:not([type="hidden"]), button, textarea') ??
-      invalid;
-    if (target) {
-      for (
-        let ancestor = target.parentElement;
-        ancestor && ancestor !== panel;
-        ancestor = ancestor.parentElement
-      ) {
-        if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
-      }
-      target.focus();
-      target.scrollIntoView({ block: "nearest" });
-      return;
-    }
-    if (!invalidOnly) {
-      panel?.scrollTo({ top: 0 });
-      panel?.closest("form")?.scrollTo({ top: 0 });
-      const first =
-        panel?.querySelector<HTMLElement>(
-          'input:not([type="hidden"]), textarea, [data-slot="segmented-control"] button',
-        ) ?? panel?.querySelector<HTMLElement>("h2");
-      first?.focus({ preventScroll: true });
-    }
+    if (focusInvalidField(panel)) return;
+    if (!invalidOnly) focusFirstField(panel);
   });
 }
 
-export function ContractSetup(props: Props): ReactElement {
-  const { state, offer, pending } = props;
+function focusInvalidField(panel: HTMLDivElement | null): boolean {
+  const target = invalidTarget(panel);
+  if (!target) return false;
+  for (
+    let ancestor = target.parentElement;
+    ancestor && ancestor !== panel;
+    ancestor = ancestor.parentElement
+  ) {
+    if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+  }
+  target.focus();
+  target.scrollIntoView({ block: "nearest" });
+  return true;
+}
+
+function invalidTarget(panel: HTMLDivElement | null): HTMLElement | null | undefined {
+  const invalid = panel?.querySelector<HTMLElement>('[aria-invalid="true"]');
+  const bookIndex = invalid?.dataset.invalidBook;
+  const emptyBook =
+    bookIndex === undefined
+      ? null
+      : invalid?.querySelector<HTMLElement>(`[name="material-stage-${bookIndex}"]`);
+  return (
+    emptyBook ??
+    invalid?.querySelector<HTMLElement>('input:not([type="hidden"]), button, textarea') ??
+    invalid
+  );
+}
+
+function focusFirstField(panel: HTMLDivElement | null): void {
+  panel?.scrollTo({ top: 0 });
+  panel?.closest("form")?.scrollTo({ top: 0 });
+  const first =
+    panel?.querySelector<HTMLElement>(
+      'input:not([type="hidden"]), textarea, [data-slot="segmented-control"] button',
+    ) ?? panel?.querySelector<HTMLElement>("h2");
+  first?.focus({ preventScroll: true });
+}
+
+type SubmitContext = {
+  props: Props;
+  fields: FormProps["fields"];
+  material: SetupMaterial;
+  step: SetupStep;
+  index: number;
+  go: (step: SetupStep) => void;
+  panel: RefObject<HTMLDivElement | null>;
+  setDueError: (value: string) => void;
+};
+
+function billingDueIsInvalid({
+  props,
+  fields,
+  step,
+}: Pick<SubmitContext, "props" | "fields" | "step">): boolean {
+  if (!props.billingFirstDueDate || (step !== "parties" && step !== "review")) return false;
+  const due = parseDateBR(props.billingFirstDueDate.value);
+  const start = parseDateBR(fields.firstDueDate);
+  return !due || Boolean(start && due < start);
+}
+
+function collectSetupErrors({
+  props,
+  fields,
+  material,
+  step,
+}: Pick<SubmitContext, "props" | "fields" | "material" | "step">): ReturnType<
+  typeof setupValidation
+> {
+  const { state, offer } = props;
+  const all = setupValidation({
+    fields,
+    commandId: state.commandId.current,
+    offer: offer.data,
+    parsed:
+      props.parseInput?.() ??
+      contractInputFromFields(fields, state.commandId.current, props.renewedFromId),
+  });
+  if (fields.materialPayment !== "NONE" && material.installmentError)
+    all.materialInstallments = material.installmentError;
+  if (fields.materialPayment !== "NONE" && material.priceError)
+    all.materialCustomPrice = material.priceError;
+  if (props.deferStudentValidation) removeStudentErrors(all);
+  return step === "review"
+    ? all
+    : Object.fromEntries(Object.entries(all).filter(([key]) => stepForField(key) === step));
+}
+
+function removeStudentErrors(errors: ReturnType<typeof setupValidation>): void {
+  for (const key of Object.keys(errors))
+    if (key.startsWith("student")) delete errors[key as keyof typeof errors];
+}
+
+function createSubmitHandler(context: SubmitContext): (event: FormEvent<HTMLFormElement>) => void {
+  return (event) => {
+    event.preventDefault();
+    const { props, fields, material, step, index, go, panel, setDueError } = context;
+    if (props.pending || !props.offer.data) return;
+    if (billingDueIsInvalid({ props, fields, step })) {
+      setDueError("Informe um vencimento válido a partir do início do contrato.");
+      go("parties");
+      focusPanel(panel.current, true);
+      return;
+    }
+    setDueError("");
+    const errors = collectSetupErrors({ props, fields, material, step });
+    props.state.setErrors(errors);
+    const invalidStep = firstInvalidStep(errors);
+    if (invalidStep) {
+      go(invalidStep);
+      focusPanel(panel.current, true);
+      return;
+    }
+    if (step === "review") void props.onComplete(event);
+    else go(setupSteps[index + 1] ?? "review");
+  };
+}
+
+function useSetupData(props: Props): {
+  fields: FormProps["fields"];
+  material: SetupMaterial;
+  preview: FormProps["preview"];
+  formProps: FormProps;
+} {
+  const { state, offer } = props;
   const fields = props.fields ?? state.fields;
-  const [step, setStep] = useState<SetupStep>("parties");
-  const [direction, setDirection] = useState<"forward" | "backward">("forward");
-  const [dueError, setDueError] = useState("");
-  const [summaryOpen, setSummaryOpen] = useState(false);
-  const panel = useRef<HTMLDivElement>(null);
-  const id = useId();
   const material = useSetupMaterial({
     fields,
     change: state.change,
@@ -119,269 +214,376 @@ export function ContractSetup(props: Props): ReactElement {
     preview,
     onMonthlyAmountBlur: () => validatePrice(state, offer.data),
   };
+  return { fields, material, preview, formProps };
+}
+
+export function ContractSetup(props: Props): ReactElement {
+  const { fields, material, preview, formProps } = useSetupData(props);
+  const [step, setStep] = useState<SetupStep>("parties");
+  const [direction, setDirection] = useState<"forward" | "backward">("forward");
+  const [dueError, setDueError] = useState("");
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  const id = useId();
   const index = setupSteps.indexOf(step);
   useEffect(() => focusPanel(panel.current), [step]);
   const go = (next: SetupStep): void => {
-    if (pending) return;
+    if (props.pending) return;
     setSummaryOpen(false);
     if (next === step) return;
     setDirection(setupSteps.indexOf(next) < index ? "backward" : "forward");
     setStep(next);
   };
-  const submit = (event: FormEvent<HTMLFormElement>): void => {
-    event.preventDefault();
-    if (pending || !offer.data) return;
-    if (props.billingFirstDueDate && (step === "parties" || step === "review")) {
-      const due = parseDateBR(props.billingFirstDueDate.value);
-      const start = parseDateBR(fields.firstDueDate);
-      if (!due || (start && due < start)) {
-        setDueError("Informe um vencimento válido a partir do início do contrato.");
-        go("parties");
-        focusPanel(panel.current, true);
-        return;
-      }
-      setDueError("");
-    }
-    const all = setupValidation({
-      fields,
-      commandId: state.commandId.current,
-      offer: offer.data,
-      parsed:
-        props.parseInput?.() ??
-        contractInputFromFields(fields, state.commandId.current, props.renewedFromId),
-    });
-    if (fields.materialPayment !== "NONE" && material.installmentError)
-      all.materialInstallments = material.installmentError;
-    if (fields.materialPayment !== "NONE" && material.priceError)
-      all.materialCustomPrice = material.priceError;
-    if (props.deferStudentValidation)
-      for (const key of Object.keys(all))
-        if (key.startsWith("student")) delete all[key as keyof typeof all];
-    const errors =
-      step === "review"
-        ? all
-        : Object.fromEntries(Object.entries(all).filter(([key]) => stepForField(key) === step));
-    state.setErrors(errors);
-    const invalidStep = firstInvalidStep(errors);
-    if (invalidStep) {
-      go(invalidStep);
-      focusPanel(panel.current, true);
-      return;
-    }
-    if (step === "review") void props.onComplete(event);
-    else go(setupSteps[index + 1] ?? "review");
-  };
+  const submit = createSubmitHandler({
+    props,
+    fields,
+    material,
+    step,
+    index,
+    go,
+    panel,
+    setDueError,
+  });
   return (
-    <div className={styles.root} ref={state.popup}>
+    <SetupLayout
+      {...{
+        props,
+        fields,
+        material,
+        preview,
+        formProps,
+        step,
+        direction,
+        dueError,
+        summaryOpen,
+        panel,
+        id,
+        index,
+        go,
+        submit,
+      }}
+      onToggleSummary={() => setSummaryOpen(!summaryOpen)}
+      onClearDueError={() => setDueError("")}
+    />
+  );
+}
+
+type SetupLayoutProps = {
+  props: Props;
+  fields: FormProps["fields"];
+  material: SetupMaterial;
+  preview: FormProps["preview"];
+  formProps: FormProps;
+  step: SetupStep;
+  direction: "forward" | "backward";
+  dueError: string;
+  summaryOpen: boolean;
+  panel: RefObject<HTMLDivElement | null>;
+  id: string;
+  index: number;
+  go: (step: SetupStep) => void;
+  submit: (event: FormEvent<HTMLFormElement>) => void;
+  onToggleSummary: () => void;
+  onClearDueError: () => void;
+};
+
+function SetupLayout({
+  props,
+  fields,
+  material,
+  preview,
+  formProps,
+  step,
+  direction,
+  dueError,
+  summaryOpen,
+  panel,
+  id,
+  index,
+  go,
+  submit,
+  onToggleSummary,
+  onClearDueError,
+}: SetupLayoutProps): ReactElement {
+  return (
+    <div className={styles.root} ref={props.state.popup}>
       <form id={id} noValidate onSubmit={submit} className={styles.layout}>
-        <aside className={styles.summary} data-expanded={summaryOpen}>
-          <div className={styles.summaryHeading}>
-            <h2>Resumo do contrato</h2>
-          </div>
-          <button
-            type="button"
-            className={styles.summaryToggle}
-            aria-expanded={summaryOpen}
-            aria-controls={`${id}-summary`}
-            onClick={() => setSummaryOpen(!summaryOpen)}
-          >
-            Resumo do contrato <ChevronDown aria-hidden="true" />
-          </button>
-          <div id={`${id}-summary`} className={styles.summaryContents}>
-            <SetupSummary
-              fields={fields}
-              preview={preview}
-              material={material}
-              step={step}
-              onEdit={go}
-              pending={pending}
-            />
-          </div>
-        </aside>
-        <div className={styles.panel} ref={panel}>
-          <div key={step} className={styles.stepSlide} data-direction={direction}>
-            <header className={styles.panelHeading}>
-              <div>
-                <h2 tabIndex={-1}>{setupTitles[step]}</h2>
-                <p>{introductions[step]}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                {step === "parties" && props.onRestoreTerms && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    disabled={pending}
-                    onClick={() => {
-                      props.onRestoreTerms?.();
-                      setDueError("");
-                    }}
-                  >
-                    Renovar termos
-                  </Button>
-                )}
-                <span>
-                  {index + 1} de {setupSteps.length}
-                </span>
-              </div>
-            </header>
-            <OfferFeedback offer={offer} />
-            <fieldset disabled={pending} className={styles.step}>
-              {step === "parties" && (
-                <SetupParties
-                  {...formProps}
-                  studentKnown={props.studentKnown ?? false}
-                  billingFirstDueDate={props.billingFirstDueDate}
-                  dueError={dueError}
-                />
-              )}
-              {step === "tuition" && (
-                <SetupTuition
-                  {...formProps}
-                  allowEnrollmentFee={props.allowEnrollmentFee ?? false}
-                />
-              )}
-              {step === "material" && (
-                <SetupMaterialFields
-                  {...formProps}
-                  material={material}
-                  suggestedStageId={props.suggestedStageId}
-                  allowNoAcquisition={Boolean(props.renewedFromId)}
-                />
-              )}
-              {step === "review" && (
-                <SetupReview
-                  {...formProps}
-                  material={material}
-                  onEdit={go}
-                  billingFirstDueDate={props.billingFirstDueDate?.value}
-                />
-              )}
-            </fieldset>
-            {(props.error || state.submissionError) && (
-              <Alert variant="destructive">{props.error || state.submissionError}</Alert>
-            )}
-          </div>
-        </div>
+        <SetupAside
+          id={id}
+          fields={fields}
+          preview={preview}
+          material={material}
+          step={step}
+          pending={props.pending}
+          onEdit={go}
+          open={summaryOpen}
+          onToggle={onToggleSummary}
+        />
+        <SetupPanel
+          panel={panel}
+          step={step}
+          direction={direction}
+          index={index}
+          props={props}
+          formProps={formProps}
+          material={material}
+          dueError={dueError}
+          onClearDueError={onClearDueError}
+          onEdit={go}
+        />
       </form>
-      <div className={styles.footer}>
-        {props.onSaveWithout ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={pending}
-            onClick={props.onSaveWithout}
-          >
-            Salvar sem contrato
-          </Button>
-        ) : (
-          <span />
+      <SetupFooter id={id} step={step} index={index} props={props} onEdit={go} />
+    </div>
+  );
+}
+
+type SetupNavigation = (step: SetupStep) => void;
+
+function SetupAside({
+  id,
+  fields,
+  preview,
+  material,
+  step,
+  pending,
+  onEdit,
+  open,
+  onToggle,
+}: {
+  id: string;
+  fields: FormProps["fields"];
+  preview: FormProps["preview"];
+  material: SetupMaterial;
+  step: SetupStep;
+  pending: boolean;
+  onEdit: SetupNavigation;
+  open: boolean;
+  onToggle: () => void;
+}): ReactElement {
+  return (
+    <aside className={styles.summary} data-expanded={open}>
+      <div className={styles.summaryHeading}>
+        <h2>Resumo do contrato</h2>
+      </div>
+      <button
+        type="button"
+        className={styles.summaryToggle}
+        aria-expanded={open}
+        aria-controls={`${id}-summary`}
+        onClick={onToggle}
+      >
+        Resumo do contrato <ChevronDown aria-hidden="true" />
+      </button>
+      <div id={`${id}-summary`} className={styles.summaryContents}>
+        <SetupSummary
+          fields={fields}
+          preview={preview}
+          material={material}
+          step={step}
+          onEdit={onEdit}
+          pending={pending}
+        />
+      </div>
+    </aside>
+  );
+}
+
+type PanelProps = {
+  panel: RefObject<HTMLDivElement | null>;
+  step: SetupStep;
+  direction: "forward" | "backward";
+  index: number;
+  props: Props;
+  formProps: FormProps;
+  material: SetupMaterial;
+  dueError: string;
+  onClearDueError: () => void;
+  onEdit: SetupNavigation;
+};
+
+function SetupPanel({
+  panel,
+  step,
+  direction,
+  index,
+  props,
+  formProps,
+  material,
+  dueError,
+  onClearDueError,
+  onEdit,
+}: PanelProps): ReactElement {
+  return (
+    <div className={styles.panel} ref={panel}>
+      <div key={step} className={styles.stepSlide} data-direction={direction}>
+        <SetupHeader
+          step={step}
+          index={index}
+          pending={props.pending}
+          onRestoreTerms={props.onRestoreTerms}
+          onClearDueError={onClearDueError}
+        />
+        <OfferFeedback offer={props.offer} />
+        <fieldset disabled={props.pending} className={styles.step}>
+          <SetupStepFields
+            step={step}
+            props={props}
+            formProps={formProps}
+            material={material}
+            dueError={dueError}
+            onEdit={onEdit}
+          />
+        </fieldset>
+        {(props.error || props.state.submissionError) && (
+          <Alert variant="destructive">{props.error || props.state.submissionError}</Alert>
         )}
-        <div className={styles.footerActions}>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={pending}
-            onClick={() => (index === 0 ? props.onBack() : go(setupSteps[index - 1] ?? "parties"))}
-          >
-            <ArrowLeft aria-hidden="true" />
-            Voltar
-          </Button>
-          <Button form={id} type="submit" loading={pending} disabled={pending || !offer.data}>
-            {step === "review" ? <Check aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
-            {step === "review"
-              ? props.completeLabel
-              : step === "material"
-                ? "Conferir contrato"
-                : "Continuar"}
-          </Button>
-        </div>
       </div>
     </div>
   );
 }
 
-function SetupSummary({
-  fields,
-  preview,
-  material,
+function SetupHeader({
   step,
-  onEdit,
+  index,
   pending,
-}: Pick<FormProps, "fields" | "preview"> & {
-  material: SetupMaterial;
+  onRestoreTerms,
+  onClearDueError,
+}: {
   step: SetupStep;
-  onEdit: (step: SetupStep) => void;
+  index: number;
   pending: boolean;
+  onRestoreTerms: Props["onRestoreTerms"];
+  onClearDueError: () => void;
 }): ReactElement {
-  const payer = fields.payerMode === "create" ? fields.payerName : fields.payerLabel;
-  const fee = Math.round(Number(fields.enrollmentFee.replace(",", ".")) * 100);
-  const materialText =
-    fields.materialPayment === "NONE"
-      ? "Sem nova aquisição"
-      : material.effective
-        ? `${material.count} ${material.count === 1 ? "livro" : "livros"} · ${money(material.effective.chargedCents)}`
-        : "Livros e valores a definir";
-  const rows: Array<{
-    step: SetupStep;
-    title: string;
-    value: string;
-    detail?: string | undefined;
-  }> = [
-    {
-      step: "parties",
-      title: "Responsável e período",
-      value: payer || "Responsável a definir",
-      detail:
-        fields.firstDueDate && fields.endsOn
-          ? `${fields.firstDueDate} a ${fields.endsOn}`
-          : "Período a definir",
-    },
-    {
-      step: "tuition",
-      title: "Mensalidades",
-      value: setupPlanLabel(preview),
-      detail: fee > 0 ? `Matrícula ${money(fee)}` : "Sem taxa de matrícula",
-    },
-    {
-      step: "material",
-      title: "Material",
-      value: materialText,
-      detail:
-        fields.materialPayment === "NONE"
-          ? undefined
-          : fields.materialScholarshipMode === "FULL"
-            ? "Bolsa integral"
-            : fields.materialPayment === "CASH"
-              ? "À vista · repasse"
-              : `${fields.materialInstallments || "—"} parcelas · cartão · repasse`,
-    },
-    { step: "review", title: "Conferência", value: "Revisar o combinado" },
-  ];
   return (
-    <nav aria-label="Assuntos do contrato">
-      <ol className={styles.summaryList}>
-        {rows.map((row) => (
-          <li key={row.step}>
-            <button
-              type="button"
-              disabled={pending}
-              aria-current={step === row.step ? "step" : undefined}
-              onClick={() => onEdit(row.step)}
-              className={styles.summaryItem}
-            >
-              <span className={styles.summaryLabel}>
-                {row.title}
-                <ChevronRight aria-hidden="true" />
-              </span>
-              <span className={styles.summaryValue}>{row.value}</span>
-              {row.detail && <span className={styles.summaryDetail}>{row.detail}</span>}
-            </button>
-          </li>
-        ))}
-      </ol>
-    </nav>
+    <header className={styles.panelHeading}>
+      <div>
+        <h2 tabIndex={-1}>{setupTitles[step]}</h2>
+        <p>{introductions[step]}</p>
+      </div>
+      <div className="flex items-center gap-3">
+        {step === "parties" && onRestoreTerms && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={pending}
+            onClick={() => {
+              onRestoreTerms();
+              onClearDueError();
+            }}
+          >
+            Renovar termos
+          </Button>
+        )}
+        <span>
+          {index + 1} de {setupSteps.length}
+        </span>
+      </div>
+    </header>
+  );
+}
+
+function SetupStepFields({
+  step,
+  props,
+  formProps,
+  material,
+  dueError,
+  onEdit,
+}: {
+  step: SetupStep;
+  props: Props;
+  formProps: FormProps;
+  material: SetupMaterial;
+  dueError: string;
+  onEdit: SetupNavigation;
+}): ReactElement | null {
+  if (step === "parties")
+    return (
+      <SetupParties
+        {...formProps}
+        studentKnown={props.studentKnown ?? false}
+        billingFirstDueDate={props.billingFirstDueDate}
+        dueError={dueError}
+      />
+    );
+  if (step === "tuition")
+    return <SetupTuition {...formProps} allowEnrollmentFee={props.allowEnrollmentFee ?? false} />;
+  if (step === "material")
+    return (
+      <SetupMaterialFields
+        {...formProps}
+        material={material}
+        suggestedStageId={props.suggestedStageId}
+        allowNoAcquisition={Boolean(props.renewedFromId)}
+      />
+    );
+  if (step === "review")
+    return (
+      <SetupReview
+        {...formProps}
+        material={material}
+        onEdit={onEdit}
+        billingFirstDueDate={props.billingFirstDueDate?.value}
+      />
+    );
+  return null;
+}
+
+function nextButtonLabel(step: SetupStep, completeLabel: string): string {
+  if (step === "review") return completeLabel;
+  if (step === "material") return "Conferir contrato";
+  return "Continuar";
+}
+
+function SetupFooter({
+  id,
+  step,
+  index,
+  props,
+  onEdit,
+}: {
+  id: string;
+  step: SetupStep;
+  index: number;
+  props: Props;
+  onEdit: SetupNavigation;
+}): ReactElement {
+  const back = (): void => {
+    if (index === 0) props.onBack();
+    else onEdit(setupSteps[index - 1] ?? "parties");
+  };
+  return (
+    <div className={styles.footer}>
+      {props.onSaveWithout ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={props.pending}
+          onClick={props.onSaveWithout}
+        >
+          Salvar sem contrato
+        </Button>
+      ) : (
+        <span />
+      )}
+      <div className={styles.footerActions}>
+        <Button type="button" variant="secondary" disabled={props.pending} onClick={back}>
+          <ArrowLeft aria-hidden="true" /> Voltar
+        </Button>
+        <Button
+          form={id}
+          type="submit"
+          loading={props.pending}
+          disabled={props.pending || !props.offer.data}
+        >
+          {step === "review" ? <Check aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}
+          {nextButtonLabel(step, props.completeLabel)}
+        </Button>
+      </div>
+    </div>
   );
 }
 

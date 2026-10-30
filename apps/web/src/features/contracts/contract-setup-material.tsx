@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, type ReactElement } from "react";
 import { BookOpen } from "lucide-react";
+import type { UseQueryResult } from "@tanstack/react-query";
+import type { RouterOutputs } from "@lazuli/api";
 import {
   materialPriceQuote,
   materialScholarshipQuote,
@@ -33,20 +35,124 @@ import { materialPaymentLabel } from "./material-payment-label";
 import styles from "./contract-setup.module.css";
 
 type MaterialProps = Pick<FormProps, "fields" | "errors" | "change">;
+const MAX_PERSISTED_CENTS = 2_147_483_647;
 
-export function useSetupMaterial({
-  fields,
-  change,
-  suggestedStageId,
-}: Pick<MaterialProps, "fields" | "change"> & { suggestedStageId?: string | null | undefined }) {
-  const enabled = fields.materialPayment !== "NONE";
+type MaterialQueries = {
+  prices: UseQueryResult<RouterOutputs["finance"]["readMaterialPrice"], { message: string }>;
+  status: UseQueryResult<RouterOutputs["finance"]["studentMaterials"], { message: string }>;
+  stages: UseQueryResult<RouterOutputs["finance"]["contractMaterialOptions"], { message: string }>;
+};
+
+function useMaterialQueries(fields: MaterialProps["fields"]): MaterialQueries {
   const prices = trpc.finance.readMaterialPrice.useQuery();
   const status = trpc.finance.studentMaterials.useQuery(
     { studentId: fields.studentId },
     { enabled: Boolean(fields.studentId) },
   );
   const stages = trpc.finance.contractMaterialOptions.useQuery();
-  const suggested = suggestedStageId ?? status.data?.suggestedStageId;
+  return { prices, status, stages };
+}
+
+export type SetupMaterial = {
+  prices: MaterialQueries["prices"];
+  stages: MaterialQueries["stages"];
+  status: MaterialQueries["status"];
+  quote: ReturnType<typeof materialPriceQuote> | null;
+  effective: ReturnType<typeof materialScholarshipQuote> | null;
+  count: number;
+  plan: ReturnType<typeof materialInstallmentPlan> | null;
+  installmentError: string;
+  priceError: string;
+};
+
+function priceForCategory(
+  category: string,
+  prices: SetupMaterial["prices"]["data"],
+): NonNullable<SetupMaterial["prices"]["data"]>["adult"] | undefined {
+  if (category === "CHILD") return prices?.child;
+  if (category === "ADULT") return prices?.adult;
+  return undefined;
+}
+
+function materialQuote({
+  enabled,
+  unit,
+  prices,
+  count,
+}: {
+  enabled: boolean;
+  unit: ReturnType<typeof priceForCategory>;
+  prices: SetupMaterial["prices"]["data"];
+  count: number;
+}): SetupMaterial["quote"] {
+  if (!enabled || !unit || !prices || count === 0) return null;
+  return materialPriceQuote({
+    installments: unit.installments * count,
+    installmentCents: unit.installmentCents,
+    cardFeePct: prices.cardFeePct,
+  });
+}
+
+function materialPriceError(fields: MaterialProps["fields"]): string {
+  const override = materialPriceInput(fields).priceOverrideCents;
+  if (override === undefined) return "";
+  if (Number.isInteger(override) && override >= 1 && override <= MAX_PERSISTED_CENTS) return "";
+  return "Informe um valor válido maior que zero.";
+}
+
+function effectiveMaterialQuote({
+  fields,
+  quote,
+  prices,
+}: {
+  fields: MaterialProps["fields"];
+  quote: SetupMaterial["quote"];
+  prices: SetupMaterial["prices"]["data"];
+}): SetupMaterial["effective"] {
+  if (!quote || !prices) return null;
+  try {
+    return materialScholarshipQuote({
+      quote,
+      ...materialPriceInput(fields),
+      payment: fields.materialPayment === "CASH" ? "CASH" : "INSTALLMENTS",
+      scholarshipPct: scholarshipInput(fields, true).scholarshipPct ?? 0,
+      cardFeePct: prices.cardFeePct,
+    });
+  } catch {
+    return null;
+  }
+}
+
+function installmentPlan(
+  fields: MaterialProps["fields"],
+  effective: SetupMaterial["effective"],
+): Pick<SetupMaterial, "plan" | "installmentError"> {
+  if (!effective) return { plan: null, installmentError: "" };
+  try {
+    return {
+      plan: materialInstallmentPlan(effective.chargedCents, materialInstallmentCount(fields)),
+      installmentError: "",
+    };
+  } catch (error) {
+    return {
+      plan: null,
+      installmentError:
+        error instanceof Error ? error.message : "Confira a quantidade de parcelas.",
+    };
+  }
+}
+
+function useSuggestedStage({
+  fields,
+  change,
+  stages,
+  suggested,
+}: {
+  fields: MaterialProps["fields"];
+  change: MaterialProps["change"];
+  stages: SetupMaterial["stages"];
+  suggested: string | null | undefined;
+}): void {
   const appliedSuggestion = useRef<string | null>(null);
   useEffect(() => {
     const stage = stages.data?.find((item) => item.id === suggested);
@@ -58,63 +164,49 @@ export function useSetupMaterial({
     if (!fields.materialCategory)
       change("materialCategory", stage.track.ageGroup === "CHILD" ? "CHILD" : "ADULT");
   }, [suggested, stages.data, fields.materialStageIds, fields.materialCategory, change]);
-  const count = fields.materialStageIds.split(",").filter(Boolean).length;
-  const unit =
-    fields.materialCategory === "CHILD"
-      ? prices.data?.child
-      : fields.materialCategory === "ADULT"
-        ? prices.data?.adult
-        : undefined;
-  const quote =
-    enabled && unit && prices.data && count > 0
-      ? materialPriceQuote({
-          installments: unit.installments * count,
-          installmentCents: unit.installmentCents,
-          cardFeePct: prices.data.cardFeePct,
-        })
-      : null;
-  let priceError = "";
-  const override = materialPriceInput(fields).priceOverrideCents;
-  if (
-    override !== undefined &&
-    (!Number.isInteger(override) || override < 1 || override > 2147483647)
-  )
-    priceError = "Informe um valor válido maior que zero.";
-  let effective: ReturnType<typeof materialScholarshipQuote> | null = null;
-  try {
-    if (quote && prices.data)
-      effective = materialScholarshipQuote({
-        quote,
-        ...materialPriceInput(fields),
-        payment: fields.materialPayment === "CASH" ? "CASH" : "INSTALLMENTS",
-        scholarshipPct: scholarshipInput(fields, true).scholarshipPct ?? 0,
-        cardFeePct: prices.data.cardFeePct,
-      });
-  } catch {
-    /* Invalid scholarships are reported beside their fields. */
-  }
-  const total = quote
-    ? String(fields.materialPayment === "CASH" ? quote.cashCents : quote.totalCents)
-    : "";
-  const version = enabled ? (unit?.version ?? "") : "";
+}
+
+function useSyncMaterialQuote({
+  fields,
+  change,
+  version,
+  total,
+}: {
+  fields: MaterialProps["fields"];
+  change: MaterialProps["change"];
+  version: string;
+  total: string;
+}): void {
   useEffect(() => {
     if (fields.materialQuoteVersion !== version) change("materialQuoteVersion", version);
     if (fields.materialTotal !== total) change("materialTotal", total);
   }, [change, fields.materialQuoteVersion, fields.materialTotal, total, version]);
-  let plan: ReturnType<typeof materialInstallmentPlan> | null = null;
-  let installmentError = "";
-  if (effective) {
-    try {
-      plan = materialInstallmentPlan(effective.chargedCents, materialInstallmentCount(fields));
-    } catch (cause) {
-      installmentError =
-        cause instanceof Error ? cause.message : "Confira a quantidade de parcelas.";
-    }
-  }
-  return { prices, stages, quote, effective, count, plan, installmentError, status, priceError };
 }
 
-export type SetupMaterial = ReturnType<typeof useSetupMaterial>;
+export function useSetupMaterial({
+  fields,
+  change,
+  suggestedStageId,
+}: Pick<MaterialProps, "fields" | "change"> & {
+  suggestedStageId?: string | null | undefined;
+}): SetupMaterial {
+  const enabled = fields.materialPayment !== "NONE";
+  const { prices, status, stages } = useMaterialQueries(fields);
+  const suggested = suggestedStageId ?? status.data?.suggestedStageId;
+  useSuggestedStage({ fields, change, stages, suggested });
+  const count = fields.materialStageIds.split(",").filter(Boolean).length;
+  const unit = priceForCategory(fields.materialCategory, prices.data);
+  const quote = materialQuote({ enabled, unit, prices: prices.data, count });
+  const priceError = materialPriceError(fields);
+  const effective = effectiveMaterialQuote({ fields, quote, prices: prices.data });
+  const total = quote
+    ? String(fields.materialPayment === "CASH" ? quote.cashCents : quote.totalCents)
+    : "";
+  const version = enabled ? (unit?.version ?? "") : "";
+  useSyncMaterialQuote({ fields, change, version, total });
+  const { plan, installmentError } = installmentPlan(fields, effective);
+  return { prices, stages, quote, effective, count, plan, installmentError, status, priceError };
+}
 
 export function SetupScholarship(props: MaterialProps & { material?: boolean }): ReactElement {
   const active = props.material
@@ -148,125 +240,21 @@ export function SetupMaterialFields({
   allowNoAcquisition?: boolean;
 }): ReactElement {
   const enabled = !allowNoAcquisition || fields.materialPayment !== "NONE";
-  const chooseAcquisition = (value: string | null): void => {
-    if (value) change("materialPayment", value === "NONE" ? "NONE" : "CASH");
-  };
   return (
     <div className={styles.materialFields}>
-      {allowNoAcquisition && (
-        <Field name="materialAcquisition">
-          <Label>Material neste contrato</Label>
-          <SegmentedControl
-            size="sm"
-            wrap
-            value={enabled ? "BUY" : "NONE"}
-            onValueChange={chooseAcquisition}
-            aria-label="Material neste contrato"
-          >
-            <SegmentedControlItem value="NONE">Sem nova aquisição</SegmentedControlItem>
-            <SegmentedControlItem value="BUY">Adquirir material</SegmentedControlItem>
-          </SegmentedControl>
-        </Field>
-      )}
+      {allowNoAcquisition && <MaterialAcquisitionChoice enabled={enabled} change={change} />}
       {allowNoAcquisition && <PreviousMaterial material={material} />}
       <fieldset disabled={!enabled} className="grid min-w-0 gap-3 disabled:opacity-50">
-        <FormSection title="Livros desta aquisição">
-          <div
-            aria-invalid={Boolean(errors.materialStageIds)}
-            tabIndex={-1}
-            data-invalid-book={
-              errors.materialStageIds
-                ? fields.materialStageIds.split(",").findIndex((id) => !id)
-                : undefined
-            }
-          >
-            <MaterialStages
-              fields={fields}
-              errors={errors}
-              change={change}
-              options={material.stages.data}
-              pending={material.stages.isPending}
-              failed={material.stages.isError}
-              retry={() => void material.stages.refetch()}
-            />
-          </div>
-          {material.stages.data?.length === 0 && (
-            <p role="status" className={styles.help}>
-              Não há livros disponíveis no catálogo.
-            </p>
-          )}
-        </FormSection>
+        <MaterialBooks fields={fields} errors={errors} change={change} material={material} />
         <div className={styles.materialTerms}>
-          <Field name="materialCategory">
-            <Label>Faixa de preço</Label>
-            <SegmentedControl
-              size="sm"
-              className="w-full"
-              value={fields.materialCategory || null}
-              onValueChange={(value) => {
-                if (value) change("materialCategory", value);
-              }}
-              invalid={Boolean(errors.materialCategory)}
-              aria-label="Faixa de preço"
-            >
-              <SegmentedControlItem className="flex-1" value="CHILD">
-                Infantil
-              </SegmentedControlItem>
-              <SegmentedControlItem className="flex-1" value="ADULT">
-                Adulto
-              </SegmentedControlItem>
-            </SegmentedControl>
-            {errors.materialCategory && <FieldError match>{errors.materialCategory}</FieldError>}
-          </Field>
-          <Field name="materialPayment">
-            <Label>Pagamento do material</Label>
-            <SegmentedControl
-              size="sm"
-              className="w-full"
-              value={fields.materialPayment}
-              onValueChange={(value) => {
-                if (value) change("materialPayment", value);
-              }}
-              aria-label="Pagamento do material"
-            >
-              <SegmentedControlItem className="flex-1" value="CASH">
-                À vista
-              </SegmentedControlItem>
-              <SegmentedControlItem className="flex-1" value="INSTALLMENTS">
-                Cartão
-              </SegmentedControlItem>
-            </SegmentedControl>
-          </Field>
-          <Field name="materialInstallments" className="max-w-40">
-            <Label>Parcelas</Label>
-            <Input
-              name="materialInstallments"
-              size="sm"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              step={1}
-              placeholder="6"
-              autoComplete="off"
-              disabled={
-                fields.materialPayment !== "INSTALLMENTS" ||
-                fields.materialScholarshipMode === "FULL"
-              }
-              value={
-                fields.materialPayment === "INSTALLMENTS" &&
-                fields.materialScholarshipMode !== "FULL"
-                  ? fields.materialInstallments
-                  : "1"
-              }
-              onChange={(event) => change("materialInstallments", event.target.value)}
-              aria-invalid={Boolean(errors.materialInstallments || material.installmentError)}
-            />
-            {(errors.materialInstallments || material.installmentError) && (
-              <FieldError match>
-                {errors.materialInstallments || material.installmentError}
-              </FieldError>
-            )}
-          </Field>
+          <MaterialCategory fields={fields} errors={errors} change={change} />
+          <MaterialPayment fields={fields} change={change} />
+          <MaterialInstallments
+            fields={fields}
+            errors={errors}
+            change={change}
+            material={material}
+          />
         </div>
         <SetupScholarship fields={fields} errors={errors} change={change} material />
         {enabled && (
@@ -277,28 +265,178 @@ export function SetupMaterialFields({
             errors={errors}
           />
         )}
-        {errors.materialTotal && (
-          <p
-            role="alert"
-            tabIndex={-1}
-            aria-invalid="true"
-            className="text-caption text-destructive"
-          >
-            {errors.materialTotal}
-          </p>
-        )}
+        {errors.materialTotal && <MaterialTotalError message={errors.materialTotal} />}
       </fieldset>
     </div>
   );
 }
+
+function MaterialTotalError({ message }: { message: string }): ReactElement {
+  return (
+    <p role="alert" tabIndex={-1} aria-invalid="true" className="text-caption text-destructive">
+      {message}
+    </p>
+  );
+}
+
+function MaterialAcquisitionChoice({
+  enabled,
+  change,
+}: {
+  enabled: boolean;
+  change: MaterialProps["change"];
+}): ReactElement {
+  return (
+    <Field name="materialAcquisition">
+      <Label>Material neste contrato</Label>
+      <SegmentedControl
+        size="sm"
+        wrap
+        value={enabled ? "BUY" : "NONE"}
+        onValueChange={(value) => {
+          if (value) change("materialPayment", value === "NONE" ? "NONE" : "CASH");
+        }}
+        aria-label="Material neste contrato"
+      >
+        <SegmentedControlItem value="NONE">Sem nova aquisição</SegmentedControlItem>
+        <SegmentedControlItem value="BUY">Adquirir material</SegmentedControlItem>
+      </SegmentedControl>
+    </Field>
+  );
+}
+
+function MaterialBooks({
+  fields,
+  errors,
+  change,
+  material,
+}: MaterialProps & { material: SetupMaterial }): ReactElement {
+  return (
+    <FormSection title="Livros desta aquisição">
+      <div
+        aria-invalid={Boolean(errors.materialStageIds)}
+        tabIndex={-1}
+        data-invalid-book={
+          errors.materialStageIds
+            ? fields.materialStageIds.split(",").findIndex((id) => !id)
+            : undefined
+        }
+      >
+        <MaterialStages
+          fields={fields}
+          errors={errors}
+          change={change}
+          options={material.stages.data}
+          pending={material.stages.isPending}
+          failed={material.stages.isError}
+          retry={() => void material.stages.refetch()}
+        />
+      </div>
+      {material.stages.data?.length === 0 && (
+        <p role="status" className={styles.help}>
+          Não há livros disponíveis no catálogo.
+        </p>
+      )}
+    </FormSection>
+  );
+}
+
+function MaterialCategory({ fields, errors, change }: MaterialProps): ReactElement {
+  return (
+    <Field name="materialCategory">
+      <Label>Faixa de preço</Label>
+      <SegmentedControl
+        size="sm"
+        className="w-full"
+        value={fields.materialCategory || null}
+        onValueChange={(value) => {
+          if (value) change("materialCategory", value);
+        }}
+        invalid={Boolean(errors.materialCategory)}
+        aria-label="Faixa de preço"
+      >
+        <SegmentedControlItem className="flex-1" value="CHILD">
+          Infantil
+        </SegmentedControlItem>
+        <SegmentedControlItem className="flex-1" value="ADULT">
+          Adulto
+        </SegmentedControlItem>
+      </SegmentedControl>
+      {errors.materialCategory && <FieldError match>{errors.materialCategory}</FieldError>}
+    </Field>
+  );
+}
+
+function MaterialPayment({
+  fields,
+  change,
+}: Pick<MaterialProps, "fields" | "change">): ReactElement {
+  return (
+    <Field name="materialPayment">
+      <Label>Pagamento do material</Label>
+      <SegmentedControl
+        size="sm"
+        className="w-full"
+        value={fields.materialPayment}
+        onValueChange={(value) => {
+          if (value) change("materialPayment", value);
+        }}
+        aria-label="Pagamento do material"
+      >
+        <SegmentedControlItem className="flex-1" value="CASH">
+          À vista
+        </SegmentedControlItem>
+        <SegmentedControlItem className="flex-1" value="INSTALLMENTS">
+          Cartão
+        </SegmentedControlItem>
+      </SegmentedControl>
+    </Field>
+  );
+}
+
+function MaterialInstallments({
+  fields,
+  errors,
+  change,
+  material,
+}: MaterialProps & { material: SetupMaterial }): ReactElement {
+  const enabled =
+    fields.materialPayment === "INSTALLMENTS" && fields.materialScholarshipMode !== "FULL";
+  const error = errors.materialInstallments || material.installmentError;
+  return (
+    <Field name="materialInstallments" className="max-w-40">
+      <Label>Parcelas</Label>
+      <Input
+        name="materialInstallments"
+        size="sm"
+        type="number"
+        inputMode="numeric"
+        min={1}
+        step={1}
+        placeholder="6"
+        autoComplete="off"
+        disabled={!enabled}
+        value={enabled ? fields.materialInstallments : "1"}
+        onChange={(event) => change("materialInstallments", event.target.value)}
+        aria-invalid={Boolean(error)}
+      />
+      {error && <FieldError match>{error}</FieldError>}
+    </Field>
+  );
+}
+
+type MaterialSummaryProps = Pick<MaterialProps, "fields"> & {
+  material: SetupMaterial;
+  change?: MaterialProps["change"] | undefined;
+  errors?: MaterialProps["errors"] | undefined;
+};
 
 export function MaterialQuoteSummary({
   fields,
   material,
   change,
   errors,
-}: Pick<MaterialProps, "fields"> &
-  Partial<Pick<MaterialProps, "change" | "errors">> & { material: SetupMaterial }): ReactElement {
+}: MaterialSummaryProps): ReactElement {
   if (material.count === 0)
     return <MaterialQuotePrompt message="Escolha o livro para ver o resumo da aquisição." />;
   if (material.prices.isPending)
@@ -322,41 +460,34 @@ export function MaterialQuoteSummary({
     return (
       <MaterialQuotePrompt message="Escolha a faixa de preço para ver o resumo da aquisição." />
     );
-  const { effective, plan } = material;
+  return <MaterialQuoteBody fields={fields} material={material} change={change} errors={errors} />;
+}
+
+function materialChargeLabel(fields: MaterialProps["fields"], material: SetupMaterial): string {
+  if (fields.materialScholarshipMode === "FULL") return "Bolsa integral · aquisição sem cobrança";
+  if (fields.materialPayment === "CASH") return "À vista, em um único pagamento";
+  if (!material.plan || !material.effective)
+    return "Informe o parcelamento do total desta aquisição";
+  return `${materialPaymentLabel(material.effective.chargedCents, material.plan.installmentCount)} no cartão`;
+}
+
+function MaterialQuoteBody({
+  fields,
+  material,
+  change,
+  errors,
+}: MaterialSummaryProps): ReactElement {
+  const { effective } = material;
   return (
     <div className={styles.materialTotal} aria-live="polite">
-      {change ? (
-        <MaterialAgreedPrice
-          fields={fields}
-          change={change}
-          referenceCents={
-            fields.materialPayment === "CASH" ? material.quote.cashCents : material.quote.totalCents
-          }
-          error={errors?.materialCustomPrice || material.priceError || undefined}
-        />
-      ) : (
-        <div>
-          <span>Total do material</span>
-          <strong>{effective ? money(effective.chargedCents) : "—"}</strong>
-        </div>
-      )}
+      <MaterialPriceDisplay fields={fields} material={material} change={change} errors={errors} />
       {change && fields.materialScholarshipMode !== "NONE" && effective && (
         <div>
           <span>Com bolsa</span>
           <strong>{money(effective.chargedCents)}</strong>
         </div>
       )}
-      {effective && (
-        <p>
-          {fields.materialScholarshipMode === "FULL"
-            ? "Bolsa integral · aquisição sem cobrança"
-            : fields.materialPayment === "CASH"
-              ? "À vista, em um único pagamento"
-              : plan
-                ? `${materialPaymentLabel(effective.chargedCents, plan.installmentCount)} no cartão`
-                : "Informe o parcelamento do total desta aquisição"}
-        </p>
-      )}
+      {effective && <p>{materialChargeLabel(fields, material)}</p>}
       {fields.materialPayment === "INSTALLMENTS" && effective && effective.chargedCents > 0 && (
         <p>
           Taxa do cartão {money(effective.feeCents)} · líquido a receber{" "}
@@ -364,6 +495,31 @@ export function MaterialQuoteSummary({
         </p>
       )}
       <p className={styles.help}>Material é repasse, separado das mensalidades.</p>
+    </div>
+  );
+}
+
+function MaterialPriceDisplay({
+  fields,
+  material,
+  change,
+  errors,
+}: MaterialSummaryProps): ReactElement {
+  if (change && material.quote)
+    return (
+      <MaterialAgreedPrice
+        fields={fields}
+        change={change}
+        referenceCents={
+          fields.materialPayment === "CASH" ? material.quote.cashCents : material.quote.totalCents
+        }
+        error={errors?.materialCustomPrice || material.priceError || undefined}
+      />
+    );
+  return (
+    <div>
+      <span>Total do material</span>
+      <strong>{material.effective ? money(material.effective.chargedCents) : "—"}</strong>
     </div>
   );
 }
@@ -395,13 +551,17 @@ function PreviousMaterial({ material }: { material: SetupMaterial }): ReactEleme
       {last && (
         <p>
           Última aquisição: {last.books.map((book) => book.name).join(" + ")} ·{" "}
-          {last.chargedCents === 0
-            ? "Bolsa integral"
-            : last.payment === "CASH"
-              ? `${money(last.chargedCents)} à vista`
-              : `${materialPaymentLabel(last.chargedCents, last.installmentCount)} no cartão`}
+          {lastMaterialPayment(last)}
         </p>
       )}
     </div>
   );
+}
+
+function lastMaterialPayment(
+  last: NonNullable<SetupMaterial["status"]["data"]>["acquisitions"][number],
+): string {
+  if (last.chargedCents === 0) return "Bolsa integral";
+  if (last.payment === "CASH") return `${money(last.chargedCents)} à vista`;
+  return `${materialPaymentLabel(last.chargedCents, last.installmentCount)} no cartão`;
 }

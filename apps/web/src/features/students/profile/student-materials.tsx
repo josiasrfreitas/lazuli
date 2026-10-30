@@ -125,55 +125,8 @@ function MaterialDetails({ data }: { data: Materials }): ReactElement {
   return (
     <>
       <dl className={styles.coverage}>
-        <div>
-          <dt>Material atual</dt>
-          <dd>
-            {data.current.length === 0 ? (
-              <span className={styles.empty}>Estágio a definir</span>
-            ) : (
-              data.current.map((book) => (
-                <div key={book.id} className={styles.book}>
-                  <strong>{book.name}</strong>
-                  <Badge variant={book.acquired ? "success" : "warning"}>
-                    {book.acquired ? "Adquirido" : "Precisa adquirir"}
-                  </Badge>
-                </div>
-              ))
-            )}
-          </dd>
-          {data.next
-            .filter((book) => book.acquired)
-            .map((book) => (
-              <dd key={book.id} className={styles.note}>
-                {book.name} também já adquirido
-              </dd>
-            ))}
-        </div>
-        <div>
-          <dt>Próxima aquisição</dt>
-          {data.nextAcquisitions.length === 0 ? (
-            <dd className={styles.empty}>
-              {data.current.length > 0
-                ? "Nenhum material pendente"
-                : "Defina o estágio para consultar"}
-            </dd>
-          ) : (
-            data.nextAcquisitions.map((book) => (
-              <dd key={book.id}>
-                <strong>{book.name}</strong>
-                <p className={styles.note}>
-                  {book.source === "CURRENT"
-                    ? "Para o estágio atual"
-                    : book.neededOn
-                      ? "Previsto para " + formatDateOnlyBR(book.neededOn)
-                      : book.source === "PLANNED"
-                        ? "Próximo estágio definido"
-                        : "Sugestão pela sequência do curso"}
-                </p>
-              </dd>
-            ))
-          )}
-        </div>
+        <CurrentMaterial data={data} />
+        <NextMaterial data={data} />
       </dl>
       <section className={styles.history} aria-labelledby="material-acquisitions-heading">
         <div className={styles.historyHeading}>
@@ -183,23 +136,81 @@ function MaterialDetails({ data }: { data: Materials }): ReactElement {
             {data.acquiredCount === 1 ? "livro adquirido" : "livros adquiridos"}
           </span>
         </div>
-        <DataTable
-          label="Aquisições de material"
-          columns={acquisitionColumns}
-          state={
-            data.acquisitions.length > 0
-              ? { kind: "data", rows: data.acquisitions }
-              : { kind: "empty" }
-          }
-          empty={{
-            title: "Nenhum material adquirido",
-            description: "Registre os livros e as condições combinadas em Adquirir material.",
-          }}
-          errorTitle="Não foi possível carregar as aquisições"
-          onRetry={() => undefined}
-        />
+        <AcquisitionTable acquisitions={data.acquisitions} />
       </section>
     </>
+  );
+}
+
+function CurrentMaterial({ data }: { data: Materials }): ReactElement {
+  return (
+    <div>
+      <dt>Material atual</dt>
+      <dd>
+        {data.current.length === 0 ? (
+          <span className={styles.empty}>Estágio a definir</span>
+        ) : (
+          data.current.map((book) => (
+            <div key={book.id} className={styles.book}>
+              <strong>{book.name}</strong>
+              <Badge variant={book.acquired ? "success" : "warning"}>
+                {book.acquired ? "Adquirido" : "Precisa adquirir"}
+              </Badge>
+            </div>
+          ))
+        )}
+      </dd>
+      {data.next
+        .filter((book) => book.acquired)
+        .map((book) => (
+          <dd key={book.id} className={styles.note}>
+            {book.name} também já adquirido
+          </dd>
+        ))}
+    </div>
+  );
+}
+
+function nextMaterialNote(book: Materials["nextAcquisitions"][number]): string {
+  if (book.source === "CURRENT") return "Para o estágio atual";
+  if (book.neededOn) return "Previsto para " + formatDateOnlyBR(book.neededOn);
+  if (book.source === "PLANNED") return "Próximo estágio definido";
+  return "Sugestão pela sequência do curso";
+}
+
+function NextMaterial({ data }: { data: Materials }): ReactElement {
+  return (
+    <div>
+      <dt>Próxima aquisição</dt>
+      {data.nextAcquisitions.length === 0 ? (
+        <dd className={styles.empty}>
+          {data.current.length > 0 ? "Nenhum material pendente" : "Defina o estágio para consultar"}
+        </dd>
+      ) : (
+        data.nextAcquisitions.map((book) => (
+          <dd key={book.id}>
+            <strong>{book.name}</strong>
+            <p className={styles.note}>{nextMaterialNote(book)}</p>
+          </dd>
+        ))
+      )}
+    </div>
+  );
+}
+
+function AcquisitionTable({ acquisitions }: { acquisitions: Acquisition[] }): ReactElement {
+  return (
+    <DataTable
+      label="Aquisições de material"
+      columns={acquisitionColumns}
+      state={acquisitions.length > 0 ? { kind: "data", rows: acquisitions } : { kind: "empty" }}
+      empty={{
+        title: "Nenhum material adquirido",
+        description: "Registre os livros e as condições combinadas em Adquirir material.",
+      }}
+      errorTitle="Não foi possível carregar as aquisições"
+      onRetry={() => null}
+    />
   );
 }
 
@@ -268,7 +279,7 @@ function MaterialLoading(): ReactElement {
           loadingRows={1}
           empty={{ title: "Nenhuma aquisição", description: "Ainda não há aquisições." }}
           errorTitle="Não foi possível carregar as aquisições"
-          onRetry={() => undefined}
+          onRetry={() => null}
         />
       </div>
     </div>

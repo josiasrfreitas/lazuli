@@ -6,6 +6,7 @@ const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
 const SESSION_DURATION_DAYS = 30;
+const PASSWORD_RESET_MINUTES = 15;
 
 export const THIRTY_DAY_SESSION_SECONDS =
   SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * SESSION_DURATION_DAYS;
@@ -51,7 +52,7 @@ export function createAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
       disableSignUp: true,
       minPasswordLength: 8,
       maxPasswordLength: 128,
-      resetPasswordTokenExpiresIn: 15 * SECONDS_PER_MINUTE,
+      resetPasswordTokenExpiresIn: PASSWORD_RESET_MINUTES * SECONDS_PER_MINUTE,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
         await input.sendResetPassword({ email: user.email, url });

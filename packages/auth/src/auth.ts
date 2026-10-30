@@ -22,6 +22,42 @@ const MAGIC_LINK_VERIFY_PATH = "/magic-link/verify";
 
 type StaffDatabase = AuthOptionsInput["database"] & ReturnType<typeof createDbClient>;
 
+function sendIfEligible<T extends { email: string }>(
+  database: StaffDatabase,
+  sender: (delivery: T) => Promise<void>,
+): (delivery: T) => Promise<void> {
+  return async (delivery) => {
+    const user = await database.user.findUnique({
+      where: { email: delivery.email },
+      include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
+    });
+    if (evaluateStaffAccess(user).allowed) await sender(delivery);
+  };
+}
+
+function resetPasswordGuard(database: StaffDatabase): ReturnType<typeof createAuthMiddleware> {
+  return createAuthMiddleware(async (ctx) => {
+    if (ctx.path !== "/reset-password") return;
+    const body = ctx.body as { token?: string } | undefined;
+    const query = ctx.query as { token?: string } | undefined;
+    const token = body?.token || query?.token;
+    if (!token) return;
+    const verification = await database.verification.findFirst({
+      where: { identifier: `reset-password:${token}`, expiresAt: { gt: new Date() } },
+      select: { value: true },
+    });
+    if (!verification) return;
+    const user = await database.user.findUnique({
+      where: { id: verification.value },
+      include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
+    });
+    if (!evaluateStaffAccess(user).allowed) {
+      await database.verification.deleteMany({ where: { identifier: `reset-password:${token}` } });
+      throw new APIError("BAD_REQUEST", { code: "INVALID_TOKEN", message: "Invalid token" });
+    }
+  });
+}
+
 export type CreateAuthInput = {
   environment?: AuthEnvironment;
   database: StaffDatabase;
@@ -48,22 +84,8 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
       baseUrl: environment.appUrl,
       secret: environment.betterAuthSecret,
       database,
-      sendResetPassword: async (delivery) => {
-        const user = await database.user.findUnique({
-          where: { email: delivery.email },
-          include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
-        });
-        // Keep the public response identical for unknown and ineligible staff.
-        if (evaluateStaffAccess(user).allowed) await sendResetPassword(delivery);
-      },
-      sendMagicLink: async (delivery) => {
-        const user = await database.user.findUnique({
-          where: { email: delivery.email },
-          include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
-        });
-        // The request response must not reveal whether an eligible account exists.
-        if (evaluateStaffAccess(user).allowed) await sendMagicLink(delivery);
-      },
+      sendResetPassword: sendIfEligible(database, sendResetPassword),
+      sendMagicLink: sendIfEligible(database, sendMagicLink),
     }),
     databaseHooks: {
       session: {
@@ -79,28 +101,7 @@ export function createAuth(input: CreateAuthInput): AuthInstance {
       },
     },
     hooks: {
-      before: createAuthMiddleware(async (ctx) => {
-        if (ctx.path !== "/reset-password") return;
-        const body = ctx.body as { token?: string } | undefined;
-        const query = ctx.query as { token?: string } | undefined;
-        const token = body?.token || query?.token;
-        if (!token) return;
-        const verification = await database.verification.findFirst({
-          where: { identifier: `reset-password:${token}`, expiresAt: { gt: new Date() } },
-          select: { value: true },
-        });
-        if (!verification) return;
-        const user = await database.user.findUnique({
-          where: { id: verification.value },
-          include: { teacherProfile: { select: { departureDate: true, deletedAt: true } } },
-        });
-        if (!evaluateStaffAccess(user).allowed) {
-          await database.verification.deleteMany({
-            where: { identifier: `reset-password:${token}` },
-          });
-          throw new APIError("BAD_REQUEST", { code: "INVALID_TOKEN", message: "Invalid token" });
-        }
-      }),
+      before: resetPasswordGuard(database),
       after: redirectDeniedMagicLinkVerification,
     },
   });

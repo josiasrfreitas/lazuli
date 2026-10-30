@@ -3,61 +3,75 @@ import { authClient } from "~/lib/auth-client";
 import type { LoginMode } from "./login-form";
 
 const DENIED_MESSAGE = "Acesso não autorizado. Fale com a secretaria.";
+const HTTP_TOO_MANY_REQUESTS = 429;
+const LINK_SEND_ERROR = "Não foi possível enviar o link. Tente novamente em alguns instantes.";
+
+type LoginFailure = { message: string; expired?: boolean };
+type LoginInput = { mode: LoginMode; email: string; password: string; token: string | null };
+
+function passwordError(error: {
+  status?: number | undefined;
+  code?: string | undefined;
+}): LoginFailure {
+  if (error.status === HTTP_TOO_MANY_REQUESTS)
+    return { message: "Muitas tentativas. Aguarde um pouco e tente novamente." };
+  if (error.code === "STAFF_ACCESS_DENIED") return { message: DENIED_MESSAGE };
+  return { message: "Não foi possível entrar. Confira email e senha ou recupere sua senha." };
+}
+
+async function signInWithPassword(email: string, password: string): Promise<LoginFailure | null> {
+  const result = await authClient.signIn.email({ email, password });
+  if (result.error) return passwordError(result.error);
+  globalThis.location.assign("/?entrada=1");
+  return null;
+}
+
+async function sendMagicLink(email: string): Promise<LoginFailure | null> {
+  const result = await authClient.signIn.magicLink({
+    email,
+    callbackURL: "/?entrada=1",
+    errorCallbackURL: "/login",
+  });
+  return result.error ? { message: LINK_SEND_ERROR } : null;
+}
+
+async function requestPasswordLink(mode: LoginMode, email: string): Promise<LoginFailure | null> {
+  const result = await authClient.requestPasswordReset({
+    email,
+    redirectTo: mode === "register" ? "/cadastrar-senha" : "/login?mode=reset",
+  });
+  return result.error ? { message: LINK_SEND_ERROR } : null;
+}
+
+function resetPasswordError(code: string | undefined): LoginFailure {
+  if (code === "INVALID_TOKEN")
+    return {
+      expired: true,
+      message: "Link inválido ou expirado. Solicite um novo link para definir sua senha.",
+    };
+  if (code === "PASSWORD_TOO_SHORT") return { message: "Mínimo de 8 caracteres." };
+  return { message: "Não foi possível salvar a senha. Tente novamente." };
+}
+
+async function savePassword(password: string, token: string | null): Promise<LoginFailure | null> {
+  const result = await authClient.resetPassword({ newPassword: password, token: token ?? "" });
+  if (result.error) return resetPasswordError(result.error.code);
+  globalThis.history.replaceState(globalThis.history.state, "", "/login");
+  return null;
+}
 
 /** Errors never reveal whether the supplied credentials belong to a staff member. */
-export async function submitLogin(
-  mode: LoginMode,
-  email: string,
-  password: string,
-  token: string | null,
-): Promise<{ message: string; expired?: boolean } | null> {
+export async function submitLogin({
+  mode,
+  email,
+  password,
+  token,
+}: LoginInput): Promise<LoginFailure | null> {
   try {
-    if (mode === "password") {
-      const result = await authClient.signIn.email({ email, password });
-      if (result.error)
-        return {
-          message:
-            result.error.status === 429
-              ? "Muitas tentativas. Aguarde um pouco e tente novamente."
-              : result.error.code === "STAFF_ACCESS_DENIED"
-                ? DENIED_MESSAGE
-                : "Não foi possível entrar. Confira email e senha ou recupere sua senha.",
-        };
-      window.location.assign("/?entrada=1");
-      return null;
-    }
-    if (mode === "magic-link") {
-      const result = await authClient.signIn.magicLink({
-        email,
-        callbackURL: "/?entrada=1",
-        errorCallbackURL: "/login",
-      });
-      if (result.error)
-        return { message: "Não foi possível enviar o link. Tente novamente em alguns instantes." };
-      return null;
-    }
-    if (mode === "recover" || mode === "register") {
-      const result = await authClient.requestPasswordReset({
-        email,
-        redirectTo: mode === "register" ? "/cadastrar-senha" : "/login?mode=reset",
-      });
-      return result.error
-        ? { message: "Não foi possível enviar o link. Tente novamente em alguns instantes." }
-        : null;
-    }
-    const result = await authClient.resetPassword({ newPassword: password, token: token ?? "" });
-    if (result.error)
-      return {
-        expired: result.error.code === "INVALID_TOKEN",
-        message:
-          result.error.code === "INVALID_TOKEN"
-            ? "Link inválido ou expirado. Solicite um novo link para definir sua senha."
-            : result.error.code === "PASSWORD_TOO_SHORT"
-              ? "Mínimo de 8 caracteres."
-              : "Não foi possível salvar a senha. Tente novamente.",
-      };
-    window.history.replaceState(window.history.state, "", "/login");
-    return null;
+    if (mode === "password") return await signInWithPassword(email, password);
+    if (mode === "magic-link") return await sendMagicLink(email);
+    if (mode === "recover" || mode === "register") return await requestPasswordLink(mode, email);
+    return await savePassword(password, token);
   } catch {
     return { message: "Não foi possível conectar. Confira sua conexão e tente novamente." };
   }

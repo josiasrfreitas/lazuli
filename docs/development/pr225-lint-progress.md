@@ -1,6 +1,29 @@
 # PR #225 — lint progress
 
-> **LOCKED BATCH 6: 50 contract setup errors across 4 web files.** Original: 50; latest remaining: 29. Command: `pnpm -F @lazuli/web lint`. Source snapshot: `/tmp/lazuli-pr225-lint-after-batch5.json`; root command: `pnpm lint`. Completion gate: targeted lint zero for all four files, web typecheck and relevant tests, then full root lint plus machine-readable regression comparison.
+> **LOCKED BATCH 8: 50 organization seed errors across 2 root scripts.** Original: 50; latest remaining: 50. Command: targeted `lazuli-lint` from the root. Source snapshot: `/tmp/lazuli-pr225-lint-after-batch7.json`; root command: `pnpm exec turbo run lint lint:root duplication:check --concurrency=1`. Completion gate: targeted lint zero for both files, relevant type/test checks, then serial root lint and machine-readable regression comparison.
+
+## Batch 8 files and original errors
+
+| File                                             | Errors |
+| ------------------------------------------------ | -----: |
+| `scripts/seed/semester-organization-calendar.ts` |     28 |
+| `scripts/seed/class-organization.ts`             |     22 |
+
+Batch 7 is closed: all seven login/auth files report zero lint errors. Auth and web typechecks pass; 7 focused login tests and 13 auth transport tests pass. Serial Turbo lint still fails outside the batch. The sequential machine-readable inventory shows 406 → 356 errors, exactly 50 removed, zero added by file/rule/message. Snapshot: `/tmp/lazuli-pr225-lint-after-batch7.json`.
+
+## Batch 7 files and original errors
+
+| File                                                 | Errors |
+| ---------------------------------------------------- | -----: |
+| `packages/auth/src/auth.ts`                          |      1 |
+| `packages/auth/src/auth-options.ts`                  |      1 |
+| `packages/auth/test/password-flow.transport.test.ts` |     10 |
+| `apps/web/src/app/login/page.tsx`                    |      2 |
+| `apps/web/src/app/login/login-actions.ts`            |     10 |
+| `apps/web/src/app/login/login-card.tsx`              |     16 |
+| `apps/web/src/app/login/login-form.tsx`              |     10 |
+
+Batch 6 is closed: all four locked contract setup files and the extracted `contract-setup-summary.tsx` report zero errors. Web typecheck and 22 focused contract tests pass. The full root lint still fails in several workspaces. A sequential machine-readable inventory of all lint workspaces, with web remeasured after a student-materials regression fix, shows 461 → 406 errors, 55 removed, zero added by file/rule/message. Snapshot: `/tmp/lazuli-pr225-lint-after-batch6-final.json`. `pnpm lint` itself invokes Turbo tasks concurrently; use serial Turbo concurrency for the next root gate to honor the owner's one-check-at-a-time instruction.
 
 ## Batch 6 files and original errors
 
