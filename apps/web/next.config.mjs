@@ -1,5 +1,7 @@
 const DEFAULT_IMAGE_QUALITY = 75;
 const LOGIN_IMAGE_QUALITY = 90;
+const REFERRER_POLICY = "Referrer-Policy";
+const NO_REFERRER = "no-referrer";
 
 /** @type {import("next").NextConfig} */
 const config = {
@@ -12,15 +14,15 @@ const config = {
     return [
       {
         source: "/login",
-        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+        headers: [{ key: REFERRER_POLICY, value: NO_REFERRER }],
       },
       {
         source: "/cadastrar-senha",
-        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+        headers: [{ key: REFERRER_POLICY, value: NO_REFERRER }],
       },
       {
         source: "/api/auth/reset-password/:token",
-        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+        headers: [{ key: REFERRER_POLICY, value: NO_REFERRER }],
       },
     ];
   },

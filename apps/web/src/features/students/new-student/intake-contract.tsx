@@ -9,6 +9,19 @@ import { contractInputFromFields } from "~/features/contracts/contract-form-mode
 import { contractFieldsWithStudent, studentContractInput } from "./finance-model";
 import type { NewStudentFields } from "./reducer";
 
+type IntakeContractProps = {
+  state: ContractFormState;
+  student: NewStudentFields;
+  existingStudentId?: string | undefined;
+  offer: ContractOperation["offer"];
+  pending: boolean;
+  error: string;
+  suggestedStageId: string | null;
+  onComplete: () => void;
+  onBack: () => void;
+  onSaveWithout: () => void;
+};
+
 export function IntakeContract({
   state,
   student,
@@ -20,18 +33,7 @@ export function IntakeContract({
   onComplete,
   onBack,
   onSaveWithout,
-}: {
-  state: ContractFormState;
-  student: NewStudentFields;
-  existingStudentId?: string | undefined;
-  offer: ContractOperation["offer"];
-  pending: boolean;
-  error: string;
-  suggestedStageId: string | null;
-  onComplete: () => void;
-  onBack: () => void;
-  onSaveWithout: () => void;
-}): ReactJSX.Element {
+}: IntakeContractProps): ReactJSX.Element {
   return (
     <ContractSetup
       state={state}

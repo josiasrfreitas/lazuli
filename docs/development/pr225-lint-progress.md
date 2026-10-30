@@ -1,4 +1,4 @@
-> **LOCKED BATCH 14: all 49 remaining lint errors across the 34 files below.** Source snapshot: `/tmp/lazuli-pr225-lint-after-batch13.json`; latest remaining: 49. Completion gate: targeted web lint, web typecheck, serial root lint and zero-new-error inventory.
+> **LINT BACKLOG COMPLETE.** Batch 14 removed the final 49 errors; the serial root lint and duplication gate report zero errors. Source snapshot: `/tmp/lazuli-pr225-lint-after-batch13.json`; final inventory: `/tmp/lazuli-pr225-lint-after-batch14.json` (empty). Web typecheck and production build pass. No unit or integration tests were run for this lint-only batch. CI integration and transport failures remain to be resolved separately.
 
 | Batch 14 file                                                         | Errors |
 | --------------------------------------------------------------------- | -----: |

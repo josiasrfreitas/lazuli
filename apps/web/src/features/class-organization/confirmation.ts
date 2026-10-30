@@ -31,7 +31,7 @@ export function planMetrics(
     .filter((row) => row.planId === plan.id && !row.declinedAt)
     .filter((row) => row.confirmation !== "LEAVING" && row.confirmation !== "CHANGING");
   return {
-    confirmed: rows.filter(isConfirmed).length,
+    confirmed: rows.filter((row) => isConfirmed(row)).length,
     pending: rows.filter((row) => !isConfirmed(row)).length,
     leads: board.waitingLeads.filter((lead) => lead.allocationPlanId === plan.id).length,
   };

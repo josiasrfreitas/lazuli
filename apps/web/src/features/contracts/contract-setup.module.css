@@ -456,9 +456,6 @@
 .materialBook[data-selected="false"] {
   width: min(100%, 15rem);
 }
-.addMaterialBook {
-  flex: none;
-}
 .materialTerms > [data-slot="field"] {
   flex: 1 1 8rem;
   min-width: 0;

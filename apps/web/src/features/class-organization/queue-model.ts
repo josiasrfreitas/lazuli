@@ -1,7 +1,18 @@
 import type { OrganizationBoard, PendingGroup } from "./model";
 import { planMetrics } from "./confirmation";
 
-export function queueData(board: OrganizationBoard) {
+type QueueData = {
+  urgent: OrganizationBoard["placements"];
+  unassigned: OrganizationBoard["placements"];
+  confirmations: Array<
+    { plan: OrganizationBoard["plans"][number] } & ReturnType<typeof planMetrics>
+  >;
+  waiting: OrganizationBoard["waitingLeads"];
+  leadGroups: Array<[string, PendingGroup]>;
+  count: number;
+};
+
+export function queueData(board: OrganizationBoard): QueueData {
   const active = board.placements.filter((row) => !row.declinedAt);
   const urgent = active.filter(
     (row) => row.continuity === "LEAVING" || row.continuity === "CHANGE",

@@ -17,6 +17,7 @@ import { paymentPlanLabel } from "./contract-form-model";
 import type { ContractFilters } from "./contract-filters";
 
 const PAGE_SIZE = 25;
+const FULL_SCHOLARSHIP_PERCENT = 100;
 export type ContractRow = RouterOutputs["finance"]["listContracts"]["rows"][number];
 
 const STATUS_LABELS: Record<ContractRow["status"], string> = {
@@ -170,7 +171,7 @@ export const contractColumns: readonly DataTableColumn<ContractRow>[] = [
         {row.scholarshipPct > 0 && (
           <span className="text-caption text-muted-foreground">
             Bolsa{" "}
-            {row.scholarshipPct === 100
+            {row.scholarshipPct === FULL_SCHOLARSHIP_PERCENT
               ? "integral"
               : `de ${row.scholarshipPct.toLocaleString("pt-BR")}%`}
           </span>

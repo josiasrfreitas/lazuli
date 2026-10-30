@@ -125,19 +125,11 @@ function EnrollmentSummary({
     return (
       <div className={styles.enrollmentEmpty}>
         <GraduationCap aria-hidden="true" />
-        <h3>
-          {next
-            ? "A próxima etapa já tem data"
-            : rows.length === 0
-              ? "A primeira turma vem a seguir"
-              : "Sem matrícula em andamento"}
-        </h3>
+        <h3>{enrollmentEmptyTitle(Boolean(next), rows.length)}</h3>
         <p>
           {next
             ? `${next.class.name} · Início em ${formatDateOnlyBR(next.entryDate)}`
-            : rows.length === 0
-              ? "Defina a turma em Pendências para preparar a entrada do aluno."
-              : "Consulte o histórico e a continuidade no Pedagógico."}
+            : enrollmentEmptyDetail(rows.length)}
         </p>
       </div>
     );
@@ -149,6 +141,17 @@ function EnrollmentSummary({
       ))}
     </>
   );
+}
+
+function enrollmentEmptyTitle(hasNext: boolean, count: number): string {
+  if (hasNext) return "A próxima etapa já tem data";
+  return count === 0 ? "A primeira turma vem a seguir" : "Sem matrícula em andamento";
+}
+
+function enrollmentEmptyDetail(count: number): string {
+  return count === 0
+    ? "Defina a turma em Pendências para preparar a entrada do aluno."
+    : "Consulte o histórico e a continuidade no Pedagógico.";
 }
 
 function CurrentSummary({

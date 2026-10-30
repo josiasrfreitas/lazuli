@@ -225,13 +225,13 @@ function scheduleValidation(
   const checkInterval = (range: CalendarInterval): string | undefined =>
     intervalError(range, { now: state.now, calendar });
   const selectionError = selection ? checkInterval(selection) : undefined;
-  const ready = Boolean(
-    calendar.isSuccess &&
-    !calendar.isFetching &&
-    selection &&
-    !selectionError &&
+  const ready = [
+    calendar.isSuccess,
+    !calendar.isFetching,
+    selection,
+    !selectionError,
     state.draft.teacherId,
-  );
+  ].every(Boolean);
   const times = [
     "08:00",
     "22:00",

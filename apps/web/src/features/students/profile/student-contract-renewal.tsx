@@ -32,28 +32,7 @@ export function StudentContractRenewal({
           <RefreshCw aria-hidden="true" /> Renovar contrato
         </Button>
       ) : (
-        <Popover open={choosing} onOpenChange={setChoosing}>
-          <PopoverTrigger render={<Button variant="primary" size="sm" />}>
-            <RefreshCw aria-hidden="true" /> Renovar contrato <ChevronDown aria-hidden="true" />
-          </PopoverTrigger>
-          <PopoverContent align="end" size="menu" showArrow={false}>
-            <div className="grid gap-1">
-              {contracts.map((contract) => (
-                <Button
-                  key={contract.id}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setChoosing(false);
-                    setContractId(contract.id);
-                  }}
-                >
-                  Contrato{contract.startsOn ? ` · ${formatDateOnlyBR(contract.startsOn)}` : ""}
-                </Button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+        <RenewalChooser {...{ contracts, choosing, setChoosing, setContractId }} />
       )}
       {activeContractId && (
         <RenewalDialog
@@ -63,5 +42,42 @@ export function StudentContractRenewal({
         />
       )}
     </div>
+  );
+}
+
+function RenewalChooser({
+  contracts,
+  choosing,
+  setChoosing,
+  setContractId,
+}: {
+  contracts: { id: string; startsOn: string | null }[];
+  choosing: boolean;
+  setChoosing: (value: boolean) => void;
+  setContractId: (value: string) => void;
+}): ReactElement {
+  return (
+    <Popover open={choosing} onOpenChange={setChoosing}>
+      <PopoverTrigger render={<Button variant="primary" size="sm" />}>
+        <RefreshCw aria-hidden="true" /> Renovar contrato <ChevronDown aria-hidden="true" />
+      </PopoverTrigger>
+      <PopoverContent align="end" size="menu" showArrow={false}>
+        <div className="grid gap-1">
+          {contracts.map((contract) => (
+            <Button
+              key={contract.id}
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setChoosing(false);
+                setContractId(contract.id);
+              }}
+            >
+              Contrato{contract.startsOn ? ` · ${formatDateOnlyBR(contract.startsOn)}` : ""}
+            </Button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

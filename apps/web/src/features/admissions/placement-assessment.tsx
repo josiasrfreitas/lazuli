@@ -75,12 +75,11 @@ export function PlacementVisitDialog({
         key={visit.id}
         visit={visit}
         person={query.data.fullName}
-        editable={
-          query.data.status === "WAITING" ||
-          (query.data.status === "ENROLLED" &&
-            Boolean(query.data.studentId) &&
-            !visit.assessment?.stageId)
-        }
+        editable={visitEditable({
+          status: query.data.status,
+          hasStudent: Boolean(query.data.studentId),
+          hasStage: Boolean(visit.assessment?.stageId),
+        })}
         initialUpload={initialUpload}
         onClose={onClose}
       />
@@ -93,6 +92,18 @@ export function PlacementVisitDialog({
       onClose={onClose}
     />
   );
+}
+
+function visitEditable({
+  status,
+  hasStudent,
+  hasStage,
+}: {
+  status: string;
+  hasStudent: boolean;
+  hasStage: boolean;
+}): boolean {
+  return status === "WAITING" || (status === "ENROLLED" && hasStudent && !hasStage);
 }
 
 function PendingVisitDialog({

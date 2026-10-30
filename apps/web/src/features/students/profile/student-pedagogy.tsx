@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
-import { GraduationCap, CalendarDays, FilePenLine } from "lucide-react";
+import { GraduationCap, CalendarDays, FilePenLine, type LucideIcon } from "lucide-react";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { useStudentPedagogy, type StudentProfile, type StudentEnrollment } from "./logic";
@@ -132,21 +132,11 @@ function NoCurrentEnrollment({
   );
   const placementPending =
     !upcoming && !hasHistory && pending.data?.items.find((item) => item.type === "PLACEMENT");
-  const Icon = placementPending ? FilePenLine : upcoming ? CalendarDays : GraduationCap;
-  let title = "O acompanhamento começa com a matrícula";
-  let description =
-    "Este aluno ainda não tem matrícula em uma turma. Quando ela estiver vigente, as aulas, as avaliações e os registros pedagógicos terão seu lugar aqui.";
-  if (placementPending) {
-    title = placementPending.title;
-    description = placementPending.description;
-  } else if (upcoming) {
-    title = "O próximo período já tem data";
-    description = `A matrícula na turma ${upcoming.class.name} começa em ${formatDateOnlyBR(upcoming.entryDate)}. A partir dessa data, você poderá acompanhar as aulas e registrar os atendimentos do aluno.`;
-  } else if (hasHistory) {
-    title = "Nenhuma matrícula em andamento";
-    description =
-      "Este aluno está sem matrícula vigente. O histórico continua disponível abaixo; novos registros ficam disponíveis quando uma nova matrícula começar.";
-  }
+  const { Icon, title, description } = emptyEnrollmentContent({
+    placementPending,
+    upcoming,
+    hasHistory,
+  });
   if (!upcoming && !hasHistory && pending.isPending) return <PedagogyLoading />;
   return (
     <section
@@ -161,4 +151,40 @@ function NoCurrentEnrollment({
       {!upcoming && !hasHistory && <StudentChooseClass studentId={studentId} />}
     </section>
   );
+}
+
+function emptyEnrollmentContent({
+  placementPending,
+  upcoming,
+  hasHistory,
+}: {
+  placementPending: { title: string; description: string } | false | undefined;
+  upcoming: StudentEnrollment | undefined;
+  hasHistory: boolean;
+}): { Icon: LucideIcon; title: string; description: string } {
+  if (placementPending)
+    return {
+      Icon: FilePenLine,
+      title: placementPending.title,
+      description: placementPending.description,
+    };
+  if (upcoming)
+    return {
+      Icon: CalendarDays,
+      title: "O próximo período já tem data",
+      description: `A matrícula na turma ${upcoming.class.name} começa em ${formatDateOnlyBR(upcoming.entryDate)}. A partir dessa data, você poderá acompanhar as aulas e registrar os atendimentos do aluno.`,
+    };
+  if (hasHistory)
+    return {
+      Icon: GraduationCap,
+      title: "Nenhuma matrícula em andamento",
+      description:
+        "Este aluno está sem matrícula vigente. O histórico continua disponível abaixo; novos registros ficam disponíveis quando uma nova matrícula começar.",
+    };
+  return {
+    Icon: GraduationCap,
+    title: "O acompanhamento começa com a matrícula",
+    description:
+      "Este aluno ainda não tem matrícula em uma turma. Quando ela estiver vigente, as aulas, as avaliações e os registros pedagógicos terão seu lugar aqui.",
+  };
 }

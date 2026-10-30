@@ -27,7 +27,7 @@ export function MaterialStages(props: Props): ReactElement {
           type="button"
           size="sm"
           variant="ghost"
-          className={styles.addMaterialBook}
+          className="flex-none"
           onClick={() => props.change("materialStageIds", `${props.fields.materialStageIds},`)}
         >
           <Plus aria-hidden="true" /> Incluir outro livro
@@ -50,6 +50,8 @@ export function MaterialStages(props: Props): ReactElement {
   );
 }
 
+type MaterialBookProps = Props & { selected: string[]; id: string; index: number };
+
 function MaterialBook({
   fields,
   errors,
@@ -60,17 +62,9 @@ function MaterialBook({
   selected,
   id,
   index,
-}: Props & {
-  selected: string[];
-  id: string;
-  index: number;
-}): ReactElement {
+}: MaterialBookProps): ReactElement {
   const [query, setQuery] = useState("");
-  const books = (options ?? []).map((stage) => ({
-    id: stage.id,
-    label: `${stage.name} · ${stage.internalCode}`,
-    description: stage.track.name,
-  }));
+  const books = materialBookOptions(options);
   const value = books.find((book) => book.id === id) ?? null;
   const remove = (): void =>
     change("materialStageIds", selected.filter((_value, position) => position !== index).join(","));
@@ -87,42 +81,112 @@ function MaterialBook({
   };
   return (
     <div className={styles.materialBook} data-selected={Boolean(value)}>
-      <Field name={`material-stage-${index}`} className="min-w-0 flex-1">
-        <Label>Livro {index + 1}</Label>
-        <SearchSelect
-          name={`material-stage-${index}`}
-          placeholder="Buscar livro ou estágio…"
-          showSearchIcon
-          value={value}
-          query={query}
-          onQueryChange={setQuery}
-          options={books.filter(
-            (book) =>
-              (book.id === id || !selected.includes(book.id)) &&
-              normalizeSearch(`${book.label} ${book.description}`).includes(normalizeSearch(query)),
-          )}
-          onSelect={(book) => select(book.id)}
-          onClear={() => (selected.length > 1 ? remove() : select(""))}
-          loading={pending}
-          failed={failed}
-          invalid={Boolean(errors.materialStageIds) && !id}
-          emptyMessage="Nenhum livro encontrado."
-        />
-        {id && !pending && !failed && !value && (
-          <FieldError match>Este livro não está mais disponível. Escolha outro.</FieldError>
-        )}
-      </Field>
-      {selected.length > 1 && !value && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label={`Remover livro ${index + 1}`}
-          onClick={remove}
-        >
-          <X aria-hidden="true" />
-        </Button>
-      )}
+      <MaterialBookSelection
+        {...{
+          selected,
+          id,
+          index,
+          books,
+          value,
+          query,
+          setQuery,
+          select,
+          remove,
+          pending,
+          failed,
+          errors,
+        }}
+      />
+      <RemoveMaterialBook visible={selected.length > 1 && !value} index={index} remove={remove} />
     </div>
+  );
+}
+
+function materialBookOptions(options: Props["options"]): BookSelectionProps["books"] {
+  return (options ?? []).map((stage) => ({
+    id: stage.id,
+    label: `${stage.name} · ${stage.internalCode}`,
+    description: stage.track.name,
+  }));
+}
+
+function RemoveMaterialBook({
+  visible,
+  index,
+  remove,
+}: {
+  visible: boolean;
+  index: number;
+  remove: () => void;
+}): ReactElement | null {
+  if (!visible) return null;
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      aria-label={`Remover livro ${index + 1}`}
+      onClick={remove}
+    >
+      <X aria-hidden="true" />
+    </Button>
+  );
+}
+
+type BookSelectionProps = {
+  selected: string[];
+  id: string;
+  index: number;
+  books: Array<{ id: string; label: string; description: string }>;
+  value: { id: string; label: string; description: string } | null;
+  query: string;
+  setQuery: (value: string) => void;
+  select: (id: string) => void;
+  remove: () => void;
+  pending: boolean;
+  failed: boolean;
+  errors: Props["errors"];
+};
+
+function MaterialBookSelection({
+  selected,
+  id,
+  index,
+  books,
+  value,
+  query,
+  setQuery,
+  select,
+  remove,
+  pending,
+  failed,
+  errors,
+}: BookSelectionProps): ReactElement {
+  return (
+    <Field name={`material-stage-${index}`} className="min-w-0 flex-1">
+      <Label>Livro {index + 1}</Label>
+      <SearchSelect
+        name={`material-stage-${index}`}
+        placeholder="Buscar livro ou estágio…"
+        showSearchIcon
+        value={value}
+        query={query}
+        onQueryChange={setQuery}
+        options={books.filter(
+          (book) =>
+            (book.id === id || !selected.includes(book.id)) &&
+            normalizeSearch(`${book.label} ${book.description}`).includes(normalizeSearch(query)),
+        )}
+        onSelect={(book) => select(book.id)}
+        onClear={() => (selected.length > 1 ? remove() : select(""))}
+        loading={pending}
+        failed={failed}
+        invalid={Boolean(errors.materialStageIds) && !id}
+        emptyMessage="Nenhum livro encontrado."
+      />
+      {id && !pending && !failed && !value && (
+        <FieldError match>Este livro não está mais disponível. Escolha outro.</FieldError>
+      )}
+    </Field>
   );
 }

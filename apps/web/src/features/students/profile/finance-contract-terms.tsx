@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type ReactElement } from "react";
+import { useRef, useState, type ReactElement, type RefObject } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import { Button } from "@lazuli/ui";
 import { Plus } from "lucide-react";
@@ -70,6 +70,39 @@ function ContractDetails({
   }
   return (
     <section className="min-w-0" aria-label={contractLabel(contract)}>
+      <ContractDetailsHeading {...{ contract, adding, firstDueDate, canAdd, onAdd, addButton }} />
+      {adding && firstDueDate ? (
+        <ContractMaterialEditor
+          contract={contract}
+          studentId={studentId}
+          firstDueDate={firstDueDate}
+          onClose={returnToItems}
+          onPendingChange={onPendingChange}
+        />
+      ) : (
+        <ContractInvoice contract={contract} />
+      )}
+    </section>
+  );
+}
+
+function ContractDetailsHeading({
+  contract,
+  adding,
+  firstDueDate,
+  canAdd,
+  onAdd,
+  addButton,
+}: {
+  contract: Contract;
+  adding: boolean;
+  firstDueDate: string | null | undefined;
+  canAdd: boolean;
+  onAdd: () => void;
+  addButton: RefObject<HTMLButtonElement | null>;
+}): ReactElement {
+  return (
+    <>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-heading">
           {adding ? "Adicionar material" : contractLabel(contract)}
@@ -86,18 +119,7 @@ function ContractDetails({
           {money(contract.renegotiations[0].newAmountCents)}
         </p>
       )}
-      {adding && firstDueDate ? (
-        <ContractMaterialEditor
-          contract={contract}
-          studentId={studentId}
-          firstDueDate={firstDueDate}
-          onClose={returnToItems}
-          onPendingChange={onPendingChange}
-        />
-      ) : (
-        <ContractInvoice contract={contract} />
-      )}
-    </section>
+    </>
   );
 }
 

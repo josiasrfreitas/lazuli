@@ -38,7 +38,7 @@ export function firstTwoNames(fullName: string): string {
   const second = parts.findIndex(
     (part, index) => index > 0 && !NAME_PARTICLES.has(part.toLocaleLowerCase("pt-BR")),
   );
-  return parts.slice(0, second < 0 ? parts.length : second + 1).join(" ");
+  return parts.slice(0, second === -1 ? parts.length : second + 1).join(" ");
 }
 
 /** e.g. "segunda-feira, 24 de agosto de 2026" — the topbar date. */

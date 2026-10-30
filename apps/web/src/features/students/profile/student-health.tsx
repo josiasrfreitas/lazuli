@@ -161,20 +161,7 @@ function HealthExplanation({ health }: { health: Health }): ReactElement {
                   ? `Acompanhamento de ${formatDateOnlyBR(health.from)} a ${formatDateOnlyBR(health.through)}, nas matrículas do período letivo atual.`
                   : "O cálculo começa quando houver matrícula e registros no período letivo atual."}
               </p>
-              <ul className={styles.scoreBands} aria-label="Faixas do score">
-                <li>
-                  <strong>80–100</strong>
-                  <span>Vínculo saudável</span>
-                </li>
-                <li>
-                  <strong>60–79</strong>
-                  <span>Requer atenção</span>
-                </li>
-                <li>
-                  <strong>Abaixo de 60</strong>
-                  <span>Acompanhamento prioritário</span>
-                </li>
-              </ul>
+              <HealthScoreBands />
               <HealthRules health={health} />
               <p className={styles.supporting}>
                 Indicadores sem dados ficam fora da média; seus pesos são redistribuídos.
@@ -188,6 +175,25 @@ function HealthExplanation({ health }: { health: Health }): ReactElement {
         </DialogContent>
       </DialogPortal>
     </Dialog>
+  );
+}
+
+function HealthScoreBands(): ReactElement {
+  return (
+    <ul className={styles.scoreBands} aria-label="Faixas do score">
+      <li>
+        <strong>80–100</strong>
+        <span>Vínculo saudável</span>
+      </li>
+      <li>
+        <strong>60–79</strong>
+        <span>Requer atenção</span>
+      </li>
+      <li>
+        <strong>Abaixo de 60</strong>
+        <span>Acompanhamento prioritário</span>
+      </li>
+    </ul>
   );
 }
 

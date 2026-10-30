@@ -16,10 +16,7 @@ export function OccurrenceStatus({ row }: { row: Occurrence }): ReactElement {
   const save = trpc.occurrences.changeStatus.useMutation({ onSuccess: refresh });
   return (
     <section className={styles.occurrenceSection}>
-      <div className={styles.sectionHeading}>
-        <h4>Estado da ocorrência</h4>
-        <Badge variant="neutral">{OCCURRENCE_STATUS[row.status]}</Badge>
-      </div>
+      <OccurrenceStatusHeading row={row} />
       {row.canOrganize && (
         <div className="flex flex-wrap items-center gap-2">
           {row.status !== "FOLLOWING_UP" && (
@@ -55,6 +52,24 @@ export function OccurrenceStatus({ row }: { row: Occurrence }): ReactElement {
       <small>
         Aberta por {row.recordedBy.name} · {recordedLabel(row.createdAt)}
       </small>
+      <OccurrenceHistory row={row} />
+      {closing && <CloseOccurrence row={row} onClose={() => setClosing(false)} refresh={refresh} />}
+    </section>
+  );
+}
+
+function OccurrenceStatusHeading({ row }: { row: Occurrence }): ReactElement {
+  return (
+    <div className={styles.sectionHeading}>
+      <h4>Estado da ocorrência</h4>
+      <Badge variant="neutral">{OCCURRENCE_STATUS[row.status]}</Badge>
+    </div>
+  );
+}
+
+function OccurrenceHistory({ row }: { row: Occurrence }): ReactElement {
+  return (
+    <>
       {row.statusChanges.map((change) => (
         <div key={change.id}>
           <small>
@@ -65,8 +80,7 @@ export function OccurrenceStatus({ row }: { row: Occurrence }): ReactElement {
           {change.conclusion && <p>{change.conclusion}</p>}
         </div>
       ))}
-      {closing && <CloseOccurrence row={row} onClose={() => setClosing(false)} refresh={refresh} />}
-    </section>
+    </>
   );
 }
 
@@ -83,10 +97,7 @@ function CloseOccurrence({
   const [expectedVersion] = useState(row.statusVersion);
   const validation = useValidation();
   const save = trpc.occurrences.changeStatus.useMutation({
-    onSuccess: async () => {
-      await refresh();
-      onClose();
-    },
+    onSuccess: () => refresh().then(onClose),
   });
   return (
     <TaskDialog
@@ -116,19 +127,35 @@ function CloseOccurrence({
           if (parsed) save.mutate(parsed);
         }}
       >
-        <NarrativeField
-          name="occurrence-conclusion"
-          label="Conclusão"
-          value={conclusion}
-          placeholder="Descreva como a ocorrência foi concluída."
-          error={validation.errors.conclusion}
-          onChange={(value) => {
-            setConclusion(value);
-            validation.clear("conclusion");
-            save.reset();
-          }}
-        />
+        <OccurrenceConclusionField {...{ conclusion, setConclusion, validation, save }} />
       </form>
     </TaskDialog>
+  );
+}
+
+function OccurrenceConclusionField({
+  conclusion,
+  setConclusion,
+  validation,
+  save,
+}: {
+  conclusion: string;
+  setConclusion: (value: string) => void;
+  validation: ReturnType<typeof useValidation>;
+  save: ReturnType<typeof trpc.occurrences.changeStatus.useMutation>;
+}): ReactElement {
+  return (
+    <NarrativeField
+      name="occurrence-conclusion"
+      label="Conclusão"
+      value={conclusion}
+      placeholder="Descreva como a ocorrência foi concluída."
+      error={validation.errors.conclusion}
+      onChange={(value) => {
+        setConclusion(value);
+        validation.clear("conclusion");
+        save.reset();
+      }}
+    />
   );
 }

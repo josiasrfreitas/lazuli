@@ -46,7 +46,8 @@ export type FormProps = {
 
 type StudentProps = Pick<FormProps, "fields" | "errors" | "change">;
 
-function GuardianFields({ fields, errors, change }: StudentProps): ReactElement {
+function GuardianFields(props: StudentProps): ReactElement {
+  const { fields, change } = props;
   const open = fields.studentGuardianMode === "create";
   const toggle = (): void => {
     change("studentGuardianMode", open ? "" : "create");
@@ -63,49 +64,53 @@ function GuardianFields({ fields, errors, change }: StudentProps): ReactElement 
         {open ? <UserMinus aria-hidden="true" /> : <UserPlus aria-hidden="true" />}
         {open ? "Remover responsável" : "Adicionar responsável"}
       </Button>
-      {open && (
-        <div className="space-y-3">
-          <FormRow columns={2}>
-            <TextField
-              name="studentGuardianName"
-              label="Nome do responsável"
-              placeholder="Nome completo do responsável"
-              value={fields.studentGuardianName}
-              error={errors.studentGuardianName}
-              onChange={(value) => change("studentGuardianName", value)}
-            />
-            <PersonDocumentField
-              name="studentGuardianDocumentNumber"
-              required
-              value={fields.studentGuardianDocumentNumber}
-              error={errors.studentGuardianDocumentNumber}
-              onChange={(document) => {
-                change("studentGuardianDocumentNumber", document.documentNumber);
-                change("studentGuardianDocumentType", document.documentType ?? "");
-              }}
-            />
-          </FormRow>
-          <FormRow columns={2}>
-            <TextField
-              name="studentGuardianPhone"
-              label="Telefone (opcional)"
-              placeholder="(00) 00000-0000"
-              value={fields.studentGuardianPhone}
-              error={errors.studentGuardianPhone}
-              onChange={(value) => change("studentGuardianPhone", maskPhoneBR(value))}
-            />
-            <TextField
-              name="studentGuardianEmail"
-              label="Email (opcional)"
-              placeholder="nome@exemplo.com"
-              value={fields.studentGuardianEmail}
-              error={errors.studentGuardianEmail}
-              onChange={(value) => change("studentGuardianEmail", value)}
-            />
-          </FormRow>
-        </div>
-      )}
+      {open && <GuardianInputs {...props} />}
     </>
+  );
+}
+
+function GuardianInputs({ fields, errors, change }: StudentProps): ReactElement {
+  return (
+    <div className="space-y-3">
+      <FormRow columns={2}>
+        <TextField
+          name="studentGuardianName"
+          label="Nome do responsável"
+          placeholder="Nome completo do responsável"
+          value={fields.studentGuardianName}
+          error={errors.studentGuardianName}
+          onChange={(value) => change("studentGuardianName", value)}
+        />
+        <PersonDocumentField
+          name="studentGuardianDocumentNumber"
+          required
+          value={fields.studentGuardianDocumentNumber}
+          error={errors.studentGuardianDocumentNumber}
+          onChange={(document) => {
+            change("studentGuardianDocumentNumber", document.documentNumber);
+            change("studentGuardianDocumentType", document.documentType ?? "");
+          }}
+        />
+      </FormRow>
+      <FormRow columns={2}>
+        <TextField
+          name="studentGuardianPhone"
+          label="Telefone (opcional)"
+          placeholder="(00) 00000-0000"
+          value={fields.studentGuardianPhone}
+          error={errors.studentGuardianPhone}
+          onChange={(value) => change("studentGuardianPhone", maskPhoneBR(value))}
+        />
+        <TextField
+          name="studentGuardianEmail"
+          label="Email (opcional)"
+          placeholder="nome@exemplo.com"
+          value={fields.studentGuardianEmail}
+          error={errors.studentGuardianEmail}
+          onChange={(value) => change("studentGuardianEmail", value)}
+        />
+      </FormRow>
+    </div>
   );
 }
 
@@ -114,32 +119,7 @@ export function ContractStudentField(props: StudentProps): ReactElement {
   return (
     <div className="space-y-3">
       <FormRow columns={fields.studentMode === "create" ? 2 : 1}>
-        <PartyPicker
-          kind="student"
-          createMode={fields.studentMode === "create"}
-          draftName={fields.studentDraftName}
-          value={
-            fields.studentMode === "existing" && fields.studentId
-              ? { id: fields.studentId, label: fields.studentName }
-              : null
-          }
-          onChange={(option) => {
-            if (option) change("studentMode", "existing");
-            change("studentId", option?.id ?? "");
-            change("studentName", option?.label ?? "");
-          }}
-          onClear={() => {
-            change("studentMode", "existing");
-            change("studentId", "");
-            change("studentName", "");
-          }}
-          onSearchChange={(query) => change("studentDraftName", query)}
-          onCreate={(query) => {
-            change("studentMode", "create");
-            change("studentDraftName", query.trim());
-          }}
-          error={fields.studentMode === "create" ? errors.studentDraftName : errors.studentId}
-        />
+        <StudentPartyPicker {...props} />
         {fields.studentMode === "create" && <PersonDocument {...props} kind="student" />}
       </FormRow>
       {fields.studentMode === "create" && (
@@ -161,6 +141,37 @@ export function ContractStudentField(props: StudentProps): ReactElement {
         </>
       )}
     </div>
+  );
+}
+
+function StudentPartyPicker({ fields, errors, change }: StudentProps): ReactElement {
+  return (
+    <PartyPicker
+      kind="student"
+      createMode={fields.studentMode === "create"}
+      draftName={fields.studentDraftName}
+      value={
+        fields.studentMode === "existing" && fields.studentId
+          ? { id: fields.studentId, label: fields.studentName }
+          : null
+      }
+      onChange={(option) => {
+        if (option) change("studentMode", "existing");
+        change("studentId", option?.id ?? "");
+        change("studentName", option?.label ?? "");
+      }}
+      onClear={() => {
+        change("studentMode", "existing");
+        change("studentId", "");
+        change("studentName", "");
+      }}
+      onSearchChange={(query) => change("studentDraftName", query)}
+      onCreate={(query) => {
+        change("studentMode", "create");
+        change("studentDraftName", query.trim());
+      }}
+      error={fields.studentMode === "create" ? errors.studentDraftName : errors.studentId}
+    />
   );
 }
 

@@ -51,17 +51,32 @@ export function StudentPayments({
           }}
         />
       ))}
-      {query.hasNextPage && (
-        <Button
-          variant="secondary"
-          size="sm"
-          disabled={query.isFetchingNextPage || busyId !== null}
-          onClick={() => void query.fetchNextPage()}
-        >
-          {query.isFetchingNextPage ? "Carregando…" : "Carregar mais pagamentos"}
-        </Button>
-      )}
+      <PaymentMoreButton
+        hasNext={Boolean(query.hasNextPage)}
+        busy={query.isFetchingNextPage || busyId !== null}
+        loading={query.isFetchingNextPage}
+        next={() => void query.fetchNextPage()}
+      />
     </div>
+  );
+}
+
+function PaymentMoreButton({
+  hasNext,
+  busy,
+  loading,
+  next,
+}: {
+  hasNext: boolean;
+  busy: boolean;
+  loading: boolean;
+  next: () => void;
+}): ReactElement | null {
+  if (!hasNext) return null;
+  return (
+    <Button variant="secondary" size="sm" disabled={busy} onClick={next}>
+      {loading ? "Carregando…" : "Carregar mais pagamentos"}
+    </Button>
   );
 }
 
@@ -122,26 +137,7 @@ function PaymentRow({
   const upload = usePaymentProofUpload({ payment, disabled, onPendingChange, onSaved });
   return (
     <details className="group min-w-0 rounded-md border border-border">
-      <summary className="flex cursor-pointer list-none items-center gap-2 p-3 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-        <ChevronRight
-          className="size-4 shrink-0 transition-transform group-open:rotate-90"
-          aria-hidden="true"
-        />
-        <div className="grid min-w-0 flex-1 gap-1">
-          <div className="flex flex-wrap justify-between gap-x-2 gap-y-1 text-caption font-semibold">
-            <span>{formatDateOnlyBR(payment.date)}</span>
-            <span className="font-numeric tabular-nums">
-              {formatBRLFromCents(payment.amountCents)}
-            </span>
-          </div>
-          <span className="text-caption text-muted-foreground">
-            {payment.paymentMethod.name} ·{" "}
-            {payment.proofs.length === 0
-              ? "Sem comprovante"
-              : `${payment.proofs.length} ${payment.proofs.length === 1 ? "comprovante" : "comprovantes"}`}
-          </span>
-        </div>
-      </summary>
+      <PaymentRowSummary payment={payment} />
       <div className="grid min-w-0 gap-3 border-t border-border p-3">
         <div className="text-caption text-muted-foreground">
           <p>Pagador: {payment.payer.name}</p>
@@ -172,6 +168,31 @@ function PaymentRow({
         />
       </div>
     </details>
+  );
+}
+
+function PaymentRowSummary({ payment }: { payment: Payment }): ReactElement {
+  return (
+    <summary className="flex cursor-pointer list-none items-center gap-2 p-3 focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+      <ChevronRight
+        className="size-4 shrink-0 transition-transform group-open:rotate-90"
+        aria-hidden="true"
+      />
+      <div className="grid min-w-0 flex-1 gap-1">
+        <div className="flex flex-wrap justify-between gap-x-2 gap-y-1 text-caption font-semibold">
+          <span>{formatDateOnlyBR(payment.date)}</span>
+          <span className="font-numeric tabular-nums">
+            {formatBRLFromCents(payment.amountCents)}
+          </span>
+        </div>
+        <span className="text-caption text-muted-foreground">
+          {payment.paymentMethod.name} ·{" "}
+          {payment.proofs.length === 0
+            ? "Sem comprovante"
+            : `${payment.proofs.length} ${payment.proofs.length === 1 ? "comprovante" : "comprovantes"}`}
+        </span>
+      </div>
+    </summary>
   );
 }
 

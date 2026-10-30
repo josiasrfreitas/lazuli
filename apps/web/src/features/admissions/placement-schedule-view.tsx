@@ -135,7 +135,7 @@ function ScheduleCalendarSection({
         emptyMessage="Escolha um horário para a prova de nivelamento."
         rangeSelection={{
           clickDurationMinutes: 40,
-          value: !selectionError ? selection : null,
+          value: selectionError ? null : selection,
           minimum: now,
           blocked,
           getError: validation.intervalError,

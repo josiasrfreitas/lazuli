@@ -41,10 +41,11 @@ export type PaymentFormState = {
   refresh: () => void;
   isSubmitting: () => boolean;
 };
-export function usePaymentForm(input: {
+type PaymentFormInput = {
   rows: FinanceInstallmentRow[];
   onRegistered: () => void;
-}): PaymentFormState {
+};
+export function usePaymentForm(input: PaymentFormInput): PaymentFormState {
   const [draft, dispatch] = useReducer(paymentDraftReducer, input.rows, seedDraft);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
@@ -84,18 +85,30 @@ export function usePaymentForm(input: {
     proofs: proofEditor.proofs,
     setProof: proofEditor.setProof,
     setProofError: proofEditor.setProofError,
-    attachItemProof: (item, file) => {
-      if (confirmation.locked) return;
-      const receiptId = crypto.randomUUID();
-      proofEditor.setProofError(item.receiptId, "");
-      change({ type: "split", id: item.row.installmentId, receiptId });
-      proofEditor.setProof(receiptId, file);
-    },
+    attachItemProof: createAttachItemProof({ confirmation, proofEditor, change }),
     finish: confirmation.finish,
     revision,
     submit,
     isSubmitting: confirmation.isSubmitting,
     refresh: paymentRefresh({ setError, confirmation, query, methods }),
+  };
+}
+
+function createAttachItemProof({
+  confirmation,
+  proofEditor,
+  change,
+}: {
+  confirmation: ReturnType<typeof usePaymentConfirmation>;
+  proofEditor: ReturnType<typeof usePaymentProofEditor>;
+  change: Dispatch<DraftAction>;
+}): PaymentFormState["attachItemProof"] {
+  return (item, file) => {
+    if (confirmation.locked) return;
+    const receiptId = crypto.randomUUID();
+    proofEditor.setProofError(item.receiptId, "");
+    change({ type: "split", id: item.row.installmentId, receiptId });
+    proofEditor.setProof(receiptId, file);
   };
 }
 

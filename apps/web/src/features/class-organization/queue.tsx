@@ -26,27 +26,7 @@ export function AccommodationQueue(props: QueueProps): ReactElement {
             <QueueStudent key={row.id} {...props} row={row} ended={ended} />
           ))}
         </PendingSection>
-        <PendingSection
-          title="Confirmar continuidade"
-          count={confirmations.reduce((sum, item) => sum + item.pending, 0)}
-        >
-          {confirmations.map(({ plan, pending }) => (
-            <button
-              key={plan.id}
-              type="button"
-              className={styles.queueItem}
-              onClick={() => onSelect(plan.id)}
-            >
-              <span className={styles.person}>
-                <strong>{plan.name}</strong>
-                <span className={styles.small}>
-                  {pending} {pending === 1 ? "aluno a confirmar" : "alunos a confirmar"}
-                </span>
-              </span>
-              <span className="text-caption text-interactive">Abrir</span>
-            </button>
-          ))}
-        </PendingSection>
+        <QueueConfirmations confirmations={confirmations} onSelect={onSelect} />
         <PendingSection title="Leads aguardando turma" count={waiting.length}>
           {leadGroups.map(([key, group]) => (
             <QueueGroup key={key} group={group} {...props} search="" ended={ended} />
@@ -59,20 +39,64 @@ export function AccommodationQueue(props: QueueProps): ReactElement {
           </div>
         )}
       </div>
-      <footer className={styles.selection}>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={ended}
-          onClick={() => onAction({ kind: "findStudent" })}
-        >
-          Incluir aluno existente
-        </Button>
-        <Link className="text-caption text-interactive" href="/interessados">
-          Cadastrar lead
-        </Link>
-      </footer>
+      <QueueFooter ended={ended} onAction={onAction} />
     </div>
+  );
+}
+
+function QueueConfirmations({
+  confirmations,
+  onSelect,
+}: {
+  confirmations: ReturnType<typeof queueData>["confirmations"];
+  onSelect: QueueProps["onSelect"];
+}): ReactElement | null {
+  return (
+    <PendingSection
+      title="Confirmar continuidade"
+      count={confirmations.reduce((sum, item) => sum + item.pending, 0)}
+    >
+      {confirmations.map(({ plan, pending }) => (
+        <button
+          key={plan.id}
+          type="button"
+          className={styles.queueItem}
+          onClick={() => onSelect(plan.id)}
+        >
+          <span className={styles.person}>
+            <strong>{plan.name}</strong>
+            <span className={styles.small}>
+              {pending} {pending === 1 ? "aluno a confirmar" : "alunos a confirmar"}
+            </span>
+          </span>
+          <span className="text-caption text-interactive">Abrir</span>
+        </button>
+      ))}
+    </PendingSection>
+  );
+}
+
+function QueueFooter({
+  ended,
+  onAction,
+}: {
+  ended: boolean;
+  onAction: QueueProps["onAction"];
+}): ReactElement {
+  return (
+    <footer className={styles.selection}>
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={ended}
+        onClick={() => onAction({ kind: "findStudent" })}
+      >
+        Incluir aluno existente
+      </Button>
+      <Link className="text-caption text-interactive" href="/interessados">
+        Cadastrar lead
+      </Link>
+    </footer>
   );
 }
 

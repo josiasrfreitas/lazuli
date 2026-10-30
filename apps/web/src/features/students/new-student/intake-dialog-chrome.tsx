@@ -15,6 +15,17 @@ import {
 import styles from "./intake-schedule.module.css";
 
 export const studentDialogClassName = `w-[calc(100%-2rem)] md:w-[calc(100%-2rem)] md:max-w-2xl ${styles.studentDialog}`;
+type IntakeHeadingProps = {
+  continuing: boolean;
+  step: "student" | "address" | "pedagogy" | "contract";
+  name: string;
+  hasEnrollment: boolean;
+  hasClass: boolean;
+  hasContract?: boolean;
+  compact?: boolean;
+  avatar?: ReactNode;
+  onStepChange: (step: "student" | "address" | "pedagogy" | "contract") => void;
+};
 
 function stepIndex(step: "student" | "address" | "pedagogy" | "contract"): number {
   const CONTRACT_STEP_INDEX = 3;
@@ -34,17 +45,7 @@ export function IntakeDialogHeading({
   compact = false,
   avatar,
   onStepChange,
-}: {
-  continuing: boolean;
-  step: "student" | "address" | "pedagogy" | "contract";
-  name: string;
-  hasEnrollment: boolean;
-  hasClass: boolean;
-  hasContract?: boolean;
-  compact?: boolean;
-  avatar?: ReactNode;
-  onStepChange: (step: "student" | "address" | "pedagogy" | "contract") => void;
-}): ReactJSX.Element {
+}: IntakeHeadingProps): ReactJSX.Element {
   const description = intakeDialogDescription({
     continuing,
     step,

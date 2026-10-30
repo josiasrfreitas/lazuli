@@ -166,12 +166,20 @@ function departurePriority(
   return {
     ...base,
     scheduledFor: timing.date,
-    rank: days <= 0 ? PRIORITY.today : days <= SOON_DAYS ? PRIORITY.soon : PRIORITY.scheduled,
-    state: days < 0 ? "date-passed" : days === 0 ? "today" : "scheduled",
+    rank: departureRank(days),
+    state: departureState(days),
     tone: days < 0 ? "destructive" : "warning",
     label: departureDayLabel(snapshot.today, timing.date),
     evidence: `Saída de professor: ${departureDayLabel(snapshot.today, timing.date).toLowerCase()}`,
   };
+}
+function departureRank(days: number): number {
+  if (days <= 0) return PRIORITY.today;
+  return days <= SOON_DAYS ? PRIORITY.soon : PRIORITY.scheduled;
+}
+function departureState(days: number): WorkPriority["state"] {
+  if (days < 0) return "date-passed";
+  return days === 0 ? "today" : "scheduled";
 }
 function semesterPriority(
   timing: Extract<NonNullable<HomeItem["timing"]>, { kind: "entry" }>,

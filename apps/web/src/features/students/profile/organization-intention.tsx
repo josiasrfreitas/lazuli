@@ -1,6 +1,7 @@
 import type { JSX as ReactJSX } from "react";
 import Link from "next/link";
 import { Button } from "@lazuli/ui";
+import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { formatDateOnlyBR } from "~/lib/format";
 import { dateOnly } from "~/features/class-organization/shared";
@@ -28,40 +29,43 @@ export function OrganizationIntention({
       className={`${styles.lateData} border border-border divide-y divide-border`}
       aria-label="Turmas do aluno"
     >
-      {query.data.map(({ semester, placement }) => (
-        <div
-          key={placement.id}
-          className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
-        >
-          <div className="grid gap-1">
-            <h3 className="text-caption font-semibold">
-              {semester.name} ·{" "}
-              {placement.declinedAt
-                ? "Não continuará"
-                : placement.publishedAt
-                  ? "Turma confirmada"
-                  : placement.plan
-                    ? "Turma a confirmar"
-                    : "Aguardando turma"}
-            </h3>
-            <p className="text-caption text-muted-foreground">
-              {placement.plan?.name ?? "Sem turma definida"} ·{" "}
-              {placement.stage?.internalCode ?? "Estágio a definir"}
-              {placement.effectiveDate
-                ? ` · a partir de ${formatDateOnlyBR(dateOnly(placement.effectiveDate))}`
-                : ""}
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            nativeButton={false}
-            render={<Link href={`/organizacao?semestre=${semester.id}`} />}
-          >
-            Ver turma
-          </Button>
-        </div>
+      {query.data.map((item) => (
+        <IntentionRow key={item.placement.id} item={item} />
       ))}
     </section>
   );
+}
+
+type Intention = RouterOutputs["semesterOrganization"]["studentIntent"][number];
+function IntentionRow({ item: { semester, placement } }: { item: Intention }): ReactJSX.Element {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div className="grid gap-1">
+        <h3 className="text-caption font-semibold">
+          {semester.name} · {intentionStatus(placement)}
+        </h3>
+        <p className="text-caption text-muted-foreground">
+          {placement.plan?.name ?? "Sem turma definida"} ·{" "}
+          {placement.stage?.internalCode ?? "Estágio a definir"}
+          {placement.effectiveDate
+            ? ` · a partir de ${formatDateOnlyBR(dateOnly(placement.effectiveDate))}`
+            : ""}
+        </p>
+      </div>
+      <Button
+        size="sm"
+        variant="ghost"
+        nativeButton={false}
+        render={<Link href={`/organizacao?semestre=${semester.id}`} />}
+      >
+        Ver turma
+      </Button>
+    </div>
+  );
+}
+
+function intentionStatus(placement: Intention["placement"]): string {
+  if (placement.declinedAt) return "Não continuará";
+  if (placement.publishedAt) return "Turma confirmada";
+  return placement.plan ? "Turma a confirmar" : "Aguardando turma";
 }

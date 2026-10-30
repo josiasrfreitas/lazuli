@@ -140,15 +140,15 @@ function ChargeKind({ row }: { row: FinanceRow }): ReactElement {
         <Icon className="size-4 shrink-0 text-icon" aria-hidden="true" />
         {originLabel(row.origin)}
       </span>
-      <span className="text-caption text-muted-foreground">
-        {material
-          ? "Cobrança única · repasse"
-          : row.origin === "TUITION"
-            ? `Parcela ${row.sequenceNumber} de ${row.scheduleTotal}`
-            : "Cobrança única"}
-      </span>
+      <span className="text-caption text-muted-foreground">{chargeKindDetail(row)}</span>
     </div>
   );
+}
+function chargeKindDetail(row: FinanceRow): string {
+  if (row.origin === "MATERIAL") return "Cobrança única · repasse";
+  return row.origin === "TUITION"
+    ? `Parcela ${row.sequenceNumber} de ${row.scheduleTotal}`
+    : "Cobrança única";
 }
 function InstallmentAmounts({ row }: { row: FinanceRow }): ReactElement {
   return (

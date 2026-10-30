@@ -78,15 +78,7 @@ function PaymentSummaryDetails({
             <dd className="font-numeric font-medium">{receiptCount}</dd>
           </div>
         )}
-        {ready && interest > 0 && (
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1">
-            <dt className="text-muted-foreground">Novos juros</dt>
-            <dd className="shrink-0 font-numeric">{money(interest)}</dd>
-            <dd className="col-span-full text-muted-foreground">
-              <PaymentInterest state={state} />
-            </dd>
-          </div>
-        )}
+        {ready && interest > 0 && <InterestSummary state={state} interest={interest} />}
         {ready && discount > 0 && (
           <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">Desconto por pontualidade</dt>
@@ -107,6 +99,24 @@ function PaymentSummaryDetails({
         </p>
       )}
     </>
+  );
+}
+
+function InterestSummary({
+  state,
+  interest,
+}: {
+  state: PaymentFormState;
+  interest: number;
+}): ReactJSX.Element {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1">
+      <dt className="text-muted-foreground">Novos juros</dt>
+      <dd className="shrink-0 font-numeric">{money(interest)}</dd>
+      <dd className="col-span-full text-muted-foreground">
+        <PaymentInterest state={state} />
+      </dd>
+    </div>
   );
 }
 

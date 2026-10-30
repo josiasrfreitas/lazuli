@@ -70,11 +70,7 @@ function AppointmentCase({
   today: string;
 }): ReactElement | null {
   if (item.action.kind !== "appointment" || !item.action.studentId) return null;
-  const days =
-    item.ageDays ??
-    (item.date
-      ? Math.max(0, Math.round((Date.parse(today) - Date.parse(item.date)) / DAY_MS))
-      : null);
+  const days = appointmentAgeDays(item, today);
   const high = days !== null && days >= HIGH_PRIORITY_DAYS;
   return (
     <li>
@@ -102,6 +98,13 @@ function AppointmentCase({
       </Link>
     </li>
   );
+}
+
+function appointmentAgeDays(item: HomeGroup["items"][number], today: string): number | null {
+  if (item.ageDays !== null && item.ageDays !== undefined) return item.ageDays;
+  return item.date
+    ? Math.max(0, Math.round((Date.parse(today) - Date.parse(item.date)) / DAY_MS))
+    : null;
 }
 
 function AppointmentSummary({ total }: { total: number }): ReactElement {

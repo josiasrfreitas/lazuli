@@ -247,7 +247,7 @@ function LeadSuggestions({
           {plan.name}
         </Button>
       ))}
-      {!plans.length && (
+      {plans.length === 0 && (
         <p className={styles.small}>Nenhuma turma compatível. O lead permanece aguardando.</p>
       )}
       {mutation.error && (

@@ -12,6 +12,9 @@ export type PendingWork = {
 };
 
 const DAY_MS = 86_400_000;
+const STUDENT_DESTINATION = "Alunos";
+const ACTIVE_STUDENTS_URL = "/alunos?status=ativos";
+const LINKED_GROUPS = new Set<HomeGroup["kind"]>(["semester", "occurrences", "health"]);
 const AGED_DAYS = 7;
 const RECENT_SCORE = 4;
 const URGENT_SCORE = 7;
@@ -61,20 +64,20 @@ const GROUPS: Record<
   students: {
     title: "Novos alunos aguardando turma",
     score: 4,
-    href: "/alunos?status=ativos",
-    destination: "Alunos",
+    href: ACTIVE_STUDENTS_URL,
+    destination: STUDENT_DESTINATION,
   },
   documents: {
     title: "Aluno com anexos cadastrais ausentes ou incompletos",
     score: 4,
-    href: "/alunos?status=ativos",
-    destination: "Alunos",
+    href: ACTIVE_STUDENTS_URL,
+    destination: STUDENT_DESTINATION,
   },
   contracts: {
     title: "Alunos sem contrato",
     score: 7,
-    href: "/alunos?status=ativos",
-    destination: "Alunos",
+    href: ACTIVE_STUDENTS_URL,
+    destination: STUDENT_DESTINATION,
   },
   renewals: {
     title: "Contratos a renovar",
@@ -101,18 +104,18 @@ function groupWork(group: HomeGroup, data: HomeData): PendingWork {
     context: initialContext(group, item),
   };
   if (recordGroup) return recordWork(work, { kind: group.kind, item, history, today: data.today });
-  if (group.kind === "coverage" && item?.timing?.kind === "departure") {
+  if (coverageDeparture(group, item) && item) {
     work.context = `${item.title} · ${item.detail}`;
     if (item.action.kind === "link") work.href = item.action.href;
     return work;
   }
   work.context = groupContext(group.kind, item);
-  if (
-    (group.kind === "semester" || group.kind === "occurrences" || group.kind === "health") &&
-    item?.action.kind === "link"
-  )
-    work.href = item.action.href;
+  if (LINKED_GROUPS.has(group.kind) && item?.action.kind === "link") work.href = item.action.href;
   return work;
+}
+
+function coverageDeparture(group: HomeGroup, item: HomeItem | undefined): boolean {
+  return group.kind === "coverage" && item?.timing?.kind === "departure";
 }
 
 function recentHistory(group: HomeGroup, recordGroup: boolean): number {

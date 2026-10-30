@@ -90,6 +90,51 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: SectionsProp
     hasPpt,
     registrationBusy,
   });
+  const header = studentHeaderProps({
+    id,
+    profile,
+    pedagogy,
+    registrationBusy,
+    activeSection,
+    entranceComplete,
+    financePending: finance.isPending,
+    pendingRenewals: finance.data?.pendingRenewals,
+  });
+  const content = {
+    section: activeSection,
+    id,
+    profile,
+    pedagogy,
+    hasPpt,
+    latestTermination: finance.data?.latestTermination,
+    pedagogyWorkspacePreview,
+    navigate,
+    onBusyChange: setRegistrationBusy,
+  } satisfies Parameters<typeof SectionContent>[0];
+  return (
+    <StudentSectionsView
+      {...{ profile, activeSection, activeTab, entranceComplete, navigate, header, content }}
+    />
+  );
+}
+
+function StudentSectionsView({
+  profile,
+  activeSection,
+  activeTab,
+  entranceComplete,
+  navigate,
+  header,
+  content,
+}: {
+  profile: StudentProfile | undefined;
+  activeSection: StudentSection;
+  activeTab: StudentSection;
+  entranceComplete: boolean;
+  navigate: ReturnType<typeof useStudentSectionNavigation>["navigate"];
+  header: Parameters<typeof SectionsHeader>[0];
+  content: Parameters<typeof SectionContent>[0];
+}): ReactElement {
   return (
     <div
       className={styles.sections}
@@ -106,31 +151,43 @@ function StudentSections({ id, profile, pedagogyWorkspacePreview }: SectionsProp
           if (next) navigate(next);
         }}
       >
-        <SectionsHeader
-          id={id}
-          profile={profile}
-          canSchedule={Boolean(pedagogy.data?.enrollments.some((row) => row.current))}
-          registrationBusy={registrationBusy}
-          financeActive={activeSection === "financeiro"}
-          renewalReady={entranceComplete && Boolean(profile) && !finance.isPending}
-          pendingRenewals={finance.data?.pendingRenewals ?? []}
-        />
+        <SectionsHeader {...header} />
         <TabsPanel key={activeSection} value={activeTab}>
-          <SectionContent
-            section={activeSection}
-            id={id}
-            profile={profile}
-            pedagogy={pedagogy}
-            hasPpt={hasPpt}
-            latestTermination={finance.data?.latestTermination}
-            pedagogyWorkspacePreview={pedagogyWorkspacePreview}
-            navigate={navigate}
-            onBusyChange={setRegistrationBusy}
-          />
+          <SectionContent {...content} />
         </TabsPanel>
       </Tabs>
     </div>
   );
+}
+
+function studentHeaderProps({
+  id,
+  profile,
+  pedagogy,
+  registrationBusy,
+  activeSection,
+  entranceComplete,
+  financePending,
+  pendingRenewals,
+}: {
+  id: string;
+  profile: StudentProfile | undefined;
+  pedagogy: ReturnType<typeof useStudentPedagogy>;
+  registrationBusy: boolean;
+  activeSection: StudentSection;
+  entranceComplete: boolean;
+  financePending: boolean;
+  pendingRenewals: RouterOutputs["finance"]["studentSummary"]["pendingRenewals"] | undefined;
+}): Parameters<typeof SectionsHeader>[0] {
+  return {
+    id,
+    profile,
+    canSchedule: Boolean(pedagogy.data?.enrollments.some((row) => row.current)),
+    registrationBusy,
+    financeActive: activeSection === "financeiro",
+    renewalReady: entranceComplete && Boolean(profile) && !financePending,
+    pendingRenewals: pendingRenewals ?? [],
+  };
 }
 
 function hasPersonalizedEnrollment(data: ReturnType<typeof useStudentPedagogy>["data"]): boolean {
