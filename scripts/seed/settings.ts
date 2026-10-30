@@ -1,5 +1,6 @@
 import { type DatabaseClient } from "../../packages/db/src/client.js";
 import { DEV_SYSTEM_ADMIN } from "../../packages/db/src/seed-dev-data.js";
+import { INITIAL_MATERIAL_PRICING } from "../../packages/domain/src/material-pricing.js";
 
 export async function seedSettings(database: DatabaseClient): Promise<void> {
   const author = await database.user.findFirst({
@@ -21,6 +22,7 @@ export async function seedSettings(database: DatabaseClient): Promise<void> {
     interestRatePctMonthly: "2",
     cancellationFeePct: "10",
     materialPriceCents: 12_000,
+    ...INITIAL_MATERIAL_PRICING,
   };
   await database.financeSettings.upsert({
     where: { id: "singleton" },

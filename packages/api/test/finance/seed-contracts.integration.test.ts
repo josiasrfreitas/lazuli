@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { it } from "node:test";
 import { createDbClient } from "@lazuli/db";
 import { finance } from "../../src/finance/index.js";
-import { DEV_ADMIN, DEV_SYSTEM_ADMIN, DEV_STUDENTS } from "../../../db/src/seed-dev-data.js";
+import {
+  DEV_ADMIN,
+  DEV_CLASSES,
+  DEV_SYSTEM_ADMIN,
+  DEV_STUDENTS,
+} from "../../../db/src/seed-dev-data.js";
 import { stableUuid } from "../../../db/src/seed-dev-support.js";
 import { seedContracts } from "../../../../scripts/seed/contracts.js";
 import { seedSettings } from "../../../../scripts/seed/settings.js";
@@ -18,6 +24,7 @@ void it("funds allocated students for a year with shared payers, partial payment
     ),
   ];
   const today = "2026-01-01";
+  let materialProductId: string | undefined;
   try {
     const admin = await database.user.create({ data: { ...DEV_ADMIN, role: "ADMIN" } });
     await database.user.create({ data: { ...DEV_SYSTEM_ADMIN, role: "SYSTEM_ADMIN" } });
@@ -27,6 +34,27 @@ void it("funds allocated students for a year with shared payers, partial payment
         fullName: student.fullName,
       })),
     });
+    const catalogId = randomUUID();
+    const codes = [...new Set(DEV_CLASSES.map((classSeed) => classSeed.stageInternalCode))];
+    const materialProduct = await database.productLine.create({
+      data: {
+        key: `seed_contract_test_${catalogId}`,
+        name: `Seed contract test ${catalogId}`,
+        tracks: {
+          create: {
+            name: "Adultos / English Main",
+            stages: {
+              create: codes.map((code, index) => ({
+                name: `Test book ${code}`,
+                internalCode: code,
+                sequence: index + 1,
+              })),
+            },
+          },
+        },
+      },
+    });
+    materialProductId = materialProduct.id;
     await seedSettings(database);
     await seedContracts(database, today);
     const contracts = await database.contract.findMany({
@@ -45,8 +73,8 @@ void it("funds allocated students for a year with shared payers, partial payment
         contract.monthlyAmountCents! >= 20_000 && contract.monthlyAmountCents! <= 25_000,
         true,
       );
-      assert.equal(contract.orders.length, 1);
-      const installments = contract.orders[0]!.installments;
+      assert.equal(contract.orders.length, 2);
+      const installments = contract.orders.find((order) => order.kind === "TUITION")!.installments;
       assert.equal(installments.length, 12);
       assert.equal(installments.filter((item) => item.dueDate > new Date(today)).length >= 3, true);
       assert.equal(
@@ -63,9 +91,10 @@ void it("funds allocated students for a year with shared payers, partial payment
     assert.equal(currentContracts.total, 198);
     assert.equal(overdueContracts.total, 22);
     const partial = contracts.find((contract) => contract.studentId === studentIds[1])!;
-    const lastDue = partial.orders[0]!.installments.filter(
-      (item) => item.dueDate < new Date(today),
-    ).toSorted((left, right) => right.sequenceNumber - left.sequenceNumber)[0]!;
+    const lastDue = partial.orders
+      .find((order) => order.kind === "TUITION")!
+      .installments.filter((item) => item.dueDate < new Date(today))
+      .toSorted((left, right) => right.sequenceNumber - left.sequenceNumber)[0]!;
     assert.equal(
       lastDue.allocations.reduce((sum, row) => sum + row.amountCents, 0),
       lastDue.amountCents / 2,
@@ -92,11 +121,22 @@ void it("funds allocated students for a year with shared payers, partial payment
     await database.installmentAdjustment.deleteMany({ where: { installment } });
     await database.paymentEntry.deleteMany({ where: { payerId: { in: payerIds } } });
     await database.installment.deleteMany({ where: installment });
+    await database.materialOrderItem.deleteMany({
+      where: { materialOrder: { order: { contract: { studentId: { in: studentIds } } } } },
+    });
+    await database.materialOrder.deleteMany({
+      where: { order: { contract: { studentId: { in: studentIds } } } },
+    });
     await database.order.deleteMany({ where: { contract: { studentId: { in: studentIds } } } });
     await database.contract.deleteMany({ where: { studentId: { in: studentIds } } });
     await database.payer.deleteMany({ where: { id: { in: payerIds } } });
     await database.student.deleteMany({ where: { id: { in: studentIds } } });
     await database.financeSettings.deleteMany();
+    if (materialProductId) {
+      await database.stage.deleteMany({ where: { track: { productLineId: materialProductId } } });
+      await database.track.deleteMany({ where: { productLineId: materialProductId } });
+      await database.productLine.delete({ where: { id: materialProductId } });
+    }
     await database.user.deleteMany({
       where: { email: { in: [DEV_ADMIN.email, DEV_SYSTEM_ADMIN.email] } },
     });
