@@ -1,4 +1,4 @@
-import type { Semester } from "../../packages/db/src/index.js";
+import type { Period } from "../../packages/db/src/index.js";
 import type { DatabaseClient } from "../../packages/db/src/client.js";
 import { DEV_ADMIN, DEV_TEACHERS } from "../../packages/db/src/seed-dev-data.js";
 import { addDays, stableUuid, utcDate } from "../../packages/db/src/seed-dev-support.js";
@@ -34,7 +34,7 @@ const eveningSlots: OrganizationSlot[] = ["TUESDAY", "THURSDAY"].map((weekday) =
   endTime: "21:00",
 }));
 type SeedContext = OrganizationContext & {
-  semester: Semester;
+  semester: Period;
   teacherId: string;
   today: Date;
   initialStageId: string;
@@ -215,7 +215,7 @@ async function seedWaitingLead(
   person: { name: string; reason: string; index: number },
 ): Promise<void> {
   const { index } = person;
-  const { database, today, semester, staffUser, now, initialStageId } = context;
+  const { database, today, staffUser, initialStageId } = context;
   const id = stableUuid(["organization-lead", String(index)]);
   await database.admissionCandidate.create({
     data: {

@@ -1,5 +1,5 @@
 import { seedStudentIndex } from "./student-fixtures.js";
-import type { Semester } from "../../packages/db/src/index.js";
+import type { Period } from "../../packages/db/src/index.js";
 import type { DatabaseClient } from "../../packages/db/src/client.js";
 import { DEV_ADMIN, DEV_TEACHERS } from "../../packages/db/src/seed-dev-data.js";
 import { isoOf } from "../../packages/db/src/seed-dev-support.js";
@@ -39,7 +39,6 @@ const AUTHORING_DAYS = {
 const EXPECTED_PROPOSALS = 32;
 const PUBLICATION_TIMEOUT_MS = 30_000;
 const TERMINAL_STAGE_STUDENT = seedStudentIndex("school-student-76");
-const ONLINE_ONLY_STUDENT = seedStudentIndex("school-student-224");
 const REVISED_AFTERNOON_STUDENT = seedStudentIndex("school-student-135");
 const REVISED_SCHEDULE_STUDENT = seedStudentIndex("occupancy-T2A-6");
 type OrganizationEntry = { index: number; group: OrganizationGroup | null };
@@ -48,7 +47,7 @@ type OrganizationSeed = {
   todayIso: string;
   staffUser: OrganizationContext["staffUser"];
   dates: { [K in keyof typeof AUTHORING_DAYS]: Date };
-  semester: Semester;
+  semester: Period;
   teachers: Map<string, string>;
   entries: OrganizationEntry[];
   subjects: Map<number, PlacementSubject>;
@@ -307,7 +306,7 @@ async function publishOrganizationGroup(
 
 async function assertGroupPublication(
   context: OrganizationContext,
-  input: SelectedGroup & { semester: Semester },
+  input: SelectedGroup & { semester: Period },
 ): Promise<void> {
   const { selected, semester, group } = input;
   const board = await readSemester(context, semester.id);
@@ -327,7 +326,7 @@ async function recordPublishedGroup(
   context: OrganizationContext,
   input: {
     classroom: { id: string; portalClassName: string };
-    semester: Semester;
+    semester: Period;
     selected: PlacementSubject[];
     planId: string;
   },

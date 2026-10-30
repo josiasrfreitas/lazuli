@@ -1,6 +1,10 @@
 # PR #225 — lint progress
 
-> **LOCKED BATCH 8: 50 organization seed errors across 2 root scripts.** Original: 50; latest remaining: 50. Command: targeted `lazuli-lint` from the root. Source snapshot: `/tmp/lazuli-pr225-lint-after-batch7.json`; root command: `pnpm exec turbo run lint lint:root duplication:check --concurrency=1`. Completion gate: targeted lint zero for both files, relevant type/test checks, then serial root lint and machine-readable regression comparison.
+> **LOCKED BATCH 10: 49 root seed errors.** Five in `scripts/seed/admissions.ts`, 28 in `scripts/seed-pending-validation.ts`, and 16 in `scripts/seed-renewal-validation.ts`. Source snapshot: `/tmp/lazuli-pr225-lint-after-batch9.json`; latest remaining: 248. Completion gate: targeted lint, sequential typecheck, and serial root inventory.
+
+Batch 9 closed: `scripts/seed/semester-organization.ts` (48) and two unused constants in `scripts/seed/admissions.ts` (2) account for exactly 50 removed errors, 298 → 248. The organization script now has zero lint errors. Snapshot: `/tmp/lazuli-pr225-lint-after-batch9.json`. Typecheck had already identified the same stale `Semester` import and remaining unused declarations in admissions; rerun after batch 10.
+
+Batch 8 closed: both locked scripts have zero lint errors. Replacing the removed `Semester` type with `Period` also cleared cascade errors in a neighboring script. Sequential inventory changed 356 → 298, with 59 removed and one diagnostic whose message changed as typing recovered. Snapshot: `/tmp/lazuli-pr225-lint-after-batch8.json`.
 
 ## Batch 8 files and original errors
 

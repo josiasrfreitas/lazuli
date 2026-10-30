@@ -1,4 +1,4 @@
-import type { Semester } from "../../packages/db/src/index.js";
+import type { Period } from "../../packages/db/src/index.js";
 import type { TransactionClient } from "../../packages/db/src/client.js";
 import {
   addDays,
@@ -27,7 +27,7 @@ const ISO_MINUTE_END_INDEX = 16;
 export async function organizationSemester(
   database: TransactionClient,
   input: { authoredAt: Date; adminId: string },
-): Promise<Semester> {
+): Promise<Period> {
   const { authoredAt, adminId } = input;
   const current = await database.class.findUniqueOrThrow({
     where: { id: stableUuid(["class", "MWYA"]) },
@@ -69,7 +69,7 @@ export async function organizationSemester(
 /** A published group is operational; a draft never reserves a teacher or creates sessions. */
 type PublishedClassInput = {
   database: TransactionClient;
-  semester: Semester;
+  semester: Period;
   group: OrganizationGroup;
   teacherId: string;
   stageId: string | null;
