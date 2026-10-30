@@ -258,7 +258,13 @@ async function allocationPage(database: Database, page: Page): Promise<Result> {
 async function placementPage(database: Database, page: Page): Promise<Result> {
   // One task per person, based on the latest non-cancelled placement visit.
   const candidates = await placementCandidates(database);
-  const items: HomeItem[] = candidates.flatMap((candidate) => placementItems(candidate));
+  const items = candidates
+    .flatMap((candidate) => placementItems(candidate))
+    .toSorted(
+      (left, right) =>
+        (left.date ?? "9999-12-31").localeCompare(right.date ?? "9999-12-31") ||
+        left.id.localeCompare(right.id),
+    );
   return { total: items.length, items: items.slice(page.skip, page.skip + page.take) };
 }
 

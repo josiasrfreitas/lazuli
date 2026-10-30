@@ -76,12 +76,14 @@ void it("aggregates the student's adjusted balances and completing payment dates
       materialNeeds,
       latestTermination,
       hasPaymentProofs,
+      pendingRenewals,
       ...summary
     } = result;
     assert.deepEqual(contracts, []);
     assert.deepEqual(materialNeeds, []);
     assert.equal(latestTermination, null);
     assert.equal(hasPaymentProofs, false);
+    assert.deepEqual(pendingRenewals, []);
     assert.deepEqual(summary, expected);
   } finally {
     await cleanInstallmentsTestData();
