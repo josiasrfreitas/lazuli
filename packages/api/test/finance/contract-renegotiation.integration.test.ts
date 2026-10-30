@@ -3,6 +3,10 @@ import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 import { db, type TransactionClient } from "@lazuli/db";
 import { finance } from "../../src/finance/index.js";
+import {
+  contractMaterialFixture,
+  TEST_MATERIAL_SETTINGS,
+} from "../support/contract-material-fixture.js";
 
 const now = new Date("2026-02-15T15:00:00Z");
 void after(() => db.$disconnect());
@@ -34,6 +38,7 @@ async function fixture(tx: TransactionClient): Promise<{
     interestRatePctMonthly: 0,
     cancellationFeePct: 20,
     materialPriceCents: 0,
+    ...TEST_MATERIAL_SETTINGS,
   };
   await tx.financeSettings.upsert({
     where: { id: "singleton" },
@@ -49,6 +54,7 @@ async function fixture(tx: TransactionClient): Promise<{
     durationMonths: 4,
     firstDueDate: "2026-01-10",
     monthlyAmountCents: 30_000,
+    material: await contractMaterialFixture(tx, "Renegotiation integration "),
   });
   const installments = await tx.installment.findMany({
     where: { order: { contractId: contract.id } },
@@ -121,8 +127,9 @@ void test("selected installments change atomically, preserving receipts and repl
     const summary = await service.studentSummary({ studentId: student.id, now });
     assert.equal(summary.receivedCents, 5_000);
     assert.equal(summary.outstandingCents, 75_000);
-    assert.equal(summary.contracts[0]!.schedules[0]!.totalCents, 80_000);
-    assert.equal(summary.contracts[0]!.schedules[0]!.uniformAmountCents, null);
+    const tuition = summary.contracts[0]!.schedules.find((schedule) => schedule.kind === "TUITION");
+    assert.equal(tuition?.totalCents, 80_000);
+    assert.equal(tuition?.uniformAmountCents, null);
     const original = await tx.installment.findUniqueOrThrow({ where: { id: installments[0]!.id } });
     assert.equal(original.amountCents, 30_000);
     const storedContract = await tx.contract.findUniqueOrThrow({ where: { id: contract.id } });

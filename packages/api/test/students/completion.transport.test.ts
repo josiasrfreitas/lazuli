@@ -6,6 +6,21 @@ import { callHttpMutation, callHttpQuery } from "../support/finance-test-support
 import { cleanContractPayers, contractPayerFixture } from "../support/contract-payers.js";
 
 const PREFIX = "P11 transport ";
+function studentFixture(fullName: string): {
+  fullName: string;
+  documentType: "RG";
+  documentNumber: string;
+  phone: string;
+  birthDate: Date;
+} {
+  return {
+    fullName,
+    documentType: "RG",
+    documentNumber: randomUUID(),
+    phone: "11999997777",
+    birthDate: new Date("2000-01-01T00:00:00.000Z"),
+  };
+}
 type CompletedStudent = {
   result: {
     data: {
@@ -18,7 +33,7 @@ void after(() => cleanContractPayers(PREFIX));
 void it("creates only the student when finance is skipped", async () => {
   await contractPayerFixture(`${PREFIX}setup `);
   const name = `${PREFIX}skip student`;
-  const command = { commandId: randomUUID(), student: { fullName: name } };
+  const command = { commandId: randomUUID(), student: studentFixture(name) };
   const responses = await Promise.all([
     callHttpMutation({ path: "students.completeCreation", body: command }),
     callHttpMutation({ path: "students.completeCreation", body: command }),
@@ -39,7 +54,7 @@ void it("creates only the student when finance is skipped", async () => {
   assert.equal(await db.student.count({ where: { fullName: name } }), 1);
   const conflict = await callHttpMutation({
     path: "students.completeCreation",
-    body: { ...command, student: { fullName: `${name} edited` } },
+    body: { ...command, student: { ...command.student, fullName: `${name} edited` } },
   });
   assert.equal(conflict.status, 409);
   assert.match(await conflict.text(), /dados diferentes/u);
@@ -52,10 +67,16 @@ void it("recovers concurrent completion with one new student and one financial s
     ...terms,
     installmentCount: 3,
     newStudent: {
-      fullName: `${PREFIX}complete beneficiary`,
+      ...studentFixture(`${PREFIX}complete beneficiary`),
+      birthDate: new Date("2015-03-15T00:00:00.000Z"),
       guardian: {
         mode: "create",
-        input: { fullName: `${PREFIX}complete guardian`, phone: "11999998888" },
+        input: {
+          fullName: `${PREFIX}complete guardian`,
+          documentType: "RG",
+          documentNumber: randomUUID(),
+          phone: "11999998888",
+        },
       },
     },
   };
@@ -89,10 +110,11 @@ void it("recovers concurrent completion with one new student and one financial s
     where: { contractId: created.id },
     include: { installments: { orderBy: { sequenceNumber: "asc" } } },
   });
-  assert.equal(orders.length, 1);
-  assert.equal(orders[0]?.principalAmountCents, 300_000);
+  assert.equal(orders.length, 2);
+  const tuition = orders.find((order) => order.kind === "TUITION");
+  assert.equal(tuition?.principalAmountCents, 300_000);
   assert.deepEqual(
-    orders[0]?.installments.map((row) => row.amountCents),
+    tuition?.installments.map((row) => row.amountCents),
     [100_000, 100_000, 100_000],
   );
   const previewResponse = await callHttpQuery({
@@ -110,7 +132,10 @@ void it("recovers concurrent completion with one new student and one financial s
 void it("rejects unauthorized completion before creating any student or payer", async () => {
   const fixture = await contractPayerFixture(`${PREFIX}unauthorized `);
   const { studentId: _studentId, ...terms } = fixture;
-  const body = { ...terms, newStudent: { fullName: `${PREFIX}unauthorized beneficiary` } };
+  const body = {
+    ...terms,
+    newStudent: studentFixture(`${PREFIX}unauthorized beneficiary`),
+  };
   const response = await callHttpMutation({
     path: "students.completeCreation",
     body: { contract: body },
@@ -128,7 +153,7 @@ for (const first of ["contract", "student"] as const) {
     const contract = await contractPayerFixture(`${PREFIX}ownership ${first} `);
     const student = {
       commandId: contract.commandId,
-      student: { fullName: `${PREFIX}ownership ${first} beneficiary` },
+      student: studentFixture(`${PREFIX}ownership ${first} beneficiary`),
     };
     const requests = {
       contract: { path: "finance.createMonthlyContract", body: contract },
@@ -160,7 +185,10 @@ for (const first of ["contract", "student"] as const) {
 
 void it("rejects direct contract replay of a command owned by the completed wizard", async () => {
   const { studentId: _studentId, ...terms } = await contractPayerFixture(`${PREFIX}wizard owner `);
-  const contract = { ...terms, newStudent: { fullName: `${PREFIX}wizard owner beneficiary` } };
+  const contract = {
+    ...terms,
+    newStudent: studentFixture(`${PREFIX}wizard owner beneficiary`),
+  };
   const request = { path: "students.completeCreation", body: { contract } };
   const original = await callHttpMutation(request);
   assert.equal(original.status, 200);
@@ -181,7 +209,7 @@ void it("allows exactly one owner when student and contract endpoints race for t
   const contract = await contractPayerFixture(`${PREFIX}racing owner `);
   const student = {
     commandId: contract.commandId,
-    student: { fullName: `${PREFIX}racing owner beneficiary` },
+    student: studentFixture(`${PREFIX}racing owner beneficiary`),
   };
   const responses = await Promise.all([
     callHttpMutation({

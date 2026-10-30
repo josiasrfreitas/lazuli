@@ -7,6 +7,11 @@ import type { CreateMonthlyContractInput } from "@lazuli/validators";
 
 import { finance } from "../../src/finance/index.js";
 import { ADMIN, ensureAdminUser } from "../support/finance-test-support.js";
+import {
+  cleanContractMaterialFixture,
+  contractMaterialFixture,
+  TEST_MATERIAL_SETTINGS,
+} from "../support/contract-material-fixture.js";
 
 const PREFIX = "P05 contract integration ";
 const TERM_MONTHS = 12;
@@ -22,6 +27,7 @@ const settings = {
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,
   materialPriceCents: 0,
+  ...TEST_MATERIAL_SETTINGS,
 };
 
 async function cleanup(disconnect = true): Promise<void> {
@@ -30,6 +36,7 @@ async function cleanup(disconnect = true): Promise<void> {
     select: { id: true },
   });
   const ids = contracts.map((row) => row.id);
+  await cleanContractMaterialFixture(db, { prefix: PREFIX, contractIds: ids });
   const orders = await db.order.findMany({
     where: { contractId: { in: ids } },
     select: { id: true },
@@ -77,6 +84,7 @@ async function fixture(): Promise<{
     firstDueDate: "2026-01-31",
     monthlyAmountCents: 25_000,
     punctualityDiscountPct: MAXIMUM_DISCOUNT_PCT,
+    material: await contractMaterialFixture(db, PREFIX),
   };
   return { payer, student, values };
 }
@@ -98,7 +106,7 @@ async function creationIsAtomicAndStable(): Promise<void> {
   assert.equal(created.endsOn, "2027-03-15");
   assert.equal(created.installmentCount, TERM_MONTHS);
   const order = await db.order.findFirstOrThrow({
-    where: { contractId: created.id },
+    where: { contractId: created.id, kind: "TUITION" },
     include: { installments: { orderBy: { sequenceNumber: "asc" } } },
   });
   assert.equal(order.kind, "TUITION");
@@ -347,7 +355,7 @@ void describe("special contract plan persistence", { concurrency: 1 }, () => {
     assert.equal(created.installmentCount, 3);
     assert.equal(created.uniformInstallmentAmountCents, null);
     const persisted = await db.order.findFirstOrThrow({
-      where: { contractId: created.id },
+      where: { contractId: created.id, kind: "TUITION" },
       include: { installments: { orderBy: { sequenceNumber: "asc" } } },
     });
     assert.equal(persisted.installmentCount, 3);
@@ -395,7 +403,7 @@ void describe("special contract plan persistence", { concurrency: 1 }, () => {
     assert.equal(created.principalAmountCents, 300_000);
     assert.equal(created.endsOn, "2027-03-15");
     const order = await db.order.findFirstOrThrow({
-      where: { contractId: created.id },
+      where: { contractId: created.id, kind: "TUITION" },
       include: { installments: true },
     });
     assert.deepEqual(
@@ -418,6 +426,7 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
     );
     const renewal = {
       ...values,
+      material: undefined,
       commandId: randomUUID(),
       renewedFromId: original.id,
       agreedOn: "2027-03-16",
@@ -454,7 +463,11 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
       where: { contractId: created.id },
       include: { installments: true },
     });
-    assert.deepEqual(orders.map((order) => order.kind).toSorted(), ["ENROLLMENT_FEE", "TUITION"]);
+    assert.deepEqual(orders.map((order) => order.kind).toSorted(), [
+      "ENROLLMENT_FEE",
+      "MATERIAL",
+      "TUITION",
+    ]);
     const fee = orders.find((order) => order.kind === "ENROLLMENT_FEE");
     assert.equal(fee?.principalAmountCents, 12_500);
     assert.equal(fee?.installmentCount, 1);
@@ -500,7 +513,7 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
       }),
     );
     const order = await db.order.findFirstOrThrow({
-      where: { contractId: contract.id },
+      where: { contractId: contract.id, kind: "TUITION" },
       include: { installments: { orderBy: { sequenceNumber: "asc" } } },
     });
     assert.ok(order.installments[0]);

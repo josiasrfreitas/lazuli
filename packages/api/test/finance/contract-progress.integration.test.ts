@@ -7,6 +7,11 @@ import type { CreateMonthlyContractInput } from "@lazuli/validators";
 
 import { finance } from "../../src/finance/index.js";
 import { ADMIN, ensureAdminUser } from "../support/finance-test-support.js";
+import {
+  cleanContractMaterialFixture,
+  contractMaterialFixture,
+  TEST_MATERIAL_SETTINGS,
+} from "../support/contract-material-fixture.js";
 
 type ContractListRow = Awaited<
   ReturnType<ReturnType<typeof finance>["listContracts"]>
@@ -21,6 +26,7 @@ const settings = {
   interestRatePctMonthly: 2,
   cancellationFeePct: 10,
   materialPriceCents: 0,
+  ...TEST_MATERIAL_SETTINGS,
 };
 
 void before(async () => {
@@ -39,6 +45,14 @@ void after(async () => {
     select: { id: true },
   });
   const orderId = { in: orders.map(({ id }) => id) };
+  const contracts = await db.contract.findMany({
+    where: { payer: payerWhere },
+    select: { id: true },
+  });
+  await cleanContractMaterialFixture(db, {
+    prefix: PREFIX,
+    contractIds: contracts.map(({ id }) => id),
+  });
   await db.paymentAllocation.deleteMany({ where: { installment: { orderId } } });
   await db.paymentEntry.deleteMany({ where: { payer: payerWhere } });
   await db.installmentAdjustment.deleteMany({ where: { installment: { orderId } } });
@@ -78,12 +92,13 @@ async function fixture(
     monthlyAmountCents: 25_000,
     firstDueDate: "2026-01-10",
     installmentCount,
+    material: await contractMaterialFixture(db, PREFIX),
   };
   const created = await db.$transaction((tx) =>
     finance(tx, ADMIN.id).createMonthlyContract(values),
   );
   const order = await db.order.findFirstOrThrow({
-    where: { contractId: created.id },
+    where: { contractId: created.id, kind: "TUITION" },
     include: { installments: { orderBy: { sequenceNumber: "asc" } } },
   });
   return { created, order, payer, student, values };
