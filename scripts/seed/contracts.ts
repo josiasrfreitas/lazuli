@@ -95,6 +95,14 @@ const PAYMENT_METHODS = [
   "CASH",
   "PIX",
 ] as const;
+const MATERIAL_TRACKS = [
+  "Adultos / English Main",
+  "Adultos / Speed",
+  "Infantil",
+  "Teens Connect",
+  "Teens Legacy",
+  "Teenstation Legacy",
+];
 
 /** Allocated students have independent annual contracts; sibling contracts may share a payer. */
 export async function seedContracts(database: DatabaseClient, todayIso: string): Promise<void> {
@@ -174,17 +182,39 @@ async function seedContractMaterial(
   scholarshipPct: number;
   scholarshipAgreement: string;
 }> {
-  const enrollment = student.enrollments[0]!;
-  const code =
-    enrollment.stageInternalCode ??
-    DEV_CLASSES.find((classSeed) => classSeed.key === enrollment.classKey)?.stageInternalCode;
-  if (!code) throw new Error(`No stage code for seeded student ${student.key}.`);
+  const code = seededStageCode(student);
   const stage = await database.stage.findFirst({
-    where: { internalCode: code, deletedAt: null, track: { deletedAt: null } },
+    where: {
+      internalCode: code,
+      deletedAt: null,
+      track: {
+        deletedAt: null,
+        name: { in: MATERIAL_TRACKS },
+        productLine: { deletedAt: null, status: "ACTIVE" },
+      },
+    },
     select: { id: true, track: { select: { ageGroup: true } } },
   });
   if (!stage) throw new Error(`No material stage ${code} for seeded student ${student.key}.`);
   const category = stage.track.ageGroup;
+  const price = seedMaterialPrice(category);
+  return {
+    stageIds: [stage.id],
+    category,
+    payment: "CASH",
+    installmentCount: 1,
+    quoteVersion: price.quoteVersion,
+    expectedTotalCents: price.cashCents,
+    // Keep the existing tuition/payment scenarios while recording a valid book acquisition.
+    scholarshipPct: 100,
+    scholarshipAgreement: "Material concedido no cenário financeiro de desenvolvimento",
+  };
+}
+
+function seedMaterialPrice(category: "CHILD" | "ADULT"): {
+  quoteVersion: string;
+  cashCents: number;
+} {
   const installments =
     category === "CHILD"
       ? INITIAL_MATERIAL_PRICING.childMaterialInstallments
@@ -198,17 +228,16 @@ async function seedContractMaterial(
   const quoteVersion = createHash("sha256")
     .update(JSON.stringify(["single-receipt-v1", installments, installmentCents, cardFeePct]))
     .digest("hex");
-  return {
-    stageIds: [stage.id],
-    category,
-    payment: "CASH",
-    installmentCount: 1,
-    quoteVersion,
-    expectedTotalCents: quote.cashCents,
-    // Keep the existing tuition/payment scenarios while recording a valid book acquisition.
-    scholarshipPct: 100,
-    scholarshipAgreement: "Material concedido no cenário financeiro de desenvolvimento",
-  };
+  return { quoteVersion, cashCents: quote.cashCents };
+}
+
+function seededStageCode(student: DevStudentSeed): string {
+  const enrollment = student.enrollments[0]!;
+  const code =
+    enrollment.stageInternalCode ??
+    DEV_CLASSES.find((classSeed) => classSeed.key === enrollment.classKey)?.stageInternalCode;
+  if (!code) throw new Error(`No stage code for seeded student ${student.key}.`);
+  return code;
 }
 
 function closingMonthOffsets(students: readonly DevStudentSeed[]): number[] {
