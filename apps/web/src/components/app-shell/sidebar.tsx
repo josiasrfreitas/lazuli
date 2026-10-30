@@ -5,6 +5,7 @@ import type { StaffIdentity } from "@lazuli/auth/server";
 import { AccountFooter } from "./account-footer";
 import { SidebarNav } from "./sidebar-nav";
 import { BrandSignature } from "./brand-signature";
+import styles from "./sidebar.module.css";
 
 export function Sidebar({ identity }: { identity: StaffIdentity }): ReactNode {
   return (
@@ -17,7 +18,9 @@ export function Sidebar({ identity }: { identity: StaffIdentity }): ReactNode {
       >
         <BrandSignature />
       </div>
-      <div className="scrollbar-subtle min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-4 pt-2">
+      <div
+        className={`${styles.scrollViewport} scrollbar-subtle min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-4 pt-2`}
+      >
         <SidebarNav role={identity.role} />
       </div>
       <div className="w-43.75">
