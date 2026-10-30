@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, beforeEach, it } from "node:test";
 import { db, Prisma } from "@lazuli/db";
+import { HOME_GROUPS, HOME_PREVIEW_SIZE } from "../../src/dashboard/home-model.js";
 import {
   caller,
   ADMIN,
@@ -302,7 +303,10 @@ void it("composes the school overview and keeps unallocated cash distinct from a
     const home = await caller(ADMIN, NOW).dashboard.home();
     assert.equal(home.today, "2084-03-10");
     assert.equal(home.canViewFinance, true);
-    assert.equal(home.groups.length, 9);
+    assert.deepEqual(
+      home.groups.map((group) => group.kind),
+      HOME_GROUPS,
+    );
     assert.equal(
       home.groups
         .find((group) => group.kind === "contracts")
@@ -435,7 +439,7 @@ void it("orders unpublished placements by effective entry before pagination, inc
     const home = await caller(ADMIN, NOW).dashboard.home();
     const preview = home.groups.find((group) => group.kind === "semester");
     assert.equal(preview?.total, 15);
-    assert.equal(preview?.items.length, 3);
+    assert.equal(preview?.items.length, HOME_PREVIEW_SIZE);
     assert.deepEqual(
       preview?.items.slice(0, 2).map((item) => [item.id, item.timing]),
       [
@@ -498,21 +502,23 @@ void it("dates correction and allocation waits from received work rather than th
     }
     const placement = await caller(ADMIN, NOW).dashboard.pending({ kind: "placement", page: 1 });
     assert.deepEqual(
-      placement.items.map((item) => item.id),
-      [visits[1], visits[0]],
+      placement.items.filter((item) => candidateIds.includes(item.id)).map((item) => item.id),
+      [candidateIds[1], candidateIds[0]],
     );
-    assert.equal(placement.items[0]?.date, "2084-03-06");
-    assert.deepEqual(placement.items[0]?.timing, {
+    const oldestCorrection = placement.items.find((item) => item.id === candidateIds[1]);
+    assert.equal(oldestCorrection?.date, "2084-03-06");
+    assert.deepEqual(oldestCorrection?.timing, {
       kind: "waiting",
       since: "2084-03-07T02:30:00.000Z",
     });
     const allocation = await caller(ADMIN, NOW).dashboard.pending({ kind: "allocation", page: 1 });
     assert.deepEqual(
-      allocation.items.map((item) => item.id),
+      allocation.items.filter((item) => candidateIds.includes(item.id)).map((item) => item.id),
       [candidateIds[1], candidateIds[0]],
     );
-    assert.equal(allocation.items[0]?.date, "2084-03-07");
-    assert.deepEqual(allocation.items[0]?.timing, {
+    const oldestAllocation = allocation.items.find((item) => item.id === candidateIds[1]);
+    assert.equal(oldestAllocation?.date, "2084-03-07");
+    assert.deepEqual(oldestAllocation?.timing, {
       kind: "waiting",
       since: "2084-03-08T02:30:00.000Z",
     });

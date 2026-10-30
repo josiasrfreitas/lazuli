@@ -99,7 +99,13 @@ void it("concurrent conversion retries create exactly one student, enrollment an
     date: "2071-02-02",
     student: {
       mode: "create" as const,
-      values: { fullName: `${config.prefix}Converted`, birthDate: new Date("2000-01-01") },
+      values: {
+        fullName: `${config.prefix}Converted`,
+        birthDate: new Date("2000-01-01"),
+        documentType: "RG" as const,
+        documentNumber: "admissions-converted",
+        phone: "82911110021",
+      },
     },
   };
   const [first, retry] = await Promise.all([

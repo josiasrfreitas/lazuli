@@ -94,7 +94,7 @@ void it("corrects to a no-show with a reason while preserving actual delivery in
   assert.equal(detail.history[1]?.snapshot.performedContent, actual.performedContent);
   assert.equal(detail.absences.find((item) => item.id === fixtureData.absence.id)?.available, 120);
 });
-void it("enforces teacher scope, encounter end and the teacher's business day", async () => {
+void it("enforces teacher scope and encounter end while allowing a late first record", async () => {
   const fixtureData = await appointmentFixture(harness);
   const makeupId = await insertMakeup({
     originEnrollmentId: fixtureData.enrollmentId,
@@ -109,14 +109,10 @@ void it("enforces teacher scope, encounter end and the teacher's business day", 
     harness.caller(harness.ns.otherTeacher, fixtureData.before).attendance.markMakeupOutcome(input),
     { code: "BAD_REQUEST", message: /término/ },
   );
-  await assert.rejects(
-    harness
-      .caller(harness.ns.otherTeacher, new Date(fixtureData.after.getTime() + 86400000))
-      .attendance.markMakeupOutcome(input),
-    { code: "BAD_REQUEST", message: /administração/ },
-  );
-  const unchanged = await db.makeup.findUniqueOrThrow({ where: { id: makeupId } });
-  assert.equal(unchanged.attendedAt, null);
+  const late = new Date(fixtureData.after.getTime() + 86400000);
+  await harness.caller(harness.ns.otherTeacher, late).attendance.markMakeupOutcome(input);
+  const recorded = await db.makeup.findUniqueOrThrow({ where: { id: makeupId } });
+  assert.equal(recorded.attendedAt?.toISOString(), late.toISOString());
 });
 void it("rejects cancelled bookings and cancelled destination classes", async () => {
   const fixtureData = await appointmentFixture(harness);

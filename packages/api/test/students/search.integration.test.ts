@@ -47,10 +47,16 @@ function registerSearchByNameTest(): void {
     const wordStart = await caller().students.create({
       fullName: `${SEARCH_TEST_PREFIX}${RANK_TOKEN} Prime`,
       birthDate: ADULT_BIRTH_DATE_OBJECT,
+      documentType: "RG",
+      documentNumber: "search-rank-prime",
+      phone: "82911110011",
     });
     await caller().students.create({
       fullName: `${SEARCH_TEST_PREFIX}Ma${RANK_TOKEN.toLowerCase()}a`,
       birthDate: ADULT_BIRTH_DATE_OBJECT,
+      documentType: "RG",
+      documentNumber: "search-rank-secondary",
+      phone: "82911110012",
     });
 
     const results = await caller().students.search({ query: RANK_TOKEN });
@@ -68,12 +74,14 @@ function registerSearchByDocumentTest(): void {
       birthDate: ADULT_BIRTH_DATE_OBJECT,
       documentType: "CPF",
       documentNumber: `900${DOCUMENT_TOKEN}88`,
+      phone: "82911110013",
     });
     await caller().students.create({
       fullName: `${SEARCH_TEST_PREFIX}Document Other`,
       birthDate: ADULT_BIRTH_DATE_OBJECT,
       documentType: "CPF",
       documentNumber: "90019955477",
+      phone: "82911110014",
     });
 
     const results = await caller().students.search({ query: DOCUMENT_TOKEN });
@@ -89,11 +97,15 @@ function registerSearchByContactTest(): void {
       fullName: `${SEARCH_TEST_PREFIX}Phone Target`,
       birthDate: ADULT_BIRTH_DATE_OBJECT,
       phone: `82 9${PHONE_TOKEN}22`,
+      documentType: "RG",
+      documentNumber: "search-phone-target",
     });
     const emailTarget = await caller().students.create({
       fullName: `${SEARCH_TEST_PREFIX}Email Target`,
       birthDate: ADULT_BIRTH_DATE_OBJECT,
       email: `${EMAIL_TOKEN}@example.com`,
+      documentType: "RG",
+      documentNumber: "search-email-target",
     });
 
     const phoneResults = await caller().students.search({ query: PHONE_TOKEN });

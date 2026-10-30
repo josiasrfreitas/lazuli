@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import { db, type PaymentEntry } from "@lazuli/db";
 import type { PaymentOperationInput } from "@lazuli/validators";
 import { finance } from "../../src/finance/index.js";
-import { contractPayerFixture, cleanContractPayers } from "./contract-payers.js";
+import {
+  contractPayerFixture,
+  cleanContractPayers,
+  cleanContractMaterials,
+} from "./contract-payers.js";
 import { ADMIN } from "./finance-test-support.js";
 
 export const PAYMENT_NOW = new Date("2026-09-30T12:00:00Z");
@@ -89,6 +93,7 @@ export async function cleanPaymentOperations(prefix: string): Promise<void> {
     where: { installment: { orderId: { in: orderIds } } },
   });
   await db.installment.deleteMany({ where: { orderId: { in: orderIds } } });
+  await cleanContractMaterials(prefix);
   await db.order.deleteMany({ where: { id: { in: orderIds } } });
   await cleanContractPayers(prefix);
 }

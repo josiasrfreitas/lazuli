@@ -229,7 +229,7 @@ void it("reschedules atomically and keeps cancelled reservations available to th
   assert.equal(next.snapshot.coverages[0]?.minutes, 120);
   assert.equal(before.history[1]?.snapshot.status, "SCHEDULED");
 });
-void it("scopes teacher access and same-day recording", async () => {
+void it("scopes teacher access and allows a late first record", async () => {
   const fixtureData = await appointmentFixture(harness);
   await harness.caller(undefined, fixtureData.before).appointments.schedule(fixtureData.input);
   await assert.rejects(
@@ -238,17 +238,17 @@ void it("scopes teacher access and same-day recording", async () => {
       .appointments.detail({ id: fixtureData.input.id }),
     { code: "FORBIDDEN" },
   );
-  await assert.rejects(
-    harness
-      .caller(harness.ns.otherTeacher, new Date(fixtureData.after.getTime() + 86400000))
-      .appointments.record({
-        ...actual,
-        id: fixtureData.input.id,
-        expectedVersion: 1,
-        coverages: [{ attendanceId: fixtureData.absence.id, minutes: 45 }],
-      }),
-    { code: "BAD_REQUEST", message: /administração/ },
-  );
+  const late = new Date(fixtureData.after.getTime() + 86400000);
+  await harness.caller(harness.ns.otherTeacher, late).appointments.record({
+    ...actual,
+    id: fixtureData.input.id,
+    expectedVersion: 1,
+    coverages: [{ attendanceId: fixtureData.absence.id, minutes: 45 }],
+  });
+  const recorded = await db.pedagogicalAppointment.findUniqueOrThrow({
+    where: { id: fixtureData.input.id },
+  });
+  assert.equal(recorded.recordedAt?.toISOString(), late.toISOString());
 });
 
 void it("blocks a later class from occupying an independent appointment and frees the slot after cancellation", async () => {
