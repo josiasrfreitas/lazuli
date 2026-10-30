@@ -244,12 +244,7 @@ function UploadSurface({ view }: UploadViewProps): ReactElement {
       onDrop={view.onDrop}
     >
       <UploadInputs view={view} />
-      {status === "idle" &&
-        (view.renderTrigger ? (
-          view.renderTrigger({ open: () => view.picker.current?.click(), disabled: view.locked })
-        ) : (
-          <UploadDropzone view={view} />
-        ))}
+      <UploadIdleControl view={view} />
       {value.length > 0 && <UploadFiles view={view} />}
       {status !== "idle" && <UploadTransfer view={view} />}
       {message && (
@@ -258,6 +253,15 @@ function UploadSurface({ view }: UploadViewProps): ReactElement {
         </p>
       )}
     </div>
+  );
+}
+
+function UploadIdleControl({ view }: UploadViewProps): ReactNode {
+  if (view.status !== "idle") return null;
+  return view.renderTrigger ? (
+    view.renderTrigger({ open: () => view.picker.current?.click(), disabled: view.locked })
+  ) : (
+    <UploadDropzone view={view} />
   );
 }
 

@@ -22,6 +22,7 @@ const DAY_END = 10;
 const MONTHS_PER_YEAR = 12;
 const ONE_BASED_MONTH = 1;
 const MAX_PERSISTED_AMOUNT_CENTS = 2_147_483_647;
+const PERCENT_BASE = 100;
 
 export function addCalendarMonths(value: string, months: number): string {
   const sourceYear = Number(value.slice(0, YEAR_END));
@@ -77,21 +78,13 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
   installments: Array<{ sequenceNumber: number; amountCents: number; dueDate: string }>;
 } {
   const installmentCount = terms.installmentCount ?? terms.durationMonths;
-  if (
-    !Number.isInteger(installmentCount) ||
-    installmentCount < 1 ||
-    installmentCount > terms.durationMonths
-  ) {
-    throw new Error("Informe uma quantidade inteira entre 1 e a duração do contrato em meses.");
-  }
+  assertInstallmentCount(installmentCount, terms.durationMonths);
   // Validate the reference price before applying the separately agreed scholarship.
   persistiblePrincipalCents(terms.durationMonths, terms.monthlyAmountCents);
   const scholarshipPct = terms.scholarshipPct ?? 0;
-  if (!Number.isFinite(scholarshipPct) || scholarshipPct < 0 || scholarshipPct > 100) {
-    throw new Error("Informe um percentual de bolsa entre 0 e 100.");
-  }
+  assertScholarshipPercent(scholarshipPct);
   const chargedMonthlyCents = priceAfterDiscountCents(terms.monthlyAmountCents, scholarshipPct);
-  if (scholarshipPct < 100 && chargedMonthlyCents < 1) {
+  if (scholarshipPct < PERCENT_BASE && chargedMonthlyCents < 1) {
     throw new Error("A bolsa parcial deve manter uma mensalidade de pelo menos um centavo.");
   }
   const principalAmountCents = terms.durationMonths * chargedMonthlyCents;
@@ -124,4 +117,14 @@ export function previewMonthlyContract(terms: MonthlyContractTerms): {
       dueDate: addCalendarMonths(terms.firstDueDate, index),
     })),
   };
+}
+
+function assertInstallmentCount(count: number, durationMonths: number): void {
+  if (Number.isInteger(count) && count >= 1 && count <= durationMonths) return;
+  throw new Error("Informe uma quantidade inteira entre 1 e a duração do contrato em meses.");
+}
+
+function assertScholarshipPercent(percent: number): void {
+  if (Number.isFinite(percent) && percent >= 0 && percent <= PERCENT_BASE) return;
+  throw new Error("Informe um percentual de bolsa entre 0 e 100.");
 }

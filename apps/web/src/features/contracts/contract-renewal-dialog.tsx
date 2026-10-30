@@ -22,6 +22,7 @@ import styles from "./contract-renewal.module.css";
 
 type Props = { contractId: string; onClose: () => void; onSaved: () => void };
 type RenewalTerms = RouterOutputs["finance"]["renewalTerms"];
+const SKELETON_FIELD_COUNT = 4;
 
 export function RenewalDialog(props: Props): ReactElement {
   const query = trpc.finance.renewalTerms.useQuery({ contractId: props.contractId });
@@ -47,21 +48,34 @@ export function RenewalDialog(props: Props): ReactElement {
             onPendingChange={setPending}
           />
         </div>
-      ) : query.error ? (
-        <div className={styles.feedback}>
-          <Alert variant="destructive">Não foi possível carregar os termos anteriores.</Alert>
-          <Button
-            variant="secondary"
-            loading={query.isFetching}
-            onClick={() => void query.refetch()}
-          >
-            Tentar novamente
-          </Button>
-        </div>
       ) : (
-        <RenewalLoading />
+        <RenewalPending
+          error={Boolean(query.error)}
+          loading={query.isFetching}
+          retry={() => void query.refetch()}
+        />
       )}
     </RenewalShell>
+  );
+}
+
+function RenewalPending({
+  error,
+  loading,
+  retry,
+}: {
+  error: boolean;
+  loading: boolean;
+  retry: () => void;
+}): ReactElement {
+  if (!error) return <RenewalLoading />;
+  return (
+    <div className={styles.feedback}>
+      <Alert variant="destructive">Não foi possível carregar os termos anteriores.</Alert>
+      <Button variant="secondary" loading={loading} onClick={retry}>
+        Tentar novamente
+      </Button>
+    </div>
   );
 }
 
@@ -112,7 +126,7 @@ function RenewalFields({
     <ContractSetup
       state={model.state}
       renewedFromId={data.id}
-      offer={{ data: data.offer, isPending: false, isError: false, refetch: () => undefined }}
+      offer={{ data: data.offer, isPending: false, isError: false, refetch: () => {} }}
       pending={model.pending}
       studentKnown
       allowEnrollmentFee={false}
@@ -159,21 +173,7 @@ function RenewalLoading(): ReactElement {
             </div>
             <span>1 de 4</span>
           </header>
-          <div className={styles.skeletonFields}>
-            {["Responsável financeiro", "Período do contrato"].map((title) => (
-              <div key={title} className={styles.skeletonGroup}>
-                <h3>{title}</h3>
-                <div className={styles.skeletonRow}>
-                  {[0, 1, 2, 3].map((field) => (
-                    <div key={field} className={styles.skeletonField}>
-                      <InlineSkeleton className="h-3 w-24" />
-                      <InlineSkeleton shape="block" className="h-9 w-full" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <RenewalSkeletonFields />
         </div>
       </div>
       <div className={layout.footer}>
@@ -185,6 +185,26 @@ function RenewalLoading(): ReactElement {
           <Button disabled>Continuar</Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RenewalSkeletonFields(): ReactElement {
+  return (
+    <div className={styles.skeletonFields}>
+      {["Responsável financeiro", "Período do contrato"].map((title) => (
+        <div key={title} className={styles.skeletonGroup}>
+          <h3>{title}</h3>
+          <div className={styles.skeletonRow}>
+            {Array.from({ length: SKELETON_FIELD_COUNT }, (_value, field) => (
+              <div key={field} className={styles.skeletonField}>
+                <InlineSkeleton className="h-3 w-24" />
+                <InlineSkeleton shape="block" className="h-9 w-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

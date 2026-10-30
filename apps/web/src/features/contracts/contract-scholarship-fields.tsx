@@ -7,6 +7,13 @@ import type { FormProps } from "./contract-form-fields";
 type ScholarshipProps = Pick<FormProps, "fields" | "errors" | "change"> & {
   material?: boolean;
 };
+const FULL_PERCENT = 100;
+
+function scholarshipMode(value: string): "NONE" | "FULL" | "PARTIAL" {
+  const percent = Number(value.replace(",", "."));
+  if (value.trim() === "" || percent === 0) return "NONE";
+  return percent === FULL_PERCENT ? "FULL" : "PARTIAL";
+}
 
 export function ContractScholarshipFields({
   fields,
@@ -29,41 +36,49 @@ export function ContractScholarshipFields({
           inputMode="decimal"
           autoComplete="off"
           placeholder="Sem bolsa · 100 = integral"
-          value={fields[mode] === "FULL" ? "100" : fields[pct]}
+          value={fields[mode] === "FULL" ? String(FULL_PERCENT) : fields[pct]}
           onChange={(event) => {
             const value = event.target.value;
-            const percent = Number(value.replace(",", "."));
             change(pct, value);
-            change(
-              mode,
-              value.trim() === "" || percent === 0 ? "NONE" : percent === 100 ? "FULL" : "PARTIAL",
-            );
+            change(mode, scholarshipMode(value));
           }}
           invalid={Boolean(errors[pct])}
         />
         {errors[pct] && <FieldError match>{errors[pct]}</FieldError>}
       </Field>
-      {scholarship && (
-        <Field name={agreement}>
-          <Label>Acordo da bolsa</Label>
-          <Textarea
-            name={agreement}
-            autoComplete="off"
-            placeholder="Descreva como a bolsa foi acordada e suas condições."
-            value={fields[agreement]}
-            onChange={(event) => change(agreement, event.target.value)}
-            invalid={Boolean(errors[agreement])}
-            maxLength={5000}
-            rows={2}
-          />
-          {errors[agreement] && <FieldError match>{errors[agreement]}</FieldError>}
-          <p className="text-caption text-muted-foreground">
-            {material
-              ? "A bolsa se aplica aos livros desta aquisição."
-              : "Válida durante o contrato. Não acumula desconto por pontualidade."}
-          </p>
-        </Field>
-      )}
+      {scholarship && <ScholarshipAgreement {...{ agreement, fields, errors, change, material }} />}
     </div>
+  );
+}
+
+function ScholarshipAgreement({
+  agreement,
+  fields,
+  errors,
+  change,
+  material,
+}: ScholarshipProps & {
+  agreement: "materialScholarshipAgreement" | "scholarshipAgreement";
+}): ReactElement {
+  return (
+    <Field name={agreement}>
+      <Label>Acordo da bolsa</Label>
+      <Textarea
+        name={agreement}
+        autoComplete="off"
+        placeholder="Descreva como a bolsa foi acordada e suas condições."
+        value={fields[agreement]}
+        onChange={(event) => change(agreement, event.target.value)}
+        invalid={Boolean(errors[agreement])}
+        maxLength={5000}
+        rows={2}
+      />
+      {errors[agreement] && <FieldError match>{errors[agreement]}</FieldError>}
+      <p className="text-caption text-muted-foreground">
+        {material
+          ? "A bolsa se aplica aos livros desta aquisição."
+          : "Válida durante o contrato. Não acumula desconto por pontualidade."}
+      </p>
+    </Field>
   );
 }

@@ -1,22 +1,24 @@
-# PR #225 — lint progress
+> **LOCKED BATCH 13: 50 errors across the 15 files below.** Source snapshot: `/tmp/lazuli-pr225-lint-after-batch12.json`; latest remaining: 99. Completion gate: targeted web lint, web typecheck, serial root lint, and zero-new-error inventory.
 
-> **LOCKED BATCH 12: 50 errors across the 13 files below.** Source snapshot: `/tmp/lazuli-pr225-lint-after-batch11.json`; latest remaining: 149. Completion gate: targeted lint, affected typechecks, serial root lint, and zero-new-error inventory.
+| Batch 13 file                                                            | Errors |
+| ------------------------------------------------------------------------ | -----: |
+| `apps/web/src/features/class-organization/class-roster.tsx`              |      6 |
+| `apps/web/src/features/students/profile/student-choose-class.tsx`        |      4 |
+| `apps/web/src/features/class-organization/class-plan-list.tsx`           |      4 |
+| `apps/web/src/features/classes/class-columns.tsx`                        |      4 |
+| `apps/web/src/features/students/new-student/new-student-request-save.ts` |      3 |
+| `apps/web/src/features/students/new-student/new-student-view.tsx`        |      3 |
+| `apps/web/src/features/contracts/contract-payment-section.tsx`           |      3 |
+| `apps/web/src/features/contracts/party-picker.tsx`                       |      3 |
+| `apps/web/src/features/contracts/add-contract-material.tsx`              |      3 |
+| `apps/web/src/features/contracts/contract-renewal-model.ts`              |      3 |
+| `apps/web/src/features/class-organization/period-create-form.tsx`        |      3 |
+| `apps/web/src/features/students/profile/finance-overview.tsx`            |      3 |
+| `apps/web/src/features/admin-home/home-pending-students.tsx`             |      3 |
+| `apps/web/src/features/admin-home/home-pending.tsx`                      |      3 |
+| `apps/web/src/features/contracts/new-contract-state.ts`                  |      2 |
 
-| Batch 12 file                                                        | Errors |
-| -------------------------------------------------------------------- | -----: |
-| `packages/api/src/finance/internal/student-materials.ts`             |     11 |
-| `packages/domain/src/student-health-pending.ts`                      |      6 |
-| `packages/domain/src/material-pricing.ts`                            |      5 |
-| `packages/domain/src/monthly-contract.ts`                            |      4 |
-| `packages/domain/src/payment-settlement.ts`                          |      2 |
-| `packages/domain/src/period-confirmation.ts`                         |      1 |
-| `packages/ui/src/components/stepper.tsx`                             |      3 |
-| `packages/ui/src/components/file-upload.tsx`                         |      1 |
-| `apps/worker/src/index.ts`                                           |      1 |
-| `apps/web/src/features/contracts/contract-scholarship-fields.tsx`    |      4 |
-| `apps/web/src/features/contracts/material-agreed-price.tsx`          |      4 |
-| `apps/web/src/features/contracts/contract-renewal-dialog.tsx`        |      4 |
-| `apps/web/src/features/students/profile/student-pending-actions.tsx` |      4 |
+Batch 12 closed: 50 locked errors removed; 149 → 99 global errors. All 13 target files have zero lint errors. Full sequential typecheck passes, and serial root lint fails only on the 99 remaining web errors. Comparison by file, rule, and message found zero added errors. Snapshot: `/tmp/lazuli-pr225-lint-after-batch12.json`. No tests were run for this behavior-preserving lint batch.
 
 Batch 11 closed: all eight locked web files report zero lint errors. Web typecheck, 26 focused unit tests, and the production build pass. The sequential web inventory shows 199 → 149 errors, exactly 50 removed and zero added; snapshot: `/tmp/lazuli-pr225-lint-after-batch11.json`. The dialog CSS compiled in the build. Browser inspection remains unavailable as noted in earlier batches.
 

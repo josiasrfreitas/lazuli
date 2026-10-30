@@ -6,6 +6,7 @@ const ROUNDING_DIVISOR = 2n;
 const DAYS_PER_INTEREST_MONTH = 30;
 const DENOMINATOR = BigInt(RATE_SCALE * PERCENT * DAYS_PER_INTEREST_MONTH);
 const MILLISECONDS_PER_DAY = 86_400_000;
+const ZERO_INTEREST = 0n;
 
 type InterestTerms = { dueDate: string; monthlyPct: number };
 
@@ -22,7 +23,7 @@ function accrueInterest(input: {
   const { terms, through, principalCents } = input;
   let from = input.from;
   if (from < terms.dueDate) from = terms.dueDate;
-  if (through <= from) return 0n;
+  if (through <= from) return ZERO_INTEREST;
   const days = (Date.parse(through) - Date.parse(from)) / MILLISECONDS_PER_DAY;
   return BigInt(principalCents) * BigInt(Math.round(terms.monthlyPct * RATE_SCALE)) * BigInt(days);
 }
@@ -123,10 +124,12 @@ export function settlementInterestDetails(input: SettlementInput): {
 }
 
 function recordInterestPeriod(
-  periods: SettlementInterestPeriod[] | undefined,
-  state: AccrualState,
-  through: string,
-  monthlyPct: number,
+  ...[periods, state, through, monthlyPct]: [
+    SettlementInterestPeriod[] | undefined,
+    AccrualState,
+    string,
+    number,
+  ]
 ): void {
   const from = state.date > state.dueDate ? state.date : state.dueDate;
   if (!periods || through <= from || state.principal <= 0 || monthlyPct <= 0) return;

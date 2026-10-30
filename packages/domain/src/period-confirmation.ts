@@ -1,12 +1,13 @@
 import { addCalendarMonths } from "./monthly-contract.js";
 
 const PRECONFIRMATION_MONTHS = 3;
+const ISO_DATE_END = 10;
 
 /** Coverage is inclusive: a January 1 start needs a contract through March 31. */
 export function preconfirmationThrough(periodStart: string): string {
   const boundary = new Date(`${addCalendarMonths(periodStart, PRECONFIRMATION_MONTHS)}T12:00:00Z`);
   boundary.setUTCDate(boundary.getUTCDate() - 1);
-  return boundary.toISOString().slice(0, 10);
+  return boundary.toISOString().slice(0, ISO_DATE_END);
 }
 
 export type PeriodConfirmation = "CONFIRMED" | "PRECONFIRMED" | "PENDING" | "CHANGING" | "LEAVING";

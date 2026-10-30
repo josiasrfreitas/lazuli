@@ -97,25 +97,15 @@ export function materialScholarshipQuote(input: {
   priceOverrideCents?: number | undefined;
 }): { chargedCents: number; receivableCents: number; feeCents: number; installmentCents: number } {
   const { quote, payment, scholarshipPct, cardFeePct, priceOverrideCents } = input;
-  if (
-    priceOverrideCents !== undefined &&
-    (!Number.isInteger(priceOverrideCents) ||
-      priceOverrideCents < 1 ||
-      priceOverrideCents > MAX_CENTS)
-  )
+  if (priceOverrideCents !== undefined && !validPriceOverride(priceOverrideCents))
     throw new Error("Informe um valor de material maior que zero.");
-  if (!Number.isFinite(scholarshipPct) || scholarshipPct < 0 || scholarshipPct > 100)
+  if (!Number.isFinite(scholarshipPct) || scholarshipPct < 0 || scholarshipPct > PERCENT_BASE)
     throw new Error("Informe um percentual de bolsa entre 0 e 100.");
   const installmentCents = priceAfterDiscountCents(quote.installmentCents, scholarshipPct);
-  const chargedCents =
-    priceOverrideCents !== undefined
-      ? priceAfterDiscountCents(priceOverrideCents, scholarshipPct)
-      : payment === "CASH"
-        ? priceAfterDiscountCents(quote.cashCents, scholarshipPct)
-        : installmentCents * quote.installments;
+  const chargedCents = materialChargedCents(input, installmentCents);
   const receivableCents =
     payment === "CASH" ? chargedCents : priceAfterDiscountCents(chargedCents, cardFeePct);
-  if (scholarshipPct < 100 && (chargedCents < 1 || receivableCents < 1))
+  if (scholarshipPct < PERCENT_BASE && (chargedCents < 1 || receivableCents < 1))
     throw new Error("A bolsa parcial deve manter um valor de pelo menos um centavo.");
   return {
     chargedCents,
@@ -123,4 +113,19 @@ export function materialScholarshipQuote(input: {
     feeCents: chargedCents - receivableCents,
     installmentCents,
   };
+}
+
+function validPriceOverride(value: number): boolean {
+  return Number.isInteger(value) && value >= 1 && value <= MAX_CENTS;
+}
+
+function materialChargedCents(
+  input: Parameters<typeof materialScholarshipQuote>[0],
+  installmentCents: number,
+): number {
+  if (input.priceOverrideCents !== undefined)
+    return priceAfterDiscountCents(input.priceOverrideCents, input.scholarshipPct);
+  if (input.payment === "CASH")
+    return priceAfterDiscountCents(input.quote.cashCents, input.scholarshipPct);
+  return installmentCents * input.quote.installments;
 }
