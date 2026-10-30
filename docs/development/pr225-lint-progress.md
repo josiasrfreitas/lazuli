@@ -1,22 +1,43 @@
-> **LOCKED BATCH 13: 50 errors across the 15 files below.** Source snapshot: `/tmp/lazuli-pr225-lint-after-batch12.json`; latest remaining: 99. Completion gate: targeted web lint, web typecheck, serial root lint, and zero-new-error inventory.
+> **LOCKED BATCH 14: all 49 remaining lint errors across the 34 files below.** Source snapshot: `/tmp/lazuli-pr225-lint-after-batch13.json`; latest remaining: 49. Completion gate: targeted web lint, web typecheck, serial root lint and zero-new-error inventory.
 
-| Batch 13 file                                                            | Errors |
-| ------------------------------------------------------------------------ | -----: |
-| `apps/web/src/features/class-organization/class-roster.tsx`              |      6 |
-| `apps/web/src/features/students/profile/student-choose-class.tsx`        |      4 |
-| `apps/web/src/features/class-organization/class-plan-list.tsx`           |      4 |
-| `apps/web/src/features/classes/class-columns.tsx`                        |      4 |
-| `apps/web/src/features/students/new-student/new-student-request-save.ts` |      3 |
-| `apps/web/src/features/students/new-student/new-student-view.tsx`        |      3 |
-| `apps/web/src/features/contracts/contract-payment-section.tsx`           |      3 |
-| `apps/web/src/features/contracts/party-picker.tsx`                       |      3 |
-| `apps/web/src/features/contracts/add-contract-material.tsx`              |      3 |
-| `apps/web/src/features/contracts/contract-renewal-model.ts`              |      3 |
-| `apps/web/src/features/class-organization/period-create-form.tsx`        |      3 |
-| `apps/web/src/features/students/profile/finance-overview.tsx`            |      3 |
-| `apps/web/src/features/admin-home/home-pending-students.tsx`             |      3 |
-| `apps/web/src/features/admin-home/home-pending.tsx`                      |      3 |
-| `apps/web/src/features/contracts/new-contract-state.ts`                  |      2 |
+| Batch 14 file                                                         | Errors |
+| --------------------------------------------------------------------- | -----: |
+| `apps/web/src/features/contracts/contract-form-fields.tsx`            |      2 |
+| `apps/web/next.config.mjs`                                            |      2 |
+| `apps/web/src/features/contracts/material-book-fields.tsx`            |      2 |
+| `apps/web/src/features/students/profile/student-payments.tsx`         |      2 |
+| `apps/web/src/features/students/profile/finance-contract-terms.tsx`   |      2 |
+| `apps/web/src/features/pedagogical-follow-up/occurrence-status.tsx`   |      2 |
+| `apps/web/src/features/installments/payment/payment-interest.tsx`     |      2 |
+| `apps/web/src/features/students/profile/organization-intention.tsx`   |      2 |
+| `apps/web/src/features/students/profile/student-page.tsx`             |      2 |
+| `apps/web/src/features/students/profile/student-pedagogy.tsx`         |      2 |
+| `apps/web/src/features/students/profile/student-overview.tsx`         |      2 |
+| `apps/web/src/features/admin-home/home-work-model.ts`                 |      2 |
+| `apps/web/src/features/admin-home/home-pending-model.ts`              |      2 |
+| `apps/web/src/features/admissions/lead-enrollment.tsx`                |      2 |
+| `apps/web/src/features/admissions/candidate-page.tsx`                 |      2 |
+| `apps/web/src/lib/format.ts`                                          |      1 |
+| `apps/web/src/features/admissions/placement-schedule.tsx`             |      1 |
+| `apps/web/src/features/students/new-student/intake-contract.tsx`      |      1 |
+| `apps/web/src/features/students/new-student/intake-dialog-chrome.tsx` |      1 |
+| `apps/web/src/features/admissions/placement-schedule-view.tsx`        |      1 |
+| `apps/web/src/features/students/profile/student-contract-renewal.tsx` |      1 |
+| `apps/web/src/features/admissions/placement-assessment.tsx`           |      1 |
+| `apps/web/src/lib/feature-flags.ts`                                   |      1 |
+| `apps/web/src/features/installments/payment/logic.ts`                 |      1 |
+| `apps/web/src/features/class-organization/confirmation.ts`            |      1 |
+| `apps/web/src/features/installments/payment/payment-summary.tsx`      |      1 |
+| `apps/web/src/features/students/profile/student-health.tsx`           |      1 |
+| `apps/web/src/features/students/profile/finance-columns.tsx`          |      1 |
+| `apps/web/src/features/admin-home/home-pending-appointments.tsx`      |      1 |
+| `apps/web/src/features/class-organization/queue-details.tsx`          |      1 |
+| `apps/web/src/features/class-organization/queue-model.ts`             |      1 |
+| `apps/web/src/features/class-organization/pending-rail.tsx`           |      1 |
+| `apps/web/src/features/class-organization/queue.tsx`                  |      1 |
+| `apps/web/src/features/contracts/contracts-table.tsx`                 |      1 |
+
+Batch 13 closed: 50 locked errors removed; 99 → 49 global errors. All 15 target files report zero lint errors. Web typecheck and production build pass. Serial root lint fails only on the 49 remaining web errors; comparison by file, rule and message found zero new errors. Snapshot: `/tmp/lazuli-pr225-lint-after-batch13.json`. No unit or integration tests were run for this lint-only batch.
 
 Batch 12 closed: 50 locked errors removed; 149 → 99 global errors. All 13 target files have zero lint errors. Full sequential typecheck passes, and serial root lint fails only on the 99 remaining web errors. Comparison by file, rule, and message found zero added errors. Snapshot: `/tmp/lazuli-pr225-lint-after-batch12.json`. No tests were run for this behavior-preserving lint batch.
 

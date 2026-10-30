@@ -18,6 +18,7 @@ import {
 } from "~/features/contracts/new-contract-state";
 
 const CENTS_PER_REAL = 100;
+const FULL_SCHOLARSHIP_PERCENT = 100;
 const CALENDAR_UTC_HOUR = 12;
 const ISO_DATE_LENGTH = 10;
 type RenewalTerms = RouterOutputs["finance"]["renewalTerms"];
@@ -45,32 +46,15 @@ export function useRenewalModel({
   onClose: () => void;
   onSaved: () => void;
 }): RenewalModel {
-  const [initial] = useState(() => ({
-    ...emptyContractFields,
-    materialPayment: "NONE",
-    studentId: data.student.id,
-    studentName: data.student.fullName,
-  }));
+  const [initial] = useState(() => emptyRenewalFields(data));
   const state = useContractFormState(true, initial, false);
   const due = useRenewalDueDate();
-  const restoreTerms = (): void => {
-    const previous = initialRenewalFields(data);
-    for (const key of Object.keys(previous) as Array<keyof ContractFields>) {
-      if (!key.startsWith("material")) state.change(key, previous[key]);
-    }
-    due.changeDueDate(initialDueDate(data, previous.firstDueDate));
-    state.setErrors({});
-  };
+  const restoreTerms = (): void => restoreRenewalTerms(data, { state, due });
   const preview = renewalPreview({ data, state, firstDueDate: due.firstDueDate });
   const utils = trpc.useUtils();
   const mutation = trpc.finance.createMonthlyContract.useMutation({
     onSuccess: async () => {
-      await Promise.all([
-        utils.finance.invalidate(),
-        utils.semesterOrganization.invalidate(),
-        utils.students.invalidate(),
-        utils.dashboard.invalidate(),
-      ]);
+      await invalidateRenewal(utils);
       onSaved();
       onClose();
     },
@@ -99,6 +83,36 @@ export function useRenewalModel({
     error: mutation.error?.message,
     submit,
   };
+}
+
+function emptyRenewalFields(data: RenewalTerms): ContractFields {
+  return {
+    ...emptyContractFields,
+    materialPayment: "NONE",
+    studentId: data.student.id,
+    studentName: data.student.fullName,
+  };
+}
+
+async function invalidateRenewal(utils: ReturnType<typeof trpc.useUtils>): Promise<void> {
+  await Promise.all([
+    utils.finance.invalidate(),
+    utils.semesterOrganization.invalidate(),
+    utils.students.invalidate(),
+    utils.dashboard.invalidate(),
+  ]);
+}
+
+function restoreRenewalTerms(
+  data: RenewalTerms,
+  { state, due }: { state: ContractFormState; due: RenewalDue },
+): void {
+  const previous = initialRenewalFields(data);
+  for (const key of Object.keys(previous) as Array<keyof ContractFields>) {
+    if (!key.startsWith("material")) state.change(key, previous[key]);
+  }
+  due.changeDueDate(initialDueDate(data, previous.firstDueDate));
+  state.setErrors({});
 }
 
 function useRenewalDueDate(): RenewalDue {
@@ -132,8 +146,7 @@ function initialRenewalFields(data: RenewalTerms): ContractFields {
     payerPhone: data.payer.phone ?? "",
     payerEmail: data.payer.email ?? "",
     monthlyAmount: (data.baseMonthlyAmountCents / CENTS_PER_REAL).toFixed(2),
-    scholarshipMode:
-      data.scholarshipPct === 100 ? "FULL" : data.scholarshipPct > 0 ? "PARTIAL" : "NONE",
+    scholarshipMode: renewalScholarshipMode(data.scholarshipPct),
     scholarshipPct: data.scholarshipPct ? String(data.scholarshipPct) : "",
     scholarshipAgreement: data.scholarshipAgreement ?? "",
     agreedOn: formatDateOnlyBR(toDateOnlySaoPaulo(new Date())),
@@ -142,6 +155,11 @@ function initialRenewalFields(data: RenewalTerms): ContractFields {
     paymentPlan: data.installmentCount === data.durationMonths ? "common" : "special",
     installmentCount: String(data.installmentCount),
   };
+}
+
+function renewalScholarshipMode(percent: number): ContractFields["scholarshipMode"] {
+  if (percent === FULL_SCHOLARSHIP_PERCENT) return "FULL";
+  return percent > 0 ? "PARTIAL" : "NONE";
 }
 
 function initialDueDate(data: RenewalTerms, firstDueDate: string): string {

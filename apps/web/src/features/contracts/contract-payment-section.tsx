@@ -1,6 +1,7 @@
 "use client";
 
 import { materialPriceQuote, materialScholarshipQuote, addCalendarMonths } from "@lazuli/domain";
+import type { RouterOutputs } from "@lazuli/api";
 import { trpc } from "~/lib/trpc";
 import { useId, type ReactElement } from "react";
 import { ChevronDown } from "lucide-react";
@@ -91,20 +92,7 @@ function useMaterialPayment(fields: FormProps["fields"]): {
   const prices = trpc.finance.readMaterialPrice.useQuery(undefined, {
     enabled: fields.materialPayment !== "NONE",
   });
-  let unitQuote = undefined;
-  if (fields.materialCategory === "CHILD") unitQuote = prices.data?.child;
-  else if (fields.materialCategory === "ADULT") unitQuote = prices.data?.adult;
-  const quote =
-    unitQuote && prices.data
-      ? {
-          ...materialPriceQuote({
-            installments: unitQuote.installments * fields.materialStageIds.split(",").length,
-            installmentCents: unitQuote.installmentCents,
-            cardFeePct: prices.data.cardFeePct,
-          }),
-          version: unitQuote.version,
-        }
-      : undefined;
+  const quote = materialQuote(fields, prices.data);
   if (fields.materialPayment === "NONE" || !quote) return null;
   try {
     const net = materialScholarshipQuote({
@@ -118,6 +106,25 @@ function useMaterialPayment(fields: FormProps["fields"]): {
   } catch {
     return null;
   }
+}
+
+function materialQuote(
+  fields: FormProps["fields"],
+  prices: RouterOutputs["finance"]["readMaterialPrice"] | undefined,
+): (ReturnType<typeof materialPriceQuote> & { version: string }) | undefined {
+  if (!prices) return undefined;
+  let unitQuote;
+  if (fields.materialCategory === "CHILD") unitQuote = prices.child;
+  else if (fields.materialCategory === "ADULT") unitQuote = prices.adult;
+  if (!unitQuote) return undefined;
+  return {
+    ...materialPriceQuote({
+      installments: unitQuote.installments * fields.materialStageIds.split(",").length,
+      installmentCents: unitQuote.installmentCents,
+      cardFeePct: prices.cardFeePct,
+    }),
+    version: unitQuote.version,
+  };
 }
 
 export function PaymentSection({ fields, errors, change, preview }: FormProps): ReactElement {
@@ -142,32 +149,55 @@ export function PaymentSection({ fields, errors, change, preview }: FormProps): 
         />
       )}
       {preview ? (
-        <>
-          <PaymentPreview preview={preview} />
-          {enrollmentFeeCents > 0 && (
-            <p className="text-caption">
-              Taxa de matrícula {formatBRLFromCents(enrollmentFeeCents)} · vence na data do acordo,{" "}
-              {fields.agreedOn}
-            </p>
-          )}
-          {(material || enrollmentFeeCents > 0) && (
-            <p className="text-caption font-medium">
-              Total a receber pela escola{" "}
-              {formatBRLFromCents(
-                preview.principalAmountCents +
-                  (material?.count ?? 0) * (material?.amountCents ?? 0) +
-                  enrollmentFeeCents,
-              )}
-            </p>
-          )}
-          {(special || material) && <PaymentCalendar rows={rows} />}
-        </>
+        <PaymentPreviewDetails
+          {...{ preview, enrollmentFeeCents, material, special, rows }}
+          agreedOn={fields.agreedOn}
+        />
       ) : (
         <p className="text-caption text-muted-foreground">
           Informe as datas, a mensalidade e uma quantidade válida para conferir as cobranças.
         </p>
       )}
     </div>
+  );
+}
+
+function PaymentPreviewDetails({
+  preview,
+  enrollmentFeeCents,
+  material,
+  special,
+  rows,
+  agreedOn,
+}: {
+  preview: NonNullable<FormProps["preview"]>;
+  enrollmentFeeCents: number;
+  material: { count: number; amountCents: number } | null;
+  special: boolean;
+  rows: Array<{ dueDate: string; tuitionCents: number; materialCents: number }>;
+  agreedOn: string;
+}): ReactElement {
+  return (
+    <>
+      <PaymentPreview preview={preview} />
+      {enrollmentFeeCents > 0 && (
+        <p className="text-caption">
+          Taxa de matrícula {formatBRLFromCents(enrollmentFeeCents)} · vence na data do acordo,{" "}
+          {agreedOn}
+        </p>
+      )}
+      {(material || enrollmentFeeCents > 0) && (
+        <p className="text-caption font-medium">
+          Total a receber pela escola{" "}
+          {formatBRLFromCents(
+            preview.principalAmountCents +
+              (material?.count ?? 0) * (material?.amountCents ?? 0) +
+              enrollmentFeeCents,
+          )}
+        </p>
+      )}
+      {(special || material) && <PaymentCalendar rows={rows} />}
+    </>
   );
 }
 
@@ -224,8 +254,7 @@ function AdvancedPaymentControls({
 
 export function previewCalendar(
   tuition: Array<{ dueDate: string; amountCents: number }>,
-  material: { count: number; amountCents: number } | null,
-  materialDueDate?: string,
+  ...[material, materialDueDate]: [{ count: number; amountCents: number } | null, string?]
 ): { dueDate: string; tuitionCents: number; materialCents: number }[] {
   const first = tuition[0]?.dueDate ?? materialDueDate;
   if (!first) return [];

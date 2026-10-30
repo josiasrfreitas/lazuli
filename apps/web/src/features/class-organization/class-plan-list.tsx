@@ -33,12 +33,7 @@ export function ClassPlanList({
   );
   return (
     <section className={styles.viewport} aria-label="Turmas do período" tabIndex={0}>
-      {!plans.length ? (
-        <EmptyState
-          title="Nenhuma turma nesta seleção"
-          description="Ajuste a busca ou crie uma turma para este período."
-        />
-      ) : (
+      {plans.length > 0 ? (
         <ul className={styles.list}>
           {plans.map((plan) => (
             <li className={styles.item} key={plan.id} data-expanded={selected === plan.id}>
@@ -60,6 +55,11 @@ export function ClassPlanList({
             </li>
           ))}
         </ul>
+      ) : (
+        <EmptyState
+          title="Nenhuma turma nesta seleção"
+          description="Ajuste a busca ou crie uma turma para este período."
+        />
       )}
     </section>
   );
@@ -87,18 +87,7 @@ function ClassPlanSummary({
           </Badge>
           {!plan.active && <Badge variant="neutral">Encerrada</Badge>}
         </div>
-        <div className={styles.metadata}>
-          <span>
-            <UserRound size={14} aria-hidden="true" />
-            <span className="sr-only">Professor: </span>
-            {plan.teacherName ?? "Professor a definir"}
-          </span>
-          <span>
-            <Clock3 size={14} aria-hidden="true" />
-            {scheduleLabel(plan.slots) || "Horário a definir"}
-          </span>
-          <span>{plan.format === "ONLINE" ? "Online" : "Presencial"}</span>
-        </div>
+        <PlanMetadata plan={plan} />
       </div>
       <div className={styles.metrics}>
         <ClassMetrics board={board} plan={plan} compact />
@@ -119,6 +108,23 @@ function ClassPlanSummary({
         {open ? "Recolher" : "Ver alunos"}
         {open ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
       </Button>
+    </div>
+  );
+}
+
+function PlanMetadata({ plan }: { plan: ClassPlan }): ReactElement {
+  return (
+    <div className={styles.metadata}>
+      <span>
+        <UserRound size={14} aria-hidden="true" />
+        <span className="sr-only">Professor: </span>
+        {plan.teacherName ?? "Professor a definir"}
+      </span>
+      <span>
+        <Clock3 size={14} aria-hidden="true" />
+        {scheduleLabel(plan.slots) || "Horário a definir"}
+      </span>
+      <span>{plan.format === "ONLINE" ? "Online" : "Presencial"}</span>
     </div>
   );
 }

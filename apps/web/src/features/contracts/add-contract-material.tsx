@@ -99,32 +99,14 @@ function useMaterialSubmission(
   function submit(): void {
     if (submitting.current) return;
     const { fields, dueDate } = state;
-    const parsed = addContractMaterialInputSchema.safeParse({
+    const parsed = parseMaterialSubmission({
+      fields,
+      dueDate,
       commandId: commandId.current,
       contractId,
-      firstDueDate: dueDate,
-      material: {
-        ...scholarshipInput(fields, true),
-        ...materialPriceInput(fields),
-        stageIds: fields.materialStageIds.split(","),
-        quoteVersion: fields.materialQuoteVersion,
-        category: fields.materialCategory,
-        payment: fields.materialPayment,
-        installmentCount: materialInstallmentCount(fields),
-        expectedTotalCents: fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
-      },
     });
     if (!parsed.success) {
-      const errors = invalidMaterialFields(fields);
-      for (const issue of parsed.error.issues) {
-        if (issue.path[1] === "priceOverrideCents")
-          errors.materialCustomPrice = "Informe um valor válido maior que zero.";
-        if (issue.path[1] === "installmentCount") errors.materialInstallments = issue.message;
-        if (issue.path[1] === "scholarshipPct") errors.materialScholarshipPct = issue.message;
-        if (issue.path[1] === "scholarshipAgreement")
-          errors.materialScholarshipAgreement = issue.message;
-      }
-      state.setErrors(errors);
+      state.setErrors(materialParseErrors(fields, parsed.error.issues));
       setError(materialValidationMessage(dueDate));
       return;
     }
@@ -150,6 +132,50 @@ function useMaterialSubmission(
     });
   }
   return { error, submit, pending: mutation.isPending };
+}
+
+function parseMaterialSubmission({
+  fields,
+  dueDate,
+  commandId,
+  contractId,
+}: {
+  fields: ContractFields;
+  dueDate: string;
+  commandId: string;
+  contractId: string;
+}): ReturnType<typeof addContractMaterialInputSchema.safeParse> {
+  return addContractMaterialInputSchema.safeParse({
+    commandId,
+    contractId,
+    firstDueDate: dueDate,
+    material: {
+      ...scholarshipInput(fields, true),
+      ...materialPriceInput(fields),
+      stageIds: fields.materialStageIds.split(","),
+      quoteVersion: fields.materialQuoteVersion,
+      category: fields.materialCategory,
+      payment: fields.materialPayment,
+      installmentCount: materialInstallmentCount(fields),
+      expectedTotalCents: fields.materialTotal === "" ? Number.NaN : Number(fields.materialTotal),
+    },
+  });
+}
+
+function materialParseErrors(
+  fields: ContractFields,
+  issues: Array<{ path: PropertyKey[]; message: string }>,
+): MaterialErrors {
+  const errors = invalidMaterialFields(fields);
+  for (const issue of issues) {
+    if (issue.path[1] === "priceOverrideCents")
+      errors.materialCustomPrice = "Informe um valor válido maior que zero.";
+    if (issue.path[1] === "installmentCount") errors.materialInstallments = issue.message;
+    if (issue.path[1] === "scholarshipPct") errors.materialScholarshipPct = issue.message;
+    if (issue.path[1] === "scholarshipAgreement")
+      errors.materialScholarshipAgreement = issue.message;
+  }
+  return errors;
 }
 
 function MaterialReceiptFields({

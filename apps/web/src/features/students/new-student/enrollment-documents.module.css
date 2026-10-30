@@ -133,6 +133,9 @@
 .stepTransition {
   animation: intake-step-arrive 220ms var(--lz-ease-standard) both;
 }
+.documentLayout :global([data-intake-body]) {
+  animation: intake-step-arrive 220ms var(--lz-ease-standard) both;
+}
 @keyframes intake-step-arrive {
   from {
     opacity: 0.65;
@@ -144,7 +147,8 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .stepTransition {
+  .stepTransition,
+  .documentLayout :global([data-intake-body]) {
     animation: none;
   }
 }

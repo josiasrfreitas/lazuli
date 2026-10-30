@@ -150,16 +150,25 @@
 }
 
 /* This reading dialog opens at its final size; no zoom or layout transition. */
-.detailsDialog.detailsDialog,
-.detailsDialog.detailsDialog[data-starting-style],
-.detailsDialog.detailsDialog[data-ending-style] {
+.detailsScope :global([data-finance-details-dialog][data-finance-details-dialog]),
+.detailsScope :global([data-finance-details-dialog][data-starting-style]),
+.detailsScope :global([data-finance-details-dialog][data-ending-style]) {
   animation: none;
   transition: none;
   scale: 1;
   opacity: 1;
 }
-.detailsBackdrop.detailsBackdrop {
+.detailsScope :global([data-finance-details-backdrop][data-finance-details-backdrop]) {
   animation: none;
   transition: none;
   opacity: 1;
+}
+@media (min-width: 48rem) {
+  .detailsScope :global([data-finance-details-dialog][data-finance-details-dialog]) {
+    width: calc(100vw - 3rem);
+    max-width: 48rem;
+  }
+  .detailsScope :global([data-finance-details-dialog][data-proofs="true"]) {
+    max-width: 72rem;
+  }
 }

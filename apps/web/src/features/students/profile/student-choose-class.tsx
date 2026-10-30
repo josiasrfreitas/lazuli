@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement, type RefObject } from "react";
 import Link from "next/link";
 import { useQueryState } from "nuqs";
 import { ArrowRight } from "lucide-react";
@@ -8,6 +8,8 @@ import { Button } from "@lazuli/ui";
 import { trpc } from "~/lib/trpc";
 import { NewStudentDialog } from "../new-student/new-student-dialog";
 import { visibleActions } from "./student-pending-actions";
+
+const DIALOG_OPEN_DELAY_MS = 180;
 
 export function StudentChooseClass({ studentId }: { studentId: string }): ReactElement | null {
   const [open, setOpen] = useState(false);
@@ -21,41 +23,16 @@ export function StudentChooseClass({ studentId }: { studentId: string }): ReactE
   });
   const pending = trpc.students.pendingActions.useQuery({ id: studentId });
   const intentions = trpc.semesterOrganization.studentIntent.useQuery({ studentId });
-  const allocation =
-    intentions.data &&
-    visibleActions(pending.data?.items ?? [], 0, intentions.data).find(
-      (item) => item.type === "CLASS_ALLOCATION",
-    );
+  const allocation = classAllocation(pending.data?.items, intentions.data);
   const placement = pending.data?.items.find((item) => item.type === "PLACEMENT");
-  const ready =
-    Boolean(allocation) &&
-    pending.isSuccess &&
-    intentions.isSuccess &&
-    occurrences.isSuccess &&
-    interventions.isSuccess;
-  useEffect(() => {
-    if (requested !== "1" || !ready || consumed.current) return;
-    const page = anchor.current?.closest("[data-ready]");
-    if (!page) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const schedule = (): void => {
-      clearTimeout(timer);
-      if (page.hasAttribute("data-entering")) return;
-      // Let the resolved page paint before introducing the dialog backdrop.
-      timer = setTimeout(() => {
-        consumed.current = true;
-        setOpen(true);
-        void setRequested(null);
-      }, 180);
-    };
-    const observer = new MutationObserver(schedule);
-    observer.observe(page, { attributes: true, attributeFilter: ["data-entering"] });
-    schedule();
-    return () => {
-      observer.disconnect();
-      clearTimeout(timer);
-    };
-  }, [requested, ready, setRequested]);
+  const ready = [
+    allocation,
+    pending.isSuccess,
+    intentions.isSuccess,
+    occurrences.isSuccess,
+    interventions.isSuccess,
+  ].every(Boolean);
+  useRequestedClassDialog({ requested, ready, setRequested, setOpen, anchor, consumed });
   if (placement?.action.type === "OPEN_LEAD")
     return (
       <Button
@@ -80,4 +57,54 @@ export function StudentChooseClass({ studentId }: { studentId: string }): ReactE
       />
     </div>
   );
+}
+
+function classAllocation(
+  items: Parameters<typeof visibleActions>[0] | undefined,
+  intentions: Parameters<typeof visibleActions>[2] | undefined,
+): ReturnType<typeof visibleActions>[number] | undefined {
+  if (!intentions) return undefined;
+  return visibleActions(items ?? [], 0, intentions).find(
+    (item) => item.type === "CLASS_ALLOCATION",
+  );
+}
+
+function useRequestedClassDialog({
+  requested,
+  ready,
+  setRequested,
+  setOpen,
+  anchor,
+  consumed,
+}: {
+  requested: string | null;
+  ready: boolean;
+  setRequested: ReturnType<typeof useQueryState>[1];
+  setOpen: (value: boolean) => void;
+  anchor: RefObject<HTMLDivElement | null>;
+  consumed: RefObject<boolean>;
+}): void {
+  useEffect(() => {
+    if (requested !== "1" || !ready || consumed.current) return;
+    const page = anchor.current?.closest<HTMLElement>("[data-ready]");
+    if (!page) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = (): void => {
+      clearTimeout(timer);
+      if (Object.hasOwn(page.dataset, "entering")) return;
+      // Let the resolved page paint before introducing the dialog backdrop.
+      timer = setTimeout(() => {
+        consumed.current = true;
+        setOpen(true);
+        void setRequested(null);
+      }, DIALOG_OPEN_DELAY_MS);
+    };
+    const observer = new MutationObserver(schedule);
+    observer.observe(page, { attributes: true, attributeFilter: ["data-entering"] });
+    schedule();
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
+  }, [requested, ready, setRequested]);
 }

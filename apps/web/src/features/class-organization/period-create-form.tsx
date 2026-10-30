@@ -24,6 +24,8 @@ type State = {
   onStart: (value: string) => void;
   onEnd: (value: string) => void;
 };
+const DEFAULT_PERIOD_MONTHS = 6;
+const ISO_DATE_END = 10;
 
 export function SemesterForm({
   onClose,
@@ -88,22 +90,37 @@ function useSemesterFormState(onClose: () => void, onSaved: (id: string) => void
       setName(value);
       validation.clear("name");
     },
-    onStart: (value) => {
-      setStart(maskDateBR(value));
-      const parsed = parseDateBR(maskDateBR(value));
-      if (parsed && !endEdited) {
-        const boundary = new Date(`${addCalendarMonths(parsed, 6)}T12:00:00Z`);
-        boundary.setUTCDate(boundary.getUTCDate() - 1);
-        setEnd(formatDateOnlyBR(boundary.toISOString().slice(0, 10)));
-      }
-      validation.clear("startDate");
-    },
+    onStart: (value) => updateStartDate(value, { setStart, setEnd, endEdited, validation }),
     onEnd: (value) => {
       setEndEdited(Boolean(value));
       setEnd(maskDateBR(value));
       validation.clear("endDate");
     },
   };
+}
+
+function updateStartDate(
+  value: string,
+  {
+    setStart,
+    setEnd,
+    endEdited,
+    validation,
+  }: {
+    setStart: (value: string) => void;
+    setEnd: (value: string) => void;
+    endEdited: boolean;
+    validation: ReturnType<typeof useValidation>;
+  },
+): void {
+  setStart(maskDateBR(value));
+  const parsed = parseDateBR(maskDateBR(value));
+  if (parsed && !endEdited) {
+    const boundary = new Date(`${addCalendarMonths(parsed, DEFAULT_PERIOD_MONTHS)}T12:00:00Z`);
+    boundary.setUTCDate(boundary.getUTCDate() - 1);
+    setEnd(formatDateOnlyBR(boundary.toISOString().slice(0, ISO_DATE_END)));
+  }
+  validation.clear("startDate");
 }
 
 function SemesterFields({ state }: { state: State }): ReactJSX.Element {

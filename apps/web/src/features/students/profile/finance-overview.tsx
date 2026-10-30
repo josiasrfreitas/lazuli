@@ -134,52 +134,75 @@ function FinanceDetails({
         <FileText aria-hidden="true" /> Contrato e detalhes
       </DialogTrigger>
       <DialogPortal>
-        <DialogBackdrop className={styles.detailsBackdrop} />
-        <DialogContent
-          className={`${styles.detailsDialog} ${hasProofs ? "md:w-[calc(100vw-3rem)] md:max-w-6xl" : "md:w-[calc(100vw-3rem)] md:max-w-3xl"}`}
-          showCloseButton={!pending}
-        >
-          <DialogHeader>
-            <DialogTitle>Contrato e detalhes</DialogTitle>
-            <DialogDescription>{profile.contact.fullName}</DialogDescription>
-          </DialogHeader>
-          <DialogBody>
-            <div className={styles.detailsLayout} data-with-proofs={hasProofs || undefined}>
-              <div className={styles.details}>
-                <FinanceContractTerms
-                  studentId={profile.id}
-                  summary={summary}
-                  onPendingChange={setMaterialPending}
-                />
-                <details className={styles.paymentHistory}>
-                  <summary>Histórico de pagamentos</summary>
-                  <PaymentBehavior
-                    summary={summary}
-                    studentId={profile.id}
-                    studentName={profile.contact.fullName}
-                  />
-                </details>
-              </div>
-              {hasProofs && (
-                <aside className={styles.proofs} aria-label="Comprovantes">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-heading">Comprovantes</h3>
-                    <span className="text-caption text-muted-foreground">
-                      Mais recentes primeiro
-                    </span>
-                  </div>
-                  <StudentPayments
-                    studentId={profile.id}
-                    withProofs
-                    onPendingChange={setProofPending}
-                  />
-                </aside>
-              )}
-            </div>
-          </DialogBody>
-        </DialogContent>
+        <div className={styles.detailsScope}>
+          <DialogBackdrop data-finance-details-backdrop="" />
+          <DialogContent
+            data-finance-details-dialog=""
+            data-proofs={hasProofs}
+            showCloseButton={!pending}
+          >
+            <FinanceDialogContent
+              summary={summary}
+              profile={profile}
+              hasProofs={hasProofs}
+              onMaterialPending={setMaterialPending}
+              onProofPending={setProofPending}
+            />
+          </DialogContent>
+        </div>
       </DialogPortal>
     </Dialog>
+  );
+}
+
+function FinanceDialogContent({
+  summary,
+  profile,
+  hasProofs,
+  onMaterialPending,
+  onProofPending,
+}: {
+  summary: NonNullable<StudentFinanceState["summary"]["data"]>;
+  profile: StudentProfile;
+  hasProofs: boolean;
+  onMaterialPending: (pending: boolean) => void;
+  onProofPending: (pending: boolean) => void;
+}): ReactElement {
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Contrato e detalhes</DialogTitle>
+        <DialogDescription>{profile.contact.fullName}</DialogDescription>
+      </DialogHeader>
+      <DialogBody>
+        <div className={styles.detailsLayout} data-with-proofs={hasProofs || undefined}>
+          <div className={styles.details}>
+            <FinanceContractTerms
+              studentId={profile.id}
+              summary={summary}
+              onPendingChange={onMaterialPending}
+            />
+            <details className={styles.paymentHistory}>
+              <summary>Histórico de pagamentos</summary>
+              <PaymentBehavior
+                summary={summary}
+                studentId={profile.id}
+                studentName={profile.contact.fullName}
+              />
+            </details>
+          </div>
+          {hasProofs && (
+            <aside className={styles.proofs} aria-label="Comprovantes">
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="text-sm font-semibold text-heading">Comprovantes</h3>
+                <span className="text-caption text-muted-foreground">Mais recentes primeiro</span>
+              </div>
+              <StudentPayments studentId={profile.id} withProofs onPendingChange={onProofPending} />
+            </aside>
+          )}
+        </div>
+      </DialogBody>
+    </>
   );
 }
 

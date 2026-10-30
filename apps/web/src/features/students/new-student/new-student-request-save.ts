@@ -81,29 +81,7 @@ export function createRequestSave(
 ): (withContract: boolean, closing?: boolean) => boolean {
   return (withContract, closing = false) => {
     if (context.flow.busy.current) return false;
-    const studentErrors = validateDados(context.identity.state.fields, context.today);
-    const blocking: BlockingItem[] = Object.entries(studentErrors).map(([field, label]) => ({
-      label,
-      field,
-      step: "student",
-    }));
-    const issue = intakeSaveIssue({
-      blockedLead: context.classes.blockedLead,
-      selectedId: context.identity.selectedId,
-      optionsFetching: context.classes.options.isFetching,
-      selected: Boolean(context.classes.selected),
-      stageId: context.identity.stageId,
-      waitingPlacement: context.classes.waitingPlacement,
-    });
-    if (issue)
-      blocking.push({ label: issue, step: context.classes.blockedLead ? "student" : "pedagogy" });
-    const items = intakePendingItems({
-      selected: Boolean(context.classes.selected),
-      existingEnrollment: Boolean(context.existing.existingEnrollment),
-      waitingPlacement: context.classes.waitingPlacement,
-      withContract,
-      existingContract: Boolean(context.existing.existingContract),
-    });
+    const { blocking, items } = initialSaveState(context, withContract);
     if (blocking.length > 0) {
       context.flow.setConfirmation({ items, blocking });
       return true;
@@ -133,4 +111,34 @@ export function createRequestSave(
     flow.setConfirmation({ input: parsed.input, items, blocking: [] });
     return true;
   };
+}
+
+function initialSaveState(
+  context: SaveContext,
+  withContract: boolean,
+): { blocking: BlockingItem[]; items: string[] } {
+  const studentErrors = validateDados(context.identity.state.fields, context.today);
+  const blocking: BlockingItem[] = Object.entries(studentErrors).map(([field, label]) => ({
+    label,
+    field,
+    step: "student",
+  }));
+  const issue = intakeSaveIssue({
+    blockedLead: context.classes.blockedLead,
+    selectedId: context.identity.selectedId,
+    optionsFetching: context.classes.options.isFetching,
+    selected: Boolean(context.classes.selected),
+    stageId: context.identity.stageId,
+    waitingPlacement: context.classes.waitingPlacement,
+  });
+  if (issue)
+    blocking.push({ label: issue, step: context.classes.blockedLead ? "student" : "pedagogy" });
+  const items = intakePendingItems({
+    selected: Boolean(context.classes.selected),
+    existingEnrollment: Boolean(context.existing.existingEnrollment),
+    waitingPlacement: context.classes.waitingPlacement,
+    withContract,
+    existingContract: Boolean(context.existing.existingContract),
+  });
+  return { blocking, items };
 }

@@ -82,7 +82,7 @@ export function EnrollmentDialogView({ model }: { model: EnrollmentModel }): Rea
 }
 
 function EnrollmentMainContent({ model }: { model: EnrollmentModel }): ReactJSX.Element {
-  const { step, popup, existingStudentId, state, existingEnrollment, selected } = model;
+  const { step, popup } = model;
   const panelOpen = step === "student" && model.documents.open;
   const [panelPresent, setPanelPresent] = useState(panelOpen);
   useEffect(() => {
@@ -104,33 +104,7 @@ function EnrollmentMainContent({ model }: { model: EnrollmentModel }): ReactJSX.
         popup.current?.querySelector<HTMLInputElement>('input[name="fullName"]') ?? true
       }
     >
-      <div className={documentStyles.header}>
-        <IntakeDialogHeading
-          compact={step === "student"}
-          onStepChange={(next) => {
-            if (!model.pending && !(next === "contract" && model.existingContract)) {
-              model.setStep(next);
-              model.setError("");
-              if (next === "contract") model.setVisitedContract(true);
-            }
-          }}
-          avatar={
-            step === "student" ? (
-              <EnrollmentPhoto
-                documents={model.documents}
-                studentId={existingStudentId}
-                disabled={model.pending}
-              />
-            ) : undefined
-          }
-          continuing={Boolean(existingStudentId)}
-          step={step}
-          name={state.fields.fullName}
-          hasEnrollment={Boolean(existingEnrollment)}
-          hasClass={Boolean(selected || existingEnrollment)}
-          hasContract={Boolean(model.existingContract)}
-        />
-      </div>
+      <EnrollmentDialogHeader model={model} />
       {step === "contract" && !model.existingContract ? (
         <div key={step} className={`${documentStyles.stepTransition} flex min-h-0 flex-1 flex-col`}>
           <EnrollmentContractFields model={model} />
@@ -148,13 +122,47 @@ function EnrollmentMainContent({ model }: { model: EnrollmentModel }): ReactJSX.
   );
 }
 
+function EnrollmentDialogHeader({ model }: { model: EnrollmentModel }): ReactJSX.Element {
+  const { step, existingStudentId, state, existingEnrollment, selected } = model;
+  return (
+    <div className={documentStyles.header}>
+      <IntakeDialogHeading
+        compact={step === "student"}
+        onStepChange={(next) => {
+          if (!model.pending && !(next === "contract" && model.existingContract)) {
+            model.setStep(next);
+            model.setError("");
+            if (next === "contract") model.setVisitedContract(true);
+          }
+        }}
+        avatar={
+          step === "student" ? (
+            <EnrollmentPhoto
+              documents={model.documents}
+              studentId={existingStudentId}
+              disabled={model.pending}
+            />
+          ) : undefined
+        }
+        continuing={Boolean(existingStudentId)}
+        step={step}
+        name={state.fields.fullName}
+        hasEnrollment={Boolean(existingEnrollment)}
+        hasClass={Boolean(selected || existingEnrollment)}
+        hasContract={Boolean(model.existingContract)}
+      />
+    </div>
+  );
+}
+
 function EnrollmentForm({ model }: { model: EnrollmentModel }): ReactJSX.Element {
   const { step, requestSave, advance, error } = model;
   return (
     <DialogBody
       key={step}
       data-step={step}
-      className={`${documentStyles.stepTransition} data-[step=contract]:flex data-[step=contract]:flex-col lg:data-[step=contract]:overflow-hidden data-[step=pedagogy]:flex data-[step=pedagogy]:flex-col data-[step=pedagogy]:overflow-y-auto sm:data-[step=pedagogy]:overflow-hidden`}
+      data-intake-body
+      className="data-[step=contract]:flex data-[step=contract]:flex-col lg:data-[step=contract]:overflow-hidden data-[step=pedagogy]:flex data-[step=pedagogy]:flex-col data-[step=pedagogy]:overflow-y-auto sm:data-[step=pedagogy]:overflow-hidden"
     >
       <form
         id="intake-enroll"
@@ -430,6 +438,26 @@ function EnrollmentBackButton({ model }: { model: EnrollmentModel }): ReactJSX.E
 }
 
 function EnrollmentSubmitButtons({ model }: { model: EnrollmentModel }): ReactJSX.Element {
+  const { step, existingContract, pending } = model;
+  return (
+    <>
+      <EnrollmentSecondarySubmitButtons model={model} />
+      <Button type="submit" form="intake-enroll" loading={pending} disabled={submitDisabled(model)}>
+        {submitCompletes(step, existingContract) ? <Check /> : <ArrowRight />}
+        {step === "pedagogy" && existingContract ? "Concluir cadastro" : submitLabel(step)}
+      </Button>
+    </>
+  );
+}
+
+function submitCompletes(
+  step: IntakeStep,
+  existingContract: EnrollmentModel["existingContract"],
+): boolean {
+  return step === "contract" || (step === "pedagogy" && Boolean(existingContract));
+}
+
+function EnrollmentSecondarySubmitButtons({ model }: { model: EnrollmentModel }): ReactJSX.Element {
   const { step, visitedContract, setStep, existingContract, pending, requestSave } = model;
   return (
     <>
@@ -437,9 +465,7 @@ function EnrollmentSubmitButtons({ model }: { model: EnrollmentModel }): ReactJS
         <Button
           variant="secondary"
           disabled={pending || Boolean(model.documents.selection?.file)}
-          onClick={() => {
-            setStep("contract");
-          }}
+          onClick={() => setStep("contract")}
         >
           Ir para contrato <ArrowRight />
         </Button>
@@ -449,14 +475,6 @@ function EnrollmentSubmitButtons({ model }: { model: EnrollmentModel }): ReactJS
           Salvar sem contrato
         </Button>
       )}
-      <Button type="submit" form="intake-enroll" loading={pending} disabled={submitDisabled(model)}>
-        {step === "contract" || (step === "pedagogy" && existingContract) ? (
-          <Check />
-        ) : (
-          <ArrowRight />
-        )}
-        {step === "pedagogy" && existingContract ? "Concluir cadastro" : submitLabel(step)}
-      </Button>
     </>
   );
 }

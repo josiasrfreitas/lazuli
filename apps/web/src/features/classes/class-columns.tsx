@@ -18,6 +18,8 @@ const COLUMN_WIDTHS = {
   schedule: "standard",
   occupancy: "narrow",
 } as const satisfies Record<string, NonNullable<DataTableColumn<ClassRow>["width"]>>;
+const WIDE_STAGE_LENGTH = 24;
+const MEDIUM_STAGE_LENGTH = 16;
 
 export function classColumns(
   params: ClassListParams,
@@ -28,20 +30,13 @@ export function classColumns(
     0,
     ...rows.map((row) => (row.sharedStage?.name ?? "Individual").length),
   );
-  const stageWidth = longestStage > 24 ? "wide" : longestStage > 16 ? "medium" : "standard";
+  const stageWidth = classStageWidth(longestStage);
   return [
     {
       id: "code",
       header: "Turma",
       width: COLUMN_WIDTHS.code,
-      cell: (row: ClassRow) => (
-        <Link
-          className="whitespace-nowrap font-medium text-primary underline-offset-2 hover:underline focus-visible:shadow-focus"
-          href={`/turmas/${row.id}?voltar=${encodeURIComponent(back)}`}
-        >
-          {row.portalClassName}
-        </Link>
-      ),
+      cell: (row: ClassRow) => <ClassCodeLink row={row} back={back} />,
     },
     {
       id: "type",
@@ -75,6 +70,22 @@ export function classColumns(
       cell: occupancyCell,
     },
   ];
+}
+
+function classStageWidth(length: number): "wide" | "medium" | "standard" {
+  if (length > WIDE_STAGE_LENGTH) return "wide";
+  return length > MEDIUM_STAGE_LENGTH ? "medium" : "standard";
+}
+
+function ClassCodeLink({ row, back }: { row: ClassRow; back: string }): ReactElement {
+  return (
+    <Link
+      className="whitespace-nowrap font-medium text-primary underline-offset-2 hover:underline focus-visible:shadow-focus"
+      href={`/turmas/${row.id}?voltar=${encodeURIComponent(back)}`}
+    >
+      {row.portalClassName}
+    </Link>
+  );
 }
 
 function scheduleCell(row: ClassRow): ReactElement {

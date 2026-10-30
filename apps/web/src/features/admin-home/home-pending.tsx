@@ -112,20 +112,18 @@ type PendingGroups = {
 };
 
 function pendingGroups(data: HomeData | undefined): PendingGroups {
+  const groups = data?.groups ?? [];
+  const finance = Boolean(data?.canViewFinance);
   return {
-    health: data?.groups.find((item) => item.kind === "health"),
-    occurrences: data?.groups.find((item) => item.kind === "occurrences"),
-    group: data?.groups.find((item) => item.kind === "coverage"),
-    appointments: data?.groups.find((item) => item.kind === "appointments"),
-    renewals: data?.canViewFinance
-      ? data.groups.find((item) => item.kind === "renewals")
-      : undefined,
-    placement: data?.groups.find((item) => item.kind === "placement"),
-    contracts: data?.canViewFinance
-      ? data.groups.find((item) => item.kind === "contracts")
-      : undefined,
-    students: data?.groups.find((item) => item.kind === "students"),
-    documents: data?.groups.find((item) => item.kind === "documents"),
+    health: groups.find((item) => item.kind === "health"),
+    occurrences: groups.find((item) => item.kind === "occurrences"),
+    group: groups.find((item) => item.kind === "coverage"),
+    appointments: groups.find((item) => item.kind === "appointments"),
+    renewals: finance ? groups.find((item) => item.kind === "renewals") : undefined,
+    placement: groups.find((item) => item.kind === "placement"),
+    contracts: finance ? groups.find((item) => item.kind === "contracts") : undefined,
+    students: groups.find((item) => item.kind === "students"),
+    documents: groups.find((item) => item.kind === "documents"),
   };
 }
 
@@ -142,16 +140,18 @@ function PendingActionRows({
   groups: PendingGroups;
   teachers: PendingLessonState["teachers"];
 }): ReactElement {
+  const today = data?.today ?? "";
+  const finance = Boolean(data?.canViewFinance);
   return (
     <>
       {hasFinance && business && <PendingFinance business={business} />}
       <PendingOccurrences group={groups.occurrences} />
       <PendingOccurrences group={groups.health} kind="health" />
-      <PendingCoverage group={groups.group} today={data?.today ?? ""} />
-      {data?.canViewFinance && <PendingRenewals group={groups.renewals} today={data.today} />}
-      <PendingAppointments group={groups.appointments} today={data?.today ?? ""} />
-      <PendingPlacement group={groups.placement} today={data?.today ?? ""} />
-      {data?.canViewFinance && <PendingStudents group={groups.contracts} kind="contracts" />}
+      <PendingCoverage group={groups.group} today={today} />
+      {finance && <PendingRenewals group={groups.renewals} today={today} />}
+      <PendingAppointments group={groups.appointments} today={today} />
+      <PendingPlacement group={groups.placement} today={today} />
+      {finance && <PendingStudents group={groups.contracts} kind="contracts" />}
       <PendingStudents group={groups.students} />
       <PendingStudents group={groups.documents} kind="documents" />
       <PendingLessons teachers={teachers} />
@@ -241,18 +241,17 @@ function pendingIsEmpty({
   | "lessons"
 >): boolean {
   const totals = [
-    group?.total,
-    hasFinance,
-    placement?.total,
-    students?.total,
-    documents?.total,
-    contracts?.total,
-    renewals?.total,
-    health?.total,
-    occurrences?.total,
-    appointments?.total,
-    appointments?.historyTotal,
-  ];
+    group,
+    placement,
+    students,
+    documents,
+    contracts,
+    renewals,
+    health,
+    occurrences,
+    appointments,
+  ].map((item) => item?.total);
+  totals.push(appointments?.historyTotal, Number(hasFinance));
   return !totals.some(Boolean) && lessons.success && lessons.teachers.length === 0;
 }
 

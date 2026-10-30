@@ -60,19 +60,7 @@ function StudentsSummary({
   total: number;
   kind: "students" | "contracts" | "documents";
 }): ReactElement {
-  const Icon = kind === "contracts" ? FileText : kind === "documents" ? FolderOpen : UserRoundPlus;
-  const title =
-    kind === "contracts"
-      ? "Criar primeiro contrato"
-      : kind === "documents"
-        ? "Aluno com anexos cadastrais ausentes ou incompletos"
-        : "Novos alunos aguardando turma";
-  const detail =
-    kind === "contracts"
-      ? "sem contrato"
-      : kind === "documents"
-        ? "com anexos a completar"
-        : "primeira turma a definir";
+  const { Icon, title, detail } = STUDENT_SUMMARIES[kind];
   return (
     <>
       <span className={styles.icon}>
@@ -90,6 +78,20 @@ function StudentsSummary({
     </>
   );
 }
+
+const STUDENT_SUMMARIES = {
+  contracts: { Icon: FileText, title: "Criar primeiro contrato", detail: "sem contrato" },
+  documents: {
+    Icon: FolderOpen,
+    title: "Aluno com anexos cadastrais ausentes ou incompletos",
+    detail: "com anexos a completar",
+  },
+  students: {
+    Icon: UserRoundPlus,
+    title: "Novos alunos aguardando turma",
+    detail: "primeira turma a definir",
+  },
+} as const;
 
 function StudentsCases({
   group,

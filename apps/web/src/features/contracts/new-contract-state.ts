@@ -71,7 +71,7 @@ const MATERIAL_KEYS: Record<string, keyof ContractFields> = {
   priceOverrideCents: "materialCustomPrice",
 };
 
-function assignMaterialIssue(errors: Errors, property: string, message: string): void {
+function assignMaterialIssue(errors: Errors, ...[property, message]: [string, string]): void {
   const key = MATERIAL_KEYS[property] ?? "materialTotal";
   errors[key] = property === "expectedTotalCents" ? "Aguarde o preço do material." : message;
 }
@@ -190,8 +190,7 @@ function clearedErrors(
 
 export function useContractFormState(
   open: boolean,
-  initialFields = emptyContractFields,
-  suggestAgreementDate = true,
+  ...[initialFields = emptyContractFields, suggestAgreementDate = true]: [ContractFields?, boolean?]
 ): ContractFormState {
   const [fields, setFields] = useState<ContractFields>(initialFields);
   useAgreementDate(open && suggestAgreementDate, setFields);

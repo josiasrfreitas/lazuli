@@ -33,36 +33,14 @@ type Props = {
 
 export function ClassRoster({ rows, leads, board, ended, onAction, tools }: Props): ReactElement {
   const pending = rows.filter((row) => row.confirmation === "PENDING");
-  const confirmed = rows.filter(isConfirmed);
+  const confirmed = rows.filter((row) => isConfirmed(row));
   const following = rows.filter(
     (row) => row.confirmation === "CHANGING" || row.confirmation === "LEAVING",
   );
   return (
     <div className={styles.layout}>
       <section className={styles.students} aria-label="Continuidade dos alunos">
-        <div className={styles.heading}>
-          <h3>
-            Alunos da turma <span>{rows.length}</span>
-          </h3>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  aria-label="Sobre a confirmação de continuidade"
-                />
-              }
-            >
-              <Info aria-hidden="true" />
-            </TooltipTrigger>
-            <TooltipContent>
-              {confirmationExplanation} Pré-confirmados têm contrato cobrindo os três primeiros
-              meses deste período.
-            </TooltipContent>
-          </Tooltip>
-          <div className={styles.tools}>{tools}</div>
-        </div>
+        <RosterHeading count={rows.length} tools={tools} />
         <StudentGroup title="A confirmar" rows={pending} ended={ended} onAction={onAction} />
         <StudentGroup title="Confirmados" rows={confirmed} ended={ended} onAction={onAction} />
         <StudentGroup
@@ -71,7 +49,7 @@ export function ClassRoster({ rows, leads, board, ended, onAction, tools }: Prop
           ended={ended}
           onAction={onAction}
         />
-        {!rows.length && (
+        {rows.length === 0 && (
           <div className={styles.empty}>
             <p>A turma ainda não tem alunos.</p>
             <Button
@@ -90,6 +68,34 @@ export function ClassRoster({ rows, leads, board, ended, onAction, tools }: Prop
   );
 }
 
+function RosterHeading({ count, tools }: { count: number; tools: ReactNode }): ReactElement {
+  return (
+    <div className={styles.heading}>
+      <h3>
+        Alunos da turma <span>{count}</span>
+      </h3>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Sobre a confirmação de continuidade"
+            />
+          }
+        >
+          <Info aria-hidden="true" />
+        </TooltipTrigger>
+        <TooltipContent>
+          {confirmationExplanation} Pré-confirmados têm contrato cobrindo os três primeiros meses
+          deste período.
+        </TooltipContent>
+      </Tooltip>
+      <div className={styles.tools}>{tools}</div>
+    </div>
+  );
+}
+
 function StudentGroup({
   title,
   rows,
@@ -101,7 +107,7 @@ function StudentGroup({
   ended: boolean;
   onAction: Props["onAction"];
 }): ReactElement | null {
-  if (!rows.length) return null;
+  if (rows.length === 0) return null;
   return (
     <section className={styles.group} aria-label={title}>
       <h4>
@@ -190,9 +196,7 @@ function InterestedLeads({ leads, board }: Pick<Props, "leads" | "board">): Reac
           Leads interessados <span>{leads.length}</span>
         </h3>
       </div>
-      {!leads.length ? (
-        <p className={styles.emptyNote}>Nenhum interesse vinculado a esta turma.</p>
-      ) : (
+      {leads.length > 0 ? (
         <>
           <p className={styles.emptyNote}>
             {current
@@ -218,6 +222,8 @@ function InterestedLeads({ leads, board }: Pick<Props, "leads" | "board">): Reac
             ))}
           </ul>
         </>
+      ) : (
+        <p className={styles.emptyNote}>Nenhum interesse vinculado a esta turma.</p>
       )}
     </section>
   );
