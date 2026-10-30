@@ -3,6 +3,8 @@ import type { FinanceInstallmentRow, PaymentOperationInput } from "@lazuli/valid
 import { formatDateOnlyBR } from "~/lib/format";
 import { parseDateBR } from "~/lib/masks";
 
+const MAX_DATABASE_INSTALLMENTS = 2_147_483_647;
+
 export type PreviewRow = RouterOutputs["finance"]["previewPayments"][number];
 export type DraftItem = {
   row: FinanceInstallmentRow;
@@ -30,6 +32,14 @@ export type DraftAction =
   | { type: "method"; value: PaymentDraft["method"]; externalFinancing?: boolean };
 
 export function paymentDraftReducer(state: PaymentDraft, action: DraftAction): PaymentDraft {
+  if (action.type === "add") return addDraftItem(state, action);
+  return updateDraft(state, action);
+}
+
+function updateDraft(
+  state: PaymentDraft,
+  action: Exclude<DraftAction, { type: "add" }>,
+): PaymentDraft {
   switch (action.type) {
     case "date": {
       return { ...state, date: action.value };
@@ -63,25 +73,23 @@ export function paymentDraftReducer(state: PaymentDraft, action: DraftAction): P
       };
     }
     case "amount": {
-      return {
-        ...state,
-        items: state.items.map((item) =>
-          item.row.installmentId === action.id ? { ...item, amount: action.value } : item,
-        ),
-      };
+      return updateDraftItem(state, { id: action.id, changes: { amount: action.value } });
     }
     case "split": {
-      return {
-        ...state,
-        items: state.items.map((item) =>
-          item.row.installmentId === action.id ? { ...item, receiptId: action.receiptId } : item,
-        ),
-      };
-    }
-    case "add": {
-      return addDraftItem(state, action);
+      return updateDraftItem(state, { id: action.id, changes: { receiptId: action.receiptId } });
     }
   }
+}
+function updateDraftItem(
+  state: PaymentDraft,
+  input: { id: string; changes: Partial<Pick<DraftItem, "amount" | "receiptId">> },
+): PaymentDraft {
+  return {
+    ...state,
+    items: state.items.map((item) =>
+      item.row.installmentId === input.id ? { ...item, ...input.changes } : item,
+    ),
+  };
 }
 function addDraftItem(
   state: PaymentDraft,
@@ -157,16 +165,22 @@ export function paymentDraftError(draft: PaymentDraft, preview: PreviewRow[]): s
     if (error) return error;
   }
   for (const receipt of draftReceipts(draft, preview)) {
-    if (
-      receipt.externalInstallments !== undefined &&
-      (!Number.isInteger(receipt.externalInstallments) ||
-        receipt.externalInstallments < 1 ||
-        receipt.externalInstallments > 2147483647)
-    )
-      return "Informe uma quantidade válida de parcelas no banco.";
-    if (receipt.amountCents !== receipt.allocations.reduce((sum, row) => sum + row.amountCents, 0))
-      return "Confira o total recebido: deve coincidir com a soma das parcelas.";
+    const error = receiptError(receipt);
+    if (error) return error;
   }
+  return null;
+}
+
+function receiptError(receipt: PaymentOperationInput["receipts"][number]): string | null {
+  if (
+    receipt.externalInstallments !== undefined &&
+    (!Number.isInteger(receipt.externalInstallments) ||
+      receipt.externalInstallments < 1 ||
+      receipt.externalInstallments > MAX_DATABASE_INSTALLMENTS)
+  )
+    return "Informe uma quantidade válida de parcelas no banco.";
+  if (receipt.amountCents !== receipt.allocations.reduce((sum, row) => sum + row.amountCents, 0))
+    return "Confira o total recebido: deve coincidir com a soma das parcelas.";
   return null;
 }
 

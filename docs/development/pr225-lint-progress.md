@@ -1,6 +1,24 @@
 # PR #225 — lint progress
 
-> **LOCKED BATCH 11: 50 web errors across 8 files.** Source snapshot: `/tmp/lazuli-pr225-lint-after-batch10.json`; latest remaining: 199. Completion gate: targeted web lint, web typecheck/relevant tests, serial root lint, and zero-new-error inventory.
+> **LOCKED BATCH 12: 50 errors across the 13 files below.** Source snapshot: `/tmp/lazuli-pr225-lint-after-batch11.json`; latest remaining: 149. Completion gate: targeted lint, affected typechecks, serial root lint, and zero-new-error inventory.
+
+| Batch 12 file                                                        | Errors |
+| -------------------------------------------------------------------- | -----: |
+| `packages/api/src/finance/internal/student-materials.ts`             |     11 |
+| `packages/domain/src/student-health-pending.ts`                      |      6 |
+| `packages/domain/src/material-pricing.ts`                            |      5 |
+| `packages/domain/src/monthly-contract.ts`                            |      4 |
+| `packages/domain/src/payment-settlement.ts`                          |      2 |
+| `packages/domain/src/period-confirmation.ts`                         |      1 |
+| `packages/ui/src/components/stepper.tsx`                             |      3 |
+| `packages/ui/src/components/file-upload.tsx`                         |      1 |
+| `apps/worker/src/index.ts`                                           |      1 |
+| `apps/web/src/features/contracts/contract-scholarship-fields.tsx`    |      4 |
+| `apps/web/src/features/contracts/material-agreed-price.tsx`          |      4 |
+| `apps/web/src/features/contracts/contract-renewal-dialog.tsx`        |      4 |
+| `apps/web/src/features/students/profile/student-pending-actions.tsx` |      4 |
+
+Batch 11 closed: all eight locked web files report zero lint errors. Web typecheck, 26 focused unit tests, and the production build pass. The sequential web inventory shows 199 → 149 errors, exactly 50 removed and zero added; snapshot: `/tmp/lazuli-pr225-lint-after-batch11.json`. The dialog CSS compiled in the build. Browser inspection remains unavailable as noted in earlier batches.
 
 | Batch 11 file                                                   | Errors |
 | --------------------------------------------------------------- | -----: |

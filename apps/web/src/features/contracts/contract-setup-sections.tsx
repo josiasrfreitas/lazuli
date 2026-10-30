@@ -28,6 +28,8 @@ import {
 import { setupPlanLabel, type SetupStep } from "./contract-setup-model";
 import styles from "./contract-setup.module.css";
 
+const CENTS_PER_REAL = 100;
+
 export function SetupParties(
   props: FormProps & {
     studentKnown: boolean;
@@ -74,8 +76,6 @@ export function SetupParties(
 export function SetupTuition(
   props: FormProps & { allowEnrollmentFee?: boolean | undefined },
 ): ReactElement {
-  const { fields, errors, change, preview } = props;
-  const special = fields.paymentPlan === "special";
   return (
     <div className={styles.fields}>
       <div className={styles.shortFields}>
@@ -83,60 +83,71 @@ export function SetupTuition(
         {props.allowEnrollmentFee !== false && <EnrollmentFeeField {...props} />}
       </div>
       <SetupScholarship {...props} />
-      {fields.scholarshipMode !== "FULL" && (
-        <FormSection title="Pagamento das mensalidades">
-          <SegmentedControl
-            size="sm"
-            wrap
-            value={special ? "special" : "common"}
-            onValueChange={(value) => {
-              if (value) change("paymentPlan", value);
-            }}
-            aria-label="Parcelamento das mensalidades"
-          >
-            <SegmentedControlItem value="common">Uma parcela por mês</SegmentedControlItem>
-            <SegmentedControlItem value="special">Definir quantidade</SegmentedControlItem>
-          </SegmentedControl>
-          {special && (
-            <Field name="installmentCount" className="max-w-48">
-              <Label>Quantidade de parcelas</Label>
-              <Input
-                size="sm"
-                name="installmentCount"
-                autoComplete="off"
-                placeholder="Ex.: 6"
-                inputMode="numeric"
-                value={fields.installmentCount}
-                invalid={Boolean(errors.installmentCount)}
-                onChange={(event) => change("installmentCount", event.target.value)}
-              />
-              {errors.installmentCount && <FieldError match>{errors.installmentCount}</FieldError>}
-            </Field>
-          )}
-          <p className={styles.help}>
-            {special
-              ? "O total é dividido nessa quantidade de parcelas mensais."
-              : "As parcelas acompanham a duração do contrato."}
-          </p>
-        </FormSection>
-      )}
-      {preview && (
-        <div className={styles.tuitionTotal} aria-live="polite">
-          <strong>{setupPlanLabel(preview)}</strong>
-          <span>
-            {preview.installments.length
-              ? `Total de mensalidades ${money(preview.principalAmountCents)}`
-              : "Nenhuma cobrança de mensalidade será criada."}
-          </span>
-          {preview.installments.length > 0 && (
-            <span className={styles.help}>
-              De {formatDateOnlyBR(preview.installments[0]?.dueDate)} a{" "}
-              {formatDateOnlyBR(preview.installments.at(-1)?.dueDate)}
-            </span>
-          )}
-        </div>
-      )}
+      <TuitionPaymentPlan {...props} />
+      <TuitionPreview preview={props.preview} />
       <SchoolConditions {...props} />
+    </div>
+  );
+}
+
+function TuitionPaymentPlan({ fields, errors, change }: FormProps): ReactElement | null {
+  if (fields.scholarshipMode === "FULL") return null;
+  const special = fields.paymentPlan === "special";
+  return (
+    <FormSection title="Pagamento das mensalidades">
+      <SegmentedControl
+        size="sm"
+        wrap
+        value={special ? "special" : "common"}
+        onValueChange={(value) => {
+          if (value) change("paymentPlan", value);
+        }}
+        aria-label="Parcelamento das mensalidades"
+      >
+        <SegmentedControlItem value="common">Uma parcela por mês</SegmentedControlItem>
+        <SegmentedControlItem value="special">Definir quantidade</SegmentedControlItem>
+      </SegmentedControl>
+      {special && (
+        <Field name="installmentCount" className="max-w-48">
+          <Label>Quantidade de parcelas</Label>
+          <Input
+            size="sm"
+            name="installmentCount"
+            autoComplete="off"
+            placeholder="Ex.: 6"
+            inputMode="numeric"
+            value={fields.installmentCount}
+            invalid={Boolean(errors.installmentCount)}
+            onChange={(event) => change("installmentCount", event.target.value)}
+          />
+          {errors.installmentCount && <FieldError match>{errors.installmentCount}</FieldError>}
+        </Field>
+      )}
+      <p className={styles.help}>
+        {special
+          ? "O total é dividido nessa quantidade de parcelas mensais."
+          : "As parcelas acompanham a duração do contrato."}
+      </p>
+    </FormSection>
+  );
+}
+
+function TuitionPreview({ preview }: Pick<FormProps, "preview">): ReactElement | null {
+  if (!preview) return null;
+  return (
+    <div className={styles.tuitionTotal} aria-live="polite">
+      <strong>{setupPlanLabel(preview)}</strong>
+      <span>
+        {preview.installments.length > 0
+          ? `Total de mensalidades ${money(preview.principalAmountCents)}`
+          : "Nenhuma cobrança de mensalidade será criada."}
+      </span>
+      {preview.installments.length > 0 && (
+        <span className={styles.help}>
+          De {formatDateOnlyBR(preview.installments[0]?.dueDate)} a{" "}
+          {formatDateOnlyBR(preview.installments.at(-1)?.dueDate)}
+        </span>
+      )}
     </div>
   );
 }
@@ -191,125 +202,171 @@ export function SetupReview({
   onEdit: (step: SetupStep) => void;
   billingFirstDueDate?: string | undefined;
 }): ReactElement {
-  const enrollmentFee = Math.round(Number(fields.enrollmentFee.replace(",", ".")) * 100);
+  return (
+    <div className={styles.fields}>
+      <ReviewParties fields={fields} onEdit={onEdit} />
+      <ReviewTuition fields={fields} preview={preview} onEdit={onEdit} />
+      <ReviewMaterial
+        fields={fields}
+        material={material}
+        onEdit={onEdit}
+        billingFirstDueDate={billingFirstDueDate}
+      />
+      <p className={styles.help}>
+        Ao concluir, as cobranças serão criadas. Registre os recebimentos quando forem pagos.
+      </p>
+    </div>
+  );
+}
+
+function ReviewParties({
+  fields,
+  onEdit,
+}: {
+  fields: FormProps["fields"];
+  onEdit: (step: SetupStep) => void;
+}): ReactElement {
+  return (
+    <FormSection
+      title="Responsável e período"
+      action={
+        <Button type="button" variant="text" size="inline" onClick={() => onEdit("parties")}>
+          Editar
+        </Button>
+      }
+    >
+      <dl className={styles.reviewList}>
+        <div>
+          <dt>Aluno</dt>
+          <dd>{fields.studentMode === "create" ? fields.studentDraftName : fields.studentName}</dd>
+        </div>
+        <div>
+          <dt>Responsável financeiro</dt>
+          <dd>{fields.payerMode === "create" ? fields.payerName : fields.payerLabel}</dd>
+        </div>
+        <div>
+          <dt>Vigência</dt>
+          <dd>
+            {fields.firstDueDate} a {fields.endsOn}
+          </dd>
+        </div>
+        <div>
+          <dt>Acordo</dt>
+          <dd>{fields.agreedOn}</dd>
+        </div>
+      </dl>
+    </FormSection>
+  );
+}
+
+function ReviewTuition({
+  fields,
+  preview,
+  onEdit,
+}: Pick<FormProps, "fields" | "preview"> & { onEdit: (step: SetupStep) => void }): ReactElement {
+  const enrollmentFee = Math.round(Number(fields.enrollmentFee.replace(",", ".")) * CENTS_PER_REAL);
+  return (
+    <FormSection
+      title="Mensalidades"
+      action={
+        <Button type="button" variant="text" size="inline" onClick={() => onEdit("tuition")}>
+          Editar
+        </Button>
+      }
+    >
+      <div className={styles.reviewAmount}>
+        <strong>{setupPlanLabel(preview)}</strong>
+        {preview && <span>Total {money(preview.principalAmountCents)}</span>}
+      </div>
+      {fields.scholarshipMode !== "NONE" && (
+        <p className={styles.help}>
+          Bolsa de {fields.scholarshipMode === "FULL" ? "100" : fields.scholarshipPct}% ·{" "}
+          {fields.scholarshipAgreement}
+        </p>
+      )}
+      <p className={styles.help}>
+        {enrollmentFee > 0
+          ? `Taxa de matrícula ${money(enrollmentFee)} · vence em ${fields.agreedOn}`
+          : "Sem taxa de matrícula"}
+      </p>
+      <ReviewSchedule preview={preview} />
+    </FormSection>
+  );
+}
+
+function ReviewSchedule({ preview }: Pick<FormProps, "preview">): ReactElement | null {
+  if (!preview || preview.installments.length === 0) return null;
+  return (
+    <details className={styles.disclosure}>
+      <summary>Ver vencimentos</summary>
+      <table className={styles.calendar}>
+        <caption className="sr-only">Cobranças das mensalidades</caption>
+        <thead>
+          <tr>
+            <th scope="col">Parcela</th>
+            <th scope="col">Vencimento</th>
+            <th scope="col">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {preview.installments.map((row) => (
+            <tr key={row.sequenceNumber}>
+              <td>{row.sequenceNumber}</td>
+              <td>{formatDateOnlyBR(row.dueDate)}</td>
+              <td>{money(row.amountCents)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  );
+}
+
+function ReviewMaterial({
+  fields,
+  material,
+  onEdit,
+  billingFirstDueDate,
+}: {
+  fields: FormProps["fields"];
+  material: SetupMaterial;
+  onEdit: (step: SetupStep) => void;
+  billingFirstDueDate?: string | undefined;
+}): ReactElement {
   const stageIds = fields.materialStageIds.split(",");
   const books = stageIds
     .map((id) => material.stages.data?.find((stage) => stage.id === id)?.internalCode)
     .filter(Boolean);
   return (
-    <div className={styles.fields}>
-      <FormSection
-        title="Responsável e período"
-        action={
-          <Button type="button" variant="text" size="inline" onClick={() => onEdit("parties")}>
-            Editar
-          </Button>
-        }
-      >
-        <dl className={styles.reviewList}>
-          <div>
-            <dt>Aluno</dt>
-            <dd>
-              {fields.studentMode === "create" ? fields.studentDraftName : fields.studentName}
-            </dd>
-          </div>
-          <div>
-            <dt>Responsável financeiro</dt>
-            <dd>{fields.payerMode === "create" ? fields.payerName : fields.payerLabel}</dd>
-          </div>
-          <div>
-            <dt>Vigência</dt>
-            <dd>
-              {fields.firstDueDate} a {fields.endsOn}
-            </dd>
-          </div>
-          <div>
-            <dt>Acordo</dt>
-            <dd>{fields.agreedOn}</dd>
-          </div>
-        </dl>
-      </FormSection>
-      <FormSection
-        title="Mensalidades"
-        action={
-          <Button type="button" variant="text" size="inline" onClick={() => onEdit("tuition")}>
-            Editar
-          </Button>
-        }
-      >
-        <div className={styles.reviewAmount}>
-          <strong>{setupPlanLabel(preview)}</strong>
-          {preview && <span>Total {money(preview.principalAmountCents)}</span>}
-        </div>
-        {fields.scholarshipMode !== "NONE" && (
-          <p className={styles.help}>
-            Bolsa de {fields.scholarshipMode === "FULL" ? "100" : fields.scholarshipPct}% ·{" "}
-            {fields.scholarshipAgreement}
-          </p>
-        )}
-        <p className={styles.help}>
-          {enrollmentFee > 0
-            ? `Taxa de matrícula ${money(enrollmentFee)} · vence em ${fields.agreedOn}`
-            : "Sem taxa de matrícula"}
-        </p>
-        {preview && preview.installments.length > 0 && (
-          <details className={styles.disclosure}>
-            <summary>Ver vencimentos</summary>
-            <table className={styles.calendar}>
-              <caption className="sr-only">Cobranças das mensalidades</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Parcela</th>
-                  <th scope="col">Vencimento</th>
-                  <th scope="col">Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {preview.installments.map((row) => (
-                  <tr key={row.sequenceNumber}>
-                    <td>{row.sequenceNumber}</td>
-                    <td>{formatDateOnlyBR(row.dueDate)}</td>
-                    <td>{money(row.amountCents)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </details>
-        )}
-      </FormSection>
-      <FormSection
-        title="Material"
-        action={
-          <Button type="button" variant="text" size="inline" onClick={() => onEdit("material")}>
-            Editar
-          </Button>
-        }
-      >
-        {fields.materialPayment === "NONE" ? (
-          <p className={styles.help}>Sem nova aquisição.</p>
-        ) : (
-          <>
-            <p className={styles.bookNames}>{books.join(" · ") || "Livros a definir"}</p>
-            <MaterialQuoteSummary fields={fields} material={material} />
-            {fields.materialScholarshipMode !== "NONE" && (
-              <p className={styles.help}>
-                Bolsa de{" "}
-                {fields.materialScholarshipMode === "FULL" ? "100" : fields.materialScholarshipPct}%
-                · {fields.materialScholarshipAgreement}
-              </p>
-            )}
-            {material.effective && material.effective.receivableCents > 0 && (
-              <p className={styles.help}>
-                Uma cobrança de {money(material.effective.receivableCents)} para a escola, com
-                vencimento em {billingFirstDueDate ?? fields.firstDueDate}.
-              </p>
-            )}
-          </>
-        )}
-      </FormSection>
-      <p className={styles.help}>
-        Ao concluir, as cobranças serão criadas. Registre os recebimentos quando forem pagos.
-      </p>
-    </div>
+    <FormSection
+      title="Material"
+      action={
+        <Button type="button" variant="text" size="inline" onClick={() => onEdit("material")}>
+          Editar
+        </Button>
+      }
+    >
+      {fields.materialPayment === "NONE" ? (
+        <p className={styles.help}>Sem nova aquisição.</p>
+      ) : (
+        <>
+          <p className={styles.bookNames}>{books.join(" · ") || "Livros a definir"}</p>
+          <MaterialQuoteSummary fields={fields} material={material} />
+          {fields.materialScholarshipMode !== "NONE" && (
+            <p className={styles.help}>
+              Bolsa de{" "}
+              {fields.materialScholarshipMode === "FULL" ? "100" : fields.materialScholarshipPct}% ·{" "}
+              {fields.materialScholarshipAgreement}
+            </p>
+          )}
+          {material.effective && material.effective.receivableCents > 0 && (
+            <p className={styles.help}>
+              Uma cobrança de {money(material.effective.receivableCents)} para a escola, com
+              vencimento em {billingFirstDueDate ?? fields.firstDueDate}.
+            </p>
+          )}
+        </>
+      )}
+    </FormSection>
   );
 }

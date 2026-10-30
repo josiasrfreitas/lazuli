@@ -7,6 +7,7 @@ import styles from "./contract-invoice.module.css";
 
 export type FinanceContract = RouterOutputs["finance"]["studentSummary"]["contracts"][number];
 export type FinanceSchedule = FinanceContract["schedules"][number];
+const FULL_SCHOLARSHIP_PCT = 100;
 
 export function ContractInvoice({ contract }: { contract: FinanceContract }): ReactElement {
   const rows = [...contract.schedules].toSorted(
@@ -25,19 +26,7 @@ export function ContractInvoice({ contract }: { contract: FinanceContract }): Re
         <Meta label="Pagador">{contract.payerName}</Meta>
         <Meta label="Vencimento">{tuition ? `Todo dia ${tuition.dueDay}` : "—"}</Meta>
       </dl>
-      {contract.scholarshipPct > 0 && (
-        <details className={styles.scholarship}>
-          <summary>
-            {contract.scholarshipPct === 100
-              ? "Bolsa integral"
-              : `Bolsa de ${contract.scholarshipPct.toLocaleString("pt-BR")}%`}
-            {" · Mensalidade "}
-            {money(contract.monthlyAmountCents ?? 0)}
-          </summary>
-          <p>Antes da bolsa: {money(contract.baseMonthlyAmountCents ?? 0)}</p>
-          <p className="whitespace-pre-wrap">{contract.scholarshipAgreement}</p>
-        </details>
-      )}
+      <TuitionScholarship contract={contract} />
       <div className={styles.itemsHeader} aria-hidden="true">
         <span>Item</span>
         <span>Pagamento</span>
@@ -56,64 +45,110 @@ export function ContractInvoice({ contract }: { contract: FinanceContract }): Re
   );
 }
 
+function TuitionScholarship({ contract }: { contract: FinanceContract }): ReactElement | null {
+  if (contract.scholarshipPct <= 0) return null;
+  return (
+    <details className={styles.scholarship}>
+      <summary>
+        {contract.scholarshipPct === FULL_SCHOLARSHIP_PCT
+          ? "Bolsa integral"
+          : `Bolsa de ${contract.scholarshipPct.toLocaleString("pt-BR")}%`}
+        {" · Mensalidade "}
+        {money(contract.monthlyAmountCents ?? 0)}
+      </summary>
+      <p>Antes da bolsa: {money(contract.baseMonthlyAmountCents ?? 0)}</p>
+      <p className="whitespace-pre-wrap">{contract.scholarshipAgreement}</p>
+    </details>
+  );
+}
+
 function InvoiceItem({ item }: { item: FinanceSchedule }): ReactElement {
-  const fullScholarship = item.material?.scholarshipPct === 100;
-  const card = item.material?.payment === "INSTALLMENTS" && !fullScholarship;
-  const status = fullScholarship
-    ? { label: "Sem cobrança", variant: "neutral" as const }
-    : invoiceItemStatus(item.collection);
   return (
     <li className={styles.item}>
-      <div className={styles.description}>
-        <h4>{invoiceItemName(item)}</h4>
-        <div className={styles.itemStatus}>
-          <Badge variant={status.variant}>{status.label}</Badge>
-          {item.kind === "TUITION" && item.collection.paidCount > 0 && (
-            <span>
-              {item.collection.paidCount}/{item.collection.count} pagas
-            </span>
-          )}
-          {item.collection.waivedCount > 0 && (
-            <span>{item.collection.waivedCount} dispensadas</span>
-          )}
-        </div>
-        {item.material && item.material.items.length > 1 && (
-          <p>{item.material.items.map((book) => book.name).join(" · ")}</p>
-        )}
-        {item.material && item.material.scholarshipPct > 0 && (
-          <details className={styles.scholarship}>
-            <summary>
-              Bolsa de material: {item.material.scholarshipPct.toLocaleString("pt-BR")}%
-            </summary>
-            <p className="whitespace-pre-wrap">{item.material.scholarshipAgreement}</p>
-          </details>
-        )}
-      </div>
-      <div className={styles.terms}>
-        <p>
-          {paymentTerms(item)}
-          {card ? " no cartão" : ""}
-        </p>
-        {card && <span>Repasse integral em até 24h</span>}
-        {item.kind === "MATERIAL" &&
-          !fullScholarship &&
-          item.firstDueDate &&
-          item.collection.balanceCents > 0 && (
-            <span>Previsto em {formatDateOnlyBR(item.firstDueDate)}</span>
-          )}
-        {item.material && (item.material.cardFeeCents ?? 0) > 0 && (
+      <InvoiceDescription item={item} />
+      <InvoiceTerms item={item} />
+      <InvoiceValue item={item} />
+    </li>
+  );
+}
+
+function InvoiceDescription({ item }: { item: FinanceSchedule }): ReactElement {
+  const status =
+    item.material?.scholarshipPct === FULL_SCHOLARSHIP_PCT
+      ? { label: "Sem cobrança", variant: "neutral" as const }
+      : invoiceItemStatus(item.collection);
+  return (
+    <div className={styles.description}>
+      <h4>{invoiceItemName(item)}</h4>
+      <div className={styles.itemStatus}>
+        <Badge variant={status.variant}>{status.label}</Badge>
+        {item.kind === "TUITION" && item.collection.paidCount > 0 && (
           <span>
-            Taxa {money(item.material.cardFeeCents ?? 0)} · líquido {money(item.totalCents)}
+            {item.collection.paidCount}/{item.collection.count} pagas
           </span>
         )}
+        {item.collection.waivedCount > 0 && <span>{item.collection.waivedCount} dispensadas</span>}
       </div>
-      <div className={styles.value}>
-        <p>{money(itemAmount(item))}</p>
-        {item.collection.receivedCents > 0 && item.collection.balanceCents > 0 && (
-          <span>Saldo {money(item.collection.balanceCents)}</span>
-        )}
-      </div>
-    </li>
+      {item.material && item.material.items.length > 1 && (
+        <p>{item.material.items.map((book) => book.name).join(" · ")}</p>
+      )}
+      {item.material && item.material.scholarshipPct > 0 && (
+        <details className={styles.scholarship}>
+          <summary>
+            Bolsa de material: {item.material.scholarshipPct.toLocaleString("pt-BR")}%
+          </summary>
+          <p className="whitespace-pre-wrap">{item.material.scholarshipAgreement}</p>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function InvoiceTerms({ item }: { item: FinanceSchedule }): ReactElement {
+  const fullScholarship = item.material?.scholarshipPct === FULL_SCHOLARSHIP_PCT;
+  const card = item.material?.payment === "INSTALLMENTS" && !fullScholarship;
+  return (
+    <div className={styles.terms}>
+      <p>
+        {paymentTerms(item)}
+        {card ? " no cartão" : ""}
+      </p>
+      {card && <span>Repasse integral em até 24h</span>}
+      <MaterialDueDate item={item} fullScholarship={fullScholarship} />
+      <MaterialCardFee item={item} />
+    </div>
+  );
+}
+
+function MaterialDueDate({
+  item,
+  fullScholarship,
+}: {
+  item: FinanceSchedule;
+  fullScholarship: boolean;
+}): ReactElement | null {
+  if (item.kind !== "MATERIAL" || fullScholarship || !item.firstDueDate) return null;
+  if (item.collection.balanceCents <= 0) return null;
+  return <span>Previsto em {formatDateOnlyBR(item.firstDueDate)}</span>;
+}
+
+function MaterialCardFee({ item }: { item: FinanceSchedule }): ReactElement | null {
+  if (!item.material || (item.material.cardFeeCents ?? 0) <= 0) return null;
+  return (
+    <span>
+      Taxa {money(item.material.cardFeeCents ?? 0)} · líquido {money(item.totalCents)}
+    </span>
+  );
+}
+
+function InvoiceValue({ item }: { item: FinanceSchedule }): ReactElement {
+  return (
+    <div className={styles.value}>
+      <p>{money(itemAmount(item))}</p>
+      {item.collection.receivedCents > 0 && item.collection.balanceCents > 0 && (
+        <span>Saldo {money(item.collection.balanceCents)}</span>
+      )}
+    </div>
   );
 }
 
@@ -177,7 +212,8 @@ export function itemAmount(schedule: FinanceSchedule): number {
 }
 export function paymentTerms(schedule: FinanceSchedule): string {
   const materialValue = schedule.material;
-  if (materialValue?.scholarshipPct === 100) return "Bolsa integral · sem cobrança";
+  if (materialValue?.scholarshipPct === FULL_SCHOLARSHIP_PCT)
+    return "Bolsa integral · sem cobrança";
   if (typeof materialValue?.chargedAmountCents === "number")
     return materialValue.payment === "INSTALLMENTS"
       ? materialPaymentLabel(materialValue.chargedAmountCents, materialValue.quotedInstallments)

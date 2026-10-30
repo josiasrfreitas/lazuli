@@ -63,16 +63,22 @@
   }
 }
 
-.dialog.dialog,
-.dialog.dialog[data-starting-style],
-.dialog.dialog[data-ending-style] {
+.dialogScope :global([data-student-materials-dialog][data-student-materials-dialog]),
+.dialogScope :global([data-student-materials-dialog][data-starting-style]),
+.dialogScope :global([data-student-materials-dialog][data-ending-style]) {
   animation: none;
   transition: none;
   scale: 1;
   opacity: 1;
 }
-.backdrop.backdrop {
+.dialogScope :global([data-student-materials-backdrop][data-student-materials-backdrop]) {
   animation: none;
   transition: none;
   opacity: 1;
+}
+@media (min-width: 48rem) {
+  .dialogScope :global([data-student-materials-dialog][data-student-materials-dialog]) {
+    width: calc(100vw - 3rem);
+    max-width: 64rem;
+  }
 }

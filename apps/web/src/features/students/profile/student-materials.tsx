@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactElement } from "react";
+import { useState, type ComponentProps, type ReactElement } from "react";
 import type { RouterOutputs } from "@lazuli/api";
 import {
   Alert,
@@ -51,74 +51,128 @@ export function StudentMaterials({
   const dueDate =
     contract?.schedules.find((row) => row.kind === "TUITION")?.firstDueDate ?? contract?.startsOn;
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next, event) => {
-        if (!next && pending) {
-          event.cancel();
-          return;
-        }
-        setOpen(next);
-        if (!next) setAdding(false);
-      }}
-    >
+    <Dialog open={open} onOpenChange={materialOpenChange({ pending, setOpen, setAdding })}>
       <DialogTrigger render={<Button size="sm" variant="secondary" />}>
         <BookOpen aria-hidden="true" /> Material didático
       </DialogTrigger>
       <DialogPortal>
-        <DialogBackdrop className={styles.backdrop} />
-        <DialogContent
-          className={[styles.dialog, "md:w-[calc(100vw-3rem)] md:max-w-5xl"].join(" ")}
-          showCloseButton={!pending}
-        >
-          <DialogHeader>
-            <DialogTitle>{adding ? "Adquirir material" : "Material didático"}</DialogTitle>
-            <DialogDescription>{studentName}</DialogDescription>
-          </DialogHeader>
-          {adding && contract && dueDate ? (
-            <AddContractMaterial
-              contractId={contract.id}
-              firstDueDate={dueDate}
+        <div className={styles.dialogScope}>
+          <DialogBackdrop data-student-materials-backdrop="" />
+          <DialogContent data-student-materials-dialog="" showCloseButton={!pending}>
+            <MaterialContents
               studentId={studentId}
-              suggestedStageId={query.data?.suggestedStageId ?? null}
+              studentName={studentName}
+              adding={adding}
+              contract={contract}
+              dueDate={dueDate}
+              data={query.data}
+              error={query.isError}
+              onRetry={() => void query.refetch()}
               onPendingChange={setPending}
-              onClose={() => setAdding(false)}
-              onSaved={() => {
-                void utils.finance.invalidate();
-              }}
+              onAddingChange={setAdding}
+              onSaved={() => void utils.finance.invalidate()}
             />
-          ) : (
-            <>
-              <DialogBody>
-                <div className={styles.body}>
-                  {query.isError ? (
-                    <Alert variant="destructive">
-                      Não foi possível carregar os materiais.{" "}
-                      <Button variant="link" size="inline" onClick={() => void query.refetch()}>
-                        Tentar novamente
-                      </Button>
-                    </Alert>
-                  ) : query.data ? (
-                    <MaterialDetails data={query.data} />
-                  ) : (
-                    <MaterialLoading />
-                  )}
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <DialogClose render={<Button variant="secondary" size="sm" />}>Fechar</DialogClose>
-                {contract && dueDate && (
-                  <Button size="sm" onClick={() => setAdding(true)} disabled={!query.data}>
-                    <Plus aria-hidden="true" /> Adquirir material
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
+          </DialogContent>
+        </div>
       </DialogPortal>
     </Dialog>
   );
+}
+
+function materialOpenChange(input: {
+  pending: boolean;
+  setOpen: (open: boolean) => void;
+  setAdding: (adding: boolean) => void;
+}): NonNullable<ComponentProps<typeof Dialog>["onOpenChange"]> {
+  return (next, event) => {
+    if (!next && input.pending) {
+      event.cancel();
+      return;
+    }
+    input.setOpen(next);
+    if (!next) input.setAdding(false);
+  };
+}
+
+type MaterialContentsProps = {
+  studentId: string;
+  studentName: string;
+  adding: boolean;
+  contract: ReturnType<typeof visibleFinanceContracts>[number] | undefined;
+  dueDate: string | null | undefined;
+  data: Materials | undefined;
+  error: boolean;
+  onRetry: () => void;
+  onPendingChange: (pending: boolean) => void;
+  onAddingChange: (adding: boolean) => void;
+  onSaved: () => void;
+};
+
+function MaterialContents(props: MaterialContentsProps): ReactElement {
+  const { adding, contract, dueDate, studentId, studentName, data } = props;
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{adding ? "Adquirir material" : "Material didático"}</DialogTitle>
+        <DialogDescription>{studentName}</DialogDescription>
+      </DialogHeader>
+      {adding && contract && dueDate ? (
+        <AddContractMaterial
+          contractId={contract.id}
+          firstDueDate={dueDate}
+          studentId={studentId}
+          suggestedStageId={data?.suggestedStageId ?? null}
+          onPendingChange={props.onPendingChange}
+          onClose={() => props.onAddingChange(false)}
+          onSaved={props.onSaved}
+        />
+      ) : (
+        <MaterialList {...props} />
+      )}
+    </>
+  );
+}
+
+function MaterialList(props: MaterialContentsProps): ReactElement {
+  const { contract, dueDate, data, error, onRetry, onAddingChange } = props;
+  return (
+    <>
+      <DialogBody>
+        <div className={styles.body}>
+          <MaterialQueryState data={data} error={error} onRetry={onRetry} />
+        </div>
+      </DialogBody>
+      <DialogFooter>
+        <DialogClose render={<Button variant="secondary" size="sm" />}>Fechar</DialogClose>
+        {contract && dueDate && (
+          <Button size="sm" onClick={() => onAddingChange(true)} disabled={!data}>
+            <Plus aria-hidden="true" /> Adquirir material
+          </Button>
+        )}
+      </DialogFooter>
+    </>
+  );
+}
+
+function MaterialQueryState({
+  data,
+  error,
+  onRetry,
+}: {
+  data: Materials | undefined;
+  error: boolean;
+  onRetry: () => void;
+}): ReactElement {
+  if (error)
+    return (
+      <Alert variant="destructive">
+        Não foi possível carregar os materiais.{" "}
+        <Button variant="link" size="inline" onClick={onRetry}>
+          Tentar novamente
+        </Button>
+      </Alert>
+    );
+  return data ? <MaterialDetails data={data} /> : <MaterialLoading />;
 }
 
 function MaterialDetails({ data }: { data: Materials }): ReactElement {
@@ -241,15 +295,7 @@ const acquisitionColumns: DataTableColumn<Acquisition>[] = [
     width: "wide",
     cell: (sale) => (
       <div className="grid gap-1">
-        <span>
-          {sale.chargedCents === 0
-            ? "Bolsa integral"
-            : sale.payment === "CASH"
-              ? "À vista"
-              : sale.installmentCount === 1
-                ? "Cartão · à vista"
-                : materialPaymentLabel(sale.chargedCents, sale.installmentCount)}
-        </span>
+        <span>{acquisitionTerms(sale)}</span>
         {sale.payment === "INSTALLMENTS" && sale.installmentCount > 1 && (
           <span className="text-caption text-muted-foreground">Parcelado por terceiros</span>
         )}
@@ -257,6 +303,13 @@ const acquisitionColumns: DataTableColumn<Acquisition>[] = [
     ),
   },
 ];
+
+function acquisitionTerms(sale: Acquisition): string {
+  if (sale.chargedCents === 0) return "Bolsa integral";
+  if (sale.payment === "CASH") return "À vista";
+  if (sale.installmentCount === 1) return "Cartão · à vista";
+  return materialPaymentLabel(sale.chargedCents, sale.installmentCount);
+}
 
 function MaterialLoading(): ReactElement {
   return (

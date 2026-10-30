@@ -37,94 +37,119 @@ type RowProps = {
   showIndividualProof: boolean;
   individualProofDisabled: boolean;
 };
+const MAX_DATABASE_INSTALLMENTS = 2_147_483_647;
+type Receipt = ReturnType<typeof draftReceipts>[number];
+
 export function PaymentGrid({ state }: { state: PaymentFormState }): ReactElement {
   return (
     <div
       className="scrollbar-subtle flex max-h-96 min-w-0 flex-col gap-3 overflow-y-auto lg:max-h-[min(32rem,calc(100dvh-22rem))]"
       aria-label="Cobranças do pagamento"
     >
-      {draftReceipts(state.draft, state.preview).map((receipt) => {
-        const items = state.draft.items.filter((item) => item.receiptId === receipt.commandId);
-        const hasGeneralProof = Boolean(state.proofs[receipt.commandId]?.file);
-        return (
-          <PaymentReceiptGroup
-            key={receipt.commandId}
-            items={items}
-            total={receipt.amountCents}
-            attachment={
-              <>
-                {state.draft.externalFinancing && (
-                  <ExternalInstallments receiptId={receipt.commandId} state={state} />
-                )}
-                {state.draft.method === "PIX" && (
-                  <details className="border-t border-border px-3 py-2 text-caption">
-                    <summary className="cursor-pointer text-muted-foreground">
-                      Pix feito por terceiro
-                      {state.draft.thirdPartyNames[receipt.commandId]?.trim()
-                        ? ` · ${state.draft.thirdPartyNames[receipt.commandId]?.trim()}`
-                        : ""}
-                    </summary>
-                    <Field className="pt-2">
-                      <Label htmlFor={`third-party-${receipt.commandId}`}>
-                        Nome de quem fez o Pix
-                      </Label>
-                      <Input
-                        id={`third-party-${receipt.commandId}`}
-                        name={`third-party-${receipt.commandId}`}
-                        autoComplete="name"
-                        disabled={state.submitting || state.uncertain || state.registered}
-                        placeholder="Nome de quem fez o Pix"
-                        size="sm"
-                        className="max-w-80"
-                        maxLength={MAX_THIRD_PARTY_NAME_LENGTH}
-                        value={state.draft.thirdPartyNames[receipt.commandId] ?? ""}
-                        onChange={(event) =>
-                          state.dispatch({
-                            type: "thirdPartyName",
-                            id: receipt.commandId,
-                            value: event.target.value,
-                          })
-                        }
-                      />
-                      <FieldDescription>O pagador responsável continua o mesmo.</FieldDescription>
-                    </Field>
-                  </details>
-                )}
-                <PaymentProofPicker
-                  label={
-                    items.length > 1
-                      ? "Comprovante do recebimento inteiro"
-                      : "Comprovante deste recebimento"
-                  }
-                  description={
-                    items.length > 1
-                      ? "Use este campo se as cobranças foram recebidas juntas. Para entradas distintas, anexe em cada linha."
-                      : undefined
-                  }
-                  value={state.proofs[receipt.commandId]}
-                  disabled={state.submitting || state.uncertain || state.registered}
-                  onChange={(file) => state.setProof(receipt.commandId, file)}
-                  onError={(message) => state.setProofError(receipt.commandId, message)}
-                />
-              </>
-            }
-          >
-            {items.map((item) => (
-              <PaymentGridRow
-                key={item.row.installmentId}
-                item={item}
-                preview={state.preview.find((row) => row.installmentId === item.row.installmentId)}
-                state={state}
-                showIndividualProof={items.length > 1}
-                individualProofDisabled={hasGeneralProof}
-              />
-            ))}
-          </PaymentReceiptGroup>
-        );
-      })}
+      {draftReceipts(state.draft, state.preview).map((receipt) => (
+        <PaymentReceipt key={receipt.commandId} receipt={receipt} state={state} />
+      ))}
     </div>
   );
 }
+
+function PaymentReceipt({
+  receipt,
+  state,
+}: {
+  receipt: Receipt;
+  state: PaymentFormState;
+}): ReactElement {
+  const items = state.draft.items.filter((item) => item.receiptId === receipt.commandId);
+  const hasGeneralProof = Boolean(state.proofs[receipt.commandId]?.file);
+  return (
+    <PaymentReceiptGroup
+      items={items}
+      total={receipt.amountCents}
+      attachment={<ReceiptAttachment receiptId={receipt.commandId} items={items} state={state} />}
+    >
+      {items.map((item) => (
+        <PaymentGridRow
+          key={item.row.installmentId}
+          item={item}
+          preview={state.preview.find((row) => row.installmentId === item.row.installmentId)}
+          state={state}
+          showIndividualProof={items.length > 1}
+          individualProofDisabled={hasGeneralProof}
+        />
+      ))}
+    </PaymentReceiptGroup>
+  );
+}
+
+function ReceiptAttachment({
+  receiptId,
+  items,
+  state,
+}: {
+  receiptId: string;
+  items: DraftItem[];
+  state: PaymentFormState;
+}): ReactElement {
+  return (
+    <>
+      {state.draft.externalFinancing && (
+        <ExternalInstallments receiptId={receiptId} state={state} />
+      )}
+      {state.draft.method === "PIX" && <ThirdPartyNameField receiptId={receiptId} state={state} />}
+      <PaymentProofPicker
+        label={
+          items.length > 1 ? "Comprovante do recebimento inteiro" : "Comprovante deste recebimento"
+        }
+        description={
+          items.length > 1
+            ? "Use este campo se as cobranças foram recebidas juntas. Para entradas distintas, anexe em cada linha."
+            : undefined
+        }
+        value={state.proofs[receiptId]}
+        disabled={state.submitting || state.uncertain || state.registered}
+        onChange={(file) => state.setProof(receiptId, file)}
+        onError={(message) => state.setProofError(receiptId, message)}
+      />
+    </>
+  );
+}
+
+function ThirdPartyNameField({
+  receiptId,
+  state,
+}: {
+  receiptId: string;
+  state: PaymentFormState;
+}): ReactElement {
+  const name = state.draft.thirdPartyNames[receiptId]?.trim();
+  return (
+    <details className="border-t border-border px-3 py-2 text-caption">
+      <summary className="cursor-pointer text-muted-foreground">
+        Pix feito por terceiro{name ? ` · ${name}` : ""}
+      </summary>
+      <Field className="pt-2">
+        <Label htmlFor={`third-party-${receiptId}`}>Nome de quem fez o Pix</Label>
+        <Input
+          id={`third-party-${receiptId}`}
+          name={`third-party-${receiptId}`}
+          autoComplete="name"
+          disabled={state.submitting || state.uncertain || state.registered}
+          placeholder="Nome de quem fez o Pix"
+          size="sm"
+          className="max-w-80"
+          maxLength={MAX_THIRD_PARTY_NAME_LENGTH}
+          value={state.draft.thirdPartyNames[receiptId] ?? ""}
+          onChange={(event) =>
+            state.dispatch({ type: "thirdPartyName", id: receiptId, value: event.target.value })
+          }
+        />
+        <FieldDescription>O pagador responsável continua o mesmo.</FieldDescription>
+      </Field>
+    </details>
+  );
+}
+
 function ExternalInstallments({
   receiptId,
   state,
@@ -134,7 +159,9 @@ function ExternalInstallments({
 }): ReactElement {
   const count = receiptInstallmentCount(state.draft, receiptId);
   const invalid =
-    !Number.isInteger(Number(count)) || Number(count) < 1 || Number(count) > 2147483647;
+    !Number.isInteger(Number(count)) ||
+    Number(count) < 1 ||
+    Number(count) > MAX_DATABASE_INSTALLMENTS;
   return (
     <div className="flex flex-wrap items-end gap-3 border-t border-border px-3 py-2">
       <Field className="max-w-36">
@@ -146,7 +173,7 @@ function ExternalInstallments({
           type="number"
           inputMode="numeric"
           min={1}
-          max={2147483647}
+          max={MAX_DATABASE_INSTALLMENTS}
           step={1}
           disabled={state.submitting || state.uncertain || state.registered}
           value={count}
@@ -261,11 +288,7 @@ function RowAdjustments({ preview }: Pick<RowProps, "preview">): ReactElement | 
 function ReceivedField(props: RowProps): ReactElement {
   const { item, preview, state } = props;
   const { amount, invalid } = receivedFieldState(item, preview);
-  const error =
-    preview?.error ??
-    (state.error?.includes(item.row.installmentId)
-      ? "Revise esta cobrança e atualize a prévia."
-      : null);
+  const error = receivedFieldError(item, { preview, error: state.error });
   return (
     <Field className="col-span-2 row-start-2 max-w-56 sm:col-span-1 sm:col-start-2 sm:row-start-1">
       <Label>Valor recebido</Label>
@@ -292,6 +315,16 @@ function ReceivedField(props: RowProps): ReactElement {
       )}
     </Field>
   );
+}
+
+function receivedFieldError(
+  item: DraftItem,
+  input: { preview: PreviewRow | undefined; error: string | null | undefined },
+): string | null {
+  if (input.preview?.error) return input.preview.error;
+  return input.error?.includes(item.row.installmentId)
+    ? "Revise esta cobrança e atualize a prévia."
+    : null;
 }
 function IndividualProofButton({ item, state, individualProofDisabled }: RowProps): ReactElement {
   return (

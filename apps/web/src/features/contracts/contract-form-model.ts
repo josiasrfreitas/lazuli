@@ -135,19 +135,6 @@ export function durationFromDates(fields: ContractFields): number {
 function studentInput(fields: ContractFields): object {
   if (fields.studentMode === "existing") return { studentId: fields.studentId };
   const birthDate = parseDateBR(fields.studentBirthDate);
-  const guardian =
-    fields.studentGuardianMode === "create"
-      ? {
-          mode: "create",
-          input: {
-            fullName: fields.studentGuardianName,
-            documentType: fields.studentGuardianDocumentType || undefined,
-            documentNumber: fields.studentGuardianDocumentNumber.trim() || undefined,
-            phone: fields.studentGuardianPhone.trim() || undefined,
-            email: fields.studentGuardianEmail.trim() || undefined,
-          },
-        }
-      : undefined;
   return {
     newStudent: {
       fullName: fields.studentDraftName,
@@ -156,7 +143,21 @@ function studentInput(fields: ContractFields): object {
       documentNumber: fields.studentDocumentNumber.trim() || undefined,
       phone: fields.studentPhone.trim() || undefined,
       email: fields.studentEmail.trim() || undefined,
-      guardian,
+      guardian: guardianInput(fields),
+    },
+  };
+}
+
+function guardianInput(fields: ContractFields): object | undefined {
+  if (fields.studentGuardianMode !== "create") return undefined;
+  return {
+    mode: "create",
+    input: {
+      fullName: fields.studentGuardianName,
+      documentType: fields.studentGuardianDocumentType || undefined,
+      documentNumber: fields.studentGuardianDocumentNumber.trim() || undefined,
+      phone: fields.studentGuardianPhone.trim() || undefined,
+      email: fields.studentGuardianEmail.trim() || undefined,
     },
   };
 }
@@ -175,9 +176,11 @@ function payerInput(fields: ContractFields): object {
 }
 
 export function contractInputFromFields(
-  fields: ContractFields,
-  command: string | { commandId: string; newStudent: z.input<typeof studentCreateInputSchema> },
-  renewedFromId?: string,
+  ...[fields, command, renewedFromId]: [
+    ContractFields,
+    string | { commandId: string; newStudent: z.input<typeof studentCreateInputSchema> },
+    string?,
+  ]
 ): ReturnType<typeof createMonthlyContractInputSchema.safeParse> {
   const commandId = typeof command === "string" ? command : command.commandId;
   const beneficiary =
@@ -259,7 +262,7 @@ export function materialPriceInput(fields: ContractFields): { priceOverrideCents
   return fields.materialPriceMode === "CUSTOM"
     ? {
         priceOverrideCents: fields.materialCustomPrice.trim()
-          ? Math.round(Number(fields.materialCustomPrice.replace(",", ".")) * 100)
+          ? Math.round(Number(fields.materialCustomPrice.replace(",", ".")) * CENTS_PER_REAL)
           : Number.NaN,
       }
     : {};
@@ -275,9 +278,14 @@ export function scholarshipInput(
     (material ? fields.materialScholarshipPct : fields.scholarshipPct).replace(",", "."),
   );
   return {
-    scholarshipPct: mode === "FULL" ? 100 : percent > 0 && percent < 100 ? percent : Number.NaN,
+    scholarshipPct: scholarshipPercent(mode, percent),
     scholarshipAgreement: material
       ? fields.materialScholarshipAgreement
       : fields.scholarshipAgreement,
   };
+}
+
+function scholarshipPercent(mode: string, percent: number): number {
+  if (mode === "FULL") return CENTS_PER_REAL;
+  return percent > 0 && percent < CENTS_PER_REAL ? percent : Number.NaN;
 }
