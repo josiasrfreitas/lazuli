@@ -157,8 +157,6 @@ async function prepareProgress(
   context: OrganizationContext,
   {
     scope,
-    group,
-    slots,
     plan,
     enrollment,
     progress,
@@ -202,31 +200,62 @@ async function persistPreparedProgress(
   },
 ): Promise<void> {
   const row = await context.database.semesterPlacement.create({
-    data: {
-      semesterId: scope.semester.id,
-      planId: previous?.continuity === "CHANGE" ? null : plan.id,
-      continuity:
-        previous?.continuity === "STAY" ? "UNDECIDED" : (previous?.continuity ?? "UNDECIDED"),
-      continuityReason:
-        previous?.continuity === "STAY" ? null : (previous?.continuityReason ?? null),
-      studentId: enrollment.studentId,
-      trackId: progress.stage.trackId,
-      stageId: progress.stageId,
-      sourceProgressId: progress.id,
-      sourceEnrollmentId: enrollment.id,
-      mode: "CONTINUE",
-      effectiveDate: scope.current ? enrollment.entryDate : scope.semester.startDate,
-      recordedById: context.staffUser.id,
-      ...(scope.current
-        ? {
-            publishedAt: context.now,
-            publishedById: context.staffUser.id,
-            enrollmentId: enrollment.id,
-          }
-        : {}),
-    },
+    data: preparedPlacementData(context, { scope, plan, enrollment, progress, previous }),
   });
   await recordPlacementRevision(context, { id: row.id, action: "INHERITED" });
+}
+
+function preparedPlacementData(
+  context: OrganizationContext,
+  {
+    scope,
+    plan,
+    enrollment,
+    progress,
+    previous,
+  }: {
+    scope: PreparationScope;
+    plan: ClassPlan;
+    enrollment: PreparationEnrollment;
+    progress: PreparationProgress;
+    previous: Placement | null;
+  },
+): Prisma.SemesterPlacementUncheckedCreateInput {
+  return {
+    semesterId: scope.semester.id,
+    ...inheritedContinuity(previous, plan),
+    studentId: enrollment.studentId,
+    trackId: progress.stage.trackId,
+    stageId: progress.stageId,
+    sourceProgressId: progress.id,
+    sourceEnrollmentId: enrollment.id,
+    mode: "CONTINUE",
+    effectiveDate: scope.current ? enrollment.entryDate : scope.semester.startDate,
+    recordedById: context.staffUser.id,
+    ...(scope.current
+      ? {
+          publishedAt: context.now,
+          publishedById: context.staffUser.id,
+          enrollmentId: enrollment.id,
+        }
+      : {}),
+  };
+}
+
+function inheritedContinuity(
+  previous: Placement | null,
+  plan: ClassPlan,
+): Pick<
+  Prisma.SemesterPlacementUncheckedCreateInput,
+  "planId" | "continuity" | "continuityReason"
+> {
+  if (!previous || previous.continuity === "STAY")
+    return { planId: plan.id, continuity: "UNDECIDED", continuityReason: null };
+  return {
+    planId: previous.continuity === "CHANGE" ? null : plan.id,
+    continuity: previous.continuity,
+    continuityReason: previous.continuityReason,
+  };
 }
 
 async function previousProgressPlacement(

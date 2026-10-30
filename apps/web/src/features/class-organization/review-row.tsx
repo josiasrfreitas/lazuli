@@ -69,7 +69,7 @@ export function ReviewRow({
         <ReviewTiming row={row} board={board} />
       </td>
       <td>
-        <ReviewBlockers row={row} onAction={onAction} />
+        <ReviewBlockers row={row} />
       </td>
       <td>
         <ReviewActions row={row} working={working} onAction={onAction} />
@@ -130,13 +130,7 @@ function ReviewTiming({
   );
 }
 
-function ReviewBlockers({
-  row,
-  onAction,
-}: {
-  row: Placement;
-  onAction: RowProps["onAction"];
-}): ReactJSX.Element {
+function ReviewBlockers({ row }: { row: Placement }): ReactJSX.Element {
   const contract = contractLabel(row);
   return (
     <div className={styles.person}>

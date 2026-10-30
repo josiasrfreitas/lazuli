@@ -1,5 +1,50 @@
 # PR #225 — lint progress
 
+> **LOCKED BATCH 6: 50 contract setup errors across 4 web files.** Original: 50; latest remaining: 29. Command: `pnpm -F @lazuli/web lint`. Source snapshot: `/tmp/lazuli-pr225-lint-after-batch5.json`; root command: `pnpm lint`. Completion gate: targeted lint zero for all four files, web typecheck and relevant tests, then full root lint plus machine-readable regression comparison.
+
+## Batch 6 files and original errors
+
+| File                                                          | Errors |
+| ------------------------------------------------------------- | -----: |
+| `apps/web/src/features/contracts/contract-setup-material.tsx` |     16 |
+| `apps/web/src/features/contracts/contract-setup.tsx`          |     13 |
+| `apps/web/src/features/contracts/contract-payer-fields.tsx`   |     12 |
+| `apps/web/src/features/contracts/contract-setup-model.ts`     |      9 |
+
+Batch 5 closed with zero errors in its 23 files. API typecheck and 100 unit tests pass. The full root lint still stops at the worker, so sequential workspace inventories were compared by file, rule, and message: 643 to 461 errors, 182 removed, zero added. The count includes fixes outside batch 5 from restoring `FinanceDatabase` typing. API router import regression was also corrected and its test now passes.
+
+> **BATCH 5 COMPLETE: 49 API errors across 23 files.** Original: 49; latest remaining: 0. Command: `pnpm -F @lazuli/api lint`. Full snapshot: `/tmp/lazuli-pr225-new-lint-inventory.json` (generated with sequential `lintFiles` calls after head `f6641d27`). Completion gate: targeted API lint zero for these files, API typecheck and relevant tests, then full `pnpm lint` and error comparison.
+
+## Batch 5 files and original errors
+
+| File                                                               | Errors |
+| ------------------------------------------------------------------ | -----: |
+| `packages/api/test/finance/contract-materials.integration.test.ts` |      4 |
+| `packages/api/src/finance/internal/contracts.ts`                   |      2 |
+| `packages/api/src/finance/internal/student-summary.ts`             |      1 |
+| `packages/api/src/finance/internal/contract-materials.ts`          |      5 |
+| `packages/api/src/finance/internal/installments-query.ts`          |      1 |
+| `packages/api/src/finance/internal/payment-store.ts`               |      1 |
+| `packages/api/src/finance/internal/contracts-select.ts`            |      4 |
+| `packages/api/src/semester-organization/write.ts`                  |      1 |
+| `packages/api/src/semester-organization/students.ts`               |      1 |
+| `packages/api/src/semester-organization/prepare.ts`                |      3 |
+| `packages/api/src/semester-organization/commands.ts`               |      1 |
+| `packages/api/src/teacher-workspace/visits.ts`                     |      1 |
+| `packages/api/src/teacher-workspace/home.ts`                       |      5 |
+| `packages/api/src/occurrences/read.ts`                             |      1 |
+| `packages/api/src/occurrences/status.ts`                           |      1 |
+| `packages/api/src/dashboard/home-pending.ts`                       |     10 |
+| `packages/api/src/students/pending-actions.ts`                     |      1 |
+| `packages/api/src/students/intake.ts`                              |      1 |
+| `packages/api/src/admissions/candidates.ts`                        |      1 |
+| `packages/api/src/dashboard/home-coverage.ts`                      |      1 |
+| `packages/api/test/finance/contracts.integration.test.ts`          |      1 |
+| `packages/api/src/admissions/enroll.ts`                            |      1 |
+| `packages/api/src/students/list-query.ts`                          |      1 |
+
+The 107-error `student-materials.ts` file is reserved for a later batch. The full inventory also includes workspaces without a `lint` script; those counts are not used for this lock. CI build currently fails on type errors and will be handled alongside this PR.
+
 > **BATCH 4: remaining lint backlog.** Original: 50 errors across the 18 files below; latest remaining: 0. Source snapshots: `/tmp/lazuli-pr225-{web,ui,root}-after-batch3.json`; final snapshots: `/tmp/lazuli-pr225-{web,ui,root}-after-batch4.json`.
 
 This PR is already published. Lint fixes are in scope for the PR and will be pushed after checks. The full root run after batch 1 stopped at `packages/ui`; separate machine-readable inventories captured all remaining failing workspaces. Logs are supporting snapshots; this document is the durable lock.

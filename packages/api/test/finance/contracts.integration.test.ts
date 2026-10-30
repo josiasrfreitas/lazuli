@@ -454,7 +454,7 @@ void describe("monthly contract creation", { concurrency: 1 }, () => {
       where: { contractId: created.id },
       include: { installments: true },
     });
-    assert.deepEqual(orders.map((order) => order.kind).sort(), ["ENROLLMENT_FEE", "TUITION"]);
+    assert.deepEqual(orders.map((order) => order.kind).toSorted(), ["ENROLLMENT_FEE", "TUITION"]);
     const fee = orders.find((order) => order.kind === "ENROLLMENT_FEE");
     assert.equal(fee?.principalAmountCents, 12_500);
     assert.equal(fee?.installmentCount, 1);

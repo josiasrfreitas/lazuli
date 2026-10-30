@@ -61,7 +61,7 @@ const studentPageSelect = {
   id: true,
   fullName: true,
   status: true,
-  contracts: { where: {} as Prisma.ContractWhereInput, select: { id: true }, take: 1 },
+  contracts: { where: {}, select: { id: true }, take: 1 },
   phone: true,
   birthDate: true,
   enrollments: {

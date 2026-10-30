@@ -8,6 +8,10 @@ import {
 import { dateOnly, linkItem, plusDays, type HomeItem } from "./home-model.js";
 
 const DEPARTURE_HORIZON_DAYS = 15;
+const coverageSelect = {
+  semester: { select: { startDate: true, endDate: true } },
+  ...responsibilitySelect,
+} satisfies Prisma.ClassSelect;
 
 /** One pending item per departing teacher while at least one class still needs a successor. */
 export async function readCoverage(
@@ -32,25 +36,7 @@ export async function readCoverage(
   if (departing.length === 0) return [];
 
   const teacherIds = departing.map((profile) => profile.userId);
-  const classes = await database.class.findMany({
-    where: {
-      deletedAt: null,
-      status: "ACTIVE",
-      semester: {
-        deletedAt: null,
-        startDate: { lte: new Date(horizon) },
-        endDate: { gte: new Date(today) },
-      },
-      OR: [
-        { teacherId: { in: teacherIds } },
-        { teacherAssignments: { some: { teacherId: { in: teacherIds }, supersededAt: null } } },
-      ],
-    },
-    select: {
-      semester: { select: { startDate: true, endDate: true } },
-      ...responsibilitySelect,
-    },
-  });
+  const classes = await coverageClasses(database, { teacherIds, horizon, today });
 
   return departing.flatMap((profile) => {
     if (!profile.departureDate) return [];
@@ -74,5 +60,27 @@ export async function readCoverage(
         timing: { kind: "departure", date: departure },
       }),
     ];
+  });
+}
+
+function coverageClasses(
+  database: Prisma.TransactionClient,
+  { teacherIds, horizon, today }: { teacherIds: string[]; horizon: string; today: string },
+): Promise<Prisma.ClassGetPayload<{ select: typeof coverageSelect }>[]> {
+  return database.class.findMany({
+    where: {
+      deletedAt: null,
+      status: "ACTIVE",
+      semester: {
+        deletedAt: null,
+        startDate: { lte: new Date(horizon) },
+        endDate: { gte: new Date(today) },
+      },
+      OR: [
+        { teacherId: { in: teacherIds } },
+        { teacherAssignments: { some: { teacherId: { in: teacherIds }, supersededAt: null } } },
+      ],
+    },
+    select: coverageSelect,
   });
 }

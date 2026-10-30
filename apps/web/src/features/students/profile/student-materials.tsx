@@ -195,6 +195,8 @@ function MaterialDetails({ data }: { data: Materials }): ReactElement {
             title: "Nenhum material adquirido",
             description: "Registre os livros e as condições combinadas em Adquirir material.",
           }}
+          errorTitle="Não foi possível carregar as aquisições"
+          onRetry={() => undefined}
         />
       </section>
     </>
@@ -264,6 +266,9 @@ function MaterialLoading(): ReactElement {
           columns={acquisitionColumns}
           state={{ kind: "loading" }}
           loadingRows={1}
+          empty={{ title: "Nenhuma aquisição", description: "Ainda não há aquisições." }}
+          errorTitle="Não foi possível carregar as aquisições"
+          onRetry={() => undefined}
         />
       </div>
     </div>

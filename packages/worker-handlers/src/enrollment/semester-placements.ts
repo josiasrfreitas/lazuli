@@ -26,13 +26,13 @@ export async function reconcileDueSemesterPlacements(
       include,
     });
     if (!row.publishedAt || row.entryAction?.status !== "SCHEDULED") continue;
-    const blockers = await placementBlockers(database, row);
+    const blockers = placementBlockers(row);
     if (blockers.length > 0)
       await returnToReview(database, { row, reason: blockers.join("; "), now });
   }
 }
 
-async function placementBlockers(database: TransactionClient, row: Placement): Promise<string[]> {
+function placementBlockers(row: Placement): string[] {
   const blockers = semesterPlacementBlockers(eligibility(row));
   if (row.sourceEnrollmentId && row.sourceExitAction?.status !== "SCHEDULED")
     blockers.push("A saída de origem foi alterada");

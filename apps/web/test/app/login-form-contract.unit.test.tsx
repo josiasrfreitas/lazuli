@@ -28,7 +28,8 @@ void test("password login exposes one submit action, accessible fields and passw
   assert.match(html, /autoComplete="current-password"/i);
   assert.match(html, /for="login-password"/);
   assert.match(html, /aria-label="Mostrar senha"/);
-  assert.match(html, /Criar ou recuperar senha/);
+  assert.match(html, /Cadastrar senha/);
+  assert.match(html, /Esqueci minha senha/);
   assert.match(html, /Entrar por link no email/);
 });
 

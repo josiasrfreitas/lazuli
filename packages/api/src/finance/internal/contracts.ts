@@ -221,20 +221,9 @@ type PersistContractInput = {
 };
 
 async function persistContract(input: PersistContractInput): Promise<ContractListRow> {
-  const { database, values, staffUserId, terms } = input;
+  const { database, values, terms } = input;
   const { settings, preview } = terms;
-  const enrollmentFee = values.enrollmentFeeCents
-    ? enrollmentFeeOrderData({ values, staffUserId })
-    : null;
-  const material = values.material
-    ? await materialOrderData({
-        database,
-        material: values.material,
-        settings,
-        firstDueDate: values.firstDueDate,
-        staffUserId,
-      })
-    : null;
+  const orders = await contractOrders(input);
   const contract = await database.contract.create({
     data: {
       commandId: values.commandId,
@@ -257,19 +246,41 @@ async function persistContract(input: PersistContractInput): Promise<ContractLis
       standardPunctualityDiscountPct: settings.punctualityDiscountPct,
       interestRatePctMonthly: settings.interestRatePctMonthly,
       cancellationFeePct: settings.cancellationFeePct,
-      orders: {
-        create: [
-          ...(preview.principalAmountCents > 0
-            ? [tuitionOrderData({ values, preview, staffUserId })]
-            : []),
-          ...(enrollmentFee ? [enrollmentFee] : []),
-          ...(material ? [material] : []),
-        ],
-      },
+      orders: { create: orders },
     },
     select: contractSelect,
   });
   return toRow(contract);
+}
+
+async function contractOrders(
+  input: PersistContractInput,
+): Promise<Prisma.OrderCreateWithoutContractInput[]> {
+  const {
+    database,
+    values,
+    staffUserId,
+    terms: { settings, preview },
+  } = input;
+  const enrollmentFee = values.enrollmentFeeCents
+    ? enrollmentFeeOrderData({ values, staffUserId })
+    : null;
+  const material = values.material
+    ? await materialOrderData({
+        database,
+        material: values.material,
+        settings,
+        firstDueDate: values.firstDueDate,
+        staffUserId,
+      })
+    : null;
+  return [
+    ...(preview.principalAmountCents > 0
+      ? [tuitionOrderData({ values, preview, staffUserId })]
+      : []),
+    ...(enrollmentFee ? [enrollmentFee] : []),
+    ...(material ? [material] : []),
+  ];
 }
 
 function enrollmentFeeOrderData(input: {

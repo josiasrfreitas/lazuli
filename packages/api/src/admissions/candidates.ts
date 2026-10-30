@@ -58,10 +58,10 @@ export async function saveCandidate(input: {
   recordedById: string;
   now: Date;
 }): Promise<{ id: string }> {
-  const { database, recordedById, now } = input;
+  const { database, recordedById } = input;
   const { id, values } = input.input;
   await lockCandidate(database, id);
-  await validateCandidateChanges({ database, id, values, now });
+  await validateCandidateChanges({ database, id, values });
   const { contactName, source, ...fields } = values;
   const data = {
     ...fields,
@@ -83,12 +83,10 @@ async function validateCandidateChanges({
   database,
   id,
   values,
-  now,
 }: {
   database: Prisma.TransactionClient;
   id: string;
   values: z.infer<typeof admissionSaveSchema>["values"];
-  now: Date;
 }): Promise<void> {
   if (values.stageId) await loadActiveStage({ database, stageId: values.stageId });
   if (

@@ -59,6 +59,7 @@ export type FinanceDatabase = Pick<
   | "pedagogicalProgress"
   | "class"
   | "stage"
+  | "semesterPlacement"
   | "period"
   | "track"
   | "user"

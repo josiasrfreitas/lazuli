@@ -37,31 +37,12 @@ export async function readStudentSummary(
     search: undefined,
   };
   const totals = await readTotals(query);
-  const next = await ledgerQuery(query)
-    .selectFrom("ledger")
-    .select("dueDate")
-    .select(sql<number>`sum("collectibleBalanceCents")::double precision`.as("amountCents"))
-    .where("collectibleBalanceCents", ">", 0)
-    .where("status", "!=", "OVERDUE")
-    .groupBy("dueDate")
-    .orderBy("dueDate", "asc")
-    .limit(1)
-    .executeTakeFirst();
+  const next = await nextDue(query);
   const balances = await ledgerQuery(query).selectFrom("ledger").selectAll().execute();
-  const pendingRenewals = await database.contract.findMany({
-    where: { ...pendingRenewalWhere(asOf), studentId: input.studentId },
-    select: { id: true, startsOn: true },
-    orderBy: [{ endsOn: "asc" }, { id: "asc" }],
-  });
-  const paymentWithProof = await database.paymentEntry.findFirst({
-    where: {
-      ...studentPaymentWhere(input.studentId),
-      proofs: { some: { deletedAt: null } },
-    },
-    select: { id: true },
-  });
+  const pendingRenewals = await readPendingRenewals(database, { asOf, studentId: input.studentId });
+  const hasPaymentProofs = await hasStudentPaymentProofs(database, input.studentId);
   return {
-    hasPaymentProofs: paymentWithProof !== null,
+    hasPaymentProofs,
     pendingRenewals: pendingRenewals.map((contract) => ({
       id: contract.id,
       startsOn: contract.startsOn ? toDateOnlyString(contract.startsOn) : null,
@@ -77,6 +58,43 @@ export async function readStudentSummary(
     nextDueCents: next?.amountCents ?? 0,
     history: await readStudentPaymentHistory(query),
   };
+}
+
+async function hasStudentPaymentProofs(
+  database: FinanceDatabase,
+  studentId: string,
+): Promise<boolean> {
+  const entry = await database.paymentEntry.findFirst({
+    where: { ...studentPaymentWhere(studentId), proofs: { some: { deletedAt: null } } },
+    select: { id: true },
+  });
+  return entry !== null;
+}
+
+function readPendingRenewals(
+  database: FinanceDatabase,
+  { asOf, studentId }: { asOf: string; studentId: string },
+): Promise<{ id: string; startsOn: Date | null }[]> {
+  return database.contract.findMany({
+    where: { ...pendingRenewalWhere(asOf), studentId },
+    select: { id: true, startsOn: true },
+    orderBy: [{ endsOn: "asc" }, { id: "asc" }],
+  });
+}
+
+async function nextDue(
+  query: LedgerInput,
+): Promise<{ dueDate: string; amountCents: number } | undefined> {
+  return ledgerQuery(query)
+    .selectFrom("ledger")
+    .select("dueDate")
+    .select(sql<number>`sum("collectibleBalanceCents")::double precision`.as("amountCents"))
+    .where("collectibleBalanceCents", ">", 0)
+    .where("status", "!=", "OVERDUE")
+    .groupBy("dueDate")
+    .orderBy("dueDate", "asc")
+    .limit(1)
+    .executeTakeFirst();
 }
 
 async function readTotals(

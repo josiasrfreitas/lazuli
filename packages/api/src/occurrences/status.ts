@@ -8,12 +8,10 @@ export async function changeOccurrenceStatus(
 ): Promise<void> {
   if (context.staffUser.role === "TEACHER") throw new TRPCError({ code: "FORBIDDEN" });
   const row = await loadOccurrence(context, input.id);
-  const allowed =
-    row.status === "OPEN"
-      ? ["FOLLOWING_UP", "CLOSED"]
-      : row.status === "FOLLOWING_UP"
-        ? ["CLOSED"]
-        : ["FOLLOWING_UP"];
+  let allowed: string[];
+  if (row.status === "OPEN") allowed = ["FOLLOWING_UP", "CLOSED"];
+  else if (row.status === "FOLLOWING_UP") allowed = ["CLOSED"];
+  else allowed = ["FOLLOWING_UP"];
   if (!allowed.includes(input.status)) invalid("Esta mudança de estado não está disponível.");
   const changed = await context.database.pedagogicalOccurrence.updateMany({
     where: {

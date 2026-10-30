@@ -17,6 +17,8 @@ import { workspaceClasses } from "./read.js";
 import { assignedVisits } from "./visits.js";
 
 const REGULAR_ASSESSMENT_PHASES = 2;
+const PENDING_AFTER_DAYS = 3;
+const MILLISECONDS_PER_DAY = 86_400_000;
 type HomeAssessment = {
   progressId: string;
   studentName: string;
@@ -74,35 +76,41 @@ export async function teacherHomeOverview(context: RecordContext): Promise<Teach
     windowDays: HOME_WINDOW_DAYS,
     assessments,
     assessmentAppointments: appointments.filter(
-      (row) => row.purpose === "ASSESSMENT" && row.ageDays < 3,
+      (row) => row.purpose === "ASSESSMENT" && row.ageDays < PENDING_AFTER_DAYS,
     ),
-    appointments: appointments.filter((row) => row.purpose !== "ASSESSMENT" && row.ageDays < 3),
-    pendingAppointments: appointments.filter((row) => row.ageDays >= 3),
-    visits: visits
-      .filter(
-        (row) =>
-          row.date <= shiftHomeDate(today, HOME_WINDOW_DAYS) &&
-          ((row.status === "SCHEDULED" && (row.date >= today || row.canRecord)) ||
-            (row.status !== "ABSENT" &&
-              row.canRecord &&
-              row.assessment &&
-              !row.assessment.stageId)),
-      )
-      .map((row) => ({
-        id: row.id,
-        studentName: row.candidate.fullName,
-        kind: row.kind,
-        date: row.date,
-        startTime: row.startTime,
-        correctionPending: Boolean(row.assessment && !row.assessment.stageId),
-      }))
-      .toSorted(
-        (comparedLeft, comparedRight) =>
-          comparedLeft.date.localeCompare(comparedRight.date) ||
-          comparedLeft.startTime.localeCompare(comparedRight.startTime),
-      ),
+    appointments: appointments.filter(
+      (row) => row.purpose !== "ASSESSMENT" && row.ageDays < PENDING_AFTER_DAYS,
+    ),
+    pendingAppointments: appointments.filter((row) => row.ageDays >= PENDING_AFTER_DAYS),
+    visits: homeVisits(visits, today),
     ...planning,
   };
+}
+
+function homeVisits(
+  visits: Awaited<ReturnType<typeof assignedVisits>>,
+  today: string,
+): TeacherHomeOverview["visits"] {
+  return visits
+    .filter(
+      (row) =>
+        row.date <= shiftHomeDate(today, HOME_WINDOW_DAYS) &&
+        ((row.status === "SCHEDULED" && (row.date >= today || row.canRecord)) ||
+          (row.status !== "ABSENT" && row.canRecord && row.assessment && !row.assessment.stageId)),
+    )
+    .map((row) => ({
+      id: row.id,
+      studentName: row.candidate.fullName,
+      kind: row.kind,
+      date: row.date,
+      startTime: row.startTime,
+      correctionPending: Boolean(row.assessment && !row.assessment.stageId),
+    }))
+    .toSorted(
+      (comparedLeft, comparedRight) =>
+        comparedLeft.date.localeCompare(comparedRight.date) ||
+        comparedLeft.startTime.localeCompare(comparedRight.startTime),
+    );
 }
 
 async function homeAppointments(context: RecordContext, today: string): Promise<HomeAppointment[]> {
@@ -135,7 +143,9 @@ async function homeAppointments(context: RecordContext, today: string): Promise<
       startTime: timeOnly(row.startTime),
       endTime: timeOnly(row.endTime),
       overdue: sessionEndInstant(row) <= context.now,
-      ageDays: Math.floor((context.now.getTime() - sessionEndInstant(row).getTime()) / 86_400_000),
+      ageDays: Math.floor(
+        (context.now.getTime() - sessionEndInstant(row).getTime()) / MILLISECONDS_PER_DAY,
+      ),
     }));
 }
 

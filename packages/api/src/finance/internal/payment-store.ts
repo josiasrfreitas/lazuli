@@ -79,11 +79,10 @@ export async function persistPayment(input: {
     select: { id: true, allowsExternalInstallments: true },
   });
   if (!method) throw badRequest("Selecione uma forma de pagamento disponível.");
-  const externalInstallments = input.values.externalInstallments ?? 1;
-  if (!Number.isInteger(externalInstallments) || externalInstallments < 1)
-    throw badRequest("Informe uma quantidade válida de parcelas no banco.");
-  if (externalInstallments > 1 && !method.allowsExternalInstallments)
-    throw badRequest("Esta forma de pagamento não permite parcelamento por terceiros.");
+  const externalInstallments = validatedExternalInstallments(
+    input.values.externalInstallments,
+    method.allowsExternalInstallments,
+  );
   const paymentEntry = await input.database.paymentEntry.create({
     data: {
       payerId: input.values.payerId,
@@ -104,6 +103,15 @@ export async function persistPayment(input: {
 
   const allocations = await persistAllocations(input, paymentEntry.id);
   return { paymentEntry, allocations };
+}
+
+function validatedExternalInstallments(requested: number | undefined, allowed: boolean): number {
+  const count = requested ?? 1;
+  if (!Number.isInteger(count) || count < 1)
+    throw badRequest("Informe uma quantidade válida de parcelas no banco.");
+  if (count > 1 && !allowed)
+    throw badRequest("Esta forma de pagamento não permite parcelamento por terceiros.");
+  return count;
 }
 
 async function persistAllocations(

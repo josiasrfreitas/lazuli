@@ -32,6 +32,7 @@ type Scope = {
 type Page = { skip: number; take: number };
 type Result = { total: number; items: HomeItem[] };
 const RECENT_PREVIOUS_DAYS = -6;
+const MILLISECONDS_PER_DAY = 86_400_000;
 export async function readHomePending(database: Database, input: Scope): Promise<HomeGroup> {
   const take = input.pageSize ?? HOME_PAGE_SIZE;
   const page = { skip: (input.page - 1) * take, take };
@@ -53,10 +54,12 @@ function recordPeriod(now: Date, period: Scope["period"]): { date?: { gte: Date 
 function readGroup(database: Database, input: Scope & { pagination: Page }): Promise<Result> {
   const page = input.pagination;
   switch (input.kind) {
-    case "health":
+    case "health": {
       return readHealthPending(database, { now: input.now, ...page });
-    case "occurrences":
+    }
+    case "occurrences": {
       return readOccurrencePending(database, page);
+    }
     case "coverage": {
       return coveragePage(database, { now: input.now, page });
     }
@@ -70,6 +73,15 @@ function readGroup(database: Database, input: Scope & { pagination: Page }): Pro
     case "allocation": {
       return allocationPage(database, page);
     }
+    default: {
+      return readOtherGroup(database, input);
+    }
+  }
+}
+
+function readOtherGroup(database: Database, input: Scope & { pagination: Page }): Promise<Result> {
+  const page = input.pagination;
+  switch (input.kind) {
     case "placement": {
       return placementPage(database, page);
     }
@@ -84,6 +96,9 @@ function readGroup(database: Database, input: Scope & { pagination: Page }): Pro
     }
     case "semester": {
       return readSemesterPending(database, { now: input.now, ...page });
+    }
+    default: {
+      throw new Error(`Grupo de pendências desconhecido: ${input.kind}`);
     }
   }
 }
@@ -100,19 +115,7 @@ async function documentsPage(
   { now, page }: { now: Date; page: Page },
 ): Promise<Result> {
   const adultCutoff = new Date(`${adultCutoffDateOnly(now)}T00:00:00Z`);
-  const missing = (kind: string): Prisma.StudentWhereInput => ({
-    documentSessions: {
-      none: { files: { some: { kind, deletedAt: null } } },
-    },
-  });
-  const where: Prisma.StudentWhereInput = {
-    deletedAt: null,
-    status: "ACTIVE",
-    OR: [
-      ...REGISTRATION_KINDS.map(missing),
-      { birthDate: { gt: adultCutoff }, ...missing("guardian") },
-    ],
-  };
+  const where = missingDocumentsWhere(adultCutoff);
   const [total, rows] = await Promise.all([
     database.student.count({ where }),
     database.student.findMany({
@@ -148,6 +151,22 @@ async function documentsPage(
         missingDocuments: absent,
       };
     }),
+  };
+}
+
+function missingDocumentsWhere(adultCutoff: Date): Prisma.StudentWhereInput {
+  const missing = (kind: string): Prisma.StudentWhereInput => ({
+    documentSessions: {
+      none: { files: { some: { kind, deletedAt: null } } },
+    },
+  });
+  return {
+    deletedAt: null,
+    status: "ACTIVE",
+    OR: [
+      ...REGISTRATION_KINDS.map((kind) => missing(kind)),
+      { birthDate: { gt: adultCutoff }, ...missing("guardian") },
+    ],
   };
 }
 async function coveragePage(
@@ -238,7 +257,33 @@ async function allocationPage(database: Database, page: Page): Promise<Result> {
 }
 async function placementPage(database: Database, page: Page): Promise<Result> {
   // One task per person, based on the latest non-cancelled placement visit.
-  const candidates = await database.admissionCandidate.findMany({
+  const candidates = await placementCandidates(database);
+  const items: HomeItem[] = candidates.flatMap((candidate) => placementItems(candidate));
+  return { total: items.length, items: items.slice(page.skip, page.skip + page.take) };
+}
+
+const placementCandidateSelect = {
+  id: true,
+  fullName: true,
+  stageId: true,
+  createdAt: true,
+  visits: {
+    where: { kind: "PLACEMENT", deletedAt: null, status: { not: "CANCELLED" } },
+    orderBy: [{ date: "desc" }, { startTime: "desc" }, { createdAt: "desc" }],
+    take: 1,
+    select: {
+      status: true,
+      date: true,
+      assessment: { select: { stageId: true, uploadedAt: true } },
+    },
+  },
+} as const satisfies Prisma.AdmissionCandidateSelect;
+type PlacementCandidate = Prisma.AdmissionCandidateGetPayload<{
+  select: typeof placementCandidateSelect;
+}>;
+
+function placementCandidates(database: Database): Promise<PlacementCandidate[]> {
+  return database.admissionCandidate.findMany({
     where: {
       deletedAt: null,
       status: { not: "ARCHIVED" },
@@ -257,59 +302,63 @@ async function placementPage(database: Database, page: Page): Promise<Result> {
       ],
     },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    select: {
-      id: true,
-      fullName: true,
-      stageId: true,
-      createdAt: true,
-      visits: {
-        where: { kind: "PLACEMENT", deletedAt: null, status: { not: "CANCELLED" } },
-        orderBy: [{ date: "desc" }, { startTime: "desc" }, { createdAt: "desc" }],
-        take: 1,
-        select: {
-          status: true,
-          date: true,
-          assessment: { select: { stageId: true, uploadedAt: true } },
-        },
-      },
+    select: placementCandidateSelect,
+  });
+}
+
+function placementItems(candidate: PlacementCandidate): HomeItem[] {
+  const visit = candidate.visits[0];
+  if (completedPlacement(candidate)) return [];
+  const correction = correctionVisit(visit);
+  const scheduled = visit?.status === "SCHEDULED";
+  const received = correction ? visit?.assessment?.uploadedAt : null;
+  return [
+    {
+      ...linkItem({
+        id: candidate.id,
+        title: candidate.fullName,
+        detail: placementDetail(correction, scheduled),
+        href: `/interessados/${candidate.id}?nivelamento=pendente`,
+        date: placementDate(received, scheduledVisitDate(visit)),
+        ...placementTiming(received),
+      }),
+      placementPhase: correction ? ("CORRECTION" as const) : ("APPLICATION" as const),
     },
-  });
-  const items: HomeItem[] = candidates.flatMap((candidate) => {
-    const visit = candidate.visits[0];
-    if (
-      visit?.status === "ATTENDED" &&
-      visit.assessment?.stageId &&
-      visit.assessment.stageId === candidate.stageId
-    )
-      return [];
-    const correction = Boolean(visit?.assessment && visit.status !== "ABSENT");
-    const scheduled = visit?.status === "SCHEDULED";
-    const received = correction ? visit?.assessment?.uploadedAt : undefined;
-    return [
-      {
-        ...linkItem({
-          id: candidate.id,
-          title: candidate.fullName,
-          detail: correction
-            ? "Corrigir a prova e definir o estágio"
-            : scheduled
-              ? "Aplicação agendada"
-              : "Agendar aplicação",
-          href: `/interessados/${candidate.id}?nivelamento=pendente`,
-          date: received
-            ? saoPauloDateOnly(received)
-            : scheduled
-              ? saoPauloDateOnly(visit.date)
-              : null,
-          ...(received
-            ? { timing: { kind: "waiting" as const, since: received.toISOString() } }
-            : {}),
-        }),
-        placementPhase: correction ? ("CORRECTION" as const) : ("APPLICATION" as const),
-      },
-    ];
-  });
-  return { total: items.length, items: items.slice(page.skip, page.skip + page.take) };
+  ];
+}
+
+type PlacementVisit = PlacementCandidate["visits"][number] | undefined;
+function correctionVisit(visit: PlacementVisit): boolean {
+  return Boolean(visit?.assessment && visit.status !== "ABSENT");
+}
+
+function scheduledVisitDate(visit: PlacementVisit): Date | null {
+  return visit?.status === "SCHEDULED" ? visit.date : null;
+}
+
+function placementTiming(received: Date | null | undefined): {
+  timing?: { kind: "waiting"; since: string };
+} {
+  return received ? { timing: { kind: "waiting", since: received.toISOString() } } : {};
+}
+
+function completedPlacement(candidate: PlacementCandidate): boolean {
+  const visit = candidate.visits[0];
+  return Boolean(
+    visit?.status === "ATTENDED" &&
+    visit.assessment?.stageId &&
+    visit.assessment.stageId === candidate.stageId,
+  );
+}
+
+function placementDetail(correction: boolean, scheduled: boolean): string {
+  if (correction) return "Corrigir a prova e definir o estágio";
+  return scheduled ? "Aplicação agendada" : "Agendar aplicação";
+}
+
+function placementDate(received: Date | null | undefined, scheduled: Date | null): string | null {
+  if (received) return saoPauloDateOnly(received);
+  return scheduled ? saoPauloDateOnly(scheduled) : null;
 }
 async function lessonPage(
   database: Database,
@@ -374,7 +423,9 @@ async function appointmentPage(
   return {
     total,
     items: rows.map((row) => ({
-      ageDays: Math.floor((now.getTime() - sessionEndInstant(row).getTime()) / 86_400_000),
+      ageDays: Math.floor(
+        (now.getTime() - sessionEndInstant(row).getTime()) / MILLISECONDS_PER_DAY,
+      ),
       id: row.id,
       title: row.student.fullName,
       detail: `${timeOnly(row.startTime)} · Registrar o resultado do atendimento`,

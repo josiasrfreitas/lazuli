@@ -131,7 +131,48 @@ export async function savePlacement(
   const effectiveDate = placementEffectiveDate(context, { input, semester });
   await lockStudentEnrollment(context.database, input.studentId);
   const { student, previous, source, trackId } = await placementRelations(context, input);
-  const data = {
+  const data = placementWriteData(context, {
+    input,
+    effectiveDate,
+    trackId,
+    source,
+    previous,
+  });
+  const row = previous
+    ? await context.database.semesterPlacement.update({
+        where: { id: previous.id },
+        data: { ...data, version: { increment: 1 } },
+      })
+    : await context.database.semesterPlacement.create({ data });
+  await recordPlacementRevision(context, { id: row.id, action: previous ? "REVISED" : "PROPOSED" });
+  await recordActivity(context.database, {
+    context,
+    action: "semesterOrganization.savePlacement",
+    details: {
+      subject: { type: "student", id: student.id, name: student.fullName },
+      description: "Proposta de alocação registrada.",
+    },
+  });
+  return { id: row.id };
+}
+
+function placementWriteData(
+  context: OrganizationContext,
+  {
+    input,
+    effectiveDate,
+    trackId,
+    source,
+    previous,
+  }: {
+    input: SemesterPlacementInput;
+    effectiveDate: string;
+    trackId: string;
+    source: SourceProgress | null;
+    previous: Placement | null;
+  },
+): Prisma.SemesterPlacementUncheckedCreateInput {
+  return {
     semesterId: input.semesterId,
     studentId: input.studentId,
     planId: input.planId,
@@ -149,22 +190,6 @@ export async function savePlacement(
     notes: input.notes || null,
     recordedById: context.staffUser.id,
   };
-  const row = previous
-    ? await context.database.semesterPlacement.update({
-        where: { id: previous.id },
-        data: { ...data, version: { increment: 1 } },
-      })
-    : await context.database.semesterPlacement.create({ data });
-  await recordPlacementRevision(context, { id: row.id, action: previous ? "REVISED" : "PROPOSED" });
-  await recordActivity(context.database, {
-    context,
-    action: "semesterOrganization.savePlacement",
-    details: {
-      subject: { type: "student", id: student.id, name: student.fullName },
-      description: "Proposta de alocação registrada.",
-    },
-  });
-  return { id: row.id };
 }
 
 type Placement = Prisma.SemesterPlacementGetPayload<Prisma.SemesterPlacementDefaultArgs>;

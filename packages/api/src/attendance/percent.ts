@@ -8,8 +8,12 @@ import { assertResourceScope } from "../trpc/rbac.js";
 import type { AttendanceDatabase } from "./data.js";
 import { ENROLLMENT_NOT_FOUND_MESSAGE, SEMESTER_NOT_FOUND_MESSAGE } from "./errors.js";
 
-export { computeEnrollmentPercentInWindow } from "@lazuli/db";
-import { computeEnrollmentPercentInWindow } from "@lazuli/db";
+export async function computeEnrollmentPercentInWindow(
+  input: Parameters<(typeof import("@lazuli/db"))["computeEnrollmentPercentInWindow"]>[0],
+): Promise<Awaited<ReturnType<(typeof import("@lazuli/db"))["computeEnrollmentPercentInWindow"]>>> {
+  const { computeEnrollmentPercentInWindow: compute } = await import("@lazuli/db");
+  return compute(input);
+}
 
 type PercentInput = z.infer<typeof attendanceEnrollmentSemesterPercentInputSchema>;
 

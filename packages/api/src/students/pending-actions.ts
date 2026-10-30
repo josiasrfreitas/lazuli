@@ -111,15 +111,7 @@ export async function readStudentPendingActions(
     placement: pendingPlacement(lead),
   });
   const placementItem = items.find((item) => item.type === "PLACEMENT");
-  if (placementItem) {
-    const assessment = lead?.visits[0]?.assessment;
-    const correctionPending = Boolean(assessment && !assessment.stageId);
-    placementItem.title = correctionPending ? "Nivelamento a corrigir" : "Nivelamento pendente";
-    placementItem.description = correctionPending
-      ? "Corrija a prova e defina o estágio de entrada. Depois, você poderá escolher uma turma para este aluno."
-      : "Conclua o nivelamento para definir o estágio de entrada. Depois, você poderá escolher uma turma para este aluno.";
-    placementItem.action.label = correctionPending ? "Corrigir nivelamento" : "Abrir nivelamento";
-  }
+  if (placementItem) updatePlacementAction(placementItem, lead);
   return {
     items,
     enrollment: student.enrollments[0] ?? null,
@@ -134,6 +126,19 @@ export async function readStudentPendingActions(
         }
       : null,
   };
+}
+
+function updatePlacementAction(
+  item: PendingResult["items"][number],
+  lead: PendingStudent["admissionCandidates"][number] | null,
+): void {
+  const assessment = lead?.visits[0]?.assessment;
+  const correctionPending = Boolean(assessment && !assessment.stageId);
+  item.title = correctionPending ? "Nivelamento a corrigir" : "Nivelamento pendente";
+  item.description = correctionPending
+    ? "Corrija a prova e defina o estágio de entrada. Depois, você poderá escolher uma turma para este aluno."
+    : "Conclua o nivelamento para definir o estágio de entrada. Depois, você poderá escolher uma turma para este aluno.";
+  item.action.label = correctionPending ? "Corrigir nivelamento" : "Abrir nivelamento";
 }
 
 function pendingPlacement(

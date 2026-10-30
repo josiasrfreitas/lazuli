@@ -87,7 +87,7 @@ export function captureEnrollmentTransaction(database: TransactionClient): Enrol
     class: database.class,
     student: database.student,
     stage: database.stage,
-    semester: database.semester,
+    period: database.period,
     track: database.track,
     user: database.user,
     enrollmentAction: database.enrollmentAction,

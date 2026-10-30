@@ -62,6 +62,7 @@ function input(): RouterInputs["students"]["enrollNew"] {
       placement: {
         id: randomUUID(),
         candidateId: leadId,
+        teacherId: harness.ns.teacher.id,
         date: "2091-03-11",
         startTime: "14:00",
         endTime: "15:00",

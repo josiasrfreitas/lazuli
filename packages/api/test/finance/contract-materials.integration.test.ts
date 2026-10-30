@@ -685,11 +685,10 @@ void it("persists a negotiated total and tracks material across renewal, includi
     assert.equal(order.material!.quotedInstallmentCents, 25000);
     assert.equal(order.installments.length, 1);
     assert.equal(order.totalCents, 135001);
-    assert.equal(
-      (await tx.materialOrder.findUniqueOrThrow({ where: { orderId: order.id } }))
-        .priceOverrideCents,
-      150001,
-    );
+    const pricedMaterial = await tx.materialOrder.findUniqueOrThrow({
+      where: { orderId: order.id },
+    });
+    assert.equal(pricedMaterial.priceOverrideCents, 150001);
     assert.equal((await service.readMaterialPrice())!.adult.totalCents, 81600);
     const renewed = await service.createMonthlyContract({
       ...values,
@@ -736,11 +735,9 @@ void it("rejects an initial contract without material before persisting it", asy
 
 void it("records bank installments on one receipt and keeps one material charge", async () => {
   await scenario(async (tx, { stageId, values }) => {
-    await tx.paymentMethod.upsert({
-      where: { code: "CREDIT" },
-      create: { code: "CREDIT", name: "Crédito", allowsExternalInstallments: true },
-      update: { active: true, allowsExternalInstallments: true },
-    });
+    const credit = await tx.paymentMethod.findUniqueOrThrow({ where: { code: "CREDIT" } });
+    assert.equal(credit.active, true);
+    assert.equal(credit.allowsExternalInstallments, true);
     const service = finance(tx, ADMIN.id);
     const contract = await service.createMonthlyContract({
       ...values,
@@ -807,10 +804,9 @@ void it("records bank installments on one receipt and keeps one material charge"
       where: { paymentEntryId: receipt.id },
     });
     assert.equal(allocation.amountCents, 135000);
-    assert.equal(
-      (await tx.materialOrder.findUniqueOrThrow({ where: { orderId: charge.orderId } }))
-        .chargedAmountCents,
-      150000,
-    );
+    const chargedMaterial = await tx.materialOrder.findUniqueOrThrow({
+      where: { orderId: charge.orderId },
+    });
+    assert.equal(chargedMaterial.chargedAmountCents, 150000);
   });
 });

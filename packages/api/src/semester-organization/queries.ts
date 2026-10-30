@@ -380,7 +380,7 @@ function placementView(context: OrganizationContext, options: PlacementViewOptio
   return {
     ...row,
     confirmation: periodConfirmation({
-      continuity: row.continuity,
+      continuity: z.enum(["CHANGE", "LEAVING", "STAY", "UNDECIDED"]).parse(row.continuity),
       declined: Boolean(row.declinedAt),
       enrolled: Boolean(
         row.publishedAt &&

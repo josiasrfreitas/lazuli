@@ -190,8 +190,7 @@ export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult
   if (previous) return previous;
   const candidate = await captureIntakeCandidate(input);
   const today = saoPauloDateOnly(now);
-  if (values.student.birthDate && values.student.birthDate > new Date(today))
-    throw badRequest("O nascimento não pode estar no futuro.");
+  assertBirthDate(values.student.birthDate, today);
   const target = values.classId
     ? await intakeTarget(database, {
         classId: values.classId,
@@ -200,15 +199,39 @@ export async function enrollNewStudent(input: EnrollInput): Promise<EnrollResult
         today,
       })
     : null;
+  const activeSemester = requireIntakePeriod({ semester, target, candidate });
+  const created = await createIntakeMembership(input, { enrollmentDatabase, target, today });
+  await finalizeIntake(input, {
+    ...created,
+    semester: activeSemester,
+    candidate,
+    target,
+    fingerprint,
+  });
+  return { ...created, classId: target?.id ?? null };
+}
+
+function assertBirthDate(birthDate: Date | null | undefined, today: string): void {
+  if (birthDate && birthDate > new Date(today))
+    throw badRequest("O nascimento não pode estar no futuro.");
+}
+
+function requireIntakePeriod({
+  semester,
+  target,
+  candidate,
+}: {
+  semester: Awaited<ReturnType<typeof lockIntakeSemester>>;
+  target: ClassModel | null;
+  candidate: Candidate | null;
+}): NonNullable<Awaited<ReturnType<typeof lockIntakeSemester>>> {
   if (!semester)
     throw badRequest("Não há período vigente. Mantenha a pessoa como lead até a entrada.");
   if (!target && candidate?.allocationPlan && candidate.allocationPlan.semesterId !== semester.id)
     throw badRequest(
       "Este lead aguarda outro período. Mantenha o interesse na turma até a entrada ou escolha uma turma vigente.",
     );
-  const created = await createIntakeMembership(input, { enrollmentDatabase, target, today });
-  await finalizeIntake(input, { ...created, semester, candidate, target, fingerprint });
-  return { ...created, classId: target?.id ?? null };
+  return semester;
 }
 
 async function existingIntakeResult(

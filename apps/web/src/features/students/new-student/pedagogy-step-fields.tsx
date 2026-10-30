@@ -52,7 +52,6 @@ export function PedagogyEntryFields({
 
 function SemesterField({
   current,
-  next,
   semesterId,
   semesterError,
   pending,
@@ -86,18 +85,16 @@ function SemesterField({
         </SegmentedControlItem>
       </SegmentedControl>
       <FieldError match={Boolean(semesterError)}>{semesterError}</FieldError>
-      <SemesterAvailabilityNote current={current} next={next} failed={failed} />
+      <SemesterAvailabilityNote current={current} failed={failed} />
     </Field>
   );
 }
 
 function SemesterAvailabilityNote({
   current,
-  next,
   failed,
 }: {
   current: SemesterOption;
-  next: SemesterOption;
   failed: boolean;
 }): ReactJSX.Element | null {
   if (failed) return null;

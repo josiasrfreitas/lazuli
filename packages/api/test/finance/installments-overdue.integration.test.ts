@@ -181,7 +181,6 @@ function registerFinanceTest(): void {
       adjustments: [{ amountCents: -400 }, { amountCents: -600 }],
       allocations: [{ amountCents: 1000 }, { amountCents: 2000 }],
       now: NOW,
-      interestRatePctMonthly: 2,
     });
     assert.deepEqual(
       {

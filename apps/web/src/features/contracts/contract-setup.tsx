@@ -39,7 +39,7 @@ type Props = {
   deferStudentValidation?: boolean;
   parseInput?: () => ReturnType<typeof contractInputFromFields>;
   suggestedStageId?: string | null | undefined;
-  error?: string;
+  error?: string | undefined;
   completeLabel: string;
   onComplete: (event: FormEvent<HTMLFormElement>) => void | Promise<void>;
   onBack: () => void;
@@ -104,13 +104,13 @@ export function ContractSetup(props: Props): ReactElement {
     change: state.change,
     suggestedStageId: props.suggestedStageId,
   });
-  const preview = setupTuitionPreview(
+  const preview = setupTuitionPreview({
     fields,
-    offer.data,
-    props.billingFirstDueDate
+    offer: offer.data,
+    billingFirstDueDate: props.billingFirstDueDate
       ? (parseDateBR(props.billingFirstDueDate.value) ?? undefined)
       : undefined,
-  );
+  });
   const formProps: FormProps = {
     fields,
     errors: state.errors,
@@ -142,13 +142,14 @@ export function ContractSetup(props: Props): ReactElement {
       }
       setDueError("");
     }
-    const all = setupValidation(
+    const all = setupValidation({
       fields,
-      state.commandId.current,
-      offer.data,
-      props.parseInput?.() ??
+      commandId: state.commandId.current,
+      offer: offer.data,
+      parsed:
+        props.parseInput?.() ??
         contractInputFromFields(fields, state.commandId.current, props.renewedFromId),
-    );
+    });
     if (fields.materialPayment !== "NONE" && material.installmentError)
       all.materialInstallments = material.installmentError;
     if (fields.materialPayment !== "NONE" && material.priceError)
@@ -235,7 +236,10 @@ export function ContractSetup(props: Props): ReactElement {
                 />
               )}
               {step === "tuition" && (
-                <SetupTuition {...formProps} allowEnrollmentFee={props.allowEnrollmentFee} />
+                <SetupTuition
+                  {...formProps}
+                  allowEnrollmentFee={props.allowEnrollmentFee ?? false}
+                />
               )}
               {step === "material" && (
                 <SetupMaterialFields
@@ -319,7 +323,12 @@ function SetupSummary({
       : material.effective
         ? `${material.count} ${material.count === 1 ? "livro" : "livros"} · ${money(material.effective.chargedCents)}`
         : "Livros e valores a definir";
-  const rows: Array<{ step: SetupStep; title: string; value: string; detail?: string }> = [
+  const rows: Array<{
+    step: SetupStep;
+    title: string;
+    value: string;
+    detail?: string | undefined;
+  }> = [
     {
       step: "parties",
       title: "Responsável e período",

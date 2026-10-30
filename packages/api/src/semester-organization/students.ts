@@ -101,7 +101,7 @@ export async function organizationStudent(
   context: OrganizationContext,
   options: OrganizationStudentOptions,
 ): Promise<StudentDetail> {
-  const { studentId, semesterId } = options;
+  const { studentId } = options;
 
   const today = new Date(saoPauloDateOnly(context.now));
   const student = await context.database.student.findUnique({

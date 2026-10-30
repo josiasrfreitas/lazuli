@@ -1,6 +1,7 @@
 import type { FinanceOverduePayerGroup, FinanceInstallmentRow } from "@lazuli/validators";
 
-type InstallmentGroupRow = Omit<FinanceInstallmentRow, "payer" | "beneficiaries"> & {
+type InstallmentGroupRow = Omit<FinanceInstallmentRow, "payer" | "beneficiaries" | "material"> & {
+  material?: FinanceInstallmentRow["material"] | null;
   payerId: string;
   payerName: string;
   dueDateSort: string;

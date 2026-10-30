@@ -203,13 +203,13 @@ function ledgerSelection(input: {
     "Installment.id as installmentId",
     "Order.id as orderId",
     "Order.kind as origin",
-    sql<
-      InstallmentQueryRow["material"]
-    >`case when "MaterialOrder".order_id is not null then json_build_object(
-      'name', "MaterialOrder".name,
-      'payment', "MaterialOrder".payment,
-      'installmentCount', "MaterialOrder".quoted_installments
-    ) end`.as("material"),
+    sql<InstallmentQueryRow["material"]>`
+      case when "MaterialOrder".order_id is not null then json_build_object(
+        'name', "MaterialOrder".name,
+        'payment', "MaterialOrder".payment,
+        'installmentCount', "MaterialOrder".quoted_installments
+      ) end
+    `.as("material"),
     "Installment.sequence_number as sequenceNumber",
     "schedule_totals.installment_count as scheduleTotal",
     "Payer.id as payerId",

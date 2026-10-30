@@ -21,6 +21,11 @@ export const WORK_COPY: Record<
   HomeGroup["kind"],
   { action: string; outcome: string; scope: string }
 > = {
+  documents: {
+    action: "Conferir documentos",
+    outcome: "Confira os documentos pendentes dos alunos.",
+    scope: "Documentos aguardando conferência",
+  },
   health: {
     action: "Ver alunos",
     outcome: "Acompanhe o score e a recuperação do aluno.",

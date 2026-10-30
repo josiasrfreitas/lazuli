@@ -72,15 +72,20 @@ export async function assignedVisit(context: RecordContext, id: string): Promise
     format: visit.format,
     notes: visit.notes,
     assessment: visit.assessment,
-    canRecord:
-      visit.status !== "CANCELLED" &&
-      (visit.candidate.status === "WAITING" ||
-        (visit.kind === "PLACEMENT" &&
-          visit.candidate.status === "ENROLLED" &&
-          Boolean(visit.candidate.studentId) &&
-          !visit.assessment?.stageId)) &&
-      sessionEndInstant({ date: visit.date, endTime: visit.startTime }) <= context.now,
+    canRecord: canRecordVisit(visit, context.now),
   };
+}
+
+function canRecordVisit(visit: VisitRow, now: Date): boolean {
+  return Boolean(
+    visit.status !== "CANCELLED" &&
+    (visit.candidate.status === "WAITING" ||
+      (visit.kind === "PLACEMENT" &&
+        visit.candidate.status === "ENROLLED" &&
+        visit.candidate.studentId &&
+        !visit.assessment?.stageId)) &&
+    sessionEndInstant({ date: visit.date, endTime: visit.startTime }) <= now,
+  );
 }
 
 async function visitTeacherId(context: RecordContext, visit: VisitRow): Promise<string | null> {

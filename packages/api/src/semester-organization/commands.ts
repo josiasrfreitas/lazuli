@@ -131,7 +131,7 @@ async function moveToSemester(
   input: z.infer<typeof moveSchema>,
 ): Promise<{ count: number }> {
   const semesterId = input.targetSemesterId!;
-  const targetSemester = await context.database.period.findUniqueOrThrow({
+  await context.database.period.findUniqueOrThrow({
     where: { id: semesterId },
   });
   for (const selected of input.selections)
@@ -139,7 +139,6 @@ async function moveToSemester(
       input,
       selected,
       semesterId,
-      targetSemesterEnd: targetSemester.endDate,
     });
   return { count: input.selections.length };
 }
@@ -150,12 +149,10 @@ async function moveAcrossSemester(
     input,
     selected,
     semesterId,
-    targetSemesterEnd,
   }: {
     input: z.infer<typeof moveSchema>;
     selected: Selection;
     semesterId: string;
-    targetSemesterEnd: Date;
   },
 ): Promise<void> {
   const source = await context.database.semesterPlacement.findFirst({

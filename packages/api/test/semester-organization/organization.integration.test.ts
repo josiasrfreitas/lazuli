@@ -155,18 +155,24 @@ void it("loads period organization and confirms intention without creating a con
     initial.plans.map((plan) => plan.id),
     [scope.plan.id],
   );
-  assert.equal(initial.plans[0].startDate.toISOString().slice(0, 10), "2085-07-01");
-  assert.equal(initial.placements[0].confirmation, "PENDING");
+  const [initialPlan] = initial.plans;
+  const [initialPlacement] = initial.placements;
+  assert.ok(initialPlan);
+  assert.ok(initialPlacement);
+  assert.equal(initialPlan.startDate.toISOString().slice(0, 10), "2085-07-01");
+  assert.equal(initialPlacement.confirmation, "PENDING");
 
   await caller().semesterOrganization.continuity({
     semesterId: scope.semester.id,
     id: student.proposal.id,
-    version: initial.placements[0].version,
+    version: initialPlacement.version,
     continuity: "STAY",
   });
   const confirmed = await caller().semesterOrganization.detail({ semesterId: scope.semester.id });
-  assert.equal(confirmed.placements[0].confirmation, "CONFIRMED");
-  assert.equal(confirmed.placements[0].publishedAt, null);
+  const [confirmedPlacement] = confirmed.placements;
+  assert.ok(confirmedPlacement);
+  assert.equal(confirmedPlacement.confirmation, "CONFIRMED");
+  assert.equal(confirmedPlacement.publishedAt, null);
   assert.equal(await db.contract.count({ where: { studentId: student.id } }), 0);
   assert.equal(await db.enrollment.count({ where: { studentId: student.id } }), 1);
 });

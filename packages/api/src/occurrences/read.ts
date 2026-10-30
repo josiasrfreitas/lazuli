@@ -147,17 +147,7 @@ export async function occurrenceDetail(
       include: { author: { select: { id: true, name: true } } },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     }),
-    context.database.occurrenceRelation.findMany({
-      where: {
-        deletedAt: null,
-        OR: [
-          { fromId: id, to: occurrenceScope(context) },
-          { toId: id, from: occurrenceScope(context) },
-        ],
-      },
-      include: { from: { include: occurrenceInclude }, to: { include: occurrenceInclude } },
-      orderBy: { createdAt: "asc" },
-    }),
+    occurrenceRelations(context, id),
     context.database.pedagogicalIntervention.findMany({
       where: {
         ...interventionScope(context),
@@ -174,6 +164,30 @@ export async function occurrenceDetail(
     canEdit: context.staffUser.role !== "TEACHER" || row.recordedById === context.staffUser.id,
     canOrganize: context.staffUser.role !== "TEACHER",
   };
+}
+
+function occurrenceRelations(
+  context: FollowUpContext,
+  id: string,
+): Promise<
+  Prisma.OccurrenceRelationGetPayload<{
+    include: {
+      from: { include: typeof occurrenceInclude };
+      to: { include: typeof occurrenceInclude };
+    };
+  }>[]
+> {
+  return context.database.occurrenceRelation.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        { fromId: id, to: occurrenceScope(context) },
+        { toId: id, from: occurrenceScope(context) },
+      ],
+    },
+    include: { from: { include: occurrenceInclude }, to: { include: occurrenceInclude } },
+    orderBy: { createdAt: "asc" },
+  });
 }
 export async function interventionDetail(
   context: FollowUpContext,

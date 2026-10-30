@@ -18,6 +18,7 @@ const ISO_YEAR_END_INDEX = 4;
 const MONTHS_PER_YEAR = 12;
 const ISO_MONTH_START_INDEX = 5;
 const ISO_MONTH_END_INDEX = 7;
+const FULL_SCHOLARSHIP_PCT = 100;
 
 // Explicit scope until the SGF catalog supplies a durable language attribute.
 const ENGLISH_TRACKS = [
@@ -46,7 +47,7 @@ export async function materialOrderData(input: {
   const { database, material, settings, firstDueDate, staffUserId } = input;
   const orderedStages = await materialStages(database, material.stageIds);
   const { quote, cash, cardFeePct } = quotedMaterial(material, settings);
-  const scholarship = scholarshipQuote(quote, material, cardFeePct);
+  const scholarship = scholarshipQuote(quote, { material, cardFeePct });
   const receivableCents = scholarship.receivableCents;
   return {
     kind: "MATERIAL",
@@ -81,8 +82,7 @@ export async function materialOrderData(input: {
 
 function scholarshipQuote(
   quote: ReturnType<typeof materialPriceQuote>,
-  material: ContractMaterialInput,
-  cardFeePct: number,
+  { material, cardFeePct }: { material: ContractMaterialInput; cardFeePct: number },
 ): ReturnType<typeof materialScholarshipQuote> {
   try {
     return materialScholarshipQuote({
@@ -92,11 +92,11 @@ function scholarshipQuote(
       cardFeePct,
       priceOverrideCents: material.priceOverrideCents,
     });
-  } catch (cause) {
+  } catch (error) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: cause instanceof Error ? cause.message : "Confira os valores da bolsa de material.",
-      cause,
+      message: error instanceof Error ? error.message : "Confira os valores da bolsa de material.",
+      cause: error,
     });
   }
 }
@@ -172,15 +172,15 @@ function materialCreateData(input: {
 }): Prisma.MaterialOrderCreateWithoutOrderInput {
   const { orderedStages, material, quote, cash, cardFeePct } = input;
   const stage = orderedStages[0]!;
-  const scholarship = scholarshipQuote(quote, material, cardFeePct);
+  const scholarship = scholarshipQuote(quote, { material, cardFeePct });
   let installments;
   try {
     installments = materialInstallmentPlan(scholarship.chargedCents, material.installmentCount);
-  } catch (cause) {
+  } catch (error) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: cause instanceof Error ? cause.message : "Confira o parcelamento do material.",
-      cause,
+      message: error instanceof Error ? error.message : "Confira o parcelamento do material.",
+      cause: error,
     });
   }
   return {
@@ -269,7 +269,7 @@ async function materialContract(
   });
   const first =
     contract?.orders[0]?.firstDueDate ??
-    (Number(contract?.scholarshipPct) === 100 ? contract?.startsOn : null);
+    (Number(contract?.scholarshipPct) === FULL_SCHOLARSHIP_PCT ? contract?.startsOn : null);
   if (!contract || !first)
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -282,12 +282,24 @@ async function materialContract(
       MONTHS_PER_YEAR +
     Number(values.firstDueDate.slice(ISO_MONTH_START_INDEX, ISO_MONTH_END_INDEX)) -
     Number(anchor.slice(ISO_MONTH_START_INDEX, ISO_MONTH_END_INDEX));
-  if (monthDistance < 0 || addCalendarMonths(anchor, monthDistance) !== values.firstDueDate)
+  assertMaterialDueDate({ anchor, monthDistance, firstDueDate: values.firstDueDate });
+  return { contractId: contract.id, anchor, monthDistance };
+}
+
+function assertMaterialDueDate({
+  anchor,
+  monthDistance,
+  firstDueDate,
+}: {
+  anchor: string;
+  monthDistance: number;
+  firstDueDate: string;
+}): void {
+  if (monthDistance < 0 || addCalendarMonths(anchor, monthDistance) !== firstDueDate)
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "O material deve seguir o dia de vencimento do contrato.",
     });
-  return { contractId: contract.id, anchor, monthDistance };
 }
 
 const materialOptionsSelect = {
