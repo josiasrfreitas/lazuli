@@ -1,6 +1,19 @@
 # PR #225 — lint progress
 
-> **LOCKED BATCH 10: 49 root seed errors.** Five in `scripts/seed/admissions.ts`, 28 in `scripts/seed-pending-validation.ts`, and 16 in `scripts/seed-renewal-validation.ts`. Source snapshot: `/tmp/lazuli-pr225-lint-after-batch9.json`; latest remaining: 248. Completion gate: targeted lint, sequential typecheck, and serial root inventory.
+> **LOCKED BATCH 11: 50 web errors across 8 files.** Source snapshot: `/tmp/lazuli-pr225-lint-after-batch10.json`; latest remaining: 199. Completion gate: targeted web lint, web typecheck/relevant tests, serial root lint, and zero-new-error inventory.
+
+| Batch 11 file                                                   | Errors |
+| --------------------------------------------------------------- | -----: |
+| `apps/web/src/features/teacher-workspace/home-pending.tsx`      |      9 |
+| `apps/web/src/features/installments/payment/payment-grid.tsx`   |      7 |
+| `apps/web/src/features/contracts/contract-form-model.ts`        |      6 |
+| `apps/web/src/features/contracts/contract-setup-sections.tsx`   |      6 |
+| `apps/web/src/features/students/profile/contract-invoice.tsx`   |      6 |
+| `apps/web/src/features/students/profile/student-materials.tsx`  |      6 |
+| `apps/web/src/features/installments/payment/draft.ts`           |      5 |
+| `apps/web/src/features/admin-home/home-pending-occurrences.tsx` |      5 |
+
+Batch 10 closed: targeted lint reports zero errors and warnings in the three locked scripts. DB typecheck passes. Serial root lint still fails outside this batch. Machine-readable comparison shows 248 → 199 errors, exactly 49 removed and zero added. Snapshot: `/tmp/lazuli-pr225-lint-after-batch10.json`. The pending-validation script's long transaction was split into smaller steps without changing its data order; the local-only destructive seed was not run.
 
 Batch 9 closed: `scripts/seed/semester-organization.ts` (48) and two unused constants in `scripts/seed/admissions.ts` (2) account for exactly 50 removed errors, 298 → 248. The organization script now has zero lint errors. Snapshot: `/tmp/lazuli-pr225-lint-after-batch9.json`. Typecheck had already identified the same stale `Semester` import and remaining unused declarations in admissions; rerun after batch 10.
 

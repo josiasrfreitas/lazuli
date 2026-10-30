@@ -6,7 +6,6 @@ import {
   DEV_TEACHERS,
   type DevClassSeed,
   type DevStudentSeed,
-  type DevWeekday,
 } from "../../packages/db/src/seed-dev-data.js";
 import { addDays, stableUuid, timeOfDay, utcDate } from "../../packages/db/src/seed-dev-support.js";
 
@@ -182,7 +181,7 @@ function candidateNotes(input: CandidateRecordInput): string {
 }
 
 function candidatePedagogy(input: CandidateRecordInput): PedagogySeed {
-  const { candidate, classSeed, archived, todayIso, unknownPedagogy } = input;
+  const { classSeed, unknownPedagogy } = input;
   return {
     scheduleType: unknownPedagogy ? null : (classSeed.scheduleType ?? "REGULAR"),
     format: unknownPedagogy ? null : "IN_PERSON",
