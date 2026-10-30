@@ -75,7 +75,7 @@ void it("returns zero counts when matching classes have no session rows", async 
     class: {
       findMany: () => Promise.resolve([{ id: CLASS_ID, semester, scheduleSlots: [] }]),
     },
-    semester: { findMany: () => Promise.resolve([semester]) },
+    period: { findMany: () => Promise.resolve([semester]) },
     schoolClosedDay: { findMany: () => Promise.resolve([]) },
     classSession: {
       createMany: () => {

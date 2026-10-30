@@ -17,7 +17,6 @@ const ANALYTICS_PATH = "/financeiro";
 const CLASSES_PATH = "/turmas";
 const ASSESSMENTS_PATH = "/avaliacoes";
 const CLASS_RECORDS_PATH = "/aulas";
-const ORGANIZATION_PATH = "/organizacao";
 const MATERIALS_PATH = "/estagios";
 const RECEIVABLES_PATH = "/recebiveis";
 const CONTRACTS_PATH = "/contratos";
@@ -54,7 +53,6 @@ void describe("role-aware navigation", () => {
         CLASSES_PATH,
         CLASS_RECORDS_PATH,
         MATERIALS_PATH,
-        ORGANIZATION_PATH,
         LEADS_PATH,
         ANALYTICS_PATH,
         CONTRACTS_PATH,
@@ -74,14 +72,7 @@ void describe("role-aware navigation", () => {
       { label: null, items: ["Início"] },
       {
         label: PEDAGOGICAL_LABEL,
-        items: [
-          STUDENTS_LABEL,
-          "Professores",
-          "Turmas",
-          "Agenda",
-          "Estágios",
-          "Organização de turmas",
-        ],
+        items: [STUDENTS_LABEL, "Professores", "Turmas", "Agenda", "Estágios"],
       },
       { label: "Comercial", items: ["Leads"] },
       { label: "Financeiro", items: ["Visão financeira", "Contratos", "Recebíveis"] },
@@ -148,7 +139,6 @@ void it("shows Ajustes only to SYSTEM_ADMIN while preserving inherited navigatio
       CLASSES_PATH,
       CLASS_RECORDS_PATH,
       MATERIALS_PATH,
-      ORGANIZATION_PATH,
       LEADS_PATH,
       ANALYTICS_PATH,
       CONTRACTS_PATH,

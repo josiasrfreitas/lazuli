@@ -62,7 +62,18 @@ void it("submits a real named form with calendar controls", () => {
   );
   assert.deepEqual(
     inputs.map((tag) => /name="([^"]+)"/u.exec(tag)?.[1]),
-    ["payerSearch", "agreedOn", "firstDueDate", "endsOn", "monthlyAmount"],
+    [
+      "payerSearch",
+      "agreedOn",
+      "firstDueDate",
+      "endsOn",
+      "monthlyAmount",
+      "enrollmentFee",
+      "scholarshipPct",
+      "material-stage-0",
+      "materialInstallments",
+      "materialScholarshipPct",
+    ],
   );
   for (const tag of inputs) {
     assert.match(tag, /placeholder="[^"]+"/u);

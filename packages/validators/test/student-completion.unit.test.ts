@@ -13,7 +13,20 @@ const student = {
 const contract = {
   commandId,
   newStudent: student,
-  newPayer: { name: "Maria Souza" },
+  newPayer: {
+    name: "Maria Souza",
+    documentType: "RG",
+    documentNumber: "7654321",
+    phone: "82999991111",
+  },
+  material: {
+    stageIds: ["00000000-0000-4000-8000-000000000012"],
+    category: "ADULT",
+    payment: "CASH",
+    installmentCount: 1,
+    quoteVersion: "a".repeat(64),
+    expectedTotalCents: 10_000,
+  },
   agreedOn: "2026-03-15",
   startsOn: "2026-03-31",
   durationMonths: 12,
